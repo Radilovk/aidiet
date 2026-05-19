@@ -3250,42 +3250,54 @@
         let tipsInterval = null; // Store tips rotation interval reference
         
         const DIAGNOSTIC_LOG_LINES = [
-            { at: 300, phase: 'cold', text: '[INIT] Инициализация на потребителски масив... OK' },
-            { at: 1800, phase: 'cold', text: '[DATA] Парсване на антропометрия и демография...' },
-            { at: 3600, phase: 'cold', text: '[CALC] Екстраполация на базов метаболитен индекс (BMR)...' },
-            { at: 5600, phase: 'cold', text: '[TARGET] Индексиран вектор: Оптимизация на телесна композиция.' },
-            { at: 7300, phase: 'amber', text: '[SCAN] Кръстосан анализ на клиничен статус и медикаментозен прием...' },
-            { at: 9300, phase: 'amber', text: '[WARN] Отчетена метаболитна флуктуация от исторически диети...', haptic: true },
-            { at: 11600, phase: 'amber', text: '[DATA] Интегриране на маркери от прикачени лабораторни анализи...' },
-            { at: 13900, phase: 'amber', text: '[OK] Патологичните филтри са приложени към базата.' },
-            { at: 15400, phase: 'critical', text: '[ANALYSIS] Калкулиране на циркаден ритъм и сънна архитектура...' },
-            { at: 17400, phase: 'critical', text: '[CRITICAL] Идентифицирани поведенчески тригъри и емоционално хранене...', haptic: true },
-            { at: 19700, phase: 'critical', text: '[BEHAVIOR] Анализ на компенсаторни механизми и високи нива на стрес...' },
-            { at: 22000, phase: 'critical', text: '[OK] Невро-хормоналният профил е изолиран и картографиран.' },
-            { at: 23400, phase: 'success', text: '[SYNTHESIS] Генериране на персонализирана макронутриентна матрица...' },
-            { at: 25400, phase: 'success', text: '[FILTER] Изключване на алергени и селекция на оптимални нутриенти...' },
-            { at: 27600, phase: 'success', text: '[CALC] Интеграция на тотален енергиен разход (TDEE + активност)...' },
-            { at: 29600, phase: 'success', text: '[SUCCESS] Алгоритъмът "Hexagon MED AI" е калибриран успешно.' }
+            { at: 300, phase: 'cold', text: 'Инициализиране на персоналния здравен профил', haptic: true },
+            { at: 1800, phase: 'cold', text: 'Подреждане на антропометрия, демография и цели' },
+            { at: 3600, phase: 'cold', text: 'Изчисляване на базов метаболизъм и дневен разход' },
+            { at: 5600, phase: 'cold', text: 'Калибриране на целевия вектор за промяна' },
+            { at: 7300, phase: 'amber', text: 'Кръстосан анализ на здравен статус и медикаменти', haptic: true },
+            { at: 9300, phase: 'amber', text: 'Откриване на метаболитни флуктуации и рискови фактори' },
+            { at: 11600, phase: 'amber', text: 'Интегриране на лабораторни маркери и симптоми' },
+            { at: 13900, phase: 'amber', text: 'Прилагане на клинични филтри към анализа' },
+            { at: 15400, phase: 'critical', text: 'Моделиране на сън, стрес и циркаден ритъм', haptic: true },
+            { at: 17400, phase: 'critical', text: 'Идентифициране на поведенчески тригъри' },
+            { at: 19700, phase: 'critical', text: 'Оценка на компенсаторни механизми и възстановяване' },
+            { at: 22000, phase: 'critical', text: 'Финално картографиране на здравния риск' },
+            { at: 23400, phase: 'success', text: 'Синтез на персонализирана макронутриентна матрица', haptic: true },
+            { at: 25400, phase: 'success', text: 'Проверка за алергени, предпочитания и ограничения' },
+            { at: 27600, phase: 'success', text: 'Финална валидация на анализа преди отваряне' },
+            { at: 29600, phase: 'success', text: 'Анализът остава активен до реална готовност на данните' }
         ];
 
         function triggerDiagnosticHaptic() {
             if (navigator.vibrate) {
-                navigator.vibrate([28, 18, 28]);
+                navigator.vibrate([18, 12, 18]);
             }
         }
 
         function renderDiagnosticLoading(isResume = false) {
             container.innerHTML = `
                 <div class="diagnostic-loader" aria-live="polite" aria-busy="true">
+                    <div class="diagnostic-bg diagnostic-bg-one"></div>
+                    <div class="diagnostic-bg diagnostic-bg-two"></div>
                     <div class="diagnostic-top">
-                        <div class="diagnostic-orb" id="diagnosticOrb">
-                            <div class="ai-hex-loader"></div>
+                        <div class="diagnostic-orb-wrap">
+                            <div class="diagnostic-orb" id="diagnosticOrb">
+                                <div class="ai-hex-loader"></div>
+                            </div>
+                            <div class="diagnostic-ring"></div>
                         </div>
+                        <div class="diagnostic-kicker">AI здравен анализ</div>
                         <h2 class="q-text" id="loadingTitle">Структуриране на Био-масива...</h2>
                         <p class="diagnostic-subtitle" id="loadingSubtitle">${isResume ? 'Продължаваме анализа от активна сесия' : 'Hexagon MED AI обработва въведените данни'}</p>
                         <div id="progressPercentage" class="diagnostic-percent">0%</div>
                         <div class="diagnostic-progress-track">
                             <div id="aiProgressBar" class="diagnostic-progress-fill"></div>
+                        </div>
+                        <div class="diagnostic-step-row" aria-hidden="true">
+                            <span class="diagnostic-step-dot active"></span>
+                            <span class="diagnostic-step-dot"></span>
+                            <span class="diagnostic-step-dot"></span>
+                            <span class="diagnostic-step-dot"></span>
                         </div>
                         <p id="safeCloseMsg" class="diagnostic-safe">
                             <i class="fas fa-shield-alt"></i> Генерирането продължава защитено във фонов режим
@@ -3312,15 +3324,59 @@
                         overflow: hidden;
                     }
                     .diagnostic-loader {
+                        position: relative;
                         width: 100%;
                         height: calc(100dvh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom) - 20px);
                         display: grid;
-                        grid-template-rows: minmax(0, 0.92fr) minmax(0, 1.08fr);
-                        gap: 10px;
+                        grid-template-rows: minmax(0, .98fr) minmax(180px, .82fr);
+                        gap: clamp(10px, 2.4dvh, 18px);
                         max-width: 560px;
                         margin: 0 auto;
+                        padding: clamp(10px, 2dvh, 18px);
+                        border-radius: 34px;
+                        background:
+                            linear-gradient(145deg, rgba(255,255,255,.84), rgba(204,251,241,.48)),
+                            radial-gradient(circle at 18% 8%, rgba(45,212,191,.24), transparent 34%),
+                            radial-gradient(circle at 88% 16%, rgba(59,130,246,.16), transparent 32%),
+                            var(--bg-color);
+                        border: 1px solid rgba(13,148,136,.14);
+                        box-shadow: 0 28px 70px rgba(13,148,136,.16), inset 0 1px 0 rgba(255,255,255,.72);
                         animation: diagnosticFadeIn .35s ease-out both;
                         overflow: hidden;
+                        isolation: isolate;
+                    }
+                    [data-theme="dark"] .diagnostic-loader {
+                        background:
+                            linear-gradient(145deg, rgba(15,47,46,.92), rgba(8,28,30,.96)),
+                            radial-gradient(circle at 18% 8%, rgba(45,212,191,.20), transparent 34%),
+                            radial-gradient(circle at 88% 16%, rgba(96,165,250,.14), transparent 32%),
+                            var(--bg-color);
+                        border-color: rgba(45,212,191,.18);
+                        box-shadow: 0 28px 70px rgba(0,0,0,.40), inset 0 1px 0 rgba(255,255,255,.06);
+                    }
+                    .diagnostic-bg {
+                        position: absolute;
+                        pointer-events: none;
+                        border-radius: 999px;
+                        filter: blur(2px);
+                        opacity: .7;
+                        z-index: -1;
+                    }
+                    .diagnostic-bg-one {
+                        width: 180px;
+                        height: 180px;
+                        left: -78px;
+                        top: 12%;
+                        background: radial-gradient(circle, rgba(45,212,191,.30), transparent 68%);
+                        animation: diagnosticFloat 8s ease-in-out infinite;
+                    }
+                    .diagnostic-bg-two {
+                        width: 210px;
+                        height: 210px;
+                        right: -92px;
+                        bottom: -44px;
+                        background: radial-gradient(circle, rgba(251,191,36,.18), transparent 70%);
+                        animation: diagnosticFloat 9s ease-in-out infinite reverse;
                     }
                     .diagnostic-top {
                         display: flex;
@@ -3328,83 +3384,147 @@
                         justify-content: center;
                         text-align: center;
                         min-height: 0;
-                        padding: 4px;
+                        padding: 0 clamp(2px, 1vw, 8px);
+                    }
+                    .diagnostic-orb-wrap {
+                        position: relative;
+                        width: clamp(104px, 28vw, 132px);
+                        height: clamp(104px, 28vw, 132px);
+                        margin: 0 auto clamp(12px, 2dvh, 18px);
+                        display: grid;
+                        place-items: center;
                     }
                     .diagnostic-orb {
-                        width: 76px;
-                        height: 76px;
-                        margin: 0 auto 12px;
-                        border-radius: 50%;
+                        position: relative;
+                        z-index: 2;
+                        width: clamp(74px, 20vw, 92px);
+                        height: clamp(74px, 20vw, 92px);
+                        border-radius: 30px;
                         display: flex;
                         align-items: center;
                         justify-content: center;
                         color: var(--primary-red);
-                        background: var(--card-bg);
-                        border: 1px solid var(--glass-border);
-                        box-shadow: var(--shadow);
-                        animation: diagnosticPulse 1.7s ease-in-out infinite;
-                        transition: color .45s ease, box-shadow .45s ease, background .45s ease, transform .45s ease;
+                        background: linear-gradient(160deg, rgba(255,255,255,.95), rgba(240,253,250,.70));
+                        border: 1px solid rgba(13,148,136,.16);
+                        box-shadow: 0 18px 38px rgba(13,148,136,.20), inset 0 1px 0 rgba(255,255,255,.9);
+                        animation: diagnosticPulse 1.9s ease-in-out infinite;
+                        transition: color .45s ease, box-shadow .45s ease, background .45s ease, transform .45s ease, border-color .45s ease;
                     }
-                    .diagnostic-orb.amber { color:#d97706; border-color:rgba(245,158,11,.28); box-shadow:0 10px 28px rgba(245,158,11,.12); }
-                    .diagnostic-orb.critical { color:#dc2626; border-color:rgba(220,38,38,.28); box-shadow:0 10px 28px rgba(220,38,38,.14); }
-                    .diagnostic-orb.success { color:var(--primary-red); border-color:var(--glass-border); box-shadow:var(--shadow); transform:scale(1.03); }
-                    .diagnostic-subtitle { color: var(--text-gray); margin: 6px 0 12px; font-size: clamp(.82rem, 3.4vw, .95rem); line-height: 1.35; }
-                    .diagnostic-percent { color: var(--text-dark); font-size: 1.05rem; font-weight: 800; margin-bottom: 8px; }
-                    .diagnostic-progress-track { width: 100%; height: 14px; background: rgba(15,47,46,.12); border-radius: 99px; overflow: hidden; box-shadow: inset 0 2px 5px rgba(0,0,0,.12); }
-                    .diagnostic-progress-fill { height: 100%; width: 0%; border-radius: inherit; background: linear-gradient(90deg,var(--primary-red),#2DD4BF); box-shadow: 0 0 12px rgba(13,148,136,.22); transition: width .75s cubic-bezier(.22,1,.36,1), background .45s ease, box-shadow .45s ease; position: relative; overflow: hidden; }
-                    .diagnostic-progress-fill::after { content:''; position:absolute; inset:0; transform:translateX(-100%); background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent); animation:diagnosticShine 1.6s infinite; }
-                    .diagnostic-progress-fill.amber { background:linear-gradient(90deg,#d97706,#fbbf24); box-shadow:0 0 18px rgba(245,158,11,.38); }
-                    .diagnostic-progress-fill.critical { background:linear-gradient(90deg,#dc2626,#fb7185); box-shadow:0 0 20px rgba(220,38,38,.42); }
-                    .diagnostic-progress-fill.success { background:linear-gradient(90deg,#0D9488,#2DD4BF); box-shadow:0 0 24px rgba(13,148,136,.46); }
-                    .diagnostic-safe { color:#0D9488; margin-top:12px; font-size:.82rem; font-weight:700; opacity:0; transition:opacity .35s ease; }
+                    [data-theme="dark"] .diagnostic-orb {
+                        background: linear-gradient(160deg, rgba(20,55,55,.95), rgba(8,28,30,.86));
+                        box-shadow: 0 18px 42px rgba(0,0,0,.38), 0 0 26px rgba(45,212,191,.16), inset 0 1px 0 rgba(255,255,255,.08);
+                    }
+                    .diagnostic-ring {
+                        position: absolute;
+                        inset: 0;
+                        border-radius: 50%;
+                        background: conic-gradient(from 90deg, rgba(13,148,136,.08), rgba(45,212,191,.95), rgba(251,191,36,.70), rgba(13,148,136,.08));
+                        mask: radial-gradient(farthest-side, transparent calc(100% - 10px), #000 calc(100% - 9px));
+                        -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 10px), #000 calc(100% - 9px));
+                        animation: diagnosticRing 2.6s linear infinite;
+                    }
+                    .diagnostic-orb.amber { color:#d97706; border-color:rgba(245,158,11,.34); box-shadow:0 18px 38px rgba(245,158,11,.18), inset 0 1px 0 rgba(255,255,255,.68); }
+                    .diagnostic-orb.critical { color:#dc2626; border-color:rgba(220,38,38,.32); box-shadow:0 18px 38px rgba(220,38,38,.18), inset 0 1px 0 rgba(255,255,255,.62); }
+                    .diagnostic-orb.success { color:var(--primary-red); border-color:rgba(13,148,136,.30); box-shadow:0 20px 44px rgba(13,148,136,.26), 0 0 24px rgba(45,212,191,.22); transform:scale(1.03); }
+                    .diagnostic-kicker {
+                        align-self: center;
+                        margin-bottom: 8px;
+                        padding: 7px 12px;
+                        border-radius: 999px;
+                        color: var(--primary-red);
+                        background: rgba(13,148,136,.10);
+                        border: 1px solid rgba(13,148,136,.14);
+                        font-size: clamp(.72rem, 2.8vw, .82rem);
+                        font-weight: 900;
+                        letter-spacing: .08em;
+                        text-transform: uppercase;
+                    }
+                    [data-theme="dark"] .diagnostic-kicker { background: rgba(45,212,191,.10); border-color: rgba(45,212,191,.18); }
+                    .diagnostic-subtitle { color: var(--text-gray); margin: 6px 0 12px; font-size: clamp(.86rem, 3.4vw, .98rem); line-height: 1.4; }
+                    .diagnostic-percent { color: var(--text-dark); font-size: clamp(1.15rem, 5.4vw, 1.55rem); font-weight: 950; letter-spacing: -.03em; margin-bottom: 8px; }
+                    .diagnostic-progress-track { width: 100%; height: 15px; background: rgba(15,47,46,.10); border-radius: 99px; overflow: hidden; box-shadow: inset 0 2px 7px rgba(0,0,0,.13), 0 1px 0 rgba(255,255,255,.62); }
+                    [data-theme="dark"] .diagnostic-progress-track { background: rgba(224,245,240,.10); box-shadow: inset 0 2px 7px rgba(0,0,0,.32); }
+                    .diagnostic-progress-fill { height: 100%; width: 0%; border-radius: inherit; background: linear-gradient(90deg,#0D9488,#2DD4BF,#99F6E4); box-shadow: 0 0 18px rgba(13,148,136,.28); transition: width .75s cubic-bezier(.22,1,.36,1), background .45s ease, box-shadow .45s ease; position: relative; overflow: hidden; }
+                    .diagnostic-progress-fill::after { content:''; position:absolute; inset:0; transform:translateX(-100%); background:linear-gradient(90deg,transparent,rgba(255,255,255,.65),transparent); animation:diagnosticShine 1.45s infinite; }
+                    .diagnostic-progress-fill.amber { background:linear-gradient(90deg,#d97706,#fbbf24,#fde68a); box-shadow:0 0 20px rgba(245,158,11,.42); }
+                    .diagnostic-progress-fill.critical { background:linear-gradient(90deg,#dc2626,#fb7185,#fecdd3); box-shadow:0 0 22px rgba(220,38,38,.42); }
+                    .diagnostic-progress-fill.success { background:linear-gradient(90deg,#0D9488,#2DD4BF,#99F6E4); box-shadow:0 0 26px rgba(13,148,136,.48); }
+                    .diagnostic-step-row { display:flex; justify-content:center; gap:7px; margin-top:12px; }
+                    .diagnostic-step-dot { width:7px; height:7px; border-radius:999px; background:rgba(13,148,136,.22); transition:width .3s ease, background .3s ease, box-shadow .3s ease; }
+                    .diagnostic-step-dot.active { width:22px; background:var(--primary-red); box-shadow:0 0 12px rgba(13,148,136,.34); }
+                    .diagnostic-safe { color:#0D9488; margin-top:12px; font-size:.82rem; font-weight:800; opacity:0; transition:opacity .35s ease; }
+                    [data-theme="dark"] .diagnostic-safe { color:#5eead4; }
                     .diagnostic-terminal-wrap { min-height: 0; display:flex; align-items:stretch; }
                     .diagnostic-terminal {
+                        position: relative;
                         width:100%;
                         height:100%;
-                        min-height: 260px;
-                        max-height: 48dvh;
+                        min-height: 210px;
+                        max-height: 42dvh;
                         overflow:hidden;
-                        padding: 18px 16px;
+                        padding: 16px;
                         border: 1px solid rgba(13,148,136,.16);
-                        border-radius: 20px;
-                        background: var(--card-bg);
-                        box-shadow: var(--shadow);
-                        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-                        font-size: clamp(.78rem, 3.2vw, .94rem);
-                        line-height: 1.45;
+                        border-radius: 24px;
+                        background: rgba(255,255,255,.64);
+                        box-shadow: 0 16px 40px rgba(13,148,136,.13), inset 0 1px 0 rgba(255,255,255,.66);
+                        backdrop-filter: blur(18px) saturate(170%);
+                        -webkit-backdrop-filter: blur(18px) saturate(170%);
+                        font-size: clamp(.86rem, 3.45vw, .98rem);
+                        line-height: 1.42;
                         color: var(--text-dark);
                         display:flex;
                         flex-direction:column;
                         justify-content:flex-end;
                     }
+                    .diagnostic-terminal::before {
+                        content: '';
+                        position: absolute;
+                        inset: 0;
+                        pointer-events: none;
+                        background: linear-gradient(to bottom, rgba(240,253,250,.78), transparent 24%, transparent 72%, rgba(240,253,250,.56));
+                    }
                     [data-theme="dark"] .diagnostic-terminal {
-                        background: var(--card-bg);
+                        background: rgba(20,55,55,.62);
                         border-color: var(--glass-border);
                         color: var(--text-dark);
+                        box-shadow: 0 16px 40px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.06);
                     }
-                    .diagnostic-log-line { opacity:0; transform:translateY(20px); padding:5px 0; white-space:normal; overflow-wrap:anywhere; transition:opacity .42s ease, transform .42s ease, filter .42s ease; }
+                    [data-theme="dark"] .diagnostic-terminal::before { background: linear-gradient(to bottom, rgba(10,26,26,.70), transparent 24%, transparent 72%, rgba(10,26,26,.58)); }
+                    .diagnostic-log-line { position:relative; opacity:0; transform:translateY(16px); margin:5px 0; padding:10px 12px 10px 36px; border-radius:16px; background:rgba(13,148,136,.075); white-space:normal; overflow-wrap:anywhere; transition:opacity .42s ease, transform .42s ease, filter .42s ease, background .42s ease; }
+                    .diagnostic-log-line::before { content:'✓'; position:absolute; left:12px; top:10px; width:17px; height:17px; display:grid; place-items:center; border-radius:50%; background:rgba(13,148,136,.14); color:var(--primary-red); font-size:.68rem; font-weight:900; }
                     .diagnostic-log-line.visible { opacity:.72; transform:translateY(0); }
-                    .diagnostic-log-line.latest { opacity:1; font-weight:800; animation:latestPulse 1.1s ease-in-out infinite; }
-                    .diagnostic-log-line.warn, .diagnostic-log-line.critical { color:#991b1b; }
-                    [data-theme="dark"] .diagnostic-log-line.warn,
-                    [data-theme="dark"] .diagnostic-log-line.critical { color:#fca5a5; }
-                    .ai-hex-loader{width:54px;aspect-ratio:1.154;color:currentColor;display:grid;animation:aiHex0 6s infinite linear;}
+                    .diagnostic-log-line.latest { opacity:1; font-weight:850; background:rgba(13,148,136,.13); animation:latestPulse 1.15s ease-in-out infinite; }
+                    .diagnostic-log-line.warn { background:rgba(245,158,11,.12); }
+                    .diagnostic-log-line.warn::before { content:'!'; color:#d97706; background:rgba(245,158,11,.16); }
+                    .diagnostic-log-line.critical { background:rgba(220,38,38,.10); }
+                    .diagnostic-log-line.critical::before { content:'•'; color:#dc2626; background:rgba(220,38,38,.14); }
+                    [data-theme="dark"] .diagnostic-log-line { background:rgba(45,212,191,.09); }
+                    [data-theme="dark"] .diagnostic-log-line.latest { background:rgba(45,212,191,.15); }
+                    [data-theme="dark"] .diagnostic-log-line.warn { background:rgba(245,158,11,.14); }
+                    [data-theme="dark"] .diagnostic-log-line.critical { background:rgba(248,113,113,.14); }
+                    .ai-hex-loader{width:54px;aspect-ratio:1.154;color:currentColor;display:grid;animation:aiHex0 6s infinite linear;filter:drop-shadow(0 8px 16px rgba(13,148,136,.20));}
                     .ai-hex-loader::before,.ai-hex-loader::after{content:"";grid-area:1/1;}
                     .ai-hex-loader::before{clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%);background:conic-gradient(from -30deg,#0000 60deg,currentColor 0);}
                     .ai-hex-loader::after{background:conic-gradient(from -30deg,currentColor 60deg,#0000 0);animation:aiHex1 .5s infinite alternate;}
                     @keyframes aiHex0{0%,16.66%{transform:rotate(0deg)}16.67%,33.33%{transform:rotate(60deg)}33.34%,50%{transform:rotate(120deg)}50.1%,66.66%{transform:rotate(180deg)}66.67%,83.33%{transform:rotate(240deg)}83.34%,100%{transform:rotate(300deg)}}
                     @keyframes aiHex1{100%{transform:translateY(-18px)}}
-                    @keyframes diagnosticPulse{50%{transform:scale(1.06)}}
+                    @keyframes diagnosticPulse{50%{transform:scale(1.055) rotate(1deg)}}
+                    @keyframes diagnosticRing{to{transform:rotate(360deg)}}
+                    @keyframes diagnosticFloat{50%{transform:translate3d(14px,-12px,0) scale(1.06)}}
                     @keyframes diagnosticShine{100%{transform:translateX(100%)}}
-                    @keyframes latestPulse{50%{filter:brightness(1.25); text-shadow:0 0 10px rgba(13,148,136,.28)}}
+                    @keyframes latestPulse{50%{filter:brightness(1.18); text-shadow:0 0 10px rgba(13,148,136,.22)}}
                     @keyframes diagnosticFadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
                     @keyframes diagnosticExit{to{opacity:0; transform:scale(1.04)}}
                     @media (max-height: 680px) {
                         body.diagnostic-lock .question-wrapper { padding-top: calc(6px + var(--safe-area-inset-top)); padding-bottom: calc(6px + var(--safe-area-inset-bottom)); }
-                        .diagnostic-loader { height: calc(100dvh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom) - 12px); gap: 6px; }
-                        .diagnostic-orb { width: 60px; height: 60px; margin-bottom: 8px; }
+                        .diagnostic-loader { height: calc(100dvh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom) - 12px); gap: 7px; padding: 8px; border-radius: 26px; grid-template-rows: minmax(0, .95fr) minmax(150px, .72fr); }
+                        .diagnostic-orb-wrap { width: 88px; height: 88px; margin-bottom: 8px; }
+                        .diagnostic-orb { width: 64px; height: 64px; border-radius: 22px; }
                         .ai-hex-loader { width: 42px; }
-                        .diagnostic-terminal { min-height: 0; padding: 12px; font-size: clamp(.72rem, 3vw, .84rem); }
+                        .diagnostic-kicker { padding: 5px 9px; margin-bottom: 5px; }
+                        .diagnostic-subtitle { margin-bottom: 8px; }
+                        .diagnostic-terminal { min-height: 0; max-height: 36dvh; padding: 10px; font-size: clamp(.74rem, 3vw, .86rem); border-radius: 18px; }
+                        .diagnostic-log-line { margin: 3px 0; padding: 8px 10px 8px 32px; border-radius: 13px; }
                         .diagnostic-safe { margin-top: 8px; }
                     }
                 </style>
@@ -3440,7 +3560,7 @@
             const startTime = Date.now();
             let currentPhase = 'cold';
             let nextLogIndex = 0;
-            let completionArmed = false;
+            let waitingNoticeShown = false;
 
             const stages = [
                 { minTime: 0, maxTime: 7000, from: 0, to: 28, phase: 'cold', title: 'Структуриране на Био-масива...', subtitle: 'Парсираме антропометрия, демография и целеви вектор' },
@@ -3460,13 +3580,17 @@
                     progressBar.classList.add(phase);
                     if (orb) orb.classList.add(phase);
                 }
+                const phaseIndex = { cold: 0, amber: 1, critical: 2, success: 3 }[phase] || 0;
+                document.querySelectorAll('.diagnostic-step-dot').forEach((dot, index) => {
+                    dot.classList.toggle('active', index <= phaseIndex);
+                });
             }
 
             function appendLog(line) {
                 const el = document.createElement('div');
                 el.className = 'diagnostic-log-line';
-                if (line.text.includes('[WARN]')) el.classList.add('warn');
-                if (line.text.includes('[CRITICAL]')) el.classList.add('critical');
+                if (line.phase === 'amber') el.classList.add('warn');
+                if (line.phase === 'critical') el.classList.add('critical');
                 el.textContent = line.text;
 
                 terminal.querySelectorAll('.latest').forEach(node => node.classList.remove('latest'));
@@ -3524,11 +3648,13 @@
 
                 if (elapsed >= 15000 && elapsed < 16500) progress = 52;
                 if (elapsed >= 30000) {
-                    progress = 100;
-                    if (!completionArmed) {
-                        completionArmed = true;
-                        const loader = document.querySelector('.diagnostic-loader');
-                        if (loader) loader.style.animation = 'diagnosticExit .55s ease forwards';
+                    const holdPulse = (Math.sin((elapsed - 30000) / 850) + 1) * 1.5;
+                    progress = Math.min(97, 94 + holdPulse);
+                    if (currentTitle) currentTitle.textContent = 'Финална синхронизация...';
+                    if (currentSubtitle) currentSubtitle.textContent = 'Държим екрана активен, докато анализът е реално готов.';
+                    if (!waitingNoticeShown) {
+                        waitingNoticeShown = true;
+                        appendLog({ phase: 'success', text: 'Изчакване на потвърждение от сървъра — екранът няма да приключи преждевременно.', haptic: true });
                     }
                 }
 
@@ -3918,6 +4044,7 @@
             }
             if (title) title.textContent = 'Анализът е готов!';
             if (subtitle) subtitle.textContent = 'Планът продължава да се генерира скрито във фонов режим.';
+            triggerDiagnosticHaptic();
 
             await new Promise(resolve => setTimeout(resolve, 650));
             document.body.classList.remove('diagnostic-lock');
@@ -3990,6 +4117,7 @@
             const loadingSubtitleEl = document.getElementById('loadingSubtitle');
             if (loadingTitleEl) loadingTitleEl.textContent = 'Планът е готов!';
             if (loadingSubtitleEl) loadingSubtitleEl.textContent = 'Изчакване на одобрение от специалист...';
+            triggerDiagnosticHaptic();
 
             await new Promise(resolve => {
                 const bar = document.getElementById('aiProgressBar');
