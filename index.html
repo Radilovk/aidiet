@@ -41,6 +41,40 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Inline theme init: apply saved theme before first paint to prevent FOUC -->
     <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F0FDFA';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
+    <!-- Early redirect: check plan immediately to avoid flickering -->
+    <script>(function(){
+        // Skip redirect if explicitly staying on index (?stay=1) or if login required
+        var params = new URLSearchParams(window.location.search);
+        if (params.has('stay') || params.has('login')) return;
+        
+        // Check for plan generation in progress - redirect to questionnaire
+        var planJobId = localStorage.getItem('planJobId');
+        if (planJobId) {
+            var src = localStorage.getItem('planJobSource');
+            window.location.replace(src === 'questionnaire' ? 'questionnaire.html' : 'questionnaire2.html');
+            return;
+        }
+        
+        // Check if user has a plan
+        var dietPlan = localStorage.getItem('dietPlan');
+        if (!dietPlan) return; // No plan - stay on index
+        
+        // Determine correct plan destination
+        var planTarget;
+        var planSource = localStorage.getItem('planSource');
+        var pendingClientId = localStorage.getItem('pendingClientId');
+        
+        if (planSource === 'questionnaire2' || pendingClientId) {
+            planTarget = 'plan-pending.html';
+        } else if (!dietPlan && localStorage.getItem('userData')) {
+            planTarget = 'plan-pending.html';
+        } else {
+            planTarget = 'plan.html';
+        }
+        
+        // Redirect immediately before any UI renders
+        window.location.replace(planTarget);
+    })();</script>
     <style>
         :root {
             --primary-red: #0D9488;
@@ -503,6 +537,12 @@
             padding: 120px 5% 50px 5%;
             background: var(--white);
             position: relative;
+            /* Prevent flickering: hide until auth check completes */
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .hero.visible {
+            opacity: 1;
         }
         [data-theme="dark"] .hero {
             background: transparent;
@@ -2690,6 +2730,7 @@
             const heroCTABtn   = document.getElementById('heroCTABtn');
             const navMyPlanLink = document.getElementById('navMyPlanLink');
             const heroLoginBtn  = document.getElementById('heroLoginBtn');
+            const heroSection = document.querySelector('.hero');
 
             if (!authUser) {
                 // Not authenticated — always show "Започни промяната"
@@ -2699,6 +2740,8 @@
                     heroCTABtn.textContent = 'Започни промяната';
                 }
                 if (navMyPlanLink) navMyPlanLink.style.display = 'none';
+                // Make hero section visible
+                if (heroSection) heroSection.classList.add('visible');
                 if (window.location.hash === '#contact') {
                     setTimeout(toggleContactForm, 400);
                 }
@@ -2735,6 +2778,8 @@
                 }
                 const indexBottomNav = document.getElementById('indexBottomNav');
                 if (indexBottomNav) indexBottomNav.style.display = 'flex';
+                // Make hero section visible
+                if (heroSection) heroSection.classList.add('visible');
                 return;
             }
 
@@ -2743,6 +2788,8 @@
                 startNowBtn.style.display = 'flex';
             }
             if (navMyPlanLink) navMyPlanLink.style.display = 'none';
+            // Make hero section visible
+            if (heroSection) heroSection.classList.add('visible');
 
             // Auto-open contact form if navigated via #contact hash
             // Delay matches page load and scroll animation timing
