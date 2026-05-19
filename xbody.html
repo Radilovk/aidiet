@@ -55,9 +55,14 @@
             right: 0;
             bottom: 0;
             overflow-y: scroll;
-            -webkit-overflow-scrolling: touch;
-            overscroll-behavior-y: none;
+            -webkit-overflow-scrolling: touch; /* iOS ≤ 12 legacy compositing */
+            overscroll-behavior-y: contain; /* contain vs none: lets the layer
+               absorb elastic bounce inside the container without propagating
+               the bounce to the parent viewport – prevents "stuck" scroll on
+               iOS 13+ and all Android versions while keeping the native feel. */
             touch-action: pan-y;
+            will-change: scroll-position; /* promote to GPU layer for smooth
+               60 fps scroll on both iOS and Android */ 
             /* Safe-area padding keeps content away from iOS status bar (top)
                and home-indicator bar (bottom).
                constant() = iOS 11.0–11.1; env() = iOS 11.2+ and all others. */
@@ -78,6 +83,11 @@
             min-height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
             border: none;
             display: block;
+            /* pan-y on the iframe itself prevents the browser from claiming
+               horizontal swipe-back gestures during a vertical scroll, which
+               caused scroll-to-bottom to fail on Samsung Internet and some
+               Android WebViews. */
+            touch-action: pan-y;
         }
 
         /* ── Back navigation button ── */
@@ -119,6 +129,39 @@
         #back-btn:active {
             transform: scale(0.90);
         }
+
+        /* ── Auto-translation badge ── */
+        #translate-badge {
+            position: fixed;
+            /* Mirror the back-btn vertical position; sit at the right edge */
+            top: calc(constant(safe-area-inset-top) + 10px);
+            top: calc(env(safe-area-inset-top, 0px) + 10px);
+            right: 12px;
+            z-index: 500;
+            display: none; /* JS sets display:flex when translation is active */
+            align-items: center;
+            gap: 5px;
+            padding: 0 11px;
+            height: 32px;
+            background: rgba(26, 115, 232, 0.90);
+            color: #fff;
+            border: none;
+            border-radius: 16px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 1px 6px rgba(0, 0, 0, 0.18);
+            transition: opacity 0.2s;
+        }
+        #translate-badge:active { opacity: 0.70; transform: scale(0.95); }
 
         /* ── PWA Install Modal ── */
         .pwa-modal-overlay {
@@ -283,11 +326,17 @@
         <i class="fas fa-chevron-left"></i>
     </button>
 
+    <!-- Auto-translation pill badge (top-right). JS shows/hides it and
+         updates the label.  Tapping it toggles translation on/off. -->
+    <button id="translate-badge" aria-live="polite" tabindex="0">
+        <span>🌐</span>
+        <span id="translate-badge-text"></span>
+    </button>
+
     <!-- Dedicated scroll container – see CSS comments above -->
     <div id="acuity-scroll-container">
-        <iframe src="https://app.acuityscheduling.com/schedule.php?owner=13943721&appointmentType=16859189"
-                allow="payment"
-                frameBorder="0">
+        <iframe allow="payment; camera; clipboard-write; encrypted-media; fullscreen; geolocation; microphone; accelerometer; gyroscope"
+                frameborder="0">
         </iframe>
     </div>
     
@@ -320,6 +369,119 @@
             sc.scrollTop = saved + 1;
             setTimeout(function () { sc.scrollTop = saved; }, WEBKIT_COMPOSITOR_RECOVERY_DELAY_MS);
         });
+
+        /* ── Auto-translation ─────────────────────────────────────────────
+           The user's preferred browser language is detected automatically.
+           When it differs from English (the language of the Acuity booking
+           system), the iframe is loaded through the Google Translate web-proxy
+           which translates all rendered text – including dynamic SPA content –
+           without any API key or server-side changes.
+
+           Proxy URL format used by translate.goog:
+             https://<hostname-dashes>.translate.goog<path>?<params>
+               &_x_tr_sl=auto    ← auto-detect source language
+               &_x_tr_tl=<tl>   ← target language (from browser)
+               &_x_tr_hl=<tl>   ← UI language of the translate toolbar
+               &_x_tr_pto=wapp  ← SPA-friendly "web app" mode (keeps
+                                   translated URL rewrites working in SPAs)
+
+           A pill badge (top-right) confirms translation is active and lets
+           the user toggle it off/on.  window._xbodyResetSrc is kept in sync
+           with the active URL so the back-navigation hard-reset lands on the
+           correct src regardless of toggle state. */
+        (function () {
+            var ORIGINAL_SRC = 'https://app.acuityscheduling.com/schedule.php?owner=13943721&appointmentType=16859189';
+
+            /* 2-letter ISO language code from the browser */
+            function getLang() {
+                var raw = (navigator.languages && navigator.languages[0]) ||
+                           navigator.language || 'en';
+                return raw.split('-')[0].toLowerCase();
+            }
+
+            /* Build the translate.goog proxy URL.
+               Dots in the hostname → dashes per translate.goog encoding rules
+               (e.g. app.acuityscheduling.com → app-acuityscheduling-com.translate.goog). */
+            function toProxyUrl(url, tl) {
+                try {
+                    var u = new URL(url);
+                    var proxyHost = u.hostname.replace(/\./g, '-') + '.translate.goog';
+                    var p = 'https://' + proxyHost + u.pathname + u.search;
+                    p += (p.indexOf('?') >= 0 ? '&' : '?');
+                    p += '_x_tr_sl=auto'
+                       + '&_x_tr_tl=' + encodeURIComponent(tl)
+                       + '&_x_tr_hl=' + encodeURIComponent(tl)
+                       + '&_x_tr_pto=wapp';
+                    return p;
+                } catch (e) {
+                    return url; // fallback: serve original on any URL parse error
+                }
+            }
+
+            var tl       = getLang();
+            var frame    = document.querySelector('iframe');
+            var badge    = document.getElementById('translate-badge');
+            var badgeTxt = document.getElementById('translate-badge-text');
+            if (!frame) return;
+
+            var translatedUrl   = (tl && tl !== 'en') ? toProxyUrl(ORIGINAL_SRC, tl) : ORIGINAL_SRC;
+            var needTranslation = (translatedUrl !== ORIGINAL_SRC);
+            var isOn            = needTranslation;
+
+            /* Friendly language display names */
+            var LANG_NAMES = {
+                bg:'Български', ru:'Русский', de:'Deutsch',   fr:'Français',
+                es:'Español',   it:'Italiano', tr:'Türkçe',   uk:'Українська',
+                ar:'عربي',       zh:'中文',      ja:'日本語',    ko:'한국어',
+                pl:'Polski',    nl:'Nederlands', sv:'Svenska', cs:'Čeština',
+                ro:'Română',    el:'Ελληνικά',  fi:'Suomi',   hu:'Magyar',
+                sk:'Slovenčina',hr:'Hrvatski',   sr:'Srpски',  da:'Dansk',
+                no:'Norsk',     pt:'Português'
+            };
+
+            /* Apply a URL to the iframe and keep the reset-src in sync */
+            function applyUrl(url) {
+                frame.src = url;
+                window._xbodyResetSrc = url;
+            }
+
+            /* Sync badge visual state */
+            function syncBadge() {
+                if (!badge) return;
+                if (!needTranslation) { badge.style.display = 'none'; return; }
+                var name = LANG_NAMES[tl] || tl.toUpperCase();
+                if (isOn) {
+                    badgeTxt.textContent = name + ' ✕';
+                    badge.setAttribute('aria-label', 'Преводът е активен (' + name + '). Натисни за изключване.');
+                    badge.style.opacity = '1';
+                } else {
+                    badgeTxt.textContent = '🌐 Вкл. превод';
+                    badge.setAttribute('aria-label', 'Преводът е изключен. Натисни за включване.');
+                    badge.style.opacity = '0.60';
+                }
+                badge.style.display = 'flex';
+            }
+
+            /* Initial load */
+            applyUrl(isOn ? translatedUrl : ORIGINAL_SRC);
+            syncBadge();
+
+            /* Toggle on badge tap */
+            if (badge && needTranslation) {
+                badge.addEventListener('click', function () {
+                    isOn = !isOn;
+                    applyUrl(isOn ? translatedUrl : ORIGINAL_SRC);
+                    syncBadge();
+                });
+                /* Keyboard accessibility (Enter / Space) */
+                badge.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        badge.click();
+                    }
+                });
+            }
+        })();
 
         /* ── PWA Install Logic ── */
         (function () {
@@ -555,8 +717,11 @@
                 try {
                     frame.contentWindow.history.back();
                 } catch (_) {
-                    // Cross-origin history access denied – hard-reset the frame
-                    frame.src = originalSrc;
+                    // Cross-origin history access denied – hard-reset the frame.
+                    // Use _xbodyResetSrc (kept in sync by the translation toggle)
+                    // so the reset always lands on whatever URL is currently active
+                    // (translated or original) rather than the init-time snapshot.
+                    frame.src = window._xbodyResetSrc || originalSrc;
                     navDepth    = 0;
                     msgNavDepth = 0;
                     homeHeight  = null; // re-baseline on next setHeight message
