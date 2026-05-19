@@ -4612,7 +4612,9 @@ async function handleGetClientPlanStatus(request, env) {
     const response = {
       success: true,
       planStatus: clientData.planStatus || 'none',
-      activatedAt: clientData.planActivatedAt || null
+      activatedAt: clientData.planActivatedAt || null,
+      hasPlan: Boolean(clientData.plan),
+      planUpdatedAt: clientData.planUpdatedAt || null
     };
     // If activated, include the plan so client can load it
     if (clientData.planStatus === 'activated' && clientData.plan) {
