@@ -620,7 +620,44 @@
         window.addEventListener('DOMContentLoaded', function() {
             // Wait 2 seconds for page to settle, then check plan status
             autoCheckTimeout = setTimeout(autoCheckPlanStatus, 2000);
+            // If plan is still generating, start polling so admin is notified when done
+            startPlanJobPolling();
         });
+
+        // If the user navigated here while the plan was still being generated (analysis.html
+        // navigated away), poll plan-job-status and call update-client-plan when complete so
+        // the plan appears for admin approval.
+        function startPlanJobPolling() {
+            const jobId = localStorage.getItem('planJobId');
+            const clientId = localStorage.getItem('pendingClientId');
+            if (!jobId || !clientId) return;
+
+            const WORKER = 'https://aidiet.radilov-k.workers.dev';
+            let polls = 0;
+            function poll() {
+                polls++;
+                if (polls > 90) return; // ~15 min max
+                fetch(WORKER + '/api/plan-job-status?jobId=' + encodeURIComponent(jobId))
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.status === 'completed' && data.success && data.plan) {
+                            localStorage.removeItem('planJobId');
+                            const userId = localStorage.getItem('userId') || data.userId || null;
+                            fetch(WORKER + '/api/admin/update-client-plan', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ clientId, plan: data.plan, userId })
+                            }).catch(e => console.warn('update-client-plan failed:', e));
+                        } else if (data.status === 'failed' || data.status === 'not_found') {
+                            localStorage.removeItem('planJobId');
+                        } else {
+                            setTimeout(poll, 10000);
+                        }
+                    })
+                    .catch(() => setTimeout(poll, 15000));
+            }
+            poll();
+        }
 
         async function autoCheckPlanStatus() {
             const clientId = localStorage.getItem('pendingClientId');

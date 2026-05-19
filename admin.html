@@ -7925,7 +7925,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 );
                 if (!result.success || !result.clients) throw new Error('Invalid response');
 
-                const pending = result.clients.filter(c => c.planStatus === 'pending');
+                const pending = result.clients.filter(c => c.planStatus === 'pending' || c.planStatus === 'failed');
 
                 // Update badge
                 const pendingCard = document.getElementById('pendingPlansCard');
@@ -7948,23 +7948,27 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 let html = '<div style="display:grid;gap:12px;">';
                 pending.forEach(client => {
                     const dateStr = formatClientDate(client.submittedAt || client.timestamp);
+                    const isFailed = client.planStatus === 'failed';
+                    const failedBadge = isFailed ? `<span style="display:inline-block;background:#fee2e2;color:#dc2626;border-radius:4px;padding:2px 8px;font-size:0.78rem;margin-left:6px;"><i class="fas fa-exclamation-circle"></i> Неуспешно генериране</span>` : '';
+                    const errorRow = isFailed && client.planGenerationError ? `<div style="color:#dc2626;font-size:0.8rem;margin-top:4px;"><i class="fas fa-bug"></i> ${escapeHtml(client.planGenerationError)}</div>` : '';
                     html += `
                         <div class="pending-client-card" data-client-id="${escapeHtml(client.id)}" data-client-name="${escapeHtml(client.name)}">
                             <div class="pending-client-info">
-                                <div class="pending-client-name"><i class="fas fa-user-circle" style="color:#d97706;margin-right:6px;"></i>${escapeHtml(client.name)}</div>
+                                <div class="pending-client-name"><i class="fas fa-user-circle" style="color:#d97706;margin-right:6px;"></i>${escapeHtml(client.name)}${failedBadge}</div>
                                 <div class="pending-client-meta">
                                     <i class="fas fa-envelope"></i> ${escapeHtml(client.email)}&nbsp;&nbsp;
                                     <i class="fas fa-bullseye"></i> ${escapeHtml(client.goal)}&nbsp;&nbsp;
                                     <i class="fas fa-clock"></i> ${dateStr}
                                 </div>
+                                ${errorRow}
                             </div>
                             <div class="pending-client-actions">
                                 <button class="btn pending-view-btn" style="background:var(--accent-blue);font-size:0.85rem;padding:8px 14px;">
                                     <i class="fas fa-eye"></i> Преглед
                                 </button>
-                                <button class="btn pending-activate-btn" data-client-id="${escapeHtml(client.id)}" style="background:#0D9488;font-size:0.85rem;padding:8px 14px;">
+                                ${!isFailed ? `<button class="btn pending-activate-btn" data-client-id="${escapeHtml(client.id)}" style="background:#0D9488;font-size:0.85rem;padding:8px 14px;">
                                     <i class="fas fa-rocket"></i> Активирай
-                                </button>
+                                </button>` : ''}
                             </div>
                         </div>
                     `;
