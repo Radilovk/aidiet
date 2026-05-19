@@ -667,7 +667,11 @@
                     // Show brief "not ready yet" feedback
                     const note = document.createElement('p');
                     note.style.cssText = 'margin-top:8px;font-size:0.82rem;color:#d97706;';
-                    note.textContent = 'Планът все още се преглежда. Опитайте отново по-късно.';
+                    if (data.success && data.planStatus === 'pending' && data.hasPlan) {
+                        note.textContent = 'Новият план е вече създаден и чака финално одобрение от специалист.';
+                    } else {
+                        note.textContent = 'Планът все още се изготвя или не е изпратен за одобрение. Опитайте отново по-късно.';
+                    }
                     const existing = document.querySelector('#ctaSection .status-note');
                     if (existing) existing.remove();
                     note.classList.add('status-note');
