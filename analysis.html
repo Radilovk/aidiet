@@ -996,35 +996,145 @@
 
         .loading-screen {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: var(--bg-color);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            inset: 0;
+            min-height: 100dvh;
+            padding: calc(24px + var(--safe-area-inset-top)) calc(18px + var(--safe-area-inset-right)) calc(24px + var(--safe-area-inset-bottom)) calc(18px + var(--safe-area-inset-left));
+            background:
+                radial-gradient(circle at 18% 14%, rgba(45, 212, 191, 0.22), transparent 34%),
+                radial-gradient(circle at 86% 18%, rgba(59, 130, 246, 0.14), transparent 30%),
+                linear-gradient(160deg, rgba(240, 253, 250, 0.98), rgba(204, 251, 241, 0.74));
+            display: grid;
+            place-items: center;
             z-index: 9999;
+            overflow: hidden;
+        }
+
+        [data-theme="dark"] .loading-screen {
+            background:
+                radial-gradient(circle at 18% 14%, rgba(45, 212, 191, 0.18), transparent 34%),
+                radial-gradient(circle at 86% 18%, rgba(96, 165, 250, 0.12), transparent 30%),
+                linear-gradient(160deg, #0A1A1A, #102B2B 72%, #081112);
+        }
+
+        .loading-card {
+            position: relative;
+            width: min(100%, 420px);
+            padding: clamp(26px, 7vw, 38px) clamp(20px, 6vw, 30px);
+            border-radius: 34px;
+            text-align: center;
+            color: var(--text-dark);
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid rgba(13, 148, 136, 0.14);
+            box-shadow: 0 28px 70px rgba(13, 148, 136, 0.16), inset 0 1px 0 rgba(255,255,255,.72);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            overflow: hidden;
+        }
+
+        [data-theme="dark"] .loading-card {
+            background: rgba(20, 55, 55, 0.72);
+            border-color: rgba(45, 212, 191, 0.18);
+            box-shadow: 0 28px 70px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255,255,255,.06);
+        }
+
+        .loading-card::before {
+            content: '';
+            position: absolute;
+            width: 180px;
+            height: 180px;
+            left: -74px;
+            top: -88px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(45,212,191,.28), transparent 68%);
+        }
+
+        .loading-orb {
+            position: relative;
+            width: clamp(104px, 30vw, 128px);
+            height: clamp(104px, 30vw, 128px);
+            margin: 0 auto 20px;
+            display: grid;
+            place-items: center;
         }
 
         .loading-spinner {
-            width: 60px;
-            height: 60px;
-            border: 4px solid var(--input-bg);
-            border-top-color: var(--primary-red);
+            position: absolute;
+            inset: 0;
             border-radius: 50%;
-            animation: spin 1s linear infinite;
+            background: conic-gradient(from 90deg, rgba(13,148,136,.08), var(--primary-red), #99F6E4, rgba(13,148,136,.08));
+            mask: radial-gradient(farthest-side, transparent calc(100% - 10px), #000 calc(100% - 9px));
+            -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 10px), #000 calc(100% - 9px));
+            animation: spin 1.35s linear infinite;
         }
+
+        .loading-icon {
+            width: clamp(72px, 21vw, 88px);
+            height: clamp(72px, 21vw, 88px);
+            border-radius: 28px;
+            display: grid;
+            place-items: center;
+            color: var(--primary-red);
+            background: linear-gradient(160deg, rgba(255,255,255,.95), rgba(240,253,250,.72));
+            border: 1px solid rgba(13,148,136,.15);
+            box-shadow: 0 18px 38px rgba(13,148,136,.20), inset 0 1px 0 rgba(255,255,255,.9);
+            animation: loadingPulse 1.85s ease-in-out infinite;
+        }
+
+        [data-theme="dark"] .loading-icon {
+            background: linear-gradient(160deg, rgba(20,55,55,.95), rgba(8,28,30,.86));
+            box-shadow: 0 18px 42px rgba(0,0,0,.38), 0 0 26px rgba(45,212,191,.16), inset 0 1px 0 rgba(255,255,255,.08);
+        }
+
+        .loading-icon i {
+            font-size: clamp(1.9rem, 8vw, 2.45rem);
+            filter: drop-shadow(0 8px 14px rgba(13,148,136,.18));
+        }
+
+        .loading-text {
+            margin: 0;
+            font-size: clamp(1.25rem, 6vw, 1.65rem);
+            font-weight: 900;
+            letter-spacing: -0.03em;
+            color: var(--text-dark);
+        }
+
+        .loading-subtext {
+            margin: 10px auto 0;
+            max-width: 29ch;
+            font-size: clamp(.9rem, 3.8vw, 1rem);
+            line-height: 1.45;
+            color: var(--text-gray);
+        }
+
+        .loading-dots {
+            display: flex;
+            justify-content: center;
+            gap: 7px;
+            margin-top: 20px;
+        }
+
+        .loading-dots span {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: var(--primary-red);
+            opacity: .32;
+            animation: dotPulse 1.2s ease-in-out infinite;
+        }
+
+        .loading-dots span:nth-child(2) { animation-delay: .16s; }
+        .loading-dots span:nth-child(3) { animation-delay: .32s; }
 
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
 
-        .loading-text {
-            margin-top: 20px;
-            font-size: 1.2rem;
-            color: var(--text-gray);
+        @keyframes loadingPulse {
+            50% { transform: scale(1.055) rotate(1deg); }
+        }
+
+        @keyframes dotPulse {
+            50% { opacity: 1; transform: translateY(-3px); }
         }
 
         .error-screen {
@@ -1685,8 +1795,15 @@
 
     <!-- Loading Screen -->
     <div class="loading-screen" id="loadingScreen" aria-live="polite" aria-busy="true">
-        <div class="loading-spinner"></div>
-        <p class="loading-text">Зареждане на анализа...</p>
+        <div class="loading-card">
+            <div class="loading-orb" aria-hidden="true">
+                <div class="loading-spinner"></div>
+                <div class="loading-icon"><i class="fas fa-heart-pulse"></i></div>
+            </div>
+            <p class="loading-text">Подготвяме анализа</p>
+            <p class="loading-subtext">Синхронизираме здравните данни и визуализациите за вашия екран.</p>
+            <div class="loading-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+        </div>
     </div>
 
     <!-- Main Content -->
@@ -1912,6 +2029,12 @@
 
         // ── Animation helpers ─────────────────────────────────────────────────────
 
+        function triggerAnalysisHaptic(pattern = [16, 10, 16]) {
+            if (navigator.vibrate) {
+                navigator.vibrate(pattern);
+            }
+        }
+
         // Smoothly count a numeric element from `from` to `to` over `durationMs`
         function animateCounter(el, from, to, durationMs, suffix) {
             if (!el || isNaN(to)) return;
@@ -2039,6 +2162,7 @@
                 // Hide loading, show content
                 document.getElementById('loadingScreen').style.display = 'none';
                 document.getElementById('mainContent').style.display = 'block';
+                triggerAnalysisHaptic();
 
                 // Initialize scroll-triggered animations after DOM is ready
                 // (60ms ensures the browser has completed layout/paint for the newly visible content)
@@ -2357,6 +2481,7 @@
         function showError(errorMessage = null) {
             document.getElementById('loadingScreen').style.display = 'none';
             document.getElementById('mainContent').style.display = 'none';
+            triggerAnalysisHaptic([24, 18, 24]);
             
             const errorScreen = document.getElementById('errorScreen');
             errorScreen.style.display = 'block';
