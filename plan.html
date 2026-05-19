@@ -9341,31 +9341,36 @@
             );
         }
 
-        function showEveningFlow(force, recordKey, doneCb) {
+        function showEveningFlow(force, recordKey, doneCb, opts) {
             recordKey = recordKey || getTodayKey();
             var rec = getRecord(recordKey);
             if (!force && rec.eveningCheck) { if (doneCb) doneCb(); return; }
             var meta = getPromptDayMeta(recordKey);
             var prefix = meta.prefix;
             var hdrOpts = { greeting: meta.greetingEvening };
-            var eveData = {};
+            var prefillWater = !!(opts && opts.prefillWater);
+            var eveData = { waterIntake: prefillWater ? true : undefined };
+            function finish() {
+                var r = getRecord(recordKey);
+                r.eveningCheck = { activityLevel: eveData.activityLevel,
+                    emotionalBalance: eveData.emotionalBalance, waterIntake: !!eveData.waterIntake, ts: new Date().toISOString() };
+                saveRecord(recordKey, r);
+                recalcAndShowScore(recordKey);
+                if (doneCb) { setTimeout(doneCb, 350); }
+                else if (recordKey === getTodayKey()) {
+                    setTimeout(function(){
+                        var upd = getRecord(recordKey);
+                        showDayEndModal(upd.dailyScore || calcDayScore(upd));
+                    }, 500);
+                } else {
+                    setTimeout(function(){ showEncouragement(buildEncouragement(recordKey)); }, 400);
+                }
+            }
             function q3() {
+                if (prefillWater) { finish(); return; }
                 showBubble(prefix+'Изпихте ли поне 2 л вода?', NO_YES, function(v) {
                     eveData.waterIntake = v;
-                    var r = getRecord(recordKey);
-                    r.eveningCheck = { activityLevel: eveData.activityLevel,
-                        emotionalBalance: eveData.emotionalBalance, waterIntake: v, ts: new Date().toISOString() };
-                    saveRecord(recordKey, r);
-                    recalcAndShowScore(recordKey);
-                    if (doneCb) { setTimeout(doneCb, 350); }
-                    else if (recordKey === getTodayKey()) {
-                        setTimeout(function(){
-                            var upd = getRecord(recordKey);
-                            showDayEndModal(upd.dailyScore || calcDayScore(upd));
-                        }, 500);
-                    } else {
-                        setTimeout(function(){ showEncouragement(buildEncouragement(recordKey)); }, 400);
-                    }
+                    finish();
                 }, hdrOpts);
             }
             function q2() {
@@ -9808,7 +9813,7 @@
         };
         window._gameEnhanceMealCards = enhanceMealCards;
         window._gameShowMorning = function(f){ showMorningQuestion(f, getTodayKey(), null); };
-        window._gameShowEvening = function(f){ showEveningFlow(f, getTodayKey(), null); };
+        window._gameShowEvening = function(f, opts){ showEveningFlow(f, getTodayKey(), null, opts); };
 
         // Called by renderDay when user navigates to a past day (up to 2 days back).
         // Automatically asks any unanswered gamification questions for that day.
@@ -9876,6 +9881,71 @@
     </nav>
     <!-- GameNotifier: gamification-based notification scheduling -->
     <script src="./local-scheduler.js"></script>
+    <!-- Notification action handler: shows in-app modal when user taps a notification
+         while plan.html is already open – avoids full page reload and index redirect. -->
+    <script>
+    (function() {
+        if (!('serviceWorker' in navigator)) return;
+        navigator.serviceWorker.addEventListener('message', function(event) {
+            var msg = event.data;
+            if (!msg || msg.type !== 'NOTIFICATION_ACTION') return;
+            var notifType = msg.notificationType || '';
+            var action    = msg.action || '';
+            var recordKey = msg.recordKey || '';
+            // Validate recordKey format (YYYY-MM-DD), default to today.
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(recordKey)) {
+                var d = new Date();
+                var pad = function(n){ return n < 10 ? '0'+n : ''+n; };
+                recordKey = d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+            }
+
+            // For direct action-button taps (sleep_yes / sleep_no): save silently
+            // to localStorage without opening any modal – instant, zero navigation.
+            if (notifType === 'morning_check' && (action === 'sleep_yes' || action === 'sleep_no')) {
+                try {
+                    var data = JSON.parse(localStorage.getItem('gameData') || '{}') || {};
+                    if (!data[recordKey]) {
+                        data[recordKey] = { date: recordKey, meals: {}, extraMeals: [],
+                            freeMealRatings: {}, morningCheck: null, eveningCheck: null,
+                            plannedCalories: null, mealCalories: {}, dailyScore: null, missing: false };
+                    }
+                    if (!data[recordKey].morningCheck) {
+                        data[recordKey].morningCheck = {
+                            sleptWell: action === 'sleep_yes',
+                            ts: new Date().toISOString()
+                        };
+                        localStorage.setItem('gameData', JSON.stringify(data));
+                    }
+                } catch(e) {}
+                return;
+            }
+
+            // For morning_check body tap: show in-app morning modal.
+            if (notifType === 'morning_check') {
+                if (typeof window._gameShowMorning === 'function') {
+                    window._gameShowMorning(true);
+                }
+                return;
+            }
+
+            // For evening_check water_yes: show evening modal with water pre-filled.
+            if (notifType === 'evening_check' && action === 'water_yes') {
+                if (typeof window._gameShowEvening === 'function') {
+                    window._gameShowEvening(true, { prefillWater: true });
+                }
+                return;
+            }
+
+            // For evening_check body tap / open_evening: show in-app evening modal.
+            if (notifType === 'evening_check') {
+                if (typeof window._gameShowEvening === 'function') {
+                    window._gameShowEvening(true);
+                }
+                return;
+            }
+        });
+    })();
+    </script>
     <!-- NativeBackup: mirrors localStorage to Capacitor Preferences (Android SharedPreferences) -->
     <script src="./native-backup.js"></script>
 </body>

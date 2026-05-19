@@ -251,10 +251,16 @@ const GameNotifier = {
         const actionId = action && typeof action.actionId === 'string' ? action.actionId : '';
 
         if (type === 'morning_check' && (actionId === 'sleep_yes' || actionId === 'sleep_no')) {
+            // Save the answer silently – no page navigation needed.
             const saved = this._saveQuickAnswer(recordKey, 'morning_check', {
                 sleptWell: actionId === 'sleep_yes'
             });
             if (saved) return;
+            // Fallback: show in-app morning modal or open quick-answer page.
+            if (typeof window._gameShowMorning === 'function') {
+                window._gameShowMorning(true);
+                return;
+            }
             window.location.href = this._buildQuickAnswerUrl('morning_check', {
                 date: recordKey,
                 auto: actionId === 'sleep_yes' ? 'morning_yes' : 'morning_no'
@@ -262,11 +268,36 @@ const GameNotifier = {
             return;
         }
 
+        if (type === 'morning_check') {
+            // Body tap – show in-app morning check modal without reloading.
+            if (typeof window._gameShowMorning === 'function') {
+                window._gameShowMorning(true);
+                return;
+            }
+            if (extra.url) window.location.href = extra.url;
+            return;
+        }
+
         if (type === 'evening_check' && actionId === 'water_yes') {
+            // Pre-fill water intake, then show the evening flow modal.
+            if (typeof window._gameShowEvening === 'function') {
+                window._gameShowEvening(true, { prefillWater: true });
+                return;
+            }
             window.location.href = this._buildQuickAnswerUrl('evening_check', {
                 date: recordKey,
                 water: '1'
             });
+            return;
+        }
+
+        if (type === 'evening_check') {
+            // open_evening action or body tap – show in-app evening modal.
+            if (typeof window._gameShowEvening === 'function') {
+                window._gameShowEvening(true);
+                return;
+            }
+            if (extra.url) window.location.href = extra.url;
             return;
         }
 

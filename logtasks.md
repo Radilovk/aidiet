@@ -1,5 +1,43 @@
 # Log Tasks
 
+## 2026-05-19 - Задача: Поправка на нотификационни модали (не се зарежда цялото приложение)
+
+### Проблем
+- При клик на нотификация се зарежда цялото приложение (бавно)
+- Винаги минава през `index.html` (нежелано поведение)
+- Трябваше: директен отговор в нотификацията ИЛИ бърз модален прозорец без презареждане
+
+### Коренни причини
+1. **`sw.js` `notificationclick`**: `client.url.includes(BASE_PATH)` при `BASE_PATH=''` е винаги `true` → намирал ВСЕКИ отворен прозорец (включително `plan.html`) и го навигирал към `quick-answer.html` чрез `client.navigate()` → пълно презареждане на страницата
+2. **`local-scheduler.js` Capacitor**: при клик от затворено приложение → Android отваря `index.html` → `plan.html` → след това `window.location.href` навига към `quick-answer.html` → 3 пълни зареждания
+3. **`plan.html`** вече има `_gameShowMorning()`/`_gameShowEvening()` – вградени модални диалози, но те не се използвали от нотификациите
+
+### Направено
+1. **`sw.js`** – `notificationclick` handler:
+   - Ако `plan.html` е отворен → `postMessage({ type: 'NOTIFICATION_ACTION', ... })` (без навигация!)
+   - Ако `quick-answer.html` е отворен → reuse-ва прозореца
+   - Само при липса на отворен прозорец → `clients.openWindow(quick-answer.html)`
+2. **`plan.html`** – нов SW message listener (след `local-scheduler.js`):
+   - `sleep_yes`/`sleep_no`: записва тихо в `localStorage` без UI (нула навигация)
+   - `morning_check` (основен клик): извиква `_gameShowMorning(true)` – вграден модал
+   - `evening_check` + `water_yes`: извиква `_gameShowEvening(true, {prefillWater: true})`
+   - `evening_check` (основен/open_evening): извиква `_gameShowEvening(true)`
+3. **`plan.html`** – `showEveningFlow` получава `opts` параметър с `prefillWater`:
+   - При `prefillWater=true` пропуска въпроса за вода и директно финализира
+   - `window._gameShowEvening` предава `opts` на `showEveningFlow`
+4. **`local-scheduler.js`** – `_handleCapacitorNotificationAction`:
+   - `morning_check` body tap: извиква `window._gameShowMorning(true)` ако е достъпна
+   - `evening_check` + `water_yes`: извиква `window._gameShowEvening(true, {prefillWater: true})`
+   - `evening_check` body/open_evening: извиква `window._gameShowEvening(true)`
+   - Навигация (`window.location.href`) само като fallback при липса на функциите
+
+### Резултат
+- Без презареждане на страницата при клик на нотификация (ако `plan.html` е отворен)
+- Вграден модален диалог вместо пълно зареждане
+- `sleep_yes`/`sleep_no` действия се обработват мигновено (само localStorage запис)
+- Fallback към `quick-answer.html` при затворено приложение (запазено поведение)
+
+
 ## 2026-05-19
 
 - Задача (продължение 2): "не пиши излишен код в worker. намери реалния проблем и го отстрани!"
