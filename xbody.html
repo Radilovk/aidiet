@@ -55,9 +55,14 @@
             right: 0;
             bottom: 0;
             overflow-y: scroll;
-            -webkit-overflow-scrolling: touch;
-            overscroll-behavior-y: none;
+            -webkit-overflow-scrolling: touch; /* iOS ≤ 12 legacy compositing */
+            overscroll-behavior-y: contain; /* contain vs none: lets the layer
+               absorb elastic bounce inside the container without propagating
+               the bounce to the parent viewport – prevents "stuck" scroll on
+               iOS 13+ and all Android versions while keeping the native feel. */
             touch-action: pan-y;
+            will-change: scroll-position; /* promote to GPU layer for smooth
+               60 fps scroll on both iOS and Android */ 
             /* Safe-area padding keeps content away from iOS status bar (top)
                and home-indicator bar (bottom).
                constant() = iOS 11.0–11.1; env() = iOS 11.2+ and all others. */
@@ -78,6 +83,11 @@
             min-height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
             border: none;
             display: block;
+            /* pan-y on the iframe itself prevents the browser from claiming
+               horizontal swipe-back gestures during a vertical scroll, which
+               caused scroll-to-bottom to fail on Samsung Internet and some
+               Android WebViews. */
+            touch-action: pan-y;
         }
 
         /* ── Back navigation button ── */
@@ -118,6 +128,143 @@
         }
         #back-btn:active {
             transform: scale(0.90);
+        }
+
+        /* ── Auto-translation badge ── */
+        #translate-badge {
+            position: fixed;
+            /* Mirror the back-btn vertical position; sit at the right edge */
+            top: calc(constant(safe-area-inset-top) + 10px);
+            top: calc(env(safe-area-inset-top, 0px) + 10px);
+            right: 12px;
+            z-index: 500;
+            display: none; /* JS sets display:flex when translation is active */
+            align-items: center;
+            gap: 5px;
+            padding: 0 11px;
+            height: 32px;
+            background: rgba(26, 115, 232, 0.90);
+            color: #fff;
+            border: none;
+            border-radius: 16px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 1px 6px rgba(0, 0, 0, 0.18);
+            transition: opacity 0.2s;
+        }
+        #translate-badge:active { opacity: 0.70; transform: scale(0.95); }
+
+        /* ══════════════════════════════════════════════════════
+           MOBILE BOTTOM TOOLBAR  (≤ 599 px wide = phone)
+           The back-btn and translate-badge stay in the DOM but
+           are hidden on phones; instead a thumb-friendly bottom
+           bar with the same controls is shown.
+           ══════════════════════════════════════════════════════ */
+        #mobile-toolbar {
+            display: none; /* shown only in the @media block below */
+        }
+
+        @media (max-width: 599px) {
+            /* Hide the floating top-corner buttons on phones */
+            #back-btn,
+            #translate-badge { display: none !important; }
+
+            /* Shrink scroll container so content is never hidden
+               behind the toolbar (56 px bar + safe-area-bottom) */
+            #acuity-scroll-container {
+                bottom: calc(56px + constant(safe-area-inset-bottom));
+                bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+            }
+
+            /* ── Bottom toolbar ── */
+            #mobile-toolbar {
+                display: flex;
+                align-items: center;
+                position: fixed;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                height: calc(56px + constant(safe-area-inset-bottom));
+                height: calc(56px + env(safe-area-inset-bottom, 0px));
+                padding-bottom: constant(safe-area-inset-bottom);
+                padding-bottom: env(safe-area-inset-bottom, 0px);
+                padding-left: 12px;
+                padding-right: 12px;
+                background: rgba(255, 255, 255, 0.82);
+                backdrop-filter: blur(18px) saturate(1.6);
+                -webkit-backdrop-filter: blur(18px) saturate(1.6);
+                border-top: 1px solid rgba(0, 0, 0, 0.08);
+                box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.06);
+                z-index: 500;
+                box-sizing: border-box;
+                gap: 8px;
+            }
+
+            /* Back button in toolbar — circle */
+            #mob-back-btn {
+                flex: 0 0 44px;
+                width: 44px;
+                height: 44px;
+                padding: 0;
+                border: none;
+                border-radius: 50%;
+                background: rgba(55, 65, 81, 0.10);
+                color: #374151;
+                font-size: 18px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                -webkit-tap-highlight-color: transparent;
+                touch-action: manipulation;
+                transition: background 0.15s, transform 0.12s;
+                /* hidden until JS marks it visible */
+                opacity: 0;
+                pointer-events: none;
+            }
+            #mob-back-btn.visible {
+                opacity: 1;
+                pointer-events: auto;
+            }
+            #mob-back-btn:active { transform: scale(0.88); }
+
+            /* Spacer pushes translate button to the right */
+            #mob-toolbar-spacer { flex: 1; }
+
+            /* Translate toggle pill in toolbar */
+            #mob-translate-btn {
+                flex: 0 0 auto;
+                display: none; /* JS sets flex when translation is relevant */
+                align-items: center;
+                gap: 6px;
+                padding: 0 16px;
+                height: 38px;
+                background: rgba(26, 115, 232, 0.90);
+                color: #fff;
+                border: none;
+                border-radius: 20px;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                font-size: 13px;
+                font-weight: 600;
+                white-space: nowrap;
+                cursor: pointer;
+                -webkit-tap-highlight-color: transparent;
+                touch-action: manipulation;
+                user-select: none;
+                -webkit-user-select: none;
+                box-shadow: 0 2px 8px rgba(26, 115, 232, 0.35);
+                transition: opacity 0.2s, transform 0.12s;
+            }
+            #mob-translate-btn:active { opacity: 0.75; transform: scale(0.95); }
         }
 
         /* ── PWA Install Modal ── */
@@ -283,11 +430,32 @@
         <i class="fas fa-chevron-left"></i>
     </button>
 
+    <!-- Auto-translation pill badge (top-right). JS shows/hides it and
+         updates the label.  Tapping it toggles translation on/off.
+         On phones this element is hidden; the mobile toolbar below is used. -->
+    <button id="translate-badge" aria-live="polite" tabindex="0">
+        <span>🌐</span>
+        <span id="translate-badge-text"></span>
+    </button>
+
+    <!-- Mobile bottom toolbar (phones ≤ 599 px). Contains the same Back and
+         Translate controls but positioned at the thumb zone.  Visibility is
+         controlled by the same JS that drives #back-btn / #translate-badge. -->
+    <div id="mobile-toolbar" role="toolbar" aria-label="Навигация">
+        <button id="mob-back-btn" aria-label="Назад">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <span id="mob-toolbar-spacer"></span>
+        <button id="mob-translate-btn" aria-live="polite" tabindex="0">
+            <span id="mob-translate-icon">🌐</span>
+            <span id="mob-translate-text"></span>
+        </button>
+    </div>
+
     <!-- Dedicated scroll container – see CSS comments above -->
     <div id="acuity-scroll-container">
-        <iframe src="https://app.acuityscheduling.com/schedule.php?owner=13943721&appointmentType=16859189"
-                allow="payment"
-                frameBorder="0">
+        <iframe allow="payment; camera; clipboard-write; encrypted-media; fullscreen; geolocation; microphone; accelerometer; gyroscope"
+                frameborder="0">
         </iframe>
     </div>
     
@@ -320,6 +488,163 @@
             sc.scrollTop = saved + 1;
             setTimeout(function () { sc.scrollTop = saved; }, WEBKIT_COMPOSITOR_RECOVERY_DELAY_MS);
         });
+
+        /* ── Auto-translation ─────────────────────────────────────────────
+           The user's preferred browser language is detected automatically.
+           When it differs from English (the language of the Acuity booking
+           system), the iframe is loaded through the Google Translate web-proxy
+           which translates all rendered text – including dynamic SPA content –
+           without any API key or server-side changes.
+
+           Proxy URL format used by translate.goog:
+             https://<hostname-dashes>.translate.goog<path>?<params>
+               &_x_tr_sl=auto    ← auto-detect source language
+               &_x_tr_tl=<tl>   ← target language (from browser)
+               &_x_tr_hl=<tl>   ← UI language of the translate toolbar
+               &_x_tr_pto=wapp  ← SPA-friendly "web app" mode (keeps
+                                   translated URL rewrites working in SPAs)
+
+           A pill badge (top-right) confirms translation is active and lets
+           the user toggle it off/on.  window._xbodyResetSrc is kept in sync
+           with the active URL so the back-navigation hard-reset lands on the
+           correct src regardless of toggle state. */
+        (function () {
+            var ORIGINAL_SRC = 'https://app.acuityscheduling.com/schedule.php?owner=13943721&appointmentType=16859189';
+
+            /* 2-letter ISO language code from the browser */
+            function getLang() {
+                var raw = (navigator.languages && navigator.languages[0]) ||
+                           navigator.language || 'en';
+                return raw.split('-')[0].toLowerCase();
+            }
+
+            /* Build the translate.goog proxy URL.
+               Dots in the hostname → dashes per translate.goog encoding rules
+               (e.g. app.acuityscheduling.com → app-acuityscheduling-com.translate.goog).
+
+               _x_tr_sl=en  – declare the source language as English explicitly.
+               This means Google Translate will only process English text nodes
+               and leave any already-Bulgarian (or other non-English) content
+               completely untouched.  Using 'auto' here would risk re-translating
+               Bulgarian text that the studio has customised in the Acuity UI. */
+            function toProxyUrl(url, tl) {
+                try {
+                    var u = new URL(url);
+                    var proxyHost = u.hostname.replace(/\./g, '-') + '.translate.goog';
+                    var p = 'https://' + proxyHost + u.pathname + u.search;
+                    p += (p.indexOf('?') >= 0 ? '&' : '?');
+                    p += '_x_tr_sl=en'
+                       + '&_x_tr_tl=' + encodeURIComponent(tl)
+                       + '&_x_tr_hl=' + encodeURIComponent(tl)
+                       + '&_x_tr_pto=wapp';
+                    return p;
+                } catch (e) {
+                    return url; // fallback: serve original on any URL parse error
+                }
+            }
+
+            var tl       = getLang();
+            var frame    = document.querySelector('iframe');
+            var badge    = document.getElementById('translate-badge');
+            var badgeTxt = document.getElementById('translate-badge-text');
+            var mobBtn   = document.getElementById('mob-translate-btn');
+            var mobTxt   = document.getElementById('mob-translate-text');
+            if (!frame) return;
+
+            var translatedUrl   = (tl && tl !== 'en') ? toProxyUrl(ORIGINAL_SRC, tl) : ORIGINAL_SRC;
+            var needTranslation = (translatedUrl !== ORIGINAL_SRC);
+            var isOn            = needTranslation;
+
+            /* Friendly language display names */
+            var LANG_NAMES = {
+                bg:'Български', ru:'Русский', de:'Deutsch',   fr:'Français',
+                es:'Español',   it:'Italiano', tr:'Türkçe',   uk:'Українська',
+                ar:'عربي',       zh:'中文',      ja:'日本語',    ko:'한국어',
+                pl:'Polski',    nl:'Nederlands', sv:'Svenska', cs:'Čeština',
+                ro:'Română',    el:'Ελληνικά',  fi:'Suomi',   hu:'Magyar',
+                sk:'Slovenčina',hr:'Hrvatski',   sr:'Srpски',  da:'Dansk',
+                no:'Norsk',     pt:'Português'
+            };
+
+            /* Apply a URL to the iframe and keep the reset-src in sync */
+            function applyUrl(url) {
+                frame.src = url;
+                window._xbodyResetSrc = url;
+            }
+
+            /* Sync badge visual state (top badge + mobile toolbar button) */
+            function syncBadge() {
+                if (!badge) return;
+                var name = LANG_NAMES[tl] || tl.toUpperCase();
+
+                if (!needTranslation) {
+                    badge.style.display = 'none';
+                    if (mobBtn) mobBtn.style.display = 'none';
+                    return;
+                }
+
+                /* ── Top badge ── */
+                if (isOn) {
+                    badgeTxt.textContent = name + ' ✕';
+                    badge.setAttribute('aria-label', 'Преводът е активен (' + name + '). Натисни за изключване.');
+                    badge.style.opacity = '1';
+                } else {
+                    badgeTxt.textContent = '🌐 Вкл. превод';
+                    badge.setAttribute('aria-label', 'Преводът е изключен. Натисни за включване.');
+                    badge.style.opacity = '0.60';
+                }
+                badge.style.display = 'flex';
+
+                /* ── Mobile toolbar button (same state) ── */
+                if (mobBtn && mobTxt) {
+                    if (isOn) {
+                        mobTxt.textContent = name + ' ✕';
+                        mobBtn.setAttribute('aria-label', 'Преводът е активен (' + name + '). Натисни за изключване.');
+                        mobBtn.style.opacity = '1';
+                    } else {
+                        mobTxt.textContent = 'Вкл. превод';
+                        mobBtn.setAttribute('aria-label', 'Преводът е изключен. Натисни за включване.');
+                        mobBtn.style.opacity = '0.60';
+                    }
+                    mobBtn.style.display = 'flex';
+                }
+            }
+
+            /* Initial load */
+            applyUrl(isOn ? translatedUrl : ORIGINAL_SRC);
+            syncBadge();
+
+            /* Toggle on badge tap */
+            if (badge && needTranslation) {
+                badge.addEventListener('click', function () {
+                    isOn = !isOn;
+                    applyUrl(isOn ? translatedUrl : ORIGINAL_SRC);
+                    syncBadge();
+                });
+                /* Keyboard accessibility (Enter / Space) */
+                badge.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        badge.click();
+                    }
+                });
+            }
+
+            /* Toggle on mobile toolbar button tap (same action) */
+            if (mobBtn && needTranslation) {
+                mobBtn.addEventListener('click', function () {
+                    isOn = !isOn;
+                    applyUrl(isOn ? translatedUrl : ORIGINAL_SRC);
+                    syncBadge();
+                });
+                mobBtn.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        mobBtn.click();
+                    }
+                });
+            }
+        })();
 
         /* ── PWA Install Logic ── */
         (function () {
@@ -461,6 +786,7 @@
         /* ── Back navigation button ── */
         (function () {
             const btn        = document.getElementById('back-btn');
+            const mobBackBtn = document.getElementById('mob-back-btn');
             const frame      = document.querySelector('iframe');
             if (!btn || !frame) return;
 
@@ -471,6 +797,8 @@
 
             function setVisible(v) {
                 btn.classList.toggle('visible', !!v);
+                /* Mirror state on the mobile toolbar back button */
+                if (mobBackBtn) mobBackBtn.classList.toggle('visible', !!v);
             }
 
             /* ── Strategy A: parent-window history ──────────────────────────
@@ -544,10 +872,10 @@
                 if (navDepth === 0) setVisible(msgNavDepth > 0);
             });
 
-            /* ── Back button click ──────────────────────────────────────────
+            /* ── Back button click (top button + mobile toolbar button share logic) ──
                Prefer parent history (Strategy A); fall back to iframe history;
                last resort: reload the iframe to the original src. */
-            btn.addEventListener('click', () => {
+            function doBack() {
                 if (window.history.length > baseLen) {
                     window.history.back();
                     return;
@@ -555,8 +883,11 @@
                 try {
                     frame.contentWindow.history.back();
                 } catch (_) {
-                    // Cross-origin history access denied – hard-reset the frame
-                    frame.src = originalSrc;
+                    // Cross-origin history access denied – hard-reset the frame.
+                    // Use _xbodyResetSrc (kept in sync by the translation toggle)
+                    // so the reset always lands on whatever URL is currently active
+                    // (translated or original) rather than the init-time snapshot.
+                    frame.src = window._xbodyResetSrc || originalSrc;
                     navDepth    = 0;
                     msgNavDepth = 0;
                     homeHeight  = null; // re-baseline on next setHeight message
@@ -567,7 +898,10 @@
                 navDepth    = Math.max(0, navDepth    - 1);
                 msgNavDepth = Math.max(0, msgNavDepth - 1);
                 setVisible(navDepth > 0 || msgNavDepth > 0);
-            });
+            }
+
+            btn.addEventListener('click', doBack);
+            if (mobBackBtn) mobBackBtn.addEventListener('click', doBack);
         })();
     </script>
 </body>
