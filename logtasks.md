@@ -198,3 +198,122 @@ Questionnaire2 Submission
   2. `xbody-manifest.json` беше обновен да сочи към новите файлове вместо споделените.
   3. NutriPlan иконите (`icon-192.png`, `icon-512.png`) остават непокътнати.
 - **Резултат**: XBody PWA вече ползва своята оригинална икона; NutriPlan не е засегнат.
+
+## 2026-05-19 - Обяснение на Xbody Проекта
+
+### Какво е Xbody Проектът?
+
+**XBody Ability** е интегрирано web-приложение (PWA) за управление и резервиране на часовете за XBody тренировки. То е вграден модул в по-голямата NutriPlan платформа, но е напълно независим и изолиран.
+
+Проектът включва:
+- **xbody.html** - главната PWA страница
+- **xbody-manifest.json** - PWA манифест със конфигурация
+- **xbody-sw.js** - Service Worker за офлайн функционалност
+- **xbody-icon-192.png, xbody-icon-512.png** - икони на приложението
+
+### Цел на Проекта
+
+**Основната цел**: Предоставяне на удобен способ за резервиране и управление на XBody тренировки чрез интегриран в браузър интерфейс, който работи както на мобилни устройства, така и на десктопи, и може да бъде инсталиран като native PWA приложение.
+
+### Как е Реализиран Проектът?
+
+#### 1. **Embedding на Acuity Scheduling System**
+- XBody ползва **Acuity Scheduling** (acuityscheduling.com) за управление на резервациите
+- Встроена е iframe с адрес: `https://app.acuityscheduling.com/schedule.php?owner=13943721&appointmentType=16859189`
+- Това позволява директното използване на Acuity системата без собствено развитие на резервационен модул
+
+#### 2. **Оптимизирана iOS/Android Поддръжка**
+- **Scroll Container**: Специално оптимизиран `#acuity-scroll-container` div с `position: fixed` body за избягване на rubber-band scrolling на iOS
+- **Safe Area Padding**: Използва `constant(safe-area-inset-*)` и `env(safe-area-inset-*)` за коректно позициониране над status bar и home indicator
+- **WebKit Compositor Recovery**: При return от фон (visibilitychange), се восстанавливает scroll layer чрез nudging scrollTop за 50ms
+
+#### 3. **PWA Функционалност**
+**Install Modal** - Интелигентна PWA инсталационна система:
+- **iOS**: Показва step-by-step инструкции за добавяне към Home Screen (Share → Add to Home Screen)
+- **Android**: Използва нативен `beforeinstallprompt` за един-клик инсталация
+- **Desktop**: Fallback инструкции в браузърната адресна лента
+- **Smart Dismiss**: Помещение да бъде затвори на 7 дни (localStorage ключ `xbody_pwa_dismissed`)
+
+**Service Worker** (xbody-sw.js):
+- Кешира essential файлове: `xbody.html`, `xbody-manifest.json`
+- Опционално кеширане на икони (без fail ако липсват)
+- Cache versioning: `xbody-v4` за управление на updates
+- Cache-first strategy за same-origin ресурси
+- Автоматично очищаване на старите cache версии на activate
+
+#### 4. **Back Navigation (Мултистратегийна)**
+Осигурява back button в горния ляв ъгъл за навигация обратно:
+
+**Strategy A - Parent Window History** (Primary):
+- Следи `window.history.length` чрез polling (1 сек интервал)
+- Реагира на `popstate` event
+- Позволява back чрез `window.history.back()`
+
+**Strategy B - Acuity PostMessage Height Heuristic** (Fallback):
+- Слуша `message` events с `action='setHeight'` от Acuity embed.js
+- Следи height промени > 100px като индикатор за нова страница в booking flow
+- Позволява back чрез iframe history при невъзможност да се достъпи parent history
+
+**Strategy C - Hard Reset** (Last Resort):
+- Ако cross-origin restrictions предотвратят достъп до iframe history, се reload-ва iframe-ът към originalSrc
+
+#### 5. **Theming Support**
+- Прочита localStorage ключ 'theme' за светла/тъмна тема
+- Инлайн script в `<head>` (преди DOM load) задава `data-theme` на documentElement
+- Meta theme-color се актуализира според темата (light: #F0FDFA, dark: #0A1A1A)
+- Поддържа системна preference чрез `prefers-color-scheme`
+
+#### 6. **UI/UX Оптимизации**
+- **Modal Design**: Glass-morphism back button с `backdrop-filter: blur(10px)` и shadow
+- **Responsive**: 100% ширина на iframe с минимум височина до реален размер
+- **Touch Optimization**: `touch-action: manipulation` на back button за избягване на 300ms delay
+- **Animations**: Fade-in на modal (0.3s), scale-in (0.35s) с cubic-bezier easing
+
+### Архитектура
+
+```
+xbody.html (PWA главна страница)
+    ├── Manifest: xbody-manifest.json (PWA конфигурация)
+    ├── Service Worker: xbody-sw.js (кеширане и офлайн)
+    ├── Вградена Iframe: Acuity Scheduling System
+    │   └── URL: https://app.acuityscheduling.com/schedule.php...
+    ├── Acuity Embed Script: embed.acuityscheduling.com/js/embed.js
+    └── JavaScript:
+        ├── PWA Install Modal (iOS/Android/Desktop)
+        ├── Back Navigation (3 стратегии)
+        ├── iOS Scroll Recovery
+        └── Theming Support
+```
+
+### Ключови Функции
+
+1. **Cross-Platform Support**: iOS (Safari, Chrome, Firefox), Android Chrome, Desktop
+2. **Offline-first**: Service Worker кеширане на shell и опционални assets
+3. **Native Integration**: Installable като native app на мобилни устройства
+4. **Seamless Booking**: Директна интеграция с Acuity scheduling без friction
+5. **Accessibility**: ARIA labels, focus management, semantic HTML
+6. **Performance**: Minimal JavaScript footprint, no external dependencies (освен Acuity)
+
+### Technology Stack
+
+| Компонент | Технология |
+|-----------|-----------|
+| Frontend Shell | HTML5 + CSS3 |
+| PWA Management | Web App Manifest + Service Workers |
+| Booking System | Acuity Scheduling ( 3rd party) |
+| Offline Support | Service Workers + Cache API |
+| Data Persistence | localStorage (theme, dismiss state) |
+| Cross-Origin Communication | postMessage API |
+| Platform Detection | User-Agent parsing + feature detection |
+
+### Резюме
+
+XBody Ability е lightweight PWA обвивка около Acuity Scheduling система, оптимизирана за:
+- ✅ Мобилни устройства (iOS/Android)
+- ✅ Инсталация като native приложение
+- ✅ Офлайн функционалност
+- ✅ Плавна навигация с back button
+- ✅ Dark/light theming
+- ✅ Кросс-браузърна съместимост
+
+Целта е да направи резервирането на XBody часове максимално удобно и accessible за всички потребители, независимо от устройството или мрежовата връзка.
