@@ -615,7 +615,34 @@
             if (icon) icon.className = t === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
         })();
 
+        // Auto-check plan status after page loads (for existing clients with auto-activated plans)
+        let autoCheckTimeout;
+        window.addEventListener('DOMContentLoaded', function() {
+            // Wait 2 seconds for page to settle, then check plan status
+            autoCheckTimeout = setTimeout(autoCheckPlanStatus, 2000);
+        });
+
+        async function autoCheckPlanStatus() {
+            const clientId = localStorage.getItem('pendingClientId');
+            if (!clientId) return;
+            
+            try {
+                const resp = await fetch('https://aidiet.radilov-k.workers.dev/api/client-plan-status?clientId=' + encodeURIComponent(clientId));
+                const data = await resp.json();
+                
+                // If plan is activated, auto-proceed without user clicking
+                if (data.success && data.planStatus === 'activated') {
+                    checkPlanStatus();
+                }
+            } catch (e) {
+                console.warn('Auto-check failed:', e);
+            }
+        }
+
         async function checkPlanStatus() {
+            // Cancel auto-check if it's still pending
+            if (autoCheckTimeout) clearTimeout(autoCheckTimeout);
+            
             const clientId = localStorage.getItem('pendingClientId');
             if (!clientId) return;
 

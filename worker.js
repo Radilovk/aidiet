@@ -4486,32 +4486,62 @@ async function handleUpdateClientPlan(request, env, ctx) {
       return jsonResponse({ error: 'Client not found' }, 404);
     }
     const clientData = JSON.parse(raw);
+    const wasPreviouslyActivated = Boolean(clientData.planActivatedAt);
     clientData.plan = plan;
     if (userId) clientData.userId = userId;
     clientData.planUpdatedAt = new Date().toISOString();
-    // Any new or replaced plan must go back to pending review so the admin panel
-    // can surface it for approval instead of leaving a previously activated plan active.
-    clientData.planStatus = 'pending';
-    clientData.planActivatedAt = null;
+    
+    // For existing approved clients (who had a previously activated plan):
+    // Auto-activate new plans so they can use them immediately.
+    // For new/first-time clients: require admin review before activation.
+    if (wasPreviouslyActivated) {
+      // Existing client — auto-activate their plan update
+      clientData.planStatus = 'activated';
+      clientData.planActivatedAt = new Date().toISOString();
+    } else {
+      // First-time or previously rejected plan — require admin review
+      clientData.planStatus = 'pending';
+      clientData.planActivatedAt = null;
+    }
     await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
 
-    // Notify admin that a new plan is pending review (fire-and-forget)
-    sendPushNotificationToUser('admin', {
-      title: 'Нов план чака преглед',
-      body: `Клиент ${clientId} попълни въпросник 2 — планът очаква активиране.`,
-      url: '/admin.html',
-      icon: '/icon-192x192.png',
-      notificationType: 'admin_plan_pending'
-    }, env).catch(e => console.warn('Admin push notification failed:', e));
+    // Notify admin only if this is a first-time plan requiring review
+    if (clientData.planStatus === 'pending') {
+      sendPushNotificationToUser('admin', {
+        title: 'Нов план чака преглед',
+        body: `Клиент ${clientId} попълни въпросник 2 — планът очаква активиране.`,
+        url: '/admin.html',
+        icon: '/icon-192x192.png',
+        notificationType: 'admin_plan_pending'
+      }, env).catch(e => console.warn('Admin push notification failed:', e));
 
-    notifyMake(ctx,
-      `📋 Нов план чака преглед\n\n` +
-      `👤 Клиент: ${clientData.answers?.name || clientId}\n` +
-      `🆔 ID: ${clientId}\n` +
-      `📧 Имейл: ${clientData.answers?.email || '—'}\n` +
-      `🎯 Цел: ${clientData.answers?.goal || '—'}\n` +
-      `📅 Дата: ${formatDateBG(clientData.planUpdatedAt)}`
-    );
+      notifyMake(ctx,
+        `📋 Нов план чака преглед\n\n` +
+        `👤 Клиент: ${clientData.answers?.name || clientId}\n` +
+        `🆔 ID: ${clientId}\n` +
+        `📧 Имейл: ${clientData.answers?.email || '—'}\n` +
+        `🎯 Цел: ${clientData.answers?.goal || '—'}\n` +
+        `📅 Дата: ${formatDateBG(clientData.planUpdatedAt)}`
+      );
+    } else if (clientData.planStatus === 'activated' && wasPreviouslyActivated) {
+      // For auto-activated updates, sync to user profile
+      if (clientData.userId) {
+        try {
+          const profileRaw = await env.page_content.get(`user_profile:${clientData.userId}`);
+          if (profileRaw) {
+            const profile = JSON.parse(profileRaw);
+            profile.plan = clientData.plan;
+            profile.planSource = '';
+            profile.clientId = clientId;
+            profile.savedAt = new Date().toISOString();
+            await env.page_content.put(`user_profile:${clientData.userId}`, JSON.stringify(profile));
+          }
+        } catch (e) {
+          console.warn(`Failed to sync auto-activated plan to profile ${clientData.userId}:`, e.message);
+        }
+      }
+      console.log(`[Client] Plan auto-activated for existing client ${clientId}`);
+    }
 
     return jsonResponse({ success: true, message: 'Plan updated' });
   } catch (error) {
