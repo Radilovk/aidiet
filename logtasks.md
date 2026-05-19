@@ -5,6 +5,15 @@
 - Направено: Преработен е диагностичният loader в `questionnaire2.html` с мобилен glass дизайн, фазови индикатори, по-добри цветове за светла/тъмна тема, haptic feedback при ключови фази и финализация, и прогресът вече се задържа под 100% до реално получаване на `analysis_completed`/`completed` от сървъра.
 - Направено: Обновен е loader-ът в `analysis.html` с нов mobile-first card/orb дизайн, тъмна/светла тема и haptic feedback при показване на анализ или грешка.
 - Направено: Синхронизиран е preview екранът `analysis-loading.html` с новия loader дизайн.
+
+- Задача: 6 критични корекции по loading анимацията в `questionnaire2.html`:
+  1. Удължаване на анимацията с +10s (от ~30s до ~40s)
+  2. Премахване на `diagnostic-ring` (HTML елемент, CSS правило и keyframe)
+  3. Премахване на стъкления фон от `diagnostic-loader` — заменен с тема-native фон (radial-gradient + var(--bg-color)) за светла и тъмна тема
+  4. Добавяне на scroll в `diagnostic-terminal` (overflow-y: auto + auto-scroll при нов ред)
+  5. `diagnostic-log-line` — премахнати контейнери, rounded bg и иконки; само monospace конзолен текст
+  6. Автентични технически лог редове с формат `[TAG]  pid/thread:  операция=стойност`
+- Направено: Всички промени са в `questionnaire2.html` — DIAGNOSTIC_LOG_LINES, renderDiagnosticLoading CSS, appendLog функция, stages timings, updateProgress прагове.
 # Logtasks
 
 - `handleUpdateClientPlan` now always resets the client plan to `pending` review and clears any stale activation timestamp.
