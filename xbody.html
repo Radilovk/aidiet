@@ -490,60 +490,17 @@
         });
 
         /* ── Auto-translation ─────────────────────────────────────────────
-           The user's preferred browser language is detected automatically.
-           When it differs from English (the language of the Acuity booking
-           system), the iframe is loaded through the Google Translate web-proxy
-           which translates all rendered text – including dynamic SPA content –
-           without any API key or server-side changes.
-
-           Proxy URL format used by translate.goog:
-             https://<hostname-dashes>.translate.goog<path>?<params>
-               &_x_tr_sl=auto    ← auto-detect source language
-               &_x_tr_tl=<tl>   ← target language (from browser)
-               &_x_tr_hl=<tl>   ← UI language of the translate toolbar
-               &_x_tr_pto=wapp  ← SPA-friendly "web app" mode (keeps
-                                   translated URL rewrites working in SPAs)
-
-           A pill badge (top-right) confirms translation is active and lets
-           the user toggle it off/on.  window._xbodyResetSrc is kept in sync
-           with the active URL so the back-navigation hard-reset lands on the
-           correct src regardless of toggle state. */
+           NOTE: translate.goog proxy is NOT used for the Acuity iframe.
+           Acuity Scheduling blocks proxying via translate.goog (the domain
+           app-acuityscheduling-com.translate.goog is unreachable), which
+           causes ERR_ADDRESS_UNREACHABLE for non-English browser users.
+           The iframe always loads the original Acuity URL directly.
+           The translate badge is hidden (needTranslation = false).
+           window._xbodyResetSrc is still kept in sync with the active URL
+           so the back-navigation hard-reset works correctly. */
         (function () {
             var ORIGINAL_SRC = 'https://app.acuityscheduling.com/schedule.php?owner=13943721&appointmentType=16859189';
 
-            /* 2-letter ISO language code from the browser */
-            function getLang() {
-                var raw = (navigator.languages && navigator.languages[0]) ||
-                           navigator.language || 'en';
-                return raw.split('-')[0].toLowerCase();
-            }
-
-            /* Build the translate.goog proxy URL.
-               Dots in the hostname → dashes per translate.goog encoding rules
-               (e.g. app.acuityscheduling.com → app-acuityscheduling-com.translate.goog).
-
-               _x_tr_sl=en  – declare the source language as English explicitly.
-               This means Google Translate will only process English text nodes
-               and leave any already-Bulgarian (or other non-English) content
-               completely untouched.  Using 'auto' here would risk re-translating
-               Bulgarian text that the studio has customised in the Acuity UI. */
-            function toProxyUrl(url, tl) {
-                try {
-                    var u = new URL(url);
-                    var proxyHost = u.hostname.replace(/\./g, '-') + '.translate.goog';
-                    var p = 'https://' + proxyHost + u.pathname + u.search;
-                    p += (p.indexOf('?') >= 0 ? '&' : '?');
-                    p += '_x_tr_sl=en'
-                       + '&_x_tr_tl=' + encodeURIComponent(tl)
-                       + '&_x_tr_hl=' + encodeURIComponent(tl)
-                       + '&_x_tr_pto=wapp';
-                    return p;
-                } catch (e) {
-                    return url; // fallback: serve original on any URL parse error
-                }
-            }
-
-            var tl       = getLang();
             var frame    = document.querySelector('iframe');
             var badge    = document.getElementById('translate-badge');
             var badgeTxt = document.getElementById('translate-badge-text');
@@ -551,9 +508,9 @@
             var mobTxt   = document.getElementById('mob-translate-text');
             if (!frame) return;
 
-            var translatedUrl   = (tl && tl !== 'en') ? toProxyUrl(ORIGINAL_SRC, tl) : ORIGINAL_SRC;
-            var needTranslation = (translatedUrl !== ORIGINAL_SRC);
-            var isOn            = needTranslation;
+            /* translate.goog is incompatible with Acuity – always use original */
+            var needTranslation = false;
+            var isOn            = false;
 
             /* Friendly language display names */
             var LANG_NAMES = {
@@ -575,7 +532,6 @@
             /* Sync badge visual state (top badge + mobile toolbar button) */
             function syncBadge() {
                 if (!badge) return;
-                var name = LANG_NAMES[tl] || tl.toUpperCase();
 
                 if (!needTranslation) {
                     badge.style.display = 'none';
@@ -610,40 +566,9 @@
                 }
             }
 
-            /* Initial load */
-            applyUrl(isOn ? translatedUrl : ORIGINAL_SRC);
+            /* Initial load – always original, no translation proxy */
+            applyUrl(ORIGINAL_SRC);
             syncBadge();
-
-            /* Toggle on badge tap */
-            if (badge && needTranslation) {
-                badge.addEventListener('click', function () {
-                    isOn = !isOn;
-                    applyUrl(isOn ? translatedUrl : ORIGINAL_SRC);
-                    syncBadge();
-                });
-                /* Keyboard accessibility (Enter / Space) */
-                badge.addEventListener('keydown', function (e) {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        badge.click();
-                    }
-                });
-            }
-
-            /* Toggle on mobile toolbar button tap (same action) */
-            if (mobBtn && needTranslation) {
-                mobBtn.addEventListener('click', function () {
-                    isOn = !isOn;
-                    applyUrl(isOn ? translatedUrl : ORIGINAL_SRC);
-                    syncBadge();
-                });
-                mobBtn.addEventListener('keydown', function (e) {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        mobBtn.click();
-                    }
-                });
-            }
         })();
 
         /* ── PWA Install Logic ── */
