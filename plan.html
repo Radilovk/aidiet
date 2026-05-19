@@ -9900,21 +9900,37 @@
             }
 
             // For direct action-button taps (sleep_yes / sleep_no): save silently
-            // to localStorage without opening any modal – instant, zero navigation.
+            // without opening any modal – instant, zero navigation.
+            // Use the game module so the in-memory cache stays consistent and the
+            // daily score is recalculated and shown immediately.
             if (notifType === 'morning_check' && (action === 'sleep_yes' || action === 'sleep_no')) {
                 try {
-                    var data = JSON.parse(localStorage.getItem('gameData') || '{}') || {};
-                    if (!data[recordKey]) {
-                        data[recordKey] = { date: recordKey, meals: {}, extraMeals: [],
-                            freeMealRatings: {}, morningCheck: null, eveningCheck: null,
-                            plannedCalories: null, mealCalories: {}, dailyScore: null, missing: false };
-                    }
-                    if (!data[recordKey].morningCheck) {
-                        data[recordKey].morningCheck = {
-                            sleptWell: action === 'sleep_yes',
-                            ts: new Date().toISOString()
-                        };
-                        localStorage.setItem('gameData', JSON.stringify(data));
+                    var gm = window.gameModule;
+                    if (gm && typeof gm.getRecord === 'function' && typeof gm.saveRecord === 'function') {
+                        var rec = gm.getRecord(recordKey);
+                        if (!rec.morningCheck) {
+                            rec.morningCheck = {
+                                sleptWell: action === 'sleep_yes',
+                                ts: new Date().toISOString()
+                            };
+                            rec.dailyScore = typeof gm.calcDayScore === 'function' ? gm.calcDayScore(rec) : rec.dailyScore;
+                            gm.saveRecord(recordKey, rec);
+                        }
+                    } else {
+                        // Fallback when gameModule is not yet initialised
+                        var data = JSON.parse(localStorage.getItem('gameData') || '{}') || {};
+                        if (!data[recordKey]) {
+                            data[recordKey] = { date: recordKey, meals: {}, extraMeals: [],
+                                freeMealRatings: {}, morningCheck: null, eveningCheck: null,
+                                plannedCalories: null, mealCalories: {}, dailyScore: null, missing: false };
+                        }
+                        if (!data[recordKey].morningCheck) {
+                            data[recordKey].morningCheck = {
+                                sleptWell: action === 'sleep_yes',
+                                ts: new Date().toISOString()
+                            };
+                            localStorage.setItem('gameData', JSON.stringify(data));
+                        }
                     }
                 } catch(e) {}
                 return;

@@ -1,6 +1,21 @@
 # Log Tasks
 
-## 2026-05-19 - Задача: Поправка на нотификационни модали (не се зарежда цялото приложение)
+## 2026-05-19 - Задача: Верификация дали системата получава реалните отговори
+
+### Въпрос
+"А системата получава ли реалните отговори, за да може да ги калкулира и използва след това за анализа?"
+
+### Анализ
+
+#### Пример 1 – Модален диалог (в plan.html)
+`_gameShowMorning()` / `_gameShowEvening()` → `saveRecord()` → `saveGameData()` (обновява кеша + localStorage) → `recalcAndShowScore()` → UI ✅
+
+#### Пример 2 – Тих запис (sleep_yes/sleep_no от бутон в нотификацията)
+**Намерен бъг:** SW message listener пишеше директно с `localStorage.setItem('gameData')` → кешът `_gameDataCache` оставаше стар → `recalcAndShowScore()` не се извикваше → score в UI не се обновяваше.
+
+### Поправка
+Заменен директният `localStorage.setItem` с `window.gameModule.saveRecord()` + `window.gameModule.calcDayScore()` когато gamification модулът е зареден. Fallback към директен запис само ако модулът не е готов.
+
 
 ### Проблем
 - При клик на нотификация се зарежда цялото приложение (бавно)
