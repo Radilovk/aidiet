@@ -3329,12 +3329,9 @@ async function generatePlanAndSave(env, data, jobId, clientId) {
     );
     console.log(`generatePlanAndSave: job ${jobId} completed and saved to KV`);
 
-    // Persist the completed plan directly to the admin-visible client record.
-    // The browser also calls /api/admin/update-client-plan after polling, but that
-    // depends on save-client-data having succeeded first.  If save-client-data failed
-    // (network error, large payload, etc.) client:{clientId} won't exist and the
-    // browser call returns 404 silently.  We create the record here if needed so the
-    // plan is ALWAYS visible in the admin panel regardless of browser-side failures.
+    // Persist the completed plan directly to the admin-visible client record so
+    // that approval works even when the browser closes before the client-side
+    // polling can call /api/admin/update-client-plan.
     if (clientId && result.success && result.plan) {
       try {
         const raw = await env.page_content.get(`client:${clientId}`);
@@ -3348,34 +3345,10 @@ async function generatePlanAndSave(env, data, jobId, clientId) {
           if (wasPreviouslyActivated) clientData.planActivatedAt = new Date().toISOString();
           else clientData.planActivatedAt = null;
           await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
-          console.log(`generatePlanAndSave: job ${jobId} plan saved to existing client record ${clientId}`);
-        } else {
-          // save-client-data never arrived — create the record now so the admin can see it
-          const now = new Date().toISOString();
-          const clientData = {
-            id: clientId,
-            timestamp: now,
-            submittedAt: now,
-            answers: { name: data.name || '', email: data.email || '', goal: data.goal || '' },
-            plan: result.plan,
-            planStatus: 'pending',
-            planActivatedAt: null,
-            planUpdatedAt: now,
-            ...(userId ? { userId } : {})
-          };
-          await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
-          // Register in clients_list so admin can discover the record
-          let clientsList = await env.page_content.get('clients_list');
-          clientsList = clientsList ? JSON.parse(clientsList) : [];
-          if (!clientsList.includes(clientId)) {
-            clientsList.unshift(clientId);
-            if (clientsList.length > 500) clientsList = clientsList.slice(0, 500);
-            await env.page_content.put('clients_list', JSON.stringify(clientsList));
-          }
-          console.log(`generatePlanAndSave: job ${jobId} created missing client record ${clientId} (save-client-data was not received)`);
+          console.log(`generatePlanAndSave: job ${jobId} plan saved to client record ${clientId}`);
         }
       } catch (e) {
-        console.warn(`generatePlanAndSave: failed to update/create client record ${clientId}:`, e.message);
+        console.warn(`generatePlanAndSave: failed to update client record ${clientId}:`, e.message);
       }
     }
   } catch (error) {
@@ -3403,33 +3376,12 @@ async function generatePlanAndSave(env, data, jobId, clientId) {
     if (clientId) {
       try {
         const raw = await env.page_content.get(`client:${clientId}`);
-        const now = new Date().toISOString();
         if (raw) {
           const clientData = JSON.parse(raw);
           clientData.planStatus = 'failed';
           clientData.planGenerationError = error.message || 'Неизвестна грешка';
-          clientData.planUpdatedAt = now;
+          clientData.planUpdatedAt = new Date().toISOString();
           await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
-        } else {
-          // create a minimal record so the admin can see the failure
-          const clientData = {
-            id: clientId,
-            timestamp: now,
-            submittedAt: now,
-            answers: { name: data.name || '', email: data.email || '', goal: data.goal || '' },
-            plan: null,
-            planStatus: 'failed',
-            planGenerationError: error.message || 'Неизвестна грешка',
-            planUpdatedAt: now
-          };
-          await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
-          let clientsList = await env.page_content.get('clients_list');
-          clientsList = clientsList ? JSON.parse(clientsList) : [];
-          if (!clientsList.includes(clientId)) {
-            clientsList.unshift(clientId);
-            if (clientsList.length > 500) clientsList = clientsList.slice(0, 500);
-            await env.page_content.put('clients_list', JSON.stringify(clientsList));
-          }
         }
       } catch (e) {
         console.warn(`generatePlanAndSave: could not write failure to client record ${clientId}:`, e.message);

@@ -2,9 +2,11 @@
 
 ## 2026-05-19
 
-- Задача (продължение): Намиране на точния root cause: защо план не се появява за одобрение в admin панела въпреки завършена генерация.
-- Root cause: `save-client-data` от браузъра е fire-and-forget без retry. При провал (мрежова грешка, голям файл) `client:{id}` не се създава. Browser-side `update-client-plan` → 404 (`.catch()` не хваща HTTP грешки). Server-side `if (raw)` в `generatePlanAndSave` → тихо пропуска.
-- Направено: `generatePlanAndSave` сега при успех: ако `client:{id}` не съществува — СЪЗДАВА го от данните на планиращия payload + регистрира в `clients_list`. При провал — същото, с `planStatus='failed'` и `planGenerationError`.
+- Задача (продължение 2): "не пиши излишен код в worker. намери реалния проблем и го отстрани!"
+- Real root cause: Когато потребителят кликне "Виж статуса на плана" в analysis.html и отиде на plan-pending.html ПРЕДИ планът да завърши → JavaScript context-ът на analysis.html се унищожава → background polling спира → update-client-plan никога не се извиква → client:{id} остава planStatus='none' → admin не вижда плана за одобрение.
+- Направено:
+  1. Върнат ненужен "create if missing" код от worker.js (generatePlanAndSave) - оставен само простият if(raw){update} вариант
+  2. plan-pending.html: добавено startPlanJobPolling() - проверява planJobId в localStorage, poll-ва /api/plan-job-status и извиква /api/admin/update-client-plan когато планът завърши
 
 
 - Задача: Подобряване на loading екрана при генериране на анализа за `analysis.html`, оптимизация за телефон, светла/тъмна тема, светлосенки/цветове/елементи, хаптик при визуални операции и премахване на разминаването между края на loading екрана и реалното отваряне на `analysis.html`.
