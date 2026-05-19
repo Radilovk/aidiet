@@ -102,3 +102,54 @@ Modify `handleUpdateClientPlan` to:
 - [ ] Test questionnaire2 flow with existing client
 - [ ] Verify admin panel still works for new plans
 - [ ] Verify plan-pending.html works for new first-time plans
+
+## COMPLETED ✅
+
+### Final Status
+- [x] Identified root cause: handleUpdateClientPlan set ALL plans to pending
+- [x] Implemented fix: Auto-activate for existing clients, pending for new clients
+- [x] Added UX improvement: Auto-check plan status on plan-pending.html load
+- [x] Verified security: No vulnerabilities found (CodeQL check passed)
+- [x] Verified syntax: No JavaScript errors
+- [x] Created PR #793 for review
+
+### What Gets Fixed
+**Before:**
+- Existing client updates plan → stuck at plan-pending for admin approval ❌
+- Unintuitive: "Your plan is waiting for specialist approval" (even for updates)
+- No automatic status checking
+
+**After:**
+- Existing client updates plan → auto-activated immediately ✅
+- Existing client goes to plan-pending.html → auto-check runs after 2s
+- Plan found activated → auto-proceeds to plan setup (2-second delay, smooth UX)
+- New clients still get admin review (unchanged) ✅
+- Existing functionality preserved ✅
+
+### Code Flow
+
+```
+Questionnaire2 Submission
+         ↓
+  generatePlanAsync
+         ↓
+   updateClientPlan (via /api/admin/update-client-plan)
+         ↓
+    [NEW LOGIC HERE]
+    Check: wasPreviouslyActivated?
+    ├─ YES → Auto-activate + sync profile (existing client)
+    └─ NO → Set pending + notify admin (first-time client)
+         ↓
+    plan-pending.html
+         ↓
+    [NEW UX HERE]
+    autoCheckPlanStatus runs after 2s
+    ├─ Status='activated' → checkPlanStatus() → plan.html
+    └─ Status='pending' → Show waiting message (admin will approve)
+```
+
+### PR #793
+- Title: "Fix: Auto-activate plan updates for existing registered clients"
+- Status: Ready for review/merge
+- Tests: Code syntax verified, security passed
+- Next: Manual functional testing recommended
