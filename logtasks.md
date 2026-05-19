@@ -12,3 +12,10 @@
 - The admin push notification remains in place, so the update now both flags the client in the admin UI and notifies the admin browser.
 - `GET /api/client-plan-status` now also returns whether a plan payload already exists for the pending client record.
 - `plan-pending.html` uses that extra state to distinguish between “plan still being generated” and “new plan is ready but still waiting for final approval”.
+
+## 2026-05-19 - Задача 2
+- Задача: Замяна на дългия текст "Влезте, за да достъпите плана си" в логин прозореца с нещо по-кратко и адекватно.
+- Направено: Заменен е текстът в два места (`index.html`):
+  1. HTML елемент (ред 3786): от "Влезте, за да достъпите плана си" на "Имейл и парола"
+  2. JavaScript функция `_applyLoginMode()` (ред 4083): от "Влезте, за да достъпите плана си" на "Имейл и парола"
+- Причина: Новият текст е значително по-кратък (14 символа вместо 39), по-информативен и по-подходящ за контекста на формата за вход.
