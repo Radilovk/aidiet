@@ -66,8 +66,6 @@
         
         if (planSource === 'questionnaire2' || pendingClientId) {
             planTarget = 'plan-pending.html';
-        } else if (!dietPlan && localStorage.getItem('userData')) {
-            planTarget = 'plan-pending.html';
         } else {
             planTarget = 'plan.html';
         }
