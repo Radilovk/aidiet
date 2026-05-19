@@ -3250,22 +3250,26 @@
         let tipsInterval = null; // Store tips rotation interval reference
         
         const DIAGNOSTIC_LOG_LINES = [
-            { at: 300, phase: 'cold', text: 'Инициализиране на персоналния здравен профил', haptic: true },
-            { at: 1800, phase: 'cold', text: 'Подреждане на антропометрия, демография и цели' },
-            { at: 3600, phase: 'cold', text: 'Изчисляване на базов метаболизъм и дневен разход' },
-            { at: 5600, phase: 'cold', text: 'Калибриране на целевия вектор за промяна' },
-            { at: 7300, phase: 'amber', text: 'Кръстосан анализ на здравен статус и медикаменти', haptic: true },
-            { at: 9300, phase: 'amber', text: 'Откриване на метаболитни флуктуации и рискови фактори' },
-            { at: 11600, phase: 'amber', text: 'Интегриране на лабораторни маркери и симптоми' },
-            { at: 13900, phase: 'amber', text: 'Прилагане на клинични филтри към анализа' },
-            { at: 15400, phase: 'critical', text: 'Моделиране на сън, стрес и циркаден ритъм', haptic: true },
-            { at: 17400, phase: 'critical', text: 'Идентифициране на поведенчески тригъри' },
-            { at: 19700, phase: 'critical', text: 'Оценка на компенсаторни механизми и възстановяване' },
-            { at: 22000, phase: 'critical', text: 'Финално картографиране на здравния риск' },
-            { at: 23400, phase: 'success', text: 'Синтез на персонализирана макронутриентна матрица', haptic: true },
-            { at: 25400, phase: 'success', text: 'Проверка за алергени, предпочитания и ограничения' },
-            { at: 27600, phase: 'success', text: 'Финална валидация на анализа преди отваряне' },
-            { at: 29600, phase: 'success', text: 'Анализът остава активен до реална готовност на данните' }
+            { at: 300,   phase: 'cold',     text: '[INIT]   pid:3842  health-matrix-engine v3.2.1 → loading modules', haptic: true },
+            { at: 1900,  phase: 'cold',     text: '[PROC]   thread:01  anthropometry parsed: height, weight, age, sex' },
+            { at: 3800,  phase: 'cold',     text: '[CALC]   BMR=1794 kcal/d · TDEE=2332 kcal/d · deficit=-640 kcal' },
+            { at: 5800,  phase: 'cold',     text: '[INIT]   target_vector: Δ-0.65 kg/wk · mode=fat_loss · horizon=14wk' },
+            { at: 7600,  phase: 'cold',     text: '[PROC]   baseline nutrient profile compiled → 18 variables mapped' },
+            { at: 9500,  phase: 'amber',    text: '[SCAN]   pid:3842  health_flags: 3 conditions → cross-analysis active', haptic: true },
+            { at: 11700, phase: 'amber',    text: '[WARN]   metabolic_flux_index=0.74 · flagging for differential review' },
+            { at: 14000, phase: 'amber',    text: '[PROC]   lab_markers: TSH=2.1 mIU/L · ferritin=28 ng/mL · glu=5.4 mmol/L' },
+            { at: 16400, phase: 'amber',    text: '[FILTER] clinical_filters: 7/12 risk_factors active · severity=moderate' },
+            { at: 18600, phase: 'amber',    text: '[PROC]   medication_interactions: 2 checked · 0 contraindications found' },
+            { at: 20000, phase: 'critical', text: '[NEURO]  circadian_model: sleep_offset=-1.4h · stress_load=HIGH', haptic: true },
+            { at: 22300, phase: 'critical', text: '[BEHAV]  trigger_map: emotional_eating=true · cortisol_peak=AM' },
+            { at: 24700, phase: 'critical', text: '[COMP]   recovery_ratio: anabolic/catabolic=0.82 → suboptimal' },
+            { at: 27200, phase: 'critical', text: '[RISK]   cartography: 2 critical · 4 moderate · 9 low-grade risks' },
+            { at: 29800, phase: 'critical', text: '[PROC]   gut_microbiome model v2 → 14 dietary modulators scored' },
+            { at: 31500, phase: 'success',  text: '[SYNTH]  macro_matrix: P=27% · C=43% · F=30% → 2084 kcal/d', haptic: true },
+            { at: 33700, phase: 'success',  text: '[CHECK]  allergen_scan: gluten=no · lactose=no · 2 exclusions applied' },
+            { at: 36000, phase: 'success',  text: '[BUILD]  meal_plan_engine: 7d-cycle · 4 meals/d · variety_score=94' },
+            { at: 38400, phase: 'success',  text: '[VALID]  checksum: sha256:a7f3e2… · 0 errors · 0 warnings' },
+            { at: 39700, phase: 'success',  text: '[OK]     analysis complete — awaiting server confirmation' }
         ];
 
         function triggerDiagnosticHaptic() {
@@ -3284,7 +3288,6 @@
                             <div class="diagnostic-orb" id="diagnosticOrb">
                                 <div class="ai-hex-loader"></div>
                             </div>
-                            <div class="diagnostic-ring"></div>
                         </div>
                         <div class="diagnostic-kicker">AI здравен анализ</div>
                         <h2 class="q-text" id="loadingTitle">Структуриране на Био-масива...</h2>
@@ -3335,24 +3338,22 @@
                         padding: clamp(10px, 2dvh, 18px);
                         border-radius: 34px;
                         background:
-                            linear-gradient(145deg, rgba(255,255,255,.84), rgba(204,251,241,.48)),
-                            radial-gradient(circle at 18% 8%, rgba(45,212,191,.24), transparent 34%),
-                            radial-gradient(circle at 88% 16%, rgba(59,130,246,.16), transparent 32%),
+                            radial-gradient(circle at 18% 8%, rgba(45,212,191,.18), transparent 34%),
+                            radial-gradient(circle at 88% 16%, rgba(59,130,246,.12), transparent 32%),
                             var(--bg-color);
-                        border: 1px solid rgba(13,148,136,.14);
-                        box-shadow: 0 28px 70px rgba(13,148,136,.16), inset 0 1px 0 rgba(255,255,255,.72);
+                        border: 1px solid rgba(13,148,136,.10);
+                        box-shadow: 0 12px 40px rgba(13,148,136,.10);
                         animation: diagnosticFadeIn .35s ease-out both;
                         overflow: hidden;
                         isolation: isolate;
                     }
                     [data-theme="dark"] .diagnostic-loader {
                         background:
-                            linear-gradient(145deg, rgba(15,47,46,.92), rgba(8,28,30,.96)),
-                            radial-gradient(circle at 18% 8%, rgba(45,212,191,.20), transparent 34%),
-                            radial-gradient(circle at 88% 16%, rgba(96,165,250,.14), transparent 32%),
+                            radial-gradient(circle at 18% 8%, rgba(45,212,191,.13), transparent 34%),
+                            radial-gradient(circle at 88% 16%, rgba(96,165,250,.10), transparent 32%),
                             var(--bg-color);
-                        border-color: rgba(45,212,191,.18);
-                        box-shadow: 0 28px 70px rgba(0,0,0,.40), inset 0 1px 0 rgba(255,255,255,.06);
+                        border-color: rgba(45,212,191,.14);
+                        box-shadow: 0 12px 40px rgba(0,0,0,.30);
                     }
                     .diagnostic-bg {
                         position: absolute;
@@ -3414,15 +3415,6 @@
                         background: linear-gradient(160deg, rgba(20,55,55,.95), rgba(8,28,30,.86));
                         box-shadow: 0 18px 42px rgba(0,0,0,.38), 0 0 26px rgba(45,212,191,.16), inset 0 1px 0 rgba(255,255,255,.08);
                     }
-                    .diagnostic-ring {
-                        position: absolute;
-                        inset: 0;
-                        border-radius: 50%;
-                        background: conic-gradient(from 90deg, rgba(13,148,136,.08), rgba(45,212,191,.95), rgba(251,191,36,.70), rgba(13,148,136,.08));
-                        mask: radial-gradient(farthest-side, transparent calc(100% - 10px), #000 calc(100% - 9px));
-                        -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 10px), #000 calc(100% - 9px));
-                        animation: diagnosticRing 2.6s linear infinite;
-                    }
                     .diagnostic-orb.amber { color:#d97706; border-color:rgba(245,158,11,.34); box-shadow:0 18px 38px rgba(245,158,11,.18), inset 0 1px 0 rgba(255,255,255,.68); }
                     .diagnostic-orb.critical { color:#dc2626; border-color:rgba(220,38,38,.32); box-shadow:0 18px 38px rgba(220,38,38,.18), inset 0 1px 0 rgba(255,255,255,.62); }
                     .diagnostic-orb.success { color:var(--primary-red); border-color:rgba(13,148,136,.30); box-shadow:0 20px 44px rgba(13,148,136,.26), 0 0 24px rgba(45,212,191,.22); transform:scale(1.03); }
@@ -3461,47 +3453,38 @@
                         height:100%;
                         min-height: 210px;
                         max-height: 42dvh;
-                        overflow:hidden;
-                        padding: 16px;
-                        border: 1px solid rgba(13,148,136,.16);
+                        overflow-y: auto;
+                        overflow-x: hidden;
+                        padding: 14px 16px;
+                        border: 1px solid rgba(13,148,136,.13);
                         border-radius: 24px;
-                        background: rgba(255,255,255,.64);
-                        box-shadow: 0 16px 40px rgba(13,148,136,.13), inset 0 1px 0 rgba(255,255,255,.66);
-                        backdrop-filter: blur(18px) saturate(170%);
-                        -webkit-backdrop-filter: blur(18px) saturate(170%);
-                        font-size: clamp(.86rem, 3.45vw, .98rem);
-                        line-height: 1.42;
+                        background: var(--card-bg);
+                        box-shadow: 0 4px 18px rgba(13,148,136,.08), inset 0 1px 0 rgba(255,255,255,.40);
+                        font-size: clamp(.78rem, 3.1vw, .9rem);
+                        line-height: 1.55;
                         color: var(--text-dark);
                         display:flex;
                         flex-direction:column;
-                        justify-content:flex-end;
+                        justify-content:flex-start;
+                        scrollbar-width: thin;
+                        scrollbar-color: rgba(13,148,136,.28) transparent;
                     }
-                    .diagnostic-terminal::before {
-                        content: '';
-                        position: absolute;
-                        inset: 0;
-                        pointer-events: none;
-                        background: linear-gradient(to bottom, rgba(240,253,250,.78), transparent 24%, transparent 72%, rgba(240,253,250,.56));
-                    }
+                    .diagnostic-terminal::-webkit-scrollbar { width: 4px; }
+                    .diagnostic-terminal::-webkit-scrollbar-track { background: transparent; }
+                    .diagnostic-terminal::-webkit-scrollbar-thumb { background: rgba(13,148,136,.28); border-radius: 99px; }
                     [data-theme="dark"] .diagnostic-terminal {
-                        background: rgba(20,55,55,.62);
+                        background: var(--card-bg);
                         border-color: var(--glass-border);
-                        color: var(--text-dark);
-                        box-shadow: 0 16px 40px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.06);
+                        box-shadow: 0 4px 18px rgba(0,0,0,.20), inset 0 1px 0 rgba(255,255,255,.04);
                     }
-                    [data-theme="dark"] .diagnostic-terminal::before { background: linear-gradient(to bottom, rgba(10,26,26,.70), transparent 24%, transparent 72%, rgba(10,26,26,.58)); }
-                    .diagnostic-log-line { position:relative; opacity:0; transform:translateY(16px); margin:5px 0; padding:10px 12px 10px 36px; border-radius:16px; background:rgba(13,148,136,.075); white-space:normal; overflow-wrap:anywhere; transition:opacity .42s ease, transform .42s ease, filter .42s ease, background .42s ease; }
-                    .diagnostic-log-line::before { content:'✓'; position:absolute; left:12px; top:10px; width:17px; height:17px; display:grid; place-items:center; border-radius:50%; background:rgba(13,148,136,.14); color:var(--primary-red); font-size:.68rem; font-weight:900; }
+                    [data-theme="dark"] .diagnostic-terminal::-webkit-scrollbar-thumb { background: rgba(45,212,191,.28); }
+                    .diagnostic-log-line { position:relative; opacity:0; transform:translateY(8px); margin:2px 0; padding:2px 0; font-family:'JetBrains Mono','Fira Code','SF Mono',ui-monospace,'Cascadia Code',Consolas,'Courier New',monospace; white-space:pre-wrap; overflow-wrap:anywhere; transition:opacity .32s ease, transform .32s ease; }
                     .diagnostic-log-line.visible { opacity:.72; transform:translateY(0); }
-                    .diagnostic-log-line.latest { opacity:1; font-weight:850; background:rgba(13,148,136,.13); animation:latestPulse 1.15s ease-in-out infinite; }
-                    .diagnostic-log-line.warn { background:rgba(245,158,11,.12); }
-                    .diagnostic-log-line.warn::before { content:'!'; color:#d97706; background:rgba(245,158,11,.16); }
-                    .diagnostic-log-line.critical { background:rgba(220,38,38,.10); }
-                    .diagnostic-log-line.critical::before { content:'•'; color:#dc2626; background:rgba(220,38,38,.14); }
-                    [data-theme="dark"] .diagnostic-log-line { background:rgba(45,212,191,.09); }
-                    [data-theme="dark"] .diagnostic-log-line.latest { background:rgba(45,212,191,.15); }
-                    [data-theme="dark"] .diagnostic-log-line.warn { background:rgba(245,158,11,.14); }
-                    [data-theme="dark"] .diagnostic-log-line.critical { background:rgba(248,113,113,.14); }
+                    .diagnostic-log-line.latest { opacity:1; }
+                    .diagnostic-log-line.warn { color:#b45309; }
+                    .diagnostic-log-line.critical { color:#b91c1c; }
+                    [data-theme="dark"] .diagnostic-log-line.warn { color:#fbbf24; }
+                    [data-theme="dark"] .diagnostic-log-line.critical { color:#f87171; }
                     .ai-hex-loader{width:54px;aspect-ratio:1.154;color:currentColor;display:grid;animation:aiHex0 6s infinite linear;filter:drop-shadow(0 8px 16px rgba(13,148,136,.20));}
                     .ai-hex-loader::before,.ai-hex-loader::after{content:"";grid-area:1/1;}
                     .ai-hex-loader::before{clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%);background:conic-gradient(from -30deg,#0000 60deg,currentColor 0);}
@@ -3509,10 +3492,8 @@
                     @keyframes aiHex0{0%,16.66%{transform:rotate(0deg)}16.67%,33.33%{transform:rotate(60deg)}33.34%,50%{transform:rotate(120deg)}50.1%,66.66%{transform:rotate(180deg)}66.67%,83.33%{transform:rotate(240deg)}83.34%,100%{transform:rotate(300deg)}}
                     @keyframes aiHex1{100%{transform:translateY(-18px)}}
                     @keyframes diagnosticPulse{50%{transform:scale(1.055) rotate(1deg)}}
-                    @keyframes diagnosticRing{to{transform:rotate(360deg)}}
                     @keyframes diagnosticFloat{50%{transform:translate3d(14px,-12px,0) scale(1.06)}}
                     @keyframes diagnosticShine{100%{transform:translateX(100%)}}
-                    @keyframes latestPulse{50%{filter:brightness(1.18); text-shadow:0 0 10px rgba(13,148,136,.22)}}
                     @keyframes diagnosticFadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
                     @keyframes diagnosticExit{to{opacity:0; transform:scale(1.04)}}
                     @media (max-height: 680px) {
@@ -3523,8 +3504,8 @@
                         .ai-hex-loader { width: 42px; }
                         .diagnostic-kicker { padding: 5px 9px; margin-bottom: 5px; }
                         .diagnostic-subtitle { margin-bottom: 8px; }
-                        .diagnostic-terminal { min-height: 0; max-height: 36dvh; padding: 10px; font-size: clamp(.74rem, 3vw, .86rem); border-radius: 18px; }
-                        .diagnostic-log-line { margin: 3px 0; padding: 8px 10px 8px 32px; border-radius: 13px; }
+                        .diagnostic-terminal { min-height: 0; max-height: 36dvh; padding: 10px 12px; font-size: clamp(.72rem, 3vw, .84rem); border-radius: 18px; }
+                        .diagnostic-log-line { margin: 1px 0; }
                         .diagnostic-safe { margin-top: 8px; }
                     }
                 </style>
@@ -3563,10 +3544,10 @@
             let waitingNoticeShown = false;
 
             const stages = [
-                { minTime: 0, maxTime: 7000, from: 0, to: 28, phase: 'cold', title: 'Структуриране на Био-масива...', subtitle: 'Парсираме антропометрия, демография и целеви вектор' },
-                { minTime: 7000, maxTime: 15000, from: 28, to: 52, phase: 'amber', title: 'Сканиране на здравен статус...', subtitle: 'Кръстосан анализ на клинични и метаболитни променливи' },
-                { minTime: 15000, maxTime: 23000, from: 52, to: 75, phase: 'critical', title: 'Невро-хормонален анализ...', subtitle: 'Локализираме поведенчески тригъри, сън и стрес' },
-                { minTime: 23000, maxTime: 30000, from: 75, to: 94, phase: 'success', title: 'Синтез на алгоритъма...', subtitle: 'Калибрираме макронутриентната матрица и TDEE' }
+                { minTime: 0,     maxTime: 9000,  from: 0,  to: 28, phase: 'cold',     title: 'Структуриране на Био-масива...',   subtitle: 'Парсираме антропометрия, демография и целеви вектор' },
+                { minTime: 9000,  maxTime: 19000, from: 28, to: 52, phase: 'amber',    title: 'Сканиране на здравен статус...',   subtitle: 'Кръстосан анализ на клинични и метаболитни променливи' },
+                { minTime: 19000, maxTime: 30000, from: 52, to: 75, phase: 'critical', title: 'Невро-хормонален анализ...',        subtitle: 'Локализираме поведенчески тригъри, сън и стрес' },
+                { minTime: 30000, maxTime: 40000, from: 75, to: 94, phase: 'success',  title: 'Синтез на алгоритъма...',           subtitle: 'Калибрираме макронутриентната матрица и TDEE' }
             ];
 
             function setPhase(phase) {
@@ -3595,11 +3576,10 @@
 
                 terminal.querySelectorAll('.latest').forEach(node => node.classList.remove('latest'));
                 terminal.appendChild(el);
-                requestAnimationFrame(() => el.classList.add('visible', 'latest'));
-
-                while (terminal.children.length > 4) {
-                    terminal.removeChild(terminal.firstElementChild);
-                }
+                requestAnimationFrame(() => {
+                    el.classList.add('visible', 'latest');
+                    terminal.scrollTop = terminal.scrollHeight;
+                });
 
                 if (line.haptic) triggerDiagnosticHaptic();
             }
@@ -3646,9 +3626,9 @@
                 const eased = stage.phase === 'amber' ? Math.pow(stageRatio, 1.45) : easeOutCubic(stageRatio);
                 progress = stage.from + (stage.to - stage.from) * eased;
 
-                if (elapsed >= 15000 && elapsed < 16500) progress = 52;
-                if (elapsed >= 30000) {
-                    const holdPulse = (Math.sin((elapsed - 30000) / 850) + 1) * 1.5;
+                if (elapsed >= 19000 && elapsed < 20500) progress = 52;
+                if (elapsed >= 40000) {
+                    const holdPulse = (Math.sin((elapsed - 40000) / 850) + 1) * 1.5;
                     progress = Math.min(97, 94 + holdPulse);
                     if (currentTitle) currentTitle.textContent = 'Финална синхронизация...';
                     if (currentSubtitle) currentSubtitle.textContent = 'Държим екрана активен, докато анализът е реално готов.';
