@@ -13117,9 +13117,9 @@ async function translateAcuityHtml(html, tl, env) {
 
   const blocks = [];
   let safe = html
-    .replace(/<script[\s\S]*?<\/script>/gi,  m => { blocks.push(m); return PRE + (blocks.length - 1) + SUF; })
-    .replace(/<style[\s\S]*?<\/style>/gi,    m => { blocks.push(m); return PRE + (blocks.length - 1) + SUF; })
-    .replace(/<!--[\s\S]*?-->/g,             m => { blocks.push(m); return PRE + (blocks.length - 1) + SUF; });
+    .replace(/<script[\s\S]*?<\/script[^>]*>/gi,  m => { blocks.push(m); return PRE + (blocks.length - 1) + SUF; })
+    .replace(/<style[\s\S]*?<\/style[^>]*>/gi,    m => { blocks.push(m); return PRE + (blocks.length - 1) + SUF; })
+    .replace(/<!--[\s\S]*?-->/g,                  m => { blocks.push(m); return PRE + (blocks.length - 1) + SUF; });
 
   // Extract unique, non-trivial visible text nodes
   const seen = new Set();
