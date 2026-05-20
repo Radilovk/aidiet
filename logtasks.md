@@ -2,6 +2,33 @@
 
 ## 2026-05-20
 
+- Задача: Оправяне на XBody превода — премахване на излишния код и реално работещо решение.
+- Проблеми от предишната имплементация:
+  1. `handleAcuityHash` endpoint беше ненужен — fetch-ваше Acuity само за да върне hash, след което `handleAcuityTranslate` fetch-ваше Acuity ОТНОВО за същото съдържание (двоен bandwidth).
+  2. `handleAcuityTranslate` кешираше резултата ПРЕДИ превода — ако Gemini ключ липсваше или превода фейлваше, кешираше НЕПРЕВЕДЕНАТА версия завинаги под ключа за езика (напр. `xbody:acuity:bg:hash`).
+  3. `translateAcuityHtml` връщаше оригиналния HTML при грешка вместо да хвърли exception — това караше `handleAcuityTranslate` да кешира неуспешни преводи като "успешни".
+  4. `xbody.html` правеше background fetch на `/api/acuity-hash` при всяко зареждане — допълнителна мрежова заявка без полза.
+  5. Цялата hash-based versioning логика беше излишна сложност — Acuity страницата се променя рядко, а KV кешът вече е permanent.
+  6. `xbody-sw.js` имаше cache-first логика за `/api/acuity-translate`, но SW-ът не кешира cross-origin заявки (workers.dev), така че кодът беше мъртъв.
+- Направено:
+  1. **worker.js:** Премахнат `sha256Short()` helper и `handleAcuityHash()` endpoint — вече не fetch-ваме Acuity за hash.
+  2. **worker.js:** Премахнат routing за `/api/acuity-hash`.
+  3. **worker.js:** Опростен `handleAcuityTranslate()`:
+     - Премахнат hash-based кеш ключ (`xbody:acuity:{tl}:{hash}`) → сега е просто `xbody:acuity:{tl}` (кеш по език).
+     - Премахната логиката с `?v={hash}` параметър.
+     - Добавено правилно error handling — ако Gemini ключ липсва или превод фейлва, НЕ кешираме резултата.
+     - Кешираме само успешни преводи.
+     - Добавени console.log съобщения за debugging (`[acuity-translate] Cache hit`, `Translating to bg`, etc.).
+  4. **worker.js:** Поправен `translateAcuityHtml()` да хвърля грешка при неуспешен превод вместо да връща оригинала (така `handleAcuityTranslate` не го кешира като "успешен").
+  5. **xbody.html:** Опростена translation логика:
+     - Премахната `LS_HASH_KEY`, `lastHash` и `toTranslateUrl(tl, hash)` → сега е `toTranslateUrl(tl)`.
+     - Премахнат background fetch на `/api/acuity-hash`.
+     - Опростено условие за `needTranslation` — вместо `translatedUrl !== ORIGINAL_SRC`, сега е `tl && tl !== 'en'`.
+  6. **xbody-sw.js:** Премахната излишната cache-first логика за `/api/acuity-translate` — SW-ът не може да кешира cross-origin заявки.
+- Резултат: Преводът сега работи просто и надеждно — един fetch към Acuity, един Gemini API извикване, кеш завинаги при успех, без излишни roundtrips, без кеширане на неуспешни преводи.
+
+## 2026-05-20 (по-рано)
+
 - Задача: Елегантни и професионални прехвърляния (transitions) между табовете в APK-а.
 - Причина: `design-system.css` имаше **едновременен crossfade** — старата страница фадваше OUT докато новата фадваше IN. В средата на анимацията двете страни са при ~50% opacity, което излага нативния WebView фон (`#042F2E` тъмно зелено от `capacitor.config.json`). Именно това тъмно просветване е "странното разгръщане".
 - Направено:
