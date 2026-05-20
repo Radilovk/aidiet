@@ -18,12 +18,14 @@
     <link rel="apple-touch-icon" sizes="180x180" href="./icon-192x192.png">
     <link rel="apple-touch-icon" sizes="152x152" href="./icon-192x192.png">
     <title>Моят Профил</title>
-    <!-- Prefetch adjacent tabs for instant navigation -->
-    <link rel="prefetch" href="./index.html">
-    <link rel="prefetch" href="./plan.html">
-    <link rel="prefetch" href="./guidelines.html">
-    <link rel="prefetch" href="./game-analytics.html">
-    <link rel="prefetch" href="./quick-answer.html">
+    <!-- Preload adjacent tabs for instant navigation -->
+    <link rel="preload" href="./index.html" as="document">
+    <link rel="preload" href="./plan.html" as="document">
+    <link rel="preload" href="./guidelines.html" as="document">
+    <link rel="preload" href="./game-analytics.html" as="document">
+    <link rel="preload" href="./quick-answer.html" as="document">
+    <!-- Instant navigation library -->
+    <script src="https://instant.page/5.2.0" type="module" data-instant-intensity="mousedown"></script>
     <!-- Design System 2026 -->
     <link rel="stylesheet" href="./design-system.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -3297,43 +3299,51 @@
         }
 
         // --- Initialization ---
-        window.addEventListener('DOMContentLoaded', async function() {
-            initializeTheme();
-            loadUserData();
-            loadAnalysis(); // REQUIREMENT 1: Load analysis
-            // Macros and strategy panels moved to guidelines.html
-            
-            // Avatar upload functionality
-            const profileAvatar = document.getElementById('profileAvatar');
-            const avatarInput = document.getElementById('avatarInput');
-            
-            if (profileAvatar && avatarInput) {
-                profileAvatar.addEventListener('click', function() {
-                    avatarInput.click();
-                });
+        (function instantInit() {
+            async function setupProfile() {
+                initializeTheme();
+                loadUserData();
+                loadAnalysis(); // REQUIREMENT 1: Load analysis
+                // Macros and strategy panels moved to guidelines.html
                 
-                avatarInput.addEventListener('change', function(e) {
-                    const file = e.target.files[0];
-                    if (file && file.type.startsWith('image/')) {
-                        const reader = new FileReader();
-                        reader.onload = function(event) {
-                            const imageData = event.target.result;
-                            // Store in localStorage
-                            try {
-                                localStorage.setItem('profileAvatar', imageData);
-                                // Update avatar display
-                                renderProfileAvatar(userData?.name, userData?.email, null);
-                                showAlert('Аватарът е качен успешно!', 'success');
-                            } catch (err) {
-                                console.error('Failed to save avatar:', err);
-                                showAlert('Грешка при запазване на аватара. Изображението може да е твърде голямо.', 'error');
-                            }
-                        };
-                        reader.readAsDataURL(file);
-                    }
-                });
+                // Avatar upload functionality
+                const profileAvatar = document.getElementById('profileAvatar');
+                const avatarInput = document.getElementById('avatarInput');
+                
+                if (profileAvatar && avatarInput) {
+                    profileAvatar.addEventListener('click', function() {
+                        avatarInput.click();
+                    });
+                    
+                    avatarInput.addEventListener('change', function(e) {
+                        const file = e.target.files[0];
+                        if (file && file.type.startsWith('image/')) {
+                            const reader = new FileReader();
+                            reader.onload = function(event) {
+                                const imageData = event.target.result;
+                                // Store in localStorage
+                                try {
+                                    localStorage.setItem('profileAvatar', imageData);
+                                    // Update avatar display
+                                    renderProfileAvatar(userData?.name, userData?.email, null);
+                                    showAlert('Аватарът е качен успешно!', 'success');
+                                } catch (err) {
+                                    console.error('Failed to save avatar:', err);
+                                    showAlert('Грешка при запазване на аватара. Изображението може да е твърде голямо.', 'error');
+                                }
+                            };
+                            reader.readAsDataURL(file);
+                        }
+                    });
+                }
             }
-        });
+            
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', setupProfile);
+            } else {
+                setupProfile();
+            }
+        })();
 
         // --- PWA Install Banner Functionality ---
         let deferredPrompt;

@@ -34,12 +34,14 @@
     <link rel="apple-touch-icon" sizes="180x180" href="./icon-192x192.png">
     <link rel="apple-touch-icon" sizes="152x152" href="./icon-192x192.png">
     <title>NutriPlan — Персонален AI Здравен Асистент 2026</title>
-    <!-- Prefetch adjacent tabs for instant navigation -->
-    <link rel="prefetch" href="./plan.html">
-    <link rel="prefetch" href="./guidelines.html">
-    <link rel="prefetch" href="./profile.html">
-    <link rel="prefetch" href="./game-analytics.html">
-    <link rel="prefetch" href="./quick-answer.html">
+    <!-- Preload adjacent tabs for instant navigation -->
+    <link rel="preload" href="./plan.html" as="document">
+    <link rel="preload" href="./guidelines.html" as="document">
+    <link rel="preload" href="./profile.html" as="document">
+    <link rel="preload" href="./game-analytics.html" as="document">
+    <link rel="preload" href="./quick-answer.html" as="document">
+    <!-- Instant navigation library -->
+    <script src="https://instant.page/5.2.0" type="module" data-instant-intensity="mousedown"></script>
     <!-- Design System 2026 -->
     <link rel="stylesheet" href="./design-system.css">
     <!-- Fonts & Icons -->
