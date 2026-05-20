@@ -251,22 +251,76 @@ const GameNotifier = {
         const actionId = action && typeof action.actionId === 'string' ? action.actionId : '';
 
         if (type === 'morning_check' && (actionId === 'sleep_yes' || actionId === 'sleep_no')) {
-            const saved = this._saveQuickAnswer(recordKey, 'morning_check', {
-                sleptWell: actionId === 'sleep_yes'
-            });
+            const sleptWell = actionId === 'sleep_yes';
+            // Use gameModule when available so the in-memory cache stays consistent
+            // and the daily score card is refreshed without any page navigation.
+            let saved = false;
+            const gm = typeof window !== 'undefined' && window.gameModule;
+            if (gm && typeof gm.getRecord === 'function' && typeof gm.saveRecord === 'function') {
+                try {
+                    const rec = gm.getRecord(recordKey);
+                    if (!rec.morningCheck) {
+                        rec.morningCheck = { sleptWell, ts: new Date().toISOString() };
+                        gm.saveRecord(recordKey, rec);
+                    }
+                    if (typeof gm.recalcAndShowScore === 'function') {
+                        gm.recalcAndShowScore(recordKey);
+                    }
+                    saved = true;
+                } catch (_) { /* fall through to _saveQuickAnswer */ }
+            }
+            if (!saved) {
+                saved = this._saveQuickAnswer(recordKey, 'morning_check', { sleptWell });
+            }
+            // Haptic feedback – distinct pattern per answer
+            try {
+                if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                    navigator.vibrate(sleptWell ? [40, 30, 60] : [60, 30, 40]);
+                }
+            } catch (_) {}
             if (saved) return;
+            // Fallback: show in-app morning modal or open quick-answer page.
+            if (typeof window._gameShowMorning === 'function') {
+                window._gameShowMorning(true);
+                return;
+            }
             window.location.href = this._buildQuickAnswerUrl('morning_check', {
                 date: recordKey,
-                auto: actionId === 'sleep_yes' ? 'morning_yes' : 'morning_no'
+                auto: sleptWell ? 'morning_yes' : 'morning_no'
             });
             return;
         }
 
+        if (type === 'morning_check') {
+            // Body tap – show in-app morning check modal without reloading.
+            if (typeof window._gameShowMorning === 'function') {
+                window._gameShowMorning(true);
+                return;
+            }
+            if (extra.url) window.location.href = extra.url;
+            return;
+        }
+
         if (type === 'evening_check' && actionId === 'water_yes') {
+            // Pre-fill water intake, then show the evening flow modal.
+            if (typeof window._gameShowEvening === 'function') {
+                window._gameShowEvening(true, { prefillWater: true });
+                return;
+            }
             window.location.href = this._buildQuickAnswerUrl('evening_check', {
                 date: recordKey,
                 water: '1'
             });
+            return;
+        }
+
+        if (type === 'evening_check') {
+            // open_evening action or body tap – show in-app evening modal.
+            if (typeof window._gameShowEvening === 'function') {
+                window._gameShowEvening(true);
+                return;
+            }
+            if (extra.url) window.location.href = extra.url;
             return;
         }
 

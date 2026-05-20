@@ -8,6 +8,87 @@
   2. worker.js — `handleAcuityTranslate` преписан: приема optional `?v={hash}` параметър; при hit на hash-keyed постоянен KV ключ (`xbody:acuity:{tl}:{hash}`) — отговаря без да дърпа Acuity и без AI; записва превода без TTL (вечно).
   3. xbody.html — `toTranslateUrl(tl, hash)` — URL включва hash за cache-versioning; `lastHash` се зарежда от localStorage; добавен background fetch на `/api/acuity-hash` — при промяна на Acuity съдържанието iframe се презарежда с новия URL автоматично.
   4. xbody-sw.js — Service Worker добавя cache-first стратегия за `/api/acuity-translate` — PWA потребителите след първото посещение не правят никакви мрежови заявки за превода.
+## 2026-05-20 - Задача: Обстоен преглед на Android нотификационния flow
+
+### Цел
+"Провери обстойно! искам да работи на всички андроид телефони. логиката да е безупречна, интеграцията, дизайна, бързината на извеждане на прозореца. целта е да е изключително лесно, бързо за клиента и да е със запазени хаптик ефекти"
+
+### Намерени проблеми и поправки
+
+#### 1. `plan.html` – `recalcAndShowScore` не беше в публичното API
+Функцията не беше изложена в `window.gameModule`. Добавена.
+
+#### 2. `plan.html` – SW message listener (sleep_yes/sleep_no)
+- Не се извикваше `recalcAndShowScore()` → UI score не се обновяваше → поправено
+- Нямаше haptic feedback → добавено `navigator.vibrate([40,30,60])` / `[60,30,40]`
+
+#### 3. `local-scheduler.js` – Capacitor `_handleCapacitorNotificationAction`
+- `_saveQuickAnswer()` пишеше директно в localStorage, заобикаляйки `_gameDataCache` → сменено с `window.gameModule.saveRecord()` когато е налично
+- Не се извикваше `recalcAndShowScore()` → добавено
+- Нямаше haptic feedback → добавено `navigator.vibrate([40,30,60])` / `[60,30,40]`
+
+#### 4. `quick-answer.html` – `body { overflow: hidden }` клипваше съдържанието на малки телефони
+- Поправено на `overflow-x: hidden; overflow-y: auto`
+
+#### 5. `quick-answer.html` – липсва touch feedback на Android
+- Добавено `:active` state на `.choice` (scale + highlight)
+- Добавено `-webkit-tap-highlight-color: transparent` на всички бутони
+- Добавено `:active` opacity/scale на footer бутони
+
+#### 6. `sw.js` – `qaClient.navigate()` без catch
+- Добавен `.catch()` с fallback към `clients.openWindow()`
+
+
+### Въпрос
+"А системата получава ли реалните отговори, за да може да ги калкулира и използва след това за анализа?"
+
+### Анализ
+
+#### Пример 1 – Модален диалог (в plan.html)
+`_gameShowMorning()` / `_gameShowEvening()` → `saveRecord()` → `saveGameData()` (обновява кеша + localStorage) → `recalcAndShowScore()` → UI ✅
+
+#### Пример 2 – Тих запис (sleep_yes/sleep_no от бутон в нотификацията)
+**Намерен бъг:** SW message listener пишеше директно с `localStorage.setItem('gameData')` → кешът `_gameDataCache` оставаше стар → `recalcAndShowScore()` не се извикваше → score в UI не се обновяваше.
+
+### Поправка
+Заменен директният `localStorage.setItem` с `window.gameModule.saveRecord()` + `window.gameModule.calcDayScore()` когато gamification модулът е зареден. Fallback към директен запис само ако модулът не е готов.
+
+
+### Проблем
+- При клик на нотификация се зарежда цялото приложение (бавно)
+- Винаги минава през `index.html` (нежелано поведение)
+- Трябваше: директен отговор в нотификацията ИЛИ бърз модален прозорец без презареждане
+
+### Коренни причини
+1. **`sw.js` `notificationclick`**: `client.url.includes(BASE_PATH)` при `BASE_PATH=''` е винаги `true` → намирал ВСЕКИ отворен прозорец (включително `plan.html`) и го навигирал към `quick-answer.html` чрез `client.navigate()` → пълно презареждане на страницата
+2. **`local-scheduler.js` Capacitor**: при клик от затворено приложение → Android отваря `index.html` → `plan.html` → след това `window.location.href` навига към `quick-answer.html` → 3 пълни зареждания
+3. **`plan.html`** вече има `_gameShowMorning()`/`_gameShowEvening()` – вградени модални диалози, но те не се използвали от нотификациите
+
+### Направено
+1. **`sw.js`** – `notificationclick` handler:
+   - Ако `plan.html` е отворен → `postMessage({ type: 'NOTIFICATION_ACTION', ... })` (без навигация!)
+   - Ако `quick-answer.html` е отворен → reuse-ва прозореца
+   - Само при липса на отворен прозорец → `clients.openWindow(quick-answer.html)`
+2. **`plan.html`** – нов SW message listener (след `local-scheduler.js`):
+   - `sleep_yes`/`sleep_no`: записва тихо в `localStorage` без UI (нула навигация)
+   - `morning_check` (основен клик): извиква `_gameShowMorning(true)` – вграден модал
+   - `evening_check` + `water_yes`: извиква `_gameShowEvening(true, {prefillWater: true})`
+   - `evening_check` (основен/open_evening): извиква `_gameShowEvening(true)`
+3. **`plan.html`** – `showEveningFlow` получава `opts` параметър с `prefillWater`:
+   - При `prefillWater=true` пропуска въпроса за вода и директно финализира
+   - `window._gameShowEvening` предава `opts` на `showEveningFlow`
+4. **`local-scheduler.js`** – `_handleCapacitorNotificationAction`:
+   - `morning_check` body tap: извиква `window._gameShowMorning(true)` ако е достъпна
+   - `evening_check` + `water_yes`: извиква `window._gameShowEvening(true, {prefillWater: true})`
+   - `evening_check` body/open_evening: извиква `window._gameShowEvening(true)`
+   - Навигация (`window.location.href`) само като fallback при липса на функциите
+
+### Резултат
+- Без презареждане на страницата при клик на нотификация (ако `plan.html` е отворен)
+- Вграден модален диалог вместо пълно зареждане
+- `sleep_yes`/`sleep_no` действия се обработват мигновено (само localStorage запис)
+- Fallback към `quick-answer.html` при затворено приложение (запазено поведение)
+
 
 ## 2026-05-19
 
