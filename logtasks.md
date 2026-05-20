@@ -1,5 +1,29 @@
 # Log Tasks
 
+## 2026-05-20 — APK instant tab fix: visibility:hidden → GPU compositor keep-alive
+
+**Задача:** Обясни и отстрани забавянето при превключване на табове в APK NutriPlan въпреки keep-alive iframe архитектурата. В PWA/уеб е мигновено — в APK има видимо закъснение.
+
+**Root cause (диагноза):**
+- `visibility: hidden` в CSS-а на `.tab-frame` кара **Android WebView (Capacitor)** да изхвърля GPU compositor layer-а на скрития iframe → при превключване WebView трябва да ре-генерира GPU texture = видимо забавяне.
+- В Chrome браузър (PWA) compositor-ът пази layers дори при `visibility:hidden` → затова е instant там.
+- Допълнително: 160ms `transform` transition + `visibility 0s linear 160ms` изкуствено добавяха закъснение.
+
+**Направено:**
+1. **`app.html` — CSS промени:**
+   - Премахнато `visibility: hidden` от `.tab-frame` → само `opacity: 0` + `z-index: 0`
+   - Всички `.tab-frame` имат `transform: translateZ(0)` → принудително GPU layer promotion от старт
+   - Премахнати CSS transitions (opacity/transform/visibility)
+   - Добавен `@keyframes _tab_snap_in` (220ms cubic-bezier) за красива entrance анимация само при влизане
+   - `.tab-frame.active`: `z-index: 1`, `opacity: 1`, `animation: _tab_snap_in`
+2. **`app.html` — JS промени:**
+   - `shellSwitchTab()` сега прави: remove `.active` от всички → `void offsetWidth` (force reflow) → add `.active` → гарантира рестарт на animation при всяко превключване
+3. **`sw.js`:** Cache version bump `nutriplan-v10` → `nutriplan-v11`
+
+**Резултат:** Android WebView поддържа всички iframe GPU layers постоянно активни. Превключването = само z-index + opacity промяна ≈ 0ms. Entrance анимация = плавна и впечатляваща (220ms spring curve).
+
+---
+
 ## 2026-05-20 — Мигновено зареждане на пълни табове в APK NutriPlan
 
 **Задача:** Обясни защо има забавяне при превключване между табовете на APK NutriPlan въпреки предишния keep-alive метод и направи табовете да се усещат мигновени, красиви и UX/UI впечатляващи.
