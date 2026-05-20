@@ -2,6 +2,16 @@
 
 ## 2026-05-20
 
+- Задача: Оправяне на XBody грешката `[acuity-translate] Gemini translation error: Gemini API failed: Gemini API error: 404 Not Found`.
+- Причини (3 бъга в `worker.js`):
+  1. `translateAcuityHtml()` hardcode-ваше `'gemini-2.0-flash'` — игнорирайки admin конфигурацията; ако Google е обновил/премахнал модела → 404.
+  2. Изпращаше `thinkingBudget: 0` → `thinkingConfig: { thinkingBudget: 0 }` на `gemini-2.0-flash`, но `thinkingConfig` се поддържа само от Gemini 2.5 моделите → грешен параметър.
+  3. Guard условието `(env.GEMINI_API_KEY || env.OPENAI_API_KEY)` позволяваше извикване на Gemini дори само с OpenAI key → auth fail.
+- Направено (`worker.js`):
+  1. Guard: `env.GEMINI_API_KEY || env.OPENAI_API_KEY` → само `env.GEMINI_API_KEY`.
+  2. Model: сменено от hardcoded `'gemini-2.0-flash'` → ползва admin-конфигурирания модел (`cfg.provider === 'google' && cfg.modelName`) или `'gemini-1.5-flash'` като stable fallback.
+  3. thinkingBudget: `0` → `undefined` — така `callGemini` НЕ праща `thinkingConfig` на не-thinking модели (коректно поведение).
+
 - Задача: Обяснение на XBody грешката `[acuity-translate] Gemini translation error: Gemini API failed: Gemini API error: 404 Not Found`.
 - Направено:
   1. Проверен е `xbody.html` — бутонът за превод зарежда iframe през Worker endpoint `GET /api/acuity-translate`.

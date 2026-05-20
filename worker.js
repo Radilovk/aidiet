@@ -13117,9 +13117,9 @@ async function handleAcuityTranslate(request, env) {
     if (cached) return htmlResp(cached);
   } catch (_) {}
 
-  // Translate visible text when an AI key is available
+  // Translate visible text when a Gemini key is available
   let html = acuityHtml.replace(/<head>/i, '<head><base href="https://app.acuityscheduling.com/">');
-  if (tl !== 'en' && (env.GEMINI_API_KEY || env.OPENAI_API_KEY)) {
+  if (tl !== 'en' && env.GEMINI_API_KEY) {
     html = await translateAcuityHtml(html, tl, env);
   }
 
@@ -13173,6 +13173,7 @@ async function translateAcuityHtml(html, tl, env) {
   const langName = LANG[tl] || tl.toUpperCase();
 
   // Single Gemini batch request – returns a JSON array of translated strings
+  // Use admin-configured Gemini model; fall back to gemini-1.5-flash (stable, no thinkingConfig)
   let translations;
   try {
     const prompt = `Translate the following English UI text strings to ${langName}.\n`
@@ -13180,7 +13181,11 @@ async function translateAcuityHtml(html, tl, env) {
       + `Preserve any special characters, numbers, and punctuation unchanged.\n\n`
       + `Input: ${JSON.stringify(originals)}`;
 
-    const raw = await callGemini(env, prompt, 'gemini-2.0-flash', 8192, true, 0);
+    const cfg = await getAdminConfig(env);
+    const translateModel = (cfg.provider === 'google' && cfg.modelName)
+      ? cfg.modelName
+      : 'gemini-1.5-flash';
+    const raw = await callGemini(env, prompt, translateModel, 8192, true, undefined);
     const parsed = JSON.parse(raw.trim());
     if (!Array.isArray(parsed) || parsed.length !== originals.length) {
       throw new Error(`array length mismatch (got ${Array.isArray(parsed) ? parsed.length : typeof parsed}, expected ${originals.length})`);
