@@ -1170,9 +1170,21 @@ body {
  * Instead, every tab page hides its <body> (opacity: 0) and reveals it only after
  * it has synchronously rendered its content from localStorage. This guarantees the
  * user always sees a fully-loaded page – never partial / skeleton state.
+ *
+ * With Speculation Rules prerendering (Chrome 108+) the new page is fully rendered
+ * in the background BEFORE the user clicks, so its body is already visible when
+ * activated – navigation: auto therefore produces a clean instant crossfade.
  */
 @view-transition {
-    navigation: none;
+    navigation: auto;
+}
+
+/* Fast 120 ms crossfade – feels snappy, never sluggish */
+::view-transition-old(root) {
+    animation: 120ms ease-out ds-fade-out;
+}
+::view-transition-new(root) {
+    animation: 120ms ease-out ds-fade-in;
 }
 
 /* Keep legacy keyframe names so any page that references ds-fade-in/out still works */
