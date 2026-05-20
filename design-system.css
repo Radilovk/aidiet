@@ -1158,35 +1158,21 @@ body {
 /* ===========================
    VIEW TRANSITIONS API
    =========================== */
-@view-transition {
-    navigation: auto;
-}
-
 /*
- * Professional tab-switch transition:
+ * Cross-document view transitions are DISABLED.
  *
- * The old snapshot keeps full opacity (animation: none) so it acts as a solid
- * backdrop — the WebView's native background colour is never visible.
- * The new page fades in on top in 180 ms (fast enough to feel snappy, slow
- * enough to register as intentional — the same timing iOS and Material You use
- * for quick transitions).
+ * Reason: the browser captures the new page snapshot at "first rendering
+ * opportunity" – BEFORE DOMContentLoaded fires and BEFORE any <script type="module">
+ * executes. In our MPA this means the snapshot shows empty containers / skeletons,
+ * and then JS fills them in after the animation → users see elements "pop in"
+ * asynchronously (the exact flickering complaint).
  *
- * Avoid animating `transform` here; a pure opacity fade is GPU-composited and
- * runs at 60 fps even on mid-range Android devices.
+ * Instead, every tab page hides its <body> (opacity: 0) and reveals it only after
+ * it has synchronously rendered its content from localStorage. This guarantees the
+ * user always sees a fully-loaded page – never partial / skeleton state.
  */
-::view-transition-old(root) {
-    animation: none;              /* stay fully visible as backdrop */
-    mix-blend-mode: normal;
-}
-
-::view-transition-new(root) {
-    animation: _nt-fade-in 120ms cubic-bezier(0, 0, 0.2, 1) both;
-    mix-blend-mode: normal;
-}
-
-@keyframes _nt-fade-in {
-    from { opacity: 0; }
-    to   { opacity: 1; }
+@view-transition {
+    navigation: none;
 }
 
 /* Keep legacy keyframe names so any page that references ds-fade-in/out still works */

@@ -1,5 +1,56 @@
 # Log Tasks
 
+## 2026-05-20 — Одит и почистване след фикса на флашването
+
+**Задача:** Провери дали всичко е оправено и дали има излишен код от предишни опити.
+
+**Проверено:**
+| Елемент | Статус |
+|---------|--------|
+| `instant.page` CDN → 0 референции в tab pages | ✅ Чисто |
+| `rel="preload" as="document"` (невалидно) → 0 | ✅ Чисто |
+| `navigation: auto` в design-system.css → 0 | ✅ Чисто |
+| `body{opacity:0}` в head на всеки таб | ✅ Всички 4 |
+| `body.style.opacity='1'` reveal след localStorage render | ✅ Всички 4 |
+| Skeleton HTML в `mealContainer` | ⚠️ Намерени — почистени |
+
+**Почистено:**
+- `plan.html`: Премахнати 3 skeleton елемента (`skeleton-card`, `skeleton-text w80`, `skeleton-text w60`) от `#mealContainer` — бяха остатък от предишна задача ("Пълна оптимизация на всички табове - втора итерация"). Вече са безвредни (body е скрит докато `mealContainer.innerHTML=''` ги изтрие), но бяха мъртъв HTML.
+
+**Заключение:** Всички промени от предишната задача са правилно приложени. Излишният код е изчистен.
+
+---
+
+## 2026-05-20 — Дефинитивен фикс на флашването при превключване на табове
+
+**Задача:** Разбери защо превключването между таб-овете в APK е неплавно, бавно, тромаво, асинхронно. Намери и приложи коректното решение.
+
+**Root cause (истинска причина):**
+
+1. **`@view-transition { navigation: auto; }` snapshot преди JavaScript** — View Transition API улавя новата страница в момента на "first rendering opportunity" (след HTML/CSS parse, НО преди `DOMContentLoaded` и преди `<script type="module">` да изпълни). В нашето MPA това означава snapshot на ПРАЗНА/skeleton страница. 120ms анимацията завършва върху тази празна картина, след което JS зарежда реалното съдържание → потребителят вижда елементите да се появяват асинхронно СЛЕД прехода (точно оплакването).
+
+2. **`rel="preload" as="document"` е НЕВАЛИДНО** — Браузърите игнорират напълно тези тагове. Не се извършва никакво реално предзареждане. Корректното е `rel="prefetch"`.
+
+3. **`instant.page` от CDN** — Зарежда се като `type="module"` (defer) от external CDN. Ненадежден в APK контекст (мрежата към CDN може да е бавна/недостъпна офлайн). SW кешът вече обработва кеширането.
+
+**Решение:**
+
+1. **`design-system.css`:** `@view-transition { navigation: auto; }` → `navigation: none` (деактивиране). Премахнати `::view-transition-old(root)`, `::view-transition-new(root)`, `@keyframes _nt-fade-in`.
+
+2. **Всички tab pages** (`plan.html`, `guidelines.html`, `profile.html`, `game-analytics.html`):
+   - Добавен `<style>body{opacity:0}</style>` в `<head>` (след theme script) — страницата стартира невидима.
+   - В главната init функция, след синхронно рендиране на съдържанието от localStorage: `requestAnimationFrame(() => { body.style.transition = 'opacity 120ms ease-out'; body.style.opacity = '1'; })`
+   - Заменени `rel="preload" as="document"` → `rel="prefetch"` (коректен API за HTML документи).
+   - Премахнат `instant.page` CDN script.
+
+3. **`index.html`:** Само fix на preload→prefetch и премахване на instant.page (index.html вече има собствен opacity механизъм за hero section).
+
+**Резултат:**
+- Без flash на празно/skeleton съдържание ✓
+- Страницата се появява ПЪЛНА (не постепенно) ✓
+- html background-color = правилния app цвят (не бял flash) ✓
+- Кратък blank период (~100-300ms зависи от устройство) докато SW сервира кешираната HTML и тя се parse-ва — СЛЕД КОЕТО съдържанието се появява изцяло и наведнъж с фин 120ms fade ✓
+
 ## 2026-05-20 (Трета задача)
 
 - Задача: Премахване на `#mobile-toolbar` от xbody.html — излишна и необмислена долна лента на мобилни устройства. Бутонът за назад да остане (делекатен, горе вляво).
