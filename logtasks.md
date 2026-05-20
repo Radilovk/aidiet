@@ -2,6 +2,13 @@
 
 ## 2026-05-20
 
+- Задача: След последната промяна в Nutri Plan регистриран потребител със съществуващ активен план влиза в `plan-pending.html` вместо в профила си.
+- Направено:
+  1. `worker.js` — добавени `findExistingActivatedClient()` и `hasApprovedPlanHistory()` за проверка дали потребителят вече има активиран план по `userId` и/или имейл, дори когато `questionnaire2` е създало нов `clientId`.
+  2. `worker.js` — `handleUpdateClientPlan` вече auto-активира новия план и синхронизира профила, ако за същия потребител вече има одобрена история, вместо да гледа само текущия `clientId`.
+  3. `worker.js` — `handleGetUserProfile` вече възстановява последния активиран client record, когато профилът сочи към нов pending `clientId`, така че засегнатите акаунти да влизат отново директно в `plan.html`.
+  4. Валидиран е наличният `npm test` script и след промените е пуснат повторно, плюс CodeQL проверка за локалните промени.
+
 - Задача: Crowd-sourced permanent translation — след като системата засече дума на английски, преводът се съхранява завинаги и всички потребители го ползват без AI или бекенд заявки.
 - Направено:
   1. worker.js — добавен `sha256Short()` helper и `handleAcuityHash` endpoint (`GET /api/acuity-hash`) — връща 16-char hex hash на Acuity страницата, кешира го в KV за 1 час.

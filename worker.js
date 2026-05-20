@@ -4516,6 +4516,67 @@ async function handleGetClientData(request, env) {
   }
 }
 
+function normalizeClientMatchValue(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+async function findExistingActivatedClient(env, { currentClientId = '', userId = '', email = '' } = {}) {
+  if (!env.page_content) return null;
+
+  const normalizedEmail = normalizeClientMatchValue(email);
+  if (!userId && !normalizedEmail) return null;
+
+  const listRaw = await env.page_content.get('clients_list');
+  const clientIds = listRaw ? JSON.parse(listRaw) : [];
+  let emailMatch = null;
+
+  for (const candidateId of clientIds.slice(0, 500)) {
+    if (!candidateId || candidateId === currentClientId) continue;
+
+    const candidateRaw = await env.page_content.get(`client:${candidateId}`);
+    if (!candidateRaw) continue;
+
+    let candidate;
+    try {
+      candidate = JSON.parse(candidateRaw);
+    } catch (_) {
+      continue;
+    }
+
+    if (candidate.planStatus !== 'activated' || !candidate.plan) continue;
+
+    if (userId && candidate.userId === userId) {
+      return candidate;
+    }
+
+    if (normalizedEmail) {
+      const candidateEmail = normalizeClientMatchValue(candidate.answers?.email);
+      if (candidateEmail && candidateEmail === normalizedEmail && !emailMatch) {
+        emailMatch = candidate;
+      }
+    }
+  }
+
+  return emailMatch;
+}
+
+async function hasApprovedPlanHistory(env, { currentClientId = '', userId = '', email = '' } = {}) {
+  if (userId) {
+    const profileRaw = await env.page_content.get(`user_profile:${userId}`);
+    if (profileRaw) {
+      try {
+        const profile = JSON.parse(profileRaw);
+        if (profile.plan && profile.planSource !== 'questionnaire2') {
+          return true;
+        }
+      } catch (_) {}
+    }
+  }
+
+  const activatedClient = await findExistingActivatedClient(env, { currentClientId, userId, email });
+  return Boolean(activatedClient);
+}
+
 // ─── Admin: Update client plan ───
 async function handleUpdateClientPlan(request, env, ctx) {
   try {
@@ -4531,9 +4592,14 @@ async function handleUpdateClientPlan(request, env, ctx) {
       return jsonResponse({ error: 'Client not found' }, 404);
     }
     const clientData = JSON.parse(raw);
-    const wasPreviouslyActivated = Boolean(clientData.planActivatedAt);
+    const existingUserId = userId || clientData.userId || '';
+    const wasPreviouslyActivated = Boolean(clientData.planActivatedAt) || await hasApprovedPlanHistory(env, {
+      currentClientId: clientId,
+      userId: existingUserId,
+      email: clientData.answers?.email
+    });
     clientData.plan = plan;
-    if (userId) clientData.userId = userId;
+    if (existingUserId) clientData.userId = existingUserId;
     clientData.planUpdatedAt = new Date().toISOString();
     
     // For existing approved clients (who had a previously activated plan):
@@ -12502,21 +12568,14 @@ async function handleGetUserProfile(request, env) {
         if (clientRaw) activatedClient = JSON.parse(clientRaw);
       }
 
-      // Backfill for profiles saved before clientId was added: match by email.
-      if (!activatedClient && profile.userData?.email) {
-        const wantedEmail = String(profile.userData.email).trim().toLowerCase();
-        const listRaw = await env.page_content.get('clients_list');
-        const clientIds = listRaw ? JSON.parse(listRaw) : [];
-        for (const id of clientIds.slice(0, 500)) {
-          const clientRaw = await env.page_content.get(`client:${id}`);
-          if (!clientRaw) continue;
-          const clientData = JSON.parse(clientRaw);
-          const clientEmail = String(clientData.answers?.email || '').trim().toLowerCase();
-          if (clientEmail === wantedEmail) {
-            activatedClient = clientData;
-            clientId = id;
-            break;
-          }
+      if (activatedClient?.planStatus !== 'activated') {
+        activatedClient = await findExistingActivatedClient(env, {
+          currentClientId: clientId,
+          userId,
+          email: profile.userData?.email
+        });
+        if (activatedClient?.id) {
+          clientId = activatedClient.id;
         }
       }
 
