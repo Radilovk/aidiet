@@ -3947,55 +3947,53 @@
             <i class="fas fa-chevron-left"></i>
         </button>
         <div class="day-banner-center" id="dayBannerCenter">
-            <div class="day-banner-label" id="dayBannerLabel">Понеделник</div>
+            <div class="day-banner-label" id="dayBannerLabel"></div>
         </div>
         <button class="day-banner-arrow day-banner-next" id="dayBannerNext" aria-label="Следващ ден">
             <i class="fas fa-chevron-right"></i>
         </button>
 
     </div>
+    <!-- Initialize day banner immediately to prevent flash from Monday -->
+    <script>
+    (function() {
+        var fullDayNames = ['Понеделник', 'Вторник', 'Сряда', 'Четвъртък', 'Петък', 'Събота', 'Неделя'];
+        
+        // Get last selected day from localStorage or calculate today's day
+        var lastDay = localStorage.getItem('lastSelectedDay');
+        var initialDay;
+        
+        if (lastDay && !isNaN(lastDay)) {
+            initialDay = parseInt(lastDay, 10);
+            // Validate it's in range 1-7
+            if (initialDay < 1 || initialDay > 7) {
+                initialDay = null;
+            }
+        }
+        
+        // If no valid saved day, calculate today's day
+        if (!initialDay) {
+            var jsDay = new Date().getDay(); // 0 = Sun, 1 = Mon … 6 = Sat
+            initialDay = jsDay === 0 ? 7 : jsDay; // Convert to Mon=1 … Sun=7
+        }
+        
+        // Set the day banner label immediately (before DOMContentLoaded)
+        var label = document.getElementById('dayBannerLabel');
+        if (label) {
+            label.textContent = fullDayNames[initialDay - 1];
+        }
+        
+        // Store the initial day for use by the main script
+        window._initialPlanDay = initialDay;
+    })();
+    </script>
 
 
     <!-- Main Content -->
     <main class="container" id="main-content" role="main">
         
         <!-- MEAL PLAN SECTION -->
-        <div id="mealContainer">
-            <!-- Примерно съдържание (ще се замести от JSON logic) -->
-            
-            <!-- Закуска -->
-            <div class="meal-card">
-                <div class="meal-info">
-                    <div class="meal-type">Закуска (08:00)</div>
-                    <div class="meal-name">Овесена каша с горски плодове</div>
-                </div>
-                <button class="info-btn" onclick="openModal('Овесена каша', 'Богата на фибри. Бавните въглехидрати осигуряват енергия за целия ден.', 'Подобрява храносмилането и контролира кръвната захар.')">
-                    <i class="fas fa-info"></i>
-                </button>
-            </div>
-
-            <!-- Обяд -->
-            <div class="meal-card">
-                <div class="meal-info">
-                    <div class="meal-type">Обяд (13:00)</div>
-                    <div class="meal-name">Пилешка пържола на скара със салата</div>
-                </div>
-                <button class="info-btn" onclick="openModal('Пилешко със салата', 'Високо съдържание на протеин с минимални мазнини.', 'Подпомага мускулното възстановяване.')">
-                    <i class="fas fa-info"></i>
-                </button>
-            </div>
-
-            <!-- Вечеря -->
-            <div class="meal-card">
-                <div class="meal-info">
-                    <div class="meal-type">Вечеря (19:30)</div>
-                    <div class="meal-name">Бяла риба със задушени зеленчуци</div>
-                </div>
-                <button class="info-btn" onclick="openModal('Риба със зеленчуци', 'Лека вечеря, богата на Омега-3 мастни киселини.', 'Лесна за усвояване преди сън.')">
-                    <i class="fas fa-info"></i>
-                </button>
-            </div>
-        </div>
+        <div id="mealContainer"></div>
 
         <!-- Моите храни и продукти banner -->
         <a href="food-picker.html" class="my-foods-banner" aria-label="Моите храни и продукти">
@@ -4634,9 +4632,10 @@
                 // Update greeting — no longer a banner; kept for future use only
                 // (greetingName element removed from DOM)
 
-                // Render initial data – auto-select today's day (Mon=1 … Sun=7)
-                const todayPlanDay = getTodayPlanDay();
-                selectDay(todayPlanDay);
+                // Render initial data – use the day already set by the inline script
+                // This prevents flashing from Monday to the actual current day
+                const initialDay = window._initialPlanDay || getTodayPlanDay();
+                selectDay(initialDay);
                 
                 // REQUIREMENT 3: Display plan justification
                 displayPlanJustification();
@@ -5444,6 +5443,12 @@
         }
 
         function selectDay(dayNum, direction) {
+            // Save selected day to localStorage to prevent flash on next page load
+            try {
+                localStorage.setItem('lastSelectedDay', dayNum.toString());
+            } catch (e) {
+                console.warn('Failed to save lastSelectedDay:', e);
+            }
             renderDayBanner(dayNum, direction);
             renderDay(dayNum);
         }
