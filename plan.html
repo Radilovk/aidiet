@@ -4535,8 +4535,8 @@
             }
         }
 
-        function getProfileSyncSignature(uid, planStr, userDataStr, planSource) {
-            const input = [uid || '', planSource || '', planStr || '', userDataStr || ''].join('\n');
+        function getProfileSyncSignature(uid, planStr, userDataStr, planSource, clientId) {
+            const input = [uid || '', planSource || '', clientId || '', planStr || '', userDataStr || ''].join('\n');
             let hash = 2166136261;
             for (let i = 0; i < input.length; i++) {
                 hash ^= input.charCodeAt(i);
@@ -4647,7 +4647,8 @@
                     document.cookie = `np_uid=${encodeURIComponent(uid)}${OPTS}`;
                     const udStr = localStorage.getItem('userData');
                     const planSource = localStorage.getItem('planSource') || '';
-                    const profileSig = getProfileSyncSignature(uid, planStr, udStr || '', planSource);
+                    const pendingClientId = localStorage.getItem('pendingClientId') || '';
+                    const profileSig = getProfileSyncSignature(uid, planStr, udStr || '', planSource, pendingClientId);
                     // Skip backend save only when this exact local profile was already confirmed.
                     if (localStorage.getItem('np_profile_synced') === '1' &&
                         localStorage.getItem('np_profile_sync_sig') === profileSig) return;
@@ -4662,6 +4663,7 @@
                             plan: JSON.parse(planStr),
                             userData: udStr ? JSON.parse(udStr) : {},
                             planSource,
+                            ...(pendingClientId ? { clientId: pendingClientId } : {}),
                             ...(idToken ? { idToken } : {})
                         })
                     }).then(r => {
@@ -6301,6 +6303,7 @@
                                 ? await auth.currentUser.getIdToken().catch(() => null)
                                 : null;
                             const planSourceSync = localStorage.getItem('planSource') || '';
+                            const pendingClientId = localStorage.getItem('pendingClientId') || '';
                             fetch('https://aidiet.radilov-k.workers.dev/api/user/save-profile', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
@@ -6309,12 +6312,13 @@
                                     plan: dietPlan,
                                     userData,
                                     planSource: planSourceSync,
+                                    ...(pendingClientId ? { clientId: pendingClientId } : {}),
                                     ...(_idToken ? { idToken: _idToken } : {})
                                 })
                             }).then(r => {
                                 if (r && r.ok) {
                                     localStorage.setItem('np_profile_synced', '1');
-                                    localStorage.setItem('np_profile_sync_sig', getProfileSyncSignature(userId, planSyncStr, userDataSyncStr, planSourceSync));
+                                    localStorage.setItem('np_profile_sync_sig', getProfileSyncSignature(userId, planSyncStr, userDataSyncStr, planSourceSync, pendingClientId));
                                 } else {
                                     localStorage.removeItem('np_profile_synced');
                                 }

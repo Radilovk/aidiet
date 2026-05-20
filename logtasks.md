@@ -1,5 +1,26 @@
 # Log Tasks
 
+## 2026-05-20 - Задача: Оправяне на login restore след нов APK
+
+### Цел
+"глупак, когато изтрия старото АПК и изтегля нов. при опит да се логна като вече съществуващ профил с план,  ми се появява анализ и plan pending екран и не мога да вляза в профила си!!!!!!!!!!!! разбери защо се случва и го оправи!"
+
+### Коренна причина
+- При login/синк на questionnaire2 профил към Firebase акаунт `pendingClientId` не се подаваше към `POST /api/user/save-profile` в `index.html`.
+- По-късните sync записи от `plan.html` също записваха профила без `clientId`, така профилът губеше връзката към `client:{id}`.
+- При нов APK `GET /api/user/profile` понякога връщаше стар `planSource='questionnaire2'`, защото не можеше надеждно да намери свързания активиран client record и потребителят оставаше в analysis/plan-pending flow.
+
+### Направено
+1. `index.html`
+   - `_syncAnonymousPlanToAccount()` вече подава `pendingClientId` при първичния save и при retry без token.
+2. `plan.html`
+   - И двата sync записа към `/api/user/save-profile` вече пазят `pendingClientId`, когато съществува, за да не се губи връзката след последващи записвания на профила.
+3. `worker.js`
+   - `handleSaveUserProfile()` вече запазва стария `clientId`, ако новият запис не подаде такъв, вместо да го изтрива.
+   - `handleGetUserProfile()` вече backfill-ва липсващ `clientId` не само по email, а и по `clientData.userId === userId`, за да възстанови вече счупени профили при нов login.
+4. Валидация
+   - Пуснат е `npm test` (наличният repo test script минава успешно).
+
 ## 2026-05-20
 
 - Задача: Crowd-sourced permanent translation — след като системата засече дума на английски, преводът се съхранява завинаги и всички потребители го ползват без AI или бекенд заявки.
