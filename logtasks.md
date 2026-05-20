@@ -3,11 +3,12 @@
 ## 2026-05-20
 
 - Задача: След последната промяна в Nutri Plan регистриран потребител със съществуващ активен план влиза в `plan-pending.html` вместо в профила си.
-- Направено:
-  1. `worker.js` — добавени `findExistingActivatedClient()` и `hasApprovedPlanHistory()` за проверка дали потребителят вече има активиран план по `userId` и/или имейл, дори когато `questionnaire2` е създало нов `clientId`.
-  2. `worker.js` — `handleUpdateClientPlan` вече auto-активира новия план и синхронизира профила, ако за същия потребител вече има одобрена история, вместо да гледа само текущия `clientId`.
-  3. `worker.js` — `handleGetUserProfile` вече възстановява последния активиран client record, когато профилът сочи към нов pending `clientId`, така че засегнатите акаунти да влизат отново директно в `plan.html`.
-  4. Валидиран е наличният `npm test` script и след промените е пуснат повторно, плюс CodeQL проверка за локалните промени.
+- Намерен точен бъг и оправен:
+  - **Причина:** В `handleGetUserProfile` (`worker.js`) email backfill-ът проверяваше само `!activatedClient`. Но когато `profile.clientId` сочи към НОВ pending клиент запис (нова заявка от questionnaire2), `activatedClient` е зададен на pending запис (не null) → условието пропуска backfill → стария активиран запис НИКОГА не се открива → връща `planSource='questionnaire2'` → потребителят попада в `plan-pending.html`.
+  - **Поправка (2 реда в `worker.js`):**
+    1. Условие на backfill: `!activatedClient` → `activatedClient?.planStatus !== 'activated'` (backfill-ът се изпълнява и когато намереният клиент е pending).
+    2. Добавен filter в email цикъла: `if (clientData.planStatus !== 'activated' || !clientData.plan) continue;` (търси само активирани записи).
+  - Премахнати излишни helper функции добавени от предишна сесия (`normalizeClientMatchValue`, `findExistingActivatedClient`, `hasApprovedPlanHistory`) и `handleUpdateClientPlan` върнат към оригиналното си поведение.
 
 - Задача: Crowd-sourced permanent translation — след като системата засече дума на английски, преводът се съхранява завинаги и всички потребители го ползват без AI или бекенд заявки.
 - Направено:
