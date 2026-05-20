@@ -1,6 +1,6 @@
 // Service Worker for XBody Ability PWA
 // Minimal, isolated from the NutriPlan service worker
-const CACHE_NAME = 'xbody-v4';
+const CACHE_NAME = 'xbody-v5';
 // Core files that MUST be cached for the PWA shell to work offline.
 const STATIC_CACHE = [
   'xbody.html',
@@ -49,30 +49,28 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Only handle requests for same-origin resources; pass through cross-origin requests
+  // Cache-first for same-origin static files, except the main shell page.
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) {
-    return;
+    return; // pass through cross-origin requests
   }
 
-  // Cache-first for translated Acuity content (versioned URLs are hash-stable,
-  // so once cached the SW serves them instantly with zero network calls).
-  // When Acuity's content changes, xbody.html fetches a new hash and uses a
-  // new URL — the SW fetches and caches that new URL automatically.
-  if (url.pathname === '/api/acuity-translate') {
-    event.respondWith(
-      caches.open(CACHE_NAME).then(async (cache) => {
-        const hit = await cache.match(event.request);
-        if (hit) return hit;
-        try {
-          const resp = await fetch(event.request);
-          if (resp.ok) cache.put(event.request, resp.clone());
-          return resp;
-        } catch (_) {
-          return new Response('Offline', { status: 503 });
-        }
-      })
-    );
+  // Always refresh xbody.html from network first so users do not stay on a
+  // stale shell that can disable/skip translation logic.
+  const isXbodyShell = event.request.mode === 'navigate' || url.pathname.endsWith('/xbody.html');
+  if (isXbodyShell) {
+    event.respondWith((async () => {
+      const cache = await caches.open(CACHE_NAME);
+      try {
+        const fresh = await fetch(event.request);
+        if (fresh && fresh.ok) await cache.put(event.request, fresh.clone());
+        return fresh;
+      } catch (_) {
+        const cached = await cache.match(event.request);
+        if (cached) return cached;
+        throw _;
+      }
+    })());
     return;
   }
 

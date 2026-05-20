@@ -491,33 +491,42 @@
 
         /* ── Auto-translation via Cloudflare Worker proxy ─────────────────────
            The worker fetches the Acuity page server-side, translates all visible
-           text with the Gemini AI, caches the result in KV for 6 hours, and
-           returns the translated HTML from the workers.dev origin – avoiding the
-           ERR_ADDRESS_UNREACHABLE errors that blocked the translate.goog approach.
-
+           text with the Gemini AI, caches the result in KV permanently, and
+           returns the translated HTML from the workers.dev origin.
+           
            The translate preference is persisted in localStorage so the choice
-           is remembered across visits (one toggle → cached for the session and
-           beyond; no repeated API requests because the worker uses KV caching). */
+           is remembered across visits. */
         (function () {
             var ORIGINAL_SRC  = 'https://app.acuityscheduling.com/schedule.php?owner=13943721&appointmentType=16859189';
             var WORKER_ORIGIN = 'https://aidiet.radilov-k.workers.dev';
 
-            /* 2-letter ISO language code from the browser */
+            /* 2-letter ISO language code with resilient fallbacks.
+               Some embedded WebViews report navigator.language = en-US even when
+               the page is Bulgarian, which prevented any translation request. */
             function getLang() {
+                var qsTl = '';
+                try {
+                    qsTl = (new URLSearchParams(window.location.search).get('tl') || '').toLowerCase();
+                } catch (_) {}
+                if (/^[a-z]{2,5}$/.test(qsTl)) return qsTl.split('-')[0];
+
                 var raw = (navigator.languages && navigator.languages[0]) ||
-                           navigator.language || 'en';
-                return raw.split('-')[0].toLowerCase();
+                           navigator.language || '';
+                var navLang = raw ? raw.split('-')[0].toLowerCase() : '';
+
+                var pageLangRaw = (document.documentElement && document.documentElement.lang) || '';
+                var pageLang = pageLangRaw ? pageLangRaw.split('-')[0].toLowerCase() : '';
+
+                if (navLang && navLang !== 'en') return navLang;
+                if (pageLang && pageLang !== 'en') return pageLang;
+                return navLang || pageLang || 'en';
             }
 
-            /* Worker-side translation proxy URL (versioned by content hash for cache-busting).
+            /* Worker-side translation proxy URL.
                Use the canonical Acuity path on the worker origin so the embedded app sees
-               /schedule.php?owner=...&appointmentType=... from the first byte, without
-               relying on an injected history.replaceState patch that may be blocked. */
-            function toTranslateUrl(tl, hash) {
-                var u = WORKER_ORIGIN + '/schedule.php?owner=13943721&appointmentType=16859189'
-                      + '&tl=' + encodeURIComponent(tl);
-                if (hash) u += '&v=' + encodeURIComponent(hash);
-                return u;
+               /schedule.php?owner=...&appointmentType=... from the first byte. */
+            function toTranslateUrl(tl) {
+                return WORKER_ORIGIN + '/schedule.php?owner=13943721&appointmentType=16859189&tl=' + encodeURIComponent(tl);
             }
 
             var tl       = getLang();
@@ -528,12 +537,8 @@
             var mobTxt   = document.getElementById('mob-translate-text');
             if (!frame) return;
 
-            /* Last-known Acuity content hash (persisted; used for optimistic URL versioning) */
-            var LS_HASH_KEY   = 'xbody_acuity_hash';
-            var lastHash      = localStorage.getItem(LS_HASH_KEY) || '';
-
-            var translatedUrl   = (tl && tl !== 'en') ? toTranslateUrl(tl, lastHash) : ORIGINAL_SRC;
-            var needTranslation = (translatedUrl !== ORIGINAL_SRC);
+            var translatedUrl   = (tl && tl !== 'en') ? toTranslateUrl(tl) : ORIGINAL_SRC;
+            var needTranslation = (tl && tl !== 'en');
 
             /* Restore saved preference; default ON when browser language ≠ English */
             var saved = localStorage.getItem('xbody_translate_on');
@@ -606,24 +611,6 @@
             /* Initial load */
             applyUrl(isOn ? translatedUrl : ORIGINAL_SRC);
             syncBadge();
-
-            /* Background: verify content hash so that when Acuity changes its page
-               one user triggers re-translation and everyone else benefits automatically.
-               Non-blocking — the iframe is already loading while this runs. */
-            if (needTranslation) {
-                fetch(WORKER_ORIGIN + '/api/acuity-hash')
-                    .then(function (r) { return r.ok ? r.text() : null; })
-                    .then(function (fresh) {
-                        if (!fresh) return;
-                        fresh = fresh.trim();
-                        if (fresh === lastHash) return; // up to date
-                        localStorage.setItem(LS_HASH_KEY, fresh);
-                        translatedUrl = toTranslateUrl(tl, fresh);
-                        if (isOn) applyUrl(translatedUrl); // reload iframe with latest translation
-                    })
-                    .catch(function () {});
-            }
-
 
             if (badge && needTranslation) {
                 badge.addEventListener('click', toggle);
