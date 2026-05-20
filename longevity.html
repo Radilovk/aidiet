@@ -3722,45 +3722,6 @@
         }
 
         // Initialize
-        function restoreWizardFormUI() {
-            // Step 1
-            const ageEl = document.getElementById('age');
-            if (ageEl && wizardData.age) ageEl.value = wizardData.age;
-            if (wizardData.gender) {
-                const gEl = document.querySelector(`input[name="gender"][value="${wizardData.gender}"]`);
-                if (gEl) gEl.checked = true;
-            }
-            const actEl = document.getElementById('activityLevel');
-            if (actEl && wizardData.activityLevel) actEl.value = wizardData.activityLevel;
-            // Step 2
-            if (Array.isArray(wizardData.symptoms)) {
-                wizardData.symptoms.forEach(s => {
-                    const el = document.getElementById('symptom-' + s);
-                    if (el) el.checked = true;
-                });
-            }
-            // Step 3
-            const fastEl = document.getElementById('fasting');
-            if (fastEl && wizardData.fasting) fastEl.value = wizardData.fasting;
-            const coldEl = document.getElementById('coldExposure');
-            if (coldEl && wizardData.coldExposure) coldEl.value = wizardData.coldExposure;
-            const strEl = document.getElementById('strengthTraining');
-            if (strEl && wizardData.strengthTraining) strEl.value = wizardData.strengthTraining;
-            const sleepEl = document.getElementById('sleepHours');
-            if (sleepEl && wizardData.sleepHours) { sleepEl.value = wizardData.sleepHours; updateSleepValue(); }
-            // Step 4
-            if (Array.isArray(wizardData.goals)) {
-                wizardData.goals.forEach(g => {
-                    const el = document.getElementById('goal-' + g);
-                    if (el) el.checked = true;
-                });
-            }
-            const commitEl = document.getElementById('commitment');
-            if (commitEl && wizardData.commitment) { commitEl.value = wizardData.commitment; updateCommitmentValue(); }
-            const budgetEl = document.getElementById('budget');
-            if (budgetEl && wizardData.budget) budgetEl.value = wizardData.budget;
-        }
-
         function init() {
             // Load theme
             const savedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
@@ -3773,7 +3734,6 @@
             if (savedData) {
                 try {
                     Object.assign(wizardData, JSON.parse(savedData));
-                    restoreWizardFormUI();
                 } catch (e) {
                     console.error('Error loading wizard data:', e);
                 }
@@ -3804,12 +3764,6 @@
                     alert('Моля, изберете максимум 3 цели.');
                 }
             }
-            // Auto-save on every change
-            saveStepData();
-        });
-
-        document.addEventListener('input', function(e) {
-            if (e.target.closest('#wizardContainer')) saveStepData();
         });
 
         init();
