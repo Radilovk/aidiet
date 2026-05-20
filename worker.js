@@ -13067,35 +13067,35 @@ async function handleAcuityHash(request, env) {
 }
 
 /* ── Acuity Scheduling translation proxy ─────────────────────────────────
-   GET /api/acuity-translate?tl=bg[&v={hash}]
+   Preferred: GET /schedule.php?owner=13943721&appointmentType=16859189&tl=bg[&v={hash}]
+   Legacy:    GET /api/acuity-translate?tl=bg[&v={hash}]
    Translations are stored permanently in KV keyed by content hash so that
    once ANY user triggers a translation it is reused by everyone forever —
    no further AI or backend calls until Acuity actually changes its page.
    The optional ?v param is the hash from /api/acuity-hash; when supplied
-   the handler can serve straight from KV without fetching Acuity at all.  */
+   the handler can serve straight from KV without fetching Acuity at all.
+   Using the canonical /schedule.php path avoids client-side 404s caused by
+   booting the Acuity app on /api/acuity-translate instead of its real route. */
 async function handleAcuityTranslate(request, env) {
   const url = new URL(request.url);
   const tl  = (url.searchParams.get('tl') || 'bg').replace(/[^a-z]/g, '').slice(0, 5);
   // Client may pass its last-known hash to skip an extra Acuity fetch
   const vParam = (url.searchParams.get('v') || '').replace(/[^a-f0-9]/g, '').slice(0, 16);
 
-  // Build the patch script early — used for both cached and freshly-translated HTML.
-  // When the worker serves Acuity HTML from its own origin the React app reads
-  // window.location.search = "?tl=bg" (no owner/appointmentType) and throws
-  // "Unexpected Application Error! 404 Not Found".  Injecting this synchronous
-  // history.replaceState call at the very top of <head> — before any Acuity JS —
-  // makes window.location show the correct Acuity path on every response,
-  // including ones that were cached before this fix was deployed.
+  // Legacy /api/acuity-translate responses still need the location patch because
+  // they boot on the wrong path. Canonical /schedule.php proxy responses already
+  // have the correct pathname/search and do not rely on inline script execution.
   const acuityParsed = new URL(ACUITY_URL);
   const acuityRelPath = acuityParsed.pathname + acuityParsed.search;
   const LOC_FIX_MARKER = '/*_xbody_loc_fix*/';
   const locFixScript = `<script>${LOC_FIX_MARKER}(function(){try{history.replaceState(null,'','${acuityRelPath}');}catch(e){}})();<\/script>`;
+  const shouldInjectLocationFix = url.pathname === '/api/acuity-translate';
 
   /** Ensure the location-fix script is present in served HTML (idempotent). */
   function ensureLocationFix(html) {
     // Skip if already injected (avoids duplicates in old cached entries that might
     // have been stored after a partial deployment).
-    if (html.includes(LOC_FIX_MARKER)) return html;
+    if (!shouldInjectLocationFix || html.includes(LOC_FIX_MARKER)) return html;
     return html.replace(/<head>/i, `<head>${locFixScript}`);
   }
 
@@ -13141,7 +13141,10 @@ async function handleAcuityTranslate(request, env) {
   } catch (_) {}
 
   // Translate visible text when a Gemini key is available
-  let html = acuityHtml.replace(/<head>/i, `<head><base href="https://app.acuityscheduling.com/">${locFixScript}`);
+  let html = acuityHtml.replace(
+    /<head>/i,
+    `<head><base href="https://app.acuityscheduling.com/">${shouldInjectLocationFix ? locFixScript : ''}`
+  );
   if (tl !== 'en' && env.GEMINI_API_KEY) {
     html = await translateAcuityHtml(html, tl, env);
   }
@@ -13446,6 +13449,13 @@ export default {
         return await handleSocialAuth(request, env);
       } else if (url.pathname === '/api/acuity-hash' && request.method === 'GET') {
         return await handleAcuityHash(request, env);
+      } else if (url.pathname === '/schedule.php' && request.method === 'GET') {
+        const owner = url.searchParams.get('owner') || '';
+        const appointmentType = url.searchParams.get('appointmentType') || '';
+        if (owner === '13943721' && appointmentType === '16859189') {
+          return await handleAcuityTranslate(request, env);
+        }
+        return jsonResponse({ error: 'Not found' }, 404);
       } else if (url.pathname === '/api/acuity-translate' && request.method === 'GET') {
         return await handleAcuityTranslate(request, env);
       } else if (url.pathname === '/api/auth/forgot-password' && request.method === 'POST') {
