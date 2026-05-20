@@ -9,6 +9,31 @@
     1. Условие на backfill: `!activatedClient` → `activatedClient?.planStatus !== 'activated'` (backfill-ът се изпълнява и когато намереният клиент е pending).
     2. Добавен filter в email цикъла: `if (clientData.planStatus !== 'activated' || !clientData.plan) continue;` (търси само активирани записи).
   - Премахнати излишни helper функции добавени от предишна сесия (`normalizeClientMatchValue`, `findExistingActivatedClient`, `hasApprovedPlanHistory`) и `handleUpdateClientPlan` върнат към оригиналното си поведение.
+- Задача: Смяна на всички default/fallback Gemini модели на `gemini-2.5-flash` (с автоматично disabled thinking).
+- Направено (`worker.js`):
+  1. `callGemini` default param: `gemini-2.0-flash` → `gemini-2.5-flash`
+  2. Vision default fallback за Google: `gemini-2.0-flash` → `gemini-2.5-flash`
+  3. `translateAcuityHtml` fallback: `gemini-1.5-flash` → `gemini-2.5-flash`
+  4. Двата hardcoded fallback `|| 'gemini-2.0-flash'` (protocol и longevity) → `gemini-2.5-flash`
+  5. Актуализирани свързаните коментари
+  - `callGemini` автоматично добавя `thinkingConfig: { thinkingBudget: 0 }` когато model name съдържа `gemini-2.5-flash` — thinking е disabled без допълнителна конфигурация.
+
+- Задача: Оправяне на XBody грешката `[acuity-translate] Gemini translation error: Gemini API failed: Gemini API error: 404 Not Found`.
+- Причини (3 бъга в `worker.js`):
+  1. `translateAcuityHtml()` hardcode-ваше `'gemini-2.0-flash'` — игнорирайки admin конфигурацията; ако Google е обновил/премахнал модела → 404.
+  2. Изпращаше `thinkingBudget: 0` → `thinkingConfig: { thinkingBudget: 0 }` на `gemini-2.0-flash`, но `thinkingConfig` се поддържа само от Gemini 2.5 моделите → грешен параметър.
+  3. Guard условието `(env.GEMINI_API_KEY || env.OPENAI_API_KEY)` позволяваше извикване на Gemini дори само с OpenAI key → auth fail.
+- Направено (`worker.js`):
+  1. Guard: `env.GEMINI_API_KEY || env.OPENAI_API_KEY` → само `env.GEMINI_API_KEY`.
+  2. Model: сменено от hardcoded `'gemini-2.0-flash'` → ползва admin-конфигурирания модел (`cfg.provider === 'google' && cfg.modelName`) или `'gemini-1.5-flash'` като stable fallback.
+  3. thinkingBudget: `0` → `undefined` — така `callGemini` НЕ праща `thinkingConfig` на не-thinking модели (коректно поведение).
+
+- Задача: Обяснение на XBody грешката `[acuity-translate] Gemini translation error: Gemini API failed: Gemini API error: 404 Not Found`.
+- Направено:
+  1. Проверен е `xbody.html` — бутонът за превод зарежда iframe през Worker endpoint `GET /api/acuity-translate`.
+  2. Проверен е `worker.js` — endpoint-ът съществува и при превод винаги вика `translateAcuityHtml()`, която от своя страна вика `callGemini(...)`.
+  3. Потвърден е източникът на 404: `callGemini()` прави POST към `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?...`; логът `[acuity-translate] Gemini translation error` значи, че самият Worker е стигнал до Gemini, но Google е върнал 404 за модела/endpoint-а, а не че липсва frontend route.
+  4. Извод: проблемът е в server-side Gemini конфигурацията за XBody превода (най-вероятно невалиден/недостъпен model ID `gemini-2.0-flash` за текущия API endpoint или проект), не в бутона за превод.
 
 - Задача: Crowd-sourced permanent translation — след като системата засече дума на английски, преводът се съхранява завинаги и всички потребители го ползват без AI или бекенд заявки.
 - Направено:
