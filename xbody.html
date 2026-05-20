@@ -489,27 +489,18 @@
             setTimeout(function () { sc.scrollTop = saved; }, WEBKIT_COMPOSITOR_RECOVERY_DELAY_MS);
         });
 
-        /* ── Auto-translation ─────────────────────────────────────────────
-           The user's preferred browser language is detected automatically.
-           When it differs from English (the language of the Acuity booking
-           system), the iframe is loaded through the Google Translate web-proxy
-           which translates all rendered text – including dynamic SPA content –
-           without any API key or server-side changes.
+        /* ── Auto-translation via Cloudflare Worker proxy ─────────────────────
+           The worker fetches the Acuity page server-side, translates all visible
+           text with the Gemini AI, caches the result in KV for 6 hours, and
+           returns the translated HTML from the workers.dev origin – avoiding the
+           ERR_ADDRESS_UNREACHABLE errors that blocked the translate.goog approach.
 
-           Proxy URL format used by translate.goog:
-             https://<hostname-dashes>.translate.goog<path>?<params>
-               &_x_tr_sl=auto    ← auto-detect source language
-               &_x_tr_tl=<tl>   ← target language (from browser)
-               &_x_tr_hl=<tl>   ← UI language of the translate toolbar
-               &_x_tr_pto=wapp  ← SPA-friendly "web app" mode (keeps
-                                   translated URL rewrites working in SPAs)
-
-           A pill badge (top-right) confirms translation is active and lets
-           the user toggle it off/on.  window._xbodyResetSrc is kept in sync
-           with the active URL so the back-navigation hard-reset lands on the
-           correct src regardless of toggle state. */
+           The translate preference is persisted in localStorage so the choice
+           is remembered across visits (one toggle → cached for the session and
+           beyond; no repeated API requests because the worker uses KV caching). */
         (function () {
-            var ORIGINAL_SRC = 'https://app.acuityscheduling.com/schedule.php?owner=13943721&appointmentType=16859189';
+            var ORIGINAL_SRC  = 'https://app.acuityscheduling.com/schedule.php?owner=13943721&appointmentType=16859189';
+            var WORKER_ORIGIN = 'https://aidiet.radilov-k.workers.dev';
 
             /* 2-letter ISO language code from the browser */
             function getLang() {
@@ -518,29 +509,11 @@
                 return raw.split('-')[0].toLowerCase();
             }
 
-            /* Build the translate.goog proxy URL.
-               Dots in the hostname → dashes per translate.goog encoding rules
-               (e.g. app.acuityscheduling.com → app-acuityscheduling-com.translate.goog).
-
-               _x_tr_sl=en  – declare the source language as English explicitly.
-               This means Google Translate will only process English text nodes
-               and leave any already-Bulgarian (or other non-English) content
-               completely untouched.  Using 'auto' here would risk re-translating
-               Bulgarian text that the studio has customised in the Acuity UI. */
-            function toProxyUrl(url, tl) {
-                try {
-                    var u = new URL(url);
-                    var proxyHost = u.hostname.replace(/\./g, '-') + '.translate.goog';
-                    var p = 'https://' + proxyHost + u.pathname + u.search;
-                    p += (p.indexOf('?') >= 0 ? '&' : '?');
-                    p += '_x_tr_sl=en'
-                       + '&_x_tr_tl=' + encodeURIComponent(tl)
-                       + '&_x_tr_hl=' + encodeURIComponent(tl)
-                       + '&_x_tr_pto=wapp';
-                    return p;
-                } catch (e) {
-                    return url; // fallback: serve original on any URL parse error
-                }
+            /* Worker-side translation proxy URL (versioned by content hash for cache-busting) */
+            function toTranslateUrl(tl, hash) {
+                var u = WORKER_ORIGIN + '/api/acuity-translate?tl=' + encodeURIComponent(tl);
+                if (hash) u += '&v=' + encodeURIComponent(hash);
+                return u;
             }
 
             var tl       = getLang();
@@ -551,9 +524,16 @@
             var mobTxt   = document.getElementById('mob-translate-text');
             if (!frame) return;
 
-            var translatedUrl   = (tl && tl !== 'en') ? toProxyUrl(ORIGINAL_SRC, tl) : ORIGINAL_SRC;
+            /* Last-known Acuity content hash (persisted; used for optimistic URL versioning) */
+            var LS_HASH_KEY   = 'xbody_acuity_hash';
+            var lastHash      = localStorage.getItem(LS_HASH_KEY) || '';
+
+            var translatedUrl   = (tl && tl !== 'en') ? toTranslateUrl(tl, lastHash) : ORIGINAL_SRC;
             var needTranslation = (translatedUrl !== ORIGINAL_SRC);
-            var isOn            = needTranslation;
+
+            /* Restore saved preference; default ON when browser language ≠ English */
+            var saved = localStorage.getItem('xbody_translate_on');
+            var isOn  = saved !== null ? saved === '1' : needTranslation;
 
             /* Friendly language display names */
             var LANG_NAMES = {
@@ -575,13 +555,14 @@
             /* Sync badge visual state (top badge + mobile toolbar button) */
             function syncBadge() {
                 if (!badge) return;
-                var name = LANG_NAMES[tl] || tl.toUpperCase();
 
                 if (!needTranslation) {
                     badge.style.display = 'none';
                     if (mobBtn) mobBtn.style.display = 'none';
                     return;
                 }
+
+                var name = LANG_NAMES[tl] || tl.toUpperCase();
 
                 /* ── Top badge ── */
                 if (isOn) {
@@ -610,38 +591,48 @@
                 }
             }
 
+            /* Toggle translation on/off and persist the choice */
+            function toggle() {
+                isOn = !isOn;
+                localStorage.setItem('xbody_translate_on', isOn ? '1' : '0');
+                applyUrl(isOn ? translatedUrl : ORIGINAL_SRC);
+                syncBadge();
+            }
+
             /* Initial load */
             applyUrl(isOn ? translatedUrl : ORIGINAL_SRC);
             syncBadge();
 
-            /* Toggle on badge tap */
+            /* Background: verify content hash so that when Acuity changes its page
+               one user triggers re-translation and everyone else benefits automatically.
+               Non-blocking — the iframe is already loading while this runs. */
+            if (needTranslation) {
+                fetch(WORKER_ORIGIN + '/api/acuity-hash')
+                    .then(function (r) { return r.ok ? r.text() : null; })
+                    .then(function (fresh) {
+                        if (!fresh) return;
+                        fresh = fresh.trim();
+                        if (fresh === lastHash) return; // up to date
+                        localStorage.setItem(LS_HASH_KEY, fresh);
+                        translatedUrl = toTranslateUrl(tl, fresh);
+                        if (isOn) applyUrl(translatedUrl); // reload iframe with latest translation
+                    })
+                    .catch(function () {});
+            }
+
+
             if (badge && needTranslation) {
-                badge.addEventListener('click', function () {
-                    isOn = !isOn;
-                    applyUrl(isOn ? translatedUrl : ORIGINAL_SRC);
-                    syncBadge();
-                });
-                /* Keyboard accessibility (Enter / Space) */
+                badge.addEventListener('click', toggle);
                 badge.addEventListener('keydown', function (e) {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        badge.click();
-                    }
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
                 });
             }
 
-            /* Toggle on mobile toolbar button tap (same action) */
+            /* Toggle on mobile toolbar button tap */
             if (mobBtn && needTranslation) {
-                mobBtn.addEventListener('click', function () {
-                    isOn = !isOn;
-                    applyUrl(isOn ? translatedUrl : ORIGINAL_SRC);
-                    syncBadge();
-                });
+                mobBtn.addEventListener('click', toggle);
                 mobBtn.addEventListener('keydown', function (e) {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        mobBtn.click();
-                    }
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
                 });
             }
         })();

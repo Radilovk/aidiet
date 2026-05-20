@@ -13027,6 +13027,184 @@ function handleGetClinicalProtocols() {
   });
 }
 
+/* ── Acuity content-hash helper ──────────────────────────────────────────
+   Returns a 16-char hex prefix of the SHA-256 of the given text.           */
+async function sha256Short(text) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
+}
+
+const ACUITY_URL     = 'https://app.acuityscheduling.com/schedule.php?owner=13943721&appointmentType=16859189';
+const ACUITY_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  'Accept-Language': 'en-US,en;q=0.9',
+};
+
+/* ── GET /api/acuity-hash ────────────────────────────────────────────────
+   Returns the 16-char content hash of the current Acuity booking page.
+   Cached in KV for 1 hour so repeated calls never hit Acuity directly.
+   xbody.html uses this to build versioned translate URLs for cache-busting. */
+async function handleAcuityHash(request, env) {
+  const HASH_KV = 'xbody:acuity:hash';
+  try {
+    const h = await env.page_content.get(HASH_KV);
+    if (h) return new Response(h, { headers: { 'Content-Type': 'text/plain', ...CORS_HEADERS, 'Cache-Control': 'public, max-age=3600' } });
+  } catch (_) {}
+  try {
+    const resp = await fetch(ACUITY_URL, { headers: ACUITY_HEADERS });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const hash = await sha256Short(await resp.text());
+    try { await env.page_content.put(HASH_KV, hash, { expirationTtl: 3600 }); } catch (_) {}
+    return new Response(hash, { headers: { 'Content-Type': 'text/plain', ...CORS_HEADERS, 'Cache-Control': 'public, max-age=3600' } });
+  } catch (err) {
+    console.error('[acuity-hash] error:', err.message);
+    return new Response('', { status: 500, headers: CORS_HEADERS });
+  }
+}
+
+/* ── Acuity Scheduling translation proxy ─────────────────────────────────
+   GET /api/acuity-translate?tl=bg[&v={hash}]
+   Translations are stored permanently in KV keyed by content hash so that
+   once ANY user triggers a translation it is reused by everyone forever —
+   no further AI or backend calls until Acuity actually changes its page.
+   The optional ?v param is the hash from /api/acuity-hash; when supplied
+   the handler can serve straight from KV without fetching Acuity at all.  */
+async function handleAcuityTranslate(request, env) {
+  const url = new URL(request.url);
+  const tl  = (url.searchParams.get('tl') || 'bg').replace(/[^a-z]/g, '').slice(0, 5);
+  // Client may pass its last-known hash to skip an extra Acuity fetch
+  const vParam = (url.searchParams.get('v') || '').replace(/[^a-f0-9]/g, '').slice(0, 16);
+
+  function htmlResp(body) {
+    return new Response(body, {
+      headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=21600', 'X-Content-Type-Options': 'nosniff' },
+    });
+  }
+
+  // Fast path: client sent a hash → check permanent KV immediately (0 Acuity fetch)
+  if (vParam) {
+    try {
+      const cached = await env.page_content.get(`xbody:acuity:${tl}:${vParam}`);
+      if (cached) return htmlResp(cached);
+    } catch (_) {}
+  }
+
+  // Fetch the Acuity scheduling page
+  let acuityHtml;
+  try {
+    const resp = await fetch(ACUITY_URL, { headers: ACUITY_HEADERS });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    acuityHtml = await resp.text();
+  } catch (err) {
+    console.error('[acuity-translate] fetch error:', err.message);
+    const fb = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>`
+      + `<body style="font-family:sans-serif;padding:24px;text-align:center">`
+      + `<p>Преводът временно не е наличен.</p>`
+      + `<a href="${ACUITY_URL}" target="_parent" style="color:#0066cc">Отвори резервацията на английски ↗</a>`
+      + `</body></html>`;
+    return new Response(fb, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+  }
+
+  // Compute content hash and update the shared 1-h KV cache
+  const hash    = await sha256Short(acuityHtml);
+  const PERM_KEY = `xbody:acuity:${tl}:${hash}`;
+  try { await env.page_content.put('xbody:acuity:hash', hash, { expirationTtl: 3600 }); } catch (_) {}
+
+  // Check permanent hash-keyed cache (another request may have already translated this version)
+  try {
+    const cached = await env.page_content.get(PERM_KEY);
+    if (cached) return htmlResp(cached);
+  } catch (_) {}
+
+  // Translate visible text when an AI key is available
+  let html = acuityHtml.replace(/<head>/i, '<head><base href="https://app.acuityscheduling.com/">');
+  if (tl !== 'en' && (env.GEMINI_API_KEY || env.OPENAI_API_KEY)) {
+    html = await translateAcuityHtml(html, tl, env);
+  }
+
+  // Store permanently — no expirationTtl so the translation lives forever in KV
+  try { await env.page_content.put(PERM_KEY, html); } catch (_) {}
+
+  return htmlResp(html);
+}
+
+/* ── Translate visible text nodes in Acuity HTML using Gemini ────────────
+   Strategy:
+   1. Protect <script>, <style>, and HTML comment blocks with placeholders
+      so they are never sent to the AI.
+   2. Extract every unique visible text node (text between > and <).
+   3. Send the deduplicated list to Gemini as a single batch JSON request.
+   4. Apply the returned translations back to the HTML.
+   5. Restore the protected blocks.
+   Returns the original HTML unchanged on any error so the page still loads. */
+async function translateAcuityHtml(html, tl, env) {
+  // Unique sentinel prefix/suffix unlikely to appear in real HTML
+  const PRE = '__XBPROT_';
+  const SUF = '__';
+
+  const blocks = [];
+  let safe = html
+    .replace(/<script[\s\S]*?<\/script[^>]*>/gi,  m => { blocks.push(m); return PRE + (blocks.length - 1) + SUF; })
+    .replace(/<style[\s\S]*?<\/style[^>]*>/gi,    m => { blocks.push(m); return PRE + (blocks.length - 1) + SUF; })
+    .replace(/<!--[\s\S]*?-->/g,                  m => { blocks.push(m); return PRE + (blocks.length - 1) + SUF; });
+
+  // Extract unique, non-trivial visible text nodes
+  const seen = new Set();
+  safe.replace(/>([^<]+)</g, (_, t) => {
+    const s = t.trim();
+    // Skip pure numbers/punctuation, very short strings, and our own placeholders
+    if (s.length >= 3 && !/^[\d\s:.,\-\/()%+]+$/.test(s) && !s.startsWith(PRE)) {
+      seen.add(s);
+    }
+  });
+
+  const originals = [...seen];
+  if (!originals.length) return html; // nothing translatable
+
+  const LANG = {
+    bg: 'Bulgarian', ru: 'Russian', de: 'German',  fr: 'French',
+    es: 'Spanish',   it: 'Italian', tr: 'Turkish', uk: 'Ukrainian',
+    pl: 'Polish',    ro: 'Romanian', nl: 'Dutch',  cs: 'Czech',
+    sk: 'Slovak',    hr: 'Croatian', sr: 'Serbian', el: 'Greek',
+    hu: 'Hungarian', fi: 'Finnish',  sv: 'Swedish', da: 'Danish',
+    no: 'Norwegian', pt: 'Portuguese',
+  };
+  const langName = LANG[tl] || tl.toUpperCase();
+
+  // Single Gemini batch request – returns a JSON array of translated strings
+  let translations;
+  try {
+    const prompt = `Translate the following English UI text strings to ${langName}.\n`
+      + `Return ONLY a valid JSON array of translated strings in the exact same order and count.\n`
+      + `Preserve any special characters, numbers, and punctuation unchanged.\n\n`
+      + `Input: ${JSON.stringify(originals)}`;
+
+    const raw = await callGemini(env, prompt, 'gemini-2.0-flash', 8192, true, 0);
+    const parsed = JSON.parse(raw.trim());
+    if (!Array.isArray(parsed) || parsed.length !== originals.length) {
+      throw new Error(`array length mismatch (got ${Array.isArray(parsed) ? parsed.length : typeof parsed}, expected ${originals.length})`);
+    }
+    translations = parsed;
+  } catch (err) {
+    console.error('[acuity-translate] Gemini translation error:', err.message);
+    return html; // serve original on any failure
+  }
+
+  // Build lookup map
+  const map = new Map(originals.map((o, i) => [o, String(translations[i])]));
+
+  // Apply translations to text nodes
+  let out = safe.replace(/>([^<]+)</g, (match, t) => {
+    const s = t.trim();
+    if (map.has(s)) return match.replace(s, map.get(s));
+    return match;
+  });
+
+  // Restore protected blocks (placeholder format: __XBPROT_N__)
+  return out.replace(/__XBPROT_(\d+)__/g, (_, i) => blocks[+i]);
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -13238,6 +13416,10 @@ export default {
         const rlErr = await checkRateLimit(env, request, 'SOCIAL_AUTH');
         if (rlErr) return rlErr;
         return await handleSocialAuth(request, env);
+      } else if (url.pathname === '/api/acuity-hash' && request.method === 'GET') {
+        return await handleAcuityHash(request, env);
+      } else if (url.pathname === '/api/acuity-translate' && request.method === 'GET') {
+        return await handleAcuityTranslate(request, env);
       } else if (url.pathname === '/api/auth/forgot-password' && request.method === 'POST') {
         const rlErr = await checkRateLimit(env, request, 'FORGOT_PASSWORD');
         if (rlErr) return rlErr;
