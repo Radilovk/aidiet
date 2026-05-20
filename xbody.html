@@ -335,7 +335,7 @@
         /* ── Load Acuity iframe ── */
         (function () {
             var frame = document.querySelector('iframe');
-            if (frame) frame.src = 'https://app.acuityscheduling.com/schedule.php?owner=13943721&appointmentType=16859189';
+            if (frame) frame.src = 'https://app.acuityscheduling.com/schedule.php?owner=13943721&appointmentType=16859189&locale=bg';
         })();
 
         /* ── PWA Install Logic ── */
@@ -588,6 +588,33 @@
 
             btn.addEventListener('click', doBack);
         })();
+    </script>
+
+    <!-- Google Translate: автоматичен превод от английски към български -->
+    <div id="google_translate_element" style="display:none;"></div>
+
+    <script type="text/javascript">
+        function googleTranslateElementInit() {
+            new google.translate.TranslateElement({
+                pageLanguage: 'en',
+                includedLanguages: 'bg',
+                layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+                autoDisplay: false
+            }, 'google_translate_element');
+
+            // Автоматично задействане на превода веднага след зареждане
+            var checkInterval = setInterval(function () {
+                var select = document.querySelector('select.goog-te-combo');
+                if (select) {
+                    select.value = 'bg';
+                    select.dispatchEvent(new Event('change'));
+                    clearInterval(checkInterval);
+                }
+            }, 100);
+        }
+    </script>
+    <script type="text/javascript"
+            src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit">
     </script>
 </body>
 </html>
