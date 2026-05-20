@@ -13079,6 +13079,26 @@ async function handleAcuityTranslate(request, env) {
   // Client may pass its last-known hash to skip an extra Acuity fetch
   const vParam = (url.searchParams.get('v') || '').replace(/[^a-f0-9]/g, '').slice(0, 16);
 
+  // Build the patch script early — used for both cached and freshly-translated HTML.
+  // When the worker serves Acuity HTML from its own origin the React app reads
+  // window.location.search = "?tl=bg" (no owner/appointmentType) and throws
+  // "Unexpected Application Error! 404 Not Found".  Injecting this synchronous
+  // history.replaceState call at the very top of <head> — before any Acuity JS —
+  // makes window.location show the correct Acuity path on every response,
+  // including ones that were cached before this fix was deployed.
+  const acuityParsed = new URL(ACUITY_URL);
+  const acuityRelPath = acuityParsed.pathname + acuityParsed.search;
+  const LOC_FIX_MARKER = '/*_xbody_loc_fix*/';
+  const locFixScript = `<script>${LOC_FIX_MARKER}(function(){try{history.replaceState(null,'','${acuityRelPath}');}catch(e){}})();<\/script>`;
+
+  /** Ensure the location-fix script is present in served HTML (idempotent). */
+  function ensureLocationFix(html) {
+    // Skip if already injected (avoids duplicates in old cached entries that might
+    // have been stored after a partial deployment).
+    if (html.includes(LOC_FIX_MARKER)) return html;
+    return html.replace(/<head>/i, `<head>${locFixScript}`);
+  }
+
   function htmlResp(body) {
     return new Response(body, {
       headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=21600', 'X-Content-Type-Options': 'nosniff' },
@@ -13089,7 +13109,7 @@ async function handleAcuityTranslate(request, env) {
   if (vParam) {
     try {
       const cached = await env.page_content.get(`xbody:acuity:${tl}:${vParam}`);
-      if (cached) return htmlResp(cached);
+      if (cached) return htmlResp(ensureLocationFix(cached));
     } catch (_) {}
   }
 
@@ -13117,11 +13137,11 @@ async function handleAcuityTranslate(request, env) {
   // Check permanent hash-keyed cache (another request may have already translated this version)
   try {
     const cached = await env.page_content.get(PERM_KEY);
-    if (cached) return htmlResp(cached);
+    if (cached) return htmlResp(ensureLocationFix(cached));
   } catch (_) {}
 
   // Translate visible text when a Gemini key is available
-  let html = acuityHtml.replace(/<head>/i, '<head><base href="https://app.acuityscheduling.com/">');
+  let html = acuityHtml.replace(/<head>/i, `<head><base href="https://app.acuityscheduling.com/">${locFixScript}`);
   if (tl !== 'en' && env.GEMINI_API_KEY) {
     html = await translateAcuityHtml(html, tl, env);
   }
