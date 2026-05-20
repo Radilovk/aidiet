@@ -33,7 +33,31 @@
 
 **Резултат:** Tab switching след initial load = <5ms. JS parse overhead на V8 = ~0ms след first-load caching.
 
-## 2026-05-20 — Анализ на забавянето при превключване на табове (обяснителна задача)
+## 2026-05-20 — Одит на SPA промените + fix на навигацията в iframe
+
+**Задача:** Провери дали всичко работи и промените няма да счупят приложение, логика, функции.
+
+**Намерени проблеми:**
+Критични грешки в навигацията — когато страниците работят в iframe (app.html shell), `window.location.href = 'profile.html'` навигира само iframe-а, а не цялото приложение.
+
+**Пълен списък на проблемите:**
+- `plan.js`: 7 бр. `window.location` навигации (profile, questionnaire, game-analytics, food-picker, plan-pending)
+- `profile.js`: 6 бр. (plan, questionnaire ×3, analysis)
+- `guidelines.js`: 1 бр. (plan)
+- `plan.html` Firebase модул: 5 бр. (questionnaire2 ×2, plan-pending, sign-out, button onclick)
+- `profile.html`: sign-out + FAB chat бутон
+- `guidelines.html`: FAB chat + FAB food бутони
+
+**Направено:**
+- Добавен `window._shellNav(url, replace)` helper в plan.js, profile.js, guidelines.js
+  - Tab pages (plan/guidelines/profile) → `postMessage({type:'SWITCH_TAB'})` до shell-а
+  - Non-tab pages (questionnaire, analysis, food-picker, ...) → `window.top.location` навигация на цялото приложение
+  - Standalone режим (без shell) → нормална `window.location` навигация (без промяна)
+- Заменени всички 19 `window.location` навигационни извиквания с `_shellNav()`
+- `index.html` премахнат от TAB_MAP (sign-out винаги навигира window.top)
+- Финален одит: 0 останали некоригирани навигации
+
+
 
 **Задача:** Обясни защо има забавяне при превключване между табовете на APK NutriPlan въпреки въведения метод за зареждане без забавяне.
 
