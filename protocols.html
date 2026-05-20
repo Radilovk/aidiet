@@ -1935,10 +1935,11 @@
         document.getElementById('create-protocol-btn').addEventListener('click', () => {
             currentStep = 1;
             clearValidation();
-            // Reset form
+            // Clear form then restore any saved draft
             wizard.querySelectorAll('input[type="text"], input[type="number"], textarea').forEach(i => i.value = '');
             wizard.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
             wizard.querySelectorAll('input[type="checkbox"], input[type="radio"]').forEach(c => c.checked = false);
+            restoreProtocolDraft();
             document.getElementById('protocol-result').innerHTML = '';
             document.getElementById('protocol-result').classList.remove('show');
             document.getElementById('protocol-loading').style.display = 'flex';
@@ -2073,6 +2074,64 @@
             html += '</div>';
             summaryEl.innerHTML = html;
         }
+
+        // === FORM DRAFT AUTO-SAVE ===
+        const PROTOCOL_DRAFT_KEY = 'protocols_form_draft';
+
+        function saveProtocolDraft() {
+            try {
+                localStorage.setItem(PROTOCOL_DRAFT_KEY, JSON.stringify(collectFormData()));
+            } catch (e) { /* quota exceeded – ignore */ }
+        }
+
+        function restoreProtocolDraft() {
+            const raw = localStorage.getItem(PROTOCOL_DRAFT_KEY);
+            if (!raw) return;
+            let d;
+            try { d = JSON.parse(raw); } catch (e) { return; }
+
+            const setVal = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.value = val; };
+            const setChecks = (name, arr) => {
+                if (!Array.isArray(arr)) return;
+                wizard.querySelectorAll(`input[name="${name}"]`).forEach(cb => { cb.checked = arr.includes(cb.value); });
+            };
+            const setRadio = (name, val) => {
+                if (!val) return;
+                const el = wizard.querySelector(`input[name="${name}"][value="${CSS.escape(val)}"]`);
+                if (el) el.checked = true;
+            };
+
+            setVal('prot-name', d.name);
+            setVal('prot-age', d.age);
+            setVal('prot-gender', d.gender);
+            setVal('prot-height', d.height);
+            setVal('prot-weight', d.weight);
+            setVal('prot-bodyfat', d.bodyfat);
+            setVal('prot-activity', d.activity);
+            setChecks('prot-training', d.training);
+            setVal('prot-sleep', d.sleep);
+            setVal('prot-sleep-quality', d.sleepQuality);
+            setVal('prot-chronotype', d.chronotype);
+            setVal('prot-stress', d.stress);
+            setRadio('prot-bloodwork', d.bloodwork);
+            setChecks('prot-deficiencies', d.deficiencies);
+            setChecks('prot-conditions', d.conditions);
+            setVal('prot-allergies', d.allergies);
+            setVal('prot-medications', d.medications);
+            setChecks('prot-goals', d.goals);
+            setVal('prot-priority', d.priority);
+            setVal('prot-timeframe', d.timeframe);
+            setVal('prot-current-supplements', d.currentSupplements);
+            setRadio('prot-peptides', d.peptides);
+            setChecks('prot-biohacking', d.biohacking);
+            setVal('prot-injection-willing', d.injectionWilling);
+            setVal('prot-budget', d.budget);
+            setChecks('prot-forms', d.forms);
+            setVal('prot-notes', d.notes);
+        }
+
+        wizard.addEventListener('input', saveProtocolDraft);
+        wizard.addEventListener('change', saveProtocolDraft);
 
         // === COLLECT FORM DATA ===
         function collectFormData() {
