@@ -9809,7 +9809,8 @@
             getCurrentViewDayKey:    getCurrentViewDayKey,
             logExtraFood:            logExtraFood,
             calcDayScore:            calcDayScore,
-            calcWeeklyScore:         calcWeeklyScore
+            calcWeeklyScore:         calcWeeklyScore,
+            recalcAndShowScore:      recalcAndShowScore
         };
         window._gameEnhanceMealCards = enhanceMealCards;
         window._gameShowMorning = function(f){ showMorningQuestion(f, getTodayKey(), null); };
@@ -9913,8 +9914,10 @@
                                 sleptWell: action === 'sleep_yes',
                                 ts: new Date().toISOString()
                             };
-                            rec.dailyScore = typeof gm.calcDayScore === 'function' ? gm.calcDayScore(rec) : rec.dailyScore;
                             gm.saveRecord(recordKey, rec);
+                        }
+                        if (typeof gm.recalcAndShowScore === 'function') {
+                            gm.recalcAndShowScore(recordKey);
                         }
                     } else {
                         // Fallback when gameModule is not yet initialised
@@ -9932,6 +9935,8 @@
                             localStorage.setItem('gameData', JSON.stringify(data));
                         }
                     }
+                    // Haptic feedback – distinct pattern per answer
+                    try { if (navigator.vibrate) navigator.vibrate(action === 'sleep_yes' ? [40, 30, 60] : [60, 30, 40]); } catch (_) {}
                 } catch(e) {}
                 return;
             }

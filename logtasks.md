@@ -1,6 +1,35 @@
 # Log Tasks
 
-## 2026-05-19 - Задача: Верификация дали системата получава реалните отговори
+## 2026-05-20 - Задача: Обстоен преглед на Android нотификационния flow
+
+### Цел
+"Провери обстойно! искам да работи на всички андроид телефони. логиката да е безупречна, интеграцията, дизайна, бързината на извеждане на прозореца. целта е да е изключително лесно, бързо за клиента и да е със запазени хаптик ефекти"
+
+### Намерени проблеми и поправки
+
+#### 1. `plan.html` – `recalcAndShowScore` не беше в публичното API
+Функцията не беше изложена в `window.gameModule`. Добавена.
+
+#### 2. `plan.html` – SW message listener (sleep_yes/sleep_no)
+- Не се извикваше `recalcAndShowScore()` → UI score не се обновяваше → поправено
+- Нямаше haptic feedback → добавено `navigator.vibrate([40,30,60])` / `[60,30,40]`
+
+#### 3. `local-scheduler.js` – Capacitor `_handleCapacitorNotificationAction`
+- `_saveQuickAnswer()` пишеше директно в localStorage, заобикаляйки `_gameDataCache` → сменено с `window.gameModule.saveRecord()` когато е налично
+- Не се извикваше `recalcAndShowScore()` → добавено
+- Нямаше haptic feedback → добавено `navigator.vibrate([40,30,60])` / `[60,30,40]`
+
+#### 4. `quick-answer.html` – `body { overflow: hidden }` клипваше съдържанието на малки телефони
+- Поправено на `overflow-x: hidden; overflow-y: auto`
+
+#### 5. `quick-answer.html` – липсва touch feedback на Android
+- Добавено `:active` state на `.choice` (scale + highlight)
+- Добавено `-webkit-tap-highlight-color: transparent` на всички бутони
+- Добавено `:active` opacity/scale на footer бутони
+
+#### 6. `sw.js` – `qaClient.navigate()` без catch
+- Добавен `.catch()` с fallback към `clients.openWindow()`
+
 
 ### Въпрос
 "А системата получава ли реалните отговори, за да може да ги калкулира и използва след това за анализа?"

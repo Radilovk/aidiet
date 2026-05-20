@@ -251,10 +251,33 @@ const GameNotifier = {
         const actionId = action && typeof action.actionId === 'string' ? action.actionId : '';
 
         if (type === 'morning_check' && (actionId === 'sleep_yes' || actionId === 'sleep_no')) {
-            // Save the answer silently – no page navigation needed.
-            const saved = this._saveQuickAnswer(recordKey, 'morning_check', {
-                sleptWell: actionId === 'sleep_yes'
-            });
+            const sleptWell = actionId === 'sleep_yes';
+            // Use gameModule when available so the in-memory cache stays consistent
+            // and the daily score card is refreshed without any page navigation.
+            let saved = false;
+            const gm = typeof window !== 'undefined' && window.gameModule;
+            if (gm && typeof gm.getRecord === 'function' && typeof gm.saveRecord === 'function') {
+                try {
+                    const rec = gm.getRecord(recordKey);
+                    if (!rec.morningCheck) {
+                        rec.morningCheck = { sleptWell, ts: new Date().toISOString() };
+                        gm.saveRecord(recordKey, rec);
+                    }
+                    if (typeof gm.recalcAndShowScore === 'function') {
+                        gm.recalcAndShowScore(recordKey);
+                    }
+                    saved = true;
+                } catch (_) { /* fall through to _saveQuickAnswer */ }
+            }
+            if (!saved) {
+                saved = this._saveQuickAnswer(recordKey, 'morning_check', { sleptWell });
+            }
+            // Haptic feedback – distinct pattern per answer
+            try {
+                if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                    navigator.vibrate(sleptWell ? [40, 30, 60] : [60, 30, 40]);
+                }
+            } catch (_) {}
             if (saved) return;
             // Fallback: show in-app morning modal or open quick-answer page.
             if (typeof window._gameShowMorning === 'function') {
@@ -263,7 +286,7 @@ const GameNotifier = {
             }
             window.location.href = this._buildQuickAnswerUrl('morning_check', {
                 date: recordKey,
-                auto: actionId === 'sleep_yes' ? 'morning_yes' : 'morning_no'
+                auto: sleptWell ? 'morning_yes' : 'morning_no'
             });
             return;
         }

@@ -259,7 +259,7 @@ self.addEventListener('notificationclick', (event) => {
         // Reuse an existing quick-answer window if one is already open.
         const qaClient = clientList.find(c => c.url.includes('/quick-answer.html'));
         if (qaClient && 'focus' in qaClient) {
-          return qaClient.focus().then(() => qaClient.navigate(targetUrl));
+          return qaClient.focus().then(() => qaClient.navigate(targetUrl)).catch(() => clients.openWindow ? clients.openWindow(targetUrl) : undefined);
         }
 
         // No suitable window open – open quick-answer.html in a new window.
