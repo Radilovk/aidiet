@@ -1,5 +1,24 @@
 # Log Tasks
 
+## 2026-05-20 — Мигновено зареждане на пълни табове в APK NutriPlan
+
+**Задача:** Обясни защо има забавяне при превключване между табовете на APK NutriPlan въпреки предишния keep-alive метод и направи табовете да се усещат мигновени, красиви и UX/UI впечатляващи.
+
+**Причина за забавянето:**
+- `app.html` имаше keep-alive shell, но реално само `plan.html` се зареждаше веднага.
+- `guidelines.html` и `profile.html` се зареждаха чак след `plan` load + допълнителни `800ms/1600ms`, а `home` изобщо се зареждаше чак при първо натискане.
+- Tab контейнерите използваха `display:none`, което пази iframe-а жив, но може да остави първото показване да плаща layout/paint цена в Android WebView.
+- При първо натискане на незареден таб потребителят виждаше празно/бавна поява, защото `src` се задаваше в момента на превключването.
+
+**Направено:**
+- Всички основни iframe табове (`plan`, `guidelines`, `profile`, `home`) вече имат `src` още в HTML и се зареждат eagerly.
+- Премахнат е delayed background preload механизмът от `app.html`.
+- `display:none/display:block` е заменено с keep-alive скриване чрез `visibility`, `opacity`, `pointer-events`, `transform` и compositor-friendly transition.
+- Добавен е лек визуален polish на активния tab/pill и плавен micro-transition без да блокира показването.
+- Service worker cache версията е bump-ната от `nutriplan-v9` на `nutriplan-v10`, за да се достави новият shell.
+
+**Очакван резултат:** След отваряне на shell-а пълните табове вече се зареждат предварително и остават живи; превключването е CSS/compositor операция вместо първо зареждане на iframe при натискане.
+
 ## 2026-05-20 — SPA Keep-Alive архитектура (код промени)
 
 **Задача:** Конвертирай MPA в Single-Page Shell с iframe keep-alive за <50ms превключване на табове.
