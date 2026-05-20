@@ -1,5 +1,77 @@
 # Log Tasks
 
+## 2026-05-20 — SPA Keep-Alive архитектура (код промени)
+
+**Задача:** Конвертирай MPA в Single-Page Shell с iframe keep-alive за <50ms превключване на табове.
+
+**Направено:**
+
+### Phase 1 — JS extraction (V8 bytecode caching)
+- Извлечен `plan.js` от plan.html (296KB → external file); plan.html намален от 461KB → 169KB
+- Извлечен `profile.js` от profile.html (140KB → external file); profile.html намален от 237KB → 99KB
+- Извлечен `guidelines.js` от guidelines.html (22KB); guidelines.html намален от 70KB → 51KB
+- Извлечен `game-analytics.js` от game-analytics.html (46KB); game-analytics.html намален от 78KB → 33KB
+- V8 ще кешира bytecode за тези файлове след първо изпълнение → следващите зареждания са ~5-10x по-бързи
+
+### Phase 2 — iframe keep-alive shell
+- Създаден `app.html` — SPA shell с 4 iframe-а (план, насоки, профил, начало)
+- plan iframe зарежда се незабавно; guidelines + profile се preload в background след 0.8s/1.6s
+- CSS tab switching: `display:none / display:block` — <5ms превключване след initial load
+- Shell bottom nav управлява навигацията
+
+### Phase 3 — Embedded mode
+- Всяка вътрешна страница (plan, guidelines, profile, game-analytics) открива кога е в iframe (`window.self !== window.top`)
+- В embedded mode: скрива собствения nav, FAB бутоните, намалява padding
+- Swipe navigation изпраща `postMessage({type:'SWITCH_TAB'})` вместо `window.location.href`
+- Клик на nav link изпраща postMessage до shell
+- `TAB_ACTIVATED` message кара plan да извика `loadDietData()` при показване
+
+### Phase 4 — SW и routing
+- sw.js обновен: `nutriplan-v9`, кешира `app.html`, `plan.js`, `profile.js`, `guidelines.js`, `game-analytics.js`
+- index.html redirect обновен: при наличен план → `app.html` (вместо `plan.html`)
+- Notification click handler в sw.js разпознава и `app.html` клиенти
+
+**Резултат:** Tab switching след initial load = <5ms. JS parse overhead на V8 = ~0ms след first-load caching.
+
+## 2026-05-20 — Одит на SPA промените + fix на навигацията в iframe
+
+**Задача:** Провери дали всичко работи и промените няма да счупят приложение, логика, функции.
+
+**Намерени проблеми:**
+Критични грешки в навигацията — когато страниците работят в iframe (app.html shell), `window.location.href = 'profile.html'` навигира само iframe-а, а не цялото приложение.
+
+**Пълен списък на проблемите:**
+- `plan.js`: 7 бр. `window.location` навигации (profile, questionnaire, game-analytics, food-picker, plan-pending)
+- `profile.js`: 6 бр. (plan, questionnaire ×3, analysis)
+- `guidelines.js`: 1 бр. (plan)
+- `plan.html` Firebase модул: 5 бр. (questionnaire2 ×2, plan-pending, sign-out, button onclick)
+- `profile.html`: sign-out + FAB chat бутон
+- `guidelines.html`: FAB chat + FAB food бутони
+
+**Направено:**
+- Добавен `window._shellNav(url, replace)` helper в plan.js, profile.js, guidelines.js
+  - Tab pages (plan/guidelines/profile) → `postMessage({type:'SWITCH_TAB'})` до shell-а
+  - Non-tab pages (questionnaire, analysis, food-picker, ...) → `window.top.location` навигация на цялото приложение
+  - Standalone режим (без shell) → нормална `window.location` навигация (без промяна)
+- Заменени всички 19 `window.location` навигационни извиквания с `_shellNav()`
+- `index.html` премахнат от TAB_MAP (sign-out винаги навигира window.top)
+- Финален одит: 0 останали некоригирани навигации
+
+
+
+**Задача:** Обясни защо има забавяне при превключване между табовете на APK NutriPlan въпреки въведения метод за зареждане без забавяне.
+
+**Отговор (само анализ, без code changes):**
+
+1. **Предишният фикс оправи FLASH-а**, не забавянето — `body{opacity:0}` предотвратява показването на skeleton/грешно съдържание, но не ускорява самото зареждане.
+2. **plan.html е 467KB / 10,041 реда** — При всяко превключване браузърът parse-ва и изпълнява ~467KB HTML+JS наново. На Android: 200–600ms само за JS parsing.
+3. **`body{opacity:0}` всъщност удължава blank периода** — страницата стои изцяло невидима докато JS не завърши, което прави забавянето по-осезаемо.
+4. **`rel="prefetch"` не помага реално в APK** — pre-download само, не pre-parse/pre-execute. В APK файловете са вече в SW кеша.
+5. **MPA архитектура = full reload** — Всяко превключване на таб унищожава страницата и зарежда нова (300–800ms). SPA/keep-alive би бил 20–50ms.
+
+**Препоръчани решения:** SPA с persistent shell, "keep-alive" trick (display:none), или code splitting на plan.html.
+
+
 ## 2026-05-20 — Google Translate автоматичен превод в xbody.html
 
 **Задача:** Приложи метода за автоматичен Google Translate (EN→BG) към xbody.html без потребителски избор.

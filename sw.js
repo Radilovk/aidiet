@@ -2,19 +2,25 @@
 // Configure base path - use '/' for custom domain (biocode.website) or '/aidiet' for GitHub Pages
 const BASE_PATH = '';
 
-const CACHE_NAME = 'nutriplan-v8';
+const CACHE_NAME = 'nutriplan-v9';
 const DEFAULT_ICON = `${BASE_PATH}/icon-192x192.png`;
 const DEFAULT_BADGE = `${BASE_PATH}/icon-192x192.png`;
 const DEFAULT_TITLE = 'NutriPlan';
 const DEFAULT_BODY = 'Ново напомняне от NutriPlan';
 const STATIC_CACHE = [
+  `${BASE_PATH}/app.html`,
   `${BASE_PATH}/index.html`,
   `${BASE_PATH}/questionnaire.html`,
   `${BASE_PATH}/questionnaire2.html`,
   `${BASE_PATH}/plan.html`,
+  `${BASE_PATH}/plan.js`,
   `${BASE_PATH}/quick-answer.html`,
   `${BASE_PATH}/profile.html`,
+  `${BASE_PATH}/profile.js`,
   `${BASE_PATH}/guidelines.html`,
+  `${BASE_PATH}/guidelines.js`,
+  `${BASE_PATH}/game-analytics.html`,
+  `${BASE_PATH}/game-analytics.js`,
   `${BASE_PATH}/analysis.html`,
   `${BASE_PATH}/admin.html`,
   `${BASE_PATH}/design-system.css`,
@@ -243,9 +249,11 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
-        // If plan.html is already open, post a message so it shows an in-app
+        // If app.html (shell) or plan.html is open, post a message so it shows an in-app
         // modal without any page navigation (no full app reload, no index.html).
-        const planClient = clientList.find(c => c.url.includes('/plan.html'));
+        const planClient = clientList.find(c =>
+            c.url.includes('/app.html') || c.url.includes('/plan.html')
+        );
         if (planClient && 'postMessage' in planClient) {
           planClient.postMessage({
             type: 'NOTIFICATION_ACTION',

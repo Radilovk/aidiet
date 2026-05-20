@@ -73,7 +73,8 @@
         if (planSource === 'questionnaire2' || pendingClientId) {
             planTarget = 'plan-pending.html';
         } else {
-            planTarget = 'plan.html';
+            // Use app.html SPA shell for instant keep-alive tab switching
+            planTarget = 'app.html';
         }
         
         // Redirect immediately before any UI renders

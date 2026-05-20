@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="description" content="NutriPlan — Твоята персонална здравна платформа. AI анализ, 7-дневен хранителен план, психология, добавки и активности.">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#F0FDFA" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="NutriPlan">
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="./icon-512x512.png">
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" sizes="180x180" href="./icon-192x192.png">
+    <title>NutriPlan</title>
+    <!-- Design System -->
+    <link rel="stylesheet" href="./design-system.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Inline theme init: apply saved theme before first paint -->
+    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F0FDFA';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
+    <style>
+        :root {
+            --nav-height: 60px;
+            --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+            --shell-nav-height: calc(var(--nav-height) + var(--safe-area-inset-bottom));
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: var(--ds-primary-50, #F0FDFA);
+        }
+
+        [data-theme="dark"] body {
+            background: #0A1A1A;
+        }
+
+        /* ── Tab frame containers ── */
+        .tab-frame {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: var(--shell-nav-height);
+            display: none;
+            overflow: hidden;
+        }
+
+        .tab-frame.active {
+            display: block;
+        }
+
+        .tab-frame iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+            background: transparent;
+        }
+
+        /* ── Shell bottom navigation ── */
+        .shell-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            height: var(--shell-nav-height);
+            padding: 0 8px var(--safe-area-inset-bottom);
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border-top: 1px solid rgba(13, 148, 136, 0.1);
+            box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.06), 0 -1px 0 rgba(13, 148, 136, 0.06);
+            transform: translateZ(0);
+        }
+
+        [data-theme="dark"] .shell-nav {
+            background: rgba(8, 22, 22, 0.96);
+            border-top: none;
+            box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.5), 0 -1px 0 rgba(45, 212, 191, 0.08);
+        }
+
+        .shell-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            padding: 7px 18px;
+            min-width: 64px;
+            border-radius: 16px;
+            border: none;
+            background: transparent;
+            color: #6b7280;
+            font-family: inherit;
+            font-size: 10px;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            transition: color 0.2s ease, transform 0.15s ease, background-color 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .shell-nav-item i {
+            font-size: 20px;
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .shell-nav-item.active {
+            color: #0D9488;
+            background: rgba(13, 148, 136, 0.1);
+        }
+
+        [data-theme="dark"] .shell-nav-item.active {
+            background: rgba(45, 212, 191, 0.15);
+            color: #2DD4BF;
+        }
+
+        .shell-nav-item.active i { transform: scale(1.1); }
+        .shell-nav-item:active { transform: scale(0.92); }
+
+        .shell-nav-item:hover:not(.active) {
+            background: rgba(13, 148, 136, 0.05);
+        }
+
+        /* Loading placeholder while first iframe loads */
+        .tab-loader {
+            position: fixed;
+            inset: 0 0 var(--shell-nav-height) 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--ds-primary-50, #F0FDFA);
+            z-index: 1;
+            transition: opacity 0.2s;
+        }
+
+        [data-theme="dark"] .tab-loader {
+            background: #0A1A1A;
+        }
+
+        .tab-loader-spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid #0D9488;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: _shell_spin 0.8s linear infinite;
+        }
+
+        @keyframes _shell_spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <!-- Loading indicator (hidden once first iframe loads) -->
+    <div class="tab-loader" id="tabLoader">
+        <div class="tab-loader-spinner"></div>
+    </div>
+
+    <!-- Tab frame: Plan (loaded eagerly) -->
+    <div class="tab-frame active" id="frame-plan">
+        <iframe id="iframe-plan" src="./plan.html" title="Моят План" allowfullscreen></iframe>
+    </div>
+
+    <!-- Tab frame: Guidelines (lazy loaded on first visit) -->
+    <div class="tab-frame" id="frame-guidelines">
+        <iframe id="iframe-guidelines" title="Насоки" allowfullscreen></iframe>
+    </div>
+
+    <!-- Tab frame: Profile (lazy loaded on first visit) -->
+    <div class="tab-frame" id="frame-profile">
+        <iframe id="iframe-profile" title="Профил" allowfullscreen></iframe>
+    </div>
+
+    <!-- Tab frame: Home / Index (lazy loaded on first visit) -->
+    <div class="tab-frame" id="frame-home">
+        <iframe id="iframe-home" title="Начало" allowfullscreen></iframe>
+    </div>
+
+    <!-- Shell bottom navigation (always on top, managed by shell) -->
+    <nav class="shell-nav" id="shellNav" role="navigation" aria-label="Основна навигация">
+        <button class="shell-nav-item" data-tab="home" onclick="shellSwitchTab('home')" aria-label="Начало">
+            <i class="fas fa-home" aria-hidden="true"></i>
+            <span>Начало</span>
+        </button>
+        <button class="shell-nav-item active" data-tab="plan" onclick="shellSwitchTab('plan')" aria-label="Моят План">
+            <i class="fas fa-utensils" aria-hidden="true"></i>
+            <span>Моят План</span>
+        </button>
+        <button class="shell-nav-item" data-tab="guidelines" onclick="shellSwitchTab('guidelines')" aria-label="Насоки">
+            <i class="fas fa-compass" aria-hidden="true"></i>
+            <span>Насоки</span>
+        </button>
+        <button class="shell-nav-item" data-tab="profile" onclick="shellSwitchTab('profile')" aria-label="Профил">
+            <i class="fas fa-user" aria-hidden="true"></i>
+            <span>Профил</span>
+        </button>
+    </nav>
+
+    <script>
+    (function() {
+        'use strict';
+
+        // Map tab name → iframe element src (lazy loaded)
+        var TAB_SRCS = {
+            plan:       './plan.html',
+            guidelines: './guidelines.html',
+            profile:    './profile.html',
+            home:       './index.html?stay=1'
+        };
+
+        var _currentTab = 'plan';
+        var _loadedTabs = { plan: true }; // plan is eagerly loaded
+
+        // Hide loader once plan iframe fires load
+        var planIframe = document.getElementById('iframe-plan');
+        var loader = document.getElementById('tabLoader');
+
+        planIframe.addEventListener('load', function() {
+            if (loader) {
+                loader.style.opacity = '0';
+                setTimeout(function() { if (loader) loader.remove(); }, 250);
+            }
+        });
+
+        // Preload guidelines and profile in the background after plan loads
+        planIframe.addEventListener('load', function preloadBg() {
+            planIframe.removeEventListener('load', preloadBg);
+            setTimeout(function() {
+                var guideIframe = document.getElementById('iframe-guidelines');
+                if (!_loadedTabs.guidelines && guideIframe && !guideIframe.src) {
+                    guideIframe.src = TAB_SRCS.guidelines;
+                    _loadedTabs.guidelines = true;
+                }
+            }, 800);
+            setTimeout(function() {
+                var profileIframe = document.getElementById('iframe-profile');
+                if (!_loadedTabs.profile && profileIframe && !profileIframe.src) {
+                    profileIframe.src = TAB_SRCS.profile;
+                    _loadedTabs.profile = true;
+                }
+            }, 1600);
+        });
+
+        // Public switch function (also called by shell nav buttons)
+        window.shellSwitchTab = function(tab) {
+            if (tab === _currentTab) return;
+
+            // Show/hide frames
+            document.querySelectorAll('.tab-frame').forEach(function(f) {
+                f.classList.remove('active');
+            });
+            var targetFrame = document.getElementById('frame-' + tab);
+            if (!targetFrame) return;
+            targetFrame.classList.add('active');
+
+            // Lazy-load iframe src on first visit
+            var iframe = document.getElementById('iframe-' + tab);
+            if (iframe && !_loadedTabs[tab]) {
+                iframe.src = TAB_SRCS[tab];
+                _loadedTabs[tab] = true;
+            }
+
+            // Update nav active state
+            document.querySelectorAll('.shell-nav-item').forEach(function(btn) {
+                btn.classList.toggle('active', btn.getAttribute('data-tab') === tab);
+            });
+
+            _currentTab = tab;
+
+            // Notify the newly-active iframe that it was shown (for refresh-on-focus)
+            if (iframe && iframe.contentWindow) {
+                try { iframe.contentWindow.postMessage({ type: 'TAB_ACTIVATED' }, '*'); } catch(e) {}
+            }
+        };
+
+        // Listen for tab-switch requests from inner pages (via postMessage)
+        window.addEventListener('message', function(e) {
+            if (!e.data || e.data.type !== 'SWITCH_TAB') return;
+            var tab = e.data.tab;
+            if (tab && TAB_SRCS[tab]) {
+                window.shellSwitchTab(tab);
+            }
+        });
+
+        // Swipe gesture on shell level (for when user swipes on the nav bar area)
+        var _swipeStartX = 0;
+        var _swipeStartY = 0;
+        var TAB_ORDER = ['home', 'plan', 'guidelines', 'profile'];
+        document.getElementById('shellNav').addEventListener('touchstart', function(e) {
+            _swipeStartX = e.changedTouches[0].clientX;
+            _swipeStartY = e.changedTouches[0].clientY;
+        }, { passive: true });
+        document.getElementById('shellNav').addEventListener('touchend', function(e) {
+            var dx = e.changedTouches[0].clientX - _swipeStartX;
+            var dy = e.changedTouches[0].clientY - _swipeStartY;
+            if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy)) return;
+            var idx = TAB_ORDER.indexOf(_currentTab);
+            if (dx < 0 && idx < TAB_ORDER.length - 1) window.shellSwitchTab(TAB_ORDER[idx + 1]);
+            else if (dx > 0 && idx > 0) window.shellSwitchTab(TAB_ORDER[idx - 1]);
+        }, { passive: true });
+
+        // Handle notification clicks that target plan.html when shell is open
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.addEventListener('message', function(e) {
+                var msg = e.data;
+                if (!msg) return;
+                // Forward NOTIFICATION_ACTION to plan iframe
+                if (msg.type === 'NOTIFICATION_ACTION') {
+                    window.shellSwitchTab('plan');
+                    var planIf = document.getElementById('iframe-plan');
+                    if (planIf && planIf.contentWindow) {
+                        setTimeout(function() {
+                            try { planIf.contentWindow.postMessage(msg, '*'); } catch(e) {}
+                        }, 100);
+                    }
+                }
+            });
+        }
+    })();
+    </script>
+</body>
+</html>
