@@ -130,44 +130,8 @@
             transform: scale(0.90);
         }
 
-        /* ── Auto-translation badge ── */
-        #translate-badge {
-            position: fixed;
-            /* Mirror the back-btn vertical position; sit at the right edge */
-            top: calc(constant(safe-area-inset-top) + 10px);
-            top: calc(env(safe-area-inset-top, 0px) + 10px);
-            right: 12px;
-            z-index: 500;
-            display: none; /* JS sets display:flex when translation is active */
-            align-items: center;
-            gap: 5px;
-            padding: 0 11px;
-            height: 32px;
-            background: rgba(26, 115, 232, 0.90);
-            color: #fff;
-            border: none;
-            border-radius: 16px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            font-size: 12px;
-            font-weight: 500;
-            white-space: nowrap;
-            cursor: pointer;
-            -webkit-tap-highlight-color: transparent;
-            touch-action: manipulation;
-            user-select: none;
-            -webkit-user-select: none;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            box-shadow: 0 1px 6px rgba(0, 0, 0, 0.18);
-            transition: opacity 0.2s;
-        }
-        #translate-badge:active { opacity: 0.70; transform: scale(0.95); }
-
         /* ══════════════════════════════════════════════════════
            MOBILE BOTTOM TOOLBAR  (≤ 599 px wide = phone)
-           The back-btn and translate-badge stay in the DOM but
-           are hidden on phones; instead a thumb-friendly bottom
-           bar with the same controls is shown.
            ══════════════════════════════════════════════════════ */
         #mobile-toolbar {
             display: none; /* shown only in the @media block below */
@@ -175,8 +139,7 @@
 
         @media (max-width: 599px) {
             /* Hide the floating top-corner buttons on phones */
-            #back-btn,
-            #translate-badge { display: none !important; }
+            #back-btn { display: none !important; }
 
             /* Shrink scroll container so content is never hidden
                behind the toolbar (56 px bar + safe-area-bottom) */
@@ -236,35 +199,6 @@
                 pointer-events: auto;
             }
             #mob-back-btn:active { transform: scale(0.88); }
-
-            /* Spacer pushes translate button to the right */
-            #mob-toolbar-spacer { flex: 1; }
-
-            /* Translate toggle pill in toolbar */
-            #mob-translate-btn {
-                flex: 0 0 auto;
-                display: none; /* JS sets flex when translation is relevant */
-                align-items: center;
-                gap: 6px;
-                padding: 0 16px;
-                height: 38px;
-                background: rgba(26, 115, 232, 0.90);
-                color: #fff;
-                border: none;
-                border-radius: 20px;
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-                font-size: 13px;
-                font-weight: 600;
-                white-space: nowrap;
-                cursor: pointer;
-                -webkit-tap-highlight-color: transparent;
-                touch-action: manipulation;
-                user-select: none;
-                -webkit-user-select: none;
-                box-shadow: 0 2px 8px rgba(26, 115, 232, 0.35);
-                transition: opacity 0.2s, transform 0.12s;
-            }
-            #mob-translate-btn:active { opacity: 0.75; transform: scale(0.95); }
         }
 
         /* ── PWA Install Modal ── */
@@ -430,25 +364,11 @@
         <i class="fas fa-chevron-left"></i>
     </button>
 
-    <!-- Auto-translation pill badge (top-right). JS shows/hides it and
-         updates the label.  Tapping it toggles translation on/off.
-         On phones this element is hidden; the mobile toolbar below is used. -->
-    <button id="translate-badge" aria-live="polite" tabindex="0">
-        <span>🌐</span>
-        <span id="translate-badge-text"></span>
-    </button>
-
-    <!-- Mobile bottom toolbar (phones ≤ 599 px). Contains the same Back and
-         Translate controls but positioned at the thumb zone.  Visibility is
-         controlled by the same JS that drives #back-btn / #translate-badge. -->
+    <!-- Mobile bottom toolbar (phones ≤ 599 px). Contains the Back control
+         positioned at the thumb zone. -->
     <div id="mobile-toolbar" role="toolbar" aria-label="Навигация">
         <button id="mob-back-btn" aria-label="Назад">
             <i class="fas fa-chevron-left"></i>
-        </button>
-        <span id="mob-toolbar-spacer"></span>
-        <button id="mob-translate-btn" aria-live="polite" tabindex="0">
-            <span id="mob-translate-icon">🌐</span>
-            <span id="mob-translate-text"></span>
         </button>
     </div>
 
@@ -489,143 +409,10 @@
             setTimeout(function () { sc.scrollTop = saved; }, WEBKIT_COMPOSITOR_RECOVERY_DELAY_MS);
         });
 
-        /* ── Auto-translation via Cloudflare Worker proxy ─────────────────────
-           The worker fetches the Acuity page server-side, translates all visible
-           text with the Gemini AI, caches the result in KV permanently, and
-           returns the translated HTML from the workers.dev origin.
-           
-           The translate preference is persisted in localStorage so the choice
-           is remembered across visits. */
+        /* ── Load Acuity iframe ── */
         (function () {
-            var ORIGINAL_SRC  = 'https://app.acuityscheduling.com/schedule.php?owner=13943721&appointmentType=16859189';
-            var WORKER_ORIGIN = 'https://aidiet.radilov-k.workers.dev';
-
-            /* 2-letter ISO language code with resilient fallbacks.
-               Some embedded WebViews report navigator.language = en-US even when
-               the page is Bulgarian, which prevented any translation request. */
-            function getLang() {
-                var qsTl = '';
-                try {
-                    qsTl = (new URLSearchParams(window.location.search).get('tl') || '').toLowerCase();
-                } catch (_) {}
-                if (/^[a-z]{2,5}$/.test(qsTl)) return qsTl.split('-')[0];
-
-                var raw = (navigator.languages && navigator.languages[0]) ||
-                           navigator.language || '';
-                var navLang = raw ? raw.split('-')[0].toLowerCase() : '';
-
-                var pageLangRaw = (document.documentElement && document.documentElement.lang) || '';
-                var pageLang = pageLangRaw ? pageLangRaw.split('-')[0].toLowerCase() : '';
-
-                if (navLang && navLang !== 'en') return navLang;
-                if (pageLang && pageLang !== 'en') return pageLang;
-                return navLang || pageLang || 'en';
-            }
-
-            /* Worker-side translation proxy URL.
-               Use the canonical Acuity path on the worker origin so the embedded app sees
-               /schedule.php?owner=...&appointmentType=... from the first byte. */
-            function toTranslateUrl(tl) {
-                return WORKER_ORIGIN + '/schedule.php?owner=13943721&appointmentType=16859189&tl=' + encodeURIComponent(tl);
-            }
-
-            var tl       = getLang();
-            var frame    = document.querySelector('iframe');
-            var badge    = document.getElementById('translate-badge');
-            var badgeTxt = document.getElementById('translate-badge-text');
-            var mobBtn   = document.getElementById('mob-translate-btn');
-            var mobTxt   = document.getElementById('mob-translate-text');
-            if (!frame) return;
-
-            var translatedUrl   = (tl && tl !== 'en') ? toTranslateUrl(tl) : ORIGINAL_SRC;
-            var needTranslation = (tl && tl !== 'en');
-
-            /* Restore saved preference; default ON when browser language ≠ English */
-            var saved = localStorage.getItem('xbody_translate_on');
-            var isOn  = saved !== null ? saved === '1' : needTranslation;
-
-            /* Friendly language display names */
-            var LANG_NAMES = {
-                bg:'Български', ru:'Русский', de:'Deutsch',   fr:'Français',
-                es:'Español',   it:'Italiano', tr:'Türkçe',   uk:'Українська',
-                ar:'عربي',       zh:'中文',      ja:'日本語',    ko:'한국어',
-                pl:'Polski',    nl:'Nederlands', sv:'Svenska', cs:'Čeština',
-                ro:'Română',    el:'Ελληνικά',  fi:'Suomi',   hu:'Magyar',
-                sk:'Slovenčina',hr:'Hrvatski',   sr:'Srpски',  da:'Dansk',
-                no:'Norsk',     pt:'Português'
-            };
-
-            /* Apply a URL to the iframe and keep the reset-src in sync */
-            function applyUrl(url) {
-                frame.src = url;
-                window._xbodyResetSrc = url;
-            }
-
-            /* Sync badge visual state (top badge + mobile toolbar button) */
-            function syncBadge() {
-                if (!badge) return;
-
-                if (!needTranslation) {
-                    badge.style.display = 'none';
-                    if (mobBtn) mobBtn.style.display = 'none';
-                    return;
-                }
-
-                var name = LANG_NAMES[tl] || tl.toUpperCase();
-
-                /* ── Top badge ── */
-                if (isOn) {
-                    badgeTxt.textContent = name + ' ✕';
-                    badge.setAttribute('aria-label', 'Преводът е активен (' + name + '). Натисни за изключване.');
-                    badge.style.opacity = '1';
-                } else {
-                    badgeTxt.textContent = '🌐 Вкл. превод';
-                    badge.setAttribute('aria-label', 'Преводът е изключен. Натисни за включване.');
-                    badge.style.opacity = '0.60';
-                }
-                badge.style.display = 'flex';
-
-                /* ── Mobile toolbar button (same state) ── */
-                if (mobBtn && mobTxt) {
-                    if (isOn) {
-                        mobTxt.textContent = name + ' ✕';
-                        mobBtn.setAttribute('aria-label', 'Преводът е активен (' + name + '). Натисни за изключване.');
-                        mobBtn.style.opacity = '1';
-                    } else {
-                        mobTxt.textContent = 'Вкл. превод';
-                        mobBtn.setAttribute('aria-label', 'Преводът е изключен. Натисни за включване.');
-                        mobBtn.style.opacity = '0.60';
-                    }
-                    mobBtn.style.display = 'flex';
-                }
-            }
-
-            /* Toggle translation on/off and persist the choice */
-            function toggle() {
-                isOn = !isOn;
-                localStorage.setItem('xbody_translate_on', isOn ? '1' : '0');
-                applyUrl(isOn ? translatedUrl : ORIGINAL_SRC);
-                syncBadge();
-            }
-
-            /* Initial load */
-            applyUrl(isOn ? translatedUrl : ORIGINAL_SRC);
-            syncBadge();
-
-            if (badge && needTranslation) {
-                badge.addEventListener('click', toggle);
-                badge.addEventListener('keydown', function (e) {
-                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
-                });
-            }
-
-            /* Toggle on mobile toolbar button tap */
-            if (mobBtn && needTranslation) {
-                mobBtn.addEventListener('click', toggle);
-                mobBtn.addEventListener('keydown', function (e) {
-                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
-                });
-            }
+            var frame = document.querySelector('iframe');
+            if (frame) frame.src = 'https://app.acuityscheduling.com/schedule.php?owner=13943721&appointmentType=16859189';
         })();
 
         /* ── PWA Install Logic ── */
@@ -865,11 +652,8 @@
                 try {
                     frame.contentWindow.history.back();
                 } catch (_) {
-                    // Cross-origin history access denied – hard-reset the frame.
-                    // Use _xbodyResetSrc (kept in sync by the translation toggle)
-                    // so the reset always lands on whatever URL is currently active
-                    // (translated or original) rather than the init-time snapshot.
-                    frame.src = window._xbodyResetSrc || originalSrc;
+                    // Cross-origin history access denied – hard-reset the frame to the original src.
+                    frame.src = originalSrc;
                     navDepth    = 0;
                     msgNavDepth = 0;
                     homeHeight  = null; // re-baseline on next setHeight message
