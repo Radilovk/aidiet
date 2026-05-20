@@ -332,11 +332,7 @@
             setTimeout(function () { sc.scrollTop = saved; }, WEBKIT_COMPOSITOR_RECOVERY_DELAY_MS);
         });
 
-        /* ── Load Acuity iframe via Google Translate proxy ──
-           Using translate.goog proxy serves the Acuity page through Google's
-           servers with automatic EN→BG translation injected, bypassing the
-           Same-Origin restriction that prevents Google Translate from reaching
-           inside a cross-origin iframe directly. */
+        /* ── Load Acuity iframe ── */
         (function () {
             var frame = document.querySelector('iframe');
             if (frame) frame.src = 'https://xbody-as-me.translate.goog/schedule/a68c7090/appointment/34691465/calendar/4715375?appointmentTypeIds%5B%5D=34691465&_x_tr_sl=auto&_x_tr_tl=bg&_x_tr_hl=bg&_x_tr_pto=wapp';
@@ -592,6 +588,33 @@
 
             btn.addEventListener('click', doBack);
         })();
+    </script>
+
+    <!-- Google Translate: автоматичен превод от английски към български -->
+    <div id="google_translate_element" style="display:none;"></div>
+
+    <script type="text/javascript">
+        function googleTranslateElementInit() {
+            new google.translate.TranslateElement({
+                pageLanguage: 'en',
+                includedLanguages: 'bg',
+                layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+                autoDisplay: false
+            }, 'google_translate_element');
+
+            // Автоматично задействане на превода веднага след зареждане
+            var checkInterval = setInterval(function () {
+                var select = document.querySelector('select.goog-te-combo');
+                if (select) {
+                    select.value = 'bg';
+                    select.dispatchEvent(new Event('change'));
+                    clearInterval(checkInterval);
+                }
+            }, 100);
+        }
+    </script>
+    <script type="text/javascript"
+            src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit">
     </script>
 </body>
 </html>
