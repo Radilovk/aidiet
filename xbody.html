@@ -130,76 +130,7 @@
             transform: scale(0.90);
         }
 
-        /* ══════════════════════════════════════════════════════
-           MOBILE BOTTOM TOOLBAR  (≤ 599 px wide = phone)
-           ══════════════════════════════════════════════════════ */
-        #mobile-toolbar {
-            display: none; /* shown only in the @media block below */
-        }
 
-        @media (max-width: 599px) {
-            /* Hide the floating top-corner buttons on phones */
-            #back-btn { display: none !important; }
-
-            /* Shrink scroll container so content is never hidden
-               behind the toolbar (56 px bar + safe-area-bottom) */
-            #acuity-scroll-container {
-                bottom: calc(56px + constant(safe-area-inset-bottom));
-                bottom: calc(56px + env(safe-area-inset-bottom, 0px));
-            }
-
-            /* ── Bottom toolbar ── */
-            #mobile-toolbar {
-                display: flex;
-                align-items: center;
-                position: fixed;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                height: calc(56px + constant(safe-area-inset-bottom));
-                height: calc(56px + env(safe-area-inset-bottom, 0px));
-                padding-bottom: constant(safe-area-inset-bottom);
-                padding-bottom: env(safe-area-inset-bottom, 0px);
-                padding-left: 12px;
-                padding-right: 12px;
-                background: rgba(255, 255, 255, 0.82);
-                backdrop-filter: blur(18px) saturate(1.6);
-                -webkit-backdrop-filter: blur(18px) saturate(1.6);
-                border-top: 1px solid rgba(0, 0, 0, 0.08);
-                box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.06);
-                z-index: 500;
-                box-sizing: border-box;
-                gap: 8px;
-            }
-
-            /* Back button in toolbar — circle */
-            #mob-back-btn {
-                flex: 0 0 44px;
-                width: 44px;
-                height: 44px;
-                padding: 0;
-                border: none;
-                border-radius: 50%;
-                background: rgba(55, 65, 81, 0.10);
-                color: #374151;
-                font-size: 18px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                cursor: pointer;
-                -webkit-tap-highlight-color: transparent;
-                touch-action: manipulation;
-                transition: background 0.15s, transform 0.12s;
-                /* hidden until JS marks it visible */
-                opacity: 0;
-                pointer-events: none;
-            }
-            #mob-back-btn.visible {
-                opacity: 1;
-                pointer-events: auto;
-            }
-            #mob-back-btn:active { transform: scale(0.88); }
-        }
 
         /* ── PWA Install Modal ── */
         .pwa-modal-overlay {
@@ -363,14 +294,6 @@
     <button id="back-btn" aria-label="Назад">
         <i class="fas fa-chevron-left"></i>
     </button>
-
-    <!-- Mobile bottom toolbar (phones ≤ 599 px). Contains the Back control
-         positioned at the thumb zone. -->
-    <div id="mobile-toolbar" role="toolbar" aria-label="Навигация">
-        <button id="mob-back-btn" aria-label="Назад">
-            <i class="fas fa-chevron-left"></i>
-        </button>
-    </div>
 
     <!-- Dedicated scroll container – see CSS comments above -->
     <div id="acuity-scroll-container">
@@ -554,9 +477,8 @@
 
         /* ── Back navigation button ── */
         (function () {
-            const btn        = document.getElementById('back-btn');
-            const mobBackBtn = document.getElementById('mob-back-btn');
-            const frame      = document.querySelector('iframe');
+            const btn   = document.getElementById('back-btn');
+            const frame = document.querySelector('iframe');
             if (!btn || !frame) return;
 
             // Store the original src so we can hard-reset the iframe if needed.
@@ -566,8 +488,6 @@
 
             function setVisible(v) {
                 btn.classList.toggle('visible', !!v);
-                /* Mirror state on the mobile toolbar back button */
-                if (mobBackBtn) mobBackBtn.classList.toggle('visible', !!v);
             }
 
             /* ── Strategy A: parent-window history ──────────────────────────
@@ -641,7 +561,7 @@
                 if (navDepth === 0) setVisible(msgNavDepth > 0);
             });
 
-            /* ── Back button click (top button + mobile toolbar button share logic) ──
+            /* ── Back button click ──
                Prefer parent history (Strategy A); fall back to iframe history;
                last resort: reload the iframe to the original src. */
             function doBack() {
@@ -667,7 +587,6 @@
             }
 
             btn.addEventListener('click', doBack);
-            if (mobBackBtn) mobBackBtn.addEventListener('click', doBack);
         })();
     </script>
 </body>
