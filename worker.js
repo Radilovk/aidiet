@@ -7766,7 +7766,7 @@ async function callClaude(env, prompt, modelName = 'claude-3-5-sonnet-20241022',
 /**
  * Call Gemini API with automatic retry logic for transient errors
  */
-async function callGemini(env, prompt, modelName = 'gemini-2.0-flash', maxTokens = null, jsonMode = false, thinkingBudget = undefined, temperature = undefined, topP = undefined, topK = undefined) {
+async function callGemini(env, prompt, modelName = 'gemini-2.5-flash', maxTokens = null, jsonMode = false, thinkingBudget = undefined, temperature = undefined, topP = undefined, topK = undefined) {
   try {
     return await retryWithBackoff(async () => {
       const requestBody = {
@@ -7861,7 +7861,7 @@ async function callGemini(env, prompt, modelName = 'gemini-2.0-flash', maxTokens
 /**
  * Call AI model with vision (image) support for food analysis.
  * Sends an image along with a text prompt to the configured AI provider.
- * Supports OpenAI (gpt-4o, gpt-4o-mini), Claude (claude-3-5-sonnet), and Gemini (gemini-2.0-flash).
+ * Supports OpenAI (gpt-4o, gpt-4o-mini), Claude (claude-3-5-sonnet), and Gemini (gemini-2.5-flash).
  * @param {Object} env - Environment variables (API keys)
  * @param {string} textPrompt - Text instructions for the AI
  * @param {string} base64Image - Base64-encoded image data (without data URI prefix)
@@ -7879,7 +7879,7 @@ async function callAIModelWithVision(env, textPrompt, base64Image, mimeType, max
   const defaultVisionModels = {
     openai: 'gpt-4o-mini',
     anthropic: 'claude-3-5-sonnet-20241022',
-    google: 'gemini-2.0-flash'
+    google: 'gemini-2.5-flash'
   };
 
   // Use vision-specific model name if set, otherwise use the default for the provider
@@ -7990,7 +7990,7 @@ async function callClaudeVision(env, textPrompt, base64Image, mimeType, modelNam
 }
 
 /**
- * Gemini Vision API call (gemini-2.0-flash with inlineData)
+ * Gemini Vision API call (gemini-2.5-flash with inlineData)
  */
 async function callGeminiVision(env, textPrompt, base64Image, mimeType, modelName, maxTokens, thinkingBudget = undefined) {
   return await retryWithBackoff(async () => {
@@ -9587,7 +9587,7 @@ async function handleGenerateProtocol(request, env) {
     if (provider === 'openai' && env.OPENAI_API_KEY) {
       response = await callOpenAI(env, prompt, modelName || 'gpt-4o-mini', 4000, false);
     } else if (provider === 'google' && env.GEMINI_API_KEY) {
-      response = await callGemini(env, prompt, modelName || 'gemini-2.0-flash', 4000, false, protocolThinkingBudget);
+      response = await callGemini(env, prompt, modelName || 'gemini-2.5-flash', 4000, false, protocolThinkingBudget);
     } else if (provider === 'anthropic' && env.ANTHROPIC_API_KEY) {
       response = await callClaude(env, prompt, modelName || 'claude-3-5-sonnet-20241022', 4000, false);
     } else {
@@ -9777,7 +9777,7 @@ async function handleGenerateLongevityProtocol(request, env) {
     if (provider === 'openai' && env.OPENAI_API_KEY) {
       aiResponse = await callOpenAI(env, prompt, modelName || 'gpt-4o-mini', LONGEVITY_TOKEN_LIMIT, true);
     } else if (provider === 'google' && env.GEMINI_API_KEY) {
-      aiResponse = await callGemini(env, prompt, modelName || 'gemini-2.0-flash', LONGEVITY_TOKEN_LIMIT, true, protocolThinkingBudget);
+      aiResponse = await callGemini(env, prompt, modelName || 'gemini-2.5-flash', LONGEVITY_TOKEN_LIMIT, true, protocolThinkingBudget);
     } else if (provider === 'anthropic' && env.ANTHROPIC_API_KEY) {
       aiResponse = await callClaude(env, prompt, modelName || 'claude-3-5-sonnet-20241022', LONGEVITY_TOKEN_LIMIT, true);
     } else {
@@ -13173,7 +13173,7 @@ async function translateAcuityHtml(html, tl, env) {
   const langName = LANG[tl] || tl.toUpperCase();
 
   // Single Gemini batch request – returns a JSON array of translated strings
-  // Use admin-configured Gemini model; fall back to gemini-1.5-flash (stable, no thinkingConfig)
+  // Use admin-configured Gemini model; fall back to gemini-2.5-flash (thinking disabled automatically)
   let translations;
   try {
     const prompt = `Translate the following English UI text strings to ${langName}.\n`
@@ -13184,7 +13184,7 @@ async function translateAcuityHtml(html, tl, env) {
     const cfg = await getAdminConfig(env);
     const translateModel = (cfg.provider === 'google' && cfg.modelName)
       ? cfg.modelName
-      : 'gemini-1.5-flash';
+      : 'gemini-2.5-flash';
     const raw = await callGemini(env, prompt, translateModel, 8192, true, undefined);
     const parsed = JSON.parse(raw.trim());
     if (!Array.isArray(parsed) || parsed.length !== originals.length) {

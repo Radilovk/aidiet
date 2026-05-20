@@ -2,6 +2,15 @@
 
 ## 2026-05-20
 
+- Задача: Смяна на всички default/fallback Gemini модели на `gemini-2.5-flash` (с автоматично disabled thinking).
+- Направено (`worker.js`):
+  1. `callGemini` default param: `gemini-2.0-flash` → `gemini-2.5-flash`
+  2. Vision default fallback за Google: `gemini-2.0-flash` → `gemini-2.5-flash`
+  3. `translateAcuityHtml` fallback: `gemini-1.5-flash` → `gemini-2.5-flash`
+  4. Двата hardcoded fallback `|| 'gemini-2.0-flash'` (protocol и longevity) → `gemini-2.5-flash`
+  5. Актуализирани свързаните коментари
+  - `callGemini` автоматично добавя `thinkingConfig: { thinkingBudget: 0 }` когато model name съдържа `gemini-2.5-flash` — thinking е disabled без допълнителна конфигурация.
+
 - Задача: Оправяне на XBody грешката `[acuity-translate] Gemini translation error: Gemini API failed: Gemini API error: 404 Not Found`.
 - Причини (3 бъга в `worker.js`):
   1. `translateAcuityHtml()` hardcode-ваше `'gemini-2.0-flash'` — игнорирайки admin конфигурацията; ако Google е обновил/премахнал модела → 404.
