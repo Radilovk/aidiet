@@ -332,10 +332,14 @@
             setTimeout(function () { sc.scrollTop = saved; }, WEBKIT_COMPOSITOR_RECOVERY_DELAY_MS);
         });
 
-        /* ── Load Acuity iframe ── */
+        /* ── Load Acuity iframe via Google Translate proxy ──
+           Using translate.goog proxy serves the Acuity page through Google's
+           servers with automatic EN→BG translation injected, bypassing the
+           Same-Origin restriction that prevents Google Translate from reaching
+           inside a cross-origin iframe directly. */
         (function () {
             var frame = document.querySelector('iframe');
-            if (frame) frame.src = 'https://app.acuityscheduling.com/schedule.php?owner=13943721&appointmentType=16859189&locale=bg';
+            if (frame) frame.src = 'https://app-acuityscheduling-com.translate.goog/schedule.php?owner=13943721&appointmentType=16859189&_x_tr_sl=en&_x_tr_tl=bg&_x_tr_hl=bg&_x_tr_pto=wapp';
         })();
 
         /* ── PWA Install Logic ── */
@@ -588,33 +592,6 @@
 
             btn.addEventListener('click', doBack);
         })();
-    </script>
-
-    <!-- Google Translate: автоматичен превод от английски към български -->
-    <div id="google_translate_element" style="display:none;"></div>
-
-    <script type="text/javascript">
-        function googleTranslateElementInit() {
-            new google.translate.TranslateElement({
-                pageLanguage: 'en',
-                includedLanguages: 'bg',
-                layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
-                autoDisplay: false
-            }, 'google_translate_element');
-
-            // Автоматично задействане на превода веднага след зареждане
-            var checkInterval = setInterval(function () {
-                var select = document.querySelector('select.goog-te-combo');
-                if (select) {
-                    select.value = 'bg';
-                    select.dispatchEvent(new Event('change'));
-                    clearInterval(checkInterval);
-                }
-            }, 100);
-        }
-    </script>
-    <script type="text/javascript"
-            src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit">
     </script>
 </body>
 </html>
