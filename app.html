@@ -49,12 +49,27 @@
             left: 0;
             right: 0;
             bottom: var(--shell-nav-height);
-            display: none;
             overflow: hidden;
+            visibility: hidden;
+            opacity: 0;
+            pointer-events: none;
+            transform: translate3d(0, 8px, 0) scale(0.995);
+            transition:
+                opacity 120ms ease-out,
+                transform 160ms cubic-bezier(0.22, 1, 0.36, 1),
+                visibility 0s linear 160ms;
+            contain: layout style paint;
+            will-change: opacity, transform;
+            z-index: 0;
         }
 
         .tab-frame.active {
-            display: block;
+            visibility: visible;
+            opacity: 1;
+            pointer-events: auto;
+            transform: translate3d(0, 0, 0) scale(1);
+            transition-delay: 0s;
+            z-index: 1;
         }
 
         .tab-frame iframe {
@@ -63,6 +78,14 @@
             border: none;
             display: block;
             background: transparent;
+            transform: translateZ(0);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .tab-frame {
+                transition: none;
+                transform: none;
+            }
         }
 
         /* ── Shell bottom navigation ── */
@@ -119,12 +142,18 @@
 
         .shell-nav-item.active {
             color: #0D9488;
-            background: rgba(13, 148, 136, 0.1);
+            background:
+                radial-gradient(circle at 50% 10%, rgba(255,255,255,0.92), rgba(255,255,255,0) 46%),
+                linear-gradient(135deg, rgba(13, 148, 136, 0.16), rgba(20, 184, 166, 0.08));
+            box-shadow: 0 10px 28px rgba(13, 148, 136, 0.18), inset 0 1px 0 rgba(255,255,255,0.55);
         }
 
         [data-theme="dark"] .shell-nav-item.active {
-            background: rgba(45, 212, 191, 0.15);
+            background:
+                radial-gradient(circle at 50% 10%, rgba(45,212,191,0.2), rgba(45,212,191,0) 48%),
+                linear-gradient(135deg, rgba(45, 212, 191, 0.2), rgba(13, 148, 136, 0.12));
             color: #2DD4BF;
+            box-shadow: 0 10px 30px rgba(45, 212, 191, 0.12), inset 0 1px 0 rgba(255,255,255,0.08);
         }
 
         .shell-nav-item.active i { transform: scale(1.1); }
@@ -170,22 +199,22 @@
 
     <!-- Tab frame: Plan (loaded eagerly) -->
     <div class="tab-frame active" id="frame-plan">
-        <iframe id="iframe-plan" src="./plan.html" title="Моят План" allowfullscreen></iframe>
+        <iframe id="iframe-plan" src="./plan.html" title="Моят План" loading="eager" fetchpriority="high" allowfullscreen></iframe>
     </div>
 
-    <!-- Tab frame: Guidelines (lazy loaded on first visit) -->
+    <!-- Tab frame: Guidelines (loaded eagerly and kept alive) -->
     <div class="tab-frame" id="frame-guidelines">
-        <iframe id="iframe-guidelines" title="Насоки" allowfullscreen></iframe>
+        <iframe id="iframe-guidelines" src="./guidelines.html" title="Насоки" loading="eager" fetchpriority="low" allowfullscreen></iframe>
     </div>
 
-    <!-- Tab frame: Profile (lazy loaded on first visit) -->
+    <!-- Tab frame: Profile (loaded eagerly and kept alive) -->
     <div class="tab-frame" id="frame-profile">
-        <iframe id="iframe-profile" title="Профил" allowfullscreen></iframe>
+        <iframe id="iframe-profile" src="./profile.html" title="Профил" loading="eager" fetchpriority="low" allowfullscreen></iframe>
     </div>
 
-    <!-- Tab frame: Home / Index (lazy loaded on first visit) -->
+    <!-- Tab frame: Home / Index (loaded eagerly and kept alive) -->
     <div class="tab-frame" id="frame-home">
-        <iframe id="iframe-home" title="Начало" allowfullscreen></iframe>
+        <iframe id="iframe-home" src="./index.html?stay=1" title="Начало" loading="eager" fetchpriority="low" allowfullscreen></iframe>
     </div>
 
     <!-- Shell bottom navigation (always on top, managed by shell) -->
@@ -212,7 +241,7 @@
     (function() {
         'use strict';
 
-        // Map tab name → iframe element src (lazy loaded)
+        // Map tab name → iframe element src (fallback if a WebView drops iframe src)
         var TAB_SRCS = {
             plan:       './plan.html',
             guidelines: './guidelines.html',
@@ -221,7 +250,7 @@
         };
 
         var _currentTab = 'plan';
-        var _loadedTabs = { plan: true }; // plan is eagerly loaded
+        var _loadedTabs = { plan: true, guidelines: true, profile: true, home: true };
 
         // Hide loader once plan iframe fires load
         var planIframe = document.getElementById('iframe-plan');
@@ -234,43 +263,32 @@
             }
         });
 
-        // Preload guidelines and profile in the background after plan loads
-        planIframe.addEventListener('load', function preloadBg() {
-            planIframe.removeEventListener('load', preloadBg);
-            setTimeout(function() {
-                var guideIframe = document.getElementById('iframe-guidelines');
-                if (!_loadedTabs.guidelines && guideIframe && !guideIframe.src) {
-                    guideIframe.src = TAB_SRCS.guidelines;
-                    _loadedTabs.guidelines = true;
-                }
-            }, 800);
-            setTimeout(function() {
-                var profileIframe = document.getElementById('iframe-profile');
-                if (!_loadedTabs.profile && profileIframe && !profileIframe.src) {
-                    profileIframe.src = TAB_SRCS.profile;
-                    _loadedTabs.profile = true;
-                }
-            }, 1600);
+        Object.keys(TAB_SRCS).forEach(function(tab) {
+            var frame = document.getElementById('iframe-' + tab);
+            if (frame && !frame.getAttribute('src')) {
+                frame.src = TAB_SRCS[tab];
+                _loadedTabs[tab] = true;
+            }
         });
 
         // Public switch function (also called by shell nav buttons)
         window.shellSwitchTab = function(tab) {
             if (tab === _currentTab) return;
 
-            // Show/hide frames
-            document.querySelectorAll('.tab-frame').forEach(function(f) {
-                f.classList.remove('active');
-            });
             var targetFrame = document.getElementById('frame-' + tab);
             if (!targetFrame) return;
-            targetFrame.classList.add('active');
 
-            // Lazy-load iframe src on first visit
+            // Fallback warm-up before showing the frame.
             var iframe = document.getElementById('iframe-' + tab);
             if (iframe && !_loadedTabs[tab]) {
                 iframe.src = TAB_SRCS[tab];
                 _loadedTabs[tab] = true;
             }
+
+            // Show/hide frames without destroying layout or iframe state.
+            document.querySelectorAll('.tab-frame').forEach(function(f) {
+                f.classList.toggle('active', f === targetFrame);
+            });
 
             // Update nav active state
             document.querySelectorAll('.shell-nav-item').forEach(function(btn) {
