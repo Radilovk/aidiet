@@ -1,5 +1,14 @@
 # Log Tasks
 
+## 2026-05-20
+
+- Задача: Crowd-sourced permanent translation — след като системата засече дума на английски, преводът се съхранява завинаги и всички потребители го ползват без AI или бекенд заявки.
+- Направено:
+  1. worker.js — добавен `sha256Short()` helper и `handleAcuityHash` endpoint (`GET /api/acuity-hash`) — връща 16-char hex hash на Acuity страницата, кешира го в KV за 1 час.
+  2. worker.js — `handleAcuityTranslate` преписан: приема optional `?v={hash}` параметър; при hit на hash-keyed постоянен KV ключ (`xbody:acuity:{tl}:{hash}`) — отговаря без да дърпа Acuity и без AI; записва превода без TTL (вечно).
+  3. xbody.html — `toTranslateUrl(tl, hash)` — URL включва hash за cache-versioning; `lastHash` се зарежда от localStorage; добавен background fetch на `/api/acuity-hash` — при промяна на Acuity съдържанието iframe се презарежда с новия URL автоматично.
+  4. xbody-sw.js — Service Worker добавя cache-first стратегия за `/api/acuity-translate` — PWA потребителите след първото посещение не правят никакви мрежови заявки за превода.
+
 ## 2026-05-19
 
 - Задача (продължение 2): "не пиши излишен код в worker. намери реалния проблем и го отстрани!"
