@@ -509,9 +509,13 @@
                 return raw.split('-')[0].toLowerCase();
             }
 
-            /* Worker-side translation proxy URL (versioned by content hash for cache-busting) */
+            /* Worker-side translation proxy URL (versioned by content hash for cache-busting).
+               Use the canonical Acuity path on the worker origin so the embedded app sees
+               /schedule.php?owner=...&appointmentType=... from the first byte, without
+               relying on an injected history.replaceState patch that may be blocked. */
             function toTranslateUrl(tl, hash) {
-                var u = WORKER_ORIGIN + '/api/acuity-translate?tl=' + encodeURIComponent(tl);
+                var u = WORKER_ORIGIN + '/schedule.php?owner=13943721&appointmentType=16859189'
+                      + '&tl=' + encodeURIComponent(tl);
                 if (hash) u += '&v=' + encodeURIComponent(hash);
                 return u;
             }
