@@ -1,3 +1,24 @@
+        // Shell navigation helper – when running inside app.html's iframe shell,
+        // tab pages use postMessage to switch tabs; non-tab pages navigate window.top.
+        (function() {
+            var _TAB_MAP = { 'plan.html': 'plan', 'guidelines.html': 'guidelines', 'profile.html': 'profile' };
+            window._shellNav = function(url, replace) {
+                if (window.self !== window.top) {
+                    var clean = (url || '').split('?')[0].replace(/^\.\//, '');
+                    var tab = _TAB_MAP[clean];
+                    if (tab) {
+                        window.parent.postMessage({ type: 'SWITCH_TAB', tab: tab }, '*');
+                        return;
+                    }
+                    if (replace) window.top.location.replace(url);
+                    else window.top.location.href = url;
+                } else {
+                    if (replace) window.location.replace(url);
+                    else window.location.href = url;
+                }
+            };
+        })();
+
         let userData = {};
         let originalData = {};
         let isEditing = false;
@@ -288,7 +309,7 @@
 
         // --- Navigation ---
         function goBack() {
-            window.location.href = 'plan.html';
+            _shellNav('plan.html');
         }
 
         // --- Questionnaire Collapsible Toggle ---
@@ -361,18 +382,18 @@
                                     loadUserData();
                                 } else {
                                     showAlert('Няма налични данни. Моля, попълнете въпросника.', 'warning');
-                                    setTimeout(() => { window.location.href = 'questionnaire.html'; }, 2000);
+                                    setTimeout(() => { _shellNav('questionnaire.html'); }, 2000);
                                 }
                             })
                             .catch(() => {
                                 showAlert('Няма налични данни. Моля, попълнете въпросника.', 'warning');
-                                setTimeout(() => { window.location.href = 'questionnaire.html'; }, 2000);
+                                setTimeout(() => { _shellNav('questionnaire.html'); }, 2000);
                             });
                         return;
                     }
                     showAlert('Няма налични данни. Моля, попълнете въпросника.', 'warning');
                     setTimeout(() => {
-                        window.location.href = 'questionnaire.html';
+                        _shellNav('questionnaire.html');
                     }, 2000);
                     return;
                 }
@@ -707,7 +728,7 @@
                 showAlert('✓ Планът е регенериран успешно! Пренасочване...', 'info');
                 
                 setTimeout(() => {
-                    window.location.href = 'plan.html';
+                    _shellNav('plan.html');
                 }, 2000);
 
             } catch (error) {
@@ -1005,7 +1026,7 @@
         }
         
         function viewFullAnalysis() {
-            window.location.href = 'analysis.html';
+            _shellNav('analysis.html');
         }
 
         // --- Initialization ---

@@ -2290,7 +2290,7 @@
     <script src="./profile.js"></script>
 
     <!-- Chat Assistant Button -->
-    <button class="fab-chat" onclick="window.location.href='plan.html?chat=1'" aria-label="Отвори чат асистент">
+    <button class="fab-chat" onclick="(window.self!==window.top)?window.parent.postMessage({type:'SWITCH_TAB',tab:'plan'},'*'):(window.location.href='plan.html?chat=1')" aria-label="Отвори чат асистент">
         <img src="./docs/Chat2.png" alt="" class="chat-icon-img" aria-hidden="true">
     </button>
 
@@ -2441,7 +2441,7 @@
                 await signOut(auth).catch(() => {});
                 _clearUserPlanData();
                 /* Navigate home after logout — do not show the login modal */
-                window.location.replace('index.html?stay=1');
+                (window.self !== window.top ? window.top.location : window.location).replace('index.html?stay=1');
             };
 
             /* Clear all plan/session data from localStorage on logout.

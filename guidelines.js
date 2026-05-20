@@ -1,3 +1,24 @@
+        // Shell navigation helper – when running inside app.html's iframe shell,
+        // tab pages use postMessage to switch tabs; non-tab pages navigate window.top.
+        (function() {
+            var _TAB_MAP = { 'plan.html': 'plan', 'guidelines.html': 'guidelines', 'profile.html': 'profile' };
+            window._shellNav = function(url, replace) {
+                if (window.self !== window.top) {
+                    var clean = (url || '').split('?')[0].replace(/^\.\//, '');
+                    var tab = _TAB_MAP[clean];
+                    if (tab) {
+                        window.parent.postMessage({ type: 'SWITCH_TAB', tab: tab }, '*');
+                        return;
+                    }
+                    if (replace) window.top.location.replace(url);
+                    else window.top.location.href = url;
+                } else {
+                    if (replace) window.location.replace(url);
+                    else window.location.href = url;
+                }
+            };
+        })();
+
         // --- Theme Management ---
         function initializeTheme() {
             const savedTheme = localStorage.getItem('theme');
@@ -41,7 +62,7 @@
             if (document.referrer && document.referrer.includes(window.location.hostname)) {
                 window.history.back();
             } else {
-                window.location.href = 'plan.html';
+                _shellNav('plan.html');
             }
         }
 

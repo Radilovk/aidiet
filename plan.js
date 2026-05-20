@@ -1,3 +1,25 @@
+        // Shell navigation helper – when running inside app.html's iframe shell,
+        // tab pages use postMessage to switch tabs; non-tab pages navigate window.top.
+        (function() {
+            var _TAB_MAP = { 'plan.html': 'plan', 'guidelines.html': 'guidelines', 'profile.html': 'profile' };
+            window._shellNav = function(url, replace) {
+                if (window.self !== window.top) {
+                    var clean = (url || '').split('?')[0].replace(/^\.\//, '');
+                    var tab = _TAB_MAP[clean];
+                    if (tab) {
+                        window.parent.postMessage({ type: 'SWITCH_TAB', tab: tab }, '*');
+                        return;
+                    }
+                    // Non-tab page (questionnaire, food-picker, etc.): navigate top window
+                    if (replace) window.top.location.replace(url);
+                    else window.top.location.href = url;
+                } else {
+                    if (replace) window.location.replace(url);
+                    else window.location.href = url;
+                }
+            };
+        })();
+
         // Worker URL configuration
         const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
         
@@ -437,7 +459,7 @@
             try {
                 // Guard: plan submitted via questionnaire2 must wait for admin approval
                 if (localStorage.getItem('planSource') === 'questionnaire2') {
-                    window.location.replace('plan-pending.html');
+                    _shellNav('plan-pending.html', true);
                     return;
                 }
 
@@ -644,7 +666,7 @@
                         </div>
                         <h2 style="color: var(--text-dark); margin-bottom: 15px;">Грешка</h2>
                         <p style="color: var(--text-light); margin-bottom: 30px;">${message}</p>
-                        <button onclick="window.location.href='questionnaire.html'" 
+                        <button onclick="_shellNav('questionnaire.html')" 
                                 style="background: var(--primary-red); color: white; border: none; 
                                        padding: 15px 30px; border-radius: 25px; font-size: 1rem; 
                                        font-weight: 600; cursor: pointer;">
@@ -655,7 +677,7 @@
             }
             if (redirect) {
                 setTimeout(() => {
-                    window.location.href = 'questionnaire.html';
+                    _shellNav('questionnaire.html');
                 }, 3000);
             }
         }
@@ -1255,7 +1277,7 @@
         }
 
         function goToProfile() {
-            window.location.href = 'profile.html';
+            _shellNav('profile.html');
         }
 
         function getDayTimeIcon() {
@@ -1877,7 +1899,7 @@
             if (message.toLowerCase() === '*selectfoods') {
                 addMessageToChat('🥗 Отваряне на избора на продукти…', 'assistant');
                 input.value = '';
-                setTimeout(() => { window.location.href = 'food-picker.html'; }, 700);
+                setTimeout(() => { _shellNav('food-picker.html'); }, 700);
                 return;
             }
 
@@ -4542,7 +4564,7 @@
                 card.id = 'dailyScoreCard';
                 card.setAttribute('role','status');
                 card.setAttribute('aria-live','polite');
-                card.onclick = function() { window.location.href = 'game-analytics.html'; };
+                card.onclick = function() { _shellNav('game-analytics.html'); };
                 var container = document.getElementById('mealContainer');
                 if (container && container.parentNode) container.parentNode.insertBefore(card, container);
             }
@@ -5620,7 +5642,7 @@
             profBtn.className = 'game-modal-btn';
             profBtn.style.cssText = 'flex:1;background:rgba(13,148,136,0.1);color:#0D9488;border:1.5px solid rgba(13,148,136,0.25);';
             profBtn.textContent = '\uD83D\uDCCA \u0412\u0438\u0436 \u0430\u043D\u0430\u043B\u0438\u0437\u0438';
-            profBtn.onclick = function(){ overlay.remove(); window.location.href='profile.html'; };
+            profBtn.onclick = function(){ overlay.remove(); _shellNav('profile.html'); };
 
             var closBtn2 = document.createElement('button');
             closBtn2.className = 'game-modal-btn';

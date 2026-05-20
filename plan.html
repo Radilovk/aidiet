@@ -3603,7 +3603,7 @@
         function showAuthForm() {
             /* Guard: plan still pending specialist review → send to plan-pending */
             if (localStorage.getItem('planSource') === 'questionnaire2') {
-                window.location.replace('plan-pending.html');
+                _shellNav('plan-pending.html', true);
                 return;
             }
             /* If there's no local plan, show the auth form with a "restore your plan"
@@ -3753,7 +3753,7 @@
                     <button id="paPwBtn" class="pa-primary-btn">Вход</button>
                     <p style="margin:12px 0 4px;font-size:0.82rem;color:var(--text-gray,#6b7280);">
                         Нямате профил?
-                        <button onclick="window.location.href='questionnaire2.html'" style="background:none;border:none;color:#0D9488;font-size:0.82rem;cursor:pointer;padding:0;text-decoration:underline;">Попълнете въпросника</button>
+                        <button onclick="_shellNav('questionnaire2.html')" style="background:none;border:none;color:#0D9488;font-size:0.82rem;cursor:pointer;padding:0;text-decoration:underline;">Попълнете въпросника</button>
                     </p>
                     <button id="paForgotBtn" style="background:none;border:none;color:var(--text-gray,#6b7280);font-size:0.82rem;cursor:pointer;padding:4px 0;text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Забравена парола?</button>
                     <div id="planAuthError"></div>
@@ -3855,7 +3855,7 @@
         window.planSignOut = async function () {
             await signOut(auth).catch(() => {});
             _clearUserPlanData();
-            window.location.replace('index.html?stay=1');
+            _shellNav('index.html?stay=1', true);
         };
 
         onAuthStateChanged(auth, async (user) => {
@@ -3871,7 +3871,7 @@
                         // Restore was already attempted in this tab but failed to produce a plan
                         // (shouldn't normally happen) — avoid a loop and go to questionnaire.
                         sessionStorage.removeItem(_planRestoreKey);
-                        window.location.replace('questionnaire2.html');
+                        _shellNav('questionnaire2.html', true);
                         return;
                     }
                     sessionStorage.setItem(_planRestoreKey, '1');
@@ -3889,7 +3889,7 @@
                         return;
                     }
                     // No plan on server either — send to questionnaire
-                    window.location.replace('questionnaire2.html');
+                    _shellNav('questionnaire2.html', true);
                     return;
                 }
                 hideOverlay();
