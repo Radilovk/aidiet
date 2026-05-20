@@ -12396,9 +12396,6 @@ async function handleSaveUserProfile(request, env) {
       }
     }
 
-    const existingRaw = await env.page_content.get(`user_profile:${userId}`);
-    const existingProfile = existingRaw ? JSON.parse(existingRaw) : null;
-    const resolvedClientId = clientId || existingProfile?.clientId || '';
     const profileData = {
       userId,
       plan,
@@ -12406,7 +12403,7 @@ async function handleSaveUserProfile(request, env) {
       planSource: planSource || '',
       // clientId links a questionnaire-2 submission to its client record so that
       // plan-pending.html can check plan status when the user logs in on a new device.
-      ...(resolvedClientId ? { clientId: resolvedClientId } : {}),
+      ...(clientId ? { clientId } : {}),
       savedAt: new Date().toISOString()
     };
 
@@ -12422,18 +12419,18 @@ async function handleSaveUserProfile(request, env) {
 
     // Link questionnaire-2 client records back to the Firebase/anonymous profile.
     // This lets admin activation update the same profile that APK login restores.
-    if (resolvedClientId) {
+    if (clientId) {
       try {
-        const clientRaw = await env.page_content.get(`client:${resolvedClientId}`);
+        const clientRaw = await env.page_content.get(`client:${clientId}`);
         if (clientRaw) {
           const clientData = JSON.parse(clientRaw);
           if (clientData.userId !== userId) {
             clientData.userId = userId;
-            await env.page_content.put(`client:${resolvedClientId}`, JSON.stringify(clientData));
+            await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
           }
         }
       } catch (e) {
-        console.warn(`Failed to link client ${resolvedClientId} to profile ${userId}:`, e.message);
+        console.warn(`Failed to link client ${clientId} to profile ${userId}:`, e.message);
       }
     }
 
@@ -12505,19 +12502,17 @@ async function handleGetUserProfile(request, env) {
         if (clientRaw) activatedClient = JSON.parse(clientRaw);
       }
 
-      // Backfill for older profiles missing clientId by scanning recent clients.
-      if (!activatedClient) {
+      // Backfill for profiles saved before clientId was added: match by email.
+      if (!activatedClient && profile.userData?.email) {
+        const wantedEmail = String(profile.userData.email).trim().toLowerCase();
         const listRaw = await env.page_content.get('clients_list');
         const clientIds = listRaw ? JSON.parse(listRaw) : [];
-        const wantedEmail = String(profile.userData?.email || '').trim().toLowerCase();
         for (const id of clientIds.slice(0, 500)) {
           const clientRaw = await env.page_content.get(`client:${id}`);
           if (!clientRaw) continue;
           const clientData = JSON.parse(clientRaw);
-          const clientMatchesUser = clientData.userId === userId;
           const clientEmail = String(clientData.answers?.email || '').trim().toLowerCase();
-          const clientMatchesEmail = wantedEmail && clientEmail === wantedEmail;
-          if (clientMatchesUser || clientMatchesEmail) {
+          if (clientEmail === wantedEmail) {
             activatedClient = clientData;
             clientId = id;
             break;
@@ -12532,11 +12527,7 @@ async function handleGetUserProfile(request, env) {
         planSource = '';
         await env.page_content.put(`user_profile:${userId}`, JSON.stringify(profile));
       } else if (clientId) {
-        const shouldPersistClientId = profile.clientId !== clientId;
         profile.clientId = clientId;
-        if (shouldPersistClientId) {
-          await env.page_content.put(`user_profile:${userId}`, JSON.stringify(profile));
-        }
       }
     }
 
