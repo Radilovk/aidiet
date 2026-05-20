@@ -2,6 +2,13 @@
 
 ## 2026-05-20
 
+- Задача: След последната промяна в Nutri Plan регистриран потребител със съществуващ активен план влиза в `plan-pending.html` вместо в профила си.
+- Намерен точен бъг и оправен:
+  - **Причина:** В `handleGetUserProfile` (`worker.js`) email backfill-ът проверяваше само `!activatedClient`. Но когато `profile.clientId` сочи към НОВ pending клиент запис (нова заявка от questionnaire2), `activatedClient` е зададен на pending запис (не null) → условието пропуска backfill → стария активиран запис НИКОГА не се открива → връща `planSource='questionnaire2'` → потребителят попада в `plan-pending.html`.
+  - **Поправка (2 реда в `worker.js`):**
+    1. Условие на backfill: `!activatedClient` → `activatedClient?.planStatus !== 'activated'` (backfill-ът се изпълнява и когато намереният клиент е pending).
+    2. Добавен filter в email цикъла: `if (clientData.planStatus !== 'activated' || !clientData.plan) continue;` (търси само активирани записи).
+  - Премахнати излишни helper функции добавени от предишна сесия (`normalizeClientMatchValue`, `findExistingActivatedClient`, `hasApprovedPlanHistory`) и `handleUpdateClientPlan` върнат към оригиналното си поведение.
 - Задача: Смяна на всички default/fallback Gemini модели на `gemini-2.5-flash` (с автоматично disabled thinking).
 - Направено (`worker.js`):
   1. `callGemini` default param: `gemini-2.0-flash` → `gemini-2.5-flash`

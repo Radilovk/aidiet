@@ -12502,8 +12502,10 @@ async function handleGetUserProfile(request, env) {
         if (clientRaw) activatedClient = JSON.parse(clientRaw);
       }
 
-      // Backfill for profiles saved before clientId was added: match by email.
-      if (!activatedClient && profile.userData?.email) {
+      // Backfill for profiles saved before clientId was added, OR when profile.clientId
+      // points to the newest (pending) submission — scan for an activated client by email.
+      // Bug fix: was `!activatedClient` — must also run when activatedClient is PENDING.
+      if (activatedClient?.planStatus !== 'activated' && profile.userData?.email) {
         const wantedEmail = String(profile.userData.email).trim().toLowerCase();
         const listRaw = await env.page_content.get('clients_list');
         const clientIds = listRaw ? JSON.parse(listRaw) : [];
@@ -12511,6 +12513,7 @@ async function handleGetUserProfile(request, env) {
           const clientRaw = await env.page_content.get(`client:${id}`);
           if (!clientRaw) continue;
           const clientData = JSON.parse(clientRaw);
+          if (clientData.planStatus !== 'activated' || !clientData.plan) continue;
           const clientEmail = String(clientData.answers?.email || '').trim().toLowerCase();
           if (clientEmail === wantedEmail) {
             activatedClient = clientData;
