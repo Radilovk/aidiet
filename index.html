@@ -3838,6 +3838,19 @@
             if (!user) return;
             // Firebase uid is stable: prefix it locally — matches what the backend stores
             localStorage.setItem('userId', 'fb_' + user.uid);
+
+            // Auto-save basic Firebase profile fields to userData so the user's
+            // name and email are available immediately after login on any device,
+            // even before a server restore completes.  Only fill in empty fields
+            // so we never overwrite questionnaire answers already saved locally.
+            try {
+                const existing = JSON.parse(localStorage.getItem('userData') || '{}');
+                let changed = false;
+                if (!existing.email && user.email) { existing.email = user.email; changed = true; }
+                if (!existing.name && user.displayName) { existing.name = user.displayName; changed = true; }
+                if (changed) localStorage.setItem('userData', JSON.stringify(existing));
+            } catch (_) {}
+
             // Register in KV only once per device (fire-and-forget, for admin only)
             if (!localStorage.getItem('authKvSynced')) {
                 user.getIdToken().then(idToken => {

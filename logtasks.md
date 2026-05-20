@@ -1,6 +1,19 @@
 # Log Tasks
 
-## 2026-05-20
+## 2026-05-20 (Втора задача)
+
+- Задача: 1) Премахване на xbody превода напълно. 2) Премахване на целия код свързан с превода от worker. 3) Автоматично запомняне на потребителски данни при вход.
+- Направено:
+  1. **xbody.html:** Премахнати CSS стилове за `#translate-badge` и `#mob-translate-btn`.
+  2. **xbody.html:** Премахнати HTML елементи — `<button id="translate-badge">`, `<span id="mob-toolbar-spacer">`, `<button id="mob-translate-btn">`.
+  3. **xbody.html:** Премахнат целият JS блок за авто-превод (IIFE ~130 реда). Заменен с 3-ред код за директно зареждане на Acuity iframe.
+  4. **xbody.html:** Почистена референцията към `window._xbodyResetSrc` в back-button кода — вече се ползва директно `originalSrc`.
+  5. **worker.js:** Премахнати константите `ACUITY_URL` и `ACUITY_HEADERS`.
+  6. **worker.js:** Премахната функцията `handleAcuityTranslate`.
+  7. **worker.js:** Премахната функцията `translateAcuityHtml`.
+  8. **worker.js:** Премахната функцията `handleTranslateBatch`.
+  9. **worker.js:** Премахнати route handlers за `/api/translate-batch`, `/schedule.php` и `/api/acuity-translate`.
+  10. **index.html:** Подобрена `applyUser()` функцията — при вход автоматично запазва `email` и `name` (displayName) от Firebase в localStorage ключа `userData`, без да презаписва вече съхранени данни от въпросника.
 
 - Задача: Оправяне на XBody превода — премахване на излишния код и реално работещо решение.
 - Проблеми от предишната имплементация:
