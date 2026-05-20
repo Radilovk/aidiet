@@ -500,11 +500,26 @@
             var ORIGINAL_SRC  = 'https://app.acuityscheduling.com/schedule.php?owner=13943721&appointmentType=16859189';
             var WORKER_ORIGIN = 'https://aidiet.radilov-k.workers.dev';
 
-            /* 2-letter ISO language code from the browser */
+            /* 2-letter ISO language code with resilient fallbacks.
+               Some embedded WebViews report navigator.language = en-US even when
+               the page is Bulgarian, which prevented any translation request. */
             function getLang() {
+                var qsTl = '';
+                try {
+                    qsTl = (new URLSearchParams(window.location.search).get('tl') || '').toLowerCase();
+                } catch (_) {}
+                if (/^[a-z]{2,5}$/.test(qsTl)) return qsTl.split('-')[0];
+
                 var raw = (navigator.languages && navigator.languages[0]) ||
-                           navigator.language || 'en';
-                return raw.split('-')[0].toLowerCase();
+                           navigator.language || '';
+                var navLang = raw ? raw.split('-')[0].toLowerCase() : '';
+
+                var pageLangRaw = (document.documentElement && document.documentElement.lang) || '';
+                var pageLang = pageLangRaw ? pageLangRaw.split('-')[0].toLowerCase() : '';
+
+                if (navLang && navLang !== 'en') return navLang;
+                if (pageLang && pageLang !== 'en') return pageLang;
+                return navLang || pageLang || 'en';
             }
 
             /* Worker-side translation proxy URL.

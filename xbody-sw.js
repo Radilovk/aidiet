@@ -1,6 +1,6 @@
 // Service Worker for XBody Ability PWA
 // Minimal, isolated from the NutriPlan service worker
-const CACHE_NAME = 'xbody-v4';
+const CACHE_NAME = 'xbody-v5';
 // Core files that MUST be cached for the PWA shell to work offline.
 const STATIC_CACHE = [
   'xbody.html',
@@ -49,10 +49,29 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Cache-first for same-origin static files
+  // Cache-first for same-origin static files, except the main shell page.
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) {
     return; // pass through cross-origin requests
+  }
+
+  // Always refresh xbody.html from network first so users do not stay on a
+  // stale shell that can disable/skip translation logic.
+  const isXbodyShell = event.request.mode === 'navigate' || url.pathname.endsWith('/xbody.html');
+  if (isXbodyShell) {
+    event.respondWith((async () => {
+      const cache = await caches.open(CACHE_NAME);
+      try {
+        const fresh = await fetch(event.request);
+        if (fresh && fresh.ok) await cache.put(event.request, fresh.clone());
+        return fresh;
+      } catch (_) {
+        const cached = await cache.match(event.request);
+        if (cached) return cached;
+        throw _;
+      }
+    })());
+    return;
   }
 
   event.respondWith(
