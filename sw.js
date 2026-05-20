@@ -233,17 +233,36 @@ self.addEventListener('push', (event) => {
 // Notification click event
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const url = resolveNotificationTarget(event.notification.data || {}, event.action || '');
+  const action = event.action || '';
+  const data = event.notification.data || {};
+  const url = resolveNotificationTarget(data, action);
   const targetUrl = toAbsoluteAppUrl(url);
+  const notificationType = data.type || '';
+  const recordKey = data.recordKey || '';
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
-        for (const client of clientList) {
-          if (client.url.includes(BASE_PATH) && 'focus' in client) {
-            return client.focus().then(() => client.navigate(targetUrl));
-          }
+        // If plan.html is already open, post a message so it shows an in-app
+        // modal without any page navigation (no full app reload, no index.html).
+        const planClient = clientList.find(c => c.url.includes('/plan.html'));
+        if (planClient && 'postMessage' in planClient) {
+          planClient.postMessage({
+            type: 'NOTIFICATION_ACTION',
+            action,
+            notificationType,
+            recordKey
+          });
+          return planClient.focus();
         }
+
+        // Reuse an existing quick-answer window if one is already open.
+        const qaClient = clientList.find(c => c.url.includes('/quick-answer.html'));
+        if (qaClient && 'focus' in qaClient) {
+          return qaClient.focus().then(() => qaClient.navigate(targetUrl)).catch(() => clients.openWindow ? clients.openWindow(targetUrl) : undefined);
+        }
+
+        // No suitable window open – open quick-answer.html in a new window.
         return clients.openWindow ? clients.openWindow(targetUrl) : undefined;
       })
   );
