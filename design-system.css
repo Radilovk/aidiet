@@ -367,6 +367,9 @@ html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     color-scheme: light dark;
+    /* Match the app background on the root element so the WebView never
+       shows its own native background colour during page transitions.      */
+    background-color: var(--ds-bg-primary);
 }
 
 body {
@@ -1159,19 +1162,32 @@ body {
     navigation: auto;
 }
 
-::view-transition-old(root),
-::view-transition-new(root) {
-    animation-duration: var(--ds-transition-normal);
-}
-
+/*
+ * Professional tab-switch transition:
+ *
+ * The old snapshot keeps full opacity (animation: none) so it acts as a solid
+ * backdrop — the WebView's native background colour is never visible.
+ * The new page fades in on top in 180 ms (fast enough to feel snappy, slow
+ * enough to register as intentional — the same timing iOS and Material You use
+ * for quick transitions).
+ *
+ * Avoid animating `transform` here; a pure opacity fade is GPU-composited and
+ * runs at 60 fps even on mid-range Android devices.
+ */
 ::view-transition-old(root) {
-    animation: ds-fade-out var(--ds-transition-normal) var(--ds-ease-out);
+    animation: none;              /* stay fully visible as backdrop */
 }
 
 ::view-transition-new(root) {
-    animation: ds-fade-in var(--ds-transition-normal) var(--ds-ease-in);
+    animation: _nt-fade-in 180ms cubic-bezier(0, 0, 0.2, 1) both;
 }
 
+@keyframes _nt-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* Keep legacy keyframe names so any page that references ds-fade-in/out still works */
 @keyframes ds-fade-in {
     from { opacity: 0; }
     to { opacity: 1; }

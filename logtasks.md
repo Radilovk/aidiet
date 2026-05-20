@@ -2,7 +2,16 @@
 
 ## 2026-05-20
 
+- Задача: Елегантни и професионални прехвърляния (transitions) между табовете в APK-а.
+- Причина: `design-system.css` имаше **едновременен crossfade** — старата страница фадваше OUT докато новата фадваше IN. В средата на анимацията двете страни са при ~50% opacity, което излага нативния WebView фон (`#042F2E` тъмно зелено от `capacitor.config.json`). Именно това тъмно просветване е "странното разгръщане".
+- Направено:
+  1. `design-system.css` → `::view-transition-old(root)`: `animation: none` (старата страница остава напълно видима като backdrop).
+  2. `design-system.css` → `::view-transition-new(root)`: нова страница фади-ин отгоре за **180ms** с `cubic-bezier(0, 0, 0.2, 1)` (ease-out — същия timing като iOS и Material You). Тъй като старата е пълно видима, WebView фонът никога не се вижда.
+  3. `design-system.css` → `html { background-color: var(--ds-bg-primary) }` — дори при хипотетична пролука, root елементът има app цвета.
+  4. `capacitor.config.json` → `backgroundColor` сменено от `#042F2E` на `#F0FDFA` (light theme app цвят).
+
 - Задача: Флашване и забавяне при превключване между табовете в APK-а.
+
 - Причина: В `plan.html` елементът `#planAuthOverlay` (full-screen spinner) е рендиран **видим по подразбиране** в HTML-а (CSS: `display:flex; z-index:99999`). Скриването му се извиква от `<script type="module">`, а ES модулите са **отложени** — изпълняват се едва след като Firebase JS библиотеките се заредят. Резултат: при всяко превключване към таба „Моят план" се появява бял/цветен full-screen спинър за ~200–500ms, докато модулите se инициализират.
 - Направено (`plan.html`):
   1. `#planAuthOverlay` — добавен `style="display:none"` (hidden по подразбиране).
