@@ -17,12 +17,14 @@
     <link rel="apple-touch-icon" sizes="180x180" href="./icon-192x192.png">
     <link rel="apple-touch-icon" sizes="152x152" href="./icon-192x192.png">
     <title>Насоки</title>
-    <!-- Prefetch adjacent tabs for instant navigation -->
-    <link rel="prefetch" href="./index.html">
-    <link rel="prefetch" href="./plan.html">
-    <link rel="prefetch" href="./profile.html">
-    <link rel="prefetch" href="./game-analytics.html">
-    <link rel="prefetch" href="./quick-answer.html">
+    <!-- Preload adjacent tabs for instant navigation -->
+    <link rel="preload" href="./index.html" as="document">
+    <link rel="preload" href="./plan.html" as="document">
+    <link rel="preload" href="./profile.html" as="document">
+    <link rel="preload" href="./game-analytics.html" as="document">
+    <link rel="preload" href="./quick-answer.html" as="document">
+    <!-- Instant navigation library -->
+    <script src="https://instant.page/5.2.0" type="module" data-instant-intensity="mousedown"></script>
     <!-- Design System 2026 -->
     <link rel="stylesheet" href="./design-system.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -1688,21 +1690,29 @@
         }
 
         // --- Initialize ---
-        window.addEventListener('DOMContentLoaded', function() {
-            initializeTheme();
+        (function instantInit() {
+            function setupGuidelines() {
+                initializeTheme();
 
-            const hasAccordion = loadGuidelinesAccordion();
-            const hasMacros = loadMacrosVisualization();
-            const hasStrategy = loadStrategyPanel();
+                const hasAccordion = loadGuidelinesAccordion();
+                const hasMacros = loadMacrosVisualization();
+                const hasStrategy = loadStrategyPanel();
 
-            // Show empty state if no data
-            if (!hasAccordion && !hasMacros && !hasStrategy) {
-                const emptyState = document.getElementById('emptyState');
-                if (emptyState) {
-                    emptyState.style.display = 'block';
+                // Show empty state if no data
+                if (!hasAccordion && !hasMacros && !hasStrategy) {
+                    const emptyState = document.getElementById('emptyState');
+                    if (emptyState) {
+                        emptyState.style.display = 'block';
+                    }
                 }
             }
-        });
+            
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', setupGuidelines);
+            } else {
+                setupGuidelines();
+            }
+        })();
 
         // ── UI Zone Images ────────────────────────────────────────────────────────
         (function applyUIImages() {
