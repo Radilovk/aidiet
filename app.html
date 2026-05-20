@@ -43,6 +43,13 @@
         }
 
         /* ── Tab frame containers ── */
+        /*
+         * APK fix: Не използваме visibility:hidden — Android WebView изхвърля
+         * GPU compositor layer-а при hidden, което причинява забавяне при
+         * повторно показване. Вместо това: opacity:0 + translateZ(0) на всички
+         * фреймове, за да останат постоянно промотирани в GPU compositor-а.
+         * Превключването = само z-index + opacity промяна ≈ 0ms за WebView.
+         */
         .tab-frame {
             position: fixed;
             top: 0;
@@ -50,26 +57,30 @@
             right: 0;
             bottom: var(--shell-nav-height);
             overflow: hidden;
-            visibility: hidden;
             opacity: 0;
             pointer-events: none;
-            transform: translate3d(0, 8px, 0) scale(0.995);
-            transition:
-                opacity 120ms ease-out,
-                transform 160ms cubic-bezier(0.22, 1, 0.36, 1),
-                visibility 0s linear 160ms;
+            transform: translateZ(0);
             contain: layout style paint;
             will-change: opacity, transform;
             z-index: 0;
         }
 
         .tab-frame.active {
-            visibility: visible;
             opacity: 1;
             pointer-events: auto;
-            transform: translate3d(0, 0, 0) scale(1);
-            transition-delay: 0s;
             z-index: 1;
+            animation: _tab_snap_in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+
+        @keyframes _tab_snap_in {
+            from {
+                opacity: 0;
+                transform: translate3d(0, 10px, 0) scale(0.975);
+            }
+            to {
+                opacity: 1;
+                transform: translateZ(0) scale(1);
+            }
         }
 
         .tab-frame iframe {
@@ -82,10 +93,7 @@
         }
 
         @media (prefers-reduced-motion: reduce) {
-            .tab-frame {
-                transition: none;
-                transform: none;
-            }
+            .tab-frame.active { animation: none; }
         }
 
         /* ── Shell bottom navigation ── */
@@ -286,9 +294,13 @@
             }
 
             // Show/hide frames without destroying layout or iframe state.
+            // Force @keyframes restart on the incoming frame by stripping .active first,
+            // then triggering a reflow before re-adding it.
             document.querySelectorAll('.tab-frame').forEach(function(f) {
-                f.classList.toggle('active', f === targetFrame);
+                f.classList.remove('active');
             });
+            void targetFrame.offsetWidth; // force reflow → guarantees animation restarts
+            targetFrame.classList.add('active');
 
             // Update nav active state
             document.querySelectorAll('.shell-nav-item').forEach(function(btn) {
