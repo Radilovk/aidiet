@@ -26,6 +26,6 @@
   "android": {
     "minWebViewVersion": 60,
     "allowMixedContent": false,
-    "backgroundColor": "#042F2E"
+    "backgroundColor": "#F0FDFA"
   }
 }

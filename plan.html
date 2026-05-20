@@ -35,6 +35,7 @@
     <link rel="apple-touch-icon" sizes="152x152" href="./icon-192x192.png">
     <title>Диетичен План</title>
     <!-- Prefetch adjacent tabs for instant navigation -->
+    <link rel="prefetch" href="./index.html">
     <link rel="prefetch" href="./guidelines.html">
     <link rel="prefetch" href="./profile.html">
     <!-- Design System 2026 -->
@@ -3479,10 +3480,20 @@
         #planAuthError { color: #ef4444; font-size: 0.8rem; margin-top: 12px; display: none; }
 
     </style>
-    <div id="planAuthOverlay">
+    <div id="planAuthOverlay" style="display:none">
         <div class="pa-spinner"></div>
         <div id="planAuthForm"></div>
     </div>
+    <!-- Show the auth overlay synchronously ONLY when no plan is cached.
+         Using a plain (non-module) script runs before Firebase module imports,
+         so normal users (who already have a plan) never see the spinner flash. -->
+    <script>(function(){
+        if (!localStorage.getItem('dietPlan') &&
+                localStorage.getItem('planSource') !== 'questionnaire2') {
+            var ov = document.getElementById('planAuthOverlay');
+            if (ov) ov.style.display = 'flex';
+        }
+    })();</script>
 
     <script type="module">
         import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
@@ -3595,7 +3606,8 @@
              * message.  After login, onAuthStateChanged will try to fetch the plan from
              * the server; if none is found it will redirect to the questionnaire. */
 
-            /* Show auth UI */
+            /* Show auth UI — ensure overlay is visible (it starts hidden by default) */
+            if (overlay) overlay.style.display = 'flex';
             if (spinner)  spinner.style.display = 'none';
             if (authForm) authForm.style.display = 'block';
 
