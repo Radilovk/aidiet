@@ -13045,39 +13045,79 @@ const ACUITY_HEADERS = {
 async function handleAcuityTranslate(request, env) {
   const url = new URL(request.url);
   const tl  = (url.searchParams.get('tl') || '').replace(/[^a-z]/g, '').slice(0, 5);
-  
-  // Legacy /api/acuity-translate responses need the location patch because
-  // they boot on the wrong path. Canonical /schedule.php responses don't need it.
-  const acuityParsed = new URL(ACUITY_URL);
-  const acuityRelPath = acuityParsed.pathname + acuityParsed.search;
-  const LOC_FIX_MARKER = '/*_xbody_loc_fix*/';
-  const locFixScript = `<script>${LOC_FIX_MARKER}(function(){try{history.replaceState(null,'','${acuityRelPath}');}catch(e){}})();<\/script>`;
-  const shouldInjectLocationFix = url.pathname === '/api/acuity-translate';
 
-  /** Ensure the location-fix script is present in served HTML (idempotent). */
-  function ensureLocationFix(html) {
-    if (!shouldInjectLocationFix || html.includes(LOC_FIX_MARKER)) return html;
-    return html.replace(/<head>/i, `<head>${locFixScript}`);
+  // Always strip the `tl` (and any other non-Acuity) params from the URL
+  // the SPA sees, so the React Router data-loader receives the exact params
+  // it expects (?owner=...&appointmentType=...) and does not throw a 404.
+  const acuityParsed = new URL(ACUITY_URL);
+  const acuityRelPath = acuityParsed.pathname + acuityParsed.search; // /schedule.php?owner=...
+  const LOC_FIX_MARKER = '/*_xbody_loc_fix_v2*/';
+  const locFixScript = `<script>${LOC_FIX_MARKER}(function(){try{history.replaceState(null,'','${acuityRelPath}');}catch(e){}})();<\/script>`;
+
+  const workerOrigin = url.origin; // e.g. https://aidiet.radilov-k.workers.dev
+
+  /** Build the lightweight DOM-translator injected into the proxied page.
+   *  Runs AFTER React has rendered the booking form, collects text nodes,
+   *  calls /api/translate-batch (same-origin → no CORS), caches in localStorage.
+   */
+  function buildDomTranslatorScript(lang) {
+    // Minified but readable inline script – no external dependencies.
+    return `<script data-xbody-translator>(function(){`
+      + `var TL='${lang}',WO='${workerOrigin}';`
+      + `var CK='xbody_xlat_v2_'+TL;`
+      + `var cache={};try{cache=JSON.parse(localStorage.getItem(CK)||'{}')}catch(e){}`
+      + `var busy=false,tim=null;`
+      // Collect non-trivial text nodes (skip script/style/input parents)
+      + `function getNodes(){`
+        + `var out=[],w=document.createTreeWalker(document.body||document.documentElement,NodeFilter.SHOW_TEXT,null);`
+        + `var n;while((n=w.nextNode())){`
+          + `var p=n.parentNode;if(!p)continue;`
+          + `var tag=(p.tagName||'').toUpperCase();`
+          + `if(tag==='SCRIPT'||tag==='STYLE'||tag==='NOSCRIPT'||tag==='TEXTAREA'||tag==='INPUT')continue;`
+          + `var t=n.nodeValue.trim();`
+          + `if(t.length>=2&&!/^[\\d\\s:.,\\-\\/()%+@#!*\\[\\]]+$/.test(t))out.push(n);`
+        + `}return out;}`
+      // Apply cached translations to current text nodes
+      + `function apply(){`
+        + `getNodes().forEach(function(n){`
+          + `var t=n.nodeValue.trim();`
+          + `if(cache[t]&&cache[t]!==t)n.nodeValue=n.nodeValue.replace(t,cache[t]);`
+        + `});}`
+      // Main translation run: collect unknowns, fetch, cache, apply
+      + `function run(){`
+        + `if(busy)return;`
+        + `var ns=getNodes(),unk=[],seen=new Set();`
+        + `ns.forEach(function(n){var t=n.nodeValue.trim();if(!cache[t]&&!seen.has(t)){unk.push(t);seen.add(t);}});`
+        + `if(!unk.length){apply();return;}`
+        + `busy=true;`
+        + `fetch(WO+'/api/translate-batch',{`
+          + `method:'POST',`
+          + `headers:{'Content-Type':'application/json'},`
+          + `body:JSON.stringify({tl:TL,texts:unk})`
+        + `}).then(function(r){return r.ok?r.json():null;})`
+          + `.then(function(d){`
+            + `if(d&&d.translations)d.translations.forEach(function(x){if(x.translated!==x.original)cache[x.original]=x.translated;});`
+            + `try{localStorage.setItem(CK,JSON.stringify(cache));}catch(e){}`
+            + `apply();busy=false;`
+          + `}).catch(function(){busy=false;});}`
+      // Debounce re-translations on DOM mutations (navigation between booking steps)
+      + `function schedule(){clearTimeout(tim);tim=setTimeout(run,400);}`
+      // Bootstrap: initial translate after React renders + MutationObserver for SPA nav
+      + `function init(){`
+        + `setTimeout(run,1800);`
+        + `if(typeof MutationObserver!=='undefined'){`
+          + `var ob=new MutationObserver(schedule);`
+          + `function attach(){if(document.body)ob.observe(document.body,{childList:true,subtree:true});}`
+          + `if(document.body)attach();else document.addEventListener('DOMContentLoaded',attach);`
+        + `}}`
+      + `if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();`
+      + `})();<\/script>`;
   }
 
   function htmlResp(body) {
     return new Response(body, {
-      headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=21600', 'X-Content-Type-Options': 'nosniff' },
+      headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' },
     });
-  }
-
-  // Check if we have a cached translation for this language
-  const CACHE_KEY = `xbody:acuity:${tl}`;
-  if (tl && tl !== 'en') {
-    try {
-      const cached = await env.page_content.get(CACHE_KEY);
-      if (cached) {
-        console.log(`[acuity-translate] Cache hit for language: ${tl}`);
-        return htmlResp(ensureLocationFix(cached));
-      }
-    } catch (err) {
-      console.error('[acuity-translate] Cache read error:', err.message);
-    }
   }
 
   // Fetch the Acuity scheduling page
@@ -13097,34 +13137,27 @@ async function handleAcuityTranslate(request, env) {
     return new Response(fb, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
   }
 
-  // Add base tag for relative URLs to work correctly
+  // Inject into the <head> tag (handles heads with or without attributes).
+  // 1. <base href> – ensures relative script/style/image paths resolve to Acuity's origin
+  // 2. Location-fix script – strips the ?tl= param so the Acuity React Router sees
+  //    the canonical ?owner=...&appointmentType=... params it expects
+  // 3. DOM translator script (when tl is non-English) – translates the dynamically
+  //    rendered form content after React has finished rendering
+  const domTranslator = (tl && tl !== 'en') ? buildDomTranslatorScript(tl) : '';
   let html = acuityHtml.replace(
-    /<head>/i,
-    `<head><base href="https://app.acuityscheduling.com/">${shouldInjectLocationFix ? locFixScript : ''}`
+    /<head(\s[^>]*)?>/i,
+    `<head$1><base href="https://app.acuityscheduling.com/">${locFixScript}${domTranslator}`
   );
 
-  // Translate if needed and possible
-  if (tl && tl !== 'en') {
-    if (!env.GEMINI_API_KEY) {
-      console.error('[acuity-translate] Translation requested but GEMINI_API_KEY not configured');
-      // Return original without caching - don't cache failures
-      return htmlResp(html);
-    }
-    
-    console.log(`[acuity-translate] Translating to ${tl}...`);
-    try {
-      html = await translateAcuityHtml(html, tl, env);
-      // Only cache successful translations
-      try {
-        await env.page_content.put(CACHE_KEY, html);
-        console.log(`[acuity-translate] Cached translation for ${tl}`);
-      } catch (err) {
-        console.error('[acuity-translate] Cache write error:', err.message);
-      }
-    } catch (err) {
-      console.error('[acuity-translate] Translation error:', err.message);
-      // Return original without caching - don't cache failures
-      return htmlResp(html);
+  // If the <head> replacement failed (unusual HTML structure), prepend to body as fallback
+  if (html === acuityHtml) {
+    html = acuityHtml.replace(
+      /<body(\s[^>]*)?>/i,
+      `<body$1><base href="https://app.acuityscheduling.com/">${locFixScript}${domTranslator}`
+    );
+    if (html === acuityHtml) {
+      // Last resort: prepend before everything
+      html = `<base href="https://app.acuityscheduling.com/">${locFixScript}${domTranslator}` + acuityHtml;
     }
   }
 
@@ -13210,6 +13243,76 @@ async function translateAcuityHtml(html, tl, env) {
 
   // Restore protected blocks (placeholder format: __XBPROT_N__)
   return out.replace(/__XBPROT_(\d+)__/g, (_, i) => blocks[+i]);
+}
+
+/* ── Batch text translation endpoint ─────────────────────────────────────
+   POST /api/translate-batch
+   Body: { tl: "bg", texts: ["string1", "string2", ...] }
+   Returns: { translations: [{ original, translated }, ...] }
+
+   Used by the DOM-translator script injected into the Acuity proxy page to
+   translate dynamically-rendered form content.  Results are cached in KV
+   (key: xbody:batch:<lang>) to avoid repeated Gemini calls. */
+async function handleTranslateBatch(request, env) {
+  let body;
+  try { body = await request.json(); } catch (e) {
+    return jsonResponse({ error: 'Invalid JSON' }, 400);
+  }
+
+  const tl    = (body.tl    || '').replace(/[^a-z]/g, '').slice(0, 5);
+  const texts = Array.isArray(body.texts)
+    ? body.texts.filter(t => typeof t === 'string' && t.trim().length > 0).slice(0, 200)
+    : [];
+
+  if (!tl || texts.length === 0) {
+    return jsonResponse({ translations: [] });
+  }
+
+  // Load the per-language translation cache from KV
+  const CACHE_KEY = `xbody:batch:${tl}`;
+  let cache = {};
+  try {
+    const stored = await env.page_content.get(CACHE_KEY);
+    if (stored) cache = JSON.parse(stored);
+  } catch (e) {}
+
+  // Determine which texts still need translation
+  const uncached = texts.filter(t => cache[t] === undefined);
+
+  if (uncached.length > 0 && env.GEMINI_API_KEY) {
+    const LANG = {
+      bg: 'Bulgarian', ru: 'Russian', de: 'German',  fr: 'French',
+      es: 'Spanish',   it: 'Italian', tr: 'Turkish', uk: 'Ukrainian',
+      pl: 'Polish',    ro: 'Romanian', nl: 'Dutch',  cs: 'Czech',
+      sk: 'Slovak',    hr: 'Croatian', sr: 'Serbian', el: 'Greek',
+      hu: 'Hungarian', fi: 'Finnish',  sv: 'Swedish', da: 'Danish',
+      no: 'Norwegian', pt: 'Portuguese',
+    };
+    const langName = LANG[tl] || tl.toUpperCase();
+    try {
+      const prompt = `Translate the following English UI text strings to ${langName}.\n`
+        + `Return ONLY a valid JSON array of translated strings in the exact same order and count.\n`
+        + `Preserve numbers, dates, punctuation, and email/URL fragments unchanged.\n\n`
+        + `Input: ${JSON.stringify(uncached)}`;
+
+      const raw = await callGemini(env, prompt, 'gemini-2.5-flash', 4096, true, undefined);
+      const parsed = JSON.parse(raw.trim());
+      if (Array.isArray(parsed) && parsed.length === uncached.length) {
+        uncached.forEach((t, i) => { cache[t] = String(parsed[i]); });
+        await env.page_content.put(CACHE_KEY, JSON.stringify(cache));
+        console.log(`[translate-batch] Translated ${uncached.length} strings to ${tl}, cache updated`);
+      } else {
+        console.error(`[translate-batch] Length mismatch: expected ${uncached.length}, got ${Array.isArray(parsed) ? parsed.length : typeof parsed}`);
+      }
+    } catch (e) {
+      console.error('[translate-batch] Error:', e.message);
+    }
+  }
+
+  const translations = texts.map(t => ({ original: t, translated: cache[t] !== undefined ? cache[t] : t }));
+  return new Response(JSON.stringify({ translations }), {
+    headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
+  });
 }
 
 export default {
@@ -13423,6 +13526,8 @@ export default {
         const rlErr = await checkRateLimit(env, request, 'SOCIAL_AUTH');
         if (rlErr) return rlErr;
         return await handleSocialAuth(request, env);
+      } else if (url.pathname === '/api/translate-batch' && request.method === 'POST') {
+        return await handleTranslateBatch(request, env);
       } else if (url.pathname === '/schedule.php' && request.method === 'GET') {
         const owner = url.searchParams.get('owner') || '';
         const appointmentType = url.searchParams.get('appointmentType') || '';
