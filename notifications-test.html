@@ -339,13 +339,12 @@
     <div class="card">
         <h2>5️⃣ Симулация на action URL (gamification)</h2>
         <p style="font-size:13px;color:var(--text-light,#555);margin-bottom:10px;">
-            Отваря <code>plan.html</code> с параметър <code>?action=…</code>, точно
-            както прави известието при клик. Тества дали gamification въпросите
-            се зареждат правилно.
+            Отваря същия бърз прозорец, който потребителят вижда при клик върху нотификацията.
         </p>
         <div class="btn-group">
-            <button class="btn-green" onclick="window.open('/plan.html?action=morning_check', '_blank')">🌅 plan.html?action=morning_check</button>
-            <button class="btn-orange" onclick="window.open('/plan.html?action=evening_check', '_blank')">🌙 plan.html?action=evening_check</button>
+            <button class="btn-green" onclick="openQuickAnswer('morning_check')">🌅 Бърз сутрешен отговор</button>
+            <button class="btn-orange" onclick="openQuickAnswer('evening_check')">🌙 Бърз вечерен отговор</button>
+            <button class="btn-gray" onclick="window.open('/plan.html?action=morning_check', '_blank')">plan.html fallback</button>
         </div>
     </div>
 
@@ -613,6 +612,21 @@ async function cancelAll() {
     }
 }
 
+
+function todayKey() {
+    const d = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+}
+
+function quickAnswerUrl(type) {
+    return '/quick-answer.html?type=' + encodeURIComponent(type) + '&date=' + encodeURIComponent(todayKey());
+}
+
+function openQuickAnswer(type) {
+    window.open(quickAnswerUrl(type), '_blank');
+}
+
 // ─────────────────────────────────────────────
 // Immediate notifications
 // ─────────────────────────────────────────────
@@ -658,12 +672,12 @@ async function sendSWNotification() {
     try {
         const reg = swReg || await navigator.serviceWorker.ready;
         await reg.showNotification('🚀 SW тест', {
-            body: 'Service Worker showNotification работи! Кликнете за plan.html.',
+            body: 'Кликнете за бърз отговор.',
             icon: '/icon-192x192.png',
             badge: '/icon-192x192.png',
             tag: 'sw-direct-test',
             vibrate: [200, 100, 200],
-            data: { url: '/plan.html' }
+            data: { url: quickAnswerUrl('morning_check'), type: 'morning_check', recordKey: todayKey() }
         });
         log('SW showNotification – изпратено.');
     } catch(e) {
@@ -690,9 +704,10 @@ async function scheduleDelayed() {
             body:  'Това известие беше насрочено от notifications-test.html и изпратено от SW след 7 сек!',
             tag:   'gn-test-delayed-' + ts,
             type:  'morning_check',
-            url:   '/plan.html?action=morning_check',
+            url:   quickAnswerUrl('morning_check'),
             vibrate: [300, 100, 300],
-            requireInteraction: true
+            requireInteraction: true,
+            recordKey: todayKey()
         }]
     });
     log('SW schedule съобщение изпратено – известието ще се появи след ~7 сек.');

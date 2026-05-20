@@ -38,6 +38,8 @@
     <link rel="prefetch" href="./index.html">
     <link rel="prefetch" href="./guidelines.html">
     <link rel="prefetch" href="./profile.html">
+    <link rel="prefetch" href="./game-analytics.html">
+    <link rel="prefetch" href="./quick-answer.html">
     <!-- Design System 2026 -->
     <link rel="stylesheet" href="./design-system.css">
     <!-- Font Awesome за икони -->
@@ -3993,7 +3995,11 @@
     <main class="container" id="main-content" role="main">
         
         <!-- MEAL PLAN SECTION -->
-        <div id="mealContainer"></div>
+        <div id="mealContainer" aria-live="polite">
+            <div class="skeleton-card" aria-hidden="true"></div>
+            <div class="skeleton-text w80" aria-hidden="true"></div>
+            <div class="skeleton-text w60" aria-hidden="true"></div>
+        </div>
 
         <!-- Моите храни и продукти banner -->
         <a href="food-picker.html" class="my-foods-banner" aria-label="Моите храни и продукти">
