@@ -13139,7 +13139,7 @@ async function handleAcuityTranslate(request, env) {
    3. Send the deduplicated list to Gemini as a single batch JSON request.
    4. Apply the returned translations back to the HTML.
    5. Restore the protected blocks.
-   Returns the original HTML unchanged on any error so the page still loads. */
+   Throws an error if translation fails so the caller can handle it properly. */
 async function translateAcuityHtml(html, tl, env) {
   // Unique sentinel prefix/suffix unlikely to appear in real HTML
   const PRE = '__XBPROT_';
@@ -13195,7 +13195,7 @@ async function translateAcuityHtml(html, tl, env) {
     translations = parsed;
   } catch (err) {
     console.error('[acuity-translate] Gemini translation error:', err.message);
-    return html; // serve original on any failure
+    throw err; // propagate error to caller - don't silently return untranslated HTML
   }
 
   // Build lookup map
