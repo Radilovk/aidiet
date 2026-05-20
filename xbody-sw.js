@@ -49,31 +49,10 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Only handle requests for same-origin resources; pass through cross-origin requests
+  // Cache-first for same-origin static files
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) {
-    return;
-  }
-
-  // Cache-first for translated Acuity content (versioned URLs are hash-stable,
-  // so once cached the SW serves them instantly with zero network calls).
-  // When Acuity's content changes, xbody.html fetches a new hash and uses a
-  // new URL — the SW fetches and caches that new URL automatically.
-  if (url.pathname === '/api/acuity-translate') {
-    event.respondWith(
-      caches.open(CACHE_NAME).then(async (cache) => {
-        const hit = await cache.match(event.request);
-        if (hit) return hit;
-        try {
-          const resp = await fetch(event.request);
-          if (resp.ok) cache.put(event.request, resp.clone());
-          return resp;
-        } catch (_) {
-          return new Response('Offline', { status: 503 });
-        }
-      })
-    );
-    return;
+    return; // pass through cross-origin requests
   }
 
   event.respondWith(

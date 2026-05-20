@@ -13030,13 +13030,6 @@ function handleGetClinicalProtocols() {
   });
 }
 
-/* ── Acuity content-hash helper ──────────────────────────────────────────
-   Returns a 16-char hex prefix of the SHA-256 of the given text.           */
-async function sha256Short(text) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
-}
-
 const ACUITY_URL     = 'https://app.acuityscheduling.com/schedule.php?owner=13943721&appointmentType=16859189';
 const ACUITY_HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -13044,47 +13037,17 @@ const ACUITY_HEADERS = {
   'Accept-Language': 'en-US,en;q=0.9',
 };
 
-/* ── GET /api/acuity-hash ────────────────────────────────────────────────
-   Returns the 16-char content hash of the current Acuity booking page.
-   Cached in KV for 1 hour so repeated calls never hit Acuity directly.
-   xbody.html uses this to build versioned translate URLs for cache-busting. */
-async function handleAcuityHash(request, env) {
-  const HASH_KV = 'xbody:acuity:hash';
-  try {
-    const h = await env.page_content.get(HASH_KV);
-    if (h) return new Response(h, { headers: { 'Content-Type': 'text/plain', ...CORS_HEADERS, 'Cache-Control': 'public, max-age=3600' } });
-  } catch (_) {}
-  try {
-    const resp = await fetch(ACUITY_URL, { headers: ACUITY_HEADERS });
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const hash = await sha256Short(await resp.text());
-    try { await env.page_content.put(HASH_KV, hash, { expirationTtl: 3600 }); } catch (_) {}
-    return new Response(hash, { headers: { 'Content-Type': 'text/plain', ...CORS_HEADERS, 'Cache-Control': 'public, max-age=3600' } });
-  } catch (err) {
-    console.error('[acuity-hash] error:', err.message);
-    return new Response('', { status: 500, headers: CORS_HEADERS });
-  }
-}
-
 /* ── Acuity Scheduling translation proxy ─────────────────────────────────
-   Preferred: GET /schedule.php?owner=13943721&appointmentType=16859189&tl=bg[&v={hash}]
-   Legacy:    GET /api/acuity-translate?tl=bg[&v={hash}]
-   Translations are stored permanently in KV keyed by content hash so that
-   once ANY user triggers a translation it is reused by everyone forever —
-   no further AI or backend calls until Acuity actually changes its page.
-   The optional ?v param is the hash from /api/acuity-hash; when supplied
-   the handler can serve straight from KV without fetching Acuity at all.
-   Using the canonical /schedule.php path avoids client-side 404s caused by
-   booting the Acuity app on /api/acuity-translate instead of its real route. */
+   GET /schedule.php?owner=13943721&appointmentType=16859189&tl=bg
+   Fetches the Acuity scheduling page and translates it to the target language.
+   Translations are cached in KV forever, keyed by language code only.
+   Using the canonical /schedule.php path avoids client-side 404s. */
 async function handleAcuityTranslate(request, env) {
   const url = new URL(request.url);
-  const tl  = (url.searchParams.get('tl') || 'bg').replace(/[^a-z]/g, '').slice(0, 5);
-  // Client may pass its last-known hash to skip an extra Acuity fetch
-  const vParam = (url.searchParams.get('v') || '').replace(/[^a-f0-9]/g, '').slice(0, 16);
-
-  // Legacy /api/acuity-translate responses still need the location patch because
-  // they boot on the wrong path. Canonical /schedule.php proxy responses already
-  // have the correct pathname/search and do not rely on inline script execution.
+  const tl  = (url.searchParams.get('tl') || '').replace(/[^a-z]/g, '').slice(0, 5);
+  
+  // Legacy /api/acuity-translate responses need the location patch because
+  // they boot on the wrong path. Canonical /schedule.php responses don't need it.
   const acuityParsed = new URL(ACUITY_URL);
   const acuityRelPath = acuityParsed.pathname + acuityParsed.search;
   const LOC_FIX_MARKER = '/*_xbody_loc_fix*/';
@@ -13093,8 +13056,6 @@ async function handleAcuityTranslate(request, env) {
 
   /** Ensure the location-fix script is present in served HTML (idempotent). */
   function ensureLocationFix(html) {
-    // Skip if already injected (avoids duplicates in old cached entries that might
-    // have been stored after a partial deployment).
     if (!shouldInjectLocationFix || html.includes(LOC_FIX_MARKER)) return html;
     return html.replace(/<head>/i, `<head>${locFixScript}`);
   }
@@ -13105,22 +13066,29 @@ async function handleAcuityTranslate(request, env) {
     });
   }
 
-  // Fast path: client sent a hash → check permanent KV immediately (0 Acuity fetch)
-  if (vParam) {
+  // Check if we have a cached translation for this language
+  const CACHE_KEY = `xbody:acuity:${tl}`;
+  if (tl && tl !== 'en') {
     try {
-      const cached = await env.page_content.get(`xbody:acuity:${tl}:${vParam}`);
-      if (cached) return htmlResp(ensureLocationFix(cached));
-    } catch (_) {}
+      const cached = await env.page_content.get(CACHE_KEY);
+      if (cached) {
+        console.log(`[acuity-translate] Cache hit for language: ${tl}`);
+        return htmlResp(ensureLocationFix(cached));
+      }
+    } catch (err) {
+      console.error('[acuity-translate] Cache read error:', err.message);
+    }
   }
 
   // Fetch the Acuity scheduling page
   let acuityHtml;
   try {
+    console.log('[acuity-translate] Fetching Acuity page...');
     const resp = await fetch(ACUITY_URL, { headers: ACUITY_HEADERS });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     acuityHtml = await resp.text();
   } catch (err) {
-    console.error('[acuity-translate] fetch error:', err.message);
+    console.error('[acuity-translate] Acuity fetch error:', err.message);
     const fb = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>`
       + `<body style="font-family:sans-serif;padding:24px;text-align:center">`
       + `<p>Преводът временно не е наличен.</p>`
@@ -13129,28 +13097,36 @@ async function handleAcuityTranslate(request, env) {
     return new Response(fb, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
   }
 
-  // Compute content hash and update the shared 1-h KV cache
-  const hash    = await sha256Short(acuityHtml);
-  const PERM_KEY = `xbody:acuity:${tl}:${hash}`;
-  try { await env.page_content.put('xbody:acuity:hash', hash, { expirationTtl: 3600 }); } catch (_) {}
-
-  // Check permanent hash-keyed cache (another request may have already translated this version)
-  try {
-    const cached = await env.page_content.get(PERM_KEY);
-    if (cached) return htmlResp(ensureLocationFix(cached));
-  } catch (_) {}
-
-  // Translate visible text when a Gemini key is available
+  // Add base tag for relative URLs to work correctly
   let html = acuityHtml.replace(
     /<head>/i,
     `<head><base href="https://app.acuityscheduling.com/">${shouldInjectLocationFix ? locFixScript : ''}`
   );
-  if (tl !== 'en' && env.GEMINI_API_KEY) {
-    html = await translateAcuityHtml(html, tl, env);
-  }
 
-  // Store permanently — no expirationTtl so the translation lives forever in KV
-  try { await env.page_content.put(PERM_KEY, html); } catch (_) {}
+  // Translate if needed and possible
+  if (tl && tl !== 'en') {
+    if (!env.GEMINI_API_KEY) {
+      console.error('[acuity-translate] Translation requested but GEMINI_API_KEY not configured');
+      // Return original without caching - don't cache failures
+      return htmlResp(html);
+    }
+    
+    console.log(`[acuity-translate] Translating to ${tl}...`);
+    try {
+      html = await translateAcuityHtml(html, tl, env);
+      // Only cache successful translations
+      try {
+        await env.page_content.put(CACHE_KEY, html);
+        console.log(`[acuity-translate] Cached translation for ${tl}`);
+      } catch (err) {
+        console.error('[acuity-translate] Cache write error:', err.message);
+      }
+    } catch (err) {
+      console.error('[acuity-translate] Translation error:', err.message);
+      // Return original without caching - don't cache failures
+      return htmlResp(html);
+    }
+  }
 
   return htmlResp(html);
 }
@@ -13447,8 +13423,6 @@ export default {
         const rlErr = await checkRateLimit(env, request, 'SOCIAL_AUTH');
         if (rlErr) return rlErr;
         return await handleSocialAuth(request, env);
-      } else if (url.pathname === '/api/acuity-hash' && request.method === 'GET') {
-        return await handleAcuityHash(request, env);
       } else if (url.pathname === '/schedule.php' && request.method === 'GET') {
         const owner = url.searchParams.get('owner') || '';
         const appointmentType = url.searchParams.get('appointmentType') || '';
