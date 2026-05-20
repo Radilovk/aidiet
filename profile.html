@@ -18,19 +18,19 @@
     <link rel="apple-touch-icon" sizes="180x180" href="./icon-192x192.png">
     <link rel="apple-touch-icon" sizes="152x152" href="./icon-192x192.png">
     <title>Моят Профил</title>
-    <!-- Preload adjacent tabs for instant navigation -->
-    <link rel="preload" href="./index.html" as="document">
-    <link rel="preload" href="./plan.html" as="document">
-    <link rel="preload" href="./guidelines.html" as="document">
-    <link rel="preload" href="./game-analytics.html" as="document">
-    <link rel="preload" href="./quick-answer.html" as="document">
-    <!-- Instant navigation library -->
-    <script src="https://instant.page/5.2.0" type="module" data-instant-intensity="mousedown"></script>
+    <!-- Prefetch adjacent tabs so the browser caches them before they are needed -->
+    <link rel="prefetch" href="./index.html">
+    <link rel="prefetch" href="./plan.html">
+    <link rel="prefetch" href="./guidelines.html">
+    <link rel="prefetch" href="./game-analytics.html">
+    <link rel="prefetch" href="./quick-answer.html">
     <!-- Design System 2026 -->
     <link rel="stylesheet" href="./design-system.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Inline theme init: apply saved theme before first paint to prevent FOUC -->
     <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F0FDFA';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
+    <!-- Hide body until content is ready; revealed by JS after localStorage render to prevent flash -->
+    <style>body{opacity:0}</style>
     <style>
         :root {
             --primary-red: #0D9488;
@@ -3305,6 +3305,12 @@
                 loadUserData();
                 loadAnalysis(); // REQUIREMENT 1: Load analysis
                 // Macros and strategy panels moved to guidelines.html
+
+                // Reveal the page now that critical content is rendered from localStorage.
+                requestAnimationFrame(function() {
+                    document.body.style.transition = 'opacity 120ms ease-out';
+                    document.body.style.opacity = '1';
+                });
                 
                 // Avatar upload functionality
                 const profileAvatar = document.getElementById('profileAvatar');
