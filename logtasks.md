@@ -1,5 +1,18 @@
 # Log Tasks
 
+## 2026-05-20 — Google Translate автоматичен превод в xbody.html
+
+**Задача:** Приложи метода за автоматичен Google Translate (EN→BG) към xbody.html без потребителски избор.
+
+**Направено:**
+- Добавен `<div id="google_translate_element" style="display:none;">` преди `</body>`
+- Добавена функция `googleTranslateElementInit()` с `pageLanguage: 'en'`, `includedLanguages: 'bg'`, `autoDisplay: false`
+- Добавен auto-trigger интервал (100 ms), който избира `select.value = 'bg'` и диспатчва `change` event — превежда автоматично без потребителски действия
+- Добавен Google Translate скрипт: `https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit`
+- Acuity iframe URL обновен с `&locale=bg` за вградена локализация на самото резервационно приложение
+
+---
+
 ## 2026-05-20 — Одит и почистване след фикса на флашването
 
 **Задача:** Провери дали всичко е оправено и дали има излишен код от предишни опити.
