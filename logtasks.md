@@ -2,6 +2,13 @@
 
 ## 2026-05-20
 
+- Задача: Обяснение на XBody грешката `[acuity-translate] Gemini translation error: Gemini API failed: Gemini API error: 404 Not Found`.
+- Направено:
+  1. Проверен е `xbody.html` — бутонът за превод зарежда iframe през Worker endpoint `GET /api/acuity-translate`.
+  2. Проверен е `worker.js` — endpoint-ът съществува и при превод винаги вика `translateAcuityHtml()`, която от своя страна вика `callGemini(...)`.
+  3. Потвърден е източникът на 404: `callGemini()` прави POST към `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?...`; логът `[acuity-translate] Gemini translation error` значи, че самият Worker е стигнал до Gemini, но Google е върнал 404 за модела/endpoint-а, а не че липсва frontend route.
+  4. Извод: проблемът е в server-side Gemini конфигурацията за XBody превода (най-вероятно невалиден/недостъпен model ID `gemini-2.0-flash` за текущия API endpoint или проект), не в бутона за превод.
+
 - Задача: Crowd-sourced permanent translation — след като системата засече дума на английски, преводът се съхранява завинаги и всички потребители го ползват без AI или бекенд заявки.
 - Направено:
   1. worker.js — добавен `sha256Short()` helper и `handleAcuityHash` endpoint (`GET /api/acuity-hash`) — връща 16-char hex hash на Acuity страницата, кешира го в KV за 1 час.
