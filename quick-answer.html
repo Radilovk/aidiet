@@ -60,7 +60,7 @@
             padding: 22px 18px 18px;
             transform: translateY(14px) scale(0.98);
             opacity: 0;
-            animation: pop-in 0.42s ease-out forwards;
+            animation: pop-in 0.22s ease-out forwards;
         }
         .badge {
             display: inline-flex;
@@ -376,7 +376,7 @@
             vibrate([24, 36, 24]);
             makeConfetti(30);
             render(
-                '<div class="badge">✨ NutriPlan quick answer</div>' +
+                '<div class="badge">✨ Записано</div>' +
                 '<div class="success">' +
                     '<div class="success-icon">✓</div>' +
                     '<h2>' + escapeHtml(title) + '</h2>' +
@@ -416,14 +416,14 @@
             render(
                 '<div class="badge">🌅 Сутрешен check-in • ' + escapeHtml(dateLabel(recordKey)) + '</div>' +
                 '<h1 class="title">Спахте ли добре тази нощ?</h1>' +
-                '<p class="subtitle">Отговорът се записва локално и ще влезе директно в game analyse модула при следващото зареждане.</p>' +
+                '<p class="subtitle">Изберете един отговор.</p>' +
                 '<div class="progress"><span class="active"></span></div>' +
                 '<div class="choices">' +
                     '<button class="choice primary" id="sleepYes">' +
-                        '<strong>Да 🌞</strong><span>Спокойна нощ и добър старт.</span>' +
+                        '<strong>Да 🌞</strong><span>Запис веднага.</span>' +
                     '</button>' +
                     '<button class="choice warn" id="sleepNo">' +
-                        '<strong>Не 😴</strong><span>Записваме го, за да влияе реално на дневния резултат.</span>' +
+                        '<strong>Не 😴</strong><span>Запис веднага.</span>' +
                     '</button>' +
                 '</div>' +
                 '<div class="footer-actions">' +
@@ -433,7 +433,7 @@
             document.getElementById('sleepYes').addEventListener('click', function() {
                 vibrate(16);
                 saveMorning(true);
-                renderSuccess('Готово! Данните са запазени ✨', 'Сутрешният ви отговор за ' + dateLabel(recordKey) + ' вече е локално съхранен.', [
+                renderSuccess('Готово ✨', 'Отговорът е записан.', [
                     chip('Сън', 'Да'),
                     chip('Дата', dateLabel(recordKey))
                 ]);
@@ -441,7 +441,7 @@
             document.getElementById('sleepNo').addEventListener('click', function() {
                 vibrate(16);
                 saveMorning(false);
-                renderSuccess('Готово! Данните са запазени ✨', 'Отбелязахме, че сънят не е бил достатъчен.', [
+                renderSuccess('Готово ✨', 'Отговорът е записан.', [
                     chip('Сън', 'Не'),
                     chip('Дата', dateLabel(recordKey))
                 ]);
@@ -453,21 +453,21 @@
                 {
                     key: 'activityLevel',
                     title: 'Ниво на активност?',
-                    subtitle: 'Изберете най-близкото до вашия ден.',
+                    subtitle: 'Един бърз избор.',
                     options: [
-                        { value: 1, title: 'Ниска', hint: 'По-малко движение и енергия.' },
-                        { value: 2, title: 'Умерена', hint: 'Добър баланс и нормален ритъм.' },
-                        { value: 3, title: 'Висока', hint: 'Много движение, тренировка или активен ден.' }
+                        { value: 1, title: 'Ниска', hint: 'Спокоен ден.' },
+                        { value: 2, title: 'Умерена', hint: 'Нормален ритъм.' },
+                        { value: 3, title: 'Висока', hint: 'Активен ден.' }
                     ]
                 },
                 {
                     key: 'emotionalBalance',
                     title: 'Емоционален баланс?',
-                    subtitle: 'Как се чувствахте през деня?',
+                    subtitle: 'Един бърз избор.',
                     options: [
-                        { value: 1, title: 'Напрегнат', hint: 'Денят беше тежък и натоварващ.' },
-                        { value: 2, title: 'Спокоен', hint: 'Имахте сравнително равномерен ден.' },
-                        { value: 3, title: 'Позитивен', hint: 'Денят ви е дал добър заряд.' }
+                        { value: 1, title: 'Напрегнат', hint: 'Тежък ден.' },
+                        { value: 2, title: 'Спокоен', hint: 'Равномерен ден.' },
+                        { value: 3, title: 'Позитивен', hint: 'Добър заряд.' }
                     ]
                 }
             ];
@@ -475,10 +475,10 @@
                 steps.push({
                     key: 'waterIntake',
                     title: 'Изпихте ли поне 2 л вода?',
-                    subtitle: 'Това е директен фактор в gamification резултата.',
+                    subtitle: 'Един бърз избор.',
                     options: [
-                        { value: false, title: 'Не', hint: 'Ще го отразим коректно в дневния резултат.' },
-                        { value: true, title: 'Да', hint: 'Супер — хидратацията влиза веднага в game analyse.' }
+                        { value: false, title: 'Не', hint: 'Запис веднага.' },
+                        { value: true, title: 'Да', hint: 'Запис веднага.' }
                     ]
                 });
             }
@@ -494,7 +494,7 @@
             var step = steps[stepIndex];
             if (!step) {
                 saveEvening();
-                renderSuccess('Готово! Данните са запазени ✨', 'Вечерният check-in за ' + dateLabel(recordKey) + ' вече е локално интегриран.', [
+                renderSuccess('Готово ✨', 'Отговорите са записани.', [
                     chip('Активност', ['','Ниска','Умерена','Висока'][state.activityLevel] || '—'),
                     chip('Баланс', ['','Напрегнат','Спокоен','Позитивен'][state.emotionalBalance] || '—'),
                     chip('Вода', state.waterIntake ? 'Да' : 'Не'),
@@ -547,7 +547,7 @@
                 if (!getRecord(recordKey).morningCheck) {
                     saveMorning(auto === 'morning_yes');
                 }
-                renderSuccess('Готово! Данните са запазени ✨', 'Сутрешният отговор за ' + dateLabel(recordKey) + ' е записан директно от нотификацията.', [
+                renderSuccess('Готово ✨', 'Отговорът е записан.', [
                     chip('Сън', auto === 'morning_yes' ? 'Да' : 'Не'),
                     chip('Дата', dateLabel(recordKey))
                 ]);
