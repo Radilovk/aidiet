@@ -4710,10 +4710,22 @@
     <!-- Swipe navigation between tabs -->
     <script>
     (function() {
-        var tabs = ['index.html?stay=1', 'plan.html', 'guidelines.html', 'profile.html'];
+        var tabs = [
+            { tab: 'home', url: 'index.html?stay=1' },
+            { tab: 'plan', url: 'plan.html' },
+            { tab: 'guidelines', url: 'guidelines.html' },
+            { tab: 'profile', url: 'profile.html' }
+        ];
         var currentIndex = 3;
         var touchStartX = 0, touchStartY = 0;
         var THRESHOLD = 60;
+        function openTabTarget(target) {
+            if (target.tab && requestShellAction('NUTRIPLAN_SWITCH_TAB', { tab: target.tab })) {
+                return true;
+            }
+            window.location.href = target.url;
+            return false;
+        }
         document.addEventListener('touchstart', function(e) {
             touchStartX = e.changedTouches[0].clientX;
             touchStartY = e.changedTouches[0].clientY;
@@ -4723,9 +4735,9 @@
             var dy = e.changedTouches[0].clientY - touchStartY;
             if (Math.abs(dx) < THRESHOLD || Math.abs(dx) < Math.abs(dy)) return;
             if (dx < 0 && currentIndex < tabs.length - 1) {
-                window.location.href = tabs[currentIndex + 1];
+                openTabTarget(tabs[currentIndex + 1]);
             } else if (dx > 0 && currentIndex > 0) {
-                window.location.href = tabs[currentIndex - 1];
+                openTabTarget(tabs[currentIndex - 1]);
             }
         }, { passive: true });
     })();

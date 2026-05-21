@@ -3603,7 +3603,7 @@
         function showAuthForm() {
             /* Guard: plan still pending specialist review → send to plan-pending */
             if (localStorage.getItem('planSource') === 'questionnaire2') {
-                window.location.replace('plan-pending.html');
+                navigateTopLevel('plan-pending.html', true);
                 return;
             }
             /* If there's no local plan, show the auth form with a "restore your plan"
@@ -3753,7 +3753,7 @@
                     <button id="paPwBtn" class="pa-primary-btn">Вход</button>
                     <p style="margin:12px 0 4px;font-size:0.82rem;color:var(--text-gray,#6b7280);">
                         Нямате профил?
-                        <button onclick="window.location.href='questionnaire2.html'" style="background:none;border:none;color:#0D9488;font-size:0.82rem;cursor:pointer;padding:0;text-decoration:underline;">Попълнете въпросника</button>
+                        <button onclick="navigateTopLevel('questionnaire2.html')" style="background:none;border:none;color:#0D9488;font-size:0.82rem;cursor:pointer;padding:0;text-decoration:underline;">Попълнете въпросника</button>
                     </p>
                     <button id="paForgotBtn" style="background:none;border:none;color:var(--text-gray,#6b7280);font-size:0.82rem;cursor:pointer;padding:4px 0;text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Забравена парола?</button>
                     <div id="planAuthError"></div>
@@ -3855,6 +3855,7 @@
         window.planSignOut = async function () {
             await signOut(auth).catch(() => {});
             _clearUserPlanData();
+            if (requestShellAction('NUTRIPLAN_LOGOUT')) return;
             window.location.replace('index.html?stay=1');
         };
 
@@ -3871,7 +3872,7 @@
                         // Restore was already attempted in this tab but failed to produce a plan
                         // (shouldn't normally happen) — avoid a loop and go to questionnaire.
                         sessionStorage.removeItem(_planRestoreKey);
-                        window.location.replace('questionnaire2.html');
+                        navigateTopLevel('questionnaire2.html', true);
                         return;
                     }
                     sessionStorage.setItem(_planRestoreKey, '1');
@@ -3889,7 +3890,7 @@
                         return;
                     }
                     // No plan on server either — send to questionnaire
-                    window.location.replace('questionnaire2.html');
+                    navigateTopLevel('questionnaire2.html', true);
                     return;
                 }
                 hideOverlay();
@@ -4630,7 +4631,7 @@
             try {
                 // Guard: plan submitted via questionnaire2 must wait for admin approval
                 if (localStorage.getItem('planSource') === 'questionnaire2') {
-                    window.location.replace('plan-pending.html');
+                    navigateTopLevel('plan-pending.html', true);
                     return;
                 }
 
@@ -4838,7 +4839,7 @@
                         </div>
                         <h2 style="color: var(--text-dark); margin-bottom: 15px;">Грешка</h2>
                         <p style="color: var(--text-light); margin-bottom: 30px;">${message}</p>
-                        <button onclick="window.location.href='questionnaire.html'" 
+                        <button onclick="navigateTopLevel('questionnaire.html')" 
                                 style="background: var(--primary-red); color: white; border: none; 
                                        padding: 15px 30px; border-radius: 25px; font-size: 1rem; 
                                        font-weight: 600; cursor: pointer;">
@@ -4849,7 +4850,7 @@
             }
             if (redirect) {
                 setTimeout(() => {
-                    window.location.href = 'questionnaire.html';
+                    navigateTopLevel('questionnaire.html');
                 }, 3000);
             }
         }
@@ -9851,7 +9852,7 @@
             profBtn.className = 'game-modal-btn';
             profBtn.style.cssText = 'flex:1;background:rgba(13,148,136,0.1);color:#0D9488;border:1.5px solid rgba(13,148,136,0.25);';
             profBtn.textContent = '\uD83D\uDCCA \u0412\u0438\u0436 \u0430\u043D\u0430\u043B\u0438\u0437\u0438';
-            profBtn.onclick = function(){ overlay.remove(); window.location.href='profile.html'; };
+            profBtn.onclick = function(){ overlay.remove(); openShellTab('profile', 'profile.html'); };
 
             var closBtn2 = document.createElement('button');
             closBtn2.className = 'game-modal-btn';
