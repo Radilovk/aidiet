@@ -57,9 +57,14 @@ const PERSISTENCE_SCRIPT = `
       }).join(' '));
     }
     if (element.id) {
-      var explicit = Array.prototype.find.call(document.querySelectorAll('label[for]'), function (label) {
-        return label.getAttribute('for') === element.id;
-      });
+      var explicit = null;
+      var labels = document.querySelectorAll('label[for]');
+      for (var i = 0; i < labels.length; i += 1) {
+        if (labels[i].getAttribute('for') === element.id) {
+          explicit = labels[i];
+          break;
+        }
+      }
       if (explicit) return normalizeText(explicit.textContent || '');
     }
     var wrappingLabel = element.closest('label');
