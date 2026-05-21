@@ -7,12 +7,12 @@
     
     <link rel="manifest" href="xbody-manifest.json">
     <meta name="color-scheme" content="light dark">
-    <meta name="theme-color" content="#F0FDFA" media="(prefers-color-scheme: light)">
-    <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#FEE2E2" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#1A0A0A" media="(prefers-color-scheme: dark)">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="XBody">
-    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F0FDFA';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
+    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#1A0A0A':'#FEE2E2';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
     <link rel="apple-touch-icon" href="icon-192.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
@@ -135,7 +135,7 @@
             inset: 0;
             z-index: 400;
             overflow-y: auto;
-            background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 52%);
+            background: linear-gradient(180deg, #fef2f2 0%, #ffffff 52%);
             padding:
                 calc(env(safe-area-inset-top, 0px) + 28px)
                 20px
@@ -192,8 +192,8 @@
         }
         .xbody-form-input:focus {
             outline: none;
-            border-color: #10b981;
-            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+            border-color: #dc2626;
+            box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.15);
         }
         .xbody-checkbox-row {
             display: flex;
@@ -208,7 +208,7 @@
             margin-top: 2px;
             width: 18px;
             height: 18px;
-            accent-color: #10b981;
+            accent-color: #dc2626;
             flex: 0 0 auto;
         }
         .xbody-submit-btn {
@@ -216,7 +216,7 @@
             border: none;
             border-radius: 14px;
             padding: 15px 18px;
-            background: #111827;
+            background: #b91c1c;
             color: #ffffff;
             font-size: 1rem;
             font-weight: 700;
@@ -224,7 +224,7 @@
             transition: transform 0.15s ease, background 0.2s ease;
         }
         .xbody-submit-btn:hover {
-            background: #1f2937;
+            background: #991b1b;
             transform: translateY(-1px);
         }
         .xbody-submit-btn:active {

@@ -5,7 +5,7 @@
   "start_url": "xbody.html",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#ffffff",
+  "theme_color": "#FEE2E2",
   "orientation": "portrait",
   "icons": [
     {
