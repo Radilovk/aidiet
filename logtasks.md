@@ -1,5 +1,19 @@
 # Log Tasks
 
+## 2026-05-21 — Одит на APK дефекта при tab „Начало“ след NutriPlan shell промените
+
+**Задача:** Да се анализира защо APK дефектира при login и клик върху tab „Начало“, да се установи вероятната причина и да се изведе стратегия за решаване, плюс други свързани проблеми.
+
+**Направено:**
+1. **Shell flow одит:** Проверих `index.html` и `app.js`, за да проследя как shell-ът монтира iframe tab-овете и как `home` табът зарежда `index.html?stay=1&embedded=1`.
+2. **Home tab одит:** Проверих `index.html` скриптовете за startup redirect, auth restore, theme, login modal, swipe логика и standalone UI, които продължават да се изпълняват и в embedded home iframe.
+3. **Рискови зони:** Изолирах като основен риск тежкия embedded `index.html` + preload на всички iframe-и + повторното replay-ване на shell анимации при `switchTab`, особено за Home таба.
+4. **Допълнителни проблеми:** Отделих и вторични рискове като ненужно дублиране на auth/native restore/service-worker/marketing логика в embedded home изгледа и липса на защита срещу натрупване на frame patch listeners при reload.
+
+**Резултат:** Подготвен е план за корекция с фокус върху Home tab stability, олекотяване на embedded home режима и стесняване на други shell/APK parity проблеми.
+
+---
+
 ## 2026-05-21 — Session ownership, logout reset и tab-safe shortcut корекции
 
 **Задача:** Да се имплементират одобрените корекции по logout/session reset, user-switch cache purge, shell/tab navigation, chat haptics и food-picker back flow.
