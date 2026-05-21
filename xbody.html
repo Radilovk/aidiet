@@ -94,8 +94,8 @@
         #back-btn {
             position: fixed;
             /* Sit just below the iOS status bar (safe-area-inset-top) */
-            top: calc(constant(safe-area-inset-top) + 10px + 8mm);
-            top: calc(env(safe-area-inset-top, 0px) + 10px + 8mm);
+            top: calc(constant(safe-area-inset-top) + 10px + 5mm);
+            top: calc(env(safe-area-inset-top, 0px) + 10px + 5mm);
             left: 12px;
             z-index: 500;
             width: 36px;
@@ -306,53 +306,10 @@
 
     <script>
         /* ── Service Worker ── */
-        const ACUITY_DIRECT_SRC = 'https://app.acuityscheduling.com/schedule.php?owner=13943721&appointmentType=16859189';
-        const ACUITY_PROXY_SRC  = '/schedule.php?owner=13943721&appointmentType=16859189';
-
-        window.XBODY_ACUITY_DIRECT_SRC = ACUITY_DIRECT_SRC;
-        window.XBODY_ACUITY_PROXY_SRC  = ACUITY_PROXY_SRC;
-
-        function waitForServiceWorkerControl(timeoutMs) {
-            if (!('serviceWorker' in navigator) || navigator.serviceWorker.controller) {
-                return Promise.resolve();
-            }
-
-            return new Promise((resolve) => {
-                let settled = false;
-                const finish = () => {
-                    if (settled) return;
-                    settled = true;
-                    clearTimeout(timer);
-                    navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
-                    resolve();
-                };
-                const onControllerChange = () => finish();
-                const timer = setTimeout(finish, timeoutMs);
-                navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('xbody-sw.js');
             });
-        }
-
-        async function loadAcuityFrame() {
-            const frame = document.querySelector('iframe');
-            if (!frame) return;
-
-            let targetSrc = ACUITY_DIRECT_SRC;
-
-            if ('serviceWorker' in navigator) {
-                try {
-                    navigator.serviceWorker.register('xbody-sw.js');
-                    await navigator.serviceWorker.ready;
-                    await waitForServiceWorkerControl(4000);
-                    if (navigator.serviceWorker.controller) {
-                        targetSrc = ACUITY_PROXY_SRC;
-                    }
-                } catch (_) {
-                    targetSrc = ACUITY_DIRECT_SRC;
-                }
-            }
-
-            frame.dataset.originalSrc = targetSrc;
-            frame.src = targetSrc;
         }
 
         /* ── iOS scroll-container recovery on app resume ──────────────────────
@@ -376,7 +333,10 @@
         });
 
         /* ── Load Acuity iframe ── */
-        loadAcuityFrame();
+        (function () {
+            var frame = document.querySelector('iframe');
+            if (frame) frame.src = 'https://app.acuityscheduling.com/schedule.php?owner=13943721&appointmentType=16859189&locale=bg';
+        })();
 
         /* ── PWA Install Logic ── */
         (function () {
@@ -521,9 +481,8 @@
             const frame = document.querySelector('iframe');
             if (!btn || !frame) return;
 
-            function getOriginalSrc() {
-                return frame.dataset.originalSrc || window.XBODY_ACUITY_DIRECT_SRC || ACUITY_DIRECT_SRC;
-            }
+            // Store the original src so we can hard-reset the iframe if needed.
+            const originalSrc = frame.src;
 
             let navDepth = 0; // depth > 0 → button visible
 
@@ -614,7 +573,7 @@
                     frame.contentWindow.history.back();
                 } catch (_) {
                     // Cross-origin history access denied – hard-reset the frame to the original src.
-                    frame.src = getOriginalSrc();
+                    frame.src = originalSrc;
                     navDepth    = 0;
                     msgNavDepth = 0;
                     homeHeight  = null; // re-baseline on next setHeight message
@@ -629,6 +588,33 @@
 
             btn.addEventListener('click', doBack);
         })();
+    </script>
+
+    <!-- Google Translate: автоматичен превод от английски към български -->
+    <div id="google_translate_element" style="display:none;"></div>
+
+    <script type="text/javascript">
+        function googleTranslateElementInit() {
+            new google.translate.TranslateElement({
+                pageLanguage: 'en',
+                includedLanguages: 'bg',
+                layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+                autoDisplay: false
+            }, 'google_translate_element');
+
+            // Автоматично задействане на превода веднага след зареждане
+            var checkInterval = setInterval(function () {
+                var select = document.querySelector('select.goog-te-combo');
+                if (select) {
+                    select.value = 'bg';
+                    select.dispatchEvent(new Event('change'));
+                    clearInterval(checkInterval);
+                }
+            }, 100);
+        }
+    </script>
+    <script type="text/javascript"
+            src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit">
     </script>
 </body>
 </html>

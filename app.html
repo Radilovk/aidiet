@@ -43,7 +43,6 @@
         }
 
         /* ── Tab frame containers ── */
-        /* Keep iframes alive and switch tabs with the smallest possible CSS change. */
         .tab-frame {
             position: fixed;
             top: 0;
@@ -51,17 +50,25 @@
             right: 0;
             bottom: var(--shell-nav-height);
             overflow: hidden;
+            visibility: hidden;
             opacity: 0;
             pointer-events: none;
-            transform: translateZ(0);
+            transform: translate3d(0, 8px, 0) scale(0.995);
+            transition:
+                opacity 120ms ease-out,
+                transform 160ms cubic-bezier(0.22, 1, 0.36, 1),
+                visibility 0s linear 160ms;
             contain: layout style paint;
             will-change: opacity, transform;
             z-index: 0;
         }
 
         .tab-frame.active {
+            visibility: visible;
             opacity: 1;
             pointer-events: auto;
+            transform: translate3d(0, 0, 0) scale(1);
+            transition-delay: 0s;
             z-index: 1;
         }
 
@@ -72,6 +79,13 @@
             display: block;
             background: transparent;
             transform: translateZ(0);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .tab-frame {
+                transition: none;
+                transform: none;
+            }
         }
 
         /* ── Shell bottom navigation ── */
@@ -273,9 +287,8 @@
 
             // Show/hide frames without destroying layout or iframe state.
             document.querySelectorAll('.tab-frame').forEach(function(f) {
-                f.classList.remove('active');
+                f.classList.toggle('active', f === targetFrame);
             });
-            targetFrame.classList.add('active');
 
             // Update nav active state
             document.querySelectorAll('.shell-nav-item').forEach(function(btn) {
