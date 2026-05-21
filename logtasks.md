@@ -1,5 +1,30 @@
 # Log Tasks
 
+## 2026-05-21 — Fix за празни Plan/Home табове след второ пускане на APK
+
+**Задача:** След първото пускане APK работи, но след затваряне и повторно отваряне табовете `plan` и `index/home` остават празни, докато `guidelines` и `profile` продължават да работят. Да се провери дали това е от предишния проблем и да се приложи реален fix.
+
+**Диагноза:**
+- Това **не е директно същият проблем** като забавянето от `app.html` animation/reflow path.
+- Реалният проблем при второто пускане е в `NativeBackup.init()`:
+  - `plan.js` и `index.html` правят `await NativeBackup.init()` преди да покажат UI.
+  - `native-backup.js` правеше `prefs.keys()` + серия `prefs.get()` без timeout и без early-exit, дори когато `localStorage` вече има нужните данни.
+  - Ако Capacitor Preferences се забави/увисне при relaunch, `plan` и `home` остават blank, защото reveal логиката никога не стига до `body.style.opacity = '1'` / `.hero.visible`.
+- `guidelines` и `profile` не зависят от този blocking path по същия начин, затова продължават да се показват.
+
+**Направено:**
+1. **`native-backup.js`**
+   - Добавени `PRIMARY_KEYS = ['dietPlan', 'userId', 'userData']`
+   - Restore вече **се пропуска напълно**, ако `localStorage` вече съдържа primary данни
+   - Добавени timeouts за `prefs.keys()` и `prefs.get()`
+   - Добавен общ restore budget, за да не може Preferences restore да блокира безкрайно startup-а
+
+**Очакван резултат:**
+- При повторно пускане на APK `plan` и `home` вече не трябва да остават празни заради блокиращ NativeBackup restore.
+- Ако Preferences отговори бавно, приложението продължава да стартира вместо да увисне на blank screen.
+
+---
+
 ## 2026-05-21 — Анализ на реалната причина за забавяне при tab switch в APK
 
 **Задача:** Намери реалната причина за забавянето при превключване между табовете в APK, провери какви стратегии са прилагани досега и къде е грешката, без да се трупа излишен код.
