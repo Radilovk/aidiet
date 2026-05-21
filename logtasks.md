@@ -1,5 +1,29 @@
 # Log Tasks
 
+## 2026-05-21 — Локален onboarding и Acuity iframe в xbody
+
+**Задача:** Да се добави локален onboarding за потребителски данни и iframe интеграция към Acuity Scheduling директно в `xbody.html`.
+
+**Направено:**
+1. **`xbody.html`:** Добавих onboarding екран с полета за име, имейл и телефон, checkbox „Запази данните ми за бързо записване“ и бутон „Продължи“.
+2. **`xbody.html`:** Направих скрит по подразбиране iframe контейнер с `allow="payment"` и изисквания `sandbox`, който се показва само след налични локални данни или успешно попълване на формата.
+3. **`xbody.html`:** Добавих localStorage логика за `xbody_booking_full_name`, `xbody_booking_email`, `xbody_booking_phone` и `xbody_booking_consent`, включително `removeItem()` само за тези ключове при отказ от запазване.
+4. **`xbody.html`:** Построих динамичен Acuity URL към `https://xbody.as.me/...`, който инжектира `firstName`, `lastName`, `email`, `phone` и добавя `&field:3583430=yes` само когато checkbox-ът е маркиран.
+5. **Проверка:** Пуснах `npm test` преди промените и потвърдих, че наличният тестов скрипт минава успешно.
+
+**Резултат:** Първите потребители виждат локален onboarding, а връщащите се влизат директно в Acuity iframe с предварително подадени данни от localStorage.
+
+---
+
+## 2026-05-21 — XBody back бутонът свален с 2.5 мм
+
+**Задача:** В `xbody` back бутонът да се свали с 2.5 мм надолу.
+
+**Направено:**
+1. **`xbody.html`:** Увеличих top offset-а на `#back-btn` от `5mm` на `7.5mm`, за да слезе бутонът с още 2.5 мм под safe-area/status bar отместването.
+2. **Проверка:** Пуснах `npm test` (наличният тестов скрипт в репото) преди промяната и потвърдих, че завършва успешно.
+
+**Резултат:** Back бутонът в XBody стои с 2.5 мм по-надолу, без да се променя останалият layout.
 ## 2026-05-21 — Session ownership, logout reset и tab-safe shortcut корекции
 
 **Задача:** Да се имплементират одобрените корекции по logout/session reset, user-switch cache purge, shell/tab navigation, chat haptics и food-picker back flow.
