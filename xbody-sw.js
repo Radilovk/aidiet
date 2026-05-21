@@ -1,6 +1,6 @@
 // Service Worker for XBody Ability PWA
 // Minimal, isolated from the NutriPlan service worker
-const CACHE_NAME = 'xbody-v7';
+const CACHE_NAME = 'xbody-v6';
 const ACUITY_ORIGIN = 'https://app.acuityscheduling.com';
 const ACUITY_PROXY_PATH = '/schedule.php';
 const ACUITY_PERSISTENCE_SCRIPT_MARKER = '/*_xbody_form_persistence_v1*/';
@@ -11,8 +11,8 @@ const STATIC_CACHE = [
 ];
 // Icons are optional – missing icons should not fail the SW install.
 const OPTIONAL_CACHE = [
-  'xbody-icon-192.png',
-  'xbody-icon-512.png'
+  'icon-192.png',
+  'icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {
