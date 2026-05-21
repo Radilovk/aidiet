@@ -2,7 +2,7 @@
 // Configure base path - use '/' for custom domain (biocode.website) or '/aidiet' for GitHub Pages
 const BASE_PATH = '';
 
-const CACHE_NAME = 'nutriplan-v13';
+const CACHE_NAME = 'nutriplan-v12';
 const DEFAULT_ICON = `${BASE_PATH}/icon-192x192.png`;
 const DEFAULT_BADGE = `${BASE_PATH}/icon-192x192.png`;
 const DEFAULT_TITLE = 'NutriPlan';
@@ -24,7 +24,6 @@ const STATIC_CACHE = [
   `${BASE_PATH}/analysis.html`,
   `${BASE_PATH}/admin.html`,
   `${BASE_PATH}/design-system.css`,
-  `${BASE_PATH}/docs/Chat2.png`,
   `${BASE_PATH}/icon-192x192.png`,
   `${BASE_PATH}/icon-192x192.svg`,
   `${BASE_PATH}/icon-512x512.png`,
