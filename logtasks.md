@@ -1,5 +1,17 @@
 # Log Tasks
 
+## 2026-05-21 — Fix: /schedule.php страницата не се отваряше
+
+**Задача:** След последната xbody задача страницата `https://biocode.website/schedule.php?owner=13943721&appointmentType=16859189` спря да работи.
+
+**Причина:** В предишната задача route handler-ът за `/schedule.php` беше премахнат от `worker.js`. При директна навигация към URL-а Cloudflare Worker връщаше JSON `{ "error": "Not found" }` (404), тъй като само `xbody-sw.js` (Service Worker) имаше proxy логиката — но SW не е активен при директна навигация.
+
+**Направено:**
+- Добавена функция `handleAcuityProxy(request)` в `worker.js`, която proxy-ва заявки към `https://app.acuityscheduling.com/schedule.php?...` като пренася query параметрите и изчиства `x-frame-options` / CSP headers.
+- Добавен route handler `url.pathname === '/schedule.php'` в routing chain-а на worker.js.
+
+**Резултат:** Директна навигация към schedule.php отново работи — Cloudflare Worker проксира заявката към Acuity.
+
 ## 2026-05-21 — XBody back button + local persistence
 
 **Задача:** „1. Back бутонът в `xbody.html` да се свали с 3 мм надолу. 2. Всички въведени данни и отметки в XBody формата да се пазят локално и да се възстановяват автоматично при бъдещи посещения.“
