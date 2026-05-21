@@ -4321,17 +4321,8 @@
         }, true);
         // When shell activates this tab, refresh only if plan state actually changed
         window.addEventListener('message', function(e) {
-            if (!e.data) return;
-            if (e.data.type === 'TAB_ACTIVATED' && typeof window.handlePlanTabActivated === 'function') {
+            if (e.data && e.data.type === 'TAB_ACTIVATED' && typeof window.handlePlanTabActivated === 'function') {
                 window.handlePlanTabActivated();
-                return;
-            }
-            if (e.data.type === 'PLAN_SHORTCUT') {
-                if (e.data.action === 'openChat' && typeof window.openChat === 'function') {
-                    window.openChat();
-                } else if (e.data.action === 'openFoodAnalysis' && typeof window.openFoodAnalysis === 'function') {
-                    window.openFoodAnalysis();
-                }
             }
         });
     })();
