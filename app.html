@@ -163,6 +163,88 @@
             background: rgba(13, 148, 136, 0.05);
         }
 
+        /* Shell-level FABs: the embedded pages hide their own FABs, so the shell
+           keeps the same actions visible while iframes stay alive. */
+        .shell-fab {
+            position: fixed;
+            bottom: calc(var(--shell-nav-height) + 20px);
+            width: 56px;
+            height: 56px;
+            border: none;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            cursor: pointer;
+            z-index: 10000;
+            -webkit-tap-highlight-color: transparent;
+            background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%);
+            box-shadow:
+                0 8px 28px rgba(13, 148, 136, 0.45),
+                0 4px 12px rgba(13, 148, 136, 0.25),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+        }
+
+        .shell-fab::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: linear-gradient(135deg, rgba(255,255,255,0.25) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .shell-fab-chat {
+            right: calc(16px + env(safe-area-inset-right, 0px));
+            overflow: hidden;
+            animation: _shell_fab_pulse 3s ease-in-out infinite;
+        }
+
+        .shell-fab-food {
+            left: calc(16px + env(safe-area-inset-left, 0px));
+            font-size: 1.3rem;
+        }
+
+        .shell-fab:hover {
+            transform: scale(1.1);
+            box-shadow: 0 12px 36px rgba(13, 148, 136, 0.55);
+        }
+
+        .shell-fab-chat:hover {
+            transform: scale(1.12) rotate(5deg);
+            animation: none;
+        }
+
+        .shell-fab:active { transform: scale(0.95); }
+
+        .shell-chat-icon-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: inherit;
+        }
+
+        @keyframes _shell_fab_pulse {
+            0%, 100% {
+                box-shadow:
+                    0 8px 28px rgba(13, 148, 136, 0.45),
+                    0 4px 12px rgba(13, 148, 136, 0.25),
+                    0 0 0 0 rgba(13, 148, 136, 0.35),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+                transform: scale(1);
+            }
+            50% {
+                box-shadow:
+                    0 12px 36px rgba(13, 148, 136, 0.55),
+                    0 6px 16px rgba(13, 148, 136, 0.35),
+                    0 0 0 14px rgba(13, 148, 136, 0),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+                transform: scale(1.05);
+            }
+        }
+
         /* Loading placeholder while first iframe loads */
         .tab-loader {
             position: fixed;
@@ -216,6 +298,14 @@
     <div class="tab-frame" id="frame-home">
         <iframe id="iframe-home" src="./index.html?stay=1" title="Начало" loading="eager" fetchpriority="low" allowfullscreen></iframe>
     </div>
+
+    <button class="shell-fab shell-fab-chat" onclick="shellPlanShortcut('chat')" aria-label="Отвори чат асистент">
+        <img src="./docs/Chat2.png" alt="" class="shell-chat-icon-img" aria-hidden="true">
+    </button>
+
+    <button class="shell-fab shell-fab-food" onclick="shellPlanShortcut('food')" aria-label="Анализ на храна чрез снимка">
+        <i class="fas fa-camera" aria-hidden="true"></i>
+    </button>
 
     <!-- Shell bottom navigation (always on top, managed by shell) -->
     <nav class="shell-nav" id="shellNav" role="navigation" aria-label="Основна навигация">
@@ -300,6 +390,16 @@
             // Notify the newly-active iframe that it was shown (for refresh-on-focus)
             if (iframe && iframe.contentWindow) {
                 try { iframe.contentWindow.postMessage({ type: 'TAB_ACTIVATED' }, '*'); } catch(e) {}
+            }
+        };
+
+        window.shellPlanShortcut = function(action) {
+            window.shellSwitchTab('plan');
+            var planIf = document.getElementById('iframe-plan');
+            if (planIf && planIf.contentWindow) {
+                setTimeout(function() {
+                    try { planIf.contentWindow.postMessage({ type: 'PLAN_SHORTCUT', action: action }, '*'); } catch(e) {}
+                }, 120);
             }
         };
 

@@ -352,6 +352,16 @@
             if (typeof NativeBackup !== 'undefined') {
                 await NativeBackup.init().catch(() => {});
             }
+            if (window.npPlanAuthReady) {
+                const authUser = await window.npPlanAuthReady;
+                if (!authUser) {
+                    requestAnimationFrame(function() {
+                        document.body.style.transition = 'opacity 120ms ease-out';
+                        document.body.style.opacity = '1';
+                    });
+                    return;
+                }
+            }
             loadDietData();
             // Reveal the page now that critical content is rendered from localStorage.
             // Using rAF ensures the browser has committed the opacity:0 frame before
@@ -559,8 +569,9 @@
                     // Skip backend save only when this exact local profile was already confirmed.
                     if (localStorage.getItem('np_profile_synced') === '1' &&
                         localStorage.getItem('np_profile_sync_sig') === profileSig) return;
-                    const idToken = (uid.startsWith('fb_') && auth.currentUser)
-                        ? await auth.currentUser.getIdToken().catch(() => null)
+                    const fbAuth = window.npFirebaseAuth;
+                    const idToken = (uid.startsWith('fb_') && fbAuth && fbAuth.currentUser)
+                        ? await fbAuth.currentUser.getIdToken().catch(() => null)
                         : null;
                     fetch('https://aidiet.radilov-k.workers.dev/api/user/save-profile', {
                         method: 'POST',
@@ -2211,8 +2222,9 @@
                         // Keep the backend profile in sync so the updated plan is
                         // available after reinstalling or on other devices/contexts.
                         if (userId) {
-                            const _idToken = (userId.startsWith('fb_') && auth.currentUser)
-                                ? await auth.currentUser.getIdToken().catch(() => null)
+                            const fbAuth = window.npFirebaseAuth;
+                            const _idToken = (userId.startsWith('fb_') && fbAuth && fbAuth.currentUser)
+                                ? await fbAuth.currentUser.getIdToken().catch(() => null)
                                 : null;
                             const planSourceSync = localStorage.getItem('planSource') || '';
                             fetch('https://aidiet.radilov-k.workers.dev/api/user/save-profile', {

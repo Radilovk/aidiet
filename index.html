@@ -61,24 +61,8 @@
             return;
         }
         
-        // Check if user has a plan
-        var dietPlan = localStorage.getItem('dietPlan');
-        if (!dietPlan) return; // No plan - stay on index
-        
-        // Determine correct plan destination
-        var planTarget;
-        var planSource = localStorage.getItem('planSource');
-        var pendingClientId = localStorage.getItem('pendingClientId');
-        
-        if (planSource === 'questionnaire2' || pendingClientId) {
-            planTarget = 'plan-pending.html';
-        } else {
-            // Use app.html SPA shell for instant keep-alive tab switching
-            planTarget = 'app.html';
-        }
-        
-        // Redirect immediately before any UI renders
-        window.location.replace(planTarget);
+        // Do not redirect to a cached plan before Firebase auth resolves.
+        // The DOMContentLoaded flow below waits for auth and then routes to app.html.
     })();</script>
     <style>
         :root {
@@ -2675,7 +2659,7 @@
             if (!localStorage.getItem('dietPlan') && localStorage.getItem('userData')) {
                 return 'plan-pending.html';
             }
-            return localStorage.getItem('dietPlan') ? 'plan.html' : 'questionnaire2.html';
+            return localStorage.getItem('dietPlan') ? 'app.html' : 'questionnaire2.html';
         }
 
         // --- Check for existing plan and show appropriate button ---

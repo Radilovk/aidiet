@@ -1,5 +1,21 @@
 # Log Tasks
 
+## 2026-05-21 — NutriPlan SPA regressions after keep-alive shell
+
+**Задача:** „След обединяването/SPA keep-alive промяната липсват chat и image analysis икони, липсват анимирани елементи, план се зарежда при logged-out потребител, има проблеми в APK/PWA; да се върне старото поведение, но табовете да останат бързи.“
+
+**Направено:**
+- Върнах chat и image analysis FAB бутоните на ниво `app.html` shell със същия визуален стил, позиция, pulse/hover анимации и икони.
+- Добавих shell shortcut forwarding (`PLAN_SHORTCUT`) към `plan.html`, така че бутоните от keep-alive shell-а отварят същите функции `openChat()` и `openFoodAnalysis()` без reload.
+- Спрях ранния `index.html` redirect към cached plan преди Firebase auth да е потвърден, за да не се отваря план при logged-out потребител.
+- Запазих approved-plan routing-а към `app.html`, но вече през auth-aware DOM flow.
+- Добавих auth gating между `plan.html` и `plan.js`, така че `loadDietData()` не рендерира план, докато Firebase auth не потвърди потребител; при липса на auth остава login/restore overlay.
+- Поправих `plan.js` достъпа до Firebase auth след JS extraction чрез `window.npFirebaseAuth`, за да няма `auth is not defined` при backend sync.
+- Ограничих refresh при `TAB_ACTIVATED` да се прави само когато local plan/user state се е променил, за да остане tab switching бърз.
+- Обнових service worker cache версията до `nutriplan-v11` и добавих `docs/Chat2.png` в кеша, за да стигне fix-ът до PWA/APK.
+
+**Резултат:** Keep-alive tab switching остава активен, но изгубените FAB действия и анимации са върнати, а планът вече не трябва да се показва само заради cached localStorage при logged-out състояние.
+
 ## 2026-05-21 — XBody back button + local persistence
 
 **Задача:** „1. Back бутонът в `xbody.html` да се свали с 3 мм надолу. 2. Всички въведени данни и отметки в XBody формата да се пазят локално и да се възстановяват автоматично при бъдещи посещения.“
