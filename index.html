@@ -61,8 +61,23 @@
             return;
         }
         
-        // Do not redirect to a cached plan before Firebase auth resolves.
-        // The DOMContentLoaded flow below waits for auth and then routes to app.html.
+        // Check if user has a plan
+        var dietPlan = localStorage.getItem('dietPlan');
+        if (!dietPlan) return; // No plan - stay on index
+        
+        // Determine correct plan destination
+        var planTarget;
+        var planSource = localStorage.getItem('planSource');
+        var pendingClientId = localStorage.getItem('pendingClientId');
+        
+        if (planSource === 'questionnaire2' || pendingClientId) {
+            planTarget = 'plan-pending.html';
+        } else {
+            planTarget = 'plan.html';
+        }
+        
+        // Redirect immediately before any UI renders
+        window.location.replace(planTarget);
     })();</script>
     <style>
         :root {
@@ -2659,7 +2674,7 @@
             if (!localStorage.getItem('dietPlan') && localStorage.getItem('userData')) {
                 return 'plan-pending.html';
             }
-            return localStorage.getItem('dietPlan') ? 'app.html' : 'questionnaire2.html';
+            return localStorage.getItem('dietPlan') ? 'plan.html' : 'questionnaire2.html';
         }
 
         // --- Check for existing plan and show appropriate button ---
@@ -2810,25 +2825,6 @@
         }
         // Trigger once on load
         reveal();
-        function replayHomeTabAnimations() {
-            var heroSection = document.querySelector('.hero');
-            var reveals = document.querySelectorAll('.reveal');
-            if (heroSection) heroSection.classList.remove('visible');
-            for (var i = 0; i < reveals.length; i++) {
-                reveals[i].classList.remove('active');
-            }
-            requestAnimationFrame(function() {
-                requestAnimationFrame(function() {
-                    if (heroSection) heroSection.classList.add('visible');
-                    reveal();
-                });
-            });
-        }
-        window.addEventListener('message', function(e) {
-            if (e.data && e.data.type === 'TAB_ACTIVATED') {
-                replayHomeTabAnimations();
-            }
-        });
 
         // --- PWA Service Worker Registration ---
 

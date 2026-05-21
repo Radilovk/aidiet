@@ -2,25 +2,19 @@
 // Configure base path - use '/' for custom domain (biocode.website) or '/aidiet' for GitHub Pages
 const BASE_PATH = '';
 
-const CACHE_NAME = 'nutriplan-v12';
+const CACHE_NAME = 'nutriplan-v8';
 const DEFAULT_ICON = `${BASE_PATH}/icon-192x192.png`;
 const DEFAULT_BADGE = `${BASE_PATH}/icon-192x192.png`;
 const DEFAULT_TITLE = 'NutriPlan';
 const DEFAULT_BODY = 'Ново напомняне от NutriPlan';
 const STATIC_CACHE = [
-  `${BASE_PATH}/app.html`,
   `${BASE_PATH}/index.html`,
   `${BASE_PATH}/questionnaire.html`,
   `${BASE_PATH}/questionnaire2.html`,
   `${BASE_PATH}/plan.html`,
-  `${BASE_PATH}/plan.js`,
   `${BASE_PATH}/quick-answer.html`,
   `${BASE_PATH}/profile.html`,
-  `${BASE_PATH}/profile.js`,
   `${BASE_PATH}/guidelines.html`,
-  `${BASE_PATH}/guidelines.js`,
-  `${BASE_PATH}/game-analytics.html`,
-  `${BASE_PATH}/game-analytics.js`,
   `${BASE_PATH}/analysis.html`,
   `${BASE_PATH}/admin.html`,
   `${BASE_PATH}/design-system.css`,
@@ -28,7 +22,6 @@ const STATIC_CACHE = [
   `${BASE_PATH}/icon-192x192.svg`,
   `${BASE_PATH}/icon-512x512.png`,
   `${BASE_PATH}/icon-512x512.svg`,
-  `${BASE_PATH}/docs/Chat2.png`,
   `${BASE_PATH}/manifest.json`,
   `${BASE_PATH}/local-scheduler.js`,
   'https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap',
@@ -77,43 +70,10 @@ function resolveNotificationTarget(data = {}, action = '') {
   return data.url || `${BASE_PATH}/plan.html`;
 }
 
-function normalizeAppUrl(url) {
-  try {
-    const parsed = new URL(url, self.location.origin);
-    if (parsed.origin !== self.location.origin) return url;
-
-    const path = parsed.pathname;
-    const appParams = new URLSearchParams();
-    function shellUrl(tab, extra = {}) {
-      appParams.set('tab', tab);
-      Object.entries(extra).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') appParams.set(key, String(value));
-      });
-      return `${BASE_PATH}/app.html?${appParams.toString()}`;
-    }
-
-    if (path === `${BASE_PATH}/plan.html` || path === '/plan.html') {
-      if (parsed.searchParams.get('chat') === '1') return shellUrl('plan', { action: 'chat' });
-      if (parsed.searchParams.get('food') === '1') return shellUrl('plan', { action: 'food' });
-      return shellUrl('plan');
-    }
-    if (path === `${BASE_PATH}/profile.html` || path === '/profile.html') return shellUrl('profile');
-    if (path === `${BASE_PATH}/guidelines.html` || path === '/guidelines.html') return shellUrl('guidelines');
-    if (path === `${BASE_PATH}/index.html` || path === '/index.html' || path === `${BASE_PATH}/` || path === '/') {
-      if (parsed.searchParams.get('stay') === '1' || path === `${BASE_PATH}/` || path === '/') return shellUrl('home');
-    }
-
-    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
-  } catch (_) {
-    return url;
-  }
-}
-
 function toAbsoluteAppUrl(url) {
-  const normalizedUrl = normalizeAppUrl(url);
-  if (normalizedUrl.startsWith('http')) return normalizedUrl;
-  if (BASE_PATH && normalizedUrl.startsWith(`${BASE_PATH}/`)) return normalizedUrl;
-  return `${BASE_PATH}${normalizedUrl}`;
+  if (url.startsWith('http')) return url;
+  if (BASE_PATH && url.startsWith(`${BASE_PATH}/`)) return url;
+  return `${BASE_PATH}${url}`;
 }
 
 // Install event - cache static resources
@@ -236,7 +196,7 @@ self.addEventListener('fetch', (event) => {
 self.addEventListener('push', (event) => {
   console.log('[SW] Push notification received');
 
-  let data = { title: DEFAULT_TITLE, body: DEFAULT_BODY, url: '/app.html?tab=plan' };
+  let data = { title: DEFAULT_TITLE, body: DEFAULT_BODY, url: '/plan.html' };
   if (event.data) {
     try { data = Object.assign(data, event.data.json()); } catch (_) {
       data.body = event.data.text() || DEFAULT_BODY;
@@ -257,7 +217,7 @@ self.addEventListener('push', (event) => {
       requireInteraction: data.notificationType === 'morning_check',
       actions:           getGameNotificationActions(data.notificationType),
       data:              {
-        url: data.url || (data.notificationType ? buildQuickAnswerUrl(data.notificationType, { date: data.recordKey || '' }) : '/app.html?tab=plan'),
+        url: data.url || (data.notificationType ? buildQuickAnswerUrl(data.notificationType, { date: data.recordKey || '' }) : '/plan.html'),
         type: data.notificationType || '',
         recordKey: data.recordKey || ''
       }
@@ -283,11 +243,9 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
-        // If app.html (shell) or plan.html is open, post a message so it shows an in-app
+        // If plan.html is already open, post a message so it shows an in-app
         // modal without any page navigation (no full app reload, no index.html).
-        const planClient = clientList.find(c =>
-            c.url.includes('/app.html') || c.url.includes('/plan.html')
-        );
+        const planClient = clientList.find(c => c.url.includes('/plan.html'));
         if (planClient && 'postMessage' in planClient) {
           planClient.postMessage({
             type: 'NOTIFICATION_ACTION',
