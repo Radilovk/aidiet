@@ -1,5 +1,35 @@
 # Log Tasks
 
+## 2026-05-21 — Допълнителен одит на APK parity и корекции по оставащите разминавания
+
+**Задача:** Да се провери дали всички описани APK/web/PWA грешки са оправени и да се довършат оставащите корекции.
+
+**Направено:**
+1. **Одит:** Проверих оставащите parity gap-ове в `native-backup.js`, `app.js`, `profile.html`, `guidelines.html` и `game-analytics.html`, за да отделя оправеното от още липсващото.
+2. **Persistence set:** Разширих persisted ключовете в `native-backup.js` и startup cache-а в `app.js`, така че да покриват и questionnaire/pending/warning/profile/theme/gamification state-а, а не само основния план.
+3. **Direct page restore:** Добавих ранно зареждане на `native-backup.js` и `NativeBackup.init()` в `profile.html`, `guidelines.html` и `game-analytics.html`, за да не четат празен `localStorage` при native relaunch/reinstall.
+4. **`game-analytics.html`:** След native restore вече се преаплайват темата и color scheme-ът от възстановения storage, така че direct page режимът да не остава с различен theme state спрямо останалите режими.
+
+**Резултат:** Оставащите пропуски по native restore/persistence parity са стеснени и direct tab страниците вече стъпват на същото възстановено състояние като shell-а и web/PWA flow-а.
+
+---
+
+## 2026-05-21 — APK parity спрямо web/PWA
+
+**Задача:** Да се уеднакви NutriPlan APK поведението с web/PWA — build източникът, startup/routing, persistence и shell поведението да не се разминават.
+
+**Направено:**
+1. **APK build:** Премахната е APK-only HTML минификацията от `/.github/workflows/build-apk.yml`, така че `capacitor-shell/` да копира runtime файловете без отделни трансформации спрямо web/PWA.
+2. **APK build документация:** Обновен е `/android-res/APK_BUILD_REFERENCE.md`, за да фиксира правилото, че HTML файловете за APK се копират без допълнителна минификация.
+3. **`native-backup.js`:** Разширих набора от native-persisted ключове с pending/generation state (`pendingClientId`, `planJobId`, `planJobSource`) и `gameData`, добавих skip при вече налично primary state и timeout caps при restore, за да няма blank/разминаващо се поведение при relaunch.
+4. **`app.js`:** Shell bootstrap-ът вече изчаква `NativeBackup.init()`, чете по-пълния набор storage ключове и използва същите persisted стойности при shell startup, така че APK shell-ът да стъпва на същото състояние като директните страници.
+5. **`app.js`:** При embedded навигация вече се пазят query параметри и deep-link контекстът към tab страниците, вместо shell-ът да ги губи при вътрешно прихващане на линкове.
+6. **`index.html`:** Добавен е след-restore startup redirect, който повтаря web/PWA routing логиката и след native restore, така че APK да влиза в plan/pending/generation flow дори когато state-ът идва от Capacitor Preferences.
+
+**Резултат:** APK runtime-ът е по-близо до същия source/state/route flow като web и PWA, с по-малко native-only отклонения.
+
+---
+
 ## 2026-05-21 — Корекция по старата имплементация, без нови импровизации
 
 **Задача:** Да се гледа как е било в старите файлове и текущият shell fix да се води по тях, без да се измислят нови поведения.

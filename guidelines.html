@@ -1323,6 +1323,8 @@
         </div>
     </div>
 
+    <script src="./native-backup.js"></script>
+    <script>NativeBackup.init().catch(function () {});</script>
     <script>
         // --- Theme Management ---
         function initializeTheme() {
@@ -1691,7 +1693,10 @@
 
         // --- Initialize ---
         (function instantInit() {
-            function setupGuidelines() {
+            async function setupGuidelines() {
+                if (typeof NativeBackup !== 'undefined') {
+                    await NativeBackup.init().catch(() => {});
+                }
                 initializeTheme();
 
                 const hasAccordion = loadGuidelinesAccordion();

@@ -16,6 +16,14 @@ const NativeBackup = (function () {
         'dietPlan',
         'userId',
         'userData',
+        'pendingClientId',
+        'planJobId',
+        'planJobSource',
+        'pendingPlanPayload',
+        'questionnaireAnswers',
+        'warningData',
+        'canProceedWithWarning',
+        'validationSource',
         'planHistory',
         'planJustification',
         'longTermStrategy',
@@ -25,8 +33,28 @@ const NativeBackup = (function () {
         'afterDinnerMealJustification',
         'planSource',
         'hasSeenPlanJustification',
+        'authKvSynced',
+        'np_profile_synced',
+        'np_profile_sync_sig',
+        'planSyncPending',
+        'theme',
+        'colorScheme',
+        'profileAvatar',
+        'profilePhotoURL',
+        'profilePhotoUid',
+        'gameEnabled',
+        'gameData',
+        'gameWeeklyAI',
         'gameNotifierConfig',
     ];
+    const PRIMARY_KEYS = [
+        'dietPlan',
+        'pendingClientId',
+        'planJobId'
+    ];
+    const KEYS_TIMEOUT_MS = 400;
+    const GET_TIMEOUT_MS = 250;
+    const TOTAL_RESTORE_TIMEOUT_MS = 1800;
 
     // Префикс на динамичните ключове за добавени храни по дати
     const ADDED_MEALS_PREFIX = 'addedMeals_';
@@ -37,6 +65,8 @@ const NativeBackup = (function () {
 
     let _prefs = null;
     let _hooked = false;
+    let _restorePromise = null;
+    let _initPromise = null;
 
     function _isNative() {
         return !!(
@@ -67,6 +97,21 @@ const NativeBackup = (function () {
         return PLAN_KEYS.includes(key) || key.startsWith(ADDED_MEALS_PREFIX);
     }
 
+    function _hasPrimaryData() {
+        return PRIMARY_KEYS.some(function (key) {
+            return localStorage.getItem(key) !== null;
+        });
+    }
+
+    function _withTimeout(promise, timeoutMs, fallbackValue) {
+        return Promise.race([
+            Promise.resolve(promise).catch(function () { return fallbackValue; }),
+            new Promise(function (resolve) {
+                setTimeout(function () { resolve(fallbackValue); }, timeoutMs);
+            })
+        ]);
+    }
+
     function _installHook() {
         if (_hooked) return;
         _hooked = true;
@@ -90,31 +135,51 @@ const NativeBackup = (function () {
      * Възстановява стойностите от Preferences в localStorage,
      * само ако localStorage вече не съдържа съответния ключ.
      */
-    async function restore() {
+    async function restore(options) {
+        options = options || {};
+        if (_restorePromise) return _restorePromise;
         const prefs = _getPlugin();
-        if (!prefs) return;
+        if (!prefs) return false;
+        if (!options.force && _hasPrimaryData()) return false;
 
-        // Събери пълния списък с ключове: фиксирани + запазени addedMeals_*
-        const allKeys = PLAN_KEYS.slice();
-        try {
-            const result = await prefs.keys();
-            if (result && result.keys) {
-                result.keys
-                    .filter(function (k) { return k.startsWith(ADDED_MEALS_PREFIX); })
-                    .forEach(function (k) { if (!allKeys.includes(k)) allKeys.push(k); });
-            }
-        } catch (_) {}
-
-        for (let i = 0; i < allKeys.length; i++) {
-            const key = allKeys[i];
-            if (localStorage.getItem(key) !== null) continue;
-            try {
-                const result = await prefs.get({ key: key });
-                if (result && result.value !== null && result.value !== undefined) {
-                    // Използваме оригиналния setItem, за да не предизвикаме излишно prefs.set
-                    _origSet(key, result.value);
+        _restorePromise = (async function () {
+            const timedWork = (async function () {
+                // Събери пълния списък с ключове: фиксирани + запазени addedMeals_*
+                const allKeys = PLAN_KEYS.slice();
+                const result = await _withTimeout(
+                    prefs.keys ? prefs.keys() : null,
+                    KEYS_TIMEOUT_MS,
+                    null
+                );
+                if (result && result.keys) {
+                    result.keys
+                        .filter(function (k) { return k.startsWith(ADDED_MEALS_PREFIX); })
+                        .forEach(function (k) { if (!allKeys.includes(k)) allKeys.push(k); });
                 }
-            } catch (_) {}
+
+                for (let i = 0; i < allKeys.length; i++) {
+                    const key = allKeys[i];
+                    if (localStorage.getItem(key) !== null) continue;
+                    const item = await _withTimeout(
+                        prefs.get ? prefs.get({ key: key }) : null,
+                        GET_TIMEOUT_MS,
+                        null
+                    );
+                    if (item && item.value !== null && item.value !== undefined) {
+                        // Използваме оригиналния setItem, за да не предизвикаме излишно prefs.set
+                        _origSet(key, item.value);
+                    }
+                }
+                return true;
+            })();
+
+            return _withTimeout(timedWork, TOTAL_RESTORE_TIMEOUT_MS, false);
+        })();
+
+        try {
+            return await _restorePromise;
+        } finally {
+            _restorePromise = null;
         }
     }
 
@@ -126,9 +191,18 @@ const NativeBackup = (function () {
      * Извикай с await в началото на DOMContentLoaded, преди да четеш план данни.
      */
     async function init() {
-        if (!_isNative()) return;
+        if (_initPromise) return _initPromise;
+        if (!_isNative()) return Promise.resolve(false);
         _installHook();
-        await restore();
+        _initPromise = (async function () {
+            await restore();
+            return true;
+        })();
+        try {
+            return await _initPromise;
+        } finally {
+            _initPromise = null;
+        }
     }
 
     return { init: init, restore: restore };

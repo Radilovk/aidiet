@@ -2765,6 +2765,21 @@
 
             const params = new URLSearchParams(window.location.search);
 
+            if (!params.has('stay') && !params.has('app') && !params.has('login')) {
+                if (localStorage.getItem('planJobId')) {
+                    const restoredSource = localStorage.getItem('planJobSource');
+                    window.location.replace(restoredSource === 'questionnaire' ? 'questionnaire.html' : 'questionnaire2.html');
+                    return;
+                }
+
+                const restoredTarget = getPlanTargetFromState();
+                if (restoredTarget !== 'questionnaire2.html') {
+                    const restoredAppTarget = restoredTarget === 'plan.html' ? 'index.html?app=1&tab=plan' : restoredTarget;
+                    window.location.replace(restoredAppTarget);
+                    return;
+                }
+            }
+
             // If redirected here from a protected page that requires login:
             // – Wait briefly for Firebase to resolve auth state.
             // – If already logged in, redirect to target page immediately.
