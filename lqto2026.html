@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Летни Занимални Бургас 2026 - Пълно Проучване</title>
+    <style>
+        :root {
+            /* Summer Theme Palette */
+            --sea-dark: #0077b6;
+            --sea-light: #00b4d8;
+            --sun-main: #ffb703;
+            --sun-accent: #fb8500;
+            --nature-dark: #2a9d8f;
+            --nature-light: #e9f5f4;
+            --sand-bg: #fefae0;
+            --text-main: #2b2d42;
+            --text-muted: #6c757d;
+            --white: #ffffff;
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+            --shadow-md: 0 8px 16px rgba(0,0,0,0.1);
+            --radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--sand-bg);
+            color: var(--text-main);
+            line-height: 1.6;
+        }
+
+        /* Header - Sea & Sun Vibe */
+        header {
+            background: linear-gradient(135deg, var(--sea-dark) 0%, var(--sea-light) 100%);
+            color: var(--white);
+            text-align: center;
+            padding: 4rem 1rem;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+        }
+
+        header::after {
+            content: "☀️ 🌊 🌴";
+            position: absolute;
+            bottom: -20px;
+            right: 10%;
+            font-size: 6rem;
+            opacity: 0.15;
+            letter-spacing: 20px;
+            pointer-events: none;
+        }
+
+        header h1 {
+            font-size: 2.8rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        header p {
+            font-size: 1.2rem;
+            font-weight: 500;
+            opacity: 0.95;
+            margin-bottom: 1.5rem;
+        }
+
+        .badge-main {
+            background-color: var(--sun-main);
+            color: var(--text-main);
+            padding: 0.4rem 1rem;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            display: inline-block;
+            font-weight: 700;
+            margin: 0.25rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: -2rem auto 2rem auto;
+            padding: 0 1.5rem;
+            position: relative;
+            z-index: 10;
+        }
+
+        .section-title {
+            color: var(--sea-dark);
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            margin: 3rem 0 1.5rem 0;
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .section-title::after {
+            content: "";
+            flex: 1;
+            height: 2px;
+            background: linear-gradient(90deg, var(--sun-main), transparent);
+        }
+
+        /* Responsive Grid */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 1.8rem;
+            margin-bottom: 3rem;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            border-top: 6px solid var(--sea-light);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.15);
+        }
+
+        .card.nature { border-top-color: var(--nature-dark); }
+        .card.flexible { border-top-color: var(--sun-main); }
+        .card.creative { border-top-color: #9d4edd; }
+
+        .card-header {
+            padding: 1.5rem;
+            background-color: rgba(0,0,0,0.02);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .card-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 0.4rem;
+            line-height: 1.2;
+        }
+
+        .card-location {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-desc {
+            margin-bottom: 1.2rem;
+            font-size: 0.95rem;
+            color: #4a4e69;
+        }
+
+        .info-list {
+            list-style: none;
+            margin-bottom: 1.5rem;
+            flex-grow: 1;
+        }
+
+        .info-list li {
+            margin-bottom: 0.8rem;
+            font-size: 0.9rem;
+            display: grid;
+            grid-template-columns: 24px 1fr;
+            align-items: start;
+            gap: 0.5rem;
+            border-bottom: 1px dashed #eee;
+            padding-bottom: 0.5rem;
+        }
+
+        .info-list li:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .price-tag {
+            background-color: var(--sand-bg);
+            border: 2px solid var(--sun-main);
+            color: var(--text-main);
+            font-weight: 800;
+            padding: 0.8rem;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 1.2rem;
+            margin-top: auto;
+            white-space: pre-line;
+            line-height: 1.4;
+        }
+
+        .card.nature .price-tag { border-color: var(--nature-dark); background-color: var(--nature-light); }
+        .card.creative .price-tag { border-color: #9d4edd; background-color: #f3e8fc; }
+        .card.flexible .price-tag { border-color: var(--sun-accent); background-color: #fff4e6; }
+
+        .btn {
+            display: block;
+            text-align: center;
+            background-color: var(--sea-dark);
+            color: var(--white);
+            text-decoration: none;
+            padding: 1rem;
+            margin: 0 1.5rem 1.5rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .btn:hover { background-color: var(--sea-light); }
+        .btn:active { transform: scale(0.98); }
+
+        .card.nature .btn { background-color: var(--nature-dark); }
+        .card.nature .btn:hover { background-color: #21867a; }
+
+        /* Table Design */
+        .table-container {
+            overflow-x: auto;
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-md);
+            margin-bottom: 3rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            padding: 1.2rem 1.5rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background-color: var(--sea-dark);
+            color: var(--white);
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        tr:hover { background-color: var(--sand-bg); }
+        td strong { color: var(--sun-accent); font-size: 1.1rem; }
+
+        /* Notice Box */
+        .notice-box {
+            background-color: var(--white);
+            border-left: 6px solid var(--sun-main);
+            padding: 1.5rem 2rem;
+            border-radius: var(--radius);
+            margin-bottom: 3rem;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .notice-box-icon { font-size: 2.5rem; }
+        .notice-box h3 { color: var(--sun-accent); margin-bottom: 0.3rem; }
+        .notice-box p { font-size: 0.95rem; color: var(--text-muted); }
+
+        footer {
+            background-color: var(--text-main);
+            color: var(--white);
+            text-align: center;
+            padding: 3rem 1rem;
+            margin-top: 4rem;
+            font-size: 0.95rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Летни Занимални Бургас 2026</h1>
+        <p>Образователни, спортни и природни формати за деца (7-8 години)</p>
+        <span class="badge-main">🗓 Данни: Май 2026</span>
+        <span class="badge-main" style="background-color: var(--white);">💶 Валута: EUR (€)</span>
+    </header>
+
+    <div class="container">
+
+        <div class="notice-box">
+            <div class="notice-box-icon">💡</div>
+            <div>
+                <h3>Технически и финансов параметър</h3>
+                <p>Анализът синтезира целодневни, модулни и специализирани програми. Финансовите стойности са конвертирани в <strong>Евро (€)</strong> (курс 1.95583). При целодневен престой изхранването (кетъринг/стол) е опционално и добавя между 3.80 € и 5.40 € към дневната база. Всички програми изискват предварителна медицинска бележка.</p>
+            </div>
+        </div>
+
+        <h2 class="section-title">⏱️ Гъвкави, модулни и полудневни формати</h2>
+        <div class="grid">
+            
+            <div class="card flexible">
+                <div class="card-header">
+                    <h3 class="card-title">ДЦ „Патилан“ (Гъвкав модул)</h3>
+                    <div class="card-location">📍 Център, ул. „Славянска“ 77 (до Морска градина)</div>
+                </div>
+                <div class="card-body">
+                    <p class="card-desc">Структуриран частичен достъп до дневната програма. Оптимално за хибриден родителски график.</p>
+                    <ul class="info-list">
+                        <li><span>📅</span><span><strong>Режим:</strong> 3 избрани дни седмично или почасово.</span></li>
+                        <li><span>⏰</span><span><strong>Часове:</strong> 08:30 - 17:30 ч. (дневни); гъвкаво (почасово).</span></li>
+                        <li><span>🧠</span><span><strong>Фокус:</strong> Комбинация от четене, базови математически упражнения и външна активност.</span></li>
+                        <li><span>🏃</span><span><strong>Спорт:</strong> Организирани посещения на басейн „Флора“.</span></li>
+                    </ul>
+                    <div class="price-tag">225.00 € / месец (3 дни/седм.)<br>10.50 € / почасово (до 2ч.)</div>
+                </div>
+                <a href="http://patilan.net" target="_blank" class="btn">Официален сайт</a>
+            </div>
+
+            <div class="card flexible">
+                <div class="card-header">
+                    <h3 class="card-title">Занималня „АБВ“ (Индивидуални дни)</h3>
+                    <div class="card-location">📍 ж.к. Възраждане, ул. „Св. П. Евтимий“ 26</div>
+                </div>
+                <div class="card-body">
+                    <p class="card-desc">Академично ориентиран модул без дългосрочно обвързване. Подходящ за запълване на конкретни празнини в графика.</p>
+                    <ul class="info-list">
+                        <li><span>📅</span><span><strong>Режим:</strong> Ден за ден (изисква 24ч предварителна заявка).</span></li>
+                        <li><span>📚</span><span><strong>Академика:</strong> Засилена подготовка за 1-ви и 2-ри клас (БЕЛ, Математика).</span></li>
+                        <li><span>🎨</span><span><strong>Креативност:</strong> Приложни изкуства в следобедния блок.</span></li>
+                        <li><span>🍲</span><span><strong>Храна:</strong> Опция за топъл обяд (доплащане).</span></li>
+                    </ul>
+                    <div class="price-tag">26.00 € / ден (за 1 ден престой)</div>
+                </div>
+                <a href="https://zanimalnya.bg" target="_blank" class="btn">Официален сайт</a>
+            </div>
+
+            <div class="card flexible">
+                <div class="card-header">
+                    <h3 class="card-title">Програма „Спорт и здраве“ (Община)</h3>
+                    <div class="card-location">📍 Спортни бази: Плувен к-с Арена, ст. Нефтохимик</div>
+                </div>
+                <div class="card-body">
+                    <p class="card-desc">Системни общински тренировки. Максимизиране на физическия капацитет под професионален контрол.</p>
+                    <ul class="info-list">
+                        <li><span>📅</span><span><strong>Период:</strong> 15.06 - 11.09.2026 г.</span></li>
+                        <li><span>⚙️</span><span><strong>Механика:</strong> 1-часови модули по график (2 до 3 пъти седмично).</span></li>
+                        <li><span>🏊</span><span><strong>Спортове:</strong> Плуване, лека атлетика, футбол, баскетбол.</span></li>
+                        <li><span>📝</span><span><strong>Достъп:</strong> Ранно записване през електронна система на Общината.</span></li>
+                    </ul>
+                    <div class="price-tag">0.00 € (Бюджетирано от Община)</div>
+                </div>
+                <a href="https://www.burgas.bg/" target="_blank" class="btn">Ел. регистър Община Бургас</a>
+            </div>
+
+            <div class="card flexible">
+                <div class="card-header">
+                    <h3 class="card-title">Читалищна мрежа (Арт & Моторика)</h3>
+                    <div class="card-location">📍 НЧ Просвета, НЧ Паисий Хилендарски</div>
+                </div>
+                <div class="card-body">
+                    <p class="card-desc">Нискобюджетни, тясно специализирани модули за развитие на фината моторика и пространственото мислене.</p>
+                    <ul class="info-list">
+                        <li><span>🏺</span><span><strong>НЧ Просвета:</strong> Грънчарство (Четв 10:00-12:00 ч.) - развива тактилна сензорика.</span></li>
+                        <li><span>🖌️</span><span><strong>НЧ Паисий:</strong> Академично рисуване (Съб 10:00-13:00 ч.).</span></li>
+                        <li><span>🧩</span><span><strong>НЧ Л. Каравелов:</strong> Интерактивни логически игри (Четвъртък).</span></li>
+                    </ul>
+                    <div class="price-tag">~5.00 - 10.00 € / посещение</div>
+                </div>
+                <a href="https://chitalishta.com/" target="_blank" class="btn">Регистър Читалища</a>
+            </div>
+
+        </div>
+
+        <h2 class="section-title">🌲 Природа, Спорт и Творчество (Целодневни)</h2>
+        <div class="grid">
+            
+            <div class="card nature">
+                <div class="card-header">
+                    <h3 class="card-title">ТД „Зелена Странджа“ (Лагери)</h3>
+                    <div class="card-location">📍 Транспорт от Бургас / База с. Близнак</div>
+                </div>
+                <div class="card-body">
+                    <p class="card-desc">Пълна изолация от дигитални стимули. Фокус върху биомеханична адаптация, екипност и базово оцеляване.</p>
+                    <ul class="info-list">
+                        <li><span>📅</span><span><strong>Формат:</strong> 3-дневни или 5-дневни палаткови смени (старт 24.06).</span></li>
+                        <li><span>🔥</span><span><strong>Умения:</strong> Ориентиране с компас, палене на огън, разпознаване на флора/фауна.</span></li>
+                        <li><span>🎒</span><span><strong>Обезпеченост:</strong> Включен транспорт, 4-кратно хранене, палатково оборудване, сертифицирани планински водачи.</span></li>
+                    </ul>
+                    <div class="price-tag">180.00 € / 3-дневна смяна</div>
+                </div>
+                <a href="https://zelenastrandja.com" target="_blank" class="btn">Официален сайт</a>
+            </div>
+
+            <div class="card creative">
+                <div class="card-header">
+                    <h3 class="card-title">НХА – Филиал Бургас (Лятна академия)</h3>
+                    <div class="card-location">📍 Магазия 1, ет. 2 (Пристанище Бургас)</div>
+                </div>
+                <div class="card-body">
+                    <p class="card-desc">Професионална среда за визуални изкуства. Висока когнитивна натовареност чрез визуално-пространствени задачи.</p>
+                    <ul class="info-list">
+                        <li><span>📅</span><span><strong>Период:</strong> Юни - Юли (09:00 - 17:00 ч.)</span></li>
+                        <li><span>🎨</span><span><strong>Модули:</strong> Живопис, комикс дизайн, керамика, скулптура.</span></li>
+                        <li><span>👨‍🎨</span><span><strong>Преподаватели:</strong> Действащи академични лица от НХА.</span></li>
+                        <li><span>💎</span><span><strong>Логистика:</strong> Всички материали са включени; 10% отстъпка за братя/сестри.</span></li>
+                    </ul>
+                    <div class="price-tag">~18.00 € / ден (вкл. материали)</div>
+                </div>
+                <a href="https://nha.bg" target="_blank" class="btn">Официален сайт</a>
+            </div>
+
+            <div class="card nature">
+                <div class="card-header">
+                    <h3 class="card-title">Спортна занималня „Врабчетата“</h3>
+                    <div class="card-location">📍 ж.к. Младост, открити спортни площи</div>
+                </div>
+                <div class="card-body">
+                    <p class="card-desc">Екстремен ежедневен енергиен разход. Минимизиране на пасивното време в закрити помещения.</p>
+                    <ul class="info-list">
+                        <li><span>📅</span><span><strong>Период:</strong> 01.06 - 11.09.2026 г. (08:00 - 18:00 ч.)</span></li>
+                        <li><span>⚽</span><span><strong>Дисциплини:</strong> Футбол, тенис на корт, плуване, щафетни игри.</span></li>
+                        <li><span>☀️</span><span><strong>Среда:</strong> 80% от времето се прекарва на открито (парк и спортни терени).</span></li>
+                    </ul>
+                    <div class="price-tag">Цена: По индивидуално запитване</div>
+                </div>
+                <a href="https://vrabchetata.bg" target="_blank" class="btn">Официален сайт</a>
+            </div>
+
+        </div>
+
+        <h2 class="section-title">🏫 Градски образователни бази (Пълно работно време)</h2>
+        <div class="grid">
+
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Smart Academy</h3>
+                    <div class="card-location">📍 ул. „Вардар“ 26</div>
+                </div>
+                <div class="card-body">
+                    <p class="card-desc">Висок обем допълнителни активности. Фокус върху езикова и технологична грамотност.</p>
+                    <ul class="info-list">
+                        <li><span>🇬🇧</span><span><strong>Обучение:</strong> Интензивен английски език.</span></li>
+                        <li><span>🛴</span><span><strong>Моторика:</strong> Уроци по тротинетки и ролери.</span></li>
+                        <li><span>💻</span><span><strong>Логика:</strong> Основи на програмирането/роботика.</span></li>
+                    </ul>
+                    <div class="price-tag">349.00 € / месец</div>
+                </div>
+                <a href="https://smartacademy.eu" target="_blank" class="btn">Официален сайт</a>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Зона Академи</h3>
+                    <div class="card-location">📍 ж.к. Братя Миладинови №57</div>
+                </div>
+                <div class="card-body">
+                    <p class="card-desc">Научно-практически профил. Обучение чрез експериментиране и екологични проекти.</p>
+                    <ul class="info-list">
+                        <li><span>🔬</span><span><strong>Наука:</strong> Практически химични/физични експерименти.</span></li>
+                        <li><span>🌱</span><span><strong>Екология:</strong> Еко-работилници и градско земеделие.</span></li>
+                        <li><span>🍳</span><span><strong>Умения:</strong> Кулинария на открито.</span></li>
+                    </ul>
+                    <div class="price-tag">300.00 € / месец</div>
+                </div>
+                <a href="https://facebook.com" target="_blank" class="btn">Facebook страница</a>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Академия „Да Винчи“</h3>
+                    <div class="card-location">📍 ул. „Екзарх Йосиф“ 9</div>
+                </div>
+                <div class="card-body">
+                    <p class="card-desc">Баланс между ментален труд и физическа активност.</p>
+                    <ul class="info-list">
+                        <li><span>🧩</span><span><strong>Мислене:</strong> Логически пъзели, шахматни основи.</span></li>
+                        <li><span>🏃</span><span><strong>Спорт:</strong> Включен специализиран спортен модул.</span></li>
+                        <li><span>📚</span><span><strong>Преговор:</strong> Лятно четене и анализ на текст.</span></li>
+                    </ul>
+                    <div class="price-tag">285.00 € / месец</div>
+                </div>
+                <a href="https://alo.bg" target="_blank" class="btn">Инфо в Alo.bg</a>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Детски център „Патилан“ (Пълен)</h3>
+                    <div class="card-location">📍 ул. „Славянска“ 77</div>
+                </div>
+                <div class="card-body">
+                    <p class="card-desc">Традиционен модел с изразено морско влияние заради локацията.</p>
+                    <ul class="info-list">
+                        <li><span>🌊</span><span><strong>Локация:</strong> Ежедневен престой в Морската градина.</span></li>
+                        <li><span>📖</span><span><strong>Академика:</strong> Системен преговор на задължителна училищна литература.</span></li>
+                    </ul>
+                    <div class="price-tag">255.00 € / месец<br>~90.00 € / седмица</div>
+                </div>
+                <a href="http://patilan.net" target="_blank" class="btn">Официален сайт</a>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Pin Academy</h3>
+                    <div class="card-location">📍 ул. „Васил Априлов“ 22</div>
+                </div>
+                <div class="card-body">
+                    <p class="card-desc">Езиков профил в комбинация със социализация.</p>
+                    <ul class="info-list">
+                        <li><span>🗣️</span><span><strong>Език:</strong> Ежедневни сесии по Английски език.</span></li>
+                        <li><span>🤝</span><span><strong>Социализация:</strong> Отборни бордови и ролеви игри.</span></li>
+                        <li><span>🎨</span><span><strong>Арт:</strong> Приложни занимания.</span></li>
+                    </ul>
+                    <div class="price-tag">250.00 € / месец</div>
+                </div>
+                <a href="https://pinacademy.bg" target="_blank" class="btn">Официален сайт</a>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Занималня „АБВ“ (Пълен)</h3>
+                    <div class="card-location">📍 ул. „Св. Патриарх Евтимий“ 26</div>
+                </div>
+                <div class="card-body">
+                    <p class="card-desc">Строго образователен фокус. Подходящо за деца с нужда от засилена академична подкрепа.</p>
+                    <ul class="info-list">
+                        <li><span>👨‍🏫</span><span><strong>Методика:</strong> Индивидуализиран подход спрямо нивото на детето.</span></li>
+                        <li><span>📐</span><span><strong>Фокус:</strong> БЕЛ и Математика.</span></li>
+                        <li><span>✂️</span><span><strong>Следобед:</strong> Творчески апликации.</span></li>
+                    </ul>
+                    <div class="price-tag">300.00 € / месец<br>115.00 € / седмица</div>
+                </div>
+                <a href="https://zanimalnya.bg" target="_blank" class="btn">Официален сайт</a>
+            </div>
+
+        </div>
+
+        <h2 class="section-title">📊 Макроикономическа рамка и сравнителен анализ (EUR)</h2>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Програма / База</th>
+                        <th>Организационна структура</th>
+                        <th>Такса (EUR)</th>
+                        <th>Ключово конкурентно предимство</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Община Бургас (Спорт)</strong></td>
+                        <td>Периодични тренировки</td>
+                        <td><strong>0.00 €</strong></td>
+                        <td>Нулева инвестиция, държавни треньори.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Читалищна мрежа</strong></td>
+                        <td>Полудневен / Модулен</td>
+                        <td><strong>~5.00 - 10.00 €</strong> / ден</td>
+                        <td>Локализирано развитие на фината моторика.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>ДЦ „Патилан“ (Почасово)</strong></td>
+                        <td>Интервален престой (до 2ч)</td>
+                        <td><strong>10.50 €</strong></td>
+                        <td>Екстремна гъвкавост за родителя.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>НХА Бургас</strong></td>
+                        <td>Дневен (Целодневен блок)</td>
+                        <td><strong>~18.00 €</strong> / ден</td>
+                        <td>Достъп до академични преподаватели по изкуства.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Занималня „АБВ“ (Ден)</strong></td>
+                        <td>Дневен (Целодневен блок)</td>
+                        <td><strong>26.00 €</strong> / ден</td>
+                        <td>Индивидуално избиране на дати без месечен договор.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>ДЦ „Патилан“ (Модул)</strong></td>
+                        <td>3 дни / седмично</td>
+                        <td><strong>225.00 €</strong> / месец</td>
+                        <td>Оптимизирано съотношение цена/свободно време.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Pin Academy</strong></td>
+                        <td>Целодневен (Месечен)</td>
+                        <td><strong>250.00 €</strong> / месец</td>
+                        <td>Най-добра цена за профил с чужд език.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>ДЦ „Патилан“ (Пълен)</strong></td>
+                        <td>Целодневен (Месечен)</td>
+                        <td><strong>255.00 €</strong> / месец</td>
+                        <td>Локация до Морска градина и басейн.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Академия „Да Винчи“</strong></td>
+                        <td>Целодневен (Месечен)</td>
+                        <td><strong>285.00 €</strong> / месец</td>
+                        <td>Вграден специализиран спортен модул.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Занималня „АБВ“ (Пълен)</strong></td>
+                        <td>Целодневен (Месечен)</td>
+                        <td><strong>300.00 €</strong> / месец</td>
+                        <td>Максимален фокус върху училищната подготовка.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Зона Академи</strong></td>
+                        <td>Целодневен (Месечен)</td>
+                        <td><strong>300.00 €</strong> / месец</td>
+                        <td>Еко-ориентация и природни науки.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Smart Academy</strong></td>
+                        <td>Целодневен (Месечен)</td>
+                        <td><strong>349.00 €</strong> / месец</td>
+                        <td>Максимално насищане с допълнителни услуги (роботика, език, ролери).</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <footer>
+        <p><strong>Летни занимални Бургас 2026</strong> | Аналитичен образователен справочник</p>
+        <p style="font-size: 0.85rem; color: #adb5bd; margin-top: 0.8rem; max-width: 600px; margin-left: auto; margin-right: auto;">
+            Данните са структурирани за максимална информационна плътност. Валутните конверсии са фиксирани (BGN \to EUR, курс 1.95583).
+        </p>
+    </footer>
+
+</body>
+</html>
