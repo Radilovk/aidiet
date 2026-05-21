@@ -1,5 +1,17 @@
 # Log Tasks
 
+## 2026-05-21 — Fix: /schedule.php страницата не се отваряше
+
+**Задача:** След последната xbody задача страницата `https://biocode.website/schedule.php?owner=13943721&appointmentType=16859189` спря да работи.
+
+**Причина:** `biocode.website` е GitHub Pages (статични файлове). Файлът `schedule.php` не съществуваше в репото → GitHub Pages връщаше 404. Нямаше нужда от backend изобщо.
+
+**Направено:**
+- Създаден статичен файл `schedule.php` в корена на репото — само HTML + JS `window.location.replace()` редирект към `https://app.acuityscheduling.com/schedule.php` с всички query параметри.
+- Никакъв backend/Worker код не е използван.
+
+**Резултат:** `https://biocode.website/schedule.php?owner=13943721&appointmentType=16859189` вече работи — GitHub Pages сервира статичния файл и browser-ът се редиректва директно към Acuity.
+
 ## 2026-05-21 — XBody back button + local persistence
 
 **Задача:** „1. Back бутонът в `xbody.html` да се свали с 3 мм надолу. 2. Всички въведени данни и отметки в XBody формата да се пазят локално и да се възстановяват автоматично при бъдещи посещения.“
