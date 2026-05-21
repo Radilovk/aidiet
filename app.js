@@ -15,6 +15,13 @@
         profile: 'profile.html',
         analytics: 'game-analytics.html'
     };
+    var FRAME_SOURCES = {
+        home: 'index.html?stay=1&embedded=1',
+        plan: 'plan.html?embedded=1',
+        guidelines: 'guidelines.html?embedded=1',
+        profile: 'profile.html?embedded=1',
+        analytics: 'game-analytics.html?embedded=1'
+    };
     var JSON_KEYS = [
         'dietPlan',
         'userData',
@@ -154,8 +161,9 @@
 
     function mountFrames() {
         document.querySelectorAll('[data-tab-view]').forEach(function (frame) {
+            var tab = frame.getAttribute('data-tab-view');
             if (!frame.getAttribute('src')) {
-                frame.setAttribute('src', frame.getAttribute('data-src'));
+                frame.setAttribute('src', FRAME_SOURCES[tab] || FRAME_SOURCES.plan);
             }
         });
     }
