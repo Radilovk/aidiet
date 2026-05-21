@@ -22,9 +22,13 @@
         profile: 'profile.html?embedded=1',
         analytics: 'game-analytics.html?embedded=1'
     };
-    var JSON_KEYS = [
+    var STORAGE_KEYS = [
         'dietPlan',
+        'userId',
         'userData',
+        'pendingClientId',
+        'planJobId',
+        'planJobSource',
         'planHistory',
         'questionnaireAnswers',
         'planJustification',
@@ -32,6 +36,9 @@
         'modifierReasoning',
         'hydrationStrategy',
         'mealCountJustification',
+        'afterDinnerMealJustification',
+        'planSource',
+        'hasSeenPlanJustification',
         'gameData',
         'gameNotifierConfig'
     ];
@@ -80,8 +87,8 @@
         var preferences = getPreferences();
         var writes = [];
 
-        for (var i = 0; i < JSON_KEYS.length; i++) {
-            var key = JSON_KEYS[i];
+        for (var i = 0; i < STORAGE_KEYS.length; i++) {
+            var key = STORAGE_KEYS[i];
             var localValue = localStorage.getItem(key);
             var value = localValue || await readPreference(preferences, key);
 
@@ -100,6 +107,19 @@
             get: function (key) { return state.parsed[key] || null; },
             getRaw: function (key) { return state.raw[key] || null; }
         };
+    }
+
+    async function ensureNativeStorageReady() {
+        if (typeof window.NativeBackup === 'undefined' || !window.NativeBackup || typeof window.NativeBackup.init !== 'function') {
+            return;
+        }
+        await window.NativeBackup.init().catch(function () {});
+    }
+
+    function getStoredValue(key) {
+        var localValue = localStorage.getItem(key);
+        if (localValue !== null) return localValue;
+        return Object.prototype.hasOwnProperty.call(state.raw, key) ? state.raw[key] : null;
     }
 
     function normalizeTab(tab) {
@@ -269,7 +289,7 @@
             if (!link) return;
             var targetUrl;
             try {
-                targetUrl = new URL(link.getAttribute('href'), window.location.origin);
+                targetUrl = new URL(link.getAttribute('href'), frameWindow.location.href);
             } catch (_) {
                 return;
             }
@@ -277,6 +297,19 @@
             var targetTab = tabFromUrl(targetUrl);
             if (!targetTab) return;
             event.preventDefault();
+            var targetFrame = document.querySelector('[data-tab-view="' + targetTab + '"]');
+            if (targetFrame) {
+                var search = new URLSearchParams(targetUrl.search);
+                search.delete('app');
+                search.delete('tab');
+                if (targetTab === 'home' && !search.has('stay')) search.set('stay', '1');
+                search.set('embedded', '1');
+                var targetPath = TAB_ROUTES[targetTab] || (targetUrl.pathname.split('/').pop() || 'index.html');
+                var nextSrc = targetPath + (search.toString() ? '?' + search.toString() : '') + (targetUrl.hash || '');
+                if (targetFrame.getAttribute('src') !== nextSrc) {
+                    targetFrame.setAttribute('src', nextSrc);
+                }
+            }
             switchTab(targetTab, true);
         }, true);
     }
@@ -329,16 +362,20 @@
 
     function shouldOpenShell() {
         if (!params.has('app')) return false;
-        if (localStorage.getItem('planSource') === 'questionnaire2' || localStorage.getItem('pendingClientId')) {
+        if (getStoredValue('planSource') === 'questionnaire2' || getStoredValue('pendingClientId')) {
             window.location.replace('plan-pending.html');
             return false;
         }
-        return !!localStorage.getItem('dietPlan');
+        return !!getStoredValue('dietPlan');
     }
 
     async function initShell() {
         var shell = document.getElementById('spaShell');
-        if (!shell || state.initialized || !shouldOpenShell()) return;
+        if (!shell || state.initialized) return;
+
+        await ensureNativeStorageReady();
+        await cacheJsonAtStartup();
+        if (!shouldOpenShell()) return;
 
         state.initialized = true;
         document.body.classList.add('spa-mode');
@@ -354,7 +391,6 @@
             }
         });
 
-        await cacheJsonAtStartup();
         mountFrames();
         refreshFramesForData();
 

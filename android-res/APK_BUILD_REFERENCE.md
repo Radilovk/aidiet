@@ -147,6 +147,7 @@ Android WebView блокира cross-origin API заявките (`/api/*`) къ
 - `package.json`, `package-lock.json`, `twa-manifest.json`, `capacitor.config.json`, `wrangler.toml`, `worker.js`
 - Временни/лични файлове: `client___*`, `Errorlist.txt`, `ai_communication.txt`, `aicom.txt`, `dynaquest.txt`, `log1`, `workererrors`
 - Включени: `docs/` директорията и `docs/*.png`
+- HTML файловете се копират без APK-only минификация или допълнителни runtime трансформации
 
 > **Правило:** НЕ добавяйте `worker.js` в `capacitor-shell/` — той е Cloudflare Worker и не работи в Android.
 > НЕ добавяйте `server.url` в `capacitor.config.json`.
