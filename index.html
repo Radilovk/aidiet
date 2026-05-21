@@ -2810,9 +2810,23 @@
         }
         // Trigger once on load
         reveal();
+        function replayHomeTabAnimations() {
+            var heroSection = document.querySelector('.hero');
+            var reveals = document.querySelectorAll('.reveal');
+            if (heroSection) heroSection.classList.remove('visible');
+            for (var i = 0; i < reveals.length; i++) {
+                reveals[i].classList.remove('active');
+            }
+            requestAnimationFrame(function() {
+                requestAnimationFrame(function() {
+                    if (heroSection) heroSection.classList.add('visible');
+                    reveal();
+                });
+            });
+        }
         window.addEventListener('message', function(e) {
             if (e.data && e.data.type === 'TAB_ACTIVATED') {
-                reveal();
+                replayHomeTabAnimations();
             }
         });
 
