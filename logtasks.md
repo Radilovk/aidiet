@@ -1,54 +1,5 @@
 # Log Tasks
 
-## 2026-05-21 — Fix за празни Plan/Home табове след второ пускане на APK
-
-**Задача:** След първото пускане APK работи, но след затваряне и повторно отваряне табовете `plan` и `index/home` остават празни, докато `guidelines` и `profile` продължават да работят. Да се провери дали това е от предишния проблем и да се приложи реален fix.
-
-**Диагноза:**
-- Това **не е директно същият проблем** като забавянето от `app.html` animation/reflow path.
-- Реалният проблем при второто пускане е в `NativeBackup.init()`:
-  - `plan.js` и `index.html` правят `await NativeBackup.init()` преди да покажат UI.
-  - `native-backup.js` правеше `prefs.keys()` + серия `prefs.get()` без timeout и без early-exit, дори когато `localStorage` вече има нужните данни.
-  - Ако Capacitor Preferences се забави/увисне при relaunch, `plan` и `home` остават blank, защото reveal логиката никога не стига до `body.style.opacity = '1'` / `.hero.visible`.
-- `guidelines` и `profile` не зависят от този blocking path по същия начин, затова продължават да се показват.
-
-**Направено:**
-1. **`native-backup.js`**
-   - Добавени `PRIMARY_KEYS = ['dietPlan', 'userId', 'userData']`
-   - Restore вече **се пропуска напълно**, ако `localStorage` вече съдържа primary данни
-   - Добавени timeouts за `prefs.keys()` и `prefs.get()`
-   - Добавен общ restore budget, за да не може Preferences restore да блокира безкрайно startup-а
-
-**Очакван резултат:**
-- При повторно пускане на APK `plan` и `home` вече не трябва да остават празни заради блокиращ NativeBackup restore.
-- Ако Preferences отговори бавно, приложението продължава да стартира вместо да увисне на blank screen.
-
----
-
-## 2026-05-21 — Анализ на реалната причина за забавяне при tab switch в APK
-
-**Задача:** Намери реалната причина за забавянето при превключване между табовете в APK, провери какви стратегии са прилагани досега и къде е грешката, без да се трупа излишен код.
-
-**Проверено:**
-- Предишните диагнози и фиксове в `logtasks.md` твърдят, че root cause е `visibility:hidden` / GPU compositor и че проблемът е решен с keep-alive + compositor promotion.
-- Текущият shell в `app.html` все още налага **видимо закъснение по дизайн**:
-  - `.tab-frame.active` пуска `animation: _tab_snap_in 220ms ...` при всяко превключване.
-  - `shellSwitchTab()` маха `.active` от всички frames, прави `void targetFrame.offsetWidth` (forced reflow) и после връща `.active`, за да рестартира анимацията.
-- При показване на `plan` shell-ът изпраща `TAB_ACTIVATED`, а `plan.html` вика `loadDietData()` на всяка активация.
-- `loadDietData()` в `plan.js` не е лек refresh: parse-ва плана от `localStorage`, вика `selectDay()`, а `renderDay()` изчиства `#mealContainer` и изгражда отново meal cards и свързан DOM.
-
-**Реална причина за забавянето:**
-1. **Има вградено изкуствено закъснение от самия shell** — 220ms animation в `app.html` означава, че превключването не може да е “instant”, дори всичко да е вече заредено.
-2. **На всяко влизане в Plan таба се прави тежък sync rerender** — `TAB_ACTIVATED` → `loadDietData()` → `selectDay()` → `renderDay()` → масов DOM rebuild. Това е реалният runtime cost, който се вижда в APK.
-3. **Грешката в стратегията** е, че фокусът е бил преместен към compositor/GPU теории и са добавени още CSS/JS трикове, но е пропуснато, че самият код при switch-а продължава да прави animation restart + forced reflow + пълен rerender на най-тежкия таб.
-
-**Заключение:**
-- PWA изглежда по-добре, защото Chrome маскира този overhead по-успешно.
-- APK страда, защото Android WebView показва по-ясно цената на forced reflow + animation + повторния render на `plan`.
-- Следователно реалният проблем **не е, че страниците не са preload-нати**, а че след preload shell-ът пак върши тежка работа при самото превключване.
-
----
-
 ## 2026-05-20 — APK instant tab fix: visibility:hidden → GPU compositor keep-alive
 
 **Задача:** Обясни и отстрани забавянето при превключване на табове в APK NutriPlan въпреки keep-alive iframe архитектурата. В PWA/уеб е мигновено — в APK има видимо закъснение.
