@@ -1832,6 +1832,7 @@
     <script src="./ui-images-cache.js"></script>
 </head>
 <body>
+    <script src="./session-utils.js"></script>
     <script type="module" src="./auth-guard.js"></script>
     <!-- PWA Install Banner -->
     <div class="install-banner" id="installBanner">
@@ -3324,7 +3325,7 @@
         }
         
         function viewFullAnalysis() {
-            navigateTopLevel('analysis.html');
+            navigateTopLevel('analysis.html?returnToTab=plan');
         }
 
         function openPlanBook(event) {
@@ -3336,6 +3337,9 @@
         // --- Initialization ---
         (function instantInit() {
             async function setupProfile() {
+                if (window.NutriPlanAuthGuardReady) {
+                    try { await window.NutriPlanAuthGuardReady; } catch (_) {}
+                }
                 if (typeof NativeBackup !== 'undefined') {
                     await NativeBackup.init().catch(() => {});
                 }
@@ -4817,6 +4821,9 @@
             }
 
             onAuthStateChanged(auth, async (user) => {
+                if (user && window.NutriPlanSession && typeof window.NutriPlanSession.ensureAuthenticatedUser === 'function') {
+                    await window.NutriPlanSession.ensureAuthenticatedUser(user);
+                }
                 _updateUI(user);
                 if (!user) return;
                 if (localStorage.getItem('authKvSynced')) return;
@@ -4856,7 +4863,11 @@
 
             window.socialLogout = async function() {
                 await signOut(auth).catch(() => {});
-                _clearUserPlanData();
+                if (window.NutriPlanSession && typeof window.NutriPlanSession.clearUserSessionData === 'function') {
+                    await window.NutriPlanSession.clearUserSessionData();
+                } else {
+                    _clearUserPlanData();
+                }
                 /* Navigate home after logout — do not show the login modal */
                 if (requestShellAction('NUTRIPLAN_LOGOUT')) return;
                 window.location.replace('index.html?stay=1');
