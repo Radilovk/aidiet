@@ -43,13 +43,7 @@
         }
 
         /* ── Tab frame containers ── */
-        /*
-         * APK fix: Не използваме visibility:hidden — Android WebView изхвърля
-         * GPU compositor layer-а при hidden, което причинява забавяне при
-         * повторно показване. Вместо това: opacity:0 + translateZ(0) на всички
-         * фреймове, за да останат постоянно промотирани в GPU compositor-а.
-         * Превключването = само z-index + opacity промяна ≈ 0ms за WebView.
-         */
+        /* Keep iframes alive and switch tabs with the smallest possible CSS change. */
         .tab-frame {
             position: fixed;
             top: 0;
@@ -69,18 +63,6 @@
             opacity: 1;
             pointer-events: auto;
             z-index: 1;
-            animation: _tab_snap_in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
-        }
-
-        @keyframes _tab_snap_in {
-            from {
-                opacity: 0;
-                transform: translate3d(0, 10px, 0) scale(0.975);
-            }
-            to {
-                opacity: 1;
-                transform: translateZ(0) scale(1);
-            }
         }
 
         .tab-frame iframe {
@@ -90,10 +72,6 @@
             display: block;
             background: transparent;
             transform: translateZ(0);
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-            .tab-frame.active { animation: none; }
         }
 
         /* ── Shell bottom navigation ── */
@@ -294,12 +272,9 @@
             }
 
             // Show/hide frames without destroying layout or iframe state.
-            // Force @keyframes restart on the incoming frame by stripping .active first,
-            // then triggering a reflow before re-adding it.
             document.querySelectorAll('.tab-frame').forEach(function(f) {
                 f.classList.remove('active');
             });
-            void targetFrame.offsetWidth; // force reflow → guarantees animation restarts
             targetFrame.classList.add('active');
 
             // Update nav active state

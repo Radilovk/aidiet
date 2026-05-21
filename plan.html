@@ -4319,10 +4319,10 @@
                 window.parent.postMessage({ type: 'SWITCH_TAB', tab: tab }, '*');
             }
         }, true);
-        // When shell activates this tab, call loadDietData to refresh plan display
+        // When shell activates this tab, refresh only if plan state actually changed
         window.addEventListener('message', function(e) {
-            if (e.data && e.data.type === 'TAB_ACTIVATED' && typeof window.loadDietData === 'function') {
-                window.loadDietData();
+            if (e.data && e.data.type === 'TAB_ACTIVATED' && typeof window.handlePlanTabActivated === 'function') {
+                window.handlePlanTabActivated();
             }
         });
     })();

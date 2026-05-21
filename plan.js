@@ -28,6 +28,11 @@
         let userId = null;
         let userData = null;
         let currentDay = 1;
+        let _lastPlanDataRaw = null;
+        let _lastUserDataRaw = null;
+        let _lastPlanUserId = null;
+        let _lastPlanSource = null;
+        let _lastRenderedDateKey = null;
         let chatVisible = false;
         let conversationId = Date.now().toString();
         let chatMode = 'consultation'; // 'consultation', 'modification', or 'report'
@@ -455,10 +460,41 @@
         // --- Load Diet Data ---
         // Guard flag to prevent re-entry after backend restore
         let _loadDietDataCalled = false;
+        function rememberLoadedPlanState(planDataRaw, userDataRaw, uid, planSource) {
+            _lastPlanDataRaw = planDataRaw;
+            _lastUserDataRaw = userDataRaw || null;
+            _lastPlanUserId = uid || null;
+            _lastPlanSource = planSource || null;
+            _lastRenderedDateKey = planDayToDateKey(currentDay);
+        }
+
+        function shouldReloadPlanOnTabActivated() {
+            const planData = localStorage.getItem('dietPlan');
+            const uid = localStorage.getItem('userId');
+            const userDataStr = localStorage.getItem('userData');
+            const planSource = localStorage.getItem('planSource');
+
+            if (!planData || !uid) return true;
+            if (_lastPlanDataRaw !== planData) return true;
+            if ((_lastUserDataRaw || null) !== (userDataStr || null)) return true;
+            if ((_lastPlanUserId || null) !== uid) return true;
+            if ((_lastPlanSource || null) !== (planSource || null)) return true;
+            if (_lastRenderedDateKey !== planDayToDateKey(currentDay)) return true;
+
+            return false;
+        }
+
+        window.handlePlanTabActivated = function() {
+            if (shouldReloadPlanOnTabActivated()) {
+                loadDietData();
+            }
+        };
+
         function loadDietData() {
             try {
+                const planSource = localStorage.getItem('planSource');
                 // Guard: plan submitted via questionnaire2 must wait for admin approval
-                if (localStorage.getItem('planSource') === 'questionnaire2') {
+                if (planSource === 'questionnaire2') {
                     _shellNav('plan-pending.html', true);
                     return;
                 }
@@ -533,6 +569,7 @@
                 // This prevents flashing from Monday to the actual current day
                 const initialDay = window._initialPlanDay || getTodayPlanDay();
                 selectDay(initialDay);
+                rememberLoadedPlanState(planData, userDataStr, userId, planSource);
                 
                 // REQUIREMENT 3: Display plan justification
                 displayPlanJustification();
