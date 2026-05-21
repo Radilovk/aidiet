@@ -5778,6 +5778,9 @@
                 return;
             }
 
+            // Distinct haptic when opening chat icon
+            try { if (navigator.vibrate) navigator.vibrate([40, 30, 80]); } catch (_) {}
+
             // Create chat window
             const chatWindow = document.createElement('div');
             chatWindow.id = 'chatWindow';
@@ -6629,12 +6632,6 @@
             // Format message to preserve line breaks and structure
             const formattedMessage = formatChatMessage(message);
 
-            // Haptic feedback for new assistant messages (not history loads)
-            if (role === 'assistant' && saveToHistory && typeof navigator !== 'undefined' && navigator.vibrate) {
-                // Two-tap "new message received" pattern: short buzz · pause · medium buzz.
-                navigator.vibrate([20, 55, 50]);
-            }
-
             // Typewriter effect for new assistant messages only (not history loads)
             if (role === 'assistant' && saveToHistory) {
                 bubble.textContent = '';
@@ -6648,6 +6645,8 @@
                 function tick() {
                     if (i < message.length) {
                         bubble.textContent += message[i++];
+                        // Micro-vibration on every letter while bot types
+                        try { if (navigator.vibrate) navigator.vibrate(4); } catch (_) {}
                         chatMessages.scrollTop = chatMessages.scrollHeight;
                         setTimeout(tick, charDelay);
                     } else {
@@ -8472,10 +8471,9 @@
                 if (!document.contains(el)) { if (cb) cb(); return; }
                 if (i < text.length) {
                     el.textContent += text[i++];
-                    // Haptic: light buzz every 3rd character to reduce battery drain and
-                    // avoid overwhelming the vibration motor on older Android devices.
-                    if (i % 3 === 0 && typeof navigator !== 'undefined' && navigator.vibrate) {
-                        navigator.vibrate(8);
+                    // Micro-vibration on every character while game question types
+                    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                        navigator.vibrate(4);
                     }
                     setTimeout(tick, speed || 30);
                 }
