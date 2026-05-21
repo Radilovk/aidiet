@@ -1,5 +1,30 @@
 # Log Tasks
 
+## 2026-05-21 — Реален fix на tab switch забавянето в APK shell
+
+**Задача:** Провери дали реалната причина за забавянето при превключване на табове в APK е в самия shell/runtime path, а не в preload/GPU теорията, и ако е така — оправи го без излишен код.
+
+**Потвърдена причина:**
+- `app.html` имаше вградено забавяне по дизайн: `.tab-frame.active` пускаше `220ms` animation, а `shellSwitchTab()` нарочно правеше `void offsetWidth` за forced reflow, за да я рестартира при всяко превключване.
+- `plan.html` получаваше `TAB_ACTIVATED` на всяко влизане и викаше `loadDietData()`, което отново parse-ва плана и rebuild-ва целия `#mealContainer` чрез `selectDay()` → `renderDay()`.
+- Така preload-нат iframe пак вършеше тежка работа точно при tab switch-а, което Android WebView показва ясно като лаг.
+
+**Направено:**
+1. **`app.html`:**
+   - Премахната е `220ms` tab animation от `.tab-frame.active`.
+   - Премахнат е forced reflow (`void targetFrame.offsetWidth`) от `shellSwitchTab()`.
+   - Превключването вече е само `active` class toggle без изкуствен animation restart.
+2. **`plan.js` + `plan.html`:**
+   - Добавен е лек cache/signature check за последно заредения `dietPlan` / `userData` / `userId` / `planSource`.
+   - `TAB_ACTIVATED` вече **не** вика директно `loadDietData()` всеки път.
+   - Plan табът прави пълен rerender само ако локалните данни реално са се променили или view-date mapping-ът е станал невалиден (напр. date rollover).
+3. **`sw.js`:**
+   - Cache version bump `nutriplan-v11` → `nutriplan-v12`, за да се доставят новите `app.html` и `plan.js` по-бързо.
+
+**Очакван резултат:** Tab switch-ът в shell-а вече не плаща 220ms animation + forced reflow, а `План` табът не rebuild-ва целия DOM при всяко връщане. Превключването трябва да се усеща значително по-моментално и в APK.
+
+---
+
 ## 2026-05-21 — APK relaunch fix for blank Plan/Home tabs
 
 **Задача:** След инсталация APK първото пускане работи, но е бавно; след затваряне и ново пускане табовете **План** и **Начало/Индекс** вече не се зареждат, докато **Насоки** и **Профил** работят нормално. Намери проблема и го оправи.
