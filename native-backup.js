@@ -30,10 +30,6 @@ const NativeBackup = (function () {
 
     // Префикс на динамичните ключове за добавени храни по дати
     const ADDED_MEALS_PREFIX = 'addedMeals_';
-    const PRIMARY_KEYS = ['dietPlan', 'userId', 'userData'];
-    const PREFS_KEYS_TIMEOUT_MS = 350;
-    const PREFS_GET_TIMEOUT_MS = 120;
-    const RESTORE_BUDGET_MS = 1200;
 
     // Оригиналните методи – запазени преди евентуален hooking
     const _origSet = localStorage.setItem.bind(localStorage);
@@ -71,21 +67,6 @@ const NativeBackup = (function () {
         return PLAN_KEYS.includes(key) || key.startsWith(ADDED_MEALS_PREFIX);
     }
 
-    function _hasPrimaryData() {
-        return PRIMARY_KEYS.some(function (key) {
-            return localStorage.getItem(key) !== null;
-        });
-    }
-
-    function _withTimeout(promise, timeoutMs, fallbackValue) {
-        return Promise.race([
-            promise,
-            new Promise(function (resolve) {
-                setTimeout(function () { resolve(fallbackValue); }, timeoutMs);
-            })
-        ]);
-    }
-
     function _installHook() {
         if (_hooked) return;
         _hooked = true;
@@ -112,12 +93,11 @@ const NativeBackup = (function () {
     async function restore() {
         const prefs = _getPlugin();
         if (!prefs) return;
-        if (_hasPrimaryData()) return;
 
         // Събери пълния списък с ключове: фиксирани + запазени addedMeals_*
         const allKeys = PLAN_KEYS.slice();
         try {
-            const result = await _withTimeout(prefs.keys(), PREFS_KEYS_TIMEOUT_MS, null);
+            const result = await prefs.keys();
             if (result && result.keys) {
                 result.keys
                     .filter(function (k) { return k.startsWith(ADDED_MEALS_PREFIX); })
@@ -125,18 +105,11 @@ const NativeBackup = (function () {
             }
         } catch (_) {}
 
-        const startedAt = Date.now();
         for (let i = 0; i < allKeys.length; i++) {
-            if (Date.now() - startedAt >= RESTORE_BUDGET_MS) break;
             const key = allKeys[i];
             if (localStorage.getItem(key) !== null) continue;
             try {
-                const remaining = Math.max(1, RESTORE_BUDGET_MS - (Date.now() - startedAt));
-                const result = await _withTimeout(
-                    prefs.get({ key: key }),
-                    Math.min(PREFS_GET_TIMEOUT_MS, remaining),
-                    null
-                );
+                const result = await prefs.get({ key: key });
                 if (result && result.value !== null && result.value !== undefined) {
                     // Използваме оригиналния setItem, за да не предизвикаме излишно prefs.set
                     _origSet(key, result.value);
