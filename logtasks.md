@@ -1,5 +1,27 @@
 # Log Tasks
 
+## 2026-05-21 — Поправка: план не зарежда след логин + FAB иконите не работят
+
+**Задача:** „при логин в апк не се зарежда никакъв план. другите табове излизат, но план не. Не работят иконите на чат асистента и функцията за снимка и анализ. Обединяването на файловете за всеки таб в един общ е създало проблема — виж в предишните файлове как беше и го възстанови работещо сега в обединения."
+
+**Причина:**
+1. `plan.js` добавяше блокиращ `await window.npPlanAuthReady` в `initializeDOMDependentFeatures`, поради което `loadDietData()` и `requestAnimationFrame(opacity=1)` никога не се достигаха при определени race conditions в APK WebView.
+2. `showError(…, redirect=true)` в embedded режим (iframe) извикваше `_shellNav('questionnaire.html')`, което навигира `window.top` (app.html) и унищожава всички табове.
+3. Оригиналните `.fab-chat` и `.fab-food` бяха скрити от embedded mode script-а, а новите shell FAB-ове в `app.html` разчитаха на `dataset.ready`/pending-message механизъм, който мълчаливо се проваляше при бързо зареждане на локални файлове в Capacitor.
+
+**Направено:**
+- `plan.js`: премахнах `npPlanAuthReady` await блока от `initializeDOMDependentFeatures` — функцията отново извиква `loadDietData()` директно (като в оригиналния standalone план).
+- `plan.js`: поправих `showError` да не прави автоматичен redirect при работа вътре в iframe (`window.self !== window.top`).
+- `plan.html`: премахнах `window.npPlanAuthReady`/`window.npPlanAuthState`/`window.__resolveNpPlanAuth` inline script и всички `__resolveNpPlanAuth` извиквания от `onAuthStateChanged`.
+- `plan.html`: промених embedded mode script да крие само `.bottom-nav` (не `.fab-chat`/`.fab-food`), така че оригиналните FAB бутони остават видими и работят директно чрез `onclick="openChat()"` и `onclick="openFoodAnalysis()"`.
+- `plan.html`: добавих `.spa-embedded .fab-chat, .spa-embedded .fab-food { bottom: calc(20px + ...) }` за правилно позициониране вътре в iframe (без долна навигация, нужно е по-малко отстояние).
+- `plan.html`: премахнах `PLAN_SHORTCUT` listener от embedded mode script (вече не е нужен).
+- `app.html`: премахнах shell-level FAB HTML бутоните (`.shell-fab-chat`, `.shell-fab-food`).
+- `app.html`: премахнах цялото shell FAB CSS (`.shell-fab`, animations, etc.).
+- `app.html`: опростих `dispatchPlanMessage` — само postMessage без pending queue; премахнах `shellPlanShortcut`, `tryHandlePlanShortcut`, `flushPendingPlanMessage`, `_pendingPlanMessage`; опростих `syncActiveUi`.
+
+**Резултат:** FAB бутоните работят директно в `plan.html`, планът се зарежда след логин без да зависи от auth gating, и shell-ът не навигира `window.top` когато е в embedded режим.
+
 ## 2026-05-21 — Повторно активиране на Home tab анимациите
 
 **Задача:** „След merge-а анимациите в Home/index таба да се активират при всяко отваряне, без да се връщат тежки заявки към бекенда.“

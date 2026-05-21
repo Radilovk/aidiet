@@ -352,16 +352,6 @@
             if (typeof NativeBackup !== 'undefined') {
                 await NativeBackup.init().catch(() => {});
             }
-            if (window.npPlanAuthReady) {
-                const authUser = await window.npPlanAuthReady;
-                if (!authUser && !localStorage.getItem('dietPlan')) {
-                    requestAnimationFrame(function() {
-                        document.body.style.transition = 'opacity 120ms ease-out';
-                        document.body.style.opacity = '1';
-                    });
-                    return;
-                }
-            }
             loadDietData();
             // Reveal the page now that critical content is rendered from localStorage.
             // Using rAF ensures the browser has committed the opacity:0 frame before
@@ -687,6 +677,11 @@
                 `;
             }
             if (redirect) {
+                // When embedded in the app shell the auth overlay is already visible
+                // on top; after login onAuthStateChanged calls window.loadDietData()
+                // which overwrites this error — so never auto-navigate away from inside
+                // the iframe (it would replace app.html and lose all tabs).
+                if (window.self !== window.top) return;
                 setTimeout(() => {
                     _shellNav('questionnaire.html');
                 }, 3000);

@@ -1106,6 +1106,13 @@
             transform: scale(0.95);
         }
 
+        /* When embedded inside app.html's iframe shell, plan.html's own bottom-nav
+           is hidden so the FABs need less bottom offset (no 80 px nav below them). */
+        .spa-embedded .fab-chat,
+        .spa-embedded .fab-food {
+            bottom: calc(20px + var(--safe-area-inset-bottom, 0px));
+        }
+
 
         .modal-overlay {
             position: fixed;
@@ -3499,16 +3506,6 @@
         }
     })();</script>
 
-    <script>
-        window.npPlanAuthState = { resolved: false, user: null };
-        window.npPlanAuthReady = new Promise(function(resolve) {
-            window.__resolveNpPlanAuth = function(user) {
-                window.npPlanAuthState.resolved = true;
-                window.npPlanAuthState.user = user || null;
-                resolve(user || null);
-            };
-        });
-    </script>
     <script type="module">
         import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
         import {
@@ -3897,19 +3894,15 @@
                             window.loadDietData();
                         }
                         hideOverlay();
-                        if (window.__resolveNpPlanAuth) window.__resolveNpPlanAuth(user);
                         return;
                     }
                     // No plan on server either — send to questionnaire
                     _shellNav('questionnaire2.html', true);
-                    if (window.__resolveNpPlanAuth) window.__resolveNpPlanAuth(user);
                     return;
                 }
                 hideOverlay();
-                if (window.__resolveNpPlanAuth) window.__resolveNpPlanAuth(user);
             } else {
                 showAuthForm();
-                if (window.__resolveNpPlanAuth) window.__resolveNpPlanAuth(null);
             }
         });
     </script>
@@ -4309,8 +4302,9 @@
         if (window.self === window.top) return; // standalone mode, no changes needed
         // Add class for CSS-scoped overrides
         document.body.classList.add('spa-embedded');
-        // Hide own nav / FABs — the shell provides navigation
-        document.querySelectorAll('.bottom-nav, .fab-chat, .fab-food').forEach(function(el) {
+        // Hide own nav — the shell provides navigation; FABs stay visible and
+        // work directly via their onclick handlers (openChat / openFoodAnalysis)
+        document.querySelectorAll('.bottom-nav').forEach(function(el) {
             el.style.display = 'none';
         });
         // Reduce the container bottom padding that was sized for the nav + FABs
