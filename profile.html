@@ -2287,6 +2287,8 @@
         </div>
     </div>
 
+    <script src="./native-backup.js"></script>
+    <script>NativeBackup.init().catch(function () {});</script>
     <script>
         let userData = {};
         let originalData = {};
@@ -3301,6 +3303,9 @@
         // --- Initialization ---
         (function instantInit() {
             async function setupProfile() {
+                if (typeof NativeBackup !== 'undefined') {
+                    await NativeBackup.init().catch(() => {});
+                }
                 initializeTheme();
                 loadUserData();
                 loadAnalysis(); // REQUIREMENT 1: Load analysis
@@ -4716,8 +4721,6 @@
         </a>
     </nav>
     <script src="./drive-backup.js"></script>
-    <!-- NativeBackup: mirrors localStorage to Capacitor Preferences (Android SharedPreferences) -->
-    <script src="./native-backup.js"></script>
 
     <script type="module">
         import { initializeApp, getApps, getApp }

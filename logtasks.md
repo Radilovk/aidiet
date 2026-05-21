@@ -1,5 +1,19 @@
 # Log Tasks
 
+## 2026-05-21 — Допълнителен одит на APK parity и корекции по оставащите разминавания
+
+**Задача:** Да се провери дали всички описани APK/web/PWA грешки са оправени и да се довършат оставащите корекции.
+
+**Направено:**
+1. **Одит:** Проверих оставащите parity gap-ове в `native-backup.js`, `app.js`, `profile.html`, `guidelines.html` и `game-analytics.html`, за да отделя оправеното от още липсващото.
+2. **Persistence set:** Разширих persisted ключовете в `native-backup.js` и startup cache-а в `app.js`, така че да покриват и questionnaire/pending/warning/profile/theme/gamification state-а, а не само основния план.
+3. **Direct page restore:** Добавих ранно зареждане на `native-backup.js` и `NativeBackup.init()` в `profile.html`, `guidelines.html` и `game-analytics.html`, за да не четат празен `localStorage` при native relaunch/reinstall.
+4. **`game-analytics.html`:** След native restore вече се преаплайват темата и color scheme-ът от възстановения storage, така че direct page режимът да не остава с различен theme state спрямо останалите режими.
+
+**Резултат:** Оставащите пропуски по native restore/persistence parity са стеснени и direct tab страниците вече стъпват на същото възстановено състояние като shell-а и web/PWA flow-а.
+
+---
+
 ## 2026-05-21 — APK parity спрямо web/PWA
 
 **Задача:** Да се уеднакви NutriPlan APK поведението с web/PWA — build източникът, startup/routing, persistence и shell поведението да не се разминават.

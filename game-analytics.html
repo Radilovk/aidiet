@@ -635,6 +635,7 @@
                     Object.keys(colors).forEach(key => { root.style.setProperty(key, colors[key]); });
                 }
             }
+            window.applyGameAnalyticsColorScheme = applyColorScheme;
             applyColorScheme();
             const observer = new MutationObserver((mutations) => {
                 mutations.forEach((mutation) => {
@@ -648,6 +649,8 @@
     </script>
 </head>
 <body>
+    <script src="./native-backup.js"></script>
+    <script>NativeBackup.init().catch(function () {});</script>
     <!-- Page Header -->
     <header class="page-header">
         <button class="back-btn" onclick="history.back()" aria-label="Назад"><i class="fas fa-arrow-left"></i></button>
@@ -760,7 +763,17 @@
 
     <script>
         // ── Current Analysis Loader ─────────────────────────────────────────────
-        (function loadGameAnalytics() {
+        (async function loadGameAnalytics() {
+            if (typeof NativeBackup !== 'undefined') {
+                await NativeBackup.init().catch(() => {});
+            }
+            var restoredTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', restoredTheme);
+            updateThemeIcon(restoredTheme);
+            setThemeColor(restoredTheme);
+            if (typeof window.applyGameAnalyticsColorScheme === 'function') {
+                window.applyGameAnalyticsColorScheme();
+            }
             var section = document.getElementById('gameAnalyticsSection');
             var body    = document.getElementById('gameAnalyticsBody');
             var badge   = document.getElementById('gameAnalyticsBadge');
