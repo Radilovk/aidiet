@@ -1,5 +1,19 @@
 # Log Tasks
 
+## 2026-05-21 — Стабилизиране на embedded Home/index в shell
+
+**Задача:** Да се открие реалният проблем зад дефекта при влизане в Home/index tab-а, при който останалите tab-ове се чупят и профилните данни изглеждат изчистени.
+
+**Направено:**
+1. **Разследване на причината:** Проверих `index.html`, `app.js` и `session-utils.js` и изолирах, че embedded `index.html?stay=1&embedded=1` продължава да изпълнява standalone auth/restore bootstrap логиката си вътре в shell-а.
+2. **Изолиране на рисковия path:** Установих, че именно embedded Home може да стартира NativeBackup restore, cookie/backend profile restore и Firebase auth side effects, които не са нужни в iframe режим и могат да разместят/подменят shell session състоянието.
+3. **Минимална корекция:** В `index.html` спрях standalone NativeBackup/profile-restore/auth sync flow-овете само когато страницата е заредена с `embedded=1`, като оставих shell навигацията и останалото поведение непокътнати.
+4. **Проверка:** Пуснах наличния `npm test` скрипт и подготвих финална проверка след промяната.
+
+**Резултат:** Home/index tab-ът вече не изпълнява тежките standalone restore/auth side effects вътре в shell-а, което трябва да спре дефектирането на останалите tab-ове и привидното „изчистване“ на профила.
+
+---
+
 ## 2026-05-21 — XBody onboarding crimson palette
 
 **Задача:** Началният прозорец за съхраняване на клиентските данни в XBody да използва червени, а не зелени оттенъци, съобразени с дизайна и логото.
