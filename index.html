@@ -51,7 +51,7 @@
     <script>(function(){
         // Skip redirect if explicitly staying on index (?stay=1) or if login required
         var params = new URLSearchParams(window.location.search);
-        if (params.has('stay') || params.has('login')) return;
+        if (params.has('stay') || params.has('login') || params.has('app')) return;
         
         // Check for plan generation in progress - redirect to questionnaire
         var planJobId = localStorage.getItem('planJobId');
@@ -73,7 +73,7 @@
         if (planSource === 'questionnaire2' || pendingClientId) {
             planTarget = 'plan-pending.html';
         } else {
-            planTarget = 'plan.html';
+            planTarget = 'index.html?app=1&tab=plan';
         }
         
         // Redirect immediately before any UI renders
@@ -1734,6 +1734,54 @@
             margin-top: 1px;
         }
 
+        /* --- SPA shell: mounted once, tab switches are class-only (0ms) --- */
+        .spa-shell[hidden] { display: none !important; }
+        body.spa-mode {
+            overflow: hidden;
+            background: var(--bg-color);
+        }
+        body.spa-mode > .ds-skip-link,
+        body.spa-mode > .ds-mesh-bg,
+        body.spa-mode > .blob-bg,
+        body.spa-mode > .mesh-overlay,
+        body.spa-mode > nav:not(.spa-bottom-nav),
+        body.spa-mode > .nav-menu-overlay,
+        body.spa-mode > .nav-menu,
+        body.spa-mode > main,
+        body.spa-mode > section,
+        body.spa-mode > footer,
+        body.spa-mode > .install-banner,
+        body.spa-mode > .ios-prompt,
+        body.spa-mode > #indexBottomNav {
+            display: none !important;
+        }
+        .spa-shell {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            background: var(--bg-color);
+            display: block;
+            overflow: hidden;
+        }
+        .spa-tab-stack {
+            position: absolute;
+            inset: 0 0 calc(60px + var(--safe-area-inset-bottom)) 0;
+            overflow: hidden;
+            background: var(--bg-color);
+        }
+        .spa-tab-view {
+            display: none;
+            width: 100%;
+            height: 100%;
+            border: 0;
+            background: var(--bg-color);
+        }
+        .spa-tab-view.is-active {
+            display: block;
+        }
+        .spa-bottom-nav {
+            z-index: 10001;
+        }
     </style>
     <script>
         // Apply color scheme from admin settings
@@ -2001,6 +2049,33 @@
     <script src="./ui-images-cache.js"></script>
 </head>
 <body>
+    <div id="spaShell" class="spa-shell" hidden aria-label="NutriPlan приложение">
+        <div class="spa-tab-stack">
+            <iframe class="spa-tab-view" data-tab-view="home" title="Начало" data-src="index.html?stay=1&embedded=1"></iframe>
+            <iframe class="spa-tab-view" data-tab-view="plan" title="Моят план" data-src="plan.html?embedded=1"></iframe>
+            <iframe class="spa-tab-view" data-tab-view="guidelines" title="Насоки" data-src="guidelines.html?embedded=1"></iframe>
+            <iframe class="spa-tab-view" data-tab-view="profile" title="Профил" data-src="profile.html?embedded=1"></iframe>
+            <iframe class="spa-tab-view" data-tab-view="analytics" title="Анализ" data-src="game-analytics.html?embedded=1"></iframe>
+        </div>
+        <nav class="bottom-nav spa-bottom-nav" aria-label="Основна навигация">
+            <button type="button" class="bottom-nav-item" data-tab-target="home">
+                <i class="fas fa-home"></i>
+                <span>Начало</span>
+            </button>
+            <button type="button" class="bottom-nav-item" data-tab-target="plan">
+                <i class="fas fa-utensils"></i>
+                <span>Моят План</span>
+            </button>
+            <button type="button" class="bottom-nav-item" data-tab-target="guidelines">
+                <i class="fas fa-compass"></i>
+                <span>Насоки</span>
+            </button>
+            <button type="button" class="bottom-nav-item" data-tab-target="profile">
+                <i class="fas fa-user"></i>
+                <span>Профил</span>
+            </button>
+        </nav>
+    </div>
     <!-- Skip Navigation Link (Accessibility) -->
     <a href="#main-content" class="ds-skip-link">Премини към съдържанието</a>
     
@@ -2766,9 +2841,10 @@
             if (dietPlan) {
                 // Determine the correct plan destination
                 const planTarget  = getPlanTargetFromState();
+                const appTarget = planTarget === 'plan.html' ? 'index.html?app=1&tab=plan' : planTarget;
                 // Redirect directly unless the user intentionally navigated here
-                if (!params.has('stay')) {
-                    window.location.replace(planTarget);
+                if (!params.has('stay') && !params.has('app')) {
+                    window.location.replace(appTarget);
                     return;
                 }
                 // User chose to stay on index — update nav buttons to point to the plan
@@ -2776,11 +2852,11 @@
                     startNowBtn.style.display = 'none';
                 }
                 if (heroCTABtn) {
-                    heroCTABtn.href = planTarget;
+                    heroCTABtn.href = appTarget;
                     heroCTABtn.innerHTML = '<i class="fas fa-user-check" aria-hidden="true"></i> Моят план';
                 }
                 if (navMyPlanLink) {
-                    navMyPlanLink.href = planTarget;
+                    navMyPlanLink.href = appTarget;
                     navMyPlanLink.style.display = 'flex';
                 }
                 const indexBottomNav = document.getElementById('indexBottomNav');
@@ -3736,7 +3812,7 @@
     <!-- Swipe navigation between tabs -->
     <script>
     (function() {
-        var tabs = ['index.html?stay=1', 'plan.html', 'guidelines.html', 'profile.html'];
+        var tabs = ['index.html?app=1&tab=home', 'index.html?app=1&tab=plan', 'index.html?app=1&tab=guidelines', 'index.html?app=1&tab=profile'];
         var currentIndex = 0;
         var touchStartX = 0, touchStartY = 0;
         var THRESHOLD = 60;
@@ -3765,15 +3841,15 @@
             <i class="fas fa-home"></i>
             <span>Начало</span>
         </a>
-        <a href="plan.html" class="bottom-nav-item">
+        <a href="index.html?app=1&tab=plan" class="bottom-nav-item">
             <i class="fas fa-utensils"></i>
             <span>Моят План</span>
         </a>
-        <a href="guidelines.html" class="bottom-nav-item">
+        <a href="index.html?app=1&tab=guidelines" class="bottom-nav-item">
             <i class="fas fa-compass"></i>
             <span>Насоки</span>
         </a>
-        <a href="profile.html" class="bottom-nav-item">
+        <a href="index.html?app=1&tab=profile" class="bottom-nav-item">
             <i class="fas fa-user"></i>
             <span>Профил</span>
         </a>
@@ -3782,6 +3858,7 @@
     <!-- NativeBackup: mirrors key localStorage values to Capacitor Preferences so
          plan data survives APK reinstall via Android Auto Backup. -->
     <script src="./native-backup.js"></script>
+    <script src="./app.js"></script>
     <!-- Login Modal — email/password with forgot password -->
     <div id="loginModal" role="dialog" aria-modal="true" aria-label="Вход в NutriPlan">
         <div class="login-modal-box">
