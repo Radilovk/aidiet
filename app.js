@@ -489,7 +489,6 @@
             var isActive = frame.getAttribute('data-tab-view') === tab;
             frame.classList.toggle('is-active', isActive);
             frame.setAttribute('aria-hidden', String(!isActive));
-            if (isActive) replayTabAnimations(frame);
         });
 
         document.querySelectorAll('[data-tab-target]').forEach(function (button) {
@@ -544,7 +543,6 @@
                 patchFrame(frame);
                 refreshFramesForData();
                 if (frame.getAttribute('data-tab-view') === state.activeTab) {
-                    replayTabAnimations(frame);
                     dispatchFrameEvent(frame, 'NUTRIPLAN_TAB_ACTIVATED', {
                         tab: state.activeTab,
                         previousTab: ''
