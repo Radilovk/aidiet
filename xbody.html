@@ -94,8 +94,8 @@
         #back-btn {
             position: fixed;
             /* Sit just below the iOS status bar (safe-area-inset-top) */
-            top: calc(constant(safe-area-inset-top) + 10px + 8mm);
-            top: calc(env(safe-area-inset-top, 0px) + 10px + 8mm);
+            top: calc(constant(safe-area-inset-top) + 10px + 5mm);
+            top: calc(env(safe-area-inset-top, 0px) + 10px + 5mm);
             left: 12px;
             z-index: 500;
             width: 36px;
@@ -335,44 +335,7 @@
         /* ── Load Acuity iframe ── */
         (function () {
             var frame = document.querySelector('iframe');
-            if (!frame) return;
-            var proxiedSrc = '/schedule.php?owner=13943721&appointmentType=16859189';
-            var directSrc = 'https://app.acuityscheduling.com/schedule.php?owner=13943721&appointmentType=16859189';
-            var didLoad = false;
-            frame.dataset.originalSrc = proxiedSrc;
-
-            function loadFrame(src) {
-                if (didLoad) return;
-                didLoad = true;
-                frame.dataset.originalSrc = src;
-                frame.src = src;
-            }
-
-            if (!('serviceWorker' in navigator)) {
-                loadFrame(directSrc);
-                return;
-            }
-
-            if (navigator.serviceWorker.controller) {
-                loadFrame(proxiedSrc);
-                return;
-            }
-
-            navigator.serviceWorker.addEventListener('controllerchange', function () {
-                loadFrame(proxiedSrc);
-            }, { once: true });
-
-            navigator.serviceWorker.ready
-                .then(function () {
-                    if (navigator.serviceWorker.controller) loadFrame(proxiedSrc);
-                })
-                .catch(function () {
-                    loadFrame(directSrc);
-                });
-
-            setTimeout(function () {
-                loadFrame(directSrc);
-            }, 1500);
+            if (frame) frame.src = 'https://app.acuityscheduling.com/schedule.php?owner=13943721&appointmentType=16859189';
         })();
 
         /* ── PWA Install Logic ── */
@@ -519,9 +482,7 @@
             if (!btn || !frame) return;
 
             // Store the original src so we can hard-reset the iframe if needed.
-            function getOriginalSrc() {
-                return frame.dataset.originalSrc || frame.src;
-            }
+            const originalSrc = frame.src;
 
             let navDepth = 0; // depth > 0 → button visible
 
@@ -612,7 +573,7 @@
                     frame.contentWindow.history.back();
                 } catch (_) {
                     // Cross-origin history access denied – hard-reset the frame to the original src.
-                    frame.src = getOriginalSrc();
+                    frame.src = originalSrc;
                     navDepth    = 0;
                     msgNavDepth = 0;
                     homeHeight  = null; // re-baseline on next setHeight message
