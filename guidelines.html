@@ -1117,6 +1117,7 @@
     <script src="./ui-images-cache.js"></script>
 </head>
 <body>
+    <script src="./session-utils.js"></script>
     <script type="module" src="./auth-guard.js"></script>
     <div class="container">
         <!-- UI Banner Zone (shown only when image is configured in admin) -->
@@ -1394,6 +1395,19 @@
                 return true;
             }
             window.location.href = target.url;
+            return false;
+        }
+
+        function openPlanShortcut(action) {
+            if (action !== 'chat' && action !== 'food') return false;
+            if (document.documentElement.getAttribute('data-embedded-tab') === '1' &&
+                requestShellAction('NUTRIPLAN_SWITCH_TAB', { tab: 'plan' })) {
+                try {
+                    localStorage.setItem('pendingPlanUiAction', action);
+                } catch (_) {}
+                return true;
+            }
+            window.location.href = action === 'chat' ? 'plan.html?chat=1' : 'plan.html?food=1';
             return false;
         }
 
@@ -1727,6 +1741,9 @@
         // --- Initialize ---
         (function instantInit() {
             async function setupGuidelines() {
+                if (window.NutriPlanAuthGuardReady) {
+                    try { await window.NutriPlanAuthGuardReady; } catch (_) {}
+                }
                 if (typeof NativeBackup !== 'undefined') {
                     await NativeBackup.init().catch(() => {});
                 }
@@ -1822,12 +1839,12 @@
     </script>
 
     <!-- Chat Assistant Button -->
-    <button class="fab-chat" onclick="navigateTopLevel('plan.html?chat=1')" aria-label="Отвори чат асистент">
+    <button class="fab-chat" onclick="openPlanShortcut('chat')" aria-label="Отвори чат асистент">
         <img src="./docs/Chat2.png" alt="" class="chat-icon-img" aria-hidden="true">
     </button>
 
     <!-- Food Analysis FAB (bottom-left) -->
-    <button class="fab-food" onclick="navigateTopLevel('plan.html?food=1')" aria-label="Анализ на храна чрез снимка">
+    <button class="fab-food" onclick="openPlanShortcut('food')" aria-label="Анализ на храна чрез снимка">
         <i class="fas fa-camera" aria-hidden="true"></i>
     </button>
 

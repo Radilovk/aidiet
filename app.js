@@ -22,7 +22,9 @@
         profile: 'profile.html?embedded=1',
         analytics: 'game-analytics.html?embedded=1'
     };
-    var STORAGE_KEYS = [
+    var STORAGE_KEYS = (window.NutriPlanSession && typeof window.NutriPlanSession.getManagedStorageKeys === 'function'
+        ? window.NutriPlanSession.getManagedStorageKeys()
+        : [
         'dietPlan',
         'userId',
         'userData',
@@ -55,8 +57,9 @@
         'gameEnabled',
         'gameData',
         'gameWeeklyAI',
-        'gameNotifierConfig'
-    ];
+        'gameNotifierConfig',
+        'sessionOwnerId'
+    ]).slice();
     var state = {
         initialized: false,
         activeTab: 'plan',

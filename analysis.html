@@ -2539,6 +2539,12 @@
                 navigateTopLevel('plan-pending.html');
                 return;
             }
+            const returnTab = new URLSearchParams(window.location.search).get('returnToTab');
+            if (returnTab === 'plan') {
+                if (requestShellAction('NUTRIPLAN_SWITCH_TAB', { tab: 'plan' })) return;
+                navigateTopLevel('index.html?app=1&tab=plan', true);
+                return;
+            }
             if (requestShellAction('NUTRIPLAN_SWITCH_TAB', { tab: 'plan' })) return;
             window.location.href = 'plan.html';
         }
