@@ -1788,7 +1788,7 @@
 <body>
     <!-- Sticky Header -->
     <header class="analysis-header">
-        <a href="plan.html" class="back-btn" aria-label="Назад"><i class="fas fa-arrow-left"></i></a>
+        <button class="back-btn" type="button" onclick="goBack()" aria-label="Назад"><i class="fas fa-arrow-left"></i></button>
         <h1>Здравен Анализ</h1>
         <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема" aria-label="Смени тема"><i class="fas fa-moon" id="themeIcon"></i></button>
     </header>
@@ -1998,12 +1998,23 @@
             localStorage.setItem('theme', newTheme);
             updateThemeIcon(newTheme);
             setThemeColor(newTheme);
+            if (document.documentElement.getAttribute('data-embedded-tab') === '1' && window.parent && window.parent !== window) {
+                window.parent.postMessage({ type: 'NUTRIPLAN_THEME_CHANGE', theme: newTheme }, window.location.origin);
+            }
         }
 
         function updateThemeIcon(theme) {
             const icon = document.getElementById('themeIcon');
             if (icon) {
                 icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            }
+        }
+
+        function goBack() {
+            if (document.referrer && document.referrer.includes(window.location.hostname)) {
+                window.history.back();
+            } else {
+                window.location.href = 'plan.html';
             }
         }
 

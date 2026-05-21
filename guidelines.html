@@ -1356,6 +1356,9 @@
             localStorage.setItem('theme', newTheme);
             updateThemeIcon();
             setThemeColor(newTheme);
+            if (document.documentElement.getAttribute('data-embedded-tab') === '1' && window.parent && window.parent !== window) {
+                window.parent.postMessage({ type: 'NUTRIPLAN_THEME_CHANGE', theme: newTheme }, window.location.origin);
+            }
         }
 
         function updateThemeIcon() {
@@ -1366,6 +1369,10 @@
         }
 
         function goBack() {
+            if (document.documentElement.getAttribute('data-embedded-tab') === '1' && window.parent && window.parent !== window) {
+                window.parent.postMessage({ type: 'NUTRIPLAN_SWITCH_TAB', tab: 'plan' }, window.location.origin);
+                return;
+            }
             if (document.referrer && document.referrer.includes(window.location.hostname)) {
                 window.history.back();
             } else {

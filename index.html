@@ -2626,6 +2626,9 @@
             localStorage.setItem('theme', newTheme);
             updateThemeIcon(newTheme);
             setThemeColor(newTheme);
+            if (document.documentElement.getAttribute('data-embedded-tab') === '1' && window.parent && window.parent !== window) {
+                window.parent.postMessage({ type: 'NUTRIPLAN_THEME_CHANGE', theme: newTheme }, window.location.origin);
+            }
         }
 
         function updateThemeIcon(theme) {
@@ -4291,6 +4294,10 @@
             Object.keys(localStorage)
                 .filter(k => k.startsWith('addedMeals_'))
                 .forEach(k => localStorage.removeItem(k));
+            if (document.documentElement.getAttribute('data-embedded-tab') === '1' && window.parent && window.parent !== window) {
+                window.parent.postMessage({ type: 'NUTRIPLAN_LOGOUT' }, window.location.origin);
+                return;
+            }
             window.location.replace('index.html?stay=1');
         };
     </script>

@@ -1,5 +1,24 @@
 # Log Tasks
 
+## 2026-05-21 — Shell bridge, theme sync и APK parity корекции
+
+**Задача:** Да се имплементира планът за оправяне на iframe shell проблемите в APK — theme sync, logout/reset, външни страници от Profile, FAB позициониране, day/date логика, haptics и login lag.
+
+**Направено:**
+1. **`app.js`:** Добавих минимален shell bridge за `theme`, `switch tab`, `top-level navigate` и `logout`, plus deactivation/activation събития между parent shell-а и embedded tab страниците.
+2. **`app.js`:** Смених eager mount-а с lazy mount + deferred preload на iframe табовете, за да се намали първоначалното забавяне след login без да се губи бързото последващо превключване.
+3. **`app.js`:** Разширих embedded patch-а, така че FAB бутоните да слизат по-ниско в iframe режим, докато standalone layout-ът остава непроменен.
+4. **`index.html`, `plan.html`, `profile.html`, `guidelines.html`, `game-analytics.html`, `analysis.html`:** Theme toggle-ът вече известява shell-а и темата се прилага веднага по всички tab страници.
+5. **`profile.html`:** Analysis/print/logout/go back вече минават през shell/top-level навигация, така че Profile табът да не остава „заклещен“ във външна страница.
+6. **`plan.html`:** Денят вече пази реален `viewDateKey` вместо глобално `lastSelectedDay`, навигацията по дни е линейна по календар, а при повторно влизане в Plan се връща към днешния ден.
+7. **`plan.html`:** Добавих централен stop за typing haptics и спиране при край, затваряне и tab deactivation, плюс shell-aware навигация към Profile/Analytics/Food picker.
+8. **`profile.html` / `game-analytics.html`:** Върнах релоад/преиграване на gamification entrance анимациите при tab activation и коригирах част от смесените/неудачни български текстове.
+9. **`plan-book.html` и `analysis.html`:** Back/print flow-ът вече работи по-стабилно при top-level отваряне от shell-а; native print fallback отваря браузър вместо само share hint.
+
+**Резултат:** Shell и embedded tab flow-ът са по-близо до web/PWA поведението отпреди merge-а, с по-малко stuck навигация, мигновен theme sync, по-коректна day/date логика и по-лек първоначален login startup.
+
+---
+
 ## 2026-05-21 — Допълнителен одит на APK parity и корекции по оставащите разминавания
 
 **Задача:** Да се провери дали всички описани APK/web/PWA грешки са оправени и да се довършат оставащите корекции.

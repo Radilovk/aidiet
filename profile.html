@@ -2205,7 +2205,7 @@
 
         <!-- Back to Plan Button -->
         <div class="back-to-plan-container">
-            <a class="btn btn-primary back-to-plan-btn" href="plan-book.html">
+            <a class="btn btn-primary back-to-plan-btn" href="plan-book.html" onclick="return openPlanBook(event)">
                 <i class="fas fa-download"></i>
                 Изтегли целия план
             </a>
@@ -2569,6 +2569,9 @@
             localStorage.setItem('theme', newTheme);
             updateThemeIcon(newTheme);
             setThemeColor(newTheme);
+            if (document.documentElement.getAttribute('data-embedded-tab') === '1' && window.parent && window.parent !== window) {
+                window.parent.postMessage({ type: 'NUTRIPLAN_THEME_CHANGE', theme: newTheme }, window.location.origin);
+            }
         }
 
         function updateThemeIcon(theme) {
@@ -2578,8 +2581,30 @@
             }
         }
 
+        function requestShellAction(type, payload) {
+            if (document.documentElement.getAttribute('data-embedded-tab') !== '1' || !window.parent || window.parent === window) {
+                return false;
+            }
+            try {
+                window.parent.postMessage(Object.assign({ type: type }, payload || {}), window.location.origin);
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+
+        function navigateTopLevel(url, replace) {
+            if (requestShellAction('NUTRIPLAN_NAVIGATE', { url: url, replace: !!replace, forceTopLevel: true })) {
+                return true;
+            }
+            if (replace) window.location.replace(url);
+            else window.location.href = url;
+            return false;
+        }
+
         // --- Navigation ---
         function goBack() {
+            if (requestShellAction('NUTRIPLAN_SWITCH_TAB', { tab: 'plan' })) return;
             window.location.href = 'plan.html';
         }
 
@@ -2653,18 +2678,18 @@
                                     loadUserData();
                                 } else {
                                     showAlert('Няма налични данни. Моля, попълнете въпросника.', 'warning');
-                                    setTimeout(() => { window.location.href = 'questionnaire.html'; }, 2000);
+                                    setTimeout(() => { navigateTopLevel('questionnaire.html'); }, 2000);
                                 }
                             })
                             .catch(() => {
                                 showAlert('Няма налични данни. Моля, попълнете въпросника.', 'warning');
-                                setTimeout(() => { window.location.href = 'questionnaire.html'; }, 2000);
+                                setTimeout(() => { navigateTopLevel('questionnaire.html'); }, 2000);
                             });
                         return;
                     }
                     showAlert('Няма налични данни. Моля, попълнете въпросника.', 'warning');
                     setTimeout(() => {
-                        window.location.href = 'questionnaire.html';
+                        navigateTopLevel('questionnaire.html');
                     }, 2000);
                     return;
                 }
@@ -2999,7 +3024,9 @@
                 showAlert('✓ Планът е регенериран успешно! Пренасочване...', 'info');
                 
                 setTimeout(() => {
-                    window.location.href = 'plan.html';
+                    if (!requestShellAction('NUTRIPLAN_SWITCH_TAB', { tab: 'plan' })) {
+                        window.location.href = 'plan.html';
+                    }
                 }, 2000);
 
             } catch (error) {
@@ -3297,7 +3324,13 @@
         }
         
         function viewFullAnalysis() {
-            window.location.href = 'analysis.html';
+            navigateTopLevel('analysis.html');
+        }
+
+        function openPlanBook(event) {
+            if (event) event.preventDefault();
+            navigateTopLevel('plan-book.html');
+            return false;
         }
 
         // --- Initialization ---
@@ -3982,7 +4015,7 @@
         // ── End UI Zone Images ─────────────────────────────────────────────────────
 
         // ── Current Analysis Loader ─────────────────────────────────────────────
-        (function loadGameAnalytics() {
+        function loadGameAnalytics() {
             var section = document.getElementById('gameAnalyticsSection');
             var body    = document.getElementById('gameAnalyticsBody');
             var badge   = document.getElementById('gameAnalyticsBadge');
@@ -4580,7 +4613,7 @@
 
             // Correlations & insights section
             if(insights.length>0){
-                html += '<div class="game-section-title">Корелации &amp; открития</div>';
+                html += '<div class="game-section-title">Корелации и открития</div>';
                 insights.forEach(function(ins, ii){ html += '<div class="game-insight-card ga-card-enter" style="animation-delay:'+(0.05+ii*0.08)+'s">'+ins+'</div>'; });
             }
 
@@ -4666,7 +4699,11 @@
             body.querySelectorAll('[data-explain]').forEach(function(el){
                 el.addEventListener('click', function(){ showExplanation(el.getAttribute('data-explain')); });
             });
-        })();
+        }
+        loadGameAnalytics();
+        window.addEventListener('NUTRIPLAN_TAB_ACTIVATED', function() {
+            loadGameAnalytics();
+        });
         // ── End Current Analysis Loader ──────────────────────────────────────
     </script>
 
@@ -4809,6 +4846,7 @@
                 await signOut(auth).catch(() => {});
                 _clearUserPlanData();
                 /* Navigate home after logout — do not show the login modal */
+                if (requestShellAction('NUTRIPLAN_LOGOUT')) return;
                 window.location.replace('index.html?stay=1');
             };
 

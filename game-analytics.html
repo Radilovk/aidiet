@@ -653,8 +653,8 @@
     <script>NativeBackup.init().catch(function () {});</script>
     <!-- Page Header -->
     <header class="page-header">
-        <button class="back-btn" onclick="history.back()" aria-label="Назад"><i class="fas fa-arrow-left"></i></button>
-        <h1>Текущ Анализ</h1>
+        <button class="back-btn" onclick="goBack()" aria-label="Назад"><i class="fas fa-arrow-left"></i></button>
+        <h1>Текущ анализ</h1>
         <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема" aria-label="Смени тема"><i class="fas fa-moon" id="themeIcon"></i></button>
     </header>
 
@@ -664,7 +664,7 @@
             <div class="game-analytics-header" onclick="toggleGameAnalytics()" role="button" tabindex="0" aria-expanded="true" aria-controls="gameAnalyticsBody" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleGameAnalytics();}">
                 <div class="game-analytics-title">
                     <i class="fas fa-brain"></i>
-                    <span>Текущ Анализ</span>
+                    <span>Текущ анализ</span>
                 </div>
                 <div style="display:flex;align-items:center;gap:8px;">
                     <span id="gameAnalyticsBadge" class="game-analytics-badge"></span>
@@ -695,11 +695,25 @@
             localStorage.setItem('theme', newTheme);
             updateThemeIcon(newTheme);
             setThemeColor(newTheme);
+            if (document.documentElement.getAttribute('data-embedded-tab') === '1' && window.parent && window.parent !== window) {
+                window.parent.postMessage({ type: 'NUTRIPLAN_THEME_CHANGE', theme: newTheme }, window.location.origin);
+            }
         }
         function updateThemeIcon(theme) {
             const icon = document.getElementById('themeIcon');
             if (icon) {
                 icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            }
+        }
+        function goBack() {
+            if (document.documentElement.getAttribute('data-embedded-tab') === '1' && window.parent && window.parent !== window) {
+                window.parent.postMessage({ type: 'NUTRIPLAN_SWITCH_TAB', tab: 'plan' }, window.location.origin);
+                return;
+            }
+            if (document.referrer && document.referrer.includes(window.location.hostname)) {
+                window.history.back();
+            } else {
+                window.location.href = 'plan.html';
             }
         }
         // Apply correct icon on load
@@ -1312,7 +1326,7 @@
             if(noDataDaysCount>0) html += '<div class="game-no-data-note"><i class="fas fa-calendar-xmark"></i> ' + noDataDaysCount + ' ' + (noDataDaysCount===1?'ден':'дни') + ' без отбелязана активност (отчетени като 0%)</div>';
 
             if(insights.length>0){
-                html += '<div class="game-section-title">Корелации &amp; открития</div>';
+                html += '<div class="game-section-title">Корелации и открития</div>';
                 insights.forEach(function(ins, ii){ html += '<div class="game-insight-card ga-card-enter" style="animation-delay:'+(0.05+ii*0.08)+'s">'+ins+'</div>'; });
             }
 
