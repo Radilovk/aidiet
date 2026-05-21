@@ -2810,6 +2810,11 @@
         }
         // Trigger once on load
         reveal();
+        window.addEventListener('message', function(e) {
+            if (e.data && e.data.type === 'TAB_ACTIVATED') {
+                reveal();
+            }
+        });
 
         // --- PWA Service Worker Registration ---
 

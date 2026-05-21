@@ -354,7 +354,7 @@
             }
             if (window.npPlanAuthReady) {
                 const authUser = await window.npPlanAuthReady;
-                if (!authUser) {
+                if (!authUser && !localStorage.getItem('dietPlan')) {
                     requestAnimationFrame(function() {
                         document.body.style.transition = 'opacity 120ms ease-out';
                         document.body.style.opacity = '1';
@@ -5118,6 +5118,7 @@
                 if (_fabLowerTimer) clearTimeout(_fabLowerTimer);
                 _fabLowerTimer = setTimeout(function(){
                     fab.classList.remove('fab-raised');
+                    try { if (window.parent && window.parent !== window) window.parent.postMessage({ type: 'GAME_PROMPT_STATE', active: false }, '*'); } catch(_) {}
                     _fabLowerTimer = null;
                 }, FAB_LOWER_DELAY);
             }
@@ -5141,6 +5142,7 @@
             var wasRaised = fab && fab.classList.contains('fab-raised');
             if (fab) {
                 fab.classList.add('fab-raised', 'game-prompt');
+                try { if (window.parent && window.parent !== window) window.parent.postMessage({ type: 'GAME_PROMPT_STATE', active: true }, '*'); } catch(_) {}
                 setTimeout(function(){ fab.classList.remove('game-prompt'); }, 2600);
             }
 
