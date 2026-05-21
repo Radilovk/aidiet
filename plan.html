@@ -3499,6 +3499,7 @@
         }
     })();</script>
 
+    <script src="./session-utils.js"></script>
     <script type="module">
         import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
         import {
@@ -3517,6 +3518,11 @@
         };
         const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
         const auth = getAuth(getApps().length ? getApp() : initializeApp(_cfg));
+        let _planAuthResolve;
+        let _planAuthResolved = false;
+        window.NutriPlanPlanAuthReady = window.NutriPlanPlanAuthReady || new Promise(resolve => {
+            _planAuthResolve = resolve;
+        });
 
         const overlay  = document.getElementById('planAuthOverlay');
         const spinner  = overlay ? overlay.querySelector('.pa-spinner') : null;
@@ -3527,6 +3533,12 @@
             overlay.style.opacity = '0';
             overlay.style.pointerEvents = 'none';
             setTimeout(() => { if (overlay) overlay.remove(); }, 280);
+        }
+
+        function resolvePlanAuth(user) {
+            if (_planAuthResolved) return;
+            _planAuthResolved = true;
+            if (_planAuthResolve) _planAuthResolve(user || null);
         }
 
         // If plan is already cached locally, reveal content immediately without
@@ -3854,13 +3866,20 @@
         /* ── Logout — exposed globally so the button in day-banner can call it ── */
         window.planSignOut = async function () {
             await signOut(auth).catch(() => {});
-            _clearUserPlanData();
+            if (window.NutriPlanSession && typeof window.NutriPlanSession.clearUserSessionData === 'function') {
+                await window.NutriPlanSession.clearUserSessionData();
+            } else {
+                _clearUserPlanData();
+            }
             if (requestShellAction('NUTRIPLAN_LOGOUT')) return;
             window.location.replace('index.html?stay=1');
         };
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
+                if (window.NutriPlanSession && typeof window.NutriPlanSession.ensureAuthenticatedUser === 'function') {
+                    await window.NutriPlanSession.ensureAuthenticatedUser(user);
+                }
                 syncUser(user);
                 // If no plan is cached locally, try to fetch it from the server.
                 // This happens on a new device where the user has a plan in their account.
@@ -3872,6 +3891,7 @@
                         // Restore was already attempted in this tab but failed to produce a plan
                         // (shouldn't normally happen) — avoid a loop and go to questionnaire.
                         sessionStorage.removeItem(_planRestoreKey);
+                        resolvePlanAuth(user);
                         navigateTopLevel('questionnaire2.html', true);
                         return;
                     }
@@ -3887,15 +3907,19 @@
                             window.loadDietData();
                         }
                         hideOverlay();
+                        resolvePlanAuth(user);
                         return;
                     }
                     // No plan on server either — send to questionnaire
+                    resolvePlanAuth(user);
                     navigateTopLevel('questionnaire2.html', true);
                     return;
                 }
                 hideOverlay();
+                resolvePlanAuth(user);
             } else {
                 showAuthForm();
+                resolvePlanAuth(null);
             }
         });
     </script>
@@ -3989,7 +4013,7 @@
         <div id="mealContainer" aria-live="polite"></div>
 
         <!-- Моите храни и продукти banner -->
-        <a href="food-picker.html" class="my-foods-banner" aria-label="Моите храни и продукти" onclick="navigateTopLevel('food-picker.html'); return false;">
+        <a href="food-picker.html" class="my-foods-banner" aria-label="Моите храни и продукти" onclick="navigateTopLevel(getFoodPickerUrl()); return false;">
             <span class="my-foods-icon">🛒</span>
             <div class="my-foods-text">
                 <div class="my-foods-title">Моите храни и продукти</div>
@@ -4163,6 +4187,8 @@
         const MAX_RETRIES = 2;
         const RETRY_DELAYS = [2000, 5000]; // Exponential backoff delays in ms
         let typingHapticsEnabled = true;
+        const activeTypingTimers = new Set();
+        const activeTypingFinalizers = new Set();
         
         // Enhancement #2: Debouncing state
         let sendMessageTimeout = null;
@@ -4468,6 +4494,9 @@
         
         // --- DOM-Dependent Initialization ---
         async function initializeDOMDependentFeatures() {
+            if (window.NutriPlanPlanAuthReady) {
+                try { await window.NutriPlanPlanAuthReady; } catch (_) {}
+            }
             // On Capacitor APK: restore plan data from Android SharedPreferences into
             // localStorage before checking for plan data (handles APK reinstall scenario).
             if (typeof NativeBackup !== 'undefined') {
@@ -4510,6 +4539,7 @@
                 setTimeout(function() { openChat(); }, 500);
                 window.history.replaceState({}, '', window.location.pathname);
             }
+            consumePendingPlanUiAction();
         }
 
         function loadChatModeConfig() {
@@ -4603,6 +4633,58 @@
                     navigator.vibrate(0);
                 }
             } catch (_) {}
+        }
+
+        function scheduleTypingStep(callback, delay) {
+            const timerId = setTimeout(function() {
+                activeTypingTimers.delete(timerId);
+                callback();
+            }, delay || 0);
+            activeTypingTimers.add(timerId);
+            return timerId;
+        }
+
+        function registerTypingFinalizer(finalizer) {
+            activeTypingFinalizers.add(finalizer);
+            return function unregisterTypingFinalizer() {
+                activeTypingFinalizers.delete(finalizer);
+            };
+        }
+
+        function cancelActiveTyping(options) {
+            options = options || {};
+            activeTypingTimers.forEach(function(timerId) {
+                clearTimeout(timerId);
+            });
+            activeTypingTimers.clear();
+            if (options.complete) {
+                Array.from(activeTypingFinalizers).forEach(function(finalizer) {
+                    try { finalizer(); } catch (_) {}
+                });
+            }
+            activeTypingFinalizers.clear();
+            stopTypingHaptics();
+        }
+
+        function getFoodPickerUrl() {
+            return 'food-picker.html?returnTo=' + encodeURIComponent('index.html?app=1&tab=plan');
+        }
+
+        function consumePendingPlanUiAction() {
+            let action = null;
+            try {
+                action = localStorage.getItem('pendingPlanUiAction');
+                if (action) localStorage.removeItem('pendingPlanUiAction');
+            } catch (_) {}
+            if (action === 'chat') {
+                if (!chatVisible) openChat();
+                return true;
+            }
+            if (action === 'food') {
+                openFoodAnalysis();
+                return true;
+            }
+            return false;
         }
 
         function pulseTypingHaptic(duration) {
@@ -5479,11 +5561,24 @@
             if ((currentViewDateKey || todayDateKey()) !== todayDateKey()) {
                 resetPlanViewToToday();
             }
+            consumePendingPlanUiAction();
         });
 
         window.addEventListener('NUTRIPLAN_TAB_DEACTIVATED', function() {
             typingHapticsEnabled = false;
-            stopTypingHaptics();
+            cancelActiveTyping({ complete: true });
+        });
+
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                cancelActiveTyping({ complete: true });
+            }
+        });
+        window.addEventListener('pagehide', function() {
+            cancelActiveTyping();
+        });
+        window.addEventListener('beforeunload', function() {
+            cancelActiveTyping();
         });
 
         function getDayTimeIcon() {
@@ -5977,7 +6072,7 @@
             if (chatWindow) {
                 // Save chat history before closing
                 saveChatHistory();
-                stopTypingHaptics();
+                cancelActiveTyping();
                 chatWindow.remove();
                 chatVisible = false;
                 // Reset chatMode to consultation on close to avoid confusion when reopening
@@ -6113,7 +6208,7 @@
             if (message.toLowerCase() === '*selectfoods') {
                 addMessageToChat('🥗 Отваряне на избора на продукти…', 'assistant');
                 input.value = '';
-                setTimeout(() => { navigateTopLevel('food-picker.html'); }, 700);
+                setTimeout(() => { navigateTopLevel(getFoodPickerUrl()); }, 700);
                 return;
             }
 
@@ -6722,9 +6817,23 @@
                 chatMessages.scrollTop = chatMessages.scrollHeight;
 
                 let i = 0;
+                let completed = false;
                 const charDelay = 18; // ms per character — ~55 chars/sec
+                const finalizeTyping = function() {
+                    if (completed || !document.contains(bubble)) return;
+                    completed = true;
+                    unregisterFinalizer();
+                    bubble.classList.remove('chat-typing');
+                    bubble.innerHTML = formattedMessage;
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                    stopTypingHaptics();
+                };
+                const unregisterFinalizer = registerTypingFinalizer(finalizeTyping);
                 function tick() {
+                    if (completed) return;
                     if (!document.contains(bubble)) {
+                        completed = true;
+                        unregisterFinalizer();
                         stopTypingHaptics();
                         return;
                     }
@@ -6733,13 +6842,10 @@
                         // Micro-vibration on every letter while bot types
                         pulseTypingHaptic(4);
                         chatMessages.scrollTop = chatMessages.scrollHeight;
-                        setTimeout(tick, charDelay);
+                        scheduleTypingStep(tick, charDelay);
                     } else {
                         // Typing done — swap plain text to formatted HTML
-                        stopTypingHaptics();
-                        bubble.classList.remove('chat-typing');
-                        bubble.innerHTML = formattedMessage;
-                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                        finalizeTyping();
                     }
                 }
                 tick();
@@ -8546,16 +8652,34 @@
             el.textContent = '';
             el.classList.add('typing');
             var i = 0;
+            var finished = false;
+            var finalize = function() {
+                if (finished || !document.contains(el)) return;
+                finished = true;
+                unregisterFinalizer();
+                stopTypingHaptics();
+                el.textContent = text;
+                el.classList.remove('typing');
+                if (cb) cb();
+            };
+            var unregisterFinalizer = registerTypingFinalizer(finalize);
             function tick() {
+                if (finished) return;
                 // Guard against the element being removed from the DOM mid-animation
-                if (!document.contains(el)) { stopTypingHaptics(); if (cb) cb(); return; }
+                if (!document.contains(el)) {
+                    finished = true;
+                    unregisterFinalizer();
+                    stopTypingHaptics();
+                    if (cb) cb();
+                    return;
+                }
                 if (i < text.length) {
                     el.textContent += text[i++];
                     // Micro-vibration on every character while game question types
                     pulseTypingHaptic(4);
-                    setTimeout(tick, speed || 30);
+                    scheduleTypingStep(tick, speed || 30);
                 }
-                else { stopTypingHaptics(); el.classList.remove('typing'); if (cb) cb(); }
+                else { finalize(); }
             }
             tick();
         }

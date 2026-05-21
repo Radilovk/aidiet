@@ -29,6 +29,18 @@ const _cfg = {
 const _app = getApps().length ? getApp() : initializeApp(_cfg);
 export const guardAuth = getAuth(_app);
 
+let _guardReadyResolve;
+let _guardReadyResolved = false;
+window.NutriPlanAuthGuardReady = window.NutriPlanAuthGuardReady || new Promise(resolve => {
+    _guardReadyResolve = resolve;
+});
+
+function _resolveGuardReady(user) {
+    if (_guardReadyResolved) return;
+    _guardReadyResolved = true;
+    if (_guardReadyResolve) _guardReadyResolve(user || null);
+}
+
 /* ── Loading overlay (shown while auth state is being resolved) ──────────── */
 (function () {
     /* If the user is already known to be logged in (userId stored by the sign-in
@@ -59,15 +71,20 @@ export const guardAuth = getAuth(_app);
         document.documentElement.appendChild(ov);
     }
 
-    onAuthStateChanged(guardAuth, (user) => {
+    onAuthStateChanged(guardAuth, async (user) => {
         if (user) {
+            if (window.NutriPlanSession && typeof window.NutriPlanSession.ensureAuthenticatedUser === 'function') {
+                await window.NutriPlanSession.ensureAuthenticatedUser(user);
+            }
             /* Authenticated — reveal the page (overlay may not exist) */
             if (ov) {
                 ov.style.opacity = '0';
                 setTimeout(() => ov.remove(), 300);
             }
+            _resolveGuardReady(user);
         } else {
             /* Not authenticated — send to login */
+            _resolveGuardReady(null);
             const next = encodeURIComponent(location.pathname + location.search);
             window.location.replace('index.html?login=1&next=' + next);
         }

@@ -24,6 +24,20 @@
 2. **Проверка:** Пуснах `npm test` (наличният тестов скрипт в репото) преди промяната и потвърдих, че завършва успешно.
 
 **Резултат:** Back бутонът в XBody стои с 2.5 мм по-надолу, без да се променя останалият layout.
+## 2026-05-21 — Session ownership, logout reset и tab-safe shortcut корекции
+
+**Задача:** Да се имплементират одобрените корекции по logout/session reset, user-switch cache purge, shell/tab navigation, chat haptics и food-picker back flow.
+
+**Направено:**
+1. **`session-utils.js`:** Добавих централен helper за managed storage ключове, user-session clear и owner check при login със смяна на профил.
+2. **`auth-guard.js`, `index.html`, `plan.html`, `profile.html`:** Вкарах общото session ownership поведение при Firebase auth, така че login с различен акаунт да чисти чуждия кеш, а logout да минава през единен clear flow.
+3. **`native-backup.js` и `app.js`:** Закачих ги към общия списък с managed storage ключове, за да няма разминаване между localStorage, Capacitor Preferences и shell startup-а.
+4. **`profile.html` + `analysis.html`:** Full analysis flow-ът вече носи `returnToTab=plan`, а бутонът „Виж хранителен план“ връща стабилно към `Моят план`.
+5. **`guidelines.html` + `plan.html`:** FAB shortcut-ите за чат и фото анализ вече подават pending action към Plan таба, вместо да пренаписват/чупят контекста на `Насоки`.
+6. **`plan.html`:** Добавих централен cancel/finalize lifecycle за typing/haptic timeout-ите, така че вибрацията да спира при close, finish, tab deactivation, visibility hide и unload.
+7. **`food-picker.html`:** Добавих видим back бутон и надежден fallback към shell `Моят план`, когато няма browser history.
+
+**Резултат:** Logout/user-switch flow-ът е по-чист между web/PWA/APK, shortcut навигацията пази tab контекста по-добре, а chat/game typing haptics вече спират предвидимо.
 
 ---
 

@@ -12,7 +12,11 @@
  */
 const NativeBackup = (function () {
     // Ключове, които се запазват за оцеляване при деинсталация
-    const PLAN_KEYS = [
+    const PLAN_KEYS = (typeof window !== 'undefined' &&
+        window.NutriPlanSession &&
+        typeof window.NutriPlanSession.getManagedStorageKeys === 'function'
+        ? window.NutriPlanSession.getManagedStorageKeys()
+        : [
         'dietPlan',
         'userId',
         'userData',
@@ -46,7 +50,8 @@ const NativeBackup = (function () {
         'gameData',
         'gameWeeklyAI',
         'gameNotifierConfig',
-    ];
+        'sessionOwnerId',
+    ]).slice();
     const PRIMARY_KEYS = [
         'dietPlan',
         'pendingClientId',

@@ -47,6 +47,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Inline theme init: apply saved theme before first paint to prevent FOUC -->
     <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F0FDFA';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
+    <script src="./session-utils.js"></script>
     <!-- Early redirect: check plan immediately to avoid flickering -->
     <script>(function(){
         // Skip redirect if explicitly staying on index (?stay=1) or if login required
@@ -4070,6 +4071,9 @@
             }
             // Capture the userId that was set BEFORE this login event (may be anonymous).
             const prevUserId = localStorage.getItem('userId');
+            if (window.NutriPlanSession && typeof window.NutriPlanSession.ensureAuthenticatedUser === 'function') {
+                await window.NutriPlanSession.ensureAuthenticatedUser(user);
+            }
             applyUser(user);
             const fbUserId = 'fb_' + user.uid;
 
@@ -4157,6 +4161,30 @@
             if (navMyPlanLink) navMyPlanLink.style.display = 'none';
             if (heroLoginBtn) heroLoginBtn.style.display = '';
             if (navLogoutBtn) navLogoutBtn.style.display = 'none';
+        }
+
+        async function clearIndexSessionData() {
+            if (window.NutriPlanSession && typeof window.NutriPlanSession.clearUserSessionData === 'function') {
+                await window.NutriPlanSession.clearUserSessionData();
+                return;
+            }
+            const PLAN_KEYS = [
+                'dietPlan', 'userData', 'planSource', 'planHistory',
+                'userId', 'authKvSynced', 'np_profile_synced', 'np_profile_sync_sig',
+                'planJustification', 'longTermStrategy', 'modifierReasoning',
+                'hydrationStrategy', 'mealCountJustification',
+                'gameNotifierConfig',
+                'planJobId', 'planJobSource', 'pendingPlanPayload',
+                'pendingClientId', 'questionnaireAnswers', 'warningData',
+                'canProceedWithWarning', 'validationSource',
+                'chatHistory', 'chatMode', 'chatDemoLimitUnlocked',
+                'planSyncPending',
+                'profilePhotoURL', 'profilePhotoUid', 'profileAvatar'
+            ];
+            PLAN_KEYS.forEach(k => localStorage.removeItem(k));
+            Object.keys(localStorage)
+                .filter(k => k.startsWith('addedMeals_') || k.startsWith('demoChatCount_') || k.startsWith('demoImageCount_'))
+                .forEach(k => localStorage.removeItem(k));
         }
 
         // Enter key on email input focuses password; Enter on password submits
@@ -4286,23 +4314,7 @@
         window.indexSignOut = async function() {
             setLoggedOutNavigationState();
             await signOut(auth).catch(() => {});
-            const PLAN_KEYS = [
-                'dietPlan', 'userData', 'planSource', 'planHistory',
-                'userId', 'authKvSynced', 'np_profile_synced', 'np_profile_sync_sig',
-                'planJustification', 'longTermStrategy', 'modifierReasoning',
-                'hydrationStrategy', 'mealCountJustification',
-                'gameNotifierConfig',
-                'planJobId', 'planJobSource', 'pendingPlanPayload',
-                'pendingClientId', 'questionnaireAnswers', 'warningData',
-                'canProceedWithWarning', 'validationSource',
-                'chatHistory', 'chatMode', 'chatDemoLimitUnlocked',
-                'planSyncPending',
-                'profilePhotoURL', 'profilePhotoUid', 'profileAvatar'
-            ];
-            PLAN_KEYS.forEach(k => localStorage.removeItem(k));
-            Object.keys(localStorage)
-                .filter(k => k.startsWith('addedMeals_'))
-                .forEach(k => localStorage.removeItem(k));
+            await clearIndexSessionData();
             if (document.documentElement.getAttribute('data-embedded-tab') === '1' && window.parent && window.parent !== window) {
                 window.parent.postMessage({ type: 'NUTRIPLAN_LOGOUT' }, window.location.origin);
                 return;
