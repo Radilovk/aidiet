@@ -373,7 +373,7 @@
             return TAB_SRCS[tab] ? tab : 'plan';
         }
 
-        var _currentTab = sanitizeTab(REQUESTED_TAB || localStorage.getItem('np_shell_active_tab') || 'plan');
+        var _currentTab = sanitizeTab(REQUESTED_TAB || 'plan');
         var _loadedTabs = { plan: true, guidelines: false, profile: false, home: false };
         var _pendingPlanMessage = null;
         var _warmupScheduled = false;
@@ -445,8 +445,9 @@
             document.querySelectorAll('.shell-nav-item').forEach(function(btn) {
                 btn.classList.toggle('active', btn.getAttribute('data-tab') === _currentTab);
             });
+            var _fabTabs = ['plan', 'guidelines'];
             document.querySelectorAll('.shell-fab').forEach(function(fab) {
-                fab.style.display = _currentTab === 'home' ? 'none' : 'flex';
+                fab.style.display = _fabTabs.indexOf(_currentTab) >= 0 ? 'flex' : 'none';
             });
         }
 
@@ -515,6 +516,17 @@
             dispatchPlanMessage({ type: 'PLAN_SHORTCUT', action: action });
         };
 
+        // Hidden file input used as a proxy for iframes (Capacitor WebView doesn't
+        // fire onShowFileChooser for <input type="file"> inside sub-frames).
+        var _shellFileInput = (function() {
+            var el = document.createElement('input');
+            el.type = 'file';
+            el.accept = 'image/*';
+            el.style.cssText = 'position:fixed;top:-200px;left:-200px;width:1px;height:1px;opacity:0;pointer-events:none;';
+            document.body.appendChild(el);
+            return el;
+        })();
+
         // Listen for tab-switch requests from inner pages (via postMessage)
         window.addEventListener('message', function(e) {
             if (!e.data) return;
@@ -535,6 +547,28 @@
                 } else {
                     chatFab.classList.remove('game-prompt');
                 }
+                return;
+            }
+            // File-picker bridge: profile iframe asks the shell to open a file chooser
+            // because <input type="file"> inside an iframe doesn't work in Capacitor WebView.
+            if (e.data.type === 'OPEN_FILE_PICKER') {
+                var sourceFrame = e.source;
+                if (!sourceFrame) return;
+                _shellFileInput.accept = e.data.accept || 'image/*';
+                _shellFileInput.value = '';
+                var onPick = function() {
+                    _shellFileInput.removeEventListener('change', onPick);
+                    var file = _shellFileInput.files && _shellFileInput.files[0];
+                    if (!file) return;
+                    var reader = new FileReader();
+                    reader.onload = function(ev) {
+                        try { sourceFrame.postMessage({ type: 'FILE_PICKED', dataUrl: ev.target.result }, '*'); } catch(_) {}
+                    };
+                    reader.readAsDataURL(file);
+                };
+                _shellFileInput.addEventListener('change', onPick);
+                _shellFileInput.click();
+                return;
             }
         });
 

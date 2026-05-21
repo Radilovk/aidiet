@@ -1046,32 +1046,45 @@
                 // Avatar upload functionality
                 const profileAvatar = document.getElementById('profileAvatar');
                 const avatarInput = document.getElementById('avatarInput');
-                
-                if (profileAvatar && avatarInput) {
-                    profileAvatar.addEventListener('click', function() {
-                        avatarInput.click();
-                    });
-                    
-                    avatarInput.addEventListener('change', function(e) {
-                        const file = e.target.files[0];
-                        if (file && file.type.startsWith('image/')) {
-                            const reader = new FileReader();
-                            reader.onload = function(event) {
-                                const imageData = event.target.result;
-                                // Store in localStorage
-                                try {
-                                    localStorage.setItem('profileAvatar', imageData);
-                                    // Update avatar display
-                                    renderProfileAvatar(userData?.name, userData?.email, null);
-                                    showAlert('Аватарът е качен успешно!', 'success');
-                                } catch (err) {
-                                    console.error('Failed to save avatar:', err);
-                                    showAlert('Грешка при запазване на аватара. Изображението може да е твърде голямо.', 'error');
-                                }
-                            };
-                            reader.readAsDataURL(file);
-                        }
-                    });
+                const _inIframe = (window.self !== window.top);
+
+                function _applyAvatarData(imageData) {
+                    try {
+                        localStorage.setItem('profileAvatar', imageData);
+                        renderProfileAvatar(userData?.name, userData?.email, null);
+                        showAlert('Аватарът е качен успешно!', 'success');
+                    } catch (err) {
+                        console.error('Failed to save avatar:', err);
+                        showAlert('Грешка при запазване на аватара. Изображението може да е твърде голямо.', 'error');
+                    }
+                }
+
+                if (profileAvatar) {
+                    // In iframe (APK shell): delegate file picking to the parent shell because
+                    // Capacitor WebView does not fire onShowFileChooser for sub-frame inputs.
+                    if (_inIframe) {
+                        profileAvatar.addEventListener('click', function() {
+                            window.parent.postMessage({ type: 'OPEN_FILE_PICKER', accept: 'image/*' }, '*');
+                        });
+                        window.addEventListener('message', function(e) {
+                            if (e.data && e.data.type === 'FILE_PICKED' && e.data.dataUrl) {
+                                _applyAvatarData(e.data.dataUrl);
+                            }
+                        });
+                    } else if (avatarInput) {
+                        // Standalone (PWA / browser): use the local file input directly.
+                        profileAvatar.addEventListener('click', function() {
+                            avatarInput.click();
+                        });
+                        avatarInput.addEventListener('change', function(e) {
+                            const file = e.target.files[0];
+                            if (file && file.type.startsWith('image/')) {
+                                const reader = new FileReader();
+                                reader.onload = function(event) { _applyAvatarData(event.target.result); };
+                                reader.readAsDataURL(file);
+                            }
+                        });
+                    }
                 }
             }
             

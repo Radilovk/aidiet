@@ -1,5 +1,20 @@
 # Log Tasks
 
+## 2026-05-21 — Поправка на аватар качване, FAB икони в профил таб, стартов таб
+
+**Задача:**
+1. В APK не може да се качи снимка за аватар.
+2. Иконите за чат и анализ на снимка не трябва да се появяват в профил таба — само в план и насоки.
+3. При отваряне на приложението винаги да се отваря планът.
+
+**Причина (root cause):** Commit `df3f7d5` въведе SPA keep-alive shell (`app.html`) с iframe архитектура. В Capacitor WebView на Android, `<input type="file">` вътре в iframe не извиква `onShowFileChooser` на WebChromeClient, затова аватар качването се провали. Shell-ните FAB бутони бяха показвани за всички табове освен Home. Lastт активен таб се пазеше в localStorage.
+
+**Направено:**
+- `profile.js`: Добавен postMessage bridge — когато профилът е в iframe, клик върху аватара изпраща `OPEN_FILE_PICKER` до parent shell; при standalone PWA продължава да ползва local file input директно.
+- `app.html`: Shell слуша `OPEN_FILE_PICKER`, отваря hidden file input от top frame (работи в Capacitor WebView), и праща `FILE_PICKED` с data URL обратно към iframe.
+- `app.html` (`syncActiveUi`): FAB бутоните вече се показват само когато активният таб е `plan` или `guidelines`.
+- `app.html`: Премахнат `localStorage.getItem('np_shell_active_tab')` fallback — приложението винаги стартира на плана.
+
 ## 2026-05-21 — Повторно активиране на Home tab анимациите
 
 **Задача:** „След merge-а анимациите в Home/index таба да се активират при всяко отваряне, без да се връщат тежки заявки към бекенда.“
