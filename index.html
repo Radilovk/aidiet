@@ -148,7 +148,7 @@
         }
 
         /* --- NAVIGATION (Glassmorphism) --- */
-        body > nav:not(.bottom-nav):not(.spa-bottom-nav) {
+        .top-nav {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -165,7 +165,7 @@
             border-bottom: 1px solid var(--glass-border);
             transition: background-color 0.3s ease;
         }
-        [data-theme="dark"] body > nav:not(.bottom-nav):not(.spa-bottom-nav) {
+        [data-theme="dark"] .top-nav {
             background: rgba(10, 28, 28, 0.92);
             box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 1px 0 rgba(45, 212, 191, 0.08);
             border-bottom-color: rgba(45, 212, 191, 0.12);
@@ -384,7 +384,6 @@
         /* --- BOTTOM NAVIGATION (shown only when user has an approved plan) --- */
         .bottom-nav {
             position: fixed;
-            top: auto;
             bottom: 0;
             left: 0;
             right: 0;
@@ -1236,7 +1235,7 @@
                 padding: 24px 20px;
                 border-radius: 20px;
             }
-            nav {
+            .top-nav {
                 padding: 15px 20px;
             }
             .logo {
@@ -1780,14 +1779,7 @@
         .spa-tab-view.is-active {
             display: block;
         }
-        .spa-bottom-nav {
-            position: fixed;
-            top: auto;
-            right: 0;
-            bottom: 0;
-            left: 0;
-            z-index: 10001;
-        }
+        .spa-bottom-nav { z-index: 10001; }
     </style>
     <script>
         // Apply color scheme from admin settings
@@ -2097,7 +2089,7 @@
     <div class="mesh-overlay" aria-hidden="true"></div>
 
     <!-- Navigation -->
-    <nav role="navigation" aria-label="Главна навигация">
+    <nav class="top-nav" role="navigation" aria-label="Главна навигация">
         <a href="#" class="logo" aria-label="NutriPlan начална страница"><i class="fas fa-apple-alt" aria-hidden="true"></i> NutriPlan</a>
         <button class="hamburger-btn" id="hamburgerBtn" aria-label="Меню" aria-expanded="false" aria-controls="navMenu" onclick="toggleNavMenu()">
             <span class="bar"></span>
