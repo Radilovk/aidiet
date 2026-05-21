@@ -1,5 +1,49 @@
 # Log Tasks
 
+## 2026-05-21 — Уеднаквяване на shell поведението за web / PWA / APK
+
+**Задача:** „Оправи грешките по най-елегантния начин, за да осигуриш скорост и лекота на зареждане на страниците, пълна функционалност и логика и запазени анимации и ефекти.“
+
+**Направено:**
+- В `app.html` върнах по-лекото startup поведение: активният таб се зарежда веднага, а останалите табове се warm-load-ват след first paint/idle, вместо всички iframe-и да товарят наведнъж.
+- Добавих shell startup routing чрез `?tab=` и `?action=`, плюс запомняне на последния активен таб в `np_shell_active_tab`.
+- Направих shell shortcut/notification действията да чакат `plan.html` да е ready и тогава да подават `PLAN_SHORTCUT`/`NOTIFICATION_ACTION`, за да няма загубени действия при студен старт.
+- Пренасочих PWA manifest shortcuts и TWA shortcuts към `app.html`, така че PWA и APK да влизат през keep-alive shell-а вместо през самостоятелен `plan.html`/`profile.html`.
+- Обнових `sw.js`, така че notification URL-ите и legacy tab URL-ите (`plan.html`, `profile.html`, `guidelines.html`, `index.html?stay=1`) да се нормализират към shell маршрути.
+- Промених swipe/bottom-nav/FAB standalone навигацията в `plan.html`, `guidelines.html` и `profile.html`, така че tab преходите да влизат в `app.html` shell-а, а chat/food действията да запазят пълната си функционалност.
+- Запазих съществуващите анимации, hover/pulse ефекти и визуалния shell polish без да връщам тежкото eager зареждане на всички табове.
+
+**Резултат:** Web, PWA и APK вече използват един и същ shell-first tab flow значително по-последователно; стартът е по-лек, а след warm-load tab превключването остава бързо и с налични ефекти/действия.
+
+## 2026-05-21 — NutriPlan SPA regressions after keep-alive shell
+
+**Задача:** „След обединяването/SPA keep-alive промяната липсват chat и image analysis икони, липсват анимирани елементи, план се зарежда при logged-out потребител, има проблеми в APK/PWA; да се върне старото поведение, но табовете да останат бързи.“
+
+**Направено:**
+- Върнах chat и image analysis FAB бутоните на ниво `app.html` shell със същия визуален стил, позиция, pulse/hover анимации и икони.
+- Добавих shell shortcut forwarding (`PLAN_SHORTCUT`) към `plan.html`, така че бутоните от keep-alive shell-а отварят същите функции `openChat()` и `openFoodAnalysis()` без reload.
+- Спрях ранния `index.html` redirect към cached plan преди Firebase auth да е потвърден, за да не се отваря план при logged-out потребител.
+- Запазих approved-plan routing-а към `app.html`, но вече през auth-aware DOM flow.
+- Добавих auth gating между `plan.html` и `plan.js`, така че `loadDietData()` не рендерира план, докато Firebase auth не потвърди потребител; при липса на auth остава login/restore overlay.
+- Поправих `plan.js` достъпа до Firebase auth след JS extraction чрез `window.npFirebaseAuth`, за да няма `auth is not defined` при backend sync.
+- Ограничих refresh при `TAB_ACTIVATED` да се прави само когато local plan/user state се е променил, за да остане tab switching бърз.
+- Обнових service worker cache версията до `nutriplan-v11` и добавих `docs/Chat2.png` в кеша, за да стигне fix-ът до PWA/APK.
+
+**Резултат:** Keep-alive tab switching остава активен, но изгубените FAB действия и анимации са върнати, а планът вече не трябва да се показва само заради cached localStorage при logged-out състояние.
+
+## 2026-05-21 — XBody back button + local persistence
+
+**Задача:** „1. Back бутонът в `xbody.html` да се свали с 3 мм надолу. 2. Всички въведени данни и отметки в XBody формата да се пазят локално и да се възстановяват автоматично при бъдещи посещения.“
+
+**Направено:**
+- Преместих `#back-btn` в `xbody.html` с още `3mm` надолу.
+- Промених зареждането на XBody iframe-а да ползва same-origin `/schedule.php` когато `xbody-sw.js` вече контролира страницата, с fallback към директния Acuity URL при първо зареждане без активен controller.
+- Разширих `xbody-sw.js` с proxy за `/schedule.php`, който fetch-ва Acuity HTML, инжектира локално persistence script и пази последната успешна HTML версия в Cache API за fallback.
+- Добавих трайно `localStorage` запазване и автоматично възстановяване за текстови полета, select-и, radio/checkbox стойности и други неплатежни полета в XBody формата.
+- Умишлено не се пазят payment/card полета, за да не се въвежда локално съхранение на чувствителни картови данни.
+
+**Резултат:** Back бутонът е по-ниско, а XBody формата вече възстановява локално пазеното състояние при следващи посещения, без да кешира картови данни.
+
 ## 2026-05-21 — Връщане към състоянието на PR #820
 
 **Задача:** „PR# Make NutriPlan tab switching eager and keep-alive #820 върни до този момент!“

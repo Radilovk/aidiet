@@ -163,6 +163,88 @@
             background: rgba(13, 148, 136, 0.05);
         }
 
+        /* Shell-level FABs: the embedded pages hide their own FABs, so the shell
+           keeps the same actions visible while iframes stay alive. */
+        .shell-fab {
+            position: fixed;
+            bottom: calc(var(--shell-nav-height) + 20px);
+            width: 56px;
+            height: 56px;
+            border: none;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            cursor: pointer;
+            z-index: 10000;
+            -webkit-tap-highlight-color: transparent;
+            background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%);
+            box-shadow:
+                0 8px 28px rgba(13, 148, 136, 0.45),
+                0 4px 12px rgba(13, 148, 136, 0.25),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+        }
+
+        .shell-fab::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: linear-gradient(135deg, rgba(255,255,255,0.25) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .shell-fab-chat {
+            right: calc(16px + env(safe-area-inset-right, 0px));
+            overflow: hidden;
+            animation: _shell_fab_pulse 3s ease-in-out infinite;
+        }
+
+        .shell-fab-food {
+            left: calc(16px + env(safe-area-inset-left, 0px));
+            font-size: 1.3rem;
+        }
+
+        .shell-fab:hover {
+            transform: scale(1.1);
+            box-shadow: 0 12px 36px rgba(13, 148, 136, 0.55);
+        }
+
+        .shell-fab-chat:hover {
+            transform: scale(1.12) rotate(5deg);
+            animation: none;
+        }
+
+        .shell-fab:active { transform: scale(0.95); }
+
+        .shell-chat-icon-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: inherit;
+        }
+
+        @keyframes _shell_fab_pulse {
+            0%, 100% {
+                box-shadow:
+                    0 8px 28px rgba(13, 148, 136, 0.45),
+                    0 4px 12px rgba(13, 148, 136, 0.25),
+                    0 0 0 0 rgba(13, 148, 136, 0.35),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+                transform: scale(1);
+            }
+            50% {
+                box-shadow:
+                    0 12px 36px rgba(13, 148, 136, 0.55),
+                    0 6px 16px rgba(13, 148, 136, 0.35),
+                    0 0 0 14px rgba(13, 148, 136, 0),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+                transform: scale(1.05);
+            }
+        }
+
         /* Loading placeholder while first iframe loads */
         .tab-loader {
             position: fixed;
@@ -202,20 +284,28 @@
         <iframe id="iframe-plan" src="./plan.html" title="Моят План" loading="eager" fetchpriority="high" allowfullscreen></iframe>
     </div>
 
-    <!-- Tab frame: Guidelines (loaded eagerly and kept alive) -->
+    <!-- Tab frame: Guidelines (warm-loaded after first paint and kept alive) -->
     <div class="tab-frame" id="frame-guidelines">
-        <iframe id="iframe-guidelines" src="./guidelines.html" title="Насоки" loading="eager" fetchpriority="low" allowfullscreen></iframe>
+        <iframe id="iframe-guidelines" title="Насоки" loading="lazy" fetchpriority="low" allowfullscreen></iframe>
     </div>
 
-    <!-- Tab frame: Profile (loaded eagerly and kept alive) -->
+    <!-- Tab frame: Profile (warm-loaded after first paint and kept alive) -->
     <div class="tab-frame" id="frame-profile">
-        <iframe id="iframe-profile" src="./profile.html" title="Профил" loading="eager" fetchpriority="low" allowfullscreen></iframe>
+        <iframe id="iframe-profile" title="Профил" loading="lazy" fetchpriority="low" allowfullscreen></iframe>
     </div>
 
-    <!-- Tab frame: Home / Index (loaded eagerly and kept alive) -->
+    <!-- Tab frame: Home / Index (warm-loaded after first paint and kept alive) -->
     <div class="tab-frame" id="frame-home">
-        <iframe id="iframe-home" src="./index.html?stay=1" title="Начало" loading="eager" fetchpriority="low" allowfullscreen></iframe>
+        <iframe id="iframe-home" title="Начало" loading="lazy" fetchpriority="low" allowfullscreen></iframe>
     </div>
+
+    <button class="shell-fab shell-fab-chat" onclick="shellPlanShortcut('chat')" aria-label="Отвори чат асистент">
+        <img src="./docs/Chat2.png" alt="" class="shell-chat-icon-img" aria-hidden="true">
+    </button>
+
+    <button class="shell-fab shell-fab-food" onclick="shellPlanShortcut('food')" aria-label="Анализ на храна чрез снимка">
+        <i class="fas fa-camera" aria-hidden="true"></i>
+    </button>
 
     <!-- Shell bottom navigation (always on top, managed by shell) -->
     <nav class="shell-nav" id="shellNav" role="navigation" aria-label="Основна навигация">
@@ -249,58 +339,133 @@
             home:       './index.html?stay=1'
         };
 
-        var _currentTab = 'plan';
-        var _loadedTabs = { plan: true, guidelines: true, profile: true, home: true };
+        var SEARCH = new URLSearchParams(window.location.search);
+        var REQUESTED_ACTION = SEARCH.get('action');
+        var REQUESTED_TAB = SEARCH.get('tab');
+        if (REQUESTED_ACTION === 'chat' || REQUESTED_ACTION === 'food') {
+            REQUESTED_TAB = 'plan';
+        }
 
-        // Hide loader once plan iframe fires load
+        function sanitizeTab(tab) {
+            return TAB_SRCS[tab] ? tab : 'plan';
+        }
+
+        var _currentTab = sanitizeTab(REQUESTED_TAB || localStorage.getItem('np_shell_active_tab') || 'plan');
+        var _loadedTabs = { plan: true, guidelines: false, profile: false, home: false };
+        var _pendingPlanMessage = null;
+        var _warmupScheduled = false;
+
+        // Hide loader once the active iframe fires load
         var planIframe = document.getElementById('iframe-plan');
         var loader = document.getElementById('tabLoader');
 
-        planIframe.addEventListener('load', function() {
-            if (loader) {
-                loader.style.opacity = '0';
-                setTimeout(function() { if (loader) loader.remove(); }, 250);
+        function hideLoader() {
+            if (!loader) return;
+            loader.style.opacity = '0';
+            setTimeout(function() { if (loader) loader.remove(); }, 250);
+            loader = null;
+        }
+
+        function setIframeSrc(tab) {
+            var frame = document.getElementById('iframe-' + tab);
+            if (!frame || _loadedTabs[tab]) return frame;
+            frame.src = TAB_SRCS[tab];
+            _loadedTabs[tab] = true;
+            return frame;
+        }
+
+        function dispatchPlanMessage(message) {
+            var planIf = setIframeSrc('plan') || planIframe;
+            if (!planIf) return;
+            if (planIf.dataset.ready === 'true' && planIf.contentWindow) {
+                try { planIf.contentWindow.postMessage(message, '*'); } catch(e) {}
+                return;
             }
+            _pendingPlanMessage = message;
+        }
+
+        function flushPendingPlanMessage() {
+            if (!_pendingPlanMessage || !planIframe || planIframe.dataset.ready !== 'true' || !planIframe.contentWindow) return;
+            try { planIframe.contentWindow.postMessage(_pendingPlanMessage, '*'); } catch(e) {}
+            _pendingPlanMessage = null;
+        }
+
+        function persistCurrentTab() {
+            try { localStorage.setItem('np_shell_active_tab', _currentTab); } catch (_) {}
+        }
+
+        function syncActiveUi() {
+            document.querySelectorAll('.tab-frame').forEach(function(f) {
+                f.classList.toggle('active', f.id === 'frame-' + _currentTab);
+            });
+            document.querySelectorAll('.shell-nav-item').forEach(function(btn) {
+                btn.classList.toggle('active', btn.getAttribute('data-tab') === _currentTab);
+            });
+        }
+
+        function scheduleWarmup() {
+            if (_warmupScheduled) return;
+            _warmupScheduled = true;
+            var remaining = Object.keys(TAB_SRCS).filter(function(tab) { return tab !== _currentTab; });
+            function warmNext() {
+                var next = remaining.shift();
+                if (!next) return;
+                setIframeSrc(next);
+                setTimeout(warmNext, 180);
+            }
+            var starter = window.requestIdleCallback
+                ? function(cb) { window.requestIdleCallback(cb, { timeout: 600 }); }
+                : function(cb) { setTimeout(cb, 220); };
+            starter(warmNext);
+        }
+
+        planIframe.addEventListener('load', function() {
+            planIframe.dataset.ready = 'true';
+            if (_currentTab === 'plan') hideLoader();
+            flushPendingPlanMessage();
+            scheduleWarmup();
         });
 
-        Object.keys(TAB_SRCS).forEach(function(tab) {
+        ['guidelines', 'profile', 'home'].forEach(function(tab) {
             var frame = document.getElementById('iframe-' + tab);
-            if (frame && !frame.getAttribute('src')) {
-                frame.src = TAB_SRCS[tab];
-                _loadedTabs[tab] = true;
-            }
+            if (!frame) return;
+            frame.addEventListener('load', function() {
+                frame.dataset.ready = 'true';
+                if (_currentTab === tab) hideLoader();
+            });
         });
+
+        if (_currentTab !== 'plan') {
+            setIframeSrc(_currentTab);
+        }
+        syncActiveUi();
+        persistCurrentTab();
 
         // Public switch function (also called by shell nav buttons)
         window.shellSwitchTab = function(tab) {
+            tab = sanitizeTab(tab);
             if (tab === _currentTab) return;
 
             var targetFrame = document.getElementById('frame-' + tab);
             if (!targetFrame) return;
 
             // Fallback warm-up before showing the frame.
-            var iframe = document.getElementById('iframe-' + tab);
-            if (iframe && !_loadedTabs[tab]) {
-                iframe.src = TAB_SRCS[tab];
-                _loadedTabs[tab] = true;
-            }
-
-            // Show/hide frames without destroying layout or iframe state.
-            document.querySelectorAll('.tab-frame').forEach(function(f) {
-                f.classList.toggle('active', f === targetFrame);
-            });
-
-            // Update nav active state
-            document.querySelectorAll('.shell-nav-item').forEach(function(btn) {
-                btn.classList.toggle('active', btn.getAttribute('data-tab') === tab);
-            });
+            var iframe = setIframeSrc(tab) || document.getElementById('iframe-' + tab);
 
             _currentTab = tab;
+            syncActiveUi();
+            persistCurrentTab();
+            scheduleWarmup();
 
             // Notify the newly-active iframe that it was shown (for refresh-on-focus)
             if (iframe && iframe.contentWindow) {
                 try { iframe.contentWindow.postMessage({ type: 'TAB_ACTIVATED' }, '*'); } catch(e) {}
             }
+        };
+
+        window.shellPlanShortcut = function(action) {
+            window.shellSwitchTab('plan');
+            dispatchPlanMessage({ type: 'PLAN_SHORTCUT', action: action });
         };
 
         // Listen for tab-switch requests from inner pages (via postMessage)
@@ -337,14 +502,21 @@
                 // Forward NOTIFICATION_ACTION to plan iframe
                 if (msg.type === 'NOTIFICATION_ACTION') {
                     window.shellSwitchTab('plan');
-                    var planIf = document.getElementById('iframe-plan');
-                    if (planIf && planIf.contentWindow) {
-                        setTimeout(function() {
-                            try { planIf.contentWindow.postMessage(msg, '*'); } catch(e) {}
-                        }, 100);
-                    }
+                    dispatchPlanMessage(msg);
                 }
             });
+        }
+
+        if (REQUESTED_ACTION === 'chat' || REQUESTED_ACTION === 'food') {
+            dispatchPlanMessage({ type: 'PLAN_SHORTCUT', action: REQUESTED_ACTION });
+            if (window.history && window.history.replaceState) {
+                var cleaned = new URL(window.location.href);
+                cleaned.searchParams.delete('action');
+                if (!SEARCH.get('tab')) cleaned.searchParams.delete('tab');
+                window.history.replaceState({}, '', cleaned.pathname + cleaned.search + cleaned.hash);
+            }
+        } else {
+            scheduleWarmup();
         }
     })();
     </script>

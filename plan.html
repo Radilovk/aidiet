@@ -3499,6 +3499,16 @@
         }
     })();</script>
 
+    <script>
+        window.npPlanAuthState = { resolved: false, user: null };
+        window.npPlanAuthReady = new Promise(function(resolve) {
+            window.__resolveNpPlanAuth = function(user) {
+                window.npPlanAuthState.resolved = true;
+                window.npPlanAuthState.user = user || null;
+                resolve(user || null);
+            };
+        });
+    </script>
     <script type="module">
         import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
         import {
@@ -3517,6 +3527,7 @@
         };
         const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
         const auth = getAuth(getApps().length ? getApp() : initializeApp(_cfg));
+        window.npFirebaseAuth = auth;
 
         const overlay  = document.getElementById('planAuthOverlay');
         const spinner  = overlay ? overlay.querySelector('.pa-spinner') : null;
@@ -3886,15 +3897,19 @@
                             window.loadDietData();
                         }
                         hideOverlay();
+                        if (window.__resolveNpPlanAuth) window.__resolveNpPlanAuth(user);
                         return;
                     }
                     // No plan on server either — send to questionnaire
                     _shellNav('questionnaire2.html', true);
+                    if (window.__resolveNpPlanAuth) window.__resolveNpPlanAuth(user);
                     return;
                 }
                 hideOverlay();
+                if (window.__resolveNpPlanAuth) window.__resolveNpPlanAuth(user);
             } else {
                 showAuthForm();
+                if (window.__resolveNpPlanAuth) window.__resolveNpPlanAuth(null);
             }
         });
     </script>
@@ -4154,7 +4169,7 @@
     <script>
     (function() {
         var tabNames = ['home', 'plan', 'guidelines', 'profile'];
-        var tabUrls  = ['index.html?stay=1', 'plan.html', 'guidelines.html', 'profile.html'];
+        var tabUrls  = ['app.html?tab=home', 'plan.html', 'app.html?tab=guidelines', 'app.html?tab=profile'];
         var currentIndex = 1;
         var touchStartX = 0, touchStartY = 0;
         var THRESHOLD = 60;
@@ -4182,7 +4197,7 @@
 
     <!-- Bottom Navigation -->
     <nav class="bottom-nav" aria-label="Основна навигация">
-        <a href="index.html?stay=1" class="bottom-nav-item">
+        <a href="app.html?tab=home" class="bottom-nav-item">
             <i class="fas fa-home"></i>
             <span>Начало</span>
         </a>
@@ -4190,11 +4205,11 @@
             <i class="fas fa-utensils"></i>
             <span>Моят План</span>
         </a>
-        <a href="guidelines.html" class="bottom-nav-item">
+        <a href="app.html?tab=guidelines" class="bottom-nav-item">
             <i class="fas fa-compass"></i>
             <span>Насоки</span>
         </a>
-        <a href="profile.html" class="bottom-nav-item">
+        <a href="app.html?tab=profile" class="bottom-nav-item">
             <i class="fas fa-user"></i>
             <span>Профил</span>
         </a>
@@ -4319,10 +4334,31 @@
                 window.parent.postMessage({ type: 'SWITCH_TAB', tab: tab }, '*');
             }
         }, true);
-        // When shell activates this tab, call loadDietData to refresh plan display
+        var _lastEmbeddedPlanSig = '';
+        function _embeddedPlanSig() {
+            return [
+                localStorage.getItem('dietPlan') || '',
+                localStorage.getItem('userId') || '',
+                localStorage.getItem('planSource') || '',
+                localStorage.getItem('pendingClientId') || ''
+            ].join('|');
+        }
         window.addEventListener('message', function(e) {
-            if (e.data && e.data.type === 'TAB_ACTIVATED' && typeof window.loadDietData === 'function') {
-                window.loadDietData();
+            if (!e.data) return;
+            if (e.data.type === 'PLAN_SHORTCUT') {
+                if (e.data.action === 'chat' && typeof window.openChat === 'function') {
+                    window.openChat();
+                } else if (e.data.action === 'food' && typeof window.openFoodAnalysis === 'function') {
+                    window.openFoodAnalysis();
+                }
+                return;
+            }
+            if (e.data.type === 'TAB_ACTIVATED' && typeof window.loadDietData === 'function') {
+                var sig = _embeddedPlanSig();
+                if (sig && sig !== _lastEmbeddedPlanSig) {
+                    _lastEmbeddedPlanSig = sig;
+                    window.loadDietData();
+                }
             }
         });
     })();
