@@ -29,13 +29,13 @@
     {
       "name": "Моят план",
       "shortName": "План",
-      "url": "/plan.html",
+      "url": "/app.html?tab=plan",
       "chosenIconUrl": "https://biocode.website/icon-192x192.png"
     },
     {
       "name": "Профил",
       "shortName": "Профил",
-      "url": "/profile.html",
+      "url": "/app.html?tab=profile",
       "chosenIconUrl": "https://biocode.website/icon-192x192.png"
     },
     {

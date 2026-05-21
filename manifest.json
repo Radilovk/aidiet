@@ -49,14 +49,14 @@
       "name": "Моят план",
       "short_name": "План",
       "description": "Виж своя персонализиран хранителен план",
-      "url": "/plan.html",
+      "url": "/app.html?tab=plan",
       "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
     },
     {
       "name": "Профил",
       "short_name": "Профил",
       "description": "Управлявай своя профил и настройки",
-      "url": "/profile.html",
+      "url": "/app.html?tab=profile",
       "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
     },
     {

@@ -2,7 +2,7 @@
 // Configure base path - use '/' for custom domain (biocode.website) or '/aidiet' for GitHub Pages
 const BASE_PATH = '';
 
-const CACHE_NAME = 'nutriplan-v11';
+const CACHE_NAME = 'nutriplan-v12';
 const DEFAULT_ICON = `${BASE_PATH}/icon-192x192.png`;
 const DEFAULT_BADGE = `${BASE_PATH}/icon-192x192.png`;
 const DEFAULT_TITLE = 'NutriPlan';
@@ -77,10 +77,43 @@ function resolveNotificationTarget(data = {}, action = '') {
   return data.url || `${BASE_PATH}/plan.html`;
 }
 
+function normalizeAppUrl(url) {
+  try {
+    const parsed = new URL(url, self.location.origin);
+    if (parsed.origin !== self.location.origin) return url;
+
+    const path = parsed.pathname;
+    const appParams = new URLSearchParams();
+    function shellUrl(tab, extra = {}) {
+      appParams.set('tab', tab);
+      Object.entries(extra).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') appParams.set(key, String(value));
+      });
+      return `${BASE_PATH}/app.html?${appParams.toString()}`;
+    }
+
+    if (path === `${BASE_PATH}/plan.html` || path === '/plan.html') {
+      if (parsed.searchParams.get('chat') === '1') return shellUrl('plan', { action: 'chat' });
+      if (parsed.searchParams.get('food') === '1') return shellUrl('plan', { action: 'food' });
+      return shellUrl('plan');
+    }
+    if (path === `${BASE_PATH}/profile.html` || path === '/profile.html') return shellUrl('profile');
+    if (path === `${BASE_PATH}/guidelines.html` || path === '/guidelines.html') return shellUrl('guidelines');
+    if (path === `${BASE_PATH}/index.html` || path === '/index.html' || path === `${BASE_PATH}/` || path === '/') {
+      if (parsed.searchParams.get('stay') === '1' || path === `${BASE_PATH}/` || path === '/') return shellUrl('home');
+    }
+
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch (_) {
+    return url;
+  }
+}
+
 function toAbsoluteAppUrl(url) {
-  if (url.startsWith('http')) return url;
-  if (BASE_PATH && url.startsWith(`${BASE_PATH}/`)) return url;
-  return `${BASE_PATH}${url}`;
+  const normalizedUrl = normalizeAppUrl(url);
+  if (normalizedUrl.startsWith('http')) return normalizedUrl;
+  if (BASE_PATH && normalizedUrl.startsWith(`${BASE_PATH}/`)) return normalizedUrl;
+  return `${BASE_PATH}${normalizedUrl}`;
 }
 
 // Install event - cache static resources
@@ -203,7 +236,7 @@ self.addEventListener('fetch', (event) => {
 self.addEventListener('push', (event) => {
   console.log('[SW] Push notification received');
 
-  let data = { title: DEFAULT_TITLE, body: DEFAULT_BODY, url: '/plan.html' };
+  let data = { title: DEFAULT_TITLE, body: DEFAULT_BODY, url: '/app.html?tab=plan' };
   if (event.data) {
     try { data = Object.assign(data, event.data.json()); } catch (_) {
       data.body = event.data.text() || DEFAULT_BODY;
@@ -224,7 +257,7 @@ self.addEventListener('push', (event) => {
       requireInteraction: data.notificationType === 'morning_check',
       actions:           getGameNotificationActions(data.notificationType),
       data:              {
-        url: data.url || (data.notificationType ? buildQuickAnswerUrl(data.notificationType, { date: data.recordKey || '' }) : '/plan.html'),
+        url: data.url || (data.notificationType ? buildQuickAnswerUrl(data.notificationType, { date: data.recordKey || '' }) : '/app.html?tab=plan'),
         type: data.notificationType || '',
         recordKey: data.recordKey || ''
       }

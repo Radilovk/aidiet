@@ -1,5 +1,20 @@
 # Log Tasks
 
+## 2026-05-21 — Уеднаквяване на shell поведението за web / PWA / APK
+
+**Задача:** „Оправи грешките по най-елегантния начин, за да осигуриш скорост и лекота на зареждане на страниците, пълна функционалност и логика и запазени анимации и ефекти.“
+
+**Направено:**
+- В `app.html` върнах по-лекото startup поведение: активният таб се зарежда веднага, а останалите табове се warm-load-ват след first paint/idle, вместо всички iframe-и да товарят наведнъж.
+- Добавих shell startup routing чрез `?tab=` и `?action=`, плюс запомняне на последния активен таб в `np_shell_active_tab`.
+- Направих shell shortcut/notification действията да чакат `plan.html` да е ready и тогава да подават `PLAN_SHORTCUT`/`NOTIFICATION_ACTION`, за да няма загубени действия при студен старт.
+- Пренасочих PWA manifest shortcuts и TWA shortcuts към `app.html`, така че PWA и APK да влизат през keep-alive shell-а вместо през самостоятелен `plan.html`/`profile.html`.
+- Обнових `sw.js`, така че notification URL-ите и legacy tab URL-ите (`plan.html`, `profile.html`, `guidelines.html`, `index.html?stay=1`) да се нормализират към shell маршрути.
+- Промених swipe/bottom-nav/FAB standalone навигацията в `plan.html`, `guidelines.html` и `profile.html`, така че tab преходите да влизат в `app.html` shell-а, а chat/food действията да запазят пълната си функционалност.
+- Запазих съществуващите анимации, hover/pulse ефекти и визуалния shell polish без да връщам тежкото eager зареждане на всички табове.
+
+**Резултат:** Web, PWA и APK вече използват един и същ shell-first tab flow значително по-последователно; стартът е по-лек, а след warm-load tab превключването остава бързо и с налични ефекти/действия.
+
 ## 2026-05-21 — NutriPlan SPA regressions after keep-alive shell
 
 **Задача:** „След обединяването/SPA keep-alive промяната липсват chat и image analysis икони, липсват анимирани елементи, план се зарежда при logged-out потребител, има проблеми в APK/PWA; да се върне старото поведение, но табовете да останат бързи.“

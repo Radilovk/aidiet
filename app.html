@@ -284,19 +284,19 @@
         <iframe id="iframe-plan" src="./plan.html" title="Моят План" loading="eager" fetchpriority="high" allowfullscreen></iframe>
     </div>
 
-    <!-- Tab frame: Guidelines (loaded eagerly and kept alive) -->
+    <!-- Tab frame: Guidelines (warm-loaded after first paint and kept alive) -->
     <div class="tab-frame" id="frame-guidelines">
-        <iframe id="iframe-guidelines" src="./guidelines.html" title="Насоки" loading="eager" fetchpriority="low" allowfullscreen></iframe>
+        <iframe id="iframe-guidelines" title="Насоки" loading="lazy" fetchpriority="low" allowfullscreen></iframe>
     </div>
 
-    <!-- Tab frame: Profile (loaded eagerly and kept alive) -->
+    <!-- Tab frame: Profile (warm-loaded after first paint and kept alive) -->
     <div class="tab-frame" id="frame-profile">
-        <iframe id="iframe-profile" src="./profile.html" title="Профил" loading="eager" fetchpriority="low" allowfullscreen></iframe>
+        <iframe id="iframe-profile" title="Профил" loading="lazy" fetchpriority="low" allowfullscreen></iframe>
     </div>
 
-    <!-- Tab frame: Home / Index (loaded eagerly and kept alive) -->
+    <!-- Tab frame: Home / Index (warm-loaded after first paint and kept alive) -->
     <div class="tab-frame" id="frame-home">
-        <iframe id="iframe-home" src="./index.html?stay=1" title="Начало" loading="eager" fetchpriority="low" allowfullscreen></iframe>
+        <iframe id="iframe-home" title="Начало" loading="lazy" fetchpriority="low" allowfullscreen></iframe>
     </div>
 
     <button class="shell-fab shell-fab-chat" onclick="shellPlanShortcut('chat')" aria-label="Отвори чат асистент">
@@ -339,53 +339,123 @@
             home:       './index.html?stay=1'
         };
 
-        var _currentTab = 'plan';
-        var _loadedTabs = { plan: true, guidelines: true, profile: true, home: true };
+        var SEARCH = new URLSearchParams(window.location.search);
+        var REQUESTED_ACTION = SEARCH.get('action');
+        var REQUESTED_TAB = SEARCH.get('tab');
+        if (REQUESTED_ACTION === 'chat' || REQUESTED_ACTION === 'food') {
+            REQUESTED_TAB = 'plan';
+        }
 
-        // Hide loader once plan iframe fires load
+        function sanitizeTab(tab) {
+            return TAB_SRCS[tab] ? tab : 'plan';
+        }
+
+        var _currentTab = sanitizeTab(REQUESTED_TAB || localStorage.getItem('np_shell_active_tab') || 'plan');
+        var _loadedTabs = { plan: true, guidelines: false, profile: false, home: false };
+        var _pendingPlanMessage = null;
+        var _warmupScheduled = false;
+
+        // Hide loader once the active iframe fires load
         var planIframe = document.getElementById('iframe-plan');
         var loader = document.getElementById('tabLoader');
 
-        planIframe.addEventListener('load', function() {
-            if (loader) {
-                loader.style.opacity = '0';
-                setTimeout(function() { if (loader) loader.remove(); }, 250);
+        function hideLoader() {
+            if (!loader) return;
+            loader.style.opacity = '0';
+            setTimeout(function() { if (loader) loader.remove(); }, 250);
+            loader = null;
+        }
+
+        function setIframeSrc(tab) {
+            var frame = document.getElementById('iframe-' + tab);
+            if (!frame || _loadedTabs[tab]) return frame;
+            frame.src = TAB_SRCS[tab];
+            _loadedTabs[tab] = true;
+            return frame;
+        }
+
+        function dispatchPlanMessage(message) {
+            var planIf = setIframeSrc('plan') || planIframe;
+            if (!planIf) return;
+            if (planIf.dataset.ready === 'true' && planIf.contentWindow) {
+                try { planIf.contentWindow.postMessage(message, '*'); } catch(e) {}
+                return;
             }
+            _pendingPlanMessage = message;
+        }
+
+        function flushPendingPlanMessage() {
+            if (!_pendingPlanMessage || !planIframe || planIframe.dataset.ready !== 'true' || !planIframe.contentWindow) return;
+            try { planIframe.contentWindow.postMessage(_pendingPlanMessage, '*'); } catch(e) {}
+            _pendingPlanMessage = null;
+        }
+
+        function persistCurrentTab() {
+            try { localStorage.setItem('np_shell_active_tab', _currentTab); } catch (_) {}
+        }
+
+        function syncActiveUi() {
+            document.querySelectorAll('.tab-frame').forEach(function(f) {
+                f.classList.toggle('active', f.id === 'frame-' + _currentTab);
+            });
+            document.querySelectorAll('.shell-nav-item').forEach(function(btn) {
+                btn.classList.toggle('active', btn.getAttribute('data-tab') === _currentTab);
+            });
+        }
+
+        function scheduleWarmup() {
+            if (_warmupScheduled) return;
+            _warmupScheduled = true;
+            var remaining = Object.keys(TAB_SRCS).filter(function(tab) { return tab !== _currentTab; });
+            function warmNext() {
+                var next = remaining.shift();
+                if (!next) return;
+                setIframeSrc(next);
+                setTimeout(warmNext, 180);
+            }
+            var starter = window.requestIdleCallback
+                ? function(cb) { window.requestIdleCallback(cb, { timeout: 600 }); }
+                : function(cb) { setTimeout(cb, 220); };
+            starter(warmNext);
+        }
+
+        planIframe.addEventListener('load', function() {
+            planIframe.dataset.ready = 'true';
+            if (_currentTab === 'plan') hideLoader();
+            flushPendingPlanMessage();
+            scheduleWarmup();
         });
 
-        Object.keys(TAB_SRCS).forEach(function(tab) {
+        ['guidelines', 'profile', 'home'].forEach(function(tab) {
             var frame = document.getElementById('iframe-' + tab);
-            if (frame && !frame.getAttribute('src')) {
-                frame.src = TAB_SRCS[tab];
-                _loadedTabs[tab] = true;
-            }
+            if (!frame) return;
+            frame.addEventListener('load', function() {
+                frame.dataset.ready = 'true';
+                if (_currentTab === tab) hideLoader();
+            });
         });
+
+        if (_currentTab !== 'plan') {
+            setIframeSrc(_currentTab);
+        }
+        syncActiveUi();
+        persistCurrentTab();
 
         // Public switch function (also called by shell nav buttons)
         window.shellSwitchTab = function(tab) {
+            tab = sanitizeTab(tab);
             if (tab === _currentTab) return;
 
             var targetFrame = document.getElementById('frame-' + tab);
             if (!targetFrame) return;
 
             // Fallback warm-up before showing the frame.
-            var iframe = document.getElementById('iframe-' + tab);
-            if (iframe && !_loadedTabs[tab]) {
-                iframe.src = TAB_SRCS[tab];
-                _loadedTabs[tab] = true;
-            }
-
-            // Show/hide frames without destroying layout or iframe state.
-            document.querySelectorAll('.tab-frame').forEach(function(f) {
-                f.classList.toggle('active', f === targetFrame);
-            });
-
-            // Update nav active state
-            document.querySelectorAll('.shell-nav-item').forEach(function(btn) {
-                btn.classList.toggle('active', btn.getAttribute('data-tab') === tab);
-            });
+            var iframe = setIframeSrc(tab) || document.getElementById('iframe-' + tab);
 
             _currentTab = tab;
+            syncActiveUi();
+            persistCurrentTab();
+            scheduleWarmup();
 
             // Notify the newly-active iframe that it was shown (for refresh-on-focus)
             if (iframe && iframe.contentWindow) {
@@ -395,12 +465,7 @@
 
         window.shellPlanShortcut = function(action) {
             window.shellSwitchTab('plan');
-            var planIf = document.getElementById('iframe-plan');
-            if (planIf && planIf.contentWindow) {
-                setTimeout(function() {
-                    try { planIf.contentWindow.postMessage({ type: 'PLAN_SHORTCUT', action: action }, '*'); } catch(e) {}
-                }, 120);
-            }
+            dispatchPlanMessage({ type: 'PLAN_SHORTCUT', action: action });
         };
 
         // Listen for tab-switch requests from inner pages (via postMessage)
@@ -437,14 +502,21 @@
                 // Forward NOTIFICATION_ACTION to plan iframe
                 if (msg.type === 'NOTIFICATION_ACTION') {
                     window.shellSwitchTab('plan');
-                    var planIf = document.getElementById('iframe-plan');
-                    if (planIf && planIf.contentWindow) {
-                        setTimeout(function() {
-                            try { planIf.contentWindow.postMessage(msg, '*'); } catch(e) {}
-                        }, 100);
-                    }
+                    dispatchPlanMessage(msg);
                 }
             });
+        }
+
+        if (REQUESTED_ACTION === 'chat' || REQUESTED_ACTION === 'food') {
+            dispatchPlanMessage({ type: 'PLAN_SHORTCUT', action: REQUESTED_ACTION });
+            if (window.history && window.history.replaceState) {
+                var cleaned = new URL(window.location.href);
+                cleaned.searchParams.delete('action');
+                if (!SEARCH.get('tab')) cleaned.searchParams.delete('tab');
+                window.history.replaceState({}, '', cleaned.pathname + cleaned.search + cleaned.hash);
+            }
+        } else {
+            scheduleWarmup();
         }
     })();
     </script>

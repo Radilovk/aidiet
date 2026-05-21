@@ -4169,7 +4169,7 @@
     <script>
     (function() {
         var tabNames = ['home', 'plan', 'guidelines', 'profile'];
-        var tabUrls  = ['index.html?stay=1', 'plan.html', 'guidelines.html', 'profile.html'];
+        var tabUrls  = ['app.html?tab=home', 'plan.html', 'app.html?tab=guidelines', 'app.html?tab=profile'];
         var currentIndex = 1;
         var touchStartX = 0, touchStartY = 0;
         var THRESHOLD = 60;
@@ -4197,7 +4197,7 @@
 
     <!-- Bottom Navigation -->
     <nav class="bottom-nav" aria-label="Основна навигация">
-        <a href="index.html?stay=1" class="bottom-nav-item">
+        <a href="app.html?tab=home" class="bottom-nav-item">
             <i class="fas fa-home"></i>
             <span>Начало</span>
         </a>
@@ -4205,11 +4205,11 @@
             <i class="fas fa-utensils"></i>
             <span>Моят План</span>
         </a>
-        <a href="guidelines.html" class="bottom-nav-item">
+        <a href="app.html?tab=guidelines" class="bottom-nav-item">
             <i class="fas fa-compass"></i>
             <span>Насоки</span>
         </a>
-        <a href="profile.html" class="bottom-nav-item">
+        <a href="app.html?tab=profile" class="bottom-nav-item">
             <i class="fas fa-user"></i>
             <span>Профил</span>
         </a>
