@@ -148,7 +148,7 @@
         }
 
         /* --- NAVIGATION (Glassmorphism) --- */
-        nav {
+        body > nav:not(.bottom-nav):not(.spa-bottom-nav) {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -165,7 +165,7 @@
             border-bottom: 1px solid var(--glass-border);
             transition: background-color 0.3s ease;
         }
-        [data-theme="dark"] nav {
+        [data-theme="dark"] body > nav:not(.bottom-nav):not(.spa-bottom-nav) {
             background: rgba(10, 28, 28, 0.92);
             box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 1px 0 rgba(45, 212, 191, 0.08);
             border-bottom-color: rgba(45, 212, 191, 0.12);
@@ -384,6 +384,7 @@
         /* --- BOTTOM NAVIGATION (shown only when user has an approved plan) --- */
         .bottom-nav {
             position: fixed;
+            top: auto;
             bottom: 0;
             left: 0;
             right: 0;
@@ -1780,6 +1781,11 @@
             display: block;
         }
         .spa-bottom-nav {
+            position: fixed;
+            top: auto;
+            right: 0;
+            bottom: 0;
+            left: 0;
             z-index: 10001;
         }
     </style>

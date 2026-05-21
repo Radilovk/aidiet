@@ -348,6 +348,9 @@
             frame.addEventListener('load', function () {
                 patchFrame(frame);
                 refreshFramesForData();
+                if (frame.getAttribute('data-tab-view') === state.activeTab) {
+                    replayTabAnimations(frame);
+                }
             });
             if (frame.contentDocument && frame.contentDocument.readyState !== 'loading') {
                 patchFrame(frame);
