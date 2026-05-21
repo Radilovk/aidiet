@@ -114,6 +114,142 @@
         return null;
     }
 
+    function replayBodyFade(frameWindow, frameDocument) {
+        if (!frameDocument || !frameDocument.body) return;
+        frameDocument.body.style.transition = 'none';
+        frameDocument.body.style.opacity = '0';
+        frameWindow.requestAnimationFrame(function () {
+            frameWindow.requestAnimationFrame(function () {
+                frameDocument.body.style.transition = 'opacity 120ms ease-out';
+                frameDocument.body.style.opacity = '1';
+            });
+        });
+    }
+
+    function replayRevealSections(frameWindow, frameDocument) {
+        var sections = frameDocument.querySelectorAll('.reveal');
+        if (!sections.length) return;
+        sections.forEach(function (section) {
+            section.classList.remove('active');
+        });
+        frameWindow.requestAnimationFrame(function () {
+            var viewportHeight = frameWindow.innerHeight || frameDocument.documentElement.clientHeight || 0;
+            sections.forEach(function (section) {
+                var rect = section.getBoundingClientRect();
+                if (rect.top < viewportHeight - 150) {
+                    section.classList.add('active');
+                }
+            });
+        });
+    }
+
+    function replayGaAnimations(frameWindow, frameDocument) {
+        var animatedCards = Array.prototype.slice.call(frameDocument.querySelectorAll('.ga-card-enter'));
+        if (animatedCards.length) {
+            animatedCards.forEach(function (el, index) {
+                if (frameWindow.getComputedStyle(el).display === 'none') return;
+                el.style.animation = 'none';
+                void el.offsetWidth;
+                el.style.animation = '';
+                el.style.animationDelay = (index * 0.07) + 's';
+            });
+        }
+
+        var ringOffsets = Array.prototype.slice.call(frameDocument.querySelectorAll('[data-ga-ring-offset]'));
+        var ringTargets = Array.prototype.slice.call(frameDocument.querySelectorAll('[data-ga-ring-target]'));
+        var barWidths = Array.prototype.slice.call(frameDocument.querySelectorAll('[data-ga-bar]'));
+        var barHeights = Array.prototype.slice.call(frameDocument.querySelectorAll('[data-ga-bar-h]'));
+        var bidirHeights = Array.prototype.slice.call(frameDocument.querySelectorAll('[data-ga-bidir-h]'));
+        if (!ringOffsets.length && !ringTargets.length && !barWidths.length && !barHeights.length && !bidirHeights.length) return;
+
+        ringOffsets.forEach(function (el) {
+            var startOffset = el.getAttribute('stroke-dasharray');
+            if (startOffset) el.style.strokeDashoffset = startOffset;
+        });
+        ringTargets.forEach(function (el) {
+            var target = parseInt(el.getAttribute('data-ga-ring-target'), 10);
+            el.textContent = isNaN(target) ? '?' : '0%';
+        });
+        barWidths.forEach(function (el) {
+            el.style.width = '0%';
+        });
+        barHeights.forEach(function (el) {
+            el.style.height = '0px';
+        });
+        bidirHeights.forEach(function (el) {
+            el.style.height = '0px';
+        });
+
+        var GA_RING_START = 120;
+        var GA_RING_STAGGER = 130;
+        var GA_RING_COUNTER = 900;
+        var GA_BAR_START = 350;
+        var GA_BAR_STAGGER = 60;
+        var GA_CHART_START = 400;
+        var GA_CHART_STAGGER = 25;
+
+        frameWindow.requestAnimationFrame(function () {
+            frameWindow.requestAnimationFrame(function () {
+                ringOffsets.forEach(function (el, i) {
+                    frameWindow.setTimeout(function () {
+                        el.style.strokeDashoffset = el.getAttribute('data-ga-ring-offset');
+                    }, GA_RING_START + i * GA_RING_STAGGER);
+                });
+
+                ringTargets.forEach(function (el, i) {
+                    var target = parseInt(el.getAttribute('data-ga-ring-target'), 10);
+                    if (isNaN(target)) return;
+                    var start = GA_RING_START + i * GA_RING_STAGGER;
+                    var startTime = null;
+                    function step(ts) {
+                        if (!startTime) startTime = ts;
+                        var progress = Math.min((ts - startTime) / GA_RING_COUNTER, 1);
+                        var ease = 1 - Math.pow(1 - progress, 3);
+                        el.textContent = Math.round(target * ease) + '%';
+                        if (progress < 1) frameWindow.requestAnimationFrame(step);
+                    }
+                    frameWindow.setTimeout(function () {
+                        frameWindow.requestAnimationFrame(step);
+                    }, start);
+                });
+
+                barWidths.forEach(function (el, i) {
+                    frameWindow.setTimeout(function () {
+                        el.style.width = el.getAttribute('data-ga-bar') + '%';
+                    }, GA_BAR_START + i * GA_BAR_STAGGER);
+                });
+                barHeights.forEach(function (el, i) {
+                    frameWindow.setTimeout(function () {
+                        el.style.height = el.getAttribute('data-ga-bar-h');
+                    }, GA_CHART_START + i * GA_CHART_STAGGER);
+                });
+                bidirHeights.forEach(function (el, i) {
+                    frameWindow.setTimeout(function () {
+                        el.style.height = el.getAttribute('data-ga-bidir-h');
+                    }, GA_CHART_START + i * GA_CHART_STAGGER);
+                });
+            });
+        });
+    }
+
+    function replayTabAnimations(frame) {
+        var frameWindow = frame && frame.contentWindow;
+        var frameDocument = frame && frame.contentDocument;
+        if (!frameWindow || !frameDocument) return;
+
+        replayBodyFade(frameWindow, frameDocument);
+        replayRevealSections(frameWindow, frameDocument);
+        replayGaAnimations(frameWindow, frameDocument);
+
+        if (typeof frameWindow.dispatchEvent === 'function' && typeof frameWindow.CustomEvent === 'function') {
+            frameWindow.dispatchEvent(new frameWindow.CustomEvent('NUTRIPLAN_TAB_ACTIVATED', {
+                detail: {
+                    tab: frame.getAttribute('data-tab-view') || ''
+                }
+            }));
+        }
+    }
+
     function patchFrame(frame) {
         var frameWindow = frame.contentWindow;
         var frameDocument = frame.contentDocument;
@@ -176,6 +312,7 @@
             var isActive = frame.getAttribute('data-tab-view') === tab;
             frame.classList.toggle('is-active', isActive);
             frame.setAttribute('aria-hidden', String(!isActive));
+            if (isActive) replayTabAnimations(frame);
         });
 
         document.querySelectorAll('[data-tab-target]').forEach(function (button) {
