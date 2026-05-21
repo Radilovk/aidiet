@@ -69,6 +69,7 @@
             pointer-events: auto;
             transform: translate3d(0, 0, 0) scale(1);
             transition-delay: 0s;
+            animation: _shell_tab_enter 180ms cubic-bezier(0.22, 1, 0.36, 1);
             z-index: 1;
         }
 
@@ -86,6 +87,12 @@
                 transition: none;
                 transform: none;
             }
+            .tab-frame.active { animation: none; }
+        }
+
+        @keyframes _shell_tab_enter {
+            from { opacity: 0.01; transform: translate3d(0, 8px, 0) scale(0.995); }
+            to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
         }
 
         /* ── Shell bottom navigation ── */
@@ -202,6 +209,14 @@
             animation: _shell_fab_pulse 3s ease-in-out infinite;
         }
 
+        .shell-fab-chat.fab-raised {
+            bottom: calc(100vh - env(safe-area-inset-top, 0px) - 80px - 56px);
+        }
+
+        .shell-fab-chat.game-prompt {
+            animation: _shell_fab_bounce 1.1s ease-in-out 2, _shell_fab_pulse 3s ease-in-out 2.2s infinite;
+        }
+
         .shell-fab-food {
             left: calc(16px + env(safe-area-inset-left, 0px));
             font-size: 1.3rem;
@@ -243,6 +258,14 @@
                     inset 0 1px 0 rgba(255, 255, 255, 0.25);
                 transform: scale(1.05);
             }
+        }
+
+        @keyframes _shell_fab_bounce {
+            0%, 100% { transform: translateY(0); }
+            18% { transform: translateY(-10px); }
+            36% { transform: translateY(-4px); }
+            54% { transform: translateY(-8px); }
+            72% { transform: translateY(-2px); }
         }
 
         /* Loading placeholder while first iframe loads */
@@ -401,6 +424,9 @@
             document.querySelectorAll('.shell-nav-item').forEach(function(btn) {
                 btn.classList.toggle('active', btn.getAttribute('data-tab') === _currentTab);
             });
+            document.querySelectorAll('.shell-fab').forEach(function(fab) {
+                fab.style.display = _currentTab === 'home' ? 'none' : 'flex';
+            });
         }
 
         function scheduleWarmup() {
@@ -470,10 +496,24 @@
 
         // Listen for tab-switch requests from inner pages (via postMessage)
         window.addEventListener('message', function(e) {
-            if (!e.data || e.data.type !== 'SWITCH_TAB') return;
-            var tab = e.data.tab;
-            if (tab && TAB_SRCS[tab]) {
-                window.shellSwitchTab(tab);
+            if (!e.data) return;
+            if (e.data.type === 'SWITCH_TAB') {
+                var tab = e.data.tab;
+                if (tab && TAB_SRCS[tab]) {
+                    window.shellSwitchTab(tab);
+                }
+                return;
+            }
+            if (e.data.type === 'GAME_PROMPT_STATE') {
+                var chatFab = document.querySelector('.shell-fab-chat');
+                if (!chatFab) return;
+                chatFab.classList.toggle('fab-raised', !!e.data.active);
+                if (e.data.active) {
+                    chatFab.classList.add('game-prompt');
+                    setTimeout(function(){ chatFab.classList.remove('game-prompt'); }, 2600);
+                } else {
+                    chatFab.classList.remove('game-prompt');
+                }
             }
         });
 
