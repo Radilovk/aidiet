@@ -320,7 +320,7 @@
         function ensureTabLoaded(tab) {
             var frame = document.getElementById('iframe-' + tab);
             if (!frame || _loadedTabs[tab]) return frame;
-            frame.src = frame.getAttribute('data-src') || TAB_SRCS[tab];
+            frame.src = TAB_SRCS[tab];
             _loadedTabs[tab] = true;
             return frame;
         }
