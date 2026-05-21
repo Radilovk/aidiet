@@ -397,10 +397,27 @@
             return frame;
         }
 
+        function tryHandlePlanShortcut(message, planIf) {
+            if (!message || message.type !== 'PLAN_SHORTCUT' || !planIf || !planIf.contentWindow) return false;
+            var action = message.action;
+            try {
+                if (action === 'chat' && typeof planIf.contentWindow.openChat === 'function') {
+                    planIf.contentWindow.openChat();
+                    return true;
+                }
+                if (action === 'food' && typeof planIf.contentWindow.openFoodAnalysis === 'function') {
+                    planIf.contentWindow.openFoodAnalysis();
+                    return true;
+                }
+            } catch (e) {}
+            return false;
+        }
+
         function dispatchPlanMessage(message) {
             var planIf = setIframeSrc('plan') || planIframe;
             if (!planIf) return;
             if (planIf.dataset.ready === 'true' && planIf.contentWindow) {
+                if (tryHandlePlanShortcut(message, planIf)) return;
                 try { planIf.contentWindow.postMessage(message, '*'); } catch(e) {}
                 return;
             }
@@ -409,6 +426,10 @@
 
         function flushPendingPlanMessage() {
             if (!_pendingPlanMessage || !planIframe || planIframe.dataset.ready !== 'true' || !planIframe.contentWindow) return;
+            if (tryHandlePlanShortcut(_pendingPlanMessage, planIframe)) {
+                _pendingPlanMessage = null;
+                return;
+            }
             try { planIframe.contentWindow.postMessage(_pendingPlanMessage, '*'); } catch(e) {}
             _pendingPlanMessage = null;
         }
