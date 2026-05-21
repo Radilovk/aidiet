@@ -13030,29 +13030,6 @@ function handleGetClinicalProtocols() {
   });
 }
 
-async function handleAcuityProxy(request) {
-  const requestUrl = new URL(request.url);
-  const acuityUrl = new URL('https://app.acuityscheduling.com' + requestUrl.pathname + requestUrl.search);
-
-  const reqHeaders = new Headers(request.headers);
-  ['host', 'origin', 'referer', 'cf-connecting-ip', 'cf-ipcountry', 'cf-ray', 'x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto'].forEach((h) => reqHeaders.delete(h));
-
-  const init = { method: request.method, headers: reqHeaders, redirect: 'follow' };
-  if (request.method !== 'GET' && request.method !== 'HEAD') {
-    init.body = await request.clone().arrayBuffer();
-  }
-
-  const upstream = await fetch(acuityUrl.toString(), init);
-  const resHeaders = new Headers(upstream.headers);
-  ['content-length', 'content-encoding', 'content-security-policy', 'content-security-policy-report-only', 'x-frame-options'].forEach((h) => resHeaders.delete(h));
-
-  return new Response(upstream.body, {
-    status: upstream.status,
-    statusText: upstream.statusText,
-    headers: resHeaders
-  });
-}
-
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -13268,8 +13245,6 @@ export default {
         const rlErr = await checkRateLimit(env, request, 'FORGOT_PASSWORD');
         if (rlErr) return rlErr;
         return await handleForgotPassword(request, env);
-      } else if (url.pathname === '/schedule.php') {
-        return await handleAcuityProxy(request);
       } else {
         return jsonResponse({ error: 'Not found' }, 404);
       }

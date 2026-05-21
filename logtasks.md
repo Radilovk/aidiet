@@ -4,13 +4,13 @@
 
 **Задача:** След последната xbody задача страницата `https://biocode.website/schedule.php?owner=13943721&appointmentType=16859189` спря да работи.
 
-**Причина:** В предишната задача route handler-ът за `/schedule.php` беше премахнат от `worker.js`. При директна навигация към URL-а Cloudflare Worker връщаше JSON `{ "error": "Not found" }` (404), тъй като само `xbody-sw.js` (Service Worker) имаше proxy логиката — но SW не е активен при директна навигация.
+**Причина:** `biocode.website` е GitHub Pages (статични файлове). Файлът `schedule.php` не съществуваше в репото → GitHub Pages връщаше 404. Нямаше нужда от backend изобщо.
 
 **Направено:**
-- Добавена функция `handleAcuityProxy(request)` в `worker.js`, която proxy-ва заявки към `https://app.acuityscheduling.com/schedule.php?...` като пренася query параметрите и изчиства `x-frame-options` / CSP headers.
-- Добавен route handler `url.pathname === '/schedule.php'` в routing chain-а на worker.js.
+- Създаден статичен файл `schedule.php` в корена на репото — само HTML + JS `window.location.replace()` редирект към `https://app.acuityscheduling.com/schedule.php` с всички query параметри.
+- Никакъв backend/Worker код не е използван.
 
-**Резултат:** Директна навигация към schedule.php отново работи — Cloudflare Worker проксира заявката към Acuity.
+**Резултат:** `https://biocode.website/schedule.php?owner=13943721&appointmentType=16859189` вече работи — GitHub Pages сервира статичния файл и browser-ът се редиректва директно към Acuity.
 
 ## 2026-05-21 — XBody back button + local persistence
 
