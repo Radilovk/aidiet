@@ -171,10 +171,14 @@
             text-decoration: none;
             font-weight: 600;
             font-size: 0.95rem;
+            background: none;
+            border: none;
+            padding: 0;
             display: flex;
             align-items: center;
             gap: 6px;
             transition: color 0.2s;
+            cursor: pointer;
         }
 
         .screen-controls .back-link:hover {
@@ -1798,7 +1802,7 @@
 
     <!-- Screen-only toolbar -->
     <div class="screen-controls" id="screenControls">
-        <a href="plan.html" class="back-link"><i class="fas fa-arrow-left"></i> Към Плана</a>
+        <button type="button" class="back-link" onclick="goBack()"><i class="fas fa-arrow-left"></i> Към Плана</button>
         <button class="btn-print" onclick="handlePrint()"><i class="fas fa-print"></i> Отпечатай</button>
     </div>
 
@@ -2807,26 +2811,30 @@
     })();
 
     // Print handler: use window.print() on desktop/PWA; on native Android APK fall back
-    // to navigator.share() because WebView does not support the print dialog.
+    // to opening the current page in the system browser because WebView print support is unreliable.
+    function goBack() {
+        if (document.referrer && document.referrer.includes(window.location.hostname)) {
+            window.history.back();
+        } else {
+            window.location.href = 'plan.html';
+        }
+    }
     function handlePrint() {
         var cap = window.Capacitor;
         var isNative = cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform();
         if (isNative) {
-            // Try navigator.share first (available on modern Android WebView)
-            if (navigator.share) {
-                navigator.share({
-                    title: 'NutriPlan – Моят хранителен план',
-                    text: 'Вижте моя персонализиран хранителен план от NutriPlan.',
-                    url: window.location.href
-                }).catch(function(err) {
-                    // User cancelled sharing (AbortError) – no action needed; other errors show hint
-                    if (err && err.name !== 'AbortError') {
-                        alert('За да отпечатате плана, отворете го в браузър и използвайте функцията за печат.');
-                    }
+            var browser = cap && cap.Plugins ? cap.Plugins.Browser : null;
+            if (browser && typeof browser.open === 'function') {
+                browser.open({ url: window.location.href }).catch(function() {
+                    alert('Неуспешно отваряне в браузър. Опитайте от менюто на устройството.');
                 });
             } else {
-                alert('За да отпечатате плана, отворете го в браузър и използвайте функцията за печат.');
+                var opened = window.open(window.location.href, '_blank', 'noopener');
+                if (!opened) {
+                    alert('За да отпечатате плана, отворете го в браузър и използвайте функцията за печат.');
+                }
             }
+            return;
         } else {
             window.print();
         }

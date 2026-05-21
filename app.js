@@ -63,6 +63,7 @@
         raw: Object.create(null),
         parsed: Object.create(null)
     };
+    var deferredPreloadScheduled = false;
 
     function getPreferences() {
         return window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Preferences
@@ -137,6 +138,52 @@
         return Object.prototype.hasOwnProperty.call(state.raw, key) ? state.raw[key] : null;
     }
 
+    function getPreferredTheme() {
+        return getStoredValue('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    }
+
+    function setDocumentTheme(targetDocument, theme) {
+        if (!targetDocument) return;
+        var root = targetDocument.documentElement;
+        if (root) root.setAttribute('data-theme', theme);
+        if (typeof targetDocument.querySelectorAll === 'function') {
+            var color = theme === 'dark' ? '#0A1A1A' : '#F0FDFA';
+            targetDocument.querySelectorAll('meta[name="theme-color"]').forEach(function (meta) {
+                meta.setAttribute('content', color);
+            });
+        }
+    }
+
+    function applyTheme(theme) {
+        theme = theme || getPreferredTheme();
+        localStorage.setItem('theme', theme);
+        state.raw.theme = theme;
+        state.parsed.theme = theme;
+        setDocumentTheme(document, theme);
+
+        if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+            var navBar = (window.Capacitor.Plugins || {}).NavigationBar;
+            if (navBar && navBar.setNavigationBarColor) {
+                navBar.setNavigationBarColor({ color: theme === 'dark' ? '#0A1A1A' : '#F0FDFA' });
+            }
+        }
+
+        document.querySelectorAll('[data-tab-view]').forEach(function (frame) {
+            try {
+                var frameWindow = frame.contentWindow;
+                var frameDocument = frame.contentDocument;
+                if (frameWindow && typeof frameWindow.initializeTheme === 'function') {
+                    frameWindow.initializeTheme();
+                    if (typeof frameWindow.applyGameAnalyticsColorScheme === 'function') {
+                        frameWindow.applyGameAnalyticsColorScheme();
+                    }
+                } else if (frameDocument) {
+                    setDocumentTheme(frameDocument, theme);
+                }
+            } catch (_) {}
+        });
+    }
+
     function normalizeTab(tab) {
         return TAB_ROUTES[tab] ? tab : 'plan';
     }
@@ -147,6 +194,43 @@
             if (TAB_ROUTES[tab] === path) return tab;
         }
         return null;
+    }
+
+    function ensureFrameLoaded(tab) {
+        var frame = document.querySelector('[data-tab-view="' + normalizeTab(tab) + '"]');
+        if (!frame) return null;
+        if (!frame.getAttribute('src')) {
+            frame.setAttribute('src', FRAME_SOURCES[normalizeTab(tab)] || FRAME_SOURCES.plan);
+        }
+        return frame;
+    }
+
+    function scheduleDeferredFramePreload(initialTab) {
+        if (deferredPreloadScheduled) return;
+        deferredPreloadScheduled = true;
+        var preload = function () {
+            Object.keys(FRAME_SOURCES).filter(function (tab) {
+                return tab !== initialTab;
+            }).forEach(function (tab, index) {
+                window.setTimeout(function () {
+                    ensureFrameLoaded(tab);
+                }, index * 180);
+            });
+        };
+        if (typeof window.requestIdleCallback === 'function') {
+            window.requestIdleCallback(preload, { timeout: 1200 });
+        } else {
+            window.setTimeout(preload, 450);
+        }
+    }
+
+    function dispatchFrameEvent(frame, type, detail) {
+        try {
+            var frameWindow = frame && frame.contentWindow;
+            if (frameWindow && typeof frameWindow.dispatchEvent === 'function' && typeof frameWindow.CustomEvent === 'function') {
+                frameWindow.dispatchEvent(new frameWindow.CustomEvent(type, { detail: detail || {} }));
+            }
+        } catch (_) {}
     }
 
     function replayBodyFade(frameWindow, frameDocument) {
@@ -275,14 +359,6 @@
         replayBodyFade(frameWindow, frameDocument);
         replayRevealSections(frameWindow, frameDocument);
         replayGaAnimations(frameWindow, frameDocument);
-
-        if (typeof frameWindow.dispatchEvent === 'function' && typeof frameWindow.CustomEvent === 'function') {
-            frameWindow.dispatchEvent(new frameWindow.CustomEvent('NUTRIPLAN_TAB_ACTIVATED', {
-                detail: {
-                    tab: frame.getAttribute('data-tab-view') || ''
-                }
-            }));
-        }
     }
 
     function patchFrame(frame) {
@@ -294,7 +370,7 @@
         if (!style) {
             style = frameDocument.createElement('style');
             style.id = 'spaEmbeddedPatch';
-            style.textContent = 'body{opacity:1!important}.bottom-nav{display:none!important}';
+            style.textContent = 'body{opacity:1!important}.bottom-nav{display:none!important}.fab-chat,.fab-food{bottom:calc(16px + var(--safe-area-inset-bottom,0px))!important}';
             frameDocument.head.appendChild(style);
         }
 
@@ -312,7 +388,7 @@
             var targetTab = tabFromUrl(targetUrl);
             if (!targetTab) return;
             event.preventDefault();
-            var targetFrame = document.querySelector('[data-tab-view="' + targetTab + '"]');
+            var targetFrame = ensureFrameLoaded(targetTab);
             if (targetFrame) {
                 var search = new URLSearchParams(targetUrl.search);
                 search.delete('app');
@@ -329,6 +405,49 @@
         }, true);
     }
 
+    function handleShellMessage(event) {
+        if (!event || event.origin !== window.location.origin || !event.data || typeof event.data.type !== 'string') return;
+        var data = event.data;
+        if (data.type === 'NUTRIPLAN_THEME_CHANGE') {
+            applyTheme(data.theme);
+            return;
+        }
+        if (data.type === 'NUTRIPLAN_SWITCH_TAB') {
+            if (data.tab) switchTab(data.tab, true);
+            return;
+        }
+        if (data.type === 'NUTRIPLAN_LOGOUT') {
+            window.location.replace('index.html?stay=1');
+            return;
+        }
+        if (data.type !== 'NUTRIPLAN_NAVIGATE' || typeof data.url !== 'string' || !data.url) return;
+        try {
+            var targetUrl = new URL(data.url, window.location.href);
+            if (targetUrl.origin !== window.location.origin) return;
+            var targetTab = !data.forceTopLevel ? tabFromUrl(targetUrl) : null;
+            if (targetTab) {
+                var targetFrame = ensureFrameLoaded(targetTab);
+                if (targetFrame) {
+                    var search = new URLSearchParams(targetUrl.search);
+                    search.delete('app');
+                    search.delete('tab');
+                    if (targetTab === 'home' && !search.has('stay')) search.set('stay', '1');
+                    search.set('embedded', '1');
+                    var targetPath = TAB_ROUTES[targetTab] || (targetUrl.pathname.split('/').pop() || 'index.html');
+                    var nextSrc = targetPath + (search.toString() ? '?' + search.toString() : '') + (targetUrl.hash || '');
+                    if (targetFrame.getAttribute('src') !== nextSrc) {
+                        targetFrame.setAttribute('src', nextSrc);
+                    }
+                }
+                switchTab(targetTab, true);
+                return;
+            }
+            var relativeUrl = targetUrl.pathname.split('/').pop() + targetUrl.search + targetUrl.hash;
+            if (data.replace) window.location.replace(relativeUrl);
+            else window.location.href = relativeUrl;
+        } catch (_) {}
+    }
+
     function refreshFramesForData() {
         document.querySelectorAll('[data-tab-view]').forEach(function (frame) {
             try {
@@ -343,17 +462,24 @@
         });
     }
 
-    function mountFrames() {
-        document.querySelectorAll('[data-tab-view]').forEach(function (frame) {
-            var tab = frame.getAttribute('data-tab-view');
-            if (!frame.getAttribute('src')) {
-                frame.setAttribute('src', FRAME_SOURCES[tab] || FRAME_SOURCES.plan);
-            }
-        });
+    function mountFrames(initialTab) {
+        ensureFrameLoaded(initialTab);
+        scheduleDeferredFramePreload(initialTab);
     }
 
     function switchTab(tab, updateUrl) {
         tab = normalizeTab(tab);
+        var previousTab = state.activeTab;
+        var previousFrame = previousTab ? document.querySelector('[data-tab-view="' + previousTab + '"]') : null;
+        var activeFrame = ensureFrameLoaded(tab);
+
+        if (previousTab && previousTab !== tab && previousFrame) {
+            dispatchFrameEvent(previousFrame, 'NUTRIPLAN_TAB_DEACTIVATED', {
+                tab: previousTab,
+                nextTab: tab
+            });
+        }
+
         state.activeTab = tab;
 
         document.querySelectorAll('[data-tab-view]').forEach(function (frame) {
@@ -368,6 +494,13 @@
             button.classList.toggle('active', isActive);
             button.setAttribute('aria-current', isActive ? 'page' : 'false');
         });
+
+        if (activeFrame) {
+            dispatchFrameEvent(activeFrame, 'NUTRIPLAN_TAB_ACTIVATED', {
+                tab: tab,
+                previousTab: previousTab
+            });
+        }
 
         if (updateUrl) {
             var nextUrl = 'index.html?app=1&tab=' + encodeURIComponent(tab);
@@ -395,18 +528,33 @@
         state.initialized = true;
         document.body.classList.add('spa-mode');
         shell.hidden = false;
+        applyTheme(getPreferredTheme());
+        window.addEventListener('message', handleShellMessage);
+        window.addEventListener('storage', function (event) {
+            if (event.key === 'theme' && event.newValue) {
+                applyTheme(event.newValue);
+            }
+        });
 
         document.querySelectorAll('[data-tab-view]').forEach(function (frame) {
             frame.addEventListener('load', function () {
                 patchFrame(frame);
                 refreshFramesForData();
+                if (frame.getAttribute('data-tab-view') === state.activeTab) {
+                    replayTabAnimations(frame);
+                    dispatchFrameEvent(frame, 'NUTRIPLAN_TAB_ACTIVATED', {
+                        tab: state.activeTab,
+                        previousTab: ''
+                    });
+                }
             });
             if (frame.contentDocument && frame.contentDocument.readyState !== 'loading') {
                 patchFrame(frame);
             }
         });
 
-        mountFrames();
+        var initialTab = params.get('tab') || 'plan';
+        mountFrames(initialTab);
         refreshFramesForData();
 
         document.querySelectorAll('[data-tab-target]').forEach(function (button) {
@@ -415,7 +563,7 @@
             });
         });
 
-        switchTab(params.get('tab') || 'plan', true);
+        switchTab(initialTab, true);
     }
 
     window.NutriPlanSPA = {

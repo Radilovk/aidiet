@@ -1788,7 +1788,7 @@
 <body>
     <!-- Sticky Header -->
     <header class="analysis-header">
-        <a href="plan.html" class="back-btn" aria-label="Назад"><i class="fas fa-arrow-left"></i></a>
+        <button class="back-btn" type="button" onclick="goBack()" aria-label="Назад"><i class="fas fa-arrow-left"></i></button>
         <h1>Здравен Анализ</h1>
         <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема" aria-label="Смени тема"><i class="fas fa-moon" id="themeIcon"></i></button>
     </header>
@@ -1952,7 +1952,7 @@
             </h3>
             <p id="errorDetailsText" style="color: var(--text-gray); font-size: 0.85rem; line-height: 1.5;"></p>
         </div>
-        <button class="btn-primary" onclick="window.location.href='questionnaire.html'">
+        <button class="btn-primary" onclick="navigateTopLevel('questionnaire.html')">
             Назад към въпросника
         </button>
     </div>
@@ -1998,12 +1998,45 @@
             localStorage.setItem('theme', newTheme);
             updateThemeIcon(newTheme);
             setThemeColor(newTheme);
+            if (document.documentElement.getAttribute('data-embedded-tab') === '1' && window.parent && window.parent !== window) {
+                window.parent.postMessage({ type: 'NUTRIPLAN_THEME_CHANGE', theme: newTheme }, window.location.origin);
+            }
         }
 
         function updateThemeIcon(theme) {
             const icon = document.getElementById('themeIcon');
             if (icon) {
                 icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            }
+        }
+
+        function requestShellAction(type, payload) {
+            if (document.documentElement.getAttribute('data-embedded-tab') !== '1' || !window.parent || window.parent === window) {
+                return false;
+            }
+            try {
+                window.parent.postMessage(Object.assign({ type: type }, payload || {}), window.location.origin);
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+
+        function navigateTopLevel(url, replace) {
+            if (requestShellAction('NUTRIPLAN_NAVIGATE', { url: url, replace: !!replace, forceTopLevel: true })) {
+                return true;
+            }
+            if (replace) window.location.replace(url);
+            else window.location.href = url;
+            return false;
+        }
+
+        function goBack() {
+            if (requestShellAction('NUTRIPLAN_SWITCH_TAB', { tab: 'plan' })) return;
+            if (document.referrer && document.referrer.includes(window.location.hostname)) {
+                window.history.back();
+            } else {
+                window.location.href = 'plan.html';
             }
         }
 
@@ -2503,9 +2536,10 @@
 
         function goToPlan() {
             if (localStorage.getItem('planSource') === 'questionnaire2') {
-                window.location.href = 'plan-pending.html';
+                navigateTopLevel('plan-pending.html');
                 return;
             }
+            if (requestShellAction('NUTRIPLAN_SWITCH_TAB', { tab: 'plan' })) return;
             window.location.href = 'plan.html';
         }
 

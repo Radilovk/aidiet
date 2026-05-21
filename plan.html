@@ -3603,7 +3603,7 @@
         function showAuthForm() {
             /* Guard: plan still pending specialist review → send to plan-pending */
             if (localStorage.getItem('planSource') === 'questionnaire2') {
-                window.location.replace('plan-pending.html');
+                navigateTopLevel('plan-pending.html', true);
                 return;
             }
             /* If there's no local plan, show the auth form with a "restore your plan"
@@ -3753,7 +3753,7 @@
                     <button id="paPwBtn" class="pa-primary-btn">Вход</button>
                     <p style="margin:12px 0 4px;font-size:0.82rem;color:var(--text-gray,#6b7280);">
                         Нямате профил?
-                        <button onclick="window.location.href='questionnaire2.html'" style="background:none;border:none;color:#0D9488;font-size:0.82rem;cursor:pointer;padding:0;text-decoration:underline;">Попълнете въпросника</button>
+                        <button onclick="navigateTopLevel('questionnaire2.html')" style="background:none;border:none;color:#0D9488;font-size:0.82rem;cursor:pointer;padding:0;text-decoration:underline;">Попълнете въпросника</button>
                     </p>
                     <button id="paForgotBtn" style="background:none;border:none;color:var(--text-gray,#6b7280);font-size:0.82rem;cursor:pointer;padding:4px 0;text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Забравена парола?</button>
                     <div id="planAuthError"></div>
@@ -3855,6 +3855,7 @@
         window.planSignOut = async function () {
             await signOut(auth).catch(() => {});
             _clearUserPlanData();
+            if (requestShellAction('NUTRIPLAN_LOGOUT')) return;
             window.location.replace('index.html?stay=1');
         };
 
@@ -3871,7 +3872,7 @@
                         // Restore was already attempted in this tab but failed to produce a plan
                         // (shouldn't normally happen) — avoid a loop and go to questionnaire.
                         sessionStorage.removeItem(_planRestoreKey);
-                        window.location.replace('questionnaire2.html');
+                        navigateTopLevel('questionnaire2.html', true);
                         return;
                     }
                     sessionStorage.setItem(_planRestoreKey, '1');
@@ -3889,7 +3890,7 @@
                         return;
                     }
                     // No plan on server either — send to questionnaire
-                    window.location.replace('questionnaire2.html');
+                    navigateTopLevel('questionnaire2.html', true);
                     return;
                 }
                 hideOverlay();
@@ -3962,24 +3963,11 @@
     <script>
     (function() {
         var fullDayNames = ['Понеделник', 'Вторник', 'Сряда', 'Четвъртък', 'Петък', 'Събота', 'Неделя'];
-        
-        // Get last selected day from localStorage or calculate today's day
-        var lastDay = localStorage.getItem('lastSelectedDay');
-        var initialDay;
-        
-        if (lastDay && !isNaN(lastDay)) {
-            initialDay = parseInt(lastDay, 10);
-            // Validate it's in range 1-7
-            if (initialDay < 1 || initialDay > 7) {
-                initialDay = null;
-            }
-        }
-        
-        // If no valid saved day, calculate today's day
-        if (!initialDay) {
-            var jsDay = new Date().getDay(); // 0 = Sun, 1 = Mon … 6 = Sat
-            initialDay = jsDay === 0 ? 7 : jsDay; // Convert to Mon=1 … Sun=7
-        }
+        var now = new Date();
+        var jsDay = now.getDay(); // 0 = Sun, 1 = Mon … 6 = Sat
+        var initialDay = jsDay === 0 ? 7 : jsDay; // Convert to Mon=1 … Sun=7
+        var pad = function(n) { return n < 10 ? '0' + n : '' + n; };
+        var initialDateKey = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
         
         // Set the day banner label immediately (before DOMContentLoaded)
         var label = document.getElementById('dayBannerLabel');
@@ -3989,6 +3977,7 @@
         
         // Store the initial day for use by the main script
         window._initialPlanDay = initialDay;
+        window._initialPlanDateKey = initialDateKey;
     })();
     </script>
 
@@ -4000,7 +3989,7 @@
         <div id="mealContainer" aria-live="polite"></div>
 
         <!-- Моите храни и продукти banner -->
-        <a href="food-picker.html" class="my-foods-banner" aria-label="Моите храни и продукти">
+        <a href="food-picker.html" class="my-foods-banner" aria-label="Моите храни и продукти" onclick="navigateTopLevel('food-picker.html'); return false;">
             <span class="my-foods-icon">🛒</span>
             <div class="my-foods-text">
                 <div class="my-foods-title">Моите храни и продукти</div>
@@ -4158,6 +4147,7 @@
         let userId = null;
         let userData = null;
         let currentDay = 1;
+        let currentViewDateKey = window._initialPlanDateKey || null;
         let chatVisible = false;
         let conversationId = Date.now().toString();
         let chatMode = 'consultation'; // 'consultation', 'modification', or 'report'
@@ -4172,6 +4162,7 @@
         let isSending = false;
         const MAX_RETRIES = 2;
         const RETRY_DELAYS = [2000, 5000]; // Exponential backoff delays in ms
+        let typingHapticsEnabled = true;
         
         // Enhancement #2: Debouncing state
         let sendMessageTimeout = null;
@@ -4563,6 +4554,9 @@
             localStorage.setItem('theme', newTheme);
             updateThemeIcon(newTheme);
             setThemeColor(newTheme);
+            if (document.documentElement.getAttribute('data-embedded-tab') === '1' && window.parent && window.parent !== window) {
+                window.parent.postMessage({ type: 'NUTRIPLAN_THEME_CHANGE', theme: newTheme }, window.location.origin);
+            }
         }
 
         function updateThemeIcon(theme) {
@@ -4570,6 +4564,54 @@
             if (icon) {
                 icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
             }
+        }
+
+        function requestShellAction(type, payload) {
+            if (document.documentElement.getAttribute('data-embedded-tab') !== '1' || !window.parent || window.parent === window) {
+                return false;
+            }
+            try {
+                window.parent.postMessage(Object.assign({ type: type }, payload || {}), window.location.origin);
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+
+        function navigateTopLevel(url, replace) {
+            if (requestShellAction('NUTRIPLAN_NAVIGATE', { url: url, replace: !!replace, forceTopLevel: true })) {
+                return true;
+            }
+            if (replace) window.location.replace(url);
+            else window.location.href = url;
+            return false;
+        }
+
+        function openShellTab(tab, fallbackUrl) {
+            if (requestShellAction('NUTRIPLAN_SWITCH_TAB', { tab: tab })) {
+                return true;
+            }
+            if (fallbackUrl) {
+                window.location.href = fallbackUrl;
+            }
+            return false;
+        }
+
+        function stopTypingHaptics() {
+            try {
+                if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                    navigator.vibrate(0);
+                }
+            } catch (_) {}
+        }
+
+        function pulseTypingHaptic(duration) {
+            if (!typingHapticsEnabled) return;
+            try {
+                if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                    navigator.vibrate(duration || 4);
+                }
+            } catch (_) {}
         }
 
         function getProfileSyncSignature(uid, planStr, userDataStr, planSource) {
@@ -4589,7 +4631,7 @@
             try {
                 // Guard: plan submitted via questionnaire2 must wait for admin approval
                 if (localStorage.getItem('planSource') === 'questionnaire2') {
-                    window.location.replace('plan-pending.html');
+                    navigateTopLevel('plan-pending.html', true);
                     return;
                 }
 
@@ -4661,8 +4703,9 @@
 
                 // Render initial data – use the day already set by the inline script
                 // This prevents flashing from Monday to the actual current day
-                const initialDay = window._initialPlanDay || getTodayPlanDay();
-                selectDay(initialDay);
+                const initialDateKey = window._initialPlanDateKey || todayDateKey();
+                const initialDay = dateKeyToPlanDay(initialDateKey);
+                selectDay(initialDay, null, initialDateKey);
                 
                 // REQUIREMENT 3: Display plan justification
                 displayPlanJustification();
@@ -4796,7 +4839,7 @@
                         </div>
                         <h2 style="color: var(--text-dark); margin-bottom: 15px;">Грешка</h2>
                         <p style="color: var(--text-light); margin-bottom: 30px;">${message}</p>
-                        <button onclick="window.location.href='questionnaire.html'" 
+                        <button onclick="navigateTopLevel('questionnaire.html')" 
                                 style="background: var(--primary-red); color: white; border: none; 
                                        padding: 15px 30px; border-radius: 25px; font-size: 1rem; 
                                        font-weight: 600; cursor: pointer;">
@@ -4807,7 +4850,7 @@
             }
             if (redirect) {
                 setTimeout(() => {
-                    window.location.href = 'questionnaire.html';
+                    navigateTopLevel('questionnaire.html');
                 }, 3000);
             }
         }
@@ -4883,12 +4926,31 @@
         // --- Date-key helpers (global scope, shared by renderDay and addToMyMenu) ---
         function _zp(n) { return n < 10 ? '0' + n : '' + n; }
         /** Return 'YYYY-MM-DD' for the calendar date that corresponds to plan day 1-7 (Mon-Sun). */
-        function planDayToDateKey(dayNum) {
-            var now = new Date();
-            var jsDay = now.getDay(); // 0=Sun
-            var todayPlanDay = jsDay === 0 ? 7 : jsDay;
-            var offset = dayNum - todayPlanDay;
-            var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
+        function parseDateKey(dateKey) {
+            if (typeof dateKey !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return null;
+            var parts = dateKey.split('-').map(function(part) { return parseInt(part, 10); });
+            return new Date(parts[0], parts[1] - 1, parts[2]);
+        }
+        function mondayFirstDayNumber(dateObj) {
+            var jsDay = dateObj.getDay(); // 0=Sun
+            return jsDay === 0 ? 7 : jsDay;
+        }
+        function getStartOfWeekDate(referenceDate) {
+            var start = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), referenceDate.getDate());
+            start.setDate(start.getDate() - (mondayFirstDayNumber(referenceDate) - 1));
+            return start;
+        }
+        function dateToKey(dateObj) {
+            return dateObj.getFullYear() + '-' + _zp(dateObj.getMonth() + 1) + '-' + _zp(dateObj.getDate());
+        }
+        function dateKeyToPlanDay(dateKey) {
+            var parsed = parseDateKey(dateKey);
+            return parsed ? mondayFirstDayNumber(parsed) : getTodayPlanDay();
+        }
+        function planDayToDateKey(dayNum, referenceDateKey) {
+            var referenceDate = parseDateKey(referenceDateKey) || parseDateKey(currentViewDateKey) || new Date();
+            var startOfWeek = getStartOfWeekDate(referenceDate);
+            var d = new Date(startOfWeek.getFullYear(), startOfWeek.getMonth(), startOfWeek.getDate() + (dayNum - 1));
             return d.getFullYear() + '-' + _zp(d.getMonth() + 1) + '-' + _zp(d.getDate());
         }
         /** Return 'YYYY-MM-DD' for today. */
@@ -4977,10 +5039,12 @@
         }
 
         // --- Render Day Meals ---
-        function renderDay(dayNum) {
+        function renderDay(dayNum, viewDateKey) {
             currentDay = dayNum;
+            currentViewDateKey = viewDateKey || planDayToDateKey(dayNum);
             // Set early so getCurrentViewDayKey() works correctly for the entire function
             window._gameCurrentPlanDay = dayNum;
+            window._gameCurrentViewDateKey = currentViewDateKey;
             const dayKey = `day${dayNum}`;
             const dayData = dietPlan.weekPlan && dietPlan.weekPlan[dayKey];
             
@@ -5092,7 +5156,7 @@
             // Render photo-added meals for this day (from "Добави в плана"),
             // interleaved with planned meals by order hour.
             (function() {
-                var viewDateKey = planDayToDateKey(dayNum);
+                var viewDateKey = currentViewDateKey || planDayToDateKey(dayNum);
                 var addedMeals = [];
                 try { addedMeals = JSON.parse(localStorage.getItem('addedMeals_' + viewDateKey) || '[]'); } catch(e) {}
                 addedMeals.forEach(function(addedMeal, idx) {
@@ -5407,8 +5471,20 @@
         }
 
         function goToProfile() {
-            window.location.href = 'profile.html';
+            openShellTab('profile', 'profile.html');
         }
+
+        window.addEventListener('NUTRIPLAN_TAB_ACTIVATED', function() {
+            typingHapticsEnabled = true;
+            if ((currentViewDateKey || todayDateKey()) !== todayDateKey()) {
+                resetPlanViewToToday();
+            }
+        });
+
+        window.addEventListener('NUTRIPLAN_TAB_DEACTIVATED', function() {
+            typingHapticsEnabled = false;
+            stopTypingHaptics();
+        });
 
         function getDayTimeIcon() {
             const h = new Date().getHours();
@@ -5469,15 +5545,16 @@
             label.innerHTML = fullDayNames[activeDayNum - 1] + getDayTimeIcon();
         }
 
-        function selectDay(dayNum, direction) {
-            // Save selected day to localStorage to prevent flash on next page load
-            try {
-                localStorage.setItem('lastSelectedDay', dayNum.toString());
-            } catch (e) {
-                console.warn('Failed to save lastSelectedDay:', e);
-            }
+        function resetPlanViewToToday() {
+            var todayKey = todayDateKey();
+            var todayDay = dateKeyToPlanDay(todayKey);
+            selectDay(todayDay, null, todayKey);
+        }
+
+        function selectDay(dayNum, direction, viewDateKey) {
+            currentViewDateKey = viewDateKey || planDayToDateKey(dayNum, currentViewDateKey || todayDateKey());
             renderDayBanner(dayNum, direction);
-            renderDay(dayNum);
+            renderDay(dayNum, currentViewDateKey);
         }
 
         // --- Day Banner Arrow & Swipe Navigation ---
@@ -5487,8 +5564,11 @@
             const banner  = document.getElementById('dayBannerContainer');
 
             function navigate(dir) {
-                const day = (currentDay - 1 + (dir === 'next' ? 1 : -1) + 7) % 7 + 1;
-                selectDay(day, dir);
+                const baseDate = parseDateKey(currentViewDateKey || todayDateKey()) || new Date();
+                baseDate.setDate(baseDate.getDate() + (dir === 'next' ? 1 : -1));
+                const nextDateKey = dateToKey(baseDate);
+                const nextDay = dateKeyToPlanDay(nextDateKey);
+                selectDay(nextDay, dir, nextDateKey);
             }
 
             if (prevBtn) prevBtn.addEventListener('click', () => navigate('prev'));
@@ -5897,6 +5977,7 @@
             if (chatWindow) {
                 // Save chat history before closing
                 saveChatHistory();
+                stopTypingHaptics();
                 chatWindow.remove();
                 chatVisible = false;
                 // Reset chatMode to consultation on close to avoid confusion when reopening
@@ -6032,7 +6113,7 @@
             if (message.toLowerCase() === '*selectfoods') {
                 addMessageToChat('🥗 Отваряне на избора на продукти…', 'assistant');
                 input.value = '';
-                setTimeout(() => { window.location.href = 'food-picker.html'; }, 700);
+                setTimeout(() => { navigateTopLevel('food-picker.html'); }, 700);
                 return;
             }
 
@@ -6042,7 +6123,7 @@
                 if (window.gameModule) {
                     if (!window.gameModule.isEnabled()) {
                         window.gameModule.activateGame();
-                        addMessageToChat('Геймификацията е активирана!\n\nОт сега ще събирам данни за:\n• Отбелязване на храненията\n• Сутрешна проверка (05:00) – качество на съня\n• Вечерна проверка (20:00) – активност, емоционален баланс, вода\n• Дневна оценка и насърчение\n\nАнализът ще е наличен в таба „Профил" → раздел Геймификация.\n\nЗа да тествате сега, напишете *game-morning или *game-evening.', 'assistant');
+                addMessageToChat('Геймификацията е активирана!\n\nОтсега ще събирам данни за:\n• Отбелязване на храненията\n• Сутрешна проверка (05:00) – качество на съня\n• Вечерна проверка (20:00) – активност, емоционален баланс, вода\n• Дневна оценка и насърчение\n\nАнализът ще е наличен в таба „Профил“ → раздел „Геймификация“.\n\nЗа да тествате сега, напишете *game-morning или *game-evening.', 'assistant');
                     } else {
                         addMessageToChat('Геймификацията вече е активирана. Следете оценките в таба „Профил".', 'assistant');
                     }
@@ -6643,14 +6724,19 @@
                 let i = 0;
                 const charDelay = 18; // ms per character — ~55 chars/sec
                 function tick() {
+                    if (!document.contains(bubble)) {
+                        stopTypingHaptics();
+                        return;
+                    }
                     if (i < message.length) {
                         bubble.textContent += message[i++];
                         // Micro-vibration on every letter while bot types
-                        try { if (navigator.vibrate) navigator.vibrate(4); } catch (_) {}
+                        pulseTypingHaptic(4);
                         chatMessages.scrollTop = chatMessages.scrollHeight;
                         setTimeout(tick, charDelay);
                     } else {
                         // Typing done — swap plain text to formatted HTML
+                        stopTypingHaptics();
                         bubble.classList.remove('chat-typing');
                         bubble.innerHTML = formattedMessage;
                         chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -6757,6 +6843,7 @@
         function removeTypingIndicator(id) {
             const indicator = document.getElementById(id);
             if (indicator) {
+                stopTypingHaptics();
                 indicator.remove();
             }
         }
@@ -8361,18 +8448,11 @@
 
         // Map plan day number (1=Mon … 7=Sun) to actual calendar date string
         function getDateForPlanDay(planDay) {
-            var now = new Date(); // single snapshot to avoid midnight boundary issues
-            var jsDay = now.getDay(); // 0=Sun
-            var todayPlanDay = jsDay === 0 ? 7 : jsDay;
-            var offset = planDay - todayPlanDay;
-            var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
-            return dateKey(d);
+            return planDayToDateKey(planDay, window._gameCurrentViewDateKey || getTodayKey());
         }
         // Return the date key for the plan day currently being viewed
         function getCurrentViewDayKey() {
-            var planDay = window._gameCurrentPlanDay;
-            if (!planDay) return getTodayKey();
-            return getDateForPlanDay(planDay);
+            return window._gameCurrentViewDateKey || getTodayKey();
         }
         function isFutureDayKey(key) { return key > getTodayKey(); }
         function isPastDayKey(key)   { return key < getTodayKey(); }
@@ -8468,16 +8548,14 @@
             var i = 0;
             function tick() {
                 // Guard against the element being removed from the DOM mid-animation
-                if (!document.contains(el)) { if (cb) cb(); return; }
+                if (!document.contains(el)) { stopTypingHaptics(); if (cb) cb(); return; }
                 if (i < text.length) {
                     el.textContent += text[i++];
                     // Micro-vibration on every character while game question types
-                    if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                        navigator.vibrate(4);
-                    }
+                    pulseTypingHaptic(4);
                     setTimeout(tick, speed || 30);
                 }
-                else { el.classList.remove('typing'); if (cb) cb(); }
+                else { stopTypingHaptics(); el.classList.remove('typing'); if (cb) cb(); }
             }
             tick();
         }
@@ -8692,7 +8770,11 @@
                 card.id = 'dailyScoreCard';
                 card.setAttribute('role','status');
                 card.setAttribute('aria-live','polite');
-                card.onclick = function() { window.location.href = 'game-analytics.html'; };
+                card.onclick = function() {
+                    if (!openShellTab('analytics', 'game-analytics.html')) {
+                        window.location.href = 'game-analytics.html';
+                    }
+                };
                 var container = document.getElementById('mealContainer');
                 if (container && container.parentNode) container.parentNode.insertBefore(card, container);
             }
@@ -9770,7 +9852,7 @@
             profBtn.className = 'game-modal-btn';
             profBtn.style.cssText = 'flex:1;background:rgba(13,148,136,0.1);color:#0D9488;border:1.5px solid rgba(13,148,136,0.25);';
             profBtn.textContent = '\uD83D\uDCCA \u0412\u0438\u0436 \u0430\u043D\u0430\u043B\u0438\u0437\u0438';
-            profBtn.onclick = function(){ overlay.remove(); window.location.href='profile.html'; };
+            profBtn.onclick = function(){ overlay.remove(); openShellTab('profile', 'profile.html'); };
 
             var closBtn2 = document.createElement('button');
             closBtn2.className = 'game-modal-btn';
