@@ -130,6 +130,113 @@
             transform: scale(0.90);
         }
 
+        #xbody-onboarding {
+            position: absolute;
+            inset: 0;
+            z-index: 400;
+            overflow-y: auto;
+            background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 52%);
+            padding:
+                calc(env(safe-area-inset-top, 0px) + 28px)
+                20px
+                calc(env(safe-area-inset-bottom, 0px) + 28px);
+            box-sizing: border-box;
+        }
+        #xbody-onboarding.hidden,
+        #acuity-scroll-container.hidden {
+            display: none;
+        }
+        .xbody-onboarding-card {
+            width: 100%;
+            max-width: 460px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.96);
+            border: 1px solid rgba(226, 232, 240, 0.9);
+            border-radius: 24px;
+            box-shadow: 0 20px 45px rgba(15, 23, 42, 0.10);
+            padding: 28px 20px;
+            box-sizing: border-box;
+        }
+        .xbody-onboarding-title {
+            margin: 0 0 10px;
+            font-size: 1.7rem;
+            line-height: 1.15;
+            color: #0f172a;
+        }
+        .xbody-onboarding-subtitle {
+            margin: 0 0 24px;
+            color: #475569;
+            line-height: 1.55;
+            font-size: 0.98rem;
+        }
+        .xbody-form-group {
+            margin-bottom: 16px;
+        }
+        .xbody-form-group label,
+        .xbody-checkbox-label {
+            display: block;
+            color: #0f172a;
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .xbody-form-input {
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid #cbd5e1;
+            border-radius: 14px;
+            padding: 14px 15px;
+            font-size: 1rem;
+            color: #0f172a;
+            background: #ffffff;
+        }
+        .xbody-form-input:focus {
+            outline: none;
+            border-color: #10b981;
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+        }
+        .xbody-checkbox-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin: 22px 0;
+            color: #334155;
+            font-size: 0.95rem;
+            line-height: 1.45;
+        }
+        .xbody-checkbox-row input {
+            margin-top: 2px;
+            width: 18px;
+            height: 18px;
+            accent-color: #10b981;
+            flex: 0 0 auto;
+        }
+        .xbody-submit-btn {
+            width: 100%;
+            border: none;
+            border-radius: 14px;
+            padding: 15px 18px;
+            background: #111827;
+            color: #ffffff;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.15s ease, background 0.2s ease;
+        }
+        .xbody-submit-btn:hover {
+            background: #1f2937;
+            transform: translateY(-1px);
+        }
+        .xbody-submit-btn:active {
+            transform: translateY(0);
+        }
+        .xbody-form-error {
+            min-height: 20px;
+            margin: 0 0 14px;
+            color: #dc2626;
+            font-size: 0.9rem;
+        }
+
 
 
         /* ── PWA Install Modal ── */
@@ -295,9 +402,42 @@
         <i class="fas fa-chevron-left"></i>
     </button>
 
+    <section id="xbody-onboarding">
+        <div class="xbody-onboarding-card">
+            <h1 class="xbody-onboarding-title">Запази час в XBody</h1>
+            <p class="xbody-onboarding-subtitle">Попълни данните си веднъж, за да продължиш към календара за записване.</p>
+
+            <form id="xbody-onboarding-form" novalidate>
+                <div class="xbody-form-group">
+                    <label for="xbody-full-name">Име и фамилия</label>
+                    <input id="xbody-full-name" class="xbody-form-input" name="fullName" type="text" autocomplete="name" required>
+                </div>
+
+                <div class="xbody-form-group">
+                    <label for="xbody-email">Имейл</label>
+                    <input id="xbody-email" class="xbody-form-input" name="email" type="email" autocomplete="email" inputmode="email" required>
+                </div>
+
+                <div class="xbody-form-group">
+                    <label for="xbody-phone">Телефон</label>
+                    <input id="xbody-phone" class="xbody-form-input" name="phone" type="tel" autocomplete="tel" inputmode="tel" required>
+                </div>
+
+                <label class="xbody-checkbox-row" for="xbody-save-data">
+                    <input id="xbody-save-data" name="saveData" type="checkbox" checked>
+                    <span>Запази данните ми за бързо записване</span>
+                </label>
+
+                <p class="xbody-form-error" id="xbody-form-error" aria-live="polite"></p>
+                <button class="xbody-submit-btn" type="submit">Продължи</button>
+            </form>
+        </div>
+    </section>
+
     <!-- Dedicated scroll container – see CSS comments above -->
-    <div id="acuity-scroll-container">
-        <iframe allow="payment; camera; clipboard-write; encrypted-media; fullscreen; geolocation; microphone; accelerometer; gyroscope"
+    <div id="acuity-scroll-container" class="hidden">
+        <iframe allow="payment"
+                sandbox="allow-top-navigation allow-same-origin allow-forms allow-scripts allow-popups align-top-navigation-by-user-activation"
                 frameborder="0">
         </iframe>
     </div>
@@ -332,10 +472,129 @@
             setTimeout(function () { sc.scrollTop = saved; }, WEBKIT_COMPOSITOR_RECOVERY_DELAY_MS);
         });
 
-        /* ── Load Acuity iframe ── */
+        /* ── Local onboarding + Acuity iframe ── */
         (function () {
+            const STORAGE_KEYS = {
+                fullName: 'xbody_booking_full_name',
+                email: 'xbody_booking_email',
+                phone: 'xbody_booking_phone',
+                consent: 'xbody_booking_consent'
+            };
+            const BASE_ACUITY_URL = 'https://xbody.as.me/schedule/a68c7090/appointment/34691465/calendar/4715375?appointmentTypeIds[]=34691465';
+            const CONSENT_PARAM = '&field:3583430=yes';
+            const onboarding = document.getElementById('xbody-onboarding');
+            const form = document.getElementById('xbody-onboarding-form');
+            const fullNameInput = document.getElementById('xbody-full-name');
+            const emailInput = document.getElementById('xbody-email');
+            const phoneInput = document.getElementById('xbody-phone');
+            const saveDataInput = document.getElementById('xbody-save-data');
+            const errorEl = document.getElementById('xbody-form-error');
+            const scrollContainer = document.getElementById('acuity-scroll-container');
             var frame = document.querySelector('iframe');
-            if (frame) frame.src = 'https://app.acuityscheduling.com/schedule.php?owner=13943721&appointmentType=16859189';
+            if (!onboarding || !form || !fullNameInput || !emailInput || !phoneInput || !saveDataInput || !errorEl || !scrollContainer || !frame) {
+                return;
+            }
+
+            function splitName(fullName) {
+                const parts = String(fullName || '').trim().split(/\s+/).filter(Boolean);
+                return {
+                    firstName: parts[0] || '',
+                    lastName: parts.slice(1).join(' ')
+                };
+            }
+
+            function buildAcuityUrl(userData) {
+                const nameParts = splitName(userData.fullName);
+                let url = BASE_ACUITY_URL +
+                    '&firstName=' + encodeURIComponent(nameParts.firstName) +
+                    '&lastName=' + encodeURIComponent(nameParts.lastName) +
+                    '&email=' + encodeURIComponent(userData.email) +
+                    '&phone=' + encodeURIComponent(userData.phone);
+                if (userData.consented) {
+                    url += CONSENT_PARAM;
+                }
+                return url;
+            }
+
+            function showBooking(userData) {
+                const bookingUrl = buildAcuityUrl(userData);
+                onboarding.classList.add('hidden');
+                scrollContainer.classList.remove('hidden');
+                frame.dataset.originalSrc = bookingUrl;
+                frame.src = bookingUrl;
+            }
+
+            function getStoredUserData() {
+                const fullName = (localStorage.getItem(STORAGE_KEYS.fullName) || '').trim();
+                const email = (localStorage.getItem(STORAGE_KEYS.email) || '').trim();
+                const phone = (localStorage.getItem(STORAGE_KEYS.phone) || '').trim();
+                if (!fullName || !email || !phone) {
+                    return null;
+                }
+                return {
+                    fullName: fullName,
+                    email: email,
+                    phone: phone,
+                    consented: localStorage.getItem(STORAGE_KEYS.consent) === 'yes'
+                };
+            }
+
+            function saveUserData(userData) {
+                localStorage.setItem(STORAGE_KEYS.fullName, userData.fullName);
+                localStorage.setItem(STORAGE_KEYS.email, userData.email);
+                localStorage.setItem(STORAGE_KEYS.phone, userData.phone);
+                localStorage.setItem(STORAGE_KEYS.consent, userData.consented ? 'yes' : 'no');
+            }
+
+            function clearUserData() {
+                localStorage.removeItem(STORAGE_KEYS.fullName);
+                localStorage.removeItem(STORAGE_KEYS.email);
+                localStorage.removeItem(STORAGE_KEYS.phone);
+                localStorage.removeItem(STORAGE_KEYS.consent);
+            }
+
+            function readFormData() {
+                return {
+                    fullName: fullNameInput.value.trim(),
+                    email: emailInput.value.trim(),
+                    phone: phoneInput.value.trim(),
+                    consented: saveDataInput.checked
+                };
+            }
+
+            function validateForm(userData) {
+                if (!userData.fullName || !userData.email || !userData.phone) {
+                    return 'Попълни име, имейл и телефон, за да продължиш.';
+                }
+                if (!userData.email.includes('@')) {
+                    return 'Въведи валиден имейл адрес.';
+                }
+                return '';
+            }
+
+            const storedUserData = getStoredUserData();
+            if (storedUserData) {
+                showBooking(storedUserData);
+                return;
+            }
+
+            form.addEventListener('submit', function (event) {
+                event.preventDefault();
+                const userData = readFormData();
+                const errorMessage = validateForm(userData);
+                errorEl.textContent = errorMessage;
+                if (errorMessage) {
+                    return;
+                }
+
+                if (saveDataInput.checked) {
+                    saveUserData(userData);
+                } else {
+                    clearUserData();
+                }
+
+                showBooking(userData);
+            });
         })();
 
         /* ── PWA Install Logic ── */
@@ -481,8 +740,9 @@
             const frame = document.querySelector('iframe');
             if (!btn || !frame) return;
 
-            // Store the original src so we can hard-reset the iframe if needed.
-            const originalSrc = frame.src;
+            function getOriginalSrc() {
+                return frame.dataset.originalSrc || frame.src || '';
+            }
 
             let navDepth = 0; // depth > 0 → button visible
 
@@ -573,7 +833,7 @@
                     frame.contentWindow.history.back();
                 } catch (_) {
                     // Cross-origin history access denied – hard-reset the frame to the original src.
-                    frame.src = originalSrc;
+                    frame.src = getOriginalSrc();
                     navDepth    = 0;
                     msgNavDepth = 0;
                     homeHeight  = null; // re-baseline on next setHeight message
