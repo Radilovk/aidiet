@@ -3565,25 +3565,38 @@
          * Returns true if a plan was successfully restored. */
         async function _loadUserPlanFromServer(fbUserId, user, _retries) {
             if (_retries === undefined) _retries = 2;
-            const url = WORKER_URL + '/api/user/profile?userId=' + encodeURIComponent(fbUserId);
+            const url = new URL(WORKER_URL + '/api/user/profile');
+            url.searchParams.set('userId', fbUserId);
+            const candidateEmail = (
+                (user && user.email) ||
+                (function () {
+                    try {
+                        const cachedUserData = JSON.parse(localStorage.getItem('userData') || '{}');
+                        return cachedUserData.email || '';
+                    } catch (_) {
+                        return '';
+                    }
+                })()
+            ).trim().toLowerCase();
+            if (candidateEmail) url.searchParams.set('email', candidateEmail);
             try {
                 const headers = {};
                 if (user && fbUserId.startsWith('fb_')) {
                     const idToken = await user.getIdToken().catch(() => null);
                     if (idToken) headers['Authorization'] = `Bearer ${idToken}`;
                 }
-                let resp = await fetch(url, { headers });
+                let resp = await fetch(url.toString(), { headers });
                 // If the server rejected our token (e.g. FIREBASE_PROJECT_ID not configured
                 // on the worker, or a transient JWKS error), retry without the Authorization
                 // header — the GET endpoint allows unauthenticated reads by design.
                 if ((resp.status === 401 || resp.status === 403) && headers['Authorization']) {
                     console.warn('[plan-restore] Token rejected (', resp.status, '), retrying without auth');
-                    resp = await fetch(url, {});
+                    resp = await fetch(url.toString(), {});
                 }
                 if (!resp.ok) return false;
                 const data = await resp.json();
-                if (data.found && data.plan) {
-                    localStorage.setItem('dietPlan', JSON.stringify(data.plan));
+                if (data.found && (data.plan || data.planSource === 'questionnaire2' || data.clientId)) {
+                    if (data.plan) localStorage.setItem('dietPlan', JSON.stringify(data.plan));
                     if (data.userData) localStorage.setItem('userData', JSON.stringify(data.userData));
                     if (data.planSource) localStorage.setItem('planSource', data.planSource);
                     else localStorage.removeItem('planSource');
@@ -4732,14 +4745,31 @@
                     const cookieUserId = cookieMatch ? decodeURIComponent(cookieMatch[1]) : null;
                     if (cookieUserId && !_loadDietDataCalled) {
                         _loadDietDataCalled = true;
-                        fetch(`https://aidiet.radilov-k.workers.dev/api/user/profile?userId=${encodeURIComponent(cookieUserId)}`)
+                        (function () {
+                            let restoreEmail = '';
+                            try {
+                                const cachedUserData = JSON.parse(localStorage.getItem('userData') || '{}');
+                                restoreEmail = (cachedUserData.email || '').trim().toLowerCase();
+                            } catch (_) {}
+                            const profileUrl = new URL('https://aidiet.radilov-k.workers.dev/api/user/profile');
+                            profileUrl.searchParams.set('userId', cookieUserId);
+                            if (restoreEmail) profileUrl.searchParams.set('email', restoreEmail);
+                            return fetch(profileUrl.toString());
+                        })()
                             .then(r => r.ok ? r.json() : null)
                             .then(data => {
-                                if (data && data.found && data.plan) {
-                                    localStorage.setItem('dietPlan', JSON.stringify(data.plan));
+                                if (data && data.found && (data.plan || data.planSource === 'questionnaire2' || data.clientId)) {
+                                    if (data.plan) localStorage.setItem('dietPlan', JSON.stringify(data.plan));
                                     localStorage.setItem('userId', cookieUserId);
                                     if (data.userData) {
                                         localStorage.setItem('userData', JSON.stringify(data.userData));
+                                    }
+                                    if (data.planSource) localStorage.setItem('planSource', data.planSource);
+                                    else localStorage.removeItem('planSource');
+                                    if (data.clientId && data.planSource === 'questionnaire2') {
+                                        localStorage.setItem('pendingClientId', data.clientId);
+                                    } else if (data.planSource !== 'questionnaire2') {
+                                        localStorage.removeItem('pendingClientId');
                                     }
                                     console.log('[PWA] Plan restored from backend in plan.html');
                                     // Re-run loadDietData now that localStorage is populated
