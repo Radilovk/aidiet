@@ -1,8 +1,10 @@
 {
+  "id": "/xbody.html",
   "name": "XBody Ability",
   "short_name": "XBody",
   "description": "Система за записване на часове XBody",
   "start_url": "xbody.html",
+  "scope": "/xbody.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#FEE2E2",
