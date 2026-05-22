@@ -1,5 +1,20 @@
 # Log Tasks
 
+## 2026-05-22 — Довършване на останалите legacy plan route-и
+
+**Задача:** Да се провери дали след първия routing fix са останали user-facing пътища към стария standalone `plan.html` и ако има — да се оправят по най-икономичния стабилен начин.
+
+**Направено:**
+1. **Проверка на остатъците:** Потвърдих, че още има останали static `plan.html` target-и в менюта, feature CTA линкове, bottom navigation и swipe fallback-и.
+2. **Минимален fix без нов код:** Вместо нови helper-и просто смених останалите user-facing href/url стойности към shell route-а `index.html?app=1&tab=plan`, а за другите tab-ове към съответните shell target-и.
+3. **Обхванати страници:** Коригирах `index.html`, `features.html`, `emoeat.html`, `protocol-landing.html`, `longevity.html`, `plan.html`, `guidelines.html`, `profile.html`, `analysis.html` и `game-analytics.html`.
+4. **Резултат:** Намалих до минимум шанса потребител да излезе от merged shell flow-а през стар link/swipe/bottom-nav path.
+5. **Проверка:** Ще пусна отново наличния `npm test` и финалния security review.
+
+**Резултат:** Не, не всички намерени проблеми бяха затворени след първия fix; останаха допълнителни legacy shell bypass линкове. Те вече са изчистени с директна подмяна на target-ите, без излишно ново поведение.
+
+---
+
 ## 2026-05-22 — Минимално уеднаквяване на post-login и plan navigation към shell-а
 
 **Задача:** Да се изгради икономична стратегия и да се оправят login / registration / navigation проблемите след tab merge само с прецизни корекции без излишен код.

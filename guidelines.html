@@ -1814,9 +1814,9 @@
     (function() {
         var tabs = [
             { tab: 'home', url: 'index.html?stay=1' },
-            { tab: 'plan', url: 'plan.html' },
-            { tab: 'guidelines', url: 'guidelines.html' },
-            { tab: 'profile', url: 'profile.html' }
+            { tab: 'plan', url: 'index.html?app=1&tab=plan' },
+            { tab: 'guidelines', url: 'index.html?app=1&tab=guidelines' },
+            { tab: 'profile', url: 'index.html?app=1&tab=profile' }
         ];
         var currentIndex = 2;
         var touchStartX = 0, touchStartY = 0;
@@ -1854,15 +1854,15 @@
             <i class="fas fa-home"></i>
             <span>Начало</span>
         </a>
-        <a href="plan.html" class="bottom-nav-item">
+        <a href="index.html?app=1&tab=plan" class="bottom-nav-item">
             <i class="fas fa-utensils"></i>
             <span>Моят План</span>
         </a>
-        <a href="guidelines.html" class="bottom-nav-item active">
+        <a href="index.html?app=1&tab=guidelines" class="bottom-nav-item active">
             <i class="fas fa-compass"></i>
             <span>Насоки</span>
         </a>
-        <a href="profile.html" class="bottom-nav-item">
+        <a href="index.html?app=1&tab=profile" class="bottom-nav-item">
             <i class="fas fa-user"></i>
             <span>Профил</span>
         </a>
