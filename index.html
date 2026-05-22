@@ -34,24 +34,6 @@
     <link rel="apple-touch-icon" sizes="180x180" href="./icon-192x192.png">
     <link rel="apple-touch-icon" sizes="152x152" href="./icon-192x192.png">
     <title>NutriPlan — Персонален AI Здравен Асистент 2026</title>
-    <!-- Early redirect: runs before any CSS loads so there is zero flash when the
-         user already has a plan and the browser needs to go straight to the shell.
-         Uses only native browser APIs — no dependency on session-utils.js. -->
-    <script>(function(){
-        var params = new URLSearchParams(window.location.search);
-        if (params.has('stay') || params.has('login') || params.has('app')) return;
-        var planJobId = localStorage.getItem('planJobId');
-        if (planJobId) {
-            var src = localStorage.getItem('planJobSource');
-            window.location.replace(src === 'questionnaire' ? 'questionnaire.html' : 'questionnaire2.html');
-            return;
-        }
-        var dietPlan = localStorage.getItem('dietPlan');
-        if (!dietPlan) return;
-        var planSource = localStorage.getItem('planSource');
-        var pendingClientId = localStorage.getItem('pendingClientId');
-        window.location.replace((planSource === 'questionnaire2' || pendingClientId) ? 'plan-pending.html' : 'index.html?app=1&tab=plan');
-    })();</script>
     <!-- Prefetch adjacent tabs so the browser caches them before they are needed -->
     <link rel="prefetch" href="./plan.html">
     <link rel="prefetch" href="./guidelines.html">
@@ -66,6 +48,38 @@
     <!-- Inline theme init: apply saved theme before first paint to prevent FOUC -->
     <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F0FDFA';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
     <script src="./session-utils.js"></script>
+    <!-- Early redirect: check plan immediately to avoid flickering -->
+    <script>(function(){
+        // Skip redirect if explicitly staying on index (?stay=1) or if login required
+        var params = new URLSearchParams(window.location.search);
+        if (params.has('stay') || params.has('login') || params.has('app')) return;
+        
+        // Check for plan generation in progress - redirect to questionnaire
+        var planJobId = localStorage.getItem('planJobId');
+        if (planJobId) {
+            var src = localStorage.getItem('planJobSource');
+            window.location.replace(src === 'questionnaire' ? 'questionnaire.html' : 'questionnaire2.html');
+            return;
+        }
+        
+        // Check if user has a plan
+        var dietPlan = localStorage.getItem('dietPlan');
+        if (!dietPlan) return; // No plan - stay on index
+        
+        // Determine correct plan destination
+        var planTarget;
+        var planSource = localStorage.getItem('planSource');
+        var pendingClientId = localStorage.getItem('pendingClientId');
+        
+        if (planSource === 'questionnaire2' || pendingClientId) {
+            planTarget = 'plan-pending.html';
+        } else {
+            planTarget = 'index.html?app=1&tab=plan';
+        }
+        
+        // Redirect immediately before any UI renders
+        window.location.replace(planTarget);
+    })();</script>
     <style>
         :root {
             --primary-red: #0D9488;
@@ -2733,6 +2747,9 @@
 
         function getPlanTargetFromState() {
             if (localStorage.getItem('planSource') === 'questionnaire2' || localStorage.getItem('pendingClientId')) {
+                return 'plan-pending.html';
+            }
+            if (!localStorage.getItem('dietPlan') && localStorage.getItem('userData')) {
                 return 'plan-pending.html';
             }
             return localStorage.getItem('dietPlan') ? 'index.html?app=1&tab=plan' : 'questionnaire2.html';

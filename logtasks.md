@@ -1,41 +1,5 @@
 # Log Tasks
 
-## 2026-05-22 — Категоричен fix: празен план таб + web flash при навигация
-
-**Задача:** След поредица неуспешни опити — в APK след login планът въобще не се зарежда (празен таб); в уеб режим има странно забавяне и флашване при навигация през index.
-
-**Реален root cause (намерен и потвърден):**
-
-1. **Празен план таб (APK + web забавяне):**
-   `initializeDOMDependentFeatures` в `plan.html` безусловно чакаше `NutriPlanPlanAuthReady` (Firebase auth в iframe контекст — отнема 1-5 сек). `patchFrame` вече беше задал `body{opacity:1!important}`, затова потребителят виждаше видим, но ПРАЗЕН таб. `loadDietData()` не беше извикан, защото `NutriPlanPlanAuthReady` още не беше resolved.
-
-2. **`requestShellAction` винаги false:**
-   `plan.html`, `profile.html`, `guidelines.html` НИКОГА нямат `data-embedded-tab='1'` (само `index.html` зарежда `app.js`, който го задава). Следователно всяка вътрешна навигация (logout, profile switch и т.н.) отиваше директно в iframe вместо да минава през shell-а.
-
-3. **Web flash при отваряне:**
-   Early redirect скриптът стоеше СЛЕД render-blocking CSS линковете в `<head>`. Браузърът изчакваше пълното зареждане на `design-system.css` преди да изпълни redirect-а — потребителят виждаше мигане на index.html преди пренасочването.
-
-4. **Грешен redirect при неуспешен server fetch:**
-   `getPlanTargetFromState()` съдържаше `!dietPlan && userData → plan-pending.html`, което пращаше потребителя на грешна страница при мрежова грешка.
-
-**Направено:**
-
-1. **`plan.html` — `initializeDOMDependentFeatures`:** Ако `dietPlan` вече е в localStorage → пропуска `NutriPlanPlanAuthReady` чакането и извиква `loadDietData()` незабавно. Firebase auth продължава в background. Планът се рендира при DOMContentLoaded.
-
-2. **`plan.html`, `profile.html`, `guidelines.html` — `requestShellAction`:** Проверява СЪЩО `?embedded` URL параметъра (освен `data-embedded-tab`). URL параметърът е наличен от момента на задаване на iframe src — преди `patchFrame` да е стрелял. Вече навигационните helpers работят коректно от самото начало.
-
-3. **`app.js` — `patchFrame`:** Задава `data-embedded-tab='1'` директно на `frameDocument.documentElement`. Belt+suspenders — гарантира, че attr е налично след load event.
-
-4. **`index.html` — early redirect:** Преместен ПРЕДИ CSS/font линковете в `<head>`. Изпълнява се веднага щом HTML парсерът го достигне, без да чака зареждането на stylesheet-овете. Нулево flash при отваряне на приложението.
-
-5. **`index.html` — `getPlanTargetFromState`:** Премахнато грешното `!dietPlan && userData → plan-pending.html` условие, което изпращаше потребители с реален план на plan-pending.html при временна мрежова грешка.
-
-6. **`app.js` — `scheduleDeferredFramePreload`:** Заменен `requestIdleCallback` (до 1200ms delay) с `setTimeout(300ms)`. Другите табове се preload-ват в рамките на ~1 сек след старта, което елиминира flash-а при превключване на таб преди първия idle период.
-
-**Резултат:** Планът се зарежда незабавно от localStorage без Firebase auth чакане. Навигацията от всеки iframe минава правилно през shell-а. Нулево flash при отваряне в уеб режим. Нулево flash при превключване между табове след preload.
-
----
-
 ## 2026-05-22 — След login да отваря plan tab, не profile
 
 **Задача:** След login приложението да не връща към profile tab, а към plan flow.
