@@ -4494,7 +4494,10 @@
         
         // --- DOM-Dependent Initialization ---
         async function initializeDOMDependentFeatures() {
-            if (window.NutriPlanPlanAuthReady) {
+            // If plan data is already cached locally, render it immediately without
+            // waiting for Firebase auth to resolve in the iframe context (can take 1-5 s).
+            // Firebase still runs in background for server sync; the plan is already here.
+            if (!localStorage.getItem('dietPlan') && window.NutriPlanPlanAuthReady) {
                 try { await window.NutriPlanPlanAuthReady; } catch (_) {}
             }
             // On Capacitor APK: restore plan data from Android SharedPreferences into
@@ -4597,7 +4600,11 @@
         }
 
         function requestShellAction(type, payload) {
-            if (document.documentElement.getAttribute('data-embedded-tab') !== '1' || !window.parent || window.parent === window) {
+            // data-embedded-tab is set by patchFrame after load, but the URL already has
+            // ?embedded=1 from the moment the iframe src is set — check both.
+            var embedded = document.documentElement.getAttribute('data-embedded-tab') === '1' ||
+                           new URLSearchParams(window.location.search).has('embedded');
+            if (!embedded || !window.parent || window.parent === window) {
                 return false;
             }
             try {
