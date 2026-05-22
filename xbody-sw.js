@@ -8,8 +8,8 @@ const STATIC_CACHE = [
 ];
 // Icons are optional – missing icons should not fail the SW install.
 const OPTIONAL_CACHE = [
-  'icon-192.png',
-  'icon-512.png'
+  'xbody-icon-192.png',
+  'xbody-icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {

@@ -44,6 +44,20 @@
 
 ---
 
+## 2026-05-22 — XBody icon and PWA asset isolation
+
+**Задача:** XBody PWA да използва собствените `xbody-icon` assets, а не споделени NutriPlan икони, за да не се смесват брандингът и install/splash екраните.
+
+**Направено:**
+1. **`xbody.html`:** Смених `apple-touch-icon` и install modal изображението да сочат към `xbody-icon-192.png`.
+2. **`xbody-sw.js`:** Обнових optional cache списъка да кешира `xbody-icon-192.png` и `xbody-icon-512.png`.
+3. **`xbody-manifest.json`:** Добавих `id` и `scope` за XBody, за да остане PWA инсталацията изолирана от NutriPlan shell-а.
+4. **Проверка:** Ще валидирам промените с наличния `npm test` скрипт.
+
+**Резултат:** XBody вече стъпва на собствените си иконни assets и PWA metadata, без да дърпа NutriPlan икони.
+
+---
+
 ## 2026-05-21 — Връщане на shell анимациите извън Home/index
 
 **Задача:** Анимациите да останат там, където са нужни, като се спрат само за Home/index ако именно той е проблемният iframe в APK.
