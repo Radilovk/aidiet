@@ -2755,9 +2755,54 @@
             return localStorage.getItem('dietPlan') ? 'plan.html' : 'questionnaire2.html';
         }
 
+        function isEmbeddedShellTab() {
+            return document.documentElement.getAttribute('data-embedded-tab') === '1' && window.parent && window.parent !== window;
+        }
+
+        function applyEmbeddedHomeState() {
+            const heroSection = document.querySelector('.hero');
+            const startNowBtn = document.getElementById('startNowBtn');
+            const heroCTABtn = document.getElementById('heroCTABtn');
+            const navMyPlanLink = document.getElementById('navMyPlanLink');
+            const heroLoginBtn = document.getElementById('heroLoginBtn');
+            const navLogoutBtn = document.getElementById('navLogoutBtn');
+            const hasPlan = !!localStorage.getItem('dietPlan');
+            const isAuthenticated = (localStorage.getItem('userId') || '').indexOf('fb_') === 0;
+
+            if (hasPlan) {
+                const planTarget = getPlanTargetFromState();
+                const appTarget = planTarget === 'plan.html' ? 'index.html?app=1&tab=plan' : planTarget;
+                if (startNowBtn) startNowBtn.style.display = 'none';
+                if (heroCTABtn) {
+                    heroCTABtn.href = appTarget;
+                    heroCTABtn.innerHTML = '<i class="fas fa-user-check" aria-hidden="true"></i> Моят план';
+                }
+                if (navMyPlanLink) {
+                    navMyPlanLink.href = appTarget;
+                    navMyPlanLink.style.display = 'flex';
+                }
+            } else {
+                if (startNowBtn) startNowBtn.style.display = 'flex';
+                if (heroCTABtn) {
+                    heroCTABtn.href = 'questionnaire2.html';
+                    heroCTABtn.textContent = 'Започни промяната';
+                }
+                if (navMyPlanLink) navMyPlanLink.style.display = 'none';
+            }
+
+            if (heroLoginBtn) heroLoginBtn.style.display = isAuthenticated ? 'none' : '';
+            if (navLogoutBtn) navLogoutBtn.style.display = isAuthenticated ? 'flex' : 'none';
+            if (heroSection) heroSection.classList.add('visible');
+        }
+
         // --- Check for existing plan and show appropriate button ---
         window.addEventListener('DOMContentLoaded', async function() {
             initializeTheme();
+
+            if (isEmbeddedShellTab()) {
+                applyEmbeddedHomeState();
+                return;
+            }
 
             // On Capacitor APK: restore plan data from Android SharedPreferences into
             // localStorage *before* any plan checks.  This ensures that data backed up
@@ -4064,6 +4109,10 @@
         let _loginInProgress = false;
 
         onAuthStateChanged(auth, async (user) => {
+            if (isEmbeddedShellTab()) {
+                if (_indexAuthResolve) { _indexAuthResolve(user || null); _indexAuthResolve = null; }
+                return;
+            }
             if (!user) {
                 // No authenticated user — nothing to restore; signal DOMContentLoaded.
                 if (_indexAuthResolve) { _indexAuthResolve(null); _indexAuthResolve = null; }
