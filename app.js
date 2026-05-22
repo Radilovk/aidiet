@@ -232,11 +232,11 @@
                 }, index * 180);
             });
         };
-        // Start preloading other tabs quickly so they are ready before the user
-        // switches to them.  A short fixed delay (300 ms) is enough for the initial
-        // tab to paint its first frame; requestIdleCallback is avoided because it
-        // can defer up to 1200 ms, causing a visible flash on first tab switch.
-        window.setTimeout(preload, 300);
+        if (typeof window.requestIdleCallback === 'function') {
+            window.requestIdleCallback(preload, { timeout: 1200 });
+        } else {
+            window.setTimeout(preload, 450);
+        }
     }
 
     function dispatchFrameEvent(frame, type, detail) {
@@ -392,10 +392,6 @@
             style.textContent = 'body{opacity:1!important}.bottom-nav{display:none!important}.fab-chat,.fab-food{bottom:calc(16px + var(--safe-area-inset-bottom,0px))!important}';
             frameDocument.head.appendChild(style);
         }
-
-        // Mark the embedded document so requestShellAction helpers can detect the
-        // shell context without relying on the URL param alone.
-        frameDocument.documentElement.setAttribute('data-embedded-tab', '1');
 
         frameWindow.NutriPlanAppData = window.NutriPlanAppData;
         frameDocument.addEventListener('click', function (event) {

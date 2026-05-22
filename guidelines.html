@@ -1370,9 +1370,7 @@
         }
 
         function requestShellAction(type, payload) {
-            var embedded = document.documentElement.getAttribute('data-embedded-tab') === '1' ||
-                           new URLSearchParams(window.location.search).has('embedded');
-            if (!embedded || !window.parent || window.parent === window) {
+            if (document.documentElement.getAttribute('data-embedded-tab') !== '1' || !window.parent || window.parent === window) {
                 return false;
             }
             try {
