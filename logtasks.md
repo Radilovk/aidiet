@@ -1,5 +1,20 @@
 # Log Tasks
 
+## 2026-05-22 — Синхронизирано admin изтриване с Firebase и backend
+
+**Задача:** При изтриване на профил от админ панела потребителят да се маха отвсякъде, за да не остава „вече има такъв потребител“ при нова регистрация, и login/registration/delete flow-овете да са синхронизирани между Firebase и backend базите.
+
+**Направено:**
+1. **Изолиране на причината:** Проверих `POST /api/admin/delete-clients`, `POST /api/auth/social` и регистрационния flow в `plan-pending.html` и потвърдих, че admin delete досега трие само KV записите, но не и реалния Firebase Auth акаунт.
+2. **Минимален backend fix:** Разширих `handleDeleteClients` в `worker.js`, така че преди KV cleanup да изтрива и Firebase Auth потребителя през Firebase Admin REST API за всеки `fb_*` профил.
+3. **Пълен cleanup на backend след delete:** Добавих и триене на `user_profile:*`, `auth:*`, push subscription, notification preferences и премахване от `push_subscriptions_list`, за да няма остатъчни записи за изтрития потребител.
+4. **Admin обратна връзка:** Обнових success съобщението в `admin.html`, за да показва и колко Firebase акаунта са изтрити/вече липсват.
+5. **Проверка:** Ще валидирам с наличния `npm test` и финален security review.
+
+**Резултат:** Admin delete вече чисти и Firebase Auth, и backend свързаните записи, което премахва основната причина за блокирана повторна регистрация след изтриване.
+
+---
+
 ## 2026-05-22 — Олекотяване на admin client explorer решението
 
 **Задача:** Новият admin client explorer да остане функционален, но да бъде максимално прост, лек, прецизен и без излишен код.
