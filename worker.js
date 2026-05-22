@@ -4009,6 +4009,37 @@ async function getFirebaseAdminToken(env) {
   return access_token;
 }
 
+async function deleteFirebaseAuthUser(uid, env, adminToken) {
+  if (!uid) throw new Error('Missing Firebase uid');
+  if (!env.FIREBASE_PROJECT_ID) {
+    throw new Error('FIREBASE_PROJECT_ID не е конфигуриран.');
+  }
+
+  const token = adminToken || await getFirebaseAdminToken(env);
+  const response = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/projects/${encodeURIComponent(env.FIREBASE_PROJECT_ID)}/accounts:delete`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ localId: uid }),
+    }
+  );
+
+  if (response.ok) {
+    return { deleted: true, alreadyMissing: false };
+  }
+
+  const errorText = await response.text().catch(() => '');
+  if (errorText.includes('USER_NOT_FOUND')) {
+    return { deleted: false, alreadyMissing: true };
+  }
+
+  throw new Error(`Firebase delete failed (${response.status}): ${errorText || 'unknown error'}`);
+}
+
 /**
  * POST /api/auth/forgot-password
  *
@@ -4544,6 +4575,9 @@ async function handleDeleteClients(request, env) {
 
     const userIdsToDelete = new Set();
     const authKeysToDelete = new Set();
+    const firebaseUidsToDelete = new Set();
+    const pushSubscriptionKeysToDelete = new Set();
+    const notificationPreferenceKeysToDelete = new Set();
     const missingClientIds = [];
     const deletedClientIds = [];
 
@@ -4561,17 +4595,43 @@ async function handleDeleteClients(request, env) {
         const userId = String(clientData.userId).trim();
         if (userId) {
           userIdsToDelete.add(userId);
+          pushSubscriptionKeysToDelete.add(`push_subscription_${userId}`);
+          notificationPreferenceKeysToDelete.add(`notification_preferences_${userId}`);
           if (userId.startsWith(FIREBASE_USER_ID_PREFIX)) {
-            authKeysToDelete.add(`auth:${userId.slice(FIREBASE_USER_ID_PREFIX.length)}`);
+            const firebaseUid = userId.slice(FIREBASE_USER_ID_PREFIX.length);
+            authKeysToDelete.add(`auth:${firebaseUid}`);
+            firebaseUidsToDelete.add(firebaseUid);
           }
         }
       }
     }
 
+    let deletedFirebaseAuthCount = 0;
+    let alreadyMissingFirebaseAuthCount = 0;
+    if (firebaseUidsToDelete.size > 0) {
+      const adminToken = await getFirebaseAdminToken(env);
+      for (const firebaseUid of firebaseUidsToDelete) {
+        const deletionResult = await deleteFirebaseAuthUser(firebaseUid, env, adminToken);
+        if (deletionResult.deleted) {
+          deletedFirebaseAuthCount += 1;
+        } else if (deletionResult.alreadyMissing) {
+          alreadyMissingFirebaseAuthCount += 1;
+        }
+      }
+    }
+
+    let pushSubscriptionsList = await kvGetJSON(env, 'push_subscriptions_list');
+    if (!Array.isArray(pushSubscriptionsList)) {
+      pushSubscriptionsList = [];
+    }
+    const updatedPushSubscriptionsList = pushSubscriptionsList.filter(userId => !userIdsToDelete.has(userId));
+
     await Promise.all([
       ...deletedClientIds.map(clientId => env.page_content.delete(`client:${clientId}`)),
       ...Array.from(userIdsToDelete).map(userId => env.page_content.delete(`user_profile:${userId}`)),
-      ...Array.from(authKeysToDelete).map(authKey => env.page_content.delete(authKey))
+      ...Array.from(authKeysToDelete).map(authKey => env.page_content.delete(authKey)),
+      ...Array.from(pushSubscriptionKeysToDelete).map(key => env.page_content.delete(key)),
+      ...Array.from(notificationPreferenceKeysToDelete).map(key => env.page_content.delete(key))
     ]);
 
     if (deletedClientIds.length > 0) {
@@ -4580,12 +4640,20 @@ async function handleDeleteClients(request, env) {
       await env.page_content.put('clients_list', JSON.stringify(clientsList));
     }
 
+    if (updatedPushSubscriptionsList.length !== pushSubscriptionsList.length) {
+      await env.page_content.put('push_subscriptions_list', JSON.stringify(updatedPushSubscriptionsList));
+    }
+
     return jsonResponse({
       success: true,
       deletedClientIds,
       deletedClientCount: deletedClientIds.length,
       deletedProfileCount: userIdsToDelete.size,
       deletedAuthCount: authKeysToDelete.size,
+      deletedFirebaseAuthCount,
+      alreadyMissingFirebaseAuthCount,
+      deletedPushSubscriptionCount: pushSubscriptionKeysToDelete.size,
+      deletedNotificationPreferenceCount: notificationPreferenceKeysToDelete.size,
       missingClientIds,
       remainingClients: clientsList.length
     });
