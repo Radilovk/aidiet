@@ -50,7 +50,6 @@ const NativeBackup = (function () {
         'gameData',
         'gameWeeklyAI',
         'gameNotifierConfig',
-        'sessionOwnerId',
     ]).slice();
     const PRIMARY_KEYS = [
         'dietPlan',
@@ -200,6 +199,10 @@ const NativeBackup = (function () {
         if (!_isNative()) return Promise.resolve(false);
         _installHook();
         _initPromise = (async function () {
+            const prefs = _getPlugin();
+            if (prefs && typeof prefs.remove === 'function') {
+                await prefs.remove({ key: 'sessionOwnerId' }).catch(function () {});
+            }
             await restore();
             return true;
         })();

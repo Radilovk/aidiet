@@ -2759,16 +2759,15 @@
         window.addEventListener('DOMContentLoaded', async function() {
             initializeTheme();
 
-            const params = new URLSearchParams(window.location.search);
-            const isEmbeddedShellTab = params.has('embedded');
-
             // On Capacitor APK: restore plan data from Android SharedPreferences into
             // localStorage *before* any plan checks.  This ensures that data backed up
             // by Android Auto Backup (or by previous NativeBackup writes) is visible to
             // the auth handler and plan-redirect logic even after a reinstall.
-            if (!isEmbeddedShellTab && typeof NativeBackup !== 'undefined') {
+            if (typeof NativeBackup !== 'undefined') {
                 await NativeBackup.init().catch(() => {});
             }
+
+            const params = new URLSearchParams(window.location.search);
 
             if (!params.has('stay') && !params.has('app') && !params.has('login')) {
                 if (localStorage.getItem('planJobId')) {
@@ -2816,9 +2815,7 @@
 
             // Restore profile when localStorage is empty (iOS PWA isolated-storage scenario).
             // Tries cookie chunks first, then falls back to the backend API.
-            if (!isEmbeddedShellTab) {
-                await restoreProfileFromCookies();
-            }
+            await restoreProfileFromCookies();
 
             // Wait for Firebase auth state before deciding on plan-redirect.
             // _indexAuthUser resolves (with the user or null) only after plan
@@ -3933,7 +3930,6 @@
 
         const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
         const auth = getAuth(getApps().length ? getApp() : initializeApp(firebaseConfig));
-        const isEmbeddedShellTab = new URLSearchParams(window.location.search).has('embedded');
 
         /* Expose auth-state promise.  Resolves with the user *after* plan sync/restore
          * is complete so the DOMContentLoaded handler sees dietPlan in localStorage
@@ -4068,10 +4064,6 @@
         let _loginInProgress = false;
 
         onAuthStateChanged(auth, async (user) => {
-            if (isEmbeddedShellTab) {
-                if (_indexAuthResolve) { _indexAuthResolve(user || null); _indexAuthResolve = null; }
-                return;
-            }
             if (!user) {
                 // No authenticated user — nothing to restore; signal DOMContentLoaded.
                 if (_indexAuthResolve) { _indexAuthResolve(null); _indexAuthResolve = null; }

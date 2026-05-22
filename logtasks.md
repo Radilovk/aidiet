@@ -1,5 +1,20 @@
 # Log Tasks
 
+## 2026-05-22 — Реален fix за reset на профила при Home tab
+
+**Задача:** Да се намери реалната причина за зануляването/дефектирането на останалите tab-ове при влизане в Home tab-а, без да се жертва native бързото превключване.
+
+**Направено:**
+1. **Ревизия на предишния workaround:** Върнах предишната промяна, която ограничаваше embedded Home bootstrap-а, защото не е приемлива, ако засяга замисления лек shell flow.
+2. **Изолиране на реалната причина:** Проверих `session-utils.js`, `native-backup.js` и shell storage списъците и установих, че `sessionOwnerId` се backup/restore-ва като трайно native състояние, въпреки че е временен session ownership ключ.
+3. **Защо чупи профила:** При restore на стар `sessionOwnerId` след tab/page init следващото `ensureAuthenticatedUser()` го разпознава като смяна на owner и извиква `clearUserSessionData()`, което трие `dietPlan`, `userData` и останалото потребителско състояние.
+4. **Минимален fix без удар по бързината:** Премахнах `sessionOwnerId` от persistent managed/native backup ключовете и добавих cleanup на legacy стойността от Capacitor Preferences, така че бързото iframe tab switching да остане, но без грешен restore на owner state.
+5. **Проверка:** Пуснах наличния `npm test` скрипт и подготвих финален security преглед.
+
+**Резултат:** Shell-ът запазва native бързото превключване между tab-овете, но вече не може да възстанови остарял `sessionOwnerId`, който да задейства изчистване на профила и счупване на останалите tab-ове.
+
+---
+
 ## 2026-05-21 — Стабилизиране на embedded Home/index в shell
 
 **Задача:** Да се открие реалният проблем зад дефекта при влизане в Home/index tab-а, при който останалите tab-ове се чупят и профилните данни изглеждат изчистени.
