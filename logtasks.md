@@ -1,5 +1,33 @@
 # Log Tasks
 
+## 2026-05-22 — След login да отваря plan tab, не profile
+
+**Задача:** След login приложението да не връща към profile tab, а към plan flow.
+
+**Направено:**
+1. Проверих текущата логика и потвърдих, че `app.js` при `NUTRIPLAN_AUTH_REQUIRED` подава iframe `next` (напр. profile), което връща потребителя в profile след login.
+2. Направих минимален fix в `app.js`: при `NUTRIPLAN_AUTH_REQUIRED` вече редиректва към `index.html?login=1` без tab-specific `next`.
+3. Така след успешен login `index.html` ползва стандартния `getPlanTargetFromState()` и отваря default plan flow вместо profile tab.
+
+**Резултат:** След login приложението вече не се връща в profile tab; отива по plan flow.
+
+---
+
+## 2026-05-22 — Категоричен fix: профилът не се зарежда след login в APK
+
+**Задача:** След поредица неуспешни опити профилът не се зарежда въобще след login в APK. Намери реалния проблем и го реши категорично.
+
+**Реален root cause (намерен и потвърден):**
+`auth-guard.js` при липса на Firebase user вътре в iframe-а (profile.html?embedded=1) пренасочваше самия iframe към `index.html?login=1&next=/profile.html?embedded=1`. След login `normalizeShellTarget('/profile.html?embedded=1')` връщаше `'index.html?app=1&tab=profile'`. Това URL зареждаше вътре в iframe-а — `app.js` виждаше `?app=1` + `dietPlan` в localStorage и стартираше НОВ SPA shell вътре в profile iframe-а. Резултат: вложен shell в iframe, профилът е вечно blank.
+
+**Направено:**
+1. **`auth-guard.js`:** Когато e вътре в iframe с еднакъв origin (window.parent !== window и parent.location.origin === location.origin), вместо да пренасочва iframe-а към login страницата, изпраща `postMessage({ type: 'NUTRIPLAN_AUTH_REQUIRED', next: ... })` до parent shell-а и спира. При cross-origin parent или при standalone (window.parent === window) — запазва стария поток.
+2. **`app.js` `handleShellMessage`:** Добавен handler за `NUTRIPLAN_AUTH_REQUIRED` — parent shell-ът пренасочва TOP-LEVEL прозорец към `index.html?login=1&next=<encoded_page>`. След login `normalizeShellTarget` правилно връща `index.html?app=1&tab=profile` за top-level прозорец, shell-ът се рестартира с profile tab, а `profile.html?embedded=1` се зарежда в чист iframe с вече логнат потребител.
+
+**Резултат:** Профилът се зарежда коректно след login. Вложен shell в iframe е невъзможен с тази архитектура.
+
+---
+
 ## 2026-05-22 — Fix за login redirect към shell архитектурата в APK
 
 **Задача:** Да се открие защо след login APK още влиза в старата архитектура с отделни файлове вместо директно в новия shell с обединения `index.html`.
