@@ -2752,7 +2752,25 @@
             if (!localStorage.getItem('dietPlan') && localStorage.getItem('userData')) {
                 return 'plan-pending.html';
             }
-            return localStorage.getItem('dietPlan') ? 'plan.html' : 'questionnaire2.html';
+            return localStorage.getItem('dietPlan') ? 'index.html?app=1&tab=plan' : 'questionnaire2.html';
+        }
+
+        function normalizeShellTarget(target) {
+            if (!target) return null;
+            try {
+                const resolved = new URL(target, window.location.origin);
+                if (resolved.origin !== window.location.origin) return null;
+                const path = resolved.pathname.split('/').pop() || 'index.html';
+                const search = resolved.search || '';
+                const hash = resolved.hash || '';
+                if (path === 'plan.html') return 'index.html?app=1&tab=plan';
+                if (path === 'guidelines.html') return 'index.html?app=1&tab=guidelines';
+                if (path === 'profile.html') return 'index.html?app=1&tab=profile';
+                if (path === 'game-analytics.html') return 'index.html?app=1&tab=analytics';
+                return path + search + hash;
+            } catch (_) {
+                return null;
+            }
         }
 
         function isEmbeddedShellTab() {
@@ -2770,8 +2788,7 @@
             const isAuthenticated = (localStorage.getItem('userId') || '').indexOf('fb_') === 0;
 
             if (hasPlan) {
-                const planTarget = getPlanTargetFromState();
-                const appTarget = planTarget === 'plan.html' ? 'index.html?app=1&tab=plan' : planTarget;
+                const appTarget = getPlanTargetFromState();
                 if (startNowBtn) startNowBtn.style.display = 'none';
                 if (heroCTABtn) {
                     heroCTABtn.href = appTarget;
@@ -2823,8 +2840,7 @@
 
                 const restoredTarget = getPlanTargetFromState();
                 if (restoredTarget !== 'questionnaire2.html') {
-                    const restoredAppTarget = restoredTarget === 'plan.html' ? 'index.html?app=1&tab=plan' : restoredTarget;
-                    window.location.replace(restoredAppTarget);
+                    window.location.replace(restoredTarget);
                     return;
                 }
             }
@@ -2902,8 +2918,7 @@
 
             if (dietPlan) {
                 // Determine the correct plan destination
-                const planTarget  = getPlanTargetFromState();
-                const appTarget = planTarget === 'plan.html' ? 'index.html?app=1&tab=plan' : planTarget;
+                const appTarget = getPlanTargetFromState();
                 // Redirect directly unless the user intentionally navigated here
                 if (!params.has('stay') && !params.has('app')) {
                     window.location.replace(appTarget);
@@ -4163,7 +4178,7 @@
                 try {
                     const resolved = new URL(next, location.origin);
                     safeDest = resolved.origin === location.origin
-                        ? resolved.pathname + resolved.search
+                        ? normalizeShellTarget(resolved.pathname + resolved.search + resolved.hash)
                         : null;
                 } catch (_) {
                     safeDest = null;
