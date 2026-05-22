@@ -1,5 +1,18 @@
 # Log Tasks
 
+## 2026-05-22 — След login да отваря plan tab, не profile
+
+**Задача:** След login приложението да не връща към profile tab, а към plan flow.
+
+**Направено:**
+1. Проверих текущата логика и потвърдих, че `app.js` при `NUTRIPLAN_AUTH_REQUIRED` подава iframe `next` (напр. profile), което връща потребителя в profile след login.
+2. Направих минимален fix в `app.js`: при `NUTRIPLAN_AUTH_REQUIRED` вече редиректва към `index.html?login=1` без tab-specific `next`.
+3. Така след успешен login `index.html` ползва стандартния `getPlanTargetFromState()` и отваря default plan flow вместо profile tab.
+
+**Резултат:** След login приложението вече не се връща в profile tab; отива по plan flow.
+
+---
+
 ## 2026-05-22 — Категоричен fix: профилът не се зарежда след login в APK
 
 **Задача:** След поредица неуспешни опити профилът не се зарежда въобще след login в APK. Намери реалния проблем и го реши категорично.

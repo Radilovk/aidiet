@@ -442,9 +442,10 @@
         if (data.type === 'NUTRIPLAN_AUTH_REQUIRED') {
             /* An embedded tab iframe detected the user is not authenticated.
              * Redirect the top-level window to the login page so the full SPA
-             * shell is never replaced by a nested shell inside the iframe. */
-            var authNext = typeof data.next === 'string' && data.next ? encodeURIComponent(data.next) : '';
-            window.location.replace('index.html?login=1' + (authNext ? '&next=' + authNext : ''));
+             * shell is never replaced by a nested shell inside the iframe.
+             * Do not pass tab-specific `next` here: after login we should land
+             * in the default plan flow (getPlanTargetFromState), not profile. */
+            window.location.replace('index.html?login=1');
             return;
         }
         if (data.type !== 'NUTRIPLAN_NAVIGATE' || typeof data.url !== 'string' || !data.url) return;
