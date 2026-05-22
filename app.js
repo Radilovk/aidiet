@@ -439,6 +439,14 @@
             window.location.replace('index.html?stay=1');
             return;
         }
+        if (data.type === 'NUTRIPLAN_AUTH_REQUIRED') {
+            /* An embedded tab iframe detected the user is not authenticated.
+             * Redirect the top-level window to the login page so the full SPA
+             * shell is never replaced by a nested shell inside the iframe. */
+            var authNext = typeof data.next === 'string' && data.next ? encodeURIComponent(data.next) : '';
+            window.location.replace('index.html?login=1' + (authNext ? '&next=' + authNext : ''));
+            return;
+        }
         if (data.type !== 'NUTRIPLAN_NAVIGATE' || typeof data.url !== 'string' || !data.url) return;
         try {
             var targetUrl = new URL(data.url, window.location.href);
