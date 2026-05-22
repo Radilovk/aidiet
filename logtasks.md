@@ -1,5 +1,20 @@
 # Log Tasks
 
+## 2026-05-22 — Одит на login / registration / shell логиката след tab merge
+
+**Задача:** Да се прегледат `index`, login, registration и shell/tab логиката след обединяването на tab flow-овете, защото в APK след login липсват данни, а в Web има данни, но с дефекти по интерфейса.
+
+**Направено:**
+1. **Пълен логически одит:** Прегледах `index.html`, `app.js`, `session-utils.js`, `auth-guard.js`, `plan.html`, `plan-pending.html` и backend restore/save flow-овете в `worker.js`.
+2. **Потвърден shell/auth path:** Проверих, че login modal-ът в `index.html` вече връща към shell target (`index.html?app=1&tab=...`) и че restore логиката дърпа профила от `/api/user/profile`.
+3. **Изолиран реален регресионен path:** Потвърдих, че registration flow-ът в `plan-pending.html` още завършва с директен `window.location.href = 'plan.html'`, което заобикаля новия shell след tab merge.
+4. **Изолирана вторична причина за UI несъответствия:** Намерих още legacy standalone fallback-и към `plan.html` в tab-страници (`profile.html`, `guidelines.html`, `analysis.html`, `game-analytics.html`, `food-picker.html`, `plan-book.html`), които при определени пътища могат да извадят потребителя от shell-а и да покажат стария интерфейс.
+5. **Извод:** Най-вероятната комбинация е shell/standalone разминаване — Web зарежда данните, но през грешен контейнер/навигационен слой, а APK е по-чувствителен и попада в path без очаквания shell state.
+
+**Резултат:** Потвърдени са поне два реални проблема в login/registration/navigation логиката; подготвям конкретно резюме с проблемите и минималното решение.
+
+---
+
 ## 2026-05-22 — Синхронизирано admin изтриване с Firebase и backend
 
 **Задача:** При изтриване на профил от админ панела потребителят да се маха отвсякъде, за да не остава „вече има такъв потребител“ при нова регистрация, и login/registration/delete flow-овете да са синхронизирани между Firebase и backend базите.
