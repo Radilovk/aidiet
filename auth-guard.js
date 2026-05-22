@@ -86,24 +86,6 @@ function _resolveGuardReady(user) {
             /* Not authenticated — send to login */
             _resolveGuardReady(null);
             const next = encodeURIComponent(location.pathname + location.search);
-            /* If running inside the SPA shell iframe, ask the parent shell to redirect
-             * the top-level window to login.  Redirecting the iframe itself causes
-             * index.html?app=1 to load inside the frame after login, which spawns a
-             * nested SPA shell and leaves the tab permanently blank. */
-            if (window.parent && window.parent !== window) {
-                try {
-                    /* Accessing parent.location throws a SecurityError for cross-origin
-                     * parents; the catch block falls through to the direct redirect. */
-                    var parentIsSameOrigin = window.parent.location.origin === location.origin;
-                    if (parentIsSameOrigin) {
-                        window.parent.postMessage(
-                            { type: 'NUTRIPLAN_AUTH_REQUIRED', next: location.pathname + location.search },
-                            location.origin
-                        );
-                        return;
-                    }
-                } catch (_) { /* cross-origin parent – fall through to direct redirect */ }
-            }
             window.location.replace('index.html?login=1&next=' + next);
         }
     });
