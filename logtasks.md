@@ -1,5 +1,20 @@
 # Log Tasks
 
+## 2026-05-22 — Реален fix за embedded Home bootstrap в APK shell
+
+**Задача:** Да се намери къде е останал реалният регресионен проблем, след като предишните PR-и за Home shell/session не решават дефекта в APK при вход в „Начало“ и при повторно отваряне на приложението.
+
+**Направено:**
+1. **Проверка на текущото състояние:** Прегледах `app.js`, `index.html`, `session-utils.js` и `native-backup.js`, както и последния merge `065a162`, за да проследя какво реално още се изпълнява в embedded Home iframe-а.
+2. **Изолиране на останалия проблем:** Установих, че `index.html?stay=1&embedded=1` все още стартира standalone `DOMContentLoaded` bootstrap-а си (`NativeBackup.init()`, cookie/backend restore, auth wait/redirect логика), въпреки че вече е монтиран вътре в shell-а и родителят вече е възстановил state-а.
+3. **Защо личи точно в APK:** Home iframe-ът се preload-ва и при tab entry/reopen дублира native/auth restore странични ефекти, което е най-рисковият path за WebView регресията и обяснява защо проблемът се вижда и без ръчно отваряне на всички tab-ове.
+4. **Минимален fix:** Добавих embedded guard в `index.html`, който оставя Home tab-а да рендерира леко UI състояние от наличния `localStorage`, но спира standalone restore/login redirect/auth sync flow-овете вътре в iframe режима.
+5. **Проверка:** Пуснах наличния `npm test` преди промяната и ще валидирам пак след нея, плюс security преглед.
+
+**Резултат:** Embedded Home вече не трябва да изпълнява втори native/auth bootstrap вътре в shell-а, а само да използва вече подготвеното от родителя състояние, което е целевият минимален fix за APK регресията.
+
+---
+
 ## 2026-05-22 — Реален fix за reset на профила при Home tab
 
 **Задача:** Да се намери реалната причина за зануляването/дефектирането на останалите tab-ове при влизане в Home tab-а, без да се жертва native бързото превключване.
