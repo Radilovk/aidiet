@@ -95,6 +95,188 @@
         .pending-client-meta { color: var(--text-gray); font-size: 0.85rem; }
         .pending-client-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
+        .clients-toolbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .clients-toolbar > * {
+            min-height: 44px;
+        }
+
+        .clients-toolbar .btn {
+            justify-content: center;
+        }
+
+        .clients-columns-details {
+            position: relative;
+        }
+
+        .clients-columns-details summary {
+            list-style: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 44px;
+            padding: 0 18px;
+            border-radius: 999px;
+            background: var(--white);
+            border: 2px solid rgba(15, 118, 110, 0.16);
+            color: var(--text-dark);
+            font-weight: 600;
+            box-shadow: var(--shadow);
+        }
+
+        .clients-columns-details summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .clients-columns-menu {
+            position: absolute;
+            top: calc(100% + 10px);
+            right: 0;
+            z-index: 30;
+            min-width: 240px;
+            padding: 14px;
+            border-radius: 14px;
+            background: var(--white);
+            border: 1px solid rgba(15, 118, 110, 0.12);
+            box-shadow: var(--shadow);
+            display: grid;
+            gap: 10px;
+        }
+
+        .clients-columns-menu label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .clients-columns-menu input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            margin: 0;
+        }
+
+        .clients-explorer-wrapper {
+            border: 1px solid rgba(15, 118, 110, 0.14);
+            border-radius: 16px;
+            overflow: hidden;
+            background: var(--white);
+        }
+
+        .clients-table-scroll {
+            overflow: auto;
+            max-height: 640px;
+        }
+
+        .clients-explorer-table {
+            width: 100%;
+            min-width: 980px;
+            border-collapse: collapse;
+        }
+
+        .clients-explorer-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 5;
+            background: rgba(13, 148, 136, 0.08);
+            color: var(--text-dark);
+            text-align: left;
+            font-size: 0.84rem;
+            letter-spacing: 0.01em;
+            padding: 12px 14px;
+            border-bottom: 1px solid rgba(15, 118, 110, 0.12);
+            white-space: nowrap;
+        }
+
+        .clients-explorer-table tbody td {
+            padding: 12px 14px;
+            border-bottom: 1px solid rgba(15, 118, 110, 0.08);
+            color: var(--text-gray);
+            vertical-align: middle;
+            font-size: 0.92rem;
+        }
+
+        .clients-explorer-table tbody tr:hover {
+            background: rgba(13, 148, 136, 0.05);
+        }
+
+        .clients-explorer-table tbody tr.is-selected {
+            background: rgba(13, 148, 136, 0.1);
+        }
+
+        .clients-sortable {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .clients-sort-indicator {
+            margin-left: 6px;
+            opacity: 0.7;
+            font-size: 0.78rem;
+        }
+
+        .clients-name-cell {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 190px;
+        }
+
+        .clients-name-primary {
+            color: var(--text-dark);
+            font-weight: 700;
+        }
+
+        .clients-name-secondary {
+            font-size: 0.8rem;
+            opacity: 0.75;
+        }
+
+        .clients-actions-cell {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .clients-mini-btn {
+            border: none;
+            border-radius: 999px;
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #fff;
+        }
+
+        .clients-mini-btn.view { background: var(--accent-blue); }
+        .clients-mini-btn.download { background: #16a34a; }
+        .clients-mini-btn.delete { background: #dc2626; }
+
+        .clients-empty-state {
+            text-align: center;
+            color: var(--text-gray);
+            padding: 28px 18px;
+        }
+
+        .clients-checkbox {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -2162,17 +2344,24 @@
             <div class="card">
                 <h2><i class="fas fa-users"></i> Клиентски Въпросници</h2>
                 <div class="info-box">
-                    <strong>Информация:</strong> Тук можете да видите всички попълнени въпросници от клиенти, изпратени през questionnaire2.html. Данните се съхраняват автоматично в KV хранилището.
+                    <strong>Информация:</strong> Explorer изглед с клиентски профили, клиентско-side търсене, подредба, избор на видими колони и групово изтриване с минимален брой backend заявки.
                 </div>
-                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                    <button class="btn" onclick="loadClientsList()" style="flex: 1;">
-                        <i class="fas fa-sync"></i> Зареди Клиенти
+                <div class="clients-toolbar">
+                    <button class="btn" onclick="loadClientsList(true)" style="min-width: 180px;">
+                        <i class="fas fa-sync"></i> Обнови Клиенти
                     </button>
-                    <input type="text" id="clientsSearchInput" placeholder="Търси по име или имейл..." 
-                           onkeyup="filterClients()" style="flex: 2; padding: 10px; border: 2px solid #d1d5db; border-radius: 8px;">
+                    <input type="text" id="clientsSearchInput" placeholder="Търси по име, имейл, цел, ID..."
+                           oninput="filterClients()" style="flex: 1 1 260px; min-width: 220px; padding: 10px; border: 2px solid #d1d5db; border-radius: 8px;">
+                    <details class="clients-columns-details">
+                        <summary><i class="fas fa-columns"></i> Колони</summary>
+                        <div id="clientsColumnsChooser" class="clients-columns-menu"></div>
+                    </details>
+                    <button id="deleteSelectedClientsBtn" class="btn" onclick="deleteSelectedClients()" style="background: #dc2626;" disabled>
+                        <i class="fas fa-trash"></i> Изтрий избраните
+                    </button>
                 </div>
                 <div id="clientsStatsContainer" style="display: none; margin-bottom: 20px; padding: 15px; background: var(--soft-red); border-radius: 8px;">
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px; text-align: center;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; text-align: center;">
                         <div>
                             <strong>Общо Клиенти:</strong>
                             <div id="totalClients" style="font-size: 1.5rem; color: var(--primary-red); font-weight: bold;">-</div>
@@ -2181,11 +2370,15 @@
                             <strong>Показани:</strong>
                             <div id="showingClients" style="font-size: 1.5rem; color: var(--primary-red); font-weight: bold;">-</div>
                         </div>
+                        <div>
+                            <strong>Избрани:</strong>
+                            <div id="selectedClientsCount" style="font-size: 1.5rem; color: var(--primary-red); font-weight: bold;">0</div>
+                        </div>
                     </div>
                 </div>
-                <div id="clientsListContainer" style="max-height: 600px; overflow-y: auto;">
+                <div id="clientsListContainer">
                     <p style="text-align: center; color: var(--text-gray); padding: 20px;">
-                        Натиснете "Зареди Клиенти" за да видите списъка с клиенти.
+                        Натиснете "Обнови Клиенти" за да видите explorer списъка с клиенти.
                     </p>
                 </div>
             </div>
@@ -4141,7 +4334,206 @@
 
         // Returns a formatted date string from a timestamp value
         function formatClientDate(timestamp) {
-            return new Date(timestamp).toLocaleString('bg-BG');
+            if (!timestamp) return '—';
+            const date = new Date(timestamp);
+            return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString('bg-BG');
+        }
+
+        const CLIENT_DIRECTORY_COLUMNS = [
+            {
+                key: 'name',
+                label: 'Клиент',
+                defaultVisible: true,
+                getValue: client => client.name || '',
+                render: client => `
+                    <div class="clients-name-cell">
+                        <span class="clients-name-primary">${escapeHtml(client.name || 'N/A')}</span>
+                        <span class="clients-name-secondary">${escapeHtml(client.id || '')}</span>
+                    </div>
+                `
+            },
+            {
+                key: 'email',
+                label: 'Имейл',
+                defaultVisible: true,
+                getValue: client => client.email || '',
+                render: client => escapeHtml(client.email || '—')
+            },
+            {
+                key: 'goal',
+                label: 'Цел',
+                defaultVisible: true,
+                getValue: client => client.goal || '',
+                render: client => escapeHtml(client.goal || '—')
+            },
+            {
+                key: 'planStatus',
+                label: 'Статус',
+                defaultVisible: true,
+                getValue: client => client.planStatus || 'none',
+                render: client => client.planStatus ? planStatusBadge(client.planStatus) || '<span style="opacity:0.7;">Без план</span>' : '<span style="opacity:0.7;">Без план</span>'
+            },
+            {
+                key: 'hasPlan',
+                label: 'План',
+                defaultVisible: true,
+                getValue: client => client.hasPlan ? 1 : 0,
+                render: client => client.hasPlan
+                    ? '<span style="color:#0D9488;font-weight:700;"><i class="fas fa-check-circle"></i> Да</span>'
+                    : '<span style="opacity:0.7;">Не</span>'
+            },
+            {
+                key: 'submittedAt',
+                label: 'Подаден',
+                defaultVisible: true,
+                getValue: client => client.submittedAt || client.timestamp || '',
+                render: client => formatClientDate(client.submittedAt || client.timestamp)
+            },
+            {
+                key: 'planUpdatedAt',
+                label: 'Обновен план',
+                defaultVisible: false,
+                getValue: client => client.planUpdatedAt || '',
+                render: client => formatClientDate(client.planUpdatedAt)
+            },
+            {
+                key: 'planActivatedAt',
+                label: 'Активиран',
+                defaultVisible: false,
+                getValue: client => client.planActivatedAt || '',
+                render: client => formatClientDate(client.planActivatedAt)
+            },
+            {
+                key: 'age',
+                label: 'Възраст',
+                defaultVisible: false,
+                getValue: client => Number(client.age) || 0,
+                render: client => client.age ? `${escapeHtml(String(client.age))} г.` : '—'
+            },
+            {
+                key: 'gender',
+                label: 'Пол',
+                defaultVisible: false,
+                getValue: client => client.gender || '',
+                render: client => escapeHtml(client.gender || '—')
+            },
+            {
+                key: 'userId',
+                label: 'User ID',
+                defaultVisible: false,
+                getValue: client => client.userId || '',
+                render: client => escapeHtml(client.userId || '—')
+            }
+        ];
+        const visibleClientColumnKeys = new Set(CLIENT_DIRECTORY_COLUMNS.filter(column => column.defaultVisible).map(column => column.key));
+        const selectedClientIds = new Set();
+        const clientsSortState = { key: 'submittedAt', direction: 'desc' };
+        let allClientsData = [];
+        let clientsColumnsReady = false;
+        let clientsDirectoryHasLoaded = false;
+
+        function getClientColumn(key) {
+            return CLIENT_DIRECTORY_COLUMNS.find(column => column.key === key) || CLIENT_DIRECTORY_COLUMNS[0];
+        }
+
+        function getClientComparableValue(client, key) {
+            if (key === 'planStatus') {
+                const statusOrder = { activated: 3, pending: 2, failed: 1, none: 0 };
+                return statusOrder[client.planStatus || 'none'] ?? 0;
+            }
+            const column = getClientColumn(key);
+            const rawValue = column ? column.getValue(client) : (client[key] ?? '');
+            if (typeof rawValue === 'number') return rawValue;
+            if (!rawValue) return '';
+            const parsedDate = Date.parse(rawValue);
+            if (!Number.isNaN(parsedDate) && /at|timestamp/i.test(key)) return parsedDate;
+            return String(rawValue).toLowerCase();
+        }
+
+        function getVisibleClientColumns() {
+            return CLIENT_DIRECTORY_COLUMNS.filter(column => visibleClientColumnKeys.has(column.key));
+        }
+
+        function getFilteredSortedClients() {
+            const searchTerm = (document.getElementById('clientsSearchInput')?.value || '').trim().toLowerCase();
+            const filtered = allClientsData.filter(client => {
+                if (!searchTerm) return true;
+                return [
+                    client.name,
+                    client.email,
+                    client.goal,
+                    client.id,
+                    client.userId,
+                    client.gender,
+                    client.planStatus
+                ].some(value => String(value || '').toLowerCase().includes(searchTerm));
+            });
+
+            const direction = clientsSortState.direction === 'asc' ? 1 : -1;
+            return filtered.slice().sort((left, right) => {
+                const leftValue = getClientComparableValue(left, clientsSortState.key);
+                const rightValue = getClientComparableValue(right, clientsSortState.key);
+                if (leftValue === rightValue) {
+                    return direction * String(left.name || '').localeCompare(String(right.name || ''), 'bg');
+                }
+                return leftValue > rightValue ? direction : -direction;
+            });
+        }
+
+        function cacheClientsDirectorySnapshot() {
+            apiCache.set('admin:clientsDirectory', {
+                success: true,
+                clients: allClientsData,
+                total: allClientsData.length,
+                showing: allClientsData.length,
+                failedCount: 0
+            }, CACHE_CONFIG.clientsDirectory);
+        }
+
+        function updateClientsSelectionUI() {
+            const selectedCount = selectedClientIds.size;
+            const selectedCountEl = document.getElementById('selectedClientsCount');
+            const deleteSelectedBtn = document.getElementById('deleteSelectedClientsBtn');
+            if (selectedCountEl) selectedCountEl.textContent = selectedCount;
+            if (deleteSelectedBtn) deleteSelectedBtn.disabled = selectedCount === 0;
+
+            const visibleClients = getFilteredSortedClients();
+            const selectAllCheckbox = document.getElementById('clientsSelectAll');
+            if (selectAllCheckbox) {
+                const visibleIds = visibleClients.map(client => client.id);
+                const selectedVisibleCount = visibleIds.filter(id => selectedClientIds.has(id)).length;
+                selectAllCheckbox.checked = visibleIds.length > 0 && selectedVisibleCount === visibleIds.length;
+                selectAllCheckbox.indeterminate = selectedVisibleCount > 0 && selectedVisibleCount < visibleIds.length;
+            }
+        }
+
+        function renderClientsColumnsChooser() {
+            if (clientsColumnsReady) return;
+            const chooser = document.getElementById('clientsColumnsChooser');
+            if (!chooser) return;
+            chooser.innerHTML = CLIENT_DIRECTORY_COLUMNS.map(column => `
+                <label>
+                    <input type="checkbox" data-client-column-toggle="${escapeHtml(column.key)}" ${visibleClientColumnKeys.has(column.key) ? 'checked' : ''}>
+                    <span>${escapeHtml(column.label)}</span>
+                </label>
+            `).join('');
+
+            chooser.querySelectorAll('[data-client-column-toggle]').forEach(input => {
+                input.addEventListener('change', function() {
+                    const key = this.getAttribute('data-client-column-toggle');
+                    if (this.checked) {
+                        visibleClientColumnKeys.add(key);
+                    } else if (visibleClientColumnKeys.size > 1) {
+                        visibleClientColumnKeys.delete(key);
+                    } else {
+                        this.checked = true;
+                        showError('Трябва да има поне една видима колона.');
+                        return;
+                    }
+                    renderClientsDirectory();
+                });
+            });
+            clientsColumnsReady = true;
         }
 
         // ============================================================================
@@ -4157,7 +4549,7 @@
             mainlistStatus: 2 * 60 * 1000,      // 2 minutes for mainlist status
             mainlistPresets: 5 * 60 * 1000,     // 5 minutes for mainlist presets
             validationConfig: 5 * 60 * 1000,    // 5 minutes for validation config
-            pendingPlans: 30 * 1000,             // 30 seconds for pending plans (frequently changes)
+            clientsDirectory: 60 * 1000,        // 1 minute for client explorer data
             reports: 2 * 60 * 1000,             // 2 minutes for reports (more dynamic)
             defaultPrompts: 30 * 60 * 1000,     // 30 minutes for default prompts (rarely change)
             aiLogs: 1 * 60 * 1000,              // 1 minute for AI logs (frequently updated)
@@ -4290,8 +4682,12 @@
         }
 
         function invalidatePendingPlansCache() {
-            apiCache.clear('admin:pendingPlans');
-            console.log('[Cache] Invalidated pending plans cache');
+            invalidateClientsDirectoryCache();
+        }
+
+        function invalidateClientsDirectoryCache() {
+            apiCache.clear('admin:clientsDirectory');
+            console.log('[Cache] Invalidated client directory cache');
         }
         // ============================================================================
         // END OF CACHE SYSTEM
@@ -7911,109 +8307,136 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         // ============================================================================
         // PENDING PLANS MODULE — Central approval hub
         // ============================================================================
-        async function loadPendingPlans() {
+        async function fetchClientsDirectory(forceRefresh = false) {
+            if (forceRefresh) {
+                invalidateClientsDirectoryCache();
+            }
+
+            const result = await cachedFetch(
+                WORKER_URL + '/api/admin/get-clients-list',
+                'admin:clientsDirectory',
+                CACHE_CONFIG.clientsDirectory
+            );
+
+            if (!result.success || !Array.isArray(result.clients)) {
+                throw new Error('Invalid response');
+            }
+            allClientsData = result.clients;
+            allClientsData = result.clients;
+            clientsDirectoryHasLoaded = true;
+            return result;
+        }
+
+        function renderPendingPlans() {
             const container = document.getElementById('pendingPlansContainer');
             const statusEl  = document.getElementById('pendingLoadStatus');
             const badge     = document.getElementById('pendingBadge');
+            const pendingCard = document.getElementById('pendingPlansCard');
+            const pending = allClientsData.filter(c => c.planStatus === 'pending' || c.planStatus === 'failed');
+
+            if (pending.length > 0) {
+                badge.textContent = pending.length;
+                badge.style.display = 'inline-block';
+                pendingCard.style.display = '';
+            } else {
+                badge.style.display = 'none';
+                pendingCard.style.display = 'none';
+            }
+
+            if (pending.length === 0) {
+                container.innerHTML = '<p style="text-align:center;color:var(--text-gray);padding:20px;">Няма чакащи планове.</p>';
+                statusEl.textContent = '';
+                return;
+            }
+
+            statusEl.textContent = `Намерени: ${pending.length} клиент(а)`;
+
+            let html = '<div style="display:grid;gap:12px;">';
+            pending.forEach(client => {
+                const dateStr = formatClientDate(client.submittedAt || client.timestamp);
+                const isFailed = client.planStatus === 'failed';
+                const failedBadge = isFailed ? `<span style="display:inline-block;background:#fee2e2;color:#dc2626;border-radius:4px;padding:2px 8px;font-size:0.78rem;margin-left:6px;"><i class="fas fa-exclamation-circle"></i> Неуспешно генериране</span>` : '';
+                const errorRow = isFailed && client.planGenerationError ? `<div style="color:#dc2626;font-size:0.8rem;margin-top:4px;"><i class="fas fa-bug"></i> ${escapeHtml(client.planGenerationError)}</div>` : '';
+                html += `
+                    <div class="pending-client-card" data-client-id="${escapeHtml(client.id)}" data-client-name="${escapeHtml(client.name)}">
+                        <div class="pending-client-info">
+                            <div class="pending-client-name"><i class="fas fa-user-circle" style="color:#d97706;margin-right:6px;"></i>${escapeHtml(client.name)}${failedBadge}</div>
+                            <div class="pending-client-meta">
+                                <i class="fas fa-envelope"></i> ${escapeHtml(client.email)}&nbsp;&nbsp;
+                                <i class="fas fa-bullseye"></i> ${escapeHtml(client.goal)}&nbsp;&nbsp;
+                                <i class="fas fa-clock"></i> ${dateStr}
+                            </div>
+                            ${errorRow}
+                        </div>
+                        <div class="pending-client-actions">
+                            <button class="btn pending-view-btn" style="background:var(--accent-blue);font-size:0.85rem;padding:8px 14px;">
+                                <i class="fas fa-eye"></i> Преглед
+                            </button>
+                            ${!isFailed ? `<button class="btn pending-activate-btn" data-client-id="${escapeHtml(client.id)}" style="background:#0D9488;font-size:0.85rem;padding:8px 14px;">
+                                <i class="fas fa-rocket"></i> Активирай
+                            </button>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+
+            container.querySelectorAll('.pending-view-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const card = this.closest('.pending-client-card');
+                    viewClientDetails(card.getAttribute('data-client-id'));
+                });
+            });
+            container.querySelectorAll('.pending-activate-btn').forEach(btn => {
+                btn.addEventListener('click', async function() {
+                    const cId = this.getAttribute('data-client-id');
+                    if (!confirm('Сигурни ли сте, че искате да активирате достъпа до плана за този клиент?')) return;
+                    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    this.disabled = true;
+                    try {
+                        const resp = await fetch(WORKER_URL + '/api/admin/activate-client-plan', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ clientId: cId })
+                        });
+                        const res = await resp.json();
+                        if (!res.success) {
+                            throw new Error(res.error || 'Unknown error');
+                        }
+
+                        const client = allClientsData.find(entry => entry.id === cId);
+                        if (client) {
+                            client.planStatus = 'activated';
+                            client.planActivatedAt = res.activatedAt || new Date().toISOString();
+                        }
+                        cacheClientsDirectorySnapshot();
+                        renderPendingPlans();
+                        if (clientsDirectoryHasLoaded) {
+                            renderClientsDirectory();
+                        }
+
+                        const emailInfo = res.emailSent
+                            ? ' ✉️ Имейлът е изпратен успешно.'
+                            : ` ⚠️ Имейлът НЕ е изпратен: ${res.emailError || 'неизвестна грешка'}.`;
+                        showSuccess('Планът е активиран! Клиентът вече има достъп.' + emailInfo);
+                    } catch (e) {
+                        showError('Грешка при активиране: ' + e.message);
+                        this.innerHTML = '<i class="fas fa-rocket"></i> Активирай';
+                        this.disabled = false;
+                    }
+                });
+            });
+        }
+
+        async function loadPendingPlans(forceRefresh = false) {
+            const container = document.getElementById('pendingPlansContainer');
+            const statusEl  = document.getElementById('pendingLoadStatus');
             container.innerHTML = '<p style="text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin"></i> Зареждане…</p>';
             statusEl.textContent = '';
             try {
-                const result = await cachedFetch(
-                    WORKER_URL + '/api/admin/get-clients-list',
-                    'admin:pendingPlans',
-                    CACHE_CONFIG.pendingPlans
-                );
-                if (!result.success || !result.clients) throw new Error('Invalid response');
-
-                const pending = result.clients.filter(c => c.planStatus === 'pending' || c.planStatus === 'failed');
-
-                // Update badge
-                const pendingCard = document.getElementById('pendingPlansCard');
-                if (pending.length > 0) {
-                    badge.textContent = pending.length;
-                    badge.style.display = 'inline-block';
-                    pendingCard.style.display = '';
-                } else {
-                    badge.style.display = 'none';
-                }
-
-                if (pending.length === 0) {
-                    pendingCard.style.display = 'none';
-                    statusEl.textContent = '';
-                    return;
-                }
-
-                statusEl.textContent = `Намерени: ${pending.length} клиент(а)`;
-
-                let html = '<div style="display:grid;gap:12px;">';
-                pending.forEach(client => {
-                    const dateStr = formatClientDate(client.submittedAt || client.timestamp);
-                    const isFailed = client.planStatus === 'failed';
-                    const failedBadge = isFailed ? `<span style="display:inline-block;background:#fee2e2;color:#dc2626;border-radius:4px;padding:2px 8px;font-size:0.78rem;margin-left:6px;"><i class="fas fa-exclamation-circle"></i> Неуспешно генериране</span>` : '';
-                    const errorRow = isFailed && client.planGenerationError ? `<div style="color:#dc2626;font-size:0.8rem;margin-top:4px;"><i class="fas fa-bug"></i> ${escapeHtml(client.planGenerationError)}</div>` : '';
-                    html += `
-                        <div class="pending-client-card" data-client-id="${escapeHtml(client.id)}" data-client-name="${escapeHtml(client.name)}">
-                            <div class="pending-client-info">
-                                <div class="pending-client-name"><i class="fas fa-user-circle" style="color:#d97706;margin-right:6px;"></i>${escapeHtml(client.name)}${failedBadge}</div>
-                                <div class="pending-client-meta">
-                                    <i class="fas fa-envelope"></i> ${escapeHtml(client.email)}&nbsp;&nbsp;
-                                    <i class="fas fa-bullseye"></i> ${escapeHtml(client.goal)}&nbsp;&nbsp;
-                                    <i class="fas fa-clock"></i> ${dateStr}
-                                </div>
-                                ${errorRow}
-                            </div>
-                            <div class="pending-client-actions">
-                                <button class="btn pending-view-btn" style="background:var(--accent-blue);font-size:0.85rem;padding:8px 14px;">
-                                    <i class="fas fa-eye"></i> Преглед
-                                </button>
-                                ${!isFailed ? `<button class="btn pending-activate-btn" data-client-id="${escapeHtml(client.id)}" style="background:#0D9488;font-size:0.85rem;padding:8px 14px;">
-                                    <i class="fas fa-rocket"></i> Активирай
-                                </button>` : ''}
-                            </div>
-                        </div>
-                    `;
-                });
-                html += '</div>';
-                container.innerHTML = html;
-
-                // Wire up buttons
-                container.querySelectorAll('.pending-view-btn').forEach(btn => {
-                    btn.addEventListener('click', function() {
-                        const card = this.closest('.pending-client-card');
-                        viewClientDetails(card.getAttribute('data-client-id'));
-                    });
-                });
-                container.querySelectorAll('.pending-activate-btn').forEach(btn => {
-                    btn.addEventListener('click', async function() {
-                        const cId = this.getAttribute('data-client-id');
-                        if (!confirm('Сигурни ли сте, че искате да активирате достъпа до плана за този клиент?')) return;
-                        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                        this.disabled = true;
-                        try {
-                            const resp = await fetch(WORKER_URL + '/api/admin/activate-client-plan', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ clientId: cId })
-                            });
-                            const res = await resp.json();
-                            if (res.success) {
-                                const emailInfo = res.emailSent
-                                    ? ' ✉️ Имейлът е изпратен успешно.'
-                                    : ` ⚠️ Имейлът НЕ е изпратен: ${res.emailError || 'неизвестна грешка'}.`;
-                                showSuccess('Планът е активиран! Клиентът вече има достъп.' + emailInfo);
-                                invalidatePendingPlansCache();
-                                loadPendingPlans(); // Refresh pending list
-                            } else {
-                                throw new Error(res.error || 'Unknown error');
-                            }
-                        } catch (e) {
-                            showError('Грешка при активиране: ' + e.message);
-                            this.innerHTML = '<i class="fas fa-rocket"></i> Активирай';
-                            this.disabled = false;
-                        }
-                    });
-                });
-
+                await fetchClientsDirectory(forceRefresh);
+                renderPendingPlans();
             } catch (error) {
                 console.error('Error loading pending plans:', error);
                 container.innerHTML = '<p style="text-align:center;color:#e74c3c;padding:20px;"><i class="fas fa-exclamation-circle"></i> Грешка при зареждане</p>';
@@ -8021,36 +8444,21 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             }
         }
 
-        // Load clients list
-        let allClientsData = []; // Store all clients for filtering
-        
-        async function loadClientsList() {
+        async function loadClientsList(forceRefresh = false) {
+            renderClientsColumnsChooser();
             const container = document.getElementById('clientsListContainer');
             const statsContainer = document.getElementById('clientsStatsContainer');
-            container.innerHTML = '<p style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Зареждане...</p>';
+            if (!clientsDirectoryHasLoaded || forceRefresh) {
+                container.innerHTML = '<p style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Зареждане...</p>';
+            }
             
             try {
-                const response = await fetch(WORKER_URL + '/api/admin/get-clients-list');
-                const result = await response.json();
-                
-                if (result.success && result.clients) {
-                    allClientsData = result.clients; // Store for filtering
-                    
-                    // Update stats
-                    document.getElementById('totalClients').textContent = result.total;
-                    document.getElementById('showingClients').textContent = result.showing;
-                    statsContainer.style.display = 'block';
-                    
-                    if (result.clients.length === 0) {
-                        container.innerHTML = '<p style="text-align: center; color: var(--text-gray); padding: 20px;">Няма клиенти за показване.</p>';
-                        return;
-                    }
-                    
-                    displayClients(result.clients);
-                    showSuccess(`Заредени ${result.clients.length} клиента от общо ${result.total}`);
-                } else {
-                    throw new Error('Invalid response format');
+                const shouldFetch = forceRefresh || !allClientsData.length;
+                if (shouldFetch) {
+                    await fetchClientsDirectory(forceRefresh);
                 }
+                statsContainer.style.display = 'block';
+                renderClientsDirectory();
             } catch (error) {
                 console.error('Error loading clients:', error);
                 container.innerHTML = '<p style="text-align: center; color: #e74c3c; padding: 20px;"><i class="fas fa-exclamation-circle"></i> Грешка при зареждане на клиенти</p>';
@@ -8058,92 +8466,194 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             }
         }
         
-        function displayClients(clients) {
+        function renderClientsDirectory() {
+            renderClientsColumnsChooser();
             const container = document.getElementById('clientsListContainer');
-            
-            if (clients.length === 0) {
-                container.innerHTML = '<p style="text-align: center; color: var(--text-gray); padding: 20px;">Няма намерени клиенти.</p>';
+            const statsContainer = document.getElementById('clientsStatsContainer');
+            const filteredClients = getFilteredSortedClients();
+            const visibleColumns = getVisibleClientColumns();
+
+            if (!allClientsData.length) {
+                statsContainer.style.display = 'none';
+                container.innerHTML = '<p class="clients-empty-state">Няма клиенти за показване.</p>';
+                updateClientsSelectionUI();
                 return;
             }
-            
-            let html = '<div style="display: grid; gap: 15px;">';
-            
-            clients.forEach(client => {
-                const dateStr = formatClientDate(client.submittedAt || client.timestamp);
-                
-                // Plan status badge
-                const statusBadge = planStatusBadge(client.planStatus);
-                
+
+            statsContainer.style.display = 'block';
+            document.getElementById('totalClients').textContent = allClientsData.length;
+            document.getElementById('showingClients').textContent = filteredClients.length;
+
+            if (filteredClients.length === 0) {
+                container.innerHTML = '<p class="clients-empty-state">Няма намерени клиенти.</p>';
+                updateClientsSelectionUI();
+                return;
+            }
+
+            const sortArrow = clientsSortState.direction === 'asc' ? '▲' : '▼';
+            let html = `
+                <div class="clients-explorer-wrapper">
+                    <div class="clients-table-scroll">
+                        <table class="clients-explorer-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:44px;">
+                                        <input type="checkbox" id="clientsSelectAll" class="clients-checkbox" aria-label="Избери всички показани">
+                                    </th>
+                                    ${visibleColumns.map(column => `
+                                        <th class="clients-sortable" data-client-sort="${escapeHtml(column.key)}">
+                                            ${escapeHtml(column.label)}
+                                            <span class="clients-sort-indicator">${clientsSortState.key === column.key ? sortArrow : '↕'}</span>
+                                        </th>
+                                    `).join('')}
+                                    <th style="min-width:220px;">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+
+            filteredClients.forEach(client => {
+                const isSelected = selectedClientIds.has(client.id);
                 html += `
-                    <div class="client-card" data-client-id="${escapeHtml(client.id)}" data-client-name="${escapeHtml(client.name)}" style="background: var(--card-bg); padding: 20px; border-radius: 12px; border: 2px solid ${client.planStatus === 'pending' ? '#fbbf24' : client.planStatus === 'activated' ? '#0D9488' : '#e0e0e0'}; transition: all 0.3s ease;">
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-                            <div style="flex: 1; min-width: 200px;">
-                                <h3 style="margin: 0 0 5px 0; color: var(--text-dark);">
-                                    <i class="fas fa-user"></i> ${escapeHtml(client.name)} ${statusBadge}
-                                </h3>
-                                <p style="margin: 5px 0; color: var(--text-gray); font-size: 0.9rem;">
-                                    <i class="fas fa-envelope"></i> ${escapeHtml(client.email)}
-                                </p>
-                                <p style="margin: 5px 0; color: var(--text-gray); font-size: 0.9rem;">
-                                    <i class="fas fa-bullseye"></i> Цел: ${escapeHtml(client.goal)}
-                                </p>
+                    <tr class="${isSelected ? 'is-selected' : ''}" data-client-id="${escapeHtml(client.id)}" data-client-name="${escapeHtml(client.name || '')}">
+                        <td>
+                            <input type="checkbox" class="clients-checkbox client-select-checkbox" data-client-select="${escapeHtml(client.id)}" ${isSelected ? 'checked' : ''} aria-label="Избери ${escapeHtml(client.name || client.id)}">
+                        </td>
+                        ${visibleColumns.map(column => `
+                            <td>${column.render(client)}</td>
+                        `).join('')}
+                        <td>
+                            <div class="clients-actions-cell">
+                                <button class="clients-mini-btn view" data-client-view="${escapeHtml(client.id)}">
+                                    <i class="fas fa-eye"></i> Преглед
+                                </button>
+                                <button class="clients-mini-btn download" data-client-download="${escapeHtml(client.id)}" data-client-download-name="${escapeHtml(client.name || 'client')}">
+                                    <i class="fas fa-download"></i> JSON
+                                </button>
+                                <button class="clients-mini-btn delete" data-client-delete="${escapeHtml(client.id)}" data-client-delete-name="${escapeHtml(client.name || client.id)}">
+                                    <i class="fas fa-trash"></i> Изтрий
+                                </button>
                             </div>
-                            <div style="text-align: right;">
-                                <p style="margin: 0; color: var(--text-gray); font-size: 0.85rem;">
-                                    <i class="fas fa-clock"></i> ${dateStr}
-                                </p>
-                            </div>
-                        </div>
-                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                            <button class="btn client-view-btn" style="flex: 1; min-width: 120px; background: var(--accent-blue);">
-                                <i class="fas fa-eye"></i> Преглед
-                            </button>
-                            <button class="btn client-download-btn" style="flex: 1; min-width: 120px; background: #28a745;">
-                                <i class="fas fa-download"></i> Изтегли JSON
-                            </button>
-                        </div>
-                    </div>
+                        </td>
+                    </tr>
                 `;
             });
-            
-            html += '</div>';
+
+            html += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
             container.innerHTML = html;
-            
-            // Add event listeners for buttons using event delegation
-            container.querySelectorAll('.client-view-btn').forEach((btn, index) => {
-                btn.addEventListener('click', function() {
-                    const card = this.closest('.client-card');
-                    const clientId = card.getAttribute('data-client-id');
-                    viewClientDetails(clientId);
-                });
-            });
-            
-            container.querySelectorAll('.client-download-btn').forEach((btn, index) => {
-                btn.addEventListener('click', function() {
-                    const card = this.closest('.client-card');
-                    const clientId = card.getAttribute('data-client-id');
-                    const clientName = card.getAttribute('data-client-name');
-                    downloadClientData(clientId, clientName);
-                });
-            });
+
+            container.onchange = function(event) {
+                const target = event.target;
+                if (target?.id === 'clientsSelectAll') {
+                    getFilteredSortedClients().forEach(client => {
+                        if (target.checked) selectedClientIds.add(client.id);
+                        else selectedClientIds.delete(client.id);
+                    });
+                    renderClientsDirectory();
+                    return;
+                }
+
+                if (target?.matches('.client-select-checkbox')) {
+                    const clientId = target.getAttribute('data-client-select');
+                    if (target.checked) selectedClientIds.add(clientId);
+                    else selectedClientIds.delete(clientId);
+                    updateClientsSelectionUI();
+                    target.closest('tr')?.classList.toggle('is-selected', target.checked);
+                }
+            };
+
+            container.onclick = function(event) {
+                const sortHeader = event.target.closest('[data-client-sort]');
+                if (sortHeader) {
+                    const key = sortHeader.getAttribute('data-client-sort');
+                    if (clientsSortState.key === key) {
+                        clientsSortState.direction = clientsSortState.direction === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        clientsSortState.key = key;
+                        clientsSortState.direction = 'desc';
+                    }
+                    renderClientsDirectory();
+                    return;
+                }
+
+                const viewBtn = event.target.closest('[data-client-view]');
+                if (viewBtn) {
+                    viewClientDetails(viewBtn.getAttribute('data-client-view'));
+                    return;
+                }
+
+                const downloadBtn = event.target.closest('[data-client-download]');
+                if (downloadBtn) {
+                    downloadClientData(
+                        downloadBtn.getAttribute('data-client-download'),
+                        downloadBtn.getAttribute('data-client-download-name')
+                    );
+                    return;
+                }
+
+                const deleteBtn = event.target.closest('[data-client-delete]');
+                if (deleteBtn) {
+                    deleteClients(
+                        [deleteBtn.getAttribute('data-client-delete')],
+                        deleteBtn.getAttribute('data-client-delete-name')
+                    );
+                }
+            };
+
+            updateClientsSelectionUI();
         }
         
         function filterClients() {
-            const searchTerm = document.getElementById('clientsSearchInput').value.toLowerCase();
-            
-            if (!allClientsData || allClientsData.length === 0) {
+            if (!allClientsData.length) return;
+            renderClientsDirectory();
+        }
+
+        async function deleteClients(clientIds, label = '') {
+            const normalizedIds = [...new Set((clientIds || []).filter(Boolean))];
+            if (normalizedIds.length === 0) {
+                showError('Няма избрани клиенти за изтриване.');
                 return;
             }
-            
-            const filtered = allClientsData.filter(client => {
-                const name = (client.name || '').toLowerCase();
-                const email = (client.email || '').toLowerCase();
-                const goal = (client.goal || '').toLowerCase();
-                return name.includes(searchTerm) || email.includes(searchTerm) || goal.includes(searchTerm);
-            });
-            
-            displayClients(filtered);
-            document.getElementById('showingClients').textContent = filtered.length;
+
+            const confirmLabel = normalizedIds.length === 1
+                ? `клиента "${label || normalizedIds[0]}"`
+                : `${normalizedIds.length} клиента`;
+            if (!confirm(`Сигурни ли сте, че искате да изтриете ${confirmLabel} и свързаните им планове?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/delete-clients', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ clientIds: normalizedIds })
+                });
+                const result = await response.json();
+                if (!result.success) {
+                    throw new Error(result.error || 'Unknown error');
+                }
+
+                const deletedIdsSet = new Set(result.deletedClientIds || normalizedIds);
+                allClientsData = allClientsData.filter(client => !deletedIdsSet.has(client.id));
+                normalizedIds.forEach(clientId => selectedClientIds.delete(clientId));
+                cacheClientsDirectorySnapshot();
+                renderPendingPlans();
+                renderClientsDirectory();
+
+                showSuccess(`Изтрити ${result.deletedClientCount || normalizedIds.length} клиента, ${result.deletedProfileCount || 0} профила и ${result.deletedAuthCount || 0} auth връзки.`);
+            } catch (error) {
+                console.error('Error deleting clients:', error);
+                showError('Грешка при изтриване: ' + error.message);
+            }
+        }
+
+        async function deleteSelectedClients() {
+            await deleteClients(Array.from(selectedClientIds));
         }
         
         async function viewClientDetails(clientId) {
@@ -8414,6 +8924,17 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                         });
                         const res = await resp.json();
                         if (res.success) {
+                            const clientRecord = allClientsData.find(client => client.id === cId);
+                            if (clientRecord) {
+                                clientRecord.hasPlan = true;
+                                clientRecord.planUpdatedAt = new Date().toISOString();
+                                clientRecord.planStatus = clientRecord.planActivatedAt ? 'activated' : 'pending';
+                            }
+                            cacheClientsDirectorySnapshot();
+                            renderPendingPlans();
+                            if (clientsDirectoryHasLoaded) {
+                                renderClientsDirectory();
+                            }
                             showSuccess('Планът е обновен успешно!');
                             // Refresh readable view
                             const readableTab = modal.querySelector('.plan-tab-content[data-tab="readable"]');
@@ -8443,14 +8964,22 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                         });
                         const res = await resp.json();
                         if (res.success) {
+                            const clientRecord = allClientsData.find(client => client.id === cId);
+                            if (clientRecord) {
+                                clientRecord.planStatus = 'activated';
+                                clientRecord.planActivatedAt = res.activatedAt || new Date().toISOString();
+                                clientRecord.hasPlan = true;
+                            }
+                            cacheClientsDirectorySnapshot();
+                            renderPendingPlans();
+                            if (clientsDirectoryHasLoaded) {
+                                renderClientsDirectory();
+                            }
                             const emailInfo = res.emailSent
                                 ? ' ✉️ Имейлът е изпратен успешно.'
                                 : ` ⚠️ Имейлът НЕ е изпратен: ${res.emailError || 'неизвестна грешка'}.`;
                             showSuccess('Планът е активиран! Клиентът вече има достъп.' + emailInfo);
                             modal.remove();
-                            invalidatePendingPlansCache();
-                            loadPendingPlans(); // Refresh pending plans widget
-                            if (allClientsData.length) loadClientsList(); // Refresh full list if already loaded
                         } else {
                             throw new Error(res.error || 'Unknown error');
                         }

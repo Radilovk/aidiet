@@ -4437,8 +4437,9 @@ async function handleGetClientsList(request, env) {
     let clientsList = await env.page_content.get('clients_list');
     clientsList = clientsList ? JSON.parse(clientsList) : [];
     
-    // Fetch basic info for each client (only first 100 for performance)
-    const clientsToFetch = clientsList.slice(0, 100);
+    // The client directory in admin is fully client-side sortable/filterable,
+    // so return the whole tracked list (already capped on write to the latest 500).
+    const clientsToFetch = clientsList.slice(0, 500);
     
     // Fetch all clients in parallel for better performance
     const fetchPromises = clientsToFetch.map(async (clientId) => {
@@ -4453,7 +4454,14 @@ async function handleGetClientsList(request, env) {
             name: clientData.answers?.name || 'N/A',
             email: clientData.answers?.email || 'N/A',
             goal: clientData.answers?.goal || 'N/A',
-            planStatus: clientData.planStatus || 'none'
+            age: clientData.answers?.age || null,
+            gender: clientData.answers?.gender || '',
+            userId: clientData.userId || '',
+            hasPlan: Boolean(clientData.plan),
+            planStatus: clientData.planStatus || 'none',
+            planUpdatedAt: clientData.planUpdatedAt || null,
+            planActivatedAt: clientData.planActivatedAt || null,
+            planGenerationError: clientData.planGenerationError || ''
           };
         }
         return null;
@@ -4477,6 +4485,81 @@ async function handleGetClientsList(request, env) {
   } catch (error) {
     console.error('Error getting clients list:', error);
     return jsonResponse({ error: `Failed to get clients list: ${error.message}` }, 500);
+  }
+}
+
+/**
+ * Delete questionnaire clients and their linked plan/profile data.
+ * Body: { clientIds: string[] }
+ */
+async function handleDeleteClients(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+
+    const { clientIds } = await request.json();
+    const normalizedClientIds = Array.isArray(clientIds)
+      ? [...new Set(clientIds.map(id => String(id || '').trim()).filter(Boolean))]
+      : [];
+
+    if (normalizedClientIds.length === 0) {
+      return jsonResponse({ error: 'Missing clientIds array' }, 400);
+    }
+
+    let clientsList = await env.page_content.get('clients_list');
+    clientsList = clientsList ? JSON.parse(clientsList) : [];
+
+    const userIdsToDelete = new Set();
+    const authKeysToDelete = new Set();
+    const missingClientIds = [];
+    const deletedClientIds = [];
+
+    for (const clientId of normalizedClientIds) {
+      const clientRaw = await env.page_content.get(`client:${clientId}`);
+      if (!clientRaw) {
+        missingClientIds.push(clientId);
+        continue;
+      }
+
+      const clientData = JSON.parse(clientRaw);
+      deletedClientIds.push(clientId);
+
+      if (clientData.userId) {
+        const userId = String(clientData.userId).trim();
+        if (userId) {
+          userIdsToDelete.add(userId);
+          if (userId.startsWith(FIREBASE_USER_ID_PREFIX)) {
+            authKeysToDelete.add(`auth:${userId.slice(FIREBASE_USER_ID_PREFIX.length)}`);
+          }
+        }
+      }
+    }
+
+    await Promise.all([
+      ...deletedClientIds.map(clientId => env.page_content.delete(`client:${clientId}`)),
+      ...Array.from(userIdsToDelete).map(userId => env.page_content.delete(`user_profile:${userId}`)),
+      ...Array.from(authKeysToDelete).map(authKey => env.page_content.delete(authKey))
+    ]);
+
+    if (deletedClientIds.length > 0) {
+      const deletedIdsSet = new Set(deletedClientIds);
+      clientsList = clientsList.filter(clientId => !deletedIdsSet.has(clientId));
+      await env.page_content.put('clients_list', JSON.stringify(clientsList));
+    }
+
+    return jsonResponse({
+      success: true,
+      deletedClientIds,
+      deletedClientCount: deletedClientIds.length,
+      deletedProfileCount: userIdsToDelete.size,
+      deletedAuthCount: authKeysToDelete.size,
+      missingClientIds,
+      remainingClients: clientsList.length
+    });
+  } catch (error) {
+    console.error('Error deleting clients:', error);
+    return jsonResponse({ error: `Failed to delete clients: ${error.message}` }, 500);
   }
 }
 
@@ -13225,6 +13308,8 @@ export default {
         return await handleGetClientsList(request, env);
       } else if (url.pathname === '/api/admin/get-client-data' && request.method === 'GET') {
         return await handleGetClientData(request, env);
+      } else if (url.pathname === '/api/admin/delete-clients' && request.method === 'POST') {
+        return await handleDeleteClients(request, env);
       } else if (url.pathname === '/api/admin/update-client-plan' && request.method === 'POST') {
         return await handleUpdateClientPlan(request, env, ctx);
       } else if (url.pathname === '/api/admin/activate-client-plan' && request.method === 'POST') {
