@@ -4346,12 +4346,10 @@ async function findClientByEmail(env, email) {
   const normalizedEmail = normalizeEmail(email);
   if (!normalizedEmail || !env.page_content) return null;
 
-  const listRaw = await env.page_content.get('clients_list');
-  const clientIds = listRaw ? JSON.parse(listRaw) : [];
+  const clientIds = await kvGetJSON(env, 'clients_list') || [];
   for (const clientId of clientIds.slice(0, 500)) {
-    const clientRaw = await env.page_content.get(`client:${clientId}`);
-    if (!clientRaw) continue;
-    const clientData = JSON.parse(clientRaw);
+    const clientData = await kvGetJSON(env, `client:${clientId}`);
+    if (!clientData) continue;
     const clientEmail = normalizeEmail(clientData.answers?.email);
     if (clientEmail === normalizedEmail) {
       return { clientId, clientData };
@@ -4421,11 +4419,10 @@ async function handleSaveClientData(request, env, ctx) {
     }
     
     // Store client data in KV with client: prefix
-    await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
+    await kvPutJSON(env, `client:${clientId}`, clientData, null);
     
     // Maintain a list of all client IDs for easy retrieval
-    let clientsList = await env.page_content.get('clients_list');
-    clientsList = clientsList ? JSON.parse(clientsList) : [];
+    let clientsList = await kvGetJSON(env, 'clients_list') || [];
     clientsList = clientsList.filter(id => id !== clientId);
     clientsList.unshift(clientId); // Add to beginning (most recent first)
     
@@ -4434,7 +4431,7 @@ async function handleSaveClientData(request, env, ctx) {
       clientsList = clientsList.slice(0, 500);
     }
     
-    await env.page_content.put('clients_list', JSON.stringify(clientsList));
+    await kvPutJSON(env, 'clients_list', clientsList, null);
     
     console.log('Client data saved:', clientId);
     notifyMake(ctx,
@@ -12445,36 +12442,27 @@ async function handleSaveUserProfile(request, env) {
     const ttl = userId.startsWith('fb_')
       ? 365 * 24 * 60 * 60
       :  90 * 24 * 60 * 60;
-    await env.page_content.put(
-      `user_profile:${userId}`,
-      JSON.stringify(profileData),
-      { expirationTtl: ttl }
-    );
+    await kvPutJSON(env, `user_profile:${userId}`, profileData, ttl);
 
     // Link questionnaire-2 client records back to the Firebase/anonymous profile.
     // This lets admin activation update the same profile that APK login restores.
     const normalizedEmail = normalizeEmail(profileData.userData?.email);
-    const matchedClient = clientId
-      ? { clientId, clientData: null }
-      : (normalizedEmail ? await findClientByEmail(env, normalizedEmail) : null);
-    const resolvedClientId = matchedClient?.clientId || clientId;
+    let resolvedClientId = clientId || '';
+    if (!resolvedClientId && normalizedEmail) {
+      resolvedClientId = (await findClientByEmail(env, normalizedEmail))?.clientId || '';
+    }
     if (resolvedClientId) {
       try {
-        const clientRaw = await env.page_content.get(`client:${resolvedClientId}`);
-        if (clientRaw) {
-          const clientData = JSON.parse(clientRaw);
+        const clientData = await kvGetJSON(env, `client:${resolvedClientId}`);
+        if (clientData) {
           clientData.id = resolvedClientId;
           if (clientData.userId !== userId) {
             clientData.userId = userId;
-            await env.page_content.put(`client:${resolvedClientId}`, JSON.stringify(clientData));
+            await kvPutJSON(env, `client:${resolvedClientId}`, clientData, null);
           }
           if (!profileData.clientId) {
             profileData.clientId = resolvedClientId;
-            await env.page_content.put(
-              `user_profile:${userId}`,
-              JSON.stringify(profileData),
-              { expirationTtl: ttl }
-            );
+            await kvPutJSON(env, `user_profile:${userId}`, profileData, ttl);
           }
         }
       } catch (e) {
@@ -12532,8 +12520,7 @@ async function handleGetUserProfile(request, env) {
 
     const requestedEmail = normalizeEmail(url.searchParams.get('email'));
 
-    let raw = await env.page_content.get(`user_profile:${userId}`);
-    let profile = raw ? JSON.parse(raw) : null;
+    let profile = await kvGetJSON(env, `user_profile:${userId}`);
 
     if (!profile && requestedEmail) {
       const matchedClient = await findClientByEmail(env, requestedEmail);
@@ -12541,7 +12528,7 @@ async function handleGetUserProfile(request, env) {
         const clientData = matchedClient.clientData;
         if (userId && clientData.userId !== userId) {
           clientData.userId = userId;
-          await env.page_content.put(`client:${matchedClient.clientId}`, JSON.stringify(clientData));
+          await kvPutJSON(env, `client:${matchedClient.clientId}`, clientData, null);
         }
         profile = {
           userId: userId || clientData.userId || '',
@@ -12555,11 +12542,7 @@ async function handleGetUserProfile(request, env) {
           ? 365 * 24 * 60 * 60
           : 90 * 24 * 60 * 60;
         if (userId) {
-          await env.page_content.put(
-            `user_profile:${userId}`,
-            JSON.stringify(profile),
-            { expirationTtl: ttl }
-          );
+          await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
         }
       }
     }
@@ -12577,8 +12560,7 @@ async function handleGetUserProfile(request, env) {
     if (planSource === 'questionnaire2') {
       let activatedClient = null;
       if (clientId) {
-        const clientRaw = await env.page_content.get(`client:${clientId}`);
-        if (clientRaw) activatedClient = JSON.parse(clientRaw);
+        activatedClient = await kvGetJSON(env, `client:${clientId}`);
       }
 
       // Backfill for profiles saved before clientId was added, OR when profile.clientId
@@ -12586,12 +12568,10 @@ async function handleGetUserProfile(request, env) {
       // Bug fix: was `!activatedClient` — must also run when activatedClient is PENDING.
       if (activatedClient?.planStatus !== 'activated' && profile.userData?.email) {
         const wantedEmail = String(profile.userData.email).trim().toLowerCase();
-        const listRaw = await env.page_content.get('clients_list');
-        const clientIds = listRaw ? JSON.parse(listRaw) : [];
+        const clientIds = await kvGetJSON(env, 'clients_list') || [];
         for (const id of clientIds.slice(0, 500)) {
-          const clientRaw = await env.page_content.get(`client:${id}`);
-          if (!clientRaw) continue;
-          const clientData = JSON.parse(clientRaw);
+          const clientData = await kvGetJSON(env, `client:${id}`);
+          if (!clientData) continue;
           if (clientData.planStatus !== 'activated' || !clientData.plan) continue;
           const clientEmail = String(clientData.answers?.email || '').trim().toLowerCase();
           if (clientEmail === wantedEmail) {
@@ -12607,7 +12587,7 @@ async function handleGetUserProfile(request, env) {
         profile.planSource = '';
         if (clientId) profile.clientId = clientId;
         planSource = '';
-        await env.page_content.put(`user_profile:${userId}`, JSON.stringify(profile));
+        await kvPutJSON(env, `user_profile:${userId}`, profile, null);
       } else if (clientId) {
         profile.clientId = clientId;
       }
