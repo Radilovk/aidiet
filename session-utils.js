@@ -34,8 +34,7 @@
         'gameEnabled',
         'gameData',
         'gameWeeklyAI',
-        'gameNotifierConfig',
-        'sessionOwnerId'
+        'gameNotifierConfig'
     ];
 
     var USER_SESSION_KEYS = [
@@ -192,11 +191,13 @@
         }
 
         var previousOwner = '';
+        var existingUserId = '';
         try {
             previousOwner = localStorage.getItem('sessionOwnerId') || '';
+            existingUserId = localStorage.getItem('userId') || '';
         } catch (_) {}
 
-        var switched = !!(previousOwner && previousOwner !== nextUserId);
+        var switched = !!(previousOwner && previousOwner !== nextUserId && existingUserId !== nextUserId);
         if (switched) {
             await clearUserSessionData();
         }
@@ -207,10 +208,7 @@
         } catch (_) {}
 
         var prefs = getPreferencesPlugin();
-        await Promise.all([
-            writePreferenceKey(prefs, 'sessionOwnerId', nextUserId),
-            writePreferenceKey(prefs, 'userId', nextUserId)
-        ]);
+        await writePreferenceKey(prefs, 'userId', nextUserId);
 
         return {
             userId: nextUserId,

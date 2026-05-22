@@ -57,8 +57,7 @@
         'gameEnabled',
         'gameData',
         'gameWeeklyAI',
-        'gameNotifierConfig',
-        'sessionOwnerId'
+        'gameNotifierConfig'
     ]).slice();
     var state = {
         initialized: false,
