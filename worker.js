@@ -4342,26 +4342,9 @@ function normalizeEmail(value) {
   return String(value || '').trim().toLowerCase();
 }
 
-function getClientEmailIndexKey(email) {
-  return `client_email:${email}`;
-}
-
-function getUserProfileEmailKey(email) {
-  return `user_profile_email:${email}`;
-}
-
-function getUserProfileTtl(userId) {
-  return userId && userId.startsWith('fb_')
-    ? 365 * 24 * 60 * 60
-    : 90 * 24 * 60 * 60;
-}
-
-async function resolveClientIdByEmail(env, email) {
+async function findClientByEmail(env, email) {
   const normalizedEmail = normalizeEmail(email);
   if (!normalizedEmail || !env.page_content) return null;
-
-  const indexedClientId = await env.page_content.get(getClientEmailIndexKey(normalizedEmail));
-  if (indexedClientId) return indexedClientId;
 
   const listRaw = await env.page_content.get('clients_list');
   const clientIds = listRaw ? JSON.parse(listRaw) : [];
@@ -4371,69 +4354,11 @@ async function resolveClientIdByEmail(env, email) {
     const clientData = JSON.parse(clientRaw);
     const clientEmail = normalizeEmail(clientData.answers?.email);
     if (clientEmail === normalizedEmail) {
-      await env.page_content.put(getClientEmailIndexKey(normalizedEmail), clientId);
-      return clientId;
+      return { clientId, clientData };
     }
   }
 
   return null;
-}
-
-async function loadClientById(env, clientId) {
-  if (!clientId || !env.page_content) return null;
-  const clientRaw = await env.page_content.get(`client:${clientId}`);
-  return clientRaw ? JSON.parse(clientRaw) : null;
-}
-
-async function loadClientByEmail(env, email) {
-  const clientId = await resolveClientIdByEmail(env, email);
-  if (!clientId) return null;
-  const clientData = await loadClientById(env, clientId);
-  if (!clientData) return null;
-  if (!clientData.id) clientData.id = clientId;
-  return clientData;
-}
-
-function buildProfileDataFromClient(clientData, userIdOverride) {
-  const userId = userIdOverride || clientData.userId || '';
-  const isActivated = clientData.planStatus === 'activated';
-  return {
-    userId,
-    plan: clientData.plan || null,
-    userData: clientData.answers || {},
-    planSource: isActivated ? '' : 'questionnaire2',
-    ...(clientData.id ? { clientId: clientData.id } : {}),
-    savedAt: new Date().toISOString()
-  };
-}
-
-async function persistProfileData(env, profileData, options) {
-  if (!env.page_content || !profileData) return;
-
-  const normalizedEmail = normalizeEmail(profileData.userData?.email);
-  const ttl = getUserProfileTtl(profileData.userId || '');
-  const payload = JSON.stringify(profileData);
-  const writes = [];
-
-  if (profileData.userId) {
-    writes.push(env.page_content.put(`user_profile:${profileData.userId}`, payload, { expirationTtl: ttl }));
-  }
-  if (normalizedEmail) {
-    writes.push(env.page_content.put(getUserProfileEmailKey(normalizedEmail), payload, { expirationTtl: ttl }));
-  }
-
-  if (options && options.clientId && normalizedEmail) {
-    writes.push(env.page_content.put(getClientEmailIndexKey(normalizedEmail), options.clientId));
-  }
-
-  await Promise.all(writes);
-}
-
-async function syncProfileFromClientRecord(env, clientData, userIdOverride) {
-  if (!clientData) return null;
-  const profileData = buildProfileDataFromClient(clientData, userIdOverride);
-  await persistProfileData(env, profileData, { clientId: clientData.id || '' });
-  return profileData;
 }
 
 /**
@@ -4472,13 +4397,9 @@ async function handleSaveClientData(request, env, ctx) {
     }
     
     const normalizedEmail = normalizeEmail(data.answers?.email);
-    const canonicalClientId = normalizedEmail
-      ? await resolveClientIdByEmail(env, normalizedEmail)
-      : null;
-    const clientId = canonicalClientId || data.id;
-    const existingClientData = canonicalClientId
-      ? await loadClientById(env, canonicalClientId)
-      : null;
+    const existingClient = normalizedEmail ? await findClientByEmail(env, normalizedEmail) : null;
+    const clientId = existingClient?.clientId || data.id;
+    const existingClientData = existingClient?.clientData || null;
     
     // Create or update the canonical client data object for this email.
     const clientData = {
@@ -4489,9 +4410,9 @@ async function handleSaveClientData(request, env, ctx) {
       files: data.files || [],
       plan: Object.prototype.hasOwnProperty.call(data, 'plan')
         ? (data.plan || null)
-        : (existingClientData ? null : null),
+        : (existingClientData?.plan || null),
       planStatus: data.plan ? 'pending' : (existingClientData ? 'generating' : 'none'),
-      planUpdatedAt: data.plan ? new Date().toISOString() : null,
+      planUpdatedAt: data.plan ? new Date().toISOString() : (existingClientData?.planUpdatedAt || null),
       submittedAt: new Date().toISOString()
     };
 
@@ -4501,27 +4422,11 @@ async function handleSaveClientData(request, env, ctx) {
     
     // Store client data in KV with client: prefix
     await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
-    if (normalizedEmail) {
-      await env.page_content.put(getClientEmailIndexKey(normalizedEmail), clientId);
-    }
     
     // Maintain a list of all client IDs for easy retrieval
     let clientsList = await env.page_content.get('clients_list');
     clientsList = clientsList ? JSON.parse(clientsList) : [];
-    const duplicateClientIds = [];
-    if (normalizedEmail) {
-      for (const listedId of clientsList) {
-        if (listedId === clientId) continue;
-        const listedClient = await loadClientById(env, listedId);
-        if (normalizeEmail(listedClient?.answers?.email) === normalizedEmail) {
-          duplicateClientIds.push(listedId);
-        }
-      }
-      if (duplicateClientIds.length && typeof env.page_content.delete === 'function') {
-        await Promise.all(duplicateClientIds.map(id => env.page_content.delete(`client:${id}`).catch(() => {})));
-      }
-    }
-    clientsList = clientsList.filter(id => id !== clientId && duplicateClientIds.indexOf(id) === -1);
+    clientsList = clientsList.filter(id => id !== clientId);
     clientsList.unshift(clientId); // Add to beginning (most recent first)
     
     // Keep only last 500 clients in the list
@@ -4532,11 +4437,6 @@ async function handleSaveClientData(request, env, ctx) {
     await env.page_content.put('clients_list', JSON.stringify(clientsList));
     
     console.log('Client data saved:', clientId);
-    try {
-      await syncProfileFromClientRecord(env, clientData, clientData.userId || '');
-    } catch (e) {
-      console.warn(`Failed to sync profile snapshot for client ${clientId}:`, e.message);
-    }
     notifyMake(ctx,
       `📩 Ново запитване\n\n` +
       `👤 Клиент: ${clientData.answers?.name || clientId}\n` +
@@ -4705,10 +4605,20 @@ async function handleUpdateClientPlan(request, env, ctx) {
       );
     } else if (clientData.planStatus === 'activated' && wasPreviouslyActivated) {
       // For auto-activated updates, sync to user profile
-      try {
-        await syncProfileFromClientRecord(env, clientData, clientData.userId || '');
-      } catch (e) {
-        console.warn(`Failed to sync auto-activated plan to profile ${clientData.userId || clientId}:`, e.message);
+      if (clientData.userId) {
+        try {
+          const profileRaw = await env.page_content.get(`user_profile:${clientData.userId}`);
+          if (profileRaw) {
+            const profile = JSON.parse(profileRaw);
+            profile.plan = clientData.plan;
+            profile.planSource = '';
+            profile.clientId = clientId;
+            profile.savedAt = new Date().toISOString();
+            await env.page_content.put(`user_profile:${clientData.userId}`, JSON.stringify(profile));
+          }
+        } catch (e) {
+          console.warn(`Failed to sync auto-activated plan to profile ${clientData.userId}:`, e.message);
+        }
       }
       console.log(`[Client] Plan auto-activated for existing client ${clientId}`);
     }
@@ -4744,10 +4654,20 @@ async function handleActivateClientPlan(request, env, ctx) {
 
     // If this questionnaire submission is linked to a user profile, immediately
     // clear its pending marker so the next APK/PWA login opens plan.html.
-    try {
-      await syncProfileFromClientRecord(env, clientData, clientData.userId || '');
-    } catch (e) {
-      console.warn(`Failed to update activated profile ${clientData.userId || clientId}:`, e.message);
+    if (clientData.userId) {
+      try {
+        const profileRaw = await env.page_content.get(`user_profile:${clientData.userId}`);
+        if (profileRaw) {
+          const profile = JSON.parse(profileRaw);
+          profile.plan = clientData.plan;
+          profile.planSource = '';
+          profile.clientId = clientId;
+          profile.savedAt = new Date().toISOString();
+          await env.page_content.put(`user_profile:${clientData.userId}`, JSON.stringify(profile));
+        }
+      } catch (e) {
+        console.warn(`Failed to update activated profile ${clientData.userId}:`, e.message);
+      }
     }
 
     // Send email notification to client — try synchronously so we can report status
@@ -12522,12 +12442,22 @@ async function handleSaveUserProfile(request, env) {
       savedAt: new Date().toISOString()
     };
 
-    await persistProfileData(env, profileData, { clientId: clientId || '' });
+    const ttl = userId.startsWith('fb_')
+      ? 365 * 24 * 60 * 60
+      :  90 * 24 * 60 * 60;
+    await env.page_content.put(
+      `user_profile:${userId}`,
+      JSON.stringify(profileData),
+      { expirationTtl: ttl }
+    );
 
     // Link questionnaire-2 client records back to the Firebase/anonymous profile.
     // This lets admin activation update the same profile that APK login restores.
     const normalizedEmail = normalizeEmail(profileData.userData?.email);
-    const resolvedClientId = clientId || (normalizedEmail ? await resolveClientIdByEmail(env, normalizedEmail) : null);
+    const matchedClient = clientId
+      ? { clientId, clientData: null }
+      : (normalizedEmail ? await findClientByEmail(env, normalizedEmail) : null);
+    const resolvedClientId = matchedClient?.clientId || clientId;
     if (resolvedClientId) {
       try {
         const clientRaw = await env.page_content.get(`client:${resolvedClientId}`);
@@ -12540,7 +12470,11 @@ async function handleSaveUserProfile(request, env) {
           }
           if (!profileData.clientId) {
             profileData.clientId = resolvedClientId;
-            await persistProfileData(env, profileData, { clientId: resolvedClientId });
+            await env.page_content.put(
+              `user_profile:${userId}`,
+              JSON.stringify(profileData),
+              { expirationTtl: ttl }
+            );
           }
         }
       } catch (e) {
@@ -12602,21 +12536,31 @@ async function handleGetUserProfile(request, env) {
     let profile = raw ? JSON.parse(raw) : null;
 
     if (!profile && requestedEmail) {
-      const emailProfileRaw = await env.page_content.get(getUserProfileEmailKey(requestedEmail));
-      if (emailProfileRaw) {
-        profile = JSON.parse(emailProfileRaw);
-        if (userId && profile.userId !== userId) {
-          profile.userId = userId;
-          await persistProfileData(env, profile, { clientId: profile.clientId || '' });
+      const matchedClient = await findClientByEmail(env, requestedEmail);
+      if (matchedClient) {
+        const clientData = matchedClient.clientData;
+        if (userId && clientData.userId !== userId) {
+          clientData.userId = userId;
+          await env.page_content.put(`client:${matchedClient.clientId}`, JSON.stringify(clientData));
         }
-      }
-    }
-
-    if (!profile && requestedEmail) {
-      const emailClient = await loadClientByEmail(env, requestedEmail);
-      if (emailClient) {
-        profile = buildProfileDataFromClient(emailClient, userId || emailClient.userId || '');
-        await persistProfileData(env, profile, { clientId: emailClient.id || '' });
+        profile = {
+          userId: userId || clientData.userId || '',
+          plan: clientData.plan || null,
+          userData: clientData.answers || {},
+          planSource: clientData.planStatus === 'activated' ? '' : 'questionnaire2',
+          clientId: matchedClient.clientId,
+          savedAt: new Date().toISOString()
+        };
+        const ttl = userId && userId.startsWith('fb_')
+          ? 365 * 24 * 60 * 60
+          : 90 * 24 * 60 * 60;
+        if (userId) {
+          await env.page_content.put(
+            `user_profile:${userId}`,
+            JSON.stringify(profile),
+            { expirationTtl: ttl }
+          );
+        }
       }
     }
 
