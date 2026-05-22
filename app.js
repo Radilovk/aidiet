@@ -199,10 +199,23 @@
     }
 
     function ensureFrameLoaded(tab) {
-        var frame = document.querySelector('[data-tab-view="' + normalizeTab(tab) + '"]');
+        var normalizedTab = normalizeTab(tab);
+        var frame = document.querySelector('[data-tab-view="' + normalizedTab + '"]');
         if (!frame) return null;
-        if (!frame.getAttribute('src')) {
-            frame.setAttribute('src', FRAME_SOURCES[normalizeTab(tab)] || FRAME_SOURCES.plan);
+        var expectedSrc = FRAME_SOURCES[normalizedTab] || FRAME_SOURCES.plan;
+        var currentSrc = frame.getAttribute('src');
+        if (!currentSrc) {
+            frame.setAttribute('src', expectedSrc);
+            return frame;
+        }
+        try {
+            var currentUrl = new URL(currentSrc, window.location.href);
+            var currentPath = currentUrl.pathname.split('/').pop() || '';
+            if (currentPath !== (TAB_ROUTES[normalizedTab] || '')) {
+                frame.setAttribute('src', expectedSrc);
+            }
+        } catch (_) {
+            frame.setAttribute('src', expectedSrc);
         }
         return frame;
     }
