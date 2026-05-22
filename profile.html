@@ -2665,14 +2665,31 @@
                     const cookieMatch = document.cookie.match(/(?:^|;\s*)np_uid=([^;]*)/);
                     const cookieUserId = cookieMatch ? decodeURIComponent(cookieMatch[1]) : null;
                     if (cookieUserId) {
-                        fetch(`https://aidiet.radilov-k.workers.dev/api/user/profile?userId=${encodeURIComponent(cookieUserId)}`)
+                        let restoreEmail = '';
+                        try {
+                            const cachedUserData = JSON.parse(localStorage.getItem('userData') || '{}');
+                            restoreEmail = (cachedUserData.email || '').trim().toLowerCase();
+                        } catch (_) {}
+                        const profileUrl = new URL('https://aidiet.radilov-k.workers.dev/api/user/profile');
+                        profileUrl.searchParams.set('userId', cookieUserId);
+                        if (restoreEmail) profileUrl.searchParams.set('email', restoreEmail);
+                        fetch(profileUrl.toString())
                             .then(r => r.ok ? r.json() : null)
                             .then(data => {
-                                if (data && data.found && data.userData) {
-                                    localStorage.setItem('userData', JSON.stringify(data.userData));
+                                if (data && data.found && (data.userData || data.plan || data.clientId)) {
+                                    if (data.userData) {
+                                        localStorage.setItem('userData', JSON.stringify(data.userData));
+                                    }
                                     localStorage.setItem('userId', cookieUserId);
                                     if (data.plan) {
                                         localStorage.setItem('dietPlan', JSON.stringify(data.plan));
+                                    }
+                                    if (data.planSource) localStorage.setItem('planSource', data.planSource);
+                                    else localStorage.removeItem('planSource');
+                                    if (data.clientId && data.planSource === 'questionnaire2') {
+                                        localStorage.setItem('pendingClientId', data.clientId);
+                                    } else if (data.planSource !== 'questionnaire2') {
+                                        localStorage.removeItem('pendingClientId');
                                     }
                                     console.log('[PWA] Profile restored from backend in profile.html');
                                     loadUserData();

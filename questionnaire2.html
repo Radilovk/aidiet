@@ -3683,10 +3683,20 @@
                         console.warn('Could not process uploaded files:', fileError);
                     }
                 }
-                // Fire-and-forget: save client data to backend (don't block plan generation)
-                fetch('https://aidiet.radilov-k.workers.dev/api/save-client-data', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(clientData)
-                }).then(r => r.json()).then(r => console.log('Client data saved:', r.clientId)).catch(e => console.error('Error saving client data:', e));
+                const clientResponse = await fetch('https://aidiet.radilov-k.workers.dev/api/save-client-data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(clientData)
+                });
+                if (clientResponse.ok) {
+                    const clientResult = await clientResponse.json();
+                    if (clientResult && clientResult.clientId) {
+                        savedClientId = clientResult.clientId;
+                    }
+                    console.log('Client data saved:', savedClientId);
+                } else {
+                    console.warn('Could not save client data before generation:', clientResponse.status);
+                }
             } catch (saveError) {
                 console.warn('Could not save client data:', saveError);
             }
