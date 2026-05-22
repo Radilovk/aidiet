@@ -111,11 +111,6 @@
             justify-content: center;
         }
 
-        .clients-sort-select {
-            min-width: 210px;
-            max-width: 260px;
-        }
-
         .clients-columns-details {
             position: relative;
         }
@@ -169,25 +164,6 @@
             width: 16px;
             height: 16px;
             margin: 0;
-        }
-
-        .clients-selection-toolbar {
-            display: none;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin-bottom: 16px;
-            padding: 14px 16px;
-            background: rgba(13, 148, 136, 0.08);
-            border: 1px solid rgba(13, 148, 136, 0.2);
-            border-radius: 12px;
-        }
-
-        .clients-selection-actions {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
         }
 
         .clients-explorer-wrapper {
@@ -2376,14 +2352,13 @@
                     </button>
                     <input type="text" id="clientsSearchInput" placeholder="Търси по име, имейл, цел, ID..."
                            oninput="filterClients()" style="flex: 1 1 260px; min-width: 220px; padding: 10px; border: 2px solid #d1d5db; border-radius: 8px;">
-                    <select id="clientsSortField" class="clients-sort-select" onchange="updateClientsSort()"></select>
-                    <button id="clientsSortDirectionBtn" class="btn" onclick="toggleClientsSortDirection()" style="background: var(--accent-blue); min-width: 170px;">
-                        <i class="fas fa-arrow-down"></i> Нови първо
-                    </button>
                     <details class="clients-columns-details">
                         <summary><i class="fas fa-columns"></i> Колони</summary>
                         <div id="clientsColumnsChooser" class="clients-columns-menu"></div>
                     </details>
+                    <button id="deleteSelectedClientsBtn" class="btn" onclick="deleteSelectedClients()" style="background: #dc2626;" disabled>
+                        <i class="fas fa-trash"></i> Изтрий избраните
+                    </button>
                 </div>
                 <div id="clientsStatsContainer" style="display: none; margin-bottom: 20px; padding: 15px; background: var(--soft-red); border-radius: 8px;">
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; text-align: center;">
@@ -2399,26 +2374,6 @@
                             <strong>Избрани:</strong>
                             <div id="selectedClientsCount" style="font-size: 1.5rem; color: var(--primary-red); font-weight: bold;">0</div>
                         </div>
-                        <div>
-                            <strong>Последно зареждане:</strong>
-                            <div id="clientsLastLoaded" style="font-size: 0.95rem; color: var(--text-dark); font-weight: 600;">-</div>
-                        </div>
-                    </div>
-                </div>
-                <div id="clientsSelectionToolbar" class="clients-selection-toolbar">
-                    <div>
-                        <strong id="clientsSelectionText">Избрани: 0</strong>
-                    </div>
-                    <div class="clients-selection-actions">
-                        <button class="btn" onclick="selectAllVisibleClients()" style="background: var(--accent-blue);">
-                            <i class="fas fa-check-square"></i> Избери показаните
-                        </button>
-                        <button class="btn" onclick="clearSelectedClients()" style="background: #64748b;">
-                            <i class="fas fa-eraser"></i> Изчисти селекцията
-                        </button>
-                        <button class="btn" onclick="deleteSelectedClients()" style="background: #dc2626;">
-                            <i class="fas fa-trash"></i> Изтрий избраните
-                        </button>
                     </div>
                 </div>
                 <div id="clientsListContainer">
@@ -4474,17 +4429,11 @@
         const selectedClientIds = new Set();
         const clientsSortState = { key: 'submittedAt', direction: 'desc' };
         let allClientsData = [];
-        let clientsDirectoryLoadedAt = null;
-        let clientsDirectoryControlsReady = false;
+        let clientsColumnsReady = false;
         let clientsDirectoryHasLoaded = false;
 
         function getClientColumn(key) {
             return CLIENT_DIRECTORY_COLUMNS.find(column => column.key === key) || CLIENT_DIRECTORY_COLUMNS[0];
-        }
-
-        function getClientSortLabel() {
-            const column = getClientColumn(clientsSortState.key);
-            return column ? column.label : 'Подаден';
         }
 
         function getClientComparableValue(client, key) {
@@ -4544,11 +4493,9 @@
         function updateClientsSelectionUI() {
             const selectedCount = selectedClientIds.size;
             const selectedCountEl = document.getElementById('selectedClientsCount');
-            const selectionToolbar = document.getElementById('clientsSelectionToolbar');
-            const selectionText = document.getElementById('clientsSelectionText');
+            const deleteSelectedBtn = document.getElementById('deleteSelectedClientsBtn');
             if (selectedCountEl) selectedCountEl.textContent = selectedCount;
-            if (selectionText) selectionText.textContent = `Избрани: ${selectedCount}`;
-            if (selectionToolbar) selectionToolbar.style.display = selectedCount > 0 ? 'flex' : 'none';
+            if (deleteSelectedBtn) deleteSelectedBtn.disabled = selectedCount === 0;
 
             const visibleClients = getFilteredSortedClients();
             const selectAllCheckbox = document.getElementById('clientsSelectAll');
@@ -4560,16 +4507,8 @@
             }
         }
 
-        function populateClientsSortSelect() {
-            const sortSelect = document.getElementById('clientsSortField');
-            if (!sortSelect || sortSelect.options.length) return;
-            sortSelect.innerHTML = CLIENT_DIRECTORY_COLUMNS.map(column => `
-                <option value="${escapeHtml(column.key)}">${escapeHtml(column.label)}</option>
-            `).join('');
-            sortSelect.value = clientsSortState.key;
-        }
-
         function renderClientsColumnsChooser() {
+            if (clientsColumnsReady) return;
             const chooser = document.getElementById('clientsColumnsChooser');
             if (!chooser) return;
             chooser.innerHTML = CLIENT_DIRECTORY_COLUMNS.map(column => `
@@ -4594,23 +4533,7 @@
                     renderClientsDirectory();
                 });
             });
-        }
-
-        function updateClientsSortButton() {
-            const button = document.getElementById('clientsSortDirectionBtn');
-            if (!button) return;
-            const isAsc = clientsSortState.direction === 'asc';
-            button.innerHTML = isAsc
-                ? '<i class="fas fa-arrow-up"></i> A-Я / ниски първо'
-                : '<i class="fas fa-arrow-down"></i> Нови / високи първо';
-        }
-
-        function initializeClientsDirectoryControls() {
-            if (clientsDirectoryControlsReady) return;
-            populateClientsSortSelect();
-            renderClientsColumnsChooser();
-            updateClientsSortButton();
-            clientsDirectoryControlsReady = true;
+            clientsColumnsReady = true;
         }
 
         // ============================================================================
@@ -4626,7 +4549,6 @@
             mainlistStatus: 2 * 60 * 1000,      // 2 minutes for mainlist status
             mainlistPresets: 5 * 60 * 1000,     // 5 minutes for mainlist presets
             validationConfig: 5 * 60 * 1000,    // 5 minutes for validation config
-            pendingPlans: 30 * 1000,             // 30 seconds for pending plans (frequently changes)
             clientsDirectory: 60 * 1000,        // 1 minute for client explorer data
             reports: 2 * 60 * 1000,             // 2 minutes for reports (more dynamic)
             defaultPrompts: 30 * 60 * 1000,     // 30 minutes for default prompts (rarely change)
@@ -4760,14 +4682,11 @@
         }
 
         function invalidatePendingPlansCache() {
-            apiCache.clear('admin:pendingPlans');
-            apiCache.clear('admin:clientsDirectory');
-            console.log('[Cache] Invalidated pending plans cache');
+            invalidateClientsDirectoryCache();
         }
 
         function invalidateClientsDirectoryCache() {
             apiCache.clear('admin:clientsDirectory');
-            apiCache.clear('admin:pendingPlans');
             console.log('[Cache] Invalidated client directory cache');
         }
         // ============================================================================
@@ -8402,9 +8321,8 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             if (!result.success || !Array.isArray(result.clients)) {
                 throw new Error('Invalid response');
             }
-
             allClientsData = result.clients;
-            clientsDirectoryLoadedAt = new Date();
+            allClientsData = result.clients;
             clientsDirectoryHasLoaded = true;
             return result;
         }
@@ -8527,7 +8445,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         }
 
         async function loadClientsList(forceRefresh = false) {
-            initializeClientsDirectoryControls();
+            renderClientsColumnsChooser();
             const container = document.getElementById('clientsListContainer');
             const statsContainer = document.getElementById('clientsStatsContainer');
             if (!clientsDirectoryHasLoaded || forceRefresh) {
@@ -8549,7 +8467,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         }
         
         function renderClientsDirectory() {
-            initializeClientsDirectoryControls();
+            renderClientsColumnsChooser();
             const container = document.getElementById('clientsListContainer');
             const statsContainer = document.getElementById('clientsStatsContainer');
             const filteredClients = getFilteredSortedClients();
@@ -8565,10 +8483,6 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             statsContainer.style.display = 'block';
             document.getElementById('totalClients').textContent = allClientsData.length;
             document.getElementById('showingClients').textContent = filteredClients.length;
-            document.getElementById('clientsLastLoaded').textContent = clientsDirectoryLoadedAt
-                ? formatClientDate(clientsDirectoryLoadedAt.toISOString())
-                : '—';
-            updateClientsSortButton();
 
             if (filteredClients.length === 0) {
                 container.innerHTML = '<p class="clients-empty-state">Няма намерени клиенти.</p>';
@@ -8633,88 +8547,69 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             `;
             container.innerHTML = html;
 
-            container.querySelector('#clientsSelectAll')?.addEventListener('change', function() {
-                const visibleClients = getFilteredSortedClients();
-                visibleClients.forEach(client => {
-                    if (this.checked) selectedClientIds.add(client.id);
-                    else selectedClientIds.delete(client.id);
-                });
-                renderClientsDirectory();
-            });
+            container.onchange = function(event) {
+                const target = event.target;
+                if (target?.id === 'clientsSelectAll') {
+                    getFilteredSortedClients().forEach(client => {
+                        if (target.checked) selectedClientIds.add(client.id);
+                        else selectedClientIds.delete(client.id);
+                    });
+                    renderClientsDirectory();
+                    return;
+                }
 
-            container.querySelectorAll('.client-select-checkbox').forEach(checkbox => {
-                checkbox.addEventListener('change', function() {
-                    const clientId = this.getAttribute('data-client-select');
-                    if (this.checked) selectedClientIds.add(clientId);
+                if (target?.matches('.client-select-checkbox')) {
+                    const clientId = target.getAttribute('data-client-select');
+                    if (target.checked) selectedClientIds.add(clientId);
                     else selectedClientIds.delete(clientId);
                     updateClientsSelectionUI();
-                    this.closest('tr')?.classList.toggle('is-selected', this.checked);
-                });
-            });
+                    target.closest('tr')?.classList.toggle('is-selected', target.checked);
+                }
+            };
 
-            container.querySelectorAll('[data-client-sort]').forEach(header => {
-                header.addEventListener('click', function() {
-                    const key = this.getAttribute('data-client-sort');
+            container.onclick = function(event) {
+                const sortHeader = event.target.closest('[data-client-sort]');
+                if (sortHeader) {
+                    const key = sortHeader.getAttribute('data-client-sort');
                     if (clientsSortState.key === key) {
                         clientsSortState.direction = clientsSortState.direction === 'asc' ? 'desc' : 'asc';
                     } else {
                         clientsSortState.key = key;
                         clientsSortState.direction = 'desc';
                     }
-                    const sortSelect = document.getElementById('clientsSortField');
-                    if (sortSelect) sortSelect.value = clientsSortState.key;
                     renderClientsDirectory();
-                });
-            });
+                    return;
+                }
 
-            container.querySelectorAll('[data-client-view]').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    viewClientDetails(this.getAttribute('data-client-view'));
-                });
-            });
+                const viewBtn = event.target.closest('[data-client-view]');
+                if (viewBtn) {
+                    viewClientDetails(viewBtn.getAttribute('data-client-view'));
+                    return;
+                }
 
-            container.querySelectorAll('[data-client-download]').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const clientId = this.getAttribute('data-client-download');
-                    const clientName = this.getAttribute('data-client-download-name');
-                    downloadClientData(clientId, clientName);
-                });
-            });
+                const downloadBtn = event.target.closest('[data-client-download]');
+                if (downloadBtn) {
+                    downloadClientData(
+                        downloadBtn.getAttribute('data-client-download'),
+                        downloadBtn.getAttribute('data-client-download-name')
+                    );
+                    return;
+                }
 
-            container.querySelectorAll('[data-client-delete]').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const clientId = this.getAttribute('data-client-delete');
-                    const clientName = this.getAttribute('data-client-delete-name');
-                    deleteClients([clientId], clientName);
-                });
-            });
+                const deleteBtn = event.target.closest('[data-client-delete]');
+                if (deleteBtn) {
+                    deleteClients(
+                        [deleteBtn.getAttribute('data-client-delete')],
+                        deleteBtn.getAttribute('data-client-delete-name')
+                    );
+                }
+            };
 
             updateClientsSelectionUI();
         }
         
         function filterClients() {
             if (!allClientsData.length) return;
-            renderClientsDirectory();
-        }
-
-        function updateClientsSort() {
-            const sortSelect = document.getElementById('clientsSortField');
-            clientsSortState.key = sortSelect?.value || 'submittedAt';
-            renderClientsDirectory();
-        }
-
-        function toggleClientsSortDirection() {
-            clientsSortState.direction = clientsSortState.direction === 'asc' ? 'desc' : 'asc';
-            renderClientsDirectory();
-        }
-
-        function selectAllVisibleClients() {
-            getFilteredSortedClients().forEach(client => selectedClientIds.add(client.id));
-            renderClientsDirectory();
-        }
-
-        function clearSelectedClients() {
-            selectedClientIds.clear();
             renderClientsDirectory();
         }
 
