@@ -2605,7 +2605,7 @@
         // --- Navigation ---
         function goBack() {
             if (requestShellAction('NUTRIPLAN_SWITCH_TAB', { tab: 'plan' })) return;
-            window.location.href = 'plan.html';
+            window.location.href = 'index.html?app=1&tab=plan';
         }
 
         // --- Questionnaire Collapsible Toggle ---
@@ -3042,7 +3042,7 @@
                 
                 setTimeout(() => {
                     if (!requestShellAction('NUTRIPLAN_SWITCH_TAB', { tab: 'plan' })) {
-                        window.location.href = 'plan.html';
+                        window.location.href = 'index.html?app=1&tab=plan';
                     }
                 }, 2000);
 

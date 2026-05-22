@@ -1,5 +1,20 @@
 # Log Tasks
 
+## 2026-05-22 — Минимално уеднаквяване на post-login и plan navigation към shell-а
+
+**Задача:** Да се изгради икономична стратегия и да се оправят login / registration / navigation проблемите след tab merge само с прецизни корекции без излишен код.
+
+**Направено:**
+1. **Стратегия:** Избрах най-малката възможна корекция — без нови helper-и и без нова архитектура, само замяна на legacy standalone redirect-и, които заобикалят shell-а.
+2. **Критичен registration fix:** В `plan-pending.html` смених успешния post-registration redirect от `plan.html` към `index.html?app=1&tab=plan`, за да не се излиза от новия shell веднага след създаване на акаунт.
+3. **Навигационни fix-ове:** Уеднаквих fallback navigation към plan tab-а в `profile.html`, `guidelines.html`, `analysis.html`, `game-analytics.html`, `food-picker.html` и `plan-book.html`, така че да връщат към shell plan route вместо към стария standalone `plan.html`.
+4. **Почистване на излишно legacy съобщение:** Обнових текста в `plan-pending.html`, който още насочваше потребителя да влиза през `plan.html`.
+5. **Проверка:** Ще валидирам отново с наличния `npm test` и финален security review.
+
+**Резултат:** Login/registration/navigation flow-овете вече сочат към единния shell route вместо към смесен shell/standalone модел, което е най-икономичният fix за липсващи данни в APK и интерфейсни дефекти в Web.
+
+---
+
 ## 2026-05-22 — Одит на login / registration / shell логиката след tab merge
 
 **Задача:** Да се прегледат `index`, login, registration и shell/tab логиката след обединяването на tab flow-овете, защото в APK след login липсват данни, а в Web има данни, но с дефекти по интерфейса.
