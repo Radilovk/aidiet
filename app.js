@@ -69,6 +69,8 @@
         raw: Object.create(null),
         parsed: Object.create(null)
     };
+    var shellChatOverlay = null;
+    var shellChatFrame = null;
     var deferredPreloadScheduled = false;
 
     function getPreferences() {
@@ -403,7 +405,7 @@
         if (!style) {
             style = frameDocument.createElement('style');
             style.id = 'spaEmbeddedPatch';
-            style.textContent = 'body{opacity:1!important}.bottom-nav{display:none!important}.fab-chat,.fab-food{bottom:calc(16px + var(--safe-area-inset-bottom,0px))!important}';
+            style.textContent = 'body{opacity:1!important}.bottom-nav{display:none!important}.fab-chat{display:none!important}.fab-food{bottom:calc(16px + var(--safe-area-inset-bottom,0px))!important}';
             frameDocument.head.appendChild(style);
         }
 
@@ -438,11 +440,43 @@
         }, true);
     }
 
+    function ensureShellChatOverlay() {
+        if (shellChatOverlay && shellChatFrame) return;
+        shellChatOverlay = document.getElementById('spaShellChatOverlay');
+        shellChatFrame = document.getElementById('spaShellChatFrame');
+    }
+
+    function openShellChat() {
+        ensureShellChatOverlay();
+        if (!shellChatOverlay || !shellChatFrame) return;
+        var nextSrc = 'plan.html?chat=1&embedded=1&shellChat=1';
+        if (shellChatFrame.getAttribute('src') !== nextSrc) {
+            shellChatFrame.setAttribute('src', nextSrc);
+        }
+        shellChatOverlay.classList.add('is-open');
+        shellChatOverlay.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeShellChat() {
+        ensureShellChatOverlay();
+        if (!shellChatOverlay) return;
+        shellChatOverlay.classList.remove('is-open');
+        shellChatOverlay.setAttribute('aria-hidden', 'true');
+    }
+
     function handleShellMessage(event) {
         if (!event || event.origin !== window.location.origin || !event.data || typeof event.data.type !== 'string') return;
         var data = event.data;
         if (data.type === 'NUTRIPLAN_THEME_CHANGE') {
             applyTheme(data.theme);
+            return;
+        }
+        if (data.type === 'NUTRIPLAN_OPEN_CHAT') {
+            openShellChat();
+            return;
+        }
+        if (data.type === 'NUTRIPLAN_CLOSE_CHAT') {
+            closeShellChat();
             return;
         }
         if (data.type === 'NUTRIPLAN_SWITCH_TAB') {
@@ -612,6 +646,18 @@
             button.addEventListener('click', function () {
                 switchTab(button.getAttribute('data-tab-target'), true);
             });
+        });
+        ensureShellChatOverlay();
+        var shellChatFab = document.getElementById('spaShellChatFab');
+        var shellChatClose = document.getElementById('spaShellChatClose');
+        if (shellChatFab) {
+            shellChatFab.addEventListener('click', openShellChat);
+        }
+        if (shellChatClose) {
+            shellChatClose.addEventListener('click', closeShellChat);
+        }
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') closeShellChat();
         });
 
         switchTab(initialTab, true);
