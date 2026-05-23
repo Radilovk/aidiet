@@ -69,6 +69,8 @@
         raw: Object.create(null),
         parsed: Object.create(null)
     };
+    var shellChatOverlay = null;
+    var shellChatFrame = null;
     var deferredPreloadScheduled = false;
 
     function getPreferences() {
@@ -403,7 +405,7 @@
         if (!style) {
             style = frameDocument.createElement('style');
             style.id = 'spaEmbeddedPatch';
-            style.textContent = 'body{opacity:1!important}.bottom-nav{display:none!important}.fab-chat,.fab-food{bottom:calc(16px + var(--safe-area-inset-bottom,0px))!important}';
+            style.textContent = 'body{opacity:1!important}.bottom-nav{display:none!important}.fab-chat{display:none!important}.fab-food{bottom:calc(16px + var(--safe-area-inset-bottom,0px))!important}';
             frameDocument.head.appendChild(style);
         }
 
@@ -438,11 +440,62 @@
         }, true);
     }
 
+    function ensureShellChatOverlay() {
+        if (shellChatOverlay && shellChatFrame) return;
+        var shell = document.getElementById('spaShell');
+        if (!shell) return;
+        if (!document.getElementById('spaShellChatFab')) {
+            var fab = document.createElement('button');
+            fab.type = 'button';
+            fab.id = 'spaShellChatFab';
+            fab.setAttribute('aria-label', 'Отвори чат асистент');
+            fab.style.cssText = 'position:absolute;right:calc(16px + var(--safe-area-inset-right));bottom:calc(80px + var(--safe-area-inset-bottom));width:56px;height:56px;border:none;border-radius:20px;padding:0;cursor:pointer;z-index:10002;background:linear-gradient(135deg,var(--primary-red) 0%,var(--primary-accent,#0F766E) 100%);box-shadow:0 8px 24px rgba(13,148,136,.35);overflow:hidden;';
+            fab.innerHTML = '<img src="./docs/Chat2.png" alt="" aria-hidden="true" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">';
+            shell.appendChild(fab);
+        }
+        if (!document.getElementById('spaShellChatOverlay')) {
+            var overlay = document.createElement('div');
+            overlay.id = 'spaShellChatOverlay';
+            overlay.setAttribute('aria-hidden', 'true');
+            overlay.style.cssText = 'position:absolute;inset:0;z-index:10003;background:rgba(10,26,26,.32);display:none;';
+            overlay.innerHTML = '<button type="button" id="spaShellChatClose" aria-label="Затвори чат прозореца" style="position:absolute;top:calc(12px + var(--safe-area-inset-top));right:calc(12px + var(--safe-area-inset-right));width:38px;height:38px;border:none;border-radius:999px;background:rgba(10,26,26,.72);color:#fff;cursor:pointer;z-index:1;font-size:20px;line-height:1;">&times;</button><iframe id="spaShellChatFrame" title="Чат асистент" style="width:100%;height:100%;border:0;background:var(--bg-color);"></iframe>';
+            shell.appendChild(overlay);
+        }
+        shellChatOverlay = document.getElementById('spaShellChatOverlay');
+        shellChatFrame = document.getElementById('spaShellChatFrame');
+    }
+
+    function openShellChat() {
+        ensureShellChatOverlay();
+        if (!shellChatOverlay || !shellChatFrame) return;
+        var nextSrc = 'plan.html?chat=1&embedded=1&shellChat=1';
+        if (shellChatFrame.getAttribute('src') !== nextSrc) {
+            shellChatFrame.setAttribute('src', nextSrc);
+        }
+        shellChatOverlay.style.display = 'block';
+        shellChatOverlay.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeShellChat() {
+        ensureShellChatOverlay();
+        if (!shellChatOverlay) return;
+        shellChatOverlay.style.display = 'none';
+        shellChatOverlay.setAttribute('aria-hidden', 'true');
+    }
+
     function handleShellMessage(event) {
         if (!event || event.origin !== window.location.origin || !event.data || typeof event.data.type !== 'string') return;
         var data = event.data;
         if (data.type === 'NUTRIPLAN_THEME_CHANGE') {
             applyTheme(data.theme);
+            return;
+        }
+        if (data.type === 'NUTRIPLAN_OPEN_CHAT') {
+            openShellChat();
+            return;
+        }
+        if (data.type === 'NUTRIPLAN_CLOSE_CHAT') {
+            closeShellChat();
             return;
         }
         if (data.type === 'NUTRIPLAN_SWITCH_TAB') {
@@ -612,6 +665,18 @@
             button.addEventListener('click', function () {
                 switchTab(button.getAttribute('data-tab-target'), true);
             });
+        });
+        ensureShellChatOverlay();
+        var shellChatFab = document.getElementById('spaShellChatFab');
+        var shellChatClose = document.getElementById('spaShellChatClose');
+        if (shellChatFab) {
+            shellChatFab.addEventListener('click', openShellChat);
+        }
+        if (shellChatClose) {
+            shellChatClose.addEventListener('click', closeShellChat);
+        }
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') closeShellChat();
         });
 
         switchTab(initialTab, true);

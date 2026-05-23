@@ -6145,6 +6145,13 @@
                 // Reset chatMode to consultation on close to avoid confusion when reopening
                 // User needs to explicitly activate modification mode each time
                 chatMode = 'consultation';
+                if (document.documentElement.getAttribute('data-embedded-tab') === '1' &&
+                    new URLSearchParams(window.location.search).get('shellChat') === '1' &&
+                    window.parent && window.parent !== window) {
+                    try {
+                        window.parent.postMessage({ type: 'NUTRIPLAN_CLOSE_CHAT' }, window.location.origin);
+                    } catch (_) {}
+                }
             }
         }
 
