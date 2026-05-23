@@ -1838,12 +1838,12 @@
     <script>
     (function() {
         var tabs = [
-            { tab: 'home', url: 'index.html?stay=1' },
             { tab: 'plan', url: 'index.html?app=1&tab=plan' },
             { tab: 'guidelines', url: 'index.html?app=1&tab=guidelines' },
-            { tab: 'profile', url: 'index.html?app=1&tab=profile' }
+            { tab: 'profile', url: 'index.html?app=1&tab=profile' },
+            { tab: 'analytics', url: 'index.html?app=1&tab=analytics' }
         ];
-        var currentIndex = 2;
+        var currentIndex = 1;
         var touchStartX = 0, touchStartY = 0;
         var THRESHOLD = 60;
         document.addEventListener('touchstart', function(e) {
@@ -1875,10 +1875,6 @@
 
     <!-- Bottom Navigation -->
     <nav class="bottom-nav" aria-label="Основна навигация">
-        <a href="index.html?stay=1" class="bottom-nav-item">
-            <i class="fas fa-home"></i>
-            <span>Начало</span>
-        </a>
         <a href="index.html?app=1&tab=plan" class="bottom-nav-item">
             <i class="fas fa-utensils"></i>
             <span>Моят План</span>
@@ -1890,6 +1886,10 @@
         <a href="index.html?app=1&tab=profile" class="bottom-nav-item">
             <i class="fas fa-user"></i>
             <span>Профил</span>
+        </a>
+        <a href="index.html?app=1&tab=analytics" class="bottom-nav-item">
+            <i class="fas fa-chart-bar"></i>
+            <span>Анализ</span>
         </a>
     </nav>
 </body>

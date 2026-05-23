@@ -800,12 +800,6 @@
             var header = section.querySelector('.game-analytics-header');
             if (header) header.setAttribute('aria-expanded', 'true');
 
-            var enabled = localStorage.getItem('gameEnabled') === 'true';
-            if (!enabled) {
-                body.innerHTML = '<div class="ga-no-data"><i class="fas fa-chart-bar"></i>Анализът не е активиран.<br>Активирайте го от страницата на плана.</div>';
-                return;
-            }
-
             // ── Helpers ───────────────────────────────────────────────────────
             function zp(n) { return n < 10 ? '0' + n : '' + n; }
             function dk(d)  { return d.getFullYear()+'-'+zp(d.getMonth()+1)+'-'+zp(d.getDate()); }
