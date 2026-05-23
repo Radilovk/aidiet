@@ -4201,8 +4201,6 @@
         const MAX_RETRIES = 2;
         const RETRY_DELAYS = [2000, 5000]; // Exponential backoff delays in ms
         let typingHapticsEnabled = true;
-        let lastTypingHapticAt = 0;
-        let lastTypingHapticSource = null;
         const activeTypingTimers = new Set();
         const activeTypingFinalizers = new Set();
         const CHAT_REQUEST_CANCELLED = 'chat-request-cancelled';
@@ -4653,8 +4651,6 @@
         }
 
         function stopTypingHaptics() {
-            lastTypingHapticAt = 0;
-            lastTypingHapticSource = null;
             try {
                 if (typeof navigator !== 'undefined' && navigator.vibrate) {
                     navigator.vibrate(0);
@@ -4733,6 +4729,7 @@
             document.querySelectorAll('[id^="typing-"]').forEach(function(indicator) {
                 indicator.remove();
             });
+            stopTypingHaptics();
         }
 
         function getFoodPickerUrl() {
@@ -4756,23 +4753,14 @@
             return false;
         }
 
-        function pulseTypingHaptic(duration, source, interval) {
+        function pulseTypingHaptic(duration, source) {
             if (!typingHapticsEnabled) return;
-            const normalizedSource = source || 'chat';
             if (source === 'chat') {
-                if (!chatVisible || !document.getElementById('chatWindow')) {
-                    stopTypingHaptics();
-                    return;
-                }
+                if (!chatVisible || !document.getElementById('chatWindow')) return;
             }
-            const now = Date.now();
-            const minInterval = Math.max(16, interval || 30);
-            if (lastTypingHapticSource === normalizedSource && now - lastTypingHapticAt < minInterval) return;
-            lastTypingHapticSource = normalizedSource;
-            lastTypingHapticAt = now;
             try {
                 if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                    navigator.vibrate(Math.max(1, duration || 4));
+                    navigator.vibrate(duration || 4);
                 }
             } catch (_) {}
         }
@@ -6994,7 +6982,7 @@
                     if (i < message.length) {
                         bubble.textContent += message[i++];
                         // Micro-vibration on every letter while bot types
-                        pulseTypingHaptic(4, 'chat', charDelay);
+                        pulseTypingHaptic(4, 'chat');
                         chatMessages.scrollTop = chatMessages.scrollHeight;
                         scheduleTypingStep(tick, charDelay);
                     } else {
@@ -8831,7 +8819,7 @@
                 if (i < text.length) {
                     el.textContent += text[i++];
                     // Micro-vibration on every character while game question types
-                    pulseTypingHaptic(4, 'game', speed || 30);
+                    pulseTypingHaptic(4, 'game');
                     scheduleTypingStep(tick, speed || 30);
                 }
                 else { finalize(); }
