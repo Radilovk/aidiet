@@ -6140,7 +6140,7 @@
                 // Save chat history before closing
                 saveChatHistory();
                 chatVisible = false;
-                cancelActiveTyping();
+                cancelActiveTyping({ complete: true });
                 chatWindow.remove();
                 // Reset chatMode to consultation on close to avoid confusion when reopening
                 // User needs to explicitly activate modification mode each time
@@ -7128,6 +7128,7 @@
             // Clear chat messages from UI
             const chatMessages = document.getElementById('chatMessages');
             if (chatMessages) {
+                cancelActiveTyping({ complete: true });
                 chatMessages.innerHTML = '';
                 // Show welcome message
                 addMessageToChat(`Здравейте, ${userData.name || 'приятелю'}! 👋\n\nАз съм вашият AI диетолог асистент. Как мога да ви помогна днес?`, 'assistant', false);
