@@ -1,5 +1,21 @@
 # Log Tasks
 
+## 2026-05-23 — Stop chat haptics on close and interrupted assistant typing
+
+**Задача:** В чата с AI асистента haptic feedback задължително да спира при затваряне на чат прозореца и при спиране/прекъсване на текстовото съобщение от асистента.
+
+**Направено:**
+1. **Преглед на текущия flow:** Проверих chat/haptic логиката в `/home/runner/work/aidiet/aidiet/plan.html` и потвърдих, че typing vibration се пуска от typewriter effect-а, но active request-ът и debounce/retry lifecycle-ът не се спираха централно при close/interruption.
+2. **Прецизен централен stop fix:** Добавих минимален helper flow за прекратяване на активния chat request, pending debounce и typing timers, така че при затваряне, tab deactivation, page hide и reset на чата vibration да се прекъсва веднага.
+3. **Безшумно прекъсване на chat заявките:** Свързах chat/report fetch заявките с централен AbortController lifecycle и маркирах локалното cancel поведение така, че при close/reset да няма retry/error пътека, която да подновява chat typing flow-а.
+4. **Подсилване на haptic stop-а:** Гарантирах `stopTypingHaptics()` и при махане на typing indicator, дори ако DOM елементът вече липсва след затваряне на чата.
+5. **Покрит reset path:** `startNewChat()` вече също спира активното typing/request състояние преди да изчисти UI, за да не остава остатъчен haptic след прекъснато съобщение.
+6. **Проверка:** Пуснах наличния `npm test` преди промяната и ще го повторя след нея, плюс финален security review.
+
+**Резултат:** Chat haptic feedback вече трябва да спира веднага при затваряне на чата, при reset/new chat и при всяко локално прекъсване или приключване на assistant typing flow-а.
+
+---
+
 ## 2026-05-23 — NutriPlan chat haptics и shell tab контекст
 
 **Задача:** Да се оправят три свързани проблема в NutriPlan — chat haptic да не продължава след затваряне/край на typing, embedded страници да не навигират вътре в грешния tab iframe, и chat shortcut от „Насоки“ да не зарежда plan екрана в самия guidelines tab.
