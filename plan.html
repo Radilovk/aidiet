@@ -4201,6 +4201,9 @@
         const MAX_RETRIES = 2;
         const RETRY_DELAYS = [2000, 5000]; // Exponential backoff delays in ms
         let typingHapticsEnabled = true;
+        let typingHapticLoopTimer = null;
+        let typingHapticAutoStopTimer = null;
+        let typingHapticState = null;
         const activeTypingTimers = new Set();
         const activeTypingFinalizers = new Set();
         const CHAT_REQUEST_CANCELLED = 'chat-request-cancelled';
@@ -4651,6 +4654,15 @@
         }
 
         function stopTypingHaptics() {
+            if (typingHapticLoopTimer) {
+                clearTimeout(typingHapticLoopTimer);
+                typingHapticLoopTimer = null;
+            }
+            if (typingHapticAutoStopTimer) {
+                clearTimeout(typingHapticAutoStopTimer);
+                typingHapticAutoStopTimer = null;
+            }
+            typingHapticState = null;
             try {
                 if (typeof navigator !== 'undefined' && navigator.vibrate) {
                     navigator.vibrate(0);
@@ -4753,16 +4765,56 @@
             return false;
         }
 
-        function pulseTypingHaptic(duration, source) {
+        function runTypingHapticLoop() {
+            if (!typingHapticState || !typingHapticsEnabled) {
+                stopTypingHaptics();
+                return;
+            }
+            if (typingHapticState.source === 'chat' && (!chatVisible || !document.getElementById('chatWindow'))) {
+                stopTypingHaptics();
+                return;
+            }
+            try {
+                if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                    navigator.vibrate(typingHapticState.duration);
+                }
+            } catch (_) {}
+            typingHapticLoopTimer = setTimeout(runTypingHapticLoop, typingHapticState.interval);
+        }
+
+        function scheduleTypingHapticAutoStop() {
+            if (!typingHapticState) return;
+            if (typingHapticAutoStopTimer) {
+                clearTimeout(typingHapticAutoStopTimer);
+            }
+            typingHapticAutoStopTimer = setTimeout(function() {
+                stopTypingHaptics();
+            }, typingHapticState.interval + 40);
+        }
+
+        function pulseTypingHaptic(duration, source, interval) {
             if (!typingHapticsEnabled) return;
             if (source === 'chat') {
                 if (!chatVisible || !document.getElementById('chatWindow')) return;
             }
-            try {
-                if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                    navigator.vibrate(duration || 4);
+            const nextState = {
+                source: source || 'chat',
+                duration: Math.max(1, duration || 4),
+                interval: Math.max(16, interval || 30)
+            };
+            const shouldRestartLoop = !typingHapticState ||
+                typingHapticState.source !== nextState.source ||
+                typingHapticState.duration !== nextState.duration ||
+                typingHapticState.interval !== nextState.interval;
+            typingHapticState = nextState;
+            if (shouldRestartLoop) {
+                if (typingHapticLoopTimer) {
+                    clearTimeout(typingHapticLoopTimer);
+                    typingHapticLoopTimer = null;
                 }
-            } catch (_) {}
+                runTypingHapticLoop();
+            }
+            scheduleTypingHapticAutoStop();
         }
 
         function getProfileSyncSignature(uid, planStr, userDataStr, planSource) {
@@ -6982,7 +7034,7 @@
                     if (i < message.length) {
                         bubble.textContent += message[i++];
                         // Micro-vibration on every letter while bot types
-                        pulseTypingHaptic(4, 'chat');
+                        pulseTypingHaptic(4, 'chat', charDelay);
                         chatMessages.scrollTop = chatMessages.scrollHeight;
                         scheduleTypingStep(tick, charDelay);
                     } else {
@@ -8819,7 +8871,7 @@
                 if (i < text.length) {
                     el.textContent += text[i++];
                     // Micro-vibration on every character while game question types
-                    pulseTypingHaptic(4, 'game');
+                    pulseTypingHaptic(4, 'game', speed || 30);
                     scheduleTypingStep(tick, speed || 30);
                 }
                 else { finalize(); }

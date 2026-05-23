@@ -1,5 +1,20 @@
 # Log Tasks
 
+## 2026-05-23 — Синхронизация на chat haptic със stop/close lifecycle
+
+**Задача:** Да се гарантира, че chat vibration спира веднага при затваряне на чат прозореца и при спиране на bot typing, без да продължава на заден план извън реалната скорост на писане.
+
+**Направено:**
+1. **Проверка на текущата реализация:** Прегледах `/home/runner/work/aidiet/aidiet/plan.html` и потвърдих, че chat/game typing викаха `navigator.vibrate(4)` на всеки символ, което правеше haptic-а зависим от буквените tick-ове вместо от отделен sync/stop lifecycle.
+2. **Прецизен sync fix:** Преработих `pulseTypingHaptic(...)` в централен кратък loop с auto-stop timeout, така че vibration вече да следва зададения typing interval, а не да пуска нова независима vibrate заявка на всяка буква.
+3. **Незабавно спиране:** `stopTypingHaptics()` вече чисти и haptic loop/auto-stop таймерите, така че close, cancel и finalize path-овете да прекъсват вибрацията веднага.
+4. **Връзка със скоростта на писане:** Chat typewriter-ът вече подава `charDelay`, а game typewriter-ът подава своя `speed`, за да остава haptic cadence синхронизиран с реалното изписване.
+5. **Проверка:** Пуснах наличния `npm test` преди промяната и ще го повторя след нея, плюс финален security review.
+
+**Резултат:** Chat haptic feedback вече трябва да спира веднага при close/stop и да не продължава след края или прекъсването на typing-а.
+
+---
+
 ## 2026-05-23 — Stop chat haptics on close and interrupted assistant typing
 
 **Задача:** В чата с AI асистента haptic feedback задължително да спира при затваряне на чат прозореца и при спиране/прекъсване на текстовото съобщение от асистента.
