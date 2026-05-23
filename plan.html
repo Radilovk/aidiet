@@ -4201,9 +4201,8 @@
         const MAX_RETRIES = 2;
         const RETRY_DELAYS = [2000, 5000]; // Exponential backoff delays in ms
         let typingHapticsEnabled = true;
-        let typingHapticLoopTimer = null;
-        let typingHapticAutoStopTimer = null;
-        let typingHapticState = null;
+        let lastTypingHapticAt = 0;
+        let lastTypingHapticSource = null;
         const activeTypingTimers = new Set();
         const activeTypingFinalizers = new Set();
         const CHAT_REQUEST_CANCELLED = 'chat-request-cancelled';
@@ -4654,15 +4653,8 @@
         }
 
         function stopTypingHaptics() {
-            if (typingHapticLoopTimer) {
-                clearTimeout(typingHapticLoopTimer);
-                typingHapticLoopTimer = null;
-            }
-            if (typingHapticAutoStopTimer) {
-                clearTimeout(typingHapticAutoStopTimer);
-                typingHapticAutoStopTimer = null;
-            }
-            typingHapticState = null;
+            lastTypingHapticAt = 0;
+            lastTypingHapticSource = null;
             try {
                 if (typeof navigator !== 'undefined' && navigator.vibrate) {
                     navigator.vibrate(0);
@@ -4741,7 +4733,6 @@
             document.querySelectorAll('[id^="typing-"]').forEach(function(indicator) {
                 indicator.remove();
             });
-            stopTypingHaptics();
         }
 
         function getFoodPickerUrl() {
@@ -4765,56 +4756,25 @@
             return false;
         }
 
-        function runTypingHapticLoop() {
-            if (!typingHapticState || !typingHapticsEnabled) {
-                stopTypingHaptics();
-                return;
-            }
-            if (typingHapticState.source === 'chat' && (!chatVisible || !document.getElementById('chatWindow'))) {
-                stopTypingHaptics();
-                return;
-            }
-            try {
-                if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                    navigator.vibrate(typingHapticState.duration);
-                }
-            } catch (_) {}
-            typingHapticLoopTimer = setTimeout(runTypingHapticLoop, typingHapticState.interval);
-        }
-
-        function scheduleTypingHapticAutoStop() {
-            if (!typingHapticState) return;
-            if (typingHapticAutoStopTimer) {
-                clearTimeout(typingHapticAutoStopTimer);
-            }
-            typingHapticAutoStopTimer = setTimeout(function() {
-                stopTypingHaptics();
-            }, typingHapticState.interval + 40);
-        }
-
         function pulseTypingHaptic(duration, source, interval) {
             if (!typingHapticsEnabled) return;
+            const normalizedSource = source || 'chat';
             if (source === 'chat') {
-                if (!chatVisible || !document.getElementById('chatWindow')) return;
-            }
-            const nextState = {
-                source: source || 'chat',
-                duration: Math.max(1, duration || 4),
-                interval: Math.max(16, interval || 30)
-            };
-            const shouldRestartLoop = !typingHapticState ||
-                typingHapticState.source !== nextState.source ||
-                typingHapticState.duration !== nextState.duration ||
-                typingHapticState.interval !== nextState.interval;
-            typingHapticState = nextState;
-            if (shouldRestartLoop) {
-                if (typingHapticLoopTimer) {
-                    clearTimeout(typingHapticLoopTimer);
-                    typingHapticLoopTimer = null;
+                if (!chatVisible || !document.getElementById('chatWindow')) {
+                    stopTypingHaptics();
+                    return;
                 }
-                runTypingHapticLoop();
             }
-            scheduleTypingHapticAutoStop();
+            const now = Date.now();
+            const minInterval = Math.max(16, interval || 30);
+            if (lastTypingHapticSource === normalizedSource && now - lastTypingHapticAt < minInterval) return;
+            lastTypingHapticSource = normalizedSource;
+            lastTypingHapticAt = now;
+            try {
+                if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                    navigator.vibrate(Math.max(1, duration || 4));
+                }
+            } catch (_) {}
         }
 
         function getProfileSyncSignature(uid, planStr, userDataStr, planSource) {
