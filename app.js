@@ -455,7 +455,7 @@
             overlay.id = 'spaShellChatOverlay';
             overlay.setAttribute('aria-hidden', 'true');
             overlay.style.cssText = 'position:absolute;inset:0;z-index:10003;background:rgba(10,26,26,.32);display:none;';
-            overlay.innerHTML = '<button type="button" id="spaShellChatClose" aria-label="Затвори чат прозореца" style="position:absolute;top:calc(12px + var(--safe-area-inset-top));right:calc(12px + var(--safe-area-inset-right));width:38px;height:38px;border:none;border-radius:999px;background:rgba(10,26,26,.72);color:#fff;cursor:pointer;z-index:1;font-size:20px;line-height:1;">&times;</button><iframe id="spaShellChatFrame" title="Чат асистент" style="width:100%;height:100%;border:0;background:var(--bg-color);"></iframe>';
+            overlay.innerHTML = '<button type="button" id="spaShellChatClose" aria-label="Затвори чат прозореца" style="position:absolute;top:calc(12px + var(--safe-area-inset-top));right:calc(12px + var(--safe-area-inset-right));width:38px;height:38px;border:none;border-radius:999px;background:rgba(10,26,26,.72);color:#fff;cursor:pointer;z-index:1;font-size:20px;line-height:1;">&times;</button><iframe id="spaShellChatFrame" title="Чат асистент" style="width:100%;height:100%;border:0;background:transparent;"></iframe>';
             shell.appendChild(overlay);
         }
         shellChatOverlay = document.getElementById('spaShellChatOverlay');
@@ -468,6 +468,8 @@
         var nextSrc = 'plan.html?chat=1&embedded=1&shellChat=1';
         if (shellChatFrame.getAttribute('src') !== nextSrc) {
             shellChatFrame.setAttribute('src', nextSrc);
+        } else if (shellChatFrame.contentWindow) {
+            shellChatFrame.contentWindow.dispatchEvent(new CustomEvent('NUTRIPLAN_SHELL_CHAT_OPEN'));
         }
         shellChatOverlay.style.display = 'block';
         shellChatOverlay.setAttribute('aria-hidden', 'false');
