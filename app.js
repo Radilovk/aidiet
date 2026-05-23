@@ -392,6 +392,13 @@
         var frameDocument = frame.contentDocument;
         if (!frameWindow || !frameDocument) return;
 
+        try {
+            var frameUrl = new URL(frameWindow.location.href, window.location.href);
+            if (frameUrl.origin === window.location.origin && frameUrl.searchParams.has('embedded')) {
+                frameDocument.documentElement.setAttribute('data-embedded-tab', '1');
+            }
+        } catch (_) {}
+
         var style = frameDocument.getElementById('spaEmbeddedPatch');
         if (!style) {
             style = frameDocument.createElement('style');
