@@ -442,6 +442,25 @@
 
     function ensureShellChatOverlay() {
         if (shellChatOverlay && shellChatFrame) return;
+        var shell = document.getElementById('spaShell');
+        if (!shell) return;
+        if (!document.getElementById('spaShellChatFab')) {
+            var fab = document.createElement('button');
+            fab.type = 'button';
+            fab.id = 'spaShellChatFab';
+            fab.setAttribute('aria-label', 'Отвори чат асистент');
+            fab.style.cssText = 'position:absolute;right:calc(16px + var(--safe-area-inset-right));bottom:calc(80px + var(--safe-area-inset-bottom));width:56px;height:56px;border:none;border-radius:20px;padding:0;cursor:pointer;z-index:10002;background:linear-gradient(135deg,var(--primary-red) 0%,var(--primary-accent,#0F766E) 100%);box-shadow:0 8px 24px rgba(13,148,136,.35);overflow:hidden;';
+            fab.innerHTML = '<img src="./docs/Chat2.png" alt="" aria-hidden="true" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">';
+            shell.appendChild(fab);
+        }
+        if (!document.getElementById('spaShellChatOverlay')) {
+            var overlay = document.createElement('div');
+            overlay.id = 'spaShellChatOverlay';
+            overlay.setAttribute('aria-hidden', 'true');
+            overlay.style.cssText = 'position:absolute;inset:0;z-index:10003;background:rgba(10,26,26,.32);display:none;';
+            overlay.innerHTML = '<button type="button" id="spaShellChatClose" aria-label="Затвори чат прозореца" style="position:absolute;top:calc(12px + var(--safe-area-inset-top));right:calc(12px + var(--safe-area-inset-right));width:38px;height:38px;border:none;border-radius:999px;background:rgba(10,26,26,.72);color:#fff;cursor:pointer;z-index:1;font-size:20px;line-height:1;">&times;</button><iframe id="spaShellChatFrame" title="Чат асистент" style="width:100%;height:100%;border:0;background:var(--bg-color);"></iframe>';
+            shell.appendChild(overlay);
+        }
         shellChatOverlay = document.getElementById('spaShellChatOverlay');
         shellChatFrame = document.getElementById('spaShellChatFrame');
     }
@@ -453,14 +472,14 @@
         if (shellChatFrame.getAttribute('src') !== nextSrc) {
             shellChatFrame.setAttribute('src', nextSrc);
         }
-        shellChatOverlay.classList.add('is-open');
+        shellChatOverlay.style.display = 'block';
         shellChatOverlay.setAttribute('aria-hidden', 'false');
     }
 
     function closeShellChat() {
         ensureShellChatOverlay();
         if (!shellChatOverlay) return;
-        shellChatOverlay.classList.remove('is-open');
+        shellChatOverlay.style.display = 'none';
         shellChatOverlay.setAttribute('aria-hidden', 'true');
     }
 
