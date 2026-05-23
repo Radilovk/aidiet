@@ -1,5 +1,20 @@
 # Log Tasks
 
+## 2026-05-23 — NutriPlan chat haptics и shell tab контекст
+
+**Задача:** Да се оправят три свързани проблема в NutriPlan — chat haptic да не продължава след затваряне/край на typing, embedded страници да не навигират вътре в грешния tab iframe, и chat shortcut от „Насоки“ да не зарежда plan екрана в самия guidelines tab.
+
+**Направено:**
+1. **Изолиране на общата причина за tab mix-up:** Проверих `app.js`, `plan.html`, `guidelines.html`, `profile.html` и `analysis.html` и потвърдих, че embedded iframe страниците разчитат на `data-embedded-tab="1"` за shell actions, но този атрибут не се подаваше от shell-а след load.
+2. **Минимален shell fix:** В `app.js` добавих прецизно маркиране на iframe document-а като embedded, когато frame URL-ът е със `?embedded=1`, така че `requestShellAction(...)` да работи в реално вградения tab.
+3. **Ефект върху навигацията:** Така chat shortcut-ът от `guidelines`, отварянето на analysis/profile flows и другите shell-aware бутони вече пращат `NUTRIPLAN_SWITCH_TAB` / `NUTRIPLAN_NAVIGATE` към shell-а вместо да зареждат страници вътре в текущия грешен tab iframe.
+4. **Прецизен haptic fix:** В `plan.html` ограничих typing haptic pulse-ите за chat source само докато chat прозорецът реално е отворен, и преместих `chatVisible = false` преди `cancelActiveTyping()` при затваряне, за да няма остатъчни вибрации при close race.
+5. **Проверка:** Подготвям повторно пускане на наличния `npm test` и финален security review.
+
+**Резултат:** Shell tab контекстът вече трябва да се запазва коректно между pages/shortcut-и, а chat typing vibration не трябва да продължава нито след затваряне на чата, нито след приключване на самото изписване.
+
+---
+
 ## 2026-05-23 — Логин с празни табове и диагностичен in-app лог
 
 **Задача:** Да се намери причината защо при login на съществуващ потребител с готов план APK/Web влизат, но tab-овете остават празни/със skeleton, и да се добави лесен диагностичен лог, достъпен с `*log` в чата.

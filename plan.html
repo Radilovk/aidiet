@@ -4707,8 +4707,11 @@
             return false;
         }
 
-        function pulseTypingHaptic(duration) {
+        function pulseTypingHaptic(duration, source) {
             if (!typingHapticsEnabled) return;
+            if (source === 'chat') {
+                if (!chatVisible || !document.getElementById('chatWindow')) return;
+            }
             try {
                 if (typeof navigator !== 'undefined' && navigator.vibrate) {
                     navigator.vibrate(duration || 4);
@@ -6136,9 +6139,9 @@
             if (chatWindow) {
                 // Save chat history before closing
                 saveChatHistory();
+                chatVisible = false;
                 cancelActiveTyping();
                 chatWindow.remove();
-                chatVisible = false;
                 // Reset chatMode to consultation on close to avoid confusion when reopening
                 // User needs to explicitly activate modification mode each time
                 chatMode = 'consultation';
@@ -6916,7 +6919,7 @@
                     if (i < message.length) {
                         bubble.textContent += message[i++];
                         // Micro-vibration on every letter while bot types
-                        pulseTypingHaptic(4);
+                        pulseTypingHaptic(4, 'chat');
                         chatMessages.scrollTop = chatMessages.scrollHeight;
                         scheduleTypingStep(tick, charDelay);
                     } else {
@@ -8752,7 +8755,7 @@
                 if (i < text.length) {
                     el.textContent += text[i++];
                     // Micro-vibration on every character while game question types
-                    pulseTypingHaptic(4);
+                    pulseTypingHaptic(4, 'game');
                     scheduleTypingStep(tick, speed || 30);
                 }
                 else { finalize(); }
