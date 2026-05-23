@@ -4203,9 +4203,6 @@
         let typingHapticsEnabled = true;
         const activeTypingTimers = new Set();
         const activeTypingFinalizers = new Set();
-        const CHAT_REQUEST_CANCELLED = 'chat-request-cancelled';
-        let activeChatRequestController = null;
-        let activeChatRequestTimeoutId = null;
         
         // Enhancement #2: Debouncing state
         let sendMessageTimeout = null;
@@ -4686,49 +4683,6 @@
                 });
             }
             activeTypingFinalizers.clear();
-            stopTypingHaptics();
-        }
-
-        function trackActiveChatRequest(controller, timeoutId) {
-            activeChatRequestController = controller || null;
-            activeChatRequestTimeoutId = timeoutId || null;
-        }
-
-        function clearActiveChatRequest(controller) {
-            if (controller && activeChatRequestController !== controller) return;
-            if (activeChatRequestTimeoutId) {
-                clearTimeout(activeChatRequestTimeoutId);
-            }
-            activeChatRequestTimeoutId = null;
-            activeChatRequestController = null;
-        }
-
-        function isSilentChatAbort(controller) {
-            return !!(controller && controller.signal && controller.signal.aborted && controller.signal.reason === CHAT_REQUEST_CANCELLED);
-        }
-
-        function abortActiveChatRequest() {
-            const controller = activeChatRequestController;
-            clearActiveChatRequest();
-            if (controller) {
-                try {
-                    controller.abort(CHAT_REQUEST_CANCELLED);
-                } catch (_) {}
-            }
-            isSending = false;
-            stopTypingHaptics();
-        }
-
-        function stopActiveChatInteraction(options) {
-            if (sendMessageTimeout) {
-                clearTimeout(sendMessageTimeout);
-                sendMessageTimeout = null;
-            }
-            abortActiveChatRequest();
-            cancelActiveTyping(options);
-            document.querySelectorAll('[id^="typing-"]').forEach(function(indicator) {
-                indicator.remove();
-            });
             stopTypingHaptics();
         }
 
@@ -5675,7 +5629,7 @@
 
         window.addEventListener('NUTRIPLAN_TAB_DEACTIVATED', function() {
             typingHapticsEnabled = false;
-            stopActiveChatInteraction({ complete: true });
+            cancelActiveTyping({ complete: true });
         });
 
         window.addEventListener('NUTRIPLAN_APP_DATA_READY', function() {
@@ -5684,14 +5638,14 @@
 
         document.addEventListener('visibilitychange', function() {
             if (document.hidden) {
-                stopActiveChatInteraction({ complete: true });
+                cancelActiveTyping({ complete: true });
             }
         });
         window.addEventListener('pagehide', function() {
-            stopActiveChatInteraction();
+            cancelActiveTyping();
         });
         window.addEventListener('beforeunload', function() {
-            stopActiveChatInteraction();
+            cancelActiveTyping();
         });
 
         function getDayTimeIcon() {
@@ -6186,7 +6140,7 @@
                 // Save chat history before closing
                 saveChatHistory();
                 chatVisible = false;
-                stopActiveChatInteraction();
+                cancelActiveTyping();
                 chatWindow.remove();
                 // Reset chatMode to consultation on close to avoid confusion when reopening
                 // User needs to explicitly activate modification mode each time
@@ -6426,9 +6380,6 @@
         
         // Enhancement #1: Retry wrapper
         async function sendMessageWithRetry(message, retryCount = 0) {
-            if (!chatVisible) {
-                return;
-            }
             // Enhancement #8: Generate unique message ID for deduplication
             const messageId = `msg_${++messageIdCounter}_${Date.now()}`;
             
@@ -6449,9 +6400,6 @@
             try {
                 await sendMessageInternal(message, retryCount, messageId);
             } catch (error) {
-                if (error === CHAT_REQUEST_CANCELLED) {
-                    return;
-                }
                 console.error('Message send failed:', error);
                 
                 // Enhancement #1: Retry logic
@@ -6482,7 +6430,6 @@
             }
             
             isSending = true;
-            let controller = null;
             
             // Add user message to chat only on first attempt
             if (retryCount === 0) {
@@ -6500,9 +6447,8 @@
                 }
                 
                 // Add timeout for slow connections (60 seconds to allow AI more time)
-                controller = new AbortController();
+                const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort('Request timeout after 60 seconds'), 60000);
-                trackActiveChatRequest(controller, timeoutId);
 
                 // Transform chatHistory to API format {role, content}
                 // Enhancement #10: Limit conversation history to last 10 messages to reduce payload
@@ -6601,7 +6547,8 @@
                     body: JSON.stringify(requestBody),
                     signal: controller.signal
                 });
-                clearActiveChatRequest(controller);
+
+                clearTimeout(timeoutId);
 
                 if (!response.ok) {
                     const errorText = await response.text().catch(() => 'Unable to read error');
@@ -6700,25 +6647,19 @@
             } catch (error) {
                 console.error('Chat error:', error);
                 removeTypingIndicator(typingId);
-                if (isSilentChatAbort(controller)) {
-                    throw CHAT_REQUEST_CANCELLED;
-                }
                 
                 // Re-throw to let retry logic handle it
                 throw error;
             } finally {
-                clearActiveChatRequest(controller);
                 isSending = false;
             }
         }
         
         // Send problem report to admin
         async function sendReportProblem(message, typingId, messageId) {
-            let controller = null;
             try {
-                controller = new AbortController();
+                const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort('Request timeout after 30 seconds'), 30000);
-                trackActiveChatRequest(controller, timeoutId);
                 
                 const response = await fetch('https://aidiet.radilov-k.workers.dev/api/report-problem', {
                     method: 'POST',
@@ -6735,7 +6676,7 @@
                     signal: controller.signal
                 });
                 
-                clearActiveChatRequest(controller);
+                clearTimeout(timeoutId);
                 removeTypingIndicator(typingId);
                 
                 if (response.ok) {
@@ -6756,13 +6697,9 @@
             } catch (error) {
                 console.error('Report problem error:', error);
                 removeTypingIndicator(typingId);
-                if (isSilentChatAbort(controller)) {
-                    throw CHAT_REQUEST_CANCELLED;
-                }
                 addMessageToChat('❌ Грешка при изпращане на доклада. Моля, опитайте отново по-късно.', 'assistant');
                 throw error;
             } finally {
-                clearActiveChatRequest(controller);
                 isSending = false;
             }
         }
@@ -7090,8 +7027,8 @@
 
         function removeTypingIndicator(id) {
             const indicator = document.getElementById(id);
-            stopTypingHaptics();
             if (indicator) {
+                stopTypingHaptics();
                 indicator.remove();
             }
         }
@@ -7181,7 +7118,6 @@
                     return;
                 }
             }
-            stopActiveChatInteraction();
             
             // Clear chat history
             chatHistory = [];
