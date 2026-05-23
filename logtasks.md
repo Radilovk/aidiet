@@ -1,5 +1,18 @@
 # Log Tasks
 
+## 2026-05-23 — Прецизиране и оправяне на чат функция (таб поведение)
+
+**Задача:** Чат прозорецът трябва да се отваря директно при клик на chat иконата от всеки таб. В момента при клик от guidelines/друг таб се превключваше на „план" таб и чак тогава се отваряше чата.
+
+**Направено:**
+1. **plan.html** — Добавен early inline script, който задава `data-embedded-tab='1'` и `data-shell-chat='1'` преди first paint, базиран на URL params. Добавен CSS: в shellChat режим body е прозрачен и само `#chatWindow` е видим. Chat се отваря незабавно (без 500ms delay) в shellChat режим. Добавен listener за `NUTRIPLAN_SHELL_CHAT_OPEN` събитие за повторно отваряне без reload.
+2. **guidelines.html** — Добавен early inline script за `data-embedded-tab='1'`. Опростена `openPlanShortcut`: за chat action вече само праща `NUTRIPLAN_OPEN_CHAT` или навигира директно към `plan.html?chat=1` — без tab-switch fallback.
+3. **app.js** — Overlay iframe получи `background:transparent` за да се вижда само chat прозорецът. `openShellChat()` вече изпраща `NUTRIPLAN_SHELL_CHAT_OPEN` CustomEvent към вече заредения iframe (вместо reload), за да се избегне ненужно презареждане.
+
+**Резултат:** Клик на chat иконата от guidelines (или друг таб) отваря chat overlay директно върху текущия таб — без превключване на план таба, без видимо зареждане на план страницата.
+
+---
+
 ## 2026-05-23 — NutriPlan chat haptics и shell tab контекст
 
 **Задача:** Да се оправят три свързани проблема в NutriPlan — chat haptic да не продължава след затваряне/край на typing, embedded страници да не навигират вътре в грешния tab iframe, и chat shortcut от „Насоки“ да не зарежда plan екрана в самия guidelines tab.
