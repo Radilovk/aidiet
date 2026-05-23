@@ -1,5 +1,50 @@
 # Log Tasks
 
+## 2026-05-22 — Довършване на останалите legacy plan route-и
+
+**Задача:** Да се провери дали след първия routing fix са останали user-facing пътища към стария standalone `plan.html` и ако има — да се оправят по най-икономичния стабилен начин.
+
+**Направено:**
+1. **Проверка на остатъците:** Потвърдих, че още има останали static `plan.html` target-и в менюта, feature CTA линкове, bottom navigation и swipe fallback-и.
+2. **Минимален fix без нов код:** Вместо нови helper-и просто смених останалите user-facing href/url стойности към shell route-а `index.html?app=1&tab=plan`, а за другите tab-ове към съответните shell target-и.
+3. **Обхванати страници:** Коригирах `index.html`, `features.html`, `emoeat.html`, `protocol-landing.html`, `longevity.html`, `plan.html`, `guidelines.html`, `profile.html`, `analysis.html` и `game-analytics.html`.
+4. **Резултат:** Намалих до минимум шанса потребител да излезе от merged shell flow-а през стар link/swipe/bottom-nav path.
+5. **Проверка:** Ще пусна отново наличния `npm test` и финалния security review.
+
+**Резултат:** Не, не всички намерени проблеми бяха затворени след първия fix; останаха допълнителни legacy shell bypass линкове. Те вече са изчистени с директна подмяна на target-ите, без излишно ново поведение.
+
+---
+
+## 2026-05-22 — Минимално уеднаквяване на post-login и plan navigation към shell-а
+
+**Задача:** Да се изгради икономична стратегия и да се оправят login / registration / navigation проблемите след tab merge само с прецизни корекции без излишен код.
+
+**Направено:**
+1. **Стратегия:** Избрах най-малката възможна корекция — без нови helper-и и без нова архитектура, само замяна на legacy standalone redirect-и, които заобикалят shell-а.
+2. **Критичен registration fix:** В `plan-pending.html` смених успешния post-registration redirect от `plan.html` към `index.html?app=1&tab=plan`, за да не се излиза от новия shell веднага след създаване на акаунт.
+3. **Навигационни fix-ове:** Уеднаквих fallback navigation към plan tab-а в `profile.html`, `guidelines.html`, `analysis.html`, `game-analytics.html`, `food-picker.html` и `plan-book.html`, така че да връщат към shell plan route вместо към стария standalone `plan.html`.
+4. **Почистване на излишно legacy съобщение:** Обнових текста в `plan-pending.html`, който още насочваше потребителя да влиза през `plan.html`.
+5. **Проверка:** Ще валидирам отново с наличния `npm test` и финален security review.
+
+**Резултат:** Login/registration/navigation flow-овете вече сочат към единния shell route вместо към смесен shell/standalone модел, което е най-икономичният fix за липсващи данни в APK и интерфейсни дефекти в Web.
+
+---
+
+## 2026-05-22 — Одит на login / registration / shell логиката след tab merge
+
+**Задача:** Да се прегледат `index`, login, registration и shell/tab логиката след обединяването на tab flow-овете, защото в APK след login липсват данни, а в Web има данни, но с дефекти по интерфейса.
+
+**Направено:**
+1. **Пълен логически одит:** Прегледах `index.html`, `app.js`, `session-utils.js`, `auth-guard.js`, `plan.html`, `plan-pending.html` и backend restore/save flow-овете в `worker.js`.
+2. **Потвърден shell/auth path:** Проверих, че login modal-ът в `index.html` вече връща към shell target (`index.html?app=1&tab=...`) и че restore логиката дърпа профила от `/api/user/profile`.
+3. **Изолиран реален регресионен path:** Потвърдих, че registration flow-ът в `plan-pending.html` още завършва с директен `window.location.href = 'plan.html'`, което заобикаля новия shell след tab merge.
+4. **Изолирана вторична причина за UI несъответствия:** Намерих още legacy standalone fallback-и към `plan.html` в tab-страници (`profile.html`, `guidelines.html`, `analysis.html`, `game-analytics.html`, `food-picker.html`, `plan-book.html`), които при определени пътища могат да извадят потребителя от shell-а и да покажат стария интерфейс.
+5. **Извод:** Най-вероятната комбинация е shell/standalone разминаване — Web зарежда данните, но през грешен контейнер/навигационен слой, а APK е по-чувствителен и попада в path без очаквания shell state.
+
+**Резултат:** Потвърдени са поне два реални проблема в login/registration/navigation логиката; подготвям конкретно резюме с проблемите и минималното решение.
+
+---
+
 ## 2026-05-22 — Синхронизирано admin изтриване с Firebase и backend
 
 **Задача:** При изтриване на профил от админ панела потребителят да се маха отвсякъде, за да не остава „вече има такъв потребител“ при нова регистрация, и login/registration/delete flow-овете да са синхронизирани между Firebase и backend базите.

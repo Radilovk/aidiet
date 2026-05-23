@@ -1201,7 +1201,7 @@ async function handleSubmit() {
 
             setLoading(true, 'Пренасочване към плана…');
             await new Promise(r => setTimeout(r, 700));
-            window.location.href = 'plan.html';
+            window.location.href = 'index.html?app=1&tab=plan';
 
         } else {
             // No existing profile — redirect to questionnaire so the user can fill it in

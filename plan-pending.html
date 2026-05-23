@@ -813,7 +813,7 @@
                 localStorage.removeItem('planSource');
 
                 // Persist the approved plan under the Firebase UID before entering
-                // plan.html, otherwise a fresh APK/PWA login would not find it.
+                // the shell plan tab, otherwise a fresh APK/PWA login would not find it.
                 const plan = JSON.parse(localStorage.getItem('dietPlan') || 'null');
                 const userData = JSON.parse(localStorage.getItem('userData') || '{}');
                 const clientId = localStorage.getItem('pendingClientId');
@@ -832,10 +832,10 @@
                     }).catch(() => {});
                 }
                 localStorage.removeItem('pendingClientId');
-                window.location.href = 'plan.html';
+                window.location.href = 'index.html?app=1&tab=plan';
             } catch (e) {
                 const msg = e.code === 'auth/email-already-in-use'
-                    ? 'Вече има акаунт с този имейл. Опитайте да влезете от plan.html.'
+                    ? 'Вече има акаунт с този имейл. Опитайте да влезете от началната страница.'
                     : (e.code === 'auth/weak-password' ? 'Паролата е твърде слаба.' : ('Грешка: ' + e.message));
                 if (errEl) errEl.textContent = msg;
                 if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-user-plus"></i> Създай акаунт и виж плана'; }
