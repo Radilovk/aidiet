@@ -1403,14 +1403,16 @@
 
         function openPlanShortcut(action) {
             if (action !== 'chat' && action !== 'food') return false;
-            if (document.documentElement.getAttribute('data-embedded-tab') === '1' &&
-                requestShellAction('NUTRIPLAN_SWITCH_TAB', { tab: 'plan' })) {
-                try {
-                    localStorage.setItem('pendingPlanUiAction', action);
-                } catch (_) {}
+            if (action === 'chat') {
+                if (requestShellAction('NUTRIPLAN_OPEN_CHAT')) return true;
+                window.location.href = 'plan.html?chat=1';
+                return false;
+            }
+            if (requestShellAction('NUTRIPLAN_SWITCH_TAB', { tab: 'plan' })) {
+                try { localStorage.setItem('pendingPlanUiAction', action); } catch (_) {}
                 return true;
             }
-            window.location.href = action === 'chat' ? 'plan.html?chat=1' : 'plan.html?food=1';
+            window.location.href = 'plan.html?food=1';
             return false;
         }
 

@@ -1,5 +1,18 @@
 # Log Tasks
 
+## 2026-05-23 — Чат от всеки таб (без превключване към план)
+
+**Задача:** Чат да се отваря ТОЧНО КАТО В ПЛАН при всеки таб, без да прехвърля към план таба.
+
+**Направено:**
+1. **app.js** — Добавен лек shell-level iframe overlay: `position:fixed; bottom:0; height:70vh` (съвпада с chatWindow в plan.html). Работи с `NUTRIPLAN_OPEN_CHAT` и `NUTRIPLAN_CLOSE_CHAT` messages.
+2. **plan.html** — Възстановен `shellChat` режим: early-detection script, CSS скрива всичко освен `#chatWindow`, незабавно auto-open при `shellChat=1`, `NUTRIPLAN_SHELL_CHAT_OPEN` listener и postMessage `NUTRIPLAN_CLOSE_CHAT` при затваряне.
+3. **guidelines.html** — `openPlanShortcut('chat')` изпраща `NUTRIPLAN_OPEN_CHAT` към shell (fallback: `plan.html?chat=1`).
+4. **profile.html** — Добавен `.fab-chat` бутон (CSS вече присъстваше). Изпраща `NUTRIPLAN_OPEN_CHAT`.
+5. **game-analytics.html** — Добавени `.fab-chat` CSS, `requestShellAction` helper и бутон.
+
+**Резултат:** При натискане на чат икона от Guidelines, Profile или Analytics — в долната част на екрана изплува same chat drawer (70vh) точно като в Plan. Без смяна на таб.
+
 ## 2026-05-23 — Поправка на чат модул и зареждане на анализ таб
 
 **Задача:**

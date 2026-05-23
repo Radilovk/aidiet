@@ -67,6 +67,7 @@
         raw: Object.create(null),
         parsed: Object.create(null)
     };
+    var shellChatFrame = null;
     var deferredPreloadScheduled = false;
 
     function getPreferences() {
@@ -435,11 +436,51 @@
         }, true);
     }
 
+    function ensureShellChatOverlay() {
+        if (shellChatFrame) return;
+        var shell = document.getElementById('spaShell');
+        if (!shell) return;
+        var el = document.createElement('iframe');
+        el.id = 'spaShellChatFrame';
+        el.title = 'Чат асистент';
+        el.setAttribute('aria-hidden', 'true');
+        el.style.cssText = 'position:fixed;bottom:0;left:0;right:0;width:100%;height:70vh;max-height:600px;border:0;z-index:10003;display:none;';
+        shell.appendChild(el);
+        shellChatFrame = el;
+    }
+
+    function openShellChat() {
+        ensureShellChatOverlay();
+        if (!shellChatFrame) return;
+        var nextSrc = 'plan.html?chat=1&embedded=1&shellChat=1';
+        if (shellChatFrame.getAttribute('src') !== nextSrc) {
+            shellChatFrame.setAttribute('src', nextSrc);
+        } else if (shellChatFrame.contentWindow) {
+            shellChatFrame.contentWindow.dispatchEvent(new CustomEvent('NUTRIPLAN_SHELL_CHAT_OPEN'));
+        }
+        shellChatFrame.style.display = 'block';
+        shellChatFrame.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeShellChat() {
+        if (!shellChatFrame) return;
+        shellChatFrame.style.display = 'none';
+        shellChatFrame.setAttribute('aria-hidden', 'true');
+    }
+
     function handleShellMessage(event) {
         if (!event || event.origin !== window.location.origin || !event.data || typeof event.data.type !== 'string') return;
         var data = event.data;
         if (data.type === 'NUTRIPLAN_THEME_CHANGE') {
             applyTheme(data.theme);
+            return;
+        }
+        if (data.type === 'NUTRIPLAN_OPEN_CHAT') {
+            openShellChat();
+            return;
+        }
+        if (data.type === 'NUTRIPLAN_CLOSE_CHAT') {
+            closeShellChat();
             return;
         }
         if (data.type === 'NUTRIPLAN_SWITCH_TAB') {
