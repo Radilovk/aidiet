@@ -11,6 +11,17 @@
 2. **profile.html** — Обновен avatar upload handler да използва `compressImage()` вместо прямо читалося data URL. Компресираният image се запазва в localStorage успешно.
 
 **Резултат:** Профилната снимка сега може да се зареди успешно в APK, дори при по-големи оригинални изображения. Компресираният размер е типично 50-300KB, което лесно се побира в localStorage.
+## 2026-05-23 — Премахване на хедъри и пренареждане на табове
+
+**Задача:**
+1. От таб „Анализ" (game-analytics.html) — премахни `page-header` и `theme-toggle-btn`.
+2. От таб „Профил" (profile.html) — премахни `game-analytics-header` секцията (вече има отделен таб за нея).
+3. В долната навигация: „Профил" да е най-вдясно, „Анализ" — една позиция наляво.
+
+**Направено:**
+1. **game-analytics.html** — Премахнат целият `<header class="page-header">` блок (включително back-btn, заглавие и theme-toggle-btn).
+2. **profile.html** — Премахнат целият `<div class="game-analytics-section">` блок (id="gameAnalyticsSection") с вътрешния `game-analytics-header` и `game-analytics-body`.
+3. **index.html** — Разменени редовете на „Профил" и „Анализ" в SPA bottom-nav (lines ~2068-2075) и в non-SPA indexBottomNav (lines ~3971-3978), така че „Анализ" е третият таб, а „Профил" — последният (най-вдясно).
 
 ---
 
