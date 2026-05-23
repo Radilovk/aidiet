@@ -3,6 +3,10 @@
 
     var params = new URLSearchParams(window.location.search);
     if (params.has('embedded')) {
+        if (window.NutriPlanDiagnostics) {
+            window.NutriPlanDiagnostics.ensureSession('shell');
+            window.NutriPlanDiagnostics.info('shell', 'embedded-tab-ready', window.location.pathname.split('/').pop() || 'unknown');
+        }
         document.documentElement.setAttribute('data-embedded-tab', '1');
         window.parent && window.parent.postMessage({ type: 'NUTRIPLAN_TAB_READY' }, window.location.origin);
         return;
@@ -119,6 +123,9 @@
         }
 
         await Promise.all(writes);
+        if (window.NutriPlanDiagnostics) {
+            window.NutriPlanDiagnostics.ok('shell', 'cache-startup-data', Object.keys(state.raw).length + ' keys');
+        }
         window.NutriPlanAppData = {
             raw: state.raw,
             parsed: state.parsed,
@@ -471,6 +478,9 @@
         document.querySelectorAll('[data-tab-view]').forEach(function (frame) {
             try {
                 if (frame.contentWindow) {
+                    dispatchFrameEvent(frame, 'NUTRIPLAN_APP_DATA_READY', {
+                        keys: Object.keys(state.raw)
+                    });
                     frame.contentWindow.NutriPlanAppData = window.NutriPlanAppData;
                     frame.contentWindow.postMessage({
                         type: 'NUTRIPLAN_APP_DATA_READY',
@@ -539,10 +549,19 @@
     async function initShell() {
         var shell = document.getElementById('spaShell');
         if (!shell || state.initialized) return;
+        if (window.NutriPlanDiagnostics) {
+            window.NutriPlanDiagnostics.ensureSession('shell');
+            window.NutriPlanDiagnostics.info('shell', 'init-start', params.get('tab') || 'plan');
+        }
 
         await ensureNativeStorageReady();
         await cacheJsonAtStartup();
-        if (!shouldOpenShell()) return;
+        if (!shouldOpenShell()) {
+            if (window.NutriPlanDiagnostics) {
+                window.NutriPlanDiagnostics.info('shell', 'init-skip', 'No local plan available');
+            }
+            return;
+        }
 
         state.initialized = true;
         document.body.classList.add('spa-mode');
@@ -559,6 +578,9 @@
             frame.addEventListener('load', function () {
                 patchFrame(frame);
                 refreshFramesForData();
+                if (window.NutriPlanDiagnostics) {
+                    window.NutriPlanDiagnostics.ok('shell', 'frame-load', frame.getAttribute('data-tab-view') || 'unknown');
+                }
                 if (frame.getAttribute('data-tab-view') === state.activeTab) {
                     if (shouldReplayTabAnimations(state.activeTab)) replayTabAnimations(frame);
                     dispatchFrameEvent(frame, 'NUTRIPLAN_TAB_ACTIVATED', {
@@ -575,6 +597,9 @@
         var initialTab = params.get('tab') || 'plan';
         mountFrames(initialTab);
         refreshFramesForData();
+        if (window.NutriPlanDiagnostics) {
+            window.NutriPlanDiagnostics.ok('shell', 'init-ready', initialTab);
+        }
 
         document.querySelectorAll('[data-tab-target]').forEach(function (button) {
             button.addEventListener('click', function () {

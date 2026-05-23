@@ -144,7 +144,15 @@ const NativeBackup = (function () {
         if (_restorePromise) return _restorePromise;
         const prefs = _getPlugin();
         if (!prefs) return false;
-        if (!options.force && _hasPrimaryData()) return false;
+        if (!options.force && _hasPrimaryData()) {
+            if (window.NutriPlanDiagnostics) {
+                window.NutriPlanDiagnostics.info('native-backup', 'restore-skip', 'Primary keys already present');
+            }
+            return false;
+        }
+        if (window.NutriPlanDiagnostics) {
+            window.NutriPlanDiagnostics.info('native-backup', 'restore-start', options.force ? 'force' : 'auto');
+        }
 
         _restorePromise = (async function () {
             const timedWork = (async function () {
@@ -181,7 +189,11 @@ const NativeBackup = (function () {
         })();
 
         try {
-            return await _restorePromise;
+            const restored = await _restorePromise;
+            if (window.NutriPlanDiagnostics) {
+                window.NutriPlanDiagnostics[restored ? 'ok' : 'info']('native-backup', 'restore-finish', restored ? 'Restore completed' : 'No values restored');
+            }
+            return restored;
         } finally {
             _restorePromise = null;
         }
@@ -198,6 +210,9 @@ const NativeBackup = (function () {
         if (_initPromise) return _initPromise;
         if (!_isNative()) return Promise.resolve(false);
         _installHook();
+        if (window.NutriPlanDiagnostics) {
+            window.NutriPlanDiagnostics.info('native-backup', 'init-start', 'Native platform detected');
+        }
         _initPromise = (async function () {
             const prefs = _getPlugin();
             if (prefs && typeof prefs.remove === 'function') {
@@ -207,7 +222,11 @@ const NativeBackup = (function () {
             return true;
         })();
         try {
-            return await _initPromise;
+            const ready = await _initPromise;
+            if (window.NutriPlanDiagnostics) {
+                window.NutriPlanDiagnostics.ok('native-backup', 'init-finish', ready ? 'ready' : 'skipped');
+            }
+            return ready;
         } finally {
             _initPromise = null;
         }

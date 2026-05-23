@@ -48,6 +48,7 @@
     <!-- Inline theme init: apply saved theme before first paint to prevent FOUC -->
     <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F0FDFA';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
     <script src="./session-utils.js"></script>
+    <script src="./diagnostics-log.js"></script>
     <!-- Early redirect: check plan immediately to avoid flickering -->
     <script>(function(){
         // Skip redirect if explicitly staying on index (?stay=1) or if login required
@@ -2714,10 +2715,16 @@
                             localStorage.setItem('userData', await decompress(userB64));
                         }
                         console.log('[PWA] Profile restored from cookies (layer 1)');
+                        if (window.NutriPlanDiagnostics) {
+                            window.NutriPlanDiagnostics.ok('index', 'restore-profile-cookies', 'layer-1');
+                        }
                         return true;
                     }
                 } catch (e) {
                     console.warn('[PWA] Cookie restore (layer 1) failed:', e);
+                    if (window.NutriPlanDiagnostics) {
+                        window.NutriPlanDiagnostics.fail('index', 'restore-profile-cookies', e.message || 'layer-1 failed');
+                    }
                 }
             }
 
@@ -2748,11 +2755,17 @@
                             localStorage.removeItem('pendingClientId');
                         }
                         console.log('[PWA] Profile restored from backend (layer 2)');
+                        if (window.NutriPlanDiagnostics) {
+                            window.NutriPlanDiagnostics.ok('index', 'restore-profile-backend', 'layer-2');
+                        }
                         return true;
                     }
                 }
             } catch (e) {
                 console.warn('[PWA] Backend restore (layer 2) failed:', e);
+                if (window.NutriPlanDiagnostics) {
+                    window.NutriPlanDiagnostics.fail('index', 'restore-profile-backend', e.message || 'layer-2 failed');
+                }
             }
 
             return false;
@@ -2823,11 +2836,23 @@
             if (heroLoginBtn) heroLoginBtn.style.display = isAuthenticated ? 'none' : '';
             if (navLogoutBtn) navLogoutBtn.style.display = isAuthenticated ? 'flex' : 'none';
             if (heroSection) heroSection.classList.add('visible');
+            if (window.NutriPlanDiagnostics) {
+                window.NutriPlanDiagnostics.ok('home', 'apply-embedded-state', hasPlan ? 'plan-present' : 'no-plan');
+            }
         }
+
+        window.addEventListener('NUTRIPLAN_APP_DATA_READY', function() {
+            if (!isEmbeddedShellTab()) return;
+            applyEmbeddedHomeState();
+        });
 
         // --- Check for existing plan and show appropriate button ---
         window.addEventListener('DOMContentLoaded', async function() {
             initializeTheme();
+
+            if (!isEmbeddedShellTab() && window.NutriPlanDiagnostics) {
+                window.NutriPlanDiagnostics.beginSession(new URLSearchParams(window.location.search).has('app') ? 'shell-load' : 'index-load');
+            }
 
             if (isEmbeddedShellTab()) {
                 applyEmbeddedHomeState();
@@ -4086,10 +4111,19 @@
                     } else if (data.planSource !== 'questionnaire2') {
                         localStorage.removeItem('pendingClientId');
                     }
+                    if (window.NutriPlanDiagnostics) {
+                        window.NutriPlanDiagnostics.ok('auth', 'restore-user-plan', data.plan ? 'plan restored' : 'pending plan state');
+                    }
                     return true;
+                }
+                if (window.NutriPlanDiagnostics) {
+                    window.NutriPlanDiagnostics.info('auth', 'restore-user-plan', 'No profile found');
                 }
             } catch (e) {
                 console.warn('[plan-restore] Failed to load plan from server:', e);
+                if (window.NutriPlanDiagnostics) {
+                    window.NutriPlanDiagnostics.fail('auth', 'restore-user-plan', e.message || 'request failed');
+                }
                 // Retry on network errors (transient failures common in Capacitor WebView).
                 if (_retries > 0) {
                     await new Promise(function(r) { setTimeout(r, 1500); });
@@ -4155,9 +4189,15 @@
                 return;
             }
             if (!user) {
+                if (window.NutriPlanDiagnostics) {
+                    window.NutriPlanDiagnostics.info('auth', 'state-changed', 'No authenticated user');
+                }
                 // No authenticated user — nothing to restore; signal DOMContentLoaded.
                 if (_indexAuthResolve) { _indexAuthResolve(null); _indexAuthResolve = null; }
                 return;
+            }
+            if (window.NutriPlanDiagnostics) {
+                window.NutriPlanDiagnostics.ok('auth', 'state-changed', 'Authenticated user detected');
             }
             // Capture the userId that was set BEFORE this login event (may be anonymous).
             const prevUserId = localStorage.getItem('userId');

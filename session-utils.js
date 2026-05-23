@@ -159,6 +159,9 @@
 
     async function clearUserSessionData(options) {
         options = options || {};
+        if (global.NutriPlanDiagnostics) {
+            global.NutriPlanDiagnostics.info('session', 'clear-user-session-start', 'preserve=' + ((options.preserveKeys || []).length || 0));
+        }
         var preserveKeys = Array.isArray(options.preserveKeys) ? options.preserveKeys : [];
         var baseKeys = getUserSessionKeys().filter(function (key) {
             return preserveKeys.indexOf(key) === -1;
@@ -176,6 +179,9 @@
         await Promise.all(preferenceKeys.map(function (key) {
             return removePreferenceKey(prefs, key);
         }));
+        if (global.NutriPlanDiagnostics) {
+            global.NutriPlanDiagnostics.ok('session', 'clear-user-session-done', preferenceKeys.length + ' keys');
+        }
         return true;
     }
 
@@ -199,6 +205,9 @@
 
         var switched = !!(previousOwner && previousOwner !== nextUserId && existingUserId !== nextUserId);
         if (switched) {
+            if (global.NutriPlanDiagnostics) {
+                global.NutriPlanDiagnostics.info('session', 'owner-switch-detected', 'Clearing previous session state');
+            }
             await clearUserSessionData();
         }
 
@@ -209,6 +218,9 @@
 
         var prefs = getPreferencesPlugin();
         await writePreferenceKey(prefs, 'userId', nextUserId);
+        if (global.NutriPlanDiagnostics) {
+            global.NutriPlanDiagnostics.ok('session', 'ensure-authenticated-user', switched ? 'owner switched' : 'owner confirmed');
+        }
 
         return {
             userId: nextUserId,

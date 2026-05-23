@@ -76,6 +76,9 @@ function _resolveGuardReady(user) {
             if (window.NutriPlanSession && typeof window.NutriPlanSession.ensureAuthenticatedUser === 'function') {
                 await window.NutriPlanSession.ensureAuthenticatedUser(user);
             }
+            if (window.NutriPlanDiagnostics) {
+                window.NutriPlanDiagnostics.ok('auth-guard', 'authenticated', location.pathname.split('/').pop() || 'unknown');
+            }
             /* Authenticated — reveal the page (overlay may not exist) */
             if (ov) {
                 ov.style.opacity = '0';
@@ -83,6 +86,9 @@ function _resolveGuardReady(user) {
             }
             _resolveGuardReady(user);
         } else {
+            if (window.NutriPlanDiagnostics) {
+                window.NutriPlanDiagnostics.fail('auth-guard', 'redirect-login', location.pathname.split('/').pop() || 'unknown');
+            }
             /* Not authenticated — send to login */
             _resolveGuardReady(null);
             const next = encodeURIComponent(location.pathname + location.search);
