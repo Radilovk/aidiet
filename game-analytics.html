@@ -772,7 +772,7 @@
 
     <script>
         // ── Current Analysis Loader ─────────────────────────────────────────────
-        (async function loadGameAnalytics() {
+        async function loadGameAnalytics() {
             if (typeof NativeBackup !== 'undefined') {
                 await NativeBackup.init().catch(() => {});
             }
@@ -1392,8 +1392,12 @@
             body.querySelectorAll('[data-explain]').forEach(function(el){
                 el.addEventListener('click', function(){ showExplanation(el.getAttribute('data-explain')); });
             });
-        })();
+        }
         // ── End Current Analysis Loader ──────────────────────────────────────
+        // Initial load
+        loadGameAnalytics();
+        // Reload data every time the tab becomes active (e.g. after plan.html updates gameData)
+        window.addEventListener('NUTRIPLAN_TAB_ACTIVATED', function() { loadGameAnalytics(); });
         // Reveal the page now that critical content is rendered from localStorage.
         requestAnimationFrame(function() {
             document.body.style.transition = 'opacity 120ms ease-out';

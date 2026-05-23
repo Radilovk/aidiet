@@ -1,5 +1,19 @@
 # Log Tasks
 
+## 2026-05-23 — Поправка на чат модул и зареждане на анализ таб
+
+**Задача:**
+1. Чат модулът да се отваря по начин, какъвто е бил преди (per-page, не shell overlay).
+2. Анализ таб да зарежда информацията от гейминг анализа при активиране.
+
+**Направено:**
+1. **app.js** — Премахнат shell-level чат overlay (`ensureShellChatOverlay`, `openShellChat`, `closeShellChat`, `shellChatOverlay`, `shellChatFrame`). Премахнати `NUTRIPLAN_OPEN_CHAT`/`NUTRIPLAN_CLOSE_CHAT` handlers. Възстановен CSS за `.fab-chat` в embedded style patch (от `display:none!important` обратно на `bottom:calc(...)` позиция).
+2. **plan.html** — Премахнати shellChat-специфичен early script, shellChat style и `NUTRIPLAN_SHELL_CHAT_OPEN` listener. Опростен auto-open чат при `?chat=1`. Премахнат `NUTRIPLAN_CLOSE_CHAT` postMessage при затваряне на чат.
+3. **guidelines.html** — Възстановено оригинално поведение на `openPlanShortcut('chat')`: при embedded режим — превключва към план таб и задава `pendingPlanUiAction='chat'`; без embedded — навигира към `plan.html?chat=1`.
+4. **game-analytics.html** — `loadGameAnalytics` превърнат в именувана функция. Добавен `NUTRIPLAN_TAB_ACTIVATED` listener за презареждане на данните при всяко активиране на таба.
+
+**Резултат:** Чат се отваря вградено в plan.html (и в guidelines.html чрез превключване към план таб), не като shell overlay. Анализ таб презарежда gameData при всеки превключване към него.
+
 ## 2026-05-23 — Оправяне на профилна снимка в APK
 
 **Задача:** В APK не мога да сложа профилна снимка. Функцията не работи.

@@ -46,12 +46,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Inline theme init: apply saved theme before first paint to prevent FOUC -->
     <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F0FDFA';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
-    <!-- Detect embedded/shellChat context before first paint -->
-    <script>(function(){var p=new URLSearchParams(window.location.search);if(p.get('embedded')==='1')document.documentElement.setAttribute('data-embedded-tab','1');if(p.get('shellChat')==='1')document.documentElement.setAttribute('data-shell-chat','1');})();</script>
     <!-- Hide body until content is ready; revealed by JS after localStorage render to prevent flash -->
     <style>body{opacity:0}</style>
-    <!-- In shellChat overlay mode: show only the chat window, everything else hidden/transparent -->
-    <style>html[data-shell-chat="1"] body{background:transparent!important;overflow:hidden!important;opacity:1!important;}html[data-shell-chat="1"] body>*:not(#chatWindow){display:none!important;}</style>
     <style>
         :root {
             --primary-red: #0D9488;
@@ -4560,11 +4556,7 @@
             }
             // Auto-open chat if navigated with ?chat=1
             if (urlParams.get('chat') === '1') {
-                if (urlParams.get('shellChat') === '1') {
-                    openChat();
-                } else {
-                    setTimeout(function() { openChat(); }, 500);
-                }
+                setTimeout(function() { openChat(); }, 500);
                 window.history.replaceState({}, '', window.location.pathname);
             }
             consumePendingPlanUiAction();
@@ -5635,10 +5627,6 @@
             consumePendingPlanUiAction();
         });
 
-        window.addEventListener('NUTRIPLAN_SHELL_CHAT_OPEN', function() {
-            if (!chatVisible) openChat();
-        });
-
         window.addEventListener('NUTRIPLAN_TAB_DEACTIVATED', function() {
             typingHapticsEnabled = false;
             cancelActiveTyping({ complete: true });
@@ -6157,13 +6145,6 @@
                 // Reset chatMode to consultation on close to avoid confusion when reopening
                 // User needs to explicitly activate modification mode each time
                 chatMode = 'consultation';
-                if (document.documentElement.getAttribute('data-embedded-tab') === '1' &&
-                    new URLSearchParams(window.location.search).get('shellChat') === '1' &&
-                    window.parent && window.parent !== window) {
-                    try {
-                        window.parent.postMessage({ type: 'NUTRIPLAN_CLOSE_CHAT' }, window.location.origin);
-                    } catch (_) {}
-                }
             }
         }
 
