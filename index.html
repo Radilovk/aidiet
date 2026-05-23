@@ -2051,17 +2051,12 @@
 <body>
     <div id="spaShell" class="spa-shell" hidden aria-label="NutriPlan приложение">
         <div class="spa-tab-stack">
-            <iframe class="spa-tab-view" data-tab-view="home" title="Начало" data-src="index.html?stay=1&embedded=1"></iframe>
             <iframe class="spa-tab-view" data-tab-view="plan" title="Моят план" data-src="plan.html?embedded=1"></iframe>
             <iframe class="spa-tab-view" data-tab-view="guidelines" title="Насоки" data-src="guidelines.html?embedded=1"></iframe>
             <iframe class="spa-tab-view" data-tab-view="profile" title="Профил" data-src="profile.html?embedded=1"></iframe>
             <iframe class="spa-tab-view" data-tab-view="analytics" title="Анализ" data-src="game-analytics.html?embedded=1"></iframe>
         </div>
         <nav class="bottom-nav spa-bottom-nav" aria-label="Основна навигация">
-            <button type="button" class="bottom-nav-item" data-tab-target="home">
-                <i class="fas fa-home"></i>
-                <span>Начало</span>
-            </button>
             <button type="button" class="bottom-nav-item" data-tab-target="plan">
                 <i class="fas fa-utensils"></i>
                 <span>Моят План</span>
@@ -2073,6 +2068,10 @@
             <button type="button" class="bottom-nav-item" data-tab-target="profile">
                 <i class="fas fa-user"></i>
                 <span>Профил</span>
+            </button>
+            <button type="button" class="bottom-nav-item" data-tab-target="analytics">
+                <i class="fas fa-chart-bar"></i>
+                <span>Анализ</span>
             </button>
         </nav>
     </div>
@@ -3927,7 +3926,7 @@
     <!-- Swipe navigation between tabs -->
     <script>
     (function() {
-        var tabs = ['home', 'plan', 'guidelines', 'profile'];
+        var tabs = ['plan', 'guidelines', 'profile', 'analytics'];
         var currentIndex = 0;
         var touchStartX = 0, touchStartY = 0;
         var THRESHOLD = 60;
@@ -3961,10 +3960,6 @@
 
     <!-- Bottom Navigation (shown only when user has an approved plan) -->
     <nav class="bottom-nav" id="indexBottomNav" aria-label="Основна навигация" style="display: none;">
-        <a href="index.html?stay=1" class="bottom-nav-item active">
-            <i class="fas fa-home"></i>
-            <span>Начало</span>
-        </a>
         <a href="index.html?app=1&tab=plan" class="bottom-nav-item">
             <i class="fas fa-utensils"></i>
             <span>Моят План</span>
@@ -3976,6 +3971,10 @@
         <a href="index.html?app=1&tab=profile" class="bottom-nav-item">
             <i class="fas fa-user"></i>
             <span>Профил</span>
+        </a>
+        <a href="index.html?app=1&tab=analytics" class="bottom-nav-item">
+            <i class="fas fa-chart-bar"></i>
+            <span>Анализ</span>
         </a>
         </nav>
     <script src="./drive-backup.js"></script>

@@ -13,14 +13,12 @@
     }
 
     var TAB_ROUTES = {
-        home: 'index.html',
         plan: 'plan.html',
         guidelines: 'guidelines.html',
         profile: 'profile.html',
         analytics: 'game-analytics.html'
     };
     var FRAME_SOURCES = {
-        home: 'index.html?stay=1&embedded=1',
         plan: 'plan.html?embedded=1',
         guidelines: 'guidelines.html?embedded=1',
         profile: 'profile.html?embedded=1',
@@ -386,7 +384,7 @@
     }
 
     function shouldReplayTabAnimations(tab) {
-        return normalizeTab(tab) !== 'home';
+        return true;
     }
 
     function patchFrame(frame) {
@@ -428,7 +426,6 @@
                 var search = new URLSearchParams(targetUrl.search);
                 search.delete('app');
                 search.delete('tab');
-                if (targetTab === 'home' && !search.has('stay')) search.set('stay', '1');
                 search.set('embedded', '1');
                 var targetPath = TAB_ROUTES[targetTab] || (targetUrl.pathname.split('/').pop() || 'index.html');
                 var nextSrc = targetPath + (search.toString() ? '?' + search.toString() : '') + (targetUrl.hash || '');
@@ -517,7 +514,6 @@
                     var search = new URLSearchParams(targetUrl.search);
                     search.delete('app');
                     search.delete('tab');
-                    if (targetTab === 'home' && !search.has('stay')) search.set('stay', '1');
                     search.set('embedded', '1');
                     var targetPath = TAB_ROUTES[targetTab] || (targetUrl.pathname.split('/').pop() || 'index.html');
                     var nextSrc = targetPath + (search.toString() ? '?' + search.toString() : '') + (targetUrl.hash || '');

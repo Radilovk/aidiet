@@ -1665,3 +1665,41 @@ Both changes are minimal, zero-bloat edits to existing code paths.
 5. Добавих надеждно затваряне на shell overlay при затваряне на чата от `plan.html` в `shellChat` режим.
 
 **Резултат:** По-малко код и по-чиста имплементация, със същото функционално поведение.
+
+---
+
+## Задача: Геймификация за всички + таб "Анализ" + премахване на таб "Начало"
+**Дата:** 2026-05-23
+
+### Описание
+1. Геймификацията да е налична за всички потребители — отключена функция.
+2. Нов таб „Анализ" в SPA shell, показващ `game-analytics.html`.
+3. Табът „Начало" се премахва от shell навигацията; `index.html` е достъпен само след logout.
+
+### Извършени промени
+
+**plan.html**
+- `isGameEnabled()` вече винаги връща `true` (геймификацията е активна за всички).
+- Swipe nav: премахнат `index.html?stay=1` (Начало), добавен `index.html?app=1&tab=analytics`.
+- Bottom nav: Начало → Анализ (fa-chart-bar).
+
+**game-analytics.html**
+- Премахната проверката `gameEnabled !== 'true'` — анализът се показва за всички.
+
+**profile.html**
+- Премахнат guard `if (!enabled) return;` в `loadGameAnalytics` — секцията се показва за всички.
+- Swipe nav и bottom nav: Начало → Анализ.
+
+**index.html**
+- SPA shell: премахнат iframe `data-tab-view="home"` и бутон `data-tab-target="home"`.
+- SPA shell: добавен бутон `data-tab-target="analytics"` (fa-chart-bar, „Анализ").
+- Swipe nav: `['home','plan','guidelines','profile']` → `['plan','guidelines','profile','analytics']`.
+- Standalone bottom nav: Начало → Анализ.
+
+**app.js**
+- TAB_ROUTES и FRAME_SOURCES: премахнат `home` запис.
+- `shouldReplayTabAnimations`: вече винаги връща `true`.
+- Премахнати `home`-специфични `stay=1` добавки в `patchFrame` и `handleShellMessage`.
+
+**guidelines.html**
+- Swipe nav и bottom nav: Начало → Анализ.

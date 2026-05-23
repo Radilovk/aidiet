@@ -8703,7 +8703,7 @@
             });
         }
 
-        function isGameEnabled() { return localStorage.getItem(GAME_ENABLED_KEY) === 'true'; }
+        function isGameEnabled() { return true; }
         function enableGame()    { localStorage.setItem(GAME_ENABLED_KEY, 'true'); }
 
         var _gameDataCache = null; // in-memory cache to avoid repeated JSON.parse
@@ -10199,8 +10199,8 @@
     <!-- Swipe navigation between tabs -->
     <script>
     (function() {
-        var tabs = ['index.html?stay=1', 'index.html?app=1&tab=plan', 'index.html?app=1&tab=guidelines', 'index.html?app=1&tab=profile'];
-        var currentIndex = 1;
+        var tabs = ['index.html?app=1&tab=plan', 'index.html?app=1&tab=guidelines', 'index.html?app=1&tab=profile', 'index.html?app=1&tab=analytics'];
+        var currentIndex = 0;
         var touchStartX = 0, touchStartY = 0;
         var THRESHOLD = 60;
         document.addEventListener('touchstart', function(e) {
@@ -10222,10 +10222,6 @@
 
     <!-- Bottom Navigation -->
     <nav class="bottom-nav" aria-label="Основна навигация">
-        <a href="index.html?stay=1" class="bottom-nav-item">
-            <i class="fas fa-home"></i>
-            <span>Начало</span>
-        </a>
         <a href="index.html?app=1&tab=plan" class="bottom-nav-item active">
             <i class="fas fa-utensils"></i>
             <span>Моят План</span>
@@ -10237,6 +10233,10 @@
         <a href="index.html?app=1&tab=profile" class="bottom-nav-item">
             <i class="fas fa-user"></i>
             <span>Профил</span>
+        </a>
+        <a href="index.html?app=1&tab=analytics" class="bottom-nav-item">
+            <i class="fas fa-chart-bar"></i>
+            <span>Анализ</span>
         </a>
     </nav>
     <!-- GameNotifier: gamification-based notification scheduling -->
