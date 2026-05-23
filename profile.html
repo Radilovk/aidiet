@@ -1833,6 +1833,7 @@
 </head>
 <body>
     <script src="./session-utils.js"></script>
+    <script src="./diagnostics-log.js"></script>
     <script type="module" src="./auth-guard.js"></script>
     <!-- PWA Install Banner -->
     <div class="install-banner" id="installBanner">
@@ -2731,9 +2732,15 @@
 
                 // Pre-fill contact form with user data
                 prefillContactForm();
+                if (window.NutriPlanDiagnostics) {
+                    window.NutriPlanDiagnostics.ok('profile', 'load-user-data', userData.name || userData.email || 'profile ready');
+                }
 
             } catch (error) {
                 console.error('Error loading user data:', error);
+                if (window.NutriPlanDiagnostics) {
+                    window.NutriPlanDiagnostics.fail('profile', 'load-user-data', error.message || 'Unknown error');
+                }
                 showAlert('Грешка при зареждане на данните.', 'warning');
             }
         }
@@ -3337,6 +3344,18 @@
                 
             } catch (error) {
                 console.error('Error loading analysis:', error);
+                if (window.NutriPlanDiagnostics) {
+                    window.NutriPlanDiagnostics.fail('profile', 'load-analysis', error.message || 'Unknown error');
+                }
+            }
+        }
+
+        function refreshProfileFromShellData(reason) {
+            loadUserData();
+            loadAnalysis();
+            loadGameAnalytics();
+            if (window.NutriPlanDiagnostics) {
+                window.NutriPlanDiagnostics.ok('profile', 'refresh-from-shell-data', reason || 'shell-data-ready');
             }
         }
         
@@ -3362,6 +3381,9 @@
                 initializeTheme();
                 loadUserData();
                 loadAnalysis(); // REQUIREMENT 1: Load analysis
+                if (window.NutriPlanDiagnostics) {
+                    window.NutriPlanDiagnostics.ok('profile', 'setup-profile', 'Initial profile load complete');
+                }
                 // Macros and strategy panels moved to guidelines.html
 
                 // Reveal the page now that critical content is rendered from localStorage.
@@ -4723,6 +4745,9 @@
         loadGameAnalytics();
         window.addEventListener('NUTRIPLAN_TAB_ACTIVATED', function() {
             loadGameAnalytics();
+        });
+        window.addEventListener('NUTRIPLAN_APP_DATA_READY', function() {
+            refreshProfileFromShellData('shell-data-ready');
         });
         // ── End Current Analysis Loader ──────────────────────────────────────
     </script>

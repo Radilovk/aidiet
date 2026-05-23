@@ -1118,6 +1118,7 @@
 </head>
 <body>
     <script src="./session-utils.js"></script>
+    <script src="./diagnostics-log.js"></script>
     <script type="module" src="./auth-guard.js"></script>
     <div class="container">
         <!-- UI Banner Zone (shown only when image is configured in admin) -->
@@ -1716,6 +1717,19 @@
             }
         }
 
+        function refreshGuidelinesFromShellData(reason) {
+            const hasAccordion = loadGuidelinesAccordion();
+            const hasMacros = loadMacrosVisualization();
+            const hasStrategy = loadStrategyPanel();
+            const emptyState = document.getElementById('emptyState');
+            if (emptyState) {
+                emptyState.style.display = (!hasAccordion && !hasMacros && !hasStrategy) ? 'block' : 'none';
+            }
+            if (window.NutriPlanDiagnostics) {
+                window.NutriPlanDiagnostics.ok('guidelines', 'refresh-from-shell-data', reason || 'shell-data-ready');
+            }
+        }
+
         function openStrategyModal() {
             const modal = document.getElementById('strategyModal');
             if (modal) {
@@ -1752,6 +1766,9 @@
                 const hasAccordion = loadGuidelinesAccordion();
                 const hasMacros = loadMacrosVisualization();
                 const hasStrategy = loadStrategyPanel();
+                if (window.NutriPlanDiagnostics) {
+                    window.NutriPlanDiagnostics.ok('guidelines', 'setup-guidelines', [hasAccordion, hasMacros, hasStrategy].filter(Boolean).length + ' sections');
+                }
 
                 // Show empty state if no data
                 if (!hasAccordion && !hasMacros && !hasStrategy) {
@@ -1774,6 +1791,10 @@
                 setupGuidelines();
             }
         })();
+
+        window.addEventListener('NUTRIPLAN_APP_DATA_READY', function() {
+            refreshGuidelinesFromShellData('shell-data-ready');
+        });
 
         // ── UI Zone Images ────────────────────────────────────────────────────────
         (function applyUIImages() {

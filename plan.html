@@ -3500,6 +3500,7 @@
     })();</script>
 
     <script src="./session-utils.js"></script>
+    <script src="./diagnostics-log.js"></script>
     <script type="module">
         import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
         import {
@@ -4507,6 +4508,9 @@
         
         // --- DOM-Dependent Initialization ---
         async function initializeDOMDependentFeatures() {
+            if (window.NutriPlanDiagnostics) {
+                window.NutriPlanDiagnostics.info('plan', 'init-dom-features-start', 'Preparing plan view');
+            }
             if (window.NutriPlanPlanAuthReady) {
                 try { await window.NutriPlanPlanAuthReady; } catch (_) {}
             }
@@ -4516,6 +4520,9 @@
                 await NativeBackup.init().catch(() => {});
             }
             loadDietData();
+            if (window.NutriPlanDiagnostics) {
+                window.NutriPlanDiagnostics.ok('plan', 'init-dom-features-ready', 'Initial load requested');
+            }
             // Reveal the page now that critical content is rendered from localStorage.
             // Using rAF ensures the browser has committed the opacity:0 frame before
             // transitioning to opacity:1 so the CSS transition fires correctly.
@@ -4726,6 +4733,9 @@
             try {
                 // Guard: plan submitted via questionnaire2 must wait for admin approval
                 if (localStorage.getItem('planSource') === 'questionnaire2') {
+                    if (window.NutriPlanDiagnostics) {
+                        window.NutriPlanDiagnostics.info('plan', 'load-diet-data', 'Redirecting to pending plan');
+                    }
                     navigateTopLevel('plan-pending.html', true);
                     return;
                 }
@@ -4782,6 +4792,9 @@
                         return;
                     }
                     // Redirect to questionnaire if no data
+                    if (window.NutriPlanDiagnostics) {
+                        window.NutriPlanDiagnostics.fail('plan', 'load-diet-data', 'Missing plan or userId');
+                    }
                     showError('Няма намерен план. Моля, попълнете въпросника.', true);
                     return;
                 }
@@ -4866,9 +4879,26 @@
                       .catch(() => {});
                 })();
 
+                if (window.NutriPlanDiagnostics) {
+                        window.NutriPlanDiagnostics.ok('plan', 'load-diet-data', 'Plan rendered successfully');
+                }
+
             } catch (error) {
                 console.error('Error loading diet data:', error);
+                if (window.NutriPlanDiagnostics) {
+                        window.NutriPlanDiagnostics.fail('plan', 'load-diet-data', error.message || 'Unknown error');
+                }
                 showError('Грешка при зареждане на данните. Моля, генерирайте нов план.', true);
+            }
+        }
+
+        function refreshPlanFromShellData(reason) {
+            if (!localStorage.getItem('dietPlan')) return;
+            if (!dietPlan || !dietPlan.weekPlan || !userData || !Object.keys(userData).length) {
+                loadDietData();
+                if (window.NutriPlanDiagnostics) {
+                        window.NutriPlanDiagnostics.ok('plan', 'refresh-from-shell-data', reason || 'shell-data-ready');
+                }
             }
         }
 
@@ -5599,6 +5629,10 @@
             cancelActiveTyping({ complete: true });
         });
 
+        window.addEventListener('NUTRIPLAN_APP_DATA_READY', function() {
+            refreshPlanFromShellData('shell-data-ready');
+        });
+
         document.addEventListener('visibilitychange', function() {
             if (document.hidden) {
                 cancelActiveTyping({ complete: true });
@@ -6233,6 +6267,18 @@
             const message = input.value.trim();
             
             if (!message) return;
+
+            if (message.toLowerCase() === '*log') {
+                input.value = '';
+                addMessageToChat('*log', 'user', false);
+                if (window.NutriPlanDiagnostics) {
+                    window.NutriPlanDiagnostics.info('chat', 'show-log-command', 'Diagnostic log requested from chat');
+                    addMessageToChat(window.NutriPlanDiagnostics.formatForChat(80), 'assistant', false);
+                } else {
+                    addMessageToChat('Диагностичният лог не е наличен в този build.', 'assistant', false);
+                }
+                return;
+            }
 
             // Food picker command
             if (message.toLowerCase() === '*selectfoods') {
