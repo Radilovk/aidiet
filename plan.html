@@ -6926,11 +6926,11 @@
                 const finalizeTyping = function() {
                     if (completed || !document.contains(bubble)) return;
                     completed = true;
+                    stopTypingHaptics();
                     unregisterFinalizer();
                     bubble.classList.remove('chat-typing');
                     bubble.innerHTML = formattedMessage;
                     chatMessages.scrollTop = chatMessages.scrollHeight;
-                    stopTypingHaptics();
                 };
                 const unregisterFinalizer = registerTypingFinalizer(finalizeTyping);
                 function tick() {
@@ -6943,10 +6943,15 @@
                     }
                     if (i < message.length) {
                         bubble.textContent += message[i++];
-                        // Micro-vibration on every letter while bot types
-                        pulseTypingHaptic(4, 'chat');
                         chatMessages.scrollTop = chatMessages.scrollHeight;
-                        scheduleTypingStep(tick, charDelay);
+                        if (i < message.length) {
+                            // Micro-vibration on every letter while bot types
+                            pulseTypingHaptic(4, 'chat');
+                            scheduleTypingStep(tick, charDelay);
+                        } else {
+                            // Last character typed — stop haptics and finalize immediately
+                            finalizeTyping();
+                        }
                     } else {
                         // Typing done — swap plain text to formatted HTML
                         finalizeTyping();
@@ -8780,9 +8785,14 @@
                 }
                 if (i < text.length) {
                     el.textContent += text[i++];
-                    // Micro-vibration on every character while game question types
-                    pulseTypingHaptic(4, 'game');
-                    scheduleTypingStep(tick, speed || 30);
+                    if (i < text.length) {
+                        // Micro-vibration on every character while game question types
+                        pulseTypingHaptic(4, 'game');
+                        scheduleTypingStep(tick, speed || 30);
+                    } else {
+                        // Last character typed — finalize immediately
+                        finalize();
+                    }
                 }
                 else { finalize(); }
             }
