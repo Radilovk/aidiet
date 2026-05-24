@@ -4665,31 +4665,39 @@
             return false;
         }
 
-        function stopTypingHaptics() {
-            try {
-                if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                    navigator.vibrate(0);
+        // Grok-style HapticController — 50 ms throttle, Light for letters, Heavy for punctuation.
+        // Uses native Capacitor Haptics plugin when available (APK); falls back to navigator.vibrate.
+        var hapticCtrl = (function() {
+            var lastTime = 0;
+            var INTERVAL = 50; // minimum ms between vibrations (hardware throttle)
+            var PUNCT = /[.,!?;:\-]/;
+            function hap() {
+                return window.Capacitor &&
+                       window.Capacitor.Plugins &&
+                       window.Capacitor.Plugins.Haptics || null;
+            }
+            return {
+                trigger: function(ch) {
+                    if (!typingHapticsEnabled) return;
+                    var now = Date.now();
+                    if (now - lastTime < INTERVAL) return;
+                    lastTime = now;
+                    var heavy = PUNCT.test(ch);
+                    var plugin = hap();
+                    if (plugin) {
+                        try { plugin.impact({ style: heavy ? 'HEAVY' : 'LIGHT' }); } catch (_) {}
+                    } else if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                        try { navigator.vibrate(heavy ? 15 : 4); } catch (_) {}
+                    }
+                },
+                stop: function() {
+                    lastTime = Date.now() + 200; // suppress triggers for 200 ms
+                    try {
+                        if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(0);
+                    } catch (_) {}
                 }
-            } catch (_) {}
-        }
-
-        // Starts a rhythmic vibration pattern that covers the full expected typing
-        // duration. Stops instantly via vibrate(0) when typing ends or chat closes.
-        function startChatTypingHaptics(msgLen) {
-            if (!typingHapticsEnabled) return;
-            if (!chatVisible || !document.getElementById('chatWindow')) return;
-            try {
-                if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                    const charDelay = 18; // ms per character — matches typewriter tick
-                    const estimatedMs = msgLen * charDelay + 300;
-                    // 8ms on + 12ms off = 20ms cycle ≈ one pulse per character
-                    const pattern = [];
-                    const cycles = Math.ceil(estimatedMs / 20);
-                    for (let j = 0; j < cycles; j++) { pattern.push(8, 12); }
-                    navigator.vibrate(pattern);
-                }
-            } catch (_) {}
-        }
+            };
+        })();
 
         function scheduleTypingStep(callback, delay) {
             const timerId = setTimeout(function() {
@@ -4719,7 +4727,7 @@
                 });
             }
             activeTypingFinalizers.clear();
-            stopTypingHaptics();
+            hapticCtrl.stop();
         }
 
         function getFoodPickerUrl() {
@@ -4741,18 +4749,6 @@
                 return true;
             }
             return false;
-        }
-
-        function pulseTypingHaptic(duration, source) {
-            if (!typingHapticsEnabled) return;
-            if (source === 'chat') {
-                if (!chatVisible || !document.getElementById('chatWindow')) return;
-            }
-            try {
-                if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                    navigator.vibrate(duration || 4);
-                }
-            } catch (_) {}
         }
 
         function getProfileSyncSignature(uid, planStr, userDataStr, planSource) {
@@ -6954,7 +6950,7 @@
                 const finalizeTyping = function() {
                     if (completed || !document.contains(bubble)) return;
                     completed = true;
-                    stopTypingHaptics();
+                    hapticCtrl.stop();
                     unregisterFinalizer();
                     bubble.classList.remove('chat-typing');
                     bubble.innerHTML = formattedMessage;
@@ -6966,11 +6962,13 @@
                     if (!document.contains(bubble)) {
                         completed = true;
                         unregisterFinalizer();
-                        stopTypingHaptics();
+                        hapticCtrl.stop();
                         return;
                     }
                     if (i < message.length) {
-                        bubble.textContent += message[i++];
+                        const ch = message[i++];
+                        bubble.textContent += ch;
+                        hapticCtrl.trigger(ch);
                         chatMessages.scrollTop = chatMessages.scrollHeight;
                         if (i < message.length) {
                             scheduleTypingStep(tick, charDelay);
@@ -6981,7 +6979,6 @@
                         finalizeTyping();
                     }
                 }
-                startChatTypingHaptics(message.length);
                 tick();
             } else {
                 bubble.innerHTML = formattedMessage;
@@ -7083,7 +7080,7 @@
         function removeTypingIndicator(id) {
             const indicator = document.getElementById(id);
             if (indicator) {
-                stopTypingHaptics();
+                hapticCtrl.stop();
                 indicator.remove();
             }
         }
@@ -8438,6 +8435,18 @@
             window.Capacitor.isNativePlatform()
         );
 
+        // Emergency haptic stop when app is backgrounded/closed (APK lifecycle)
+        (function() {
+            var appPlugin = window.Capacitor &&
+                            window.Capacitor.Plugins &&
+                            window.Capacitor.Plugins.App || null;
+            if (appPlugin && typeof appPlugin.addListener === 'function') {
+                appPlugin.addListener('appStateChange', function(state) {
+                    if (!state.isActive) hapticCtrl.stop();
+                });
+            }
+        })();
+
         if (!isCapacitorNativeApp && 'serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
@@ -8792,7 +8801,7 @@
                 if (finished || !document.contains(el)) return;
                 finished = true;
                 unregisterFinalizer();
-                stopTypingHaptics();
+                hapticCtrl.stop();
                 el.textContent = text;
                 el.classList.remove('typing');
                 if (cb) cb();
@@ -8804,15 +8813,15 @@
                 if (!document.contains(el)) {
                     finished = true;
                     unregisterFinalizer();
-                    stopTypingHaptics();
+                    hapticCtrl.stop();
                     if (cb) cb();
                     return;
                 }
                 if (i < text.length) {
-                    el.textContent += text[i++];
+                    const ch = text[i++];
+                    el.textContent += ch;
                     if (i < text.length) {
-                        // Micro-vibration on every character while game question types
-                        pulseTypingHaptic(4, 'game');
+                        hapticCtrl.trigger(ch);
                         scheduleTypingStep(tick, speed || 30);
                     } else {
                         // Last character typed — finalize immediately
