@@ -1,5 +1,22 @@
 # Log Tasks
 
+## 2026-05-24 — Grok-style хаптик при тайпинг в чата
+
+**Задача:** Смяна на хаптик системата към Grok-style — нативни Capacitor Haptics импулси per-character с 50ms throttle и диференциация Light/Heavy за букви/пунктуация.
+
+**Направено:**
+1. **package.json** — Добавена зависимост `@capacitor/haptics` към dependencies.
+2. **plan.html** — Заменени `startChatTypingHaptics()` и `pulseTypingHaptic()` с нов `hapticCtrl` обект (Grok-style HapticController):
+   - 50ms минимален интервал между вибрации (хардуерен throttle)
+   - `ImpactStyle.HEAVY` за пунктуация `[.,!?;:-]`, `ImpactStyle.LIGHT` за останалите символи
+   - Използва `window.Capacitor.Plugins.Haptics.impact()` в APK, fallback към `navigator.vibrate()` в браузър
+   - `hapticCtrl.stop()` блокира нови вибрации за 200ms и изпраща `vibrate(0)` за хардуерен стоп
+3. **plan.html** — В chat typewriter `tick()`: премахнат upfront `startChatTypingHaptics(message.length)`, добавен `triggerCharHaptic(ch)` per-character в цикъла.
+4. **plan.html** — В game typewriter `tick()`: заменен `pulseTypingHaptic(4, 'game')` с `triggerCharHaptic(ch)` per-character.
+5. **plan.html** — Добавен App lifecycle listener (`window.Capacitor.Plugins.App.addListener('appStateChange', ...)`) за гарантирано спиране на вибрацията при минимизиране/затваряне на APK.
+
+---
+
 ## 2026-05-24 — Възстановяване на вибрация при тайпинг в чата
 
 **Задача:** Предишна задача е отслабила усещането за вибрация при тайпинг на чат отговор. Трябва да се върне пълно усещане и да спира мигновено при края на тайпинга или затваряне на чата.
