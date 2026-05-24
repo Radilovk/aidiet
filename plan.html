@@ -4663,6 +4663,24 @@
             } catch (_) {}
         }
 
+        // Starts a rhythmic vibration pattern that covers the full expected typing
+        // duration. Stops instantly via vibrate(0) when typing ends or chat closes.
+        function startChatTypingHaptics(msgLen) {
+            if (!typingHapticsEnabled) return;
+            if (!chatVisible || !document.getElementById('chatWindow')) return;
+            try {
+                if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                    const charDelay = 18; // ms per character — matches typewriter tick
+                    const estimatedMs = msgLen * charDelay + 300;
+                    // 8ms on + 12ms off = 20ms cycle ≈ one pulse per character
+                    const pattern = [];
+                    const cycles = Math.ceil(estimatedMs / 20);
+                    for (let j = 0; j < cycles; j++) { pattern.push(8, 12); }
+                    navigator.vibrate(pattern);
+                }
+            } catch (_) {}
+        }
+
         function scheduleTypingStep(callback, delay) {
             const timerId = setTimeout(function() {
                 activeTypingTimers.delete(timerId);
@@ -6953,7 +6971,7 @@
                         finalizeTyping();
                     }
                 }
-                pulseTypingHaptic(20, 'chat');
+                startChatTypingHaptics(message.length);
                 tick();
             } else {
                 bubble.innerHTML = formattedMessage;
