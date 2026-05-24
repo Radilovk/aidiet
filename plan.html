@@ -4515,6 +4515,16 @@
             if (window.NutriPlanDiagnostics) {
                 window.NutriPlanDiagnostics.info('plan', 'init-dom-features-start', 'Preparing plan view');
             }
+            // Shell chat overlay: open chat immediately without waiting for Firebase auth.
+            // The shellChat CSS already hides everything except #chatWindow, so this
+            // avoids a blank overlay while auth resolves (can take seconds on APK).
+            if (new URLSearchParams(window.location.search).get('shellChat') === '1') {
+                try { loadDietData(); } catch (_) {}
+                loadChatHistory();
+                openChat();
+                window.history.replaceState({}, '', window.location.pathname);
+                return;
+            }
             if (window.NutriPlanPlanAuthReady) {
                 try { await window.NutriPlanPlanAuthReady; } catch (_) {}
             }
@@ -10242,7 +10252,8 @@
     <!-- Swipe navigation between tabs -->
     <script>
     (function() {
-        var tabs = ['index.html?app=1&tab=plan', 'index.html?app=1&tab=guidelines', 'index.html?app=1&tab=profile', 'index.html?app=1&tab=analytics'];
+        var tabKeys = ['plan', 'guidelines', 'profile', 'analytics'];
+        var tabUrls = ['index.html?app=1&tab=plan', 'index.html?app=1&tab=guidelines', 'index.html?app=1&tab=profile', 'index.html?app=1&tab=analytics'];
         var currentIndex = 0;
         var touchStartX = 0, touchStartY = 0;
         var THRESHOLD = 60;
@@ -10254,10 +10265,14 @@
             var dx = e.changedTouches[0].clientX - touchStartX;
             var dy = e.changedTouches[0].clientY - touchStartY;
             if (Math.abs(dx) < THRESHOLD || Math.abs(dx) < Math.abs(dy)) return;
-            if (dx < 0 && currentIndex < tabs.length - 1) {
-                window.location.href = tabs[currentIndex + 1];
-            } else if (dx > 0 && currentIndex > 0) {
-                window.location.href = tabs[currentIndex - 1];
+            var targetIndex = -1;
+            if (dx < 0 && currentIndex < tabKeys.length - 1) targetIndex = currentIndex + 1;
+            else if (dx > 0 && currentIndex > 0) targetIndex = currentIndex - 1;
+            if (targetIndex < 0) return;
+            if (document.documentElement.getAttribute('data-embedded-tab') === '1' && typeof requestShellAction === 'function') {
+                requestShellAction('NUTRIPLAN_SWITCH_TAB', { tab: tabKeys[targetIndex] });
+            } else {
+                window.location.href = tabUrls[targetIndex];
             }
         }, { passive: true });
     })();

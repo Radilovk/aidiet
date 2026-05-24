@@ -201,6 +201,11 @@
         for (var tab in TAB_ROUTES) {
             if (TAB_ROUTES[tab] === path) return tab;
         }
+        // Also handle index.html?app=1&tab=X format used in bottom-nav links
+        if (path === 'index.html' || path === '') {
+            var tabParam = url.searchParams.get('tab');
+            if (tabParam && TAB_ROUTES[tabParam]) return tabParam;
+        }
         return null;
     }
 
