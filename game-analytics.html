@@ -665,7 +665,6 @@
 <body>
     <script src="./diagnostics-log.js"></script>
     <script src="./native-backup.js"></script>
-    <script>NativeBackup.init().catch(function () {});</script>
 
     <!-- Main Content -->
     <div class="container">
@@ -772,10 +771,8 @@
 
     <script>
         // ── Current Analysis Loader ─────────────────────────────────────────────
-        async function loadGameAnalytics() {
-            if (typeof NativeBackup !== 'undefined') {
-                await NativeBackup.init().catch(() => {});
-            }
+        function loadGameAnalytics() {
+            document.body.style.opacity = '1';
             var restoredTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
             document.documentElement.setAttribute('data-theme', restoredTheme);
             updateThemeIcon(restoredTheme);
@@ -1396,11 +1393,6 @@
         loadGameAnalytics();
         // Reload data every time the tab becomes active (e.g. after plan.html updates gameData)
         window.addEventListener('NUTRIPLAN_TAB_ACTIVATED', function() { loadGameAnalytics(); });
-        // Reveal the page now that critical content is rendered from localStorage.
-        requestAnimationFrame(function() {
-            document.body.style.transition = 'opacity 120ms ease-out';
-            document.body.style.opacity = '1';
-        });
     </script>
 
     <script>
