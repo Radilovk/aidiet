@@ -1888,3 +1888,25 @@ patchFrame click interceptor в app.js ползва `tabFromUrl` само за H
 3. **app.js** — `tabFromUrl()`: добавена логика за `index.html` path + `tab` параметър, така че bottom nav линковете се прихващат правилно от patchFrame click interceptor.
 
 **Резултат:** Swipe навигацията не разрушава SPA shell-а; чат overlay се показва незабавно при натискане на иконата; bottom nav линкове работят коректно в embedded режим.
+
+---
+
+## 2026-05-24 — Анализ таб не зарежда в APK (fix-apk-analysis-tab-loading)
+
+**Задача:** Анализ табът не зарежда никаква информация в APK. В уеб зарежда, в APK не. Намери причината и я оправи. Изтрий излишен или проблемен код.
+
+**Причина (намерена):**
+`game-analytics.html` зарежда тялото скрито (`<style>body{opacity:0}</style>`) и го разкрива чрез `requestAnimationFrame` регистриран **извън** `loadGameAnalytics()`. На APK таб-ът се зарежда предварително в **заден план** (deferred preload), докато потребителят е на Plan таба. Android WebView ограничава/спира `requestAnimationFrame` за невидими iframe-ове → callback-ът никога не се извиква → `body.style.opacity` остава `'0'` завинаги → съдържанието се рендерира, но е НЕВИДИМО.
+
+На уеб страницата се отваря директно (не embedded), iframe-ът е видим → `requestAnimationFrame` работи нормално.
+
+**Допълнителни проблемни кодове:**
+- `NativeBackup.init()` се извиква двупъти при зареждане: веднъж standalone (`line 668`) и веднъж вътре в `loadGameAnalytics()` — излишно, предизвиква ненужно Capacitor IPC забавяне на всяко `NUTRIPLAN_TAB_ACTIVATED`.
+
+**Направено (game-analytics.html):**
+1. Премахнат standalone `NativeBackup.init().catch(...)` (line 668 — беше при зареждане на скрипта).
+2. Премахнат `async/await NativeBackup.init()` от вътрешността на `loadGameAnalytics()` — функцията вече е синхронна.
+3. Добавен `document.body.style.opacity = '1'` в **началото на `loadGameAnalytics()`** — разкрива тялото при всяко извикване (initial load + NUTRIPLAN_TAB_ACTIVATED), независимо от видимостта на iframe-а.
+4. Премахнат `requestAnimationFrame` блокът извън `loadGameAnalytics()` (беше единственото място за reveal — не работеше на APK).
+
+**Резултат:** Анализ табът правилно зарежда съдържание при първо отваряне на APK и при всяко превключване към него.
