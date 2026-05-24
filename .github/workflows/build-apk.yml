@@ -15,6 +15,8 @@ on:
       - 'twa-manifest.json'
       - 'capacitor.config.json'
       - 'android-res/**'
+      - 'package.json'
+      - 'package-lock.json'
   workflow_dispatch:
 
 jobs:
