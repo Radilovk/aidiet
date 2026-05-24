@@ -6945,18 +6945,15 @@
                         bubble.textContent += message[i++];
                         chatMessages.scrollTop = chatMessages.scrollHeight;
                         if (i < message.length) {
-                            // Micro-vibration on every letter while bot types
-                            pulseTypingHaptic(4, 'chat');
                             scheduleTypingStep(tick, charDelay);
                         } else {
-                            // Last character typed — stop haptics and finalize immediately
                             finalizeTyping();
                         }
                     } else {
-                        // Typing done — swap plain text to formatted HTML
                         finalizeTyping();
                     }
                 }
+                pulseTypingHaptic(20, 'chat');
                 tick();
             } else {
                 bubble.innerHTML = formattedMessage;
