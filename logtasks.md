@@ -1,5 +1,16 @@
 # Log Tasks
 
+## 2026-05-24 — Почистване на остатъци след хаптик операцията
+
+**Задача:** Премахване на излишните wrapper функции `stopTypingHaptics()` и `triggerCharHaptic()` оставени от предишната задача.
+
+**Направено:**
+1. **plan.html** — Изтрити 2 thin-wrapper функции (`stopTypingHaptics` → `hapticCtrl.stop()`, `triggerCharHaptic` → `hapticCtrl.trigger()`).
+2. **plan.html** — Всичките 8 call-site-а инлайнирани директно към `hapticCtrl.stop()` / `hapticCtrl.trigger(ch)`.
+3. Downvote на остарялата haptics memory (препращаше към вече изтритата `startChatTypingHaptics`).
+
+---
+
 ## 2026-05-24 — Grok-style хаптик при тайпинг в чата
 
 **Задача:** Смяна на хаптик системата към Grok-style — нативни Capacitor Haptics импулси per-character с 50ms throttle и диференциация Light/Heavy за букви/пунктуация.

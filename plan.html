@@ -4699,14 +4699,6 @@
             };
         })();
 
-        function stopTypingHaptics() {
-            hapticCtrl.stop();
-        }
-
-        function triggerCharHaptic(ch) {
-            hapticCtrl.trigger(ch);
-        }
-
         function scheduleTypingStep(callback, delay) {
             const timerId = setTimeout(function() {
                 activeTypingTimers.delete(timerId);
@@ -4735,7 +4727,7 @@
                 });
             }
             activeTypingFinalizers.clear();
-            stopTypingHaptics();
+            hapticCtrl.stop();
         }
 
         function getFoodPickerUrl() {
@@ -6958,7 +6950,7 @@
                 const finalizeTyping = function() {
                     if (completed || !document.contains(bubble)) return;
                     completed = true;
-                    stopTypingHaptics();
+                    hapticCtrl.stop();
                     unregisterFinalizer();
                     bubble.classList.remove('chat-typing');
                     bubble.innerHTML = formattedMessage;
@@ -6970,13 +6962,13 @@
                     if (!document.contains(bubble)) {
                         completed = true;
                         unregisterFinalizer();
-                        stopTypingHaptics();
+                        hapticCtrl.stop();
                         return;
                     }
                     if (i < message.length) {
                         const ch = message[i++];
                         bubble.textContent += ch;
-                        triggerCharHaptic(ch);
+                        hapticCtrl.trigger(ch);
                         chatMessages.scrollTop = chatMessages.scrollHeight;
                         if (i < message.length) {
                             scheduleTypingStep(tick, charDelay);
@@ -7088,7 +7080,7 @@
         function removeTypingIndicator(id) {
             const indicator = document.getElementById(id);
             if (indicator) {
-                stopTypingHaptics();
+                hapticCtrl.stop();
                 indicator.remove();
             }
         }
@@ -8809,7 +8801,7 @@
                 if (finished || !document.contains(el)) return;
                 finished = true;
                 unregisterFinalizer();
-                stopTypingHaptics();
+                hapticCtrl.stop();
                 el.textContent = text;
                 el.classList.remove('typing');
                 if (cb) cb();
@@ -8821,7 +8813,7 @@
                 if (!document.contains(el)) {
                     finished = true;
                     unregisterFinalizer();
-                    stopTypingHaptics();
+                    hapticCtrl.stop();
                     if (cb) cb();
                     return;
                 }
@@ -8829,7 +8821,7 @@
                     const ch = text[i++];
                     el.textContent += ch;
                     if (i < text.length) {
-                        triggerCharHaptic(ch);
+                        hapticCtrl.trigger(ch);
                         scheduleTypingStep(tick, speed || 30);
                     } else {
                         // Last character typed — finalize immediately
