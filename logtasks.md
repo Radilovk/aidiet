@@ -1788,3 +1788,19 @@ Both changes are minimal, zero-bloat edits to existing code paths.
 - Премахнати CSS правила за `.game-analytics-chevron` и `cursor:pointer`/`user-select` от `.game-analytics-header`.
 - Премахната функция `toggleGameAnalytics()`.
 - Контейнерът остава постоянно в разгърнато (expanded) състояние.
+
+---
+
+## 2026-05-24 — Поправка на размер и елементи на чат прозорец (shellChat overlay)
+
+**Задача:** Чат прозорецът има грешен размер и елементи — да се върне правилен вид.
+
+**Проблем:**
+- Shell overlay iframe-ът имаше `height: 70vh`, а `#chatWindow` вътре в него също имаше `height: 70vh`. Тъй като `vh` в iframe-а се изчислява спрямо размера на самия iframe (а не на целия екран), chat прозорецът изглеждаше само ~49% от екрана.
+- Border-radius на chat прозорецът не се виждаше правилно поради непрозрачен body background в shellChat режим.
+
+**Направено:**
+1. **plan.html** — Добавено CSS в shellChat style блок: `#chatWindow` вземе `height:100%; max-height:none; position:fixed; top:0; left:0; right:0; bottom:0` за да запълни целия iframe. Body background сменен на `transparent` в shellChat режим.
+2. **app.js** — Shell overlay iframe получи `border-radius:16px 16px 0 0; overflow:hidden` за правилно видимо закръгление на горните ъгли.
+
+**Резултат:** Chat прозорецът заема правилния 70vh от екрана с коректно закръгление на горните ъгли.
