@@ -604,6 +604,31 @@
         .bottom-nav-item:hover:not(.active) {
             background: rgba(13, 148, 136, 0.05);
         }
+        .fab-chat {
+            position: fixed;
+            bottom: calc(80px + var(--safe-area-inset-bottom, 0px));
+            right: calc(16px + var(--safe-area-inset-right, 0px));
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, var(--primary-red) 0%, #0F766E 100%);
+            border-radius: 20px;
+            box-shadow: 0 8px 28px rgba(13,148,136,0.45), 0 4px 12px rgba(13,148,136,0.25), inset 0 1px 0 rgba(255,255,255,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            cursor: pointer;
+            z-index: 900;
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+            animation: fabPulse 3s ease-in-out infinite;
+        }
+        .fab-chat:active { transform: scale(0.95); }
+        .chat-icon-img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+        @keyframes fabPulse {
+            0%,100%{box-shadow:0 8px 28px rgba(13,148,136,.45),0 4px 12px rgba(13,148,136,.25),inset 0 1px 0 rgba(255,255,255,.2);transform:scale(1);}
+            50%{box-shadow:0 12px 36px rgba(13,148,136,.55),0 6px 16px rgba(13,148,136,.35),0 0 0 14px rgba(13,148,136,0),inset 0 1px 0 rgba(255,255,255,.25);transform:scale(1.05);}
+        }
     </style>
     <script>
         // Apply color scheme from admin settings
@@ -772,7 +797,7 @@
 
     <script>
         // ── Current Analysis Loader ─────────────────────────────────────────────
-        (async function loadGameAnalytics() {
+        async function loadGameAnalytics() {
             if (typeof NativeBackup !== 'undefined') {
                 await NativeBackup.init().catch(() => {});
             }
@@ -1392,14 +1417,30 @@
             body.querySelectorAll('[data-explain]').forEach(function(el){
                 el.addEventListener('click', function(){ showExplanation(el.getAttribute('data-explain')); });
             });
-        })();
+        }
         // ── End Current Analysis Loader ──────────────────────────────────────
+        // Initial load
+        loadGameAnalytics();
+        // Reload data every time the tab becomes active (e.g. after plan.html updates gameData)
+        window.addEventListener('NUTRIPLAN_TAB_ACTIVATED', function() { loadGameAnalytics(); });
         // Reveal the page now that critical content is rendered from localStorage.
         requestAnimationFrame(function() {
             document.body.style.transition = 'opacity 120ms ease-out';
             document.body.style.opacity = '1';
         });
     </script>
+
+    <script>
+        function requestShellAction(type, payload) {
+            if (document.documentElement.getAttribute('data-embedded-tab') !== '1' || !window.parent || window.parent === window) return false;
+            try { window.parent.postMessage(Object.assign({ type: type }, payload || {}), window.location.origin); return true; } catch (_) { return false; }
+        }
+    </script>
+
+    <!-- Chat Assistant Button -->
+    <button class="fab-chat" onclick="if(!requestShellAction('NUTRIPLAN_OPEN_CHAT'))window.location.href='plan.html?chat=1'" aria-label="Отвори чат асистент">
+        <img src="./docs/Chat2.png" alt="" class="chat-icon-img" aria-hidden="true">
+    </button>
 
     <!-- Bottom Navigation -->
     <nav class="bottom-nav" aria-label="Основна навигация">
