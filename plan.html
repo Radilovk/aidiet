@@ -51,7 +51,7 @@
     <!-- Detect shellChat overlay mode before first paint -->
     <script>(function(){if(new URLSearchParams(window.location.search).get('shellChat')==='1'){document.documentElement.setAttribute('data-shell-chat','1');}})();</script>
     <!-- In shellChat mode: hide everything except #chatWindow so only the chat drawer shows -->
-    <style>html[data-shell-chat="1"] body{background:var(--card-bg,rgba(255,255,255,.9))!important;overflow:hidden!important;opacity:1!important;}html[data-shell-chat="1"] body>*:not(#chatWindow){display:none!important;}</style>
+    <style>html[data-shell-chat="1"] body{background:transparent!important;overflow:hidden!important;opacity:1!important;}html[data-shell-chat="1"] body>*:not(#chatWindow){display:none!important;}html[data-shell-chat="1"] #chatWindow{position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:0!important;height:100%!important;max-height:none!important;border-radius:16px 16px 0 0!important;}</style>
     <style>
         :root {
             --primary-red: #0D9488;
