@@ -195,10 +195,6 @@
             align-items: center;
             justify-content: space-between;
             gap: 10px;
-            cursor: pointer;
-            user-select: none;
-            -webkit-user-select: none;
-            -webkit-tap-highlight-color: transparent;
         }
         .game-analytics-title {
             display: flex;
@@ -216,14 +212,7 @@
             font-weight: 600;
             white-space: nowrap;
         }
-        .game-analytics-chevron {
-            font-size: 0.8rem;
-            transition: transform 0.3s ease;
-            opacity: 0.85;
-        }
-        .game-analytics-section.open .game-analytics-chevron {
-            transform: rotate(180deg);
-        }
+
         .game-analytics-body {
             padding: 14px 16px 16px;
         }
@@ -681,14 +670,13 @@
     <!-- Main Content -->
     <div class="container">
         <div class="game-analytics-section open" id="gameAnalyticsSection">
-            <div class="game-analytics-header" onclick="toggleGameAnalytics()" role="button" tabindex="0" aria-expanded="true" aria-controls="gameAnalyticsBody" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleGameAnalytics();}">
+            <div class="game-analytics-header">
                 <div class="game-analytics-title">
                     <i class="fas fa-brain"></i>
                     <span>Текущ анализ</span>
                 </div>
                 <div style="display:flex;align-items:center;gap:8px;">
                     <span id="gameAnalyticsBadge" class="game-analytics-badge"></span>
-                    <i class="fas fa-chevron-up game-analytics-chevron" id="gameAnalyticsChevron"></i>
                 </div>
             </div>
             <div class="game-analytics-body" id="gameAnalyticsBody">
@@ -741,19 +729,6 @@
             var t = document.documentElement.getAttribute('data-theme') || 'light';
             updateThemeIcon(t);
         })();
-
-        function toggleGameAnalytics() {
-            var section = document.getElementById('gameAnalyticsSection');
-            var body    = document.getElementById('gameAnalyticsBody');
-            var chevron = document.getElementById('gameAnalyticsChevron');
-            var header  = section ? section.querySelector('.game-analytics-header') : null;
-            if (!section || !body) return;
-            var isOpen = body.style.display !== 'block';
-            body.style.display = isOpen ? 'block' : 'none';
-            section.classList.toggle('open', isOpen);
-            if (chevron) chevron.className = 'fas game-analytics-chevron ' + (isOpen ? 'fa-chevron-up' : 'fa-chevron-down');
-            if (header)  header.setAttribute('aria-expanded', String(isOpen));
-        }
 
         function toggleDetailedMetrics() {
             var details = document.getElementById('gameMetricsDetails');
@@ -816,8 +791,6 @@
             // Always expand the container on this page
             body.style.display = 'block';
             section.classList.add('open');
-            var header = section.querySelector('.game-analytics-header');
-            if (header) header.setAttribute('aria-expanded', 'true');
 
             // ── Helpers ───────────────────────────────────────────────────────
             function zp(n) { return n < 10 ? '0' + n : '' + n; }

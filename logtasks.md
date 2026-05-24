@@ -1768,3 +1768,23 @@ Both changes are minimal, zero-bloat edits to existing code paths.
 
 **guidelines.html**
 - Swipe nav и bottom nav: Начало → Анализ.
+
+---
+
+## Задача: Единен чат за всички табове + премахване на collapse в анализ таба
+
+**Проблем:**
+1. Чат прозорецът в план таба се отваряше локално (само в plan.html iframe), вместо да използва общия shell overlay чат. При смяна на таб съдържанието на чат се губеше.
+2. В хедъра на analytics таба (game-analytics.html) имаше бутон за свиване на контейнера.
+
+### Извършени промени
+
+**plan.html**
+- `openChat()`: добавена проверка — ако plan.html работи като embedded tab (не в shellChat режим), делегира отварянето на чата към shell overlay чрез `requestShellAction('NUTRIPLAN_OPEN_CHAT')`. Така планът използва един и същи shared чат като всички останали табове. Съдържанието на чата се запазва при смяна на таб.
+
+**game-analytics.html**
+- Премахнати интерактивни атрибути от `.game-analytics-header` (`onclick`, `role="button"`, `tabindex`, `aria-expanded`, `aria-controls`, `onkeydown`).
+- Премахнат chevron иконата `<i class="fas fa-chevron-up game-analytics-chevron">`.
+- Премахнати CSS правила за `.game-analytics-chevron` и `cursor:pointer`/`user-select` от `.game-analytics-header`.
+- Премахната функция `toggleGameAnalytics()`.
+- Контейнерът остава постоянно в разгърнато (expanded) състояние.

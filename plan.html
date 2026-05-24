@@ -6027,6 +6027,13 @@
 
         // --- Chat Logic ---
         function openChat() {
+            // In regular embedded tab (not shellChat overlay) delegate to the shell's shared chat
+            if (document.documentElement.getAttribute('data-embedded-tab') === '1' &&
+                document.documentElement.getAttribute('data-shell-chat') !== '1') {
+                requestShellAction('NUTRIPLAN_OPEN_CHAT');
+                return;
+            }
+
             if (chatVisible) {
                 closeChatWindow();
                 return;
