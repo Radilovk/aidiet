@@ -1860,3 +1860,31 @@ Both changes are minimal, zero-bloat edits to existing code paths.
 - `stopTypingHaptics()` в `finalizeTyping()` остава непроменен.
 
 **Резултат:** За едно AI съобщение се правят само 1 vibrate(20) извикване (при старт) + 1 vibrate(0) (при край). Нула queue buildup → нула остатъчна вибрация след края на typing.
+
+## 2026-05-24 — Разминаване APK vs уеб: Анализ таб и Чат
+
+**Задача:** Открий и поправи причините за разликата в поведението между APK и уеб версията:
+1. Анализ таба не се извежда
+2. Чат модул не се отваря (иконата е видима)
+3. Намери и поправи други категорични грешки
+
+**Анализ:**
+
+**Причина 1 — Swipe навигация в `plan.html` разрушава SPA shell:**
+`plan.html` има `touchend` handler, който при хоризонтален swipe прави `window.location.href = 'index.html?app=1&tab=X'`. В embedded режим (SPA shell, APK) това навигира плановия iframe към `index.html`, което стартира вложен (nested) SPA shell вътре в план iframe-а — счупва целия shell.
+
+**Причина 2 — Чат overlay остава бял/празен:**
+`plan.html?chat=1&shellChat=1` се зарежда като overlay за чата. Неговият `initializeDOMDependentFeatures()` чака Firebase auth (`NutriPlanPlanAuthReady`) преди да извика `openChat()`. В APK Firebase auth може да отнеме няколко секунди. CSS-ът `html[data-shell-chat="1"] body>*:not(#chatWindow){display:none!important}` скрива всичко освен `#chatWindow`, но той не е създаден преди `openChat()` → бял/прозрачен overlay.
+
+**Причина 3 — `tabFromUrl` в `app.js` не разпознава `index.html?tab=X` формата:**
+patchFrame click interceptor в app.js ползва `tabFromUrl` само за HTML файлове (`plan.html`, etc.). Линковете от bottom nav в страниците са `index.html?app=1&tab=X` формат — те не се прихващат. Защитна корекция.
+
+**Направено:**
+
+1. **plan.html** — swipe навигация: при `data-embedded-tab='1'` вика `requestShellAction('NUTRIPLAN_SWITCH_TAB', { tab: tabKey })` вместо `window.location.href`. При standalone режим поведението е непроменено.
+
+2. **plan.html** — `initializeDOMDependentFeatures()`: добавена ранна проверка за `shellChat=1` — незабавно извиква `loadDietData()` (sync, от localStorage), `loadChatHistory()`, `openChat()` и излиза. Firebase auth не се чака → чатът се показва мигновено.
+
+3. **app.js** — `tabFromUrl()`: добавена логика за `index.html` path + `tab` параметър, така че bottom nav линковете се прихващат правилно от patchFrame click interceptor.
+
+**Резултат:** Swipe навигацията не разрушава SPA shell-а; чат overlay се показва незабавно при натискане на иконата; bottom nav линкове работят коректно в embedded режим.
