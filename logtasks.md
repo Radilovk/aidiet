@@ -1,5 +1,13 @@
 # Log Tasks
 
+## 2026-05-25 — Чат хаптик: първо отваряне и въвеждане на текст
+
+**Задача:** В APK haptic се усеща при бот-типинг и при второ отваряне на чата, но не и при първото отваряне на shell chat и при писане в chat input. Да се оправи.
+
+**Направено:**
+1. **plan.html** — Премахнато е `hapticCtrl.stop()` от `removeTypingIndicator()`, защото спираше haptic-а точно преди assistant typing в chat прозореца.
+2. **plan.html** — Върнат е минималният chat flow без допълнителен input workaround.
+
 ## 2026-05-25 — Хаптик в APK: case-sensitive стил за Capacitor (session 4)
 
 **Задача:** Haptic в APK не се усеща изобщо, докато в PWA и уеб работи. Намери причината и оправи.
