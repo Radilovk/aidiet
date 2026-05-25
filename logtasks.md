@@ -1966,3 +1966,22 @@ patchFrame click interceptor в app.js ползва `tabFromUrl` само за H
 4. Премахнат `requestAnimationFrame` блокът извън `loadGameAnalytics()` (беше единственото място за reveal — не работеше на APK).
 
 **Резултат:** Анализ табът правилно зарежда съдържание при първо отваряне на APK и при всяко превключване към него.
+
+---
+
+## 2026-05-25 — Синхронизиране на package-lock за npm ci (fix-package-lock-sync)
+
+**Задача:** failing job-ът спира на `npm ci`, защото `package.json` и `package-lock.json` не са синхронизирани. Трябва да се поправи lock файлът, без промени по workflow-а.
+
+**Причина (потвърдена):**
+- В `package.json` присъства `@capacitor/haptics: "^8.0.0"`.
+- В `package-lock.json` липсваха root dependency записът и `node_modules/@capacitor/haptics`.
+- И локално, и в GitHub Actions `npm ci` падаше с `Missing: @capacitor/haptics@8.0.2 from lock file`.
+
+**Направено:**
+1. Проверен е failing GitHub Actions run `Build Android APK`, където `Install npm dependencies` пада точно на `npm ci`.
+2. Пуснато е `npm install --package-lock-only`, за да се регенерира `package-lock.json` без промени по workflow-а.
+3. Добавени са липсващите записи за `@capacitor/haptics` в root dependencies и в `node_modules/@capacitor/haptics`.
+4. Валидирано е локално с `npm ci` и `npm test`.
+
+**Резултат:** `package-lock.json` вече е синхронизиран с `package.json`, така че `npm ci` минава успешно без промени по CI workflow-а.
