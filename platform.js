@@ -69,11 +69,18 @@
 
     // ── Безопасен достъп до Capacitor плъгин ───────────────────────────────
 
-    /** Връща Capacitor плъгин по име или null ако не съществува. */
+    /** Връща Capacitor плъгин по име или null ако не съществува.
+     *  Ако плъгинът не е регистриран (dist/plugin.js не е зареден), го регистрира
+     *  lazily така че native bridge да продължи да работи — работи и от iframe контекст
+     *  чрез window.top.Capacitor. */
     function getPlugin(name) {
         try {
             var cap = getCap();
-            return (cap && cap.Plugins && cap.Plugins[name]) || null;
+            if (!cap) return null;
+            if (!cap.Plugins[name] && typeof cap.registerPlugin === 'function') {
+                cap.registerPlugin(name, {});
+            }
+            return cap.Plugins[name] || null;
         } catch (_) { return null; }
     }
 

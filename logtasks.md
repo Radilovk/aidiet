@@ -1,5 +1,51 @@
 # Log Tasks
 
+## 2026-05-25 — Хаптик в APK: почистване на мъртъв код след session 6 (session 7)
+
+**Задача:** Потвърди дали session 6 обяснява защо haptic работеше в уеб/PWA навсякъде, но в APK само в game въпросите, не и в чат асистента. После премахни остатъчен/дублиран код от всички предишни опити.
+
+**Потвърдено обяснение на разликата платформи:**
+- Game въпроси в APK: рендерират се в main plan iframe (`plan.html?embedded=1`), на който `patchFrame` е викан → `data-embedded-tab='1'` е налично → `requestShellAction('NUTRIPLAN_HAPTIC')` → postMessage → app.js handler → `cap.registerPlugin('Haptics', {})` → `impact()` ✓
+- Чат асистент в APK (преди session 5): shellChatFrame НЯМАШЕ `patchFrame` → `data-embedded-tab` не е зададен → `requestShellAction` returns false → `NutriPlanPlatform.getPlugin('Haptics')` → null (не регистриран) → `navigator.vibrate` → **деактивиран в Android WebView** → нула
+- Уеб/PWA: `navigator.vibrate` работи в браузърите → хаптика навсякъде ✓
+
+**Мъртъв код след session 6 (идентифициран и изтрит):**
+
+1. **`plan.html` — `requestShellAction('NUTRIPLAN_HAPTIC', ...)` fallback**: dead code — `NutriPlanPlatform.getPlugin()` вече ползва `window.top.Capacitor` + auto-регистрира → успява ПРЕДИ постMessage в APK; в web/PWA и двете пропадат по същата причина (няма Capacitor).
+2. **`app.js` — цял `NUTRIPLAN_HAPTIC` handler** (15 реда): dead code — plan.html вече не праща това съобщение, и само plan.html изобщо го беше пращало.
+3. **Коментар в `hapticCtrl`** — остарял ("delegates to shell via postMessage"), обновен да отразява реалния flow.
+
+---
+
+## 2026-05-25 — Хаптик в APK: нулева вибрация след session 5 (session 6)
+
+**Задача:** След session 5 (добавяне на patchFrame за shellChatFrame) дори при отварянето на чата няма вибрация в APK.
+
+**Root cause (детайлно разследване):**
+Session 5 добави `patchFrame` за shellChatFrame → `data-embedded-tab='1'` се задава след зареждане на iframe. Това накара `requestShellAction('NUTRIPLAN_HAPTIC', ...)` да връща `true` (тъй като сега атрибутът е наличен), и изпълнението излиза ПРЕДИ да достигне fallback-а `navigator.vibrate`. Ако Capacitor `impact()` в app.js не стреля (защото Haptics plugin не е регистриран чрез JS — `@capacitor/haptics/dist/plugin.js` никога не се зарежда директно), хаптиката изчезва напълно без никакъв fallback.
+
+Едновременно: `NutriPlanPlatform.getPlugin('Haptics')` беше поставен СЛЕД `requestShellAction` в hapticCtrl — но `requestShellAction` вече връщаше `true` в shellChat, така че `getPlugin` никога не се извикваше.
+
+**Направено (3 файла):**
+
+1. **`platform.js` — `getPlugin()`**: добавена lazy auto-регистрация на плъгина ако не е регистриран:
+   ```js
+   if (!cap.Plugins[name] && typeof cap.registerPlugin === 'function') {
+       cap.registerPlugin(name, {});
+   }
+   ```
+   Работи от всеки iframe чрез `window.top.Capacitor` (getCap() вече го прави). Без това — Haptics е `undefined` докато app.js не получи ПОНЕ едно NUTRIPLAN_HAPTIC съобщение.
+
+2. **`plan.html` — `hapticCtrl.trigger()`**: сменен редът на опити:
+   - ПЪРВО: `NutriPlanPlatform.getPlugin('Haptics').impact()` — директен Capacitor (auto-регистрира се)
+   - FALLBACK: `requestShellAction('NUTRIPLAN_HAPTIC', ...)` — postMessage
+   - ПОСЛЕДЕН: `navigator.vibrate` — web/PWA
+   Така дори ако postMessage не работи, директният Capacitor path хваща хаптиката.
+
+3. **`plan.html` — `openChat()` opening haptic**: заменено `navigator.vibrate([40,30,80])` с `NutriPlanPlatform.getPlugin('Haptics').impact({ style: 'Medium' })` когато Capacitor е наличен, иначе `navigator.vibrate` като fallback.
+
+---
+
 ## 2026-05-25 — Хаптик в APK: shellChatFrame без patchFrame (session 5)
 
 **Задача:** Haptic работи при game въпроси и при отваряне на чат прозореца (втори път), НО не и когато ботът пише текст в чат прозореца. Намери причината.
