@@ -506,7 +506,7 @@
                         cap.registerPlugin('Haptics', {});
                     }
                     if (cap.Plugins.Haptics) {
-                        cap.Plugins.Haptics.impact({ style: data.style || 'LIGHT' });
+                        cap.Plugins.Haptics.impact({ style: data.style || 'Light' });
                     }
                 }
             } catch (_) {}
