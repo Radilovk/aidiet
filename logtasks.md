@@ -1,5 +1,23 @@
 # Log Tasks
 
+## 2026-05-25 — Платформен синхрон APK / PWA / Web: `platform.js`
+
+**Задача:** Създаване на ясна, проста функция за синхрон и адаптация между APK, PWA и Web в NutriPlan проекта, така че бъдещи задачи да се прилагат успешно и в трите платформи.
+
+**Направено:**
+1. **Създаден `platform.js`** — минимален utility модул, който:
+   - Засича платформата (`isAPK` / `isPWA` / `isWeb`, стойност `platform`: `'apk'|'pwa'|'web'`)
+   - Слага `data-platform="apk|pwa|web"` на `<html>` — CSS може да скрива/показва елементи за конкретна платформа
+   - `NutriPlanPlatform.on('apk', fn)` — изпълнява fn само в APK; приема и масив `['pwa','web']`
+   - `NutriPlanPlatform.vibrate({ style, duration })` — Capacitor Haptics в APK, `navigator.vibrate` в PWA/Web
+   - `NutriPlanPlatform.navigate(url)` — минава през NUTRIPLAN_NAVIGATE в iframe shell; иначе директна
+2. **Зареден в 5 главни страници** след `diagnostics-log.js`: `index.html`, `plan.html`, `profile.html`, `guidelines.html`, `game-analytics.html`
+3. **Добавен в `sw.js` STATIC_CACHE** → PWA го кешира офлайн; SW версия обновена `v8` → `v9`
+
+**Резултат:** `window.NutriPlanPlatform` е достъпен на всяка main страница. При бъдещи задачи — достатъчно е `NutriPlanPlatform.on()` или проверка на `.isAPK/.isPWA/.isWeb` за прецизна адаптация.
+
+---
+
 ## 2026-05-24 — Хаптик не работи в APK: липсващ пакет в lock файла
 
 **Задача:** Промените и принципите в haptic поведението не са вложени адекватно в APK.
