@@ -6391,7 +6391,7 @@
             // Enhancement #9: Check for duplicate messages
             if (isDuplicateMessage(message)) {
                 addMessageToChat('⚠️ Това съобщение току-що бе изпратено. Моля, изчакайте отговора.', 'assistant');
-                input.value = '';
+                input.value = ''; // Clear input
                 return;
             }
             
@@ -7036,6 +7036,7 @@
         function removeTypingIndicator(id) {
             const indicator = document.getElementById(id);
             if (indicator) {
+                hapticCtrl.stop();
                 indicator.remove();
             }
         }

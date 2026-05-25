@@ -454,25 +454,11 @@
         shellChatFrame = el;
     }
 
-    function triggerShellHaptic(style) {
-        try {
-            var cap = window.Capacitor;
-            if (!cap) return;
-            if (!cap.Plugins.Haptics && typeof cap.registerPlugin === 'function') {
-                cap.registerPlugin('Haptics', {});
-            }
-            if (cap.Plugins.Haptics) {
-                cap.Plugins.Haptics.impact({ style: style || 'Light' });
-            }
-        } catch (_) {}
-    }
-
     function openShellChat() {
         ensureShellChatOverlay();
         if (!shellChatFrame) return;
         var nextSrc = 'plan.html?chat=1&embedded=1&shellChat=1';
         if (shellChatFrame.getAttribute('src') !== nextSrc) {
-            triggerShellHaptic('Light');
             shellChatFrame.setAttribute('src', nextSrc);
         } else if (shellChatFrame.contentWindow) {
             shellChatFrame.contentWindow.dispatchEvent(new CustomEvent('NUTRIPLAN_SHELL_CHAT_OPEN'));
@@ -511,7 +497,19 @@
             return;
         }
         if (data.type === 'NUTRIPLAN_HAPTIC') {
-            triggerShellHaptic(data.style);
+            try {
+                var cap = window.Capacitor;
+                if (cap) {
+                    // registerPlugin must be called to create the JS-side proxy;
+                    // @capacitor/haptics dist/plugin.js is never loaded directly so we do it lazily.
+                    if (!cap.Plugins.Haptics && typeof cap.registerPlugin === 'function') {
+                        cap.registerPlugin('Haptics', {});
+                    }
+                    if (cap.Plugins.Haptics) {
+                        cap.Plugins.Haptics.impact({ style: data.style || 'Light' });
+                    }
+                }
+            } catch (_) {}
             return;
         }
         if (data.type !== 'NUTRIPLAN_NAVIGATE' || typeof data.url !== 'string' || !data.url) return;
