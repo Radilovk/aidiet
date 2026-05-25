@@ -1,5 +1,33 @@
 # Log Tasks
 
+## 2026-05-25 — Централизиран Cross-Platform Adapter (`platform.js`)
+
+**Задача:** Създаване на ясна, проста функция за синхрон и адаптация между APK, PWA и Web в NutriPlan проекта, така че бъдещите задачи да се интегрират успешно и в трите части.
+
+**Направено:**
+1. **platform.js (нов файл)** — Създаден `window.NutriPlanPlatform` IIFE модул с:
+   - `isAPK()` — Capacitor native платформа
+   - `isPWA()` — standalone display mode
+   - `isWeb()` — обикновен браузър
+   - `isIOS()`, `isAndroid()`, `isHuawei()` — устройство
+   - `getMode()` → `'apk' | 'pwa' | 'web'`
+   - `getPlugin(name)` — безопасен достъп до Capacitor плъгини
+   - **`apply(handlers)`** — централната функция: изпълнява правилния handler по текущата платформа (`{ apk: fn, pwa: fn, web: fn, all: fn }`)
+2. **index.html, plan.html, profile.html, guidelines.html, game-analytics.html** — Добавен `<script src="./platform.js">` след `diagnostics-log.js`
+3. **sw.js** — Добавен `platform.js` в `STATIC_CACHE` за PWA офлайн поддръжка
+
+**Как се ползва при нова задача:**
+```js
+NutriPlanPlatform.apply({
+    apk: () => { /* Capacitor-специфично */ },
+    pwa: () => { /* PWA-специфично */ },
+    web: () => { /* Web-специфично */ },
+    // или 'all' за общ код
+});
+```
+
+---
+
 ## 2026-05-24 — Почистване на остатъци след хаптик операцията
 
 **Задача:** Премахване на излишните wrapper функции `stopTypingHaptics()` и `triggerCharHaptic()` оставени от предишната задача.

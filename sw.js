@@ -24,6 +24,7 @@ const STATIC_CACHE = [
   `${BASE_PATH}/icon-512x512.svg`,
   `${BASE_PATH}/manifest.json`,
   `${BASE_PATH}/local-scheduler.js`,
+  `${BASE_PATH}/platform.js`,
   'https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css'
 ];

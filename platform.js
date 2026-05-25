@@ -1,0 +1,106 @@
+/**
+ * NutriPlan Cross-Platform Adapter
+ * ---------------------------------
+ * Централизирано разпознаване на платформата (APK / PWA / Web) и
+ * еднотипен механизъм за адаптиране на функционалност между тях.
+ *
+ * Употреба:
+ *   NutriPlanPlatform.getMode()         → 'apk' | 'pwa' | 'web'
+ *   NutriPlanPlatform.apply({
+ *       apk: () => { ... },   // само в Capacitor APK
+ *       pwa: () => { ... },   // само в инсталирано PWA
+ *       web: () => { ... },   // само в обикновен браузър
+ *       // или:
+ *       all: () => { ... }    // на всички платформи
+ *   });
+ */
+(function (global) {
+    'use strict';
+
+    // ── Основно разпознаване ───────────────────────────────────────────────
+
+    function isAPK() {
+        try {
+            return !!(global.Capacitor &&
+                typeof global.Capacitor.isNativePlatform === 'function' &&
+                global.Capacitor.isNativePlatform());
+        } catch (_) { return false; }
+    }
+
+    function isPWA() {
+        try {
+            return (global.matchMedia && global.matchMedia('(display-mode: standalone)').matches) ||
+                   global.navigator.standalone === true;
+        } catch (_) { return false; }
+    }
+
+    function isWeb() {
+        return !isAPK() && !isPWA();
+    }
+
+    // ── Устройство ─────────────────────────────────────────────────────────
+
+    function isIOS() {
+        return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    }
+
+    function isAndroid() {
+        return /Android/i.test(navigator.userAgent);
+    }
+
+    function isHuawei() {
+        return /huawei/i.test(navigator.userAgent) || /harmony/i.test(navigator.userAgent);
+    }
+
+    // ── Лейбъл и mode ──────────────────────────────────────────────────────
+
+    /** Връща 'apk' | 'pwa' | 'web' */
+    function getMode() {
+        if (isAPK()) return 'apk';
+        if (isPWA()) return 'pwa';
+        return 'web';
+    }
+
+    // ── Безопасен достъп до Capacitor плъгин ───────────────────────────────
+
+    /** Връща Capacitor плъгин по име или null ако не съществува. */
+    function getPlugin(name) {
+        try {
+            return (global.Capacitor &&
+                    global.Capacitor.Plugins &&
+                    global.Capacitor.Plugins[name]) || null;
+        } catch (_) { return null; }
+    }
+
+    // ── Основна функция: apply ─────────────────────────────────────────────
+
+    /**
+     * Изпълнява handler-а, съответстващ на текущата платформа.
+     *
+     * @param {Object} handlers  Обект с ключове 'apk', 'pwa', 'web' и/или 'all'.
+     *                           'all' се използва само когато няма специфичен ключ за платформата.
+     * @param {*}      [context] Опционален this контекст за извикване на handler-а.
+     */
+    function apply(handlers, context) {
+        if (!handlers || typeof handlers !== 'object') return;
+        var mode = getMode();
+        var fn = handlers[mode];
+        if (typeof fn !== 'function') fn = handlers.all;
+        if (typeof fn === 'function') fn.call(context || null, mode);
+    }
+
+    // ── Публично API ────────────────────────────────────────────────────────
+
+    global.NutriPlanPlatform = {
+        isAPK: isAPK,
+        isPWA: isPWA,
+        isWeb: isWeb,
+        isIOS: isIOS,
+        isAndroid: isAndroid,
+        isHuawei: isHuawei,
+        getMode: getMode,
+        getPlugin: getPlugin,
+        apply: apply
+    };
+
+}(typeof window !== 'undefined' ? window : this));
