@@ -4671,12 +4671,23 @@
         // Grok-style HapticController — 50 ms throttle, Light for letters, Heavy for punctuation.
         // In embedded (iframe) APK mode: delegates to the shell via postMessage — the shell's main
         // frame owns the Capacitor bridge and triggers the native haptic from there.
-        // Standalone APK: uses NutriPlanPlatform.getPlugin('Haptics') directly.
+        // Standalone APK: uses the Haptics plugin directly.
         // Web fallback: navigator.vibrate.
         var hapticCtrl = (function() {
             var lastTime = 0;
             var INTERVAL = 50; // minimum ms between vibrations (hardware throttle)
             var PUNCT = /[.,!?;:\-]/;
+            function getHapticsPlugin() {
+                try {
+                    var cap = window.Capacitor || (window.top && window.top.Capacitor);
+                    if (cap && !cap.Plugins.Haptics && typeof cap.registerPlugin === 'function') {
+                        cap.registerPlugin('Haptics', {});
+                    }
+                    return (cap && cap.Plugins && cap.Plugins.Haptics) || null;
+                } catch (_) {
+                    return null;
+                }
+            }
             return {
                 trigger: function(ch) {
                     if (!typingHapticsEnabled) return;
@@ -4684,14 +4695,21 @@
                     if (now - lastTime < INTERVAL) return;
                     lastTime = now;
                     var style = PUNCT.test(ch) ? 'HEAVY' : 'LIGHT';
+                    var duration = style === 'HEAVY' ? 20 : 12;
                     // Embedded iframe: relay to shell which has the native Capacitor bridge
-                    if (requestShellAction('NUTRIPLAN_HAPTIC', { style: style })) return;
+                    if (requestShellAction('NUTRIPLAN_HAPTIC', { style: style, duration: duration })) return;
                     // Standalone APK or web
-                    var plugin = NutriPlanPlatform.getPlugin('Haptics');
+                    var plugin = getHapticsPlugin();
                     if (plugin) {
-                        try { plugin.impact({ style: style }); } catch (_) {}
+                        try {
+                            if (NutriPlanPlatform.isAndroid && NutriPlanPlatform.isAndroid() && typeof plugin.vibrate === 'function') {
+                                plugin.vibrate({ duration: duration });
+                            } else {
+                                plugin.impact({ style: style });
+                            }
+                        } catch (_) {}
                     } else if (navigator.vibrate) {
-                        try { navigator.vibrate(style === 'HEAVY' ? 15 : 4); } catch (_) {}
+                        try { navigator.vibrate(duration); } catch (_) {}
                     }
                 },
                 stop: function() {
