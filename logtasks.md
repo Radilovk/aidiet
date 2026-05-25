@@ -2323,3 +2323,17 @@ VAPID ключът е статична стойност — никога не с
 ## 2026-05-25T22:38:00Z
 - Задача: Извеждане на пълен текстов експорт от frontend (всички страници/функции/текст) + worker с контекст за страница и елемент.
 - Изпълнение: Пуснат `npm test` (успешен), генериран файл `NUTRIPLAN_FULL_TEXT_EXPORT.txt` (структуриран HTML текст + пълен source dump за HTML/JS + string literals и source dump за worker.js), добавен лог в `logtasks.md`.
+
+## 2026-05-25 — AIX проект
+
+**Задача:** Създай AIX — мобилен чат интерфейс за безплатни OpenRouter модели с модерен mobile-first dark UX/UI.
+
+**Направено:**
+1. **worker.js** — Добавена функция `handleAIXChat()` + маршрут `POST /api/aix/chat`: проксира заявки към `https://openrouter.ai/api/v1/chat/completions` с тайния ключ `OPEN_ROUTER`. Поддържа SSE streaming (pass-through) и обикновен JSON режим.
+2. **AIX/README.md** — Документация: описание на модели, API endpoint, конфигурация, функции.
+3. **aix.html** — Пълноценен mobile-first dark-theme AI чат интерфейс:
+   - 3 безплатни OpenRouter модела с карти и описания (Gemini 2.5 Flash, Llama 3.3 70B, Qwen 2.5 72B)
+   - SSE streaming за реално-времени отговори
+   - Настройки: тон, дължина, роля, домейн, системен промпт
+   - Авто-профилиране на клиента (стил, детайл, ниво, тон) – анализира съобщенията и адаптира отговорите
+   - Glassmorphism dark тема, анимации, markdown рендериране
