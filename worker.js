@@ -13121,6 +13121,61 @@ function handleGetClinicalProtocols() {
   });
 }
 
+// ── AIX Chat handler – proxies to OpenRouter with SSE streaming ──────────────
+async function handleAIXChat(request, env) {
+  if (!env.OPEN_ROUTER) {
+    return jsonResponse({ error: 'OpenRouter API key not configured' }, 500);
+  }
+  let body;
+  try { body = await request.json(); } catch { return jsonResponse({ error: 'Invalid JSON' }, 400); }
+
+  const { model, messages, systemPrompt, stream } = body;
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return jsonResponse({ error: 'messages required' }, 400);
+  }
+
+  const apiMessages = systemPrompt
+    ? [{ role: 'system', content: systemPrompt }, ...messages]
+    : messages;
+
+  const orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${env.OPEN_ROUTER}`,
+      'Content-Type': 'application/json',
+      'HTTP-Referer': 'https://aidiet.radilov-k.workers.dev',
+      'X-Title': 'AIX'
+    },
+    body: JSON.stringify({
+      model: model || 'google/gemini-2.5-flash:free',
+      messages: apiMessages,
+      max_tokens: 2048,
+      stream: stream === true
+    })
+  });
+
+  if (!orRes.ok) {
+    const err = await orRes.text();
+    return jsonResponse({ error: err }, orRes.status);
+  }
+
+  if (stream === true) {
+    // Pass SSE stream directly to client
+    return new Response(orRes.body, {
+      headers: {
+        ...CORS_HEADERS,
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'X-Accel-Buffering': 'no'
+      }
+    });
+  }
+
+  const data = await orRes.json();
+  const content = data.choices?.[0]?.message?.content || '';
+  return jsonResponse({ content, usage: data.usage });
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -13338,6 +13393,10 @@ export default {
         const rlErr = await checkRateLimit(env, request, 'FORGOT_PASSWORD');
         if (rlErr) return rlErr;
         return await handleForgotPassword(request, env);
+      } else if (url.pathname === '/api/aix/chat' && request.method === 'POST') {
+        const rlErr = await checkRateLimit(env, request, 'CHAT');
+        if (rlErr) return rlErr;
+        return await handleAIXChat(request, env);
       } else {
         return jsonResponse({ error: 'Not found' }, 404);
       }
