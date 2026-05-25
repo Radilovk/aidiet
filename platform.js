@@ -72,6 +72,45 @@
         } catch (_) { return null; }
     }
 
+    // ── Навигационна лента (APK-only) ──────────────────────────────────────
+
+    /**
+     * Задава цвят на системната навигационна лента.
+     * На APK използва Capacitor NavigationBar плъгин; на PWA/Web — no-op.
+     *
+     * @param {string} color   HEX цвят, напр. '#F0FDFA'
+     * @param {boolean} [isDark=false]  true = тъмни бутони (светла лента)
+     */
+    function setNavBar(color, isDark) {
+        if (!isAPK()) return;
+        try {
+            var navBar = getPlugin('NavigationBar');
+            if (navBar && typeof navBar.setNavigationBarColor === 'function') {
+                navBar.setNavigationBarColor({ color: color, darkButtons: isDark !== false });
+            }
+        } catch (_) {}
+    }
+
+    // ── Вибрация / хаптика ─────────────────────────────────────────────────
+
+    /**
+     * Вибрира устройството.
+     * На APK — Capacitor Haptics (ако е наличен), иначе navigator.vibrate.
+     * На PWA/Web — navigator.vibrate.
+     *
+     * @param {number} [ms=50]  Продължителност в мс (за navigator.vibrate)
+     */
+    function vibrate(ms) {
+        try {
+            var haptics = isAPK() ? getPlugin('Haptics') : null;
+            if (haptics && typeof haptics.vibrate === 'function') {
+                haptics.vibrate({ duration: ms || 50 });
+            } else if (navigator.vibrate) {
+                navigator.vibrate(ms || 50);
+            }
+        } catch (_) {}
+    }
+
     // ── Основна функция: apply ─────────────────────────────────────────────
 
     /**
@@ -100,6 +139,8 @@
         isHuawei: isHuawei,
         getMode: getMode,
         getPlugin: getPlugin,
+        setNavBar: setNavBar,
+        vibrate: vibrate,
         apply: apply
     };
 
