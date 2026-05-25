@@ -2179,3 +2179,21 @@ VAPID ключът е статична стойност — никога не с
 3. **Rule-based pre-validation** преди AI validation на въпросника
 4. **Обединяване на admin config** → 1 KV ключ вместо 16
 5. **VAPID key в localStorage** — тривиална промяна
+
+## 2026-05-25 — Оптимизации на backend (1, 2, 6, 7, 8)
+
+**Задача:** Имплементиране на одобрени оптимизации от одита (3 и 4 се пропускат).
+
+**Направено:**
+1. **Fix #1 (worker.js)** — `generateChatPrompt()`: Премахнато `null, 2` от `JSON.stringify` → компактен JSON без whitespace. Намалява входните токени с ~30-40%.
+2. **Fix #2 (worker.js + plan.html)** — Премахнат фиктивен in-memory chat context cache (`chatContextCache`, `chatContextCacheTime`, `setChatContext`, `getChatContext`, `invalidateChatContext`, `CHAT_CONTEXT_CACHE_TTL`, `CHAT_CONTEXT_MAX_SIZE`). Сървърът вече е stateless - клиентът винаги изпраща контекст. Опростен handler и request body.
+3. **Fix #6 (worker.js)** — `ADMIN_CONFIG_CACHE_TTL`: 5 мин → 30 мин. При 30-мин сесии: от ~6 групи по 16 KV четения → 1 група (−83% KV reads за admin config).
+4. **Fix #7 (plan.html)** — Debounce 2.5 сек на `save-profile` след chat модификации. 5 последователни модификации = 1 KV запис вместо 5.
+5. **Fix #8 (plan.html)** — VAPID public key кешира се в `sessionStorage` при първото четене. Следващи Push регистрации в сесията пропускат HTTP заявката.
+
+**Пропуснато (по инструкция):**
+- #3: `DAYS_PER_CHUNK` (план генерация chunk-ове) — непроменено
+- #4: AI validation на въпросника — непроменено
+- #5: Workers Rate Limiting API — изисква инфраструктурни промени в wrangler.toml
+
+---
