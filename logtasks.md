@@ -1,5 +1,19 @@
 # Log Tasks
 
+## 2026-05-25 — Хаптик в APK: регресия след session 7 — възстановяване (session 8)
+
+**Задача:** След session 7 (PR #914, "remove dead NUTRIPLAN_HAPTIC") haptic ефектът липсва в чат асистента И в game въпросите на APK.
+
+**Root cause:** Session 7 погрешно прецени `requestShellAction('NUTRIPLAN_HAPTIC')` → app.js handler за "мъртъв код". Но `NutriPlanPlatform.getPlugin('Haptics').impact()` от iframe НЕ работи надеждно в APK: `registerPlugin('Haptics', {})` с празна имплементация не гарантира native bridge call при lipsa на dist/plugin.js в iframe контекста. `navigator.vibrate` е disabled в Android WebView → нула haptic.
+
+**Направено:**
+1. **`plan.html` — `hapticCtrl.trigger()`**: върнат `requestShellAction('NUTRIPLAN_HAPTIC', { style })` ПРЕДИ директния Capacitor опит. Верига: postMessage → app.js → native bridge (embedded APK) → директен Capacitor (standalone APK) → navigator.vibrate (web/PWA).
+2. **`app.js`** — върнат NUTRIPLAN_HAPTIC handler (lazy registerPlugin + impact).
+3. **`plan.html` — star celebration haptic** (triggerStarCelebration): заменено голото `navigator.vibrate` с requestShellAction/NutriPlanPlatform/vibrate верига.
+4. **`plan.html` — sleep question haptic** (sleep_yes/sleep_no): заменено с requestShellAction/NutriPlanPlatform/vibrate верига.
+
+---
+
 ## 2026-05-25 — Хаптик в APK: почистване на мъртъв код след session 6 (session 7)
 
 **Задача:** Потвърди дали session 6 обяснява защо haptic работеше в уеб/PWA навсякъде, но в APK само в game въпросите, не и в чат асистента. После премахни остатъчен/дублиран код от всички предишни опити.
