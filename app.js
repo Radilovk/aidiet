@@ -498,8 +498,12 @@
         }
         if (data.type === 'NUTRIPLAN_HAPTIC') {
             try {
-                var hapticsPlugin = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics;
-                if (hapticsPlugin) hapticsPlugin.impact({ style: data.style || 'LIGHT' });
+                var plugins = window.Capacitor && window.Capacitor.Plugins;
+                if (plugins && plugins.NativeHaptic) {
+                    plugins.NativeHaptic.tap();
+                } else if (plugins && plugins.Haptics) {
+                    plugins.Haptics.impact({ style: data.style || 'LIGHT' });
+                }
             } catch (_) {}
             return;
         }

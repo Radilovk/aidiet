@@ -1,5 +1,37 @@
 # Log Tasks
 
+## 2026-05-25 — Хаптик в APK: ФИНАЛНА ПОПРАВКА — NativeHapticPlugin (Grok-стил)
+
+**Задача:** Установи защо haptic не се усеща в APK въпреки предишните промени. Намери и внедри категорично работещ вариант като при Grok AI.
+
+**Открита причина:**
+`@capacitor/haptics` plugin-ът използва `VibrationEffect.createWaveform()` — груба вибрация (50ms при amplitude 110). Тя НЕ е „keyboard tap" хаптика:
+- 50ms вибрация + 50ms throttle = почти непрекъсната вибрация по време на стрийминг → не се усеща като отделни тактове
+- `VibrationEffect` може да бъде блокиран от silent mode / device settings
+- НЕ е същото като `View.performHapticFeedback(KEYBOARD_TAP)`, което Grok AI и keyboard apps използват
+
+**Правилното API (Grok-стил):**
+`View.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, FLAG_IGNORE_VIEW_SETTING)`
+- Системен haptic engine (не Vibrator)
+- API level 3+ (Android 1.5+)
+- Дискретни „clicks" — точно като при Grok
+- Respects system-wide haptic preference
+
+**Направено:**
+1. **`.github/workflows/build-apk.yml`** — Добавена стъпка след `PY_GOOGLE_AUTH`:
+   - Генерира `NativeHapticPlugin.java` в `android/app/src/main/java/com/biocode/nutriplan/`
+   - Overrides `MainActivity.java` за регистриране на плъгина чрез `registerPlugin(NativeHapticPlugin.class)`
+   - `NativeHapticPlugin.tap()` извиква `performHapticFeedback(KEYBOARD_TAP, FLAG_IGNORE_VIEW_SETTING)` на UI thread
+
+2. **`app.js`** — `NUTRIPLAN_HAPTIC` handler: пробва `NativeHaptic.tap()` първо, след това `Haptics.impact()` като fallback
+
+3. **`plan.html`** — `hapticCtrl.trigger()` реорганизиран с 3 нива на приоритет:
+   - **1-во:** `NativeHaptic.tap()` директно (работи от iframe — Capacitor bridge е shared в same-origin frames)
+   - **2-ро:** `requestShellAction('NUTRIPLAN_HAPTIC')` → postMessage → shell → `NativeHaptic.tap()`
+   - **3-то:** `Haptics.impact()` fallback + `navigator.vibrate` fallback
+
+---
+
 ## 2026-05-25 — Хаптик в APK: намерена причина и оправена (#901)
 
 **Задача:** Typing haptic не работи в APK (Capacitor WebView), въпреки че работи в уеб (Chrome на Android).

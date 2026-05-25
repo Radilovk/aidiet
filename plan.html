@@ -4684,9 +4684,17 @@
                     if (now - lastTime < INTERVAL) return;
                     lastTime = now;
                     var style = PUNCT.test(ch) ? 'HEAVY' : 'LIGHT';
-                    // Embedded iframe: relay to shell which has the native Capacitor bridge
+                    // 1st choice: NativeHaptic — View.performHapticFeedback(KEYBOARD_TAP)
+                    //   Same API used by keyboard apps and Grok AI. Works from iframe because
+                    //   Capacitor bridge is shared across all same-origin frames in the WebView.
+                    var nativeHaptic = NutriPlanPlatform.getPlugin('NativeHaptic');
+                    if (nativeHaptic) {
+                        try { nativeHaptic.tap(); } catch (_) {}
+                        return;
+                    }
+                    // 2nd choice: relay to shell via postMessage (embedded-iframe path)
                     if (requestShellAction('NUTRIPLAN_HAPTIC', { style: style })) return;
-                    // Standalone APK or web
+                    // 3rd choice: Capacitor Haptics plugin directly
                     var plugin = NutriPlanPlatform.getPlugin('Haptics');
                     if (plugin) {
                         try { plugin.impact({ style: style }); } catch (_) {}

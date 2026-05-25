@@ -218,6 +218,51 @@ jobs:
               manifest.write_text(text)
               print("AndroidManifest.xml: INTERNET permission added.")
           PY_GOOGLE_AUTH
+          # Inject NativeHapticPlugin: Grok-style keyboard-tap haptic via View.performHapticFeedback
+          # Uses KEYBOARD_TAP constant (API 3+) which is the same API keyboard apps and Grok use.
+          # FLAG_IGNORE_VIEW_SETTING ensures the call works even if WebView has haptics disabled
+          # while still respecting the system-wide haptic feedback preference.
+          JAVA_DIR="android/app/src/main/java/com/biocode/nutriplan"
+          cat > "${JAVA_DIR}/NativeHapticPlugin.java" <<'JAVA_EOF'
+package com.biocode.nutriplan;
+
+import android.os.Build;
+import android.view.HapticFeedbackConstants;
+import com.getcapacitor.Plugin;
+import com.getcapacitor.PluginCall;
+import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.CapacitorPlugin;
+
+@CapacitorPlugin(name = "NativeHaptic")
+public class NativeHapticPlugin extends Plugin {
+    @PluginMethod
+    public void tap(PluginCall call) {
+        getActivity().runOnUiThread(() -> {
+            try {
+                getActivity().getWindow().getDecorView()
+                    .performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP,
+                        HapticFeedbackConstants.FLAG_IGNORE_VIEW_SETTING);
+            } catch (Exception e) { /* silently ignore */ }
+        });
+        call.resolve();
+    }
+}
+JAVA_EOF
+          # Override MainActivity to register NativeHapticPlugin
+          cat > "${JAVA_DIR}/MainActivity.java" <<'JAVA_EOF2'
+package com.biocode.nutriplan;
+
+import com.getcapacitor.BridgeActivity;
+
+public class MainActivity extends BridgeActivity {
+    @Override
+    protected void onCreate(android.os.Bundle savedInstanceState) {
+        registerPlugin(NativeHapticPlugin.class);
+        super.onCreate(savedInstanceState);
+    }
+}
+JAVA_EOF2
+          echo "NativeHapticPlugin and MainActivity created in ${JAVA_DIR}"
           # Remove any PNG splash added by cap sync to avoid duplicate resource with splash.xml below
           rm -f android/app/src/main/res/drawable/splash.png
           mkdir -p android/app/src/main/res/values android/app/src/main/res/drawable android/app/src/main/res/drawable-night android/app/src/main/res/drawable-nodpi
