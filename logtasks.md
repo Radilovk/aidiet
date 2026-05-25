@@ -1,5 +1,22 @@
 # Log Tasks
 
+## 2026-05-25 — Хаптик при чат typing в APK не работи (session 5)
+
+**Задача:** В APK хаптикът работи при game въпроси (typewriter) и при отваряне на чат прозорец, НО НЕ работи когато ботът пише текст в чат прозореца.
+
+**Root cause:**
+`shellChatFrame` (`plan.html?chat=1&embedded=1&shellChat=1`) е динамично-създаден iframe — **не е `[data-tab-view]`** елемент. Затова `patchFrame()` в `app.js` никога не е извикан за него → `data-embedded-tab='1'` никога не е поставен на неговия document.
+
+`hapticCtrl.trigger()` вика `requestShellAction('NUTRIPLAN_HAPTIC', ...)`, което проверява `data-embedded-tab === '1'`. Понеже атрибутът не е set → `requestShellAction` връща `false` → relay към main frame е пропуснат → директният fallback (`navigator.vibrate(4ms)` / `top.Capacitor.Plugins.Haptics`) не работи ефективно в APK iframe контекст.
+
+В **plan tab** (`plan.html?embedded=1`): `patchFrame` е извикан → атрибутът е set → relay работи ✓  
+В **shellChatFrame**: `patchFrame` не е извикан → атрибутът НЕ е set → relay НЕ работи ✗
+
+**Направено (1 ред):**
+- **`plan.html`** (след ред 52): добавен inline `<script>` — ако URL съдържа `?embedded`, веднага се поставя `data-embedded-tab='1'` на `document.documentElement`. Идентичен pattern на вече съществуващия `data-shell-chat` detection. Гарантира, че `requestShellAction` работи ПРЕДИ всеки друг JS.
+
+---
+
 ## 2026-05-25 — Хаптик в APK: case-sensitive стил за Capacitor (session 4)
 
 **Задача:** Haptic в APK не се усеща изобщо, докато в PWA и уеб работи. Намери причината и оправи.
