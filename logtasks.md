@@ -5,9 +5,8 @@
 **Задача:** В APK haptic се усеща при бот-типинг и при второ отваряне на чата, но не и при първото отваряне на shell chat и при писане в chat input. Да се оправи.
 
 **Направено:**
-1. **app.js** — Добавен е native haptic helper в shell-а и първото `openShellChat()` вече подава haptic преди да зареди `plan.html?chat=1&embedded=1&shellChat=1`.
-2. **plan.html** — Добавен е `input` listener за `#chatInput`, който пуска per-character haptic при реално въвеждане на текст в чата.
-3. **plan.html** — Изчиства се chat input state при затваряне, за да не остава стар buffer между отварянията.
+1. **plan.html** — Премахнато е `hapticCtrl.stop()` от `removeTypingIndicator()`, защото спираше haptic-а точно преди assistant typing в chat прозореца.
+2. **plan.html** — Върнат е минималният chat flow без допълнителен input workaround.
 
 ## 2026-05-25 — Хаптик в APK: case-sensitive стил за Capacitor (session 4)
 
