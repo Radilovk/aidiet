@@ -498,8 +498,17 @@
         }
         if (data.type === 'NUTRIPLAN_HAPTIC') {
             try {
-                var hapticsPlugin = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics;
-                if (hapticsPlugin) hapticsPlugin.impact({ style: data.style || 'LIGHT' });
+                var cap = window.Capacitor;
+                if (cap) {
+                    // registerPlugin must be called to create the JS-side proxy;
+                    // @capacitor/haptics dist/plugin.js is never loaded directly so we do it lazily.
+                    if (!cap.Plugins.Haptics && typeof cap.registerPlugin === 'function') {
+                        cap.registerPlugin('Haptics', {});
+                    }
+                    if (cap.Plugins.Haptics) {
+                        cap.Plugins.Haptics.impact({ style: data.style || 'LIGHT' });
+                    }
+                }
             } catch (_) {}
             return;
         }

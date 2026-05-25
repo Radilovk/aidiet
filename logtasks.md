@@ -1,5 +1,36 @@
 # Log Tasks
 
+## 2026-05-25 — Хаптик в APK: ПРАВИЛНА ПОПРАВКА (session 3)
+
+**Задача:** Haptic работеше в PWA и уеб. Само в APK не се усещаше. Предишната сесия беше в грешна посока.
+
+**Реалната причина (root cause):**
+`window.Capacitor.Plugins.Haptics` е **undefined** в APK.
+
+В Capacitor 8, `Plugins.Haptics` се създава само когато `Capacitor.registerPlugin('Haptics', {...})` е извикан — това се прави от `@capacitor/haptics/dist/plugin.js`. Но тозиJS файл **никога не се зарежда** в приложението (нито import, нито `<script>` tag). Затова:
+- APK: `Plugins.Haptics` е null → `Haptics.impact()` не се вика → няма вибрация
+- PWA/Уеб (Chrome): `navigator.vibrate` работи → haptic се усеща
+
+**Направено:**
+- **`app.js`** — В `NUTRIPLAN_HAPTIC` handler: **lazily register** `Haptics` при първо използване:
+  ```js
+  if (!cap.Plugins.Haptics && typeof cap.registerPlugin === 'function') {
+      cap.registerPlugin('Haptics', {});
+  }
+  cap.Plugins.Haptics.impact({ style: ... });
+  ```
+  Capacitor bridge-а вече има `PluginHeaders` от native side (зареден при инициализация). `registerPlugin('Haptics', {})` създава JS proxy, методите се насочват към native чрез `nativePromise('Haptics', 'impact', ...)`.
+- **`plan.html`** — Върнато към оригиналния `hapticCtrl.trigger()` (без ненужния NativeHaptic path).
+- **`build-apk.yml`** — Премахнат грешния `NativeHapticPlugin.java` + `MainActivity.java` override от предишната сесия.
+
+---
+
+## 2026-05-25 — Хаптик в APK: (ОТМЕНЕНА) NativeHapticPlugin сесия
+
+**Задача:** Погрешна диагноза — смяташе се, че VibrationEffect дава непрекъсната вибрация. ОТМЕНЕНА.
+
+---
+
 ## 2026-05-25 — Хаптик в APK: намерена причина и оправена (#901)
 
 **Задача:** Typing haptic не работи в APK (Capacitor WebView), въпреки че работи в уеб (Chrome на Android).
