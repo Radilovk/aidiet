@@ -2025,3 +2025,43 @@ NutriPlanPlatform.vibrate(50);
 ```
 
 **Резултат:** Единна точка за платформена адаптация, достъпна на всички основни страници.
+
+---
+
+## 2026-05-25 — Поправка: Haptic чат не работи в APK (iframe Capacitor bridge)
+
+**Задача:** Разбери защо haptic функцията при чат не работи в APK.
+
+**Корен проблем:** `plan.html` се зарежда като **iframe** вътре в `index.html` (SPA shell). Capacitor инжектира bridge-а (`window.Capacitor`) само в top-level документа — не в iframe-ите. Затова в plan.html:
+- `window.Capacitor` → `undefined`
+- `hapticCtrl.hap()` → винаги `null` → нито Capacitor haptics, нито навигатор.vibrate (тъй като `hap()` null-ва целия branch)
+- `isCapacitorNativeApp` → `false` → SW се регистрира излишно в APK
+- Emergency App plugin listener → никога не се регистрира
+
+**Направено (прецизна поправка):**
+1. **`plan.html` — `hapticCtrl.hap()`**: `window.Capacitor || (window.top && window.top.Capacitor)`
+2. **`plan.html` — `isCapacitorNativeApp` и App listener**: извлечен `_cap = window.Capacitor || window.top.Capacitor`, ползван навсякъде
+3. **`platform.js` — `isAPK()` и `getPlugin()`**: добавена `getCap()` helper с fallback към `global.top.Capacitor`, ползвана в двете функции
+
+**Задача (анализ):** Проверка дали промените и принципите за haptic поведение са адекватно вложени в APK билда.
+
+**Проверени файлове:** `plan.html`, `platform.js`, `package.json`, `capacitor.config.json`, `.github/workflows/build-apk.yml`, `android-res/proguard-rules.pro`, `android-res/build-overrides.gradle`, `analysis.html`, `questionnaire2.html`, `local-scheduler.js`.
+
+**Заключение: Haptic-ите са правилно вложени в APK.** Ето защо:
+
+1. **`@capacitor/haptics` v8.0.0** е в `package.json` → `dependencies` (не devDependencies) → инсталира се с `npm ci` и се sync-ва в Android проекта с `npx cap sync android`.
+2. **ProGuard правила** — `android-res/proguard-rules.pro` съдържа `-keep class com.capacitorjs.plugins.** { *; }`, което защитава Haptics plugin-а от R8/ProGuard shrinking.
+3. **VIBRATE permission** — `<uses-permission android:name="android.permission.VIBRATE" />` се добавя програмно към `AndroidManifest.xml` в build скрипта.
+4. **`hapticCtrl` в `plan.html`** — правилно имплементиран:
+   - Lazy проверка за `window.Capacitor.Plugins.Haptics` (Capacitor може да не е готов при IIFE startup)
+   - `plugin.impact({ style: 'HEAVY' | 'LIGHT' })` — коректни string стойности за Capacitor 8.x `ImpactStyle` enum
+   - 50ms throttle предотвратява хардуерен overflow
+   - `hapticCtrl.stop()` при: `cancelActiveTyping()`, `closeChatWindow()`, `NUTRIPLAN_TAB_DEACTIVATED`, `NUTRIPLAN_APP_DATA_READY`
+   - Emergency stop чрез `Capacitor.Plugins.App.addListener('appStateChange', ...)` при minimize/close
+5. **`typingHapticsEnabled`** се управлява коректно: `true` при `NUTRIPLAN_TAB_ACTIVATED`, `false` при `NUTRIPLAN_TAB_DEACTIVATED`.
+
+**Несъответствия (незначителни, не breaking):**
+- `analysis.html`, `questionnaire2.html`, `local-scheduler.js` и gamification star ratings в `plan.html` (ред 9182) използват само `navigator.vibrate()` без Capacitor Haptics. Това работи в Android WebView, но е по-малко прецизно от `impact()`.
+- `platform.js` `vibrate()` използва `haptics.vibrate({ duration })` (различно от `impact()` в `plan.html`) — двете API-та са валидни, но непоследователни.
+
+**Препоръки (по желание):** Ако искате пълна Capacitor Haptics унификация — `analysis.html` и `questionnaire2.html` могат да получат Capacitor `impact()` fallback, подобно на `hapticCtrl` в `plan.html`.

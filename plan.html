@@ -4673,9 +4673,8 @@
             var INTERVAL = 50; // minimum ms between vibrations (hardware throttle)
             var PUNCT = /[.,!?;:\-]/;
             function hap() {
-                return window.Capacitor &&
-                       window.Capacitor.Plugins &&
-                       window.Capacitor.Plugins.Haptics || null;
+                var cap = window.Capacitor || (window.top && window.top.Capacitor) || null;
+                return cap && cap.Plugins && cap.Plugins.Haptics || null;
             }
             return {
                 trigger: function(ch) {
@@ -8430,17 +8429,16 @@
         }
 
         // --- PWA Service Worker Registration ---
+        const _cap = window.Capacitor || (window.top && window.top.Capacitor) || null;
         const isCapacitorNativeApp = !!(
-            window.Capacitor &&
-            typeof window.Capacitor.isNativePlatform === 'function' &&
-            window.Capacitor.isNativePlatform()
+            _cap &&
+            typeof _cap.isNativePlatform === 'function' &&
+            _cap.isNativePlatform()
         );
 
         // Emergency haptic stop when app is backgrounded/closed (APK lifecycle)
         (function() {
-            var appPlugin = window.Capacitor &&
-                            window.Capacitor.Plugins &&
-                            window.Capacitor.Plugins.App || null;
+            var appPlugin = _cap && _cap.Plugins && _cap.Plugins.App || null;
             if (appPlugin && typeof appPlugin.addListener === 'function') {
                 appPlugin.addListener('appStateChange', function(state) {
                     if (!state.isActive) hapticCtrl.stop();
