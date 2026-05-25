@@ -4669,9 +4669,10 @@
         }
 
         // Grok-style HapticController — 50 ms throttle, Light for letters, Heavy for punctuation.
-        // APK (embedded or standalone): NutriPlanPlatform.getPlugin('Haptics') auto-registers
-        // the Capacitor Haptics plugin via window.top.Capacitor and calls impact() directly.
-        // Web / PWA fallback: navigator.vibrate.
+        // In embedded (iframe) APK mode: delegates to the shell via postMessage — the shell's main
+        // frame owns the Capacitor bridge and triggers the native haptic from there.
+        // Standalone APK: uses NutriPlanPlatform.getPlugin('Haptics') directly.
+        // Web fallback: navigator.vibrate.
         var hapticCtrl = (function() {
             var lastTime = 0;
             var INTERVAL = 50; // minimum ms between vibrations (hardware throttle)
@@ -4683,14 +4684,13 @@
                     if (now - lastTime < INTERVAL) return;
                     lastTime = now;
                     var style = PUNCT.test(ch) ? 'Heavy' : 'Light';
-                    // Direct Capacitor access (works from any iframe via window.top.Capacitor).
-                    // platform.js getCap() auto-registers the plugin if not yet registered.
+                    // Embedded iframe: relay to shell which has the native Capacitor bridge
+                    if (requestShellAction('NUTRIPLAN_HAPTIC', { style: style })) return;
+                    // Standalone APK or web
                     var plugin = NutriPlanPlatform.getPlugin('Haptics');
                     if (plugin) {
-                        try { plugin.impact({ style: style }); return; } catch (_) {}
-                    }
-                    // Web / PWA fallback
-                    if (navigator.vibrate) {
+                        try { plugin.impact({ style: style }); } catch (_) {}
+                    } else if (navigator.vibrate) {
                         try { navigator.vibrate(style === 'Heavy' ? 15 : 4); } catch (_) {}
                     }
                 },
@@ -6066,11 +6066,7 @@
             }
 
             // Distinct haptic when opening chat icon
-            try {
-                var _hp = NutriPlanPlatform.getPlugin('Haptics');
-                if (_hp) { _hp.impact({ style: 'Medium' }); }
-                else if (navigator.vibrate) { navigator.vibrate([40, 30, 80]); }
-            } catch (_) {}
+            try { if (navigator.vibrate) navigator.vibrate([40, 30, 80]); } catch (_) {}
 
             // Create chat window
             const chatWindow = document.createElement('div');
