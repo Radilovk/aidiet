@@ -4683,7 +4683,7 @@
                     var now = Date.now();
                     if (now - lastTime < INTERVAL) return;
                     lastTime = now;
-                    var style = PUNCT.test(ch) ? 'HEAVY' : 'LIGHT';
+                    var style = PUNCT.test(ch) ? 'Heavy' : 'Light';
                     // Embedded iframe: relay to shell which has the native Capacitor bridge
                     if (requestShellAction('NUTRIPLAN_HAPTIC', { style: style })) return;
                     // Standalone APK or web
@@ -4691,7 +4691,7 @@
                     if (plugin) {
                         try { plugin.impact({ style: style }); } catch (_) {}
                     } else if (navigator.vibrate) {
-                        try { navigator.vibrate(style === 'HEAVY' ? 15 : 4); } catch (_) {}
+                        try { navigator.vibrate(style === 'Heavy' ? 15 : 4); } catch (_) {}
                     }
                 },
                 stop: function() {

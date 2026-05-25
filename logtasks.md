@@ -1,5 +1,23 @@
 # Log Tasks
 
+## 2026-05-25 — Хаптик в APK: case-sensitive стил за Capacitor (session 4)
+
+**Задача:** Haptic в APK не се усеща изобщо, докато в PWA и уеб работи. Намери причината и оправи.
+
+**Root cause:**
+Capacitor Haptics плъгинът е **case-sensitive** за стойностите на `impact.style`:
+- Очаква: `'Heavy'`, `'Medium'`, `'Light'` (PascalCase)
+- Кодът подаваше: `'HEAVY'`, `'LIGHT'` (UPPERCASE)
+
+Android нативният плъгин не разпознава `'HEAVY'`/`'LIGHT'` и ги игнорира напълно → нулева вибрация.
+В браузъра `navigator.vibrate()` не е засегнат от тозипроблем (работи с milliseconds, без style).
+
+**Направено:**
+- **`plan.html`** (ред 4686, 4694): `'HEAVY'` → `'Heavy'`, `'LIGHT'` → `'Light'`
+- **`app.js`** (ред 509): default `'LIGHT'` → `'Light'`
+
+---
+
 ## 2026-05-25 — Хаптик в APK: ПРАВИЛНА ПОПРАВКА (session 3)
 
 **Задача:** Haptic работеше в PWA и уеб. Само в APK не се усещаше. Предишната сесия беше в грешна посока.
