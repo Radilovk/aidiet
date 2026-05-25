@@ -1,5 +1,14 @@
 # Log Tasks
 
+## 2026-05-25 — Чат хаптик: първо отваряне и въвеждане на текст
+
+**Задача:** В APK haptic се усеща при бот-типинг и при второ отваряне на чата, но не и при първото отваряне на shell chat и при писане в chat input. Да се оправи.
+
+**Направено:**
+1. **app.js** — Добавен е native haptic helper в shell-а и първото `openShellChat()` вече подава haptic преди да зареди `plan.html?chat=1&embedded=1&shellChat=1`.
+2. **plan.html** — Добавен е `input` listener за `#chatInput`, който пуска per-character haptic при реално въвеждане на текст в чата.
+3. **plan.html** — Изчиства се chat input state при затваряне, за да не остава стар buffer между отварянията.
+
 ## 2026-05-25 — Хаптик в APK: case-sensitive стил за Capacitor (session 4)
 
 **Задача:** Haptic в APK не се усеща изобщо, докато в PWA и уеб работи. Намери причината и оправи.

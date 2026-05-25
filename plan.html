@@ -4201,6 +4201,7 @@
         let chatMode = 'consultation'; // 'consultation', 'modification', or 'report'
         let modificationModeEnabled = false;
         let chatHistory = []; // Store chat messages for persistence
+        let chatInputLastValue = '';
         
         // Enhancement #1: Retry mechanism state
         let isSending = false;
@@ -6137,6 +6138,7 @@
 
             document.body.appendChild(chatWindow);
             chatVisible = true;
+            chatInputLastValue = '';
 
             // Update mode UI to reflect current mode
             updateModeUI();
@@ -6177,6 +6179,20 @@
                     }
                 }
             }, 100);
+
+            const chatInput = document.getElementById('chatInput');
+            if (chatInput) {
+                chatInput.addEventListener('input', function() {
+                    if (!typingHapticsEnabled || !chatVisible) return;
+                    const currentValue = chatInput.value || '';
+                    if (currentValue.length > chatInputLastValue.length) {
+                        for (let i = chatInputLastValue.length; i < currentValue.length; i++) {
+                            hapticCtrl.trigger(currentValue[i]);
+                        }
+                    }
+                    chatInputLastValue = currentValue;
+                });
+            }
         }
 
         function closeChatWindow() {
@@ -6187,6 +6203,7 @@
                 chatVisible = false;
                 cancelActiveTyping({ complete: true });
                 chatWindow.remove();
+                chatInputLastValue = '';
                 // Reset chatMode to consultation on close to avoid confusion when reopening
                 // User needs to explicitly activate modification mode each time
                 chatMode = 'consultation';
@@ -6322,8 +6339,13 @@
             
             if (!message) return;
 
-            if (message.toLowerCase() === '*log') {
+            function clearChatInput() {
                 input.value = '';
+                chatInputLastValue = '';
+            }
+
+            if (message.toLowerCase() === '*log') {
+                clearChatInput();
                 addMessageToChat('*log', 'user', false);
                 if (window.NutriPlanDiagnostics) {
                     window.NutriPlanDiagnostics.info('chat', 'show-log-command', 'Diagnostic log requested from chat');
@@ -6337,14 +6359,14 @@
             // Food picker command
             if (message.toLowerCase() === '*selectfoods') {
                 addMessageToChat('🥗 Отваряне на избора на продукти…', 'assistant');
-                input.value = '';
+                clearChatInput();
                 setTimeout(() => { navigateTopLevel(getFoodPickerUrl()); }, 700);
                 return;
             }
 
             // Gamification command
             if (message.toLowerCase() === '*game') {
-                input.value = '';
+                clearChatInput();
                 if (window.gameModule) {
                     if (!window.gameModule.isEnabled()) {
                         window.gameModule.activateGame();
@@ -6360,13 +6382,13 @@
 
             // Gamification test commands
             if (message.toLowerCase() === '*game-morning') {
-                input.value = '';
+                clearChatInput();
                 if (window._gameShowMorning) { window._gameShowMorning(true); }
                 addMessageToChat('Показвам сутрешния въпрос…', 'assistant');
                 return;
             }
             if (message.toLowerCase() === '*game-evening') {
-                input.value = '';
+                clearChatInput();
                 if (window._gameShowEvening) { window._gameShowEvening(true); }
                 addMessageToChat('Показвам вечерните въпроси…', 'assistant');
                 return;
@@ -6377,21 +6399,21 @@
                 isDemoLimitUnlocked = true;
                 localStorage.setItem('chatDemoLimitUnlocked', 'true');
                 addMessageToChat('✅ Чат лимитът за демо режима е премахнат за този профил.', 'assistant');
-                input.value = '';
+                clearChatInput();
                 return;
             }
             
             // Check demo version daily limit
             if (!isDemoLimitUnlocked && getDailyChatCount() >= MAX_DAILY_CHAT_MESSAGES) {
                 addMessageToChat(`⚠️ Демо версията позволява до ${MAX_DAILY_CHAT_MESSAGES} чат заявки на ден. Лимитът за днес е достигнат. Моля, свържете се с нас за пълен достъп.`, 'assistant');
-                input.value = '';
+                clearChatInput();
                 return;
             }
             
             // Enhancement #9: Check for duplicate messages
             if (isDuplicateMessage(message)) {
                 addMessageToChat('⚠️ Това съобщение току-що бе изпратено. Моля, изчакайте отговора.', 'assistant');
-                input.value = ''; // Clear input
+                clearChatInput();
                 return;
             }
             
@@ -6407,7 +6429,7 @@
             }
             
             // Clear input immediately for better UX
-            input.value = '';
+            clearChatInput();
 
             // Enhancement #2: Debounce - Wait before actually sending
             sendMessageTimeout = setTimeout(() => {
