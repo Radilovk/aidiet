@@ -2065,3 +2065,28 @@ NutriPlanPlatform.vibrate(50);
 - `platform.js` `vibrate()` използва `haptics.vibrate({ duration })` (различно от `impact()` в `plan.html`) — двете API-та са валидни, но непоследователни.
 
 **Препоръки (по желание):** Ако искате пълна Capacitor Haptics унификация — `analysis.html` и `questionnaire2.html` могат да получат Capacitor `impact()` fallback, подобно на `hapticCtrl` в `plan.html`.
+
+---
+
+## Задача: Анимации при всички табове (2026-05-25)
+
+**Искане:** Добави интересни анимации при елементите на всеки таб. Вече има добра анимация при "Анализ", но останалите нямат. Минимум код, максимално впечатляващ UX/UI.
+
+**Направено:**
+
+### plan.html
+- Добавен `@keyframes cardEnter` (slide-up + scale fade, spring easing)
+- Всяка хранителна карта (`meal-card`) получава стагерирана анимация при рендериране чрез `effectiveMeals.forEach((meal, _mi)` + `mealCard.style.animation = cardEnter … ${_mi * 65}ms both`
+- Ефект: всяко хранене се появява последователно при смяна на деня
+
+### guidelines.html
+- Добавен `@keyframes guideIn` (slide-up + scale fade)
+- Нова функция `replayGuideAnims()` — стагерира `.macro-card`, `.acc-item`, `.plan-justification-container`
+- Извиква се при: `requestAnimationFrame` след `setupGuidelines()` + `NUTRIPLAN_TAB_ACTIVATED`
+
+### profile.html
+- Добавен `@keyframes profileIn` (slide-up + scale fade)
+- Нова функция `replayProfileAnims()` — стагерира `.profile-header`, `.acc-item`, `.game-week-card`, `.ga-card-enter`
+- Извиква се при `NUTRIPLAN_TAB_ACTIVATED` (заедно с `loadGameAnalytics`)
+
+**Подход:** Единен `@keyframes` per-file + 1 малка JS функция per-file. Без нови библиотеки, без forced DOM reflow извън animation reset паттерна.
