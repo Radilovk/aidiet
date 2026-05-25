@@ -4202,10 +4202,6 @@
         let modificationModeEnabled = false;
         let chatHistory = []; // Store chat messages for persistence
         
-        // REVOLUTIONARY OPTIMIZATION: Chat context caching state
-        let chatContextCached = false; // Track if context is cached on server
-        let cacheSyncInProgress = false; // Prevent duplicate cache sync requests
-        
         // Enhancement #1: Retry mechanism state
         let isSending = false;
         const MAX_RETRIES = 2;
@@ -4217,6 +4213,7 @@
         // Enhancement #2: Debouncing state
         let sendMessageTimeout = null;
         const DEBOUNCE_DELAY = 300; // ms
+        let saveProfileDebounceTimer = null; // Debounce save-profile calls after plan modifications
         
         // Enhancement #6: Undo functionality - Plan history
         let planHistory = [];
@@ -6519,16 +6516,12 @@
                     console.log(`[Optimization] Trimmed conversation history from ${chatHistory.length} to ${MAX_HISTORY_MESSAGES} messages`);
                 }
                 
-                // REVOLUTIONARY OPTIMIZATION: Use cached context when possible
-                // Reduces payload from 10-20KB to ~100 bytes (85-95% reduction!)
-                let useCachedContext = chatContextCached;
-                let optimizedPlan = null;
-                let optimizedUserData = null;
-                
-                // ALWAYS prepare fallback context to handle cache misses in stateless workers
-                // Cloudflare Workers can route requests to different instances where cache may not exist
-                if (chatMode === 'consultation') {
-                    // Consultation: send compact version as fallback
+                // Build compact context: consultation uses summary fields; modification needs full data
+                let optimizedPlan, optimizedUserData;
+                if (chatMode === 'modification') {
+                    optimizedPlan = dietPlan;
+                    optimizedUserData = userData;
+                } else {
                     optimizedPlan = {
                         summary: dietPlan.summary,
                         weekPlan: compactWeekPlan(dietPlan.weekPlan),
@@ -6536,7 +6529,6 @@
                         forbidden: dietPlan.forbidden,
                         communicationStyle: dietPlan.strategy?.communicationStyle
                     };
-                    
                     optimizedUserData = {
                         name: userData.name,
                         age: userData.age,
@@ -6549,46 +6541,15 @@
                         dietLove: userData.dietLove,
                         medicalConditions: userData.medicalConditions
                     };
-                } else {
-                    // Modification mode: send full data as fallback
-                    optimizedPlan = dietPlan;
-                    optimizedUserData = userData;
                 }
-                
-                // For first message or modification mode, don't try to use cache
-                if (chatMode === 'modification' || !chatContextCached) {
-                    useCachedContext = false;
-                }
-                
-                // Log payload sizes for debugging
-                if (console && console.log) {
-                    const actualSize = JSON.stringify({ 
-                        userId, 
-                        message, 
-                        conversationHistory: apiHistory,
-                        useCachedContext: useCachedContext,
-                        userData: optimizedUserData,
-                        userPlan: optimizedPlan
-                    }).length;
-                    
-                    if (useCachedContext) {
-                        console.log(`[REVOLUTIONARY] Chat payload: ${actualSize} bytes with fallback context (server will prefer cache if available)`);
-                    } else {
-                        const fullSize = JSON.stringify({ userData, userPlan: dietPlan, conversationHistory: apiHistory }).length;
-                        console.log(`Chat payload: ${actualSize} bytes (${Math.round((1 - actualSize/fullSize) * 100)}% reduction via optimization)`);
-                    }
-                }
-                
-                // Send to backend with revolutionary optimization
-                // ALWAYS include fallback context to handle cache misses in stateless workers
+
+                // Send to backend
                 const requestBody = {
                     userId: userId,
                     message: message,
                     conversationId: conversationId,
                     mode: chatMode,
                     conversationHistory: apiHistory,
-                    useCachedContext: useCachedContext,
-                    // Include fallback context - server will use cache if available, fallback if not
                     userData: optimizedUserData,
                     userPlan: optimizedPlan
                 };
@@ -6621,17 +6582,6 @@
                         saveOfflineQueue();
                     }
                     
-                    // REVOLUTIONARY: Track cache status from server response
-                    if (result.cacheUsed !== undefined) {
-                        chatContextCached = result.cacheUsed;
-                        if (result.cacheUsed) {
-                            console.log('[REVOLUTIONARY] Server used cached context - massive bandwidth savings!');
-                        } else {
-                            chatContextCached = true; // Server now has our context cached
-                            console.log('[REVOLUTIONARY] Context cached on server - future messages will be ultra-light!');
-                        }
-                    }
-                    
                     addMessageToChat(result.response, 'assistant');
                     
                     // If plan was updated, update local storage with new plan
@@ -6653,10 +6603,14 @@
                         // Keep the backend profile in sync so the updated plan is
                         // available after reinstalling or on other devices/contexts.
                         if (userId) {
+                            clearTimeout(saveProfileDebounceTimer);
+                            saveProfileDebounceTimer = setTimeout(async () => {
                             const _idToken = (userId.startsWith('fb_') && auth.currentUser)
                                 ? await auth.currentUser.getIdToken().catch(() => null)
                                 : null;
                             const planSourceSync = localStorage.getItem('planSource') || '';
+                            const planSyncStr2 = JSON.stringify(dietPlan);
+                            const userDataSyncStr2 = JSON.stringify(userData);
                             fetch('https://aidiet.radilov-k.workers.dev/api/user/save-profile', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
@@ -6670,7 +6624,7 @@
                             }).then(r => {
                                 if (r && r.ok) {
                                     localStorage.setItem('np_profile_synced', '1');
-                                    localStorage.setItem('np_profile_sync_sig', getProfileSyncSignature(userId, planSyncStr, userDataSyncStr, planSourceSync));
+                                    localStorage.setItem('np_profile_sync_sig', getProfileSyncSignature(userId, planSyncStr2, userDataSyncStr2, planSourceSync));
                                 } else {
                                     localStorage.removeItem('np_profile_synced');
                                 }
@@ -6678,11 +6632,8 @@
                                 localStorage.removeItem('np_profile_synced');
                                 console.warn('[PWA] Backend plan update save failed:', e);
                             });
+                            }, 2500);
                         }
-                        
-                        // IMPORTANT: Cache invalidated on server, need to re-cache on next message
-                        chatContextCached = false;
-                        console.log('[REVOLUTIONARY] Cache invalidated due to plan update - will re-sync on next message');
                         
                         setTimeout(() => {
                             // Enhancement #5: Visual indicator - Highlight changed meals
@@ -8575,19 +8526,23 @@
                     return;
                 }
 
-                const vapidRes = await fetch(`${WORKER_URL}/api/push/vapid-public-key`);
-                if (!vapidRes.ok) return;
-                const vapidData = await vapidRes.json();
-                if (!vapidData.success || !vapidData.publicKey ||
-                    vapidData.publicKey === 'VAPID_PUBLIC_KEY_NOT_CONFIGURED') {
-                    console.warn('[Push] VAPID key not configured – server push unavailable');
-                    return;
+                // Cache VAPID key in sessionStorage to avoid re-fetching on every load
+                let publicKey = sessionStorage.getItem('vapidPublicKey');
+                if (!publicKey || publicKey === 'VAPID_PUBLIC_KEY_NOT_CONFIGURED') {
+                    const vapidRes = await fetch(`${WORKER_URL}/api/push/vapid-public-key`);
+                    if (!vapidRes.ok) return;
+                    const vapidData = await vapidRes.json();
+                    if (!vapidData.success || !vapidData.publicKey ||
+                        vapidData.publicKey === 'VAPID_PUBLIC_KEY_NOT_CONFIGURED') {
+                        console.warn('[Push] VAPID key not configured – server push unavailable');
+                        return;
+                    }
+                    publicKey = vapidData.publicKey;
+                    try { sessionStorage.setItem('vapidPublicKey', publicKey); } catch (_) {}
                 }
 
                 // Convert base64url-encoded VAPID public key to Uint8Array.
-                // Padding ensures the string length is a multiple of 4, required by atob().
-                // (e.g. length 43 → add 1 '='; length 42 → add 2 '=='; divisible by 4 → add 0)
-                const rawKey = vapidData.publicKey;
+                const rawKey = publicKey;
                 const padding = '='.repeat((4 - rawKey.length % 4) % 4);
                 const b64 = (rawKey + padding).replace(/-/g, '+').replace(/_/g, '/');
                 const raw = Uint8Array.from(atob(b64), c => c.charCodeAt(0));

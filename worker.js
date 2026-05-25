@@ -1596,7 +1596,7 @@ const CORS_HEADERS = {
 // Cache for admin configuration to reduce KV reads
 let adminConfigCache = null;
 let adminConfigCacheTime = 0;
-const ADMIN_CONFIG_CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
+const ADMIN_CONFIG_CACHE_TTL = 30 * 60 * 1000; // 30 minutes cache
 
 // Cache for validation config (thresholds + contradiction rules)
 let validationConfigCache = null;
@@ -1626,10 +1626,7 @@ const CUSTOM_PROMPTS_CACHE_TTL = 30 * 60 * 1000; // 30 minutes cache (prompts ra
 // Cache user context (userData + userPlan) to dramatically reduce payload sizes
 // Instead of sending 10-20KB per chat message, send only message + sessionId (~100 bytes)
 // Expected reduction: 85-95% in chat request payload size
-let chatContextCache = {};
-let chatContextCacheTime = {};
-const CHAT_CONTEXT_CACHE_TTL = 30 * 60 * 1000; // 30 minutes cache (session-based)
-const CHAT_CONTEXT_MAX_SIZE = 1000; // Maximum number of cached contexts (prevent memory bloat)
+// Chat context is provided by the client on every request (stateless workers)
 
 // Cache for AI logging enabled/disabled status
 // Default is true (logging enabled). Admin can toggle via /api/admin/set-logging-status.
@@ -2228,10 +2225,10 @@ async function generateChatPrompt(env, userMessage, userData, userPlan, conversa
   const baseContext = `Ти си личен диетолог, психолог и здравен асистент за ${userData.name}.
 
 КЛИЕНТСКИ ПРОФИЛ:
-${JSON.stringify(userData, null, 2)}
+${JSON.stringify(userData)}
 
 ПЪЛЕН ХРАНИТЕЛЕН ПЛАН:
-${JSON.stringify(userPlan, null, 2)}
+${JSON.stringify(userPlan)}
 
 ${conversationHistory.length > 0 ? `ИСТОРИЯ НА РАЗГОВОРА:\n${conversationHistory.map(h => `${h.role}: ${h.content}`).join('\n')}` : ''}
 `;
@@ -2563,83 +2560,6 @@ function invalidateCustomPromptsCache(key = null) {
   } else {
     customPromptsCache = {};
     customPromptsCacheTime = {};
-  }
-}
-
-/**
- * REVOLUTIONARY OPTIMIZATION: Chat context cache management
- * Cache user context to reduce payload from 10-20KB to ~100 bytes per chat message
- */
-
-/**
- * Store chat context in worker cache
- * @param {string} sessionId - Unique session identifier (userId)
- * @param {object} userData - User profile data
- * @param {object} userPlan - User's diet plan
- * @returns {boolean} Success status
- */
-function setChatContext(sessionId, userData, userPlan) {
-  try {
-    // Prevent memory bloat: if cache is too large, remove oldest entries
-    const cacheKeys = Object.keys(chatContextCache);
-    if (cacheKeys.length >= CHAT_CONTEXT_MAX_SIZE) {
-      // Sort by timestamp and remove oldest 10%
-      const sorted = cacheKeys
-        .map(key => ({ key, time: chatContextCacheTime[key] || 0 }))
-        .sort((a, b) => a.time - b.time);
-      
-      const toRemove = Math.ceil(CHAT_CONTEXT_MAX_SIZE * 0.1);
-      for (let i = 0; i < toRemove; i++) {
-        const key = sorted[i].key;
-        delete chatContextCache[key];
-        delete chatContextCacheTime[key];
-      }
-    }
-    
-    chatContextCache[sessionId] = { userData, userPlan };
-    chatContextCacheTime[sessionId] = Date.now();
-    return true;
-  } catch (error) {
-    console.error('[Chat Context Cache] Error storing context:', error);
-    return false;
-  }
-}
-
-/**
- * Retrieve chat context from worker cache
- * @param {string} sessionId - Unique session identifier
- * @returns {object|null} Cached context or null if not found/expired
- */
-function getChatContext(sessionId) {
-  const now = Date.now();
-  
-  // Check if context exists and is not expired
-  if (chatContextCache[sessionId] && chatContextCacheTime[sessionId]) {
-    const age = now - chatContextCacheTime[sessionId];
-    
-    if (age < CHAT_CONTEXT_CACHE_TTL) {
-      return chatContextCache[sessionId];
-    } else {
-      // Expired - clean up
-      delete chatContextCache[sessionId];
-      delete chatContextCacheTime[sessionId];
-    }
-  }
-  
-  return null;
-}
-
-/**
- * Invalidate chat context cache for a specific session or all sessions
- * @param {string|null} sessionId - Session to invalidate, or null for all
- */
-function invalidateChatContext(sessionId = null) {
-  if (sessionId) {
-    delete chatContextCache[sessionId];
-    delete chatContextCacheTime[sessionId];
-  } else {
-    chatContextCache = {};
-    chatContextCacheTime = {};
   }
 }
 
@@ -3485,50 +3405,18 @@ async function handleGetPlanJobStatus(request, env) {
  */
 async function handleChat(request, env) {
   try {
-    const { message, userId, conversationId, mode, userData, userPlan, conversationHistory, useCachedContext } = await request.json();
+    const { message, userId, conversationId, mode, userData, userPlan, conversationHistory } = await request.json();
     
     if (!message) {
       return jsonResponse({ error: ERROR_MESSAGES.MISSING_MESSAGE }, 400);
     }
 
-    let effectiveUserData = userData;
-    let effectiveUserPlan = userPlan;
-    let cacheWasUsed = false;
-    
-    // REVOLUTIONARY OPTIMIZATION: Try to use cached context if requested
-    if (useCachedContext && userId) {
-      const cachedContext = getChatContext(userId);
-      
-      if (cachedContext) {
-        // Use cached context - massive payload reduction!
-        effectiveUserData = cachedContext.userData;
-        effectiveUserPlan = cachedContext.userPlan;
-        cacheWasUsed = true;
-      } else {
-        // Cache miss - validate that client provided full context as fallback
-        if (!userData || !userPlan) {
-          return jsonResponse({ 
-            error: 'Chat context not cached and no fallback context provided. Please refresh or send full context.',
-            cacheStatus: 'miss'
-          }, 400);
-        }
-        
-        // Store context for future requests
-        setChatContext(userId, userData, userPlan);
-      }
-    } else {
-      // Legacy mode - full context required
-      if (!userData || !userPlan) {
-        return jsonResponse({ 
-          error: ERROR_MESSAGES.MISSING_CONTEXT
-        }, 400);
-      }
-      
-      // Store context for potential future use
-      if (userId) {
-        setChatContext(userId, userData, userPlan);
-      }
+    if (!userData || !userPlan) {
+      return jsonResponse({ error: ERROR_MESSAGES.MISSING_CONTEXT }, 400);
     }
+
+    const effectiveUserData = userData;
+    const effectiveUserPlan = userPlan;
 
     // Use conversation history from client (defaults to empty array)
     const chatHistory = conversationHistory || [];
@@ -3702,20 +3590,13 @@ async function handleChat(request, env) {
       success: true, 
       response: finalResponse,
       conversationHistory: trimmedHistory,
-      planUpdated: planWasUpdated,
-      cacheUsed: cacheWasUsed // Inform client if cache was used
+      planUpdated: planWasUpdated
     };
     
     // Include updated plan and userData if plan was regenerated
     if (planWasUpdated) {
       responseData.updatedPlan = updatedPlan;
       responseData.updatedUserData = updatedUserData;
-      
-      // IMPORTANT: Invalidate cached context since plan changed
-      // Client needs to send full context on next request to update cache
-      if (userId) {
-        invalidateChatContext(userId);
-      }
     }
     
     return jsonResponse(responseData);
