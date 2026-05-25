@@ -1,26 +1,5 @@
 # Log Tasks
 
-## 2026-05-25 — Хаптик в APK: shellChatFrame без patchFrame (session 5)
-
-**Задача:** Haptic работи при game въпроси и при отваряне на чат прозореца (втори път), НО не и когато ботът пише текст в чат прозореца. Намери причината.
-
-**Root cause:**
-`shellChatFrame` (оверлей iframe, зареждащ `plan.html?chat=1&embedded=1&shellChat=1`) **никога не получава `patchFrame()` извикване**.
-
-`patchFrame()` е функцията в app.js, която задава `data-embedded-tab='1'` на iframe документа. Тя се вика само за iframes с `data-tab-view` атрибут (main plan tab и др.) — но shellChatFrame е динамично създаден без `data-tab-view`, затова няма `load` listener.
-
-Без `data-embedded-tab='1'`:
-- `requestShellAction('NUTRIPLAN_HAPTIC', ...)` → проверява атрибута → **false** (fail)
-- Fallback: `NutriPlanPlatform.getPlugin('Haptics')` → null (Haptics plugin е lazy-registered само в parent window)
-- Fallback: `navigator.vibrate` → базова вибрация (не haptic impact)
-
-В сравнение: main plan tab iframe **има** `patchFrame()` → `data-embedded-tab='1'` → `requestShellAction` → postMessage → app.js → `Capacitor.Plugins.Haptics.impact()` ✓
-
-**Направено:**
-- **`app.js`** (ред 452): добавен `el.addEventListener('load', function () { patchFrame(el); });` в `ensureShellChatOverlay()` — 1 ред промяна
-
----
-
 ## 2026-05-25 — Хаптик в APK: case-sensitive стил за Capacitor (session 4)
 
 **Задача:** Haptic в APK не се усеща изобщо, докато в PWA и уеб работи. Намери причината и оправи.
