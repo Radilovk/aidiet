@@ -1985,3 +1985,43 @@ patchFrame click interceptor в app.js ползва `tabFromUrl` само за H
 4. Валидирано е локално с `npm ci` и `npm test`.
 
 **Резултат:** `package-lock.json` вече е синхронизиран с `package.json`, така че `npm ci` минава успешно без промени по CI workflow-а.
+
+---
+
+## 2026-05-25 — Система за синхрон APK / PWA / Web (platform.js)
+
+**Задача:** Създаване на ясна, проста функция/система за правилен синхрон и адаптация между APK, PWA и Web, така че бъдещите задачи да се прилагат успешно и в трите части.
+
+**Анализ:**
+- `platform.js` вече съдържа `NutriPlanPlatform.getMode()` и `NutriPlanPlatform.apply({apk, pwa, web})`, но:
+  - Файлът липсваше в 25 HTML страниц
+  - Нямаше вградени helper-и за най-честите платформено-специфични операции
+  - Повтарящият се NavigationBar pattern (`window.Capacitor && Capacitor.isNativePlatform...`) беше дублиран в 12+ файла
+
+**Направено:**
+1. Добавени два helper-а в `platform.js`:
+   - `NutriPlanPlatform.setNavBar(color, isDark)` — задава цвят на системната навигационна лента (APK only, no-op на PWA/Web)
+   - `NutriPlanPlatform.vibrate(ms)` — вибрация (APK Haptics → navigator.vibrate fallback)
+2. `platform.js` добавен в 15 основни HTML страниц, в които липсваше (admin, analysis, food-picker, health, kids, longevity, plan-book, plan-pending, protocols, questionnaire, questionnaire2, quick-answer, warning и др.)
+
+**Употреба (за бъдещи задачи):**
+```js
+// Разпознаване на платформа
+NutriPlanPlatform.getMode() // → 'apk' | 'pwa' | 'web'
+
+// Платформено-специфично поведение
+NutriPlanPlatform.apply({
+    apk: () => { /* само в APK */ },
+    pwa: () => { /* само в инсталирано PWA */ },
+    web: () => { /* само в браузър */ },
+    all: () => { /* навсякъде */ }
+});
+
+// Навигационна лента (APK only, no-op на PWA/Web)
+NutriPlanPlatform.setNavBar('#F0FDFA', true);
+
+// Вибрация
+NutriPlanPlatform.vibrate(50);
+```
+
+**Резултат:** Единна точка за платформена адаптация, достъпна на всички основни страници.
