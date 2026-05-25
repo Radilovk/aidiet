@@ -1,34 +1,33 @@
 # Log Tasks
 
-## 2026-05-25 — Хаптик в APK: ФИНАЛНА ПОПРАВКА — NativeHapticPlugin (Grok-стил)
+## 2026-05-25 — Хаптик в APK: ПРАВИЛНА ПОПРАВКА (session 3)
 
-**Задача:** Установи защо haptic не се усеща в APK въпреки предишните промени. Намери и внедри категорично работещ вариант като при Grok AI.
+**Задача:** Haptic работеше в PWA и уеб. Само в APK не се усещаше. Предишната сесия беше в грешна посока.
 
-**Открита причина:**
-`@capacitor/haptics` plugin-ът използва `VibrationEffect.createWaveform()` — груба вибрация (50ms при amplitude 110). Тя НЕ е „keyboard tap" хаптика:
-- 50ms вибрация + 50ms throttle = почти непрекъсната вибрация по време на стрийминг → не се усеща като отделни тактове
-- `VibrationEffect` може да бъде блокиран от silent mode / device settings
-- НЕ е същото като `View.performHapticFeedback(KEYBOARD_TAP)`, което Grok AI и keyboard apps използват
+**Реалната причина (root cause):**
+`window.Capacitor.Plugins.Haptics` е **undefined** в APK.
 
-**Правилното API (Grok-стил):**
-`View.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, FLAG_IGNORE_VIEW_SETTING)`
-- Системен haptic engine (не Vibrator)
-- API level 3+ (Android 1.5+)
-- Дискретни „clicks" — точно като при Grok
-- Respects system-wide haptic preference
+В Capacitor 8, `Plugins.Haptics` се създава само когато `Capacitor.registerPlugin('Haptics', {...})` е извикан — това се прави от `@capacitor/haptics/dist/plugin.js`. Но тозиJS файл **никога не се зарежда** в приложението (нито import, нито `<script>` tag). Затова:
+- APK: `Plugins.Haptics` е null → `Haptics.impact()` не се вика → няма вибрация
+- PWA/Уеб (Chrome): `navigator.vibrate` работи → haptic се усеща
 
 **Направено:**
-1. **`.github/workflows/build-apk.yml`** — Добавена стъпка след `PY_GOOGLE_AUTH`:
-   - Генерира `NativeHapticPlugin.java` в `android/app/src/main/java/com/biocode/nutriplan/`
-   - Overrides `MainActivity.java` за регистриране на плъгина чрез `registerPlugin(NativeHapticPlugin.class)`
-   - `NativeHapticPlugin.tap()` извиква `performHapticFeedback(KEYBOARD_TAP, FLAG_IGNORE_VIEW_SETTING)` на UI thread
+- **`app.js`** — В `NUTRIPLAN_HAPTIC` handler: **lazily register** `Haptics` при първо използване:
+  ```js
+  if (!cap.Plugins.Haptics && typeof cap.registerPlugin === 'function') {
+      cap.registerPlugin('Haptics', {});
+  }
+  cap.Plugins.Haptics.impact({ style: ... });
+  ```
+  Capacitor bridge-а вече има `PluginHeaders` от native side (зареден при инициализация). `registerPlugin('Haptics', {})` създава JS proxy, методите се насочват към native чрез `nativePromise('Haptics', 'impact', ...)`.
+- **`plan.html`** — Върнато към оригиналния `hapticCtrl.trigger()` (без ненужния NativeHaptic path).
+- **`build-apk.yml`** — Премахнат грешния `NativeHapticPlugin.java` + `MainActivity.java` override от предишната сесия.
 
-2. **`app.js`** — `NUTRIPLAN_HAPTIC` handler: пробва `NativeHaptic.tap()` първо, след това `Haptics.impact()` като fallback
+---
 
-3. **`plan.html`** — `hapticCtrl.trigger()` реорганизиран с 3 нива на приоритет:
-   - **1-во:** `NativeHaptic.tap()` директно (работи от iframe — Capacitor bridge е shared в same-origin frames)
-   - **2-ро:** `requestShellAction('NUTRIPLAN_HAPTIC')` → postMessage → shell → `NativeHaptic.tap()`
-   - **3-то:** `Haptics.impact()` fallback + `navigator.vibrate` fallback
+## 2026-05-25 — Хаптик в APK: (ОТМЕНЕНА) NativeHapticPlugin сесия
+
+**Задача:** Погрешна диагноза — смяташе се, че VibrationEffect дава непрекъсната вибрация. ОТМЕНЕНА.
 
 ---
 
