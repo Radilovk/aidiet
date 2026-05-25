@@ -49,6 +49,7 @@
     <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F0FDFA';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
     <script src="./session-utils.js"></script>
     <script src="./diagnostics-log.js"></script>
+    <script src="./platform.js"></script>
     <!-- Early redirect: check plan immediately to avoid flickering -->
     <script>(function(){
         // Skip redirect if explicitly staying on index (?stay=1) or if login required
