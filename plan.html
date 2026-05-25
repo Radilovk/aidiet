@@ -6138,14 +6138,6 @@
             document.body.appendChild(chatWindow);
             chatVisible = true;
 
-            // Haptic feedback while user is typing in the chat input
-            const _chatInputHaptic = document.getElementById('chatInput');
-            if (_chatInputHaptic) {
-                _chatInputHaptic.addEventListener('input', function() {
-                    hapticCtrl.trigger(this.value.slice(-1) || ' ');
-                });
-            }
-
             // Update mode UI to reflect current mode
             updateModeUI();
 
