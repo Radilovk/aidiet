@@ -506,12 +506,7 @@
                         cap.registerPlugin('Haptics', {});
                     }
                     if (cap.Plugins.Haptics) {
-                        var isAndroid = /Android/i.test(navigator.userAgent);
-                        if (isAndroid && typeof cap.Plugins.Haptics.vibrate === 'function') {
-                            cap.Plugins.Haptics.vibrate({ duration: Math.max(1, Number(data.duration) || 12) });
-                        } else {
-                            cap.Plugins.Haptics.impact({ style: data.style || 'LIGHT' });
-                        }
+                        cap.Plugins.Haptics.impact({ style: data.style || 'LIGHT' });
                     }
                 }
             } catch (_) {}
