@@ -4669,10 +4669,9 @@
         }
 
         // Grok-style HapticController — 50 ms throttle, Light for letters, Heavy for punctuation.
-        // In embedded (iframe) APK mode: delegates to the shell via postMessage — the shell's main
-        // frame owns the Capacitor bridge and triggers the native haptic from there.
-        // Standalone APK: uses NutriPlanPlatform.getPlugin('Haptics') directly.
-        // Web fallback: navigator.vibrate.
+        // APK (embedded or standalone): NutriPlanPlatform.getPlugin('Haptics') auto-registers
+        // the Capacitor Haptics plugin via window.top.Capacitor and calls impact() directly.
+        // Web / PWA fallback: navigator.vibrate.
         var hapticCtrl = (function() {
             var lastTime = 0;
             var INTERVAL = 50; // minimum ms between vibrations (hardware throttle)
@@ -4690,8 +4689,6 @@
                     if (plugin) {
                         try { plugin.impact({ style: style }); return; } catch (_) {}
                     }
-                    // Fallback: relay to shell via postMessage (embedded iframe without Capacitor)
-                    if (requestShellAction('NUTRIPLAN_HAPTIC', { style: style })) return;
                     // Web / PWA fallback
                     if (navigator.vibrate) {
                         try { navigator.vibrate(style === 'Heavy' ? 15 : 4); } catch (_) {}
