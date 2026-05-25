@@ -1,17 +1,5 @@
 # Log Tasks
 
-## 2026-05-25 — Хаптик при въвеждане на текст в чат прозореца (session 5)
-
-**Задача:** В APK хаптикът работи когато ботът извежда текст (game въпроси сутрин/вечер), но НЕ работи когато потребителят пише в чат прозореца.
-
-**Root cause:**
-`chatInput` нямаше никакъв haptic listener. `hapticCtrl.trigger(ch)` се извикваше само в bot typing loops (`addMessageToChat`, `typeTextIntoElement`), но не и при потребителско въвеждане.
-
-**Направено:**
-- **`plan.html`** — В `openChat()` след `document.body.appendChild(chatWindow)` добавен `oninput` listener на `chatInput` елемента, който извиква `hapticCtrl.trigger(this.value.slice(-1) || ' ')` при всяка промяна на текста.
-
----
-
 ## 2026-05-25 — Хаптик в APK: case-sensitive стил за Capacitor (session 4)
 
 **Задача:** Haptic в APK не се усеща изобщо, докато в PWA и уеб работи. Намери причината и оправи.
