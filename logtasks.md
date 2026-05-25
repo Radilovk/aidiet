@@ -1,5 +1,20 @@
 # Log Tasks
 
+## 2026-05-25 — APK game нотификации: коректен контекстен ден при клик
+
+**Задача:** Да се провери организацията на game нотификациите в APK и при клик да се отвори максимално бърз контекстен прозорец, като отговорът да се запише към правилните данни за анализ.
+
+**Намерена грешка:**
+- При клик от нотификация се отваряше in-app morning/evening прозорец, но `window._gameShowMorning()` / `window._gameShowEvening()` винаги работеха с `getTodayKey()`.  
+- Така при нотификации за минал ден (или забавено отваряне) отговорът можеше да се запише към грешна дата в `gameData`.
+
+**Направени оптимизации/поправки:**
+1. **`plan.html`** — `window._gameShowMorning` и `window._gameShowEvening` вече приемат контекстен `recordKey` (с валидация `YYYY-MM-DD` и fallback към today).
+2. **`plan.html`** — SW message handler (`NOTIFICATION_ACTION`) вече подава `recordKey` към morning/evening modal отварянията, включително `water_yes` flow.
+3. **`local-scheduler.js`** — Capacitor notification action handler вече подава `recordKey` към in-app morning/evening отварянията.
+
+**Резултат:** При клик на game нотификация в APK се отваря бърз контекстен прозорец за правилния ден и отговорът се записва в точния запис за анализ.
+
 ## 2026-05-25 — Хаптик при чат typing в APK не работи (session 5)
 
 **Задача:** В APK хаптикът работи при game въпроси (typewriter) и при отваряне на чат прозорец, НО НЕ работи когато ботът пише текст в чат прозореца.

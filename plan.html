@@ -10195,8 +10195,22 @@
             recalcAndShowScore:      recalcAndShowScore
         };
         window._gameEnhanceMealCards = enhanceMealCards;
-        window._gameShowMorning = function(f){ showMorningQuestion(f, getTodayKey(), null); };
-        window._gameShowEvening = function(f, opts){ showEveningFlow(f, getTodayKey(), null, opts); };
+        window._gameShowMorning = function(f, recordKey){
+            var targetKey = (typeof recordKey === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(recordKey))
+                ? recordKey
+                : getTodayKey();
+            showMorningQuestion(f, targetKey, null);
+        };
+        window._gameShowEvening = function(f, recordKeyOrOpts, maybeOpts){
+            var targetKey = getTodayKey();
+            var opts = maybeOpts;
+            if (typeof recordKeyOrOpts === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(recordKeyOrOpts)) {
+                targetKey = recordKeyOrOpts;
+            } else if (recordKeyOrOpts && typeof recordKeyOrOpts === 'object') {
+                opts = recordKeyOrOpts;
+            }
+            showEveningFlow(f, targetKey, null, opts);
+        };
 
         // Called by renderDay when user navigates to a past day (up to 2 days back).
         // Automatically asks any unanswered gamification questions for that day.
@@ -10331,7 +10345,7 @@
             // For morning_check body tap: show in-app morning modal.
             if (notifType === 'morning_check') {
                 if (typeof window._gameShowMorning === 'function') {
-                    window._gameShowMorning(true);
+                    window._gameShowMorning(true, recordKey);
                 }
                 return;
             }
@@ -10339,7 +10353,7 @@
             // For evening_check water_yes: show evening modal with water pre-filled.
             if (notifType === 'evening_check' && action === 'water_yes') {
                 if (typeof window._gameShowEvening === 'function') {
-                    window._gameShowEvening(true, { prefillWater: true });
+                    window._gameShowEvening(true, recordKey, { prefillWater: true });
                 }
                 return;
             }
@@ -10347,7 +10361,7 @@
             // For evening_check body tap / open_evening: show in-app evening modal.
             if (notifType === 'evening_check') {
                 if (typeof window._gameShowEvening === 'function') {
-                    window._gameShowEvening(true);
+                    window._gameShowEvening(true, recordKey);
                 }
                 return;
             }
