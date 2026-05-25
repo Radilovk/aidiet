@@ -2065,3 +2065,13 @@ NutriPlanPlatform.vibrate(50);
 - `platform.js` `vibrate()` използва `haptics.vibrate({ duration })` (различно от `impact()` в `plan.html`) — двете API-та са валидни, но непоследователни.
 
 **Препоръки (по желание):** Ако искате пълна Capacitor Haptics унификация — `analysis.html` и `questionnaire2.html` могат да получат Capacitor `impact()` fallback, подобно на `hapticCtrl` в `plan.html`.
+
+---
+
+## 2026-05-25 — Одит на backend заявки (финансово натоварване)
+
+**Задача:** Одит на backend заявките, генериращи излишно финансово натоварване — предложения за оптимизация по скорост и разходи.
+
+**Изпълнено:** Анализ на `worker.js`, `plan.html`, `questionnaire2.html`, `local-scheduler.js`. Проверени: всички `callAIModel`/`callOpenAI`/`callClaude`/`callGemini` извиквания, payload конструкция, кеширане, rate limiting, chunking стратегия.
+
+Резултатите са изложени директно в отговора (не в отделен файл).
