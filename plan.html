@@ -4683,9 +4683,8 @@
                     if (now - lastTime < INTERVAL) return;
                     lastTime = now;
                     var style = PUNCT.test(ch) ? 'Heavy' : 'Light';
-                    // Embedded iframe in APK: relay to shell which owns the native Capacitor bridge.
-                    if (requestShellAction('NUTRIPLAN_HAPTIC', { style: style })) return;
-                    // Standalone APK: direct Capacitor access via window.top.Capacitor.
+                    // Direct Capacitor access (works from any iframe via window.top.Capacitor).
+                    // platform.js getCap() auto-registers the plugin if not yet registered.
                     var plugin = NutriPlanPlatform.getPlugin('Haptics');
                     if (plugin) {
                         try { plugin.impact({ style: style }); return; } catch (_) {}
@@ -9143,20 +9142,13 @@
             setTimeout(function() { card.classList.remove('sc-anim-' + starCount); }, 1200);
 
             // Haptic feedback: escalating pattern
-            (function() {
-                var styles = [null,'Light','Light','Medium','Heavy','Heavy'];
-                var style = styles[Math.min(starCount, 5)] || 'Light';
-                if (requestShellAction('NUTRIPLAN_HAPTIC', { style: style })) return;
-                var _hp = NutriPlanPlatform.getPlugin('Haptics');
-                if (_hp) { try { _hp.impact({ style: style }); return; } catch (_) {} }
-                if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                    if      (starCount === 1) navigator.vibrate(60);
-                    else if (starCount === 2) navigator.vibrate([60, 40, 80]);
-                    else if (starCount === 3) navigator.vibrate([80, 40, 80, 40, 120]);
-                    else if (starCount === 4) navigator.vibrate([100, 50, 100, 50, 150, 50, 150]);
-                    else                     navigator.vibrate([150, 60, 150, 60, 200, 60, 200, 60, 300]);
-                }
-            })();
+            if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                if      (starCount === 1) navigator.vibrate(60);
+                else if (starCount === 2) navigator.vibrate([60, 40, 80]);
+                else if (starCount === 3) navigator.vibrate([80, 40, 80, 40, 120]);
+                else if (starCount === 4) navigator.vibrate([100, 50, 100, 50, 150, 50, 150]);
+                else                     navigator.vibrate([150, 60, 150, 60, 200, 60, 200, 60, 300]);
+            }
 
             // Flying stars burst overlay
             _triggerStarBurst(card, starCount);
@@ -10333,14 +10325,7 @@
                         }
                     }
                     // Haptic feedback – distinct pattern per answer
-                    try {
-                        var _hapStyle = action === 'sleep_yes' ? 'Light' : 'Medium';
-                        if (!requestShellAction('NUTRIPLAN_HAPTIC', { style: _hapStyle })) {
-                            var _hpS = NutriPlanPlatform.getPlugin('Haptics');
-                            if (_hpS) { _hpS.impact({ style: _hapStyle }); }
-                            else if (navigator.vibrate) navigator.vibrate(action === 'sleep_yes' ? [40, 30, 60] : [60, 30, 40]);
-                        }
-                    } catch (_) {}
+                    try { if (navigator.vibrate) navigator.vibrate(action === 'sleep_yes' ? [40, 30, 60] : [60, 30, 40]); } catch (_) {}
                 } catch(e) {}
                 return;
             }
