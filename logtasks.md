@@ -2287,3 +2287,8 @@ VAPID ключът е статична стойност — никога не с
 - Извиква се при `NUTRIPLAN_TAB_ACTIVATED` (заедно с `loadGameAnalytics`)
 
 **Подход:** Единен `@keyframes` per-file + 1 малка JS функция per-file. Без нови библиотеки, без forced DOM reflow извън animation reset паттерна.
+
+## Task: Remove plan_pending container
+- Problem: Remove the plan_pending container that shows the message about plan being created in the background
+- Status: Starting exploration
+
