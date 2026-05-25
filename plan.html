@@ -4684,13 +4684,16 @@
                     if (now - lastTime < INTERVAL) return;
                     lastTime = now;
                     var style = PUNCT.test(ch) ? 'Heavy' : 'Light';
-                    // Embedded iframe: relay to shell which has the native Capacitor bridge
-                    if (requestShellAction('NUTRIPLAN_HAPTIC', { style: style })) return;
-                    // Standalone APK or web
+                    // Direct Capacitor access (works from any iframe via window.top.Capacitor).
+                    // platform.js getCap() auto-registers the plugin if not yet registered.
                     var plugin = NutriPlanPlatform.getPlugin('Haptics');
                     if (plugin) {
-                        try { plugin.impact({ style: style }); } catch (_) {}
-                    } else if (navigator.vibrate) {
+                        try { plugin.impact({ style: style }); return; } catch (_) {}
+                    }
+                    // Fallback: relay to shell via postMessage (embedded iframe without Capacitor)
+                    if (requestShellAction('NUTRIPLAN_HAPTIC', { style: style })) return;
+                    // Web / PWA fallback
+                    if (navigator.vibrate) {
                         try { navigator.vibrate(style === 'Heavy' ? 15 : 4); } catch (_) {}
                     }
                 },
@@ -6066,7 +6069,11 @@
             }
 
             // Distinct haptic when opening chat icon
-            try { if (navigator.vibrate) navigator.vibrate([40, 30, 80]); } catch (_) {}
+            try {
+                var _hp = NutriPlanPlatform.getPlugin('Haptics');
+                if (_hp) { _hp.impact({ style: 'Medium' }); }
+                else if (navigator.vibrate) { navigator.vibrate([40, 30, 80]); }
+            } catch (_) {}
 
             // Create chat window
             const chatWindow = document.createElement('div');

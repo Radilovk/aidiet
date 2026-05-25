@@ -1,5 +1,34 @@
 # Log Tasks
 
+## 2026-05-25 — Хаптик в APK: нулева вибрация след session 5 (session 6)
+
+**Задача:** След session 5 (добавяне на patchFrame за shellChatFrame) дори при отварянето на чата няма вибрация в APK.
+
+**Root cause (детайлно разследване):**
+Session 5 добави `patchFrame` за shellChatFrame → `data-embedded-tab='1'` се задава след зареждане на iframe. Това накара `requestShellAction('NUTRIPLAN_HAPTIC', ...)` да връща `true` (тъй като сега атрибутът е наличен), и изпълнението излиза ПРЕДИ да достигне fallback-а `navigator.vibrate`. Ако Capacitor `impact()` в app.js не стреля (защото Haptics plugin не е регистриран чрез JS — `@capacitor/haptics/dist/plugin.js` никога не се зарежда директно), хаптиката изчезва напълно без никакъв fallback.
+
+Едновременно: `NutriPlanPlatform.getPlugin('Haptics')` беше поставен СЛЕД `requestShellAction` в hapticCtrl — но `requestShellAction` вече връщаше `true` в shellChat, така че `getPlugin` никога не се извикваше.
+
+**Направено (3 файла):**
+
+1. **`platform.js` — `getPlugin()`**: добавена lazy auto-регистрация на плъгина ако не е регистриран:
+   ```js
+   if (!cap.Plugins[name] && typeof cap.registerPlugin === 'function') {
+       cap.registerPlugin(name, {});
+   }
+   ```
+   Работи от всеки iframe чрез `window.top.Capacitor` (getCap() вече го прави). Без това — Haptics е `undefined` докато app.js не получи ПОНЕ едно NUTRIPLAN_HAPTIC съобщение.
+
+2. **`plan.html` — `hapticCtrl.trigger()`**: сменен редът на опити:
+   - ПЪРВО: `NutriPlanPlatform.getPlugin('Haptics').impact()` — директен Capacitor (auto-регистрира се)
+   - FALLBACK: `requestShellAction('NUTRIPLAN_HAPTIC', ...)` — postMessage
+   - ПОСЛЕДЕН: `navigator.vibrate` — web/PWA
+   Така дори ако postMessage не работи, директният Capacitor path хваща хаптиката.
+
+3. **`plan.html` — `openChat()` opening haptic**: заменено `navigator.vibrate([40,30,80])` с `NutriPlanPlatform.getPlugin('Haptics').impact({ style: 'Medium' })` когато Capacitor е наличен, иначе `navigator.vibrate` като fallback.
+
+---
+
 ## 2026-05-25 — Хаптик в APK: shellChatFrame без patchFrame (session 5)
 
 **Задача:** Haptic работи при game въпроси и при отваряне на чат прозореца (втори път), НО не и когато ботът пише текст в чат прозореца. Намери причината.
