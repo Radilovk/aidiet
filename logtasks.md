@@ -2028,7 +2028,20 @@ NutriPlanPlatform.vibrate(50);
 
 ---
 
-## 2026-05-25 — Анализ: Haptic поведение правилно ли е вложено в APK?
+## 2026-05-25 — Поправка: Haptic чат не работи в APK (iframe Capacitor bridge)
+
+**Задача:** Разбери защо haptic функцията при чат не работи в APK.
+
+**Корен проблем:** `plan.html` се зарежда като **iframe** вътре в `index.html` (SPA shell). Capacitor инжектира bridge-а (`window.Capacitor`) само в top-level документа — не в iframe-ите. Затова в plan.html:
+- `window.Capacitor` → `undefined`
+- `hapticCtrl.hap()` → винаги `null` → нито Capacitor haptics, нито навигатор.vibrate (тъй като `hap()` null-ва целия branch)
+- `isCapacitorNativeApp` → `false` → SW се регистрира излишно в APK
+- Emergency App plugin listener → никога не се регистрира
+
+**Направено (прецизна поправка):**
+1. **`plan.html` — `hapticCtrl.hap()`**: `window.Capacitor || (window.top && window.top.Capacitor)`
+2. **`plan.html` — `isCapacitorNativeApp` и App listener**: извлечен `_cap = window.Capacitor || window.top.Capacitor`, ползван навсякъде
+3. **`platform.js` — `isAPK()` и `getPlugin()`**: добавена `getCap()` helper с fallback към `global.top.Capacitor`, ползвана в двете функции
 
 **Задача (анализ):** Проверка дали промените и принципите за haptic поведение са адекватно вложени в APK билда.
 

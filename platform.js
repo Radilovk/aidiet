@@ -19,11 +19,17 @@
 
     // ── Основно разпознаване ───────────────────────────────────────────────
 
+    /** Връща Capacitor обекта — от текущия прозорец или от top (при iframe). */
+    function getCap() {
+        return global.Capacitor || (global.top && global.top.Capacitor) || null;
+    }
+
     function isAPK() {
         try {
-            return !!(global.Capacitor &&
-                typeof global.Capacitor.isNativePlatform === 'function' &&
-                global.Capacitor.isNativePlatform());
+            var cap = getCap();
+            return !!(cap &&
+                typeof cap.isNativePlatform === 'function' &&
+                cap.isNativePlatform());
         } catch (_) { return false; }
     }
 
@@ -66,9 +72,8 @@
     /** Връща Capacitor плъгин по име или null ако не съществува. */
     function getPlugin(name) {
         try {
-            return (global.Capacitor &&
-                    global.Capacitor.Plugins &&
-                    global.Capacitor.Plugins[name]) || null;
+            var cap = getCap();
+            return (cap && cap.Plugins && cap.Plugins[name]) || null;
         } catch (_) { return null; }
     }
 
