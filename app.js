@@ -450,7 +450,6 @@
         el.title = 'Чат асистент';
         el.setAttribute('aria-hidden', 'true');
         el.style.cssText = 'position:fixed;bottom:0;left:0;right:0;width:100%;height:70vh;max-height:600px;border:0;z-index:10003;display:none;border-radius:16px 16px 0 0;overflow:hidden;';
-        el.addEventListener('load', function () { patchFrame(el); });
         shell.appendChild(el);
         shellChatFrame = el;
     }
