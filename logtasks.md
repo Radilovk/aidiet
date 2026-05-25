@@ -2304,3 +2304,7 @@ VAPID ключът е статична стойност — никога не с
 - Извиква се при `NUTRIPLAN_TAB_ACTIVATED` (заедно с `loadGameAnalytics`)
 
 **Подход:** Единен `@keyframes` per-file + 1 малка JS функция per-file. Без нови библиотеки, без forced DOM reflow извън animation reset паттерна.
+
+## 2026-05-25T22:38:00Z
+- Задача: Извеждане на пълен текстов експорт от frontend (всички страници/функции/текст) + worker с контекст за страница и елемент.
+- Изпълнение: Пуснат `npm test` (успешен), генериран файл `NUTRIPLAN_FULL_TEXT_EXPORT.txt` (структуриран HTML текст + пълен source dump за HTML/JS + string literals и source dump за worker.js), добавен лог в `logtasks.md`.
