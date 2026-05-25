@@ -402,8 +402,14 @@ function renderModelCard(modelId) {
   modelCard.innerHTML = `<div class="mc-icon">${m.icon}</div><div class="mc-body"><div class="mc-name">${m.name}</div><div class="mc-desc">${m.desc}</div><div class="mc-tags">${m.tags.map(t=>`<span class="mc-tag">${t}</span>`).join('')}</div></div>`;
 }
 
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 function formatMarkdown(text) {
-  return text
+  // Escape HTML first, then apply safe markdown transformations
+  const safe = escapeHtml(text);
+  return safe
     .replace(/```([^`]+)```/gs,'<pre><code>$1</code></pre>')
     .replace(/`([^`]+)`/g,'<code>$1</code>')
     .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
