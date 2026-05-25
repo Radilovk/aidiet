@@ -1751,6 +1751,11 @@
             transition: background 0.15s, transform 0.15s;
         }
         .social-logout-btn:hover { background: rgba(239,68,68,0.08); transform: translateY(-1px); }
+
+        @keyframes profileIn {
+            from { opacity: 0; transform: translateY(18px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0)    scale(1);    }
+        }
     </style>
     <script>
         // Apply color scheme from admin settings
@@ -4762,8 +4767,17 @@
             });
         }
         loadGameAnalytics();
+        function replayProfileAnims() {
+            var els = document.querySelectorAll('.profile-header, .acc-item, .game-week-card, .ga-card-enter');
+            els.forEach(function(el, i) {
+                el.style.animation = 'none';
+                el.offsetWidth;
+                el.style.animation = 'profileIn 0.45s cubic-bezier(0.22,1,0.36,1) ' + (i * 60) + 'ms both';
+            });
+        }
         window.addEventListener('NUTRIPLAN_TAB_ACTIVATED', function() {
             loadGameAnalytics();
+            replayProfileAnims();
         });
         window.addEventListener('NUTRIPLAN_APP_DATA_READY', function() {
             refreshProfileFromShellData('shell-data-ready');

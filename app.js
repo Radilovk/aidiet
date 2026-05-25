@@ -496,6 +496,13 @@
             window.location.replace('index.html?stay=1');
             return;
         }
+        if (data.type === 'NUTRIPLAN_HAPTIC') {
+            try {
+                var hapticsPlugin = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics;
+                if (hapticsPlugin) hapticsPlugin.impact({ style: data.style || 'LIGHT' });
+            } catch (_) {}
+            return;
+        }
         if (data.type !== 'NUTRIPLAN_NAVIGATE' || typeof data.url !== 'string' || !data.url) return;
         try {
             var targetUrl = new URL(data.url, window.location.href);

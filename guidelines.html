@@ -1089,6 +1089,11 @@
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(13, 148, 136, 0.4);
         }
+
+        @keyframes guideIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0)    scale(1);    }
+        }
     </style>
     <script>
         // Apply color scheme from admin settings
@@ -1758,6 +1763,15 @@
         }
 
         // --- Initialize ---
+        function replayGuideAnims() {
+            document.querySelectorAll('.macro-card, .acc-item, .plan-justification-container').forEach(function(el, i) {
+                el.style.animation = 'none';
+                el.offsetWidth;
+                el.style.animation = 'guideIn 0.42s cubic-bezier(0.22,1,0.36,1) ' + (i * 55) + 'ms both';
+            });
+        }
+        window.addEventListener('NUTRIPLAN_TAB_ACTIVATED', replayGuideAnims);
+
         (function instantInit() {
             async function setupGuidelines() {
                 if (window.NutriPlanAuthGuardReady) {
@@ -1787,6 +1801,7 @@
                 requestAnimationFrame(function() {
                     document.body.style.transition = 'opacity 120ms ease-out';
                     document.body.style.opacity = '1';
+                    replayGuideAnims();
                 });
             }
             

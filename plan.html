@@ -3344,6 +3344,11 @@
             transform: translateY(0);
         }
 
+        @keyframes cardEnter {
+            from { opacity: 0; transform: translateY(18px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0)   scale(1);    }
+        }
+
     </style>
     <script src="./ui-images-cache.js"></script>
     <script>
@@ -4664,34 +4669,33 @@
         }
 
         // Grok-style HapticController — 50 ms throttle, Light for letters, Heavy for punctuation.
-        // Uses native Capacitor Haptics plugin when available (APK); falls back to navigator.vibrate.
+        // In embedded (iframe) APK mode: delegates to the shell via postMessage — the shell's main
+        // frame owns the Capacitor bridge and triggers the native haptic from there.
+        // Standalone APK: uses NutriPlanPlatform.getPlugin('Haptics') directly.
+        // Web fallback: navigator.vibrate.
         var hapticCtrl = (function() {
             var lastTime = 0;
             var INTERVAL = 50; // minimum ms between vibrations (hardware throttle)
             var PUNCT = /[.,!?;:\-]/;
-            function hap() {
-                var cap = window.Capacitor || (window.top && window.top.Capacitor) || null;
-                return cap && cap.Plugins && cap.Plugins.Haptics || null;
-            }
             return {
                 trigger: function(ch) {
                     if (!typingHapticsEnabled) return;
                     var now = Date.now();
                     if (now - lastTime < INTERVAL) return;
                     lastTime = now;
-                    var heavy = PUNCT.test(ch);
-                    var plugin = hap();
+                    var style = PUNCT.test(ch) ? 'HEAVY' : 'LIGHT';
+                    // Embedded iframe: relay to shell which has the native Capacitor bridge
+                    if (requestShellAction('NUTRIPLAN_HAPTIC', { style: style })) return;
+                    // Standalone APK or web
+                    var plugin = NutriPlanPlatform.getPlugin('Haptics');
                     if (plugin) {
-                        try { plugin.impact({ style: heavy ? 'HEAVY' : 'LIGHT' }); } catch (_) {}
-                    } else if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                        try { navigator.vibrate(heavy ? 15 : 4); } catch (_) {}
+                        try { plugin.impact({ style: style }); } catch (_) {}
+                    } else if (navigator.vibrate) {
+                        try { navigator.vibrate(style === 'HEAVY' ? 15 : 4); } catch (_) {}
                     }
                 },
                 stop: function() {
                     lastTime = Date.now() + 200; // suppress triggers for 200 ms
-                    try {
-                        if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(0);
-                    } catch (_) {}
                 }
             };
         })();
@@ -5280,7 +5284,7 @@
                 mealContainer.appendChild(banner);
             }
 
-            effectiveMeals.forEach((meal) => {
+            effectiveMeals.forEach((meal, _mi) => {
                 const isFreeMeal = meal.type === 'Свободно хранене';
                 const mealCard = document.createElement('div');
                 mealCard.className = isFreeMeal ? 'meal-card free-day' : 'meal-card';
@@ -5324,6 +5328,7 @@
                 
                 mealCard.appendChild(mealInfo);
                 mealCard.appendChild(infoBtn);
+                mealCard.style.animation = `cardEnter 0.45s cubic-bezier(0.22,1,0.36,1) ${_mi * 65}ms both`;
                 mealContainer.appendChild(mealCard);
             });
 

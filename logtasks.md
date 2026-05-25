@@ -1,5 +1,24 @@
 # Log Tasks
 
+## 2026-05-25 — Хаптик в APK: намерена причина и оправена (#901)
+
+**Задача:** Typing haptic не работи в APK (Capacitor WebView), въпреки че работи в уеб (Chrome на Android).
+
+**Причина:**
+`plan.html` се зарежда в `<iframe>` от app.js. В Capacitor WebView, JavaScript мостът (`window.Capacitor`) е инициализиран САМО в главния прозорец (`index.html`). В iframe-а:
+- `window.Capacitor` е `undefined`
+- `window.top.Capacitor.Plugins.Haptics.impact()` не работи надеждно при cross-frame извиквания
+- `navigator.vibrate` е деактивиран в Android WebView
+
+**Направено:**
+1. **plan.html** — Преработен `hapticCtrl`:
+   - Премахната провалената `hap()` вътрешна функция (опитваше `window.top.Capacitor` директно)
+   - `trigger()`: първо пробва `requestShellAction('NUTRIPLAN_HAPTIC', { style })` (embed режим — relay към shell); после `NutriPlanPlatform.getPlugin('Haptics')` (standalone APK); после `navigator.vibrate` (web)
+   - `stop()`: премахнат мъртвият `navigator.vibrate(0)` (не работи в WebView)
+2. **app.js** — Добавен handler `NUTRIPLAN_HAPTIC` в `handleShellMessage()`: главният frame (owner на Capacitor bridge) извиква `Capacitor.Plugins.Haptics.impact({ style })` директно
+
+---
+
 ## 2026-05-25 — Централизиран Cross-Platform Adapter (`platform.js`)
 
 **Задача:** Създаване на ясна, проста функция за синхрон и адаптация между APK, PWA и Web в NutriPlan проекта, така че бъдещите задачи да се интегрират успешно и в трите части.
@@ -2197,3 +2216,25 @@ VAPID ключът е статична стойност — никога не с
 - #5: Workers Rate Limiting API — изисква инфраструктурни промени в wrangler.toml
 
 ---
+## Задача: Анимации при всички табове (2026-05-25)
+
+**Искане:** Добави интересни анимации при елементите на всеки таб. Вече има добра анимация при "Анализ", но останалите нямат. Минимум код, максимално впечатляващ UX/UI.
+
+**Направено:**
+
+### plan.html
+- Добавен `@keyframes cardEnter` (slide-up + scale fade, spring easing)
+- Всяка хранителна карта (`meal-card`) получава стагерирана анимация при рендериране чрез `effectiveMeals.forEach((meal, _mi)` + `mealCard.style.animation = cardEnter … ${_mi * 65}ms both`
+- Ефект: всяко хранене се появява последователно при смяна на деня
+
+### guidelines.html
+- Добавен `@keyframes guideIn` (slide-up + scale fade)
+- Нова функция `replayGuideAnims()` — стагерира `.macro-card`, `.acc-item`, `.plan-justification-container`
+- Извиква се при: `requestAnimationFrame` след `setupGuidelines()` + `NUTRIPLAN_TAB_ACTIVATED`
+
+### profile.html
+- Добавен `@keyframes profileIn` (slide-up + scale fade)
+- Нова функция `replayProfileAnims()` — стагерира `.profile-header`, `.acc-item`, `.game-week-card`, `.ga-card-enter`
+- Извиква се при `NUTRIPLAN_TAB_ACTIVATED` (заедно с `loadGameAnalytics`)
+
+**Подход:** Единен `@keyframes` per-file + 1 малка JS функция per-file. Без нови библиотеки, без forced DOM reflow извън animation reset паттерна.
