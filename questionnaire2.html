@@ -2567,7 +2567,15 @@
             container.appendChild(card);
             
             // Manage Buttons
-            prevBtn.style.visibility = currentIndex === 0 ? 'hidden' : 'visible';
+            if (currentIndex === 0) {
+                prevBtn.style.visibility = 'visible';
+                prevBtn.setAttribute('aria-label', 'Затвори');
+                prevBtn.innerHTML = '<i class="fas fa-times"></i>';
+            } else {
+                prevBtn.style.visibility = 'visible';
+                prevBtn.setAttribute('aria-label', 'Назад');
+                prevBtn.innerHTML = '<i class="fas fa-rotate-left"></i>';
+            }
             
             if(currentIndex === currentQueue.length - 1) {
                 nextBtn.innerHTML = 'Завърши <i class="fas fa-check"></i>';
@@ -3191,6 +3199,11 @@
         function prevStep() {
             // Cancel any pending auto-advance timer
             if (_autoAdvanceTimer) { clearTimeout(_autoAdvanceTimer); _autoAdvanceTimer = null; }
+            if (currentIndex === 0) {
+                // On first step — close questionnaire and go back to index
+                window.location.href = 'index.html';
+                return;
+            }
             if (currentIndex > 0) {
                 currentIndex--;
                 
