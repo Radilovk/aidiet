@@ -2489,3 +2489,30 @@ VAPID ключът е статична стойност — никога не с
 - Firebase logout flow е запазен и само е вързан към общата логика за видимост на бутона
 
 **Засегнат файл:** `profile.html`
+
+## Task: Fix Missing Logout Button in APK (2026-05-26)
+
+**Problem:** The logout button was missing from the APK even though it was present in the web version.
+
+**Root Cause:** 
+- In `index.html`, the logout button visibility was controlled by checking if the userId **starts with 'fb_'** (Firebase only)
+- This check was too restrictive and excluded non-Firebase authenticated users
+- In the APK, users who completed the questionnaire without Firebase authentication had a userId that didn't start with 'fb_', so the logout button was hidden
+- The `profile.html` had the correct logic (checking for userData or userId presence), but `index.html` didn't
+
+**Solution:**
+1. Fixed `applyEmbeddedHomeState()` function (line 2814):
+   - Changed from: `const isAuthenticated = (localStorage.getItem('userId') || '').indexOf('fb_') === 0;`
+   - Changed to: `const isAuthenticated = !!(localStorage.getItem('userData') || localStorage.getItem('userId'));`
+
+2. Fixed DOMContentLoaded handler (line 2938-2957):
+   - Changed from: `if (!authUser)` (only checks Firebase authentication)
+   - Changed to: Check for both Firebase auth and non-Firebase stored session
+   - Added: `const hasStoredSession = !!(localStorage.getItem('userData') || localStorage.getItem('userId'));`
+   - Added: `const isActuallyAuthenticated = authUser || hasStoredSession;`
+
+**Files Modified:**
+- `/home/runner/work/aidiet/aidiet/index.html`
+
+**Testing:** The logout button should now be visible in the APK for any authenticated user, regardless of the authentication method (Firebase or non-Firebase).
+
