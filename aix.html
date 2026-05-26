@@ -160,14 +160,14 @@ textarea.s-input{resize:vertical;min-height:72px;line-height:1.5}
   </div>
 
   <div id="model-bar">
-    <div class="model-tab active" data-model="meta-llama/llama-3.1-8b-instruct:free">
-      <span class="sdot s-ok"></span>Llama 3.1 8B
+    <div class="model-tab active" data-model="google/gemma-4-31b-it:free">
+      <span class="sdot s-ok"></span>Gemma 4 31B
     </div>
-    <div class="model-tab" data-model="mistralai/mistral-7b-instruct:free">
-      <span class="sdot s-ok"></span>Mistral 7B
+    <div class="model-tab" data-model="deepseek/deepseek-v4-flash:free">
+      <span class="sdot s-ok"></span>DeepSeek V4 Flash
     </div>
     <div class="model-tab" data-model="meta-llama/llama-3.3-70b-instruct:free">
-      <span class="sdot s-warn"></span>Llama 3.3 70B
+      <span class="sdot s-ok"></span>Llama 3.3 70B
     </div>
   </div>
 
@@ -258,13 +258,13 @@ textarea.s-input{resize:vertical;min-height:72px;line-height:1.5}
 <script>
 const API = 'https://aidiet.radilov-k.workers.dev/api/aix/chat';
 const MODELS = {
-  'meta-llama/llama-3.1-8b-instruct:free': {name:'Llama 3.1 8B'},
-  'mistralai/mistral-7b-instruct:free':     {name:'Mistral 7B'},
+  'google/gemma-4-31b-it:free':             {name:'Gemma 4 31B'},
+  'deepseek/deepseek-v4-flash:free':        {name:'DeepSeek V4 Flash'},
   'meta-llama/llama-3.3-70b-instruct:free': {name:'Llama 3.3 70B'}
 };
 
 let state = {
-  model: 'meta-llama/llama-3.1-8b-instruct:free',
+  model: 'google/gemma-4-31b-it:free',
   messages: [], tone:'balanced', length:'medium',
   systemPrompt:'', role:'', domain:'',
   autoProfil:true, sending:false, userProfile:{}

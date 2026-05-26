@@ -1,5 +1,42 @@
 # Log Tasks
 
+## 2026-05-26 — AIX Chat: актуализиране на безплатни модели в OpenRouter
+
+**Задача:** `/api/aix/chat` връща 500 грешка; потребителите виждат "моделът не е наличен". Старите модели `meta-llama/llama-3.1-8b-instruct:free` и `mistralai/mistral-7b-instruct:free` са спрени/недостъпни в OpenRouter.
+
+**Направено:**
+- `aix.html`: заменени остарелите модели с актуални безплатни (май 2026):
+  - `meta-llama/llama-3.1-8b-instruct:free` → `google/gemma-4-31b-it:free` (Gemma 4 31B)
+  - `mistralai/mistral-7b-instruct:free` → `deepseek/deepseek-v4-flash:free` (DeepSeek V4 Flash)
+  - `meta-llama/llama-3.3-70b-instruct:free` запазен (Llama 3.3 70B) — индикаторът му е сменен от warn → ok
+- `aix.html`: default state модел обновен на `google/gemma-4-31b-it:free`
+- `worker.js`: fallback модел сменен от `google/gemini-2.5-flash:free` → `google/gemma-4-31b-it:free`
+
+## 2026-05-26 — Profile APK поправки: аватар, дизайн, haptic при табове
+
+**Задача:** Четири проблема в NutriPlan APK:
+1. Не може да се качи аватар на потребителя в Profile таба
+2. Profile табът изглежда празен и неестетичен спрямо другите табове
+3. Искан haptic при превключване между табовете
+4. Всички промени приложени за web, PWA, APK
+
+**Направени промени:**
+
+1. **`profile.html` — Аватар Upload (APK fix)**
+   - Заменен `div.click()` → `avatarInput.click()` (ненадеждно в embedded iframe) с нативен `<label for="avatarInput">` около аватара
+   - `input[type=file]` сменен от `display:none` на `position:absolute;opacity:0;inset:0` — покрива цялата аватар зона, работи с нативен user gesture
+   - Добавена камера-иконка badge (`avatar-edit-badge`) върху аватара за видим намек за upload
+   - Премахнат JS click listener (вече ненужен)
+
+2. **`profile.html` — Profile Design (липсващ gameAnalyticsSection)**
+   - Добавен HTML елемент `id="gameAnalyticsSection"` с `.game-analytics-section` структура между анализа и бутона "Изтегли плана"
+   - Функцията `loadGameAnalytics()` вече има DOM елемент за рендиране и се показва след зареждане
+   - Добавено извикване на `loadGameAnalytics()` в `setupProfile()` за начално зареждане
+
+3. **`app.js` — Haptic при превключване на табове**
+   - Добавена функция `triggerTabHaptic()` (Capacitor Haptics.impact с Light стил)
+   - Извиква се в `switchTab()` само когато се сменя таб (`previousTab !== tab`)
+   - Работи само в APK (Capacitor), няма ефект в web/PWA
 ## 2026-05-25 — AIX: поправка на модели + пълен UX/UI редизайн
 
 **Задача:**
