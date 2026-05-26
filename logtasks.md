@@ -2509,3 +2509,17 @@ VAPID ключът е статична стойност — никога не с
 - Актуализиран е `NUTRIPLAN_FULL_TEXT_EXPORT.txt` с новите CSS и text записи
 
 **Засегнати файлове:** `index.html`, `NUTRIPLAN_FULL_TEXT_EXPORT.txt`, `logtasks.md`
+
+## 2026-05-26 — APK: преместване logout + profile header + avatar upload
+
+**Задача:**
+1. `.spa-logout-btn` в APK да се премести на мястото на `socialLogoutBtn`.
+2. `theme-toggle-btn` да е по-надолу в `profile-header`.
+3. В APK потребителят да може да качва изображение в `avatarInput`.
+
+**Направено:**
+- `index.html`: `.spa-logout-btn` е преместен от горе-вдясно към долна централна позиция над долната навигация (позиция като logout зоната в profile).
+- `profile.html`: премахнат е външният wrapper за темата и `theme-toggle-btn` е преместен вътре в `profile-header`, под информацията за профила.
+- `profile.html`: за native APK при click на `avatarInput` се използва `Capacitor.Plugins.Camera.getPhoto` (галерия/Photos) и резултатът се записва като аватар; web/PWA file-input flow остава активен.
+
+**Засегнати файлове:** `index.html`, `profile.html`, `logtasks.md`

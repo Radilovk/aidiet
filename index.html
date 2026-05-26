@@ -1785,8 +1785,9 @@
         .spa-bottom-nav { z-index: 10001; }
         .spa-logout-btn {
             position: absolute;
-            top: calc(var(--safe-area-inset-top, 0px) + 10px);
-            right: calc(var(--safe-area-inset-right, 0px) + 12px);
+            left: 50%;
+            bottom: calc(60px + var(--safe-area-inset-bottom, 0px) + 14px);
+            transform: translateX(-50%);
             z-index: 10002;
             display: flex;
             align-items: center;
