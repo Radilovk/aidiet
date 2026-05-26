@@ -1,5 +1,17 @@
 # Log Tasks
 
+## 2026-05-26 — Logout бутон само в Profile таба
+
+**Задача:** `.spa-logout-btn` да не стои на всеки екран. Да се показва само в таб `Профил`, на мястото на `socialLogoutBtn`, като е статичен като него. В web версията да остане само `socialLogoutBtn`, без `.spa-logout-btn`.
+
+**Направено:**
+- `index.html`: премахнат е глобалният `.spa-logout-btn` от SPA shell, за да не се визуализира върху всеки таб
+- `profile.html`: добавен е shell-only `#spaLogoutBtn` в logout зоната на Profile таба
+- `profile.html`: logout видимостта вече разграничава embedded shell режим от web режим:
+  - embedded/Profile таб → показва `.spa-logout-btn`
+  - web profile → показва само `socialLogoutBtn`
+- `profile.html`: `.spa-logout-btn` ползва същия статичен стил и позиция като `socialLogoutBtn`, без floating/sticky поведение
+
 ## 2026-05-26 — APK размер + haptic при табове: поправка
 
 **Задача:** APK размерът се е повишил драстично след последната задача; haptic при превключване на табовете не се усеща.
