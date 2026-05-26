@@ -16,27 +16,29 @@
 
 **Задача:** Четири проблема в NutriPlan APK:
 1. Не може да се качи аватар на потребителя в Profile таба
-2. Profile табът изглежда празен и неестетичен спрямо другите табове
+2. Profile табът изглежда неестетичен спрямо другите табове
 3. Искан haptic при превключване между табовете
 4. Всички промени приложени за web, PWA, APK
 
 **Направени промени:**
 
 1. **`profile.html` — Аватар Upload (APK fix)**
-   - Заменен `div.click()` → `avatarInput.click()` (ненадеждно в embedded iframe) с нативен `<label for="avatarInput">` около аватара
-   - `input[type=file]` сменен от `display:none` на `position:absolute;opacity:0;inset:0` — покрива цялата аватар зона, работи с нативен user gesture
-   - Добавена камера-иконка badge (`avatar-edit-badge`) върху аватара за видим намек за upload
-   - Премахнат JS click listener (вече ненужен)
+   - Аватарът е обвит в `.avatar-upload-wrapper` с `position:relative`
+   - `input[type=file]` сменен от `display:none` на `position:absolute;inset:0;opacity:0` — покрива цялата аватар зона и работи с нативен user gesture (web/PWA)
+   - Добавена камера-иконка badge (`avatar-edit-badge`) върху аватара за визуален намек
+   - В APK (Capacitor native): click на аватара регистрира и използва `Capacitor.Plugins.Camera.getPhoto({ source:'photos', resultType:'base64' })` вместо `input.click()`
+   - За web/PWA: файловият input overlay се задейства директно от user gesture
 
-2. **`profile.html` — Profile Design (липсващ gameAnalyticsSection)**
-   - Добавен HTML елемент `id="gameAnalyticsSection"` с `.game-analytics-section` структура между анализа и бутона "Изтегли плана"
-   - Функцията `loadGameAnalytics()` вече има DOM елемент за рендиране и се показва след зареждане
-   - Добавено извикване на `loadGameAnalytics()` в `setupProfile()` за начално зареждане
+2. **`profile.html` — Profile Design (стил на profile-header)**
+   - `.profile-header` получи glassmorphism card стил (фон, border-radius, box-shadow, backdrop-filter, border) — съответства на `.form-section`
+   - Добавена цветна gradient лента в горната част (като другите секции)
+   - Намален margin-bottom от 30px на 20px за консистентност
 
 3. **`app.js` — Haptic при превключване на табове**
-   - Добавена функция `triggerTabHaptic()` (Capacitor Haptics.impact с Light стил)
-   - Извиква се в `switchTab()` само когато се сменя таб (`previousTab !== tab`)
-   - Работи само в APK (Capacitor), няма ефект в web/PWA
+   - Добавена функция `triggerTabHaptic()` — регистрира Capacitor Haptics и вика `.impact({ style: 'Light' })`
+   - Извиква се в `switchTab()` само когато таба реално се сменя (`previousTab !== tab`)
+   - Безвредна в web/PWA — без Capacitor нищо не се случва
+
 ## 2026-05-25 — AIX: поправка на модели + пълен UX/UI редизайн
 
 **Задача:**
