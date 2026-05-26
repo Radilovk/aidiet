@@ -1911,12 +1911,12 @@
             <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема"><i class="fas fa-moon" id="themeIcon"></i></button>
         </div>
         <div class="profile-header">
-            <div class="avatar-upload-wrapper" style="display:inline-block;position:relative;margin-bottom:10px;">
+            <div class="avatar-upload-wrapper" id="avatarUploadTrigger" style="display:inline-block;position:relative;margin-bottom:10px;cursor:pointer;">
                 <div class="profile-avatar" id="profileAvatar" title="Качете аватар"></div>
                 <div class="avatar-edit-badge" id="avatarEditBadge" style="position:absolute;bottom:2px;right:2px;width:24px;height:24px;background:var(--primary-red);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.3);cursor:pointer;pointer-events:none;">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="white"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
                 </div>
-                <input type="file" id="avatarInput" accept="image/*" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:2;">
+                <input type="file" id="avatarInput" accept="image/*" style="display:none;">
             </div>
             <div class="profile-name" id="profileName"></div>
             <div class="profile-email" id="profileEmail"></div>
@@ -3452,7 +3452,7 @@
                 });
                 
                 // Avatar upload functionality
-                const profileAvatar = document.getElementById('profileAvatar');
+                const avatarUploadTrigger = document.getElementById('avatarUploadTrigger');
                 const avatarInput = document.getElementById('avatarInput');
 
                 function saveAvatarDataUrl(dataUrl) {
@@ -3474,37 +3474,9 @@
                     });
                 }
 
-                // On native APK, also allow Camera plugin as fallback for WebView file input issues
-                if (profileAvatar) {
-                    profileAvatar.addEventListener('click', function(e) {
-                        var cap = window.Capacitor;
-                        if (cap && cap.isNativePlatform && cap.isNativePlatform()) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            if (!cap.Plugins.Camera && typeof cap.registerPlugin === 'function') {
-                                cap.registerPlugin('Camera', {});
-                            }
-                            if (cap.Plugins.Camera) {
-                                cap.Plugins.Camera.getPhoto({
-                                    quality: 85,
-                                    allowEditing: false,
-                                    resultType: 'base64',
-                                    source: 'photos'
-                                }).then(function(photo) {
-                                    if (photo && photo.base64String) {
-                                        var dataUrl = 'data:image/jpeg;base64,' + photo.base64String;
-                                        saveAvatarDataUrl(dataUrl);
-                                    }
-                                }).catch(function(err) {
-                                    if (err && err.message && !/cancel/i.test(err.message)) {
-                                        showAlert('Грешка при избор на снимка.', 'error');
-                                    }
-                                });
-                            } else if (avatarInput) {
-                                avatarInput.click();
-                            }
-                        }
-                        // Web/PWA: native file input overlay handles the click
+                if (avatarUploadTrigger && avatarInput) {
+                    avatarUploadTrigger.addEventListener('click', function() {
+                        avatarInput.click();
                     });
                 }
             }
@@ -4954,7 +4926,13 @@
                     if (avatar) renderProfileAvatar(qData?.name || user.displayName, qData?.email || user.email, user);
                 } else {
                     section?.classList.remove('hidden');
-                    logoutBtn?.classList.add('hidden');
+                    // Show logout for any authenticated session (questionnaire or social)
+                    const hasSession = !!(localStorage.getItem('userData') || localStorage.getItem('userId'));
+                    if (hasSession) {
+                        logoutBtn?.classList.remove('hidden');
+                    } else {
+                        logoutBtn?.classList.add('hidden');
+                    }
                 }
             }
 

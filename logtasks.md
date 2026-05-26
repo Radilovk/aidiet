@@ -2443,3 +2443,23 @@ VAPID ключът е статична стойност — никога не с
 - Актуализиран `NUTRIPLAN_FULL_TEXT_EXPORT.txt` (24 замени)
 
 **Засегнати файлове:** `game-analytics.html`, `profile.html`, `NUTRIPLAN_FULL_TEXT_EXPORT.txt`
+## 2026-05-26 — Три APK/Questionnaire поправки
+
+**Задача:**
+1. Аватар качване в APK не работи
+2. Няма logout бутон в APK
+3. Липсва бутон за затваряне/назад при старт на questionnaire2 от index
+
+**Направено:**
+1. **profile.html** — Fix аватар: `profileAvatar` click handler никога не се задейства (avatarInput с z-index:2 е отгоре). Преместена Camera plugin логика в `avatarInput` click listener с `e.preventDefault()` на native. Премахнат нефункционалния `profileAvatar` click handler.
+2. **profile.html** — Fix logout: `socialLogoutBtn` вече се показва и за не-Firebase (questionnaire) потребители когато `userData` или `userId` съществуват в localStorage (в `_updateUI(null)` клон).
+3. **questionnaire2.html** — Fix back button: При стъпка 0 `prevBtn` вече е видим с икона ✕ (Затвори) и при клик navigira към `index.html`. При стъпка >0 остава `fa-rotate-left` (Назад). Логиката е добавена в `prevStep()` и при render-а на стъпките.
+
+## 2026-05-26 — Минимален fix за avatar gallery upload в APK
+
+**Задача:** Avatar upload в `profile.html` да работи в APK чрез галерията, без camera/plugin логика и с минимум код.
+
+**Направено:**
+1. **profile.html** — Премахната е излишната Capacitor Camera/native gallery логика.
+2. **profile.html** — `avatarInput` вече е скрит (`display:none`) вместо прозрачен overlay върху аватара.
+3. **profile.html** — Добавен е минимален click trigger върху видимия `avatar-upload-wrapper`, който извиква стандартния `avatarInput.click()` и използва съществуващия `change` handler за upload/compress/save.
