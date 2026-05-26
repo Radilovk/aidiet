@@ -1,17 +1,5 @@
 # Log Tasks
 
-## 2026-05-26 — APK Profile: Logout бутон + аватар от галерия
-
-**Задача:** В APK липсва Logout бутон в Profile таба; избраната снимка от галерията не се зарежда като аватар.
-
-**Root causes:**
-1. **Logout бутон**: Бутонът беше поставен в дъното на страницата (след всички секции, преди nav bar). Потребителят не стига до него при скролване.
-2. **Аватар в APK**: `<input type="file">` вътре в iframe в Capacitor WebView (Android) не препраща резултата от file picker обратно към iframe — `change` event не се вдига.
-
-**Направено (2 минимални промени в profile.html):**
-1. Logout бутонът (`#socialLogoutBtn`) преместен от дъното на страницата в `profile-header` карта — до profile name/email, видимо при зареждане без скролване.
-2. В `setupProfile()`: добавен click listener на `#avatarUploadTrigger`. При Capacitor native (`window.Capacitor.isNativePlatform()`): извиква `Capacitor.Plugins.Camera.getPhoto({ source:'PHOTOS', resultType:'base64' })` и спира default поведението на `<label>`. При web/PWA: стандартният `<input type="file">` работи без промяна.
-
 ## 2026-05-26 — APK размер + haptic при табове: поправка
 
 **Задача:** APK размерът се е повишил драстично след последната задача; haptic при превключване на табовете не се усеща.
