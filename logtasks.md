@@ -1,5 +1,19 @@
 # Log Tasks
 
+## 2026-05-26 — Logout bug: nav bar и табове се виждат след logout
+
+**Задача:** При logout никога не трябва да се визуализира nav бар или табовете. Системата веднага трябва да се върне в начален index. Нито презареждане, нито нов старт не трябва да връща кеширана информация.
+
+**Причини (root causes):**
+1. **Визуален флаш**: NUTRIPLAN_LOGOUT handler в app.js навигираше, без да скрива SPA shell → nav бар и табове оставаха видими по време на навигацията.
+2. **Нов старт/рестарт**: `DOMContentLoaded` в index.html извикваше `NativeBackup.init()` (може да зареди стари данни от Capacitor Preferences), след което пренасочваше към SPA БЕЗ auth проверка — само по наличие на `dietPlan` в localStorage.
+3. **`shouldOpenShell()`**: Нямаше проверка дали потребителят е автентикиран — при наличие на `dietPlan` в cache отваряше SPA shell без да проверява auth.
+
+**Направено (минимална намеса — 3 промени):**
+1. **`app.js`** — NUTRIPLAN_LOGOUT handler: скрива `#spaShell` и премахва `spa-mode` от body ПРЕДИ navigate
+2. **`app.js`** — `shouldOpenShell()`: добавена проверка `userId.startsWith('fb_')` — ако няма автентикиран user, SPA shell не се активира
+3. **`index.html`** — DOMContentLoaded redirect check: добавена проверка `cachedUserId.startsWith('fb_')` преди redirect към `index.html?app=1&tab=plan`
+
 ## 2026-05-26 — AIX Chat: актуализиране на безплатни модели в OpenRouter
 
 **Задача:** `/api/aix/chat` връща 500 грешка; потребителите виждат "моделът не е наличен". Старите модели `meta-llama/llama-3.1-8b-instruct:free` и `mistralai/mistral-7b-instruct:free` са спрени/недостъпни в OpenRouter.

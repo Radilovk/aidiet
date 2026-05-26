@@ -493,6 +493,10 @@
             return;
         }
         if (data.type === 'NUTRIPLAN_LOGOUT') {
+            // Hide SPA shell immediately so nav bar / tabs are not visible during navigation
+            var shell = document.getElementById('spaShell');
+            if (shell) shell.hidden = true;
+            document.body.classList.remove('spa-mode');
             window.location.replace('index.html?stay=1');
             return;
         }
@@ -620,6 +624,8 @@
 
     function shouldOpenShell() {
         if (!params.has('app')) return false;
+        var uid = getStoredValue('userId') || '';
+        if (!uid.startsWith('fb_')) return false;
         if (getStoredValue('planSource') === 'questionnaire2' || getStoredValue('pendingClientId')) {
             window.location.replace('plan-pending.html');
             return false;
