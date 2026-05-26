@@ -1,5 +1,31 @@
 # Log Tasks
 
+## 2026-05-26 — Profile APK поправки: аватар, дизайн, haptic при табове
+
+**Задача:** Четири проблема в NutriPlan APK:
+1. Не може да се качи аватар на потребителя в Profile таба
+2. Profile табът изглежда празен и неестетичен спрямо другите табове
+3. Искан haptic при превключване между табовете
+4. Всички промени приложени за web, PWA, APK
+
+**Направени промени:**
+
+1. **`profile.html` — Аватар Upload (APK fix)**
+   - Заменен `div.click()` → `avatarInput.click()` (ненадеждно в embedded iframe) с нативен `<label for="avatarInput">` около аватара
+   - `input[type=file]` сменен от `display:none` на `position:absolute;opacity:0;inset:0` — покрива цялата аватар зона, работи с нативен user gesture
+   - Добавена камера-иконка badge (`avatar-edit-badge`) върху аватара за видим намек за upload
+   - Премахнат JS click listener (вече ненужен)
+
+2. **`profile.html` — Profile Design (липсващ gameAnalyticsSection)**
+   - Добавен HTML елемент `id="gameAnalyticsSection"` с `.game-analytics-section` структура между анализа и бутона "Изтегли плана"
+   - Функцията `loadGameAnalytics()` вече има DOM елемент за рендиране и се показва след зареждане
+   - Добавено извикване на `loadGameAnalytics()` в `setupProfile()` за начално зареждане
+
+3. **`app.js` — Haptic при превключване на табове**
+   - Добавена функция `triggerTabHaptic()` (Capacitor Haptics.impact с Light стил)
+   - Извиква се в `switchTab()` само когато се сменя таб (`previousTab !== tab`)
+   - Работи само в APK (Capacitor), няма ефект в web/PWA
+
 ## 2026-05-25 — APK game нотификации: коректен контекстен ден при клик
 
 **Задача:** Да се провери организацията на game нотификациите в APK и при клик да се отвори максимално бърз контекстен прозорец, като отговорът да се запише към правилните данни за анализ.
