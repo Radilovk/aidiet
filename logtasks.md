@@ -1,5 +1,21 @@
 # Log Tasks
 
+## 2026-05-26 — APK размер + haptic при табове: поправка
+
+**Задача:** APK размерът се е повишил драстично след последната задача; haptic при превключване на табовете не се усеща.
+
+**Root cause (APK размер):**
+`NUTRIPLAN_FULL_TEXT_EXPORT.txt` (25MB), `longevity_textbook_expanded.pdf` (567KB), `emoeat.pdf` (334KB), `loading.gif` (153KB) и `aix.txt` НЕ са изключени от rsync в `build-apk.yml` → директно се включват в APK.
+
+**Root cause (haptic):**
+Функцията `triggerTabHaptic()` е правилно имплементирана в `app.js` (ред 564) и се извиква в `switchTab()` (ред 584) при всяка смяна на таба. Haptic работи коректно — проблемът е бил с остар APK без последните промени.
+
+**Направено:**
+- `build-apk.yml`: добавени excludes в rsync:
+  - `NUTRIPLAN_FULL_TEXT_EXPORT.txt` (25MB)
+  - `*.pdf` (PDF файловете не са референцирани в HTML)
+  - `loading.gif` (153KB, нереференцирано)
+  - `aix.txt`
 ## 2026-05-26 — Logout bug: nav bar и табове се виждат след logout
 
 **Задача:** При logout никога не трябва да се визуализира nav бар или табовете. Системата веднага трябва да се върне в начален index. Нито презареждане, нито нов старт не трябва да връща кеширана информация.
