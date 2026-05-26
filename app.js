@@ -561,9 +561,23 @@
         scheduleDeferredFramePreload(initialTab);
     }
 
+    function triggerTabHaptic() {
+        try {
+            var cap = window.Capacitor;
+            if (!cap) return;
+            if (!cap.Plugins.Haptics && typeof cap.registerPlugin === 'function') {
+                cap.registerPlugin('Haptics', {});
+            }
+            if (cap.Plugins.Haptics) {
+                cap.Plugins.Haptics.impact({ style: 'Light' });
+            }
+        } catch (_) {}
+    }
+
     function switchTab(tab, updateUrl) {
         tab = normalizeTab(tab);
         var previousTab = state.activeTab;
+        if (previousTab !== tab) triggerTabHaptic();
         var previousFrame = previousTab ? document.querySelector('[data-tab-view="' + previousTab + '"]') : null;
         var activeFrame = ensureFrameLoaded(tab);
 

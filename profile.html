@@ -193,6 +193,33 @@
             margin-bottom: 30px;
         }
 
+        .profile-avatar-label {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .avatar-edit-badge {
+            position: absolute;
+            bottom: -2px;
+            right: -2px;
+            width: 26px;
+            height: 26px;
+            background: var(--primary-red);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.65rem;
+            border: 2px solid var(--bg-color);
+            z-index: 2;
+            pointer-events: none;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+
         .profile-avatar {
             width: 70px;
             height: 70px;
@@ -204,7 +231,6 @@
             color: white;
             font-size: 1.8rem;
             font-weight: bold;
-            margin-bottom: 10px;
             box-shadow: 0 8px 24px rgba(13, 148, 136, 0.3);
             position: relative;
             cursor: pointer;
@@ -1887,8 +1913,10 @@
             <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема"><i class="fas fa-moon" id="themeIcon"></i></button>
         </div>
         <div class="profile-header">
-            <div class="profile-avatar" id="profileAvatar" title="Качете аватар"></div>
-            <input type="file" id="avatarInput" accept="image/*" style="display: none;">
+            <label class="profile-avatar-label" for="avatarInput" title="Качете аватар">
+                <div class="profile-avatar" id="profileAvatar"></div>
+                <div class="avatar-edit-badge" aria-hidden="true"><i class="fas fa-camera"></i></div>
+                <input type="file" id="avatarInput" accept="image/*" style="position:absolute;opacity:0;inset:0;width:100%;height:100%;cursor:pointer;z-index:3;"></label>
             <div class="profile-name" id="profileName"></div>
             <div class="profile-email" id="profileEmail"></div>
             <div class="profile-build-version" data-app-version></div>
@@ -2192,6 +2220,23 @@
                         Виж пълен анализ
                     </button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Game Analytics Section -->
+        <div class="game-analytics-section" id="gameAnalyticsSection" style="display:none;">
+            <div class="game-analytics-header" onclick="toggleGameAnalytics()" role="button" tabindex="0" aria-expanded="false" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleGameAnalytics();}">
+                <div class="game-analytics-title">
+                    <i class="fas fa-brain"></i>
+                    <span>Текущ анализ</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <span id="gameAnalyticsBadge" class="game-analytics-badge"></span>
+                    <i class="fas fa-chevron-down game-analytics-chevron" id="gameAnalyticsChevron"></i>
+                </div>
+            </div>
+            <div class="game-analytics-body" id="gameAnalyticsBody">
+                <p style="color:var(--text-light);font-style:italic;font-size:0.85rem;">Зареждане…</p>
             </div>
         </div>
 
@@ -3411,6 +3456,7 @@
                 initializeTheme();
                 loadUserData();
                 loadAnalysis(); // REQUIREMENT 1: Load analysis
+                loadGameAnalytics();
                 if (window.NutriPlanDiagnostics) {
                     window.NutriPlanDiagnostics.ok('profile', 'setup-profile', 'Initial profile load complete');
                 }
@@ -3423,14 +3469,9 @@
                 });
                 
                 // Avatar upload functionality
-                const profileAvatar = document.getElementById('profileAvatar');
                 const avatarInput = document.getElementById('avatarInput');
                 
-                if (profileAvatar && avatarInput) {
-                    profileAvatar.addEventListener('click', function() {
-                        avatarInput.click();
-                    });
-                    
+                if (avatarInput) {
                     avatarInput.addEventListener('change', function(e) {
                         const file = e.target.files[0];
                         if (file && file.type.startsWith('image/')) {
