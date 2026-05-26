@@ -2811,8 +2811,7 @@
             const heroLoginBtn = document.getElementById('heroLoginBtn');
             const navLogoutBtn = document.getElementById('navLogoutBtn');
             const hasPlan = !!localStorage.getItem('dietPlan');
-            // Check for any authenticated user (Firebase or non-Firebase)
-            const isAuthenticated = !!(localStorage.getItem('userData') || localStorage.getItem('userId'));
+            const isAuthenticated = (localStorage.getItem('userId') || '').indexOf('fb_') === 0;
 
             if (hasPlan) {
                 const appTarget = getPlanTargetFromState();
@@ -2935,11 +2934,7 @@
             const heroLoginBtn  = document.getElementById('heroLoginBtn');
             const heroSection = document.querySelector('.hero');
 
-            // Check for any authenticated user (Firebase or non-Firebase)
-            const hasStoredSession = !!(localStorage.getItem('userData') || localStorage.getItem('userId'));
-            const isActuallyAuthenticated = authUser || hasStoredSession;
-
-            if (!isActuallyAuthenticated) {
+            if (!authUser) {
                 // Not authenticated — always show "Започни промяната"
                 if (startNowBtn) startNowBtn.style.display = 'flex';
                 if (heroCTABtn) {
