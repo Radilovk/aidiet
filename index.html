@@ -2878,8 +2878,11 @@
 
                 const restoredTarget = getPlanTargetFromState();
                 if (restoredTarget !== 'questionnaire2.html') {
-                    window.location.replace(restoredTarget);
-                    return;
+                    const cachedUserId = localStorage.getItem('userId') || '';
+                    if (cachedUserId.startsWith('fb_')) {
+                        window.location.replace(restoredTarget);
+                        return;
+                    }
                 }
             }
 
