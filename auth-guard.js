@@ -50,6 +50,15 @@ function _resolveGuardReady(user) {
     const cachedUserId = localStorage.getItem('userId') || '';
     const likelyAuthed = cachedUserId.startsWith('fb_');
 
+    /* When the user appears to be authenticated, immediately unblock pages that
+     * await NutriPlanAuthGuardReady so body opacity is restored without waiting
+     * for Firebase (which can take 2–10 s on APK cold start).
+     * onAuthStateChanged still runs in the background; if the token is no longer
+     * valid it will redirect to login. */
+    if (likelyAuthed) {
+        _resolveGuardReady(null);
+    }
+
     let ov = null;
     if (!likelyAuthed) {
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';

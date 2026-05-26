@@ -4530,7 +4530,11 @@
                 window.history.replaceState({}, '', window.location.pathname);
                 return;
             }
-            if (window.NutriPlanPlanAuthReady) {
+            // Skip Firebase auth wait when plan data is already cached locally.
+            // On APK, onAuthStateChanged can take 2-10 s on cold start — waiting
+            // for it leaves the page invisible (body{opacity:0}) all that time.
+            // Firebase still resolves in the background to validate the token.
+            if (window.NutriPlanPlanAuthReady && !localStorage.getItem('dietPlan')) {
                 try { await window.NutriPlanPlanAuthReady; } catch (_) {}
             }
             // On Capacitor APK: restore plan data from Android SharedPreferences into
