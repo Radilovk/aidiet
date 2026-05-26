@@ -1958,10 +1958,6 @@
                 <div id="socialLoginError" style="color:#ef4444;font-size:0.8rem;text-align:center;display:none;max-width:260px;"></div>
             </div>
 
-            <button class="social-logout-btn hidden" id="socialLogoutBtn" onclick="socialLogout()">
-                <i class="fas fa-sign-out-alt"></i> Изход от акаунта
-            </button>
-
             <a class="profile-android-btn" id="profileAndroidBtn" href="https://github.com/Radilovk/aidiet/releases/latest/download/NutriPlan.apk" download="NutriPlan.apk">
                 <i class="fab fa-android"></i>
                 <span>Свали за Android (.apk)</span>
@@ -3511,7 +3507,7 @@
                     avatarInput.addEventListener('change', function(e) {
                         const file = e.target.files && e.target.files[0];
                         if (!file) return;
-                        if (!file.type || file.type.startsWith('image/')) {
+                        if (file.type && file.type.startsWith('image/')) {
                             compressImage(file, saveAvatarDataUrl);
                         }
                         e.target.value = '';
@@ -4889,6 +4885,13 @@
         }, { passive: true });
     })();
     </script>
+
+    <!-- Logout button (shown when signed in via Firebase) -->
+    <div style="display:flex;justify-content:center;padding:12px 0 8px;">
+        <button class="social-logout-btn hidden" id="socialLogoutBtn" onclick="socialLogout()">
+            <i class="fas fa-sign-out-alt"></i> Изход от акаунта
+        </button>
+    </div>
 
     <!-- Chat Assistant Button -->
     <button class="fab-chat" onclick="if(!requestShellAction('NUTRIPLAN_OPEN_CHAT'))window.location.href='plan.html?chat=1'" aria-label="Отвори чат асистент">
