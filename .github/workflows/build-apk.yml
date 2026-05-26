@@ -99,10 +99,6 @@ jobs:
             --exclude 'ai_communication.txt' \
             --exclude 'aicom.txt' \
             --exclude 'dynaquest.txt' \
-            --exclude 'NUTRIPLAN_FULL_TEXT_EXPORT.txt' \
-            --exclude 'aix.txt' \
-            --exclude '*.pdf' \
-            --exclude 'loading.gif' \
             --exclude 'log1' \
             --exclude 'workererrors'
 
