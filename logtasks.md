@@ -1,5 +1,27 @@
 # Log Tasks
 
+## 2026-05-25 — AIX: поправка на модели + пълен UX/UI редизайн
+
+**Задача:**
+1. Поправка на грешки с AI модели — 404 (No endpoints) за `google/gemini-2.5-flash:free` и `qwen/qwen-2.5-72b-instruct:free`; 429 rate-limit за `meta-llama/llama-3.3-70b-instruct:free`.
+2. Пълен UX/UI редизайн на `aix.html` — модерен 2026 clean дизайн вместо "kitch GPT стил".
+
+**Направено:**
+- Заменени недостъпните/rate-limited модели с работещи свободни алтернативи:
+  - `google/gemini-2.5-flash:free` → `meta-llama/llama-3.1-8b-instruct:free` (бърз, надежден)
+  - `qwen/qwen-2.5-72b-instruct:free` → `mistralai/mistral-7b-instruct:free` (стабилен)
+  - `meta-llama/llama-3.3-70b-instruct:free` — запазен, но маркиран с amber dot (може да rate-limit)
+- Добавен smart error handling: 429 → ⏳ user-friendly съобщение; 404 → ⚠️ съобщение
+- Пълен CSS/HTML редизайн:
+  - Нова палитра: `#08080f` dark + indigo `#818cf8` + cyan `#22d3ee`
+  - SVG икони вместо emoji в header бутоните
+  - Премахнат model info card (излишен noise)
+  - Нов message layout: user bubble вдясно, AI с meta-ред (AI + модел) + чист bubble
+  - Underline model selector (не pill tabs с glowing dots)
+  - Без emoji decorations в action бутоните и chips
+  - Профил badge преработен като flex bar вместо блок карта
+  - Settings sheet: по-чист с `.s-` CSS namespace
+
 ## 2026-05-25 — APK game нотификации: коректен контекстен ден при клик
 
 **Задача:** Да се провери организацията на game нотификациите в APK и при клик да се отвори максимално бърз контекстен прозорец, като отговорът да се запише към правилните данни за анализ.
