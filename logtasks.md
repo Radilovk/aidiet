@@ -2489,22 +2489,3 @@ VAPID ключът е статична стойност — никога не с
 - Firebase logout flow е запазен и само е вързан към общата логика за видимост на бутона
 
 **Засегнат файл:** `profile.html`
-
----
-
-## Задача: Fix logout бутон и avatar в APK (2026-05-26)
-
-**Проблем:**
-- Logout бутонът не се виждаше в profile таба в APK
-- Избраната снимка от галерията не се зареждаше като аватар в APK
-
-**Причина (реална):**
-1. `socialLogoutBtn` беше поставен на ред ~4889 — ИЗВЪН `.container` скролируемото съдържание, под fixed `bottom-nav`. Никога не се вижда.
-2. `file.type === ""` на Android WebView (Capacitor) за файлове от галерията → условието `if (file.type && file.type.startsWith('image/'))` беше `false` → `compressImage` никога не се извикваше.
-
-**Направено (минимална намеса):**
-- Преместен `socialLogoutBtn` button директно след `#socialLoginSection` в profile header (~ред 1961) — вече е видим в скролируемото съдържание
-- Изтрит стария невидим `socialLogoutBtn` wrapper div от края на файла (беше на ~ред 4889-4894)
-- Условието за avatar file type: `if (file.type && ...)` → `if (!file.type || ...)` за да работи с Android gallery URIs без MIME тип
-
-**Засегнат файл:** `profile.html` (3 промени, само редактиране — без нов код)
