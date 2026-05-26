@@ -2782,7 +2782,6 @@
                     email.textContent = userData.email;
                 }
                 renderProfileAvatar(userData.name, userData.email, null);
-                setProfileLogoutVisibility(hasStoredProfileSession());
 
                 // Populate all form fields
                 populateFormFields();
@@ -3411,7 +3410,6 @@
             loadUserData();
             loadAnalysis();
             loadGameAnalytics();
-            setProfileLogoutVisibility(hasStoredProfileSession());
             if (window.NutriPlanDiagnostics) {
                 window.NutriPlanDiagnostics.ok('profile', 'refresh-from-shell-data', reason || 'shell-data-ready');
             }
@@ -3509,7 +3507,7 @@
                     avatarInput.addEventListener('change', function(e) {
                         const file = e.target.files && e.target.files[0];
                         if (!file) return;
-                        if (!file.type || file.type.startsWith('image/')) {
+                        if (file.type && file.type.startsWith('image/')) {
                             compressImage(file, saveAvatarDataUrl);
                         }
                         e.target.value = '';

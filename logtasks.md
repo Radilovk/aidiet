@@ -1,19 +1,5 @@
 # Log Tasks
 
-## 2026-05-26 — Web vs APK разминаване: logout бутон и avatar upload
-
-**Задача:** В APK липсва logout бутон и качването на avatar не работи като в web версията. Да се намери причината и да се оправи с минимална намеса.
-
-**Причини (root causes):**
-1. **Logout видимост в APK:** `socialLogoutBtn` се показваше предимно при initial load/auth callback, но при APK данните често идват асинхронно (restore/shell sync) и след това липсваше повторно опресняване на видимостта.
-2. **Avatar upload в APK:** При Android file picker `file.type` може да е празен за валидно изображение. Кодът изискваше `file.type.startsWith('image/')`, така че качването се пропускаше.
-
-**Направено (минимални промени):**
-- `profile.html`:
-  - Добавено `setProfileLogoutVisibility(hasStoredProfileSession())` след `loadUserData()` и при `refreshProfileFromShellData()` за стабилна видимост на logout бутона в APK/web.
-  - Променена проверката за avatar файл: `(!file.type || file.type.startsWith('image/'))`, за да приема Android изображения с празен MIME тип.
-  - Добавено предупреждение само при явно не-изображение.
-
 ## 2026-05-26 — APK размер + haptic при табове: поправка
 
 **Задача:** APK размерът се е повишил драстично след последната задача; haptic при превключване на табовете не се усеща.
