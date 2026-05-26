@@ -4611,11 +4611,9 @@
             // Check cache first
             const cached = apiCache.get(cacheKey);
             if (cached !== null) {
-                console.log(`[Cache HIT] ${cacheKey}`);
                 return cached;
             }
             
-            console.log(`[Cache MISS] ${cacheKey} - Fetching from server...`);
             
             // Fetch from server
             const response = await fetch(url, options);
@@ -4634,52 +4632,42 @@
         // Cache invalidation helpers - call these after data modifications
         function invalidateConfigCache() {
             apiCache.clear('admin:config');
-            console.log('[Cache] Invalidated config cache');
         }
 
         function invalidateBlacklistCache() {
             apiCache.clear('admin:blacklist');
-            console.log('[Cache] Invalidated blacklist cache');
         }
 
         function invalidateWhitelistCache() {
             apiCache.clear('admin:whitelist');
-            console.log('[Cache] Invalidated whitelist cache');
         }
 
         function invalidateMainlistCache() {
             apiCache.clear('admin:mainlist');
-            console.log('[Cache] Invalidated mainlist cache');
         }
 
         function invalidateReportsCache() {
             apiCache.clear('admin:reports');
-            console.log('[Cache] Invalidated reports cache');
         }
 
         function invalidateDefaultPromptsCache() {
             apiCache.clearPattern('admin:defaultPrompt:*');
-            console.log('[Cache] Invalidated all default prompts cache');
         }
 
         function invalidateAILogsCache() {
             apiCache.clearPattern('admin:aiLogs:*');
-            console.log('[Cache] Invalidated AI logs cache');
         }
 
         function invalidateValidationConfigCache() {
             apiCache.clear('admin:validationConfig');
-            console.log('[Cache] Invalidated validation config cache');
         }
 
         function invalidateMainlistStatusCache() {
             apiCache.clear('admin:mainlistStatus');
-            console.log('[Cache] Invalidated mainlist status cache');
         }
 
         function invalidateMainlistPresetsCache() {
             apiCache.clear('admin:mainlistPresets');
-            console.log('[Cache] Invalidated mainlist presets cache');
         }
 
         function invalidatePendingPlansCache() {
@@ -4688,7 +4676,6 @@
 
         function invalidateClientsDirectoryCache() {
             apiCache.clear('admin:clientsDirectory');
-            console.log('[Cache] Invalidated client directory cache');
         }
         // ============================================================================
         // END OF CACHE SYSTEM
@@ -7064,7 +7051,6 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                     }
                     
                     showSuccess('Шаблоните са запазени успешно! Клиентите ще получат актуализациите при следващо зареждане.');
-                    console.log('Templates cached in localStorage with version:', result.version);
                 } else {
                     throw new Error(result.error || 'Failed to save templates');
                 }

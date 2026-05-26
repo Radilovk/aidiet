@@ -2714,7 +2714,6 @@
                         if (userB64) {
                             localStorage.setItem('userData', await decompress(userB64));
                         }
-                        console.log('[PWA] Profile restored from cookies (layer 1)');
                         if (window.NutriPlanDiagnostics) {
                             window.NutriPlanDiagnostics.ok('index', 'restore-profile-cookies', 'layer-1');
                         }
@@ -2754,7 +2753,6 @@
                         } else if (data.planSource !== 'questionnaire2') {
                             localStorage.removeItem('pendingClientId');
                         }
-                        console.log('[PWA] Profile restored from backend (layer 2)');
                         if (window.NutriPlanDiagnostics) {
                             window.NutriPlanDiagnostics.ok('index', 'restore-profile-backend', 'layer-2');
                         }
@@ -3080,7 +3078,6 @@
 
                 navigator.serviceWorker.register('./sw.js')
                     .then(registration => {
-                        console.log('Service Worker registered:', registration);
 
                         // Check if push notifications are supported and request permission
                         if ('PushManager' in window && 'Notification' in window) {
@@ -3094,7 +3091,6 @@
                             } else if (compatWarning.show) {
                                 // Show compatibility warning to user
                                 setTimeout(() => {
-                                    console.log('[Notifications] Platform limitation:', compatWarning.message);
                                 }, 2000);
                             }
                         } else if (compatWarning.type === 'calendar') {
@@ -3147,7 +3143,6 @@
         // Constants
         const INSTALL_BANNER_DISMISS_DAYS = 7; // Number of days before showing banner again
         const MILLISECONDS_PER_DAY = 1000 * 60 * 60 * 24;
-        const PWA_DEBUG = false; // Set to true for debugging PWA installation issues
 
         // Console styling constants
         const CONSOLE_STYLES = {
@@ -3174,7 +3169,6 @@
                 const daysSinceDismissed = (Date.now() - parseInt(dismissedTime)) / MILLISECONDS_PER_DAY;
                 // Show again after configured number of days
                 if (daysSinceDismissed < INSTALL_BANNER_DISMISS_DAYS) {
-                    if (PWA_DEBUG) console.log('Install banner was recently dismissed');
                     return true;
                 }
             }
@@ -3243,7 +3237,6 @@
 
         // Capture the beforeinstallprompt event — not needed in native APK
         if (!isCapacitorNativeApp) window.addEventListener('beforeinstallprompt', (e) => {
-            if (PWA_DEBUG) console.log('beforeinstallprompt fired');
             e.preventDefault();
             deferredPrompt = e;
 
@@ -3258,13 +3251,10 @@
 
         // Show install banner
         function showInstallBanner() {
-            if (PWA_DEBUG) console.log('Showing install banner');
             const installBanner = document.getElementById('installBanner');
             if (installBanner) {
                 installBanner.classList.add('show');
-                if (PWA_DEBUG) console.log('Install banner displayed successfully');
             } else {
-                if (PWA_DEBUG) console.error('Install banner element not found');
             }
         }
 
@@ -3300,23 +3290,19 @@
 
         // Show platform-specific install guidance if beforeinstallprompt doesn't fire
         function showPlatformInstallGuidance() {
-            if (PWA_DEBUG) console.log('showPlatformInstallGuidance() called');
 
             // Don't show if already dismissed recently
             if (wasBannerRecentlyDismissed()) {
-                if (PWA_DEBUG) console.log('Banner was recently dismissed, not showing');
                 return;
             }
 
             // Don't show if already installed
             if (isInStandaloneMode()) {
-                if (PWA_DEBUG) console.log('App already installed (standalone mode), not showing banner');
                 return;
             }
 
             const installBanner = document.getElementById('installBanner');
             if (!installBanner) {
-                if (PWA_DEBUG) console.error('Install banner element not found!');
                 return;
             }
 
@@ -3325,20 +3311,6 @@
             const textEl = document.getElementById('installBannerText');
             const installBtn = document.getElementById('installBtn');
 
-            if (PWA_DEBUG) {
-                console.log('Platform detection:', {
-                    isMobile,
-                    isAndroid,
-                    isIOS,
-                    isChrome,
-                    isEdge,
-                    isSafari,
-                    isFirefox,
-                    isOpera,
-                    isSamsung,
-                    userAgent: navigator.userAgent
-                });
-            }
 
             // Update icon and browser badge
             updateBannerIcon();
@@ -3426,18 +3398,15 @@
         // Trigger install prompt (reusable function)
         async function triggerInstallPrompt() {
             if (!deferredPrompt) {
-                if (PWA_DEBUG) console.log('No deferred prompt available');
                 return false;
             }
 
             try {
                 // Show the install prompt
-                if (PWA_DEBUG) console.log('Triggering install prompt');
                 deferredPrompt.prompt();
 
                 // Wait for the user to respond to the prompt
                 const { outcome } = await deferredPrompt.userChoice;
-                if (PWA_DEBUG) console.log(`User response to the install prompt: ${outcome}`);
 
                 // Hide the banner
                 hideInstallBanner();
@@ -3447,7 +3416,6 @@
 
                 return outcome === 'accepted';
             } catch (error) {
-                if (PWA_DEBUG) console.error('Error triggering install prompt:', error);
                 return false;
             }
         }
@@ -3487,7 +3455,6 @@
 
         // Listen for app installed event
         window.addEventListener('appinstalled', () => {
-            if (PWA_DEBUG) console.log('PWA was installed');
             hideInstallBanner();
             deferredPrompt = null;
         });
@@ -3507,7 +3474,6 @@
                         shareIconImg.src = getShareIconSvg();
                     }
                     iosBanner.style.display = 'block';
-                    if (PWA_DEBUG) console.log('iOS install banner shown');
                 }
             }
         }
@@ -3519,7 +3485,6 @@
             if (iosBanner) {
                 iosBanner.style.display = 'none';
             }
-            if (PWA_DEBUG) console.log('iOS install banner dismissed');
         }
 
         // Initialize iOS banner after a delay — not in native APK
@@ -3549,7 +3514,6 @@
                         // Update banner for manual installation (will be updated if beforeinstallprompt fires)
                         updateInstallBannerForManual();
                         showInstallBanner();
-                        if (PWA_DEBUG) console.log('Showing install banner on Android for all browsers');
                     }
                 }, 2000); // Show after 2 seconds to allow beforeinstallprompt to fire first
             }
@@ -3557,10 +3521,6 @@
             setTimeout(() => {
                 // Only log for debugging - don't show manual instructions
                 if (!deferredPrompt && !isInStandaloneMode()) {
-                    if (PWA_DEBUG) {
-                        console.log('beforeinstallprompt has not fired after 2 seconds');
-                        console.log('Install button available with manual instructions');
-                    }
                 }
             }, 2000);
 
@@ -3574,7 +3534,6 @@
                 const markInteraction = () => {
                     if (!hasInteracted) {
                         hasInteracted = true;
-                        if (PWA_DEBUG) console.log('User interaction detected, starting engagement timer');
                     }
                 };
 
@@ -3586,111 +3545,20 @@
                 setTimeout(() => {
                     if (hasInteracted && !deferredPrompt && !isInStandaloneMode()) {
                         const elapsedTime = Math.floor((Date.now() - engagementStartTime) / 1000);
-                        if (PWA_DEBUG) {
-                            console.log(`%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`, 'color: #3b82f6');
-                            console.log('%c🔄 Re-checking PWA Installability', 'color: #3b82f6; font-weight: bold');
-                            console.log(`%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`, 'color: #3b82f6');
-                            console.log(`User has been engaged for ${elapsedTime} seconds`);
-                            console.log(`beforeinstallprompt still has not fired`);
-                            console.log('Install button available with manual instructions fallback');
-                            console.log(`%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`, 'color: #3b82f6');
-                        }
                     }
                 }, 32000); // Check after 32 seconds (30s requirement + 2s buffer)
             }
         });
 
-        // Debug: Check PWA installability after page load
-        if (PWA_DEBUG) {
-            window.addEventListener('load', () => {
-                setTimeout(() => {
-                    // Detect device type
-                    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-                    const isAndroid = /Android/i.test(navigator.userAgent);
-                    const isChrome = /Chrome/i.test(navigator.userAgent) && !/Edg/i.test(navigator.userAgent);
-                    const isEdge = /Edg/i.test(navigator.userAgent);
-
-                    if (!deferredPrompt) {
-                        console.log('PWA Debug: beforeinstallprompt has not fired yet');
-                        console.log('PWA Debug: Checking installability criteria:');
-                        console.log('- Service Worker:', 'serviceWorker' in navigator ? 'Supported' : 'Not supported');
-                        console.log('- HTTPS:', location.protocol === 'https:' ? 'Yes' : 'No');
-                        console.log('- Manifest link:', document.querySelector('link[rel="manifest"]') ? 'Found' : 'Missing');
-                        console.log('- Platform:', isMobile ? 'Mobile' : 'Desktop');
-                        console.log('- Browser:', isChrome ? 'Chrome' : (isEdge ? 'Edge' : 'Other'));
-
-                        // Check if already installed
-                        if (isInStandaloneMode()) {
-                            console.log('- Already installed: Yes (running as standalone app)');
-                        } else {
-                            console.log('- Already installed: No');
-
-                            // Different explanations for desktop vs mobile
-                            if (!isMobile && (isChrome || isEdge)) {
-                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', CONSOLE_STYLES.SEPARATOR);
-                                console.log('%c✓ PWA IS INSTALLABLE!', CONSOLE_STYLES.SUCCESS);
-                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', CONSOLE_STYLES.SEPARATOR);
-                                console.log('%cINFO: On Desktop Chrome/Edge, the beforeinstallprompt event often does NOT fire.', CONSOLE_STYLES.INFO);
-                                console.log('%cInstead, Chrome shows an INSTALL ICON in the address bar (omnibox).', CONSOLE_STYLES.INFO);
-                                console.log('');
-                                console.log('%cTo install this app:', 'font-weight: bold');
-                                console.log('  1. Look for the install icon (⊕ or ⬇) in the address bar on the right side');
-                                console.log('  2. Click the icon to install the app');
-                                console.log('  3. Or open Chrome menu (⋮) → "Install NutriPlan..."');
-                                console.log('');
-                                console.log('%cFor automatic install prompts, test on Android Chrome/Edge.', 'color: #f59e0b');
-                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', CONSOLE_STYLES.SEPARATOR);
-                            } else if (isAndroid && (isChrome || isEdge)) {
-                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', CONSOLE_STYLES.SEPARATOR_WARNING);
-                                console.log('%c⚠ PWA Install Banner Fallback Activated', CONSOLE_STYLES.WARNING);
-                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', CONSOLE_STYLES.SEPARATOR_WARNING);
-                                console.log('%cINFO: beforeinstallprompt event has not fired on Android.', CONSOLE_STYLES.INFO);
-                                console.log('%cShowing fallback install instructions banner.', CONSOLE_STYLES.INFO);
-                                console.log('');
-                                console.log('Possible reasons why beforeinstallprompt did not fire:');
-                                console.log('  1. User engagement criteria not met (needs 30+ seconds + interaction)');
-                                console.log('  2. Manifest.json not valid or not accessible');
-                                console.log('  3. Icons not loading properly');
-                                console.log('  4. Service worker not registered successfully');
-                                console.log('  5. PWA already installed');
-                                console.log('  6. Browser version too old');
-                                console.log('');
-                                console.log('%cTo install manually:', 'font-weight: bold');
-                                console.log('  1. Open browser menu (⋮) in top right corner');
-                                console.log('  2. Look for "Install app" or "Add to Home screen"');
-                                console.log('  3. Confirm installation');
-                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', CONSOLE_STYLES.SEPARATOR_WARNING);
-                            } else if (isMobile) {
-                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', CONSOLE_STYLES.SEPARATOR_INFO);
-                                console.log('%cℹ Mobile Browser Detected', CONSOLE_STYLES.INFO);
-                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', CONSOLE_STYLES.SEPARATOR_INFO);
-                                console.log('Showing generic mobile install guidance.');
-                                console.log('- Note: beforeinstallprompt is only supported on Chrome/Edge');
-                                console.log('- For other browsers, users can install manually via browser menu');
-                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', CONSOLE_STYLES.SEPARATOR_INFO);
-                            } else {
-                                console.log('- Note: beforeinstallprompt is only supported on Chrome/Edge (mainly Android)');
-                                console.log('- For other browsers, users can install manually via browser menu');
-                            }
-                        }
-                    } else {
-                        console.log('%c✅ PWA Debug: beforeinstallprompt fired successfully!', CONSOLE_STYLES.SUCCESS);
-                        console.log('PWA is ready for installation with custom install prompt.');
-                    }
-                }, 3000);
-            });
-        }
 
         // Check if notification button should be shown
         function checkNotificationPermission() {
             if (!('Notification' in window)) {
-                console.log('This browser does not support notifications');
                 return;
             }
 
             // On iOS, notifications only work in standalone mode
             if (isIOS && !isInStandaloneMode()) {
-                console.log('iOS notifications require standalone mode. App must be installed first.');
                 // Hide notification section on iOS if not in standalone mode
                 const notificationSection = document.getElementById('notificationSection');
                 if (notificationSection) {
@@ -3700,7 +3568,6 @@
             }
 
             const permission = Notification.permission;
-            console.log('Notification permission:', permission);
 
             const notificationSection = document.getElementById('notificationSection');
             const enableBtn = document.getElementById('enableNotificationsBtn');
@@ -3761,15 +3628,12 @@
             }
 
             const permission = await Notification.requestPermission();
-            console.log('Notification permission result:', permission);
 
             if (permission === 'granted') {
-                console.log('Notification permission granted');
                 // Subscribe to push notifications
                 await subscribeToPushNotifications();
                 return true;
             } else {
-                console.log('Notification permission denied');
                 return false;
             }
         }
@@ -3788,7 +3652,6 @@
 
             // Check standalone mode for iOS
             if (isIOS && !isInStandaloneMode()) {
-                console.log('iOS requires standalone mode for notifications');
                 return false;
             }
 
