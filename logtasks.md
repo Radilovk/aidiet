@@ -1,5 +1,17 @@
 # Log Tasks
 
+## 2026-05-26 — AIX Chat: актуализиране на безплатни модели в OpenRouter
+
+**Задача:** `/api/aix/chat` връща 500 грешка; потребителите виждат "моделът не е наличен". Старите модели `meta-llama/llama-3.1-8b-instruct:free` и `mistralai/mistral-7b-instruct:free` са спрени/недостъпни в OpenRouter.
+
+**Направено:**
+- `aix.html`: заменени остарелите модели с актуални безплатни (май 2026):
+  - `meta-llama/llama-3.1-8b-instruct:free` → `google/gemma-4-31b-it:free` (Gemma 4 31B)
+  - `mistralai/mistral-7b-instruct:free` → `deepseek/deepseek-v4-flash:free` (DeepSeek V4 Flash)
+  - `meta-llama/llama-3.3-70b-instruct:free` запазен (Llama 3.3 70B) — индикаторът му е сменен от warn → ok
+- `aix.html`: default state модел обновен на `google/gemma-4-31b-it:free`
+- `worker.js`: fallback модел сменен от `google/gemini-2.5-flash:free` → `google/gemma-4-31b-it:free`
+
 ## 2026-05-26 — Profile APK поправки: аватар, дизайн, haptic при табове
 
 **Задача:** Четири проблема в NutriPlan APK:

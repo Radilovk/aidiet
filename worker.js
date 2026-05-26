@@ -13147,7 +13147,7 @@ async function handleAIXChat(request, env) {
       'X-Title': 'AIX'
     },
     body: JSON.stringify({
-      model: model || 'google/gemini-2.5-flash:free',
+      model: model || 'google/gemma-4-31b-it:free',
       messages: apiMessages,
       max_tokens: 2048,
       stream: stream === true
