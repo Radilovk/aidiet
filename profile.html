@@ -3472,39 +3472,31 @@
                             compressImage(file, saveAvatarDataUrl);
                         }
                     });
-                }
-
-                // On native APK, also allow Camera plugin as fallback for WebView file input issues
-                if (profileAvatar) {
-                    profileAvatar.addEventListener('click', function(e) {
+                    // On native APK, intercept the file input click and use Camera plugin
+                    // (avatarInput sits on top via z-index:2, so profileAvatar click never fires)
+                    avatarInput.addEventListener('click', function(e) {
                         var cap = window.Capacitor;
                         if (cap && cap.isNativePlatform && cap.isNativePlatform()) {
                             e.preventDefault();
-                            e.stopPropagation();
-                            if (!cap.Plugins.Camera && typeof cap.registerPlugin === 'function') {
-                                cap.registerPlugin('Camera', {});
-                            }
-                            if (cap.Plugins.Camera) {
-                                cap.Plugins.Camera.getPhoto({
+                            var Camera = cap.Plugins && cap.Plugins.Camera;
+                            if (Camera) {
+                                Camera.getPhoto({
                                     quality: 85,
                                     allowEditing: false,
                                     resultType: 'base64',
                                     source: 'photos'
                                 }).then(function(photo) {
                                     if (photo && photo.base64String) {
-                                        var dataUrl = 'data:image/jpeg;base64,' + photo.base64String;
-                                        saveAvatarDataUrl(dataUrl);
+                                        saveAvatarDataUrl('data:image/jpeg;base64,' + photo.base64String);
                                     }
                                 }).catch(function(err) {
                                     if (err && err.message && !/cancel/i.test(err.message)) {
                                         showAlert('Грешка при избор на снимка.', 'error');
                                     }
                                 });
-                            } else if (avatarInput) {
-                                avatarInput.click();
                             }
                         }
-                        // Web/PWA: native file input overlay handles the click
+                        // Web/PWA: let the browser open the native file picker normally
                     });
                 }
             }
@@ -4954,7 +4946,13 @@
                     if (avatar) renderProfileAvatar(qData?.name || user.displayName, qData?.email || user.email, user);
                 } else {
                     section?.classList.remove('hidden');
-                    logoutBtn?.classList.add('hidden');
+                    // Show logout for any authenticated session (questionnaire or social)
+                    const hasSession = !!(localStorage.getItem('userData') || localStorage.getItem('userId'));
+                    if (hasSession) {
+                        logoutBtn?.classList.remove('hidden');
+                    } else {
+                        logoutBtn?.classList.add('hidden');
+                    }
                 }
             }
 
