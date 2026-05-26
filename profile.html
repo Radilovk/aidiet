@@ -166,6 +166,9 @@
         .theme-toggle-btn:active {
             transform: scale(0.95);
         }
+        .profile-header .theme-toggle-btn {
+            margin: 14px auto 0;
+        }
 
         h1 {
             font-size: 1rem;
@@ -1907,9 +1910,6 @@
 
     <!-- Main Content -->
     <div class="container">
-        <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
-            <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема"><i class="fas fa-moon" id="themeIcon"></i></button>
-        </div>
         <div class="profile-header">
             <label class="avatar-upload-wrapper" id="avatarUploadTrigger" for="avatarInput" style="display:inline-block;position:relative;margin-bottom:10px;cursor:pointer;">
                 <div class="profile-avatar" id="profileAvatar" title="Качете аватар"></div>
@@ -1921,6 +1921,7 @@
             <div class="profile-name" id="profileName"></div>
             <div class="profile-email" id="profileEmail"></div>
             <div class="profile-build-version" data-app-version></div>
+            <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема"><i class="fas fa-moon" id="themeIcon"></i></button>
             <script>
             /* Instantly populate profile header from localStorage before DOMContentLoaded,
              * so there is never a flash of placeholder "Име"/"email@example.com". */
@@ -3504,6 +3505,28 @@
                 }
 
                 if (avatarInput) {
+                    avatarInput.addEventListener('click', async function(e) {
+                        const isNativeApp = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
+                        if (!isNativeApp) return;
+                        const camera = window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins.Camera : null;
+                        if (!camera || typeof camera.getPhoto !== 'function') return;
+                        e.preventDefault();
+                        try {
+                            const photo = await camera.getPhoto({
+                                quality: 85,
+                                allowEditing: false,
+                                source: 'PHOTOS',
+                                resultType: 'dataUrl'
+                            });
+                            const photoDataUrl = photo && (photo.dataUrl || (photo.base64String ? ('data:image/' + (photo.format || 'jpeg') + ';base64,' + photo.base64String) : ''));
+                            if (photoDataUrl) saveAvatarDataUrl(photoDataUrl);
+                        } catch (err) {
+                            const msg = (err && (err.message || err)) ? String(err.message || err).toLowerCase() : '';
+                            if (!msg.includes('cancel')) {
+                                showAlert('Неуспешно избиране на снимка.', 'error');
+                            }
+                        }
+                    });
                     avatarInput.addEventListener('change', function(e) {
                         const file = e.target.files && e.target.files[0];
                         if (!file) return;
