@@ -1,5 +1,13 @@
 # Log Tasks
 
+## 2026-05-27 — pep.html: зареждане на PEP базата и извън workers.dev
+
+**Задача:** `pep.html` да зарежда реалния PEP backend/DB и когато е отворен локално или от статичен хост, а не да остава само на локалния fallback.
+
+**Направено:**
+- `pep.html`: API базата вече сочи към deployed worker URL извън `workers.dev`, така че bootstrap-ът може да зареди бекенд данните и в локален/static контекст.
+- `pep.html`: fallback към localStorage остава активен, ако backend заявката не успее.
+
 ## 2026-05-27 — pep.html: тих локален fallback без backend заявка
 
 **Задача:** Да се спре шумната backend заявка в `pep.html`, когато страницата е отворена в локален/static контекст без достъпен PEP backend.
