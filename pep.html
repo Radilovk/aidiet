@@ -986,7 +986,6 @@
             normalizeBackendPayload(payload);
             hideBanner();
         } catch (error) {
-            console.warn('PEP backend unavailable, switching to local fallback:', error.message);
             loadLocalState();
             state.storageMode = 'local-fallback';
             state.backendEngine = '';
