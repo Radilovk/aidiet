@@ -212,6 +212,7 @@ const ERROR_MESSAGES = {
   PARSE_FAILURE: 'Имаше проблем с обработката на отговора. Моля опитайте отново.',
   MISSING_FIELDS: 'Липсват задължителни полета',
   KV_NOT_CONFIGURED: 'KV хранилището не е конфигурирано',
+  PEP_STORAGE_NOT_CONFIGURED: 'PEP бекендът не е конфигуриран',
   INVALID_PROVIDER: 'Невалиден AI доставчик',
   MISSING_CONTEXT: 'Липсват потребителски данни или план',
   MISSING_MESSAGE: 'Липсва съобщение',
@@ -229,6 +230,40 @@ const ERROR_MESSAGES = {
   PUSH_SEND_FAILED: 'Неуспешно изпращане на известие',
   VAPID_KEY_FAILED: 'Неуспешно получаване на VAPID ключ'
 };
+
+const PEP_DEFAULT_PRODUCTS = [
+  { baseName: 'CJC-1295 + IPA', dosage: '5 mg', purchasePrice: 8.50 },
+  { baseName: 'IGF-1LR3', dosage: '1 mg', purchasePrice: 17.50 },
+  { baseName: 'IGF-DES', dosage: '1 mg', purchasePrice: 5.00 },
+  { baseName: 'Glow (CU+TB+BC+KPV)', dosage: 'комбо', purchasePrice: 23.00 },
+  { baseName: 'Tesamorelin', dosage: '10 mg', purchasePrice: 18.00 },
+  { baseName: 'SLU-PP-322', dosage: '5 mg', purchasePrice: 12.00 },
+  { baseName: 'LC216', dosage: 'комбо', purchasePrice: 7.50 },
+  { baseName: 'LC120', dosage: 'комбо', purchasePrice: 7.50 },
+  { baseName: 'Retatrutide', dosage: '5 mg', purchasePrice: 15.34 },
+  { baseName: 'Retatrutide', dosage: '10 mg', purchasePrice: 25.56 },
+  { baseName: 'Mots-C', dosage: '10 mg', purchasePrice: 12.78 },
+  { baseName: 'Ipamorelin + CJC', dosage: '5+5 mg', purchasePrice: 8.50 },
+  { baseName: 'Тирзепатид', dosage: '5 mg', purchasePrice: 12.78 },
+  { baseName: 'Тирзепатид', dosage: '10 mg', purchasePrice: 20.45 },
+  { baseName: 'Тирзепатид', dosage: '30 mg', purchasePrice: 51.13 },
+  { baseName: 'Глутатион', dosage: '1500 mg', purchasePrice: 6.50 },
+  { baseName: 'Тимозин Алфа', dosage: '5 mg', purchasePrice: 15.34 },
+  { baseName: 'Тимозин Алфа', dosage: '10 mg', purchasePrice: 25.56 },
+  { baseName: 'Глутатион', dosage: '600 mg', purchasePrice: 3.886 },
+  { baseName: 'NAD+', dosage: '500 mg', purchasePrice: 25.56 },
+  { baseName: 'GHK-Cu', dosage: '100 mg', purchasePrice: 12.78 },
+  { baseName: 'Меланотан 2', dosage: '10 mg', purchasePrice: 15.34 }
+];
+
+const PEP_DEFAULT_SALES = [
+  { prodBase: 'Retatrutide', dosage: '5 mg', qty: 45, mult: 2, comment: 'Групова клиентска поръчка', date: '2025-05-10' },
+  { prodBase: 'Glow (CU+TB+BC+KPV)', dosage: 'комбо', qty: 20, mult: 2, comment: 'Промо пакет за лоялен клиент', date: '2025-05-12' },
+  { prodBase: 'Ipamorelin + CJC', dosage: '5+5 mg', qty: 9, mult: 2, comment: 'Стандартна препоръка', date: '2025-05-14' },
+  { prodBase: 'Retatrutide', dosage: '5 mg', qty: 2, mult: 2.5, comment: 'Малка поръчка на дребно', date: '2025-05-15' },
+  { prodBase: 'Глутатион', dosage: '600 mg', qty: 10, mult: 2, comment: 'Поръчка над 10 броя', date: '2025-05-16' },
+  { prodBase: 'NAD+', dosage: '500 mg', qty: 3, mult: 1, comment: 'Лична употреба', date: '2025-05-17' }
+];
 
 // Day name translations for weekly scheme display
 const DAY_NAMES_BG = {
@@ -1741,6 +1776,456 @@ async function kvPutJSON(env, key, data, ttl = AI_LOG_KV_TTL) {
   } catch (error) {
     console.error(`[KV] Failed to set key ${key}:`, error);
     return false;
+  }
+}
+
+const PEP_PRODUCTS_KEY = 'pep:products';
+const PEP_SALES_KEY = 'pep:sales';
+const PEP_UPDATED_AT_KEY = 'pep:updated-at';
+let pepD1Initialized = false;
+
+function getPepStorageType(env) {
+  if (env?.PEP_DB && typeof env.PEP_DB.prepare === 'function') {
+    return 'd1';
+  }
+  if (env?.page_content) {
+    return 'kv';
+  }
+  return '';
+}
+
+function pepNowISO() {
+  return new Date().toISOString();
+}
+
+function formatPepProductName(baseName, dosage) {
+  return `${String(baseName || '').trim()} ${String(dosage || '').trim()}`.trim();
+}
+
+function normalizePepProductRow(row) {
+  return {
+    id: Number(row.id),
+    baseName: String(row.baseName ?? row.base_name ?? '').trim(),
+    dosage: String(row.dosage ?? '').trim(),
+    purchasePrice: Number(row.purchasePrice ?? row.purchase_price ?? 0)
+  };
+}
+
+function normalizePepSaleRow(row) {
+  return {
+    id: Number(row.id),
+    productId: Number(row.productId ?? row.product_id),
+    productName: String(row.productName ?? row.product_name ?? '').trim(),
+    quantity: Number(row.quantity ?? 0),
+    multiplier: Number(row.multiplier ?? 0),
+    comment: String(row.comment ?? ''),
+    date: String(row.date ?? row.sale_date ?? ''),
+    revenue: Number(row.revenue ?? 0),
+    cost: Number(row.cost ?? 0)
+  };
+}
+
+function buildPepSaleRecord(product, data, forcedId = null) {
+  const quantity = Number.parseInt(data.quantity, 10);
+  const multiplier = Number(data.multiplier);
+  if (!product || !Number.isInteger(quantity) || quantity < 1 || !Number.isFinite(multiplier) || multiplier <= 0) {
+    throw new Error('Невалидни данни за продажбата');
+  }
+
+  const unitPrice = Number(product.purchasePrice);
+  const cost = Number((unitPrice * quantity).toFixed(2));
+  const revenue = multiplier === 1 ? 0 : Number((unitPrice * multiplier * quantity).toFixed(2));
+
+  return {
+    ...(forcedId == null ? {} : { id: Number(forcedId) }),
+    productId: Number(product.id),
+    productName: formatPepProductName(product.baseName, product.dosage),
+    quantity,
+    multiplier,
+    comment: String(data.comment || '').trim(),
+    date: String(data.date || '').slice(0, 10) || new Date().toISOString().slice(0, 10),
+    revenue,
+    cost
+  };
+}
+
+async function ensurePepD1Schema(env) {
+  if (pepD1Initialized || getPepStorageType(env) !== 'd1') {
+    return;
+  }
+
+  await env.PEP_DB.exec(`
+    CREATE TABLE IF NOT EXISTS pep_products (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      base_name TEXT NOT NULL,
+      dosage TEXT NOT NULL,
+      purchase_price REAL NOT NULL,
+      created_at TEXT NOT NULL,
+      UNIQUE(base_name, dosage)
+    );
+    CREATE TABLE IF NOT EXISTS pep_sales (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      product_id INTEGER NOT NULL,
+      product_name TEXT NOT NULL,
+      quantity INTEGER NOT NULL,
+      multiplier REAL NOT NULL,
+      comment TEXT NOT NULL DEFAULT '',
+      sale_date TEXT NOT NULL,
+      revenue REAL NOT NULL,
+      cost REAL NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY(product_id) REFERENCES pep_products(id) ON DELETE CASCADE
+    );
+    CREATE TABLE IF NOT EXISTS pep_meta (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
+  `);
+
+  pepD1Initialized = true;
+}
+
+async function pepD1SetUpdatedAt(env, updatedAt = pepNowISO()) {
+  await ensurePepD1Schema(env);
+  await env.PEP_DB.prepare(`
+    INSERT INTO pep_meta (key, value) VALUES ('updated_at', ?)
+    ON CONFLICT(key) DO UPDATE SET value = excluded.value
+  `).bind(updatedAt).run();
+  return updatedAt;
+}
+
+async function pepD1GetUpdatedAt(env) {
+  await ensurePepD1Schema(env);
+  const row = await env.PEP_DB.prepare(`SELECT value FROM pep_meta WHERE key = 'updated_at'`).first();
+  return row?.value || null;
+}
+
+async function pepD1ListProducts(env) {
+  await ensurePepD1Schema(env);
+  const result = await env.PEP_DB.prepare(`
+    SELECT id, base_name AS baseName, dosage, purchase_price AS purchasePrice
+    FROM pep_products
+    ORDER BY LOWER(base_name), LOWER(dosage), id
+  `).all();
+  return (result.results || []).map(normalizePepProductRow);
+}
+
+async function pepD1ListSales(env) {
+  await ensurePepD1Schema(env);
+  const result = await env.PEP_DB.prepare(`
+    SELECT id, product_id AS productId, product_name AS productName, quantity, multiplier,
+           comment, sale_date AS date, revenue, cost
+    FROM pep_sales
+    ORDER BY sale_date DESC, id DESC
+  `).all();
+  return (result.results || []).map(normalizePepSaleRow);
+}
+
+async function pepD1InsertProduct(env, product) {
+  await ensurePepD1Schema(env);
+  const normalized = normalizePepProductRow(product);
+  const createdAt = pepNowISO();
+  const inserted = await env.PEP_DB.prepare(`
+    INSERT INTO pep_products (base_name, dosage, purchase_price, created_at)
+    VALUES (?, ?, ?, ?)
+  `).bind(normalized.baseName, normalized.dosage, normalized.purchasePrice, createdAt).run();
+
+  return {
+    id: Number(inserted.meta?.last_row_id),
+    baseName: normalized.baseName,
+    dosage: normalized.dosage,
+    purchasePrice: normalized.purchasePrice
+  };
+}
+
+async function pepD1InsertSale(env, saleInput) {
+  await ensurePepD1Schema(env);
+  const productRow = await env.PEP_DB.prepare(`
+    SELECT id, base_name AS baseName, dosage, purchase_price AS purchasePrice
+    FROM pep_products
+    WHERE id = ?
+  `).bind(Number(saleInput.productId)).first();
+
+  if (!productRow) {
+    throw new Error('Продуктът не е намерен');
+  }
+
+  const product = normalizePepProductRow(productRow);
+  const sale = buildPepSaleRecord(product, saleInput);
+  const createdAt = pepNowISO();
+  const inserted = await env.PEP_DB.prepare(`
+    INSERT INTO pep_sales (
+      product_id, product_name, quantity, multiplier, comment, sale_date, revenue, cost, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    sale.productId,
+    sale.productName,
+    sale.quantity,
+    sale.multiplier,
+    sale.comment,
+    sale.date,
+    sale.revenue,
+    sale.cost,
+    createdAt
+  ).run();
+
+  return { ...sale, id: Number(inserted.meta?.last_row_id) };
+}
+
+async function pepD1Seed(env) {
+  await ensurePepD1Schema(env);
+  let didSeed = false;
+  const productCountRow = await env.PEP_DB.prepare(`SELECT COUNT(*) AS count FROM pep_products`).first();
+  if (Number(productCountRow?.count || 0) === 0) {
+    for (const product of PEP_DEFAULT_PRODUCTS) {
+      await pepD1InsertProduct(env, product);
+    }
+    didSeed = true;
+  }
+
+  const salesCountRow = await env.PEP_DB.prepare(`SELECT COUNT(*) AS count FROM pep_sales`).first();
+  if (Number(salesCountRow?.count || 0) === 0) {
+    const products = await pepD1ListProducts(env);
+    for (const demoSale of PEP_DEFAULT_SALES) {
+      const product = products.find((entry) => entry.baseName === demoSale.prodBase && entry.dosage === demoSale.dosage);
+      if (product) {
+        await pepD1InsertSale(env, {
+          productId: product.id,
+          quantity: demoSale.qty,
+          multiplier: demoSale.mult,
+          comment: demoSale.comment,
+          date: demoSale.date
+        });
+      }
+    }
+    didSeed = true;
+  }
+
+  const existingUpdatedAt = await pepD1GetUpdatedAt(env);
+  if (didSeed || !existingUpdatedAt) {
+    return pepD1SetUpdatedAt(env, pepNowISO());
+  }
+  return existingUpdatedAt;
+}
+
+async function pepD1Bootstrap(env) {
+  const updatedAt = await pepD1Seed(env);
+  return {
+    products: await pepD1ListProducts(env),
+    sales: await pepD1ListSales(env),
+    updatedAt: updatedAt || await pepD1GetUpdatedAt(env) || pepNowISO(),
+    storage: 'd1'
+  };
+}
+
+function buildPepDefaultKVProducts() {
+  return PEP_DEFAULT_PRODUCTS.map((product, index) => ({
+    id: index + 1,
+    baseName: product.baseName,
+    dosage: product.dosage,
+    purchasePrice: Number(product.purchasePrice)
+  }));
+}
+
+function buildPepDefaultKVSales(products) {
+  let saleId = 1000;
+  return PEP_DEFAULT_SALES.map((sale) => {
+    const product = products.find((entry) => entry.baseName === sale.prodBase && entry.dosage === sale.dosage);
+    return product ? buildPepSaleRecord(product, {
+      quantity: sale.qty,
+      multiplier: sale.mult,
+      comment: sale.comment,
+      date: sale.date
+    }, saleId++) : null;
+  }).filter(Boolean);
+}
+
+async function pepKVWriteAll(env, products, sales, updatedAt = pepNowISO()) {
+  await kvPutJSON(env, PEP_PRODUCTS_KEY, products, null);
+  await kvPutJSON(env, PEP_SALES_KEY, sales, null);
+  await kvPutJSON(env, PEP_UPDATED_AT_KEY, { updatedAt }, null);
+  return updatedAt;
+}
+
+async function pepKVBootstrap(env, forceReset = false) {
+  let products = forceReset ? null : await kvGetJSON(env, PEP_PRODUCTS_KEY);
+  let sales = forceReset ? null : await kvGetJSON(env, PEP_SALES_KEY);
+  let updatedAt = forceReset ? null : (await kvGetJSON(env, PEP_UPDATED_AT_KEY))?.updatedAt;
+
+  const shouldSeedProducts = !Array.isArray(products) || products.length === 0;
+  const shouldSeedSales = !Array.isArray(sales) || sales.length === 0;
+  if (shouldSeedProducts) {
+    products = buildPepDefaultKVProducts();
+  }
+  if (shouldSeedSales) {
+    sales = buildPepDefaultKVSales(products);
+  }
+  if (forceReset || shouldSeedProducts || shouldSeedSales || !updatedAt) {
+    updatedAt = await pepKVWriteAll(env, products, sales, pepNowISO());
+  }
+
+  return { products, sales, updatedAt, storage: 'kv' };
+}
+
+async function getPepBootstrap(env) {
+  const storageType = getPepStorageType(env);
+  if (!storageType) {
+    throw new Error(ERROR_MESSAGES.PEP_STORAGE_NOT_CONFIGURED);
+  }
+  return storageType === 'd1' ? pepD1Bootstrap(env) : pepKVBootstrap(env);
+}
+
+async function handlePepBootstrap(request, env) {
+  try {
+    return jsonResponse(await getPepBootstrap(env));
+  } catch (error) {
+    console.error('PEP bootstrap error:', error);
+    return jsonResponse({ error: error.message || ERROR_MESSAGES.PEP_STORAGE_NOT_CONFIGURED }, 500);
+  }
+}
+
+async function handlePepCreateProduct(request, env) {
+  try {
+    const { baseName, dosage, purchasePrice } = await request.json();
+    if (!String(baseName || '').trim() || !String(dosage || '').trim() || !Number.isFinite(Number(purchasePrice))) {
+      return jsonResponse({ error: ERROR_MESSAGES.MISSING_FIELDS }, 400);
+    }
+
+    const storageType = getPepStorageType(env);
+    if (!storageType) {
+      return jsonResponse({ error: ERROR_MESSAGES.PEP_STORAGE_NOT_CONFIGURED }, 500);
+    }
+
+    let product;
+    let updatedAt;
+    if (storageType === 'd1') {
+      await pepD1Seed(env);
+      const existing = await env.PEP_DB.prepare(`
+        SELECT id FROM pep_products WHERE lower(base_name) = lower(?) AND lower(dosage) = lower(?)
+      `).bind(String(baseName).trim(), String(dosage).trim()).first();
+      if (existing) {
+        return jsonResponse({ error: 'Този продукт вече съществува в каталога' }, 409);
+      }
+      product = await pepD1InsertProduct(env, { baseName, dosage, purchasePrice });
+      updatedAt = await pepD1SetUpdatedAt(env);
+    } else {
+      const bootstrap = await pepKVBootstrap(env);
+      const duplicate = bootstrap.products.some((entry) =>
+        entry.baseName.toLowerCase() === String(baseName).trim().toLowerCase() &&
+        entry.dosage.toLowerCase() === String(dosage).trim().toLowerCase()
+      );
+      if (duplicate) {
+        return jsonResponse({ error: 'Този продукт вече съществува в каталога' }, 409);
+      }
+      const nextId = bootstrap.products.length ? Math.max(...bootstrap.products.map((entry) => Number(entry.id))) + 1 : 1;
+      product = normalizePepProductRow({ id: nextId, baseName, dosage, purchasePrice });
+      bootstrap.products.push(product);
+      updatedAt = await pepKVWriteAll(env, bootstrap.products, bootstrap.sales, pepNowISO());
+    }
+
+    return jsonResponse({ success: true, product, updatedAt, storage: storageType });
+  } catch (error) {
+    console.error('PEP create product error:', error);
+    return jsonResponse({ error: error.message || 'Неуспешно добавяне на продукт' }, 500);
+  }
+}
+
+async function handlePepCreateSale(request, env) {
+  try {
+    const saleInput = await request.json();
+    if (!saleInput?.productId || !saleInput?.quantity || !saleInput?.multiplier) {
+      return jsonResponse({ error: ERROR_MESSAGES.MISSING_FIELDS }, 400);
+    }
+
+    const storageType = getPepStorageType(env);
+    if (!storageType) {
+      return jsonResponse({ error: ERROR_MESSAGES.PEP_STORAGE_NOT_CONFIGURED }, 500);
+    }
+
+    let sale;
+    let updatedAt;
+    if (storageType === 'd1') {
+      await pepD1Seed(env);
+      sale = await pepD1InsertSale(env, saleInput);
+      updatedAt = await pepD1SetUpdatedAt(env);
+    } else {
+      const bootstrap = await pepKVBootstrap(env);
+      const product = bootstrap.products.find((entry) => Number(entry.id) === Number(saleInput.productId));
+      if (!product) {
+        return jsonResponse({ error: 'Продуктът не е намерен' }, 404);
+      }
+      const nextId = bootstrap.sales.length ? Math.max(...bootstrap.sales.map((entry) => Number(entry.id))) + 1 : 1000;
+      sale = buildPepSaleRecord(product, saleInput, nextId);
+      bootstrap.sales.push(sale);
+      updatedAt = await pepKVWriteAll(env, bootstrap.products, bootstrap.sales, pepNowISO());
+    }
+
+    return jsonResponse({ success: true, sale, updatedAt, storage: storageType });
+  } catch (error) {
+    console.error('PEP create sale error:', error);
+    return jsonResponse({ error: error.message || 'Неуспешно добавяне на запис' }, 500);
+  }
+}
+
+async function handlePepDeleteSale(request, env) {
+  try {
+    const { saleId } = await request.json();
+    if (!saleId) {
+      return jsonResponse({ error: ERROR_MESSAGES.MISSING_FIELDS }, 400);
+    }
+
+    const storageType = getPepStorageType(env);
+    if (!storageType) {
+      return jsonResponse({ error: ERROR_MESSAGES.PEP_STORAGE_NOT_CONFIGURED }, 500);
+    }
+
+    let updatedAt;
+    if (storageType === 'd1') {
+      await pepD1Seed(env);
+      const existing = await env.PEP_DB.prepare(`SELECT id FROM pep_sales WHERE id = ?`).bind(Number(saleId)).first();
+      if (!existing) {
+        return jsonResponse({ error: ERROR_MESSAGES.NOT_FOUND }, 404);
+      }
+      await env.PEP_DB.prepare(`DELETE FROM pep_sales WHERE id = ?`).bind(Number(saleId)).run();
+      updatedAt = await pepD1SetUpdatedAt(env);
+    } else {
+      const bootstrap = await pepKVBootstrap(env);
+      const nextSales = bootstrap.sales.filter((entry) => Number(entry.id) !== Number(saleId));
+      if (nextSales.length === bootstrap.sales.length) {
+        return jsonResponse({ error: ERROR_MESSAGES.NOT_FOUND }, 404);
+      }
+      updatedAt = await pepKVWriteAll(env, bootstrap.products, nextSales, pepNowISO());
+    }
+
+    return jsonResponse({ success: true, updatedAt, storage: storageType });
+  } catch (error) {
+    console.error('PEP delete sale error:', error);
+    return jsonResponse({ error: error.message || 'Неуспешно изтриване на запис' }, 500);
+  }
+}
+
+async function handlePepResetDemo(request, env) {
+  try {
+    const storageType = getPepStorageType(env);
+    if (!storageType) {
+      return jsonResponse({ error: ERROR_MESSAGES.PEP_STORAGE_NOT_CONFIGURED }, 500);
+    }
+
+    if (storageType === 'd1') {
+      await ensurePepD1Schema(env);
+      await env.PEP_DB.exec(`
+        DELETE FROM pep_sales;
+        DELETE FROM pep_products;
+      `);
+      pepD1Initialized = false;
+      await ensurePepD1Schema(env);
+      return jsonResponse(await pepD1Bootstrap(env));
+    }
+
+    return jsonResponse(await pepKVBootstrap(env, true));
+  } catch (error) {
+    console.error('PEP reset demo error:', error);
+    return jsonResponse({ error: error.message || 'Неуспешно възстановяване на демо данните' }, 500);
   }
 }
 
@@ -13385,6 +13870,16 @@ export default {
         return await handleTestSendEmail(request, env);
       } else if (url.pathname === '/api/client-plan-status' && request.method === 'GET') {
         return await handleGetClientPlanStatus(request, env);
+      } else if (url.pathname === '/api/pep/bootstrap' && request.method === 'GET') {
+        return await handlePepBootstrap(request, env);
+      } else if (url.pathname === '/api/pep/products' && request.method === 'POST') {
+        return await handlePepCreateProduct(request, env);
+      } else if (url.pathname === '/api/pep/sales' && request.method === 'POST') {
+        return await handlePepCreateSale(request, env);
+      } else if (url.pathname === '/api/pep/sales/delete' && request.method === 'POST') {
+        return await handlePepDeleteSale(request, env);
+      } else if (url.pathname === '/api/pep/reset-demo' && request.method === 'POST') {
+        return await handlePepResetDemo(request, env);
       } else if (url.pathname === '/api/auth/social' && request.method === 'POST') {
         const rlErr = await checkRateLimit(env, request, 'SOCIAL_AUTH');
         if (rlErr) return rlErr;
