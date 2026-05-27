@@ -1783,7 +1783,29 @@
             display: block;
         }
         .spa-bottom-nav { z-index: 10001; }
-        /* spa-logout-btn moved to profile.html – only shown in APK profile tab */
+        .spa-logout-btn {
+            position: absolute;
+            left: 50%;
+            bottom: calc(60px + var(--safe-area-inset-bottom, 0px) + 14px);
+            transform: translateX(-50%);
+            z-index: 10002;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 12px;
+            background: rgba(239,68,68,0.10);
+            border: none;
+            border-radius: 20px;
+            color: #ef4444;
+            font-size: 0.82rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            transition: background 0.15s;
+        }
+        .spa-logout-btn:active { background: rgba(239,68,68,0.20); }
+        [data-theme="dark"] .spa-logout-btn { background: rgba(239,68,68,0.15); }
     </style>
     <script>
         // Apply color scheme from admin settings
@@ -2052,7 +2074,9 @@
 </head>
 <body>
     <div id="spaShell" class="spa-shell" hidden aria-label="NutriPlan приложение">
-        <!-- spa-logout-btn moved to profile.html – only shown in APK profile tab -->
+        <button class="spa-logout-btn" onclick="window.indexSignOut()" aria-label="Изход от акаунта">
+            <i class="fas fa-sign-out-alt"></i> Изход
+        </button>
         <div class="spa-tab-stack">
             <iframe class="spa-tab-view" data-tab-view="plan" title="Моят план" data-src="plan.html?embedded=1"></iframe>
             <iframe class="spa-tab-view" data-tab-view="guidelines" title="Насоки" data-src="guidelines.html?embedded=1"></iframe>
