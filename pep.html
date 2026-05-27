@@ -676,7 +676,6 @@
             <div class="card-title">📊 Оперативна картина</div>
             <div class="action-row" style="width:min(100%, 320px);">
                 <button id="exportDataBtn" class="btn-outline">XLS</button>
-                <button id="resetDemoBtn" class="btn-danger">Демо данни</button>
             </div>
         </div>
         <div class="stats-grid" id="statsGrid">
@@ -938,7 +937,6 @@
         state.isBusy = isBusy;
         document.getElementById('addSaleBtn').disabled = isBusy;
         document.getElementById('addProductBtn').disabled = isBusy;
-        document.getElementById('resetDemoBtn').disabled = isBusy;
     }
 
     function showBanner(message, kind = 'info') {
@@ -1494,10 +1492,6 @@
             updateStatusPanel();
             showBanner('Новият продукт е добавен в каталога.', 'info');
         });
-    });
-
-    document.getElementById('resetDemoBtn').addEventListener('click', () => {
-        runSafely(resetDemoData);
     });
 
     document.getElementById('exportDataBtn').addEventListener('click', () => {
