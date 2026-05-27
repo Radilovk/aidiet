@@ -2,6 +2,13 @@ name = "aidiet"
 main = "worker.js"
 compatibility_date = "2024-01-01"
 
+# Optional D1 binding for pep.html backend persistence.
+# Uncomment and fill with your real database identifiers when provisioning the DB.
+# [[d1_databases]]
+# binding = "PEP_DB"
+# database_name = "aidiet-pep"
+# database_id = "replace-with-your-d1-database-id"
+
 # KV Namespace binding
 [[kv_namespaces]]
 binding = "page_content"
