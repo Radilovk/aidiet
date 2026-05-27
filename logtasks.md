@@ -1,5 +1,19 @@
 # Log Tasks
 
+## 2026-05-26 — Реален APK проблем: празни табове при студен старт
+
+**Задача:** Намери реалния APK проблем — предишна сесия е твърдяла, че го е намерила, но не е внедрила решение.
+
+**Root cause:**
+Всички tab-ове (plan.html, guidelines.html, profile.html, game-analytics.html) имат `<style>body{opacity:0}</style>` в `<head>`. Тялото се вижда с `opacity:1` **само след** като Firebase `onAuthStateChanged` се задейства. На APK при студен старт Firebase може да отнеме 2–10 секунди. Резултат: потребителят вижда бял/празен таб.
+
+- **plan.html**: `initializeDOMDependentFeatures()` чакаше `NutriPlanPlanAuthReady` (resolve-ва се само от `onAuthStateChanged`) преди да извика `loadDietData()` и `opacity:1` — дори когато `dietPlan` вече е в localStorage.
+- **guidelines.html / profile.html / game-analytics.html**: `auth-guard.js` resolve-ваше `NutriPlanAuthGuardReady` само от `onAuthStateChanged`, забавяйки показването на всеки таб.
+
+**Поправки (минимални):**
+1. **`plan.html`**: `await NutriPlanPlanAuthReady` се пропуска когато `dietPlan` е наличен в localStorage — планът се зарежда и показва веднага; Firebase се синхронизира в background.
+2. **`auth-guard.js`**: Когато `likelyAuthed` (userId започва с `fb_`) — `NutriPlanAuthGuardReady` се resolve-ва незабавно; `onAuthStateChanged` продължава в background и при невалиден токен пренасочва към login.
+
 ## 2026-05-26 — APK размер + haptic при табове: поправка
 
 **Задача:** APK размерът се е повишил драстично след последната задача; haptic при превключване на табовете не се усеща.
