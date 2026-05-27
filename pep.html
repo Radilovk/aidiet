@@ -3,77 +3,309 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Smart Peptide Sales Manager</title>
+    <title>PEP продажби</title>
     <style>
         :root {
-            --primary: #2c7da0;
-            --primary-hover: #1f5e7a;
-            --bg: #f4f7f9;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --primary-soft: rgba(37, 99, 235, 0.1);
+            --bg: #f3f6fb;
             --surface: #ffffff;
-            --text-main: #1e293b;
+            --surface-alt: #f8fafc;
+            --text-main: #0f172a;
             --text-muted: #64748b;
-            --border: #e2e8f0;
-            --radius-lg: 16px;
-            --radius-sm: 8px;
-            --danger: #ef4444;
-            --success: #10b981;
+            --border: #dbe3ef;
+            --danger: #dc2626;
+            --danger-soft: rgba(220, 38, 38, 0.1);
+            --success: #059669;
+            --warning: #d97706;
+            --shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+            --radius-lg: 20px;
+            --radius-md: 14px;
+            --radius-sm: 10px;
         }
 
         * {
             box-sizing: border-box;
-            font-family: system-ui, -apple-system, sans-serif;
             margin: 0;
             padding: 0;
+            font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         }
 
         body {
-            background: var(--bg);
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at top right, rgba(37, 99, 235, 0.12), transparent 26%),
+                linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%);
             color: var(--text-main);
-            padding: 12px;
+            padding: 16px;
             -webkit-font-smoothing: antialiased;
         }
 
         .container {
-            max-width: 1200px;
+            width: min(1240px, 100%);
             margin: 0 auto;
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 18px;
         }
 
-        /* Карди */
         .card {
-            background: var(--surface);
+            background: rgba(255, 255, 255, 0.96);
+            border: 1px solid rgba(219, 227, 239, 0.9);
             border-radius: var(--radius-lg);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-            padding: 16px;
+            box-shadow: var(--shadow);
+            padding: 20px;
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr);
+            gap: 16px;
+            align-items: stretch;
+        }
+
+        .hero-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            width: fit-content;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: var(--primary-soft);
+            color: var(--primary);
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
+
+        h1 {
+            font-size: clamp(1.9rem, 3vw, 2.7rem);
+            line-height: 1.05;
+            letter-spacing: -0.03em;
+        }
+
+        .hero-copy {
+            max-width: 720px;
+            font-size: 1rem;
+            line-height: 1.65;
+            color: var(--text-muted);
+        }
+
+        .hero-points {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px;
+        }
+
+        .point {
+            background: var(--surface-alt);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .point strong {
+            font-size: 0.95rem;
+        }
+
+        .point span {
+            color: var(--text-muted);
+            font-size: 0.88rem;
+            line-height: 1.45;
+        }
+
+        .status-panel {
+            background: linear-gradient(180deg, rgba(37, 99, 235, 0.08), rgba(255, 255, 255, 0.96));
+            border: 1px solid rgba(37, 99, 235, 0.18);
+            border-radius: var(--radius-lg);
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            justify-content: space-between;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            width: fit-content;
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            background: rgba(5, 150, 105, 0.14);
+            color: var(--success);
+        }
+
+        .status-badge.warning {
+            background: rgba(217, 119, 6, 0.16);
+            color: var(--warning);
+        }
+
+        .status-badge.error {
+            background: rgba(220, 38, 38, 0.14);
+            color: var(--danger);
+        }
+
+        .status-label {
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+        }
+
+        .status-title {
+            font-size: 1.1rem;
+            font-weight: 800;
+        }
+
+        .status-copy {
+            color: var(--text-muted);
+            line-height: 1.55;
+        }
+
+        .status-meta {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .status-meta .point {
+            padding: 12px;
+        }
+
+        .banner {
+            display: none;
+            border-radius: var(--radius-md);
+            padding: 14px 16px;
+            font-weight: 600;
+            line-height: 1.5;
+        }
+
+        .banner.visible { display: block; }
+        .banner.error {
+            background: rgba(220, 38, 38, 0.1);
+            border: 1px solid rgba(220, 38, 38, 0.18);
+            color: #991b1b;
+        }
+        .banner.info {
+            background: rgba(37, 99, 235, 0.08);
+            border: 1px solid rgba(37, 99, 235, 0.15);
+            color: #1d4ed8;
         }
 
         .card-header {
-            font-weight: 700;
-            font-size: 1.1rem;
-            margin-bottom: 16px;
             display: flex;
             align-items: center;
-            gap: 8px;
-            color: var(--primary);
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 16px;
         }
 
-        /* Форми и Инпути */
+        .card-title-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .card-title {
+            font-size: 1.15rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-subtitle {
+            color: var(--text-muted);
+            line-height: 1.5;
+            font-size: 0.92rem;
+        }
+
+        .form-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.95fr);
+            gap: 16px;
+        }
+
+        .form-shell,
+        .helper-shell,
+        .tools-panel,
+        .table-shell,
+        .catalog-shell {
+            background: var(--surface-alt);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 16px;
+        }
+
+        .helper-shell {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .helper-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .helper-item {
+            display: grid;
+            grid-template-columns: 26px 1fr;
+            gap: 10px;
+            align-items: flex-start;
+        }
+
+        .helper-index {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--primary-soft);
+            color: var(--primary);
+            font-weight: 800;
+            font-size: 0.85rem;
+        }
+
+        .helper-item strong {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 0.95rem;
+        }
+
+        .helper-item span,
+        .helper-note {
+            color: var(--text-muted);
+            line-height: 1.5;
+            font-size: 0.9rem;
+        }
+
         .form-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            grid-template-columns: repeat(12, minmax(0, 1fr));
             gap: 12px;
-            background: #f8fafc;
-            padding: 16px;
-            border-radius: var(--radius-sm);
-            border: 1px solid var(--border);
         }
 
         .form-group {
+            grid-column: span 6;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 8px;
         }
 
         .form-group.full-width {
@@ -81,690 +313,1375 @@
         }
 
         label {
-            font-size: 0.75rem;
-            font-weight: 600;
+            font-size: 0.78rem;
+            font-weight: 700;
             text-transform: uppercase;
+            letter-spacing: 0.08em;
             color: var(--text-muted);
-            letter-spacing: 0.05em;
         }
 
-        /* Оптимизация за мобилни устройства: min-height 44px (Touch Target), font-size 16px (предотвратява iOS zoom) */
+        .field-help {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            margin-top: -2px;
+        }
+
         input, select, button, textarea {
             width: 100%;
-            min-height: 44px;
-            padding: 0 12px;
-            border: 1px solid var(--border);
+            min-height: 48px;
             border-radius: var(--radius-sm);
-            font-size: 16px;
-            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 0 14px;
+            background: #fff;
             color: var(--text-main);
-            transition: border-color 0.2s, box-shadow 0.2s;
-            appearance: none; /* Премахва дефолтни стилове на OS за по-чист UI */
+            font-size: 16px;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+            appearance: none;
         }
 
-        input:focus, select:focus {
+        textarea {
+            min-height: 112px;
+            padding: 14px;
+            resize: vertical;
+        }
+
+        input:focus, select:focus, textarea:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(44, 125, 160, 0.15);
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
         }
 
         select {
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e");
             background-repeat: no-repeat;
-            background-position: right 12px center;
-            background-size: 16px;
-            padding-right: 40px;
+            background-position: right 14px center;
+            background-size: 18px;
+            padding-right: 42px;
         }
 
         button {
-            background: var(--primary);
-            color: white;
-            font-weight: 600;
             cursor: pointer;
             border: none;
-            display: flex;
+            font-weight: 700;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
+            background: var(--primary);
+            color: #fff;
+        }
+
+        button:hover {
+            background: var(--primary-hover);
         }
 
         button:active {
-            transform: scale(0.98);
+            transform: scale(0.985);
+        }
+
+        button:disabled {
+            opacity: 0.65;
+            cursor: wait;
         }
 
         .btn-outline {
-            background: transparent;
-            border: 1px solid var(--border);
+            background: #fff;
             color: var(--text-main);
-        }
-
-        /* Таблици и Контейнери с хоризонтален скрол */
-        .table-responsive {
-            width: 100%;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            border-radius: var(--radius-sm);
             border: 1px solid var(--border);
         }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.85rem;
-            min-width: 600px; /* Гарантира четимост при скрол */
-        }
-
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid var(--border);
-            white-space: nowrap;
-        }
-
-        th {
+        .btn-outline:hover {
             background: #f8fafc;
-            font-weight: 600;
-            color: var(--text-muted);
-            position: sticky;
-            top: 0;
         }
 
-        /* Баджове и Индикатори */
-        .sold-count {
-            background: #dbeafe;
-            color: #1e3a8a;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-weight: 700;
-            cursor: pointer;
-            display: inline-block;
+        .btn-danger {
+            background: var(--danger-soft);
+            color: var(--danger);
+            border: 1px solid rgba(220, 38, 38, 0.16);
         }
 
-        .multiplier-badge {
-            font-family: monospace;
-            background: #f1f5f9;
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-weight: 600;
+        .btn-danger:hover {
+            background: rgba(220, 38, 38, 0.16);
         }
 
-        /* Детайли и Акордеони */
-        details {
-            background: var(--surface);
-            border-radius: var(--radius-lg);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            overflow: hidden;
-        }
-
-        summary {
-            font-weight: 700;
-            font-size: 1rem;
-            cursor: pointer;
-            padding: 16px;
-            color: var(--text-main);
-            list-style: none;
+        .action-row {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
-        summary::-webkit-details-marker { display: none; }
-        summary::after {
-            content: '▼';
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            transition: transform 0.2s;
+        .action-row > * {
+            flex: 1 1 180px;
         }
-        details[open] summary::after { transform: rotate(180deg); }
-        
-        .details-content { padding: 0 16px 16px 16px; }
 
-        /* Филтри и Инструменти (Оптимизирани за Touch) */
-        .tools-panel {
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+        }
+
+        .stat-card {
+            background: var(--surface-alt);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 16px;
             display: flex;
             flex-direction: column;
+            gap: 8px;
+        }
+
+        .stat-label {
+            font-size: 0.76rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+        }
+
+        .stat-value {
+            font-size: clamp(1.35rem, 3vw, 1.85rem);
+            font-weight: 900;
+            letter-spacing: -0.03em;
+        }
+
+        .stat-meta {
+            color: var(--text-muted);
+            font-size: 0.86rem;
+            line-height: 1.45;
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(12, minmax(0, 1fr));
             gap: 12px;
-            margin-bottom: 16px;
-            background: #f8fafc;
-            padding: 12px;
-            border-radius: var(--radius-sm);
+            margin-bottom: 14px;
+        }
+
+        .tools-grid .form-group {
+            margin: 0;
         }
 
         .checkbox-group {
             display: flex;
+            flex-wrap: wrap;
             gap: 8px;
-            overflow-x: auto;
-            padding-bottom: 8px;
-            -webkit-overflow-scrolling: touch;
         }
 
-        .checkbox-group::-webkit-scrollbar { height: 4px; }
-        .checkbox-group::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-
         .checkbox-chip {
-            display: flex;
+            display: inline-flex;
             align-items: center;
-            gap: 6px;
-            background: var(--surface);
+            gap: 8px;
+            padding: 9px 12px;
+            border-radius: 999px;
+            background: #fff;
             border: 1px solid var(--border);
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            white-space: nowrap;
+            font-size: 0.88rem;
+            color: var(--text-main);
             cursor: pointer;
             user-select: none;
         }
 
         .checkbox-chip input {
-            width: 14px;
-            min-height: 14px;
+            width: 16px;
+            min-height: 16px;
             margin: 0;
         }
 
-        /* Статистики (CSS Grid за адаптивност) */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-            gap: 12px;
-        }
-
-        .stat-card {
-            background: var(--surface);
+        .table-responsive {
+            overflow-x: auto;
+            border-radius: var(--radius-md);
             border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            padding: 16px 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
+            background: #fff;
         }
 
-        .stat-label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
-        .stat-value { font-size: 1.5rem; font-weight: 800; color: var(--primary); }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 760px;
+        }
 
-        /* Модал */
+        th, td {
+            padding: 14px 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            vertical-align: top;
+            white-space: nowrap;
+        }
+
+        th {
+            background: #f8fbff;
+            color: var(--text-muted);
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        td.wrap {
+            white-space: normal;
+            min-width: 220px;
+        }
+
+        .type-badge,
+        .sold-count,
+        .product-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 10px;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 0.82rem;
+        }
+
+        .type-badge.sale {
+            background: rgba(37, 99, 235, 0.1);
+            color: var(--primary);
+        }
+
+        .type-badge.personal {
+            background: rgba(5, 150, 105, 0.12);
+            color: var(--success);
+        }
+
+        .sold-count {
+            background: rgba(15, 23, 42, 0.04);
+            color: var(--text-main);
+            cursor: pointer;
+            border: none;
+        }
+
+        .sold-count:hover {
+            background: rgba(37, 99, 235, 0.1);
+            color: var(--primary);
+        }
+
+        .product-pill {
+            background: rgba(37, 99, 235, 0.08);
+            color: var(--primary);
+        }
+
+        .inline-note {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+        }
+
+        .empty-state {
+            padding: 28px 18px;
+            text-align: center;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        .muted { color: var(--text-muted); }
+
+        details {
+            background: transparent;
+        }
+
+        summary {
+            list-style: none;
+            cursor: pointer;
+        }
+
+        summary::-webkit-details-marker { display: none; }
+
         .modal {
-            display: none;
             position: fixed;
             inset: 0;
-            background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(4px);
+            display: none;
             align-items: center;
             justify-content: center;
-            z-index: 1000;
+            background: rgba(15, 23, 42, 0.62);
             padding: 16px;
+            z-index: 1000;
         }
 
         .modal-content {
-            background: var(--surface);
-            width: 100%;
-            max-width: 600px;
-            border-radius: var(--radius-lg);
-            padding: 24px;
+            width: min(700px, 100%);
             max-height: 85vh;
             overflow-y: auto;
+            background: #fff;
+            border-radius: 24px;
+            padding: 24px;
             position: relative;
+            box-shadow: 0 25px 70px rgba(15, 23, 42, 0.25);
         }
 
         .close-modal {
             position: absolute;
             top: 16px;
-            right: 16px;
-            font-size: 1.5rem;
-            cursor: pointer;
+            right: 18px;
+            font-size: 1.7rem;
             color: var(--text-muted);
             line-height: 1;
+            cursor: pointer;
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .history-item {
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            background: var(--surface-alt);
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .history-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
         }
 
         .delete-btn {
+            min-height: 38px;
+            padding: 0 12px;
             background: transparent;
             color: var(--danger);
-            border: 1px solid var(--danger);
-            min-height: 32px;
-            padding: 0 12px;
-            font-size: 0.8rem;
+            border: 1px solid rgba(220, 38, 38, 0.18);
         }
 
-        /* Мобилни специфики */
-        @media (max-width: 600px) {
-            .form-grid { grid-template-columns: 1fr; }
-            .card { padding: 12px; }
-            .stat-value { font-size: 1.25rem; }
-            .action-buttons { flex-direction: column; }
+        .delete-btn:hover {
+            background: rgba(220, 38, 38, 0.08);
+        }
+
+        .small-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.05);
+            padding: 6px 10px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        @media (max-width: 980px) {
+            .hero,
+            .form-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 720px) {
+            body {
+                padding: 12px;
+            }
+
+            .card {
+                padding: 16px;
+            }
+
+            .form-group,
+            .tools-grid .form-group {
+                grid-column: 1 / -1;
+            }
+
+            .stats-grid,
+            .hero-points,
+            .status-meta {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 560px) {
+            .stats-grid,
+            .hero-points,
+            .status-meta {
+                grid-template-columns: 1fr;
+            }
+
+            .card-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .action-row > * {
+                flex-basis: 100%;
+            }
         }
     </style>
 </head>
 <body>
-
 <div class="container">
-
-    <div class="card">
-        <div class="card-header">📦 Нова Транзакция</div>
-        <div class="form-grid">
-            <div class="form-group full-width">
-                <label>Продукт</label>
-                <input type="text" id="productSearch" list="productDatalist" placeholder="Търсене..." autocomplete="off">
-                <datalist id="productDatalist"></datalist>
+    <section class="hero">
+        <div class="card hero-panel">
+            <div class="eyebrow">PEP продажби · по-ясен оперативен изглед</div>
+            <div>
+                <h1>Записвай продажбите бързо, следи маржа ясно и пази демо данните в бекенда.</h1>
             </div>
-            <div class="form-group">
-                <label>Количество</label>
-                <input type="number" id="saleQty" value="1" min="1" step="1" inputmode="numeric">
-            </div>
-            <div class="form-group">
-                <label>Множител</label>
-                <select id="multiplierSelect">
-                    <option value="2">×2 (Продажба > 10 бр.)</option>
-                    <option value="2.2">×2.2</option>
-                    <option value="2.5">×2.5 (Продажба < 10 бр.)</option>
-                    <option value="1">×1 (Лична употреба)</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Дата</label>
-                <input type="date" id="saleDate">
-            </div>
-            <div class="form-group full-width">
-                <label>Коментар (Опционално)</label>
-                <input type="text" id="saleComment" placeholder="Бележка...">
-            </div>
-            <div class="form-group full-width">
-                <button id="addSaleBtn">➕ Запиши Транзакция</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-header">📈 Финанси & Статистика</div>
-        <div class="stats-grid">
-            <div class="stat-card">
-                <span class="stat-label">Общ Приход</span>
-                <span class="stat-value" id="totalRevenue">0 €</span>
-            </div>
-            <div class="stat-card">
-                <span class="stat-label">Разход (COGS)</span>
-                <span class="stat-value" id="totalCost">0 €</span>
-            </div>
-            <div class="stat-card">
-                <span class="stat-label">Печалба</span>
-                <span class="stat-value" id="totalProfit" style="color: var(--success);">0 €</span>
-            </div>
-            <div class="stat-card">
-                <span class="stat-label">Лична Употреба</span>
-                <span class="stat-value" id="personalUseCount">0 бр.</span>
-            </div>
-        </div>
-        <div class="action-buttons" style="display: flex; gap: 8px; margin-top: 16px;">
-            <button id="exportDataBtn" class="btn-outline">📎 Експорт CSV</button>
-            <button id="resetDemoBtn" class="btn-outline" style="color: var(--danger); border-color: var(--danger);">🔄 Нулиране</button>
-        </div>
-    </div>
-
-    <details open>
-        <summary>📋 История на Транзакциите</summary>
-        <div class="details-content">
-            <div class="tools-panel">
-                <label style="margin-bottom: -4px;">Видими колони:</label>
-                <div class="checkbox-group">
-                    <label class="checkbox-chip"><input type="checkbox" id="colDate" checked> Дата</label>
-                    <label class="checkbox-chip"><input type="checkbox" id="colProduct" checked> Продукт</label>
-                    <label class="checkbox-chip"><input type="checkbox" id="colQty" checked> Кол.</label>
-                    <label class="checkbox-chip"><input type="checkbox" id="colMulti" checked> Множ.</label>
-                    <label class="checkbox-chip"><input type="checkbox" id="colRevenue" checked> Приход</label>
-                    <label class="checkbox-chip"><input type="checkbox" id="colCost" checked> Разход</label>
-                    <label class="checkbox-chip"><input type="checkbox" id="colComment" checked> Коментар</label>
-                    <label class="checkbox-chip"><input type="checkbox" id="colAction" checked> Изтрий</label>
+            <p class="hero-copy">
+                Страницата вече е подредена около реалния работен поток: избираш продукт, регистрираш операцията, виждаш ефекта върху приходите и проверяваш историята без да се губиш в терминологията.
+            </p>
+            <div class="hero-points">
+                <div class="point">
+                    <strong>1. Регистрирай операция</strong>
+                    <span>Добави продажба или лична употреба с правилен тип запис и точна дата.</span>
                 </div>
+                <div class="point">
+                    <strong>2. Следи резултата</strong>
+                    <span>Приход, разход, печалба и най-силен продукт се обновяват веднага.</span>
+                </div>
+                <div class="point">
+                    <strong>3. Работи сигурно</strong>
+                    <span>Когато бекендът е наличен, демо записите и новите продажби се пазят в базата.</span>
+                </div>
+            </div>
+        </div>
+        <aside class="status-panel">
+            <div>
+                <div id="syncBadge" class="status-badge">Свързване…</div>
+            </div>
+            <div>
+                <div class="status-label">Състояние на данните</div>
+                <div id="statusTitle" class="status-title">Подготвям данните…</div>
+                <p id="statusCopy" class="status-copy">Изчаква се началното зареждане на продуктите и историята.</p>
+            </div>
+            <div class="status-meta">
+                <div class="point">
+                    <strong>Източник</strong>
+                    <span id="statusSource">—</span>
+                </div>
+                <div class="point">
+                    <strong>Последна синхронизация</strong>
+                    <span id="statusUpdatedAt">—</span>
+                </div>
+            </div>
+        </aside>
+    </section>
+
+    <div id="feedbackBanner" class="banner" role="status" aria-live="polite"></div>
+
+    <section class="card">
+        <div class="card-header">
+            <div class="card-title-wrap">
+                <div class="card-title">🧾 Регистрирай нов запис</div>
+                <div class="card-subtitle">Всички полета са подредени според естествения ред на работа. Избери продукт, посочи броя, определи типа запис и запази.</div>
+            </div>
+        </div>
+        <div class="form-layout">
+            <div class="form-shell">
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label for="productSearch">Продукт</label>
+                        <input type="text" id="productSearch" list="productDatalist" placeholder="Например Retatrutide 5 mg" autocomplete="off">
+                        <div class="field-help">Започни да пишеш и избери готов продукт от каталога.</div>
+                        <datalist id="productDatalist"></datalist>
+                    </div>
+                    <div class="form-group">
+                        <label for="saleQty">Количество</label>
+                        <input type="number" id="saleQty" value="1" min="1" step="1" inputmode="numeric">
+                        <div class="field-help">Въведи общия брой продадени или използвани бройки.</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="multiplierSelect">Тип запис</label>
+                        <select id="multiplierSelect">
+                            <option value="2">Продажба на едро · ×2</option>
+                            <option value="2.2">Стандартна продажба · ×2.2</option>
+                            <option value="2.5">Продажба на дребно · ×2.5</option>
+                            <option value="1">Лична употреба · без приход</option>
+                        </select>
+                        <div id="multiplierHint" class="field-help">Подходящо при по-големи поръчки.</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="saleDate">Дата</label>
+                        <input type="date" id="saleDate">
+                        <div class="field-help">По подразбиране се избира днешната дата.</div>
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="saleComment">Бележка</label>
+                        <textarea id="saleComment" placeholder="Например: групова поръчка, препоръчан клиент, мостра, личен прием."></textarea>
+                    </div>
+                    <div class="form-group full-width">
+                        <button id="addSaleBtn">Запази записа</button>
+                    </div>
+                </div>
+            </div>
+            <aside class="helper-shell">
                 <div>
-                    <label>Сортиране:</label>
-                    <select id="sortSalesSelect" style="max-width: 250px;">
-                        <option value="date_desc">Дата (Нови -> Стари)</option>
-                        <option value="date_asc">Дата (Стари -> Нови)</option>
+                    <div class="card-title" style="font-size:1rem;">Как да избереш правилния тип?</div>
+                    <p class="helper-note">Тук терминологията е изчистена, за да не се чудиш какво означава „множител“ в практиката.</p>
+                </div>
+                <div class="helper-list">
+                    <div class="helper-item">
+                        <div class="helper-index">1</div>
+                        <div>
+                            <strong>Продажба на едро</strong>
+                            <span>Използвай при по-големи клиентски количества, когато искаш бързо да отчетеш базовата продажна цена ×2.</span>
+                        </div>
+                    </div>
+                    <div class="helper-item">
+                        <div class="helper-index">2</div>
+                        <div>
+                            <strong>Стандартна продажба</strong>
+                            <span>Добър избор за нормална сделка с леко по-висок марж.</span>
+                        </div>
+                    </div>
+                    <div class="helper-item">
+                        <div class="helper-index">3</div>
+                        <div>
+                            <strong>Продажба на дребно</strong>
+                            <span>Подходяща за малки количества или по-висока единична цена.</span>
+                        </div>
+                    </div>
+                    <div class="helper-item">
+                        <div class="helper-index">4</div>
+                        <div>
+                            <strong>Лична употреба</strong>
+                            <span>Запазва разхода в историята, но не добавя приход.</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </section>
+
+    <section class="card">
+        <div class="card-header">
+            <div class="card-title-wrap">
+                <div class="card-title">📊 Оперативна картина</div>
+                <div class="card-subtitle">Виж най-важните числа веднага, без да отваряш историята ред по ред.</div>
+            </div>
+            <div class="action-row" style="width:min(100%, 420px);">
+                <button id="exportDataBtn" class="btn-outline">Експорт в CSV</button>
+                <button id="resetDemoBtn" class="btn-danger">Върни демо данните</button>
+            </div>
+        </div>
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-label">Общ приход</div>
+                <div class="stat-value" id="totalRevenue">0.00 €</div>
+                <div class="stat-meta">Всички продажби без личната употреба.</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Общ разход</div>
+                <div class="stat-value" id="totalCost">0.00 €</div>
+                <div class="stat-meta">Себестойност на всички записани движения.</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Печалба</div>
+                <div class="stat-value" id="totalProfit">0.00 €</div>
+                <div class="stat-meta">Разлика между приход и себестойност.</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Общо продадени бройки</div>
+                <div class="stat-value" id="totalUnits">0 бр.</div>
+                <div class="stat-meta">Сумата от всички продажби и лична употреба.</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Лична употреба</div>
+                <div class="stat-value" id="personalUseCount">0 бр.</div>
+                <div class="stat-meta">Бройки, отчетени без приход.</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Водещ продукт</div>
+                <div class="stat-value" id="topProductName">—</div>
+                <div class="stat-meta" id="topProductMeta">Няма достатъчно данни.</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="card">
+        <div class="card-header">
+            <div class="card-title-wrap">
+                <div class="card-title">🗂️ История на записите</div>
+                <div class="card-subtitle">Филтрирай по продукт или бележка, избери подредбата и скрий излишните колони, ако искаш по-чист изглед.</div>
+            </div>
+        </div>
+        <div class="tools-panel">
+            <div class="tools-grid">
+                <div class="form-group">
+                    <label for="historySearch">Търсене в историята</label>
+                    <input type="text" id="historySearch" placeholder="Продукт, бележка или дата">
+                </div>
+                <div class="form-group">
+                    <label for="sortSalesSelect">Подреди по</label>
+                    <select id="sortSalesSelect">
+                        <option value="date_desc">Най-нови записи</option>
+                        <option value="date_asc">Най-стари записи</option>
                         <option value="product">Продукт (А-Я)</option>
-                        <option value="revenue_desc">Приход (Низходящо)</option>
+                        <option value="revenue_desc">Най-висок приход</option>
                     </select>
                 </div>
+                <div class="form-group full-width">
+                    <label>Видими колони</label>
+                    <div class="checkbox-group">
+                        <label class="checkbox-chip"><input type="checkbox" id="colDate" checked> Дата</label>
+                        <label class="checkbox-chip"><input type="checkbox" id="colProduct" checked> Продукт</label>
+                        <label class="checkbox-chip"><input type="checkbox" id="colQty" checked> Количество</label>
+                        <label class="checkbox-chip"><input type="checkbox" id="colType" checked> Тип запис</label>
+                        <label class="checkbox-chip"><input type="checkbox" id="colRevenue" checked> Приход</label>
+                        <label class="checkbox-chip"><input type="checkbox" id="colCost" checked> Разход</label>
+                        <label class="checkbox-chip"><input type="checkbox" id="colComment" checked> Бележка</label>
+                        <label class="checkbox-chip"><input type="checkbox" id="colAction" checked> Изтриване</label>
+                    </div>
+                </div>
             </div>
-            
+        </div>
+        <div class="table-shell">
             <div class="table-responsive">
                 <table id="salesTable">
-                    <thead id="salesTableHead"><tr><th>Зареждане...</th></tr></thead>
+                    <thead id="salesTableHead"><tr><th>Зареждане…</th></tr></thead>
                     <tbody id="salesTableBody"></tbody>
                 </table>
             </div>
         </div>
-    </details>
+    </section>
 
-    <div class="card">
-        <div class="card-header">📋 Каталог Продукти (Ценообразуване)</div>
+    <section class="card">
+        <div class="card-header">
+            <div class="card-title-wrap">
+                <div class="card-title">📦 Каталог и цени</div>
+                <div class="card-subtitle">Поддържай централен списък с продукти и виж препоръчителните крайни цени според типа продажба.</div>
+            </div>
+        </div>
+        <div class="catalog-shell" style="margin-bottom: 14px;">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="newBaseName">Име на продукт</label>
+                    <input type="text" id="newBaseName" placeholder="Например Tesamorelin">
+                </div>
+                <div class="form-group">
+                    <label for="newDosage">Дозировка</label>
+                    <input type="text" id="newDosage" placeholder="Например 10 mg">
+                </div>
+                <div class="form-group">
+                    <label for="newPrice">Доставна цена (€)</label>
+                    <input type="number" step="0.01" id="newPrice" inputmode="decimal" placeholder="0.00">
+                </div>
+                <div class="form-group full-width">
+                    <button id="addProductBtn" class="btn-outline">Добави продукта в каталога</button>
+                </div>
+            </div>
+        </div>
         <div class="table-responsive">
             <table id="productTable">
                 <thead>
                     <tr>
                         <th>Продукт</th>
-                        <th>Доза</th>
-                        <th>Доставна (€)</th>
-                        <th>Продадени</th>
-                        <th>×2</th>
-                        <th>×2.2</th>
-                        <th>×2.5</th>
+                        <th>Дозировка</th>
+                        <th>Доставна цена</th>
+                        <th>Общо бройки</th>
+                        <th>Едро ×2</th>
+                        <th>Стандарт ×2.2</th>
+                        <th>Дребно ×2.5</th>
                     </tr>
                 </thead>
                 <tbody id="productTableBody"></tbody>
             </table>
         </div>
-    </div>
-
-    <details>
-        <summary>➕ Нов Продукт в Каталога</summary>
-        <div class="details-content">
-            <div class="form-grid">
-                <div class="form-group">
-                    <label>Име</label>
-                    <input type="text" id="newBaseName" placeholder="напр. Retatrutide">
-                </div>
-                <div class="form-group">
-                    <label>Дозировка</label>
-                    <input type="text" id="newDosage" placeholder="напр. 5 mg">
-                </div>
-                <div class="form-group">
-                    <label>Доставна цена (€)</label>
-                    <input type="number" step="0.01" id="newPrice" inputmode="decimal">
-                </div>
-                <div class="form-group full-width">
-                    <button id="addProductBtn">💾 Добави Продукт</button>
-                </div>
-            </div>
-        </div>
-    </details>
-
+    </section>
 </div>
 
-<div id="historyModal" class="modal">
+<div id="historyModal" class="modal" aria-hidden="true">
     <div class="modal-content">
-        <span class="close-modal">&times;</span>
-        <div class="card-header" style="margin-bottom: 12px; font-size: 1.2rem;">📜 История на продажбите</div>
-        <div id="modalHistoryList" style="font-size: 0.9rem; line-height: 1.6;"></div>
+        <span class="close-modal" aria-label="Затвори">&times;</span>
+        <div class="card-title-wrap">
+            <div class="card-title">📜 История по продукт</div>
+            <div class="card-subtitle" id="historyModalSubtitle">Подробен преглед на всички записи за избрания продукт.</div>
+        </div>
+        <div id="modalHistoryList"></div>
     </div>
 </div>
 
 <script>
-    // JS ЛОГИКАТА ОСТАВА НЕПРОМЕНЕНА ЗА ОСИГУРЯВАНЕ НА 100% ФУНКЦИОНАЛНА СТАБИЛНОСТ
-    const defaultProducts = [
-        { baseName: "CJC-1295 + IPA", dosage: "5mg", purchasePrice: 8.50 },
-        { baseName: "IGF-1LR3", dosage: "1mg", purchasePrice: 17.50 },
-        { baseName: "IGF-DES", dosage: "1mg", purchasePrice: 5.00 },
-        { baseName: "Glow (CU+TB+BC+KPV)", dosage: "комбо", purchasePrice: 23.00 },
-        { baseName: "Tesamorelin", dosage: "10mg", purchasePrice: 18.00 },
-        { baseName: "SLU-PP-322", dosage: "5mg", purchasePrice: 12.00 },
-        { baseName: "LC216", dosage: "комбо", purchasePrice: 7.50 },
-        { baseName: "LC120", dosage: "комбо", purchasePrice: 7.50 },
-        { baseName: "Retatrutide", dosage: "5 mg", purchasePrice: 15.34 },
-        { baseName: "Retatrutide", dosage: "10 mg", purchasePrice: 25.56 },
-        { baseName: "Mots-C", dosage: "10 mg", purchasePrice: 12.78 },
-        { baseName: "Ipamorelin + CJC", dosage: "5+5mg", purchasePrice: 8.50 },
-        { baseName: "Тирзепатид", dosage: "5 mg", purchasePrice: 12.78 },
-        { baseName: "Тирзепатид", dosage: "10 mg", purchasePrice: 20.45 },
-        { baseName: "Тирзепатид", dosage: "30 mg", purchasePrice: 51.13 },
-        { baseName: "Глутатион", dosage: "1500 mg", purchasePrice: 6.50 },
-        { baseName: "Тимозин Алфа", dosage: "5 mg", purchasePrice: 15.34 },
-        { baseName: "Тимозин Алфа", dosage: "10 mg", purchasePrice: 25.56 },
-        { baseName: "Глутатион", dosage: "600 mg", purchasePrice: 3.886 },
-        { baseName: "NAD+", dosage: "500 mg", purchasePrice: 25.56 },
-        { baseName: "GHK-Cu", dosage: "100 mg", purchasePrice: 12.78 },
-        { baseName: "Меланотан 2", dosage: "10 mg", purchasePrice: 15.34 }
+    const DEFAULT_PRODUCTS = [
+        { baseName: 'CJC-1295 + IPA', dosage: '5 mg', purchasePrice: 8.50 },
+        { baseName: 'IGF-1LR3', dosage: '1 mg', purchasePrice: 17.50 },
+        { baseName: 'IGF-DES', dosage: '1 mg', purchasePrice: 5.00 },
+        { baseName: 'Glow (CU+TB+BC+KPV)', dosage: 'комбо', purchasePrice: 23.00 },
+        { baseName: 'Tesamorelin', dosage: '10 mg', purchasePrice: 18.00 },
+        { baseName: 'SLU-PP-322', dosage: '5 mg', purchasePrice: 12.00 },
+        { baseName: 'LC216', dosage: 'комбо', purchasePrice: 7.50 },
+        { baseName: 'LC120', dosage: 'комбо', purchasePrice: 7.50 },
+        { baseName: 'Retatrutide', dosage: '5 mg', purchasePrice: 15.34 },
+        { baseName: 'Retatrutide', dosage: '10 mg', purchasePrice: 25.56 },
+        { baseName: 'Mots-C', dosage: '10 mg', purchasePrice: 12.78 },
+        { baseName: 'Ipamorelin + CJC', dosage: '5+5 mg', purchasePrice: 8.50 },
+        { baseName: 'Тирзепатид', dosage: '5 mg', purchasePrice: 12.78 },
+        { baseName: 'Тирзепатид', dosage: '10 mg', purchasePrice: 20.45 },
+        { baseName: 'Тирзепатид', dosage: '30 mg', purchasePrice: 51.13 },
+        { baseName: 'Глутатион', dosage: '1500 mg', purchasePrice: 6.50 },
+        { baseName: 'Тимозин Алфа', dosage: '5 mg', purchasePrice: 15.34 },
+        { baseName: 'Тимозин Алфа', dosage: '10 mg', purchasePrice: 25.56 },
+        { baseName: 'Глутатион', dosage: '600 mg', purchasePrice: 3.886 },
+        { baseName: 'NAD+', dosage: '500 mg', purchasePrice: 25.56 },
+        { baseName: 'GHK-Cu', dosage: '100 mg', purchasePrice: 12.78 },
+        { baseName: 'Меланотан 2', dosage: '10 mg', purchasePrice: 15.34 }
     ];
 
-    let products = [];
-    let sales = [];
-    let nextProductId = 100;
-    let nextSaleId = 1000;
+    const DEMO_SALES = [
+        { prodBase: 'Retatrutide', dosage: '5 mg', qty: 45, mult: 2, comment: 'Групова клиентска поръчка', date: '2025-05-10' },
+        { prodBase: 'Glow (CU+TB+BC+KPV)', dosage: 'комбо', qty: 20, mult: 2, comment: 'Промо пакет за лоялен клиент', date: '2025-05-12' },
+        { prodBase: 'Ipamorelin + CJC', dosage: '5+5 mg', qty: 9, mult: 2, comment: 'Стандартна препоръка', date: '2025-05-14' },
+        { prodBase: 'Retatrutide', dosage: '5 mg', qty: 2, mult: 2.5, comment: 'Малка поръчка на дребно', date: '2025-05-15' },
+        { prodBase: 'Глутатион', dosage: '600 mg', qty: 10, mult: 2, comment: 'Поръчка над 10 броя', date: '2025-05-16' },
+        { prodBase: 'NAD+', dosage: '500 mg', qty: 3, mult: 1, comment: 'Лична употреба', date: '2025-05-17' }
+    ];
 
-    const STORAGE_PRODUCTS = "peptide_products";
-    const STORAGE_SALES = "peptide_sales";
+    const STORAGE_PRODUCTS = 'pep_local_products';
+    const STORAGE_SALES = 'pep_local_sales';
+    const API_BASE = '/api/pep';
+    const MULTIPLIER_META = {
+        '2': { label: 'Продажба на едро', description: 'По-голямо количество с базова надценка ×2.' },
+        '2.2': { label: 'Стандартна продажба', description: 'Най-подходящо за обичайните клиентски сделки.' },
+        '2.5': { label: 'Продажба на дребно', description: 'За малко количество или по-висока единична цена.' },
+        '1': { label: 'Лична употреба', description: 'Отчита се само разход, без приход.' }
+    };
 
-    function saveToLocal() {
-        localStorage.setItem(STORAGE_PRODUCTS, JSON.stringify(products));
-        localStorage.setItem(STORAGE_SALES, JSON.stringify(sales));
+    const state = {
+        products: [],
+        sales: [],
+        currentSort: 'date_desc',
+        search: '',
+        storageMode: 'loading',
+        backendEngine: '',
+        lastSyncAt: null,
+        isBusy: false
+    };
+
+    function formatMoney(value) {
+        return `${Number(value || 0).toFixed(2)} €`;
     }
 
-    function loadFromLocal() {
-        const storedProds = localStorage.getItem(STORAGE_PRODUCTS);
-        if(storedProds) {
-            products = JSON.parse(storedProds);
-            if(products.length) nextProductId = Math.max(...products.map(p=>p.id), 100) + 1;
-        } else { initDefaultProducts(); }
-        const storedSales = localStorage.getItem(STORAGE_SALES);
-        if(storedSales) {
-            sales = JSON.parse(storedSales);
-            if(sales.length) nextSaleId = Math.max(...sales.map(s=>s.id), 1000) + 1;
-        } else { sales = []; }
+    function getTodayValue() {
+        return new Date().toISOString().slice(0, 10);
     }
 
-    function initDefaultProducts() {
-        products = [];
-        let idx = 1;
-        defaultProducts.forEach(p => { products.push({ id: idx++, baseName: p.baseName, dosage: p.dosage, purchasePrice: p.purchasePrice }); });
-        nextProductId = idx;
+    function safeNumber(value) {
+        const num = Number(value);
+        return Number.isFinite(num) ? num : 0;
     }
 
-    function addNewProduct(baseName, dosage, price) {
-        if(!baseName.trim() || !dosage.trim() || isNaN(price) || price<0) return false;
-        const exists = products.some(p => p.baseName === baseName.trim() && p.dosage === dosage.trim());
-        if(exists) { alert("Продукт с тази комбинация вече съществува!"); return false; }
-        products.push({ id: nextProductId++, baseName: baseName.trim(), dosage: dosage.trim(), purchasePrice: parseFloat(price) });
-        saveToLocal(); refreshAllUI(); return true;
+    function getSaleTypeMeta(multiplier) {
+        const key = String(multiplier);
+        return MULTIPLIER_META[key] || { label: `Продажба ×${key}`, description: 'Персонализиран тип продажба.' };
     }
 
-    function addSaleTransaction(productId, quantity, multiplier, comment, dateStr) {
-        const product = products.find(p => p.id == productId);
-        if(!product) return false;
-        const qty = parseInt(quantity);
-        if(qty <=0) return false;
-        const price = product.purchasePrice;
-        const cost = price * qty;
-        let revenue = multiplier !== 1 ? price * multiplier * qty : 0;
-        
-        sales.push({
-            id: nextSaleId++, productId: product.id, productName: `${product.baseName} ${product.dosage}`,
-            quantity: qty, multiplier: multiplier, comment: comment || "",
-            date: dateStr || new Date().toISOString().slice(0,10), revenue: revenue, cost: cost
+    function createLocalProductRecords() {
+        return DEFAULT_PRODUCTS.map((product, index) => ({
+            id: index + 1,
+            baseName: product.baseName,
+            dosage: product.dosage,
+            purchasePrice: safeNumber(product.purchasePrice)
+        }));
+    }
+
+    function createLocalDemoSales(products) {
+        let saleId = 1000;
+        return DEMO_SALES.map((item) => {
+            const product = products.find((entry) => entry.baseName === item.prodBase && entry.dosage === item.dosage);
+            if (!product) {
+                return null;
+            }
+            const quantity = safeNumber(item.qty);
+            const multiplier = safeNumber(item.mult);
+            const cost = product.purchasePrice * quantity;
+            const revenue = multiplier === 1 ? 0 : product.purchasePrice * multiplier * quantity;
+            return {
+                id: saleId++,
+                productId: product.id,
+                productName: `${product.baseName} ${product.dosage}`,
+                quantity,
+                multiplier,
+                comment: item.comment || '',
+                date: item.date,
+                revenue,
+                cost
+            };
+        }).filter(Boolean);
+    }
+
+    function saveLocalState() {
+        localStorage.setItem(STORAGE_PRODUCTS, JSON.stringify(state.products));
+        localStorage.setItem(STORAGE_SALES, JSON.stringify(state.sales));
+    }
+
+    function loadLocalState() {
+        const storedProducts = JSON.parse(localStorage.getItem(STORAGE_PRODUCTS) || 'null');
+        const storedSales = JSON.parse(localStorage.getItem(STORAGE_SALES) || 'null');
+
+        state.products = Array.isArray(storedProducts) && storedProducts.length ? storedProducts : createLocalProductRecords();
+        state.sales = Array.isArray(storedSales) && storedSales.length ? storedSales : createLocalDemoSales(state.products);
+        saveLocalState();
+    }
+
+    function setBusy(isBusy) {
+        state.isBusy = isBusy;
+        document.getElementById('addSaleBtn').disabled = isBusy;
+        document.getElementById('addProductBtn').disabled = isBusy;
+        document.getElementById('resetDemoBtn').disabled = isBusy;
+    }
+
+    function showBanner(message, kind = 'info') {
+        const banner = document.getElementById('feedbackBanner');
+        banner.textContent = message;
+        banner.className = `banner visible ${kind}`;
+    }
+
+    function hideBanner() {
+        const banner = document.getElementById('feedbackBanner');
+        banner.className = 'banner';
+        banner.textContent = '';
+    }
+
+    function updateStatusPanel() {
+        const badge = document.getElementById('syncBadge');
+        const title = document.getElementById('statusTitle');
+        const copy = document.getElementById('statusCopy');
+        const source = document.getElementById('statusSource');
+        const updatedAt = document.getElementById('statusUpdatedAt');
+
+        if (state.storageMode === 'backend') {
+            badge.className = 'status-badge';
+            badge.textContent = 'Свързано с бекенда';
+            title.textContent = state.backendEngine === 'd1'
+                ? 'Демо данните и новите записи се пазят в базата.'
+                : 'Демо данните и новите записи се пазят в бекенда.';
+            copy.textContent = state.backendEngine === 'd1'
+                ? 'Работиш с централизирани данни от бекенда. Ако базата е празна, демо записите се зареждат автоматично.'
+                : 'Работиш с централизирани данни от бекенда. Ако хранилището е празно, демо записите се зареждат автоматично.';
+            source.textContent = state.backendEngine === 'd1' ? 'Cloudflare D1 база данни' : 'Бекенд хранилище';
+        } else if (state.storageMode === 'local-fallback') {
+            badge.className = 'status-badge warning';
+            badge.textContent = 'Локален авариен режим';
+            title.textContent = 'Бекендът не е достъпен в момента.';
+            copy.textContent = 'Страницата остава използваема локално, но новите записи няма да се синхронизират към базата, докато бекендът не е наличен.';
+            source.textContent = 'Локално в браузъра';
+        } else {
+            badge.className = 'status-badge warning';
+            badge.textContent = 'Подготовка';
+            title.textContent = 'Зареждам данните…';
+            copy.textContent = 'Изчаква се началното състояние на каталога и историята.';
+            source.textContent = 'Подготовка';
+        }
+
+        updatedAt.textContent = state.lastSyncAt ? new Date(state.lastSyncAt).toLocaleString('bg-BG') : '—';
+    }
+
+    async function requestJSON(path, options = {}) {
+        const response = await fetch(path, {
+            headers: {
+                'Content-Type': 'application/json',
+                ...(options.headers || {})
+            },
+            ...options
         });
-        saveToLocal(); refreshAllUI(); return true;
+
+        let payload = null;
+        try {
+            payload = await response.json();
+        } catch (_) {
+            payload = null;
+        }
+
+        if (!response.ok) {
+            throw new Error(payload?.error || 'Заявката не беше успешна.');
+        }
+
+        return payload;
     }
 
-    function deleteSale(saleId) { sales = sales.filter(s => s.id !== saleId); saveToLocal(); refreshAllUI(); }
+    function normalizeBackendPayload(payload) {
+        state.products = Array.isArray(payload.products) ? payload.products.map((product) => ({
+            id: safeNumber(product.id),
+            baseName: product.baseName,
+            dosage: product.dosage,
+            purchasePrice: safeNumber(product.purchasePrice)
+        })) : [];
 
-    function getTotalSoldQty(productId) { return sales.filter(s => s.productId === productId).reduce((acc,s)=> acc + s.quantity, 0); }
+        state.sales = Array.isArray(payload.sales) ? payload.sales.map((sale) => ({
+            id: safeNumber(sale.id),
+            productId: safeNumber(sale.productId),
+            productName: sale.productName,
+            quantity: safeNumber(sale.quantity),
+            multiplier: safeNumber(sale.multiplier),
+            comment: sale.comment || '',
+            date: sale.date,
+            revenue: safeNumber(sale.revenue),
+            cost: safeNumber(sale.cost)
+        })) : [];
+
+        state.storageMode = 'backend';
+        state.backendEngine = payload.storage || '';
+        state.lastSyncAt = payload.updatedAt || new Date().toISOString();
+    }
+
+    async function bootstrapData() {
+        updateStatusPanel();
+        try {
+            const payload = await requestJSON(`${API_BASE}/bootstrap`);
+            normalizeBackendPayload(payload);
+            hideBanner();
+        } catch (error) {
+            console.warn('PEP backend unavailable, switching to local fallback:', error.message);
+            loadLocalState();
+            state.storageMode = 'local-fallback';
+            state.backendEngine = '';
+            state.lastSyncAt = new Date().toISOString();
+            showBanner(`Бекендът за PEP не е достъпен (${error.message}). Страницата премина в локален авариен режим.`, 'info');
+        }
+        updateStatusPanel();
+        refreshAllUI();
+    }
+
+    function getNextLocalProductId() {
+        return state.products.length ? Math.max(...state.products.map((product) => safeNumber(product.id))) + 1 : 1;
+    }
+
+    function getNextLocalSaleId() {
+        return state.sales.length ? Math.max(...state.sales.map((sale) => safeNumber(sale.id))) + 1 : 1000;
+    }
+
+    async function addProduct(baseName, dosage, purchasePrice) {
+        const cleanBase = baseName.trim();
+        const cleanDosage = dosage.trim();
+        const cleanPrice = safeNumber(purchasePrice);
+
+        if (!cleanBase || !cleanDosage || !Number.isFinite(cleanPrice) || cleanPrice < 0) {
+            throw new Error('Попълни коректно името, дозировката и доставната цена.');
+        }
+
+        const duplicate = state.products.some((product) => product.baseName.toLowerCase() === cleanBase.toLowerCase() && product.dosage.toLowerCase() === cleanDosage.toLowerCase());
+        if (duplicate) {
+            throw new Error('Този продукт вече съществува в каталога.');
+        }
+
+        if (state.storageMode === 'backend') {
+            const payload = await requestJSON(`${API_BASE}/products`, {
+                method: 'POST',
+                body: JSON.stringify({ baseName: cleanBase, dosage: cleanDosage, purchasePrice: cleanPrice })
+            });
+            state.products.push(payload.product);
+            state.lastSyncAt = payload.updatedAt || new Date().toISOString();
+        } else {
+            state.products.push({ id: getNextLocalProductId(), baseName: cleanBase, dosage: cleanDosage, purchasePrice: cleanPrice });
+            saveLocalState();
+            state.lastSyncAt = new Date().toISOString();
+        }
+    }
+
+    async function addSale(productId, quantity, multiplier, comment, dateValue) {
+        const product = state.products.find((item) => safeNumber(item.id) === safeNumber(productId));
+        const qty = parseInt(quantity, 10);
+        const numericMultiplier = safeNumber(multiplier);
+        const saleDate = dateValue || getTodayValue();
+
+        if (!product) {
+            throw new Error('Избери валиден продукт от каталога.');
+        }
+        if (!Number.isInteger(qty) || qty < 1) {
+            throw new Error('Количество трябва да е цяло число поне 1.');
+        }
+        if (!saleDate) {
+            throw new Error('Избери дата на записа.');
+        }
+
+        if (state.storageMode === 'backend') {
+            const payload = await requestJSON(`${API_BASE}/sales`, {
+                method: 'POST',
+                body: JSON.stringify({ productId: product.id, quantity: qty, multiplier: numericMultiplier, comment: comment || '', date: saleDate })
+            });
+            state.sales.push(payload.sale);
+            state.lastSyncAt = payload.updatedAt || new Date().toISOString();
+        } else {
+            const cost = product.purchasePrice * qty;
+            const revenue = numericMultiplier === 1 ? 0 : product.purchasePrice * numericMultiplier * qty;
+            state.sales.push({
+                id: getNextLocalSaleId(),
+                productId: product.id,
+                productName: `${product.baseName} ${product.dosage}`,
+                quantity: qty,
+                multiplier: numericMultiplier,
+                comment: comment || '',
+                date: saleDate,
+                revenue,
+                cost
+            });
+            saveLocalState();
+            state.lastSyncAt = new Date().toISOString();
+        }
+    }
+
+    async function removeSale(saleId) {
+        if (state.storageMode === 'backend') {
+            const payload = await requestJSON(`${API_BASE}/sales/delete`, {
+                method: 'POST',
+                body: JSON.stringify({ saleId })
+            });
+            state.sales = state.sales.filter((sale) => safeNumber(sale.id) !== safeNumber(saleId));
+            state.lastSyncAt = payload.updatedAt || new Date().toISOString();
+        } else {
+            state.sales = state.sales.filter((sale) => safeNumber(sale.id) !== safeNumber(saleId));
+            saveLocalState();
+            state.lastSyncAt = new Date().toISOString();
+        }
+    }
+
+    async function resetDemoData() {
+        if (!confirm('Да върна ли каталога и историята към демо състоянието? Всички текущи записи ще бъдат изтрити.')) {
+            return;
+        }
+
+        if (state.storageMode === 'backend') {
+            const payload = await requestJSON(`${API_BASE}/reset-demo`, { method: 'POST' });
+            normalizeBackendPayload(payload);
+        } else {
+            state.products = createLocalProductRecords();
+            state.sales = createLocalDemoSales(state.products);
+            saveLocalState();
+            state.lastSyncAt = new Date().toISOString();
+        }
+
+        updateStatusPanel();
+        refreshAllUI();
+        showBanner('Демо данните са възстановени успешно.', 'info');
+    }
+
+    function getTotalSoldQty(productId) {
+        return state.sales.filter((sale) => safeNumber(sale.productId) === safeNumber(productId)).reduce((sum, sale) => sum + safeNumber(sale.quantity), 0);
+    }
 
     function getSortedProducts() {
-        return [...products].sort((a,b) => {
-            if(a.baseName === b.baseName) {
-                const aNum = parseFloat(a.dosage) || 0;
-                const bNum = parseFloat(b.dosage) || 0;
-                return aNum - bNum;
+        return [...state.products].sort((a, b) => {
+            const nameCompare = a.baseName.localeCompare(b.baseName, 'bg');
+            if (nameCompare !== 0) {
+                return nameCompare;
             }
-            return a.baseName.localeCompare(b.baseName, 'bg');
+            return a.dosage.localeCompare(b.dosage, 'bg');
         });
     }
 
     function renderProductTable() {
-        const sorted = getSortedProducts();
         const tbody = document.getElementById('productTableBody');
         tbody.innerHTML = '';
-        sorted.forEach(prod => {
-            const totalSold = getTotalSoldQty(prod.id);
-            const price = prod.purchasePrice;
-            const row = tbody.insertRow();
-            row.insertCell(0).innerText = prod.baseName;
-            row.insertCell(1).innerText = prod.dosage;
-            row.insertCell(2).innerText = price.toFixed(2) + " €";
-            row.insertCell(3).innerHTML = `<span class="sold-count" data-productid="${prod.id}" data-name="${prod.baseName} ${prod.dosage}">${totalSold} бр.</span>`;
-            row.insertCell(4).innerText = (price*2).toFixed(2) + " €";
-            row.insertCell(5).innerText = (price*2.2).toFixed(2) + " €";
-            row.insertCell(6).innerText = (price*2.5).toFixed(2) + " €";
-        });
-        document.querySelectorAll('.sold-count').forEach(el => {
-            el.addEventListener('click', () => showHistoryForProduct(parseInt(el.dataset.productid), el.dataset.name));
-        });
-    }
 
-    function showHistoryForProduct(productId, productName) {
-        const relatedSales = sales.filter(s => s.productId === productId).sort((a,b)=> new Date(b.date) - new Date(a.date));
-        if(relatedSales.length === 0) {
-            document.getElementById('modalHistoryList').innerHTML = `<p>Няма записи за този продукт.</p>`;
-        } else {
-            let html = `<ul style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:8px;">`;
-            relatedSales.forEach(s => {
-                const type = s.multiplier === 1 ? '🧴 Лична употреба' : `💰 Продажба (×${s.multiplier})`;
-                html += `<li style="padding:12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px;">
-                    <strong>${s.date}</strong> | ${s.quantity} бр. | ${type}<br>
-                    <span style="color:#64748b; font-size:0.85rem;">Приход: ${s.revenue.toFixed(2)}€ | Разход: ${s.cost.toFixed(2)}€</span><br>
-                    <em>📝 ${s.comment || '—'}</em>
-                </li>`;
-            });
-            html += `</ul>`;
-            document.getElementById('modalHistoryList').innerHTML = html;
+        const sortedProducts = getSortedProducts();
+        if (!sortedProducts.length) {
+            tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">Каталогът е празен. Добави първия продукт от формата по-горе.</div></td></tr>';
+            return;
         }
-        document.getElementById('historyModal').style.display = 'flex';
+
+        sortedProducts.forEach((product) => {
+            const row = tbody.insertRow();
+            const totalSold = getTotalSoldQty(product.id);
+            row.insertCell().innerHTML = `<span class="product-pill">${product.baseName}</span>`;
+            row.insertCell().textContent = product.dosage;
+            row.insertCell().textContent = formatMoney(product.purchasePrice);
+            row.insertCell().innerHTML = `<button type="button" class="sold-count" data-productid="${product.id}" data-name="${product.baseName} ${product.dosage}">${totalSold} бр.</button>`;
+            row.insertCell().textContent = formatMoney(product.purchasePrice * 2);
+            row.insertCell().textContent = formatMoney(product.purchasePrice * 2.2);
+            row.insertCell().textContent = formatMoney(product.purchasePrice * 2.5);
+        });
+
+        document.querySelectorAll('.sold-count').forEach((button) => {
+            button.addEventListener('click', () => showHistoryForProduct(Number(button.dataset.productid), button.dataset.name));
+        });
     }
 
-    let currentSort = 'date_desc';
+    function getFilteredSales() {
+        const term = state.search.trim().toLowerCase();
+        let result = [...state.sales];
+
+        if (term) {
+            result = result.filter((sale) => {
+                const haystack = [sale.date, sale.productName, sale.comment, getSaleTypeMeta(sale.multiplier).label]
+                    .filter(Boolean)
+                    .join(' ')
+                    .toLowerCase();
+                return haystack.includes(term);
+            });
+        }
+
+        if (state.currentSort === 'date_desc') {
+            result.sort((a, b) => new Date(b.date) - new Date(a.date));
+        } else if (state.currentSort === 'date_asc') {
+            result.sort((a, b) => new Date(a.date) - new Date(b.date));
+        } else if (state.currentSort === 'product') {
+            result.sort((a, b) => a.productName.localeCompare(b.productName, 'bg'));
+        } else if (state.currentSort === 'revenue_desc') {
+            result.sort((a, b) => safeNumber(b.revenue) - safeNumber(a.revenue));
+        }
+
+        return result;
+    }
+
     function renderSalesTable() {
-        let filteredSales = [...sales];
-        if(currentSort === 'date_desc') filteredSales.sort((a,b)=> new Date(b.date) - new Date(a.date));
-        else if(currentSort === 'date_asc') filteredSales.sort((a,b)=> new Date(a.date) - new Date(b.date));
-        else if(currentSort === 'product') filteredSales.sort((a,b)=> a.productName.localeCompare(b.productName));
-        else if(currentSort === 'revenue_desc') filteredSales.sort((a,b)=> b.revenue - a.revenue);
-        
-        const show = {
-            date: document.getElementById('colDate').checked, product: document.getElementById('colProduct').checked,
-            qty: document.getElementById('colQty').checked, multi: document.getElementById('colMulti').checked,
-            revenue: document.getElementById('colRevenue').checked, cost: document.getElementById('colCost').checked,
-            comment: document.getElementById('colComment').checked, action: document.getElementById('colAction').checked
-        };
-        
-        const thead = document.getElementById('salesTableHead');
         const tbody = document.getElementById('salesTableBody');
-        
-        let headers = [];
-        if(show.date) headers.push("Дата"); if(show.product) headers.push("Продукт");
-        if(show.qty) headers.push("Кол."); if(show.multi) headers.push("Множител");
-        if(show.revenue) headers.push("Приход (€)"); if(show.cost) headers.push("Разход (€)");
-        if(show.comment) headers.push("Коментар"); if(show.action) headers.push("Действие");
-        
-        thead.innerHTML = `<tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr>`;
+        const thead = document.getElementById('salesTableHead');
+        const filteredSales = getFilteredSales();
+
+        const visibleColumns = {
+            date: document.getElementById('colDate').checked,
+            product: document.getElementById('colProduct').checked,
+            qty: document.getElementById('colQty').checked,
+            type: document.getElementById('colType').checked,
+            revenue: document.getElementById('colRevenue').checked,
+            cost: document.getElementById('colCost').checked,
+            comment: document.getElementById('colComment').checked,
+            action: document.getElementById('colAction').checked
+        };
+
+        const headers = [];
+        if (visibleColumns.date) headers.push('Дата');
+        if (visibleColumns.product) headers.push('Продукт');
+        if (visibleColumns.qty) headers.push('Количество');
+        if (visibleColumns.type) headers.push('Тип запис');
+        if (visibleColumns.revenue) headers.push('Приход');
+        if (visibleColumns.cost) headers.push('Разход');
+        if (visibleColumns.comment) headers.push('Бележка');
+        if (visibleColumns.action) headers.push('Изтриване');
+
+        thead.innerHTML = `<tr>${headers.map((header) => `<th>${header}</th>`).join('')}</tr>`;
         tbody.innerHTML = '';
-        
-        filteredSales.forEach(sale => {
+
+        if (!filteredSales.length) {
+            tbody.innerHTML = `<tr><td colspan="${headers.length || 1}"><div class="empty-state">Няма записи по зададените критерии. Промени търсенето или добави нова продажба.</div></td></tr>`;
+            return;
+        }
+
+        filteredSales.forEach((sale) => {
             const row = tbody.insertRow();
-            let cellIdx=0;
-            if(show.date) row.insertCell(cellIdx++).innerText = sale.date;
-            if(show.product) row.insertCell(cellIdx++).innerText = sale.productName;
-            if(show.qty) row.insertCell(cellIdx++).innerText = sale.quantity;
-            if(show.multi) row.insertCell(cellIdx++).innerHTML = `<span class="multiplier-badge">×${sale.multiplier}</span>`;
-            if(show.revenue) row.insertCell(cellIdx++).innerText = sale.revenue.toFixed(2);
-            if(show.cost) row.insertCell(cellIdx++).innerText = sale.cost.toFixed(2);
-            if(show.comment) row.insertCell(cellIdx++).innerText = sale.comment || '-';
-            if(show.action) {
-                const delBtn = document.createElement('button');
-                delBtn.innerText = 'Изтрий'; delBtn.className = 'delete-btn';
-                delBtn.addEventListener('click', (e) => { e.stopPropagation(); if(confirm('Изтриване?')) deleteSale(sale.id); });
-                row.insertCell(cellIdx++).appendChild(delBtn);
+            const typeMeta = getSaleTypeMeta(sale.multiplier);
+            if (visibleColumns.date) row.insertCell().textContent = sale.date;
+            if (visibleColumns.product) row.insertCell().textContent = sale.productName;
+            if (visibleColumns.qty) row.insertCell().textContent = `${sale.quantity} бр.`;
+            if (visibleColumns.type) row.insertCell().innerHTML = `<span class="type-badge ${sale.multiplier === 1 ? 'personal' : 'sale'}">${typeMeta.label}</span>`;
+            if (visibleColumns.revenue) row.insertCell().textContent = formatMoney(sale.revenue);
+            if (visibleColumns.cost) row.insertCell().textContent = formatMoney(sale.cost);
+            if (visibleColumns.comment) {
+                const cell = row.insertCell();
+                cell.className = 'wrap';
+                cell.textContent = sale.comment || '—';
+            }
+            if (visibleColumns.action) {
+                const cell = row.insertCell();
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'delete-btn';
+                button.textContent = 'Изтрий';
+                button.addEventListener('click', async (event) => {
+                    event.stopPropagation();
+                    if (!confirm('Да изтрия ли този запис?')) {
+                        return;
+                    }
+                    await runSafely(async () => {
+                        await removeSale(sale.id);
+                        refreshAllUI();
+                        updateStatusPanel();
+                        showBanner('Записът беше изтрит.', 'info');
+                    });
+                });
+                cell.appendChild(button);
             }
         });
     }
 
     function updateStats() {
-        const totalRev = sales.reduce((acc,s)=> acc + s.revenue, 0);
-        const totalCost = sales.reduce((acc,s)=> acc + s.cost, 0);
-        document.getElementById('totalRevenue').innerText = totalRev.toFixed(2) + " €";
-        document.getElementById('totalCost').innerText = totalCost.toFixed(2) + " €";
-        document.getElementById('totalProfit').innerText = (totalRev - totalCost).toFixed(2) + " €";
-        document.getElementById('personalUseCount').innerText = sales.filter(s => s.multiplier === 1).reduce((acc,s)=> acc + s.quantity, 0) + " бр.";
+        const totalRevenue = state.sales.reduce((sum, sale) => sum + safeNumber(sale.revenue), 0);
+        const totalCost = state.sales.reduce((sum, sale) => sum + safeNumber(sale.cost), 0);
+        const totalUnits = state.sales.reduce((sum, sale) => sum + safeNumber(sale.quantity), 0);
+        const personalUnits = state.sales.filter((sale) => safeNumber(sale.multiplier) === 1).reduce((sum, sale) => sum + safeNumber(sale.quantity), 0);
+
+        document.getElementById('totalRevenue').textContent = formatMoney(totalRevenue);
+        document.getElementById('totalCost').textContent = formatMoney(totalCost);
+        document.getElementById('totalProfit').textContent = formatMoney(totalRevenue - totalCost);
+        document.getElementById('totalUnits').textContent = `${totalUnits} бр.`;
+        document.getElementById('personalUseCount').textContent = `${personalUnits} бр.`;
+
+        const topProduct = state.products
+            .map((product) => ({ product, sold: getTotalSoldQty(product.id) }))
+            .sort((a, b) => b.sold - a.sold)[0];
+
+        document.getElementById('topProductName').textContent = topProduct && topProduct.sold > 0 ? `${topProduct.product.baseName}` : '—';
+        document.getElementById('topProductMeta').textContent = topProduct && topProduct.sold > 0
+            ? `${topProduct.product.dosage} · ${topProduct.sold} бр. общо`
+            : 'Няма записани продажби за сравнение.';
     }
 
     function refreshDatalist() {
         const datalist = document.getElementById('productDatalist');
-        datalist.innerHTML = '';
-        products.forEach(prod => {
-            const option = document.createElement('option');
-            option.value = `${prod.baseName} ${prod.dosage}`;
-            datalist.appendChild(option);
-        });
+        datalist.innerHTML = state.products
+            .map((product) => `<option value="${product.baseName} ${product.dosage}"></option>`)
+            .join('');
     }
 
-    function refreshAllUI() { renderProductTable(); renderSalesTable(); updateStats(); refreshDatalist(); }
+    function refreshAllUI() {
+        refreshDatalist();
+        renderProductTable();
+        renderSalesTable();
+        updateStats();
+    }
 
-    function populateDemoSales() {
-        if(sales.length === 0) {
-            const demo = [
-                { prodBase: "Retatrutide", dosage: "5 mg", qty:45, mult:2, comment: "Клиент групова поръчка", date: "2025-05-10" },
-                { prodBase: "Glow (CU+TB+BC+KPV)", dosage: "комбо", qty:20, mult:2, comment: "Оферта", date: "2025-05-12" },
-                { prodBase: "Ipamorelin + CJC", dosage: "5+5mg", qty:9, mult:2, comment: "×2 специално", date: "2025-05-14" },
-                { prodBase: "Retatrutide", dosage: "5 mg", qty:2, mult:2.5, comment: "малко количество", date: "2025-05-15" },
-                { prodBase: "Глутатион", dosage: "600 mg", qty:10, mult:2, comment: "над 10 бр", date: "2025-05-16" },
-                { prodBase: "NAD+", dosage: "500 mg", qty:3, mult:1, comment: "лична употреба", date: "2025-05-17" }
-            ];
-            demo.forEach(d => {
-                const prod = products.find(p => p.baseName === d.prodBase && p.dosage === d.dosage);
-                if(prod) addSaleTransaction(prod.id, d.qty, d.mult, d.comment, d.date);
-            });
+    function showHistoryForProduct(productId, productName) {
+        const list = document.getElementById('modalHistoryList');
+        const subtitle = document.getElementById('historyModalSubtitle');
+        const relatedSales = [...state.sales]
+            .filter((sale) => safeNumber(sale.productId) === safeNumber(productId))
+            .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        subtitle.textContent = productName;
+
+        if (!relatedSales.length) {
+            list.innerHTML = '<div class="empty-state">Все още няма записи за този продукт.</div>';
+        } else {
+            list.innerHTML = `<div class="history-list">${relatedSales.map((sale) => {
+                const typeMeta = getSaleTypeMeta(sale.multiplier);
+                return `
+                    <article class="history-item">
+                        <div class="history-top">
+                            <strong>${sale.date}</strong>
+                            <span class="type-badge ${sale.multiplier === 1 ? 'personal' : 'sale'}">${typeMeta.label}</span>
+                        </div>
+                        <div class="small-chip">Количество: ${sale.quantity} бр.</div>
+                        <div class="small-chip">Приход: ${formatMoney(sale.revenue)} · Разход: ${formatMoney(sale.cost)}</div>
+                        <div class="muted">${sale.comment || 'Без бележка.'}</div>
+                    </article>
+                `;
+            }).join('')}</div>`;
+        }
+
+        const modal = document.getElementById('historyModal');
+        modal.style.display = 'flex';
+        modal.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeHistoryModal() {
+        const modal = document.getElementById('historyModal');
+        modal.style.display = 'none';
+        modal.setAttribute('aria-hidden', 'true');
+    }
+
+    async function runSafely(action) {
+        if (state.isBusy) {
+            return;
+        }
+        setBusy(true);
+        try {
+            await action();
+        } catch (error) {
+            console.error(error);
+            showBanner(error.message || 'Възникна проблем при обработката на действието.', 'error');
+        } finally {
+            setBusy(false);
         }
     }
 
-    function exportToCSV() {
-        let csvRows = [["ID","Дата","Продукт","Количество","Множител","Приход (€)","Разход (€)","Коментар"]];
-        sales.forEach(s => csvRows.push([s.id, s.date, s.productName, s.quantity, s.multiplier, s.revenue.toFixed(2), s.cost.toFixed(2), s.comment || ""]));
-        const blob = new Blob(["\uFEFF" + csvRows.map(row => row.join(",")).join("\n")], {type: "text/csv;charset=utf-8;"});
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.setAttribute("download","sales_data.csv");
-        document.body.appendChild(link); link.click(); document.body.removeChild(link);
-    }
-
-    function resetToDemo() {
-        if(confirm("Нулиране на всички данни? (Всичко ще бъде загубено)")) {
-            initDefaultProducts(); sales = []; nextSaleId = 1000;
-            saveToLocal(); populateDemoSales(); refreshAllUI();
-        }
-    }
-
-    document.getElementById('addSaleBtn').addEventListener('click', () => {
-        const searchVal = document.getElementById('productSearch').value.trim();
-        const selectedProduct = products.find(p => `${p.baseName} ${p.dosage}` === searchVal);
-        if(!selectedProduct) { alert("Изберете валиден продукт от списъка"); return; }
-        const qty = parseInt(document.getElementById('saleQty').value);
-        if(isNaN(qty) || qty<1) { alert("Валидно количество"); return; }
-        
-        let dateVal = document.getElementById('saleDate').value || new Date().toISOString().slice(0,10);
-        addSaleTransaction(selectedProduct.id, qty, parseFloat(document.getElementById('multiplierSelect').value), document.getElementById('saleComment').value, dateVal);
-        
+    function resetForm() {
         document.getElementById('productSearch').value = '';
         document.getElementById('saleQty').value = '1';
         document.getElementById('saleComment').value = '';
+        document.getElementById('saleDate').value = getTodayValue();
+        document.getElementById('multiplierSelect').value = '2';
+        updateMultiplierHint();
+    }
+
+    function updateMultiplierHint() {
+        const multiplier = document.getElementById('multiplierSelect').value;
+        document.getElementById('multiplierHint').textContent = getSaleTypeMeta(multiplier).description;
+    }
+
+    document.getElementById('addSaleBtn').addEventListener('click', async () => {
+        await runSafely(async () => {
+            const searchValue = document.getElementById('productSearch').value.trim();
+            const selectedProduct = state.products.find((product) => `${product.baseName} ${product.dosage}` === searchValue);
+            await addSale(
+                selectedProduct?.id,
+                document.getElementById('saleQty').value,
+                document.getElementById('multiplierSelect').value,
+                document.getElementById('saleComment').value.trim(),
+                document.getElementById('saleDate').value || getTodayValue()
+            );
+            refreshAllUI();
+            updateStatusPanel();
+            resetForm();
+            showBanner('Записът е добавен успешно.', 'info');
+        });
     });
 
-    document.getElementById('addProductBtn').addEventListener('click', () => {
-        const base = document.getElementById('newBaseName').value.trim();
-        const dose = document.getElementById('newDosage').value.trim();
-        const price = parseFloat(document.getElementById('newPrice').value);
-        if(!base || !dose || isNaN(price)) { alert("Коректни данни"); return; }
-        addNewProduct(base, dose, price);
-        document.getElementById('newBaseName').value = ''; document.getElementById('newDosage').value = ''; document.getElementById('newPrice').value = '';
+    document.getElementById('addProductBtn').addEventListener('click', async () => {
+        await runSafely(async () => {
+            await addProduct(
+                document.getElementById('newBaseName').value,
+                document.getElementById('newDosage').value,
+                document.getElementById('newPrice').value
+            );
+            document.getElementById('newBaseName').value = '';
+            document.getElementById('newDosage').value = '';
+            document.getElementById('newPrice').value = '';
+            refreshAllUI();
+            updateStatusPanel();
+            showBanner('Новият продукт е добавен в каталога.', 'info');
+        });
     });
 
-    document.getElementById('sortSalesSelect').addEventListener('change', (e) => { currentSort = e.target.value; renderSalesTable(); });
-    document.querySelectorAll('.checkbox-chip input').forEach(chk => chk.addEventListener('change', () => renderSalesTable()));
-    document.getElementById('exportDataBtn').addEventListener('click', exportToCSV);
-    document.getElementById('resetDemoBtn').addEventListener('click', resetToDemo);
-    
-    document.querySelector('.close-modal').addEventListener('click', () => document.getElementById('historyModal').style.display = 'none');
-    window.addEventListener('click', (e) => { if(e.target === document.getElementById('historyModal')) document.getElementById('historyModal').style.display = 'none'; });
+    document.getElementById('resetDemoBtn').addEventListener('click', () => {
+        runSafely(resetDemoData);
+    });
 
-    document.getElementById('saleDate').valueAsDate = new Date();
+    document.getElementById('exportDataBtn').addEventListener('click', () => {
+        const csvRows = [['ID', 'Дата', 'Продукт', 'Количество', 'Тип запис', 'Приход (€)', 'Разход (€)', 'Бележка']];
+        getFilteredSales().forEach((sale) => {
+            csvRows.push([
+                sale.id,
+                sale.date,
+                sale.productName,
+                sale.quantity,
+                getSaleTypeMeta(sale.multiplier).label,
+                safeNumber(sale.revenue).toFixed(2),
+                safeNumber(sale.cost).toFixed(2),
+                (sale.comment || '').replace(/\n/g, ' ')
+            ]);
+        });
+        const blob = new Blob(['﻿' + csvRows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n')], {
+            type: 'text/csv;charset=utf-8;'
+        });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'pep-sales.csv';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    });
 
-    loadFromLocal();
-    if(sales.length === 0) populateDemoSales();
-    refreshAllUI();
+    document.getElementById('sortSalesSelect').addEventListener('change', (event) => {
+        state.currentSort = event.target.value;
+        renderSalesTable();
+    });
+
+    document.getElementById('historySearch').addEventListener('input', (event) => {
+        state.search = event.target.value;
+        renderSalesTable();
+    });
+
+    document.querySelectorAll('.checkbox-chip input').forEach((checkbox) => {
+        checkbox.addEventListener('change', renderSalesTable);
+    });
+
+    document.getElementById('multiplierSelect').addEventListener('change', updateMultiplierHint);
+    document.querySelector('.close-modal').addEventListener('click', closeHistoryModal);
+    window.addEventListener('click', (event) => {
+        if (event.target === document.getElementById('historyModal')) {
+            closeHistoryModal();
+        }
+    });
+
+    document.getElementById('saleDate').value = getTodayValue();
+    updateMultiplierHint();
+    bootstrapData();
 </script>
 </body>
 </html>
