@@ -5052,6 +5052,18 @@
                     await window.NutriPlanSession.ensureAuthenticatedUser(user);
                 }
                 _updateUI(user);
+                if (!user) return;
+                if (localStorage.getItem('authKvSynced')) return;
+                try {
+                    const res  = await fetch(`${WORKER_URL}/api/auth/social`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ idToken: await user.getIdToken() })
+                    });
+                    const data = await res.json();
+                    if (data.userId?.startsWith('fb_')) localStorage.setItem('userId', data.userId);
+                    localStorage.setItem('authKvSynced', '1');
+                } catch (_) { /* silent – plan is still fully usable offline */ }
             });
 
             window.socialLoginWith = async function() {
