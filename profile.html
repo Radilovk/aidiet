@@ -3448,14 +3448,29 @@
             return false;
         }
 
-        // Compress image to JPEG with max 1600px dimension and quality 0.85
+        function getAvatarCamera() {
+            try {
+                if (window.NutriPlanPlatform && typeof window.NutriPlanPlatform.getPlugin === 'function') {
+                    const plugin = window.NutriPlanPlatform.getPlugin('Camera');
+                    if (plugin && typeof plugin.getPhoto === 'function') return plugin;
+                }
+                const cap = window.Capacitor || (window.top && window.top.Capacitor);
+                if (!cap) return null;
+                if (typeof cap.registerPlugin === 'function') {
+                    return cap.registerPlugin('Camera', {});
+                }
+            } catch (_) {}
+            return null;
+        }
+
+        // Compress avatar to JPEG with max 640px dimension and quality 0.78
         function compressImage(file, callback) {
             const reader = new FileReader();
             reader.onload = function(e) {
                 const img = new Image();
                 img.onload = function() {
                     const canvas = document.createElement('canvas');
-                    const MAX_DIM = 1600;
+                    const MAX_DIM = 640;
                     let width = img.width;
                     let height = img.height;
 
@@ -3474,7 +3489,7 @@
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
 
-                    const compressed = canvas.toDataURL('image/jpeg', 0.85);
+                    const compressed = canvas.toDataURL('image/jpeg', 0.78);
                     callback(compressed);
                 };
                 img.onerror = function() {
@@ -3515,6 +3530,8 @@
                 
                 // Avatar upload functionality
                 const avatarInput = document.getElementById('avatarInput');
+                const avatarUploadTrigger = document.getElementById('avatarUploadTrigger');
+                const isNativeAvatarPicker = !!(window.NutriPlanPlatform && typeof window.NutriPlanPlatform.isAPK === 'function' && window.NutriPlanPlatform.isAPK());
 
                 function saveAvatarDataUrl(dataUrl) {
                     try {
@@ -3527,32 +3544,50 @@
                 }
 
                 if (avatarInput) {
-                    avatarInput.addEventListener('click', async function(e) {
-                        const isNativeApp = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
-                        if (!isNativeApp) return;
-                        const camera = window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins.Camera : null;
-                        if (!camera || typeof camera.getPhoto !== 'function') return;
-                        e.preventDefault();
-                        try {
-                            const photo = await camera.getPhoto({
-                                quality: 85,
-                                allowEditing: false,
-                                source: 'PHOTOS',
-                                resultType: 'dataUrl'
-                            });
-                            const photoDataUrl = photo && (photo.dataUrl || (photo.base64String ? ('data:image/' + (photo.format || 'jpeg') + ';base64,' + photo.base64String) : ''));
-                            if (photoDataUrl) saveAvatarDataUrl(photoDataUrl);
-                        } catch (err) {
-                            const msg = (err && (err.message || err)) ? String(err.message || err).toLowerCase() : '';
-                            if (!msg.includes('cancel')) {
-                                showAlert('Неуспешно избиране на снимка.', 'error');
+                    if (isNativeAvatarPicker && avatarUploadTrigger) {
+                        avatarUploadTrigger.addEventListener('click', async function(e) {
+                            const camera = getAvatarCamera();
+                            if (!camera || typeof camera.getPhoto !== 'function') return;
+                            e.preventDefault();
+                            try {
+                                const cap = window.Capacitor || (window.top && window.top.Capacitor) || null;
+                                const photo = await camera.getPhoto({
+                                    quality: 80,
+                                    allowEditing: false,
+                                    source: 'PHOTOS',
+                                    resultType: 'uri',
+                                    webUseInput: false
+                                });
+                                let imageUrl = photo && (photo.webPath || photo.dataUrl || '');
+                                if (!imageUrl && photo && photo.path && cap && typeof cap.convertFileSrc === 'function') {
+                                    imageUrl = cap.convertFileSrc(photo.path);
+                                }
+                                if (!imageUrl && photo && photo.path) {
+                                    imageUrl = photo.path;
+                                }
+                                if (!imageUrl && photo && photo.base64String) {
+                                    imageUrl = 'data:image/' + (photo.format || 'jpeg') + ';base64,' + photo.base64String;
+                                }
+                                if (!imageUrl) {
+                                    throw new Error('image-unavailable');
+                                }
+                                const response = await fetch(imageUrl);
+                                if (!response.ok) {
+                                    throw new Error('image-fetch-failed');
+                                }
+                                compressImage(await response.blob(), saveAvatarDataUrl);
+                            } catch (err) {
+                                const msg = (err && (err.message || err)) ? String(err.message || err).toLowerCase() : '';
+                                if (!msg.includes('cancel')) {
+                                    showAlert('Неуспешно избиране на снимка.', 'error');
+                                }
                             }
-                        }
-                    });
+                        });
+                    }
+
                     avatarInput.addEventListener('change', function(e) {
                         const file = e.target.files && e.target.files[0];
-                        if (!file) return;
-                        if (file.type && file.type.startsWith('image/')) {
+                        if (file && file.type && file.type.startsWith('image/')) {
                             compressImage(file, saveAvatarDataUrl);
                         }
                         e.target.value = '';

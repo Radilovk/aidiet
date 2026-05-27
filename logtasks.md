@@ -1,5 +1,29 @@
 # Log Tasks
 
+## 2026-05-27 — Ревизия на avatar input поправката към минимален код
+
+**Задача:** Последната avatar APK поправка да се ревизира така, че да остане само минималният нужен код — редакция и премахване на излишното, без ново раздуване.
+
+**Направено:**
+- `profile.html`: премахнати са допълнителните helper-и за bridge/platform/camera/blob flow и е оставен само един кратък `getAvatarCamera()` helper.
+- `profile.html`: native avatar picker-ът остава вързан към `#avatarUploadTrigger`, но без излишните `pointer-events`, `tabIndex` и допълнителни guard-ове върху `input`.
+- `profile.html`: web/native обработката е сведена до два кратки пътя — native click през Capacitor camera + стандартен `change` fallback за file input.
+
+## 2026-05-27 — Avatar input в APK: избор на custom снимка от телефона
+
+**Задача:** `avatarInput` не работи в APK приложението. Трябва да позволява избор на custom изображение от телефона на клиента и да остане стабилен в нативен Capacitor контекст.
+
+**Причина (root cause):**
+- `profile.html` е зареден като `profile.html?embedded=1` в iframe, а avatar логиката разчиташе само на `window.Capacitor` и `window.Capacitor.Plugins.Camera`.
+- В APK bridge-ът е по-надежден през shell/top контекста, затова native picker-ът не се активираше коректно в embedded profile tab.
+- Снимката се взимаше и като `dataUrl`, което е по-тежко за bridge/localStorage от нужното за аватар.
+
+**Направено:**
+- `profile.html`: avatar picker-ът вече ползва Capacitor bridge от текущия или `top` прозорец и lazy registration на `Camera` plugin при нужда.
+- `profile.html`: в APK кликът се поема от `#avatarUploadTrigger`, а не от overlay file input, за да се отвори стабилно native gallery picker за снимка от телефона.
+- `profile.html`: native flow вече използва `Camera.getPhoto({ source:'PHOTOS', resultType:'uri' })`, след което изображението се компресира локално преди запис.
+- `profile.html`: аватарът се компресира по-агресивно (640px / JPEG 0.78), за да остане лек за `localStorage` и `NativeBackup`.
+
 ## 2026-05-27 — pep.html: UX/UI редизайн + бекенд съхранение на демо продажбите
 
 **Задача:** Да се преработи `pep.html`, така че интерфейсът да е по-интуитивен и wording-ът да е коректен на български, а демо продажбите и каталогът да могат да се пазят в бекенда.
