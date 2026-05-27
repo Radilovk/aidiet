@@ -12855,10 +12855,10 @@ async function verifyFirebaseIdToken(idToken, env) {
 async function handleSocialAuth(request, env) {
   try {
     if (!env.page_content) {
-      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 503);
     }
     if (!env.FIREBASE_PROJECT_ID) {
-      return jsonResponse({ error: 'Firebase is not configured on the server (missing FIREBASE_PROJECT_ID secret)' }, 500);
+      return jsonResponse({ error: 'Firebase is not configured on the server (missing FIREBASE_PROJECT_ID secret)' }, 503);
     }
 
     const body = await request.json();
@@ -12878,26 +12878,29 @@ async function handleSocialAuth(request, env) {
 
     const { uid, email, name, picture, provider } = firebaseUser;
 
-    // ── Resolve or create internal userId ────────────────────────────────────
-    // Key is auth:{uid} – one stable userId per Google account.
-    const kvKey   = `auth:${uid}`;
-    const stored  = await env.page_content.get(kvKey);
-    let   userId;
+    // userId is always deterministic for Firebase users.
+    const userId = FIREBASE_USER_ID_PREFIX + uid;
 
-    if (stored) {
-      userId = JSON.parse(stored).userId;
-    } else {
-      // First-time login: mint a stable internal id derived from the Firebase uid
-      userId = FIREBASE_USER_ID_PREFIX + uid;
-      await env.page_content.put(kvKey, JSON.stringify({
-        userId,
-        uid,
-        email,
-        name,
-        provider,
-        createdAt: new Date().toISOString(),
-      }));
-      console.log(`Social auth – new user created: userId=${userId} provider=${provider}`);
+    // ── Persist auth record in KV (non-fatal) ────────────────────────────────
+    // Key is auth:{uid} – one stable userId per Google account.
+    // KV I/O failure is treated as a warning; the client still gets a valid
+    // userId so login proceeds normally.
+    try {
+      const kvKey  = `auth:${uid}`;
+      const stored = await env.page_content.get(kvKey);
+      if (!stored) {
+        await env.page_content.put(kvKey, JSON.stringify({
+          userId,
+          uid,
+          email,
+          name,
+          provider,
+          createdAt: new Date().toISOString(),
+        }));
+        console.log(`Social auth – new user created: userId=${userId} provider=${provider}`);
+      }
+    } catch (kvErr) {
+      console.warn('Social auth – KV sync failed (non-fatal):', kvErr.message);
     }
 
     console.log(`Social auth – login ok: userId=${userId} provider=${provider}`);
