@@ -935,6 +935,15 @@
         return payload;
     }
 
+    function shouldSkipPepBackend() {
+        if (window.location.protocol === 'file:') {
+            return true;
+        }
+
+        const host = window.location.hostname.toLowerCase();
+        return host === 'localhost' || host === '127.0.0.1' || host === '[::1]' || host.endsWith('.local');
+    }
+
     function normalizeBackendPayload(payload) {
         state.products = Array.isArray(payload.products) ? payload.products.map((product) => ({
             id: safeNumber(product.id),
@@ -962,6 +971,16 @@
 
     async function bootstrapData() {
         updateStatusPanel();
+        if (shouldSkipPepBackend()) {
+            loadLocalState();
+            state.storageMode = 'local-fallback';
+            state.backendEngine = '';
+            state.lastSyncAt = new Date().toISOString();
+            updateStatusPanel();
+            refreshAllUI();
+            return;
+        }
+
         try {
             const payload = await requestJSON(`${API_BASE}/bootstrap`);
             normalizeBackendPayload(payload);
