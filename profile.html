@@ -1765,14 +1765,7 @@
             opacity: 0.7;
         }
 
-        .profile-logout-slot {
-            display: flex;
-            justify-content: center;
-            padding: 12px 0 8px;
-        }
-
-        .social-logout-btn,
-        .spa-logout-btn {
+        .social-logout-btn {
             margin-top: 8px;
             background: transparent;
             border: 1.5px solid rgba(239,68,68,0.45);
@@ -1784,8 +1777,7 @@
             cursor: pointer;
             transition: background 0.15s, transform 0.15s;
         }
-        .social-logout-btn:hover,
-        .spa-logout-btn:hover { background: rgba(239,68,68,0.08); transform: translateY(-1px); }
+        .social-logout-btn:hover { background: rgba(239,68,68,0.08); transform: translateY(-1px); }
 
         @keyframes profileIn {
             from { opacity: 0; transform: translateY(18px) scale(0.97); }
@@ -2692,16 +2684,10 @@
             }
         }
 
-        function isEmbeddedProfileTab() {
-            return document.documentElement.getAttribute('data-embedded-tab') === '1' && window.parent && window.parent !== window;
-        }
-
         function setProfileLogoutVisibility(visible) {
-            const socialLogoutBtn = document.getElementById('socialLogoutBtn');
-            const spaLogoutBtn = document.getElementById('spaLogoutBtn');
-            const embedded = isEmbeddedProfileTab();
-            if (socialLogoutBtn) socialLogoutBtn.classList.toggle('hidden', !visible || embedded);
-            if (spaLogoutBtn) spaLogoutBtn.classList.toggle('hidden', !visible || !embedded);
+            const logoutBtn = document.getElementById('socialLogoutBtn');
+            if (!logoutBtn) return;
+            logoutBtn.classList.toggle('hidden', !visible);
         }
 
         async function clearProfileSessionFallback() {
@@ -4924,11 +4910,8 @@
     </script>
 
     <!-- Logout button (shown when signed in via Firebase) -->
-    <div class="profile-logout-slot">
+    <div style="display:flex;justify-content:center;padding:12px 0 8px;">
         <button class="social-logout-btn hidden" id="socialLogoutBtn" onclick="socialLogout()">
-            <i class="fas fa-sign-out-alt"></i> Изход от акаунта
-        </button>
-        <button class="spa-logout-btn hidden" id="spaLogoutBtn" onclick="socialLogout()">
             <i class="fas fa-sign-out-alt"></i> Изход от акаунта
         </button>
     </div>
