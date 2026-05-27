@@ -4853,8 +4853,7 @@
     <script>NativeBackup.init().catch(function () {});</script>
 
     <!-- Firebase Auth module: handles Google & email/password login after plan generation.
-         All auth is client-side (Firebase SDK) — no Cloudflare Worker calls.
-         Only one fire-and-forget /api/auth/social call per new device for KV registration. -->
+         All auth is client-side (Firebase SDK) — no Cloudflare Worker calls. -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
         import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
@@ -4867,23 +4866,12 @@
             messagingSenderId: '556207268794',
             appId:             '1:556207268794:web:4fa968491413abd4873383'
         };
-        const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
         const auth = getAuth(initializeApp(_cfg, 'q2auth'));
 
-        /* ── Derive userId locally + one-time KV registration (fire-and-forget) ── */
+        /* ── Derive userId locally ── */
         function syncUser(user) {
             if (!user) return;
-            const userId = 'fb_' + user.uid;
-            localStorage.setItem('userId', userId);
-            if (!localStorage.getItem('authKvSynced')) {
-                user.getIdToken().then(idToken => {
-                    fetch(WORKER_URL + '/api/auth/social', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ idToken })
-                    }).then(() => localStorage.setItem('authKvSynced', '1')).catch(() => {});
-                }).catch(() => {});
-            }
+            localStorage.setItem('userId', 'fb_' + user.uid);
         }
 
         /* ── Sync userId if user is already authenticated when questionnaire completes ── */

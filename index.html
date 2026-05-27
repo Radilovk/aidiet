@@ -4056,18 +4056,6 @@
                 if (changed) localStorage.setItem('userData', JSON.stringify(existing));
             } catch (_) {}
 
-            // Register in KV only once per device (fire-and-forget, for admin only)
-            if (!localStorage.getItem('authKvSynced')) {
-                user.getIdToken().then(idToken => {
-                    fetch(WORKER_URL + '/api/auth/social', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ idToken })
-                    }).then(() => localStorage.setItem('authKvSynced', '1')).catch(() => {});
-                }).catch(() => {});
-            }
-        }
-
         /* Fetch the user's plan from the server (called once on first login on a new device).
          * Returns true if a plan was successfully restored. */
         async function _loadUserPlanFromServer(fbUserId, user, _retries) {
