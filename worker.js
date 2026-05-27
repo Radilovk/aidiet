@@ -12844,6 +12844,71 @@ async function verifyFirebaseIdToken(idToken, env) {
 }
 
 /**
+ * POST /api/auth/social
+ *
+ * Exchanges a Firebase ID Token (issued by Firebase Auth after Google Sign-In)
+ * for an internal userId stored in KV.
+ *
+ * Body:   { idToken: "<firebase-id-token>" }
+ * Returns { success, userId, uid, email, name, picture, provider }
+ */
+async function handleSocialAuth(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+    if (!env.FIREBASE_PROJECT_ID) {
+      return jsonResponse({ error: 'Firebase is not configured on the server (missing FIREBASE_PROJECT_ID secret)' }, 500);
+    }
+
+    const body = await request.json();
+    const { idToken } = body || {};
+    if (!idToken || typeof idToken !== 'string') {
+      return jsonResponse({ error: 'Missing or invalid idToken' }, 400);
+    }
+
+    // Verify the token with Google's public keys
+    let firebaseUser;
+    try {
+      firebaseUser = await verifyFirebaseIdToken(idToken, env);
+    } catch (err) {
+      console.warn('Social auth – token verification failed:', err.message);
+      return jsonResponse({ error: 'Token verification failed: ' + err.message }, 401);
+    }
+
+    const { uid, email, name, picture, provider } = firebaseUser;
+
+    // ── Resolve or create internal userId ────────────────────────────────────
+    // Key is auth:{uid} – one stable userId per Google account.
+    const kvKey   = `auth:${uid}`;
+    const stored  = await env.page_content.get(kvKey);
+    let   userId;
+
+    if (stored) {
+      userId = JSON.parse(stored).userId;
+    } else {
+      // First-time login: mint a stable internal id derived from the Firebase uid
+      userId = FIREBASE_USER_ID_PREFIX + uid;
+      await env.page_content.put(kvKey, JSON.stringify({
+        userId,
+        uid,
+        email,
+        name,
+        provider,
+        createdAt: new Date().toISOString(),
+      }));
+      console.log(`Social auth – new user created: userId=${userId} provider=${provider}`);
+    }
+
+    console.log(`Social auth – login ok: userId=${userId} provider=${provider}`);
+    return jsonResponse({ success: true, userId, uid, email, name, picture, provider });
+  } catch (error) {
+    console.error('Social auth error:', error);
+    return jsonResponse({ error: 'Authentication failed: ' + error.message }, 500);
+  }
+}
+
+/**
  * User: Save user profile (plan + userData) for cross-context restoration
  *
  * Stores the generated diet plan and user data in KV so that it can be
@@ -13815,6 +13880,10 @@ export default {
         return await handlePepDeleteSale(request, env);
       } else if (url.pathname === '/api/pep/reset-demo' && request.method === 'POST') {
         return await handlePepResetDemo(request, env);
+      } else if (url.pathname === '/api/auth/social' && request.method === 'POST') {
+        const rlErr = await checkRateLimit(env, request, 'SOCIAL_AUTH');
+        if (rlErr) return rlErr;
+        return await handleSocialAuth(request, env);
       } else if (url.pathname === '/api/auth/forgot-password' && request.method === 'POST') {
         const rlErr = await checkRateLimit(env, request, 'FORGOT_PASSWORD');
         if (rlErr) return rlErr;

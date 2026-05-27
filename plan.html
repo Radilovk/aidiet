@@ -3563,6 +3563,15 @@
         function syncUser(user) {
             if (!user) return;
             localStorage.setItem('userId', 'fb_' + user.uid);
+            if (!localStorage.getItem('authKvSynced')) {
+                user.getIdToken().then(idToken => {
+                    fetch(WORKER_URL + '/api/auth/social', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ idToken })
+                    }).then(() => localStorage.setItem('authKvSynced', '1')).catch(() => {});
+                }).catch(() => {});
+            }
         }
 
         /* Fetch the user's plan from the server (called once on first login on this device).
