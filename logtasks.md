@@ -2595,3 +2595,28 @@ VAPID ключът е статична стойност — никога не с
 - `profile.html`: за native APK при click на `avatarInput` се използва `Capacitor.Plugins.Camera.getPhoto` (галерия/Photos) и резултатът се записва като аватар; web/PWA file-input flow остава активен.
 
 **Засегнати файлове:** `index.html`, `profile.html`, `logtasks.md`
+
+## 2026-05-27 — APK: липсващ logout бутон и аватар в профил таба
+
+**Задача:**  
+Разследвай защо `spa-logout-btn` и аватарът не се визуализират в APK, но работят в уеб.
+
+**Корен проблем (категоричен отговор):**  
+`auth-guard.js` ред 95 — `window.location.replace("index.html?login=1&next=...")` —  
+пренасочва профил iframe-а към началната/login страница когато Firebase `onAuthStateChanged` върне `user = null`.  
+Това се случва ВИНАГИ в APK защото:  
+1. Questionnaire потребители (userId = `user_xxx`) никога не са правили Firebase login.  
+2. Firebase IndexedDB в WebView-а се изтрива при преинсталация (NativeBackup не я бекъпва).  
+3. `signInWithPopup` не работи в Capacitor WebView.  
+Резултат: profile slot показва `index.html?login=1` вместо `profile.html` → `spa-logout-btn` не съществува в index.html → бутонът е „изчезнал". Аватарът е „изчезнал" по същата причина.
+
+**Вторичен проблем:**  
+`NativeBackup._isNative()` ползва само `window.Capacitor` (не `window.top.Capacitor`) → в iframe е `false` → hook не се инсталира → `profileAvatar` не се записва в Capacitor Preferences → изчезва след преинсталация.
+
+**Направено:**
+- `auth-guard.js`: когато работи в embedded iframe (`window.parent !== window` или `?embedded=1`), НЕ пренасочва към login; само resolve-ва `NutriPlanAuthGuardReady(null)` и връща. Профил страницата сама управлява auth state-а.
+- `native-backup.js`: добавена функция `_getCap()` с fallback `window.top.Capacitor`; `_isNative()` и `_getPlugin()` вече работят коректно в iframe контекст.
+- `profile.html`: добавен ранен inline script за `data-embedded-tab` (присъства в plan.html и guidelines.html, но липсваше в profile.html).
+
+**Засегнати файлове:** `auth-guard.js`, `native-backup.js`, `profile.html`, `logtasks.md`
+
