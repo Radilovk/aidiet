@@ -86,11 +86,27 @@ function _resolveGuardReady(user) {
             }
             _resolveGuardReady(user);
         } else {
+            /* Not authenticated */
+            _resolveGuardReady(null);
+            /* When running inside the SPA shell iframe (embedded tab), do NOT
+             * redirect – the shell is the authority for the auth flow.  Redirecting
+             * the iframe to index.html would replace the tab content with the home
+             * page (which has no spa-logout-btn, no avatar, etc.), causing the
+             * logout-button and avatar bugs reported in the APK build.
+             * The page itself (e.g. profile.html) gracefully handles user=null via
+             * hasStoredProfileSession() / setProfileLogoutVisibility(). */
+            const isEmbedded = window.parent !== window ||
+                new URLSearchParams(location.search).has('embedded');
+            if (isEmbedded) {
+                if (window.NutriPlanDiagnostics) {
+                    window.NutriPlanDiagnostics.ok('auth-guard', 'embedded-no-redirect', location.pathname.split('/').pop() || 'unknown');
+                }
+                return;
+            }
             if (window.NutriPlanDiagnostics) {
                 window.NutriPlanDiagnostics.fail('auth-guard', 'redirect-login', location.pathname.split('/').pop() || 'unknown');
             }
-            /* Not authenticated — send to login */
-            _resolveGuardReady(null);
+            /* Top-level page — send unauthenticated visitor to login */
             const next = encodeURIComponent(location.pathname + location.search);
             window.location.replace('index.html?login=1&next=' + next);
         }

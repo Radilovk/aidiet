@@ -72,20 +72,26 @@ const NativeBackup = (function () {
     let _restorePromise = null;
     let _initPromise = null;
 
+    function _getCap() {
+        /* Works in both top-level window and embedded iframes (tab frames). */
+        return (typeof window !== 'undefined' &&
+            (window.Capacitor || (window.top && window.top !== window && window.top.Capacitor))) || null;
+    }
+
     function _isNative() {
-        return !!(
-            typeof window !== 'undefined' &&
-            window.Capacitor &&
-            typeof window.Capacitor.isNativePlatform === 'function' &&
-            window.Capacitor.isNativePlatform()
-        );
+        try {
+            const cap = _getCap();
+            return !!(cap &&
+                typeof cap.isNativePlatform === 'function' &&
+                cap.isNativePlatform());
+        } catch (_) { return false; }
     }
 
     function _getPlugin() {
         if (_prefs) return _prefs;
         if (!_isNative()) return null;
         try {
-            const cap = window.Capacitor;
+            const cap = _getCap();
             const fromPlugins = cap.Plugins && cap.Plugins.Preferences;
             if (fromPlugins) {
                 _prefs = fromPlugins;
