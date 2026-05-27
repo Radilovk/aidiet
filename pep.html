@@ -58,90 +58,39 @@
             padding: 20px;
         }
 
-        .hero {
-            display: grid;
-            grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr);
-            gap: 16px;
-            align-items: stretch;
-        }
-
-        .hero-panel {
+        .topbar {
             display: flex;
-            flex-direction: column;
-            gap: 14px;
-        }
-
-        .eyebrow {
-            display: inline-flex;
             align-items: center;
-            gap: 8px;
-            width: fit-content;
-            padding: 8px 12px;
-            border-radius: 999px;
-            background: var(--primary-soft);
-            color: var(--primary);
-            font-size: 0.82rem;
-            font-weight: 700;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            background: rgba(255, 255, 255, 0.96);
+            border: 1px solid rgba(219, 227, 239, 0.9);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            padding: 14px 20px;
         }
 
         h1 {
-            font-size: clamp(1.9rem, 3vw, 2.7rem);
-            line-height: 1.05;
-            letter-spacing: -0.03em;
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
         }
 
-        .hero-copy {
-            max-width: 720px;
-            font-size: 1rem;
-            line-height: 1.65;
-            color: var(--text-muted);
-        }
-
-        .hero-points {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        .topbar-right {
+            display: flex;
+            align-items: center;
             gap: 10px;
-        }
-
-        .point {
-            background: var(--surface-alt);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-md);
-            padding: 14px;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .point strong {
-            font-size: 0.95rem;
-        }
-
-        .point span {
-            color: var(--text-muted);
-            font-size: 0.88rem;
-            line-height: 1.45;
-        }
-
-        .status-panel {
-            background: linear-gradient(180deg, rgba(37, 99, 235, 0.08), rgba(255, 255, 255, 0.96));
-            border: 1px solid rgba(37, 99, 235, 0.18);
-            border-radius: var(--radius-lg);
-            padding: 18px;
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-            justify-content: space-between;
+            flex-wrap: wrap;
         }
 
         .status-badge {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            width: fit-content;
-            padding: 8px 12px;
+            gap: 6px;
+            padding: 5px 10px;
             border-radius: 999px;
-            font-size: 0.82rem;
+            font-size: 0.8rem;
             font-weight: 700;
             background: rgba(5, 150, 105, 0.14);
             color: var(--success);
@@ -157,32 +106,9 @@
             color: var(--danger);
         }
 
-        .status-label {
-            font-size: 0.78rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
+        .status-source {
+            font-size: 0.8rem;
             color: var(--text-muted);
-        }
-
-        .status-title {
-            font-size: 1.1rem;
-            font-weight: 800;
-        }
-
-        .status-copy {
-            color: var(--text-muted);
-            line-height: 1.55;
-        }
-
-        .status-meta {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 10px;
-        }
-
-        .status-meta .point {
-            padding: 12px;
         }
 
         .banner {
@@ -213,34 +139,15 @@
             margin-bottom: 16px;
         }
 
-        .card-title-wrap {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
         .card-title {
-            font-size: 1.15rem;
+            font-size: 1.05rem;
             font-weight: 800;
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
-        .card-subtitle {
-            color: var(--text-muted);
-            line-height: 1.5;
-            font-size: 0.92rem;
-        }
-
-        .form-layout {
-            display: grid;
-            grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.95fr);
-            gap: 16px;
-        }
-
         .form-shell,
-        .helper-shell,
         .tools-panel,
         .table-shell,
         .catalog-shell {
@@ -248,51 +155,6 @@
             border: 1px solid var(--border);
             border-radius: var(--radius-md);
             padding: 16px;
-        }
-
-        .helper-shell {
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-        }
-
-        .helper-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .helper-item {
-            display: grid;
-            grid-template-columns: 26px 1fr;
-            gap: 10px;
-            align-items: flex-start;
-        }
-
-        .helper-index {
-            width: 26px;
-            height: 26px;
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--primary-soft);
-            color: var(--primary);
-            font-weight: 800;
-            font-size: 0.85rem;
-        }
-
-        .helper-item strong {
-            display: block;
-            margin-bottom: 4px;
-            font-size: 0.95rem;
-        }
-
-        .helper-item span,
-        .helper-note {
-            color: var(--text-muted);
-            line-height: 1.5;
-            font-size: 0.9rem;
         }
 
         .form-grid {
@@ -305,7 +167,11 @@
             grid-column: span 6;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
+        }
+
+        .form-group.col-4 {
+            grid-column: span 4;
         }
 
         .form-group.full-width {
@@ -313,17 +179,11 @@
         }
 
         label {
-            font-size: 0.78rem;
+            font-size: 0.76rem;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.08em;
+            letter-spacing: 0.07em;
             color: var(--text-muted);
-        }
-
-        .field-help {
-            font-size: 0.82rem;
-            color: var(--text-muted);
-            margin-top: -2px;
         }
 
         input, select, button, textarea {
@@ -669,38 +529,28 @@
             color: var(--text-main);
         }
 
-        @media (max-width: 980px) {
-            .hero,
-            .form-layout {
-                grid-template-columns: 1fr;
-            }
-        }
-
         @media (max-width: 720px) {
             body {
-                padding: 12px;
+                padding: 10px;
             }
 
             .card {
-                padding: 16px;
+                padding: 14px;
             }
 
             .form-group,
+            .form-group.col-4,
             .tools-grid .form-group {
                 grid-column: 1 / -1;
             }
 
-            .stats-grid,
-            .hero-points,
-            .status-meta {
+            .stats-grid {
                 grid-template-columns: 1fr 1fr;
             }
         }
 
         @media (max-width: 560px) {
-            .stats-grid,
-            .hero-points,
-            .status-meta {
+            .stats-grid {
                 grid-template-columns: 1fr;
             }
 
@@ -717,212 +567,119 @@
 </head>
 <body>
 <div class="container">
-    <section class="hero">
-        <div class="card hero-panel">
-            <div class="eyebrow">PEP продажби · по-ясен оперативен изглед</div>
-            <div>
-                <h1>Записвай продажбите бързо, следи маржа ясно и пази демо данните в бекенда.</h1>
-            </div>
-            <p class="hero-copy">
-                Страницата вече е подредена около реалния работен поток: избираш продукт, регистрираш операцията, виждаш ефекта върху приходите и проверяваш историята без да се губиш в терминологията.
-            </p>
-            <div class="hero-points">
-                <div class="point">
-                    <strong>1. Регистрирай операция</strong>
-                    <span>Добави продажба или лична употреба с правилен тип запис и точна дата.</span>
-                </div>
-                <div class="point">
-                    <strong>2. Следи резултата</strong>
-                    <span>Приход, разход, печалба и най-силен продукт се обновяват веднага.</span>
-                </div>
-                <div class="point">
-                    <strong>3. Работи сигурно</strong>
-                    <span>Когато бекендът е наличен, демо записите и новите продажби се пазят в базата.</span>
-                </div>
-            </div>
+    <header class="topbar">
+        <h1>PEP продажби</h1>
+        <div class="topbar-right">
+            <span id="syncBadge" class="status-badge">Свързване…</span>
+            <span id="statusSource" class="status-source"></span>
+            <span id="statusUpdatedAt" class="status-source"></span>
         </div>
-        <aside class="status-panel">
-            <div>
-                <div id="syncBadge" class="status-badge">Свързване…</div>
-            </div>
-            <div>
-                <div class="status-label">Състояние на данните</div>
-                <div id="statusTitle" class="status-title">Подготвям данните…</div>
-                <p id="statusCopy" class="status-copy">Изчаква се началното зареждане на продуктите и историята.</p>
-            </div>
-            <div class="status-meta">
-                <div class="point">
-                    <strong>Източник</strong>
-                    <span id="statusSource">—</span>
-                </div>
-                <div class="point">
-                    <strong>Последна синхронизация</strong>
-                    <span id="statusUpdatedAt">—</span>
-                </div>
-            </div>
-        </aside>
-    </section>
+    </header>
 
     <div id="feedbackBanner" class="banner" role="status" aria-live="polite"></div>
 
     <section class="card">
         <div class="card-header">
-            <div class="card-title-wrap">
-                <div class="card-title">🧾 Регистрирай нов запис</div>
-                <div class="card-subtitle">Всички полета са подредени според естествения ред на работа. Избери продукт, посочи броя, определи типа запис и запази.</div>
-            </div>
+            <div class="card-title">🧾 Нов запис</div>
         </div>
-        <div class="form-layout">
-            <div class="form-shell">
-                <div class="form-grid">
-                    <div class="form-group full-width">
-                        <label for="productSearch">Продукт</label>
-                        <input type="text" id="productSearch" list="productDatalist" placeholder="Например Retatrutide 5 mg" autocomplete="off">
-                        <div class="field-help">Започни да пишеш и избери готов продукт от каталога.</div>
-                        <datalist id="productDatalist"></datalist>
-                    </div>
-                    <div class="form-group">
-                        <label for="saleQty">Количество</label>
-                        <input type="number" id="saleQty" value="1" min="1" step="1" inputmode="numeric">
-                        <div class="field-help">Въведи общия брой продадени или използвани бройки.</div>
-                    </div>
-                    <div class="form-group">
-                        <label for="multiplierSelect">Тип запис</label>
-                        <select id="multiplierSelect">
-                            <option value="2">Продажба на едро · ×2</option>
-                            <option value="2.2">Стандартна продажба · ×2.2</option>
-                            <option value="2.5">Продажба на дребно · ×2.5</option>
-                            <option value="1">Лична употреба · без приход</option>
-                        </select>
-                        <div id="multiplierHint" class="field-help">Подходящо при по-големи поръчки.</div>
-                    </div>
-                    <div class="form-group">
-                        <label for="saleDate">Дата</label>
-                        <input type="date" id="saleDate">
-                        <div class="field-help">По подразбиране се избира днешната дата.</div>
-                    </div>
-                    <div class="form-group full-width">
-                        <label for="saleComment">Бележка</label>
-                        <textarea id="saleComment" placeholder="Например: групова поръчка, препоръчан клиент, мостра, личен прием."></textarea>
-                    </div>
-                    <div class="form-group full-width">
-                        <button id="addSaleBtn">Запази записа</button>
-                    </div>
+        <div class="form-shell">
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label for="productSearch">Продукт</label>
+                    <input type="text" id="productSearch" list="productDatalist" placeholder="Retatrutide 5 mg" autocomplete="off">
+                    <datalist id="productDatalist"></datalist>
+                </div>
+                <div class="form-group col-4">
+                    <label for="saleQty">Количество</label>
+                    <input type="number" id="saleQty" value="1" min="1" step="1" inputmode="numeric">
+                </div>
+                <div class="form-group col-4">
+                    <label for="multiplierSelect">Тип</label>
+                    <select id="multiplierSelect">
+                        <option value="2">Продажба на едро · ×2</option>
+                        <option value="2.2">Стандартна продажба · ×2.2</option>
+                        <option value="2.5">Продажба на дребно · ×2.5</option>
+                        <option value="1">Лична употреба · без приход</option>
+                    </select>
+                </div>
+                <div class="form-group col-4">
+                    <label for="saleDate">Дата</label>
+                    <input type="date" id="saleDate">
+                </div>
+                <div class="form-group full-width">
+                    <label for="saleComment">Бележка</label>
+                    <textarea id="saleComment" placeholder="Групова поръчка, препоръчан клиент…"></textarea>
+                </div>
+                <div class="form-group full-width">
+                    <button id="addSaleBtn">Запази записа</button>
                 </div>
             </div>
-            <aside class="helper-shell">
-                <div>
-                    <div class="card-title" style="font-size:1rem;">Как да избереш правилния тип?</div>
-                    <p class="helper-note">Тук терминологията е изчистена, за да не се чудиш какво означава „множител“ в практиката.</p>
-                </div>
-                <div class="helper-list">
-                    <div class="helper-item">
-                        <div class="helper-index">1</div>
-                        <div>
-                            <strong>Продажба на едро</strong>
-                            <span>Използвай при по-големи клиентски количества, когато искаш бързо да отчетеш базовата продажна цена ×2.</span>
-                        </div>
-                    </div>
-                    <div class="helper-item">
-                        <div class="helper-index">2</div>
-                        <div>
-                            <strong>Стандартна продажба</strong>
-                            <span>Добър избор за нормална сделка с леко по-висок марж.</span>
-                        </div>
-                    </div>
-                    <div class="helper-item">
-                        <div class="helper-index">3</div>
-                        <div>
-                            <strong>Продажба на дребно</strong>
-                            <span>Подходяща за малки количества или по-висока единична цена.</span>
-                        </div>
-                    </div>
-                    <div class="helper-item">
-                        <div class="helper-index">4</div>
-                        <div>
-                            <strong>Лична употреба</strong>
-                            <span>Запазва разхода в историята, но не добавя приход.</span>
-                        </div>
-                    </div>
-                </div>
-            </aside>
         </div>
     </section>
 
     <section class="card">
         <div class="card-header">
-            <div class="card-title-wrap">
-                <div class="card-title">📊 Оперативна картина</div>
-                <div class="card-subtitle">Виж най-важните числа веднага, без да отваряш историята ред по ред.</div>
-            </div>
-            <div class="action-row" style="width:min(100%, 420px);">
-                <button id="exportDataBtn" class="btn-outline">Експорт в CSV</button>
-                <button id="resetDemoBtn" class="btn-danger">Върни демо данните</button>
+            <div class="card-title">📊 Оперативна картина</div>
+            <div class="action-row" style="width:min(100%, 320px);">
+                <button id="exportDataBtn" class="btn-outline">CSV</button>
+                <button id="resetDemoBtn" class="btn-danger">Демо данни</button>
             </div>
         </div>
         <div class="stats-grid" id="statsGrid">
             <div class="stat-card">
-                <div class="stat-label">Общ приход</div>
+                <div class="stat-label">Приход</div>
                 <div class="stat-value" id="totalRevenue">0.00 €</div>
-                <div class="stat-meta">Всички продажби без личната употреба.</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Общ разход</div>
+                <div class="stat-label">Разход</div>
                 <div class="stat-value" id="totalCost">0.00 €</div>
-                <div class="stat-meta">Себестойност на всички записани движения.</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Печалба</div>
                 <div class="stat-value" id="totalProfit">0.00 €</div>
-                <div class="stat-meta">Разлика между приход и себестойност.</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Общо продадени бройки</div>
+                <div class="stat-label">Продадени бройки</div>
                 <div class="stat-value" id="totalUnits">0 бр.</div>
-                <div class="stat-meta">Сумата от всички продажби и лична употреба.</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Лична употреба</div>
                 <div class="stat-value" id="personalUseCount">0 бр.</div>
-                <div class="stat-meta">Бройки, отчетени без приход.</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Водещ продукт</div>
                 <div class="stat-value" id="topProductName">—</div>
-                <div class="stat-meta" id="topProductMeta">Няма достатъчно данни.</div>
+                <div class="stat-meta" id="topProductMeta"></div>
             </div>
         </div>
     </section>
 
     <section class="card">
         <div class="card-header">
-            <div class="card-title-wrap">
-                <div class="card-title">🗂️ История на записите</div>
-                <div class="card-subtitle">Филтрирай по продукт или бележка, избери подредбата и скрий излишните колони, ако искаш по-чист изглед.</div>
-            </div>
+            <div class="card-title">🗂️ История на записите</div>
         </div>
         <div class="tools-panel">
             <div class="tools-grid">
                 <div class="form-group">
-                    <label for="historySearch">Търсене в историята</label>
-                    <input type="text" id="historySearch" placeholder="Продукт, бележка или дата">
+                    <label for="historySearch">Търсене</label>
+                    <input type="text" id="historySearch" placeholder="Продукт, бележка, дата">
                 </div>
                 <div class="form-group">
                     <label for="sortSalesSelect">Подреди по</label>
                     <select id="sortSalesSelect">
-                        <option value="date_desc">Най-нови записи</option>
-                        <option value="date_asc">Най-стари записи</option>
-                        <option value="product">Продукт (А-Я)</option>
+                        <option value="date_desc">Най-нови</option>
+                        <option value="date_asc">Най-стари</option>
+                        <option value="product">Продукт А-Я</option>
                         <option value="revenue_desc">Най-висок приход</option>
                     </select>
                 </div>
                 <div class="form-group full-width">
-                    <label>Видими колони</label>
+                    <label>Колони</label>
                     <div class="checkbox-group">
                         <label class="checkbox-chip"><input type="checkbox" id="colDate" checked> Дата</label>
                         <label class="checkbox-chip"><input type="checkbox" id="colProduct" checked> Продукт</label>
                         <label class="checkbox-chip"><input type="checkbox" id="colQty" checked> Количество</label>
-                        <label class="checkbox-chip"><input type="checkbox" id="colType" checked> Тип запис</label>
+                        <label class="checkbox-chip"><input type="checkbox" id="colType" checked> Тип</label>
                         <label class="checkbox-chip"><input type="checkbox" id="colRevenue" checked> Приход</label>
                         <label class="checkbox-chip"><input type="checkbox" id="colCost" checked> Разход</label>
                         <label class="checkbox-chip"><input type="checkbox" id="colComment" checked> Бележка</label>
@@ -943,27 +700,24 @@
 
     <section class="card">
         <div class="card-header">
-            <div class="card-title-wrap">
-                <div class="card-title">📦 Каталог и цени</div>
-                <div class="card-subtitle">Поддържай централен списък с продукти и виж препоръчителните крайни цени според типа продажба.</div>
-            </div>
+            <div class="card-title">📦 Каталог и цени</div>
         </div>
         <div class="catalog-shell" style="margin-bottom: 14px;">
             <div class="form-grid">
                 <div class="form-group">
-                    <label for="newBaseName">Име на продукт</label>
-                    <input type="text" id="newBaseName" placeholder="Например Tesamorelin">
+                    <label for="newBaseName">Продукт</label>
+                    <input type="text" id="newBaseName" placeholder="Tesamorelin">
                 </div>
                 <div class="form-group">
                     <label for="newDosage">Дозировка</label>
-                    <input type="text" id="newDosage" placeholder="Например 10 mg">
+                    <input type="text" id="newDosage" placeholder="10 mg">
                 </div>
                 <div class="form-group">
                     <label for="newPrice">Доставна цена (€)</label>
                     <input type="number" step="0.01" id="newPrice" inputmode="decimal" placeholder="0.00">
                 </div>
                 <div class="form-group full-width">
-                    <button id="addProductBtn" class="btn-outline">Добави продукта в каталога</button>
+                    <button id="addProductBtn" class="btn-outline">Добави в каталога</button>
                 </div>
             </div>
         </div>
@@ -974,7 +728,7 @@
                         <th>Продукт</th>
                         <th>Дозировка</th>
                         <th>Доставна цена</th>
-                        <th>Общо бройки</th>
+                        <th>Продадени</th>
                         <th>Едро ×2</th>
                         <th>Стандарт ×2.2</th>
                         <th>Дребно ×2.5</th>
@@ -989,10 +743,8 @@
 <div id="historyModal" class="modal" aria-hidden="true">
     <div class="modal-content">
         <span class="close-modal" aria-label="Затвори">&times;</span>
-        <div class="card-title-wrap">
-            <div class="card-title">📜 История по продукт</div>
-            <div class="card-subtitle" id="historyModalSubtitle">Подробен преглед на всички записи за избрания продукт.</div>
-        </div>
+        <div class="card-title">📜 История по продукт</div>
+        <div id="historyModalSubtitle" style="color:var(--text-muted);font-size:0.9rem;margin:6px 0 0;"></div>
         <div id="modalHistoryList"></div>
     </div>
 </div>
@@ -1140,36 +892,24 @@
 
     function updateStatusPanel() {
         const badge = document.getElementById('syncBadge');
-        const title = document.getElementById('statusTitle');
-        const copy = document.getElementById('statusCopy');
         const source = document.getElementById('statusSource');
         const updatedAt = document.getElementById('statusUpdatedAt');
 
         if (state.storageMode === 'backend') {
             badge.className = 'status-badge';
-            badge.textContent = 'Свързано с бекенда';
-            title.textContent = state.backendEngine === 'd1'
-                ? 'Демо данните и новите записи се пазят в базата.'
-                : 'Демо данните и новите записи се пазят в бекенда.';
-            copy.textContent = state.backendEngine === 'd1'
-                ? 'Работиш с централизирани данни от бекенда. Ако базата е празна, демо записите се зареждат автоматично.'
-                : 'Работиш с централизирани данни от бекенда. Ако хранилището е празно, демо записите се зареждат автоматично.';
-            source.textContent = state.backendEngine === 'd1' ? 'Cloudflare D1 база данни' : 'Бекенд хранилище';
+            badge.textContent = 'Свързано';
+            source.textContent = state.backendEngine === 'd1' ? 'D1' : 'Backend';
         } else if (state.storageMode === 'local-fallback') {
             badge.className = 'status-badge warning';
-            badge.textContent = 'Локален авариен режим';
-            title.textContent = 'Бекендът не е достъпен в момента.';
-            copy.textContent = 'Страницата остава използваема локално, но новите записи няма да се синхронизират към базата, докато бекендът не е наличен.';
-            source.textContent = 'Локално в браузъра';
+            badge.textContent = 'Офлайн режим';
+            source.textContent = 'Локално';
         } else {
             badge.className = 'status-badge warning';
-            badge.textContent = 'Подготовка';
-            title.textContent = 'Зареждам данните…';
-            copy.textContent = 'Изчаква се началното състояние на каталога и историята.';
-            source.textContent = 'Подготовка';
+            badge.textContent = 'Зареждане…';
+            source.textContent = '';
         }
 
-        updatedAt.textContent = state.lastSyncAt ? new Date(state.lastSyncAt).toLocaleString('bg-BG') : '—';
+        updatedAt.textContent = state.lastSyncAt ? new Date(state.lastSyncAt).toLocaleTimeString('bg-BG') : '';
     }
 
     async function requestJSON(path, options = {}) {
@@ -1589,10 +1329,7 @@
         updateMultiplierHint();
     }
 
-    function updateMultiplierHint() {
-        const multiplier = document.getElementById('multiplierSelect').value;
-        document.getElementById('multiplierHint').textContent = getSaleTypeMeta(multiplier).description;
-    }
+    function updateMultiplierHint() {}
 
     document.getElementById('addSaleBtn').addEventListener('click', async () => {
         await runSafely(async () => {
