@@ -1,5 +1,20 @@
 # Log Tasks
 
+## 2026-05-27 — Avatar input в APK: избор на custom снимка от телефона
+
+**Задача:** `avatarInput` не работи в APK приложението. Трябва да позволява избор на custom изображение от телефона на клиента и да остане стабилен в нативен Capacitor контекст.
+
+**Причина (root cause):**
+- `profile.html` е зареден като `profile.html?embedded=1` в iframe, а avatar логиката разчиташе само на `window.Capacitor` и `window.Capacitor.Plugins.Camera`.
+- В APK bridge-ът е по-надежден през shell/top контекста, затова native picker-ът не се активираше коректно в embedded profile tab.
+- Снимката се взимаше и като `dataUrl`, което е по-тежко за bridge/localStorage от нужното за аватар.
+
+**Направено:**
+- `profile.html`: avatar picker-ът вече ползва Capacitor bridge от текущия или `top` прозорец и lazy registration на `Camera` plugin при нужда.
+- `profile.html`: в APK кликът се поема от `#avatarUploadTrigger`, а не от overlay file input, за да се отвори стабилно native gallery picker за снимка от телефона.
+- `profile.html`: native flow вече използва `Camera.getPhoto({ source:'PHOTOS', resultType:'uri' })`, след което изображението се компресира локално преди запис.
+- `profile.html`: аватарът се компресира по-агресивно (640px / JPEG 0.78), за да остане лек за `localStorage` и `NativeBackup`.
+
 ## 2026-05-27 — Смяна на logout бутона в profile
 
 **Задача:** Да се премахне `social-logout-btn` и на негово място да се сложи `spa-logout-btn` с подобрена форма, като `spa-logout-btn` да не присъства никъде другаде.
