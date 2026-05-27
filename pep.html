@@ -174,6 +174,10 @@
             grid-column: span 4;
         }
 
+        .form-group.col-3 {
+            grid-column: span 3;
+        }
+
         .form-group.full-width {
             grid-column: 1 / -1;
         }
@@ -428,6 +432,45 @@
             color: var(--text-muted);
         }
 
+        .sale-preview {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            background: #fff;
+        }
+
+        .sale-preview.is-empty {
+            background: var(--surface-alt);
+        }
+
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+        }
+
+        .preview-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--surface-alt);
+        }
+
+        .preview-item strong {
+            font-size: 1rem;
+        }
+
+        .preview-message {
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
         .empty-state {
             padding: 28px 18px;
             text-align: center;
@@ -539,6 +582,7 @@
             }
 
             .form-group,
+            .form-group.col-3,
             .form-group.col-4,
             .tools-grid .form-group {
                 grid-column: 1 / -1;
@@ -589,26 +633,36 @@
                     <input type="text" id="productSearch" list="productDatalist" placeholder="Retatrutide 5 mg" autocomplete="off">
                     <datalist id="productDatalist"></datalist>
                 </div>
-                <div class="form-group col-4">
+                <div class="form-group col-3">
                     <label for="saleQty">Количество</label>
                     <input type="number" id="saleQty" value="1" min="1" step="1" inputmode="numeric">
                 </div>
-                <div class="form-group col-4">
+                <div class="form-group col-3">
                     <label for="multiplierSelect">Тип</label>
                     <select id="multiplierSelect">
                         <option value="2">Продажба на едро · ×2</option>
-                        <option value="2.2">Стандартна продажба · ×2.2</option>
                         <option value="2.5">Продажба на дребно · ×2.5</option>
                         <option value="1">Лична употреба · без приход</option>
+                        <option value="custom">Персонален множител</option>
                     </select>
                 </div>
-                <div class="form-group col-4">
+                <div class="form-group col-3">
+                    <label for="multiplierCustom">Множител</label>
+                    <input type="number" id="multiplierCustom" value="2" min="0.01" step="0.01" inputmode="decimal">
+                </div>
+                <div class="form-group col-3">
                     <label for="saleDate">Дата</label>
                     <input type="date" id="saleDate">
                 </div>
                 <div class="form-group full-width">
                     <label for="saleComment">Бележка</label>
                     <textarea id="saleComment" placeholder="Групова поръчка, препоръчан клиент…"></textarea>
+                </div>
+                <div class="form-group full-width">
+                    <label>Преглед преди запис</label>
+                    <div id="salePreview" class="sale-preview is-empty" aria-live="polite">
+                        <div class="preview-message">Избери продукт, количество и множител, за да видиш предварително броя и крайната цена.</div>
+                    </div>
                 </div>
                 <div class="form-group full-width">
                     <button id="addSaleBtn">Запази записа</button>
@@ -621,7 +675,7 @@
         <div class="card-header">
             <div class="card-title">📊 Оперативна картина</div>
             <div class="action-row" style="width:min(100%, 320px);">
-                <button id="exportDataBtn" class="btn-outline">CSV</button>
+                <button id="exportDataBtn" class="btn-outline">XLS</button>
                 <button id="resetDemoBtn" class="btn-danger">Демо данни</button>
             </div>
         </div>
@@ -730,7 +784,6 @@
                         <th>Доставна цена</th>
                         <th>Продадени</th>
                         <th>Едро ×2</th>
-                        <th>Стандарт ×2.2</th>
                         <th>Дребно ×2.5</th>
                     </tr>
                 </thead>
@@ -822,6 +875,15 @@
     function getSaleTypeMeta(multiplier) {
         const key = String(multiplier);
         return MULTIPLIER_META[key] || { label: `Продажба ×${key}`, description: 'Персонализиран тип продажба.' };
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
     }
 
     function createLocalProductRecords() {
@@ -1027,6 +1089,9 @@
         if (!Number.isInteger(qty) || qty < 1) {
             throw new Error('Количество трябва да е цяло число поне 1.');
         }
+        if (!Number.isFinite(numericMultiplier) || numericMultiplier <= 0) {
+            throw new Error('Попълни валиден множител над 0.');
+        }
         if (!saleDate) {
             throw new Error('Избери дата на записа.');
         }
@@ -1112,7 +1177,7 @@
 
         const sortedProducts = getSortedProducts();
         if (!sortedProducts.length) {
-            tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">Каталогът е празен. Добави първия продукт от формата по-горе.</div></td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state">Каталогът е празен. Добави първия продукт от формата по-горе.</div></td></tr>';
             return;
         }
 
@@ -1124,7 +1189,6 @@
             row.insertCell().textContent = formatMoney(product.purchasePrice);
             row.insertCell().innerHTML = `<button type="button" class="sold-count" data-productid="${product.id}" data-name="${product.baseName} ${product.dosage}">${totalSold} бр.</button>`;
             row.insertCell().textContent = formatMoney(product.purchasePrice * 2);
-            row.insertCell().textContent = formatMoney(product.purchasePrice * 2.2);
             row.insertCell().textContent = formatMoney(product.purchasePrice * 2.5);
         });
 
@@ -1327,19 +1391,84 @@
         document.getElementById('saleComment').value = '';
         document.getElementById('saleDate').value = getTodayValue();
         document.getElementById('multiplierSelect').value = '2';
+        document.getElementById('multiplierCustom').value = '2';
         updateMultiplierHint();
     }
 
-    function updateMultiplierHint() {}
+    function getSelectedProduct() {
+        const searchValue = document.getElementById('productSearch').value.trim();
+        return state.products.find((product) => `${product.baseName} ${product.dosage}` === searchValue);
+    }
+
+    function getResolvedMultiplierValue() {
+        const multiplierSelect = document.getElementById('multiplierSelect').value;
+        const customMultiplier = document.getElementById('multiplierCustom').value;
+        return multiplierSelect === 'custom' ? safeNumber(customMultiplier) : safeNumber(multiplierSelect);
+    }
+
+    function updateSalePreview() {
+        const preview = document.getElementById('salePreview');
+        const product = getSelectedProduct();
+        const qty = parseInt(document.getElementById('saleQty').value, 10);
+        const multiplier = getResolvedMultiplierValue();
+        const saleDate = document.getElementById('saleDate').value || getTodayValue();
+        const isValidQty = Number.isInteger(qty) && qty > 0;
+        const isValidMultiplier = Number.isFinite(multiplier) && multiplier > 0;
+
+        if (!product || !isValidQty || !isValidMultiplier) {
+            preview.classList.add('is-empty');
+            preview.innerHTML = '<div class="preview-message">Избери продукт, количество и множител, за да видиш предварително броя и крайната цена.</div>';
+            return;
+        }
+
+        const typeMeta = getSaleTypeMeta(multiplier);
+        const totalCost = product.purchasePrice * qty;
+        const totalRevenue = multiplier === 1 ? 0 : product.purchasePrice * multiplier * qty;
+        preview.classList.remove('is-empty');
+        preview.innerHTML = `
+            <div class="preview-message"><strong>${escapeHtml(product.baseName)} ${escapeHtml(product.dosage)}</strong> ще бъде записан на ${escapeHtml(saleDate)}.</div>
+            <div class="preview-grid">
+                <div class="preview-item">
+                    <span class="stat-label">Количество</span>
+                    <strong>${qty} бр.</strong>
+                </div>
+                <div class="preview-item">
+                    <span class="stat-label">Тип</span>
+                    <strong>${escapeHtml(typeMeta.label)}</strong>
+                </div>
+                <div class="preview-item">
+                    <span class="stat-label">Множител</span>
+                    <strong>×${multiplier.toFixed(multiplier % 1 === 0 ? 0 : 2)}</strong>
+                </div>
+                <div class="preview-item">
+                    <span class="stat-label">Крайна цена</span>
+                    <strong>${formatMoney(totalRevenue)}</strong>
+                </div>
+            </div>
+            <div class="preview-message">Доставна стойност: ${formatMoney(totalCost)}</div>
+        `;
+    }
+
+    function updateMultiplierHint() {
+        const multiplierSelect = document.getElementById('multiplierSelect');
+        const customInput = document.getElementById('multiplierCustom');
+        const isCustom = multiplierSelect.value === 'custom';
+
+        customInput.disabled = !isCustom;
+        if (!isCustom) {
+            customInput.value = multiplierSelect.value;
+        }
+
+        updateSalePreview();
+    }
 
     document.getElementById('addSaleBtn').addEventListener('click', async () => {
         await runSafely(async () => {
-            const searchValue = document.getElementById('productSearch').value.trim();
-            const selectedProduct = state.products.find((product) => `${product.baseName} ${product.dosage}` === searchValue);
+            const selectedProduct = getSelectedProduct();
             await addSale(
                 selectedProduct?.id,
                 document.getElementById('saleQty').value,
-                document.getElementById('multiplierSelect').value,
+                getResolvedMultiplierValue(),
                 document.getElementById('saleComment').value.trim(),
                 document.getElementById('saleDate').value || getTodayValue()
             );
@@ -1371,9 +1500,9 @@
     });
 
     document.getElementById('exportDataBtn').addEventListener('click', () => {
-        const csvRows = [['ID', 'Дата', 'Продукт', 'Количество', 'Тип запис', 'Приход (€)', 'Разход (€)', 'Бележка']];
+        const rows = [['ID', 'Дата', 'Продукт', 'Количество', 'Тип запис', 'Приход (€)', 'Разход (€)', 'Бележка']];
         getFilteredSales().forEach((sale) => {
-            csvRows.push([
+            rows.push([
                 sale.id,
                 sale.date,
                 sale.productName,
@@ -1384,15 +1513,21 @@
                 (sale.comment || '').replace(/\n/g, ' ')
             ]);
         });
-        const blob = new Blob(['﻿' + csvRows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n')], {
-            type: 'text/csv;charset=utf-8;'
+        const tableRows = rows
+            .map((row, rowIndex) => `<tr>${row.map((cell) => `<${rowIndex === 0 ? 'th' : 'td'}>${escapeHtml(cell)}</${rowIndex === 0 ? 'th' : 'td'}>`).join('')}</tr>`)
+            .join('');
+        const workbook = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body><table>${tableRows}</table></body></html>`;
+        const blob = new Blob(['\ufeff', workbook], {
+            type: 'application/vnd.ms-excel;charset=utf-8;'
         });
         const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = 'pep-sales.csv';
+        const objectUrl = URL.createObjectURL(blob);
+        link.href = objectUrl;
+        link.download = 'pep-sales.xls';
         document.body.appendChild(link);
         link.click();
         link.remove();
+        URL.revokeObjectURL(objectUrl);
     });
 
     document.getElementById('sortSalesSelect').addEventListener('change', (event) => {
@@ -1405,6 +1540,10 @@
         renderSalesTable();
     });
 
+    document.getElementById('productSearch').addEventListener('input', updateSalePreview);
+    document.getElementById('saleQty').addEventListener('input', updateSalePreview);
+    document.getElementById('multiplierCustom').addEventListener('input', updateSalePreview);
+    document.getElementById('saleDate').addEventListener('input', updateSalePreview);
     document.querySelectorAll('.checkbox-chip input').forEach((checkbox) => {
         checkbox.addEventListener('change', renderSalesTable);
     });
