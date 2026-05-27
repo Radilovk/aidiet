@@ -2523,3 +2523,20 @@ VAPID ключът е статична стойност — никога не с
 - `profile.html`: за native APK при click на `avatarInput` се използва `Capacitor.Plugins.Camera.getPhoto` (галерия/Photos) и резултатът се записва като аватар; web/PWA file-input flow остава активен.
 
 **Засегнати файлове:** `index.html`, `profile.html`, `logtasks.md`
+
+## 2026-05-27 — Корекции по APK logout, avatar upload и позиция на theme бутона
+
+**Задача:**
+1. `.spa-logout-btn` да не е на всеки екран в APK, а само в таб „Профил“, на мястото на `socialLogoutBtn`, статичен (не залепен).
+2. В web версията да остава само `socialLogoutBtn`, без `.spa-logout-btn`.
+3. Да се поправи качването на avatar от галерията в profile.
+4. `theme-toggle-btn` да е в `profile-header`, горе вдясно.
+
+**Направено:**
+- `index.html`: премахнат е глобалният `.spa-logout-btn` от SPA shell (вече не се визуализира на всички табове/екрани).
+- `profile.html`: добавен е `.spa-logout-btn` вътре в logout зоната на profile и се показва само при embedded native (APK) profile таб; в web остава само `socialLogoutBtn`.
+- `profile.html`: logout видимостта е разделена така, че в APK profile таб се показва само `spaLogoutBtn`, а `socialLogoutBtn` се скрива; извън APK остава само `socialLogoutBtn`.
+- `profile.html`: поправен е native avatar upload flow от галерията с по-устойчива обработка на `dataUrl`/`base64String`/`webPath`.
+- `profile.html`: `theme-toggle-btn` е позициониран горе вдясно в `profile-header` (абсолютно позициониране в същия контейнер).
+
+**Засегнати файлове:** `index.html`, `profile.html`, `logtasks.md`

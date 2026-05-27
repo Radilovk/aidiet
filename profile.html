@@ -167,7 +167,10 @@
             transform: scale(0.95);
         }
         .profile-header .theme-toggle-btn {
-            margin: 14px auto 0;
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            margin: 0;
         }
 
         h1 {
@@ -1778,6 +1781,14 @@
             transition: background 0.15s, transform 0.15s;
         }
         .social-logout-btn:hover { background: rgba(239,68,68,0.08); transform: translateY(-1px); }
+        .spa-logout-btn {
+            margin-top: 8px;
+        }
+        .profile-logout-row {
+            display: flex;
+            justify-content: center;
+            padding: 12px 0 8px;
+        }
 
         @keyframes profileIn {
             from { opacity: 0; transform: translateY(18px) scale(0.97); }
@@ -2684,10 +2695,23 @@
             }
         }
 
+        function isEmbeddedNativeProfile() {
+            const isEmbeddedTab = document.documentElement.getAttribute('data-embedded-tab') === '1' && window.parent && window.parent !== window;
+            const isNativeApp = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
+            return isEmbeddedTab && isNativeApp;
+        }
+
         function setProfileLogoutVisibility(visible) {
             const logoutBtn = document.getElementById('socialLogoutBtn');
-            if (!logoutBtn) return;
-            logoutBtn.classList.toggle('hidden', !visible);
+            const spaLogoutBtn = document.getElementById('spaLogoutBtn');
+            const showSpaButton = visible && isEmbeddedNativeProfile();
+
+            if (logoutBtn) {
+                logoutBtn.classList.toggle('hidden', !visible || showSpaButton);
+            }
+            if (spaLogoutBtn) {
+                spaLogoutBtn.classList.toggle('hidden', !showSpaButton);
+            }
         }
 
         async function clearProfileSessionFallback() {
@@ -3504,6 +3528,25 @@
                     }
                 }
 
+                async function resolvePhotoDataUrl(photo) {
+                    if (!photo) return '';
+                    if (photo.dataUrl) return photo.dataUrl;
+                    if (photo.base64String) {
+                        return 'data:image/' + (photo.format || 'jpeg') + ';base64,' + photo.base64String;
+                    }
+                    if (photo.webPath) {
+                        const response = await fetch(photo.webPath);
+                        const blob = await response.blob();
+                        return await new Promise((resolve, reject) => {
+                            const reader = new FileReader();
+                            reader.onloadend = function() { resolve(reader.result || ''); };
+                            reader.onerror = reject;
+                            reader.readAsDataURL(blob);
+                        });
+                    }
+                    return '';
+                }
+
                 if (avatarInput) {
                     avatarInput.addEventListener('click', async function(e) {
                         const isNativeApp = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
@@ -3518,8 +3561,9 @@
                                 source: 'PHOTOS',
                                 resultType: 'dataUrl'
                             });
-                            const photoDataUrl = photo && (photo.dataUrl || (photo.base64String ? ('data:image/' + (photo.format || 'jpeg') + ';base64,' + photo.base64String) : ''));
+                            const photoDataUrl = await resolvePhotoDataUrl(photo);
                             if (photoDataUrl) saveAvatarDataUrl(photoDataUrl);
+                            else showAlert('Неуспешно избиране на снимка.', 'error');
                         } catch (err) {
                             const msg = (err && (err.message || err)) ? String(err.message || err).toLowerCase() : '';
                             if (!msg.includes('cancel')) {
@@ -4910,7 +4954,10 @@
     </script>
 
     <!-- Logout button (shown when signed in via Firebase) -->
-    <div style="display:flex;justify-content:center;padding:12px 0 8px;">
+    <div class="profile-logout-row">
+        <button class="social-logout-btn spa-logout-btn hidden" id="spaLogoutBtn" onclick="socialLogout()">
+            <i class="fas fa-sign-out-alt"></i> Изход от акаунта
+        </button>
         <button class="social-logout-btn hidden" id="socialLogoutBtn" onclick="socialLogout()">
             <i class="fas fa-sign-out-alt"></i> Изход от акаунта
         </button>
