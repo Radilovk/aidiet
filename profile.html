@@ -167,10 +167,7 @@
             transform: scale(0.95);
         }
         .profile-header .theme-toggle-btn {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            margin: 0;
+            margin: 14px auto 0;
         }
 
         h1 {
@@ -2689,17 +2686,8 @@
 
         function setProfileLogoutVisibility(visible) {
             const logoutBtn = document.getElementById('socialLogoutBtn');
-            const spaBtn = document.getElementById('spaLogoutBtn');
-            const isEmbedded = new URLSearchParams(window.location.search).has('embedded');
-            if (isEmbedded) {
-                // APK mode: show spaLogoutBtn, hide socialLogoutBtn
-                if (logoutBtn) logoutBtn.classList.add('hidden');
-                if (spaBtn) spaBtn.classList.toggle('hidden', !visible);
-            } else {
-                // Web mode: show socialLogoutBtn, hide spaLogoutBtn
-                if (spaBtn) spaBtn.classList.add('hidden');
-                if (logoutBtn) logoutBtn.classList.toggle('hidden', !visible);
-            }
+            if (!logoutBtn) return;
+            logoutBtn.classList.toggle('hidden', !visible);
         }
 
         async function clearProfileSessionFallback() {
@@ -3518,21 +3506,16 @@
 
                 if (avatarInput) {
                     avatarInput.addEventListener('click', async function(e) {
-                        const cap = window.Capacitor || (window.top && window.top.Capacitor) || null;
-                        const isNativeApp = !!(cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform());
+                        const isNativeApp = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
                         if (!isNativeApp) return;
-                        // Ensure Camera plugin is registered (like Haptics in app.js)
-                        if (!cap.Plugins.Camera && typeof cap.registerPlugin === 'function') {
-                            cap.registerPlugin('Camera', {});
-                        }
-                        const camera = cap.Plugins ? cap.Plugins.Camera : null;
+                        const camera = window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins.Camera : null;
                         if (!camera || typeof camera.getPhoto !== 'function') return;
                         e.preventDefault();
                         try {
                             const photo = await camera.getPhoto({
                                 quality: 85,
                                 allowEditing: false,
-                                source: 'Photos',
+                                source: 'PHOTOS',
                                 resultType: 'dataUrl'
                             });
                             const photoDataUrl = photo && (photo.dataUrl || (photo.base64String ? ('data:image/' + (photo.format || 'jpeg') + ';base64,' + photo.base64String) : ''));
@@ -4929,9 +4912,6 @@
     <!-- Logout button (shown when signed in via Firebase) -->
     <div style="display:flex;justify-content:center;padding:12px 0 8px;">
         <button class="social-logout-btn hidden" id="socialLogoutBtn" onclick="socialLogout()">
-            <i class="fas fa-sign-out-alt"></i> Изход от акаунта
-        </button>
-        <button class="social-logout-btn hidden" id="spaLogoutBtn" onclick="requestShellAction('NUTRIPLAN_LOGOUT')">
             <i class="fas fa-sign-out-alt"></i> Изход от акаунта
         </button>
     </div>
