@@ -3448,77 +3448,19 @@
             return false;
         }
 
-        function getCapacitorBridge() {
-            try {
-                return window.Capacitor || (window.top && window.top.Capacitor) || null;
-            } catch (_) {
-                return window.Capacitor || null;
-            }
-        }
-
-        function isNativeAvatarPlatform() {
-            try {
-                if (window.NutriPlanPlatform && typeof window.NutriPlanPlatform.isAPK === 'function') {
-                    return window.NutriPlanPlatform.isAPK();
-                }
-            } catch (_) {}
-            const cap = getCapacitorBridge();
-            return !!(cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform());
-        }
-
-        function getCameraPlugin() {
+        function getAvatarCamera() {
             try {
                 if (window.NutriPlanPlatform && typeof window.NutriPlanPlatform.getPlugin === 'function') {
                     const plugin = window.NutriPlanPlatform.getPlugin('Camera');
                     if (plugin && typeof plugin.getPhoto === 'function') return plugin;
                 }
-                const cap = getCapacitorBridge();
+                const cap = window.Capacitor || (window.top && window.top.Capacitor);
                 if (!cap) return null;
-                if (cap.Plugins && cap.Plugins.Camera && typeof cap.Plugins.Camera.getPhoto === 'function') {
-                    return cap.Plugins.Camera;
-                }
                 if (typeof cap.registerPlugin === 'function') {
-                    const registered = cap.registerPlugin('Camera', {});
-                    if (registered && typeof registered.getPhoto === 'function') {
-                        cap.Plugins = cap.Plugins || {};
-                        cap.Plugins.Camera = registered;
-                        return registered;
-                    }
+                    return cap.registerPlugin('Camera', {});
                 }
             } catch (_) {}
             return null;
-        }
-
-        async function pickNativeAvatarBlob() {
-            const camera = getCameraPlugin();
-            if (!camera || typeof camera.getPhoto !== 'function') {
-                throw new Error('camera-unavailable');
-            }
-            const cap = getCapacitorBridge();
-            const photo = await camera.getPhoto({
-                quality: 80,
-                allowEditing: false,
-                source: 'PHOTOS',
-                resultType: 'uri',
-                webUseInput: false
-            });
-            let imageUrl = photo && (photo.webPath || photo.dataUrl || '');
-            if (!imageUrl && photo && photo.path) {
-                imageUrl = (cap && typeof cap.convertFileSrc === 'function')
-                    ? cap.convertFileSrc(photo.path)
-                    : photo.path;
-            }
-            if (!imageUrl && photo && photo.base64String) {
-                imageUrl = 'data:image/' + (photo.format || 'jpeg') + ';base64,' + photo.base64String;
-            }
-            if (!imageUrl) {
-                throw new Error('image-unavailable');
-            }
-            const response = await fetch(imageUrl);
-            if (!response.ok) {
-                throw new Error('image-fetch-failed');
-            }
-            return response.blob();
         }
 
         // Compress avatar to JPEG with max 640px dimension and quality 0.78
@@ -3589,6 +3531,7 @@
                 // Avatar upload functionality
                 const avatarInput = document.getElementById('avatarInput');
                 const avatarUploadTrigger = document.getElementById('avatarUploadTrigger');
+                const isNativeAvatarPicker = !!(window.NutriPlanPlatform && typeof window.NutriPlanPlatform.isAPK === 'function' && window.NutriPlanPlatform.isAPK());
 
                 function saveAvatarDataUrl(dataUrl) {
                     try {
@@ -3601,18 +3544,38 @@
                 }
 
                 if (avatarInput) {
-                    const nativeAvatarPicker = isNativeAvatarPlatform();
-                    avatarInput.style.pointerEvents = nativeAvatarPicker ? 'none' : '';
-                    avatarInput.tabIndex = nativeAvatarPicker ? -1 : 0;
-
-                    if (avatarUploadTrigger) {
+                    if (isNativeAvatarPicker && avatarUploadTrigger) {
                         avatarUploadTrigger.addEventListener('click', async function(e) {
-                            if (!isNativeAvatarPlatform()) return;
+                            const camera = getAvatarCamera();
+                            if (!camera || typeof camera.getPhoto !== 'function') return;
                             e.preventDefault();
-                            e.stopPropagation();
                             try {
-                                const avatarBlob = await pickNativeAvatarBlob();
-                                compressImage(avatarBlob, saveAvatarDataUrl);
+                                const cap = window.Capacitor || (window.top && window.top.Capacitor) || null;
+                                const photo = await camera.getPhoto({
+                                    quality: 80,
+                                    allowEditing: false,
+                                    source: 'PHOTOS',
+                                    resultType: 'uri',
+                                    webUseInput: false
+                                });
+                                let imageUrl = photo && (photo.webPath || photo.dataUrl || '');
+                                if (!imageUrl && photo && photo.path && cap && typeof cap.convertFileSrc === 'function') {
+                                    imageUrl = cap.convertFileSrc(photo.path);
+                                }
+                                if (!imageUrl && photo && photo.path) {
+                                    imageUrl = photo.path;
+                                }
+                                if (!imageUrl && photo && photo.base64String) {
+                                    imageUrl = 'data:image/' + (photo.format || 'jpeg') + ';base64,' + photo.base64String;
+                                }
+                                if (!imageUrl) {
+                                    throw new Error('image-unavailable');
+                                }
+                                const response = await fetch(imageUrl);
+                                if (!response.ok) {
+                                    throw new Error('image-fetch-failed');
+                                }
+                                compressImage(await response.blob(), saveAvatarDataUrl);
                             } catch (err) {
                                 const msg = (err && (err.message || err)) ? String(err.message || err).toLowerCase() : '';
                                 if (!msg.includes('cancel')) {
@@ -3623,19 +3586,11 @@
                     }
 
                     avatarInput.addEventListener('change', function(e) {
-                        if (isNativeAvatarPlatform()) {
-                            e.target.value = '';
-                            return;
+                        const file = e.target.files && e.target.files[0];
+                        if (file && file.type && file.type.startsWith('image/')) {
+                            compressImage(file, saveAvatarDataUrl);
                         }
-                        try {
-                            const file = e.target.files && e.target.files[0];
-                            if (!file) return;
-                            if (file.type && file.type.startsWith('image/')) {
-                                compressImage(file, saveAvatarDataUrl);
-                            }
-                        } finally {
-                            e.target.value = '';
-                        }
+                        e.target.value = '';
                     });
                 }
             }

@@ -1,5 +1,14 @@
 # Log Tasks
 
+## 2026-05-27 — Ревизия на avatar input поправката към минимален код
+
+**Задача:** Последната avatar APK поправка да се ревизира така, че да остане само минималният нужен код — редакция и премахване на излишното, без ново раздуване.
+
+**Направено:**
+- `profile.html`: премахнати са допълнителните helper-и за bridge/platform/camera/blob flow и е оставен само един кратък `getAvatarCamera()` helper.
+- `profile.html`: native avatar picker-ът остава вързан към `#avatarUploadTrigger`, но без излишните `pointer-events`, `tabIndex` и допълнителни guard-ове върху `input`.
+- `profile.html`: web/native обработката е сведена до два кратки пътя — native click през Capacitor camera + стандартен `change` fallback за file input.
+
 ## 2026-05-27 — Avatar input в APK: избор на custom снимка от телефона
 
 **Задача:** `avatarInput` не работи в APK приложението. Трябва да позволява избор на custom изображение от телефона на клиента и да остане стабилен в нативен Capacitor контекст.
