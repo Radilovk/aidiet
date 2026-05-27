@@ -786,7 +786,8 @@
 
     const STORAGE_PRODUCTS = 'pep_local_products';
     const STORAGE_SALES = 'pep_local_sales';
-    const API_BASE = '/api/pep';
+    const REMOTE_API_BASE = 'https://aidiet.radilov-k.workers.dev/api/pep';
+    const API_BASE = window.location.hostname.endsWith('workers.dev') ? '/api/pep' : REMOTE_API_BASE;
     const MULTIPLIER_META = {
         '2': { label: 'Продажба на едро', description: 'По-голямо количество с базова надценка ×2.' },
         '2.2': { label: 'Стандартна продажба', description: 'Най-подходящо за обичайните клиентски сделки.' },
@@ -962,12 +963,12 @@
 
     async function bootstrapData() {
         updateStatusPanel();
+
         try {
             const payload = await requestJSON(`${API_BASE}/bootstrap`);
             normalizeBackendPayload(payload);
             hideBanner();
         } catch (error) {
-            console.warn('PEP backend unavailable, switching to local fallback:', error.message);
             loadLocalState();
             state.storageMode = 'local-fallback';
             state.backendEngine = '';
