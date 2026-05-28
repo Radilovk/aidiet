@@ -2729,3 +2729,22 @@ Logout бутонът и избраният от потребителя ават
 - Firebase await преместен в края на функцията (background: bottom module's onAuthStateChanged update handles live session refresh)
 
 **Засегнати файлове:** `auth-guard.js`, `profile.html`, `logtasks.md`
+
+---
+
+## Задача: Поправки на profile tab — logout бутон и аватар (2026-05-28)
+
+**Проблем 1 — Два logout бутона:**
+- В profile.html имаше два logout бутона: `socialLogoutBtnHeader` (горе вляво в хедъра, позиция absolute) и `socialLogoutBtn` (долу в профила).
+- Поправка: Премахнат дублиращият се хедър бутон `socialLogoutBtnHeader`. Остава само долният.
+
+**Проблем 2 — "Social logout" именуване:**
+- Функцията `socialLogout()` и id-тата `socialLogoutBtn/socialLogoutBtnHeader` съдържаха "social" без да има social login.
+- Поправка: Преименувано `socialLogout` → `doLogout`, `socialLogoutBtn` → `logoutBtn`.
+
+**Проблем 3 — Аватар от библиотека не се показва в APK:**
+- В APK режим Camera.getPhoto() връща dataUrl, но кодът го преобразуваше чрез `fetch(dataUrl) → .blob() → compressImage(blob)`.
+- В Android WebView `fetch('data:...')` може да е блокиран или да върне Blob, след което `compressImage` вътрешно да фейлне (img.onerror) без да извика saveAvatarDataUrl.
+- Поправка: Заменена сложната fetch/blob верига с директна Image+canvas компресия от dataUrl (без FileReader/fetch roundtrip).
+
+**Засегнати файлове:** `profile.html`, `logtasks.md`
