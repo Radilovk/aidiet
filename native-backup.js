@@ -56,12 +56,6 @@ const NativeBackup = (function () {
         'pendingClientId',
         'planJobId'
     ];
-    /* Identity key that must also be present before we consider localStorage
-     * complete.  Without this guard, a stale 'dietPlan' entry (left behind after
-     * a web-only logout that cleared userId but not dietPlan) would cause
-     * _hasPrimaryData() to return true and skip restoring userId/userData from
-     * Capacitor Preferences — leaving the profile page with no session data. */
-    const IDENTITY_KEY = 'userId';
     const KEYS_TIMEOUT_MS = 400;
     const GET_TIMEOUT_MS = 250;
     const TOTAL_RESTORE_TIMEOUT_MS = 1800;
@@ -114,11 +108,6 @@ const NativeBackup = (function () {
     }
 
     function _hasPrimaryData() {
-        /* Require BOTH a user identity key AND at least one plan key to be
-         * present.  If only plan data is here (e.g. stale dietPlan from a
-         * web-only logout that cleared userId) we must still run the restore
-         * loop so that userId/userData are recovered from Capacitor Preferences. */
-        if (localStorage.getItem(IDENTITY_KEY) === null) return false;
         return PRIMARY_KEYS.some(function (key) {
             return localStorage.getItem(key) !== null;
         });
