@@ -1,6 +1,16 @@
 # Log Tasks
 
-## 2026-05-28 — APK: реална поправка на logout и profile avatar
+## 2026-05-28 — APK: прецизна поправка на logout и avatar picker (втори кръг)
+
+**Задача:** Logout бутонът не извежда потребителя в APK; избирането на профилна снимка не работи в APK.
+
+**Корен причини (нови):**
+- `session-utils.js` → `getPreferencesPlugin()` проверяваше само `window.Capacitor`, но в profile.html iframe капацитор обектът е на `window.top.Capacitor`. Поради това `clearUserSessionData()` намираше `null` за prefs и правеше early return, без да изчисти Capacitor Preferences. При следващо зареждане на страницата `NativeBackup.restore()` възстановяваше данните от Preferences и потребителят изглеждаше все още логнат.
+- `profile.html` → клик-листенерът за native avatar picker беше закачен към `avatarInput` (скрития file input, покриващ целия label). На Android WebView нативният file-chooser диалог се отваря на OS ниво преди JavaScript `preventDefault()` да може да го спре, затова Capacitor Camera plugin никога не се достигаше.
+
+**Направено:**
+- `session-utils.js`: `getPreferencesPlugin()` вече проверява и `window.top.Capacitor` (iframe fallback), така че `clearUserSessionData()` правилно изчиства и Capacitor Preferences при logout от profile iframe.
+- `profile.html`: В APK режим `avatarInput` се скрива (`display:none`) и клик-листенерът се поставя върху `avatarUploadTrigger` (label), за да се предотврати нативният file-chooser и вместо него да се извика Capacitor Camera plugin.
 
 **Задача:** Logout бутонът в APK вече съществува, но не прави реален logout; избраното profile avatar изображение също не се визуализира само в APK. Да се намерят точните причини и да се оправят.
 
