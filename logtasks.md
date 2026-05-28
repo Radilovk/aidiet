@@ -2729,3 +2729,17 @@ Logout бутонът и избраният от потребителя ават
 - Firebase await преместен в края на функцията (background: bottom module's onAuthStateChanged update handles live session refresh)
 
 **Засегнати файлове:** `auth-guard.js`, `profile.html`, `logtasks.md`
+
+## Задача: Тест за APK поведения (2026-05-28)
+
+**Заявено:** Тест за APK и потвърждение на описаните поправки.
+
+**Направено:**
+- Създаден `apk.test.js` — 9 автоматизирани теста с `node:test` (Node.js built-in, нулеви нови зависимости):
+  - `native-backup.js` (3 теста): `_getCap()` / `_isNative()` — без Capacitor, с ненативен Capacitor, с `window.top.Capacitor` fallback в iframe
+  - `GameNotifier._detectCapacitor()` (4 теста): без Capacitor, ненативен, top-level, iframe fallback
+  - `auth-guard.js` overlay (2 теста): overlay се маха при embedded+null Firebase; не се маха при top-level redirect
+- Актуализиран `package.json`: `"test": "node --test apk.test.js"` + добавен `"type": "module"`
+- Всички 9 теста минават успешно (`npm test`)
+
+**Засегнати файлове:** `apk.test.js` (нов), `package.json`, `logtasks.md`
