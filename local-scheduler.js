@@ -141,9 +141,15 @@ const GameNotifier = {
     /* ------------------------------------------------------------------ */
 
     _detectCapacitor() {
-        if (typeof window === 'undefined' || !window.Capacitor) return null;
+        if (typeof window === 'undefined') return null;
         try {
-            const cap = window.Capacitor;
+            // In the APK, plan.html is loaded in an iframe so window.Capacitor may be
+            // undefined there. Mirror the getCap() fallback from platform.js: check
+            // window.top.Capacitor as well (same-origin cross-frame access is allowed).
+            const cap = window.Capacitor ||
+                (window.top !== window && window.top && window.top.Capacitor) ||
+                null;
+            if (!cap) return null;
             const isNative = typeof cap.isNativePlatform === 'function'
                 ? cap.isNativePlatform()
                 : false;
