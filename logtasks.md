@@ -2637,3 +2637,29 @@ VAPID ключът е статична стойност — никога не с
 - `profile.html`: добавен ранен inline script за `data-embedded-tab` (присъства в plan.html и guidelines.html, но липсваше в profile.html).
 
 **Засегнати файлове:** `auth-guard.js`, `native-backup.js`, `profile.html`, `logtasks.md`
+
+---
+
+## Задача: Премахване на Social Login + Fix logout + Fix avatar upload (2026-05-28)
+
+**Заявено:**
+1. Премахни модула за social (Google OAuth) логин напълно; запази само класическия email+password логин.
+2. Поправи logout бутона (не е видим в APK) и качването на аватар изображение (не се запазва/визуализира) — и двете бяха свързани с social login логиката.
+
+**Направено:**
+
+### profile.html
+- Премахнати CSS класове за social login: `.social-login-section`, `.social-btn`, `.social-btn-google`, `.social-login-divider`
+- Премахнат HTML блок за Google бутон (`socialLoginSection` div)
+- Firebase модул: премахнати `GoogleAuthProvider`, `signInWithPopup`, `socialLoginWith()`, `/api/auth/social` fetch, `_updateUI()` с social секция; оставени `onAuthStateChanged` (показва logout при активна Firebase сесия) и `socialLogout()` с `signOut(auth)`
+- `renderProfileAvatar(name, email)` — опростена: премахнат `user` параметър и `photoURL` логика
+- Поправени всички call sites на `renderProfileAvatar` (премахнат третия `null` аргумент)
+- **Avatar upload fix**: сменен `resultType: 'uri'` → `'dataUrl'` в Capacitor Camera `getPhoto()`, премахнат `fetch(webPath)` (неработещ в iframe/APK), директно използване на `photo.dataUrl` → `compressImage(blob, saveAvatarDataUrl)`
+
+### plan.html
+- Премахнати от Firebase import: `GoogleAuthProvider`, `signInWithPopup`
+- Премахнат CSS клас `.pa-google-btn` и `.pa-google-btn:hover`
+- `showAuthForm()`: премахнати `isGmail` branch (само Google бутон) и Google бутон от `hasNoLocalEmail` branch; опростена на 2 branch-а: `email` (password form) и `!email` (пълен email+password form)
+- Премахнати: `GOOGLE_SVG` константа, `paGoogleBtn`, `paGoogleBtnFull` event listeners, `signInWithPopup` извиквания
+
+**Засегнати файлове:** `profile.html`, `plan.html`, `logtasks.md`
