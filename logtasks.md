@@ -1,5 +1,18 @@
 # Log Tasks
 
+## 2026-05-28 — APK parity audit: build trigger и native service worker guard
+
+**Задача:** Да се направи точен audit на APK build потока, да се намерят реалните пропуски между web и APK и да се нанесат минимални корекции за по-надежден parity.
+
+**Корен проблеми:**
+- `build-apk.yml` пускаше APK build само за ограничен набор web файлове, така че промени по shipped JSON/media assets и по самия workflow можеха да останат без нов APK билд.
+- `profile.html`, `questionnaire.html` и `questionnaire2.html` регистрираха `sw.js` и в Capacitor/native контекст, въпреки че основните APK страници вече пазят service worker-а само за web/PWA.
+
+**Направено:**
+- `build-apk.yml`: разширени са trigger path-овете, така че APK build да се пуска и при промени по shipped JSON assets, `webm` media, `jpg/jpeg` assets и самия APK workflow.
+- `profile.html`, `questionnaire.html`, `questionnaire2.html`: service worker регистрацията вече се прескача в native Capacitor режим, за да не се вкарва web-only SW логика в APK.
+- `apk.test.js`: добавени са regression проверки за новите build trigger-и и за native guard-а преди service worker регистрация.
+
 ## 2026-05-28 — APK: прецизна поправка на logout и avatar picker (втори кръг)
 
 **Задача:** Logout бутонът не извежда потребителя в APK; избирането на профилна снимка не работи в APK.

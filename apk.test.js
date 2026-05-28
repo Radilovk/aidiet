@@ -105,6 +105,10 @@ function loadFunction(filePath, functionName, extraContext = {}) {
     return vm.runInContext(`(${fnSource})`, context);
 }
 
+function readSource(...parts) {
+    return readFileSync(join(__dirname, ...parts), 'utf8');
+}
+
 // ============================================================================
 // 1. native-backup.js – _getCap() iframe fallback
 // ============================================================================
@@ -295,4 +299,22 @@ test('profile getAvatarPhotoSource: converts native file paths via Capacitor', (
         path: 'file:///storage/emulated/0/DCIM/avatar.jpg'
     });
     assert.equal(result, 'https://localhost/_capacitor_file_/storage/emulated/0/DCIM/avatar.jpg');
+});
+
+test('build-apk workflow rebuilds on shipped JSON and webm changes', () => {
+    const source = readSource('.github', 'workflows', 'build-apk.yml');
+    assert.match(source, /-\s+'.github\/workflows\/build-apk\.yml'/);
+    assert.match(source, /-\s+'\*\*\.json'/);
+    assert.match(source, /-\s+'\*\*\.webm'/);
+});
+
+test('embedded and onboarding pages skip service worker registration in native APK', () => {
+    const guardedFiles = ['profile.html', 'questionnaire.html', 'questionnaire2.html'];
+    for (const file of guardedFiles) {
+        const source = readSource(file);
+        assert.match(
+            source,
+            /if\s*\(\s*!isCapacitorNativeApp\s*&&\s*'serviceWorker'\s+in\s+navigator\s*\)/
+        );
+    }
 });

@@ -4745,7 +4745,12 @@
         }
 
         // --- PWA Service Worker Registration ---
-        if ('serviceWorker' in navigator) {
+        const isCapacitorNativeApp = !!(
+            window.Capacitor &&
+            typeof window.Capacitor.isNativePlatform === 'function' &&
+            window.Capacitor.isNativePlatform()
+        );
+        if (!isCapacitorNativeApp && 'serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
                     .then(registration => {
