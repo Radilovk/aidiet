@@ -3442,12 +3442,21 @@
         // --- Initialization ---
         (function instantInit() {
             async function setupProfile() {
-                if (window.NutriPlanAuthGuardReady) {
-                    try { await window.NutriPlanAuthGuardReady; } catch (_) {}
-                }
+                /* Restore native storage FIRST so that all localStorage keys
+                 * (userData, profileAvatar, userId …) are available before any
+                 * rendering.  The shell already ran NativeBackup.init(), so this
+                 * is a no-op when primary data is already present. */
                 if (typeof NativeBackup !== 'undefined') {
                     await NativeBackup.init().catch(() => {});
                 }
+
+                /* Render the page from localStorage immediately — do NOT wait for
+                 * Firebase here.  In the APK the WebView origin (https://localhost/)
+                 * is different from the web origin, so Firebase may fire null or
+                 * resolve slowly.  Blocking on Firebase before revealing the page
+                 * causes a blank-profile flash and permanently hidden logout button
+                 * when Firebase fires null and setupProfile never reaches the
+                 * setProfileLogoutVisibility / opacity calls below. */
                 initializeTheme();
                 loadUserData();
                 loadAnalysis(); // REQUIREMENT 1: Load analysis
@@ -3520,6 +3529,15 @@
                         }
                         e.target.value = '';
                     });
+                }
+
+                /* Wait for Firebase auth state in the background (after the page is
+                 * already visible and functional).  The bottom module's
+                 * onAuthStateChanged handler will call setProfileLogoutVisibility(true)
+                 * and renderProfileAvatar() if Firebase confirms a live session, so
+                 * no further action is needed here. */
+                if (window.NutriPlanAuthGuardReady) {
+                    try { await window.NutriPlanAuthGuardReady; } catch (_) {}
                 }
             }
             

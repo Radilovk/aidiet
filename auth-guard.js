@@ -98,6 +98,15 @@ function _resolveGuardReady(user) {
             const isEmbedded = window.parent !== window ||
                 new URLSearchParams(location.search).has('embedded');
             if (isEmbedded) {
+                /* Also remove the loading overlay so the iframe content is visible.
+                 * Without this, any overlay created when likelyAuthed=false stays
+                 * on top of the page forever in APK (Firebase fires null because the
+                 * WebView origin https://localhost/ has a separate IndexedDB from the
+                 * web browser's origin, so no stored auth state is found). */
+                if (ov) {
+                    ov.style.opacity = '0';
+                    setTimeout(() => ov.remove(), 300);
+                }
                 if (window.NutriPlanDiagnostics) {
                     window.NutriPlanDiagnostics.ok('auth-guard', 'embedded-no-redirect', location.pathname.split('/').pop() || 'unknown');
                 }
