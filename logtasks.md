@@ -2685,3 +2685,32 @@ VAPID ключът е статична стойност — никога не с
 - Премахнати: `GOOGLE_SVG` константа, `paGoogleBtn`, `paGoogleBtnFull` event listeners, `signInWithPopup` извиквания
 
 **Засегнати файлове:** `profile.html`, `plan.html`, `logtasks.md`
+
+## Задача: Fix APK logout button и аватар невидими въпреки предишни поправки (2026-05-28)
+
+**Заявено:**
+Logout бутонът и избраният от потребителя аватар не се показват в APK версията, въпреки предишни поправки. В уеб версията работят. Искана абсолютна яснота и конкретна поправка.
+
+**Root Cause анализ (пълна яснота):**
+
+### Бъг 1 — `auth-guard.js`: overlay не се премахва при embedded + Firebase null
+- Когато `userId` в localStorage не започва с `'fb_'` (fresh APK install, logout, или потребител от преди Firebase), `auth-guard.js` създава full-screen overlay (z-index:99999) за покриване на страницата докато Firebase се инициализира
+- В APK WebView-ът работи на `https://localhost/` — различен origin от уеб версията (`https://aidiet.radilov-k.workers.dev/`) — затова Firebase's `onAuthStateChanged` fires `null` (няма запазено auth state в тази IndexedDB)
+- Embedded branch при null firebaseUser: `_resolveGuardReady(null); if (isEmbedded) return;` — но **не маха overlay-а** → страницата остава покрита завинаги
+- В уеб: `userId = 'fb_...'` → `likelyAuthed = true` → overlay никога не се създава → няма проблем
+
+### Бъг 2 — `profile.html setupProfile()`: блокира на Firebase ПРЕДИ localStorage рендиране
+- `setupProfile()` awaits `NutriPlanAuthGuardReady` ПРЕДИ `loadUserData()`, `setProfileLogoutVisibility()` и body opacity reveal
+- В APK Firebase може да отнеме 1-5+ секунди (token refresh по мрежа, нов IndexedDB)
+- Докато Firebase не отговори → logout бутонът има `hidden` клас → невидим
+
+**Поправка:**
+
+### auth-guard.js
+- В embedded + null Firebase branch: добавен `if (ov) { ov.style.opacity='0'; setTimeout(()=>ov.remove(),300); }` ПРЕДИ `return`
+
+### profile.html
+- `setupProfile()`: преместени `NativeBackup.init()`, `initializeTheme()`, `loadUserData()`, `loadAnalysis()`, body reveal и `setProfileLogoutVisibility()` ПРЕДИ `await NutriPlanAuthGuardReady`
+- Firebase await преместен в края на функцията (background: bottom module's onAuthStateChanged update handles live session refresh)
+
+**Засегнати файлове:** `auth-guard.js`, `profile.html`, `logtasks.md`
