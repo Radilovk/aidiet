@@ -1,5 +1,13 @@
 # Log Tasks
 
+## 2026-05-28 — APK logout: shell logout бутонът да изписва реално потребителя
+
+**Задача:** В APK logout бутонът се вижда, но при клик потребителят не се logout-ва реално.
+
+**Направено:**
+- `app.js`: shell logout съобщенията вече се приемат и от embedded tab iframe-и в APK/native origin сценарии, а shell logout навигацията вече подава `logout=1` към началния `index`.
+- `index.html`: добавен е принудителен top-level logout flow за `index.html?stay=1&logout=1`, който изчиства session данните, извиква Firebase signOut и маха logout параметъра от URL.
+
 ## 2026-05-28 — APK profile: avatarInput и spa-logout-btn поправка
 
 **Задача:** В инсталирания APK `avatarInput` и `spa-logout-btn` в профила да заработят коректно.
