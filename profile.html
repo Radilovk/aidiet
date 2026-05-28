@@ -2568,23 +2568,12 @@
             }
         }
 
-        function getShellTargetOrigin() {
-            if (document.referrer) {
-                try {
-                    return new URL(document.referrer, window.location.href).origin;
-                } catch (_) {}
-            }
-            return window.location.origin && window.location.origin !== 'null'
-                ? window.location.origin
-                : '*';
-        }
-
         function requestShellAction(type, payload) {
             if (document.documentElement.getAttribute('data-embedded-tab') !== '1' || !window.parent || window.parent === window) {
                 return false;
             }
             try {
-                window.parent.postMessage(Object.assign({ type: type }, payload || {}), getShellTargetOrigin());
+                window.parent.postMessage(Object.assign({ type: type }, payload || {}), window.location.origin);
                 return true;
             } catch (_) {
                 return false;
@@ -2680,7 +2669,7 @@
         window.doLogout = window.doLogout || async function() {
             await clearProfileSessionFallback();
             if (requestShellAction('NUTRIPLAN_LOGOUT')) return;
-            window.location.replace('index.html?stay=1&logout=1');
+            window.location.replace('index.html?stay=1');
         };
 
         // --- Data Loading ---
@@ -5023,7 +5012,7 @@
                 }
                 /* Navigate home after logout */
                 if (requestShellAction('NUTRIPLAN_LOGOUT')) return;
-                window.location.replace('index.html?stay=1&logout=1');
+                window.location.replace('index.html?stay=1');
             };
 
             /* Clear all plan/session data from localStorage on logout.

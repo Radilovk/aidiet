@@ -1,17 +1,5 @@
 # Log Tasks
 
-## 2026-05-28 — APK: spa-logout-btn незабавно да изкарва от profile
-
-**Задача:** `spa-logout-btn` в APK прави реален logout, но profile екранът не се затваря веднага и остава видим до ръчен рестарт на приложението.
-
-**Корен проблем:**
-- `profile.html` изпращаше `NUTRIPLAN_LOGOUT` към shell-а с `window.location.origin` като `targetOrigin`, което е твърде крехко в embedded Capacitor/APK контекст и може тихо да изпусне `postMessage`.
-- При този сценарий embedded logout-ът приключва локално, но shell-ът не получава командата да излезе веднага от SPA profile изгледа.
-
-**Направено:**
-- `profile.html`: добавен е минимален `getShellTargetOrigin()` helper, който предпочита origin-а от `document.referrer` и пада към `*` само при `null` origin, за да стига reliably shell съобщението в APK.
-- `profile.html`: и двата logout fallback redirect-а вече сочат към `index.html?stay=1&logout=1`, така че и без shell message top-level logout flow-ът остава принуден и консистентен.
-
 ## 2026-05-28 — APK: реална поправка на logout и profile avatar
 
 **Задача:** Logout бутонът в APK вече съществува, но не прави реален logout; избраното profile avatar изображение също не се визуализира само в APK. Да се намерят точните причини и да се оправят.
