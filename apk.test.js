@@ -301,10 +301,12 @@ test('profile getAvatarPhotoSource: converts native file paths via Capacitor', (
     assert.equal(result, 'https://localhost/_capacitor_file_/storage/emulated/0/DCIM/avatar.jpg');
 });
 
-test('build-apk workflow rebuilds on shipped JSON and webm changes', () => {
+test('build-apk workflow rebuilds on shipped JSON, image, and webm changes', () => {
     const source = readSource('.github', 'workflows', 'build-apk.yml');
     assert.match(source, /-\s+'.github\/workflows\/build-apk\.yml'/);
     assert.match(source, /-\s+'\*\*\.json'/);
+    assert.match(source, /-\s+'\*\*\.jpg'/);
+    assert.match(source, /-\s+'\*\*\.jpeg'/);
     assert.match(source, /-\s+'\*\*\.webm'/);
 });
 
