@@ -3390,8 +3390,11 @@
                     const plugin = window.NutriPlanPlatform.getPlugin('Camera');
                     if (plugin && typeof plugin.getPhoto === 'function') return plugin;
                 }
-                const cap = window.Capacitor || (window.top && window.top.Capacitor);
+                const cap = (window.top && window.top !== window && window.top.Capacitor) || window.Capacitor;
                 if (!cap) return null;
+                if (cap.Plugins && cap.Plugins.Camera && typeof cap.Plugins.Camera.getPhoto === 'function') {
+                    return cap.Plugins.Camera;
+                }
                 if (typeof cap.registerPlugin === 'function') {
                     return cap.registerPlugin('Camera', {});
                 }
@@ -3471,7 +3474,8 @@
                     document.body.style.opacity = '1';
                 });
 
-                setProfileLogoutVisibility(hasStoredProfileSession());
+                const isEmbeddedProfileTab = document.documentElement.getAttribute('data-embedded-tab') === '1' && window.parent && window.parent !== window;
+                setProfileLogoutVisibility(hasStoredProfileSession() || isEmbeddedProfileTab);
                 
                 // Avatar upload functionality
                 const avatarInput = document.getElementById('avatarInput');
@@ -3489,37 +3493,41 @@
                 }
 
                 if (avatarInput) {
-                    if (isNativeAvatarPicker && avatarUploadTrigger) {
-                        avatarUploadTrigger.addEventListener('click', async function(e) {
-                            const camera = getAvatarCamera();
-                            if (!camera || typeof camera.getPhoto !== 'function') return;
-                            e.preventDefault();
-                            try {
-                                const photo = await camera.getPhoto({
-                                    quality: 80,
-                                    allowEditing: false,
-                                    source: 'PHOTOS',
-                                    resultType: 'dataUrl'
-                                });
-                                const dataUrl = photo && photo.dataUrl;
-                                if (!dataUrl) {
-                                    throw new Error('image-unavailable');
-                                }
-                                // Convert dataUrl to Blob for compression
-                                fetch(dataUrl)
-                                    .then(r => r.blob())
-                                    .then(blob => compressImage(blob, saveAvatarDataUrl))
-                                    .catch(() => {
-                                        // Fallback: use dataUrl directly if blob conversion fails
-                                        saveAvatarDataUrl(dataUrl);
+                    if (isNativeAvatarPicker) {
+                        const nativeAvatarPickerTarget = avatarInput || avatarUploadTrigger;
+                        if (nativeAvatarPickerTarget) {
+                            nativeAvatarPickerTarget.addEventListener('click', async function(e) {
+                                const camera = getAvatarCamera();
+                                if (!camera || typeof camera.getPhoto !== 'function') return;
+                                e.preventDefault();
+                                e.stopPropagation();
+                                try {
+                                    const photo = await camera.getPhoto({
+                                        quality: 80,
+                                        allowEditing: false,
+                                        source: 'PHOTOS',
+                                        resultType: 'dataUrl'
                                     });
-                            } catch (err) {
-                                const msg = (err && (err.message || err)) ? String(err.message || err).toLowerCase() : '';
-                                if (!msg.includes('cancel')) {
-                                    showAlert('Неуспешно избиране на снимка.', 'error');
+                                    const dataUrl = photo && photo.dataUrl;
+                                    if (!dataUrl) {
+                                        throw new Error('image-unavailable');
+                                    }
+                                    // Convert dataUrl to Blob for compression
+                                    fetch(dataUrl)
+                                        .then(r => r.blob())
+                                        .then(blob => compressImage(blob, saveAvatarDataUrl))
+                                        .catch(() => {
+                                            // Fallback: use dataUrl directly if blob conversion fails
+                                            saveAvatarDataUrl(dataUrl);
+                                        });
+                                } catch (err) {
+                                    const msg = (err && (err.message || err)) ? String(err.message || err).toLowerCase() : '';
+                                    if (!msg.includes('cancel')) {
+                                        showAlert('Неуспешно избиране на снимка.', 'error');
+                                    }
                                 }
-                            }
-                        });
+                            });
+                        }
                     }
 
                     avatarInput.addEventListener('change', function(e) {

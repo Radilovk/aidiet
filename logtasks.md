@@ -1,5 +1,13 @@
 # Log Tasks
 
+## 2026-05-28 — APK profile: avatarInput и spa-logout-btn поправка
+
+**Задача:** В инсталирания APK `avatarInput` и `spa-logout-btn` в профила да заработят коректно.
+
+**Направено:**
+- `profile.html`: logout бутонът вече се показва и в embedded APK таб, дори когато Firebase iframe сесията не се възстанови веднага, но shell сесията е активна.
+- `profile.html`: native avatar picker-ът вече се връзва към реално кликаемия `#avatarInput` overlay в APK и ползва приоритетно `top` Capacitor Camera bridge, за да не остава без реакция в embedded WebView.
+
 ## 2026-05-28 — Chat команда *notifyme за реален game notification тест
 
 **Задача:** При команда `*notifyme` в чата да се взема текущият час, да се пуска известие след +10 секунди и да е реалистичен game question сценарий за тест при затворено приложение.
