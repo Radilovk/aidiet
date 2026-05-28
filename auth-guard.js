@@ -101,7 +101,6 @@ function _resolveGuardReady(user) {
                 if (window.NutriPlanDiagnostics) {
                     window.NutriPlanDiagnostics.ok('auth-guard', 'embedded-no-redirect', location.pathname.split('/').pop() || 'unknown');
                 }
-                if (ov) { ov.style.opacity = '0'; setTimeout(() => ov.remove(), 300); }
                 return;
             }
             if (window.NutriPlanDiagnostics) {
