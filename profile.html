@@ -2742,12 +2742,6 @@
                 }
                 renderProfileAvatar(userData.name, userData.email);
 
-                /* Ensure logout button is visible whenever user data is present.
-                 * This is a safety net for APK: setupProfile() calls this too, but
-                 * calling it here guarantees visibility even if NativeBackup ran
-                 * and restored userData after the initial setupProfile() check. */
-                setProfileLogoutVisibility(true);
-
                 // Populate all form fields
                 populateFormFields();
 
