@@ -473,29 +473,8 @@
         shellChatFrame.setAttribute('aria-hidden', 'true');
     }
 
-    function isKnownShellFrameSource(source) {
-        if (!source) return false;
-        return Array.prototype.some.call(document.querySelectorAll('[data-tab-view]'), function (frame) {
-            try {
-                return !!frame && frame.contentWindow === source;
-            } catch (_) {
-                return false;
-            }
-        });
-    }
-
-    function isTrustedShellMessage(event) {
-        if (!event || !event.data || typeof event.data.type !== 'string') return false;
-        if (event.origin === window.location.origin) return true;
-        if (!isKnownShellFrameSource(event.source)) return false;
-        return event.origin === 'null'
-            || window.location.origin === 'null'
-            || window.location.protocol === 'capacitor:'
-            || window.location.protocol === 'file:';
-    }
-
     function handleShellMessage(event) {
-        if (!isTrustedShellMessage(event)) return;
+        if (!event || event.origin !== window.location.origin || !event.data || typeof event.data.type !== 'string') return;
         var data = event.data;
         if (data.type === 'NUTRIPLAN_THEME_CHANGE') {
             applyTheme(data.theme);
@@ -518,7 +497,7 @@
             var shell = document.getElementById('spaShell');
             if (shell) shell.hidden = true;
             document.body.classList.remove('spa-mode');
-            window.location.replace('index.html?stay=1&logout=1');
+            window.location.replace('index.html?stay=1');
             return;
         }
         if (data.type === 'NUTRIPLAN_HAPTIC') {
