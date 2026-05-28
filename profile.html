@@ -3496,12 +3496,10 @@
 
                 if (avatarInput) {
                     if (isNativeAvatarPicker && avatarUploadTrigger) {
-                        // Prevent file input from intercepting taps in APK – clicks fall through to the label
-                        avatarInput.style.pointerEvents = 'none';
                         avatarUploadTrigger.addEventListener('click', async function(e) {
-                            e.preventDefault(); // Always block file picker in APK before any async work
                             const camera = getAvatarCamera();
                             if (!camera || typeof camera.getPhoto !== 'function') return;
+                            e.preventDefault();
                             try {
                                 const photo = await camera.getPhoto({
                                     quality: 80,
