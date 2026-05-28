@@ -169,7 +169,10 @@
             transform: scale(0.95);
         }
         .profile-header .theme-toggle-btn {
-            margin: 14px auto 0;
+            position: absolute;
+            top: 10px;
+            right: 12px;
+            margin: 0;
         }
 
         h1 {
@@ -381,12 +384,6 @@
 
         .profile-android-btn:active {
             transform: translateY(0);
-        }
-
-        .profile-build-version {
-            font-size: 0.82rem;
-            color: var(--text-gray);
-            margin-top: 8px;
         }
 
         @media (min-width: 769px) {
@@ -1944,7 +1941,6 @@
             </label>
             <div class="profile-name" id="profileName"></div>
             <div class="profile-email" id="profileEmail"></div>
-            <div class="profile-build-version" data-app-version></div>
             <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема"><i class="fas fa-moon" id="themeIcon"></i></button>
             <script>
             /* Instantly populate profile header from localStorage before DOMContentLoaded,
