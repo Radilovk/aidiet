@@ -4031,26 +4031,12 @@
 
         const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
         const auth = getAuth(getApps().length ? getApp() : initializeApp(firebaseConfig));
-        let logoutRequestHandled = false;
 
         /* Expose auth-state promise.  Resolves with the user *after* plan sync/restore
          * is complete so the DOMContentLoaded handler sees dietPlan in localStorage
          * before it makes the redirect decision (race-condition fix). */
         let _indexAuthResolve;
         window._indexAuthUser = new Promise(resolve => { _indexAuthResolve = resolve; });
-
-        function hasLogoutRequest() {
-            return new URLSearchParams(window.location.search).has('logout');
-        }
-
-        async function handleRequestedLogout() {
-            if (logoutRequestHandled) return;
-            logoutRequestHandled = true;
-            setLoggedOutNavigationState();
-            await clearIndexSessionData();
-            await signOut(auth).catch(() => {});
-            window.history.replaceState(null, '', 'index.html?stay=1');
-        }
 
         /* ── Derive userId locally — no backend round-trip needed ───────────── */
         function applyUser(user) {
@@ -4203,11 +4189,6 @@
         onAuthStateChanged(auth, async (user) => {
             if (isEmbeddedShellTab()) {
                 if (_indexAuthResolve) { _indexAuthResolve(user || null); _indexAuthResolve = null; }
-                return;
-            }
-            if (hasLogoutRequest()) {
-                await handleRequestedLogout();
-                if (_indexAuthResolve) { _indexAuthResolve(null); _indexAuthResolve = null; }
                 return;
             }
             if (!user) {
