@@ -71,6 +71,40 @@ function runInMockWindow(filePath, windowMock) {
     return ctx;
 }
 
+function extractFunctionSource(filePath, functionName) {
+    const source = readFileSync(filePath, 'utf8');
+    const signature = `function ${functionName}(`;
+    const start = source.indexOf(signature);
+    if (start === -1) {
+        throw new Error(`Function ${functionName} not found in ${filePath}`);
+    }
+    const braceStart = source.indexOf('{', start);
+    if (braceStart === -1) {
+        throw new Error(`Function ${functionName} has no body in ${filePath}`);
+    }
+    let depth = 0;
+    for (let i = braceStart; i < source.length; i++) {
+        const ch = source[i];
+        if (ch === '{') depth++;
+        if (ch === '}') depth--;
+        if (depth === 0) {
+            return source.slice(start, i + 1);
+        }
+    }
+    throw new Error(`Function ${functionName} body was not closed in ${filePath}`);
+}
+
+function loadFunction(filePath, functionName, extraContext = {}) {
+    const fnSource = extractFunctionSource(filePath, functionName);
+    const context = vm.createContext({
+        Promise,
+        setTimeout,
+        clearTimeout,
+        window: extraContext.window || {},
+    });
+    return vm.runInContext(`(${fnSource})`, context);
+}
+
 // ============================================================================
 // 1. native-backup.js – _getCap() iframe fallback
 // ============================================================================
@@ -217,4 +251,48 @@ test('auth-guard overlay: NOT removed when isEmbedded is false (top-level redire
 
     assert.equal(outcome, 'redirect-to-login');
     assert.equal(removed, false, 'overlay should NOT be removed on top-level redirect path');
+});
+
+// ============================================================================
+// 4. profile.html – APK-specific logout/avatar helpers
+// ============================================================================
+
+test('profile settleSoon: resolves hanging promise after timeout', async () => {
+    const settleSoon = loadFunction(join(__dirname, 'profile.html'), 'settleSoon');
+    const start = Date.now();
+    await settleSoon(new Promise(() => {}), 25);
+    assert.ok(Date.now() - start < 200, 'settleSoon should not wait forever on unresolved signOut');
+});
+
+test('profile getAvatarPhotoSource: supports base64String payloads', () => {
+    const getAvatarPhotoSource = loadFunction(join(__dirname, 'profile.html'), 'getAvatarPhotoSource');
+    const result = getAvatarPhotoSource({
+        base64String: 'ZmFrZQ==',
+        format: 'png'
+    });
+    assert.equal(result, 'data:image/png;base64,ZmFrZQ==');
+});
+
+test('profile getAvatarPhotoSource: supports webPath payloads', () => {
+    const getAvatarPhotoSource = loadFunction(join(__dirname, 'profile.html'), 'getAvatarPhotoSource');
+    const result = getAvatarPhotoSource({
+        webPath: 'https://localhost/_capacitor_file_/cache/avatar.jpg'
+    });
+    assert.equal(result, 'https://localhost/_capacitor_file_/cache/avatar.jpg');
+});
+
+test('profile getAvatarPhotoSource: converts native file paths via Capacitor', () => {
+    const getAvatarPhotoSource = loadFunction(join(__dirname, 'profile.html'), 'getAvatarPhotoSource', {
+        window: {
+            top: {
+                Capacitor: {
+                    convertFileSrc: (value) => `https://localhost/_capacitor_file_/${value.replace(/^file:\/\//, '')}`
+                }
+            }
+        }
+    });
+    const result = getAvatarPhotoSource({
+        path: 'file:///storage/emulated/0/DCIM/avatar.jpg'
+    });
+    assert.equal(result, 'https://localhost/_capacitor_file_/storage/emulated/0/DCIM/avatar.jpg');
 });

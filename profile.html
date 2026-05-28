@@ -3402,6 +3402,36 @@
             return null;
         }
 
+        function settleSoon(promise, timeoutMs) {
+            return Promise.race([
+                Promise.resolve(promise).catch(() => {}),
+                new Promise(resolve => setTimeout(resolve, timeoutMs || 0))
+            ]);
+        }
+
+        function getAvatarPhotoSource(photo) {
+            if (!photo || typeof photo !== 'object') return '';
+            if (typeof photo.dataUrl === 'string' && photo.dataUrl) return photo.dataUrl;
+            if (typeof photo.base64String === 'string' && photo.base64String) {
+                const format = typeof photo.format === 'string' ? photo.format.replace(/^\./, '').toLowerCase() : '';
+                const mimeType = typeof photo.mimeType === 'string' && photo.mimeType
+                    ? photo.mimeType
+                    : (format ? 'image/' + (format === 'jpg' ? 'jpeg' : format) : 'image/jpeg');
+                return 'data:' + mimeType + ';base64,' + photo.base64String;
+            }
+            if (typeof photo.webPath === 'string' && photo.webPath) return photo.webPath;
+            if (typeof photo.path === 'string' && photo.path) {
+                try {
+                    const cap = (window.top && window.top !== window && window.top.Capacitor) || window.Capacitor;
+                    if (cap && typeof cap.convertFileSrc === 'function') {
+                        return cap.convertFileSrc(photo.path);
+                    }
+                } catch (_) {}
+                return photo.path;
+            }
+            return '';
+        }
+
         // Compress avatar to JPEG with max 640px dimension and quality 0.78
         function compressImage(file, callback) {
             const reader = new FileReader();
@@ -3511,17 +3541,22 @@
                                     source: 'PHOTOS',
                                     resultType: 'dataUrl'
                                 });
-                                const dataUrl = photo && photo.dataUrl;
-                                if (!dataUrl) {
+                                const photoSource = getAvatarPhotoSource(photo);
+                                if (!photoSource) {
                                     throw new Error('image-unavailable');
                                 }
-                                // Convert dataUrl to Blob for compression
-                                fetch(dataUrl)
-                                    .then(r => r.blob())
+                                fetch(photoSource)
+                                    .then(r => {
+                                        if (!r.ok) throw new Error('image-fetch-failed');
+                                        return r.blob();
+                                    })
                                     .then(blob => compressImage(blob, saveAvatarDataUrl))
                                     .catch(() => {
-                                        // Fallback: use dataUrl directly if blob conversion fails
-                                        saveAvatarDataUrl(dataUrl);
+                                        if (photoSource.startsWith('data:')) {
+                                            saveAvatarDataUrl(photoSource);
+                                            return;
+                                        }
+                                        showAlert('Неуспешно зареждане на избраната снимка.', 'error');
                                     });
                             } catch (err) {
                                 const msg = (err && (err.message || err)) ? String(err.message || err).toLowerCase() : '';
@@ -4993,15 +5028,18 @@
             });
 
             window.socialLogout = async function() {
-                await signOut(auth).catch(() => {});
-                if (window.NutriPlanSession && typeof window.NutriPlanSession.clearUserSessionData === 'function') {
-                    await window.NutriPlanSession.clearUserSessionData();
-                } else {
-                    _clearUserPlanData();
+                void settleSoon(signOut(auth).catch(() => {}), 1500);
+                try {
+                    if (window.NutriPlanSession && typeof window.NutriPlanSession.clearUserSessionData === 'function') {
+                        await window.NutriPlanSession.clearUserSessionData();
+                    } else {
+                        _clearUserPlanData();
+                    }
+                } finally {
+                    /* Navigate home after logout */
+                    if (requestShellAction('NUTRIPLAN_LOGOUT')) return;
+                    window.location.replace('index.html?stay=1&logout=1');
                 }
-                /* Navigate home after logout */
-                if (requestShellAction('NUTRIPLAN_LOGOUT')) return;
-                window.location.replace('index.html?stay=1');
             };
 
             /* Clear all plan/session data from localStorage on logout.

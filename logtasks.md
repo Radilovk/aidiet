@@ -2753,3 +2753,19 @@ Logout бутонът и избраният от потребителя ават
 - Всички 9 теста минават успешно (`npm test`)
 
 **Засегнати файлове:** `apk.test.js` (нов), `package.json`, `logtasks.md`
+
+## Задача: Реални APK проблеми с logout и avatar gallery (2026-05-28)
+
+**Заявено:** Да се намерят реалните причини защо logout бутонът в APK не прави нищо при клик и защо второ избрано изображение от галерията не се зарежда в avatar input-а, след което да се тества решението с APK regression tester.
+
+**Направено:**
+- Проверен е реалният profile/logout/avatar поток в `profile.html` и е потвърдено, че проблемът с logout не е във видимостта на бутона, а в това, че `socialLogout()` чака `await signOut(auth)` преди локалното чистене и shell navigation; при APK/Firebase WebView този promise може да увисне и кликът изглежда като no-op.
+- Потвърдено е, че avatar upload логиката приема само `photo.dataUrl`; това е крехко за Capacitor gallery връщания, където следващ избор може да дойде като `base64String`, `webPath` или `path`, и така кодът хвърля `image-unavailable` без да зареди снимката.
+- Поправен е `profile.html` с минимална промяна:
+  - logout вече не блокира UI/navigation върху Firebase sign-out; sign-out се ограничава с timeout, local session cleanup и shell logout продължават веднага;
+  - avatar upload вече нормализира `dataUrl` / `base64String` / `webPath` / native `path` (вкл. `Capacitor.convertFileSrc`) преди компресиране и запис.
+- Разширен е `apk.test.js` с нови regression тестове за:
+  - bounded logout wait (`settleSoon`) при увиснал promise;
+  - avatar source normalization за `base64String`, `webPath` и native `path`.
+
+**Засегнати файлове:** `profile.html`, `apk.test.js`, `logtasks.md`
