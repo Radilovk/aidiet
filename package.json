@@ -2,12 +2,13 @@
   "name": "aidiet",
   "version": "1.0.0",
   "description": "AI-powered personalized nutrition planning application",
+  "type": "module",
   "main": "worker.js",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "serve": "python -m http.server 8000",
-    "test": "echo \"Open test.html in browser to test the application\""
+    "test": "node --test apk.test.js"
   },
   "keywords": [
     "ai",
