@@ -1887,16 +1887,18 @@
     <!-- Main Content -->
     <div class="container">
         <div class="profile-header">
-            <label class="avatar-upload-wrapper" id="avatarUploadTrigger" for="avatarInput" style="display:inline-block;position:relative;margin-bottom:10px;cursor:pointer;">
+            <label class="avatar-upload-wrapper" id="avatarUploadTrigger" for="avatarInput" style="display:inline-block;position:relative;margin-bottom:4px;cursor:pointer;">
                 <div class="profile-avatar" id="profileAvatar" title="Качете аватар"></div>
                 <div class="avatar-edit-badge" id="avatarEditBadge" style="position:absolute;bottom:2px;right:2px;width:24px;height:24px;background:var(--primary-red);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.3);cursor:pointer;pointer-events:none;">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="white"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
                 </div>
                 <input type="file" id="avatarInput" accept="image/*" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:2;">
             </label>
+            <div style="font-size:0.72rem;color:var(--text-muted,#888);margin-bottom:8px;">Натисни за смяна на снимката</div>
             <div class="profile-name" id="profileName"></div>
             <div class="profile-email" id="profileEmail"></div>
             <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема"><i class="fas fa-moon" id="themeIcon"></i></button>
+            <button class="spa-logout-btn" id="socialLogoutBtnHeader" onclick="socialLogout()" aria-label="Изход от акаунта" style="position:absolute;top:10px;left:12px;padding:7px 12px;min-width:0;font-size:0.78rem;margin:0;"><i class="fas fa-sign-out-alt"></i> Изход</button>
             <script>
             /* Instantly populate profile header from localStorage before DOMContentLoaded,
              * so there is never a flash of placeholder "Име"/"email@example.com". */
@@ -3492,41 +3494,46 @@
                 }
 
                 if (avatarInput) {
-                    if (isNativeAvatarPicker) {
-                        const nativeAvatarPickerTarget = avatarInput || avatarUploadTrigger;
-                        if (nativeAvatarPickerTarget) {
-                            nativeAvatarPickerTarget.addEventListener('click', async function(e) {
-                                const camera = getAvatarCamera();
-                                if (!camera || typeof camera.getPhoto !== 'function') return;
-                                e.preventDefault();
-                                e.stopPropagation();
-                                try {
-                                    const photo = await camera.getPhoto({
-                                        quality: 80,
-                                        allowEditing: false,
-                                        source: 'PHOTOS',
-                                        resultType: 'dataUrl'
-                                    });
-                                    const dataUrl = photo && photo.dataUrl;
-                                    if (!dataUrl) {
-                                        throw new Error('image-unavailable');
-                                    }
-                                    // Convert dataUrl to Blob for compression
-                                    fetch(dataUrl)
-                                        .then(r => r.blob())
-                                        .then(blob => compressImage(blob, saveAvatarDataUrl))
-                                        .catch(() => {
-                                            // Fallback: use dataUrl directly if blob conversion fails
-                                            saveAvatarDataUrl(dataUrl);
-                                        });
-                                } catch (err) {
-                                    const msg = (err && (err.message || err)) ? String(err.message || err).toLowerCase() : '';
-                                    if (!msg.includes('cancel')) {
-                                        showAlert('Неуспешно избиране на снимка.', 'error');
-                                    }
+                    if (isNativeAvatarPicker && avatarUploadTrigger) {
+                        // In APK, disable click-through on the transparent input overlay so the tap
+                        // goes to the label, which we intercept here to use the Camera API.
+                        avatarInput.style.pointerEvents = 'none';
+                        // Intercept tap on the label wrapper (fires before WebView opens file picker)
+                        avatarUploadTrigger.addEventListener('click', async function(e) {
+                            const camera = getAvatarCamera();
+                            if (!camera || typeof camera.getPhoto !== 'function') {
+                                // Camera unavailable — fall through to file input
+                                avatarInput.click();
+                                return;
+                            }
+                            e.preventDefault();
+                            e.stopPropagation();
+                            try {
+                                const photo = await camera.getPhoto({
+                                    quality: 80,
+                                    allowEditing: false,
+                                    source: 'PHOTOS',
+                                    resultType: 'dataUrl'
+                                });
+                                const dataUrl = photo && photo.dataUrl;
+                                if (!dataUrl) {
+                                    throw new Error('image-unavailable');
                                 }
-                            });
-                        }
+                                // Convert dataUrl to Blob for compression
+                                fetch(dataUrl)
+                                    .then(r => r.blob())
+                                    .then(blob => compressImage(blob, saveAvatarDataUrl))
+                                    .catch(() => {
+                                        // Fallback: use dataUrl directly if blob conversion fails
+                                        saveAvatarDataUrl(dataUrl);
+                                    });
+                            } catch (err) {
+                                const msg = (err && (err.message || err)) ? String(err.message || err).toLowerCase() : '';
+                                if (!msg.includes('cancel')) {
+                                    showAlert('Неуспешно избиране на снимка.', 'error');
+                                }
+                            }
+                        });
                     }
 
                     avatarInput.addEventListener('change', function(e) {
@@ -4921,7 +4928,7 @@
 
     <!-- Logout button -->
     <div style="display:flex;justify-content:center;padding:12px 0 8px;">
-        <button class="spa-logout-btn hidden" id="socialLogoutBtn" onclick="socialLogout()" aria-label="Изход от акаунта">
+        <button class="spa-logout-btn" id="socialLogoutBtn" onclick="socialLogout()" aria-label="Изход от акаунта">
             <i class="fas fa-sign-out-alt"></i> Изход от акаунта
         </button>
     </div>
