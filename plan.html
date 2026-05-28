@@ -6316,6 +6316,30 @@
                 return;
             }
 
+            if (message.toLowerCase() === '*notifyme') {
+                input.value = '';
+                if (!window.GameNotifier || typeof window.GameNotifier.scheduleTestGameQuestionNotification !== 'function') {
+                    addMessageToChat('⚠️ Модулът за известия още не е готов. Опитай след малко.', 'assistant');
+                    return;
+                }
+                try {
+                    const result = await window.GameNotifier.scheduleTestGameQuestionNotification(10);
+                    const fireAt = new Date(result.fireAtTs);
+                    const fireAtText = fireAt.toLocaleTimeString('bg-BG', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                    });
+                    addMessageToChat(
+                        `🔔 Пуснат е реален тест за game question известие след 10 сек (в ${fireAtText}). Затвори приложението, за да провериш истинското поведение.`,
+                        'assistant'
+                    );
+                } catch (err) {
+                    addMessageToChat('⚠️ Не успях да планирам тестовото известие. Провери дали известията са разрешени.', 'assistant');
+                }
+                return;
+            }
+
             // Secret unlock command for demo limit
             if (message.toLowerCase() === 'unlockme') {
                 isDemoLimitUnlocked = true;

@@ -136,6 +136,54 @@ const GameNotifier = {
         await this.scheduleNotifications();
     },
 
+    async scheduleTestGameQuestionNotification(delaySeconds = 10) {
+        const safeDelaySeconds = Math.max(1, Number(delaySeconds) || 10);
+        const fireAtTs = Date.now() + safeDelaySeconds * 1000;
+        const recordKey = this._dateKeyForTimestamp(fireAtTs);
+        const cfg = this._getConfig();
+        const title = cfg.eveningTitle || 'Вечерна проверка';
+        const body = cfg.eveningBody || 'Как мина денят ти?';
+        const url = this._buildQuickAnswerUrl('evening_check', { date: recordKey });
+
+        if (this._capacitor) {
+            const { LocalNotifications } = this._capacitor;
+            await this._warnIfExactAlarmDenied(LocalNotifications);
+            await LocalNotifications.schedule({
+                notifications: [{
+                    id: (fireAtTs % 1000000000) | 0,
+                    channelId: this.CHANNEL_ID,
+                    title,
+                    body,
+                    actionTypeId: this.EVENING_ACTION_TYPE_ID,
+                    schedule: { at: new Date(fireAtTs), allowWhileIdle: true },
+                    extra: { url, type: 'evening_check', recordKey },
+                    iconColor: this.BRAND_TEAL_DARK
+                }]
+            });
+            return { fireAtTs, mode: 'capacitor' };
+        }
+
+        if (this._swReg && navigator.serviceWorker && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({
+                type: 'SCHEDULE_GAME_NOTIFICATIONS',
+                schedule: [{
+                    ts: fireAtTs,
+                    title,
+                    body,
+                    tag: 'gn-test-' + fireAtTs,
+                    type: 'evening_check',
+                    url,
+                    recordKey,
+                    vibrate: [200, 100, 200],
+                    requireInteraction: false
+                }]
+            });
+            return { fireAtTs, mode: 'sw' };
+        }
+
+        throw new Error('GameNotifier is not ready');
+    },
+
     /* ------------------------------------------------------------------ */
     /*  Capacitor detection                                                 */
     /* ------------------------------------------------------------------ */
