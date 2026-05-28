@@ -1898,7 +1898,6 @@
             <div class="profile-name" id="profileName"></div>
             <div class="profile-email" id="profileEmail"></div>
             <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема"><i class="fas fa-moon" id="themeIcon"></i></button>
-            <button class="spa-logout-btn" id="socialLogoutBtnHeader" onclick="socialLogout()" aria-label="Изход от акаунта" style="position:absolute;top:10px;left:12px;padding:7px 12px;min-width:0;font-size:0.78rem;margin:0;"><i class="fas fa-sign-out-alt"></i> Изход</button>
             <script>
             /* Instantly populate profile header from localStorage before DOMContentLoaded,
              * so there is never a flash of placeholder "Име"/"email@example.com". */
@@ -2645,7 +2644,7 @@
         }
 
         function setProfileLogoutVisibility(visible) {
-            const logoutBtn = document.getElementById('socialLogoutBtn');
+            const logoutBtn = document.getElementById('logoutBtn');
             if (!logoutBtn) return;
             logoutBtn.classList.toggle('hidden', !visible);
         }
@@ -2667,7 +2666,7 @@
             });
         }
 
-        window.socialLogout = window.socialLogout || async function() {
+        window.doLogout = window.doLogout || async function() {
             await clearProfileSessionFallback();
             if (requestShellAction('NUTRIPLAN_LOGOUT')) return;
             window.location.replace('index.html?stay=1');
@@ -3519,14 +3518,22 @@
                                 if (!dataUrl) {
                                     throw new Error('image-unavailable');
                                 }
-                                // Convert dataUrl to Blob for compression
-                                fetch(dataUrl)
-                                    .then(r => r.blob())
-                                    .then(blob => compressImage(blob, saveAvatarDataUrl))
-                                    .catch(() => {
-                                        // Fallback: use dataUrl directly if blob conversion fails
-                                        saveAvatarDataUrl(dataUrl);
-                                    });
+                                // Compress directly from dataUrl via canvas (no fetch needed in WebView)
+                                var img = new Image();
+                                img.onload = function() {
+                                    var canvas = document.createElement('canvas');
+                                    var MAX_DIM = 640;
+                                    var w = img.width, h = img.height;
+                                    if (w > MAX_DIM || h > MAX_DIM) {
+                                        if (w > h) { h = Math.round(h * MAX_DIM / w); w = MAX_DIM; }
+                                        else { w = Math.round(w * MAX_DIM / h); h = MAX_DIM; }
+                                    }
+                                    canvas.width = w; canvas.height = h;
+                                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                                    saveAvatarDataUrl(canvas.toDataURL('image/jpeg', 0.78));
+                                };
+                                img.onerror = function() { saveAvatarDataUrl(dataUrl); };
+                                img.src = dataUrl;
                             } catch (err) {
                                 const msg = (err && (err.message || err)) ? String(err.message || err).toLowerCase() : '';
                                 if (!msg.includes('cancel')) {
@@ -4928,7 +4935,7 @@
 
     <!-- Logout button -->
     <div style="display:flex;justify-content:center;padding:12px 0 8px;">
-        <button class="spa-logout-btn" id="socialLogoutBtn" onclick="socialLogout()" aria-label="Изход от акаунта">
+        <button class="spa-logout-btn" id="logoutBtn" onclick="doLogout()" aria-label="Изход от акаунта">
             <i class="fas fa-sign-out-alt"></i> Изход от акаунта
         </button>
     </div>
@@ -4996,7 +5003,7 @@
                 }
             });
 
-            window.socialLogout = async function() {
+            window.doLogout = async function() {
                 await signOut(auth).catch(() => {});
                 if (window.NutriPlanSession && typeof window.NutriPlanSession.clearUserSessionData === 'function') {
                     await window.NutriPlanSession.clearUserSessionData();
