@@ -2637,3 +2637,20 @@ VAPID ключът е статична стойност — никога не с
 - `profile.html`: добавен ранен inline script за `data-embedded-tab` (присъства в plan.html и guidelines.html, но липсваше в profile.html).
 
 **Засегнати файлове:** `auth-guard.js`, `native-backup.js`, `profile.html`, `logtasks.md`
+
+---
+
+## Задача: Поправи нотификациите в APK (2026-05-28)
+
+**Проблем:** Нотификациите в инсталирания APK (game въпроси в определени часове) спряха да работят.
+
+**Корен проблем:**  
+В `local-scheduler.js`, методът `_detectCapacitor()` проверяваше само `window.Capacitor`.  
+В APK, `plan.html` се зарежда в iframe вътре в `index.html` (SPA shell). В iframe контекст `window.Capacitor` е `undefined` (Capacitor bridge е инжектиран само в главния прозорец). Затова `_detectCapacitor()` връщаше `null`, GameNotifier не разпознаваше Capacitor контекст, и fallback-ваше към SW path — но в APK `Notification.permission !== 'granted'`, така че SW path-ът също изходеше ранно без да планира нотификации.
+
+**Паралел:** Същият проблем беше поправен за haptics в `platform.js` (commit `8302653`) — там `getCap()` ползва `window.Capacitor || window.top.Capacitor` fallback.
+
+**Поправка:**  
+В `local-scheduler.js`, `_detectCapacitor()` вече пробва и `window.top.Capacitor` ако `window.Capacitor` не е наличен — идентичен pattern на `platform.js`'s `getCap()`.
+
+**Засегнати файлове:** `local-scheduler.js`, `logtasks.md`
