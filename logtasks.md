@@ -1,5 +1,20 @@
 # Log Tasks
 
+## 2026-05-28 — APK: реална поправка на logout и profile avatar
+
+**Задача:** Logout бутонът в APK вече съществува, но не прави реален logout; избраното profile avatar изображение също не се визуализира само в APK. Да се намерят точните причини и да се оправят.
+
+**Корен проблеми:**
+- `app.js` приемаше shell postMessage само при `event.origin === window.location.origin`, което в Capacitor iframe flow не е надеждно и блокираше `NUTRIPLAN_LOGOUT` от embedded profile таба.
+- `app.js` връщаше shell-а към `index.html?stay=1` без `logout=1`, затова top-level `index.html` не чистеше собствената Firebase сесия и APK оставаше логнат.
+- `profile.html` взимаше Camera bridge първо от iframe `window.Capacitor`, вместо от shell/top контекста, и native avatar picker handler-ът беше вързан само към label click-а, което е нестабилно при overlay input в APK.
+
+**Направено:**
+- `app.js`: добавена trusted shell message проверка, която допуска съобщения от реалните shell iframe-и и в Capacitor/null-origin сценарий.
+- `app.js`: logout flow-ът вече навигира към `index.html?stay=1&logout=1`, за да принуди top-level logout.
+- `index.html`: добавена е обработка на `logout=1`, която чисти session storage, прави top-level Firebase sign-out и маха logout query param-а след това.
+- `profile.html`: Camera plugin lookup вече предпочита `window.top.Capacitor`, ползва директно наличния `Plugins.Camera` когато съществува и native picker handler-ът се закача към реалния click target в APK с `preventDefault()` + `stopPropagation()`, така че избраната снимка да се запише и изобрази надеждно.
+
 ## 2026-05-28 — Chat команда *notifyme за реален game notification тест
 
 **Задача:** При команда `*notifyme` в чата да се взема текущият час, да се пуска известие след +10 секунди и да е реалистичен game question сценарий за тест при затворено приложение.
