@@ -1,16 +1,6 @@
 # Log Tasks
 
-## 2026-05-28 — APK: прецизна поправка на logout и avatar picker (втори кръг)
-
-**Задача:** Logout бутонът не извежда потребителя в APK; избирането на профилна снимка не работи в APK.
-
-**Корен причини (нови):**
-- `session-utils.js` → `getPreferencesPlugin()` проверяваше само `window.Capacitor`, но в profile.html iframe капацитор обектът е на `window.top.Capacitor`. Поради това `clearUserSessionData()` намираше `null` за prefs и правеше early return, без да изчисти Capacitor Preferences. При следващо зареждане на страницата `NativeBackup.restore()` възстановяваше данните от Preferences и потребителят изглеждаше все още логнат.
-- `profile.html` → клик-листенерът за native avatar picker беше закачен към `avatarInput` (скрития file input, покриващ целия label). На Android WebView нативният file-chooser диалог се отваря на OS ниво преди JavaScript `preventDefault()` да може да го спре, затова Capacitor Camera plugin никога не се достигаше.
-
-**Направено:**
-- `session-utils.js`: `getPreferencesPlugin()` вече проверява и `window.top.Capacitor` (iframe fallback), така че `clearUserSessionData()` правилно изчиства и Capacitor Preferences при logout от profile iframe.
-- `profile.html`: В APK режим `avatarInput` се скрива (`display:none`) и клик-листенерът се поставя върху `avatarUploadTrigger` (label), за да се предотврати нативният file-chooser и вместо него да се извика Capacitor Camera plugin.
+## 2026-05-28 — APK: реална поправка на logout и profile avatar
 
 **Задача:** Logout бутонът в APK вече съществува, но не прави реален logout; избраното profile avatar изображение също не се визуализира само в APK. Да се намерят точните причини и да се оправят.
 
@@ -2739,33 +2729,3 @@ Logout бутонът и избраният от потребителя ават
 - Firebase await преместен в края на функцията (background: bottom module's onAuthStateChanged update handles live session refresh)
 
 **Засегнати файлове:** `auth-guard.js`, `profile.html`, `logtasks.md`
-
-## Задача: Тест за APK поведения (2026-05-28)
-
-**Заявено:** Тест за APK и потвърждение на описаните поправки.
-
-**Направено:**
-- Създаден `apk.test.js` — 9 автоматизирани теста с `node:test` (Node.js built-in, нулеви нови зависимости):
-  - `native-backup.js` (3 теста): `_getCap()` / `_isNative()` — без Capacitor, с ненативен Capacitor, с `window.top.Capacitor` fallback в iframe
-  - `GameNotifier._detectCapacitor()` (4 теста): без Capacitor, ненативен, top-level, iframe fallback
-  - `auth-guard.js` overlay (2 теста): overlay се маха при embedded+null Firebase; не се маха при top-level redirect
-- Актуализиран `package.json`: `"test": "node --test apk.test.js"` + добавен `"type": "module"`
-- Всички 9 теста минават успешно (`npm test`)
-
-**Засегнати файлове:** `apk.test.js` (нов), `package.json`, `logtasks.md`
-
-## Задача: Реални APK проблеми с logout и avatar gallery (2026-05-28)
-
-**Заявено:** Да се намерят реалните причини защо logout бутонът в APK не прави нищо при клик и защо второ избрано изображение от галерията не се зарежда в avatar input-а, след което да се тества решението с APK regression tester.
-
-**Направено:**
-- Проверен е реалният profile/logout/avatar поток в `profile.html` и е потвърдено, че проблемът с logout не е във видимостта на бутона, а в това, че `socialLogout()` чака `await signOut(auth)` преди локалното чистене и shell navigation; при APK/Firebase WebView този promise може да увисне и кликът изглежда като no-op.
-- Потвърдено е, че avatar upload логиката приема само `photo.dataUrl`; това е крехко за Capacitor gallery връщания, където следващ избор може да дойде като `base64String`, `webPath` или `path`, и така кодът хвърля `image-unavailable` без да зареди снимката.
-- Поправен е `profile.html` с минимална промяна:
-  - logout вече не блокира UI/navigation върху Firebase sign-out; sign-out се ограничава с timeout, local session cleanup и shell logout продължават веднага;
-  - avatar upload вече нормализира `dataUrl` / `base64String` / `webPath` / native `path` (вкл. `Capacitor.convertFileSrc`) преди компресиране и запис.
-- Разширен е `apk.test.js` с нови regression тестове за:
-  - bounded logout wait (`settleSoon`) при увиснал promise;
-  - avatar source normalization за `base64String`, `webPath` и native `path`.
-
-**Засегнати файлове:** `profile.html`, `apk.test.js`, `logtasks.md`
