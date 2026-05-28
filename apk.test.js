@@ -286,7 +286,7 @@ test('profile getAvatarPhotoSource: converts native file paths via Capacitor', (
         window: {
             top: {
                 Capacitor: {
-                    convertFileSrc: (value) => `https://localhost/_capacitor_file_/${value.replace(/^file:\/\//, '')}`
+                    convertFileSrc: (value) => `https://localhost/_capacitor_file_${value.replace(/^file:\/\//, '')}`
                 }
             }
         }
