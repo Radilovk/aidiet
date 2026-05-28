@@ -2714,3 +2714,44 @@ Logout бутонът и избраният от потребителя ават
 - Firebase await преместен в края на функцията (background: bottom module's onAuthStateChanged update handles live session refresh)
 
 **Засегнати файлове:** `auth-guard.js`, `profile.html`, `logtasks.md`
+
+## Задача: Кардинална поправка — logout + аватар невидими в APK (2026-05-28)
+
+**Заявено:**
+PR #967 не реши проблема. Премахни неработещото решение и намери кардинален вариант.
+
+**Root Cause анализ (истинска причина за провала на #967):**
+
+PR #967 беше логически правилен, но пропусна три по-дълбоки причини:
+
+### Причина 1 — `native-backup.js`: `_hasPrimaryData()` прескача restore на userId
+- `_hasPrimaryData()` проверява само `dietPlan`, `pendingClientId`, `planJobId`
+- Ако localStorage съдържа `dietPlan` (стара стойност от предишна сесия), но `userId` е изчистен (напр. logout само в уеб браузъра, без APK), целият restore се прескача
+- Резултат: `userId = null`, `hasStoredProfileSession() = false`, logout бутонът остава скрит
+
+### Причина 2 — `auth-guard.js`: `NutriPlanAuthGuardReady` чака Firebase дори когато userId е в localStorage
+- Когато `likelyAuthed = true`, guard не създава overlay, но `NutriPlanAuthGuardReady` все още не е резолвиран
+- В APK, Firebase fires `null` (различен WebView origin) — резолвирането идва само от callback-а
+- Създава race condition за страниците, които `await NutriPlanAuthGuardReady`
+
+### Причина 3 — `profile.html`: `setProfileLogoutVisibility()` се вика само веднъж в `setupProfile()`
+- Ако `userId` не е в localStorage ПО ВРЕМЕТО на тази проверка (причина 1), бутонът остава скрит
+- `loadUserData()` не вика `setProfileLogoutVisibility()` — няма fallback при успешно зареждане
+
+**Кардинална поправка (три файла):**
+
+### native-backup.js
+- `_hasPrimaryData()` сега изисква И `userId` да присъства, не само план-ключове
+- Константа `IDENTITY_KEY = 'userId'` проверена преди Primary check
+- Стал localStorage с `dietPlan` но без `userId` задейства пълния restore loop
+
+### auth-guard.js  
+- Когато `likelyAuthed = true`, `NutriPlanAuthGuardReady` се резолвира ВЕДНАГА от localStorage
+- Firebase `onAuthStateChanged` продължава да тече на заден план за revocation detection
+- `_resolveGuardReady` има guard срещу двойно резолвиране — безопасно
+
+### profile.html
+- `loadUserData()` вика `setProfileLogoutVisibility(true)` веднага след успешно зареждане на userData
+- Осигурява logout бутон ВИНАГИ когато има userData, независимо от timing-а на setupProfile()
+
+**Засегнати файлове:** `native-backup.js`, `auth-guard.js`, `profile.html`, `logtasks.md`

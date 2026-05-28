@@ -50,6 +50,17 @@ function _resolveGuardReady(user) {
     const cachedUserId = localStorage.getItem('userId') || '';
     const likelyAuthed = cachedUserId.startsWith('fb_');
 
+    /* When userId is already in localStorage (APK NativeBackup restore, or web
+     * subsequent visit), resolve NutriPlanAuthGuardReady immediately from cache
+     * so that profile setup never blocks on Firebase — which always fires null
+     * in the APK WebView (different IndexedDB origin from the web browser).
+     * Firebase's onAuthStateChanged still runs in the background; if it fires a
+     * live user, ensureAuthenticatedUser is still called; if it fires null on a
+     * top-level page, the redirect-to-login path still executes. */
+    if (likelyAuthed) {
+        _resolveGuardReady({ cached: true, uid: cachedUserId.slice(3) });
+    }
+
     let ov = null;
     if (!likelyAuthed) {
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
