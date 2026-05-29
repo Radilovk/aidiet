@@ -3,8 +3,8 @@
   "appName": "NutriPlan",
   "webDir": "capacitor-shell",
   "server": {
-    "androidScheme": "https",
-    "hostname": "localhost"
+    "url": "https://biocode.website",
+    "androidScheme": "https"
   },
   "plugins": {
     "LocalNotifications": {

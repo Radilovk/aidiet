@@ -2928,3 +2928,23 @@ Logout бутонът и избраният от потребителя ават
 - С тази промяна `GameNotifier.init()` се вика → `this._capacitor` се сетва (синхронно в `_detectCapacitor()` с `window.top.Capacitor` fallback) → `LocalNotifications.schedule()` работи → `*notifyme` насрочва тест нотификация след 10 сек.
 
 **Засегнати файлове:** `plan.html`, `logtasks.md`
+
+## 2026-05-29 — APK: превключване от bundled файлове към live website
+
+**Задача:** APK-то не отразява промените от уеб версията, защото зарежда бъндлирани локални файлове. Промяна към зареждане от живия сайт biocode.website.
+
+**Потвърдена причина:**
+- `capacitor.config.json` имаше `"hostname": "localhost"` без `server.url`, което означава че WebView зарежда файловете от вградената `capacitor-shell/` директория.
+- Всяка промяна изисква нов APK билд + инсталация.
+- Web потребителите получават промените моментално от Cloudflare, а APK потребителите — не.
+
+**Решение:**
+- Добавен `"url": "https://biocode.website"` в `server` блока на `capacitor.config.json`.
+- Премахнат `"hostname": "localhost"` (не е нужен при remote URL).
+- APK-то сега зарежда директно от живия сайт — промените се отразяват веднага.
+- Capacitor native plugins (notifications, haptics, camera) продължават да работят през bridge-а.
+- `capacitor-shell/` остава за компилационни цели (Capacitor изисква `webDir`), но не се сервира runtime.
+- Съвместимо с Play Store (много приложения ползват remote WebView).
+- Няма допълнително натоварване на backend — статичните файлове се сервират от Cloudflare CDN.
+
+**Засегнати файлове:** `capacitor.config.json`, `logtasks.md`
