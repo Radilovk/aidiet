@@ -109,27 +109,6 @@ const GameNotifier = {
         }
     },
 
-    async openExactAlarmSettings() {
-        if (!this._capacitor) return false;
-        const { LocalNotifications } = this._capacitor;
-        try {
-            if (typeof LocalNotifications.changeExactNotificationSetting === 'function') {
-                await LocalNotifications.changeExactNotificationSetting();
-                return true;
-            }
-        } catch (e) {
-            console.warn('[GameNotifier] Exact alarm settings open failed:', e);
-        }
-        return false;
-    },
-
-    async recheckExactAlarmPermission() {
-        if (!this._capacitor) {
-            return { supported: false, granted: true, exactAlarm: 'not_supported' };
-        }
-        return this._checkExactAlarmPermission(this._capacitor.LocalNotifications, true);
-    },
-
     async scheduleNotifications() {
         const cfg = this._getConfig();
         console.log('[GameNotifier] Scheduling with config:', cfg);
@@ -182,7 +161,6 @@ const GameNotifier = {
 
         if (this._capacitor) {
             const { LocalNotifications } = this._capacitor;
-            await this._checkExactAlarmPermission(LocalNotifications, true);
             await LocalNotifications.schedule({
                 notifications: [{
                     id: (fireAtTs % 1000000000) | 0,
@@ -500,10 +478,6 @@ const GameNotifier = {
         const { LocalNotifications } = this._capacitor;
         await this.cancelAll();
 
-        // Warn on Android 12+ if exact-alarm permission was not granted by the user.
-        // Without it, AlarmManager.setExact() calls are silently dropped by the OS.
-        await this._checkExactAlarmPermission(LocalNotifications, true);
-
         const [mH, mM] = cfg.morningTime.split(':').map(Number);
         const [eH, eM] = cfg.eveningTime.split(':').map(Number);
         const notifications = [];
@@ -726,51 +700,6 @@ const GameNotifier = {
     /* ------------------------------------------------------------------ */
     /*  Helper                                                              */
     /* ------------------------------------------------------------------ */
-
-    /**
-     * On Android 12+ (API 31+) the SCHEDULE_EXACT_ALARM permission requires
-     * explicit user approval in Settings → Apps → Special permissions →
-     * Alarms & reminders.  If it has not been granted the OS silently drops
-     * all setExact() calls.  We detect this through the LocalNotifications
-     * plugin and emit a UI event so plan.html can show a visible prompt.
-     */
-    async _checkExactAlarmPermission(LocalNotifications, notifyWhenDenied = false) {
-        try {
-            let exactAlarm =
-                typeof LocalNotifications.checkExactNotificationSetting === 'function'
-                    ? (await LocalNotifications.checkExactNotificationSetting())?.exact_alarm
-                    : null;
-
-            if (!exactAlarm && typeof LocalNotifications.checkPermissions === 'function') {
-                const perms = await LocalNotifications.checkPermissions();
-                exactAlarm = perms?.exact_alarm || perms?.exactAlarm || null;
-            }
-
-            const state = typeof exactAlarm === 'string' ? exactAlarm : '';
-            const supported = !!state && state !== 'not_supported';
-            const granted = !supported || state === 'granted' || state === 'enabled';
-
-            this._emitExactAlarmStatus({ supported, granted, exactAlarm: state || 'not_supported' });
-
-            if (!granted && notifyWhenDenied) {
-                console.warn(
-                    '[GameNotifier] SCHEDULE_EXACT_ALARM not granted by user (' + state + '). ' +
-                    'On Android 12+ go to Settings → Apps → NutriPlan → Special permissions → Alarms & Reminders ' +
-                    'and enable it, otherwise notifications will not fire on schedule.'
-                );
-            }
-            return { supported, granted, exactAlarm: state || 'not_supported' };
-        } catch (_) {
-            return { supported: false, granted: true, exactAlarm: 'unknown' };
-        }
-    },
-
-    _emitExactAlarmStatus(detail) {
-        if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') return;
-        try {
-            window.dispatchEvent(new CustomEvent('nutriplan:exact-alarm-status', { detail }));
-        } catch (_) { /* non-critical */ }
-    },
 
     _tsForDayOffset(dayOffset, hours, minutes) {
         const d = new Date();
