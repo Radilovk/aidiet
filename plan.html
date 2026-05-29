@@ -6327,6 +6327,7 @@
                     return;
                 }
                 try {
+                    await window.GameNotifier.init();
                     const result = await window.GameNotifier.scheduleTestGameQuestionNotification(10);
                     const fireAt = new Date(result.fireAtTs);
                     const fireAtText = fireAt.toLocaleTimeString('bg-BG', {
