@@ -4570,6 +4570,10 @@
             return false;
         }
 
+        function openNotificationDiagnostics() {
+            navigateTopLevel('notifications-test.html');
+        }
+
         function openShellTab(tab, fallbackUrl) {
             if (requestShellAction('NUTRIPLAN_SWITCH_TAB', { tab: tab })) {
                 return true;
@@ -6020,6 +6024,10 @@
                         <span id="modeText" style="font-size: 0.85rem; font-weight: 500;">Режим: Консултация</span>
                     </div>
                     <div style="display: flex; gap: 5px;">
+                        <button onclick="openNotificationDiagnostics()" style="background: #0D9488; color: white; border: none; padding: 6px 12px; border-radius: 12px; cursor: pointer; font-size: 0.8rem; font-weight: 500; display: flex; align-items: center; gap: 5px;">
+                            <i class="fas fa-bell"></i>
+                            <span>Тест нотификации</span>
+                        </button>
                         ${modificationButtonHtml}
                         <button onclick="switchToMode('report')" id="reportBtn" style="background: #ff9800; color: white; border: none; padding: 6px 12px; border-radius: 12px; cursor: pointer; font-size: 0.8rem; font-weight: 500; display: flex; align-items: center; gap: 5px;">
                             <i class="fas fa-exclamation-circle"></i>
@@ -6280,26 +6288,8 @@
 
             if (message.toLowerCase() === '*notifyme') {
                 input.value = '';
-                if (!window.GameNotifier || typeof window.GameNotifier.scheduleTestGameQuestionNotification !== 'function') {
-                    addMessageToChat('⚠️ Модулът за известия още не е готов. Опитай след малко.', 'assistant');
-                    return;
-                }
-                try {
-                    await window.GameNotifier.init();
-                    const result = await window.GameNotifier.scheduleTestGameQuestionNotification(10);
-                    const fireAt = new Date(result.fireAtTs);
-                    const fireAtText = fireAt.toLocaleTimeString('bg-BG', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit'
-                    });
-                    addMessageToChat(
-                        `🔔 Пуснат е реален тест за game question известие след 10 сек (в ${fireAtText}). Затвори приложението, за да провериш истинското поведение.`,
-                        'assistant'
-                    );
-                } catch (err) {
-                    addMessageToChat('⚠️ Не успях да планирам тестовото известие. Провери дали известията са разрешени.', 'assistant');
-                }
+                addMessageToChat('🧪 Отварям тестовия режим за нотификации. Там можеш да пуснеш диагностиката и 10-секундния APK тест.', 'assistant');
+                setTimeout(() => { openNotificationDiagnostics(); }, 250);
                 return;
             }
 
