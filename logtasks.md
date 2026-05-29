@@ -1,5 +1,21 @@
 # Log Tasks
 
+## 2026-05-29 — APK: реална причина за logout refresh и avatar upload regression
+
+**Задача:** Да се прегледа PR `Fix APK logout refresh and native avatar library upload`, да се установи защо приложената стратегия не решава проблема, да се намери реалната причина и да се приложи работеща поправка.
+
+**Грешна стратегия (по върнатата обратна връзка):**
+- Стратегията от PR #983, че avatar проблемът е в `photo.dataUrl` и трябва да се мине към `uri/webPath`, е грешна за Android WebView/APK сценария — това връща native/content URI, който не е надежден вход за текущия `Image`/canvas render pipeline.
+- В същия PR беше пипнат shell logout fallback-ът, но беше пропуснато, че активният `window.doLogout` в долния module script презаписва по-ранния handler и продължава да прави iframe-local async logout преди да поиска shell logout.
+
+**Реални причини:**
+- `profile.html` има две дефиниции на `window.doLogout`; действащата module дефиниция първо чака `signOut(auth)` и local cleanup в iframe-а и чак след това праща `NUTRIPLAN_LOGOUT`. Това оставя embedded APK logout-а зависим от iframe auth/cleanup стъпки вместо веднага да предаде управлението на shell-а.
+- `profile.html` native avatar picker беше пренасочен към `resultType: 'uri'`, но текущият render/save път компресира през `<img>` + canvas и е надежден за data URL/base64, не за native `content://` / file path резултати от Android gallery picker.
+
+**Предприета стратегия:**
+- `profile.html`: и двата logout handler-а вече при embedded tab първо пращат `NUTRIPLAN_LOGOUT`, за да остане shell-ът единствената точка за APK logout refresh; локалният sign-out/cleanup остава само като fallback извън shell.
+- `profile.html`: native avatar picker-ът отново иска `dataUrl` (с base64 fallback), което съвпада с вече съществуващия compression/render pipeline и избягва нестабилните native URI резултати.
+
 ## 2026-05-29 — APK: logout и avatar picker parity
 
 **Задача:** В APK logout бутонът да връща веднага началната страница като при web; да се махне текстът „Натисни за смяна на снимката“; качването на аватар от телефонната библиотека да се визуализира стабилно в APK с минимална редакция.

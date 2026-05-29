@@ -2674,8 +2674,8 @@
         }
 
         window.doLogout = window.doLogout || async function() {
-            await clearProfileSessionFallback();
             if (requestShellAction('NUTRIPLAN_LOGOUT')) return;
+            await clearProfileSessionFallback();
             window.location.replace('index.html?stay=1&logout=1');
         };
 
@@ -3519,13 +3519,13 @@
                                     quality: 80,
                                     allowEditing: false,
                                     source: 'PHOTOS',
-                                    resultType: 'uri'
+                                    resultType: 'dataUrl'
                                 });
                                 const imageSource = photo && (
-                                    photo.webPath ||
-                                    photo.path ||
                                     photo.dataUrl ||
-                                    (photo.base64String ? 'data:image/jpeg;base64,' + photo.base64String : '')
+                                    (photo.base64String ? 'data:image/jpeg;base64,' + photo.base64String : '') ||
+                                    photo.webPath ||
+                                    photo.path
                                 );
                                 if (!imageSource) {
                                     throw new Error('image-unavailable');
@@ -5009,6 +5009,7 @@
             });
 
             window.doLogout = async function() {
+                if (requestShellAction('NUTRIPLAN_LOGOUT')) return;
                 await signOut(auth).catch(() => {});
                 if (window.NutriPlanSession && typeof window.NutriPlanSession.clearUserSessionData === 'function') {
                     await window.NutriPlanSession.clearUserSessionData();
@@ -5016,7 +5017,6 @@
                     _clearUserPlanData();
                 }
                 /* Navigate home after logout */
-                if (requestShellAction('NUTRIPLAN_LOGOUT')) return;
                 window.location.replace('index.html?stay=1&logout=1');
             };
 
