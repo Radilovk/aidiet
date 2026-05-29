@@ -1,20 +1,22 @@
 # Log Tasks
 
-## 2026-05-29 — APK avatar upload: native picker from embedded profile tab
+## 2026-05-29 — APK image upload: премахване на неработещ Camera plugin код
 
-**Задача:** Да се оправи неработещото качване на потребителско изображение в инсталирания NutriPlan APK.
+**Задача:** Да се оправи неработещото качване на потребителско изображение в инсталирания NutriPlan APK и да се изтрият предишните неработещи решения.
 
 **Потвърдена причина:**
-- В текущия `profile.html` avatar upload-ът се стартираше само през hidden `input[type=file]` и синтетично `avatarInput.click()` (`/tmp/workspace/Radilovk/aidiet/profile.html:3470-3496`).
-- В същото време профилът в APK се зарежда като embedded iframe таб в shell-а (`/tmp/workspace/Radilovk/aidiet/index.html:2055-2058`), а репото вече пази native plugin lookup през `window.top.Capacitor` за такива iframe сценарии (`/tmp/workspace/Radilovk/aidiet/platform.js:22-25`).
-- Тоест APK flow-ът изобщо не използва native picker, въпреки че е в embedded Capacitor контекст, и остава зависим от WebView file-input activation вместо от сигурния native plugin path.
+- Camera plugin НЕ е инсталиран в APK-то (не присъства в capacitor.config.json plugins).
+- Въпреки това `getAvatarCameraPlugin()` в profile.html открива proxy обект от `Capacitor.Plugins.Camera` и връща non-null.
+- `pickAvatarFromNativeGallery()` извиква `camera.getPhoto()` което хвърля грешка тъй като plugin-ът не е инсталиран.
+- Error handler-ът връща `true`, което блокира fallback-а към `avatarInput.click()` (стандартният file input).
+- Стандартният `<input type="file" accept="image/*">` работи перфектно в Capacitor WebView — отваря системния file chooser.
 
 **Направено:**
-- `profile.html`: добавен е минимален APK-only avatar picker през Capacitor Camera plugin, резолвиран и от `window.top.Capacitor`.
-- `profile.html`: web/PWA fallback-ът с file input остава непроменен; native path се използва само когато APK plugin-ът е наличен.
-- Резултатът от native picker-а минава през същата съществуваща компресия и запис в `localStorage`, без нов storage/render flow.
+- Премахнати `getAvatarCameraPlugin()`, `getAvatarPhotoSource()`, `pickAvatarFromNativeGallery()` от profile.html.
+- Опростен click handler-ът — директно `avatarInput.click()` без APK-специфична логика.
+- File input-ът работи и в APK и в web/PWA без допълнителен native код.
 
-## 2026-05-29 — APK avatar upload: връщане към простия работещ flow
+## 2026-05-29 — APK avatar upload: native picker from embedded profile tab
 
 **Задача:** Да се излезе от порочния кръг и да се приложи кардинално, просто и работещо решение за avatar upload в APK, като се изчисти неработещият код.
 
