@@ -2829,3 +2829,21 @@ Logout бутонът и избраният от потребителя ават
 - Няма добавен нов flow; поправена е грешната детекция с минимална промяна.
 
 **Засегнати файлове:** `plan.html`, `logtasks.md`
+
+---
+
+## Задача: `*notifyme` никога не е работил — shellChat path fix (2026-05-29)
+
+**Контекст от потребителя:**
+Нотификациите (morning/evening game check-ins) работеха преди. `*notifyme` е нова функция, която никога не е работила.
+
+**Корен проблем:**
+В APK когато потребителят кликне Chat бутона, план.html (embedded tab) извиква `requestShellAction('NUTRIPLAN_OPEN_CHAT')`. Shell (app.js) отваря НОВ iframe `plan.html?chat=1&embedded=1&shellChat=1` като chat overlay.
+
+В shellChat iframe-а `initializeDOMDependentFeatures()` влизаше в ранния `?shellChat=1` клон и извикваше `openChat()`, но НЕ извикваше `scheduleNotifications()`. Така `GameNotifier.init()` никога не беше стартиран в shellChat контекст → `this._capacitor` оставаше `null` → `scheduleTestGameQuestionNotification()` хвърляше `GameNotifier is not ready` → `*notifyme` показваше грешка.
+
+**Поправка:**
+- В `plan.html` shellChat ранния return клон е добавен `scheduleNotifications()` преди `return`.
+- С тази промяна `GameNotifier.init()` се вика → `this._capacitor` се сетва (синхронно в `_detectCapacitor()` с `window.top.Capacitor` fallback) → `LocalNotifications.schedule()` работи → `*notifyme` насрочва тест нотификация след 10 сек.
+
+**Засегнати файлове:** `plan.html`, `logtasks.md`
