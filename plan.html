@@ -8401,6 +8401,7 @@
 
         // Holds the SW registration so showNotificationPrompt() can use it.
         let swRegistration = null;
+        let exactAlarmResumeCheckArmed = false;
 
         async function checkNotificationPermission(registration) {
             swRegistration = registration;
@@ -8452,6 +8453,76 @@
             banner.appendChild(btn);
             banner.appendChild(close);
             document.body.appendChild(banner);
+        }
+
+        function hideExactAlarmBanner() {
+            const banner = document.getElementById('exact-alarm-banner');
+            if (banner) banner.remove();
+        }
+
+        function showExactAlarmBanner() {
+            if (document.getElementById('exact-alarm-banner')) return;
+            const banner = document.createElement('div');
+            banner.id = 'exact-alarm-banner';
+            banner.style.cssText = 'position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:10000;background:#0F766E;color:#fff;padding:12px 16px;border-radius:12px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 16px rgba(0,0,0,.3);max-width:calc(100vw - 32px);font-size:14px;';
+            banner.innerHTML = '<span>⏰ Разрешете “Alarms & reminders”, иначе Android няма да изпълнява точните напомняния.</span>';
+
+            const btn = document.createElement('button');
+            btn.textContent = 'Отвори настройки';
+            btn.style.cssText = 'background:#fff;color:#0F766E;border:none;border-radius:8px;padding:6px 12px;font-weight:600;cursor:pointer;white-space:nowrap;';
+            btn.onclick = async () => {
+                if (!window.GameNotifier || typeof window.GameNotifier.openExactAlarmSettings !== 'function') return;
+                exactAlarmResumeCheckArmed = true;
+                try {
+                    await window.GameNotifier.openExactAlarmSettings();
+                } catch (e) {
+                    console.warn('[Notifications] Exact alarm settings open error:', e);
+                }
+            };
+
+            const close = document.createElement('button');
+            close.textContent = '✕';
+            close.style.cssText = 'background:none;border:none;color:#fff;font-size:16px;cursor:pointer;padding:0 4px;';
+            close.onclick = () => banner.remove();
+
+            banner.appendChild(btn);
+            banner.appendChild(close);
+            document.body.appendChild(banner);
+        }
+
+        async function recheckExactAlarmAfterResume() {
+            if (!exactAlarmResumeCheckArmed || document.visibilityState !== 'visible') return;
+            if (!window.GameNotifier || typeof window.GameNotifier.recheckExactAlarmPermission !== 'function') return;
+            exactAlarmResumeCheckArmed = false;
+            try {
+                const state = await window.GameNotifier.recheckExactAlarmPermission();
+                if (state && state.granted) {
+                    hideExactAlarmBanner();
+                    await window.GameNotifier.scheduleNotifications();
+                }
+            } catch (e) {
+                console.warn('[Notifications] Exact alarm recheck error:', e);
+            }
+        }
+
+        window.addEventListener('nutriplan:exact-alarm-status', function(event) {
+            const detail = event && event.detail ? event.detail : null;
+            if (!detail || !detail.supported) {
+                hideExactAlarmBanner();
+                return;
+            }
+            if (detail.granted) {
+                hideExactAlarmBanner();
+                return;
+            }
+            showExactAlarmBanner();
+        });
+
+        document.addEventListener('visibilitychange', recheckExactAlarmAfterResume);
+        if (window.GameNotifier && typeof window.GameNotifier.recheckExactAlarmPermission === 'function') {
+            window.GameNotifier.recheckExactAlarmPermission().catch(e =>
+                console.warn('[Notifications] Initial exact alarm recheck error:', e)
+            );
         }
 
         function showNotificationBanner() {
