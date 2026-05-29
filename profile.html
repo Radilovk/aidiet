@@ -3433,6 +3433,57 @@
             reader.readAsDataURL(file);
         }
 
+        function getAvatarCameraPlugin() {
+            try {
+                if (window.NutriPlanPlatform && typeof window.NutriPlanPlatform.getPlugin === 'function') {
+                    const plugin = window.NutriPlanPlatform.getPlugin('Camera');
+                    if (plugin && typeof plugin.getPhoto === 'function') return plugin;
+                }
+            } catch (_) {}
+            try {
+                const cap = window.Capacitor || (window.top && window.top !== window && window.top.Capacitor) || null;
+                const plugin = cap && cap.Plugins ? cap.Plugins.Camera : null;
+                return plugin && typeof plugin.getPhoto === 'function' ? plugin : null;
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function getAvatarPhotoSource(photo) {
+            if (!photo) return '';
+            if (photo.dataUrl) return photo.dataUrl;
+            if (photo.base64String) {
+                const mime = photo.format === 'png' ? 'image/png' : 'image/jpeg';
+                return `data:${mime};base64,${photo.base64String}`;
+            }
+            return photo.webPath || photo.path || photo.uri || '';
+        }
+
+        async function pickAvatarFromNativeGallery(callback) {
+            const camera = getAvatarCameraPlugin();
+            if (!camera) return false;
+            try {
+                const photo = await camera.getPhoto({
+                    quality: 90,
+                    allowEditing: false,
+                    resultType: 'dataUrl',
+                    source: 'PHOTOS'
+                });
+                const source = getAvatarPhotoSource(photo);
+                if (!source) {
+                    showAlert('Неуспешно зареждане на изображението. Моля, опитайте отново.', 'error');
+                    return true;
+                }
+                compressAvatarSource(source, callback);
+                return true;
+            } catch (error) {
+                const message = String((error && error.message) || error || '').toLowerCase();
+                if (message.includes('cancel')) return true;
+                showAlert('Неуспешно отваряне на галерията. Моля, опитайте отново.', 'error');
+                return true;
+            }
+        }
+
         // --- Initialization ---
         (function instantInit() {
             async function setupProfile() {
@@ -3491,7 +3542,11 @@
                 }
 
                 if (avatarUploadTrigger && avatarInput) {
-                    avatarUploadTrigger.addEventListener('click', function() {
+                    avatarUploadTrigger.addEventListener('click', async function() {
+                        const isApk = !!(window.NutriPlanPlatform && typeof window.NutriPlanPlatform.isAPK === 'function' && window.NutriPlanPlatform.isAPK());
+                        if (isApk && await pickAvatarFromNativeGallery(saveAvatarDataUrl)) {
+                            return;
+                        }
                         avatarInput.click();
                     });
                 }

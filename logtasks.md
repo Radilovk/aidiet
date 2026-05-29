@@ -1,5 +1,19 @@
 # Log Tasks
 
+## 2026-05-29 — APK avatar upload: native picker from embedded profile tab
+
+**Задача:** Да се оправи неработещото качване на потребителско изображение в инсталирания NutriPlan APK.
+
+**Потвърдена причина:**
+- В текущия `profile.html` avatar upload-ът се стартираше само през hidden `input[type=file]` и синтетично `avatarInput.click()` (`/tmp/workspace/Radilovk/aidiet/profile.html:3470-3496`).
+- В същото време профилът в APK се зарежда като embedded iframe таб в shell-а (`/tmp/workspace/Radilovk/aidiet/index.html:2055-2058`), а репото вече пази native plugin lookup през `window.top.Capacitor` за такива iframe сценарии (`/tmp/workspace/Radilovk/aidiet/platform.js:22-25`).
+- Тоест APK flow-ът изобщо не използва native picker, въпреки че е в embedded Capacitor контекст, и остава зависим от WebView file-input activation вместо от сигурния native plugin path.
+
+**Направено:**
+- `profile.html`: добавен е минимален APK-only avatar picker през Capacitor Camera plugin, резолвиран и от `window.top.Capacitor`.
+- `profile.html`: web/PWA fallback-ът с file input остава непроменен; native path се използва само когато APK plugin-ът е наличен.
+- Резултатът от native picker-а минава през същата съществуваща компресия и запис в `localStorage`, без нов storage/render flow.
+
 ## 2026-05-29 — APK avatar upload: връщане към простия работещ flow
 
 **Задача:** Да се излезе от порочния кръг и да се приложи кардинално, просто и работещо решение за avatar upload в APK, като се изчисти неработещият код.
