@@ -13,6 +13,19 @@
 - `app.js`: премахнат е целият shell avatar picker/message код от неуспешните опити.
 - Остава само един upload path: избор на файл → компресия → запис в `localStorage` → рендер на аватара.
 
+## 2026-05-29 — Android notifications: single init + exact alarm prompt
+
+**Задача:** Да се приложи максимално изчистена поправка за GameNotifier, така че да няма многократен `init()`/`cancelAll()`/reschedule цикъл при едно отваряне на Plan таба и при Android 12+ да има видим prompt към exact alarm настройките.
+
+**Потвърдени корен причини:**
+- `plan.html` вика `scheduleNotifications()` от няколко независими места при едно отваряне, а `scheduleNotifications()` винаги влизаше в `GameNotifier.init()`.
+- `local-scheduler.js` нямаше session/in-flight guard за `init()`, затова всяко извикване минаваше през нов `cancelAll()` + повторно scheduling.
+- При denied exact alarm достъп кодът само логваше в конзолата и не даваше видим път към Android настройките, така че потребителят оставаше без работещи точни напомняния.
+
+**Направено:**
+- `local-scheduler.js`: добавени са `_initialized` + `_initPromise`, така че `GameNotifier.init()` да се изпълнява само веднъж на сесия и да дедуплицира паралелните извиквания.
+- `local-scheduler.js`: exact alarm проверката вече излъчва `nutriplan:exact-alarm-status`, ползва `checkExactNotificationSetting()` когато е налично и има public methods за отваряне на настройките и recheck.
+- `plan.html`: добавен е видим banner за `Alarms & reminders`, бутон към native exact alarm settings и recheck/reschedule след връщане от настройките.
 ## 2026-05-29 — APK avatar upload: оставащ проблем след PR #987
 
 **Задача:** Да се прегледат PR #983, #984, #985 и #987, да се установи защо avatar upload-ът още не работи в APK, и да се оправи с минимум код, като се чисти само излишното от неуспешните опити.
@@ -2866,5 +2879,23 @@ Logout бутонът и избраният от потребителя ават
 **Поправка:**
 - В `plan.html` е редактирана само проверката за APK, така че да ползва и `window.top.Capacitor`, както вече е направено в `platform.js` и `local-scheduler.js`.
 - Няма добавен нов flow; поправена е грешната детекция с минимална промяна.
+
+**Засегнати файлове:** `plan.html`, `logtasks.md`
+
+---
+
+## Задача: `*notifyme` никога не е работил — shellChat path fix (2026-05-29)
+
+**Контекст от потребителя:**
+Нотификациите (morning/evening game check-ins) работеха преди. `*notifyme` е нова функция, която никога не е работила.
+
+**Корен проблем:**
+В APK когато потребителят кликне Chat бутона, план.html (embedded tab) извиква `requestShellAction('NUTRIPLAN_OPEN_CHAT')`. Shell (app.js) отваря НОВ iframe `plan.html?chat=1&embedded=1&shellChat=1` като chat overlay.
+
+В shellChat iframe-а `initializeDOMDependentFeatures()` влизаше в ранния `?shellChat=1` клон и извикваше `openChat()`, но НЕ извикваше `scheduleNotifications()`. Така `GameNotifier.init()` никога не беше стартиран в shellChat контекст → `this._capacitor` оставаше `null` → `scheduleTestGameQuestionNotification()` хвърляше `GameNotifier is not ready` → `*notifyme` показваше грешка.
+
+**Поправка:**
+- В `plan.html` shellChat ранния return клон е добавен `scheduleNotifications()` преди `return`.
+- С тази промяна `GameNotifier.init()` се вика → `this._capacitor` се сетва (синхронно в `_detectCapacitor()` с `window.top.Capacitor` fallback) → `LocalNotifications.schedule()` работи → `*notifyme` насрочва тест нотификация след 10 сек.
 
 **Засегнати файлове:** `plan.html`, `logtasks.md`
