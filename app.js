@@ -30,7 +30,6 @@
         'dietPlan',
         'userId',
         'userData',
-        'userAvatar',
         'pendingClientId',
         'planJobId',
         'planJobSource',
