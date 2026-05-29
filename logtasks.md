@@ -2963,3 +2963,19 @@ Logout бутонът и избраният от потребителя ават
 - Няма допълнително натоварване на backend — статичните файлове се сервират от Cloudflare CDN.
 
 **Засегнати файлове:** `capacitor.config.json`, `logtasks.md`
+
+## 2026-05-29 — APK: качване/визуализиране на изображения
+
+**Задача:** В web качването на изображение работи, но в APK не позволява избор на снимка и съответно няма preview.
+
+**Потвърдена причина:**
+- В `plan.html` и `kids.html` flow-ът за снимка разчиташе само на скрит `<input type="file">` + `input.click()`.
+- В APK тези страници работят в Capacitor/WebView shell и нямат native camera/gallery fallback, за разлика от `profile.html`, където вече се използва Capacitor Camera plugin.
+- Затова в web upload-ът работи, а в APK изборът на снимка може изобщо да не се отвори и няма какво да се визуализира.
+
+**Решение:**
+- Добавен е native picker за APK в `plan.html` и `kids.html` чрез `window.Capacitor || window.top.Capacitor`.
+- При native среда се използва `Camera.getPhoto({ source: 'PROMPT', resultType: 'dataUrl' })`, след което изображението минава през същата compression/preview логика както при web.
+- При липса на plugin или отказ/грешка flow-ът пада обратно към досегашния file input.
+
+**Засегнати файлове:** `plan.html`, `kids.html`, `logtasks.md`
