@@ -533,6 +533,8 @@
                     if (cap.Plugins.Haptics) {
                         cap.Plugins.Haptics.impact({ style: data.style || 'Light' });
                     }
+                } else if (navigator.vibrate) {
+                    navigator.vibrate(data.style === 'Heavy' ? 15 : 4);
                 }
             } catch (_) {}
             return;
