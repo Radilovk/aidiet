@@ -35,6 +35,8 @@ const GameNotifier = {
     _swReg:     null,
     _capacitor: null,   // @capacitor/local-notifications handle
     _listenersBound: false,
+    _initialized: false,
+    _initPromise: null,
 
     /* ------------------------------------------------------------------ */
     /*  Public API                                                          */
@@ -51,48 +53,81 @@ const GameNotifier = {
     },
 
     async init() {
-        console.log('[GameNotifier] Initialising...');
-
-        // Detect Capacitor (APK context)
-        this._capacitor = this._detectCapacitor();
-
-        if (this._capacitor) {
-            console.log('[GameNotifier] Running in Capacitor (APK) context');
-            const granted = await this._requestCapacitorPermission();
-            if (!granted) {
-                console.warn('[GameNotifier] Capacitor notification permission denied');
-                return;
-            }
-            await this._registerCapacitorActionTypes();
-            this._bindCapacitorListeners();
-        } else {
-            // Web / PWA path
-            if (!('Notification' in window) || !('serviceWorker' in navigator)) {
-                if (this._isHuawei()) {
-                    console.log('[GameNotifier] Huawei device detected – use calendar subscription:', this.getCalendarSubscribeUrl());
-                } else {
-                    console.warn('[GameNotifier] Notifications not supported on this platform.');
-                }
-                return;
-            }
-            if (Notification.permission !== 'granted') {
-                console.warn('[GameNotifier] Permission not granted:', Notification.permission);
-                return;
-            }
-            try {
-                this._swReg = await navigator.serviceWorker.ready;
-            } catch (e) {
-                console.error('[GameNotifier] SW not ready:', e);
-                return;
-            }
+        if (this._initialized) {
+            console.log('[GameNotifier] Already ready – skipping re-init.');
+            return;
         }
+        if (this._initPromise) return this._initPromise;
 
-        // Schedule 7-day block with hardcoded defaults (or admin-overridden times).
-        // No automatic backend sync here — config is fetched only when the admin
-        // explicitly saves a new notification config via the admin panel.
-        await this.scheduleNotifications();
+        this._initPromise = (async () => {
+            console.log('[GameNotifier] Initialising...');
 
-        console.log('[GameNotifier] Ready.');
+            // Detect Capacitor (APK context)
+            this._capacitor = this._detectCapacitor();
+
+            if (this._capacitor) {
+                console.log('[GameNotifier] Running in Capacitor (APK) context');
+                const granted = await this._requestCapacitorPermission();
+                if (!granted) {
+                    console.warn('[GameNotifier] Capacitor notification permission denied');
+                    return;
+                }
+                await this._registerCapacitorActionTypes();
+                this._bindCapacitorListeners();
+            } else {
+                // Web / PWA path
+                if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+                    if (this._isHuawei()) {
+                        console.log('[GameNotifier] Huawei device detected – use calendar subscription:', this.getCalendarSubscribeUrl());
+                    } else {
+                        console.warn('[GameNotifier] Notifications not supported on this platform.');
+                    }
+                    return;
+                }
+                if (Notification.permission !== 'granted') {
+                    console.warn('[GameNotifier] Permission not granted:', Notification.permission);
+                    return;
+                }
+                try {
+                    this._swReg = await navigator.serviceWorker.ready;
+                } catch (e) {
+                    console.error('[GameNotifier] SW not ready:', e);
+                    return;
+                }
+            }
+
+            // Schedule the rolling monthly buffer with locally cached config only.
+            await this.scheduleNotifications();
+            this._initialized = true;
+            console.log('[GameNotifier] Ready.');
+        })();
+
+        try {
+            await this._initPromise;
+        } finally {
+            this._initPromise = null;
+        }
+    },
+
+    async openExactAlarmSettings() {
+        if (!this._capacitor) return false;
+        const { LocalNotifications } = this._capacitor;
+        try {
+            if (typeof LocalNotifications.changeExactNotificationSetting === 'function') {
+                await LocalNotifications.changeExactNotificationSetting();
+                return true;
+            }
+        } catch (e) {
+            console.warn('[GameNotifier] Exact alarm settings open failed:', e);
+        }
+        return false;
+    },
+
+    async recheckExactAlarmPermission() {
+        if (!this._capacitor) {
+            return { supported: false, granted: true, exactAlarm: 'not_supported' };
+        }
+        return this._checkExactAlarmPermission(this._capacitor.LocalNotifications, true);
     },
 
     async scheduleNotifications() {
@@ -147,7 +182,7 @@ const GameNotifier = {
 
         if (this._capacitor) {
             const { LocalNotifications } = this._capacitor;
-            await this._warnIfExactAlarmDenied(LocalNotifications);
+            await this._checkExactAlarmPermission(LocalNotifications, true);
             await LocalNotifications.schedule({
                 notifications: [{
                     id: (fireAtTs % 1000000000) | 0,
@@ -467,7 +502,7 @@ const GameNotifier = {
 
         // Warn on Android 12+ if exact-alarm permission was not granted by the user.
         // Without it, AlarmManager.setExact() calls are silently dropped by the OS.
-        await this._warnIfExactAlarmDenied(LocalNotifications);
+        await this._checkExactAlarmPermission(LocalNotifications, true);
 
         const [mH, mM] = cfg.morningTime.split(':').map(Number);
         const [eH, eM] = cfg.eveningTime.split(':').map(Number);
@@ -696,22 +731,44 @@ const GameNotifier = {
      * On Android 12+ (API 31+) the SCHEDULE_EXACT_ALARM permission requires
      * explicit user approval in Settings → Apps → Special permissions →
      * Alarms & reminders.  If it has not been granted the OS silently drops
-     * all setExact() calls.  We use checkPermissions() to detect this and
-     * warn in the console; a future improvement would be to open the system
-     * settings page via an ACTION_REQUEST_SCHEDULE_EXACT_ALARM intent.
+     * all setExact() calls.  We detect this through the LocalNotifications
+     * plugin and emit a UI event so plan.html can show a visible prompt.
      */
-    async _warnIfExactAlarmDenied(LocalNotifications) {
+    async _checkExactAlarmPermission(LocalNotifications, notifyWhenDenied = false) {
         try {
-            if (typeof LocalNotifications.checkPermissions !== 'function') return;
-            const perms = await LocalNotifications.checkPermissions();
-            // Capacitor 5+ exposes `exactAlarm` in the permissions result.
-            if (perms?.exactAlarm && perms.exactAlarm !== 'granted') {
+            let exactAlarm =
+                typeof LocalNotifications.checkExactNotificationSetting === 'function'
+                    ? (await LocalNotifications.checkExactNotificationSetting())?.exact_alarm
+                    : null;
+
+            if (!exactAlarm && typeof LocalNotifications.checkPermissions === 'function') {
+                const perms = await LocalNotifications.checkPermissions();
+                exactAlarm = perms?.exact_alarm || perms?.exactAlarm || null;
+            }
+
+            const state = typeof exactAlarm === 'string' ? exactAlarm : '';
+            const supported = !!state && state !== 'not_supported';
+            const granted = !supported || state === 'granted' || state === 'enabled';
+
+            this._emitExactAlarmStatus({ supported, granted, exactAlarm: state || 'not_supported' });
+
+            if (!granted && notifyWhenDenied) {
                 console.warn(
-                    '[GameNotifier] SCHEDULE_EXACT_ALARM not granted by user (' + perms.exactAlarm + '). ' +
+                    '[GameNotifier] SCHEDULE_EXACT_ALARM not granted by user (' + state + '). ' +
                     'On Android 12+ go to Settings → Apps → NutriPlan → Special permissions → Alarms & Reminders ' +
                     'and enable it, otherwise notifications will not fire on schedule.'
                 );
             }
+            return { supported, granted, exactAlarm: state || 'not_supported' };
+        } catch (_) {
+            return { supported: false, granted: true, exactAlarm: 'unknown' };
+        }
+    },
+
+    _emitExactAlarmStatus(detail) {
+        if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') return;
+        try {
+            window.dispatchEvent(new CustomEvent('nutriplan:exact-alarm-status', { detail }));
         } catch (_) { /* non-critical */ }
     },
 
