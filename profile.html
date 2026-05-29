@@ -2563,43 +2563,6 @@
 
         // ── Avatar upload ──────────────────────────────────────────────────────
         function openAvatarPicker() {
-            var cap = getCapacitorBridge();
-            if (cap && cap.isNativePlatform && cap.isNativePlatform()) {
-                var Camera = (cap.Plugins || {}).Camera;
-                if (Camera && Camera.getPhoto) {
-                    var doGetPhoto = function() {
-                        Camera.getPhoto({ quality: 85, allowEditing: false, resultType: 'base64', source: 'PROMPT' })
-                            .then(function(photo) { setAvatar('data:image/jpeg;base64,' + photo.base64String); })
-                            .catch(function() { document.getElementById('avatarFileInput').click(); });
-                    };
-                    if (Camera.checkPermissions) {
-                        Camera.checkPermissions().then(function(status) {
-                            var cam = status.camera, photos = status.photos;
-                            var denied = (cam === 'denied' && photos === 'denied');
-                            var needsRequest = (cam === 'prompt' || cam === 'prompt-with-rationale' ||
-                                               photos === 'prompt' || photos === 'prompt-with-rationale');
-                            if (denied) {
-                                document.getElementById('avatarFileInput').click();
-                            } else if (needsRequest && Camera.requestPermissions) {
-                                Camera.requestPermissions({ permissions: ['camera', 'photos'] })
-                                    .then(function(res) {
-                                        if (res.camera === 'denied' && res.photos === 'denied') {
-                                            document.getElementById('avatarFileInput').click();
-                                        } else {
-                                            doGetPhoto();
-                                        }
-                                    })
-                                    .catch(function() { doGetPhoto(); });
-                            } else {
-                                doGetPhoto();
-                            }
-                        }).catch(function() { doGetPhoto(); });
-                    } else {
-                        doGetPhoto();
-                    }
-                    return;
-                }
-            }
             document.getElementById('avatarFileInput').click();
         }
         function handleAvatarFileChange(e) {

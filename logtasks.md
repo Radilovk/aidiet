@@ -1,5 +1,18 @@
 # Log Tasks
 
+## 2026-05-29 — APK profile: минимална поправка за custom avatar upload
+
+**Задача:** В APK, в таба „Профил“, да се намери реалната причина за неработещия custom avatar upload и да се оправи с минимум код.
+
+**Потвърдена причина:**
+- `profile.html` не отваря директно вече наличния `<input type="file">`, а първо минава през `Camera.getPhoto()` promise flow.
+- При този път file-input fallback-ът се вика чак асинхронно от `.catch(...)`, тоест вече не е директен user gesture и в APK/WebView chooser-ът не се отваря надеждно.
+- Самият file input upload flow вече съществува в страницата (`handleAvatarFileChange` + `FileReader` + `setAvatar`) и не изисква никакъв native Camera код, за да работи.
+
+**Направено:**
+- `profile.html`: `openAvatarPicker()` е върнат до директно `avatarFileInput.click()`.
+- Премахнат е целият излишен APK-specific `Camera.getPhoto()` path, който чупеше upload-а вместо да помага.
+
 ## 2026-05-29 — APK profile: стабилно native разпознаване в embedded таба
 
 **Задача:** Да се приложи кратка и сигурна поправка само на ясния APK iframe проблем, без да се чупят реални функции.
