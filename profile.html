@@ -4135,7 +4135,15 @@
         }
 
         // --- PWA Service Worker Registration ---
-        if (!isCapacitorNativeApp && 'serviceWorker' in navigator) {
+        let topWindowCapacitor = null;
+        try {
+            topWindowCapacitor = window.top && window.top !== window ? window.top.Capacitor : null;
+        } catch (error) {
+            topWindowCapacitor = null;
+        }
+        const isEmbeddedCapacitorNativeApp = !!(window.Capacitor || topWindowCapacitor);
+
+        if (!isCapacitorNativeApp && !isEmbeddedCapacitorNativeApp && 'serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
                     .then(registration => {
