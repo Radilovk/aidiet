@@ -151,7 +151,6 @@ const GameNotifier = {
     },
 
     async scheduleTestGameQuestionNotification(delaySeconds = 10) {
-        if (!this._initialized) throw new Error('GameNotifier is not ready');
         const safeDelaySeconds = Math.max(1, Number(delaySeconds) || 10);
         const fireAtTs = Date.now() + safeDelaySeconds * 1000;
         const recordKey = this._dateKeyForTimestamp(fireAtTs);

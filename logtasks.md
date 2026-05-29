@@ -2948,19 +2948,3 @@ Logout бутонът и избраният от потребителя ават
 - Няма допълнително натоварване на backend — статичните файлове се сервират от Cloudflare CDN.
 
 **Засегнати файлове:** `capacitor.config.json`, `logtasks.md`
-
-## 2026-05-29 — APK: аватар и `*notifyme` (втора итерация)
-
-**Задача:** (1) Аватар снимка не може да се избере в APK. (2) `*notifyme` не работи в APK.
-
-**Потвърдени причини:**
-
-**Аватар:** `<input type="file" accept="image/*">` + `.click()` е ненадежден в Android WebView — системният file chooser не се отваря при programmatic `.click()` в някои Android версии / Capacitor контексти. Правилното решение е `@capacitor/camera` с `source: 'PHOTOS'` и `resultType: 'dataUrl'`.
-
-**`*notifyme`:** `scheduleTestGameQuestionNotification()` не проверяваше `_initialized` флага — ако `init()` завърши с `false` (отказана permission), `_capacitor` оставаше сетнат, но channel не беше създаден → `LocalNotifications.schedule()` хвърляше неясна грешка.
-
-**Поправки:**
-- `profile.html`: avatar click handler стана async; при `NutriPlanPlatform.isAPK()` се използва `Camera.getPhoto({ source: 'PHOTOS', resultType: 'dataUrl', quality: 80 })` → `compressAvatarSource(photo.dataUrl, saveAvatarDataUrl)`; fallback към `avatarInput.click()` за PWA/web.
-- `local-scheduler.js`: добавен guard `if (!this._initialized) throw new Error('GameNotifier is not ready');` в началото на `scheduleTestGameQuestionNotification()`.
-
-**Засегнати файлове:** `profile.html`, `local-scheduler.js`, `logtasks.md`

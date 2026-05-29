@@ -3491,17 +3491,7 @@
                 }
 
                 if (avatarUploadTrigger && avatarInput) {
-                    avatarUploadTrigger.addEventListener('click', async function() {
-                        if (NutriPlanPlatform.isAPK()) {
-                            const Camera = NutriPlanPlatform.getPlugin('Camera');
-                            if (Camera) {
-                                try {
-                                    const photo = await Camera.getPhoto({ source: 'PHOTOS', resultType: 'dataUrl', quality: 80 });
-                                    if (photo && photo.dataUrl) compressAvatarSource(photo.dataUrl, saveAvatarDataUrl);
-                                } catch (_) { /* user cancelled or denied */ }
-                                return;
-                            }
-                        }
+                    avatarUploadTrigger.addEventListener('click', function() {
                         avatarInput.click();
                     });
                 }
