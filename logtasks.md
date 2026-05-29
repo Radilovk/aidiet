@@ -1,6 +1,29 @@
 # Log Tasks
 
-## 2026-05-28 — APK: реална поправка на logout и profile avatar
+## 2026-05-28 — APK parity audit: build trigger и native service worker guard
+
+**Задача:** Да се направи точен audit на APK build потока, да се намерят реалните пропуски между web и APK и да се нанесат минимални корекции за по-надежден parity.
+
+**Корен проблеми:**
+- `build-apk.yml` пускаше APK build само за ограничен набор web файлове, така че промени по shipped JSON/media assets и по самия workflow можеха да останат без нов APK билд.
+- `profile.html`, `questionnaire.html` и `questionnaire2.html` регистрираха `sw.js` и в Capacitor/native контекст, въпреки че основните APK страници вече пазят service worker-а само за web/PWA.
+
+**Направено:**
+- `build-apk.yml`: разширени са trigger path-овете, така че APK build да се пуска и при промени по shipped JSON assets, `webm` media, `jpg/jpeg` assets и самия APK workflow.
+- `profile.html`, `questionnaire.html`, `questionnaire2.html`: service worker регистрацията вече се прескача в native Capacitor режим, за да не се вкарва web-only SW логика в APK.
+- `apk.test.js`: добавени са regression проверки за новите build trigger-и и за native guard-а преди service worker регистрация.
+
+## 2026-05-28 — APK: прецизна поправка на logout и avatar picker (втори кръг)
+
+**Задача:** Logout бутонът не извежда потребителя в APK; избирането на профилна снимка не работи в APK.
+
+**Корен причини (нови):**
+- `session-utils.js` → `getPreferencesPlugin()` проверяваше само `window.Capacitor`, но в profile.html iframe капацитор обектът е на `window.top.Capacitor`. Поради това `clearUserSessionData()` намираше `null` за prefs и правеше early return, без да изчисти Capacitor Preferences. При следващо зареждане на страницата `NativeBackup.restore()` възстановяваше данните от Preferences и потребителят изглеждаше все още логнат.
+- `profile.html` → клик-листенерът за native avatar picker беше закачен към `avatarInput` (скрития file input, покриващ целия label). На Android WebView нативният file-chooser диалог се отваря на OS ниво преди JavaScript `preventDefault()` да може да го спре, затова Capacitor Camera plugin никога не се достигаше.
+
+**Направено:**
+- `session-utils.js`: `getPreferencesPlugin()` вече проверява и `window.top.Capacitor` (iframe fallback), така че `clearUserSessionData()` правилно изчиства и Capacitor Preferences при logout от profile iframe.
+- `profile.html`: В APK режим `avatarInput` се скрива (`display:none`) и клик-листенерът се поставя върху `avatarUploadTrigger` (label), за да се предотврати нативният file-chooser и вместо него да се извика Capacitor Camera plugin.
 
 **Задача:** Logout бутонът в APK вече съществува, но не прави реален logout; избраното profile avatar изображение също не се визуализира само в APK. Да се намерят точните причини и да се оправят.
 

@@ -4,16 +4,19 @@ on:
   push:
     branches: [main]
     paths:
+      - '.github/workflows/build-apk.yml'
       - '**.html'
       - '**.css'
       - '**.js'
       - '!worker.js'
+      - '**.json'
       - '**.png'
+      - '**.jpg'
+      - '**.jpeg'
       - '**.svg'
       - '**.webp'
       - '**.ico'
-      - 'twa-manifest.json'
-      - 'capacitor.config.json'
+      - '**.webm'
       - 'android-res/**'
   workflow_dispatch:
 
