@@ -3487,7 +3487,7 @@
                         avatarUploadTrigger.removeAttribute('for');
                         window.addEventListener('message', function(event) {
                             if (!event || !event.data || event.data.type !== 'NUTRIPLAN_AVATAR_PICKED') return;
-                            if (window.parent && event.source !== window.parent) return;
+                            if (window.parent && event.source && event.source !== window.parent) return;
                             const isTrustedOrigin = event.origin === window.location.origin
                                 || event.origin === 'null'
                                 || window.location.protocol === 'capacitor:'
