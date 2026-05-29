@@ -1,5 +1,19 @@
 # Log Tasks
 
+## 2026-05-29 — APK avatar upload: реална причина след PR #985
+
+**Задача:** Да се прегледат PR #983, #984 и #985 и да се установи защо качването на потребителски аватар в APK още не работи, после да се оправи с минимум код и да се махне излишният код от неуспешните опити.
+
+**Реална причина:**
+- И трите PR-а са лекували симптоми вътре в `profile.html`, но самото native избиране на снимка още се стартираше от embedded iframe-а.
+- В APK shell-а `profile.html` е iframe таб и Capacitor Camera bridge не е надежден, когато `getPhoto()` се вика от iframe вместо от top-level shell прозореца.
+- Затова местенето между `dataUrl`/`uri`, местенето на input-а и директното iframe извикване на Camera не гарантират работещ picker в Android APK.
+
+**Минимална поправка:**
+- `app.js`: shell-ът вече обработва `NUTRIPLAN_PICK_AVATAR` и стартира Capacitor Camera от top-level прозореца.
+- `profile.html`: embedded APK flow вече само заявява avatar pick към shell-а и получава обратно избраната снимка през `postMessage`.
+- `profile.html`: премахнат е iframe-local `getAvatarCamera()` кодът от предишните несполучливи опити; web/file-input flow остава непроменен.
+
 ## 2026-05-29 — APK avatar upload: реална останала причина след PR #984
 
 **Задача:** Да се провери защо и след PR #984 качването на потребителско avatar изображение в APK още не работи и да се оправи с минимум код.
