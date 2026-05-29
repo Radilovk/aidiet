@@ -2551,13 +2551,24 @@
         // ── Avatar upload ──────────────────────────────────────────────────────
         function openAvatarPicker() {
             var cap = window.Capacitor || (window.top && window.top !== window && window.top.Capacitor) || null;
+            var input = document.getElementById('avatarFileInput');
+            var openFileInput = function() {
+                if (input) { input.value = ''; input.click(); }
+            };
             if (cap && cap.isNativePlatform && cap.isNativePlatform()) {
                 var Camera = (cap.Plugins || {}).Camera;
                 if (Camera && Camera.getPhoto) {
                     var doGetPhoto = function() {
-                        Camera.getPhoto({ quality: 85, allowEditing: false, resultType: 'base64', source: 'PROMPT' })
-                            .then(function(photo) { setAvatar('data:image/jpeg;base64,' + photo.base64String); })
-                            .catch(function() { document.getElementById('avatarFileInput').click(); });
+                        Camera.getPhoto({ quality: 85, allowEditing: false, resultType: 'dataUrl', source: 'PROMPT' })
+                            .then(function(photo) {
+                                var dataUrl = photo && (photo.dataUrl || (photo.base64String ? ('data:image/' + (photo.format || 'jpeg') + ';base64,' + photo.base64String) : ''));
+                                if (!dataUrl) {
+                                    openFileInput();
+                                    return;
+                                }
+                                setAvatar(dataUrl);
+                            })
+                            .catch(function() { openFileInput(); });
                     };
                     if (Camera.checkPermissions) {
                         Camera.checkPermissions().then(function(status) {
@@ -2566,12 +2577,12 @@
                             var needsRequest = (cam === 'prompt' || cam === 'prompt-with-rationale' ||
                                                photos === 'prompt' || photos === 'prompt-with-rationale');
                             if (denied) {
-                                document.getElementById('avatarFileInput').click();
+                                openFileInput();
                             } else if (needsRequest && Camera.requestPermissions) {
                                 Camera.requestPermissions({ permissions: ['camera', 'photos'] })
                                     .then(function(res) {
                                         if (res.camera === 'denied' && res.photos === 'denied') {
-                                            document.getElementById('avatarFileInput').click();
+                                            openFileInput();
                                         } else {
                                             doGetPhoto();
                                         }
@@ -2587,7 +2598,7 @@
                     return;
                 }
             }
-            document.getElementById('avatarFileInput').click();
+            openFileInput();
         }
         function handleAvatarFileChange(e) {
             var file = e.target.files && e.target.files[0];
@@ -4922,7 +4933,7 @@
             function _clearUserPlanData() {
                 const PLAN_KEYS = [
                     'dietPlan', 'userData', 'planSource', 'planHistory',
-                    'userId', 'authKvSynced', 'np_profile_synced', 'np_profile_sync_sig',
+                    'userId', 'userAvatar', 'authKvSynced', 'np_profile_synced', 'np_profile_sync_sig',
                     'planJustification', 'longTermStrategy', 'modifierReasoning',
                     'hydrationStrategy', 'mealCountJustification',
                     'gameNotifierConfig',

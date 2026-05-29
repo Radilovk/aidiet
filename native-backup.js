@@ -20,6 +20,7 @@ const NativeBackup = (function () {
         'dietPlan',
         'userId',
         'userData',
+        'userAvatar',
         'pendingClientId',
         'planJobId',
         'planJobSource',

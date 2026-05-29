@@ -1870,7 +1870,59 @@
         function triggerCapture() {
             if (analysisInProgress) return;
             var input = document.getElementById('foodImageInput');
-            if (input) { input.value = ''; input.click(); }
+            var cap = window.Capacitor || (window.top && window.top !== window && window.top.Capacitor) || null;
+            var Camera = cap && cap.isNativePlatform && cap.isNativePlatform() ? (cap.Plugins || {}).Camera : null;
+            var openFileInput = function() {
+                if (input) { input.value = ''; input.click(); }
+            };
+
+            if (!Camera || !Camera.getPhoto) {
+                openFileInput();
+                return;
+            }
+
+            var doGetPhoto = function() {
+                Camera.getPhoto({ quality: 85, allowEditing: false, resultType: 'dataUrl', source: 'PROMPT' })
+                    .then(function(photo) {
+                        var dataUrl = photo && (photo.dataUrl || (photo.base64String ? ('data:image/' + (photo.format || 'jpeg') + ';base64,' + photo.base64String) : ''));
+                        if (!dataUrl) {
+                            openFileInput();
+                            return;
+                        }
+                        processKidsImageSource(dataUrl);
+                    })
+                    .catch(function() { openFileInput(); });
+            };
+
+            if (Camera.checkPermissions) {
+                Camera.checkPermissions().then(function(status) {
+                    var cam = status.camera;
+                    var photos = status.photos;
+                    var denied = cam === 'denied' && photos === 'denied';
+                    var needsRequest =
+                        cam === 'prompt' || cam === 'prompt-with-rationale' ||
+                        photos === 'prompt' || photos === 'prompt-with-rationale';
+
+                    if (denied) {
+                        openFileInput();
+                    } else if (needsRequest && Camera.requestPermissions) {
+                        Camera.requestPermissions({ permissions: ['camera', 'photos'] })
+                            .then(function(res) {
+                                if (res.camera === 'denied' && res.photos === 'denied') {
+                                    openFileInput();
+                                } else {
+                                    doGetPhoto();
+                                }
+                            })
+                            .catch(function() { doGetPhoto(); });
+                    } else {
+                        doGetPhoto();
+                    }
+                }).catch(function() { doGetPhoto(); });
+                return;
+            }
+
+            doGetPhoto();
         }
 
         function resetCapture() {
@@ -1911,6 +1963,10 @@
                 return;
             }
 
+            processKidsImageSource(file);
+        }
+
+        function processKidsImageSource(source) {
             kidsImageMime = IMAGE_OUTPUT_FORMAT;
 
             var btn = document.getElementById('analyzeBtn');
@@ -1919,7 +1975,7 @@
                 btn.innerHTML = '<div class="kids-spinner"></div> Обработка...';
             }
 
-            compressImage(file, function(compressedBase64) {
+            compressImage(source, function(compressedBase64) {
                 kidsImageData = compressedBase64;
 
                 var captureArea = document.getElementById('captureArea');
@@ -1943,8 +1999,7 @@
          * Compress image to JPEG with max 1600px dimension and quality 0.85
          */
         function compressImage(file, callback) {
-            var reader = new FileReader();
-            reader.onload = function(e) {
+            var handleSource = function(dataUrl) {
                 var img = new Image();
                 img.onload = function() {
                     var canvas = document.createElement('canvas');
@@ -1972,7 +2027,17 @@
                 img.onerror = function() {
                     alert('Неуспешно зареждане на изображението. Опитайте с друго.');
                 };
-                img.src = e.target.result;
+                img.src = dataUrl;
+            };
+
+            if (typeof file === 'string') {
+                handleSource(file);
+                return;
+            }
+
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                handleSource(e.target.result);
             };
             reader.onerror = function() {
                 alert('Неуспешно четене на файла. Опитайте отново.');

@@ -1,5 +1,33 @@
 # Log Tasks
 
+## 2026-05-29 — APK avatar picker: реалната разлика спрямо работещия food picker
+
+**Задача:** Да се сравни работещият APK image picker за food analysis с неработещия picker за потребителски аватар и да се поправи само реално проблемният код.
+
+**Потвърдена причина:**
+- В текущия код `plan.html`/`kids.html` вече ползват работещ native Camera flow с `resultType: 'dataUrl'` и fallback към `photo.base64String`.
+- `profile.html` е останал на стария път: иска само `resultType: 'base64'`, после твърдо сглобява `data:image/jpeg;base64,` + `photo.base64String`.
+- Така avatar flow-ът не нормализира Camera резултата по същия начин като работещия food flow и при липсващ/неочакван `base64String` стига до невалиден avatar data URL вместо до реално изображение или fallback.
+
+**Направено:**
+- `profile.html`: avatar picker-ът вече ползва същата нормализация като работещия food picker — първо `photo.dataUrl`, после `photo.base64String` + `photo.format`.
+- `profile.html`: file-input fallback-ът е централизиран в кратък `openFileInput()` helper и нулира input стойността преди click.
+
+## 2026-05-29 — APK avatar upload: липсва avatar key в native/session storage
+
+**Задача:** Да се провери защо avatar upload-ът в APK остава дефектен на архитектурно ниво и да се оправи с минимална промяна.
+
+**Потвърдена причина:**
+- `profile.html` записва аватара само в `localStorage` под `userAvatar`.
+- `session-utils.js` не включва `userAvatar` нито в `MANAGED_STORAGE_KEYS`, нито в `USER_SESSION_KEYS`.
+- Затова `app.js` startup cache и `native-backup.js` никога не синхронизират аватара към Capacitor Preferences, въпреки че точно това е persistence механизмът на APK архитектурата.
+- Допълнително logout cleanup-ът в `profile.html` също не изчиства `userAvatar`, което оставя риск следващ потребител на същото устройство да види чужд аватар.
+
+**Направено:**
+- `session-utils.js`: добавен е `userAvatar` към managed и user-session ключовете.
+- `app.js` и `native-backup.js`: fallback списъците вече също включват `userAvatar`.
+- `profile.html`: logout cleanup-ът вече маха `userAvatar`.
+
 ## 2026-05-29 — APK image upload: премахване на неработещ Camera plugin код
 
 **Задача:** Да се оправи неработещото качване на потребителско изображение в инсталирания NutriPlan APK и да се изтрият предишните неработещи решения.
@@ -2962,3 +2990,19 @@ Logout бутонът и избраният от потребителя ават
 - Няма допълнително натоварване на backend — статичните файлове се сервират от Cloudflare CDN.
 
 **Засегнати файлове:** `capacitor.config.json`, `logtasks.md`
+
+## 2026-05-29 — APK: качване/визуализиране на изображения
+
+**Задача:** В web качването на изображение работи, но в APK не позволява избор на снимка и съответно няма preview.
+
+**Потвърдена причина:**
+- В `plan.html` и `kids.html` flow-ът за снимка разчиташе само на скрит `<input type="file">` + `input.click()`.
+- В APK тези страници работят в Capacitor/WebView shell и нямат native camera/gallery fallback, за разлика от `profile.html`, където вече се използва Capacitor Camera plugin.
+- Затова в web upload-ът работи, а в APK изборът на снимка може изобщо да не се отвори и няма какво да се визуализира.
+
+**Решение:**
+- Добавен е native picker за APK в `plan.html` и `kids.html` чрез `window.Capacitor || window.top.Capacitor`.
+- При native среда се използва `Camera.getPhoto({ source: 'PROMPT', resultType: 'dataUrl' })`, след което изображението минава през същата compression/preview логика както при web.
+- При липса на plugin или отказ/грешка flow-ът пада обратно към досегашния file input.
+
+**Засегнати файлове:** `plan.html`, `kids.html`, `logtasks.md`
