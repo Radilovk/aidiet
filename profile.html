@@ -2526,11 +2526,24 @@
         }
 
 
+        function getCapacitorBridge() {
+            try {
+                if (window.Capacitor) return window.Capacitor;
+                if (window.top && window.top !== window) return window.top.Capacitor || null;
+            } catch (_) {}
+            return null;
+        }
+
+        function isNativeCapacitorRuntime() {
+            var cap = getCapacitorBridge();
+            return !!(cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform());
+        }
+
         function setThemeColor(theme) {
             var c = theme === 'dark' ? '#0A1A1A' : '#F0FDFA';
             document.querySelectorAll('meta[name="theme-color"]').forEach(function(m) { m.setAttribute('content', c); });
-                if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
-                    var navBar = (window.Capacitor.Plugins || {}).NavigationBar;
+                if (isNativeCapacitorRuntime()) {
+                    var navBar = (getCapacitorBridge() || { Plugins: {} }).Plugins.NavigationBar;
                     if (navBar && navBar.setNavigationBarColor) {
                         navBar.setNavigationBarColor({ color: c });
                     }
@@ -2550,7 +2563,7 @@
 
         // ── Avatar upload ──────────────────────────────────────────────────────
         function openAvatarPicker() {
-            var cap = window.Capacitor || (window.top && window.top !== window && window.top.Capacitor) || null;
+            var cap = getCapacitorBridge();
             if (cap && cap.isNativePlatform && cap.isNativePlatform()) {
                 var Camera = (cap.Plugins || {}).Camera;
                 if (Camera && Camera.getPhoto) {
@@ -3495,7 +3508,7 @@
         const isFirefox = /Firefox/i.test(navigator.userAgent);
         const isOpera = /OPR|Opera/i.test(navigator.userAgent);
         const isSamsung = /SamsungBrowser/i.test(navigator.userAgent);
-        const isCapacitorNativeApp = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
+        const isCapacitorNativeApp = isNativeCapacitorRuntime();
         
         // Get browser name and icon for display
         function getBrowserInfo() {
@@ -4029,15 +4042,7 @@
         }
 
         // --- PWA Service Worker Registration ---
-        let topWindowCapacitor = null;
-        try {
-            topWindowCapacitor = window.top && window.top !== window ? window.top.Capacitor : null;
-        } catch (error) {
-            topWindowCapacitor = null;
-        }
-        const isEmbeddedCapacitorNativeApp = !!(window.Capacitor || topWindowCapacitor);
-
-        if (!isCapacitorNativeApp && !isEmbeddedCapacitorNativeApp && 'serviceWorker' in navigator) {
+        if (!isCapacitorNativeApp && 'serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
                     .then(registration => {
