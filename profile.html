@@ -3492,6 +3492,24 @@
 
                 if (avatarUploadTrigger && avatarInput) {
                     avatarUploadTrigger.addEventListener('click', function() {
+                        if (typeof NutriPlanPlatform !== 'undefined' && NutriPlanPlatform.isAPK()) {
+                            const Camera = NutriPlanPlatform.getPlugin('Camera');
+                            if (Camera && typeof Camera.getPhoto === 'function') {
+                                Camera.getPhoto({
+                                    resultType: 'base64',
+                                    source: 'PHOTOS',
+                                    quality: 78,
+                                    width: 640,
+                                    height: 640,
+                                    correctOrientation: true
+                                }).then(function(photo) {
+                                    if (photo && photo.base64String) {
+                                        compressAvatarSource('data:image/jpeg;base64,' + photo.base64String, saveAvatarDataUrl);
+                                    }
+                                }).catch(function() {});
+                                return;
+                            }
+                        }
                         avatarInput.click();
                     });
                 }
