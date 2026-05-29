@@ -226,6 +226,22 @@
             margin-top: 8px;
         }
         [data-theme="dark"] .sched-next-label { color: #2DD4BF; }
+        .diag-report {
+            font-size: 12px;
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            overflow-x: auto;
+            max-height: 220px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        [data-theme="dark"] .diag-report {
+            background: #0a1e1e;
+            color: #a8d8d8;
+        }
     </style>
 </head>
 <body>
@@ -237,12 +253,14 @@
         <h2>📱 Платформа и поддръжка</h2>
         <div class="row"><span class="label">Операционна система</span><span class="val" id="diOS">…</span></div>
         <div class="row"><span class="label">Браузър</span><span class="val" id="diBrowser">…</span></div>
+        <div class="row"><span class="label">Контекст</span><span class="val" id="diFrame">…</span></div>
         <div class="row"><span class="label">PWA / Standalone режим</span><span class="val" id="diPWA">…</span></div>
         <div class="row"><span class="label">Notification API</span><span class="val" id="diNotifAPI">…</span></div>
         <div class="row"><span class="label">Push API (PushManager)</span><span class="val" id="diPushAPI">…</span></div>
         <div class="row"><span class="label">Уеб fallback</span><span class="val" id="diWebFallback">…</span></div>
         <div class="row"><span class="label">Service Worker API</span><span class="val" id="diSWAPI">…</span></div>
         <div class="row"><span class="label">Capacitor (APK)</span><span class="val" id="diCapacitor">…</span></div>
+        <div class="row"><span class="label">Capacitor bridge</span><span class="val" id="diCapBridge">…</span></div>
         <div class="row"><span class="label">Permission статус</span><span class="val" id="diPerm">…</span></div>
         <div class="row"><span class="label">Метод за планиране</span><span class="val" id="diMethod">…</span></div>
     </div>
@@ -297,6 +315,26 @@
             <button id="btnSchedule" onclick="reschedule()" disabled>📅 Препланирай известия</button>
             <button id="btnCancelAll" onclick="cancelAll()" disabled>🗑️ Отмени всички</button>
         </div>
+    </div>
+
+    <div class="card">
+        <h2>🧪 APK / *notifyme проверка</h2>
+        <p style="font-size:13px;color:var(--text-light,#555);margin-bottom:10px;">
+            Този тест е насочен към реалния APK iframe сценарий и показва дали bridge-ът,
+            native plugin-ът и permission-ът са налични преди да се пусне 10-секундно тестово известие.
+        </p>
+        <div class="row"><span class="label">Bridge източник</span><span class="val" id="apkBridge">…</span></div>
+        <div class="row"><span class="label">LocalNotifications</span><span class="val" id="apkPlugin">…</span></div>
+        <div class="row"><span class="label">Native platform</span><span class="val" id="apkNative">…</span></div>
+        <div class="row"><span class="label">Native permission</span><span class="val" id="apkPermission">…</span></div>
+        <div class="row"><span class="label">GameNotifier</span><span class="val" id="apkNotifier">…</span></div>
+        <div class="row"><span class="label">Статус</span><span class="val" id="apkVerdict">…</span></div>
+        <div class="btn-group" style="margin-top:10px;">
+            <button class="btn-green" onclick="runApkNotifyMeDiagnostic()">🧪 Пусни диагностиката</button>
+            <button class="btn-orange" onclick="runNotifyMeTest()">🔔 Пусни 10 сек тест</button>
+            <button class="btn-gray" onclick="copyApkReport()">📋 Копирай отчета</button>
+        </div>
+        <pre id="apkDiagReport" class="diag-report">Пусни диагностиката, после копирай този отчет.</pre>
     </div>
 
     <!-- ── Визуализация на планираните известия ── -->
@@ -379,6 +417,51 @@ function clearLog() { logEl.innerHTML = ''; }
 // ─────────────────────────────────────────────
 // Platform helpers
 // ─────────────────────────────────────────────
+function getTopWindowSafe() {
+    try {
+        return window.top && window.top !== window ? window.top : null;
+    } catch (_) {
+        return null;
+    }
+}
+
+function getCapacitorInfo() {
+    const topWindow = getTopWindowSafe();
+    const currentCap = window.Capacitor || null;
+    const topCap = topWindow && topWindow.Capacitor ? topWindow.Capacitor : null;
+    const activeCap = currentCap || topCap || null;
+
+    let plugin = null;
+    let bridge = 'няма';
+
+    if (currentCap && currentCap.Plugins && currentCap.Plugins.LocalNotifications) {
+        plugin = currentCap.Plugins.LocalNotifications;
+        bridge = 'window.Capacitor.Plugins.LocalNotifications';
+    } else if (topCap && topCap.Plugins && topCap.Plugins.LocalNotifications) {
+        plugin = topCap.Plugins.LocalNotifications;
+        bridge = 'window.top.Capacitor.Plugins.LocalNotifications';
+    } else if (activeCap && typeof activeCap.registerPlugin === 'function') {
+        plugin = activeCap.registerPlugin('LocalNotifications');
+        bridge = currentCap
+            ? 'window.Capacitor.registerPlugin("LocalNotifications")'
+            : 'window.top.Capacitor.registerPlugin("LocalNotifications")';
+    }
+
+    const isNative = !!(activeCap &&
+        typeof activeCap.isNativePlatform === 'function' &&
+        activeCap.isNativePlatform());
+
+    return {
+        inIframe: !!topWindow,
+        currentCap,
+        topCap,
+        activeCap,
+        plugin,
+        bridge,
+        isNative
+    };
+}
+
 function getOS() {
     const ua = navigator.userAgent;
     if (/iPhone|iPad|iPod/i.test(ua)) return 'iOS';
@@ -409,7 +492,8 @@ function hasTriggers() {
 // Detect which scheduling method GameNotifier would use
 // ─────────────────────────────────────────────
 function detectMethod() {
-    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) {
+    const capInfo = getCapacitorInfo();
+    if (capInfo.plugin && capInfo.isNative) {
         return { label: 'Capacitor LocalNotifications (APK)', badge: 'badge-blue', best: true };
     }
     if ('serviceWorker' in navigator) {
@@ -418,17 +502,63 @@ function detectMethod() {
     return { label: '❌ Не се поддържа', badge: 'badge-red', best: false };
 }
 
+async function getPermissionState() {
+    const capInfo = getCapacitorInfo();
+    if (capInfo.plugin && typeof capInfo.plugin.checkPermissions === 'function') {
+        try {
+            const status = await capInfo.plugin.checkPermissions();
+            const display = status && status.display ? status.display : 'unknown';
+            return { source: 'capacitor', granted: display === 'granted', label: display, raw: status };
+        } catch (e) {
+            return { source: 'capacitor', granted: false, label: 'error', raw: null, error: e };
+        }
+    }
+    if ('Notification' in window) {
+        return {
+            source: 'web',
+            granted: Notification.permission === 'granted',
+            label: Notification.permission,
+            raw: { permission: Notification.permission }
+        };
+    }
+    return { source: 'none', granted: false, label: 'unsupported', raw: null };
+}
+
+function formatPermissionHTML(permission) {
+    const ok  = s => `<span class="ok">${s}</span>`;
+    const bad = s => `<span class="bad">${s}</span>`;
+    const warn = s => `<span class="warn">${s}</span>`;
+
+    if (permission.source === 'capacitor') {
+        if (permission.label === 'granted') return ok('✅ granted (native)');
+        if (permission.label === 'denied') return bad('❌ denied (native)');
+        if (permission.label === 'prompt') return warn('⏸️ prompt (native)');
+        if (permission.label === 'error') return bad('❌ checkPermissions грешка');
+        return warn('⚠️ ' + permission.label + ' (native)');
+    }
+
+    if (permission.source === 'web') {
+        if (permission.label === 'granted') return ok('✅ granted');
+        if (permission.label === 'denied') return bad('❌ denied');
+        return warn('⏸️ ' + permission.label);
+    }
+
+    return bad('❌ Няма поддръжка');
+}
+
 // ─────────────────────────────────────────────
 // Update diagnostic panel
 // ─────────────────────────────────────────────
-function updateDiagnostics() {
+async function updateDiagnostics() {
     const os = getOS();
     const browser = getBrowser();
     const pwa = isPWA();
     const hasNA = 'Notification' in window;
     const hasSW = 'serviceWorker' in navigator;
     const hasPush = 'PushManager' in window;
-    const hasCap = !!(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications);
+    const capInfo = getCapacitorInfo();
+    const hasCap = !!(capInfo.plugin && capInfo.isNative);
+    const permission = await getPermissionState();
 
     // helpers
     const ok  = s => `<span class="ok">${s}</span>`;
@@ -437,34 +567,30 @@ function updateDiagnostics() {
 
     document.getElementById('diOS').innerHTML      = os;
     document.getElementById('diBrowser').innerHTML = browser;
+    document.getElementById('diFrame').innerHTML   = capInfo.inIframe ? warn('iframe / embedded tab') : ok('top-level');
     document.getElementById('diPWA').innerHTML     = pwa ? ok('✅ Да (Standalone)') : warn('⚠️ Не (обикновен браузър)');
     document.getElementById('diNotifAPI').innerHTML = hasNA ? ok('✅ Поддържа се') : bad('❌ Не се поддържа');
     document.getElementById('diPushAPI').innerHTML  = hasPush ? ok('✅ Поддържа се') : warn('⚠️ Не се поддържа');
     document.getElementById('diWebFallback').innerHTML = hasSW ? warn('⚠️ Service Worker fallback') : bad('❌ Не е наличен');
     document.getElementById('diSWAPI').innerHTML    = hasSW ? ok('✅ Поддържа се') : bad('❌ Не се поддържа');
     document.getElementById('diCapacitor').innerHTML = hasCap ? ok('✅ Да (APK)') : '<span class="muted">Не (уеб контекст)</span>';
-
-    if (hasNA) {
-        const perm = Notification.permission;
-        if (perm === 'granted') document.getElementById('diPerm').innerHTML = ok('✅ Разрешено');
-        else if (perm === 'denied') document.getElementById('diPerm').innerHTML = bad('❌ Отказано – трябва ръчно reset от браузъра');
-        else document.getElementById('diPerm').innerHTML = warn('⏸️ Не е поискано');
-    } else {
-        document.getElementById('diPerm').innerHTML = bad('N/A');
-    }
+    document.getElementById('diCapBridge').innerHTML = capInfo.activeCap
+        ? ok(capInfo.bridge)
+        : '<span class="muted">няма bridge</span>';
+    document.getElementById('diPerm').innerHTML = formatPermissionHTML(permission);
 
     const method = detectMethod();
     document.getElementById('diMethod').innerHTML =
         `${method.label} <span class="badge ${method.badge}">${method.best ? 'надеждно' : 'fallback'}</span>`;
 
     // Enable buttons if permission granted
-    const granted = hasNA && Notification.permission === 'granted';
+    const granted = permission.granted;
     ['btnMorningNow','btnEveningNow','btnRawNotif','btnSWNotif',
      'btnDelayed','btnInit','btnSchedule','btnCancelAll'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.disabled = !granted;
     });
-    if (!granted) {
+    if (!granted && (hasNA || capInfo.plugin)) {
         document.getElementById('btnPerm').disabled = false;
     } else {
         document.getElementById('btnPerm').disabled = true;
@@ -562,14 +688,160 @@ function clearMotionFlag() {
 // Permission
 // ─────────────────────────────────────────────
 async function requestPermission() {
+    const capInfo = getCapacitorInfo();
+    if (capInfo.plugin && typeof capInfo.plugin.requestPermissions === 'function') {
+        log('Искане на native permission през Capacitor…');
+        try {
+            const status = await capInfo.plugin.requestPermissions();
+            const display = status && status.display ? status.display : 'unknown';
+            log('Native permission резултат: ' + display, display === 'granted' ? 'info' : 'warn');
+            await updateDiagnostics();
+        } catch (e) {
+            log('Native permission грешка: ' + e.message, 'err');
+        }
+        return;
+    }
+
     if (!('Notification' in window)) { log('Notification API не се поддържа', 'err'); return; }
-    log('Искане на разрешение…');
+    log('Искане на web permission…');
     try {
         const perm = await Notification.requestPermission();
         log('Резултат: ' + perm, perm === 'granted' ? 'info' : 'warn');
-        updateDiagnostics();
-    } catch(e) {
+        await updateDiagnostics();
+    } catch (e) {
         log('Грешка: ' + e.message, 'err');
+    }
+}
+
+async function buildApkDiagnosticReport() {
+    const capInfo = getCapacitorInfo();
+    const permission = await getPermissionState();
+    const hasGameNotifier = !!window.GameNotifier;
+    const hasTestSchedule = !!(hasGameNotifier &&
+        typeof window.GameNotifier.scheduleTestGameQuestionNotification === 'function');
+    let gameNotifierCap = false;
+
+    if (hasGameNotifier && typeof window.GameNotifier._detectCapacitor === 'function') {
+        try {
+            gameNotifierCap = !!window.GameNotifier._detectCapacitor();
+        } catch (_) {}
+    }
+
+    const verdict = !capInfo.activeCap
+        ? 'Няма Capacitor bridge'
+        : !capInfo.isNative
+            ? 'Capacitor е наличен, но не е native платформа'
+            : !capInfo.plugin
+                ? 'Липсва LocalNotifications plugin'
+                : !permission.granted
+                    ? 'Native notifications permission не е granted'
+                    : !hasTestSchedule
+                        ? 'GameNotifier тестовият метод липсва'
+                        : 'Готово за 10-секундния APK тест';
+
+    const report = [
+        'NutriPlan APK / *notifyme диагностика',
+        'Време: ' + new Date().toISOString(),
+        'URL: ' + location.href,
+        'Контекст: ' + (capInfo.inIframe ? 'iframe / embedded tab' : 'top-level'),
+        'Bridge: ' + capInfo.bridge,
+        'Native platform: ' + (capInfo.isNative ? 'yes' : 'no'),
+        'LocalNotifications plugin: ' + (capInfo.plugin ? 'yes' : 'no'),
+        'Permission source: ' + permission.source,
+        'Permission status: ' + permission.label,
+        'GameNotifier loaded: ' + (hasGameNotifier ? 'yes' : 'no'),
+        'GameNotifier test method: ' + (hasTestSchedule ? 'yes' : 'no'),
+        'GameNotifier detects Capacitor: ' + (gameNotifierCap ? 'yes' : 'no'),
+        'Verdict: ' + verdict
+    ].join('\n');
+
+    return { capInfo, permission, hasGameNotifier, hasTestSchedule, gameNotifierCap, verdict, report };
+}
+
+function renderApkDiagnostic(result) {
+    const ok  = s => `<span class="ok">${s}</span>`;
+    const bad = s => `<span class="bad">${s}</span>`;
+    const warn = s => `<span class="warn">${s}</span>`;
+
+    document.getElementById('apkBridge').innerHTML = result.capInfo.activeCap
+        ? ok(result.capInfo.bridge)
+        : bad('липсва');
+    document.getElementById('apkPlugin').innerHTML = result.capInfo.plugin
+        ? ok('наличен')
+        : bad('липсва');
+    document.getElementById('apkNative').innerHTML = result.capInfo.isNative
+        ? ok('да')
+        : warn('не');
+    document.getElementById('apkPermission').innerHTML = formatPermissionHTML(result.permission);
+    document.getElementById('apkNotifier').innerHTML = result.hasTestSchedule
+        ? ok('готов')
+        : result.hasGameNotifier
+            ? warn('зареден, но без test method')
+            : bad('не е зареден');
+    document.getElementById('apkVerdict').innerHTML =
+        result.verdict === 'Готово за 10-секундния APK тест' ? ok(result.verdict) : warn(result.verdict);
+    document.getElementById('apkDiagReport').textContent = result.report;
+}
+
+async function runApkNotifyMeDiagnostic() {
+    log('Пускам APK / *notifyme диагностиката…');
+    const result = await buildApkDiagnosticReport();
+    renderApkDiagnostic(result);
+    if (result.verdict === 'Готово за 10-секундния APK тест') {
+        log('Диагностиката е зелена – може да пуснеш 10-секундния тест.', 'info');
+    } else {
+        log('Диагностиката откри проблем: ' + result.verdict, 'warn');
+    }
+}
+
+async function runNotifyMeTest() {
+    await updateDiagnostics();
+    const result = await buildApkDiagnosticReport();
+    renderApkDiagnostic(result);
+
+    if (!result.hasTestSchedule) {
+        log('GameNotifier test path липсва – local-scheduler.js зареден ли е?', 'err');
+        return;
+    }
+    if (!result.capInfo.plugin || !result.capInfo.isNative) {
+        log('LocalNotifications plugin не е наличен в native контекст.', 'err');
+        return;
+    }
+    if (!result.permission.granted) {
+        log('Native notifications permission не е granted (' + result.permission.label + ').', 'err');
+        return;
+    }
+
+    log('Пускам 10-секунден APK тест през GameNotifier…');
+    try {
+        await window.GameNotifier.init();
+        const scheduleResult = await window.GameNotifier.scheduleTestGameQuestionNotification(10);
+        const fireAtText = new Date(scheduleResult.fireAtTs).toLocaleTimeString('bg-BG', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+        document.getElementById('apkDiagReport').textContent =
+            result.report + '\nScheduled test: yes\nFire at: ' + fireAtText + '\nMode: ' + (scheduleResult.mode || 'unknown');
+        log('Тестът е планиран за ' + fireAtText + '. Затвори приложението и изчакай известието.', 'info');
+    } catch (e) {
+        document.getElementById('apkDiagReport').textContent =
+            result.report + '\nScheduled test: no\nSchedule error: ' + e.message;
+        log('Планирането се провали: ' + e.message, 'err');
+    }
+}
+
+async function copyApkReport() {
+    const report = document.getElementById('apkDiagReport').textContent || '';
+    if (!report.trim()) {
+        log('Няма отчет за копиране.', 'warn');
+        return;
+    }
+    try {
+        await navigator.clipboard.writeText(report);
+        log('Отчетът е копиран в clipboard.', 'info');
+    } catch (e) {
+        log('Не успях да копирам отчета: ' + e.message, 'err');
     }
 }
 
@@ -795,7 +1067,7 @@ function renderScheduleVisualization() {
 // Init
 // ─────────────────────────────────────────────
 (async () => {
-    updateDiagnostics();
+    await updateDiagnostics();
     renderScheduleVisualization();
     await registerSW();
     await checkSW();

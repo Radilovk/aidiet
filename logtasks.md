@@ -1,5 +1,18 @@
 # Log Tasks
 
+## 2026-05-29 — APK notifications: диагностичен *notifyme тест
+
+**Задача:** Да се създаде ясен тест за `*notifyme`/APK notification проблема и да се опише каква информация е нужна, за да се изолира точната причина.
+
+**Потвърден проблем в диагностиката:**
+- `notifications-test.html` проверяваше само `window.Capacitor`, така че в iframe/APK shell сценарий можеше да отчете липсващ plugin, въпреки че bridge-ът е на `window.top.Capacitor`.
+- Страницата ползваше и web `Notification.requestPermission()`, което не е достатъчно надеждно за native `@capacitor/local-notifications` permission проверка.
+
+**Направено:**
+- `notifications-test.html`: добавена е iframe-safe Capacitor диагностика с `window.top.Capacitor` fallback.
+- `notifications-test.html`: permission статусът и request flow вече ползват native `LocalNotifications.checkPermissions()/requestPermissions()` когато plugin-ът е наличен.
+- `notifications-test.html`: добавен е отделен APK / `*notifyme` тест с copyable отчет и 10-секундно тестово известие, за да се види дали проблемът е plugin missing / permission denied / GameNotifier path.
+
 ## 2026-05-29 — APK image upload: премахване на неработещ Camera plugin код
 
 **Задача:** Да се оправи неработещото качване на потребителско изображение в инсталирания NutriPlan APK и да се изтрият предишните неработещи решения.
