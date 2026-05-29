@@ -1,5 +1,20 @@
 # Log Tasks
 
+## 2026-05-29 — APK: logout и avatar picker parity
+
+**Задача:** В APK logout бутонът да връща веднага началната страница като при web; да се махне текстът „Натисни за смяна на снимката“; качването на аватар от телефонната библиотека да се визуализира стабилно в APK с минимална редакция.
+
+**Корен проблеми:**
+- `profile.html` пращаше shell actions към `window.location.origin`, което в native/null-origin iframe сценарий е нестабилно и можеше да остави logout-а без top-level пренасочване.
+- `session-utils.js` търсеше Capacitor Preferences само в текущия прозорец, а в embedded APK flow bridge-ът е на `window.top.Capacitor`, така че native session ключовете можеха да останат след logout.
+- `profile.html` native avatar flow разчиташе само на `photo.dataUrl`; при APK gallery picker по-надеждният резултат е `uri/webPath`, затова избраната снимка не стигаше до render/save пътя.
+
+**Направено:**
+- `profile.html`: logout shell postMessage вече ползва safe target origin (`*` за native/null-origin), а fallback logout навигацията вече носи и `logout=1`.
+- `session-utils.js`: Preferences plugin lookup вече проверява и `window.top.Capacitor`, за да се чистят и native session данните при logout от embedded profile таба.
+- `profile.html`: премахнат е helper текстът под аватара.
+- `profile.html`: native avatar picker-ът вече взима изображението през `uri/webPath`, компресира го през общ кратък helper и го рендерира/записва веднага и в APK.
+
 ## 2026-05-28 — APK parity audit: build trigger и native service worker guard
 
 **Задача:** Да се направи точен audit на APK build потока, да се намерят реалните пропуски между web и APK и да се нанесат минимални корекции за по-надежден parity.
