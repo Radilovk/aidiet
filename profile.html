@@ -1887,14 +1887,13 @@
     <!-- Main Content -->
     <div class="container">
         <div class="profile-header">
-            <label class="avatar-upload-wrapper" id="avatarUploadTrigger" for="avatarInput" style="display:inline-block;position:relative;margin-bottom:4px;cursor:pointer;">
+            <label class="avatar-upload-wrapper" id="avatarUploadTrigger" style="display:inline-block;position:relative;margin-bottom:4px;cursor:pointer;">
                 <div class="profile-avatar" id="profileAvatar" title="Качете аватар"></div>
                 <div class="avatar-edit-badge" id="avatarEditBadge" style="position:absolute;bottom:2px;right:2px;width:24px;height:24px;background:var(--primary-red);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.3);cursor:pointer;pointer-events:none;">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="white"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
                 </div>
                 <input type="file" id="avatarInput" accept="image/*" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:2;">
             </label>
-            <div style="font-size:0.72rem;color:var(--text-muted,#888);margin-bottom:8px;">Натисни за смяна на снимката</div>
             <div class="profile-name" id="profileName"></div>
             <div class="profile-email" id="profileEmail"></div>
             <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема"><i class="fas fa-moon" id="themeIcon"></i></button>
@@ -2557,7 +2556,7 @@
             updateThemeIcon(newTheme);
             setThemeColor(newTheme);
             if (document.documentElement.getAttribute('data-embedded-tab') === '1' && window.parent && window.parent !== window) {
-                window.parent.postMessage({ type: 'NUTRIPLAN_THEME_CHANGE', theme: newTheme }, window.location.origin);
+                window.parent.postMessage({ type: 'NUTRIPLAN_THEME_CHANGE', theme: newTheme }, getShellTargetOrigin());
             }
         }
 
@@ -2568,12 +2567,20 @@
             }
         }
 
+        function getShellTargetOrigin() {
+            const origin = window.location.origin;
+            if (!origin || origin === 'null' || window.location.protocol === 'capacitor:' || window.location.protocol === 'file:') {
+                return '*';
+            }
+            return origin;
+        }
+
         function requestShellAction(type, payload) {
             if (document.documentElement.getAttribute('data-embedded-tab') !== '1' || !window.parent || window.parent === window) {
                 return false;
             }
             try {
-                window.parent.postMessage(Object.assign({ type: type }, payload || {}), window.location.origin);
+                window.parent.postMessage(Object.assign({ type: type }, payload || {}), getShellTargetOrigin());
                 return true;
             } catch (_) {
                 return false;
@@ -2669,7 +2676,7 @@
         window.doLogout = window.doLogout || async function() {
             await clearProfileSessionFallback();
             if (requestShellAction('NUTRIPLAN_LOGOUT')) return;
-            window.location.replace('index.html?stay=1');
+            window.location.replace('index.html?stay=1&logout=1');
         };
 
         // --- Data Loading ---
@@ -3403,39 +3410,40 @@
             return null;
         }
 
+        function compressAvatarSource(source, callback) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const MAX_DIM = 640;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > MAX_DIM || height > MAX_DIM) {
+                    if (width > height) {
+                        height = Math.round(height * MAX_DIM / width);
+                        width = MAX_DIM;
+                    } else {
+                        width = Math.round(width * MAX_DIM / height);
+                        height = MAX_DIM;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+                callback(canvas.toDataURL('image/jpeg', 0.78));
+            };
+            img.onerror = function() {
+                showAlert('Неуспешно зареждане на изображението. Моля, опитайте с друго.', 'error');
+            };
+            img.src = source;
+        }
+
         // Compress avatar to JPEG with max 640px dimension and quality 0.78
         function compressImage(file, callback) {
             const reader = new FileReader();
             reader.onload = function(e) {
-                const img = new Image();
-                img.onload = function() {
-                    const canvas = document.createElement('canvas');
-                    const MAX_DIM = 640;
-                    let width = img.width;
-                    let height = img.height;
-
-                    if (width > MAX_DIM || height > MAX_DIM) {
-                        if (width > height) {
-                            height = Math.round(height * MAX_DIM / width);
-                            width = MAX_DIM;
-                        } else {
-                            width = Math.round(width * MAX_DIM / height);
-                            height = MAX_DIM;
-                        }
-                    }
-
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-
-                    const compressed = canvas.toDataURL('image/jpeg', 0.78);
-                    callback(compressed);
-                };
-                img.onerror = function() {
-                    showAlert('Неуспешно зареждане на изображението. Моля, опитайте с друго.', 'error');
-                };
-                img.src = e.target.result;
+                compressAvatarSource(e.target.result, callback);
             };
             reader.onerror = function() {
                 showAlert('Неуспешно четене на файла. Моля, опитайте отново.', 'error');
@@ -3494,15 +3502,14 @@
 
                 if (avatarInput) {
                     if (isNativeAvatarPicker && avatarUploadTrigger) {
-                        // In APK, disable click-through on the transparent input overlay so the tap
-                        // goes to the label, which we intercept here to use the Camera API.
-                        avatarInput.style.pointerEvents = 'none';
-                        // Intercept tap on the label wrapper (fires before WebView opens file picker)
+                        avatarUploadTrigger.removeAttribute('for');
+                        avatarInput.style.display = 'none';
                         avatarUploadTrigger.addEventListener('click', async function(e) {
                             const camera = getAvatarCamera();
                             if (!camera || typeof camera.getPhoto !== 'function') {
-                                // Camera unavailable — fall through to file input
+                                avatarInput.style.display = '';
                                 avatarInput.click();
+                                avatarInput.style.display = 'none';
                                 return;
                             }
                             e.preventDefault();
@@ -3512,28 +3519,18 @@
                                     quality: 80,
                                     allowEditing: false,
                                     source: 'PHOTOS',
-                                    resultType: 'dataUrl'
+                                    resultType: 'uri'
                                 });
-                                const dataUrl = photo && photo.dataUrl;
-                                if (!dataUrl) {
+                                const imageSource = photo && (
+                                    photo.webPath ||
+                                    photo.path ||
+                                    photo.dataUrl ||
+                                    (photo.base64String ? 'data:image/jpeg;base64,' + photo.base64String : '')
+                                );
+                                if (!imageSource) {
                                     throw new Error('image-unavailable');
                                 }
-                                // Compress directly from dataUrl via canvas (no fetch needed in WebView)
-                                var img = new Image();
-                                img.onload = function() {
-                                    var canvas = document.createElement('canvas');
-                                    var MAX_DIM = 640;
-                                    var w = img.width, h = img.height;
-                                    if (w > MAX_DIM || h > MAX_DIM) {
-                                        if (w > h) { h = Math.round(h * MAX_DIM / w); w = MAX_DIM; }
-                                        else { w = Math.round(w * MAX_DIM / h); h = MAX_DIM; }
-                                    }
-                                    canvas.width = w; canvas.height = h;
-                                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-                                    saveAvatarDataUrl(canvas.toDataURL('image/jpeg', 0.78));
-                                };
-                                img.onerror = function() { saveAvatarDataUrl(dataUrl); };
-                                img.src = dataUrl;
+                                compressAvatarSource(imageSource, saveAvatarDataUrl);
                             } catch (err) {
                                 const msg = (err && (err.message || err)) ? String(err.message || err).toLowerCase() : '';
                                 if (!msg.includes('cancel')) {
@@ -5020,7 +5017,7 @@
                 }
                 /* Navigate home after logout */
                 if (requestShellAction('NUTRIPLAN_LOGOUT')) return;
-                window.location.replace('index.html?stay=1');
+                window.location.replace('index.html?stay=1&logout=1');
             };
 
             /* Clear all plan/session data from localStorage on logout.

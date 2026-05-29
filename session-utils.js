@@ -103,7 +103,7 @@
 
     function getPreferencesPlugin() {
         try {
-            var cap = global.Capacitor;
+            var cap = global.Capacitor || (global.top && global.top !== global && global.top.Capacitor) || null;
             if (!cap) return null;
             if (cap.Plugins && cap.Plugins.Preferences) return cap.Plugins.Preferences;
             if (typeof cap.registerPlugin === 'function') {
