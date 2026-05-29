@@ -4350,10 +4350,13 @@
          */
         function scheduleNotifications() {
             if (!window.GameNotifier) return;
+            const cap = window.Capacitor ||
+                (window.top !== window && window.top && window.top.Capacitor) ||
+                null;
             const isCapacitorApp = !!(
-                window.Capacitor &&
-                typeof window.Capacitor.isNativePlatform === 'function' &&
-                window.Capacitor.isNativePlatform()
+                cap &&
+                typeof cap.isNativePlatform === 'function' &&
+                cap.isNativePlatform()
             );
             if (!isCapacitorApp) {
                 if (!('Notification' in window) || Notification.permission !== 'granted') return;
