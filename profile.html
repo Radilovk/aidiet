@@ -220,6 +220,54 @@
             background: linear-gradient(90deg, var(--primary-red) 0%, var(--accent-blue) 100%);
         }
 
+        /* ── Avatar circle ─────────────────────────────────────────────────── */
+        .profile-avatar-wrap {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 14px;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .profile-avatar-wrap:active { opacity: 0.85; }
+        .profile-avatar,
+        .profile-avatar-placeholder {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 3px solid var(--primary-red);
+            display: block;
+        }
+        .profile-avatar {
+            object-fit: cover;
+            background: var(--card-bg);
+        }
+        .profile-avatar-placeholder {
+            background: linear-gradient(135deg, var(--primary-red) 0%, var(--accent-blue) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: #fff;
+        }
+        .profile-avatar-badge {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--primary-red);
+            border: 2px solid var(--card-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 0.65rem;
+            pointer-events: none;
+        }
+        /* ── /Avatar circle ─────────────────────────────────────────────── */
+
         .profile-name {
             font-size: 1.3rem;
             font-weight: 700;
@@ -1831,6 +1879,12 @@
     <!-- Main Content -->
     <div class="container">
         <div class="profile-header">
+            <div class="profile-avatar-wrap" id="profileAvatarWrap" onclick="openAvatarPicker()" title="Качи снимка">
+                <div class="profile-avatar-placeholder" id="profileAvatarPlaceholder"><i class="fas fa-user"></i></div>
+                <img class="profile-avatar" id="profileAvatarImg" src="" alt="Аватар" style="display:none;">
+                <span class="profile-avatar-badge"><i class="fas fa-camera"></i></span>
+            </div>
+            <input type="file" id="avatarFileInput" accept="image/*" style="display:none;" onchange="handleAvatarFileChange(event)">
             <div class="profile-name" id="profileName"></div>
             <div class="profile-email" id="profileEmail"></div>
             <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема"><i class="fas fa-moon" id="themeIcon"></i></button>
@@ -1845,6 +1899,14 @@
                     }
                     if (ud && ud.email) {
                         document.getElementById('profileEmail').textContent = ud.email;
+                    }
+                } catch (_) {}
+                try {
+                    var av = localStorage.getItem('userAvatar');
+                    if (av) {
+                        var img = document.getElementById('profileAvatarImg');
+                        var ph  = document.getElementById('profileAvatarPlaceholder');
+                        img.src = av; img.style.display = ''; ph.style.display = 'none';
                     }
                 } catch (_) {}
             })();
@@ -2485,6 +2547,36 @@
                 window.parent.postMessage({ type: 'NUTRIPLAN_THEME_CHANGE', theme: newTheme }, getShellTargetOrigin());
             }
         }
+
+        // ── Avatar upload ──────────────────────────────────────────────────────
+        function openAvatarPicker() {
+            var cap = window.Capacitor || (window.top && window.top !== window && window.top.Capacitor) || null;
+            if (cap && cap.isNativePlatform && cap.isNativePlatform()) {
+                var Camera = (cap.Plugins || {}).Camera;
+                if (Camera && Camera.getPhoto) {
+                    Camera.getPhoto({ quality: 85, allowEditing: false, resultType: 'base64', source: 'PROMPT' })
+                        .then(function(photo) { setAvatar('data:image/jpeg;base64,' + photo.base64String); })
+                        .catch(function() { document.getElementById('avatarFileInput').click(); });
+                    return;
+                }
+            }
+            document.getElementById('avatarFileInput').click();
+        }
+        function handleAvatarFileChange(e) {
+            var file = e.target.files && e.target.files[0];
+            if (!file) return;
+            var reader = new FileReader();
+            reader.onload = function(ev) { setAvatar(ev.target.result); };
+            reader.readAsDataURL(file);
+            e.target.value = '';
+        }
+        function setAvatar(dataUrl) {
+            try { localStorage.setItem('userAvatar', dataUrl); } catch (_) {}
+            var img = document.getElementById('profileAvatarImg');
+            var ph  = document.getElementById('profileAvatarPlaceholder');
+            if (img && ph) { img.src = dataUrl; img.style.display = ''; ph.style.display = 'none'; }
+        }
+        // ── /Avatar upload ─────────────────────────────────────────────────────
 
         function updateThemeIcon(theme) {
             const icon = document.getElementById('themeIcon');
