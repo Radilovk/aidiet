@@ -26,6 +26,19 @@
 - `local-scheduler.js`: добавени са `_initialized` + `_initPromise`, така че `GameNotifier.init()` да се изпълнява само веднъж на сесия и да дедуплицира паралелните извиквания.
 - `local-scheduler.js`: exact alarm проверката вече излъчва `nutriplan:exact-alarm-status`, ползва `checkExactNotificationSetting()` когато е налично и има public methods за отваряне на настройките и recheck.
 - `plan.html`: добавен е видим banner за `Alarms & reminders`, бутон към native exact alarm settings и recheck/reschedule след връщане от настройките.
+
+## 2026-05-29 — Android notifications: връщане към простия работещ bootstrap
+
+**Задача:** Да се махне излишната exact alarm сложност и да остане най-простият работещ Android notification flow, без да се губи embedded APK bootstrap-ът и single-init поведението.
+
+**Потвърдена причина:**
+- Реалният regression fix за APK е малкият embedded bridge fix в `plan.html` (`window.top.Capacitor`) плюс dedupe на `GameNotifier.init()`.
+- Допълнителният exact alarm UI/runtime слой от #989 не е нужен, за да работят локалните известия: `@capacitor/local-notifications` и без това прави fallback към inexact alarms, когато exact permission липсва.
+- Следователно exact alarm banner/recheck/settings кодът е излишно усложнение в runtime пътя и не е част от минималния работещ notification bootstrap.
+
+**Направено:**
+- `local-scheduler.js`: запазени са iframe Capacitor detection и single-init guard-овете, но е махнат exact alarm runtime/settings слой.
+- `plan.html`: махнат е exact alarm banner/recheck кодът; остава само стандартният permission + scheduling flow.
 ## 2026-05-29 — APK avatar upload: оставащ проблем след PR #987
 
 **Задача:** Да се прегледат PR #983, #984, #985 и #987, да се установи защо avatar upload-ът още не работи в APK, и да се оправи с минимум код, като се чисти само излишното от неуспешните опити.
