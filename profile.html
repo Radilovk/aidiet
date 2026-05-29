@@ -1887,13 +1887,13 @@
     <!-- Main Content -->
     <div class="container">
         <div class="profile-header">
-            <label class="avatar-upload-wrapper" id="avatarUploadTrigger" for="avatarInput" style="display:inline-block;position:relative;margin-bottom:4px;cursor:pointer;">
+            <div class="avatar-upload-wrapper" id="avatarUploadTrigger" style="display:inline-block;position:relative;margin-bottom:4px;cursor:pointer;">
                 <div class="profile-avatar" id="profileAvatar" title="Качете аватар"></div>
                 <div class="avatar-edit-badge" id="avatarEditBadge" style="position:absolute;bottom:2px;right:2px;width:24px;height:24px;background:var(--primary-red);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.3);cursor:pointer;pointer-events:none;">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="white"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
                 </div>
-            </label>
-            <input type="file" id="avatarInput" accept="image/*" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;">
+                <input type="file" id="avatarInput" accept="image/*" style="display:none;">
+            </div>
             <div class="profile-name" id="profileName"></div>
             <div class="profile-email" id="profileEmail"></div>
             <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема"><i class="fas fa-moon" id="themeIcon"></i></button>
@@ -3470,8 +3470,6 @@
                 // Avatar upload functionality
                 const avatarInput = document.getElementById('avatarInput');
                 const avatarUploadTrigger = document.getElementById('avatarUploadTrigger');
-                const isNativeAvatarPicker = !!(window.NutriPlanPlatform && typeof window.NutriPlanPlatform.isAPK === 'function' && window.NutriPlanPlatform.isAPK());
-
                 function saveAvatarDataUrl(dataUrl) {
                     try {
                         localStorage.setItem('profileAvatar', dataUrl);
@@ -3483,37 +3481,18 @@
                 }
 
                 if (avatarInput) {
-                    if (isNativeAvatarPicker && avatarUploadTrigger) {
-                        avatarUploadTrigger.removeAttribute('for');
-                        window.addEventListener('message', function(event) {
-                            if (!event || !event.data || event.data.type !== 'NUTRIPLAN_AVATAR_PICKED') return;
-                            if (window.parent && event.source && event.source !== window.parent) return;
-                            const isTrustedOrigin = event.origin === window.location.origin
-                                || event.origin === 'null'
-                                || window.location.protocol === 'capacitor:'
-                                || window.location.protocol === 'file:';
-                            if (!isTrustedOrigin) return;
-                            if (event.data.imageSource) {
-                                compressAvatarSource(event.data.imageSource, saveAvatarDataUrl);
-                            } else if (event.data.error && event.data.error !== 'cancelled') {
-                                showAlert('Неуспешно избиране на снимка.', 'error');
-                            }
-                        });
-                        avatarUploadTrigger.addEventListener('click', async function(e) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            if (!requestShellAction('NUTRIPLAN_PICK_AVATAR')) {
-                                avatarInput.click();
-                            }
-                        });
-                    }
-
                     avatarInput.addEventListener('change', function(e) {
                         const file = e.target.files && e.target.files[0];
                         if (file && file.type && file.type.startsWith('image/')) {
                             compressImage(file, saveAvatarDataUrl);
                         }
                         e.target.value = '';
+                    });
+                }
+
+                if (avatarUploadTrigger && avatarInput) {
+                    avatarUploadTrigger.addEventListener('click', function() {
+                        avatarInput.click();
                     });
                 }
 
