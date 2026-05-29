@@ -1,5 +1,20 @@
 # Log Tasks
 
+## 2026-05-29 — APK avatar upload: липсва avatar key в native/session storage
+
+**Задача:** Да се провери защо avatar upload-ът в APK остава дефектен на архитектурно ниво и да се оправи с минимална промяна.
+
+**Потвърдена причина:**
+- `profile.html` записва аватара само в `localStorage` под `userAvatar`.
+- `session-utils.js` не включва `userAvatar` нито в `MANAGED_STORAGE_KEYS`, нито в `USER_SESSION_KEYS`.
+- Затова `app.js` startup cache и `native-backup.js` никога не синхронизират аватара към Capacitor Preferences, въпреки че точно това е persistence механизмът на APK архитектурата.
+- Допълнително logout cleanup-ът в `profile.html` също не изчиства `userAvatar`, което оставя риск следващ потребител на същото устройство да види чужд аватар.
+
+**Направено:**
+- `session-utils.js`: добавен е `userAvatar` към managed и user-session ключовете.
+- `app.js` и `native-backup.js`: fallback списъците вече също включват `userAvatar`.
+- `profile.html`: logout cleanup-ът вече маха `userAvatar`.
+
 ## 2026-05-29 — APK image upload: премахване на неработещ Camera plugin код
 
 **Задача:** Да се оправи неработещото качване на потребителско изображение в инсталирания NutriPlan APK и да се изтрият предишните неработещи решения.
