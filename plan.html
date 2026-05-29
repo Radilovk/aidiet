@@ -10215,10 +10215,8 @@
          while plan.html is already open – avoids full page reload and index redirect. -->
     <script>
     (function() {
-        if (!('serviceWorker' in navigator)) return;
-        navigator.serviceWorker.addEventListener('message', function(event) {
-            var msg = event.data;
-            if (!msg || msg.type !== 'NOTIFICATION_ACTION') return;
+        window.NutriPlanHandleNotificationAction = function(msg) {
+            if (!msg) return;
             var notifType = msg.notificationType || '';
             var action    = msg.action || '';
             var recordKey = msg.recordKey || '';
@@ -10293,6 +10291,13 @@
                 }
                 return;
             }
+        };
+
+        if (!('serviceWorker' in navigator)) return;
+        navigator.serviceWorker.addEventListener('message', function(event) {
+            var msg = event.data;
+            if (!msg || msg.type !== 'NOTIFICATION_ACTION') return;
+            window.NutriPlanHandleNotificationAction(msg);
         });
     })();
     </script>
