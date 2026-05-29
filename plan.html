@@ -229,40 +229,6 @@
             flex-shrink: 0;
         }
 
-        .user-avatar {
-            width: 42px;
-            height: 42px;
-            background: linear-gradient(135deg, var(--primary-red) 0%, var(--primary-accent) 100%);
-            border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 700;
-            font-size: 1.05rem;
-            box-shadow: 
-                0 4px 14px rgba(13, 148, 136, 0.3),
-                inset 0 1px 0 rgba(255, 255, 255, 0.2);
-            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .user-avatar::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 50%);
-            pointer-events: none;
-        }
-        
-        .user-avatar:hover {
-            transform: scale(1.08);
-            box-shadow: 
-                0 6px 18px rgba(13, 148, 136, 0.4),
-                inset 0 1px 0 rgba(255, 255, 255, 0.25);
-        }
-
         /* --- DAY BANNER (replaces days-nav + greeting banner) --- */
         .day-banner {
             display: flex;
@@ -2509,7 +2475,7 @@
             /* Hide UI chrome */
             header, .day-banner,
             .install-banner, #ios-banner, #printBtn,
-            .back-btn, .theme-toggle-btn, .user-avatar,
+            .back-btn, .theme-toggle-btn,
             .fab-food, button:not(.info-btn), nav { display: none !important; }
 
             /* Force light theme variables regardless of user's dark/light preference */
@@ -3820,9 +3786,7 @@
                 // user's conversation history on the same device.
                 'chatHistory', 'chatMode', 'chatDemoLimitUnlocked',
                 // Pending sync flag
-                'planSyncPending',
-                // Cached Firebase avatar URL
-                'profilePhotoURL', 'profilePhotoUid'
+                'planSyncPending'
             ];
             PLAN_KEYS.forEach(k => localStorage.removeItem(k));
             // Clear dynamically-named addedMeals_* keys
@@ -4801,12 +4765,6 @@
                     throw new Error('No meal data found in plan');
                 }
                 
-                // Update user avatar with first letter of name
-                const avatar = document.querySelector('.user-avatar');
-                if (avatar && userData.name) {
-                    avatar.textContent = userData.name.charAt(0).toUpperCase();
-                }
-
                 // Update greeting — no longer a banner; kept for future use only
                 // (greetingName element removed from DOM)
 
