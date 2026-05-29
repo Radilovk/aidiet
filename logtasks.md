@@ -1,5 +1,18 @@
 # Log Tasks
 
+## 2026-05-29 — APK profile: стабилно native разпознаване в embedded таба
+
+**Задача:** Да се приложи кратка и сигурна поправка само на ясния APK iframe проблем, без да се чупят реални функции.
+
+**Потвърдена причина:**
+- `profile.html` вече работи като iframe таб в shell-а, но install/native логиката още проверяваше само `window.Capacitor`.
+- В embedded APK native bridge-ът е надежден в `top` прозореца, затова iframe-local проверката даваше false и profile табът можеше да се държи като web/PWA вътре в APK.
+
+**Направено:**
+- `profile.html`: добавен е малък helper за безопасно взимане на Capacitor bridge от текущия или top прозореца.
+- `profile.html`: install UI/native detection и service worker guard вече ползват top-aware native разпознаване.
+- `profile.html`: theme navigation bar update и avatar picker вече ползват същия bridge, за да не остават iframe-local native проверки в този файл.
+
 ## 2026-05-29 — APK image upload: премахване на неработещ Camera plugin код
 
 **Задача:** Да се оправи неработещото качване на потребителско изображение в инсталирания NutriPlan APK и да се изтрият предишните неработещи решения.
