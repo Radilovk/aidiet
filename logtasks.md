@@ -2753,32 +2753,21 @@ Logout бутонът и избраният от потребителя ават
 
 **Засегнати файлове:** `auth-guard.js`, `profile.html`, `logtasks.md`
 
-## Задача: Тест за APK поведения (2026-05-28)
+---
 
-**Заявено:** Тест за APK и потвърждение на описаните поправки.
+## Задача: Поправки на profile tab — logout бутон и аватар (2026-05-28)
 
-**Направено:**
-- Създаден `apk.test.js` — 9 автоматизирани теста с `node:test` (Node.js built-in, нулеви нови зависимости):
-  - `native-backup.js` (3 теста): `_getCap()` / `_isNative()` — без Capacitor, с ненативен Capacitor, с `window.top.Capacitor` fallback в iframe
-  - `GameNotifier._detectCapacitor()` (4 теста): без Capacitor, ненативен, top-level, iframe fallback
-  - `auth-guard.js` overlay (2 теста): overlay се маха при embedded+null Firebase; не се маха при top-level redirect
-- Актуализиран `package.json`: `"test": "node --test apk.test.js"` + добавен `"type": "module"`
-- Всички 9 теста минават успешно (`npm test`)
+**Проблем 1 — Два logout бутона:**
+- В profile.html имаше два logout бутона: `socialLogoutBtnHeader` (горе вляво в хедъра, позиция absolute) и `socialLogoutBtn` (долу в профила).
+- Поправка: Премахнат дублиращият се хедър бутон `socialLogoutBtnHeader`. Остава само долният.
 
-**Засегнати файлове:** `apk.test.js` (нов), `package.json`, `logtasks.md`
+**Проблем 2 — "Social logout" именуване:**
+- Функцията `socialLogout()` и id-тата `socialLogoutBtn/socialLogoutBtnHeader` съдържаха "social" без да има social login.
+- Поправка: Преименувано `socialLogout` → `doLogout`, `socialLogoutBtn` → `logoutBtn`.
 
-## Задача: Реални APK проблеми с logout и avatar gallery (2026-05-28)
+**Проблем 3 — Аватар от библиотека не се показва в APK:**
+- В APK режим Camera.getPhoto() връща dataUrl, но кодът го преобразуваше чрез `fetch(dataUrl) → .blob() → compressImage(blob)`.
+- В Android WebView `fetch('data:...')` може да е блокиран или да върне Blob, след което `compressImage` вътрешно да фейлне (img.onerror) без да извика saveAvatarDataUrl.
+- Поправка: Заменена сложната fetch/blob верига с директна Image+canvas компресия от dataUrl (без FileReader/fetch roundtrip).
 
-**Заявено:** Да се намерят реалните причини защо logout бутонът в APK не прави нищо при клик и защо второ избрано изображение от галерията не се зарежда в avatar input-а, след което да се тества решението с APK regression tester.
-
-**Направено:**
-- Проверен е реалният profile/logout/avatar поток в `profile.html` и е потвърдено, че проблемът с logout не е във видимостта на бутона, а в това, че `socialLogout()` чака `await signOut(auth)` преди локалното чистене и shell navigation; при APK/Firebase WebView този promise може да увисне и кликът изглежда като no-op.
-- Потвърдено е, че avatar upload логиката приема само `photo.dataUrl`; това е крехко за Capacitor gallery връщания, където следващ избор може да дойде като `base64String`, `webPath` или `path`, и така кодът хвърля `image-unavailable` без да зареди снимката.
-- Поправен е `profile.html` с минимална промяна:
-  - logout вече не блокира UI/navigation върху Firebase sign-out; sign-out се ограничава с timeout, local session cleanup и shell logout продължават веднага;
-  - avatar upload вече нормализира `dataUrl` / `base64String` / `webPath` / native `path` (вкл. `Capacitor.convertFileSrc`) преди компресиране и запис.
-- Разширен е `apk.test.js` с нови regression тестове за:
-  - bounded logout wait (`settleSoon`) при увиснал promise;
-  - avatar source normalization за `base64String`, `webPath` и native `path`.
-
-**Засегнати файлове:** `profile.html`, `apk.test.js`, `logtasks.md`
+**Засегнати файлове:** `profile.html`, `logtasks.md`
