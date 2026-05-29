@@ -12,6 +12,30 @@
 - `profile.html`: добавен е малък helper за безопасно взимане на Capacitor bridge от текущия или top прозореца.
 - `profile.html`: install UI/native detection и service worker guard вече ползват top-aware native разпознаване.
 - `profile.html`: theme navigation bar update и avatar picker вече ползват същия bridge, за да не остават iframe-local native проверки в този файл.
+## 2026-05-29 — APK notifications: видим вход към тестовия режим
+
+**Задача:** В APK да има ясен бутон/команда за влизане в тестов режим за нотификации, вместо flow-ът да остава скрит.
+
+**Потвърдена причина:**
+- Реалният диагностичен екран вече съществува в `notifications-test.html`, но никъде в основния APK UI няма видим бутон към него.
+- В `plan.html` има само скрита чат команда `*notifyme`, която досега директно пускаше 10-секундно известие и не подсказваше, че има отделен „тестов режим“.
+
+**Направено:**
+- `plan.html`: добавен е видим бутон „Тест нотификации“ в чата, който отваря `notifications-test.html`.
+- `plan.html`: командата `*notifyme` вече отваря диагностичния екран вместо да задейства скрит one-shot тест без UI.
+
+## 2026-05-29 — APK notifications: диагностичен *notifyme тест
+
+**Задача:** Да се създаде ясен тест за `*notifyme`/APK notification проблема и да се опише каква информация е нужна, за да се изолира точната причина.
+
+**Потвърден проблем в диагностиката:**
+- `notifications-test.html` проверяваше само `window.Capacitor`, така че в iframe/APK shell сценарий можеше да отчете липсващ plugin, въпреки че bridge-ът е на `window.top.Capacitor`.
+- Страницата ползваше и web `Notification.requestPermission()`, което не е достатъчно надеждно за native `@capacitor/local-notifications` permission проверка.
+
+**Направено:**
+- `notifications-test.html`: добавена е iframe-safe Capacitor диагностика с `window.top.Capacitor` fallback.
+- `notifications-test.html`: permission статусът и request flow вече ползват native `LocalNotifications.checkPermissions()/requestPermissions()` когато plugin-ът е наличен.
+- `notifications-test.html`: добавен е отделен APK / `*notifyme` тест с copyable отчет и 10-секундно тестово известие, за да се види дали проблемът е plugin missing / permission denied / GameNotifier path.
 
 ## 2026-05-29 — APK image upload: премахване на неработещ Camera plugin код
 
