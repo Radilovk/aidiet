@@ -220,57 +220,6 @@
             background: linear-gradient(90deg, var(--primary-red) 0%, var(--accent-blue) 100%);
         }
 
-        .profile-avatar {
-            width: 70px;
-            height: 70px;
-            background: linear-gradient(135deg, var(--primary-red) 0%, #0F766E 50%, var(--accent-blue) 100%);
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.8rem;
-            font-weight: bold;
-            box-shadow: 0 8px 24px rgba(13, 148, 136, 0.3);
-            position: relative;
-            cursor: pointer;
-            overflow: hidden;
-            background-size: cover;
-            background-position: center;
-        }
-
-        .avatar-upload-wrapper {
-            display: inline-block;
-            position: relative;
-            margin-bottom: 10px;
-        }
-
-        .profile-avatar::after {
-            content: '';
-            position: absolute;
-            inset: -3px;
-            border-radius: 50%;
-            border: 3px solid rgba(13, 148, 136, 0.4);
-            animation: avatarRing 3s ease-in-out infinite;
-        }
-
-        [data-theme="dark"] .profile-avatar::after {
-            border-color: rgba(45, 212, 191, 0.5);
-        }
-
-        @keyframes avatarRing {
-            0%, 100% { border-color: rgba(13, 148, 136, 0.4); transform: scale(1); }
-            50% { border-color: rgba(6, 182, 212, 0.5); transform: scale(1.02); }
-        }
-
-        [data-theme="dark"] .profile-avatar {
-            box-shadow: 0 8px 24px rgba(45, 212, 191, 0.25);
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-            .profile-avatar::after { animation: none; }
-        }
-
         .profile-name {
             font-size: 1.3rem;
             font-weight: 700;
@@ -1303,11 +1252,6 @@
             .form-section {
                 padding: 20px;
             }
-            .profile-avatar {
-                width: 88px;
-                height: 88px;
-                font-size: 2rem;
-            }
             .profile-name {
                 font-size: 1.5rem;
             }
@@ -1887,13 +1831,6 @@
     <!-- Main Content -->
     <div class="container">
         <div class="profile-header">
-            <div class="avatar-upload-wrapper" id="avatarUploadTrigger" style="display:inline-block;position:relative;margin-bottom:4px;cursor:pointer;">
-                <div class="profile-avatar" id="profileAvatar" title="Качете аватар"></div>
-                <div class="avatar-edit-badge" id="avatarEditBadge" style="position:absolute;bottom:2px;right:2px;width:24px;height:24px;background:var(--primary-red);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.3);cursor:pointer;pointer-events:none;">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="white"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-                </div>
-                <input type="file" id="avatarInput" accept="image/*" style="display:none;">
-            </div>
             <div class="profile-name" id="profileName"></div>
             <div class="profile-email" id="profileEmail"></div>
             <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема"><i class="fas fa-moon" id="themeIcon"></i></button>
@@ -1903,22 +1840,11 @@
             (function() {
                 try {
                     var ud = JSON.parse(localStorage.getItem('userData') || 'null');
-                    var cachedAvatar = localStorage.getItem('profileAvatar');
                     if (ud && ud.name) {
                         document.getElementById('profileName').textContent = ud.name;
-                        if (!cachedAvatar) {
-                            document.getElementById('profileAvatar').textContent = ud.name.charAt(0).toUpperCase();
-                        }
                     }
                     if (ud && ud.email) {
                         document.getElementById('profileEmail').textContent = ud.email;
-                    }
-                    
-                    // Load cached avatar if exists
-                    if (cachedAvatar) {
-                        var avatarEl = document.getElementById('profileAvatar');
-                        avatarEl.style.backgroundImage = 'url(' + cachedAvatar + ')';
-                        avatarEl.textContent = ''; // Hide initial letter when avatar is set
                     }
                 } catch (_) {}
             })();
@@ -2623,25 +2549,6 @@
             }
         }
 
-        function renderProfileAvatar(name, email) {
-            const avatar = document.getElementById('profileAvatar');
-            if (!avatar) return;
-
-            const imageUrl = localStorage.getItem('profileAvatar') || '';
-
-            if (imageUrl) {
-                avatar.style.backgroundImage = `url(${imageUrl})`;
-                avatar.style.backgroundSize = 'cover';
-                avatar.style.backgroundPosition = 'center';
-                avatar.textContent = '';
-                return;
-            }
-
-            avatar.style.backgroundImage = '';
-            const source = (name || email || 'П').trim();
-            avatar.textContent = source ? source.charAt(0).toUpperCase() : 'П';
-        }
-
         function hasStoredProfileSession() {
             try {
                 return !!(localStorage.getItem('userData') || localStorage.getItem('userId'));
@@ -2666,8 +2573,7 @@
                 'np_profile_sync_sig', 'planHistory', 'questionnaireAnswers', 'planSource',
                 'planJobId', 'planJobSource', 'pendingPlanPayload', 'pendingClientId',
                 'warningData', 'canProceedWithWarning', 'validationSource', 'chatHistory',
-                'chatMode', 'chatDemoLimitUnlocked', 'planSyncPending', 'sessionOwnerId',
-                'profilePhotoURL', 'profilePhotoUid', 'profileAvatar'
+                'chatMode', 'chatDemoLimitUnlocked', 'planSyncPending', 'sessionOwnerId'
             ].forEach(function(key) {
                 try { localStorage.removeItem(key); } catch (_) {}
             });
@@ -2748,7 +2654,6 @@
                 if (userData.email) {
                     email.textContent = userData.email;
                 }
-                renderProfileAvatar(userData.name, userData.email);
 
                 // Populate all form fields
                 populateFormFields();
@@ -2924,7 +2829,6 @@
                 if (updatedData.email) {
                     document.getElementById('profileEmail').textContent = updatedData.email;
                 }
-                renderProfileAvatar(updatedData.name, updatedData.email);
 
                 showAlert('✓ Данните са запазени успешно!', 'info');
                 cancelEditing();
@@ -3392,53 +3296,12 @@
             return false;
         }
 
-        function compressAvatarSource(source, callback) {
-            const img = new Image();
-            img.onload = function() {
-                const canvas = document.createElement('canvas');
-                const MAX_DIM = 640;
-                let width = img.width;
-                let height = img.height;
-
-                if (width > MAX_DIM || height > MAX_DIM) {
-                    if (width > height) {
-                        height = Math.round(height * MAX_DIM / width);
-                        width = MAX_DIM;
-                    } else {
-                        width = Math.round(width * MAX_DIM / height);
-                        height = MAX_DIM;
-                    }
-                }
-
-                canvas.width = width;
-                canvas.height = height;
-                canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-                callback(canvas.toDataURL('image/jpeg', 0.78));
-            };
-            img.onerror = function() {
-                showAlert('Неуспешно зареждане на изображението. Моля, опитайте с друго.', 'error');
-            };
-            img.src = source;
-        }
-
-        // Compress avatar to JPEG with max 640px dimension and quality 0.78
-        function compressImage(file, callback) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                compressAvatarSource(e.target.result, callback);
-            };
-            reader.onerror = function() {
-                showAlert('Неуспешно четене на файла. Моля, опитайте отново.', 'error');
-            };
-            reader.readAsDataURL(file);
-        }
-
         // --- Initialization ---
         (function instantInit() {
             async function setupProfile() {
                 /* Restore native storage FIRST so that all localStorage keys
-                 * (userData, profileAvatar, userId …) are available before any
-                 * rendering.  The shell already ran NativeBackup.init(), so this
+                 * (userData, userId …) are available before any rendering.
+                 * The shell already ran NativeBackup.init(), so this
                  * is a no-op when primary data is already present. */
                 if (typeof NativeBackup !== 'undefined') {
                     await NativeBackup.init().catch(() => {});
@@ -3466,41 +3329,9 @@
                 });
 
                 setProfileLogoutVisibility(hasStoredProfileSession());
-                
-                // Avatar upload functionality
-                const avatarInput = document.getElementById('avatarInput');
-                const avatarUploadTrigger = document.getElementById('avatarUploadTrigger');
-                function saveAvatarDataUrl(dataUrl) {
-                    try {
-                        localStorage.setItem('profileAvatar', dataUrl);
-                        renderProfileAvatar(userData?.name, userData?.email);
-                        showAlert('Аватарът е качен успешно!', 'success');
-                    } catch (err) {
-                        showAlert('Грешка при запазване на аватара. Изображението може да е твърде голямо.', 'error');
-                    }
-                }
-
-                if (avatarInput) {
-                    avatarInput.addEventListener('change', function(e) {
-                        const file = e.target.files && e.target.files[0];
-                        if (file && file.type && file.type.startsWith('image/')) {
-                            compressImage(file, saveAvatarDataUrl);
-                        }
-                        e.target.value = '';
-                    });
-                }
-
-                if (avatarUploadTrigger && avatarInput) {
-                    avatarUploadTrigger.addEventListener('click', function() {
-                        avatarInput.click();
-                    });
-                }
 
                 /* Wait for Firebase auth state in the background (after the page is
-                 * already visible and functional).  The bottom module's
-                 * onAuthStateChanged handler will call setProfileLogoutVisibility(true)
-                 * and renderProfileAvatar() if Firebase confirms a live session, so
-                 * no further action is needed here. */
+                 * already visible and functional). */
                 if (window.NutriPlanAuthGuardReady) {
                     try { await window.NutriPlanAuthGuardReady; } catch (_) {}
                 }
@@ -4951,7 +4782,6 @@
                     const emailEl = document.getElementById('profileEmail');
                     if (nameEl  && !qData?.name)  nameEl.textContent  = user.displayName || 'Потребител';
                     if (emailEl && !qData?.email) emailEl.textContent = user.email || '';
-                    renderProfileAvatar(qData?.name || user.displayName, qData?.email || user.email);
                 }
             });
 
@@ -4984,9 +4814,7 @@
                     // user's conversation history on the same device.
                     'chatHistory', 'chatMode', 'chatDemoLimitUnlocked',
                     // Pending sync flag
-                    'planSyncPending',
-                    // Cached avatar (cleared on logout/new login)
-                    'profilePhotoURL', 'profilePhotoUid', 'profileAvatar'
+                    'planSyncPending'
                 ];
                 PLAN_KEYS.forEach(k => localStorage.removeItem(k));
                 // Clear dynamically-named addedMeals_* keys
