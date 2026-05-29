@@ -2813,3 +2813,19 @@ Logout бутонът и избраният от потребителя ават
 - Поправка: Заменена сложната fetch/blob верига с директна Image+canvas компресия от dataUrl (без FileReader/fetch roundtrip).
 
 **Засегнати файлове:** `profile.html`, `logtasks.md`
+
+---
+
+## Задача: Поправка на неработещи APK нотификации и `*notifyme` (2026-05-29)
+
+**Реален проблем:**
+- В `plan.html` функцията `scheduleNotifications()` разпознаваше APK само през `window.Capacitor`.
+- В инсталирания APK `plan.html` се зарежда вътре в iframe и там `window.Capacitor` може да е `undefined`, докато реалният Capacitor обект е достъпен през `window.top.Capacitor`.
+- Заради това кодът приемаше, че не е APK, влизаше в web/pwa клона и спираше още преди `GameNotifier.init()`.
+- Последствие: локалните нотификации не се инициализираха/планираха в APK, а `*notifyme` не работеше, защото `GameNotifier` оставаше без инициализиран Capacitor notification plugin.
+
+**Поправка:**
+- В `plan.html` е редактирана само проверката за APK, така че да ползва и `window.top.Capacitor`, както вече е направено в `platform.js` и `local-scheduler.js`.
+- Няма добавен нов flow; поправена е грешната детекция с минимална промяна.
+
+**Засегнати файлове:** `plan.html`, `logtasks.md`
