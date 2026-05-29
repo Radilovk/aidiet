@@ -1,5 +1,18 @@
 # Log Tasks
 
+## 2026-05-29 — APK avatar picker: реалната разлика спрямо работещия food picker
+
+**Задача:** Да се сравни работещият APK image picker за food analysis с неработещия picker за потребителски аватар и да се поправи само реално проблемният код.
+
+**Потвърдена причина:**
+- В текущия код `plan.html`/`kids.html` вече ползват работещ native Camera flow с `resultType: 'dataUrl'` и fallback към `photo.base64String`.
+- `profile.html` е останал на стария път: иска само `resultType: 'base64'`, после твърдо сглобява `data:image/jpeg;base64,` + `photo.base64String`.
+- Така avatar flow-ът не нормализира Camera резултата по същия начин като работещия food flow и при липсващ/неочакван `base64String` стига до невалиден avatar data URL вместо до реално изображение или fallback.
+
+**Направено:**
+- `profile.html`: avatar picker-ът вече ползва същата нормализация като работещия food picker — първо `photo.dataUrl`, после `photo.base64String` + `photo.format`.
+- `profile.html`: file-input fallback-ът е централизиран в кратък `openFileInput()` helper и нулира input стойността преди click.
+
 ## 2026-05-29 — APK avatar upload: липсва avatar key в native/session storage
 
 **Задача:** Да се провери защо avatar upload-ът в APK остава дефектен на архитектурно ниво и да се оправи с минимална промяна.
