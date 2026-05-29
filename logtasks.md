@@ -2948,19 +2948,3 @@ Logout бутонът и избраният от потребителя ават
 - Няма допълнително натоварване на backend — статичните файлове се сервират от Cloudflare CDN.
 
 **Засегнати файлове:** `capacitor.config.json`, `logtasks.md`
-
-## 2026-05-29 — APK: аватар качване не работи в iframe (WebView file input)
-
-**Задача:** Потребителски аватар не може да се качи в APK версията.
-
-**Потвърдена причина:**
-- `profile.html` се зарежда в iframe от shell-а (app.js).
-- `<input type="file">.click()` програматично от div click handler в Android WebView iframe не отваря file chooser — известно ограничение на WebView.
-- `@capacitor/camera` plugin е инсталиран (`package.json`) и достъпен чрез `NutriPlanPlatform.getPlugin('Camera')` (→ `window.top.Capacitor.Plugins.Camera`).
-
-**Решение:**
-- В click handler-а на `avatarUploadTrigger`: в APK режим → `Camera.getPhoto({source:'PHOTOS', resultType:'base64', quality:78, width:640, height:640})`, после `compressAvatarSource` → `saveAvatarDataUrl`.
-- В Web/PWA режим → остава оригиналното `avatarInput.click()`.
-- Промяната е само 17 реда, без нов код извън handler-а.
-
-**Засегнати файлове:** `profile.html`, `logtasks.md`
