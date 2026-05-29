@@ -66,6 +66,7 @@
     };
     var shellChatFrame = null;
     var deferredPreloadScheduled = false;
+    var nativeNotificationBridgeBound = false;
 
     function getPreferences() {
         return window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Preferences
@@ -245,6 +246,80 @@
         } else {
             window.setTimeout(preload, 450);
         }
+    }
+
+    function buildNativeNotificationTarget(extra, actionId) {
+        var rawUrl = extra && typeof extra.url === 'string' && extra.url ? extra.url : 'quick-answer.html';
+        try {
+            var url = new URL(rawUrl, window.location.href);
+            var type = extra && typeof extra.type === 'string' ? extra.type : '';
+            var recordKey = extra && typeof extra.recordKey === 'string' ? extra.recordKey : '';
+            if (type && !url.searchParams.has('type')) {
+                url.searchParams.set('type', type);
+            }
+            if (recordKey && !url.searchParams.has('date')) {
+                url.searchParams.set('date', recordKey);
+            }
+            if (type === 'morning_check') {
+                if (actionId === 'sleep_yes') url.searchParams.set('auto', 'morning_yes');
+                if (actionId === 'sleep_no') url.searchParams.set('auto', 'morning_no');
+            } else if (type === 'evening_check' && actionId === 'water_yes') {
+                url.searchParams.set('water', '1');
+            }
+            return url.pathname.split('/').pop() + (url.search ? url.search : '') + (url.hash || '');
+        } catch (_) {
+            return 'quick-answer.html';
+        }
+    }
+
+    function forwardNativeNotificationToPlan(payload) {
+        var frame = ensureFrameLoaded('plan');
+        if (!frame) return false;
+        try {
+            var frameWindow = frame.contentWindow;
+            if (!frameWindow || typeof frameWindow.NutriPlanHandleNotificationAction !== 'function') {
+                return false;
+            }
+            if (payload.notificationType === 'morning_check') {
+                if (payload.action !== 'sleep_yes' && payload.action !== 'sleep_no') {
+                    switchTab('plan', true);
+                }
+            } else if (payload.notificationType === 'evening_check') {
+                switchTab('plan', true);
+            }
+            frameWindow.NutriPlanHandleNotificationAction(payload);
+            return true;
+        } catch (_) {
+            return false;
+        }
+    }
+
+    function bindNativeNotificationBridge() {
+        if (nativeNotificationBridgeBound) return;
+        var cap = window.Capacitor;
+        if (!cap || typeof cap.isNativePlatform !== 'function' || !cap.isNativePlatform()) return;
+        var localNotifications = (cap.Plugins || {}).LocalNotifications || null;
+        if (!localNotifications && typeof cap.registerPlugin === 'function') {
+            try {
+                localNotifications = cap.registerPlugin('LocalNotifications');
+            } catch (_) {
+                localNotifications = null;
+            }
+        }
+        if (!localNotifications || typeof localNotifications.addListener !== 'function') return;
+        localNotifications.addListener('localNotificationActionPerformed', function (event) {
+            var notification = event && event.notification ? event.notification : {};
+            var extra = notification.extra || {};
+            var payload = {
+                notificationType: extra.type || '',
+                action: event && typeof event.actionId === 'string' ? event.actionId : '',
+                recordKey: extra.recordKey || ''
+            };
+            if (forwardNativeNotificationToPlan(payload)) return;
+            var target = buildNativeNotificationTarget(extra, payload.action);
+            window.location.href = target;
+        });
+        nativeNotificationBridgeBound = true;
     }
 
     function dispatchFrameEvent(frame, type, detail) {
@@ -722,6 +797,8 @@
         get activeTab() { return state.activeTab; },
         get data() { return window.NutriPlanAppData || null; }
     };
+
+    bindNativeNotificationBridge();
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initShell, { once: true });

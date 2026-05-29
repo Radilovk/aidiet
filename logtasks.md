@@ -16,6 +16,20 @@
 - Опростен click handler-ът — директно `avatarInput.click()` без APK-специфична логика.
 - File input-ът работи и в APK и в web/PWA без допълнителен native код.
 
+## 2026-05-29 — APK notifications: cold-start action regression след shell iframe обединението
+
+**Задача:** Да се установи защо NutriPlan APK нотификациите са спрели да работят след shell/iframe обединението и да се оправи с минимална промяна.
+
+**Потвърдена причина:**
+- `local-scheduler.js` регистрира `localNotificationActionPerformed` само вътре в `plan.html` iframe-а.
+- След shell обединението APK-то стартира top-level `index.html`, а `plan.html` вече се зарежда асинхронно като iframe таб.
+- При tap върху локална нотификация от затворено приложение native event-ът пристига в top-level Capacitor bridge преди iframe-ът да е готов, така че действието се губи и quick-answer / morning-evening flow не се отваря.
+
+**Направено:**
+- `app.js`: добавен е top-level native notification bridge, който хваща `localNotificationActionPerformed` още в shell-а.
+- `plan.html`: изваден е общ `NutriPlanHandleNotificationAction()` handler, за да се ползва и от service worker, и от shell bridge-а.
+- `local-scheduler.js`: embedded iframe табът вече не регистрира втори native listener, за да няма дублиране на action обработката.
+
 ## 2026-05-29 — APK avatar upload: native picker from embedded profile tab
 
 **Задача:** Да се излезе от порочния кръг и да се приложи кардинално, просто и работещо решение за avatar upload в APK, като се изчисти неработещият код.

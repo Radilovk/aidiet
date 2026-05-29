@@ -303,6 +303,9 @@ const GameNotifier = {
 
     _bindCapacitorListeners() {
         if (!this._capacitor || this._listenersBound) return;
+        try {
+            if (window.top && window.top !== window) return;
+        } catch (_) {}
         const { LocalNotifications } = this._capacitor;
         LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
             this._handleCapacitorNotificationAction(action);
