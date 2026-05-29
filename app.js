@@ -76,66 +76,6 @@
             : null;
     }
 
-    function getCameraPlugin() {
-        try {
-            var cap = window.Capacitor;
-            if (!cap) return null;
-            if (cap.Plugins && cap.Plugins.Camera && typeof cap.Plugins.Camera.getPhoto === 'function') {
-                return cap.Plugins.Camera;
-            }
-            if (typeof cap.registerPlugin === 'function') {
-                var camera = cap.registerPlugin('Camera', {});
-                if (camera && typeof camera.getPhoto === 'function') return camera;
-            }
-        } catch (_) {}
-        return null;
-    }
-
-    function postMessageToFrame(source, origin, payload) {
-        if (!source || typeof source.postMessage !== 'function') return false;
-        try {
-            source.postMessage(payload, origin && origin !== 'null' ? origin : '*');
-            return true;
-        } catch (_) {}
-        return false;
-    }
-
-    async function handleAvatarPickRequest(event) {
-        var camera = getCameraPlugin();
-        if (!camera) {
-            postMessageToFrame(event.source, event.origin, {
-                type: 'NUTRIPLAN_AVATAR_PICKED',
-                error: 'camera-unavailable'
-            });
-            return;
-        }
-        try {
-            var photo = await camera.getPhoto({
-                quality: 80,
-                allowEditing: false,
-                source: 'PHOTOS',
-                resultType: 'dataUrl'
-            });
-            var imageSource = photo && (
-                photo.dataUrl ||
-                (photo.base64String ? 'data:image/jpeg;base64,' + photo.base64String : '') ||
-                photo.webPath ||
-                photo.path
-            );
-            if (!imageSource) throw new Error('image-unavailable');
-            postMessageToFrame(event.source, event.origin, {
-                type: 'NUTRIPLAN_AVATAR_PICKED',
-                imageSource: imageSource
-            });
-        } catch (err) {
-            var message = err && (err.message || err) ? String(err.message || err).toLowerCase() : '';
-            postMessageToFrame(event.source, event.origin, {
-                type: 'NUTRIPLAN_AVATAR_PICKED',
-                error: message.includes('cancel') ? 'cancelled' : 'image-unavailable'
-            });
-        }
-    }
-
     function safeParse(value) {
         if (!value || typeof value !== 'string') return null;
         try {
@@ -567,10 +507,6 @@
         }
         if (data.type === 'NUTRIPLAN_CLOSE_CHAT') {
             closeShellChat();
-            return;
-        }
-        if (data.type === 'NUTRIPLAN_PICK_AVATAR') {
-            handleAvatarPickRequest(event);
             return;
         }
         if (data.type === 'NUTRIPLAN_SWITCH_TAB') {

@@ -1,5 +1,18 @@
 # Log Tasks
 
+## 2026-05-29 — APK avatar upload: връщане към простия работещ flow
+
+**Задача:** Да се излезе от порочния кръг и да се приложи кардинално, просто и работещо решение за avatar upload в APK, като се изчисти неработещият код.
+
+**Потвърдена причина:**
+- В commit `f5d415b` avatar upload-ът е работел в същата iframe shell архитектура с прост `input[type=file]` + `avatarInput.click()` flow вътре в `profile.html`, без shell bridge и без native `postMessage` choreography.
+- Последните PR-и (#987/#988) заменят този прост работещ flow със shell-owned Camera/message pipeline (`NUTRIPLAN_PICK_AVATAR` / `NUTRIPLAN_AVATAR_PICKED` в `app.js` + `profile.html`), тоест самата нова сложност е регресията.
+
+**Решение:**
+- `profile.html`: върнат е простият avatar flow — hidden file input вътре в avatar wrapper-а и директно `avatarInput.click()` при натискане.
+- `app.js`: премахнат е целият shell avatar picker/message код от неуспешните опити.
+- Остава само един upload path: избор на файл → компресия → запис в `localStorage` → рендер на аватара.
+
 ## 2026-05-29 — Android notifications: single init + exact alarm prompt
 
 **Задача:** Да се приложи максимално изчистена поправка за GameNotifier, така че да няма многократен `init()`/`cancelAll()`/reschedule цикъл при едно отваряне на Plan таба и при Android 12+ да има видим prompt към exact alarm настройките.
