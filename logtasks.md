@@ -1,5 +1,16 @@
 # Log Tasks
 
+## 2026-05-29 — APK avatar upload: реална останала причина след PR #984
+
+**Задача:** Да се провери защо и след PR #984 качването на потребителско avatar изображение в APK още не работи и да се оправи с минимум код.
+
+**Реална оставаща причина:**
+- PR #984 върна `resultType: 'dataUrl'`, но не премахна самата HTML асоциация между `<label id="avatarUploadTrigger">` и `<input id="avatarInput">`. Понеже file input-ът оставаше вътре в label-а, Android WebView продължаваше да третира avatar click-а като native file-input activation преди стабилно да се изпълни Capacitor gallery flow.
+
+**Минимална поправка:**
+- `profile.html`: file input-ът е изнесен извън avatar label-а и label-ът вече сочи към него само през `for="avatarInput"` за web.
+- `profile.html`: в APK/native path `for` се маха както и преди, така че click-ът вече не активира hidden file input-а по HTML семантика и стига чисто до Capacitor Camera/gallery picker-а.
+
 ## 2026-05-29 — APK: реална причина за logout refresh и avatar upload regression
 
 **Задача:** Да се прегледа PR `Fix APK logout refresh and native avatar library upload`, да се установи защо приложената стратегия не решава проблема, да се намери реалната причина и да се приложи работеща поправка.
