@@ -2013,17 +2013,10 @@
             bottom: auto;
             top: calc(var(--safe-area-inset-top, 0px) + 148px); /* 80px top bar + 56px FAB + 12px gap */
             border-radius: 20px 4px 20px 20px;
-            transform-origin: top right;
-            animation: bubbleInTop 0.38s cubic-bezier(0.34,1.56,0.64,1);
         }
         @keyframes bubbleIn {
             from { opacity: 0; transform: scale(0.6) translateY(30px); }
             to   { opacity: 1; transform: scale(1) translateY(0); }
-        }
-        /* Speech-bubble scales out from the FAB icon at top-right */
-        @keyframes bubbleInTop {
-            from { opacity: 0; transform: scale(0.3); }
-            to   { opacity: 1; transform: scale(1); }
         }
         .game-bubble-header {
             background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%);
@@ -9549,11 +9542,8 @@
             var fab = document.querySelector('.fab-chat');
             var wasRaised = fab && fab.classList.contains('fab-raised');
             if (fab) {
-                fab.classList.add('fab-raised');
-                // Delay the bounce/pulse so it plays after the fly-up transition (400ms) finishes
-                var gpDelay = wasRaised ? 0 : 420;
-                setTimeout(function(){ fab.classList.add('game-prompt'); }, gpDelay);
-                setTimeout(function(){ fab.classList.remove('game-prompt'); }, gpDelay + 2600);
+                fab.classList.add('fab-raised', 'game-prompt');
+                setTimeout(function(){ fab.classList.remove('game-prompt'); }, 2600);
             }
 
             var existing = document.getElementById('gameBubble');
