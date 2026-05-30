@@ -2791,9 +2791,8 @@
                     <div class="info-box" style="background: #e8f4fd; border-left: 4px solid #2196f3; margin-bottom: 14px; font-size: 0.9rem;">
                         <strong>Как да тествате:</strong>
                         <ol style="margin: 6px 0 0 20px; padding: 0; line-height: 1.8;">
-                            <li>Кликнете <strong>„Абонирай Себе Си"</strong> — браузърът ви ще поиска разрешение за известия и ще запише абонамент с ID <code>admin</code>.</li>
-                            <li>Изберете <code>admin</code> от падащото меню вдясно (или въведете ръчно).</li>
-                            <li>Кликнете един от бутоните за тест — ще получите известие в браузъра.</li>
+                            <li>Изберете потребител от падащото меню или въведете User ID ръчно.</li>
+                            <li>Кликнете един от бутоните за тест — потребителят ще получи известие.</li>
                         </ol>
                     </div>
                     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap;">
@@ -2817,9 +2816,6 @@
                         </button>
                         <button class="btn" onclick="sendTestNotification()" style="background: var(--accent-yellow); color: var(--text-dark);">
                             <i class="fas fa-paper-plane"></i> Тест: Обща
-                        </button>
-                        <button class="btn" id="adminSubscribeBtn" onclick="subscribeAdminPush()" style="background: #6f42c1;">
-                            <i class="fas fa-bell"></i> Абонирай Себе Си
                         </button>
                     </div>
                     <div id="subscribedUsersList" style="margin-top: 10px; font-size: 0.85rem; color: var(--text-gray);"></div>
@@ -6933,58 +6929,6 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         }
 
         // Subscribe admin browser for plan-pending notifications
-        async function subscribeAdminPush() {
-            const btn = document.getElementById('adminSubscribeBtn');
-            try {
-                if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-                    showError('Браузърът ви не поддържа Push известия.');
-                    return;
-                }
-                const permission = await Notification.requestPermission();
-                if (permission !== 'granted') {
-                    showError('Разрешението за известия беше отказано.');
-                    return;
-                }
-                const vapidRes = await fetch(WORKER_URL + '/api/push/vapid-public-key');
-                const vapidData = await vapidRes.json();
-                if (!vapidData.success || !vapidData.publicKey || vapidData.publicKey === 'VAPID_PUBLIC_KEY_NOT_CONFIGURED') {
-                    showError('VAPID ключът не е конфигуриран на сървъра.');
-                    return;
-                }
-                // Convert base64url VAPID public key to Uint8Array
-                const rawKey = vapidData.publicKey;
-                const padding = '='.repeat((4 - rawKey.length % 4) % 4);
-                const b64 = (rawKey + padding).replace(/-/g, '+').replace(/_/g, '/');
-                const raw = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-
-                const reg = await navigator.serviceWorker.ready;
-                const subscription = await reg.pushManager.subscribe({
-                    userVisibleOnly: true,
-                    applicationServerKey: raw
-                });
-                const response = await fetch(WORKER_URL + '/api/push/subscribe', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: 'admin', subscription: subscription.toJSON() })
-                });
-                const result = await response.json();
-                if (result.success) {
-                    if (btn) { btn.textContent = '✓ Абониран'; btn.style.background = '#28a745'; }
-                    showSuccess('Успешно абониран за admin известия! Ще получавате известия при нови планове за преглед.');
-                    // Pre-fill the test input with 'admin' and refresh the subscribed-users list
-                    const inp = document.getElementById('testNotifUserInput');
-                    if (inp) inp.value = 'admin';
-                    loadSubscribedUsers();
-                } else {
-                    throw new Error(result.error || 'Failed to save subscription');
-                }
-            } catch (error) {
-                console.error('Error subscribing admin:', error);
-                showError('Грешка при абониране: ' + error.message);
-            }
-        }
-
-        // Load list of subscribed users from backend and populate the dropdown
         async function loadSubscribedUsers() {
             try {
                 const res = await fetch(WORKER_URL + '/api/admin/subscriptions');
@@ -7009,7 +6953,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 if (listEl) {
                     listEl.textContent = userIds.length
                         ? `Абонирани потребители (${userIds.length}): ${userIds.join(', ')}`
-                        : 'Няма абонирани потребители. Кликнете „Абонирай Себе Си" по-горе.';
+                        : 'Няма абонирани потребители.';
                 }
             } catch (e) {
                 console.warn('[Admin] loadSubscribedUsers error:', e);
