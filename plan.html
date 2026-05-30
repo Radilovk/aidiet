@@ -2311,7 +2311,7 @@
             /* FAB sits below the game-bubble when questions are shown.
                Bubble is at top: safeTop+88px; typical bubble height ~200–260px.
                safeTop + 450 - 56 = safeTop + 394px from top, below a ~300px bubble. */
-            bottom: calc(100vh - var(--safe-area-inset-top, 0px) - 450px);
+            bottom: calc(100vh - var(--safe-area-inset-top, 0px) - 450px) !important;
         }
         /* Encouragement toast */
         .game-encourage-toast {
