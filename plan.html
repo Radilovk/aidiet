@@ -1979,6 +1979,20 @@
             bottom: auto;
             top: calc(var(--safe-area-inset-top, 0px) + 148px); /* 80px top bar + 56px FAB + 12px gap */
             border-radius: 20px 4px 20px 20px;
+            transform-origin: top right;
+            animation: bubbleInTop 0.4s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        @keyframes bubbleInTop {
+            from { opacity: 0; transform: scale(0.5); }
+            to   { opacity: 1; transform: scale(1); }
+        }
+        .game-bubble.game-bubble--exit {
+            pointer-events: none;
+            transform-origin: top right;
+            animation: bubbleOutTop 0.25s ease-in forwards;
+        }
+        @keyframes bubbleOutTop {
+            to { opacity: 0; transform: scale(0.5); }
         }
         @keyframes bubbleIn {
             from { opacity: 0; transform: scale(0.6) translateY(30px); }
@@ -9471,7 +9485,8 @@
 
         function removeBubble() {
             _bubbleSeq++;
-            var o=document.getElementById('gameBubble'); if(o) o.remove();
+            var o=document.getElementById('gameBubble');
+            if(o){ o.classList.add('game-bubble--exit'); setTimeout(function(){ o.remove(); },280); }
             // Keep FAB raised while a question queue is still running
             if (_queueDepth > 0) return;
             _scheduleFabLower();
@@ -9524,6 +9539,7 @@
                 var qEl  = existing.querySelector('.game-bubble-q');
                 var awEl = existing.querySelector('.game-bubble-answers');
                 if (grEl && qEl && awEl) {
+                    existing.classList.remove('game-bubble--exit'); // cancel any exit animation
                     var name = getUserName();
                     grEl.textContent = opts.greeting ? opts.greeting :
                                        (opts.showName && name) ? 'Здравейте, '+name+'!' : 'AI Асистент';
