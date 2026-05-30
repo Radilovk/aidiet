@@ -3055,3 +3055,24 @@ Logout бутонът и избраният от потребителя ават
 - Възстановени page-load извиквания: `loadNotificationSettings()`, `loadNotificationTemplates()`, `checkVapidKeyStatus()`, `loadSubscribedUsers()`
 
 **Засегнати файлове:** `admin.html`, `logtasks.md`
+
+---
+
+## Задача: Единен модул за нотификации в `*notifyme` и админ (2026-05-30)
+
+**Задача:** От всички notification функции да останат само custom часове/текст, добавяне на нови, запазване и синхронизация, тест с отложен старт и собствен автоматизиран тест с лог, като всичко е в един и същ модул с достъп от `*notifyme` и от админ.
+
+**Направено:**
+- `notifications-test.html` е превърнат в общ notification модул:
+  - добавен е editor за morning/evening часове и текстове;
+  - добавен е editor за допълнителни нотификации;
+  - добавени са бутони „Зареди“, „Запази“, „Запази + синхронизирай“;
+  - забавеният тест вече е с configurable delay;
+  - добавен е автоматизиран тест с copyable лог/отчет;
+  - визуализацията на графика вече показва и допълнителните нотификации.
+- `plan.html`: `*notifyme` вече описва, че отваря общия notification модул, а не само диагностика.
+- `admin.html`: добавен е директен вход към същия общ модул от админ панела.
+- `admin.html`: премахната е дублираната стара `loadGameNotifierConfig` / `addExtraNotification` / `saveGameNotifierConfig` дефиниция.
+- Премахнат е неизползваният файл `notification-db.js`.
+
+**Засегнати файлове:** `notifications-test.html`, `plan.html`, `admin.html`, `logtasks.md`

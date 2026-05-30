@@ -208,6 +208,14 @@
             background: rgba(139,92,246,0.12);
             color: #A78BFA;
         }
+        .sched-pill.extra {
+            background: #dff7f4;
+            color: #0f766e;
+        }
+        [data-theme="dark"] .sched-pill.extra {
+            background: rgba(45,212,191,0.12);
+            color: #5eead4;
+        }
         .sched-pill.past {
             opacity: 0.45;
             text-decoration: line-through;
@@ -242,11 +250,90 @@
             background: #0a1e1e;
             color: #a8d8d8;
         }
+        .inline-note {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+        [data-theme="dark"] .inline-note { color: #87a9a6; }
+        .status-line {
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 8px;
+            min-height: 18px;
+        }
+        .field-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px;
+        }
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .field label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #555;
+        }
+        [data-theme="dark"] .field label { color: #8eb2af; }
+        .field input {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #d6e2e2;
+            border-radius: 8px;
+            background: #fff;
+            color: #1b2b2a;
+        }
+        [data-theme="dark"] .field input {
+            background: #0a1e1e;
+            color: #d5efec;
+            border-color: #214040;
+        }
+        .extra-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .extra-row {
+            display: grid;
+            grid-template-columns: 120px 1fr 1fr auto;
+            gap: 8px;
+            align-items: end;
+            padding: 10px;
+            border-radius: 8px;
+            background: #f6fbfb;
+            border: 1px solid #dbe9e8;
+        }
+        [data-theme="dark"] .extra-row {
+            background: #0c2020;
+            border-color: #1d3636;
+        }
+        .extra-row button {
+            padding: 8px 10px;
+        }
+        .delay-row {
+            display: flex;
+            gap: 8px;
+            align-items: end;
+            flex-wrap: wrap;
+        }
+        .delay-row .field {
+            min-width: 120px;
+        }
+        @media (max-width: 640px) {
+            .extra-row {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>🔔 Диагностика на Известия</h1>
+    <h1>🔔 Общ модул за нотификации</h1>
 
     <!-- ── Платформа ── -->
     <div class="card">
@@ -295,6 +382,48 @@
         </div>
     </div>
 
+    <div class="card">
+        <h2>🧩 Общ модул: редакция + синхронизация</h2>
+        <p class="inline-note">
+            Това е един и същ модул, който се отваря и от <strong>*notifyme</strong>, и от админ панела.
+            Тук можеш да редактираш часове/текстове, да добавяш нови нотификации и да ги запазиш/синхронизираш.
+        </p>
+        <div class="field-grid">
+            <div class="field">
+                <label for="editMorningTime">Сутрешен час</label>
+                <input type="time" id="editMorningTime" value="07:00">
+            </div>
+            <div class="field">
+                <label for="editMorningTitle">Сутрешно заглавие</label>
+                <input type="text" id="editMorningTitle" placeholder="Добро утро! 🌅">
+            </div>
+            <div class="field" style="grid-column: 1 / -1;">
+                <label for="editMorningBody">Сутрешен текст</label>
+                <input type="text" id="editMorningBody" placeholder="Как спахте тази нощ?">
+            </div>
+            <div class="field">
+                <label for="editEveningTime">Вечерен час</label>
+                <input type="time" id="editEveningTime" value="20:00">
+            </div>
+            <div class="field">
+                <label for="editEveningTitle">Вечерно заглавие</label>
+                <input type="text" id="editEveningTitle" placeholder="Добър вечер! 🌙">
+            </div>
+            <div class="field" style="grid-column: 1 / -1;">
+                <label for="editEveningBody">Вечерен текст</label>
+                <input type="text" id="editEveningBody" placeholder="Как мина денят?">
+            </div>
+        </div>
+        <div class="extra-list" id="editExtraList"></div>
+        <div class="btn-group">
+            <button type="button" class="btn-green" onclick="addConfigExtraNotification()">➕ Добави нова</button>
+            <button type="button" class="btn-gray" onclick="loadSharedConfig()">🔄 Зареди от backend</button>
+            <button type="button" onclick="saveSharedConfig()">💾 Запази</button>
+            <button type="button" class="btn-orange" onclick="saveSharedConfig(true)">⚡ Запази + синхронизирай</button>
+        </div>
+        <div id="configStatus" class="status-line"></div>
+    </div>
+
     <!-- ── Стъпка 1: Разрешение ── -->
     <div class="card">
         <h2>1️⃣ Разрешение за известия</h2>
@@ -321,7 +450,7 @@
         <h2>🧪 APK / *notifyme проверка</h2>
         <p style="font-size:13px;color:var(--text-light,#555);margin-bottom:10px;">
             Този тест е насочен към реалния APK iframe сценарий и показва дали bridge-ът,
-            native plugin-ът и permission-ът са налични преди да се пусне 10-секундно тестово известие.
+            native plugin-ът и permission-ът са налични преди да се пусне тестово известие с отложен старт.
         </p>
         <div class="row"><span class="label">Bridge източник</span><span class="val" id="apkBridge">…</span></div>
         <div class="row"><span class="label">LocalNotifications</span><span class="val" id="apkPlugin">…</span></div>
@@ -331,7 +460,7 @@
         <div class="row"><span class="label">Статус</span><span class="val" id="apkVerdict">…</span></div>
         <div class="btn-group" style="margin-top:10px;">
             <button class="btn-green" onclick="runApkNotifyMeDiagnostic()">🧪 Пусни диагностиката</button>
-            <button class="btn-orange" onclick="runNotifyMeTest()">🔔 Пусни 10 сек тест</button>
+            <button class="btn-orange" onclick="runNotifyMeTest()">🔔 Пусни тест</button>
             <button class="btn-gray" onclick="copyApkReport()">📋 Копирай отчета</button>
         </div>
         <pre id="apkDiagReport" class="diag-report">Пусни диагностиката, после копирай този отчет.</pre>
@@ -365,17 +494,35 @@
         <h2>4️⃣ Забавено тестово известие (SW таймер)</h2>
         <p style="font-size:13px;color:var(--text-light,#555);margin-bottom:10px;">
             Изпраща <code>SCHEDULE_GAME_NOTIFICATIONS</code> до Service Worker с
-            едно тестово известие, което ще се покаже след <strong>7 секунди</strong>.
+            едно тестово известие, което ще се покаже след избраното закъснение.
             Тества пълния SW scheduling path.
         </p>
-        <div class="btn-group">
-            <button id="btnDelayed" onclick="scheduleDelayed()" disabled class="btn-green">⏱️ Изпрати тест след 7 сек</button>
+        <div class="delay-row">
+            <div class="field">
+                <label for="delaySecondsInput">Закъснение (сек.)</label>
+                <input type="number" id="delaySecondsInput" min="1" step="1" value="10">
+            </div>
+            <div class="btn-group">
+                <button id="btnDelayed" onclick="scheduleDelayed()" disabled class="btn-green">⏱️ Пусни отложен тест</button>
+            </div>
         </div>
+    </div>
+
+    <div class="card">
+        <h2>5️⃣ Автоматизиран тест с лог</h2>
+        <p class="inline-note">
+            Пуска последователно диагностиката, инициализацията, презаписването на графика и един реален тест с отложен старт.
+        </p>
+        <div class="btn-group">
+            <button class="btn-orange" onclick="runAutomatedNotificationTest()">🤖 Стартирай автоматичния тест</button>
+            <button class="btn-gray" onclick="copyAutomatedReport()">📋 Копирай auto отчета</button>
+        </div>
+        <pre id="autoTestReport" class="diag-report">Автоматичният отчет ще се появи тук.</pre>
     </div>
 
     <!-- ── Стъпка 5: Симулация на action URL ── -->
     <div class="card">
-        <h2>5️⃣ Симулация на action URL (gamification)</h2>
+        <h2>6️⃣ Симулация на action URL (gamification)</h2>
         <p style="font-size:13px;color:var(--text-light,#555);margin-bottom:10px;">
             Отваря същия бърз прозорец, който потребителят вижда при клик върху нотификацията.
         </p>
@@ -644,14 +791,173 @@ async function checkSW() {
 // ─────────────────────────────────────────────
 // Config helpers
 // ─────────────────────────────────────────────
+const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
+const DEFAULT_CONFIG = {
+    morningTime: '07:00',
+    eveningTime: '20:00',
+    morningTitle: 'Добро утро! 🌅',
+    morningBody: 'Как спахте тази нощ? Отговорете на сутрешния въпрос.',
+    eveningTitle: 'Добър вечер! 🌙',
+    eveningBody: 'Как мина денят? Отговорете на вечерните въпроси.',
+    extraNotifications: []
+};
+
+function normalizeConfig(cfg) {
+    const merged = Object.assign({}, DEFAULT_CONFIG, cfg || {});
+    merged.extraNotifications = Array.isArray(merged.extraNotifications)
+        ? merged.extraNotifications
+            .filter(item => item && item.time)
+            .map(item => ({
+                time: String(item.time || ''),
+                title: String(item.title || ''),
+                body: String(item.body || '')
+            }))
+        : [];
+    return merged;
+}
+
+function setConfigStatus(message, tone) {
+    const el = document.getElementById('configStatus');
+    if (!el) return;
+    el.textContent = message || '';
+    el.className = 'status-line ' + (tone || '');
+}
+
+function addConfigExtraNotification(data) {
+    const list = document.getElementById('editExtraList');
+    if (!list) return;
+    const item = data || {};
+    const row = document.createElement('div');
+    row.className = 'extra-row';
+
+    const makeField = (labelText, className, type, value, placeholder) => {
+        const field = document.createElement('div');
+        field.className = 'field';
+        const label = document.createElement('label');
+        label.textContent = labelText;
+        const input = document.createElement('input');
+        input.type = type;
+        input.className = className;
+        input.value = value || '';
+        if (placeholder) input.placeholder = placeholder;
+        field.appendChild(label);
+        field.appendChild(input);
+        return field;
+    };
+
+    row.appendChild(makeField('Час', 'edit-extra-time', 'time', item.time || '12:00'));
+    row.appendChild(makeField('Заглавие', 'edit-extra-title', 'text', item.title || '', 'Допълнително заглавие'));
+    row.appendChild(makeField('Текст', 'edit-extra-body', 'text', item.body || '', 'Допълнителен текст'));
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'btn-red';
+    removeBtn.textContent = '🗑️';
+    removeBtn.addEventListener('click', () => row.remove());
+    row.appendChild(removeBtn);
+    list.appendChild(row);
+}
+
+function renderEditableConfig(cfg) {
+    const normalized = normalizeConfig(cfg);
+    document.getElementById('editMorningTime').value = normalized.morningTime;
+    document.getElementById('editMorningTitle').value = normalized.morningTitle;
+    document.getElementById('editMorningBody').value = normalized.morningBody;
+    document.getElementById('editEveningTime').value = normalized.eveningTime;
+    document.getElementById('editEveningTitle').value = normalized.eveningTitle;
+    document.getElementById('editEveningBody').value = normalized.eveningBody;
+    const list = document.getElementById('editExtraList');
+    if (list) {
+        list.innerHTML = '';
+        normalized.extraNotifications.forEach(extra => addConfigExtraNotification(extra));
+    }
+}
+
+function collectEditableConfig() {
+    const extraNotifications = Array.from(document.querySelectorAll('#editExtraList .extra-row'))
+        .map((row) => ({
+            time: (row.querySelector('.edit-extra-time') || {}).value || '',
+            title: (row.querySelector('.edit-extra-title') || {}).value || '',
+            body: (row.querySelector('.edit-extra-body') || {}).value || ''
+        }))
+        .filter((item) => item.time);
+    return normalizeConfig({
+        morningTime: document.getElementById('editMorningTime').value || DEFAULT_CONFIG.morningTime,
+        morningTitle: document.getElementById('editMorningTitle').value || DEFAULT_CONFIG.morningTitle,
+        morningBody: document.getElementById('editMorningBody').value || DEFAULT_CONFIG.morningBody,
+        eveningTime: document.getElementById('editEveningTime').value || DEFAULT_CONFIG.eveningTime,
+        eveningTitle: document.getElementById('editEveningTitle').value || DEFAULT_CONFIG.eveningTitle,
+        eveningBody: document.getElementById('editEveningBody').value || DEFAULT_CONFIG.eveningBody,
+        extraNotifications
+    });
+}
+
+async function loadSharedConfig() {
+    setConfigStatus('Зареждане от backend…');
+    try {
+        const response = await fetch(WORKER_URL + '/api/notification-config', { cache: 'no-store' });
+        const data = await response.json();
+        const cfg = normalizeConfig(data.config);
+        localStorage.setItem('gameNotifierConfig', JSON.stringify(cfg));
+        if (data.version !== undefined) {
+            localStorage.setItem('gameNotifierConfigVersion', String(data.version));
+        }
+        renderEditableConfig(cfg);
+        refreshConfig();
+        renderScheduleVisualization();
+        setConfigStatus('Конфигурацията е заредена.', 'ok');
+        log('Конфигурацията е заредена от backend.');
+        return cfg;
+    } catch (e) {
+        setConfigStatus('Грешка при зареждане: ' + e.message, 'bad');
+        log('Зареждането на конфигурацията се провали: ' + e.message, 'err');
+        throw e;
+    }
+}
+
+async function saveSharedConfig(syncAfterSave = false) {
+    const cfg = collectEditableConfig();
+    setConfigStatus(syncAfterSave ? 'Запазване и синхронизация…' : 'Запазване…');
+    try {
+        const response = await fetch(WORKER_URL + '/api/notification-config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ config: cfg })
+        });
+        const result = await response.json();
+        if (!result.success) {
+            throw new Error(result.error || 'Неуспешно запазване');
+        }
+        localStorage.setItem('gameNotifierConfig', JSON.stringify(cfg));
+        if (result.version !== undefined) {
+            localStorage.setItem('gameNotifierConfigVersion', String(result.version));
+        }
+        if (syncAfterSave && window.GameNotifier) {
+            await window.GameNotifier.forceSyncBackendConfig();
+            await window.GameNotifier.init();
+            await window.GameNotifier.scheduleNotifications();
+        }
+        refreshConfig();
+        renderScheduleVisualization();
+        setConfigStatus(syncAfterSave ? 'Запазено и синхронизирано.' : 'Запазено.', 'ok');
+        log(syncAfterSave
+            ? 'Конфигурацията е запазена и синхронизирана.'
+            : 'Конфигурацията е запазена.');
+        return cfg;
+    } catch (e) {
+        setConfigStatus('Грешка при запазване: ' + e.message, 'bad');
+        log('Запазването на конфигурацията се провали: ' + e.message, 'err');
+        throw e;
+    }
+}
+
 function refreshConfig() {
     try {
         const raw = localStorage.getItem('gameNotifierConfig');
-        const cfg = raw ? JSON.parse(raw) : null;
+        const cfg = raw ? normalizeConfig(JSON.parse(raw)) : null;
         document.getElementById('cfgJSON').textContent = JSON.stringify(cfg, null, 2) || '(няма)';
         if (cfg) {
             document.getElementById('cfgSummary').textContent =
-                `сутрин ${cfg.morningTime || '07:00'} / вечер ${cfg.eveningTime || '20:00'}`;
+                `сутрин ${cfg.morningTime || '07:00'} / вечер ${cfg.eveningTime || '20:00'} / допълнителни ${cfg.extraNotifications.length}`;
         } else {
             document.getElementById('cfgSummary').innerHTML = '<span class="muted">по подразбиране (07:00 / 20:00)</span>';
         }
@@ -667,12 +973,17 @@ function refreshConfig() {
 }
 
 async function forceSyncConfig() {
-    if (!window.GameNotifier) { log('GameNotifier не е зареден', 'err'); return; }
     log('Принудителна синхронизация на конфигурацията…');
     try {
-        await window.GameNotifier.forceSyncBackendConfig();
+        if (window.GameNotifier && typeof window.GameNotifier.forceSyncBackendConfig === 'function') {
+            await window.GameNotifier.forceSyncBackendConfig();
+        } else {
+            await loadSharedConfig();
+            return;
+        }
         log('Синхронизацията завърши.');
         refreshConfig();
+        renderEditableConfig(JSON.parse(localStorage.getItem('gameNotifierConfig') || 'null'));
     } catch(e) {
         log('Грешка при синхронизация: ' + e.message, 'err');
     }
@@ -737,7 +1048,7 @@ async function buildApkDiagnosticReport() {
                     ? 'Native notifications permission не е granted'
                     : !hasTestSchedule
                         ? 'GameNotifier тестовият метод липсва'
-                        : 'Готово за 10-секундния APK тест';
+                        : 'Готово за APK тест с отложен старт';
 
     const report = [
         'NutriPlan APK / *notifyme диагностика',
@@ -779,7 +1090,7 @@ function renderApkDiagnostic(result) {
             ? warn('зареден, но без test method')
             : bad('не е зареден');
     document.getElementById('apkVerdict').innerHTML =
-        result.verdict === 'Готово за 10-секундния APK тест' ? ok(result.verdict) : warn(result.verdict);
+        result.verdict === 'Готово за APK тест с отложен старт' ? ok(result.verdict) : warn(result.verdict);
     document.getElementById('apkDiagReport').textContent = result.report;
 }
 
@@ -787,8 +1098,8 @@ async function runApkNotifyMeDiagnostic() {
     log('Пускам APK / *notifyme диагностиката…');
     const result = await buildApkDiagnosticReport();
     renderApkDiagnostic(result);
-    if (result.verdict === 'Готово за 10-секундния APK тест') {
-        log('Диагностиката е зелена – може да пуснеш 10-секундния тест.', 'info');
+    if (result.verdict === 'Готово за APK тест с отложен старт') {
+        log('Диагностиката е зелена – може да пуснеш APK теста.', 'info');
     } else {
         log('Диагностиката откри проблем: ' + result.verdict, 'warn');
     }
@@ -798,6 +1109,7 @@ async function runNotifyMeTest() {
     await updateDiagnostics();
     const result = await buildApkDiagnosticReport();
     renderApkDiagnostic(result);
+    const delaySeconds = Math.max(1, Number(document.getElementById('delaySecondsInput').value) || 10);
 
     if (!result.hasTestSchedule) {
         log('GameNotifier test path липсва – local-scheduler.js зареден ли е?', 'err');
@@ -812,10 +1124,10 @@ async function runNotifyMeTest() {
         return;
     }
 
-    log('Пускам 10-секунден APK тест през GameNotifier…');
+    log('Пускам APK тест през GameNotifier след ' + delaySeconds + ' сек…');
     try {
         await window.GameNotifier.init();
-        const scheduleResult = await window.GameNotifier.scheduleTestGameQuestionNotification(10);
+        const scheduleResult = await window.GameNotifier.scheduleTestGameQuestionNotification(delaySeconds);
         const fireAtText = new Date(scheduleResult.fireAtTs).toLocaleTimeString('bg-BG', {
             hour: '2-digit',
             minute: '2-digit',
@@ -960,20 +1272,21 @@ async function sendSWNotification() {
 // ─────────────────────────────────────────────
 // Delayed scheduled notification via SW message
 // ─────────────────────────────────────────────
-async function scheduleDelayed() {
+async function scheduleDelayed(delayOverride) {
     if (Notification.permission !== 'granted') { log('Няма разрешение', 'warn'); return; }
     const ctrl = navigator.serviceWorker.controller;
     if (!ctrl) {
         log('SW Controller не е наличен – зареди страницата отново след регистрация на SW', 'warn');
         return;
     }
-    const ts = Date.now() + 7000;
+    const delaySeconds = Math.max(1, Number(delayOverride) || Number(document.getElementById('delaySecondsInput').value) || 10);
+    const ts = Date.now() + delaySeconds * 1000;
     ctrl.postMessage({
         type: 'SCHEDULE_GAME_NOTIFICATIONS',
         schedule: [{
             ts,
             title: '⏱️ SW Тестово Известие',
-            body:  'Това известие беше насрочено от notifications-test.html и изпратено от SW след 7 сек!',
+            body:  'Това известие беше насрочено от notifications-test.html и изпратено от SW след ' + delaySeconds + ' сек!',
             tag:   'gn-test-delayed-' + ts,
             type:  'morning_check',
             url:   quickAnswerUrl('morning_check'),
@@ -982,7 +1295,75 @@ async function scheduleDelayed() {
             recordKey: todayKey()
         }]
     });
-    log('SW schedule съобщение изпратено – известието ще се появи след ~7 сек.');
+    log('SW schedule съобщение изпратено – известието ще се появи след ~' + delaySeconds + ' сек.');
+    return ts;
+}
+
+async function runAutomatedNotificationTest() {
+    const delaySeconds = Math.max(1, Number(document.getElementById('delaySecondsInput').value) || 10);
+    const reportLines = [
+        'NutriPlan автоматизиран тест на нотификации',
+        'Време: ' + new Date().toISOString(),
+        'Delay: ' + delaySeconds + ' sec'
+    ];
+    log('Стартирам автоматизирания тест…');
+    try {
+        await updateDiagnostics();
+        const diagnostic = await buildApkDiagnosticReport();
+        renderApkDiagnostic(diagnostic);
+        reportLines.push('Diagnostic verdict: ' + diagnostic.verdict);
+
+        if (window.GameNotifier) {
+            await window.GameNotifier.init();
+            await window.GameNotifier.scheduleNotifications();
+            renderScheduleVisualization();
+            reportLines.push('GameNotifier init: ok');
+            reportLines.push('GameNotifier schedule: ok');
+        } else {
+            reportLines.push('GameNotifier init: missing');
+        }
+
+        let fireAtTs = null;
+        if (diagnostic.capInfo.plugin && diagnostic.capInfo.isNative && diagnostic.permission.granted && diagnostic.hasTestSchedule) {
+            const scheduleResult = await window.GameNotifier.scheduleTestGameQuestionNotification(delaySeconds);
+            fireAtTs = scheduleResult.fireAtTs;
+            reportLines.push('Execution path: capacitor');
+        } else if ('serviceWorker' in navigator && navigator.serviceWorker.controller && Notification.permission === 'granted') {
+            fireAtTs = await scheduleDelayed(delaySeconds);
+            reportLines.push('Execution path: service-worker');
+        } else {
+            reportLines.push('Execution path: unavailable');
+            throw new Error('Няма готов native или SW path за автоматичния тест');
+        }
+
+        reportLines.push('Fire at: ' + new Date(fireAtTs).toLocaleTimeString('bg-BG', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        }));
+        reportLines.push('Result: success');
+        document.getElementById('autoTestReport').textContent = reportLines.join('\n');
+        log('Автоматизираният тест завърши успешно.', 'info');
+    } catch (e) {
+        reportLines.push('Result: error');
+        reportLines.push('Error: ' + e.message);
+        document.getElementById('autoTestReport').textContent = reportLines.join('\n');
+        log('Автоматизираният тест се провали: ' + e.message, 'err');
+    }
+}
+
+async function copyAutomatedReport() {
+    const report = document.getElementById('autoTestReport').textContent || '';
+    if (!report.trim()) {
+        log('Няма auto отчет за копиране.', 'warn');
+        return;
+    }
+    try {
+        await navigator.clipboard.writeText(report);
+        log('Auto отчетът е копиран в clipboard.', 'info');
+    } catch (e) {
+        log('Не успях да копирам auto отчета: ' + e.message, 'err');
+    }
 }
 
 // ─────────────────────────────────────────────
@@ -992,9 +1373,9 @@ function renderScheduleVisualization() {
     const container = document.getElementById('scheduleViz');
     if (!container) return;
 
-    const defaults = { morningTime: '07:00', eveningTime: '20:00' };
+    const defaults = normalizeConfig();
     const raw = localStorage.getItem('gameNotifierConfig');
-    const cfg = raw ? Object.assign({}, defaults, JSON.parse(raw)) : Object.assign({}, defaults);
+    const cfg = raw ? normalizeConfig(JSON.parse(raw)) : normalizeConfig(defaults);
     const [mH, mM] = cfg.morningTime.split(':').map(Number);
     const [eH, eM] = cfg.eveningTime.split(':').map(Number);
     const now = Date.now();
@@ -1027,6 +1408,22 @@ function renderScheduleVisualization() {
         const ePast = eveningTs < now;
         pills.push({ type: 'morning', label: '🌅 ' + cfg.morningTime, past: mPast, ts: morningTs });
         pills.push({ type: 'evening', label: '🌙 ' + cfg.eveningTime, past: ePast, ts: eveningTs });
+        (cfg.extraNotifications || []).forEach((extra, idx) => {
+            const [xH, xM] = String(extra.time || '').split(':').map(Number);
+            if (Number.isNaN(xH) || Number.isNaN(xM)) return;
+            const xTs = getTimestampForDay(day, xH, xM);
+            const xPast = xTs < now;
+            pills.push({
+                type: 'extra',
+                label: '➕ ' + extra.time,
+                past: xPast,
+                ts: xTs
+            });
+            if (!xPast && (nextTs === null || xTs < nextTs)) {
+                nextTs = xTs;
+                nextLabel = '➕ Допълнителна (' + extra.time + ')';
+            }
+        });
 
         if (!mPast && (nextTs === null || morningTs < nextTs)) {
             nextTs = morningTs;
@@ -1040,27 +1437,43 @@ function renderScheduleVisualization() {
         days.push({ dayName, isToday, pills });
     }
 
-    let html = '<div class="sched-timeline">';
+    container.innerHTML = '';
+    const timeline = document.createElement('div');
+    timeline.className = 'sched-timeline';
+
     for (const d of days) {
-        html += `<div class="sched-day${d.isToday ? ' sched-today' : ''}">`;
-        html += `<span class="sched-day-label">${d.dayName}</span>`;
-        html += '<span class="sched-notifs">';
+        const dayEl = document.createElement('div');
+        dayEl.className = 'sched-day' + (d.isToday ? ' sched-today' : '');
+
+        const dayLabel = document.createElement('span');
+        dayLabel.className = 'sched-day-label';
+        dayLabel.textContent = d.dayName;
+        dayEl.appendChild(dayLabel);
+
+        const notifs = document.createElement('span');
+        notifs.className = 'sched-notifs';
         for (const p of d.pills) {
-            html += `<span class="sched-pill ${p.type}${p.past ? ' past' : ''}">${p.label}</span>`;
+            const pill = document.createElement('span');
+            pill.className = 'sched-pill ' + p.type + (p.past ? ' past' : '');
+            pill.textContent = p.label;
+            notifs.appendChild(pill);
         }
-        html += '</span></div>';
+        dayEl.appendChild(notifs);
+        timeline.appendChild(dayEl);
     }
-    html += '</div>';
+
+    container.appendChild(timeline);
 
     if (nextTs !== null) {
         const diffMs = nextTs - now;
         const diffH = Math.floor(diffMs / 3600000);
         const diffM = Math.floor((diffMs % 3600000) / 60000);
         const countdown = diffH > 0 ? `${diffH} ч ${diffM} мин` : `${diffM} мин`;
-        html += `<div class="sched-next-label">⏳ Следващо: ${nextLabel} – след ${countdown}</div>`;
+        const nextEl = document.createElement('div');
+        nextEl.className = 'sched-next-label';
+        nextEl.textContent = `⏳ Следващо: ${nextLabel} – след ${countdown}`;
+        container.appendChild(nextEl);
     }
-
-    container.innerHTML = html;
 }
 
 // ─────────────────────────────────────────────
@@ -1068,6 +1481,7 @@ function renderScheduleVisualization() {
 // ─────────────────────────────────────────────
 (async () => {
     await updateDiagnostics();
+    renderEditableConfig(JSON.parse(localStorage.getItem('gameNotifierConfig') || 'null'));
     renderScheduleVisualization();
     await registerSW();
     await checkSW();
