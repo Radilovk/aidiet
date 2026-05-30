@@ -3076,3 +3076,29 @@ Logout бутонът и избраният от потребителя ават
 - Премахнат е неизползваният файл `notification-db.js`.
 
 **Засегнати файлове:** `notifications-test.html`, `plan.html`, `admin.html`, `logtasks.md`
+
+---
+
+## Задача: Fix FAB анимация, layout и bubble ъгъл при game prompts (2026-05-30)
+
+**Проблем:**
+1. `fab-chat fab-raised` не се анимира нагоре – остава долу.
+2. `fab-chat fab-raised` трябва да е ПОД `game-bubble-body`, не над него.
+3. Долният десен ъгъл на `game-bubble-body` трябва да е острият ъгъл (не горният десен).
+
+**Коренна причина:**
+- PR #1017 смени CSS анимацията с inline JS `style.bottom` + `style.transition`. Това създаде race condition: cleanup таймер от `_scheduleFabLower` (420ms) изчиства inline стиловете поставени от `showBubble`, скривайки анимацията. Освен това inline стиловете и CSS класа `.fab-raised` задаваха `bottom` едновременно без координация.
+- `transition: all` + работеща CSS анимация (`fabPulse`) може да потисне `bottom` transition в Android WebView.
+- Layout: FAB се вдигаше до `safeTop+80px` от горе, а bubble се показваше на `safeTop+148px` – bubble беше ПОД FAB.
+- Border-radius: `20px 4px 20px 20px` → горен десен ъгъл е острият. Трябва долен десен.
+
+**Направено (plan.html):**
+- `.fab-chat`: `transition: all` → `transition: bottom 0.4s ..., transform 0.3s, box-shadow 0.3s` (explicit)
+- `.game-bubble`: `border-radius: 20px 20px 4px 20px` + `transform-origin: bottom right`
+- `.game-bubble--top`: позиция `top: calc(safeTop + 88px)`, correct radius + transform-origin
+- `.game-bubble--exit`: `transform-origin: bottom right`
+- `.fab-chat.fab-raised`: `bottom: calc(100vh - safeTop - 450px)` (FAB е ПОД bubble)
+- JS `_scheduleFabLower`: премахнат inline style – само `fab.classList.remove('fab-raised')`
+- JS `showBubble`: премахнат inline style – само `fab.classList.add('fab-raised', 'game-prompt')`
+
+**Засегнати файлове:** `plan.html`, `logtasks.md`
