@@ -1,5 +1,20 @@
 # Log Tasks
 
+## 2026-05-30 — Notifications: общ модул за admin и *notifyme
+
+**Задача:** От notification функционалността да останат само custom часове/текст, добавяне на нови, save + sync, delayed test, автоматизиран тест с лог, и всичко това да е в един и същ модул с достъп от админ и от `*notifyme`.
+
+**Потвърдена причина:**
+- `*notifyme` отваряше `notifications-test.html`, но там липсваха editor/save функции за самата конфигурация.
+- `admin.html` имаше отделен notification UI, така че admin и чат входът не водеха към един и същ модул.
+- Delayed/APK тестовете и save/sync пътищата вече съществуваха, но бяха разпръснати вместо събрани в общ екран.
+
+**Направено:**
+- `notifications-test.html`: разширен е до общ notification модул с custom morning/evening fields, допълнителни нотификации, backend load/save, save + sync, delayed test с configurable delay и автоматизиран тест с отчетен лог.
+- `notifications-test.html`: визуализацията вече показва и допълнителните custom нотификации.
+- `admin.html`: добавен е директен вход към същия общ notification модул.
+- `plan.html`: `*notifyme` текстът вече сочи към общия модул и описва точните налични функции.
+
 ## 2026-05-29 — APK profile: минимална поправка за custom avatar upload
 
 **Задача:** В APK, в таба „Профил“, да се намери реалната причина за неработещия custom avatar upload и да се оправи с минимум код.
