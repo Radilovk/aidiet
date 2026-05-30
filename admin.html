@@ -2791,9 +2791,8 @@
                     <div class="info-box" style="background: #e8f4fd; border-left: 4px solid #2196f3; margin-bottom: 14px; font-size: 0.9rem;">
                         <strong>Как да тествате:</strong>
                         <ol style="margin: 6px 0 0 20px; padding: 0; line-height: 1.8;">
-                            <li>Кликнете <strong>„Абонирай Себе Си"</strong> — браузърът ви ще поиска разрешение за известия и ще запише абонамент с ID <code>admin</code>.</li>
-                            <li>Изберете <code>admin</code> от падащото меню вдясно (или въведете ръчно).</li>
-                            <li>Кликнете един от бутоните за тест — ще получите известие в браузъра.</li>
+                            <li>Изберете потребител от падащото меню или въведете User ID ръчно.</li>
+                            <li>Кликнете един от бутоните за тест — потребителят ще получи известие.</li>
                         </ol>
                     </div>
                     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap;">
@@ -2817,9 +2816,6 @@
                         </button>
                         <button class="btn" onclick="sendTestNotification()" style="background: var(--accent-yellow); color: var(--text-dark);">
                             <i class="fas fa-paper-plane"></i> Тест: Обща
-                        </button>
-                        <button class="btn" id="adminSubscribeBtn" onclick="subscribeAdminPush()" style="background: #6f42c1;">
-                            <i class="fas fa-bell"></i> Абонирай Себе Си
                         </button>
                     </div>
                     <div id="subscribedUsersList" style="margin-top: 10px; font-size: 0.85rem; color: var(--text-gray);"></div>
@@ -6520,6 +6516,124 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             }
         }
 
+
+        // ── GameNotifier config ────────────────────────────────────────────────
+
+        /** Load GameNotifier config from backend KV (/api/notification-config) */
+        async function loadGameNotifierConfig() {
+            try {
+                const response = await fetch(WORKER_URL + '/api/notification-config');
+                const data = await response.json();
+                const cfg = data.config || {};
+
+                document.getElementById('gnMorningTime').value  = cfg.morningTime  || '07:00';
+                document.getElementById('gnEveningTime').value  = cfg.eveningTime  || '20:00';
+                document.getElementById('gnMorningTitle').value = cfg.morningTitle || 'Добро утро! 🌅';
+                document.getElementById('gnMorningBody').value  = cfg.morningBody  || 'Как спахте тази нощ? Отговорете на сутрешния въпрос.';
+                document.getElementById('gnEveningTitle').value = cfg.eveningTitle || 'Добър вечер! 🌙';
+                document.getElementById('gnEveningBody').value  = cfg.eveningBody  || 'Как мина денят? Отговорете на вечерните въпроси.';
+
+                // Render extra notifications
+                const list = document.getElementById('gnExtraList');
+                if (list) {
+                    list.innerHTML = '';
+                    const extras = Array.isArray(cfg.extraNotifications) ? cfg.extraNotifications : [];
+                    extras.forEach(extra => addExtraNotification(extra));
+                }
+
+                showSuccess('GameNotifier конфигурацията е заредена!');
+            } catch (error) {
+                console.error('Error loading GameNotifier config:', error);
+                showError('Не може да се зареди GameNotifier конфигурацията: ' + error.message);
+            }
+        }
+
+        /** Add an extra notification row to the UI */
+        function addExtraNotification(data) {
+            const list = document.getElementById('gnExtraList');
+            if (!list) return;
+            const d = data || {};
+
+            const row = document.createElement('div');
+            row.className = 'gn-extra-row';
+            row.style.cssText = 'display:grid; grid-template-columns:110px 1fr 1fr auto; gap:8px; align-items:center; background:var(--bg-color); padding:10px; border-radius:6px; border:1px solid var(--text-gray);';
+
+            // Helper to create a labeled input field
+            function makeField(labelText, inputClass, inputType, placeholderText, inputValue) {
+                const wrapper = document.createElement('div');
+                const lbl = document.createElement('label');
+                lbl.textContent = labelText;
+                lbl.style.cssText = 'font-size:0.8rem;color:#666;display:block;margin-bottom:3px;';
+                const inp = document.createElement('input');
+                inp.type = inputType;
+                inp.className = inputClass;
+                inp.placeholder = placeholderText;
+                inp.value = inputValue;
+                inp.style.cssText = 'width:100%;padding:6px;border:1px solid #ddd;border-radius:4px;';
+                wrapper.appendChild(lbl);
+                wrapper.appendChild(inp);
+                return wrapper;
+            }
+
+            row.appendChild(makeField('Час',     'gn-extra-time',  'time', '',                      d.time  || '12:00'));
+            row.appendChild(makeField('Заглавие','gn-extra-title', 'text', 'Заглавие на нотификацията', d.title || ''));
+            row.appendChild(makeField('Текст',   'gn-extra-body',  'text', 'Текст на нотификацията', d.body  || ''));
+
+            const delWrapper = document.createElement('div');
+            delWrapper.style.paddingTop = '18px';
+            const delBtn = document.createElement('button');
+            delBtn.type = 'button';
+            delBtn.title = 'Изтрий';
+            delBtn.style.cssText = 'background:#dc3545;color:#fff;border:none;padding:6px 10px;border-radius:4px;cursor:pointer;';
+            delBtn.innerHTML = '<i class="fas fa-trash"></i>';
+            delBtn.addEventListener('click', () => row.remove());
+            delWrapper.appendChild(delBtn);
+            row.appendChild(delWrapper);
+
+            list.appendChild(row);
+        }
+
+        /** Save GameNotifier config to backend KV (/api/notification-config) */
+        async function saveGameNotifierConfig() {
+            // Collect extra notifications from UI rows
+            const extraRows = document.querySelectorAll('#gnExtraList .gn-extra-row');
+            const extraNotifications = [];
+            extraRows.forEach((row, idx) => {
+                const time  = (row.querySelector('.gn-extra-time')  || {}).value || '';
+                const title = (row.querySelector('.gn-extra-title') || {}).value || '';
+                const body  = (row.querySelector('.gn-extra-body')  || {}).value || '';
+                if (time) {
+                    extraNotifications.push({ time, title, body });
+                }
+            });
+
+            const cfg = {
+                morningTime:  document.getElementById('gnMorningTime').value  || '07:00',
+                eveningTime:  document.getElementById('gnEveningTime').value  || '20:00',
+                morningTitle: document.getElementById('gnMorningTitle').value || 'Добро утро! 🌅',
+                morningBody:  document.getElementById('gnMorningBody').value  || 'Как спахте тази нощ? Отговорете на сутрешния въпрос.',
+                eveningTitle: document.getElementById('gnEveningTitle').value || 'Добър вечер! 🌙',
+                eveningBody:  document.getElementById('gnEveningBody').value  || 'Как мина денят? Отговорете на вечерните въпроси.',
+                extraNotifications
+            };
+            try {
+                const response = await fetch(WORKER_URL + '/api/notification-config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ config: cfg })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showSuccess('GameNotifier конфигурацията е запазена! Клиентите ще я изтеглят при следващо отваряне.');
+                } else {
+                    throw new Error(result.error || 'Failed to save config');
+                }
+            } catch (error) {
+                console.error('Error saving GameNotifier config:', error);
+                showError('Грешка при запазване: ' + error.message);
+            }
+        }
+
         // --- Push Notifications Management ---
 
         // Load notification settings on page load
@@ -6815,58 +6929,6 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         }
 
         // Subscribe admin browser for plan-pending notifications
-        async function subscribeAdminPush() {
-            const btn = document.getElementById('adminSubscribeBtn');
-            try {
-                if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-                    showError('Браузърът ви не поддържа Push известия.');
-                    return;
-                }
-                const permission = await Notification.requestPermission();
-                if (permission !== 'granted') {
-                    showError('Разрешението за известия беше отказано.');
-                    return;
-                }
-                const vapidRes = await fetch(WORKER_URL + '/api/push/vapid-public-key');
-                const vapidData = await vapidRes.json();
-                if (!vapidData.success || !vapidData.publicKey || vapidData.publicKey === 'VAPID_PUBLIC_KEY_NOT_CONFIGURED') {
-                    showError('VAPID ключът не е конфигуриран на сървъра.');
-                    return;
-                }
-                // Convert base64url VAPID public key to Uint8Array
-                const rawKey = vapidData.publicKey;
-                const padding = '='.repeat((4 - rawKey.length % 4) % 4);
-                const b64 = (rawKey + padding).replace(/-/g, '+').replace(/_/g, '/');
-                const raw = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-
-                const reg = await navigator.serviceWorker.ready;
-                const subscription = await reg.pushManager.subscribe({
-                    userVisibleOnly: true,
-                    applicationServerKey: raw
-                });
-                const response = await fetch(WORKER_URL + '/api/push/subscribe', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: 'admin', subscription: subscription.toJSON() })
-                });
-                const result = await response.json();
-                if (result.success) {
-                    if (btn) { btn.textContent = '✓ Абониран'; btn.style.background = '#28a745'; }
-                    showSuccess('Успешно абониран за admin известия! Ще получавате известия при нови планове за преглед.');
-                    // Pre-fill the test input with 'admin' and refresh the subscribed-users list
-                    const inp = document.getElementById('testNotifUserInput');
-                    if (inp) inp.value = 'admin';
-                    loadSubscribedUsers();
-                } else {
-                    throw new Error(result.error || 'Failed to save subscription');
-                }
-            } catch (error) {
-                console.error('Error subscribing admin:', error);
-                showError('Грешка при абониране: ' + error.message);
-            }
-        }
-
-        // Load list of subscribed users from backend and populate the dropdown
         async function loadSubscribedUsers() {
             try {
                 const res = await fetch(WORKER_URL + '/api/admin/subscriptions');
@@ -6891,7 +6953,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 if (listEl) {
                     listEl.textContent = userIds.length
                         ? `Абонирани потребители (${userIds.length}): ${userIds.join(', ')}`
-                        : 'Няма абонирани потребители. Кликнете „Абонирай Себе Си" по-горе.';
+                        : 'Няма абонирани потребители.';
                 }
             } catch (e) {
                 console.warn('[Admin] loadSubscribedUsers error:', e);
@@ -6899,6 +6961,8 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 if (listEl) listEl.textContent = 'Грешка при зареждане на абонирани потребители.';
             }
         }
+
+
 
         // --- Admin Messaging Functions ---
         async function sendAdminMessage() {
@@ -6931,6 +6995,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 showError('Грешка при изпращане: ' + error.message);
             }
         }
+
 
         // --- Notification Templates Functions ---
         let currentTemplateData = null; // Store loaded templates to preserve times and other metadata
@@ -7073,6 +7138,8 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 showError('Грешка при запазване на шаблони.');
             }
         }
+
+
 
         // --- Email Template (plan ready) Management ---
 
@@ -9590,9 +9657,8 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         checkAuth();
         loadColorScheme();
         
-        // Load notification settings and check VAPID key status on page load
-        loadNotificationSettings();
         loadGameNotifierConfig();
+        loadNotificationSettings();
         loadNotificationTemplates();
         loadEmailTemplate();
         checkVapidKeyStatus();

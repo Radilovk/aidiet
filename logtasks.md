@@ -3012,3 +3012,46 @@ Logout бутонът и избраният от потребителя ават
 - Няма допълнително натоварване на backend — статичните файлове се сервират от Cloudflare CDN.
 
 **Засегнати файлове:** `capacitor.config.json`, `logtasks.md`
+
+## 2026-05-30 — Почистване на нотификации: бутон и админ панел
+
+**Задача:**
+1. Премахни `openNotificationDiagnostics()` бутона от чат модула в plan.html
+2. Диагностиката да се отваря само с команда `*notifyme`
+3. Премахни излишните функции и информация за нотификации в админ панела — остават само редактиране на текст/час, добавяне на допълнителни нотификации и запазване/синхронизация
+4. Минимално натоварване на backend при синхронизация на настройките
+
+**Направено:**
+
+- `plan.html`: Премахнат е бутонът „Тест нотификации" (`openNotificationDiagnostics`) от chat mode indicator. Функцията и `*notifyme` командата са запазени непокътнати.
+- `admin.html` — HTML:
+  - Премахнати 3 `<details>` info блока (Как работи, Capacitor APK build, Допълнителни предложения)
+  - Премахнати status stat cards (VAPID, статус badge, KV конфиг статус)
+  - Премахнати global toggles (notificationsEnabled, chatNotificationsEnabled, planRegenerationEnabled)
+  - Премахнат тест нотификации раздел (send test buttons, subscribe admin push, subscribed users list)
+  - Премахнати бутони „Запази + Форс Синк" и „Запази Общи Настройки" — остават само „Запази" и „Презареди"
+  - Премахнат hidden legacy templates div (breakfast/lunch/dinner/water/sleep/activity/supplements)
+- `admin.html` — JS:
+  - Премахнати функции: `loadNotificationSettings`, `saveNotificationSettings`, `updateNotificationStatusBadge`, `saveAndForceSync`, `sendTestNotification`, `checkVapidKeyStatus`, `subscribeAdminPush`, `loadSubscribedUsers`, `loadNotificationTemplates`, `saveNotificationTemplates`, `currentTemplateData`
+  - Почистени page-load извиквания: остава само `loadGameNotifierConfig()` и `loadEmailTemplate()`
+  - Почистена `loadGameNotifierConfig()` от stale statusEl references
+
+**Засегнати файлове:** `plan.html`, `admin.html`, `logtasks.md`
+
+---
+
+## Задача: Възстановяване на нотификации за Админ (2026-05-30)
+
+**Проблем:** Предишен commit е премахнал цялата нотификационна секция от `admin.html` — статус карти, глобални toggles, тест на известия, абонамент за push, скрити template inputs и всички свързани JS функции.
+
+**Направено:**
+- Възстановени info boxes (Как работи / Capacitor APK / Предложения за разширяване)
+- Възстановени статус карти (VAPID ключ, Статус, Конфигурация KV)
+- Възстановени глобални checkboxes (`notificationsEnabled`, `chatNotificationsEnabled`, `planRegenerationEnabled`)
+- Възстановена секция „Тест на известия" с бутони Сутрешна/Вечерна/Обща и „Абонирай Себе Си"
+- Възстановени бутони „Запази GameNotifier Конфиг", „Запази + Форс Синк", „Запази Общи Настройки"
+- Възстановени скрити template input полета
+- Възстановени JS функции: `loadNotificationSettings`, `saveNotificationSettings`, `updateNotificationStatusBadge`, `saveAndForceSync`, `sendTestNotification`, `checkVapidKeyStatus`, `subscribeAdminPush`, `loadSubscribedUsers`, `loadNotificationTemplates`, `saveNotificationTemplates`
+- Възстановени page-load извиквания: `loadNotificationSettings()`, `loadNotificationTemplates()`, `checkVapidKeyStatus()`, `loadSubscribedUsers()`
+
+**Засегнати файлове:** `admin.html`, `logtasks.md`
