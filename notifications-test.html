@@ -973,10 +973,14 @@ function refreshConfig() {
 }
 
 async function forceSyncConfig() {
-    if (!window.GameNotifier) { log('GameNotifier не е зареден', 'err'); return; }
     log('Принудителна синхронизация на конфигурацията…');
     try {
-        await window.GameNotifier.forceSyncBackendConfig();
+        if (window.GameNotifier && typeof window.GameNotifier.forceSyncBackendConfig === 'function') {
+            await window.GameNotifier.forceSyncBackendConfig();
+        } else {
+            await loadSharedConfig();
+            return;
+        }
         log('Синхронизацията завърши.');
         refreshConfig();
         renderEditableConfig(JSON.parse(localStorage.getItem('gameNotifierConfig') || 'null'));
@@ -1044,7 +1048,7 @@ async function buildApkDiagnosticReport() {
                     ? 'Native notifications permission не е granted'
                     : !hasTestSchedule
                         ? 'GameNotifier тестовият метод липсва'
-                        : 'Готово за 10-секундния APK тест';
+                        : 'Готово за APK тест с отложен старт';
 
     const report = [
         'NutriPlan APK / *notifyme диагностика',
@@ -1086,7 +1090,7 @@ function renderApkDiagnostic(result) {
             ? warn('зареден, но без test method')
             : bad('не е зареден');
     document.getElementById('apkVerdict').innerHTML =
-        result.verdict === 'Готово за 10-секундния APK тест' ? ok(result.verdict) : warn(result.verdict);
+        result.verdict === 'Готово за APK тест с отложен старт' ? ok(result.verdict) : warn(result.verdict);
     document.getElementById('apkDiagReport').textContent = result.report;
 }
 
@@ -1094,8 +1098,8 @@ async function runApkNotifyMeDiagnostic() {
     log('Пускам APK / *notifyme диагностиката…');
     const result = await buildApkDiagnosticReport();
     renderApkDiagnostic(result);
-    if (result.verdict === 'Готово за 10-секундния APK тест') {
-        log('Диагностиката е зелена – може да пуснеш 10-секундния тест.', 'info');
+    if (result.verdict === 'Готово за APK тест с отложен старт') {
+        log('Диагностиката е зелена – може да пуснеш APK теста.', 'info');
     } else {
         log('Диагностиката откри проблем: ' + result.verdict, 'warn');
     }
@@ -1433,27 +1437,43 @@ function renderScheduleVisualization() {
         days.push({ dayName, isToday, pills });
     }
 
-    let html = '<div class="sched-timeline">';
+    container.innerHTML = '';
+    const timeline = document.createElement('div');
+    timeline.className = 'sched-timeline';
+
     for (const d of days) {
-        html += `<div class="sched-day${d.isToday ? ' sched-today' : ''}">`;
-        html += `<span class="sched-day-label">${d.dayName}</span>`;
-        html += '<span class="sched-notifs">';
+        const dayEl = document.createElement('div');
+        dayEl.className = 'sched-day' + (d.isToday ? ' sched-today' : '');
+
+        const dayLabel = document.createElement('span');
+        dayLabel.className = 'sched-day-label';
+        dayLabel.textContent = d.dayName;
+        dayEl.appendChild(dayLabel);
+
+        const notifs = document.createElement('span');
+        notifs.className = 'sched-notifs';
         for (const p of d.pills) {
-            html += `<span class="sched-pill ${p.type}${p.past ? ' past' : ''}">${p.label}</span>`;
+            const pill = document.createElement('span');
+            pill.className = 'sched-pill ' + p.type + (p.past ? ' past' : '');
+            pill.textContent = p.label;
+            notifs.appendChild(pill);
         }
-        html += '</span></div>';
+        dayEl.appendChild(notifs);
+        timeline.appendChild(dayEl);
     }
-    html += '</div>';
+
+    container.appendChild(timeline);
 
     if (nextTs !== null) {
         const diffMs = nextTs - now;
         const diffH = Math.floor(diffMs / 3600000);
         const diffM = Math.floor((diffMs % 3600000) / 60000);
         const countdown = diffH > 0 ? `${diffH} ч ${diffM} мин` : `${diffM} мин`;
-        html += `<div class="sched-next-label">⏳ Следващо: ${nextLabel} – след ${countdown}</div>`;
+        const nextEl = document.createElement('div');
+        nextEl.className = 'sched-next-label';
+        nextEl.textContent = `⏳ Следващо: ${nextLabel} – след ${countdown}`;
+        container.appendChild(nextEl);
     }
-
-    container.innerHTML = html;
 }
 
 // ─────────────────────────────────────────────
