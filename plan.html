@@ -9477,7 +9477,11 @@
             if (fab) {
                 if (_fabLowerTimer) clearTimeout(_fabLowerTimer);
                 _fabLowerTimer = setTimeout(function(){
+                    var safeBottom = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-area-inset-bottom')) || 0;
+                    fab.style.transition = 'bottom 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+                    fab.style.bottom = (80 + safeBottom) + 'px';
                     fab.classList.remove('fab-raised');
+                    setTimeout(function(){ fab.style.bottom = ''; fab.style.transition = ''; }, 420);
                     _fabLowerTimer = null;
                 }, FAB_LOWER_DELAY);
             }
@@ -9501,6 +9505,13 @@
             var fab = document.querySelector('.fab-chat');
             var wasRaised = fab && fab.classList.contains('fab-raised');
             if (fab) {
+                // Animate the FAB upward via inline style + explicit transition.
+                // `transition: all` + a running CSS animation can suppress `bottom`
+                // transitions in some Android WebView versions, so we drive it directly.
+                var safeTop = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-area-inset-top')) || 0;
+                fab.style.transition = 'bottom 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+                void fab.getBoundingClientRect(); // force reflow → commits current position as "before" state
+                fab.style.bottom = (window.innerHeight - safeTop - 80 - 56) + 'px';
                 fab.classList.add('fab-raised', 'game-prompt');
                 setTimeout(function(){ fab.classList.remove('game-prompt'); }, 2600);
             }
