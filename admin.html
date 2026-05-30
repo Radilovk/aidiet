@@ -2609,6 +2609,101 @@
             <div class="card">
                 <h2><i class="fas fa-bell"></i> Управление на Нотификации (GameNotifier)</h2>
 
+                <!-- ── How it works ─────────────────────────────────── -->
+                <details class="info-box" style="background: #e8f5e9; border-left: 4px solid #43a047; margin-bottom: 12px;">
+                    <summary><strong>📖 Как работи системата за нотификации</strong></summary>
+                    <ul style="margin: 10px 0 0 20px; padding: 0; line-height: 1.8;">
+                        <li><strong>Две нотификации на ден</strong> — сутрешна (по подразбиране 07:00) и вечерна (по подразбиране 20:00). И двете са директно свързани с въпросниците на геймификацията.</li>
+                        <li><strong>Сутрешна нотификация (morning_check)</strong>: пита „Как спахте тази нощ?". На Android системата слуша за движение на устройството (акселерометър) между 05:00 и 09:00 — ако засече вдигане на телефона, нотификацията излиза <em>веднага</em>. Ако wake detection не е достъпен, нотификацията излиза в зададения час.</li>
+                        <li><strong>Вечерна нотификация (evening_check)</strong>: пита за ниво на активност, емоционален баланс и водата за деня.</li>
+                        <li><strong>При натискане</strong> на нотификацията приложението се отваря и автоматично показва съответния въпросник (чрез <code>?action=morning_check</code> / <code>?action=evening_check</code>).</li>
+                        <li><strong>Слоеве за планиране</strong> (в ред на предпочитание):
+                            <ol style="margin: 4px 0 0 16px;">
+                                <li>🟢 <strong>Capacitor LocalNotifications</strong> (APK) — нативни Android нотификации, работят и при затворено приложение</li>
+                                <li>🟡 <strong>SW postMessage fallback</strong> — уеб fallback, работи само докато браузърът е отворен</li>
+                            </ol>
+                        </li>
+                        <li><strong>Конфигурацията</strong> се съхранява в Cloudflare KV под ключ <code>notification-config</code> и се изтегля при всяко отваряне на plan.html (max 1×/24 ч).</li>
+                    </ul>
+                </details>
+
+                <!-- ── Capacitor APK info ─────────────────────────── -->
+                <details class="info-box" style="background: #e3f2fd; border-left: 4px solid #1565c0; margin-bottom: 12px;">
+                    <summary><strong>📱 Capacitor APK — Как да се изгради</strong></summary>
+                    <ol style="margin: 10px 0 0 20px; padding: 0; line-height: 1.9;">
+                        <li>Инсталирай зависимостите: <code>npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/local-notifications</code></li>
+                        <li>Конфиг файлът <code>capacitor.config.json</code> вече е готов и CI билдът генерира Android shell автоматично</li>
+                        <li>Добави Android платформа: <code>npx cap add android</code></li>
+                        <li>Синхронизирай: <code>npx cap sync android</code></li>
+                        <li>Отвори в Android Studio: <code>npx cap open android</code> и build APK</li>
+                        <li>В APK-то GameNotifier автоматично ползва нативните Capacitor LocalNotifications, така че известията са с името на приложението, а не на Chrome</li>
+                    </ol>
+                    <p style="margin-top: 8px; font-size: 0.9rem; color: #555;">
+                        ⚡ Wake detection в APK: Capacitor Motion plugin (по-надеждно от Web DeviceMotion) + fallback към Web API
+                    </p>
+                </details>
+
+                <!-- ── Допълнителни предложения ──────────────────────── -->
+                <details class="info-box" style="background: #fff8e1; border-left: 4px solid #f9a825; margin-bottom: 12px;">
+                    <summary><strong>💡 Допълнителни предложения за разширяване</strong></summary>
+                    <ul style="margin: 10px 0 0 20px; padding: 0; line-height: 1.8;">
+                        <li><strong>Персонализирани часове</strong>: позволете на всеки потребител да избира своите часове за нотификации от настройките на профила.</li>
+                        <li><strong>„Streaks" нотификация</strong>: уведомявайте потребителя при 3, 7, 14 и 30-дневна серия от отговорени въпроси.</li>
+                        <li><strong>Напомняне при пропуснат ден</strong>: ако потребителят не е отворил приложението 24 часа, изпратете мотивиращо push съобщение.</li>
+                        <li><strong>Седмично обобщение</strong>: всяка неделя вечер — push с резюме на точките за седмицата и следваща цел.</li>
+                        <li><strong>Smart будилник с Capacitor</strong>: използвайте AlarmManager в Android чрез Capacitor plugin за будилник — нотификацията ще излезе дори при изключен екран.</li>
+                        <li><strong>Capacitor Motion + Machine Learning</strong>: анализирайте паттерна на движение (тихо → активно) за по-прецизно определяне на момента на събуждане.</li>
+                    </ul>
+                </details>
+
+                <!-- ── Status ────────────────────────────────────────── -->
+                <div class="form-group">
+                    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 20px;">
+                        <div class="stat-card">
+                            <div class="stat-label">VAPID Ключ</div>
+                            <div class="stat-value" id="vapidKeyStatus" style="font-size: 0.9rem;">Зареждане...</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Статус</div>
+                            <div class="stat-value" id="notificationStatus">
+                                <span id="notificationEnabledBadge" style="padding: 5px 10px; border-radius: 5px; font-size: 0.9rem;">Зареждане...</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Конфигурация (KV)</div>
+                            <div class="stat-value" id="gameNotifierConfigStatus" style="font-size: 0.9rem;">Зареждане...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── Global toggles ─────────────────────────────────── -->
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="notificationsEnabled" style="width: auto; margin-right: 10px;" checked>
+                        Активирай системата за push известия глобално
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <h3 style="font-size: 1.1rem; margin-bottom: 10px; color: var(--text-dark);">
+                        <i class="fas fa-comments"></i> Известия за Чат Съобщения
+                    </h3>
+                    <label>
+                        <input type="checkbox" id="chatNotificationsEnabled" style="width: auto; margin-right: 10px;" checked>
+                        Изпращай известия при автоматични съобщения от AI асистента
+                    </label>
+                </div>
+
+                <div class="form-group" style="border-top: 1px solid #e0e0e0; padding-top: 20px;">
+                    <h3 style="font-size: 1.1rem; margin-bottom: 10px; color: var(--text-dark);">
+                        <i class="fas fa-sync-alt"></i> Регенериране на План
+                    </h3>
+                    <label>
+                        <input type="checkbox" id="planRegenerationEnabled" style="width: auto; margin-right: 10px;" checked>
+                        Позволи на потребителите да регенерират плана от профила си
+                    </label>
+                </div>
+
                 <!-- ── GameNotifier schedule ──────────────────────────── -->
                 <div class="form-group" style="border-top: 1px solid #e0e0e0; padding-top: 20px;">
                     <h3 style="font-size: 1.1rem; margin-bottom: 15px; color: var(--text-dark);">
@@ -2675,11 +2770,59 @@
                 <!-- ── Action Buttons ─────────────────────────────────── -->
                 <div style="display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap;">
                     <button class="btn" onclick="saveGameNotifierConfig()">
-                        <i class="fas fa-save"></i> Запази
+                        <i class="fas fa-save"></i> Запази GameNotifier Конфиг
                     </button>
                     <button class="btn" onclick="loadGameNotifierConfig()" style="background: var(--accent-blue);">
                         <i class="fas fa-sync"></i> Презареди
                     </button>
+                    <button class="btn" onclick="saveAndForceSync()" style="background: #17a2b8;">
+                        <i class="fas fa-bolt"></i> Запази + Форс Синк (за тест)
+                    </button>
+                    <button class="btn" onclick="saveNotificationSettings()" style="background: #5a6268;">
+                        <i class="fas fa-cog"></i> Запази Общи Настройки
+                    </button>
+                </div>
+
+                <!-- ── Test Notifications ─────────────────────────────── -->
+                <div style="border-top: 1px solid #e0e0e0; padding-top: 20px; margin-top: 20px;">
+                    <h3 style="font-size: 1.1rem; margin-bottom: 10px; color: var(--text-dark);">
+                        <i class="fas fa-vial"></i> Тест на известия
+                    </h3>
+                    <div class="info-box" style="background: #e8f4fd; border-left: 4px solid #2196f3; margin-bottom: 14px; font-size: 0.9rem;">
+                        <strong>Как да тествате:</strong>
+                        <ol style="margin: 6px 0 0 20px; padding: 0; line-height: 1.8;">
+                            <li>Кликнете <strong>„Абонирай Себе Си"</strong> — браузърът ви ще поиска разрешение за известия и ще запише абонамент с ID <code>admin</code>.</li>
+                            <li>Изберете <code>admin</code> от падащото меню вдясно (или въведете ръчно).</li>
+                            <li>Кликнете един от бутоните за тест — ще получите известие в браузъра.</li>
+                        </ol>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap;">
+                        <label style="font-size: 0.9rem; font-weight: 600; white-space: nowrap;">Целеви User ID:</label>
+                        <select id="testNotifUserSelect" style="padding: 7px 10px; border: 1px solid #ddd; border-radius: 5px; min-width: 220px;"
+                                onchange="document.getElementById('testNotifUserInput').value = this.value">
+                            <option value="">— изберете абониран потребител —</option>
+                        </select>
+                        <input type="text" id="testNotifUserInput" placeholder="или въведете User ID ръчно"
+                               style="padding: 7px 10px; border: 1px solid #ddd; border-radius: 5px; flex: 1; min-width: 180px;">
+                        <button class="btn" onclick="loadSubscribedUsers()" style="background: #6c757d; padding: 7px 12px; font-size: 0.85rem;">
+                            <i class="fas fa-sync-alt"></i> Опресни
+                        </button>
+                    </div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn" onclick="sendTestNotification('morning_check')" style="background: #fd7e14;">
+                            <i class="fas fa-sun"></i> Тест: Сутрешна
+                        </button>
+                        <button class="btn" onclick="sendTestNotification('evening_check')" style="background: #6610f2;">
+                            <i class="fas fa-moon"></i> Тест: Вечерна
+                        </button>
+                        <button class="btn" onclick="sendTestNotification()" style="background: var(--accent-yellow); color: var(--text-dark);">
+                            <i class="fas fa-paper-plane"></i> Тест: Обща
+                        </button>
+                        <button class="btn" id="adminSubscribeBtn" onclick="subscribeAdminPush()" style="background: #6f42c1;">
+                            <i class="fas fa-bell"></i> Абонирай Себе Си
+                        </button>
+                    </div>
+                    <div id="subscribedUsersList" style="margin-top: 10px; font-size: 0.85rem; color: var(--text-gray);"></div>
                 </div>
             </div>
 
@@ -2858,6 +3001,22 @@
                 </div>
             </div>
 
+            <!-- Notification Templates Editor (legacy hidden inputs).
+                 loadNotificationTemplates() / saveNotificationTemplates() still read/write
+                 these IDs when syncing with /api/admin/notification-templates so that
+                 existing backend data is not lost. The fields are invisible to admins
+                 because the new GameNotifier card above handles all visible config. -->
+            <div style="display:none" aria-hidden="true">
+                <input id="templateMealBreakfastTitle"><input id="templateMealBreakfastBody">
+                <input id="templateMealLunchTitle"><input id="templateMealLunchBody">
+                <input id="templateMealDinnerTitle"><input id="templateMealDinnerBody">
+                <input id="templateMealSnackTitle"><input id="templateMealSnackBody">
+                <input id="templateWaterTitle"><input id="templateWaterBody">
+                <input id="templateSleepTitle"><input id="templateSleepBody">
+                <input id="templateActivityMorningTitle"><input id="templateActivityMorningBody">
+                <input id="templateActivityDayTitle"><input id="templateActivityDayBody">
+                <input id="templateSupplementsTitle"><input id="templateSupplementsBody">
+            </div>
 
                         <!-- End Features Tab -->
             </div>
@@ -6479,6 +6638,388 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             }
         }
 
+        // --- Push Notifications Management ---
+
+        // Load notification settings on page load
+        async function loadNotificationSettings() {
+            try {
+                const result = await cachedFetch(
+                    WORKER_URL + '/api/admin/notification-settings',
+                    'admin:notification-settings',
+                    CACHE_CONFIG.short
+                );
+
+                if (result.success && result.settings) {
+                    const settings = result.settings;
+
+                    // Cache for client-side use
+                    localStorage.setItem('globalNotificationSettings', JSON.stringify(settings));
+                    if (result.version) {
+                        localStorage.setItem('globalNotificationSettingsVersion', result.version.toString());
+                    }
+
+                    document.getElementById('notificationsEnabled').checked = settings.enabled !== false;
+                    document.getElementById('chatNotificationsEnabled').checked = settings.chatMessages !== false;
+                    document.getElementById('planRegenerationEnabled').checked = settings.planRegeneration !== false;
+
+                    updateNotificationStatusBadge(settings.enabled);
+                    showSuccess('Настройките за известия са заредени успешно!');
+                } else {
+                    throw new Error('Invalid response');
+                }
+            } catch (error) {
+                console.error('Error loading notification settings:', error);
+                showError('Не може да се заредят настройките за известия.');
+            }
+        }
+
+        // Save notification settings (global toggles only — no old water/meal fields)
+        async function saveNotificationSettings() {
+            try {
+                const settings = {
+                    enabled: document.getElementById('notificationsEnabled').checked,
+                    chatMessages: document.getElementById('chatNotificationsEnabled').checked,
+                    planRegeneration: document.getElementById('planRegenerationEnabled').checked
+                };
+
+                const response = await fetch(WORKER_URL + '/api/admin/notification-settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(settings)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    apiCache.clear('admin:notification-settings');
+                    updateNotificationStatusBadge(settings.enabled);
+                    localStorage.setItem('globalNotificationSettings', JSON.stringify(settings));
+                    if (result.version) {
+                        localStorage.setItem('globalNotificationSettingsVersion', result.version.toString());
+                    }
+                    showSuccess('Общите настройки са запазени успешно!');
+                } else {
+                    throw new Error(result.error || 'Failed to save settings');
+                }
+            } catch (error) {
+                console.error('Error saving notification settings:', error);
+                showError('Не може да се запазят настройките: ' + error.message);
+            }
+        }
+
+        // ── GameNotifier config ────────────────────────────────────────────────
+
+        /** Load GameNotifier config from backend KV (/api/notification-config) */
+        async function loadGameNotifierConfig() {
+            const statusEl = document.getElementById('gameNotifierConfigStatus');
+            if (statusEl) { statusEl.textContent = 'Зареждане...'; statusEl.style.color = ''; }
+            try {
+                const response = await fetch(WORKER_URL + '/api/notification-config');
+                const data = await response.json();
+                const cfg = data.config || {};
+
+                document.getElementById('gnMorningTime').value  = cfg.morningTime  || '07:00';
+                document.getElementById('gnEveningTime').value  = cfg.eveningTime  || '20:00';
+                document.getElementById('gnMorningTitle').value = cfg.morningTitle || 'Добро утро! 🌅';
+                document.getElementById('gnMorningBody').value  = cfg.morningBody  || 'Как спахте тази нощ? Отговорете на сутрешния въпрос.';
+                document.getElementById('gnEveningTitle').value = cfg.eveningTitle || 'Добър вечер! 🌙';
+                document.getElementById('gnEveningBody').value  = cfg.eveningBody  || 'Как мина денят? Отговорете на вечерните въпроси.';
+
+                // Render extra notifications
+                const list = document.getElementById('gnExtraList');
+                if (list) {
+                    list.innerHTML = '';
+                    const extras = Array.isArray(cfg.extraNotifications) ? cfg.extraNotifications : [];
+                    extras.forEach(extra => addExtraNotification(extra));
+                }
+
+                if (statusEl) {
+                    statusEl.textContent = data.version ? '✓ v' + data.version : '✓ Заредено';
+                    statusEl.style.color = '#28a745';
+                }
+                showSuccess('GameNotifier конфигурацията е заредена!');
+            } catch (error) {
+                console.error('Error loading GameNotifier config:', error);
+                if (statusEl) { statusEl.textContent = '✗ Грешка'; statusEl.style.color = '#dc3545'; }
+                showError('Не може да се зареди GameNotifier конфигурацията: ' + error.message);
+            }
+        }
+
+        /** Add an extra notification row to the UI */
+        function addExtraNotification(data) {
+            const list = document.getElementById('gnExtraList');
+            if (!list) return;
+            const d = data || {};
+
+            const row = document.createElement('div');
+            row.className = 'gn-extra-row';
+            row.style.cssText = 'display:grid; grid-template-columns:110px 1fr 1fr auto; gap:8px; align-items:center; background:var(--bg-color); padding:10px; border-radius:6px; border:1px solid var(--text-gray);';
+
+            // Helper to create a labeled input field
+            function makeField(labelText, inputClass, inputType, placeholderText, inputValue) {
+                const wrapper = document.createElement('div');
+                const lbl = document.createElement('label');
+                lbl.textContent = labelText;
+                lbl.style.cssText = 'font-size:0.8rem;color:#666;display:block;margin-bottom:3px;';
+                const inp = document.createElement('input');
+                inp.type = inputType;
+                inp.className = inputClass;
+                inp.placeholder = placeholderText;
+                inp.value = inputValue;
+                inp.style.cssText = 'width:100%;padding:6px;border:1px solid #ddd;border-radius:4px;';
+                wrapper.appendChild(lbl);
+                wrapper.appendChild(inp);
+                return wrapper;
+            }
+
+            row.appendChild(makeField('Час',     'gn-extra-time',  'time', '',                      d.time  || '12:00'));
+            row.appendChild(makeField('Заглавие','gn-extra-title', 'text', 'Заглавие на нотификацията', d.title || ''));
+            row.appendChild(makeField('Текст',   'gn-extra-body',  'text', 'Текст на нотификацията', d.body  || ''));
+
+            const delWrapper = document.createElement('div');
+            delWrapper.style.paddingTop = '18px';
+            const delBtn = document.createElement('button');
+            delBtn.type = 'button';
+            delBtn.title = 'Изтрий';
+            delBtn.style.cssText = 'background:#dc3545;color:#fff;border:none;padding:6px 10px;border-radius:4px;cursor:pointer;';
+            delBtn.innerHTML = '<i class="fas fa-trash"></i>';
+            delBtn.addEventListener('click', () => row.remove());
+            delWrapper.appendChild(delBtn);
+            row.appendChild(delWrapper);
+
+            list.appendChild(row);
+        }
+
+        /** Save GameNotifier config to backend KV (/api/notification-config) */
+        async function saveGameNotifierConfig() {
+            // Collect extra notifications from UI rows
+            const extraRows = document.querySelectorAll('#gnExtraList .gn-extra-row');
+            const extraNotifications = [];
+            extraRows.forEach((row, idx) => {
+                const time  = (row.querySelector('.gn-extra-time')  || {}).value || '';
+                const title = (row.querySelector('.gn-extra-title') || {}).value || '';
+                const body  = (row.querySelector('.gn-extra-body')  || {}).value || '';
+                if (time) {
+                    extraNotifications.push({ time, title, body });
+                }
+            });
+
+            const cfg = {
+                morningTime:  document.getElementById('gnMorningTime').value  || '07:00',
+                eveningTime:  document.getElementById('gnEveningTime').value  || '20:00',
+                morningTitle: document.getElementById('gnMorningTitle').value || 'Добро утро! 🌅',
+                morningBody:  document.getElementById('gnMorningBody').value  || 'Как спахте тази нощ? Отговорете на сутрешния въпрос.',
+                eveningTitle: document.getElementById('gnEveningTitle').value || 'Добър вечер! 🌙',
+                eveningBody:  document.getElementById('gnEveningBody').value  || 'Как мина денят? Отговорете на вечерните въпроси.',
+                extraNotifications
+            };
+            try {
+                const response = await fetch(WORKER_URL + '/api/notification-config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ config: cfg })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    const statusEl = document.getElementById('gameNotifierConfigStatus');
+                    if (statusEl) {
+                        statusEl.textContent = '✓ Запазено v' + (result.version || '?');
+                        statusEl.style.color = '#28a745';
+                    }
+                    showSuccess('GameNotifier конфигурацията е запазена! Клиентите ще я изтеглят при следващо отваряне.');
+                } else {
+                    throw new Error(result.error || 'Failed to save config');
+                }
+            } catch (error) {
+                console.error('Error saving GameNotifier config:', error);
+                showError('Грешка при запазване: ' + error.message);
+            }
+        }
+
+        /**
+         * Save GameNotifier config AND immediately force-sync it on the current admin
+         * browser (bypasses the 24-hour throttle). Useful for testing changes live.
+         */
+        async function saveAndForceSync() {
+            await saveGameNotifierConfig();
+            if (window.GameNotifier && typeof window.GameNotifier.forceSyncBackendConfig === 'function') {
+                try {
+                    await window.GameNotifier.forceSyncBackendConfig();
+                    await window.GameNotifier.scheduleNotifications();
+                    showSuccess('Конфигурацията е запазена и синхронизирана веднага в текущия браузър!');
+                } catch (e) {
+                    showError('Запазено, но синхронизацията е неуспешна: ' + e.message);
+                }
+            } else {
+                showSuccess('Конфигурацията е запазена. Клиентите ще я изтеглят при следващо отваряне.');
+            }
+        }
+
+        // Update notification status badge
+        function updateNotificationStatusBadge(enabled) {
+            const badge = document.getElementById('notificationEnabledBadge');
+            if (enabled) {
+                badge.textContent = '✓ Активирани';
+                badge.style.background = '#d4edda';
+                badge.style.color = '#155724';
+            } else {
+                badge.textContent = '✗ Деактивирани';
+                badge.style.background = '#f8d7da';
+                badge.style.color = '#721c24';
+            }
+        }
+
+        /**
+         * Send test notification.
+         * @param {string} [type] - 'morning_check', 'evening_check', or undefined (general).
+         */
+        async function sendTestNotification(type) {
+            try {
+                const inputEl = document.getElementById('testNotifUserInput');
+                let userId = inputEl ? inputEl.value.trim() : '';
+                if (!userId) {
+                    showError('Моля, изберете абониран потребител от падащото меню или въведете User ID ръчно.');
+                    return;
+                }
+
+                const typeLabels = {
+                    morning_check: { title: 'Тест: Добро утро! 🌅', body: 'Как спахте тази нощ?', url: '/plan.html?action=morning_check' },
+                    evening_check: { title: 'Тест: Добър вечер! 🌙', body: 'Как мина денят?', url: '/plan.html?action=evening_check' }
+                };
+                const tpl = typeLabels[type] || { title: 'Тестово известие от NutriPlan', body: 'Това е тестово известие.', url: '/plan.html' };
+
+                const response = await fetch(WORKER_URL + '/api/push/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId,
+                        title: tpl.title,
+                        body: tpl.body,
+                        url: tpl.url,
+                        notificationType: type || 'general'
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showSuccess('Тестовото известие е изпратено успешно!');
+                } else {
+                    throw new Error(result.message || result.error || 'Failed to send notification');
+                }
+            } catch (error) {
+                console.error('Error sending test notification:', error);
+                showError('Грешка при изпращане на тестово известие: ' + error.message);
+            }
+        }
+        
+        // Check VAPID key status
+        async function checkVapidKeyStatus() {
+            try {
+                const response = await fetch(WORKER_URL + '/api/push/vapid-public-key');
+                const result = await response.json();
+                
+                const statusEl = document.getElementById('vapidKeyStatus');
+                if (result.success && result.publicKey && result.publicKey !== 'VAPID_PUBLIC_KEY_NOT_CONFIGURED') {
+                    statusEl.textContent = '✓ Конфигуриран';
+                    statusEl.style.color = '#28a745';
+                } else {
+                    statusEl.textContent = '✗ Не е конфигуриран';
+                    statusEl.style.color = '#dc3545';
+                }
+            } catch (error) {
+                console.error('Error checking VAPID key:', error);
+                document.getElementById('vapidKeyStatus').textContent = '? Неизвестен';
+            }
+        }
+
+        // Subscribe admin browser for plan-pending notifications
+        async function subscribeAdminPush() {
+            const btn = document.getElementById('adminSubscribeBtn');
+            try {
+                if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+                    showError('Браузърът ви не поддържа Push известия.');
+                    return;
+                }
+                const permission = await Notification.requestPermission();
+                if (permission !== 'granted') {
+                    showError('Разрешението за известия беше отказано.');
+                    return;
+                }
+                const vapidRes = await fetch(WORKER_URL + '/api/push/vapid-public-key');
+                const vapidData = await vapidRes.json();
+                if (!vapidData.success || !vapidData.publicKey || vapidData.publicKey === 'VAPID_PUBLIC_KEY_NOT_CONFIGURED') {
+                    showError('VAPID ключът не е конфигуриран на сървъра.');
+                    return;
+                }
+                // Convert base64url VAPID public key to Uint8Array
+                const rawKey = vapidData.publicKey;
+                const padding = '='.repeat((4 - rawKey.length % 4) % 4);
+                const b64 = (rawKey + padding).replace(/-/g, '+').replace(/_/g, '/');
+                const raw = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+
+                const reg = await navigator.serviceWorker.ready;
+                const subscription = await reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: raw
+                });
+                const response = await fetch(WORKER_URL + '/api/push/subscribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: 'admin', subscription: subscription.toJSON() })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    if (btn) { btn.textContent = '✓ Абониран'; btn.style.background = '#28a745'; }
+                    showSuccess('Успешно абониран за admin известия! Ще получавате известия при нови планове за преглед.');
+                    // Pre-fill the test input with 'admin' and refresh the subscribed-users list
+                    const inp = document.getElementById('testNotifUserInput');
+                    if (inp) inp.value = 'admin';
+                    loadSubscribedUsers();
+                } else {
+                    throw new Error(result.error || 'Failed to save subscription');
+                }
+            } catch (error) {
+                console.error('Error subscribing admin:', error);
+                showError('Грешка при абониране: ' + error.message);
+            }
+        }
+
+        // Load list of subscribed users from backend and populate the dropdown
+        async function loadSubscribedUsers() {
+            try {
+                const res = await fetch(WORKER_URL + '/api/admin/subscriptions');
+                const listEl = document.getElementById('subscribedUsersList');
+                if (!res.ok) {
+                    console.warn('[Admin] loadSubscribedUsers: server returned', res.status);
+                    if (listEl) listEl.textContent = 'Грешка при зареждане на абонирани потребители (HTTP ' + res.status + ').';
+                    return;
+                }
+                const data = await res.json();
+                const userIds = data.userIds || [];
+                const select = document.getElementById('testNotifUserSelect');
+                if (select) {
+                    select.innerHTML = '<option value="">— изберете абониран потребител —</option>';
+                    userIds.forEach(id => {
+                        const opt = document.createElement('option');
+                        opt.value = id;
+                        opt.textContent = id;
+                        select.appendChild(opt);
+                    });
+                }
+                if (listEl) {
+                    listEl.textContent = userIds.length
+                        ? `Абонирани потребители (${userIds.length}): ${userIds.join(', ')}`
+                        : 'Няма абонирани потребители. Кликнете „Абонирай Себе Си" по-горе.';
+                }
+            } catch (e) {
+                console.warn('[Admin] loadSubscribedUsers error:', e);
+                const listEl = document.getElementById('subscribedUsersList');
+                if (listEl) listEl.textContent = 'Грешка при зареждане на абонирани потребители.';
+            }
+        }
+
+
+
         // --- Admin Messaging Functions ---
         async function sendAdminMessage() {
             const userId = document.getElementById('messageUserId').value.trim();
@@ -6510,6 +7051,150 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 showError('Грешка при изпращане: ' + error.message);
             }
         }
+
+
+        // --- Notification Templates Functions ---
+        let currentTemplateData = null; // Store loaded templates to preserve times and other metadata
+
+        async function loadNotificationTemplates() {
+            try {
+                const result = await cachedFetch(
+                    WORKER_URL + '/api/admin/notification-templates',
+                    'admin:notification-templates',
+                    CACHE_CONFIG.short
+                );
+
+                if (result.success && result.templates) {
+                    const t = result.templates;
+                    currentTemplateData = t; // Store for preserving metadata during saves
+                    
+                    // Cache templates in localStorage for client-side use
+                    localStorage.setItem('notificationTemplates', JSON.stringify(t));
+                    // Use version from backend, not client-generated
+                    if (result.version) {
+                        localStorage.setItem('notificationTemplatesVersion', result.version.toString());
+                    }
+
+                    // Meal templates
+                    document.getElementById('templateMealBreakfastTitle').value = t.meals?.breakfast?.title || '';
+                    document.getElementById('templateMealBreakfastBody').value = t.meals?.breakfast?.body || '';
+                    document.getElementById('templateMealLunchTitle').value = t.meals?.lunch?.title || '';
+                    document.getElementById('templateMealLunchBody').value = t.meals?.lunch?.body || '';
+                    document.getElementById('templateMealDinnerTitle').value = t.meals?.dinner?.title || '';
+                    document.getElementById('templateMealDinnerBody').value = t.meals?.dinner?.body || '';
+                    document.getElementById('templateMealSnackTitle').value = t.meals?.snack?.title || '';
+                    document.getElementById('templateMealSnackBody').value = t.meals?.snack?.body || '';
+
+                    // Water template
+                    document.getElementById('templateWaterTitle').value = t.water?.title || '';
+                    document.getElementById('templateWaterBody').value = t.water?.body || '';
+
+                    // Sleep template
+                    document.getElementById('templateSleepTitle').value = t.sleep?.title || '';
+                    document.getElementById('templateSleepBody').value = t.sleep?.body || '';
+
+                    // Activity templates
+                    document.getElementById('templateActivityMorningTitle').value = t.activity?.morning?.title || '';
+                    document.getElementById('templateActivityMorningBody').value = t.activity?.morning?.body || '';
+                    document.getElementById('templateActivityDayTitle').value = t.activity?.day?.title || '';
+                    document.getElementById('templateActivityDayBody').value = t.activity?.day?.body || '';
+
+                    // Supplements template
+                    document.getElementById('templateSupplementsTitle').value = t.supplements?.title || '';
+                    document.getElementById('templateSupplementsBody').value = t.supplements?.body || '';
+
+                    showSuccess('Шаблоните са заредени успешно!');
+                }
+            } catch (error) {
+                console.error('Error loading notification templates:', error);
+                showError('Не може да се заредят шаблоните.');
+            }
+        }
+
+        async function saveNotificationTemplates() {
+            try {
+                // Preserve times from loaded templates or use defaults
+                const templates = {
+                    meals: {
+                        breakfast: {
+                            title: document.getElementById('templateMealBreakfastTitle').value,
+                            body: document.getElementById('templateMealBreakfastBody').value,
+                            time: currentTemplateData?.meals?.breakfast?.time || '08:00'
+                        },
+                        lunch: {
+                            title: document.getElementById('templateMealLunchTitle').value,
+                            body: document.getElementById('templateMealLunchBody').value,
+                            time: currentTemplateData?.meals?.lunch?.time || '13:00'
+                        },
+                        dinner: {
+                            title: document.getElementById('templateMealDinnerTitle').value,
+                            body: document.getElementById('templateMealDinnerBody').value,
+                            time: currentTemplateData?.meals?.dinner?.time || '19:00'
+                        },
+                        snack: {
+                            title: document.getElementById('templateMealSnackTitle').value,
+                            body: document.getElementById('templateMealSnackBody').value,
+                            time: currentTemplateData?.meals?.snack?.time || '10:30'
+                        }
+                    },
+                    water: {
+                        title: document.getElementById('templateWaterTitle').value,
+                        body: document.getElementById('templateWaterBody').value,
+                        frequency: currentTemplateData?.water?.frequency || 2
+                    },
+                    sleep: {
+                        title: document.getElementById('templateSleepTitle').value,
+                        body: document.getElementById('templateSleepBody').value,
+                        time: currentTemplateData?.sleep?.time || '22:00'
+                    },
+                    activity: {
+                        morning: {
+                            title: document.getElementById('templateActivityMorningTitle').value,
+                            body: document.getElementById('templateActivityMorningBody').value,
+                            time: currentTemplateData?.activity?.morning?.time || '07:00'
+                        },
+                        day: {
+                            title: document.getElementById('templateActivityDayTitle').value,
+                            body: document.getElementById('templateActivityDayBody').value,
+                            time: currentTemplateData?.activity?.day?.time || '15:00'
+                        }
+                    },
+                    supplements: {
+                        title: document.getElementById('templateSupplementsTitle').value,
+                        body: document.getElementById('templateSupplementsBody').value,
+                        times: currentTemplateData?.supplements?.times || []
+                    }
+                };
+
+                const response = await fetch(WORKER_URL + '/api/admin/notification-templates', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ templates })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    apiCache.clear('admin:notification-templates');
+                    
+                    // Cache templates in localStorage for client-side use
+                    localStorage.setItem('notificationTemplates', JSON.stringify(templates));
+                    // Use version from backend response
+                    if (result.version) {
+                        localStorage.setItem('notificationTemplatesVersion', result.version.toString());
+                    }
+                    
+                    showSuccess('Шаблоните са запазени успешно! Клиентите ще получат актуализациите при следващо зареждане.');
+                    console.log('Templates cached in localStorage with version:', result.version);
+                } else {
+                    throw new Error(result.error || 'Failed to save templates');
+                }
+            } catch (error) {
+                console.error('Error saving notification templates:', error);
+                showError('Грешка при запазване на шаблони.');
+            }
+        }
+
 
 
         // --- Email Template (plan ready) Management ---
@@ -9029,7 +9714,11 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         loadColorScheme();
         
         loadGameNotifierConfig();
+        loadNotificationSettings();
+        loadNotificationTemplates();
         loadEmailTemplate();
+        checkVapidKeyStatus();
+        loadSubscribedUsers();
 
         // --- PWA Install Banner Functionality ---
         let deferredPrompt;

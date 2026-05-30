@@ -3037,3 +3037,21 @@ Logout бутонът и избраният от потребителя ават
   - Почистена `loadGameNotifierConfig()` от stale statusEl references
 
 **Засегнати файлове:** `plan.html`, `admin.html`, `logtasks.md`
+
+---
+
+## Задача: Възстановяване на нотификации за Админ (2026-05-30)
+
+**Проблем:** Предишен commit е премахнал цялата нотификационна секция от `admin.html` — статус карти, глобални toggles, тест на известия, абонамент за push, скрити template inputs и всички свързани JS функции.
+
+**Направено:**
+- Възстановени info boxes (Как работи / Capacitor APK / Предложения за разширяване)
+- Възстановени статус карти (VAPID ключ, Статус, Конфигурация KV)
+- Възстановени глобални checkboxes (`notificationsEnabled`, `chatNotificationsEnabled`, `planRegenerationEnabled`)
+- Възстановена секция „Тест на известия" с бутони Сутрешна/Вечерна/Обща и „Абонирай Себе Си"
+- Възстановени бутони „Запази GameNotifier Конфиг", „Запази + Форс Синк", „Запази Общи Настройки"
+- Възстановени скрити template input полета
+- Възстановени JS функции: `loadNotificationSettings`, `saveNotificationSettings`, `updateNotificationStatusBadge`, `saveAndForceSync`, `sendTestNotification`, `checkVapidKeyStatus`, `subscribeAdminPush`, `loadSubscribedUsers`, `loadNotificationTemplates`, `saveNotificationTemplates`
+- Възстановени page-load извиквания: `loadNotificationSettings()`, `loadNotificationTemplates()`, `checkVapidKeyStatus()`, `loadSubscribedUsers()`
+
+**Засегнати файлове:** `admin.html`, `logtasks.md`
