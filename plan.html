@@ -2308,8 +2308,10 @@
         }
         .fab-chat.game-prompt { animation: fabBounce 1.1s ease-in-out 2, fabPulse 3s ease-in-out 2.2s infinite; }
         .fab-chat.fab-raised {
-            /* Fallback position; JS overrides via inline style to sit 8px below the bubble. */
-            bottom: calc(100vh - var(--safe-area-inset-top, 0px) - 450px);
+            /* FAB sits below the game-bubble when questions are shown.
+               Bubble is at top: safeTop+88px; typical bubble height ~200–260px.
+               safeTop + 450 - 56 = safeTop + 394px from top, below a ~300px bubble. */
+            bottom: calc(100vh - var(--safe-area-inset-top, 0px) - 450px) !important;
         }
         /* Encouragement toast */
         .game-encourage-toast {
@@ -9478,7 +9480,6 @@
                 if (_fabLowerTimer) clearTimeout(_fabLowerTimer);
                 _fabLowerTimer = setTimeout(function(){
                     fab.classList.remove('fab-raised');
-                    fab.style.bottom = '';
                     _fabLowerTimer = null;
                 }, FAB_LOWER_DELAY);
             }
@@ -9601,15 +9602,6 @@
                 bubble.appendChild(hdr);
                 bubble.appendChild(body);
                 document.body.appendChild(bubble);
-
-                // Position FAB 8px below the bubble bottom
-                requestAnimationFrame(function() {
-                    var fabEl = document.querySelector('.fab-chat');
-                    var rect = bubble.getBoundingClientRect();
-                    if (fabEl && rect.height > 0) {
-                        fabEl.style.bottom = (window.innerHeight - rect.bottom - 8) + 'px';
-                    }
-                });
 
                 // Typewriter then reveal buttons
                 typewriter(qDiv, question, 32, function() {
