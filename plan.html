@@ -6064,6 +6064,25 @@
                 }
             }
 
+            // Lift panel above software keyboard using visualViewport API
+            if (window.visualViewport) {
+                const _vpHandler = () => {
+                    const win = document.getElementById('chatWindow');
+                    if (!win) return;
+                    const kbHeight = Math.max(0,
+                        window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop
+                    );
+                    win.style.bottom = kbHeight + 'px';
+                    if (kbHeight > 0) {
+                        const msgs = document.getElementById('chatMessages');
+                        if (msgs) msgs.scrollTop = msgs.scrollHeight;
+                    }
+                };
+                window.visualViewport.addEventListener('resize', _vpHandler);
+                window.visualViewport.addEventListener('scroll', _vpHandler);
+                chatWindow._vpHandler = _vpHandler;
+            }
+
             // Focus input only on desktop (prevent keyboard popup on mobile)
             setTimeout(() => {
                 const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -6083,6 +6102,10 @@
                 saveChatHistory();
                 chatVisible = false;
                 cancelActiveTyping({ complete: true });
+                if (chatWindow._vpHandler && window.visualViewport) {
+                    window.visualViewport.removeEventListener('resize', chatWindow._vpHandler);
+                    window.visualViewport.removeEventListener('scroll', chatWindow._vpHandler);
+                }
                 chatWindow.remove();
                 // Reset chatMode to consultation on close to avoid confusion when reopening
                 // User needs to explicitly activate modification mode each time
