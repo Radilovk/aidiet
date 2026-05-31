@@ -2298,21 +2298,8 @@
             background: rgba(217, 119, 6, 0.12);
             color: #fbbf24;
         }
-        /* FAB bounce/raise states */
-        @keyframes fabBounce {
-            0%,100% { transform: translateY(0); }
-            18% { transform: translateY(-10px); }
-            36% { transform: translateY(-4px); }
-            54% { transform: translateY(-8px); }
-            72% { transform: translateY(-2px); }
-        }
-        .fab-chat.game-prompt { animation: fabBounce 1.1s ease-in-out 2, fabPulse 3s ease-in-out 2.2s infinite; }
-        .fab-chat.fab-raised {
-            /* FAB sits below the game-bubble when questions are shown.
-               Bubble is at top: safeTop+88px; typical bubble height ~200–260px.
-               safeTop + 450 - 56 = safeTop + 394px from top, below a ~300px bubble. */
-            bottom: calc(100vh - var(--safe-area-inset-top, 0px) - 450px) !important;
-        }
+        /* FAB raise state */
+        .fab-chat.game-prompt { animation: fabPulse 3s ease-in-out infinite; }
         /* Encouragement toast */
         .game-encourage-toast {
             position: fixed;
@@ -9425,6 +9412,7 @@
         // Delay must exceed the longest inter-question pause (350–400 ms) so that
         // a chained showBubble call (in the queue) fires before the timer and can
         // cancel the lower animation — keeping the FAB raised throughout the queue.
+        var FAB_BUBBLE_GAP = 6;
         var FAB_LOWER_DELAY = 500;
 
         function _scheduleFabLower() {
@@ -9453,8 +9441,9 @@
             bubble = bubble || document.getElementById('gameBubble');
             var fabPos = document.querySelector('.fab-chat');
             if (!bubble || !fabPos || !fabPos.classList.contains('fab-raised')) return;
-            var rect = bubble.getBoundingClientRect();
-            var bottomVal = window.innerHeight - rect.bottom - 8;
+            var anchor = bubble.querySelector('.game-bubble-body') || bubble;
+            var rect = anchor.getBoundingClientRect();
+            var bottomVal = window.innerHeight - rect.bottom - FAB_BUBBLE_GAP;
             fabPos.style.setProperty('bottom', Math.max(4, bottomVal) + 'px', 'important');
             fabPos.style.removeProperty('top');
         }
@@ -9512,11 +9501,16 @@
                                        (opts.showName && name) ? 'Здравейте, '+name+'!' : 'AI Асистент';
                     awEl.classList.remove('visible');
                     fillAnswers(awEl);
-                    typewriter(qEl, question, 32, function() {
-                        setTimeout(function(){
-                            awEl.classList.add('visible');
-                            setTimeout(function(){ _positionFabBelowBubble(existing); }, 320);
-                        }, 120);
+                    qEl.textContent = question;
+                    qEl.style.visibility = 'hidden';
+                    requestAnimationFrame(function() {
+                        _positionFabBelowBubble(existing);
+                        qEl.style.removeProperty('visibility');
+                        typewriter(qEl, question, 32, function() {
+                            setTimeout(function(){
+                                awEl.classList.add('visible');
+                            }, 120);
+                        });
                     });
                     return;
                 }
@@ -9525,10 +9519,7 @@
             // Remove existing bubble (fresh start or no existing bubble)
             if (existing) existing.remove();
 
-            // If FAB wasn't already raised, wait for the raise animation to complete
-            // before showing the bubble (gives the animated-upward effect).
-            // 440ms = 400ms CSS transition duration + 40ms buffer for smooth UX.
-            var raiseDelay = (!wasRaised && fab) ? 440 : 0;
+            var raiseDelay = 0;
 
             setTimeout(function() {
                 if (seq !== _bubbleSeq) return;
@@ -9560,6 +9551,8 @@
                 body.className = 'game-bubble-body';
                 var qDiv = document.createElement('div');
                 qDiv.className = 'game-bubble-q';
+                qDiv.textContent = question;
+                qDiv.style.visibility = 'hidden';
                 var ansWrap = document.createElement('div');
                 ansWrap.className = 'game-bubble-answers';
 
@@ -9571,15 +9564,15 @@
                 bubble.appendChild(body);
                 document.body.appendChild(bubble);
 
-                // Position FAB just below the bubble using bottom (keeps CSS transition smooth)
-                requestAnimationFrame(function() { _positionFabBelowBubble(bubble); });
-
-                // Typewriter then reveal buttons; reposition after final bubble size
-                typewriter(qDiv, question, 32, function() {
-                    setTimeout(function(){
-                        ansWrap.classList.add('visible');
-                        setTimeout(function(){ _positionFabBelowBubble(bubble); }, 320);
-                    }, 120);
+                // Position FAB once against the final bubble height, then start typing
+                requestAnimationFrame(function() {
+                    _positionFabBelowBubble(bubble);
+                    qDiv.style.removeProperty('visibility');
+                    typewriter(qDiv, question, 32, function() {
+                        setTimeout(function(){
+                            ansWrap.classList.add('visible');
+                        }, 120);
+                    });
                 });
             }, raiseDelay);
         }
