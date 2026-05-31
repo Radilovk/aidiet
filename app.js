@@ -65,6 +65,7 @@
         parsed: Object.create(null)
     };
     var shellChatFrame = null;
+    var _shellChatVpHandler = null;
     var deferredPreloadScheduled = false;
     var nativeNotificationBridgeBound = false;
 
@@ -524,6 +525,30 @@
         el.style.cssText = 'position:fixed;bottom:0;left:0;right:0;width:100%;height:70vh;max-height:600px;border:0;z-index:10003;display:none;border-radius:16px 16px 0 0;overflow:hidden;';
         shell.appendChild(el);
         shellChatFrame = el;
+
+        // Keep chat frame above on-screen keyboard on all mobile browsers
+        var syncFrame = function() {
+            if (!shellChatFrame || shellChatFrame.style.display === 'none') return;
+            var kbHeight, maxH;
+            if (window.visualViewport) {
+                var vv = window.visualViewport;
+                kbHeight = Math.max(0, window.innerHeight - vv.offsetTop - vv.height);
+                maxH = kbHeight > 0 ? Math.min(vv.height - 10, 600) : 600;
+            } else {
+                kbHeight = Math.max(0, (_shellChatVpHandler._baseH || window.innerHeight) - window.innerHeight);
+                maxH = kbHeight > 0 ? Math.min(window.innerHeight - 10, 600) : 600;
+            }
+            shellChatFrame.style.bottom = kbHeight + 'px';
+            shellChatFrame.style.maxHeight = maxH + 'px';
+        };
+        _shellChatVpHandler = syncFrame;
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', syncFrame);
+            window.visualViewport.addEventListener('scroll', syncFrame);
+        } else {
+            syncFrame._baseH = window.innerHeight;
+            window.addEventListener('resize', syncFrame);
+        }
     }
 
     function openShellChat() {
@@ -543,6 +568,8 @@
         if (!shellChatFrame) return;
         shellChatFrame.style.display = 'none';
         shellChatFrame.setAttribute('aria-hidden', 'true');
+        shellChatFrame.style.bottom = '';
+        shellChatFrame.style.maxHeight = '';
     }
 
     function isKnownShellFrameSource(source) {

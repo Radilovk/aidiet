@@ -6074,8 +6074,11 @@
                     );
                     win.style.bottom = kbHeight + 'px';
                     if (kbHeight > 0) {
+                        win.style.maxHeight = Math.min(window.visualViewport.height - 10, 600) + 'px';
                         const msgs = document.getElementById('chatMessages');
                         if (msgs) msgs.scrollTop = msgs.scrollHeight;
+                    } else {
+                        win.style.maxHeight = '';
                     }
                 };
                 window.visualViewport.addEventListener('resize', _vpHandler);
@@ -6090,12 +6093,26 @@
                     const kbHeight = Math.max(0, _baseH - window.innerHeight);
                     win.style.bottom = kbHeight + 'px';
                     if (kbHeight > 0) {
+                        win.style.maxHeight = Math.min(window.innerHeight - 10, 600) + 'px';
                         const msgs = document.getElementById('chatMessages');
                         if (msgs) msgs.scrollTop = msgs.scrollHeight;
+                    } else {
+                        win.style.maxHeight = '';
                     }
                 };
                 window.addEventListener('resize', _resizeHandler);
                 chatWindow._resizeHandler = _resizeHandler;
+            }
+
+            // On mobile, trigger viewport adjustment when user taps the input
+            const chatInput = document.getElementById('chatInput');
+            if (chatInput) {
+                chatInput.addEventListener('focus', () => {
+                    setTimeout(() => {
+                        if (chatWindow._vpHandler) chatWindow._vpHandler();
+                        else if (chatWindow._resizeHandler) chatWindow._resizeHandler();
+                    }, 300);
+                });
             }
 
             // Focus input only on desktop (prevent keyboard popup on mobile)
