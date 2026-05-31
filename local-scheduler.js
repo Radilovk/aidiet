@@ -55,7 +55,7 @@ const GameNotifier = {
     async init() {
         if (this._initialized) {
             console.log('[GameNotifier] Already ready – skipping re-init.');
-            return;
+            return true;
         }
         if (this._initPromise) return this._initPromise;
 
@@ -70,7 +70,7 @@ const GameNotifier = {
                 const granted = await this._requestCapacitorPermission();
                 if (!granted) {
                     console.warn('[GameNotifier] Capacitor notification permission denied');
-                    return;
+                    return false;
                 }
                 await this._registerCapacitorActionTypes();
                 this._bindCapacitorListeners();
@@ -82,17 +82,17 @@ const GameNotifier = {
                     } else {
                         console.warn('[GameNotifier] Notifications not supported on this platform.');
                     }
-                    return;
+                    return false;
                 }
                 if (Notification.permission !== 'granted') {
                     console.warn('[GameNotifier] Permission not granted:', Notification.permission);
-                    return;
+                    return false;
                 }
                 try {
                     this._swReg = await navigator.serviceWorker.ready;
                 } catch (e) {
                     console.error('[GameNotifier] SW not ready:', e);
-                    return;
+                    return false;
                 }
             }
 
@@ -100,13 +100,16 @@ const GameNotifier = {
             await this.scheduleNotifications();
             this._initialized = true;
             console.log('[GameNotifier] Ready.');
+            return true;
         })();
 
+        let ready = false;
         try {
-            await this._initPromise;
+            ready = await this._initPromise;
         } finally {
             this._initPromise = null;
         }
+        return !!ready;
     },
 
     async scheduleNotifications() {
