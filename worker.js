@@ -12556,22 +12556,7 @@ async function handleSaveNotificationSettings(request, env) {
     
     // Validate settings structure
     const validSettings = {
-      enabled: settings.enabled !== false, // Default to true
-      chatMessages: settings.chatMessages !== false,
-      waterReminders: {
-        enabled: settings.waterReminders?.enabled !== false,
-        frequency: settings.waterReminders?.frequency || 2, // hours
-        startHour: settings.waterReminders?.startHour || 8,
-        endHour: settings.waterReminders?.endHour || 22
-      },
-      mealReminders: {
-        enabled: settings.mealReminders?.enabled !== false,
-        breakfast: settings.mealReminders?.breakfast || '08:00',
-        lunch: settings.mealReminders?.lunch || '13:00',
-        dinner: settings.mealReminders?.dinner || '19:00',
-        snacks: settings.mealReminders?.snacks || false
-      },
-      customReminders: settings.customReminders || []
+      planRegeneration: settings.planRegeneration !== false
     };
 
     await env.page_content.put('notification_settings', JSON.stringify(validSettings));
@@ -12613,25 +12598,13 @@ async function handleGetNotificationSettings(request, env) {
     
     // Default settings if none exist
     const defaultSettings = {
-      enabled: true,
-      chatMessages: true,
-      waterReminders: {
-        enabled: true,
-        frequency: 2,
-        startHour: 8,
-        endHour: 22
-      },
-      mealReminders: {
-        enabled: true,
-        breakfast: '08:00',
-        lunch: '13:00',
-        dinner: '19:00',
-        snacks: false
-      },
-      customReminders: []
+      planRegeneration: true
     };
 
-    const settings = settingsData ? JSON.parse(settingsData) : defaultSettings;
+    const parsedSettings = settingsData ? JSON.parse(settingsData) : defaultSettings;
+    const settings = {
+      planRegeneration: parsedSettings.planRegeneration !== false
+    };
     
     // Get version from KV or use current timestamp
     const versionData = await env.page_content.get('notification_settings_version');

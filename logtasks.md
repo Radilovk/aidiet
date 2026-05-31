@@ -1,5 +1,20 @@
 # Log Tasks
 
+## 2026-05-31 — APK notifications: премахване на фалшивите toggle-и и реален permission prompt
+
+**Задача:** Да се прегледа notification flow-ът в инсталирания APK, да се види кои настройки реално влияят, да се махне излишното и при активиране известията да могат да излизат на телефона без излишен код.
+
+**Потвърдена причина:**
+- Реалното APK известяване минава само през `GameNotifier` + `@capacitor/local-notifications`, но админ модулът още пазеше отделни `enabled/chatMessages` toggle-и, които изобщо не участват в scheduling-а.
+- В `plan.html` native permission отказ/липса на permission оставаше само като тих `console.warn`, без видим път потребителят да го разреши от самия APK екран.
+- Така имахме едновременно подвеждащи настройки и липсващ видим permission prompt path за единствения реален APK notification flow.
+
+**Направено:**
+- `admin.html`: премахнати са неработещите глобални notification/chat toggle-и; остава само настройката за plan regeneration и реалният GameNotifier config.
+- `worker.js`: `/api/admin/notification-settings` е изчистен до единственото реално ползвано поле `planRegeneration`.
+- `local-scheduler.js`: `GameNotifier.init()` вече връща ясен success/failure резултат вместо тихо early return.
+- `plan.html`: при APK и липсващо native notification permission вече се показва видим banner, чийто бутон повтаря реалния native scheduling/permission flow.
+
 ## 2026-05-31 — Plan chat FAB: да не влиза под game bubble body
 
 **Задача:** При анимацията на `fab-chat fab-raised` чат иконата да не влиза под `game-bubble-body`, а да спира няколко пиксела под него, с минимална корекция.
