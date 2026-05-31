@@ -9480,6 +9480,8 @@
                 if (_fabLowerTimer) clearTimeout(_fabLowerTimer);
                 _fabLowerTimer = setTimeout(function(){
                     fab.classList.remove('fab-raised');
+                    fab.style.removeProperty('top');
+                    fab.style.removeProperty('bottom');
                     _fabLowerTimer = null;
                 }, FAB_LOWER_DELAY);
             }
@@ -9602,6 +9604,16 @@
                 bubble.appendChild(hdr);
                 bubble.appendChild(body);
                 document.body.appendChild(bubble);
+
+                // Position FAB just below the bubble (a few px gap)
+                requestAnimationFrame(function() {
+                    var fabPos = document.querySelector('.fab-chat');
+                    if (fabPos && fabPos.classList.contains('fab-raised')) {
+                        var rect = bubble.getBoundingClientRect();
+                        fabPos.style.setProperty('top', (rect.bottom + 8) + 'px', 'important');
+                        fabPos.style.setProperty('bottom', 'auto', 'important');
+                    }
+                });
 
                 // Typewriter then reveal buttons
                 typewriter(qDiv, question, 32, function() {
