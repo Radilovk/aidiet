@@ -3144,3 +3144,16 @@ Logout бутонът и избраният от потребителя ават
 - JS `showBubble`: премахнат inline style – само `fab.classList.add('fab-raised', 'game-prompt')`
 
 **Засегнати файлове:** `plan.html`, `logtasks.md`
+
+---
+
+## Задача: Cross-browser keyboard/chat panel fix (2026-05-31)
+
+**Проблем:** visualViewport формулата за клавиатурна височина не отчиташе `offsetTop`, и нямаше fallback за браузъри без `visualViewport`.
+
+**Направено:**
+- Фиксирана формула: `window.innerHeight - window.visualViewport.offsetTop - window.visualViewport.height` (коректна за iOS Safari при scroll + keyboard)
+- Добавен `else` branch: `window.resize` fallback за стари браузъри без `visualViewport` (използва `_baseH - window.innerHeight`)
+- Добавен cleanup на `_resizeHandler` в `closeChatWindow`
+
+**Засегнати файлове:** `plan.html`
