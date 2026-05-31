@@ -1,5 +1,20 @@
 # Log Tasks
 
+## 2026-05-31 — Нотификации: минимална чистка и реално активиране
+
+**Задача:** Да се прегледат реално работещите нотификации, да се махне ненужното и след активиране да започват да се извеждат без излишен шум и без блокиращ flow.
+
+**Потвърдена причина:**
+- `local-scheduler.js` при web/PWA path пращаше графика само през `navigator.serviceWorker.controller`, а при първо регистриране/разрешение controller често още липсва, така че scheduling-ът отпадаше точно след първото активиране.
+- Пак в `local-scheduler.js` `_maybeSyncBackendConfig()` вече не се вика при `init()`, затова записаните от admin morning/evening настройки реално не стигат до клиентите и оставаха локалните/default стойности.
+- `admin.html` и scheduler-ът държаха произволни `extraNotifications`, които не са основният продуктови flow и само раздуват настройките/известията без да добавят надежден path.
+
+**Направено:**
+- `local-scheduler.js`: върнат е лек backend config sync при `init()`, за да се прилагат реално записаните morning/evening настройки.
+- `local-scheduler.js`: web scheduling-ът вече праща към активния service worker registration worker, а не зависи само от `controller`, така че да тръгва още при първо разрешение.
+- `local-scheduler.js`, `admin.html`, `worker.js`: премахнати са произволните extra notifications и свързаният UI/ICS шум; остават само сутрешната и вечерната проверка.
+- `index.html` и `plan.html`: текстовете вече описват точно двата реални reminder flow-а вместо общи/шумни обещания.
+
 ## 2026-05-31 — Plan chat FAB: да не влиза под game bubble body
 
 **Задача:** При анимацията на `fab-chat fab-raised` чат иконата да не влиза под `game-bubble-body`, а да спира няколко пиксела под него, с минимална корекция.

@@ -12227,15 +12227,6 @@ async function handleGetCalendarIcs(request, env) {
     day.setDate(day.getDate() + i);
     events.push(makeEvent('morning', day, mH, mM, cfg.morningTitle, cfg.morningBody));
     events.push(makeEvent('evening', day, eH, eM, cfg.eveningTitle, cfg.eveningBody));
-    // Extra / custom notifications
-    const extras = Array.isArray(cfg.extraNotifications) ? cfg.extraNotifications : [];
-    extras.forEach((extra, idx) => {
-      if (!extra || !extra.time) return;
-      const parts = String(extra.time).split(':').map(Number);
-      if (parts.length < 2 || isNaN(parts[0]) || isNaN(parts[1])) return;
-      events.push(makeEvent('extra_' + idx, day, parts[0], parts[1],
-        extra.title || 'NutriPlan', extra.body || ''));
-    });
   }
 
   const ics = [

@@ -11,10 +11,10 @@
  *   evening_check  – вечерна проверка (по подразбиране 20:00)
  *
  * Backend config sync:
- *   – Клиентът НЕ прави автоматични заявки към бекенда при отваряне на приложението.
- *   – Конфигурацията се зарежда САМО от localStorage → 'gameNotifierConfig' (или hardcoded defaults).
- *   – _maybeSyncBackendConfig() се извиква единствено от forceSyncBackendConfig(), което
- *     се вика от admin панела след ръчно запазване на нова конфигурация.
+ *   – При init() се прави един лек version check към бекенда.
+ *   – Ако има нова версия, локалният cache 'gameNotifierConfig' се обновява.
+ *   – Така сутрешната и вечерната конфигурация реално стига до клиентите
+ *     без тежък sync или ръчна намеса.
  */
 
 const GameNotifier = {
@@ -62,6 +62,8 @@ const GameNotifier = {
         this._initPromise = (async () => {
             console.log('[GameNotifier] Initialising...');
 
+            await this._maybeSyncBackendConfig();
+
             // Detect Capacitor (APK context)
             this._capacitor = this._detectCapacitor();
 
@@ -96,7 +98,7 @@ const GameNotifier = {
                 }
             }
 
-            // Schedule the rolling monthly buffer with locally cached config only.
+            // Schedule the rolling monthly buffer with the freshest cached config.
             await this.scheduleNotifications();
             this._initialized = true;
             console.log('[GameNotifier] Ready.');
@@ -176,8 +178,9 @@ const GameNotifier = {
             return { fireAtTs, mode: 'capacitor' };
         }
 
-        if (this._swReg && navigator.serviceWorker && navigator.serviceWorker.controller) {
-            navigator.serviceWorker.controller.postMessage({
+        const worker = this._getServiceWorkerMessenger();
+        if (worker) {
+            worker.postMessage({
                 type: 'SCHEDULE_GAME_NOTIFICATIONS',
                 schedule: [{
                     ts: fireAtTs,
@@ -411,12 +414,11 @@ const GameNotifier = {
             morningBody:  'Как спахте тази нощ? Отговорете на сутрешния въпрос.',
             eveningTitle: 'Добър вечер! 🌙',
             eveningBody:  'Как мина денят? Отговорете на вечерните въпроси.',
-            extraNotifications: [],
         };
         try {
             const stored = localStorage.getItem(this.LS_CONFIG_KEY);
             const merged = stored ? Object.assign({}, defaults, JSON.parse(stored)) : defaults;
-            if (!Array.isArray(merged.extraNotifications)) merged.extraNotifications = [];
+            delete merged.extraNotifications;
             return merged;
         } catch (e) {
             return defaults;
@@ -526,28 +528,6 @@ const GameNotifier = {
             }
         }
 
-        // Extra custom notifications (admin-defined arbitrary slots)
-        const extras = Array.isArray(cfg.extraNotifications) ? cfg.extraNotifications : [];
-        extras.forEach((extra, idx) => {
-            if (!extra || !extra.time) return;
-            const [xH, xM] = String(extra.time).split(':').map(Number);
-            if (isNaN(xH) || isNaN(xM)) return;
-            for (let day = 0; day < this.SCHEDULE_WINDOW_DAYS; day++) {
-                const xTs = this._tsForDayOffset(day, xH, xM);
-                if (xTs > Date.now()) {
-                    notifications.push({
-                        id: 3000 + idx * 100 + day,
-                        channelId: this.CHANNEL_ID,
-                        title: extra.title || 'NutriPlan',
-                        body:  extra.body  || '',
-                        schedule: { at: new Date(xTs), allowWhileIdle: true },
-                        extra: { url: extra.url || '/plan.html', type: 'extra_' + idx },
-                        iconColor: this.BRAND_TEAL
-                    });
-                }
-            }
-        });
-
         try {
             await LocalNotifications.schedule({ notifications });
             console.log('[GameNotifier] Capacitor: scheduled', notifications.length, 'notifications');
@@ -562,8 +542,9 @@ const GameNotifier = {
 
     async _scheduleViaSW(cfg) {
         console.log('[GameNotifier] Using SW postMessage scheduling');
-        if (!this._swReg || !navigator.serviceWorker.controller) {
-            console.warn('[GameNotifier] No active SW controller for message scheduling');
+        const worker = this._getServiceWorkerMessenger();
+        if (!worker) {
+            console.warn('[GameNotifier] No active SW messenger for message scheduling');
             return;
         }
 
@@ -613,30 +594,7 @@ const GameNotifier = {
             }
         }
 
-        // Extra custom notifications (admin-defined arbitrary slots)
-        const extras = Array.isArray(cfg.extraNotifications) ? cfg.extraNotifications : [];
-        extras.forEach((extra, idx) => {
-            if (!extra || !extra.time) return;
-            const [xH, xM] = String(extra.time).split(':').map(Number);
-            if (isNaN(xH) || isNaN(xM)) return;
-            for (let day = 0; day < this.SCHEDULE_WINDOW_DAYS; day++) {
-                const xTs = this._tsForDayOffset(day, xH, xM);
-                if (xTs > now) {
-                    schedule.push({
-                        ts: xTs,
-                        title: extra.title || 'NutriPlan',
-                        body:  extra.body  || '',
-                        tag:   `gn-extra-${idx}-${xTs}`,
-                        type:  'extra_' + idx,
-                        url:   extra.url || '/plan.html',
-                        vibrate: [200, 100, 200],
-                        requireInteraction: false
-                    });
-                }
-            }
-        });
-
-        navigator.serviceWorker.controller.postMessage({
+        worker.postMessage({
             type: 'SCHEDULE_GAME_NOTIFICATIONS',
             schedule
         });
@@ -709,6 +667,17 @@ const GameNotifier = {
         d.setDate(d.getDate() + dayOffset);
         d.setHours(hours, minutes, 0, 0);
         return d.getTime();
+    },
+
+    _getServiceWorkerMessenger() {
+        if (this._swReg) {
+            const regWorker = this._swReg.active || this._swReg.waiting || this._swReg.installing;
+            if (regWorker && typeof regWorker.postMessage === 'function') return regWorker;
+        }
+        if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+            return navigator.serviceWorker.controller;
+        }
+        return null;
     },
 
     _normalizeRecordKey(recordKey) {
