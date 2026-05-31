@@ -11,10 +11,10 @@
  *   evening_check  – вечерна проверка (по подразбиране 20:00)
  *
  * Backend config sync:
- *   – Клиентът НЕ прави автоматични заявки към бекенда при отваряне на приложението.
- *   – Конфигурацията се зарежда САМО от localStorage → 'gameNotifierConfig' (или hardcoded defaults).
- *   – _maybeSyncBackendConfig() се извиква единствено от forceSyncBackendConfig(), което
- *     се вика от admin панела след ръчно запазване на нова конфигурация.
+ *   – При всяко отваряне на приложението (init()), клиентът прави ЕДНА лека заявка
+ *     към бекенда (/api/notification-config?v=N) – версиен ETag, ~50 байта при съвпадение.
+ *   – Само при нова версия (след промяна от admin панела) се сваля пълният конфиг.
+ *   – forceSyncBackendConfig() игнорира кешираната версия (използва се от admin панела).
  */
 
 const GameNotifier = {
@@ -96,7 +96,11 @@ const GameNotifier = {
                 }
             }
 
-            // Schedule the rolling monthly buffer with locally cached config only.
+            // Sync config from backend (version-based ETag – one lightweight KV read
+            // per app open; full payload only when admin has saved a new config).
+            await this._maybeSyncBackendConfig();
+
+            // Schedule the rolling monthly buffer using the (now up-to-date) config.
             await this.scheduleNotifications();
             this._initialized = true;
             console.log('[GameNotifier] Ready.');
