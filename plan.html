@@ -9437,13 +9437,22 @@
             _scheduleFabLower();
         }
 
+        function _getElementLayoutBottom(el) {
+            var top = 0;
+            while (el && el !== document.body) {
+                top += el.offsetTop || 0;
+                el = el.offsetParent;
+            }
+            return top;
+        }
+
         function _positionFabBelowBubble(bubble) {
             bubble = bubble || document.getElementById('gameBubble');
             var fabPos = document.querySelector('.fab-chat');
             if (!bubble || !fabPos || !fabPos.classList.contains('fab-raised')) return;
             var anchor = bubble.querySelector('.game-bubble-body') || bubble;
-            var rect = anchor.getBoundingClientRect();
-            var bottomVal = window.innerHeight - rect.bottom - FAB_BUBBLE_GAP;
+            var anchorBottom = _getElementLayoutBottom(anchor) + anchor.offsetHeight;
+            var bottomVal = window.innerHeight - anchorBottom - FAB_BUBBLE_GAP - fabPos.offsetHeight;
             fabPos.style.setProperty('bottom', Math.max(4, bottomVal) + 'px', 'important');
             fabPos.style.removeProperty('top');
         }
