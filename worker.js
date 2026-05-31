@@ -82,7 +82,7 @@
 // No default values - all calculations must be individualized based on user data
 
 // Data Validation Configuration (hardcoded fallback defaults — overridable via admin panel KV)
-const MIN_AGE = 10; // Minimum age for diet planning (minors require guardian consent)
+const MIN_AGE = 13; // Minimum age for diet planning (GDPR/COPPA: under-13 users not permitted)
 const MAX_AGE = 100;
 const MIN_WEIGHT_KG = 20;
 const MAX_WEIGHT_KG = 300;
@@ -1163,15 +1163,20 @@ function validateDataAdequacy(data, config) {
     errors.push(`Височината трябва да бъде между ${minHeightCm} и ${maxHeightCm} см. Моля, въведете реалистична стойност.`);
   }
   
-  // Check age (realistic range - minors require special considerations)
+  // Check age (realistic range)
   const age = parseInt(data.age);
   if (isNaN(age) || age < minAge || age > maxAge) {
     errors.push(`Възрастта трябва да бъде между ${minAge} и ${maxAge} години. Моля, въведете реалистична стойност.`);
   }
-  
-  // Note for minors - TODO: Implement guardian consent verification in production
-  if (age >= minAge && age < 18) {
-    console.warn(`Minor user (age ${age}) - TODO: guardian consent verification required in production`);
+
+  // Block users under 13 (GDPR Article 8 / COPPA compliance)
+  if (!isNaN(age) && age < 13) {
+    errors.push('Услугата е достъпна само за лица на 13 или повече години. Потребители под 13 г. не могат да ползват приложението.');
+  }
+
+  // Note for minors between 13-18
+  if (!isNaN(age) && age >= 13 && age < 18) {
+    console.warn(`Minor user (age ${age}) - parental consent required per Terms of Service`);
   }
   
   // Check BMI extremes (medically unrealistic BMI values)

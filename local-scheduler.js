@@ -26,6 +26,8 @@ const GameNotifier = {
     LS_VERSION_KEY:  'gameNotifierConfigVersion',
     CALENDAR_URL:   'https://aidiet.radilov-k.workers.dev/api/calendar.ics',
     CHANNEL_ID:     'nutriplan_daily_checkins',
+    MORNING_CHANNEL_ID: 'nutriplan_morning',
+    EVENING_CHANNEL_ID: 'nutriplan_evening',
     BRAND_TEAL:     '#009A9E',
     BRAND_TEAL_DARK: '#0F766E',
     QUICK_ANSWER_PATH: '/quick-answer.html',
@@ -265,16 +267,41 @@ const GameNotifier = {
         try {
             const { LocalNotifications } = this._capacitor;
             if (typeof LocalNotifications.createChannel !== 'function') return;
+            // Legacy channel kept for backward compatibility (existing installs)
             await LocalNotifications.createChannel({
                 id: this.CHANNEL_ID,
                 name: 'NutriPlan дневни проверки',
                 description: 'Сутрешни и вечерни напомняния за проследяване на хранене, сън и настроение.',
-                importance: 5,
+                importance: 4,
                 visibility: 1,
                 sound: 'default',
                 vibration: true,
                 lights: true,
                 lightColor: this.BRAND_TEAL
+            });
+            // Separate morning channel — uses system notification sound
+            await LocalNotifications.createChannel({
+                id: this.MORNING_CHANNEL_ID,
+                name: 'NutriPlan — Сутрешна проверка',
+                description: 'Сутрешно напомняне за сън и начало на деня.',
+                importance: 4,
+                visibility: 1,
+                sound: 'default',
+                vibration: true,
+                lights: true,
+                lightColor: this.BRAND_TEAL
+            });
+            // Separate evening channel — uses system notification sound
+            await LocalNotifications.createChannel({
+                id: this.EVENING_CHANNEL_ID,
+                name: 'NutriPlan — Вечерна проверка',
+                description: 'Вечерно напомняне за хидратация и края на деня.',
+                importance: 4,
+                visibility: 1,
+                sound: 'default',
+                vibration: true,
+                lights: true,
+                lightColor: this.BRAND_TEAL_DARK
             });
         } catch (e) {
             console.warn('[GameNotifier] Android channel setup warning:', e);
@@ -498,7 +525,7 @@ const GameNotifier = {
                 const recordKey = this._dateKeyForTimestamp(morningTs);
                 notifications.push({
                     id: 1000 + day,
-                    channelId: this.CHANNEL_ID,
+                    channelId: this.MORNING_CHANNEL_ID,
                     title: cfg.morningTitle,
                     body:  cfg.morningBody,
                     actionTypeId: this.MORNING_ACTION_TYPE_ID,
@@ -518,7 +545,7 @@ const GameNotifier = {
                 const recordKey = this._dateKeyForTimestamp(eveningTs);
                 notifications.push({
                     id: 2000 + day,
-                    channelId: this.CHANNEL_ID,
+                    channelId: this.EVENING_CHANNEL_ID,
                     title: cfg.eveningTitle,
                     body:  cfg.eveningBody,
                     actionTypeId: this.EVENING_ACTION_TYPE_ID,
