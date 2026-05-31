@@ -6070,7 +6070,7 @@
                     const win = document.getElementById('chatWindow');
                     if (!win) return;
                     const kbHeight = Math.max(0,
-                        window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop
+                        window.innerHeight - window.visualViewport.height
                     );
                     win.style.bottom = kbHeight + 'px';
                     if (kbHeight > 0) {
