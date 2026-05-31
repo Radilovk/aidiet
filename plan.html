@@ -6064,13 +6064,13 @@
                 }
             }
 
-            // Lift panel above software keyboard using visualViewport API
+            // Lift panel above software keyboard
             if (window.visualViewport) {
                 const _vpHandler = () => {
                     const win = document.getElementById('chatWindow');
                     if (!win) return;
                     const kbHeight = Math.max(0,
-                        window.innerHeight - window.visualViewport.height
+                        window.innerHeight - window.visualViewport.offsetTop - window.visualViewport.height
                     );
                     win.style.bottom = kbHeight + 'px';
                     if (kbHeight > 0) {
@@ -6081,6 +6081,21 @@
                 window.visualViewport.addEventListener('resize', _vpHandler);
                 window.visualViewport.addEventListener('scroll', _vpHandler);
                 chatWindow._vpHandler = _vpHandler;
+            } else {
+                // Fallback for browsers without visualViewport (e.g. very old Firefox/Safari)
+                const _baseH = window.innerHeight;
+                const _resizeHandler = () => {
+                    const win = document.getElementById('chatWindow');
+                    if (!win) return;
+                    const kbHeight = Math.max(0, _baseH - window.innerHeight);
+                    win.style.bottom = kbHeight + 'px';
+                    if (kbHeight > 0) {
+                        const msgs = document.getElementById('chatMessages');
+                        if (msgs) msgs.scrollTop = msgs.scrollHeight;
+                    }
+                };
+                window.addEventListener('resize', _resizeHandler);
+                chatWindow._resizeHandler = _resizeHandler;
             }
 
             // Focus input only on desktop (prevent keyboard popup on mobile)
@@ -6105,6 +6120,9 @@
                 if (chatWindow._vpHandler && window.visualViewport) {
                     window.visualViewport.removeEventListener('resize', chatWindow._vpHandler);
                     window.visualViewport.removeEventListener('scroll', chatWindow._vpHandler);
+                }
+                if (chatWindow._resizeHandler) {
+                    window.removeEventListener('resize', chatWindow._resizeHandler);
                 }
                 chatWindow.remove();
                 // Reset chatMode to consultation on close to avoid confusion when reopening
