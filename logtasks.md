@@ -1,5 +1,28 @@
 # Log Tasks
 
+## 2026-06-01 — Правна регулаторна подготовка за Google Play публикуване
+
+**Задача:** Преглед на правните и регулаторни изисквания за APK — permissions (локация, камера, галерия, нотификации), звукови нотификации, и изисквания на Google Play. Имплементиране на всичко изпълнимо.
+
+**Анализ:**
+- **Permissions:** `<input type="file" accept="image/*">` е правно-оптималното решение за камера/галерия — не изисква CAMERA permission в Manifest. Локацията не се ползва в приложението. POST_NOTIFICATIONS изисква един системен диалог — не може да стане автоматично.
+- **Звукови нотификации:** `sound: 'default'` вече използва системния звук на потребителя. За отделни звуци по тип нотификация са нужни отделни Android канали с различни ID-та.
+- **Google Play:** Задължително: Privacy Policy URL, Data Safety форма (manual в Play Console), Content Rating (IARC, manual), targetSdkVersion ≥ 35 (вече 35 ✅). Блокиращо: MIN_AGE=10 и TODO guardian consent — поправено на 13 с блокиране.
+
+**Направено:**
+1. `privacy-policy.html` — пълна GDPR-съвместима Privacy Policy на български (чл. 9 special category данни, права на субекта, разрешения на Android, непълнолетни).
+2. `terms.html` — Условия за ползване с медицинска декларация, минимална възраст, ограничение на отговорността.
+3. `index.html` — Footer линкове към двете правни страници + CSS стилове.
+4. `local-scheduler.js` — Добавени `MORNING_CHANNEL_ID` (`nutriplan_morning`) и `EVENING_CHANNEL_ID` (`nutriplan_evening`). `_ensureAndroidChannel` създава и трите канала (legacy + сутрин + вечер). Сутрешните нотификации ползват `MORNING_CHANNEL_ID`, вечерните — `EVENING_CHANNEL_ID`. Importance понижена от 5 (MAX) на 4 (HIGH) — MAX е прекалено агресивно и може да доведе до отказ при Play Store review.
+5. `worker.js` — `MIN_AGE` сменен от 10 на 13 (GDPR чл. 8 / COPPA). Добавено блокиране с validation error при подаване на возраст < 13. Премахнат TODO коментар.
+
+**Оставащо (manual в Play Console):**
+- Data Safety форма — декларация за събрани данни
+- IARC Content Rating — въпросник за рейтинг
+- Privacy Policy URL — въвеждане в Play Console listing
+- Test credentials за reviewer
+- Health app declaration (ако поискана)
+
 ## 2026-05-31 — APK notifications: премахване на фалшивите toggle-и и реален permission prompt
 
 **Задача:** Да се прегледа notification flow-ът в инсталирания APK, да се види кои настройки реално влияят, да се махне излишното и при активиране известията да могат да излизат на телефона без излишен код.
