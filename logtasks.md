@@ -3180,3 +3180,21 @@ Logout бутонът и избраният от потребителя ават
 - Добавен cleanup на `_resizeHandler` в `closeChatWindow`
 
 **Засегнати файлове:** `plan.html`
+
+---
+
+## Задача: APK нотификации при инсталиране (2026-06-01)
+
+**Проблем:** При инсталиране на APK, не се извеждат автоматични нотификации в определените часове (07:00 и 20:00).
+
+**Анализ:**
+- Изследвани: `local-scheduler.js`, `sw.js`, `plan.html`, `app.js`, `capacitor.config.json`, `android-res/APK_BUILD_REFERENCE.md`, `build-apk.yml`
+- Потвърден бъг: `server.url: "https://biocode.website"` в `capacitor.config.json` нарушава `APK_BUILD_REFERENCE.md` Section 3
+- С `server.url` APK-то зарежда от отдалечения сървър вместо от bundled `capacitor-shell/` файлове, правейки APK-то зависимо от интернет и потенциално подложено на кеширане от ServiceWorker на `biocode.website`
+- APK_BUILD_REFERENCE.md изрично: `server.url НЕ трябва да се добавя`; правилната конфигурация е само `hostname: "localhost"`
+
+**Направено:**
+- Премахнато `"url": "https://biocode.website"` от `server` блока в `capacitor.config.json`
+- Добавено `"hostname": "localhost"` (изисква се от APK_BUILD_REFERENCE.md)
+
+**Засегнати файлове:** `capacitor.config.json`
