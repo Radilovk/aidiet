@@ -124,12 +124,12 @@ const GameNotifier = {
      * Lightweight config refresh for APK app-resume events.
      * Skips the full re-init (permission checks, channel setup, listener binding).
      * Does one version check against the backend; reschedules only when the admin
-     * has saved a new config since the last sync.  Throttled to once per 15 min.
+     * has saved a new config since the last sync.  Throttled to once per 24 hours.
      */
     async refreshConfig() {
         if (!this._initialized) return false;
         // Throttle: avoid hammering the backend on every quick foreground/background cycle.
-        const THROTTLE_MS = 15 * 60 * 1000;
+        const THROTTLE_MS = 24 * 60 * 60 * 1000;
         const last = parseInt(localStorage.getItem(this.LS_LAST_REFRESH_KEY) || '0', 10);
         if (Date.now() - last < THROTTLE_MS) return false;
         const prevVersion = localStorage.getItem(this.LS_VERSION_KEY);
