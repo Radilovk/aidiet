@@ -22,8 +22,9 @@ const GameNotifier = {
     // Keep a rolling monthly buffer so OEM battery restrictions or missed app opens
     // do not leave users without reminders after the first week.
     SCHEDULE_WINDOW_DAYS: 30,
-    LS_CONFIG_KEY:   'gameNotifierConfig',
-    LS_VERSION_KEY:  'gameNotifierConfigVersion',
+    LS_CONFIG_KEY:        'gameNotifierConfig',
+    LS_VERSION_KEY:       'gameNotifierConfigVersion',
+    LS_LAST_REFRESH_KEY:  'gameNotifierLastRefresh',
     CALENDAR_URL:   'https://aidiet.radilov-k.workers.dev/api/calendar.ics',
     CHANNEL_ID:     'nutriplan_daily_checkins',
     MORNING_CHANNEL_ID: 'nutriplan_morning',
@@ -105,6 +106,7 @@ const GameNotifier = {
             // Schedule the rolling monthly buffer using the (now up-to-date) config.
             await this.scheduleNotifications();
             this._initialized = true;
+            localStorage.setItem(this.LS_LAST_REFRESH_KEY, String(Date.now()));
             console.log('[GameNotifier] Ready.');
             return true;
         })();
@@ -116,6 +118,30 @@ const GameNotifier = {
             this._initPromise = null;
         }
         return !!ready;
+    },
+
+    /**
+     * Lightweight config refresh for APK app-resume events.
+     * Skips the full re-init (permission checks, channel setup, listener binding).
+     * Does one version check against the backend; reschedules only when the admin
+     * has saved a new config since the last sync.  Throttled to once per 15 min.
+     */
+    async refreshConfig() {
+        if (!this._initialized) return false;
+        // Throttle: avoid hammering the backend on every quick foreground/background cycle.
+        const THROTTLE_MS = 15 * 60 * 1000;
+        const last = parseInt(localStorage.getItem(this.LS_LAST_REFRESH_KEY) || '0', 10);
+        if (Date.now() - last < THROTTLE_MS) return false;
+        const prevVersion = localStorage.getItem(this.LS_VERSION_KEY);
+        await this._maybeSyncBackendConfig();
+        localStorage.setItem(this.LS_LAST_REFRESH_KEY, String(Date.now()));
+        const newVersion = localStorage.getItem(this.LS_VERSION_KEY);
+        if (newVersion !== prevVersion) {
+            console.log('[GameNotifier] Config updated (v' + newVersion + ') – rescheduling notifications.');
+            await this.scheduleNotifications();
+            return true;
+        }
+        return false;
     },
 
     async scheduleNotifications() {

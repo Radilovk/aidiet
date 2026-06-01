@@ -4453,7 +4453,8 @@
             // Load chat history
             loadChatHistory();
             // Initialise game notifications (GameNotifier in local-scheduler.js).
-            // GameNotifier.init() uses only locally cached config — no backend calls on app open.
+            // On first call: checks permission, creates Android channel, syncs backend
+            // config (one lightweight KV version-check), and schedules a 30-day window.
             scheduleNotifications();
             // Handle URL action params from notification taps
             const urlParams = new URLSearchParams(window.location.search);
@@ -5574,6 +5575,11 @@
         document.addEventListener('visibilitychange', function() {
             if (document.hidden) {
                 cancelActiveTyping({ complete: true });
+            } else if (window.GameNotifier && typeof window.GameNotifier.refreshConfig === 'function') {
+                // APK: WebView stays alive when app is backgrounded; refreshConfig() syncs
+                // the admin notification config (one lightweight KV version-check, throttled
+                // to 15 min) so schedule changes from the admin panel reach all users.
+                window.GameNotifier.refreshConfig().catch(function() {});
             }
         });
         window.addEventListener('pagehide', function() {

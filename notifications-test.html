@@ -933,7 +933,8 @@ async function saveSharedConfig(syncAfterSave = false) {
         }
         if (syncAfterSave && window.GameNotifier) {
             await window.GameNotifier.forceSyncBackendConfig();
-            await window.GameNotifier.init();
+            // Do NOT call init() here – it returns immediately when _initialized=true.
+            // scheduleNotifications() reads the now-updated localStorage config directly.
             await window.GameNotifier.scheduleNotifications();
         }
         refreshConfig();
@@ -977,6 +978,10 @@ async function forceSyncConfig() {
     try {
         if (window.GameNotifier && typeof window.GameNotifier.forceSyncBackendConfig === 'function') {
             await window.GameNotifier.forceSyncBackendConfig();
+            // Reschedule with the refreshed config (init() is a no-op when _initialized=true)
+            if (typeof window.GameNotifier.scheduleNotifications === 'function') {
+                await window.GameNotifier.scheduleNotifications();
+            }
         } else {
             await loadSharedConfig();
             return;
