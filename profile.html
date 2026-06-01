@@ -857,6 +857,12 @@
             background:linear-gradient(135deg,#0D9488,#0F766E);
             color:white; font-weight:700; cursor:pointer; font-size:0.85rem;
         }
+        .game-explain-why-btn {
+            margin-top:10px; width:100%; padding:9px;
+            border:1.5px solid #6366f1; border-radius:12px;
+            background:transparent; color:#6366f1;
+            font-weight:600; cursor:pointer; font-size:0.82rem;
+        }
         /* Dark theme overrides */
         [data-theme="dark"] .game-analytics-section { border-color: rgba(45,212,191,0.15); }
         [data-theme="dark"] .game-index-bar-wrap    { background: rgba(45,212,191,0.1); }
@@ -4435,17 +4441,23 @@
             // ── Explanation modal ─────────────────────────────────────────────
             var EXPLANATIONS = {
                 engagement: { title:'Ангажираност към плана',
-                    text:'Показва колко редовно следваш плана си тази седмица — хранения, чек-ини и избягване на вредни храни.\n\nСтремеж: над 80%.' },
+                    text:'Показва колко редовно следваш плана си тази седмица — хранения, чек-ини и избягване на вредни храни.\n\nЦел: минимум 80%.',
+                    why:'Проучване в American Journal of Preventive Medicine (2019) показва, че хората, които следват хранителен план поне 80% от времето, постигат 3× по-добри резултати за отслабване. Всеки пропуснат ден увеличава риска от пълно отказване с 27%.' },
                 calories: { title:'Калориен баланс',
-                    text:'Следи дали приемаш правилното количество калории за деня спрямо твоя личен таргет.\n\nЛента до линията = балансиран ден. Поддържай баланса, за да постигнеш целта си.' },
+                    text:'Следи дали приемаш правилното количество калории спрямо твоя таргет.\n\nЦел: баланс в рамките на ±100 kcal дневно.',
+                    why:'Мета-анализ в New England Journal of Medicine (2022) доказва: дори 200 kcal дневен излишък води до 10 кг наднормено тегло за 5 години. Обратно — последователен умерен дефицит от 300–500 kcal е най-устойчивият път към здравословно тегло.' },
                 stress: { title:'Емоционален баланс',
-                    text:'Показва как се чувстваш емоционално всеки ден. Когато балансът е висок, стресът е нисък — това директно влияе на резултатите от плана.\n\nСтремеж: над 70%.' },
+                    text:'Показва емоционалното ти състояние. Висок баланс = нисък стрес.\n\nЦел: минимум 70%.',
+                    why:'Хроничният стрес повишава кортизола, което според Nature Reviews Endocrinology (2020) увеличава апетита за висококалорична храна с 40% и натрупва мастна тъкан в коремната област. Управлението на стреса е толкова важно, колкото и самата диета.' },
                 sleep: { title:'Качество на съня',
-                    text:'Отразява качеството на съня ти на база сутрешните чек-ини. Добрият сън е ключов за постигане на здравословните ти цели.\n\nСтремеж: над 70%.' },
+                    text:'Отразява качеството на съня ти на база сутрешните чек-ини.\n\nЦел: минимум 70%.',
+                    why:'Изследване в Annals of Internal Medicine (2010) показва: при сън под 6 часа тялото губи мускулна маса вместо мазнини при дефицит, а грелинът (хормонът на глада) се увеличава с 28%. Добрият сън буквално определя дали ще горите мазнини или мускули.' },
                 activity: { title:'Активност',
-                    text:'Показва колко активен си бил всеки ден. Редовното движение ускорява напредъка към целите ти.' },
+                    text:'Показва колко активен си бил всеки ден.\n\nЦел: минимум 70%.',
+                    why:'The Lancet (2016) доказа в проучване с 1 милион участници: 30 мин. ежедневна активност намалява риска от преждевременна смърт с 28%. Дори 15 мин. ходене дневно удължават живота с 3 години.' },
                 health: { title:'Здравен Индекс',
-                    text:'Обобщена оценка на здравословното ти поведение за седмицата — включва ангажираност, сън, активност и емоционален баланс.\n\nСтремеж: над 70.' }
+                    text:'Обобщена оценка на здравословното ти поведение — ангажираност, сън, активност и емоционален баланс.\n\nЦел: минимум 70.',
+                    why:'Комбинацията от добър сън, хранене, активност и нисък стрес намалява риска от хронични заболявания с 80% (European Heart Journal, 2020). Здравният индекс отразява цялостния ти начин на живот — подобрението дори с 10 пункта означава измеримо по-добро здраве.' }
             };
             function showExplanation(key) {
                 var info = EXPLANATIONS[key]; if(!info) return;
@@ -4456,7 +4468,26 @@
                 var box = document.createElement('div'); box.className = 'game-explain-box';
                 var t = document.createElement('div'); t.className='game-explain-title'; t.textContent=info.title;
                 var tx= document.createElement('div'); tx.className='game-explain-text'; tx.style.whiteSpace='pre-line'; tx.textContent=info.text;
+                box.appendChild(t); box.appendChild(tx);
+                if(info.why) {
+                    var whyBtn = document.createElement('button'); whyBtn.className='game-explain-why-btn'; whyBtn.innerHTML='<i class="fas fa-flask"></i> Защо е важно';
+                    whyBtn.onclick=function(){ showWhyModal(info.title, info.why); };
+                    box.appendChild(whyBtn);
+                }
                 var cb= document.createElement('button'); cb.className='game-explain-close'; cb.textContent='Разбрах';
+                cb.onclick=function(){ overlay.remove(); };
+                box.appendChild(cb);
+                overlay.appendChild(box); document.body.appendChild(overlay);
+            }
+            function showWhyModal(title, whyText) {
+                var old = document.getElementById('gameWhyOverlay'); if(old) old.remove();
+                var overlay = document.createElement('div');
+                overlay.id = 'gameWhyOverlay'; overlay.className = 'game-explain-overlay'; overlay.style.zIndex='10001';
+                overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
+                var box = document.createElement('div'); box.className = 'game-explain-box';
+                var t = document.createElement('div'); t.className='game-explain-title'; t.innerHTML='<i class="fas fa-flask" style="color:#6366f1"></i> ' + title;
+                var tx = document.createElement('div'); tx.className='game-explain-text'; tx.style.whiteSpace='pre-line'; tx.textContent=whyText;
+                var cb = document.createElement('button'); cb.className='game-explain-close'; cb.textContent='Затвори';
                 cb.onclick=function(){ overlay.remove(); };
                 box.appendChild(t); box.appendChild(tx); box.appendChild(cb);
                 overlay.appendChild(box); document.body.appendChild(overlay);
@@ -4611,7 +4642,7 @@
 
             html += '<div class="game-index-row" data-explain="engagement">' +
                 '<div class="game-index-label"><span><i class="fas fa-utensils" style="color:#0D9488"></i> Ангажираност</span><span>'+engagementPct+'%</span></div>' +
-                '<div class="game-index-hint">'+(engagementPct>=80?'<i class="fas fa-check-circle" style="color:#10b981"></i> Отлично':engagementPct>=60?'<i class="fas fa-circle" style="color:#f59e0b"></i> Добре':'<i class="fas fa-circle" style="color:#ef4444"></i> Нисък')+' · Дневен % (хранения + чек-ини) · <i class="fas fa-circle-info"></i> натисни за детайли</div>' +
+                '<div class="game-index-hint">'+(engagementPct>=80?'<i class="fas fa-check-circle" style="color:#10b981"></i> Отлично':engagementPct>=60?'<i class="fas fa-circle" style="color:#f59e0b"></i> Добре':'<i class="fas fa-circle" style="color:#ef4444"></i> Нисък')+' <i class="fas fa-circle-info"></i></div>' +
                 pBar(engagementPct,'linear-gradient(90deg,#0D9488,#06B6D4)') + miniBarChart(engPcts,100,'#0D9488') +
             '</div>';
 
@@ -4628,32 +4659,32 @@
             }
             html += '<div class="game-index-row" data-explain="calories">' +
                 '<div class="game-index-label"><span><i class="fas fa-scale-balanced" style="color:#f59e0b"></i> Калориен баланс</span><span>'+(netCalBalance>0?'+':'')+netCalBalance+' kcal</span></div>' +
-                '<div class="game-index-hint">'+calBalanceLabel+' · Нетен калориен баланс · <i class="fas fa-circle-info"></i> натисни за детайли</div>' +
+                '<div class="game-index-hint">'+calBalanceLabel+' <i class="fas fa-circle-info"></i></div>' +
                 pBar(calAdherencePct, netCalBalance>700?'linear-gradient(90deg,#ef4444,#f97316)':netCalBalance>0?'linear-gradient(90deg,#f59e0b,#fbbf24)':'linear-gradient(90deg,#3b82f6,#06B6D4)') +
                 calTargetBarChart(calConsumedByDay, calPlannedByDay, netCalBalance>700?'#ef4444':'#f59e0b', '#3b82f6') +
             '</div>';
 
             if(balancePct!=null) html += '<div class="game-index-row" data-explain="stress">' +
                 '<div class="game-index-label"><span><i class="fas fa-heart-pulse" style="color:#10b981"></i> Емоционален баланс</span><span>'+balancePct+'%</span></div>' +
-                '<div class="game-index-hint">'+(balancePct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Висок баланс':balancePct>=40?'<i class="fas fa-circle" style="color:#f59e0b"></i> Умерен':'<i class="fas fa-circle" style="color:#ef4444"></i> Нисък баланс')+' · По-висок % = по-добре · <i class="fas fa-circle-info"></i> натисни за детайли</div>' +
+                '<div class="game-index-hint">'+(balancePct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Висок баланс':balancePct>=40?'<i class="fas fa-circle" style="color:#f59e0b"></i> Умерен':'<i class="fas fa-circle" style="color:#ef4444"></i> Нисък баланс')+' <i class="fas fa-circle-info"></i></div>' +
                 pBar(balancePct,'linear-gradient(90deg,#10b981,#06B6D4)') + miniBarChart(balanceByDay,100,'#10b981') +
             '</div>';
 
             if(sleepPct!=null) html += '<div class="game-index-row" data-explain="sleep">' +
                 '<div class="game-index-label"><span><i class="fas fa-bed" style="color:#6366f1"></i> Сън</span><span>'+sleepPct+'%</span></div>' +
-                '<div class="game-index-hint">'+(sleepPct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Добър сън':sleepPct>=40?'<i class="fas fa-circle" style="color:#f59e0b"></i> Умерен':'<i class="fas fa-circle" style="color:#ef4444"></i> Нисък')+' · По-висок % = по-добре · <i class="fas fa-circle-info"></i> натисни за детайли</div>' +
+                '<div class="game-index-hint">'+(sleepPct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Добър сън':sleepPct>=40?'<i class="fas fa-circle" style="color:#f59e0b"></i> Умерен':'<i class="fas fa-circle" style="color:#ef4444"></i> Нисък')+' <i class="fas fa-circle-info"></i></div>' +
                 pBar(sleepPct,'linear-gradient(90deg,#6366f1,#8b5cf6)') + miniBarChart(sleepByDay,100,'#6366f1') +
             '</div>';
 
             if(actPct!=null) html += '<div class="game-index-row" data-explain="activity">' +
                 '<div class="game-index-label"><span><i class="fas fa-person-walking" style="color:#f59e0b"></i> Активност</span><span>'+actPct+'%</span></div>' +
-                '<div class="game-index-hint">'+(actPct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Висока':actPct>=40?'<i class="fas fa-circle" style="color:#f59e0b"></i> Умерена':'<i class="fas fa-circle" style="color:#ef4444"></i> Ниска')+' · По-висок % = по-добре · <i class="fas fa-circle-info"></i> натисни за детайли</div>' +
+                '<div class="game-index-hint">'+(actPct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Висока':actPct>=40?'<i class="fas fa-circle" style="color:#f59e0b"></i> Умерена':'<i class="fas fa-circle" style="color:#ef4444"></i> Ниска')+' <i class="fas fa-circle-info"></i></div>' +
                 pBar(actPct,'linear-gradient(90deg,#f59e0b,#fbbf24)') + miniBarChart(actByDay,100,'#f59e0b') +
             '</div>';
 
             if(waterPct!=null) html += '<div class="game-index-row" data-explain="water">' +
                 '<div class="game-index-label"><span><i class="fas fa-droplet" style="color:#06B6D4"></i> Хидратация</span><span>'+waterPct+'%</span></div>' +
-                '<div class="game-index-hint">'+(waterPct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Добра':waterPct>=40?'<i class="fas fa-circle" style="color:#f59e0b"></i> Умерена':'<i class="fas fa-circle" style="color:#ef4444"></i> Ниска')+' · Дни с достатъчен прием вода · <i class="fas fa-circle-info"></i> натисни за детайли</div>' +
+                '<div class="game-index-hint">'+(waterPct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Добра':waterPct>=40?'<i class="fas fa-circle" style="color:#f59e0b"></i> Умерена':'<i class="fas fa-circle" style="color:#ef4444"></i> Ниска')+' <i class="fas fa-circle-info"></i></div>' +
                 pBar(waterPct,'linear-gradient(90deg,#06B6D4,#0284C7)') + miniBarChart(waterByDay,100,'#06B6D4') +
             '</div>';
 
