@@ -548,16 +548,116 @@
             gap: 8px;
         }
 
-        .delete-btn {
+        .delete-btn, .edit-btn {
             min-height: 38px;
             padding: 0 12px;
             background: transparent;
-            color: var(--danger);
             border: 1px solid rgba(220, 38, 38, 0.18);
+        }
+
+        .delete-btn {
+            color: var(--danger);
         }
 
         .delete-btn:hover {
             background: rgba(220, 38, 38, 0.08);
+        }
+
+        .edit-btn {
+            color: var(--primary);
+            border-color: rgba(37, 99, 235, 0.18);
+        }
+
+        .edit-btn:hover {
+            background: rgba(37, 99, 235, 0.08);
+        }
+
+        .action-cell {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        /* Custom autocomplete dropdown */
+        .product-autocomplete-wrapper {
+            position: relative;
+        }
+
+        .product-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-top: none;
+            border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+            max-height: 220px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .product-dropdown.open {
+            display: block;
+        }
+
+        .product-dropdown-item {
+            padding: 12px 14px;
+            cursor: pointer;
+            font-size: 0.92rem;
+            border-bottom: 1px solid rgba(219, 227, 239, 0.5);
+            transition: background 0.12s ease;
+        }
+
+        .product-dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .product-dropdown-item:hover,
+        .product-dropdown-item.highlighted {
+            background: var(--primary-soft);
+        }
+
+        .product-dropdown-item .item-name {
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .product-dropdown-item .item-meta {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .product-dropdown-empty {
+            padding: 14px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.86rem;
+        }
+
+        /* Edit modal */
+        .edit-modal-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin: 16px 0;
+        }
+
+        .edit-modal-grid .form-group {
+            grid-column: span 1;
+        }
+
+        .edit-modal-grid .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        @media (max-width: 480px) {
+            .edit-modal-grid .form-group {
+                grid-column: 1 / -1;
+            }
         }
 
         .small-chip {
@@ -630,8 +730,10 @@
             <div class="form-grid">
                 <div class="form-group full-width">
                     <label for="productSearch">Продукт</label>
-                    <input type="text" id="productSearch" list="productDatalist" placeholder="Retatrutide 5 mg" autocomplete="off">
-                    <datalist id="productDatalist"></datalist>
+                    <div class="product-autocomplete-wrapper">
+                        <input type="text" id="productSearch" placeholder="Въведи или избери продукт…" autocomplete="off">
+                        <div class="product-dropdown" id="productDropdown"></div>
+                    </div>
                 </div>
                 <div class="form-group col-3">
                     <label for="saleQty">Количество</label>
@@ -736,7 +838,7 @@
                         <label class="checkbox-chip"><input type="checkbox" id="colRevenue" checked> Приход</label>
                         <label class="checkbox-chip"><input type="checkbox" id="colCost" checked> Разход</label>
                         <label class="checkbox-chip"><input type="checkbox" id="colComment" checked> Бележка</label>
-                        <label class="checkbox-chip"><input type="checkbox" id="colAction" checked> Изтриване</label>
+                        <label class="checkbox-chip"><input type="checkbox" id="colAction" checked> Действия</label>
                     </div>
                 </div>
             </div>
@@ -798,6 +900,48 @@
         <div class="card-title">📜 История по продукт</div>
         <div id="historyModalSubtitle" style="color:var(--text-muted);font-size:0.9rem;margin:6px 0 0;"></div>
         <div id="modalHistoryList"></div>
+    </div>
+</div>
+
+<div id="editSaleModal" class="modal" aria-hidden="true">
+    <div class="modal-content">
+        <span class="close-edit-modal" aria-label="Затвори">&times;</span>
+        <div class="card-title">✏️ Редакция на запис</div>
+        <input type="hidden" id="editSaleId">
+        <div class="edit-modal-grid">
+            <div class="form-group full-width">
+                <label for="editProductSelect">Продукт</label>
+                <select id="editProductSelect"></select>
+            </div>
+            <div class="form-group">
+                <label for="editQty">Количество</label>
+                <input type="number" id="editQty" min="1" step="1" inputmode="numeric">
+            </div>
+            <div class="form-group">
+                <label for="editMultiplier">Множител</label>
+                <select id="editMultiplierType">
+                    <option value="2">Продажба на едро · ×2</option>
+                    <option value="2.5">Продажба на дребно · ×2.5</option>
+                    <option value="1">Лична употреба · без приход</option>
+                    <option value="custom">Персонален множител</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="editCustomMultiplier">Множител (стойност)</label>
+                <input type="number" id="editCustomMultiplier" min="0.01" step="0.01" inputmode="decimal">
+            </div>
+            <div class="form-group">
+                <label for="editDate">Дата</label>
+                <input type="date" id="editDate">
+            </div>
+            <div class="form-group full-width">
+                <label for="editComment">Бележка</label>
+                <textarea id="editComment" style="min-height:80px;"></textarea>
+            </div>
+            <div class="form-group full-width">
+                <button id="saveEditBtn">Запази промените</button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -1246,7 +1390,7 @@
         if (visibleColumns.revenue) headers.push('Приход');
         if (visibleColumns.cost) headers.push('Разход');
         if (visibleColumns.comment) headers.push('Бележка');
-        if (visibleColumns.action) headers.push('Изтриване');
+        if (visibleColumns.action) headers.push('Действия');
 
         thead.innerHTML = `<tr>${headers.map((header) => `<th>${header}</th>`).join('')}</tr>`;
         tbody.innerHTML = '';
@@ -1272,11 +1416,42 @@
             }
             if (visibleColumns.action) {
                 const cell = row.insertCell();
-                const button = document.createElement('button');
-                button.type = 'button';
-                button.className = 'delete-btn';
-                button.textContent = 'Изтрий';
-                button.addEventListener('click', async (event) => {
+                cell.innerHTML = '<div class="action-cell"></div>';
+                const actionDiv = cell.querySelector('.action-cell');
+
+                const editButton = document.createElement('button');
+                editButton.type = 'button';
+                editButton.className = 'edit-btn';
+                editButton.textContent = 'Редакция';
+                editButton.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    openEditSaleModal(sale);
+                });
+                actionDiv.appendChild(editButton);
+
+                const dupButton = document.createElement('button');
+                dupButton.type = 'button';
+                dupButton.className = 'edit-btn';
+                dupButton.textContent = '⧉';
+                dupButton.title = 'Дублирай записа';
+                dupButton.style.minWidth = '38px';
+                dupButton.style.padding = '0 8px';
+                dupButton.addEventListener('click', async (event) => {
+                    event.stopPropagation();
+                    await runSafely(async () => {
+                        await addSale(sale.productId, sale.quantity, sale.multiplier, sale.comment ? `(Копие) ${sale.comment}` : '(Копие)', getTodayValue());
+                        refreshAllUI();
+                        updateStatusPanel();
+                        showBanner('Записът е дублиран с днешна дата.', 'info');
+                    });
+                });
+                actionDiv.appendChild(dupButton);
+
+                const deleteButton = document.createElement('button');
+                deleteButton.type = 'button';
+                deleteButton.className = 'delete-btn';
+                deleteButton.textContent = 'Изтрий';
+                deleteButton.addEventListener('click', async (event) => {
                     event.stopPropagation();
                     if (!confirm('Да изтрия ли този запис?')) {
                         return;
@@ -1288,7 +1463,7 @@
                         showBanner('Записът беше изтрит.', 'info');
                     });
                 });
-                cell.appendChild(button);
+                actionDiv.appendChild(deleteButton);
             }
         });
     }
@@ -1316,11 +1491,93 @@
     }
 
     function refreshDatalist() {
-        const datalist = document.getElementById('productDatalist');
-        datalist.innerHTML = state.products
-            .map((product) => `<option value="${product.baseName} ${product.dosage}"></option>`)
-            .join('');
+        // No-op, dropdown is rendered dynamically on input/focus
     }
+
+    /* --- Custom product autocomplete dropdown --- */
+    (function initProductAutocomplete() {
+        const input = document.getElementById('productSearch');
+        const dropdown = document.getElementById('productDropdown');
+        let highlightIndex = -1;
+
+        function getMatches(term) {
+            const lowerTerm = term.toLowerCase();
+            if (!lowerTerm) return state.products;
+            return state.products.filter((p) => `${p.baseName} ${p.dosage}`.toLowerCase().includes(lowerTerm));
+        }
+
+        function renderDropdown(matches) {
+            if (!matches.length) {
+                dropdown.innerHTML = '<div class="product-dropdown-empty">Няма съвпадения</div>';
+            } else {
+                dropdown.innerHTML = matches.map((p, i) => `
+                    <div class="product-dropdown-item${i === highlightIndex ? ' highlighted' : ''}" data-index="${i}" data-value="${escapeHtml(p.baseName)} ${escapeHtml(p.dosage)}">
+                        <div class="item-name">${escapeHtml(p.baseName)} ${escapeHtml(p.dosage)}</div>
+                        <div class="item-meta">Доставна: ${formatMoney(p.purchasePrice)} · ×2 = ${formatMoney(p.purchasePrice * 2)} · ×2.5 = ${formatMoney(p.purchasePrice * 2.5)}</div>
+                    </div>
+                `).join('');
+            }
+            dropdown.classList.add('open');
+        }
+
+        function closeDropdown() {
+            dropdown.classList.remove('open');
+            highlightIndex = -1;
+        }
+
+        function selectItem(value) {
+            input.value = value;
+            closeDropdown();
+            updateSalePreview();
+        }
+
+        input.addEventListener('focus', () => {
+            const matches = getMatches(input.value.trim());
+            highlightIndex = -1;
+            renderDropdown(matches);
+        });
+
+        input.addEventListener('input', () => {
+            highlightIndex = -1;
+            const matches = getMatches(input.value.trim());
+            renderDropdown(matches);
+            updateSalePreview();
+        });
+
+        input.addEventListener('keydown', (e) => {
+            if (!dropdown.classList.contains('open')) return;
+            const items = dropdown.querySelectorAll('.product-dropdown-item');
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                highlightIndex = Math.min(highlightIndex + 1, items.length - 1);
+                items.forEach((el, i) => el.classList.toggle('highlighted', i === highlightIndex));
+                if (items[highlightIndex]) items[highlightIndex].scrollIntoView({ block: 'nearest' });
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                highlightIndex = Math.max(highlightIndex - 1, 0);
+                items.forEach((el, i) => el.classList.toggle('highlighted', i === highlightIndex));
+                if (items[highlightIndex]) items[highlightIndex].scrollIntoView({ block: 'nearest' });
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (highlightIndex >= 0 && items[highlightIndex]) {
+                    selectItem(items[highlightIndex].dataset.value);
+                }
+            } else if (e.key === 'Escape') {
+                closeDropdown();
+            }
+        });
+
+        dropdown.addEventListener('click', (e) => {
+            const item = e.target.closest('.product-dropdown-item');
+            if (item) selectItem(item.dataset.value);
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.product-autocomplete-wrapper')) {
+                closeDropdown();
+            }
+        });
+    })();
 
     function refreshAllUI() {
         refreshDatalist();
@@ -1368,6 +1625,109 @@
         modal.style.display = 'none';
         modal.setAttribute('aria-hidden', 'true');
     }
+
+    /* --- Edit Sale Modal --- */
+    function openEditSaleModal(sale) {
+        const modal = document.getElementById('editSaleModal');
+        document.getElementById('editSaleId').value = sale.id;
+
+        // Populate product select
+        const productSelect = document.getElementById('editProductSelect');
+        productSelect.innerHTML = state.products.map((p) =>
+            `<option value="${p.id}" ${safeNumber(p.id) === safeNumber(sale.productId) ? 'selected' : ''}>${escapeHtml(p.baseName)} ${escapeHtml(p.dosage)}</option>`
+        ).join('');
+
+        document.getElementById('editQty').value = sale.quantity;
+        document.getElementById('editDate').value = sale.date;
+        document.getElementById('editComment').value = sale.comment || '';
+
+        // Set multiplier type
+        const multiplierSelect = document.getElementById('editMultiplierType');
+        const customInput = document.getElementById('editCustomMultiplier');
+        const m = safeNumber(sale.multiplier);
+        if (m === 1) {
+            multiplierSelect.value = '1';
+        } else if (m === 2) {
+            multiplierSelect.value = '2';
+        } else if (m === 2.5) {
+            multiplierSelect.value = '2.5';
+        } else {
+            multiplierSelect.value = 'custom';
+        }
+        customInput.value = m;
+        customInput.disabled = multiplierSelect.value !== 'custom';
+
+        modal.style.display = 'flex';
+        modal.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeEditSaleModal() {
+        const modal = document.getElementById('editSaleModal');
+        modal.style.display = 'none';
+        modal.setAttribute('aria-hidden', 'true');
+    }
+
+    document.getElementById('editMultiplierType').addEventListener('change', function() {
+        const customInput = document.getElementById('editCustomMultiplier');
+        const isCustom = this.value === 'custom';
+        customInput.disabled = !isCustom;
+        if (!isCustom) customInput.value = this.value;
+    });
+
+    document.getElementById('saveEditBtn').addEventListener('click', async () => {
+        await runSafely(async () => {
+            const saleId = safeNumber(document.getElementById('editSaleId').value);
+            const productId = safeNumber(document.getElementById('editProductSelect').value);
+            const qty = parseInt(document.getElementById('editQty').value, 10);
+            const multiplierType = document.getElementById('editMultiplierType').value;
+            const customMultiplier = safeNumber(document.getElementById('editCustomMultiplier').value);
+            const multiplier = multiplierType === 'custom' ? customMultiplier : safeNumber(multiplierType);
+            const dateValue = document.getElementById('editDate').value;
+            const comment = document.getElementById('editComment').value.trim();
+
+            const product = state.products.find((p) => safeNumber(p.id) === productId);
+            if (!product) throw new Error('Избери валиден продукт.');
+            if (!Number.isInteger(qty) || qty < 1) throw new Error('Количество трябва да е цяло число поне 1.');
+            if (!Number.isFinite(multiplier) || multiplier <= 0) throw new Error('Попълни валиден множител.');
+            if (!dateValue) throw new Error('Избери дата.');
+
+            const saleIndex = state.sales.findIndex((s) => safeNumber(s.id) === saleId);
+            if (saleIndex === -1) throw new Error('Записът не е намерен.');
+
+            const cost = product.purchasePrice * qty;
+            const revenue = multiplier === 1 ? 0 : product.purchasePrice * multiplier * qty;
+
+            state.sales[saleIndex] = {
+                ...state.sales[saleIndex],
+                productId: product.id,
+                productName: `${product.baseName} ${product.dosage}`,
+                quantity: qty,
+                multiplier,
+                comment,
+                date: dateValue,
+                revenue,
+                cost
+            };
+
+            if (state.storageMode === 'backend') {
+                await requestJSON(`${API_BASE}/sales/update`, {
+                    method: 'POST',
+                    body: JSON.stringify({ saleId, productId: product.id, quantity: qty, multiplier, comment, date: dateValue })
+                });
+            } else {
+                saveLocalState();
+            }
+
+            state.lastSyncAt = new Date().toISOString();
+            closeEditSaleModal();
+            refreshAllUI();
+            updateStatusPanel();
+            showBanner('Записът е редактиран успешно.', 'info');
+        });
+    });
+
+    document.querySelector('.close-edit-modal').addEventListener('click', closeEditSaleModal);
+    /* --- End Edit Sale Modal --- */
 
     async function runSafely(action) {
         if (state.isBusy) {
@@ -1535,7 +1895,6 @@
         renderSalesTable();
     });
 
-    document.getElementById('productSearch').addEventListener('input', updateSalePreview);
     document.getElementById('saleQty').addEventListener('input', updateSalePreview);
     document.getElementById('multiplierCustom').addEventListener('input', updateSalePreview);
     document.getElementById('saleDate').addEventListener('input', updateSalePreview);
@@ -1548,6 +1907,9 @@
     window.addEventListener('click', (event) => {
         if (event.target === document.getElementById('historyModal')) {
             closeHistoryModal();
+        }
+        if (event.target === document.getElementById('editSaleModal')) {
+            closeEditSaleModal();
         }
     });
 
