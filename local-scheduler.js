@@ -11,10 +11,9 @@
  *   evening_check  – вечерна проверка (по подразбиране 20:00)
  *
  * Backend config sync:
- *   – При всяко отваряне на приложението (init()), клиентът прави ЕДНА лека заявка
- *     към бекенда (/api/notification-config?v=N) – версиен ETag, ~50 байта при съвпадение.
- *   – Само при нова версия (след промяна от admin панела) се сваля пълният конфиг.
- *   – forceSyncBackendConfig() игнорира кешираната версия (използва се от admin панела).
+ *   – Пести бекенда: максимум 1 лек version check на 24 часа.
+ *   – Локален APK/PWA график от *notifyme не прави backend заявки.
+ *   – forceSyncBackendConfig() игнорира кеша само при ръчен/admin тест.
  */
 
 const GameNotifier = {
@@ -23,6 +22,7 @@ const GameNotifier = {
     // do not leave users without reminders after the first week.
     SCHEDULE_WINDOW_DAYS: 30,
     LS_CONFIG_KEY:        'gameNotifierConfig',
+    LS_LOCAL_KEY:         'gameNotifierLocalConfig',
     LS_VERSION_KEY:       'gameNotifierConfigVersion',
     LS_LAST_REFRESH_KEY:  'gameNotifierLastRefresh',
     CALENDAR_URL:   'https://aidiet.radilov-k.workers.dev/api/calendar.ics',
@@ -99,9 +99,12 @@ const GameNotifier = {
                 }
             }
 
-            // Sync config from backend (version-based ETag – one lightweight KV read
-            // per app open; full payload only when admin has saved a new config).
-            await this._maybeSyncBackendConfig();
+            // Backend sync is intentionally rare to keep KV/Worker costs low.
+            // Local APK/PWA schedules never hit the backend.
+            if (this._shouldSyncBackendConfig()) {
+                await this._maybeSyncBackendConfig();
+                localStorage.setItem(this.LS_LAST_REFRESH_KEY, String(Date.now()));
+            }
 
             // Schedule the rolling monthly buffer using the (now up-to-date) config.
             await this.scheduleNotifications();
@@ -128,10 +131,7 @@ const GameNotifier = {
      */
     async refreshConfig() {
         if (!this._initialized) return false;
-        // Throttle: avoid hammering the backend on every quick foreground/background cycle.
-        const THROTTLE_MS = 24 * 60 * 60 * 1000;
-        const last = parseInt(localStorage.getItem(this.LS_LAST_REFRESH_KEY) || '0', 10);
-        if (Date.now() - last < THROTTLE_MS) return false;
+        if (!this._shouldSyncBackendConfig()) return false;
         const prevVersion = localStorage.getItem(this.LS_VERSION_KEY);
         await this._maybeSyncBackendConfig();
         localStorage.setItem(this.LS_LAST_REFRESH_KEY, String(Date.now()));
@@ -177,10 +177,15 @@ const GameNotifier = {
         }
     },
 
-    async applyConfig(cfg) {
+    async applyConfig(cfg, localOnly = false) {
         const merged = Object.assign(this._getConfig(), cfg);
         localStorage.setItem(this.LS_CONFIG_KEY, JSON.stringify(merged));
-        console.log('[GameNotifier] Config updated:', merged);
+        if (localOnly) localStorage.setItem(this.LS_LOCAL_KEY, '1');
+        console.log('[GameNotifier] Config updated:', merged, localOnly ? '(local APK/PWA)' : '(backend/admin)');
+        if (!this._initialized) {
+            await this.init();
+            return;
+        }
         await this.cancelAll();
         await this.scheduleNotifications();
     },
@@ -483,6 +488,18 @@ const GameNotifier = {
         }
     },
 
+    _hasLocalConfig() {
+        return localStorage.getItem(this.LS_LOCAL_KEY) === '1';
+    },
+
+    _shouldSyncBackendConfig() {
+        if (this._hasLocalConfig()) return false;
+        if (!localStorage.getItem(this.LS_CONFIG_KEY)) return true;
+        const MIN_SYNC_MS = 24 * 60 * 60 * 1000;
+        const last = parseInt(localStorage.getItem(this.LS_LAST_REFRESH_KEY) || '0', 10);
+        return Date.now() - last >= MIN_SYNC_MS;
+    },
+
     /* ------------------------------------------------------------------ */
     /*  Backend config sync (only when admin changes config)               */
     /* ------------------------------------------------------------------ */
@@ -495,10 +512,9 @@ const GameNotifier = {
         // does the Worker return the full payload, which the client then stores and
         // uses to reschedule notifications.
         //
-        // There is intentionally no time-based throttle: each app open (init() call)
-        // triggers exactly one lightweight check. Backend cost is negligible for the
-        // common case (version unchanged), and admin changes propagate to all users
-        // on their very next app open.
+        // Cost guard: callers use _shouldSyncBackendConfig(), so normal users do
+        // at most one backend check per 24h; local APK/PWA configs do zero checks.
+        // Admin/manual force sync bypasses this by clearing the local version.
         const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
         try {
             const localVersion = parseInt(localStorage.getItem(this.LS_VERSION_KEY) || '0', 10);
