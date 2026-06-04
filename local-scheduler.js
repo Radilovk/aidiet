@@ -29,6 +29,7 @@ const GameNotifier = {
     CHANNEL_ID:     'nutriplan_daily_checkins',
     MORNING_CHANNEL_ID: 'nutriplan_morning',
     EVENING_CHANNEL_ID: 'nutriplan_evening',
+    NOTIFICATION_SOUND: 'nutriplan_checkin.wav',
     BRAND_TEAL:     '#009A9E',
     BRAND_TEAL_DARK: '#0F766E',
     QUICK_ANSWER_PATH: '/quick-answer.html',
@@ -208,6 +209,8 @@ const GameNotifier = {
                     title,
                     body,
                     actionTypeId: this.EVENING_ACTION_TYPE_ID,
+                    sound: this.NOTIFICATION_SOUND,
+                    silent: true,
                     schedule: { at: new Date(fireAtTs), allowWhileIdle: true },
                     extra: { url, type: 'evening_check', recordKey },
                     iconColor: this.BRAND_TEAL_DARK
@@ -305,7 +308,7 @@ const GameNotifier = {
                 description: 'Сутрешни и вечерни напомняния за проследяване на хранене, сън и настроение.',
                 importance: 4,
                 visibility: 1,
-                sound: 'default',
+                sound: this.NOTIFICATION_SOUND,
                 vibration: true,
                 lights: true,
                 lightColor: this.BRAND_TEAL
@@ -317,7 +320,7 @@ const GameNotifier = {
                 description: 'Сутрешно напомняне за сън и начало на деня.',
                 importance: 4,
                 visibility: 1,
-                sound: 'default',
+                sound: this.NOTIFICATION_SOUND,
                 vibration: true,
                 lights: true,
                 lightColor: this.BRAND_TEAL
@@ -329,7 +332,7 @@ const GameNotifier = {
                 description: 'Вечерно напомняне за хидратация и края на деня.',
                 importance: 4,
                 visibility: 1,
-                sound: 'default',
+                sound: this.NOTIFICATION_SOUND,
                 vibration: true,
                 lights: true,
                 lightColor: this.BRAND_TEAL_DARK
@@ -348,15 +351,17 @@ const GameNotifier = {
                     {
                         id: this.MORNING_ACTION_TYPE_ID,
                         actions: [
-                            { id: 'sleep_yes', title: 'Да 🌞' },
-                            { id: 'sleep_no', title: 'Не 😴' }
+                            { id: 'sleep_yes', title: 'Да', foreground: false },
+                            { id: 'sleep_no', title: 'Не', foreground: false },
+                            { id: 'skip', title: 'Пропуск', foreground: false }
                         ]
                     },
                     {
                         id: this.EVENING_ACTION_TYPE_ID,
                         actions: [
-                            { id: 'open_evening', title: 'Бърз отговор ⚡' },
-                            { id: 'water_yes', title: 'Пих вода 💧' }
+                            { id: 'open_evening', title: 'Отговор', foreground: true },
+                            { id: 'water_yes', title: 'Вода', foreground: true },
+                            { id: 'skip', title: 'Пропуск', foreground: false }
                         ]
                     }
                 ]
@@ -372,6 +377,9 @@ const GameNotifier = {
             if (window.top && window.top !== window) return;
         } catch (_) {}
         const { LocalNotifications } = this._capacitor;
+        LocalNotifications.addListener('localNotificationReceived', (notification) => {
+            this._handleForegroundNotification(notification);
+        });
         LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
             this._handleCapacitorNotificationAction(action);
         });
@@ -384,6 +392,11 @@ const GameNotifier = {
         const type = extra.type || '';
         const recordKey = this._normalizeRecordKey(extra.recordKey);
         const actionId = action && typeof action.actionId === 'string' ? action.actionId : '';
+
+        if (actionId === 'skip') {
+            this._recordNotificationChoice(recordKey, type, 'skip');
+            return;
+        }
 
         if (type === 'morning_check' && (actionId === 'sleep_yes' || actionId === 'sleep_no')) {
             const sleptWell = actionId === 'sleep_yes';
@@ -461,6 +474,36 @@ const GameNotifier = {
 
         if (extra.url) {
             window.location.href = extra.url;
+        }
+    },
+
+
+    _handleForegroundNotification(notification) {
+        const extra = (notification && notification.extra) || {};
+        const type = extra.type || '';
+        if (type !== 'morning_check' && type !== 'evening_check') return;
+
+        // Foreground UX stays inside the already-open app/chat flow.
+        // Do not show a second custom dialog; just remove a delivered native
+        // notification if the platform rendered one while the app was active.
+        const id = notification && notification.id;
+        const { LocalNotifications } = this._capacitor || {};
+        try {
+            if (LocalNotifications && typeof LocalNotifications.removeDeliveredNotifications === 'function' && typeof id === 'number') {
+                LocalNotifications.removeDeliveredNotifications({ notifications: [{ id }] });
+            }
+        } catch (_) {}
+    },
+
+    _recordNotificationChoice(recordKey, type, choice) {
+        try {
+            const key = this._normalizeRecordKey(recordKey);
+            const log = JSON.parse(localStorage.getItem('notificationResponses') || '[]');
+            log.push({ date: key, type, choice, ts: new Date().toISOString() });
+            localStorage.setItem('notificationResponses', JSON.stringify(log.slice(-200)));
+            return true;
+        } catch (_) {
+            return false;
         }
     },
 
@@ -571,6 +614,8 @@ const GameNotifier = {
                     title: cfg.morningTitle,
                     body:  cfg.morningBody,
                     actionTypeId: this.MORNING_ACTION_TYPE_ID,
+                    sound: this.NOTIFICATION_SOUND,
+                    silent: true,
                     // allowWhileIdle uses setExactAndAllowWhileIdle() so Huawei's
                     // aggressive battery optimization (Doze mode) cannot kill the alarm.
                     schedule: { at: new Date(morningTs), allowWhileIdle: true },
@@ -591,6 +636,8 @@ const GameNotifier = {
                     title: cfg.eveningTitle,
                     body:  cfg.eveningBody,
                     actionTypeId: this.EVENING_ACTION_TYPE_ID,
+                    sound: this.NOTIFICATION_SOUND,
+                    silent: true,
                     schedule: { at: new Date(eveningTs), allowWhileIdle: true },
                     extra: {
                         url: this._buildQuickAnswerUrl('evening_check', { date: recordKey }),
@@ -617,6 +664,8 @@ const GameNotifier = {
                         title: extra.title || 'NutriPlan',
                         body:  extra.body  || '',
                         schedule: { at: new Date(xTs), allowWhileIdle: true },
+                        sound: this.NOTIFICATION_SOUND,
+                        silent: true,
                         extra: { url: extra.url || '/plan.html', type: 'extra_' + idx },
                         iconColor: this.BRAND_TEAL
                     });
@@ -752,6 +801,8 @@ const GameNotifier = {
                 title,
                 body,
                 actionTypeId,
+                sound: this.NOTIFICATION_SOUND,
+                silent: true,
                 schedule: { at: new Date(Date.now() + 500), allowWhileIdle: true },
                 extra: { url, type, recordKey },
                 iconColor: this.BRAND_TEAL
@@ -768,9 +819,9 @@ const GameNotifier = {
                 tag: 'gn-immediate-' + Date.now(),
                 data: { url, type, recordKey },
                 actions: type === 'morning_check'
-                    ? [{ action: 'sleep_yes', title: 'Да 🌞' }, { action: 'sleep_no', title: 'Не 😴' }]
+                    ? [{ action: 'sleep_yes', title: 'Да' }, { action: 'sleep_no', title: 'Не' }, { action: 'skip', title: 'Пропуск' }]
                     : type === 'evening_check'
-                        ? [{ action: 'open_evening', title: 'Бърз отговор ⚡' }, { action: 'water_yes', title: 'Пих вода 💧' }]
+                        ? [{ action: 'open_evening', title: 'Отговор' }, { action: 'water_yes', title: 'Вода' }, { action: 'skip', title: 'Пропуск' }]
                         : undefined
             });
         }

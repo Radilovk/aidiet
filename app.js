@@ -273,6 +273,38 @@
         }
     }
 
+
+    function getNotificationRecordKey(recordKey) {
+        if (typeof recordKey === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(recordKey)) return recordKey;
+        var d = new Date();
+        var pad = function(n) { return n < 10 ? '0' + n : '' + n; };
+        return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+    }
+
+    function saveSilentNotificationChoice(payload) {
+        var type = payload && payload.notificationType;
+        var action = payload && payload.action;
+        if (action !== 'sleep_yes' && action !== 'sleep_no' && action !== 'skip') return false;
+        var recordKey = getNotificationRecordKey(payload.recordKey);
+        try {
+            if (type === 'morning_check' && (action === 'sleep_yes' || action === 'sleep_no')) {
+                var data = JSON.parse(localStorage.getItem('gameData') || '{}') || {};
+                if (!data[recordKey]) {
+                    data[recordKey] = { date: recordKey, meals: {}, extraMeals: [], freeMealRatings: {}, morningCheck: null, eveningCheck: null, plannedCalories: null, mealCalories: {}, dailyScore: null, missing: false };
+                }
+                data[recordKey].morningCheck = { sleptWell: action === 'sleep_yes', ts: new Date().toISOString() };
+                localStorage.setItem('gameData', JSON.stringify(data));
+            }
+
+            var log = JSON.parse(localStorage.getItem('notificationResponses') || '[]');
+            log.push({ date: recordKey, type: type || '', choice: action, ts: new Date().toISOString(), source: 'native_shell' });
+            localStorage.setItem('notificationResponses', JSON.stringify(log.slice(-200)));
+            return true;
+        } catch (_) {
+            return false;
+        }
+    }
+
     function forwardNativeNotificationToPlan(payload) {
         var frame = ensureFrameLoaded('plan');
         if (!frame) return false;
@@ -316,6 +348,7 @@
                 action: event && typeof event.actionId === 'string' ? event.actionId : '',
                 recordKey: extra.recordKey || ''
             };
+            if (saveSilentNotificationChoice(payload)) return;
             if (forwardNativeNotificationToPlan(payload)) return;
             var target = buildNativeNotificationTarget(extra, payload.action);
             window.location.href = target;
