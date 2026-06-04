@@ -370,6 +370,7 @@
         <h2>🎮 GameNotifier конфигурация (localStorage)</h2>
         <div class="row"><span class="label">Конфигурация</span><span class="val" id="cfgSummary">…</span></div>
         <div class="row"><span class="label">Версия (backend)</span><span class="val" id="cfgVersion">…</span></div>
+        <div class="row"><span class="label">Режим</span><span class="val" id="cfgMode">…</span></div>
         <div class="row"><span class="label">Motion изпратено на</span><span class="val" id="cfgMotion">…</span></div>
         <details style="margin-top:8px;">
             <summary>Виж пълна конфигурация (JSON)</summary>
@@ -417,9 +418,9 @@
         <div class="extra-list" id="editExtraList"></div>
         <div class="btn-group">
             <button type="button" class="btn-green" onclick="addConfigExtraNotification()">➕ Добави нова</button>
-            <button type="button" class="btn-gray" onclick="loadSharedConfig()">🔄 Зареди от backend</button>
-            <button type="button" onclick="saveSharedConfig()">💾 Запази</button>
-            <button type="button" class="btn-orange" onclick="saveSharedConfig(true)">⚡ Запази + синхронизирай</button>
+            <button type="button" onclick="saveLocalConfig()">📱 Запази локално (0 backend)</button>
+            <button type="button" class="btn-gray" onclick="loadSharedConfig()">🔄 Върни backend графика</button>
+            <button type="button" class="btn-orange" onclick="saveSharedConfig(true)">👑 Admin: запази глобално</button>
         </div>
         <div id="configStatus" class="status-line"></div>
     </div>
@@ -894,6 +895,7 @@ function collectEditableConfig() {
 async function loadSharedConfig() {
     setConfigStatus('Зареждане от backend…');
     try {
+        localStorage.removeItem('gameNotifierLocalConfig');
         const response = await fetch(WORKER_URL + '/api/notification-config', { cache: 'no-store' });
         const data = await response.json();
         const cfg = normalizeConfig(data.config);
@@ -916,8 +918,9 @@ async function loadSharedConfig() {
 
 async function saveSharedConfig(syncAfterSave = false) {
     const cfg = collectEditableConfig();
-    setConfigStatus(syncAfterSave ? 'Запазване и синхронизация…' : 'Запазване…');
+    setConfigStatus('Admin глобално запазване…');
     try {
+        localStorage.removeItem('gameNotifierLocalConfig');
         const response = await fetch(WORKER_URL + '/api/notification-config', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -939,14 +942,34 @@ async function saveSharedConfig(syncAfterSave = false) {
         }
         refreshConfig();
         renderScheduleVisualization();
-        setConfigStatus(syncAfterSave ? 'Запазено и синхронизирано.' : 'Запазено.', 'ok');
-        log(syncAfterSave
-            ? 'Конфигурацията е запазена и синхронизирана.'
-            : 'Конфигурацията е запазена.');
+        setConfigStatus('Admin графикът е запазен глобално.', 'ok');
+        log('Admin глобалната конфигурация е запазена' + (syncAfterSave ? ' и текущото устройство е синхронизирано.' : '.'));
         return cfg;
     } catch (e) {
-        setConfigStatus('Грешка при запазване: ' + e.message, 'bad');
-        log('Запазването на конфигурацията се провали: ' + e.message, 'err');
+        setConfigStatus('Грешка при admin запазване: ' + e.message, 'bad');
+        log('Admin запазването се провали: ' + e.message, 'err');
+        throw e;
+    }
+}
+
+async function saveLocalConfig() {
+    const cfg = collectEditableConfig();
+    setConfigStatus('Локално запазване — без backend заявка…');
+    try {
+        if (window.GameNotifier && typeof window.GameNotifier.applyConfig === 'function') {
+            await window.GameNotifier.applyConfig(cfg, true);
+        } else {
+            localStorage.setItem('gameNotifierConfig', JSON.stringify(cfg));
+            localStorage.setItem('gameNotifierLocalConfig', '1');
+        }
+        refreshConfig();
+        renderScheduleVisualization();
+        setConfigStatus('Запазено локално в APK/PWA. Backend разход: 0.', 'ok');
+        log('Локален график: запазен и препланиран без backend.');
+        return cfg;
+    } catch (e) {
+        setConfigStatus('Грешка при локално запазване: ' + e.message, 'bad');
+        log('Локалното запазване се провали: ' + e.message, 'err');
         throw e;
     }
 }
@@ -961,6 +984,12 @@ function refreshConfig() {
                 `сутрин ${cfg.morningTime || '07:00'} / вечер ${cfg.eveningTime || '20:00'} / допълнителни ${cfg.extraNotifications.length}`;
         } else {
             document.getElementById('cfgSummary').innerHTML = '<span class="muted">по подразбиране (07:00 / 20:00)</span>';
+        }
+        const modeEl = document.getElementById('cfgMode');
+        if (modeEl) {
+            modeEl.innerHTML = localStorage.getItem('gameNotifierLocalConfig') === '1'
+                ? '<span class="ok">локален APK/PWA (0 backend)</span>'
+                : '<span class="muted">backend/admin</span>';
         }
     } catch(e) {
         document.getElementById('cfgSummary').textContent = 'грешка при четене';
