@@ -10338,6 +10338,16 @@
                 return;
             }
 
+            // Direct skip button: record intent silently, no modal.
+            if (action === 'skip') {
+                try {
+                    var skipLog = JSON.parse(localStorage.getItem('notificationResponses') || '[]');
+                    skipLog.push({ date: recordKey, type: notifType, choice: 'skip', ts: new Date().toISOString(), source: 'plan_handler' });
+                    localStorage.setItem('notificationResponses', JSON.stringify(skipLog.slice(-200)));
+                } catch(e) {}
+                return;
+            }
+
             // For morning_check body tap: show in-app morning modal.
             if (notifType === 'morning_check') {
                 if (typeof window._gameShowMorning === 'function') {

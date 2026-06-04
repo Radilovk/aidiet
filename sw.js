@@ -40,14 +40,16 @@ function buildQuickAnswerUrl(type, params = {}) {
 function getGameNotificationActions(type) {
   if (type === 'morning_check') {
     return [
-      { action: 'sleep_yes', title: 'Да 🌞' },
-      { action: 'sleep_no', title: 'Не 😴' }
+      { action: 'sleep_yes', title: 'Да' },
+      { action: 'sleep_no', title: 'Не' },
+      { action: 'skip', title: 'Пропуск' }
     ];
   }
   if (type === 'evening_check') {
     return [
-      { action: 'open_evening', title: 'Бърз отговор ⚡' },
-      { action: 'water_yes', title: 'Пих вода 💧' }
+      { action: 'open_evening', title: 'Отговор' },
+      { action: 'water_yes', title: 'Вода' },
+      { action: 'skip', title: 'Пропуск' }
     ];
   }
   return undefined;
@@ -244,6 +246,14 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
+        if (action === 'skip') {
+          clientList.forEach((client) => {
+            if ('postMessage' in client) {
+              client.postMessage({ type: 'NOTIFICATION_ACTION', action, notificationType, recordKey });
+            }
+          });
+          return undefined;
+        }
         // If plan.html is already open, post a message so it shows an in-app
         // modal without any page navigation (no full app reload, no index.html).
         const planClient = clientList.find(c => c.url.includes('/plan.html'));
