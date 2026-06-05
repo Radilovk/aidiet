@@ -31,7 +31,6 @@ const GameNotifier = {
     CHANNEL_ID:     'nutriplan_daily_checkins_v3',
     MORNING_CHANNEL_ID: 'nutriplan_morning_v3',
     EVENING_CHANNEL_ID: 'nutriplan_evening_v3',
-    NOTIFICATION_SOUND: 'nutriplan_checkin.wav',
     LS_PENDING_ACTIONS_KEY: 'gameNotifierPendingActions',
     LS_SILENT_APPLY_UNTIL_KEY: 'gameNotifierSilentApplyUntil',
     SILENT_APPLY_SUPPRESS_MS: 120000,
@@ -569,7 +568,6 @@ const GameNotifier = {
                     title,
                     body,
                     actionTypeId: this.EVENING_ACTION_TYPE_ID,
-                    sound: this.NOTIFICATION_SOUND,
                     schedule: { at: new Date(fireAtTs), allowWhileIdle: true },
                     extra: { url, type: 'evening_check', recordKey },
                     iconColor: this.BRAND_TEAL_DARK
@@ -664,7 +662,6 @@ const GameNotifier = {
             const channelBase = {
                 importance: 4,
                 visibility: 1,
-                sound: this.NOTIFICATION_SOUND,
                 vibration: true,
                 lights: true
             };
@@ -1111,7 +1108,6 @@ const GameNotifier = {
                     title: cfgNorm.morningTitle,
                     body:  cfgNorm.morningBody,
                     actionTypeId: this.MORNING_ACTION_TYPE_ID,
-                    sound: this.NOTIFICATION_SOUND,
                     schedule: { at: new Date(morningTs), allowWhileIdle: true },
                     extra: {
                         url: this._buildQuickAnswerUrl('morning_check', { date: recordKey }),
@@ -1136,7 +1132,6 @@ const GameNotifier = {
                     title: slot.title,
                     body:  slot.body,
                     actionTypeId: slot.actionTypeId,
-                    sound: this.NOTIFICATION_SOUND,
                     schedule: { at: new Date(eveningTs), allowWhileIdle: true },
                     extra: {
                         url: this._buildQuickAnswerUrl(slot.type, { date: recordKey }),
@@ -1163,7 +1158,6 @@ const GameNotifier = {
                         title: extra.title || 'NutriPlan',
                         body:  extra.body  || '',
                         schedule: { at: new Date(xTs), allowWhileIdle: true },
-                        sound: this.NOTIFICATION_SOUND,
                         extra: { url: extra.url || '/plan.html', type: 'extra_' + idx },
                         iconColor: this.BRAND_TEAL
                     });
@@ -1311,7 +1305,6 @@ const GameNotifier = {
                 title,
                 body,
                 actionTypeId,
-                sound: this.NOTIFICATION_SOUND,
                 schedule: { at: new Date(Date.now() + 500), allowWhileIdle: true },
                 extra: { url, type, recordKey },
                 iconColor: this.BRAND_TEAL

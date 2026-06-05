@@ -9,8 +9,7 @@
   "plugins": {
     "LocalNotifications": {
       "smallIcon": "ic_stat_nutriplan",
-      "iconColor": "#009A9E",
-      "sound": "default"
+      "iconColor": "#009A9E"
     },
     "GoogleAuth": {
       "_note": "serverClientId is overwritten at build time by the CI pipeline using the GOOGLE_WEB_CLIENT_ID GitHub Actions secret. On Android, strings.xml server_client_id takes precedence.",
