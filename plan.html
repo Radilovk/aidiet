@@ -4458,31 +4458,32 @@
             // On first call: checks permission, creates Android channel, syncs backend
             // config (one lightweight KV version-check), and schedules a 30-day window.
             scheduleNotifications();
+            var suppressGamificationUi = window.GameNotifier &&
+                typeof window.GameNotifier.shouldSuppressGamificationUi === 'function' &&
+                window.GameNotifier.shouldSuppressGamificationUi();
             if (window.GameNotifier && typeof window.GameNotifier.drainAllPendingActions === 'function') {
                 window.GameNotifier.drainAllPendingActions().catch(function() {});
             } else if (window.GameNotifier && typeof window.GameNotifier.drainPendingSwActions === 'function') {
                 window.GameNotifier.drainPendingSwActions().catch(function() {});
             }
-            // Handle URL action params from notification body taps
+            if (suppressGamificationUi && window.GameNotifier.clearSilentApplyFlag) {
+                window.GameNotifier.clearSilentApplyFlag();
+            }
+            // Legacy plan.html?action= links → quick-answer screen (not in-app bubble)
             const urlParams = new URLSearchParams(window.location.search);
             const action = urlParams.get('action');
             const actionDate = urlParams.get('date');
-            if (action === 'morning_check' || action === 'evening_check' ||
-                action === 'evening_activity' || action === 'evening_balance' || action === 'evening_water') {
-                // Clean URL immediately so refresh doesn't re-trigger
+            if (!suppressGamificationUi && (action === 'morning_check' || action === 'evening_check' ||
+                action === 'evening_activity' || action === 'evening_balance' || action === 'evening_water')) {
                 window.history.replaceState({}, '', window.location.pathname);
-                // Wait for gamification module to initialise, then fire the question
-                setTimeout(function() {
-                    var key = (/^\d{4}-\d{2}-\d{2}$/.test(actionDate || '')) ? actionDate : null;
-                    if (action === 'morning_check' && typeof window._gameShowMorning === 'function') {
-                        window._gameShowMorning(true, key);
-                    } else if (action === 'evening_check' && typeof window._gameShowEvening === 'function') {
-                        window._gameShowEvening(true, key);
-                    } else if (typeof window._gameShowEveningStep === 'function' &&
-                        (action === 'evening_activity' || action === 'evening_balance' || action === 'evening_water')) {
-                        window._gameShowEveningStep(action.replace('evening_', ''), key);
-                    }
-                }, 900);
+                var qaType = action === 'evening_check' ? 'evening_water' : action;
+                var qaParams = { date: (/^\d{4}-\d{2}-\d{2}$/.test(actionDate || '')) ? actionDate : undefined };
+                var qaUrl = window.GameNotifier && typeof window.GameNotifier._buildQuickAnswerUrl === 'function'
+                    ? window.GameNotifier._buildQuickAnswerUrl(qaType, qaParams)
+                    : ('./quick-answer.html?type=' + encodeURIComponent(qaType) +
+                        (qaParams.date ? '&date=' + encodeURIComponent(qaParams.date) : ''));
+                var navTarget = window.top !== window ? window.top : window;
+                navTarget.location.href = qaUrl.replace(/^\//, './');
             }
             // Auto-open chat if navigated with ?chat=1
             if (urlParams.get('chat') === '1') {

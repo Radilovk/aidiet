@@ -234,6 +234,27 @@ jobs:
           # Splash logo: plain icon resized (no white-circle overlay) — matches PWA appearance
           convert "$ICON_SRC" -resize 256x256 \
             android/app/src/main/res/drawable-nodpi/nutriplan_splash_logo.png
+          mkdir -p android/app/src/main/res/raw
+          if [ -f android-res/raw/nutriplan_checkin.wav ]; then
+            cp android-res/raw/nutriplan_checkin.wav android/app/src/main/res/raw/nutriplan_checkin.wav
+          else
+            python3 - <<'PY_WAV'
+import wave, struct, math, os
+os.makedirs("android/app/src/main/res/raw", exist_ok=True)
+rate, duration, freq = 22050, 0.28, 880.0
+n = int(rate * duration)
+with wave.open("android/app/src/main/res/raw/nutriplan_checkin.wav", "w") as w:
+    w.setnchannels(1); w.setsampwidth(2); w.setframerate(rate)
+    for i in range(n):
+        t = i / rate
+        env = 1.0
+        if t < 0.02: env = t / 0.02
+        elif t > duration - 0.06: env = max(0.0, (duration - t) / 0.06)
+        val = int(32767 * 0.35 * env * math.sin(2 * math.pi * freq * t))
+        w.writeframes(struct.pack("<h", val))
+print("Generated nutriplan_checkin.wav")
+PY_WAV
+          fi
           convert "$ICON_SRC" -resize 96x96 -alpha extract -threshold 1% android/app/src/main/res/drawable/ic_stat_nutriplan.png
           for entry in "24 mdpi" "36 hdpi" "48 xhdpi" "72 xxhdpi" "96 xxxhdpi"; do
             SIZE=${entry%% *}

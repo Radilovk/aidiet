@@ -345,9 +345,14 @@
                 window.history.back();
                 return;
             }
-            setTimeout(function() {
-                if (!document.hidden) viewPlan();
-            }, 120);
+            var gn = window.GameNotifier;
+            if (gn && typeof gn._dismissAfterSilentHeadUp === 'function') {
+                gn._dismissAfterSilentHeadUp();
+                return;
+            }
+            try {
+                document.documentElement.style.opacity = '0';
+            } catch (_) {}
         }
         function applySilentAction(type, actionId, key) {
             var gn = window.GameNotifier;

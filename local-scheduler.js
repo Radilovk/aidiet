@@ -28,11 +28,13 @@ const GameNotifier = {
     LS_VERSION_KEY:       'gameNotifierConfigVersion',
     LS_SCHEDULED_VERSION_KEY: 'gameNotifierScheduledVersion',
     CALENDAR_URL:   'https://aidiet.radilov-k.workers.dev/api/calendar.ics',
-    CHANNEL_ID:     'nutriplan_daily_checkins_v2',
-    MORNING_CHANNEL_ID: 'nutriplan_morning_v2',
-    EVENING_CHANNEL_ID: 'nutriplan_evening_v2',
-    NOTIFICATION_SOUND: 'default',
+    CHANNEL_ID:     'nutriplan_daily_checkins_v3',
+    MORNING_CHANNEL_ID: 'nutriplan_morning_v3',
+    EVENING_CHANNEL_ID: 'nutriplan_evening_v3',
+    NOTIFICATION_SOUND: 'nutriplan_checkin.wav',
     LS_PENDING_ACTIONS_KEY: 'gameNotifierPendingActions',
+    LS_SILENT_APPLY_UNTIL_KEY: 'gameNotifierSilentApplyUntil',
+    SILENT_APPLY_SUPPRESS_MS: 120000,
     BRAND_TEAL:     '#009A9E',
     BRAND_TEAL_DARK: '#0F766E',
     QUICK_ANSWER_PATH: '/quick-answer.html',
@@ -321,6 +323,7 @@ const GameNotifier = {
                     this._cancelNotificationForDay(notifType, recordKey);
                     result.silent = true;
                     result.ack = 'skip';
+                    this.markSilentApply();
                     return result;
                 }
                 const value = this._actionValueForSave(meta, action, cfg);
@@ -332,6 +335,7 @@ const GameNotifier = {
                 if (result.saved) this._cancelNotificationForDay(notifType, recordKey);
                 result.silent = true;
                 result.ack = action;
+                this.markSilentApply();
                 return result;
             }
         }
@@ -354,6 +358,40 @@ const GameNotifier = {
 
         result.needsApp = true;
         return result;
+    },
+
+    markSilentApply() {
+        try {
+            localStorage.setItem(
+                this.LS_SILENT_APPLY_UNTIL_KEY,
+                String(Date.now() + this.SILENT_APPLY_SUPPRESS_MS)
+            );
+        } catch (_) {}
+    },
+
+    shouldSuppressGamificationUi() {
+        try {
+            const until = parseInt(localStorage.getItem(this.LS_SILENT_APPLY_UNTIL_KEY) || '0', 10);
+            return until > Date.now();
+        } catch (_) {
+            return false;
+        }
+    },
+
+    clearSilentApplyFlag() {
+        try { localStorage.removeItem(this.LS_SILENT_APPLY_UNTIL_KEY); } catch (_) {}
+    },
+
+    extractCapacitorActionId(actionEvent) {
+        if (!actionEvent) return '';
+        let id = actionEvent.actionId;
+        if (typeof id !== 'string' || !id) {
+            id = actionEvent.action;
+        }
+        if (typeof id !== 'string') return '';
+        id = id.trim();
+        if (!id || id === 'tap' || id === 'MESSAGE' || id === 'CLOSE') return '';
+        return id;
     },
 
     /** Brief haptic only — no second notification (avoids delayed heads-up flash). */
@@ -618,41 +656,31 @@ const GameNotifier = {
             const { LocalNotifications } = this._capacitor;
             if (typeof LocalNotifications.createChannel !== 'function') return;
             // Legacy channel kept for backward compatibility (existing installs)
-            await LocalNotifications.createChannel({
+            const channelBase = {
+                importance: 4,
+                visibility: 1,
+                sound: this.NOTIFICATION_SOUND,
+                vibration: true,
+                lights: true
+            };
+            await LocalNotifications.createChannel(Object.assign({}, channelBase, {
                 id: this.CHANNEL_ID,
                 name: 'NutriPlan дневни проверки',
                 description: 'Сутрешни и вечерни напомняния за проследяване на хранене, сън и настроение.',
-                importance: 4,
-                visibility: 1,
-                sound: this.NOTIFICATION_SOUND,
-                vibration: true,
-                lights: true,
                 lightColor: this.BRAND_TEAL
-            });
-            // Separate morning channel — uses system notification sound
-            await LocalNotifications.createChannel({
+            }));
+            await LocalNotifications.createChannel(Object.assign({}, channelBase, {
                 id: this.MORNING_CHANNEL_ID,
                 name: 'NutriPlan — Сутрешна проверка',
                 description: 'Сутрешно напомняне за сън и начало на деня.',
-                importance: 4,
-                visibility: 1,
-                sound: this.NOTIFICATION_SOUND,
-                vibration: true,
-                lights: true,
                 lightColor: this.BRAND_TEAL
-            });
-            // Separate evening channel — uses system notification sound
-            await LocalNotifications.createChannel({
+            }));
+            await LocalNotifications.createChannel(Object.assign({}, channelBase, {
                 id: this.EVENING_CHANNEL_ID,
                 name: 'NutriPlan — Вечерна проверка',
                 description: 'Вечерно напомняне за хидратация и края на деня.',
-                importance: 4,
-                visibility: 1,
-                sound: this.NOTIFICATION_SOUND,
-                vibration: true,
-                lights: true,
                 lightColor: this.BRAND_TEAL_DARK
-            });
+            }));
         } catch (e) {
             console.warn('[GameNotifier] Android channel setup warning:', e);
         }
@@ -667,7 +695,7 @@ const GameNotifier = {
                 {
                     id: this.MORNING_ACTION_TYPE_ID,
                     actions: this._actionsFromConfig(cfg, this.MORNING_META).map((item) => ({
-                        id: item.id, title: item.title, foreground: false
+                        id: item.id, title: this._capacitorActionTitle(item.title), foreground: false
                     }))
                 }
             ];
@@ -730,7 +758,7 @@ const GameNotifier = {
         const extra = notification.extra || {};
         const type = extra.type || '';
         const recordKey = this._normalizeRecordKey(extra.recordKey);
-        const actionId = action && typeof action.actionId === 'string' ? action.actionId : '';
+        const actionId = this.extractCapacitorActionId(action);
 
         const outcome = this.handleNotificationAction({
             notificationType: type,
@@ -740,12 +768,42 @@ const GameNotifier = {
 
         if (outcome.silent) {
             if (outcome.ack) this.showSilentAck(outcome.ack);
+            this._dismissAfterSilentHeadUp();
             return;
         }
 
         if (extra.url) {
-            window.location.href = extra.url;
+            const url = String(extra.url);
+            if (url.indexOf('quick-answer') !== -1) {
+                window.location.href = url;
+            } else if (typeof this._buildQuickAnswerUrl === 'function' && type) {
+                window.location.href = this._buildQuickAnswerUrl(type, { date: recordKey });
+            } else {
+                window.location.href = url;
+            }
         }
+    },
+
+    _dismissAfterSilentHeadUp() {
+        try {
+            if (typeof document !== 'undefined' && document.documentElement) {
+                document.documentElement.style.visibility = 'hidden';
+            }
+            const cap = window.Capacitor || (window.top && window.top.Capacitor);
+            if (cap && cap.Plugins) {
+                let app = cap.Plugins.App;
+                if (!app && typeof cap.registerPlugin === 'function') {
+                    try { app = cap.registerPlugin('App'); } catch (_) {}
+                }
+                if (app && typeof app.minimizeApp === 'function') {
+                    app.minimizeApp().catch(function () {});
+                    return;
+                }
+            }
+            if (typeof window !== 'undefined' && window.history.length > 1) {
+                window.history.back();
+            }
+        } catch (_) {}
     },
 
 
