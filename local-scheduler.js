@@ -814,6 +814,17 @@ const GameNotifier = {
 
         const qaType = type === 'evening_check' ? 'evening_water' : type;
         if (actionId && qaType) {
+            const outcome = this.handleNotificationAction({
+                notificationType: qaType,
+                action: actionId,
+                recordKey
+            });
+            if (outcome.silent) {
+                if (outcome.ack && typeof this.showSilentAck === 'function') this.showSilentAck(outcome.ack);
+                if (typeof this.notifyAnswerSaved === 'function') this.notifyAnswerSaved(recordKey);
+                this._dismissAfterSilentHeadUp();
+                return;
+            }
             window.location.replace(this._buildQuickAnswerUrl(qaType, { date: recordKey, auto: actionId }));
             return;
         }

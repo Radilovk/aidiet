@@ -81,6 +81,72 @@
         location.replace(buildQuickAnswerUrl(type, recordKey, actionId));
     }
 
+    function minimizeAppAndExit() {
+        if (revealTimer) clearTimeout(revealTimer);
+        revealTimer = null;
+        try {
+            var plugins = cap.Plugins || {};
+            var app = plugins.App;
+            if (!app && typeof cap.registerPlugin === 'function') {
+                try { app = cap.registerPlugin('App'); } catch (_) {}
+            }
+            if (app && typeof app.minimizeApp === 'function') {
+                app.minimizeApp().catch(function () {});
+                return;
+            }
+        } catch (_) {}
+        document.documentElement.style.visibility = 'hidden';
+    }
+
+    function applySilentGameAction(type, recordKey, actionId) {
+        var key = normalizeRecordKey(recordKey);
+        try {
+            if (window.GameNotifier && typeof window.GameNotifier.handleNotificationAction === 'function') {
+                var outcome = window.GameNotifier.handleNotificationAction({
+                    notificationType: type,
+                    action: actionId,
+                    recordKey: key
+                });
+                if (outcome && (outcome.saved || outcome.ack === 'skip')) {
+                    if (typeof window.GameNotifier.showSilentAck === 'function') {
+                        window.GameNotifier.showSilentAck(outcome.ack || actionId);
+                    }
+                    if (typeof window.GameNotifier.notifyAnswerSaved === 'function') {
+                        window.GameNotifier.notifyAnswerSaved(key);
+                    }
+                    minimizeAppAndExit();
+                    return true;
+                }
+            }
+        } catch (_) {}
+        return false;
+    }
+
+    function queueGameNotificationAction(type, recordKey, actionId) {
+        try {
+            var qaType = type === 'evening_check' ? 'evening_water' : type;
+            var list = JSON.parse(localStorage.getItem('gameNotifierPendingActions') || '[]');
+            list.push({
+                notificationType: qaType,
+                action: actionId,
+                recordKey: normalizeRecordKey(recordKey),
+                ts: Date.now()
+            });
+            localStorage.setItem('gameNotifierPendingActions', JSON.stringify(list.slice(-50)));
+        } catch (_) {}
+    }
+
+    function handleGameNotificationTap(type, recordKey, actionId) {
+        if (actionId) {
+            if (applySilentGameAction(type, recordKey, actionId)) return;
+            queueGameNotificationAction(type, recordKey, actionId);
+            try { if (navigator.vibrate) navigator.vibrate([20, 30, 20]); } catch (_) {}
+            minimizeAppAndExit();
+            return;
+        }
+        redirectToQuickAnswer(type, recordKey, '');
+    }
+
     function extractActionId(actionEvent) {
         var id = actionEvent && (actionEvent.actionId || actionEvent.action);
         if (typeof id !== 'string') return '';
@@ -97,7 +163,7 @@
         var actionId = extractActionId(event);
 
         if (isGameNotificationType(type)) {
-            redirectToQuickAnswer(type, recordKey, actionId);
+            handleGameNotificationTap(type, recordKey, actionId);
             return;
         }
 

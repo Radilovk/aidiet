@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Patch @capacitor/local-notifications for NutriPlan heads-up action buttons."""
+"""Patch @capacitor/local-notifications for NutriPlan.
+
+IMPORTANT: Notification action buttons must use a transparent icon (ic_transparent).
+Using ic_menu_send or other visible icons makes heads-up show arrows instead of
+action labels (Да / Не / …) on most Android OEMs.
+"""
 from __future__ import annotations
 
 import sys
@@ -10,6 +15,8 @@ COMPACT_MARKER = "NutriPlan: show all actions in heads-up compact view"
 # NutriPlan uses JS `largeBody` (Capacitor BigTextStyle) for the question text instead.
 ICON_MARKER = "NutriPlan: visible action icon"
 GRADLE_MARKER = "NutriPlan: androidx.media for compact actions"
+SEND_ICON = "android.R.drawable.ic_menu_send /* NutriPlan: visible action icon */"
+TRANSPARENT_ICON = "R.drawable.ic_transparent"
 
 
 def find_manager() -> Path | None:
@@ -68,13 +75,11 @@ def patch_manager(path: Path) -> bool:
             changed = True
             print(f"Removed legacy compact-view patch from {path}", file=sys.stderr)
 
-    if ICON_MARKER not in text and "R.drawable.ic_transparent" in text:
-        text = text.replace(
-            "R.drawable.ic_transparent",
-            "android.R.drawable.ic_menu_send /* NutriPlan: visible action icon */",
-            1,
-        )
+    # Revert mistaken send-arrow icon — heads-up must show action titles, not arrows.
+    if SEND_ICON in text:
+        text = text.replace(SEND_ICON, TRANSPARENT_ICON)
         changed = True
+        print(f"Reverted send-arrow action icon in {path}", file=sys.stderr)
 
     if changed:
         path.write_text(text, encoding="utf-8")

@@ -392,6 +392,7 @@
                 recordKey: extra.recordKey || ''
             };
             if (actionId) {
+                if (handleNativeNotificationAction(payload)) return;
                 openQuickAnswerFromNotification(payload, actionId);
                 return;
             }
@@ -413,6 +414,7 @@
                 recordKey: msg.recordKey || ''
             };
             if (msg.silent && payload.action) {
+                if (handleNativeNotificationAction(payload)) return;
                 openQuickAnswerFromNotification(payload, payload.action);
                 return;
             }

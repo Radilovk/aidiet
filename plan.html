@@ -10471,12 +10471,14 @@
                 var nType = msg.notificationType || '';
                 var rKey = msg.recordKey || '';
                 var qaType = nType === 'evening_check' ? 'evening_water' : nType;
-                if (typeof gn._buildQuickAnswerUrl === 'function' && nType) {
-                    var qaUrl = gn._buildQuickAnswerUrl(qaType, { date: rKey, auto: msg.action }).replace(/^\//, '');
-                    if (window.top !== window) {
-                        try { window.top.location.replace(qaUrl); return; } catch (_) {}
-                    }
-                    window.location.replace(qaUrl);
+                var outcome = gn.handleNotificationAction({
+                    notificationType: qaType,
+                    action: msg.action,
+                    recordKey: rKey
+                });
+                if (outcome && outcome.silent) {
+                    if (outcome.ack && typeof gn.showSilentAck === 'function') gn.showSilentAck(outcome.ack);
+                    if (typeof gn.notifyAnswerSaved === 'function') gn.notifyAnswerSaved(rKey);
                     return;
                 }
             }

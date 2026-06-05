@@ -58,9 +58,15 @@
             box-shadow: var(--shadow);
             backdrop-filter: blur(18px);
             padding: 22px 18px 18px;
-            transform: translateY(14px) scale(0.98);
-            opacity: 0;
-            animation: pop-in 0.22s ease-out forwards;
+            opacity: 1;
+            transform: none;
+        }
+        @media (prefers-reduced-motion: no-preference) {
+            .card {
+                transform: translateY(14px) scale(0.98);
+                opacity: 0;
+                animation: pop-in 0.22s ease-out forwards;
+            }
         }
         html.instant .card {
             animation: none;
@@ -286,10 +292,58 @@
             return;
         }
 
+        var FALLBACK_COPY = {
+            morning_check: {
+                title: 'AI Асистент',
+                body: 'Спахте ли добре тази нощ?',
+                actions: [
+                    { id: 'sleep_yes', title: 'Да' },
+                    { id: 'sleep_no', title: 'Не' },
+                    { id: 'skip', title: 'Пропуск' }
+                ]
+            },
+            evening_activity: {
+                title: 'AI Асистент',
+                body: 'Ниво на активност?',
+                actions: [
+                    { id: 'activity_1', title: 'Ниска' },
+                    { id: 'activity_2', title: 'Умерена' },
+                    { id: 'activity_3', title: 'Висока' }
+                ]
+            },
+            evening_balance: {
+                title: 'AI Асистент',
+                body: 'Емоционален баланс?',
+                actions: [
+                    { id: 'balance_1', title: 'Напрегнат' },
+                    { id: 'balance_2', title: 'Спокоен' },
+                    { id: 'balance_3', title: 'Позитивен' }
+                ]
+            },
+            evening_water: {
+                title: 'AI Асистент',
+                body: 'Изпихте ли поне 2 л вода?',
+                actions: [
+                    { id: 'water_no', title: 'Не' },
+                    { id: 'water_yes', title: 'Да' },
+                    { id: 'skip', title: 'Пропуск' }
+                ]
+            }
+        };
+
         function normalizeNotifType(t) {
             if (t === 'evening_check') return 'evening_water';
             if (t === 'morning_check' || t === 'evening_activity' || t === 'evening_balance' || t === 'evening_water') return t;
             return 'morning_check';
+        }
+
+        function getQuestionDisplaySafe(type) {
+            var gn = window.GameNotifier;
+            if (gn && typeof gn.getQuestionDisplay === 'function') {
+                var display = gn.getQuestionDisplay(type);
+                if (display && display.body && display.actions && display.actions.length) return display;
+            }
+            return FALLBACK_COPY[type] || FALLBACK_COPY.morning_check;
         }
 
         function pad(n) { return n < 10 ? '0' + n : '' + n; }
@@ -501,7 +555,7 @@
                 setTimeout(closeFlow, 1200);
                 return;
             }
-            var display = gn.getQuestionDisplay(notifType);
+            var display = getQuestionDisplaySafe(notifType);
             if (!display || !display.actions || !display.actions.length) {
                 render('<p class="subtitle">Липсва конфигурация за въпроса.</p>');
                 return;
