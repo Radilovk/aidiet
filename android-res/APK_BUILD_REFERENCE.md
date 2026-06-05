@@ -92,11 +92,11 @@ Android WebView блокира cross-origin API заявките (`/api/*`) къ
 ```json
 "LocalNotifications": {
   "smallIcon": "ic_stat_nutriplan",
-  "iconColor": "#009A9E",
-  "sound": "default"
+  "iconColor": "#009A9E"
 }
 ```
 
+- Системен default звук — без custom `.wav` файл
 - `ic_stat_nutriplan.png` — монохромно PNG (alpha extract от PWA иконата), генерирано в drawable-* директориите
 - AndroidManifest.xml получава следните permissions (добавени идемпотентно):
   - `POST_NOTIFICATIONS`

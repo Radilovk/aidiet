@@ -2,7 +2,7 @@
 // Configure base path - use '/' for custom domain (biocode.website) or '/aidiet' for GitHub Pages
 const BASE_PATH = '';
 
-const CACHE_NAME = 'nutriplan-v9';
+const CACHE_NAME = 'nutriplan-v10';
 const DEFAULT_ICON = `${BASE_PATH}/icon-192x192.png`;
 const DEFAULT_BADGE = `${BASE_PATH}/icon-192x192.png`;
 const DEFAULT_TITLE = 'NutriPlan';
@@ -24,6 +24,7 @@ const STATIC_CACHE = [
   `${BASE_PATH}/icon-512x512.svg`,
   `${BASE_PATH}/manifest.json`,
   `${BASE_PATH}/local-scheduler.js`,
+  `${BASE_PATH}/notification-launch.js`,
   `${BASE_PATH}/platform.js`,
   `${BASE_PATH}/platform-compat.js`,
   'https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap',
@@ -279,23 +280,34 @@ self.addEventListener('notificationclick', (event) => {
   const recordKey = data.recordKey || '';
 
   if (action) {
+    const qaType = notificationType === 'evening_check' ? 'evening_water' : notificationType;
+    const url = buildQuickAnswerUrl(qaType, { date: recordKey, auto: action });
+    const targetUrl = toAbsoluteAppUrl(url);
+
     event.waitUntil(
       clients.matchAll({ type: 'window', includeUncontrolled: true })
         .then((clientList) => {
-          if (clientList.length) {
-            clientList.forEach((client) => {
-              if ('postMessage' in client) {
-                client.postMessage({
-                  type: 'NOTIFICATION_ACTION',
-                  action,
-                  notificationType,
-                  recordKey,
-                  silent: true
-                });
-              }
-            });
-            return undefined;
+          const quickAnswerClient = clientList.find((c) => c.url.includes('/quick-answer.html'));
+          if (quickAnswerClient) {
+            if ('navigate' in quickAnswerClient) {
+              return quickAnswerClient.navigate(targetUrl).then(() => {
+                if ('focus' in quickAnswerClient) return quickAnswerClient.focus();
+              });
+            }
+            if ('focus' in quickAnswerClient) return quickAnswerClient.focus();
           }
+
+          const shellClient = clientList.find((c) =>
+            c.url.includes('/index.html') || c.url.includes('tab=plan')
+          );
+          if (shellClient && 'navigate' in shellClient) {
+            return shellClient.navigate(targetUrl).then(() => {
+              if ('focus' in shellClient) return shellClient.focus();
+            });
+          }
+
+          if (clients.openWindow) return clients.openWindow(targetUrl);
+
           return queuePendingGameAction({ action, notificationType, recordKey });
         })
     );
