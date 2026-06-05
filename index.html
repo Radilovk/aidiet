@@ -51,8 +51,11 @@
     <script src="./diagnostics-log.js"></script>
     <script src="./platform.js"></script>
     <script src="./platform-compat.js"></script>
+    <script src="./notification-launch.js"></script>
     <!-- Early redirect: check plan immediately to avoid flickering -->
     <script>(function(){
+        // Native notification taps: notification-launch.js owns routing + deferred plan redirect
+        if (window.__nutriplanNotificationLaunch) return;
         // Skip redirect if explicitly staying on index (?stay=1) or if login required
         var params = new URLSearchParams(window.location.search);
         if (params.has('stay') || params.has('login') || params.has('app')) return;

@@ -10457,9 +10457,19 @@
         navigator.serviceWorker.addEventListener('message', function(event) {
             var msg = event.data;
             if (!msg || msg.type !== 'NOTIFICATION_ACTION') return;
-            if (msg.silent && window.GameNotifier) {
-                window.GameNotifier.handleNotificationAction(msg);
-                return;
+            if (msg.silent && msg.action && window.GameNotifier) {
+                var gn = window.GameNotifier;
+                var nType = msg.notificationType || '';
+                var rKey = msg.recordKey || '';
+                var qaType = nType === 'evening_check' ? 'evening_water' : nType;
+                if (typeof gn._buildQuickAnswerUrl === 'function' && nType) {
+                    var qaUrl = gn._buildQuickAnswerUrl(qaType, { date: rKey, auto: msg.action }).replace(/^\//, '');
+                    if (window.top !== window) {
+                        try { window.top.location.replace(qaUrl); return; } catch (_) {}
+                    }
+                    window.location.replace(qaUrl);
+                    return;
+                }
             }
             if (msg.openApp || !msg.action) {
                 var gn = window.GameNotifier;

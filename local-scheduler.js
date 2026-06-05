@@ -749,9 +749,11 @@ const GameNotifier = {
         LocalNotifications.addListener('localNotificationReceived', (notification) => {
             this._handleForegroundNotification(notification);
         });
-        LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
-            this._handleCapacitorNotificationAction(action);
-        });
+        if (!window.__nutriplanNotificationLaunch) {
+            LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
+                this._handleCapacitorNotificationAction(action);
+            });
+        }
         this._listenersBound = true;
     },
 
@@ -762,27 +764,21 @@ const GameNotifier = {
         const recordKey = this._normalizeRecordKey(extra.recordKey);
         const actionId = this.extractCapacitorActionId(action);
 
-        const outcome = this.handleNotificationAction({
-            notificationType: type,
-            action: actionId,
-            recordKey
-        });
-
-        if (outcome.silent) {
-            if (outcome.ack) this.showSilentAck(outcome.ack);
-            this._dismissAfterSilentHeadUp();
+        const qaType = type === 'evening_check' ? 'evening_water' : type;
+        if (actionId && qaType) {
+            window.location.replace(this._buildQuickAnswerUrl(qaType, { date: recordKey, auto: actionId }));
             return;
         }
 
-        if (extra.url) {
-            const url = String(extra.url);
-            if (url.indexOf('quick-answer') !== -1) {
-                window.location.href = url;
-            } else if (typeof this._buildQuickAnswerUrl === 'function' && type) {
-                window.location.href = this._buildQuickAnswerUrl(type, { date: recordKey });
-            } else {
-                window.location.href = url;
-            }
+        if (extra.url && String(extra.url).indexOf('quick-answer') !== -1) {
+            window.location.replace(String(extra.url).replace(/^\//, ''));
+            return;
+        }
+
+        if (qaType) {
+            window.location.replace(this._buildQuickAnswerUrl(qaType, { date: recordKey }));
+        } else if (extra.url) {
+            window.location.href = String(extra.url);
         }
     },
 

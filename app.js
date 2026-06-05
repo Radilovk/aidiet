@@ -349,21 +349,28 @@
         return window.GameNotifier.init().catch(function () { return false; });
     }
 
-    function openQuickAnswerFromNotification(msg) {
+    function openQuickAnswerFromNotification(msg, autoAction) {
         var gn = window.GameNotifier;
         var type = (msg && (msg.notificationType || msg.type)) || '';
         var recordKey = getNotificationRecordKey(msg && msg.recordKey);
         if (!type) return false;
         var qaType = type === 'evening_check' ? 'evening_water' : type;
+        var params = { date: recordKey };
+        if (autoAction) params.auto = autoAction;
         var path = gn && typeof gn._buildQuickAnswerUrl === 'function'
-            ? gn._buildQuickAnswerUrl(qaType, { date: recordKey })
-            : '/quick-answer.html?type=' + encodeURIComponent(qaType) + '&date=' + encodeURIComponent(recordKey);
-        window.location.href = path.replace(/^\//, '');
+            ? gn._buildQuickAnswerUrl(qaType, params)
+            : '/quick-answer.html?type=' + encodeURIComponent(qaType) + '&date=' + encodeURIComponent(recordKey) +
+                (autoAction ? '&auto=' + encodeURIComponent(autoAction) : '');
+        window.location.replace(path.replace(/^\//, ''));
         return true;
     }
 
     function bindNativeNotificationBridge() {
         if (nativeNotificationBridgeBound) return;
+        if (window.__nutriplanNotificationLaunch) {
+            nativeNotificationBridgeBound = true;
+            return;
+        }
         var cap = window.Capacitor;
         if (!cap || typeof cap.isNativePlatform !== 'function' || !cap.isNativePlatform()) return;
         var localNotifications = (cap.Plugins || {}).LocalNotifications || null;
@@ -379,24 +386,18 @@
             var notification = event && event.notification ? event.notification : {};
             var extra = notification.extra || {};
             var actionId = extractNotificationActionId(event);
-            if (actionId) {
-                try { document.documentElement.style.visibility = 'hidden'; } catch (_) {}
-            }
             var payload = {
                 notificationType: extra.type || '',
                 action: actionId,
                 recordKey: extra.recordKey || ''
             };
-            if (handleNativeNotificationAction(payload)) return;
-            try { document.documentElement.style.visibility = ''; } catch (_) {}
-            var bodyTarget = buildNativeNotificationTarget(extra, payload.action);
-            if (bodyTarget) {
-                window.location.href = bodyTarget;
+            if (actionId) {
+                openQuickAnswerFromNotification(payload, actionId);
                 return;
             }
+            if (openQuickAnswerFromNotification(payload)) return;
             if (forwardNativeNotificationToPlan(payload)) return;
             switchTab('plan', true);
-            openQuickAnswerFromNotification(payload);
         });
         nativeNotificationBridgeBound = true;
     }
@@ -411,7 +412,10 @@
                 action: msg.action || '',
                 recordKey: msg.recordKey || ''
             };
-            if (msg.silent && handleNativeNotificationAction(payload)) return;
+            if (msg.silent && payload.action) {
+                openQuickAnswerFromNotification(payload, payload.action);
+                return;
+            }
             if (msg.openApp || !payload.action) {
                 openQuickAnswerFromNotification(payload);
             }

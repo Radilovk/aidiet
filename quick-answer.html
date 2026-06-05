@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>NutriPlan • Бърз отговор</title>
     <meta name="theme-color" content="#0b1120">
+    <script>(function(){if(new URLSearchParams(location.search).get('auto'))document.documentElement.className='instant';})();</script>
     <style>
         :root {
             --bg-1: #04111b;
@@ -62,6 +63,13 @@
             opacity: 0;
             animation: pop-in 0.22s ease-out forwards;
         }
+        html.instant .card {
+            animation: none;
+            opacity: 1;
+            transform: none;
+        }
+        html.instant .stars,
+        html.instant .glow { display: none; }
         .badge {
             display: inline-flex;
             align-items: center;
@@ -265,8 +273,8 @@
         var recordKey = normalizeDateKey(params.get('date'));
         var notifType = normalizeNotifType(rawType);
 
-        if (auto === 'morning_yes' || auto === 'morning_no') {
-            applySilentAction('morning_check', auto === 'morning_yes' ? 'sleep_yes' : 'sleep_no', recordKey);
+        if (auto) {
+            applySilentAction(notifType, auto, recordKey);
             return;
         }
 
@@ -376,7 +384,7 @@
                     '<p>' + escapeHtml(enc.message) + '</p>' +
                 '</div>'
             );
-            setTimeout(closeFlow, 720);
+            setTimeout(closeFlow, 420);
         }
         function onAnswerChosen(actionId) {
             var gn = window.GameNotifier;
