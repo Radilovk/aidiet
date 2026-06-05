@@ -382,6 +382,11 @@ const GameNotifier = {
         try { localStorage.removeItem(this.LS_SILENT_APPLY_UNTIL_KEY); } catch (_) {}
     },
 
+    _capacitorActionTitle(title) {
+        const t = String(title || '').trim();
+        return t.length > 22 ? t.slice(0, 22) + '…' : t;
+    },
+
     extractCapacitorActionId(actionEvent) {
         if (!actionEvent) return '';
         let id = actionEvent.actionId;
@@ -703,7 +708,7 @@ const GameNotifier = {
                 types.push({
                     id: this[def.actionTypeKey],
                     actions: this._actionsFromConfig(cfg, def).map((item) => ({
-                        id: item.id, title: item.title, foreground: false
+                        id: item.id, title: this._capacitorActionTitle(item.title), foreground: false
                     }))
                 });
             });
