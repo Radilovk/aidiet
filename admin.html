@@ -1388,6 +1388,7 @@
 
     </style>
 <script src="./platform.js"></script>
+<script src="./local-scheduler.js"></script>
 </head>
 <body>
     <!-- PWA Install Banner -->
@@ -2623,8 +2624,14 @@
                     <ul style="margin: 10px 0 0 20px; padding: 0; line-height: 1.8;">
                         <li><strong>Две нотификации на ден</strong> — сутрешна (по подразбиране 07:00) и вечерна (по подразбиране 20:00). И двете са директно свързани с въпросниците на геймификацията.</li>
                         <li><strong>Сутрешна нотификация (morning_check)</strong>: „Спахте ли добре тази нощ?" Бутоните <strong>Да / Не / Пропуск</strong> записват отговора веднага — <em>без</em> отваряне на приложението. Tap извън бутоните отваря плана с AI въпросника.</li>
-                        <li><strong>Вечерна нотификация (evening_check)</strong>: трите въпроса като в AI чата. Бутоните <strong>Не / Да / Пропуск</strong> записват бърз отговор за водата; tap извън бутоните отваря пълния въпросник в приложението.</li>
-                        <li><strong>При tap на тялото</strong> на нотификацията приложението се отваря и показва съответния AI въпросник (<code>plan.html?action=...</code>).</li>
+                        <li><strong>Три вечерни нотификации</strong> — отделни AI въпроси със silent бутони:
+                            <ul style="margin: 4px 0 0 16px;">
+                                <li><code>evening_activity</code> — „Ниво на активност?" · Ниска / Умерена / Висока</li>
+                                <li><code>evening_balance</code> — „Емоционален баланс?" · Напрегнат / Спокоен / Позитивен</li>
+                                <li><code>evening_water</code> — „Изпихте ли поне 2 л вода?" · Не / Да / Пропуск</li>
+                            </ul>
+                        </li>
+                        <li>Tap извън бутоните отваря съответния AI въпрос в приложението.</li>
                         <li><strong>Слоеве за планиране</strong> (в ред на предпочитание):
                             <ol style="margin: 4px 0 0 16px;">
                                 <li>🟢 <strong>Capacitor LocalNotifications</strong> (APK) — нативни Android нотификации, работят и при затворено приложение</li>
@@ -2722,23 +2729,70 @@
 
                 <div class="form-group" style="border-top: 1px solid #e0e0e0; padding-top: 20px;">
                     <h3 style="font-size: 1.1rem; margin-bottom: 15px; color: var(--text-dark);">
-                        <i class="fas fa-star-half-alt"></i> Вечерна нотификация — <em>evening_check</em>
+                        <i class="fas fa-walking"></i> Вечер 1 — активност — <em>evening_activity</em>
                     </h3>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                         <div>
-                            <label>Час на изпращане</label>
-                            <input type="time" id="gnEveningTime" value="20:00" style="width: 100%;">
+                            <label>Час</label>
+                            <input type="time" id="gnEveningActivityTime" value="20:00" style="width: 100%;">
                         </div>
                         <div>
                             <label>Заглавие</label>
-                            <input type="text" id="gnEveningTitle" placeholder="Добър вечер! 🌙"
+                            <input type="text" id="gnEveningActivityTitle" placeholder="AI Асистент"
                                    style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
                         </div>
                     </div>
                     <div style="margin-top: 12px;">
-                        <label>Текст на нотификацията</label>
-                        <input type="text" id="gnEveningBody" placeholder="Как мина денят? Отговорете на вечерните въпроси."
+                        <label>Текст (AI въпрос)</label>
+                        <input type="text" id="gnEveningActivityBody" placeholder="Ниво на активност?"
                                style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
+                        <small style="color: var(--text-gray);">Бутони: Ниска · Умерена · Висока (silent)</small>
+                    </div>
+                </div>
+
+                <div class="form-group" style="border-top: 1px solid #e0e0e0; padding-top: 20px;">
+                    <h3 style="font-size: 1.1rem; margin-bottom: 15px; color: var(--text-dark);">
+                        <i class="fas fa-heart"></i> Вечер 2 — баланс — <em>evening_balance</em>
+                    </h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div>
+                            <label>Час</label>
+                            <input type="time" id="gnEveningBalanceTime" value="20:05" style="width: 100%;">
+                        </div>
+                        <div>
+                            <label>Заглавие</label>
+                            <input type="text" id="gnEveningBalanceTitle" placeholder="AI Асистент"
+                                   style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
+                        </div>
+                    </div>
+                    <div style="margin-top: 12px;">
+                        <label>Текст (AI въпрос)</label>
+                        <input type="text" id="gnEveningBalanceBody" placeholder="Емоционален баланс?"
+                               style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
+                        <small style="color: var(--text-gray);">Бутони: Напрегнат · Спокоен · Позитивен (silent)</small>
+                    </div>
+                </div>
+
+                <div class="form-group" style="border-top: 1px solid #e0e0e0; padding-top: 20px;">
+                    <h3 style="font-size: 1.1rem; margin-bottom: 15px; color: var(--text-dark);">
+                        <i class="fas fa-droplet"></i> Вечер 3 — вода — <em>evening_water</em>
+                    </h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div>
+                            <label>Час</label>
+                            <input type="time" id="gnEveningWaterTime" value="20:10" style="width: 100%;">
+                        </div>
+                        <div>
+                            <label>Заглавие</label>
+                            <input type="text" id="gnEveningWaterTitle" placeholder="AI Асистент"
+                                   style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
+                        </div>
+                    </div>
+                    <div style="margin-top: 12px;">
+                        <label>Текст (AI въпрос)</label>
+                        <input type="text" id="gnEveningWaterBody" placeholder="Изпихте ли поне 2 л вода?"
+                               style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
+                        <small style="color: var(--text-gray);">Бутони: Не · Да · Пропуск (silent)</small>
                     </div>
                 </div>
 
@@ -2801,8 +2855,14 @@
                         <button class="btn" onclick="sendTestNotification('morning_check')" style="background: #fd7e14;">
                             <i class="fas fa-sun"></i> Тест: Сутрешна
                         </button>
-                        <button class="btn" onclick="sendTestNotification('evening_check')" style="background: #6610f2;">
-                            <i class="fas fa-moon"></i> Тест: Вечерна
+                        <button class="btn" onclick="sendTestNotification('evening_activity')" style="background: #6610f2;">
+                            <i class="fas fa-walking"></i> Тест: Активност
+                        </button>
+                        <button class="btn" onclick="sendTestNotification('evening_balance')" style="background: #5a32a3;">
+                            <i class="fas fa-heart"></i> Тест: Баланс
+                        </button>
+                        <button class="btn" onclick="sendTestNotification('evening_water')" style="background: #4527a0;">
+                            <i class="fas fa-droplet"></i> Тест: Вода
                         </button>
                         <button class="btn" onclick="sendTestNotification()" style="background: var(--accent-yellow); color: var(--text-dark);">
                             <i class="fas fa-paper-plane"></i> Тест: Обща
@@ -6580,14 +6640,22 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             try {
                 const response = await fetch(WORKER_URL + '/api/notification-config');
                 const data = await response.json();
-                const cfg = data.config || {};
+                const cfg = window.GameNotifier && typeof window.GameNotifier.normalizeConfig === 'function'
+                    ? window.GameNotifier.normalizeConfig(data.config || {})
+                    : (data.config || {});
 
                 document.getElementById('gnMorningTime').value  = cfg.morningTime  || '07:00';
-                document.getElementById('gnEveningTime').value  = cfg.eveningTime  || '20:00';
                 document.getElementById('gnMorningTitle').value = cfg.morningTitle || 'AI Асистент';
                 document.getElementById('gnMorningBody').value  = cfg.morningBody  || 'Спахте ли добре тази нощ?';
-                document.getElementById('gnEveningTitle').value = cfg.eveningTitle || 'AI Асистент';
-                document.getElementById('gnEveningBody').value  = cfg.eveningBody  || 'Ниво на активност?\nЕмоционален баланс?\nИзпихте ли поне 2 л вода?';
+                document.getElementById('gnEveningActivityTime').value  = cfg.eveningActivityTime  || '20:00';
+                document.getElementById('gnEveningActivityTitle').value = cfg.eveningActivityTitle || 'AI Асистент';
+                document.getElementById('gnEveningActivityBody').value  = cfg.eveningActivityBody  || 'Ниво на активност?';
+                document.getElementById('gnEveningBalanceTime').value  = cfg.eveningBalanceTime  || '20:05';
+                document.getElementById('gnEveningBalanceTitle').value = cfg.eveningBalanceTitle || 'AI Асистент';
+                document.getElementById('gnEveningBalanceBody').value  = cfg.eveningBalanceBody  || 'Емоционален баланс?';
+                document.getElementById('gnEveningWaterTime').value  = cfg.eveningWaterTime  || '20:10';
+                document.getElementById('gnEveningWaterTitle').value = cfg.eveningWaterTitle || 'AI Асистент';
+                document.getElementById('gnEveningWaterBody').value  = cfg.eveningWaterBody  || 'Изпихте ли поне 2 л вода?';
 
                 // Render extra notifications
                 const list = document.getElementById('gnExtraList');
@@ -6670,11 +6738,17 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
 
             const cfg = {
                 morningTime:  document.getElementById('gnMorningTime').value  || '07:00',
-                eveningTime:  document.getElementById('gnEveningTime').value  || '20:00',
                 morningTitle: document.getElementById('gnMorningTitle').value || 'AI Асистент',
                 morningBody:  document.getElementById('gnMorningBody').value  || 'Спахте ли добре тази нощ?',
-                eveningTitle: document.getElementById('gnEveningTitle').value || 'AI Асистент',
-                eveningBody:  document.getElementById('gnEveningBody').value  || 'Ниво на активност?\nЕмоционален баланс?\nИзпихте ли поне 2 л вода?',
+                eveningActivityTime:  document.getElementById('gnEveningActivityTime').value  || '20:00',
+                eveningActivityTitle: document.getElementById('gnEveningActivityTitle').value || 'AI Асистент',
+                eveningActivityBody:  document.getElementById('gnEveningActivityBody').value  || 'Ниво на активност?',
+                eveningBalanceTime:   document.getElementById('gnEveningBalanceTime').value  || '20:05',
+                eveningBalanceTitle:  document.getElementById('gnEveningBalanceTitle').value || 'AI Асистент',
+                eveningBalanceBody:   document.getElementById('gnEveningBalanceBody').value  || 'Емоционален баланс?',
+                eveningWaterTime:     document.getElementById('gnEveningWaterTime').value  || '20:10',
+                eveningWaterTitle:    document.getElementById('gnEveningWaterTitle').value || 'AI Асистент',
+                eveningWaterBody:     document.getElementById('gnEveningWaterBody').value  || 'Изпихте ли поне 2 л вода?',
                 extraNotifications
             };
             try {
@@ -6741,8 +6815,11 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 }
 
                 const typeLabels = {
-                    morning_check: { title: 'Тест: Добро утро! 🌅', body: 'Как спахте тази нощ?', url: '/plan.html?action=morning_check' },
-                    evening_check: { title: 'Тест: Добър вечер! 🌙', body: 'Как мина денят?', url: '/plan.html?action=evening_check' }
+                    morning_check: { title: 'AI Асистент', body: 'Спахте ли добре тази нощ?', url: '/plan.html?action=morning_check' },
+                    evening_activity: { title: 'AI Асистент', body: 'Ниво на активност?', url: '/plan.html?action=evening_activity' },
+                    evening_balance: { title: 'AI Асистент', body: 'Емоционален баланс?', url: '/plan.html?action=evening_balance' },
+                    evening_water: { title: 'AI Асистент', body: 'Изпихте ли поне 2 л вода?', url: '/plan.html?action=evening_water' },
+                    evening_check: { title: 'AI Асистент', body: 'Изпихте ли поне 2 л вода?', url: '/plan.html?action=evening_water' }
                 };
                 const tpl = typeLabels[type] || { title: 'Тестово известие от NutriPlan', body: 'Това е тестово известие.', url: '/plan.html' };
 

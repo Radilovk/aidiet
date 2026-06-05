@@ -252,8 +252,10 @@
     function buildNativeNotificationTarget(extra, actionId) {
         var type = extra && typeof extra.type === 'string' ? extra.type : '';
         var recordKey = extra && typeof extra.recordKey === 'string' ? extra.recordKey : '';
-        if ((type === 'morning_check' || type === 'evening_check') && !actionId) {
-            var qs = 'action=' + encodeURIComponent(type);
+        if ((type === 'morning_check' || type === 'evening_activity' || type === 'evening_balance' ||
+             type === 'evening_water' || type === 'evening_check') && !actionId) {
+            var actionType = type === 'evening_check' ? 'evening_water' : type;
+            var qs = 'action=' + encodeURIComponent(actionType);
             if (recordKey) qs += '&date=' + encodeURIComponent(recordKey);
             return 'plan.html?' + qs;
         }

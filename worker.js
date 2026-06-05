@@ -12167,11 +12167,18 @@ async function handleGetCalendarIcs(request, env) {
   // Read global notification config from KV (same data store as /api/notification-config)
   const defaults = {
     morningTime:  '07:00',
-    eveningTime:  '20:00',
     morningTitle: 'AI Асистент',
     morningBody:  'Спахте ли добре тази нощ?',
-    eveningTitle: 'AI Асистент',
-    eveningBody:  'Ниво на активност?\nЕмоционален баланс?\nИзпихте ли поне 2 л вода?',
+    eveningActivityTime:  '20:00',
+    eveningActivityTitle: 'AI Асистент',
+    eveningActivityBody:  'Ниво на активност?',
+    eveningBalanceTime:   '20:05',
+    eveningBalanceTitle:  'AI Асистент',
+    eveningBalanceBody:   'Емоционален баланс?',
+    eveningWaterTime:     '20:10',
+    eveningWaterTitle:    'AI Асистент',
+    eveningWaterBody:     'Изпихте ли поне 2 л вода?',
+    eveningTime:  '20:00',
   };
   let cfg = Object.assign({}, defaults);
   try {
@@ -12181,8 +12188,30 @@ async function handleGetCalendarIcs(request, env) {
     }
   } catch (_) {}
 
+  const pad = n => String(n).padStart(2, '0');
+  function offsetTimeString(timeStr, addMinutes) {
+    const parts = String(timeStr || '20:00').split(':').map(Number);
+    const d = new Date(2000, 0, 1, parts[0] || 20, parts[1] || 0, 0, 0);
+    d.setMinutes(d.getMinutes() + addMinutes);
+    return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+  const legacyEvening = cfg.eveningTime || '20:00';
+  cfg.eveningActivityTime = cfg.eveningActivityTime || legacyEvening;
+  cfg.eveningBalanceTime = cfg.eveningBalanceTime || offsetTimeString(legacyEvening, 5);
+  cfg.eveningWaterTime = cfg.eveningWaterTime || offsetTimeString(legacyEvening, 10);
+  cfg.eveningActivityTitle = cfg.eveningActivityTitle || cfg.eveningTitle || defaults.eveningActivityTitle;
+  cfg.eveningBalanceTitle = cfg.eveningBalanceTitle || cfg.eveningTitle || defaults.eveningBalanceTitle;
+  cfg.eveningWaterTitle = cfg.eveningWaterTitle || cfg.eveningTitle || defaults.eveningWaterTitle;
+  cfg.eveningActivityBody = cfg.eveningActivityBody || defaults.eveningActivityBody;
+  cfg.eveningBalanceBody = cfg.eveningBalanceBody || defaults.eveningBalanceBody;
+  cfg.eveningWaterBody = cfg.eveningWaterBody || defaults.eveningWaterBody;
+
   const [mH, mM] = cfg.morningTime.split(':').map(Number);
-  const [eH, eM] = cfg.eveningTime.split(':').map(Number);
+  const eveningSlots = [
+    { type: 'evening_activity', time: cfg.eveningActivityTime, title: cfg.eveningActivityTitle, body: cfg.eveningActivityBody },
+    { type: 'evening_balance', time: cfg.eveningBalanceTime, title: cfg.eveningBalanceTitle, body: cfg.eveningBalanceBody },
+    { type: 'evening_water', time: cfg.eveningWaterTime, title: cfg.eveningWaterTitle, body: cfg.eveningWaterBody }
+  ];
 
   const pad = n => String(n).padStart(2, '0');
   function fmtDt(d) {
@@ -12231,7 +12260,11 @@ async function handleGetCalendarIcs(request, env) {
     const day = new Date(today);
     day.setDate(day.getDate() + i);
     events.push(makeEvent('morning', day, mH, mM, cfg.morningTitle, cfg.morningBody));
-    events.push(makeEvent('evening', day, eH, eM, cfg.eveningTitle, cfg.eveningBody));
+    eveningSlots.forEach((slot) => {
+      const parts = String(slot.time || '20:00').split(':').map(Number);
+      if (parts.length < 2 || isNaN(parts[0]) || isNaN(parts[1])) return;
+      events.push(makeEvent(slot.type, day, parts[0], parts[1], slot.title, slot.body));
+    });
     // Extra / custom notifications
     const extras = Array.isArray(cfg.extraNotifications) ? cfg.extraNotifications : [];
     extras.forEach((extra, idx) => {

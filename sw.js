@@ -45,7 +45,21 @@ function getGameNotificationActions(type) {
       { action: 'skip', title: 'Пропуск' }
     ];
   }
-  if (type === 'evening_check') {
+  if (type === 'evening_activity') {
+    return [
+      { action: 'activity_1', title: 'Ниска' },
+      { action: 'activity_2', title: 'Умерена' },
+      { action: 'activity_3', title: 'Висока' }
+    ];
+  }
+  if (type === 'evening_balance') {
+    return [
+      { action: 'balance_1', title: 'Напрегнат' },
+      { action: 'balance_2', title: 'Спокоен' },
+      { action: 'balance_3', title: 'Позитивен' }
+    ];
+  }
+  if (type === 'evening_water' || type === 'evening_check') {
     return [
       { action: 'water_no', title: 'Не' },
       { action: 'water_yes', title: 'Да' },
@@ -55,7 +69,12 @@ function getGameNotificationActions(type) {
   return undefined;
 }
 
-const SILENT_GAME_ACTIONS = new Set(['sleep_yes', 'sleep_no', 'water_yes', 'water_no', 'skip']);
+const SILENT_GAME_ACTIONS = new Set([
+  'sleep_yes', 'sleep_no', 'skip',
+  'activity_1', 'activity_2', 'activity_3',
+  'balance_1', 'balance_2', 'balance_3',
+  'water_yes', 'water_no'
+]);
 const PENDING_DB_NAME = 'nutriplan-game-pending';
 const PENDING_STORE = 'actions';
 
@@ -85,8 +104,10 @@ async function queuePendingGameAction(payload) {
 function resolveNotificationTarget(data = {}, action = '') {
   const type = data.type || data.notificationType || '';
   const recordKey = data.recordKey || '';
-  if (type === 'morning_check' || type === 'evening_check') {
-    return `${BASE_PATH}/plan.html?action=${type}${recordKey ? '&date=' + encodeURIComponent(recordKey) : ''}`;
+  if (type === 'morning_check' || type === 'evening_activity' || type === 'evening_balance' ||
+      type === 'evening_water' || type === 'evening_check') {
+    const actionType = type === 'evening_check' ? 'evening_water' : type;
+    return `${BASE_PATH}/plan.html?action=${encodeURIComponent(actionType)}${recordKey ? '&date=' + encodeURIComponent(recordKey) : ''}`;
   }
   return data.url || `${BASE_PATH}/plan.html`;
 }

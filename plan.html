@@ -4467,7 +4467,8 @@
             const urlParams = new URLSearchParams(window.location.search);
             const action = urlParams.get('action');
             const actionDate = urlParams.get('date');
-            if (action === 'morning_check' || action === 'evening_check') {
+            if (action === 'morning_check' || action === 'evening_check' ||
+                action === 'evening_activity' || action === 'evening_balance' || action === 'evening_water') {
                 // Clean URL immediately so refresh doesn't re-trigger
                 window.history.replaceState({}, '', window.location.pathname);
                 // Wait for gamification module to initialise, then fire the question
@@ -4477,6 +4478,9 @@
                         window._gameShowMorning(true, key);
                     } else if (action === 'evening_check' && typeof window._gameShowEvening === 'function') {
                         window._gameShowEvening(true, key);
+                    } else if (typeof window._gameShowEveningStep === 'function' &&
+                        (action === 'evening_activity' || action === 'evening_balance' || action === 'evening_water')) {
+                        window._gameShowEveningStep(action.replace('evening_', ''), key);
                     }
                 }, 900);
             }
@@ -8878,9 +8882,9 @@
 
             // ── Wellness points ─────────────────────────────────────────────
             var sleepPts    = rec.morningCheck  ? (rec.morningCheck.sleptWell ? 10 : 0) : null;
-            var waterPts    = rec.eveningCheck  ? (rec.eveningCheck.waterIntake ? 10 : 0) : null;
-            var activityPts = rec.eveningCheck  ? ([0,0,5,10][rec.eveningCheck.activityLevel] || 0) : null;
-            var balancePts  = rec.eveningCheck  ? ([0,0,5,10][rec.eveningCheck.emotionalBalance] || 0) : null;
+            var waterPts    = rec.eveningCheck && rec.eveningCheck.waterIntake != null ? (rec.eveningCheck.waterIntake ? 10 : 0) : null;
+            var activityPts = rec.eveningCheck && rec.eveningCheck.activityLevel != null ? ([0,0,5,10][rec.eveningCheck.activityLevel] || 0) : null;
+            var balancePts  = rec.eveningCheck && rec.eveningCheck.emotionalBalance != null ? ([0,0,5,10][rec.eveningCheck.emotionalBalance] || 0) : null;
 
             var wellnessEarned = (sleepPts || 0) + (waterPts || 0) + (activityPts || 0) + (balancePts || 0);
             // Always use the full 40-pt wellness denominator.
@@ -8905,7 +8909,11 @@
             }).length;
             var mealEngPct = meals.length > 0 ? done / meals.length * 50 : 0;
             var mornEngPct = rec.morningCheck ? 15 : 0;
-            var eveEngPct  = rec.eveningCheck ? 15 : 0;
+            var eveEngPct  = (rec.eveningCheck && (
+                rec.eveningCheck.activityLevel != null ||
+                rec.eveningCheck.emotionalBalance != null ||
+                rec.eveningCheck.waterIntake != null
+            )) ? 15 : 0;
             // junkPct is a "no-junk bonus" and only makes sense when the user has actually engaged.
             // Without at least one checked meal, check-in, or logged junk/incorrect meal the day
             // has zero activity and should show 0% — not a phantom 20% from the junk-avoidance bonus.
@@ -9722,19 +9730,74 @@
             );
         }
 
-        function showEveningFlow(force, recordKey, doneCb, opts) {
+        function isEveningComplete(rec) {
+            var ec = rec && rec.eveningCheck;
+            return !!(ec && ec.activityLevel != null && ec.emotionalBalance != null && ec.waterIntake != null);
+        }
+
+        function showEveningStep(step, recordKey, doneCb) {
             recordKey = recordKey || getTodayKey();
-            var rec = getRecord(recordKey);
-            if (!force && rec.eveningCheck) { if (doneCb) doneCb(); return; }
             var meta = getPromptDayMeta(recordKey);
             var prefix = meta.prefix;
             var hdrOpts = { greeting: meta.greetingEvening };
-            var prefillWater = !!(opts && opts.prefillWater);
-            var eveData = { waterIntake: prefillWater ? true : undefined };
+            var rec = getRecord(recordKey);
+            if (!rec.eveningCheck) {
+                rec.eveningCheck = { activityLevel: null, emotionalBalance: null, waterIntake: null, ts: null };
+            }
+            function saveField(field, value, next) {
+                var r = getRecord(recordKey);
+                if (!r.eveningCheck) r.eveningCheck = { activityLevel: null, emotionalBalance: null, waterIntake: null, ts: null };
+                if (r.eveningCheck[field] != null) { if (next) next(); return; }
+                r.eveningCheck[field] = value;
+                if (!r.eveningCheck.ts) r.eveningCheck.ts = new Date().toISOString();
+                saveRecord(recordKey, r);
+                recalcAndShowScore(recordKey);
+                if (next) setTimeout(next, 350);
+                else setTimeout(function(){ showEncouragement(buildEncouragement(recordKey)); }, 400);
+            }
+            if (step === 'activity') {
+                if (rec.eveningCheck.activityLevel != null) { if (doneCb) doneCb(); return; }
+                showBubble(prefix + 'Ниво на активност?', ACTIVITY_1_3, function(v){ saveField('activityLevel', v, doneCb); }, hdrOpts);
+                return;
+            }
+            if (step === 'balance') {
+                if (rec.eveningCheck.emotionalBalance != null) { if (doneCb) doneCb(); return; }
+                showBubble(prefix + 'Емоционален баланс?', BALANCE_1_3, function(v){ saveField('emotionalBalance', v, doneCb); }, hdrOpts);
+                return;
+            }
+            if (step === 'water') {
+                if (rec.eveningCheck.waterIntake != null) { if (doneCb) doneCb(); return; }
+                showBubble(prefix + 'Изпихте ли поне 2 л вода?', NO_YES, function(v){ saveField('waterIntake', v, doneCb); }, hdrOpts);
+            }
+        }
+
+        function showEveningFlow(force, recordKey, doneCb, opts) {
+            recordKey = recordKey || getTodayKey();
+            opts = opts || {};
+            if (opts.step) {
+                showEveningStep(opts.step, recordKey, doneCb);
+                return;
+            }
+            var rec = getRecord(recordKey);
+            if (!force && isEveningComplete(rec)) { if (doneCb) doneCb(); return; }
+            var meta = getPromptDayMeta(recordKey);
+            var prefix = meta.prefix;
+            var hdrOpts = { greeting: meta.greetingEvening };
+            var prefillWater = !!opts.prefillWater;
+            var ec = rec.eveningCheck || {};
+            var eveData = {
+                activityLevel: ec.activityLevel != null ? ec.activityLevel : undefined,
+                emotionalBalance: ec.emotionalBalance != null ? ec.emotionalBalance : undefined,
+                waterIntake: ec.waterIntake != null ? ec.waterIntake : (prefillWater ? true : undefined)
+            };
             function finish() {
                 var r = getRecord(recordKey);
-                r.eveningCheck = { activityLevel: eveData.activityLevel,
-                    emotionalBalance: eveData.emotionalBalance, waterIntake: !!eveData.waterIntake, ts: new Date().toISOString() };
+                r.eveningCheck = {
+                    activityLevel: eveData.activityLevel,
+                    emotionalBalance: eveData.emotionalBalance,
+                    waterIntake: !!eveData.waterIntake,
+                    ts: new Date().toISOString()
+                };
                 saveRecord(recordKey, r);
                 recalcAndShowScore(recordKey);
                 if (doneCb) { setTimeout(doneCb, 350); }
@@ -9748,17 +9811,19 @@
                 }
             }
             function q3() {
-                if (prefillWater) { finish(); return; }
+                if (eveData.waterIntake != null) { finish(); return; }
                 showBubble(prefix+'Изпихте ли поне 2 л вода?', NO_YES, function(v) {
                     eveData.waterIntake = v;
                     finish();
                 }, hdrOpts);
             }
             function q2() {
+                if (eveData.emotionalBalance != null) { q3(); return; }
                 showBubble(prefix+'Емоционален баланс?', BALANCE_1_3,
                     function(v){ eveData.emotionalBalance=v; setTimeout(q3,400); }, hdrOpts);
             }
             function q1() {
+                if (eveData.activityLevel != null) { q2(); return; }
                 showBubble(prefix+'Ниво на активност?', ACTIVITY_1_3,
                     function(v){ eveData.activityLevel=v; setTimeout(q2,400); }, hdrOpts);
             }
@@ -9776,7 +9841,7 @@
             if (!rec.morningCheck && (!isToday || h >= 6)) {
                 queue.push(function(next){ showMorningQuestion(true, recordKey, next); });
             }
-            if (!rec.eveningCheck && (!isToday || h >= 20)) {
+            if (!isEveningComplete(rec) && (!isToday || h >= 20)) {
                 queue.push(function(next){ showEveningFlow(true, recordKey, next); });
             }
             return queue;
@@ -9836,7 +9901,7 @@
                 if (!allData[pKey]) continue; // no real data for this day — skip (e.g. game was just activated)
                 var rec  = getRecord(pKey);
                 if (rec.missing) continue;
-                if (rec.morningCheck && rec.eveningCheck) continue;
+                if (rec.morningCheck && isEveningComplete(rec)) continue;
                 var offerKey = 'gameRetroOffered_' + pKey;
                 if (localStorage.getItem(offerKey)) continue;
                 localStorage.setItem(offerKey, '1');
@@ -10125,7 +10190,7 @@
                 }
             }
             // Evening: show once per hour from 20–23 while unanswered
-            if (h >= 20 && h <= 23 && !rec.eveningCheck) {
+            if (h >= 20 && h <= 23 && !isEveningComplete(rec)) {
                 var seKey = 'gameEveningShownH_' + today + '_' + h;
                 if (!localStorage.getItem(seKey)) {
                     localStorage.setItem(seKey, '1');
@@ -10207,6 +10272,10 @@
                 ? recordKey
                 : getTodayKey();
             showMorningQuestion(f, targetKey, null);
+        };
+        window._gameShowEveningStep = function(step, recordKey) {
+            var targetKey = recordKey || getTodayKey();
+            showEveningStep(step, targetKey, null);
         };
         window._gameShowEvening = function(f, recordKeyOrOpts, maybeOpts){
             var targetKey = getTodayKey();
@@ -10316,7 +10385,12 @@
                 }
                 return;
             }
-            if (outcome.notifType === 'evening_check') {
+            if (outcome.eveningStep && typeof window._gameShowEveningStep === 'function') {
+                window._gameShowEveningStep(outcome.eveningStep, recordKey);
+                return;
+            }
+            if (outcome.notifType === 'evening_check' || outcome.notifType === 'evening_water' ||
+                outcome.notifType === 'evening_activity' || outcome.notifType === 'evening_balance') {
                 if (typeof window._gameShowEvening === 'function') {
                     window._gameShowEvening(true, recordKey);
                 }
