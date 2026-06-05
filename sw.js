@@ -100,8 +100,11 @@ function resolveNotificationTarget(data = {}, action = '') {
   const recordKey = data.recordKey || '';
   if (type === 'morning_check' || type === 'evening_activity' || type === 'evening_balance' ||
       type === 'evening_water' || type === 'evening_check') {
-    const actionType = type === 'evening_check' ? 'evening_water' : type;
-    return `${BASE_PATH}/plan.html?action=${encodeURIComponent(actionType)}${recordKey ? '&date=' + encodeURIComponent(recordKey) : ''}`;
+    const qaType = type === 'evening_check' ? 'evening_water' : type;
+    return buildQuickAnswerUrl(qaType, { date: recordKey });
+  }
+  if (data.url && String(data.url).indexOf('quick-answer') !== -1) {
+    return data.url.startsWith('http') ? data.url : `${BASE_PATH}${data.url}`;
   }
   return data.url || `${BASE_PATH}/plan.html`;
 }
@@ -304,24 +307,15 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
-        const planClient = clientList.find(c => c.url.includes('/plan.html') || c.url.includes('tab=plan'));
-        if (planClient && 'focus' in planClient) {
-          if ('postMessage' in planClient) {
-            planClient.postMessage({
-              type: 'NOTIFICATION_ACTION',
-              action,
-              notificationType,
-              recordKey,
-              openApp: true
-            });
-          }
-          return planClient.focus();
+        const quickAnswerClient = clientList.find(c => c.url.includes('/quick-answer.html'));
+        if (quickAnswerClient && 'focus' in quickAnswerClient) {
+          return quickAnswerClient.focus();
         }
 
-        const indexClient = clientList.find(c => c.url.includes('/index.html'));
-        if (indexClient && 'focus' in indexClient) {
-          if ('postMessage' in indexClient) {
-            indexClient.postMessage({
+        const shellClient = clientList.find(c => c.url.includes('/index.html') || c.url.includes('tab=plan'));
+        if (shellClient && 'focus' in shellClient) {
+          if ('postMessage' in shellClient) {
+            shellClient.postMessage({
               type: 'NOTIFICATION_ACTION',
               action,
               notificationType,
@@ -329,7 +323,7 @@ self.addEventListener('notificationclick', (event) => {
               openApp: true
             });
           }
-          return indexClient.focus();
+          return shellClient.focus();
         }
 
         return clients.openWindow ? clients.openWindow(targetUrl) : undefined;

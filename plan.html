@@ -4456,12 +4456,10 @@
             // On first call: checks permission, creates Android channel, syncs backend
             // config (one lightweight KV version-check), and schedules a 30-day window.
             scheduleNotifications();
-            if (window.GameNotifier && typeof window.GameNotifier.drainPendingSwActions === 'function') {
-                window.GameNotifier.drainPendingSwActions().then(function(count) {
-                    if (count > 0 && window.gameModule && typeof window.gameModule.recalcAndShowScore === 'function') {
-                        window.gameModule.recalcAndShowScore(window.gameModule.getCurrentViewDayKey ? window.gameModule.getCurrentViewDayKey() : undefined);
-                    }
-                }).catch(function() {});
+            if (window.GameNotifier && typeof window.GameNotifier.drainAllPendingActions === 'function') {
+                window.GameNotifier.drainAllPendingActions().catch(function() {});
+            } else if (window.GameNotifier && typeof window.GameNotifier.drainPendingSwActions === 'function') {
+                window.GameNotifier.drainPendingSwActions().catch(function() {});
             }
             // Handle URL action params from notification body taps
             const urlParams = new URLSearchParams(window.location.search);
@@ -10404,9 +10402,6 @@
             });
 
             if (outcome.silent) {
-                if (outcome.ack && !msg.silentHandled && typeof window.GameNotifier.showSilentAck === 'function') {
-                    window.GameNotifier.showSilentAck(outcome.ack);
-                }
                 return;
             }
 
@@ -10434,14 +10429,18 @@
             var msg = event.data;
             if (!msg || msg.type !== 'NOTIFICATION_ACTION') return;
             if (msg.silent && window.GameNotifier) {
-                var silentOutcome = window.GameNotifier.handleNotificationAction(msg);
-                if (silentOutcome.ack && typeof window.GameNotifier.showSilentAck === 'function') {
-                    window.GameNotifier.showSilentAck(silentOutcome.ack);
-                }
-                if (silentOutcome.saved && window.gameModule && typeof window.gameModule.recalcAndShowScore === 'function') {
-                    window.gameModule.recalcAndShowScore(silentOutcome.recordKey);
-                }
+                window.GameNotifier.handleNotificationAction(msg);
                 return;
+            }
+            if (msg.openApp || !msg.action) {
+                var gn = window.GameNotifier;
+                var nType = msg.notificationType || '';
+                var rKey = msg.recordKey || '';
+                if (gn && typeof gn._buildQuickAnswerUrl === 'function' && nType) {
+                    var qaType = nType === 'evening_check' ? 'evening_water' : nType;
+                    window.location.href = gn._buildQuickAnswerUrl(qaType, { date: rKey });
+                    return;
+                }
             }
             window.NutriPlanHandleNotificationAction(msg);
         });

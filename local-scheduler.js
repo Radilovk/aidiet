@@ -28,10 +28,11 @@ const GameNotifier = {
     LS_VERSION_KEY:       'gameNotifierConfigVersion',
     LS_SCHEDULED_VERSION_KEY: 'gameNotifierScheduledVersion',
     CALENDAR_URL:   'https://aidiet.radilov-k.workers.dev/api/calendar.ics',
-    CHANNEL_ID:     'nutriplan_daily_checkins',
-    MORNING_CHANNEL_ID: 'nutriplan_morning',
-    EVENING_CHANNEL_ID: 'nutriplan_evening',
-    NOTIFICATION_SOUND: 'nutriplan_checkin.wav',
+    CHANNEL_ID:     'nutriplan_daily_checkins_v2',
+    MORNING_CHANNEL_ID: 'nutriplan_morning_v2',
+    EVENING_CHANNEL_ID: 'nutriplan_evening_v2',
+    NOTIFICATION_SOUND: 'default',
+    LS_PENDING_ACTIONS_KEY: 'gameNotifierPendingActions',
     BRAND_TEAL:     '#009A9E',
     BRAND_TEAL_DARK: '#0F766E',
     QUICK_ANSWER_PATH: '/quick-answer.html',
@@ -182,6 +183,8 @@ const GameNotifier = {
                 await this.scheduleNotifications();
                 localStorage.setItem(this.LS_SCHEDULED_VERSION_KEY, String(currentVersion));
             }
+
+            this.drainPendingLaunchActions();
 
             this._initialized = true;
             console.log('[GameNotifier] Ready.');
@@ -348,49 +351,96 @@ const GameNotifier = {
         return result;
     },
 
+    /** Brief haptic only — no second notification (avoids delayed heads-up flash). */
     showSilentAck(ackKey) {
         const patterns = {
-            sleep_yes: [40, 30, 60],
-            sleep_no:  [60, 30, 40],
+            sleep_yes: [35, 25, 35],
+            sleep_no:  [45, 25],
+            activity_1: [20, 15, 20],
+            activity_2: [25, 20, 25],
+            activity_3: [30, 25, 30, 25, 30],
+            balance_1:  [20],
+            balance_2:  [25, 20, 25],
+            balance_3:  [30, 25, 30],
             water_yes: [30, 20, 30],
-            water_no:  [50, 30],
-            skip:      [20]
+            water_no:  [40, 25],
+            skip:      [15]
         };
         try {
             if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                navigator.vibrate(patterns[ackKey] || [30]);
+                navigator.vibrate(patterns[ackKey] || [25]);
             }
         } catch (_) {}
-
-        if (ackKey === 'skip') return;
-        if (!this._capacitor) this._capacitor = this._detectCapacitor();
-        if (!this._capacitor) return;
-        const text = {
-            sleep_yes: '✓ Добре!',
-            sleep_no:  '✓ Записано',
-            water_yes: '✓ Вода',
-            water_no:  '✓ Записано',
-            skip:      null
-        }[ackKey] || '✓ Записано';
-        if (!text) return;
-        this._flashAckNotification(text).catch(() => {});
     },
 
-    async _flashAckNotification(body) {
-        const { LocalNotifications } = this._capacitor || {};
-        if (!LocalNotifications || typeof LocalNotifications.schedule !== 'function') return;
-        await LocalNotifications.schedule({
-            notifications: [{
-                id: this.ACK_NOTIFICATION_ID,
-                channelId: this.CHANNEL_ID,
-                title: '',
-                body,
-                silent: true,
-                autoCancel: true,
-                schedule: { at: new Date(Date.now() + 80), allowWhileIdle: false },
-                iconColor: this.BRAND_TEAL
-            }]
-        });
+    getQuestionDisplay(type) {
+        const cfg = this.normalizeConfig(this._getConfig());
+        const meta = this._slotMetaByType(type);
+        if (!meta) return null;
+        if (type === 'morning_check') {
+            return {
+                title: cfg.morningTitle || this.COPY.morning.title,
+                body:  cfg.morningBody || this.COPY.morning.body,
+                actions: this._actionsFromConfig(cfg, meta)
+            };
+        }
+        const prefix = meta.type.replace('evening_', '');
+        const cap = prefix.charAt(0).toUpperCase() + prefix.slice(1);
+        const titleKey = 'evening' + cap + 'Title';
+        const bodyKey = 'evening' + cap + 'Body';
+        const copy = this.COPY[meta.copyKey] || {};
+        return {
+            title: cfg[titleKey] || copy.title || 'AI Асистент',
+            body:  cfg[bodyKey] || copy.body || '',
+            actions: this._actionsFromConfig(cfg, meta)
+        };
+    },
+
+    encouragementForAction(actionId) {
+        const map = {
+            sleep_yes:    { title: 'Супер! ✨', message: 'Добър старт на деня!', confetti: 28 },
+            sleep_no:     { title: 'Записано', message: 'Благодарим за честността.', confetti: 12 },
+            activity_1:   { title: 'Записано', message: 'Спокоен ден — важно е да се отдъхнете.', confetti: 14 },
+            activity_2:   { title: 'Браво! 💪', message: 'Умерен ритъм — точно в целта.', confetti: 22 },
+            activity_3:   { title: 'Страхотно! 🔥', message: 'Висока активност — блестящо!', confetti: 32 },
+            balance_1:    { title: 'Записано', message: 'Утре е нов ден — полека.', confetti: 10 },
+            balance_2:    { title: 'Добре! 🙂', message: 'Спокойствието си струва.', confetti: 18 },
+            balance_3:    { title: 'Чудесно! ✨', message: 'Позитивният заряд помага.', confetti: 30 },
+            water_yes:    { title: 'Браво! 💧', message: 'Хидратацията е на място.', confetti: 26 },
+            water_no:     { title: 'Записано', message: 'Утре е нов шанс за вода.', confetti: 10 },
+            skip:         { title: 'Ок', message: 'Пропуснато за днес.', confetti: 0 }
+        };
+        return map[actionId] || { title: 'Готово ✨', message: 'Отговорът е записан.', confetti: 16 };
+    },
+
+    queuePendingActionForLaunch(payload) {
+        try {
+            const list = JSON.parse(localStorage.getItem(this.LS_PENDING_ACTIONS_KEY) || '[]');
+            list.push(Object.assign({}, payload, { ts: Date.now() }));
+            localStorage.setItem(this.LS_PENDING_ACTIONS_KEY, JSON.stringify(list.slice(-50)));
+            return true;
+        } catch (_) {
+            return false;
+        }
+    },
+
+    drainPendingLaunchActions() {
+        let applied = 0;
+        try {
+            const list = JSON.parse(localStorage.getItem(this.LS_PENDING_ACTIONS_KEY) || '[]');
+            if (!list.length) return 0;
+            list.forEach((item) => {
+                const outcome = this.handleNotificationAction(item);
+                if (outcome.saved || outcome.ack === 'skip') applied += 1;
+            });
+            localStorage.removeItem(this.LS_PENDING_ACTIONS_KEY);
+        } catch (_) {}
+        return applied;
+    },
+
+    drainAllPendingActions() {
+        const fromLs = this.drainPendingLaunchActions();
+        return this.drainPendingSwActions().then((fromIdb) => fromLs + fromIdb);
     },
 
     async drainPendingSwActions() {
@@ -663,39 +713,9 @@ const GameNotifier = {
             return;
         }
 
-        if (type === 'morning_check') {
-            if (typeof window._gameShowMorning === 'function') {
-                window._gameShowMorning(true, recordKey);
-                return;
-            }
-            if (extra.url) window.location.href = extra.url;
-            return;
+        if (extra.url) {
+            window.location.href = extra.url;
         }
-
-        if (this._isEveningNotificationType(type)) {
-            const step = type.replace('evening_', '');
-            if (typeof window._gameShowEveningStep === 'function') {
-                window._gameShowEveningStep(step, recordKey);
-                return;
-            }
-            if (typeof window._gameShowEvening === 'function') {
-                window._gameShowEvening(true, recordKey);
-                return;
-            }
-            if (extra.url) window.location.href = extra.url;
-            return;
-        }
-
-        if (type === 'evening_check') {
-            if (typeof window._gameShowEvening === 'function') {
-                window._gameShowEvening(true, recordKey);
-                return;
-            }
-            if (extra.url) window.location.href = extra.url;
-            return;
-        }
-
-        if (extra.url) window.location.href = extra.url;
     },
 
 
@@ -1001,7 +1021,7 @@ const GameNotifier = {
                     sound: this.NOTIFICATION_SOUND,
                     schedule: { at: new Date(morningTs), allowWhileIdle: true },
                     extra: {
-                        url: this._buildPlanActionUrl('morning_check', recordKey),
+                        url: this._buildQuickAnswerUrl('morning_check', { date: recordKey }),
                         type: 'morning_check',
                         recordKey
                     },
@@ -1026,7 +1046,7 @@ const GameNotifier = {
                     sound: this.NOTIFICATION_SOUND,
                     schedule: { at: new Date(eveningTs), allowWhileIdle: true },
                     extra: {
-                        url: this._buildPlanActionUrl(slot.type, recordKey),
+                        url: this._buildQuickAnswerUrl(slot.type, { date: recordKey }),
                         type: slot.type,
                         recordKey
                     },
@@ -1094,7 +1114,7 @@ const GameNotifier = {
                     body:  cfgNorm.morningBody,
                     tag:   `gn-morning-${morning}`,
                     type:  'morning_check',
-                    url:   this._buildPlanActionUrl('morning_check', recordKey),
+                    url:   this._buildQuickAnswerUrl('morning_check', { date: recordKey }),
                     recordKey,
                     actions: this._swActionsFromList(morningActions),
                     silentActionIds: morningActions.map((a) => a.id),
@@ -1117,7 +1137,7 @@ const GameNotifier = {
                     body:  slot.body,
                     tag:   `gn-${slot.type}-${evening}`,
                     type:  slot.type,
-                    url:   this._buildPlanActionUrl(slot.type, recordKey),
+                    url:   this._buildQuickAnswerUrl(slot.type, { date: recordKey }),
                     recordKey,
                     actions: this._swActionsFromList(slot.actions),
                     silentActionIds: (slot.actions || []).map((a) => a.id),
@@ -1171,17 +1191,17 @@ const GameNotifier = {
         if (type === 'morning_check') {
             title = cfg.morningTitle;
             body  = cfg.morningBody;
-            url   = this._buildPlanActionUrl('morning_check', recordKey);
+            url   = this._buildQuickAnswerUrl('morning_check', { date: recordKey });
             actionTypeId = this.MORNING_ACTION_TYPE_ID;
         } else if (slot) {
             title = slot.title;
             body  = slot.body;
-            url   = this._buildPlanActionUrl(slot.type, recordKey);
+            url   = this._buildQuickAnswerUrl(slot.type, { date: recordKey });
             actionTypeId = slot.actionTypeId;
         } else if (type === 'evening_check') {
             title = cfg.eveningWaterTitle;
             body  = cfg.eveningWaterBody;
-            url   = this._buildPlanActionUrl('evening_water', recordKey);
+            url   = this._buildQuickAnswerUrl('evening_water', { date: recordKey });
             actionTypeId = this.EVENING_WATER_ACTION_TYPE_ID;
             type = 'evening_water';
         } else {
