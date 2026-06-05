@@ -386,6 +386,49 @@ const GameNotifier = {
         return t.length > 22 ? t.slice(0, 22) + '…' : t;
     },
 
+    _ensureText(value, fallback) {
+        const s = String(value == null ? '' : value).trim();
+        const fb = String(fallback == null ? '' : fallback).trim();
+        return s || fb;
+    },
+
+    /**
+     * Notification title/body/largeBody for OS display (heads-up, shade).
+     * Puts the question in title + largeBody so Android compact layouts still show it.
+     */
+    _notificationDisplayFields(type) {
+        const display = this.getQuestionDisplay(type);
+        if (!display) {
+            return { title: 'NutriPlan', body: 'AI Асистент', largeBody: 'NutriPlan' };
+        }
+        const question = this._ensureText(display.body, 'Проверка');
+        const brand = this._ensureText(display.title, 'AI Асистент');
+        const answerActions = (display.actions || []).filter((a) => a.id !== 'skip');
+        const hints = answerActions.map((a) => a.title).join(' · ');
+        return {
+            title: question,
+            body: hints ? brand + ' — ' + hints : brand,
+            largeBody: hints ? question + '\n' + hints : question
+        };
+    },
+
+    /** After any standalone save (quick-answer / heads-up), refresh stored score + notify UI. */
+    notifyAnswerSaved(recordKey) {
+        const key = this._normalizeRecordKey(recordKey);
+        try {
+            localStorage.setItem('gameDataDirtyKey', key);
+        } catch (_) {}
+        const gm = typeof window !== 'undefined' && window.gameModule;
+        if (gm && typeof gm.recalcAndShowScore === 'function') {
+            try { gm.recalcAndShowScore(key); } catch (_) {}
+        }
+        try {
+            if (typeof window !== 'undefined' && window.parent && window.parent !== window) {
+                window.parent.postMessage({ type: 'NUTRIPLAN_GAMEDATA_UPDATED', recordKey: key }, window.location.origin);
+            }
+        } catch (_) {}
+    },
+
     extractCapacitorActionId(actionEvent) {
         if (!actionEvent) return '';
         let id = actionEvent.actionId;
@@ -766,7 +809,18 @@ const GameNotifier = {
 
         const qaType = type === 'evening_check' ? 'evening_water' : type;
         if (actionId && qaType) {
-            window.location.replace(this._buildQuickAnswerUrl(qaType, { date: recordKey, auto: actionId }));
+            const outcome = this.handleNotificationAction({
+                notificationType: qaType,
+                action: actionId,
+                recordKey
+            });
+            if (outcome.silent) {
+                if (outcome.ack && typeof this.showSilentAck === 'function') this.showSilentAck(outcome.ack);
+                if (typeof this.notifyAnswerSaved === 'function') this.notifyAnswerSaved(recordKey);
+                this._dismissAfterSilentHeadUp();
+                return;
+            }
+            window.location.replace(this._buildQuickAnswerUrl(qaType, { date: recordKey }));
             return;
         }
 
@@ -784,7 +838,9 @@ const GameNotifier = {
 
     _dismissAfterSilentHeadUp() {
         try {
-            if (typeof document !== 'undefined' && document.documentElement) {
+            const onQuickAnswer = typeof location !== 'undefined' &&
+                /quick-answer\.html/i.test(location.pathname || '');
+            if (!onQuickAnswer && typeof document !== 'undefined' && document.documentElement) {
                 document.documentElement.style.visibility = 'hidden';
             }
             const cap = window.Capacitor || (window.top && window.top.Capacitor);
@@ -990,6 +1046,14 @@ const GameNotifier = {
         merged.eveningActivityActions = this._normalizeActionList(merged.eveningActivityActions, this._defaultActionsFor('eveningActivityActions'));
         merged.eveningBalanceActions = this._normalizeActionList(merged.eveningBalanceActions, this._defaultActionsFor('eveningBalanceActions'));
         merged.eveningWaterActions = this._normalizeActionList(merged.eveningWaterActions, this._defaultActionsFor('eveningWaterActions'));
+        merged.morningTitle = this._ensureText(merged.morningTitle, defaults.morningTitle);
+        merged.morningBody = this._ensureText(merged.morningBody, defaults.morningBody);
+        merged.eveningActivityTitle = this._ensureText(merged.eveningActivityTitle, defaults.eveningActivityTitle);
+        merged.eveningActivityBody = this._ensureText(merged.eveningActivityBody, defaults.eveningActivityBody);
+        merged.eveningBalanceTitle = this._ensureText(merged.eveningBalanceTitle, defaults.eveningBalanceTitle);
+        merged.eveningBalanceBody = this._ensureText(merged.eveningBalanceBody, defaults.eveningBalanceBody);
+        merged.eveningWaterTitle = this._ensureText(merged.eveningWaterTitle, defaults.eveningWaterTitle);
+        merged.eveningWaterBody = this._ensureText(merged.eveningWaterBody, defaults.eveningWaterBody);
         return merged;
     },
 
@@ -1098,11 +1162,13 @@ const GameNotifier = {
             if (morningTs > Date.now()) {
                 const recordKey = this._dateKeyForTimestamp(morningTs);
                 if (this._isQuestionAnswered(recordKey, 'morning_check')) continue;
+                const morningDisplay = this._notificationDisplayFields('morning_check');
                 notifications.push({
                     id: 1000 + day,
                     channelId: this.MORNING_CHANNEL_ID,
-                    title: cfgNorm.morningTitle,
-                    body:  cfgNorm.morningBody,
+                    title: morningDisplay.title,
+                    body:  morningDisplay.body,
+                    largeBody: morningDisplay.largeBody,
                     actionTypeId: this.MORNING_ACTION_TYPE_ID,
                     schedule: { at: new Date(morningTs), allowWhileIdle: true },
                     extra: {
@@ -1122,11 +1188,13 @@ const GameNotifier = {
                 if (eveningTs <= Date.now()) continue;
                 const recordKey = this._dateKeyForTimestamp(eveningTs);
                 if (this._isQuestionAnswered(recordKey, slot.type)) continue;
+                const slotDisplay = this._notificationDisplayFields(slot.type);
                 notifications.push({
                     id: slot.idBase + day,
                     channelId: this.EVENING_CHANNEL_ID,
-                    title: slot.title,
-                    body:  slot.body,
+                    title: slotDisplay.title,
+                    body:  slotDisplay.body,
+                    largeBody: slotDisplay.largeBody,
                     actionTypeId: slot.actionTypeId,
                     schedule: { at: new Date(eveningTs), allowWhileIdle: true },
                     extra: {
@@ -1191,16 +1259,16 @@ const GameNotifier = {
                 const recordKey = this._dateKeyForTimestamp(morning);
                 if (this._isQuestionAnswered(recordKey, 'morning_check')) continue;
                 const morningActions = this._actionsFromConfig(cfgNorm, this.MORNING_META);
+                const morningDisplay = this._notificationDisplayFields('morning_check');
                 schedule.push({
                     ts: morning,
-                    title: cfgNorm.morningTitle,
-                    body:  cfgNorm.morningBody,
+                    title: morningDisplay.title,
+                    body:  morningDisplay.body,
                     tag:   `gn-morning-${morning}`,
                     type:  'morning_check',
                     url:   this._buildQuickAnswerUrl('morning_check', { date: recordKey }),
                     recordKey,
                     actions: this._swActionsFromList(morningActions),
-                    silentActionIds: morningActions.map((a) => a.id),
                     vibrate: [300, 100, 300, 100, 300],
                     requireInteraction: true
                 });
@@ -1214,16 +1282,16 @@ const GameNotifier = {
                 if (evening <= now) continue;
                 const recordKey = this._dateKeyForTimestamp(evening);
                 if (this._isQuestionAnswered(recordKey, slot.type)) continue;
+                const slotDisplay = this._notificationDisplayFields(slot.type);
                 schedule.push({
                     ts: evening,
-                    title: slot.title,
-                    body:  slot.body,
+                    title: slotDisplay.title,
+                    body:  slotDisplay.body,
                     tag:   `gn-${slot.type}-${evening}`,
                     type:  slot.type,
                     url:   this._buildQuickAnswerUrl(slot.type, { date: recordKey }),
                     recordKey,
                     actions: this._swActionsFromList(slot.actions),
-                    silentActionIds: (slot.actions || []).map((a) => a.id),
                     vibrate: [200, 100, 200, 100, 200],
                     requireInteraction: false
                 });
@@ -1272,18 +1340,21 @@ const GameNotifier = {
         const slot = this._getEveningSlots(cfg).find((item) => item.type === type);
 
         if (type === 'morning_check') {
-            title = cfg.morningTitle;
-            body  = cfg.morningBody;
+            const disp = this._notificationDisplayFields('morning_check');
+            title = disp.title;
+            body  = disp.body;
             url   = this._buildQuickAnswerUrl('morning_check', { date: recordKey });
             actionTypeId = this.MORNING_ACTION_TYPE_ID;
         } else if (slot) {
-            title = slot.title;
-            body  = slot.body;
+            const disp = this._notificationDisplayFields(slot.type);
+            title = disp.title;
+            body  = disp.body;
             url   = this._buildQuickAnswerUrl(slot.type, { date: recordKey });
             actionTypeId = slot.actionTypeId;
         } else if (type === 'evening_check') {
-            title = cfg.eveningWaterTitle;
-            body  = cfg.eveningWaterBody;
+            const disp = this._notificationDisplayFields('evening_water');
+            title = disp.title;
+            body  = disp.body;
             url   = this._buildQuickAnswerUrl('evening_water', { date: recordKey });
             actionTypeId = this.EVENING_WATER_ACTION_TYPE_ID;
             type = 'evening_water';
@@ -1295,11 +1366,13 @@ const GameNotifier = {
 
         if (this._capacitor) {
             const { LocalNotifications } = this._capacitor;
+            const disp = this._notificationDisplayFields(type);
             await LocalNotifications.schedule({ notifications: [{
                 id: 9999,
                 channelId: this.CHANNEL_ID,
-                title,
-                body,
+                title: title || disp.title,
+                body: body || disp.body,
+                largeBody: disp.largeBody,
                 actionTypeId,
                 schedule: { at: new Date(Date.now() + 500), allowWhileIdle: true },
                 extra: { url, type, recordKey },
@@ -1360,10 +1433,13 @@ const GameNotifier = {
                 rec.morningCheck = { sleptWell: !!sleptWell, ts: new Date().toISOString() };
                 gm.saveRecord(recordKey, rec);
                 if (typeof gm.recalcAndShowScore === 'function') gm.recalcAndShowScore(recordKey);
+                this.notifyAnswerSaved(recordKey);
                 return true;
             } catch (_) { /* fall through */ }
         }
-        return this._saveQuickAnswer(recordKey, 'morning_check', { sleptWell: !!sleptWell });
+        const saved = this._saveQuickAnswer(recordKey, 'morning_check', { sleptWell: !!sleptWell });
+        if (saved) this.notifyAnswerSaved(recordKey);
+        return saved;
     },
 
     _saveEveningField(recordKey, field, value) {
@@ -1384,6 +1460,7 @@ const GameNotifier = {
                 if (!rec.eveningCheck.ts) rec.eveningCheck.ts = new Date().toISOString();
                 gm.saveRecord(recordKey, rec);
                 if (typeof gm.recalcAndShowScore === 'function') gm.recalcAndShowScore(recordKey);
+                this.notifyAnswerSaved(recordKey);
                 return true;
             } catch (_) { /* fall through */ }
         }
@@ -1403,6 +1480,7 @@ const GameNotifier = {
             record.eveningCheck[field] = value;
             allData[key] = record;
             localStorage.setItem('gameData', JSON.stringify(allData));
+            this.notifyAnswerSaved(key);
             return true;
         } catch (e) {
             console.warn('[GameNotifier] Evening field save failed:', e);
@@ -1454,11 +1532,6 @@ const GameNotifier = {
             console.warn('[GameNotifier] Quick answer save failed:', e);
             return false;
         }
-    },
-
-    _buildPlanActionUrl(type, recordKey) {
-        const key = this._normalizeRecordKey(recordKey);
-        return `/plan.html?action=${encodeURIComponent(type)}&date=${encodeURIComponent(key)}`;
     },
 
     _buildQuickAnswerUrl(type, params) {

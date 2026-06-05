@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
-"""Patch @capacitor/local-notifications for NutriPlan heads-up action buttons."""
+"""NutriPlan maintenance patch for @capacitor/local-notifications.
+
+- Reverts mistaken ic_menu_send action icons (heads-up showed arrows, not labels).
+- Removes legacy MediaStyle compact-view patch if present.
+- Removes unused androidx.media dependency if it was added for MediaStyle.
+"""
 from __future__ import annotations
 
 import sys
 from pathlib import Path
 
 COMPACT_MARKER = "NutriPlan: show all actions in heads-up compact view"
-ICON_MARKER = "NutriPlan: visible action icon"
-GRADLE_MARKER = "NutriPlan: androidx.media for compact actions"
+GRADLE_MEDIA_LINE = 'implementation "androidx.media:media:1.7.0" // NutriPlan: androidx.media for compact actions'
+SEND_ICON = "android.R.drawable.ic_menu_send /* NutriPlan: visible action icon */"
+TRANSPARENT_ICON = "R.drawable.ic_transparent"
 
 
 def find_manager() -> Path | None:
@@ -24,7 +30,6 @@ def find_gradle() -> Path | None:
 
 
 def remove_compact_patch(text: str) -> tuple[str, bool]:
-    """Remove any prior NutriPlan compact-view patch (all broken variants)."""
     marker = f"            // {COMPACT_MARKER}\n"
     changed = False
     while marker in text:
@@ -39,23 +44,6 @@ def remove_compact_patch(text: str) -> tuple[str, bool]:
     return text, changed
 
 
-def patch_gradle(path: Path) -> bool:
-    text = path.read_text(encoding="utf-8")
-    if GRADLE_MARKER in text:
-        return False
-    needle = 'implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"'
-    insert = (
-        needle
-        + '\n    implementation "androidx.media:media:1.7.0" // '
-        + GRADLE_MARKER
-    )
-    if needle not in text:
-        print(f"ERROR: appcompat dependency anchor not found in {path}", file=sys.stderr)
-        return False
-    path.write_text(text.replace(needle, insert, 1), encoding="utf-8")
-    return True
-
-
 def patch_manager(path: Path) -> bool:
     text = path.read_text(encoding="utf-8")
     changed = False
@@ -64,76 +52,43 @@ def patch_manager(path: Path) -> bool:
         text, removed = remove_compact_patch(text)
         if removed:
             changed = True
-            print(f"Removed legacy compact-view patch from {path}", file=sys.stderr)
+            print(f"Removed legacy MediaStyle compact patch from {path}", file=sys.stderr)
 
-    if COMPACT_MARKER not in text or "androidx.media.app.NotificationCompat.MediaStyle" not in text:
-        needle = (
-            "                mBuilder.addAction(actionBuilder.build());\n"
-            "            }\n"
-            "        }\n"
-            "\n"
-            "        // Dismiss intent"
-        )
-        insert = (
-            "                mBuilder.addAction(actionBuilder.build());\n"
-            "            }\n"
-            f"            // {COMPACT_MARKER}\n"
-            "            if (actionGroup.length > 1) {\n"
-            "                androidx.media.app.NotificationCompat.MediaStyle compactStyle =\n"
-            "                    new androidx.media.app.NotificationCompat.MediaStyle();\n"
-            "                int compactCount = Math.min(actionGroup.length, 3);\n"
-            "                if (compactCount >= 3) {\n"
-            "                    compactStyle.setShowActionsInCompactView(0, 1, 2);\n"
-            "                } else if (compactCount == 2) {\n"
-            "                    compactStyle.setShowActionsInCompactView(0, 1);\n"
-            "                }\n"
-            "                mBuilder.setStyle(compactStyle);\n"
-            "            }\n"
-            "        }\n"
-            "\n"
-            "        // Dismiss intent"
-        )
-        if needle not in text:
-            print(f"ERROR: action loop anchor not found in {path}", file=sys.stderr)
-            return False
-        text = text.replace(needle, insert, 1)
+    if SEND_ICON in text:
+        text = text.replace(SEND_ICON, TRANSPARENT_ICON)
         changed = True
-
-    if ICON_MARKER not in text and "R.drawable.ic_transparent" in text:
-        text = text.replace(
-            "R.drawable.ic_transparent",
-            "android.R.drawable.ic_menu_send /* NutriPlan: visible action icon */",
-            1,
-        )
-        changed = True
+        print(f"Reverted send-arrow action icon in {path}", file=sys.stderr)
 
     if changed:
         path.write_text(text, encoding="utf-8")
     return changed
 
 
+def patch_gradle(path: Path) -> bool:
+    text = path.read_text(encoding="utf-8")
+    if GRADLE_MEDIA_LINE not in text:
+        return False
+    text = text.replace(GRADLE_MEDIA_LINE + "\n", "")
+    text = text.replace(GRADLE_MEDIA_LINE, "")
+    path.write_text(text, encoding="utf-8")
+    return True
+
+
 def main() -> int:
-    gradle = find_gradle()
     manager = find_manager()
     if not manager:
         print("WARN: LocalNotificationManager.java not found — skip patch", file=sys.stderr)
         return 0
 
-    ok = True
-    if gradle:
-        if patch_gradle(gradle):
-            print(f"Patched {gradle}")
-        else:
-            print(f"Gradle already patched: {gradle}")
-    else:
-        print("WARN: local-notifications build.gradle not found", file=sys.stderr)
-        ok = False
+    gradle = find_gradle()
+    if gradle and patch_gradle(gradle):
+        print(f"Removed unused media dependency from {gradle}")
 
     if patch_manager(manager):
         print(f"Patched {manager}")
-    elif ok:
-        print(f"Already patched: {manager}")
-    return 0 if ok else 1
+    else:
+        print(f"No manager changes needed: {manager}")
+    return 0
 
 
 if __name__ == "__main__":

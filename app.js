@@ -249,22 +249,6 @@
         }
     }
 
-    function buildNativeNotificationTarget(extra, actionId) {
-        if (actionId) return null;
-        var type = extra && typeof extra.type === 'string' ? extra.type : '';
-        var recordKey = extra && typeof extra.recordKey === 'string' ? extra.recordKey : '';
-        var gn = window.GameNotifier;
-        if (gn && typeof gn._buildQuickAnswerUrl === 'function' && type) {
-            var qaType = type === 'evening_check' ? 'evening_water' : type;
-            return gn._buildQuickAnswerUrl(qaType, { date: recordKey }).replace(/^\//, '');
-        }
-        if (extra && typeof extra.url === 'string' && extra.url) {
-            return extra.url.replace(/^\//, '');
-        }
-        return 'quick-answer.html';
-    }
-
-
     function getNotificationRecordKey(recordKey) {
         if (typeof recordKey === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(recordKey)) return recordKey;
         var d = new Date();
@@ -349,18 +333,15 @@
         return window.GameNotifier.init().catch(function () { return false; });
     }
 
-    function openQuickAnswerFromNotification(msg, autoAction) {
+    function openQuickAnswerFromNotification(msg) {
         var gn = window.GameNotifier;
         var type = (msg && (msg.notificationType || msg.type)) || '';
         var recordKey = getNotificationRecordKey(msg && msg.recordKey);
         if (!type) return false;
         var qaType = type === 'evening_check' ? 'evening_water' : type;
-        var params = { date: recordKey };
-        if (autoAction) params.auto = autoAction;
         var path = gn && typeof gn._buildQuickAnswerUrl === 'function'
-            ? gn._buildQuickAnswerUrl(qaType, params)
-            : '/quick-answer.html?type=' + encodeURIComponent(qaType) + '&date=' + encodeURIComponent(recordKey) +
-                (autoAction ? '&auto=' + encodeURIComponent(autoAction) : '');
+            ? gn._buildQuickAnswerUrl(qaType, { date: recordKey })
+            : '/quick-answer.html?type=' + encodeURIComponent(qaType) + '&date=' + encodeURIComponent(recordKey);
         window.location.replace(path.replace(/^\//, ''));
         return true;
     }
@@ -392,7 +373,8 @@
                 recordKey: extra.recordKey || ''
             };
             if (actionId) {
-                openQuickAnswerFromNotification(payload, actionId);
+                if (handleNativeNotificationAction(payload)) return;
+                openQuickAnswerFromNotification(payload);
                 return;
             }
             if (openQuickAnswerFromNotification(payload)) return;
@@ -413,7 +395,8 @@
                 recordKey: msg.recordKey || ''
             };
             if (msg.silent && payload.action) {
-                openQuickAnswerFromNotification(payload, payload.action);
+                if (handleNativeNotificationAction(payload)) return;
+                openQuickAnswerFromNotification(payload);
                 return;
             }
             if (msg.openApp || !payload.action) {
@@ -709,6 +692,20 @@
         }
         if (data.type === 'NUTRIPLAN_SWITCH_TAB') {
             if (data.tab) switchTab(data.tab, true);
+            return;
+        }
+        if (data.type === 'NUTRIPLAN_GAMEDATA_UPDATED') {
+            forwardSilentRecalc({
+                recordKey: data.recordKey || ''
+            });
+            var analyticsFrame = document.querySelector('[data-tab-view="analytics"]');
+            if (analyticsFrame) {
+                dispatchFrameEvent(analyticsFrame, 'NUTRIPLAN_TAB_ACTIVATED', { tab: 'analytics' });
+            }
+            var planFrame = document.querySelector('[data-tab-view="plan"]');
+            if (planFrame) {
+                dispatchFrameEvent(planFrame, 'NUTRIPLAN_APP_DATA_READY', { keys: ['gameData'] });
+            }
             return;
         }
         if (data.type === 'NUTRIPLAN_LOGOUT') {

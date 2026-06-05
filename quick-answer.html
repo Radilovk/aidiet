@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>NutriPlan • Бърз отговор</title>
     <meta name="theme-color" content="#0b1120">
-    <script>(function(){if(new URLSearchParams(location.search).get('auto'))document.documentElement.className='instant';})();</script>
     <style>
         :root {
             --bg-1: #04111b;
@@ -59,17 +58,16 @@
             box-shadow: var(--shadow);
             backdrop-filter: blur(18px);
             padding: 22px 18px 18px;
-            transform: translateY(14px) scale(0.98);
-            opacity: 0;
-            animation: pop-in 0.22s ease-out forwards;
-        }
-        html.instant .card {
-            animation: none;
             opacity: 1;
             transform: none;
         }
-        html.instant .stars,
-        html.instant .glow { display: none; }
+        @media (prefers-reduced-motion: no-preference) {
+            .card {
+                transform: translateY(14px) scale(0.98);
+                opacity: 0;
+                animation: pop-in 0.22s ease-out forwards;
+            }
+        }
         .badge {
             display: inline-flex;
             align-items: center;
@@ -267,25 +265,77 @@
     <script src="./local-scheduler.js"></script>
     <script>
     (function() {
+        document.documentElement.style.visibility = 'visible';
+
         var params = new URLSearchParams(window.location.search);
         var rawType = params.get('type') || 'morning_check';
         var auto = params.get('auto') || '';
         var recordKey = normalizeDateKey(params.get('date'));
         var notifType = normalizeNotifType(rawType);
 
-        if (auto) {
-            applySilentAction(notifType, auto, recordKey);
-            return;
-        }
-
         var card = document.getElementById('card');
         var confettiLayer = document.getElementById('confetti');
         var closing = false;
+
+        var FALLBACK_COPY = {
+            morning_check: {
+                title: 'AI Асистент',
+                body: 'Спахте ли добре тази нощ?',
+                actions: [
+                    { id: 'sleep_yes', title: 'Да' },
+                    { id: 'sleep_no', title: 'Не' },
+                    { id: 'skip', title: 'Пропуск' }
+                ]
+            },
+            evening_activity: {
+                title: 'AI Асистент',
+                body: 'Ниво на активност?',
+                actions: [
+                    { id: 'activity_1', title: 'Ниска' },
+                    { id: 'activity_2', title: 'Умерена' },
+                    { id: 'activity_3', title: 'Висока' }
+                ]
+            },
+            evening_balance: {
+                title: 'AI Асистент',
+                body: 'Емоционален баланс?',
+                actions: [
+                    { id: 'balance_1', title: 'Напрегнат' },
+                    { id: 'balance_2', title: 'Спокоен' },
+                    { id: 'balance_3', title: 'Позитивен' }
+                ]
+            },
+            evening_water: {
+                title: 'AI Асистент',
+                body: 'Изпихте ли поне 2 л вода?',
+                actions: [
+                    { id: 'water_no', title: 'Не' },
+                    { id: 'water_yes', title: 'Да' },
+                    { id: 'skip', title: 'Пропуск' }
+                ]
+            }
+        };
 
         function normalizeNotifType(t) {
             if (t === 'evening_check') return 'evening_water';
             if (t === 'morning_check' || t === 'evening_activity' || t === 'evening_balance' || t === 'evening_water') return t;
             return 'morning_check';
+        }
+
+        function getQuestionDisplaySafe(type) {
+            var gn = window.GameNotifier;
+            if (gn && typeof gn.getQuestionDisplay === 'function') {
+                var display = gn.getQuestionDisplay(type);
+                if (display && display.body && display.actions && display.actions.length) return display;
+            }
+            return FALLBACK_COPY[type] || FALLBACK_COPY.morning_check;
+        }
+
+        if (auto) {
+            whenGameNotifierReady(function() {
+                applySilentAction(notifType, auto, recordKey);
+            });
+            return;
         }
 
         function pad(n) { return n < 10 ? '0' + n : '' + n; }
@@ -362,15 +412,75 @@
                 document.documentElement.style.opacity = '0';
             } catch (_) {}
         }
+        function whenGameNotifierReady(cb, attempt) {
+            attempt = attempt || 0;
+            var gn = window.GameNotifier;
+            if (gn && typeof gn.getQuestionDisplay === 'function') {
+                if (!gn._initialized && typeof gn.init === 'function') {
+                    gn.init().then(function() { cb(); }).catch(function() { cb(); });
+                    return;
+                }
+                cb();
+                return;
+            }
+            if (attempt < 80) {
+                setTimeout(function() { whenGameNotifierReady(cb, attempt + 1); }, 50);
+                return;
+            }
+            render(
+                '<div class="badge">⚠️ Грешка</div>' +
+                '<h1 class="title">Неуспешно зареждане</h1>' +
+                '<p class="subtitle">Моля, опитайте отново или отворете приложението.</p>' +
+                '<div class="footer-actions">' +
+                    '<button class="solid" id="retryBtn">Опитай отново</button>' +
+                    '<button class="ghost" id="openPlanBtn">Отвори приложението</button>' +
+                '</div>'
+            );
+            document.getElementById('retryBtn').addEventListener('click', function() {
+                render('<p class="subtitle">Зареждане…</p>');
+                whenGameNotifierReady(cb, 0);
+            });
+            document.getElementById('openPlanBtn').addEventListener('click', viewPlan);
+        }
+
         function applySilentAction(type, actionId, key) {
             var gn = window.GameNotifier;
+            render(
+                '<div class="badge">✨ Записване</div>' +
+                '<div class="success">' +
+                    '<div class="success-icon">…</div>' +
+                    '<h2>Записваме отговора</h2>' +
+                    '<p>Моля, изчакайте момент.</p>' +
+                '</div>'
+            );
+            var saved = false;
             if (gn && typeof gn.handleNotificationAction === 'function') {
-                gn.handleNotificationAction({ notificationType: type, action: actionId, recordKey: key });
+                var outcome = gn.handleNotificationAction({
+                    notificationType: type,
+                    action: actionId,
+                    recordKey: key
+                });
+                saved = !!(outcome && (outcome.saved || outcome.ack === 'skip'));
                 if (typeof gn.showSilentAck === 'function') gn.showSilentAck(actionId);
+                if (saved && typeof gn.notifyAnswerSaved === 'function') {
+                    gn.notifyAnswerSaved(key);
+                }
             }
-            finishEncouragement(actionId);
+            if (!saved) {
+                render(
+                    '<div class="badge">⚠️</div>' +
+                    '<h1 class="title">Неуспешен запис</h1>' +
+                    '<p class="subtitle">Отворете приложението и отговорете отново.</p>' +
+                    '<div class="footer-actions"><button class="solid" id="openPlanBtn">Отвори приложението</button></div>'
+                );
+                document.getElementById('openPlanBtn').addEventListener('click', viewPlan);
+                setTimeout(closeFlow, 2200);
+                return;
+            }
+            finishEncouragement(actionId, 900);
         }
-        function finishEncouragement(actionId) {
+        function finishEncouragement(actionId, closeMs) {
+            closeMs = closeMs || 1200;
             var enc = (window.GameNotifier && typeof window.GameNotifier.encouragementForAction === 'function')
                 ? window.GameNotifier.encouragementForAction(actionId)
                 : { title: 'Готово ✨', message: 'Записано.', confetti: 16 };
@@ -384,7 +494,7 @@
                     '<p>' + escapeHtml(enc.message) + '</p>' +
                 '</div>'
             );
-            setTimeout(closeFlow, 420);
+            setTimeout(closeFlow, closeMs);
         }
         function onAnswerChosen(actionId) {
             var gn = window.GameNotifier;
@@ -399,6 +509,7 @@
                 setTimeout(closeFlow, 1400);
                 return;
             }
+            if (typeof gn.notifyAnswerSaved === 'function') gn.notifyAnswerSaved(recordKey);
             finishEncouragement(actionId);
         }
         function renderAlreadyAnswered(title, message) {
@@ -420,9 +531,15 @@
             return ' primary';
         }
         function renderQuestionScreen() {
+            whenGameNotifierReady(function() {
+                renderQuestionScreenReady();
+            });
+        }
+
+        function renderQuestionScreenReady() {
             var gn = window.GameNotifier;
             if (!gn || typeof gn.getQuestionDisplay !== 'function') {
-                render('<p class="subtitle">Зареждане…</p>');
+                render('<p class="subtitle">Липсва конфигурация за въпроса.</p>');
                 return;
             }
             if (gn._isQuestionAnswered && gn._isQuestionAnswered(recordKey, notifType)) {
@@ -430,9 +547,14 @@
                 setTimeout(closeFlow, 1200);
                 return;
             }
-            var display = gn.getQuestionDisplay(notifType);
+            var display = getQuestionDisplaySafe(notifType);
             if (!display || !display.actions || !display.actions.length) {
                 render('<p class="subtitle">Липсва конфигурация за въпроса.</p>');
+                return;
+            }
+            var questionText = String(display.body || '').trim();
+            if (!questionText) {
+                render('<p class="subtitle">Липсва текст на въпроса.</p>');
                 return;
             }
             var badge = notifType.indexOf('evening_') === 0 ? '🌙 Вечер' : '🌅 Сутрин';
@@ -460,6 +582,7 @@
             document.getElementById('openPlanBtn').addEventListener('click', viewPlan);
         }
 
+        render('<p class="subtitle">Зареждане…</p>');
         renderQuestionScreen();
     })();
     </script>

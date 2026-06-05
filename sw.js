@@ -280,34 +280,22 @@ self.addEventListener('notificationclick', (event) => {
   const recordKey = data.recordKey || '';
 
   if (action) {
-    const qaType = notificationType === 'evening_check' ? 'evening_water' : notificationType;
-    const url = buildQuickAnswerUrl(qaType, { date: recordKey, auto: action });
-    const targetUrl = toAbsoluteAppUrl(url);
-
     event.waitUntil(
       clients.matchAll({ type: 'window', includeUncontrolled: true })
         .then((clientList) => {
-          const quickAnswerClient = clientList.find((c) => c.url.includes('/quick-answer.html'));
-          if (quickAnswerClient) {
-            if ('navigate' in quickAnswerClient) {
-              return quickAnswerClient.navigate(targetUrl).then(() => {
-                if ('focus' in quickAnswerClient) return quickAnswerClient.focus();
-              });
-            }
-            if ('focus' in quickAnswerClient) return quickAnswerClient.focus();
-          }
-
           const shellClient = clientList.find((c) =>
             c.url.includes('/index.html') || c.url.includes('tab=plan')
           );
-          if (shellClient && 'navigate' in shellClient) {
-            return shellClient.navigate(targetUrl).then(() => {
-              if ('focus' in shellClient) return shellClient.focus();
+          if (shellClient && 'postMessage' in shellClient) {
+            shellClient.postMessage({
+              type: 'NOTIFICATION_ACTION',
+              action,
+              notificationType,
+              recordKey,
+              silent: true
             });
+            if ('focus' in shellClient) return shellClient.focus();
           }
-
-          if (clients.openWindow) return clients.openWindow(targetUrl);
-
           return queuePendingGameAction({ action, notificationType, recordKey });
         })
     );
@@ -404,8 +392,7 @@ self.addEventListener('message', (event) => {
           data: {
             url: item.url,
             type: item.type,
-            recordKey: item.recordKey || '',
-            silentActionIds: item.silentActionIds || []
+            recordKey: item.recordKey || ''
           },
           requireInteraction: item.requireInteraction || false,
           vibrate:            item.vibrate || [200, 100, 200]
