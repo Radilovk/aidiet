@@ -3442,6 +3442,7 @@
     <script src="./session-utils.js"></script>
     <script src="./diagnostics-log.js"></script>
     <script src="./platform.js"></script>
+    <script src="./platform-compat.js"></script>
     <script type="module">
         import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
         import {
@@ -4245,22 +4246,22 @@
                         info.recommendations.push('Safari → Share → Add to Home Screen');
                         info.recommendations.push('След това отворете от началния екран');
                     }
-                } else if (PlatformDetector.isHuawei()) {
-                    info.platform = 'Huawei';
-                    info.notificationsSupported = true;   // calendar subscription counts
-                    info.calendarFallback = true;
-                    info.calendarUrl = 'webcal://aidiet.radilov-k.workers.dev/api/calendar.ics';
-                    info.limitedSupport = true;
-                    info.recommendations.push('Абонирайте се за напомняния чрез Calendar приложението');
-                    info.recommendations.push('Натиснете "Абонирай се" за автоматични напомняния');
-                    info.recommendations.push('Huawei Calendar ще се обновява автоматично при промени');
                 } else if (PlatformDetector.isAndroid()) {
-                    info.platform = 'Android';
-                    info.notificationsSupported = PlatformDetector.supportsNotifications();
-                    info.limitedSupport = false;
-                    if (!info.notificationsSupported) {
-                        info.recommendations.push('Вашият браузър не поддържа известия');
-                        info.recommendations.push('Използвайте Chrome, Firefox или Samsung Internet');
+                    const compat = window.NutriPlanCompat && window.NutriPlanCompat.getCompatibilityProfile();
+                    info.platform = compat && compat.oem ? ('Android · ' + compat.oem) : 'Android';
+                    info.notificationsSupported = compat
+                        ? (compat.deliveryMode === 'pwa-sw')
+                        : PlatformDetector.supportsNotifications();
+                    info.calendarFallback = compat ? compat.shouldOfferCalendarFallback : false;
+                    info.calendarUrl = window.GameNotifier
+                        ? window.GameNotifier.getCalendarSubscribeUrl()
+                        : 'webcal://aidiet.radilov-k.workers.dev/api/calendar.ics';
+                    info.limitedSupport = compat ? (compat.deliveryMode === 'calendar') : false;
+                    if (compat && compat.recommendations.length) {
+                        compat.recommendations.forEach((r) => info.recommendations.push(r));
+                    } else if (!info.notificationsSupported) {
+                        info.recommendations.push('Използвайте Chrome, Firefox, Edge или Samsung Internet (актуална версия)');
+                        info.recommendations.push('Алтернатива: абонамент за календарни напомняния');
                     }
                 } else {
                     info.platform = 'Desktop';
@@ -4305,6 +4306,7 @@
                 .then((ready) => {
                     if (!ready && isCapacitorApp && options.showPrompt !== false) {
                         showNotificationBanner();
+                        showApkBatteryHintIfNeeded();
                     }
                     return ready;
                 })
@@ -8390,8 +8392,7 @@
                         // Check if push notifications are supported and request permission
                         if ('PushManager' in window && 'Notification' in window) {
                             checkNotificationPermission(registration);
-                        } else if (PlatformDetector.isHuawei()) {
-                            // Huawei without Notification API – fall back to calendar subscription
+                        } else if (window.NutriPlanCompat && window.NutriPlanCompat.shouldOfferCalendarFallback()) {
                             setTimeout(() => showCalendarBanner(), 3000);
                         }
                     })
@@ -8418,11 +8419,16 @@
                 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
             }
 
-            // Huawei devices: web push unreliable – use calendar subscription instead
-            if (PlatformDetector.isHuawei()) {
-                console.log('[Notifications] Huawei device – offering calendar subscription');
+            const compat = window.NutriPlanCompat && window.NutriPlanCompat.getCompatibilityProfile
+                ? window.NutriPlanCompat.getCompatibilityProfile()
+                : null;
+            if (compat && compat.deliveryMode === 'calendar') {
+                console.log('[Notifications] Calendar fallback for this client:', compat.platform, compat.oem);
                 setTimeout(() => showCalendarBanner(), 3000);
                 return;
+            }
+            if (compat && compat.isInAppBrowser) {
+                console.warn('[Notifications] In-app browser — open in Chrome/Safari for push');
             }
 
             if (Notification.permission === 'granted') {
@@ -8437,6 +8443,28 @@
             }
         }
 
+        function showApkBatteryHintIfNeeded() {
+            if (!isCapacitorAppRuntime() || document.getElementById('apk-battery-hint')) return;
+            const compat = window.NutriPlanCompat && window.NutriPlanCompat.getCompatibilityProfile
+                ? window.NutriPlanCompat.getCompatibilityProfile()
+                : null;
+            const hints = compat && compat.recommendations.length
+                ? compat.recommendations.slice(0, 2)
+                : ['Разрешете известия и изключете ограничения за батерия за NutriPlan в системните настройки.'];
+            const el = document.createElement('div');
+            el.id = 'apk-battery-hint';
+            el.style.cssText = 'position:fixed;bottom:72px;left:16px;right:16px;z-index:9998;background:rgba(15,23,42,0.94);color:#e2e8f0;padding:12px 14px;border-radius:12px;font-size:13px;line-height:1.45;border:1px solid rgba(45,212,191,0.25);max-width:480px;margin:0 auto;';
+            el.innerHTML = '<strong style="color:#5eead4">📱 Android:</strong> ' + hints.map(function(h) {
+                return String(h).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+            }).join(' ');
+            const close = document.createElement('button');
+            close.textContent = '✕';
+            close.style.cssText = 'float:right;background:none;border:none;color:#94a3b8;cursor:pointer;font-size:16px;';
+            close.onclick = () => el.remove();
+            el.appendChild(close);
+            document.body.appendChild(el);
+        }
+
         function showCalendarBanner() {
             if (document.getElementById('notif-banner')) return;
             const calUrl = window.GameNotifier
@@ -8445,7 +8473,7 @@
             const banner = document.createElement('div');
             banner.id = 'notif-banner';
             banner.style.cssText = 'position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:9999;background:#0D9488;color:#fff;padding:12px 16px;border-radius:12px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 16px rgba(0,0,0,.3);max-width:calc(100vw - 32px);font-size:14px;';
-            banner.innerHTML = '<span>📅 Абонирайте се за автоматични напомняния</span>';
+            banner.innerHTML = '<span>📅 Напомняния чрез календар (всички телефони)</span>';
             const btn = document.createElement('a');
             btn.textContent = 'Абонирай се';
             btn.href = calUrl;

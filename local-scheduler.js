@@ -107,6 +107,7 @@ const GameNotifier = {
     _swReg:     null,
     _capacitor: null,   // @capacitor/local-notifications handle
     _listenersBound: false,
+    _pwaResumeBound: false,
     _initialized: false,
     _initPromise: null,
 
@@ -147,13 +148,16 @@ const GameNotifier = {
                 await this._registerCapacitorActionTypes();
                 this._bindCapacitorListeners();
             } else {
-                // Web / PWA path
-                if (!('Notification' in window) || !('serviceWorker' in navigator)) {
-                    if (this._isHuawei()) {
-                        console.log('[GameNotifier] Huawei device detected – use calendar subscription:', this.getCalendarSubscribeUrl());
-                    } else {
-                        console.warn('[GameNotifier] Notifications not supported on this platform.');
-                    }
+                // Web / PWA — any browser with SW + Notification API (Chrome, Firefox, Samsung, Edge, iOS 16.4+ PWA, etc.)
+                const compat = typeof window !== 'undefined' && window.NutriPlanCompat;
+                const swOk = compat && typeof compat.supportsSwGameNotifications === 'function'
+                    ? compat.supportsSwGameNotifications()
+                    : (('Notification' in window) && ('serviceWorker' in navigator));
+                if (!swOk) {
+                    const mode = compat && compat.getNotificationDeliveryMode
+                        ? compat.getNotificationDeliveryMode()
+                        : 'calendar';
+                    console.warn('[GameNotifier] Web notifications unavailable on this client (mode:', mode, '). Calendar:', this.getCalendarSubscribeUrl());
                     return false;
                 }
                 if (Notification.permission !== 'granted') {
@@ -166,6 +170,7 @@ const GameNotifier = {
                     console.error('[GameNotifier] SW not ready:', e);
                     return false;
                 }
+                this._bindPwaResumeRefresh();
             }
 
             // Cheap version check on every open; full config + reschedule only when version changes.
@@ -678,6 +683,31 @@ const GameNotifier = {
         } catch (e) {
             console.warn('[GameNotifier] Action type registration warning:', e);
         }
+    },
+
+    _bindPwaResumeRefresh() {
+        if (this._pwaResumeBound || typeof document === 'undefined') return;
+        this._pwaResumeBound = true;
+        const refresh = () => {
+            if (this._capacitor || !this._initialized) return;
+            if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+            if (Notification.permission !== 'granted') return;
+            this.scheduleNotifications().catch(() => {});
+        };
+        document.addEventListener('visibilitychange', refresh);
+        window.addEventListener('pageshow', refresh);
+        window.addEventListener('focus', refresh);
+    },
+
+    getCompatibilitySummary() {
+        if (typeof window !== 'undefined' && window.NutriPlanCompat &&
+            typeof window.NutriPlanCompat.getCompatibilityProfile === 'function') {
+            return window.NutriPlanCompat.getCompatibilityProfile();
+        }
+        return {
+            deliveryMode: this._capacitor ? 'apk-native' : 'pwa-sw',
+            recommendations: []
+        };
     },
 
     _bindCapacitorListeners() {

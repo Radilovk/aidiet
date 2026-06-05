@@ -8,6 +8,8 @@
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
     <link rel="stylesheet" href="./design-system.css">
     <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F0FDFA';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
+    <script src="./platform.js"></script>
+    <script src="./platform-compat.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -660,16 +662,27 @@ function getCapacitorInfo() {
 }
 
 function getOS() {
+    if (window.NutriPlanCompat) {
+        const p = window.NutriPlanCompat.getCompatibilityProfile();
+        if (p.platform === 'apk') return 'Android (APK)';
+        if (p.platform === 'ios') return 'iOS' + (p.isInstalledPwa ? ' PWA' : '');
+        if (p.platform === 'android') {
+            const oem = p.oem ? String(p.oem).charAt(0).toUpperCase() + String(p.oem).slice(1) : '';
+            return 'Android' + (oem ? ' · ' + oem : '');
+        }
+    }
     const ua = navigator.userAgent;
     if (/iPhone|iPad|iPod/i.test(ua)) return 'iOS';
     if (/Android/i.test(ua)) return 'Android';
-    if (/huawei|harmony/i.test(ua)) return 'Huawei/HarmonyOS';
     if (ua.includes('Win'))   return 'Windows';
     if (ua.includes('Mac'))   return 'macOS';
     if (ua.includes('Linux')) return 'Linux';
     return 'Unknown';
 }
 function getBrowser() {
+    if (window.NutriPlanCompat && window.NutriPlanCompat.getBrowserFamily) {
+        return window.NutriPlanCompat.getBrowserFamily();
+    }
     const ua = navigator.userAgent;
     if (/Edg\//i.test(ua))                              return 'Edge';
     if (/Chrome/i.test(ua) && !/Edg/i.test(ua))        return 'Chrome';
