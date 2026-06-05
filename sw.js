@@ -47,28 +47,46 @@ function getGameNotificationActions(type) {
   }
   if (type === 'evening_check') {
     return [
-      { action: 'open_evening', title: 'Отговор' },
-      { action: 'water_yes', title: 'Вода' },
+      { action: 'water_no', title: 'Не' },
+      { action: 'water_yes', title: 'Да' },
       { action: 'skip', title: 'Пропуск' }
     ];
   }
   return undefined;
 }
 
+const SILENT_GAME_ACTIONS = new Set(['sleep_yes', 'sleep_no', 'water_yes', 'water_no', 'skip']);
+const PENDING_DB_NAME = 'nutriplan-game-pending';
+const PENDING_STORE = 'actions';
+
+function openPendingDb() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(PENDING_DB_NAME, 1);
+    req.onupgradeneeded = () => {
+      if (!req.result.objectStoreNames.contains(PENDING_STORE)) {
+        req.result.createObjectStore(PENDING_STORE, { keyPath: 'id', autoIncrement: true });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function queuePendingGameAction(payload) {
+  const db = await openPendingDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(PENDING_STORE, 'readwrite');
+    tx.objectStore(PENDING_STORE).add(Object.assign({}, payload, { ts: Date.now() }));
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
 function resolveNotificationTarget(data = {}, action = '') {
   const type = data.type || data.notificationType || '';
   const recordKey = data.recordKey || '';
-  if (type === 'morning_check' && action === 'sleep_yes') {
-    return buildQuickAnswerUrl('morning_check', { date: recordKey, auto: 'morning_yes' });
-  }
-  if (type === 'morning_check' && action === 'sleep_no') {
-    return buildQuickAnswerUrl('morning_check', { date: recordKey, auto: 'morning_no' });
-  }
-  if (type === 'evening_check' && action === 'water_yes') {
-    return buildQuickAnswerUrl('evening_check', { date: recordKey, water: '1' });
-  }
-  if (type === 'evening_check' && action === 'open_evening') {
-    return buildQuickAnswerUrl('evening_check', { date: recordKey });
+  if (type === 'morning_check' || type === 'evening_check') {
+    return `${BASE_PATH}/plan.html?action=${type}${recordKey ? '&date=' + encodeURIComponent(recordKey) : ''}`;
   }
   return data.url || `${BASE_PATH}/plan.html`;
 }
@@ -238,42 +256,67 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const action = event.action || '';
   const data = event.notification.data || {};
-  const url = resolveNotificationTarget(data, action);
-  const targetUrl = toAbsoluteAppUrl(url);
   const notificationType = data.type || '';
   const recordKey = data.recordKey || '';
+
+  if (SILENT_GAME_ACTIONS.has(action)) {
+    event.waitUntil(
+      clients.matchAll({ type: 'window', includeUncontrolled: true })
+        .then((clientList) => {
+          if (clientList.length) {
+            clientList.forEach((client) => {
+              if ('postMessage' in client) {
+                client.postMessage({
+                  type: 'NOTIFICATION_ACTION',
+                  action,
+                  notificationType,
+                  recordKey,
+                  silent: true
+                });
+              }
+            });
+            return undefined;
+          }
+          return queuePendingGameAction({ action, notificationType, recordKey });
+        })
+    );
+    return;
+  }
+
+  const url = resolveNotificationTarget(data, action);
+  const targetUrl = toAbsoluteAppUrl(url);
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
-        if (action === 'skip') {
-          clientList.forEach((client) => {
-            if ('postMessage' in client) {
-              client.postMessage({ type: 'NOTIFICATION_ACTION', action, notificationType, recordKey });
-            }
-          });
-          return undefined;
-        }
-        // If plan.html is already open, post a message so it shows an in-app
-        // modal without any page navigation (no full app reload, no index.html).
-        const planClient = clientList.find(c => c.url.includes('/plan.html'));
-        if (planClient && 'postMessage' in planClient) {
-          planClient.postMessage({
-            type: 'NOTIFICATION_ACTION',
-            action,
-            notificationType,
-            recordKey
-          });
+        const planClient = clientList.find(c => c.url.includes('/plan.html') || c.url.includes('tab=plan'));
+        if (planClient && 'focus' in planClient) {
+          if ('postMessage' in planClient) {
+            planClient.postMessage({
+              type: 'NOTIFICATION_ACTION',
+              action,
+              notificationType,
+              recordKey,
+              openApp: true
+            });
+          }
           return planClient.focus();
         }
 
-        // Reuse an existing quick-answer window if one is already open.
-        const qaClient = clientList.find(c => c.url.includes('/quick-answer.html'));
-        if (qaClient && 'focus' in qaClient) {
-          return qaClient.focus().then(() => qaClient.navigate(targetUrl)).catch(() => clients.openWindow ? clients.openWindow(targetUrl) : undefined);
+        const indexClient = clientList.find(c => c.url.includes('/index.html'));
+        if (indexClient && 'focus' in indexClient) {
+          if ('postMessage' in indexClient) {
+            indexClient.postMessage({
+              type: 'NOTIFICATION_ACTION',
+              action,
+              notificationType,
+              recordKey,
+              openApp: true
+            });
+          }
+          return indexClient.focus();
         }
 
-        // No suitable window open – open quick-answer.html in a new window.
         return clients.openWindow ? clients.openWindow(targetUrl) : undefined;
       })
   );
@@ -288,7 +331,17 @@ let   _scheduleTimers = [];
 
 self.addEventListener('message', (event) => {
   const msg = event.data;
-  if (!msg || msg.type !== 'SCHEDULE_GAME_NOTIFICATIONS') return;
+  if (!msg) return;
+
+  if (msg.type === 'CANCEL_GAME_NOTIFICATIONS') {
+    _scheduleTimers.forEach(id => clearTimeout(id));
+    _scheduleTimers = [];
+    _scheduledGameNotifs.length = 0;
+    console.log('[SW] Cleared game notification timers');
+    return;
+  }
+
+  if (msg.type !== 'SCHEDULE_GAME_NOTIFICATIONS') return;
   if (!Array.isArray(msg.schedule)) return;
 
   console.log('[SW] Received SCHEDULE_GAME_NOTIFICATIONS with', msg.schedule.length, 'items');

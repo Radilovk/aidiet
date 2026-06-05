@@ -250,7 +250,14 @@
     }
 
     function buildNativeNotificationTarget(extra, actionId) {
-        var rawUrl = extra && typeof extra.url === 'string' && extra.url ? extra.url : 'quick-answer.html';
+        var type = extra && typeof extra.type === 'string' ? extra.type : '';
+        var recordKey = extra && typeof extra.recordKey === 'string' ? extra.recordKey : '';
+        if ((type === 'morning_check' || type === 'evening_check') && !actionId) {
+            var qs = 'action=' + encodeURIComponent(type);
+            if (recordKey) qs += '&date=' + encodeURIComponent(recordKey);
+            return 'plan.html?' + qs;
+        }
+        var rawUrl = extra && typeof extra.url === 'string' && extra.url ? extra.url : 'plan.html';
         try {
             var url = new URL(rawUrl, window.location.href);
             var type = extra && typeof extra.type === 'string' ? extra.type : '';
@@ -281,24 +288,20 @@
         return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
     }
 
-    function saveSilentNotificationChoice(payload) {
-        var type = payload && payload.notificationType;
-        var action = payload && payload.action;
-        if (action !== 'sleep_yes' && action !== 'sleep_no' && action !== 'skip') return false;
-        var recordKey = getNotificationRecordKey(payload.recordKey);
+    function forwardSilentRecalc(payload) {
+        var frame = ensureFrameLoaded('plan');
+        if (!frame) return false;
         try {
-            if (type === 'morning_check' && (action === 'sleep_yes' || action === 'sleep_no')) {
-                var data = JSON.parse(localStorage.getItem('gameData') || '{}') || {};
-                if (!data[recordKey]) {
-                    data[recordKey] = { date: recordKey, meals: {}, extraMeals: [], freeMealRatings: {}, morningCheck: null, eveningCheck: null, plannedCalories: null, mealCalories: {}, dailyScore: null, missing: false };
-                }
-                data[recordKey].morningCheck = { sleptWell: action === 'sleep_yes', ts: new Date().toISOString() };
-                localStorage.setItem('gameData', JSON.stringify(data));
+            var frameWindow = frame.contentWindow;
+            var gm = frameWindow && frameWindow.gameModule;
+            if (!gm || typeof gm.recalcAndShowScore !== 'function') return false;
+            var recordKey = payload && payload.recordKey;
+            if (typeof recordKey !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(recordKey)) {
+                var d = new Date();
+                var pad = function(n) { return n < 10 ? '0' + n : '' + n; };
+                recordKey = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
             }
-
-            var log = JSON.parse(localStorage.getItem('notificationResponses') || '[]');
-            log.push({ date: recordKey, type: type || '', choice: action, ts: new Date().toISOString(), source: 'native_shell' });
-            localStorage.setItem('notificationResponses', JSON.stringify(log.slice(-200)));
+            gm.recalcAndShowScore(recordKey);
             return true;
         } catch (_) {
             return false;
@@ -313,18 +316,24 @@
             if (!frameWindow || typeof frameWindow.NutriPlanHandleNotificationAction !== 'function') {
                 return false;
             }
-            if (payload.notificationType === 'morning_check') {
-                if (payload.action !== 'sleep_yes' && payload.action !== 'sleep_no') {
-                    switchTab('plan', true);
-                }
-            } else if (payload.notificationType === 'evening_check') {
-                switchTab('plan', true);
-            }
+            switchTab('plan', true);
             frameWindow.NutriPlanHandleNotificationAction(payload);
             return true;
         } catch (_) {
             return false;
         }
+    }
+
+    function handleNativeNotificationAction(payload) {
+        var gn = window.GameNotifier;
+        if (!gn || typeof gn.handleNotificationAction !== 'function') return false;
+        var outcome = gn.handleNotificationAction(payload);
+        if (!outcome.silent) return false;
+        if (outcome.ack && typeof gn.showSilentAck === 'function') {
+            gn.showSilentAck(outcome.ack);
+        }
+        forwardSilentRecalc(payload);
+        return true;
     }
 
     function bindNativeNotificationBridge() {
@@ -348,12 +357,31 @@
                 action: event && typeof event.actionId === 'string' ? event.actionId : '',
                 recordKey: extra.recordKey || ''
             };
-            if (saveSilentNotificationChoice(payload)) return;
+            if (handleNativeNotificationAction(payload)) return;
             if (forwardNativeNotificationToPlan(payload)) return;
+            switchTab('plan', true);
             var target = buildNativeNotificationTarget(extra, payload.action);
             window.location.href = target;
         });
         nativeNotificationBridgeBound = true;
+    }
+
+    function bindSwNotificationBridge() {
+        if (!('serviceWorker' in navigator)) return;
+        navigator.serviceWorker.addEventListener('message', function (event) {
+            var msg = event.data;
+            if (!msg || msg.type !== 'NOTIFICATION_ACTION') return;
+            var payload = {
+                notificationType: msg.notificationType || '',
+                action: msg.action || '',
+                recordKey: msg.recordKey || ''
+            };
+            if (msg.silent && handleNativeNotificationAction(payload)) return;
+            if (msg.openApp || !payload.action) {
+                switchTab('plan', true);
+                forwardNativeNotificationToPlan(payload);
+            }
+        });
     }
 
     function dispatchFrameEvent(frame, type, detail) {
@@ -859,6 +887,7 @@
     };
 
     bindNativeNotificationBridge();
+    bindSwNotificationBridge();
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initShell, { once: true });

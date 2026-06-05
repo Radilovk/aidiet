@@ -4456,20 +4456,29 @@
             // On first call: checks permission, creates Android channel, syncs backend
             // config (one lightweight KV version-check), and schedules a 30-day window.
             scheduleNotifications();
-            // Handle URL action params from notification taps
+            if (window.GameNotifier && typeof window.GameNotifier.drainPendingSwActions === 'function') {
+                window.GameNotifier.drainPendingSwActions().then(function(count) {
+                    if (count > 0 && window.gameModule && typeof window.gameModule.recalcAndShowScore === 'function') {
+                        window.gameModule.recalcAndShowScore(window.gameModule.getCurrentViewDayKey ? window.gameModule.getCurrentViewDayKey() : undefined);
+                    }
+                }).catch(function() {});
+            }
+            // Handle URL action params from notification body taps
             const urlParams = new URLSearchParams(window.location.search);
             const action = urlParams.get('action');
+            const actionDate = urlParams.get('date');
             if (action === 'morning_check' || action === 'evening_check') {
                 // Clean URL immediately so refresh doesn't re-trigger
                 window.history.replaceState({}, '', window.location.pathname);
                 // Wait for gamification module to initialise, then fire the question
                 setTimeout(function() {
+                    var key = (/^\d{4}-\d{2}-\d{2}$/.test(actionDate || '')) ? actionDate : null;
                     if (action === 'morning_check' && typeof window._gameShowMorning === 'function') {
-                        window._gameShowMorning(true);
+                        window._gameShowMorning(true, key);
                     } else if (action === 'evening_check' && typeof window._gameShowEvening === 'function') {
-                        window._gameShowEvening(true);
+                        window._gameShowEvening(true, key);
                     }
-                }, 2000);
+                }, 900);
             }
             // Auto-open chat if navigated with ?chat=1
             if (urlParams.get('chat') === '1') {
@@ -5578,7 +5587,7 @@
             } else if (window.GameNotifier && typeof window.GameNotifier.refreshConfig === 'function') {
                 // APK: WebView stays alive when app is backgrounded; refreshConfig() syncs
                 // the admin notification config (one lightweight KV version-check, throttled
-                // to 15 min) so schedule changes from the admin panel reach all users.
+                // to 24 hours) so schedule changes from the admin panel reach all users.
                 window.GameNotifier.refreshConfig().catch(function() {});
             }
         });
@@ -10286,90 +10295,31 @@
     <script>
     (function() {
         window.NutriPlanHandleNotificationAction = function(msg) {
-            if (!msg) return;
-            var notifType = msg.notificationType || '';
-            var action    = msg.action || '';
-            var recordKey = msg.recordKey || '';
-            // Validate recordKey format (YYYY-MM-DD), default to today.
-            if (!/^\d{4}-\d{2}-\d{2}$/.test(recordKey)) {
-                var d = new Date();
-                var pad = function(n){ return n < 10 ? '0'+n : ''+n; };
-                recordKey = d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
-            }
+            if (!msg || !window.GameNotifier) return;
+            var outcome = window.GameNotifier.handleNotificationAction({
+                notificationType: msg.notificationType || '',
+                action: msg.action || '',
+                recordKey: msg.recordKey || ''
+            });
 
-            // For direct action-button taps (sleep_yes / sleep_no): save silently
-            // without opening any modal – instant, zero navigation.
-            // Use the game module so the in-memory cache stays consistent and the
-            // daily score is recalculated and shown immediately.
-            if (notifType === 'morning_check' && (action === 'sleep_yes' || action === 'sleep_no')) {
-                try {
-                    var gm = window.gameModule;
-                    if (gm && typeof gm.getRecord === 'function' && typeof gm.saveRecord === 'function') {
-                        var rec = gm.getRecord(recordKey);
-                        if (!rec.morningCheck) {
-                            rec.morningCheck = {
-                                sleptWell: action === 'sleep_yes',
-                                ts: new Date().toISOString()
-                            };
-                            gm.saveRecord(recordKey, rec);
-                        }
-                        if (typeof gm.recalcAndShowScore === 'function') {
-                            gm.recalcAndShowScore(recordKey);
-                        }
-                    } else {
-                        // Fallback when gameModule is not yet initialised
-                        var data = JSON.parse(localStorage.getItem('gameData') || '{}') || {};
-                        if (!data[recordKey]) {
-                            data[recordKey] = { date: recordKey, meals: {}, extraMeals: [],
-                                freeMealRatings: {}, morningCheck: null, eveningCheck: null,
-                                plannedCalories: null, mealCalories: {}, dailyScore: null, missing: false };
-                        }
-                        if (!data[recordKey].morningCheck) {
-                            data[recordKey].morningCheck = {
-                                sleptWell: action === 'sleep_yes',
-                                ts: new Date().toISOString()
-                            };
-                            localStorage.setItem('gameData', JSON.stringify(data));
-                        }
-                    }
-                    // Haptic feedback – distinct pattern per answer
-                    try { if (navigator.vibrate) navigator.vibrate(action === 'sleep_yes' ? [40, 30, 60] : [60, 30, 40]); } catch (_) {}
-                } catch(e) {}
+            if (outcome.silent) {
+                if (outcome.ack && !msg.silentHandled && typeof window.GameNotifier.showSilentAck === 'function') {
+                    window.GameNotifier.showSilentAck(outcome.ack);
+                }
                 return;
             }
 
-            // Direct skip button: record intent silently, no modal.
-            if (action === 'skip') {
-                try {
-                    var skipLog = JSON.parse(localStorage.getItem('notificationResponses') || '[]');
-                    skipLog.push({ date: recordKey, type: notifType, choice: 'skip', ts: new Date().toISOString(), source: 'plan_handler' });
-                    localStorage.setItem('notificationResponses', JSON.stringify(skipLog.slice(-200)));
-                } catch(e) {}
-                return;
-            }
-
-            // For morning_check body tap: show in-app morning modal.
-            if (notifType === 'morning_check') {
+            var recordKey = outcome.recordKey;
+            if (outcome.notifType === 'morning_check') {
                 if (typeof window._gameShowMorning === 'function') {
                     window._gameShowMorning(true, recordKey);
                 }
                 return;
             }
-
-            // For evening_check water_yes: show evening modal with water pre-filled.
-            if (notifType === 'evening_check' && action === 'water_yes') {
-                if (typeof window._gameShowEvening === 'function') {
-                    window._gameShowEvening(true, recordKey, { prefillWater: true });
-                }
-                return;
-            }
-
-            // For evening_check body tap / open_evening: show in-app evening modal.
-            if (notifType === 'evening_check') {
+            if (outcome.notifType === 'evening_check') {
                 if (typeof window._gameShowEvening === 'function') {
                     window._gameShowEvening(true, recordKey);
                 }
-                return;
             }
         };
 
@@ -10377,6 +10327,16 @@
         navigator.serviceWorker.addEventListener('message', function(event) {
             var msg = event.data;
             if (!msg || msg.type !== 'NOTIFICATION_ACTION') return;
+            if (msg.silent && window.GameNotifier) {
+                var silentOutcome = window.GameNotifier.handleNotificationAction(msg);
+                if (silentOutcome.ack && typeof window.GameNotifier.showSilentAck === 'function') {
+                    window.GameNotifier.showSilentAck(silentOutcome.ack);
+                }
+                if (silentOutcome.saved && window.gameModule && typeof window.gameModule.recalcAndShowScore === 'function') {
+                    window.gameModule.recalcAndShowScore(silentOutcome.recordKey);
+                }
+                return;
+            }
             window.NutriPlanHandleNotificationAction(msg);
         });
     })();

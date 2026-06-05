@@ -263,6 +263,22 @@
         var auto = params.get('auto') || '';
         var prefillWater = params.get('water') === '1';
         var recordKey = normalizeDateKey(params.get('date'));
+
+        if (auto === 'morning_yes' || auto === 'morning_no') {
+            if (!getRecord(recordKey).morningCheck) {
+                saveMorning(auto === 'morning_yes');
+            }
+            try { if (navigator.vibrate) navigator.vibrate([30, 20, 30]); } catch (_) {}
+            document.body.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:system-ui;color:#ecfeff;background:#04111b"><div style="text-align:center"><div style="font-size:42px;margin-bottom:8px">✓</div><div style="font-size:18px;font-weight:600">Записано</div></div></div>';
+            setTimeout(function() { window.close(); }, 900);
+            return;
+        }
+
+        var qs = 'action=' + encodeURIComponent(type);
+        if (/^\d{4}-\d{2}-\d{2}$/.test(recordKey)) qs += '&date=' + encodeURIComponent(recordKey);
+        window.location.replace('./plan.html?' + qs);
+        return;
+
         var card = document.getElementById('card');
         var confettiLayer = document.getElementById('confetti');
         var state = { activityLevel: null, emotionalBalance: null, waterIntake: prefillWater ? true : null };

@@ -35,6 +35,33 @@ const GameNotifier = {
     QUICK_ANSWER_PATH: '/quick-answer.html',
     MORNING_ACTION_TYPE_ID: 'nutriplan_morning_check',
     EVENING_ACTION_TYPE_ID: 'nutriplan_evening_check',
+    ACK_NOTIFICATION_ID:  9997,
+    PENDING_DB_NAME:        'nutriplan-game-pending',
+    PENDING_STORE:          'actions',
+
+    // Same wording as the in-app AI assistant bubbles (plan.html showBubble).
+    COPY: {
+        morning: {
+            title: 'AI Асистент',
+            body:  'Спахте ли добре тази нощ?',
+            actions: [
+                { id: 'sleep_yes', title: 'Да' },
+                { id: 'sleep_no',  title: 'Не' },
+                { id: 'skip',      title: 'Пропуск' }
+            ]
+        },
+        evening: {
+            title: 'AI Асистент',
+            body:  'Ниво на активност?\nЕмоционален баланс?\nИзпихте ли поне 2 л вода?',
+            actions: [
+                { id: 'water_no',  title: 'Не' },
+                { id: 'water_yes', title: 'Да' },
+                { id: 'skip',      title: 'Пропуск' }
+            ]
+        }
+    },
+
+    SILENT_ACTIONS: new Set(['sleep_yes', 'sleep_no', 'water_yes', 'water_no', 'skip']),
 
     _swReg:     null,
     _capacitor: null,   // @capacitor/local-notifications handle
@@ -169,13 +196,137 @@ const GameNotifier = {
             }
             return;
         }
-        if (!this._swReg) return;
         try {
-            const pending = await this._swReg.getNotifications({ tag: 'gn-' });
-            pending.forEach(n => n.close());
+            if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({ type: 'CANCEL_GAME_NOTIFICATIONS' });
+            }
         } catch (e) {
-            console.warn('[GameNotifier] cancelAll error:', e);
+            console.warn('[GameNotifier] cancelAll SW message error:', e);
         }
+    },
+
+    isSilentAction(action) {
+        return !!action && this.SILENT_ACTIONS.has(action);
+    },
+
+    /**
+     * Unified handler for notification action buttons vs body taps.
+     * Silent actions save in-place without opening the app.
+     */
+    handleNotificationAction(msg) {
+        const notifType = (msg && (msg.notificationType || msg.type)) || '';
+        const action = (msg && (msg.action || msg.actionId)) || '';
+        const recordKey = this._normalizeRecordKey(msg && msg.recordKey);
+        const result = { silent: false, saved: false, needsApp: false, ack: null, recordKey, notifType, action };
+
+        if (action === 'skip') {
+            this._recordNotificationChoice(recordKey, notifType, 'skip');
+            result.silent = true;
+            result.ack = 'skip';
+            return result;
+        }
+
+        if (notifType === 'morning_check' && (action === 'sleep_yes' || action === 'sleep_no')) {
+            result.saved = this._saveMorningAnswer(recordKey, action === 'sleep_yes');
+            result.silent = true;
+            result.ack = action;
+            return result;
+        }
+
+        if (notifType === 'evening_check' && (action === 'water_yes' || action === 'water_no')) {
+            result.saved = this._saveEveningWaterQuick(recordKey, action === 'water_yes');
+            result.silent = true;
+            result.ack = action;
+            return result;
+        }
+
+        result.needsApp = true;
+        return result;
+    },
+
+    showSilentAck(ackKey) {
+        const patterns = {
+            sleep_yes: [40, 30, 60],
+            sleep_no:  [60, 30, 40],
+            water_yes: [30, 20, 30],
+            water_no:  [50, 30],
+            skip:      [20]
+        };
+        try {
+            if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                navigator.vibrate(patterns[ackKey] || [30]);
+            }
+        } catch (_) {}
+
+        if (ackKey === 'skip') return;
+        if (!this._capacitor) this._capacitor = this._detectCapacitor();
+        if (!this._capacitor) return;
+        const text = {
+            sleep_yes: '✓ Добре!',
+            sleep_no:  '✓ Записано',
+            water_yes: '✓ Вода',
+            water_no:  '✓ Записано'
+        }[ackKey];
+        if (!text) return;
+        this._flashAckNotification(text).catch(() => {});
+    },
+
+    async _flashAckNotification(body) {
+        const { LocalNotifications } = this._capacitor || {};
+        if (!LocalNotifications || typeof LocalNotifications.schedule !== 'function') return;
+        await LocalNotifications.schedule({
+            notifications: [{
+                id: this.ACK_NOTIFICATION_ID,
+                channelId: this.CHANNEL_ID,
+                title: '',
+                body,
+                silent: true,
+                autoCancel: true,
+                schedule: { at: new Date(Date.now() + 80), allowWhileIdle: false },
+                iconColor: this.BRAND_TEAL
+            }]
+        });
+    },
+
+    async drainPendingSwActions() {
+        if (typeof indexedDB === 'undefined') return 0;
+        let db;
+        try {
+            db = await new Promise((resolve, reject) => {
+                const req = indexedDB.open(this.PENDING_DB_NAME, 1);
+                req.onupgradeneeded = () => {
+                    if (!req.result.objectStoreNames.contains(this.PENDING_STORE)) {
+                        req.result.createObjectStore(this.PENDING_STORE, { keyPath: 'id', autoIncrement: true });
+                    }
+                };
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        } catch (_) {
+            return 0;
+        }
+
+        const pending = await new Promise((resolve, reject) => {
+            const tx = db.transaction(this.PENDING_STORE, 'readonly');
+            const req = tx.objectStore(this.PENDING_STORE).getAll();
+            req.onsuccess = () => resolve(req.result || []);
+            req.onerror = () => reject(req.error);
+        });
+        if (!pending.length) return 0;
+
+        let applied = 0;
+        pending.forEach((item) => {
+            const outcome = this.handleNotificationAction(item);
+            if (outcome.saved || outcome.ack === 'skip') applied += 1;
+        });
+
+        await new Promise((resolve, reject) => {
+            const tx = db.transaction(this.PENDING_STORE, 'readwrite');
+            tx.objectStore(this.PENDING_STORE).clear();
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+        });
+        return applied;
     },
 
     async applyConfig(cfg, localOnly = false) {
@@ -359,9 +510,9 @@ const GameNotifier = {
                     {
                         id: this.EVENING_ACTION_TYPE_ID,
                         actions: [
-                            { id: 'open_evening', title: 'Отговор', foreground: true },
-                            { id: 'water_yes', title: 'Вода', foreground: true },
-                            { id: 'skip', title: 'Пропуск', foreground: false }
+                            { id: 'water_no',  title: 'Не', foreground: false },
+                            { id: 'water_yes', title: 'Да', foreground: false },
+                            { id: 'skip',      title: 'Пропуск', foreground: false }
                         ]
                     }
                 ]
@@ -393,54 +544,18 @@ const GameNotifier = {
         const recordKey = this._normalizeRecordKey(extra.recordKey);
         const actionId = action && typeof action.actionId === 'string' ? action.actionId : '';
 
-        if (actionId === 'skip') {
-            this._recordNotificationChoice(recordKey, type, 'skip');
-            return;
-        }
+        const outcome = this.handleNotificationAction({
+            notificationType: type,
+            action: actionId,
+            recordKey
+        });
 
-        if (type === 'morning_check' && (actionId === 'sleep_yes' || actionId === 'sleep_no')) {
-            const sleptWell = actionId === 'sleep_yes';
-            // Use gameModule when available so the in-memory cache stays consistent
-            // and the daily score card is refreshed without any page navigation.
-            let saved = false;
-            const gm = typeof window !== 'undefined' && window.gameModule;
-            if (gm && typeof gm.getRecord === 'function' && typeof gm.saveRecord === 'function') {
-                try {
-                    const rec = gm.getRecord(recordKey);
-                    if (!rec.morningCheck) {
-                        rec.morningCheck = { sleptWell, ts: new Date().toISOString() };
-                        gm.saveRecord(recordKey, rec);
-                    }
-                    if (typeof gm.recalcAndShowScore === 'function') {
-                        gm.recalcAndShowScore(recordKey);
-                    }
-                    saved = true;
-                } catch (_) { /* fall through to _saveQuickAnswer */ }
-            }
-            if (!saved) {
-                saved = this._saveQuickAnswer(recordKey, 'morning_check', { sleptWell });
-            }
-            // Haptic feedback – distinct pattern per answer
-            try {
-                if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                    navigator.vibrate(sleptWell ? [40, 30, 60] : [60, 30, 40]);
-                }
-            } catch (_) {}
-            if (saved) return;
-            // Fallback: show in-app morning modal or open quick-answer page.
-            if (typeof window._gameShowMorning === 'function') {
-                window._gameShowMorning(true, recordKey);
-                return;
-            }
-            window.location.href = this._buildQuickAnswerUrl('morning_check', {
-                date: recordKey,
-                auto: sleptWell ? 'morning_yes' : 'morning_no'
-            });
+        if (outcome.silent) {
+            if (outcome.ack) this.showSilentAck(outcome.ack);
             return;
         }
 
         if (type === 'morning_check') {
-            // Body tap – show in-app morning check modal without reloading.
             if (typeof window._gameShowMorning === 'function') {
                 window._gameShowMorning(true, recordKey);
                 return;
@@ -449,21 +564,7 @@ const GameNotifier = {
             return;
         }
 
-        if (type === 'evening_check' && actionId === 'water_yes') {
-            // Pre-fill water intake, then show the evening flow modal.
-            if (typeof window._gameShowEvening === 'function') {
-                window._gameShowEvening(true, recordKey, { prefillWater: true });
-                return;
-            }
-            window.location.href = this._buildQuickAnswerUrl('evening_check', {
-                date: recordKey,
-                water: '1'
-            });
-            return;
-        }
-
         if (type === 'evening_check') {
-            // open_evening action or body tap – show in-app evening modal.
             if (typeof window._gameShowEvening === 'function') {
                 window._gameShowEvening(true, recordKey);
                 return;
@@ -472,9 +573,7 @@ const GameNotifier = {
             return;
         }
 
-        if (extra.url) {
-            window.location.href = extra.url;
-        }
+        if (extra.url) window.location.href = extra.url;
     },
 
 
@@ -515,10 +614,10 @@ const GameNotifier = {
         const defaults = {
             morningTime:  '07:00',
             eveningTime:  '20:00',
-            morningTitle: 'Добро утро! 🌅',
-            morningBody:  'Как спахте тази нощ? Отговорете на сутрешния въпрос.',
-            eveningTitle: 'Добър вечер! 🌙',
-            eveningBody:  'Как мина денят? Отговорете на вечерните въпроси.',
+            morningTitle: this.COPY.morning.title,
+            morningBody:  this.COPY.morning.body,
+            eveningTitle: this.COPY.evening.title,
+            eveningBody:  this.COPY.evening.body,
             extraNotifications: [],
         };
         try {
@@ -620,7 +719,7 @@ const GameNotifier = {
                     // aggressive battery optimization (Doze mode) cannot kill the alarm.
                     schedule: { at: new Date(morningTs), allowWhileIdle: true },
                     extra: {
-                        url: this._buildQuickAnswerUrl('morning_check', { date: recordKey }),
+                        url: this._buildPlanActionUrl('morning_check', recordKey),
                         type: 'morning_check',
                         recordKey
                     },
@@ -640,7 +739,7 @@ const GameNotifier = {
                     silent: true,
                     schedule: { at: new Date(eveningTs), allowWhileIdle: true },
                     extra: {
-                        url: this._buildQuickAnswerUrl('evening_check', { date: recordKey }),
+                        url: this._buildPlanActionUrl('evening_check', recordKey),
                         type: 'evening_check',
                         recordKey
                     },
@@ -707,12 +806,9 @@ const GameNotifier = {
                     body:  cfg.morningBody,
                     tag:   `gn-morning-${morning}`,
                     type:  'morning_check',
-                    url:   this._buildQuickAnswerUrl('morning_check', { date: recordKey }),
+                    url:   this._buildPlanActionUrl('morning_check', recordKey),
                     recordKey,
-                    actions: [
-                        { action: 'sleep_yes', title: 'Да 🌞' },
-                        { action: 'sleep_no', title: 'Не 😴' }
-                    ],
+                    actions: this._swActionsForType('morning_check'),
                     vibrate: [300, 100, 300, 100, 300],
                     requireInteraction: true
                 });
@@ -726,12 +822,9 @@ const GameNotifier = {
                     body:  cfg.eveningBody,
                     tag:   `gn-evening-${evening}`,
                     type:  'evening_check',
-                    url:   this._buildQuickAnswerUrl('evening_check', { date: recordKey }),
+                    url:   this._buildPlanActionUrl('evening_check', recordKey),
                     recordKey,
-                    actions: [
-                        { action: 'open_evening', title: 'Бърз отговор ⚡' },
-                        { action: 'water_yes', title: 'Пих вода 💧' }
-                    ],
+                    actions: this._swActionsForType('evening_check'),
                     vibrate: [200, 100, 200, 100, 200],
                     requireInteraction: false
                 });
@@ -819,9 +912,9 @@ const GameNotifier = {
                 tag: 'gn-immediate-' + Date.now(),
                 data: { url, type, recordKey },
                 actions: type === 'morning_check'
-                    ? [{ action: 'sleep_yes', title: 'Да' }, { action: 'sleep_no', title: 'Не' }, { action: 'skip', title: 'Пропуск' }]
+                    ? this._swActionsForType('morning_check')
                     : type === 'evening_check'
-                        ? [{ action: 'open_evening', title: 'Отговор' }, { action: 'water_yes', title: 'Вода' }, { action: 'skip', title: 'Пропуск' }]
+                        ? this._swActionsForType('evening_check')
                         : undefined
             });
         }
@@ -849,6 +942,53 @@ const GameNotifier = {
         return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
     },
 
+    _swActionsForType(type) {
+        const copy = type === 'morning_check' ? this.COPY.morning : this.COPY.evening;
+        return (copy.actions || []).map((item) => ({
+            action: item.id,
+            title: item.title
+        }));
+    },
+
+    _saveMorningAnswer(recordKey, sleptWell) {
+        const gm = typeof window !== 'undefined' && window.gameModule;
+        if (gm && typeof gm.getRecord === 'function' && typeof gm.saveRecord === 'function') {
+            try {
+                const rec = gm.getRecord(recordKey);
+                if (rec.morningCheck) return false;
+                rec.morningCheck = { sleptWell: !!sleptWell, ts: new Date().toISOString() };
+                gm.saveRecord(recordKey, rec);
+                if (typeof gm.recalcAndShowScore === 'function') gm.recalcAndShowScore(recordKey);
+                return true;
+            } catch (_) { /* fall through */ }
+        }
+        return this._saveQuickAnswer(recordKey, 'morning_check', { sleptWell: !!sleptWell });
+    },
+
+    _saveEveningWaterQuick(recordKey, waterIntake) {
+        const gm = typeof window !== 'undefined' && window.gameModule;
+        if (gm && typeof gm.getRecord === 'function' && typeof gm.saveRecord === 'function') {
+            try {
+                const rec = gm.getRecord(recordKey);
+                if (rec.eveningCheck) return false;
+                rec.eveningCheck = {
+                    activityLevel: 2,
+                    emotionalBalance: 2,
+                    waterIntake: !!waterIntake,
+                    ts: new Date().toISOString()
+                };
+                gm.saveRecord(recordKey, rec);
+                if (typeof gm.recalcAndShowScore === 'function') gm.recalcAndShowScore(recordKey);
+                return true;
+            } catch (_) { /* fall through */ }
+        }
+        return this._saveQuickAnswer(recordKey, 'evening_check', {
+            activityLevel: 2,
+            emotionalBalance: 2,
+            waterIntake: !!waterIntake
+        });
+    },
+
     _emptyGameRecord(key) {
         return {
             date: key,
@@ -870,11 +1010,13 @@ const GameNotifier = {
             const allData = JSON.parse(localStorage.getItem('gameData') || '{}') || {};
             const record = allData[key] || this._emptyGameRecord(key);
             if (type === 'morning_check') {
+                if (record.morningCheck) return false;
                 record.morningCheck = {
                     sleptWell: !!(payload && payload.sleptWell),
                     ts: new Date().toISOString()
                 };
             } else if (type === 'evening_check' && payload) {
+                if (record.eveningCheck) return false;
                 record.eveningCheck = {
                     activityLevel: payload.activityLevel,
                     emotionalBalance: payload.emotionalBalance,
@@ -891,6 +1033,11 @@ const GameNotifier = {
             console.warn('[GameNotifier] Quick answer save failed:', e);
             return false;
         }
+    },
+
+    _buildPlanActionUrl(type, recordKey) {
+        const key = this._normalizeRecordKey(recordKey);
+        return `/plan.html?action=${encodeURIComponent(type)}&date=${encodeURIComponent(key)}`;
     },
 
     _buildQuickAnswerUrl(type, params) {
