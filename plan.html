@@ -4456,20 +4456,33 @@
             // On first call: checks permission, creates Android channel, syncs backend
             // config (one lightweight KV version-check), and schedules a 30-day window.
             scheduleNotifications();
-            // Handle URL action params from notification taps
+            if (window.GameNotifier && typeof window.GameNotifier.drainPendingSwActions === 'function') {
+                window.GameNotifier.drainPendingSwActions().then(function(count) {
+                    if (count > 0 && window.gameModule && typeof window.gameModule.recalcAndShowScore === 'function') {
+                        window.gameModule.recalcAndShowScore(window.gameModule.getCurrentViewDayKey ? window.gameModule.getCurrentViewDayKey() : undefined);
+                    }
+                }).catch(function() {});
+            }
+            // Handle URL action params from notification body taps
             const urlParams = new URLSearchParams(window.location.search);
             const action = urlParams.get('action');
-            if (action === 'morning_check' || action === 'evening_check') {
+            const actionDate = urlParams.get('date');
+            if (action === 'morning_check' || action === 'evening_check' ||
+                action === 'evening_activity' || action === 'evening_balance' || action === 'evening_water') {
                 // Clean URL immediately so refresh doesn't re-trigger
                 window.history.replaceState({}, '', window.location.pathname);
                 // Wait for gamification module to initialise, then fire the question
                 setTimeout(function() {
+                    var key = (/^\d{4}-\d{2}-\d{2}$/.test(actionDate || '')) ? actionDate : null;
                     if (action === 'morning_check' && typeof window._gameShowMorning === 'function') {
-                        window._gameShowMorning(true);
+                        window._gameShowMorning(true, key);
                     } else if (action === 'evening_check' && typeof window._gameShowEvening === 'function') {
-                        window._gameShowEvening(true);
+                        window._gameShowEvening(true, key);
+                    } else if (typeof window._gameShowEveningStep === 'function' &&
+                        (action === 'evening_activity' || action === 'evening_balance' || action === 'evening_water')) {
+                        window._gameShowEveningStep(action.replace('evening_', ''), key);
                     }
-                }, 2000);
+                }, 900);
             }
             // Auto-open chat if navigated with ?chat=1
             if (urlParams.get('chat') === '1') {
@@ -5578,7 +5591,7 @@
             } else if (window.GameNotifier && typeof window.GameNotifier.refreshConfig === 'function') {
                 // APK: WebView stays alive when app is backgrounded; refreshConfig() syncs
                 // the admin notification config (one lightweight KV version-check, throttled
-                // to 15 min) so schedule changes from the admin panel reach all users.
+                // to 24 hours) so schedule changes from the admin panel reach all users.
                 window.GameNotifier.refreshConfig().catch(function() {});
             }
         });
@@ -8869,9 +8882,9 @@
 
             // ── Wellness points ─────────────────────────────────────────────
             var sleepPts    = rec.morningCheck  ? (rec.morningCheck.sleptWell ? 10 : 0) : null;
-            var waterPts    = rec.eveningCheck  ? (rec.eveningCheck.waterIntake ? 10 : 0) : null;
-            var activityPts = rec.eveningCheck  ? ([0,0,5,10][rec.eveningCheck.activityLevel] || 0) : null;
-            var balancePts  = rec.eveningCheck  ? ([0,0,5,10][rec.eveningCheck.emotionalBalance] || 0) : null;
+            var waterPts    = rec.eveningCheck && rec.eveningCheck.waterIntake != null ? (rec.eveningCheck.waterIntake ? 10 : 0) : null;
+            var activityPts = rec.eveningCheck && rec.eveningCheck.activityLevel != null ? ([0,0,5,10][rec.eveningCheck.activityLevel] || 0) : null;
+            var balancePts  = rec.eveningCheck && rec.eveningCheck.emotionalBalance != null ? ([0,0,5,10][rec.eveningCheck.emotionalBalance] || 0) : null;
 
             var wellnessEarned = (sleepPts || 0) + (waterPts || 0) + (activityPts || 0) + (balancePts || 0);
             // Always use the full 40-pt wellness denominator.
@@ -8896,7 +8909,11 @@
             }).length;
             var mealEngPct = meals.length > 0 ? done / meals.length * 50 : 0;
             var mornEngPct = rec.morningCheck ? 15 : 0;
-            var eveEngPct  = rec.eveningCheck ? 15 : 0;
+            var eveEngPct  = (rec.eveningCheck && (
+                rec.eveningCheck.activityLevel != null ||
+                rec.eveningCheck.emotionalBalance != null ||
+                rec.eveningCheck.waterIntake != null
+            )) ? 15 : 0;
             // junkPct is a "no-junk bonus" and only makes sense when the user has actually engaged.
             // Without at least one checked meal, check-in, or logged junk/incorrect meal the day
             // has zero activity and should show 0% — not a phantom 20% from the junk-avoidance bonus.
@@ -9677,6 +9694,28 @@
         }
 
         // ── Morning / Evening questions ───────────────────────────────────────
+        function gameNotifyQuestion(type, fallback) {
+            if (window.GameNotifier && typeof window.GameNotifier.questionBody === 'function') {
+                var q = window.GameNotifier.questionBody(type);
+                if (q) return q;
+            }
+            return fallback;
+        }
+
+        function gameNotifyAnswers(type, fallback) {
+            if (window.GameNotifier && typeof window.GameNotifier.bubbleAnswersForType === 'function') {
+                var a = window.GameNotifier.bubbleAnswersForType(type);
+                if (a && a.length) return a;
+            }
+            return fallback;
+        }
+
+        function gameNotifyCancel(type, recordKey) {
+            if (window.GameNotifier && typeof window.GameNotifier.cancelTodaysNotification === 'function') {
+                window.GameNotifier.cancelTodaysNotification(type, recordKey);
+            }
+        }
+
         function getPromptDayMeta(recordKey) {
             if (recordKey === getTodayKey()) {
                 return { prefix:'', greetingMorning:undefined, greetingEvening:'Добър вечер!', showName:true };
@@ -9699,13 +9738,14 @@
             if (!force && rec.morningCheck) { if (doneCb) doneCb(); return; }
             var meta = getPromptDayMeta(recordKey);
             showBubble(
-                meta.prefix + 'Спахте ли добре тази нощ?',
-                YES_NO,
+                meta.prefix + gameNotifyQuestion('morning_check', 'Спахте ли добре тази нощ?'),
+                gameNotifyAnswers('morning_check', YES_NO),
                 function(val) {
                     var r = getRecord(recordKey);
                     r.morningCheck = { sleptWell: val, ts: new Date().toISOString() };
                     saveRecord(recordKey, r);
                     recalcAndShowScore(recordKey);
+                    gameNotifyCancel('morning_check', recordKey);
                     if (doneCb) { setTimeout(doneCb, 350); }
                     else { setTimeout(function(){ showEncouragement(buildEncouragement(recordKey)); }, 400); }
                 },
@@ -9713,19 +9753,83 @@
             );
         }
 
-        function showEveningFlow(force, recordKey, doneCb, opts) {
+        function isEveningComplete(rec) {
+            var ec = rec && rec.eveningCheck;
+            return !!(ec && ec.activityLevel != null && ec.emotionalBalance != null && ec.waterIntake != null);
+        }
+
+        function showEveningStep(step, recordKey, doneCb) {
             recordKey = recordKey || getTodayKey();
-            var rec = getRecord(recordKey);
-            if (!force && rec.eveningCheck) { if (doneCb) doneCb(); return; }
             var meta = getPromptDayMeta(recordKey);
             var prefix = meta.prefix;
             var hdrOpts = { greeting: meta.greetingEvening };
-            var prefillWater = !!(opts && opts.prefillWater);
-            var eveData = { waterIntake: prefillWater ? true : undefined };
+            var rec = getRecord(recordKey);
+            if (!rec.eveningCheck) {
+                rec.eveningCheck = { activityLevel: null, emotionalBalance: null, waterIntake: null, ts: null };
+            }
+            function saveField(field, value, next) {
+                var r = getRecord(recordKey);
+                if (!r.eveningCheck) r.eveningCheck = { activityLevel: null, emotionalBalance: null, waterIntake: null, ts: null };
+                if (r.eveningCheck[field] != null) { if (next) next(); return; }
+                r.eveningCheck[field] = value;
+                if (!r.eveningCheck.ts) r.eveningCheck.ts = new Date().toISOString();
+                saveRecord(recordKey, r);
+                recalcAndShowScore(recordKey);
+                var cancelType = field === 'activityLevel' ? 'evening_activity'
+                    : field === 'emotionalBalance' ? 'evening_balance' : 'evening_water';
+                gameNotifyCancel(cancelType, recordKey);
+                if (next) setTimeout(next, 350);
+                else setTimeout(function(){ showEncouragement(buildEncouragement(recordKey)); }, 400);
+            }
+            if (step === 'activity') {
+                if (rec.eveningCheck.activityLevel != null) { if (doneCb) doneCb(); return; }
+                showBubble(prefix + gameNotifyQuestion('evening_activity', 'Ниво на активност?'),
+                    gameNotifyAnswers('evening_activity', ACTIVITY_1_3),
+                    function(v){ saveField('activityLevel', v, doneCb); }, hdrOpts);
+                return;
+            }
+            if (step === 'balance') {
+                if (rec.eveningCheck.emotionalBalance != null) { if (doneCb) doneCb(); return; }
+                showBubble(prefix + gameNotifyQuestion('evening_balance', 'Емоционален баланс?'),
+                    gameNotifyAnswers('evening_balance', BALANCE_1_3),
+                    function(v){ saveField('emotionalBalance', v, doneCb); }, hdrOpts);
+                return;
+            }
+            if (step === 'water') {
+                if (rec.eveningCheck.waterIntake != null) { if (doneCb) doneCb(); return; }
+                showBubble(prefix + gameNotifyQuestion('evening_water', 'Изпихте ли поне 2 л вода?'),
+                    gameNotifyAnswers('evening_water', NO_YES),
+                    function(v){ saveField('waterIntake', v, doneCb); }, hdrOpts);
+            }
+        }
+
+        function showEveningFlow(force, recordKey, doneCb, opts) {
+            recordKey = recordKey || getTodayKey();
+            opts = opts || {};
+            if (opts.step) {
+                showEveningStep(opts.step, recordKey, doneCb);
+                return;
+            }
+            var rec = getRecord(recordKey);
+            if (!force && isEveningComplete(rec)) { if (doneCb) doneCb(); return; }
+            var meta = getPromptDayMeta(recordKey);
+            var prefix = meta.prefix;
+            var hdrOpts = { greeting: meta.greetingEvening };
+            var prefillWater = !!opts.prefillWater;
+            var ec = rec.eveningCheck || {};
+            var eveData = {
+                activityLevel: ec.activityLevel != null ? ec.activityLevel : undefined,
+                emotionalBalance: ec.emotionalBalance != null ? ec.emotionalBalance : undefined,
+                waterIntake: ec.waterIntake != null ? ec.waterIntake : (prefillWater ? true : undefined)
+            };
             function finish() {
                 var r = getRecord(recordKey);
-                r.eveningCheck = { activityLevel: eveData.activityLevel,
-                    emotionalBalance: eveData.emotionalBalance, waterIntake: !!eveData.waterIntake, ts: new Date().toISOString() };
+                r.eveningCheck = {
+                    activityLevel: eveData.activityLevel,
+                    emotionalBalance: eveData.emotionalBalance,
+                    waterIntake: !!eveData.waterIntake,
+                    ts: new Date().toISOString()
+                };
                 saveRecord(recordKey, r);
                 recalcAndShowScore(recordKey);
                 if (doneCb) { setTimeout(doneCb, 350); }
@@ -9739,17 +9843,19 @@
                 }
             }
             function q3() {
-                if (prefillWater) { finish(); return; }
+                if (eveData.waterIntake != null) { finish(); return; }
                 showBubble(prefix+'Изпихте ли поне 2 л вода?', NO_YES, function(v) {
                     eveData.waterIntake = v;
                     finish();
                 }, hdrOpts);
             }
             function q2() {
+                if (eveData.emotionalBalance != null) { q3(); return; }
                 showBubble(prefix+'Емоционален баланс?', BALANCE_1_3,
                     function(v){ eveData.emotionalBalance=v; setTimeout(q3,400); }, hdrOpts);
             }
             function q1() {
+                if (eveData.activityLevel != null) { q2(); return; }
                 showBubble(prefix+'Ниво на активност?', ACTIVITY_1_3,
                     function(v){ eveData.activityLevel=v; setTimeout(q2,400); }, hdrOpts);
             }
@@ -9767,7 +9873,7 @@
             if (!rec.morningCheck && (!isToday || h >= 6)) {
                 queue.push(function(next){ showMorningQuestion(true, recordKey, next); });
             }
-            if (!rec.eveningCheck && (!isToday || h >= 20)) {
+            if (!isEveningComplete(rec) && (!isToday || h >= 20)) {
                 queue.push(function(next){ showEveningFlow(true, recordKey, next); });
             }
             return queue;
@@ -9827,7 +9933,7 @@
                 if (!allData[pKey]) continue; // no real data for this day — skip (e.g. game was just activated)
                 var rec  = getRecord(pKey);
                 if (rec.missing) continue;
-                if (rec.morningCheck && rec.eveningCheck) continue;
+                if (rec.morningCheck && isEveningComplete(rec)) continue;
                 var offerKey = 'gameRetroOffered_' + pKey;
                 if (localStorage.getItem(offerKey)) continue;
                 localStorage.setItem(offerKey, '1');
@@ -10116,7 +10222,7 @@
                 }
             }
             // Evening: show once per hour from 20–23 while unanswered
-            if (h >= 20 && h <= 23 && !rec.eveningCheck) {
+            if (h >= 20 && h <= 23 && !isEveningComplete(rec)) {
                 var seKey = 'gameEveningShownH_' + today + '_' + h;
                 if (!localStorage.getItem(seKey)) {
                     localStorage.setItem(seKey, '1');
@@ -10198,6 +10304,10 @@
                 ? recordKey
                 : getTodayKey();
             showMorningQuestion(f, targetKey, null);
+        };
+        window._gameShowEveningStep = function(step, recordKey) {
+            var targetKey = recordKey || getTodayKey();
+            showEveningStep(step, targetKey, null);
         };
         window._gameShowEvening = function(f, recordKeyOrOpts, maybeOpts){
             var targetKey = getTodayKey();
@@ -10286,90 +10396,36 @@
     <script>
     (function() {
         window.NutriPlanHandleNotificationAction = function(msg) {
-            if (!msg) return;
-            var notifType = msg.notificationType || '';
-            var action    = msg.action || '';
-            var recordKey = msg.recordKey || '';
-            // Validate recordKey format (YYYY-MM-DD), default to today.
-            if (!/^\d{4}-\d{2}-\d{2}$/.test(recordKey)) {
-                var d = new Date();
-                var pad = function(n){ return n < 10 ? '0'+n : ''+n; };
-                recordKey = d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
-            }
+            if (!msg || !window.GameNotifier) return;
+            var outcome = window.GameNotifier.handleNotificationAction({
+                notificationType: msg.notificationType || '',
+                action: msg.action || '',
+                recordKey: msg.recordKey || ''
+            });
 
-            // For direct action-button taps (sleep_yes / sleep_no): save silently
-            // without opening any modal – instant, zero navigation.
-            // Use the game module so the in-memory cache stays consistent and the
-            // daily score is recalculated and shown immediately.
-            if (notifType === 'morning_check' && (action === 'sleep_yes' || action === 'sleep_no')) {
-                try {
-                    var gm = window.gameModule;
-                    if (gm && typeof gm.getRecord === 'function' && typeof gm.saveRecord === 'function') {
-                        var rec = gm.getRecord(recordKey);
-                        if (!rec.morningCheck) {
-                            rec.morningCheck = {
-                                sleptWell: action === 'sleep_yes',
-                                ts: new Date().toISOString()
-                            };
-                            gm.saveRecord(recordKey, rec);
-                        }
-                        if (typeof gm.recalcAndShowScore === 'function') {
-                            gm.recalcAndShowScore(recordKey);
-                        }
-                    } else {
-                        // Fallback when gameModule is not yet initialised
-                        var data = JSON.parse(localStorage.getItem('gameData') || '{}') || {};
-                        if (!data[recordKey]) {
-                            data[recordKey] = { date: recordKey, meals: {}, extraMeals: [],
-                                freeMealRatings: {}, morningCheck: null, eveningCheck: null,
-                                plannedCalories: null, mealCalories: {}, dailyScore: null, missing: false };
-                        }
-                        if (!data[recordKey].morningCheck) {
-                            data[recordKey].morningCheck = {
-                                sleptWell: action === 'sleep_yes',
-                                ts: new Date().toISOString()
-                            };
-                            localStorage.setItem('gameData', JSON.stringify(data));
-                        }
-                    }
-                    // Haptic feedback – distinct pattern per answer
-                    try { if (navigator.vibrate) navigator.vibrate(action === 'sleep_yes' ? [40, 30, 60] : [60, 30, 40]); } catch (_) {}
-                } catch(e) {}
+            if (outcome.silent) {
+                if (outcome.ack && !msg.silentHandled && typeof window.GameNotifier.showSilentAck === 'function') {
+                    window.GameNotifier.showSilentAck(outcome.ack);
+                }
                 return;
             }
 
-            // Direct skip button: record intent silently, no modal.
-            if (action === 'skip') {
-                try {
-                    var skipLog = JSON.parse(localStorage.getItem('notificationResponses') || '[]');
-                    skipLog.push({ date: recordKey, type: notifType, choice: 'skip', ts: new Date().toISOString(), source: 'plan_handler' });
-                    localStorage.setItem('notificationResponses', JSON.stringify(skipLog.slice(-200)));
-                } catch(e) {}
-                return;
-            }
-
-            // For morning_check body tap: show in-app morning modal.
-            if (notifType === 'morning_check') {
+            var recordKey = outcome.recordKey;
+            if (outcome.notifType === 'morning_check') {
                 if (typeof window._gameShowMorning === 'function') {
                     window._gameShowMorning(true, recordKey);
                 }
                 return;
             }
-
-            // For evening_check water_yes: show evening modal with water pre-filled.
-            if (notifType === 'evening_check' && action === 'water_yes') {
-                if (typeof window._gameShowEvening === 'function') {
-                    window._gameShowEvening(true, recordKey, { prefillWater: true });
-                }
+            if (outcome.eveningStep && typeof window._gameShowEveningStep === 'function') {
+                window._gameShowEveningStep(outcome.eveningStep, recordKey);
                 return;
             }
-
-            // For evening_check body tap / open_evening: show in-app evening modal.
-            if (notifType === 'evening_check') {
+            if (outcome.notifType === 'evening_check' || outcome.notifType === 'evening_water' ||
+                outcome.notifType === 'evening_activity' || outcome.notifType === 'evening_balance') {
                 if (typeof window._gameShowEvening === 'function') {
                     window._gameShowEvening(true, recordKey);
                 }
-                return;
             }
         };
 
@@ -10377,6 +10433,16 @@
         navigator.serviceWorker.addEventListener('message', function(event) {
             var msg = event.data;
             if (!msg || msg.type !== 'NOTIFICATION_ACTION') return;
+            if (msg.silent && window.GameNotifier) {
+                var silentOutcome = window.GameNotifier.handleNotificationAction(msg);
+                if (silentOutcome.ack && typeof window.GameNotifier.showSilentAck === 'function') {
+                    window.GameNotifier.showSilentAck(silentOutcome.ack);
+                }
+                if (silentOutcome.saved && window.gameModule && typeof window.gameModule.recalcAndShowScore === 'function') {
+                    window.gameModule.recalcAndShowScore(silentOutcome.recordKey);
+                }
+                return;
+            }
             window.NutriPlanHandleNotificationAction(msg);
         });
     })();

@@ -402,17 +402,61 @@
                 <label for="editMorningBody">Сутрешен текст</label>
                 <input type="text" id="editMorningBody" placeholder="Как спахте тази нощ?">
             </div>
-            <div class="field">
-                <label for="editEveningTime">Вечерен час</label>
-                <input type="time" id="editEveningTime" value="20:00">
+            <div class="field" style="grid-column: 1 / -1;">
+                <label>Бутони (макс. 3)</label>
+                <div id="editMorningActions" class="gn-actions-list"></div>
+                <button type="button" class="btn-green" onclick="GnActionsUI.addRow('editMorningActions',{compact:true,prefix:'edit-action'})">➕ Отговор</button>
             </div>
             <div class="field">
-                <label for="editEveningTitle">Вечерно заглавие</label>
-                <input type="text" id="editEveningTitle" placeholder="Добър вечер! 🌙">
+                <label for="editEveningActivityTime">Вечер 1 — активност</label>
+                <input type="time" id="editEveningActivityTime" value="20:00">
+            </div>
+            <div class="field">
+                <label for="editEveningActivityTitle">Заглавие</label>
+                <input type="text" id="editEveningActivityTitle" placeholder="AI Асистент">
             </div>
             <div class="field" style="grid-column: 1 / -1;">
-                <label for="editEveningBody">Вечерен текст</label>
-                <input type="text" id="editEveningBody" placeholder="Как мина денят?">
+                <label for="editEveningActivityBody">Текст</label>
+                <input type="text" id="editEveningActivityBody" placeholder="Ниво на активност?">
+            </div>
+            <div class="field" style="grid-column: 1 / -1;">
+                <label>Бутони активност</label>
+                <div id="editEveningActivityActions" class="gn-actions-list"></div>
+                <button type="button" onclick="GnActionsUI.addRow('editEveningActivityActions',{compact:true,prefix:'edit-action'})">➕ Отговор</button>
+            </div>
+            <div class="field">
+                <label for="editEveningBalanceTime">Вечер 2 — баланс</label>
+                <input type="time" id="editEveningBalanceTime" value="20:05">
+            </div>
+            <div class="field">
+                <label for="editEveningBalanceTitle">Заглавие</label>
+                <input type="text" id="editEveningBalanceTitle" placeholder="AI Асистент">
+            </div>
+            <div class="field" style="grid-column: 1 / -1;">
+                <label for="editEveningBalanceBody">Текст</label>
+                <input type="text" id="editEveningBalanceBody" placeholder="Емоционален баланс?">
+            </div>
+            <div class="field" style="grid-column: 1 / -1;">
+                <label>Бутони баланс</label>
+                <div id="editEveningBalanceActions" class="gn-actions-list"></div>
+                <button type="button" onclick="GnActionsUI.addRow('editEveningBalanceActions',{compact:true,prefix:'edit-action'})">➕ Отговор</button>
+            </div>
+            <div class="field">
+                <label for="editEveningWaterTime">Вечер 3 — вода</label>
+                <input type="time" id="editEveningWaterTime" value="20:10">
+            </div>
+            <div class="field">
+                <label for="editEveningWaterTitle">Заглавие</label>
+                <input type="text" id="editEveningWaterTitle" placeholder="AI Асистент">
+            </div>
+            <div class="field" style="grid-column: 1 / -1;">
+                <label for="editEveningWaterBody">Текст</label>
+                <input type="text" id="editEveningWaterBody" placeholder="Изпихте ли поне 2 л вода?">
+            </div>
+            <div class="field" style="grid-column: 1 / -1;">
+                <label>Бутони вода</label>
+                <div id="editEveningWaterActions" class="gn-actions-list"></div>
+                <button type="button" onclick="GnActionsUI.addRow('editEveningWaterActions',{compact:true,prefix:'edit-action'})">➕ Отговор</button>
             </div>
         </div>
         <div class="extra-list" id="editExtraList"></div>
@@ -483,8 +527,10 @@
             Нуждае се от разрешено permission.
         </p>
         <div class="btn-group">
-            <button id="btnMorningNow" onclick="showMorningNow()" disabled class="btn-green">🌅 Сутрешно известие (сега)</button>
-            <button id="btnEveningNow" onclick="showEveningNow()" disabled class="btn-orange">🌙 Вечерно известие (сега)</button>
+            <button id="btnMorningNow" onclick="showMorningNow()" disabled class="btn-green">🌅 Сутрешно (сега)</button>
+            <button id="btnEveningActivityNow" onclick="showEveningNow('evening_activity')" disabled class="btn-orange">🚶 Активност (сега)</button>
+            <button id="btnEveningBalanceNow" onclick="showEveningNow('evening_balance')" disabled class="btn-orange">💚 Баланс (сега)</button>
+            <button id="btnEveningWaterNow" onclick="showEveningNow('evening_water')" disabled class="btn-orange">💧 Вода (сега)</button>
             <button id="btnRawNotif"   onclick="sendRawNotification()" disabled>✉️ Raw Notification API</button>
             <button id="btnSWNotif"    onclick="sendSWNotification()" disabled>📱 SW showNotification</button>
         </div>
@@ -528,8 +574,10 @@
             Отваря същия бърз прозорец, който потребителят вижда при клик върху нотификацията.
         </p>
         <div class="btn-group">
-            <button class="btn-green" onclick="openQuickAnswer('morning_check')">🌅 Бърз сутрешен отговор</button>
-            <button class="btn-orange" onclick="openQuickAnswer('evening_check')">🌙 Бърз вечерен отговор</button>
+            <button class="btn-green" onclick="openQuickAnswer('morning_check')">🌅 Сутрешен plan tap</button>
+            <button class="btn-orange" onclick="openQuickAnswer('evening_activity')">🚶 Активност plan tap</button>
+            <button class="btn-orange" onclick="openQuickAnswer('evening_balance')">💚 Баланс plan tap</button>
+            <button class="btn-orange" onclick="openQuickAnswer('evening_water')">💧 Вода plan tap</button>
             <button class="btn-gray" onclick="window.open('/plan.html?action=morning_check', '_blank')">plan.html fallback</button>
         </div>
     </div>
@@ -546,6 +594,7 @@
     <a href="/" class="back-link">← Назад към Начало</a>
 </div>
 
+<script src="./gn-actions-ui.js"></script>
 <script src="./local-scheduler.js"></script>
 <script>
 // ─────────────────────────────────────────────
@@ -733,7 +782,7 @@ async function updateDiagnostics() {
 
     // Enable buttons if permission granted
     const granted = permission.granted;
-    ['btnMorningNow','btnEveningNow','btnRawNotif','btnSWNotif',
+    ['btnMorningNow','btnEveningActivityNow','btnEveningBalanceNow','btnEveningWaterNow','btnRawNotif','btnSWNotif',
      'btnDelayed','btnInit','btnSchedule','btnCancelAll'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.disabled = !granted;
@@ -795,15 +844,32 @@ async function checkSW() {
 const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
 const DEFAULT_CONFIG = {
     morningTime: '07:00',
-    eveningTime: '20:00',
-    morningTitle: 'Добро утро! 🌅',
-    morningBody: 'Как спахте тази нощ? Отговорете на сутрешния въпрос.',
-    eveningTitle: 'Добър вечер! 🌙',
-    eveningBody: 'Как мина денят? Отговорете на вечерните въпроси.',
+    morningTitle: 'AI Асистент',
+    morningBody: 'Спахте ли добре тази нощ?',
+    eveningActivityTime: '20:00',
+    eveningActivityTitle: 'AI Асистент',
+    eveningActivityBody: 'Ниво на активност?',
+    eveningBalanceTime: '20:05',
+    eveningBalanceTitle: 'AI Асистент',
+    eveningBalanceBody: 'Емоционален баланс?',
+    eveningWaterTime: '20:10',
+    eveningWaterTitle: 'AI Асистент',
+    eveningWaterBody: 'Изпихте ли поне 2 л вода?',
     extraNotifications: []
 };
 
 function normalizeConfig(cfg) {
+    if (window.GameNotifier && typeof window.GameNotifier.normalizeConfig === 'function') {
+        const merged = window.GameNotifier.normalizeConfig(cfg || {});
+        merged.extraNotifications = Array.isArray(merged.extraNotifications)
+            ? merged.extraNotifications.filter(item => item && item.time).map(item => ({
+                time: String(item.time || ''),
+                title: String(item.title || ''),
+                body: String(item.body || '')
+            }))
+            : [];
+        return merged;
+    }
     const merged = Object.assign({}, DEFAULT_CONFIG, cfg || {});
     merged.extraNotifications = Array.isArray(merged.extraNotifications)
         ? merged.extraNotifications
@@ -822,6 +888,18 @@ function setConfigStatus(message, tone) {
     if (!el) return;
     el.textContent = message || '';
     el.className = 'status-line ' + (tone || '');
+}
+
+const EDIT_ACTION_CONTAINERS = {
+    editMorningActions: 'morningActions',
+    editEveningActivityActions: 'eveningActivityActions',
+    editEveningBalanceActions: 'eveningBalanceActions',
+    editEveningWaterActions: 'eveningWaterActions'
+};
+const EDIT_ACTION_OPTS = { compact: true, prefix: 'edit-action', onMax: (m) => log(m, 'warn') };
+
+function renderAllEditActionRows(cfg) {
+    if (window.GnActionsUI) GnActionsUI.renderAll(EDIT_ACTION_CONTAINERS, cfg, EDIT_ACTION_OPTS);
 }
 
 function addConfigExtraNotification(data) {
@@ -863,9 +941,16 @@ function renderEditableConfig(cfg) {
     document.getElementById('editMorningTime').value = normalized.morningTime;
     document.getElementById('editMorningTitle').value = normalized.morningTitle;
     document.getElementById('editMorningBody').value = normalized.morningBody;
-    document.getElementById('editEveningTime').value = normalized.eveningTime;
-    document.getElementById('editEveningTitle').value = normalized.eveningTitle;
-    document.getElementById('editEveningBody').value = normalized.eveningBody;
+    document.getElementById('editEveningActivityTime').value = normalized.eveningActivityTime;
+    document.getElementById('editEveningActivityTitle').value = normalized.eveningActivityTitle;
+    document.getElementById('editEveningActivityBody').value = normalized.eveningActivityBody;
+    document.getElementById('editEveningBalanceTime').value = normalized.eveningBalanceTime;
+    document.getElementById('editEveningBalanceTitle').value = normalized.eveningBalanceTitle;
+    document.getElementById('editEveningBalanceBody').value = normalized.eveningBalanceBody;
+    document.getElementById('editEveningWaterTime').value = normalized.eveningWaterTime;
+    document.getElementById('editEveningWaterTitle').value = normalized.eveningWaterTitle;
+    document.getElementById('editEveningWaterBody').value = normalized.eveningWaterBody;
+    renderAllEditActionRows(normalized);
     const list = document.getElementById('editExtraList');
     if (list) {
         list.innerHTML = '';
@@ -885,9 +970,16 @@ function collectEditableConfig() {
         morningTime: document.getElementById('editMorningTime').value || DEFAULT_CONFIG.morningTime,
         morningTitle: document.getElementById('editMorningTitle').value || DEFAULT_CONFIG.morningTitle,
         morningBody: document.getElementById('editMorningBody').value || DEFAULT_CONFIG.morningBody,
-        eveningTime: document.getElementById('editEveningTime').value || DEFAULT_CONFIG.eveningTime,
-        eveningTitle: document.getElementById('editEveningTitle').value || DEFAULT_CONFIG.eveningTitle,
-        eveningBody: document.getElementById('editEveningBody').value || DEFAULT_CONFIG.eveningBody,
+        eveningActivityTime: document.getElementById('editEveningActivityTime').value || DEFAULT_CONFIG.eveningActivityTime,
+        eveningActivityTitle: document.getElementById('editEveningActivityTitle').value || DEFAULT_CONFIG.eveningActivityTitle,
+        eveningActivityBody: document.getElementById('editEveningActivityBody').value || DEFAULT_CONFIG.eveningActivityBody,
+        eveningBalanceTime: document.getElementById('editEveningBalanceTime').value || DEFAULT_CONFIG.eveningBalanceTime,
+        eveningBalanceTitle: document.getElementById('editEveningBalanceTitle').value || DEFAULT_CONFIG.eveningBalanceTitle,
+        eveningBalanceBody: document.getElementById('editEveningBalanceBody').value || DEFAULT_CONFIG.eveningBalanceBody,
+        eveningWaterTime: document.getElementById('editEveningWaterTime').value || DEFAULT_CONFIG.eveningWaterTime,
+        eveningWaterTitle: document.getElementById('editEveningWaterTitle').value || DEFAULT_CONFIG.eveningWaterTitle,
+        eveningWaterBody: document.getElementById('editEveningWaterBody').value || DEFAULT_CONFIG.eveningWaterBody,
+        ...(window.GnActionsUI ? GnActionsUI.collectAll(EDIT_ACTION_CONTAINERS, 'edit-action') : {}),
         extraNotifications
     });
 }
@@ -981,7 +1073,7 @@ function refreshConfig() {
         document.getElementById('cfgJSON').textContent = JSON.stringify(cfg, null, 2) || '(няма)';
         if (cfg) {
             document.getElementById('cfgSummary').textContent =
-                `сутрин ${cfg.morningTime || '07:00'} / вечер ${cfg.eveningTime || '20:00'} / допълнителни ${cfg.extraNotifications.length}`;
+                `сутрин ${cfg.morningTime || '07:00'} / вечер ${cfg.eveningActivityTime || '20:00'}+${cfg.eveningBalanceTime || '20:05'}+${cfg.eveningWaterTime || '20:10'} / допълнителни ${cfg.extraNotifications.length}`;
         } else {
             document.getElementById('cfgSummary').innerHTML = '<span class="muted">по подразбиране (07:00 / 20:00)</span>';
         }
@@ -1242,12 +1334,10 @@ function quickAnswerUrl(type) {
 }
 
 function openQuickAnswer(type) {
-    window.open(quickAnswerUrl(type), '_blank');
+    const qs = 'action=' + encodeURIComponent(type) + '&date=' + encodeURIComponent(todayKey());
+    window.open('/plan.html?' + qs, '_blank');
 }
 
-// ─────────────────────────────────────────────
-// Immediate notifications
-// ─────────────────────────────────────────────
 async function showMorningNow() {
     if (!window.GameNotifier) { log('GameNotifier не е зареден', 'err'); return; }
     log('Показване на сутрешно известие веднага…');
@@ -1259,12 +1349,13 @@ async function showMorningNow() {
     }
 }
 
-async function showEveningNow() {
+async function showEveningNow(type) {
+    type = type || 'evening_water';
     if (!window.GameNotifier) { log('GameNotifier не е зареден', 'err'); return; }
-    log('Показване на вечерно известие веднага…');
+    log('Показване на ' + type + ' веднага…');
     try {
-        await window.GameNotifier._showImmediateNotification('evening_check');
-        log('Вечерното известие е изпратено.');
+        await window.GameNotifier._showImmediateNotification(type);
+        log('Известието ' + type + ' е изпратено.');
     } catch(e) {
         log('Грешка: ' + e.message, 'err');
     }
@@ -1411,7 +1502,13 @@ function renderScheduleVisualization() {
     const raw = localStorage.getItem('gameNotifierConfig');
     const cfg = raw ? normalizeConfig(JSON.parse(raw)) : normalizeConfig(defaults);
     const [mH, mM] = cfg.morningTime.split(':').map(Number);
-    const [eH, eM] = cfg.eveningTime.split(':').map(Number);
+    const eveningSlots = window.GameNotifier && typeof window.GameNotifier._getEveningSlots === 'function'
+        ? window.GameNotifier._getEveningSlots(cfg)
+        : [
+            { type: 'evening_activity', time: cfg.eveningActivityTime || '20:00', label: '🚶' },
+            { type: 'evening_balance', time: cfg.eveningBalanceTime || '20:05', label: '💚' },
+            { type: 'evening_water', time: cfg.eveningWaterTime || '20:10', label: '💧' }
+        ];
     const now = Date.now();
     const DAYS_AHEAD = 7;
 
@@ -1431,7 +1528,6 @@ function renderScheduleVisualization() {
 
     for (let day = 0; day < DAYS_AHEAD; day++) {
         const morningTs = getTimestampForDay(day, mH, mM);
-        const eveningTs = getTimestampForDay(day, eH, eM);
         const d = new Date();
         d.setDate(d.getDate() + day);
         const isToday = day === 0;
@@ -1439,9 +1535,18 @@ function renderScheduleVisualization() {
 
         const pills = [];
         const mPast = morningTs < now;
-        const ePast = eveningTs < now;
         pills.push({ type: 'morning', label: '🌅 ' + cfg.morningTime, past: mPast, ts: morningTs });
-        pills.push({ type: 'evening', label: '🌙 ' + cfg.eveningTime, past: ePast, ts: eveningTs });
+        eveningSlots.forEach((slot) => {
+            const parts = String(slot.time || '20:00').split(':').map(Number);
+            const eveningTs = getTimestampForDay(day, parts[0], parts[1]);
+            const ePast = eveningTs < now;
+            const icon = slot.label || (slot.type === 'evening_activity' ? '🚶' : slot.type === 'evening_balance' ? '💚' : '💧');
+            pills.push({ type: slot.type, label: icon + ' ' + slot.time, past: ePast, ts: eveningTs });
+            if (!ePast && (nextTs === null || eveningTs < nextTs)) {
+                nextTs = eveningTs;
+                nextLabel = icon + ' ' + slot.time;
+            }
+        });
         (cfg.extraNotifications || []).forEach((extra, idx) => {
             const [xH, xM] = String(extra.time || '').split(':').map(Number);
             if (Number.isNaN(xH) || Number.isNaN(xM)) return;
@@ -1462,10 +1567,6 @@ function renderScheduleVisualization() {
         if (!mPast && (nextTs === null || morningTs < nextTs)) {
             nextTs = morningTs;
             nextLabel = '🌅 Сутрешно (' + cfg.morningTime + ')';
-        }
-        if (!ePast && (nextTs === null || eveningTs < nextTs)) {
-            nextTs = eveningTs;
-            nextLabel = '🌙 Вечерно (' + cfg.eveningTime + ')';
         }
 
         days.push({ dayName, isToday, pills });
