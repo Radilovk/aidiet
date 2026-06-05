@@ -711,6 +711,20 @@
             if (data.tab) switchTab(data.tab, true);
             return;
         }
+        if (data.type === 'NUTRIPLAN_GAMEDATA_UPDATED') {
+            forwardSilentRecalc({
+                recordKey: data.recordKey || ''
+            });
+            var analyticsFrame = document.querySelector('[data-tab-view="analytics"]');
+            if (analyticsFrame) {
+                dispatchFrameEvent(analyticsFrame, 'NUTRIPLAN_TAB_ACTIVATED', { tab: 'analytics' });
+            }
+            var planFrame = document.querySelector('[data-tab-view="plan"]');
+            if (planFrame) {
+                dispatchFrameEvent(planFrame, 'NUTRIPLAN_APP_DATA_READY', { keys: ['gameData'] });
+            }
+            return;
+        }
         if (data.type === 'NUTRIPLAN_LOGOUT') {
             // Hide SPA shell immediately so nav bar / tabs are not visible during navigation
             var shell = document.getElementById('spaShell');

@@ -77,6 +77,7 @@
     function redirectToQuickAnswer(type, recordKey, actionId) {
         if (revealTimer) clearTimeout(revealTimer);
         revealTimer = null;
+        document.documentElement.style.visibility = '';
         location.replace(buildQuickAnswerUrl(type, recordKey, actionId));
     }
 

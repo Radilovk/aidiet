@@ -4160,9 +4160,9 @@
                     else { calorieBalance = 'surplus'; }
                 }
                 var sleepPts    = rec.morningCheck  ? (rec.morningCheck.sleptWell ? 10 : 0) : null;
-                var waterPts    = rec.eveningCheck  ? (rec.eveningCheck.waterIntake ? 10 : 0) : null;
-                var activityPts = rec.eveningCheck  ? ([0,0,5,10][rec.eveningCheck.activityLevel] || 0) : null;
-                var balancePts  = rec.eveningCheck  ? ([0,0,5,10][rec.eveningCheck.emotionalBalance] || 0) : null;
+                var waterPts    = rec.eveningCheck && rec.eveningCheck.waterIntake != null ? (rec.eveningCheck.waterIntake ? 10 : 0) : null;
+                var activityPts = rec.eveningCheck && rec.eveningCheck.activityLevel != null ? ([0,0,5,10][rec.eveningCheck.activityLevel] || 0) : null;
+                var balancePts  = rec.eveningCheck && rec.eveningCheck.emotionalBalance != null ? ([0,0,5,10][rec.eveningCheck.emotionalBalance] || 0) : null;
                 var wellnessEarned = (sleepPts||0)+(waterPts||0)+(activityPts||0)+(balancePts||0);
                 var allMealsOk = meals.length > 0 && meals.every(function(m) {
                     return rec.meals[m] === true;
@@ -4177,7 +4177,11 @@
                 }).length;
                 var mealEngPct = meals.length>0 ? done/meals.length*50 : 0;
                 var mornEngPct = rec.morningCheck ? 15 : 0;
-                var eveEngPct  = rec.eveningCheck  ? 15 : 0;
+                var eveEngPct  = (rec.eveningCheck && (
+                    rec.eveningCheck.activityLevel != null ||
+                    rec.eveningCheck.emotionalBalance != null ||
+                    rec.eveningCheck.waterIntake != null
+                )) ? 15 : 0;
                 var hasAnyEngagement = mealEngPct > 0 || mornEngPct > 0 || eveEngPct > 0 || junkCount > 0 || incorrectMeals > 0;
                 var junkPct    = hasAnyEngagement ? Math.max(0, JUNK_MAX_POINTS-(junkCount+incorrectMeals)*JUNK_PENALTY_PER_MEAL) : 0;
                 var engPct     = Math.round(mealEngPct+mornEngPct+eveEngPct+junkPct);

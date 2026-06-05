@@ -5589,11 +5589,20 @@
         document.addEventListener('visibilitychange', function() {
             if (document.hidden) {
                 cancelActiveTyping({ complete: true });
-            } else if (window.GameNotifier && typeof window.GameNotifier.refreshConfig === 'function') {
-                // APK: WebView stays alive when app is backgrounded; refreshConfig() syncs
-                // the admin notification config (one lightweight KV version-check, throttled
-                // to 24 hours) so schedule changes from the admin panel reach all users.
-                window.GameNotifier.refreshConfig().catch(function() {});
+            } else {
+                try {
+                    var dirtyKey = localStorage.getItem('gameDataDirtyKey');
+                    if (dirtyKey && typeof recalcAndShowScore === 'function') {
+                        recalcAndShowScore(dirtyKey);
+                        localStorage.removeItem('gameDataDirtyKey');
+                    }
+                } catch (_) {}
+                if (window.GameNotifier && typeof window.GameNotifier.refreshConfig === 'function') {
+                    // APK: WebView stays alive when app is backgrounded; refreshConfig() syncs
+                    // the admin notification config (one lightweight KV version-check, throttled
+                    // to 24 hours) so schedule changes from the admin panel reach all users.
+                    window.GameNotifier.refreshConfig().catch(function() {});
+                }
             }
         });
         window.addEventListener('pagehide', function() {

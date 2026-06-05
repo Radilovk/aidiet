@@ -6,6 +6,8 @@ import sys
 from pathlib import Path
 
 COMPACT_MARKER = "NutriPlan: show all actions in heads-up compact view"
+# MediaStyle compact actions hide notification body on many OEM heads-up UIs.
+# NutriPlan uses JS `largeBody` (Capacitor BigTextStyle) for the question text instead.
 ICON_MARKER = "NutriPlan: visible action icon"
 GRADLE_MARKER = "NutriPlan: androidx.media for compact actions"
 
@@ -65,39 +67,6 @@ def patch_manager(path: Path) -> bool:
         if removed:
             changed = True
             print(f"Removed legacy compact-view patch from {path}", file=sys.stderr)
-
-    if COMPACT_MARKER not in text or "androidx.media.app.NotificationCompat.MediaStyle" not in text:
-        needle = (
-            "                mBuilder.addAction(actionBuilder.build());\n"
-            "            }\n"
-            "        }\n"
-            "\n"
-            "        // Dismiss intent"
-        )
-        insert = (
-            "                mBuilder.addAction(actionBuilder.build());\n"
-            "            }\n"
-            f"            // {COMPACT_MARKER}\n"
-            "            if (actionGroup.length > 1) {\n"
-            "                androidx.media.app.NotificationCompat.MediaStyle compactStyle =\n"
-            "                    new androidx.media.app.NotificationCompat.MediaStyle();\n"
-            "                int compactCount = Math.min(actionGroup.length, 3);\n"
-            "                if (compactCount >= 3) {\n"
-            "                    compactStyle.setShowActionsInCompactView(0, 1, 2);\n"
-            "                } else if (compactCount == 2) {\n"
-            "                    compactStyle.setShowActionsInCompactView(0, 1);\n"
-            "                }\n"
-            "                mBuilder.setStyle(compactStyle);\n"
-            "            }\n"
-            "        }\n"
-            "\n"
-            "        // Dismiss intent"
-        )
-        if needle not in text:
-            print(f"ERROR: action loop anchor not found in {path}", file=sys.stderr)
-            return False
-        text = text.replace(needle, insert, 1)
-        changed = True
 
     if ICON_MARKER not in text and "R.drawable.ic_transparent" in text:
         text = text.replace(
