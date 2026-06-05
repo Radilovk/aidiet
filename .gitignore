@@ -38,6 +38,7 @@ capacitor-shell/*
 !deploy.sh
 *.py
 !setup.py
+!android-res/patch-local-notifications.py
 
 # Test files
 test-*.js
