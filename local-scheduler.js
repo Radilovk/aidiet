@@ -13,9 +13,9 @@
  *   evening_water       – вечер: вода (20:10)
  *
  * Backend config sync:
- *   – Пести бекенда: максимум 1 лек version check на 24 часа.
+ *   – При всяко отваряне: 1 лека GET ?v=N (~50 bytes ако няма промяна).
+ *   – Пълен config + препланиране САМО при нова server version.
  *   – Локален APK/PWA график от *notifyme не прави backend заявки.
- *   – forceSyncBackendConfig() игнорира кеша само при ръчен/admin тест.
  */
 
 const GameNotifier = {
@@ -27,6 +27,7 @@ const GameNotifier = {
     LS_LOCAL_KEY:         'gameNotifierLocalConfig',
     LS_VERSION_KEY:       'gameNotifierConfigVersion',
     LS_LAST_REFRESH_KEY:  'gameNotifierLastRefresh',
+    LS_SCHEDULED_VERSION_KEY: 'gameNotifierScheduledVersion',
     CALENDAR_URL:   'https://aidiet.radilov-k.workers.dev/api/calendar.ics',
     CHANNEL_ID:     'nutriplan_daily_checkins',
     MORNING_CHANNEL_ID: 'nutriplan_morning',
@@ -49,52 +50,59 @@ const GameNotifier = {
             title: 'AI Асистент',
             body:  'Спахте ли добре тази нощ?',
             actions: [
-                { id: 'sleep_yes', title: 'Да' },
-                { id: 'sleep_no',  title: 'Не' },
-                { id: 'skip',      title: 'Пропуск' }
+                { id: 'sleep_yes', title: 'Да', value: true },
+                { id: 'sleep_no',  title: 'Не', value: false },
+                { id: 'skip',      title: 'Пропуск', value: null }
             ]
         },
         eveningActivity: {
             title: 'AI Асистент',
             body:  'Ниво на активност?',
             actions: [
-                { id: 'activity_1', title: 'Ниска' },
-                { id: 'activity_2', title: 'Умерена' },
-                { id: 'activity_3', title: 'Висока' }
+                { id: 'activity_1', title: 'Ниска', value: 1 },
+                { id: 'activity_2', title: 'Умерена', value: 2 },
+                { id: 'activity_3', title: 'Висока', value: 3 }
             ]
         },
         eveningBalance: {
             title: 'AI Асистент',
             body:  'Емоционален баланс?',
             actions: [
-                { id: 'balance_1', title: 'Напрегнат' },
-                { id: 'balance_2', title: 'Спокоен' },
-                { id: 'balance_3', title: 'Позитивен' }
+                { id: 'balance_1', title: 'Напрегнат', value: 1 },
+                { id: 'balance_2', title: 'Спокоен', value: 2 },
+                { id: 'balance_3', title: 'Позитивен', value: 3 }
             ]
         },
         eveningWater: {
             title: 'AI Асистент',
             body:  'Изпихте ли поне 2 л вода?',
             actions: [
-                { id: 'water_no',  title: 'Не' },
-                { id: 'water_yes', title: 'Да' },
-                { id: 'skip',      title: 'Пропуск' }
+                { id: 'water_no',  title: 'Не', value: false },
+                { id: 'water_yes', title: 'Да', value: true },
+                { id: 'skip',      title: 'Пропуск', value: null }
             ]
         }
     },
 
     EVENING_SLOT_DEFS: [
-        { type: 'evening_activity', copyKey: 'eveningActivity', actionTypeKey: 'EVENING_ACTIVITY_ACTION_TYPE_ID', idBase: 2000, defaultOffsetMin: 0 },
-        { type: 'evening_balance',  copyKey: 'eveningBalance',  actionTypeKey: 'EVENING_BALANCE_ACTION_TYPE_ID',  idBase: 2200, defaultOffsetMin: 5 },
-        { type: 'evening_water',    copyKey: 'eveningWater',    actionTypeKey: 'EVENING_WATER_ACTION_TYPE_ID',    idBase: 2400, defaultOffsetMin: 10 }
+        { type: 'evening_activity', copyKey: 'eveningActivity', actionsKey: 'eveningActivityActions', actionTypeKey: 'EVENING_ACTIVITY_ACTION_TYPE_ID', idBase: 2000, defaultOffsetMin: 0, saveKind: 'activityLevel' },
+        { type: 'evening_balance',  copyKey: 'eveningBalance',  actionsKey: 'eveningBalanceActions',  actionTypeKey: 'EVENING_BALANCE_ACTION_TYPE_ID',  idBase: 2200, defaultOffsetMin: 5, saveKind: 'emotionalBalance' },
+        { type: 'evening_water',    copyKey: 'eveningWater',    actionsKey: 'eveningWaterActions',    actionTypeKey: 'EVENING_WATER_ACTION_TYPE_ID',    idBase: 2400, defaultOffsetMin: 10, saveKind: 'waterIntake' }
     ],
 
-    SILENT_ACTIONS: new Set([
-        'sleep_yes', 'sleep_no', 'skip',
-        'activity_1', 'activity_2', 'activity_3',
-        'balance_1', 'balance_2', 'balance_3',
-        'water_yes', 'water_no'
-    ]),
+    MORNING_META: {
+        type: 'morning_check',
+        timeKey: 'morningTime',
+        titleKey: 'morningTitle',
+        bodyKey: 'morningBody',
+        actionsKey: 'morningActions',
+        copyKey: 'morning',
+        actionTypeKey: 'MORNING_ACTION_TYPE_ID',
+        idBase: 1000,
+        saveKind: 'morning'
+    },
+
+    MAX_NOTIFICATION_ACTIONS: 3,
 
     _swReg:     null,
     _capacitor: null,   // @capacitor/local-notifications handle
@@ -160,17 +168,23 @@ const GameNotifier = {
                 }
             }
 
-            // Backend sync is intentionally rare to keep KV/Worker costs low.
-            // Local APK/PWA schedules never hit the backend.
-            if (this._shouldSyncBackendConfig()) {
-                await this._maybeSyncBackendConfig();
-                localStorage.setItem(this.LS_LAST_REFRESH_KEY, String(Date.now()));
+            // Cheap version check on every open; full config + reschedule only when version changes.
+            let configChanged = false;
+            if (!this._hasLocalConfig()) {
+                configChanged = await this._maybeSyncBackendConfig();
             }
 
-            // Schedule the rolling monthly buffer using the (now up-to-date) config.
-            await this.scheduleNotifications();
+            const currentVersion = localStorage.getItem(this.LS_VERSION_KEY) || '0';
+            const scheduledVersion = localStorage.getItem(this.LS_SCHEDULED_VERSION_KEY) || '';
+            const needsSchedule = configChanged || scheduledVersion !== String(currentVersion);
+
+            if (needsSchedule) {
+                if (this._capacitor) await this._registerCapacitorActionTypes();
+                await this.scheduleNotifications();
+                localStorage.setItem(this.LS_SCHEDULED_VERSION_KEY, String(currentVersion));
+            }
+
             this._initialized = true;
-            localStorage.setItem(this.LS_LAST_REFRESH_KEY, String(Date.now()));
             console.log('[GameNotifier] Ready.');
             return true;
         })();
@@ -186,20 +200,18 @@ const GameNotifier = {
 
     /**
      * Lightweight config refresh for APK app-resume events.
-     * Skips the full re-init (permission checks, channel setup, listener binding).
-     * Does one version check against the backend; reschedules only when the admin
-     * has saved a new config since the last sync.  Throttled to once per 24 hours.
+     * One version check per resume; reschedules only when admin saved a new config.
      */
     async refreshConfig() {
-        if (!this._initialized) return false;
-        if (!this._shouldSyncBackendConfig()) return false;
-        const prevVersion = localStorage.getItem(this.LS_VERSION_KEY);
-        await this._maybeSyncBackendConfig();
-        localStorage.setItem(this.LS_LAST_REFRESH_KEY, String(Date.now()));
-        const newVersion = localStorage.getItem(this.LS_VERSION_KEY);
-        if (newVersion !== prevVersion) {
+        if (!this._initialized || this._hasLocalConfig()) return false;
+        const prevVersion = localStorage.getItem(this.LS_VERSION_KEY) || '0';
+        const configChanged = await this._maybeSyncBackendConfig();
+        const newVersion = localStorage.getItem(this.LS_VERSION_KEY) || '0';
+        if (configChanged || newVersion !== prevVersion) {
             console.log('[GameNotifier] Config updated (v' + newVersion + ') – rescheduling notifications.');
+            if (this._capacitor) await this._registerCapacitorActionTypes();
             await this.scheduleNotifications();
+            localStorage.setItem(this.LS_SCHEDULED_VERSION_KEY, String(newVersion));
             return true;
         }
         return false;
@@ -214,6 +226,10 @@ const GameNotifier = {
         } else {
             await this._scheduleViaSW(cfg);
         }
+    },
+
+    cancelTodaysNotification(notifType, recordKey) {
+        this._cancelNotificationForDay(notifType, recordKey);
     },
 
     async cancelAll() {
@@ -238,8 +254,61 @@ const GameNotifier = {
         }
     },
 
-    isSilentAction(action) {
-        return !!action && this.SILENT_ACTIONS.has(action);
+    isSilentAction(action, notifType) {
+        if (!action) return false;
+        const cfg = this._getConfig();
+        const meta = this._slotMetaByType(notifType);
+        if (!meta) return action !== '';
+        const actions = this._actionsFromConfig(cfg, meta);
+        return actions.some((a) => a.id === action);
+    },
+
+    getPromptConfig() {
+        const cfg = this._getConfig();
+        const out = {};
+        const morning = this.MORNING_META;
+        out.morning = {
+            body: cfg.morningBody || this.COPY.morning.body,
+            actions: this._actionsFromConfig(cfg, morning)
+        };
+        this.EVENING_SLOT_DEFS.forEach((def) => {
+            const prefix = def.type.replace('evening_', '');
+            const bodyKey = 'evening' + prefix.charAt(0).toUpperCase() + prefix.slice(1) + 'Body';
+            out[def.copyKey] = {
+                body: cfg[bodyKey] || (this.COPY[def.copyKey] && this.COPY[def.copyKey].body) || '',
+                actions: this._actionsFromConfig(cfg, def)
+            };
+        });
+        return out;
+    },
+
+    bubbleAnswersForType(type) {
+        const cfg = this._getConfig();
+        const meta = this._slotMetaByType(type);
+        if (!meta) return null;
+        const actions = this._actionsFromConfig(cfg, meta).filter((a) => a.id !== 'skip');
+        if (!actions.length) return null;
+        const starI = '<i class="fas fa-star" style="color:#fbbf24;font-size:0.9em"></i>';
+        const isStars = type === 'evening_activity' || type === 'evening_balance';
+        return actions.map((a) => {
+            if (isStars) {
+                const v = Number(a.value) || 1;
+                let icons = starI;
+                if (v >= 2) icons += starI;
+                if (v >= 3) icons += starI;
+                return { label: a.title, icons, value: v, stars: true };
+            }
+            const val = a.value;
+            const isYes = val === true;
+            return {
+                label: a.title,
+                icon: isYes
+                    ? '<i class="fas fa-check" style="color:#10b981"></i>'
+                    : '<i class="fas fa-xmark" style="color:#ef4444"></i>',
+                value: val,
+                cls: isYes ? 'yes' : 'no'
+            };
+        });
     },
 
     /**
@@ -251,43 +320,31 @@ const GameNotifier = {
         const action = (msg && (msg.action || msg.actionId)) || '';
         const recordKey = this._normalizeRecordKey(msg && msg.recordKey);
         const result = { silent: false, saved: false, needsApp: false, ack: null, recordKey, notifType, action };
+        const cfg = this._getConfig();
+        const meta = this._slotMetaByType(notifType);
 
-        if (action === 'skip') {
-            this._recordNotificationChoice(recordKey, notifType, 'skip');
-            result.silent = true;
-            result.ack = 'skip';
-            return result;
-        }
-
-        if (notifType === 'morning_check' && (action === 'sleep_yes' || action === 'sleep_no')) {
-            result.saved = this._saveMorningAnswer(recordKey, action === 'sleep_yes');
-            result.silent = true;
-            result.ack = action;
-            return result;
-        }
-
-        if (notifType === 'evening_activity' && /^activity_[123]$/.test(action)) {
-            const level = parseInt(action.split('_')[1], 10);
-            result.saved = this._saveEveningField(recordKey, 'activityLevel', level);
-            result.silent = true;
-            result.ack = action;
-            return result;
-        }
-
-        if (notifType === 'evening_balance' && /^balance_[123]$/.test(action)) {
-            const level = parseInt(action.split('_')[1], 10);
-            result.saved = this._saveEveningField(recordKey, 'emotionalBalance', level);
-            result.silent = true;
-            result.ack = action;
-            return result;
-        }
-
-        if ((notifType === 'evening_water' || notifType === 'evening_check') &&
-            (action === 'water_yes' || action === 'water_no')) {
-            result.saved = this._saveEveningField(recordKey, 'waterIntake', action === 'water_yes');
-            result.silent = true;
-            result.ack = action;
-            return result;
+        if (action && meta) {
+            const actions = this._actionsFromConfig(cfg, meta);
+            const hit = actions.find((a) => a.id === action);
+            if (hit) {
+                if (action === 'skip' || hit.value === null) {
+                    this._recordNotificationChoice(recordKey, notifType, 'skip');
+                    this._cancelNotificationForDay(notifType, recordKey);
+                    result.silent = true;
+                    result.ack = 'skip';
+                    return result;
+                }
+                const value = this._actionValueForSave(meta, action, cfg);
+                if (meta.type === 'morning_check') {
+                    result.saved = this._saveMorningAnswer(recordKey, value);
+                } else {
+                    result.saved = this._saveEveningField(recordKey, meta.saveKind, value);
+                }
+                if (result.saved) this._cancelNotificationForDay(notifType, recordKey);
+                result.silent = true;
+                result.ack = action;
+                return result;
+            }
         }
 
         if (this._isEveningNotificationType(notifType)) {
@@ -297,6 +354,11 @@ const GameNotifier = {
         }
 
         if (notifType === 'evening_check') {
+            result.needsApp = true;
+            return result;
+        }
+
+        if (notifType === 'morning_check') {
             result.needsApp = true;
             return result;
         }
@@ -327,13 +389,8 @@ const GameNotifier = {
             sleep_no:  '✓ Записано',
             water_yes: '✓ Вода',
             water_no:  '✓ Записано',
-            activity_1: '✓ Записано',
-            activity_2: '✓ Записано',
-            activity_3: '✓ Записано',
-            balance_1: '✓ Записано',
-            balance_2: '✓ Записано',
-            balance_3: '✓ Записано'
-        }[ackKey];
+            skip:      null
+        }[ackKey] || '✓ Записано';
         if (!text) return;
         this._flashAckNotification(text).catch(() => {});
     },
@@ -406,7 +463,13 @@ const GameNotifier = {
             return;
         }
         await this.cancelAll();
+        if (this._capacitor) await this._registerCapacitorActionTypes();
         await this.scheduleNotifications();
+        if (localOnly) {
+            localStorage.setItem(this.LS_SCHEDULED_VERSION_KEY, 'local-' + Date.now());
+        } else {
+            localStorage.setItem(this.LS_SCHEDULED_VERSION_KEY, localStorage.getItem(this.LS_VERSION_KEY) || '0');
+        }
     },
 
     async scheduleTestGameQuestionNotification(delaySeconds = 10) {
@@ -428,7 +491,6 @@ const GameNotifier = {
                     body,
                     actionTypeId: this.EVENING_ACTION_TYPE_ID,
                     sound: this.NOTIFICATION_SOUND,
-                    silent: true,
                     schedule: { at: new Date(fireAtTs), allowWhileIdle: true },
                     extra: { url, type: 'evening_check', recordKey },
                     iconColor: this.BRAND_TEAL_DARK
@@ -564,34 +626,24 @@ const GameNotifier = {
         try {
             const { LocalNotifications } = this._capacitor;
             if (typeof LocalNotifications.registerActionTypes !== 'function') return;
-            await LocalNotifications.registerActionTypes({
-                types: [
-                    {
-                        id: this.MORNING_ACTION_TYPE_ID,
-                        actions: this.COPY.morning.actions.map((item) => ({
-                            id: item.id, title: item.title, foreground: false
-                        }))
-                    },
-                    {
-                        id: this.EVENING_ACTIVITY_ACTION_TYPE_ID,
-                        actions: this.COPY.eveningActivity.actions.map((item) => ({
-                            id: item.id, title: item.title, foreground: false
-                        }))
-                    },
-                    {
-                        id: this.EVENING_BALANCE_ACTION_TYPE_ID,
-                        actions: this.COPY.eveningBalance.actions.map((item) => ({
-                            id: item.id, title: item.title, foreground: false
-                        }))
-                    },
-                    {
-                        id: this.EVENING_WATER_ACTION_TYPE_ID,
-                        actions: this.COPY.eveningWater.actions.map((item) => ({
-                            id: item.id, title: item.title, foreground: false
-                        }))
-                    }
-                ]
+            const cfg = this._getConfig();
+            const types = [
+                {
+                    id: this.MORNING_ACTION_TYPE_ID,
+                    actions: this._actionsFromConfig(cfg, this.MORNING_META).map((item) => ({
+                        id: item.id, title: item.title, foreground: false
+                    }))
+                }
+            ];
+            this.EVENING_SLOT_DEFS.forEach((def) => {
+                types.push({
+                    id: this[def.actionTypeKey],
+                    actions: this._actionsFromConfig(cfg, def).map((item) => ({
+                        id: item.id, title: item.title, foreground: false
+                    }))
+                });
             });
+            await LocalNotifications.registerActionTypes({ types });
         } catch (e) {
             console.warn('[GameNotifier] Action type registration warning:', e);
         }
@@ -704,17 +756,145 @@ const GameNotifier = {
             morningTime:  '07:00',
             morningTitle: this.COPY.morning.title,
             morningBody:  this.COPY.morning.body,
+            morningActions: this._defaultActionsFor('morningActions'),
             eveningActivityTime:  '20:00',
             eveningActivityTitle: this.COPY.eveningActivity.title,
             eveningActivityBody:  this.COPY.eveningActivity.body,
+            eveningActivityActions: this._defaultActionsFor('eveningActivityActions'),
             eveningBalanceTime:   '20:05',
             eveningBalanceTitle:  this.COPY.eveningBalance.title,
             eveningBalanceBody:   this.COPY.eveningBalance.body,
+            eveningBalanceActions: this._defaultActionsFor('eveningBalanceActions'),
             eveningWaterTime:     '20:10',
             eveningWaterTitle:    this.COPY.eveningWater.title,
             eveningWaterBody:     this.COPY.eveningWater.body,
+            eveningWaterActions:  this._defaultActionsFor('eveningWaterActions'),
             extraNotifications: [],
         };
+    },
+
+    _defaultActionsFor(key) {
+        const map = {
+            morningActions: this.COPY.morning.actions,
+            eveningActivityActions: this.COPY.eveningActivity.actions,
+            eveningBalanceActions: this.COPY.eveningBalance.actions,
+            eveningWaterActions: this.COPY.eveningWater.actions
+        };
+        return (map[key] || []).map((a) => Object.assign({}, a));
+    },
+
+    _normalizeActionList(raw, fallback, max) {
+        max = max || this.MAX_NOTIFICATION_ACTIONS;
+        const src = Array.isArray(raw) && raw.length ? raw : fallback;
+        const out = [];
+        const seen = new Set();
+        for (let i = 0; i < src.length; i++) {
+            const item = src[i];
+            if (!item || typeof item !== 'object') continue;
+            const id = String(item.id || '').trim();
+            const title = String(item.title || '').trim();
+            if (!id || !title || seen.has(id)) continue;
+            seen.add(id);
+            const row = { id, title };
+            if (item.value !== undefined) row.value = item.value;
+            out.push(row);
+            if (out.length >= max) break;
+        }
+        return out.length ? out : fallback.map((a) => Object.assign({}, a));
+    },
+
+    _slotMetaByType(type) {
+        if (type === 'morning_check') return this.MORNING_META;
+        if (type === 'evening_check') return this.EVENING_SLOT_DEFS.find((s) => s.type === 'evening_water') || null;
+        return this.EVENING_SLOT_DEFS.find((s) => s.type === type) || null;
+    },
+
+    _actionsFromConfig(config, meta) {
+        if (!meta) return [];
+        const fb = this._defaultActionsFor(meta.actionsKey);
+        return this._normalizeActionList(config[meta.actionsKey], fb);
+    },
+
+    _actionValueForSave(meta, actionId, config) {
+        const actions = this._actionsFromConfig(config, meta);
+        const hit = actions.find((a) => a.id === actionId);
+        if (!hit) return undefined;
+        if (hit.value !== undefined) return hit.value;
+        if (meta.saveKind === 'morning') {
+            if (actionId === 'sleep_yes') return true;
+            if (actionId === 'sleep_no') return false;
+        }
+        if (meta.saveKind === 'activityLevel') {
+            const m = /^activity_(\d+)$/.exec(actionId);
+            if (m) return parseInt(m[1], 10);
+        }
+        if (meta.saveKind === 'emotionalBalance') {
+            const m = /^balance_(\d+)$/.exec(actionId);
+            if (m) return parseInt(m[1], 10);
+        }
+        if (meta.saveKind === 'waterIntake') {
+            if (actionId === 'water_yes') return true;
+            if (actionId === 'water_no') return false;
+        }
+        return undefined;
+    },
+
+    _getGameRecord(recordKey) {
+        const key = this._normalizeRecordKey(recordKey);
+        const gm = typeof window !== 'undefined' && window.gameModule;
+        if (gm && typeof gm.getRecord === 'function') {
+            try { return gm.getRecord(key); } catch (_) {}
+        }
+        try {
+            const allData = JSON.parse(localStorage.getItem('gameData') || '{}') || {};
+            return allData[key] || null;
+        } catch (_) {
+            return null;
+        }
+    },
+
+    _isQuestionAnswered(recordKey, notifType) {
+        try {
+            const log = JSON.parse(localStorage.getItem('notificationResponses') || '[]');
+            if (log.some((e) => e.date === recordKey && e.type === notifType)) return true;
+        } catch (_) {}
+        const meta = this._slotMetaByType(notifType);
+        if (!meta) return false;
+        const rec = this._getGameRecord(recordKey);
+        if (!rec) return false;
+        if (meta.type === 'morning_check') return rec.morningCheck != null;
+        if (!rec.eveningCheck) return false;
+        return rec.eveningCheck[meta.saveKind] != null;
+    },
+
+    _notificationIdForDay(notifType, dayOffset) {
+        if (notifType === 'morning_check') return this.MORNING_META.idBase + dayOffset;
+        const def = this.EVENING_SLOT_DEFS.find((s) => s.type === notifType);
+        return def ? def.idBase + dayOffset : null;
+    },
+
+    _cancelNotificationForDay(notifType, recordKey) {
+        const todayKey = this._dateKeyForTimestamp(Date.now());
+        if (recordKey !== todayKey) return;
+        const id = this._notificationIdForDay(notifType, 0);
+        if (id == null) return;
+
+        if (this._capacitor) {
+            try {
+                const { LocalNotifications } = this._capacitor;
+                LocalNotifications.cancel({ notifications: [{ id }] });
+            } catch (_) {}
+            return;
+        }
+        try {
+            if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({
+                    type: 'CANCEL_GAME_NOTIFICATION',
+                    notifType,
+                    recordKey
+                });
+            }
+        } catch (_) {}
     },
 
     normalizeConfig(raw) {
@@ -738,6 +918,10 @@ const GameNotifier = {
             merged.eveningBalanceBody = this.COPY.eveningBalance.body;
             merged.eveningWaterBody = this.COPY.eveningWater.body;
         }
+        merged.morningActions = this._normalizeActionList(merged.morningActions, this._defaultActionsFor('morningActions'));
+        merged.eveningActivityActions = this._normalizeActionList(merged.eveningActivityActions, this._defaultActionsFor('eveningActivityActions'));
+        merged.eveningBalanceActions = this._normalizeActionList(merged.eveningBalanceActions, this._defaultActionsFor('eveningBalanceActions'));
+        merged.eveningWaterActions = this._normalizeActionList(merged.eveningWaterActions, this._defaultActionsFor('eveningWaterActions'));
         return merged;
     },
 
@@ -776,9 +960,11 @@ const GameNotifier = {
                 time: normalized[timeKey] || this._offsetTimeString('20:00', def.defaultOffsetMin),
                 title: normalized[titleKey] || copy.title || 'AI Асистент',
                 body: normalized[bodyKey] || copy.body || '',
+                actions: this._actionsFromConfig(normalized, def),
                 actionTypeId: this[def.actionTypeKey],
                 idBase: def.idBase,
-                copyKey: def.copyKey
+                copyKey: def.copyKey,
+                saveKind: def.saveKind
             };
         });
     },
@@ -787,45 +973,29 @@ const GameNotifier = {
         return localStorage.getItem(this.LS_LOCAL_KEY) === '1';
     },
 
-    _shouldSyncBackendConfig() {
-        if (this._hasLocalConfig()) return false;
-        if (!localStorage.getItem(this.LS_CONFIG_KEY)) return true;
-        const MIN_SYNC_MS = 24 * 60 * 60 * 1000;
-        const last = parseInt(localStorage.getItem(this.LS_LAST_REFRESH_KEY) || '0', 10);
-        return Date.now() - last >= MIN_SYNC_MS;
-    },
-
     /* ------------------------------------------------------------------ */
     /*  Backend config sync (only when admin changes config)               */
     /* ------------------------------------------------------------------ */
 
     async _maybeSyncBackendConfig() {
-        // Version-based ETag check: send the locally cached version as ?v=N.
-        // When the server version matches, the Worker returns { upToDate: true }
-        // (a single KV read, ~50 bytes) without transmitting the full config blob.
-        // Only when the admin has saved a new config (bumping the server version)
-        // does the Worker return the full payload, which the client then stores and
-        // uses to reschedule notifications.
-        //
-        // Cost guard: callers use _shouldSyncBackendConfig(), so normal users do
-        // at most one backend check per 24h; local APK/PWA configs do zero checks.
-        // Admin/manual force sync bypasses this by clearing the local version.
+        // Version-based check: send cached version as ?v=N (~50 bytes when up-to-date).
         const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
         try {
             const localVersion = parseInt(localStorage.getItem(this.LS_VERSION_KEY) || '0', 10);
             const res = await fetch(`${WORKER_URL}/api/notification-config?v=${localVersion}`, { method: 'GET' });
-            if (!res.ok) return;
+            if (!res.ok) return false;
             const data = await res.json();
-            // Server says our cached version is still current — nothing to do.
-            if (data.upToDate) return;
-            if (!data.config) return;
+            if (data.upToDate) return false;
+            if (!data.config) return false;
             const serverVersion = data.version || 0;
             if (serverVersion > localVersion) {
                 localStorage.setItem(this.LS_CONFIG_KEY, JSON.stringify(data.config));
                 localStorage.setItem(this.LS_VERSION_KEY, String(serverVersion));
                 console.log('[GameNotifier] Config updated from backend (version', serverVersion, ').');
+                return true;
             }
-        } catch (_) { /* offline / endpoint not deployed yet */ }
+        } catch (_) { /* offline */ }
+        return false;
     },
 
     /**
@@ -833,14 +1003,13 @@ const GameNotifier = {
      * Called by the admin panel after a config change is saved.
      */
     async forceSyncBackendConfig() {
-        // Temporarily clear the local version so the server always returns full config.
         const saved = localStorage.getItem(this.LS_VERSION_KEY);
         localStorage.removeItem(this.LS_VERSION_KEY);
-        await this._maybeSyncBackendConfig();
-        // Restore if sync failed (offline) so we don't lose the cached version.
+        const changed = await this._maybeSyncBackendConfig();
         if (!localStorage.getItem(this.LS_VERSION_KEY) && saved !== null) {
             localStorage.setItem(this.LS_VERSION_KEY, saved);
         }
+        return changed;
     },
 
     /* ------------------------------------------------------------------ */
@@ -860,6 +1029,7 @@ const GameNotifier = {
             const morningTs = this._tsForDayOffset(day, mH, mM);
             if (morningTs > Date.now()) {
                 const recordKey = this._dateKeyForTimestamp(morningTs);
+                if (this._isQuestionAnswered(recordKey, 'morning_check')) continue;
                 notifications.push({
                     id: 1000 + day,
                     channelId: this.MORNING_CHANNEL_ID,
@@ -867,7 +1037,6 @@ const GameNotifier = {
                     body:  cfgNorm.morningBody,
                     actionTypeId: this.MORNING_ACTION_TYPE_ID,
                     sound: this.NOTIFICATION_SOUND,
-                    silent: true,
                     schedule: { at: new Date(morningTs), allowWhileIdle: true },
                     extra: {
                         url: this._buildPlanActionUrl('morning_check', recordKey),
@@ -885,6 +1054,7 @@ const GameNotifier = {
                 const eveningTs = this._tsForDayOffset(day, eH, eM);
                 if (eveningTs <= Date.now()) continue;
                 const recordKey = this._dateKeyForTimestamp(eveningTs);
+                if (this._isQuestionAnswered(recordKey, slot.type)) continue;
                 notifications.push({
                     id: slot.idBase + day,
                     channelId: this.EVENING_CHANNEL_ID,
@@ -892,7 +1062,6 @@ const GameNotifier = {
                     body:  slot.body,
                     actionTypeId: slot.actionTypeId,
                     sound: this.NOTIFICATION_SOUND,
-                    silent: true,
                     schedule: { at: new Date(eveningTs), allowWhileIdle: true },
                     extra: {
                         url: this._buildPlanActionUrl(slot.type, recordKey),
@@ -920,7 +1089,6 @@ const GameNotifier = {
                         body:  extra.body  || '',
                         schedule: { at: new Date(xTs), allowWhileIdle: true },
                         sound: this.NOTIFICATION_SOUND,
-                        silent: true,
                         extra: { url: extra.url || '/plan.html', type: 'extra_' + idx },
                         iconColor: this.BRAND_TEAL
                     });
@@ -956,6 +1124,8 @@ const GameNotifier = {
             const morning = this._tsForDayOffset(day, mH, mM);
             if (morning > now) {
                 const recordKey = this._dateKeyForTimestamp(morning);
+                if (this._isQuestionAnswered(recordKey, 'morning_check')) continue;
+                const morningActions = this._actionsFromConfig(cfgNorm, this.MORNING_META);
                 schedule.push({
                     ts: morning,
                     title: cfgNorm.morningTitle,
@@ -964,7 +1134,8 @@ const GameNotifier = {
                     type:  'morning_check',
                     url:   this._buildPlanActionUrl('morning_check', recordKey),
                     recordKey,
-                    actions: this._swActionsForType('morning_check'),
+                    actions: this._swActionsFromList(morningActions),
+                    silentActionIds: morningActions.map((a) => a.id),
                     vibrate: [300, 100, 300, 100, 300],
                     requireInteraction: true
                 });
@@ -977,6 +1148,7 @@ const GameNotifier = {
                 const evening = this._tsForDayOffset(day, eH, eM);
                 if (evening <= now) continue;
                 const recordKey = this._dateKeyForTimestamp(evening);
+                if (this._isQuestionAnswered(recordKey, slot.type)) continue;
                 schedule.push({
                     ts: evening,
                     title: slot.title,
@@ -985,7 +1157,8 @@ const GameNotifier = {
                     type:  slot.type,
                     url:   this._buildPlanActionUrl(slot.type, recordKey),
                     recordKey,
-                    actions: this._swActionsForType(slot.type),
+                    actions: this._swActionsFromList(slot.actions),
+                    silentActionIds: (slot.actions || []).map((a) => a.id),
                     vibrate: [200, 100, 200, 100, 200],
                     requireInteraction: false
                 });
@@ -1064,7 +1237,6 @@ const GameNotifier = {
                 body,
                 actionTypeId,
                 sound: this.NOTIFICATION_SOUND,
-                silent: true,
                 schedule: { at: new Date(Date.now() + 500), allowWhileIdle: true },
                 extra: { url, type, recordKey },
                 iconColor: this.BRAND_TEAL
@@ -1107,20 +1279,16 @@ const GameNotifier = {
         return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
     },
 
+    _swActionsFromList(actions) {
+        if (!Array.isArray(actions) || !actions.length) return undefined;
+        return actions.map((item) => ({ action: item.id, title: item.title }));
+    },
+
     _swActionsForType(type) {
-        const map = {
-            morning_check: this.COPY.morning,
-            evening_activity: this.COPY.eveningActivity,
-            evening_balance: this.COPY.eveningBalance,
-            evening_water: this.COPY.eveningWater,
-            evening_check: this.COPY.eveningWater
-        };
-        const copy = map[type];
-        if (!copy) return undefined;
-        return (copy.actions || []).map((item) => ({
-            action: item.id,
-            title: item.title
-        }));
+        const cfg = this._getConfig();
+        const meta = this._slotMetaByType(type);
+        if (!meta) return undefined;
+        return this._swActionsFromList(this._actionsFromConfig(cfg, meta));
     },
 
     _saveMorningAnswer(recordKey, sleptWell) {

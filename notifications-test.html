@@ -402,6 +402,11 @@
                 <label for="editMorningBody">Сутрешен текст</label>
                 <input type="text" id="editMorningBody" placeholder="Как спахте тази нощ?">
             </div>
+            <div class="field" style="grid-column: 1 / -1;">
+                <label>Бутони (макс. 3)</label>
+                <div id="editMorningActions" class="gn-actions-list"></div>
+                <button type="button" class="btn-green" onclick="addEditActionRow('editMorningActions')">➕ Отговор</button>
+            </div>
             <div class="field">
                 <label for="editEveningActivityTime">Вечер 1 — активност</label>
                 <input type="time" id="editEveningActivityTime" value="20:00">
@@ -413,6 +418,11 @@
             <div class="field" style="grid-column: 1 / -1;">
                 <label for="editEveningActivityBody">Текст</label>
                 <input type="text" id="editEveningActivityBody" placeholder="Ниво на активност?">
+            </div>
+            <div class="field" style="grid-column: 1 / -1;">
+                <label>Бутони активност</label>
+                <div id="editEveningActivityActions" class="gn-actions-list"></div>
+                <button type="button" onclick="addEditActionRow('editEveningActivityActions')">➕ Отговор</button>
             </div>
             <div class="field">
                 <label for="editEveningBalanceTime">Вечер 2 — баланс</label>
@@ -426,6 +436,11 @@
                 <label for="editEveningBalanceBody">Текст</label>
                 <input type="text" id="editEveningBalanceBody" placeholder="Емоционален баланс?">
             </div>
+            <div class="field" style="grid-column: 1 / -1;">
+                <label>Бутони баланс</label>
+                <div id="editEveningBalanceActions" class="gn-actions-list"></div>
+                <button type="button" onclick="addEditActionRow('editEveningBalanceActions')">➕ Отговор</button>
+            </div>
             <div class="field">
                 <label for="editEveningWaterTime">Вечер 3 — вода</label>
                 <input type="time" id="editEveningWaterTime" value="20:10">
@@ -437,6 +452,11 @@
             <div class="field" style="grid-column: 1 / -1;">
                 <label for="editEveningWaterBody">Текст</label>
                 <input type="text" id="editEveningWaterBody" placeholder="Изпихте ли поне 2 л вода?">
+            </div>
+            <div class="field" style="grid-column: 1 / -1;">
+                <label>Бутони вода</label>
+                <div id="editEveningWaterActions" class="gn-actions-list"></div>
+                <button type="button" onclick="addEditActionRow('editEveningWaterActions')">➕ Отговор</button>
             </div>
         </div>
         <div class="extra-list" id="editExtraList"></div>
@@ -869,6 +889,90 @@ function setConfigStatus(message, tone) {
     el.className = 'status-line ' + (tone || '');
 }
 
+const EDIT_ACTION_CONTAINERS = {
+    editMorningActions: 'morningActions',
+    editEveningActivityActions: 'eveningActivityActions',
+    editEveningBalanceActions: 'eveningBalanceActions',
+    editEveningWaterActions: 'eveningWaterActions'
+};
+
+function editActionValueDisplay(v) {
+    if (v === true) return 'true';
+    if (v === false) return 'false';
+    if (v === null) return 'null';
+    return v !== undefined ? String(v) : '';
+}
+
+function editParseActionValue(raw) {
+    const s = String(raw || '').trim();
+    if (s === 'true') return true;
+    if (s === 'false') return false;
+    if (s === 'null' || s === 'skip') return null;
+    if (/^\d+$/.test(s)) return parseInt(s, 10);
+    return s || undefined;
+}
+
+function renderEditActionRows(containerId, actions) {
+    const list = document.getElementById(containerId);
+    if (!list) return;
+    list.innerHTML = '';
+    (actions || []).forEach((a) => addEditActionRow(containerId, a));
+}
+
+function addEditActionRow(containerId, data) {
+    const list = document.getElementById(containerId);
+    if (!list) return;
+    if (list.querySelectorAll('.gn-action-row').length >= 3) {
+        log('Максимум 3 бутона на нотификация.', 'warn');
+        return;
+    }
+    const d = data || { id: 'btn_' + Date.now(), title: '', value: '' };
+    const row = document.createElement('div');
+    row.className = 'gn-action-row extra-row';
+    const idInp = document.createElement('input');
+    idInp.className = 'edit-action-id';
+    idInp.placeholder = 'id';
+    idInp.value = d.id || '';
+    const titleInp = document.createElement('input');
+    titleInp.className = 'edit-action-title';
+    titleInp.placeholder = 'Етикет';
+    titleInp.value = d.title || '';
+    const valInp = document.createElement('input');
+    valInp.className = 'edit-action-value';
+    valInp.placeholder = 'value';
+    valInp.value = editActionValueDisplay(d.value);
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'btn-red';
+    delBtn.textContent = '🗑️';
+    delBtn.addEventListener('click', () => row.remove());
+    row.appendChild(idInp);
+    row.appendChild(titleInp);
+    row.appendChild(valInp);
+    row.appendChild(delBtn);
+    list.appendChild(row);
+}
+
+function collectEditActions(containerId) {
+    const list = document.getElementById(containerId);
+    if (!list) return [];
+    return Array.from(list.querySelectorAll('.gn-action-row')).map((row) => {
+        const id = ((row.querySelector('.edit-action-id') || {}).value || '').trim();
+        const title = ((row.querySelector('.edit-action-title') || {}).value || '').trim();
+        const raw = ((row.querySelector('.edit-action-value') || {}).value || '').trim();
+        const value = editParseActionValue(raw);
+        const out = { id, title };
+        if (value !== undefined) out.value = value;
+        return out;
+    }).filter((a) => a.id && a.title);
+}
+
+function renderAllEditActionRows(cfg) {
+    Object.keys(EDIT_ACTION_CONTAINERS).forEach((containerId) => {
+        renderEditActionRows(containerId, cfg[EDIT_ACTION_CONTAINERS[containerId]] || []);
+    });
+}
+
 function addConfigExtraNotification(data) {
     const list = document.getElementById('editExtraList');
     if (!list) return;
@@ -917,6 +1021,7 @@ function renderEditableConfig(cfg) {
     document.getElementById('editEveningWaterTime').value = normalized.eveningWaterTime;
     document.getElementById('editEveningWaterTitle').value = normalized.eveningWaterTitle;
     document.getElementById('editEveningWaterBody').value = normalized.eveningWaterBody;
+    renderAllEditActionRows(normalized);
     const list = document.getElementById('editExtraList');
     if (list) {
         list.innerHTML = '';
@@ -945,6 +1050,10 @@ function collectEditableConfig() {
         eveningWaterTime: document.getElementById('editEveningWaterTime').value || DEFAULT_CONFIG.eveningWaterTime,
         eveningWaterTitle: document.getElementById('editEveningWaterTitle').value || DEFAULT_CONFIG.eveningWaterTitle,
         eveningWaterBody: document.getElementById('editEveningWaterBody').value || DEFAULT_CONFIG.eveningWaterBody,
+        morningActions: collectEditActions('editMorningActions'),
+        eveningActivityActions: collectEditActions('editEveningActivityActions'),
+        eveningBalanceActions: collectEditActions('editEveningBalanceActions'),
+        eveningWaterActions: collectEditActions('editEveningWaterActions'),
         extraNotifications
     });
 }

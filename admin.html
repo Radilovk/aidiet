@@ -2638,7 +2638,7 @@
                                 <li>🟡 <strong>SW postMessage fallback</strong> — уеб fallback, работи само докато браузърът е отворен</li>
                             </ol>
                         </li>
-                        <li><strong>Конфигурацията</strong> се съхранява в Cloudflare KV под ключ <code>notification-config</code> и се изтегля при всяко отваряне на plan.html (max 1×/24 ч).</li>
+                        <li><strong>Конфигурацията</strong> се съхранява в Cloudflare KV под ключ <code>notification-config</code>. Клиентите правят 1 лека version проверка при всяко отваряне; пълен config + препланиране само при admin промяна.</li>
                     </ul>
                 </details>
 
@@ -2725,6 +2725,13 @@
                         <input type="text" id="gnMorningBody" placeholder="Как спахте тази нощ? Отговорете на сутрешния въпрос."
                                style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
                     </div>
+                    <div style="margin-top: 12px;">
+                        <label style="font-size: 0.85rem; font-weight: 600;">Бутони за отговор (макс. 3)</label>
+                        <div id="gnMorningActions" class="gn-actions-list" style="display:flex;flex-direction:column;gap:8px;margin-top:8px;"></div>
+                        <button type="button" onclick="addGnActionRow('gnMorningActions')" style="margin-top:8px;background:#17a2b8;color:#fff;border:none;padding:6px 12px;border-radius:5px;cursor:pointer;font-size:0.85rem;">
+                            <i class="fas fa-plus"></i> Добави отговор
+                        </button>
+                    </div>
                 </div>
 
                 <div class="form-group" style="border-top: 1px solid #e0e0e0; padding-top: 20px;">
@@ -2746,7 +2753,13 @@
                         <label>Текст (AI въпрос)</label>
                         <input type="text" id="gnEveningActivityBody" placeholder="Ниво на активност?"
                                style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
-                        <small style="color: var(--text-gray);">Бутони: Ниска · Умерена · Висока (silent)</small>
+                    </div>
+                    <div style="margin-top: 12px;">
+                        <label style="font-size: 0.85rem; font-weight: 600;">Бутони (макс. 3) — value: 1 / 2 / 3</label>
+                        <div id="gnEveningActivityActions" class="gn-actions-list" style="display:flex;flex-direction:column;gap:8px;margin-top:8px;"></div>
+                        <button type="button" onclick="addGnActionRow('gnEveningActivityActions')" style="margin-top:8px;background:#17a2b8;color:#fff;border:none;padding:6px 12px;border-radius:5px;cursor:pointer;font-size:0.85rem;">
+                            <i class="fas fa-plus"></i> Добави отговор
+                        </button>
                     </div>
                 </div>
 
@@ -2769,7 +2782,13 @@
                         <label>Текст (AI въпрос)</label>
                         <input type="text" id="gnEveningBalanceBody" placeholder="Емоционален баланс?"
                                style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
-                        <small style="color: var(--text-gray);">Бутони: Напрегнат · Спокоен · Позитивен (silent)</small>
+                    </div>
+                    <div style="margin-top: 12px;">
+                        <label style="font-size: 0.85rem; font-weight: 600;">Бутони (макс. 3) — value: 1 / 2 / 3</label>
+                        <div id="gnEveningBalanceActions" class="gn-actions-list" style="display:flex;flex-direction:column;gap:8px;margin-top:8px;"></div>
+                        <button type="button" onclick="addGnActionRow('gnEveningBalanceActions')" style="margin-top:8px;background:#17a2b8;color:#fff;border:none;padding:6px 12px;border-radius:5px;cursor:pointer;font-size:0.85rem;">
+                            <i class="fas fa-plus"></i> Добави отговор
+                        </button>
                     </div>
                 </div>
 
@@ -2792,7 +2811,13 @@
                         <label>Текст (AI въпрос)</label>
                         <input type="text" id="gnEveningWaterBody" placeholder="Изпихте ли поне 2 л вода?"
                                style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
-                        <small style="color: var(--text-gray);">Бутони: Не · Да · Пропуск (silent)</small>
+                    </div>
+                    <div style="margin-top: 12px;">
+                        <label style="font-size: 0.85rem; font-weight: 600;">Бутони (макс. 3) — value: true / false / null</label>
+                        <div id="gnEveningWaterActions" class="gn-actions-list" style="display:flex;flex-direction:column;gap:8px;margin-top:8px;"></div>
+                        <button type="button" onclick="addGnActionRow('gnEveningWaterActions')" style="margin-top:8px;background:#17a2b8;color:#fff;border:none;padding:6px 12px;border-radius:5px;cursor:pointer;font-size:0.85rem;">
+                            <i class="fas fa-plus"></i> Добави отговор
+                        </button>
                     </div>
                 </div>
 
@@ -6633,6 +6658,100 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
 
         // ── GameNotifier config ────────────────────────────────────────────────
 
+        const GN_ACTION_CONTAINERS = {
+            gnMorningActions: 'morningActions',
+            gnEveningActivityActions: 'eveningActivityActions',
+            gnEveningBalanceActions: 'eveningBalanceActions',
+            gnEveningWaterActions: 'eveningWaterActions'
+        };
+
+        function gnActionValueDisplay(v) {
+            if (v === true) return 'true';
+            if (v === false) return 'false';
+            if (v === null) return 'null';
+            return v !== undefined ? String(v) : '';
+        }
+
+        function gnParseActionValue(raw) {
+            const s = String(raw || '').trim();
+            if (s === 'true') return true;
+            if (s === 'false') return false;
+            if (s === 'null' || s === 'skip') return null;
+            if (/^\d+$/.test(s)) return parseInt(s, 10);
+            return s || undefined;
+        }
+
+        function renderGnActionRows(containerId, actions) {
+            const list = document.getElementById(containerId);
+            if (!list) return;
+            list.innerHTML = '';
+            (actions || []).forEach((a) => addGnActionRow(containerId, a));
+        }
+
+        function addGnActionRow(containerId, data) {
+            const list = document.getElementById(containerId);
+            if (!list) return;
+            if (list.querySelectorAll('.gn-action-row').length >= 3) {
+                showError('Максимум 3 бутона на нотификация (Android лимит).');
+                return;
+            }
+            const d = data || { id: 'btn_' + Date.now(), title: '', value: '' };
+            const row = document.createElement('div');
+            row.className = 'gn-action-row';
+            row.style.cssText = 'display:grid;grid-template-columns:120px 1fr 90px auto;gap:8px;align-items:end;background:#f8f9fa;padding:8px;border-radius:6px;border:1px solid #e0e0e0;';
+
+            function field(label, cls, val, placeholder) {
+                const wrap = document.createElement('div');
+                const lbl = document.createElement('label');
+                lbl.textContent = label;
+                lbl.style.cssText = 'font-size:0.75rem;color:#666;display:block;margin-bottom:3px;';
+                const inp = document.createElement('input');
+                inp.type = 'text';
+                inp.className = cls;
+                inp.value = val || '';
+                if (placeholder) inp.placeholder = placeholder;
+                inp.style.cssText = 'width:100%;padding:6px;border:1px solid #ddd;border-radius:4px;font-size:0.85rem;';
+                wrap.appendChild(lbl);
+                wrap.appendChild(inp);
+                return wrap;
+            }
+
+            row.appendChild(field('ID', 'gn-action-id', d.id, 'sleep_yes'));
+            row.appendChild(field('Етикет', 'gn-action-title', d.title, 'Да'));
+            row.appendChild(field('Value', 'gn-action-value', gnActionValueDisplay(d.value), 'true'));
+            const delWrap = document.createElement('div');
+            const delBtn = document.createElement('button');
+            delBtn.type = 'button';
+            delBtn.title = 'Изтрий';
+            delBtn.style.cssText = 'background:#dc3545;color:#fff;border:none;padding:6px 10px;border-radius:4px;cursor:pointer;';
+            delBtn.innerHTML = '<i class="fas fa-trash"></i>';
+            delBtn.addEventListener('click', () => row.remove());
+            delWrap.appendChild(delBtn);
+            row.appendChild(delWrap);
+            list.appendChild(row);
+        }
+
+        function collectGnActions(containerId) {
+            const list = document.getElementById(containerId);
+            if (!list) return [];
+            return Array.from(list.querySelectorAll('.gn-action-row')).map((row) => {
+                const id = ((row.querySelector('.gn-action-id') || {}).value || '').trim();
+                const title = ((row.querySelector('.gn-action-title') || {}).value || '').trim();
+                const raw = ((row.querySelector('.gn-action-value') || {}).value || '').trim();
+                const value = gnParseActionValue(raw);
+                const out = { id, title };
+                if (value !== undefined) out.value = value;
+                return out;
+            }).filter((a) => a.id && a.title);
+        }
+
+        function renderAllGnActionRows(cfg) {
+            Object.keys(GN_ACTION_CONTAINERS).forEach((containerId) => {
+                const key = GN_ACTION_CONTAINERS[containerId];
+                renderGnActionRows(containerId, cfg[key] || []);
+            });
+        }
+
         /** Load GameNotifier config from backend KV (/api/notification-config) */
         async function loadGameNotifierConfig() {
             const statusEl = document.getElementById('gameNotifierConfigStatus');
@@ -6656,6 +6775,8 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 document.getElementById('gnEveningWaterTime').value  = cfg.eveningWaterTime  || '20:10';
                 document.getElementById('gnEveningWaterTitle').value = cfg.eveningWaterTitle || 'AI Асистент';
                 document.getElementById('gnEveningWaterBody').value  = cfg.eveningWaterBody  || 'Изпихте ли поне 2 л вода?';
+
+                renderAllGnActionRows(cfg);
 
                 // Render extra notifications
                 const list = document.getElementById('gnExtraList');
@@ -6749,8 +6870,15 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 eveningWaterTime:     document.getElementById('gnEveningWaterTime').value  || '20:10',
                 eveningWaterTitle:    document.getElementById('gnEveningWaterTitle').value || 'AI Асистент',
                 eveningWaterBody:     document.getElementById('gnEveningWaterBody').value  || 'Изпихте ли поне 2 л вода?',
+                morningActions: collectGnActions('gnMorningActions'),
+                eveningActivityActions: collectGnActions('gnEveningActivityActions'),
+                eveningBalanceActions: collectGnActions('gnEveningBalanceActions'),
+                eveningWaterActions: collectGnActions('gnEveningWaterActions'),
                 extraNotifications
             };
+            if (window.GameNotifier && typeof window.GameNotifier.normalizeConfig === 'function') {
+                Object.assign(cfg, window.GameNotifier.normalizeConfig(cfg));
+            }
             try {
                 const response = await fetch(WORKER_URL + '/api/notification-config', {
                     method: 'POST',

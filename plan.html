@@ -9694,6 +9694,35 @@
         }
 
         // ── Morning / Evening questions ───────────────────────────────────────
+        function gameNotifyQuestion(type, fallback) {
+            if (window.GameNotifier && typeof window.GameNotifier.getPromptConfig === 'function') {
+                var pc = window.GameNotifier.getPromptConfig();
+                var map = {
+                    morning_check: 'morning',
+                    evening_activity: 'eveningActivity',
+                    evening_balance: 'eveningBalance',
+                    evening_water: 'eveningWater'
+                };
+                var k = map[type];
+                if (k && pc[k] && pc[k].body) return pc[k].body;
+            }
+            return fallback;
+        }
+
+        function gameNotifyAnswers(type, fallback) {
+            if (window.GameNotifier && typeof window.GameNotifier.bubbleAnswersForType === 'function') {
+                var a = window.GameNotifier.bubbleAnswersForType(type);
+                if (a && a.length) return a;
+            }
+            return fallback;
+        }
+
+        function gameNotifyCancel(type, recordKey) {
+            if (window.GameNotifier && typeof window.GameNotifier.cancelTodaysNotification === 'function') {
+                window.GameNotifier.cancelTodaysNotification(type, recordKey);
+            }
+        }
+
         function getPromptDayMeta(recordKey) {
             if (recordKey === getTodayKey()) {
                 return { prefix:'', greetingMorning:undefined, greetingEvening:'Добър вечер!', showName:true };
@@ -9716,13 +9745,14 @@
             if (!force && rec.morningCheck) { if (doneCb) doneCb(); return; }
             var meta = getPromptDayMeta(recordKey);
             showBubble(
-                meta.prefix + 'Спахте ли добре тази нощ?',
-                YES_NO,
+                meta.prefix + gameNotifyQuestion('morning_check', 'Спахте ли добре тази нощ?'),
+                gameNotifyAnswers('morning_check', YES_NO),
                 function(val) {
                     var r = getRecord(recordKey);
                     r.morningCheck = { sleptWell: val, ts: new Date().toISOString() };
                     saveRecord(recordKey, r);
                     recalcAndShowScore(recordKey);
+                    gameNotifyCancel('morning_check', recordKey);
                     if (doneCb) { setTimeout(doneCb, 350); }
                     else { setTimeout(function(){ showEncouragement(buildEncouragement(recordKey)); }, 400); }
                 },
@@ -9752,22 +9782,31 @@
                 if (!r.eveningCheck.ts) r.eveningCheck.ts = new Date().toISOString();
                 saveRecord(recordKey, r);
                 recalcAndShowScore(recordKey);
+                var cancelType = field === 'activityLevel' ? 'evening_activity'
+                    : field === 'emotionalBalance' ? 'evening_balance' : 'evening_water';
+                gameNotifyCancel(cancelType, recordKey);
                 if (next) setTimeout(next, 350);
                 else setTimeout(function(){ showEncouragement(buildEncouragement(recordKey)); }, 400);
             }
             if (step === 'activity') {
                 if (rec.eveningCheck.activityLevel != null) { if (doneCb) doneCb(); return; }
-                showBubble(prefix + 'Ниво на активност?', ACTIVITY_1_3, function(v){ saveField('activityLevel', v, doneCb); }, hdrOpts);
+                showBubble(prefix + gameNotifyQuestion('evening_activity', 'Ниво на активност?'),
+                    gameNotifyAnswers('evening_activity', ACTIVITY_1_3),
+                    function(v){ saveField('activityLevel', v, doneCb); }, hdrOpts);
                 return;
             }
             if (step === 'balance') {
                 if (rec.eveningCheck.emotionalBalance != null) { if (doneCb) doneCb(); return; }
-                showBubble(prefix + 'Емоционален баланс?', BALANCE_1_3, function(v){ saveField('emotionalBalance', v, doneCb); }, hdrOpts);
+                showBubble(prefix + gameNotifyQuestion('evening_balance', 'Емоционален баланс?'),
+                    gameNotifyAnswers('evening_balance', BALANCE_1_3),
+                    function(v){ saveField('emotionalBalance', v, doneCb); }, hdrOpts);
                 return;
             }
             if (step === 'water') {
                 if (rec.eveningCheck.waterIntake != null) { if (doneCb) doneCb(); return; }
-                showBubble(prefix + 'Изпихте ли поне 2 л вода?', NO_YES, function(v){ saveField('waterIntake', v, doneCb); }, hdrOpts);
+                showBubble(prefix + gameNotifyQuestion('evening_water', 'Изпихте ли поне 2 л вода?'),
+                    gameNotifyAnswers('evening_water', NO_YES),
+                    function(v){ saveField('waterIntake', v, doneCb); }, hdrOpts);
             }
         }
 

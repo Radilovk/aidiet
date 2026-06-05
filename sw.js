@@ -280,7 +280,7 @@ self.addEventListener('notificationclick', (event) => {
   const notificationType = data.type || '';
   const recordKey = data.recordKey || '';
 
-  if (SILENT_GAME_ACTIONS.has(action)) {
+  if (action) {
     event.waitUntil(
       clients.matchAll({ type: 'window', includeUncontrolled: true })
         .then((clientList) => {
@@ -362,6 +362,22 @@ self.addEventListener('message', (event) => {
     return;
   }
 
+  if (msg.type === 'CANCEL_GAME_NOTIFICATION') {
+    const notifType = msg.notifType || '';
+    const recordKey = msg.recordKey || '';
+    for (let i = 0; i < _scheduledGameNotifs.length; i++) {
+      const item = _scheduledGameNotifs[i];
+      if (item.type === notifType && item.recordKey === recordKey) {
+        if (_scheduleTimers[i] != null) clearTimeout(_scheduleTimers[i]);
+        _scheduledGameNotifs.splice(i, 1);
+        _scheduleTimers.splice(i, 1);
+        console.log('[SW] Cancelled scheduled notification', notifType, recordKey);
+        break;
+      }
+    }
+    return;
+  }
+
   if (msg.type !== 'SCHEDULE_GAME_NOTIFICATIONS') return;
   if (!Array.isArray(msg.schedule)) return;
 
@@ -384,7 +400,12 @@ self.addEventListener('message', (event) => {
           badge:              '/icon-192x192.png',
           tag:                item.tag,
           actions:            item.actions || getGameNotificationActions(item.type),
-          data:               { url: item.url, type: item.type, recordKey: item.recordKey || '' },
+          data: {
+            url: item.url,
+            type: item.type,
+            recordKey: item.recordKey || '',
+            silentActionIds: item.silentActionIds || []
+          },
           requireInteraction: item.requireInteraction || false,
           vibrate:            item.vibrate || [200, 100, 200]
         });
