@@ -250,36 +250,18 @@
     }
 
     function buildNativeNotificationTarget(extra, actionId) {
+        if (actionId) return null;
         var type = extra && typeof extra.type === 'string' ? extra.type : '';
         var recordKey = extra && typeof extra.recordKey === 'string' ? extra.recordKey : '';
-        if ((type === 'morning_check' || type === 'evening_activity' || type === 'evening_balance' ||
-             type === 'evening_water' || type === 'evening_check') && !actionId) {
-            var actionType = type === 'evening_check' ? 'evening_water' : type;
-            var qs = 'action=' + encodeURIComponent(actionType);
-            if (recordKey) qs += '&date=' + encodeURIComponent(recordKey);
-            return 'plan.html?' + qs;
+        var gn = window.GameNotifier;
+        if (gn && typeof gn._buildQuickAnswerUrl === 'function' && type) {
+            var qaType = type === 'evening_check' ? 'evening_water' : type;
+            return gn._buildQuickAnswerUrl(qaType, { date: recordKey }).replace(/^\//, '');
         }
-        var rawUrl = extra && typeof extra.url === 'string' && extra.url ? extra.url : 'plan.html';
-        try {
-            var url = new URL(rawUrl, window.location.href);
-            var type = extra && typeof extra.type === 'string' ? extra.type : '';
-            var recordKey = extra && typeof extra.recordKey === 'string' ? extra.recordKey : '';
-            if (type && !url.searchParams.has('type')) {
-                url.searchParams.set('type', type);
-            }
-            if (recordKey && !url.searchParams.has('date')) {
-                url.searchParams.set('date', recordKey);
-            }
-            if (type === 'morning_check') {
-                if (actionId === 'sleep_yes') url.searchParams.set('auto', 'morning_yes');
-                if (actionId === 'sleep_no') url.searchParams.set('auto', 'morning_no');
-            } else if (type === 'evening_check' && actionId === 'water_yes') {
-                url.searchParams.set('water', '1');
-            }
-            return url.pathname.split('/').pop() + (url.search ? url.search : '') + (url.hash || '');
-        } catch (_) {
-            return 'quick-answer.html';
+        if (extra && typeof extra.url === 'string' && extra.url) {
+            return extra.url.replace(/^\//, '');
         }
+        return 'quick-answer.html';
     }
 
 
@@ -334,7 +316,19 @@
         if (outcome.ack && typeof gn.showSilentAck === 'function') {
             gn.showSilentAck(outcome.ack);
         }
-        forwardSilentRecalc(payload);
+        return true;
+    }
+
+    function openQuickAnswerFromNotification(msg) {
+        var gn = window.GameNotifier;
+        var type = (msg && (msg.notificationType || msg.type)) || '';
+        var recordKey = getNotificationRecordKey(msg && msg.recordKey);
+        if (!type) return false;
+        var qaType = type === 'evening_check' ? 'evening_water' : type;
+        var path = gn && typeof gn._buildQuickAnswerUrl === 'function'
+            ? gn._buildQuickAnswerUrl(qaType, { date: recordKey })
+            : '/quick-answer.html?type=' + encodeURIComponent(qaType) + '&date=' + encodeURIComponent(recordKey);
+        window.location.href = path.replace(/^\//, '');
         return true;
     }
 
@@ -354,16 +348,22 @@
         localNotifications.addListener('localNotificationActionPerformed', function (event) {
             var notification = event && event.notification ? event.notification : {};
             var extra = notification.extra || {};
+            var actionId = event && typeof event.actionId === 'string' ? event.actionId : '';
+            if (actionId === 'tap') actionId = '';
             var payload = {
                 notificationType: extra.type || '',
-                action: event && typeof event.actionId === 'string' ? event.actionId : '',
+                action: actionId,
                 recordKey: extra.recordKey || ''
             };
             if (handleNativeNotificationAction(payload)) return;
+            var bodyTarget = buildNativeNotificationTarget(extra, payload.action);
+            if (bodyTarget) {
+                window.location.href = bodyTarget;
+                return;
+            }
             if (forwardNativeNotificationToPlan(payload)) return;
             switchTab('plan', true);
-            var target = buildNativeNotificationTarget(extra, payload.action);
-            window.location.href = target;
+            openQuickAnswerFromNotification(payload);
         });
         nativeNotificationBridgeBound = true;
     }
@@ -380,8 +380,7 @@
             };
             if (msg.silent && handleNativeNotificationAction(payload)) return;
             if (msg.openApp || !payload.action) {
-                switchTab('plan', true);
-                forwardNativeNotificationToPlan(payload);
+                openQuickAnswerFromNotification(payload);
             }
         });
     }

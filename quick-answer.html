@@ -246,6 +246,7 @@
         }
     </style>
 <script src="./platform.js"></script>
+<script src="./platform-compat.js"></script>
 </head>
 <body>
     <div class="stars"></div>
@@ -255,33 +256,29 @@
         <section class="card" id="card" aria-live="polite"></section>
     </main>
 
+    <script src="./local-scheduler.js"></script>
     <script>
     (function() {
-        var GAME_DATA_KEY = 'gameData';
         var params = new URLSearchParams(window.location.search);
-        var type = params.get('type') === 'evening_check' ? 'evening_check' : 'morning_check';
+        var rawType = params.get('type') || 'morning_check';
         var auto = params.get('auto') || '';
-        var prefillWater = params.get('water') === '1';
         var recordKey = normalizeDateKey(params.get('date'));
+        var notifType = normalizeNotifType(rawType);
 
         if (auto === 'morning_yes' || auto === 'morning_no') {
-            if (!getRecord(recordKey).morningCheck) {
-                saveMorning(auto === 'morning_yes');
-            }
-            try { if (navigator.vibrate) navigator.vibrate([30, 20, 30]); } catch (_) {}
-            document.body.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:system-ui;color:#ecfeff;background:#04111b"><div style="text-align:center"><div style="font-size:42px;margin-bottom:8px">✓</div><div style="font-size:18px;font-weight:600">Записано</div></div></div>';
-            setTimeout(function() { window.close(); }, 900);
+            applySilentAction('morning_check', auto === 'morning_yes' ? 'sleep_yes' : 'sleep_no', recordKey);
             return;
         }
 
-        var qs = 'action=' + encodeURIComponent(type);
-        if (/^\d{4}-\d{2}-\d{2}$/.test(recordKey)) qs += '&date=' + encodeURIComponent(recordKey);
-        window.location.replace('./plan.html?' + qs);
-        return;
-
         var card = document.getElementById('card');
         var confettiLayer = document.getElementById('confetti');
-        var state = { activityLevel: null, emotionalBalance: null, waterIntake: prefillWater ? true : null };
+        var closing = false;
+
+        function normalizeNotifType(t) {
+            if (t === 'evening_check') return 'evening_water';
+            if (t === 'morning_check' || t === 'evening_activity' || t === 'evening_balance' || t === 'evening_water') return t;
+            return 'morning_check';
+        }
 
         function pad(n) { return n < 10 ? '0' + n : '' + n; }
         function todayKey() {
@@ -290,42 +287,6 @@
         }
         function normalizeDateKey(value) {
             return /^\d{4}-\d{2}-\d{2}$/.test(value || '') ? value : todayKey();
-        }
-        function emptyRecord(key) {
-            return {
-                date: key,
-                meals: {},
-                extraMeals: [],
-                freeMealRatings: {},
-                morningCheck: null,
-                eveningCheck: null,
-                plannedCalories: null,
-                mealCalories: {},
-                dailyScore: null,
-                missing: false
-            };
-        }
-        function getGameData() {
-            try { return JSON.parse(localStorage.getItem(GAME_DATA_KEY) || '{}') || {}; }
-            catch (_) { return {}; }
-        }
-        function getRecord(key) {
-            var data = getGameData();
-            return data[key] || emptyRecord(key);
-        }
-        function saveRecord(key, record) {
-            var data = getGameData();
-            data[key] = record;
-            localStorage.setItem(GAME_DATA_KEY, JSON.stringify(data));
-        }
-        function setEveningState(key, rawValue) {
-            if (key === 'activityLevel') {
-                state.activityLevel = Number(rawValue);
-            } else if (key === 'emotionalBalance') {
-                state.emotionalBalance = Number(rawValue);
-            } else if (key === 'waterIntake') {
-                state.waterIntake = rawValue === 'true';
-            }
         }
         function vibrate(pattern) {
             try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (_) {}
@@ -368,45 +329,64 @@
             card.innerHTML = shellHtml;
         }
         function viewPlan() {
-            window.location.href = './plan.html';
+            if (window.top !== window) {
+                try {
+                    window.top.location.href = './index.html?app=1&tab=plan';
+                    return;
+                } catch (_) {}
+            }
+            window.location.href = './index.html?app=1&tab=plan';
         }
         function closeFlow() {
-            if (window.history.length > 1) window.history.back();
-            else viewPlan();
+            if (closing) return;
+            closing = true;
+            try { window.close(); } catch (_) {}
+            if (window.history.length > 1) {
+                window.history.back();
+                return;
+            }
+            setTimeout(function() {
+                if (!document.hidden) viewPlan();
+            }, 120);
         }
-        function saveMorning(sleptWell) {
-            var record = getRecord(recordKey);
-            record.morningCheck = { sleptWell: !!sleptWell, ts: new Date().toISOString() };
-            saveRecord(recordKey, record);
+        function applySilentAction(type, actionId, key) {
+            var gn = window.GameNotifier;
+            if (gn && typeof gn.handleNotificationAction === 'function') {
+                gn.handleNotificationAction({ notificationType: type, action: actionId, recordKey: key });
+                if (typeof gn.showSilentAck === 'function') gn.showSilentAck(actionId);
+            }
+            finishEncouragement(actionId);
         }
-        function saveEvening() {
-            var record = getRecord(recordKey);
-            record.eveningCheck = {
-                activityLevel: state.activityLevel,
-                emotionalBalance: state.emotionalBalance,
-                waterIntake: !!state.waterIntake,
-                ts: new Date().toISOString()
-            };
-            saveRecord(recordKey, record);
-        }
-        function renderSuccess(title, message, summary) {
-            vibrate([24, 36, 24]);
-            makeConfetti(30);
+        function finishEncouragement(actionId) {
+            var enc = (window.GameNotifier && typeof window.GameNotifier.encouragementForAction === 'function')
+                ? window.GameNotifier.encouragementForAction(actionId)
+                : { title: 'Готово ✨', message: 'Записано.', confetti: 16 };
+            vibrate([20, 30, 20]);
+            if (enc.confetti) makeConfetti(enc.confetti);
             render(
                 '<div class="badge">✨ Записано</div>' +
                 '<div class="success">' +
                     '<div class="success-icon">✓</div>' +
-                    '<h2>' + escapeHtml(title) + '</h2>' +
-                    '<p>' + escapeHtml(message) + '</p>' +
-                    (summary ? '<div class="chips">' + summary.join('') + '</div>' : '') +
-                    '<div class="footer-actions">' +
-                        '<button class="solid" id="openPlanBtn">Виж плана</button>' +
-                        '<button class="ghost" id="closeBtn">Затвори</button>' +
-                    '</div>' +
+                    '<h2>' + escapeHtml(enc.title) + '</h2>' +
+                    '<p>' + escapeHtml(enc.message) + '</p>' +
                 '</div>'
             );
-            document.getElementById('openPlanBtn').addEventListener('click', viewPlan);
-            document.getElementById('closeBtn').addEventListener('click', closeFlow);
+            setTimeout(closeFlow, 720);
+        }
+        function onAnswerChosen(actionId) {
+            var gn = window.GameNotifier;
+            if (!gn || typeof gn.handleNotificationAction !== 'function') return;
+            var outcome = gn.handleNotificationAction({
+                notificationType: notifType,
+                action: actionId,
+                recordKey: recordKey
+            });
+            if (!outcome.saved && outcome.ack !== 'skip') {
+                renderAlreadyAnswered('Вече е записано', 'За ' + dateLabel(recordKey) + ' вече има отговор.');
+                setTimeout(closeFlow, 1400);
+                return;
+            }
+            finishEncouragement(actionId);
         }
         function renderAlreadyAnswered(title, message) {
             render(
@@ -421,162 +401,53 @@
             document.getElementById('openPlanBtn').addEventListener('click', viewPlan);
             document.getElementById('closeBtn').addEventListener('click', closeFlow);
         }
-        function chip(label, value) {
-            return '<div class="chip">' + escapeHtml(label) + '<strong>' + escapeHtml(value) + '</strong></div>';
+        function choiceTone(actionId) {
+            if (actionId === 'skip') return '';
+            if (actionId === 'sleep_no' || actionId === 'water_no') return ' warn';
+            return ' primary';
         }
-        function renderMorning() {
-            var existing = getRecord(recordKey).morningCheck;
-            if (existing) {
-                renderAlreadyAnswered('Сутрешният отговор е записан', 'За ' + dateLabel(recordKey) + ' вече има запазен отговор за съня.');
+        function renderQuestionScreen() {
+            var gn = window.GameNotifier;
+            if (!gn || typeof gn.getQuestionDisplay !== 'function') {
+                render('<p class="subtitle">Зареждане…</p>');
                 return;
             }
-            render(
-                '<div class="badge">🌅 Сутрешен check-in • ' + escapeHtml(dateLabel(recordKey)) + '</div>' +
-                '<h1 class="title">Спахте ли добре тази нощ?</h1>' +
-                '<p class="subtitle">Изберете един отговор.</p>' +
-                '<div class="progress"><span class="active"></span></div>' +
-                '<div class="choices">' +
-                    '<button class="choice primary" id="sleepYes">' +
-                        '<strong>Да 🌞</strong><span>Запис веднага.</span>' +
-                    '</button>' +
-                    '<button class="choice warn" id="sleepNo">' +
-                        '<strong>Не 😴</strong><span>Запис веднага.</span>' +
-                    '</button>' +
-                '</div>' +
-                '<div class="footer-actions">' +
-                    '<button class="ghost" id="openPlanBtn">Пропусни и отвори плана</button>' +
-                '</div>'
-            );
-            document.getElementById('sleepYes').addEventListener('click', function() {
-                vibrate(16);
-                saveMorning(true);
-                renderSuccess('Готово ✨', 'Отговорът е записан.', [
-                    chip('Сън', 'Да'),
-                    chip('Дата', dateLabel(recordKey))
-                ]);
-            });
-            document.getElementById('sleepNo').addEventListener('click', function() {
-                vibrate(16);
-                saveMorning(false);
-                renderSuccess('Готово ✨', 'Отговорът е записан.', [
-                    chip('Сън', 'Не'),
-                    chip('Дата', dateLabel(recordKey))
-                ]);
-            });
-            document.getElementById('openPlanBtn').addEventListener('click', viewPlan);
-        }
-        function eveningSteps() {
-            var steps = [
-                {
-                    key: 'activityLevel',
-                    title: 'Ниво на активност?',
-                    subtitle: 'Един бърз избор.',
-                    options: [
-                        { value: 1, title: 'Ниска', hint: 'Спокоен ден.' },
-                        { value: 2, title: 'Умерена', hint: 'Нормален ритъм.' },
-                        { value: 3, title: 'Висока', hint: 'Активен ден.' }
-                    ]
-                },
-                {
-                    key: 'emotionalBalance',
-                    title: 'Емоционален баланс?',
-                    subtitle: 'Един бърз избор.',
-                    options: [
-                        { value: 1, title: 'Напрегнат', hint: 'Тежък ден.' },
-                        { value: 2, title: 'Спокоен', hint: 'Равномерен ден.' },
-                        { value: 3, title: 'Позитивен', hint: 'Добър заряд.' }
-                    ]
-                }
-            ];
-            if (!prefillWater) {
-                steps.push({
-                    key: 'waterIntake',
-                    title: 'Изпихте ли поне 2 л вода?',
-                    subtitle: 'Един бърз избор.',
-                    options: [
-                        { value: false, title: 'Не', hint: 'Запис веднага.' },
-                        { value: true, title: 'Да', hint: 'Запис веднага.' }
-                    ]
-                });
-            }
-            return steps;
-        }
-        function renderEvening(stepIndex) {
-            var existing = getRecord(recordKey).eveningCheck;
-            if (existing) {
-                renderAlreadyAnswered('Вечерният отговор е записан', 'За ' + dateLabel(recordKey) + ' вечерният check-in вече е попълнен.');
+            if (gn._isQuestionAnswered && gn._isQuestionAnswered(recordKey, notifType)) {
+                renderAlreadyAnswered('Вече е записано', 'За ' + dateLabel(recordKey) + ' вече има запазен отговор.');
+                setTimeout(closeFlow, 1200);
                 return;
             }
-            var steps = eveningSteps();
-            var step = steps[stepIndex];
-            if (!step) {
-                saveEvening();
-                renderSuccess('Готово ✨', 'Отговорите са записани.', [
-                    chip('Активност', ['','Ниска','Умерена','Висока'][state.activityLevel] || '—'),
-                    chip('Баланс', ['','Напрегнат','Спокоен','Позитивен'][state.emotionalBalance] || '—'),
-                    chip('Вода', state.waterIntake ? 'Да' : 'Не'),
-                    chip('Дата', dateLabel(recordKey))
-                ]);
+            var display = gn.getQuestionDisplay(notifType);
+            if (!display || !display.actions || !display.actions.length) {
+                render('<p class="subtitle">Липсва конфигурация за въпроса.</p>');
                 return;
             }
-
-            var progress = steps.map(function(_, idx) {
-                return '<span class="' + (idx <= stepIndex ? 'active' : '') + '"></span>';
-            }).join('');
-            var note = prefillWater
-                ? '<div class="inline-note">💧 „Пих вода“ е предварително отбелязано. Остават още 2 бързи избора.</div>'
-                : '';
-            var optionsHtml = step.options.map(function(option, idx) {
-                var tone = step.key === 'waterIntake' && option.value === false ? ' warn' : ' primary';
-                return '<button class="choice' + (idx === 0 ? tone : '') + '" data-value="' + escapeHtml(option.value) + '">' +
-                    '<strong>' + escapeHtml(option.title) + '</strong>' +
-                    '<span>' + escapeHtml(option.hint) + '</span>' +
+            var badge = notifType.indexOf('evening_') === 0 ? '🌙 Вечер' : '🌅 Сутрин';
+            var choicesHtml = display.actions.map(function(action, idx) {
+                return '<button class="choice' + choiceTone(action.id) + '" type="button" data-action-id="' + escapeHtml(action.id) + '">' +
+                    '<strong>' + escapeHtml(action.title) + '</strong>' +
+                    '<span>Докоснете за запис</span>' +
                 '</button>';
             }).join('');
-
             render(
-                '<div class="badge">🌙 Вечерен check-in • ' + escapeHtml(dateLabel(recordKey)) + '</div>' +
-                '<h1 class="title">' + escapeHtml(step.title) + '</h1>' +
-                '<p class="subtitle">' + escapeHtml(step.subtitle) + '</p>' +
-                note +
-                '<div class="progress">' + progress + '</div>' +
-                '<div class="choices" id="choices">' + optionsHtml + '</div>' +
+                '<div class="badge">' + badge + ' • ' + escapeHtml(dateLabel(recordKey)) + '</div>' +
+                '<h1 class="title">' + escapeHtml(display.body) + '</h1>' +
+                '<p class="subtitle">' + escapeHtml(display.title) + '</p>' +
+                '<div class="choices" id="choices">' + choicesHtml + '</div>' +
                 '<div class="footer-actions">' +
-                    '<button class="ghost" id="openPlanBtn">Отвори пълния план</button>' +
+                    '<button type="button" class="ghost" id="openPlanBtn">Отвори приложението</button>' +
                 '</div>'
             );
-
             Array.prototype.forEach.call(document.querySelectorAll('#choices .choice'), function(btn) {
                 btn.addEventListener('click', function() {
                     vibrate(14);
-                    Array.prototype.forEach.call(document.querySelectorAll('#choices .choice'), function(el) {
-                        el.classList.remove('selected');
-                    });
-                    btn.classList.add('selected');
-                    setEveningState(step.key, btn.getAttribute('data-value'));
-                    setTimeout(function() { renderEvening(stepIndex + 1); }, 160);
+                    onAnswerChosen(btn.getAttribute('data-action-id'));
                 });
             });
             document.getElementById('openPlanBtn').addEventListener('click', viewPlan);
         }
-        function runAutoAction() {
-            if (auto === 'morning_yes' || auto === 'morning_no') {
-                if (!getRecord(recordKey).morningCheck) {
-                    saveMorning(auto === 'morning_yes');
-                }
-                renderSuccess('Готово ✨', 'Отговорът е записан.', [
-                    chip('Сън', auto === 'morning_yes' ? 'Да' : 'Не'),
-                    chip('Дата', dateLabel(recordKey))
-                ]);
-                return true;
-            }
-            return false;
-        }
 
-        if (!runAutoAction()) {
-            if (type === 'morning_check') renderMorning();
-            else renderEvening(0);
-        }
+        renderQuestionScreen();
     })();
     </script>
 </body>

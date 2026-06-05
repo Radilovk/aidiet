@@ -50,6 +50,7 @@
     <script src="./session-utils.js"></script>
     <script src="./diagnostics-log.js"></script>
     <script src="./platform.js"></script>
+    <script src="./platform-compat.js"></script>
     <!-- Early redirect: check plan immediately to avoid flickering -->
     <script>(function(){
         // Skip redirect if explicitly staying on index (?stay=1) or if login required
@@ -2233,8 +2234,8 @@
         <div class="notification-status" id="notificationStatus"></div>
         <p class="notification-compat-note">
             APK версията използва Android notification channel, runtime permission за Android 13+ и локални нотификации.
-            При Huawei/HarmonyOS включи App launch/Background running за NutriPlan.
-            Ако устройството блокира фоновите известия, календарният абонамент остава надежден резервен вариант.
+            APK работи на всички Android марки (Samsung, Xiaomi, OPPO, vivo, Huawei/Honor и др.) — разрешете известия и изключете ограничения за батерия.
+            PWA: Chrome, Firefox, Edge, Samsung Internet; на iOS — инсталирайте от Safari на началния екран. Календарният абонамент е резерв за всеки телефон.
         </p>
     </section>
 
@@ -3057,12 +3058,14 @@
                         message: 'За известия на iOS, инсталирайте приложението: Safari → Share → Add to Home Screen',
                         type: 'warning'
                     };
-                } else if (PlatformDetector.isHuawei()) {
+                } else if (window.NutriPlanCompat && window.NutriPlanCompat.shouldOfferCalendarFallback()) {
                     return {
                         show: true,
-                        message: 'Абонирайте се за автоматични напомняния чрез Calendar приложението.',
+                        message: 'За напомняния без браузърни известия — абонирайте се за календар (.ics). Работи на всички Android/iOS.',
                         type: 'calendar',
-                        calendarUrl: 'webcal://aidiet.radilov-k.workers.dev/api/calendar.ics'
+                        calendarUrl: window.GameNotifier
+                            ? window.GameNotifier.getCalendarSubscribeUrl()
+                            : 'webcal://aidiet.radilov-k.workers.dev/api/calendar.ics'
                     };
                 } else if (!PlatformDetector.supportsNotifications()) {
                     return {
@@ -3096,9 +3099,7 @@
                         // Check if push notifications are supported and request permission
                         if ('PushManager' in window && 'Notification' in window) {
                             // Only prompt if platform supports it
-                            if (PlatformDetector.supportsNotifications() &&
-                                (!PlatformDetector.isIOS() || PlatformDetector.isPWA()) &&
-                                !PlatformDetector.isHuawei()) {
+                            if (window.NutriPlanCompat && window.NutriPlanCompat.shouldPromptWebNotifications()) {
                                 checkNotificationPermission(registration);
                             } else if (compatWarning.type === 'calendar') {
                                 setTimeout(() => showCalendarBanner(compatWarning.calendarUrl), 3000);
