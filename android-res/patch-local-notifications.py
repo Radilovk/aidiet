@@ -5,10 +5,9 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-MARKER = "NutriPlan: show all actions in heads-up compact view"
+COMPACT_MARKER = "NutriPlan: show all actions in heads-up compact view"
 ICON_MARKER = "NutriPlan: visible action icon"
-# Legacy broken patch passed int[] — remove if present from a failed CI run.
-BROKEN_MARKER = "mBuilder.setShowActionsInCompactView(compact)"
+GRADLE_MARKER = "NutriPlan: androidx.media for compact actions"
 
 
 def find_manager() -> Path | None:
@@ -19,30 +18,55 @@ def find_manager() -> Path | None:
     return matches[0] if matches else None
 
 
-def remove_broken_patch(text: str) -> tuple[str, bool]:
-    """Strip a previously applied patch that used int[] (does not compile)."""
-    if BROKEN_MARKER not in text:
-        return text, False
-    start = text.find("            // NutriPlan: show all actions in heads-up compact view\n")
-    if start == -1:
-        return text, False
-    end = text.find("            }\n", start)
-    if end == -1:
-        return text, False
-    end = text.find("\n", end + 1) + 1
-    return text[:start] + text[end:], True
+def find_gradle() -> Path | None:
+    path = Path("node_modules/@capacitor/local-notifications/android/build.gradle")
+    return path if path.is_file() else None
 
 
-def patch(path: Path) -> bool:
+def remove_compact_patch(text: str) -> tuple[str, bool]:
+    """Remove any prior NutriPlan compact-view patch (all broken variants)."""
+    marker = f"            // {COMPACT_MARKER}\n"
+    changed = False
+    while marker in text:
+        start = text.find(marker)
+        anchor = "            }\n        }\n\n        // Dismiss intent"
+        end = text.find(anchor, start)
+        if end == -1:
+            print("ERROR: could not remove old compact patch — anchor missing", file=sys.stderr)
+            return text, changed
+        text = text[:start] + text[end + len("            }\n") :]
+        changed = True
+    return text, changed
+
+
+def patch_gradle(path: Path) -> bool:
+    text = path.read_text(encoding="utf-8")
+    if GRADLE_MARKER in text:
+        return False
+    needle = 'implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"'
+    insert = (
+        needle
+        + '\n    implementation "androidx.media:media:1.7.0" // '
+        + GRADLE_MARKER
+    )
+    if needle not in text:
+        print(f"ERROR: appcompat dependency anchor not found in {path}", file=sys.stderr)
+        return False
+    path.write_text(text.replace(needle, insert, 1), encoding="utf-8")
+    return True
+
+
+def patch_manager(path: Path) -> bool:
     text = path.read_text(encoding="utf-8")
     changed = False
 
-    text, reverted = remove_broken_patch(text)
-    if reverted:
-        changed = True
-        print(f"Removed broken compact-view patch from {path}", file=sys.stderr)
+    if "mBuilder.setShowActionsInCompactView" in text:
+        text, removed = remove_compact_patch(text)
+        if removed:
+            changed = True
+            print(f"Removed legacy compact-view patch from {path}", file=sys.stderr)
 
-    if MARKER not in text:
+    if COMPACT_MARKER not in text or "androidx.media.app.NotificationCompat.MediaStyle" not in text:
         needle = (
             "                mBuilder.addAction(actionBuilder.build());\n"
             "            }\n"
@@ -53,14 +77,17 @@ def patch(path: Path) -> bool:
         insert = (
             "                mBuilder.addAction(actionBuilder.build());\n"
             "            }\n"
-            "            // NutriPlan: show all actions in heads-up compact view\n"
+            f"            // {COMPACT_MARKER}\n"
             "            if (actionGroup.length > 1) {\n"
+            "                androidx.media.app.NotificationCompat.MediaStyle compactStyle =\n"
+            "                    new androidx.media.app.NotificationCompat.MediaStyle();\n"
             "                int compactCount = Math.min(actionGroup.length, 3);\n"
             "                if (compactCount >= 3) {\n"
-            "                    mBuilder.setShowActionsInCompactView(0, 1, 2);\n"
+            "                    compactStyle.setShowActionsInCompactView(0, 1, 2);\n"
             "                } else if (compactCount == 2) {\n"
-            "                    mBuilder.setShowActionsInCompactView(0, 1);\n"
+            "                    compactStyle.setShowActionsInCompactView(0, 1);\n"
             "                }\n"
+            "                mBuilder.setStyle(compactStyle);\n"
             "            }\n"
             "        }\n"
             "\n"
@@ -86,15 +113,27 @@ def patch(path: Path) -> bool:
 
 
 def main() -> int:
-    target = find_manager()
-    if not target:
+    gradle = find_gradle()
+    manager = find_manager()
+    if not manager:
         print("WARN: LocalNotificationManager.java not found — skip patch", file=sys.stderr)
         return 0
-    if patch(target):
-        print(f"Patched {target}")
+
+    ok = True
+    if gradle:
+        if patch_gradle(gradle):
+            print(f"Patched {gradle}")
+        else:
+            print(f"Gradle already patched: {gradle}")
     else:
-        print(f"Already patched: {target}")
-    return 0
+        print("WARN: local-notifications build.gradle not found", file=sys.stderr)
+        ok = False
+
+    if patch_manager(manager):
+        print(f"Patched {manager}")
+    elif ok:
+        print(f"Already patched: {manager}")
+    return 0 if ok else 1
 
 
 if __name__ == "__main__":
