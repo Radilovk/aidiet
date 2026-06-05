@@ -35,13 +35,14 @@
     }
   },
   "dependencies": {
-    "@capgo/capacitor-navigation-bar": "^8.1.5",
     "@capacitor/android": "^8.3.1",
+    "@capacitor/app": "^8.1.0",
     "@capacitor/camera": "^8.2.0",
     "@capacitor/core": "^8.3.1",
     "@capacitor/haptics": "^8.0.0",
     "@capacitor/local-notifications": "^8.0.2",
     "@capacitor/preferences": "^8.0.1",
+    "@capgo/capacitor-navigation-bar": "^8.1.5",
     "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4"
   }
 }

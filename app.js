@@ -308,6 +308,26 @@
         }
     }
 
+    function extractNotificationActionId(event) {
+        if (window.GameNotifier && typeof window.GameNotifier.extractCapacitorActionId === 'function') {
+            return window.GameNotifier.extractCapacitorActionId(event);
+        }
+        var id = event && typeof event.actionId === 'string' ? event.actionId : '';
+        if (id === 'tap') return '';
+        return id;
+    }
+
+    function dismissAfterSilentHeadUp() {
+        if (window.GameNotifier && typeof window.GameNotifier._dismissAfterSilentHeadUp === 'function') {
+            window.GameNotifier._dismissAfterSilentHeadUp();
+            return;
+        }
+        try {
+            document.documentElement.style.visibility = 'hidden';
+            if (window.history.length > 1) window.history.back();
+        } catch (_) {}
+    }
+
     function handleNativeNotificationAction(payload) {
         var gn = window.GameNotifier;
         if (!gn || typeof gn.handleNotificationAction !== 'function') return false;
@@ -316,7 +336,17 @@
         if (outcome.ack && typeof gn.showSilentAck === 'function') {
             gn.showSilentAck(outcome.ack);
         }
+        dismissAfterSilentHeadUp();
         return true;
+    }
+
+    function initApkGameNotifier() {
+        if (!window.GameNotifier || typeof window.GameNotifier.init !== 'function') return Promise.resolve(false);
+        var cap = window.Capacitor;
+        if (!cap || typeof cap.isNativePlatform !== 'function' || !cap.isNativePlatform()) {
+            return Promise.resolve(false);
+        }
+        return window.GameNotifier.init().catch(function () { return false; });
     }
 
     function openQuickAnswerFromNotification(msg) {
@@ -348,14 +378,17 @@
         localNotifications.addListener('localNotificationActionPerformed', function (event) {
             var notification = event && event.notification ? event.notification : {};
             var extra = notification.extra || {};
-            var actionId = event && typeof event.actionId === 'string' ? event.actionId : '';
-            if (actionId === 'tap') actionId = '';
+            var actionId = extractNotificationActionId(event);
+            if (actionId) {
+                try { document.documentElement.style.visibility = 'hidden'; } catch (_) {}
+            }
             var payload = {
                 notificationType: extra.type || '',
                 action: actionId,
                 recordKey: extra.recordKey || ''
             };
             if (handleNativeNotificationAction(payload)) return;
+            try { document.documentElement.style.visibility = ''; } catch (_) {}
             var bodyTarget = buildNativeNotificationTarget(extra, payload.action);
             if (bodyTarget) {
                 window.location.href = bodyTarget;
@@ -879,6 +912,7 @@
         });
 
         switchTab(initialTab, true);
+        initApkGameNotifier();
     }
 
     window.NutriPlanSPA = {
@@ -889,6 +923,7 @@
 
     bindNativeNotificationBridge();
     bindSwNotificationBridge();
+    initApkGameNotifier();
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initShell, { once: true });
