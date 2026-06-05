@@ -12213,7 +12213,6 @@ async function handleGetCalendarIcs(request, env) {
     { type: 'evening_water', time: cfg.eveningWaterTime, title: cfg.eveningWaterTitle, body: cfg.eveningWaterBody }
   ];
 
-  const pad = n => String(n).padStart(2, '0');
   function fmtDt(d) {
     return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T` +
            `${pad(d.getHours())}${pad(d.getMinutes())}00`;
