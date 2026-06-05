@@ -68,13 +68,6 @@
                 animation: pop-in 0.22s ease-out forwards;
             }
         }
-        html.instant .card {
-            animation: none;
-            opacity: 1;
-            transform: none;
-        }
-        html.instant .stars,
-        html.instant .glow { display: none; }
         .badge {
             display: inline-flex;
             align-items: center;
@@ -284,14 +277,6 @@
         var confettiLayer = document.getElementById('confetti');
         var closing = false;
 
-        if (auto) {
-            document.documentElement.className = 'instant';
-            whenGameNotifierReady(function() {
-                applySilentAction(notifType, auto, recordKey);
-            });
-            return;
-        }
-
         var FALLBACK_COPY = {
             morning_check: {
                 title: 'AI Асистент',
@@ -344,6 +329,13 @@
                 if (display && display.body && display.actions && display.actions.length) return display;
             }
             return FALLBACK_COPY[type] || FALLBACK_COPY.morning_check;
+        }
+
+        if (auto) {
+            whenGameNotifierReady(function() {
+                applySilentAction(notifType, auto, recordKey);
+            });
+            return;
         }
 
         function pad(n) { return n < 10 ? '0' + n : '' + n; }

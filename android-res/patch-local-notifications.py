@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Patch @capacitor/local-notifications for NutriPlan.
+"""NutriPlan maintenance patch for @capacitor/local-notifications.
 
-IMPORTANT: Notification action buttons must use a transparent icon (ic_transparent).
-Using ic_menu_send or other visible icons makes heads-up show arrows instead of
-action labels (Да / Не / …) on most Android OEMs.
+- Reverts mistaken ic_menu_send action icons (heads-up showed arrows, not labels).
+- Removes legacy MediaStyle compact-view patch if present.
+- Removes unused androidx.media dependency if it was added for MediaStyle.
 """
 from __future__ import annotations
 
@@ -11,10 +11,7 @@ import sys
 from pathlib import Path
 
 COMPACT_MARKER = "NutriPlan: show all actions in heads-up compact view"
-# MediaStyle compact actions hide notification body on many OEM heads-up UIs.
-# NutriPlan uses JS `largeBody` (Capacitor BigTextStyle) for the question text instead.
-ICON_MARKER = "NutriPlan: visible action icon"
-GRADLE_MARKER = "NutriPlan: androidx.media for compact actions"
+GRADLE_MEDIA_LINE = 'implementation "androidx.media:media:1.7.0" // NutriPlan: androidx.media for compact actions'
 SEND_ICON = "android.R.drawable.ic_menu_send /* NutriPlan: visible action icon */"
 TRANSPARENT_ICON = "R.drawable.ic_transparent"
 
@@ -33,7 +30,6 @@ def find_gradle() -> Path | None:
 
 
 def remove_compact_patch(text: str) -> tuple[str, bool]:
-    """Remove any prior NutriPlan compact-view patch (all broken variants)."""
     marker = f"            // {COMPACT_MARKER}\n"
     changed = False
     while marker in text:
@@ -48,23 +44,6 @@ def remove_compact_patch(text: str) -> tuple[str, bool]:
     return text, changed
 
 
-def patch_gradle(path: Path) -> bool:
-    text = path.read_text(encoding="utf-8")
-    if GRADLE_MARKER in text:
-        return False
-    needle = 'implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"'
-    insert = (
-        needle
-        + '\n    implementation "androidx.media:media:1.7.0" // '
-        + GRADLE_MARKER
-    )
-    if needle not in text:
-        print(f"ERROR: appcompat dependency anchor not found in {path}", file=sys.stderr)
-        return False
-    path.write_text(text.replace(needle, insert, 1), encoding="utf-8")
-    return True
-
-
 def patch_manager(path: Path) -> bool:
     text = path.read_text(encoding="utf-8")
     changed = False
@@ -73,9 +52,8 @@ def patch_manager(path: Path) -> bool:
         text, removed = remove_compact_patch(text)
         if removed:
             changed = True
-            print(f"Removed legacy compact-view patch from {path}", file=sys.stderr)
+            print(f"Removed legacy MediaStyle compact patch from {path}", file=sys.stderr)
 
-    # Revert mistaken send-arrow icon — heads-up must show action titles, not arrows.
     if SEND_ICON in text:
         text = text.replace(SEND_ICON, TRANSPARENT_ICON)
         changed = True
@@ -86,28 +64,31 @@ def patch_manager(path: Path) -> bool:
     return changed
 
 
+def patch_gradle(path: Path) -> bool:
+    text = path.read_text(encoding="utf-8")
+    if GRADLE_MEDIA_LINE not in text:
+        return False
+    text = text.replace(GRADLE_MEDIA_LINE + "\n", "")
+    text = text.replace(GRADLE_MEDIA_LINE, "")
+    path.write_text(text, encoding="utf-8")
+    return True
+
+
 def main() -> int:
-    gradle = find_gradle()
     manager = find_manager()
     if not manager:
         print("WARN: LocalNotificationManager.java not found — skip patch", file=sys.stderr)
         return 0
 
-    ok = True
-    if gradle:
-        if patch_gradle(gradle):
-            print(f"Patched {gradle}")
-        else:
-            print(f"Gradle already patched: {gradle}")
-    else:
-        print("WARN: local-notifications build.gradle not found", file=sys.stderr)
-        ok = False
+    gradle = find_gradle()
+    if gradle and patch_gradle(gradle):
+        print(f"Removed unused media dependency from {gradle}")
 
     if patch_manager(manager):
         print(f"Patched {manager}")
-    elif ok:
-        print(f"Already patched: {manager}")
-    return 0 if ok else 1
+    else:
+        print(f"No manager changes needed: {manager}")
+    return 0
 
 
 if __name__ == "__main__":

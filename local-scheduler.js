@@ -423,11 +423,6 @@ const GameNotifier = {
             try { gm.recalcAndShowScore(key); } catch (_) {}
         }
         try {
-            if (typeof window !== 'undefined') {
-                window.dispatchEvent(new CustomEvent('nutriplan-gamedata-updated', { detail: { recordKey: key } }));
-            }
-        } catch (_) {}
-        try {
             if (typeof window !== 'undefined' && window.parent && window.parent !== window) {
                 window.parent.postMessage({ type: 'NUTRIPLAN_GAMEDATA_UPDATED', recordKey: key }, window.location.origin);
             }
@@ -825,7 +820,7 @@ const GameNotifier = {
                 this._dismissAfterSilentHeadUp();
                 return;
             }
-            window.location.replace(this._buildQuickAnswerUrl(qaType, { date: recordKey, auto: actionId }));
+            window.location.replace(this._buildQuickAnswerUrl(qaType, { date: recordKey }));
             return;
         }
 
@@ -1274,7 +1269,6 @@ const GameNotifier = {
                     url:   this._buildQuickAnswerUrl('morning_check', { date: recordKey }),
                     recordKey,
                     actions: this._swActionsFromList(morningActions),
-                    silentActionIds: morningActions.map((a) => a.id),
                     vibrate: [300, 100, 300, 100, 300],
                     requireInteraction: true
                 });
@@ -1298,7 +1292,6 @@ const GameNotifier = {
                     url:   this._buildQuickAnswerUrl(slot.type, { date: recordKey }),
                     recordKey,
                     actions: this._swActionsFromList(slot.actions),
-                    silentActionIds: (slot.actions || []).map((a) => a.id),
                     vibrate: [200, 100, 200, 100, 200],
                     requireInteraction: false
                 });
@@ -1539,11 +1532,6 @@ const GameNotifier = {
             console.warn('[GameNotifier] Quick answer save failed:', e);
             return false;
         }
-    },
-
-    _buildPlanActionUrl(type, recordKey) {
-        const key = this._normalizeRecordKey(recordKey);
-        return `/plan.html?action=${encodeURIComponent(type)}&date=${encodeURIComponent(key)}`;
     },
 
     _buildQuickAnswerUrl(type, params) {

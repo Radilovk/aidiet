@@ -32,12 +32,10 @@
         return (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) ? value : todayKey();
     }
 
-    function buildQuickAnswerUrl(type, recordKey, actionId) {
+    function buildQuickAnswerUrl(type, recordKey) {
         var qaType = type === 'evening_check' ? 'evening_water' : type;
-        var url = 'quick-answer.html?type=' + encodeURIComponent(qaType) +
+        return 'quick-answer.html?type=' + encodeURIComponent(qaType) +
             '&date=' + encodeURIComponent(normalizeRecordKey(recordKey));
-        if (actionId) url += '&auto=' + encodeURIComponent(actionId);
-        return url;
     }
 
     function isGameNotificationType(type) {
@@ -74,11 +72,11 @@
         runDeferredPlanRedirect();
     }
 
-    function redirectToQuickAnswer(type, recordKey, actionId) {
+    function redirectToQuickAnswer(type, recordKey) {
         if (revealTimer) clearTimeout(revealTimer);
         revealTimer = null;
         document.documentElement.style.visibility = '';
-        location.replace(buildQuickAnswerUrl(type, recordKey, actionId));
+        location.replace(buildQuickAnswerUrl(type, recordKey));
     }
 
     function minimizeAppAndExit() {
@@ -144,7 +142,7 @@
             minimizeAppAndExit();
             return;
         }
-        redirectToQuickAnswer(type, recordKey, '');
+        redirectToQuickAnswer(type, recordKey);
     }
 
     function extractActionId(actionEvent) {
