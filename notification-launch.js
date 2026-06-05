@@ -15,8 +15,8 @@
 
     window.__nutriplanNotificationLaunch = true;
 
-    var resolved = false;
     var revealTimer = null;
+    var listenerBound = false;
 
     document.documentElement.style.visibility = 'hidden';
     document.documentElement.style.background = '#0A1A1A';
@@ -68,17 +68,15 @@
     }
 
     function revealApp() {
-        if (resolved) return;
-        resolved = true;
         if (revealTimer) clearTimeout(revealTimer);
+        revealTimer = null;
         document.documentElement.style.visibility = '';
         runDeferredPlanRedirect();
     }
 
     function redirectToQuickAnswer(type, recordKey, actionId) {
-        if (resolved) return;
-        resolved = true;
         if (revealTimer) clearTimeout(revealTimer);
+        revealTimer = null;
         location.replace(buildQuickAnswerUrl(type, recordKey, actionId));
     }
 
@@ -103,8 +101,8 @@
         }
 
         if (extra.url && String(extra.url).indexOf('quick-answer') !== -1) {
-            resolved = true;
             if (revealTimer) clearTimeout(revealTimer);
+            revealTimer = null;
             location.replace(String(extra.url).replace(/^\//, ''));
             return;
         }
@@ -112,21 +110,36 @@
         revealApp();
     }
 
-    function bindListeners() {
+    function scheduleRevealFallback() {
+        if (revealTimer) clearTimeout(revealTimer);
+        // Wait for Capacitor to deliver cold-start notification action before showing shell.
+        revealTimer = setTimeout(revealApp, 900);
+    }
+
+    function bindListeners(attempt) {
+        if (listenerBound) return;
+        attempt = attempt || 0;
+
         var plugins = cap.Plugins || {};
         var ln = plugins.LocalNotifications;
         if (!ln && typeof cap.registerPlugin === 'function') {
             try { ln = cap.registerPlugin('LocalNotifications'); } catch (_) {}
         }
         if (!ln || typeof ln.addListener !== 'function') {
+            if (attempt < 40) {
+                setTimeout(function () { bindListeners(attempt + 1); }, 50);
+                return;
+            }
             revealApp();
             return;
         }
+
         ln.addListener('localNotificationActionPerformed', function (event) {
             handleNotificationAction(event);
         });
+        listenerBound = true;
+        scheduleRevealFallback();
     }
 
-    revealTimer = setTimeout(revealApp, 400);
-    bindListeners();
+    bindListeners(0);
 })();
