@@ -405,7 +405,7 @@
             <div class="field" style="grid-column: 1 / -1;">
                 <label>Бутони (макс. 3)</label>
                 <div id="editMorningActions" class="gn-actions-list"></div>
-                <button type="button" class="btn-green" onclick="addEditActionRow('editMorningActions')">➕ Отговор</button>
+                <button type="button" class="btn-green" onclick="GnActionsUI.addRow('editMorningActions',{compact:true,prefix:'edit-action'})">➕ Отговор</button>
             </div>
             <div class="field">
                 <label for="editEveningActivityTime">Вечер 1 — активност</label>
@@ -422,7 +422,7 @@
             <div class="field" style="grid-column: 1 / -1;">
                 <label>Бутони активност</label>
                 <div id="editEveningActivityActions" class="gn-actions-list"></div>
-                <button type="button" onclick="addEditActionRow('editEveningActivityActions')">➕ Отговор</button>
+                <button type="button" onclick="GnActionsUI.addRow('editEveningActivityActions',{compact:true,prefix:'edit-action'})">➕ Отговор</button>
             </div>
             <div class="field">
                 <label for="editEveningBalanceTime">Вечер 2 — баланс</label>
@@ -439,7 +439,7 @@
             <div class="field" style="grid-column: 1 / -1;">
                 <label>Бутони баланс</label>
                 <div id="editEveningBalanceActions" class="gn-actions-list"></div>
-                <button type="button" onclick="addEditActionRow('editEveningBalanceActions')">➕ Отговор</button>
+                <button type="button" onclick="GnActionsUI.addRow('editEveningBalanceActions',{compact:true,prefix:'edit-action'})">➕ Отговор</button>
             </div>
             <div class="field">
                 <label for="editEveningWaterTime">Вечер 3 — вода</label>
@@ -456,7 +456,7 @@
             <div class="field" style="grid-column: 1 / -1;">
                 <label>Бутони вода</label>
                 <div id="editEveningWaterActions" class="gn-actions-list"></div>
-                <button type="button" onclick="addEditActionRow('editEveningWaterActions')">➕ Отговор</button>
+                <button type="button" onclick="GnActionsUI.addRow('editEveningWaterActions',{compact:true,prefix:'edit-action'})">➕ Отговор</button>
             </div>
         </div>
         <div class="extra-list" id="editExtraList"></div>
@@ -594,6 +594,7 @@
     <a href="/" class="back-link">← Назад към Начало</a>
 </div>
 
+<script src="./gn-actions-ui.js"></script>
 <script src="./local-scheduler.js"></script>
 <script>
 // ─────────────────────────────────────────────
@@ -895,82 +896,10 @@ const EDIT_ACTION_CONTAINERS = {
     editEveningBalanceActions: 'eveningBalanceActions',
     editEveningWaterActions: 'eveningWaterActions'
 };
-
-function editActionValueDisplay(v) {
-    if (v === true) return 'true';
-    if (v === false) return 'false';
-    if (v === null) return 'null';
-    return v !== undefined ? String(v) : '';
-}
-
-function editParseActionValue(raw) {
-    const s = String(raw || '').trim();
-    if (s === 'true') return true;
-    if (s === 'false') return false;
-    if (s === 'null' || s === 'skip') return null;
-    if (/^\d+$/.test(s)) return parseInt(s, 10);
-    return s || undefined;
-}
-
-function renderEditActionRows(containerId, actions) {
-    const list = document.getElementById(containerId);
-    if (!list) return;
-    list.innerHTML = '';
-    (actions || []).forEach((a) => addEditActionRow(containerId, a));
-}
-
-function addEditActionRow(containerId, data) {
-    const list = document.getElementById(containerId);
-    if (!list) return;
-    if (list.querySelectorAll('.gn-action-row').length >= 3) {
-        log('Максимум 3 бутона на нотификация.', 'warn');
-        return;
-    }
-    const d = data || { id: 'btn_' + Date.now(), title: '', value: '' };
-    const row = document.createElement('div');
-    row.className = 'gn-action-row extra-row';
-    const idInp = document.createElement('input');
-    idInp.className = 'edit-action-id';
-    idInp.placeholder = 'id';
-    idInp.value = d.id || '';
-    const titleInp = document.createElement('input');
-    titleInp.className = 'edit-action-title';
-    titleInp.placeholder = 'Етикет';
-    titleInp.value = d.title || '';
-    const valInp = document.createElement('input');
-    valInp.className = 'edit-action-value';
-    valInp.placeholder = 'value';
-    valInp.value = editActionValueDisplay(d.value);
-    const delBtn = document.createElement('button');
-    delBtn.type = 'button';
-    delBtn.className = 'btn-red';
-    delBtn.textContent = '🗑️';
-    delBtn.addEventListener('click', () => row.remove());
-    row.appendChild(idInp);
-    row.appendChild(titleInp);
-    row.appendChild(valInp);
-    row.appendChild(delBtn);
-    list.appendChild(row);
-}
-
-function collectEditActions(containerId) {
-    const list = document.getElementById(containerId);
-    if (!list) return [];
-    return Array.from(list.querySelectorAll('.gn-action-row')).map((row) => {
-        const id = ((row.querySelector('.edit-action-id') || {}).value || '').trim();
-        const title = ((row.querySelector('.edit-action-title') || {}).value || '').trim();
-        const raw = ((row.querySelector('.edit-action-value') || {}).value || '').trim();
-        const value = editParseActionValue(raw);
-        const out = { id, title };
-        if (value !== undefined) out.value = value;
-        return out;
-    }).filter((a) => a.id && a.title);
-}
+const EDIT_ACTION_OPTS = { compact: true, prefix: 'edit-action', onMax: (m) => log(m, 'warn') };
 
 function renderAllEditActionRows(cfg) {
-    Object.keys(EDIT_ACTION_CONTAINERS).forEach((containerId) => {
-        renderEditActionRows(containerId, cfg[EDIT_ACTION_CONTAINERS[containerId]] || []);
-    });
+    if (window.GnActionsUI) GnActionsUI.renderAll(EDIT_ACTION_CONTAINERS, cfg, EDIT_ACTION_OPTS);
 }
 
 function addConfigExtraNotification(data) {
@@ -1050,10 +979,7 @@ function collectEditableConfig() {
         eveningWaterTime: document.getElementById('editEveningWaterTime').value || DEFAULT_CONFIG.eveningWaterTime,
         eveningWaterTitle: document.getElementById('editEveningWaterTitle').value || DEFAULT_CONFIG.eveningWaterTitle,
         eveningWaterBody: document.getElementById('editEveningWaterBody').value || DEFAULT_CONFIG.eveningWaterBody,
-        morningActions: collectEditActions('editMorningActions'),
-        eveningActivityActions: collectEditActions('editEveningActivityActions'),
-        eveningBalanceActions: collectEditActions('editEveningBalanceActions'),
-        eveningWaterActions: collectEditActions('editEveningWaterActions'),
+        ...(window.GnActionsUI ? GnActionsUI.collectAll(EDIT_ACTION_CONTAINERS, 'edit-action') : {}),
         extraNotifications
     });
 }

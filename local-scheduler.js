@@ -26,7 +26,6 @@ const GameNotifier = {
     LS_CONFIG_KEY:        'gameNotifierConfig',
     LS_LOCAL_KEY:         'gameNotifierLocalConfig',
     LS_VERSION_KEY:       'gameNotifierConfigVersion',
-    LS_LAST_REFRESH_KEY:  'gameNotifierLastRefresh',
     LS_SCHEDULED_VERSION_KEY: 'gameNotifierScheduledVersion',
     CALENDAR_URL:   'https://aidiet.radilov-k.workers.dev/api/calendar.ics',
     CHANNEL_ID:     'nutriplan_daily_checkins',
@@ -254,32 +253,14 @@ const GameNotifier = {
         }
     },
 
-    isSilentAction(action, notifType) {
-        if (!action) return false;
+    questionBody(type) {
         const cfg = this._getConfig();
-        const meta = this._slotMetaByType(notifType);
-        if (!meta) return action !== '';
-        const actions = this._actionsFromConfig(cfg, meta);
-        return actions.some((a) => a.id === action);
-    },
-
-    getPromptConfig() {
-        const cfg = this._getConfig();
-        const out = {};
-        const morning = this.MORNING_META;
-        out.morning = {
-            body: cfg.morningBody || this.COPY.morning.body,
-            actions: this._actionsFromConfig(cfg, morning)
-        };
-        this.EVENING_SLOT_DEFS.forEach((def) => {
-            const prefix = def.type.replace('evening_', '');
-            const bodyKey = 'evening' + prefix.charAt(0).toUpperCase() + prefix.slice(1) + 'Body';
-            out[def.copyKey] = {
-                body: cfg[bodyKey] || (this.COPY[def.copyKey] && this.COPY[def.copyKey].body) || '',
-                actions: this._actionsFromConfig(cfg, def)
-            };
-        });
-        return out;
+        if (type === 'morning_check') return cfg.morningBody || this.COPY.morning.body;
+        const meta = this._slotMetaByType(type);
+        if (!meta) return '';
+        const prefix = meta.type.replace('evening_', '');
+        const bodyKey = 'evening' + prefix.charAt(0).toUpperCase() + prefix.slice(1) + 'Body';
+        return cfg[bodyKey] || (this.COPY[meta.copyKey] && this.COPY[meta.copyKey].body) || '';
     },
 
     bubbleAnswersForType(type) {
@@ -816,27 +797,8 @@ const GameNotifier = {
     },
 
     _actionValueForSave(meta, actionId, config) {
-        const actions = this._actionsFromConfig(config, meta);
-        const hit = actions.find((a) => a.id === actionId);
-        if (!hit) return undefined;
-        if (hit.value !== undefined) return hit.value;
-        if (meta.saveKind === 'morning') {
-            if (actionId === 'sleep_yes') return true;
-            if (actionId === 'sleep_no') return false;
-        }
-        if (meta.saveKind === 'activityLevel') {
-            const m = /^activity_(\d+)$/.exec(actionId);
-            if (m) return parseInt(m[1], 10);
-        }
-        if (meta.saveKind === 'emotionalBalance') {
-            const m = /^balance_(\d+)$/.exec(actionId);
-            if (m) return parseInt(m[1], 10);
-        }
-        if (meta.saveKind === 'waterIntake') {
-            if (actionId === 'water_yes') return true;
-            if (actionId === 'water_no') return false;
-        }
-        return undefined;
+        const hit = this._actionsFromConfig(config, meta).find((a) => a.id === actionId);
+        return hit ? hit.value : undefined;
     },
 
     _getGameRecord(recordKey) {
@@ -1252,7 +1214,10 @@ const GameNotifier = {
                 badge: '/icon-192x192.png',
                 tag: 'gn-immediate-' + Date.now(),
                 data: { url, type, recordKey },
-                actions: this._swActionsForType(type)
+                actions: (() => {
+                    const meta = this._slotMetaByType(type);
+                    return meta ? this._swActionsFromList(this._actionsFromConfig(cfg, meta)) : undefined;
+                })()
             });
         }
     },
@@ -1282,13 +1247,6 @@ const GameNotifier = {
     _swActionsFromList(actions) {
         if (!Array.isArray(actions) || !actions.length) return undefined;
         return actions.map((item) => ({ action: item.id, title: item.title }));
-    },
-
-    _swActionsForType(type) {
-        const cfg = this._getConfig();
-        const meta = this._slotMetaByType(type);
-        if (!meta) return undefined;
-        return this._swActionsFromList(this._actionsFromConfig(cfg, meta));
     },
 
     _saveMorningAnswer(recordKey, sleptWell) {

@@ -9695,16 +9695,9 @@
 
         // ── Morning / Evening questions ───────────────────────────────────────
         function gameNotifyQuestion(type, fallback) {
-            if (window.GameNotifier && typeof window.GameNotifier.getPromptConfig === 'function') {
-                var pc = window.GameNotifier.getPromptConfig();
-                var map = {
-                    morning_check: 'morning',
-                    evening_activity: 'eveningActivity',
-                    evening_balance: 'eveningBalance',
-                    evening_water: 'eveningWater'
-                };
-                var k = map[type];
-                if (k && pc[k] && pc[k].body) return pc[k].body;
+            if (window.GameNotifier && typeof window.GameNotifier.questionBody === 'function') {
+                var q = window.GameNotifier.questionBody(type);
+                if (q) return q;
             }
             return fallback;
         }

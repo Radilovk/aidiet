@@ -69,12 +69,6 @@ function getGameNotificationActions(type) {
   return undefined;
 }
 
-const SILENT_GAME_ACTIONS = new Set([
-  'sleep_yes', 'sleep_no', 'skip',
-  'activity_1', 'activity_2', 'activity_3',
-  'balance_1', 'balance_2', 'balance_3',
-  'water_yes', 'water_no'
-]);
 const PENDING_DB_NAME = 'nutriplan-game-pending';
 const PENDING_STORE = 'actions';
 
