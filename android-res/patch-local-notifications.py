@@ -3,7 +3,9 @@
 
 - Reverts mistaken ic_menu_send action icons (heads-up showed arrows, not labels).
 - Removes legacy MediaStyle compact-view patch if present.
-- Removes unused androidx.media dependency if it was added for MediaStyle.
+- Routes action buttons through GameNotificationActionReceiver (no Activity launch).
+- Uses unique PendingIntent request codes so all action buttons stay enabled.
+- Raises notification builder priority for reliable heads-up display.
 """
 from __future__ import annotations
 
@@ -14,6 +16,51 @@ COMPACT_MARKER = "NutriPlan: show all actions in heads-up compact view"
 GRADLE_MEDIA_LINE = 'implementation "androidx.media:media:1.7.0" // NutriPlan: androidx.media for compact actions'
 SEND_ICON = "android.R.drawable.ic_menu_send /* NutriPlan: visible action icon */"
 TRANSPARENT_ICON = "R.drawable.ic_transparent"
+BROADCAST_MARKER = "NutriPlan: background broadcast"
+
+ACTION_LOOP_OLD = """            for (NotificationAction notificationAction : actionGroup) {
+                // TODO Add custom icons to actions
+                Intent actionIntent = buildIntent(localNotification, notificationAction.getId());
+                PendingIntent actionPendingIntent = PendingIntent.getActivity(
+                    context,
+                    localNotification.getId() + notificationAction.getId().hashCode(),
+                    actionIntent,
+                    flags
+                );
+                NotificationCompat.Action.Builder actionBuilder = new NotificationCompat.Action.Builder(
+                    R.drawable.ic_transparent,
+                    notificationAction.getTitle(),
+                    actionPendingIntent
+                );"""
+
+ACTION_LOOP_NEW = """            for (int actionIdx = 0; actionIdx < actionGroup.length; actionIdx++) {
+                NotificationAction notificationAction = actionGroup[actionIdx];
+                // NutriPlan: background broadcast — no Activity launch on action tap
+                Intent actionIntent = new Intent(context, com.biocode.nutriplan.GameNotificationActionReceiver.class);
+                actionIntent.putExtra(NOTIFICATION_INTENT_KEY, localNotification.getId());
+                actionIntent.putExtra(ACTION_INTENT_KEY, notificationAction.getId());
+                actionIntent.putExtra(NOTIFICATION_OBJ_INTENT_KEY, localNotification.getSource());
+                LocalNotificationSchedule actionSchedule = localNotification.getSchedule();
+                actionIntent.putExtra(NOTIFICATION_IS_REMOVABLE_KEY, actionSchedule == null || actionSchedule.isRemovable());
+                int actionRequestCode = localNotification.getId() * 31 + actionIdx + 1;
+                int actionFlags = PendingIntent.FLAG_UPDATE_CURRENT;
+                if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    actionFlags = actionFlags | PendingIntent.FLAG_MUTABLE;
+                }
+                PendingIntent actionPendingIntent = PendingIntent.getBroadcast(
+                    context,
+                    actionRequestCode,
+                    actionIntent,
+                    actionFlags
+                );
+                NotificationCompat.Action.Builder actionBuilder = new NotificationCompat.Action.Builder(
+                    R.drawable.ic_transparent,
+                    notificationAction.getTitle(),
+                    actionPendingIntent
+                );"""
+
+PRIORITY_OLD = ".setPriority(NotificationCompat.PRIORITY_DEFAULT)"
+PRIORITY_NEW = ".setPriority(NotificationCompat.PRIORITY_HIGH) // NutriPlan: heads-up eligibility"
 
 
 def find_manager() -> Path | None:
@@ -58,6 +105,18 @@ def patch_manager(path: Path) -> bool:
         text = text.replace(SEND_ICON, TRANSPARENT_ICON)
         changed = True
         print(f"Reverted send-arrow action icon in {path}", file=sys.stderr)
+
+    if ACTION_LOOP_OLD in text:
+        text = text.replace(ACTION_LOOP_OLD, ACTION_LOOP_NEW)
+        changed = True
+        print(f"Patched action intents to BroadcastReceiver in {path}", file=sys.stderr)
+    elif BROADCAST_MARKER not in text:
+        print("WARN: action loop pattern not found — Capacitor version may have changed", file=sys.stderr)
+
+    if PRIORITY_OLD in text and PRIORITY_NEW not in text:
+        text = text.replace(PRIORITY_OLD, PRIORITY_NEW, 1)
+        changed = True
+        print(f"Raised notification priority in {path}", file=sys.stderr)
 
     if changed:
         path.write_text(text, encoding="utf-8")
