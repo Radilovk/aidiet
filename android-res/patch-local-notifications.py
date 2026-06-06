@@ -36,7 +36,8 @@ ACTION_LOOP_OLD = """            for (NotificationAction notificationAction : ac
 ACTION_LOOP_NEW = """            for (int actionIdx = 0; actionIdx < actionGroup.length; actionIdx++) {
                 NotificationAction notificationAction = actionGroup[actionIdx];
                 // NutriPlan: background broadcast — no Activity launch on action tap
-                Intent actionIntent = new Intent(context, com.biocode.nutriplan.GameNotificationActionReceiver.class);
+                Intent actionIntent = new Intent();
+                actionIntent.setClassName(context.getPackageName(), "com.biocode.nutriplan.GameNotificationActionReceiver");
                 actionIntent.putExtra(NOTIFICATION_INTENT_KEY, localNotification.getId());
                 actionIntent.putExtra(ACTION_INTENT_KEY, notificationAction.getId());
                 actionIntent.putExtra(NOTIFICATION_OBJ_INTENT_KEY, localNotification.getSource());
@@ -58,6 +59,12 @@ ACTION_LOOP_NEW = """            for (int actionIdx = 0; actionIdx < actionGroup
                     notificationAction.getTitle(),
                     actionPendingIntent
                 );"""
+
+BROKEN_CLASS_REF = 'Intent actionIntent = new Intent(context, com.biocode.nutriplan.GameNotificationActionReceiver.class);'
+FIXED_CLASS_REF = (
+    'Intent actionIntent = new Intent();\n'
+    '                actionIntent.setClassName(context.getPackageName(), "com.biocode.nutriplan.GameNotificationActionReceiver");'
+)
 
 PRIORITY_OLD = ".setPriority(NotificationCompat.PRIORITY_DEFAULT)"
 PRIORITY_NEW = ".setPriority(NotificationCompat.PRIORITY_HIGH) // NutriPlan: heads-up eligibility"
@@ -110,6 +117,10 @@ def patch_manager(path: Path) -> bool:
         text = text.replace(ACTION_LOOP_OLD, ACTION_LOOP_NEW)
         changed = True
         print(f"Patched action intents to BroadcastReceiver in {path}", file=sys.stderr)
+    elif BROKEN_CLASS_REF in text:
+        text = text.replace(BROKEN_CLASS_REF, FIXED_CLASS_REF)
+        changed = True
+        print(f"Fixed BroadcastReceiver class reference in {path}", file=sys.stderr)
     elif BROADCAST_MARKER not in text:
         print("WARN: action loop pattern not found — Capacitor version may have changed", file=sys.stderr)
 
