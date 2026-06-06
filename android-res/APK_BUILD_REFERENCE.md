@@ -98,7 +98,11 @@ Android WebView блокира cross-origin API заявките (`/api/*`) къ
 
 - Системен default звук — без custom `.wav` файл
 - `ic_stat_nutriplan.png` — монохромно PNG (alpha extract от PWA иконата), генерирано в drawable-* директориите
-- AndroidManifest.xml получава следните permissions (добавени идемпотентно):
+- `android-res/patch-local-notifications.py` — patch-ва plugin-а след `cap sync`:
+  - инсталира `GameNotificationActionReceiver` в `@capacitor/local-notifications` (НЕ в app manifest)
+  - регистрира receiver в plugin `AndroidManifest.xml` **вътре в `<application>`**
+  - action бутоните → `BroadcastReceiver` (без стартиране на WebView)
+- AndroidManifest.xml (app) получава следните permissions (добавени идемпотентно):
   - `POST_NOTIFICATIONS`
   - `SCHEDULE_EXACT_ALARM`
   - `RECEIVE_BOOT_COMPLETED`

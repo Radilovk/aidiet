@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """NutriPlan maintenance patch for @capacitor/local-notifications.
 
-- Reverts mistaken ic_menu_send action icons (heads-up showed arrows, not labels).
-- Removes legacy MediaStyle compact-view patch if present.
-- Routes action buttons through GameNotificationActionReceiver (no Activity launch).
-- Uses unique PendingIntent request codes so all action buttons stay enabled.
-- Raises notification builder priority for reliable heads-up display.
+- Installs GameNotificationActionReceiver inside the plugin module (same Gradle project).
+- Registers the receiver in the plugin AndroidManifest (inside <application>).
+- Routes action buttons through BroadcastReceiver (no Activity launch).
+- Reverts mistaken ic_menu_send action icons; removes legacy MediaStyle patch.
+- Uses unique PendingIntent request codes; raises builder priority for heads-up.
 """
 from __future__ import annotations
 
+import shutil
 import sys
 from pathlib import Path
 
@@ -17,6 +18,10 @@ GRADLE_MEDIA_LINE = 'implementation "androidx.media:media:1.7.0" // NutriPlan: a
 SEND_ICON = "android.R.drawable.ic_menu_send /* NutriPlan: visible action icon */"
 TRANSPARENT_ICON = "R.drawable.ic_transparent"
 BROADCAST_MARKER = "NutriPlan: background broadcast"
+RECEIVER_CLASS = "com.capacitorjs.plugins.localnotifications.GameNotificationActionReceiver"
+RECEIVER_SOURCE = Path(
+    "android-res/java/com/capacitorjs/plugins/localnotifications/GameNotificationActionReceiver.java"
+)
 
 ACTION_LOOP_OLD = """            for (NotificationAction notificationAction : actionGroup) {
                 // TODO Add custom icons to actions
@@ -36,8 +41,7 @@ ACTION_LOOP_OLD = """            for (NotificationAction notificationAction : ac
 ACTION_LOOP_NEW = """            for (int actionIdx = 0; actionIdx < actionGroup.length; actionIdx++) {
                 NotificationAction notificationAction = actionGroup[actionIdx];
                 // NutriPlan: background broadcast — no Activity launch on action tap
-                Intent actionIntent = new Intent();
-                actionIntent.setClassName(context.getPackageName(), "com.biocode.nutriplan.GameNotificationActionReceiver");
+                Intent actionIntent = new Intent(context, GameNotificationActionReceiver.class);
                 actionIntent.putExtra(NOTIFICATION_INTENT_KEY, localNotification.getId());
                 actionIntent.putExtra(ACTION_INTENT_KEY, notificationAction.getId());
                 actionIntent.putExtra(NOTIFICATION_OBJ_INTENT_KEY, localNotification.getSource());
@@ -60,14 +64,21 @@ ACTION_LOOP_NEW = """            for (int actionIdx = 0; actionIdx < actionGroup
                     actionPendingIntent
                 );"""
 
-BROKEN_CLASS_REF = 'Intent actionIntent = new Intent(context, com.biocode.nutriplan.GameNotificationActionReceiver.class);'
-FIXED_CLASS_REF = (
-    'Intent actionIntent = new Intent();\n'
-    '                actionIntent.setClassName(context.getPackageName(), "com.biocode.nutriplan.GameNotificationActionReceiver");'
+SETCLASSNAME_BLOCK = """                Intent actionIntent = new Intent();
+                actionIntent.setClassName(context.getPackageName(), "com.biocode.nutriplan.GameNotificationActionReceiver");"""
+
+BROKEN_CLASS_REF = (
+    "Intent actionIntent = new Intent(context, com.biocode.nutriplan.GameNotificationActionReceiver.class);"
 )
+FIXED_CLASS_REF = "Intent actionIntent = new Intent(context, GameNotificationActionReceiver.class);"
 
 PRIORITY_OLD = ".setPriority(NotificationCompat.PRIORITY_DEFAULT)"
 PRIORITY_NEW = ".setPriority(NotificationCompat.PRIORITY_HIGH) // NutriPlan: heads-up eligibility"
+
+
+def plugin_root() -> Path | None:
+    root = Path("node_modules/@capacitor/local-notifications/android")
+    return root if root.is_dir() else None
 
 
 def find_manager() -> Path | None:
@@ -81,6 +92,53 @@ def find_manager() -> Path | None:
 def find_gradle() -> Path | None:
     path = Path("node_modules/@capacitor/local-notifications/android/build.gradle")
     return path if path.is_file() else None
+
+
+def install_receiver() -> bool:
+    if not RECEIVER_SOURCE.is_file():
+        print(f"ERROR: missing {RECEIVER_SOURCE}", file=sys.stderr)
+        return False
+    root = plugin_root()
+    if not root:
+        print("WARN: local-notifications android dir not found", file=sys.stderr)
+        return False
+    dest_dir = root / "src/main/java/com/capacitorjs/plugins/localnotifications"
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest = dest_dir / "GameNotificationActionReceiver.java"
+    shutil.copy2(RECEIVER_SOURCE, dest)
+    print(f"Installed {dest}", file=sys.stderr)
+    return True
+
+
+def patch_plugin_manifest() -> bool:
+    root = plugin_root()
+    if not root:
+        return False
+    manifest = root / "src/main/AndroidManifest.xml"
+    if not manifest.is_file():
+        print(f"WARN: plugin manifest not found: {manifest}", file=sys.stderr)
+        return False
+
+    text = manifest.read_text(encoding="utf-8")
+    if "GameNotificationActionReceiver" in text:
+        return False
+
+    receiver_line = (
+        '        <receiver android:name="com.capacitorjs.plugins.localnotifications'
+        '.GameNotificationActionReceiver" android:exported="false" />\n'
+    )
+    anchor = (
+        '        <receiver android:name="com.capacitorjs.plugins.localnotifications'
+        ".NotificationDismissReceiver\" />"
+    )
+    if anchor not in text:
+        print("WARN: NotificationDismissReceiver anchor missing in plugin manifest", file=sys.stderr)
+        return False
+
+    text = text.replace(anchor, anchor + "\n" + receiver_line.rstrip(), 1)
+    manifest.write_text(text, encoding="utf-8")
+    print(f"Registered GameNotificationActionReceiver in {manifest}", file=sys.stderr)
+    return True
 
 
 def remove_compact_patch(text: str) -> tuple[str, bool]:
@@ -117,10 +175,17 @@ def patch_manager(path: Path) -> bool:
         text = text.replace(ACTION_LOOP_OLD, ACTION_LOOP_NEW)
         changed = True
         print(f"Patched action intents to BroadcastReceiver in {path}", file=sys.stderr)
+    elif SETCLASSNAME_BLOCK in text:
+        text = text.replace(
+            SETCLASSNAME_BLOCK,
+            "                Intent actionIntent = new Intent(context, GameNotificationActionReceiver.class);",
+        )
+        changed = True
+        print(f"Migrated setClassName action intent in {path}", file=sys.stderr)
     elif BROKEN_CLASS_REF in text:
         text = text.replace(BROKEN_CLASS_REF, FIXED_CLASS_REF)
         changed = True
-        print(f"Fixed BroadcastReceiver class reference in {path}", file=sys.stderr)
+        print(f"Fixed app-package class reference in {path}", file=sys.stderr)
     elif BROADCAST_MARKER not in text:
         print("WARN: action loop pattern not found — Capacitor version may have changed", file=sys.stderr)
 
@@ -149,6 +214,9 @@ def main() -> int:
     if not manager:
         print("WARN: LocalNotificationManager.java not found — skip patch", file=sys.stderr)
         return 0
+
+    install_receiver()
+    patch_plugin_manifest()
 
     gradle = find_gradle()
     if gradle and patch_gradle(gradle):

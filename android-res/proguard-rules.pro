@@ -21,8 +21,8 @@
 -keep class com.capacitorjs.plugins.** { *; }
 -keep class ee.forgr.capacitor.** { *; }
 
-# ── NutriPlan notification action receiver ───────────────────────────────────
--keep class com.biocode.nutriplan.GameNotificationActionReceiver { *; }
+# ── NutriPlan notification action receiver (patched into local-notifications plugin) ─
+-keep class com.capacitorjs.plugins.localnotifications.GameNotificationActionReceiver { *; }
 
 # ── General Android / Kotlin reflection safety ────────────────────────────────
 -keepattributes *Annotation*
