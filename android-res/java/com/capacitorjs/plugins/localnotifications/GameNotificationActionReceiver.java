@@ -1,4 +1,4 @@
-package com.biocode.nutriplan;
+package com.capacitorjs.plugins.localnotifications;
 
 import android.app.NotificationManager;
 import android.content.BroadcastReceiver;
@@ -9,14 +9,12 @@ import android.os.Build;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.os.VibratorManager;
-import com.capacitorjs.plugins.localnotifications.LocalNotificationManager;
-import com.capacitorjs.plugins.localnotifications.NotificationStorage;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
- * Handles gamification notification action taps without launching the WebView.
- * Queues answers in Capacitor Preferences storage; GameNotifier drains them on next app open.
+ * NutriPlan: handles gamification notification action taps without launching the WebView.
+ * Queues answers in Capacitor Preferences; GameNotifier drains them on next app open.
  */
 public class GameNotificationActionReceiver extends BroadcastReceiver {
 

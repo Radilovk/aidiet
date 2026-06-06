@@ -168,23 +168,6 @@ jobs:
 
           npx cap sync android
           python3 android-res/patch-local-notifications.py
-          # NutriPlan: silent notification action receiver (no Activity launch on button tap)
-          mkdir -p android/app/src/main/java/com/biocode/nutriplan
-          cp android-res/java/com/biocode/nutriplan/GameNotificationActionReceiver.java \
-            android/app/src/main/java/com/biocode/nutriplan/
-          python3 - <<'PY_RECEIVER'
-          from pathlib import Path
-          manifest = Path("android/app/src/main/AndroidManifest.xml")
-          text = manifest.read_text()
-          receiver = (
-              '        <receiver android:name="com.biocode.nutriplan.GameNotificationActionReceiver" '
-              'android:exported="false" />\n'
-          )
-          if "GameNotificationActionReceiver" not in text:
-              text = text.replace("<application", receiver + "\n    <application", 1)
-              manifest.write_text(text)
-              print("AndroidManifest.xml: GameNotificationActionReceiver registered.")
-          PY_RECEIVER
           # Remove Capacitor-generated ic_launcher_background.xml to avoid duplicate with colors.xml
           rm -f android/app/src/main/res/values/ic_launcher_background.xml
           MANIFEST="android/app/src/main/AndroidManifest.xml"
