@@ -398,14 +398,17 @@
         function closeFlow() {
             if (closing) return;
             closing = true;
+            document.documentElement.style.visibility = 'hidden';
+            document.documentElement.style.background = '#0A1A1A';
+
+            var gn = window.GameNotifier;
+            if (gn && typeof gn.exitAppSilently === 'function' && gn.exitAppSilently()) {
+                return;
+            }
+
             try { window.close(); } catch (_) {}
             if (window.history.length > 1) {
                 window.history.back();
-                return;
-            }
-            var gn = window.GameNotifier;
-            if (gn && typeof gn._dismissAfterSilentHeadUp === 'function') {
-                gn._dismissAfterSilentHeadUp();
                 return;
             }
             try {
@@ -477,10 +480,10 @@
                 setTimeout(closeFlow, 2200);
                 return;
             }
-            finishEncouragement(actionId, 900);
+            finishEncouragement(actionId, 700);
         }
         function finishEncouragement(actionId, closeMs) {
-            closeMs = closeMs || 1200;
+            closeMs = closeMs || 850;
             var enc = (window.GameNotifier && typeof window.GameNotifier.encouragementForAction === 'function')
                 ? window.GameNotifier.encouragementForAction(actionId)
                 : { title: 'Готово ✨', message: 'Записано.', confetti: 16 };

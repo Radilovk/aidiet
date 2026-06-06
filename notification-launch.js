@@ -1,7 +1,7 @@
 /**
  * Early native notification router for index.html.
- * Hides the app shell before first paint and redirects to quick-answer.html
- * so notification taps never flash the full NutriPlan UI.
+ * Body tap → quick-answer.html. Action taps are handled by GameNotificationActionReceiver
+ * (no Activity launch). This script only handles body taps and legacy fallbacks.
  */
 (function () {
     'use strict';
@@ -79,17 +79,21 @@
         location.replace(buildQuickAnswerUrl(type, recordKey));
     }
 
-    function minimizeAppAndExit() {
+    function exitAppNative() {
         if (revealTimer) clearTimeout(revealTimer);
         revealTimer = null;
+        if (window.GameNotifier && typeof window.GameNotifier.exitAppSilently === 'function') {
+            if (window.GameNotifier.exitAppSilently()) return;
+        }
         try {
             var plugins = cap.Plugins || {};
             var app = plugins.App;
             if (!app && typeof cap.registerPlugin === 'function') {
                 try { app = cap.registerPlugin('App'); } catch (_) {}
             }
-            if (app && typeof app.minimizeApp === 'function') {
-                app.minimizeApp().catch(function () {});
+            if (app && typeof app.exitApp === 'function') {
+                document.documentElement.style.visibility = 'hidden';
+                app.exitApp().catch(function () {});
                 return;
             }
         } catch (_) {}
@@ -106,13 +110,10 @@
                     recordKey: key
                 });
                 if (outcome && (outcome.saved || outcome.ack === 'skip')) {
-                    if (typeof window.GameNotifier.showSilentAck === 'function') {
-                        window.GameNotifier.showSilentAck(outcome.ack || actionId);
-                    }
                     if (typeof window.GameNotifier.notifyAnswerSaved === 'function') {
                         window.GameNotifier.notifyAnswerSaved(key);
                     }
-                    minimizeAppAndExit();
+                    exitAppNative();
                     return true;
                 }
             }
@@ -136,10 +137,10 @@
 
     function handleGameNotificationTap(type, recordKey, actionId) {
         if (actionId) {
+            // Legacy fallback: newer APK builds use BroadcastReceiver (no Activity launch).
             if (applySilentGameAction(type, recordKey, actionId)) return;
             queueGameNotificationAction(type, recordKey, actionId);
-            try { if (navigator.vibrate) navigator.vibrate([20, 30, 20]); } catch (_) {}
-            minimizeAppAndExit();
+            exitAppNative();
             return;
         }
         redirectToQuickAnswer(type, recordKey);
@@ -177,8 +178,7 @@
 
     function scheduleRevealFallback() {
         if (revealTimer) clearTimeout(revealTimer);
-        // Wait for Capacitor to deliver cold-start notification action before showing shell.
-        revealTimer = setTimeout(revealApp, 900);
+        revealTimer = setTimeout(revealApp, 600);
     }
 
     function bindListeners(attempt) {

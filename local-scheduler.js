@@ -109,6 +109,7 @@ const GameNotifier = {
     _capacitor: null,   // @capacitor/local-notifications handle
     _listenersBound: false,
     _pwaResumeBound: false,
+    _nativeDrainBound: false,
     _initialized: false,
     _initPromise: null,
 
@@ -190,7 +191,7 @@ const GameNotifier = {
                 localStorage.setItem(this.LS_SCHEDULED_VERSION_KEY, String(currentVersion));
             }
 
-            this.drainPendingLaunchActions();
+            await this.drainAllPendingActions();
 
             this._initialized = true;
             console.log('[GameNotifier] Ready.');
@@ -382,8 +383,51 @@ const GameNotifier = {
     },
 
     _capacitorActionTitle(title) {
-        const t = String(title || '').trim();
-        return t.length > 22 ? t.slice(0, 22) + '…' : t;
+        const compact = {
+            'Напрегнат': 'Напрег.',
+            'Позитивен': 'Позит.',
+            'Умерена': 'Умер.',
+            'Пропуск': 'Проп.'
+        };
+        const raw = String(title || '').trim();
+        const t = compact[raw] || raw;
+        return t.length > 14 ? t.slice(0, 14) : t;
+    },
+
+    _getCapacitorPlugin(name) {
+        try {
+            const cap = window.Capacitor ||
+                (window.top !== window && window.top && window.top.Capacitor) ||
+                null;
+            if (!cap) return null;
+            let plugin = cap.Plugins && cap.Plugins[name];
+            if (!plugin && typeof cap.registerPlugin === 'function') {
+                try { plugin = cap.registerPlugin(name); } catch (_) {}
+            }
+            return plugin || null;
+        } catch (_) {
+            return null;
+        }
+    },
+
+    /** Close APK task after silent notification handling — no background flash. */
+    exitAppSilently() {
+        try {
+            if (typeof document !== 'undefined' && document.documentElement) {
+                document.documentElement.style.visibility = 'hidden';
+                document.documentElement.style.background = '#0A1A1A';
+            }
+            const app = this._getCapacitorPlugin('App');
+            if (app && typeof app.exitApp === 'function') {
+                app.exitApp().catch(() => {});
+                return true;
+            }
+            if (app && typeof app.minimizeApp === 'function') {
+                app.minimizeApp().catch(() => {});
+                return true;
+            }
+        } catch (_) {}
+        return false;
     },
 
     _ensureText(value, fallback) {
@@ -521,16 +565,54 @@ const GameNotifier = {
             if (!list.length) return 0;
             list.forEach((item) => {
                 const outcome = this.handleNotificationAction(item);
-                if (outcome.saved || outcome.ack === 'skip') applied += 1;
+                if (outcome.saved || outcome.ack === 'skip') {
+                    applied += 1;
+                    this.notifyAnswerSaved(item.recordKey);
+                }
             });
             localStorage.removeItem(this.LS_PENDING_ACTIONS_KEY);
         } catch (_) {}
         return applied;
     },
 
+    /**
+     * Drain answers queued by GameNotificationActionReceiver (Capacitor Preferences).
+     * Runs on every app open so heads-up taps never need to launch the WebView.
+     */
+    async _drainNativePendingActions() {
+        if (!this._capacitor) return 0;
+        let applied = 0;
+        try {
+            const Preferences = this._getCapacitorPlugin('Preferences');
+            if (!Preferences || typeof Preferences.get !== 'function') return 0;
+
+            const result = await Preferences.get({ key: this.LS_PENDING_ACTIONS_KEY });
+            const value = result && result.value;
+            if (!value) return 0;
+
+            let list;
+            try { list = JSON.parse(value); } catch (_) { list = []; }
+            await Preferences.remove({ key: this.LS_PENDING_ACTIONS_KEY });
+            if (!Array.isArray(list) || !list.length) return 0;
+
+            list.forEach((item) => {
+                const outcome = this.handleNotificationAction(item);
+                if (outcome.saved || outcome.ack === 'skip') {
+                    applied += 1;
+                    this.notifyAnswerSaved(item.recordKey);
+                }
+            });
+        } catch (e) {
+            console.warn('[GameNotifier] Native pending drain:', e);
+        }
+        return applied;
+    },
+
     drainAllPendingActions() {
-        const fromLs = this.drainPendingLaunchActions();
-        return this.drainPendingSwActions().then((fromIdb) => fromLs + fromIdb);
+        return this._drainNativePendingActions().then((fromNative) => {
+            const fromLs = this.drainPendingLaunchActions();
+            return this.drainPendingSwActions().then((fromIdb) => fromNative + fromLs + fromIdb);
+        });
     },
 
     async drainPendingSwActions() {
@@ -797,7 +879,26 @@ const GameNotifier = {
                 this._handleCapacitorNotificationAction(action);
             });
         }
+        this._bindCapacitorNativePendingDrain();
         this._listenersBound = true;
+    },
+
+    _bindCapacitorNativePendingDrain() {
+        if (this._nativeDrainBound || typeof document === 'undefined') return;
+        this._nativeDrainBound = true;
+        const drain = () => {
+            if (!this._capacitor) return;
+            this._drainNativePendingActions().catch(() => {});
+        };
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') drain();
+        });
+        const app = this._getCapacitorPlugin('App');
+        if (app && typeof app.addListener === 'function') {
+            app.addListener('appStateChange', (state) => {
+                if (state && state.isActive) drain();
+            });
+        }
     },
 
     _handleCapacitorNotificationAction(action) {
@@ -837,23 +938,8 @@ const GameNotifier = {
     },
 
     _dismissAfterSilentHeadUp() {
+        if (this.exitAppSilently()) return;
         try {
-            const onQuickAnswer = typeof location !== 'undefined' &&
-                /quick-answer\.html/i.test(location.pathname || '');
-            if (!onQuickAnswer && typeof document !== 'undefined' && document.documentElement) {
-                document.documentElement.style.visibility = 'hidden';
-            }
-            const cap = window.Capacitor || (window.top && window.top.Capacitor);
-            if (cap && cap.Plugins) {
-                let app = cap.Plugins.App;
-                if (!app && typeof cap.registerPlugin === 'function') {
-                    try { app = cap.registerPlugin('App'); } catch (_) {}
-                }
-                if (app && typeof app.minimizeApp === 'function') {
-                    app.minimizeApp().catch(function () {});
-                    return;
-                }
-            }
             if (typeof window !== 'undefined' && window.history.length > 1) {
                 window.history.back();
             }

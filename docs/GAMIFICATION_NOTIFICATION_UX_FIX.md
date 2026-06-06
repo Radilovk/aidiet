@@ -1,5 +1,20 @@
 # Gamification notification UX — root causes (2026-06)
 
+## Heads-up action tap flashes app / leaves it in background
+
+**Cause:** Capacitor routes every notification action through `PendingIntent.getActivity()`, which always starts the WebView.
+
+**Fix:** `GameNotificationActionReceiver` (BroadcastReceiver) handles action taps in the background, queues the answer in Capacitor `Preferences`, dismisses the notification, and vibrates. `GameNotifier.drainAllPendingActions()` applies queued answers on the next app open.
+
+## Some action buttons pale / not clickable
+
+**Causes:**
+
+1. Colliding `PendingIntent` request codes (`id + actionId.hashCode()`).
+2. Activity-based intents disabled when the app process is not warm.
+
+**Fix:** Unique request codes per action index + BroadcastReceiver intents (no Activity required).
+
 ## Heads-up shows arrows instead of „Да / Не / …”
 
 **Cause:** `android-res/patch-local-notifications.py` replaced Capacitor’s transparent action icon with `android.R.drawable.ic_menu_send` (send arrow). On most Android OEM heads-up layouts, notification actions show **only the icon**, not the label.
