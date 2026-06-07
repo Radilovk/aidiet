@@ -410,9 +410,13 @@ const GameNotifier = {
         }
     },
 
-    /** Close APK task after silent notification handling — no background flash. */
+    /** Close APK task completely — no background process in recents. */
     exitAppSilently() {
         try {
+            if (typeof window !== 'undefined' && window.NutriPlanPlatform &&
+                typeof window.NutriPlanPlatform.exitNativeApp === 'function') {
+                if (window.NutriPlanPlatform.exitNativeApp()) return true;
+            }
             if (typeof document !== 'undefined' && document.documentElement) {
                 document.documentElement.style.visibility = 'hidden';
                 document.documentElement.style.background = '#0A1A1A';
@@ -420,10 +424,6 @@ const GameNotifier = {
             const app = this._getCapacitorPlugin('App');
             if (app && typeof app.exitApp === 'function') {
                 app.exitApp().catch(() => {});
-                return true;
-            }
-            if (app && typeof app.minimizeApp === 'function') {
-                app.minimizeApp().catch(() => {});
                 return true;
             }
         } catch (_) {}

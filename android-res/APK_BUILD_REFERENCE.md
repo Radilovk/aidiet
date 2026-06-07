@@ -102,6 +102,7 @@ Android WebView блокира cross-origin API заявките (`/api/*`) къ
   - инсталира `GameNotificationActionReceiver` в `@capacitor/local-notifications` (НЕ в app manifest)
   - регистрира receiver в plugin `AndroidManifest.xml` **вътре в `<application>`**
   - action бутоните → `BroadcastReceiver` (без стартиране на WebView)
+- `android-res/patch-app-exit.py` — `App.exitApp()` → `finishAndRemoveTask()` (без фонов процес в recents)
 - AndroidManifest.xml (app) получава следните permissions (добавени идемпотентно):
   - `POST_NOTIFICATIONS`
   - `SCHEDULE_EXACT_ALARM`

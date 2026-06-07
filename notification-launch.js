@@ -82,21 +82,12 @@
     function exitAppNative() {
         if (revealTimer) clearTimeout(revealTimer);
         revealTimer = null;
+        if (window.NutriPlanPlatform && typeof window.NutriPlanPlatform.exitNativeApp === 'function') {
+            if (window.NutriPlanPlatform.exitNativeApp()) return;
+        }
         if (window.GameNotifier && typeof window.GameNotifier.exitAppSilently === 'function') {
             if (window.GameNotifier.exitAppSilently()) return;
         }
-        try {
-            var plugins = cap.Plugins || {};
-            var app = plugins.App;
-            if (!app && typeof cap.registerPlugin === 'function') {
-                try { app = cap.registerPlugin('App'); } catch (_) {}
-            }
-            if (app && typeof app.exitApp === 'function') {
-                document.documentElement.style.visibility = 'hidden';
-                app.exitApp().catch(function () {});
-                return;
-            }
-        } catch (_) {}
         document.documentElement.style.visibility = 'hidden';
     }
 
