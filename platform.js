@@ -73,8 +73,33 @@
     function getPlugin(name) {
         try {
             var cap = getCap();
-            return (cap && cap.Plugins && cap.Plugins[name]) || null;
+            if (!cap) return null;
+            var plugin = cap.Plugins && cap.Plugins[name];
+            if (!plugin && typeof cap.registerPlugin === 'function') {
+                try { plugin = cap.registerPlugin(name); } catch (_) {}
+            }
+            return plugin || null;
         } catch (_) { return null; }
+    }
+
+    /**
+     * Fully close native APK after notification/quick-answer flows.
+     * Uses finishAndRemoveTask (patched App plugin) — never leaves a background task.
+     */
+    function exitNativeApp() {
+        if (!isAPK()) return false;
+        try {
+            if (document.documentElement) {
+                document.documentElement.style.visibility = 'hidden';
+                document.documentElement.style.background = '#0A1A1A';
+            }
+            var app = getPlugin('App');
+            if (app && typeof app.exitApp === 'function') {
+                app.exitApp().catch(function () {});
+                return true;
+            }
+        } catch (_) {}
+        return false;
     }
 
     // ── Навигационна лента (APK-only) ──────────────────────────────────────
@@ -144,6 +169,7 @@
         isHuawei: isHuawei,
         getMode: getMode,
         getPlugin: getPlugin,
+        exitNativeApp: exitNativeApp,
         setNavBar: setNavBar,
         vibrate: vibrate,
         apply: apply

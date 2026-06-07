@@ -168,6 +168,7 @@ jobs:
 
           npx cap sync android
           python3 android-res/patch-local-notifications.py
+          python3 android-res/patch-app-exit.py
           # Safety: <receiver> must live inside <application>, never as a direct <manifest> child
           python3 - <<'PY_MANIFEST_SANITIZE'
           import re

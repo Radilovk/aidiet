@@ -53,7 +53,7 @@
     <!-- Detect embedded iframe mode before first paint (enables haptic relay to shell via postMessage) -->
     <script>(function(){if(new URLSearchParams(window.location.search).has('embedded')){document.documentElement.setAttribute('data-embedded-tab','1');}})();</script>
     <!-- In shellChat mode: hide everything except #chatWindow so only the chat drawer shows -->
-    <style>html[data-shell-chat="1"] body{background:transparent!important;overflow:hidden!important;opacity:1!important;}html[data-shell-chat="1"] body>*:not(#chatWindow){display:none!important;}html[data-shell-chat="1"] #chatWindow{position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:0!important;height:100%!important;max-height:none!important;border-radius:16px 16px 0 0!important;}</style>
+    <style>html[data-shell-chat="1"] body{background:transparent!important;overflow:hidden!important;opacity:1!important;}html[data-shell-chat="1"] body>*:not(#chatWindow){display:none!important;}html[data-shell-chat="1"] #chatWindow{position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;height:100%!important;max-height:none!important;border-radius:0!important;}</style>
     <style>
         :root {
             --primary-red: #0D9488;
@@ -5978,6 +5978,42 @@
         });
 
         // --- Chat Logic ---
+        function scrollChatToBottom() {
+            const msgs = document.getElementById('chatMessages');
+            if (!msgs) return;
+            requestAnimationFrame(function() {
+                msgs.scrollTop = msgs.scrollHeight;
+                const last = msgs.lastElementChild;
+                if (last && typeof last.scrollIntoView === 'function') {
+                    try { last.scrollIntoView({ block: 'end', behavior: 'auto' }); } catch (_) {}
+                }
+            });
+        }
+
+        function syncChatViewport() {
+            const win = document.getElementById('chatWindow');
+            if (!win) return;
+            if (window.visualViewport) {
+                const vv = window.visualViewport;
+                win.style.top = vv.offsetTop + 'px';
+                win.style.left = vv.offsetLeft + 'px';
+                win.style.width = vv.width + 'px';
+                win.style.height = vv.height + 'px';
+                win.style.bottom = 'auto';
+                win.style.right = 'auto';
+                win.style.maxHeight = 'none';
+            } else {
+                win.style.top = '0';
+                win.style.left = '0';
+                win.style.right = '0';
+                win.style.bottom = '0';
+                win.style.width = '100%';
+                win.style.height = '100%';
+                win.style.maxHeight = 'none';
+            }
+            scrollChatToBottom();
+        }
+
         function openChat() {
             // In regular embedded tab (not shellChat overlay) delegate to the shell's shared chat
             if (document.documentElement.getAttribute('data-embedded-tab') === '1' &&
@@ -5999,19 +6035,21 @@
             chatWindow.id = 'chatWindow';
             chatWindow.style.cssText = `
                 position: fixed;
-                bottom: 0;
+                top: 0;
                 left: 0;
                 right: 0;
+                bottom: 0;
                 width: 100%;
-                height: 70vh;
-                max-height: 600px;
+                height: 100%;
+                max-height: none;
                 background: var(--card-bg);
-                border-radius: 16px 16px 0 0;
-                box-shadow: 0 -5px 40px rgba(0,0,0,0.3);
+                border-radius: 0;
+                box-shadow: none;
                 display: flex;
                 flex-direction: column;
-                z-index: 999;
+                z-index: 9999;
                 animation: slideUp 0.3s ease;
+                overflow: hidden;
             `;
 
             const modificationButtonHtml = modificationModeEnabled
@@ -6047,9 +6085,9 @@
                         </button>
                     </div>
                 </div>
-                <div id="chatMessages" style="flex: 1; overflow-y: auto; padding: 15px; background: var(--bg-color);">
+                <div id="chatMessages" style="flex: 1; min-height: 0; overflow-y: auto; padding: 15px; background: var(--bg-color); -webkit-overflow-scrolling: touch;">
                 </div>
-                <div style="padding: 15px; border-top: 1px solid var(--text-light); background: var(--card-bg); border-radius: 0 0 16px 16px;">
+                <div id="chatInputBar" style="flex-shrink: 0; padding: 15px; padding-bottom: calc(15px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--text-light); background: var(--card-bg);">
                     <div style="display: flex; gap: 10px;">
                         <input type="text" id="chatInput" placeholder="Напишете съобщение..." 
                             style="flex: 1; padding: 10px 15px; border: 1px solid var(--text-light); border-radius: 20px; outline: none; font-size: 0.9rem; background: var(--card-bg); color: var(--text-dark);"
@@ -6089,58 +6127,40 @@
                     demoNotice.className = 'demo-mode-notice';
                     demoNotice.innerHTML = `<i class="fas fa-info-circle"></i> <strong>Демо режим:</strong> Системата е в демо режим и позволява до ${MAX_DAILY_CHAT_MESSAGES} чат заявки на ден. Оставащи днес: <strong>${remaining}</strong>.`;
                     chatMessages.appendChild(demoNotice);
-                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                    scrollChatToBottom();
                 }
             }
 
-            // Lift panel above software keyboard
+            // Keep chat viewport aligned with visual viewport (software keyboard)
             if (window.visualViewport) {
-                const _vpHandler = () => {
-                    const win = document.getElementById('chatWindow');
-                    if (!win) return;
-                    const kbHeight = Math.max(0,
-                        window.innerHeight - window.visualViewport.offsetTop - window.visualViewport.height
-                    );
-                    win.style.bottom = kbHeight + 'px';
-                    if (kbHeight > 0) {
-                        win.style.maxHeight = Math.min(window.visualViewport.height - 10, 600) + 'px';
-                        const msgs = document.getElementById('chatMessages');
-                        if (msgs) msgs.scrollTop = msgs.scrollHeight;
-                    } else {
-                        win.style.maxHeight = '';
-                    }
-                };
+                const _vpHandler = syncChatViewport;
                 window.visualViewport.addEventListener('resize', _vpHandler);
                 window.visualViewport.addEventListener('scroll', _vpHandler);
                 chatWindow._vpHandler = _vpHandler;
             } else {
-                // Fallback for browsers without visualViewport (e.g. very old Firefox/Safari)
                 const _baseH = window.innerHeight;
-                const _resizeHandler = () => {
+                const _resizeHandler = function() {
                     const win = document.getElementById('chatWindow');
                     if (!win) return;
                     const kbHeight = Math.max(0, _baseH - window.innerHeight);
                     win.style.bottom = kbHeight + 'px';
-                    if (kbHeight > 0) {
-                        win.style.maxHeight = Math.min(window.innerHeight - 10, 600) + 'px';
-                        const msgs = document.getElementById('chatMessages');
-                        if (msgs) msgs.scrollTop = msgs.scrollHeight;
-                    } else {
-                        win.style.maxHeight = '';
-                    }
+                    win.style.height = Math.max(0, window.innerHeight - kbHeight) + 'px';
+                    scrollChatToBottom();
                 };
                 window.addEventListener('resize', _resizeHandler);
                 chatWindow._resizeHandler = _resizeHandler;
             }
+            syncChatViewport();
 
-            // On mobile, trigger viewport adjustment when user taps the input
             const chatInput = document.getElementById('chatInput');
             if (chatInput) {
-                chatInput.addEventListener('focus', () => {
-                    setTimeout(() => {
-                        if (chatWindow._vpHandler) chatWindow._vpHandler();
-                        else if (chatWindow._resizeHandler) chatWindow._resizeHandler();
-                    }, 300);
+                chatInput.addEventListener('focus', function() {
+                    [80, 180, 320, 520].forEach(function(ms) {
+                        setTimeout(syncChatViewport, ms);
+                    });
+                });
+                chatInput.addEventListener('input', function() {
+                    scrollChatToBottom();
                 });
             }
 
@@ -6828,7 +6848,7 @@
                     </button>
                 `;
                 chatMessages.appendChild(undoBtn);
-                chatMessages.scrollTop = chatMessages.scrollHeight;
+                scrollChatToBottom();
             }
         }
         
@@ -6889,7 +6909,7 @@
                 bubble.classList.add('chat-typing');
                 messageDiv.appendChild(bubble);
                 chatMessages.appendChild(messageDiv);
-                chatMessages.scrollTop = chatMessages.scrollHeight;
+                scrollChatToBottom();
 
                 let i = 0;
                 let completed = false;
@@ -6901,7 +6921,7 @@
                     unregisterFinalizer();
                     bubble.classList.remove('chat-typing');
                     bubble.innerHTML = formattedMessage;
-                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                    scrollChatToBottom();
                 };
                 const unregisterFinalizer = registerTypingFinalizer(finalizeTyping);
                 function tick() {
@@ -6916,7 +6936,7 @@
                         const ch = message[i++];
                         bubble.textContent += ch;
                         hapticCtrl.trigger(ch);
-                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                        scrollChatToBottom();
                         if (i < message.length) {
                             scheduleTypingStep(tick, charDelay);
                         } else {
@@ -6931,7 +6951,7 @@
                 bubble.innerHTML = formattedMessage;
                 messageDiv.appendChild(bubble);
                 chatMessages.appendChild(messageDiv);
-                chatMessages.scrollTop = chatMessages.scrollHeight;
+                scrollChatToBottom();
             }
 
             // Save to chat history if requested
@@ -7019,7 +7039,7 @@
             `;
 
             chatMessages.appendChild(typingDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+            scrollChatToBottom();
 
             return id;
         }

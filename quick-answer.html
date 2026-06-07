@@ -401,6 +401,9 @@
             document.documentElement.style.visibility = 'hidden';
             document.documentElement.style.background = '#0A1A1A';
 
+            if (window.NutriPlanPlatform && typeof window.NutriPlanPlatform.exitNativeApp === 'function') {
+                if (window.NutriPlanPlatform.exitNativeApp()) return;
+            }
             var gn = window.GameNotifier;
             if (gn && typeof gn.exitAppSilently === 'function' && gn.exitAppSilently()) {
                 return;
@@ -411,9 +414,15 @@
                 window.history.back();
                 return;
             }
-            try {
-                document.documentElement.style.opacity = '0';
-            } catch (_) {}
+        }
+
+        function exitAfterAnswer() {
+            vibrate([20, 30, 20]);
+            if (window.NutriPlanPlatform && window.NutriPlanPlatform.isAPK && window.NutriPlanPlatform.isAPK()) {
+                closeFlow();
+                return;
+            }
+            finishEncouragement(null, 500);
         }
         function whenGameNotifierReady(cb, attempt) {
             attempt = attempt || 0;
@@ -477,13 +486,13 @@
                     '<div class="footer-actions"><button class="solid" id="openPlanBtn">Отвори приложението</button></div>'
                 );
                 document.getElementById('openPlanBtn').addEventListener('click', viewPlan);
-                setTimeout(closeFlow, 2200);
+                setTimeout(closeFlow, 1200);
                 return;
             }
-            finishEncouragement(actionId, 700);
+            exitAfterAnswer();
         }
         function finishEncouragement(actionId, closeMs) {
-            closeMs = closeMs || 850;
+            closeMs = closeMs || 500;
             var enc = (window.GameNotifier && typeof window.GameNotifier.encouragementForAction === 'function')
                 ? window.GameNotifier.encouragementForAction(actionId)
                 : { title: 'Готово ✨', message: 'Записано.', confetti: 16 };
@@ -509,11 +518,11 @@
             });
             if (!outcome.saved && outcome.ack !== 'skip') {
                 renderAlreadyAnswered('Вече е записано', 'За ' + dateLabel(recordKey) + ' вече има отговор.');
-                setTimeout(closeFlow, 1400);
+                setTimeout(closeFlow, 900);
                 return;
             }
             if (typeof gn.notifyAnswerSaved === 'function') gn.notifyAnswerSaved(recordKey);
-            finishEncouragement(actionId);
+            exitAfterAnswer();
         }
         function renderAlreadyAnswered(title, message) {
             render(
