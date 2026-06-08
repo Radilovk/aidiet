@@ -1066,7 +1066,7 @@ const GameNotifier = {
     _isQuestionAnswered(recordKey, notifType) {
         try {
             const log = JSON.parse(localStorage.getItem('notificationResponses') || '[]');
-            if (log.some((e) => e.date === recordKey && e.type === notifType)) return true;
+            if (log.some((e) => e.date === recordKey && e.type === notifType && e.choice !== 'skip')) return true;
         } catch (_) {}
         const meta = this._slotMetaByType(notifType);
         if (!meta) return false;
