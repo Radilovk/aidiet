@@ -5571,6 +5571,7 @@
                 resetPlanViewToToday();
             }
             consumePendingPlanUiAction();
+            if (typeof checkOpenAppPrompts === 'function') checkOpenAppPrompts();
         });
 
         window.addEventListener('NUTRIPLAN_SHELL_CHAT_OPEN', function() {
@@ -5603,6 +5604,7 @@
                     // to 24 hours) so schedule changes from the admin panel reach all users.
                     window.GameNotifier.refreshConfig().catch(function() {});
                 }
+                if (typeof checkOpenAppPrompts === 'function') checkOpenAppPrompts();
             }
         });
         window.addEventListener('pagehide', function() {

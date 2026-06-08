@@ -3227,3 +3227,30 @@ Logout бутонът и избраният от потребителя ават
 
 **Действия:**
 - В `.github/workflows/build-apk.yml` към генерирания списък с `permissions` бе добавен редът `<uses-permission android:name="android.permission.USE_EXACT_ALARM" />`. Това предотвратява срива (SecurityException) при Android 14+ устройства и позволява успешното насрочване и получаване на нотификациите.
+
+
+## 2026-06-08 — Поправки на notification flow: неотговорени въпроси
+
+**Задача:** Разглеждане на notification системата. Поправка на 3 конкретни пропуска, така че неотговорени въпроси от нотификации да се показват при отваряне на приложението.
+
+**Изяснено поведение (одобрено от потребителя):**
+- Tap на нотификация → `quick-answer.html` (отделен прозорец) — правилно, остава така.
+- При стартиране/отваряне на приложението → показват се неотговорените въпроси за същия ден в in-app bubble flow, едно след друго, до пълното им отговаряне.
+
+**Потвърдени пропуски:**
+
+1. **`_isQuestionAnswered()` броеше `skip` за реален отговор** — след натискане на "Пропуск" от нотификационен action бутон, `notificationResponses` записваше `{choice: 'skip'}` и `_isQuestionAnswered()` връщаше `true`. Следващото отваряне на `quick-answer.html` показваше "Вече е записано" вместо въпроса.
+
+2. **`visibilitychange` (видима) не извикваше `checkOpenAppPrompts()`** — в APK, WebView-ът остава жив; при връщане на приложението на преден план (след игнорирана нотификация) въпросите не се показваха, защото `checkOpenAppPrompts()` се вика само при първоначалното зареждане.
+
+3. **`NUTRIPLAN_TAB_ACTIVATED` не извикваше `checkOpenAppPrompts()`** — при превключване към план таба в SPA shell неотговорените въпроси не се показваха.
+
+**Направено:**
+1. `local-scheduler.js` — В `_isQuestionAnswered()` промяна на условието за `notificationResponses` да изключва записи с `choice === 'skip'` (само реални отговори се броят).
+2. `plan.html` — В `visibilitychange` handler (видима ветка) добавен `checkOpenAppPrompts()` — при всяко връщане на foreground се проверяват и показват неотговорени въпроси.
+3. `plan.html` — В `NUTRIPLAN_TAB_ACTIVATED` handler добавен `checkOpenAppPrompts()` — при превключване към Plan таба се проверяват неотговорени въпроси.
+
+**Без промяна:**
+- `quick-answer.html` flow — остава непроменен (самостоятелен прозорец за бързи отговори от нотификации).
+- `sw.js`, `notification-launch.js` — непроменени.
+- `checkOpenAppPrompts()` вече има вградени guards (`_openPromptPending`, `_queueDepth > 0`, `buildDayQueue` проверява `gameData` директно) — безопасно е да се вика многократно.
