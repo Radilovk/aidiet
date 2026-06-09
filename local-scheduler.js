@@ -91,6 +91,9 @@ const GameNotifier = {
         { type: 'evening_water',    copyKey: 'eveningWater',    actionsKey: 'eveningWaterActions',    actionTypeKey: 'EVENING_WATER_ACTION_TYPE_ID',    idBase: 2400, defaultOffsetMin: 10, saveKind: 'waterIntake' }
     ],
 
+    /** Canonical order for same-day catch-up queue (app open → quick-answer chain). */
+    QUESTION_TYPE_ORDER: ['morning_check', 'evening_activity', 'evening_balance', 'evening_water'],
+
     MORNING_META: {
         type: 'morning_check',
         timeKey: 'morningTime',
@@ -1618,6 +1621,80 @@ const GameNotifier = {
             console.warn('[GameNotifier] Quick answer save failed:', e);
             return false;
         }
+    },
+
+    _notificationSlotTsForDate(recordKey, notifType) {
+        const key = this._normalizeRecordKey(recordKey);
+        const cfg = this.normalizeConfig(this._getConfig());
+        let timeStr;
+        if (notifType === 'morning_check') {
+            timeStr = cfg.morningTime || '07:00';
+        } else {
+            const slot = this._getEveningSlots(cfg).find((s) => s.type === notifType);
+            if (!slot) return null;
+            timeStr = slot.time;
+        }
+        const parts = key.split('-').map(Number);
+        const [h, m] = timeStr.split(':').map(Number);
+        const d = new Date(parts[0], parts[1] - 1, parts[2]);
+        d.setHours(h, m, 0, 0);
+        return d.getTime();
+    },
+
+    _hasNotificationSlotPassed(recordKey, notifType) {
+        const ts = this._notificationSlotTsForDate(recordKey, notifType);
+        return ts != null && Date.now() >= ts;
+    },
+
+    /**
+     * Unanswered gamification questions for a calendar day whose notification
+     * slot has already fired (ignored / opened-without-answer catch-up).
+     */
+    getUnansweredTypesForDate(recordKey, options) {
+        const opts = options || {};
+        const requireSlotPassed = opts.requireSlotPassed !== false;
+        const key = this._normalizeRecordKey(recordKey);
+        const out = [];
+        this.QUESTION_TYPE_ORDER.forEach((type) => {
+            if (this._isQuestionAnswered(key, type)) return;
+            if (requireSlotPassed && !this._hasNotificationSlotPassed(key, type)) return;
+            out.push(type);
+        });
+        return out;
+    },
+
+    getCatchUpTypesForToday() {
+        return this.getUnansweredTypesForDate(this._dateKeyForTimestamp(Date.now()), { requireSlotPassed: true });
+    },
+
+    buildCatchUpQuickAnswerUrl(recordKey, types) {
+        const key = this._normalizeRecordKey(recordKey);
+        const list = types || this.getUnansweredTypesForDate(key, { requireSlotPassed: true });
+        if (!list.length) return null;
+        return this._buildQuickAnswerUrl(list[0], {
+            date: key,
+            queue: '1',
+            source: 'app'
+        });
+    },
+
+    shouldRedirectCatchUpOnOpen() {
+        try {
+            if (!localStorage.getItem('dietPlan')) return false;
+        } catch (_) {
+            return false;
+        }
+        return this.getCatchUpTypesForToday().length > 0;
+    },
+
+    redirectToCatchUpIfNeeded() {
+        if (typeof window === 'undefined') return false;
+        const path = window.location.pathname || '';
+        if (path.indexOf('quick-answer') !== -1) return false;
+        const url = this.buildCatchUpQuickAnswerUrl(this._dateKeyForTimestamp(Date.now()));
+        if (!url) return false;
+        window.location.replace(String(url).replace(/^\//, ''));
+        return true;
     },
 
     _buildQuickAnswerUrl(type, params) {

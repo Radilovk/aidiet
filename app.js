@@ -333,6 +333,37 @@
         return window.GameNotifier.init().catch(function () { return false; });
     }
 
+    function initGameNotifierForCatchUp() {
+        if (!window.GameNotifier || typeof window.GameNotifier.init !== 'function') {
+            return Promise.resolve(false);
+        }
+        return window.GameNotifier.init().catch(function () { return false; });
+    }
+
+    function redirectCatchUpIfNeeded() {
+        var gn = window.GameNotifier;
+        if (!gn || typeof gn.redirectToCatchUpIfNeeded !== 'function') return false;
+        return gn.redirectToCatchUpIfNeeded();
+    }
+
+    function bindCatchUpOnResume() {
+        if (window.__nutriplanCatchUpResumeBound) return;
+        window.__nutriplanCatchUpResumeBound = true;
+        document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState !== 'visible') return;
+            var path = window.location.pathname || '';
+            if (path.indexOf('quick-answer') !== -1) return;
+            if (!params.has('app')) return;
+            initGameNotifierForCatchUp().then(function () {
+                if (window.GameNotifier && typeof window.GameNotifier.drainAllPendingActions === 'function') {
+                    return window.GameNotifier.drainAllPendingActions();
+                }
+            }).then(function () {
+                redirectCatchUpIfNeeded();
+            });
+        });
+    }
+
     function openQuickAnswerFromNotification(msg) {
         var gn = window.GameNotifier;
         var type = (msg && (msg.notificationType || msg.type)) || '';
@@ -868,6 +899,12 @@
             return;
         }
 
+        await initGameNotifierForCatchUp();
+        if (window.GameNotifier && typeof window.GameNotifier.drainAllPendingActions === 'function') {
+            await window.GameNotifier.drainAllPendingActions();
+        }
+        if (redirectCatchUpIfNeeded()) return;
+
         state.initialized = true;
         document.body.classList.add('spa-mode');
         shell.hidden = false;
@@ -924,6 +961,7 @@
 
     bindNativeNotificationBridge();
     bindSwNotificationBridge();
+    bindCatchUpOnResume();
     initApkGameNotifier();
 
     if (document.readyState === 'loading') {

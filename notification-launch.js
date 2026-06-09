@@ -65,11 +65,27 @@
         location.replace(planTarget);
     }
 
+    function whenGameNotifierReady(cb, attempt) {
+        attempt = attempt || 0;
+        if (window.GameNotifier && typeof window.GameNotifier.redirectToCatchUpIfNeeded === 'function') {
+            cb();
+            return;
+        }
+        if (attempt < 80) {
+            setTimeout(function () { whenGameNotifierReady(cb, attempt + 1); }, 50);
+            return;
+        }
+        cb();
+    }
+
     function revealApp() {
         if (revealTimer) clearTimeout(revealTimer);
         revealTimer = null;
         document.documentElement.style.visibility = '';
-        runDeferredPlanRedirect();
+        whenGameNotifierReady(function () {
+            if (window.GameNotifier && window.GameNotifier.redirectToCatchUpIfNeeded()) return;
+            runDeferredPlanRedirect();
+        });
     }
 
     function redirectToQuickAnswer(type, recordKey) {
