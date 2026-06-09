@@ -43,8 +43,7 @@ function getGameNotificationActions(type) {
   if (type === 'morning_check') {
     return [
       { action: 'sleep_yes', title: 'Да' },
-      { action: 'sleep_no', title: 'Не' },
-      { action: 'skip', title: 'Пропуск' }
+      { action: 'sleep_no', title: 'Не' }
     ];
   }
   if (type === 'evening_activity') {
@@ -64,8 +63,7 @@ function getGameNotificationActions(type) {
   if (type === 'evening_water' || type === 'evening_check') {
     return [
       { action: 'water_no', title: 'Не' },
-      { action: 'water_yes', title: 'Да' },
-      { action: 'skip', title: 'Пропуск' }
+      { action: 'water_yes', title: 'Да' }
     ];
   }
   return undefined;
@@ -255,7 +253,7 @@ self.addEventListener('push', (event) => {
       badge:             DEFAULT_BADGE,
       tag,
       vibrate:           [200, 100, 200],
-      requireInteraction: data.notificationType === 'morning_check',
+      requireInteraction: !!data.notificationType,
       actions:           getGameNotificationActions(data.notificationType),
       data:              {
         url: data.url || (data.notificationType ? buildQuickAnswerUrl(data.notificationType, { date: data.recordKey || '' }) : '/plan.html'),

@@ -333,6 +333,24 @@
         return window.GameNotifier.init().catch(function () { return false; });
     }
 
+    function runOpenAppCatchUpFlow() {
+        var gn = window.GameNotifier;
+        if (!gn || typeof gn.runOpenAppCatchUpFlow !== 'function') {
+            return Promise.resolve(false);
+        }
+        return gn.runOpenAppCatchUpFlow();
+    }
+
+    function bindCatchUpOnResume() {
+        if (window.__nutriplanCatchUpResumeBound) return;
+        window.__nutriplanCatchUpResumeBound = true;
+        document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState !== 'visible') return;
+            if (!params.has('app')) return;
+            runOpenAppCatchUpFlow();
+        });
+    }
+
     function openQuickAnswerFromNotification(msg) {
         var gn = window.GameNotifier;
         var type = (msg && (msg.notificationType || msg.type)) || '';
@@ -868,6 +886,8 @@
             return;
         }
 
+        if (await runOpenAppCatchUpFlow()) return;
+
         state.initialized = true;
         document.body.classList.add('spa-mode');
         shell.hidden = false;
@@ -924,6 +944,7 @@
 
     bindNativeNotificationBridge();
     bindSwNotificationBridge();
+    bindCatchUpOnResume();
     initApkGameNotifier();
 
     if (document.readyState === 'loading') {

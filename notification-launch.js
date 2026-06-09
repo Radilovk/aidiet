@@ -65,11 +65,33 @@
         location.replace(planTarget);
     }
 
+    function whenGameNotifierReady(cb, attempt) {
+        attempt = attempt || 0;
+        if (window.GameNotifier && typeof window.GameNotifier.runOpenAppCatchUpFlow === 'function') {
+            cb();
+            return;
+        }
+        if (attempt < 80) {
+            setTimeout(function () { whenGameNotifierReady(cb, attempt + 1); }, 50);
+            return;
+        }
+        cb();
+    }
+
     function revealApp() {
         if (revealTimer) clearTimeout(revealTimer);
         revealTimer = null;
         document.documentElement.style.visibility = '';
-        runDeferredPlanRedirect();
+        whenGameNotifierReady(function () {
+            var gn = window.GameNotifier;
+            if (gn && typeof gn.runOpenAppCatchUpFlow === 'function') {
+                gn.runOpenAppCatchUpFlow().then(function (redirected) {
+                    if (!redirected) runDeferredPlanRedirect();
+                });
+                return;
+            }
+            runDeferredPlanRedirect();
+        });
     }
 
     function redirectToQuickAnswer(type, recordKey) {
@@ -100,7 +122,7 @@
                     action: actionId,
                     recordKey: key
                 });
-                if (outcome && (outcome.saved || outcome.ack === 'skip')) {
+                if (outcome && outcome.saved) {
                     if (typeof window.GameNotifier.notifyAnswerSaved === 'function') {
                         window.GameNotifier.notifyAnswerSaved(key);
                     }

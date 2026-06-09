@@ -158,6 +158,68 @@
         if (typeof fn === 'function') fn.call(context || null, mode);
     }
 
+    // ── Notification catch-up (PWA / web / embedded tabs) ─────────────────
+
+    function shouldLoadNotificationCatchUp() {
+        try {
+            if (!localStorage.getItem('dietPlan')) return false;
+        } catch (_) {
+            return false;
+        }
+        var path = (global.location && global.location.pathname) || '';
+        if (path.indexOf('quick-answer') !== -1) return false;
+        if (/admin|notifications-test|questionnaire/i.test(path)) return false;
+        return true;
+    }
+
+    function runNotificationCatchUpIfReady() {
+        if (!shouldLoadNotificationCatchUp()) return Promise.resolve(false);
+        if (global.GameNotifier && typeof global.GameNotifier.runOpenAppCatchUpFlow === 'function') {
+            return global.GameNotifier.runOpenAppCatchUpFlow();
+        }
+        return new Promise(function (resolve) {
+            function runWhenReady() {
+                resolve(global.GameNotifier && global.GameNotifier.runOpenAppCatchUpFlow
+                    ? global.GameNotifier.runOpenAppCatchUpFlow()
+                    : false);
+            }
+            if (global.GameNotifier) {
+                runWhenReady();
+                return;
+            }
+            var tagged = document.querySelector('script[data-np-local-scheduler]');
+            var pending = document.querySelector('script[src*="local-scheduler.js"]');
+            var existing = tagged || pending;
+            if (existing) {
+                existing.addEventListener('load', runWhenReady, { once: true });
+                return;
+            }
+            var script = document.createElement('script');
+            script.src = './local-scheduler.js';
+            script.async = true;
+            script.setAttribute('data-np-local-scheduler', '1');
+            script.onload = runWhenReady;
+            script.onerror = function () { resolve(false); };
+            (document.head || document.documentElement).appendChild(script);
+        });
+    }
+
+    function bindNotificationCatchUpBootstrap() {
+        if (global.__nutriplanPlatformCatchUpBound) return;
+        global.__nutriplanPlatformCatchUpBound = true;
+        function schedule() { runNotificationCatchUpIfReady(); }
+        global.addEventListener('visibilitychange', function () {
+            if (global.document.visibilityState === 'visible') schedule();
+        });
+        if (global.document.readyState === 'loading') {
+            global.document.addEventListener('DOMContentLoaded', schedule, { once: true });
+        } else {
+            setTimeout(schedule, 80);
+        }
+    }
+
+    bindNotificationCatchUpBootstrap();
+
     // ── Публично API ────────────────────────────────────────────────────────
 
     global.NutriPlanPlatform = {
@@ -172,7 +234,8 @@
         exitNativeApp: exitNativeApp,
         setNavBar: setNavBar,
         vibrate: vibrate,
-        apply: apply
+        apply: apply,
+        runNotificationCatchUpIfReady: runNotificationCatchUpIfReady
     };
 
 }(typeof window !== 'undefined' ? window : this));

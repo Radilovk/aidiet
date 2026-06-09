@@ -272,6 +272,7 @@
         var auto = params.get('auto') || '';
         var recordKey = normalizeDateKey(params.get('date'));
         var notifType = normalizeNotifType(rawType);
+        var isCatchUpQueue = params.get('queue') === '1' || params.get('source') === 'app';
 
         var card = document.getElementById('card');
         var confettiLayer = document.getElementById('confetti');
@@ -283,8 +284,7 @@
                 body: 'Спахте ли добре тази нощ?',
                 actions: [
                     { id: 'sleep_yes', title: 'Да' },
-                    { id: 'sleep_no', title: 'Не' },
-                    { id: 'skip', title: 'Пропуск' }
+                    { id: 'sleep_no', title: 'Не' }
                 ]
             },
             evening_activity: {
@@ -310,8 +310,7 @@
                 body: 'Изпихте ли поне 2 л вода?',
                 actions: [
                     { id: 'water_no', title: 'Не' },
-                    { id: 'water_yes', title: 'Да' },
-                    { id: 'skip', title: 'Пропуск' }
+                    { id: 'water_yes', title: 'Да' }
                 ]
             }
         };
@@ -418,11 +417,70 @@
 
         function exitAfterAnswer() {
             vibrate([20, 30, 20]);
+            if (isCatchUpQueue) {
+                proceedCatchUpAfterAnswer(null);
+                return;
+            }
             if (window.NutriPlanPlatform && window.NutriPlanPlatform.isAPK && window.NutriPlanPlatform.isAPK()) {
                 closeFlow();
                 return;
             }
             finishEncouragement(null, 500);
+        }
+
+        function queueProgressHint() {
+            if (!isCatchUpQueue) return '';
+            var gn = window.GameNotifier;
+            if (!gn || !gn.QUESTION_TYPE_ORDER) return '';
+            var due = gn.QUESTION_TYPE_ORDER.filter(function(t) {
+                return gn._hasNotificationSlotPassed && gn._hasNotificationSlotPassed(recordKey, t);
+            });
+            var pending = gn.getUnansweredTypesForDate
+                ? gn.getUnansweredTypesForDate(recordKey, { requireSlotPassed: true })
+                : [];
+            if (due.length < 2) return '';
+            var current = due.length - pending.length + 1;
+            return 'Въпрос ' + current + ' от ' + due.length;
+        }
+
+        function proceedCatchUpAfterAnswer(actionId) {
+            var gn = window.GameNotifier;
+            var remaining = gn && typeof gn.getUnansweredTypesForDate === 'function'
+                ? gn.getUnansweredTypesForDate(recordKey, { requireSlotPassed: true })
+                : [];
+            if (remaining.length) {
+                var nextUrl = gn.buildCatchUpQuickAnswerUrl
+                    ? gn.buildCatchUpQuickAnswerUrl(recordKey, remaining)
+                    : null;
+                showQueueEncouragement(actionId, function() {
+                    if (nextUrl) {
+                        window.location.replace(String(nextUrl).replace(/^\//, ''));
+                    } else {
+                        renderQuestionScreen();
+                    }
+                });
+                return;
+            }
+            showQueueEncouragement(actionId, function() {
+                viewPlan();
+            });
+        }
+
+        function showQueueEncouragement(actionId, onDone) {
+            var enc = (window.GameNotifier && typeof window.GameNotifier.encouragementForAction === 'function')
+                ? window.GameNotifier.encouragementForAction(actionId)
+                : { title: 'Записано ✨', message: 'Отговорът е в анализа.', confetti: 12 };
+            vibrate([20, 30, 20]);
+            if (enc.confetti) makeConfetti(enc.confetti);
+            render(
+                '<div class="badge">✨ Записано</div>' +
+                '<div class="success">' +
+                    '<div class="success-icon">✓</div>' +
+                    '<h2>' + escapeHtml(enc.title) + '</h2>' +
+                    '<p>' + escapeHtml(enc.message) + '</p>' +
+                '</div>'
+            );
+            setTimeout(onDone, 420);
         }
         function whenGameNotifierReady(cb, attempt) {
             attempt = attempt || 0;
@@ -472,7 +530,7 @@
                     action: actionId,
                     recordKey: key
                 });
-                saved = !!(outcome && (outcome.saved || outcome.ack === 'skip'));
+                saved = !!(outcome && outcome.saved);
                 if (typeof gn.showSilentAck === 'function') gn.showSilentAck(actionId);
                 if (saved && typeof gn.notifyAnswerSaved === 'function') {
                     gn.notifyAnswerSaved(key);
@@ -517,6 +575,10 @@
                 recordKey: recordKey
             });
             if (!outcome.saved && outcome.ack !== 'skip') {
+                if (isCatchUpQueue) {
+                    proceedCatchUpAfterAnswer(null);
+                    return;
+                }
                 renderAlreadyAnswered('Вече е записано', 'За ' + dateLabel(recordKey) + ' вече има отговор.');
                 setTimeout(closeFlow, 900);
                 return;
@@ -555,6 +617,10 @@
                 return;
             }
             if (gn._isQuestionAnswered && gn._isQuestionAnswered(recordKey, notifType)) {
+                if (isCatchUpQueue) {
+                    proceedCatchUpAfterAnswer(null);
+                    return;
+                }
                 renderAlreadyAnswered('Вече е записано', 'За ' + dateLabel(recordKey) + ' вече има запазен отговор.');
                 setTimeout(closeFlow, 1200);
                 return;
@@ -570,7 +636,16 @@
                 return;
             }
             var badge = notifType.indexOf('evening_') === 0 ? '🌙 Вечер' : '🌅 Сутрин';
-            var choicesHtml = display.actions.map(function(action, idx) {
+            var progress = queueProgressHint();
+            var actions = display.actions;
+            if (isCatchUpQueue) {
+                actions = actions.filter(function(a) { return a.id !== 'skip'; });
+            }
+            if (!actions.length) {
+                render('<p class="subtitle">Липсва конфигурация за въпроса.</p>');
+                return;
+            }
+            var choicesHtml = actions.map(function(action) {
                 return '<button class="choice' + choiceTone(action.id) + '" type="button" data-action-id="' + escapeHtml(action.id) + '">' +
                     '<strong>' + escapeHtml(action.title) + '</strong>' +
                     '<span>Докоснете за запис</span>' +
@@ -578,12 +653,15 @@
             }).join('');
             render(
                 '<div class="badge">' + badge + ' • ' + escapeHtml(dateLabel(recordKey)) + '</div>' +
+                (progress ? '<p class="inline-note">' + escapeHtml(progress) + '</p>' : '') +
                 '<h1 class="title">' + escapeHtml(display.body) + '</h1>' +
                 '<p class="subtitle">' + escapeHtml(display.title) + '</p>' +
                 '<div class="choices" id="choices">' + choicesHtml + '</div>' +
-                '<div class="footer-actions">' +
-                    '<button type="button" class="ghost" id="openPlanBtn">Отвори приложението</button>' +
-                '</div>'
+                (isCatchUpQueue ? '' : (
+                    '<div class="footer-actions">' +
+                        '<button type="button" class="ghost" id="openPlanBtn">Отвори приложението</button>' +
+                    '</div>'
+                ))
             );
             Array.prototype.forEach.call(document.querySelectorAll('#choices .choice'), function(btn) {
                 btn.addEventListener('click', function() {
@@ -591,7 +669,8 @@
                     onAnswerChosen(btn.getAttribute('data-action-id'));
                 });
             });
-            document.getElementById('openPlanBtn').addEventListener('click', viewPlan);
+            var openPlanBtn = document.getElementById('openPlanBtn');
+            if (openPlanBtn) openPlanBtn.addEventListener('click', viewPlan);
         }
 
         render('<p class="subtitle">Зареждане…</p>');

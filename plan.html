@@ -9956,29 +9956,21 @@
         }
 
         // ── On-open prompts ───────────────────────────────────────────────────
-        // Called every time plan.html loads.  Shows whichever wellness questions
-        // are still unanswered for today (morning from 06:00, evening from 20:00).
-        // buildDayQueue already skips questions that have been answered, so no
-        // per-day blocking flag is needed — the questions are shown on every open
-        // until they are actually answered.
+        // Same-day unanswered notification questions → quick-answer catch-up chain
+        // (real answers, app stays open, integrated into analysis).
         function checkOpenAppPrompts() {
             if (!isGameEnabled()) return;
             if (_openPromptPending || _queueDepth > 0) return;
-            var today = getTodayKey();
-            var queue = buildDayQueue(today);
-            if (!queue.length) return; // nothing pending (too early, or all answered)
+            var gn = window.GameNotifier || (window.top && window.top.GameNotifier);
+            if (!gn || typeof gn.runOpenAppCatchUpFlow !== 'function') return;
+            var pending = gn.getCatchUpTypesForToday ? gn.getCatchUpTypesForToday() : [];
+            if (!pending.length) return;
             _openPromptPending = true;
             setTimeout(function(){
                 _openPromptPending = false;
-                // Re-check: answers could have come in during the 1.8 s delay, or
-                // another queue (e.g. retroactive entry) may have started.
                 if (_queueDepth > 0) return;
-                var freshQueue = buildDayQueue(today);
-                if (!freshQueue.length) return;
-                runQueue(freshQueue, function(){
-                    setTimeout(function(){ showEncouragement(buildEncouragement()); }, 600);
-                });
-            }, 1800);
+                gn.runOpenAppCatchUpFlow();
+            }, 400);
         }
 
         // ── Retroactive entry (last 2 days) ─────────────────────────────────
@@ -10498,7 +10490,7 @@
                     action: msg.action,
                     recordKey: rKey
                 });
-                if (outcome && outcome.silent) {
+                if (outcome && outcome.silent && outcome.saved) {
                     if (outcome.ack && typeof gn.showSilentAck === 'function') gn.showSilentAck(outcome.ack);
                     if (typeof gn.notifyAnswerSaved === 'function') gn.notifyAnswerSaved(rKey);
                     return;
