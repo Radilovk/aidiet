@@ -52,8 +52,7 @@ const GameNotifier = {
             body:  'Спахте ли добре тази нощ?',
             actions: [
                 { id: 'sleep_yes', title: 'Да', value: true },
-                { id: 'sleep_no',  title: 'Не', value: false },
-                { id: 'skip',      title: 'Пропуск', value: null }
+                { id: 'sleep_no',  title: 'Не', value: false }
             ]
         },
         eveningActivity: {
@@ -79,8 +78,7 @@ const GameNotifier = {
             body:  'Изпихте ли поне 2 л вода?',
             actions: [
                 { id: 'water_no',  title: 'Не', value: false },
-                { id: 'water_yes', title: 'Да', value: true },
-                { id: 'skip',      title: 'Пропуск', value: null }
+                { id: 'water_yes', title: 'Да', value: true }
             ]
         }
     },
@@ -321,12 +319,9 @@ const GameNotifier = {
             const actions = this._actionsFromConfig(cfg, meta);
             const hit = actions.find((a) => a.id === action);
             if (hit) {
+                // Skip / empty actions are not real answers — never mark answered.
                 if (action === 'skip' || hit.value === null) {
-                    this._recordNotificationChoice(recordKey, notifType, 'skip');
-                    this._cancelNotificationForDay(notifType, recordKey);
-                    result.silent = true;
-                    result.ack = 'skip';
-                    this.markSilentApply();
+                    result.needsApp = true;
                     return result;
                 }
                 const value = this._actionValueForSave(meta, action, cfg);
@@ -567,8 +562,9 @@ const GameNotifier = {
             const list = JSON.parse(localStorage.getItem(this.LS_PENDING_ACTIONS_KEY) || '[]');
             if (!list.length) return 0;
             list.forEach((item) => {
+                if (!item || item.action === 'skip') return;
                 const outcome = this.handleNotificationAction(item);
-                if (outcome.saved || outcome.ack === 'skip') {
+                if (outcome.saved) {
                     applied += 1;
                     this.notifyAnswerSaved(item.recordKey);
                 }
@@ -599,8 +595,9 @@ const GameNotifier = {
             if (!Array.isArray(list) || !list.length) return 0;
 
             list.forEach((item) => {
+                if (!item || item.action === 'skip') return;
                 const outcome = this.handleNotificationAction(item);
-                if (outcome.saved || outcome.ack === 'skip') {
+                if (outcome.saved) {
                     applied += 1;
                     this.notifyAnswerSaved(item.recordKey);
                 }
@@ -646,8 +643,9 @@ const GameNotifier = {
 
         let applied = 0;
         pending.forEach((item) => {
+            if (!item || item.action === 'skip') return;
             const outcome = this.handleNotificationAction(item);
-            if (outcome.saved || outcome.ack === 'skip') applied += 1;
+            if (outcome.saved) applied += 1;
         });
 
         await new Promise((resolve, reject) => {
@@ -1032,7 +1030,8 @@ const GameNotifier = {
             out.push(row);
             if (out.length >= max) break;
         }
-        return out.length ? out : fallback.map((a) => Object.assign({}, a));
+        const list = out.length ? out : fallback.map((a) => Object.assign({}, a));
+        return list.filter((a) => a.id !== 'skip');
     },
 
     _slotMetaByType(type) {
@@ -1066,18 +1065,25 @@ const GameNotifier = {
         }
     },
 
+    _hasRealMorningAnswer(rec) {
+        return !!(rec && rec.morningCheck && typeof rec.morningCheck.sleptWell === 'boolean');
+    },
+
+    _hasRealEveningField(rec, field) {
+        if (!rec || !rec.eveningCheck) return false;
+        const val = rec.eveningCheck[field];
+        if (field === 'waterIntake') return typeof val === 'boolean';
+        return typeof val === 'number' && val >= 1 && val <= 3;
+    },
+
+    /** Only a persisted gameData value counts — never skip logs or empty shells. */
     _isQuestionAnswered(recordKey, notifType) {
-        try {
-            const log = JSON.parse(localStorage.getItem('notificationResponses') || '[]');
-            if (log.some((e) => e.date === recordKey && e.type === notifType && e.choice !== 'skip')) return true;
-        } catch (_) {}
         const meta = this._slotMetaByType(notifType);
         if (!meta) return false;
         const rec = this._getGameRecord(recordKey);
         if (!rec) return false;
-        if (meta.type === 'morning_check') return rec.morningCheck != null;
-        if (!rec.eveningCheck) return false;
-        return rec.eveningCheck[meta.saveKind] != null;
+        if (meta.type === 'morning_check') return this._hasRealMorningAnswer(rec);
+        return this._hasRealEveningField(rec, meta.saveKind);
     },
 
     _notificationIdForDay(notifType, dayOffset) {
@@ -1382,7 +1388,7 @@ const GameNotifier = {
                     recordKey,
                     actions: this._swActionsFromList(slot.actions),
                     vibrate: [200, 100, 200, 100, 200],
-                    requireInteraction: false
+                    requireInteraction: true
                 });
             }
         });
@@ -1518,7 +1524,7 @@ const GameNotifier = {
         if (gm && typeof gm.getRecord === 'function' && typeof gm.saveRecord === 'function') {
             try {
                 const rec = gm.getRecord(recordKey);
-                if (rec.morningCheck) return false;
+                if (this._hasRealMorningAnswer(rec)) return false;
                 rec.morningCheck = { sleptWell: !!sleptWell, ts: new Date().toISOString() };
                 gm.saveRecord(recordKey, rec);
                 if (typeof gm.recalcAndShowScore === 'function') gm.recalcAndShowScore(recordKey);
@@ -1544,7 +1550,7 @@ const GameNotifier = {
                         ts: new Date().toISOString()
                     };
                 }
-                if (rec.eveningCheck[field] != null) return false;
+                if (this._hasRealEveningField(rec, field)) return false;
                 rec.eveningCheck[field] = value;
                 if (!rec.eveningCheck.ts) rec.eveningCheck.ts = new Date().toISOString();
                 gm.saveRecord(recordKey, rec);
@@ -1565,7 +1571,7 @@ const GameNotifier = {
                     ts: new Date().toISOString()
                 };
             }
-            if (record.eveningCheck[field] != null) return false;
+            if (this._hasRealEveningField(record, field)) return false;
             record.eveningCheck[field] = value;
             allData[key] = record;
             localStorage.setItem('gameData', JSON.stringify(allData));
@@ -1598,7 +1604,7 @@ const GameNotifier = {
             const allData = JSON.parse(localStorage.getItem('gameData') || '{}') || {};
             const record = allData[key] || this._emptyGameRecord(key);
             if (type === 'morning_check') {
-                if (record.morningCheck) return false;
+                if (this._hasRealMorningAnswer(record)) return false;
                 record.morningCheck = {
                     sleptWell: !!(payload && payload.sleptWell),
                     ts: new Date().toISOString()
@@ -1687,14 +1693,62 @@ const GameNotifier = {
         return this.getCatchUpTypesForToday().length > 0;
     },
 
-    redirectToCatchUpIfNeeded() {
+    _shouldAutoCatchUpOnPage() {
         if (typeof window === 'undefined') return false;
         const path = window.location.pathname || '';
         if (path.indexOf('quick-answer') !== -1) return false;
+        if (/admin|notifications-test|questionnaire/i.test(path)) return false;
+        return true;
+    },
+
+    _navigateToCatchUpUrl(url) {
+        const target = String(url).replace(/^\//, '');
+        try {
+            if (window.top && window.top !== window) {
+                window.top.location.replace(target);
+            } else {
+                window.location.replace(target);
+            }
+        } catch (_) {
+            window.location.replace(target);
+        }
+    },
+
+    redirectToCatchUpIfNeeded() {
+        if (!this._shouldAutoCatchUpOnPage()) return false;
         const url = this.buildCatchUpQuickAnswerUrl(this._dateKeyForTimestamp(Date.now()));
         if (!url) return false;
-        window.location.replace(String(url).replace(/^\//, ''));
+        this._navigateToCatchUpUrl(url);
         return true;
+    },
+
+    /**
+     * Cross-platform open/resume flow: drain queued heads-up taps, then redirect
+     * to quick-answer catch-up for any still-unanswered same-day questions.
+     */
+    async runOpenAppCatchUpFlow() {
+        if (!this._shouldAutoCatchUpOnPage()) return false;
+        try {
+            if (!localStorage.getItem('dietPlan')) return false;
+        } catch (_) {
+            return false;
+        }
+        if (window.__nutriplanCatchUpInFlight) {
+            return window.__nutriplanCatchUpInFlight;
+        }
+        const self = this;
+        window.__nutriplanCatchUpInFlight = (async () => {
+            try {
+                if (!self._initialized) await self.init();
+                await self.drainAllPendingActions();
+                return self.redirectToCatchUpIfNeeded();
+            } catch (_) {
+                return false;
+            } finally {
+                setTimeout(() => { window.__nutriplanCatchUpInFlight = null; }, 1500);
+            }
+        })();
+        return window.__nutriplanCatchUpInFlight;
     },
 
     _buildQuickAnswerUrl(type, params) {
@@ -1710,4 +1764,29 @@ const GameNotifier = {
 
 if (typeof window !== 'undefined') {
     window.GameNotifier = GameNotifier;
+
+    (function bootstrapCatchUpOnAppPages() {
+        if (typeof document === 'undefined') return;
+
+        function scheduleCatchUp() {
+            if (!GameNotifier._shouldAutoCatchUpOnPage()) return;
+            try {
+                if (!localStorage.getItem('dietPlan')) return;
+            } catch (_) {
+                return;
+            }
+            GameNotifier.runOpenAppCatchUpFlow();
+        }
+
+        document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState !== 'visible') return;
+            scheduleCatchUp();
+        });
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', scheduleCatchUp, { once: true });
+        } else {
+            setTimeout(scheduleCatchUp, 50);
+        }
+    })();
 }

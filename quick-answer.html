@@ -284,8 +284,7 @@
                 body: 'Спахте ли добре тази нощ?',
                 actions: [
                     { id: 'sleep_yes', title: 'Да' },
-                    { id: 'sleep_no', title: 'Не' },
-                    { id: 'skip', title: 'Пропуск' }
+                    { id: 'sleep_no', title: 'Не' }
                 ]
             },
             evening_activity: {
@@ -311,8 +310,7 @@
                 body: 'Изпихте ли поне 2 л вода?',
                 actions: [
                     { id: 'water_no', title: 'Не' },
-                    { id: 'water_yes', title: 'Да' },
-                    { id: 'skip', title: 'Пропуск' }
+                    { id: 'water_yes', title: 'Да' }
                 ]
             }
         };
@@ -532,7 +530,7 @@
                     action: actionId,
                     recordKey: key
                 });
-                saved = !!(outcome && (outcome.saved || outcome.ack === 'skip'));
+                saved = !!(outcome && outcome.saved);
                 if (typeof gn.showSilentAck === 'function') gn.showSilentAck(actionId);
                 if (saved && typeof gn.notifyAnswerSaved === 'function') {
                     gn.notifyAnswerSaved(key);

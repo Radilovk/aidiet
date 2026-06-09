@@ -67,7 +67,7 @@
 
     function whenGameNotifierReady(cb, attempt) {
         attempt = attempt || 0;
-        if (window.GameNotifier && typeof window.GameNotifier.redirectToCatchUpIfNeeded === 'function') {
+        if (window.GameNotifier && typeof window.GameNotifier.runOpenAppCatchUpFlow === 'function') {
             cb();
             return;
         }
@@ -83,7 +83,13 @@
         revealTimer = null;
         document.documentElement.style.visibility = '';
         whenGameNotifierReady(function () {
-            if (window.GameNotifier && window.GameNotifier.redirectToCatchUpIfNeeded()) return;
+            var gn = window.GameNotifier;
+            if (gn && typeof gn.runOpenAppCatchUpFlow === 'function') {
+                gn.runOpenAppCatchUpFlow().then(function (redirected) {
+                    if (!redirected) runDeferredPlanRedirect();
+                });
+                return;
+            }
             runDeferredPlanRedirect();
         });
     }
@@ -116,7 +122,7 @@
                     action: actionId,
                     recordKey: key
                 });
-                if (outcome && (outcome.saved || outcome.ack === 'skip')) {
+                if (outcome && outcome.saved) {
                     if (typeof window.GameNotifier.notifyAnswerSaved === 'function') {
                         window.GameNotifier.notifyAnswerSaved(key);
                     }

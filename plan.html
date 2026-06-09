@@ -9958,41 +9958,19 @@
         // ── On-open prompts ───────────────────────────────────────────────────
         // Same-day unanswered notification questions → quick-answer catch-up chain
         // (real answers, app stays open, integrated into analysis).
-        function redirectToQuickAnswerCatchUp() {
-            var gn = window.GameNotifier || (window.top && window.top.GameNotifier);
-            if (!gn || typeof gn.buildCatchUpQuickAnswerUrl !== 'function') return false;
-            var today = getTodayKey();
-            var pending = gn.getCatchUpTypesForToday ? gn.getCatchUpTypesForToday() : [];
-            if (!pending.length) return false;
-            var url = gn.buildCatchUpQuickAnswerUrl(today, pending);
-            if (!url) return false;
-            var target = String(url).replace(/^\//, '');
-            try {
-                if (window.top && window.top !== window) {
-                    window.top.location.replace(target);
-                } else {
-                    window.location.replace(target);
-                }
-            } catch (_) {
-                window.location.replace(target);
-            }
-            return true;
-        }
-
         function checkOpenAppPrompts() {
             if (!isGameEnabled()) return;
             if (_openPromptPending || _queueDepth > 0) return;
             var gn = window.GameNotifier || (window.top && window.top.GameNotifier);
-            var pending = gn && gn.getCatchUpTypesForToday ? gn.getCatchUpTypesForToday() : [];
+            if (!gn || typeof gn.runOpenAppCatchUpFlow !== 'function') return;
+            var pending = gn.getCatchUpTypesForToday ? gn.getCatchUpTypesForToday() : [];
             if (!pending.length) return;
             _openPromptPending = true;
             setTimeout(function(){
                 _openPromptPending = false;
                 if (_queueDepth > 0) return;
-                var fresh = gn && gn.getCatchUpTypesForToday ? gn.getCatchUpTypesForToday() : [];
-                if (!fresh.length) return;
-                redirectToQuickAnswerCatchUp();
-            }, 600);
+                gn.runOpenAppCatchUpFlow();
+            }, 400);
         }
 
         // ── Retroactive entry (last 2 days) ─────────────────────────────────
@@ -10512,7 +10490,7 @@
                     action: msg.action,
                     recordKey: rKey
                 });
-                if (outcome && outcome.silent) {
+                if (outcome && outcome.silent && outcome.saved) {
                     if (outcome.ack && typeof gn.showSilentAck === 'function') gn.showSilentAck(outcome.ack);
                     if (typeof gn.notifyAnswerSaved === 'function') gn.notifyAnswerSaved(rKey);
                     return;

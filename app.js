@@ -333,17 +333,12 @@
         return window.GameNotifier.init().catch(function () { return false; });
     }
 
-    function initGameNotifierForCatchUp() {
-        if (!window.GameNotifier || typeof window.GameNotifier.init !== 'function') {
+    function runOpenAppCatchUpFlow() {
+        var gn = window.GameNotifier;
+        if (!gn || typeof gn.runOpenAppCatchUpFlow !== 'function') {
             return Promise.resolve(false);
         }
-        return window.GameNotifier.init().catch(function () { return false; });
-    }
-
-    function redirectCatchUpIfNeeded() {
-        var gn = window.GameNotifier;
-        if (!gn || typeof gn.redirectToCatchUpIfNeeded !== 'function') return false;
-        return gn.redirectToCatchUpIfNeeded();
+        return gn.runOpenAppCatchUpFlow();
     }
 
     function bindCatchUpOnResume() {
@@ -351,16 +346,8 @@
         window.__nutriplanCatchUpResumeBound = true;
         document.addEventListener('visibilitychange', function () {
             if (document.visibilityState !== 'visible') return;
-            var path = window.location.pathname || '';
-            if (path.indexOf('quick-answer') !== -1) return;
             if (!params.has('app')) return;
-            initGameNotifierForCatchUp().then(function () {
-                if (window.GameNotifier && typeof window.GameNotifier.drainAllPendingActions === 'function') {
-                    return window.GameNotifier.drainAllPendingActions();
-                }
-            }).then(function () {
-                redirectCatchUpIfNeeded();
-            });
+            runOpenAppCatchUpFlow();
         });
     }
 
@@ -899,11 +886,7 @@
             return;
         }
 
-        await initGameNotifierForCatchUp();
-        if (window.GameNotifier && typeof window.GameNotifier.drainAllPendingActions === 'function') {
-            await window.GameNotifier.drainAllPendingActions();
-        }
-        if (redirectCatchUpIfNeeded()) return;
+        if (await runOpenAppCatchUpFlow()) return;
 
         state.initialized = true;
         document.body.classList.add('spa-mode');
