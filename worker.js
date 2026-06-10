@@ -3695,7 +3695,22 @@ async function generatePlanCore(env, data, onAnalysisReady = null) {
   }
 
   // Generate plan (multi-step AI)
-  const structuredPlan = await generatePlanMultiStep(env, data, onAnalysisReady);
+  let structuredPlan = await generatePlanMultiStep(env, data, onAnalysisReady);
+
+  // In-place structural fixes: food substitutions + warnings (no AI regen — stable path)
+  try {
+    const foodLists = await getDynamicFoodListsSections(env);
+    const validation = validatePlan(structuredPlan, data, foodLists.dynamicSubstitutions || []);
+    if (validation.warnings?.length) {
+      console.log(`Plan post-validation: ${validation.warnings.length} warning(s)`);
+    }
+    if (!validation.isValid) {
+      console.warn('Plan post-validation issues (non-blocking):', validation.errors.slice(0, 8).join('; '));
+    }
+  } catch (validationErr) {
+    console.warn('Plan post-validation skipped:', validationErr.message);
+  }
+
   const correctionAttempts = 0;
 
   const cleanPlan = removeInternalJustifications(structuredPlan);
@@ -5285,7 +5300,8 @@ const SUMMARY_TOKEN_LIMIT = 3500; // Summary generation: must fit up to 10 recom
 // Validation constants
 const MIN_MEALS_PER_DAY = 1; // Minimum number of meals per day (1 for intermittent fasting strategies)
 const MAX_MEALS_PER_DAY = 5; // Maximum number of meals per day (when there's clear reasoning and strategy)
-const MIN_DAILY_CALORIES = 800; // Minimum acceptable daily calories
+// Deprecated fixed floor — use getMinRecommendedCalories(gender) for per-user minimums.
+const MIN_DAILY_CALORIES = MIN_RECOMMENDED_CALORIES_FEMALE;
 // Note: DAILY_CALORIE_TOLERANCE and MAX_LATE_SNACK_CALORIES moved earlier in file (line ~580) to be available in template strings
 const MAX_CORRECTION_ATTEMPTS = 1; // Maximum number of AI correction attempts before failing.
 // Reduced from 4 to 1: each correction attempt generates up to 7 AI calls (fetch subrequests).
@@ -5407,6 +5423,189 @@ function syncAnalysisCalories(analysis) {
   if (fc > 0 && analysis.correctedMetabolism) {
     analysis.correctedMetabolism.realTDEE = fc;
   }
+}
+
+/**
+ * Check if goal string/array contains a keyword (handles clinical protocol composite goals).
+ */
+function goalIncludes(goal, keyword) {
+  if (!goal || !keyword) return false;
+  if (Array.isArray(goal)) return goal.some(g => String(g).includes(keyword));
+  return String(goal).includes(keyword);
+}
+
+function getMinRecommendedCalories(gender) {
+  return gender === 'Мъж' ? MIN_RECOMMENDED_CALORIES_MALE : MIN_RECOMMENDED_CALORIES_FEMALE;
+}
+
+/**
+ * Apply safety guardrails to AI calorie/macro output without replacing clinical judgment.
+ * Clamps only dangerous extremes; AI retains authority on diet-specific targets.
+ */
+function enforceCalorieGuardrails(analysis, data, referenceTdee) {
+  if (!analysis) return;
+
+  syncAnalysisCalories(analysis);
+
+  const tdee = referenceTdee || parseFinalCalories(analysis.tdee) || 0;
+  let fc = parseFinalCalories(analysis.Final_Calories);
+  if (fc <= 0 && tdee > 0) fc = tdee;
+
+  const cm = analysis.correctedMetabolism || (analysis.correctedMetabolism = {});
+  const minCal = getMinRecommendedCalories(data.gender);
+  const isLactation = data.clinicalProtocol === 'postpartum_lactation';
+  const maxDeficitRatio = 0.25;
+  const corrections = [];
+
+  if (tdee > 0 && fc > 0 && goalIncludes(data.goal, 'Отслабване') && !isLactation) {
+    const minAllowed = Math.round(tdee * (1 - maxDeficitRatio));
+    if (fc < minAllowed) {
+      fc = minAllowed;
+      corrections.push('Дефицитът е ограничен до безопасни 25%.');
+    }
+  }
+
+  if (fc > 0 && fc < minCal) {
+    fc = minCal;
+    corrections.push('Повдигнато до минималния безопасен праг.');
+  }
+
+  if (fc > 0) {
+    analysis.Final_Calories = fc;
+    cm.realTDEE = fc;
+  }
+
+  const weight = parseFloat(data.weight) || 70;
+  const minFatG = Math.round(weight * MIN_FAT_GRAMS_PER_KG);
+  const mg = analysis.macroGrams || (analysis.macroGrams = {});
+  const ratios = analysis.macroRatios;
+
+  if (fc > 0 && ratios && ratios.protein != null && ratios.fats != null) {
+    let proteinG = Math.round(fc * ratios.protein / 100 / 4);
+    let fatsG = Math.round(fc * ratios.fats / 100 / 9);
+    let carbsG = Math.round((fc - proteinG * 4 - fatsG * 9) / 4);
+
+    if (fatsG < minFatG) {
+      fatsG = minFatG;
+      carbsG = Math.max(0, Math.round((fc - proteinG * 4 - fatsG * 9) / 4));
+      corrections.push(`Мазнините са повдигнати до минимум ${minFatG}г.`);
+    }
+
+    mg.protein = proteinG;
+    mg.fats = fatsG;
+    mg.carbs = carbsG;
+  } else if (mg.fats > 0 && mg.fats < minFatG) {
+    mg.fats = minFatG;
+    corrections.push(`Мазнините са повдигнати до минимум ${minFatG}г.`);
+  }
+
+  if (corrections.length > 0) {
+    cm.correction = corrections.join(' ');
+    console.log('Calorie guardrails applied:', corrections.join(' '));
+  }
+}
+
+/**
+ * Ensure weeklyScheme mealBreakdown sums match per-day calorie/macro targets.
+ */
+function normalizeWeeklyScheme(strategy, defaultDailyCalories) {
+  if (!strategy?.weeklyScheme) return;
+
+  for (const key of DAY_NUMBER_TO_KEY) {
+    const day = strategy.weeklyScheme[key];
+    if (!day || !Array.isArray(day.mealBreakdown) || day.mealBreakdown.length === 0) continue;
+
+    const sumField = (field) => day.mealBreakdown.reduce((s, m) => s + (Number(m[field]) || 0), 0);
+    const sumCals = sumField('calories');
+    const sumP = sumField('protein');
+    const sumC = sumField('carbs');
+    const sumF = sumField('fats');
+
+    const targetCals = Number(day.calories) || defaultDailyCalories || sumCals;
+    if (!day.calories && (sumCals > 0 || defaultDailyCalories)) day.calories = sumCals || defaultDailyCalories;
+    if (!day.protein && sumP > 0) day.protein = sumP;
+    if (!day.carbs && sumC > 0) day.carbs = sumC;
+    if (!day.fats && sumF > 0) day.fats = sumF;
+    if (!day.meals) day.meals = day.mealBreakdown.length;
+
+    if (sumCals > 0 && targetCals > 0 && Math.abs(sumCals - targetCals) > DAILY_CALORIE_TOLERANCE) {
+      const ratio = targetCals / sumCals;
+      for (const m of day.mealBreakdown) {
+        m.calories = Math.round((Number(m.calories) || 0) * ratio);
+        m.protein = Math.round((Number(m.protein) || 0) * ratio);
+        m.carbs = Math.round((Number(m.carbs) || 0) * ratio);
+        m.fats = Math.round((Number(m.fats) || 0) * ratio);
+      }
+    } else if (sumCals > 0 && Math.abs(sumCals - (Number(day.calories) || 0)) > DAILY_CALORIE_TOLERANCE) {
+      day.calories = sumCals;
+      day.protein = sumP;
+      day.carbs = sumC;
+      day.fats = sumF;
+    }
+  }
+}
+
+function getFreeMealSlotCalories(dayTarget) {
+  if (!dayTarget?.mealBreakdown) return 0;
+  const free = dayTarget.mealBreakdown.find(m => m.type === 'Свободно хранене');
+  return free ? (Number(free.calories) || 0) : 0;
+}
+
+/**
+ * Align a single day's meals to weeklyScheme targets (±DAILY_CALORIE_TOLERANCE).
+ * Returns true if scaling was applied.
+ */
+function alignDayToScheme(dayPlan, dayTarget) {
+  if (!dayPlan?.meals?.length || !dayTarget) return false;
+
+  const targetCals = Number(dayTarget.calories) || 0;
+  if (targetCals <= 0) return false;
+
+  const hasFree = dayPlan.meals.some(m => m.type === 'Свободно хранене');
+  const freeSlotCals = hasFree ? getFreeMealSlotCalories(dayTarget) : 0;
+
+  let actualCals = dayPlan.dailyTotals?.calories
+    ? Number(dayPlan.dailyTotals.calories)
+    : dayPlan.meals.reduce((sum, meal) => {
+        if (meal.type === 'Свободно хранене') return sum + freeSlotCals;
+        return sum + (Number(meal.calories) || 0);
+      }, 0);
+
+  if (Math.abs(actualCals - targetCals) <= DAILY_CALORIE_TOLERANCE) return false;
+  if (actualCals <= 0) return false;
+
+  const scalable = dayPlan.meals.filter(m =>
+    m.type !== 'Свободно хранене' && m.type !== 'Напитка' && m.macros
+  );
+  if (scalable.length === 0) return false;
+
+  const scalableCals = scalable.reduce((s, m) => s + (Number(m.calories) || 0), 0);
+  const targetScalable = targetCals - freeSlotCals;
+  if (scalableCals <= 0 || targetScalable <= 0) return false;
+
+  const ratio = targetScalable / scalableCals;
+  for (const meal of scalable) {
+    meal.calories = Math.round((Number(meal.calories) || 0) * ratio);
+    meal.macros.protein = Math.max(0, Math.round((Number(meal.macros.protein) || 0) * ratio));
+    meal.macros.carbs = Math.max(0, Math.round((Number(meal.macros.carbs) || 0) * ratio));
+    meal.macros.fats = Math.max(0, Math.round((Number(meal.macros.fats) || 0) * ratio));
+    const computed = Math.round(meal.macros.protein * 4 + meal.macros.carbs * 4 + meal.macros.fats * 9);
+    if (computed > 0) meal.calories = computed;
+  }
+
+  return true;
+}
+
+function alignWeekPlanDaysToScheme(weekPlan, strategy, startDay, endDay) {
+  if (!weekPlan || !strategy?.weeklyScheme) return;
+  for (let d = startDay; d <= endDay; d++) {
+    const dayKey = `day${d}`;
+    const schemeKey = DAY_NUMBER_TO_KEY[d - 1];
+    if (weekPlan[dayKey] && strategy.weeklyScheme[schemeKey]) {
+      alignDayToScheme(weekPlan[dayKey], strategy.weeklyScheme[schemeKey]);
+    }
+  }
+  recalculateDayCalories(weekPlan);
 }
 
 
@@ -5705,8 +5904,9 @@ function validatePlan(plan, userData, substitutions = []) {
           const mealCal = parseInt(meal.calories) || 0;
           return sum + mealCal;
         }, 0);
-        if (!hasFreeEatingMeal && dayCalories < MIN_DAILY_CALORIES) {
-          const error = `Ден ${i} има само ${dayCalories} калории - твърде малко`;
+        const minDayCalories = getMinRecommendedCalories(userData.gender);
+        if (!hasFreeEatingMeal && dayCalories < minDayCalories) {
+          const error = `Ден ${i} има само ${dayCalories} калории - твърде малко (минимум ${minDayCalories})`;
           errors.push(error);
           stepErrors.step3_mealplan.push(error);
         }
@@ -5856,7 +6056,7 @@ function validatePlan(plan, userData, substitutions = []) {
     }
   }
 
-  if (userData.goal === 'Отслабване' && plan.summary && plan.summary.dailyCalories) {
+  if (goalIncludes(userData.goal, 'Отслабване') && plan.summary && plan.summary.dailyCalories) {
     // Extract numeric calories
     const caloriesMatch = String(plan.summary.dailyCalories).match(/\d+/);
     if (caloriesMatch) {
@@ -6297,8 +6497,10 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       if (analysis.keyProblems && Array.isArray(analysis.keyProblems)) {
         analysis.keyProblems = analysis.keyProblems.filter(problem => problem.severity !== 'Normal');
       }
-      // Sync Final_Calories → realTDEE
-      syncAnalysisCalories(analysis);
+      const refActivity = calculateUnifiedActivityScore(data);
+      const refBmr = calculateBMR(data);
+      const refTdee = calculateTDEE(refBmr, refActivity.combinedScore);
+      enforceCalorieGuardrails(analysis, data, refTdee);
     } else {
       // Reuse existing analysis
       analysis = existingPlan.analysis;
@@ -6321,6 +6523,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       
       strategy = parseAIResponse(strategyResponse);
       enforceWeekendFreeDay(strategy);
+      normalizeWeeklyScheme(strategy, parseFinalCalories(analysis.Final_Calories));
       
       if (!strategy || strategy.error) {
         throw new Error(`Регенерацията на стратегията се провали: ${strategy?.error || 'Невалиден формат'}`);
@@ -6368,9 +6571,9 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       if (!recommendedCalories) {
         const fallbackActivityData = calculateUnifiedActivityScore(data);
         const tdee = calculateTDEE(bmr, fallbackActivityData.combinedScore);
-        if (data.goal === 'Отслабване') {
+        if (goalIncludes(data.goal, 'Отслабване')) {
           recommendedCalories = Math.round(tdee * 0.85);
-        } else if (data.goal === 'Покачване на мускулна маса') {
+        } else if (goalIncludes(data.goal, 'Мускулна маса')) {
           recommendedCalories = Math.round(tdee * 1.1);
         } else {
           recommendedCalories = tdee;
@@ -6566,11 +6769,11 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
         }
       }
 
-      // Sync: ensure correctedMetabolism.realTDEE always equals Final_Calories.
-      // The AI prompt instructs it to set both to the same value, but models sometimes
-      // place different numbers in each field. Using Final_Calories as the single source
-      // of truth prevents Стъпка 2 and Стъпка 3 from working with diverging targets.
-      syncAnalysisCalories(analysis);
+      // Sync + safety guardrails (AI keeps diet-specific judgment; code clamps extremes only)
+      const refActivity = calculateUnifiedActivityScore(data);
+      const refBmr = calculateBMR(data);
+      const refTdee = calculateTDEE(refBmr, refActivity.combinedScore);
+      enforceCalorieGuardrails(analysis, data, refTdee);
     } catch (error) {
       console.error('Analysis step failed:', error);
       throw new Error(`Стъпка 1 (Анализ): ${error.message}`);
@@ -6603,6 +6806,7 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
       
       strategy = parseAIResponse(strategyResponse);
       enforceWeekendFreeDay(strategy);
+      normalizeWeeklyScheme(strategy, parseFinalCalories(analysis.Final_Calories));
       
       if (!strategy || strategy.error) {
         const errorMsg = strategy.error || 'Невалиден формат на отговор';
@@ -7670,9 +7874,9 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
   if (!recommendedCalories) {
     const fallbackActivityData = calculateUnifiedActivityScore(data);
     const tdee = calculateTDEE(bmr, fallbackActivityData.combinedScore);
-    if (data.goal === 'Отслабване') {
+    if (goalIncludes(data.goal, 'Отслабване')) {
       recommendedCalories = Math.round(tdee * 0.85);
-    } else if (data.goal === 'Покачване на мускулна маса') {
+    } else if (goalIncludes(data.goal, 'Мускулна маса')) {
       recommendedCalories = Math.round(tdee * 1.1);
     } else {
       recommendedCalories = tdee;
@@ -7724,12 +7928,17 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       }
       // Replace any "dessert": true markers with the fixed dessert object
       injectFixedDesserts(weekPlan);
-      // Recalculate meal.calories from macros to fix AI rounding/formula errors
+      // Align generated days to strategy targets, then fix macro/calorie arithmetic
+      alignWeekPlanDaysToScheme(weekPlan, strategy, startDay, endDay);
       recalculateDayCalories(weekPlan);
     } catch (error) {
       throw new Error(`Генериране на дни ${startDay}-${endDay}: ${error.message}`);
     }
   }
+
+  // Final pass: align all 7 days after progressive generation
+  alignWeekPlanDaysToScheme(weekPlan, strategy, 1, 7);
+  recalculateDayCalories(weekPlan);
   
   // Generate summary, recommendations, etc. in final request
   try {
