@@ -39,7 +39,7 @@
  *      - Output: Summary, recommendations, supplements
  *      - SIMPLIFICATION: Removed verbose guidelines, kept AI flexibility
  * 
- * Total: 1 (analysis) + 1 (strategy) + 4 (meal plan sub-steps) + 1 (summary) = 7 steps
+ * Total: 1 (analysis) + 1 (strategy) + 4 (meal plan sub-steps) + 1 (summary) + 1 (final review) = 8 steps
  * 
  * OPTIMIZATION STRATEGY (Reorganization, NOT just adding tokens):
  *   - Step 3: Removed ~200 lines of duplicate ADLE rules (70% prompt reduction)
@@ -2252,7 +2252,8 @@ function removeInternalJustifications(plan) {
     delete cleanPlan.strategy.mealCountJustification;
     delete cleanPlan.strategy.afterDinnerMealJustification;
   }
-  
+  delete cleanPlan._validation;
+
   return cleanPlan;
 }
 
@@ -2601,7 +2602,7 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
   // Plan generation steps (step1–4 and their fallbacks) must always run on the same
   // configured model without thinking to ensure consistency and prevent MAX_TOKENS
   // errors caused by internal reasoning consuming the token budget.
-  const isPlanStep = stepKey && ['step1', 'step2', 'step3', 'step4'].includes(stepKey);
+  const isPlanStep = stepKey && ['step1', 'step2', 'step3', 'step4', 'step5'].includes(stepKey);
   // For chat steps, use chat-specific thinking budget if set.
   // For plan steps, always disable thinking. For other steps, use plan config.
   const effectiveThinkingBudget = isPlanStep ? 0
@@ -3694,24 +3695,9 @@ async function generatePlanCore(env, data, onAnalysisReady = null) {
     return { success: true, hasContradiction: true, warningData, userId };
   }
 
-  // Generate plan (multi-step AI)
-  let structuredPlan = await generatePlanMultiStep(env, data, onAnalysisReady);
-
-  // In-place structural fixes: food substitutions + warnings (no AI regen — stable path)
-  try {
-    const foodLists = await getDynamicFoodListsSections(env);
-    const validation = validatePlan(structuredPlan, data, foodLists.dynamicSubstitutions || []);
-    if (validation.warnings?.length) {
-      console.log(`Plan post-validation: ${validation.warnings.length} warning(s)`);
-    }
-    if (!validation.isValid) {
-      console.warn('Plan post-validation issues (non-blocking):', validation.errors.slice(0, 8).join('; '));
-    }
-  } catch (validationErr) {
-    console.warn('Plan post-validation skipped:', validationErr.message);
-  }
-
-  const correctionAttempts = 0;
+  // Generate plan (multi-step AI + Step 5 final review)
+  const structuredPlan = await generatePlanMultiStep(env, data, onAnalysisReady);
+  const correctionAttempts = structuredPlan?._meta?.finalReview?.status === 'corrected' ? 1 : 0;
 
   const cleanPlan = removeInternalJustifications(structuredPlan);
   if (clinicalProtocol && clinicalProtocol.hacks) {
@@ -5296,6 +5282,7 @@ async function handleGetClientPlanStatus(request, env) {
 // Token limits optimized through prompt simplification (not artificial limits)
 const MEAL_PLAN_TOKEN_LIMIT = 8000; // Sufficient for detailed meal generation
 const SUMMARY_TOKEN_LIMIT = 3500; // Summary generation: must fit up to 10 recommendations, 10 forbidden foods, 3 psychology tips, 3 supplements + summary object
+const FINAL_REVIEW_TOKEN_LIMIT = 6000; // Step 5: holistic plan review + targeted corrections
 
 // Validation constants
 const MIN_MEALS_PER_DAY = 1; // Minimum number of meals per day (1 for intermittent fasting strategies)
@@ -5606,6 +5593,237 @@ function alignWeekPlanDaysToScheme(weekPlan, strategy, startDay, endDay) {
     }
   }
   recalculateDayCalories(weekPlan);
+}
+
+/**
+ * Compact user profile for Step 5 final review (minimal tokens).
+ */
+function buildCompactUserForReview(data) {
+  return {
+    name: data.name,
+    age: data.age,
+    gender: data.gender,
+    goal: data.goal,
+    weight: data.weight,
+    height: data.height,
+    medicalConditions: data.medicalConditions,
+    medications: data.medications,
+    medicationsDetails: data.medicationsDetails,
+    dietPreference: data.dietPreference,
+    dietDislike: data.dietDislike,
+    dietLove: data.dietLove,
+    eatingHabits: data.eatingHabits,
+    foodCravings: data.foodCravings,
+    clinicalProtocol: data.clinicalProtocol,
+    additionalNotes: buildCombinedAdditionalNotes(data)
+  };
+}
+
+/**
+ * Compact plan snapshot for Step 5 review — structure + numbers, truncated descriptions.
+ */
+function buildCompactPlanForReview(plan) {
+  const compact = {
+    summary: plan.summary,
+    targets: {
+      calories: plan.analysis?.Final_Calories,
+      macros: plan.analysis?.macroGrams,
+      dietType: plan.strategy?.dietType,
+      dietaryModifier: plan.strategy?.dietaryModifier
+    },
+    recommendations: plan.recommendations,
+    forbidden: plan.forbidden,
+    supplements: plan.supplements,
+    weekPlan: {}
+  };
+  if (plan.weekPlan) {
+    for (const [dayKey, day] of Object.entries(plan.weekPlan)) {
+      if (!day) continue;
+      compact.weekPlan[dayKey] = {
+        dailyTotals: day.dailyTotals,
+        meals: (day.meals || []).map(m => ({
+          type: m.type,
+          name: m.name,
+          calories: m.calories,
+          macros: m.macros,
+          description: m.description ? String(m.description).slice(0, 120) : undefined,
+          dessert: m.dessert ? true : undefined
+        }))
+      };
+    }
+  }
+  return compact;
+}
+
+/**
+ * Merge AI final-review corrections into the assembled plan (never replaces analysis).
+ */
+function mergeReviewedPlan(original, review) {
+  if (!original || !review) return;
+  if (review.weekPlan && typeof review.weekPlan === 'object') {
+    for (const dayKey of Object.keys(review.weekPlan)) {
+      if (review.weekPlan[dayKey]?.meals) {
+        original.weekPlan = original.weekPlan || {};
+        original.weekPlan[dayKey] = review.weekPlan[dayKey];
+      }
+    }
+  }
+  for (const field of ['recommendations', 'forbidden', 'supplements', 'psychology', 'waterIntake', 'summary']) {
+    if (review[field] != null) original[field] = review[field];
+  }
+}
+
+/**
+ * Deterministic post-processing: guardrails, scheme alignment, calorie recalc, validation.
+ */
+function applyPlanPostProcessing(plan, data, substitutions, options = {}) {
+  if (!plan) return plan;
+  const subs = substitutions || [];
+
+  if (plan.analysis) {
+    const refActivity = calculateUnifiedActivityScore(data);
+    const refBmr = calculateBMR(data);
+    const refTdee = calculateTDEE(refBmr, refActivity.combinedScore);
+    enforceCalorieGuardrails(plan.analysis, data, refTdee);
+  }
+  if (plan.strategy) {
+    normalizeWeeklyScheme(plan.strategy, parseFinalCalories(plan.analysis?.Final_Calories));
+  }
+  if (plan.weekPlan) {
+    if (plan.strategy) {
+      alignWeekPlanDaysToScheme(plan.weekPlan, plan.strategy, 1, 7);
+    }
+    injectFixedDesserts(plan.weekPlan);
+    recalculateDayCalories(plan.weekPlan);
+  }
+
+  if (!options.skipValidation) {
+    const validation = validatePlan(plan, data, subs);
+    if (validation.warnings?.length) {
+      console.log(`Plan validation: ${validation.warnings.length} warning(s)`);
+    }
+    if (!validation.isValid) {
+      console.warn('Plan validation:', validation.errors.slice(0, 6).join('; '));
+    }
+    plan._validation = {
+      isValid: validation.isValid,
+      errorCount: validation.errors?.length || 0,
+      warningCount: validation.warnings?.length || 0
+    };
+  }
+  return plan;
+}
+
+/**
+ * Generate prompt for Step 5 holistic final review.
+ */
+async function generateFinalReviewPrompt(data, plan, validation, env, foodLists) {
+  const customPrompt = await getCustomPrompt(env, 'admin_final_review_prompt');
+  const userProfileJSON = JSON.stringify(buildCompactUserForReview(data));
+  const planJSON = JSON.stringify(buildCompactPlanForReview(plan));
+  const targetsJSON = JSON.stringify({
+    calories: plan.analysis?.Final_Calories,
+    macros: plan.analysis?.macroGrams,
+    dietType: plan.strategy?.dietType,
+    dietaryModifier: plan.strategy?.dietaryModifier,
+    freeDayNumber: plan.strategy?.freeDayNumber
+  });
+  const issues = [];
+  if (validation?.errors?.length) issues.push(...validation.errors.slice(0, 12).map(e => `ГРЕШКА: ${e}`));
+  if (validation?.warnings?.length) issues.push(...validation.warnings.slice(0, 8).map(w => `ПРЕДУПРЕЖДЕНИЕ: ${w}`));
+  const validationIssues = issues.length > 0 ? issues.join('\n') : 'Няма открити проблеми от автоматичната валидация.';
+  const _combinedNotes = buildCombinedAdditionalNotes(data);
+  const additionalNotesSection = _combinedNotes
+    ? `═══ ДОПЪЛНИТЕЛНИ БЕЛЕЖКИ (ПРИОРИТЕТ) ═══\n${_combinedNotes}`
+    : '';
+  const dynamicBlacklistSection = foodLists?.dynamicBlacklistSection || '';
+
+  const variables = {
+    userProfileJSON,
+    planJSON,
+    targetsJSON,
+    validationIssues,
+    additionalNotesSection,
+    dynamicBlacklistSection
+  };
+
+  if (customPrompt) {
+    let prompt = replacePromptVariables(customPrompt, variables);
+    if (!hasJsonFormatInstructions(prompt)) {
+      prompt += '\n\nВърни САМО валиден JSON с полета status и reviewNotes.';
+    }
+    return prompt;
+  }
+
+  return `Прегледай сглобения 7-дневен план спрямо профила.
+
+ПРОФИЛ: ${userProfileJSON}
+ЦЕЛИ: ${targetsJSON}
+ВАЛИДАЦИЯ: ${validationIssues}
+ПЛАН: ${planJSON}
+${dynamicBlacklistSection}
+${additionalNotesSection}
+
+Върни JSON: {"status":"approved"|"corrected","reviewNotes":"...","weekPlan":{...само ако corrected}}`;
+}
+
+/**
+ * Step 5: Holistic AI review of assembled plan. Corrects only when needed.
+ * Fail-safe: returns original plan if review call fails.
+ */
+async function performFinalPlanReview(env, data, plan, sessionId) {
+  if (!plan?.weekPlan) return plan;
+
+  let foodLists;
+  try {
+    foodLists = await getDynamicFoodListsSections(env);
+  } catch (e) {
+    foodLists = { dynamicSubstitutions: [], dynamicBlacklistSection: '' };
+  }
+  const subs = foodLists.dynamicSubstitutions || [];
+
+  applyPlanPostProcessing(plan, data, subs, { skipValidation: true });
+  const validation = validatePlan(plan, data, subs);
+
+  plan._meta = plan._meta || {};
+  plan._meta.finalReview = { status: 'pending' };
+
+  try {
+    const prompt = await generateFinalReviewPrompt(data, plan, validation, env, foodLists);
+    const response = await callAIModel(
+      env, prompt, FINAL_REVIEW_TOKEN_LIMIT, 'step5_final_review', sessionId, data, null
+    );
+    const review = parseAIResponse(response);
+
+    if (review?.error) {
+      throw new Error(review.error);
+    }
+
+    const status = review?.status === 'corrected' ? 'corrected' : 'approved';
+    if (status === 'corrected') {
+      mergeReviewedPlan(plan, review);
+      console.log('Step 5 final review: corrections applied —', review.reviewNotes || 'no notes');
+    } else {
+      console.log('Step 5 final review: plan approved');
+    }
+
+    plan._meta.finalReview = {
+      status,
+      notes: review?.reviewNotes || null,
+      validationErrorsBefore: validation.errors?.length || 0,
+      reviewedAt: new Date().toISOString()
+    };
+  } catch (error) {
+    console.warn('Step 5 final review skipped (using pre-review plan):', error.message);
+    plan._meta.finalReview = {
+      status: 'skipped',
+      error: error.message,
+      reviewedAt: new Date().toISOString()
+    };
+  }
+
+  applyPlanPostProcessing(plan, data, subs);
+  return plan;
 }
 
 
@@ -6847,7 +7065,7 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
     
     // Combine all parts into final plan (meal plan takes precedence)
     // Returns comprehensive plan with analysis and strategy included
-    const result = {
+    let result = {
       ...mealPlan,
       analysis: analysis,
       strategy: strategy,
@@ -6856,6 +7074,10 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
         generatedAt: new Date().toISOString()
       }
     };
+
+    // Step 5: holistic review of assembled plan (correct only if needed)
+    console.log('Multi-step generation: Final review (5/5)');
+    result = await performFinalPlanReview(env, data, result, sessionId);
     
     // Update combined index once for the whole session (2 subrequests total instead of 2×N)
     await finalizeAISessionLogs(env, sessionId);
@@ -8190,6 +8412,7 @@ function getStepKey(stepName) {
   if (stepName.startsWith('step2')) return 'step2';
   if (stepName.startsWith('step3') || stepName === 'fallback_plan') return 'step3';
   if (stepName.startsWith('step4') || stepName === 'fallback_summary') return 'step4';
+  if (stepName.startsWith('step5')) return 'step5';
   if (stepName.startsWith('chat')) return 'chat';
   return null;
 }
@@ -9937,6 +10160,7 @@ function getPromptKVKey(type) {
     'strategy': 'admin_strategy_prompt',
     'meal_plan': 'admin_meal_plan_prompt',
     'summary': 'admin_summary_prompt',
+    'final_review': 'admin_final_review_prompt',
     'plan': 'admin_plan_prompt',
     'emoeat': 'admin_emoeat_prompt',
     'food_analysis': 'admin_food_analysis_prompt',
@@ -10006,6 +10230,7 @@ async function handleGetDefaultPrompt(request, env) {
       'strategy': 'admin_strategy_prompt',
       'meal_plan': 'admin_meal_plan_prompt',
       'summary': 'admin_summary_prompt',
+      'final_review': 'admin_final_review_prompt',
       'consultation': 'admin_consultation_prompt',
       'modification': 'admin_modification_prompt',
       'correction': 'admin_correction_prompt',
@@ -10018,7 +10243,7 @@ async function handleGetDefaultPrompt(request, env) {
     const kvKey = promptKeyMap[type];
     if (!kvKey) {
       return jsonResponse({ 
-        error: `Unknown prompt type: ${type}. Valid types: analysis, strategy, meal_plan, summary, consultation, modification, correction, emoeat, food_analysis, menu_analysis, validation` 
+        error: `Unknown prompt type: ${type}. Valid types: analysis, strategy, meal_plan, summary, final_review, consultation, modification, correction, emoeat, food_analysis, menu_analysis, validation` 
       }, 400);
     }
     
