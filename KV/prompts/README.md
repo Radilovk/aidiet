@@ -94,10 +94,10 @@
 
 ## Как се използват
 
-1. **В worker.js**: Промптовете са дефинирани директно в функциите като `generateAnalysisPrompt()`, `generateStrategyPrompt()`, и т.н. като default стойности
-2. **В KV/prompts**: Тези файлове съдържат СЪЩИТЕ default промптове извлечени от worker.js за лесна референция и качване към KV
-3. **В KV storage**: Промптовете могат да се качат с `upload-kv-keys.sh` скрипта за персонализация
-4. **В runtime**: Worker първо проверява за custom промптове в KV storage, ако няма такива използва hardcoded defaults от worker.js
+1. **KV/prompts/** — единствен източник на текст за AI промптове (редактирай `.txt` файловете тук)
+2. **KV storage** — `./KV/upload-kv-keys.sh` качва файловете като KV ключове
+3. **worker.js** — само зарежда промпт от KV (`requireKvPrompt`), замества `{placeholders}` с данни от въпросника/анализа/стратегията и изпраща към AI. **Няма вградени fallback промпти в кода.**
+4. **Admin panel** — показва/редактира същите KV ключове
 
 ## Качване към Cloudflare KV
 
@@ -119,10 +119,9 @@ cd /path/to/aidiet
 3. **Директно в KV**: Чрез Cloudflare Dashboard
 
 **ВАЖНО**: 
-- При редактиране на default промптове в worker.js, ЗАДЪЛЖИТЕЛНО актуализирайте съответния файл тук!
-- При редактиране на файловете тук, те стават активни САМО след качване в KV storage
-- Файловете в тази папка са синхронизирани с default промптовете в worker.js (последна синхронизация: 2026-04-24)
-- **KV/prompts/ файловете са ЕДИНСТВЕНИЯ правилен начин за редактиране на промптовете!** Worker.js default-ите са само fallback — активните промпти са тези в KV storage.
+- Редактирайте САМО файловете в `KV/prompts/` — не в `worker.js`
+- След промяна: `./KV/upload-kv-keys.sh` за активиране в production
+- Snippets в `KV/prompts/snippets/` — инжектират се в стъпка 3 (`{MEAL_NAME_FORMAT_INSTRUCTIONS}`, `{sweetsCravingRule}`)
 
 ## Бележки
 

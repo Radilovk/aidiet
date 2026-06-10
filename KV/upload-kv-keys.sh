@@ -145,6 +145,35 @@ else
 fi
 echo ""
 
+# admin_emoeat_prompt
+echo "📤 Качване на admin_emoeat_prompt..."
+if wrangler kv:key put --namespace-id=$NAMESPACE_ID \
+    "admin_emoeat_prompt" --path="$KV_DIR/prompts/admin_emoeat_prompt.txt"; then
+    echo "✅ admin_emoeat_prompt качен успешно"
+else
+    echo "❌ Грешка при качване на admin_emoeat_prompt"
+fi
+echo ""
+
+# Prompt snippets (injected via placeholders in step 3 / correction)
+echo "📤 Качване на snippet_meal_name_format..."
+if wrangler kv:key put --namespace-id=$NAMESPACE_ID \
+    "snippet_meal_name_format" --path="$KV_DIR/prompts/snippets/meal_name_format.txt"; then
+    echo "✅ snippet_meal_name_format качен успешно"
+else
+    echo "❌ Грешка при качване на snippet_meal_name_format"
+fi
+echo ""
+
+echo "📤 Качване на snippet_sweets_craving_rule..."
+if wrangler kv:key put --namespace-id=$NAMESPACE_ID \
+    "snippet_sweets_craving_rule" --path="$KV_DIR/prompts/snippets/sweets_craving_rule.txt"; then
+    echo "✅ snippet_sweets_craving_rule качен успешно"
+else
+    echo "❌ Грешка при качване на snippet_sweets_craving_rule"
+fi
+echo ""
+
 # admin_ai_model
 echo "📤 Качване на admin_ai_model..."
 if wrangler kv:key put --namespace-id=$NAMESPACE_ID \

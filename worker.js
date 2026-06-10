@@ -69,14 +69,9 @@
  *            admin_consultation_prompt.txt, admin_modification_prompt.txt,
  *            admin_correction_prompt.txt
  *   - Upload: ./KV/upload-kv-keys.sh script uploads to Cloudflare KV
- *   - Runtime: Worker checks KV first, uses prompts directly from KV storage
+ *   - Runtime: requireKvPrompt() loads from KV only (no hardcoded fallback text in worker.js)
+ *   - Snippets: KV/prompts/snippets/ (meal name format, sweets craving rule)
  *   - Admin panel shows prompts from KV via handleGetDefaultPrompt()
- *   
- *   Benefits:
- *   ✓ Prompts are version controlled separately
- *   ✓ Easy to review and update without touching code
- *   ✓ Can be customized via admin panel or KV files
- *   ✓ Maintained in both repository and KV storage
  */
 
 // No default values - all calculations must be individualized based on user data
@@ -818,51 +813,6 @@ function buildDynamicSubQuestionsText(data) {
   }
   return lines.join('\n\n');
 }
-
-// Meal name and description formatting instructions for AI prompts
-const MEAL_NAME_FORMAT_INSTRUCTIONS = `
-=== ФОРМАТ НА MEAL NAME И DESCRIPTION ===
-КРИТИЧНО ВАЖНО: Спазвай СТРОГО следния формат за структуриране на name и description:
-
-ФОРМАТ НА "name" (структуриран със СИМВОЛИ):
-- Използвай символи (•, -, *) за структура, НЕ пиши изречения
-- Разделяй компонентите на отделни редове със символи
-- Формат: компонент след компонент (без смесване)
-- НЕ използвай етикети като "Салата:", "Основно:" - пиши директно названията на ястията
-
-Структура (по ред, само ако е налично):
-• [Вид салата в естествена форма] (ако има - напр. "Шопска салата", "салата Цезар", "салата от пресни зеленчуци")
-• [Основно ястие] (ако има гарнитура: "с гарнитура / гарнитура от [име на гарнитура]")
-• [Хляб: количество и вид] (ако има, напр. "1 филия пълнозърнест")
-
-Примери за ПРАВИЛЕН формат на name:
-✓ "• Шопска салата\\n• Пилешки гърди на скара с картофено пюре"
-✓ "• Бяла риба печена с киноа"
-✓ "• Зелена салата\\n• Леща яхния\\n• Хляб: 1 филия пълнозърнест"
-✓ "• Салата от пресни зеленчуци\\n• Пилешко филе с киноа"
-✓ "• Овесена каша с боровинки" (за закуска без салата/хляб)
-
-ЗАБРАНЕНИ формати за name (НЕ пиши така):
-✗ "• Салата: Шопска" (твърдо кодирани етикети)
-✗ "• Основно: Пилешки гърди" (твърдо кодирани етикети)
-✗ "Пилешки гърди на скара с картофено пюре и салата Шопска" (смесено описание)
-✗ "Печена бяла риба, приготвена с киноа и подправки" (изречение)
-
-ФОРМАТ НА "description":
-- Структурирай description с булет пойнти (•) за разделяне на компонентите
-- Всеки компонент на хранене (салата, основно ястие, гарнитура, хляб) започва на нов ред с •
-- В description пиши ВСИЧКИ уточнения за:
-  * Начин на приготвяне (печено, задушено, на скара, пресно и т.н.)
-  * Препоръки за приготвяне
-  * Конкретни подправки (сол, черен пипер, риган, магданоз и т.н.)
-  * Допълнителни продукти (зехтин, лимон, чесън и т.н.)
-  * Количества и пропорции
-
-Пример за ПРАВИЛНА комбинация name + description:
-name: "• Зелена салата\\n• Пилешки гърди с киноа\\n• Хляб: 1 филия пълнозърнест"
-description: "• Зелена салата от листа, краставици и чери домати с лимонов дресинг.\\n• Пилешките гърди се приготвят на скара или печени в тава с малко зехтин, подправени със сол, черен пипер и риган.\\n• Киноата се готви според инструкциите.\\n• 1 филия пълнозърнест хляб."
-`;
-
 
 /**
  * Calculate BMR using Mifflin-St Jeor Equation
@@ -3056,9 +3006,6 @@ function invalidateCustomPromptsCache(key = null) {
  * Generate prompt for a chunk of days (progressive generation)
  */
 async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recommendedCalories, startDay, endDay, previousDays, env, errorPreventionComment = null, cachedFoodLists = null) {
-  // Check if there's a custom prompt in KV storage
-  const customPrompt = await getCustomPrompt(env, 'admin_meal_plan_prompt');
-  
   const dietaryModifier = strategy.dietaryModifier || 'Балансирано';
   const daysInChunk = endDay - startDay + 1;
   
@@ -3073,8 +3020,8 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
     }
   }
 
-  // Build sweets craving rule: for users who crave sweets, lunch includes a chocolate dessert (counted as part of the meal)
-  const sweetsCravingRule = userHasSweetsCraving(data.foodCravings) && strategy?.includeDessert !== false ? SWEETS_CRAVING_RULE_TEXT : '';
+  const sweetsCravingRule = await buildSweetsCravingRule(env, data.foodCravings, strategy);
+  const mealNameFormatInstructions = await getMealNameFormatInstructions(env);
 
   // Build previous days context for variety (compact - only meal names)
   let previousDaysContext = '';
@@ -3159,160 +3106,9 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
     return lines.join('\n');
   })();
 
-  let defaultPrompt = `Генерирай ДНИ ${startDay}-${endDay} за ${data.name}.
+  const customPrompt = await requireKvPrompt(env, 'admin_meal_plan_prompt');
 
-=== ПРОФИЛ ===
-Цел: ${data.goal}${data.goal_other ? ` (${data.goal_other})` : ''} | BMR: ${bmr} | Калории: ${recommendedCalories} kcal/ден | Модификатор: "${dietaryModifier}"${modificationsSection}
-Стрес: ${data.stressLevel} | Сън: ${data.sleepHours}ч | Хронотип: ${data.chronotype}${medicalDetailsSection ? `\n${medicalDetailsSection}` : ''}${(() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? `\n\n=== КЛИНИЧЕН ПРОТОКОЛ: ${p.name} ===\nХранителни насоки: ${p.dietaryGuidelines}\nАкцент: ${p.emphasis.join(', ')}\nОграничения: ${p.restrictions.join(', ')}` : ''; })()}${previousDaysContext}
-
-=== ДАННИ ОТ СТЪПКА 1 (АНАЛИЗ) ===
-Макро съотношения: ${analysisCompact.macroRatios}
-Дневни макро грамове: ${analysisCompact.macroGrams}
-
-=== ДАННИ ОТ СТЪПКА 2 (СТРАТЕГИЯ) ===
-Диета: ${strategyCompact.dietType} | Хранения: ${strategyCompact.mealTiming}
-Принципи: ${strategyCompact.keyPrinciples}
-Предпочитани храни (от стъпка 2): ${strategyCompact.foodsToInclude}
-Допълнителни предпочитани храни (от потребител): ${data.dietLove || 'няма'}
-Нежелани храни (от стъпка 2): ${strategyCompact.foodsToAvoid}
-Допълнителни нежелани храни (от потребител): ${data.dietDislike || 'няма'}
-Разпределение на калории (стъпка 2): ${strategyCompact.calorieDistribution}
-Разпределение на макроси (стъпка 2): ${strategyCompact.macroDistribution}${(() => { const _n = buildCombinedAdditionalNotes(data); return _n ? `
-
-ВАЖНО - Потребителски бележки: ${_n}` : ''; })()}
-
-=== ADLE v5.1 - АРХИТЕКТУРА НА ХРАНЕНЕТО ===
-Ти действаш като Advanced Dietary Logic Engine (ADLE) – логически конструктор на хранителни режими.
-
-МОДИФИКАТОР (Диетичен филтър): "${dietaryModifier}"
-Модификаторът филтрира кои храни са ПОЗВОЛЕНИ от универсалната база.${dynamicMainlistSection}
-УНИВЕРСАЛНА БАЗА ОТ РЕСУРСИ (Категории храни):
-[PRO] БЕЛТЪК - Основен градивен елемент:
-  • Животински: месо (пилешко, говеждо, свинско), риба, яйца, млечни (сирене, извара, кисело мляко)
-  • Растителен: тофу, темпе, растителен протеин
-  • Смесен: бобови (леща, боб, нахут) - PRO или ENG според режима
-
-[ENG] ЕНЕРГИЯ - Въглехидрати/Скорбяла:
-  • Зърнени: ориз, киноа, елда, овес, паста, хляб
-  • Кореноплодни: картофи, сладки картофи
-  • Плодове: всички видове (съдържат захар)
-
-[VOL] ОБЕМ И ФИБРИ - Зеленчуци без скорбяла:
-  • Сурови: салати (листни), краставици, домати
-  • Готвени: броколи, тиквички, чушки, гъби, карфиол, патладжан
-
-[FAT] МАЗНИНИ - Вкус и ситост:
-  • Източници: зехтин, масло, авокадо, ядки, семена, тахан, маслини
-
-[CMPX] СЪСТАВНИ/СЛОЖНИ ЯСТИЯ - Възприемани като "едно цяло":
-  • Тестени/Печива: пица, лазаня, мусака, паста със сос, киш/баница
-  • Сандвич-тип: бургер, дюнер/врап, такос
-  • Яхнии/Оризови: ястия, в които не можеш да отделиш белтъка от гарнитурата (ризото, паеля)
-
-СТРУКТУРНИ ШАБЛОНИ (Форми на ястия):
-ШАБЛОН A: "РАЗДЕЛЕНА ЧИНИЯ" → [PRO] + [ENG] + [VOL]
-  Пример: Печено пиле + Картофи на фурна + Зелена салата
-  Употреба: Стандартен обяд/вечеря
-
-ШАБЛОН B: "СМЕСЕНО ЯСТИЕ/КУПА" → Смес от [PRO] + [ENG] + [VOL]
-  Пример: Пилешка яхния с грах и картофи; Купа с киноа, тофу и зеленчуци
-  Употреба: Готвено домашно ястие
-
-ШАБЛОН C: "ЛЕКО/САНДВИЧ" → [ENG-Хляб] + [PRO] + [FAT] + [VOL-Свежест]
-  Пример: Сандвич с пилешко и кашкавал; Тост с авокадо и яйце
-  Употреба: Закуска или Обяд в движение
-
-ШАБЛОН D: "ЕДИНЕН БЛОК" → [CMPX] + [VOL-Салата/Зеленчук]
-  Пример: Парче лазаня + Салата домати; Бургер + Салата коулсло
-  ЗАДЪЛЖИТЕЛНО: Винаги добавяй [VOL] като баланс към тежките храни
-  Употреба: Уикенд, свободно хранене, комфортна храна
-
-ЛОГИЧЕСКИ ЛОСТОВЕ (Как МОДИФИКАТОРЪТ управлява системата):
-1. ФИЛТРИРАНЕ: Ако модификатор забранява група → търси алтернатива в същата категория
-   • "Веган" → без животински [PRO], използвай растителен
-   • "Без глутен" → [ENG] само безглутенови (ориз/картофи/царевица)
-   • "Кето/Нисковъглехидратно" → минимизирай [ENG], компенсирай с [VOL] и [FAT]
-
-2. ДЕКОНСТРУКЦИЯ НА [CMPX]: Преди да избереш Шаблон D, провери дали съставът е съвместим!
-   • При "Нисковъглехидратно": стандартен бургер (хляб) е несъвместим → "Бургер без хлебче"
-   • При "Веган": "Лазаня" → "Веган лазаня със зеленчуци"
-   • Ако не можеш да гарантираш съвместимост → НЕ използвай Шаблон D
-
-3. АКТИВНОСТ НА КАТЕГОРИИТЕ:
-   • Нисковъглехидратно: [ENG] деактивиран → компенсирай с повече [VOL] и [FAT]
-   • Щадящ стомах: [VOL] само готвени/щадящи (без сурови влакнини)
-
-Не въвеждай глобални забрани извън профила: спазвай само алергии, клинични ограничения, нежелани храни и dynamic blacklist. Ограничавай ултрапреработени меса до рядка употреба.
-${dynamicWhitelistSection}${dynamicBlacklistSection}
-
-ПРАВИЛА ЗА ИЗХОД:
-• Естествен български език - БЕЗ технически кодове ([PRO], [ENG])
-• Без странни комбинации - общоприети кулинарни норми
-• Шаблон D не е "прегрешение" - нормална част от менюто (напр. уикенд), винаги балансиран със салата
-• Адаптивност: Ако категория не може да се попълни → автоматично премини към позволена алтернатива
-• В едно хранене ако има едно от следните, другите отпадат: ориз, картофи, хляб
-
-=== ИЗИСКВАНИЯ ===
-1. Разпределение на калории: Използвай mealBreakdown от Стъпка 2 за всяко хранене — то задава ТОЧНИТЕ целеви калории и макроси за всяко хранене от деня
-2. Макроси ЗАДЪЛЖИТЕЛНИ: protein, carbs, fats в грамове за ВСЯКО ястие — НИКОГА не оставяй поле за макрос празно, нула или null (Изключение: "Свободно хранене" — без calories/macros полета)
-3. Калории: Настрой грамажите на съставките така, че protein×4 + carbs×4 + fats×9 ≈ целевите калории на хранението от mealBreakdown (±${DAILY_CALORIE_TOLERANCE} kcal). Разлика над 10% е грешка.
-4. Целеви калории и макроси по дни и хранения (от mealBreakdown в Стъпка 2):
-${weeklySchemeByDayText}
-5. Брой хранения: ${strategy.mealCountJustification || '2-4 хранения според профила (1-2 при IF, 3-4 стандартно)'}
-6. Ред: Хранене 1 → Хранене 2 (или Свободно хранене в деня с freeDayNumber — НЕ и двете!) → (Хранене 3: плодове/сурови ядки/скир/кисело мляко) → Хранене 4 → (Хранене 5 само при >4ч до сън+диабет/тренировки: скир/ядки/кисело мляко, макс ${MAX_LATE_SNACK_CALORIES} kcal)
-   СВОБОДЕН ДЕН: Свободно хранене ЗАМЕСТВА Хранене 2 — НЕ е допълнително хранене! Типът е "Свободно хранене", НЕ "Хранене 2".
-7. Разнообразие: Различни ястия от предишните дни${data.eatingHabits && data.eatingHabits.includes('Не закусвам') ? '\n8. ВАЖНО: Клиентът НЕ ЗАКУСВА - пропусни САМО типа "Хранене 1" (сутрешното хранене). "Хранене 3" и "Хранене 5" са напълно различни категории хранения и се включват нормално при нужда!' : '\n8. ВАЖНО: Клиентът ЗАКУСВА - ЗАДЪЛЖИТЕЛНО включи {"type": "Хранене 1", ...} като ПЪРВОТО хранене за всеки ден! Никога не пропускай Хранене 1.'}${sweetsCravingRule}${buildFreeMealInstruction(strategy, startDay, endDay)}
-9. description: Изброй продуктите в храненето, добавяй грамаж след всеки продукт във формат "име числоg" (напр. "пилешко месо 200g; ориз 150g; домати 100g.").
-
-${MEAL_NAME_FORMAT_INSTRUCTIONS}
-`;
-
-  // Build JSON format example with all days in the chunk
-  // Note: Indentation and formatting are intentional for AI model readability
-  const freeDayNumForTemplate = strategy && strategy.freeDayNumber != null ? Number(strategy.freeDayNumber) : null;
-  const mealTemplate = `{"type": "Хранене 1|Хранене 2|Хранене 3|Хранене 4|Хранене 5", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X}}`;
-  const freeMealEntry = `{"type": "Свободно хранене", "name": "Свободно хранене", "weight": "-"}`;
-  const breakfastTemplate = `{"type": "Хранене 1", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X}}`;
-  const dinnerTemplate = `{"type": "Хранене 3|Хранене 4", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X}}`;
-  // When user craves sweets, show an explicit Хранене 2 example with the dessert sub-field
-  // so the AI has a concrete JSON format to follow (dessert macros are INCLUDED in meal totals)
-  const lunchWithDessertTemplate = `{"type": "Хранене 2", "name": "...", "weight": "Xg", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X}, "dessert": true}`;
-  const hasSweetsCraving = !!sweetsCravingRule;
-  const dayTemplate = (dayNum) => {
-    const isFreeDayHere = freeDayNumForTemplate !== null && !isNaN(freeDayNumForTemplate) && dayNum === freeDayNumForTemplate;
-    let mealsContent;
-    if (isFreeDayHere) {
-      mealsContent = `${breakfastTemplate},\n      ${freeMealEntry},\n      ${dinnerTemplate}`;
-    } else if (hasSweetsCraving) {
-      mealsContent = `${breakfastTemplate},\n      ${lunchWithDessertTemplate},\n      ${dinnerTemplate}`;
-    } else {
-      mealsContent = mealTemplate;
-    }
-    return `  "day${dayNum}": {
-    "meals": [
-      ${mealsContent}
-    ],
-    "dailyTotals": {"calories": X, "protein": X, "carbs": X, "fats": X}
-  }`;
-  };
-  
-  const jsonExample = [];
-  for (let i = startDay; i <= endDay; i++) {
-    jsonExample.push(dayTemplate(i));
-  }
-
-  defaultPrompt += `
-JSON ФОРМАТ (дни ${startDay}-${endDay}):
-{
-${jsonExample.join(',\n')}
-}
-
-КРИТИЧНО: Върни JSON за ВСИЧКИ дни от ${startDay} до ${endDay} включително! Генерирай балансирани български ястия. ЗАДЪЛЖИТЕЛНО включи dailyTotals за всеки ден!
-ЗАБРАНЕНО: НЕ връщай JSON масив []. Отговорът ТРЯБВА да е JSON обект {} с ключове "day${startDay}" ... "day${endDay}".`;
-  
-  // If custom prompt exists, use it; otherwise use default
-  if (customPrompt) {
-    // All necessary values are already computed above (analysisCompact, strategyCompact,
+  // All necessary values are already computed above (analysisCompact, strategyCompact,
     // dietaryModifier, modificationsSection, previousDaysContext, food lists).
     // Dot-notation support in replacePromptVariables allows {analysisCompact.macroRatios} etc.
     let prompt = replacePromptVariables(customPrompt, {
@@ -3346,7 +3142,7 @@ ${jsonExample.join(',\n')}
       medicalConditions_musculoskeletal_details: data['medicalConditions_Мускулно-скелетни_детайл'] || '',
       DAILY_CALORIE_TOLERANCE,
       MAX_LATE_SNACK_CALORIES,
-      MEAL_NAME_FORMAT_INSTRUCTIONS,
+      MEAL_NAME_FORMAT_INSTRUCTIONS: mealNameFormatInstructions,
       freeMealInstruction: buildFreeMealInstruction(strategy, startDay, endDay),
       sweetsCravingRule,
       additionalNotes: buildCombinedAdditionalNotes(data),
@@ -3372,19 +3168,13 @@ ${jsonExample.join(',\n')}
 
 ВАЖНО: Върни САМО JSON обект {} без други текст или обяснения! НЕ връщай JSON масив []!`;
     }
-    return prompt;
-  }
-
-  return defaultPrompt;
+  return prompt;
 }
 
 /**
  * Generate prompt for summary and recommendations (final step of progressive generation)
  */
 async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan, env) {
-  // Check if there's a custom prompt in KV storage
-  const customPrompt = await getCustomPrompt(env, 'admin_summary_prompt');
-  
   // Calculate total calories and macros across the week for validation
   let totalCalories = 0;
   let totalProtein = 0;
@@ -3450,84 +3240,9 @@ async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, reco
   const sportActivity = data.sportActivity || 'няма';
   const dailyActivity = data.dailyActivity || data.dailyActivityLevel || 'средна';
   
-  const defaultPrompt = `Стъпка 4: Финални препоръки за 7-дневния хранителен план на ${data.name}.
-
-Ти си експертен клиничен диетолог, ендокринолог и психолог с дълбоко разбиране за връзката между храненето, психиката и метаболизма.
-
-══════════════════════════════════════════════════════════
-📊 ОСНОВНИ ДАННИ
-══════════════════════════════════════════════════════════
-КЛИЕНТ: ${data.name}, ${data.age || 'неизвестна'} год., Пол: ${genderDisplay}
-ЦЕЛ: ${data.goal}
-BMR: ${bmr} kcal | Препоръчителни калории: ${recommendedCalories} kcal/ден | Средни калории от плана: ${avgCalories} kcal/ден
-Макроси (средни): Белтъчини ${avgProtein}г, Въглехидрати ${avgCarbs}г, Мазнини ${avgFats}г
-
-══════════════════════════════════════════════════════════
-🧠 ПСИХОЛОГИЧЕСКИ ПРОФИЛ
-══════════════════════════════════════════════════════════
-ТЕМПЕРАМЕНТ: ${analysis.psychoProfile?.temperament || 'не е определен'} (${analysis.psychoProfile?.probability || 0}% вероятност)
-ДЕТАЙЛЕН ПРОФИЛ: ${(analysis.psychologicalProfile || '').substring(0, 500)}
-НИВО НА СТРЕС: ${stressLevel}
-КАЧЕСТВО НА СЪН: ${sleepQuality} (${sleepDuration} ч./нощ)
-ТИП ДИЕТА: ${strategy.dietType || strategy.dietaryModifier || 'балансирана'}
-
-══════════════════════════════════════════════════════════
-🏃 ФИЗИЧЕСКА АКТИВНОСТ
-══════════════════════════════════════════════════════════
-СПОРТНА АКТИВНОСТ: ${sportActivity}
-ЕЖЕДНЕВНА АКТИВНОСТ: ${dailyActivity}
-
-══════════════════════════════════════════════════════════
-⚕️ ЗДРАВНИ ДАННИ
-══════════════════════════════════════════════════════════
-КЛЮЧОВИ ПРОБЛЕМИ: ${healthContext.keyProblems || 'няма'}
-МЕДИКАМЕНТИ: ${healthContext.medications}
-АЛЕРГИИ: ${healthContext.allergies}
-ХРАНИТЕЛНИ ДЕФИЦИТИ: ${healthContext.deficiencies}
-${extraHealthContext ? extraHealthContext : ''}${dynamicMainlistSection ? '\n' + dynamicMainlistSection : ''}${dynamicWhitelistSection}${dynamicBlacklistSection}
-
-══════════════════════════════════════════════════════════
-📋 JSON ФОРМАТ НА ОТГОВОРА
-══════════════════════════════════════════════════════════
-{
-  "summary": {"bmr": ${bmr}, "dailyCalories": ${avgCalories}, "macros": {"protein": ${avgProtein}, "carbs": ${avgCarbs}, "fats": ${avgFats}}},
-  "recommendations": ["храна 1", "храна 2", "...до 10 храни"],
-  "forbidden": ["храна 1", "храна 2", "...до 10 храни"],
-  "psychology": [
-    "СЪВЕТ 1: [Заглавие] - [Детайлен, персонализиран съвет]",
-    "СЪВЕТ 2: [Заглавие] - [Детайлен, персонализиран съвет]",
-    "СЪВЕТ 3: [Заглавие] - [Детайлен, персонализиран съвет]"
-  ],
-  "waterIntake": "${strategy.hydrationStrategy || '2-2.5л дневно'}",
-  "supplements": [
-    "ДОБАВКА 1 - Дозировка: [доза] | Кога: [време] | Защо: [персонализирана причина]",
-    "ДОБАВКА 2 - Дозировка: [доза] | Кога: [време] | Защо: [персонализирана причина]",
-    "ДОБАВКА 3 - Дозировка: [доза] | Кога: [време] | Защо: [персонализирана причина]"
-  ]
-}
-
-══════════════════════════════════════════════════════════
-⚠️ ЗАДЪЛЖИТЕЛНИ ИЗИСКВАНИЯ
-══════════════════════════════════════════════════════════
-📌 RECOMMENDATIONS: МИН 10 конкретни типове храни (не ястия) за "${data.goal}"
-📌 FORBIDDEN: МИН 10 конкретни типове храни неподходящи за здравния профил
-📌 PSYCHOLOGY (точно 3 съвета):
-   - Персонализирани според темперамент "${analysis.psychoProfile?.temperament || 'неопределен'}"
-   - Адаптирани към ниво на стрес "${stressLevel}" и сън "${sleepQuality}"
-   - Конкретни и приложими, НЕ общи фрази
-📌 SUPPLEMENTS (минимум 3):
-   - С точна дозировка (мг/IU/г)
-   - Време на прием
-   - Персонализирана обосновка базирана на профила
-   - ⚠️ БЕЗ взаимодействия с медикаменти: ${healthContext.medications}
-${(() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buildClinicalProtocolSupplementSection(p) : ''; })()}`;
-
-  // If custom prompt exists, use it; otherwise use default
-  if (customPrompt) {
-    // Pre-resolve clinical protocol once for custom prompt variables
-    const _proto = getClinicalProtocol(data.clinicalProtocol);
-    // Replace variables in custom prompt
-    let prompt = replacePromptVariables(customPrompt, {
+  const customPrompt = await requireKvPrompt(env, 'admin_summary_prompt');
+  const _proto = getClinicalProtocol(data.clinicalProtocol);
+  let prompt = replacePromptVariables(customPrompt, {
       userData: data,
       strategyData: strategy,
       weekPlan: weekPlan,
@@ -3593,11 +3308,8 @@ ${(() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buil
 }
 
 ВАЖНО: Върни САМО JSON без други текст или обяснения!`;
-    }
-    return prompt;
   }
-  
-  return defaultPrompt;
+  return prompt;
 }
 
 /**
@@ -5631,7 +5343,6 @@ function syncPlanTargets(plan, analysis) {
 // values directly in meal.calories/meal.macros, so the daily calorie budget is correct
 // from the start without any backend adjustment.
 // Nutritional values are taken from FIXED_DESSERT to keep them in sync.
-const SWEETS_CRAVING_RULE_TEXT = `\nВАЖНО - НУЖДА ОТ СЛАДКО: Клиентът изпитва нужда от сладки изделия. ЗАДЪЛЖИТЕЛНО добавяй към всеки "Хранене 2" (САМО Хранене 2, НЕ друго хранене) поле "dessert": true — десертът е финален компонент на Хранене 2, не отделно хранене. НЕ включвай наименованието на десерта в полето "name" на Хранене 2. meal.calories и meal.macros на Хранене 2 ТРЯБВА да включват стойностите на ЦЯЛОТО хранене заедно с десерта (${FIXED_DESSERT.calories} ккал, ${FIXED_DESSERT.macros.protein}г белтъчини, ${FIXED_DESSERT.macros.carbs}г въглехидрати, ${FIXED_DESSERT.macros.fats}г мазнини) — взимай тези стойности предвид при изграждане на дневния калориен баланс. ПРИ ХРАНЕНЕ 2 С ДЕСЕРТ — НЕ включвай картофи, ориз или хляб. ЗА ХРАНЕНЕ 3 в дни с десерт: задължително БЕЗ плодове — само кисело мляко, ядки, скир или протеинов шейк.`;
 // Maps AI-generated meal type variants to canonical allowed types
 const MEAL_TYPE_ALIASES = {
   // Old canonical names → new canonical names (backward compat for stored plans)
@@ -6334,12 +6045,9 @@ function checkADLEv8Rules(meal) {
  * @returns {Promise<string>} Prompt instructing AI to correct specific errors in the plan
  */
 async function generateCorrectionPrompt(plan, validationErrors, userData, env) {
-  // Check if there's a custom prompt in KV storage
-  const customPrompt = await getCustomPrompt(env, 'admin_correction_prompt');
-  
-  // If custom prompt exists, use it with variable replacement
-  if (customPrompt) {
-    const _combinedNotes = buildCombinedAdditionalNotes(userData);
+  const customPrompt = await requireKvPrompt(env, 'admin_correction_prompt');
+  const mealNameFormatInstructions = await getMealNameFormatInstructions(env);
+  const _combinedNotes = buildCombinedAdditionalNotes(userData);
     const additionalNotesSection = _combinedNotes
       ? `═══ 🔥 КРИТИЧНО ВАЖНА ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ 🔥 ═══\n⚠️ МАКСИМАЛЕН ПРИОРИТЕТ при корекциите!\n${_combinedNotes}\n⚠️ ЗАДЪЛЖИТЕЛНО: Всички корекции трябва да уважават тази информация!\n═══════════════════════════════════════════════════════════════`
       : '';
@@ -6362,111 +6070,19 @@ async function generateCorrectionPrompt(plan, validationErrors, userData, env) {
       }, null, 2),
       additionalNotes: _combinedNotes,
       additionalNotesSection,
-      MEAL_NAME_FORMAT_INSTRUCTIONS: MEAL_NAME_FORMAT_INSTRUCTIONS,
+      MEAL_NAME_FORMAT_INSTRUCTIONS: mealNameFormatInstructions,
       MIN_DAILY_CALORIES: MIN_DAILY_CALORIES
     });
-    
-    // CRITICAL: Ensure JSON format instructions are included even with custom prompts
-    if (!hasJsonFormatInstructions(prompt)) {
-      prompt += `
+
+  if (!hasJsonFormatInstructions(prompt)) {
+    prompt += `
 
 ═══ КРИТИЧНО ВАЖНО - ФОРМАТ НА ОТГОВОР ═══
 Отговори САМО с валиден JSON обект - ПЪЛНИЯ КОРИГИРАН план БЕЗ допълнителни обяснения или текст преди или след JSON.
 
 ВАЖНО: Върни САМО JSON без други текст или обяснения!`;
-    }
-    return prompt;
   }
-  
-  return `Ти си експертен диетолог и трябва да КОРИГИРАШ хранителен план, който има следните проблеми:
-
-═══ ГРЕШКИ ЗА КОРИГИРАНЕ ═══
-${validationErrors.map((error, idx) => `${idx + 1}. ${error}`).join('\n')}
-
-═══ ТЕКУЩ ПЛАН (С ГРЕШКИ) ═══
-${JSON.stringify(plan, null, 2)}
-
-═══ КЛИЕНТСКИ ДАННИ ═══
-${JSON.stringify({
-  name: userData.name,
-  age: userData.age,
-  gender: userData.gender,
-  goal: userData.goal,
-  medicalConditions: userData.medicalConditions,
-  dietPreference: userData.dietPreference,
-  dietDislike: userData.dietDislike,
-  dietLove: userData.dietLove,
-  additionalNotes: buildCombinedAdditionalNotes(userData) || undefined
-}, null, 2)}
-
-${(() => { const _n = buildCombinedAdditionalNotes(userData); return _n ? `═══ 🔥 КРИТИЧНО ВАЖНА ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ 🔥 ═══
-⚠️ МАКСИМАЛЕН ПРИОРИТЕТ при корекциите!
-${_n}
-⚠️ ЗАДЪЛЖИТЕЛНО: Всички корекции трябва да уважават тази информация!
-═══════════════════════════════════════════════════════════════
-` : ''; })()}
-
-═══ ПРАВИЛА ЗА КОРИГИРАНЕ ═══
-
-${MEAL_NAME_FORMAT_INSTRUCTIONS}
-
-ВАЖНО - СТРАТЕГИЯ И ОБОСНОВКА:
-1. ВСЯКА корекция ТРЯБВА да бъде обоснована
-2. Ако добавяш/променяш хранения, обясни ЗАЩО в strategy.planJustification
-3. Ако добавяш хранения след вечеря, обясни причината в strategy.afterDinnerMealJustification
-4. Ако променяш броя хранения, обясни в strategy.mealCountJustification
-5. При многодневно планиране, обясни подхода в strategy.longTermStrategy
-
-ТИПОВЕ ХРАНЕНИЯ И РЕД:
-1. ПОЗВОЛЕНИ ТИПОВЕ ХРАНЕНИЯ (в хронологичен ред):
-   - "Хранене 1" (сутрин – закуска)
-   - "Хранене 2" (обед)
-   - "Хранене 3" (опционално, след обяд – следобедна закуска)
-   - "Хранене 4" (вечер)
-   - "Хранене 5" (опционално, след вечеря - С ОБОСНОВКА! – késна закуска)
-
-2. БРОЙ ХРАНЕНИЯ: 1-5 на ден
-   - ЗАДЪЛЖИТЕЛНО обоснови избора в strategy.mealCountJustification
-
-3. ХРАНЕНИЯ СЛЕД ВЕЧЕРЯ - разрешени С ОБОСНОВКА:
-   - Физиологична причина (диабет, дълъг период до сън, проблеми със съня)
-   - Психологическа причина (управление на стрес)
-   - Стратегическа причина (спортни тренировки вечер, работа на смени)
-   - ДОБАВИ обосновката в strategy.afterDinnerMealJustification!
-   - Предпочитай ниско-гликемични храни (кисело мляко, ядки, ягоди, семена)
-
-4. МНОГОДНЕВЕН ХОРИЗОНТ:
-   - Може да планираш 2-3 дни като цяло при обоснована стратегия
-   - Циклично разпределение на калории/макроси е позволено
-   - ОБЯСНИ в strategy.longTermStrategy
-
-5. МЕДИЦИНСКИ ИЗИСКВАНИЯ:
-   - При диабет: НЕ високовъглехидратни храни
-   - При анемия + вегетарианство: добавка с желязо ЗАДЪЛЖИТЕЛНА
-   - При PCOS/СПКЯ: предпочитай нисковъглехидратни варианти
-   - Спазвай: ${JSON.stringify(userData.medicalConditions || [])}
-
-6. КАЛОРИИ И МАКРОСИ:
-   - Всяко хранене ТРЯБВА да има "calories", "macros" (protein, carbs, fats)
-   - Дневни калории минимум ${MIN_DAILY_CALORIES} kcal (може да варират между дни)
-   - Прецизни изчисления: 1г протеин=4kcal, 1г въглехидрати=4kcal, 1г мазнини=9kcal
-
-7. СТРУКТУРА:
-   - Всички 7 дни (day1-day7) ЗАДЪЛЖИТЕЛНО
-   - 1-5 хранения на ден (ОБОСНОВАНИ в strategy)
-   - Избягвай: ${userData.dietDislike || 'няма'}
-   - Включвай: ${userData.dietLove || 'няма'}
-
-═══ ТВОЯТА ЗАДАЧА ═══
-Коригирай проблемните части и ДОБАВИ ОБОСНОВКИ в strategy полетата:
-- strategy.planJustification - обща обосновка на плана
-- strategy.mealCountJustification - защо този брой хранения
-- strategy.afterDinnerMealJustification - защо хранения след вечеря (ако има)
-- strategy.longTermStrategy - многодневна стратегия (ако има)
-
-Върни ПЪЛНИЯ КОРИГИРАН план в същия JSON формат като оригиналния.
-
-ВАЖНО: Върни САМО JSON без допълнителни обяснения!`;
+  return prompt;
 }
 
 /**
@@ -6921,6 +6537,30 @@ async function getCustomPrompt(env, promptKey) {
   }
 }
 
+/** Prompts live in KV/prompts/ — uploaded via ./KV/upload-kv-keys.sh */
+async function requireKvPrompt(env, promptKey) {
+  const prompt = await getCustomPrompt(env, promptKey);
+  if (!prompt || !String(prompt).trim()) {
+    throw new Error(`Липсва промпт "${promptKey}" в KV. Качете от KV/prompts/: ./KV/upload-kv-keys.sh`);
+  }
+  return prompt;
+}
+
+async function getMealNameFormatInstructions(env) {
+  return requireKvPrompt(env, 'snippet_meal_name_format');
+}
+
+async function buildSweetsCravingRule(env, foodCravings, strategy) {
+  if (!userHasSweetsCraving(foodCravings) || strategy?.includeDessert === false) return '';
+  const template = await requireKvPrompt(env, 'snippet_sweets_craving_rule');
+  return replacePromptVariables(template, {
+    FIXED_DESSERT_CALORIES: FIXED_DESSERT.calories,
+    FIXED_DESSERT_PROTEIN: FIXED_DESSERT.macros.protein,
+    FIXED_DESSERT_CARBS: FIXED_DESSERT.macros.carbs,
+    FIXED_DESSERT_FATS: FIXED_DESSERT.macros.fats
+  });
+}
+
 /**
  * Check if a prompt already includes JSON format instructions
  * Used to avoid adding duplicate JSON format instructions to custom prompts
@@ -6974,12 +6614,8 @@ async function generateAnalysisPrompt(data, env, errorPreventionComment = null) 
   const waterMin = (parseFloat(data.weight) * WATER_PER_KG_MULTIPLIER + BASE_WATER_NEED_LITERS).toFixed(2);
   const waterMax = (parseFloat(data.weight) * WATER_PER_KG_MULTIPLIER + BASE_WATER_NEED_LITERS + ACTIVITY_WATER_BONUS_LITERS).toFixed(2);
 
-  // Check if there's a custom prompt in KV storage
-  const customPrompt = await getCustomPrompt(env, 'admin_analysis_prompt');
-  
-  // If custom prompt exists, use it; otherwise use default
-  if (customPrompt) {
-    const _combinedNotes = buildCombinedAdditionalNotes(data);
+  const customPrompt = await requireKvPrompt(env, 'admin_analysis_prompt');
+  const _combinedNotes = buildCombinedAdditionalNotes(data);
     const additionalNotesSection = _combinedNotes
       ? `═══ 🔥 ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ ОТ ПОТРЕБИТЕЛЯ (КРИТИЧЕН ПРИОРИТЕТ) 🔥 ═══\n${_combinedNotes}\n═══════════════════════════════════════════════════════════════`
       : '';
@@ -7139,289 +6775,8 @@ async function generateAnalysisPrompt(data, env, errorPreventionComment = null) 
 }
 
 ВАЖНО: Върни САМО JSON без други текст или обяснения!`;
-    }
-    return prompt;
   }
-  
-  // Build default prompt with optional error prevention comment
-  let defaultPrompt = '';
-  
-  if (errorPreventionComment) {
-    defaultPrompt += errorPreventionComment + '\n\n';
-  }
-  
-  defaultPrompt += `Ти си експертен клиничен диетолог, ендокринолог и психолог.
-
-ТВОЯТА ЗАДАЧА: Направи структуриран анализ и изчисли финалните препоръчителни калории и макроси за клиента.
-
-⚠️ ВАЖНО: Базовите изчисления (bmr, tdee) са ВЕЧЕ ИЗЧИСЛЕНИ от бекенда.
-НЕ ги преизчислявай по формула. Използвай ги като отправна точка и ги коригирай само чрез корекционни проценти.
-
-═══ КЛИЕНТСКИ ДАННИ ═══
-${JSON.stringify({
-  name: data.name,
-  age: data.age,
-  gender: data.gender,
-  height: data.height,
-  weight: data.weight,
-  goal: data.goal,
-  lossKg: data.lossKg,
-  sleepHours: data.sleepHours,
-  sleepInterrupt: data.sleepInterrupt,
-  chronotype: data.chronotype,
-  sportActivity: data.sportActivity,
-  dailyActivityLevel: data.dailyActivityLevel,
-  stressLevel: data.stressLevel,
-  waterIntake: data.waterIntake,
-  drinksSweet: data.drinksSweet,
-  drinksAlcohol: data.drinksAlcohol,
-  overeatingFrequency: data.overeatingFrequency,
-  eatingHabits: data.eatingHabits,
-  foodCravings: data.foodCravings,
-  foodTriggers: data.foodTriggers,
-  compensationMethods: data.compensationMethods,
-  socialComparison: data.socialComparison,
-  medicalConditions: data.medicalConditions,
-  medications: data.medications,
-  medicationsDetails: data.medicationsDetails,
-  weightChange: data.weightChange,
-  weightChangeDetails: data.weightChangeDetails,
-  dietHistory: data.dietHistory,
-  dietType: data.dietType,
-  dietResult: data.dietResult,
-  dietPreference: data.dietPreference,
-  dietPreference_other: data.dietPreference_other || undefined,
-  dietDislike: data.dietDislike,
-  dietLove: data.dietLove,
-  goal_other: data.goal_other || undefined,
-  foodCravings_other: data.foodCravings_other || undefined,
-  foodTriggers_other: data.foodTriggers_other || undefined,
-  compensationMethods_other: data.compensationMethods_other || undefined,
-  medicalConditions_other: data.medicalConditions_other || undefined,
-  medicalConditions_allergy_details: data['medicalConditions_Алергии'] || undefined,
-  medicalConditions_autoimmune_details: data['medicalConditions_Автоимунно'] || undefined,
-  medicalConditions_cardiovascular_details: data['medicalConditions_Сърдечно-съдови_детайл'] || undefined,
-  medicalConditions_endocrine_details: data['medicalConditions_Ендокринни_детайл'] || undefined,
-  medicalConditions_digestive_details: data['medicalConditions_Храносмилателни_детайл'] || undefined,
-  medicalConditions_metabolic_details: data['medicalConditions_Метаболитни_детайл'] || undefined,
-  medicalConditions_musculoskeletal_details: data['medicalConditions_Мускулно-скелетни_детайл'] || undefined,
-  additionalNotes: buildCombinedAdditionalNotes(data)
-}, null, 2)}
-
-═══ БАЗОВИ ИЗЧИСЛЕНИЯ ОТ БЕКЕНДА (НЕ преизчислявай) ═══
-Забележка: safeDeficit е само справочна стойност — базата за ТВОИТЕ корекции е tdee.
-${JSON.stringify({
-  activityScore: activityData,
-  bmr: bmr,
-  tdee: tdee,
-  safeDeficit_reference: deficitData,
-  baselineMacros: macros
-}, null, 2)}
-
-${(() => { const _n = buildCombinedAdditionalNotes(data); return _n ? `
-═══ 🔥 ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ ОТ ПОТРЕБИТЕЛЯ (КРИТИЧЕН ПРИОРИТЕТ) 🔥 ═══
-${_n}
-═══════════════════════════════════════════════════════════════
-` : ''; })()}
-${(() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buildClinicalProtocolPromptSection(p) : ''; })()}
-
-═══ ТВОЯТА ЗАДАЧА - СТРУКТУРИРАН АНАЛИЗ ═══
-
-СТЪПКА 1: ТЕМПЕРАМЕНТ
-Определи темперамента базирано на: age, gender, chronotype, sleepHours, sleepInterrupt, stressLevel, foodTriggers, overeatingFrequency, compensationMethods, dailyActivityLevel, sportActivity.
-- Попълни temperament само ако вероятността е >${TEMPERAMENT_CONFIDENCE_THRESHOLD}%. Иначе остави празно.
-- Типове: Холерик, Сангвиник, Флегматик, Меланхолик
-→ Резултат: psychoProfile.temperament, psychoProfile.probability
-
-СТЪПКА 2: ПСИХОПРОФИЛ
-Базирай анализа на темперамента (Стъпка 1) + : age, gender, goal, lossKg, dietHistory, eatingHabits, foodCravings, drinksSweet, drinksAlcohol, waterIntake, socialComparison, dietPreference, dietDislike, dietLove, weightChange, additionalNotes.
-→ Резултат: psychologicalProfile (детайлен текстов анализ)
-
-СТЪПКА 3: КОРЕКЦИИ НА БАЗОВИТЕ ИЗЧИСЛЕНИЯ
-Определи процентна корекция на TDEE за всяка категория:
-
-3а. clinicalAdjustmentPercent — клинична корекция
-  Базирай само на: medicalConditions, medications (additionalNotes само ако е пряко клинично/медицинско)
-  Пример: хипотиреоидизъм → -8%, диабет Тип 2 → -5%, без диагноза → 0
-  Диапазон: -15% до +5%
-  ⚠️ ЛАКТАЦИЯ (postpartum_lactation): clinicalAdjustmentPercent = +round(350/tdee×100)% — БЕЗ горна граница +5%, тъй като кърменето изисква реален калориен излишък (+330–400 kcal).
-
-3б. metabolicAdjustmentPercent — метаболитна корекция
-  Базирай на: sportActivity, sleepHours, sleepInterrupt, stressLevel, психопрофил (Стъпка 2), темперамент (Стъпка 1), additionalNotes
-  Пример: хронически стрес + лош сън → -5%, оптимален сън + нисък стрес → +2
-  Диапазон: -10% до +5%
-
-3в. goalAdjustmentPercent — корекция спрямо цел
-  Вземи предвид: goal, lossKg, bmi (от анализа), dietHistory, психопрофил и метаболитна реактивност (Стъпки 1–2), additionalNotes
-  Използвай собствената си клинична преценка, за да определиш процента, аргументирано съобразен с желаната цел и реалния индивидуален потенциал на клиента.
-  Диапазон: -20% до +15%
-  ⚠️ ЛАКТАЦИЯ + ОТСЛАБВАНЕ: При postpartum_lactation и цел отслабване → goalAdjustmentPercent максимум -5% (безопасен темп ≤0.5 кг/седмица при кърмене).
-
-⚠️ ЗАДЪЛЖИТЕЛНО: Сумата от трите корекции НЕ трябва да надвишава -25% (безопасен максимален дефицит).
-Ако сборът е под -25%, ограничи goalAdjustmentPercent така, че total = клинично + метаболитно + цел ≥ -25%.
-
-→ Резултат: correctedMetabolism (с clinicalAdjustmentPercent, metabolicAdjustmentPercent, goalAdjustmentPercent)
-
-СТЪПКА 4: ФИНАЛНИ КАЛОРИИ
-totalAdjustmentPercent = clinicalAdjustmentPercent + metabolicAdjustmentPercent + goalAdjustmentPercent
-(ограничи на минимум -25%)
-Final_Calories = round(tdee × (1 + totalAdjustmentPercent / 100))
-
-⚠️ МИНИМАЛЕН ПРАГ: Final_Calories НЕ трябва да е под ${data.gender === 'Мъж' ? MIN_RECOMMENDED_CALORIES_MALE : MIN_RECOMMENDED_CALORIES_FEMALE} kcal (безопасен минимум за ${data.gender}).
-Ако формулата даде по-малко, задай Final_Calories = ${data.gender === 'Мъж' ? MIN_RECOMMENDED_CALORIES_MALE : MIN_RECOMMENDED_CALORIES_FEMALE} kcal и посочи в correctedMetabolism.correction причината.
-
-correctedMetabolism.realBMR = bmr (базовият BMR остава непроменен — формулата коригира само TDEE)
-correctedMetabolism.realTDEE = Final_Calories
-→ Резултат: Final_Calories, correctedMetabolism.realBMR, realTDEE, correctionPercent
-
-СТЪПКА 5: ФИНАЛНИ МАКРОСИ (Белтъчини, Мазнини, Въглехидрати)
-Определи оптималното разпределение базирано на:
-- желана цел и желан резултат (goal, lossKg) — адаптирай разпределението съобразно индивидуалния профил и анализа от Стъпки 1–2
-- темперамент (Стъпка 1) и психопрофил (Стъпка 2)
-- хранителни навици: eatingHabits, foodCravings, foodTriggers, compensationMethods, drinksSweet, drinksAlcohol
-- клинични данни: medicalConditions, medications
-
-Изчисли грамовете ЗАДЪЛЖИТЕЛНО по тези формули (базирани на Final_Calories от Стъпка 4):
-  protein_g  = round(Final_Calories × protein% / 100 / 4)
-  fats_g     = round(Final_Calories × fats% / 100 / 9)
-  carbs_g    = round(Final_Calories × carbs% / 100 / 4)
-
-Провери: protein_g×4 + carbs_g×4 + fats_g×9 ≈ Final_Calories (разлика ≤ 15 kcal е ок)
-Ако не, коригирай carbs_g: carbs_g = round((Final_Calories - protein_g×4 - fats_g×9) / 4)
-
-⚠️ МИНИМУМ МАЗНИНИ: fats_g ≥ ${Math.round((parseFloat(data.weight) || 70) * MIN_FAT_GRAMS_PER_KG)}г (${MIN_FAT_GRAMS_PER_KG}г/кг × ${data.weight}кг) за хормонална функция.
-Ако формулата дава по-малко, увеличи fats% и намали carbs%.
-
-→ Резултат: macroRatios (%), macroGrams (g)
-
-СТЪПКА 6: ДАННИ ЗА СТРАНИЦАТА С АНАЛИЗ (за фронтенда — непроменени)
-
-А. BMI: Изчисли BMI = weight / (height/100)². Категория: Поднормено (<18.5), Нормално (18.5-25), Наднормено (25-30), Затлъстяване (>30)
-
-Б. ФИЗИОЛОГИЧНА ФАЗА: Млад възрастен (18-30), Зряла възраст (31-50), Средна възраст (51-65), Напреднала възраст (65+)
-
-В. ДНЕВЕН ВОДЕН ДЕФИЦИТ:
-   - Нужда: ${waterMin} до ${waterMax} литра дневно
-   - Текущ прием: ${data.waterIntake || 'неизвестен'}
-   - Изчисли дефицит и влияние върху липолизата
-
-Г. ОТРИЦАТЕЛНИ ЗДРАВОСЛОВНИ ФАКТОРИ (тежест 1-3):
-   - Медицински: ${JSON.stringify(data.medicalConditions || [])}
-   - Лекарства: ${data.medications === 'Да' ? data.medicationsDetails : 'Не приема'}
-
-Д. ПРЕЧЕЩИ ФАКТОРИ ЗА ЦЕЛТА (тежест 1-3):
-   - Стрес: ${data.stressLevel}, Сън: ${data.sleepHours}ч / прекъсвания: ${data.sleepInterrupt}
-   - Навици: ${JSON.stringify(data.eatingHabits || [])}, Тригери: ${JSON.stringify(data.foodTriggers || [])}
-
-Е. СУМАРЕН РИСК: Припокриващи се фактори от Г и Д → СУМИРАЙ тежестта
-
-Ж. РЕАКТИВНОСТ НА МЕТАБОЛИЗМА:
-   - Спрямо: activityScore ${activityData.combinedScore}/10, диетична история (${data.dietHistory}), хронотип (${data.chronotype}), стрес (${data.stressLevel})
-   - Определи: Бавен/Среден/Бърз, Адаптивност: Ниска/Средна/Висока
-
-З. КРИТИЧНИ ПРОБЛЕМИ (3-6): само Borderline/Risky/Critical severity, КРИТИЧНО и ПЛАШЕЩО описание
-
-И. ЗДРАВОСЛОВНО СЪСТОЯНИЕ: скала 0-100, ЗАНИЖЕНО с ${HEALTH_STATUS_UNDERESTIMATE_PERCENT}% за мотивация
-
-К. ПРОГНОЗА ПЕСИМИСТИЧНА (12 месеца): ако продължи по същия начин
-
-Л. ПРОГНОЗА ОПТИМИСТИЧНА (12 месеца): след подобряване на всички проблеми
-
-═══ ФОРМАТ НА ОТГОВОР ═══
-
-{
-  "bmi": число,
-  "bmiCategory": "текст категория",
-  "bmr": число,
-  "tdee": число,
-  "Final_Calories": число,
-  "macroRatios": {
-    "protein": число процент,
-    "carbs": число процент,
-    "fats": число процент
-  },
-  "macroGrams": {
-    "protein": число грамове,
-    "carbs": число грамове,
-    "fats": число грамове
-  },
-  "activityLevel": "ниво 1-10 и описание",
-  "physiologicalPhase": "фаза според възраст и влияние",
-  "waterDeficit": {
-    "dailyNeed": "литри дневно",
-    "currentIntake": "текущ прием",
-    "deficit": "дефицит в литри",
-    "impactOnLipolysis": "влияние върху отслабването"
-  },
-  "negativeHealthFactors": [
-    {
-      "factor": "фактор",
-      "severity": число 1-3,
-      "description": "описание"
-    }
-  ],
-  "hinderingFactors": [
-    {
-      "factor": "фактор",
-      "severity": число 1-3,
-      "description": "описание"
-    }
-  ],
-  "cumulativeRiskScore": "сума на припокриващи се фактори",
-  "psychoProfile": {
-    "temperament": "тип (само ако >${TEMPERAMENT_CONFIDENCE_THRESHOLD}% вероятност)",
-    "probability": число процент
-  },
-  "metabolicReactivity": {
-    "speed": "Бавен/Среден/Бърз",
-    "adaptability": "Ниска/Средна/Висока"
-  },
-  "correctedMetabolism": {
-    "realBMR": число,
-    "realTDEE": число,
-    "clinicalAdjustmentPercent": число,
-    "metabolicAdjustmentPercent": число,
-    "goalAdjustmentPercent": число,
-    "correction": "описание на корекцията",
-    "correctionPercent": "+/-X%"
-  },
-  "metabolicProfile": "анализ на метаболитния профил",
-  "healthRisks": ["риск 1", "риск 2", "риск 3"],
-  "nutritionalNeeds": ["нужда 1", "нужда 2", "нужда 3"],
-  "psychologicalProfile": "детайлен анализ на психологическия профил",
-  "successChance": число (-100 до 100),
-  "currentHealthStatus": {
-    "score": число 0-100 (ЗАНИЖЕНО с ${HEALTH_STATUS_UNDERESTIMATE_PERCENT}%),
-    "description": "текущо състояние",
-    "keyIssues": ["проблем 1", "проблем 2"]
-  },
-  "forecastPessimistic": {
-    "timeframe": "12 месеца",
-    "weight": "прогнозно тегло",
-    "health": "прогнозно здраве",
-    "risks": ["риск 1", "риск 2", "риск 3", "риск 4", "риск 5"]
-  },
-  "forecastOptimistic": {
-    "timeframe": "12 месеца",
-    "weight": "прогнозно тегло",
-    "health": "прогнозно здраве",
-    "improvements": ["подобрение 1", "подобрение 2", "подобрение 3", "подобрение 4", "подобрение 5"]
-  },
-  "keyProblems": [
-    {
-      "title": "заглавие (кратко)",
-      "description": "КРИТИЧНО и ПЛАШЕЩО описание защо е проблем",
-      "severity": "Borderline/Risky/Critical",
-      "severityValue": число 0-100,
-      "category": "Sleep/Nutrition/Hydration/Stress/Activity/Medical",
-      "impact": "въздействие върху здравето и целта"
-    }
-  ]
-}
-
-Бъди КОНКРЕТЕН за ${data.name}. Обяснявай ЗАЩО и КАК с конкретни данни от профила.`;
-  
-  return defaultPrompt;
+  return prompt;
 }
 
 /**
@@ -7473,15 +6828,9 @@ function buildCompactAnalysis(analysis) {
 }
 
 async function generateStrategyPrompt(data, analysis, env, errorPreventionComment = null) {
-  // Check if there's a custom prompt in KV storage
-  const customPrompt = await getCustomPrompt(env, 'admin_strategy_prompt');
-  
-  // Extract only the required fields from step 1 analysis result
+  const customPrompt = await requireKvPrompt(env, 'admin_strategy_prompt');
   const analysisCompact = buildCompactAnalysis(analysis);
-  
-  // If custom prompt exists, use it; otherwise use default
-  if (customPrompt) {
-    const _combinedNotes = buildCombinedAdditionalNotes(data);
+  const _combinedNotes = buildCombinedAdditionalNotes(data);
     const additionalNotesSection = _combinedNotes
       ? `═══ ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ ОТ ПОТРЕБИТЕЛЯ (КРИТИЧЕН ПРИОРИТЕТ) ═══\n${_combinedNotes}\n═══════════════════════════════════════════════════════════════`
       : '';
@@ -7604,209 +6953,8 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
 }
 
 ВАЖНО: Върни САМО JSON без други текст или обяснения!`;
-    }
-    return prompt;
   }
-  
-  // Build default prompt with optional error prevention comment
-  let defaultPrompt = '';
-  
-  if (errorPreventionComment) {
-    defaultPrompt += errorPreventionComment + '\n\n';
-  }
-  
-  defaultPrompt += `Ти си експертен диетолог. На базата на вече завършения анализ, определи оптималната диетична стратегия за ${data.name}.
-
-КЛИЕНТ: ${data.name}, ${data.age} год., Цел: ${data.goal}
-
-═══ РЕЗУЛТАТИ ОТ АНАЛИЗА (КОМПАКТЕН) ═══
-- BMI: ${analysisCompact.bmi || 'не е изчислен'}
-- BMR: ${analysisCompact.realBMR || 'не е изчислен'} kcal/ден (базов метаболизъм)
-- Препоръчителни калории (след всички корекции): ${analysisCompact.realTDEE || 'не е изчислен'} kcal/ден
-- Темперамент: ${analysisCompact.temperament || 'Не определен'} (${analysisCompact.psychoProfile?.probability || 0}% вероятност)
-
-ПРЕДПОЧИТАНИЯ:
-- Диетични предпочитания: ${JSON.stringify(data.dietPreference || [])}
-${data.dietPreference_other ? `  (Друго: ${data.dietPreference_other})` : ''}
-- Не обича/непоносимост: ${data.dietDislike || 'Няма'}
-- Любими храни: ${data.dietLove || 'Няма'}
-${data['medicalConditions_Алергии'] ? `- Детайли за алергии: ${data['medicalConditions_Алергии']}` : ''}
-${data['medicalConditions_Автоимунно'] ? `- Детайли за автоимунно: ${data['medicalConditions_Автоимунно']}` : ''}
-${data.medicalConditions_other ? `- Друго медицинско: ${data.medicalConditions_other}` : ''}
-${data.goal_other ? `- Уточнение за цел: ${data.goal_other}` : ''}
-
-${(() => { const _n = buildCombinedAdditionalNotes(data); return _n ? `═══ ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ ОТ ПОТРЕБИТЕЛЯ (КРИТИЧЕН ПРИОРИТЕТ) ═══
-${_n}
-═══════════════════════════════════════════════════════════════
-` : ''; })()}
-${(() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buildClinicalProtocolPromptSection(p) : ''; })()}
-ВАЖНО: Калориите вече са финално изчислени в анализа. Не ги преизчислявай.
-Използвай препоръчителните калории (${analysisCompact.realTDEE || 'от анализа'} kcal) директно.
-
-⚠️ КЛЮЧОВО: Тази стъпка определя САМО тип диета приложима за клиента и подход, архитектура и рамка. НЕ давай конкретни примери с храни — конкретните продукти, грамажи и комбинации ще бъдат избрани в Стъпка 3!
-
-ДОПУСТИМИ ТИПОВЕ ХРАНЕНИЯ (между 3 и 5 на ден, по преценка):
-  "Хранене 1" = Закуска
-  "Хранене 2" = Обяд
-  "Хранене 3" = Следобедна закуска
-  "Хранене 4" = Вечеря
-  "Хранене 5" = Късна закуска
-  "Свободно хранене" = Замества Хранене 2 в свободния ден (в mealBreakdown има calories/macros за дневните totals; в самото meal поле няма calories/macros)
-  Забранено е да използваш имена "Закуска", "Обяд", "Следобедна закуска", "Вечеря", "Късна закуска".
-
-═══ СПЕЦИАЛНИ ИЗИСКВАНИЯ ЗА СЕДМИЧНА СХЕМА ═══
-
-1. ОПРЕДЕЛЯНЕ НА тип диета ( ако не е определена от клиента), СЕДМИЧНА СХЕМА И РАЗПРЕДЕЛЕНИЕ НА КАЛОРИИ:
-- определи тип диета спрямо целта, здравословно състояние, overeatingFrequency, diet History, chronotype, ако не е изрично отбелязана в "dietPreference". Избери подходяща от следния списък и се аргументирай кратко: " 
-Отслабване: Средиземноморска диета, DASH, Периодично гладуване (16/8).
-Антиейджинг: MIND диета, Диета на „Сините зони", Средиземноморска.
-Сърдечно-съдови: DASH диета, Средиземноморска, Портфолио диета.
-Автоимунни: Автоимунен палео протокол (AIP), Противовъзпалителна диета.
-Балансирани: Флекситарианство, Нордическа диета, Харвардска чиния.
-Детокс: Диета с високо съдържание на фибри, Чисто хранене (Clean Eating).
-Мускулно укрепване: Високопротеинов режим, Целево калорийно хранене.
-Менопауза: Средиземноморска диета, Нисковъглехидратна/Нисък гликемичен индекс.
-Емоционално хранене: Осъзнато хранене (Mindful Eating), Интуитивно хранене."
-   - Определи за всеки ден: колко хранения, кога И целевите калории/макроси
-   - Базова цел: ${analysisCompact.realTDEE || 'от анализа'} kcal/ден
-   - Дните МОЖЕ да имат различни калории и макроси спрямо:
-     * Тренировъчни дни vs. почивни дни (варирай по собствена преценка)
-     * Дни с интермитентно гладуване (намалени) vs. зареждащи дни (увеличени)
-     * Свободно хранене (леко завишени) след което лека вечеря
-   - ЗАДЪЛЖИТЕЛНО: Средните калории за седмицата ≈ ${analysisCompact.realTDEE || 'препоръчителните калории'} kcal/ден
-   - Адаптирай според:
-     * Хранителни навици: ${JSON.stringify(data.eatingHabits || [])}
-     * Хронотип: ${data.chronotype}
-     * Темперамент и психопрофил от анализа
-     * Цел: ${data.goal}
-
-2. РАЗПРЕДЕЛЕНИЕ НА КАЛОРИИ И МАКРОСИ ПО ХРАНЕНИЯ:
-   - За всеки ден разпредели дневните калории и макроси между храненията (mealBreakdown)
-   - Сумата на mealBreakdown.calories ТРЯБВА да е равна на дневните calories
-   - Сумата на mealBreakdown.protein ТРЯБВА да е равна на дневния protein
-   - Сумата на mealBreakdown.carbs ТРЯБВА да е равна на дневния carbs
-   - Сумата на mealBreakdown.fats ТРЯБВА да е равна на дневните fats
-   - Броят обекти в mealBreakdown ТРЯБВА да е равен на meals за деня
-   - ИЗКЛЮЧЕНИЕ за свободния ден: обектът {"type": "Свободно хранене", "calories": N, "protein": N, "carbs": N, "fats": N} в mealBreakdown задава планирания обеден слот; в Стъпка 3 самото meal поле остава без calories/macros
-
-3. СПЕЦИАЛНИ СЛУЧАИ:
-   a) Ако клиентът НЕ ЗАКУСВА:
-      - Хранене 1 (сутрешното хранене) Отпада.
-      - ПРЕПОРЪЧАЙ вместо него: вода с лимон, зелен чай, айран, или друга подходяща напитка
-      - ако в eatingHabits е отбелязано, че клиентът не закусва, се премахва само сутрешното хранене, но се допуска Хранене 3 или Хранене 5.
-б) БРОЙ ХРАНЕНИЯ (1–5) — РЕШИ НА БАЗА ПРОФИЛА, НЕ ХАРДКОДИРАЙ 3:
-      • 2 хранения: само при строг IF протокол (OMAD/23:1) или категорична клинична индикация
-      • 3 хранения (Хранене 1 + 2 + 4): стандарт при умерена активност, без специални нужди, кратък период до сън след вечеря
-      • 4 хранения (добавя Хранене 3 между Хранене 2 и 4): САМО при медицинска ситуация (диабет, инсулинова резистентност) ИЛИ калорийна цел >2000 kcal — иначе е прекалено и НЕ се добавя. Хранене 3 е ЛЕКА ЗАКУСКА: плодове, сурови ядки, скир или кисело мляко — НЕ сложно основно ястие!
-      • 5 хранения (добавя и Хранене 5 след Хранене 4): САМО при медицинска ситуация (диабет с вечерен инсулин) ИЛИ >4ч между Хранене 4 и сън. Хранене 5 е САМО мазнини и белтъчини: скир, сурови ядки, кисело мляко — без плодове, зеленчуци или въглехидрати.
-      ВАЖНО: Броят на елементите в mealBreakdown ТРЯБВА да съвпада с полето "meals" за деня.
-   
-   c) СВОБОДНО ХРАНЕНЕ/ЛЮБИМА ХРАНА:
-      - Решавай на база психопрофил — при хранителни тригери, компенсаторни навици, емоционално хранене или рестриктивна история с диети → ДА; при активен голям калориен дефицит, диабет или хранително разстройство (анорексия/булимия) → НЕ (freeDayNumber: null)
-      - Свободното хранене е ЗАДЪЛЖИТЕЛНО в събота (6) или неделя (7) — НИКОГА в делник!
-      - Запиши избрания ден в полето "freeDayNumber" (6 за Събота или 7 за Неделя)
-      - В mealBreakdown за деня на свободното хранене: ЗАДЪЛЖИТЕЛНО замени обяда с {"type": "Свободно хранене", "calories": N, "protein": N, "carbs": N, "fats": N}; тези стойности са планираният обеден слот
-      - След свободното хранене: ЛЕКА ВЕЧЕРЯ (с нормални калории и макроси)
-      - Обясни стратегическата стойност на това
-   
-   c) ФАСТИНГ И ЦИКЛИЧНИ СХЕМИ:
-      - Ако е подходящо: интермитентно гладуване (16:8, 18:6)
-      - Ако е подходящо: carb cycling (високо/ниско въглехидрати)
-      - Ако е подходящо: зареждащи и разреждащи дни
-      - Обясни физиологичната логика
-
-4. НАЧИН НА КОМУНИКАЦИЯ:
-   - Адаптирай комуникацията според темперамента от анализа
-   - Ако темперамент е определен (>${TEMPERAMENT_CONFIDENCE_THRESHOLD}% вероятност):
-     * Холерик: Директен, фокусиран на резултати, кратки обяснения
-     * Сангвиник: Позитивен, вдъхновяващ, разнообразие
-     * Флегматик: Спокоен, постепенен, без натиск
-     * Меланхолик: Детайлен, научно обоснован, емпатичен
-
-Върни JSON със стратегия:
-{
-  "dietaryModifier": "термин за основен диетичен профил (напр. Балансирано, Кето, Веган, Средиземноморско, Нисковъглехидратно, Щадящ стомах)",
-  "modifierReasoning": "Детайлно обяснение защо този МОДИФИКАТОР е избран СПЕЦИФИЧНО за ${data.name}",
-  "welcomeMessage": "ЗАДЪЛЖИТЕЛНО ПОЛЕ: ПЕРСОНАЛИЗИРАНО приветствие за ${data.name}. Включи: 1) Персонално поздравление с име, 2) Кратко споменаване на конкретни фактори от профила, 3) Как планът е създаден специално за нуждите, 4) Положителна визия за целите. Дължина: 150-250 думи.",
-  "planJustification": "ЗАДЪЛЖИТЕЛНО ПОЛЕ: Обосновка на цялостната стратегия за ${data.name}. Минимум 100 символа.",
-  "longTermStrategy": "Как планът работи седмично/циклично (разпределение калории/макроси, варииране хранения)",
-  "mealCountJustification": "Защо този брой хранения (1-5) - стратегическа/физиологична/психологическа причина",
-  "afterDinnerMealJustification": "Ако има хранения след вечеря, защо са необходими. Ако няма - 'Не са необходими'",
-  "dietType": "тип диета персонализиран за ${data.name} (напр. средиземноморска, балансирана, ниско-въглехидратна)",
-  "weeklyMealPattern": "ХОЛИСТИЧНА седмична схема на хранене (напр. '16:8 интермитентно гладуване ежедневно', '5:2 подход', 'свободен уикенд', или традиционна схема с варииращи хранения)",
-  "weeklyScheme": {
-    "monday":    {
-      "meals": число, "calories": число, "protein": число, "carbs": число, "fats": число,
-      "description": "текст за ден",
-      "mealBreakdown": [
-        {"type": "Хранене 1", "calories": число, "protein": число, "carbs": число, "fats": число},
-        {"type": "Хранене 2", "calories": число, "protein": число, "carbs": число, "fats": число},
-        {"type": "Хранене 3", "calories": число, "protein": число, "carbs": число, "fats": число},
-        {"type": "Хранене 4", "calories": число, "protein": число, "carbs": число, "fats": число}
-      ]
-    },
-    "tuesday":   {
-      "meals": число, "calories": число, "protein": число, "carbs": число, "fats": число,
-      "description": "текст за ден",
-      "mealBreakdown": [{"type": "тип хранене", "calories": число, "protein": число, "carbs": число, "fats": число}]
-    },
-    "wednesday": {
-      "meals": число, "calories": число, "protein": число, "carbs": число, "fats": число,
-      "description": "текст за ден",
-      "mealBreakdown": [{"type": "тип хранене", "calories": число, "protein": число, "carbs": число, "fats": число}]
-    },
-    "thursday":  {
-      "meals": число, "calories": число, "protein": число, "carbs": число, "fats": число,
-      "description": "текст за ден",
-      "mealBreakdown": [{"type": "тип хранене", "calories": число, "protein": число, "carbs": число, "fats": число}]
-    },
-    "friday":    {
-      "meals": число, "calories": число, "protein": число, "carbs": число, "fats": число,
-      "description": "текст за ден",
-      "mealBreakdown": [{"type": "тип хранене", "calories": число, "protein": число, "carbs": число, "fats": число}]
-    },
-    "saturday":  {
-      "meals": число, "calories": число, "protein": число, "carbs": число, "fats": число,
-      "description": "текст за ден",
-      "mealBreakdown": [{"type": "тип хранене", "calories": число, "protein": число, "carbs": число, "fats": число}]
-    },
-    "sunday":    {
-      "meals": число, "calories": число, "protein": число, "carbs": число, "fats": число,
-      "description": "текст за ден",
-      "mealBreakdown": [{"type": "тип хранене", "calories": число, "protein": число, "carbs": число, "fats": число}]
-    }
-  },
-  "freeDayNumber": null,
-  "includeDessert": true,
-  "breakfastStrategy": "текст - ако не закусва, какво се препоръчва вместо закуска",
-  "calorieDistribution": "текст - как се разпределят калориите по дни и хранения",
-  "macroDistribution": "текст - как се разпределят макросите според дни/хранения",
-  "mealTiming": {
-    "pattern": "седмичен модел на хранене БЕЗ точни часове - използвай концепции като 'закуска', 'обяд', 'вечеря'",
-    "fastingWindows": "периоди на гладуване ако се прилага (напр. '16 часа между последно хранене и следващо', или 'не се прилага')",
-    "flexibility": "описание на гъвкавостта в схемата според дните и нуждите",
-    "chronotypeGuidance": "Обясни КАК хронотипът ${data.chronotype} влияе на времето на хранене"
-  },
-  "keyPrinciples": ["принцип 1 специфичен за ${data.name}", "принцип 2", "принцип 3"],
-  "preferredFoodCategories": ["хранителна категория/група 1 (НЕ конкретна храна — напр. 'Постни протеини', 'Пълнозърнести храни')", "категория 2", "категория 3"],
-  "avoidFoodCategories": ["хранителна категория/група за избягване 1 (НЕ конкретна храна — напр. 'Рафинирани захари', 'Ултрапреработени храни')", "категория 2", "категория 3"],
-  "hydrationStrategy": "препоръки за прием на течности персонализирани за ${data.name}",
-  "communicationStyle": {
-    "temperament": "определен темперамент от анализа (ако >${TEMPERAMENT_CONFIDENCE_THRESHOLD}%)",
-    "tone": "тон на комуникация според психопрофил",
-    "approach": "подход към комуникация с клиента",
-    "chatGuidelines": "насоки как AI асистентът трябва да общува с ${data.name}"
-  }
-}
-
-ПРАВИЛА ЗА ПОПЪЛВАНЕ:
-- freeDayNumber: 6 (Събота) или 7 (Неделя) — НИКОГА делник; null ако не е подходящо
-- СВОБОДЕН ДЕН: В mealBreakdown за деня с freeDayNumber, обядът ТРЯБВА да е {"type": "Свободно хранене", "calories": N, "protein": N, "carbs": N, "fats": N}; останалите хранения имат нормални калории/макроси; dailyTotals включва планираните калории за този слот плюс останалите хранения. В Стъпка 3 самият meal обект за "Свободно хранене" остава без calories/macros.
-- includeDessert: при "Сладко" в желанията → true (десертът е КЪМ обяда, не отделно хранене); при диабет, инсулинова резистентност или строга калорийна цел → false
-
-Създай персонализирана стратегия за ${data.name} базирана на техния уникален профил.`;
-  
-  return defaultPrompt;
+  return prompt;
 }
 
 /**
@@ -10384,46 +9532,12 @@ async function handleGenerateProtocol(request, env) {
  * Takes 15 questionnaire answers and returns deeply personalized psychological analysis
  */
 async function generateEmoeatPrompt(answers, env) {
-  const customPrompt = await getCustomPrompt(env, 'admin_emoeat_prompt');
-
-  if (customPrompt) {
-    const variables = {};
-    for (let i = 1; i <= 15; i++) {
-      variables[`answer${i}`] = (answers[i] || '').trim() || '(без отговор)';
-    }
-    return replacePromptVariables(customPrompt, variables);
-  }
-
-  // Inline fallback if KV prompt not available
-  let answersBlock = '';
-  const labels = [
-    'Глад на Сърцето', 'Скрито Хранене', 'Глад на Главата',
-    'Лишение и Контрол', 'Вътрешен Монолог', 'Граница на Засищането',
-    'Емоционално Изтръпване', 'Конфликт и Апетит', 'Детска Носталгия',
-    'Стимулация и Безразличие', 'Самонаказание', 'Бягство от Реалността',
-    'Вътрешен Критик', 'Ролята на Диетата', 'Реална Нужда'
-  ];
+  const customPrompt = await requireKvPrompt(env, 'admin_emoeat_prompt');
+  const variables = {};
   for (let i = 1; i <= 15; i++) {
-    answersBlock += `${i}. ${labels[i - 1]}: ${(answers[i] || '').trim() || '(без отговор)'}\n`;
+    variables[`answer${i}`] = (answers[i] || '').trim() || '(без отговор)';
   }
-
-  return `Ти си клиничен психолог, специализиран в хранителни разстройства и емоционално хранене.
-Анализирай тези 15 отговора от проективен въпросник за емоционално хранене.
-Направи ДЪЛБОК, ИНДИВИДУАЛИЗИРАН анализ. Цитирай КОНКРЕТНИ думи от отговорите.
-
-ОТГОВОРИ:
-${answersBlock}
-Отговори САМО с валиден JSON:
-{
-  "dominantArchetype": {"name": "string", "confidence": number, "description": "string"},
-  "secondaryArchetype": {"name": "string", "confidence": number, "description": "string"},
-  "crossPatterns": [{"title": "string", "questions": [1,2], "insight": "string"}],
-  "personalInsights": [{"icon": "fa-icon", "title": "string", "quote": "цитат от отговор", "analysis": "string", "sourceQuestion": 1}],
-  "therapeuticStrategies": [{"icon": "fa-icon", "title": "string", "trigger": "string", "method": "string", "practicalSteps": ["string"]}],
-  "emergencyProtocol": {"title": "string", "description": "string", "steps": [{"step": 1, "action": "string", "duration": "string"}]},
-  "hiddenMessage": "string"
-}
-ЗАДЪЛЖИТЕЛНО: crossPatterns мин.3, personalInsights мин.5, therapeuticStrategies мин.5, emergencyProtocol мин.3 стъпки. Цитирай конкретни думи. Език: Български.`;
+  return replacePromptVariables(customPrompt, variables);
 }
 
 async function handleGenerateEmoeatAnalysis(request, env) {
