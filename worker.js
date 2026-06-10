@@ -5329,13 +5329,18 @@ const FIXED_DESSERT_WEIGHT_GRAMS = (() => {
   return m ? parseFloat(m[1]) : 0;
 })();
 
-// Replaces "dessert": true markers left by the AI with the full fixed dessert object and
-// adds the dessert weight to meal.weight so the stored value reflects the full portion.
-// Sets meal.dessert._weightAddedToMeal = true so the frontend knows meal.weight already
-// includes the dessert weight and does not add it again.
-// Calories and macros are NOT modified here because the AI already included the dessert
-// values in meal.calories/meal.macros when building the plan.
-// Accepts any truthy non-object value ("true", 1, true) in case the AI wraps the boolean in quotes.
+/** Calories from macro grams: protein×4 + carbs×4 + fats×9 */
+function macrosToCalories(macros) {
+  if (!macros) return 0;
+  const p = Number(macros.protein) || 0;
+  const c = Number(macros.carbs) || 0;
+  const f = Number(macros.fats) || 0;
+  return Math.round(p * 4 + c * 4 + f * 9);
+}
+
+// Replaces "dessert": true markers with the fixed dessert object and adds dessert
+// grams to meal.weight. Macro/calorie totals are set from strategy mealBreakdown
+// by alignMealsToBreakdown() immediately after injection.
 function injectFixedDesserts(weekPlan) {
   for (const dayKey of Object.keys(weekPlan)) {
     const day = weekPlan[dayKey];
@@ -5343,7 +5348,6 @@ function injectFixedDesserts(weekPlan) {
       for (const meal of day.meals) {
         if (meal.dessert && typeof meal.dessert !== 'object') {
           meal.dessert = { ...FIXED_DESSERT, macros: { ...FIXED_DESSERT.macros }, _weightAddedToMeal: true };
-          // Add the dessert weight to the meal's total weight so the stored value is complete.
           if (meal.weight && FIXED_DESSERT_WEIGHT_GRAMS > 0) {
             const mainMatch = String(meal.weight).match(/(\d+(?:\.\d+)?)/);
             if (mainMatch) {
@@ -5358,43 +5362,55 @@ function injectFixedDesserts(weekPlan) {
 }
 
 /**
- * Recalculate meal.calories from macros (protein×4 + carbs×4 + fats×9).
- * Corrects the declared calories when they deviate from the macro formula by >10%.
- * Also recalculates dailyTotals.calories, protein, carbs and fats as the sum of all meal values.
- * Called after each AI chunk is parsed.
+ * Sync meal.calories from macros and rebuild dailyTotals.
+ * Free-meal slot calories/macros come from strategy mealBreakdown when available.
  */
-function recalculateDayCalories(weekPlan) {
+function recalculateDayCalories(weekPlan, strategy) {
   for (const dayKey of Object.keys(weekPlan)) {
     const day = weekPlan[dayKey];
     if (!day || !Array.isArray(day.meals)) continue;
+
+    const dayNum = parseInt(String(dayKey).replace('day', ''), 10);
+    const schemeKey = dayNum >= 1 && dayNum <= 7 ? DAY_NUMBER_TO_KEY[dayNum - 1] : null;
+    const dayTarget = schemeKey && strategy?.weeklyScheme ? strategy.weeklyScheme[schemeKey] : null;
+
     let totalCals = 0;
     let totalProtein = 0;
     let totalCarbs = 0;
     let totalFats = 0;
+
     for (const meal of day.meals) {
-      if (!meal.macros || meal.type === 'Свободно хранене' || meal.type === 'Напитка') continue;
+      if (meal.type === 'Свободно хранене') {
+        const freeTarget = dayTarget?.mealBreakdown?.find(m =>
+          m.type === 'Свободно хранене' || m.type === 'Хранене 2'
+        );
+        const freeCal = freeTarget ? (Number(freeTarget.calories) || 0) : getFreeMealSlotCalories(dayTarget);
+        if (freeCal > 0) meal._plannedCalories = freeCal;
+        totalCals += freeCal;
+        if (freeTarget) {
+          totalProtein += Number(freeTarget.protein) || 0;
+          totalCarbs += Number(freeTarget.carbs) || 0;
+          totalFats += Number(freeTarget.fats) || 0;
+        }
+        continue;
+      }
+      if (meal.type === 'Напитка' || !meal.macros) continue;
+
       const p = Number(meal.macros.protein) || 0;
       const c = Number(meal.macros.carbs) || 0;
       const f = Number(meal.macros.fats) || 0;
-      const computed = Math.round(p * 4 + c * 4 + f * 9);
-      if (computed > 0) {
-        const declared = Number(meal.calories) || 0;
-        const deviation = declared > 0 ? Math.abs(declared - computed) / computed : 1;
-        if (deviation > 0.10) {
-          meal.calories = computed;
-        }
-      }
-      totalCals += Number(meal.calories) || 0;
+      meal.calories = macrosToCalories(meal.macros);
+      totalCals += meal.calories;
       totalProtein += p;
       totalCarbs += c;
       totalFats += f;
     }
-    if (day.dailyTotals && totalCals > 0) {
-      day.dailyTotals.calories = totalCals;
-      day.dailyTotals.protein = Math.round(totalProtein);
-      day.dailyTotals.carbs = Math.round(totalCarbs);
-      day.dailyTotals.fats = Math.round(totalFats);
-    }
+
+    if (!day.dailyTotals) day.dailyTotals = {};
+    day.dailyTotals.calories = totalCals;
+    day.dailyTotals.protein = Math.round(totalProtein);
+    day.dailyTotals.carbs = Math.round(totalCarbs);
+    day.dailyTotals.fats = Math.round(totalFats);
   }
 }
 
@@ -5546,53 +5562,33 @@ function normalizeWeeklyScheme(strategy, defaultDailyCalories) {
 
 function getFreeMealSlotCalories(dayTarget) {
   if (!dayTarget?.mealBreakdown) return 0;
-  const free = dayTarget.mealBreakdown.find(m => m.type === 'Свободно хранене');
+  const free = dayTarget.mealBreakdown.find(m =>
+    m.type === 'Свободно хранене' || m.type === 'Хранене 2'
+  );
   return free ? (Number(free.calories) || 0) : 0;
 }
 
 /**
- * Align a single day's meals to weeklyScheme targets (±DAILY_CALORIE_TOLERANCE).
- * Returns true if scaling was applied.
+ * Set each meal's macros/calories from strategy mealBreakdown (Step 2 targets).
+ * Deterministic link between Step 2 architecture and Step 3 meals.
  */
-function alignDayToScheme(dayPlan, dayTarget) {
-  if (!dayPlan?.meals?.length || !dayTarget) return false;
+function alignMealsToBreakdown(dayPlan, dayTarget) {
+  if (!dayPlan?.meals?.length || !dayTarget?.mealBreakdown) return false;
 
-  const targetCals = Number(dayTarget.calories) || 0;
-  if (targetCals <= 0) return false;
-
-  const hasFree = dayPlan.meals.some(m => m.type === 'Свободно хранене');
-  const freeSlotCals = hasFree ? getFreeMealSlotCalories(dayTarget) : 0;
-
-  let actualCals = dayPlan.dailyTotals?.calories
-    ? Number(dayPlan.dailyTotals.calories)
-    : dayPlan.meals.reduce((sum, meal) => {
-        if (meal.type === 'Свободно хранене') return sum + freeSlotCals;
-        return sum + (Number(meal.calories) || 0);
-      }, 0);
-
-  if (Math.abs(actualCals - targetCals) <= DAILY_CALORIE_TOLERANCE) return false;
-  if (actualCals <= 0) return false;
-
-  const scalable = dayPlan.meals.filter(m =>
-    m.type !== 'Свободно хранене' && m.type !== 'Напитка' && m.macros
-  );
-  if (scalable.length === 0) return false;
-
-  const scalableCals = scalable.reduce((s, m) => s + (Number(m.calories) || 0), 0);
-  const targetScalable = targetCals - freeSlotCals;
-  if (scalableCals <= 0 || targetScalable <= 0) return false;
-
-  const ratio = targetScalable / scalableCals;
-  for (const meal of scalable) {
-    meal.calories = Math.round((Number(meal.calories) || 0) * ratio);
-    meal.macros.protein = Math.max(0, Math.round((Number(meal.macros.protein) || 0) * ratio));
-    meal.macros.carbs = Math.max(0, Math.round((Number(meal.macros.carbs) || 0) * ratio));
-    meal.macros.fats = Math.max(0, Math.round((Number(meal.macros.fats) || 0) * ratio));
-    const computed = Math.round(meal.macros.protein * 4 + meal.macros.carbs * 4 + meal.macros.fats * 9);
-    if (computed > 0) meal.calories = computed;
+  let changed = false;
+  for (const meal of dayPlan.meals) {
+    if (meal.type === 'Свободно хранене' || meal.type === 'Напитка') continue;
+    const target = dayTarget.mealBreakdown.find(m => m.type === meal.type);
+    if (!target) continue;
+    meal.macros = {
+      protein: Math.round(Number(target.protein) || 0),
+      carbs: Math.round(Number(target.carbs) || 0),
+      fats: Math.round(Number(target.fats) || 0)
+    };
+    meal.calories = macrosToCalories(meal.macros);
+    changed = true;
   }
-
-  return true;
+  return changed;
 }
 
 function alignWeekPlanDaysToScheme(weekPlan, strategy, startDay, endDay) {
@@ -5601,10 +5597,33 @@ function alignWeekPlanDaysToScheme(weekPlan, strategy, startDay, endDay) {
     const dayKey = `day${d}`;
     const schemeKey = DAY_NUMBER_TO_KEY[d - 1];
     if (weekPlan[dayKey] && strategy.weeklyScheme[schemeKey]) {
-      alignDayToScheme(weekPlan[dayKey], strategy.weeklyScheme[schemeKey]);
+      alignMealsToBreakdown(weekPlan[dayKey], strategy.weeklyScheme[schemeKey]);
     }
   }
-  recalculateDayCalories(weekPlan);
+  recalculateDayCalories(weekPlan, strategy);
+}
+
+/**
+ * Summary display targets = Step 1 analysis (same as macrosVizContainer / diet recommendations).
+ */
+function syncPlanTargets(plan, analysis) {
+  if (!plan || !analysis) return;
+  const fc = parseFinalCalories(analysis.Final_Calories);
+  const mg = analysis.macroGrams;
+  if (!plan.summary) plan.summary = {};
+  if (fc > 0) plan.summary.dailyCalories = fc;
+  if (analysis.bmr != null) {
+    plan.summary.bmr = typeof analysis.bmr === 'number'
+      ? Math.round(analysis.bmr)
+      : parseInt(String(analysis.bmr).match(/\d+/)?.[0] || '0', 10) || analysis.bmr;
+  }
+  if (mg) {
+    plan.summary.macros = {
+      protein: Math.round(Number(mg.protein) || 0),
+      carbs: Math.round(Number(mg.carbs) || 0),
+      fats: Math.round(Number(mg.fats) || 0)
+    };
+  }
 }
 
 
@@ -6855,7 +6874,8 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
         generatedAt: new Date().toISOString()
       }
     };
-    
+    syncPlanTargets(result, analysis);
+
     // Update combined index once for the whole session (2 subrequests total instead of 2×N)
     await finalizeAISessionLogs(env, sessionId);
     
@@ -7927,17 +7947,13 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       }
       // Replace any "dessert": true markers with the fixed dessert object
       injectFixedDesserts(weekPlan);
-      // Align generated days to strategy targets, then fix macro/calorie arithmetic
       alignWeekPlanDaysToScheme(weekPlan, strategy, startDay, endDay);
-      recalculateDayCalories(weekPlan);
     } catch (error) {
       throw new Error(`Генериране на дни ${startDay}-${endDay}: ${error.message}`);
     }
   }
 
-  // Final pass: align all 7 days after progressive generation
   alignWeekPlanDaysToScheme(weekPlan, strategy, 1, 7);
-  recalculateDayCalories(weekPlan);
   
   // Generate summary, recommendations, etc. in final request
   try {

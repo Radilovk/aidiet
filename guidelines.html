@@ -1620,20 +1620,37 @@
                 }
 
                 const dietPlan = JSON.parse(planDataStr);
-                if (!dietPlan || !dietPlan.summary) {
+                if (!dietPlan) {
                     return false;
                 }
 
-                const summary = dietPlan.summary;
+                const analysis = dietPlan.analysis;
+                const summary = dietPlan.summary || {};
                 const container = document.getElementById('macrosVizContainer');
 
-                let dailyCalories = summary.dailyCalories ? parseNumericValue(summary.dailyCalories) : 0;
-
+                // Step 1 analysis = diet recommendations (same source as backend syncPlanTargets)
+                let dailyCalories = 0;
                 let protein = 0, carbs = 0, fats = 0;
-                if (summary.macros) {
-                    if (summary.macros.protein) protein = parseNumericValue(summary.macros.protein);
-                    if (summary.macros.carbs) carbs = parseNumericValue(summary.macros.carbs);
-                    if (summary.macros.fats) fats = parseNumericValue(summary.macros.fats);
+
+                if (analysis) {
+                    if (analysis.Final_Calories) dailyCalories = parseNumericValue(analysis.Final_Calories);
+                    if (!dailyCalories && analysis.correctedMetabolism?.realTDEE) {
+                        dailyCalories = parseNumericValue(analysis.correctedMetabolism.realTDEE);
+                    }
+                    if (analysis.macroGrams) {
+                        protein = parseNumericValue(analysis.macroGrams.protein);
+                        carbs = parseNumericValue(analysis.macroGrams.carbs);
+                        fats = parseNumericValue(analysis.macroGrams.fats);
+                    }
+                }
+
+                if (!dailyCalories && summary.dailyCalories) {
+                    dailyCalories = parseNumericValue(summary.dailyCalories);
+                }
+                if (protein === 0 && carbs === 0 && fats === 0 && summary.macros) {
+                    protein = parseNumericValue(summary.macros.protein);
+                    carbs = parseNumericValue(summary.macros.carbs);
+                    fats = parseNumericValue(summary.macros.fats);
                 }
 
                 if (protein === 0 && carbs === 0 && fats === 0 && dailyCalories > 0) {
