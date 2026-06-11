@@ -4978,19 +4978,6 @@
                         }
                         if (freeCal > 0) meal._plannedCalories = freeCal;
                         totalCal += freeCal;
-                        if (plan.strategy && plan.strategy.weeklyScheme && weekdayKey) {
-                            var dsFree = plan.strategy.weeklyScheme[weekdayKey];
-                            if (dsFree && Array.isArray(dsFree.mealBreakdown)) {
-                                var freeEntry = dsFree.mealBreakdown.find(function(m) {
-                                    return m.type === 'Хранене 2' || m.type === 'Свободно хранене';
-                                });
-                                if (freeEntry) {
-                                    totalProtein += parseFloat(freeEntry.protein) || 0;
-                                    totalCarbs += parseFloat(freeEntry.carbs) || 0;
-                                    totalFats += parseFloat(freeEntry.fats) || 0;
-                                }
-                            }
-                        }
                         return;
                     }
                     if (meal.macros) {
@@ -4998,7 +4985,13 @@
                         var c = parseFloat(meal.macros.carbs) || 0;
                         var f = parseFloat(meal.macros.fats) || 0;
                         var calcCal = Math.round(p * 4 + c * 4 + f * 9);
-                        if (calcCal > 0) meal.calories = calcCal;
+                        if (calcCal > 0) {
+                            var declared = parseInt(meal.calories) || 0;
+                            // Replace declared calories when missing or diverging >10% from macro formula
+                            if (declared <= 0 || Math.abs(declared - calcCal) / calcCal > 0.10) {
+                                meal.calories = calcCal;
+                            }
+                        }
                         totalProtein += p;
                         totalCarbs += c;
                         totalFats += f;
@@ -5863,15 +5856,7 @@
                             displayWeight = `${totalGrams}г`;
                         }
                     }
-                    let displayCalories = null;
-                    if (macros) {
-                        const parsed = parseMacronutrients(macros);
-                        const computed = Math.round(parsed.protein * 4 + parsed.carbs * 4 + parsed.fats * 9);
-                        if (computed > 0) displayCalories = computed;
-                    } else if (calories) {
-                        displayCalories = Math.round(calories);
-                    }
-                    const calText = displayCalories ? ` • ${displayCalories} kcal` : '';
+                    const calText = calories ? ` • ${Math.round(calories)} kcal` : '';
                     mWeightText.textContent = `${displayWeight}${calText}`;
                     mWeightBadge.style.display = 'inline-flex';
                 } else {
