@@ -70,7 +70,7 @@
  *            admin_correction_prompt.txt
  *   - Upload: ./KV/upload-kv-keys.sh script uploads to Cloudflare KV
  *   - Runtime: requireKvPrompt() loads step prompts from KV (uploaded from KV/prompts/)
- *   - Snippets: KV/prompts/snippets/ (meal name format); sweets rule built in worker.js
+ *   - Small injected snippets (meal name format, sweets rule) live in worker.js — not separate KV keys
  *   - Admin panel shows prompts from KV via handleGetDefaultPrompt()
  */
 
@@ -3106,7 +3106,6 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
   })();
 
   const customPrompt = await requireKvPrompt(env, 'admin_meal_plan_prompt');
-  const mealNameFormatInstructions = await requireKvPrompt(env, 'admin_meal_name_format_instructions');
 
   // All necessary values are already computed above (analysisCompact, strategyCompact,
     // dietaryModifier, modificationsSection, previousDaysContext, food lists).
@@ -3142,7 +3141,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
       medicalConditions_musculoskeletal_details: data['medicalConditions_Мускулно-скелетни_детайл'] || '',
       DAILY_CALORIE_TOLERANCE,
       MAX_LATE_SNACK_CALORIES,
-      MEAL_NAME_FORMAT_INSTRUCTIONS: mealNameFormatInstructions,
+      MEAL_NAME_FORMAT_INSTRUCTIONS,
       freeMealInstruction: buildFreeMealInstruction(strategy, startDay, endDay),
       sweetsCravingRule,
       additionalNotes: buildCombinedAdditionalNotes(data),
@@ -5041,6 +5040,51 @@ const FIXED_DESSERT_WEIGHT_GRAMS = (() => {
   return m ? parseFloat(m[1]) : 0;
 })();
 
+// Injected into KV meal-plan/correction prompts via {MEAL_NAME_FORMAT_INSTRUCTIONS} — stays in worker.
+const MEAL_NAME_FORMAT_INSTRUCTIONS = `=== ФОРМАТ НА MEAL NAME И DESCRIPTION ===
+КРИТИЧНО ВАЖНО: Спазвай СТРОГО следния формат за структуриране на name и description:
+
+ФОРМАТ НА "name" (структуриран със СИМВОЛИ):
+- Използвай символи (•, -, *) за структура, НЕ пиши изречения
+- Разделяй компонентите на отделни редове със символи
+- Формат: компонент след компонент (без смесване)
+- НЕ използвай етикети като "Салата:", "Основно:" - пиши директно названията на ястията
+- Само познати, реални ястия — леща/боб = яхния (не „салата с леща"); салата с нахут/киноа е OK
+
+Структура (по ред, само ако е налично):
+• [Вид салата в естествена форма] (ако има - напр. "Шопска салата", "салата Цезар", "салата от пресни зеленчуци")
+• [Основно ястие] (ако има гарнитура: "с гарнитура / гарнитура от [име на гарнитура]")
+• [Хляб: количество и вид] (ако има, напр. "1 филия пълнозърнест")
+
+Примери за ПРАВИЛЕН формат на name:
+✓ "• Шопска салата\\n• Пилешки гърди на скара с картофено пюре"
+✓ "• Бяла риба печена с киноа"
+✓ "• Зелена салата\\n• Леща яхния\\n• Хляб: 1 филия пълнозърнест"
+✓ "• Салата от пресни зеленчуци\\n• Пилешко филе с киноа"
+✓ "• Овесена каша с боровинки" (за закуска без салата/хляб)
+
+ЗАБРАНЕНИ формати за name (НЕ пиши така):
+✗ "• Салата: Шопска" (твърдо кодирани етикети)
+✗ "• Основно: Пилешки гърди" (твърдо кодирани етикети)
+✗ "Пилешки гърди на скара с картофено пюре и салата Шопска" (смесено описание)
+✗ "• Пилешко филе с леща и салата айсберг" (смесено в един ред)
+✗ "Салата с леща и домати" (несъществуващо ястие)
+✗ "Печена бяла риба, приготвена с киноа и подправки" (изречение)
+
+ФОРМАТ НА "description":
+- Структурирай description с булет пойнти (•) за разделяне на компонентите
+- Всеки компонент на хранене (салата, основно ястие, гарнитура, хляб) започва на нов ред с •
+- В description пиши ВСИЧКИ уточнения за:
+  * Начин на приготвяне (печено, задушено, на скара, пресно и т.н.)
+  * Препоръки за приготвяне
+  * Конкретни подправки (сол, черен пипер, риган, магданоз и т.н.)
+  * Допълнителни продукти (зехтин, лимон, чесън и т.н.)
+  * Количества и пропорции
+
+Пример за ПРАВИЛНА комбинация name + description:
+name: "• Зелена салата\\n• Пилешки гърди с киноа\\n• Хляб: 1 филия пълнозърнест"
+description: "• Зелена салата от листа, краставици и чери домати с лимонов дресинг.\\n• Пилешките гърди се приготвят на скара или печени в тава с малко зехтин, подправени със сол, черен пипер и риган.\\n• Киноата се готви според инструкциите.\\n• 1 филия пълнозърнест хляб."`;
+
 function buildSweetsCravingRule(foodCravings, strategy) {
   if (!userHasSweetsCraving(foodCravings) || strategy?.includeDessert === false) return '';
   const d = FIXED_DESSERT.macros;
@@ -6052,7 +6096,6 @@ function checkADLEv8Rules(meal) {
  */
 async function generateCorrectionPrompt(plan, validationErrors, userData, env) {
   const customPrompt = await requireKvPrompt(env, 'admin_correction_prompt');
-  const mealNameFormatInstructions = await requireKvPrompt(env, 'admin_meal_name_format_instructions');
   const _combinedNotes = buildCombinedAdditionalNotes(userData);
     const additionalNotesSection = _combinedNotes
       ? `═══ 🔥 КРИТИЧНО ВАЖНА ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ 🔥 ═══\n⚠️ МАКСИМАЛЕН ПРИОРИТЕТ при корекциите!\n${_combinedNotes}\n⚠️ ЗАДЪЛЖИТЕЛНО: Всички корекции трябва да уважават тази информация!\n═══════════════════════════════════════════════════════════════`
@@ -6076,7 +6119,7 @@ async function generateCorrectionPrompt(plan, validationErrors, userData, env) {
       }, null, 2),
       additionalNotes: _combinedNotes,
       additionalNotesSection,
-      MEAL_NAME_FORMAT_INSTRUCTIONS: mealNameFormatInstructions,
+      MEAL_NAME_FORMAT_INSTRUCTIONS,
       MIN_DAILY_CALORIES: MIN_DAILY_CALORIES
     });
 

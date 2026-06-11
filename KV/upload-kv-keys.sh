@@ -145,16 +145,6 @@ else
 fi
 echo ""
 
-# admin_meal_name_format_instructions (snippet for meal plan + correction prompts)
-echo "📤 Качване на admin_meal_name_format_instructions..."
-if wrangler kv:key put --namespace-id=$NAMESPACE_ID \
-    "admin_meal_name_format_instructions" --path="$KV_DIR/prompts/snippets/meal_name_format_instructions.txt"; then
-    echo "✅ admin_meal_name_format_instructions качен успешно"
-else
-    echo "❌ Грешка при качване на admin_meal_name_format_instructions"
-fi
-echo ""
-
 # admin_emoeat_prompt
 echo "📤 Качване на admin_emoeat_prompt..."
 if wrangler kv:key put --namespace-id=$NAMESPACE_ID \

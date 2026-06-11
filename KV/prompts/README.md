@@ -96,7 +96,7 @@
 
 1. **KV/prompts/** — единствен източник на текст за AI промптове (редактирай `.txt` файловете тук)
 2. **KV storage** — `./KV/upload-kv-keys.sh` качва файловете като KV ключове
-3. **worker.js** — зарежда стъпковите промпти и snippets от KV (`requireKvPrompt`), инжектира `{placeholders}`; правило за десерт се генерира в кода
+3. **worker.js** — зарежда стъпковите промпти от KV (`requireKvPrompt`), инжектира `{placeholders}`; малки фрагменти (формат на име, правило за десерт) са в кода — не се качват отделно
 4. **Admin panel** — показва/редактира KV промптовете
 
 ## Качване към Cloudflare KV
@@ -121,7 +121,7 @@ cd /path/to/aidiet
 **ВАЖНО**: 
 - Редактирайте САМО файловете в `KV/prompts/` — не в `worker.js`
 - След промяна: `./KV/upload-kv-keys.sh` за активиране в production
-- Snippets в `KV/prompts/snippets/` — `meal_name_format_instructions.txt` → KV ключ `admin_meal_name_format_instructions`, инжектира се като `{MEAL_NAME_FORMAT_INSTRUCTIONS}` в стъпка 3 и корекция
+- Snippets в `KV/prompts/snippets/` — инжектират се в стъпка 3 (`{MEAL_NAME_FORMAT_INSTRUCTIONS}`, `{sweetsCravingRule}`)
 
 ## Бележки
 
