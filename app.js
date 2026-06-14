@@ -622,24 +622,25 @@
         el.id = 'spaShellChatFrame';
         el.title = 'Чат асистент';
         el.setAttribute('aria-hidden', 'true');
-        el.style.cssText = 'position:fixed;bottom:0;left:0;right:0;width:100%;height:70vh;max-height:600px;border:0;z-index:10003;display:none;border-radius:16px 16px 0 0;overflow:hidden;';
+        el.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100%;border:0;z-index:10003;display:none;overflow:hidden;background:var(--bg-color,#F0FDFA);';
         shell.appendChild(el);
         shellChatFrame = el;
 
-        // Keep chat frame above on-screen keyboard on all mobile browsers
+        // Keep fullscreen chat aligned with visual viewport (mobile keyboard)
         var syncFrame = function() {
             if (!shellChatFrame || shellChatFrame.style.display === 'none') return;
-            var kbHeight, maxH;
             if (window.visualViewport) {
                 var vv = window.visualViewport;
-                kbHeight = Math.max(0, window.innerHeight - vv.offsetTop - vv.height);
-                maxH = kbHeight > 0 ? Math.min(vv.height - 10, 600) : 600;
+                shellChatFrame.style.top = vv.offsetTop + 'px';
+                shellChatFrame.style.left = vv.offsetLeft + 'px';
+                shellChatFrame.style.width = vv.width + 'px';
+                shellChatFrame.style.height = vv.height + 'px';
             } else {
-                kbHeight = Math.max(0, (_shellChatVpHandler._baseH || window.innerHeight) - window.innerHeight);
-                maxH = kbHeight > 0 ? Math.min(window.innerHeight - 10, 600) : 600;
+                shellChatFrame.style.top = '0';
+                shellChatFrame.style.left = '0';
+                shellChatFrame.style.width = '100%';
+                shellChatFrame.style.height = '100%';
             }
-            shellChatFrame.style.bottom = kbHeight + 'px';
-            shellChatFrame.style.maxHeight = maxH + 'px';
         };
         _shellChatVpHandler = syncFrame;
         if (window.visualViewport) {
@@ -662,14 +663,17 @@
         }
         shellChatFrame.style.display = 'block';
         shellChatFrame.setAttribute('aria-hidden', 'false');
+        if (_shellChatVpHandler) _shellChatVpHandler();
     }
 
     function closeShellChat() {
         if (!shellChatFrame) return;
         shellChatFrame.style.display = 'none';
         shellChatFrame.setAttribute('aria-hidden', 'true');
-        shellChatFrame.style.bottom = '';
-        shellChatFrame.style.maxHeight = '';
+        shellChatFrame.style.top = '';
+        shellChatFrame.style.left = '';
+        shellChatFrame.style.width = '';
+        shellChatFrame.style.height = '';
     }
 
     function isKnownShellFrameSource(source) {
