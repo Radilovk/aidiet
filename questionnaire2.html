@@ -3263,27 +3263,30 @@
         let progressInterval = null; // Store interval reference for cleanup
         let tipsInterval = null; // Store tips rotation interval reference
         
+        const DIAGNOSTIC_TOTAL_MS = 50000;
+        const MIN_LOG_INTERVAL_MS = 2200;
+
         const DIAGNOSTIC_LOG_LINES = [
-            { at: 300,   phase: 'cold',     text: '[INIT]   pid:3842  health-matrix-engine v3.2.1 → loading modules', haptic: true },
-            { at: 1900,  phase: 'cold',     text: '[PROC]   thread:01  anthropometry parsed: height, weight, age, sex' },
-            { at: 3800,  phase: 'cold',     text: '[CALC]   BMR=1794 kcal/d · TDEE=2332 kcal/d · deficit=-640 kcal' },
-            { at: 5800,  phase: 'cold',     text: '[INIT]   target_vector: Δ-0.65 kg/wk · mode=fat_loss · horizon=14wk' },
-            { at: 7600,  phase: 'cold',     text: '[PROC]   baseline nutrient profile compiled → 18 variables mapped' },
-            { at: 9500,  phase: 'amber',    text: '[SCAN]   pid:3842  health_flags: 3 conditions → cross-analysis active', haptic: true },
-            { at: 11700, phase: 'amber',    text: '[WARN]   metabolic_flux_index=0.74 · flagging for differential review' },
-            { at: 14000, phase: 'amber',    text: '[PROC]   lab_markers: TSH=2.1 mIU/L · ferritin=28 ng/mL · glu=5.4 mmol/L' },
-            { at: 16400, phase: 'amber',    text: '[FILTER] clinical_filters: 7/12 risk_factors active · severity=moderate' },
-            { at: 18600, phase: 'amber',    text: '[PROC]   medication_interactions: 2 checked · 0 contraindications found' },
-            { at: 20000, phase: 'critical', text: '[NEURO]  circadian_model: sleep_offset=-1.4h · stress_load=HIGH', haptic: true },
-            { at: 22300, phase: 'critical', text: '[BEHAV]  trigger_map: emotional_eating=true · cortisol_peak=AM' },
-            { at: 24700, phase: 'critical', text: '[COMP]   recovery_ratio: anabolic/catabolic=0.82 → suboptimal' },
-            { at: 27200, phase: 'critical', text: '[RISK]   cartography: 2 critical · 4 moderate · 9 low-grade risks' },
-            { at: 29800, phase: 'critical', text: '[PROC]   gut_microbiome model v2 → 14 dietary modulators scored' },
-            { at: 31500, phase: 'success',  text: '[SYNTH]  macro_matrix: P=27% · C=43% · F=30% → 2084 kcal/d', haptic: true },
-            { at: 33700, phase: 'success',  text: '[CHECK]  allergen_scan: gluten=no · lactose=no · 2 exclusions applied' },
-            { at: 36000, phase: 'success',  text: '[BUILD]  meal_plan_engine: 7d-cycle · 4 meals/d · variety_score=94' },
-            { at: 38400, phase: 'success',  text: '[VALID]  checksum: sha256:a7f3e2… · 0 errors · 0 warnings' },
-            { at: 39700, phase: 'success',  text: '[OK]     analysis complete — awaiting server confirmation' }
+            { at: 400,    progress: 4,  phase: 'cold',     tag: 'Старт',    text: 'Стартиране на AI здравния анализатор...', haptic: true },
+            { at: 2600,   progress: 9,  phase: 'cold',     tag: 'Данни',    text: 'Обработка на ръст, тегло, възраст и пол' },
+            { at: 4800,   progress: 14, phase: 'cold',     tag: 'Метаболизъм', text: 'Изчисляване на базален и дневен калориен разход' },
+            { at: 7000,   progress: 19, phase: 'cold',     tag: 'Цел',      text: 'Определяне на целева скорост и хоризонт на промяната' },
+            { at: 9200,   progress: 24, phase: 'cold',     tag: 'Профил',   text: 'Компилиране на начален хранителен профил' },
+            { at: 11400,  progress: 30, phase: 'amber',    tag: 'Здраве',   text: 'Сканиране на здравни състояния и рискови фактори', haptic: true },
+            { at: 13600,  progress: 36, phase: 'amber',    tag: 'Метаболизъм', text: 'Анализ на метаболитен индекс и енергийни колебания' },
+            { at: 15800,  progress: 42, phase: 'amber',    tag: 'Лаборатория', text: 'Интерпретация на лабораторни и клинични показатели' },
+            { at: 18000,  progress: 48, phase: 'amber',    tag: 'Филтри',   text: 'Прилагане на клинични филтри и ограничения' },
+            { at: 20200,  progress: 54, phase: 'amber',    tag: 'Лекарства', text: 'Проверка за взаимодействия с медикаменти' },
+            { at: 22400,  progress: 60, phase: 'critical', tag: 'Сън',      text: 'Моделиране на циркаден ритъм и качество на съня', haptic: true },
+            { at: 24800,  progress: 66, phase: 'critical', tag: 'Поведение', text: 'Картографиране на хранителни тригери и стресови модели' },
+            { at: 27200,  progress: 72, phase: 'critical', tag: 'Възстановяване', text: 'Оценка на съотношението натоварване / почивка' },
+            { at: 29600,  progress: 78, phase: 'critical', tag: 'Рискове',  text: 'Класификация на критични, умерени и ниски рискове' },
+            { at: 32000,  progress: 83, phase: 'critical', tag: 'Черва',    text: 'Анализ на чревната среда и хранителни модулатори' },
+            { at: 34400,  progress: 87, phase: 'success',  tag: 'Макроси',  text: 'Синтез на макронутриентна матрица и калории', haptic: true },
+            { at: 36800,  progress: 90, phase: 'success',  tag: 'Алергени', text: 'Сканиране за алергени и хранителни изключения' },
+            { at: 39200,  progress: 92, phase: 'success',  tag: 'Меню',     text: 'Генериране на 7-дневен цикъл с разнообразие на ястията' },
+            { at: 41600,  progress: 94, phase: 'success',  tag: 'Проверка', text: 'Валидация на резултатите — без грешки' },
+            { at: 44000,  progress: 96, phase: 'success',  tag: 'Готово',   text: 'Анализът е завършен — очакване на потвърждение от сървъра' }
         ];
 
         function triggerDiagnosticHaptic() {
@@ -3450,7 +3453,7 @@
                     .diagnostic-percent { color: var(--text-dark); font-size: clamp(1.15rem, 5.4vw, 1.55rem); font-weight: 950; letter-spacing: -.03em; margin-bottom: 8px; }
                     .diagnostic-progress-track { width: 100%; height: 15px; background: rgba(15,47,46,.10); border-radius: 99px; overflow: hidden; box-shadow: inset 0 2px 7px rgba(0,0,0,.13), 0 1px 0 rgba(255,255,255,.62); }
                     [data-theme="dark"] .diagnostic-progress-track { background: rgba(224,245,240,.10); box-shadow: inset 0 2px 7px rgba(0,0,0,.32); }
-                    .diagnostic-progress-fill { height: 100%; width: 0%; border-radius: inherit; background: linear-gradient(90deg,#0D9488,#2DD4BF,#99F6E4); box-shadow: 0 0 18px rgba(13,148,136,.28); transition: width .75s cubic-bezier(.22,1,.36,1), background .45s ease, box-shadow .45s ease; position: relative; overflow: hidden; }
+                    .diagnostic-progress-fill { height: 100%; width: 0%; border-radius: inherit; background: linear-gradient(90deg,#0D9488,#2DD4BF,#99F6E4); box-shadow: 0 0 18px rgba(13,148,136,.28); transition: width .35s linear, background .45s ease, box-shadow .45s ease; position: relative; overflow: hidden; }
                     .diagnostic-progress-fill::after { content:''; position:absolute; inset:0; transform:translateX(-100%); background:linear-gradient(90deg,transparent,rgba(255,255,255,.65),transparent); animation:diagnosticShine 1.45s infinite; }
                     .diagnostic-progress-fill.amber { background:linear-gradient(90deg,#d97706,#fbbf24,#fde68a); box-shadow:0 0 20px rgba(245,158,11,.42); }
                     .diagnostic-progress-fill.critical { background:linear-gradient(90deg,#dc2626,#fb7185,#fecdd3); box-shadow:0 0 22px rgba(220,38,38,.42); }
@@ -3469,17 +3472,15 @@
                         max-height: 42dvh;
                         overflow-y: auto;
                         overflow-x: hidden;
-                        padding: 14px 16px;
+                        padding: 12px;
                         border: 1px solid rgba(13,148,136,.13);
                         border-radius: 24px;
                         background: var(--card-bg);
                         box-shadow: 0 4px 18px rgba(13,148,136,.08), inset 0 1px 0 rgba(255,255,255,.40);
-                        font-size: clamp(.78rem, 3.1vw, .9rem);
-                        line-height: 1.55;
-                        color: var(--text-dark);
                         display:flex;
                         flex-direction:column;
                         justify-content:flex-start;
+                        gap: 8px;
                         scrollbar-width: thin;
                         scrollbar-color: rgba(13,148,136,.28) transparent;
                     }
@@ -3492,13 +3493,66 @@
                         box-shadow: 0 4px 18px rgba(0,0,0,.20), inset 0 1px 0 rgba(255,255,255,.04);
                     }
                     [data-theme="dark"] .diagnostic-terminal::-webkit-scrollbar-thumb { background: rgba(45,212,191,.28); }
-                    .diagnostic-log-line { position:relative; opacity:0; transform:translateY(8px); margin:2px 0; padding:2px 0; font-family:'JetBrains Mono','Fira Code','SF Mono',ui-monospace,'Cascadia Code',Consolas,'Courier New',monospace; white-space:pre-wrap; overflow-wrap:anywhere; transition:opacity .32s ease, transform .32s ease; }
-                    .diagnostic-log-line.visible { opacity:.72; transform:translateY(0); }
-                    .diagnostic-log-line.latest { opacity:1; }
-                    .diagnostic-log-line.warn { color:#b45309; }
-                    .diagnostic-log-line.critical { color:#b91c1c; }
-                    [data-theme="dark"] .diagnostic-log-line.warn { color:#fbbf24; }
-                    [data-theme="dark"] .diagnostic-log-line.critical { color:#f87171; }
+                    .diagnostic-log-entry {
+                        position: relative;
+                        opacity: 0;
+                        transform: translateY(10px);
+                        padding: 11px 13px;
+                        border-radius: 14px;
+                        background: rgba(13,148,136,.06);
+                        border-left: 3px solid rgba(13,148,136,.45);
+                        transition: opacity .45s ease, transform .45s ease, background .35s ease, border-color .35s ease;
+                    }
+                    .diagnostic-log-entry.visible { opacity: 1; transform: translateY(0); }
+                    .diagnostic-log-entry.latest {
+                        background: rgba(13,148,136,.12);
+                        border-left-color: var(--primary-red);
+                        box-shadow: 0 2px 10px rgba(13,148,136,.10);
+                    }
+                    .diagnostic-log-entry.past { opacity: .62; }
+                    .diagnostic-log-entry.amber { background: rgba(245,158,11,.08); border-left-color: #d97706; }
+                    .diagnostic-log-entry.amber.latest { background: rgba(245,158,11,.14); }
+                    .diagnostic-log-entry.critical { background: rgba(220,38,38,.07); border-left-color: #dc2626; }
+                    .diagnostic-log-entry.critical.latest { background: rgba(220,38,38,.12); }
+                    .diagnostic-log-entry.success { background: rgba(13,148,136,.08); border-left-color: #0D9488; }
+                    .diagnostic-log-entry.success.latest { background: rgba(13,148,136,.15); }
+                    [data-theme="dark"] .diagnostic-log-entry { background: rgba(45,212,191,.06); }
+                    [data-theme="dark"] .diagnostic-log-entry.latest { background: rgba(45,212,191,.12); }
+                    [data-theme="dark"] .diagnostic-log-entry.amber { background: rgba(245,158,11,.10); }
+                    [data-theme="dark"] .diagnostic-log-entry.critical { background: rgba(248,113,113,.10); }
+                    .diagnostic-log-meta {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        margin-bottom: 5px;
+                    }
+                    .diagnostic-log-time {
+                        font-size: .68rem;
+                        font-weight: 700;
+                        color: var(--text-gray);
+                        font-variant-numeric: tabular-nums;
+                        letter-spacing: .02em;
+                    }
+                    .diagnostic-log-tag {
+                        font-size: .68rem;
+                        font-weight: 900;
+                        letter-spacing: .06em;
+                        text-transform: uppercase;
+                        color: var(--primary-red);
+                        padding: 2px 7px;
+                        border-radius: 6px;
+                        background: rgba(13,148,136,.10);
+                    }
+                    .diagnostic-log-entry.amber .diagnostic-log-tag { color: #b45309; background: rgba(245,158,11,.14); }
+                    .diagnostic-log-entry.critical .diagnostic-log-tag { color: #b91c1c; background: rgba(220,38,38,.12); }
+                    .diagnostic-log-entry.success .diagnostic-log-tag { color: #0f766e; background: rgba(13,148,136,.14); }
+                    .diagnostic-log-text {
+                        font-size: clamp(.82rem, 3.2vw, .94rem);
+                        line-height: 1.5;
+                        font-weight: 600;
+                        color: var(--text-dark);
+                    }
+                    [data-theme="dark"] .diagnostic-log-text { color: var(--text-dark); }
                     .ai-hex-loader{width:54px;aspect-ratio:1.154;color:currentColor;display:grid;animation:aiHex0 6s infinite linear;filter:drop-shadow(0 8px 16px rgba(13,148,136,.20));}
                     .ai-hex-loader::before,.ai-hex-loader::after{content:"";grid-area:1/1;}
                     .ai-hex-loader::before{clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%);background:conic-gradient(from -30deg,#0000 60deg,currentColor 0);}
@@ -3518,8 +3572,9 @@
                         .ai-hex-loader { width: 42px; }
                         .diagnostic-kicker { padding: 5px 9px; margin-bottom: 5px; }
                         .diagnostic-subtitle { margin-bottom: 8px; }
-                        .diagnostic-terminal { min-height: 0; max-height: 36dvh; padding: 10px 12px; font-size: clamp(.72rem, 3vw, .84rem); border-radius: 18px; }
-                        .diagnostic-log-line { margin: 1px 0; }
+                        .diagnostic-terminal { min-height: 0; max-height: 36dvh; padding: 8px; border-radius: 18px; }
+                        .diagnostic-log-entry { padding: 9px 11px; border-radius: 12px; }
+                        .diagnostic-log-text { font-size: clamp(.78rem, 3vw, .88rem); }
                         .diagnostic-safe { margin-top: 8px; }
                     }
                 </style>
@@ -3527,6 +3582,13 @@
             document.body.classList.add('diagnostic-lock');
         }
         
+        function formatDiagnosticElapsed(ms) {
+            const totalSec = Math.max(0, Math.floor(ms / 1000));
+            const min = String(Math.floor(totalSec / 60)).padStart(2, '0');
+            const sec = String(totalSec % 60).padStart(2, '0');
+            return min + ':' + sec;
+        }
+
         function simulateProgress() {
             // Clear any existing intervals
             if (progressInterval) {
@@ -3551,17 +3613,20 @@
                 return;
             }
             
-            let progress = 0;
+            let displayedProgress = 0;
             const startTime = Date.now();
             let currentPhase = 'cold';
             let nextLogIndex = 0;
+            let lastLogShownAt = 0;
+            let lastDisplayedLogProgress = 0;
             let waitingNoticeShown = false;
+            const MAX_VISIBLE_LOGS = 5;
 
             const stages = [
-                { minTime: 0,     maxTime: 9000,  from: 0,  to: 28, phase: 'cold',     title: 'Структуриране на Био-масива...',   subtitle: 'Парсираме антропометрия, демография и целеви вектор' },
-                { minTime: 9000,  maxTime: 19000, from: 28, to: 52, phase: 'amber',    title: 'Сканиране на здравен статус...',   subtitle: 'Кръстосан анализ на клинични и метаболитни променливи' },
-                { minTime: 19000, maxTime: 30000, from: 52, to: 75, phase: 'critical', title: 'Невро-хормонален анализ...',        subtitle: 'Локализираме поведенчески тригъри, сън и стрес' },
-                { minTime: 30000, maxTime: 40000, from: 75, to: 94, phase: 'success',  title: 'Синтез на алгоритъма...',           subtitle: 'Калибрираме макронутриентната матрица и TDEE' }
+                { minTime: 0,     maxTime: 11250, from: 0,  to: 28, phase: 'cold',     title: 'Структуриране на Био-масива...',   subtitle: 'Парсираме антропометрия, демография и целеви вектор' },
+                { minTime: 11250, maxTime: 23750, from: 28, to: 52, phase: 'amber',    title: 'Сканиране на здравен статус...',   subtitle: 'Кръстосан анализ на клинични и метаболитни променливи' },
+                { minTime: 23750, maxTime: 37500, from: 52, to: 75, phase: 'critical', title: 'Невро-хормонален анализ...',        subtitle: 'Локализираме поведенчески тригъри, сън и стрес' },
+                { minTime: 37500, maxTime: DIAGNOSTIC_TOTAL_MS, from: 75, to: 94, phase: 'success',  title: 'Синтез на алгоритъма...',           subtitle: 'Калибрираме макронутриентната матрица и TDEE' }
             ];
 
             function setPhase(phase) {
@@ -3581,21 +3646,38 @@
                 });
             }
 
-            function appendLog(line) {
+            function appendLog(line, elapsed) {
                 const el = document.createElement('div');
-                el.className = 'diagnostic-log-line';
-                if (line.phase === 'amber') el.classList.add('warn');
-                if (line.phase === 'critical') el.classList.add('critical');
-                el.textContent = line.text;
+                el.className = 'diagnostic-log-entry ' + line.phase;
+                el.innerHTML =
+                    '<div class="diagnostic-log-meta">' +
+                        '<span class="diagnostic-log-time">' + formatDiagnosticElapsed(elapsed) + '</span>' +
+                        '<span class="diagnostic-log-tag">' + line.tag + '</span>' +
+                    '</div>' +
+                    '<div class="diagnostic-log-text">' + line.text + '</div>';
 
-                terminal.querySelectorAll('.latest').forEach(node => node.classList.remove('latest'));
+                const entries = terminal.querySelectorAll('.diagnostic-log-entry');
+                entries.forEach(node => {
+                    node.classList.remove('latest');
+                    node.classList.add('past');
+                });
                 terminal.appendChild(el);
+                while (terminal.children.length > MAX_VISIBLE_LOGS) {
+                    terminal.removeChild(terminal.firstChild);
+                }
                 requestAnimationFrame(() => {
                     el.classList.add('visible', 'latest');
                     terminal.scrollTop = terminal.scrollHeight;
                 });
 
                 if (line.haptic) triggerDiagnosticHaptic();
+            }
+
+            function setDisplayedProgress(value) {
+                const clamped = Math.max(0, Math.min(100, Math.round(value)));
+                displayedProgress = clamped;
+                progressBar.style.width = clamped + '%';
+                percentageText.textContent = clamped + '%';
             }
 
             function easeOutCubic(t) {
@@ -3615,11 +3697,14 @@
                 }
                 
                 const elapsed = Date.now() - startTime;
+                const canShowNextLog = !lastLogShownAt || (elapsed - lastLogShownAt) >= MIN_LOG_INTERVAL_MS;
 
-                while (nextLogIndex < DIAGNOSTIC_LOG_LINES.length && elapsed >= DIAGNOSTIC_LOG_LINES[nextLogIndex].at) {
+                if (canShowNextLog && nextLogIndex < DIAGNOSTIC_LOG_LINES.length && elapsed >= DIAGNOSTIC_LOG_LINES[nextLogIndex].at) {
                     const line = DIAGNOSTIC_LOG_LINES[nextLogIndex];
                     setPhase(line.phase);
-                    appendLog(line);
+                    appendLog(line, elapsed);
+                    lastDisplayedLogProgress = line.progress;
+                    lastLogShownAt = elapsed;
                     nextLogIndex++;
                 }
 
@@ -3638,22 +3723,39 @@
                 const stageElapsed = Math.min(Math.max(elapsed - stage.minTime, 0), stage.maxTime - stage.minTime);
                 const stageRatio = stageElapsed / (stage.maxTime - stage.minTime);
                 const eased = stage.phase === 'amber' ? Math.pow(stageRatio, 1.45) : easeOutCubic(stageRatio);
-                progress = stage.from + (stage.to - stage.from) * eased;
+                let timeProgress = stage.from + (stage.to - stage.from) * eased;
 
-                if (elapsed >= 19000 && elapsed < 20500) progress = 52;
-                if (elapsed >= 40000) {
-                    const holdPulse = (Math.sin((elapsed - 40000) / 850) + 1) * 1.5;
-                    progress = Math.min(97, 94 + holdPulse);
+                const nextLine = DIAGNOSTIC_LOG_LINES[nextLogIndex];
+                if (nextLine && lastDisplayedLogProgress < nextLine.progress) {
+                    const prevAt = nextLogIndex > 0 ? DIAGNOSTIC_LOG_LINES[nextLogIndex - 1].at : 0;
+                    const span = Math.max(nextLine.at - prevAt, 1);
+                    const localT = Math.min(Math.max((elapsed - prevAt) / span, 0), 1);
+                    const logProgress = lastDisplayedLogProgress + (nextLine.progress - lastDisplayedLogProgress) * easeOutCubic(localT);
+                    timeProgress = Math.max(timeProgress, logProgress);
+                } else {
+                    timeProgress = Math.max(timeProgress, lastDisplayedLogProgress);
+                }
+
+                if (elapsed >= DIAGNOSTIC_TOTAL_MS) {
+                    const holdPulse = (Math.sin((elapsed - DIAGNOSTIC_TOTAL_MS) / 850) + 1) * 1.5;
+                    timeProgress = Math.min(97, 94 + holdPulse);
                     if (currentTitle) currentTitle.textContent = 'Финална синхронизация...';
                     if (currentSubtitle) currentSubtitle.textContent = 'Държим екрана активен, докато анализът е реално готов.';
-                    if (!waitingNoticeShown) {
+                    if (!waitingNoticeShown && canShowNextLog) {
                         waitingNoticeShown = true;
-                        appendLog({ phase: 'success', text: 'Изчакване на потвърждение от сървъра — екранът няма да приключи преждевременно.', haptic: true });
+                        appendLog({
+                            phase: 'success',
+                            tag: 'Изчакване',
+                            progress: 97,
+                            text: 'Изчакване на потвърждение от сървъра — екранът няма да приключи преждевременно.',
+                            haptic: true
+                        }, elapsed);
+                        lastLogShownAt = elapsed;
                     }
                 }
 
-                currentProgressBar.style.width = Math.floor(progress) + '%';
-                currentPercentageText.textContent = Math.floor(progress) + '%';
+                const smoothTarget = displayedProgress + (timeProgress - displayedProgress) * 0.22;
+                setDisplayedProgress(smoothTarget);
             }
             
             progressInterval = setInterval(updateProgress, 100);
@@ -4047,10 +4149,10 @@
                 orb.classList.add('success');
             }
             if (title) title.textContent = 'Анализът е готов!';
-            if (subtitle) subtitle.textContent = 'Планът продължава да се генерира скрито във фонов режим.';
+            if (subtitle) subtitle.textContent = 'Прехвърляне към вашия здравословен анализ...';
             triggerDiagnosticHaptic();
 
-            await new Promise(resolve => setTimeout(resolve, 650));
+            await new Promise(resolve => setTimeout(resolve, 1400));
             document.body.classList.remove('diagnostic-lock');
             window.location.href = 'analysis.html';
         }

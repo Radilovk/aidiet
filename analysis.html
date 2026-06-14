@@ -2561,14 +2561,15 @@
         function updateQuestionnaire2PendingNotice(state) {
             const notice = document.querySelector('.pending-notice');
             if (!notice) return;
+            if (state === 'generating') {
+                notice.style.display = 'none';
+                return;
+            }
+            notice.style.display = '';
             const icon = notice.querySelector('i');
             const strong = notice.querySelector('strong');
             const text = notice.querySelector('p');
-            if (state === 'generating') {
-                if (icon) icon.className = 'fas fa-microchip';
-                if (strong) strong.textContent = 'Планът се генерира във фонов режим';
-                if (text) text.textContent = 'Можете да разгледате анализа веднага. Хранителният пакет продължава да се създава скрито и ще бъде изпратен за одобрение автоматично.';
-            } else if (state === 'ready') {
+            if (state === 'ready') {
                 if (icon) icon.className = 'fas fa-hourglass-half';
                 if (strong) strong.textContent = 'Планът ви предстои да бъде одобрен';
                 if (text) text.textContent = 'AI планът е готов и е изпратен към специалист за преглед. Ще получите известие по имейл.';
@@ -2676,22 +2677,24 @@
                 if (ctaTitle) ctaTitle.textContent = 'Анализът ви е готов!';
                 if (ctaSubtitle) ctaSubtitle.textContent = 'Нашият специалист ще прегледа данните ви и ще изготви напълно персонализиран хранителен пакет.';
 
-                // Inject a pending-plan notice above the CTA
+                // Inject a pending-plan notice above the CTA (only when plan is ready for review)
                 const ctaSection = document.getElementById('ctaSection');
                 if (ctaSection) {
-                    const notice = document.createElement('div');
-                    notice.className = 'pending-notice';
                     const partialPlan = getStoredPlan();
                     const isGenerating = partialPlan && partialPlan._partial && localStorage.getItem('planJobId');
-                    notice.innerHTML = `
+                    if (!isGenerating) {
+                        const notice = document.createElement('div');
+                        notice.className = 'pending-notice';
+                        notice.innerHTML = `
                         <div class="pending-notice-inner">
-                            <i class="fas ${isGenerating ? 'fa-microchip' : 'fa-hourglass-half'}"></i>
+                            <i class="fas fa-hourglass-half"></i>
                             <div>
-                                <strong>${isGenerating ? 'Планът се генерира във фонов режим' : 'Планът ви предстои да бъде одобрен'}</strong>
-                                <p>${isGenerating ? 'Можете да разгледате анализа веднага. Хранителният пакет продължава да се създава скрито и ще бъде изпратен за одобрение автоматично.' : 'Нашият специалист ще прегледа данните ви и ще активира плана. Ще получите известие по имейл.'}</p>
+                                <strong>Планът ви предстои да бъде одобрен</strong>
+                                <p>Нашият специалист ще прегледа данните ви и ще активира плана. Ще получите известие по имейл.</p>
                             </div>
                         </div>`;
-                    ctaSection.insertBefore(notice, ctaSection.firstChild);
+                        ctaSection.insertBefore(notice, ctaSection.firstChild);
+                    }
 
                     // Change the CTA button to reflect pending state
                     const btn = ctaSection.querySelector('.btn-primary');
