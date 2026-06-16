@@ -1,3 +1,14 @@
+import {
+  serializeUserProfile,
+  serializeBackendCalculations,
+  serializeAnalysisForStep,
+  serializeStrategyForMealPlan,
+  serializeWeeklySchemeTargets,
+  serializePreviousDays,
+  serializeWeekPlanSummary,
+  formatPromptValue,
+} from './context-compression.js';
+
 /**
  * Cloudflare Worker for AI Diet Application
  * Backend endpoint: https://aidiet.radilov-k.workers.dev/
@@ -9,11 +20,12 @@
  * 
  * KEY PRINCIPLE: NO compromise on data completeness, precision, or individualization
  * 
- * TOKEN OPTIMIZATION (Feb 2026):
- * - Strategy objects are sent in COMPACT format (76% reduction: 695→167 tokens)
- * - Analysis objects are sent in COMPACT format (37.6% reduction: 524→327 tokens)
- * - Total input token reduction: 59.1% (4799→1962 tokens per plan generation)
- * - Strategy is used 5 times, analysis 1 time, so compact format has multiplied effect
+ * TOKEN OPTIMIZATION (Jun 2026 — NPCF v1):
+ * - NutriPlan Context Format (context-compression.js) for plan generation steps
+ * - Step 1: lossless pipe-serialized profile + backend calcs (deduped vs notes sections)
+ * - Steps 2–4: tiered profile + compact analysis/strategy/weekly-scheme blocks
+ * - Step 3 ×4 chunks: compressed weekly targets + previous-day meal names
+ * - replacePromptVariables uses compact JSON (no pretty-print)
  * 
  * ARCHITECTURE - Plan Generation (Reorganized for efficiency):
  * Структура: 4 основни стъпки, стъпка 3 с 4 подстъпки = 7 заявки
@@ -3022,38 +3034,33 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
 
   const sweetsCravingRule = buildSweetsCravingRule(data.foodCravings, strategy);
 
-  // Build previous days context for variety (compact - only meal names)
+  // Build previous days context for variety (NPCF compact — meal names only)
   let previousDaysContext = '';
   if (previousDays.length > 0) {
-    const prevMeals = previousDays.map(d => {
-      const mealNames = d.meals.map(m => m.name).join(', ');
-      return `Ден ${d.day}: ${mealNames}`;
-    }).join('; ');
-    previousDaysContext = `\n\nВЕЧЕ ГЕНЕРИРАНИ ДНИ (за разнообразие):\n${prevMeals}\n\nПОВТОРЕНИЕ (Issue #11 - ФАЗА 4): Максимум 5 ястия могат да се повторят в цялата седмица. ИЗБЯГВАЙ повтаряне на горните ястия, освен ако не е абсолютно необходимо!`;
+    previousDaysContext = `\n\n${serializePreviousDays(previousDays)}\nПОВТОРЕНИЕ: max 5 ястия/седмица — избягвай горните, освен ако е необходимо.`;
   }
   
-  // Extract essential data from Steps 1 & 2 for menu generation
-  // Per issue: Step 3 should receive all relevant data from Steps 1 & 2
+  const analysisBlock = serializeAnalysisForStep(analysis, 3);
+  const strategyBlock = serializeStrategyForMealPlan(strategy);
+  
+  // Legacy compact fields kept for KV prompt backward compatibility
   const strategyCompact = {
     dietType: strategy.dietType || 'Балансирана',
     weeklyMealPattern: strategy.weeklyMealPattern || 'Традиционна',
     mealTiming: strategy.mealTiming?.pattern || '3 хранения дневно',
-    keyPrinciples: (strategy.keyPrinciples || []).join('; '), // All principles from Step 2
-    // Support both old (foodsToInclude/foodsToAvoid) and new (preferredFoodCategories/avoidFoodCategories) field names
+    keyPrinciples: (strategy.keyPrinciples || []).join('; '),
     foodsToInclude: (strategy.preferredFoodCategories || strategy.foodsToInclude || []).join(', '),
     foodsToAvoid: (strategy.avoidFoodCategories || strategy.foodsToAvoid || []).join(', '),
-    calorieDistribution: strategy.calorieDistribution || 'не е определено', // From Step 2
-    macroDistribution: strategy.macroDistribution || 'не е определено', // From Step 2
-    weeklyScheme: strategy.weeklyScheme || null // Weekly structure from Step 2 (includes mealBreakdown per day)
+    calorieDistribution: strategy.calorieDistribution || 'не е определено',
+    macroDistribution: strategy.macroDistribution || 'не е определено',
   };
   
-  // Extract macro information from Step 1 (analysis)
   const analysisCompact = {
-    macroRatios: analysis.macroRatios ? 
-      `Protein: ${analysis.macroRatios.protein != null ? analysis.macroRatios.protein + '%' : 'N/A'}, Carbs: ${analysis.macroRatios.carbs != null ? analysis.macroRatios.carbs + '%' : 'N/A'}, Fats: ${analysis.macroRatios.fats != null ? analysis.macroRatios.fats + '%' : 'N/A'}` : 
+    macroRatios: analysis.macroRatios ?
+      `P${analysis.macroRatios.protein ?? '?'}/C${analysis.macroRatios.carbs ?? '?'}/F${analysis.macroRatios.fats ?? '?'}%` :
       'не изчислени',
     macroGrams: analysis.macroGrams ?
-      `Protein: ${analysis.macroGrams.protein != null ? analysis.macroGrams.protein + 'g' : 'N/A'}, Carbs: ${analysis.macroGrams.carbs != null ? analysis.macroGrams.carbs + 'g' : 'N/A'}, Fats: ${analysis.macroGrams.fats != null ? analysis.macroGrams.fats + 'g' : 'N/A'}` :
+      `P${analysis.macroGrams.protein ?? '?'}g/C${analysis.macroGrams.carbs ?? '?'}g/F${analysis.macroGrams.fats ?? '?'}g` :
       'не изчислени'
   };
   
@@ -3077,33 +3084,10 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
     data.medicalConditions_other ? `Друго медицинско: ${data.medicalConditions_other}` : ''
   ].filter(Boolean).join('\n');
 
-  // Build explicit per-day/per-meal calorie+macro targets (used in both default and custom prompts)
-  const freeDayNumForText = strategy && strategy.freeDayNumber != null ? Number(strategy.freeDayNumber) : null;
-  const weeklySchemeByDayText = (() => {
-    const lines = [];
-    for (let d = startDay; d <= endDay; d++) {
-      const key = DAY_NUMBER_TO_KEY[d - 1];
-      const dayTarget = strategy.weeklyScheme && strategy.weeklyScheme[key];
-      const kcal = dayTarget && dayTarget.calories ? dayTarget.calories : recommendedCalories;
-      const macroStr = (dayTarget && dayTarget.protein && dayTarget.carbs && dayTarget.fats)
-        ? ` | Б:${dayTarget.protein}г В:${dayTarget.carbs}г М:${dayTarget.fats}г` : '';
-      const freeDayNote = (freeDayNumForText !== null && !isNaN(freeDayNumForText) && d === freeDayNumForText) ? ' ← ДЕН С СВОБОДНО ХРАНЕНЕ (dailyTotals включва планираните калории за Хранене 2 от mealBreakdown)' : '';
-      lines.push(`   Ден ${d} (${DAY_NAMES_BG[key] || key}): ~${kcal} kcal${macroStr} (±${DAILY_CALORIE_TOLERANCE} kcal OK)${freeDayNote}`);
-      if (dayTarget && dayTarget.mealBreakdown && Array.isArray(dayTarget.mealBreakdown)) {
-        dayTarget.mealBreakdown.forEach(m => {
-          if (m.type === 'Свободно хранене') {
-            const freeMealTarget = m.calories
-              ? `~${m.calories} kcal | Б:${m.protein || 0}г В:${m.carbs || 0}г М:${m.fats || 0}г`
-              : 'планиран обеден слот';
-            lines.push(`     → ${m.type}: ${freeMealTarget} (самото meal поле е без calories/macros в JSON)`);
-          } else {
-            lines.push(`     → ${m.type}: ~${m.calories} kcal | Б:${m.protein}г В:${m.carbs}г М:${m.fats}г`);
-          }
-        });
-      }
-    }
-    return lines.join('\n');
-  })();
+  // Compact per-day calorie/macro targets (NPCF #WK v1)
+  const weeklySchemeByDayText = serializeWeeklySchemeTargets(
+    strategy, startDay, endDay, recommendedCalories, DAY_NUMBER_TO_KEY, DAILY_CALORIE_TOLERANCE
+  );
 
   const customPrompt = await requireKvPrompt(env, 'admin_meal_plan_prompt');
 
@@ -3114,6 +3098,8 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
       userData: data,
       analysisData: analysis,
       strategyData: strategy,
+      analysisBlock,
+      strategyBlock,
       analysisCompact,
       strategyCompact,
       weeklySchemeByDayText,
@@ -3167,6 +3153,12 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
 
 ВАЖНО: Върни САМО JSON обект {} без други текст или обяснения! НЕ връщай JSON масив []!`;
     }
+    if (analysisBlock && !prompt.includes('#AN v1')) {
+      prompt = prompt.replace(
+        '=== ПРОФИЛ ===',
+        `${analysisBlock}\n${strategyBlock}\n\n=== ПРОФИЛ ===`
+      );
+    }
   return prompt;
 }
 
@@ -3217,7 +3209,7 @@ async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, reco
       ? (data['medicalConditions_Алергии'] || 'Да (без детайли)')
       : 'няма',
     medications: data.medications === 'Да' ? (data.medicationsDetails || 'Да') : 'не приема',
-    medicalConditions: JSON.stringify(data.medicalConditions || []),
+    medicalConditions: (data.medicalConditions || []).join('+') || 'няма',
     medicalConditions_other: data.medicalConditions_other || '',
     deficiencies: (analysis.nutritionalNeeds || analysis.nutritionalDeficiencies || []).join(', ') || 'няма установени'
   };
@@ -3241,10 +3233,14 @@ async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, reco
   
   const customPrompt = await requireKvPrompt(env, 'admin_summary_prompt');
   const _proto = getClinicalProtocol(data.clinicalProtocol);
+  const analysisBlock = serializeAnalysisForStep(analysis, 4);
+  const weekPlanBlock = serializeWeekPlanSummary(weekPlan);
   let prompt = replacePromptVariables(customPrompt, {
       userData: data,
+      userProfileBlock: serializeUserProfile(data, 'summary'),
+      analysisBlock,
+      weekPlan: weekPlanBlock,
       strategyData: strategy,
-      weekPlan: weekPlan,
       bmr: bmr,
       recommendedCalories: recommendedCalories,
       avgCalories: avgCalories,
@@ -3264,13 +3260,13 @@ async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, reco
       medicalConditions: healthContext.medicalConditions,
       medicalConditions_other: healthContext.medicalConditions_other,
       deficiencies: healthContext.deficiencies || 'няма установени',
-      psychologicalSupport: JSON.stringify(psychologicalSupport.slice(0, 3)),
+      psychologicalSupport: psychologicalSupport.slice(0, 3).join('; '),
       hydrationStrategy: hydrationStrategy,
       temperament: analysis.psychoProfile?.temperament || 'не е определен',
       temperamentProbability: analysis.psychoProfile?.probability || 0,
       psychologicalProfile: (analysis.psychologicalProfile || '').substring(0, 500),
       dietType: strategy.dietType || strategy.dietaryModifier || 'балансирана',
-      supplementRecommendations: JSON.stringify((strategy.supplementRecommendations || []).slice(0, 5)),
+      supplementRecommendations: (strategy.supplementRecommendations || []).slice(0, 5).join('; '),
       // New variables for enhanced psychology and supplements
       stressLevel: data.stressLevel || 'средно',
       // sleepQuality / sleepDuration come from questionnaire1; use questionnaire2 fields as fallback
@@ -3284,6 +3280,10 @@ async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, reco
       clinicalProtocolSupplementSection: _proto ? buildClinicalProtocolSupplementSection(_proto) : '',
       clinicalProtocolName: _proto ? _proto.name : ''
     });
+    
+    if (analysisBlock && !prompt.includes('#AN v1')) {
+      prompt = `${analysisBlock}\n\n${prompt}`;
+    }
     
     // CRITICAL: Ensure JSON format instructions are included even with custom prompts
     if (!hasJsonFormatInstructions(prompt)) {
@@ -6626,7 +6626,7 @@ function replacePromptVariables(template, variables) {
       value = value[k];
     }
     if (value == null) return '';
-    return typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value);
+    return formatPromptValue(value);
   });
 }
 
@@ -6650,10 +6650,18 @@ async function generateAnalysisPrompt(data, env, errorPreventionComment = null) 
     const additionalNotesSection = _combinedNotes
       ? `═══ 🔥 ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ ОТ ПОТРЕБИТЕЛЯ (КРИТИЧЕН ПРИОРИТЕТ) 🔥 ═══\n${_combinedNotes}\n═══════════════════════════════════════════════════════════════`
       : '';
+    const _clinicalProtocol = getClinicalProtocol(data.clinicalProtocol);
+    const clinicalProtocolSection = _clinicalProtocol ? buildClinicalProtocolPromptSection(_clinicalProtocol) : '';
+    const backendCalcObj = {
+      activityScore: activityData, bmr, tdee,
+      safeDeficit_reference: deficitData, baselineMacros: macros
+    };
     let prompt = replacePromptVariables(customPrompt, {
-      userData: data,
-      // Backend-computed values with clean keys
-      backendCalculations: { activityScore: activityData, bmr, tdee, safeDeficit_reference: deficitData, baselineMacros: macros },
+      userData: serializeUserProfile(data, 'full', {
+        hasNotesSection: !!_combinedNotes,
+        hasClinicalSection: !!clinicalProtocolSection,
+      }),
+      backendCalculations: serializeBackendCalculations(backendCalcObj),
       bmr,
       tdee,
       activityScore: activityData,
@@ -6708,8 +6716,8 @@ async function generateAnalysisPrompt(data, env, errorPreventionComment = null) 
       HEALTH_STATUS_UNDERESTIMATE_PERCENT,
       MIN_RECOMMENDED_CALORIES: data.gender === 'Мъж' ? MIN_RECOMMENDED_CALORIES_MALE : MIN_RECOMMENDED_CALORIES_FEMALE,
       MIN_FAT_GRAMS: Math.round((parseFloat(data.weight) || 70) * MIN_FAT_GRAMS_PER_KG),
-      clinicalProtocolSection: (() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buildClinicalProtocolPromptSection(p) : ''; })(),
-      clinicalProtocolName: (() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? p.name : ''; })()
+      clinicalProtocolSection,
+      clinicalProtocolName: _clinicalProtocol ? _clinicalProtocol.name : ''
     });
     
     // Inject error prevention comment if provided
@@ -6861,6 +6869,8 @@ function buildCompactAnalysis(analysis) {
 async function generateStrategyPrompt(data, analysis, env, errorPreventionComment = null) {
   const customPrompt = await requireKvPrompt(env, 'admin_strategy_prompt');
   const analysisCompact = buildCompactAnalysis(analysis);
+  const analysisBlock = serializeAnalysisForStep(analysis, 2);
+  const userProfileBlock = serializeUserProfile(data, 'strategy');
   const _combinedNotes = buildCombinedAdditionalNotes(data);
     const additionalNotesSection = _combinedNotes
       ? `═══ ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ ОТ ПОТРЕБИТЕЛЯ (КРИТИЧЕН ПРИОРИТЕТ) ═══\n${_combinedNotes}\n═══════════════════════════════════════════════════════════════`
@@ -6868,6 +6878,8 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
     // Replace variables in custom prompt
     let prompt = replacePromptVariables(customPrompt, {
       userData: data,
+      userProfileBlock,
+      analysisBlock,
       analysisData: analysisCompact,
       name: data.name,
       age: data.age,
@@ -6881,7 +6893,9 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
       macroProteinPct: analysisCompact.macroRatios?.protein ?? null,
       macroCarbsPct: analysisCompact.macroRatios?.carbs ?? null,
       macroFatsPct: analysisCompact.macroRatios?.fats ?? null,
-      psychoProfile: JSON.stringify(analysisCompact.psychoProfile),
+      psychoProfile: analysisCompact.psychoProfile?.temperament
+        ? `${analysisCompact.psychoProfile.temperament}@${analysisCompact.psychoProfile.probability || 0}%`
+        : '',
       temperament: analysisCompact.temperament,
       temperamentProbability: analysisCompact.psychoProfile?.probability || 0,
       add1: analysisCompact.add1,
