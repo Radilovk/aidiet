@@ -4,21 +4,12 @@
 Цел: {userData.goal} | BMR: {bmr} | Калории: {recommendedCalories} kcal/ден | Модификатор: "{dietaryModifier}"{modificationsSection}
 Стрес: {userData.stressLevel} | Сън: {userData.sleepHours}ч | Хронотип: {userData.chronotype}{previousDaysContext}
 
-=== ДАННИ ОТ СТЪПКА 1 (АНАЛИЗ) ===
-Макро съотношения: {analysisCompact.macroRatios}
-Дневни макро грамове: {analysisCompact.macroGrams}
+=== АНАЛИЗ + СТРАТЕГИЯ (NPCF компакт) ===
+{analysisBlock}
+{strategyBlock}
+Любими: {dietLove} | Нежелани: {dietDislike}
 
-=== ДАННИ ОТ СТЪПКА 2 (СТРАТЕГИЯ) — АРХИТЕКТУРА НА ХРАНЕНЕТО ===
-Диета: {strategyCompact.dietType} | Хранения: {strategyCompact.mealTiming}
-Принципи: {strategyCompact.keyPrinciples}
-Предпочитани хранителни категории (от стъпка 2): {strategyCompact.foodsToInclude}
-Допълнителни предпочитани храни (от потребител): {dietLove}
-Нежелани хранителни категории (от стъпка 2): {strategyCompact.foodsToAvoid}
-Допълнителни нежелани храни (от потребител): {dietDislike}
-Разпределение на калории (стъпка 2): {strategyCompact.calorieDistribution}
-Разпределение на макроси (стъпка 2): {strategyCompact.macroDistribution}
-
-=== ЦЕЛЕВИ КАЛОРИИ И МАКРОСИ ПО ДНИ И ХРАНЕНИЯ (от стъпка 2) ===
+=== ЦЕЛЕВИ КАЛОРИИ И МАКРОСИ ПО ДНИ И ХРАНЕНИЯ (NPCF #WK v1) ===
 {weeklySchemeByDayText}
 
 Потребителски бележки: {additionalNotes}
