@@ -58,6 +58,16 @@ const DAY_KEY_SHORT = {
 
 /**
  * @param {unknown} value
+ * @returns {boolean}
+ */
+function hasContent(value) {
+  if (value == null || value === '') return false;
+  if (typeof value === 'string' || Array.isArray(value)) return value.length > 0;
+  return true;
+}
+
+/**
+ * @param {unknown} value
  * @returns {string}
  */
 function esc(value) {
@@ -165,19 +175,19 @@ export function serializeUserProfile(data, tier = 'full', options = {}) {
   if (history) lines.push(`B|${history}`);
 
   const habits = [
-    data.eatingHabits?.length ? `hab=${esc(data.eatingHabits)}` : '',
-    data.foodCravings?.length ? `crv=${esc(data.foodCravings)}` : '',
+    hasContent(data.eatingHabits) ? `hab=${esc(data.eatingHabits)}` : '',
+    hasContent(data.foodCravings) ? `crv=${esc(data.foodCravings)}` : '',
     data.foodCravings_other ? `crvO=${esc(data.foodCravings_other)}` : '',
-    data.foodTriggers?.length ? `trg=${esc(data.foodTriggers)}` : '',
+    hasContent(data.foodTriggers) ? `trg=${esc(data.foodTriggers)}` : '',
     data.foodTriggers_other ? `trgO=${esc(data.foodTriggers_other)}` : '',
-    data.compensationMethods?.length ? `cmp=${esc(data.compensationMethods)}` : '',
+    hasContent(data.compensationMethods) ? `cmp=${esc(data.compensationMethods)}` : '',
     data.compensationMethods_other ? `cmpO=${esc(data.compensationMethods_other)}` : '',
     data.socialComparison ? `soc=${esc(data.socialComparison)}` : '',
   ].filter(Boolean).join('|');
   if (habits) lines.push(`H|${habits}`);
 
   const diet = [
-    data.dietPreference?.length ? `pref=${esc(data.dietPreference)}` : '',
+    hasContent(data.dietPreference) ? `pref=${esc(data.dietPreference)}` : '',
     data.dietPreference_other ? `prefO=${esc(data.dietPreference_other)}` : '',
     data.dietLove ? `love=${esc(data.dietLove)}` : '',
     data.dietDislike ? `avoid=${esc(data.dietDislike)}` : '',
@@ -186,7 +196,7 @@ export function serializeUserProfile(data, tier = 'full', options = {}) {
   if (diet) lines.push(`D|${diet}`);
 
   const med = [
-    data.medicalConditions?.length ? esc(data.medicalConditions) : '',
+    hasContent(data.medicalConditions) ? esc(data.medicalConditions) : '',
     data.medications ? `meds=${esc(data.medications)}` : '',
     data.medicationsDetails ? `medDet=${esc(data.medicationsDetails)}` : '',
     data.medicalConditions_other ? `medO=${esc(data.medicalConditions_other)}` : '',
