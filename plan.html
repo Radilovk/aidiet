@@ -3589,6 +3589,9 @@
                     if (!pw || pw.length < 6) { showAuthError('Паролата трябва да е поне 6 символа.'); return; }
                     this.disabled = true;
                     try {
+                        if (window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.markPlanFetchOnNextAuth === 'function') {
+                            window.NutriPlanPlanSync.markPlanFetchOnNextAuth();
+                        }
                         await signInWithEmailAndPassword(auth, email, pw);
                         /* onAuthStateChanged → hideOverlay */
                     } catch (err) {
@@ -3665,6 +3668,9 @@
                     if (!pw || pw.length < 6) { showAuthError('Паролата трябва да е поне 6 символа.'); return; }
                     this.disabled = true;
                     try {
+                        if (window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.markPlanFetchOnNextAuth === 'function') {
+                            window.NutriPlanPlanSync.markPlanFetchOnNextAuth();
+                        }
                         await signInWithEmailAndPassword(auth, em, pw);
                     } catch (err) {
                         console.error('Login error:', err.code, err.message);
@@ -3737,7 +3743,9 @@
         /* ── Logout — exposed globally so the button in day-banner can call it ── */
         window.planSignOut = async function () {
             await signOut(auth).catch(() => {});
-            if (window.NutriPlanSession && typeof window.NutriPlanSession.clearUserSessionData === 'function') {
+            if (window.NutriPlanSession && typeof window.NutriPlanSession.clearAuthSessionKeepingAnalytics === 'function') {
+                await window.NutriPlanSession.clearAuthSessionKeepingAnalytics();
+            } else if (window.NutriPlanSession && typeof window.NutriPlanSession.clearUserSessionData === 'function') {
                 await window.NutriPlanSession.clearUserSessionData();
             } else {
                 _clearUserPlanData();
@@ -3752,28 +3760,21 @@
                     await window.NutriPlanSession.ensureAuthenticatedUser(user);
                 }
                 syncUser(user);
-                // If no plan is cached locally, try to fetch it from the server.
-                // This happens on a new device where the user has a plan in their account.
-                // sessionStorage guard: prevents any theoretical repeated fetch in the same
-                // browser tab (e.g. Firebase re-firing the observer after a network event).
+                const fbUserId = 'fb_' + user.uid;
+                const loginFetch = window.NutriPlanPlanSync &&
+                    window.NutriPlanPlanSync.consumePlanFetchOnNextAuth();
                 const _planRestoreKey = 'pageInitialised';
                 if (!localStorage.getItem('dietPlan') && !localStorage.getItem('planJobId')) {
                     if (sessionStorage.getItem(_planRestoreKey)) {
-                        // Restore was already attempted in this tab but failed to produce a plan
-                        // (shouldn't normally happen) — avoid a loop and go to questionnaire.
                         sessionStorage.removeItem(_planRestoreKey);
                         resolvePlanAuth(user);
                         navigateTopLevel('questionnaire2.html', true);
                         return;
                     }
                     sessionStorage.setItem(_planRestoreKey, '1');
-                    const loaded = await _loadUserPlanFromServer('fb_' + user.uid, user);
+                    const loaded = await _loadUserPlanFromServer(fbUserId, user);
                     sessionStorage.removeItem(_planRestoreKey);
                     if (loaded) {
-                        // Plan restored into localStorage — initialise the page directly
-                        // without a full reload.  loadDietData() is idempotent when a plan
-                        // is present in localStorage and is available in the global scope
-                        // because it lives in a regular (non-module) <script> tag.
                         if (typeof window.loadDietData === 'function') {
                             window.loadDietData();
                         }
@@ -3781,18 +3782,13 @@
                         resolvePlanAuth(user);
                         return;
                     }
-                    // No plan on server either — send to questionnaire
                     resolvePlanAuth(user);
                     navigateTopLevel('questionnaire2.html', true);
                     return;
                 }
-                if (window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.refreshIfStale === 'function') {
-                    const refreshResult = await window.NutriPlanPlanSync.refreshIfStale({
-                        userId: 'fb_' + user.uid,
-                        email: user.email || undefined,
-                        getIdToken: () => user.getIdToken()
-                    });
-                    if (refreshResult.updated && typeof window.loadDietData === 'function') {
+                if (loginFetch) {
+                    const loaded = await _loadUserPlanFromServer(fbUserId, user);
+                    if (loaded && typeof window.loadDietData === 'function') {
                         window.loadDietData();
                     }
                 }
@@ -4412,12 +4408,6 @@
             // localStorage before checking for plan data (handles APK reinstall scenario).
             if (typeof NativeBackup !== 'undefined') {
                 await NativeBackup.init().catch(() => {});
-            }
-            var startupUserId = localStorage.getItem('userId');
-            if (startupUserId && localStorage.getItem('dietPlan') && window.NutriPlanPlanSync) {
-                try {
-                    await window.NutriPlanPlanSync.refreshIfStale({ userId: startupUserId });
-                } catch (_) {}
             }
             loadDietData();
             if (window.NutriPlanDiagnostics) {

@@ -1,13 +1,13 @@
 /**
- * NutriPlan — lightweight server plan sync (web + APK).
- * One conditional GET on app open; full plan body only when admin updated it.
+ * NutriPlan — plan sync on login only (web + APK).
+ * No backend requests on app reopen or tab switch while logged in.
  */
 (function (global) {
     'use strict';
 
     var WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
     var LOCAL_PLAN_AT_KEY = 'planUpdatedAt';
-    var SESSION_CHECK_KEY = 'np_plan_refresh_done';
+    var LOGIN_FETCH_FLAG = 'np_fetch_plan_on_next_auth';
     var _applyingServerPlan = false;
 
     function getLocalPlanUpdatedAt() {
@@ -29,6 +29,26 @@
         setLocalPlanUpdatedAt(planUpdatedAt || new Date().toISOString());
     }
 
+    function markPlanFetchOnNextAuth() {
+        try {
+            localStorage.setItem(LOGIN_FETCH_FLAG, '1');
+        } catch (_) {}
+    }
+
+    function consumePlanFetchOnNextAuth() {
+        try {
+            var pending = localStorage.getItem(LOGIN_FETCH_FLAG) === '1';
+            if (pending) localStorage.removeItem(LOGIN_FETCH_FLAG);
+            return pending;
+        } catch (_) {
+            return false;
+        }
+    }
+
+    function shouldFetchPlanOnAuth(hasLocalPlan) {
+        return consumePlanFetchOnNextAuth() || !hasLocalPlan;
+    }
+
     function resolveCandidateEmail(options) {
         if (options && options.email) return String(options.email).trim().toLowerCase();
         try {
@@ -44,11 +64,6 @@
 
         _applyingServerPlan = true;
         try {
-            if (data.unchanged) {
-                if (data.planUpdatedAt) setLocalPlanUpdatedAt(data.planUpdatedAt);
-                return false;
-            }
-
             var updated = false;
             if (data.plan) {
                 localStorage.setItem('dietPlan', JSON.stringify(data.plan));
@@ -85,8 +100,6 @@
     function buildProfileUrl(userId, email) {
         var url = new URL(WORKER_URL + '/api/user/profile');
         url.searchParams.set('userId', userId);
-        var localAt = getLocalPlanUpdatedAt();
-        if (localAt) url.searchParams.set('localPlanAt', localAt);
         if (email) url.searchParams.set('email', email);
         return url;
     }
@@ -109,86 +122,37 @@
         return resp.json().catch(function () { return null; });
     }
 
-    async function refreshIfStale(options) {
+    async function fetchPlanOnLogin(userId, options) {
         options = options || {};
-        if (options.skipSessionGuard !== true) {
-            try {
-                if (sessionStorage.getItem(SESSION_CHECK_KEY) === '1') {
-                    return { updated: false, reason: 'already-checked' };
-                }
-            } catch (_) {}
-        }
-
-        var userId = options.userId || '';
-        if (!userId) {
-            try {
-                userId = localStorage.getItem('userId') || '';
-            } catch (_) {
-                userId = '';
-            }
-        }
-        if (!userId) return { updated: false, reason: 'no-user' };
-
-        try {
-            if (localStorage.getItem('planSource') === 'questionnaire2') {
-                return { updated: false, reason: 'pending' };
-            }
-        } catch (_) {}
-
-        var hasLocalPlan = false;
-        try {
-            hasLocalPlan = !!localStorage.getItem('dietPlan');
-        } catch (_) {}
-
-        if (!hasLocalPlan && options.onlyIfLocalPlan) {
-            return { updated: false, reason: 'no-local-plan' };
+        if (options.clearLocalPlan !== false &&
+            global.NutriPlanSession &&
+            typeof global.NutriPlanSession.clearPlanSessionData === 'function') {
+            await global.NutriPlanSession.clearPlanSessionData();
         }
 
         var data = await fetchUserProfile(userId, options);
-        if (!data) return { updated: false, reason: 'request-failed' };
-
-        if (options.skipSessionGuard !== true) {
-            try {
-                sessionStorage.setItem(SESSION_CHECK_KEY, '1');
-            } catch (_) {}
-        }
-
-        var updated = applyServerPlanData(data);
-        if (global.NutriPlanDiagnostics) {
-            global.NutriPlanDiagnostics.ok(
-                'plan-sync',
-                updated ? 'plan-refreshed' : (data.unchanged ? 'plan-unchanged' : 'plan-checked'),
-                userId
-            );
-        }
-        return { updated: updated, unchanged: !!data.unchanged, data: data };
-    }
-
-    async function loadUserPlanFromServer(userId, options) {
-        options = options || {};
-        var savedLocalAt = getLocalPlanUpdatedAt();
-        try {
-            if (savedLocalAt) localStorage.removeItem(LOCAL_PLAN_AT_KEY);
-        } catch (_) {}
-
-        var data = await fetchUserProfile(userId, options);
-        if (savedLocalAt) setLocalPlanUpdatedAt(savedLocalAt);
-
         if (!data || !data.found) return false;
         if (!(data.plan || data.planSource === 'questionnaire2' || data.clientId)) return false;
         applyServerPlanData(data);
+        if (global.NutriPlanDiagnostics) {
+            global.NutriPlanDiagnostics.ok('plan-sync', 'fetch-on-login', data.plan ? 'plan loaded' : 'pending state');
+        }
         return true;
     }
 
     global.NutriPlanPlanSync = {
         WORKER_URL: WORKER_URL,
         LOCAL_PLAN_AT_KEY: LOCAL_PLAN_AT_KEY,
+        LOGIN_FETCH_FLAG: LOGIN_FETCH_FLAG,
         getLocalPlanUpdatedAt: getLocalPlanUpdatedAt,
         setLocalPlanUpdatedAt: setLocalPlanUpdatedAt,
         markPlanSavedLocally: markPlanSavedLocally,
+        markPlanFetchOnNextAuth: markPlanFetchOnNextAuth,
+        consumePlanFetchOnNextAuth: consumePlanFetchOnNextAuth,
+        shouldFetchPlanOnAuth: shouldFetchPlanOnAuth,
         applyServerPlanData: applyServerPlanData,
-        refreshIfStale: refreshIfStale,
-        loadUserPlanFromServer: loadUserPlanFromServer,
+        fetchPlanOnLogin: fetchPlanOnLogin,
+        loadUserPlanFromServer: fetchPlanOnLogin,
         isApplyingServerPlan: function () { return _applyingServerPlan; }
     };
 }(window));

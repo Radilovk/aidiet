@@ -4210,29 +4210,25 @@
             const fbUserId = 'fb_' + user.uid;
 
             /* ── Plan sync / restore ───────────────────────────────────────────
-             * On each login/open: one lightweight profile check (localPlanAt).
-             * Full plan body is downloaded only when the admin updated it.
+             * Backend requests only on explicit login or missing local plan.
+             * App reopen / tab switch while logged in → local cache only.
              * ──────────────────────────────────────────────────────────────── */
             const existingPlan = localStorage.getItem('dietPlan');
+            const loginFetch = _loginInProgress ||
+                (window.NutriPlanPlanSync && window.NutriPlanPlanSync.consumePlanFetchOnNextAuth());
+            const missingPlan = !existingPlan && !localStorage.getItem('planJobId');
 
-            if (existingPlan) {
+            if (loginFetch) {
+                await _loadUserPlanFromServer(fbUserId, user);
+            } else if (missingPlan) {
+                await _loadUserPlanFromServer(fbUserId, user);
+            } else if (existingPlan) {
                 const syncNeeded =
                     (prevUserId && !prevUserId.startsWith('fb_')) ||
                     localStorage.getItem('planSyncPending') === 'true';
                 if (syncNeeded) {
                     await _syncAnonymousPlanToAccount(fbUserId, user);
                 }
-                if (window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.refreshIfStale === 'function') {
-                    await window.NutriPlanPlanSync.refreshIfStale({
-                        userId: fbUserId,
-                        email: user.email || undefined,
-                        getIdToken: () => user.getIdToken()
-                    });
-                }
-            } else if (!localStorage.getItem('planJobId')) {
-                // No local plan and no pending generation job →
-                // try to restore plan from the server (new device / reinstall scenario).
-                await _loadUserPlanFromServer(fbUserId, user);
             }
 
             // Signal DOMContentLoaded that plan sync/restore is complete so it can
@@ -4299,6 +4295,10 @@
         }
 
         async function clearIndexSessionData() {
+            if (window.NutriPlanSession && typeof window.NutriPlanSession.clearAuthSessionKeepingAnalytics === 'function') {
+                await window.NutriPlanSession.clearAuthSessionKeepingAnalytics();
+                return;
+            }
             if (window.NutriPlanSession && typeof window.NutriPlanSession.clearUserSessionData === 'function') {
                 await window.NutriPlanSession.clearUserSessionData();
                 return;
@@ -4386,6 +4386,9 @@
             loginClearMessages();
             if (btn) btn.disabled = true;
             _loginInProgress = true;
+            if (window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.markPlanFetchOnNextAuth === 'function') {
+                window.NutriPlanPlanSync.markPlanFetchOnNextAuth();
+            }
             try {
                 await signInWithEmailAndPassword(auth, email, password);
                 /* onAuthStateChanged fires next and handles the redirect */
