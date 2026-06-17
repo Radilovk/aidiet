@@ -697,6 +697,11 @@
                     if (data.plan) {
                         localStorage.setItem('dietPlan', JSON.stringify(data.plan));
                     }
+                    if (data.planUpdatedAt) {
+                        localStorage.setItem('planUpdatedAt', data.planUpdatedAt);
+                    } else if (data.activatedAt) {
+                        localStorage.setItem('planUpdatedAt', data.activatedAt);
+                    }
                     localStorage.removeItem('planSource');
 
                     // Update the user_profile KV entry to clear planSource so that when

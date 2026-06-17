@@ -883,6 +883,28 @@
 
         await ensureNativeStorageReady();
         await cacheJsonAtStartup();
+        if (window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.refreshIfStale === 'function') {
+            var shellUserId = getStoredValue('userId') || '';
+            if (shellUserId && getStoredValue('dietPlan')) {
+                try {
+                    var shellRefresh = await window.NutriPlanPlanSync.refreshIfStale({ userId: shellUserId });
+                    if (shellRefresh.updated) {
+                        var refreshedPlan = localStorage.getItem('dietPlan');
+                        var refreshedUserData = localStorage.getItem('userData');
+                        var refreshedPlanAt = localStorage.getItem('planUpdatedAt');
+                        if (refreshedPlan) {
+                            state.raw.dietPlan = refreshedPlan;
+                            state.parsed.dietPlan = safeParse(refreshedPlan);
+                        }
+                        if (refreshedUserData) {
+                            state.raw.userData = refreshedUserData;
+                            state.parsed.userData = safeParse(refreshedUserData);
+                        }
+                        if (refreshedPlanAt) state.raw.planUpdatedAt = refreshedPlanAt;
+                    }
+                } catch (_) {}
+            }
+        }
         if (!shouldOpenShell()) {
             if (window.NutriPlanDiagnostics) {
                 window.NutriPlanDiagnostics.info('shell', 'init-skip', 'No local plan available');

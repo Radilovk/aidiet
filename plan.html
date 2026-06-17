@@ -3444,6 +3444,7 @@
     <script src="./diagnostics-log.js"></script>
     <script src="./platform.js"></script>
     <script src="./platform-compat.js"></script>
+    <script src="./plan-sync.js"></script>
     <script type="module">
         import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
         import {
@@ -3509,53 +3510,17 @@
          * Returns true if a plan was successfully restored. */
         async function _loadUserPlanFromServer(fbUserId, user, _retries) {
             if (_retries === undefined) _retries = 2;
-            const url = new URL(WORKER_URL + '/api/user/profile');
-            url.searchParams.set('userId', fbUserId);
-            const candidateEmail = (
-                (user && user.email) ||
-                (function () {
-                    try {
-                        const cachedUserData = JSON.parse(localStorage.getItem('userData') || '{}');
-                        return cachedUserData.email || '';
-                    } catch (_) {
-                        return '';
-                    }
-                })()
-            ).trim().toLowerCase();
-            if (candidateEmail) url.searchParams.set('email', candidateEmail);
+            if (!window.NutriPlanPlanSync || typeof window.NutriPlanPlanSync.loadUserPlanFromServer !== 'function') {
+                return false;
+            }
             try {
-                const headers = {};
-                if (user && fbUserId.startsWith('fb_')) {
-                    const idToken = await user.getIdToken().catch(() => null);
-                    if (idToken) headers['Authorization'] = `Bearer ${idToken}`;
-                }
-                let resp = await fetch(url.toString(), { headers });
-                // If the server rejected our token (e.g. FIREBASE_PROJECT_ID not configured
-                // on the worker, or a transient JWKS error), retry without the Authorization
-                // header — the GET endpoint allows unauthenticated reads by design.
-                if ((resp.status === 401 || resp.status === 403) && headers['Authorization']) {
-                    console.warn('[plan-restore] Token rejected (', resp.status, '), retrying without auth');
-                    resp = await fetch(url.toString(), {});
-                }
-                if (!resp.ok) return false;
-                const data = await resp.json();
-                if (data.found && (data.plan || data.planSource === 'questionnaire2' || data.clientId)) {
-                    if (data.plan) localStorage.setItem('dietPlan', JSON.stringify(data.plan));
-                    if (data.userData) localStorage.setItem('userData', JSON.stringify(data.userData));
-                    if (data.planSource) localStorage.setItem('planSource', data.planSource);
-                    else localStorage.removeItem('planSource');
-                    // Restore pendingClientId so plan-pending.html can check plan status
-                    // on a new device where this value was not previously stored locally.
-                    if (data.clientId && data.planSource === 'questionnaire2') {
-                        localStorage.setItem('pendingClientId', data.clientId);
-                    } else if (data.planSource !== 'questionnaire2') {
-                        localStorage.removeItem('pendingClientId');
-                    }
-                    return true;
-                }
+                const loaded = await window.NutriPlanPlanSync.loadUserPlanFromServer(fbUserId, {
+                    email: (user && user.email) || undefined,
+                    getIdToken: user ? () => user.getIdToken() : undefined
+                });
+                if (loaded) return true;
             } catch (e) {
                 console.warn('[plan-restore] Failed to load plan from server:', e);
-                // Retry on network errors (transient failures common in Capacitor WebView).
                 if (_retries > 0) {
                     await new Promise(function(r) { setTimeout(r, 1500); });
                     return _loadUserPlanFromServer(fbUserId, user, _retries - 1);
@@ -3749,7 +3714,7 @@
         function _clearUserPlanData() {
             const PLAN_KEYS = [
                 'dietPlan', 'userData', 'planSource', 'planHistory',
-                'userId', 'authKvSynced', 'np_profile_synced', 'np_profile_sync_sig',
+                'userId', 'authKvSynced', 'np_profile_synced', 'np_profile_sync_sig', 'planUpdatedAt',
                 'planJustification', 'longTermStrategy', 'modifierReasoning',
                 'hydrationStrategy', 'mealCountJustification',
                 'gameNotifierConfig',
@@ -3820,6 +3785,16 @@
                     resolvePlanAuth(user);
                     navigateTopLevel('questionnaire2.html', true);
                     return;
+                }
+                if (window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.refreshIfStale === 'function') {
+                    const refreshResult = await window.NutriPlanPlanSync.refreshIfStale({
+                        userId: 'fb_' + user.uid,
+                        email: user.email || undefined,
+                        getIdToken: () => user.getIdToken()
+                    });
+                    if (refreshResult.updated && typeof window.loadDietData === 'function') {
+                        window.loadDietData();
+                    }
                 }
                 hideOverlay();
                 resolvePlanAuth(user);
@@ -4438,6 +4413,12 @@
             if (typeof NativeBackup !== 'undefined') {
                 await NativeBackup.init().catch(() => {});
             }
+            var startupUserId = localStorage.getItem('userId');
+            if (startupUserId && localStorage.getItem('dietPlan') && window.NutriPlanPlanSync) {
+                try {
+                    await window.NutriPlanPlanSync.refreshIfStale({ userId: startupUserId });
+                } catch (_) {}
+            }
             loadDietData();
             if (window.NutriPlanDiagnostics) {
                 window.NutriPlanDiagnostics.ok('plan', 'init-dom-features-ready', 'Initial load requested');
@@ -4823,6 +4804,12 @@
                         if (r && r.ok) {
                             localStorage.setItem('np_profile_synced', '1');
                             localStorage.setItem('np_profile_sync_sig', profileSig);
+                            return r.json().catch(function () { return {}; });
+                        }
+                        return null;
+                    }).then(function (payload) {
+                        if (payload && payload.planUpdatedAt && window.NutriPlanPlanSync) {
+                            window.NutriPlanPlanSync.setLocalPlanUpdatedAt(payload.planUpdatedAt);
                         }
                     })
                       .catch(() => {});
@@ -6628,6 +6615,9 @@
                         const planSyncStr = JSON.stringify(dietPlan);
                         const userDataSyncStr = JSON.stringify(userData);
                         localStorage.setItem('dietPlan', planSyncStr);
+                        if (window.NutriPlanPlanSync) {
+                            window.NutriPlanPlanSync.markPlanSavedLocally();
+                        }
 
                         // Keep the backend profile in sync so the updated plan is
                         // available after reinstalling or on other devices/contexts.
@@ -6654,8 +6644,13 @@
                                 if (r && r.ok) {
                                     localStorage.setItem('np_profile_synced', '1');
                                     localStorage.setItem('np_profile_sync_sig', getProfileSyncSignature(userId, planSyncStr2, userDataSyncStr2, planSourceSync));
-                                } else {
-                                    localStorage.removeItem('np_profile_synced');
+                                    return r.json().catch(function () { return {}; });
+                                }
+                                localStorage.removeItem('np_profile_synced');
+                                return null;
+                            }).then(function (payload) {
+                                if (payload && payload.planUpdatedAt && window.NutriPlanPlanSync) {
+                                    window.NutriPlanPlanSync.setLocalPlanUpdatedAt(payload.planUpdatedAt);
                                 }
                             }).catch(e => {
                                 localStorage.removeItem('np_profile_synced');

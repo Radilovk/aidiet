@@ -4847,22 +4847,18 @@ async function handleUpdateClientPlan(request, env, ctx) {
         `🎯 Цел: ${clientData.answers?.goal || '—'}\n` +
         `📅 Дата: ${formatDateBG(clientData.planUpdatedAt)}`
       );
-    } else if (clientData.planStatus === 'activated' && wasPreviouslyActivated) {
-      // For auto-activated updates, sync to user profile
-      if (clientData.userId) {
-        try {
-          const profileRaw = await env.page_content.get(`user_profile:${clientData.userId}`);
-          if (profileRaw) {
-            const profile = JSON.parse(profileRaw);
-            profile.plan = clientData.plan;
-            profile.planSource = '';
-            profile.clientId = clientId;
-            profile.savedAt = new Date().toISOString();
-            await env.page_content.put(`user_profile:${clientData.userId}`, JSON.stringify(profile));
-          }
-        } catch (e) {
-          console.warn(`Failed to sync auto-activated plan to profile ${clientData.userId}:`, e.message);
-        }
+    } else if (clientData.planStatus === 'activated' && clientData.userId) {
+      // For auto-activated updates, sync to user profile so the next app open picks up edits.
+      try {
+        await upsertUserProfilePlan(env, clientData.userId, {
+          plan: clientData.plan,
+          userData: clientData.answers || {},
+          planSource: '',
+          clientId,
+          planUpdatedAt: clientData.planUpdatedAt
+        });
+      } catch (e) {
+        console.warn(`Failed to sync auto-activated plan to profile ${clientData.userId}:`, e.message);
       }
       console.log(`[Client] Plan auto-activated for existing client ${clientId}`);
     }
@@ -4900,15 +4896,13 @@ async function handleActivateClientPlan(request, env, ctx) {
     // clear its pending marker so the next APK/PWA login opens plan.html.
     if (clientData.userId) {
       try {
-        const profileRaw = await env.page_content.get(`user_profile:${clientData.userId}`);
-        if (profileRaw) {
-          const profile = JSON.parse(profileRaw);
-          profile.plan = clientData.plan;
-          profile.planSource = '';
-          profile.clientId = clientId;
-          profile.savedAt = new Date().toISOString();
-          await env.page_content.put(`user_profile:${clientData.userId}`, JSON.stringify(profile));
-        }
+        await upsertUserProfilePlan(env, clientData.userId, {
+          plan: clientData.plan,
+          userData: clientData.answers || {},
+          planSource: '',
+          clientId,
+          planUpdatedAt: clientData.planUpdatedAt || clientData.planActivatedAt
+        });
       } catch (e) {
         console.warn(`Failed to update activated profile ${clientData.userId}:`, e.message);
       }
@@ -12301,6 +12295,31 @@ async function handleSocialAuth(request, env) {
   }
 }
 
+function getEffectivePlanUpdatedAt(profile) {
+  if (!profile) return null;
+  return profile.planUpdatedAt || profile.savedAt || null;
+}
+
+async function upsertUserProfilePlan(env, userId, updates) {
+  const ttl = userId.startsWith('fb_')
+    ? 365 * 24 * 60 * 60
+    : 90 * 24 * 60 * 60;
+  const existing = (await kvGetJSON(env, `user_profile:${userId}`)) || {};
+  const now = new Date().toISOString();
+  const profile = {
+    ...existing,
+    userId,
+    plan: updates.plan,
+    userData: updates.userData ?? existing.userData ?? {},
+    planSource: updates.planSource ?? existing.planSource ?? '',
+    savedAt: now,
+    planUpdatedAt: updates.planUpdatedAt || now
+  };
+  if (updates.clientId) profile.clientId = updates.clientId;
+  await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
+  return profile;
+}
+
 /**
  * User: Save user profile (plan + userData) for cross-context restoration
  *
@@ -12338,6 +12357,10 @@ async function handleSaveUserProfile(request, env) {
       }
     }
 
+    const existingProfile = await kvGetJSON(env, `user_profile:${userId}`);
+    const planChanged = !existingProfile?.plan ||
+      JSON.stringify(existingProfile.plan) !== JSON.stringify(plan);
+    const now = new Date().toISOString();
     const profileData = {
       userId,
       plan,
@@ -12346,7 +12369,10 @@ async function handleSaveUserProfile(request, env) {
       // clientId links a questionnaire-2 submission to its client record so that
       // plan-pending.html can check plan status when the user logs in on a new device.
       ...(clientId ? { clientId } : {}),
-      savedAt: new Date().toISOString()
+      savedAt: now,
+      planUpdatedAt: planChanged
+        ? now
+        : (existingProfile?.planUpdatedAt || existingProfile?.savedAt || now)
     };
 
     const ttl = userId.startsWith('fb_')
@@ -12381,7 +12407,7 @@ async function handleSaveUserProfile(request, env) {
     }
 
     console.log(`User profile saved for restore: ${userId}`);
-    return jsonResponse({ success: true });
+    return jsonResponse({ success: true, planUpdatedAt: profileData.planUpdatedAt });
   } catch (error) {
     console.error('Error saving user profile:', error);
     return jsonResponse({ error: 'Failed to save user profile: ' + error.message }, 500);
@@ -12429,6 +12455,7 @@ async function handleGetUserProfile(request, env) {
     }
 
     const requestedEmail = normalizeEmail(url.searchParams.get('email'));
+    const localPlanAt = url.searchParams.get('localPlanAt');
 
     let profile = await kvGetJSON(env, `user_profile:${userId}`);
 
@@ -12446,7 +12473,8 @@ async function handleGetUserProfile(request, env) {
           userData: clientData.answers || {},
           planSource: clientData.planStatus === 'activated' ? '' : 'questionnaire2',
           clientId: matchedClient.clientId,
-          savedAt: new Date().toISOString()
+          savedAt: new Date().toISOString(),
+          planUpdatedAt: clientData.planUpdatedAt || clientData.planActivatedAt || new Date().toISOString()
         };
         const ttl = userId && userId.startsWith('fb_')
           ? 365 * 24 * 60 * 60
@@ -12503,7 +12531,26 @@ async function handleGetUserProfile(request, env) {
       }
     }
 
-    return jsonResponse({ found: true, plan: profile.plan, userData: profile.userData, planSource, ...(clientId ? { clientId } : {}) });
+    const planUpdatedAt = getEffectivePlanUpdatedAt(profile);
+
+    if (localPlanAt && planUpdatedAt && localPlanAt >= planUpdatedAt) {
+      return jsonResponse({
+        found: true,
+        unchanged: true,
+        planUpdatedAt,
+        planSource,
+        ...(clientId ? { clientId } : {})
+      });
+    }
+
+    return jsonResponse({
+      found: true,
+      plan: profile.plan,
+      userData: profile.userData,
+      planSource,
+      planUpdatedAt,
+      ...(clientId ? { clientId } : {})
+    });
   } catch (error) {
     console.error('Error getting user profile:', error);
     return jsonResponse({ error: 'Failed to get user profile: ' + error.message }, 500);
