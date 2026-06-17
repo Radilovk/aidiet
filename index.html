@@ -51,6 +51,7 @@
     <script src="./diagnostics-log.js"></script>
     <script src="./platform.js"></script>
     <script src="./platform-compat.js"></script>
+    <script src="./plan-sync.js"></script>
     <script src="./notification-launch.js"></script>
     <!-- Early redirect: check plan immediately to avoid flickering -->
     <script>(function(){
@@ -4099,50 +4100,17 @@
          * Returns true if a plan was successfully restored. */
         async function _loadUserPlanFromServer(fbUserId, user, _retries) {
             if (_retries === undefined) _retries = 2;
-            const url = new URL(WORKER_URL + '/api/user/profile');
-            url.searchParams.set('userId', fbUserId);
-            const candidateEmail = (
-                (user && user.email) ||
-                (function () {
-                    try {
-                        const cachedUserData = JSON.parse(localStorage.getItem('userData') || '{}');
-                        return cachedUserData.email || '';
-                    } catch (_) {
-                        return '';
-                    }
-                })()
-            ).trim().toLowerCase();
-            if (candidateEmail) url.searchParams.set('email', candidateEmail);
+            if (!window.NutriPlanPlanSync || typeof window.NutriPlanPlanSync.loadUserPlanFromServer !== 'function') {
+                return false;
+            }
             try {
-                const headers = {};
-                if (user && fbUserId.startsWith('fb_')) {
-                    const idToken = await user.getIdToken().catch(() => null);
-                    if (idToken) headers['Authorization'] = `Bearer ${idToken}`;
-                }
-                let resp = await fetch(url.toString(), { headers });
-                // If the server rejected our token (e.g. FIREBASE_PROJECT_ID not configured
-                // on the worker, or a transient JWKS error), retry without the Authorization
-                // header — the GET endpoint allows unauthenticated reads by design.
-                if ((resp.status === 401 || resp.status === 403) && headers['Authorization']) {
-                    console.warn('[plan-restore] Token rejected (', resp.status, '), retrying without auth');
-                    resp = await fetch(url.toString(), {});
-                }
-                if (!resp.ok) return false;
-                const data = await resp.json();
-                if (data.found && (data.plan || data.planSource === 'questionnaire2' || data.clientId)) {
-                    if (data.plan) localStorage.setItem('dietPlan', JSON.stringify(data.plan));
-                    if (data.userData) localStorage.setItem('userData', JSON.stringify(data.userData));
-                    if (data.planSource) localStorage.setItem('planSource', data.planSource);
-                    else localStorage.removeItem('planSource');
-                    // Restore pendingClientId so plan-pending.html can check plan status
-                    // on a new device where this value was not previously stored locally.
-                    if (data.clientId && data.planSource === 'questionnaire2') {
-                        localStorage.setItem('pendingClientId', data.clientId);
-                    } else if (data.planSource !== 'questionnaire2') {
-                        localStorage.removeItem('pendingClientId');
-                    }
+                const loaded = await window.NutriPlanPlanSync.loadUserPlanFromServer(fbUserId, {
+                    email: (user && user.email) || undefined,
+                    getIdToken: user ? () => user.getIdToken() : undefined
+                });
+                if (loaded) {
                     if (window.NutriPlanDiagnostics) {
-                        window.NutriPlanDiagnostics.ok('auth', 'restore-user-plan', data.plan ? 'plan restored' : 'pending plan state');
+                        window.NutriPlanDiagnostics.ok('auth', 'restore-user-plan', 'plan restored');
                     }
                     return true;
                 }
@@ -4154,7 +4122,6 @@
                 if (window.NutriPlanDiagnostics) {
                     window.NutriPlanDiagnostics.fail('auth', 'restore-user-plan', e.message || 'request failed');
                 }
-                // Retry on network errors (transient failures common in Capacitor WebView).
                 if (_retries > 0) {
                     await new Promise(function(r) { setTimeout(r, 1500); });
                     return _loadUserPlanFromServer(fbUserId, user, _retries - 1);
@@ -4243,26 +4210,25 @@
             const fbUserId = 'fb_' + user.uid;
 
             /* ── Plan sync / restore ───────────────────────────────────────────
-             * Rule: once the plan is in localStorage we never call the backend
-             *       again until the user logs out (cache-then-network pattern).
+             * Backend requests only on explicit login or missing local plan.
+             * App reopen / tab switch while logged in → local cache only.
              * ──────────────────────────────────────────────────────────────── */
             const existingPlan = localStorage.getItem('dietPlan');
+            const loginFetch = _loginInProgress ||
+                (window.NutriPlanPlanSync && window.NutriPlanPlanSync.consumePlanFetchOnNextAuth());
+            const missingPlan = !existingPlan && !localStorage.getItem('planJobId');
 
-            if (existingPlan) {
-                // Plan is cached locally.
-                // If it was generated before login (anonymous userId), sync it to
-                // the Firebase account so it becomes available on other devices.
-                // Also retry if a previous sync attempt failed (planSyncPending flag).
+            if (loginFetch) {
+                await _loadUserPlanFromServer(fbUserId, user);
+            } else if (missingPlan) {
+                await _loadUserPlanFromServer(fbUserId, user);
+            } else if (existingPlan) {
                 const syncNeeded =
                     (prevUserId && !prevUserId.startsWith('fb_')) ||
                     localStorage.getItem('planSyncPending') === 'true';
                 if (syncNeeded) {
                     await _syncAnonymousPlanToAccount(fbUserId, user);
                 }
-            } else if (!localStorage.getItem('planJobId')) {
-                // No local plan and no pending generation job →
-                // try to restore plan from the server (new device / reinstall scenario).
-                await _loadUserPlanFromServer(fbUserId, user);
             }
 
             // Signal DOMContentLoaded that plan sync/restore is complete so it can
@@ -4329,13 +4295,17 @@
         }
 
         async function clearIndexSessionData() {
+            if (window.NutriPlanSession && typeof window.NutriPlanSession.clearAuthSessionKeepingAnalytics === 'function') {
+                await window.NutriPlanSession.clearAuthSessionKeepingAnalytics();
+                return;
+            }
             if (window.NutriPlanSession && typeof window.NutriPlanSession.clearUserSessionData === 'function') {
                 await window.NutriPlanSession.clearUserSessionData();
                 return;
             }
             const PLAN_KEYS = [
                 'dietPlan', 'userData', 'planSource', 'planHistory',
-                'userId', 'authKvSynced', 'np_profile_synced', 'np_profile_sync_sig',
+                'userId', 'authKvSynced', 'np_profile_synced', 'np_profile_sync_sig', 'planUpdatedAt',
                 'planJustification', 'longTermStrategy', 'modifierReasoning',
                 'hydrationStrategy', 'mealCountJustification',
                 'gameNotifierConfig',
@@ -4416,6 +4386,9 @@
             loginClearMessages();
             if (btn) btn.disabled = true;
             _loginInProgress = true;
+            if (window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.markPlanFetchOnNextAuth === 'function') {
+                window.NutriPlanPlanSync.markPlanFetchOnNextAuth();
+            }
             try {
                 await signInWithEmailAndPassword(auth, email, password);
                 /* onAuthStateChanged fires next and handles the redirect */

@@ -418,6 +418,13 @@
                 return;
             }
             if (msg.openApp || !payload.action) {
+                if (payload.notificationType === 'plan_updated') {
+                    window.dispatchEvent(new CustomEvent('NUTRIPLAN_PLAN_UPDATED', {
+                        detail: { planUpdatedAt: msg.planUpdatedAt || '' }
+                    }));
+                    switchTab('plan', true);
+                    return;
+                }
                 openQuickAnswerFromNotification(payload);
             }
         });
@@ -730,6 +737,20 @@
             }
             return;
         }
+        if (data.type === 'NUTRIPLAN_PLAN_RELOADED') {
+            var planFrame = document.querySelector('[data-tab-view="plan"]');
+            if (planFrame) {
+                refreshFramesForData();
+                dispatchFrameEvent(planFrame, 'NUTRIPLAN_PLAN_RELOADED', {});
+            }
+            return;
+        }
+        if (data.type === 'NUTRIPLAN_PLAN_UPDATED') {
+            window.dispatchEvent(new CustomEvent('NUTRIPLAN_PLAN_UPDATED', {
+                detail: { planUpdatedAt: data.planUpdatedAt || '' }
+            }));
+            return;
+        }
         if (data.type === 'NUTRIPLAN_LOGOUT') {
             // Hide SPA shell immediately so nav bar / tabs are not visible during navigation
             var shell = document.getElementById('spaShell');
@@ -883,6 +904,24 @@
 
         await ensureNativeStorageReady();
         await cacheJsonAtStartup();
+        var shellUserId = getStoredValue('userId') || '';
+        if (window.NutriPlanPlanSync && shellUserId && getStoredValue('dietPlan')) {
+            try {
+                var adminRefresh = await window.NutriPlanPlanSync.initAdminPlanSync({ userId: shellUserId });
+                if (adminRefresh.updated) {
+                    var refreshedPlan = localStorage.getItem('dietPlan');
+                    var refreshedUserData = localStorage.getItem('userData');
+                    if (refreshedPlan) {
+                        state.raw.dietPlan = refreshedPlan;
+                        state.parsed.dietPlan = safeParse(refreshedPlan);
+                    }
+                    if (refreshedUserData) {
+                        state.raw.userData = refreshedUserData;
+                        state.parsed.userData = safeParse(refreshedUserData);
+                    }
+                }
+            } catch (_) {}
+        }
         if (!shouldOpenShell()) {
             if (window.NutriPlanDiagnostics) {
                 window.NutriPlanDiagnostics.info('shell', 'init-skip', 'No local plan available');

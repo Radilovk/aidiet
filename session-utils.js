@@ -25,6 +25,8 @@
         'authKvSynced',
         'np_profile_synced',
         'np_profile_sync_sig',
+        'planUpdatedAt',
+        'np_plan_refresh_pending',
         'planSyncPending',
         'theme',
         'colorScheme',
@@ -58,6 +60,8 @@
         'authKvSynced',
         'np_profile_synced',
         'np_profile_sync_sig',
+        'planUpdatedAt',
+        'np_plan_refresh_pending',
         'planSyncPending',
         'gameEnabled',
         'gameData',
@@ -72,6 +76,51 @@
         'demoFoodPickerPlanCount',
         'demoProfileRegenCount'
     ];
+
+    var PLAN_SESSION_KEYS = [
+        'dietPlan',
+        'userData',
+        'planSource',
+        'pendingClientId',
+        'planJobId',
+        'planJobSource',
+        'pendingPlanPayload',
+        'planHistory',
+        'questionnaireAnswers',
+        'planJustification',
+        'longTermStrategy',
+        'modifierReasoning',
+        'hydrationStrategy',
+        'mealCountJustification',
+        'afterDinnerMealJustification',
+        'hasSeenPlanJustification',
+        'planUpdatedAt',
+        'np_profile_synced',
+        'np_profile_sync_sig',
+        'planSyncPending',
+        'warningData',
+        'canProceedWithWarning',
+        'validationSource'
+    ];
+
+    var ANALYTICS_PRESERVE_KEYS = [
+        'gameEnabled',
+        'gameData',
+        'gameWeeklyAI',
+        'gameNotifierConfig',
+        'theme',
+        'colorScheme',
+        'demoFoodPickerPlanCount',
+        'demoProfileRegenCount'
+    ];
+
+    var ANALYTICS_DYNAMIC_PREFIXES = [
+        'addedMeals_',
+        'demoChatCount_',
+        'demoImageCount_'
+    ];
+
+    var LOGIN_FETCH_FLAG = 'np_fetch_plan_on_next_auth';
 
     var DYNAMIC_KEY_PREFIXES = [
         'addedMeals_',
@@ -89,6 +138,14 @@
 
     function getUserSessionKeys() {
         return USER_SESSION_KEYS.slice();
+    }
+
+    function getPlanSessionKeys() {
+        return PLAN_SESSION_KEYS.slice();
+    }
+
+    function getAnalyticsPreserveKeys() {
+        return ANALYTICS_PRESERVE_KEYS.slice();
     }
 
     function getDynamicPrefixes() {
@@ -109,6 +166,12 @@
 
     function matchesDynamicPrefix(key) {
         return DYNAMIC_KEY_PREFIXES.some(function (prefix) {
+            return key.indexOf(prefix) === 0;
+        });
+    }
+
+    function matchesPreservedDynamicPrefix(key) {
+        return ANALYTICS_DYNAMIC_PREFIXES.some(function (prefix) {
             return key.indexOf(prefix) === 0;
         });
     }
@@ -151,16 +214,36 @@
         } catch (_) {}
     }
 
+    async function removeKeys(keys) {
+        var uniqueKeys = unique(keys || []);
+        uniqueKeys.forEach(removeLocalKey);
+
+        var prefs = getPreferencesPlugin();
+        if (!prefs) return true;
+
+        await Promise.all(uniqueKeys.map(function (key) {
+            return removePreferenceKey(prefs, key);
+        }));
+        return true;
+    }
+
     async function clearUserSessionData(options) {
         options = options || {};
         if (global.NutriPlanDiagnostics) {
             global.NutriPlanDiagnostics.info('session', 'clear-user-session-start', 'preserve=' + ((options.preserveKeys || []).length || 0));
         }
         var preserveKeys = Array.isArray(options.preserveKeys) ? options.preserveKeys : [];
+        var preserveDynamicPrefixes = Array.isArray(options.preserveDynamicPrefixes)
+            ? options.preserveDynamicPrefixes
+            : [];
         var baseKeys = getUserSessionKeys().filter(function (key) {
             return preserveKeys.indexOf(key) === -1;
         });
-        var localDynamicKeys = getDynamicKeysFromStorage(localStorage);
+        var localDynamicKeys = getDynamicKeysFromStorage(localStorage).filter(function (key) {
+            return !preserveDynamicPrefixes.some(function (prefix) {
+                return key.indexOf(prefix) === 0;
+            });
+        });
         var allKeys = unique(baseKeys.concat(localDynamicKeys));
 
         allKeys.forEach(removeLocalKey);
@@ -169,7 +252,13 @@
         if (!prefs) return true;
 
         var preferenceDynamicKeys = await getDynamicKeysFromPreferences(prefs);
-        var preferenceKeys = unique(allKeys.concat(preferenceDynamicKeys));
+        var preferenceKeys = unique(allKeys.concat(
+            preferenceDynamicKeys.filter(function (key) {
+                return !preserveDynamicPrefixes.some(function (prefix) {
+                    return key.indexOf(prefix) === 0;
+                });
+            })
+        ));
         await Promise.all(preferenceKeys.map(function (key) {
             return removePreferenceKey(prefs, key);
         }));
@@ -177,6 +266,30 @@
             global.NutriPlanDiagnostics.ok('session', 'clear-user-session-done', preferenceKeys.length + ' keys');
         }
         return true;
+    }
+
+    async function clearPlanSessionData() {
+        if (global.NutriPlanDiagnostics) {
+            global.NutriPlanDiagnostics.info('session', 'clear-plan-session-start', PLAN_SESSION_KEYS.length + ' keys');
+        }
+        await removeKeys(getPlanSessionKeys());
+        if (global.NutriPlanDiagnostics) {
+            global.NutriPlanDiagnostics.ok('session', 'clear-plan-session-done', 'analytics preserved');
+        }
+        return true;
+    }
+
+    async function clearAuthSessionKeepingAnalytics() {
+        try {
+            localStorage.setItem(LOGIN_FETCH_FLAG, '1');
+        } catch (_) {}
+        if (global.NutriPlanPlanSync && typeof global.NutriPlanPlanSync.markPlanFetchOnNextAuth === 'function') {
+            global.NutriPlanPlanSync.markPlanFetchOnNextAuth();
+        }
+        return clearUserSessionData({
+            preserveKeys: getAnalyticsPreserveKeys(),
+            preserveDynamicPrefixes: ANALYTICS_DYNAMIC_PREFIXES.slice()
+        });
     }
 
     async function ensureAuthenticatedUser(userOrUid) {
@@ -226,8 +339,12 @@
     global.NutriPlanSession = {
         getManagedStorageKeys: getManagedStorageKeys,
         getUserSessionKeys: getUserSessionKeys,
+        getPlanSessionKeys: getPlanSessionKeys,
+        getAnalyticsPreserveKeys: getAnalyticsPreserveKeys,
         getDynamicPrefixes: getDynamicPrefixes,
         clearUserSessionData: clearUserSessionData,
+        clearPlanSessionData: clearPlanSessionData,
+        clearAuthSessionKeepingAnalytics: clearAuthSessionKeepingAnalytics,
         ensureAuthenticatedUser: ensureAuthenticatedUser
     };
 }(window));

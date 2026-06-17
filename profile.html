@@ -2652,6 +2652,10 @@
         }
 
         async function clearProfileSessionFallback() {
+            if (window.NutriPlanSession && typeof window.NutriPlanSession.clearAuthSessionKeepingAnalytics === 'function') {
+                await window.NutriPlanSession.clearAuthSessionKeepingAnalytics();
+                return;
+            }
             if (window.NutriPlanSession && typeof window.NutriPlanSession.clearUserSessionData === 'function') {
                 await window.NutriPlanSession.clearUserSessionData();
                 return;
@@ -4180,7 +4184,9 @@
             window.doLogout = async function() {
                 if (requestShellAction('NUTRIPLAN_LOGOUT')) return;
                 await signOut(auth).catch(() => {});
-                if (window.NutriPlanSession && typeof window.NutriPlanSession.clearUserSessionData === 'function') {
+                if (window.NutriPlanSession && typeof window.NutriPlanSession.clearAuthSessionKeepingAnalytics === 'function') {
+                    await window.NutriPlanSession.clearAuthSessionKeepingAnalytics();
+                } else if (window.NutriPlanSession && typeof window.NutriPlanSession.clearUserSessionData === 'function') {
                     await window.NutriPlanSession.clearUserSessionData();
                 } else {
                     _clearUserPlanData();

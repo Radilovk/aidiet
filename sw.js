@@ -95,9 +95,55 @@ async function queuePendingGameAction(payload) {
   });
 }
 
+const PLAN_REFRESH_KEY = 'plan_refresh_pending';
+
+async function queuePlanRefreshPending(planUpdatedAt) {
+  const db = await openPendingDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(PENDING_STORE, 'readwrite');
+    tx.objectStore(PENDING_STORE).put({
+      id: PLAN_REFRESH_KEY,
+      planUpdatedAt: planUpdatedAt || '',
+      ts: Date.now()
+    });
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function consumePlanRefreshPending() {
+  const db = await openPendingDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(PENDING_STORE, 'readwrite');
+    const store = tx.objectStore(PENDING_STORE);
+    const req = store.get(PLAN_REFRESH_KEY);
+    req.onsuccess = () => {
+      const row = req.result;
+      if (row) store.delete(PLAN_REFRESH_KEY);
+      resolve(row || null);
+    };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function notifyClientsPlanUpdated(planUpdatedAt) {
+  const clientList = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+  clientList.forEach((client) => {
+    if ('postMessage' in client) {
+      client.postMessage({
+        type: 'NUTRIPLAN_PLAN_UPDATED',
+        planUpdatedAt: planUpdatedAt || ''
+      });
+    }
+  });
+}
+
 function resolveNotificationTarget(data = {}, action = '') {
   const type = data.type || data.notificationType || '';
   const recordKey = data.recordKey || '';
+  if (type === 'plan_updated') {
+    return data.url || `${BASE_PATH}/index.html?app=1&tab=plan`;
+  }
   if (type === 'morning_check' || type === 'evening_activity' || type === 'evening_balance' ||
       type === 'evening_water' || type === 'evening_check') {
     const qaType = type === 'evening_check' ? 'evening_water' : type;
@@ -246,7 +292,12 @@ self.addEventListener('push', (event) => {
     ? `nutriplan-${data.notificationType}`
     : 'nutriplan-general';
 
+  const notifyClients = data.notificationType === 'plan_updated'
+    ? queuePlanRefreshPending(data.planUpdatedAt || '').then(() => notifyClientsPlanUpdated(data.planUpdatedAt || ''))
+    : Promise.resolve();
+
   event.waitUntil(
+    notifyClients.then(() =>
     self.registration.showNotification(data.title || DEFAULT_TITLE, {
       body:              data.body || DEFAULT_BODY,
       icon:              data.icon || DEFAULT_ICON,
@@ -256,16 +307,19 @@ self.addEventListener('push', (event) => {
       requireInteraction: !!data.notificationType,
       actions:           getGameNotificationActions(data.notificationType),
       data:              {
-        url: data.url || (data.notificationType ? buildQuickAnswerUrl(data.notificationType, { date: data.recordKey || '' }) : '/plan.html'),
+        url: data.url || (data.notificationType === 'plan_updated'
+          ? `${BASE_PATH}/index.html?app=1&tab=plan`
+          : (data.notificationType ? buildQuickAnswerUrl(data.notificationType, { date: data.recordKey || '' }) : '/plan.html')),
         type: data.notificationType || '',
-        recordKey: data.recordKey || ''
+        recordKey: data.recordKey || '',
+        planUpdatedAt: data.planUpdatedAt || ''
       }
     }).catch(err => {
       console.error('[SW] showNotification failed:', err);
       return self.registration.showNotification(DEFAULT_TITLE, {
         body: DEFAULT_BODY, icon: DEFAULT_ICON, badge: DEFAULT_BADGE
       });
-    })
+    }))
   );
 });
 
@@ -302,6 +356,28 @@ self.addEventListener('notificationclick', (event) => {
 
   const url = resolveNotificationTarget(data, action);
   const targetUrl = toAbsoluteAppUrl(url);
+
+  if (notificationType === 'plan_updated') {
+    event.waitUntil(
+      queuePlanRefreshPending(data.planUpdatedAt || '')
+        .then(() => notifyClientsPlanUpdated(data.planUpdatedAt || ''))
+        .then(() => clients.matchAll({ type: 'window', includeUncontrolled: true }))
+        .then((clientList) => {
+          const shellClient = clientList.find(c => c.url.includes('/index.html') || c.url.includes('tab=plan'));
+          if (shellClient && 'focus' in shellClient) {
+            if ('postMessage' in shellClient) {
+              shellClient.postMessage({
+                type: 'NUTRIPLAN_PLAN_UPDATED',
+                planUpdatedAt: data.planUpdatedAt || ''
+              });
+            }
+            return shellClient.focus();
+          }
+          return clients.openWindow ? clients.openWindow(targetUrl) : undefined;
+        })
+    );
+    return;
+  }
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
@@ -340,6 +416,21 @@ let   _scheduleTimers = [];
 self.addEventListener('message', (event) => {
   const msg = event.data;
   if (!msg) return;
+
+  if (msg.type === 'GET_PLAN_REFRESH_PENDING') {
+    event.waitUntil(
+      consumePlanRefreshPending().then((row) => {
+        const port = event.ports && event.ports[0];
+        if (!port) return;
+        port.postMessage({
+          type: 'PLAN_REFRESH_PENDING',
+          pending: !!row,
+          planUpdatedAt: row ? (row.planUpdatedAt || '') : ''
+        });
+      })
+    );
+    return;
+  }
 
   if (msg.type === 'CANCEL_GAME_NOTIFICATIONS') {
     _scheduleTimers.forEach(id => clearTimeout(id));
