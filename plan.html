@@ -4409,6 +4409,13 @@
             if (typeof NativeBackup !== 'undefined') {
                 await NativeBackup.init().catch(() => {});
             }
+            if (window.NutriPlanPlanSync && localStorage.getItem('userId') && localStorage.getItem('dietPlan')) {
+                try {
+                    await window.NutriPlanPlanSync.initAdminPlanSync({
+                        userId: localStorage.getItem('userId')
+                    });
+                } catch (_) {}
+            }
             loadDietData();
             if (window.NutriPlanDiagnostics) {
                 window.NutriPlanDiagnostics.ok('plan', 'init-dom-features-ready', 'Initial load requested');
@@ -5570,6 +5577,10 @@
 
         window.addEventListener('NUTRIPLAN_APP_DATA_READY', function() {
             refreshPlanFromShellData('shell-data-ready');
+        });
+
+        window.addEventListener('NUTRIPLAN_PLAN_RELOADED', function() {
+            if (typeof loadDietData === 'function') loadDietData();
         });
 
         document.addEventListener('visibilitychange', function() {
@@ -10343,6 +10354,17 @@
                 }
             }
             if (msg.openApp || !msg.action) {
+                if (msg.notificationType === 'plan_updated' && window.NutriPlanPlanSync) {
+                    window.dispatchEvent(new CustomEvent('NUTRIPLAN_PLAN_UPDATED', {
+                        detail: { planUpdatedAt: msg.planUpdatedAt || '' }
+                    }));
+                    if (typeof loadDietData === 'function') {
+                        window.NutriPlanPlanSync.refreshAdminPlanIfPending().then(function(r) {
+                            if (r.updated) loadDietData();
+                        });
+                    }
+                    return;
+                }
                 var gn = window.GameNotifier;
                 var nType = msg.notificationType || '';
                 var rKey = msg.recordKey || '';

@@ -4857,6 +4857,14 @@ async function handleUpdateClientPlan(request, env, ctx) {
           clientId,
           planUpdatedAt: clientData.planUpdatedAt
         });
+        sendPushNotificationToUser(clientData.userId, {
+          title: 'Планът ви е актуализиран',
+          body: 'Специалистът направи промени в хранителния ви план.',
+          url: '/index.html?app=1&tab=plan',
+          icon: '/icon-192x192.png',
+          notificationType: 'plan_updated',
+          planUpdatedAt: clientData.planUpdatedAt
+        }, env).catch(e => console.warn('Plan update push failed:', e.message));
       } catch (e) {
         console.warn(`Failed to sync auto-activated plan to profile ${clientData.userId}:`, e.message);
       }
@@ -4903,6 +4911,14 @@ async function handleActivateClientPlan(request, env, ctx) {
           clientId,
           planUpdatedAt: clientData.planUpdatedAt || clientData.planActivatedAt
         });
+        sendPushNotificationToUser(clientData.userId, {
+          title: 'Вашият план е готов!',
+          body: 'Специалистът одобри персонализирания ви хранителен план.',
+          url: '/index.html?app=1&tab=plan',
+          icon: '/icon-192x192.png',
+          notificationType: 'plan_updated',
+          planUpdatedAt: clientData.planUpdatedAt || clientData.planActivatedAt
+        }, env).catch(e => console.warn('Plan activation push failed:', e.message));
       } catch (e) {
         console.warn(`Failed to update activated profile ${clientData.userId}:`, e.message);
       }
@@ -12984,6 +13000,7 @@ async function sendPushNotificationToUser(userId, message, env) {
       url: message.url || '/plan.html',
       icon: message.icon || '/icon-192x192.png',
       notificationType: message.notificationType || 'general',
+      planUpdatedAt: message.planUpdatedAt || '',
       timestamp: Date.now()
     };
     
