@@ -34,8 +34,6 @@ const GameNotifier = {
     LS_PENDING_ACTIONS_KEY: 'gameNotifierPendingActions',
     LS_SILENT_APPLY_UNTIL_KEY: 'gameNotifierSilentApplyUntil',
     SILENT_APPLY_SUPPRESS_MS: 120000,
-    /** After this grace period without an answer, suppress new heads-up until app open. */
-    HEAD_UP_STALE_MS: 24 * 60 * 60 * 1000,
     BRAND_TEAL:     '#009A9E',
     BRAND_TEAL_DARK: '#0F766E',
     QUICK_ANSWER_PATH: '/quick-answer.html',
@@ -234,6 +232,7 @@ const GameNotifier = {
         console.log('[GameNotifier] Scheduling with config:', cfg);
 
         if (this._capacitor) {
+            await this._dedupeDeliveredGamificationNotifications();
             await this._scheduleWithCapacitor(cfg);
         } else {
             await this._scheduleViaSW(cfg);
@@ -873,6 +872,7 @@ const GameNotifier = {
         const { LocalNotifications } = this._capacitor;
         LocalNotifications.addListener('localNotificationReceived', (notification) => {
             this._handleForegroundNotification(notification);
+            this._dedupeDeliveredGamificationNotifications().catch(() => {});
         });
         if (!window.__nutriplanNotificationLaunch) {
             LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
@@ -889,6 +889,7 @@ const GameNotifier = {
         const drain = () => {
             if (!this._capacitor) return;
             this._drainNativePendingActions().catch(() => {});
+            this._dedupeDeliveredGamificationNotifications().catch(() => {});
         };
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') drain();
@@ -1091,6 +1092,39 @@ const GameNotifier = {
         return def ? def.idBase + dayOffset : null;
     },
 
+    /** Stable Android/SW tag — new notification replaces previous of same question type. */
+    _notificationTagForType(notifType) {
+        if (!notifType || String(notifType).indexOf('extra_') === 0) return '';
+        return 'gn-' + String(notifType);
+    },
+
+    /** Drop older delivered gamification notifications so only the latest per type stays visible. */
+    async _dedupeDeliveredGamificationNotifications() {
+        if (!this._capacitor) return;
+        const { LocalNotifications } = this._capacitor;
+        try {
+            const result = await LocalNotifications.getDeliveredNotifications();
+            const list = (result && result.notifications) || [];
+            if (!list.length) return;
+
+            const keepByTag = {};
+            list.forEach((n) => {
+                const tag = String(n.tag || '');
+                if (!tag.startsWith('gn-') || tag.startsWith('gn-extra-') || tag.startsWith('gn-test-')) return;
+                const prev = keepByTag[tag];
+                if (!prev || Number(n.id) > Number(prev.id)) keepByTag[tag] = n;
+            });
+
+            const toCancel = [];
+            list.forEach((n) => {
+                const tag = String(n.tag || '');
+                const keep = keepByTag[tag];
+                if (keep && Number(n.id) !== Number(keep.id)) toCancel.push({ id: n.id });
+            });
+            if (toCancel.length) await LocalNotifications.cancel({ notifications: toCancel });
+        } catch (_) {}
+    },
+
     _cancelNotificationForDay(notifType, recordKey) {
         const todayKey = this._dateKeyForTimestamp(Date.now());
         if (recordKey !== todayKey) return;
@@ -1256,10 +1290,10 @@ const GameNotifier = {
             if (morningTs > Date.now()) {
                 const recordKey = this._dateKeyForTimestamp(morningTs);
                 if (this._isQuestionAnswered(recordKey, 'morning_check')) continue;
-                if (this._shouldSuppressHeadUpForDate(recordKey)) continue;
                 const morningDisplay = this._notificationDisplayFields('morning_check');
                 notifications.push({
                     id: 1000 + day,
+                    tag: this._notificationTagForType('morning_check'),
                     channelId: this.MORNING_CHANNEL_ID,
                     title: morningDisplay.title,
                     body:  morningDisplay.body,
@@ -1283,10 +1317,10 @@ const GameNotifier = {
                 if (eveningTs <= Date.now()) continue;
                 const recordKey = this._dateKeyForTimestamp(eveningTs);
                 if (this._isQuestionAnswered(recordKey, slot.type)) continue;
-                if (this._shouldSuppressHeadUpForDate(recordKey)) continue;
                 const slotDisplay = this._notificationDisplayFields(slot.type);
                 notifications.push({
                     id: slot.idBase + day,
+                    tag: this._notificationTagForType(slot.type),
                     channelId: this.EVENING_CHANNEL_ID,
                     title: slotDisplay.title,
                     body:  slotDisplay.body,
@@ -1354,14 +1388,13 @@ const GameNotifier = {
             if (morning > now) {
                 const recordKey = this._dateKeyForTimestamp(morning);
                 if (this._isQuestionAnswered(recordKey, 'morning_check')) continue;
-                if (this._shouldSuppressHeadUpForDate(recordKey)) continue;
                 const morningActions = this._actionsFromConfig(cfgNorm, this.MORNING_META);
                 const morningDisplay = this._notificationDisplayFields('morning_check');
                 schedule.push({
                     ts: morning,
                     title: morningDisplay.title,
                     body:  morningDisplay.body,
-                    tag:   `gn-morning-${morning}`,
+                    tag:   this._notificationTagForType('morning_check'),
                     type:  'morning_check',
                     url:   this._buildQuickAnswerUrl('morning_check', { date: recordKey }),
                     recordKey,
@@ -1379,13 +1412,12 @@ const GameNotifier = {
                 if (evening <= now) continue;
                 const recordKey = this._dateKeyForTimestamp(evening);
                 if (this._isQuestionAnswered(recordKey, slot.type)) continue;
-                if (this._shouldSuppressHeadUpForDate(recordKey)) continue;
                 const slotDisplay = this._notificationDisplayFields(slot.type);
                 schedule.push({
                     ts: evening,
                     title: slotDisplay.title,
                     body:  slotDisplay.body,
-                    tag:   `gn-${slot.type}-${evening}`,
+                    tag:   this._notificationTagForType(slot.type),
                     type:  slot.type,
                     url:   this._buildQuickAnswerUrl(slot.type, { date: recordKey }),
                     recordKey,
@@ -1653,33 +1685,6 @@ const GameNotifier = {
     _hasNotificationSlotPassed(recordKey, notifType) {
         const ts = this._notificationSlotTsForDate(recordKey, notifType);
         return ts != null && Date.now() >= ts;
-    },
-
-    /**
-     * Skip heads-up scheduling when a previous day still has unanswered questions
-     * older than 24 h. In-app catch-up (today) and retro assistant prompts stay active.
-     */
-    _shouldSuppressHeadUpForDate(recordKey) {
-        const key = this._normalizeRecordKey(recordKey);
-        const parts = key.split('-').map(Number);
-        const targetDate = new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0, 0);
-        const now = Date.now();
-
-        for (let offset = 1; offset <= 2; offset++) {
-            const past = new Date(targetDate);
-            past.setDate(past.getDate() - offset);
-            const pastKey = this._dateKeyForTimestamp(past.getTime());
-            const unanswered = this.getUnansweredTypesForDate(pastKey, { requireSlotPassed: true });
-            if (!unanswered.length) continue;
-
-            const slotTimes = unanswered
-                .map((type) => this._notificationSlotTsForDate(pastKey, type))
-                .filter((ts) => ts != null);
-            if (!slotTimes.length) continue;
-
-            if (now - Math.min(...slotTimes) >= this.HEAD_UP_STALE_MS) return true;
-        }
-        return false;
     },
 
     /**
