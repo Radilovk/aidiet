@@ -34,6 +34,8 @@ const GameNotifier = {
     LS_PENDING_ACTIONS_KEY: 'gameNotifierPendingActions',
     LS_SILENT_APPLY_UNTIL_KEY: 'gameNotifierSilentApplyUntil',
     SILENT_APPLY_SUPPRESS_MS: 120000,
+    /** After this grace period without an answer, suppress new heads-up until app open. */
+    HEAD_UP_STALE_MS: 24 * 60 * 60 * 1000,
     BRAND_TEAL:     '#009A9E',
     BRAND_TEAL_DARK: '#0F766E',
     QUICK_ANSWER_PATH: '/quick-answer.html',
@@ -436,21 +438,18 @@ const GameNotifier = {
 
     /**
      * Notification title/body/largeBody for OS display (heads-up, shade).
-     * Puts the question in title + largeBody so Android compact layouts still show it.
+     * Question only — answers live exclusively in action buttons (no inline duplication).
      */
     _notificationDisplayFields(type) {
         const display = this.getQuestionDisplay(type);
         if (!display) {
-            return { title: 'NutriPlan', body: 'AI Асистент', largeBody: 'NutriPlan' };
+            return { title: 'NutriPlan', body: 'NutriPlan', largeBody: 'NutriPlan' };
         }
         const question = this._ensureText(display.body, 'Проверка');
-        const brand = this._ensureText(display.title, 'AI Асистент');
-        const answerActions = (display.actions || []).filter((a) => a.id !== 'skip');
-        const hints = answerActions.map((a) => a.title).join(' · ');
         return {
             title: question,
-            body: hints ? brand + ' — ' + hints : brand,
-            largeBody: hints ? question + '\n' + hints : question
+            body: 'NutriPlan',
+            largeBody: question
         };
     },
 
@@ -1257,6 +1256,7 @@ const GameNotifier = {
             if (morningTs > Date.now()) {
                 const recordKey = this._dateKeyForTimestamp(morningTs);
                 if (this._isQuestionAnswered(recordKey, 'morning_check')) continue;
+                if (this._shouldSuppressHeadUpForDate(recordKey)) continue;
                 const morningDisplay = this._notificationDisplayFields('morning_check');
                 notifications.push({
                     id: 1000 + day,
@@ -1283,6 +1283,7 @@ const GameNotifier = {
                 if (eveningTs <= Date.now()) continue;
                 const recordKey = this._dateKeyForTimestamp(eveningTs);
                 if (this._isQuestionAnswered(recordKey, slot.type)) continue;
+                if (this._shouldSuppressHeadUpForDate(recordKey)) continue;
                 const slotDisplay = this._notificationDisplayFields(slot.type);
                 notifications.push({
                     id: slot.idBase + day,
@@ -1353,6 +1354,7 @@ const GameNotifier = {
             if (morning > now) {
                 const recordKey = this._dateKeyForTimestamp(morning);
                 if (this._isQuestionAnswered(recordKey, 'morning_check')) continue;
+                if (this._shouldSuppressHeadUpForDate(recordKey)) continue;
                 const morningActions = this._actionsFromConfig(cfgNorm, this.MORNING_META);
                 const morningDisplay = this._notificationDisplayFields('morning_check');
                 schedule.push({
@@ -1377,6 +1379,7 @@ const GameNotifier = {
                 if (evening <= now) continue;
                 const recordKey = this._dateKeyForTimestamp(evening);
                 if (this._isQuestionAnswered(recordKey, slot.type)) continue;
+                if (this._shouldSuppressHeadUpForDate(recordKey)) continue;
                 const slotDisplay = this._notificationDisplayFields(slot.type);
                 schedule.push({
                     ts: evening,
@@ -1650,6 +1653,33 @@ const GameNotifier = {
     _hasNotificationSlotPassed(recordKey, notifType) {
         const ts = this._notificationSlotTsForDate(recordKey, notifType);
         return ts != null && Date.now() >= ts;
+    },
+
+    /**
+     * Skip heads-up scheduling when a previous day still has unanswered questions
+     * older than 24 h. In-app catch-up (today) and retro assistant prompts stay active.
+     */
+    _shouldSuppressHeadUpForDate(recordKey) {
+        const key = this._normalizeRecordKey(recordKey);
+        const parts = key.split('-').map(Number);
+        const targetDate = new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0, 0);
+        const now = Date.now();
+
+        for (let offset = 1; offset <= 2; offset++) {
+            const past = new Date(targetDate);
+            past.setDate(past.getDate() - offset);
+            const pastKey = this._dateKeyForTimestamp(past.getTime());
+            const unanswered = this.getUnansweredTypesForDate(pastKey, { requireSlotPassed: true });
+            if (!unanswered.length) continue;
+
+            const slotTimes = unanswered
+                .map((type) => this._notificationSlotTsForDate(pastKey, type))
+                .filter((ts) => ts != null);
+            if (!slotTimes.length) continue;
+
+            if (now - Math.min(...slotTimes) >= this.HEAD_UP_STALE_MS) return true;
+        }
+        return false;
     },
 
     /**
