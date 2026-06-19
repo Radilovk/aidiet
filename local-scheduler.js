@@ -232,6 +232,7 @@ const GameNotifier = {
         console.log('[GameNotifier] Scheduling with config:', cfg);
 
         if (this._capacitor) {
+            await this._dedupeDeliveredGamificationNotifications();
             await this._scheduleWithCapacitor(cfg);
         } else {
             await this._scheduleViaSW(cfg);
@@ -436,21 +437,18 @@ const GameNotifier = {
 
     /**
      * Notification title/body/largeBody for OS display (heads-up, shade).
-     * Puts the question in title + largeBody so Android compact layouts still show it.
+     * Question only — answers live exclusively in action buttons (no inline duplication).
      */
     _notificationDisplayFields(type) {
         const display = this.getQuestionDisplay(type);
         if (!display) {
-            return { title: 'NutriPlan', body: 'AI Асистент', largeBody: 'NutriPlan' };
+            return { title: 'NutriPlan', body: 'NutriPlan', largeBody: 'NutriPlan' };
         }
         const question = this._ensureText(display.body, 'Проверка');
-        const brand = this._ensureText(display.title, 'AI Асистент');
-        const answerActions = (display.actions || []).filter((a) => a.id !== 'skip');
-        const hints = answerActions.map((a) => a.title).join(' · ');
         return {
             title: question,
-            body: hints ? brand + ' — ' + hints : brand,
-            largeBody: hints ? question + '\n' + hints : question
+            body: 'NutriPlan',
+            largeBody: question
         };
     },
 
@@ -874,6 +872,7 @@ const GameNotifier = {
         const { LocalNotifications } = this._capacitor;
         LocalNotifications.addListener('localNotificationReceived', (notification) => {
             this._handleForegroundNotification(notification);
+            this._dedupeDeliveredGamificationNotifications().catch(() => {});
         });
         if (!window.__nutriplanNotificationLaunch) {
             LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
@@ -890,6 +889,7 @@ const GameNotifier = {
         const drain = () => {
             if (!this._capacitor) return;
             this._drainNativePendingActions().catch(() => {});
+            this._dedupeDeliveredGamificationNotifications().catch(() => {});
         };
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') drain();
@@ -1092,6 +1092,39 @@ const GameNotifier = {
         return def ? def.idBase + dayOffset : null;
     },
 
+    /** Stable Android/SW tag — new notification replaces previous of same question type. */
+    _notificationTagForType(notifType) {
+        if (!notifType || String(notifType).indexOf('extra_') === 0) return '';
+        return 'gn-' + String(notifType);
+    },
+
+    /** Drop older delivered gamification notifications so only the latest per type stays visible. */
+    async _dedupeDeliveredGamificationNotifications() {
+        if (!this._capacitor) return;
+        const { LocalNotifications } = this._capacitor;
+        try {
+            const result = await LocalNotifications.getDeliveredNotifications();
+            const list = (result && result.notifications) || [];
+            if (!list.length) return;
+
+            const keepByTag = {};
+            list.forEach((n) => {
+                const tag = String(n.tag || '');
+                if (!tag.startsWith('gn-') || tag.startsWith('gn-extra-') || tag.startsWith('gn-test-')) return;
+                const prev = keepByTag[tag];
+                if (!prev || Number(n.id) > Number(prev.id)) keepByTag[tag] = n;
+            });
+
+            const toCancel = [];
+            list.forEach((n) => {
+                const tag = String(n.tag || '');
+                const keep = keepByTag[tag];
+                if (keep && Number(n.id) !== Number(keep.id)) toCancel.push({ id: n.id });
+            });
+            if (toCancel.length) await LocalNotifications.cancel({ notifications: toCancel });
+        } catch (_) {}
+    },
+
     _cancelNotificationForDay(notifType, recordKey) {
         const todayKey = this._dateKeyForTimestamp(Date.now());
         if (recordKey !== todayKey) return;
@@ -1260,6 +1293,7 @@ const GameNotifier = {
                 const morningDisplay = this._notificationDisplayFields('morning_check');
                 notifications.push({
                     id: 1000 + day,
+                    tag: this._notificationTagForType('morning_check'),
                     channelId: this.MORNING_CHANNEL_ID,
                     title: morningDisplay.title,
                     body:  morningDisplay.body,
@@ -1286,6 +1320,7 @@ const GameNotifier = {
                 const slotDisplay = this._notificationDisplayFields(slot.type);
                 notifications.push({
                     id: slot.idBase + day,
+                    tag: this._notificationTagForType(slot.type),
                     channelId: this.EVENING_CHANNEL_ID,
                     title: slotDisplay.title,
                     body:  slotDisplay.body,
@@ -1359,7 +1394,7 @@ const GameNotifier = {
                     ts: morning,
                     title: morningDisplay.title,
                     body:  morningDisplay.body,
-                    tag:   `gn-morning-${morning}`,
+                    tag:   this._notificationTagForType('morning_check'),
                     type:  'morning_check',
                     url:   this._buildQuickAnswerUrl('morning_check', { date: recordKey }),
                     recordKey,
@@ -1382,7 +1417,7 @@ const GameNotifier = {
                     ts: evening,
                     title: slotDisplay.title,
                     body:  slotDisplay.body,
-                    tag:   `gn-${slot.type}-${evening}`,
+                    tag:   this._notificationTagForType(slot.type),
                     type:  slot.type,
                     url:   this._buildQuickAnswerUrl(slot.type, { date: recordKey }),
                     recordKey,

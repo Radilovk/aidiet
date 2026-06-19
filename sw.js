@@ -472,6 +472,11 @@ self.addEventListener('message', (event) => {
     _scheduledGameNotifs.push(item);
     const tid = setTimeout(async () => {
       try {
+        const tag = item.tag || '';
+        if (tag) {
+          const existing = await self.registration.getNotifications({ tag });
+          existing.forEach((n) => n.close());
+        }
         await self.registration.showNotification(item.title, {
           body:               item.body,
           icon:               '/icon-192x192.png',
