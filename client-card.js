@@ -18,25 +18,6 @@ const esc = (value) => {
 };
 
 /**
- * @param {unknown} target
- * @param {unknown} source
- * @returns {unknown}
- */
-export function deepMerge(target, source) {
-  if (!source || typeof source !== 'object' || Array.isArray(source)) return source ?? target;
-  const out = { ...(target && typeof target === 'object' && !Array.isArray(target) ? target : {}) };
-  for (const [key, val] of Object.entries(source)) {
-    if (val === undefined) continue;
-    if (val && typeof val === 'object' && !Array.isArray(val) && out[key] && typeof out[key] === 'object' && !Array.isArray(out[key])) {
-      out[key] = deepMerge(out[key], val);
-    } else {
-      out[key] = val;
-    }
-  }
-  return out;
-}
-
-/**
  * @param {object} analysis
  * @returns {string}
  */

@@ -9,7 +9,12 @@ import {
   formatPromptValue,
   estimateTokenCount,
 } from './context-compression.js';
-import { buildClientCard, deepMerge } from './client-card.js';
+import { buildClientCard } from './client-card.js';
+import {
+  applyJsonPatches,
+  buildPatchDocument,
+  mergePatchDocument,
+} from './json-patch.js';
 
 /**
  * Cloudflare Worker for AI Diet Application
@@ -4769,31 +4774,47 @@ const ADMIN_ASSISTANT_SESSION_TTL = 3600;
 const ADMIN_ASSISTANT_SESSION_PREFIX = 'admin_assistant_session:';
 
 const ADMIN_ASSISTANT_SYSTEM_INSTRUCTION = `Ти си NutriPlan AI асистент за администратор-нутриционист.
-Работиш с кеширан клиентски картон (CC/NPCF формат) — пълен профил, анализ, стратегия и план.
-Можеш да обсъждаш клиента и да предлагаш редакции на answers (въпросник) и/или plan (хранителен план).
+Четеш кеширан клиентски картон (CC/NPCF). Промените се правят чрез RFC 6902 JSON Patch върху каноничния JSON.
+
+Patch root: { answers, plan, adminNotes }
+Разрешени path префикси: /answers, /plan, /adminNotes
+
+Примери:
+- /plan/summary/dailyCalories
+- /plan/weekPlan/day1/meals/0/name
+- /plan/weekPlan/day1/meals/0/calories
+- /plan/supplements/-  (add в края на масив)
+- /answers/lossKg
+- /adminNotes
+
+Седмица: day1..day7 (не monday). Хранения: meals[] с type, name, calories, macros.
 
 Правила:
-- Отговаряй на български, конкретно и професионално.
-- При обсъждане: анализирай връзките между профил, цел, състояние и план.
-- При редакция: върни mutations само за полетата, които админът иска да промени (partial/deep).
-- НЕ измисляй медицински данни. Не променяй без изрична заявка.
-- За промени в weekPlan използвай същата JSON структура (day1..day7, meals[]).
-- Винаги отговаряй САМО с валиден JSON по зададения schema.`;
+- Отговаряй на български.
+- При обсъждане: hasMutations=false, patches=[].
+- При редакция: hasMutations=true + patches[] (replace/add/remove). Минимален брой операции.
+- НЕ измисляй медицински данни. Променяй само по изрична заявка.
+- Винаги валиден JSON по schema.`;
 
 const ADMIN_ASSISTANT_RESPONSE_SCHEMA = {
   type: 'object',
   properties: {
     reply: { type: 'string', description: 'Отговор за админа на български' },
-    hasMutations: { type: 'boolean', description: 'Дали има предложени промени' },
-    mutations: {
-      type: 'object',
-      properties: {
-        answers: { type: 'object', description: 'Partial patch за client.answers' },
-        plan: { type: 'object', description: 'Partial patch за client.plan' },
-        adminNotes: { type: 'string', description: 'Админ бележки за клиента' },
+    hasMutations: { type: 'boolean', description: 'Дали има промени за прилагане' },
+    patches: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          op: { type: 'string', description: 'replace | add | remove' },
+          path: { type: 'string', description: 'RFC 6901 pointer' },
+          value: { description: 'Нова стойност (replace/add)' },
+        },
+        required: ['op', 'path'],
       },
+      description: 'RFC 6902 JSON Patch операции',
     },
-    mutationsSummary: { type: 'string', description: 'Кратко описание на предложените промени' },
+    mutationsSummary: { type: 'string', description: 'Кратко описание на промените' },
   },
   required: ['reply', 'hasMutations'],
 };
@@ -4869,6 +4890,73 @@ async function deleteGeminiCachedContent(env, cacheName) {
   } catch (e) {
     console.warn('[AdminAssistant] Cache delete failed:', e.message);
   }
+}
+
+/**
+ * Lazy cache rebuild — само при cacheStale или промяна на fingerprint.
+ */
+async function ensureAssistantCacheFresh(env, session, card, planUpdatedAt) {
+  const fingerprint = buildClientCardFingerprint(card, planUpdatedAt);
+  const needsRebuild = session.cacheStale || (session.cardFingerprint && session.cardFingerprint !== fingerprint);
+
+  if (!needsRebuild) return { session, rebuilt: false };
+
+  if (session.cacheId) {
+    await deleteGeminiCachedContent(env, session.cacheId);
+    session.cacheId = null;
+    session.cacheEnabled = false;
+  }
+
+  if (estimateTokenCount(card) >= ADMIN_ASSISTANT_CACHE_MIN_TOKENS) {
+    try {
+      session.cacheId = await createGeminiCachedContent(env, session.modelName, card, ADMIN_ASSISTANT_SYSTEM_INSTRUCTION);
+      session.cacheEnabled = Boolean(session.cacheId);
+    } catch (e) {
+      console.warn('[AdminAssistant] Cache rebuild failed:', e.message);
+    }
+  }
+
+  session.cacheStale = false;
+  session.cardFingerprint = fingerprint;
+  return { session, rebuilt: true };
+}
+
+/**
+ * Прилага JSON Patch върху клиент и записва в KV.
+ */
+async function applyAssistantPatches(env, session, clientData, patches, ctx) {
+  const patchDoc = buildPatchDocument(clientData);
+  const { document, touchedPlan } = applyJsonPatches(patchDoc, patches);
+  mergePatchDocument(clientData, document);
+
+  const wasPreviouslyActivated = Boolean(clientData.planActivatedAt);
+  if (touchedPlan) {
+    clientData.planUpdatedAt = new Date().toISOString();
+    if (wasPreviouslyActivated) {
+      clientData.planStatus = 'activated';
+      clientData.planActivatedAt = new Date().toISOString();
+    } else {
+      clientData.planStatus = 'pending';
+    }
+  }
+
+  await env.page_content.put(`client:${session.clientId}`, JSON.stringify(clientData));
+
+  if (wasPreviouslyActivated && clientData.userId && touchedPlan) {
+    try {
+      await upsertUserProfilePlan(env, clientData.userId, {
+        plan: clientData.plan,
+        userData: clientData.answers || {},
+        planSource: '',
+        clientId: session.clientId,
+        planUpdatedAt: clientData.planUpdatedAt,
+      });
+    } catch (e) {
+      console.warn('[AdminAssistant] Profile sync failed:', e.message);
+    }
+  }
+
+  return clientData;
 }
 
 /**
@@ -5015,6 +5103,7 @@ async function handleAdminAssistantSession(request, env) {
       clientId,
       cacheId,
       cacheEnabled,
+      cacheStale: false,
       modelName,
       cardFingerprint: buildClientCardFingerprint(card, clientData.planUpdatedAt),
       messages: [],
@@ -5028,6 +5117,7 @@ async function handleAdminAssistantSession(request, env) {
       cacheEnabled,
       tokenEstimate,
       cacheMinTokens: ADMIN_ASSISTANT_CACHE_MIN_TOKENS,
+      card,
       cardPreview: card.slice(0, 1200) + (card.length > 1200 ? '\n…' : ''),
       cardLength: card.length,
     });
@@ -5040,7 +5130,7 @@ async function handleAdminAssistantSession(request, env) {
 /**
  * POST /api/admin/client-assistant/chat { sessionId, message }
  */
-async function handleAdminAssistantChat(request, env) {
+async function handleAdminAssistantChat(request, env, ctx) {
   try {
     const { sessionId, message } = await request.json();
     if (!sessionId || !message?.trim()) {
@@ -5053,25 +5143,11 @@ async function handleAdminAssistantChat(request, env) {
 
     const raw = await env.page_content.get(`client:${session.clientId}`);
     if (!raw) return jsonResponse({ error: 'Client not found' }, 404);
-    const clientData = JSON.parse(raw);
+    let clientData = JSON.parse(raw);
     const analytics = await loadClientAnalytics(env, clientData);
     const { card } = buildClientCard(clientData, { analytics });
-    const fingerprint = buildClientCardFingerprint(card, clientData.planUpdatedAt);
 
-    if (fingerprint !== session.cardFingerprint) {
-      await deleteGeminiCachedContent(env, session.cacheId);
-      session.cacheId = null;
-      session.cacheEnabled = false;
-      if (estimateTokenCount(card) >= ADMIN_ASSISTANT_CACHE_MIN_TOKENS) {
-        try {
-          session.cacheId = await createGeminiCachedContent(env, session.modelName, card, ADMIN_ASSISTANT_SYSTEM_INSTRUCTION);
-          session.cacheEnabled = Boolean(session.cacheId);
-        } catch (e) {
-          console.warn('[AdminAssistant] Cache refresh failed:', e.message);
-        }
-      }
-      session.cardFingerprint = fingerprint;
-    }
+    const { rebuilt: cacheRefreshed } = await ensureAssistantCacheFresh(env, session, card, clientData.planUpdatedAt);
 
     const aiResult = await callGeminiAssistant(env, {
       modelName: session.modelName,
@@ -5082,20 +5158,43 @@ async function handleAdminAssistantChat(request, env) {
       userMessage: message.trim(),
     });
 
+    let applied = false;
+    let applyError = null;
+    const patches = Array.isArray(aiResult.patches) ? aiResult.patches : [];
+
+    if (aiResult.hasMutations && patches.length > 0) {
+      try {
+        clientData = await applyAssistantPatches(env, session, clientData, patches, ctx);
+        session.cacheStale = true;
+        applied = true;
+      } catch (e) {
+        applyError = e.message;
+        console.warn('[AdminAssistant] Auto-apply failed:', e.message);
+      }
+    }
+
     session.messages.push({ role: 'user', content: message.trim() });
     session.messages.push({ role: 'assistant', content: aiResult.reply });
     if (session.messages.length > 24) session.messages = session.messages.slice(-24);
-    session.pendingMutations = aiResult.hasMutations ? (aiResult.mutations || null) : null;
     await saveAssistantSession(env, session);
+
+    const cardAfter = applied
+      ? buildClientCard(clientData, { analytics: await loadClientAnalytics(env, clientData) }).card
+      : null;
 
     return jsonResponse({
       success: true,
       reply: aiResult.reply,
       hasMutations: Boolean(aiResult.hasMutations),
-      mutations: aiResult.mutations || null,
+      patches: applied ? patches : (aiResult.hasMutations ? patches : null),
       mutationsSummary: aiResult.mutationsSummary || '',
+      applied,
+      applyError,
       cacheEnabled: session.cacheEnabled,
-      pendingMutations: aiResult.hasMutations ? aiResult.mutations : null,
+      cacheStale: session.cacheStale,
+      cacheRefreshed,
+      client: applied ? clientData : null,
+      cardPreview: cardAfter ? cardAfter.slice(0, 800) : null,
     });
   } catch (error) {
     console.error('[AdminAssistant] chat error:', error);
@@ -5104,68 +5203,27 @@ async function handleAdminAssistantChat(request, env) {
 }
 
 /**
- * POST /api/admin/client-assistant/apply { sessionId, mutations? }
+ * POST /api/admin/client-assistant/apply { sessionId, patches? }
  */
 async function handleAdminAssistantApply(request, env, ctx) {
   try {
-    const { sessionId, mutations: explicitMutations } = await request.json();
+    const { sessionId, patches: explicitPatches } = await request.json();
     if (!sessionId) return jsonResponse({ error: 'Missing sessionId' }, 400);
     if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
 
     const session = await getAssistantSession(env, sessionId);
     if (!session) return jsonResponse({ error: 'Session expired or not found' }, 404);
 
-    const mutations = explicitMutations || session.pendingMutations;
-    if (!mutations || (typeof mutations !== 'object')) {
-      return jsonResponse({ error: 'No mutations to apply' }, 400);
+    const patches = explicitPatches;
+    if (!Array.isArray(patches) || patches.length === 0) {
+      return jsonResponse({ error: 'Missing patches array' }, 400);
     }
 
     const raw = await env.page_content.get(`client:${session.clientId}`);
     if (!raw) return jsonResponse({ error: 'Client not found' }, 404);
-    const clientData = JSON.parse(raw);
+    const clientData = await applyAssistantPatches(env, session, JSON.parse(raw), patches, ctx);
 
-    if (mutations.answers) {
-      clientData.answers = deepMerge(clientData.answers || {}, mutations.answers);
-    }
-    if (mutations.plan) {
-      clientData.plan = deepMerge(clientData.plan || {}, mutations.plan);
-    }
-    if (mutations.adminNotes != null) {
-      clientData.adminNotes = mutations.adminNotes;
-    }
-
-    const wasPreviouslyActivated = Boolean(clientData.planActivatedAt);
-    if (mutations.plan) {
-      clientData.planUpdatedAt = new Date().toISOString();
-      if (wasPreviouslyActivated) {
-        clientData.planStatus = 'activated';
-        clientData.planActivatedAt = new Date().toISOString();
-      } else {
-        clientData.planStatus = 'pending';
-      }
-    }
-
-    await env.page_content.put(`client:${session.clientId}`, JSON.stringify(clientData));
-
-    if (wasPreviouslyActivated && clientData.userId && mutations.plan) {
-      try {
-        await upsertUserProfilePlan(env, clientData.userId, {
-          plan: clientData.plan,
-          userData: clientData.answers || {},
-          planSource: '',
-          clientId: session.clientId,
-          planUpdatedAt: clientData.planUpdatedAt,
-        });
-      } catch (e) {
-        console.warn('[AdminAssistant] Profile sync failed:', e.message);
-      }
-    }
-
-    await deleteGeminiCachedContent(env, session.cacheId);
-    session.cacheId = null;
-    session.cacheEnabled = false;
-    session.pendingMutations = null;
-    session.cardFingerprint = null;
+    session.cacheStale = true;
     await saveAssistantSession(env, session);
 
     const analytics = await loadClientAnalytics(env, clientData);
@@ -5177,6 +5235,7 @@ async function handleAdminAssistantApply(request, env, ctx) {
       client: clientData,
       cardPreview: card.slice(0, 800),
       tokenEstimate,
+      cacheStale: true,
     });
   } catch (error) {
     console.error('[AdminAssistant] apply error:', error);
@@ -13749,7 +13808,7 @@ export default {
       } else if (url.pathname === '/api/admin/client-assistant/session' && request.method === 'POST') {
         return await handleAdminAssistantSession(request, env);
       } else if (url.pathname === '/api/admin/client-assistant/chat' && request.method === 'POST') {
-        return await handleAdminAssistantChat(request, env);
+        return await handleAdminAssistantChat(request, env, ctx);
       } else if (url.pathname === '/api/admin/client-assistant/apply' && request.method === 'POST') {
         return await handleAdminAssistantApply(request, env, ctx);
       } else if (url.pathname === '/api/admin/email-template' && request.method === 'GET') {

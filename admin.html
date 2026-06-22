@@ -186,17 +186,6 @@
             color: var(--text-dark);
             font-family: inherit;
         }
-        .admin-assistant-mutations {
-            background: #fffbeb;
-            border: 1px solid #fde68a;
-            border-radius: 10px;
-            padding: 12px;
-            font-size: 0.85rem;
-        }
-        [data-theme="dark"] .admin-assistant-mutations {
-            background: rgba(120,53,15,0.2);
-            border-color: #92400e;
-        }
 
         .clients-toolbar {
             display: flex;
@@ -8841,30 +8830,25 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             const cardPreview = panel.querySelector('.admin-assistant-card-preview');
 
             try {
-                const [cardResp, sessionResp] = await Promise.all([
-                    fetch(`${WORKER_URL}/api/admin/client-card?clientId=${encodeURIComponent(clientId)}`),
-                    fetch(`${WORKER_URL}/api/admin/client-assistant/session`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ clientId })
-                    })
-                ]);
-                const cardData = await cardResp.json();
+                const sessionResp = await fetch(`${WORKER_URL}/api/admin/client-assistant/session`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ clientId })
+                });
                 const sessionData = await sessionResp.json();
 
                 if (!sessionData.success) throw new Error(sessionData.error || 'Session init failed');
 
                 adminAssistantSessions.set(clientId, {
                     sessionId: sessionData.sessionId,
-                    pendingMutations: null,
                     loading: false
                 });
 
-                if (cardPreview && cardData.success) {
-                    cardPreview.textContent = cardData.card;
+                if (cardPreview && sessionData.card) {
+                    cardPreview.textContent = sessionData.card;
                 }
                 if (tokenBadge) {
-                    tokenBadge.textContent = `${sessionData.tokenEstimate || cardData.tokenEstimate || '—'} токена`;
+                    tokenBadge.textContent = `${sessionData.tokenEstimate || '—'} токена`;
                 }
                 if (cacheBadge) {
                     cacheBadge.innerHTML = sessionData.cacheEnabled
@@ -8874,7 +8858,26 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
 
                 const sendBtn = panel.querySelector('.admin-assistant-send-btn');
                 const input = panel.querySelector('.admin-assistant-input');
-                const applyBtn = panel.querySelector('.admin-assistant-apply-btn');
+                const modalRoot = panel.closest('.client-modal-content');
+
+                const refreshClientViews = (client) => {
+                    if (!client) return;
+                    if (client.plan) {
+                        const editor = modalRoot?.querySelector('.client-plan-editor');
+                        if (editor) editor.value = JSON.stringify(client.plan, null, 2);
+                        const readableTab = modalRoot?.querySelector('.plan-tab-content[data-tab="readable"]');
+                        if (readableTab) readableTab.innerHTML = buildPlanReadableHtml(client.plan);
+                    }
+                    const clientRecord = allClientsData.find(c => c.id === clientId);
+                    if (clientRecord) {
+                        clientRecord.hasPlan = Boolean(client.plan);
+                        clientRecord.planStatus = client.planStatus || clientRecord.planStatus;
+                        clientRecord.planUpdatedAt = client.planUpdatedAt || clientRecord.planUpdatedAt;
+                        cacheClientsDirectorySnapshot();
+                        renderPendingPlans();
+                        if (clientsDirectoryHasLoaded) renderClientsDirectory();
+                    }
+                };
 
                 const sendMessage = async () => {
                     const message = input?.value?.trim();
@@ -8898,17 +8901,20 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
 
                         appendAssistantMessage(panel, 'assistant', data.reply);
 
-                        const mutBox = panel.querySelector('.admin-assistant-mutations');
-                        const mutSummary = panel.querySelector('.admin-assistant-mutations-summary');
-                        if (data.hasMutations && data.mutations) {
-                            session.pendingMutations = data.mutations;
-                            if (mutBox) mutBox.style.display = 'block';
-                            if (mutSummary) {
-                                mutSummary.textContent = data.mutationsSummary || 'AI предложи промени в профила/плана.';
+                        if (data.applied) {
+                            appendAssistantMessage(panel, 'system', '✓ Промените са приложени автоматично.' + (data.mutationsSummary ? ' ' + data.mutationsSummary : ''));
+                            refreshClientViews(data.client);
+                            if (data.cardPreview && cardPreview) {
+                                cardPreview.textContent = data.cardPreview;
                             }
-                        } else {
-                            session.pendingMutations = null;
-                            if (mutBox) mutBox.style.display = 'none';
+                            if (cacheBadge && data.cacheStale) {
+                                cacheBadge.innerHTML = '<i class="fas fa-clock"></i> Кеш ще се обнови при следващ въпрос';
+                            }
+                        } else if (data.applyError) {
+                            appendAssistantMessage(panel, 'system', '⚠ Промените НЕ са приложени: ' + data.applyError);
+                        }
+                        if (cacheBadge && data.cacheRefreshed) {
+                            cacheBadge.innerHTML = '<i class="fas fa-bolt"></i> Gemini кеш обновен';
                         }
                     } catch (e) {
                         appendAssistantMessage(panel, 'system', 'Грешка: ' + e.message);
@@ -8923,54 +8929,6 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                     if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
                         sendMessage();
-                    }
-                });
-
-                applyBtn?.addEventListener('click', async () => {
-                    const session = adminAssistantSessions.get(clientId);
-                    if (!session?.sessionId || !session.pendingMutations) return;
-                    applyBtn.disabled = true;
-                    applyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Прилагане...';
-                    try {
-                        const resp = await fetch(`${WORKER_URL}/api/admin/client-assistant/apply`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ sessionId: session.sessionId, mutations: session.pendingMutations })
-                        });
-                        const data = await resp.json();
-                        if (!data.success) throw new Error(data.error || 'Apply failed');
-
-                        session.pendingMutations = null;
-                        panel.querySelector('.admin-assistant-mutations').style.display = 'none';
-                        appendAssistantMessage(panel, 'system', '✓ Промените са приложени успешно.');
-
-                        if (data.client?.plan) {
-                            const editor = panel.closest('.client-modal-content')?.querySelector('.client-plan-editor');
-                            if (editor) editor.value = JSON.stringify(data.client.plan, null, 2);
-                            const readableTab = panel.closest('.client-modal-content')?.querySelector('.plan-tab-content[data-tab="readable"]');
-                            if (readableTab) readableTab.innerHTML = buildPlanReadableHtml(data.client.plan);
-                        }
-                        if (data.cardPreview && cardPreview) {
-                            cardPreview.textContent = data.cardPreview;
-                        }
-
-                        const clientRecord = allClientsData.find(c => c.id === clientId);
-                        if (clientRecord && data.client) {
-                            clientRecord.hasPlan = Boolean(data.client.plan);
-                            clientRecord.planStatus = data.client.planStatus || clientRecord.planStatus;
-                            clientRecord.planUpdatedAt = data.client.planUpdatedAt || clientRecord.planUpdatedAt;
-                            cacheClientsDirectorySnapshot();
-                            renderPendingPlans();
-                            if (clientsDirectoryHasLoaded) renderClientsDirectory();
-                        }
-
-                        adminAssistantSessions.delete(clientId);
-                        await initAdminAssistant(panel);
-                    } catch (e) {
-                        showError('Грешка при прилагане: ' + e.message);
-                    } finally {
-                        applyBtn.disabled = false;
-                        applyBtn.innerHTML = '<i class="fas fa-check"></i> Приложи промените';
                     }
                 });
             } catch (e) {
@@ -9199,14 +9157,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                                             <pre class="admin-assistant-card-preview">Зареждане…</pre>
                                         </details>
                                         <div class="admin-assistant-messages" role="log" aria-live="polite">
-                                            <div class="admin-assistant-msg system">AI асистентът анализира целия клиентски профил и план. Можете да обсъждате и да поискате редакции.</div>
-                                        </div>
-                                        <div class="admin-assistant-mutations" style="display:none;">
-                                            <div style="font-weight:700;margin-bottom:6px;color:#92400e;"><i class="fas fa-pen"></i> Предложени промени</div>
-                                            <div class="admin-assistant-mutations-summary"></div>
-                                            <button class="btn admin-assistant-apply-btn" style="margin-top:8px;background:#0D9488;font-size:0.82rem;padding:6px 14px;">
-                                                <i class="fas fa-check"></i> Приложи промените
-                                            </button>
+                                            <div class="admin-assistant-msg system">AI асистентът анализира целия клиентски профил и план. Редакциите се прилагат автоматично чрез JSON Patch.</div>
                                         </div>
                                         <div class="admin-assistant-input-row">
                                             <textarea class="admin-assistant-input" rows="2" placeholder="Напишете въпрос или команда за редакция…" aria-label="Съобщение към AI асистента"></textarea>
@@ -9232,14 +9183,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                                         <pre class="admin-assistant-card-preview">Зареждане…</pre>
                                     </details>
                                     <div class="admin-assistant-messages" role="log" aria-live="polite">
-                                        <div class="admin-assistant-msg system">Обсъждайте клиентския профил. След генериране на план асистентът ще включи и плана.</div>
-                                    </div>
-                                    <div class="admin-assistant-mutations" style="display:none;">
-                                        <div style="font-weight:700;margin-bottom:6px;color:#92400e;"><i class="fas fa-pen"></i> Предложени промени</div>
-                                        <div class="admin-assistant-mutations-summary"></div>
-                                        <button class="btn admin-assistant-apply-btn" style="margin-top:8px;background:#0D9488;font-size:0.82rem;padding:6px 14px;">
-                                            <i class="fas fa-check"></i> Приложи промените
-                                        </button>
+                                        <div class="admin-assistant-msg system">Обсъждайте клиентския профил. Редакциите се прилагат автоматично.</div>
                                     </div>
                                     <div class="admin-assistant-input-row">
                                         <textarea class="admin-assistant-input" rows="2" placeholder="Напишете въпрос или команда за редакция…"></textarea>
