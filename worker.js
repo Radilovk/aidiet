@@ -5831,7 +5831,7 @@ Patch root: { answers, plan, adminNotes }
 - /plan/summary/dailyCalories
 - /plan/weekPlan/day1/meals/0/name
 - /plan/weekPlan/day1/meals/0/calories
-- /plan/weekPlan/day1/meals/0/weight
+- /plan/weekPlan/day1/meals/0/weight  (стринг, напр. "250g")
 - /plan/weekPlan/day1/meals/0/macros/protein
 - /plan/weekPlan/day1/meals/0/macros/carbs
 - /plan/weekPlan/day1/meals/0/macros/fats
@@ -5844,7 +5844,7 @@ Patch root: { answers, plan, adminNotes }
 #PL v2 admin — пълен седмичен план (всеки ред = едно хранене):
   колони: day|idx|type|name|kcal|g|P|C|F|patch
   idx = индекс в meals[] (0..n), type = H1-H5 или SF, g = грамаж, P/C/F = макроси в грамове
-  patch = JSON Patch път до хранението; суфикси: /calories, /weight, /name, /macros/protein и т.н.
+  patch = JSON Patch път до хранението; суфикси: /calories, /weight ("250g"), /name, /macros/protein и т.н.
   ред T = дневен тотал (сумарни kcal и макроси за деня)
 
 Секция #AX (аналитика от gamification модула) — READ-ONLY, но ЗАДЪЛЖИТЕЛНО я вземай предвид:
