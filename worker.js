@@ -397,6 +397,40 @@ function serializeWeekPlanSummary(weekPlan) {
 }
 
 /**
+ * Full week plan for admin AI — every meal with kcal, grams, macros, patch path.
+ * @param {object} weekPlan
+ */
+function serializeWeekPlanAdmin(weekPlan) {
+  if (!weekPlan) return '';
+  const lines = ['#PL v2 admin|day|idx|type|name|kcal|g|P|C|F|patch'];
+  for (const [dayKey, dayData] of Object.entries(weekPlan)) {
+    if (!dayData?.meals?.length) continue;
+    const meals = dayData.meals;
+    let dayKcal = 0;
+    let dayP = 0;
+    let dayC = 0;
+    let dayF = 0;
+    for (let i = 0; i < meals.length; i++) {
+      const m = meals[i];
+      const type = MEAL_TYPE_SHORT[m.type] || esc(String(m.type || '?').slice(0, 3));
+      const kcal = Number(m.calories) || 0;
+      const g = parseInt(String(m.weight || '0').replace(/[^\d]/g, ''), 10) || 0;
+      const p = Number(m.macros?.protein) || 0;
+      const c = Number(m.macros?.carbs) || 0;
+      const f = Number(m.macros?.fats ?? m.macros?.fat) || 0;
+      dayKcal += kcal;
+      dayP += p;
+      dayC += c;
+      dayF += f;
+      const patch = `/plan/weekPlan/${dayKey}/meals/${i}`;
+      lines.push(`${dayKey}|${i}|${type}|${esc(m.name)}|${kcal}|${g}|${p}|${c}|${f}|${patch}`);
+    }
+    lines.push(`${dayKey}|T|—|ден_общо|${dayKcal}|—|${dayP}|${dayC}|${dayF}|`);
+  }
+  return lines.join('\n');
+}
+
+/**
  * @param {unknown} value
  * @returns {string}
  */
@@ -5746,7 +5780,7 @@ function buildClientCard(clientData, options = {}) {
     if (analysis) planBlocks.push(serializeAnalysisAdmin(analysis));
     if (plan.strategy) planBlocks.push(serializeStrategyForMealPlan(plan.strategy));
     if (plan.summary) planBlocks.push(serializePlanSummary(plan.summary));
-    if (plan.weekPlan) planBlocks.push(serializeWeekPlanSummary(plan.weekPlan));
+    if (plan.weekPlan) planBlocks.push(serializeWeekPlanAdmin(plan.weekPlan));
     if (plan.recommendations) planBlocks.push(`#RC v1 ${serializeList(plan.recommendations, 15)}`);
     if (plan.forbidden) planBlocks.push(`#FB v1 ${serializeList(plan.forbidden, 15)}`);
     if (plan.psychology) planBlocks.push(serializePsychology(plan.psychology));
@@ -5754,7 +5788,7 @@ function buildClientCard(clientData, options = {}) {
     if (plan.waterIntake) planBlocks.push(`#WT v1 ${cardEsc(typeof plan.waterIntake === 'string' ? plan.waterIntake : JSON.stringify(plan.waterIntake).slice(0, 200))}`);
     if (clientData?.adminNotes) planBlocks.push(`#AD v1 ${cardEsc(String(clientData.adminNotes).slice(0, 400))}`);
   } else {
-    planBlocks.push('#PL v1 status=none');
+    planBlocks.push('#PL v2 status=none');
   }
 
   planBlocks.push(serializeAnalytics(analytics));
@@ -5797,11 +5831,21 @@ Patch root: { answers, plan, adminNotes }
 - /plan/summary/dailyCalories
 - /plan/weekPlan/day1/meals/0/name
 - /plan/weekPlan/day1/meals/0/calories
+- /plan/weekPlan/day1/meals/0/weight
+- /plan/weekPlan/day1/meals/0/macros/protein
+- /plan/weekPlan/day1/meals/0/macros/carbs
+- /plan/weekPlan/day1/meals/0/macros/fats
 - /plan/supplements/-  (add в края на масив)
 - /answers/lossKg
 - /adminNotes
 
-Седмица: day1..day7 (не monday). Хранения: meals[] с type, name, calories, macros.
+Седмица: day1..day7 (не monday). Хранения: meals[] с type, name, calories, weight, macros (protein, carbs, fats).
+
+#PL v2 admin — пълен седмичен план (всеки ред = едно хранене):
+  колони: day|idx|type|name|kcal|g|P|C|F|patch
+  idx = индекс в meals[] (0..n), type = H1-H5 или SF, g = грамаж, P/C/F = макроси в грамове
+  patch = JSON Patch път до хранението; суфикси: /calories, /weight, /name, /macros/protein и т.н.
+  ред T = дневен тотал (сумарни kcal и макроси за деня)
 
 Секция #AX (аналитика от gamification модула) — READ-ONLY, но ЗАДЪЛЖИТЕЛНО я вземай предвид:
 - hi=health index (0–100), avg=средна дневна оценка (1–5), str=серия отлични дни, adh=ангажираност %

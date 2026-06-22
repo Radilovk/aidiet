@@ -396,6 +396,40 @@ export function serializeWeekPlanSummary(weekPlan) {
 }
 
 /**
+ * Full week plan for admin AI — every meal with kcal, grams, macros, patch path.
+ * @param {object} weekPlan
+ */
+export function serializeWeekPlanAdmin(weekPlan) {
+  if (!weekPlan) return '';
+  const lines = ['#PL v2 admin|day|idx|type|name|kcal|g|P|C|F|patch'];
+  for (const [dayKey, dayData] of Object.entries(weekPlan)) {
+    if (!dayData?.meals?.length) continue;
+    const meals = dayData.meals;
+    let dayKcal = 0;
+    let dayP = 0;
+    let dayC = 0;
+    let dayF = 0;
+    for (let i = 0; i < meals.length; i++) {
+      const m = meals[i];
+      const type = MEAL_TYPE_SHORT[m.type] || esc(String(m.type || '?').slice(0, 3));
+      const kcal = Number(m.calories) || 0;
+      const g = parseInt(String(m.weight || '0').replace(/[^\d]/g, ''), 10) || 0;
+      const p = Number(m.macros?.protein) || 0;
+      const c = Number(m.macros?.carbs) || 0;
+      const f = Number(m.macros?.fats ?? m.macros?.fat) || 0;
+      dayKcal += kcal;
+      dayP += p;
+      dayC += c;
+      dayF += f;
+      const patch = `/plan/weekPlan/${dayKey}/meals/${i}`;
+      lines.push(`${dayKey}|${i}|${type}|${esc(m.name)}|${kcal}|${g}|${p}|${c}|${f}|${patch}`);
+    }
+    lines.push(`${dayKey}|T|—|ден_общо|${dayKcal}|—|${dayP}|${dayC}|${dayF}|`);
+  }
+  return lines.join('\n');
+}
+
+/**
  * @param {unknown} value
  * @returns {string}
  */
