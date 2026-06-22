@@ -7,7 +7,6 @@ import {
   serializePreviousDays,
   serializeWeekPlanSummary,
   formatPromptValue,
-  estimateTokenCount,
 } from './context-compression.js';
 import { buildClientCard } from './client-card.js';
 import {
@@ -4848,7 +4847,7 @@ function buildClientCardFingerprint(card, updatedAt, analyticsSyncedAt) {
 }
 
 /**
- * @param {import('@cloudflare/workers-types').KVNamespace} kv
+ * @param {object} env
  * @param {string} sessionId
  */
 async function getAssistantSession(env, sessionId) {
@@ -4857,7 +4856,8 @@ async function getAssistantSession(env, sessionId) {
 }
 
 /**
- * @param {import('@cloudflare/workers-types').KVNamespace} kv
+ * @param {object} env
+ * @param {object} session
  */
 async function saveAssistantSession(env, session) {
   await env.page_content.put(
