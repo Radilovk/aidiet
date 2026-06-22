@@ -8,6 +8,7 @@ import {
   serializeAnalysisForStep,
   serializeStrategyForMealPlan,
   serializeWeekPlanSummary,
+  serializeWeekPlanAdmin,
   estimateTokenCount,
 } from './context-compression.js';
 import { serializeAnalyticsBlock } from './analytics-compression.js';
@@ -123,7 +124,7 @@ export function buildClientCard(clientData, options = {}) {
     if (analysis) planBlocks.push(serializeAnalysisAdmin(analysis));
     if (plan.strategy) planBlocks.push(serializeStrategyForMealPlan(plan.strategy));
     if (plan.summary) planBlocks.push(serializePlanSummary(plan.summary));
-    if (plan.weekPlan) planBlocks.push(serializeWeekPlanSummary(plan.weekPlan));
+    if (plan.weekPlan) planBlocks.push(serializeWeekPlanAdmin(plan.weekPlan));
     if (plan.recommendations) planBlocks.push(`#RC v1 ${serializeList(plan.recommendations, 15)}`);
     if (plan.forbidden) planBlocks.push(`#FB v1 ${serializeList(plan.forbidden, 15)}`);
     if (plan.psychology) planBlocks.push(serializePsychology(plan.psychology));
@@ -131,7 +132,7 @@ export function buildClientCard(clientData, options = {}) {
     if (plan.waterIntake) planBlocks.push(`#WT v1 ${esc(typeof plan.waterIntake === 'string' ? plan.waterIntake : JSON.stringify(plan.waterIntake).slice(0, 200))}`);
     if (clientData?.adminNotes) planBlocks.push(`#AD v1 ${esc(String(clientData.adminNotes).slice(0, 400))}`);
   } else {
-    planBlocks.push('#PL v1 status=none');
+    planBlocks.push('#PL v2 status=none');
   }
 
   planBlocks.push(serializeAnalytics(analytics));
