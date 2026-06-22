@@ -5594,6 +5594,9 @@
                         localStorage.removeItem('gameDataDirtyKey');
                     }
                 } catch (_) {}
+                if (window.NutriPlanAnalyticsSync && typeof window.NutriPlanAnalyticsSync.syncNow === 'function') {
+                    window.NutriPlanAnalyticsSync.syncNow();
+                }
                 if (window.GameNotifier && typeof window.GameNotifier.refreshConfig === 'function') {
                     // APK: WebView stays alive when app is backgrounded; refreshConfig() syncs
                     // the admin notification config (one lightweight KV version-check, throttled
@@ -8678,13 +8681,15 @@
     // ── End UI Zone Images ─────────────────────────────────────────────────────
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // GAMIFICATION MODULE — *game command activation
-    // All data in localStorage; no backend except weekly summary prep
+    // GAMIFICATION MODULE — syncs analytics to server for admin AI assistant
     // ═══════════════════════════════════════════════════════════════════════════
     (function() {
         var GAME_ENABLED_KEY       = 'gameEnabled';
         var GAME_DATA_KEY          = 'gameData';
         var GAME_WEEKLY_AI_KEY     = 'gameWeeklyAI';
+        var ANALYTICS_WORKER       = 'https://aidiet.radilov-k.workers.dev';
+        var _analyticsSyncTimer    = null;
+        var _analyticsSyncInFlight = false;
         var JUNK_SUITABILITY_MAX   = 2;   // Suitability rating threshold: <=2 = junk/harmful food
         var _promptIntervalId      = null;
 
@@ -8771,7 +8776,52 @@
             catch(e) { _gameDataCache = {}; }
             return _gameDataCache;
         }
-        function saveGameData(d) { _gameDataCache = d; localStorage.setItem(GAME_DATA_KEY, JSON.stringify(d)); }
+        function saveGameData(d) {
+            _gameDataCache = d;
+            localStorage.setItem(GAME_DATA_KEY, JSON.stringify(d));
+            scheduleAnalyticsSync();
+        }
+
+        function scheduleAnalyticsSync() {
+            if (_analyticsSyncTimer) clearTimeout(_analyticsSyncTimer);
+            _analyticsSyncTimer = setTimeout(syncAnalyticsToServer, 45000);
+        }
+
+        async function syncAnalyticsToServer() {
+            _analyticsSyncTimer = null;
+            var uid = (typeof userId !== 'undefined' && userId) ? userId : localStorage.getItem('userId');
+            if (!uid || _analyticsSyncInFlight) return;
+            var gameData = getGameData();
+            var keys = Object.keys(gameData || {});
+            if (!keys.length) return;
+            var latestKey = keys.sort().pop();
+            var sig = uid + ':' + keys.length + ':' + latestKey + ':' + (gameData[latestKey]?.dailyScore || '');
+            if (localStorage.getItem('np_analytics_sig') === sig) return;
+            _analyticsSyncInFlight = true;
+            try {
+                var weeklyAI = {};
+                try { weeklyAI = JSON.parse(localStorage.getItem(GAME_WEEKLY_AI_KEY) || '{}'); } catch(e) {}
+                var idToken = null;
+                if (uid.indexOf('fb_') === 0 && typeof auth !== 'undefined' && auth.currentUser) {
+                    idToken = await auth.currentUser.getIdToken().catch(function() { return null; });
+                }
+                var clientId = localStorage.getItem('pendingClientId') || localStorage.getItem('clientId') || '';
+                var resp = await fetch(ANALYTICS_WORKER + '/api/user/sync-analytics', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: uid,
+                        gameData: gameData,
+                        gameWeeklyAI: weeklyAI,
+                        ...(clientId ? { clientId: clientId } : {}),
+                        ...(idToken ? { idToken: idToken } : {})
+                    })
+                });
+                if (resp.ok) localStorage.setItem('np_analytics_sig', sig);
+            } catch (_) { /* non-blocking */ }
+            finally { _analyticsSyncInFlight = false; }
+        }
+        window.NutriPlanAnalyticsSync = { schedule: scheduleAnalyticsSync, syncNow: syncAnalyticsToServer };
         // Invalidate cache when another tab or external code modifies the same key
         window.addEventListener('storage', function(e) {
             if (e.key === GAME_DATA_KEY) _gameDataCache = null;
