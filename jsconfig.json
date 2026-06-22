@@ -5,15 +5,8 @@
     "moduleResolution": "bundler",
     "allowJs": true,
     "checkJs": false,
-    "noEmit": true,
-    "types": ["@cloudflare/workers-types"]
+    "noEmit": true
   },
-  "include": [
-    "worker.js",
-    "context-compression.js",
-    "client-card.js",
-    "json-patch.js",
-    "analytics-compression.js"
-  ],
+  "include": ["worker.js"],
   "exclude": ["node_modules", "android"]
 }
