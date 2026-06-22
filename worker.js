@@ -15,6 +15,7 @@ import {
   buildPatchDocument,
   mergePatchDocument,
 } from './json-patch.js';
+import { buildAnalyticsSummary } from './analytics-compression.js';
 
 /**
  * Cloudflare Worker for AI Diet Application
@@ -4794,6 +4795,7 @@ Patch root: { answers, plan, adminNotes }
 - При обсъждане: hasMutations=false, patches=[].
 - При редакция: hasMutations=true + patches[] (replace/add/remove). Минимален брой операции.
 - НЕ измисляй медицински данни. Променяй само по изрична заявка.
+- Секция #AX (аналитика) е read-only — не я patch-вай.
 - Винаги валиден JSON по schema.`;
 
 const ADMIN_ASSISTANT_RESPONSE_SCHEMA = {
@@ -4822,9 +4824,10 @@ const ADMIN_ASSISTANT_RESPONSE_SCHEMA = {
 /**
  * @param {string} card
  * @param {string} updatedAt
+ * @param {string} [analyticsSyncedAt]
  */
-function buildClientCardFingerprint(card, updatedAt) {
-  return `${card.length}:${updatedAt || ''}`;
+function buildClientCardFingerprint(card, updatedAt, analyticsSyncedAt) {
+  return `${card.length}:${updatedAt || ''}:${analyticsSyncedAt || ''}`;
 }
 
 /**
@@ -4895,8 +4898,8 @@ async function deleteGeminiCachedContent(env, cacheName) {
 /**
  * Lazy cache rebuild — само при cacheStale или промяна на fingerprint.
  */
-async function ensureAssistantCacheFresh(env, session, card, planUpdatedAt) {
-  const fingerprint = buildClientCardFingerprint(card, planUpdatedAt);
+async function ensureAssistantCacheFresh(env, session, card, planUpdatedAt, analyticsSyncedAt) {
+  const fingerprint = buildClientCardFingerprint(card, planUpdatedAt, analyticsSyncedAt);
   const needsRebuild = session.cacheStale || (session.cardFingerprint && session.cardFingerprint !== fingerprint);
 
   if (!needsRebuild) return { session, rebuilt: false };
@@ -5020,18 +5023,94 @@ async function callGeminiAssistant(env, opts) {
 }
 
 /**
- * Load analytics from user profile if linked.
+ * Load analytics summary for client card (from client record or linked profile).
  */
 async function loadClientAnalytics(env, clientData) {
-  if (clientData?.analytics) return clientData.analytics;
-  if (!clientData?.userId) return null;
+  if (clientData?.analytics?.status === 'active' || clientData?.analytics?.status === 'empty') {
+    return clientData.analytics;
+  }
+  if (!clientData?.userId || !env.page_content) return null;
   try {
-    const profileRaw = await env.page_content.get(`user_profile:${clientData.userId}`);
-    if (!profileRaw) return null;
-    const profile = JSON.parse(profileRaw);
-    return profile.analytics || profile.gameData || null;
+    const profile = await kvGetJSON(env, `user_profile:${clientData.userId}`);
+    if (profile?.analytics?.status === 'active' || profile?.analytics?.status === 'empty') {
+      return profile.analytics;
+    }
   } catch {
     return null;
+  }
+  return null;
+}
+
+/**
+ * Persist analytics summary to user profile and linked client record.
+ */
+async function persistAnalyticsSummary(env, userId, summary, clientIdHint = '') {
+  const ttl = userId.startsWith('fb_') ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
+  const existing = (await kvGetJSON(env, `user_profile:${userId}`)) || {};
+  const profile = {
+    ...existing,
+    userId,
+    analytics: summary,
+    analyticsSyncedAt: summary.syncedAt,
+    savedAt: existing.savedAt || summary.syncedAt,
+  };
+  await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
+
+  let clientId = clientIdHint || existing.clientId || '';
+  if (!clientId) {
+    const email = normalizeEmail(existing.userData?.email);
+    if (email) clientId = (await findClientByEmail(env, email))?.clientId || '';
+  }
+  if (clientId) {
+    try {
+      const clientData = await kvGetJSON(env, `client:${clientId}`);
+      if (clientData) {
+        clientData.analytics = summary;
+        clientData.analyticsSyncedAt = summary.syncedAt;
+        if (!clientData.userId) clientData.userId = userId;
+        await kvPutJSON(env, `client:${clientId}`, clientData, null);
+      }
+    } catch (e) {
+      console.warn(`[Analytics] Failed to sync to client ${clientId}:`, e.message);
+    }
+  }
+  return { profile, clientId };
+}
+
+/**
+ * POST /api/user/sync-analytics { userId, gameData, gameWeeklyAI?, clientId?, idToken? }
+ */
+async function handleSyncAnalytics(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+
+    const { userId, gameData, gameWeeklyAI, clientId, idToken } = await request.json();
+    if (!userId) return jsonResponse({ error: 'Missing userId' }, 400);
+
+    if (userId.startsWith('fb_') && idToken && env.FIREBASE_PROJECT_ID) {
+      try {
+        const firebaseUser = await verifyFirebaseIdToken(idToken, env);
+        if (`fb_${firebaseUser.uid}` !== userId) {
+          return jsonResponse({ error: 'Token does not match userId' }, 403);
+        }
+      } catch {
+        return jsonResponse({ error: 'Invalid Firebase ID token' }, 401);
+      }
+    }
+
+    const summary = buildAnalyticsSummary(gameData || {}, gameWeeklyAI || {});
+    await persistAnalyticsSummary(env, userId, summary, clientId || '');
+
+    return jsonResponse({
+      success: true,
+      analytics: summary,
+      status: summary.status,
+    });
+  } catch (error) {
+    console.error('[Analytics] sync error:', error);
+    return jsonResponse({ error: error.message }, 500);
   }
 }
 
@@ -5105,7 +5184,7 @@ async function handleAdminAssistantSession(request, env) {
       cacheEnabled,
       cacheStale: false,
       modelName,
-      cardFingerprint: buildClientCardFingerprint(card, clientData.planUpdatedAt),
+      cardFingerprint: buildClientCardFingerprint(card, clientData.planUpdatedAt, clientData.analyticsSyncedAt),
       messages: [],
       createdAt: new Date().toISOString(),
     };
@@ -5120,6 +5199,12 @@ async function handleAdminAssistantSession(request, env) {
       card,
       cardPreview: card.slice(0, 1200) + (card.length > 1200 ? '\n…' : ''),
       cardLength: card.length,
+      analytics: analytics?.status === 'active' ? {
+        healthIndex: analytics.healthIndex,
+        avgScore: analytics.avgScore,
+        streak: analytics.streak,
+        syncedAt: analytics.syncedAt,
+      } : { status: analytics?.status || 'pending' },
     });
   } catch (error) {
     console.error('[AdminAssistant] session error:', error);
@@ -5147,7 +5232,9 @@ async function handleAdminAssistantChat(request, env, ctx) {
     const analytics = await loadClientAnalytics(env, clientData);
     const { card } = buildClientCard(clientData, { analytics });
 
-    const { rebuilt: cacheRefreshed } = await ensureAssistantCacheFresh(env, session, card, clientData.planUpdatedAt);
+    const { rebuilt: cacheRefreshed } = await ensureAssistantCacheFresh(
+      env, session, card, clientData.planUpdatedAt, clientData.analyticsSyncedAt
+    );
 
     const aiResult = await callGeminiAssistant(env, {
       modelName: session.modelName,
@@ -13785,6 +13872,8 @@ export default {
         return await handleSaveUserNotificationPreferences(request, env);
       } else if (url.pathname === '/api/user/save-profile' && request.method === 'POST') {
         return await handleSaveUserProfile(request, env);
+      } else if (url.pathname === '/api/user/sync-analytics' && request.method === 'POST') {
+        return await handleSyncAnalytics(request, env);
       } else if (url.pathname === '/api/user/profile' && request.method === 'GET') {
         return await handleGetUserProfile(request, env);
       } else if (url.pathname === '/api/admin/subscriptions' && request.method === 'GET') {

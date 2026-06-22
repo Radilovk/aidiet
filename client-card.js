@@ -10,6 +10,7 @@ import {
   serializeWeekPlanSummary,
   estimateTokenCount,
 } from './context-compression.js';
+import { serializeAnalyticsBlock } from './analytics-compression.js';
 
 const esc = (value) => {
   if (value == null || value === '') return '';
@@ -89,17 +90,7 @@ function serializePsychology(psychology) {
  * @returns {string}
  */
 function serializeAnalytics(analytics) {
-  if (!analytics || typeof analytics !== 'object') {
-    return '#AX v1 status=pending|note=аналитичен_модул_не_синхронизиран';
-  }
-  const lines = ['#AX v1 status=active'];
-  if (analytics.healthIndex != null) lines.push(`hi=${analytics.healthIndex}`);
-  if (analytics.streak != null) lines.push(`str=${analytics.streak}`);
-  if (analytics.avgScore != null) lines.push(`avg=${analytics.avgScore}`);
-  if (analytics.adherence != null) lines.push(`adh=${analytics.adherence}`);
-  if (analytics.last7days) lines.push(`d7=${esc(JSON.stringify(analytics.last7days).slice(0, 300))}`);
-  if (analytics.aiReview) lines.push(`rev=${esc(String(analytics.aiReview).slice(0, 300))}`);
-  return lines.join('\n');
+  return serializeAnalyticsBlock(analytics);
 }
 
 /**
@@ -158,7 +149,7 @@ export function buildClientCard(clientData, options = {}) {
       strategy: Boolean(plan?.strategy),
       weekPlan: Boolean(plan?.weekPlan),
       recommendations: Boolean(plan?.recommendations),
-      analytics: true,
+      analytics: analytics?.status === 'active',
     },
   };
 }
