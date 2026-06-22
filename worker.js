@@ -7,7 +7,9 @@ import {
   serializePreviousDays,
   serializeWeekPlanSummary,
   formatPromptValue,
+  estimateTokenCount,
 } from './context-compression.js';
+import { buildClientCard, deepMerge } from './client-card.js';
 
 /**
  * Cloudflare Worker for AI Diet Application
@@ -4756,6 +4758,429 @@ async function handleDeleteClients(request, env) {
   } catch (error) {
     console.error('Error deleting clients:', error);
     return jsonResponse({ error: `Failed to delete clients: ${error.message}` }, 500);
+  }
+}
+
+// ─── Admin AI Assistant (Gemini Context Caching) ───────────────────────────
+
+const ADMIN_ASSISTANT_CACHE_MIN_TOKENS = 1024;
+const ADMIN_ASSISTANT_CACHE_TTL = '300s';
+const ADMIN_ASSISTANT_SESSION_TTL = 3600;
+const ADMIN_ASSISTANT_SESSION_PREFIX = 'admin_assistant_session:';
+
+const ADMIN_ASSISTANT_SYSTEM_INSTRUCTION = `Ти си NutriPlan AI асистент за администратор-нутриционист.
+Работиш с кеширан клиентски картон (CC/NPCF формат) — пълен профил, анализ, стратегия и план.
+Можеш да обсъждаш клиента и да предлагаш редакции на answers (въпросник) и/или plan (хранителен план).
+
+Правила:
+- Отговаряй на български, конкретно и професионално.
+- При обсъждане: анализирай връзките между профил, цел, състояние и план.
+- При редакция: върни mutations само за полетата, които админът иска да промени (partial/deep).
+- НЕ измисляй медицински данни. Не променяй без изрична заявка.
+- За промени в weekPlan използвай същата JSON структура (day1..day7, meals[]).
+- Винаги отговаряй САМО с валиден JSON по зададения schema.`;
+
+const ADMIN_ASSISTANT_RESPONSE_SCHEMA = {
+  type: 'object',
+  properties: {
+    reply: { type: 'string', description: 'Отговор за админа на български' },
+    hasMutations: { type: 'boolean', description: 'Дали има предложени промени' },
+    mutations: {
+      type: 'object',
+      properties: {
+        answers: { type: 'object', description: 'Partial patch за client.answers' },
+        plan: { type: 'object', description: 'Partial patch за client.plan' },
+        adminNotes: { type: 'string', description: 'Админ бележки за клиента' },
+      },
+    },
+    mutationsSummary: { type: 'string', description: 'Кратко описание на предложените промени' },
+  },
+  required: ['reply', 'hasMutations'],
+};
+
+/**
+ * @param {string} card
+ * @param {string} updatedAt
+ */
+function buildClientCardFingerprint(card, updatedAt) {
+  return `${card.length}:${updatedAt || ''}`;
+}
+
+/**
+ * @param {import('@cloudflare/workers-types').KVNamespace} kv
+ * @param {string} sessionId
+ */
+async function getAssistantSession(env, sessionId) {
+  const raw = await env.page_content.get(`${ADMIN_ASSISTANT_SESSION_PREFIX}${sessionId}`);
+  return raw ? JSON.parse(raw) : null;
+}
+
+/**
+ * @param {import('@cloudflare/workers-types').KVNamespace} kv
+ */
+async function saveAssistantSession(env, session) {
+  await env.page_content.put(
+    `${ADMIN_ASSISTANT_SESSION_PREFIX}${session.sessionId}`,
+    JSON.stringify(session),
+    { expirationTtl: ADMIN_ASSISTANT_SESSION_TTL }
+  );
+}
+
+/**
+ * @param {object} env
+ * @param {string} modelName
+ * @param {string} cardText
+ * @param {string} systemInstruction
+ */
+async function createGeminiCachedContent(env, modelName, cardText, systemInstruction) {
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/cachedContents?key=${env.GEMINI_API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: `models/${modelName}`,
+        ttl: ADMIN_ASSISTANT_CACHE_TTL,
+        contents: [{ role: 'user', parts: [{ text: cardText }] }],
+        systemInstruction: { parts: [{ text: systemInstruction }] },
+      }),
+    }
+  );
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Gemini cache create failed: ${response.status} ${errText.slice(0, 200)}`);
+  }
+  const data = await response.json();
+  return data.name || null;
+}
+
+/**
+ * @param {object} env
+ * @param {string|null} cacheName
+ */
+async function deleteGeminiCachedContent(env, cacheName) {
+  if (!cacheName) return;
+  try {
+    const id = cacheName.replace('cachedContents/', '');
+    await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/cachedContents/${id}?key=${env.GEMINI_API_KEY}`,
+      { method: 'DELETE' }
+    );
+  } catch (e) {
+    console.warn('[AdminAssistant] Cache delete failed:', e.message);
+  }
+}
+
+/**
+ * @param {object} env
+ * @param {object} opts
+ */
+async function callGeminiAssistant(env, opts) {
+  const {
+    modelName = 'gemini-2.5-flash',
+    cachedContent = null,
+    systemInstruction = null,
+    cardText = null,
+    messages = [],
+    userMessage,
+  } = opts;
+
+  const contents = [];
+  if (!cachedContent && cardText) {
+    contents.push({ role: 'user', parts: [{ text: `Клиентски картон:\n${cardText}` }] });
+    contents.push({ role: 'model', parts: [{ text: 'Разбрах. Готов съм да обсъждам и редактирам клиентския картон.' }] });
+  }
+  for (const msg of messages.slice(-12)) {
+    contents.push({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content }],
+    });
+  }
+  contents.push({ role: 'user', parts: [{ text: userMessage }] });
+
+  const requestBody = {
+    contents,
+    generationConfig: {
+      responseMimeType: 'application/json',
+      responseSchema: ADMIN_ASSISTANT_RESPONSE_SCHEMA,
+      temperature: 0.4,
+      thinkingConfig: { thinkingBudget: 0 },
+    },
+  };
+  if (cachedContent) {
+    requestBody.cachedContent = cachedContent;
+  } else if (systemInstruction) {
+    requestBody.systemInstruction = { parts: [{ text: systemInstruction }] };
+  }
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${env.GEMINI_API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody),
+    }
+  );
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Gemini assistant error: ${response.status} ${errText.slice(0, 200)}`);
+  }
+  const data = await response.json();
+  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) throw new Error('Gemini върна празен отговор');
+  return JSON.parse(text);
+}
+
+/**
+ * Load analytics from user profile if linked.
+ */
+async function loadClientAnalytics(env, clientData) {
+  if (clientData?.analytics) return clientData.analytics;
+  if (!clientData?.userId) return null;
+  try {
+    const profileRaw = await env.page_content.get(`user_profile:${clientData.userId}`);
+    if (!profileRaw) return null;
+    const profile = JSON.parse(profileRaw);
+    return profile.analytics || profile.gameData || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * GET /api/admin/client-card?clientId=...
+ */
+async function handleAdminClientCard(request, env) {
+  try {
+    const url = new URL(request.url);
+    const clientId = url.searchParams.get('clientId');
+    if (!clientId) return jsonResponse({ error: 'Missing clientId' }, 400);
+    if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+
+    const raw = await env.page_content.get(`client:${clientId}`);
+    if (!raw) return jsonResponse({ error: 'Client not found' }, 404);
+
+    const clientData = JSON.parse(raw);
+    const analytics = await loadClientAnalytics(env, clientData);
+    const { card, tokenEstimate, sections } = buildClientCard(clientData, { analytics });
+
+    return jsonResponse({
+      success: true,
+      clientId,
+      card,
+      tokenEstimate,
+      sections,
+      cacheRecommended: tokenEstimate >= ADMIN_ASSISTANT_CACHE_MIN_TOKENS,
+    });
+  } catch (error) {
+    console.error('[AdminAssistant] client-card error:', error);
+    return jsonResponse({ error: error.message }, 500);
+  }
+}
+
+/**
+ * POST /api/admin/client-assistant/session { clientId }
+ */
+async function handleAdminAssistantSession(request, env) {
+  try {
+    const { clientId } = await request.json();
+    if (!clientId) return jsonResponse({ error: 'Missing clientId' }, 400);
+    if (!env.GEMINI_API_KEY) return jsonResponse({ error: 'Gemini API key not configured' }, 500);
+    if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+
+    const raw = await env.page_content.get(`client:${clientId}`);
+    if (!raw) return jsonResponse({ error: 'Client not found' }, 404);
+
+    const clientData = JSON.parse(raw);
+    const analytics = await loadClientAnalytics(env, clientData);
+    const { card, tokenEstimate } = buildClientCard(clientData, { analytics });
+    const config = await getAdminConfig(env);
+    const modelName = config.modelName || 'gemini-2.5-flash';
+
+    const sessionId = `asst_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    let cacheId = null;
+    let cacheEnabled = false;
+
+    if (tokenEstimate >= ADMIN_ASSISTANT_CACHE_MIN_TOKENS) {
+      try {
+        cacheId = await createGeminiCachedContent(env, modelName, card, ADMIN_ASSISTANT_SYSTEM_INSTRUCTION);
+        cacheEnabled = Boolean(cacheId);
+      } catch (e) {
+        console.warn('[AdminAssistant] Cache creation failed, falling back to inline context:', e.message);
+      }
+    }
+
+    const session = {
+      sessionId,
+      clientId,
+      cacheId,
+      cacheEnabled,
+      modelName,
+      cardFingerprint: buildClientCardFingerprint(card, clientData.planUpdatedAt),
+      messages: [],
+      createdAt: new Date().toISOString(),
+    };
+    await saveAssistantSession(env, session);
+
+    return jsonResponse({
+      success: true,
+      sessionId,
+      cacheEnabled,
+      tokenEstimate,
+      cacheMinTokens: ADMIN_ASSISTANT_CACHE_MIN_TOKENS,
+      cardPreview: card.slice(0, 1200) + (card.length > 1200 ? '\n…' : ''),
+      cardLength: card.length,
+    });
+  } catch (error) {
+    console.error('[AdminAssistant] session error:', error);
+    return jsonResponse({ error: error.message }, 500);
+  }
+}
+
+/**
+ * POST /api/admin/client-assistant/chat { sessionId, message }
+ */
+async function handleAdminAssistantChat(request, env) {
+  try {
+    const { sessionId, message } = await request.json();
+    if (!sessionId || !message?.trim()) {
+      return jsonResponse({ error: 'Missing sessionId or message' }, 400);
+    }
+    if (!env.GEMINI_API_KEY) return jsonResponse({ error: 'Gemini API key not configured' }, 500);
+
+    const session = await getAssistantSession(env, sessionId);
+    if (!session) return jsonResponse({ error: 'Session expired or not found' }, 404);
+
+    const raw = await env.page_content.get(`client:${session.clientId}`);
+    if (!raw) return jsonResponse({ error: 'Client not found' }, 404);
+    const clientData = JSON.parse(raw);
+    const analytics = await loadClientAnalytics(env, clientData);
+    const { card } = buildClientCard(clientData, { analytics });
+    const fingerprint = buildClientCardFingerprint(card, clientData.planUpdatedAt);
+
+    if (fingerprint !== session.cardFingerprint) {
+      await deleteGeminiCachedContent(env, session.cacheId);
+      session.cacheId = null;
+      session.cacheEnabled = false;
+      if (estimateTokenCount(card) >= ADMIN_ASSISTANT_CACHE_MIN_TOKENS) {
+        try {
+          session.cacheId = await createGeminiCachedContent(env, session.modelName, card, ADMIN_ASSISTANT_SYSTEM_INSTRUCTION);
+          session.cacheEnabled = Boolean(session.cacheId);
+        } catch (e) {
+          console.warn('[AdminAssistant] Cache refresh failed:', e.message);
+        }
+      }
+      session.cardFingerprint = fingerprint;
+    }
+
+    const aiResult = await callGeminiAssistant(env, {
+      modelName: session.modelName,
+      cachedContent: session.cacheEnabled ? session.cacheId : null,
+      systemInstruction: session.cacheEnabled ? null : ADMIN_ASSISTANT_SYSTEM_INSTRUCTION,
+      cardText: session.cacheEnabled ? null : card,
+      messages: session.messages,
+      userMessage: message.trim(),
+    });
+
+    session.messages.push({ role: 'user', content: message.trim() });
+    session.messages.push({ role: 'assistant', content: aiResult.reply });
+    if (session.messages.length > 24) session.messages = session.messages.slice(-24);
+    session.pendingMutations = aiResult.hasMutations ? (aiResult.mutations || null) : null;
+    await saveAssistantSession(env, session);
+
+    return jsonResponse({
+      success: true,
+      reply: aiResult.reply,
+      hasMutations: Boolean(aiResult.hasMutations),
+      mutations: aiResult.mutations || null,
+      mutationsSummary: aiResult.mutationsSummary || '',
+      cacheEnabled: session.cacheEnabled,
+      pendingMutations: aiResult.hasMutations ? aiResult.mutations : null,
+    });
+  } catch (error) {
+    console.error('[AdminAssistant] chat error:', error);
+    return jsonResponse({ error: error.message }, 500);
+  }
+}
+
+/**
+ * POST /api/admin/client-assistant/apply { sessionId, mutations? }
+ */
+async function handleAdminAssistantApply(request, env, ctx) {
+  try {
+    const { sessionId, mutations: explicitMutations } = await request.json();
+    if (!sessionId) return jsonResponse({ error: 'Missing sessionId' }, 400);
+    if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+
+    const session = await getAssistantSession(env, sessionId);
+    if (!session) return jsonResponse({ error: 'Session expired or not found' }, 404);
+
+    const mutations = explicitMutations || session.pendingMutations;
+    if (!mutations || (typeof mutations !== 'object')) {
+      return jsonResponse({ error: 'No mutations to apply' }, 400);
+    }
+
+    const raw = await env.page_content.get(`client:${session.clientId}`);
+    if (!raw) return jsonResponse({ error: 'Client not found' }, 404);
+    const clientData = JSON.parse(raw);
+
+    if (mutations.answers) {
+      clientData.answers = deepMerge(clientData.answers || {}, mutations.answers);
+    }
+    if (mutations.plan) {
+      clientData.plan = deepMerge(clientData.plan || {}, mutations.plan);
+    }
+    if (mutations.adminNotes != null) {
+      clientData.adminNotes = mutations.adminNotes;
+    }
+
+    const wasPreviouslyActivated = Boolean(clientData.planActivatedAt);
+    if (mutations.plan) {
+      clientData.planUpdatedAt = new Date().toISOString();
+      if (wasPreviouslyActivated) {
+        clientData.planStatus = 'activated';
+        clientData.planActivatedAt = new Date().toISOString();
+      } else {
+        clientData.planStatus = 'pending';
+      }
+    }
+
+    await env.page_content.put(`client:${session.clientId}`, JSON.stringify(clientData));
+
+    if (wasPreviouslyActivated && clientData.userId && mutations.plan) {
+      try {
+        await upsertUserProfilePlan(env, clientData.userId, {
+          plan: clientData.plan,
+          userData: clientData.answers || {},
+          planSource: '',
+          clientId: session.clientId,
+          planUpdatedAt: clientData.planUpdatedAt,
+        });
+      } catch (e) {
+        console.warn('[AdminAssistant] Profile sync failed:', e.message);
+      }
+    }
+
+    await deleteGeminiCachedContent(env, session.cacheId);
+    session.cacheId = null;
+    session.cacheEnabled = false;
+    session.pendingMutations = null;
+    session.cardFingerprint = null;
+    await saveAssistantSession(env, session);
+
+    const analytics = await loadClientAnalytics(env, clientData);
+    const { card, tokenEstimate } = buildClientCard(clientData, { analytics });
+
+    return jsonResponse({
+      success: true,
+      message: 'Промените са приложени',
+      client: clientData,
+      cardPreview: card.slice(0, 800),
+      tokenEstimate,
+    });
+  } catch (error) {
+    console.error('[AdminAssistant] apply error:', error);
+    return jsonResponse({ error: error.message }, 500);
   }
 }
 
@@ -13319,6 +13744,14 @@ export default {
         return await handleUpdateClientPlan(request, env, ctx);
       } else if (url.pathname === '/api/admin/activate-client-plan' && request.method === 'POST') {
         return await handleActivateClientPlan(request, env, ctx);
+      } else if (url.pathname === '/api/admin/client-card' && request.method === 'GET') {
+        return await handleAdminClientCard(request, env);
+      } else if (url.pathname === '/api/admin/client-assistant/session' && request.method === 'POST') {
+        return await handleAdminAssistantSession(request, env);
+      } else if (url.pathname === '/api/admin/client-assistant/chat' && request.method === 'POST') {
+        return await handleAdminAssistantChat(request, env);
+      } else if (url.pathname === '/api/admin/client-assistant/apply' && request.method === 'POST') {
+        return await handleAdminAssistantApply(request, env, ctx);
       } else if (url.pathname === '/api/admin/email-template' && request.method === 'GET') {
         return await handleGetEmailTemplate(request, env);
       } else if (url.pathname === '/api/admin/email-template' && request.method === 'POST') {
