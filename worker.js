@@ -2351,6 +2351,56 @@ async function pepD1InsertProduct(env, product) {
   };
 }
 
+async function pepD1UpdateProduct(env, productId, updates) {
+  await ensurePepD1Schema(env);
+  const existing = await env.PEP_DB.prepare(`
+    SELECT id, base_name AS baseName, dosage, purchase_price AS purchasePrice
+    FROM pep_products
+    WHERE id = ?
+  `).bind(Number(productId)).first();
+
+  if (!existing) {
+    throw new Error(ERROR_MESSAGES.NOT_FOUND);
+  }
+
+  const duplicate = await env.PEP_DB.prepare(`
+    SELECT id FROM pep_products
+    WHERE lower(base_name) = lower(?) AND lower(dosage) = lower(?) AND id != ?
+  `).bind(updates.baseName, updates.dosage, Number(productId)).first();
+
+  if (duplicate) {
+    throw new Error('Този продукт вече съществува в каталога');
+  }
+
+  await env.PEP_DB.prepare(`
+    UPDATE pep_products
+    SET base_name = ?, dosage = ?, purchase_price = ?
+    WHERE id = ?
+  `).bind(updates.baseName, updates.dosage, updates.purchasePrice, Number(productId)).run();
+
+  const product = normalizePepProductRow({
+    id: productId,
+    baseName: updates.baseName,
+    dosage: updates.dosage,
+    purchasePrice: updates.purchasePrice
+  });
+
+  return product;
+}
+
+async function pepD1DeleteProduct(env, productId) {
+  await ensurePepD1Schema(env);
+  const existing = await env.PEP_DB.prepare(`SELECT id FROM pep_products WHERE id = ?`).bind(Number(productId)).first();
+  if (!existing) {
+    throw new Error(ERROR_MESSAGES.NOT_FOUND);
+  }
+
+  // Keep historical sales unchanged; only remove the product from the catalog.
+  await env.PEP_DB.exec('PRAGMA foreign_keys = OFF');
+  await env.PEP_DB.prepare(`DELETE FROM pep_products WHERE id = ?`).bind(Number(productId)).run();
+  await env.PEP_DB.exec('PRAGMA foreign_keys = ON');
+}
+
 async function pepD1InsertSale(env, saleInput) {
   await ensurePepD1Schema(env);
   const productRow = await env.PEP_DB.prepare(`
@@ -2577,6 +2627,110 @@ async function handlePepCreateSale(request, env) {
   } catch (error) {
     console.error('PEP create sale error:', error);
     return jsonResponse({ error: error.message || 'Неуспешно добавяне на запис' }, 500);
+  }
+}
+
+async function handlePepUpdateProduct(request, env) {
+  try {
+    const { productId, baseName, dosage, purchasePrice } = await request.json();
+    if (!productId || !baseName || !dosage || purchasePrice === undefined || purchasePrice === null) {
+      return jsonResponse({ error: ERROR_MESSAGES.MISSING_FIELDS }, 400);
+    }
+
+    const cleanBase = String(baseName).trim();
+    const cleanDosage = String(dosage).trim();
+    const cleanPrice = Number(purchasePrice);
+    if (!cleanBase || !cleanDosage || !Number.isFinite(cleanPrice) || cleanPrice < 0) {
+      return jsonResponse({ error: 'Попълни коректно името, дозировката и доставната цена.' }, 400);
+    }
+
+    const storageType = getPepStorageType(env);
+    if (!storageType) {
+      return jsonResponse({ error: ERROR_MESSAGES.PEP_STORAGE_NOT_CONFIGURED }, 500);
+    }
+
+    let product;
+    let updatedAt;
+    if (storageType === 'd1') {
+      await pepD1Seed(env);
+      product = await pepD1UpdateProduct(env, productId, {
+        baseName: cleanBase,
+        dosage: cleanDosage,
+        purchasePrice: cleanPrice
+      });
+      updatedAt = await pepD1SetUpdatedAt(env);
+    } else {
+      const bootstrap = await pepKVBootstrap(env);
+      const productIndex = bootstrap.products.findIndex((entry) => Number(entry.id) === Number(productId));
+      if (productIndex === -1) {
+        return jsonResponse({ error: ERROR_MESSAGES.NOT_FOUND }, 404);
+      }
+
+      const duplicate = bootstrap.products.some((entry, index) =>
+        index !== productIndex &&
+        entry.baseName.toLowerCase() === cleanBase.toLowerCase() &&
+        entry.dosage.toLowerCase() === cleanDosage.toLowerCase()
+      );
+      if (duplicate) {
+        return jsonResponse({ error: 'Този продукт вече съществува в каталога' }, 409);
+      }
+
+      product = normalizePepProductRow({
+        id: productId,
+        baseName: cleanBase,
+        dosage: cleanDosage,
+        purchasePrice: cleanPrice
+      });
+      bootstrap.products[productIndex] = product;
+      updatedAt = await pepKVWriteAll(env, bootstrap.products, bootstrap.sales, pepNowISO());
+    }
+
+    return jsonResponse({ success: true, product, updatedAt, storage: storageType });
+  } catch (error) {
+    console.error('PEP update product error:', error);
+    if (error.message === ERROR_MESSAGES.NOT_FOUND) {
+      return jsonResponse({ error: ERROR_MESSAGES.NOT_FOUND }, 404);
+    }
+    if (error.message === 'Този продукт вече съществува в каталога') {
+      return jsonResponse({ error: error.message }, 409);
+    }
+    return jsonResponse({ error: error.message || 'Неуспешна редакция на продукт' }, 500);
+  }
+}
+
+async function handlePepDeleteProduct(request, env) {
+  try {
+    const { productId } = await request.json();
+    if (!productId) {
+      return jsonResponse({ error: ERROR_MESSAGES.MISSING_FIELDS }, 400);
+    }
+
+    const storageType = getPepStorageType(env);
+    if (!storageType) {
+      return jsonResponse({ error: ERROR_MESSAGES.PEP_STORAGE_NOT_CONFIGURED }, 500);
+    }
+
+    let updatedAt;
+    if (storageType === 'd1') {
+      await pepD1Seed(env);
+      await pepD1DeleteProduct(env, productId);
+      updatedAt = await pepD1SetUpdatedAt(env);
+    } else {
+      const bootstrap = await pepKVBootstrap(env);
+      const nextProducts = bootstrap.products.filter((entry) => Number(entry.id) !== Number(productId));
+      if (nextProducts.length === bootstrap.products.length) {
+        return jsonResponse({ error: ERROR_MESSAGES.NOT_FOUND }, 404);
+      }
+      updatedAt = await pepKVWriteAll(env, nextProducts, bootstrap.sales, pepNowISO());
+    }
+
+    return jsonResponse({ success: true, updatedAt, storage: storageType });
+  } catch (error) {
+    console.error('PEP delete product error:', error);
+    if (error.message === ERROR_MESSAGES.NOT_FOUND) {
+      return jsonResponse({ error: ERROR_MESSAGES.NOT_FOUND }, 404);
+    }
+    return jsonResponse({ error: error.message || 'Неуспешно изтриване на продукт' }, 500);
   }
 }
 
@@ -14987,6 +15141,10 @@ export default {
         return await handlePepBootstrap(request, env);
       } else if (url.pathname === '/api/pep/products' && request.method === 'POST') {
         return await handlePepCreateProduct(request, env);
+      } else if (url.pathname === '/api/pep/products/update' && request.method === 'POST') {
+        return await handlePepUpdateProduct(request, env);
+      } else if (url.pathname === '/api/pep/products/delete' && request.method === 'POST') {
+        return await handlePepDeleteProduct(request, env);
       } else if (url.pathname === '/api/pep/sales' && request.method === 'POST') {
         return await handlePepCreateSale(request, env);
       } else if (url.pathname === '/api/pep/sales/delete' && request.method === 'POST') {

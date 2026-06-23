@@ -886,6 +886,7 @@
                         <th>Продадени</th>
                         <th>Едро ×2</th>
                         <th>Дребно ×2.5</th>
+                        <th>Действия</th>
                     </tr>
                 </thead>
                 <tbody id="productTableBody"></tbody>
@@ -900,6 +901,31 @@
         <div class="card-title">📜 История по продукт</div>
         <div id="historyModalSubtitle" style="color:var(--text-muted);font-size:0.9rem;margin:6px 0 0;"></div>
         <div id="modalHistoryList"></div>
+    </div>
+</div>
+
+<div id="editProductModal" class="modal" aria-hidden="true">
+    <div class="modal-content">
+        <span class="close-edit-product-modal" aria-label="Затвори">&times;</span>
+        <div class="card-title">✏️ Редакция на продукт</div>
+        <input type="hidden" id="editProductId">
+        <div class="edit-modal-grid">
+            <div class="form-group full-width">
+                <label for="editProductBaseName">Продукт</label>
+                <input type="text" id="editProductBaseName" placeholder="Tesamorelin">
+            </div>
+            <div class="form-group">
+                <label for="editProductDosage">Дозировка</label>
+                <input type="text" id="editProductDosage" placeholder="10 mg">
+            </div>
+            <div class="form-group">
+                <label for="editProductPrice">Доставна цена (€)</label>
+                <input type="number" step="0.01" id="editProductPrice" inputmode="decimal">
+            </div>
+            <div class="form-group full-width">
+                <button id="saveProductEditBtn">Запази промените</button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -1219,6 +1245,72 @@
         }
     }
 
+    async function updateProduct(productId, baseName, dosage, purchasePrice) {
+        const cleanBase = baseName.trim();
+        const cleanDosage = dosage.trim();
+        const cleanPrice = safeNumber(purchasePrice);
+
+        if (!cleanBase || !cleanDosage || !Number.isFinite(cleanPrice) || cleanPrice < 0) {
+            throw new Error('Попълни коректно името, дозировката и доставната цена.');
+        }
+
+        const duplicate = state.products.some((product) =>
+            safeNumber(product.id) !== safeNumber(productId) &&
+            product.baseName.toLowerCase() === cleanBase.toLowerCase() &&
+            product.dosage.toLowerCase() === cleanDosage.toLowerCase()
+        );
+        if (duplicate) {
+            throw new Error('Този продукт вече съществува в каталога.');
+        }
+
+        if (state.storageMode === 'backend') {
+            const payload = await requestJSON(`${API_BASE}/products/update`, {
+                method: 'POST',
+                body: JSON.stringify({ productId, baseName: cleanBase, dosage: cleanDosage, purchasePrice: cleanPrice })
+            });
+            const productIndex = state.products.findIndex((product) => safeNumber(product.id) === safeNumber(productId));
+            if (productIndex !== -1) {
+                state.products[productIndex] = payload.product;
+            }
+            state.lastSyncAt = payload.updatedAt || new Date().toISOString();
+        } else {
+            const productIndex = state.products.findIndex((product) => safeNumber(product.id) === safeNumber(productId));
+            if (productIndex === -1) {
+                throw new Error('Продуктът не е намерен.');
+            }
+            state.products[productIndex] = {
+                ...state.products[productIndex],
+                baseName: cleanBase,
+                dosage: cleanDosage,
+                purchasePrice: cleanPrice
+            };
+            saveLocalState();
+            state.lastSyncAt = new Date().toISOString();
+        }
+    }
+
+    async function removeProduct(productId) {
+        const product = state.products.find((item) => safeNumber(item.id) === safeNumber(productId));
+        const productLabel = product ? `${product.baseName} ${product.dosage}` : 'този продукт';
+
+        if (!confirm(`Да изтрия ли „${productLabel}" от каталога? Историята на продажбите остава непроменена.`)) {
+            return;
+        }
+
+        if (state.storageMode === 'backend') {
+            const payload = await requestJSON(`${API_BASE}/products/delete`, {
+                method: 'POST',
+                body: JSON.stringify({ productId })
+            });
+            state.products = state.products.filter((product) => safeNumber(product.id) !== safeNumber(productId));
+            state.lastSyncAt = payload.updatedAt || new Date().toISOString();
+        } else {
+            state.products = state.products.filter((product) => safeNumber(product.id) !== safeNumber(productId));
+            saveLocalState();
+            state.lastSyncAt = new Date().toISOString();
+        }
+    }
+
     async function addSale(productId, quantity, multiplier, comment, dateValue) {
         const product = state.products.find((item) => safeNumber(item.id) === safeNumber(productId));
         const qty = parseInt(quantity, 10);
@@ -1319,19 +1411,48 @@
 
         const sortedProducts = getSortedProducts();
         if (!sortedProducts.length) {
-            tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state">Каталогът е празен. Добави първия продукт от формата по-горе.</div></td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">Каталогът е празен. Добави първия продукт от формата по-горе.</div></td></tr>';
             return;
         }
 
         sortedProducts.forEach((product) => {
             const row = tbody.insertRow();
             const totalSold = getTotalSoldQty(product.id);
-            row.insertCell().innerHTML = `<span class="product-pill">${product.baseName}</span>`;
+            row.insertCell().innerHTML = `<span class="product-pill">${escapeHtml(product.baseName)}</span>`;
             row.insertCell().textContent = product.dosage;
             row.insertCell().textContent = formatMoney(product.purchasePrice);
-            row.insertCell().innerHTML = `<button type="button" class="sold-count" data-productid="${product.id}" data-name="${product.baseName} ${product.dosage}">${totalSold} бр.</button>`;
+            row.insertCell().innerHTML = `<button type="button" class="sold-count" data-productid="${product.id}" data-name="${escapeHtml(product.baseName)} ${escapeHtml(product.dosage)}">${totalSold} бр.</button>`;
             row.insertCell().textContent = formatMoney(product.purchasePrice * 2);
             row.insertCell().textContent = formatMoney(product.purchasePrice * 2.5);
+
+            const actionCell = row.insertCell();
+            actionCell.innerHTML = '<div class="action-cell"></div>';
+            const actionDiv = actionCell.querySelector('.action-cell');
+
+            const editButton = document.createElement('button');
+            editButton.type = 'button';
+            editButton.className = 'edit-btn';
+            editButton.textContent = 'Редакция';
+            editButton.addEventListener('click', (event) => {
+                event.stopPropagation();
+                openEditProductModal(product);
+            });
+            actionDiv.appendChild(editButton);
+
+            const deleteButton = document.createElement('button');
+            deleteButton.type = 'button';
+            deleteButton.className = 'delete-btn';
+            deleteButton.textContent = 'Изтрий';
+            deleteButton.addEventListener('click', async (event) => {
+                event.stopPropagation();
+                await runSafely(async () => {
+                    await removeProduct(product.id);
+                    refreshAllUI();
+                    updateStatusPanel();
+                    showBanner('Продуктът беше изтрит от каталога.', 'info');
+                });
+            });
+            actionDiv.appendChild(deleteButton);
         });
 
         document.querySelectorAll('.sold-count').forEach((button) => {
@@ -1667,6 +1788,22 @@
         modal.setAttribute('aria-hidden', 'true');
     }
 
+    function openEditProductModal(product) {
+        const modal = document.getElementById('editProductModal');
+        document.getElementById('editProductId').value = product.id;
+        document.getElementById('editProductBaseName').value = product.baseName;
+        document.getElementById('editProductDosage').value = product.dosage;
+        document.getElementById('editProductPrice').value = product.purchasePrice;
+        modal.style.display = 'flex';
+        modal.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeEditProductModal() {
+        const modal = document.getElementById('editProductModal');
+        modal.style.display = 'none';
+        modal.setAttribute('aria-hidden', 'true');
+    }
+
     document.getElementById('editMultiplierType').addEventListener('change', function() {
         const customInput = document.getElementById('editCustomMultiplier');
         const isCustom = this.value === 'custom';
@@ -1727,6 +1864,24 @@
     });
 
     document.querySelector('.close-edit-modal').addEventListener('click', closeEditSaleModal);
+
+    document.getElementById('saveProductEditBtn').addEventListener('click', async () => {
+        await runSafely(async () => {
+            const productId = safeNumber(document.getElementById('editProductId').value);
+            await updateProduct(
+                productId,
+                document.getElementById('editProductBaseName').value,
+                document.getElementById('editProductDosage').value,
+                document.getElementById('editProductPrice').value
+            );
+            closeEditProductModal();
+            refreshAllUI();
+            updateStatusPanel();
+            showBanner('Продуктът е редактиран успешно.', 'info');
+        });
+    });
+
+    document.querySelector('.close-edit-product-modal').addEventListener('click', closeEditProductModal);
     /* --- End Edit Sale Modal --- */
 
     async function runSafely(action) {
@@ -1910,6 +2065,9 @@
         }
         if (event.target === document.getElementById('editSaleModal')) {
             closeEditSaleModal();
+        }
+        if (event.target === document.getElementById('editProductModal')) {
+            closeEditProductModal();
         }
     });
 
