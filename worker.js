@@ -2384,25 +2384,6 @@ async function pepD1UpdateProduct(env, productId, updates) {
     dosage: updates.dosage,
     purchasePrice: updates.purchasePrice
   });
-  const productName = formatPepProductName(product.baseName, product.dosage);
-  const unitPrice = Number(product.purchasePrice);
-
-  const salesResult = await env.PEP_DB.prepare(`
-    SELECT id, product_id AS productId, product_name AS productName, quantity, multiplier,
-           comment, sale_date AS date, revenue, cost
-    FROM pep_sales
-    WHERE product_id = ?
-  `).bind(Number(productId)).all();
-
-  for (const saleRow of salesResult.results || []) {
-    const sale = normalizePepSaleRow(saleRow);
-    const recalculated = buildPepSaleRecord(product, sale, sale.id);
-    await env.PEP_DB.prepare(`
-      UPDATE pep_sales
-      SET product_name = ?, revenue = ?, cost = ?
-      WHERE id = ?
-    `).bind(recalculated.productName, recalculated.revenue, recalculated.cost, sale.id).run();
-  }
 
   return product;
 }
@@ -2414,7 +2395,10 @@ async function pepD1DeleteProduct(env, productId) {
     throw new Error(ERROR_MESSAGES.NOT_FOUND);
   }
 
+  // Keep historical sales unchanged; only remove the product from the catalog.
+  await env.PEP_DB.exec('PRAGMA foreign_keys = OFF');
   await env.PEP_DB.prepare(`DELETE FROM pep_products WHERE id = ?`).bind(Number(productId)).run();
+  await env.PEP_DB.exec('PRAGMA foreign_keys = ON');
 }
 
 async function pepD1InsertSale(env, saleInput) {
@@ -2698,12 +2682,6 @@ async function handlePepUpdateProduct(request, env) {
         purchasePrice: cleanPrice
       });
       bootstrap.products[productIndex] = product;
-      bootstrap.sales = bootstrap.sales.map((sale) => {
-        if (Number(sale.productId) !== Number(productId)) {
-          return sale;
-        }
-        return buildPepSaleRecord(product, sale, sale.id);
-      });
       updatedAt = await pepKVWriteAll(env, bootstrap.products, bootstrap.sales, pepNowISO());
     }
 
@@ -2743,8 +2721,7 @@ async function handlePepDeleteProduct(request, env) {
       if (nextProducts.length === bootstrap.products.length) {
         return jsonResponse({ error: ERROR_MESSAGES.NOT_FOUND }, 404);
       }
-      const nextSales = bootstrap.sales.filter((entry) => Number(entry.productId) !== Number(productId));
-      updatedAt = await pepKVWriteAll(env, nextProducts, nextSales, pepNowISO());
+      updatedAt = await pepKVWriteAll(env, nextProducts, bootstrap.sales, pepNowISO());
     }
 
     return jsonResponse({ success: true, updatedAt, storage: storageType });

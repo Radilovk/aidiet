@@ -1245,24 +1245,6 @@
         }
     }
 
-    function recalculateSalesForProduct(product) {
-        state.sales = state.sales.map((sale) => {
-            if (safeNumber(sale.productId) !== safeNumber(product.id)) {
-                return sale;
-            }
-            const quantity = safeNumber(sale.quantity);
-            const multiplier = safeNumber(sale.multiplier);
-            const cost = product.purchasePrice * quantity;
-            const revenue = multiplier === 1 ? 0 : product.purchasePrice * multiplier * quantity;
-            return {
-                ...sale,
-                productName: `${product.baseName} ${product.dosage}`,
-                revenue,
-                cost
-            };
-        });
-    }
-
     async function updateProduct(productId, baseName, dosage, purchasePrice) {
         const cleanBase = baseName.trim();
         const cleanDosage = dosage.trim();
@@ -1290,35 +1272,28 @@
             if (productIndex !== -1) {
                 state.products[productIndex] = payload.product;
             }
-            recalculateSalesForProduct(payload.product);
             state.lastSyncAt = payload.updatedAt || new Date().toISOString();
         } else {
             const productIndex = state.products.findIndex((product) => safeNumber(product.id) === safeNumber(productId));
             if (productIndex === -1) {
                 throw new Error('Продуктът не е намерен.');
             }
-            const updatedProduct = {
+            state.products[productIndex] = {
                 ...state.products[productIndex],
                 baseName: cleanBase,
                 dosage: cleanDosage,
                 purchasePrice: cleanPrice
             };
-            state.products[productIndex] = updatedProduct;
-            recalculateSalesForProduct(updatedProduct);
             saveLocalState();
             state.lastSyncAt = new Date().toISOString();
         }
     }
 
     async function removeProduct(productId) {
-        const relatedSales = getTotalSoldQty(productId);
         const product = state.products.find((item) => safeNumber(item.id) === safeNumber(productId));
         const productLabel = product ? `${product.baseName} ${product.dosage}` : 'този продукт';
-        const warning = relatedSales > 0
-            ? `Продуктът „${productLabel}" има ${relatedSales} продадени бройки в историята. Изтриването ще премахне и свързаните записи.`
-            : `Да изтрия ли „${productLabel}" от каталога?`;
 
-        if (!confirm(warning)) {
+        if (!confirm(`Да изтрия ли „${productLabel}" от каталога? Историята на продажбите остава непроменена.`)) {
             return;
         }
 
@@ -1328,11 +1303,9 @@
                 body: JSON.stringify({ productId })
             });
             state.products = state.products.filter((product) => safeNumber(product.id) !== safeNumber(productId));
-            state.sales = state.sales.filter((sale) => safeNumber(sale.productId) !== safeNumber(productId));
             state.lastSyncAt = payload.updatedAt || new Date().toISOString();
         } else {
             state.products = state.products.filter((product) => safeNumber(product.id) !== safeNumber(productId));
-            state.sales = state.sales.filter((sale) => safeNumber(sale.productId) !== safeNumber(productId));
             saveLocalState();
             state.lastSyncAt = new Date().toISOString();
         }
