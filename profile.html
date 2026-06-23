@@ -2986,39 +2986,28 @@
             }
         });
 
-        function hasExistingPlanSession() {
+        function hasLocalPlanSession() {
             try {
                 const plan = JSON.parse(localStorage.getItem('dietPlan') || 'null');
                 if (plan && !plan._partial) return true;
             } catch (_) {}
-            const storedUserId = localStorage.getItem('userId') || '';
-            return storedUserId.startsWith('fb_');
+            return false;
         }
 
-        function classifyDietChanges(oldData, newData) {
-            const majorFields = ['goal', 'medicalConditions', 'medications', 'dietPreference', 'dietDislike', 'gender'];
-            const moderateFields = ['weight', 'height', 'lossKg', 'dailyActivityLevel', 'sportActivity', 'dietType'];
-            for (const field of majorFields) {
-                const oldVal = String(oldData[field] || '').trim();
-                const newVal = String(newData[field] || '').trim();
-                if (oldVal !== newVal) return 'major';
+        async function checkExistingPlanForEmail(email) {
+            if (hasLocalPlanSession()) return true;
+            const normalized = (email || '').trim().toLowerCase();
+            if (!normalized) return false;
+            try {
+                const resp = await fetch(WORKER_PROFILE + '/api/user/check-account?email=' + encodeURIComponent(normalized));
+                if (resp.ok) {
+                    const data = await resp.json();
+                    return !!(data.requiresAuth || data.hasPlan || data.hasActivatedPlan);
+                }
+            } catch (e) {
+                console.warn('Failed to check existing plan for email:', e);
             }
-            for (const field of moderateFields) {
-                const oldVal = String(oldData[field] || '').trim();
-                const newVal = String(newData[field] || '').trim();
-                if (oldVal !== newVal) return 'moderate';
-            }
-            return 'minor';
-        }
-
-        function getRegenerationHint(tier) {
-            if (tier === 'major') {
-                return 'Промените засягат цел, здраве или предпочитания — ще се генерира изцяло нов план (4 AI стъпки).';
-            }
-            if (tier === 'moderate') {
-                return 'Промените засягат телесни показатели или активност — пълна регенерация е препоръчителна. За малки корекции използвайте чата в таб „План“. ';
-            }
-            return 'Промените са леки — за корекции на отделни хранения помислете за режим „Промяна на план“ в чата, вместо пълна регенерация.';
+            return false;
         }
 
         async function syncClientAnswersToAdmin(userData) {
@@ -3222,18 +3211,18 @@
             }
 
             const updatedData = collectFormData();
-            const changeTier = classifyDietChanges(originalData, updatedData);
-            const regenHint = getRegenerationHint(changeTier);
-            const replacingExistingPlan = hasExistingPlanSession();
             const email = (updatedData.email || '').trim().toLowerCase();
+            const replacingExistingPlan = await checkExistingPlanForEmail(email);
 
             if (replacingExistingPlan && !email) {
                 showAlert('⚠️ Имейлът е задължителен за замяна на съществуващ план.', 'warning');
                 return;
             }
 
+            const fullRegenMessage = 'Ще се генерира изцяло нов хранителен план (анализ → стратегия → седмично меню → обобщение). Процесът отнема няколко минути.';
+
             if (!replacingExistingPlan) {
-                if (!confirm('Регенерирането на плана ще отнеме време.\n\n' + regenHint + '\n\nСигурни ли сте, че искате да продължите?')) {
+                if (!confirm(fullRegenMessage + '\n\nСигурни ли сте, че искате да продължите?')) {
                     return;
                 }
             }
@@ -3243,7 +3232,7 @@
                 try {
                     authContext = await showRegenAuthModal(
                         email,
-                        'Новият план ще замени текущия в системата след одобрение от специалист. ' + regenHint
+                        'Новият план ще замени текущия в системата. ' + fullRegenMessage + ' След генериране планът ще изчака одобрение от специалист.'
                     );
                 } catch (_) {
                     return;
@@ -3267,6 +3256,7 @@
                 localStorage.setItem('planJobId', jobId);
                 localStorage.setItem('planJobSource', requireApproval ? 'profile-regen' : 'questionnaire');
                 localStorage.setItem('pendingPlanPayload', JSON.stringify(updatedData));
+                if (requireApproval) localStorage.setItem('planReplacePending', '1');
 
                 const fbUserId = authContext?.userId || (function() {
                     const uid = localStorage.getItem('userId');
@@ -3383,6 +3373,7 @@
                     );
                     const prevCount = parseInt(localStorage.getItem('demoProfileRegenCount') || '0', 10);
                     localStorage.setItem('demoProfileRegenCount', String(prevCount + 1));
+                    localStorage.removeItem('planReplacePending');
                     showAlert('✓ Новият план е генериран и изпратен за одобрение. Пренасочване...', 'info');
                     setTimeout(() => {
                         if (!requestShellAction('NUTRIPLAN_NAVIGATE', { url: 'plan-pending.html', replace: false, forceTopLevel: true })) {

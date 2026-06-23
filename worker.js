@@ -6819,7 +6819,7 @@ async function handleGetClientData(request, env) {
 // ─── Admin: Update client plan ───
 async function handleUpdateClientPlan(request, env, ctx) {
   try {
-    const { clientId, plan, userId } = await request.json();
+    const { clientId, plan, userId, forcePending } = await request.json();
     if (!clientId || !plan) {
       return jsonResponse({ error: 'Missing clientId or plan' }, 400);
     }
@@ -6836,15 +6836,15 @@ async function handleUpdateClientPlan(request, env, ctx) {
     if (userId) clientData.userId = userId;
     clientData.planUpdatedAt = new Date().toISOString();
     
-    // For existing approved clients (who had a previously activated plan):
-    // Auto-activate new plans so they can use them immediately.
-    // For new/first-time clients: require admin review before activation.
-    if (wasPreviouslyActivated) {
-      // Existing client — auto-activate their plan update
+    // Plan replacement from profile/questionnaire requires admin approval even when
+    // the client had a previously activated plan (forcePending).
+    if (forcePending) {
+      clientData.planStatus = 'pending';
+      clientData.planActivatedAt = null;
+    } else if (wasPreviouslyActivated) {
       clientData.planStatus = 'activated';
       clientData.planActivatedAt = new Date().toISOString();
     } else {
-      // First-time or previously rejected plan — require admin review
       clientData.planStatus = 'pending';
       clientData.planActivatedAt = null;
     }
@@ -14489,6 +14489,52 @@ async function handleSaveUserProfile(request, env) {
 }
 
 /**
+ * GET /api/user/check-account?email=...
+ * Lightweight check whether an email already has a plan (for auth gate before replacement).
+ */
+async function handleCheckAccountEmail(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+
+    const url = new URL(request.url);
+    const email = normalizeEmail(url.searchParams.get('email'));
+    if (!email) {
+      return jsonResponse({ error: 'Missing email' }, 400);
+    }
+
+    const matched = await findClientByEmail(env, email);
+    if (!matched) {
+      return jsonResponse({
+        exists: false,
+        hasPlan: false,
+        hasActivatedPlan: false,
+        requiresAuth: false,
+        planStatus: 'none',
+      });
+    }
+
+    const clientData = matched.clientData;
+    const hasPlan = Boolean(clientData.plan);
+    const hasActivatedPlan = clientData.planStatus === 'activated';
+    const requiresAuth = hasPlan || hasActivatedPlan || Boolean(clientData.planActivatedAt);
+
+    return jsonResponse({
+      exists: true,
+      hasPlan,
+      hasActivatedPlan,
+      requiresAuth,
+      planStatus: clientData.planStatus || 'none',
+      clientId: matched.clientId,
+    });
+  } catch (error) {
+    console.error('Error checking account email:', error);
+    return jsonResponse({ error: 'Failed to check account: ' + error.message }, 500);
+  }
+}
+
+/**
  * User: Get user profile (plan + userData) for cross-context restoration
  *
  * Called by the PWA on first launch when localStorage is empty but the
@@ -15387,6 +15433,8 @@ export default {
         return await handleSaveUserProfile(request, env);
       } else if (url.pathname === '/api/user/sync-analytics' && request.method === 'POST') {
         return await handleSyncAnalytics(request, env);
+      } else if (url.pathname === '/api/user/check-account' && request.method === 'GET') {
+        return await handleCheckAccountEmail(request, env);
       } else if (url.pathname === '/api/user/profile' && request.method === 'GET') {
         return await handleGetUserProfile(request, env);
       } else if (url.pathname === '/api/admin/subscriptions' && request.method === 'GET') {
