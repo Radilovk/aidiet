@@ -4020,10 +4020,11 @@ async function generatePlanCore(env, data, onAnalysisReady = null) {
  * Runs as a ctx.waitUntil() background task so the Worker stays alive even
  * after the HTTP client disconnects (e.g. Android app backgrounded/killed).
  */
-async function generatePlanAndSave(env, data, jobId, clientId) {
+async function generatePlanAndSave(env, data, jobId, clientId, options = {}) {
+  const { requireApproval = false, userId: preferredUserId = '' } = options;
   console.log(`generatePlanAndSave: starting job ${jobId}${clientId ? ` (clientId: ${clientId})` : ''}`);
   try {
-    const userId = data.email || generateUserId(data);
+    const userId = preferredUserId || data.email || generateUserId(data);
     const result = await generatePlanCore(env, data, async (analysis) => {
       await env.page_content.put(
         PLAN_JOB_PREFIX + jobId,
@@ -4040,15 +4041,26 @@ async function generatePlanAndSave(env, data, jobId, clientId) {
     });
     await env.page_content.put(
       PLAN_JOB_PREFIX + jobId,
-      JSON.stringify({ status: 'completed', completedAt: Date.now(), ...result }),
+      JSON.stringify({ status: 'completed', completedAt: Date.now(), ...result, userId }),
       { expirationTtl: PLAN_JOB_TTL_SEC }
     );
     console.log(`generatePlanAndSave: job ${jobId} completed and saved to KV`);
 
-    // Persist the completed plan directly to the admin-visible client record so
-    // that approval works even when the browser closes before the client-side
-    // polling can call /api/admin/update-client-plan.
-    if (clientId && result.success && result.plan) {
+    if (result.success && result.plan && normalizeEmail(data.email)) {
+      try {
+        const syncResult = await syncPlanToEmailCanonicalStore(env, {
+          email: data.email,
+          plan: result.plan,
+          userData: data,
+          userId,
+          clientId: clientId || '',
+          requireApproval,
+        });
+        console.log(`generatePlanAndSave: job ${jobId} synced to email store`, syncResult);
+      } catch (e) {
+        console.warn(`generatePlanAndSave: failed to sync plan by email for job ${jobId}:`, e.message);
+      }
+    } else if (clientId && result.success && result.plan) {
       try {
         const raw = await env.page_content.get(`client:${clientId}`);
         if (raw) {
@@ -4057,9 +4069,16 @@ async function generatePlanAndSave(env, data, jobId, clientId) {
           clientData.plan = result.plan;
           if (userId) clientData.userId = userId;
           clientData.planUpdatedAt = new Date().toISOString();
-          clientData.planStatus = wasPreviouslyActivated ? 'activated' : 'pending';
-          if (wasPreviouslyActivated) clientData.planActivatedAt = new Date().toISOString();
-          else clientData.planActivatedAt = null;
+          clientData.planStatus = requireApproval
+            ? 'pending'
+            : (wasPreviouslyActivated ? 'activated' : 'pending');
+          if (requireApproval) {
+            clientData.planActivatedAt = null;
+          } else if (wasPreviouslyActivated) {
+            clientData.planActivatedAt = new Date().toISOString();
+          } else {
+            clientData.planActivatedAt = null;
+          }
           await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
           console.log(`generatePlanAndSave: job ${jobId} plan saved to client record ${clientId}`);
         }
@@ -4133,18 +4152,56 @@ async function handleGeneratePlanAsync(request, env, ctx) {
     const jobId = (rawBody._jobId && JOB_ID_UUID_RE.test(String(rawBody._jobId)))
       ? String(rawBody._jobId)
       : crypto.randomUUID();
-    delete rawBody._jobId;
-    // Accept a client record ID so the backend can persist the completed plan
-    // directly into the admin-visible client record, regardless of whether the
-    // browser stays open long enough to do it client-side.
     const clientId = (typeof rawBody._clientId === 'string' && rawBody._clientId.startsWith('client_'))
       ? rawBody._clientId : null;
+    const requireApproval = rawBody._requireApproval === true;
+    const explicitUserId = typeof rawBody._userId === 'string' ? rawBody._userId.trim() : '';
+    const idToken = typeof rawBody._idToken === 'string' ? rawBody._idToken : null;
+    delete rawBody._jobId;
     delete rawBody._clientId;
+    delete rawBody._requireApproval;
+    delete rawBody._userId;
+    delete rawBody._idToken;
 
     const data = normalizeQuestionnaireData(rawBody);
     if (!data.name || !data.age || !data.weight || !data.height) {
       return jsonResponse({ error: ERROR_MESSAGES.MISSING_FIELDS }, 400);
     }
+
+    if (requireApproval) {
+      if (!normalizeEmail(data.email)) {
+        return jsonResponse({ error: 'Email is required for plan regeneration' }, 400);
+      }
+      if (!explicitUserId.startsWith('fb_') || !idToken) {
+        return jsonResponse({ error: 'Authentication required to replace an existing plan' }, 401);
+      }
+      if (env.FIREBASE_PROJECT_ID) {
+        try {
+          const firebaseUser = await verifyFirebaseIdToken(idToken, env);
+          if (`fb_${firebaseUser.uid}` !== explicitUserId) {
+            return jsonResponse({ error: 'Token does not match userId' }, 403);
+          }
+          const tokenEmail = normalizeEmail(firebaseUser.email);
+          const dataEmail = normalizeEmail(data.email);
+          if (tokenEmail && dataEmail && tokenEmail !== dataEmail) {
+            return jsonResponse({ error: 'Email mismatch' }, 403);
+          }
+        } catch (_) {
+          return jsonResponse({ error: 'Invalid Firebase ID token' }, 401);
+        }
+      }
+    }
+
+    let resolvedClientId = clientId;
+    if (!resolvedClientId && data.email) {
+      const existingClient = await findClientByEmail(env, data.email);
+      if (existingClient) resolvedClientId = existingClient.clientId;
+    }
+
+    const generationOptions = {
+      requireApproval,
+      userId: explicitUserId || '',
+    };
 
     // Write initial 'pending' marker so polling can detect the job even if the
     // client disconnects and reconnects before the plan is ready.
@@ -4162,13 +4219,18 @@ async function handleGeneratePlanAsync(request, env, ctx) {
       // with up to 15 minutes of execution time (see the queue handler below).
       // The queue binding is configured in wrangler.toml; see the comment at the
       // top of this function for the one-time setup command.
-      await env.PLAN_QUEUE.send({ jobId, data, clientId }, { contentType: 'json' });
+      await env.PLAN_QUEUE.send({
+        jobId,
+        data,
+        clientId: resolvedClientId,
+        generationOptions,
+      }, { contentType: 'json' });
     } else {
       // Fallback: ctx.waitUntil() for local dev / environments without the queue.
       // WARNING: This path may be cancelled by Cloudflare after ~30 seconds on the
       // Bundled/Standard execution model.
       console.warn('handleGeneratePlanAsync: PLAN_QUEUE not bound – falling back to ctx.waitUntil(). Run "wrangler queues create plan-generation" to fix this.');
-      ctx.waitUntil(generatePlanAndSave(env, data, jobId, clientId));
+      ctx.waitUntil(generatePlanAndSave(env, data, jobId, resolvedClientId, generationOptions));
     }
 
     return jsonResponse({ success: true, jobId });
@@ -5054,17 +5116,169 @@ async function findClientByEmail(env, email) {
   const normalizedEmail = normalizeEmail(email);
   if (!normalizedEmail || !env.page_content) return null;
 
+  const emailIndex = await kvGetJSON(env, `email_index:${normalizedEmail}`);
+  if (emailIndex?.clientId) {
+    const clientData = await kvGetJSON(env, `client:${emailIndex.clientId}`);
+    if (clientData) {
+      return { clientId: emailIndex.clientId, clientData };
+    }
+  }
+
   const clientIds = await kvGetJSON(env, 'clients_list') || [];
   for (const clientId of clientIds.slice(0, 500)) {
     const clientData = await kvGetJSON(env, `client:${clientId}`);
     if (!clientData) continue;
     const clientEmail = normalizeEmail(clientData.answers?.email);
     if (clientEmail === normalizedEmail) {
+      await setEmailIndex(env, normalizedEmail, {
+        userId: clientData.userId || emailIndex?.userId || '',
+        clientId,
+      });
       return { clientId, clientData };
     }
   }
 
   return null;
+}
+
+async function getEmailIndex(env, email) {
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail || !env.page_content) return null;
+  return kvGetJSON(env, `email_index:${normalizedEmail}`);
+}
+
+async function setEmailIndex(env, email, { userId, clientId }) {
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail || !env.page_content) return;
+  const existing = (await getEmailIndex(env, normalizedEmail)) || {};
+  let resolvedUserId = userId || existing.userId || '';
+  if (userId?.startsWith('fb_')) {
+    resolvedUserId = userId;
+  } else if (existing.userId?.startsWith('fb_')) {
+    resolvedUserId = existing.userId;
+  }
+  const next = {
+    userId: resolvedUserId,
+    clientId: clientId || existing.clientId || '',
+    updatedAt: new Date().toISOString(),
+  };
+  await kvPutJSON(env, `email_index:${normalizedEmail}`, next, null);
+}
+
+/**
+ * Canonical plan store keyed by email: one client record + one user profile per email.
+ * Replaces any previous plan for the same email in admin and cross-device restore.
+ */
+async function syncPlanToEmailCanonicalStore(env, {
+  email,
+  plan = null,
+  userData = null,
+  userId = '',
+  clientId = '',
+  requireApproval = false,
+}) {
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail || !env.page_content) {
+    return { clientId: clientId || null, userId: userId || null, planStatus: 'none' };
+  }
+
+  let resolvedClientId = clientId || '';
+  let clientData = null;
+
+  if (resolvedClientId) {
+    clientData = await kvGetJSON(env, `client:${resolvedClientId}`);
+  }
+  if (!clientData) {
+    const existing = await findClientByEmail(env, normalizedEmail);
+    if (existing) {
+      resolvedClientId = existing.clientId;
+      clientData = existing.clientData;
+    }
+  }
+
+  const now = new Date().toISOString();
+  if (!clientData) {
+    resolvedClientId = resolvedClientId || `client_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
+    clientData = {
+      id: resolvedClientId,
+      timestamp: now,
+      submittedAt: now,
+      answers: userData || {},
+      files: [],
+      plan: null,
+      planStatus: 'none',
+      planUpdatedAt: null,
+      planActivatedAt: null,
+      userId: '',
+    };
+  }
+
+  if (userData) {
+    clientData.answers = { ...(clientData.answers || {}), ...userData };
+  }
+  if (plan) {
+    clientData.plan = plan;
+    clientData.planUpdatedAt = now;
+    if (requireApproval) {
+      clientData.planStatus = 'pending';
+      clientData.planActivatedAt = null;
+    } else {
+      const wasPreviouslyActivated = Boolean(clientData.planActivatedAt);
+      clientData.planStatus = wasPreviouslyActivated ? 'activated' : 'pending';
+      clientData.planActivatedAt = wasPreviouslyActivated ? now : null;
+    }
+  }
+
+  const emailIndex = await getEmailIndex(env, normalizedEmail);
+  const preferredUserId = (userId && userId.startsWith('fb_'))
+    ? userId
+    : (clientData.userId?.startsWith('fb_')
+      ? clientData.userId
+      : (emailIndex?.userId?.startsWith('fb_')
+        ? emailIndex.userId
+        : (userId || clientData.userId || normalizedEmail)));
+
+  clientData.userId = preferredUserId;
+  clientData.id = resolvedClientId;
+
+  await kvPutJSON(env, `client:${resolvedClientId}`, clientData, null);
+
+  let clientsList = await kvGetJSON(env, 'clients_list') || [];
+  clientsList = clientsList.filter(id => id !== resolvedClientId);
+  clientsList.unshift(resolvedClientId);
+  if (clientsList.length > 500) clientsList = clientsList.slice(0, 500);
+  await kvPutJSON(env, 'clients_list', clientsList, null);
+
+  await setEmailIndex(env, normalizedEmail, {
+    userId: preferredUserId,
+    clientId: resolvedClientId,
+  });
+
+  if (plan && preferredUserId) {
+    await upsertUserProfilePlan(env, preferredUserId, {
+      plan,
+      userData: clientData.answers || {},
+      planSource: requireApproval ? 'questionnaire2' : '',
+      clientId: resolvedClientId,
+      planUpdatedAt: now,
+    });
+  }
+
+  if (plan && requireApproval && clientData.planStatus === 'pending') {
+    sendPushNotificationToUser('admin', {
+      title: 'Нов план чака преглед',
+      body: `Клиент ${clientData.answers?.name || resolvedClientId} — регенериран план от профила.`,
+      url: '/admin.html',
+      icon: '/icon-192x192.png',
+      notificationType: 'admin_plan_pending',
+    }, env).catch(e => console.warn('Admin push notification failed:', e.message));
+  }
+
+  return {
+    clientId: resolvedClientId,
+    userId: preferredUserId,
+    planStatus: clientData.planStatus,
+  };
 }
 
 /**
@@ -5128,6 +5342,13 @@ async function handleSaveClientData(request, env, ctx) {
     
     // Store client data in KV with client: prefix
     await kvPutJSON(env, `client:${clientId}`, clientData, null);
+    
+    if (normalizedEmail) {
+      await setEmailIndex(env, normalizedEmail, {
+        userId: clientData.userId || '',
+        clientId,
+      });
+    }
     
     // Maintain a list of all client IDs for easy retrieval
     let clientsList = await kvGetJSON(env, 'clients_list') || [];
@@ -14194,15 +14415,52 @@ async function handleSaveUserProfile(request, env) {
     const ttl = userId.startsWith('fb_')
       ? 365 * 24 * 60 * 60
       :  90 * 24 * 60 * 60;
-    await kvPutJSON(env, `user_profile:${userId}`, profileData, ttl);
 
-    // Link questionnaire-2 client records back to the Firebase/anonymous profile.
-    // This lets admin activation update the same profile that APK login restores.
     const normalizedEmail = normalizeEmail(profileData.userData?.email);
     let resolvedClientId = clientId || '';
     if (!resolvedClientId && normalizedEmail) {
       resolvedClientId = (await findClientByEmail(env, normalizedEmail))?.clientId || '';
     }
+
+    await kvPutJSON(env, `user_profile:${userId}`, profileData, ttl);
+
+    if (normalizedEmail) {
+      await setEmailIndex(env, normalizedEmail, {
+        userId,
+        clientId: resolvedClientId || profileData.clientId || '',
+      });
+      if (planChanged && plan) {
+        try {
+          const syncResult = await syncPlanToEmailCanonicalStore(env, {
+            email: normalizedEmail,
+            plan,
+            userData: profileData.userData,
+            userId,
+            clientId: resolvedClientId || profileData.clientId || '',
+            requireApproval: profileData.planSource === 'questionnaire2',
+          });
+          if (syncResult?.clientId) resolvedClientId = syncResult.clientId;
+        } catch (e) {
+          console.warn(`Failed to sync plan by email for profile ${userId}:`, e.message);
+        }
+      } else if (profileData.userData && Object.keys(profileData.userData).length > 0) {
+        try {
+          const syncResult = await syncPlanToEmailCanonicalStore(env, {
+            email: normalizedEmail,
+            userData: profileData.userData,
+            userId,
+            clientId: resolvedClientId || profileData.clientId || '',
+            requireApproval: false,
+          });
+          if (syncResult?.clientId) resolvedClientId = syncResult.clientId;
+        } catch (e) {
+          console.warn(`Failed to sync profile answers for ${userId}:`, e.message);
+        }
+      }
+    }
+
+    // Link questionnaire-2 client records back to the Firebase/anonymous profile.
+    // This lets admin activation update the same profile that APK login restores.
     if (resolvedClientId) {
       try {
         const clientData = await kvGetJSON(env, `client:${resolvedClientId}`);
@@ -14245,9 +14503,9 @@ async function handleGetUserProfile(request, env) {
     }
 
     const url = new URL(request.url);
-    const userId = url.searchParams.get('userId');
+    let resolvedUserId = url.searchParams.get('userId');
 
-    if (!userId) {
+    if (!resolvedUserId) {
       return jsonResponse({ error: 'Missing userId' }, 400);
     }
 
@@ -14255,13 +14513,13 @@ async function handleGetUserProfile(request, env) {
     // This prevents one user from reading another user's profile.
     // Only attempt verification when FIREBASE_PROJECT_ID is configured; without it
     // verifyFirebaseIdToken always throws "Invalid audience" causing unnecessary 401s.
-    if (userId.startsWith('fb_') && env.FIREBASE_PROJECT_ID) {
+    if (resolvedUserId.startsWith('fb_') && env.FIREBASE_PROJECT_ID) {
       const authHeader = request.headers.get('Authorization') || '';
       const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
       if (idToken) {
         try {
           const firebaseUser = await verifyFirebaseIdToken(idToken, env);
-          if ('fb_' + firebaseUser.uid !== userId) {
+          if ('fb_' + firebaseUser.uid !== resolvedUserId) {
             return jsonResponse({ error: 'Token does not match userId' }, 403);
           }
         } catch (_) {
@@ -14273,18 +14531,44 @@ async function handleGetUserProfile(request, env) {
     const requestedEmail = normalizeEmail(url.searchParams.get('email'));
     const localPlanAt = url.searchParams.get('localPlanAt');
 
-    let profile = await kvGetJSON(env, `user_profile:${userId}`);
+    let profile = await kvGetJSON(env, `user_profile:${resolvedUserId}`);
+
+    if (requestedEmail) {
+      const emailIndex = await getEmailIndex(env, requestedEmail);
+      if (emailIndex?.userId && emailIndex.userId !== resolvedUserId) {
+        const canonicalProfile = await kvGetJSON(env, `user_profile:${emailIndex.userId}`);
+        if (canonicalProfile?.plan) {
+          profile = canonicalProfile;
+          resolvedUserId = emailIndex.userId;
+        }
+      }
+      if (!profile?.plan && emailIndex?.clientId) {
+        const clientData = await kvGetJSON(env, `client:${emailIndex.clientId}`);
+        if (clientData?.plan) {
+          profile = {
+            userId: emailIndex.userId || resolvedUserId,
+            plan: clientData.plan,
+            userData: clientData.answers || {},
+            planSource: clientData.planStatus === 'activated' ? '' : 'questionnaire2',
+            clientId: emailIndex.clientId,
+            savedAt: new Date().toISOString(),
+            planUpdatedAt: clientData.planUpdatedAt || clientData.planActivatedAt || new Date().toISOString(),
+          };
+          if (emailIndex.userId) resolvedUserId = emailIndex.userId;
+        }
+      }
+    }
 
     if (!profile && requestedEmail) {
       const matchedClient = await findClientByEmail(env, requestedEmail);
       if (matchedClient) {
         const clientData = matchedClient.clientData;
-        if (userId && clientData.userId !== userId) {
-          clientData.userId = userId;
+        if (resolvedUserId && clientData.userId !== resolvedUserId) {
+          clientData.userId = resolvedUserId;
           await kvPutJSON(env, `client:${matchedClient.clientId}`, clientData, null);
         }
         profile = {
-          userId: userId || clientData.userId || '',
+          userId: resolvedUserId || clientData.userId || '',
           plan: clientData.plan || null,
           userData: clientData.answers || {},
           planSource: clientData.planStatus === 'activated' ? '' : 'questionnaire2',
@@ -14292,11 +14576,11 @@ async function handleGetUserProfile(request, env) {
           savedAt: new Date().toISOString(),
           planUpdatedAt: clientData.planUpdatedAt || clientData.planActivatedAt || new Date().toISOString()
         };
-        const ttl = userId && userId.startsWith('fb_')
+        const ttl = resolvedUserId && resolvedUserId.startsWith('fb_')
           ? 365 * 24 * 60 * 60
           : 90 * 24 * 60 * 60;
-        if (userId) {
-          await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
+        if (resolvedUserId) {
+          await kvPutJSON(env, `user_profile:${resolvedUserId}`, profile, ttl);
         }
       }
     }
@@ -14341,7 +14625,7 @@ async function handleGetUserProfile(request, env) {
         profile.planSource = '';
         if (clientId) profile.clientId = clientId;
         planSource = '';
-        await kvPutJSON(env, `user_profile:${userId}`, profile, null);
+        await kvPutJSON(env, `user_profile:${resolvedUserId}`, profile, null);
       } else if (clientId) {
         profile.clientId = clientId;
       }
@@ -15194,10 +15478,10 @@ export default {
    */
   async queue(batch, env) {
     for (const message of batch.messages) {
-      const { jobId, data, clientId } = message.body;
+      const { jobId, data, clientId, generationOptions } = message.body;
       console.log(`Queue consumer: received job ${jobId}`);
       try {
-        await generatePlanAndSave(env, data, jobId, clientId || null);
+        await generatePlanAndSave(env, data, jobId, clientId || null, generationOptions || {});
         message.ack();
         console.log(`Queue consumer: acked job ${jobId}`);
       } catch (err) {

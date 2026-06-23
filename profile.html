@@ -863,6 +863,81 @@
             background:transparent; color:#6366f1;
             font-weight:600; cursor:pointer; font-size:0.82rem;
         }
+        /* Plan regeneration confirmation modal */
+        .regen-auth-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            z-index: 4000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .regen-auth-overlay.open { display: flex; }
+        .regen-auth-box {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 24px 20px 20px;
+            max-width: 380px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+        }
+        .regen-auth-box h3 {
+            margin: 0 0 8px;
+            font-size: 1.05rem;
+            color: var(--text-dark);
+        }
+        .regen-auth-box p {
+            margin: 0 0 16px;
+            font-size: 0.85rem;
+            color: var(--text-gray, #6b7280);
+            line-height: 1.5;
+        }
+        .regen-auth-input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1.5px solid rgba(13,148,136,0.25);
+            border-radius: 12px;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            background: var(--bg-light, #fff);
+            color: var(--text-dark);
+            box-sizing: border-box;
+        }
+        .regen-auth-email {
+            background: rgba(13,148,136,0.06);
+            color: var(--text-gray, #6b7280);
+        }
+        .regen-auth-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 6px;
+        }
+        .regen-auth-actions button {
+            flex: 1;
+            padding: 12px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.88rem;
+            cursor: pointer;
+            border: none;
+        }
+        .regen-auth-confirm {
+            background: linear-gradient(135deg, #0D9488, #0F766E);
+            color: #fff;
+        }
+        .regen-auth-cancel {
+            background: transparent;
+            border: 1.5px solid rgba(13,148,136,0.3) !important;
+            color: var(--text-dark);
+        }
+        .regen-auth-error {
+            color: #dc2626;
+            font-size: 0.8rem;
+            margin-top: 8px;
+            min-height: 1.2em;
+        }
         /* Dark theme overrides */
         [data-theme="dark"] .game-analytics-section { border-color: rgba(45,212,191,0.15); }
         [data-theme="dark"] .game-index-bar-wrap    { background: rgba(45,212,191,0.1); }
@@ -2156,6 +2231,20 @@
             </div> <!-- End questionnaire-content -->
         </div> <!-- End questionnaire-container -->
 
+    <div class="regen-auth-overlay" id="regenAuthOverlay" role="dialog" aria-modal="true" aria-labelledby="regenAuthTitle">
+        <div class="regen-auth-box">
+            <h3 id="regenAuthTitle">Потвърдете новия план</h3>
+            <p id="regenAuthMessage">Новият план ще замени текущия след одобрение от специалист. Въведете имейл и парола за потвърждение.</p>
+            <input type="email" class="regen-auth-input regen-auth-email" id="regenAuthEmail" readonly aria-label="Имейл">
+            <input type="password" class="regen-auth-input" id="regenAuthPassword" placeholder="Парола" autocomplete="current-password" aria-label="Парола">
+            <div class="regen-auth-error" id="regenAuthError"></div>
+            <div class="regen-auth-actions">
+                <button type="button" class="regen-auth-cancel" id="regenAuthCancelBtn">Отказ</button>
+                <button type="button" class="regen-auth-confirm" id="regenAuthConfirmBtn">Потвърди и генерирай</button>
+            </div>
+        </div>
+    </div>
+
         <!-- SEPARATE CONTAINER: Health Analysis Section (collapsible, default collapsed) -->
         <div class="analysis-container" id="analysisSection" style="display: none;">
             <div class="analysis-header analysis-header-toggle"
@@ -2897,6 +2986,171 @@
             }
         });
 
+        function hasExistingPlanSession() {
+            try {
+                const plan = JSON.parse(localStorage.getItem('dietPlan') || 'null');
+                if (plan && !plan._partial) return true;
+            } catch (_) {}
+            const storedUserId = localStorage.getItem('userId') || '';
+            return storedUserId.startsWith('fb_');
+        }
+
+        function classifyDietChanges(oldData, newData) {
+            const majorFields = ['goal', 'medicalConditions', 'medications', 'dietPreference', 'dietDislike', 'gender'];
+            const moderateFields = ['weight', 'height', 'lossKg', 'dailyActivityLevel', 'sportActivity', 'dietType'];
+            for (const field of majorFields) {
+                const oldVal = String(oldData[field] || '').trim();
+                const newVal = String(newData[field] || '').trim();
+                if (oldVal !== newVal) return 'major';
+            }
+            for (const field of moderateFields) {
+                const oldVal = String(oldData[field] || '').trim();
+                const newVal = String(newData[field] || '').trim();
+                if (oldVal !== newVal) return 'moderate';
+            }
+            return 'minor';
+        }
+
+        function getRegenerationHint(tier) {
+            if (tier === 'major') {
+                return 'Промените засягат цел, здраве или предпочитания — ще се генерира изцяло нов план (4 AI стъпки).';
+            }
+            if (tier === 'moderate') {
+                return 'Промените засягат телесни показатели или активност — пълна регенерация е препоръчителна. За малки корекции използвайте чата в таб „План“. ';
+            }
+            return 'Промените са леки — за корекции на отделни хранения помислете за режим „Промяна на план“ в чата, вместо пълна регенерация.';
+        }
+
+        async function syncClientAnswersToAdmin(userData) {
+            const email = (userData.email || '').trim();
+            if (!email) return localStorage.getItem('pendingClientId') || null;
+            const clientId = localStorage.getItem('pendingClientId') || ('client_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10));
+            try {
+                const resp = await fetch(WORKER_PROFILE + '/api/save-client-data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: clientId,
+                        timestamp: new Date().toISOString(),
+                        answers: userData,
+                        files: []
+                    })
+                });
+                if (resp.ok) {
+                    const result = await resp.json();
+                    if (result.clientId) {
+                        localStorage.setItem('pendingClientId', result.clientId);
+                        return result.clientId;
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to sync client answers to admin:', e);
+            }
+            return localStorage.getItem('pendingClientId');
+        }
+
+        async function saveProfileToBackend(userId, plan, userData, planSource, idToken, clientId) {
+            const COOKIE_OPTS = ';path=/;max-age=' + (365 * 24 * 60 * 60) + ';SameSite=Lax;Secure';
+            document.cookie = 'np_uid=' + encodeURIComponent(userId) + COOKIE_OPTS;
+            try {
+                await fetch(WORKER_PROFILE + '/api/user/save-profile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId,
+                        plan,
+                        userData,
+                        planSource: planSource || '',
+                        ...(idToken ? { idToken } : {}),
+                        ...(clientId ? { clientId } : {})
+                    })
+                });
+            } catch (e) {
+                console.warn('[Profile] Backend profile save failed:', e);
+            }
+        }
+
+        function showRegenAuthModal(email, message) {
+            return new Promise(function(resolve, reject) {
+                const overlay = document.getElementById('regenAuthOverlay');
+                const emailInput = document.getElementById('regenAuthEmail');
+                const pwInput = document.getElementById('regenAuthPassword');
+                const errorEl = document.getElementById('regenAuthError');
+                const msgEl = document.getElementById('regenAuthMessage');
+                const confirmBtn = document.getElementById('regenAuthConfirmBtn');
+                const cancelBtn = document.getElementById('regenAuthCancelBtn');
+                if (!overlay || !emailInput || !pwInput || !confirmBtn || !cancelBtn) {
+                    reject(new Error('Липсва формата за потвърждение'));
+                    return;
+                }
+
+                emailInput.value = email;
+                pwInput.value = '';
+                if (errorEl) errorEl.textContent = '';
+                if (msgEl && message) msgEl.textContent = message;
+
+                function cleanup() {
+                    overlay.classList.remove('open');
+                    confirmBtn.removeEventListener('click', onConfirm);
+                    cancelBtn.removeEventListener('click', onCancel);
+                    overlay.removeEventListener('click', onOverlayClick);
+                    pwInput.removeEventListener('keydown', onKeydown);
+                }
+
+                function onCancel() {
+                    cleanup();
+                    reject(new Error('cancelled'));
+                }
+
+                function onOverlayClick(e) {
+                    if (e.target === overlay) onCancel();
+                }
+
+                function onKeydown(e) {
+                    if (e.key === 'Enter') onConfirm();
+                    if (e.key === 'Escape') onCancel();
+                }
+
+                async function onConfirm() {
+                    const password = pwInput.value || '';
+                    if (password.length < 6) {
+                        if (errorEl) errorEl.textContent = 'Паролата трябва да е поне 6 символа.';
+                        return;
+                    }
+                    confirmBtn.disabled = true;
+                    if (errorEl) errorEl.textContent = '';
+                    try {
+                        if (!window.NutriPlanProfileAuth || typeof window.NutriPlanProfileAuth.confirmEmailPassword !== 'function') {
+                            throw new Error('Автентикацията не е налична. Презаредете страницата.');
+                        }
+                        const authResult = await window.NutriPlanProfileAuth.confirmEmailPassword(email, password);
+                        cleanup();
+                        resolve(authResult);
+                    } catch (err) {
+                        const code = err && err.code;
+                        if (errorEl) {
+                            errorEl.textContent = (
+                                code === 'auth/wrong-password' || code === 'auth/invalid-credential'
+                            ) ? 'Грешна парола.' : (
+                                code === 'auth/user-not-found'
+                            ) ? 'Няма акаунт с този имейл.' : (
+                                code === 'auth/too-many-requests'
+                            ) ? 'Твърде много опити. Изчакайте.' : (err.message || 'Грешка при вход.');
+                        }
+                    } finally {
+                        confirmBtn.disabled = false;
+                    }
+                }
+
+                confirmBtn.addEventListener('click', onConfirm);
+                cancelBtn.addEventListener('click', onCancel);
+                overlay.addEventListener('click', onOverlayClick);
+                pwInput.addEventListener('keydown', onKeydown);
+                overlay.classList.add('open');
+                setTimeout(function() { pwInput.focus(); }, 100);
+            });
+        }
+
         async function saveChanges() {
             // Validate data before saving
             const validationResult = validateFormDataWithDetails();
@@ -2913,6 +3167,27 @@
                 localStorage.setItem('userData', JSON.stringify(updatedData));
                 userData = updatedData;
                 originalData = JSON.parse(JSON.stringify(updatedData));
+
+                await syncClientAnswersToAdmin(updatedData);
+
+                const storedUserId = localStorage.getItem('userId') || '';
+                if (storedUserId && localStorage.getItem('dietPlan')) {
+                    let plan = null;
+                    try { plan = JSON.parse(localStorage.getItem('dietPlan')); } catch (_) {}
+                    if (plan) {
+                        const idToken = window.NutriPlanProfileAuth && typeof window.NutriPlanProfileAuth.getIdTokenIfLoggedIn === 'function'
+                            ? await window.NutriPlanProfileAuth.getIdTokenIfLoggedIn()
+                            : null;
+                        await saveProfileToBackend(
+                            storedUserId,
+                            plan,
+                            updatedData,
+                            localStorage.getItem('planSource') || '',
+                            idToken,
+                            localStorage.getItem('pendingClientId')
+                        );
+                    }
+                }
 
                 // Update UI
                 if (updatedData.name) {
@@ -2945,53 +3220,91 @@
                 showAlert('⚠️ Демо режим — лимит достигнат: В демо версията се позволява само едно регенериране на план след редакция на профила.', 'warning');
                 return;
             }
-            
-            // Confirm before regenerating (important action)
-            if (!confirm('Регенерирането на плана ще отнеме време. Сигурни ли сте, че искате да продължите?')) {
+
+            const updatedData = collectFormData();
+            const changeTier = classifyDietChanges(originalData, updatedData);
+            const regenHint = getRegenerationHint(changeTier);
+            const replacingExistingPlan = hasExistingPlanSession();
+            const email = (updatedData.email || '').trim().toLowerCase();
+
+            if (replacingExistingPlan && !email) {
+                showAlert('⚠️ Имейлът е задължителен за замяна на съществуващ план.', 'warning');
                 return;
             }
-            
-            // First save the changes
-            const updatedData = collectFormData();
+
+            if (!replacingExistingPlan) {
+                if (!confirm('Регенерирането на плана ще отнеме време.\n\n' + regenHint + '\n\nСигурни ли сте, че искате да продължите?')) {
+                    return;
+                }
+            }
+
+            let authContext = null;
+            if (replacingExistingPlan) {
+                try {
+                    authContext = await showRegenAuthModal(
+                        email,
+                        'Новият план ще замени текущия в системата след одобрение от специалист. ' + regenHint
+                    );
+                } catch (_) {
+                    return;
+                }
+            }
 
             try {
-                // Save to localStorage
                 localStorage.setItem('userData', JSON.stringify(updatedData));
                 userData = updatedData;
 
-                // Show loading state
+                const savedClientId = await syncClientAnswersToAdmin(updatedData);
+
                 const btn = document.getElementById('saveAndRegenerateBtn');
                 btn.disabled = true;
                 btn.innerHTML = '<div class="spinner"></div> Регенериране на план...';
 
                 showAlert('Генерирам нов план на базата на актуализираните данни...', 'info');
 
-                // Use async generation so the plan continues even if the page is backgrounded.
                 const jobId = crypto.randomUUID();
+                const requireApproval = replacingExistingPlan;
                 localStorage.setItem('planJobId', jobId);
-                localStorage.setItem('planJobSource', 'questionnaire');
+                localStorage.setItem('planJobSource', requireApproval ? 'profile-regen' : 'questionnaire');
                 localStorage.setItem('pendingPlanPayload', JSON.stringify(updatedData));
+
+                const fbUserId = authContext?.userId || (function() {
+                    const uid = localStorage.getItem('userId');
+                    return (uid && uid.startsWith('fb_')) ? uid : null;
+                })();
+                const idToken = authContext?.idToken || (
+                    window.NutriPlanProfileAuth && typeof window.NutriPlanProfileAuth.getIdTokenIfLoggedIn === 'function'
+                        ? await window.NutriPlanProfileAuth.getIdTokenIfLoggedIn()
+                        : null
+                );
+
+                const requestBody = {
+                    ...updatedData,
+                    _jobId: jobId,
+                    ...(savedClientId ? { _clientId: savedClientId } : {}),
+                    ...(requireApproval ? { _requireApproval: true, _userId: fbUserId, _idToken: idToken } : {})
+                };
 
                 const startController = new AbortController();
                 const startTimeoutId = setTimeout(() => startController.abort(), 30000);
                 let asyncResponse;
                 try {
-                    asyncResponse = await fetch('https://aidiet.radilov-k.workers.dev/api/generate-plan-async', {
+                    asyncResponse = await fetch(WORKER_PROFILE + '/api/generate-plan-async', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ ...updatedData, _jobId: jobId }),
+                        body: JSON.stringify(requestBody),
                         signal: startController.signal
                     });
                 } finally {
                     clearTimeout(startTimeoutId);
                 }
-                clearTimeout(startTimeoutId);
 
                 if (!asyncResponse.ok) {
                     localStorage.removeItem('planJobId');
                     localStorage.removeItem('planJobSource');
                     localStorage.removeItem('pendingPlanPayload');
-                    throw new Error(`Server returned ${asyncResponse.status}`);
+                    const errData = await asyncResponse.json().catch(() => ({}));
+                    throw new Error(errData.error || ('Server returned ' + asyncResponse.status));
                 }
 
                 const asyncResult = await asyncResponse.json();
@@ -3002,8 +3315,7 @@
                     throw new Error(asyncResult.error || 'Неизвестна грешка при стартиране на генерирането');
                 }
 
-                // Poll for result with exponential backoff: 5s → 10s → 20s → 30s (capped)
-                const MAX_POLLS = 72; // ~18 minutes at average backoff
+                const MAX_POLLS = 72;
                 const POLL_BASE_DELAY = 5000;
                 const POLL_MAX_DELAY = 30000;
                 let polls = 0;
@@ -3019,7 +3331,7 @@
                         throw new Error('Генерирането отне твърде дълго. Моля, опитайте отново.');
                     }
                     const statusResp = await fetch(
-                        'https://aidiet.radilov-k.workers.dev/api/plan-job-status?jobId=' + encodeURIComponent(activeJobId)
+                        WORKER_PROFILE + '/api/plan-job-status?jobId=' + encodeURIComponent(activeJobId)
                     );
                     if (!statusResp.ok) {
                         if (statusResp.status === 429 || statusResp.status >= 500) {
@@ -3051,26 +3363,54 @@
                 localStorage.removeItem('planJobSource');
                 localStorage.removeItem('pendingPlanPayload');
 
-                // Save new plan
+                const resolvedUserId = fbUserId || result.userId || localStorage.getItem('userId');
                 localStorage.setItem('dietPlan', JSON.stringify(result.plan));
-                if (result.userId) {
-                    localStorage.setItem('userId', result.userId);
+                if (resolvedUserId) {
+                    localStorage.setItem('userId', resolvedUserId);
                 }
-
-                // Reset justification flag so modal shows on first load of regenerated plan
                 localStorage.removeItem('hasSeenPlanJustification');
 
-                // Demo: increment regeneration counter
-                const prevCount = parseInt(localStorage.getItem('demoProfileRegenCount') || '0', 10);
-                localStorage.setItem('demoProfileRegenCount', String(prevCount + 1));
+                if (requireApproval) {
+                    localStorage.setItem('planSource', 'questionnaire2');
+                    if (savedClientId) localStorage.setItem('pendingClientId', savedClientId);
+                    await saveProfileToBackend(
+                        resolvedUserId,
+                        result.plan,
+                        updatedData,
+                        'questionnaire2',
+                        idToken,
+                        savedClientId
+                    );
+                    const prevCount = parseInt(localStorage.getItem('demoProfileRegenCount') || '0', 10);
+                    localStorage.setItem('demoProfileRegenCount', String(prevCount + 1));
+                    showAlert('✓ Новият план е генериран и изпратен за одобрение. Пренасочване...', 'info');
+                    setTimeout(() => {
+                        if (!requestShellAction('NUTRIPLAN_NAVIGATE', { url: 'plan-pending.html', replace: false, forceTopLevel: true })) {
+                            window.location.href = 'plan-pending.html';
+                        }
+                    }, 2000);
+                } else {
+                    localStorage.removeItem('planSource');
+                    await saveProfileToBackend(
+                        resolvedUserId,
+                        result.plan,
+                        updatedData,
+                        '',
+                        idToken,
+                        savedClientId
+                    );
+                    const prevCount = parseInt(localStorage.getItem('demoProfileRegenCount') || '0', 10);
+                    localStorage.setItem('demoProfileRegenCount', String(prevCount + 1));
+                    showAlert('✓ Планът е регенериран успешно! Пренасочване...', 'info');
+                    setTimeout(() => {
+                        if (!requestShellAction('NUTRIPLAN_SWITCH_TAB', { tab: 'plan' })) {
+                            window.location.href = 'index.html?app=1&tab=plan';
+                        }
+                    }, 2000);
+                }
 
-                showAlert('✓ Планът е регенериран успешно! Пренасочване...', 'info');
-                
-                setTimeout(() => {
-                    if (!requestShellAction('NUTRIPLAN_SWITCH_TAB', { tab: 'plan' })) {
-                        window.location.href = 'index.html?app=1&tab=plan';
-                    }
-                }, 2000);
+                originalData = JSON.parse(JSON.stringify(updatedData));
+                cancelEditing();
 
             } catch (error) {
                 console.error('Error regenerating plan:', error);
@@ -4148,7 +4488,7 @@
     <script type="module">
         import { initializeApp, getApps, getApp }
                 from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-        import { getAuth, signOut, onAuthStateChanged }
+        import { getAuth, signOut, onAuthStateChanged, signInWithEmailAndPassword }
                 from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
         const firebaseConfig = {
@@ -4164,6 +4504,23 @@
             /* auth-guard.js (loaded earlier) already initialised the default app;
              * reuse it so we don't get a "duplicate-app" error. */
             const auth = getAuth(getApps().length ? getApp() : initializeApp(firebaseConfig));
+
+            window.NutriPlanProfileAuth = {
+                async confirmEmailPassword(email, password) {
+                    const cred = await signInWithEmailAndPassword(auth, email, password);
+                    const idToken = await cred.user.getIdToken();
+                    return {
+                        userId: 'fb_' + cred.user.uid,
+                        idToken,
+                        email: cred.user.email
+                    };
+                },
+                async getIdTokenIfLoggedIn() {
+                    const user = auth.currentUser;
+                    if (!user) return null;
+                    return user.getIdToken().catch(() => null);
+                }
+            };
 
             onAuthStateChanged(auth, async (user) => {
                 if (user && window.NutriPlanSession && typeof window.NutriPlanSession.ensureAuthenticatedUser === 'function') {
