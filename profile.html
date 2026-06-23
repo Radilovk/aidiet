@@ -863,81 +863,7 @@
             background:transparent; color:#6366f1;
             font-weight:600; cursor:pointer; font-size:0.82rem;
         }
-        /* Plan regeneration confirmation modal */
-        .regen-auth-overlay {
-            position: fixed; inset: 0;
-            background: rgba(0,0,0,0.5);
-            backdrop-filter: blur(4px);
-            z-index: 4000;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        .regen-auth-overlay.open { display: flex; }
-        .regen-auth-box {
-            background: var(--card-bg);
-            border-radius: 20px;
-            padding: 24px 20px 20px;
-            max-width: 380px;
-            width: 100%;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
-        }
-        .regen-auth-box h3 {
-            margin: 0 0 8px;
-            font-size: 1.05rem;
-            color: var(--text-dark);
-        }
-        .regen-auth-box p {
-            margin: 0 0 16px;
-            font-size: 0.85rem;
-            color: var(--text-gray, #6b7280);
-            line-height: 1.5;
-        }
-        .regen-auth-input {
-            width: 100%;
-            padding: 12px 14px;
-            border: 1.5px solid rgba(13,148,136,0.25);
-            border-radius: 12px;
-            font-size: 0.9rem;
-            margin-bottom: 10px;
-            background: var(--bg-light, #fff);
-            color: var(--text-dark);
-            box-sizing: border-box;
-        }
-        .regen-auth-email {
-            background: rgba(13,148,136,0.06);
-            color: var(--text-gray, #6b7280);
-        }
-        .regen-auth-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 6px;
-        }
-        .regen-auth-actions button {
-            flex: 1;
-            padding: 12px;
-            border-radius: 12px;
-            font-weight: 700;
-            font-size: 0.88rem;
-            cursor: pointer;
-            border: none;
-        }
-        .regen-auth-confirm {
-            background: linear-gradient(135deg, #0D9488, #0F766E);
-            color: #fff;
-        }
-        .regen-auth-cancel {
-            background: transparent;
-            border: 1.5px solid rgba(13,148,136,0.3) !important;
-            color: var(--text-dark);
-        }
-        .regen-auth-error {
-            color: #dc2626;
-            font-size: 0.8rem;
-            margin-top: 8px;
-            min-height: 1.2em;
-        }
+
         /* Dark theme overrides */
         [data-theme="dark"] .game-analytics-section { border-color: rgba(45,212,191,0.15); }
         [data-theme="dark"] .game-index-bar-wrap    { background: rgba(45,212,191,0.1); }
@@ -1914,6 +1840,7 @@
 </head>
 <body>
     <script src="./session-utils.js"></script>
+    <script src="./plan-sync.js"></script>
     <script src="./diagnostics-log.js"></script>
     <script src="./platform.js"></script>
     <script type="module" src="./auth-guard.js"></script>
@@ -2230,20 +2157,6 @@
                 </div>
             </div> <!-- End questionnaire-content -->
         </div> <!-- End questionnaire-container -->
-
-    <div class="regen-auth-overlay" id="regenAuthOverlay" role="dialog" aria-modal="true" aria-labelledby="regenAuthTitle">
-        <div class="regen-auth-box">
-            <h3 id="regenAuthTitle">Потвърдете новия план</h3>
-            <p id="regenAuthMessage">Новият план ще замени текущия след одобрение от специалист. Въведете имейл и парола за потвърждение.</p>
-            <input type="email" class="regen-auth-input regen-auth-email" id="regenAuthEmail" readonly aria-label="Имейл">
-            <input type="password" class="regen-auth-input" id="regenAuthPassword" placeholder="Парола" autocomplete="current-password" aria-label="Парола">
-            <div class="regen-auth-error" id="regenAuthError"></div>
-            <div class="regen-auth-actions">
-                <button type="button" class="regen-auth-cancel" id="regenAuthCancelBtn">Отказ</button>
-                <button type="button" class="regen-auth-confirm" id="regenAuthConfirmBtn">Потвърди и генерирай</button>
-            </div>
-        </div>
-    </div>
 
         <!-- SEPARATE CONTAINER: Health Analysis Section (collapsible, default collapsed) -->
         <div class="analysis-container" id="analysisSection" style="display: none;">
@@ -2986,160 +2899,6 @@
             }
         });
 
-        function hasLocalPlanSession() {
-            try {
-                const plan = JSON.parse(localStorage.getItem('dietPlan') || 'null');
-                if (plan && !plan._partial) return true;
-            } catch (_) {}
-            return false;
-        }
-
-        async function checkExistingPlanForEmail(email) {
-            if (hasLocalPlanSession()) return true;
-            const normalized = (email || '').trim().toLowerCase();
-            if (!normalized) return false;
-            try {
-                const resp = await fetch(WORKER_PROFILE + '/api/user/check-account?email=' + encodeURIComponent(normalized));
-                if (resp.ok) {
-                    const data = await resp.json();
-                    return !!(data.requiresAuth || data.hasPlan || data.hasActivatedPlan);
-                }
-            } catch (e) {
-                console.warn('Failed to check existing plan for email:', e);
-            }
-            return false;
-        }
-
-        async function syncClientAnswersToAdmin(userData) {
-            const email = (userData.email || '').trim();
-            if (!email) return localStorage.getItem('pendingClientId') || null;
-            const clientId = localStorage.getItem('pendingClientId') || ('client_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10));
-            try {
-                const resp = await fetch(WORKER_PROFILE + '/api/save-client-data', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        id: clientId,
-                        timestamp: new Date().toISOString(),
-                        answers: userData,
-                        files: []
-                    })
-                });
-                if (resp.ok) {
-                    const result = await resp.json();
-                    if (result.clientId) {
-                        localStorage.setItem('pendingClientId', result.clientId);
-                        return result.clientId;
-                    }
-                }
-            } catch (e) {
-                console.warn('Failed to sync client answers to admin:', e);
-            }
-            return localStorage.getItem('pendingClientId');
-        }
-
-        async function saveProfileToBackend(userId, plan, userData, planSource, idToken, clientId) {
-            const COOKIE_OPTS = ';path=/;max-age=' + (365 * 24 * 60 * 60) + ';SameSite=Lax;Secure';
-            document.cookie = 'np_uid=' + encodeURIComponent(userId) + COOKIE_OPTS;
-            try {
-                await fetch(WORKER_PROFILE + '/api/user/save-profile', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId,
-                        plan,
-                        userData,
-                        planSource: planSource || '',
-                        ...(idToken ? { idToken } : {}),
-                        ...(clientId ? { clientId } : {})
-                    })
-                });
-            } catch (e) {
-                console.warn('[Profile] Backend profile save failed:', e);
-            }
-        }
-
-        function showRegenAuthModal(email, message) {
-            return new Promise(function(resolve, reject) {
-                const overlay = document.getElementById('regenAuthOverlay');
-                const emailInput = document.getElementById('regenAuthEmail');
-                const pwInput = document.getElementById('regenAuthPassword');
-                const errorEl = document.getElementById('regenAuthError');
-                const msgEl = document.getElementById('regenAuthMessage');
-                const confirmBtn = document.getElementById('regenAuthConfirmBtn');
-                const cancelBtn = document.getElementById('regenAuthCancelBtn');
-                if (!overlay || !emailInput || !pwInput || !confirmBtn || !cancelBtn) {
-                    reject(new Error('Липсва формата за потвърждение'));
-                    return;
-                }
-
-                emailInput.value = email;
-                pwInput.value = '';
-                if (errorEl) errorEl.textContent = '';
-                if (msgEl && message) msgEl.textContent = message;
-
-                function cleanup() {
-                    overlay.classList.remove('open');
-                    confirmBtn.removeEventListener('click', onConfirm);
-                    cancelBtn.removeEventListener('click', onCancel);
-                    overlay.removeEventListener('click', onOverlayClick);
-                    pwInput.removeEventListener('keydown', onKeydown);
-                }
-
-                function onCancel() {
-                    cleanup();
-                    reject(new Error('cancelled'));
-                }
-
-                function onOverlayClick(e) {
-                    if (e.target === overlay) onCancel();
-                }
-
-                function onKeydown(e) {
-                    if (e.key === 'Enter') onConfirm();
-                    if (e.key === 'Escape') onCancel();
-                }
-
-                async function onConfirm() {
-                    const password = pwInput.value || '';
-                    if (password.length < 6) {
-                        if (errorEl) errorEl.textContent = 'Паролата трябва да е поне 6 символа.';
-                        return;
-                    }
-                    confirmBtn.disabled = true;
-                    if (errorEl) errorEl.textContent = '';
-                    try {
-                        if (!window.NutriPlanProfileAuth || typeof window.NutriPlanProfileAuth.confirmEmailPassword !== 'function') {
-                            throw new Error('Автентикацията не е налична. Презаредете страницата.');
-                        }
-                        const authResult = await window.NutriPlanProfileAuth.confirmEmailPassword(email, password);
-                        cleanup();
-                        resolve(authResult);
-                    } catch (err) {
-                        const code = err && err.code;
-                        if (errorEl) {
-                            errorEl.textContent = (
-                                code === 'auth/wrong-password' || code === 'auth/invalid-credential'
-                            ) ? 'Грешна парола.' : (
-                                code === 'auth/user-not-found'
-                            ) ? 'Няма акаунт с този имейл.' : (
-                                code === 'auth/too-many-requests'
-                            ) ? 'Твърде много опити. Изчакайте.' : (err.message || 'Грешка при вход.');
-                        }
-                    } finally {
-                        confirmBtn.disabled = false;
-                    }
-                }
-
-                confirmBtn.addEventListener('click', onConfirm);
-                cancelBtn.addEventListener('click', onCancel);
-                overlay.addEventListener('click', onOverlayClick);
-                pwInput.addEventListener('keydown', onKeydown);
-                overlay.classList.add('open');
-                setTimeout(function() { pwInput.focus(); }, 100);
-            });
-        }
-
         async function saveChanges() {
             // Validate data before saving
             const validationResult = validateFormDataWithDetails();
@@ -3157,17 +2916,17 @@
                 userData = updatedData;
                 originalData = JSON.parse(JSON.stringify(updatedData));
 
-                await syncClientAnswersToAdmin(updatedData);
+                await window.NutriPlanPlanSync.syncClientAnswers(updatedData);
 
                 const storedUserId = localStorage.getItem('userId') || '';
                 if (storedUserId && localStorage.getItem('dietPlan')) {
                     let plan = null;
                     try { plan = JSON.parse(localStorage.getItem('dietPlan')); } catch (_) {}
                     if (plan) {
-                        const idToken = window.NutriPlanProfileAuth && typeof window.NutriPlanProfileAuth.getIdTokenIfLoggedIn === 'function'
-                            ? await window.NutriPlanProfileAuth.getIdTokenIfLoggedIn()
+                        const idToken = window.NutriPlanPlanReplaceAuth && typeof window.NutriPlanPlanReplaceAuth.getIdToken === 'function'
+                            ? await window.NutriPlanPlanReplaceAuth.getIdToken()
                             : null;
-                        await saveProfileToBackend(
+                        await window.NutriPlanPlanSync.saveUserProfile(
                             storedUserId,
                             plan,
                             updatedData,
@@ -3212,7 +2971,10 @@
 
             const updatedData = collectFormData();
             const email = (updatedData.email || '').trim().toLowerCase();
-            const replacingExistingPlan = await checkExistingPlanForEmail(email);
+            const sync = window.NutriPlanPlanSync;
+            const replacingExistingPlan = sync && typeof sync.hasExistingPlanForEmail === 'function'
+                ? await sync.hasExistingPlanForEmail(email)
+                : false;
 
             if (replacingExistingPlan && !email) {
                 showAlert('⚠️ Имейлът е задължителен за замяна на съществуващ план.', 'warning');
@@ -3228,12 +2990,12 @@
             }
 
             let authContext = null;
-            if (replacingExistingPlan) {
+            if (replacingExistingPlan && sync && typeof sync.ensureReplacementAuth === 'function') {
                 try {
-                    authContext = await showRegenAuthModal(
+                    authContext = (await sync.ensureReplacementAuth(
                         email,
                         'Новият план ще замени текущия в системата. ' + fullRegenMessage + ' След генериране планът ще изчака одобрение от специалист.'
-                    );
+                    )).authContext;
                 } catch (_) {
                     return;
                 }
@@ -3243,7 +3005,7 @@
                 localStorage.setItem('userData', JSON.stringify(updatedData));
                 userData = updatedData;
 
-                const savedClientId = await syncClientAnswersToAdmin(updatedData);
+                const savedClientId = await sync.syncClientAnswers(updatedData);
 
                 const btn = document.getElementById('saveAndRegenerateBtn');
                 btn.disabled = true;
@@ -3263,8 +3025,8 @@
                     return (uid && uid.startsWith('fb_')) ? uid : null;
                 })();
                 const idToken = authContext?.idToken || (
-                    window.NutriPlanProfileAuth && typeof window.NutriPlanProfileAuth.getIdTokenIfLoggedIn === 'function'
-                        ? await window.NutriPlanProfileAuth.getIdTokenIfLoggedIn()
+                    window.NutriPlanPlanReplaceAuth && typeof window.NutriPlanPlanReplaceAuth.getIdToken === 'function'
+                        ? await window.NutriPlanPlanReplaceAuth.getIdToken()
                         : null
                 );
 
@@ -3363,7 +3125,7 @@
                 if (requireApproval) {
                     localStorage.setItem('planSource', 'questionnaire2');
                     if (savedClientId) localStorage.setItem('pendingClientId', savedClientId);
-                    await saveProfileToBackend(
+                    await sync.saveUserProfile(
                         resolvedUserId,
                         result.plan,
                         updatedData,
@@ -3382,7 +3144,7 @@
                     }, 2000);
                 } else {
                     localStorage.removeItem('planSource');
-                    await saveProfileToBackend(
+                    await sync.saveUserProfile(
                         resolvedUserId,
                         result.plan,
                         updatedData,
@@ -4496,8 +4258,8 @@
              * reuse it so we don't get a "duplicate-app" error. */
             const auth = getAuth(getApps().length ? getApp() : initializeApp(firebaseConfig));
 
-            window.NutriPlanProfileAuth = {
-                async confirmEmailPassword(email, password) {
+            window.NutriPlanPlanReplaceAuth = {
+                async signIn(email, password) {
                     const cred = await signInWithEmailAndPassword(auth, email, password);
                     const idToken = await cred.user.getIdToken();
                     return {
@@ -4506,10 +4268,18 @@
                         email: cred.user.email
                     };
                 },
-                async getIdTokenIfLoggedIn() {
+                async getSession(email) {
                     const user = auth.currentUser;
                     if (!user) return null;
-                    return user.getIdToken().catch(() => null);
+                    const wanted = String(email || '').trim().toLowerCase();
+                    const actual = String(user.email || '').trim().toLowerCase();
+                    if (!wanted || wanted !== actual) return null;
+                    const idToken = await user.getIdToken().catch(() => null);
+                    return idToken ? { userId: 'fb_' + user.uid, idToken, email: user.email } : null;
+                },
+                async getIdToken() {
+                    const user = auth.currentUser;
+                    return user ? user.getIdToken().catch(() => null) : null;
                 }
             };
 

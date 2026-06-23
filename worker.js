@@ -4060,31 +4060,6 @@ async function generatePlanAndSave(env, data, jobId, clientId, options = {}) {
       } catch (e) {
         console.warn(`generatePlanAndSave: failed to sync plan by email for job ${jobId}:`, e.message);
       }
-    } else if (clientId && result.success && result.plan) {
-      try {
-        const raw = await env.page_content.get(`client:${clientId}`);
-        if (raw) {
-          const clientData = JSON.parse(raw);
-          const wasPreviouslyActivated = Boolean(clientData.planActivatedAt);
-          clientData.plan = result.plan;
-          if (userId) clientData.userId = userId;
-          clientData.planUpdatedAt = new Date().toISOString();
-          clientData.planStatus = requireApproval
-            ? 'pending'
-            : (wasPreviouslyActivated ? 'activated' : 'pending');
-          if (requireApproval) {
-            clientData.planActivatedAt = null;
-          } else if (wasPreviouslyActivated) {
-            clientData.planActivatedAt = new Date().toISOString();
-          } else {
-            clientData.planActivatedAt = null;
-          }
-          await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
-          console.log(`generatePlanAndSave: job ${jobId} plan saved to client record ${clientId}`);
-        }
-      } catch (e) {
-        console.warn(`generatePlanAndSave: failed to update client record ${clientId}:`, e.message);
-      }
     }
   } catch (error) {
     console.error(`generatePlanAndSave: job ${jobId} failed:`, error);
@@ -14425,58 +14400,21 @@ async function handleSaveUserProfile(request, env) {
     await kvPutJSON(env, `user_profile:${userId}`, profileData, ttl);
 
     if (normalizedEmail) {
-      await setEmailIndex(env, normalizedEmail, {
-        userId,
-        clientId: resolvedClientId || profileData.clientId || '',
-      });
-      if (planChanged && plan) {
-        try {
-          const syncResult = await syncPlanToEmailCanonicalStore(env, {
-            email: normalizedEmail,
-            plan,
-            userData: profileData.userData,
-            userId,
-            clientId: resolvedClientId || profileData.clientId || '',
-            requireApproval: profileData.planSource === 'questionnaire2',
-          });
-          if (syncResult?.clientId) resolvedClientId = syncResult.clientId;
-        } catch (e) {
-          console.warn(`Failed to sync plan by email for profile ${userId}:`, e.message);
-        }
-      } else if (profileData.userData && Object.keys(profileData.userData).length > 0) {
-        try {
-          const syncResult = await syncPlanToEmailCanonicalStore(env, {
-            email: normalizedEmail,
-            userData: profileData.userData,
-            userId,
-            clientId: resolvedClientId || profileData.clientId || '',
-            requireApproval: false,
-          });
-          if (syncResult?.clientId) resolvedClientId = syncResult.clientId;
-        } catch (e) {
-          console.warn(`Failed to sync profile answers for ${userId}:`, e.message);
-        }
-      }
-    }
-
-    // Link questionnaire-2 client records back to the Firebase/anonymous profile.
-    // This lets admin activation update the same profile that APK login restores.
-    if (resolvedClientId) {
       try {
-        const clientData = await kvGetJSON(env, `client:${resolvedClientId}`);
-        if (clientData) {
-          clientData.id = resolvedClientId;
-          if (clientData.userId !== userId) {
-            clientData.userId = userId;
-            await kvPutJSON(env, `client:${resolvedClientId}`, clientData, null);
-          }
-          if (!profileData.clientId) {
-            profileData.clientId = resolvedClientId;
-            await kvPutJSON(env, `user_profile:${userId}`, profileData, ttl);
-          }
+        const syncResult = await syncPlanToEmailCanonicalStore(env, {
+          email: normalizedEmail,
+          ...(planChanged && plan ? { plan } : {}),
+          userData: profileData.userData,
+          userId,
+          clientId: resolvedClientId || profileData.clientId || '',
+          requireApproval: planChanged && profileData.planSource === 'questionnaire2',
+        });
+        if (syncResult?.clientId && !profileData.clientId) {
+          profileData.clientId = syncResult.clientId;
+          await kvPutJSON(env, `user_profile:${userId}`, profileData, ttl);
         }
       } catch (e) {
-        console.warn(`Failed to link client ${resolvedClientId} to profile ${userId}:`, e.message);
+        console.warn(`Failed to sync profile for ${userId}:`, e.message);
       }
     }
 

@@ -1023,47 +1023,8 @@
             background: linear-gradient(to top, var(--bg-color) 40%, transparent 100%);
         }
 
-        /* Existing-user plan replacement auth modal */
-        .q2-auth-overlay {
-            position: fixed; inset: 0;
-            background: rgba(0,0,0,0.55);
-            backdrop-filter: blur(4px);
-            z-index: 5000;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        .q2-auth-overlay.open { display: flex; }
-        .q2-auth-box {
-            background: var(--card-bg);
-            border-radius: 20px;
-            padding: 24px 20px 20px;
-            max-width: 400px;
-            width: 100%;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
-        }
-        .q2-auth-box h3 { margin: 0 0 8px; font-size: 1.05rem; color: var(--text-dark); }
-        .q2-auth-box p { margin: 0 0 16px; font-size: 0.85rem; color: var(--text-light); line-height: 1.5; }
-        .q2-auth-input {
-            width: 100%; padding: 12px 14px; border: 1.5px solid rgba(13,148,136,0.25);
-            border-radius: 12px; font-size: 0.9rem; margin-bottom: 10px;
-            background: var(--bg-subtle); color: var(--text-dark); box-sizing: border-box;
-        }
-        .q2-auth-email { background: rgba(13,148,136,0.06); color: var(--text-light); }
-        .q2-auth-actions { display: flex; gap: 10px; margin-top: 6px; }
-        .q2-auth-actions button {
-            flex: 1; padding: 12px; border-radius: 12px; font-weight: 700;
-            font-size: 0.88rem; cursor: pointer; border: none;
-        }
-        .q2-auth-confirm { background: linear-gradient(135deg, #0D9488, #0F766E); color: #fff; }
-        .q2-auth-cancel {
-            background: transparent; border: 1.5px solid rgba(13,148,136,0.3) !important;
-            color: var(--text-dark);
-        }
-        .q2-auth-error { color: #dc2626; font-size: 0.8rem; margin-top: 8px; min-height: 1.2em; }
-
     </style>
+    <script src="./plan-sync.js"></script>
     <script>
         // Apply color scheme from admin settings
         (function() {
@@ -2347,112 +2308,6 @@
         // Flag set when user confirms a warning and chooses to proceed despite advisory issues.
         // When true, the validation step in finishQuiz is skipped once.
         let skipNextValidation = false;
-        const WORKER_Q2 = 'https://aidiet.radilov-k.workers.dev';
-
-        function normalizeQ2Email(value) {
-            return String(value || '').trim().toLowerCase();
-        }
-
-        function showQ2ReplacementAuthModal(email) {
-            return new Promise(function(resolve, reject) {
-                const overlay = document.getElementById('q2AuthOverlay');
-                const emailInput = document.getElementById('q2AuthEmail');
-                const pwInput = document.getElementById('q2AuthPassword');
-                const errorEl = document.getElementById('q2AuthError');
-                const confirmBtn = document.getElementById('q2AuthConfirmBtn');
-                const cancelBtn = document.getElementById('q2AuthCancelBtn');
-                if (!overlay || !emailInput || !pwInput || !confirmBtn || !cancelBtn) {
-                    reject(new Error('Липсва формата за потвърждение'));
-                    return;
-                }
-
-                emailInput.value = email;
-                pwInput.value = '';
-                if (errorEl) errorEl.textContent = '';
-
-                function cleanup() {
-                    overlay.classList.remove('open');
-                    confirmBtn.removeEventListener('click', onConfirm);
-                    cancelBtn.removeEventListener('click', onCancel);
-                    overlay.removeEventListener('click', onOverlayClick);
-                    pwInput.removeEventListener('keydown', onKeydown);
-                }
-
-                function onCancel() {
-                    cleanup();
-                    reject(new Error('cancelled'));
-                }
-
-                function onOverlayClick(e) {
-                    if (e.target === overlay) onCancel();
-                }
-
-                function onKeydown(e) {
-                    if (e.key === 'Enter') onConfirm();
-                    if (e.key === 'Escape') onCancel();
-                }
-
-                async function onConfirm() {
-                    const password = pwInput.value || '';
-                    if (password.length < 6) {
-                        if (errorEl) errorEl.textContent = 'Паролата трябва да е поне 6 символа.';
-                        return;
-                    }
-                    confirmBtn.disabled = true;
-                    if (errorEl) errorEl.textContent = '';
-                    try {
-                        if (!window.NutriPlanQ2Auth || typeof window.NutriPlanQ2Auth.confirmEmailPassword !== 'function') {
-                            throw new Error('Автентикацията не е налична. Презаредете страницата.');
-                        }
-                        const authResult = await window.NutriPlanQ2Auth.confirmEmailPassword(email, password);
-                        cleanup();
-                        resolve(authResult);
-                    } catch (err) {
-                        const code = err && err.code;
-                        if (errorEl) {
-                            errorEl.textContent = (
-                                code === 'auth/wrong-password' || code === 'auth/invalid-credential'
-                            ) ? 'Грешна парола.' : (
-                                code === 'auth/user-not-found'
-                            ) ? 'Нямате акаунт с този имейл. Свържете се с поддръжка.' : (
-                                code === 'auth/too-many-requests'
-                            ) ? 'Твърде много опити. Изчакайте.' : (err.message || 'Грешка при вход.');
-                        }
-                    } finally {
-                        confirmBtn.disabled = false;
-                    }
-                }
-
-                confirmBtn.addEventListener('click', onConfirm);
-                cancelBtn.addEventListener('click', onCancel);
-                overlay.addEventListener('click', onOverlayClick);
-                pwInput.addEventListener('keydown', onKeydown);
-                overlay.classList.add('open');
-                setTimeout(function() { pwInput.focus(); }, 100);
-            });
-        }
-
-        async function ensureReplacementAuth(planPayload) {
-            const email = normalizeQ2Email(planPayload.email);
-            if (!email) return { requireApproval: false, authContext: null };
-
-            const checkResp = await fetch(WORKER_Q2 + '/api/user/check-account?email=' + encodeURIComponent(email));
-            if (!checkResp.ok) return { requireApproval: false, authContext: null };
-
-            const check = await checkResp.json();
-            if (!check.requiresAuth) return { requireApproval: false, authContext: null };
-
-            let authContext = null;
-            if (window.NutriPlanQ2Auth && typeof window.NutriPlanQ2Auth.getSessionIfMatchingEmail === 'function') {
-                authContext = await window.NutriPlanQ2Auth.getSessionIfMatchingEmail(email);
-            }
-            if (!authContext) {
-                authContext = await showQ2ReplacementAuthModal(email);
-            }
-
-            localStorage.setItem('planReplacePending', '1');
-            return { requireApproval: true, authContext };
-        }
 
         // --- INITIALIZATION ---
         function init() {
@@ -4121,7 +3976,12 @@
 
                 let replacementAuth = { requireApproval: false, authContext: null };
                 try {
-                    replacementAuth = await ensureReplacementAuth(planPayload);
+                    if (window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.ensureReplacementAuth === 'function') {
+                        replacementAuth = await window.NutriPlanPlanSync.ensureReplacementAuth(
+                            planPayload.email,
+                            'Вече имате план с този имейл. Новият план ще замени стария след одобрение от специалист. Въведете паролата си за потвърждение.'
+                        );
+                    }
                 } catch (authErr) {
                     if (progressInterval) { clearInterval(progressInterval); progressInterval = null; }
                     if (tipsInterval) { clearInterval(tipsInterval); tipsInterval = null; }
@@ -5153,8 +5013,8 @@
         const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
         const auth = getAuth(initializeApp(_cfg, 'q2auth'));
 
-        window.NutriPlanQ2Auth = {
-            async confirmEmailPassword(email, password) {
+        window.NutriPlanPlanReplaceAuth = {
+            async signIn(email, password) {
                 const cred = await signInWithEmailAndPassword(auth, email, password);
                 const idToken = await cred.user.getIdToken();
                 const userId = 'fb_' + cred.user.uid;
@@ -5162,15 +5022,14 @@
                 syncUser(cred.user);
                 return { userId, idToken, email: cred.user.email };
             },
-            async getSessionIfMatchingEmail(email) {
+            async getSession(email) {
                 const user = auth.currentUser;
                 if (!user) return null;
                 const wanted = String(email || '').trim().toLowerCase();
                 const actual = String(user.email || '').trim().toLowerCase();
                 if (!wanted || wanted !== actual) return null;
                 const idToken = await user.getIdToken().catch(() => null);
-                if (!idToken) return null;
-                return { userId: 'fb_' + user.uid, idToken, email: user.email };
+                return idToken ? { userId: 'fb_' + user.uid, idToken, email: user.email } : null;
             }
         };
 
@@ -5195,18 +5054,4 @@
             if (user) syncUser(user);
         });
     </script>
-
-    <div class="q2-auth-overlay" id="q2AuthOverlay" role="dialog" aria-modal="true" aria-labelledby="q2AuthTitle">
-        <div class="q2-auth-box">
-            <h3 id="q2AuthTitle">Потвърдете замяната на плана</h3>
-            <p id="q2AuthMessage">Вече имате план с този имейл. Новият план ще замени стария след одобрение от специалист. Въведете паролата си за потвърждение.</p>
-            <input type="email" class="q2-auth-input q2-auth-email" id="q2AuthEmail" readonly aria-label="Имейл">
-            <input type="password" class="q2-auth-input" id="q2AuthPassword" placeholder="Парола" autocomplete="current-password" aria-label="Парола">
-            <div class="q2-auth-error" id="q2AuthError"></div>
-            <div class="q2-auth-actions">
-                <button type="button" class="q2-auth-cancel" id="q2AuthCancelBtn">Отказ</button>
-                <button type="button" class="q2-auth-confirm" id="q2AuthConfirmBtn">Потвърди и генерирай</button>
-            </div>
-        </div>
-    </div>
 </body>
