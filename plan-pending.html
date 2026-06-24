@@ -710,6 +710,9 @@
                         localStorage.setItem('planUpdatedAt', data.activatedAt);
                     }
                     localStorage.removeItem('planSource');
+                    localStorage.removeItem('pendingClientId');
+                    localStorage.removeItem('planJobId');
+                    localStorage.removeItem('planReplacePending');
 
                     // Update the user_profile KV entry to clear planSource so that when
                     // the user logs in on a new device, they go directly to plan.html
@@ -771,7 +774,7 @@
                             Планът е активиран
                         </h3>
                         <p style="font-size:0.85rem;color:var(--text-light);margin:0 0 16px;">
-                            Вашият акаунт е потвърден. Можете да прегледате новия план веднага.
+                            Вашият акаунт е потвърден. Пренасочване към плана...
                         </p>
                         <button onclick="goToPlanAfterActivation()" id="ppGoToPlanBtn"
                             style="width:100%;padding:12px;background:var(--primary-red);color:#fff;border:none;border-radius:8px;font-size:0.95rem;font-weight:700;cursor:pointer;">
@@ -779,6 +782,7 @@
                         </button>
                     </div>
                 `;
+                setTimeout(goToPlanAfterActivation, 1200);
                 return;
             }
 

@@ -76,9 +76,8 @@
         // Determine correct plan destination
         var planTarget;
         var planSource = localStorage.getItem('planSource');
-        var pendingClientId = localStorage.getItem('pendingClientId');
         
-        if (planSource === 'questionnaire2' || pendingClientId) {
+        if (planSource === 'questionnaire2') {
             planTarget = 'plan-pending.html';
         } else {
             planTarget = 'index.html?app=1&tab=plan';
