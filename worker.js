@@ -6356,7 +6356,7 @@ function assistantCacheExpiryIso(ttlSeconds) {
  * @param {unknown} error
  */
 function isGeminiCacheMissError(error) {
-  const msg = String(error?.message || error || '');
+  const msg = error instanceof Error ? error.message : String(error || '');
   return /403|404|CachedContent not found|PERMISSION_DENIED/i.test(msg);
 }
 
@@ -6597,7 +6597,7 @@ async function callGeminiAssistantResilient(env, session, card, message, planUpd
   } catch (error) {
     if (!isGeminiCacheMissError(error)) throw error;
 
-    console.warn('[AdminAssistant] Cache miss, recovering:', error.message);
+    console.warn('[AdminAssistant] Cache miss, recovering:', error instanceof Error ? error.message : String(error));
     session.cacheId = null;
     session.cacheEnabled = false;
     session.cacheStale = true;

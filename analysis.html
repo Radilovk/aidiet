@@ -1785,6 +1785,7 @@
         .forecast-section.forecast-animate .forecast-improvements li:nth-child(5) { transition-delay: 0.58s; }
     </style>
 <script src="./platform.js"></script>
+<script src="./plan-sync.js"></script>
 </head>
 <body>
     <!-- Sticky Header -->
@@ -2535,8 +2536,16 @@
             }
         }
 
-        function goToPlan() {
+        async function goToPlan() {
             if (localStorage.getItem('planSource') === 'questionnaire2') {
+                if (window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.syncPendingPlanActivation === 'function') {
+                    const sync = await window.NutriPlanPlanSync.syncPendingPlanActivation();
+                    if (sync.activated) {
+                        if (requestShellAction('NUTRIPLAN_SWITCH_TAB', { tab: 'plan' })) return;
+                        navigateTopLevel('index.html?app=1&tab=plan', true);
+                        return;
+                    }
+                }
                 navigateTopLevel('plan-pending.html');
                 return;
             }
@@ -2607,11 +2616,19 @@
             }).catch(e => console.error('Error saving completed background plan:', e));
 
             if (savedClientId) {
+                const forcePending = localStorage.getItem('planReplacePending') === '1'
+                    || localStorage.getItem('planSource') === 'questionnaire2';
                 fetch('https://aidiet.radilov-k.workers.dev/api/admin/update-client-plan', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ clientId: savedClientId, plan: data.plan, userId })
+                    body: JSON.stringify({
+                        clientId: savedClientId,
+                        plan: data.plan,
+                        userId,
+                        ...(forcePending ? { forcePending: true } : {})
+                    })
                 }).catch(e => console.error('Error saving completed plan to client record:', e));
+                if (forcePending) localStorage.removeItem('planReplacePending');
             }
 
             updateQuestionnaire2PendingNotice('ready');
@@ -2656,15 +2673,37 @@
         }
 
         // Initialize on page load
-        window.addEventListener('load', () => {
+        window.addEventListener('load', async () => {
             loadAnalysis();
             // Fallback: ensure meters are filled even if IntersectionObserver missed them
             // (1400ms > card entrance (600ms) + meter delay (220ms) to safely catch any stragglers)
             setTimeout(animateMeters, 1400);
 
+            // If the plan was approved while the user was away, clear pending flags now.
+            let planActivated = false;
+            if (window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.syncPendingPlanActivation === 'function') {
+                const sync = await window.NutriPlanPlanSync.syncPendingPlanActivation();
+                planActivated = !!sync.activated;
+            }
+
             // Hide bottom-nav and adapt CTA when coming from questionnaire 2
             const planSource = localStorage.getItem('planSource');
-            if (planSource === 'questionnaire2') {
+            if (planActivated) {
+                const nav = document.querySelector('.bottom-nav');
+                if (nav) nav.style.display = '';
+                document.body.style.paddingBottom = '';
+                const ctaTitle = document.getElementById('ctaTitle');
+                const ctaSubtitle = document.getElementById('ctaSubtitle');
+                if (ctaTitle) ctaTitle.textContent = 'Вашият план е готов!';
+                if (ctaSubtitle) ctaSubtitle.textContent = 'Специалистът одобри персонализирания ви хранителен пакет.';
+                const ctaSection = document.getElementById('ctaSection');
+                if (ctaSection) {
+                    const notice = ctaSection.querySelector('.pending-notice');
+                    if (notice) notice.remove();
+                    const btn = ctaSection.querySelector('.btn-primary');
+                    if (btn) btn.innerHTML = '<i class="fas fa-utensils"></i> Виж плана';
+                }
+            } else if (planSource === 'questionnaire2') {
                 const nav = document.querySelector('.bottom-nav');
                 if (nav) nav.style.display = 'none';
 

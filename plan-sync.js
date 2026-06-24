@@ -505,6 +505,60 @@
         }).catch(function () {});
     }
 
+    /**
+     * Check whether a questionnaire-2 plan awaiting approval has been activated.
+     * Clears local pending flags when the server reports activation.
+     * @returns {Promise<{activated: boolean, data?: object}>}
+     */
+    async function syncPendingPlanActivation() {
+        var clientId = '';
+        try { clientId = localStorage.getItem('pendingClientId') || ''; } catch (_) {}
+        if (!clientId) return { activated: false };
+
+        var planSource = '';
+        try { planSource = localStorage.getItem('planSource') || ''; } catch (_) {}
+        if (planSource !== 'questionnaire2') return { activated: false };
+
+        try {
+            var resp = await fetch(WORKER_URL + '/api/client-plan-status?clientId=' + encodeURIComponent(clientId));
+            if (!resp.ok) return { activated: false };
+            var data = await resp.json();
+            if (!data.success || data.planStatus !== 'activated') return { activated: false };
+
+            if (data.plan) {
+                localStorage.setItem('dietPlan', JSON.stringify(data.plan));
+            }
+            if (data.planUpdatedAt) {
+                setLocalPlanUpdatedAt(data.planUpdatedAt);
+            } else if (data.activatedAt) {
+                setLocalPlanUpdatedAt(data.activatedAt);
+            }
+            localStorage.removeItem('planSource');
+            localStorage.removeItem('pendingClientId');
+            localStorage.removeItem('planJobId');
+            localStorage.removeItem('planJobSource');
+            localStorage.removeItem('planReplacePending');
+            clearAdminPlanPending();
+
+            var userId = '';
+            try { userId = localStorage.getItem('userId') || ''; } catch (_) {}
+            if (userId) {
+                var planPayload = data.plan;
+                if (!planPayload) {
+                    try { planPayload = JSON.parse(localStorage.getItem('dietPlan') || 'null'); } catch (_) {}
+                }
+                var userData = {};
+                try { userData = JSON.parse(localStorage.getItem('userData') || '{}'); } catch (_) {}
+                if (planPayload) {
+                    saveUserProfile(userId, planPayload, userData, '', null, clientId);
+                }
+            }
+            return { activated: true, data: data };
+        } catch (_) {
+            return { activated: false };
+        }
+    }
+
     global.NutriPlanPlanSync = {
         WORKER_URL: WORKER_URL,
         LOCAL_PLAN_AT_KEY: LOCAL_PLAN_AT_KEY,
@@ -530,7 +584,8 @@
         hasExistingPlanForEmail: hasExistingPlanForEmail,
         ensureReplacementAuth: ensureReplacementAuth,
         syncClientAnswers: syncClientAnswers,
-        saveUserProfile: saveUserProfile
+        saveUserProfile: saveUserProfile,
+        syncPendingPlanActivation: syncPendingPlanActivation
     };
 
     bindPlanUpdateBridge();

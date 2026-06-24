@@ -57,7 +57,7 @@
         if (!localStorage.getItem('dietPlan')) return;
 
         var planTarget;
-        if (localStorage.getItem('planSource') === 'questionnaire2' || localStorage.getItem('pendingClientId')) {
+        if (localStorage.getItem('planSource') === 'questionnaire2') {
             planTarget = 'plan-pending.html';
         } else {
             planTarget = 'index.html?app=1&tab=plan';

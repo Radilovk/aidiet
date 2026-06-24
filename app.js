@@ -887,7 +887,7 @@
         if (!params.has('app')) return false;
         var uid = getStoredValue('userId') || '';
         if (!uid.startsWith('fb_')) return false;
-        if (getStoredValue('planSource') === 'questionnaire2' || getStoredValue('pendingClientId')) {
+        if (getStoredValue('planSource') === 'questionnaire2') {
             window.location.replace('plan-pending.html');
             return false;
         }
