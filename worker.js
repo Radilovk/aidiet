@@ -4046,19 +4046,58 @@ async function generatePlanAndSave(env, data, jobId, clientId, options = {}) {
     );
     console.log(`generatePlanAndSave: job ${jobId} completed and saved to KV`);
 
-    if (result.success && result.plan && normalizeEmail(data.email)) {
-      try {
-        const syncResult = await syncPlanToEmailCanonicalStore(env, {
-          email: data.email,
-          plan: result.plan,
-          userData: data,
-          userId,
-          clientId: clientId || '',
-          requireApproval,
-        });
-        console.log(`generatePlanAndSave: job ${jobId} synced to email store`, syncResult);
-      } catch (e) {
-        console.warn(`generatePlanAndSave: failed to sync plan by email for job ${jobId}:`, e.message);
+    if (result.success && result.plan) {
+      let clientHint = null;
+      if (clientId) clientHint = await kvGetJSON(env, `client:${clientId}`);
+      let syncEmail = normalizeEmail(data.email);
+      if (!syncEmail) syncEmail = normalizeEmail(clientHint?.answers?.email);
+      const needsApproval = requireApproval || Boolean(clientHint?.planReplacementPending);
+      if (syncEmail) {
+        try {
+          const syncResult = await syncPlanToEmailCanonicalStore(env, {
+            email: syncEmail,
+            plan: result.plan,
+            userData: data,
+            userId,
+            clientId: clientId || '',
+            requireApproval: needsApproval,
+          });
+          console.log(`generatePlanAndSave: job ${jobId} synced to email store`, syncResult);
+        } catch (e) {
+          console.warn(`generatePlanAndSave: failed to sync plan by email for job ${jobId}:`, e.message);
+        }
+      } else if (clientId && clientHint) {
+        try {
+          const clientData = clientHint;
+          if (clientData) {
+            const now = new Date().toISOString();
+            const approval = needsApproval;
+            clientData.plan = result.plan;
+            clientData.planUpdatedAt = now;
+            if (approval) {
+              clientData.planStatus = 'pending';
+              clientData.planActivatedAt = null;
+            } else {
+              const wasPreviouslyActivated = Boolean(clientData.planActivatedAt);
+              clientData.planStatus = wasPreviouslyActivated ? 'activated' : 'pending';
+              clientData.planActivatedAt = wasPreviouslyActivated ? now : null;
+            }
+            delete clientData.planReplacementPending;
+            if (userId) clientData.userId = userId;
+            await kvPutJSON(env, `client:${clientId}`, clientData, null);
+            if (userId) {
+              await upsertUserProfilePlan(env, userId, {
+                plan: result.plan,
+                userData: data,
+                planSource: approval ? 'questionnaire2' : '',
+                clientId,
+                planUpdatedAt: now,
+              });
+            }
+          }
+        } catch (e) {
+          console.warn(`generatePlanAndSave: failed to sync plan to client ${clientId}:`, e.message);
+        }
       }
     }
   } catch (error) {
@@ -5191,10 +5230,10 @@ async function syncPlanToEmailCanonicalStore(env, {
   if (userData) {
     clientData.answers = { ...(clientData.answers || {}), ...userData };
   }
-  if (plan) {
+    if (plan) {
     clientData.plan = plan;
     clientData.planUpdatedAt = now;
-    if (requireApproval) {
+    if (requireApproval || clientData.planReplacementPending) {
       clientData.planStatus = 'pending';
       clientData.planActivatedAt = null;
     } else {
@@ -5202,6 +5241,7 @@ async function syncPlanToEmailCanonicalStore(env, {
       clientData.planStatus = wasPreviouslyActivated ? 'activated' : 'pending';
       clientData.planActivatedAt = wasPreviouslyActivated ? now : null;
     }
+    delete clientData.planReplacementPending;
   }
 
   const emailIndex = await getEmailIndex(env, normalizedEmail);
@@ -5295,7 +5335,12 @@ async function handleSaveClientData(request, env, ctx) {
     const existingClient = normalizedEmail ? await findClientByEmail(env, normalizedEmail) : null;
     const clientId = existingClient?.clientId || data.id;
     const existingClientData = existingClient?.clientData || null;
-    
+    const isReplacement = Boolean(
+      existingClientData?.plan ||
+      existingClientData?.planActivatedAt ||
+      existingClientData?.planStatus === 'activated'
+    );
+
     // Create or update the canonical client data object for this email.
     const clientData = {
       ...(existingClientData || {}),
@@ -5306,10 +5351,27 @@ async function handleSaveClientData(request, env, ctx) {
       plan: Object.prototype.hasOwnProperty.call(data, 'plan')
         ? (data.plan || null)
         : (existingClientData?.plan || null),
-      planStatus: data.plan ? 'pending' : (existingClientData ? 'generating' : 'none'),
-      planUpdatedAt: data.plan ? new Date().toISOString() : (existingClientData?.planUpdatedAt || null),
+      planUpdatedAt: data.plan
+        ? new Date().toISOString()
+        : (existingClientData?.planUpdatedAt || null),
       submittedAt: new Date().toISOString()
     };
+
+    if (data.plan) {
+      clientData.planStatus = 'pending';
+      clientData.planActivatedAt = null;
+      clientData.planReplacementPending = true;
+    } else if (isReplacement) {
+      // Existing user started a new questionnaire — show in admin queue immediately.
+      clientData.planStatus = 'pending';
+      clientData.planActivatedAt = null;
+      clientData.planReplacementPending = true;
+    } else if (existingClientData) {
+      clientData.planStatus = 'generating';
+    } else {
+      clientData.planStatus = 'none';
+      clientData.planActivatedAt = null;
+    }
 
     if (!clientData.userId && existingClientData?.userId) {
       clientData.userId = existingClientData.userId;
@@ -6812,8 +6874,8 @@ async function handleUpdateClientPlan(request, env, ctx) {
     clientData.planUpdatedAt = new Date().toISOString();
     
     // Plan replacement from profile/questionnaire requires admin approval even when
-    // the client had a previously activated plan (forcePending).
-    if (forcePending) {
+    // the client had a previously activated plan (forcePending or replacement flag).
+    if (forcePending || clientData.planReplacementPending) {
       clientData.planStatus = 'pending';
       clientData.planActivatedAt = null;
     } else if (wasPreviouslyActivated) {
@@ -6822,6 +6884,11 @@ async function handleUpdateClientPlan(request, env, ctx) {
     } else {
       clientData.planStatus = 'pending';
       clientData.planActivatedAt = null;
+    }
+    if (clientData.planStatus === 'pending') {
+      clientData.planReplacementPending = true;
+    } else {
+      delete clientData.planReplacementPending;
     }
     await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
 
@@ -6894,6 +6961,7 @@ async function handleActivateClientPlan(request, env, ctx) {
     }
     clientData.planStatus = 'activated';
     clientData.planActivatedAt = new Date().toISOString();
+    delete clientData.planReplacementPending;
     await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
 
     // If this questionnaire submission is linked to a user profile, immediately
@@ -14580,38 +14648,45 @@ async function handleGetUserProfile(request, env) {
     let planSource = profile.planSource || '';
     let clientId = profile.clientId || '';
     if (planSource === 'questionnaire2') {
-      let activatedClient = null;
+      let linkedClient = null;
       if (clientId) {
-        activatedClient = await kvGetJSON(env, `client:${clientId}`);
+        linkedClient = await kvGetJSON(env, `client:${clientId}`);
       }
 
-      // Backfill for profiles saved before clientId was added, OR when profile.clientId
-      // points to the newest (pending) submission — scan for an activated client by email.
-      // Bug fix: was `!activatedClient` — must also run when activatedClient is PENDING.
-      if (activatedClient?.planStatus !== 'activated' && profile.userData?.email) {
-        const wantedEmail = String(profile.userData.email).trim().toLowerCase();
-        const clientIds = await kvGetJSON(env, 'clients_list') || [];
-        for (const id of clientIds.slice(0, 500)) {
-          const clientData = await kvGetJSON(env, `client:${id}`);
-          if (!clientData) continue;
-          if (clientData.planStatus !== 'activated' || !clientData.plan) continue;
-          const clientEmail = String(clientData.answers?.email || '').trim().toLowerCase();
-          if (clientEmail === wantedEmail) {
-            activatedClient = clientData;
-            clientId = id;
-            break;
+      // Pending replacement on the linked client — never fall back to an older activated plan.
+      if (linkedClient?.planStatus === 'pending') {
+        if (linkedClient.plan) profile.plan = linkedClient.plan;
+        profile.planUpdatedAt = linkedClient.planUpdatedAt || profile.planUpdatedAt;
+        if (clientId) profile.clientId = clientId;
+      } else {
+        let activatedClient = linkedClient;
+
+        if (activatedClient?.planStatus !== 'activated' && profile.userData?.email) {
+          const wantedEmail = String(profile.userData.email).trim().toLowerCase();
+          const clientIds = await kvGetJSON(env, 'clients_list') || [];
+          for (const id of clientIds.slice(0, 500)) {
+            const clientData = await kvGetJSON(env, `client:${id}`);
+            if (!clientData) continue;
+            if (clientData.planStatus !== 'activated' || !clientData.plan) continue;
+            if (clientData.planReplacementPending) continue;
+            const clientEmail = String(clientData.answers?.email || '').trim().toLowerCase();
+            if (clientEmail === wantedEmail) {
+              activatedClient = clientData;
+              clientId = id;
+              break;
+            }
           }
         }
-      }
 
-      if (activatedClient?.planStatus === 'activated') {
-        if (activatedClient.plan) profile.plan = activatedClient.plan;
-        profile.planSource = '';
-        if (clientId) profile.clientId = clientId;
-        planSource = '';
-        await kvPutJSON(env, `user_profile:${resolvedUserId}`, profile, null);
-      } else if (clientId) {
-        profile.clientId = clientId;
+        if (activatedClient?.planStatus === 'activated' && !activatedClient.planReplacementPending) {
+          if (activatedClient.plan) profile.plan = activatedClient.plan;
+          profile.planSource = '';
+          if (clientId) profile.clientId = clientId;
+          planSource = '';
+          await kvPutJSON(env, `user_profile:${resolvedUserId}`, profile, null);
+        } else if (clientId) {
+          profile.clientId = clientId;
+        }
       }
     }
 

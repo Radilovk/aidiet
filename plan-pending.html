@@ -644,10 +644,17 @@
                         if (data.status === 'completed' && data.success && data.plan) {
                             localStorage.removeItem('planJobId');
                             const userId = localStorage.getItem('userId') || data.userId || null;
+                            const forcePending = localStorage.getItem('planSource') === 'questionnaire2'
+                                || localStorage.getItem('planReplacePending') === '1';
                             fetch(WORKER + '/api/admin/update-client-plan', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ clientId, plan: data.plan, userId })
+                                body: JSON.stringify({
+                                    clientId,
+                                    plan: data.plan,
+                                    userId,
+                                    ...(forcePending ? { forcePending: true } : {})
+                                })
                             }).catch(e => console.warn('update-client-plan failed:', e));
                         } else if (data.status === 'failed' || data.status === 'not_found') {
                             localStorage.removeItem('planJobId');
