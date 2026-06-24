@@ -755,6 +755,26 @@
         }
 
         function showPasswordSetup() {
+            const userId = localStorage.getItem('userId') || '';
+            if (userId.startsWith('fb_')) {
+                document.getElementById('ctaSection').innerHTML = `
+                    <div style="background:var(--card-bg);border-radius:16px;padding:24px;max-width:360px;margin:0 auto;box-shadow:var(--shadow);">
+                        <h3 style="margin:0 0 8px;font-size:1.1rem;color:var(--text-dark);">
+                            <i class="fas fa-check-circle" style="color:#0D9488;margin-right:8px;"></i>
+                            Планът е активиран
+                        </h3>
+                        <p style="font-size:0.85rem;color:var(--text-light);margin:0 0 16px;">
+                            Вашият акаунт е потвърден. Можете да прегледате новия план веднага.
+                        </p>
+                        <button onclick="goToPlanAfterActivation()" id="ppGoToPlanBtn"
+                            style="width:100%;padding:12px;background:var(--primary-red);color:#fff;border:none;border-radius:8px;font-size:0.95rem;font-weight:700;cursor:pointer;">
+                            <i class="fas fa-utensils"></i> Виж плана
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
             // Get email from stored user data
             let userEmail = '';
             try {
@@ -782,6 +802,12 @@
                     </button>
                 </div>
             `;
+        }
+
+        function goToPlanAfterActivation() {
+            localStorage.removeItem('planSource');
+            localStorage.removeItem('pendingClientId');
+            window.location.href = 'index.html?app=1&tab=plan';
         }
 
         async function createAccountAndGoToPlan() {
