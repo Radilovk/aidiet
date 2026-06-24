@@ -22,17 +22,6 @@ id = "81fc0991b2764918b682f9ca170abd4b"
   queue = "plan-generation"
   binding = "PLAN_QUEUE"
 
-# Queue consumer – processes one job at a time, retries up to 3 times on failure.
-# visibility_timeout_ms: how long a message stays invisible while the consumer is
-# processing it before Cloudflare re-enqueues it.  AI plan generation can take
-# 60-180 s, so set this to 15 minutes to prevent premature re-delivery/drops.
-[[queues.consumers]]
-  queue = "plan-generation"
-  max_batch_size = 1
-  max_batch_timeout = 1
-  max_retries = 3
-  visibility_timeout_ms = 900000
-
 # Cron triggers are disabled – notifications are scheduled locally via Capacitor / SW.
 # Backend is only queried when the admin changes notification config.
 # [triggers]

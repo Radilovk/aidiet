@@ -68,7 +68,7 @@ jobs:
             npx wrangler deploy --name aidiet-staging
           else
             echo "Deploying to production..."
-            npx wrangler deploy
+            npx wrangler deploy --env production
           fi
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
