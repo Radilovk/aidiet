@@ -58,7 +58,7 @@ const DAY_KEY_SHORT = {
 };
 
 /**
- * @param {unknown} value
+ * @param {any} value
  * @returns {boolean}
  */
 function hasContent(value) {
@@ -68,7 +68,7 @@ function hasContent(value) {
 }
 
 /**
- * @param {unknown} value
+ * @param {any} value
  * @returns {string}
  */
 function esc(value) {
@@ -78,7 +78,7 @@ function esc(value) {
 }
 
 /**
- * @param {Record<string, unknown>} data
+ * @param {Record<string, any>} data
  * @param {{ excludeAggregatedNotes?: boolean, excludeClinicalProtocol?: boolean }} opts
  */
 function getExcludedKeys(data, opts = {}) {
@@ -100,7 +100,7 @@ function getExcludedKeys(data, opts = {}) {
 
 /**
  * Serialize user profile for plan generation prompts.
- * @param {Record<string, unknown>} data
+ * @param {Record<string, any>} data
  * @param {ProfileTier} tier
  * @param {{ hasNotesSection?: boolean, hasClinicalSection?: boolean }} [options]
  * @returns {string}
@@ -431,7 +431,7 @@ function serializeWeekPlanAdmin(weekPlan) {
 }
 
 /**
- * @param {unknown} value
+ * @param {any} value
  * @returns {string}
  */
 function formatPromptValue(value) {
@@ -5940,7 +5940,7 @@ function serializeAnalyticsBlock(analytics) {
 const ALLOWED_PREFIXES = ['/answers', '/plan', '/adminNotes'];
 const MAX_PATCHES = 25;
 
-/** @typedef {{ op: 'replace'|'add'|'remove', path: string, value?: unknown }} JsonPatchOperation */
+/** @typedef {{ op: 'replace'|'add'|'remove', path: string, value?: any }} JsonPatchOperation */
 
 /**
  * @param {string} pointer
@@ -5988,7 +5988,7 @@ function validateJsonPatches(patches) {
 }
 
 /**
- * @param {unknown} doc
+ * @param {any} doc
  * @param {string[]} path
  */
 function getAtPath(doc, path) {
@@ -6001,9 +6001,9 @@ function getAtPath(doc, path) {
 }
 
 /**
- * @param {Record<string, unknown>} doc
+ * @param {Record<string, any>} doc
  * @param {JsonPatchOperation[]} patches
- * @returns {{ document: Record<string, unknown>, touchedPlan: boolean, touchedAnswers: boolean }}
+ * @returns {{ document: Record<string, any>, touchedPlan: boolean, touchedAnswers: boolean }}
  */
 function applyJsonPatches(doc, patches) {
   validateJsonPatches(patches);
@@ -6066,7 +6066,7 @@ function buildPatchDocument(clientData) {
 
 /**
  * @param {object} clientData
- * @param {Record<string, unknown>} patched
+ * @param {Record<string, any>} patched
  */
 function mergePatchDocument(clientData, patched) {
   clientData.answers = patched.answers || {};
@@ -6129,7 +6129,7 @@ function serializePlanSummary(summary) {
 }
 
 /**
- * @param {unknown} items
+ * @param {any} items
  * @param {number} max
  * @returns {string}
  */
@@ -6353,7 +6353,7 @@ function assistantCacheExpiryIso(ttlSeconds) {
 }
 
 /**
- * @param {unknown} error
+ * @param {any} error
  */
 function isGeminiCacheMissError(error) {
   const msg = String(error?.message || error || '');
