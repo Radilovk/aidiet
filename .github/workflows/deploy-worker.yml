@@ -2,7 +2,14 @@ name: Deploy Cloudflare Worker
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+    paths:
+      - 'worker.js'
+      - 'wrangler.toml'
+  pull_request:
+    branches:
+      - main
     paths:
       - 'worker.js'
       - 'wrangler.toml'
@@ -11,6 +18,8 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # Prevent running on PRs from forks as they don't have access to secrets
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
 
     steps:
       - name: Checkout repository
@@ -53,7 +62,14 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: Deploy worker
-        run: npx wrangler deploy
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo "Deploying PR to staging environment..."
+            npx wrangler deploy --name aidiet-staging
+          else
+            echo "Deploying to production..."
+            npx wrangler deploy
+          fi
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
