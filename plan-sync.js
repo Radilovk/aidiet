@@ -242,6 +242,20 @@
                 global.parent.postMessage({ type: 'NUTRIPLAN_PLAN_RELOADED' }, global.location.origin);
             }
         } catch (_) {}
+
+        // SPA shell: reload plan iframe and refresh shared app data
+        try {
+            if (global.NutriPlanSPA && global.document) {
+                var planFrame = global.document.querySelector('[data-tab-view="plan"]');
+                if (planFrame && planFrame.contentWindow) {
+                    planFrame.contentWindow.postMessage(
+                        { type: 'NUTRIPLAN_PLAN_RELOADED' },
+                        global.location.origin
+                    );
+                }
+                global.dispatchEvent(new CustomEvent('NUTRIPLAN_SHELL_PLAN_RELOADED'));
+            }
+        } catch (_) {}
     }
 
     function handleAdminPlanUpdatedMessage(planUpdatedAt) {
@@ -315,6 +329,48 @@
         bindPlanUpdateBridge();
         await syncPendingFromServiceWorker();
         return refreshAdminPlanIfPending(options || {});
+    }
+
+    /**
+     * Lightweight resume sync: one profile request with localPlanAt (unchanged = no download).
+     * Used when app returns to foreground without a push flag.
+     */
+    async function syncPlanOnResume(options) {
+        options = options || {};
+        try {
+            if (localStorage.getItem('planSource') === 'questionnaire2') {
+                var pending = await syncPendingPlanActivation();
+                if (pending.activated) notifyPlanReload();
+                return pending;
+            }
+        } catch (_) {}
+
+        var userId = options.userId || '';
+        if (!userId) {
+            try { userId = localStorage.getItem('userId') || ''; } catch (_) { userId = ''; }
+        }
+        if (!userId || userId.indexOf('fb_') !== 0) {
+            return { updated: false, reason: 'no-user' };
+        }
+        try {
+            if (!localStorage.getItem('dietPlan')) {
+                return { updated: false, reason: 'no-local-plan' };
+            }
+        } catch (_) {
+            return { updated: false, reason: 'no-local-plan' };
+        }
+
+        if (hasAdminPlanPending()) {
+            return refreshAdminPlanIfPending(options);
+        }
+
+        var data = await fetchUserProfile(userId, options);
+        if (!data || !data.found) {
+            return { updated: false, reason: 'request-failed' };
+        }
+        var updated = applyServerPlanData(data);
+        if (updated) notifyPlanReload();
+        return { updated: updated, unchanged: !!data.unchanged, data: data };
     }
 
     function normalizeEmail(value) {
@@ -538,6 +594,7 @@
             localStorage.removeItem('planJobId');
             localStorage.removeItem('planJobSource');
             localStorage.removeItem('planReplacePending');
+            localStorage.removeItem('npPlanReviewSource');
             clearAdminPlanPending();
 
             var userId = '';
@@ -578,6 +635,7 @@
         loadUserPlanFromServer: fetchPlanOnLogin,
         refreshAdminPlanIfPending: refreshAdminPlanIfPending,
         initAdminPlanSync: initAdminPlanSync,
+        syncPlanOnResume: syncPlanOnResume,
         notifyPlanReload: notifyPlanReload,
         isApplyingServerPlan: function () { return _applyingServerPlan; },
         checkAccountRequiresAuth: checkAccountRequiresAuth,
