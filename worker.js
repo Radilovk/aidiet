@@ -6167,9 +6167,10 @@ function buildClientCard(clientData, options = {}) {
 // ─── Admin AI Assistant (Gemini Context Caching) ───────────────────────────
 
 const ADMIN_ASSISTANT_CACHE_MIN_TOKENS = 1024;
-const ADMIN_ASSISTANT_CACHE_TTL = '300s';
+const ADMIN_ASSISTANT_CACHE_TTL = '3600s';
 const ADMIN_ASSISTANT_SESSION_TTL = 3600;
 const ADMIN_ASSISTANT_SESSION_PREFIX = 'admin_assistant_session:';
+const ADMIN_ASSISTANT_DEFAULT_MODEL = 'gemini-2.5-flash';
 
 const ADMIN_ASSISTANT_SYSTEM_INSTRUCTION = `Ти си NutriPlan AI асистент за администратор-нутриционист.
 Четеш кеширан клиентски картон (CC/NPCF). Промените се правят чрез RFC 6902 JSON Patch върху каноничния JSON.
@@ -6255,6 +6256,49 @@ function buildClientCardFingerprint(card, updatedAt, analyticsSyncedAt) {
 }
 
 /**
+ * @param {string|null|undefined} modelName
+ */
+function normalizeGeminiModelName(modelName) {
+  const name = String(modelName || ADMIN_ASSISTANT_DEFAULT_MODEL).trim();
+  return name.replace(/^models\//, '');
+}
+
+/**
+ * Admin assistant always uses a Gemini model (context caching is Gemini-only).
+ * @param {object} config
+ */
+function resolveAdminAssistantGeminiModel(config) {
+  const candidates = [
+    config?.chatProvider === 'google' ? config.chatModelName : null,
+    config?.provider === 'google' ? config.modelName : null,
+    config?.chatModelName,
+    config?.modelName,
+    ADMIN_ASSISTANT_DEFAULT_MODEL,
+  ];
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    const normalized = normalizeGeminiModelName(candidate);
+    if (/gemini/i.test(normalized)) return normalized;
+  }
+  return ADMIN_ASSISTANT_DEFAULT_MODEL;
+}
+
+/**
+ * @param {number} ttlSeconds
+ */
+function assistantCacheExpiryIso(ttlSeconds) {
+  return new Date(Date.now() + ttlSeconds * 1000).toISOString();
+}
+
+/**
+ * @param {unknown} error
+ */
+function isGeminiCacheMissError(error) {
+  const msg = String(error?.message || error || '');
+  return /403|404|CachedContent not found|PERMISSION_DENIED/i.test(msg);
+}
+
+/**
  * @param {object} env
  * @param {string} sessionId
  */
@@ -6282,13 +6326,14 @@ async function saveAssistantSession(env, session) {
  * @param {string} systemInstruction
  */
 async function createGeminiCachedContent(env, modelName, cardText, systemInstruction) {
+  const normalizedModel = normalizeGeminiModelName(modelName);
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/cachedContents?key=${env.GEMINI_API_KEY}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: `models/${modelName}`,
+        model: `models/${normalizedModel}`,
         ttl: ADMIN_ASSISTANT_CACHE_TTL,
         contents: [{ role: 'user', parts: [{ text: cardText }] }],
         systemInstruction: { parts: [{ text: systemInstruction }] },
@@ -6300,7 +6345,11 @@ async function createGeminiCachedContent(env, modelName, cardText, systemInstruc
     throw new Error(`Gemini cache create failed: ${response.status} ${errText.slice(0, 200)}`);
   }
   const data = await response.json();
-  return data.name || null;
+  const ttlSeconds = parseInt(String(ADMIN_ASSISTANT_CACHE_TTL).replace(/s$/, ''), 10) || ADMIN_ASSISTANT_SESSION_TTL;
+  return {
+    name: data.name || null,
+    expireTime: data.expireTime || assistantCacheExpiryIso(ttlSeconds),
+  };
 }
 
 /**
@@ -6321,11 +6370,16 @@ async function deleteGeminiCachedContent(env, cacheName) {
 }
 
 /**
- * Lazy cache rebuild — само при cacheStale или промяна на fingerprint.
+ * Lazy cache rebuild — при cacheStale, изтекъл cache или промяна на fingerprint.
  */
 async function ensureAssistantCacheFresh(env, session, card, planUpdatedAt, analyticsSyncedAt) {
   const fingerprint = buildClientCardFingerprint(card, planUpdatedAt, analyticsSyncedAt);
-  const needsRebuild = session.cacheStale || (session.cardFingerprint && session.cardFingerprint !== fingerprint);
+  const cacheExpired = Boolean(
+    session.cacheExpiresAt && Date.now() >= new Date(session.cacheExpiresAt).getTime()
+  );
+  const needsRebuild = session.cacheStale
+    || cacheExpired
+    || (session.cardFingerprint && session.cardFingerprint !== fingerprint);
 
   if (!needsRebuild) return { session, rebuilt: false };
 
@@ -6333,11 +6387,14 @@ async function ensureAssistantCacheFresh(env, session, card, planUpdatedAt, anal
     await deleteGeminiCachedContent(env, session.cacheId);
     session.cacheId = null;
     session.cacheEnabled = false;
+    session.cacheExpiresAt = null;
   }
 
   if (estimateTokenCount(card) >= ADMIN_ASSISTANT_CACHE_MIN_TOKENS) {
     try {
-      session.cacheId = await createGeminiCachedContent(env, session.modelName, card, ADMIN_ASSISTANT_SYSTEM_INSTRUCTION);
+      const cache = await createGeminiCachedContent(env, session.modelName, card, ADMIN_ASSISTANT_SYSTEM_INSTRUCTION);
+      session.cacheId = cache.name;
+      session.cacheExpiresAt = cache.expireTime;
       session.cacheEnabled = Boolean(session.cacheId);
     } catch (e) {
       console.warn('[AdminAssistant] Cache rebuild failed:', e.message);
@@ -6393,13 +6450,14 @@ async function applyAssistantPatches(env, session, clientData, patches, ctx) {
  */
 async function callGeminiAssistant(env, opts) {
   const {
-    modelName = 'gemini-2.5-flash',
+    modelName = ADMIN_ASSISTANT_DEFAULT_MODEL,
     cachedContent = null,
     systemInstruction = null,
     cardText = null,
     messages = [],
     userMessage,
   } = opts;
+  const normalizedModel = normalizeGeminiModelName(modelName);
 
   const contents = [];
   if (!cachedContent && cardText) {
@@ -6430,7 +6488,7 @@ async function callGeminiAssistant(env, opts) {
   }
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${env.GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${normalizedModel}:generateContent?key=${env.GEMINI_API_KEY}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -6445,6 +6503,59 @@ async function callGeminiAssistant(env, opts) {
   const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!text) throw new Error('Gemini върна празен отговор');
   return JSON.parse(text);
+}
+
+/**
+ * Gemini chat with automatic cache recovery on expired/invalid cachedContent.
+ */
+async function callGeminiAssistantResilient(env, session, card, message, planUpdatedAt, analyticsSyncedAt) {
+  const userMessage = message.trim();
+  const baseOpts = {
+    modelName: session.modelName,
+    messages: session.messages,
+    userMessage,
+  };
+
+  const callCached = () => callGeminiAssistant(env, {
+    ...baseOpts,
+    cachedContent: session.cacheId,
+  });
+
+  const callInline = () => callGeminiAssistant(env, {
+    ...baseOpts,
+    systemInstruction: ADMIN_ASSISTANT_SYSTEM_INSTRUCTION,
+    cardText: card,
+  });
+
+  try {
+    if (session.cacheEnabled && session.cacheId) {
+      return { result: await callCached(), cacheRecovered: false, cacheFallbackInline: false };
+    }
+    return { result: await callInline(), cacheRecovered: false, cacheFallbackInline: !session.cacheEnabled };
+  } catch (error) {
+    if (!isGeminiCacheMissError(error)) throw error;
+
+    console.warn('[AdminAssistant] Cache miss, recovering:', error.message);
+    session.cacheId = null;
+    session.cacheEnabled = false;
+    session.cacheStale = true;
+    session.cacheExpiresAt = null;
+
+    await ensureAssistantCacheFresh(env, session, card, planUpdatedAt, analyticsSyncedAt);
+
+    if (session.cacheEnabled && session.cacheId) {
+      try {
+        return { result: await callCached(), cacheRecovered: true, cacheFallbackInline: false };
+      } catch (retryError) {
+        if (!isGeminiCacheMissError(retryError)) throw retryError;
+        session.cacheId = null;
+        session.cacheEnabled = false;
+        session.cacheExpiresAt = null;
+      }
+    }
+
+    return { result: await callInline(), cacheRecovered: true, cacheFallbackInline: true };
+  }
 }
 
 /**
@@ -6587,15 +6698,18 @@ async function handleAdminAssistantSession(request, env) {
     const analytics = await loadClientAnalytics(env, clientData);
     const { card, tokenEstimate } = buildClientCard(clientData, { analytics });
     const config = await getAdminConfig(env);
-    const modelName = config.modelName || 'gemini-2.5-flash';
+    const modelName = resolveAdminAssistantGeminiModel(config);
 
     const sessionId = `asst_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
     let cacheId = null;
     let cacheEnabled = false;
+    let cacheExpiresAt = null;
 
     if (tokenEstimate >= ADMIN_ASSISTANT_CACHE_MIN_TOKENS) {
       try {
-        cacheId = await createGeminiCachedContent(env, modelName, card, ADMIN_ASSISTANT_SYSTEM_INSTRUCTION);
+        const cache = await createGeminiCachedContent(env, modelName, card, ADMIN_ASSISTANT_SYSTEM_INSTRUCTION);
+        cacheId = cache.name;
+        cacheExpiresAt = cache.expireTime;
         cacheEnabled = Boolean(cacheId);
       } catch (e) {
         console.warn('[AdminAssistant] Cache creation failed, falling back to inline context:', e.message);
@@ -6607,6 +6721,7 @@ async function handleAdminAssistantSession(request, env) {
       clientId,
       cacheId,
       cacheEnabled,
+      cacheExpiresAt,
       cacheStale: false,
       modelName,
       cardFingerprint: buildClientCardFingerprint(card, clientData.planUpdatedAt, clientData.analyticsSyncedAt),
@@ -6661,14 +6776,9 @@ async function handleAdminAssistantChat(request, env, ctx) {
       env, session, card, clientData.planUpdatedAt, clientData.analyticsSyncedAt
     );
 
-    const aiResult = await callGeminiAssistant(env, {
-      modelName: session.modelName,
-      cachedContent: session.cacheEnabled ? session.cacheId : null,
-      systemInstruction: session.cacheEnabled ? null : ADMIN_ASSISTANT_SYSTEM_INSTRUCTION,
-      cardText: session.cacheEnabled ? null : card,
-      messages: session.messages,
-      userMessage: message.trim(),
-    });
+    const { result: aiResult, cacheRecovered, cacheFallbackInline } = await callGeminiAssistantResilient(
+      env, session, card, message, clientData.planUpdatedAt, clientData.analyticsSyncedAt
+    );
 
     let applied = false;
     let applyError = null;
@@ -6704,7 +6814,8 @@ async function handleAdminAssistantChat(request, env, ctx) {
       applyError,
       cacheEnabled: session.cacheEnabled,
       cacheStale: session.cacheStale,
-      cacheRefreshed,
+      cacheRefreshed: cacheRefreshed || cacheRecovered,
+      cacheFallbackInline,
       client: applied ? clientData : null,
       cardPreview: cardAfter ? cardAfter.slice(0, 800) : null,
     });
