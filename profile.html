@@ -863,7 +863,6 @@
             background:transparent; color:#6366f1;
             font-weight:600; cursor:pointer; font-size:0.82rem;
         }
-
         /* Dark theme overrides */
         [data-theme="dark"] .game-analytics-section { border-color: rgba(45,212,191,0.15); }
         [data-theme="dark"] .game-index-bar-wrap    { background: rgba(45,212,191,0.1); }
@@ -1840,7 +1839,6 @@
 </head>
 <body>
     <script src="./session-utils.js"></script>
-    <script src="./plan-sync.js"></script>
     <script src="./diagnostics-log.js"></script>
     <script src="./platform.js"></script>
     <script type="module" src="./auth-guard.js"></script>
@@ -2916,27 +2914,6 @@
                 userData = updatedData;
                 originalData = JSON.parse(JSON.stringify(updatedData));
 
-                await window.NutriPlanPlanSync.syncClientAnswers(updatedData);
-
-                const storedUserId = localStorage.getItem('userId') || '';
-                if (storedUserId && localStorage.getItem('dietPlan')) {
-                    let plan = null;
-                    try { plan = JSON.parse(localStorage.getItem('dietPlan')); } catch (_) {}
-                    if (plan) {
-                        const idToken = window.NutriPlanPlanReplaceAuth && typeof window.NutriPlanPlanReplaceAuth.getIdToken === 'function'
-                            ? await window.NutriPlanPlanReplaceAuth.getIdToken()
-                            : null;
-                        await window.NutriPlanPlanSync.saveUserProfile(
-                            storedUserId,
-                            plan,
-                            updatedData,
-                            localStorage.getItem('planSource') || '',
-                            idToken,
-                            localStorage.getItem('pendingClientId')
-                        );
-                    }
-                }
-
                 // Update UI
                 if (updatedData.name) {
                     document.getElementById('profileName').textContent = updatedData.name;
@@ -2968,95 +2945,53 @@
                 showAlert('⚠️ Демо режим — лимит достигнат: В демо версията се позволява само едно регенериране на план след редакция на профила.', 'warning');
                 return;
             }
-
-            const updatedData = collectFormData();
-            const email = (updatedData.email || '').trim().toLowerCase();
-            const sync = window.NutriPlanPlanSync;
-            const replacingExistingPlan = sync && typeof sync.hasExistingPlanForEmail === 'function'
-                ? await sync.hasExistingPlanForEmail(email)
-                : false;
-
-            if (replacingExistingPlan && !email) {
-                showAlert('⚠️ Имейлът е задължителен за замяна на съществуващ план.', 'warning');
+            
+            // Confirm before regenerating (important action)
+            if (!confirm('Регенерирането на плана ще отнеме време. Сигурни ли сте, че искате да продължите?')) {
                 return;
             }
-
-            const fullRegenMessage = 'Ще се генерира изцяло нов хранителен план (анализ → стратегия → седмично меню → обобщение). Процесът отнема няколко минути.';
-
-            if (!replacingExistingPlan) {
-                if (!confirm(fullRegenMessage + '\n\nСигурни ли сте, че искате да продължите?')) {
-                    return;
-                }
-            }
-
-            let authContext = null;
-            if (replacingExistingPlan && sync && typeof sync.ensureReplacementAuth === 'function') {
-                try {
-                    authContext = (await sync.ensureReplacementAuth(
-                        email,
-                        'Новият план ще замени текущия в системата. ' + fullRegenMessage + ' След генериране планът ще изчака одобрение от специалист.'
-                    )).authContext;
-                } catch (_) {
-                    return;
-                }
-            }
+            
+            // First save the changes
+            const updatedData = collectFormData();
 
             try {
+                // Save to localStorage
                 localStorage.setItem('userData', JSON.stringify(updatedData));
                 userData = updatedData;
 
-                const savedClientId = await sync.syncClientAnswers(updatedData);
-
+                // Show loading state
                 const btn = document.getElementById('saveAndRegenerateBtn');
                 btn.disabled = true;
                 btn.innerHTML = '<div class="spinner"></div> Регенериране на план...';
 
                 showAlert('Генерирам нов план на базата на актуализираните данни...', 'info');
 
+                // Use async generation so the plan continues even if the page is backgrounded.
                 const jobId = crypto.randomUUID();
-                const requireApproval = replacingExistingPlan;
                 localStorage.setItem('planJobId', jobId);
-                localStorage.setItem('planJobSource', requireApproval ? 'profile-regen' : 'questionnaire');
+                localStorage.setItem('planJobSource', 'questionnaire');
                 localStorage.setItem('pendingPlanPayload', JSON.stringify(updatedData));
-                if (requireApproval) localStorage.setItem('planReplacePending', '1');
-
-                const fbUserId = authContext?.userId || (function() {
-                    const uid = localStorage.getItem('userId');
-                    return (uid && uid.startsWith('fb_')) ? uid : null;
-                })();
-                const idToken = authContext?.idToken || (
-                    window.NutriPlanPlanReplaceAuth && typeof window.NutriPlanPlanReplaceAuth.getIdToken === 'function'
-                        ? await window.NutriPlanPlanReplaceAuth.getIdToken()
-                        : null
-                );
-
-                const requestBody = {
-                    ...updatedData,
-                    _jobId: jobId,
-                    ...(savedClientId ? { _clientId: savedClientId } : {}),
-                    ...(requireApproval ? { _requireApproval: true, _userId: fbUserId, _idToken: idToken } : {})
-                };
 
                 const startController = new AbortController();
                 const startTimeoutId = setTimeout(() => startController.abort(), 30000);
                 let asyncResponse;
                 try {
-                    asyncResponse = await fetch(WORKER_PROFILE + '/api/generate-plan-async', {
+                    asyncResponse = await fetch('https://aidiet.radilov-k.workers.dev/api/generate-plan-async', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(requestBody),
+                        body: JSON.stringify({ ...updatedData, _jobId: jobId }),
                         signal: startController.signal
                     });
                 } finally {
                     clearTimeout(startTimeoutId);
                 }
+                clearTimeout(startTimeoutId);
 
                 if (!asyncResponse.ok) {
                     localStorage.removeItem('planJobId');
                     localStorage.removeItem('planJobSource');
                     localStorage.removeItem('pendingPlanPayload');
-                    const errData = await asyncResponse.json().catch(() => ({}));
-                    throw new Error(errData.error || ('Server returned ' + asyncResponse.status));
+                    throw new Error(`Server returned ${asyncResponse.status}`);
                 }
 
                 const asyncResult = await asyncResponse.json();
@@ -3067,7 +3002,8 @@
                     throw new Error(asyncResult.error || 'Неизвестна грешка при стартиране на генерирането');
                 }
 
-                const MAX_POLLS = 72;
+                // Poll for result with exponential backoff: 5s → 10s → 20s → 30s (capped)
+                const MAX_POLLS = 72; // ~18 minutes at average backoff
                 const POLL_BASE_DELAY = 5000;
                 const POLL_MAX_DELAY = 30000;
                 let polls = 0;
@@ -3083,7 +3019,7 @@
                         throw new Error('Генерирането отне твърде дълго. Моля, опитайте отново.');
                     }
                     const statusResp = await fetch(
-                        WORKER_PROFILE + '/api/plan-job-status?jobId=' + encodeURIComponent(activeJobId)
+                        'https://aidiet.radilov-k.workers.dev/api/plan-job-status?jobId=' + encodeURIComponent(activeJobId)
                     );
                     if (!statusResp.ok) {
                         if (statusResp.status === 429 || statusResp.status >= 500) {
@@ -3115,55 +3051,26 @@
                 localStorage.removeItem('planJobSource');
                 localStorage.removeItem('pendingPlanPayload');
 
-                const resolvedUserId = fbUserId || result.userId || localStorage.getItem('userId');
+                // Save new plan
                 localStorage.setItem('dietPlan', JSON.stringify(result.plan));
-                if (resolvedUserId) {
-                    localStorage.setItem('userId', resolvedUserId);
+                if (result.userId) {
+                    localStorage.setItem('userId', result.userId);
                 }
+
+                // Reset justification flag so modal shows on first load of regenerated plan
                 localStorage.removeItem('hasSeenPlanJustification');
 
-                if (requireApproval) {
-                    localStorage.setItem('planSource', 'questionnaire2');
-                    if (savedClientId) localStorage.setItem('pendingClientId', savedClientId);
-                    await sync.saveUserProfile(
-                        resolvedUserId,
-                        result.plan,
-                        updatedData,
-                        'questionnaire2',
-                        idToken,
-                        savedClientId
-                    );
-                    const prevCount = parseInt(localStorage.getItem('demoProfileRegenCount') || '0', 10);
-                    localStorage.setItem('demoProfileRegenCount', String(prevCount + 1));
-                    localStorage.removeItem('planReplacePending');
-                    showAlert('✓ Новият план е генериран и изпратен за одобрение. Пренасочване...', 'info');
-                    setTimeout(() => {
-                        if (!requestShellAction('NUTRIPLAN_NAVIGATE', { url: 'plan-pending.html', replace: false, forceTopLevel: true })) {
-                            window.location.href = 'plan-pending.html';
-                        }
-                    }, 2000);
-                } else {
-                    localStorage.removeItem('planSource');
-                    await sync.saveUserProfile(
-                        resolvedUserId,
-                        result.plan,
-                        updatedData,
-                        '',
-                        idToken,
-                        savedClientId
-                    );
-                    const prevCount = parseInt(localStorage.getItem('demoProfileRegenCount') || '0', 10);
-                    localStorage.setItem('demoProfileRegenCount', String(prevCount + 1));
-                    showAlert('✓ Планът е регенериран успешно! Пренасочване...', 'info');
-                    setTimeout(() => {
-                        if (!requestShellAction('NUTRIPLAN_SWITCH_TAB', { tab: 'plan' })) {
-                            window.location.href = 'index.html?app=1&tab=plan';
-                        }
-                    }, 2000);
-                }
+                // Demo: increment regeneration counter
+                const prevCount = parseInt(localStorage.getItem('demoProfileRegenCount') || '0', 10);
+                localStorage.setItem('demoProfileRegenCount', String(prevCount + 1));
 
-                originalData = JSON.parse(JSON.stringify(updatedData));
-                cancelEditing();
+                showAlert('✓ Планът е регенериран успешно! Пренасочване...', 'info');
+                
+                setTimeout(() => {
+                    if (!requestShellAction('NUTRIPLAN_SWITCH_TAB', { tab: 'plan' })) {
+                        window.location.href = 'index.html?app=1&tab=plan';
+                    }
+                }, 2000);
 
             } catch (error) {
                 console.error('Error regenerating plan:', error);
@@ -4241,7 +4148,7 @@
     <script type="module">
         import { initializeApp, getApps, getApp }
                 from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-        import { getAuth, signOut, onAuthStateChanged, signInWithEmailAndPassword }
+        import { getAuth, signOut, onAuthStateChanged }
                 from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
         const firebaseConfig = {
@@ -4257,31 +4164,6 @@
             /* auth-guard.js (loaded earlier) already initialised the default app;
              * reuse it so we don't get a "duplicate-app" error. */
             const auth = getAuth(getApps().length ? getApp() : initializeApp(firebaseConfig));
-
-            window.NutriPlanPlanReplaceAuth = {
-                async signIn(email, password) {
-                    const cred = await signInWithEmailAndPassword(auth, email, password);
-                    const idToken = await cred.user.getIdToken();
-                    return {
-                        userId: 'fb_' + cred.user.uid,
-                        idToken,
-                        email: cred.user.email
-                    };
-                },
-                async getSession(email) {
-                    const user = auth.currentUser;
-                    if (!user) return null;
-                    const wanted = String(email || '').trim().toLowerCase();
-                    const actual = String(user.email || '').trim().toLowerCase();
-                    if (!wanted || wanted !== actual) return null;
-                    const idToken = await user.getIdToken().catch(() => null);
-                    return idToken ? { userId: 'fb_' + user.uid, idToken, email: user.email } : null;
-                },
-                async getIdToken() {
-                    const user = auth.currentUser;
-                    return user ? user.getIdToken().catch(() => null) : null;
-                }
-            };
 
             onAuthStateChanged(auth, async (user) => {
                 if (user && window.NutriPlanSession && typeof window.NutriPlanSession.ensureAuthenticatedUser === 'function') {

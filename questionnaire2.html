@@ -1024,7 +1024,6 @@
         }
 
     </style>
-    <script src="./plan-sync.js"></script>
     <script>
         // Apply color scheme from admin settings
         (function() {
@@ -3974,25 +3973,6 @@
                 }
                 } // end of validation block
 
-                let replacementAuth = { requireApproval: false, authContext: null };
-                try {
-                    if (window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.ensureReplacementAuth === 'function') {
-                        replacementAuth = await window.NutriPlanPlanSync.ensureReplacementAuth(
-                            planPayload.email,
-                            'Вече имате план с този имейл. Новият план ще замени стария след одобрение от специалист. Въведете паролата си за потвърждение.'
-                        );
-                    }
-                } catch (authErr) {
-                    if (progressInterval) { clearInterval(progressInterval); progressInterval = null; }
-                    if (tipsInterval) { clearInterval(tipsInterval); tipsInterval = null; }
-                    document.getElementById('prevBtn').style.display = '';
-                    document.getElementById('nextBtn').style.display = '';
-                    document.querySelector('.progress-container').style.display = '';
-                    document.body.classList.remove('diagnostic-lock');
-                    if (authErr && authErr.message === 'cancelled') return;
-                    throw authErr;
-                }
-
                 // Generate the jobId client-side and persist it in localStorage BEFORE
                 // sending the request. The Worker starts generation via ctx.waitUntil() and
                 // returns immediately, so the plan continues generating even if the app is
@@ -4015,16 +3995,7 @@
                     asyncResponse = await fetch('https://aidiet.radilov-k.workers.dev/api/generate-plan-async', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            ...planPayload,
-                            _jobId: jobId,
-                            _clientId: savedClientId || undefined,
-                            ...(replacementAuth.requireApproval ? {
-                                _requireApproval: true,
-                                _userId: replacementAuth.authContext.userId,
-                                _idToken: replacementAuth.authContext.idToken
-                            } : {})
-                        }),
+                        body: JSON.stringify({ ...planPayload, _jobId: jobId, _clientId: savedClientId || undefined }),
                         signal: startController.signal
                     });
                 } finally {
@@ -4234,18 +4205,11 @@
 
             if (savedClientId) {
                 localStorage.setItem('pendingClientId', savedClientId);
-                const forcePending = localStorage.getItem('planReplacePending') === '1';
                 fetch('https://aidiet.radilov-k.workers.dev/api/admin/update-client-plan', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        clientId: savedClientId,
-                        plan: result.plan,
-                        userId: fbUserId || result.userId,
-                        ...(forcePending ? { forcePending: true } : {})
-                    })
+                    body: JSON.stringify({ clientId: savedClientId, plan: result.plan, userId: fbUserId || result.userId })
                 }).catch(e => console.error('Error saving plan to client record:', e));
-                if (forcePending) localStorage.removeItem('planReplacePending');
             }
 
             localStorage.removeItem('hasSeenPlanJustification');
@@ -5000,7 +4964,7 @@
          Only one fire-and-forget /api/auth/social call per new device for KV registration. -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
         const _cfg = {
             apiKey:            'AIzaSyAZvIAAzP-6CBzQlQvoJTy-Iq24fBAPrJY',
@@ -5012,26 +4976,6 @@
         };
         const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
         const auth = getAuth(initializeApp(_cfg, 'q2auth'));
-
-        window.NutriPlanPlanReplaceAuth = {
-            async signIn(email, password) {
-                const cred = await signInWithEmailAndPassword(auth, email, password);
-                const idToken = await cred.user.getIdToken();
-                const userId = 'fb_' + cred.user.uid;
-                localStorage.setItem('userId', userId);
-                syncUser(cred.user);
-                return { userId, idToken, email: cred.user.email };
-            },
-            async getSession(email) {
-                const user = auth.currentUser;
-                if (!user) return null;
-                const wanted = String(email || '').trim().toLowerCase();
-                const actual = String(user.email || '').trim().toLowerCase();
-                if (!wanted || wanted !== actual) return null;
-                const idToken = await user.getIdToken().catch(() => null);
-                return idToken ? { userId: 'fb_' + user.uid, idToken, email: user.email } : null;
-            }
-        };
 
         /* ── Derive userId locally + one-time KV registration (fire-and-forget) ── */
         function syncUser(user) {
