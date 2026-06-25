@@ -173,6 +173,41 @@
         return true;
     }
 
+    async function syncRemotePlanIfNewer(options) {
+        options = options || {};
+        var userId = options.userId || '';
+        if (!userId) {
+            try { userId = localStorage.getItem('userId') || ''; } catch (_) { userId = ''; }
+        }
+        if (!userId || userId.indexOf('fb_') !== 0) {
+            return { updated: false, reason: 'no-user' };
+        }
+        try {
+            if (!localStorage.getItem('dietPlan')) {
+                return { updated: false, reason: 'no-local-plan' };
+            }
+        } catch (_) {
+            return { updated: false, reason: 'no-local-plan' };
+        }
+
+        var data = await fetchUserProfile(userId, Object.assign({}, options, { includeLocalPlanAt: true }));
+        if (!data || !data.found) {
+            return { updated: false, reason: 'not-found' };
+        }
+        if (data.unchanged) {
+            return { updated: false, unchanged: true, data: data };
+        }
+
+        var updated = applyServerPlanData(data);
+        if (updated) {
+            clearAdminPlanPending();
+            if (global.NutriPlanDiagnostics) {
+                global.NutriPlanDiagnostics.ok('plan-sync', 'remote-plan-sync', 'newer plan applied');
+            }
+        }
+        return { updated: updated, data: data };
+    }
+
     async function refreshAdminPlanIfPending(options) {
         if (_adminRefreshInFlight) {
             return _adminRefreshInFlight;
@@ -183,11 +218,6 @@
 
         _adminRefreshInFlight = (async function () {
         options = options || {};
-        try {
-            if (localStorage.getItem('planSource') === 'questionnaire2') {
-                return { updated: false, reason: 'pending-questionnaire' };
-            }
-        } catch (_) {}
 
         var userId = options.userId || '';
         if (!userId) {
@@ -350,7 +380,17 @@
     async function initAdminPlanSync(options) {
         bindPlanUpdateBridge();
         await syncPendingFromServiceWorker();
-        return refreshAdminPlanIfPending(options || {});
+        options = options || {};
+        var remote = await syncRemotePlanIfNewer(options);
+        if (remote.updated) {
+            notifyPlanReload();
+            return remote;
+        }
+        var pending = await refreshAdminPlanIfPending(options);
+        if (pending.updated || (pending.data && pending.data.plan)) {
+            notifyPlanReload();
+        }
+        return pending.updated ? pending : remote;
     }
 
     function normalizeEmail(value) {
@@ -614,6 +654,7 @@
         fetchPlanOnLogin: fetchPlanOnLogin,
         loadUserPlanFromServer: fetchPlanOnLogin,
         refreshAdminPlanIfPending: refreshAdminPlanIfPending,
+        syncRemotePlanIfNewer: syncRemotePlanIfNewer,
         initAdminPlanSync: initAdminPlanSync,
         notifyPlanReload: notifyPlanReload,
         isApplyingServerPlan: function () { return _applyingServerPlan; },

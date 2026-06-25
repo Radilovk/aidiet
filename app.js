@@ -363,6 +363,7 @@
         document.addEventListener('visibilitychange', function () {
             if (document.visibilityState !== 'visible') return;
             if (!params.has('app')) return;
+            if (state.initialized) return;
             runOpenAppCatchUpFlow();
         });
     }
@@ -430,7 +431,6 @@
             };
             if (msg.silent && payload.action) {
                 if (handleNativeNotificationAction(payload)) return;
-                openQuickAnswerFromNotification(payload);
                 return;
             }
             if (msg.openApp || !payload.action) {
@@ -905,8 +905,11 @@
         var uid = getStoredValue('userId') || '';
         if (!uid.startsWith('fb_')) return false;
         if (getStoredValue('planSource') === 'questionnaire2') {
-            window.location.replace('plan-pending.html');
-            return false;
+            if (getStoredValue('pendingClientId') && !getStoredValue('dietPlan')) {
+                window.location.replace('plan-pending.html');
+                return false;
+            }
+            try { localStorage.removeItem('planSource'); } catch (_) {}
         }
         return !!getStoredValue('dietPlan');
     }

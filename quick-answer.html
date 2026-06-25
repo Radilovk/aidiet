@@ -438,7 +438,7 @@
                 closeFlow();
                 return;
             }
-            finishEncouragement(null, 500);
+            finishEncouragement(null, 500, viewPlan);
         }
 
         function queueProgressHint() {
@@ -562,7 +562,7 @@
             }
             exitAfterAnswer();
         }
-        function finishEncouragement(actionId, closeMs) {
+        function finishEncouragement(actionId, closeMs, onClose) {
             closeMs = closeMs || 500;
             var enc = (window.GameNotifier && typeof window.GameNotifier.encouragementForAction === 'function')
                 ? window.GameNotifier.encouragementForAction(actionId)
@@ -577,7 +577,10 @@
                     '<p>' + escapeHtml(enc.message) + '</p>' +
                 '</div>'
             );
-            setTimeout(closeFlow, closeMs);
+            setTimeout(function() {
+                if (typeof onClose === 'function') onClose();
+                else closeFlow();
+            }, closeMs);
         }
         function onAnswerChosen(actionId) {
             var gn = window.GameNotifier;

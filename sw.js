@@ -97,6 +97,15 @@ async function queuePendingGameAction(payload) {
 
 const PLAN_REFRESH_KEY = 'plan_refresh_pending';
 
+async function hasVisibleAppClient() {
+  try {
+    const list = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    return list.some((client) => client.visibilityState === 'visible' || client.focused);
+  } catch (_) {
+    return false;
+  }
+}
+
 async function queuePlanRefreshPending(planUpdatedAt) {
   const db = await openPendingDb();
   return new Promise((resolve, reject) => {
@@ -296,9 +305,14 @@ self.addEventListener('push', (event) => {
     ? queuePlanRefreshPending(data.planUpdatedAt || '').then(() => notifyClientsPlanUpdated(data.planUpdatedAt || ''))
     : Promise.resolve();
 
+  const isGameType = data.notificationType && data.notificationType !== 'plan_updated';
+
   event.waitUntil(
-    notifyClients.then(() =>
-    self.registration.showNotification(data.title || DEFAULT_TITLE, {
+    notifyClients.then(async () => {
+      if (isGameType && await hasVisibleAppClient()) {
+        return;
+      }
+      return self.registration.showNotification(data.title || DEFAULT_TITLE, {
       body:              data.body || DEFAULT_BODY,
       icon:              data.icon || DEFAULT_ICON,
       badge:             DEFAULT_BADGE,
@@ -319,7 +333,8 @@ self.addEventListener('push', (event) => {
       return self.registration.showNotification(DEFAULT_TITLE, {
         body: DEFAULT_BODY, icon: DEFAULT_ICON, badge: DEFAULT_BADGE
       });
-    }))
+    });
+    })
   );
 });
 
@@ -472,6 +487,7 @@ self.addEventListener('message', (event) => {
     _scheduledGameNotifs.push(item);
     const tid = setTimeout(async () => {
       try {
+        if (await hasVisibleAppClient()) return;
         const tag = item.tag || '';
         if (tag) {
           const existing = await self.registration.getNotifications({ tag });

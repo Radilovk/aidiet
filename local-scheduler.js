@@ -842,10 +842,14 @@ const GameNotifier = {
     _bindPwaResumeRefresh() {
         if (this._pwaResumeBound || typeof document === 'undefined') return;
         this._pwaResumeBound = true;
+        let lastRefresh = 0;
         const refresh = () => {
             if (this._capacitor || !this._initialized) return;
             if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
             if (Notification.permission !== 'granted') return;
+            const now = Date.now();
+            if (now - lastRefresh < 60000) return;
+            lastRefresh = now;
             this.scheduleNotifications().catch(() => {});
         };
         document.addEventListener('visibilitychange', refresh);
@@ -1719,6 +1723,21 @@ const GameNotifier = {
         });
     },
 
+    shouldUseInAppGamification() {
+        if (typeof window === 'undefined' || typeof document === 'undefined') return false;
+        const path = window.location.pathname || '';
+        if (path.indexOf('plan.html') !== -1) return true;
+        if (path.indexOf('index.html') !== -1 && (window.location.search || '').indexOf('app=1') !== -1) return true;
+        if (document.documentElement && document.documentElement.getAttribute('data-embedded-tab') === '1') return true;
+        try {
+            if (window.parent !== window && window.parent.document &&
+                window.parent.document.querySelector('[data-tab-view="plan"]')) {
+                return true;
+            }
+        } catch (_) {}
+        return false;
+    },
+
     shouldRedirectCatchUpOnOpen() {
         try {
             if (!localStorage.getItem('dietPlan')) return false;
@@ -1751,6 +1770,7 @@ const GameNotifier = {
 
     redirectToCatchUpIfNeeded() {
         if (!this._shouldAutoCatchUpOnPage()) return false;
+        if (this.shouldUseInAppGamification()) return false;
         const url = this.buildCatchUpQuickAnswerUrl(this._dateKeyForTimestamp(Date.now()));
         if (!url) return false;
         this._navigateToCatchUpUrl(url);
@@ -1805,6 +1825,7 @@ if (typeof window !== 'undefined') {
 
         function scheduleCatchUp() {
             if (!GameNotifier._shouldAutoCatchUpOnPage()) return;
+            if (GameNotifier.shouldUseInAppGamification()) return;
             try {
                 if (!localStorage.getItem('dietPlan')) return;
             } catch (_) {
@@ -1815,6 +1836,7 @@ if (typeof window !== 'undefined') {
 
         document.addEventListener('visibilitychange', function () {
             if (document.visibilityState !== 'visible') return;
+            if (GameNotifier.shouldUseInAppGamification()) return;
             scheduleCatchUp();
         });
 
