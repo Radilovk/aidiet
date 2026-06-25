@@ -4776,22 +4776,20 @@
                 // Initialize client-side notification scheduler
                 scheduleNotifications();
 
-                // Ensure np_uid cookie + backend profile exist so the iOS PWA can restore
-                // data via restoreProfileFromCookies() in index.html.
-                // np_uid is always refreshed; backend save is retried until np_profile_synced
-                // is confirmed (guards against silent fetch failures on first run).
+                // Refresh np_uid cookie for iOS PWA restore. Firebase-linked accounts do not
+                // passive-upload the plan on every open — that would overwrite admin edits.
+                // Plan sync for fb_* users: login fetch + push flag (np_plan_refresh_pending) only.
                 (async function ensureProfileCookies() {
                     const uid = localStorage.getItem('userId');
                     const planStr = localStorage.getItem('dietPlan');
                     if (!uid || !planStr) return;
                     if (window.NutriPlanPlanSync && window.NutriPlanPlanSync.isApplyingServerPlan()) return;
-                    // Always refresh the cookie so it doesn't expire
                     const OPTS = `;path=/;max-age=${365*24*60*60};SameSite=Lax;Secure`;
                     document.cookie = `np_uid=${encodeURIComponent(uid)}${OPTS}`;
+                    if (uid.startsWith('fb_')) return;
                     const udStr = localStorage.getItem('userData');
                     const planSource = localStorage.getItem('planSource') || '';
                     const profileSig = getProfileSyncSignature(uid, planStr, udStr || '', planSource);
-                    // Skip backend save only when this exact local profile was already confirmed.
                     if (localStorage.getItem('np_profile_synced') === '1' &&
                         localStorage.getItem('np_profile_sync_sig') === profileSig) return;
                     const idToken = (uid.startsWith('fb_') && auth.currentUser)
