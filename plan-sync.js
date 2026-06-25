@@ -146,9 +146,9 @@
             if (idToken) headers.Authorization = 'Bearer ' + idToken;
         }
 
-        var resp = await fetch(url.toString(), { headers: headers });
+        var resp = await fetch(url.toString(), { headers: headers, cache: 'no-store' });
         if ((resp.status === 401 || resp.status === 403) && headers.Authorization) {
-            resp = await fetch(url.toString(), {});
+            resp = await fetch(url.toString(), { cache: 'no-store' });
         }
         if (!resp.ok) return null;
         return resp.json().catch(function () { return null; });
@@ -201,7 +201,7 @@
             return { updated: false, reason: 'no-user' };
         }
 
-        var data = await fetchUserProfile(userId, options);
+        var data = await fetchUserProfile(userId, Object.assign({}, options, { includeLocalPlanAt: false }));
         if (!data) {
             return { updated: false, reason: 'request-failed' };
         }
@@ -218,7 +218,7 @@
                 data.unchanged ? 'unchanged' : (updated ? 'updated' : 'no-op')
             );
         }
-        return { updated: updated, unchanged: !!data.unchanged, data: data };
+        return { updated: updated || !!(data.plan), unchanged: !!data.unchanged, data: data };
         })().finally(function () {
             _adminRefreshInFlight = null;
         });
@@ -226,9 +226,29 @@
         return _adminRefreshInFlight;
     }
 
-    function notifyPlanReload() {
+    function syncShellAppDataFromStorage() {
         try {
-            if (typeof global.loadDietData === 'function') {
+            if (!global.NutriPlanAppData || !global.localStorage) return;
+            var planStr = global.localStorage.getItem('dietPlan');
+            var userStr = global.localStorage.getItem('userData');
+            if (planStr) {
+                global.NutriPlanAppData.raw.dietPlan = planStr;
+                global.NutriPlanAppData.parsed.dietPlan = JSON.parse(planStr);
+            }
+            if (userStr) {
+                global.NutriPlanAppData.raw.userData = userStr;
+                global.NutriPlanAppData.parsed.userData = JSON.parse(userStr);
+            }
+        } catch (_) {}
+    }
+
+    function notifyPlanReload() {
+        syncShellAppDataFromStorage();
+
+        try {
+            if (typeof global.forceReloadDietPlanFromStorage === 'function') {
+                global.forceReloadDietPlanFromStorage();
+            } else if (typeof global.loadDietData === 'function') {
                 global.loadDietData();
             }
         } catch (_) {}
@@ -261,7 +281,9 @@
     function handleAdminPlanUpdatedMessage(planUpdatedAt) {
         markAdminPlanPending(planUpdatedAt);
         refreshAdminPlanIfPending().then(function (result) {
-            if (result.updated) notifyPlanReload();
+            if (result.updated || (result.data && result.data.plan)) {
+                notifyPlanReload();
+            }
         }).catch(function () {});
     }
 
