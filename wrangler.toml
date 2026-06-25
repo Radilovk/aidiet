@@ -26,7 +26,8 @@ id = "81fc0991b2764918b682f9ca170abd4b"
 
 [env.production]
 name = "aidiet"
-route = "aidiet.radilov-k.workers.dev/*"
+# workers.dev URL is assigned automatically (aidiet.radilov-k.workers.dev).
+# Do NOT use `route` here — that syntax is for custom domains in a Cloudflare zone.
 
 [[env.production.kv_namespaces]]
 binding = "page_content"
