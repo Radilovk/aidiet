@@ -3,7 +3,7 @@
  */
 
 const ALLOWED_PREFIXES = ['/answers', '/plan', '/adminNotes'];
-const MAX_PATCHES = 25;
+const MAX_PATCHES = 60;
 
 /**
  * @param {string} pointer
