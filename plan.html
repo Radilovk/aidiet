@@ -8589,6 +8589,11 @@
          */
         async function registerServerPush(registration) {
             try {
+                if (window.NutriPlanPlanSync &&
+                    typeof window.NutriPlanPlanSync.ensureServerPushSubscription === 'function') {
+                    await window.NutriPlanPlanSync.ensureServerPushSubscription({ registration: registration });
+                    return;
+                }
                 if (!('PushManager' in window)) return;
 
                 // Avoid re-subscribing on every page load
