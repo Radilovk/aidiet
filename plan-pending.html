@@ -417,6 +417,40 @@
         [data-theme="dark"] .hero-badge {
             box-shadow: 0 8px 32px rgba(45, 212, 191, 0.3);
         }
+        .system-notice {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 16px 18px;
+            margin-bottom: 24px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, rgba(13, 148, 136, 0.12), rgba(13, 148, 136, 0.06));
+            border: 1px solid rgba(13, 148, 136, 0.25);
+        }
+        .system-notice i {
+            color: #0D9488;
+            font-size: 1.25rem;
+            margin-top: 2px;
+            flex-shrink: 0;
+        }
+        .system-notice h4 {
+            margin: 0 0 6px;
+            font-size: 0.95rem;
+            color: var(--text-dark);
+        }
+        .system-notice p {
+            margin: 0;
+            font-size: 0.88rem;
+            line-height: 1.55;
+            color: var(--text-light);
+        }
+        [data-theme="dark"] .system-notice {
+            background: linear-gradient(135deg, rgba(45, 212, 191, 0.12), rgba(45, 212, 191, 0.05));
+            border-color: rgba(45, 212, 191, 0.2);
+        }
+        [data-theme="dark"] .system-notice i {
+            color: #2DD4BF;
+        }
         .pp-theme-btn {
             position: fixed;
             top: calc(12px + var(--safe-area-inset-top, 0px));
@@ -490,6 +524,14 @@
         <div class="pp-title">
             <h1>Информацията ви е получена успешно!</h1>
             <p>Нашият специалист ще прегледа вашите данни и ще изготви напълно персонализиран хранителен пакет, съобразен с вашите нужди.</p>
+        </div>
+
+        <div class="system-notice" id="systemNotice" hidden>
+            <i class="fas fa-info-circle"></i>
+            <div>
+                <h4>Системно съобщение</h4>
+                <p id="systemNoticeText">Планът предстои да бъде преразгледан и активиран от специалист. Ще получите известие на имейл, когато новият план е готов.</p>
+            </div>
         </div>
 
         <!-- Status timeline -->
@@ -616,6 +658,28 @@
             if (icon) icon.className = t === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
         })();
 
+        const PLAN_REVIEW_SYSTEM_MSG = 'Планът предстои да бъде преразгледан и активиран от специалист. Ще получите известие на имейл, когато новият план е готов.';
+
+        (function adaptProfileRegenCopy() {
+            const source = localStorage.getItem('npPlanReviewSource')
+                || localStorage.getItem('planJobSource')
+                || '';
+            if (source !== 'profile-regen') return;
+
+            const title = document.querySelector('.pp-title h1');
+            const subtitle = document.querySelector('.pp-title p');
+            if (title) title.textContent = 'Профилът ви е актуализиран';
+            if (subtitle) subtitle.textContent = 'Генерирахме нов план на базата на промените в профила ви.';
+
+            const notice = document.getElementById('systemNotice');
+            const noticeText = document.getElementById('systemNoticeText');
+            if (notice) notice.hidden = false;
+            if (noticeText) noticeText.textContent = PLAN_REVIEW_SYSTEM_MSG;
+
+            const statusSub = document.querySelector('.status-header p');
+            if (statusSub) statusSub.textContent = 'Очаква преглед и активиране от специалист';
+        })();
+
         // Auto-check plan status after page loads (for existing clients with auto-activated plans)
         let autoCheckTimeout;
         window.addEventListener('DOMContentLoaded', function() {
@@ -713,6 +777,7 @@
                     localStorage.removeItem('pendingClientId');
                     localStorage.removeItem('planJobId');
                     localStorage.removeItem('planReplacePending');
+                    localStorage.removeItem('npPlanReviewSource');
 
                     // Update the user_profile KV entry to clear planSource so that when
                     // the user logs in on a new device, they go directly to plan.html
@@ -854,6 +919,7 @@
                 const userId = 'fb_' + cred.user.uid;
                 localStorage.setItem('userId', userId);
                 localStorage.removeItem('planSource');
+                localStorage.removeItem('npPlanReviewSource');
 
                 // Persist the approved plan under the Firebase UID before entering
                 // the shell plan tab, otherwise a fresh APK/PWA login would not find it.
