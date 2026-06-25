@@ -3790,8 +3790,12 @@
 
             if (permission === 'granted') {
                 console.log('Notification permission granted');
-                // Subscribe to push notifications
-                await subscribeToPushNotifications();
+                if (window.NutriPlanPlanSync &&
+                    typeof window.NutriPlanPlanSync.ensureServerPushSubscription === 'function') {
+                    await window.NutriPlanPlanSync.ensureServerPushSubscription();
+                } else {
+                    await subscribeToPushNotifications();
+                }
                 return true;
             } else {
                 console.log('Notification permission denied');
@@ -4217,6 +4221,13 @@
             }
             applyUser(user);
             const fbUserId = 'fb_' + user.uid;
+
+            if (window.NutriPlanPlanSync &&
+                typeof window.NutriPlanPlanSync.ensureServerPushSubscription === 'function' &&
+                Notification.permission === 'granted') {
+                window.NutriPlanPlanSync.ensureServerPushSubscription({ userId: fbUserId })
+                    .catch(function () {});
+            }
 
             /* ── Plan sync / restore ───────────────────────────────────────────
              * Backend requests only on explicit login or missing local plan.

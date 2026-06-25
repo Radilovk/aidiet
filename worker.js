@@ -6511,10 +6511,31 @@ function reconcilePlanAfterAssistantPatches(plan) {
 }
 
 /**
+ * Resolve Firebase userId for push/plan sync on an activated client.
+ */
+async function resolveActivatedClientUserId(env, clientData) {
+  if (clientData?.userId?.startsWith('fb_')) return clientData.userId;
+  const email = normalizeEmail(clientData?.answers?.email);
+  if (!email) return clientData?.userId || '';
+  const emailIndex = await kvGetJSON(env, `email_index:${email}`);
+  if (emailIndex?.userId?.startsWith('fb_')) return emailIndex.userId;
+  return clientData?.userId || '';
+}
+
+/**
  * Sync activated plan to user profile and notify client devices.
  */
 async function notifyClientPlanUpdated(env, clientData, clientId, options = {}) {
-  if (!clientData?.userId || clientData.planStatus !== 'activated' || !clientData.plan) return;
+  if (clientData?.planStatus !== 'activated' || !clientData?.plan) return;
+  const userId = await resolveActivatedClientUserId(env, clientData);
+  if (!userId?.startsWith('fb_')) {
+    console.warn(`[Client] Plan update notify skipped — no Firebase userId for client ${clientId}`);
+    return;
+  }
+  if (userId !== clientData.userId) {
+    clientData.userId = userId;
+    await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
+  }
   const planUpdatedAt = clientData.planUpdatedAt || new Date().toISOString();
   try {
     await upsertUserProfilePlan(env, clientData.userId, {

@@ -758,12 +758,17 @@
             return;
         }
         if (data.type === 'NUTRIPLAN_PLAN_UPDATED') {
+            if (window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.onAdminPlanUpdated === 'function') {
+                window.NutriPlanPlanSync.onAdminPlanUpdated(data.planUpdatedAt || '');
+                return;
+            }
             window.dispatchEvent(new CustomEvent('NUTRIPLAN_PLAN_UPDATED', {
                 detail: { planUpdatedAt: data.planUpdatedAt || '' }
             }));
             if (window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.refreshAdminPlanIfPending === 'function') {
+                window.NutriPlanPlanSync.markAdminPlanPending(data.planUpdatedAt || '');
                 window.NutriPlanPlanSync.refreshAdminPlanIfPending().then(function (r) {
-                    if (r && r.updated) applyShellPlanRefresh();
+                    if (r && (r.updated || (r.data && r.data.plan))) applyShellPlanRefresh();
                 }).catch(function () {});
             }
             return;

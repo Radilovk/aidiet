@@ -268,8 +268,11 @@
                         global.location.origin
                     );
                 }
-                global.dispatchEvent(new CustomEvent('NUTRIPLAN_SHELL_PLAN_RELOADED'));
             }
+        } catch (_) {}
+
+        try {
+            global.dispatchEvent(new CustomEvent('NUTRIPLAN_SHELL_PLAN_RELOADED'));
         } catch (_) {}
     }
 
@@ -280,6 +283,90 @@
                 notifyPlanReload();
             }
         }).catch(function () {});
+    }
+
+    function urlBase64ToUint8Array(base64String) {
+        var padding = '='.repeat((4 - base64String.length % 4) % 4);
+        var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+        var rawData = atob(base64);
+        var outputArray = new Uint8Array(rawData.length);
+        for (var i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
+    }
+
+    async function fetchVapidPublicKey() {
+        try {
+            var cached = sessionStorage.getItem('vapidPublicKey');
+            if (cached && cached !== 'VAPID_PUBLIC_KEY_NOT_CONFIGURED') return cached;
+        } catch (_) {}
+        try {
+            var resp = await fetch(WORKER_URL + '/api/push/vapid-public-key', { cache: 'no-store' });
+            if (!resp.ok) return '';
+            var data = await resp.json();
+            var key = data && data.publicKey ? data.publicKey : '';
+            if (key && key !== 'VAPID_PUBLIC_KEY_NOT_CONFIGURED') {
+                try { sessionStorage.setItem('vapidPublicKey', key); } catch (_) {}
+                return key;
+            }
+        } catch (_) {}
+        return '';
+    }
+
+    async function savePushSubscriptionToServer(userId, subscription) {
+        if (!userId || !subscription) return false;
+        try {
+            var resp = await fetch(WORKER_URL + '/api/push/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: userId, subscription: subscription.toJSON() })
+            });
+            if (resp.ok) {
+                try { localStorage.setItem('pushSubscribed', '1'); } catch (_) {}
+                if (global.NutriPlanDiagnostics) {
+                    global.NutriPlanDiagnostics.ok('plan-sync', 'push-subscribe', userId);
+                }
+                return true;
+            }
+        } catch (_) {}
+        return false;
+    }
+
+    /**
+     * Bind the browser push subscription to the current Firebase userId (fb_*).
+     * Must run after login — otherwise admin plan_updated push targets the wrong KV key.
+     */
+    async function ensureServerPushSubscription(options) {
+        options = options || {};
+        if (typeof navigator === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+            return { ok: false, reason: 'unsupported' };
+        }
+        if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
+            return { ok: false, reason: 'no-permission' };
+        }
+        var userId = options.userId || '';
+        if (!userId) {
+            try { userId = localStorage.getItem('userId') || ''; } catch (_) { userId = ''; }
+        }
+        if (!userId) return { ok: false, reason: 'no-user' };
+
+        try {
+            var registration = options.registration || await navigator.serviceWorker.ready;
+            var subscription = await registration.pushManager.getSubscription();
+            if (!subscription) {
+                var publicKey = await fetchVapidPublicKey();
+                if (!publicKey) return { ok: false, reason: 'no-vapid' };
+                subscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(publicKey)
+                });
+            }
+            var saved = await savePushSubscriptionToServer(userId, subscription);
+            return { ok: saved, userId: userId, reason: saved ? 'saved' : 'save-failed' };
+        } catch (e) {
+            return { ok: false, reason: e && e.message ? e.message : 'failed' };
+        }
     }
 
     function bindPlanUpdateBridge() {
@@ -615,6 +702,8 @@
         refreshAdminPlanIfPending: refreshAdminPlanIfPending,
         initAdminPlanSync: initAdminPlanSync,
         notifyPlanReload: notifyPlanReload,
+        onAdminPlanUpdated: handleAdminPlanUpdatedMessage,
+        ensureServerPushSubscription: ensureServerPushSubscription,
         isApplyingServerPlan: function () { return _applyingServerPlan; },
         checkAccountRequiresAuth: checkAccountRequiresAuth,
         hasExistingPlanForEmail: hasExistingPlanForEmail,
