@@ -183,11 +183,6 @@
 
         _adminRefreshInFlight = (async function () {
         options = options || {};
-        try {
-            if (localStorage.getItem('planSource') === 'questionnaire2') {
-                return { updated: false, reason: 'pending-questionnaire' };
-            }
-        } catch (_) {}
 
         var userId = options.userId || '';
         if (!userId) {
@@ -350,7 +345,11 @@
     async function initAdminPlanSync(options) {
         bindPlanUpdateBridge();
         await syncPendingFromServiceWorker();
-        return refreshAdminPlanIfPending(options || {});
+        var result = await refreshAdminPlanIfPending(options || {});
+        if (result.updated || (result.data && result.data.plan)) {
+            notifyPlanReload();
+        }
+        return result;
     }
 
     function normalizeEmail(value) {

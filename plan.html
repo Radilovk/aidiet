@@ -4776,21 +4776,20 @@
                 // Initialize client-side notification scheduler
                 scheduleNotifications();
 
-                // Ensure np_uid cookie + backend profile exist so the iOS PWA can restore
-                // data via restoreProfileFromCookies() in index.html.
-                // np_uid is always refreshed; backend save is retried until np_profile_synced
-                // is confirmed (guards against silent fetch failures on first run).
+                // Refresh np_uid cookie for iOS PWA restore. Firebase-linked accounts do not
+                // passive-upload the plan on every open — that would overwrite admin edits.
+                // Plan sync for fb_* users: login fetch + push flag (np_plan_refresh_pending) only.
                 (async function ensureProfileCookies() {
                     const uid = localStorage.getItem('userId');
                     const planStr = localStorage.getItem('dietPlan');
                     if (!uid || !planStr) return;
-                    // Always refresh the cookie so it doesn't expire
+                    if (window.NutriPlanPlanSync && window.NutriPlanPlanSync.isApplyingServerPlan()) return;
                     const OPTS = `;path=/;max-age=${365*24*60*60};SameSite=Lax;Secure`;
                     document.cookie = `np_uid=${encodeURIComponent(uid)}${OPTS}`;
+                    if (uid.startsWith('fb_')) return;
                     const udStr = localStorage.getItem('userData');
                     const planSource = localStorage.getItem('planSource') || '';
                     const profileSig = getProfileSyncSignature(uid, planStr, udStr || '', planSource);
-                    // Skip backend save only when this exact local profile was already confirmed.
                     if (localStorage.getItem('np_profile_synced') === '1' &&
                         localStorage.getItem('np_profile_sync_sig') === profileSig) return;
                     const idToken = (uid.startsWith('fb_') && auth.currentUser)
@@ -9494,20 +9493,29 @@
         var _queueDepth    = 0; // incremented for each active runQueue; FAB stays raised while > 0
         var _openPromptPending = false; // prevents double-scheduling of checkOpenAppPrompts
         var _bubbleSeq = 0; // cancels delayed bubble renders when prompts change quickly
+        var _pastDayQueueKey = ''; // debounce past-day question prompts per day
         // Delay must exceed the longest inter-question pause (350–400 ms) so that
         // a chained showBubble call (in the queue) fires before the timer and can
         // cancel the lower animation — keeping the FAB raised throughout the queue.
         var FAB_BUBBLE_GAP = 6;
         var FAB_LOWER_DELAY = 500;
 
+        function _resetFabPosition() {
+            var fab = document.querySelector('.fab-chat');
+            if (!fab) return;
+            if (_fabLowerTimer) { clearTimeout(_fabLowerTimer); _fabLowerTimer = null; }
+            fab.classList.remove('fab-raised', 'game-prompt');
+            fab.style.removeProperty('top');
+            fab.style.removeProperty('bottom');
+        }
+
         function _scheduleFabLower() {
             var fab = document.querySelector('.fab-chat');
             if (fab) {
                 if (_fabLowerTimer) clearTimeout(_fabLowerTimer);
                 _fabLowerTimer = setTimeout(function(){
-                    fab.classList.remove('fab-raised');
-                    fab.style.removeProperty('top');
-                    fab.style.removeProperty('bottom');
+                    if (_queueDepth > 0 || document.getElementById('gameBubble')) return;
+                    _resetFabPosition();
                     _fabLowerTimer = null;
                 }, FAB_LOWER_DELAY);
             }
@@ -9516,10 +9524,15 @@
         function removeBubble() {
             _bubbleSeq++;
             var o=document.getElementById('gameBubble');
-            if(o){ o.classList.add('game-bubble--exit'); setTimeout(function(){ o.remove(); },280); }
-            // Keep FAB raised while a question queue is still running
-            if (_queueDepth > 0) return;
-            _scheduleFabLower();
+            if (o) {
+                o.classList.add('game-bubble--exit');
+                setTimeout(function() {
+                    o.remove();
+                    if (_queueDepth === 0) _scheduleFabLower();
+                }, 280);
+            } else if (_queueDepth === 0) {
+                _scheduleFabLower();
+            }
         }
 
         function _getElementLayoutBottom(el) {
@@ -9868,8 +9881,9 @@
                     _queueDepth = Math.max(0, _queueDepth - 1);
                     recalcAndShowScore();
                     if (onDone) onDone();
-                    // Now that the queue is done, schedule FAB lowering
-                    if (_queueDepth === 0) _scheduleFabLower();
+                    if (_queueDepth === 0 && !document.getElementById('gameBubble')) {
+                        _resetFabPosition();
+                    }
                 }
             }
             next();
@@ -9882,14 +9896,16 @@
             if (!isGameEnabled()) return;
             if (_openPromptPending || _queueDepth > 0) return;
             var gn = window.GameNotifier || (window.top && window.top.GameNotifier);
-            if (!gn || typeof gn.runOpenAppCatchUpFlow !== 'function') return;
-            var pending = gn.getCatchUpTypesForToday ? gn.getCatchUpTypesForToday() : [];
+            if (!gn || typeof gn.getCatchUpTypesForToday !== 'function') return;
+            var pending = gn.getCatchUpTypesForToday();
             if (!pending.length) return;
             _openPromptPending = true;
             setTimeout(function(){
                 _openPromptPending = false;
                 if (_queueDepth > 0) return;
-                gn.runOpenAppCatchUpFlow();
+                var todayKey = getTodayKey();
+                var q = buildDayQueue(todayKey);
+                if (q.length) runQueue(q);
             }, 400);
         }
 
@@ -10295,6 +10311,7 @@
         // Automatically asks any unanswered gamification questions for that day.
         window._gameCheckPastDayQuestions = function(dayKey) {
             if (!isGameEnabled()) return;
+            if (_queueDepth > 0 || document.getElementById('gameBubble')) return;
             var today = getTodayKey();
             if (!dayKey || dayKey >= today) return; // only past days
             // Limit to 2 days back
@@ -10302,9 +10319,14 @@
             var limit = new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate() - 2);
             var viewDate = new Date(dayKey + 'T00:00:00');
             if (viewDate < limit) return;
+            if (_pastDayQueueKey === dayKey) return;
             var q = buildDayQueue(dayKey);
             if (q.length) {
-                setTimeout(function() { runQueue(q); }, 800);
+                _pastDayQueueKey = dayKey;
+                setTimeout(function() {
+                    if (_queueDepth > 0 || document.getElementById('gameBubble')) return;
+                    runQueue(q, function() { _pastDayQueueKey = ''; });
+                }, 800);
             }
         };
     })();

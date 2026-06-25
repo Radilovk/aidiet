@@ -78,7 +78,12 @@
         var planSource = localStorage.getItem('planSource');
         
         if (planSource === 'questionnaire2') {
-            planTarget = 'plan-pending.html';
+            if (localStorage.getItem('pendingClientId') && !dietPlan) {
+                planTarget = 'plan-pending.html';
+            } else {
+                try { localStorage.removeItem('planSource'); } catch (_) {}
+                planTarget = 'index.html?app=1&tab=plan';
+            }
         } else {
             planTarget = 'index.html?app=1&tab=plan';
         }
@@ -2784,7 +2789,12 @@
         }
 
         function getPlanTargetFromState() {
-            if (localStorage.getItem('planSource') === 'questionnaire2' || localStorage.getItem('pendingClientId')) {
+            if (localStorage.getItem('planSource') === 'questionnaire2') {
+                if (localStorage.getItem('pendingClientId') && !localStorage.getItem('dietPlan')) {
+                    return 'plan-pending.html';
+                }
+                try { localStorage.removeItem('planSource'); } catch (_) {}
+            } else if (localStorage.getItem('pendingClientId') && !localStorage.getItem('dietPlan')) {
                 return 'plan-pending.html';
             }
             if (!localStorage.getItem('dietPlan') && localStorage.getItem('userData')) {
