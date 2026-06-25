@@ -1,6 +1,6 @@
 /**
  * NutriPlan — plan sync: login fetch + admin-update fetch (push-flagged only).
- * No backend requests on tab switch, app resume, or normal reopen.
+ * No backend requests on tab switch or normal app reopen.
  */
 (function (global) {
     'use strict';
@@ -240,20 +240,6 @@
         try {
             if (global.parent && global.parent !== global) {
                 global.parent.postMessage({ type: 'NUTRIPLAN_PLAN_RELOADED' }, global.location.origin);
-            }
-        } catch (_) {}
-
-        // SPA shell: reload plan iframe and refresh shared app data
-        try {
-            if (global.NutriPlanSPA && global.document) {
-                var planFrame = global.document.querySelector('[data-tab-view="plan"]');
-                if (planFrame && planFrame.contentWindow) {
-                    planFrame.contentWindow.postMessage(
-                        { type: 'NUTRIPLAN_PLAN_RELOADED' },
-                        global.location.origin
-                    );
-                }
-                global.dispatchEvent(new CustomEvent('NUTRIPLAN_SHELL_PLAN_RELOADED'));
             }
         } catch (_) {}
     }
@@ -552,7 +538,6 @@
             localStorage.removeItem('planJobId');
             localStorage.removeItem('planJobSource');
             localStorage.removeItem('planReplacePending');
-            localStorage.removeItem('npPlanReviewSource');
             clearAdminPlanPending();
 
             var userId = '';

@@ -2994,15 +2994,11 @@
                 try {
                     authContext = (await sync.ensureReplacementAuth(
                         email,
-                        PLAN_REVIEW_SYSTEM_MSG
+                        'Новият план ще замени текущия в системата. ' + fullRegenMessage + ' След генериране планът ще изчака одобрение от специалист.'
                     )).authContext;
                 } catch (_) {
                     return;
                 }
-            }
-
-            if (replacingExistingPlan) {
-                showAlert(PLAN_REVIEW_SYSTEM_MSG, 'info');
             }
 
             try {
@@ -3128,7 +3124,6 @@
 
                 if (requireApproval) {
                     localStorage.setItem('planSource', 'questionnaire2');
-                    localStorage.setItem('npPlanReviewSource', 'profile-regen');
                     if (savedClientId) localStorage.setItem('pendingClientId', savedClientId);
                     await sync.saveUserProfile(
                         resolvedUserId,
@@ -3141,7 +3136,7 @@
                     const prevCount = parseInt(localStorage.getItem('demoProfileRegenCount') || '0', 10);
                     localStorage.setItem('demoProfileRegenCount', String(prevCount + 1));
                     localStorage.removeItem('planReplacePending');
-                    showAlert('✓ ' + PLAN_REVIEW_SYSTEM_MSG, 'info');
+                    showAlert('✓ Новият план е генериран и изпратен за одобрение. Пренасочване...', 'info');
                     setTimeout(() => {
                         if (!requestShellAction('NUTRIPLAN_NAVIGATE', { url: 'plan-pending.html', replace: false, forceTopLevel: true })) {
                             window.location.href = 'plan-pending.html';
@@ -3242,8 +3237,6 @@
         }
 
         // --- Alert Functions ---
-        const PLAN_REVIEW_SYSTEM_MSG = 'Планът предстои да бъде преразгледан и активиран от специалист. Ще получите известие на имейл, когато новият план е готов.';
-
         let _alertDismissTimer = null;
         function showAlert(message, type) {
             if (_alertDismissTimer) { clearTimeout(_alertDismissTimer); _alertDismissTimer = null; }
