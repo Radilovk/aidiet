@@ -364,12 +364,6 @@
             if (document.visibilityState !== 'visible') return;
             if (!params.has('app')) return;
             runOpenAppCatchUpFlow();
-            if (window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.syncPlanOnResume === 'function') {
-                var uid = getStoredValue('userId') || '';
-                window.NutriPlanPlanSync.syncPlanOnResume({ userId: uid }).then(function (r) {
-                    if (r && r.updated) applyShellPlanRefresh();
-                }).catch(function () {});
-            }
         });
     }
 

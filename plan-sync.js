@@ -1,6 +1,6 @@
 /**
  * NutriPlan — plan sync: login fetch + admin-update fetch (push-flagged only).
- * No backend requests on tab switch or normal app reopen.
+ * No backend requests on tab switch, app resume, or normal reopen.
  */
 (function (global) {
     'use strict';
@@ -331,48 +331,6 @@
         return refreshAdminPlanIfPending(options || {});
     }
 
-    /**
-     * Lightweight resume sync: one profile request with localPlanAt (unchanged = no download).
-     * Used when app returns to foreground without a push flag.
-     */
-    async function syncPlanOnResume(options) {
-        options = options || {};
-        try {
-            if (localStorage.getItem('planSource') === 'questionnaire2') {
-                var pending = await syncPendingPlanActivation();
-                if (pending.activated) notifyPlanReload();
-                return pending;
-            }
-        } catch (_) {}
-
-        var userId = options.userId || '';
-        if (!userId) {
-            try { userId = localStorage.getItem('userId') || ''; } catch (_) { userId = ''; }
-        }
-        if (!userId || userId.indexOf('fb_') !== 0) {
-            return { updated: false, reason: 'no-user' };
-        }
-        try {
-            if (!localStorage.getItem('dietPlan')) {
-                return { updated: false, reason: 'no-local-plan' };
-            }
-        } catch (_) {
-            return { updated: false, reason: 'no-local-plan' };
-        }
-
-        if (hasAdminPlanPending()) {
-            return refreshAdminPlanIfPending(options);
-        }
-
-        var data = await fetchUserProfile(userId, options);
-        if (!data || !data.found) {
-            return { updated: false, reason: 'request-failed' };
-        }
-        var updated = applyServerPlanData(data);
-        if (updated) notifyPlanReload();
-        return { updated: updated, unchanged: !!data.unchanged, data: data };
-    }
-
     function normalizeEmail(value) {
         return String(value || '').trim().toLowerCase();
     }
@@ -635,7 +593,6 @@
         loadUserPlanFromServer: fetchPlanOnLogin,
         refreshAdminPlanIfPending: refreshAdminPlanIfPending,
         initAdminPlanSync: initAdminPlanSync,
-        syncPlanOnResume: syncPlanOnResume,
         notifyPlanReload: notifyPlanReload,
         isApplyingServerPlan: function () { return _applyingServerPlan; },
         checkAccountRequiresAuth: checkAccountRequiresAuth,

@@ -5604,13 +5604,6 @@
                     window.GameNotifier.refreshConfig().catch(function() {});
                 }
                 if (typeof checkOpenAppPrompts === 'function') checkOpenAppPrompts();
-                if (window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.syncPlanOnResume === 'function') {
-                    var uid = '';
-                    try { uid = localStorage.getItem('userId') || ''; } catch (_) {}
-                    window.NutriPlanPlanSync.syncPlanOnResume({ userId: uid }).then(function(r) {
-                        if (r && r.updated && typeof loadDietData === 'function') loadDietData();
-                    }).catch(function() {});
-                }
             }
         });
         window.addEventListener('pagehide', function() {
