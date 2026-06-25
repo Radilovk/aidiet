@@ -7082,26 +7082,7 @@ async function handleUpdateClientPlan(request, env, ctx) {
         `📅 Дата: ${formatDateBG(clientData.planUpdatedAt)}`
       );
     } else if (clientData.planStatus === 'activated' && clientData.userId) {
-      // For auto-activated updates, sync to user profile so the next app open picks up edits.
-      try {
-        await upsertUserProfilePlan(env, clientData.userId, {
-          plan: clientData.plan,
-          userData: clientData.answers || {},
-          planSource: '',
-          clientId,
-          planUpdatedAt: clientData.planUpdatedAt
-        });
-        sendPushNotificationToUser(clientData.userId, {
-          title: 'Планът ви е актуализиран',
-          body: 'Специалистът направи промени в хранителния ви план.',
-          url: '/index.html?app=1&tab=plan',
-          icon: '/icon-192x192.png',
-          notificationType: 'plan_updated',
-          planUpdatedAt: clientData.planUpdatedAt
-        }, env).catch(e => console.warn('Plan update push failed:', e.message));
-      } catch (e) {
-        console.warn(`Failed to sync auto-activated plan to profile ${clientData.userId}:`, e.message);
-      }
+      await notifyClientPlanUpdated(env, clientData, clientId);
       console.log(`[Client] Plan auto-activated for existing client ${clientId}`);
     }
 
@@ -7138,25 +7119,11 @@ async function handleActivateClientPlan(request, env, ctx) {
     // If this questionnaire submission is linked to a user profile, immediately
     // clear its pending marker so the next APK/PWA login opens plan.html.
     if (clientData.userId) {
-      try {
-        await upsertUserProfilePlan(env, clientData.userId, {
-          plan: clientData.plan,
-          userData: clientData.answers || {},
-          planSource: '',
-          clientId,
-          planUpdatedAt: clientData.planUpdatedAt || clientData.planActivatedAt
-        });
-        sendPushNotificationToUser(clientData.userId, {
-          title: 'Вашият план е готов!',
-          body: 'Специалистът одобри персонализирания ви хранителен план.',
-          url: '/index.html?app=1&tab=plan',
-          icon: '/icon-192x192.png',
-          notificationType: 'plan_updated',
-          planUpdatedAt: clientData.planUpdatedAt || clientData.planActivatedAt
-        }, env).catch(e => console.warn('Plan activation push failed:', e.message));
-      } catch (e) {
-        console.warn(`Failed to update activated profile ${clientData.userId}:`, e.message);
-      }
+      clientData.planUpdatedAt = clientData.planUpdatedAt || clientData.planActivatedAt;
+      await notifyClientPlanUpdated(env, clientData, clientId, {
+        title: 'Вашият план е готов!',
+        body: 'Специалистът одобри персонализирания ви хранителен план.',
+      });
     }
 
     // Send email notification to client — try synchronously so we can report status
