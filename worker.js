@@ -6277,10 +6277,19 @@ Patch root: { answers, plan, adminNotes }
 - Адаптирай плана (#plan patches) на база аналитиката + профила — не само изолирани промени.
 - Обясни в reply защо промяната следва от данните в #AX.
 
+ХОЛИСТИЧНИ ПРОМЕНИ (задължително при редакция):
+- Заявка като „премахни ядки" означава: премахни ВСИЧКИ ястия/продукти с ядки в целия седмичен план (day1..day7), замени с подходящи алтернативи със сходни калории и макроси, преизчисли стойностите на ниво хранене.
+- НЕ прави повърхностни replace само на думичка в name — сменяй цялото хранене: name, weight, calories, macros (protein/carbs/fats). При нужда replace целия meals[] елемент.
+- Сканирай всички 7 дни и всички meals[] — едно и също ограничение/алергия трябва да се отрази навсякъде, не само в едно ястие.
+- Актуализирай /plan/summary/dailyCalories и /plan/summary/averageMacros при промяна на хранения; актуализирай strategy/recommendations/supplements текстове, ако споменават премахнатото.
+- Ако се променят answers (алергии, нежелани храни) — отрази в плана и в /adminNotes.
+- Премахни заглавия, описания и бележки в плана, които все още споменават премахнатите продукти.
+- При големи корекции използвай множество patch операции върху всички засегнати хранения — не се ограничавай до една операция.
+
 Правила:
 - Отговаряй на български.
 - При обсъждане: hasMutations=false, patches=[].
-- При редакция: hasMutations=true + patches[] (replace/add/remove). Минимален брой операции.
+- При редакция: hasMutations=true + patches[] (replace/add/remove). Използвай толкова операции, колкото са нужни за пълна корекция.
 - НЕ измисляй медицински данни. Променяй само по изрична заявка.
 - Секция #AX (аналитика) е read-only — не я patch-вай.
 - Винаги валиден JSON по schema.`;
@@ -6469,6 +6478,66 @@ async function ensureAssistantCacheFresh(env, session, card, planUpdatedAt, anal
 }
 
 /**
+ * Reconcile plan totals after admin AI patches (day totals + summary macros).
+ * @param {object|null|undefined} plan
+ */
+function reconcilePlanAfterAssistantPatches(plan) {
+  if (!plan?.weekPlan) return;
+  recalculateDayCalories(plan.weekPlan, plan.strategy || null);
+
+  const avgMacros = calculateAverageMacrosFromPlan(plan.weekPlan);
+  if (!plan.summary) plan.summary = {};
+
+  if (avgMacros.protein != null) {
+    plan.summary.averageMacros = {
+      protein: avgMacros.protein,
+      carbs: avgMacros.carbs,
+      fats: avgMacros.fats,
+    };
+  }
+
+  let totalCals = 0;
+  let dayCount = 0;
+  for (const dayKey of Object.keys(plan.weekPlan)) {
+    const cals = Number(plan.weekPlan[dayKey]?.dailyTotals?.calories) || 0;
+    if (cals > 0) {
+      totalCals += cals;
+      dayCount++;
+    }
+  }
+  if (dayCount > 0) {
+    plan.summary.dailyCalories = Math.round(totalCals / dayCount);
+  }
+}
+
+/**
+ * Sync activated plan to user profile and notify client devices.
+ */
+async function notifyClientPlanUpdated(env, clientData, clientId, options = {}) {
+  if (!clientData?.userId || clientData.planStatus !== 'activated' || !clientData.plan) return;
+  const planUpdatedAt = clientData.planUpdatedAt || new Date().toISOString();
+  try {
+    await upsertUserProfilePlan(env, clientData.userId, {
+      plan: clientData.plan,
+      userData: clientData.answers || {},
+      planSource: '',
+      clientId,
+      planUpdatedAt,
+    });
+    await sendPushNotificationToUser(clientData.userId, {
+      title: options.title || 'Планът ви е актуализиран',
+      body: options.body || 'Специалистът направи промени в хранителния ви план.',
+      url: '/index.html?app=1&tab=plan',
+      icon: '/icon-192x192.png',
+      notificationType: 'plan_updated',
+      planUpdatedAt,
+    }, env);
+  } catch (e) {
+    console.warn('[Client] Plan update notify failed:', e.message);
+  }
+}
+
+/**
  * Прилага JSON Patch върху клиент и записва в KV.
  */
 async function applyAssistantPatches(env, session, clientData, patches, ctx) {
@@ -6478,6 +6547,7 @@ async function applyAssistantPatches(env, session, clientData, patches, ctx) {
 
   const wasPreviouslyActivated = Boolean(clientData.planActivatedAt);
   if (touchedPlan) {
+    reconcilePlanAfterAssistantPatches(clientData.plan);
     clientData.planUpdatedAt = new Date().toISOString();
     if (wasPreviouslyActivated) {
       clientData.planStatus = 'activated';
@@ -6490,17 +6560,7 @@ async function applyAssistantPatches(env, session, clientData, patches, ctx) {
   await env.page_content.put(`client:${session.clientId}`, JSON.stringify(clientData));
 
   if (wasPreviouslyActivated && clientData.userId && touchedPlan) {
-    try {
-      await upsertUserProfilePlan(env, clientData.userId, {
-        plan: clientData.plan,
-        userData: clientData.answers || {},
-        planSource: '',
-        clientId: session.clientId,
-        planUpdatedAt: clientData.planUpdatedAt,
-      });
-    } catch (e) {
-      console.warn('[AdminAssistant] Profile sync failed:', e.message);
-    }
+    await notifyClientPlanUpdated(env, clientData, session.clientId);
   }
 
   return clientData;
