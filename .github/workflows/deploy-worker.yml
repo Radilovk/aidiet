@@ -34,29 +34,28 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
-      # Create the queue if it does not yet exist in Cloudflare.
+      # Create the queues if they do not yet exist in Cloudflare.
       # This step requires the Queues:Edit permission on CLOUDFLARE_API_TOKEN.
-      # If the token lacks that permission (auth error 10000) the step is skipped
-      # gracefully so the deploy still runs.  The queue can also be created once
-      # manually: wrangler queues create plan-generation
-      - name: Create plan-generation queue (idempotent)
+      - name: Create queues (idempotent)
         continue-on-error: true
         run: |
           set +e
           list_output=$(npx wrangler queues list 2>&1)
           list_exit=$?
-          if echo "$list_output" | grep -q "plan-generation"; then
-            echo "Queue 'plan-generation' already exists – skipping creation."
-            exit 0
-          fi
+
           if echo "$list_output" | grep -qiE "Authentication error|code:\s*10000"; then
-            echo "::warning::CLOUDFLARE_API_TOKEN lacks Queues:Edit permission – cannot create queue automatically. Create it manually: wrangler queues create plan-generation"
+            echo "::warning::CLOUDFLARE_API_TOKEN lacks Queues:Edit permission – cannot create queues automatically."
             exit 0
           fi
-          if [ $list_exit -ne 0 ]; then
-            echo "::warning::wrangler queues list failed (exit $list_exit) – attempting queue creation anyway."
-          fi
-          npx wrangler queues create plan-generation
+
+          for queue_name in "plan-generation" "plan-generation-staging"; do
+            if echo "$list_output" | grep -q "$queue_name"; then
+              echo "Queue '$queue_name' already exists – skipping creation."
+            else
+              echo "Attempting to create queue '$queue_name'..."
+              npx wrangler queues create "$queue_name"
+            fi
+          done
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -65,10 +64,10 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" == "pull_request" ]; then
             echo "Deploying PR to staging environment..."
-            npx wrangler deploy --name aidiet-staging
+            npx wrangler deploy --env staging
           else
             echo "Deploying to production..."
-            npx wrangler deploy
+            npx wrangler deploy --env production
           fi
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
