@@ -341,22 +341,6 @@
         return gn.runOpenAppCatchUpFlow();
     }
 
-    function applyShellPlanRefresh() {
-        var refreshedPlan = getStoredValue('dietPlan');
-        var refreshedUserData = getStoredValue('userData');
-        if (refreshedPlan) {
-            state.raw.dietPlan = refreshedPlan;
-            state.parsed.dietPlan = safeParse(refreshedPlan);
-        }
-        if (refreshedUserData) {
-            state.raw.userData = refreshedUserData;
-            state.parsed.userData = safeParse(refreshedUserData);
-        }
-        refreshFramesForData();
-        var planFrame = document.querySelector('[data-tab-view="plan"]');
-        if (planFrame) dispatchFrameEvent(planFrame, 'NUTRIPLAN_PLAN_RELOADED', {});
-    }
-
     function bindCatchUpOnResume() {
         if (window.__nutriplanCatchUpResumeBound) return;
         window.__nutriplanCatchUpResumeBound = true;
@@ -754,18 +738,17 @@
             return;
         }
         if (data.type === 'NUTRIPLAN_PLAN_RELOADED') {
-            applyShellPlanRefresh();
+            var planFrame = document.querySelector('[data-tab-view="plan"]');
+            if (planFrame) {
+                refreshFramesForData();
+                dispatchFrameEvent(planFrame, 'NUTRIPLAN_PLAN_RELOADED', {});
+            }
             return;
         }
         if (data.type === 'NUTRIPLAN_PLAN_UPDATED') {
             window.dispatchEvent(new CustomEvent('NUTRIPLAN_PLAN_UPDATED', {
                 detail: { planUpdatedAt: data.planUpdatedAt || '' }
             }));
-            if (window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.refreshAdminPlanIfPending === 'function') {
-                window.NutriPlanPlanSync.refreshAdminPlanIfPending().then(function (r) {
-                    if (r && r.updated) applyShellPlanRefresh();
-                }).catch(function () {});
-            }
             return;
         }
         if (data.type === 'NUTRIPLAN_LOGOUT') {
@@ -926,7 +909,16 @@
             try {
                 var adminRefresh = await window.NutriPlanPlanSync.initAdminPlanSync({ userId: shellUserId });
                 if (adminRefresh.updated) {
-                    applyShellPlanRefresh();
+                    var refreshedPlan = localStorage.getItem('dietPlan');
+                    var refreshedUserData = localStorage.getItem('userData');
+                    if (refreshedPlan) {
+                        state.raw.dietPlan = refreshedPlan;
+                        state.parsed.dietPlan = safeParse(refreshedPlan);
+                    }
+                    if (refreshedUserData) {
+                        state.raw.userData = refreshedUserData;
+                        state.parsed.userData = safeParse(refreshedUserData);
+                    }
                 }
             } catch (_) {}
         }
@@ -996,7 +988,6 @@
     bindNativeNotificationBridge();
     bindSwNotificationBridge();
     bindCatchUpOnResume();
-    window.addEventListener('NUTRIPLAN_SHELL_PLAN_RELOADED', applyShellPlanRefresh);
     initApkGameNotifier();
 
     if (document.readyState === 'loading') {
