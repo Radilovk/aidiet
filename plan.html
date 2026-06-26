@@ -3506,29 +3506,6 @@
             }
         }
 
-        /* Fetch the user's plan from the server (called once on first login on this device).
-         * Returns true if a plan was successfully restored. */
-        async function _loadUserPlanFromServer(fbUserId, user, _retries) {
-            if (_retries === undefined) _retries = 2;
-            if (!window.NutriPlanPlanSync || typeof window.NutriPlanPlanSync.loadUserPlanFromServer !== 'function') {
-                return false;
-            }
-            try {
-                const loaded = await window.NutriPlanPlanSync.loadUserPlanFromServer(fbUserId, {
-                    email: (user && user.email) || undefined,
-                    getIdToken: user ? () => user.getIdToken() : undefined
-                });
-                if (loaded) return true;
-            } catch (e) {
-                console.warn('[plan-restore] Failed to load plan from server:', e);
-                if (_retries > 0) {
-                    await new Promise(function(r) { setTimeout(r, 1500); });
-                    return _loadUserPlanFromServer(fbUserId, user, _retries - 1);
-                }
-            }
-            return false;
-        }
-
         function showAuthError(msg) {
             const el = document.getElementById('planAuthError');
             if (el) { el.textContent = msg; el.style.display = 'block'; }
@@ -3772,7 +3749,10 @@
                         return;
                     }
                     sessionStorage.setItem(_planRestoreKey, '1');
-                    const loaded = await _loadUserPlanFromServer(fbUserId, user);
+                    const loaded = await window.NutriPlanPlanSync.restoreUserPlanFromServer(fbUserId, {
+                        email: (user && user.email) || undefined,
+                        getIdToken: user ? () => user.getIdToken() : undefined
+                    });
                     sessionStorage.removeItem(_planRestoreKey);
                     if (loaded) {
                         if (typeof window.loadDietData === 'function') {
@@ -3787,7 +3767,10 @@
                     return;
                 }
                 if (loginFetch) {
-                    const loaded = await _loadUserPlanFromServer(fbUserId, user);
+                    const loaded = await window.NutriPlanPlanSync.restoreUserPlanFromServer(fbUserId, {
+                        email: (user && user.email) || undefined,
+                        getIdToken: user ? () => user.getIdToken() : undefined
+                    });
                     if (loaded && typeof window.loadDietData === 'function') {
                         window.loadDietData();
                     }
@@ -4641,16 +4624,6 @@
             return false;
         }
 
-        function getProfileSyncSignature(uid, planStr, userDataStr, planSource) {
-            const input = [uid || '', planSource || '', planStr || '', userDataStr || ''].join('\n');
-            let hash = 2166136261;
-            for (let i = 0; i < input.length; i++) {
-                hash ^= input.charCodeAt(i);
-                hash = Math.imul(hash, 16777619);
-            }
-            return String(input.length) + ':' + (hash >>> 0).toString(36);
-        }
-
         // --- Load Diet Data ---
         // Guard flag to prevent re-entry after backend restore
         let _loadDietDataCalled = false;
@@ -4681,40 +4654,28 @@
                     const cookieUserId = cookieMatch ? decodeURIComponent(cookieMatch[1]) : null;
                     if (cookieUserId && !_loadDietDataCalled) {
                         _loadDietDataCalled = true;
-                        (function () {
-                            let restoreEmail = '';
-                            try {
-                                const cachedUserData = JSON.parse(localStorage.getItem('userData') || '{}');
-                                restoreEmail = (cachedUserData.email || '').trim().toLowerCase();
-                            } catch (_) {}
-                            const profileUrl = new URL('https://aidiet.radilov-k.workers.dev/api/user/profile');
-                            profileUrl.searchParams.set('userId', cookieUserId);
-                            if (restoreEmail) profileUrl.searchParams.set('email', restoreEmail);
-                            return fetch(profileUrl.toString());
-                        })()
-                            .then(r => r.ok ? r.json() : null)
-                            .then(data => {
-                                if (data && data.found && (data.plan || data.planSource === 'questionnaire2' || data.clientId)) {
-                                    if (data.plan) localStorage.setItem('dietPlan', JSON.stringify(data.plan));
-                                    localStorage.setItem('userId', cookieUserId);
-                                    if (data.userData) {
-                                        localStorage.setItem('userData', JSON.stringify(data.userData));
-                                    }
-                                    if (data.planSource) localStorage.setItem('planSource', data.planSource);
-                                    else localStorage.removeItem('planSource');
-                                    if (data.clientId && data.planSource === 'questionnaire2') {
-                                        localStorage.setItem('pendingClientId', data.clientId);
-                                    } else if (data.planSource !== 'questionnaire2') {
-                                        localStorage.removeItem('pendingClientId');
-                                    }
+                        const sync = window.NutriPlanPlanSync;
+                        if (!sync || typeof sync.restoreProfileFromServer !== 'function') {
+                            showError('Няма намерен план. Моля, попълнете въпросника.', true);
+                            return;
+                        }
+                        let restoreEmail = '';
+                        try {
+                            const cachedUserData = JSON.parse(localStorage.getItem('userData') || '{}');
+                            restoreEmail = (cachedUserData.email || '').trim().toLowerCase();
+                        } catch (_) {}
+                        sync.restoreProfileFromServer(cookieUserId, { email: restoreEmail || undefined })
+                            .then(function (restored) {
+                                if (restored) {
                                     console.log('[PWA] Plan restored from backend in plan.html');
-                                    // Re-run loadDietData now that localStorage is populated
                                     loadDietData();
                                 } else {
                                     showError('Няма намерен план. Моля, попълнете въпросника.', true);
                                 }
                             })
-                            .catch(() => showError('Няма намерен план. Моля, попълнете въпросника.', true));
+                            .catch(function () {
+                                showError('Няма намерен план. Моля, попълнете въпросника.', true);
+                            });
                         return;
                     }
                     // Redirect to questionnaire if no data
@@ -4760,49 +4721,9 @@
                 // Initialize client-side notification scheduler
                 scheduleNotifications();
 
-                // Refresh np_uid cookie for iOS PWA restore. Firebase-linked accounts do not
-                // passive-upload the plan on every open — that would overwrite admin edits.
-                // fb_* users: no passive plan upload on every open.
-                (async function ensureProfileCookies() {
-                    const uid = localStorage.getItem('userId');
-                    const planStr = localStorage.getItem('dietPlan');
-                    if (!uid || !planStr) return;
-                    if (window.NutriPlanPlanSync && window.NutriPlanPlanSync.isApplyingServerPlan()) return;
-                    const OPTS = `;path=/;max-age=${365*24*60*60};SameSite=Lax;Secure`;
-                    document.cookie = `np_uid=${encodeURIComponent(uid)}${OPTS}`;
-                    if (uid.startsWith('fb_')) return;
-                    const udStr = localStorage.getItem('userData');
-                    const planSource = localStorage.getItem('planSource') || '';
-                    const profileSig = getProfileSyncSignature(uid, planStr, udStr || '', planSource);
-                    if (localStorage.getItem('np_profile_synced') === '1' &&
-                        localStorage.getItem('np_profile_sync_sig') === profileSig) return;
-                    const idToken = (uid.startsWith('fb_') && auth.currentUser)
-                        ? await auth.currentUser.getIdToken().catch(() => null)
-                        : null;
-                    fetch('https://aidiet.radilov-k.workers.dev/api/user/save-profile', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            userId: uid,
-                            plan: JSON.parse(planStr),
-                            userData: udStr ? JSON.parse(udStr) : {},
-                            planSource,
-                            ...(idToken ? { idToken } : {})
-                        })
-                    }).then(r => {
-                        if (r && r.ok) {
-                            localStorage.setItem('np_profile_synced', '1');
-                            localStorage.setItem('np_profile_sync_sig', profileSig);
-                            return r.json().catch(function () { return {}; });
-                        }
-                        return null;
-                    }).then(function (payload) {
-                        if (payload && payload.planUpdatedAt && window.NutriPlanPlanSync) {
-                            window.NutriPlanPlanSync.setLocalPlanUpdatedAt(payload.planUpdatedAt);
-                        }
-                    })
-                      .catch(() => {});
-                })();
+                if (window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.refreshUidCookie === 'function') {
+                    window.NutriPlanPlanSync.refreshUidCookie(localStorage.getItem('userId'));
+                }
 
                 if (window.NutriPlanDiagnostics) {
                         window.NutriPlanDiagnostics.ok('plan', 'load-diet-data', 'Plan rendered successfully');
@@ -6599,41 +6520,26 @@
 
                         // Keep the backend profile in sync so the updated plan is
                         // available after reinstalling or on other devices/contexts.
-                        if (userId) {
+                        if (userId && window.NutriPlanPlanSync) {
                             clearTimeout(saveProfileDebounceTimer);
                             saveProfileDebounceTimer = setTimeout(async () => {
-                            const _idToken = (userId.startsWith('fb_') && auth.currentUser)
-                                ? await auth.currentUser.getIdToken().catch(() => null)
-                                : null;
-                            const planSourceSync = localStorage.getItem('planSource') || '';
-                            const planSyncStr2 = JSON.stringify(dietPlan);
-                            const userDataSyncStr2 = JSON.stringify(userData);
-                            fetch('https://aidiet.radilov-k.workers.dev/api/user/save-profile', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
+                                const _idToken = (userId.startsWith('fb_') && auth.currentUser)
+                                    ? await auth.currentUser.getIdToken().catch(() => null)
+                                    : null;
+                                const planSourceSync = localStorage.getItem('planSource') || '';
+                                window.NutriPlanPlanSync.saveUserProfile(
                                     userId,
-                                    plan: dietPlan,
+                                    dietPlan,
                                     userData,
-                                    planSource: planSourceSync,
-                                    ...(_idToken ? { idToken: _idToken } : {})
-                                })
-                            }).then(r => {
-                                if (r && r.ok) {
-                                    localStorage.setItem('np_profile_synced', '1');
-                                    localStorage.setItem('np_profile_sync_sig', getProfileSyncSignature(userId, planSyncStr2, userDataSyncStr2, planSourceSync));
-                                    return r.json().catch(function () { return {}; });
-                                }
-                                localStorage.removeItem('np_profile_synced');
-                                return null;
-                            }).then(function (payload) {
-                                if (payload && payload.planUpdatedAt && window.NutriPlanPlanSync) {
-                                    window.NutriPlanPlanSync.setLocalPlanUpdatedAt(payload.planUpdatedAt);
-                                }
-                            }).catch(e => {
-                                localStorage.removeItem('np_profile_synced');
-                                console.warn('[PWA] Backend plan update save failed:', e);
-                            });
+                                    planSourceSync,
+                                    _idToken
+                                ).then(function (resp) {
+                                    if (resp && resp.ok && window.NutriPlanPlanSync.markPlanSavedLocally) {
+                                        window.NutriPlanPlanSync.markPlanSavedLocally();
+                                    }
+                                }).catch(function (e) {
+                                    console.warn('[PWA] Backend plan update save failed:', e);
+                                });
                             }, 2500);
                         }
                         

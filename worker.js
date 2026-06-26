@@ -14837,6 +14837,8 @@ async function handleGetUserProfile(request, env) {
       }
     }
 
+    const planUpdatedAt = getEffectivePlanUpdatedAt(profile);
+
     return jsonResponse({
       found: true,
       plan: profile.plan,
@@ -15278,7 +15280,6 @@ async function sendPushNotificationToUser(userId, message, env) {
       url: message.url || '/plan.html',
       icon: message.icon || '/icon-192x192.png',
       notificationType: message.notificationType || 'general',
-      planUpdatedAt: message.planUpdatedAt || '',
       timestamp: Date.now()
     };
     

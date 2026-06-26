@@ -1,5 +1,5 @@
 /**
- * NutriPlan — plan helpers: login fetch, plan replacement auth, pending activation.
+ * NutriPlan — login plan restore, plan replacement auth, pending activation.
  */
 (function (global) {
     'use strict';
@@ -7,15 +7,6 @@
     var WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
     var LOCAL_PLAN_AT_KEY = 'planUpdatedAt';
     var LOGIN_FETCH_FLAG = 'np_fetch_plan_on_next_auth';
-    var _applyingServerPlan = false;
-
-    function getLocalPlanUpdatedAt() {
-        try {
-            return localStorage.getItem(LOCAL_PLAN_AT_KEY) || '';
-        } catch (_) {
-            return '';
-        }
-    }
 
     function setLocalPlanUpdatedAt(ts) {
         if (!ts) return;
@@ -44,10 +35,6 @@
         }
     }
 
-    function shouldFetchPlanOnAuth(hasLocalPlan) {
-        return consumePlanFetchOnNextAuth() || !hasLocalPlan;
-    }
-
     function resolveCandidateEmail(options) {
         if (options && options.email) return String(options.email).trim().toLowerCase();
         try {
@@ -58,42 +45,46 @@
         }
     }
 
-    function applyServerPlanData(data) {
+    function applyServerPlanData(data, userId) {
         if (!data || !data.found) return false;
 
-        _applyingServerPlan = true;
-        try {
-            var updated = false;
-            if (data.plan) {
-                localStorage.setItem('dietPlan', JSON.stringify(data.plan));
-                updated = true;
-            }
-            if (data.userData) {
-                localStorage.setItem('userData', JSON.stringify(data.userData));
-            }
-            if (data.planSource) {
-                localStorage.setItem('planSource', data.planSource);
-            } else {
-                localStorage.removeItem('planSource');
-            }
-            if (data.clientId && data.planSource === 'questionnaire2') {
-                localStorage.setItem('pendingClientId', data.clientId);
-            } else if (data.planSource !== 'questionnaire2') {
-                localStorage.removeItem('pendingClientId');
-            }
-            if (data.planUpdatedAt) {
-                setLocalPlanUpdatedAt(data.planUpdatedAt);
-            } else if (data.plan) {
-                markPlanSavedLocally();
-            }
-            if (updated) {
-                localStorage.removeItem('np_profile_sync_sig');
-                localStorage.removeItem('np_profile_synced');
-            }
-            return updated;
-        } finally {
-            _applyingServerPlan = false;
+        var updated = false;
+        if (data.plan) {
+            localStorage.setItem('dietPlan', JSON.stringify(data.plan));
+            updated = true;
         }
+        if (data.userData) {
+            localStorage.setItem('userData', JSON.stringify(data.userData));
+        }
+        if (data.planSource) {
+            localStorage.setItem('planSource', data.planSource);
+        } else {
+            localStorage.removeItem('planSource');
+        }
+        if (data.clientId && data.planSource === 'questionnaire2') {
+            localStorage.setItem('pendingClientId', data.clientId);
+        } else if (data.planSource !== 'questionnaire2') {
+            localStorage.removeItem('pendingClientId');
+        }
+        if (userId) {
+            localStorage.setItem('userId', userId);
+        }
+        if (data.planUpdatedAt) {
+            setLocalPlanUpdatedAt(data.planUpdatedAt);
+        } else if (data.plan) {
+            markPlanSavedLocally();
+        }
+        if (updated) {
+            localStorage.removeItem('np_profile_sync_sig');
+            localStorage.removeItem('np_profile_synced');
+        }
+        return updated;
+    }
+
+    function refreshUidCookie(userId) {
+        if (!userId) return;
+        document.cookie = 'np_uid=' + encodeURIComponent(userId) +
+            ';path=/;max-age=' + (365 * 24 * 60 * 60) + ';SameSite=Lax;Secure';
     }
 
     function buildProfileUrl(userId, email) {
@@ -121,6 +112,15 @@
         return resp.json().catch(function () { return null; });
     }
 
+    async function restoreProfileFromServer(userId, options) {
+        var data = await fetchUserProfile(userId, options);
+        if (!data || !data.found) return false;
+        if (!(data.plan || data.planSource === 'questionnaire2' || data.clientId)) return false;
+        applyServerPlanData(data, userId);
+        refreshUidCookie(userId);
+        return true;
+    }
+
     async function fetchPlanOnLogin(userId, options) {
         options = options || {};
         if (options.clearLocalPlan !== false &&
@@ -132,11 +132,34 @@
         var data = await fetchUserProfile(userId, options);
         if (!data || !data.found) return false;
         if (!(data.plan || data.planSource === 'questionnaire2' || data.clientId)) return false;
-        applyServerPlanData(data);
+        applyServerPlanData(data, userId);
+        refreshUidCookie(userId);
         if (global.NutriPlanDiagnostics) {
             global.NutriPlanDiagnostics.ok('plan-sync', 'fetch-on-login', data.plan ? 'plan loaded' : 'pending state');
         }
         return true;
+    }
+
+    async function restoreUserPlanFromServer(userId, options, retries) {
+        if (retries === undefined) retries = 2;
+        options = options || {};
+        try {
+            var loaded = await fetchPlanOnLogin(userId, options);
+            if (loaded) return true;
+            if (global.NutriPlanDiagnostics) {
+                global.NutriPlanDiagnostics.info('auth', 'restore-user-plan', 'No profile found');
+            }
+        } catch (e) {
+            console.warn('[plan-restore] Failed to load plan from server:', e);
+            if (global.NutriPlanDiagnostics) {
+                global.NutriPlanDiagnostics.fail('auth', 'restore-user-plan', e.message || 'request failed');
+            }
+            if (retries > 0) {
+                await new Promise(function (r) { setTimeout(r, 1500); });
+                return restoreUserPlanFromServer(userId, options, retries - 1);
+            }
+        }
+        return false;
     }
 
     function normalizeEmail(value) {
@@ -312,7 +335,7 @@
     }
 
     function saveUserProfile(userId, plan, userData, planSource, idToken, clientId) {
-        document.cookie = 'np_uid=' + encodeURIComponent(userId) + ';path=/;max-age=' + (365 * 24 * 60 * 60) + ';SameSite=Lax;Secure';
+        refreshUidCookie(userId);
         return fetch(WORKER_URL + '/api/user/save-profile', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -380,16 +403,16 @@
         WORKER_URL: WORKER_URL,
         LOCAL_PLAN_AT_KEY: LOCAL_PLAN_AT_KEY,
         LOGIN_FETCH_FLAG: LOGIN_FETCH_FLAG,
-        getLocalPlanUpdatedAt: getLocalPlanUpdatedAt,
         setLocalPlanUpdatedAt: setLocalPlanUpdatedAt,
         markPlanSavedLocally: markPlanSavedLocally,
         markPlanFetchOnNextAuth: markPlanFetchOnNextAuth,
         consumePlanFetchOnNextAuth: consumePlanFetchOnNextAuth,
-        shouldFetchPlanOnAuth: shouldFetchPlanOnAuth,
         applyServerPlanData: applyServerPlanData,
+        refreshUidCookie: refreshUidCookie,
         fetchPlanOnLogin: fetchPlanOnLogin,
         loadUserPlanFromServer: fetchPlanOnLogin,
-        isApplyingServerPlan: function () { return _applyingServerPlan; },
+        restoreUserPlanFromServer: restoreUserPlanFromServer,
+        restoreProfileFromServer: restoreProfileFromServer,
         checkAccountRequiresAuth: checkAccountRequiresAuth,
         hasExistingPlanForEmail: hasExistingPlanForEmail,
         ensureReplacementAuth: ensureReplacementAuth,

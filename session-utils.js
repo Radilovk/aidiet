@@ -118,8 +118,6 @@
         'demoImageCount_'
     ];
 
-    var LOGIN_FETCH_FLAG = 'np_fetch_plan_on_next_auth';
-
     var DYNAMIC_KEY_PREFIXES = [
         'addedMeals_',
         'demoChatCount_',
@@ -278,9 +276,6 @@
     }
 
     async function clearAuthSessionKeepingAnalytics() {
-        try {
-            localStorage.setItem(LOGIN_FETCH_FLAG, '1');
-        } catch (_) {}
         if (global.NutriPlanPlanSync && typeof global.NutriPlanPlanSync.markPlanFetchOnNextAuth === 'function') {
             global.NutriPlanPlanSync.markPlanFetchOnNextAuth();
         }
