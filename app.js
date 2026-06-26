@@ -352,7 +352,6 @@
             state.raw.userData = refreshedUserData;
             state.parsed.userData = safeParse(refreshedUserData);
         }
-        refreshFramesForData();
         var planFrame = document.querySelector('[data-tab-view="plan"]');
         if (planFrame) dispatchFrameEvent(planFrame, 'NUTRIPLAN_PLAN_RELOADED', {});
     }
@@ -765,12 +764,6 @@
             window.dispatchEvent(new CustomEvent('NUTRIPLAN_PLAN_UPDATED', {
                 detail: { planUpdatedAt: data.planUpdatedAt || '' }
             }));
-            if (window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.refreshAdminPlanIfPending === 'function') {
-                window.NutriPlanPlanSync.markAdminPlanPending(data.planUpdatedAt || '');
-                window.NutriPlanPlanSync.refreshAdminPlanIfPending().then(function (r) {
-                    if (r && r.updated) applyShellPlanRefresh();
-                }).catch(function () {});
-            }
             return;
         }
         if (data.type === 'NUTRIPLAN_LOGOUT') {
@@ -932,11 +925,13 @@
         var shellUserId = getStoredValue('userId') || '';
         if (window.NutriPlanPlanSync && shellUserId && getStoredValue('dietPlan')) {
             try {
-                var adminRefresh = await window.NutriPlanPlanSync.initAdminPlanSync({ userId: shellUserId });
-                if (adminRefresh.updated) {
-                    applyShellPlanRefresh();
-                }
+                await window.NutriPlanPlanSync.initAdminPlanSync({ userId: shellUserId });
             } catch (_) {}
+            if (window.NutriPlanPlanSync.ensureServerPushSubscription &&
+                typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+                window.NutriPlanPlanSync.ensureServerPushSubscription({ userId: shellUserId })
+                    .catch(function () {});
+            }
         }
         if (!shouldOpenShell()) {
             if (window.NutriPlanDiagnostics) {

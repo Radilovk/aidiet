@@ -3097,7 +3097,7 @@
             window.Capacitor.isNativePlatform()
         );
 
-        if (!isCapacitorNativeApp && 'serviceWorker' in navigator) {
+        if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 // Check platform compatibility first
                 const compatWarning = PlatformDetector.getCompatibilityWarning();

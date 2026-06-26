@@ -96,6 +96,20 @@
         }
     }
 
+    function shouldOwnPlanSyncBridge() {
+        try {
+            if (global.document && global.document.documentElement.getAttribute('data-embedded-tab') === '1') {
+                return false;
+            }
+            if (global.parent && global.parent !== global) {
+                try {
+                    if (global.parent.NutriPlanSPA) return false;
+                } catch (_) {}
+            }
+        } catch (_) {}
+        return true;
+    }
+
     function applyServerPlanData(data) {
         if (!data || !data.found) return false;
 
@@ -108,8 +122,12 @@
 
             var updated = false;
             if (data.plan) {
-                localStorage.setItem('dietPlan', JSON.stringify(data.plan));
-                updated = true;
+                var newPlanStr = JSON.stringify(data.plan);
+                var existingPlan = localStorage.getItem('dietPlan');
+                if (existingPlan !== newPlanStr) {
+                    localStorage.setItem('dietPlan', newPlanStr);
+                    updated = true;
+                }
             }
             if (data.userData) {
                 localStorage.setItem('userData', JSON.stringify(data.userData));
@@ -216,7 +234,7 @@
         }
 
         var updated = applyServerPlanData(data);
-        if (updated) {
+        if (updated || (data.found && data.plan)) {
             await clearAdminPlanPendingEverywhere();
         }
 
@@ -260,39 +278,19 @@
     function notifyPlanReload() {
         syncShellAppDataFromStorage();
 
+        if (global.NutriPlanSPA) {
+            try {
+                global.dispatchEvent(new CustomEvent('NUTRIPLAN_SHELL_PLAN_RELOADED'));
+            } catch (_) {}
+            return;
+        }
+
         try {
             if (typeof global.forceReloadDietPlanFromStorage === 'function') {
                 global.forceReloadDietPlanFromStorage();
             } else if (typeof global.loadDietData === 'function') {
                 global.loadDietData();
             }
-        } catch (_) {}
-
-        try {
-            global.dispatchEvent(new CustomEvent('NUTRIPLAN_PLAN_RELOADED'));
-        } catch (_) {}
-
-        try {
-            if (global.parent && global.parent !== global) {
-                global.parent.postMessage({ type: 'NUTRIPLAN_PLAN_RELOADED' }, global.location.origin);
-            }
-        } catch (_) {}
-
-        // SPA shell: reload plan iframe and refresh shared app data
-        try {
-            if (global.NutriPlanSPA && global.document) {
-                var planFrame = global.document.querySelector('[data-tab-view="plan"]');
-                if (planFrame && planFrame.contentWindow) {
-                    planFrame.contentWindow.postMessage(
-                        { type: 'NUTRIPLAN_PLAN_RELOADED' },
-                        global.location.origin
-                    );
-                }
-            }
-        } catch (_) {}
-
-        try {
-            global.dispatchEvent(new CustomEvent('NUTRIPLAN_SHELL_PLAN_RELOADED'));
         } catch (_) {}
     }
 
@@ -404,6 +402,7 @@
 
     function bindPlanUpdateBridge() {
         if (_bridgeBound) return;
+        if (!shouldOwnPlanSyncBridge()) return;
         _bridgeBound = true;
         bindResumePlanSync();
 

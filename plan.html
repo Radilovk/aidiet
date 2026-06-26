@@ -4665,6 +4665,8 @@
         let _renderedPlanUpdatedAt = '';
 
         function forceReloadDietPlanFromStorage() {
+            var planAt = localStorage.getItem('planUpdatedAt') || '';
+            if (planAt && planAt === _renderedPlanUpdatedAt) return;
             dietPlan = null;
             userData = null;
             _loadDietDataCalled = false;
@@ -8448,7 +8450,7 @@
             }
         })();
 
-        if (!isCapacitorNativeApp && 'serviceWorker' in navigator) {
+        if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
                     .then(registration => {
