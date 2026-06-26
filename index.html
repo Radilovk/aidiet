@@ -3097,7 +3097,7 @@
             window.Capacitor.isNativePlatform()
         );
 
-        if ('serviceWorker' in navigator) {
+        if (!isCapacitorNativeApp && 'serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 // Check platform compatibility first
                 const compatWarning = PlatformDetector.getCompatibilityWarning();
@@ -3790,12 +3790,7 @@
 
             if (permission === 'granted') {
                 console.log('Notification permission granted');
-                if (window.NutriPlanPlanSync &&
-                    typeof window.NutriPlanPlanSync.ensureServerPushSubscription === 'function') {
-                    await window.NutriPlanPlanSync.ensureServerPushSubscription();
-                } else {
-                    await subscribeToPushNotifications();
-                }
+                await subscribeToPushNotifications();
                 return true;
             } else {
                 console.log('Notification permission denied');
@@ -4222,16 +4217,12 @@
             applyUser(user);
             const fbUserId = 'fb_' + user.uid;
 
-            if (window.NutriPlanPlanSync &&
-                typeof window.NutriPlanPlanSync.ensureServerPushSubscription === 'function' &&
-                Notification.permission === 'granted') {
-                window.NutriPlanPlanSync.ensureServerPushSubscription({ userId: fbUserId })
-                    .catch(function () {});
+            if (Notification.permission === 'granted') {
+                subscribeToPushNotifications().catch(function () {});
             }
 
             /* ── Plan sync / restore ───────────────────────────────────────────
-             * Backend requests only on explicit login, missing local plan,
-             * or admin push flag (np_plan_refresh_pending).
+             * Backend requests only on explicit login or missing local plan.
              * ──────────────────────────────────────────────────────────────── */
             const existingPlan = localStorage.getItem('dietPlan');
             const loginFetch = _loginInProgress ||

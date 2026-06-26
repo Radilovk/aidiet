@@ -1,6 +1,5 @@
 /**
- * NutriPlan — plan sync: login fetch + admin-update fetch (push-flagged only).
- * No profile API requests on tab switch, app resume, or normal reopen.
+ * NutriPlan — plan helpers: login fetch, plan replacement auth, pending activation.
  */
 (function (global) {
     'use strict';
@@ -8,10 +7,7 @@
     var WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
     var LOCAL_PLAN_AT_KEY = 'planUpdatedAt';
     var LOGIN_FETCH_FLAG = 'np_fetch_plan_on_next_auth';
-    var ADMIN_REFRESH_PENDING_KEY = 'np_plan_refresh_pending';
     var _applyingServerPlan = false;
-    var _bridgeBound = false;
-    var _adminRefreshInFlight = null;
 
     function getLocalPlanUpdatedAt() {
         try {
@@ -52,40 +48,6 @@
         return consumePlanFetchOnNextAuth() || !hasLocalPlan;
     }
 
-    function markAdminPlanPending(planUpdatedAt) {
-        try {
-            localStorage.setItem(ADMIN_REFRESH_PENDING_KEY, planUpdatedAt || '1');
-        } catch (_) {}
-    }
-
-    function clearAdminPlanPending() {
-        try {
-            localStorage.removeItem(ADMIN_REFRESH_PENDING_KEY);
-        } catch (_) {}
-    }
-
-    function clearPlanRefreshPendingInSw() {
-        if (!('serviceWorker' in navigator)) return Promise.resolve();
-        return navigator.serviceWorker.ready.then(function (registration) {
-            if (registration.active) {
-                registration.active.postMessage({ type: 'CLEAR_PLAN_REFRESH_PENDING' });
-            }
-        }).catch(function () {});
-    }
-
-    function clearAdminPlanPendingEverywhere() {
-        clearAdminPlanPending();
-        return clearPlanRefreshPendingInSw();
-    }
-
-    function hasAdminPlanPending() {
-        try {
-            return !!localStorage.getItem(ADMIN_REFRESH_PENDING_KEY);
-        } catch (_) {
-            return false;
-        }
-    }
-
     function resolveCandidateEmail(options) {
         if (options && options.email) return String(options.email).trim().toLowerCase();
         try {
@@ -96,38 +58,15 @@
         }
     }
 
-    function shouldOwnPlanSyncBridge() {
-        try {
-            if (global.document && global.document.documentElement.getAttribute('data-embedded-tab') === '1') {
-                return false;
-            }
-            if (global.parent && global.parent !== global) {
-                try {
-                    if (global.parent.NutriPlanSPA) return false;
-                } catch (_) {}
-            }
-        } catch (_) {}
-        return true;
-    }
-
     function applyServerPlanData(data) {
         if (!data || !data.found) return false;
 
         _applyingServerPlan = true;
         try {
-            if (data.unchanged) {
-                if (data.planUpdatedAt) setLocalPlanUpdatedAt(data.planUpdatedAt);
-                return false;
-            }
-
             var updated = false;
             if (data.plan) {
-                var newPlanStr = JSON.stringify(data.plan);
-                var existingPlan = localStorage.getItem('dietPlan');
-                if (existingPlan !== newPlanStr) {
-                    localStorage.setItem('dietPlan', newPlanStr);
-                    updated = true;
-                }
+                localStorage.setItem('dietPlan', JSON.stringify(data.plan));
+                updated = true;
             }
             if (data.userData) {
                 localStorage.setItem('userData', JSON.stringify(data.userData));
@@ -157,13 +96,9 @@
         }
     }
 
-    function buildProfileUrl(userId, email, includeLocalPlanAt) {
+    function buildProfileUrl(userId, email) {
         var url = new URL(WORKER_URL + '/api/user/profile');
         url.searchParams.set('userId', userId);
-        if (includeLocalPlanAt !== false) {
-            var localAt = getLocalPlanUpdatedAt();
-            if (localAt) url.searchParams.set('localPlanAt', localAt);
-        }
         if (email) url.searchParams.set('email', email);
         return url;
     }
@@ -171,7 +106,7 @@
     async function fetchUserProfile(userId, options) {
         options = options || {};
         var email = resolveCandidateEmail(options);
-        var url = buildProfileUrl(userId, email, options.includeLocalPlanAt);
+        var url = buildProfileUrl(userId, email);
         var headers = {};
         if (typeof options.getIdToken === 'function' && userId.indexOf('fb_') === 0) {
             var idToken = await options.getIdToken().catch(function () { return null; });
@@ -194,285 +129,14 @@
             await global.NutriPlanSession.clearPlanSessionData();
         }
 
-        var data = await fetchUserProfile(userId, Object.assign({}, options, { includeLocalPlanAt: false }));
+        var data = await fetchUserProfile(userId, options);
         if (!data || !data.found) return false;
         if (!(data.plan || data.planSource === 'questionnaire2' || data.clientId)) return false;
         applyServerPlanData(data);
-        clearAdminPlanPendingEverywhere();
         if (global.NutriPlanDiagnostics) {
             global.NutriPlanDiagnostics.ok('plan-sync', 'fetch-on-login', data.plan ? 'plan loaded' : 'pending state');
         }
         return true;
-    }
-
-    async function refreshAdminPlanIfPending(options) {
-        if (_adminRefreshInFlight) {
-            return _adminRefreshInFlight;
-        }
-        if (!hasAdminPlanPending()) {
-            return { updated: false, reason: 'no-pending' };
-        }
-
-        _adminRefreshInFlight = (async function () {
-        options = options || {};
-
-        var userId = options.userId || '';
-        if (!userId) {
-            try {
-                userId = localStorage.getItem('userId') || '';
-            } catch (_) {
-                userId = '';
-            }
-        }
-        if (!userId || userId.indexOf('fb_') !== 0) {
-            return { updated: false, reason: 'no-user' };
-        }
-
-        var data = await fetchUserProfile(userId, Object.assign({}, options, { includeLocalPlanAt: false }));
-        if (!data) {
-            return { updated: false, reason: 'request-failed' };
-        }
-
-        var updated = applyServerPlanData(data);
-        if (updated || (data.found && data.plan)) {
-            await clearAdminPlanPendingEverywhere();
-        }
-
-        if (global.NutriPlanDiagnostics) {
-            global.NutriPlanDiagnostics.ok(
-                'plan-sync',
-                updated ? 'admin-plan-refreshed' : 'admin-plan-checked',
-                updated ? 'updated' : 'no-op'
-            );
-        }
-        return { updated: updated, data: data };
-        })().finally(function () {
-            _adminRefreshInFlight = null;
-        });
-
-        return _adminRefreshInFlight;
-    }
-
-    function tryRefreshAdminPlanAfterSignal() {
-        refreshAdminPlanIfPending().then(function (result) {
-            if (result.updated) notifyPlanReload();
-        }).catch(function () {});
-    }
-
-    function syncShellAppDataFromStorage() {
-        try {
-            if (!global.NutriPlanAppData || !global.localStorage) return;
-            var planStr = global.localStorage.getItem('dietPlan');
-            var userStr = global.localStorage.getItem('userData');
-            if (planStr) {
-                global.NutriPlanAppData.raw.dietPlan = planStr;
-                global.NutriPlanAppData.parsed.dietPlan = JSON.parse(planStr);
-            }
-            if (userStr) {
-                global.NutriPlanAppData.raw.userData = userStr;
-                global.NutriPlanAppData.parsed.userData = JSON.parse(userStr);
-            }
-        } catch (_) {}
-    }
-
-    function notifyPlanReload() {
-        syncShellAppDataFromStorage();
-
-        if (global.NutriPlanSPA) {
-            try {
-                global.dispatchEvent(new CustomEvent('NUTRIPLAN_SHELL_PLAN_RELOADED'));
-            } catch (_) {}
-            return;
-        }
-
-        try {
-            if (typeof global.forceReloadDietPlanFromStorage === 'function') {
-                global.forceReloadDietPlanFromStorage();
-            } else if (typeof global.loadDietData === 'function') {
-                global.loadDietData();
-            }
-        } catch (_) {}
-    }
-
-    function handleAdminPlanUpdatedMessage(planUpdatedAt) {
-        markAdminPlanPending(planUpdatedAt);
-        tryRefreshAdminPlanAfterSignal();
-    }
-
-    function urlBase64ToUint8Array(base64String) {
-        var padding = '='.repeat((4 - base64String.length % 4) % 4);
-        var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-        var rawData = atob(base64);
-        var outputArray = new Uint8Array(rawData.length);
-        for (var i = 0; i < rawData.length; ++i) {
-            outputArray[i] = rawData.charCodeAt(i);
-        }
-        return outputArray;
-    }
-
-    async function fetchVapidPublicKey() {
-        try {
-            var cached = sessionStorage.getItem('vapidPublicKey');
-            if (cached && cached !== 'VAPID_PUBLIC_KEY_NOT_CONFIGURED') return cached;
-        } catch (_) {}
-        try {
-            var resp = await fetch(WORKER_URL + '/api/push/vapid-public-key', { cache: 'no-store' });
-            if (!resp.ok) return '';
-            var data = await resp.json();
-            var key = data && data.publicKey ? data.publicKey : '';
-            if (key && key !== 'VAPID_PUBLIC_KEY_NOT_CONFIGURED') {
-                try { sessionStorage.setItem('vapidPublicKey', key); } catch (_) {}
-                return key;
-            }
-        } catch (_) {}
-        return '';
-    }
-
-    async function savePushSubscriptionToServer(userId, subscription) {
-        if (!userId || !subscription) return false;
-        try {
-            var resp = await fetch(WORKER_URL + '/api/push/subscribe', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: userId, subscription: subscription.toJSON() })
-            });
-            if (resp.ok) {
-                try { localStorage.setItem('pushSubscribed', '1'); } catch (_) {}
-                if (global.NutriPlanDiagnostics) {
-                    global.NutriPlanDiagnostics.ok('plan-sync', 'push-subscribe', userId);
-                }
-                return true;
-            }
-        } catch (_) {}
-        return false;
-    }
-
-    /**
-     * Bind the browser push subscription to the current Firebase userId (fb_*).
-     * Must run after login — otherwise admin plan_updated push targets the wrong KV key.
-     */
-    async function ensureServerPushSubscription(options) {
-        options = options || {};
-        if (typeof navigator === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
-            return { ok: false, reason: 'unsupported' };
-        }
-        if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
-            return { ok: false, reason: 'no-permission' };
-        }
-        var userId = options.userId || '';
-        if (!userId) {
-            try { userId = localStorage.getItem('userId') || ''; } catch (_) { userId = ''; }
-        }
-        if (!userId) return { ok: false, reason: 'no-user' };
-
-        try {
-            var registration = options.registration || await navigator.serviceWorker.ready;
-            var subscription = await registration.pushManager.getSubscription();
-            if (!subscription) {
-                var publicKey = await fetchVapidPublicKey();
-                if (!publicKey) return { ok: false, reason: 'no-vapid' };
-                subscription = await registration.pushManager.subscribe({
-                    userVisibleOnly: true,
-                    applicationServerKey: urlBase64ToUint8Array(publicKey)
-                });
-            }
-            var saved = await savePushSubscriptionToServer(userId, subscription);
-            return { ok: saved, userId: userId, reason: saved ? 'saved' : 'save-failed' };
-        } catch (e) {
-            return { ok: false, reason: e && e.message ? e.message : 'failed' };
-        }
-    }
-
-    var _resumeBound = false;
-
-    function bindResumePlanSync() {
-        if (_resumeBound) return;
-        _resumeBound = true;
-        document.addEventListener('visibilitychange', function () {
-            if (document.visibilityState !== 'visible') return;
-            if (hasAdminPlanPending()) {
-                tryRefreshAdminPlanAfterSignal();
-                return;
-            }
-            syncPendingFromServiceWorker().then(function (found) {
-                if (found) tryRefreshAdminPlanAfterSignal();
-            });
-        });
-    }
-
-    function bindPlanUpdateBridge() {
-        if (_bridgeBound) return;
-        if (!shouldOwnPlanSyncBridge()) return;
-        _bridgeBound = true;
-        bindResumePlanSync();
-
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.addEventListener('message', function (event) {
-                var msg = event.data;
-                if (!msg) return;
-                if (msg.type === 'NUTRIPLAN_PLAN_UPDATED') {
-                    handleAdminPlanUpdatedMessage(msg.planUpdatedAt || '');
-                    return;
-                }
-                if (msg.type === 'PLAN_REFRESH_PENDING' && msg.pending) {
-                    handleAdminPlanUpdatedMessage(msg.planUpdatedAt || '');
-                }
-            });
-        }
-
-        global.addEventListener('NUTRIPLAN_PLAN_UPDATED', function (event) {
-            var detail = event && event.detail ? event.detail : {};
-            handleAdminPlanUpdatedMessage(detail.planUpdatedAt || '');
-        });
-    }
-
-    function syncPendingFromServiceWorker() {
-        if (!('serviceWorker' in navigator)) {
-            return Promise.resolve(false);
-        }
-        return navigator.serviceWorker.ready.then(function (registration) {
-            var sw = registration.active;
-            if (!sw) return false;
-            return new Promise(function (resolve) {
-                var channel = new MessageChannel();
-                var settled = false;
-                channel.port1.onmessage = function (event) {
-                    if (settled) return;
-                    settled = true;
-                    var msg = event.data;
-                    if (msg && msg.type === 'PLAN_REFRESH_PENDING' && msg.pending) {
-                        markAdminPlanPending(msg.planUpdatedAt || '');
-                        resolve(true);
-                        return;
-                    }
-                    resolve(false);
-                };
-                try {
-                    sw.postMessage({ type: 'GET_PLAN_REFRESH_PENDING' }, [channel.port1]);
-                } catch (_) {
-                    resolve(false);
-                    return;
-                }
-                setTimeout(function () {
-                    if (!settled) {
-                        settled = true;
-                        resolve(false);
-                    }
-                }, 5000);
-            });
-        }).catch(function () {
-            return false;
-        });
-    }
-
-    async function initAdminPlanSync(options) {
-        bindPlanUpdateBridge();
-        await syncPendingFromServiceWorker();
-        var result = await refreshAdminPlanIfPending(options || {});
-        if (result.updated) {
-            notifyPlanReload();
-        }
-        return result;
     }
 
     function normalizeEmail(value) {
@@ -663,11 +327,6 @@
         }).catch(function () {});
     }
 
-    /**
-     * Check whether a questionnaire-2 plan awaiting approval has been activated.
-     * Clears local pending flags when the server reports activation.
-     * @returns {Promise<{activated: boolean, data?: object}>}
-     */
     async function syncPendingPlanActivation() {
         var clientId = '';
         try { clientId = localStorage.getItem('pendingClientId') || ''; } catch (_) {}
@@ -697,7 +356,6 @@
             localStorage.removeItem('planJobSource');
             localStorage.removeItem('planReplacePending');
             localStorage.removeItem('npPlanReviewSource');
-            clearAdminPlanPending();
 
             var userId = '';
             try { userId = localStorage.getItem('userId') || ''; } catch (_) {}
@@ -722,24 +380,15 @@
         WORKER_URL: WORKER_URL,
         LOCAL_PLAN_AT_KEY: LOCAL_PLAN_AT_KEY,
         LOGIN_FETCH_FLAG: LOGIN_FETCH_FLAG,
-        ADMIN_REFRESH_PENDING_KEY: ADMIN_REFRESH_PENDING_KEY,
         getLocalPlanUpdatedAt: getLocalPlanUpdatedAt,
         setLocalPlanUpdatedAt: setLocalPlanUpdatedAt,
         markPlanSavedLocally: markPlanSavedLocally,
         markPlanFetchOnNextAuth: markPlanFetchOnNextAuth,
         consumePlanFetchOnNextAuth: consumePlanFetchOnNextAuth,
         shouldFetchPlanOnAuth: shouldFetchPlanOnAuth,
-        markAdminPlanPending: markAdminPlanPending,
-        clearAdminPlanPending: clearAdminPlanPending,
-        hasAdminPlanPending: hasAdminPlanPending,
         applyServerPlanData: applyServerPlanData,
         fetchPlanOnLogin: fetchPlanOnLogin,
         loadUserPlanFromServer: fetchPlanOnLogin,
-        refreshAdminPlanIfPending: refreshAdminPlanIfPending,
-        initAdminPlanSync: initAdminPlanSync,
-        notifyPlanReload: notifyPlanReload,
-        onAdminPlanUpdated: handleAdminPlanUpdatedMessage,
-        ensureServerPushSubscription: ensureServerPushSubscription,
         isApplyingServerPlan: function () { return _applyingServerPlan; },
         checkAccountRequiresAuth: checkAccountRequiresAuth,
         hasExistingPlanForEmail: hasExistingPlanForEmail,
@@ -748,6 +397,4 @@
         saveUserProfile: saveUserProfile,
         syncPendingPlanActivation: syncPendingPlanActivation
     };
-
-    bindPlanUpdateBridge();
 }(window));
