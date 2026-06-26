@@ -1,6 +1,6 @@
 /**
- * NutriPlan — plan sync: login fetch + admin-update fetch (push-flagged only).
- * No backend requests on tab switch, app resume, or normal reopen.
+ * NutriPlan — plan sync: login fetch + lightweight server check on app open.
+ * Uses localPlanAt to skip unchanged plans; push still triggers immediate refresh.
  */
 (function (global) {
     'use strict';
@@ -177,9 +177,6 @@
         if (_adminRefreshInFlight) {
             return _adminRefreshInFlight;
         }
-        if (!hasAdminPlanPending()) {
-            return { updated: false, reason: 'no-pending' };
-        }
 
         _adminRefreshInFlight = (async function () {
         options = options || {};
@@ -196,13 +193,13 @@
             return { updated: false, reason: 'no-user' };
         }
 
-        var data = await fetchUserProfile(userId, Object.assign({}, options, { includeLocalPlanAt: false }));
+        var data = await fetchUserProfile(userId, options);
         if (!data) {
             return { updated: false, reason: 'request-failed' };
         }
 
         var updated = applyServerPlanData(data);
-        if (updated || data.unchanged || (data.found && data.plan)) {
+        if (updated || data.unchanged) {
             clearAdminPlanPending();
         }
 
@@ -213,7 +210,7 @@
                 data.unchanged ? 'unchanged' : (updated ? 'updated' : 'no-op')
             );
         }
-        return { updated: updated || !!(data.plan), unchanged: !!data.unchanged, data: data };
+        return { updated: updated, unchanged: !!data.unchanged, data: data };
         })().finally(function () {
             _adminRefreshInFlight = null;
         });
@@ -279,7 +276,7 @@
     function handleAdminPlanUpdatedMessage(planUpdatedAt) {
         markAdminPlanPending(planUpdatedAt);
         refreshAdminPlanIfPending().then(function (result) {
-            if (result.updated || (result.data && result.data.plan)) {
+            if (result.updated) {
                 notifyPlanReload();
             }
         }).catch(function () {});
@@ -433,7 +430,7 @@
         bindPlanUpdateBridge();
         await syncPendingFromServiceWorker();
         var result = await refreshAdminPlanIfPending(options || {});
-        if (result.updated || (result.data && result.data.plan)) {
+        if (result.updated) {
             notifyPlanReload();
         }
         return result;

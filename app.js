@@ -584,7 +584,7 @@
     }
 
     function shouldReplayTabAnimations(tab) {
-        return true;
+        return tab !== 'plan';
     }
 
     function patchFrame(frame) {
@@ -768,7 +768,7 @@
             if (window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.refreshAdminPlanIfPending === 'function') {
                 window.NutriPlanPlanSync.markAdminPlanPending(data.planUpdatedAt || '');
                 window.NutriPlanPlanSync.refreshAdminPlanIfPending().then(function (r) {
-                    if (r && (r.updated || (r.data && r.data.plan))) applyShellPlanRefresh();
+                    if (r && r.updated) applyShellPlanRefresh();
                 }).catch(function () {});
             }
             return;

@@ -4230,8 +4230,7 @@
             }
 
             /* ── Plan sync / restore ───────────────────────────────────────────
-             * Backend requests only on explicit login or missing local plan.
-             * App reopen / tab switch while logged in → local cache only.
+             * Backend fetch on login, missing plan, or shell/plan open (timestamp check).
              * ──────────────────────────────────────────────────────────────── */
             const existingPlan = localStorage.getItem('dietPlan');
             const loginFetch = _loginInProgress ||

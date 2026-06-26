@@ -47,7 +47,7 @@
     <!-- Inline theme init: apply saved theme before first paint to prevent FOUC -->
     <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F0FDFA';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
     <!-- Hide body until content is ready; revealed by JS after localStorage render to prevent flash -->
-    <style>body{opacity:0}</style>
+    <style>body{opacity:0}html[data-embedded-tab="1"] body{opacity:1!important}</style>
     <!-- Detect shellChat overlay mode before first paint -->
     <script>(function(){if(new URLSearchParams(window.location.search).get('shellChat')==='1'){document.documentElement.setAttribute('data-shell-chat','1');}})();</script>
     <!-- Detect embedded iframe mode before first paint (enables haptic relay to shell via postMessage) -->
@@ -4409,7 +4409,8 @@
             if (typeof NativeBackup !== 'undefined') {
                 await NativeBackup.init().catch(() => {});
             }
-            if (window.NutriPlanPlanSync && localStorage.getItem('userId') && localStorage.getItem('dietPlan')) {
+            var isEmbeddedTab = document.documentElement.getAttribute('data-embedded-tab') === '1';
+            if (!isEmbeddedTab && window.NutriPlanPlanSync && localStorage.getItem('userId') && localStorage.getItem('dietPlan')) {
                 try {
                     await window.NutriPlanPlanSync.initAdminPlanSync({
                         userId: localStorage.getItem('userId')
@@ -4420,13 +4421,12 @@
             if (window.NutriPlanDiagnostics) {
                 window.NutriPlanDiagnostics.ok('plan', 'init-dom-features-ready', 'Initial load requested');
             }
-            // Reveal the page now that critical content is rendered from localStorage.
-            // Using rAF ensures the browser has committed the opacity:0 frame before
-            // transitioning to opacity:1 so the CSS transition fires correctly.
-            requestAnimationFrame(function() {
-                document.body.style.transition = 'opacity 120ms ease-out';
-                document.body.style.opacity = '1';
-            });
+            if (!isEmbeddedTab) {
+                requestAnimationFrame(function() {
+                    document.body.style.transition = 'opacity 120ms ease-out';
+                    document.body.style.opacity = '1';
+                });
+            }
             // Enhancement #8: Load offline queue
             loadOfflineQueue();
             // Enhancement #6: Load plan history
@@ -4662,6 +4662,7 @@
         // --- Load Diet Data ---
         // Guard flag to prevent re-entry after backend restore
         let _loadDietDataCalled = false;
+        let _renderedPlanUpdatedAt = '';
 
         function forceReloadDietPlanFromStorage() {
             dietPlan = null;
@@ -4778,7 +4779,7 @@
 
                 // Refresh np_uid cookie for iOS PWA restore. Firebase-linked accounts do not
                 // passive-upload the plan on every open — that would overwrite admin edits.
-                // Plan sync for fb_* users: login fetch + push flag (np_plan_refresh_pending) only.
+                // Plan sync for fb_* users: login fetch + server timestamp check on app open.
                 (async function ensureProfileCookies() {
                     const uid = localStorage.getItem('userId');
                     const planStr = localStorage.getItem('dietPlan');
@@ -4820,6 +4821,8 @@
                       .catch(() => {});
                 })();
 
+                _renderedPlanUpdatedAt = localStorage.getItem('planUpdatedAt') || '';
+
                 if (window.NutriPlanDiagnostics) {
                         window.NutriPlanDiagnostics.ok('plan', 'load-diet-data', 'Plan rendered successfully');
                 }
@@ -4835,6 +4838,8 @@
 
         function refreshPlanFromShellData(reason) {
             if (!localStorage.getItem('dietPlan')) return;
+            var planAt = localStorage.getItem('planUpdatedAt') || '';
+            if (planAt && planAt === _renderedPlanUpdatedAt) return;
             forceReloadDietPlanFromStorage();
             if (window.NutriPlanDiagnostics) {
                 window.NutriPlanDiagnostics.ok('plan', 'refresh-from-shell-data', reason || 'shell-data-ready');
@@ -10451,7 +10456,7 @@
                     }));
                     if (typeof forceReloadDietPlanFromStorage === 'function') {
                         window.NutriPlanPlanSync.refreshAdminPlanIfPending().then(function(r) {
-                            if (r.updated || (r.data && r.data.plan)) {
+                            if (r.updated) {
                                 forceReloadDietPlanFromStorage();
                             }
                         });
