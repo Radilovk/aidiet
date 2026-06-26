@@ -418,10 +418,6 @@
                 return;
             }
             if (msg.openApp || !payload.action) {
-                if (payload.notificationType === 'plan_updated') {
-                    switchTab('plan', true);
-                    return;
-                }
                 openQuickAnswerFromNotification(payload);
             }
         });

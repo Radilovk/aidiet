@@ -6511,7 +6511,7 @@ function reconcilePlanAfterAssistantPatches(plan) {
 }
 
 /**
- * Resolve Firebase userId for push/plan sync on an activated client.
+ * Resolve Firebase userId for an activated client profile.
  */
 async function resolveActivatedClientUserId(env, clientData) {
   if (clientData?.userId?.startsWith('fb_')) return clientData.userId;
@@ -6523,13 +6523,13 @@ async function resolveActivatedClientUserId(env, clientData) {
 }
 
 /**
- * Sync activated plan to user profile and notify client devices.
+ * Persist activated client plan to user profile (login restore).
  */
-async function notifyClientPlanUpdated(env, clientData, clientId, options = {}) {
+async function syncActivatedPlanToUserProfile(env, clientData, clientId) {
   if (clientData?.planStatus !== 'activated' || !clientData?.plan) return;
   const userId = await resolveActivatedClientUserId(env, clientData);
   if (!userId?.startsWith('fb_')) {
-    console.warn(`[Client] Plan update notify skipped — no Firebase userId for client ${clientId}`);
+    console.warn(`[Client] Profile sync skipped — no Firebase userId for client ${clientId}`);
     return;
   }
   if (userId !== clientData.userId) {
@@ -6545,16 +6545,8 @@ async function notifyClientPlanUpdated(env, clientData, clientId, options = {}) 
       clientId,
       planUpdatedAt,
     });
-    await sendPushNotificationToUser(userId, {
-      title: options.title || 'Планът ви е актуализиран',
-      body: options.body || 'Специалистът направи промени в хранителния ви план.',
-      url: '/index.html?app=1&tab=plan',
-      icon: '/icon-192x192.png',
-      notificationType: 'plan_updated',
-      planUpdatedAt,
-    }, env);
   } catch (e) {
-    console.warn('[Client] Plan update notify failed:', e.message);
+    console.warn('[Client] Profile sync failed:', e.message);
   }
 }
 
@@ -6581,7 +6573,7 @@ async function applyAssistantPatches(env, session, clientData, patches, ctx) {
   await env.page_content.put(`client:${session.clientId}`, JSON.stringify(clientData));
 
   if (wasPreviouslyActivated && touchedPlan) {
-    await notifyClientPlanUpdated(env, clientData, session.clientId);
+    await syncActivatedPlanToUserProfile(env, clientData, session.clientId);
   }
 
   return clientData;
@@ -7103,7 +7095,7 @@ async function handleUpdateClientPlan(request, env, ctx) {
         `📅 Дата: ${formatDateBG(clientData.planUpdatedAt)}`
       );
     } else if (clientData.planStatus === 'activated') {
-      await notifyClientPlanUpdated(env, clientData, clientId);
+      await syncActivatedPlanToUserProfile(env, clientData, clientId);
       console.log(`[Client] Plan auto-activated for existing client ${clientId}`);
     }
 
@@ -7141,10 +7133,7 @@ async function handleActivateClientPlan(request, env, ctx) {
     // clear its pending marker so the next APK/PWA login opens plan.html.
     if (clientData.userId || clientData.answers?.email) {
       clientData.planUpdatedAt = clientData.planUpdatedAt || clientData.planActivatedAt;
-      await notifyClientPlanUpdated(env, clientData, clientId, {
-        title: 'Вашият план е готов!',
-        body: 'Специалистът одобри персонализирания ви хранителен план.',
-      });
+      await syncActivatedPlanToUserProfile(env, clientData, clientId);
     }
 
     // Send email notification to client — try synchronously so we can report status
@@ -14740,7 +14729,6 @@ async function handleGetUserProfile(request, env) {
     }
 
     const requestedEmail = normalizeEmail(url.searchParams.get('email'));
-    const localPlanAt = url.searchParams.get('localPlanAt');
 
     let profile = await kvGetJSON(env, `user_profile:${resolvedUserId}`);
 
@@ -14847,18 +14835,6 @@ async function handleGetUserProfile(request, env) {
           profile.clientId = clientId;
         }
       }
-    }
-
-    const planUpdatedAt = getEffectivePlanUpdatedAt(profile);
-
-    if (localPlanAt && planUpdatedAt && localPlanAt >= planUpdatedAt) {
-      return jsonResponse({
-        found: true,
-        unchanged: true,
-        planUpdatedAt,
-        planSource,
-        ...(clientId ? { clientId } : {})
-      });
     }
 
     return jsonResponse({

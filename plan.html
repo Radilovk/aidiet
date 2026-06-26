@@ -4762,7 +4762,7 @@
 
                 // Refresh np_uid cookie for iOS PWA restore. Firebase-linked accounts do not
                 // passive-upload the plan on every open — that would overwrite admin edits.
-                // fb_* users: plan sync on login only (no passive upload — preserves admin edits).
+                // fb_* users: no passive plan upload on every open.
                 (async function ensureProfileCookies() {
                     const uid = localStorage.getItem('userId');
                     const planStr = localStorage.getItem('dietPlan');
@@ -8550,11 +8550,6 @@
          */
         async function registerServerPush(registration) {
             try {
-                if (window.NutriPlanPlanSync &&
-                    typeof window.NutriPlanPlanSync.ensureServerPushSubscription === 'function') {
-                    await window.NutriPlanPlanSync.ensureServerPushSubscription({ registration: registration });
-                    return;
-                }
                 if (!('PushManager' in window)) return;
 
                 // Avoid re-subscribing on every page load
@@ -10406,9 +10401,6 @@
                 }
             }
             if (msg.openApp || !msg.action) {
-                if (msg.notificationType === 'plan_updated') {
-                    return;
-                }
                 var gn = window.GameNotifier;
                 var nType = msg.notificationType || '';
                 var rKey = msg.recordKey || '';

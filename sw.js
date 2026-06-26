@@ -107,9 +107,6 @@ async function hasVisibleAppClient() {
 function resolveNotificationTarget(data = {}, action = '') {
   const type = data.type || data.notificationType || '';
   const recordKey = data.recordKey || '';
-  if (type === 'plan_updated') {
-    return data.url || `${BASE_PATH}/index.html?app=1&tab=plan`;
-  }
   if (type === 'morning_check' || type === 'evening_activity' || type === 'evening_balance' ||
       type === 'evening_water' || type === 'evening_check') {
     const qaType = type === 'evening_check' ? 'evening_water' : type;
@@ -258,7 +255,7 @@ self.addEventListener('push', (event) => {
     ? `nutriplan-${data.notificationType}`
     : 'nutriplan-general';
 
-  const isGameType = data.notificationType && data.notificationType !== 'plan_updated';
+  const isGameType = !!data.notificationType;
 
   event.waitUntil(
     (async () => {
@@ -275,12 +272,11 @@ self.addEventListener('push', (event) => {
           requireInteraction: !!data.notificationType,
           actions:           getGameNotificationActions(data.notificationType),
           data:              {
-            url: data.url || (data.notificationType === 'plan_updated'
-              ? `${BASE_PATH}/index.html?app=1&tab=plan`
-              : (data.notificationType ? buildQuickAnswerUrl(data.notificationType, { date: data.recordKey || '' }) : '/plan.html')),
+            url: data.url || (data.notificationType
+              ? buildQuickAnswerUrl(data.notificationType, { date: data.recordKey || '' })
+              : '/plan.html'),
             type: data.notificationType || '',
-            recordKey: data.recordKey || '',
-            planUpdatedAt: data.planUpdatedAt || ''
+            recordKey: data.recordKey || ''
           }
         });
       } catch (err) {
@@ -326,20 +322,6 @@ self.addEventListener('notificationclick', (event) => {
 
   const url = resolveNotificationTarget(data, action);
   const targetUrl = toAbsoluteAppUrl(url);
-
-  if (notificationType === 'plan_updated') {
-    event.waitUntil(
-      clients.matchAll({ type: 'window', includeUncontrolled: true })
-        .then((clientList) => {
-          const shellClient = clientList.find(c => c.url.includes('/index.html') || c.url.includes('tab=plan'));
-          if (shellClient && 'focus' in shellClient) {
-            return shellClient.focus();
-          }
-          return clients.openWindow ? clients.openWindow(targetUrl) : undefined;
-        })
-    );
-    return;
-  }
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
