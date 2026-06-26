@@ -341,21 +341,6 @@
         return gn.runOpenAppCatchUpFlow();
     }
 
-    function applyShellPlanRefresh() {
-        var refreshedPlan = getStoredValue('dietPlan');
-        var refreshedUserData = getStoredValue('userData');
-        if (refreshedPlan) {
-            state.raw.dietPlan = refreshedPlan;
-            state.parsed.dietPlan = safeParse(refreshedPlan);
-        }
-        if (refreshedUserData) {
-            state.raw.userData = refreshedUserData;
-            state.parsed.userData = safeParse(refreshedUserData);
-        }
-        var planFrame = document.querySelector('[data-tab-view="plan"]');
-        if (planFrame) dispatchFrameEvent(planFrame, 'NUTRIPLAN_PLAN_RELOADED', {});
-    }
-
     function bindCatchUpOnResume() {
         if (window.__nutriplanCatchUpResumeBound) return;
         window.__nutriplanCatchUpResumeBound = true;
@@ -434,9 +419,6 @@
             }
             if (msg.openApp || !payload.action) {
                 if (payload.notificationType === 'plan_updated') {
-                    window.dispatchEvent(new CustomEvent('NUTRIPLAN_PLAN_UPDATED', {
-                        detail: { planUpdatedAt: msg.planUpdatedAt || '' }
-                    }));
                     switchTab('plan', true);
                     return;
                 }
@@ -752,20 +734,6 @@
             }
             return;
         }
-        if (data.type === 'NUTRIPLAN_PLAN_RELOADED') {
-            applyShellPlanRefresh();
-            return;
-        }
-        if (data.type === 'NUTRIPLAN_PLAN_UPDATED') {
-            if (window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.onAdminPlanUpdated === 'function') {
-                window.NutriPlanPlanSync.onAdminPlanUpdated(data.planUpdatedAt || '');
-                return;
-            }
-            window.dispatchEvent(new CustomEvent('NUTRIPLAN_PLAN_UPDATED', {
-                detail: { planUpdatedAt: data.planUpdatedAt || '' }
-            }));
-            return;
-        }
         if (data.type === 'NUTRIPLAN_LOGOUT') {
             // Hide SPA shell immediately so nav bar / tabs are not visible during navigation
             var shell = document.getElementById('spaShell');
@@ -922,17 +890,6 @@
 
         await ensureNativeStorageReady();
         await cacheJsonAtStartup();
-        var shellUserId = getStoredValue('userId') || '';
-        if (window.NutriPlanPlanSync && shellUserId && getStoredValue('dietPlan')) {
-            try {
-                await window.NutriPlanPlanSync.initAdminPlanSync({ userId: shellUserId });
-            } catch (_) {}
-            if (window.NutriPlanPlanSync.ensureServerPushSubscription &&
-                typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-                window.NutriPlanPlanSync.ensureServerPushSubscription({ userId: shellUserId })
-                    .catch(function () {});
-            }
-        }
         if (!shouldOpenShell()) {
             if (window.NutriPlanDiagnostics) {
                 window.NutriPlanDiagnostics.info('shell', 'init-skip', 'No local plan available');
@@ -999,7 +956,6 @@
     bindNativeNotificationBridge();
     bindSwNotificationBridge();
     bindCatchUpOnResume();
-    window.addEventListener('NUTRIPLAN_SHELL_PLAN_RELOADED', applyShellPlanRefresh);
     initApkGameNotifier();
 
     if (document.readyState === 'loading') {

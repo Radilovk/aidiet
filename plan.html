@@ -47,7 +47,7 @@
     <!-- Inline theme init: apply saved theme before first paint to prevent FOUC -->
     <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F0FDFA';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
     <!-- Hide body until content is ready; revealed by JS after localStorage render to prevent flash -->
-    <style>body{opacity:0}html[data-embedded-tab="1"] body{opacity:1!important}</style>
+    <style>body{opacity:0}html[data-embedded-tab="1"] body{opacity:1!important;transition:none!important}</style>
     <!-- Detect shellChat overlay mode before first paint -->
     <script>(function(){if(new URLSearchParams(window.location.search).get('shellChat')==='1'){document.documentElement.setAttribute('data-shell-chat','1');}})();</script>
     <!-- Detect embedded iframe mode before first paint (enables haptic relay to shell via postMessage) -->
@@ -4409,19 +4409,11 @@
             if (typeof NativeBackup !== 'undefined') {
                 await NativeBackup.init().catch(() => {});
             }
-            var isEmbeddedTab = document.documentElement.getAttribute('data-embedded-tab') === '1';
-            if (!isEmbeddedTab && window.NutriPlanPlanSync && localStorage.getItem('userId') && localStorage.getItem('dietPlan')) {
-                try {
-                    await window.NutriPlanPlanSync.initAdminPlanSync({
-                        userId: localStorage.getItem('userId')
-                    });
-                } catch (_) {}
-            }
             loadDietData();
             if (window.NutriPlanDiagnostics) {
                 window.NutriPlanDiagnostics.ok('plan', 'init-dom-features-ready', 'Initial load requested');
             }
-            if (!isEmbeddedTab) {
+            if (document.documentElement.getAttribute('data-embedded-tab') !== '1') {
                 requestAnimationFrame(function() {
                     document.body.style.transition = 'opacity 120ms ease-out';
                     document.body.style.opacity = '1';
@@ -4662,17 +4654,6 @@
         // --- Load Diet Data ---
         // Guard flag to prevent re-entry after backend restore
         let _loadDietDataCalled = false;
-        let _renderedPlanUpdatedAt = '';
-
-        function forceReloadDietPlanFromStorage() {
-            var planAt = localStorage.getItem('planUpdatedAt') || '';
-            if (planAt && planAt === _renderedPlanUpdatedAt) return;
-            dietPlan = null;
-            userData = null;
-            _loadDietDataCalled = false;
-            if (typeof loadDietData === 'function') loadDietData();
-        }
-        window.forceReloadDietPlanFromStorage = forceReloadDietPlanFromStorage;
 
         function loadDietData() {
             try {
@@ -4781,7 +4762,7 @@
 
                 // Refresh np_uid cookie for iOS PWA restore. Firebase-linked accounts do not
                 // passive-upload the plan on every open — that would overwrite admin edits.
-                // Plan sync for fb_* users: login fetch + admin push flag only.
+                // fb_* users: plan sync on login only (no passive upload — preserves admin edits).
                 (async function ensureProfileCookies() {
                     const uid = localStorage.getItem('userId');
                     const planStr = localStorage.getItem('dietPlan');
@@ -4823,8 +4804,6 @@
                       .catch(() => {});
                 })();
 
-                _renderedPlanUpdatedAt = localStorage.getItem('planUpdatedAt') || '';
-
                 if (window.NutriPlanDiagnostics) {
                         window.NutriPlanDiagnostics.ok('plan', 'load-diet-data', 'Plan rendered successfully');
                 }
@@ -4835,16 +4814,6 @@
                         window.NutriPlanDiagnostics.fail('plan', 'load-diet-data', error.message || 'Unknown error');
                 }
                 showError('Грешка при зареждане на данните. Моля, генерирайте нов план.', true);
-            }
-        }
-
-        function refreshPlanFromShellData(reason) {
-            if (!localStorage.getItem('dietPlan')) return;
-            var planAt = localStorage.getItem('planUpdatedAt') || '';
-            if (planAt && planAt === _renderedPlanUpdatedAt) return;
-            forceReloadDietPlanFromStorage();
-            if (window.NutriPlanDiagnostics) {
-                window.NutriPlanDiagnostics.ok('plan', 'refresh-from-shell-data', reason || 'shell-data-ready');
             }
         }
 
@@ -5586,21 +5555,6 @@
         window.addEventListener('NUTRIPLAN_TAB_DEACTIVATED', function() {
             typingHapticsEnabled = false;
             cancelActiveTyping({ complete: true });
-        });
-
-        window.addEventListener('NUTRIPLAN_APP_DATA_READY', function() {
-            refreshPlanFromShellData('shell-data-ready');
-        });
-
-        window.addEventListener('NUTRIPLAN_PLAN_RELOADED', function() {
-            forceReloadDietPlanFromStorage();
-        });
-
-        window.addEventListener('message', function(event) {
-            if (event.origin !== window.location.origin) return;
-            var data = event.data;
-            if (!data || data.type !== 'NUTRIPLAN_PLAN_RELOADED') return;
-            forceReloadDietPlanFromStorage();
         });
 
         document.addEventListener('visibilitychange', function() {
@@ -8450,7 +8404,7 @@
             }
         })();
 
-        if ('serviceWorker' in navigator) {
+        if (!isCapacitorNativeApp && 'serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
                     .then(registration => {
@@ -10452,17 +10406,7 @@
                 }
             }
             if (msg.openApp || !msg.action) {
-                if (msg.notificationType === 'plan_updated' && window.NutriPlanPlanSync) {
-                    window.dispatchEvent(new CustomEvent('NUTRIPLAN_PLAN_UPDATED', {
-                        detail: { planUpdatedAt: msg.planUpdatedAt || '' }
-                    }));
-                    if (typeof forceReloadDietPlanFromStorage === 'function') {
-                        window.NutriPlanPlanSync.refreshAdminPlanIfPending().then(function(r) {
-                            if (r.updated) {
-                                forceReloadDietPlanFromStorage();
-                            }
-                        });
-                    }
+                if (msg.notificationType === 'plan_updated') {
                     return;
                 }
                 var gn = window.GameNotifier;
