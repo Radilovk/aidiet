@@ -4230,7 +4230,8 @@
             }
 
             /* ── Plan sync / restore ───────────────────────────────────────────
-             * Backend fetch on login, missing plan, or shell/plan open (timestamp check).
+             * Backend requests only on explicit login, missing local plan,
+             * or admin push flag (np_plan_refresh_pending).
              * ──────────────────────────────────────────────────────────────── */
             const existingPlan = localStorage.getItem('dietPlan');
             const loginFetch = _loginInProgress ||

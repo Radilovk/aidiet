@@ -1,6 +1,6 @@
 /**
- * NutriPlan — plan sync: login fetch + lightweight server check on app open.
- * Uses localPlanAt to skip unchanged plans; push still triggers immediate refresh.
+ * NutriPlan — plan sync: login fetch + admin-update fetch (push-flagged only).
+ * No profile API requests on tab switch, app resume, or normal reopen.
  */
 (function (global) {
     'use strict';
@@ -62,6 +62,20 @@
         try {
             localStorage.removeItem(ADMIN_REFRESH_PENDING_KEY);
         } catch (_) {}
+    }
+
+    function clearPlanRefreshPendingInSw() {
+        if (!('serviceWorker' in navigator)) return Promise.resolve();
+        return navigator.serviceWorker.ready.then(function (registration) {
+            if (registration.active) {
+                registration.active.postMessage({ type: 'CLEAR_PLAN_REFRESH_PENDING' });
+            }
+        }).catch(function () {});
+    }
+
+    function clearAdminPlanPendingEverywhere() {
+        clearAdminPlanPending();
+        return clearPlanRefreshPendingInSw();
     }
 
     function hasAdminPlanPending() {
@@ -166,7 +180,7 @@
         if (!data || !data.found) return false;
         if (!(data.plan || data.planSource === 'questionnaire2' || data.clientId)) return false;
         applyServerPlanData(data);
-        clearAdminPlanPending();
+        clearAdminPlanPendingEverywhere();
         if (global.NutriPlanDiagnostics) {
             global.NutriPlanDiagnostics.ok('plan-sync', 'fetch-on-login', data.plan ? 'plan loaded' : 'pending state');
         }
@@ -176,6 +190,9 @@
     async function refreshAdminPlanIfPending(options) {
         if (_adminRefreshInFlight) {
             return _adminRefreshInFlight;
+        }
+        if (!hasAdminPlanPending()) {
+            return { updated: false, reason: 'no-pending' };
         }
 
         _adminRefreshInFlight = (async function () {
@@ -193,29 +210,35 @@
             return { updated: false, reason: 'no-user' };
         }
 
-        var data = await fetchUserProfile(userId, options);
+        var data = await fetchUserProfile(userId, Object.assign({}, options, { includeLocalPlanAt: false }));
         if (!data) {
             return { updated: false, reason: 'request-failed' };
         }
 
         var updated = applyServerPlanData(data);
-        if (updated || data.unchanged) {
-            clearAdminPlanPending();
+        if (updated) {
+            await clearAdminPlanPendingEverywhere();
         }
 
         if (global.NutriPlanDiagnostics) {
             global.NutriPlanDiagnostics.ok(
                 'plan-sync',
                 updated ? 'admin-plan-refreshed' : 'admin-plan-checked',
-                data.unchanged ? 'unchanged' : (updated ? 'updated' : 'no-op')
+                updated ? 'updated' : 'no-op'
             );
         }
-        return { updated: updated, unchanged: !!data.unchanged, data: data };
+        return { updated: updated, data: data };
         })().finally(function () {
             _adminRefreshInFlight = null;
         });
 
         return _adminRefreshInFlight;
+    }
+
+    function tryRefreshAdminPlanAfterSignal() {
+        refreshAdminPlanIfPending().then(function (result) {
+            if (result.updated) notifyPlanReload();
+        }).catch(function () {});
     }
 
     function syncShellAppDataFromStorage() {
@@ -275,11 +298,7 @@
 
     function handleAdminPlanUpdatedMessage(planUpdatedAt) {
         markAdminPlanPending(planUpdatedAt);
-        refreshAdminPlanIfPending().then(function (result) {
-            if (result.updated) {
-                notifyPlanReload();
-            }
-        }).catch(function () {});
+        tryRefreshAdminPlanAfterSignal();
     }
 
     function urlBase64ToUint8Array(base64String) {
@@ -366,9 +385,27 @@
         }
     }
 
+    var _resumeBound = false;
+
+    function bindResumePlanSync() {
+        if (_resumeBound) return;
+        _resumeBound = true;
+        document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState !== 'visible') return;
+            if (hasAdminPlanPending()) {
+                tryRefreshAdminPlanAfterSignal();
+                return;
+            }
+            syncPendingFromServiceWorker().then(function (found) {
+                if (found) tryRefreshAdminPlanAfterSignal();
+            });
+        });
+    }
+
     function bindPlanUpdateBridge() {
         if (_bridgeBound) return;
         _bridgeBound = true;
+        bindResumePlanSync();
 
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.addEventListener('message', function (event) {
@@ -391,38 +428,41 @@
     }
 
     function syncPendingFromServiceWorker() {
-        if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) {
+        if (!('serviceWorker' in navigator)) {
             return Promise.resolve(false);
         }
-        return new Promise(function (resolve) {
-            var channel = new MessageChannel();
-            var settled = false;
-            channel.port1.onmessage = function (event) {
-                if (settled) return;
-                settled = true;
-                var msg = event.data;
-                if (msg && msg.type === 'PLAN_REFRESH_PENDING' && msg.pending) {
-                    markAdminPlanPending(msg.planUpdatedAt || '');
-                    resolve(true);
+        return navigator.serviceWorker.ready.then(function (registration) {
+            var sw = registration.active;
+            if (!sw) return false;
+            return new Promise(function (resolve) {
+                var channel = new MessageChannel();
+                var settled = false;
+                channel.port1.onmessage = function (event) {
+                    if (settled) return;
+                    settled = true;
+                    var msg = event.data;
+                    if (msg && msg.type === 'PLAN_REFRESH_PENDING' && msg.pending) {
+                        markAdminPlanPending(msg.planUpdatedAt || '');
+                        resolve(true);
+                        return;
+                    }
+                    resolve(false);
+                };
+                try {
+                    sw.postMessage({ type: 'GET_PLAN_REFRESH_PENDING' }, [channel.port1]);
+                } catch (_) {
+                    resolve(false);
                     return;
                 }
-                resolve(false);
-            };
-            try {
-                navigator.serviceWorker.controller.postMessage(
-                    { type: 'GET_PLAN_REFRESH_PENDING' },
-                    [channel.port1]
-                );
-            } catch (_) {
-                resolve(false);
-                return;
-            }
-            setTimeout(function () {
-                if (!settled) {
-                    settled = true;
-                    resolve(false);
-                }
-            }, 1500);
+                setTimeout(function () {
+                    if (!settled) {
+                        settled = true;
+                        resolve(false);
+                    }
+                }, 5000);
+            });
+        }).catch(function () {
+            return false;
         });
     }
 

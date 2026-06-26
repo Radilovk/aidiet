@@ -4779,7 +4779,7 @@
 
                 // Refresh np_uid cookie for iOS PWA restore. Firebase-linked accounts do not
                 // passive-upload the plan on every open — that would overwrite admin edits.
-                // Plan sync for fb_* users: login fetch + server timestamp check on app open.
+                // Plan sync for fb_* users: login fetch + admin push flag only.
                 (async function ensureProfileCookies() {
                     const uid = localStorage.getItem('userId');
                     const planStr = localStorage.getItem('dietPlan');
