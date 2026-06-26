@@ -1,6 +1,6 @@
 /**
  * NutriPlan — plan sync: login fetch + admin-update fetch (push-flagged only).
- * No backend requests on tab switch, app resume, or normal reopen.
+ * No profile API requests on tab switch, app resume, or normal reopen.
  */
 (function (global) {
     'use strict';
@@ -64,6 +64,20 @@
         } catch (_) {}
     }
 
+    function clearPlanRefreshPendingInSw() {
+        if (!('serviceWorker' in navigator)) return Promise.resolve();
+        return navigator.serviceWorker.ready.then(function (registration) {
+            if (registration.active) {
+                registration.active.postMessage({ type: 'CLEAR_PLAN_REFRESH_PENDING' });
+            }
+        }).catch(function () {});
+    }
+
+    function clearAdminPlanPendingEverywhere() {
+        clearAdminPlanPending();
+        return clearPlanRefreshPendingInSw();
+    }
+
     function hasAdminPlanPending() {
         try {
             return !!localStorage.getItem(ADMIN_REFRESH_PENDING_KEY);
@@ -82,6 +96,20 @@
         }
     }
 
+    function shouldOwnPlanSyncBridge() {
+        try {
+            if (global.document && global.document.documentElement.getAttribute('data-embedded-tab') === '1') {
+                return false;
+            }
+            if (global.parent && global.parent !== global) {
+                try {
+                    if (global.parent.NutriPlanSPA) return false;
+                } catch (_) {}
+            }
+        } catch (_) {}
+        return true;
+    }
+
     function applyServerPlanData(data) {
         if (!data || !data.found) return false;
 
@@ -94,8 +122,12 @@
 
             var updated = false;
             if (data.plan) {
-                localStorage.setItem('dietPlan', JSON.stringify(data.plan));
-                updated = true;
+                var newPlanStr = JSON.stringify(data.plan);
+                var existingPlan = localStorage.getItem('dietPlan');
+                if (existingPlan !== newPlanStr) {
+                    localStorage.setItem('dietPlan', newPlanStr);
+                    updated = true;
+                }
             }
             if (data.userData) {
                 localStorage.setItem('userData', JSON.stringify(data.userData));
@@ -166,7 +198,7 @@
         if (!data || !data.found) return false;
         if (!(data.plan || data.planSource === 'questionnaire2' || data.clientId)) return false;
         applyServerPlanData(data);
-        clearAdminPlanPending();
+        clearAdminPlanPendingEverywhere();
         if (global.NutriPlanDiagnostics) {
             global.NutriPlanDiagnostics.ok('plan-sync', 'fetch-on-login', data.plan ? 'plan loaded' : 'pending state');
         }
@@ -202,23 +234,29 @@
         }
 
         var updated = applyServerPlanData(data);
-        if (updated || data.unchanged || (data.found && data.plan)) {
-            clearAdminPlanPending();
+        if (updated || (data.found && data.plan)) {
+            await clearAdminPlanPendingEverywhere();
         }
 
         if (global.NutriPlanDiagnostics) {
             global.NutriPlanDiagnostics.ok(
                 'plan-sync',
                 updated ? 'admin-plan-refreshed' : 'admin-plan-checked',
-                data.unchanged ? 'unchanged' : (updated ? 'updated' : 'no-op')
+                updated ? 'updated' : 'no-op'
             );
         }
-        return { updated: updated || !!(data.plan), unchanged: !!data.unchanged, data: data };
+        return { updated: updated, data: data };
         })().finally(function () {
             _adminRefreshInFlight = null;
         });
 
         return _adminRefreshInFlight;
+    }
+
+    function tryRefreshAdminPlanAfterSignal() {
+        refreshAdminPlanIfPending().then(function (result) {
+            if (result.updated) notifyPlanReload();
+        }).catch(function () {});
     }
 
     function syncShellAppDataFromStorage() {
@@ -240,6 +278,13 @@
     function notifyPlanReload() {
         syncShellAppDataFromStorage();
 
+        if (global.NutriPlanSPA) {
+            try {
+                global.dispatchEvent(new CustomEvent('NUTRIPLAN_SHELL_PLAN_RELOADED'));
+            } catch (_) {}
+            return;
+        }
+
         try {
             if (typeof global.forceReloadDietPlanFromStorage === 'function') {
                 global.forceReloadDietPlanFromStorage();
@@ -247,42 +292,11 @@
                 global.loadDietData();
             }
         } catch (_) {}
-
-        try {
-            global.dispatchEvent(new CustomEvent('NUTRIPLAN_PLAN_RELOADED'));
-        } catch (_) {}
-
-        try {
-            if (global.parent && global.parent !== global) {
-                global.parent.postMessage({ type: 'NUTRIPLAN_PLAN_RELOADED' }, global.location.origin);
-            }
-        } catch (_) {}
-
-        // SPA shell: reload plan iframe and refresh shared app data
-        try {
-            if (global.NutriPlanSPA && global.document) {
-                var planFrame = global.document.querySelector('[data-tab-view="plan"]');
-                if (planFrame && planFrame.contentWindow) {
-                    planFrame.contentWindow.postMessage(
-                        { type: 'NUTRIPLAN_PLAN_RELOADED' },
-                        global.location.origin
-                    );
-                }
-            }
-        } catch (_) {}
-
-        try {
-            global.dispatchEvent(new CustomEvent('NUTRIPLAN_SHELL_PLAN_RELOADED'));
-        } catch (_) {}
     }
 
     function handleAdminPlanUpdatedMessage(planUpdatedAt) {
         markAdminPlanPending(planUpdatedAt);
-        refreshAdminPlanIfPending().then(function (result) {
-            if (result.updated || (result.data && result.data.plan)) {
-                notifyPlanReload();
-            }
-        }).catch(function () {});
+        tryRefreshAdminPlanAfterSignal();
     }
 
     function urlBase64ToUint8Array(base64String) {
@@ -369,9 +383,28 @@
         }
     }
 
+    var _resumeBound = false;
+
+    function bindResumePlanSync() {
+        if (_resumeBound) return;
+        _resumeBound = true;
+        document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState !== 'visible') return;
+            if (hasAdminPlanPending()) {
+                tryRefreshAdminPlanAfterSignal();
+                return;
+            }
+            syncPendingFromServiceWorker().then(function (found) {
+                if (found) tryRefreshAdminPlanAfterSignal();
+            });
+        });
+    }
+
     function bindPlanUpdateBridge() {
         if (_bridgeBound) return;
+        if (!shouldOwnPlanSyncBridge()) return;
         _bridgeBound = true;
+        bindResumePlanSync();
 
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.addEventListener('message', function (event) {
@@ -394,38 +427,41 @@
     }
 
     function syncPendingFromServiceWorker() {
-        if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) {
+        if (!('serviceWorker' in navigator)) {
             return Promise.resolve(false);
         }
-        return new Promise(function (resolve) {
-            var channel = new MessageChannel();
-            var settled = false;
-            channel.port1.onmessage = function (event) {
-                if (settled) return;
-                settled = true;
-                var msg = event.data;
-                if (msg && msg.type === 'PLAN_REFRESH_PENDING' && msg.pending) {
-                    markAdminPlanPending(msg.planUpdatedAt || '');
-                    resolve(true);
+        return navigator.serviceWorker.ready.then(function (registration) {
+            var sw = registration.active;
+            if (!sw) return false;
+            return new Promise(function (resolve) {
+                var channel = new MessageChannel();
+                var settled = false;
+                channel.port1.onmessage = function (event) {
+                    if (settled) return;
+                    settled = true;
+                    var msg = event.data;
+                    if (msg && msg.type === 'PLAN_REFRESH_PENDING' && msg.pending) {
+                        markAdminPlanPending(msg.planUpdatedAt || '');
+                        resolve(true);
+                        return;
+                    }
+                    resolve(false);
+                };
+                try {
+                    sw.postMessage({ type: 'GET_PLAN_REFRESH_PENDING' }, [channel.port1]);
+                } catch (_) {
+                    resolve(false);
                     return;
                 }
-                resolve(false);
-            };
-            try {
-                navigator.serviceWorker.controller.postMessage(
-                    { type: 'GET_PLAN_REFRESH_PENDING' },
-                    [channel.port1]
-                );
-            } catch (_) {
-                resolve(false);
-                return;
-            }
-            setTimeout(function () {
-                if (!settled) {
-                    settled = true;
-                    resolve(false);
-                }
-            }, 1500);
+                setTimeout(function () {
+                    if (!settled) {
+                        settled = true;
+                        resolve(false);
+                    }
+                }, 5000);
+            });
+        }).catch(function () {
+            return false;
         });
     }
 
@@ -433,7 +469,7 @@
         bindPlanUpdateBridge();
         await syncPendingFromServiceWorker();
         var result = await refreshAdminPlanIfPending(options || {});
-        if (result.updated || (result.data && result.data.plan)) {
+        if (result.updated) {
             notifyPlanReload();
         }
         return result;

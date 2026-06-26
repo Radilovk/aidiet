@@ -6538,14 +6538,14 @@ async function notifyClientPlanUpdated(env, clientData, clientId, options = {}) 
   }
   const planUpdatedAt = clientData.planUpdatedAt || new Date().toISOString();
   try {
-    await upsertUserProfilePlan(env, clientData.userId, {
+    await upsertUserProfilePlan(env, userId, {
       plan: clientData.plan,
       userData: clientData.answers || {},
       planSource: '',
       clientId,
       planUpdatedAt,
     });
-    await sendPushNotificationToUser(clientData.userId, {
+    await sendPushNotificationToUser(userId, {
       title: options.title || 'Планът ви е актуализиран',
       body: options.body || 'Специалистът направи промени в хранителния ви план.',
       url: '/index.html?app=1&tab=plan',
@@ -6580,7 +6580,7 @@ async function applyAssistantPatches(env, session, clientData, patches, ctx) {
 
   await env.page_content.put(`client:${session.clientId}`, JSON.stringify(clientData));
 
-  if (wasPreviouslyActivated && clientData.userId && touchedPlan) {
+  if (wasPreviouslyActivated && touchedPlan) {
     await notifyClientPlanUpdated(env, clientData, session.clientId);
   }
 
@@ -7102,7 +7102,7 @@ async function handleUpdateClientPlan(request, env, ctx) {
         `🎯 Цел: ${clientData.answers?.goal || '—'}\n` +
         `📅 Дата: ${formatDateBG(clientData.planUpdatedAt)}`
       );
-    } else if (clientData.planStatus === 'activated' && clientData.userId) {
+    } else if (clientData.planStatus === 'activated') {
       await notifyClientPlanUpdated(env, clientData, clientId);
       console.log(`[Client] Plan auto-activated for existing client ${clientId}`);
     }
@@ -7139,7 +7139,7 @@ async function handleActivateClientPlan(request, env, ctx) {
 
     // If this questionnaire submission is linked to a user profile, immediately
     // clear its pending marker so the next APK/PWA login opens plan.html.
-    if (clientData.userId) {
+    if (clientData.userId || clientData.answers?.email) {
       clientData.planUpdatedAt = clientData.planUpdatedAt || clientData.planActivatedAt;
       await notifyClientPlanUpdated(env, clientData, clientId, {
         title: 'Вашият план е готов!',

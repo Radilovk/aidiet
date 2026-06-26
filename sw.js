@@ -120,18 +120,23 @@ async function queuePlanRefreshPending(planUpdatedAt) {
   });
 }
 
-async function consumePlanRefreshPending() {
+async function peekPlanRefreshPending() {
+  const db = await openPendingDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(PENDING_STORE, 'readonly');
+    const req = tx.objectStore(PENDING_STORE).get(PLAN_REFRESH_KEY);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function clearPlanRefreshPendingStore() {
   const db = await openPendingDb();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(PENDING_STORE, 'readwrite');
-    const store = tx.objectStore(PENDING_STORE);
-    const req = store.get(PLAN_REFRESH_KEY);
-    req.onsuccess = () => {
-      const row = req.result;
-      if (row) store.delete(PLAN_REFRESH_KEY);
-      resolve(row || null);
-    };
-    req.onerror = () => reject(req.error);
+    tx.objectStore(PENDING_STORE).delete(PLAN_REFRESH_KEY);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
   });
 }
 
@@ -434,7 +439,7 @@ self.addEventListener('message', (event) => {
 
   if (msg.type === 'GET_PLAN_REFRESH_PENDING') {
     event.waitUntil(
-      consumePlanRefreshPending().then((row) => {
+      peekPlanRefreshPending().then((row) => {
         const port = event.ports && event.ports[0];
         if (!port) return;
         port.postMessage({
@@ -444,6 +449,11 @@ self.addEventListener('message', (event) => {
         });
       })
     );
+    return;
+  }
+
+  if (msg.type === 'CLEAR_PLAN_REFRESH_PENDING') {
+    event.waitUntil(clearPlanRefreshPendingStore());
     return;
   }
 
