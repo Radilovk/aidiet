@@ -12,6 +12,7 @@ const STATIC_CACHE = [
   `${BASE_PATH}/questionnaire.html`,
   `${BASE_PATH}/questionnaire2.html`,
   `${BASE_PATH}/plan.html`,
+  `${BASE_PATH}/plan-update.html`,
   `${BASE_PATH}/quick-answer.html`,
   `${BASE_PATH}/profile.html`,
   `${BASE_PATH}/guidelines.html`,
