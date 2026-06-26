@@ -4536,11 +4536,25 @@ const DEFAULT_EMAIL_TEMPLATE = {
   contactEmail: 'info@biocode.online'
 };
 
+const PLAN_APP_BASE_URL = 'https://biocode.website';
+const PLAN_CLAIM_TTL_SEC = 72 * 60 * 60;
+
+const DEFAULT_PLAN_UPDATED_EMAIL_TEMPLATE = {
+  subject: 'Вашият хранителен план е актуализиран 🥗',
+  headerTitle: '🍽️ Nutri Plan',
+  headerSubtitle: 'Актуализация на план',
+  greeting: 'Здравейте, {name}! 👋',
+  paragraph1: 'Специалистът направи промени във вашия <strong>персонален хранителен план</strong>.',
+  paragraph2: 'Натиснете бутона по-долу, за да заредите новата версия. Линкът е еднократен и валиден 72 часа.',
+  buttonText: 'Зареди обновения план →',
+  contactEmail: 'info@biocode.online'
+};
+
 /**
  * Build the HTML body for the "plan ready" email notification.
  * Uses template fields (merged from KV or defaults).
  */
-function buildPlanReadyEmailHtml(clientName, tpl) {
+function buildPlanReadyEmailHtml(clientName, tpl, buttonUrl) {
   const t = Object.assign({}, DEFAULT_EMAIL_TEMPLATE, tpl || {});
   const safeName = escapeHtml(clientName);
   const safeGreeting = escapeHtml(t.greeting.replace('{name}', clientName));
@@ -4548,6 +4562,7 @@ function buildPlanReadyEmailHtml(clientName, tpl) {
   const safeHeaderSubtitle = escapeHtml(t.headerSubtitle);
   const safeButtonText = escapeHtml(t.buttonText);
   const safeContactEmail = escapeHtml(t.contactEmail);
+  const safeButtonUrl = buttonUrl || `${PLAN_APP_BASE_URL}/plan.html`;
   // paragraph1 and paragraph2 may contain intentional HTML (<strong> etc.), so used as-is
   const year = new Date().getFullYear();
   return `<!DOCTYPE html>
@@ -4580,7 +4595,7 @@ function buildPlanReadyEmailHtml(clientName, tpl) {
               <table cellpadding="0" cellspacing="0" style="margin:0 auto 30px;">
                 <tr>
                   <td style="background:linear-gradient(135deg,#4CAF50,#2196F3);border-radius:8px;">
-                    <a href="https://biocode.website/plan.html" style="display:inline-block;padding:14px 36px;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;">${safeButtonText}</a>
+                    <a href="${safeButtonUrl}" style="display:inline-block;padding:14px 36px;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;">${safeButtonText}</a>
                   </td>
                 </tr>
               </table>
@@ -4606,6 +4621,63 @@ function buildPlanReadyEmailHtml(clientName, tpl) {
             <td style="background:#f9f9f9;padding:20px 40px;border-top:1px solid #eeeeee;text-align:center;">
               <p style="color:#999999;font-size:13px;margin:0;">&copy; ${year} Nutri Plan &mdash; Персонален хранителен план</p>
               <p style="color:#999999;font-size:12px;margin:5px 0 0;">biocode.online</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+function buildPlanUpdatedEmailHtml(clientName, tpl, buttonUrl) {
+  const t = Object.assign({}, DEFAULT_PLAN_UPDATED_EMAIL_TEMPLATE, tpl || {});
+  const safeGreeting = escapeHtml(t.greeting.replace('{name}', clientName));
+  const safeHeaderTitle = escapeHtml(t.headerTitle);
+  const safeHeaderSubtitle = escapeHtml(t.headerSubtitle);
+  const safeButtonText = escapeHtml(t.buttonText);
+  const safeContactEmail = escapeHtml(t.contactEmail);
+  const safeButtonUrl = buttonUrl || `${PLAN_APP_BASE_URL}/plan.html`;
+  const year = new Date().getFullYear();
+  return `<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Планът ви е актуализиран</title>
+</head>
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:30px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1);max-width:600px;">
+          <tr>
+            <td style="background:linear-gradient(135deg,#4CAF50,#2196F3);padding:40px 40px 30px;text-align:center;">
+              <h1 style="color:#ffffff;margin:0;font-size:28px;font-weight:700;">${safeHeaderTitle}</h1>
+              <p style="color:rgba(255,255,255,0.9);margin:10px 0 0;font-size:16px;">${safeHeaderSubtitle}</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:40px;">
+              <h2 style="color:#333333;margin:0 0 20px;font-size:22px;">${safeGreeting}</h2>
+              <p style="color:#555555;font-size:16px;line-height:1.6;margin:0 0 20px;">${t.paragraph1}</p>
+              <p style="color:#555555;font-size:16px;line-height:1.6;margin:0 0 30px;">${t.paragraph2}</p>
+              <table cellpadding="0" cellspacing="0" style="margin:0 auto 30px;">
+                <tr>
+                  <td style="background:linear-gradient(135deg,#4CAF50,#2196F3);border-radius:8px;">
+                    <a href="${safeButtonUrl}" style="display:inline-block;padding:14px 36px;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;">${safeButtonText}</a>
+                  </td>
+                </tr>
+              </table>
+              <p style="color:#777777;font-size:14px;line-height:1.6;margin:0;">
+                Ако имате въпроси, пишете ни на <a href="mailto:${safeContactEmail}" style="color:#4CAF50;text-decoration:none;">${safeContactEmail}</a>
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#f9f9f9;padding:20px 40px;border-top:1px solid #eeeeee;text-align:center;">
+              <p style="color:#999999;font-size:13px;margin:0;">&copy; ${year} Nutri Plan &mdash; Персонален хранителен план</p>
             </td>
           </tr>
         </table>
@@ -6522,6 +6594,129 @@ async function resolveActivatedClientUserId(env, clientData) {
   return clientData?.userId || '';
 }
 
+function buildPlanClaimUrl(token) {
+  return `${PLAN_APP_BASE_URL}/plan-update.html?t=${encodeURIComponent(token)}`;
+}
+
+function generatePlanClaimToken() {
+  const bytes = new Uint8Array(24);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function createPlanClaimToken(env, clientData, clientId) {
+  const token = generatePlanClaimToken();
+  const userId = await resolveActivatedClientUserId(env, clientData);
+  const payload = {
+    clientId,
+    userId: userId || clientData.userId || '',
+    email: normalizeEmail(clientData.answers?.email),
+    planUpdatedAt: clientData.planUpdatedAt || new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+  };
+  await kvPutJSON(env, `plan_claim:${token}`, payload, PLAN_CLAIM_TTL_SEC);
+  return token;
+}
+
+async function getPlanUpdatedEmailTemplate(env) {
+  if (!env.page_content) return DEFAULT_PLAN_UPDATED_EMAIL_TEMPLATE;
+  try {
+    const raw = await env.page_content.get('email_template_plan_updated');
+    if (raw) return Object.assign({}, DEFAULT_PLAN_UPDATED_EMAIL_TEMPLATE, JSON.parse(raw));
+  } catch (e) {
+    console.warn('[EmailTemplate] Failed to read plan-updated template:', e);
+  }
+  return DEFAULT_PLAN_UPDATED_EMAIL_TEMPLATE;
+}
+
+/**
+ * Sync profile, issue one-time claim link, and email the client.
+ * @param {'ready'|'updated'} kind
+ */
+async function deliverPlanUpdateToClient(env, clientData, clientId, kind = 'updated') {
+  if (clientData.planStatus !== 'activated' || !clientData.plan) {
+    return { sent: false, reason: 'skip' };
+  }
+
+  await syncActivatedPlanToUserProfile(env, clientData, clientId);
+
+  const clientEmail = normalizeEmail(clientData.answers?.email);
+  if (!clientEmail) {
+    return { sent: false, reason: 'no-email', profileSynced: true };
+  }
+
+  const token = await createPlanClaimToken(env, clientData, clientId);
+  const claimUrl = buildPlanClaimUrl(token);
+  const clientName = clientData.answers?.name || 'Клиент';
+
+  try {
+    if (kind === 'ready') {
+      const tpl = await getEmailTemplate(env);
+      const subject = tpl.subject || DEFAULT_EMAIL_TEMPLATE.subject;
+      await sendEmailViaSMTP(
+        env,
+        clientEmail,
+        subject,
+        buildPlanReadyEmailHtml(clientName, tpl, claimUrl)
+      );
+    } else {
+      const tpl = await getPlanUpdatedEmailTemplate(env);
+      const subject = tpl.subject || DEFAULT_PLAN_UPDATED_EMAIL_TEMPLATE.subject;
+      await sendEmailViaSMTP(
+        env,
+        clientEmail,
+        subject,
+        buildPlanUpdatedEmailHtml(clientName, tpl, claimUrl)
+      );
+    }
+    console.log(`[Email] Plan ${kind} email sent to ${clientEmail}`);
+    return { sent: true, email: clientEmail };
+  } catch (e) {
+    console.warn(`[Email] Plan ${kind} email failed:`, e.message);
+    return { sent: false, error: e.message };
+  }
+}
+
+/**
+ * GET /api/plan/claim?t=TOKEN — one-time plan delivery for email links.
+ */
+async function handleClaimPlanUpdate(request, env) {
+  try {
+    const url = new URL(request.url);
+    const token = (url.searchParams.get('t') || url.searchParams.get('token') || '').trim();
+    if (!token || token.length < 16) {
+      return jsonResponse({ error: 'Invalid token' }, 400);
+    }
+
+    const claim = await kvGetJSON(env, `plan_claim:${token}`);
+    if (!claim?.clientId) {
+      return jsonResponse({ found: false, error: 'Link expired or already used' }, 404);
+    }
+
+    const clientData = await kvGetJSON(env, `client:${claim.clientId}`);
+    if (!clientData?.plan || clientData.planStatus !== 'activated') {
+      await env.page_content.delete(`plan_claim:${token}`);
+      return jsonResponse({ found: false, error: 'Plan not available' }, 404);
+    }
+
+    await env.page_content.delete(`plan_claim:${token}`);
+
+    const userId = claim.userId || clientData.userId || '';
+    return jsonResponse({
+      found: true,
+      plan: clientData.plan,
+      userData: clientData.answers || {},
+      planSource: '',
+      clientId: claim.clientId,
+      userId,
+      planUpdatedAt: clientData.planUpdatedAt || claim.planUpdatedAt || null,
+    });
+  } catch (error) {
+    console.error('Error claiming plan update:', error);
+    return jsonResponse({ error: 'Failed to claim plan: ' + error.message }, 500);
+  }
+}
+
 /**
  * Persist activated client plan to user profile (login restore).
  */
@@ -6573,7 +6768,7 @@ async function applyAssistantPatches(env, session, clientData, patches, ctx) {
   await env.page_content.put(`client:${session.clientId}`, JSON.stringify(clientData));
 
   if (wasPreviouslyActivated && touchedPlan) {
-    await syncActivatedPlanToUserProfile(env, clientData, session.clientId);
+    await deliverPlanUpdateToClient(env, clientData, session.clientId, 'updated');
   }
 
   return clientData;
@@ -7095,8 +7290,8 @@ async function handleUpdateClientPlan(request, env, ctx) {
         `📅 Дата: ${formatDateBG(clientData.planUpdatedAt)}`
       );
     } else if (clientData.planStatus === 'activated') {
-      await syncActivatedPlanToUserProfile(env, clientData, clientId);
-      console.log(`[Client] Plan auto-activated for existing client ${clientId}`);
+      await deliverPlanUpdateToClient(env, clientData, clientId, wasPreviouslyActivated ? 'updated' : 'ready');
+      console.log(`[Client] Plan update delivered for client ${clientId}`);
     }
 
     return jsonResponse({ success: true, message: 'Plan updated' });
@@ -7129,30 +7324,16 @@ async function handleActivateClientPlan(request, env, ctx) {
     delete clientData.planReplacementPending;
     await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
 
-    // If this questionnaire submission is linked to a user profile, immediately
-    // clear its pending marker so the next APK/PWA login opens plan.html.
-    if (clientData.userId || clientData.answers?.email) {
-      clientData.planUpdatedAt = clientData.planUpdatedAt || clientData.planActivatedAt;
-      await syncActivatedPlanToUserProfile(env, clientData, clientId);
-    }
+    clientData.planUpdatedAt = clientData.planUpdatedAt || clientData.planActivatedAt;
 
-    // Send email notification to client — try synchronously so we can report status
-    const clientEmail = clientData.answers?.email;
-    const clientName = clientData.answers?.name || 'Клиент';
     let emailSent = false;
     let emailError = null;
-    if (clientEmail) {
-      try {
-        const tpl = await getEmailTemplate(env);
-        const subject = tpl.subject || DEFAULT_EMAIL_TEMPLATE.subject;
-        await sendEmailViaSMTP(env, clientEmail, subject, buildPlanReadyEmailHtml(clientName, tpl));
-        emailSent = true;
-        console.log(`[Email] Activation email sent to ${clientEmail}`);
-      } catch (e) {
-        emailError = e.message;
-        console.warn('[Email] Plan activation email failed:', e.message);
-      }
+    if (clientData.answers?.email) {
+      const emailResult = await deliverPlanUpdateToClient(env, clientData, clientId, 'ready');
+      emailSent = !!emailResult.sent;
+      emailError = emailResult.sent ? null : (emailResult.error || emailResult.reason || 'Неизвестна грешка');
     } else {
+      await syncActivatedPlanToUserProfile(env, clientData, clientId);
       emailError = 'Няма имейл адрес за клиента';
     }
 
@@ -15584,6 +15765,8 @@ export default {
         return await handleSyncAnalytics(request, env);
       } else if (url.pathname === '/api/user/check-account' && request.method === 'GET') {
         return await handleCheckAccountEmail(request, env);
+      } else if (url.pathname === '/api/plan/claim' && request.method === 'GET') {
+        return await handleClaimPlanUpdate(request, env);
       } else if (url.pathname === '/api/user/profile' && request.method === 'GET') {
         return await handleGetUserProfile(request, env);
       } else if (url.pathname === '/api/admin/subscriptions' && request.method === 'GET') {

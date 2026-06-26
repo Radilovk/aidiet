@@ -1643,6 +1643,45 @@
             }
         }
 
+        .plan-update-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin: 0 12px 8px;
+            padding: 10px 14px;
+            border-radius: 14px;
+            background: rgba(13, 148, 136, 0.08);
+            border: 1px solid rgba(13, 148, 136, 0.18);
+            font-size: 0.82rem;
+            color: var(--text-dark, #0F2F2E);
+        }
+        [data-theme="dark"] .plan-update-bar {
+            background: rgba(45, 212, 191, 0.08);
+            border-color: rgba(45, 212, 191, 0.2);
+        }
+        .plan-update-bar-text {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            line-height: 1.35;
+        }
+        .plan-update-bar-btn {
+            flex-shrink: 0;
+            padding: 8px 14px;
+            border-radius: 10px;
+            border: none;
+            background: linear-gradient(135deg, #0D9488, #0F766E);
+            color: #fff;
+            font-weight: 700;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+        .plan-update-bar-btn:disabled {
+            opacity: 0.65;
+            cursor: default;
+        }
+
         /* Greeting Banner — removed; replaced by .day-banner */
 
         /* PWA Install Banner */
@@ -3463,6 +3502,7 @@
         };
         const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
         const auth = getAuth(getApps().length ? getApp() : initializeApp(_cfg));
+        window.__npPlanAuth = auth;
         let _planAuthResolve;
         let _planAuthResolved = false;
         window.NutriPlanPlanAuthReady = window.NutriPlanPlanAuthReady || new Promise(resolve => {
@@ -3843,6 +3883,12 @@
         </button>
 
     </div>
+
+    <div class="plan-update-bar" id="planUpdateBar" hidden>
+        <span class="plan-update-bar-text"><i class="fas fa-leaf" aria-hidden="true"></i> Обновление от специалист</span>
+        <button type="button" class="plan-update-bar-btn" id="planUpdateBtn">Зареди</button>
+    </div>
+
     <!-- Initialize day banner immediately to prevent flash from Monday -->
     <script>
     (function() {
@@ -4369,6 +4415,44 @@
         })();
         
         // --- DOM-Dependent Initialization ---
+        function initPlanUpdateButton() {
+            const bar = document.getElementById('planUpdateBar');
+            const btn = document.getElementById('planUpdateBtn');
+            if (!bar || !btn || btn.dataset.bound === '1') return;
+            const uid = localStorage.getItem('userId');
+            if (!uid) return;
+            btn.dataset.bound = '1';
+            bar.hidden = false;
+            btn.addEventListener('click', async function () {
+                if (!window.NutriPlanPlanSync || typeof window.NutriPlanPlanSync.pullServerPlanIfNewer !== 'function') return;
+                btn.disabled = true;
+                const original = btn.textContent;
+                btn.textContent = '…';
+                try {
+                    const opts = {};
+                    if (uid.startsWith('fb_') && window.__npPlanAuth && window.__npPlanAuth.currentUser) {
+                        opts.getIdToken = () => window.__npPlanAuth.currentUser.getIdToken();
+                    }
+                    const result = await window.NutriPlanPlanSync.pullServerPlanIfNewer(uid, opts);
+                    if (result.updated) {
+                        if (typeof loadDietData === 'function') loadDietData();
+                        btn.textContent = 'Готово';
+                    } else if (result.reason === 'current') {
+                        btn.textContent = 'Актуален';
+                    } else {
+                        btn.textContent = 'Няма нов';
+                    }
+                } catch (_) {
+                    btn.textContent = 'Грешка';
+                } finally {
+                    setTimeout(function () {
+                        btn.disabled = false;
+                        btn.textContent = original;
+                    }, 2200);
+                }
+            });
+        }
+
         async function initializeDOMDependentFeatures() {
             if (window.NutriPlanDiagnostics) {
                 window.NutriPlanDiagnostics.info('plan', 'init-dom-features-start', 'Preparing plan view');
@@ -4393,6 +4477,7 @@
                 await NativeBackup.init().catch(() => {});
             }
             loadDietData();
+            initPlanUpdateButton();
             if (window.NutriPlanDiagnostics) {
                 window.NutriPlanDiagnostics.ok('plan', 'init-dom-features-ready', 'Initial load requested');
             }
@@ -6511,9 +6596,7 @@
                             userData = result.updatedUserData;
                             localStorage.setItem('userData', JSON.stringify(userData));
                         }
-                        const planSyncStr = JSON.stringify(dietPlan);
-                        const userDataSyncStr = JSON.stringify(userData);
-                        localStorage.setItem('dietPlan', planSyncStr);
+                        localStorage.setItem('dietPlan', JSON.stringify(dietPlan));
                         if (window.NutriPlanPlanSync) {
                             window.NutriPlanPlanSync.markPlanSavedLocally();
                         }

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#F0FDFA" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
+    <title>Зареждане на план</title>
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192x192.png">
+    <link rel="stylesheet" href="./design-system.css">
+    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);})();</script>
+    <style>
+        body {
+            margin: 0;
+            min-height: 100dvh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-color, #F0FDFA);
+            color: var(--text-dark, #0F2F2E);
+        }
+        .card {
+            width: 100%;
+            max-width: 420px;
+            background: var(--card-bg, rgba(255,255,255,.85));
+            border: 1px solid rgba(13,148,136,.15);
+            border-radius: 20px;
+            padding: 28px 22px;
+            text-align: center;
+            box-shadow: 0 16px 48px rgba(13,148,136,.12);
+        }
+        .icon { font-size: 2.4rem; margin-bottom: 12px; }
+        h1 { font-size: 1.15rem; margin: 0 0 8px; }
+        p { margin: 0 0 16px; color: var(--text-light, #6b7280); font-size: .92rem; line-height: 1.5; }
+        .spinner {
+            width: 36px; height: 36px; margin: 16px auto;
+            border: 3px solid rgba(13,148,136,.2);
+            border-top-color: #0D9488;
+            border-radius: 50%;
+            animation: spin .8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .btn {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 12px 20px;
+            border-radius: 12px;
+            border: none;
+            background: linear-gradient(135deg, #0D9488, #0F766E);
+            color: #fff;
+            font-weight: 700;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .error { color: #dc2626; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="icon" id="stateIcon">🌿</div>
+        <h1 id="stateTitle">Зареждаме плана…</h1>
+        <p id="stateMessage">Моля, изчакайте.</p>
+        <div class="spinner" id="stateSpinner"></div>
+        <a id="stateAction" class="btn" href="index.html?app=1&tab=plan" style="display:none;">Към плана</a>
+    </div>
+
+    <script src="./plan-sync.js"></script>
+    <script>
+    (function () {
+        var params = new URLSearchParams(location.search);
+        var token = params.get('t') || params.get('token') || '';
+        var title = document.getElementById('stateTitle');
+        var message = document.getElementById('stateMessage');
+        var spinner = document.getElementById('stateSpinner');
+        var action = document.getElementById('stateAction');
+        var icon = document.getElementById('stateIcon');
+
+        function showSuccess() {
+            icon.textContent = '✅';
+            title.textContent = 'Планът е зареден';
+            message.textContent = 'Промените от специалиста са приложени успешно.';
+            spinner.style.display = 'none';
+            action.style.display = 'inline-block';
+            setTimeout(function () {
+                location.replace('index.html?app=1&tab=plan');
+            }, 1200);
+        }
+
+        function showError(msg) {
+            icon.textContent = '⚠️';
+            title.textContent = 'Линкът не е валиден';
+            message.innerHTML = '<span class="error">' + (msg || 'Линкът е изтекъл или вече е използван.') + '</span>';
+            spinner.style.display = 'none';
+            action.textContent = 'Към началото';
+            action.href = 'index.html?app=1&tab=plan';
+            action.style.display = 'inline-block';
+        }
+
+        if (!token) {
+            showError('Липсва валиден линк за актуализация.');
+            return;
+        }
+
+        if (!window.NutriPlanPlanSync || typeof window.NutriPlanPlanSync.claimPlanFromToken !== 'function') {
+            showError('Страницата не е заредена коректно. Опитайте отново.');
+            return;
+        }
+
+        window.NutriPlanPlanSync.claimPlanFromToken(token).then(function (result) {
+            if (result && result.ok) {
+                showSuccess();
+            } else {
+                showError(result && result.reason === 'claim-failed'
+                    ? 'Линкът е изтекъл или вече е използван.'
+                    : 'Неуспешно зареждане. Опитайте отново по-късно.');
+            }
+        }).catch(function () {
+            showError('Мрежова грешка. Проверете интернет връзката.');
+        });
+    })();
+    </script>
+</body>
+</html>

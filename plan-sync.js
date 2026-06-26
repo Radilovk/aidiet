@@ -399,6 +399,45 @@
         }
     }
 
+    async function pullServerPlanIfNewer(userId, options) {
+        options = options || {};
+        if (!userId) return { updated: false, reason: 'no-user' };
+        var localAt = '';
+        try { localAt = localStorage.getItem(LOCAL_PLAN_AT_KEY) || ''; } catch (_) {}
+        var data = await fetchUserProfile(userId, options);
+        if (!data || !data.found || !data.plan) {
+            return { updated: false, reason: 'no-plan' };
+        }
+        var serverAt = data.planUpdatedAt || '';
+        if (localAt && serverAt && serverAt <= localAt) {
+            return { updated: false, reason: 'current' };
+        }
+        applyServerPlanData(data, userId);
+        refreshUidCookie(userId);
+        return { updated: true, data: data };
+    }
+
+    async function claimPlanFromToken(token) {
+        if (!token) return { ok: false, reason: 'no-token' };
+        try {
+            var url = WORKER_URL + '/api/plan/claim?t=' + encodeURIComponent(token);
+            var resp = await fetch(url, { cache: 'no-store' });
+            var data = await resp.json().catch(function () { return null; });
+            if (!resp.ok || !data || !data.found) {
+                return { ok: false, reason: (data && data.error) || 'claim-failed' };
+            }
+            var userId = data.userId || '';
+            applyServerPlanData(data, userId);
+            refreshUidCookie(userId);
+            if (global.NutriPlanDiagnostics) {
+                global.NutriPlanDiagnostics.ok('plan-sync', 'claim-token', 'plan applied');
+            }
+            return { ok: true, data: data };
+        } catch (e) {
+            return { ok: false, reason: e.message || 'network' };
+        }
+    }
+
     global.NutriPlanPlanSync = {
         WORKER_URL: WORKER_URL,
         LOCAL_PLAN_AT_KEY: LOCAL_PLAN_AT_KEY,
@@ -418,6 +457,8 @@
         ensureReplacementAuth: ensureReplacementAuth,
         syncClientAnswers: syncClientAnswers,
         saveUserProfile: saveUserProfile,
-        syncPendingPlanActivation: syncPendingPlanActivation
+        syncPendingPlanActivation: syncPendingPlanActivation,
+        claimPlanFromToken: claimPlanFromToken,
+        pullServerPlanIfNewer: pullServerPlanIfNewer
     };
 }(window));
