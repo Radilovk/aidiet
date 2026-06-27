@@ -8,7 +8,10 @@
     var LOCAL_PLAN_AT_KEY = 'planUpdatedAt';
     var LOGIN_FETCH_FLAG = 'np_fetch_plan_on_next_auth';
     var PLAN_UPDATE_PENDING_KEY = 'np_plan_refresh_pending';
+    var LAST_VERSION_CHECK_KEY = 'np_last_plan_version_check';
+    var VERSION_CHECK_MIN_INTERVAL_MS = 3 * 60 * 1000;
     var _pendingBridgeBound = false;
+    var _planUpdateApplyInFlight = null;
 
     function setLocalPlanUpdatedAt(ts) {
         if (!ts) return;
@@ -453,6 +456,123 @@
         }
     }
 
+    function buildPlanSyncOptions(options) {
+        options = options || {};
+        if (typeof options.getIdToken === 'function') return options;
+        var auth = global.__npPlanAuth;
+        if (auth && auth.currentUser && options.userId && String(options.userId).indexOf('fb_') === 0) {
+            return Object.assign({}, options, {
+                getIdToken: function () { return auth.currentUser.getIdToken(); }
+            });
+        }
+        return options;
+    }
+
+    function shouldThrottleVersionCheck(force) {
+        if (force) return false;
+        try {
+            var last = parseInt(localStorage.getItem(LAST_VERSION_CHECK_KEY) || '0', 10);
+            return Date.now() - last < VERSION_CHECK_MIN_INTERVAL_MS;
+        } catch (_) {
+            return false;
+        }
+    }
+
+    function markVersionChecked() {
+        try {
+            localStorage.setItem(LAST_VERSION_CHECK_KEY, String(Date.now()));
+        } catch (_) {}
+    }
+
+    async function fetchServerPlanVersion(userId, options) {
+        options = buildPlanSyncOptions(Object.assign({ userId: userId }, options || {}));
+        if (!userId) return null;
+        var url = WORKER_URL + '/api/user/plan-version?userId=' + encodeURIComponent(userId);
+        var headers = {};
+        if (typeof options.getIdToken === 'function' && userId.indexOf('fb_') === 0) {
+            var idToken = await options.getIdToken().catch(function () { return null; });
+            if (idToken) headers.Authorization = 'Bearer ' + idToken;
+        }
+        var resp = await fetch(url, { headers: headers, cache: 'no-store' });
+        if ((resp.status === 401 || resp.status === 403) && headers.Authorization) {
+            resp = await fetch(url, { cache: 'no-store' });
+        }
+        if (!resp.ok) return null;
+        return resp.json().catch(function () { return null; });
+    }
+
+    async function probePlanUpdateFromServer(userId, options) {
+        options = buildPlanSyncOptions(Object.assign({ userId: userId }, options || {}));
+        if (!userId || userId.indexOf('fb_') !== 0) {
+            return { newer: false, reason: 'no-user' };
+        }
+        if (!localStorage.getItem('dietPlan')) {
+            return { newer: false, reason: 'no-local-plan' };
+        }
+        if (shouldThrottleVersionCheck(!!options.force)) {
+            return { newer: false, reason: 'throttled' };
+        }
+
+        var data = await fetchServerPlanVersion(userId, options);
+        markVersionChecked();
+        if (!data || !data.found || !data.planUpdatedAt) {
+            return { newer: false, reason: 'no-server-version' };
+        }
+
+        var localAt = '';
+        try { localAt = localStorage.getItem(LOCAL_PLAN_AT_KEY) || ''; } catch (_) {}
+        if (localAt && data.planUpdatedAt <= localAt) {
+            clearPlanUpdatePending();
+            return { newer: false, reason: 'current', serverAt: data.planUpdatedAt };
+        }
+        markPlanUpdatePending(data.planUpdatedAt);
+        return { newer: true, serverAt: data.planUpdatedAt };
+    }
+
+    async function applyPlanUpdateOnResume(userId, options) {
+        options = buildPlanSyncOptions(options || {});
+        var uid = userId || options.userId || '';
+        if (!uid) {
+            try { uid = localStorage.getItem('userId') || ''; } catch (_) {}
+        }
+        if (!uid || uid.indexOf('fb_') !== 0) {
+            return { updated: false, reason: 'no-user' };
+        }
+
+        if (_planUpdateApplyInFlight) {
+            return _planUpdateApplyInFlight;
+        }
+
+        _planUpdateApplyInFlight = (async function () {
+            try {
+                if (hasPlanUpdatePending()) {
+                    var pendingPull = await pullServerPlanIfNewer(uid, options);
+                    return {
+                        updated: !!pendingPull.updated,
+                        via: 'pending-pull',
+                        pull: pendingPull
+                    };
+                }
+
+                var probe = await probePlanUpdateFromServer(uid, options);
+                if (!probe.newer) {
+                    return { updated: false, via: 'probe', reason: probe.reason || 'current' };
+                }
+
+                var pull = await pullServerPlanIfNewer(uid, options);
+                return {
+                    updated: !!pull.updated,
+                    via: 'probe-pull',
+                    pull: pull
+                };
+            } finally {
+                _planUpdateApplyInFlight = null;
+            }
+        })();
+
+        return _planUpdateApplyInFlight;
+    }
+
     async function pullServerPlanIfNewer(userId, options) {
         options = options || {};
         if (!userId) return { updated: false, reason: 'no-user' };
@@ -519,6 +639,9 @@
         clearPlanUpdatePending: clearPlanUpdatePending,
         hasPlanUpdatePending: hasPlanUpdatePending,
         planHasRenderableMeals: planHasRenderableMeals,
+        fetchServerPlanVersion: fetchServerPlanVersion,
+        probePlanUpdateFromServer: probePlanUpdateFromServer,
+        applyPlanUpdateOnResume: applyPlanUpdateOnResume,
         pullServerPlanIfNewer: pullServerPlanIfNewer
     };
 

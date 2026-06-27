@@ -14883,6 +14883,54 @@ async function handleCheckAccountEmail(request, env) {
 }
 
 /**
+ * Lightweight plan version probe — returns only planUpdatedAt (no full plan payload).
+ * Used by APK/PWA to detect admin updates with a single tiny request on resume/tab.
+ *
+ * GET /api/user/plan-version?userId=fb_xxx
+ */
+async function handleGetPlanVersion(request, env) {
+  try {
+    if (!env.page_content) {
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+
+    const url = new URL(request.url);
+    const resolvedUserId = (url.searchParams.get('userId') || '').trim();
+    if (!resolvedUserId) {
+      return jsonResponse({ error: 'Missing userId' }, 400);
+    }
+
+    if (resolvedUserId.startsWith('fb_') && env.FIREBASE_PROJECT_ID) {
+      const authHeader = request.headers.get('Authorization') || '';
+      const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+      if (idToken) {
+        try {
+          const firebaseUser = await verifyFirebaseIdToken(idToken, env);
+          if ('fb_' + firebaseUser.uid !== resolvedUserId) {
+            return jsonResponse({ error: 'Token does not match userId' }, 403);
+          }
+        } catch (_) {
+          return jsonResponse({ error: 'Invalid Firebase ID token' }, 401);
+        }
+      }
+    }
+
+    const profile = await kvGetJSON(env, `user_profile:${resolvedUserId}`);
+    if (!profile?.plan) {
+      return jsonResponse({ found: false }, 404);
+    }
+
+    return jsonResponse({
+      found: true,
+      planUpdatedAt: getEffectivePlanUpdatedAt(profile)
+    });
+  } catch (error) {
+    console.error('Error getting plan version:', error);
+    return jsonResponse({ error: 'Failed to get plan version: ' + error.message }, 500);
+  }
+}
+
+/**
  * User: Get user profile (plan + userData) for cross-context restoration
  *
  * Called by the PWA on first launch when localStorage is empty but the
@@ -15781,6 +15829,8 @@ export default {
         return await handleCheckAccountEmail(request, env);
       } else if (url.pathname === '/api/plan/claim' && request.method === 'GET') {
         return await handleClaimPlanUpdate(request, env);
+      } else if (url.pathname === '/api/user/plan-version' && request.method === 'GET') {
+        return await handleGetPlanVersion(request, env);
       } else if (url.pathname === '/api/user/profile' && request.method === 'GET') {
         return await handleGetUserProfile(request, env);
       } else if (url.pathname === '/api/admin/subscriptions' && request.method === 'GET') {
