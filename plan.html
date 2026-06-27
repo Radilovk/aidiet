@@ -1643,6 +1643,9 @@
             }
         }
 
+        .plan-update-bar[hidden] {
+            display: none !important;
+        }
         .plan-update-bar {
             display: flex;
             align-items: center;
@@ -4459,13 +4462,11 @@
                     if (result.updated) {
                         if (typeof loadDietData === 'function') loadDietData();
                         hidePlanUpdateBar();
-                        return;
-                    }
-                    if (result.reason === 'current') {
+                    } else if (result.reason === 'current') {
                         hidePlanUpdateBar();
-                        return;
+                    } else {
+                        btn.textContent = 'Няма нов';
                     }
-                    btn.textContent = 'Няма нов';
                 } catch (_) {
                     btn.textContent = 'Грешка';
                 } finally {
@@ -4473,12 +4474,6 @@
                         btn.disabled = false;
                         if (!bar.hidden) btn.textContent = original;
                     }, 2200);
-                }
-            });
-
-            window.addEventListener('NUTRIPLAN_PLAN_UPDATE_PENDING', function () {
-                if (sync && sync.hasPlanUpdatePending && sync.hasPlanUpdatePending()) {
-                    bar.hidden = false;
                 }
             });
         }
