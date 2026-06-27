@@ -889,7 +889,15 @@
             }
             try { localStorage.removeItem('planSource'); } catch (_) {}
         }
-        return !!getStoredValue('dietPlan');
+        var planRaw = getStoredValue('dietPlan');
+        if (!planRaw) return false;
+        try {
+            var plan = JSON.parse(planRaw);
+            if (window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.planHasRenderableMeals === 'function') {
+                return window.NutriPlanPlanSync.planHasRenderableMeals(plan);
+            }
+        } catch (_) {}
+        return true;
     }
 
     async function initShell() {

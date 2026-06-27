@@ -2800,7 +2800,16 @@
             if (!localStorage.getItem('dietPlan') && localStorage.getItem('userData')) {
                 return 'plan-pending.html';
             }
-            return localStorage.getItem('dietPlan') ? 'index.html?app=1&tab=plan' : 'questionnaire2.html';
+            var hasPlan = false;
+            try {
+                var plan = JSON.parse(localStorage.getItem('dietPlan') || 'null');
+                hasPlan = window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.planHasRenderableMeals === 'function'
+                    ? window.NutriPlanPlanSync.planHasRenderableMeals(plan)
+                    : !!localStorage.getItem('dietPlan');
+            } catch (_) {
+                hasPlan = !!localStorage.getItem('dietPlan');
+            }
+            return hasPlan ? 'index.html?app=1&tab=plan' : 'questionnaire2.html';
         }
 
         function normalizeShellTarget(target) {
@@ -4187,8 +4196,11 @@
             const fbUserId = 'fb_' + user.uid;
 
             const existingPlan = localStorage.getItem('dietPlan');
-            const loginFetch = _loginInProgress ||
-                (window.NutriPlanPlanSync && window.NutriPlanPlanSync.consumePlanFetchOnNextAuth());
+            const planSync = window.NutriPlanPlanSync;
+            const consumedLoginFetch = planSync && typeof planSync.consumePlanFetchOnNextAuth === 'function'
+                ? planSync.consumePlanFetchOnNextAuth()
+                : false;
+            const loginFetch = _loginInProgress || consumedLoginFetch;
             const missingPlan = !existingPlan && !localStorage.getItem('planJobId');
             const restoreOpts = {
                 email: (user && user.email) || undefined,
