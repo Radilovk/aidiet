@@ -4429,14 +4429,14 @@
             initPlanUpdateButton();
         }
 
-        async function handlePlanUpdateActivation(force) {
+        async function runDailyPlanSyncIfDue() {
             const sync = window.NutriPlanPlanSync;
             const uid = localStorage.getItem('userId') || '';
             if (!sync || typeof sync.applyPlanUpdateOnResume !== 'function' || !uid.startsWith('fb_')) {
                 showPlanUpdateBarIfPending();
                 return;
             }
-            const opts = { force: !!force };
+            const opts = {};
             if (window.__npPlanAuth && window.__npPlanAuth.currentUser) {
                 opts.getIdToken = () => window.__npPlanAuth.currentUser.getIdToken();
             }
@@ -4533,7 +4533,7 @@
             }
             showPlanUpdateBarIfPending();
             if (document.documentElement.getAttribute('data-embedded-tab') !== '1') {
-                handlePlanUpdateActivation(false);
+                runDailyPlanSyncIfDue();
             }
             if (window.NutriPlanDiagnostics) {
                 window.NutriPlanDiagnostics.ok('plan', 'init-dom-features-ready', 'Initial load requested');
@@ -5617,15 +5617,11 @@
             }
             consumePendingPlanUiAction();
             if (typeof checkOpenAppPrompts === 'function') checkOpenAppPrompts();
-            if (document.documentElement.getAttribute('data-embedded-tab') !== '1') {
-                handlePlanUpdateActivation(true);
-            }
             showPlanUpdateBarIfPending();
         });
 
         window.addEventListener('NUTRIPLAN_PLAN_UPDATE_PENDING', function() {
             showPlanUpdateBarIfPending();
-            handlePlanUpdateActivation(true);
         });
 
         window.addEventListener('storage', function(event) {
@@ -5664,11 +5660,7 @@
                     window.GameNotifier.refreshConfig().catch(function() {});
                 }
                 if (typeof checkOpenAppPrompts === 'function') checkOpenAppPrompts();
-                if (document.documentElement.getAttribute('data-embedded-tab') !== '1') {
-                    handlePlanUpdateActivation(false);
-                } else {
-                    showPlanUpdateBarIfPending();
-                }
+                showPlanUpdateBarIfPending();
             }
         });
         window.addEventListener('pagehide', function() {

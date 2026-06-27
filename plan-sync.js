@@ -8,8 +8,7 @@
     var LOCAL_PLAN_AT_KEY = 'planUpdatedAt';
     var LOGIN_FETCH_FLAG = 'np_fetch_plan_on_next_auth';
     var PLAN_UPDATE_PENDING_KEY = 'np_plan_refresh_pending';
-    var LAST_VERSION_CHECK_KEY = 'np_last_plan_version_check';
-    var VERSION_CHECK_MIN_INTERVAL_MS = 3 * 60 * 1000;
+    var PLAN_CHECK_DAY_KEY = 'np_plan_check_day';
     var _pendingBridgeBound = false;
     var _planUpdateApplyInFlight = null;
 
@@ -468,26 +467,29 @@
         return options;
     }
 
-    function shouldThrottleVersionCheck(force) {
-        if (force) return false;
-        try {
-            var last = parseInt(localStorage.getItem(LAST_VERSION_CHECK_KEY) || '0', 10);
-            return Date.now() - last < VERSION_CHECK_MIN_INTERVAL_MS;
-        } catch (_) {
-            return false;
-        }
+    function todayDateKey() {
+        var d = new Date();
+        return d.getFullYear() + '-' +
+            String(d.getMonth() + 1).padStart(2, '0') + '-' +
+            String(d.getDate()).padStart(2, '0');
     }
 
-    function markVersionChecked() {
-        try {
-            localStorage.setItem(LAST_VERSION_CHECK_KEY, String(Date.now()));
-        } catch (_) {}
+    function checkedPlanToday() {
+        try { return localStorage.getItem(PLAN_CHECK_DAY_KEY) === todayDateKey(); } catch (_) { return false; }
+    }
+
+    function markPlanCheckedToday() {
+        try { localStorage.setItem(PLAN_CHECK_DAY_KEY, todayDateKey()); } catch (_) {}
     }
 
     async function fetchServerPlanVersion(userId, options) {
         options = buildPlanSyncOptions(Object.assign({ userId: userId }, options || {}));
         if (!userId) return null;
         var url = WORKER_URL + '/api/user/plan-version?userId=' + encodeURIComponent(userId);
+        try {
+            var localAt = localStorage.getItem(LOCAL_PLAN_AT_KEY) || '';
+            if (localAt) url += '&v=' + encodeURIComponent(localAt);
+        } catch (_) {}
         var headers = {};
         if (typeof options.getIdToken === 'function' && userId.indexOf('fb_') === 0) {
             var idToken = await options.getIdToken().catch(function () { return null; });
@@ -509,14 +511,14 @@
         if (!localStorage.getItem('dietPlan')) {
             return { newer: false, reason: 'no-local-plan' };
         }
-        if (shouldThrottleVersionCheck(!!options.force)) {
-            return { newer: false, reason: 'throttled' };
-        }
 
         var data = await fetchServerPlanVersion(userId, options);
-        markVersionChecked();
-        if (!data || !data.found || !data.planUpdatedAt) {
+        if (!data || !data.found) {
             return { newer: false, reason: 'no-server-version' };
+        }
+        if (data.upToDate || !data.planUpdatedAt) {
+            clearPlanUpdatePending();
+            return { newer: false, reason: 'current', serverAt: data.planUpdatedAt || '' };
         }
 
         var localAt = '';
@@ -543,16 +545,13 @@
             return _planUpdateApplyInFlight;
         }
 
+        if (!options.force && checkedPlanToday()) {
+            return { updated: false, reason: 'daily-done' };
+        }
+
         _planUpdateApplyInFlight = (async function () {
             try {
-                if (hasPlanUpdatePending()) {
-                    var pendingPull = await pullServerPlanIfNewer(uid, options);
-                    return {
-                        updated: !!pendingPull.updated,
-                        via: 'pending-pull',
-                        pull: pendingPull
-                    };
-                }
+                if (!options.force) markPlanCheckedToday();
 
                 var probe = await probePlanUpdateFromServer(uid, options);
                 if (!probe.newer) {
@@ -562,7 +561,7 @@
                 var pull = await pullServerPlanIfNewer(uid, options);
                 return {
                     updated: !!pull.updated,
-                    via: 'probe-pull',
+                    via: 'daily-pull',
                     pull: pull
                 };
             } finally {

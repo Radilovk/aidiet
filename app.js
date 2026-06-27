@@ -362,18 +362,18 @@
         } catch (_) {}
     }
 
-    function runPlanUpdateCatchUp(force) {
+    function runPlanUpdateCatchUp() {
         var sync = window.NutriPlanPlanSync;
         var uid = getStoredValue('userId') || '';
         if (!sync || typeof sync.applyPlanUpdateOnResume !== 'function' || uid.indexOf('fb_') !== 0) {
             return Promise.resolve({ updated: false });
         }
-        return sync.applyPlanUpdateOnResume(uid, Object.assign({ force: !!force }, buildPlanSyncOptions()))
+        return sync.applyPlanUpdateOnResume(uid, buildPlanSyncOptions())
             .then(function (result) {
                 reloadPlanFrameIfUpdated(result);
                 if (result && result.updated) return result;
                 var planFrame = document.querySelector('[data-tab-view="plan"]');
-                if (planFrame) {
+                if (planFrame && result && result.reason === 'daily-done') {
                     dispatchFrameEvent(planFrame, 'NUTRIPLAN_PLAN_UPDATE_PENDING', {});
                 }
                 return result;
@@ -387,11 +387,9 @@
         document.addEventListener('visibilitychange', function () {
             if (document.visibilityState !== 'visible') return;
             if (!params.has('app')) return;
-            if (state.initialized) {
-                runPlanUpdateCatchUp(false);
-                return;
+            if (!state.initialized) {
+                runOpenAppCatchUpFlow();
             }
-            runOpenAppCatchUpFlow();
         });
     }
 
@@ -439,7 +437,6 @@
                     window.NutriPlanPlanSync.markPlanUpdatePending(extra.planUpdatedAt || '');
                 }
                 switchTab('plan', true);
-                runPlanUpdateCatchUp(true);
                 return;
             }
             if (actionId) {
@@ -465,7 +462,6 @@
                 }
                 if (params.has('app')) {
                     switchTab('plan', true);
-                    runPlanUpdateCatchUp(true);
                 }
                 return;
             }
@@ -925,9 +921,6 @@
                 tab: tab,
                 previousTab: previousTab
             });
-            if (tab === 'plan') {
-                runPlanUpdateCatchUp(true);
-            }
         }
 
         if (updateUrl) {
@@ -1018,7 +1011,7 @@
 
         switchTab(initialTab, true);
         initApkGameNotifier();
-        runPlanUpdateCatchUp(false);
+        runPlanUpdateCatchUp();
     }
 
     window.NutriPlanSPA = {
