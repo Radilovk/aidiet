@@ -4187,7 +4187,11 @@
             const fbUserId = 'fb_' + user.uid;
 
             const existingPlan = localStorage.getItem('dietPlan');
-            const loginFetch = _loginInProgress;
+            const planSync = window.NutriPlanPlanSync;
+            const consumedLoginFetch = planSync && typeof planSync.consumePlanFetchOnNextAuth === 'function'
+                ? planSync.consumePlanFetchOnNextAuth()
+                : false;
+            const loginFetch = _loginInProgress || consumedLoginFetch;
             const missingPlan = !existingPlan && !localStorage.getItem('planJobId');
             const restoreOpts = {
                 email: (user && user.email) || undefined,
@@ -4368,6 +4372,9 @@
             loginClearMessages();
             if (btn) btn.disabled = true;
             _loginInProgress = true;
+            if (window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.markPlanFetchOnNextAuth === 'function') {
+                window.NutriPlanPlanSync.markPlanFetchOnNextAuth();
+            }
             try {
                 await signInWithEmailAndPassword(auth, email, password);
             } catch (err) {

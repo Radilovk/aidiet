@@ -278,6 +278,9 @@
     }
 
     async function clearAuthSessionKeepingAnalytics() {
+        if (global.NutriPlanPlanSync && typeof global.NutriPlanPlanSync.markPlanFetchOnNextAuth === 'function') {
+            global.NutriPlanPlanSync.markPlanFetchOnNextAuth();
+        }
         return clearUserSessionData({
             preserveKeys: getAnalyticsPreserveKeys(),
             preserveDynamicPrefixes: ANALYTICS_DYNAMIC_PREFIXES.slice()

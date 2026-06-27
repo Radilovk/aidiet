@@ -3776,25 +3776,19 @@
                 syncUser(user);
                 const fbUserId = 'fb_' + user.uid;
                 const planSync = window.NutriPlanPlanSync;
+                const loginFetch = planSync && typeof planSync.consumePlanFetchOnNextAuth === 'function'
+                    ? planSync.consumePlanFetchOnNextAuth()
+                    : false;
                 const restoreOpts = {
                     email: (user && user.email) || undefined,
                     getIdToken: user ? () => user.getIdToken() : undefined,
                     clearLocalPlan: false
                 };
-                const _planRestoreKey = 'pageInitialised';
                 if (!localStorage.getItem('dietPlan') && !localStorage.getItem('planJobId')) {
-                    if (sessionStorage.getItem(_planRestoreKey)) {
-                        sessionStorage.removeItem(_planRestoreKey);
-                        resolvePlanAuth(user);
-                        navigateTopLevel('questionnaire2.html', true);
-                        return;
-                    }
-                    sessionStorage.setItem(_planRestoreKey, '1');
                     let loaded = false;
                     if (planSync && typeof planSync.restoreUserPlanFromServer === 'function') {
                         loaded = await planSync.restoreUserPlanFromServer(fbUserId, restoreOpts);
                     }
-                    sessionStorage.removeItem(_planRestoreKey);
                     if (loaded) {
                         if (typeof window.loadDietData === 'function') {
                             window.loadDietData();
@@ -3807,9 +3801,24 @@
                     navigateTopLevel('questionnaire2.html', true);
                     return;
                 }
+                if (loginFetch && planSync && typeof planSync.restoreUserPlanFromServer === 'function') {
+                    const loaded = await planSync.restoreUserPlanFromServer(fbUserId, restoreOpts);
+                    if (loaded && typeof window.loadDietData === 'function') {
+                        window.loadDietData();
+                    }
+                }
                 hideOverlay();
                 resolvePlanAuth(user);
             } else {
+                /* Embedded APK tab: Firebase often reports null (separate WebView IndexedDB).
+                 * Parent shell already authenticated; trust localStorage session + plan. */
+                const isEmbedded = document.documentElement.getAttribute('data-embedded-tab') === '1' ||
+                    (window.parent !== window && new URLSearchParams(location.search).has('embedded'));
+                if (isEmbedded) {
+                    hideOverlay();
+                    resolvePlanAuth(null);
+                    return;
+                }
                 showAuthForm();
                 resolvePlanAuth(null);
             }
@@ -4474,18 +4483,13 @@
                 window.history.replaceState({}, '', window.location.pathname);
                 return;
             }
+            if (window.NutriPlanPlanAuthReady) {
+                try { await window.NutriPlanPlanAuthReady; } catch (_) {}
+            }
             if (typeof NativeBackup !== 'undefined') {
                 await NativeBackup.init().catch(() => {});
             }
-            const hasCachedPlan = !!localStorage.getItem('dietPlan');
-            if (hasCachedPlan) {
-                loadDietData();
-            } else if (window.NutriPlanPlanAuthReady) {
-                try { await window.NutriPlanPlanAuthReady; } catch (_) {}
-                loadDietData();
-            } else {
-                loadDietData();
-            }
+            loadDietData();
             initPlanUpdateButton();
             if (window.NutriPlanDiagnostics) {
                 window.NutriPlanDiagnostics.ok('plan', 'init-dom-features-ready', 'Initial load requested');

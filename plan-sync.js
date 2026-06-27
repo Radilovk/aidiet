@@ -6,6 +6,7 @@
 
     var WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
     var LOCAL_PLAN_AT_KEY = 'planUpdatedAt';
+    var LOGIN_FETCH_FLAG = 'np_fetch_plan_on_next_auth';
     var PLAN_UPDATE_PENDING_KEY = 'np_plan_refresh_pending';
     var _pendingBridgeBound = false;
 
@@ -18,6 +19,22 @@
 
     function markPlanSavedLocally(planUpdatedAt) {
         setLocalPlanUpdatedAt(planUpdatedAt || new Date().toISOString());
+    }
+
+    function markPlanFetchOnNextAuth() {
+        try {
+            localStorage.setItem(LOGIN_FETCH_FLAG, '1');
+        } catch (_) {}
+    }
+
+    function consumePlanFetchOnNextAuth() {
+        try {
+            var pending = localStorage.getItem(LOGIN_FETCH_FLAG) === '1';
+            if (pending) localStorage.removeItem(LOGIN_FETCH_FLAG);
+            return pending;
+        } catch (_) {
+            return false;
+        }
     }
 
     function markPlanUpdatePending(planUpdatedAt) {
@@ -469,6 +486,8 @@
         LOCAL_PLAN_AT_KEY: LOCAL_PLAN_AT_KEY,
         setLocalPlanUpdatedAt: setLocalPlanUpdatedAt,
         markPlanSavedLocally: markPlanSavedLocally,
+        markPlanFetchOnNextAuth: markPlanFetchOnNextAuth,
+        consumePlanFetchOnNextAuth: consumePlanFetchOnNextAuth,
         applyServerPlanData: applyServerPlanData,
         refreshUidCookie: refreshUidCookie,
         fetchPlanOnLogin: fetchPlanOnLogin,
