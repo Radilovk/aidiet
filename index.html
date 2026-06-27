@@ -4159,46 +4159,6 @@
 
         let _loginInProgress = false;
 
-        function resetLoginButton() {
-            const btn = document.getElementById('loginPasswordBtn');
-            if (!btn) return;
-            btn.disabled = false;
-            if (btn.dataset.loading === '1') {
-                btn.textContent = btn.dataset.originalText || 'Вход';
-                btn.dataset.loading = '0';
-            }
-        }
-
-        function finishLoginFlow(err) {
-            _loginInProgress = false;
-            resetLoginButton();
-            if (err) {
-                loginShowError(
-                    (err && err.message) ||
-                    'Грешка при вход. Опитайте отново.'
-                );
-            }
-        }
-
-        function redirectAfterLogin() {
-            const params = new URLSearchParams(window.location.search);
-            if (params.has('login')) {
-                const next = params.get('next') || '';
-                let safeDest;
-                try {
-                    const resolved = new URL(next, location.origin);
-                    safeDest = resolved.origin === location.origin
-                        ? normalizeShellTarget(resolved.pathname + resolved.search + resolved.hash)
-                        : null;
-                } catch (_) {
-                    safeDest = null;
-                }
-                window.location.replace(safeDest || getPlanTargetFromState());
-                return;
-            }
-            window.location.replace(getPlanTargetFromState());
-        }
-
         onAuthStateChanged(auth, async (user) => {
             if (isEmbeddedShellTab()) {
                 if (_indexAuthResolve) { _indexAuthResolve(user || null); _indexAuthResolve = null; }
@@ -4216,60 +4176,59 @@
                 if (_indexAuthResolve) { _indexAuthResolve(null); _indexAuthResolve = null; }
                 return;
             }
-            try {
-                if (window.NutriPlanDiagnostics) {
-                    window.NutriPlanDiagnostics.ok('auth', 'state-changed', 'Authenticated user detected');
-                }
-                const prevUserId = localStorage.getItem('userId');
-                if (window.NutriPlanSession && typeof window.NutriPlanSession.ensureAuthenticatedUser === 'function') {
-                    await window.NutriPlanSession.ensureAuthenticatedUser(user);
-                }
-                applyUser(user);
-                const fbUserId = 'fb_' + user.uid;
+            if (window.NutriPlanDiagnostics) {
+                window.NutriPlanDiagnostics.ok('auth', 'state-changed', 'Authenticated user detected');
+            }
+            const prevUserId = localStorage.getItem('userId');
+            if (window.NutriPlanSession && typeof window.NutriPlanSession.ensureAuthenticatedUser === 'function') {
+                await window.NutriPlanSession.ensureAuthenticatedUser(user);
+            }
+            applyUser(user);
+            const fbUserId = 'fb_' + user.uid;
 
-                if (Notification.permission === 'granted' && typeof subscribeToPushNotifications === 'function') {
-                    subscribeToPushNotifications().catch(function () {});
-                }
+            const existingPlan = localStorage.getItem('dietPlan');
+            const loginFetch = _loginInProgress ||
+                (window.NutriPlanPlanSync && window.NutriPlanPlanSync.consumePlanFetchOnNextAuth());
+            const missingPlan = !existingPlan && !localStorage.getItem('planJobId');
+            const restoreOpts = {
+                email: (user && user.email) || undefined,
+                getIdToken: user ? () => user.getIdToken() : undefined,
+                clearLocalPlan: false
+            };
 
-                const existingPlan = localStorage.getItem('dietPlan');
-                const loginFetch = _loginInProgress ||
-                    (window.NutriPlanPlanSync && window.NutriPlanPlanSync.consumePlanFetchOnNextAuth());
-                const missingPlan = !existingPlan && !localStorage.getItem('planJobId');
-                const planSync = window.NutriPlanPlanSync;
-                const restoreOpts = {
-                    email: (user && user.email) || undefined,
-                    getIdToken: user ? () => user.getIdToken() : undefined,
-                    clearLocalPlan: false
-                };
-                const shouldRedirect = _loginInProgress ||
-                    new URLSearchParams(window.location.search).has('login');
-
-                if (planSync && typeof planSync.restoreUserPlanFromServer === 'function') {
-                    if (loginFetch || missingPlan) {
-                        await Promise.race([
-                            planSync.restoreUserPlanFromServer(fbUserId, restoreOpts),
-                            new Promise(function (resolve) { setTimeout(resolve, 10000); })
-                        ]);
-                    } else if (existingPlan) {
-                        const syncNeeded =
-                            (prevUserId && !prevUserId.startsWith('fb_')) ||
-                            localStorage.getItem('planSyncPending') === 'true';
-                        if (syncNeeded) {
-                            await _syncAnonymousPlanToAccount(fbUserId, user);
-                        }
+            if (window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.restoreUserPlanFromServer === 'function') {
+                if (loginFetch) {
+                    await window.NutriPlanPlanSync.restoreUserPlanFromServer(fbUserId, restoreOpts);
+                } else if (missingPlan) {
+                    await window.NutriPlanPlanSync.restoreUserPlanFromServer(fbUserId, restoreOpts);
+                } else if (existingPlan) {
+                    const syncNeeded =
+                        (prevUserId && !prevUserId.startsWith('fb_')) ||
+                        localStorage.getItem('planSyncPending') === 'true';
+                    if (syncNeeded) {
+                        await _syncAnonymousPlanToAccount(fbUserId, user);
                     }
                 }
+            }
 
-                if (_indexAuthResolve) { _indexAuthResolve(user); _indexAuthResolve = null; }
+            if (_indexAuthResolve) { _indexAuthResolve(user); _indexAuthResolve = null; }
 
-                if (shouldRedirect) {
-                    _loginInProgress = false;
-                    redirectAfterLogin();
+            const params = new URLSearchParams(window.location.search);
+            if (params.has('login')) {
+                const next = params.get('next') || '';
+                let safeDest;
+                try {
+                    const resolved = new URL(next, location.origin);
+                    safeDest = resolved.origin === location.origin
+                        ? normalizeShellTarget(resolved.pathname + resolved.search + resolved.hash)
+                        : null;
+                } catch (_) {
+                    safeDest = null;
                 }
-            } catch (e) {
-                console.error('[auth] post-login flow failed:', e);
-                if (_indexAuthResolve) { _indexAuthResolve(null); _indexAuthResolve = null; }
-                finishLoginFlow(e);
+                window.location.replace(safeDest || getPlanTargetFromState());
+            } else if (_loginInProgress) {
+                _loginInProgress = false;
+                window.location.replace(getPlanTargetFromState());
             }
         });
 
@@ -4408,27 +4367,15 @@
                 return;
             }
             loginClearMessages();
-            if (btn) {
-                btn.dataset.originalText = btn.textContent || 'Вход';
-                btn.dataset.loading = '1';
-                btn.disabled = true;
-                btn.textContent = 'Влизане…';
-            }
+            if (btn) btn.disabled = true;
             _loginInProgress = true;
             if (window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.markPlanFetchOnNextAuth === 'function') {
                 window.NutriPlanPlanSync.markPlanFetchOnNextAuth();
             }
-            const loginTimeout = window.setTimeout(function () {
-                if (_loginInProgress) {
-                    finishLoginFlow(new Error('Входът отнема твърде дълго. Проверете връзката и опитайте отново.'));
-                }
-            }, 20000);
             try {
                 await signInWithEmailAndPassword(auth, email, password);
             } catch (err) {
-                window.clearTimeout(loginTimeout);
                 _loginInProgress = false;
-                resetLoginButton();
                 console.error('Login/register error:', err.code, err.message);
                 loginShowError(
                     err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password'
@@ -4447,6 +4394,8 @@
                         ? 'Домейнът не е оторизиран. Свържете се с администратора.' :
                     'Грешка при вход. Опитайте отново.'
                 );
+            } finally {
+                if (btn) btn.disabled = false;
             }
         };
 
