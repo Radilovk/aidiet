@@ -362,23 +362,37 @@
         } catch (_) {}
     }
 
-    function runPlanUpdateCatchUp() {
+    function notifyPlanFramePending() {
+        var planFrame = document.querySelector('[data-tab-view="plan"]');
+        if (planFrame) dispatchFrameEvent(planFrame, 'NUTRIPLAN_PLAN_UPDATE_PENDING', {});
+    }
+
+    function applyAdminPlanUpdate() {
         var sync = window.NutriPlanPlanSync;
         var uid = getStoredValue('userId') || '';
-        if (!sync || typeof sync.applyPlanUpdateOnResume !== 'function' || uid.indexOf('fb_') !== 0) {
+        if (!sync || typeof sync.applyPendingPlanUpdate !== 'function' || uid.indexOf('fb_') !== 0) {
             return Promise.resolve({ updated: false });
         }
-        return sync.applyPlanUpdateOnResume(uid, buildPlanSyncOptions())
+        return sync.applyPendingPlanUpdate(uid, buildPlanSyncOptions())
             .then(function (result) {
                 reloadPlanFrameIfUpdated(result);
-                if (result && result.updated) return result;
-                var planFrame = document.querySelector('[data-tab-view="plan"]');
-                if (planFrame && result && result.reason === 'daily-done') {
-                    dispatchFrameEvent(planFrame, 'NUTRIPLAN_PLAN_UPDATE_PENDING', {});
+                if (!result.updated && sync.hasPlanUpdatePending && sync.hasPlanUpdatePending()) {
+                    notifyPlanFramePending();
                 }
                 return result;
             })
-            .catch(function () { return { updated: false }; });
+            .catch(function () {
+                notifyPlanFramePending();
+                return { updated: false };
+            });
+    }
+
+    function signalAdminPlanUpdate(planUpdatedAt) {
+        var sync = window.NutriPlanPlanSync;
+        if (!sync || typeof sync.markPlanUpdatePending !== 'function') return;
+        sync.markPlanUpdatePending(planUpdatedAt || '');
+        if (params.has('app')) switchTab('plan', true);
+        applyAdminPlanUpdate();
     }
 
     function bindCatchUpOnResume() {
@@ -433,10 +447,7 @@
                 recordKey: extra.recordKey || ''
             };
             if (payload.notificationType === 'plan_updated') {
-                if (window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.markPlanUpdatePending === 'function') {
-                    window.NutriPlanPlanSync.markPlanUpdatePending(extra.planUpdatedAt || '');
-                }
-                switchTab('plan', true);
+                signalAdminPlanUpdate(extra.planUpdatedAt || '');
                 return;
             }
             if (actionId) {
@@ -457,12 +468,7 @@
             var msg = event.data;
             if (!msg) return;
             if (msg.type === 'NUTRIPLAN_PLAN_UPDATE_PENDING') {
-                if (window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.markPlanUpdatePending === 'function') {
-                    window.NutriPlanPlanSync.markPlanUpdatePending(msg.planUpdatedAt || '');
-                }
-                if (params.has('app')) {
-                    switchTab('plan', true);
-                }
+                signalAdminPlanUpdate(msg.planUpdatedAt || '');
                 return;
             }
             if (msg.type !== 'NOTIFICATION_ACTION') return;
@@ -477,12 +483,7 @@
             }
             if (msg.openApp || !payload.action) {
                 if (payload.notificationType === 'plan_updated') {
-                    if (window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.markPlanUpdatePending === 'function') {
-                        window.NutriPlanPlanSync.markPlanUpdatePending(msg.planUpdatedAt || '');
-                    }
-                    if (params.has('app')) {
-                        switchTab('plan', true);
-                    }
+                    signalAdminPlanUpdate(msg.planUpdatedAt || '');
                     return;
                 }
                 openQuickAnswerFromNotification(payload);
@@ -1011,7 +1012,6 @@
 
         switchTab(initialTab, true);
         initApkGameNotifier();
-        runPlanUpdateCatchUp();
     }
 
     window.NutriPlanSPA = {

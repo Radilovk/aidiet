@@ -8,7 +8,6 @@
     var LOCAL_PLAN_AT_KEY = 'planUpdatedAt';
     var LOGIN_FETCH_FLAG = 'np_fetch_plan_on_next_auth';
     var PLAN_UPDATE_PENDING_KEY = 'np_plan_refresh_pending';
-    var PLAN_CHECK_DAY_KEY = 'np_plan_check_day';
     var _pendingBridgeBound = false;
     var _planUpdateApplyInFlight = null;
 
@@ -40,12 +39,19 @@
     }
 
     function markPlanUpdatePending(planUpdatedAt) {
+        if (!planUpdatedAt || planUpdatedAt === '1') return;
+        var localAt = '';
+        try { localAt = localStorage.getItem(LOCAL_PLAN_AT_KEY) || ''; } catch (_) {}
+        if (localAt && planUpdatedAt <= localAt) {
+            clearPlanUpdatePending();
+            return;
+        }
         try {
-            localStorage.setItem(PLAN_UPDATE_PENDING_KEY, planUpdatedAt || '1');
+            localStorage.setItem(PLAN_UPDATE_PENDING_KEY, planUpdatedAt);
         } catch (_) {}
         try {
             global.dispatchEvent(new CustomEvent('NUTRIPLAN_PLAN_UPDATE_PENDING', {
-                detail: { planUpdatedAt: planUpdatedAt || '' }
+                detail: { planUpdatedAt: planUpdatedAt }
             }));
         } catch (_) {}
     }
@@ -467,71 +473,19 @@
         return options;
     }
 
-    function todayDateKey() {
-        var d = new Date();
-        return d.getFullYear() + '-' +
-            String(d.getMonth() + 1).padStart(2, '0') + '-' +
-            String(d.getDate()).padStart(2, '0');
-    }
-
-    function checkedPlanToday() {
-        try { return localStorage.getItem(PLAN_CHECK_DAY_KEY) === todayDateKey(); } catch (_) { return false; }
-    }
-
-    function markPlanCheckedToday() {
-        try { localStorage.setItem(PLAN_CHECK_DAY_KEY, todayDateKey()); } catch (_) {}
-    }
-
-    async function fetchServerPlanVersion(userId, options) {
-        options = buildPlanSyncOptions(Object.assign({ userId: userId }, options || {}));
-        if (!userId) return null;
-        var url = WORKER_URL + '/api/user/plan-version?userId=' + encodeURIComponent(userId);
+    function reconcilePlanUpdatePending() {
         try {
+            var pending = localStorage.getItem(PLAN_UPDATE_PENDING_KEY);
+            if (!pending || pending === '1') {
+                clearPlanUpdatePending();
+                return;
+            }
             var localAt = localStorage.getItem(LOCAL_PLAN_AT_KEY) || '';
-            if (localAt) url += '&v=' + encodeURIComponent(localAt);
+            if (localAt && pending <= localAt) clearPlanUpdatePending();
         } catch (_) {}
-        var headers = {};
-        if (typeof options.getIdToken === 'function' && userId.indexOf('fb_') === 0) {
-            var idToken = await options.getIdToken().catch(function () { return null; });
-            if (idToken) headers.Authorization = 'Bearer ' + idToken;
-        }
-        var resp = await fetch(url, { headers: headers, cache: 'no-store' });
-        if ((resp.status === 401 || resp.status === 403) && headers.Authorization) {
-            resp = await fetch(url, { cache: 'no-store' });
-        }
-        if (!resp.ok) return null;
-        return resp.json().catch(function () { return null; });
     }
 
-    async function probePlanUpdateFromServer(userId, options) {
-        options = buildPlanSyncOptions(Object.assign({ userId: userId }, options || {}));
-        if (!userId || userId.indexOf('fb_') !== 0) {
-            return { newer: false, reason: 'no-user' };
-        }
-        if (!localStorage.getItem('dietPlan')) {
-            return { newer: false, reason: 'no-local-plan' };
-        }
-
-        var data = await fetchServerPlanVersion(userId, options);
-        if (!data || !data.found) {
-            return { newer: false, reason: 'no-server-version' };
-        }
-        if (data.upToDate || !data.planUpdatedAt) {
-            clearPlanUpdatePending();
-            return { newer: false, reason: 'current', serverAt: data.planUpdatedAt || '' };
-        }
-
-        var localAt = '';
-        try { localAt = localStorage.getItem(LOCAL_PLAN_AT_KEY) || ''; } catch (_) {}
-        if (localAt && data.planUpdatedAt <= localAt) {
-            clearPlanUpdatePending();
-            return { newer: false, reason: 'current', serverAt: data.planUpdatedAt };
-        }
-        markPlanUpdatePending(data.planUpdatedAt);
-        return { newer: true, serverAt: data.planUpdatedAt };
-    }
-
-    async function applyPlanUpdateOnResume(userId, options) {
+    async function applyPendingPlanUpdate(userId, options) {
         options = buildPlanSyncOptions(options || {});
         var uid = userId || options.userId || '';
         if (!uid) {
@@ -540,41 +494,20 @@
         if (!uid || uid.indexOf('fb_') !== 0) {
             return { updated: false, reason: 'no-user' };
         }
-
-        if (_planUpdateApplyInFlight) {
-            return _planUpdateApplyInFlight;
+        if (!hasPlanUpdatePending()) {
+            return { updated: false, reason: 'no-pending' };
         }
-
-        if (!options.force && checkedPlanToday()) {
-            return { updated: false, reason: 'daily-done' };
-        }
-
-        _planUpdateApplyInFlight = (async function () {
-            try {
-                if (!options.force) markPlanCheckedToday();
-
-                var probe = await probePlanUpdateFromServer(uid, options);
-                if (!probe.newer) {
-                    return { updated: false, via: 'probe', reason: probe.reason || 'current' };
-                }
-
-                var pull = await pullServerPlanIfNewer(uid, options);
-                return {
-                    updated: !!pull.updated,
-                    via: 'daily-pull',
-                    pull: pull
-                };
-            } finally {
-                _planUpdateApplyInFlight = null;
-            }
-        })();
-
+        if (_planUpdateApplyInFlight) return _planUpdateApplyInFlight;
+        _planUpdateApplyInFlight = pullServerPlanIfNewer(uid, options).finally(function () {
+            _planUpdateApplyInFlight = null;
+        });
         return _planUpdateApplyInFlight;
     }
 
     async function pullServerPlanIfNewer(userId, options) {
         options = options || {};
         if (!userId) return { updated: false, reason: 'no-user' };
+        if (!hasPlanUpdatePending()) return { updated: false, reason: 'no-pending' };
         var localAt = '';
         try { localAt = localStorage.getItem(LOCAL_PLAN_AT_KEY) || ''; } catch (_) {}
         var data = await fetchUserProfile(userId, options);
@@ -638,11 +571,11 @@
         clearPlanUpdatePending: clearPlanUpdatePending,
         hasPlanUpdatePending: hasPlanUpdatePending,
         planHasRenderableMeals: planHasRenderableMeals,
-        fetchServerPlanVersion: fetchServerPlanVersion,
-        probePlanUpdateFromServer: probePlanUpdateFromServer,
-        applyPlanUpdateOnResume: applyPlanUpdateOnResume,
+        reconcilePlanUpdatePending: reconcilePlanUpdatePending,
+        applyPendingPlanUpdate: applyPendingPlanUpdate,
         pullServerPlanIfNewer: pullServerPlanIfNewer
     };
 
     bindPlanUpdatePendingBridge();
+    reconcilePlanUpdatePending();
 }(window));

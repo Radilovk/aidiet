@@ -4420,33 +4420,16 @@
         function showPlanUpdateBarIfPending() {
             const bar = document.getElementById('planUpdateBar');
             const sync = window.NutriPlanPlanSync;
-            if (!bar || !sync || typeof sync.hasPlanUpdatePending !== 'function') return;
-            if (!sync.hasPlanUpdatePending()) {
+            if (!bar || !sync) return;
+            if (typeof sync.reconcilePlanUpdatePending === 'function') {
+                sync.reconcilePlanUpdatePending();
+            }
+            if (typeof sync.hasPlanUpdatePending !== 'function' || !sync.hasPlanUpdatePending()) {
                 bar.hidden = true;
                 return;
             }
             bar.hidden = false;
             initPlanUpdateButton();
-        }
-
-        async function runDailyPlanSyncIfDue() {
-            const sync = window.NutriPlanPlanSync;
-            const uid = localStorage.getItem('userId') || '';
-            if (!sync || typeof sync.applyPlanUpdateOnResume !== 'function' || !uid.startsWith('fb_')) {
-                showPlanUpdateBarIfPending();
-                return;
-            }
-            const opts = {};
-            if (window.__npPlanAuth && window.__npPlanAuth.currentUser) {
-                opts.getIdToken = () => window.__npPlanAuth.currentUser.getIdToken();
-            }
-            try {
-                const result = await sync.applyPlanUpdateOnResume(uid, opts);
-                if (result.updated && typeof loadDietData === 'function') {
-                    loadDietData({ force: true });
-                }
-            } catch (_) {}
-            showPlanUpdateBarIfPending();
         }
 
         function initPlanUpdateButton() {
@@ -4532,9 +4515,6 @@
                 loadDietData();
             }
             showPlanUpdateBarIfPending();
-            if (document.documentElement.getAttribute('data-embedded-tab') !== '1') {
-                runDailyPlanSyncIfDue();
-            }
             if (window.NutriPlanDiagnostics) {
                 window.NutriPlanDiagnostics.ok('plan', 'init-dom-features-ready', 'Initial load requested');
             }
@@ -5617,7 +5597,6 @@
             }
             consumePendingPlanUiAction();
             if (typeof checkOpenAppPrompts === 'function') checkOpenAppPrompts();
-            showPlanUpdateBarIfPending();
         });
 
         window.addEventListener('NUTRIPLAN_PLAN_UPDATE_PENDING', function() {
@@ -5660,7 +5639,6 @@
                     window.GameNotifier.refreshConfig().catch(function() {});
                 }
                 if (typeof checkOpenAppPrompts === 'function') checkOpenAppPrompts();
-                showPlanUpdateBarIfPending();
             }
         });
         window.addEventListener('pagehide', function() {
