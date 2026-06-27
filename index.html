@@ -2800,16 +2800,7 @@
             if (!localStorage.getItem('dietPlan') && localStorage.getItem('userData')) {
                 return 'plan-pending.html';
             }
-            var hasPlan = false;
-            try {
-                var plan = JSON.parse(localStorage.getItem('dietPlan') || 'null');
-                hasPlan = window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.planHasRenderableMeals === 'function'
-                    ? window.NutriPlanPlanSync.planHasRenderableMeals(plan)
-                    : !!localStorage.getItem('dietPlan');
-            } catch (_) {
-                hasPlan = !!localStorage.getItem('dietPlan');
-            }
-            return hasPlan ? 'index.html?app=1&tab=plan' : 'questionnaire2.html';
+            return localStorage.getItem('dietPlan') ? 'index.html?app=1&tab=plan' : 'questionnaire2.html';
         }
 
         function normalizeShellTarget(target) {
@@ -4196,11 +4187,7 @@
             const fbUserId = 'fb_' + user.uid;
 
             const existingPlan = localStorage.getItem('dietPlan');
-            const planSync = window.NutriPlanPlanSync;
-            const consumedLoginFetch = planSync && typeof planSync.consumePlanFetchOnNextAuth === 'function'
-                ? planSync.consumePlanFetchOnNextAuth()
-                : false;
-            const loginFetch = _loginInProgress || consumedLoginFetch;
+            const loginFetch = _loginInProgress;
             const missingPlan = !existingPlan && !localStorage.getItem('planJobId');
             const restoreOpts = {
                 email: (user && user.email) || undefined,
@@ -4381,9 +4368,6 @@
             loginClearMessages();
             if (btn) btn.disabled = true;
             _loginInProgress = true;
-            if (window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.markPlanFetchOnNextAuth === 'function') {
-                window.NutriPlanPlanSync.markPlanFetchOnNextAuth();
-            }
             try {
                 await signInWithEmailAndPassword(auth, email, password);
             } catch (err) {
