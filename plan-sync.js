@@ -6,7 +6,6 @@
 
     var WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
     var LOCAL_PLAN_AT_KEY = 'planUpdatedAt';
-    var LOGIN_FETCH_FLAG = 'np_fetch_plan_on_next_auth';
     var PLAN_UPDATE_PENDING_KEY = 'np_plan_refresh_pending';
     var _pendingBridgeBound = false;
 
@@ -19,22 +18,6 @@
 
     function markPlanSavedLocally(planUpdatedAt) {
         setLocalPlanUpdatedAt(planUpdatedAt || new Date().toISOString());
-    }
-
-    function markPlanFetchOnNextAuth() {
-        try {
-            localStorage.setItem(LOGIN_FETCH_FLAG, '1');
-        } catch (_) {}
-    }
-
-    function consumePlanFetchOnNextAuth() {
-        try {
-            var pending = localStorage.getItem(LOGIN_FETCH_FLAG) === '1';
-            if (pending) localStorage.removeItem(LOGIN_FETCH_FLAG);
-            return pending;
-        } catch (_) {
-            return false;
-        }
     }
 
     function markPlanUpdatePending(planUpdatedAt) {
@@ -60,14 +43,6 @@
         } catch (_) {
             return false;
         }
-    }
-
-    function planHasRenderableMeals(plan) {
-        if (!plan || !plan.weekPlan || typeof plan.weekPlan !== 'object') return false;
-        return Object.keys(plan.weekPlan).some(function (key) {
-            var day = plan.weekPlan[key];
-            return day && Array.isArray(day.meals) && day.meals.length > 0;
-        });
     }
 
     function bindPlanUpdatePendingBridge() {
@@ -98,14 +73,8 @@
 
         var updated = false;
         if (data.plan) {
-            var localPlan = null;
-            try { localPlan = JSON.parse(localStorage.getItem('dietPlan') || 'null'); } catch (_) {}
-            var serverOk = planHasRenderableMeals(data.plan);
-            var localOk = planHasRenderableMeals(localPlan);
-            if (serverOk || !localOk) {
-                localStorage.setItem('dietPlan', JSON.stringify(data.plan));
-                updated = true;
-            }
+            localStorage.setItem('dietPlan', JSON.stringify(data.plan));
+            updated = true;
         }
         if (data.userData) {
             localStorage.setItem('userData', JSON.stringify(data.userData));
@@ -498,11 +467,8 @@
     global.NutriPlanPlanSync = {
         WORKER_URL: WORKER_URL,
         LOCAL_PLAN_AT_KEY: LOCAL_PLAN_AT_KEY,
-        LOGIN_FETCH_FLAG: LOGIN_FETCH_FLAG,
         setLocalPlanUpdatedAt: setLocalPlanUpdatedAt,
         markPlanSavedLocally: markPlanSavedLocally,
-        markPlanFetchOnNextAuth: markPlanFetchOnNextAuth,
-        consumePlanFetchOnNextAuth: consumePlanFetchOnNextAuth,
         applyServerPlanData: applyServerPlanData,
         refreshUidCookie: refreshUidCookie,
         fetchPlanOnLogin: fetchPlanOnLogin,
@@ -519,7 +485,6 @@
         markPlanUpdatePending: markPlanUpdatePending,
         clearPlanUpdatePending: clearPlanUpdatePending,
         hasPlanUpdatePending: hasPlanUpdatePending,
-        planHasRenderableMeals: planHasRenderableMeals,
         pullServerPlanIfNewer: pullServerPlanIfNewer
     };
 

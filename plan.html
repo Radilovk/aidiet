@@ -3609,9 +3609,6 @@
                     if (!pw || pw.length < 6) { showAuthError('Паролата трябва да е поне 6 символа.'); return; }
                     this.disabled = true;
                     try {
-                        if (window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.markPlanFetchOnNextAuth === 'function') {
-                            window.NutriPlanPlanSync.markPlanFetchOnNextAuth();
-                        }
                         await signInWithEmailAndPassword(auth, email, pw);
                         /* onAuthStateChanged → hideOverlay */
                     } catch (err) {
@@ -3688,9 +3685,6 @@
                     if (!pw || pw.length < 6) { showAuthError('Паролата трябва да е поне 6 символа.'); return; }
                     this.disabled = true;
                     try {
-                        if (window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.markPlanFetchOnNextAuth === 'function') {
-                            window.NutriPlanPlanSync.markPlanFetchOnNextAuth();
-                        }
                         await signInWithEmailAndPassword(auth, em, pw);
                     } catch (err) {
                         console.error('Login error:', err.code, err.message);
@@ -3776,14 +3770,14 @@
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                try {
-                    if (window.NutriPlanSession && typeof window.NutriPlanSession.ensureAuthenticatedUser === 'function') {
-                        await window.NutriPlanSession.ensureAuthenticatedUser(user);
-                    }
-                    syncUser(user);
+                if (window.NutriPlanSession && typeof window.NutriPlanSession.ensureAuthenticatedUser === 'function') {
+                    await window.NutriPlanSession.ensureAuthenticatedUser(user);
+                }
+                syncUser(user);
+                const embedded = document.documentElement.getAttribute('data-embedded-tab') === '1';
+                if (!embedded) {
                     const fbUserId = 'fb_' + user.uid;
                     const planSync = window.NutriPlanPlanSync;
-                    const loginFetch = planSync && planSync.consumePlanFetchOnNextAuth();
                     const restoreOpts = {
                         email: (user && user.email) || undefined,
                         getIdToken: user ? () => user.getIdToken() : undefined,
@@ -3815,23 +3809,9 @@
                         navigateTopLevel('questionnaire2.html', true);
                         return;
                     }
-                    if (loginFetch && planSync && typeof planSync.restoreUserPlanFromServer === 'function' &&
-                            !localStorage.getItem('dietPlan')) {
-                        const loaded = await planSync.restoreUserPlanFromServer(fbUserId, restoreOpts);
-                        if (loaded && typeof window.loadDietData === 'function') {
-                            window.loadDietData();
-                        }
-                    }
-                    hideOverlay();
-                    resolvePlanAuth(user);
-                    if (localStorage.getItem('dietPlan') && typeof window.loadDietData === 'function') {
-                        window.loadDietData();
-                    }
-                } catch (e) {
-                    console.error('[plan-auth] post-login flow failed:', e);
-                    showAuthError('Грешка при зареждане на профила. Опитайте отново.');
-                    resolvePlanAuth(user);
                 }
+                hideOverlay();
+                resolvePlanAuth(user);
             } else {
                 showAuthForm();
                 resolvePlanAuth(null);
@@ -4441,10 +4421,6 @@
             btn.dataset.bound = '1';
             bar.hidden = false;
 
-            window.addEventListener('NUTRIPLAN_PLAN_UPDATE_PENDING', function () {
-                if (sync.hasPlanUpdatePending()) bar.hidden = false;
-            });
-
             function buildPlanUpdateOpts() {
                 const opts = {};
                 if (uid.startsWith('fb_') && window.__npPlanAuth && window.__npPlanAuth.currentUser) {
@@ -4828,12 +4804,7 @@
                 // Render initial data – use the day already set by the inline script
                 // This prevents flashing from Monday to the actual current day
                 const initialDateKey = window._initialPlanDateKey || todayDateKey();
-                let initialDay = dateKeyToPlanDay(initialDateKey);
-                const initialDayKey = `day${initialDay}`;
-                if (!dietPlan.weekPlan[initialDayKey] || !Array.isArray(dietPlan.weekPlan[initialDayKey].meals) ||
-                        !dietPlan.weekPlan[initialDayKey].meals.length) {
-                    initialDay = getTodayPlanDay();
-                }
+                const initialDay = dateKeyToPlanDay(initialDateKey);
                 selectDay(initialDay, null, initialDateKey);
                 
                 // REQUIREMENT 3: Display plan justification

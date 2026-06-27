@@ -278,9 +278,6 @@
     }
 
     async function clearAuthSessionKeepingAnalytics() {
-        if (global.NutriPlanPlanSync && typeof global.NutriPlanPlanSync.markPlanFetchOnNextAuth === 'function') {
-            global.NutriPlanPlanSync.markPlanFetchOnNextAuth();
-        }
         return clearUserSessionData({
             preserveKeys: getAnalyticsPreserveKeys(),
             preserveDynamicPrefixes: ANALYTICS_DYNAMIC_PREFIXES.slice()
@@ -306,9 +303,6 @@
         } catch (_) {}
 
         var switched = !!(previousOwner && previousOwner !== nextUserId && existingUserId !== nextUserId);
-        if (existingUserId === nextUserId) {
-            switched = false;
-        }
         if (switched) {
             if (global.NutriPlanDiagnostics) {
                 global.NutriPlanDiagnostics.info('session', 'owner-switch-detected', 'Clearing previous session state');
