@@ -306,6 +306,9 @@
         } catch (_) {}
 
         var switched = !!(previousOwner && previousOwner !== nextUserId && existingUserId !== nextUserId);
+        if (existingUserId === nextUserId) {
+            switched = false;
+        }
         if (switched) {
             if (global.NutriPlanDiagnostics) {
                 global.NutriPlanDiagnostics.info('session', 'owner-switch-detected', 'Clearing previous session state');

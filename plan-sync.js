@@ -62,6 +62,14 @@
         }
     }
 
+    function planHasRenderableMeals(plan) {
+        if (!plan || !plan.weekPlan || typeof plan.weekPlan !== 'object') return false;
+        return Object.keys(plan.weekPlan).some(function (key) {
+            var day = plan.weekPlan[key];
+            return day && Array.isArray(day.meals) && day.meals.length > 0;
+        });
+    }
+
     function bindPlanUpdatePendingBridge() {
         if (_pendingBridgeBound) return;
         _pendingBridgeBound = true;
@@ -90,8 +98,14 @@
 
         var updated = false;
         if (data.plan) {
-            localStorage.setItem('dietPlan', JSON.stringify(data.plan));
-            updated = true;
+            var localPlan = null;
+            try { localPlan = JSON.parse(localStorage.getItem('dietPlan') || 'null'); } catch (_) {}
+            var serverOk = planHasRenderableMeals(data.plan);
+            var localOk = planHasRenderableMeals(localPlan);
+            if (serverOk || !localOk) {
+                localStorage.setItem('dietPlan', JSON.stringify(data.plan));
+                updated = true;
+            }
         }
         if (data.userData) {
             localStorage.setItem('userData', JSON.stringify(data.userData));
@@ -504,6 +518,7 @@
         markPlanUpdatePending: markPlanUpdatePending,
         clearPlanUpdatePending: clearPlanUpdatePending,
         hasPlanUpdatePending: hasPlanUpdatePending,
+        planHasRenderableMeals: planHasRenderableMeals,
         pullServerPlanIfNewer: pullServerPlanIfNewer
     };
 

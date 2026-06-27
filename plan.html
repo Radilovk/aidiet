@@ -3801,7 +3801,8 @@
                     navigateTopLevel('questionnaire2.html', true);
                     return;
                 }
-                if (loginFetch && planSync && typeof planSync.restoreUserPlanFromServer === 'function') {
+                if (loginFetch && planSync && typeof planSync.restoreUserPlanFromServer === 'function' &&
+                        !localStorage.getItem('dietPlan')) {
                     const loaded = await planSync.restoreUserPlanFromServer(fbUserId, restoreOpts);
                     if (loaded && typeof window.loadDietData === 'function') {
                         window.loadDietData();
@@ -3809,6 +3810,9 @@
                 }
                 hideOverlay();
                 resolvePlanAuth(user);
+                if (localStorage.getItem('dietPlan') && typeof window.loadDietData === 'function') {
+                    window.loadDietData();
+                }
             } else {
                 /* Embedded APK tab: Firebase often reports null (separate WebView IndexedDB).
                  * Parent shell already authenticated; trust localStorage session + plan. */
@@ -4483,13 +4487,18 @@
                 window.history.replaceState({}, '', window.location.pathname);
                 return;
             }
-            if (window.NutriPlanPlanAuthReady) {
-                try { await window.NutriPlanPlanAuthReady; } catch (_) {}
-            }
             if (typeof NativeBackup !== 'undefined') {
                 await NativeBackup.init().catch(() => {});
             }
-            loadDietData();
+            const hasCachedPlan = !!localStorage.getItem('dietPlan');
+            if (hasCachedPlan) {
+                loadDietData();
+            } else if (window.NutriPlanPlanAuthReady) {
+                try { await window.NutriPlanPlanAuthReady; } catch (_) {}
+                loadDietData();
+            } else {
+                loadDietData();
+            }
             initPlanUpdateButton();
             if (window.NutriPlanDiagnostics) {
                 window.NutriPlanDiagnostics.ok('plan', 'init-dom-features-ready', 'Initial load requested');
