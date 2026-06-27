@@ -71,6 +71,7 @@
         'pendingPlanUiAction',
         'pushSubscribed',
         'sessionOwnerId',
+        'np_plan_refresh_pending',
         'demoFoodPickerPlanCount',
         'demoProfileRegenCount'
     ];
@@ -217,13 +218,9 @@
         var prefs = getPreferencesPlugin();
         if (!prefs) return true;
 
-        var prefRemoves = Promise.all(uniqueKeys.map(function (key) {
-            return removePreferenceKey(prefs, key);
-        }));
-        await Promise.race([
-            prefRemoves,
-            new Promise(function (resolve) { setTimeout(resolve, 1500); })
-        ]);
+        uniqueKeys.forEach(function (key) {
+            removePreferenceKey(prefs, key);
+        });
         return true;
     }
 
@@ -249,21 +246,22 @@
         allKeys.forEach(removeLocalKey);
 
         var prefs = getPreferencesPlugin();
-        if (!prefs) return true;
-
-        var preferenceDynamicKeys = await getDynamicKeysFromPreferences(prefs);
-        var preferenceKeys = unique(allKeys.concat(
-            preferenceDynamicKeys.filter(function (key) {
-                return !preserveDynamicPrefixes.some(function (prefix) {
-                    return key.indexOf(prefix) === 0;
+        if (prefs) {
+            allKeys.forEach(function (key) {
+                removePreferenceKey(prefs, key);
+            });
+            getDynamicKeysFromPreferences(prefs).then(function (preferenceDynamicKeys) {
+                preferenceDynamicKeys.filter(function (key) {
+                    return !preserveDynamicPrefixes.some(function (prefix) {
+                        return key.indexOf(prefix) === 0;
+                    });
+                }).forEach(function (key) {
+                    removePreferenceKey(prefs, key);
                 });
-            })
-        ));
-        await Promise.all(preferenceKeys.map(function (key) {
-            return removePreferenceKey(prefs, key);
-        }));
+            }).catch(function () {});
+        }
         if (global.NutriPlanDiagnostics) {
-            global.NutriPlanDiagnostics.ok('session', 'clear-user-session-done', preferenceKeys.length + ' keys');
+            global.NutriPlanDiagnostics.ok('session', 'clear-user-session-done', allKeys.length + ' keys');
         }
         return true;
     }

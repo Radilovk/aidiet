@@ -7,6 +7,8 @@
     var WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
     var LOCAL_PLAN_AT_KEY = 'planUpdatedAt';
     var LOGIN_FETCH_FLAG = 'np_fetch_plan_on_next_auth';
+    var PLAN_UPDATE_PENDING_KEY = 'np_plan_refresh_pending';
+    var _pendingBridgeBound = false;
 
     function setLocalPlanUpdatedAt(ts) {
         if (!ts) return;
@@ -33,6 +35,51 @@
         } catch (_) {
             return false;
         }
+    }
+
+    function markPlanUpdatePending(planUpdatedAt) {
+        try {
+            localStorage.setItem(PLAN_UPDATE_PENDING_KEY, planUpdatedAt || '1');
+        } catch (_) {}
+        try {
+            global.dispatchEvent(new CustomEvent('NUTRIPLAN_PLAN_UPDATE_PENDING', {
+                detail: { planUpdatedAt: planUpdatedAt || '' }
+            }));
+        } catch (_) {}
+    }
+
+    function clearPlanUpdatePending() {
+        try {
+            localStorage.removeItem(PLAN_UPDATE_PENDING_KEY);
+        } catch (_) {}
+    }
+
+    function hasPlanUpdatePending() {
+        try {
+            return !!localStorage.getItem(PLAN_UPDATE_PENDING_KEY);
+        } catch (_) {
+            return false;
+        }
+    }
+
+    function bindPlanUpdatePendingBridge() {
+        if (_pendingBridgeBound) return;
+        _pendingBridgeBound = true;
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.addEventListener('message', function (event) {
+                var msg = event.data;
+                if (!msg) return;
+                if (msg.type === 'NUTRIPLAN_PLAN_UPDATE_PENDING' || msg.type === 'NUTRIPLAN_PLAN_UPDATED') {
+                    markPlanUpdatePending(msg.planUpdatedAt || '');
+                }
+            });
+        }
+
+        global.addEventListener('NUTRIPLAN_PLAN_UPDATE_PENDING', function (event) {
+            var detail = event && event.detail ? event.detail : {};
+            markPlanUpdatePending(detail.planUpdatedAt || '');
+        });
     }
 
     function resolveCandidateEmail(options) {
@@ -123,7 +170,7 @@
 
     async function fetchPlanOnLogin(userId, options) {
         options = options || {};
-        if (options.clearLocalPlan !== false &&
+        if (options.clearLocalPlan === true &&
             global.NutriPlanSession &&
             typeof global.NutriPlanSession.clearPlanSessionData === 'function') {
             await global.NutriPlanSession.clearPlanSessionData();
@@ -399,30 +446,6 @@
         }
     }
 
-    function comparePlanUpdatedAt(localAt, serverAt) {
-        if (!serverAt) return { hasUpdate: false, reason: 'no-server-ts' };
-        if (!localAt) return { hasUpdate: true, reason: 'no-local-ts' };
-        if (serverAt > localAt) return { hasUpdate: true, reason: 'newer' };
-        return { hasUpdate: false, reason: 'current' };
-    }
-
-    async function checkServerPlanNewer(userId, options) {
-        options = options || {};
-        if (!userId) return { hasUpdate: false, reason: 'no-user' };
-        var localAt = '';
-        try { localAt = localStorage.getItem(LOCAL_PLAN_AT_KEY) || ''; } catch (_) {}
-        var data = await fetchUserProfile(userId, options);
-        if (!data || !data.found || !data.plan) {
-            return { hasUpdate: false, reason: 'no-plan' };
-        }
-        var cmp = comparePlanUpdatedAt(localAt, data.planUpdatedAt || '');
-        return {
-            hasUpdate: cmp.hasUpdate,
-            reason: cmp.reason,
-            data: data
-        };
-    }
-
     async function pullServerPlanIfNewer(userId, options) {
         options = options || {};
         if (!userId) return { updated: false, reason: 'no-user' };
@@ -434,10 +457,12 @@
         }
         var serverAt = data.planUpdatedAt || '';
         if (localAt && serverAt && serverAt <= localAt) {
+            clearPlanUpdatePending();
             return { updated: false, reason: 'current' };
         }
         applyServerPlanData(data, userId);
         refreshUidCookie(userId);
+        clearPlanUpdatePending();
         return { updated: true, data: data };
     }
 
@@ -453,6 +478,7 @@
             var userId = data.userId || '';
             applyServerPlanData(data, userId);
             refreshUidCookie(userId);
+            clearPlanUpdatePending();
             if (global.NutriPlanDiagnostics) {
                 global.NutriPlanDiagnostics.ok('plan-sync', 'claim-token', 'plan applied');
             }
@@ -483,7 +509,12 @@
         saveUserProfile: saveUserProfile,
         syncPendingPlanActivation: syncPendingPlanActivation,
         claimPlanFromToken: claimPlanFromToken,
-        checkServerPlanNewer: checkServerPlanNewer,
+        markPlanUpdatePending: markPlanUpdatePending,
+        clearPlanUpdatePending: clearPlanUpdatePending,
+        hasPlanUpdatePending: hasPlanUpdatePending,
+        bindPlanUpdatePendingBridge: bindPlanUpdatePendingBridge,
         pullServerPlanIfNewer: pullServerPlanIfNewer
     };
+
+    bindPlanUpdatePendingBridge();
 }(window));

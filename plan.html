@@ -3783,7 +3783,8 @@
                     const loginFetch = planSync && planSync.consumePlanFetchOnNextAuth();
                     const restoreOpts = {
                         email: (user && user.email) || undefined,
-                        getIdToken: user ? () => user.getIdToken() : undefined
+                        getIdToken: user ? () => user.getIdToken() : undefined,
+                        clearLocalPlan: false
                     };
                     const _planRestoreKey = 'pageInitialised';
                     if (!localStorage.getItem('dietPlan') && !localStorage.getItem('planJobId')) {
@@ -4428,8 +4429,10 @@
             if (!bar || !btn || btn.dataset.bound === '1') return;
             const uid = localStorage.getItem('userId');
             if (!uid) return;
-            if (!window.NutriPlanPlanSync || typeof window.NutriPlanPlanSync.checkServerPlanNewer !== 'function') return;
+            const sync = window.NutriPlanPlanSync;
+            if (!sync || typeof sync.hasPlanUpdatePending !== 'function' || !sync.hasPlanUpdatePending()) return;
             btn.dataset.bound = '1';
+            bar.hidden = false;
 
             function buildPlanUpdateOpts() {
                 const opts = {};
@@ -4441,15 +4444,18 @@
 
             function hidePlanUpdateBar() {
                 bar.hidden = true;
+                if (sync && typeof sync.clearPlanUpdatePending === 'function') {
+                    sync.clearPlanUpdatePending();
+                }
             }
 
             btn.addEventListener('click', async function () {
-                if (!window.NutriPlanPlanSync || typeof window.NutriPlanPlanSync.pullServerPlanIfNewer !== 'function') return;
+                if (!sync || typeof sync.pullServerPlanIfNewer !== 'function') return;
                 btn.disabled = true;
                 const original = btn.textContent;
                 btn.textContent = '…';
                 try {
-                    const result = await window.NutriPlanPlanSync.pullServerPlanIfNewer(uid, buildPlanUpdateOpts());
+                    const result = await sync.pullServerPlanIfNewer(uid, buildPlanUpdateOpts());
                     if (result.updated) {
                         if (typeof loadDietData === 'function') loadDietData();
                         hidePlanUpdateBar();
@@ -4470,14 +4476,11 @@
                 }
             });
 
-            (async function () {
-                try {
-                    const pending = await window.NutriPlanPlanSync.checkServerPlanNewer(uid, buildPlanUpdateOpts());
-                    if (pending && pending.hasUpdate) {
-                        bar.hidden = false;
-                    }
-                } catch (_) {}
-            })();
+            window.addEventListener('NUTRIPLAN_PLAN_UPDATE_PENDING', function () {
+                if (sync && sync.hasPlanUpdatePending && sync.hasPlanUpdatePending()) {
+                    bar.hidden = false;
+                }
+            });
         }
 
         async function initializeDOMDependentFeatures() {

@@ -4027,8 +4027,7 @@
                    placeholder="вашия@имейл.com" autocomplete="email" inputmode="email">
             <input id="loginPasswordInput" type="password" class="login-modal-email-input login-modal-form-input"
                    placeholder="Парола" autocomplete="current-password">
-            <button class="login-modal-primary-btn" id="loginPasswordBtn"
-                    onclick="window.indexLoginWithPassword()">Вход</button>
+            <button class="login-modal-primary-btn" id="loginPasswordBtn">Вход</button>
 
             <br>
             <button class="login-modal-forgot" id="loginForgotBtn"
@@ -4239,12 +4238,18 @@
                 const planSync = window.NutriPlanPlanSync;
                 const restoreOpts = {
                     email: (user && user.email) || undefined,
-                    getIdToken: user ? () => user.getIdToken() : undefined
+                    getIdToken: user ? () => user.getIdToken() : undefined,
+                    clearLocalPlan: false
                 };
+                const shouldRedirect = _loginInProgress ||
+                    new URLSearchParams(window.location.search).has('login');
 
                 if (planSync && typeof planSync.restoreUserPlanFromServer === 'function') {
                     if (loginFetch || missingPlan) {
-                        await planSync.restoreUserPlanFromServer(fbUserId, restoreOpts);
+                        await Promise.race([
+                            planSync.restoreUserPlanFromServer(fbUserId, restoreOpts),
+                            new Promise(function (resolve) { setTimeout(resolve, 10000); })
+                        ]);
                     } else if (existingPlan) {
                         const syncNeeded =
                             (prevUserId && !prevUserId.startsWith('fb_')) ||
@@ -4257,7 +4262,7 @@
 
                 if (_indexAuthResolve) { _indexAuthResolve(user); _indexAuthResolve = null; }
 
-                if (_loginInProgress || new URLSearchParams(window.location.search).has('login')) {
+                if (shouldRedirect) {
                     _loginInProgress = false;
                     redirectAfterLogin();
                 }
