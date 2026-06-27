@@ -3810,9 +3810,6 @@
                 }
                 hideOverlay();
                 resolvePlanAuth(user);
-                if (localStorage.getItem('dietPlan') && typeof window.loadDietData === 'function') {
-                    window.loadDietData();
-                }
             } else {
                 /* Embedded APK tab: Firebase often reports null (separate WebView IndexedDB).
                  * Parent shell already authenticated; trust localStorage session + plan. */
@@ -4420,6 +4417,38 @@
         })();
         
         // --- DOM-Dependent Initialization ---
+        function showPlanUpdateBarIfPending() {
+            const bar = document.getElementById('planUpdateBar');
+            const sync = window.NutriPlanPlanSync;
+            if (!bar || !sync || typeof sync.hasPlanUpdatePending !== 'function') return;
+            if (!sync.hasPlanUpdatePending()) {
+                bar.hidden = true;
+                return;
+            }
+            bar.hidden = false;
+            initPlanUpdateButton();
+        }
+
+        async function handlePlanUpdateActivation(force) {
+            const sync = window.NutriPlanPlanSync;
+            const uid = localStorage.getItem('userId') || '';
+            if (!sync || typeof sync.applyPlanUpdateOnResume !== 'function' || !uid.startsWith('fb_')) {
+                showPlanUpdateBarIfPending();
+                return;
+            }
+            const opts = { force: !!force };
+            if (window.__npPlanAuth && window.__npPlanAuth.currentUser) {
+                opts.getIdToken = () => window.__npPlanAuth.currentUser.getIdToken();
+            }
+            try {
+                const result = await sync.applyPlanUpdateOnResume(uid, opts);
+                if (result.updated && typeof loadDietData === 'function') {
+                    loadDietData({ force: true });
+                }
+            } catch (_) {}
+            showPlanUpdateBarIfPending();
+        }
+
         function initPlanUpdateButton() {
             const bar = document.getElementById('planUpdateBar');
             const btn = document.getElementById('planUpdateBtn');
@@ -4487,19 +4516,25 @@
                 window.history.replaceState({}, '', window.location.pathname);
                 return;
             }
-            if (typeof NativeBackup !== 'undefined') {
-                await NativeBackup.init().catch(() => {});
-            }
             const hasCachedPlan = !!localStorage.getItem('dietPlan');
             if (hasCachedPlan) {
                 loadDietData();
-            } else if (window.NutriPlanPlanAuthReady) {
-                try { await window.NutriPlanPlanAuthReady; } catch (_) {}
-                loadDietData();
+                if (typeof NativeBackup !== 'undefined') {
+                    NativeBackup.init().catch(() => {});
+                }
             } else {
+                if (typeof NativeBackup !== 'undefined') {
+                    await NativeBackup.init().catch(() => {});
+                }
+                if (window.NutriPlanPlanAuthReady) {
+                    try { await window.NutriPlanPlanAuthReady; } catch (_) {}
+                }
                 loadDietData();
             }
-            initPlanUpdateButton();
+            showPlanUpdateBarIfPending();
+            if (document.documentElement.getAttribute('data-embedded-tab') !== '1') {
+                handlePlanUpdateActivation(false);
+            }
             if (window.NutriPlanDiagnostics) {
                 window.NutriPlanDiagnostics.ok('plan', 'init-dom-features-ready', 'Initial load requested');
             }
@@ -4734,8 +4769,10 @@
         // --- Load Diet Data ---
         // Guard flag to prevent re-entry after backend restore
         let _loadDietDataCalled = false;
+        let _planRenderedSig = '';
 
-        function loadDietData() {
+        function loadDietData(options) {
+            options = options || {};
             try {
                 // Guard: plan submitted via questionnaire2 must wait for admin approval
                 if (localStorage.getItem('planSource') === 'questionnaire2') {
@@ -4810,6 +4847,12 @@
                 if (!hasDays) {
                     throw new Error('No meal data found in plan');
                 }
+
+                const renderSig = (localStorage.getItem('planUpdatedAt') || planData.length) + ':' + userId;
+                if (!options.force && _planRenderedSig === renderSig) {
+                    return;
+                }
+                _planRenderedSig = renderSig;
                 
                 // Update greeting — no longer a banner; kept for future use only
                 // (greetingName element removed from DOM)
@@ -5574,6 +5617,21 @@
             }
             consumePendingPlanUiAction();
             if (typeof checkOpenAppPrompts === 'function') checkOpenAppPrompts();
+            if (document.documentElement.getAttribute('data-embedded-tab') !== '1') {
+                handlePlanUpdateActivation(true);
+            }
+            showPlanUpdateBarIfPending();
+        });
+
+        window.addEventListener('NUTRIPLAN_PLAN_UPDATE_PENDING', function() {
+            showPlanUpdateBarIfPending();
+            handlePlanUpdateActivation(true);
+        });
+
+        window.addEventListener('storage', function(event) {
+            if (event.key === 'np_plan_refresh_pending') {
+                showPlanUpdateBarIfPending();
+            }
         });
 
         window.addEventListener('NUTRIPLAN_SHELL_CHAT_OPEN', function() {
@@ -5606,6 +5664,11 @@
                     window.GameNotifier.refreshConfig().catch(function() {});
                 }
                 if (typeof checkOpenAppPrompts === 'function') checkOpenAppPrompts();
+                if (document.documentElement.getAttribute('data-embedded-tab') !== '1') {
+                    handlePlanUpdateActivation(false);
+                } else {
+                    showPlanUpdateBarIfPending();
+                }
             }
         });
         window.addEventListener('pagehide', function() {
