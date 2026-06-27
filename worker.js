@@ -14884,7 +14884,8 @@ async function handleCheckAccountEmail(request, env) {
 
 /**
  * Lightweight plan version probe — returns only planUpdatedAt (no full plan payload).
- * Used by APK/PWA to detect admin updates with a single tiny request on resume/tab.
+ * Optional ?v=localPlanUpdatedAt skips work when client is already current.
+ * Clients call at most once per calendar day on first app open.
  *
  * GET /api/user/plan-version?userId=fb_xxx
  */
@@ -14920,10 +14921,13 @@ async function handleGetPlanVersion(request, env) {
       return jsonResponse({ found: false }, 404);
     }
 
-    return jsonResponse({
-      found: true,
-      planUpdatedAt: getEffectivePlanUpdatedAt(profile)
-    });
+    const planUpdatedAt = getEffectivePlanUpdatedAt(profile);
+    const clientVersion = (url.searchParams.get('v') || '').trim();
+    if (clientVersion && planUpdatedAt && clientVersion >= planUpdatedAt) {
+      return jsonResponse({ found: true, upToDate: true, planUpdatedAt });
+    }
+
+    return jsonResponse({ found: true, planUpdatedAt });
   } catch (error) {
     console.error('Error getting plan version:', error);
     return jsonResponse({ error: 'Failed to get plan version: ' + error.message }, 500);
