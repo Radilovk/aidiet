@@ -4437,6 +4437,10 @@
             btn.dataset.bound = '1';
             bar.hidden = false;
 
+            window.addEventListener('NUTRIPLAN_PLAN_UPDATE_PENDING', function () {
+                if (sync.hasPlanUpdatePending()) bar.hidden = false;
+            });
+
             function buildPlanUpdateOpts() {
                 const opts = {};
                 if (uid.startsWith('fb_') && window.__npPlanAuth && window.__npPlanAuth.currentUser) {

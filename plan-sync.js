@@ -69,17 +69,10 @@
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.addEventListener('message', function (event) {
                 var msg = event.data;
-                if (!msg) return;
-                if (msg.type === 'NUTRIPLAN_PLAN_UPDATE_PENDING' || msg.type === 'NUTRIPLAN_PLAN_UPDATED') {
-                    markPlanUpdatePending(msg.planUpdatedAt || '');
-                }
+                if (!msg || msg.type !== 'NUTRIPLAN_PLAN_UPDATE_PENDING') return;
+                markPlanUpdatePending(msg.planUpdatedAt || '');
             });
         }
-
-        global.addEventListener('NUTRIPLAN_PLAN_UPDATE_PENDING', function (event) {
-            var detail = event && event.detail ? event.detail : {};
-            markPlanUpdatePending(detail.planUpdatedAt || '');
-        });
     }
 
     function resolveCandidateEmail(options) {
@@ -512,7 +505,6 @@
         markPlanUpdatePending: markPlanUpdatePending,
         clearPlanUpdatePending: clearPlanUpdatePending,
         hasPlanUpdatePending: hasPlanUpdatePending,
-        bindPlanUpdatePendingBridge: bindPlanUpdatePendingBridge,
         pullServerPlanIfNewer: pullServerPlanIfNewer
     };
 
