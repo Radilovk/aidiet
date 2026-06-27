@@ -3815,7 +3815,8 @@
                         navigateTopLevel('questionnaire2.html', true);
                         return;
                     }
-                    if (loginFetch && planSync && typeof planSync.restoreUserPlanFromServer === 'function') {
+                    if (loginFetch && planSync && typeof planSync.restoreUserPlanFromServer === 'function' &&
+                            !localStorage.getItem('dietPlan')) {
                         const loaded = await planSync.restoreUserPlanFromServer(fbUserId, restoreOpts);
                         if (loaded && typeof window.loadDietData === 'function') {
                             window.loadDietData();
@@ -3823,6 +3824,9 @@
                     }
                     hideOverlay();
                     resolvePlanAuth(user);
+                    if (localStorage.getItem('dietPlan') && typeof window.loadDietData === 'function') {
+                        window.loadDietData();
+                    }
                 } catch (e) {
                     console.error('[plan-auth] post-login flow failed:', e);
                     showAuthError('Грешка при зареждане на профила. Опитайте отново.');
@@ -4824,7 +4828,12 @@
                 // Render initial data – use the day already set by the inline script
                 // This prevents flashing from Monday to the actual current day
                 const initialDateKey = window._initialPlanDateKey || todayDateKey();
-                const initialDay = dateKeyToPlanDay(initialDateKey);
+                let initialDay = dateKeyToPlanDay(initialDateKey);
+                const initialDayKey = `day${initialDay}`;
+                if (!dietPlan.weekPlan[initialDayKey] || !Array.isArray(dietPlan.weekPlan[initialDayKey].meals) ||
+                        !dietPlan.weekPlan[initialDayKey].meals.length) {
+                    initialDay = getTodayPlanDay();
+                }
                 selectDay(initialDay, null, initialDateKey);
                 
                 // REQUIREMENT 3: Display plan justification
