@@ -407,7 +407,17 @@
         if (!('serviceWorker' in navigator)) return;
         navigator.serviceWorker.addEventListener('message', function (event) {
             var msg = event.data;
-            if (!msg || msg.type !== 'NOTIFICATION_ACTION') return;
+            if (!msg) return;
+            if (msg.type === 'NUTRIPLAN_PLAN_UPDATE_PENDING') {
+                if (window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.markPlanUpdatePending === 'function') {
+                    window.NutriPlanPlanSync.markPlanUpdatePending(msg.planUpdatedAt || '');
+                }
+                if (params.has('app')) {
+                    switchTab('plan', true);
+                }
+                return;
+            }
+            if (msg.type !== 'NOTIFICATION_ACTION') return;
             var payload = {
                 notificationType: msg.notificationType || '',
                 action: msg.action || '',
@@ -418,6 +428,15 @@
                 return;
             }
             if (msg.openApp || !payload.action) {
+                if (payload.notificationType === 'plan_updated') {
+                    if (window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.markPlanUpdatePending === 'function') {
+                        window.NutriPlanPlanSync.markPlanUpdatePending(msg.planUpdatedAt || '');
+                    }
+                    if (params.has('app')) {
+                        switchTab('plan', true);
+                    }
+                    return;
+                }
                 openQuickAnswerFromNotification(payload);
             }
         });
@@ -714,6 +733,13 @@
         }
         if (data.type === 'NUTRIPLAN_SWITCH_TAB') {
             if (data.tab) switchTab(data.tab, true);
+            return;
+        }
+        if (data.type === 'NUTRIPLAN_PLAN_UPDATE_PENDING') {
+            if (window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.markPlanUpdatePending === 'function') {
+                window.NutriPlanPlanSync.markPlanUpdatePending(data.planUpdatedAt || '');
+            }
+            switchTab('plan', true);
             return;
         }
         if (data.type === 'NUTRIPLAN_GAMEDATA_UPDATED') {

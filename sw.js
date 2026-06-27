@@ -260,7 +260,18 @@ self.addEventListener('push', (event) => {
 
   event.waitUntil(
     (async () => {
-      if (isGameType && await hasVisibleAppClient()) {
+      if (data.notificationType === 'plan_updated') {
+        const clientList = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+        clientList.forEach(function (client) {
+          if ('postMessage' in client) {
+            client.postMessage({
+              type: 'NUTRIPLAN_PLAN_UPDATE_PENDING',
+              planUpdatedAt: data.planUpdatedAt || ''
+            });
+          }
+        });
+        if (await hasVisibleAppClient()) return;
+      } else if (isGameType && await hasVisibleAppClient()) {
         return;
       }
       try {
@@ -277,7 +288,8 @@ self.addEventListener('push', (event) => {
               ? buildQuickAnswerUrl(data.notificationType, { date: data.recordKey || '' })
               : '/plan.html'),
             type: data.notificationType || '',
-            recordKey: data.recordKey || ''
+            recordKey: data.recordKey || '',
+            planUpdatedAt: data.planUpdatedAt || ''
           }
         });
       } catch (err) {
@@ -340,6 +352,7 @@ self.addEventListener('notificationclick', (event) => {
               action,
               notificationType,
               recordKey,
+              planUpdatedAt: data.planUpdatedAt || '',
               openApp: true
             });
           }

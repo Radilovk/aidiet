@@ -6670,6 +6670,19 @@ async function deliverPlanUpdateToClient(env, clientData, clientId, kind = 'upda
       );
     }
     console.log(`[Email] Plan ${kind} email sent to ${clientEmail}`);
+
+    const pushUserId = clientData.userId || (await resolveActivatedClientUserId(env, clientData));
+    if (pushUserId && pushUserId.startsWith('fb_')) {
+      sendPushNotificationToUser(pushUserId, {
+        title: kind === 'ready' ? 'Планът е готов' : 'Обновление на плана',
+        body: 'Има нова версия от специалиста. Натиснете „Зареди“ в приложението.',
+        url: '/index.html?app=1&tab=plan',
+        icon: '/icon-192x192.png',
+        notificationType: 'plan_updated',
+        planUpdatedAt: clientData.planUpdatedAt || new Date().toISOString()
+      }, env).catch(e => console.warn('[Push] Plan update notification failed:', e));
+    }
+
     return { sent: true, email: clientEmail };
   } catch (e) {
     console.warn(`[Email] Plan ${kind} email failed:`, e.message);
@@ -15461,6 +15474,7 @@ async function sendPushNotificationToUser(userId, message, env) {
       url: message.url || '/plan.html',
       icon: message.icon || '/icon-192x192.png',
       notificationType: message.notificationType || 'general',
+      planUpdatedAt: message.planUpdatedAt || '',
       timestamp: Date.now()
     };
     

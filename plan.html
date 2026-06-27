@@ -3773,50 +3773,58 @@
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                if (window.NutriPlanSession && typeof window.NutriPlanSession.ensureAuthenticatedUser === 'function') {
-                    await window.NutriPlanSession.ensureAuthenticatedUser(user);
-                }
-                syncUser(user);
-                const fbUserId = 'fb_' + user.uid;
-                const loginFetch = window.NutriPlanPlanSync &&
-                    window.NutriPlanPlanSync.consumePlanFetchOnNextAuth();
-                const _planRestoreKey = 'pageInitialised';
-                if (!localStorage.getItem('dietPlan') && !localStorage.getItem('planJobId')) {
-                    if (sessionStorage.getItem(_planRestoreKey)) {
+                try {
+                    if (window.NutriPlanSession && typeof window.NutriPlanSession.ensureAuthenticatedUser === 'function') {
+                        await window.NutriPlanSession.ensureAuthenticatedUser(user);
+                    }
+                    syncUser(user);
+                    const fbUserId = 'fb_' + user.uid;
+                    const planSync = window.NutriPlanPlanSync;
+                    const loginFetch = planSync && planSync.consumePlanFetchOnNextAuth();
+                    const restoreOpts = {
+                        email: (user && user.email) || undefined,
+                        getIdToken: user ? () => user.getIdToken() : undefined,
+                        clearLocalPlan: false
+                    };
+                    const _planRestoreKey = 'pageInitialised';
+                    if (!localStorage.getItem('dietPlan') && !localStorage.getItem('planJobId')) {
+                        if (sessionStorage.getItem(_planRestoreKey)) {
+                            sessionStorage.removeItem(_planRestoreKey);
+                            resolvePlanAuth(user);
+                            navigateTopLevel('questionnaire2.html', true);
+                            return;
+                        }
+                        sessionStorage.setItem(_planRestoreKey, '1');
+                        let loaded = false;
+                        if (planSync && typeof planSync.restoreUserPlanFromServer === 'function') {
+                            loaded = await planSync.restoreUserPlanFromServer(fbUserId, restoreOpts);
+                        }
                         sessionStorage.removeItem(_planRestoreKey);
+                        if (loaded) {
+                            if (typeof window.loadDietData === 'function') {
+                                window.loadDietData();
+                            }
+                            hideOverlay();
+                            resolvePlanAuth(user);
+                            return;
+                        }
                         resolvePlanAuth(user);
                         navigateTopLevel('questionnaire2.html', true);
                         return;
                     }
-                    sessionStorage.setItem(_planRestoreKey, '1');
-                    const loaded = await window.NutriPlanPlanSync.restoreUserPlanFromServer(fbUserId, {
-                        email: (user && user.email) || undefined,
-                        getIdToken: user ? () => user.getIdToken() : undefined
-                    });
-                    sessionStorage.removeItem(_planRestoreKey);
-                    if (loaded) {
-                        if (typeof window.loadDietData === 'function') {
+                    if (loginFetch && planSync && typeof planSync.restoreUserPlanFromServer === 'function') {
+                        const loaded = await planSync.restoreUserPlanFromServer(fbUserId, restoreOpts);
+                        if (loaded && typeof window.loadDietData === 'function') {
                             window.loadDietData();
                         }
-                        hideOverlay();
-                        resolvePlanAuth(user);
-                        return;
                     }
+                    hideOverlay();
                     resolvePlanAuth(user);
-                    navigateTopLevel('questionnaire2.html', true);
-                    return;
+                } catch (e) {
+                    console.error('[plan-auth] post-login flow failed:', e);
+                    showAuthError('Грешка при зареждане на профила. Опитайте отново.');
+                    resolvePlanAuth(user);
                 }
-                if (loginFetch) {
-                    const loaded = await window.NutriPlanPlanSync.restoreUserPlanFromServer(fbUserId, {
-                        email: (user && user.email) || undefined,
-                        getIdToken: user ? () => user.getIdToken() : undefined
-                    });
-                    if (loaded && typeof window.loadDietData === 'function') {
-                        window.loadDietData();
-                    }
-                }
-                hideOverlay();
-                resolvePlanAuth(user);
             } else {
                 showAuthForm();
                 resolvePlanAuth(null);
@@ -4421,34 +4429,56 @@
             if (!bar || !btn || btn.dataset.bound === '1') return;
             const uid = localStorage.getItem('userId');
             if (!uid) return;
+            const sync = window.NutriPlanPlanSync;
+            if (!sync || typeof sync.hasPlanUpdatePending !== 'function' || !sync.hasPlanUpdatePending()) return;
             btn.dataset.bound = '1';
             bar.hidden = false;
+
+            function buildPlanUpdateOpts() {
+                const opts = {};
+                if (uid.startsWith('fb_') && window.__npPlanAuth && window.__npPlanAuth.currentUser) {
+                    opts.getIdToken = () => window.__npPlanAuth.currentUser.getIdToken();
+                }
+                return opts;
+            }
+
+            function hidePlanUpdateBar() {
+                bar.hidden = true;
+                if (sync && typeof sync.clearPlanUpdatePending === 'function') {
+                    sync.clearPlanUpdatePending();
+                }
+            }
+
             btn.addEventListener('click', async function () {
-                if (!window.NutriPlanPlanSync || typeof window.NutriPlanPlanSync.pullServerPlanIfNewer !== 'function') return;
+                if (!sync || typeof sync.pullServerPlanIfNewer !== 'function') return;
                 btn.disabled = true;
                 const original = btn.textContent;
                 btn.textContent = '…';
                 try {
-                    const opts = {};
-                    if (uid.startsWith('fb_') && window.__npPlanAuth && window.__npPlanAuth.currentUser) {
-                        opts.getIdToken = () => window.__npPlanAuth.currentUser.getIdToken();
-                    }
-                    const result = await window.NutriPlanPlanSync.pullServerPlanIfNewer(uid, opts);
+                    const result = await sync.pullServerPlanIfNewer(uid, buildPlanUpdateOpts());
                     if (result.updated) {
                         if (typeof loadDietData === 'function') loadDietData();
-                        btn.textContent = 'Готово';
-                    } else if (result.reason === 'current') {
-                        btn.textContent = 'Актуален';
-                    } else {
-                        btn.textContent = 'Няма нов';
+                        hidePlanUpdateBar();
+                        return;
                     }
+                    if (result.reason === 'current') {
+                        hidePlanUpdateBar();
+                        return;
+                    }
+                    btn.textContent = 'Няма нов';
                 } catch (_) {
                     btn.textContent = 'Грешка';
                 } finally {
                     setTimeout(function () {
                         btn.disabled = false;
-                        btn.textContent = original;
+                        if (!bar.hidden) btn.textContent = original;
                     }, 2200);
+                }
+            });
+
+            window.addEventListener('NUTRIPLAN_PLAN_UPDATE_PENDING', function () {
+                if (sync && sync.hasPlanUpdatePending && sync.hasPlanUpdatePending()) {
+                    bar.hidden = false;
                 }
             });
         }
