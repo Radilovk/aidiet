@@ -3774,41 +3774,38 @@
                     await window.NutriPlanSession.ensureAuthenticatedUser(user);
                 }
                 syncUser(user);
-                const embedded = document.documentElement.getAttribute('data-embedded-tab') === '1';
-                if (!embedded) {
-                    const fbUserId = 'fb_' + user.uid;
-                    const planSync = window.NutriPlanPlanSync;
-                    const restoreOpts = {
-                        email: (user && user.email) || undefined,
-                        getIdToken: user ? () => user.getIdToken() : undefined,
-                        clearLocalPlan: false
-                    };
-                    const _planRestoreKey = 'pageInitialised';
-                    if (!localStorage.getItem('dietPlan') && !localStorage.getItem('planJobId')) {
-                        if (sessionStorage.getItem(_planRestoreKey)) {
-                            sessionStorage.removeItem(_planRestoreKey);
-                            resolvePlanAuth(user);
-                            navigateTopLevel('questionnaire2.html', true);
-                            return;
-                        }
-                        sessionStorage.setItem(_planRestoreKey, '1');
-                        let loaded = false;
-                        if (planSync && typeof planSync.restoreUserPlanFromServer === 'function') {
-                            loaded = await planSync.restoreUserPlanFromServer(fbUserId, restoreOpts);
-                        }
+                const fbUserId = 'fb_' + user.uid;
+                const planSync = window.NutriPlanPlanSync;
+                const restoreOpts = {
+                    email: (user && user.email) || undefined,
+                    getIdToken: user ? () => user.getIdToken() : undefined,
+                    clearLocalPlan: false
+                };
+                const _planRestoreKey = 'pageInitialised';
+                if (!localStorage.getItem('dietPlan') && !localStorage.getItem('planJobId')) {
+                    if (sessionStorage.getItem(_planRestoreKey)) {
                         sessionStorage.removeItem(_planRestoreKey);
-                        if (loaded) {
-                            if (typeof window.loadDietData === 'function') {
-                                window.loadDietData();
-                            }
-                            hideOverlay();
-                            resolvePlanAuth(user);
-                            return;
-                        }
                         resolvePlanAuth(user);
                         navigateTopLevel('questionnaire2.html', true);
                         return;
                     }
+                    sessionStorage.setItem(_planRestoreKey, '1');
+                    let loaded = false;
+                    if (planSync && typeof planSync.restoreUserPlanFromServer === 'function') {
+                        loaded = await planSync.restoreUserPlanFromServer(fbUserId, restoreOpts);
+                    }
+                    sessionStorage.removeItem(_planRestoreKey);
+                    if (loaded) {
+                        if (typeof window.loadDietData === 'function') {
+                            window.loadDietData();
+                        }
+                        hideOverlay();
+                        resolvePlanAuth(user);
+                        return;
+                    }
+                    resolvePlanAuth(user);
+                    navigateTopLevel('questionnaire2.html', true);
+                    return;
                 }
                 hideOverlay();
                 resolvePlanAuth(user);
@@ -4477,15 +4474,18 @@
                 window.history.replaceState({}, '', window.location.pathname);
                 return;
             }
-            if (window.NutriPlanPlanAuthReady) {
-                try { await window.NutriPlanPlanAuthReady; } catch (_) {}
-            }
-            // On Capacitor APK: restore plan data from Android SharedPreferences into
-            // localStorage before checking for plan data (handles APK reinstall scenario).
             if (typeof NativeBackup !== 'undefined') {
                 await NativeBackup.init().catch(() => {});
             }
-            loadDietData();
+            const hasCachedPlan = !!localStorage.getItem('dietPlan');
+            if (hasCachedPlan) {
+                loadDietData();
+            } else if (window.NutriPlanPlanAuthReady) {
+                try { await window.NutriPlanPlanAuthReady; } catch (_) {}
+                loadDietData();
+            } else {
+                loadDietData();
+            }
             initPlanUpdateButton();
             if (window.NutriPlanDiagnostics) {
                 window.NutriPlanDiagnostics.ok('plan', 'init-dom-features-ready', 'Initial load requested');

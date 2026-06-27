@@ -902,6 +902,9 @@
 
         await ensureNativeStorageReady();
         await cacheJsonAtStartup();
+        if (params.has('app') && window._indexAuthUser) {
+            try { await window._indexAuthUser; } catch (_) {}
+        }
         if (!shouldOpenShell()) {
             if (window.NutriPlanDiagnostics) {
                 window.NutriPlanDiagnostics.info('shell', 'init-skip', 'No local plan available');
