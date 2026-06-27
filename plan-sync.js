@@ -399,6 +399,30 @@
         }
     }
 
+    function comparePlanUpdatedAt(localAt, serverAt) {
+        if (!serverAt) return { hasUpdate: false, reason: 'no-server-ts' };
+        if (!localAt) return { hasUpdate: true, reason: 'no-local-ts' };
+        if (serverAt > localAt) return { hasUpdate: true, reason: 'newer' };
+        return { hasUpdate: false, reason: 'current' };
+    }
+
+    async function checkServerPlanNewer(userId, options) {
+        options = options || {};
+        if (!userId) return { hasUpdate: false, reason: 'no-user' };
+        var localAt = '';
+        try { localAt = localStorage.getItem(LOCAL_PLAN_AT_KEY) || ''; } catch (_) {}
+        var data = await fetchUserProfile(userId, options);
+        if (!data || !data.found || !data.plan) {
+            return { hasUpdate: false, reason: 'no-plan' };
+        }
+        var cmp = comparePlanUpdatedAt(localAt, data.planUpdatedAt || '');
+        return {
+            hasUpdate: cmp.hasUpdate,
+            reason: cmp.reason,
+            data: data
+        };
+    }
+
     async function pullServerPlanIfNewer(userId, options) {
         options = options || {};
         if (!userId) return { updated: false, reason: 'no-user' };
@@ -459,6 +483,7 @@
         saveUserProfile: saveUserProfile,
         syncPendingPlanActivation: syncPendingPlanActivation,
         claimPlanFromToken: claimPlanFromToken,
+        checkServerPlanNewer: checkServerPlanNewer,
         pullServerPlanIfNewer: pullServerPlanIfNewer
     };
 }(window));

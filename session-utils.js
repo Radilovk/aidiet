@@ -217,9 +217,13 @@
         var prefs = getPreferencesPlugin();
         if (!prefs) return true;
 
-        await Promise.all(uniqueKeys.map(function (key) {
+        var prefRemoves = Promise.all(uniqueKeys.map(function (key) {
             return removePreferenceKey(prefs, key);
         }));
+        await Promise.race([
+            prefRemoves,
+            new Promise(function (resolve) { setTimeout(resolve, 1500); })
+        ]);
         return true;
     }
 
@@ -317,7 +321,8 @@
         } catch (_) {}
 
         var prefs = getPreferencesPlugin();
-        await writePreferenceKey(prefs, 'userId', nextUserId);
+        /* localStorage is the source of truth; never block login on native prefs I/O */
+        writePreferenceKey(prefs, 'userId', nextUserId);
         if (global.NutriPlanDiagnostics) {
             global.NutriPlanDiagnostics.ok('session', 'ensure-authenticated-user', switched ? 'owner switched' : 'owner confirmed');
         }
