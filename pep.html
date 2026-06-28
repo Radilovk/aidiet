@@ -707,43 +707,6 @@
                 flex-basis: 100%;
             }
         }
-
-        /* Portfolio PDF export */
-        .portfolio-preview-box {
-            margin-top: 14px;
-            padding: 0;
-            border-radius: var(--radius-md);
-            border: 1px solid var(--border);
-            background: #fff;
-            overflow: hidden;
-        }
-
-        .portfolio-preview-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.88rem;
-        }
-
-        .portfolio-preview-table th,
-        .portfolio-preview-table td {
-            padding: 10px 12px;
-            text-align: left;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .portfolio-preview-table th {
-            background: var(--surface-alt);
-            font-size: 0.76rem;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            color: var(--text-muted);
-        }
-
-        .portfolio-preview-table td:last-child,
-        .portfolio-preview-table th:last-child {
-            text-align: right;
-            white-space: nowrap;
-        }
     </style>
 </head>
 <body>
@@ -968,12 +931,9 @@
 </div>
 
 <div id="portfolioExportModal" class="modal" aria-hidden="true">
-    <div class="modal-content" style="width:min(560px,100%);">
-        <span class="close-portfolio-modal" aria-label="Затвори">&times;</span>
+    <div class="modal-content" style="width:min(520px,100%);">
+        <span class="close-portfolio-modal close-modal" aria-label="Затвори">&times;</span>
         <div class="card-title">📄 PDF Каталог</div>
-        <p style="color:var(--text-muted);font-size:0.9rem;margin:8px 0 16px;line-height:1.5;">
-            Прост списък с всички продукти в таблица. Задай множителя за цените преди експорт.
-        </p>
         <div class="edit-modal-grid">
             <div class="form-group full-width">
                 <label for="portfolioMultiplierSelect">Множител за цени</label>
@@ -984,17 +944,17 @@
                 </select>
             </div>
             <div class="form-group full-width">
-                <label for="portfolioMultiplierCustom">Стойност на множителя</label>
+                <label for="portfolioMultiplierCustom">Стойност</label>
                 <input type="number" id="portfolioMultiplierCustom" value="2.5" min="0.01" step="0.01" inputmode="decimal" disabled>
             </div>
             <div class="form-group full-width">
                 <label>Преглед</label>
-                <div id="portfolioPreview" class="portfolio-preview-box">
-                    <div class="muted" style="padding:14px;">Зареждане…</div>
+                <div class="table-responsive" id="portfolioPreview">
+                    <div class="empty-state">Зареждане…</div>
                 </div>
             </div>
             <div class="form-group full-width">
-                <button id="generatePortfolioBtn">Генерирай PDF</button>
+                <button id="generatePortfolioBtn">Изтегли PDF</button>
             </div>
         </div>
     </div>
@@ -2086,49 +2046,30 @@
 
     function getPortfolioMultiplier() {
         const select = document.getElementById('portfolioMultiplierSelect').value;
-        const custom = safeNumber(document.getElementById('portfolioMultiplierCustom').value);
-        return select === 'custom' ? custom : safeNumber(select);
+        return select === 'custom'
+            ? safeNumber(document.getElementById('portfolioMultiplierCustom').value)
+            : safeNumber(select);
     }
 
-    function formatMultiplierLabel(multiplier) {
-        return `×${multiplier.toFixed(multiplier % 1 === 0 ? 0 : 2)}`;
+    function catalogFilename(multiplier) {
+        const label = multiplier.toFixed(multiplier % 1 === 0 ? 0 : 2);
+        return `pep-katalog-x${label}.pdf`;
     }
 
-    function buildPortfolioTableRows(multiplier) {
-        return getSortedProducts().map((product) => `
+    function renderCatalogTableRows(multiplier, limit = null) {
+        const products = limit ? getSortedProducts().slice(0, limit) : getSortedProducts();
+        return products.map((product) => `
             <tr>
                 <td>${escapeHtml(product.baseName)}</td>
                 <td>${escapeHtml(product.dosage)}</td>
-                <td>${formatMoney(product.purchasePrice * multiplier)}</td>
+                <td style="text-align:right;font-weight:700;">${formatMoney(product.purchasePrice * multiplier)}</td>
             </tr>
         `).join('');
     }
 
-    function updatePortfolioPreview() {
-        const preview = document.getElementById('portfolioPreview');
-        const multiplier = getPortfolioMultiplier();
-        const products = getSortedProducts();
-
-        if (!products.length) {
-            preview.innerHTML = '<div class="empty-state" style="padding:12px;">Каталогът е празен. Добави продукти преди експорт.</div>';
-            return;
-        }
-
-        if (!Number.isFinite(multiplier) || multiplier <= 0) {
-            preview.innerHTML = '<div class="empty-state" style="padding:12px;">Въведи валиден множител над 0.</div>';
-            return;
-        }
-
-        const previewRows = products.slice(0, 5).map((product) => `
-            <tr>
-                <td>${escapeHtml(product.baseName)}</td>
-                <td>${escapeHtml(product.dosage)}</td>
-                <td>${formatMoney(product.purchasePrice * multiplier)}</td>
-            </tr>
-        `).join('');
-
-        preview.innerHTML = `
-            <table class="portfolio-preview-table">
+    function renderCatalogTableMarkup(multiplier, limit = null) {
+        return `
+            <table>
                 <thead>
                     <tr>
                         <th>Продукт</th>
@@ -2136,159 +2077,69 @@
                         <th>Цена</th>
                     </tr>
                 </thead>
-                <tbody>
-                    ${previewRows}
-                </tbody>
+                <tbody>${renderCatalogTableRows(multiplier, limit)}</tbody>
             </table>
-            <div class="muted" style="padding:10px 12px;font-size:0.82rem;border-top:1px solid var(--border);">
-                Множител ${formatMultiplierLabel(multiplier)} · ${products.length} продукта общо
-                ${products.length > 5 ? ` · показани първите 5` : ''}
+        `;
+    }
+
+    function updatePortfolioPreview() {
+        const preview = document.getElementById('portfolioPreview');
+        const multiplier = getPortfolioMultiplier();
+        const total = getSortedProducts().length;
+
+        if (!total) {
+            preview.innerHTML = '<div class="empty-state">Каталогът е празен.</div>';
+            return;
+        }
+        if (!Number.isFinite(multiplier) || multiplier <= 0) {
+            preview.innerHTML = '<div class="empty-state">Въведи валиден множител.</div>';
+            return;
+        }
+
+        preview.innerHTML = `
+            ${renderCatalogTableMarkup(multiplier, 5)}
+            <div class="inline-note" style="padding:10px 12px;border-top:1px solid var(--border);">
+                ×${multiplier.toFixed(multiplier % 1 === 0 ? 0 : 2)} · ${total} продукта${total > 5 ? ' · показани първите 5' : ''}
             </div>
         `;
     }
 
-    function buildPortfolioPrintDocument(multiplier) {
-        const today = new Date().toLocaleDateString('bg-BG', { day: 'numeric', month: 'long', year: 'numeric' });
-        const productCount = getSortedProducts().length;
-        const tableRows = buildPortfolioTableRows(multiplier);
+    function buildCatalogDocument(multiplier) {
+        const today = new Date().toLocaleDateString('bg-BG');
+        const total = getSortedProducts().length;
+        const multiplierLabel = multiplier.toFixed(multiplier % 1 === 0 ? 0 : 2);
 
         return `<!DOCTYPE html>
 <html lang="bg">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PEP Каталог</title>
-    <style>
-        @page { size: A4; margin: 14mm; }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
-            color: #0f172a;
-            background: #fff;
-            padding: 18px;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-        }
-        .pdf-doc { width: 100%; max-width: 180mm; margin: 0 auto; }
-        .pdf-header {
-            margin-bottom: 18px;
-            padding-bottom: 12px;
-            border-bottom: 2px solid #0f172a;
-        }
-        .pdf-header h1 {
-            font-size: 22px;
-            font-weight: 800;
-            letter-spacing: -0.02em;
-            margin-bottom: 6px;
-        }
-        .pdf-header p {
-            color: #64748b;
-            font-size: 13px;
-        }
-        .pdf-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-        }
-        .pdf-table th,
-        .pdf-table td {
-            padding: 10px 12px;
-            text-align: left;
-            border-bottom: 1px solid #dbe3ef;
-            vertical-align: top;
-        }
-        .pdf-table th {
-            background: #f8fafc;
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            color: #64748b;
-            font-weight: 700;
-        }
-        .pdf-table td:last-child,
-        .pdf-table th:last-child {
-            text-align: right;
-            white-space: nowrap;
-            font-weight: 700;
-        }
-        .pdf-table tbody tr:nth-child(even) td {
-            background: #fbfdff;
-        }
-        .pdf-footer {
-            margin-top: 16px;
-            padding-top: 10px;
-            border-top: 1px solid #dbe3ef;
-            color: #64748b;
-            font-size: 11px;
-            text-align: center;
-        }
-        .print-toolbar {
-            position: fixed;
-            left: 50%;
-            bottom: 18px;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 10px;
-            padding: 10px 12px;
-            border-radius: 999px;
-            background: rgba(15, 23, 42, 0.92);
-            box-shadow: 0 16px 40px rgba(15, 23, 42, 0.28);
-            z-index: 1000;
-        }
-        .print-toolbar button {
-            border: none;
-            border-radius: 999px;
-            padding: 10px 18px;
-            font-size: 14px;
-            font-weight: 700;
-            cursor: pointer;
-        }
-        .print-toolbar .primary { background: #2563eb; color: #fff; }
-        .print-toolbar .secondary { background: rgba(255, 255, 255, 0.08); color: #fff; }
-        @media print {
-            body { padding: 0; }
-            .print-toolbar { display: none !important; }
-        }
-    </style>
+<meta charset="UTF-8">
+<title>PEP Каталог</title>
+<style>
+@page { size: A4; margin: 14mm; }
+body { font-family: system-ui, sans-serif; color: #0f172a; background: #fff; }
+header { margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid #dbe3ef; }
+h1 { font-size: 20px; margin: 0 0 4px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 9px 10px; border-bottom: 1px solid #dbe3ef; text-align: left; }
+th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; background: #f8fafc; }
+td:last-child, th:last-child { text-align: right; font-weight: 700; }
+footer { margin-top: 14px; color: #64748b; font-size: 11px; text-align: center; }
+</style>
 </head>
 <body>
-    <div class="pdf-doc">
-        <div class="pdf-header">
-            <h1>PEP Каталог</h1>
-            <p>${productCount} продукта · множител ${formatMultiplierLabel(multiplier)} · ${escapeHtml(today)}</p>
-        </div>
-        <table class="pdf-table">
-            <thead>
-                <tr>
-                    <th>Продукт</th>
-                    <th>Съдържание (мг)</th>
-                    <th>Цена</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${tableRows}
-            </tbody>
-        </table>
-        <div class="pdf-footer">PEP Каталог · ${escapeHtml(today)}</div>
-    </div>
-    <div class="print-toolbar">
-        <button type="button" class="primary" onclick="window.print()">Запази като PDF</button>
-        <button type="button" class="secondary" onclick="window.close()">Затвори</button>
-    </div>
-    <script>
-        window.addEventListener('load', function() {
-            if (!window.opener) {
-                setTimeout(function() { window.print(); }, 500);
-            }
-        });
-    <\/script>
+<header>
+<h1>PEP Каталог</h1>
+<span style="color:#64748b;font-size:12px;">${total} продукта · ×${multiplierLabel} · ${escapeHtml(today)}</span>
+</header>
+${renderCatalogTableMarkup(multiplier)}
+<footer>PEP Каталог · ${escapeHtml(today)}</footer>
 </body>
 </html>`;
     }
 
     function openPortfolioModal() {
         if (!state.products.length) {
-            showBanner('Каталогът е празен. Добави продукти преди PDF експорт.', 'error');
+            showBanner('Каталогът е празен.', 'error');
             return;
         }
         updatePortfolioPreview();
@@ -2303,135 +2154,66 @@
         modal.setAttribute('aria-hidden', 'true');
     }
 
-    function loadExternalScript(src) {
-        return new Promise((resolve, reject) => {
-            if (document.querySelector(`script[src="${src}"]`)) {
-                resolve();
-                return;
-            }
-            const script = document.createElement('script');
-            script.src = src;
-            script.async = true;
-            script.onload = () => resolve();
-            script.onerror = () => reject(new Error('Неуспешно зареждане на PDF библиотеката.'));
-            document.head.appendChild(script);
-        });
+    function updatePortfolioMultiplierField() {
+        const select = document.getElementById('portfolioMultiplierSelect');
+        const customInput = document.getElementById('portfolioMultiplierCustom');
+        const isCustom = select.value === 'custom';
+        customInput.disabled = !isCustom;
+        if (!isCustom) {
+            customInput.value = select.value;
+        }
+        updatePortfolioPreview();
     }
 
-    async function renderPortfolioPdfBlob(multiplier) {
-        const html = buildPortfolioPrintDocument(multiplier);
-        await loadExternalScript('https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js');
-
+    async function generatePortfolioPdf() {
+        const multiplier = getPortfolioMultiplier();
+        if (!state.products.length) {
+            throw new Error('Каталогът е празен.');
+        }
+        if (!Number.isFinite(multiplier) || multiplier <= 0) {
+            throw new Error('Въведи валиден множител.');
+        }
         if (typeof html2pdf === 'undefined') {
-            throw new Error('PDF библиотеката не е налична.');
+            throw new Error('PDF библиотеката не е заредена.');
         }
 
         const iframe = document.createElement('iframe');
         iframe.setAttribute('aria-hidden', 'true');
-        iframe.style.cssText = 'position:fixed;left:0;top:0;width:794px;height:100vh;border:0;opacity:1;z-index:999999;pointer-events:none;';
+        iframe.style.cssText = 'position:fixed;left:0;top:0;width:794px;height:100vh;border:0;opacity:1;z-index:-1;pointer-events:none;';
         document.body.appendChild(iframe);
 
         try {
             const doc = iframe.contentDocument;
             doc.open();
-            doc.write(html);
+            doc.write(buildCatalogDocument(multiplier));
             doc.close();
-
             await new Promise((resolve) => {
-                if (iframe.contentDocument.readyState === 'complete') {
-                    resolve();
-                } else {
-                    iframe.addEventListener('load', resolve, { once: true });
-                }
+                if (iframe.contentDocument.readyState === 'complete') resolve();
+                else iframe.addEventListener('load', resolve, { once: true });
             });
-            await new Promise((resolve) => setTimeout(resolve, 400));
+            await new Promise((resolve) => setTimeout(resolve, 300));
 
-            const element = iframe.contentDocument.querySelector('.pdf-doc');
-            if (!element) {
-                throw new Error('PDF съдържанието липсва.');
-            }
-
-            const filename = `pep-katalog-x${multiplier.toFixed(multiplier % 1 === 0 ? 0 : 2)}.pdf`;
+            const element = iframe.contentDocument.body;
             await html2pdf().set({
-                margin: [0, 0, 0, 0],
-                filename,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: {
-                    scale: 2,
-                    useCORS: true,
-                    logging: false,
-                    width: 794,
-                    windowWidth: 794,
-                    scrollX: 0,
-                    scrollY: 0
-                },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                pagebreak: { mode: ['css', 'legacy'] }
+                margin: 10,
+                filename: catalogFilename(multiplier),
+                image: { type: 'jpeg', quality: 0.95 },
+                html2canvas: { scale: 2, useCORS: true, width: 794, windowWidth: 794 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
             }).from(element).save();
         } finally {
             document.body.removeChild(iframe);
         }
-    }
 
-    function openPortfolioPrintWindow(multiplier) {
-        const html = buildPortfolioPrintDocument(multiplier);
-        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-        const objectUrl = URL.createObjectURL(blob);
-        const printWindow = window.open(objectUrl, '_blank');
-
-        if (!printWindow) {
-            const link = document.createElement('a');
-            link.href = objectUrl;
-            link.download = `pep-katalog-x${multiplier.toFixed(multiplier % 1 === 0 ? 0 : 2)}.html`;
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            URL.revokeObjectURL(objectUrl);
-            throw new Error('Блокиран е pop-up прозорецът. Изтеглих HTML файла — отвори го и избери „Запази като PDF“ от печат.');
-        }
-
-        printWindow.addEventListener('load', () => {
-            URL.revokeObjectURL(objectUrl);
-        }, { once: true });
-    }
-
-    async function generatePortfolioPdf() {
-        const multiplier = getPortfolioMultiplier();
-
-        if (!state.products.length) {
-            throw new Error('Каталогът е празен.');
-        }
-        if (!Number.isFinite(multiplier) || multiplier <= 0) {
-            throw new Error('Въведи валиден множител над 0.');
-        }
-
-        try {
-            await renderPortfolioPdfBlob(multiplier);
-            closePortfolioModal();
-            showBanner('PDF каталогът е изтеглен успешно.', 'info');
-        } catch (error) {
-            console.warn('Direct PDF export failed, falling back to print window:', error);
-            openPortfolioPrintWindow(multiplier);
-            closePortfolioModal();
-            showBanner('Директният PDF експорт не успя. Отворих прозорец за печат — избери „Запази като PDF“.', 'info');
-        }
+        closePortfolioModal();
+        showBanner('PDF каталогът е изтеглен.', 'info');
     }
 
     document.getElementById('exportPortfolioBtn').addEventListener('click', openPortfolioModal);
-    document.querySelector('.close-portfolio-modal').addEventListener('click', closePortfolioModal);
-    document.getElementById('portfolioMultiplierSelect').addEventListener('change', function() {
-        const customInput = document.getElementById('portfolioMultiplierCustom');
-        const isCustom = this.value === 'custom';
-        customInput.disabled = !isCustom;
-        if (!isCustom) {
-            customInput.value = this.value;
-        }
-        updatePortfolioPreview();
-    });
+    document.querySelector('#portfolioExportModal .close-modal').addEventListener('click', closePortfolioModal);
+    document.getElementById('portfolioMultiplierSelect').addEventListener('change', updatePortfolioMultiplierField);
     document.getElementById('portfolioMultiplierCustom').addEventListener('input', updatePortfolioPreview);
-    document.getElementById('generatePortfolioBtn').addEventListener('click', async () => {
-        await runSafely(generatePortfolioPdf);
-    });
+    document.getElementById('generatePortfolioBtn').addEventListener('click', () => runSafely(generatePortfolioPdf));
 
     document.getElementById('exportDataBtn').addEventListener('click', () => {
         const rows = [['ID', 'Дата', 'Продукт', 'Количество', 'Тип запис', 'Приход (€)', 'Разход (€)', 'Бележка']];
@@ -2502,5 +2284,6 @@
     updateMultiplierHint();
     bootstrapData();
 </script>
+<script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
 </body>
 </html>
