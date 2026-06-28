@@ -6630,7 +6630,7 @@ async function getPlanUpdatedEmailTemplate(env) {
 }
 
 /**
- * Sync profile, issue one-time claim link, and email the client.
+ * Sync profile, notify client via push (and email when push is unavailable).
  * @param {'ready'|'updated'} kind
  */
 async function deliverPlanUpdateToClient(env, clientData, clientId, kind = 'updated') {
@@ -6641,53 +6641,71 @@ async function deliverPlanUpdateToClient(env, clientData, clientId, kind = 'upda
   await syncActivatedPlanToUserProfile(env, clientData, clientId);
 
   const clientEmail = normalizeEmail(clientData.answers?.email);
-  if (!clientEmail) {
-    return { sent: false, reason: 'no-email', profileSynced: true };
+  const pushUserId = clientData.userId || (await resolveActivatedClientUserId(env, clientData));
+  let hasPush = false;
+  if (pushUserId && pushUserId.startsWith('fb_') && env.page_content) {
+    const subData = await env.page_content.get(`push_subscription_${pushUserId}`);
+    hasPush = !!subData;
   }
 
-  const token = await createPlanClaimToken(env, clientData, clientId);
-  const claimUrl = buildPlanClaimUrl(token);
-  const clientName = clientData.answers?.name || 'Клиент';
+  const skipUpdateEmail = kind === 'updated' && hasPush;
+  let emailSent = false;
+  let emailError = null;
 
-  try {
-    if (kind === 'ready') {
-      const tpl = await getEmailTemplate(env);
-      const subject = tpl.subject || DEFAULT_EMAIL_TEMPLATE.subject;
-      await sendEmailViaSMTP(
-        env,
-        clientEmail,
-        subject,
-        buildPlanReadyEmailHtml(clientName, tpl, claimUrl)
-      );
-    } else {
-      const tpl = await getPlanUpdatedEmailTemplate(env);
-      const subject = tpl.subject || DEFAULT_PLAN_UPDATED_EMAIL_TEMPLATE.subject;
-      await sendEmailViaSMTP(
-        env,
-        clientEmail,
-        subject,
-        buildPlanUpdatedEmailHtml(clientName, tpl, claimUrl)
-      );
+  if (!skipUpdateEmail && clientEmail) {
+    try {
+      const token = await createPlanClaimToken(env, clientData, clientId);
+      const claimUrl = buildPlanClaimUrl(token);
+      const clientName = clientData.answers?.name || 'Клиент';
+      if (kind === 'ready') {
+        const tpl = await getEmailTemplate(env);
+        const subject = tpl.subject || DEFAULT_EMAIL_TEMPLATE.subject;
+        await sendEmailViaSMTP(
+          env,
+          clientEmail,
+          subject,
+          buildPlanReadyEmailHtml(clientName, tpl, claimUrl)
+        );
+      } else {
+        const tpl = await getPlanUpdatedEmailTemplate(env);
+        const subject = tpl.subject || DEFAULT_PLAN_UPDATED_EMAIL_TEMPLATE.subject;
+        await sendEmailViaSMTP(
+          env,
+          clientEmail,
+          subject,
+          buildPlanUpdatedEmailHtml(clientName, tpl, claimUrl)
+        );
+      }
+      emailSent = true;
+      console.log(`[Email] Plan ${kind} email sent to ${clientEmail}`);
+    } catch (e) {
+      emailError = e.message;
+      console.warn(`[Email] Plan ${kind} email failed:`, e.message);
     }
-    console.log(`[Email] Plan ${kind} email sent to ${clientEmail}`);
-
-    const pushUserId = clientData.userId || (await resolveActivatedClientUserId(env, clientData));
-    if (pushUserId && pushUserId.startsWith('fb_')) {
-      sendPushNotificationToUser(pushUserId, {
-        title: kind === 'ready' ? 'Планът е готов' : 'Обновление на плана',
-        body: 'Има нова версия от специалиста. Натиснете „Зареди“ в приложението.',
-        url: '/index.html?app=1&tab=plan',
-        icon: '/icon-192x192.png',
-        notificationType: 'plan_updated',
-        planUpdatedAt: clientData.planUpdatedAt || new Date().toISOString()
-      }, env).catch(e => console.warn('[Push] Plan update notification failed:', e));
-    }
-
-    return { sent: true, email: clientEmail };
-  } catch (e) {
-    console.warn(`[Email] Plan ${kind} email failed:`, e.message);
-    return { sent: false, error: e.message };
   }
+
+  if (pushUserId && pushUserId.startsWith('fb_')) {
+    await sendPushNotificationToUser(pushUserId, {
+      title: kind === 'ready' ? 'Планът е готов' : 'Обновен план',
+      body: kind === 'ready'
+        ? 'Вашият хранителен план е готов за преглед.'
+        : 'Специалистът актуализира вашия план.',
+      url: '/index.html?app=1&tab=plan',
+      icon: '/icon-192x192.png',
+      notificationType: 'plan_updated',
+      planUpdatedAt: clientData.planUpdatedAt || new Date().toISOString()
+    }, env).catch(e => console.warn('[Push] Plan update notification failed:', e));
+  }
+
+  return {
+    sent: emailSent || hasPush,
+    email: clientEmail || null,
+    emailSent,
+    pushSent: hasPush,
+    skipUpdateEmail,
+    profileSynced: true,
+    error: emailError
+  };
 }
 
 /**

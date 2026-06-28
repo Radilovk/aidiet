@@ -67,6 +67,12 @@ function getGameNotificationActions(type) {
       { action: 'water_yes', title: 'Да' }
     ];
   }
+  if (type === 'plan_updated') {
+    return [
+      { action: 'plan_load', title: 'Обнови' },
+      { action: 'plan_later', title: 'По-късно' }
+    ];
+  }
   return undefined;
 }
 
@@ -284,9 +290,11 @@ self.addEventListener('push', (event) => {
           requireInteraction: !!data.notificationType,
           actions:           getGameNotificationActions(data.notificationType),
           data:              {
-            url: data.url || (data.notificationType
-              ? buildQuickAnswerUrl(data.notificationType, { date: data.recordKey || '' })
-              : '/plan.html'),
+            url: data.url || (data.notificationType === 'plan_updated'
+              ? '/index.html?app=1&tab=plan'
+              : (data.notificationType
+                ? buildQuickAnswerUrl(data.notificationType, { date: data.recordKey || '' })
+                : '/plan.html')),
             type: data.notificationType || '',
             recordKey: data.recordKey || '',
             planUpdatedAt: data.planUpdatedAt || ''
@@ -311,6 +319,9 @@ self.addEventListener('notificationclick', (event) => {
   const recordKey = data.recordKey || '';
 
   if (action) {
+    if (notificationType === 'plan_updated' && action === 'plan_later') {
+      return;
+    }
     event.waitUntil(
       clients.matchAll({ type: 'window', includeUncontrolled: true })
         .then((clientList) => {
@@ -319,13 +330,20 @@ self.addEventListener('notificationclick', (event) => {
           );
           if (shellClient && 'postMessage' in shellClient) {
             shellClient.postMessage({
-              type: 'NOTIFICATION_ACTION',
+              type: notificationType === 'plan_updated' && action === 'plan_load'
+                ? 'PLAN_UPDATE_CONFIRM'
+                : 'NOTIFICATION_ACTION',
               action,
               notificationType,
               recordKey,
-              silent: true
+              planUpdatedAt: data.planUpdatedAt || '',
+              silent: notificationType !== 'plan_updated'
             });
             if ('focus' in shellClient) return shellClient.focus();
+          }
+          if (notificationType === 'plan_updated' && action === 'plan_load') {
+            const targetUrl = toAbsoluteAppUrl('/index.html?app=1&tab=plan');
+            return clients.openWindow ? clients.openWindow(targetUrl) : undefined;
           }
           return queuePendingGameAction({ action, notificationType, recordKey });
         })

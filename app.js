@@ -362,37 +362,59 @@
         } catch (_) {}
     }
 
-    function notifyPlanFramePending() {
-        var planFrame = document.querySelector('[data-tab-view="plan"]');
-        if (planFrame) dispatchFrameEvent(planFrame, 'NUTRIPLAN_PLAN_UPDATE_PENDING', {});
-    }
-
-    function applyAdminPlanUpdate() {
+    function confirmPlanUpdateFromNotification(planUpdatedAt) {
         var sync = window.NutriPlanPlanSync;
         var uid = getStoredValue('userId') || '';
-        if (!sync || typeof sync.applyPendingPlanUpdate !== 'function' || uid.indexOf('fb_') !== 0) {
+        if (!sync || typeof sync.confirmPlanUpdate !== 'function' || uid.indexOf('fb_') !== 0) {
             return Promise.resolve({ updated: false });
         }
-        return sync.applyPendingPlanUpdate(uid, buildPlanSyncOptions())
+        if (planUpdatedAt && typeof sync.markPlanUpdatePending === 'function') {
+            sync.markPlanUpdatePending(planUpdatedAt);
+        }
+        if (params.has('app')) switchTab('plan', true);
+        return sync.confirmPlanUpdate(uid, buildPlanSyncOptions())
             .then(function (result) {
                 reloadPlanFrameIfUpdated(result);
-                if (!result.updated && sync.hasPlanUpdatePending && sync.hasPlanUpdatePending()) {
-                    notifyPlanFramePending();
-                }
                 return result;
-            })
-            .catch(function () {
-                notifyPlanFramePending();
-                return { updated: false };
             });
     }
 
-    function signalAdminPlanUpdate(planUpdatedAt) {
+    function promptAdminPlanUpdate(planUpdatedAt) {
         var sync = window.NutriPlanPlanSync;
+        var uid = getStoredValue('userId') || '';
         if (!sync || typeof sync.markPlanUpdatePending !== 'function') return;
         sync.markPlanUpdatePending(planUpdatedAt || '');
         if (params.has('app')) switchTab('plan', true);
-        applyAdminPlanUpdate();
+        if (typeof sync.showPlanUpdatePrompt === 'function') {
+            sync.showPlanUpdatePrompt(uid, buildPlanSyncOptions())
+                .then(function (outcome) {
+                    reloadPlanFrameIfUpdated(outcome && outcome.result);
+                });
+        }
+    }
+
+    function runPlanUpdateCatchUp() {
+        var sync = window.NutriPlanPlanSync;
+        var uid = getStoredValue('userId') || '';
+        if (!sync || uid.indexOf('fb_') !== 0) return Promise.resolve(false);
+        return sync.maybeDailyPlanVersionCheck(uid, buildPlanSyncOptions())
+            .then(function (result) {
+                if (result && result.pending) {
+                    promptAdminPlanUpdate(result.planUpdatedAt || '');
+                    return true;
+                }
+                if (sync.hasPlanUpdatePending && sync.hasPlanUpdatePending()) {
+                    if (typeof sync.maybePromptPendingPlanUpdate === 'function') {
+                        sync.maybePromptPendingPlanUpdate(uid, buildPlanSyncOptions())
+                            .then(function (outcome) {
+                                reloadPlanFrameIfUpdated(outcome && outcome.result);
+                            });
+                    }
+                    return true;
+                }
+                return false;
+            })
+            .catch(function () { return false; });
     }
 
     function bindCatchUpOnResume() {
@@ -447,7 +469,11 @@
                 recordKey: extra.recordKey || ''
             };
             if (payload.notificationType === 'plan_updated') {
-                signalAdminPlanUpdate(extra.planUpdatedAt || '');
+                if (actionId === 'plan_load') {
+                    confirmPlanUpdateFromNotification(extra.planUpdatedAt || '');
+                } else {
+                    promptAdminPlanUpdate(extra.planUpdatedAt || '');
+                }
                 return;
             }
             if (actionId) {
@@ -467,8 +493,12 @@
         navigator.serviceWorker.addEventListener('message', function (event) {
             var msg = event.data;
             if (!msg) return;
+            if (msg.type === 'PLAN_UPDATE_CONFIRM') {
+                confirmPlanUpdateFromNotification(msg.planUpdatedAt || '');
+                return;
+            }
             if (msg.type === 'NUTRIPLAN_PLAN_UPDATE_PENDING') {
-                signalAdminPlanUpdate(msg.planUpdatedAt || '');
+                promptAdminPlanUpdate(msg.planUpdatedAt || '');
                 return;
             }
             if (msg.type !== 'NOTIFICATION_ACTION') return;
@@ -477,13 +507,20 @@
                 action: msg.action || '',
                 recordKey: msg.recordKey || ''
             };
+            if (payload.notificationType === 'plan_updated') {
+                if (payload.action === 'plan_load') {
+                    confirmPlanUpdateFromNotification(msg.planUpdatedAt || '');
+                    return;
+                }
+                if (payload.action === 'plan_later') return;
+            }
             if (msg.silent && payload.action) {
                 if (handleNativeNotificationAction(payload)) return;
                 return;
             }
             if (msg.openApp || !payload.action) {
                 if (payload.notificationType === 'plan_updated') {
-                    signalAdminPlanUpdate(msg.planUpdatedAt || '');
+                    promptAdminPlanUpdate(msg.planUpdatedAt || '');
                     return;
                 }
                 openQuickAnswerFromNotification(payload);
@@ -1012,6 +1049,7 @@
 
         switchTab(initialTab, true);
         initApkGameNotifier();
+        runPlanUpdateCatchUp();
     }
 
     window.NutriPlanSPA = {
