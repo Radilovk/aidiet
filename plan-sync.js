@@ -585,7 +585,7 @@
 
     function dispatchWeeklyAdaptReady(notice) {
         try {
-            global.dispatchEvent(new CustomEvent('NUTRIPLAN_WEEKLY_ADAPT_READY', { detail: { notice: notice } }));
+            global.dispatchEvent(new CustomEvent('NUTRIPLAN_WEEKLY_ADAPT_READY', { detail: notice }));
         } catch (_) {}
     }
 
@@ -597,17 +597,35 @@
             return { applied: false, reason: 'no-notice' };
         }
         var notice = data.weeklyAdaptNotice;
-        if (notice.changed && data.planUpdatedAt) {
-            markPlanUpdatePending(data.planUpdatedAt);
-            await confirmPlanUpdate(userId, options);
+        var planApplied = false;
+
+        if (notice.changed) {
+            if (data.planUpdatedAt) markPlanUpdatePending(data.planUpdatedAt);
+            var pull = await pullServerPlanIfNewer(userId, options);
+            if (pull.updated) {
+                planApplied = true;
+            } else {
+                var profile = await fetchUserProfile(userId, options);
+                if (profile && profile.found && profile.plan) {
+                    applyServerPlanData(profile, userId);
+                    clearPlanUpdatePending();
+                    planApplied = true;
+                }
+            }
         }
+
         markWeeklyNoticeShown(notice);
-        dispatchWeeklyAdaptReady(notice);
-        return { applied: true, notice: notice };
+        if (planApplied) {
+            try {
+                global.dispatchEvent(new CustomEvent('NUTRIPLAN_PLAN_SYNCED', { detail: { weekly: true } }));
+            } catch (_) {}
+        }
+        dispatchWeeklyAdaptReady(Object.assign({}, notice, { planApplied: planApplied }));
+        return { applied: true, notice: notice, planApplied: planApplied };
     }
 
     async function maybeCheckWeeklyAdaptNotice(userId, options) {
-        if (!userId || userId.indexOf('fb_') !== 0) return { applied: false };
+        if (!userId) return { applied: false };
         if (_weeklyNoticeCheckInFlight) return _weeklyNoticeCheckInFlight;
         _weeklyNoticeCheckInFlight = applyWeeklyAdaptIfReady(userId, options).finally(function () {
             _weeklyNoticeCheckInFlight = null;

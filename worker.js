@@ -7083,6 +7083,7 @@ function normalizeAdaptationDecision(raw, analytics) {
     strategyChanges: raw?.strategyChanges || {},
     motivationMessage: String(raw?.motivationMessage || 'Продължавайте стабилно напред!').slice(0, 600),
     changeSummary: Array.isArray(raw?.changeSummary) ? raw.changeSummary.map(String).slice(0, 6) : [],
+    headline: String(raw?.headline || '').slice(0, 120),
   };
 }
 
@@ -7294,6 +7295,10 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     );
     const noticeBase = {
       id: jobId,
+      headline: String(decision.headline || '').slice(0, 120) ||
+        (decision.adaptationLevel > 0
+          ? 'Планът ви е готов за новата седмица'
+          : 'Отлична седмица — продължавайте така'),
       message: decision.motivationMessage,
       changes: (decision.changeSummary || []).slice(0, 2),
       cycleNumber,

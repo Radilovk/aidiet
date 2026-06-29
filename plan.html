@@ -2466,6 +2466,46 @@
             padding: 6px;
         }
         .game-weekly-later:hover { color: #6b7280; }
+        .game-weekly-badge {
+            display: inline-block;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #0D9488;
+            background: rgba(13,148,136,0.1);
+            border-radius: 999px;
+            padding: 5px 12px;
+            margin-bottom: 10px;
+        }
+        .game-weekly-highlight {
+            font-size: 0.88rem;
+            color: var(--text-dark);
+            line-height: 1.5;
+            margin: 10px 0 6px;
+            opacity: 0.9;
+        }
+        .game-weekly-changes {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin: 12px 0 14px;
+            text-align: left;
+        }
+        .game-weekly-change-item {
+            font-size: 0.84rem;
+            color: #0F766E;
+            background: rgba(13,148,136,0.08);
+            border-radius: 10px;
+            padding: 8px 12px;
+            line-height: 1.4;
+        }
+        .game-weekly-trust {
+            font-size: 0.78rem;
+            color: #6b7280;
+            line-height: 1.45;
+            margin-top: 4px;
+        }
         /* Confetti */
         .game-confetti { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
         .game-confetti span {
@@ -4459,14 +4499,20 @@
             if (document.documentElement.getAttribute('data-embedded-tab') === '1') return;
             const sync = window.NutriPlanPlanSync;
             const uid = localStorage.getItem('userId') || '';
-            if (!sync || uid.indexOf('fb_') !== 0) return;
+            if (!sync || !uid) return;
             const opts = buildPlanSyncOpts();
-            sync.maybeDailyPlanVersionCheck(uid, opts).then(function (result) {
-                if ((result && result.pending) || (sync.hasPlanUpdatePending && sync.hasPlanUpdatePending())) {
-                    if (typeof sync.maybePromptPendingPlanUpdate === 'function') {
-                        sync.maybePromptPendingPlanUpdate(uid, opts);
+            const weeklyFirst = (typeof sync.maybeCheckWeeklyAdaptNotice === 'function')
+                ? sync.maybeCheckWeeklyAdaptNotice(uid, opts)
+                : Promise.resolve({ applied: false });
+            weeklyFirst.then(function (weekly) {
+                if (weekly && weekly.applied) return;
+                sync.maybeDailyPlanVersionCheck(uid, opts).then(function (result) {
+                    if ((result && result.pending) || (sync.hasPlanUpdatePending && sync.hasPlanUpdatePending())) {
+                        if (typeof sync.maybePromptPendingPlanUpdate === 'function') {
+                            sync.maybePromptPendingPlanUpdate(uid, opts);
+                        }
                     }
-                }
+                }).catch(function () {});
             }).catch(function () {});
         }
 
@@ -5591,7 +5637,14 @@
         });
 
         window.addEventListener('NUTRIPLAN_WEEKLY_ADAPT_READY', function(e) {
-            if (e && e.detail && e.detail.notice) showWeeklyAdaptNoticeModal(e.detail.notice);
+            if (!e || !e.detail) return;
+            var notice = e.detail;
+            if (notice.planApplied !== false && typeof loadDietData === 'function') {
+                loadDietData({ force: true });
+            }
+            setTimeout(function() {
+                showWeeklyAdaptNoticeModal(notice);
+            }, notice.planApplied === false ? 0 : 350);
         });
 
         function maybeCheckWeeklyAdaptNotice() {
@@ -10351,15 +10404,16 @@
             var modal = document.createElement('div');
             modal.className = 'game-modal';
             modal.innerHTML = '<div class="game-modal-emoji"><i class="fas fa-paper-plane" style="color:#6366f1"></i></div>'
-                + '<div class="game-modal-title">Изпратено!</div>';
+                + '<div class="game-weekly-badge">Преглед от специалист</div>'
+                + '<div class="game-modal-title">Благодарим!</div>';
             var msg = document.createElement('div');
             msg.className = 'game-modal-msg';
-            msg.textContent = 'Специалистът ще прегледа отговорите ви и ще актуализира плана в рамките на 24 часа.';
+            msg.innerHTML = 'Вашият специалист получи информацията.<br><span class="game-weekly-trust">При следващото отваряне ще видите актуализирания план.</span>';
             modal.appendChild(msg);
             var btn = document.createElement('button');
             btn.className = 'game-modal-btn';
             btn.style.cssText = 'width:100%;background:linear-gradient(135deg,#0D9488,#0F766E);color:white;';
-            btn.textContent = 'Добре';
+            btn.textContent = 'Разбрах';
             btn.onclick = function() { overlay.remove(); };
             modal.appendChild(btn);
             overlay.appendChild(modal);
@@ -10374,26 +10428,53 @@
             overlay.className = 'game-modal-overlay';
             var modal = document.createElement('div');
             modal.className = 'game-modal';
-            var title = notice.changed ? 'Планът е актуализиран' : 'От специалиста';
-            modal.innerHTML = '<div class="game-modal-emoji"><i class="fas ' + (notice.changed ? 'fa-check-circle' : 'fa-heart') + '" style="color:' + (notice.changed ? '#10b981' : '#6366f1') + '"></i></div>'
-                + '<div class="game-modal-title">' + title + '</div>';
-            var msg = document.createElement('div');
-            msg.className = 'game-modal-msg';
-            if (notice.changed && notice.changes && notice.changes.length) {
-                msg.textContent = notice.changes.slice(0, 2).join(' · ');
-            } else {
-                var text = notice.message || '';
-                msg.textContent = text.length > 160 ? text.slice(0, 157) + '...' : text;
+
+            var badge = document.createElement('div');
+            badge.className = 'game-weekly-badge';
+            badge.textContent = 'Преглед от специалист';
+            modal.appendChild(badge);
+
+            var titleEl = document.createElement('div');
+            titleEl.className = 'game-modal-title';
+            titleEl.textContent = notice.headline || (notice.changed ? 'Планът ви е актуализиран' : 'Съобщение от специалиста');
+            modal.appendChild(titleEl);
+
+            if (notice.message) {
+                var lead = document.createElement('div');
+                lead.className = 'game-weekly-highlight';
+                var leadText = String(notice.message);
+                lead.textContent = leadText.length > 140 ? leadText.slice(0, 137) + '...' : leadText;
+                modal.appendChild(lead);
             }
-            modal.appendChild(msg);
+
+            if (notice.changed && notice.changes && notice.changes.length) {
+                var changesWrap = document.createElement('div');
+                changesWrap.className = 'game-weekly-changes';
+                notice.changes.slice(0, 2).forEach(function(item) {
+                    var row = document.createElement('div');
+                    row.className = 'game-weekly-change-item';
+                    row.textContent = '✓ ' + item;
+                    changesWrap.appendChild(row);
+                });
+                modal.appendChild(changesWrap);
+            }
+
+            var trust = document.createElement('div');
+            trust.className = 'game-weekly-trust';
+            trust.textContent = 'Адаптиран по вашите отговори и резултатите от седмицата.';
+            modal.appendChild(trust);
+
+            var emo = document.createElement('span');
+            emo.className = 'game-modal-emoji';
+            emo.style.marginTop = '10px';
+            emo.innerHTML = '<i class="fas fa-check-circle" style="color:#10b981"></i>';
+            modal.insertBefore(emo, badge);
+
             var btn = document.createElement('button');
             btn.className = 'game-modal-btn';
-            btn.style.cssText = 'width:100%;background:linear-gradient(135deg,#0D9488,#0F766E);color:white;';
-            btn.textContent = 'Добре';
-            btn.onclick = function() {
-                overlay.remove();
-                if (notice.changed && typeof loadDietData === 'function') loadDietData({ force: true });
-            };
+            btn.style.cssText = 'width:100%;margin-top:14px;background:linear-gradient(135deg,#0D9488,#0F766E);color:white;';
+            btn.textContent = notice.changed ? 'Започни новата седмица' : 'Продължи';
+            btn.onclick = function() { overlay.remove(); };
             modal.appendChild(btn);
             overlay.appendChild(modal);
             document.body.appendChild(overlay);
