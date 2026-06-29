@@ -403,7 +403,7 @@
             : Promise.resolve({ applied: false });
         return weeklyFirst.then(function (weekly) {
             if (weekly && weekly.applied) return true;
-            return sync.maybeDailyPlanVersionCheck(uid, opts)
+            return sync.maybeDailyPlanVersionCheck(uid, Object.assign({}, opts, { weeklyAlreadyChecked: true }))
                 .then(function (result) {
                     if (result && result.pending) {
                         promptAdminPlanUpdate(result.planUpdatedAt || '');

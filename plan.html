@@ -4506,7 +4506,7 @@
                 : Promise.resolve({ applied: false });
             weeklyFirst.then(function (weekly) {
                 if (weekly && weekly.applied) return;
-                sync.maybeDailyPlanVersionCheck(uid, opts).then(function (result) {
+                sync.maybeDailyPlanVersionCheck(uid, Object.assign({}, opts, { weeklyAlreadyChecked: true })).then(function (result) {
                     if ((result && result.pending) || (sync.hasPlanUpdatePending && sync.hasPlanUpdatePending())) {
                         if (typeof sync.maybePromptPendingPlanUpdate === 'function') {
                             sync.maybePromptPendingPlanUpdate(uid, opts);
@@ -5639,6 +5639,17 @@
         window.addEventListener('NUTRIPLAN_WEEKLY_ADAPT_READY', function(e) {
             if (!e || !e.detail) return;
             var notice = e.detail;
+            if (notice.cycleNumber != null && notice.adaptLevel != null) {
+                try {
+                    var wInfo = JSON.parse(localStorage.getItem('gameWeeklyAI') || '{}');
+                    var wHist = (wInfo.adaptationHistory || []).filter(function(h) {
+                        return h.cycleNumber !== notice.cycleNumber;
+                    }).slice(-4);
+                    wHist.push({ cycleNumber: notice.cycleNumber, level: notice.adaptLevel, at: notice.at || new Date().toISOString() });
+                    wInfo.adaptationHistory = wHist;
+                    localStorage.setItem('gameWeeklyAI', JSON.stringify(wInfo));
+                } catch (_) {}
+            }
             if (notice.planApplied !== false && typeof loadDietData === 'function') {
                 loadDietData({ force: true });
             }
@@ -10507,7 +10518,7 @@
                 + '<div class="game-modal-title">Благодарим!</div>';
             var msg = document.createElement('div');
             msg.className = 'game-modal-msg';
-            msg.textContent = 'Информацията е изпратена за преглед и актуализация. При следващото отваряне ще видите обновения план.';
+            msg.textContent = 'Информацията е изпратена за преглед и актуализация. Обикновено до няколко часа — при следващото отваряне ще видите обновения план.';
             modal.appendChild(msg);
             var btn = document.createElement('button');
             btn.className = 'game-modal-btn';
@@ -10560,7 +10571,14 @@
             btn.className = 'game-modal-btn';
             btn.style.cssText = 'width:100%;margin-top:14px;background:linear-gradient(135deg,#0D9488,#0F766E);color:white;';
             btn.textContent = notice.changed ? 'Започни новата седмица' : 'Продължи';
-            btn.onclick = function() { overlay.remove(); };
+            btn.onclick = function() {
+                overlay.remove();
+                if (notice && notice.id && window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.ackWeeklyNotice === 'function') {
+                    var uid = localStorage.getItem('userId') || '';
+                    var opts = (typeof buildPlanSyncOpts === 'function') ? buildPlanSyncOpts() : {};
+                    window.NutriPlanPlanSync.ackWeeklyNotice(uid, notice, opts);
+                }
+            };
             modal.appendChild(btn);
             overlay.appendChild(modal);
             document.body.appendChild(overlay);
@@ -10593,6 +10611,9 @@
             info.submittedAt = new Date().toISOString();
             info.lastRun = info.submittedAt;
             info.nextDue = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+            var hist = (info.adaptationHistory || []).slice(-4);
+            hist.push({ cycleNumber: cycleNumber, submittedAt: info.submittedAt });
+            info.adaptationHistory = hist;
             delete info.pendingQuestions;
             saveWeeklyAIState(info);
         }
@@ -10726,7 +10747,7 @@
                 return;
             }
             var wd = calcWeeklyScore();
-            if (wd.daysRecorded >= 5) {
+            if (wd.daysRecorded >= 3) {
                 var shownKey = 'gameWeeklyRecapShown_' + getTodayKey();
                 if (!localStorage.getItem(shownKey)) {
                     localStorage.setItem(shownKey, '1');
@@ -10734,11 +10755,6 @@
                     saveWeeklyAIState(info);
                     setTimeout(function() { showWeeklyRecapModal(wd); }, 1600);
                 }
-            } else {
-                info.lastRun = new Date().toISOString();
-                info.nextDue = new Date(now + 7 * 24 * 60 * 60 * 1000).toISOString();
-                info.feedbackStatus = 'skipped';
-                saveWeeklyAIState(info);
             }
         }
 
