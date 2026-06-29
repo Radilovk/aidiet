@@ -145,6 +145,26 @@ else
 fi
 echo ""
 
+# admin_weekly_questions_prompt
+echo "📤 Качване на admin_weekly_questions_prompt..."
+if wrangler kv:key put --namespace-id=$NAMESPACE_ID \
+    "admin_weekly_questions_prompt" --path="$KV_DIR/prompts/admin_weekly_questions_prompt.txt"; then
+    echo "✅ admin_weekly_questions_prompt качен успешно"
+else
+    echo "❌ Грешка при качване на admin_weekly_questions_prompt"
+fi
+echo ""
+
+# admin_weekly_adaptation_prompt
+echo "📤 Качване на admin_weekly_adaptation_prompt..."
+if wrangler kv:key put --namespace-id=$NAMESPACE_ID \
+    "admin_weekly_adaptation_prompt" --path="$KV_DIR/prompts/admin_weekly_adaptation_prompt.txt"; then
+    echo "✅ admin_weekly_adaptation_prompt качен успешно"
+else
+    echo "❌ Грешка при качване на admin_weekly_adaptation_prompt"
+fi
+echo ""
+
 # admin_emoeat_prompt
 echo "📤 Качване на admin_emoeat_prompt..."
 if wrangler kv:key put --namespace-id=$NAMESPACE_ID \

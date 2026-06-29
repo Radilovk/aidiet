@@ -743,7 +743,8 @@ const PLAN_MODIFICATIONS = {
   VEGETARIAN: 'vegetarian',
   NO_DAIRY: 'no_dairy',
   LOW_CARB: 'low_carb',
-  INCREASE_PROTEIN: 'increase_protein'
+  INCREASE_PROTEIN: 'increase_protein',
+  SIMPLIFY_MEALS: 'simplify_meals'
 };
 
 const PLAN_MODIFICATION_DESCRIPTIONS = {
@@ -753,7 +754,8 @@ const PLAN_MODIFICATION_DESCRIPTIONS = {
   [PLAN_MODIFICATIONS.VEGETARIAN]: '- ВЕГЕТАРИАНСКО хранене - без месо и риба',
   [PLAN_MODIFICATIONS.NO_DAIRY]: '- БЕЗ млечни продукти',
   [PLAN_MODIFICATIONS.LOW_CARB]: '- Нисковъглехидратна диета',
-  [PLAN_MODIFICATIONS.INCREASE_PROTEIN]: '- Повишен прием на протеини'
+  [PLAN_MODIFICATIONS.INCREASE_PROTEIN]: '- Повишен прием на протеини',
+  [PLAN_MODIFICATIONS.SIMPLIFY_MEALS]: '- Опростени/бързи ястия — по-малко готвене, готови опции'
 };
 
 // Default goal-based hacks (hardcoded tips per goal, managed via admin panel)
@@ -3606,8 +3608,14 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
   let modificationsSection = '';
   if (data.planModifications && data.planModifications.length > 0) {
     const modLines = data.planModifications
-      .map(mod => PLAN_MODIFICATION_DESCRIPTIONS[mod])
-      .filter(desc => desc !== undefined);
+      .map(mod => {
+        if (PLAN_MODIFICATION_DESCRIPTIONS[mod]) return PLAN_MODIFICATION_DESCRIPTIONS[mod];
+        if (typeof mod === 'string' && mod.startsWith('exclude_food:')) {
+          return `- БЕЗ: ${mod.substring('exclude_food:'.length)}`;
+        }
+        return null;
+      })
+      .filter(desc => desc !== undefined && desc !== null);
     if (modLines.length > 0) {
       modificationsSection = `\nМОДИФИКАЦИИ: ${modLines.join('; ')}`;
     }
@@ -3712,8 +3720,12 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
       freeMealInstruction: buildFreeMealInstruction(strategy, startDay, endDay),
       sweetsCravingRule,
       additionalNotes: buildCombinedAdditionalNotes(data),
-      clinicalProtocolSection: (() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buildClinicalProtocolPromptSection(p) : ''; })()
+      clinicalProtocolSection: (() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buildClinicalProtocolPromptSection(p) : ''; })(),
+      weeklyAdaptationSection: buildWeeklyAdaptationContextSection(data)
     });
+    
+    const weeklySection = buildWeeklyAdaptationContextSection(data);
+    if (weeklySection && !prompt.includes('СЕДМИЧНА АДАПТАЦИЯ')) prompt += weeklySection;
     
     // CRITICAL: Ensure JSON format instructions are included even with custom prompts
     if (!hasJsonFormatInstructions(prompt)) {
@@ -6974,6 +6986,408 @@ async function persistAnalyticsSummary(env, userId, summary, clientIdHint = '') 
   return { profile, clientId };
 }
 
+// ── Weekly plan adaptation ───────────────────────────────────────────────────
+
+function buildWeeklyAdaptationContextSection(data) {
+  if (!data?.weeklyAdaptationContext) return '';
+  return `\n\n═══ СЕДМИЧНА АДАПТАЦИЯ (АВТОМАТИЧНО) ═══\n${data.weeklyAdaptationContext}\n═══════════════════════════════════════════════════════════════`;
+}
+
+function buildWeeklyContextFromPayload(userData, plan, analytics, gameWeeklyAI, feedbackAnswers) {
+  const cycleNumber = gameWeeklyAI?.cycleNumber || 1;
+  const dietStartDate = gameWeeklyAI?.dietStartDate || '';
+  let daysSinceStart = null;
+  if (dietStartDate) {
+    const startMs = new Date(dietStartDate).getTime();
+    if (!Number.isNaN(startMs)) daysSinceStart = Math.floor((Date.now() - startMs) / 86400000);
+  }
+
+  const profile = serializeUserProfile(userData || {}, 'strategy');
+  const analysisBlock = plan?.analysis ? serializeAnalysisForStep(plan.analysis, 2) : '';
+  const strategyBlock = plan?.strategy ? serializeStrategyForMealPlan(plan.strategy) : '';
+  const axBlock = serializeAnalyticsBlock(analytics);
+
+  let feedbackBlock = '';
+  if (feedbackAnswers?.length) {
+    feedbackBlock = 'FB|answers|' + feedbackAnswers.map((a) => `${a.questionId}=${String(a.value).replace(/\|/g, '/')}`).join('|');
+  }
+
+  const history = (gameWeeklyAI?.adaptationHistory || []).slice(-3);
+  const histBlock = history.length
+    ? 'HIST|' + history.map((h) => `c${h.cycleNumber}:L${h.level}`).join('|')
+    : '';
+
+  return [
+    `CYC|n=${cycleNumber}|days=${daysSinceStart ?? '—'}|start=${dietStartDate || '—'}`,
+    profile,
+    analysisBlock,
+    strategyBlock,
+    axBlock,
+    feedbackBlock,
+    histBlock,
+  ].filter(Boolean).join('\n');
+}
+
+function formatFeedbackAnswersForPrompt(questions, answers) {
+  if (!answers?.length) return 'няма';
+  return answers.map((a, i) => {
+    const q = (questions || []).find((item) => item.id === a.questionId);
+    return `${i + 1}. ${q?.text || a.questionId}: ${a.value}`;
+  }).join('\n');
+}
+
+const WEEKLY_FALLBACK_QUESTIONS = [
+  { id: 'fb1', text: 'Имахте ли значителни промени в графика си тази седмица?', type: 'yes_no', options: ['Да', 'Не'] },
+  { id: 'fb2', text: 'Успяхте ли да следвате плана повече от 70% от времето?', type: 'yes_no', options: ['Да', 'Не'] },
+  { id: 'fb3', text: 'Колко трудно беше да се придържате към плана?', type: 'scale_1_3', options: ['Лесно', 'Средно', 'Трудно'] },
+  { id: 'fb4', text: 'Имате ли нужда от по-опростени ястия следващата седмица?', type: 'yes_no', options: ['Да', 'Не'] },
+  { id: 'fb5', text: 'Как се чувствате за напредъка си?', type: 'choice', options: ['Мотивиран/а', 'Неутрално', 'Нужда от подкрепа'] },
+];
+
+function normalizeWeeklyQuestions(raw) {
+  if (!raw?.questions || !Array.isArray(raw.questions)) return null;
+  const questions = raw.questions.slice(0, 5).map((q, i) => ({
+    id: q.id || `q${i + 1}`,
+    text: String(q.text || '').trim(),
+    type: ['yes_no', 'scale_1_3', 'choice'].includes(q.type) ? q.type : 'choice',
+    options: Array.isArray(q.options) && q.options.length
+      ? q.options.map(String).slice(0, 4)
+      : ['Да', 'Не'],
+  })).filter((q) => q.text);
+
+  while (questions.length < 5) {
+    const fallback = WEEKLY_FALLBACK_QUESTIONS[questions.length];
+    if (!fallback) break;
+    questions.push({ ...fallback });
+  }
+  return questions.length >= 3 ? questions.slice(0, 5) : null;
+}
+
+function normalizeAdaptationDecision(raw, analytics) {
+  let level = Math.min(3, Math.max(0, parseInt(raw?.adaptationLevel, 10) || 0));
+  if (analytics?.status === 'active') {
+    if (analytics.adherence >= 80 && (analytics.avgScore ?? 0) >= 4 && analytics.junk7 <= 2 && level > 1) {
+      level = 1;
+    }
+    if (analytics.adherence < 50 || analytics.junk7 >= 5) {
+      level = Math.max(level, 1);
+    }
+  }
+  return {
+    adaptationLevel: level,
+    reasoning: String(raw?.reasoning || '').slice(0, 500),
+    modifications: Array.isArray(raw?.modifications) ? raw.modifications.map(String) : [],
+    strategyChanges: raw?.strategyChanges || {},
+    motivationMessage: String(raw?.motivationMessage || 'Продължавайте стабилно напред!').slice(0, 600),
+    changeSummary: Array.isArray(raw?.changeSummary) ? raw.changeSummary.map(String).slice(0, 6) : [],
+  };
+}
+
+function mapAdaptationLevelToRegenStep(level) {
+  if (level <= 1) return 'step3_mealplan';
+  if (level === 2) return 'step2_strategy';
+  return 'step1_analysis';
+}
+
+function mergeWeeklyModifications(existing, decisionMods) {
+  const mods = new Set(existing || []);
+  (decisionMods || []).forEach((m) => {
+    if (typeof m === 'string' && m.trim()) mods.add(m.trim());
+  });
+  return Array.from(mods);
+}
+
+function buildWeeklyAdaptationContextText(decision, analytics, feedbackAnswers, cycleNumber) {
+  const parts = [
+    `Цикъл: ${cycleNumber}`,
+    `Ниво: ${decision.adaptationLevel}`,
+    decision.reasoning ? `Причина: ${decision.reasoning}` : '',
+    decision.strategyChanges?.weeklySchemeNotes ? `Бележки: ${decision.strategyChanges.weeklySchemeNotes}` : '',
+  ];
+  if (feedbackAnswers?.length) {
+    parts.push('Отговори: ' + feedbackAnswers.map((a) => `${a.questionId}=${a.value}`).join(', '));
+  }
+  if (analytics?.status === 'active') {
+    parts.push(`Аналитика: avg=${analytics.avgScore}|adh=${analytics.adherence}|junk7=${analytics.junk7}|tr=${analytics.trend}`);
+  }
+  return parts.filter(Boolean).join('\n');
+}
+
+async function verifyWeeklyRequestAuth(userId, idToken, env) {
+  if (!userId?.startsWith('fb_') || !idToken || !env.FIREBASE_PROJECT_ID) return;
+  const firebaseUser = await verifyFirebaseIdToken(idToken, env);
+  if (`fb_${firebaseUser.uid}` !== userId) {
+    throw new Error('Token does not match userId');
+  }
+}
+
+async function generateWeeklyQuestions(env, userData, plan, analytics, gameWeeklyAI) {
+  const weeklyContext = buildWeeklyContextFromPayload(userData, plan, analytics, gameWeeklyAI);
+  const template = await requireKvPrompt(env, 'admin_weekly_questions_prompt');
+  const prompt = template.replace(/\{weeklyContext\}/g, weeklyContext);
+  const response = await callAIModel(env, prompt, 1200, 'weekly_questions', null, userData, null);
+  const parsed = parseAIResponse(response);
+  const questions = normalizeWeeklyQuestions(parsed);
+  if (!questions) throw new Error('Неуспешно генериране на въпроси');
+  return { questions, contextNote: parsed.contextNote || '' };
+}
+
+async function getWeeklyAdaptationDecision(env, userData, plan, analytics, gameWeeklyAI, questions, answers) {
+  const weeklyContext = buildWeeklyContextFromPayload(userData, plan, analytics, gameWeeklyAI, answers);
+  const feedbackAnswers = formatFeedbackAnswersForPrompt(questions, answers);
+  const template = await requireKvPrompt(env, 'admin_weekly_adaptation_prompt');
+  const prompt = template
+    .replace(/\{weeklyContext\}/g, weeklyContext)
+    .replace(/\{feedbackAnswers\}/g, feedbackAnswers);
+  const response = await callAIModel(env, prompt, 1000, 'weekly_adaptation_decision', null, userData, null);
+  const parsed = parseAIResponse(response);
+  return normalizeAdaptationDecision(parsed, analytics);
+}
+
+async function persistWeeklyAdaptationMeta(env, userId, clientId, gameWeeklyAI, cycleNumber, decision, changed) {
+  const profile = userId ? await kvGetJSON(env, `user_profile:${userId}`) : null;
+  if (profile) {
+    const hist = (profile.weeklyAdaptationHistory || []).slice(-3);
+    hist.push({
+      cycleNumber,
+      level: decision.adaptationLevel,
+      changed,
+      summary: decision.changeSummary?.join('; ') || decision.motivationMessage?.slice(0, 120),
+      at: new Date().toISOString(),
+    });
+    profile.weeklyAdaptationHistory = hist;
+    if (profile.analytics) {
+      profile.analytics.weeklyAI = {
+        ...(profile.analytics.weeklyAI || {}),
+        lastSummary: decision.motivationMessage,
+        lastRun: new Date().toISOString(),
+      };
+    }
+    const ttl = userId.startsWith('fb_') ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
+    await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
+  }
+
+  if (clientId) {
+    try {
+      const clientData = await kvGetJSON(env, `client:${clientId}`);
+      if (clientData) {
+        const hist = (clientData.weeklyAdaptationHistory || []).slice(-3);
+        hist.push({
+          cycleNumber,
+          level: decision.adaptationLevel,
+          changed,
+          summary: decision.changeSummary?.join('; ') || decision.motivationMessage?.slice(0, 120),
+          at: new Date().toISOString(),
+        });
+        clientData.weeklyAdaptationHistory = hist;
+        if (clientData.analytics) {
+          clientData.analytics.weeklyAI = {
+            ...(clientData.analytics.weeklyAI || {}),
+            lastSummary: decision.motivationMessage,
+            lastRun: new Date().toISOString(),
+          };
+        }
+        await kvPutJSON(env, `client:${clientId}`, clientData, null);
+      }
+    } catch (e) {
+      console.warn('[WeeklyAdapt] client meta persist failed:', e.message);
+    }
+  }
+}
+
+async function runWeeklyAdaptation(env, payload, jobId) {
+  const { userId, userData, plan, gameData, gameWeeklyAI, answers, questions, clientId } = payload;
+  const analytics = buildAnalyticsSummary(gameData || {}, gameWeeklyAI || {});
+  const cycleNumber = (gameWeeklyAI?.cycleNumber || 0) + 1;
+
+  try {
+    const decision = await getWeeklyAdaptationDecision(
+      env, userData, plan, analytics, gameWeeklyAI, questions, answers
+    );
+
+    if (decision.adaptationLevel === 0) {
+      await persistWeeklyAdaptationMeta(env, userId, clientId, gameWeeklyAI, cycleNumber, decision, false);
+      await env.page_content.put(
+        PLAN_JOB_PREFIX + jobId,
+        JSON.stringify({
+          status: 'completed',
+          type: 'weekly_adapt',
+          completedAt: Date.now(),
+          changed: false,
+          adaptationLevel: 0,
+          motivationMessage: decision.motivationMessage,
+          changeSummary: [],
+          plan,
+          userId,
+          weeklyMeta: { cycleNumber, decision },
+        }),
+        { expirationTtl: PLAN_JOB_TTL_SEC }
+      );
+      return;
+    }
+
+    const enrichedData = normalizeQuestionnaireData(userData);
+    enrichedData.planModifications = mergeWeeklyModifications(
+      userData.planModifications || enrichedData.planModifications,
+      decision.modifications
+    );
+    enrichedData.weeklyAdaptationContext = buildWeeklyAdaptationContextText(
+      decision, analytics, answers, cycleNumber
+    );
+
+    const regenStep = mapAdaptationLevelToRegenStep(decision.adaptationLevel);
+    let newPlan;
+    if (regenStep === 'step1_analysis') {
+      newPlan = await generatePlanMultiStep(env, enrichedData);
+    } else {
+      newPlan = await regenerateFromStep(
+        env, enrichedData, plan, regenStep, { [regenStep]: ['weekly adaptation'] }, 1
+      );
+    }
+
+    const now = new Date().toISOString();
+    newPlan._meta = {
+      ...(newPlan._meta || {}),
+      weeklyAdaptation: { cycleNumber, level: decision.adaptationLevel, at: now },
+    };
+
+    if (userId) {
+      await upsertUserProfilePlan(env, userId, {
+        plan: newPlan,
+        userData: enrichedData,
+        clientId: clientId || undefined,
+        planUpdatedAt: now,
+      });
+    }
+
+    if (clientId) {
+      const clientData = await kvGetJSON(env, `client:${clientId}`);
+      if (clientData) {
+        clientData.plan = newPlan;
+        clientData.planUpdatedAt = now;
+        clientData.answers = {
+          ...(clientData.answers || {}),
+          planModifications: enrichedData.planModifications,
+        };
+        if (clientData.planStatus === 'activated') {
+          await kvPutJSON(env, `client:${clientId}`, clientData, null);
+        }
+      }
+    }
+
+    await persistWeeklyAdaptationMeta(env, userId, clientId, gameWeeklyAI, cycleNumber, decision, true);
+
+    await env.page_content.put(
+      PLAN_JOB_PREFIX + jobId,
+      JSON.stringify({
+        status: 'completed',
+        type: 'weekly_adapt',
+        completedAt: Date.now(),
+        changed: true,
+        adaptationLevel: decision.adaptationLevel,
+        motivationMessage: decision.motivationMessage,
+        changeSummary: decision.changeSummary,
+        plan: newPlan,
+        planUpdatedAt: now,
+        userId,
+        weeklyMeta: { cycleNumber, decision },
+      }),
+      { expirationTtl: PLAN_JOB_TTL_SEC }
+    );
+  } catch (error) {
+    console.error('[WeeklyAdapt] job failed:', error);
+    await env.page_content.put(
+      PLAN_JOB_PREFIX + jobId,
+      JSON.stringify({ status: 'failed', type: 'weekly_adapt', error: error.message, failedAt: Date.now() }),
+      { expirationTtl: PLAN_JOB_TTL_SEC }
+    );
+  }
+}
+
+/**
+ * POST /api/weekly/generate-questions
+ */
+async function handleWeeklyGenerateQuestions(request, env) {
+  try {
+    if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    const { userId, userData, plan, gameData, gameWeeklyAI, idToken } = await request.json();
+    if (!userId || !userData || !plan) {
+      return jsonResponse({ error: 'Missing userId, userData or plan' }, 400);
+    }
+    try {
+      await verifyWeeklyRequestAuth(userId, idToken, env);
+    } catch (e) {
+      return jsonResponse({ error: e.message }, 401);
+    }
+
+    const analytics = buildAnalyticsSummary(gameData || {}, gameWeeklyAI || {});
+    if ((analytics.daysRecorded || 0) < 3) {
+      return jsonResponse({ error: 'Недостатъчно данни за седмичен feedback (минимум 3 дни)' }, 400);
+    }
+
+    const cycleNumber = (gameWeeklyAI?.cycleNumber || 0) + 1;
+    const result = await generateWeeklyQuestions(
+      env, userData, plan, analytics, { ...gameWeeklyAI, cycleNumber }
+    );
+
+    return jsonResponse({
+      success: true,
+      questions: result.questions,
+      contextNote: result.contextNote,
+      cycleNumber,
+      analytics: {
+        avgScore: analytics.avgScore,
+        adherence: analytics.adherence,
+        daysRecorded: analytics.daysRecorded,
+      },
+    });
+  } catch (error) {
+    console.error('[WeeklyAdapt] generate-questions error:', error);
+    return jsonResponse({ error: error.message || 'Грешка при генериране на въпроси' }, 500);
+  }
+}
+
+/**
+ * POST /api/weekly/adapt-plan
+ */
+async function handleWeeklyAdaptPlan(request, env, ctx) {
+  try {
+    if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    const body = await request.json();
+    const { userId, userData, plan, gameData, gameWeeklyAI, answers, questions, clientId, idToken } = body;
+    if (!userId || !userData || !plan || !answers?.length) {
+      return jsonResponse({ error: 'Missing required fields' }, 400);
+    }
+    try {
+      await verifyWeeklyRequestAuth(userId, idToken, env);
+    } catch (e) {
+      return jsonResponse({ error: e.message }, 401);
+    }
+
+    const jobId = (body._jobId && JOB_ID_UUID_RE.test(String(body._jobId)))
+      ? String(body._jobId)
+      : crypto.randomUUID();
+
+    await env.page_content.put(
+      PLAN_JOB_PREFIX + jobId,
+      JSON.stringify({ status: 'pending', type: 'weekly_adapt', startedAt: Date.now() }),
+      { expirationTtl: PLAN_JOB_TTL_SEC }
+    );
+
+    const payload = { userId, userData, plan, gameData, gameWeeklyAI, answers, questions, clientId };
+    if (env.PLAN_QUEUE) {
+      await env.PLAN_QUEUE.send({ jobId, type: 'weekly_adapt', payload }, { contentType: 'json' });
+    } else {
+      ctx.waitUntil(runWeeklyAdaptation(env, payload, jobId));
+    }
+
+    return jsonResponse({ success: true, jobId });
+  } catch (error) {
+    console.error('[WeeklyAdapt] adapt-plan error:', error);
+    return jsonResponse({ error: error.message }, 500);
+  }
+}
+
 /**
  * POST /api/user/sync-analytics { userId, gameData, gameWeeklyAI?, clientId?, idToken? }
  */
@@ -9377,6 +9791,9 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
       clinicalProtocolSection: (() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buildClinicalProtocolPromptSection(p) : ''; })(),
       clinicalProtocolName: (() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? p.name : ''; })()
     });
+
+    const weeklySection = buildWeeklyAdaptationContextSection(data);
+    if (weeklySection && !prompt.includes('СЕДМИЧНА АДАПТАЦИЯ')) prompt += weeklySection;
     
     // Inject error prevention comment if provided
     if (errorPreventionComment) {
@@ -11583,7 +12000,9 @@ function getPromptKVKey(type) {
     'emoeat': 'admin_emoeat_prompt',
     'food_analysis': 'admin_food_analysis_prompt',
     'menu_analysis': 'admin_menu_analysis_prompt',
-    'validation': 'admin_validation_prompt'
+    'validation': 'admin_validation_prompt',
+    'weekly_questions': 'admin_weekly_questions_prompt',
+    'weekly_adaptation': 'admin_weekly_adaptation_prompt'
   };
   
   return keyMap[type] || 'admin_plan_prompt';
@@ -11654,7 +12073,9 @@ async function handleGetDefaultPrompt(request, env) {
       'emoeat': 'admin_emoeat_prompt',
       'food_analysis': 'admin_food_analysis_prompt',
       'menu_analysis': 'admin_menu_analysis_prompt',
-      'validation': 'admin_validation_prompt'
+      'validation': 'admin_validation_prompt',
+      'weekly_questions': 'admin_weekly_questions_prompt',
+      'weekly_adaptation': 'admin_weekly_adaptation_prompt'
     };
     
     const kvKey = promptKeyMap[type];
@@ -15847,6 +16268,10 @@ export default {
         return await handleSaveUserProfile(request, env);
       } else if (url.pathname === '/api/user/sync-analytics' && request.method === 'POST') {
         return await handleSyncAnalytics(request, env);
+      } else if (url.pathname === '/api/weekly/generate-questions' && request.method === 'POST') {
+        return await handleWeeklyGenerateQuestions(request, env);
+      } else if (url.pathname === '/api/weekly/adapt-plan' && request.method === 'POST') {
+        return await handleWeeklyAdaptPlan(request, env, ctx);
       } else if (url.pathname === '/api/user/check-account' && request.method === 'GET') {
         return await handleCheckAccountEmail(request, env);
       } else if (url.pathname === '/api/plan/claim' && request.method === 'GET') {
@@ -15944,10 +16369,15 @@ export default {
    */
   async queue(batch, env) {
     for (const message of batch.messages) {
-      const { jobId, data, clientId, generationOptions } = message.body;
-      console.log(`Queue consumer: received job ${jobId}`);
+      const body = message.body || {};
+      const { jobId, type, payload, data, clientId, generationOptions } = body;
+      console.log(`Queue consumer: received job ${jobId}${type ? ` (${type})` : ''}`);
       try {
-        await generatePlanAndSave(env, data, jobId, clientId || null, generationOptions || {});
+        if (type === 'weekly_adapt') {
+          await runWeeklyAdaptation(env, payload, jobId);
+        } else {
+          await generatePlanAndSave(env, data, jobId, clientId || null, generationOptions || {});
+        }
         message.ack();
         console.log(`Queue consumer: acked job ${jobId}`);
       } catch (err) {

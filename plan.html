@@ -2390,6 +2390,58 @@
         }
         .game-modal-btn:hover { opacity: 0.88; }
         .game-modal-btn-row { display: flex; gap: 8px; }
+        /* Weekly quick-answer flow */
+        .game-qa-progress {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            margin: 0 0 14px;
+        }
+        .game-qa-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(13,148,136,0.2);
+            transition: all 0.25s ease;
+        }
+        .game-qa-dot.active { background: #0D9488; transform: scale(1.2); }
+        .game-qa-dot.done { background: #10b981; }
+        .game-qa-question {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            line-height: 1.45;
+            margin: 8px 0 18px;
+            min-height: 3.2em;
+        }
+        .game-qa-options { display: flex; flex-direction: column; gap: 8px; }
+        .game-qa-option {
+            width: 100%;
+            padding: 13px 16px;
+            border-radius: 14px;
+            border: 1.5px solid rgba(13,148,136,0.22);
+            background: rgba(13,148,136,0.06);
+            color: #0D9488;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .game-qa-option:hover, .game-qa-option.selected {
+            background: linear-gradient(135deg, #0D9488, #0F766E);
+            color: white;
+            border-color: transparent;
+            transform: translateY(-1px);
+        }
+        .game-qa-skip {
+            margin-top: 12px;
+            background: none;
+            border: none;
+            color: #6b7280;
+            font-size: 0.82rem;
+            cursor: pointer;
+            text-decoration: underline;
+        }
         /* Confetti */
         .game-confetti { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
         .game-confetti span {
@@ -10105,8 +10157,363 @@
             btnRow.appendChild(profBtn);
             btnRow.appendChild(closBtn2);
             modal.appendChild(btnRow);
+
+            var adaptBtn = document.createElement('button');
+            adaptBtn.className = 'game-modal-btn';
+            adaptBtn.style.cssText = 'width:100%;margin-top:10px;background:linear-gradient(135deg,#6366f1,#4f46e5);color:white;';
+            adaptBtn.textContent = '✨ Подобри плана за следващата седмица';
+            adaptBtn.onclick = function(){
+                overlay.remove();
+                startWeeklyFeedbackFlow(wd);
+            };
+            modal.appendChild(adaptBtn);
+
             overlay.appendChild(modal);
             document.body.appendChild(overlay);
+        }
+
+        function getWeeklyAIState() {
+            try { return JSON.parse(localStorage.getItem(GAME_WEEKLY_AI_KEY) || '{}'); }
+            catch(e) { return {}; }
+        }
+
+        function saveWeeklyAIState(info) {
+            localStorage.setItem(GAME_WEEKLY_AI_KEY, JSON.stringify(info));
+            scheduleAnalyticsSync();
+        }
+
+        function ensureWeeklyMeta(info) {
+            if (!info.dietStartDate) {
+                try {
+                    var ud = JSON.parse(localStorage.getItem('userData') || '{}');
+                    info.dietStartDate = ud.planCreatedAt || localStorage.getItem('planUpdatedAt') || new Date().toISOString().slice(0, 10);
+                } catch(e) {
+                    info.dietStartDate = new Date().toISOString().slice(0, 10);
+                }
+            }
+            if (!info.cycleNumber) info.cycleNumber = 0;
+            return info;
+        }
+
+        async function getWeeklyAuthExtras() {
+            var uid = (typeof userId !== 'undefined' && userId) ? userId : localStorage.getItem('userId');
+            var extras = { userId: uid };
+            if (uid && uid.indexOf('fb_') === 0 && typeof auth !== 'undefined' && auth.currentUser) {
+                extras.idToken = await auth.currentUser.getIdToken().catch(function() { return null; });
+            }
+            var clientId = localStorage.getItem('pendingClientId') || localStorage.getItem('clientId') || '';
+            if (clientId) extras.clientId = clientId;
+            return extras;
+        }
+
+        function getWeeklyPayloadBase() {
+            var plan = null, userData = {};
+            try { plan = JSON.parse(localStorage.getItem('dietPlan') || 'null'); } catch(e) {}
+            try { userData = JSON.parse(localStorage.getItem('userData') || '{}'); } catch(e) {}
+            return {
+                userData: userData,
+                plan: plan,
+                gameData: getGameData(),
+                gameWeeklyAI: ensureWeeklyMeta(getWeeklyAIState())
+            };
+        }
+
+        async function fetchWeeklyQuestions() {
+            var base = getWeeklyPayloadBase();
+            var authExtras = await getWeeklyAuthExtras();
+            if (!authExtras.userId || !base.plan) throw new Error('Липсва план или потребител');
+            var resp = await fetch(ANALYTICS_WORKER + '/api/weekly/generate-questions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(Object.assign({}, base, authExtras))
+            });
+            var data = await resp.json();
+            if (!resp.ok) throw new Error(data.error || 'Грешка при въпросите');
+            return data;
+        }
+
+        function showWeeklyQuickAnswerModal(questions, cycleNumber, onComplete, onSkip) {
+            var old = document.getElementById('gameWeeklyQAModal');
+            if (old) old.remove();
+
+            var idx = 0;
+            var answers = [];
+
+            var overlay = document.createElement('div');
+            overlay.id = 'gameWeeklyQAModal';
+            overlay.className = 'game-modal-overlay';
+
+            var modal = document.createElement('div');
+            modal.className = 'game-modal';
+
+            var titleEl = document.createElement('div');
+            titleEl.className = 'game-modal-title';
+            titleEl.textContent = 'Бърз feedback';
+            modal.appendChild(titleEl);
+
+            var subEl = document.createElement('div');
+            subEl.className = 'game-modal-msg';
+            subEl.style.fontSize = '0.82rem';
+            subEl.textContent = '5 въпроса · седмица ' + cycleNumber;
+            modal.appendChild(subEl);
+
+            var progress = document.createElement('div');
+            progress.className = 'game-qa-progress';
+            questions.forEach(function(_, i) {
+                var dot = document.createElement('div');
+                dot.className = 'game-qa-dot' + (i === 0 ? ' active' : '');
+                dot.dataset.idx = String(i);
+                progress.appendChild(dot);
+            });
+            modal.appendChild(progress);
+
+            var qEl = document.createElement('div');
+            qEl.className = 'game-qa-question';
+            modal.appendChild(qEl);
+
+            var optsWrap = document.createElement('div');
+            optsWrap.className = 'game-qa-options';
+            modal.appendChild(optsWrap);
+
+            var skipBtn = document.createElement('button');
+            skipBtn.className = 'game-qa-skip';
+            skipBtn.textContent = 'Пропусни засега';
+            skipBtn.onclick = function() {
+                overlay.remove();
+                if (onSkip) onSkip();
+            };
+            modal.appendChild(skipBtn);
+
+            function renderStep() {
+                var q = questions[idx];
+                qEl.textContent = q.text;
+                optsWrap.innerHTML = '';
+                progress.querySelectorAll('.game-qa-dot').forEach(function(dot, i) {
+                    dot.className = 'game-qa-dot' + (i < idx ? ' done' : i === idx ? ' active' : '');
+                });
+                (q.options || ['Да', 'Не']).forEach(function(opt) {
+                    var btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'game-qa-option';
+                    btn.textContent = opt;
+                    btn.onclick = function() {
+                        answers.push({ questionId: q.id, value: opt });
+                        idx++;
+                        if (idx >= questions.length) {
+                            overlay.remove();
+                            onComplete(answers);
+                        } else {
+                            renderStep();
+                        }
+                    };
+                    optsWrap.appendChild(btn);
+                });
+            }
+
+            renderStep();
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+        }
+
+        function showWeeklyAdaptingModal() {
+            var old = document.getElementById('gameWeeklyAdaptModal');
+            if (old) old.remove();
+            var overlay = document.createElement('div');
+            overlay.id = 'gameWeeklyAdaptModal';
+            overlay.className = 'game-modal-overlay';
+            var modal = document.createElement('div');
+            modal.className = 'game-modal';
+            modal.innerHTML = '<div class="game-modal-emoji"><i class="fas fa-wand-magic-sparkles" style="color:#6366f1"></i></div>'
+                + '<div class="game-modal-title">Адаптираме плана</div>'
+                + '<div class="game-modal-msg">Анализираме отговорите и данните от седмицата...</div>'
+                + '<div style="margin:12px 0"><i class="fas fa-spinner fa-spin" style="color:#0D9488;font-size:1.5rem"></i></div>';
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+            return overlay;
+        }
+
+        function showWeeklyResultModal(result) {
+            var old = document.getElementById('gameWeeklyAdaptModal');
+            if (old) old.remove();
+
+            var overlay = document.createElement('div');
+            overlay.id = 'gameWeeklyAdaptModal';
+            overlay.className = 'game-modal-overlay';
+            overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+
+            var modal = document.createElement('div');
+            modal.className = 'game-modal';
+
+            var icon = result.changed ? 'fa-check-circle' : 'fa-heart';
+            var color = result.changed ? '#10b981' : '#6366f1';
+            modal.innerHTML = '<div class="game-modal-emoji"><i class="fas ' + icon + '" style="color:' + color + '"></i></div>'
+                + '<div class="game-modal-title">' + (result.changed ? 'Планът е актуализиран!' : 'Отлична седмица!') + '</div>';
+
+            var msg = document.createElement('div');
+            msg.className = 'game-modal-msg';
+            msg.textContent = result.motivationMessage || '';
+            modal.appendChild(msg);
+
+            if (result.changeSummary && result.changeSummary.length) {
+                var list = document.createElement('ul');
+                list.style.cssText = 'text-align:left;font-size:0.85rem;color:var(--text-dark);opacity:0.85;margin:8px 0 14px;padding-left:18px;line-height:1.5';
+                result.changeSummary.forEach(function(item) {
+                    var li = document.createElement('li');
+                    li.textContent = item;
+                    list.appendChild(li);
+                });
+                modal.appendChild(list);
+            }
+
+            var btn = document.createElement('button');
+            btn.className = 'game-modal-btn';
+            btn.style.cssText = 'width:100%;background:linear-gradient(135deg,#0D9488,#0F766E);color:white;';
+            btn.textContent = result.changed ? 'Виж новия план' : 'Продължи';
+            btn.onclick = function() {
+                overlay.remove();
+                if (result.changed && typeof loadDietData === 'function') {
+                    loadDietData({ force: true });
+                }
+            };
+            modal.appendChild(btn);
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+        }
+
+        async function pollWeeklyAdaptJob(jobId) {
+            var maxAttempts = 90;
+            for (var i = 0; i < maxAttempts; i++) {
+                await new Promise(function(r) { setTimeout(r, 3000); });
+                var resp = await fetch(ANALYTICS_WORKER + '/api/plan-job-status?jobId=' + encodeURIComponent(jobId));
+                var data = await resp.json();
+                if (data.status === 'completed') return data;
+                if (data.status === 'failed') throw new Error(data.error || 'Адаптацията се провали');
+            }
+            throw new Error('Времето за адаптация изтече');
+        }
+
+        async function submitWeeklyAdaptation(questions, answers, cycleNumber) {
+            var base = getWeeklyPayloadBase();
+            var authExtras = await getWeeklyAuthExtras();
+            var jobId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : ('job_' + Date.now());
+            var resp = await fetch(ANALYTICS_WORKER + '/api/weekly/adapt-plan', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(Object.assign({}, base, authExtras, {
+                    questions: questions,
+                    answers: answers,
+                    gameWeeklyAI: Object.assign({}, base.gameWeeklyAI, { cycleNumber: cycleNumber }),
+                    _jobId: jobId
+                }))
+            });
+            var data = await resp.json();
+            if (!resp.ok) throw new Error(data.error || 'Грешка при адаптация');
+            return pollWeeklyAdaptJob(data.jobId || jobId);
+        }
+
+        function finalizeWeeklyCycle(info, result, questions, answers, cycleNumber) {
+            var hist = (info.adaptationHistory || []).slice(-3);
+            hist.push({
+                cycleNumber: cycleNumber,
+                level: result.adaptationLevel || 0,
+                changed: !!result.changed,
+                summary: (result.changeSummary && result.changeSummary[0]) || result.motivationMessage || '',
+                at: new Date().toISOString()
+            });
+            info.cycleNumber = cycleNumber;
+            info.feedbackStatus = 'done';
+            info.questions = questions;
+            info.answers = answers;
+            info.lastSummary = result.motivationMessage || '';
+            info.lastRun = new Date().toISOString();
+            info.nextDue = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+            info.adaptationHistory = hist;
+            delete info.pendingQuestions;
+            delete info.pendingCycleNumber;
+            saveWeeklyAIState(info);
+
+            if (result.changed && result.plan) {
+                localStorage.setItem('dietPlan', JSON.stringify(result.plan));
+                if (result.planUpdatedAt) {
+                    localStorage.setItem('planUpdatedAt', result.planUpdatedAt);
+                }
+                var ud = {};
+                try { ud = JSON.parse(localStorage.getItem('userData') || '{}'); } catch(e) {}
+                if (result.weeklyMeta?.decision?.modifications?.length) {
+                    ud.planModifications = result.weeklyMeta.decision.modifications;
+                    localStorage.setItem('userData', JSON.stringify(ud));
+                }
+            }
+        }
+
+        function markWeeklySkipped() {
+            var info = ensureWeeklyMeta(getWeeklyAIState());
+            info.feedbackStatus = 'skipped';
+            info.lastRun = new Date().toISOString();
+            info.nextDue = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+            saveWeeklyAIState(info);
+        }
+
+        async function startWeeklyFeedbackFlow(wd) {
+            var info = ensureWeeklyMeta(getWeeklyAIState());
+            info.feedbackStatus = 'questions';
+            saveWeeklyAIState(info);
+
+            try {
+                var qData = await fetchWeeklyQuestions();
+                var questions = qData.questions;
+                var cycleNumber = qData.cycleNumber;
+                info.pendingQuestions = questions;
+                info.pendingCycleNumber = cycleNumber;
+                saveWeeklyAIState(info);
+
+                showWeeklyQuickAnswerModal(questions, cycleNumber, async function(answers) {
+                    var adaptingOverlay = showWeeklyAdaptingModal();
+                    try {
+                        var result = await submitWeeklyAdaptation(questions, answers, cycleNumber);
+                        adaptingOverlay.remove();
+                        finalizeWeeklyCycle(getWeeklyAIState(), result, questions, answers, cycleNumber);
+                        showWeeklyResultModal(result);
+                    } catch (err) {
+                        adaptingOverlay.remove();
+                        var st = getWeeklyAIState();
+                        st.feedbackStatus = 'pending';
+                        saveWeeklyAIState(st);
+                        alert(err.message || 'Грешка при адаптация на плана');
+                    }
+                }, function() {
+                    markWeeklySkipped();
+                });
+            } catch (err) {
+                info.feedbackStatus = 'pending';
+                saveWeeklyAIState(info);
+                alert(err.message || 'Грешка при генериране на въпроси');
+            }
+        }
+
+        function resumeWeeklyFeedbackIfNeeded() {
+            if (!isGameEnabled()) return;
+            var info = getWeeklyAIState();
+            if (info.feedbackStatus !== 'questions' || !info.pendingQuestions || !info.pendingQuestions.length) return;
+            var questions = info.pendingQuestions;
+            var cycleNumber = info.pendingCycleNumber || ((info.cycleNumber || 0) + 1);
+            setTimeout(function() {
+                showWeeklyQuickAnswerModal(questions, cycleNumber, async function(answers) {
+                    var adaptingOverlay = showWeeklyAdaptingModal();
+                    try {
+                        var result = await submitWeeklyAdaptation(questions, answers, cycleNumber);
+                        adaptingOverlay.remove();
+                        finalizeWeeklyCycle(getWeeklyAIState(), result, questions, answers, cycleNumber);
+                        showWeeklyResultModal(result);
+                    } catch (err) {
+                        adaptingOverlay.remove();
+                        var st = getWeeklyAIState();
+                        st.feedbackStatus = 'pending';
+                        saveWeeklyAIState(st);
+                        alert(err.message || 'Грешка при адаптация на плана');
+                    }
+                }, function() { markWeeklySkipped(); });
+            }, 2000);
         }
 
         // ── Time-based prompts ────────────────────────────────────────────────
@@ -10138,21 +10545,27 @@
         // ── Weekly AI trigger ─────────────────────────────────────────────────
         function maybeRequestWeeklyAI() {
             if (!isGameEnabled()) return;
-            var info = {};
-            try { info = JSON.parse(localStorage.getItem(GAME_WEEKLY_AI_KEY)||'{}'); } catch(e) {}
+            var info = ensureWeeklyMeta(getWeeklyAIState());
             var now = Date.now();
-            if (info.lastRun && now - new Date(info.lastRun).getTime() < 7*24*60*60*1000) return;
+            if (info.lastRun && now - new Date(info.lastRun).getTime() < 7 * 24 * 60 * 60 * 1000) {
+                resumeWeeklyFeedbackIfNeeded();
+                return;
+            }
             var wd = calcWeeklyScore();
             if (wd.daysRecorded >= 5) {
                 var shownKey = 'gameWeeklyRecapShown_' + getTodayKey();
                 if (!localStorage.getItem(shownKey)) {
-                    localStorage.setItem(shownKey,'1');
-                    setTimeout(function(){ showWeeklyRecapModal(wd); }, 1600);
+                    localStorage.setItem(shownKey, '1');
+                    info.feedbackStatus = 'pending';
+                    saveWeeklyAIState(info);
+                    setTimeout(function() { showWeeklyRecapModal(wd); }, 1600);
                 }
+            } else {
+                info.lastRun = new Date().toISOString();
+                info.nextDue = new Date(now + 7 * 24 * 60 * 60 * 1000).toISOString();
+                info.feedbackStatus = 'skipped';
+                saveWeeklyAIState(info);
             }
-            info.lastRun = new Date().toISOString();
-            info.nextDue = new Date(now + 7*24*60*60*1000).toISOString();
-            localStorage.setItem(GAME_WEEKLY_AI_KEY, JSON.stringify(info));
         }
 
         // ── Activate ──────────────────────────────────────────────────────────
@@ -10177,6 +10590,7 @@
                     checkRetroEntry();
                     startPromptInterval();
                     maybeRequestWeeklyAI();
+                    resumeWeeklyFeedbackIfNeeded();
                 }, 1600);
             }
             
