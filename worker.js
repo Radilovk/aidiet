@@ -400,6 +400,19 @@ function serializeWeekPlanSummary(weekPlan) {
  * Full week plan for admin AI — every meal with kcal, grams, macros, patch path.
  * @param {object} weekPlan
  */
+/** Compact 7-day meal names for weekly adaptation prompts (not admin patch paths). */
+function serializeWeekPlanWeeklyCompact(weekPlan) {
+  if (!weekPlan || typeof weekPlan !== 'object') return '';
+  const lines = ['#WP v1'];
+  for (const dayKey of Object.keys(weekPlan).sort().slice(0, 7)) {
+    const meals = weekPlan[dayKey]?.meals;
+    if (!meals?.length) continue;
+    const names = meals.map((m) => esc(m.name || '')).filter(Boolean).join('+');
+    if (names) lines.push(`${dayKey}|${names}`);
+  }
+  return lines.length > 1 ? lines.join('\n') : '';
+}
+
 function serializeWeekPlanAdmin(weekPlan) {
   if (!weekPlan) return '';
   const lines = ['#PL v2 admin|day|idx|type|name|kcal|g|P|C|F|patch'];
@@ -743,7 +756,8 @@ const PLAN_MODIFICATIONS = {
   VEGETARIAN: 'vegetarian',
   NO_DAIRY: 'no_dairy',
   LOW_CARB: 'low_carb',
-  INCREASE_PROTEIN: 'increase_protein'
+  INCREASE_PROTEIN: 'increase_protein',
+  SIMPLIFY_MEALS: 'simplify_meals'
 };
 
 const PLAN_MODIFICATION_DESCRIPTIONS = {
@@ -753,7 +767,8 @@ const PLAN_MODIFICATION_DESCRIPTIONS = {
   [PLAN_MODIFICATIONS.VEGETARIAN]: '- ВЕГЕТАРИАНСКО хранене - без месо и риба',
   [PLAN_MODIFICATIONS.NO_DAIRY]: '- БЕЗ млечни продукти',
   [PLAN_MODIFICATIONS.LOW_CARB]: '- Нисковъглехидратна диета',
-  [PLAN_MODIFICATIONS.INCREASE_PROTEIN]: '- Повишен прием на протеини'
+  [PLAN_MODIFICATIONS.INCREASE_PROTEIN]: '- Повишен прием на протеини',
+  [PLAN_MODIFICATIONS.SIMPLIFY_MEALS]: '- Опростени/бързи ястия — по-малко готвене, готови опции'
 };
 
 // Default goal-based hacks (hardcoded tips per goal, managed via admin panel)
@@ -3606,8 +3621,14 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
   let modificationsSection = '';
   if (data.planModifications && data.planModifications.length > 0) {
     const modLines = data.planModifications
-      .map(mod => PLAN_MODIFICATION_DESCRIPTIONS[mod])
-      .filter(desc => desc !== undefined);
+      .map(mod => {
+        if (PLAN_MODIFICATION_DESCRIPTIONS[mod]) return PLAN_MODIFICATION_DESCRIPTIONS[mod];
+        if (typeof mod === 'string' && mod.startsWith('exclude_food:')) {
+          return `- БЕЗ: ${mod.substring('exclude_food:'.length)}`;
+        }
+        return null;
+      })
+      .filter(desc => desc !== undefined && desc !== null);
     if (modLines.length > 0) {
       modificationsSection = `\nМОДИФИКАЦИИ: ${modLines.join('; ')}`;
     }
@@ -3712,8 +3733,12 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
       freeMealInstruction: buildFreeMealInstruction(strategy, startDay, endDay),
       sweetsCravingRule,
       additionalNotes: buildCombinedAdditionalNotes(data),
-      clinicalProtocolSection: (() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buildClinicalProtocolPromptSection(p) : ''; })()
+      clinicalProtocolSection: (() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buildClinicalProtocolPromptSection(p) : ''; })(),
+      weeklyAdaptationSection: buildWeeklyAdaptationContextSection(data)
     });
+    
+    const weeklySection = buildWeeklyAdaptationContextSection(data);
+    if (weeklySection && !prompt.includes('СЕДМИЧНА АДАПТАЦИЯ')) prompt += weeklySection;
     
     // CRITICAL: Ensure JSON format instructions are included even with custom prompts
     if (!hasJsonFormatInstructions(prompt)) {
@@ -3945,6 +3970,7 @@ function cleanResponseFromRegenerate(aiResponse, regenerateIndex) {
 // KV key prefix and TTL for async plan generation jobs
 const PLAN_JOB_PREFIX = 'plan_job:';
 const PLAN_JOB_TTL_SEC = 86400; // 24 hours
+const WEEKLY_VISIBLE_DELAY_MS = 2 * 60 * 60 * 1000;
 // Regex for validating client-provided jobIds (UUID v4 format)
 const JOB_ID_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -6689,7 +6715,7 @@ async function deliverPlanUpdateToClient(env, clientData, clientId, kind = 'upda
       title: kind === 'ready' ? 'Планът е готов' : 'Обновен план',
       body: kind === 'ready'
         ? 'Вашият хранителен план е готов за преглед.'
-        : 'Специалистът актуализира вашия план.',
+        : 'Планът ви е актуализиран.',
       url: '/index.html?app=1&tab=plan',
       icon: '/icon-192x192.png',
       notificationType: 'plan_updated',
@@ -6972,6 +6998,452 @@ async function persistAnalyticsSummary(env, userId, summary, clientIdHint = '') 
     }
   }
   return { profile, clientId };
+}
+
+// ── Weekly plan adaptation ───────────────────────────────────────────────────
+
+function buildWeeklyAdaptationContextSection(data) {
+  if (!data?.weeklyAdaptationContext) return '';
+  return `\n\n═══ СЕДМИЧНА АДАПТАЦИЯ (АВТОМАТИЧНО) ═══\n${data.weeklyAdaptationContext}\n═══════════════════════════════════════════════════════════════`;
+}
+
+function buildWeeklyContextFromPayload(userData, plan, analytics, gameWeeklyAI, feedbackAnswers) {
+  const cycleNumber = gameWeeklyAI?.cycleNumber || 1;
+  const dietStartDate = gameWeeklyAI?.dietStartDate || '';
+  let daysSinceStart = null;
+  if (dietStartDate) {
+    const startMs = new Date(dietStartDate).getTime();
+    if (!Number.isNaN(startMs)) daysSinceStart = Math.floor((Date.now() - startMs) / 86400000);
+  }
+
+  const profile = serializeUserProfile(userData || {}, 'strategy');
+  const analysisBlock = plan?.analysis ? serializeAnalysisForStep(plan.analysis, 2) : '';
+  const strategyBlock = plan?.strategy ? serializeStrategyForMealPlan(plan.strategy) : '';
+  const summaryBlock = plan?.summary ? serializePlanSummary(plan.summary) : '';
+  const weekPlanBlock = plan?.weekPlan ? serializeWeekPlanWeeklyCompact(plan.weekPlan) : '';
+  const axBlock = serializeAnalyticsBlock(analytics);
+
+  const mods = userData?.planModifications;
+  const modsBlock = mods?.length
+    ? 'MOD|' + mods.map((m) => String(m).replace(/\|/g, '/')).join('+')
+    : '';
+
+  let feedbackBlock = '';
+  if (feedbackAnswers?.length) {
+    feedbackBlock = 'FB|answers|' + feedbackAnswers.map((a) => `${a.questionId}=${String(a.value).replace(/\|/g, '/')}`).join('|');
+  }
+
+  const history = (gameWeeklyAI?.adaptationHistory || []).slice(-3);
+  const histBlock = history.length
+    ? 'HIST|' + history.map((h) => `c${h.cycleNumber}:L${h.level}`).join('|')
+    : '';
+
+  return [
+    `CYC|n=${cycleNumber}|days=${daysSinceStart ?? '—'}|start=${dietStartDate || '—'}`,
+    profile,
+    analysisBlock,
+    strategyBlock,
+    summaryBlock,
+    weekPlanBlock,
+    modsBlock,
+    axBlock,
+    feedbackBlock,
+    histBlock,
+  ].filter(Boolean).join('\n');
+}
+
+async function resolveWeeklyJobInputs(env, { userId, clientId, userData, plan, gameData, gameWeeklyAI }) {
+  let resolvedUserData = userData;
+  let resolvedPlan = plan;
+  let profile = null;
+
+  if (userId) {
+    profile = await kvGetJSON(env, `user_profile:${userId}`);
+    if (profile) {
+      if (!resolvedPlan?.weekPlan && profile.plan) resolvedPlan = profile.plan;
+      if (profile.userData) {
+        resolvedUserData = { ...profile.userData, ...(resolvedUserData || {}) };
+      }
+    }
+  }
+
+  if ((!resolvedPlan?.weekPlan || !resolvedUserData?.goal) && clientId) {
+    const client = await kvGetJSON(env, `client:${clientId}`);
+    if (client) {
+      if (!resolvedPlan?.weekPlan && client.plan) resolvedPlan = client.plan;
+      if (client.answers) {
+        resolvedUserData = { ...client.answers, ...(resolvedUserData || {}) };
+      }
+      if (!profile?.analytics && client.analytics) profile = { ...(profile || {}), analytics: client.analytics };
+    }
+  }
+
+  let analytics = null;
+  if (gameData && Object.keys(gameData).length) {
+    analytics = buildAnalyticsSummary(gameData, gameWeeklyAI || {});
+  } else if (profile?.analytics?.status) {
+    analytics = profile.analytics;
+  } else {
+    analytics = buildAnalyticsSummary({}, gameWeeklyAI || {});
+  }
+
+  return {
+    userData: resolvedUserData || {},
+    plan: resolvedPlan,
+    analytics,
+  };
+}
+
+function formatFeedbackAnswersForPrompt(questions, answers) {
+  if (!answers?.length) return 'няма';
+  return answers.map((a, i) => {
+    const q = (questions || []).find((item) => item.id === a.questionId);
+    return `${i + 1}. ${q?.text || a.questionId}: ${a.value}`;
+  }).join('\n');
+}
+
+const WEEKLY_FALLBACK_QUESTIONS = [
+  { id: 'fb1', text: 'Имахте ли значителни промени в графика си тази седмица?', type: 'yes_no', options: ['Да', 'Не'] },
+  { id: 'fb2', text: 'Успяхте ли да следвате плана повече от 70% от времето?', type: 'yes_no', options: ['Да', 'Не'] },
+  { id: 'fb3', text: 'Колко трудно беше да се придържате към плана?', type: 'scale_1_3', options: ['Лесно', 'Средно', 'Трудно'] },
+  { id: 'fb4', text: 'Имате ли нужда от по-опростени ястия следващата седмица?', type: 'yes_no', options: ['Да', 'Не'] },
+  { id: 'fb5', text: 'Как се чувствате за напредъка си?', type: 'choice', options: ['Мотивиран/а', 'Неутрално', 'Нужда от подкрепа'] },
+];
+
+function normalizeWeeklyQuestions(raw) {
+  if (!raw?.questions || !Array.isArray(raw.questions)) return null;
+  const questions = raw.questions.slice(0, 5).map((q, i) => ({
+    id: q.id || `q${i + 1}`,
+    text: String(q.text || '').trim(),
+    type: ['yes_no', 'scale_1_3', 'choice'].includes(q.type) ? q.type : 'choice',
+    options: Array.isArray(q.options) && q.options.length
+      ? q.options.map(String).slice(0, 4)
+      : ['Да', 'Не'],
+  })).filter((q) => q.text);
+
+  while (questions.length < 5) {
+    const fallback = WEEKLY_FALLBACK_QUESTIONS[questions.length];
+    if (!fallback) break;
+    questions.push({ ...fallback });
+  }
+  return questions.length >= 3 ? questions.slice(0, 5) : null;
+}
+
+function normalizeAdaptationDecision(raw, analytics) {
+  let level = Math.min(3, Math.max(0, parseInt(raw?.adaptationLevel, 10) || 0));
+  if (analytics?.status === 'active') {
+    if (analytics.adherence >= 80 && (analytics.avgScore ?? 0) >= 4 && analytics.junk7 <= 2 && level > 1) {
+      level = 1;
+    }
+    if (analytics.adherence < 50 || analytics.junk7 >= 5) {
+      level = Math.max(level, 1);
+    }
+  }
+  return {
+    adaptationLevel: level,
+    reasoning: String(raw?.reasoning || '').slice(0, 500),
+    modifications: Array.isArray(raw?.modifications) ? raw.modifications.map(String) : [],
+    strategyChanges: raw?.strategyChanges || {},
+    motivationMessage: String(raw?.motivationMessage || 'Продължавайте стабилно напред!').slice(0, 600),
+    changeSummary: Array.isArray(raw?.changeSummary) ? raw.changeSummary.map(String).slice(0, 6) : [],
+    headline: String(raw?.headline || '').slice(0, 120),
+  };
+}
+
+function mapAdaptationLevelToRegenStep(level) {
+  if (level <= 1) return 'step3_mealplan';
+  if (level === 2) return 'step2_strategy';
+  return 'step1_analysis';
+}
+
+function mergeWeeklyModifications(existing, decisionMods) {
+  const mods = new Set(existing || []);
+  (decisionMods || []).forEach((m) => {
+    if (typeof m === 'string' && m.trim()) mods.add(m.trim());
+  });
+  return Array.from(mods);
+}
+
+function buildWeeklyAdaptationContextText(decision, analytics, feedbackAnswers, cycleNumber) {
+  const sc = decision.strategyChanges || {};
+  const parts = [
+    `Цикъл: ${cycleNumber}`,
+    `Ниво: ${decision.adaptationLevel}`,
+    decision.reasoning ? `Причина: ${decision.reasoning}` : '',
+  ];
+  if (sc.calorieAdjust) {
+    parts.push(`Калории: ${sc.calorieAdjust > 0 ? '+' : ''}${sc.calorieAdjust} kcal/ден`);
+  }
+  if (sc.freeDayNumber != null) {
+    parts.push(`Свободен ден: ден ${sc.freeDayNumber}`);
+  }
+  if (sc.weeklySchemeNotes) {
+    parts.push(`Бележки: ${sc.weeklySchemeNotes}`);
+  }
+  if (feedbackAnswers?.length) {
+    parts.push('Отговори: ' + feedbackAnswers.map((a) => `${a.questionId}=${a.value}`).join(', '));
+  }
+  if (analytics?.status === 'active') {
+    parts.push(`Аналитика: avg=${analytics.avgScore}|adh=${analytics.adherence}|junk7=${analytics.junk7}|tr=${analytics.trend}`);
+  }
+  return parts.filter(Boolean).join('\n');
+}
+
+async function verifyWeeklyRequestAuth(userId, idToken, env) {
+  if (!userId?.startsWith('fb_') || !idToken || !env.FIREBASE_PROJECT_ID) return;
+  const firebaseUser = await verifyFirebaseIdToken(idToken, env);
+  if (`fb_${firebaseUser.uid}` !== userId) {
+    throw new Error('Token does not match userId');
+  }
+}
+
+async function generateWeeklyQuestions(env, userData, plan, analytics, gameWeeklyAI) {
+  const weeklyContext = buildWeeklyContextFromPayload(userData, plan, analytics, gameWeeklyAI);
+  const template = await requireKvPrompt(env, 'admin_weekly_questions_prompt');
+  const prompt = template.replace(/\{weeklyContext\}/g, weeklyContext);
+  const response = await callAIModel(env, prompt, 1200, 'weekly_questions', null, userData, null);
+  const parsed = parseAIResponse(response);
+  const questions = normalizeWeeklyQuestions(parsed);
+  if (!questions) throw new Error('Неуспешно генериране на въпроси');
+  return { questions, contextNote: parsed.contextNote || '' };
+}
+
+async function getWeeklyAdaptationDecision(env, userData, plan, analytics, gameWeeklyAI, questions, answers) {
+  const weeklyContext = buildWeeklyContextFromPayload(userData, plan, analytics, gameWeeklyAI, answers);
+  const feedbackAnswers = formatFeedbackAnswersForPrompt(questions, answers);
+  const template = await requireKvPrompt(env, 'admin_weekly_adaptation_prompt');
+  const prompt = template
+    .replace(/\{weeklyContext\}/g, weeklyContext)
+    .replace(/\{feedbackAnswers\}/g, feedbackAnswers);
+  const response = await callAIModel(env, prompt, 1000, 'weekly_adaptation_decision', null, userData, null);
+  const parsed = parseAIResponse(response);
+  return normalizeAdaptationDecision(parsed, analytics);
+}
+
+async function savePendingWeeklyRelease(env, userId, clientId, release) {
+  if (!userId) return;
+  const ttl = userId.startsWith('fb_') ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
+  const profile = (await kvGetJSON(env, `user_profile:${userId}`)) || { userId };
+  profile.pendingWeekly = {
+    ...release,
+    visibleAt: Date.now() + WEEKLY_VISIBLE_DELAY_MS,
+    clientId: clientId || profile.clientId || '',
+  };
+  await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
+  if (clientId) {
+    try {
+      const clientData = await kvGetJSON(env, `client:${clientId}`);
+      if (clientData) {
+        clientData.pendingWeekly = profile.pendingWeekly;
+        await kvPutJSON(env, `client:${clientId}`, clientData, null);
+      }
+    } catch (e) {
+      console.warn('[WeeklyAdapt] pending client save failed:', e.message);
+    }
+  }
+}
+
+function releasePendingWeeklyIfDue(profile) {
+  if (!profile?.pendingWeekly || profile.pendingWeekly.visibleAt > Date.now()) {
+    return { profile, released: false };
+  }
+  const pending = profile.pendingWeekly;
+  if (pending.notice) profile.weeklyAdaptNotice = pending.notice;
+  if (pending.plan) {
+    profile.plan = pending.plan;
+    if (pending.userData) profile.userData = pending.userData;
+    profile.planUpdatedAt = new Date().toISOString();
+  }
+  delete profile.pendingWeekly;
+  return { profile, released: true, pending };
+}
+
+async function applyWeeklyReleaseIfDue(env, profile, userId) {
+  const { profile: updated, released, pending } = releasePendingWeeklyIfDue(profile);
+  if (!released) return updated;
+  const ttl = userId.startsWith('fb_') ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
+  await kvPutJSON(env, `user_profile:${userId}`, updated, ttl);
+  const clientId = pending?.clientId || updated.clientId;
+  if (clientId) {
+    try {
+      const clientData = await kvGetJSON(env, `client:${clientId}`);
+      if (clientData) {
+        if (pending?.plan) clientData.plan = pending.plan;
+        if (pending?.userData) {
+          clientData.answers = { ...(clientData.answers || {}), ...pending.userData };
+        }
+        if (updated.weeklyAdaptNotice) clientData.weeklyAdaptNotice = updated.weeklyAdaptNotice;
+        if (updated.planUpdatedAt) clientData.planUpdatedAt = updated.planUpdatedAt;
+        delete clientData.pendingWeekly;
+        await kvPutJSON(env, `client:${clientId}`, clientData, null);
+        if (clientData.planStatus === 'activated' && pending?.plan) {
+          await deliverPlanUpdateToClient(env, clientData, clientId, 'updated');
+        }
+      }
+    } catch (e) {
+      console.warn('[WeeklyAdapt] client release failed:', e.message);
+    }
+  }
+  return updated;
+}
+
+async function runWeeklyAdaptation(env, payload, jobId) {
+  const { userId, gameWeeklyAI, answers, questions, clientId } = payload;
+  const { userData, plan, analytics } = await resolveWeeklyJobInputs(env, payload);
+  if (!plan?.weekPlan) throw new Error('Липсва план за адаптация');
+  const cycleNumber = gameWeeklyAI?.cycleNumber || 1;
+
+  try {
+    const decision = await getWeeklyAdaptationDecision(
+      env, userData, plan, analytics, gameWeeklyAI, questions, answers
+    );
+    const noticeBase = {
+      id: jobId,
+      headline: String(decision.headline || '').slice(0, 120) ||
+        (decision.adaptationLevel > 0
+          ? 'Планът ви е готов за новата седмица'
+          : 'Отлична седмица — продължавайте така'),
+      message: decision.motivationMessage,
+      changes: (decision.changeSummary || []).slice(0, 2),
+      cycleNumber,
+      at: new Date().toISOString(),
+    };
+
+    if (decision.adaptationLevel === 0) {
+      await savePendingWeeklyRelease(env, userId, clientId, {
+        notice: { ...noticeBase, changed: false },
+      });
+      return;
+    }
+
+    const enrichedData = normalizeQuestionnaireData(userData);
+    enrichedData.planModifications = mergeWeeklyModifications(
+      userData.planModifications || enrichedData.planModifications,
+      decision.modifications
+    );
+    enrichedData.weeklyAdaptationContext = buildWeeklyAdaptationContextText(
+      decision, analytics, answers, cycleNumber
+    );
+
+    const regenStep = mapAdaptationLevelToRegenStep(decision.adaptationLevel);
+    let newPlan;
+    if (regenStep === 'step1_analysis') {
+      newPlan = await generatePlanMultiStep(env, enrichedData);
+    } else {
+      newPlan = await regenerateFromStep(
+        env, enrichedData, plan, regenStep, { [regenStep]: ['weekly adaptation'] }, 1
+      );
+    }
+
+    const now = new Date().toISOString();
+    newPlan._meta = {
+      ...(newPlan._meta || {}),
+      weeklyAdaptation: { cycleNumber, level: decision.adaptationLevel, at: now },
+    };
+
+    const notice = { ...noticeBase, changed: true };
+    await savePendingWeeklyRelease(env, userId, clientId, {
+      notice,
+      plan: newPlan,
+      userData: enrichedData,
+    });
+  } catch (error) {
+    console.error('[WeeklyAdapt] job failed:', error);
+    throw error;
+  }
+}
+
+/**
+ * POST /api/weekly/generate-questions
+ */
+async function handleWeeklyGenerateQuestions(request, env) {
+  try {
+    if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    const body = await request.json();
+    const { userId, gameData, gameWeeklyAI, idToken } = body;
+    if (!userId) {
+      return jsonResponse({ error: 'Missing userId' }, 400);
+    }
+    try {
+      await verifyWeeklyRequestAuth(userId, idToken, env);
+    } catch (e) {
+      return jsonResponse({ error: e.message }, 401);
+    }
+
+    const { userData, plan, analytics } = await resolveWeeklyJobInputs(env, body);
+    if (!plan?.weekPlan) {
+      return jsonResponse({ error: 'Missing plan' }, 400);
+    }
+    if ((analytics.daysRecorded || 0) < 3) {
+      return jsonResponse({ error: 'Недостатъчно данни за седмичен feedback (минимум 3 дни)' }, 400);
+    }
+
+    const cycleNumber = (gameWeeklyAI?.cycleNumber || 0) + 1;
+    const result = await generateWeeklyQuestions(
+      env, userData, plan, analytics, { ...gameWeeklyAI, cycleNumber }
+    );
+
+    return jsonResponse({
+      success: true,
+      questions: result.questions,
+      contextNote: result.contextNote,
+      cycleNumber,
+      analytics: {
+        avgScore: analytics.avgScore,
+        adherence: analytics.adherence,
+        daysRecorded: analytics.daysRecorded,
+      },
+    });
+  } catch (error) {
+    console.error('[WeeklyAdapt] generate-questions error:', error);
+    return jsonResponse({ error: error.message || 'Грешка при генериране на въпроси' }, 500);
+  }
+}
+
+/**
+ * POST /api/weekly/adapt-plan
+ */
+async function handleWeeklyAdaptPlan(request, env, ctx) {
+  try {
+    if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    const body = await request.json();
+    const { userId, gameData, gameWeeklyAI, answers, questions, clientId, idToken } = body;
+    if (!userId || !answers?.length) {
+      return jsonResponse({ error: 'Missing userId or answers' }, 400);
+    }
+    try {
+      await verifyWeeklyRequestAuth(userId, idToken, env);
+    } catch (e) {
+      return jsonResponse({ error: e.message }, 401);
+    }
+
+    const { plan } = await resolveWeeklyJobInputs(env, body);
+    if (!plan?.weekPlan) {
+      return jsonResponse({ error: 'Missing plan' }, 400);
+    }
+
+    const jobId = crypto.randomUUID();
+    const cycleNumber = (gameWeeklyAI?.cycleNumber || 0) + 1;
+    const payload = {
+      userId,
+      clientId: clientId || '',
+      gameData,
+      gameWeeklyAI: { ...(gameWeeklyAI || {}), cycleNumber },
+      answers,
+      questions,
+    };
+
+    if (env.PLAN_QUEUE) {
+      await env.PLAN_QUEUE.send({ jobId, type: 'weekly_adapt', payload }, { contentType: 'json' });
+    } else if (ctx) {
+      ctx.waitUntil(runWeeklyAdaptation(env, payload, jobId));
+    }
+
+    return jsonResponse({ success: true, submitted: true });
+  } catch (error) {
+    console.error('[WeeklyAdapt] adapt-plan error:', error);
+    return jsonResponse({ error: error.message }, 500);
+  }
 }
 
 /**
@@ -9377,6 +9849,9 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
       clinicalProtocolSection: (() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buildClinicalProtocolPromptSection(p) : ''; })(),
       clinicalProtocolName: (() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? p.name : ''; })()
     });
+
+    const weeklySection = buildWeeklyAdaptationContextSection(data);
+    if (weeklySection && !prompt.includes('СЕДМИЧНА АДАПТАЦИЯ')) prompt += weeklySection;
     
     // Inject error prevention comment if provided
     if (errorPreventionComment) {
@@ -11583,7 +12058,9 @@ function getPromptKVKey(type) {
     'emoeat': 'admin_emoeat_prompt',
     'food_analysis': 'admin_food_analysis_prompt',
     'menu_analysis': 'admin_menu_analysis_prompt',
-    'validation': 'admin_validation_prompt'
+    'validation': 'admin_validation_prompt',
+    'weekly_questions': 'admin_weekly_questions_prompt',
+    'weekly_adaptation': 'admin_weekly_adaptation_prompt'
   };
   
   return keyMap[type] || 'admin_plan_prompt';
@@ -11654,7 +12131,9 @@ async function handleGetDefaultPrompt(request, env) {
       'emoeat': 'admin_emoeat_prompt',
       'food_analysis': 'admin_food_analysis_prompt',
       'menu_analysis': 'admin_menu_analysis_prompt',
-      'validation': 'admin_validation_prompt'
+      'validation': 'admin_validation_prompt',
+      'weekly_questions': 'admin_weekly_questions_prompt',
+      'weekly_adaptation': 'admin_weekly_adaptation_prompt'
     };
     
     const kvKey = promptKeyMap[type];
@@ -14939,13 +15418,23 @@ async function handleGetPlanVersion(request, env) {
       return jsonResponse({ found: false }, 404);
     }
 
-    const planUpdatedAt = getEffectivePlanUpdatedAt(profile);
+    const releasedProfile = await applyWeeklyReleaseIfDue(env, profile, resolvedUserId);
+    const planUpdatedAt = getEffectivePlanUpdatedAt(releasedProfile);
     const clientVersion = (url.searchParams.get('v') || '').trim();
     if (clientVersion && planUpdatedAt && clientVersion >= planUpdatedAt) {
-      return jsonResponse({ found: true, upToDate: true, planUpdatedAt });
+      return jsonResponse({
+        found: true,
+        upToDate: true,
+        planUpdatedAt,
+        ...(releasedProfile.weeklyAdaptNotice ? { weeklyAdaptNotice: releasedProfile.weeklyAdaptNotice } : {}),
+      });
     }
 
-    return jsonResponse({ found: true, planUpdatedAt });
+    return jsonResponse({
+      found: true,
+      planUpdatedAt,
+      ...(releasedProfile.weeklyAdaptNotice ? { weeklyAdaptNotice: releasedProfile.weeklyAdaptNotice } : {}),
+    });
   } catch (error) {
     console.error('Error getting plan version:', error);
     return jsonResponse({ error: 'Failed to get plan version: ' + error.message }, 500);
@@ -15101,6 +15590,8 @@ async function handleGetUserProfile(request, env) {
       }
     }
 
+    profile = await applyWeeklyReleaseIfDue(env, profile, resolvedUserId);
+
     const planUpdatedAt = getEffectivePlanUpdatedAt(profile);
 
     return jsonResponse({
@@ -15109,6 +15600,7 @@ async function handleGetUserProfile(request, env) {
       userData: profile.userData,
       planSource,
       planUpdatedAt,
+      ...(profile.weeklyAdaptNotice ? { weeklyAdaptNotice: profile.weeklyAdaptNotice } : {}),
       ...(clientId ? { clientId } : {})
     });
   } catch (error) {
@@ -15847,6 +16339,10 @@ export default {
         return await handleSaveUserProfile(request, env);
       } else if (url.pathname === '/api/user/sync-analytics' && request.method === 'POST') {
         return await handleSyncAnalytics(request, env);
+      } else if (url.pathname === '/api/weekly/generate-questions' && request.method === 'POST') {
+        return await handleWeeklyGenerateQuestions(request, env);
+      } else if (url.pathname === '/api/weekly/adapt-plan' && request.method === 'POST') {
+        return await handleWeeklyAdaptPlan(request, env, ctx);
       } else if (url.pathname === '/api/user/check-account' && request.method === 'GET') {
         return await handleCheckAccountEmail(request, env);
       } else if (url.pathname === '/api/plan/claim' && request.method === 'GET') {
@@ -15944,10 +16440,15 @@ export default {
    */
   async queue(batch, env) {
     for (const message of batch.messages) {
-      const { jobId, data, clientId, generationOptions } = message.body;
-      console.log(`Queue consumer: received job ${jobId}`);
+      const body = message.body || {};
+      const { jobId, type, payload, data, clientId, generationOptions } = body;
+      console.log(`Queue consumer: received job ${jobId}${type ? ` (${type})` : ''}`);
       try {
-        await generatePlanAndSave(env, data, jobId, clientId || null, generationOptions || {});
+        if (type === 'weekly_adapt') {
+          await runWeeklyAdaptation(env, payload, jobId);
+        } else {
+          await generatePlanAndSave(env, data, jobId, clientId || null, generationOptions || {});
+        }
         message.ack();
         console.log(`Queue consumer: acked job ${jobId}`);
       } catch (err) {

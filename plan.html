@@ -2390,6 +2390,122 @@
         }
         .game-modal-btn:hover { opacity: 0.88; }
         .game-modal-btn-row { display: flex; gap: 8px; }
+        /* Weekly quick-answer flow */
+        .game-qa-progress {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            margin: 0 0 10px;
+        }
+        .game-qa-step {
+            font-size: 0.78rem;
+            color: #6b7280;
+            margin-bottom: 12px;
+            letter-spacing: 0.02em;
+        }
+        .game-qa-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(13,148,136,0.2);
+            transition: all 0.25s ease;
+        }
+        .game-qa-dot.active { background: #0D9488; transform: scale(1.2); }
+        .game-qa-dot.done { background: #10b981; }
+        .game-qa-question {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            line-height: 1.45;
+            margin: 8px 0 18px;
+            min-height: 3.2em;
+        }
+        .game-qa-options { display: flex; flex-direction: column; gap: 8px; }
+        .game-qa-option {
+            width: 100%;
+            padding: 13px 16px;
+            border-radius: 14px;
+            border: 1.5px solid rgba(13,148,136,0.22);
+            background: rgba(13,148,136,0.06);
+            color: #0D9488;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .game-qa-option:hover, .game-qa-option.selected {
+            background: linear-gradient(135deg, #0D9488, #0F766E);
+            color: white;
+            border-color: transparent;
+            transform: translateY(-1px);
+        }
+        .game-qa-skip {
+            margin-top: 14px;
+            background: none;
+            border: none;
+            color: #9ca3af;
+            font-size: 0.8rem;
+            cursor: pointer;
+            padding: 4px 8px;
+        }
+        .game-qa-skip:hover { color: #6b7280; }
+        .game-weekly-primary-sub {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 500;
+            opacity: 0.85;
+            margin-top: 4px;
+        }
+        .game-weekly-later {
+            margin-top: 12px;
+            background: none;
+            border: none;
+            color: #9ca3af;
+            font-size: 0.82rem;
+            cursor: pointer;
+            padding: 6px;
+        }
+        .game-weekly-later:hover { color: #6b7280; }
+        .game-weekly-badge {
+            display: inline-block;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #0D9488;
+            background: rgba(13,148,136,0.1);
+            border-radius: 999px;
+            padding: 5px 12px;
+            margin-bottom: 10px;
+        }
+        .game-weekly-highlight {
+            font-size: 0.88rem;
+            color: var(--text-dark);
+            line-height: 1.5;
+            margin: 10px 0 6px;
+            opacity: 0.9;
+        }
+        .game-weekly-changes {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin: 12px 0 14px;
+            text-align: left;
+        }
+        .game-weekly-change-item {
+            font-size: 0.84rem;
+            color: #0F766E;
+            background: rgba(13,148,136,0.08);
+            border-radius: 10px;
+            padding: 8px 12px;
+            line-height: 1.4;
+        }
+        .game-weekly-trust {
+            font-size: 0.78rem;
+            color: #6b7280;
+            line-height: 1.45;
+            margin-top: 4px;
+        }
         /* Confetti */
         .game-confetti { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
         .game-confetti span {
@@ -4383,14 +4499,20 @@
             if (document.documentElement.getAttribute('data-embedded-tab') === '1') return;
             const sync = window.NutriPlanPlanSync;
             const uid = localStorage.getItem('userId') || '';
-            if (!sync || uid.indexOf('fb_') !== 0) return;
+            if (!sync || !uid) return;
             const opts = buildPlanSyncOpts();
-            sync.maybeDailyPlanVersionCheck(uid, opts).then(function (result) {
-                if ((result && result.pending) || (sync.hasPlanUpdatePending && sync.hasPlanUpdatePending())) {
-                    if (typeof sync.maybePromptPendingPlanUpdate === 'function') {
-                        sync.maybePromptPendingPlanUpdate(uid, opts);
+            const weeklyFirst = (typeof sync.maybeCheckWeeklyAdaptNotice === 'function')
+                ? sync.maybeCheckWeeklyAdaptNotice(uid, opts)
+                : Promise.resolve({ applied: false });
+            weeklyFirst.then(function (weekly) {
+                if (weekly && weekly.applied) return;
+                sync.maybeDailyPlanVersionCheck(uid, opts).then(function (result) {
+                    if ((result && result.pending) || (sync.hasPlanUpdatePending && sync.hasPlanUpdatePending())) {
+                        if (typeof sync.maybePromptPendingPlanUpdate === 'function') {
+                            sync.maybePromptPendingPlanUpdate(uid, opts);
+                        }
                     }
-                }
+                }).catch(function () {});
             }).catch(function () {});
         }
 
@@ -5507,11 +5629,31 @@
             }
             consumePendingPlanUiAction();
             if (typeof checkOpenAppPrompts === 'function') checkOpenAppPrompts();
+            maybeCheckWeeklyAdaptNotice();
         });
 
         window.addEventListener('NUTRIPLAN_PLAN_SYNCED', function() {
             if (typeof loadDietData === 'function') loadDietData({ force: true });
         });
+
+        window.addEventListener('NUTRIPLAN_WEEKLY_ADAPT_READY', function(e) {
+            if (!e || !e.detail) return;
+            var notice = e.detail;
+            if (notice.planApplied !== false && typeof loadDietData === 'function') {
+                loadDietData({ force: true });
+            }
+            setTimeout(function() {
+                showWeeklyAdaptNoticeModal(notice);
+            }, notice.planApplied === false ? 0 : 350);
+        });
+
+        function maybeCheckWeeklyAdaptNotice() {
+            var sync = window.NutriPlanPlanSync;
+            var uid = localStorage.getItem('userId') || '';
+            if (sync && typeof sync.maybeCheckWeeklyAdaptNotice === 'function' && uid) {
+                sync.maybeCheckWeeklyAdaptNotice(uid, buildPlanSyncOpts());
+            }
+        }
 
         window.addEventListener('NUTRIPLAN_PLAN_UPDATE_PENDING', function() {
             const sync = window.NutriPlanPlanSync;
@@ -10013,20 +10155,15 @@
             var old = document.getElementById('gameWeeklyModal');
             if (old) old.remove();
             var avg = wd.avgScore;
-            var iconClass, iconColor, title, msg, color;
-            if      (avg>=4.5){ iconClass='fas fa-trophy'; iconColor='#fbbf24'; title='Фантастична седмица!'; color='#fbbf24';
-                msg='Изключително представяне! Вие сте на правилния път. Продължавайте!'; }
-            else if (avg>=3.5){ iconClass='fas fa-bullseye'; iconColor='#10b981'; title='Много добра седмица!'; color='#10b981';
-                msg='Отлично! Малко повече внимание ще ви доведе до перфекцията.'; }
-            else if (avg>=2.5){ iconClass='fas fa-chart-line'; iconColor='#0D9488'; title='Добри резултати!'; color='#0D9488';
-                msg='Напредвате стабилно. Наберете кой аспект да подобрите следващата седмица.'; }
-            else               { iconClass='fas fa-seedling'; iconColor='#6366f1'; title='Нова седмица, нов шанс!'; color='#6366f1';
-                msg='Всяка седмица е нов старт. Малките промени правят трайни резултати!'; }
+            var iconClass, iconColor, title, color;
+            if      (avg>=4.5){ iconClass='fas fa-trophy'; iconColor='#fbbf24'; title='Страхотна седмица!'; color='#fbbf24'; }
+            else if (avg>=3.5){ iconClass='fas fa-bullseye'; iconColor='#10b981'; title='Добра седмица!'; color='#10b981'; }
+            else if (avg>=2.5){ iconClass='fas fa-chart-line'; iconColor='#0D9488'; title='Устойчив напредък'; color='#0D9488'; }
+            else               { iconClass='fas fa-seedling'; iconColor='#6366f1'; title='Нова седмица'; color='#6366f1'; }
 
             var overlay = document.createElement('div');
             overlay.id = 'gameWeeklyModal';
             overlay.className = 'game-modal-overlay';
-            overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
 
             var modal = document.createElement('div');
             modal.className = 'game-modal';
@@ -10034,7 +10171,7 @@
             if (avg >= 3.5) {
                 var cf2 = document.createElement('div');
                 cf2.className = 'game-confetti';
-                makeConfetti(cf2, 40);
+                makeConfetti(cf2, 30);
                 modal.appendChild(cf2);
             }
 
@@ -10048,65 +10185,390 @@
             titleEl2.textContent = title;
             modal.appendChild(titleEl2);
 
-            var sc2 = document.createElement('div');
-            sc2.className = 'game-modal-score';
-            sc2.style.cssText = 'background:linear-gradient(135deg,'+color+','+color+'99);color:white;';
-            sc2.innerHTML = '\u0421\u0440\u0435\u0434\u043D\u0430 \u043E\u0446\u0435\u043D\u043A\u0430: <strong>' + avg + '/5</strong>';
-            modal.appendChild(sc2);
-
-            var en2 = document.createElement('div');
-            en2.className = 'game-modal-score';
-            en2.style.cssText = 'background:rgba(13,148,136,0.12);color:#0D9488;';
-            en2.innerHTML = '<i class="fas fa-chart-bar" style="color:#0D9488"></i> Ангажираност: <strong>' + wd.avgEngPct + '%</strong>';
-            modal.appendChild(en2);
-
-            if (wd.noDataDays > 0) {
-                var nd2 = document.createElement('div');
-                nd2.className = 'game-modal-score';
-                nd2.style.cssText = 'background:rgba(107,114,128,0.1);color:#6b7280;font-size:0.8rem;';
-                nd2.innerHTML = '<i class="fas fa-calendar-xmark"></i> ' + wd.noDataDays + ' ' + (wd.noDataDays === 1 ? 'ден' : 'дни') + ' без отбелязана активност';
-                modal.appendChild(nd2);
-            }
-
-            var mg2 = document.createElement('div');
-            mg2.className = 'game-modal-msg';
-            mg2.textContent = msg;
-            modal.appendChild(mg2);
-
-            // 7-day dot strip
             var dotsWrap = document.createElement('div');
-            dotsWrap.style.cssText = 'display:flex;gap:5px;justify-content:center;margin:6px 0 16px;';
+            dotsWrap.style.cssText = 'display:flex;gap:5px;justify-content:center;margin:14px 0 20px;';
             wd.days.forEach(function(day) {
                 var dot = document.createElement('div');
                 var ds2 = day.rec ? (day.rec.dailyScore||calcDayScore(day.rec)) : null;
                 var bg = '#e5e7eb';
                 if (ds2 && ds2.score !== null) bg = ds2.score>=4?'#10b981':ds2.score>=3?'#f59e0b':'#f87171';
-                dot.style.cssText = 'width:18px;height:18px;border-radius:50%;background:'+bg+';cursor:default;';
-                dot.title = day.key;
+                dot.style.cssText = 'width:20px;height:20px;border-radius:50%;background:'+bg+';';
                 dotsWrap.appendChild(dot);
             });
             modal.appendChild(dotsWrap);
 
-            var btnRow = document.createElement('div');
-            btnRow.className = 'game-modal-btn-row';
+            var primaryBtn = document.createElement('button');
+            primaryBtn.className = 'game-modal-btn';
+            primaryBtn.style.cssText = 'width:100%;background:linear-gradient(135deg,'+color+',#0F766E);color:white;';
+            primaryBtn.innerHTML = 'Настрой следващата седмица<span class="game-weekly-primary-sub">5 бързи въпроса · около 30 сек</span>';
+            primaryBtn.onclick = function(){
+                overlay.remove();
+                startWeeklyFeedbackFlow(wd);
+            };
+            modal.appendChild(primaryBtn);
 
-            var profBtn = document.createElement('button');
-            profBtn.className = 'game-modal-btn';
-            profBtn.style.cssText = 'flex:1;background:rgba(13,148,136,0.1);color:#0D9488;border:1.5px solid rgba(13,148,136,0.25);';
-            profBtn.textContent = '\uD83D\uDCCA \u0412\u0438\u0436 \u0430\u043D\u0430\u043B\u0438\u0437\u0438';
-            profBtn.onclick = function(){ overlay.remove(); openShellTab('profile', 'profile.html'); };
+            var laterBtn = document.createElement('button');
+            laterBtn.className = 'game-weekly-later';
+            laterBtn.textContent = 'По-късно';
+            laterBtn.onclick = function(){
+                overlay.remove();
+                markWeeklySkipped();
+            };
+            modal.appendChild(laterBtn);
 
-            var closBtn2 = document.createElement('button');
-            closBtn2.className = 'game-modal-btn';
-            closBtn2.style.cssText = 'flex:1;background:linear-gradient(135deg,'+color+',#0F766E);color:white;';
-            closBtn2.textContent = '\u2713 \u0417\u0430\u0442\u0432\u043E\u0440\u0438';
-            closBtn2.onclick = function(){ overlay.remove(); };
-
-            btnRow.appendChild(profBtn);
-            btnRow.appendChild(closBtn2);
-            modal.appendChild(btnRow);
             overlay.appendChild(modal);
             document.body.appendChild(overlay);
+        }
+
+        function getWeeklyAIState() {
+            try { return JSON.parse(localStorage.getItem(GAME_WEEKLY_AI_KEY) || '{}'); }
+            catch(e) { return {}; }
+        }
+
+        function saveWeeklyAIState(info) {
+            localStorage.setItem(GAME_WEEKLY_AI_KEY, JSON.stringify(info));
+            scheduleAnalyticsSync();
+        }
+
+        function ensureWeeklyMeta(info) {
+            if (!info.dietStartDate) {
+                try {
+                    var ud = JSON.parse(localStorage.getItem('userData') || '{}');
+                    info.dietStartDate = ud.planCreatedAt || localStorage.getItem('planUpdatedAt') || new Date().toISOString().slice(0, 10);
+                } catch(e) {
+                    info.dietStartDate = new Date().toISOString().slice(0, 10);
+                }
+            }
+            if (!info.cycleNumber) info.cycleNumber = 0;
+            return info;
+        }
+
+        async function getWeeklyAuthExtras() {
+            var uid = (typeof userId !== 'undefined' && userId) ? userId : localStorage.getItem('userId');
+            var extras = { userId: uid };
+            if (uid && uid.indexOf('fb_') === 0 && typeof auth !== 'undefined' && auth.currentUser) {
+                extras.idToken = await auth.currentUser.getIdToken().catch(function() { return null; });
+            }
+            var clientId = localStorage.getItem('pendingClientId') || localStorage.getItem('clientId') || '';
+            if (clientId) extras.clientId = clientId;
+            return extras;
+        }
+
+        function getWeeklyPayloadBase() {
+            var payload = {
+                gameData: getGameData(),
+                gameWeeklyAI: ensureWeeklyMeta(getWeeklyAIState())
+            };
+            var uid = localStorage.getItem('userId') || '';
+            if (!uid.startsWith('fb_')) {
+                try { payload.plan = JSON.parse(localStorage.getItem('dietPlan') || 'null'); } catch(e) {}
+                try { payload.userData = JSON.parse(localStorage.getItem('userData') || '{}'); } catch(e) {}
+            }
+            return payload;
+        }
+
+        async function fetchWeeklyQuestions() {
+            var base = getWeeklyPayloadBase();
+            var authExtras = await getWeeklyAuthExtras();
+            if (!authExtras.userId) throw new Error('Липсва потребител');
+            var resp = await fetch(ANALYTICS_WORKER + '/api/weekly/generate-questions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(Object.assign({}, base, authExtras))
+            });
+            var data = await resp.json();
+            if (!resp.ok) throw new Error(data.error || 'Грешка при въпросите');
+            return data;
+        }
+
+        function showWeeklyQuickAnswerModal(questions, cycleNumber, onComplete, onSkip) {
+            var old = document.getElementById('gameWeeklyQAModal');
+            if (old) old.remove();
+
+            var idx = 0;
+            var answers = [];
+            var total = questions.length;
+
+            var overlay = document.createElement('div');
+            overlay.id = 'gameWeeklyQAModal';
+            overlay.className = 'game-modal-overlay';
+
+            var modal = document.createElement('div');
+            modal.className = 'game-modal';
+
+            var stepEl = document.createElement('div');
+            stepEl.className = 'game-qa-step';
+            modal.appendChild(stepEl);
+
+            var progress = document.createElement('div');
+            progress.className = 'game-qa-progress';
+            questions.forEach(function(_, i) {
+                var dot = document.createElement('div');
+                dot.className = 'game-qa-dot' + (i === 0 ? ' active' : '');
+                progress.appendChild(dot);
+            });
+            modal.appendChild(progress);
+
+            var qEl = document.createElement('div');
+            qEl.className = 'game-qa-question';
+            modal.appendChild(qEl);
+
+            var optsWrap = document.createElement('div');
+            optsWrap.className = 'game-qa-options';
+            modal.appendChild(optsWrap);
+
+            var skipBtn = document.createElement('button');
+            skipBtn.className = 'game-qa-skip';
+            skipBtn.textContent = 'По-късно';
+            skipBtn.onclick = function() {
+                overlay.remove();
+                if (onSkip) onSkip();
+            };
+            modal.appendChild(skipBtn);
+
+            function renderStep() {
+                var q = questions[idx];
+                stepEl.textContent = (idx + 1) + ' от ' + total;
+                qEl.textContent = q.text;
+                optsWrap.innerHTML = '';
+                progress.querySelectorAll('.game-qa-dot').forEach(function(dot, i) {
+                    dot.className = 'game-qa-dot' + (i < idx ? ' done' : i === idx ? ' active' : '');
+                });
+                (q.options || ['Да', 'Не']).forEach(function(opt) {
+                    var btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'game-qa-option';
+                    btn.textContent = opt;
+                    btn.onclick = function() {
+                        answers.push({ questionId: q.id, value: opt });
+                        idx++;
+                        if (idx >= questions.length) {
+                            overlay.remove();
+                            onComplete(answers);
+                        } else {
+                            renderStep();
+                        }
+                    };
+                    optsWrap.appendChild(btn);
+                });
+            }
+
+            renderStep();
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+        }
+
+        function showWeeklyLoadingModal(text) {
+            var old = document.getElementById('gameWeeklyAdaptModal');
+            if (old) old.remove();
+            var overlay = document.createElement('div');
+            overlay.id = 'gameWeeklyAdaptModal';
+            overlay.className = 'game-modal-overlay';
+            var modal = document.createElement('div');
+            modal.className = 'game-modal';
+            modal.innerHTML = '<div style="margin:8px 0 16px"><i class="fas fa-spinner fa-spin" style="color:#0D9488;font-size:1.6rem"></i></div>'
+                + '<div class="game-modal-title" style="font-size:1.1rem">' + (text || 'Момент...') + '</div>';
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+            return overlay;
+        }
+
+        function showWeeklyErrorModal(message) {
+            var old = document.getElementById('gameWeeklyAdaptModal');
+            if (old) old.remove();
+            var overlay = document.createElement('div');
+            overlay.id = 'gameWeeklyAdaptModal';
+            overlay.className = 'game-modal-overlay';
+            var modal = document.createElement('div');
+            modal.className = 'game-modal';
+            modal.innerHTML = '<div class="game-modal-title">Не успяхме</div>';
+            var msg = document.createElement('div');
+            msg.className = 'game-modal-msg';
+            msg.textContent = message || 'Опитайте отново по-късно.';
+            modal.appendChild(msg);
+            var btn = document.createElement('button');
+            btn.className = 'game-modal-btn';
+            btn.style.cssText = 'width:100%;background:#0D9488;color:white;';
+            btn.textContent = 'Добре';
+            btn.onclick = function() { overlay.remove(); };
+            modal.appendChild(btn);
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+        }
+
+        function showWeeklySubmittedModal() {
+            var old = document.getElementById('gameWeeklyAdaptModal');
+            if (old) old.remove();
+            var overlay = document.createElement('div');
+            overlay.id = 'gameWeeklyAdaptModal';
+            overlay.className = 'game-modal-overlay';
+            var modal = document.createElement('div');
+            modal.className = 'game-modal';
+            modal.innerHTML = '<div class="game-modal-emoji"><i class="fas fa-paper-plane" style="color:#6366f1"></i></div>'
+                + '<div class="game-modal-title">Благодарим!</div>';
+            var msg = document.createElement('div');
+            msg.className = 'game-modal-msg';
+            msg.textContent = 'Информацията е изпратена за преглед и актуализация. При следващото отваряне ще видите обновения план.';
+            modal.appendChild(msg);
+            var btn = document.createElement('button');
+            btn.className = 'game-modal-btn';
+            btn.style.cssText = 'width:100%;background:linear-gradient(135deg,#0D9488,#0F766E);color:white;';
+            btn.textContent = 'Разбрах';
+            btn.onclick = function() { overlay.remove(); };
+            modal.appendChild(btn);
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+        }
+
+        function showWeeklyAdaptNoticeModal(notice) {
+            var old = document.getElementById('gameWeeklyAdaptModal');
+            if (old) old.remove();
+            var overlay = document.createElement('div');
+            overlay.id = 'gameWeeklyAdaptModal';
+            overlay.className = 'game-modal-overlay';
+            var modal = document.createElement('div');
+            modal.className = 'game-modal';
+
+            var emo = document.createElement('span');
+            emo.className = 'game-modal-emoji';
+            emo.innerHTML = '<i class="fas ' + (notice.changed ? 'fa-check-circle' : 'fa-heart') + '" style="color:' + (notice.changed ? '#10b981' : '#6366f1') + '"></i>';
+            modal.appendChild(emo);
+
+            var titleEl = document.createElement('div');
+            titleEl.className = 'game-modal-title';
+            titleEl.textContent = notice.headline || (notice.changed ? 'Планът е актуализиран' : 'Прегледът е завършен');
+            modal.appendChild(titleEl);
+
+            if (notice.changed && notice.changes && notice.changes.length) {
+                var changesWrap = document.createElement('div');
+                changesWrap.className = 'game-weekly-changes';
+                notice.changes.slice(0, 2).forEach(function(item) {
+                    var row = document.createElement('div');
+                    row.className = 'game-weekly-change-item';
+                    row.textContent = '✓ ' + item;
+                    changesWrap.appendChild(row);
+                });
+                modal.appendChild(changesWrap);
+            } else if (notice.message) {
+                var lead = document.createElement('div');
+                lead.className = 'game-weekly-highlight';
+                var leadText = String(notice.message);
+                lead.textContent = leadText.length > 140 ? leadText.slice(0, 137) + '...' : leadText;
+                modal.appendChild(lead);
+            }
+
+            var btn = document.createElement('button');
+            btn.className = 'game-modal-btn';
+            btn.style.cssText = 'width:100%;margin-top:14px;background:linear-gradient(135deg,#0D9488,#0F766E);color:white;';
+            btn.textContent = notice.changed ? 'Започни новата седмица' : 'Продължи';
+            btn.onclick = function() { overlay.remove(); };
+            modal.appendChild(btn);
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+        }
+
+        async function submitWeeklyAdaptation(questions, answers, cycleNumber) {
+            var base = getWeeklyPayloadBase();
+            var authExtras = await getWeeklyAuthExtras();
+            var resp = await fetch(ANALYTICS_WORKER + '/api/weekly/adapt-plan', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(Object.assign({}, base, authExtras, {
+                    questions: questions,
+                    answers: answers,
+                    gameWeeklyAI: Object.assign({}, base.gameWeeklyAI, { cycleNumber: cycleNumber })
+                }))
+            });
+            var data = await resp.json();
+            if (!resp.ok) throw new Error(data.error || 'Грешка при изпращане');
+            return data;
+        }
+
+        function finalizeWeeklyCycleOnSubmit(questions, answers, cycleNumber) {
+            var info = ensureWeeklyMeta(getWeeklyAIState());
+            info.feedbackStatus = 'submitted';
+            info.questions = questions;
+            info.answers = answers;
+            info.cycleNumber = cycleNumber;
+            info.pendingCycleNumber = cycleNumber;
+            info.submittedAt = new Date().toISOString();
+            info.lastRun = info.submittedAt;
+            info.nextDue = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+            delete info.pendingQuestions;
+            saveWeeklyAIState(info);
+        }
+
+        function markWeeklySkipped() {
+            var info = ensureWeeklyMeta(getWeeklyAIState());
+            info.feedbackStatus = 'skipped';
+            info.lastRun = new Date().toISOString();
+            info.nextDue = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+            saveWeeklyAIState(info);
+        }
+
+        async function startWeeklyFeedbackFlow(wd) {
+            var info = ensureWeeklyMeta(getWeeklyAIState());
+            info.feedbackStatus = 'questions';
+            saveWeeklyAIState(info);
+
+            var loadingOverlay = showWeeklyLoadingModal('Подготвяме въпросите...');
+            try {
+                var qData = await fetchWeeklyQuestions();
+                loadingOverlay.remove();
+                var questions = qData.questions;
+                var cycleNumber = qData.cycleNumber;
+                info.pendingQuestions = questions;
+                info.pendingCycleNumber = cycleNumber;
+                saveWeeklyAIState(info);
+
+                showWeeklyQuickAnswerModal(questions, cycleNumber, async function(answers) {
+                    var sendingOverlay = showWeeklyLoadingModal('Изпращаме...');
+                    try {
+                        await submitWeeklyAdaptation(questions, answers, cycleNumber);
+                        sendingOverlay.remove();
+                        finalizeWeeklyCycleOnSubmit(questions, answers, cycleNumber);
+                        showWeeklySubmittedModal();
+                    } catch (err) {
+                        sendingOverlay.remove();
+                        var st = getWeeklyAIState();
+                        st.feedbackStatus = 'pending';
+                        saveWeeklyAIState(st);
+                        showWeeklyErrorModal('Моля, опитайте отново по-късно.');
+                    }
+                }, function() {
+                    markWeeklySkipped();
+                });
+            } catch (err) {
+                loadingOverlay.remove();
+                info.feedbackStatus = 'pending';
+                saveWeeklyAIState(info);
+                showWeeklyErrorModal('Моля, опитайте отново по-късно.');
+            }
+        }
+
+        function resumeWeeklyFeedbackIfNeeded() {
+            if (!isGameEnabled()) return;
+            var info = getWeeklyAIState();
+            if (info.feedbackStatus !== 'questions' || !info.pendingQuestions || !info.pendingQuestions.length) return;
+            var questions = info.pendingQuestions;
+            var cycleNumber = info.pendingCycleNumber || ((info.cycleNumber || 0) + 1);
+            setTimeout(function() {
+                showWeeklyQuickAnswerModal(questions, cycleNumber, async function(answers) {
+                    var sendingOverlay = showWeeklyLoadingModal('Изпращаме...');
+                    try {
+                        await submitWeeklyAdaptation(questions, answers, cycleNumber);
+                        sendingOverlay.remove();
+                        finalizeWeeklyCycleOnSubmit(questions, answers, cycleNumber);
+                        showWeeklySubmittedModal();
+                    } catch (err) {
+                        sendingOverlay.remove();
+                        var st = getWeeklyAIState();
+                        st.feedbackStatus = 'pending';
+                        saveWeeklyAIState(st);
+                        showWeeklyErrorModal('Моля, опитайте отново по-късно.');
+                    }
+                }, function() { markWeeklySkipped(); });
+            }, 2000);
         }
 
         // ── Time-based prompts ────────────────────────────────────────────────
@@ -10138,21 +10600,27 @@
         // ── Weekly AI trigger ─────────────────────────────────────────────────
         function maybeRequestWeeklyAI() {
             if (!isGameEnabled()) return;
-            var info = {};
-            try { info = JSON.parse(localStorage.getItem(GAME_WEEKLY_AI_KEY)||'{}'); } catch(e) {}
+            var info = ensureWeeklyMeta(getWeeklyAIState());
             var now = Date.now();
-            if (info.lastRun && now - new Date(info.lastRun).getTime() < 7*24*60*60*1000) return;
+            if (info.lastRun && now - new Date(info.lastRun).getTime() < 7 * 24 * 60 * 60 * 1000) {
+                resumeWeeklyFeedbackIfNeeded();
+                return;
+            }
             var wd = calcWeeklyScore();
             if (wd.daysRecorded >= 5) {
                 var shownKey = 'gameWeeklyRecapShown_' + getTodayKey();
                 if (!localStorage.getItem(shownKey)) {
-                    localStorage.setItem(shownKey,'1');
-                    setTimeout(function(){ showWeeklyRecapModal(wd); }, 1600);
+                    localStorage.setItem(shownKey, '1');
+                    info.feedbackStatus = 'pending';
+                    saveWeeklyAIState(info);
+                    setTimeout(function() { showWeeklyRecapModal(wd); }, 1600);
                 }
+            } else {
+                info.lastRun = new Date().toISOString();
+                info.nextDue = new Date(now + 7 * 24 * 60 * 60 * 1000).toISOString();
+                info.feedbackStatus = 'skipped';
+                saveWeeklyAIState(info);
             }
-            info.lastRun = new Date().toISOString();
-            info.nextDue = new Date(now + 7*24*60*60*1000).toISOString();
-            localStorage.setItem(GAME_WEEKLY_AI_KEY, JSON.stringify(info));
         }
 
         // ── Activate ──────────────────────────────────────────────────────────
@@ -10177,6 +10645,7 @@
                     checkRetroEntry();
                     startPromptInterval();
                     maybeRequestWeeklyAI();
+                    resumeWeeklyFeedbackIfNeeded();
                 }, 1600);
             }
             

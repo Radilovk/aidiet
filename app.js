@@ -396,25 +396,32 @@
     function runPlanUpdateCatchUp() {
         var sync = window.NutriPlanPlanSync;
         var uid = getStoredValue('userId') || '';
-        if (!sync || uid.indexOf('fb_') !== 0) return Promise.resolve(false);
-        return sync.maybeDailyPlanVersionCheck(uid, buildPlanSyncOptions())
-            .then(function (result) {
-                if (result && result.pending) {
-                    promptAdminPlanUpdate(result.planUpdatedAt || '');
-                    return true;
-                }
-                if (sync.hasPlanUpdatePending && sync.hasPlanUpdatePending()) {
-                    if (typeof sync.maybePromptPendingPlanUpdate === 'function') {
-                        sync.maybePromptPendingPlanUpdate(uid, buildPlanSyncOptions())
-                            .then(function (outcome) {
-                                reloadPlanFrameIfUpdated(outcome && outcome.result);
-                            });
+        if (!sync || !uid) return Promise.resolve(false);
+        var opts = buildPlanSyncOptions();
+        var weeklyFirst = (typeof sync.maybeCheckWeeklyAdaptNotice === 'function')
+            ? sync.maybeCheckWeeklyAdaptNotice(uid, opts)
+            : Promise.resolve({ applied: false });
+        return weeklyFirst.then(function (weekly) {
+            if (weekly && weekly.applied) return true;
+            return sync.maybeDailyPlanVersionCheck(uid, opts)
+                .then(function (result) {
+                    if (result && result.pending) {
+                        promptAdminPlanUpdate(result.planUpdatedAt || '');
+                        return true;
                     }
-                    return true;
-                }
-                return false;
-            })
-            .catch(function () { return false; });
+                    if (sync.hasPlanUpdatePending && sync.hasPlanUpdatePending()) {
+                        if (typeof sync.maybePromptPendingPlanUpdate === 'function') {
+                            sync.maybePromptPendingPlanUpdate(uid, buildPlanSyncOptions())
+                                .then(function (outcome) {
+                                    reloadPlanFrameIfUpdated(outcome && outcome.result);
+                                });
+                        }
+                        return true;
+                    }
+                    return false;
+                })
+                .catch(function () { return false; });
+        });
     }
 
     function bindCatchUpOnResume() {
