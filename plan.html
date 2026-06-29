@@ -10404,11 +10404,11 @@
             var modal = document.createElement('div');
             modal.className = 'game-modal';
             modal.innerHTML = '<div class="game-modal-emoji"><i class="fas fa-paper-plane" style="color:#6366f1"></i></div>'
-                + '<div class="game-weekly-badge">Преглед от специалист</div>'
+                + '<div class="game-weekly-badge">Преглед от Специалист</div>'
                 + '<div class="game-modal-title">Благодарим!</div>';
             var msg = document.createElement('div');
             msg.className = 'game-modal-msg';
-            msg.innerHTML = 'Вашият специалист получи информацията.<br><span class="game-weekly-trust">При следващото отваряне ще видите актуализирания план.</span>';
+            msg.textContent = 'Информацията е изпратена към Специалист. При следващото отваряне ще видите актуализирания план.';
             modal.appendChild(msg);
             var btn = document.createElement('button');
             btn.className = 'game-modal-btn';
@@ -10429,23 +10429,20 @@
             var modal = document.createElement('div');
             modal.className = 'game-modal';
 
+            var emo = document.createElement('span');
+            emo.className = 'game-modal-emoji';
+            emo.innerHTML = '<i class="fas ' + (notice.changed ? 'fa-check-circle' : 'fa-heart') + '" style="color:' + (notice.changed ? '#10b981' : '#6366f1') + '"></i>';
+            modal.appendChild(emo);
+
             var badge = document.createElement('div');
             badge.className = 'game-weekly-badge';
-            badge.textContent = 'Преглед от специалист';
+            badge.textContent = 'Преглед от Специалист';
             modal.appendChild(badge);
 
             var titleEl = document.createElement('div');
             titleEl.className = 'game-modal-title';
-            titleEl.textContent = notice.headline || (notice.changed ? 'Планът ви е актуализиран' : 'Съобщение от специалиста');
+            titleEl.textContent = notice.headline || (notice.changed ? 'Планът е актуализиран' : 'Съобщение от Специалист');
             modal.appendChild(titleEl);
-
-            if (notice.message) {
-                var lead = document.createElement('div');
-                lead.className = 'game-weekly-highlight';
-                var leadText = String(notice.message);
-                lead.textContent = leadText.length > 140 ? leadText.slice(0, 137) + '...' : leadText;
-                modal.appendChild(lead);
-            }
 
             if (notice.changed && notice.changes && notice.changes.length) {
                 var changesWrap = document.createElement('div');
@@ -10457,18 +10454,13 @@
                     changesWrap.appendChild(row);
                 });
                 modal.appendChild(changesWrap);
+            } else if (notice.message) {
+                var lead = document.createElement('div');
+                lead.className = 'game-weekly-highlight';
+                var leadText = String(notice.message);
+                lead.textContent = leadText.length > 140 ? leadText.slice(0, 137) + '...' : leadText;
+                modal.appendChild(lead);
             }
-
-            var trust = document.createElement('div');
-            trust.className = 'game-weekly-trust';
-            trust.textContent = 'Адаптиран по вашите отговори и резултатите от седмицата.';
-            modal.appendChild(trust);
-
-            var emo = document.createElement('span');
-            emo.className = 'game-modal-emoji';
-            emo.style.marginTop = '10px';
-            emo.innerHTML = '<i class="fas fa-check-circle" style="color:#10b981"></i>';
-            modal.insertBefore(emo, badge);
 
             var btn = document.createElement('button');
             btn.className = 'game-modal-btn';
