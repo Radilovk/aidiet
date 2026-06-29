@@ -3957,6 +3957,9 @@ function cleanResponseFromRegenerate(aiResponse, regenerateIndex) {
 // KV key prefix and TTL for async plan generation jobs
 const PLAN_JOB_PREFIX = 'plan_job:';
 const PLAN_JOB_TTL_SEC = 86400; // 24 hours
+const WEEKLY_ADAPT_REQ_PREFIX = 'weekly_adapt_req:';
+const WEEKLY_ADAPT_QUEUE_KEY = 'weekly_adapt_queue';
+const WEEKLY_ADAPT_DELAY_MS = 2 * 60 * 60 * 1000; // 2 hours (user told "within 24h" impression)
 // Regex for validating client-provided jobIds (UUID v4 format)
 const JOB_ID_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -7144,6 +7147,91 @@ async function getWeeklyAdaptationDecision(env, userData, plan, analytics, gameW
   return normalizeAdaptationDecision(parsed, analytics);
 }
 
+async function saveWeeklyAdaptNotice(env, userId, clientId, notice) {
+  if (!userId) return;
+  const profile = (await kvGetJSON(env, `user_profile:${userId}`)) || { userId };
+  profile.weeklyAdaptNotice = notice;
+  const ttl = userId.startsWith('fb_') ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
+  await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
+  if (clientId) {
+    try {
+      const clientData = await kvGetJSON(env, `client:${clientId}`);
+      if (clientData) {
+        clientData.weeklyAdaptNotice = notice;
+        await kvPutJSON(env, `client:${clientId}`, clientData, null);
+      }
+    } catch (e) {
+      console.warn('[WeeklyAdapt] client notice save failed:', e.message);
+    }
+  }
+}
+
+async function enqueueWeeklyAdaptRequest(env, record) {
+  await kvPutJSON(env, WEEKLY_ADAPT_REQ_PREFIX + record.requestId, record, 7 * 24 * 60 * 60);
+  const queue = (await kvGetJSON(env, WEEKLY_ADAPT_QUEUE_KEY)) || [];
+  if (!queue.includes(record.requestId)) {
+    queue.push(record.requestId);
+    await kvPutJSON(env, WEEKLY_ADAPT_QUEUE_KEY, queue, 7 * 24 * 60 * 60);
+  }
+}
+
+/**
+ * Process queued weekly adaptation requests (cron, every ~15 min).
+ * Runs AI adaptation ~2h after user submission.
+ */
+async function processWeeklyAdaptQueue(env) {
+  if (!env.page_content) return { processed: 0 };
+  const queue = (await kvGetJSON(env, WEEKLY_ADAPT_QUEUE_KEY)) || [];
+  if (!queue.length) return { processed: 0 };
+
+  const now = Date.now();
+  const remaining = [];
+  let processed = 0;
+
+  for (const requestId of queue) {
+    const req = await kvGetJSON(env, WEEKLY_ADAPT_REQ_PREFIX + requestId);
+    if (!req) continue;
+    if (req.status === 'completed') continue;
+    if (req.status === 'failed') continue;
+    if (req.status === 'processing') {
+      remaining.push(requestId);
+      continue;
+    }
+    if (req.processAt > now) {
+      remaining.push(requestId);
+      continue;
+    }
+
+    req.status = 'processing';
+    await kvPutJSON(env, WEEKLY_ADAPT_REQ_PREFIX + requestId, req, 7 * 24 * 60 * 60);
+
+    try {
+      await runWeeklyAdaptation(env, {
+        ...req.payload,
+        userId: req.userId,
+        clientId: req.clientId,
+        gameWeeklyAI: {
+          ...(req.payload?.gameWeeklyAI || {}),
+          cycleNumber: req.cycleNumber,
+        },
+      }, requestId);
+      req.status = 'completed';
+      req.completedAt = now;
+      processed += 1;
+    } catch (e) {
+      console.error('[WeeklyAdapt] queue item failed:', requestId, e);
+      req.status = 'queued';
+      req.lastError = e.message;
+      remaining.push(requestId);
+    }
+    await kvPutJSON(env, WEEKLY_ADAPT_REQ_PREFIX + requestId, req, 7 * 24 * 60 * 60);
+  }
+
+  await kvPutJSON(env, WEEKLY_ADAPT_QUEUE_KEY, remaining, 7 * 24 * 60 * 60);
+  if (processed > 0) console.log(`[WeeklyAdapt] processed ${processed} request(s)`);
+  return { processed };
+}
+
 async function persistWeeklyAdaptationMeta(env, userId, clientId, gameWeeklyAI, cycleNumber, decision, changed) {
   const profile = userId ? await kvGetJSON(env, `user_profile:${userId}`) : null;
   if (profile) {
@@ -7198,31 +7286,23 @@ async function persistWeeklyAdaptationMeta(env, userId, clientId, gameWeeklyAI, 
 async function runWeeklyAdaptation(env, payload, jobId) {
   const { userId, userData, plan, gameData, gameWeeklyAI, answers, questions, clientId } = payload;
   const analytics = buildAnalyticsSummary(gameData || {}, gameWeeklyAI || {});
-  const cycleNumber = (gameWeeklyAI?.cycleNumber || 0) + 1;
+  const cycleNumber = gameWeeklyAI?.cycleNumber || 1;
 
   try {
     const decision = await getWeeklyAdaptationDecision(
       env, userData, plan, analytics, gameWeeklyAI, questions, answers
     );
+    const noticeBase = {
+      id: jobId,
+      message: decision.motivationMessage,
+      changes: (decision.changeSummary || []).slice(0, 2),
+      cycleNumber,
+      at: new Date().toISOString(),
+    };
 
     if (decision.adaptationLevel === 0) {
+      await saveWeeklyAdaptNotice(env, userId, clientId, { ...noticeBase, changed: false });
       await persistWeeklyAdaptationMeta(env, userId, clientId, gameWeeklyAI, cycleNumber, decision, false);
-      await env.page_content.put(
-        PLAN_JOB_PREFIX + jobId,
-        JSON.stringify({
-          status: 'completed',
-          type: 'weekly_adapt',
-          completedAt: Date.now(),
-          changed: false,
-          adaptationLevel: 0,
-          motivationMessage: decision.motivationMessage,
-          changeSummary: [],
-          plan,
-          userId,
-          weeklyMeta: { cycleNumber, decision },
-        }),
-        { expirationTtl: PLAN_JOB_TTL_SEC }
-      );
       return;
     }
 
@@ -7251,13 +7331,18 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       weeklyAdaptation: { cycleNumber, level: decision.adaptationLevel, at: now },
     };
 
+    const notice = { ...noticeBase, changed: true };
+
     if (userId) {
-      await upsertUserProfilePlan(env, userId, {
+      const profile = await upsertUserProfilePlan(env, userId, {
         plan: newPlan,
         userData: enrichedData,
         clientId: clientId || undefined,
         planUpdatedAt: now,
       });
+      profile.weeklyAdaptNotice = notice;
+      const ttl = userId.startsWith('fb_') ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
+      await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
     }
 
     if (clientId) {
@@ -7265,42 +7350,24 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       if (clientData) {
         clientData.plan = newPlan;
         clientData.planUpdatedAt = now;
+        clientData.weeklyAdaptNotice = notice;
         clientData.answers = {
           ...(clientData.answers || {}),
           planModifications: enrichedData.planModifications,
         };
         if (clientData.planStatus === 'activated') {
           await kvPutJSON(env, `client:${clientId}`, clientData, null);
+          await deliverPlanUpdateToClient(env, clientData, clientId, 'updated');
+        } else {
+          await kvPutJSON(env, `client:${clientId}`, clientData, null);
         }
       }
     }
 
     await persistWeeklyAdaptationMeta(env, userId, clientId, gameWeeklyAI, cycleNumber, decision, true);
-
-    await env.page_content.put(
-      PLAN_JOB_PREFIX + jobId,
-      JSON.stringify({
-        status: 'completed',
-        type: 'weekly_adapt',
-        completedAt: Date.now(),
-        changed: true,
-        adaptationLevel: decision.adaptationLevel,
-        motivationMessage: decision.motivationMessage,
-        changeSummary: decision.changeSummary,
-        plan: newPlan,
-        planUpdatedAt: now,
-        userId,
-        weeklyMeta: { cycleNumber, decision },
-      }),
-      { expirationTtl: PLAN_JOB_TTL_SEC }
-    );
   } catch (error) {
     console.error('[WeeklyAdapt] job failed:', error);
-    await env.page_content.put(
-      PLAN_JOB_PREFIX + jobId,
-      JSON.stringify({ status: 'failed', type: 'weekly_adapt', error: error.message, failedAt: Date.now() }),
-      { expirationTtl: PLAN_JOB_TTL_SEC }
-    );
+    throw error;
   }
 }
 
@@ -7348,9 +7415,9 @@ async function handleWeeklyGenerateQuestions(request, env) {
 }
 
 /**
- * POST /api/weekly/adapt-plan
+ * POST /api/weekly/adapt-plan — queue for specialist review (~2h background processing)
  */
-async function handleWeeklyAdaptPlan(request, env, ctx) {
+async function handleWeeklyAdaptPlan(request, env) {
   try {
     if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
     const body = await request.json();
@@ -7364,24 +7431,28 @@ async function handleWeeklyAdaptPlan(request, env, ctx) {
       return jsonResponse({ error: e.message }, 401);
     }
 
-    const jobId = (body._jobId && JOB_ID_UUID_RE.test(String(body._jobId)))
-      ? String(body._jobId)
-      : crypto.randomUUID();
+    const requestId = crypto.randomUUID();
+    const cycleNumber = (gameWeeklyAI?.cycleNumber || 0) + 1;
+    const now = Date.now();
+    const record = {
+      requestId,
+      userId,
+      clientId: clientId || '',
+      cycleNumber,
+      submittedAt: now,
+      processAt: now + WEEKLY_ADAPT_DELAY_MS,
+      status: 'queued',
+      payload: { userData, plan, gameData, gameWeeklyAI, answers, questions },
+    };
 
-    await env.page_content.put(
-      PLAN_JOB_PREFIX + jobId,
-      JSON.stringify({ status: 'pending', type: 'weekly_adapt', startedAt: Date.now() }),
-      { expirationTtl: PLAN_JOB_TTL_SEC }
-    );
+    await enqueueWeeklyAdaptRequest(env, record);
 
-    const payload = { userId, userData, plan, gameData, gameWeeklyAI, answers, questions, clientId };
-    if (env.PLAN_QUEUE) {
-      await env.PLAN_QUEUE.send({ jobId, type: 'weekly_adapt', payload }, { contentType: 'json' });
-    } else {
-      ctx.waitUntil(runWeeklyAdaptation(env, payload, jobId));
-    }
-
-    return jsonResponse({ success: true, jobId });
+    return jsonResponse({
+      success: true,
+      submitted: true,
+      requestId,
+      cycleNumber,
+    });
   } catch (error) {
     console.error('[WeeklyAdapt] adapt-plan error:', error);
     return jsonResponse({ error: error.message }, 500);
@@ -15363,10 +15434,19 @@ async function handleGetPlanVersion(request, env) {
     const planUpdatedAt = getEffectivePlanUpdatedAt(profile);
     const clientVersion = (url.searchParams.get('v') || '').trim();
     if (clientVersion && planUpdatedAt && clientVersion >= planUpdatedAt) {
-      return jsonResponse({ found: true, upToDate: true, planUpdatedAt });
+      return jsonResponse({
+        found: true,
+        upToDate: true,
+        planUpdatedAt,
+        ...(profile.weeklyAdaptNotice ? { weeklyAdaptNotice: profile.weeklyAdaptNotice } : {}),
+      });
     }
 
-    return jsonResponse({ found: true, planUpdatedAt });
+    return jsonResponse({
+      found: true,
+      planUpdatedAt,
+      ...(profile.weeklyAdaptNotice ? { weeklyAdaptNotice: profile.weeklyAdaptNotice } : {}),
+    });
   } catch (error) {
     console.error('Error getting plan version:', error);
     return jsonResponse({ error: 'Failed to get plan version: ' + error.message }, 500);
@@ -15530,6 +15610,7 @@ async function handleGetUserProfile(request, env) {
       userData: profile.userData,
       planSource,
       planUpdatedAt,
+      ...(profile.weeklyAdaptNotice ? { weeklyAdaptNotice: profile.weeklyAdaptNotice } : {}),
       ...(clientId ? { clientId } : {})
     });
   } catch (error) {
@@ -16271,7 +16352,7 @@ export default {
       } else if (url.pathname === '/api/weekly/generate-questions' && request.method === 'POST') {
         return await handleWeeklyGenerateQuestions(request, env);
       } else if (url.pathname === '/api/weekly/adapt-plan' && request.method === 'POST') {
-        return await handleWeeklyAdaptPlan(request, env, ctx);
+        return await handleWeeklyAdaptPlan(request, env);
       } else if (url.pathname === '/api/user/check-account' && request.method === 'GET') {
         return await handleCheckAccountEmail(request, env);
       } else if (url.pathname === '/api/plan/claim' && request.method === 'GET') {
@@ -16352,7 +16433,10 @@ export default {
    */
   async scheduled(event, env, ctx) {
     console.log('[Worker] Scheduled event triggered at:', new Date().toISOString());
-    ctx.waitUntil(handleScheduledNotifications(env));
+    ctx.waitUntil(Promise.all([
+      handleScheduledNotifications(env),
+      processWeeklyAdaptQueue(env),
+    ]));
   },
 
   /**
@@ -16370,14 +16454,10 @@ export default {
   async queue(batch, env) {
     for (const message of batch.messages) {
       const body = message.body || {};
-      const { jobId, type, payload, data, clientId, generationOptions } = body;
-      console.log(`Queue consumer: received job ${jobId}${type ? ` (${type})` : ''}`);
+      const { jobId, data, clientId, generationOptions } = body;
+      console.log(`Queue consumer: received job ${jobId}`);
       try {
-        if (type === 'weekly_adapt') {
-          await runWeeklyAdaptation(env, payload, jobId);
-        } else {
-          await generatePlanAndSave(env, data, jobId, clientId || null, generationOptions || {});
-        }
+        await generatePlanAndSave(env, data, jobId, clientId || null, generationOptions || {});
         message.ack();
         console.log(`Queue consumer: acked job ${jobId}`);
       } catch (err) {

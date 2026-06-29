@@ -24,6 +24,9 @@ id = "81fc0991b2764918b682f9ca170abd4b"
   max_retries = 3
   visibility_timeout_ms = 900000
 
+[env.staging.triggers]
+crons = ["*/15 * * * *"]
+
 [env.production]
 name = "aidiet"
 # workers.dev URL is assigned automatically (aidiet.radilov-k.workers.dev).
@@ -44,3 +47,6 @@ id = "81fc0991b2764918b682f9ca170abd4b"
   max_batch_timeout = 1
   max_retries = 3
   visibility_timeout_ms = 900000
+
+[env.production.triggers]
+crons = ["*/15 * * * *"]

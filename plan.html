@@ -5583,11 +5583,24 @@
             }
             consumePendingPlanUiAction();
             if (typeof checkOpenAppPrompts === 'function') checkOpenAppPrompts();
+            maybeCheckWeeklyAdaptNotice();
         });
 
         window.addEventListener('NUTRIPLAN_PLAN_SYNCED', function() {
             if (typeof loadDietData === 'function') loadDietData({ force: true });
         });
+
+        window.addEventListener('NUTRIPLAN_WEEKLY_ADAPT_READY', function(e) {
+            if (e && e.detail && e.detail.notice) showWeeklyAdaptNoticeModal(e.detail.notice);
+        });
+
+        function maybeCheckWeeklyAdaptNotice() {
+            var sync = window.NutriPlanPlanSync;
+            var uid = localStorage.getItem('userId') || '';
+            if (sync && typeof sync.maybeCheckWeeklyAdaptNotice === 'function' && uid) {
+                sync.maybeCheckWeeklyAdaptNotice(uid, buildPlanSyncOpts());
+            }
+        }
 
         window.addEventListener('NUTRIPLAN_PLAN_UPDATE_PENDING', function() {
             const sync = window.NutriPlanPlanSync;
@@ -10329,110 +10342,92 @@
             document.body.appendChild(overlay);
         }
 
-        function showWeeklyResultModal(result) {
+        function showWeeklySubmittedModal() {
             var old = document.getElementById('gameWeeklyAdaptModal');
             if (old) old.remove();
-
             var overlay = document.createElement('div');
             overlay.id = 'gameWeeklyAdaptModal';
             overlay.className = 'game-modal-overlay';
-
             var modal = document.createElement('div');
             modal.className = 'game-modal';
-
-            var title = result.changed ? 'Планът е обновен' : 'Готово!';
-            modal.innerHTML = '<div class="game-modal-emoji"><i class="fas ' + (result.changed ? 'fa-check-circle' : 'fa-heart') + '" style="color:' + (result.changed ? '#10b981' : '#6366f1') + '"></i></div>'
-                + '<div class="game-modal-title">' + title + '</div>';
-
+            modal.innerHTML = '<div class="game-modal-emoji"><i class="fas fa-paper-plane" style="color:#6366f1"></i></div>'
+                + '<div class="game-modal-title">Изпратено!</div>';
             var msg = document.createElement('div');
             msg.className = 'game-modal-msg';
-            if (result.changed && result.changeSummary && result.changeSummary.length) {
-                msg.textContent = result.changeSummary.slice(0, 2).join(' · ');
+            msg.textContent = 'Специалистът ще прегледа отговорите ви и ще актуализира плана в рамките на 24 часа.';
+            modal.appendChild(msg);
+            var btn = document.createElement('button');
+            btn.className = 'game-modal-btn';
+            btn.style.cssText = 'width:100%;background:linear-gradient(135deg,#0D9488,#0F766E);color:white;';
+            btn.textContent = 'Добре';
+            btn.onclick = function() { overlay.remove(); };
+            modal.appendChild(btn);
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+        }
+
+        function showWeeklyAdaptNoticeModal(notice) {
+            var old = document.getElementById('gameWeeklyAdaptModal');
+            if (old) old.remove();
+            var overlay = document.createElement('div');
+            overlay.id = 'gameWeeklyAdaptModal';
+            overlay.className = 'game-modal-overlay';
+            var modal = document.createElement('div');
+            modal.className = 'game-modal';
+            var title = notice.changed ? 'Планът е актуализиран' : 'От специалиста';
+            modal.innerHTML = '<div class="game-modal-emoji"><i class="fas ' + (notice.changed ? 'fa-check-circle' : 'fa-heart') + '" style="color:' + (notice.changed ? '#10b981' : '#6366f1') + '"></i></div>'
+                + '<div class="game-modal-title">' + title + '</div>';
+            var msg = document.createElement('div');
+            msg.className = 'game-modal-msg';
+            if (notice.changed && notice.changes && notice.changes.length) {
+                msg.textContent = notice.changes.slice(0, 2).join(' · ');
             } else {
-                var text = result.motivationMessage || 'Продължавайте по същия начин.';
-                msg.textContent = text.length > 140 ? text.slice(0, 137) + '...' : text;
+                var text = notice.message || '';
+                msg.textContent = text.length > 160 ? text.slice(0, 157) + '...' : text;
             }
             modal.appendChild(msg);
-
             var btn = document.createElement('button');
             btn.className = 'game-modal-btn';
             btn.style.cssText = 'width:100%;background:linear-gradient(135deg,#0D9488,#0F766E);color:white;';
             btn.textContent = 'Добре';
             btn.onclick = function() {
                 overlay.remove();
-                if (result.changed && typeof loadDietData === 'function') {
-                    loadDietData({ force: true });
-                }
+                if (notice.changed && typeof loadDietData === 'function') loadDietData({ force: true });
             };
             modal.appendChild(btn);
             overlay.appendChild(modal);
             document.body.appendChild(overlay);
         }
 
-        async function pollWeeklyAdaptJob(jobId) {
-            var maxAttempts = 90;
-            for (var i = 0; i < maxAttempts; i++) {
-                await new Promise(function(r) { setTimeout(r, 3000); });
-                var resp = await fetch(ANALYTICS_WORKER + '/api/plan-job-status?jobId=' + encodeURIComponent(jobId));
-                var data = await resp.json();
-                if (data.status === 'completed') return data;
-                if (data.status === 'failed') throw new Error(data.error || 'Адаптацията се провали');
-            }
-            throw new Error('Времето за адаптация изтече');
-        }
-
         async function submitWeeklyAdaptation(questions, answers, cycleNumber) {
             var base = getWeeklyPayloadBase();
             var authExtras = await getWeeklyAuthExtras();
-            var jobId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : ('job_' + Date.now());
             var resp = await fetch(ANALYTICS_WORKER + '/api/weekly/adapt-plan', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(Object.assign({}, base, authExtras, {
                     questions: questions,
                     answers: answers,
-                    gameWeeklyAI: Object.assign({}, base.gameWeeklyAI, { cycleNumber: cycleNumber }),
-                    _jobId: jobId
+                    gameWeeklyAI: Object.assign({}, base.gameWeeklyAI, { cycleNumber: cycleNumber })
                 }))
             });
             var data = await resp.json();
-            if (!resp.ok) throw new Error(data.error || 'Грешка при адаптация');
-            return pollWeeklyAdaptJob(data.jobId || jobId);
+            if (!resp.ok) throw new Error(data.error || 'Грешка при изпращане');
+            return data;
         }
 
-        function finalizeWeeklyCycle(info, result, questions, answers, cycleNumber) {
-            var hist = (info.adaptationHistory || []).slice(-3);
-            hist.push({
-                cycleNumber: cycleNumber,
-                level: result.adaptationLevel || 0,
-                changed: !!result.changed,
-                summary: (result.changeSummary && result.changeSummary[0]) || result.motivationMessage || '',
-                at: new Date().toISOString()
-            });
-            info.cycleNumber = cycleNumber;
-            info.feedbackStatus = 'done';
+        function finalizeWeeklyCycleOnSubmit(questions, answers, cycleNumber) {
+            var info = ensureWeeklyMeta(getWeeklyAIState());
+            info.feedbackStatus = 'submitted';
             info.questions = questions;
             info.answers = answers;
-            info.lastSummary = result.motivationMessage || '';
-            info.lastRun = new Date().toISOString();
+            info.cycleNumber = cycleNumber;
+            info.pendingCycleNumber = cycleNumber;
+            info.submittedAt = new Date().toISOString();
+            info.lastRun = info.submittedAt;
             info.nextDue = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-            info.adaptationHistory = hist;
             delete info.pendingQuestions;
-            delete info.pendingCycleNumber;
             saveWeeklyAIState(info);
-
-            if (result.changed && result.plan) {
-                localStorage.setItem('dietPlan', JSON.stringify(result.plan));
-                if (result.planUpdatedAt) {
-                    localStorage.setItem('planUpdatedAt', result.planUpdatedAt);
-                }
-                var ud = {};
-                try { ud = JSON.parse(localStorage.getItem('userData') || '{}'); } catch(e) {}
-                if (result.weeklyMeta?.decision?.modifications?.length) {
-                    ud.planModifications = result.weeklyMeta.decision.modifications;
-                    localStorage.setItem('userData', JSON.stringify(ud));
-                }
-            }
         }
 
         function markWeeklySkipped() {
@@ -10459,14 +10454,14 @@
                 saveWeeklyAIState(info);
 
                 showWeeklyQuickAnswerModal(questions, cycleNumber, async function(answers) {
-                    var adaptingOverlay = showWeeklyLoadingModal('Подготвяме плана...');
+                    var sendingOverlay = showWeeklyLoadingModal('Изпращаме...');
                     try {
-                        var result = await submitWeeklyAdaptation(questions, answers, cycleNumber);
-                        adaptingOverlay.remove();
-                        finalizeWeeklyCycle(getWeeklyAIState(), result, questions, answers, cycleNumber);
-                        showWeeklyResultModal(result);
+                        await submitWeeklyAdaptation(questions, answers, cycleNumber);
+                        sendingOverlay.remove();
+                        finalizeWeeklyCycleOnSubmit(questions, answers, cycleNumber);
+                        showWeeklySubmittedModal();
                     } catch (err) {
-                        adaptingOverlay.remove();
+                        sendingOverlay.remove();
                         var st = getWeeklyAIState();
                         st.feedbackStatus = 'pending';
                         saveWeeklyAIState(st);
@@ -10491,14 +10486,14 @@
             var cycleNumber = info.pendingCycleNumber || ((info.cycleNumber || 0) + 1);
             setTimeout(function() {
                 showWeeklyQuickAnswerModal(questions, cycleNumber, async function(answers) {
-                    var adaptingOverlay = showWeeklyLoadingModal('Подготвяме плана...');
+                    var sendingOverlay = showWeeklyLoadingModal('Изпращаме...');
                     try {
-                        var result = await submitWeeklyAdaptation(questions, answers, cycleNumber);
-                        adaptingOverlay.remove();
-                        finalizeWeeklyCycle(getWeeklyAIState(), result, questions, answers, cycleNumber);
-                        showWeeklyResultModal(result);
+                        await submitWeeklyAdaptation(questions, answers, cycleNumber);
+                        sendingOverlay.remove();
+                        finalizeWeeklyCycleOnSubmit(questions, answers, cycleNumber);
+                        showWeeklySubmittedModal();
                     } catch (err) {
-                        adaptingOverlay.remove();
+                        sendingOverlay.remove();
                         var st = getWeeklyAIState();
                         st.feedbackStatus = 'pending';
                         saveWeeklyAIState(st);
@@ -10583,6 +10578,7 @@
                     startPromptInterval();
                     maybeRequestWeeklyAI();
                     resumeWeeklyFeedbackIfNeeded();
+                    maybeCheckWeeklyAdaptNotice();
                 }, 1600);
             }
             

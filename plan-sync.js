@@ -569,6 +569,54 @@
         }
     }
 
+    function weeklyNoticeShownKey(noticeId) {
+        return 'np_weekly_notice_' + (noticeId || '');
+    }
+
+    function hasWeeklyNoticeBeenShown(notice) {
+        if (!notice || !notice.id) return true;
+        try { return !!localStorage.getItem(weeklyNoticeShownKey(notice.id)); } catch (_) { return true; }
+    }
+
+    function markWeeklyNoticeShown(notice) {
+        if (!notice || !notice.id) return;
+        try { localStorage.setItem(weeklyNoticeShownKey(notice.id), '1'); } catch (_) {}
+    }
+
+    function dispatchWeeklyAdaptReady(notice) {
+        try {
+            global.dispatchEvent(new CustomEvent('NUTRIPLAN_WEEKLY_ADAPT_READY', { detail: { notice: notice } }));
+        } catch (_) {}
+    }
+
+    async function applyWeeklyAdaptIfReady(userId, options) {
+        options = buildPlanSyncOptions(options || {});
+        if (!userId) return { applied: false, reason: 'no-user' };
+        var data = await fetchPlanVersion(userId, options);
+        if (!data || !data.found || !data.weeklyAdaptNotice || hasWeeklyNoticeBeenShown(data.weeklyAdaptNotice)) {
+            return { applied: false, reason: 'no-notice' };
+        }
+        var notice = data.weeklyAdaptNotice;
+        if (notice.changed && data.planUpdatedAt) {
+            markPlanUpdatePending(data.planUpdatedAt);
+            await confirmPlanUpdate(userId, options);
+        }
+        markWeeklyNoticeShown(notice);
+        dispatchWeeklyAdaptReady(notice);
+        return { applied: true, notice: notice };
+    }
+
+    async function maybeCheckWeeklyAdaptNotice(userId, options) {
+        if (!userId || userId.indexOf('fb_') !== 0) return { applied: false };
+        if (_weeklyNoticeCheckInFlight) return _weeklyNoticeCheckInFlight;
+        _weeklyNoticeCheckInFlight = applyWeeklyAdaptIfReady(userId, options).finally(function () {
+            _weeklyNoticeCheckInFlight = null;
+        });
+        return _weeklyNoticeCheckInFlight;
+    }
+
+    var _weeklyNoticeCheckInFlight = null;
+
     async function maybeDailyPlanVersionCheck(userId, options) {
         if (!userId || userId.indexOf('fb_') !== 0) {
             return { checked: false, reason: 'no-user' };
@@ -581,6 +629,10 @@
             localStorage.setItem(PLAN_VERSION_CHECK_DATE_KEY, today);
         } catch (_) {
             return { checked: false, reason: 'storage' };
+        }
+        var weeklyResult = await applyWeeklyAdaptIfReady(userId, options);
+        if (weeklyResult.applied) {
+            return { checked: true, pending: false, weeklyShown: true };
         }
         var data = await fetchPlanVersion(userId, options);
         if (!data || !data.found) return { checked: true, pending: false };
@@ -778,6 +830,8 @@
         pullServerPlanIfNewer: pullServerPlanIfNewer,
         fetchPlanVersion: fetchPlanVersion,
         maybeDailyPlanVersionCheck: maybeDailyPlanVersionCheck,
+        applyWeeklyAdaptIfReady: applyWeeklyAdaptIfReady,
+        maybeCheckWeeklyAdaptNotice: maybeCheckWeeklyAdaptNotice,
         confirmPlanUpdate: confirmPlanUpdate,
         showPlanUpdatePrompt: showPlanUpdatePrompt,
         maybePromptPendingPlanUpdate: maybePromptPendingPlanUpdate
