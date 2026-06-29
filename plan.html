@@ -6474,6 +6474,23 @@
                 return;
             }
 
+            if (message.toLowerCase() === '*weekme') {
+                input.value = '';
+                addMessageToChat('*weekme', 'user', false);
+                if (window._gameTriggerWeeklyTest) {
+                    var weekResult = window._gameTriggerWeeklyTest();
+                    if (weekResult && weekResult.ok) {
+                        addMessageToChat('Стартирам седмичната процедура за тест на актуализацията…', 'assistant');
+                    } else {
+                        var days = weekResult && weekResult.daysRecorded != null ? weekResult.daysRecorded : 0;
+                        addMessageToChat('За тест са нужни поне 3 дни с gamification данни (имате ' + days + '). Активирайте *game и попълнете няколко дни.', 'assistant');
+                    }
+                } else {
+                    addMessageToChat('Геймификационният модул не е зареждан.', 'assistant');
+                }
+                return;
+            }
+
             if (message.toLowerCase() === '*notifyme') {
                 input.value = '';
                 addMessageToChat('🧪 Отварям нотификациите. За лични часове използвай „Запази локално (0 backend)“ — промените се препланират веднага в APK/PWA. Admin глобално запазване ползвай само когато графикът е за всички.', 'assistant');
@@ -10598,6 +10615,21 @@
         }
 
         // ── Weekly AI trigger ─────────────────────────────────────────────────
+        function triggerWeeklyTestFlow() {
+            if (!isGameEnabled()) enableGame();
+            var info = ensureWeeklyMeta(getWeeklyAIState());
+            info.lastRun = null;
+            delete info.nextDue;
+            info.feedbackStatus = 'pending';
+            saveWeeklyAIState(info);
+            var wd = calcWeeklyScore();
+            if (wd.daysRecorded < 3) {
+                return { ok: false, reason: 'insufficient-data', daysRecorded: wd.daysRecorded };
+            }
+            showWeeklyRecapModal(wd);
+            return { ok: true, daysRecorded: wd.daysRecorded };
+        }
+
         function maybeRequestWeeklyAI() {
             if (!isGameEnabled()) return;
             var info = ensureWeeklyMeta(getWeeklyAIState());
@@ -10669,8 +10701,10 @@
             logExtraFood:            logExtraFood,
             calcDayScore:            calcDayScore,
             calcWeeklyScore:         calcWeeklyScore,
-            recalcAndShowScore:      recalcAndShowScore
+            recalcAndShowScore:      recalcAndShowScore,
+            triggerWeeklyTestFlow:   triggerWeeklyTestFlow
         };
+        window._gameTriggerWeeklyTest = triggerWeeklyTestFlow;
         window._gameEnhanceMealCards = enhanceMealCards;
         window._gameShowMorning = function(f, recordKey){
             var targetKey = (typeof recordKey === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(recordKey))
