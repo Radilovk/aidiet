@@ -1643,48 +1643,6 @@
             }
         }
 
-        .plan-update-bar[hidden] {
-            display: none !important;
-        }
-        .plan-update-bar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            margin: 0 12px 8px;
-            padding: 10px 14px;
-            border-radius: 14px;
-            background: rgba(13, 148, 136, 0.08);
-            border: 1px solid rgba(13, 148, 136, 0.18);
-            font-size: 0.82rem;
-            color: var(--text-dark, #0F2F2E);
-        }
-        [data-theme="dark"] .plan-update-bar {
-            background: rgba(45, 212, 191, 0.08);
-            border-color: rgba(45, 212, 191, 0.2);
-        }
-        .plan-update-bar-text {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            line-height: 1.35;
-        }
-        .plan-update-bar-btn {
-            flex-shrink: 0;
-            padding: 8px 14px;
-            border-radius: 10px;
-            border: none;
-            background: linear-gradient(135deg, #0D9488, #0F766E);
-            color: #fff;
-            font-weight: 700;
-            font-size: 0.8rem;
-            cursor: pointer;
-        }
-        .plan-update-bar-btn:disabled {
-            opacity: 0.65;
-            cursor: default;
-        }
-
         /* Greeting Banner — removed; replaced by .day-banner */
 
         /* PWA Install Banner */
@@ -3886,11 +3844,6 @@
 
     </div>
 
-    <div class="plan-update-bar" id="planUpdateBar" hidden>
-        <span class="plan-update-bar-text"><i class="fas fa-leaf" aria-hidden="true"></i> Обновление от специалист</span>
-        <button type="button" class="plan-update-bar-btn" id="planUpdateBtn">Зареди</button>
-    </div>
-
     <!-- Initialize day banner immediately to prevent flash from Monday -->
     <script>
     (function() {
@@ -4417,71 +4370,28 @@
         })();
         
         // --- DOM-Dependent Initialization ---
-        function showPlanUpdateBarIfPending() {
-            const bar = document.getElementById('planUpdateBar');
-            const sync = window.NutriPlanPlanSync;
-            if (!bar || !sync) return;
-            if (typeof sync.reconcilePlanUpdatePending === 'function') {
-                sync.reconcilePlanUpdatePending();
+        function buildPlanSyncOpts() {
+            const opts = {};
+            const uid = localStorage.getItem('userId') || '';
+            if (uid.startsWith('fb_') && window.__npPlanAuth && window.__npPlanAuth.currentUser) {
+                opts.getIdToken = () => window.__npPlanAuth.currentUser.getIdToken();
             }
-            if (typeof sync.hasPlanUpdatePending !== 'function' || !sync.hasPlanUpdatePending()) {
-                bar.hidden = true;
-                return;
-            }
-            bar.hidden = false;
-            initPlanUpdateButton();
+            return opts;
         }
 
-        function initPlanUpdateButton() {
-            const bar = document.getElementById('planUpdateBar');
-            const btn = document.getElementById('planUpdateBtn');
-            if (!bar || !btn || btn.dataset.bound === '1') return;
-            const uid = localStorage.getItem('userId');
-            if (!uid) return;
+        function runStandalonePlanUpdateCatchUp() {
+            if (document.documentElement.getAttribute('data-embedded-tab') === '1') return;
             const sync = window.NutriPlanPlanSync;
-            if (!sync || typeof sync.hasPlanUpdatePending !== 'function' || !sync.hasPlanUpdatePending()) return;
-            btn.dataset.bound = '1';
-            bar.hidden = false;
-
-            function buildPlanUpdateOpts() {
-                const opts = {};
-                if (uid.startsWith('fb_') && window.__npPlanAuth && window.__npPlanAuth.currentUser) {
-                    opts.getIdToken = () => window.__npPlanAuth.currentUser.getIdToken();
-                }
-                return opts;
-            }
-
-            function hidePlanUpdateBar() {
-                bar.hidden = true;
-                if (sync && typeof sync.clearPlanUpdatePending === 'function') {
-                    sync.clearPlanUpdatePending();
-                }
-            }
-
-            btn.addEventListener('click', async function () {
-                if (!sync || typeof sync.pullServerPlanIfNewer !== 'function') return;
-                btn.disabled = true;
-                const original = btn.textContent;
-                btn.textContent = '…';
-                try {
-                    const result = await sync.pullServerPlanIfNewer(uid, buildPlanUpdateOpts());
-                    if (result.updated) {
-                        if (typeof loadDietData === 'function') loadDietData();
-                        hidePlanUpdateBar();
-                    } else if (result.reason === 'current') {
-                        hidePlanUpdateBar();
-                    } else {
-                        btn.textContent = 'Няма нов';
+            const uid = localStorage.getItem('userId') || '';
+            if (!sync || uid.indexOf('fb_') !== 0) return;
+            const opts = buildPlanSyncOpts();
+            sync.maybeDailyPlanVersionCheck(uid, opts).then(function (result) {
+                if ((result && result.pending) || (sync.hasPlanUpdatePending && sync.hasPlanUpdatePending())) {
+                    if (typeof sync.maybePromptPendingPlanUpdate === 'function') {
+                        sync.maybePromptPendingPlanUpdate(uid, opts);
                     }
-                } catch (_) {
-                    btn.textContent = 'Грешка';
-                } finally {
-                    setTimeout(function () {
-                        btn.disabled = false;
-                        if (!bar.hidden) btn.textContent = original;
-                    }, 2200);
                 }
-            });
+            }).catch(function () {});
         }
 
         async function initializeDOMDependentFeatures() {
@@ -4514,7 +4424,7 @@
                 }
                 loadDietData();
             }
-            showPlanUpdateBarIfPending();
+            runStandalonePlanUpdateCatchUp();
             if (window.NutriPlanDiagnostics) {
                 window.NutriPlanDiagnostics.ok('plan', 'init-dom-features-ready', 'Initial load requested');
             }
@@ -5599,13 +5509,15 @@
             if (typeof checkOpenAppPrompts === 'function') checkOpenAppPrompts();
         });
 
-        window.addEventListener('NUTRIPLAN_PLAN_UPDATE_PENDING', function() {
-            showPlanUpdateBarIfPending();
+        window.addEventListener('NUTRIPLAN_PLAN_SYNCED', function() {
+            if (typeof loadDietData === 'function') loadDietData({ force: true });
         });
 
-        window.addEventListener('storage', function(event) {
-            if (event.key === 'np_plan_refresh_pending') {
-                showPlanUpdateBarIfPending();
+        window.addEventListener('NUTRIPLAN_PLAN_UPDATE_PENDING', function() {
+            const sync = window.NutriPlanPlanSync;
+            const uid = localStorage.getItem('userId') || '';
+            if (sync && typeof sync.maybePromptPendingPlanUpdate === 'function') {
+                sync.maybePromptPendingPlanUpdate(uid, buildPlanSyncOpts());
             }
         });
 

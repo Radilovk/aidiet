@@ -8,8 +8,11 @@
     var LOCAL_PLAN_AT_KEY = 'planUpdatedAt';
     var LOGIN_FETCH_FLAG = 'np_fetch_plan_on_next_auth';
     var PLAN_UPDATE_PENDING_KEY = 'np_plan_refresh_pending';
+    var PLAN_VERSION_CHECK_DATE_KEY = 'np_plan_version_check_date';
     var _pendingBridgeBound = false;
     var _planUpdateApplyInFlight = null;
+    var _planUpdatePromptVisible = false;
+    var _planUpdatePromptShownSession = false;
 
     function setLocalPlanUpdatedAt(ts) {
         if (!ts) return;
@@ -525,6 +528,205 @@
         return { updated: true, data: data };
     }
 
+    function isEmbeddedPlanView() {
+        try {
+            if (document.documentElement.getAttribute('data-embedded-tab') === '1') return true;
+            return window.parent !== window && !!window.parent.NutriPlanSPA;
+        } catch (_) {
+            return false;
+        }
+    }
+
+    function localCalendarDate() {
+        var d = new Date();
+        return d.getFullYear() + '-' +
+            String(d.getMonth() + 1).padStart(2, '0') + '-' +
+            String(d.getDate()).padStart(2, '0');
+    }
+
+    async function fetchPlanVersion(userId, options) {
+        options = buildPlanSyncOptions(options || {});
+        if (!userId) return null;
+        var localAt = '';
+        try { localAt = localStorage.getItem(LOCAL_PLAN_AT_KEY) || ''; } catch (_) {}
+        var url = new URL(WORKER_URL + '/api/user/plan-version');
+        url.searchParams.set('userId', userId);
+        if (localAt) url.searchParams.set('v', localAt);
+        var headers = {};
+        if (typeof options.getIdToken === 'function' && userId.indexOf('fb_') === 0) {
+            var idToken = await options.getIdToken().catch(function () { return null; });
+            if (idToken) headers.Authorization = 'Bearer ' + idToken;
+        }
+        try {
+            var resp = await fetch(url.toString(), { headers: headers, cache: 'no-store' });
+            if ((resp.status === 401 || resp.status === 403) && headers.Authorization) {
+                resp = await fetch(url.toString(), { cache: 'no-store' });
+            }
+            if (!resp.ok) return null;
+            return resp.json().catch(function () { return null; });
+        } catch (_) {
+            return null;
+        }
+    }
+
+    async function maybeDailyPlanVersionCheck(userId, options) {
+        if (!userId || userId.indexOf('fb_') !== 0) {
+            return { checked: false, reason: 'no-user' };
+        }
+        var today = localCalendarDate();
+        try {
+            if (localStorage.getItem(PLAN_VERSION_CHECK_DATE_KEY) === today) {
+                return { checked: false, reason: 'already-today' };
+            }
+            localStorage.setItem(PLAN_VERSION_CHECK_DATE_KEY, today);
+        } catch (_) {
+            return { checked: false, reason: 'storage' };
+        }
+        var data = await fetchPlanVersion(userId, options);
+        if (!data || !data.found) return { checked: true, pending: false };
+        if (data.upToDate) return { checked: true, pending: false };
+        if (data.planUpdatedAt) {
+            markPlanUpdatePending(data.planUpdatedAt);
+            return { checked: true, pending: true, planUpdatedAt: data.planUpdatedAt };
+        }
+        return { checked: true, pending: false };
+    }
+
+    async function confirmPlanUpdate(userId, options) {
+        options = buildPlanSyncOptions(options || {});
+        if (!userId) {
+            try { userId = localStorage.getItem('userId') || ''; } catch (_) {}
+        }
+        if (!userId) return { updated: false, reason: 'no-user' };
+        if (!hasPlanUpdatePending()) return { updated: false, reason: 'no-pending' };
+        if (_planUpdateApplyInFlight) return _planUpdateApplyInFlight;
+        _planUpdateApplyInFlight = pullServerPlanIfNewer(userId, options)
+            .then(function (result) {
+                if (result.updated) {
+                    try {
+                        global.dispatchEvent(new CustomEvent('NUTRIPLAN_PLAN_SYNCED', { detail: result }));
+                    } catch (_) {}
+                }
+                return result;
+            })
+            .finally(function () {
+                _planUpdateApplyInFlight = null;
+            });
+        return _planUpdateApplyInFlight;
+    }
+
+    function ensurePlanUpdatePromptModal() {
+        if (document.getElementById('npPlanUpdateOverlay')) return;
+        var overlay = document.createElement('div');
+        overlay.id = 'npPlanUpdateOverlay';
+        overlay.setAttribute('role', 'dialog');
+        overlay.setAttribute('aria-modal', 'true');
+        overlay.setAttribute('aria-labelledby', 'npPlanUpdateTitle');
+        overlay.hidden = true;
+        overlay.style.cssText = 'position:fixed;inset:0;z-index:6000;display:flex;align-items:flex-end;justify-content:center;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));background:rgba(15,47,46,.28);backdrop-filter:blur(3px);';
+        overlay.innerHTML = [
+            '<div style="background:var(--card-bg,#fff);border-radius:18px;padding:18px 16px 14px;max-width:420px;width:100%;box-shadow:0 16px 48px rgba(0,0,0,.18);">',
+            '<p id="npPlanUpdateTitle" style="margin:0 0 14px;font-size:.92rem;line-height:1.45;color:var(--text-dark,#0F2F2E);">Има обновение на плана от специалиста.</p>',
+            '<p id="npPlanUpdateError" style="display:none;margin:0 0 10px;font-size:.78rem;color:#dc2626;"></p>',
+            '<div style="display:flex;gap:10px;">',
+            '<button type="button" id="npPlanUpdateLater" style="flex:1;padding:11px 12px;border-radius:12px;font-weight:600;font-size:.86rem;border:1.5px solid rgba(13,148,136,.28);background:transparent;color:var(--text-light,#6b7280);cursor:pointer;">По-късно</button>',
+            '<button type="button" id="npPlanUpdateConfirm" style="flex:1;padding:11px 12px;border-radius:12px;font-weight:700;font-size:.86rem;border:none;background:linear-gradient(135deg,#0D9488,#0F766E);color:#fff;cursor:pointer;">Обнови</button>',
+            '</div></div>'
+        ].join('');
+        document.body.appendChild(overlay);
+    }
+
+    function showPlanUpdatePrompt(userId, options) {
+        if (isEmbeddedPlanView()) return Promise.resolve({ dismissed: true, reason: 'embedded' });
+        if (_planUpdatePromptVisible || !hasPlanUpdatePending()) {
+            return Promise.resolve({ dismissed: true, reason: 'skip' });
+        }
+        options = buildPlanSyncOptions(options || {});
+        if (!userId) {
+            try { userId = localStorage.getItem('userId') || ''; } catch (_) {}
+        }
+        ensurePlanUpdatePromptModal();
+        _planUpdatePromptVisible = true;
+        _planUpdatePromptShownSession = true;
+
+        return new Promise(function (resolve) {
+            var overlay = document.getElementById('npPlanUpdateOverlay');
+            var laterBtn = document.getElementById('npPlanUpdateLater');
+            var confirmBtn = document.getElementById('npPlanUpdateConfirm');
+            var errEl = document.getElementById('npPlanUpdateError');
+            if (!overlay || !laterBtn || !confirmBtn) {
+                _planUpdatePromptVisible = false;
+                resolve({ dismissed: true, reason: 'missing-ui' });
+                return;
+            }
+
+            errEl.style.display = 'none';
+            errEl.textContent = '';
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = 'Обнови';
+            overlay.hidden = false;
+            overlay.style.display = 'flex';
+
+            function cleanup() {
+                overlay.hidden = true;
+                overlay.style.display = 'none';
+                _planUpdatePromptVisible = false;
+                laterBtn.removeEventListener('click', onLater);
+                confirmBtn.removeEventListener('click', onConfirm);
+                overlay.removeEventListener('click', onOverlay);
+            }
+
+            function onLater() {
+                cleanup();
+                resolve({ dismissed: true });
+            }
+
+            function onOverlay(e) {
+                if (e.target === overlay) onLater();
+            }
+
+            async function onConfirm() {
+                confirmBtn.disabled = true;
+                laterBtn.disabled = true;
+                confirmBtn.textContent = '…';
+                errEl.style.display = 'none';
+                try {
+                    var result = await confirmPlanUpdate(userId, options);
+                    if (result.updated) {
+                        cleanup();
+                        resolve({ updated: true, result: result });
+                        return;
+                    }
+                    if (result.reason === 'current') {
+                        cleanup();
+                        resolve({ updated: false, reason: 'current' });
+                        return;
+                    }
+                    errEl.textContent = 'Неуспешно. Опитайте отново.';
+                    errEl.style.display = 'block';
+                } catch (_) {
+                    errEl.textContent = 'Неуспешно. Опитайте отново.';
+                    errEl.style.display = 'block';
+                } finally {
+                    confirmBtn.disabled = false;
+                    laterBtn.disabled = false;
+                    confirmBtn.textContent = 'Обнови';
+                }
+            }
+
+            laterBtn.addEventListener('click', onLater);
+            confirmBtn.addEventListener('click', onConfirm);
+            overlay.addEventListener('click', onOverlay);
+        });
+    }
+
+    function maybePromptPendingPlanUpdate(userId, options) {
+        if (!hasPlanUpdatePending() || _planUpdatePromptShownSession) {
+            return Promise.resolve({ dismissed: true, reason: 'skip' });
+        }
+        return showPlanUpdatePrompt(userId, options);
+    }
+
     async function claimPlanFromToken(token) {
         if (!token) return { ok: false, reason: 'no-token' };
         try {
@@ -573,7 +775,12 @@
         planHasRenderableMeals: planHasRenderableMeals,
         reconcilePlanUpdatePending: reconcilePlanUpdatePending,
         applyPendingPlanUpdate: applyPendingPlanUpdate,
-        pullServerPlanIfNewer: pullServerPlanIfNewer
+        pullServerPlanIfNewer: pullServerPlanIfNewer,
+        fetchPlanVersion: fetchPlanVersion,
+        maybeDailyPlanVersionCheck: maybeDailyPlanVersionCheck,
+        confirmPlanUpdate: confirmPlanUpdate,
+        showPlanUpdatePrompt: showPlanUpdatePrompt,
+        maybePromptPendingPlanUpdate: maybePromptPendingPlanUpdate
     };
 
     bindPlanUpdatePendingBridge();
