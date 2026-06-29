@@ -432,6 +432,25 @@
             color: var(--text-muted);
         }
 
+        .share-link-row {
+            display: flex;
+            gap: 8px;
+            align-items: stretch;
+        }
+
+        .share-link-row input {
+            flex: 1 1 auto;
+            min-width: 0;
+            background: var(--surface-alt);
+        }
+
+        .share-link-row button {
+            flex: 0 0 auto;
+            min-height: 46px;
+            padding: 0 14px;
+            white-space: nowrap;
+        }
+
         .sale-preview {
             display: flex;
             flex-direction: column;
@@ -973,7 +992,19 @@
                 <div class="inline-note" style="margin-top:8px;">В изтегления HTML можеш да смениш множителя директно на телефона.</div>
             </div>
             <div class="form-group full-width">
-                <button id="generatePortfolioBtn">Изтегли HTML</button>
+                <div class="action-row">
+                    <button id="generatePortfolioBtn">Изтегли HTML</button>
+                    <button id="sharePortfolioBtn" class="btn-outline" type="button">Сподели линк</button>
+                </div>
+            </div>
+            <div id="portfolioShareRow" class="form-group full-width" hidden>
+                <label for="portfolioShareUrl">Линк за споделяне</label>
+                <div class="share-link-row">
+                    <input type="text" id="portfolioShareUrl" readonly aria-label="Линк за споделяне">
+                    <button id="copyPortfolioShareBtn" class="btn-outline" type="button">Копирай</button>
+                    <button id="openPortfolioShareBtn" class="btn-outline" type="button">Отвори</button>
+                </div>
+                <div class="inline-note" style="margin-top:8px;">Линкът отваря каталога директно в браузъра — удобно за телефон.</div>
             </div>
         </div>
     </div>
@@ -1183,7 +1214,11 @@
     const STORAGE_PRODUCTS = 'pep_local_products';
     const STORAGE_SALES = 'pep_local_sales';
     const REMOTE_API_BASE = 'https://aidiet.radilov-k.workers.dev/api/pep';
+    const REMOTE_CATALOG_SHARE_BASE = 'https://aidiet.radilov-k.workers.dev/pep-katalog';
     const API_BASE = window.location.hostname.endsWith('workers.dev') ? '/api/pep' : REMOTE_API_BASE;
+    const CATALOG_SHARE_BASE = window.location.hostname.endsWith('workers.dev')
+        ? `${window.location.origin}/pep-katalog`
+        : REMOTE_CATALOG_SHARE_BASE;
     const MULTIPLIER_META = {
         '2': { label: 'Продажба на едро', description: 'По-голямо количество с базова надценка ×2.' },
         '2.2': { label: 'Стандартна продажба', description: 'Най-подходящо за обичайните клиентски сделки.' },
@@ -1285,6 +1320,10 @@
         if (generatePortfolioBtn) {
             generatePortfolioBtn.disabled = isBusy;
         }
+        const sharePortfolioBtn = document.getElementById('sharePortfolioBtn');
+        if (sharePortfolioBtn) {
+            sharePortfolioBtn.disabled = isBusy || state.storageMode !== 'backend';
+        }
     }
 
     function showBanner(message, kind = 'info') {
@@ -1319,6 +1358,14 @@
         }
 
         updatedAt.textContent = state.lastSyncAt ? new Date(state.lastSyncAt).toLocaleTimeString('bg-BG') : '';
+
+        const sharePortfolioBtn = document.getElementById('sharePortfolioBtn');
+        if (sharePortfolioBtn) {
+            sharePortfolioBtn.disabled = state.isBusy || state.storageMode !== 'backend';
+            sharePortfolioBtn.title = state.storageMode !== 'backend'
+                ? 'Споделянето изисква връзка с backend'
+                : '';
+        }
     }
 
     async function requestJSON(path, options = {}) {
@@ -2651,15 +2698,24 @@ syncCatalogMultiplierField();
 </body>
 </html>`;
     }
+    function resetPortfolioShareRow() {
+        const shareRow = document.getElementById('portfolioShareRow');
+        const shareInput = document.getElementById('portfolioShareUrl');
+        if (shareRow) shareRow.hidden = true;
+        if (shareInput) shareInput.value = '';
+    }
+
     function openPortfolioModal() {
         if (!state.products.length) {
             showBanner('Каталогът е празен.', 'error');
             return;
         }
+        resetPortfolioShareRow();
         updatePortfolioPreview();
         const modal = document.getElementById('portfolioExportModal');
         modal.style.display = 'flex';
         modal.setAttribute('aria-hidden', 'false');
+        updateStatusPanel();
     }
 
     function closePortfolioModal() {
@@ -2707,11 +2763,63 @@ syncCatalogMultiplierField();
         showBanner('HTML каталогът е изтеглен. Отвори го на телефона и конвертирай в PDF при нужда.', 'info');
     }
 
+    async function shareCatalogHtml() {
+        if (state.storageMode !== 'backend') {
+            throw new Error('Споделянето изисква връзка с backend.');
+        }
+
+        const multiplier = getPortfolioMultiplier();
+        if (!state.products.length) {
+            throw new Error('Каталогът е празен.');
+        }
+        if (!Number.isFinite(multiplier) || multiplier <= 0) {
+            throw new Error('Въведи валиден множител.');
+        }
+
+        const html = buildCatalogDocument(multiplier);
+        const payload = await requestJSON(`${API_BASE}/catalog/share`, {
+            method: 'POST',
+            body: JSON.stringify({ html, multiplier })
+        });
+
+        const shareUrl = payload.url || `${CATALOG_SHARE_BASE}/${payload.token}`;
+        document.getElementById('portfolioShareUrl').value = shareUrl;
+        document.getElementById('portfolioShareRow').hidden = false;
+        showBanner('Линкът е готов за споделяне.', 'info');
+    }
+
+    async function copyPortfolioShareUrl() {
+        const input = document.getElementById('portfolioShareUrl');
+        if (!input?.value) {
+            throw new Error('Първо генерирай линк за споделяне.');
+        }
+
+        try {
+            await navigator.clipboard.writeText(input.value);
+        } catch (_) {
+            input.focus();
+            input.select();
+            document.execCommand('copy');
+        }
+        showBanner('Линкът е копиран.', 'info');
+    }
+
+    function openPortfolioShareUrl() {
+        const input = document.getElementById('portfolioShareUrl');
+        if (!input?.value) {
+            throw new Error('Първо генерирай линк за споделяне.');
+        }
+        window.open(input.value, '_blank', 'noopener,noreferrer');
+    }
+
     document.getElementById('exportPortfolioBtn').addEventListener('click', openPortfolioModal);
     document.querySelector('#portfolioExportModal .close-modal').addEventListener('click', closePortfolioModal);
     document.getElementById('portfolioMultiplierSelect').addEventListener('change', updatePortfolioMultiplierField);
     document.getElementById('portfolioMultiplierCustom').addEventListener('input', updatePortfolioPreview);
     document.getElementById('generatePortfolioBtn').addEventListener('click', () => runSafely(exportCatalogHtml));
+    document.getElementById('sharePortfolioBtn').addEventListener('click', () => runSafely(shareCatalogHtml));
+    document.getElementById('copyPortfolioShareBtn').addEventListener('click', () => runSafely(copyPortfolioShareUrl));
+    document.getElementById('openPortfolioShareBtn').addEventListener('click', () => runSafely(openPortfolioShareUrl));
 
     document.getElementById('exportDataBtn').addEventListener('click', () => {
         const rows = [['ID', 'Дата', 'Продукт', 'Количество', 'Тип запис', 'Приход (€)', 'Разход (€)', 'Бележка']];
