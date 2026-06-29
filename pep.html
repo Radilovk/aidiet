@@ -715,40 +715,61 @@
             background: #fff;
         }
 
-        .catalog-head,
-        .catalog-item {
-            display: grid;
-            grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.8fr) minmax(0, 0.8fr);
+        .catalog-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
             gap: 8px;
-            align-items: center;
+            padding: 8px;
         }
 
-        .catalog-head {
-            padding: 10px 12px;
+        .catalog-item {
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 12px;
+            background: #fff;
+        }
+
+        .catalog-row {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .catalog-name {
+            font-weight: 700;
+            font-size: 0.92rem;
+            line-height: 1.35;
+            word-break: break-word;
+        }
+
+        .catalog-dose {
+            display: inline-flex;
+            margin-top: 6px;
+            padding: 4px 8px;
+            border-radius: 999px;
             background: var(--surface-alt);
-            font-size: 0.72rem;
-            text-transform: uppercase;
-            letter-spacing: 0.07em;
             color: var(--text-muted);
+            font-size: 0.78rem;
             font-weight: 700;
         }
 
-        .catalog-head span:last-child,
-        .catalog-price { text-align: right; }
-
-        .catalog-list {
-            list-style: none;
+        .catalog-price {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: var(--primary);
+            white-space: nowrap;
         }
 
-        .catalog-item {
-            padding: 12px;
+        .catalog-ref {
+            margin-top: 10px;
+            padding-top: 10px;
             border-top: 1px solid var(--border);
-            font-size: 0.9rem;
+            color: var(--text-muted);
+            font-size: 0.78rem;
+            line-height: 1.45;
         }
-
-        .catalog-name { font-weight: 700; }
-        .catalog-dose { color: var(--text-muted); font-size: 0.84rem; }
-        .catalog-price { font-weight: 800; color: var(--primary); white-space: nowrap; }
     </style>
 </head>
 <body>
@@ -994,6 +1015,7 @@
                 <div id="portfolioPreview">
                     <div class="empty-state">Зареждане…</div>
                 </div>
+                <div class="inline-note" style="margin-top:8px;">В изтегления HTML можеш да смениш множителя директно на телефона.</div>
             </div>
             <div class="form-group full-width">
                 <button id="generatePortfolioBtn">Изтегли HTML</button>
@@ -2093,33 +2115,45 @@
             : safeNumber(select);
     }
 
+    function formatMultiplierValue(multiplier) {
+        return multiplier.toFixed(multiplier % 1 === 0 ? 0 : 2);
+    }
+
     function catalogFilename(multiplier) {
-        const label = multiplier.toFixed(multiplier % 1 === 0 ? 0 : 2);
-        return `pep-katalog-x${label}.html`;
+        return `pep-katalog-x${formatMultiplierValue(multiplier)}.html`;
     }
 
-    function renderCatalogItems(multiplier, limit = null) {
-        const products = limit ? getSortedProducts().slice(0, limit) : getSortedProducts();
-        return products.map((product) => `
-            <li class="catalog-item">
-                <span class="catalog-name">${escapeHtml(product.baseName)}</span>
-                <span class="catalog-dose">${escapeHtml(product.dosage)}</span>
-                <span class="catalog-price">${formatMoney(product.purchasePrice * multiplier)}</span>
-            </li>
-        `).join('');
+    function getCatalogExportProducts() {
+        return getSortedProducts().map((product) => ({
+            baseName: product.baseName,
+            dosage: product.dosage,
+            purchasePrice: safeNumber(product.purchasePrice)
+        }));
     }
 
-    function renderCatalogPreviewMarkup(multiplier, limit = 5) {
+    function renderCatalogItemCard(product, multiplier) {
+        const purchasePrice = safeNumber(product.purchasePrice);
+        const wholesale = purchasePrice * 2;
+        const retail = purchasePrice * 2.5;
+        const price = purchasePrice * multiplier;
+
         return `
-            <div class="catalog-preview">
-                <div class="catalog-head">
-                    <span>Продукт</span>
-                    <span>мг</span>
-                    <span>Цена</span>
+            <li class="catalog-item">
+                <div class="catalog-row">
+                    <div>
+                        <div class="catalog-name">${escapeHtml(product.baseName)}</div>
+                        <span class="catalog-dose">${escapeHtml(product.dosage)}</span>
+                    </div>
+                    <div class="catalog-price">${formatMoney(price)}</div>
                 </div>
-                <ul class="catalog-list">${renderCatalogItems(multiplier, limit)}</ul>
-            </div>
+                <div class="catalog-ref">Едро ×2: ${formatMoney(wholesale)} · Дребно ×2.5: ${formatMoney(retail)} · Доставна: ${formatMoney(purchasePrice)}</div>
+            </li>
         `;
+    }
+
+    function renderCatalogListMarkup(multiplier, limit = null) {
+        const products = limit ? getSortedProducts().slice(0, limit) : getSortedProducts();
+        return `<ul class="catalog-list">${products.map((product) => renderCatalogItemCard(product, multiplier)).join('')}</ul>`;
     }
 
     function updatePortfolioPreview() {
@@ -2137,17 +2171,20 @@
         }
 
         preview.innerHTML = `
-            ${renderCatalogPreviewMarkup(multiplier, 5)}
+            <div class="catalog-preview">
+                ${renderCatalogListMarkup(multiplier, 5)}
+            </div>
             <div class="inline-note" style="margin-top:10px;">
-                ×${multiplier.toFixed(multiplier % 1 === 0 ? 0 : 2)} · ${total} продукта${total > 5 ? ' · показани първите 5' : ''}
+                ×${formatMultiplierValue(multiplier)} · ${total} продукта${total > 5 ? ' · показани първите 5' : ''}
             </div>
         `;
     }
 
-    function buildCatalogDocument(multiplier) {
+    function buildCatalogDocument(defaultMultiplier) {
         const today = new Date().toLocaleDateString('bg-BG');
         const total = getSortedProducts().length;
-        const multiplierLabel = multiplier.toFixed(multiplier % 1 === 0 ? 0 : 2);
+        const multiplierLabel = formatMultiplierValue(defaultMultiplier);
+        const productsJson = JSON.stringify(getCatalogExportProducts()).replace(/</g, '\\u003c');
 
         return `<!DOCTYPE html>
 <html lang="bg">
@@ -2167,44 +2204,76 @@ body {
     margin: 0 auto;
     -webkit-font-smoothing: antialiased;
 }
-header {
+header, .toolbar, .catalog-item {
     background: #fff;
     border: 1px solid #dbe3ef;
     border-radius: 16px;
-    padding: 18px 16px;
-    margin-bottom: 12px;
 }
+header { padding: 18px 16px; margin-bottom: 12px; }
 h1 { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 6px; }
 .meta { color: #64748b; font-size: 0.88rem; line-height: 1.45; }
-.catalog-head,
-.catalog-item {
-    display: grid;
-    grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.8fr) minmax(0, 0.8fr);
-    gap: 8px;
-    align-items: center;
+.toolbar {
+    padding: 14px;
+    margin-bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
-.catalog-head {
-    padding: 0 14px 8px;
-    font-size: 0.72rem;
+.toolbar label {
+    font-size: 0.76rem;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.07em;
     color: #64748b;
+}
+.toolbar-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+select, input {
+    width: 100%;
+    min-height: 46px;
+    border: 1px solid #dbe3ef;
+    border-radius: 12px;
+    padding: 0 12px;
+    font-size: 16px;
+    background: #fff;
+    color: #0f172a;
+}
+.catalog-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.catalog-item { padding: 14px; line-height: 1.35; }
+.catalog-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+.catalog-name { font-weight: 700; font-size: 0.98rem; word-break: break-word; }
+.catalog-dose {
+    display: inline-flex;
+    margin-top: 6px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 0.78rem;
     font-weight: 700;
 }
-.catalog-head span:last-child,
-.catalog-price { text-align: right; }
-.catalog-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
-.catalog-item {
-    background: #fff;
-    border: 1px solid #dbe3ef;
-    border-radius: 14px;
-    padding: 14px;
-    font-size: 0.95rem;
-    line-height: 1.35;
+.catalog-price {
+    font-size: 1.08rem;
+    font-weight: 800;
+    color: #2563eb;
+    white-space: nowrap;
 }
-.catalog-name { font-weight: 700; word-break: break-word; }
-.catalog-dose { color: #64748b; font-size: 0.88rem; }
-.catalog-price { font-weight: 800; color: #2563eb; white-space: nowrap; }
+.catalog-ref {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #eef2f7;
+    color: #64748b;
+    font-size: 0.78rem;
+    line-height: 1.45;
+}
 footer {
     margin-top: 16px;
     padding: 0 4px 24px;
@@ -2217,15 +2286,97 @@ footer {
 <body>
 <header>
     <h1>PEP Каталог</h1>
-    <div class="meta">${total} продукта · ×${multiplierLabel} · ${escapeHtml(today)}</div>
+    <div class="meta" id="catalogMeta">${total} продукта · ×${multiplierLabel} · ${escapeHtml(today)}</div>
 </header>
-<div class="catalog-head">
-    <span>Продукт</span>
-    <span>мг</span>
-    <span>Цена</span>
-</div>
-<ul class="catalog-list">${renderCatalogItems(multiplier)}</ul>
+<section class="toolbar">
+    <label for="catalogMultiplierSelect">Множител за цени</label>
+    <div class="toolbar-row">
+        <select id="catalogMultiplierSelect">
+            <option value="2"${defaultMultiplier === 2 ? ' selected' : ''}>Едро · ×2</option>
+            <option value="2.5"${defaultMultiplier === 2.5 ? ' selected' : ''}>Дребно · ×2.5</option>
+            <option value="custom"${defaultMultiplier !== 2 && defaultMultiplier !== 2.5 ? ' selected' : ''}>Персонален</option>
+        </select>
+        <input type="number" id="catalogMultiplierCustom" min="0.01" step="0.01" inputmode="decimal" value="${defaultMultiplier !== 2 && defaultMultiplier !== 2.5 ? multiplierLabel : defaultMultiplier}">
+    </div>
+</section>
+<ul class="catalog-list" id="catalogList"></ul>
 <footer>PEP Каталог · ${escapeHtml(today)}</footer>
+<script>
+const catalogProducts = ${productsJson};
+const catalogDate = ${JSON.stringify(today)};
+let catalogMultiplier = ${defaultMultiplier};
+
+function formatCatalogMoney(value) {
+    return Number(value || 0).toFixed(2) + ' €';
+}
+
+function formatCatalogMultiplier(value) {
+    const numeric = Number(value);
+    return numeric.toFixed(numeric % 1 === 0 ? 0 : 2);
+}
+
+function escapeCatalogHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function getCatalogMultiplier() {
+    const select = document.getElementById('catalogMultiplierSelect').value;
+    const custom = Number(document.getElementById('catalogMultiplierCustom').value);
+    return select === 'custom' ? custom : Number(select);
+}
+
+function renderCatalogList() {
+    const list = document.getElementById('catalogList');
+    const meta = document.getElementById('catalogMeta');
+    const multiplier = getCatalogMultiplier();
+
+    if (!Number.isFinite(multiplier) || multiplier <= 0) {
+        list.innerHTML = '<li class="catalog-item">Въведи валиден множител.</li>';
+        return;
+    }
+
+    catalogMultiplier = multiplier;
+    list.innerHTML = catalogProducts.map(function(product) {
+        const purchasePrice = Number(product.purchasePrice) || 0;
+        const price = purchasePrice * multiplier;
+        const wholesale = purchasePrice * 2;
+        const retail = purchasePrice * 2.5;
+        return '<li class="catalog-item">' +
+            '<div class="catalog-row">' +
+                '<div>' +
+                    '<div class="catalog-name">' + escapeCatalogHtml(product.baseName) + '</div>' +
+                    '<span class="catalog-dose">' + escapeCatalogHtml(product.dosage) + '</span>' +
+                '</div>' +
+                '<div class="catalog-price">' + formatCatalogMoney(price) + '</div>' +
+            '</div>' +
+            '<div class="catalog-ref">Едро ×2: ' + formatCatalogMoney(wholesale) +
+            ' · Дребно ×2.5: ' + formatCatalogMoney(retail) +
+            ' · Доставна: ' + formatCatalogMoney(purchasePrice) + '</div>' +
+        '</li>';
+    }).join('');
+
+    meta.textContent = catalogProducts.length + ' продукта · ×' + formatCatalogMultiplier(multiplier) + ' · ' + catalogDate;
+}
+
+function syncCatalogMultiplierField() {
+    const select = document.getElementById('catalogMultiplierSelect');
+    const customInput = document.getElementById('catalogMultiplierCustom');
+    const isCustom = select.value === 'custom';
+    customInput.disabled = !isCustom;
+    if (!isCustom) {
+        customInput.value = select.value;
+    }
+    renderCatalogList();
+}
+
+document.getElementById('catalogMultiplierSelect').addEventListener('change', syncCatalogMultiplierField);
+document.getElementById('catalogMultiplierCustom').addEventListener('input', renderCatalogList);
+syncCatalogMultiplierField();
+<\/script>
 </body>
 </html>`;
     }
