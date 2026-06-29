@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>PEP Каталог</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: #f3f6fb;
+    color: #0f172a;
+    padding: 16px;
+    max-width: 480px;
+    margin: 0 auto;
+    -webkit-font-smoothing: antialiased;
+}
+header {
+    background: #fff;
+    border: 1px solid #dbe3ef;
+    border-radius: 16px;
+    padding: 18px 16px;
+    margin-bottom: 12px;
+}
+h1 { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 6px; }
+.meta { color: #64748b; font-size: 0.88rem; line-height: 1.45; }
+
+/* Categories */
+.category {
+    background: #e2e8f0;
+    border-radius: 16px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    border: 1px solid #cbd5e1;
+}
+.category-title {
+    padding: 14px 16px;
+    font-weight: 800;
+    font-size: 1.05rem;
+    color: #1e293b;
+    cursor: pointer;
+    list-style: none;
+    position: relative;
+    user-select: none;
+}
+.category-title::-webkit-details-marker { display: none; }
+.category-title::after {
+    content: '+';
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.4rem;
+    font-weight: 400;
+    line-height: 1;
+    color: #64748b;
+    transition: transform 0.2s ease;
+}
+.category[open] > .category-title::after {
+    transform: translateY(-50%) rotate(45deg);
+}
+.category-content {
+    padding: 0 8px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Headers & Grid */
+.catalog-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.8fr) minmax(0, 0.8fr);
+    gap: 8px;
+    padding: 0 14px 8px;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #64748b;
+    font-weight: 700;
+}
+.catalog-head span:last-child,
+.catalog-price { text-align: right; }
+
+/* Products */
+.product {
+    background: #fff;
+    border: 1px solid #dbe3ef;
+    border-radius: 14px;
+    overflow: hidden;
+}
+.catalog-item-summary {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.8fr) minmax(0, 0.8fr);
+    gap: 8px;
+    align-items: center;
+    padding: 14px;
+    font-size: 0.95rem;
+    line-height: 1.35;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+    position: relative;
+    transition: background 0.2s ease;
+}
+.catalog-item-summary::-webkit-details-marker { display: none; }
+.product[open] > .catalog-item-summary {
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+}
+.catalog-name { font-weight: 700; word-break: break-word; }
+.catalog-dose { color: #64748b; font-size: 0.88rem; }
+.catalog-price { font-weight: 800; color: #2563eb; white-space: nowrap; }
+
+/* Product Details expanded */
+.product-details {
+    padding: 14px;
+    background: #fff;
+    font-size: 0.9rem;
+    color: #334155;
+}
+.marketing-text {
+    margin-bottom: 10px;
+    line-height: 1.5;
+}
+.protocol {
+    font-weight: 600;
+    color: #0f172a;
+    margin-bottom: 12px;
+    background: #f1f5f9;
+    padding: 8px 10px;
+    border-radius: 8px;
+}
+.variants-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #64748b;
+    margin-bottom: 6px;
+    letter-spacing: 0.05em;
+}
+.variant-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-top: 1px dashed #cbd5e1;
+}
+.variant-row:first-of-type { border-top: none; }
+.variant-dose { font-weight: 600; color: #475569; }
+.variant-price { font-weight: 700; color: #2563eb; }
+
+footer {
+    margin-top: 16px;
+    padding: 0 4px 24px;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 0.78rem;
+}
+</style>
+</head>
+<body>
+<header>
+    <h1>PEP Каталог</h1>
+    <div class="meta">16 уникални продукта · ×2.50 · 29.06.2026 г.</div>
+</header>
+
+<div class="catalog-head">
+    <span>Продукт</span>
+    <span>Основа</span>
+    <span>Цена</span>
+</div>
+
+<details class="category" open>
+    <summary class="category-title">Отслабване & Метаболизъм</summary>
+    <div class="category-content">
+        
+        <details class="product">
+            <summary class="catalog-item-summary">
+                <span class="catalog-name">Тирзепатид</span>
+                <span class="catalog-dose">от 5 mg</span>
+                <span class="catalog-price">31.95 €</span>
+            </summary>
+            <div class="product-details">
+                <p class="marketing-text">Двоен GLP-1/GIP рецепторен агонист. Драстично потиска апетита, забавя стомашното изпразване и оптимизира инсулиновата чувствителност. Златен стандарт за редукция на тегло.</p>
+                <div class="protocol">Прием: 2.5 mg подкожно веднъж седмично.</div>
+                <div class="variants-title">Налични варианти</div>
+                <div class="variant-row"><span class="variant-dose">5 mg</span><span class="variant-price">31.95 €</span></div>
+                <div class="variant-row"><span class="variant-dose">10 mg</span><span class="variant-price">51.13 €</span></div>
+                <div class="variant-row"><span class="variant-dose">30 mg</span><span class="variant-price">127.83 €</span></div>
+            </div>
+        </details>
+
+        <details class="product">
+            <summary class="catalog-item-summary">
+                <span class="catalog-name">Retatrutide</span>
+                <span class="catalog-dose">от 5 mg</span>
+                <span class="catalog-price">38.35 €</span>
+            </summary>
+            <div class="product-details">
+                <p class="marketing-text">Тройна синергия (GLP-1/GIP/Glucagon). Най-агресивният агент за изгаряне на мазнини на пазара. Повишава базовия метаболизъм (BMR) и директно атакува мастните депа.</p>
+                <div class="protocol">Прием: 2 mg подкожно веднъж седмично.</div>
+                <div class="variants-title">Налични варианти</div>
+                <div class="variant-row"><span class="variant-dose">5 mg</span><span class="variant-price">38.35 €</span></div>
+                <div class="variant-row"><span class="variant-dose">10 mg</span><span class="variant-price">63.90 €</span></div>
+                <div class="variant-row"><span class="variant-dose">20 mg</span><span class="variant-price">112.50 €</span></div>
+            </div>
+        </details>
+
+        <details class="product">
+            <summary class="catalog-item-summary">
+                <span class="catalog-name">Mots-C</span>
+                <span class="catalog-dose">от 10 mg</span>
+                <span class="catalog-price">31.95 €</span>
+            </summary>
+            <div class="product-details">
+                <p class="marketing-text">Митохондриален регулатор. Форсира тялото да използва мазнини и глюкоза за енергия. Осигурява метаболитна гъвкавост и екстремна физическа издръжливост.</p>
+                <div class="protocol">Прием: 5-10 mg подкожно, 1-3 пъти седмично (преди натоварване).</div>
+                <div class="variants-title">Налични варианти</div>
+                <div class="variant-row"><span class="variant-dose">10 mg</span><span class="variant-price">31.95 €</span></div>
+                <div class="variant-row"><span class="variant-dose">40 mg</span><span class="variant-price">75.00 €</span></div>
+            </div>
+        </details>
+
+        <details class="product">
+            <summary class="catalog-item-summary">
+                <span class="catalog-name">SLU-PP-322</span>
+                <span class="catalog-dose">5 mg</span>
+                <span class="catalog-price">30.00 €</span>
+            </summary>
+            <div class="product-details">
+                <p class="marketing-text">Известен като "упражнение в спринцовка". Активира ERRα рецепторите, имитирайки ефектите на интензивна кардио тренировка на клетъчно ниво. Забързва липолизата.</p>
+                <div class="protocol">Прием: 1-2 mg дневно подкожно.</div>
+                <div class="variant-row"><span class="variant-dose">5 mg</span><span class="variant-price">30.00 €</span></div>
+            </div>
+        </details>
+
+        <details class="product">
+            <summary class="catalog-item-summary">
+                <span class="catalog-name">LC120</span>
+                <span class="catalog-dose">комбо</span>
+                <span class="catalog-price">18.75 €</span>
+            </summary>
+            <div class="product-details">
+                <p class="marketing-text">Мощен липолитичен комплекс за локално таргетиране. Подпомага разграждането на упорити мастни депа в специфични зони.</p>
+                <div class="protocol">Прием: По индивидуална схема за локално приложение.</div>
+                <div class="variant-row"><span class="variant-dose">комбо</span><span class="variant-price">18.75 €</span></div>
+            </div>
+        </details>
+
+        <details class="product">
+            <summary class="catalog-item-summary">
+                <span class="catalog-name">LC216</span>
+                <span class="catalog-dose">комбо</span>
+                <span class="catalog-price">18.75 €</span>
+            </summary>
+            <div class="product-details">
+                <p class="marketing-text">Усъвършенстван липолитичен комплекс. Ускорява метаболизма на мастните киселини и предотвратява ново натрупване в третираните зони.</p>
+                <div class="protocol">Прием: По индивидуална схема за локално приложение.</div>
+                <div class="variant-row"><span class="variant-dose">комбо</span><span class="variant-price">18.75 €</span></div>
+            </div>
+        </details>
+
+    </div>
+</details>
+
+<details class="category">
+    <summary class="category-title">Антиейджинг & Здраве</summary>
+    <div class="category-content">
+        
+        <details class="product">
+            <summary class="catalog-item-summary">
+                <span class="catalog-name">Глутатион</span>
+                <span class="catalog-dose">от 600 mg</span>
+                <span class="catalog-price">9.71 €</span>
+            </summary>
+            <div class="product-details">
+                <p class="marketing-text">Майсторският антиоксидант на тялото. Детоксикира черния дроб, изчиства свободните радикали, изсветлява кожата и осигурява дълбоко клетъчно подмладяване.</p>
+                <div class="protocol">Прием: 200-600 mg подкожно/интрамускулно, 1-3 пъти седмично.</div>
+                <div class="variants-title">Налични варианти</div>
+                <div class="variant-row"><span class="variant-dose">600 mg</span><span class="variant-price">9.71 €</span></div>
+                <div class="variant-row"><span class="variant-dose">1500 mg</span><span class="variant-price">16.25 €</span></div>
+            </div>
+        </details>
+
+        <details class="product">
+            <summary class="catalog-item-summary">
+                <span class="catalog-name">Тимозин Алфа</span>
+                <span class="catalog-dose">от 5 mg</span>
+                <span class="catalog-price">38.35 €</span>
+            </summary>
+            <div class="product-details">
+                <p class="marketing-text">Елитна имунна модулация. Стимулира Т-клетките, възстановява компрометирана имунна система и осигурява защита срещу вирусни инфекции и възпаления.</p>
+                <div class="protocol">Прием: 1.5 mg подкожно два пъти седмично.</div>
+                <div class="variants-title">Налични варианти</div>
+                <div class="variant-row"><span class="variant-dose">5 mg</span><span class="variant-price">38.35 €</span></div>
+                <div class="variant-row"><span class="variant-dose">10 mg</span><span class="variant-price">63.90 €</span></div>
+            </div>
+        </details>
+
+        <details class="product">
+            <summary class="catalog-item-summary">
+                <span class="catalog-name">NAD+</span>
+                <span class="catalog-dose">500 mg</span>
+                <span class="catalog-price">63.90 €</span>
+            </summary>
+            <div class="product-details">
+                <p class="marketing-text">Молекулата на младостта. Възстановява клетъчната енергия (ATP), регенерира ДНК щети и повишава неврологичния фокус и яснота.</p>
+                <div class="protocol">Прием: 50-100 mg подкожно, 2-3 пъти седмично.</div>
+                <div class="variant-row"><span class="variant-dose">500 mg</span><span class="variant-price">63.90 €</span></div>
+            </div>
+        </details>
+
+    </div>
+</details>
+
+<details class="category">
+    <summary class="category-title">Мускулен Растеж & Оформяне</summary>
+    <div class="category-content">
+        
+        <details class="product">
+            <summary class="catalog-item-summary">
+                <span class="catalog-name">CJC-1295 + Ipamorelin</span>
+                <span class="catalog-dose">5+5 mg</span>
+                <span class="catalog-price">21.25 €</span>
+            </summary>
+            <div class="product-details">
+                <p class="marketing-text">Златният стандарт за секреция на растежен хормон. Стимулира естественото производство на HGH, изгражда чиста мускулна маса, гори мазнини и гарантира дълбок възстановителен сън.</p>
+                <div class="protocol">Прием: 100-300 mcg подкожно, вечер преди лягане на гладно.</div>
+                <div class="variant-row"><span class="variant-dose">5+5 mg</span><span class="variant-price">21.25 €</span></div>
+            </div>
+        </details>
+
+        <details class="product">
+            <summary class="catalog-item-summary">
+                <span class="catalog-name">Tesamorelin</span>
+                <span class="catalog-dose">10 mg</span>
+                <span class="catalog-price">45.00 €</span>
+            </summary>
+            <div class="product-details">
+                <p class="marketing-text">Най-мощният пептид (GHRH) за директно таргетиране и изгаряне на висцерална мастна тъкан (коремната област). Повишава IGF-1 нивата.</p>
+                <div class="protocol">Прием: 1-2 mg подкожно вечер, на празен стомах.</div>
+                <div class="variant-row"><span class="variant-dose">10 mg</span><span class="variant-price">45.00 €</span></div>
+            </div>
+        </details>
+
+        <details class="product">
+            <summary class="catalog-item-summary">
+                <span class="catalog-name">IGF-1LR3</span>
+                <span class="catalog-dose">1 mg</span>
+                <span class="catalog-price">43.75 €</span>
+            </summary>
+            <div class="product-details">
+                <p class="marketing-text">Инсулиноподобен растежен фактор (дълъг полуживот). Предизвиква системна мускулна хиперплазия (създаване на нови мускулни клетки) и блокира мускулния разпад.</p>
+                <div class="protocol">Прием: 20-50 mcg подкожно в тренировъчни дни.</div>
+                <div class="variant-row"><span class="variant-dose">1 mg</span><span class="variant-price">43.75 €</span></div>
+            </div>
+        </details>
+
+        <details class="product">
+            <summary class="catalog-item-summary">
+                <span class="catalog-name">IGF-DES</span>
+                <span class="catalog-dose">1 mg</span>
+                <span class="catalog-price">12.50 €</span>
+            </summary>
+            <div class="product-details">
+                <p class="marketing-text">Супер-активна, къса версия на IGF-1. Действа мигновено. Идеален за локален растеж, екстремно напомпване и третиране на изоставащи мускулни групи.</p>
+                <div class="protocol">Прием: 20-50 mcg двустранно (в тренирания мускул) преди тренировка.</div>
+                <div class="variant-row"><span class="variant-dose">1 mg</span><span class="variant-price">12.50 €</span></div>
+            </div>
+        </details>
+
+    </div>
+</details>
+
+<details class="category">
+    <summary class="category-title">Естетика & Регенерация</summary>
+    <div class="category-content">
+        
+        <details class="product">
+            <summary class="catalog-item-summary">
+                <span class="catalog-name">GHK-Cu</span>
+                <span class="catalog-dose">100 mg</span>
+                <span class="catalog-price">31.95 €</span>
+            </summary>
+            <div class="product-details">
+                <p class="marketing-text">Медният пептид. Увеличава производството на колаген, сгъстява косата, лекува тъканни увреждания и изглажда фините линии и бръчки. Клетъчен ремонт на ДНК ниво.</p>
+                <div class="protocol">Прием: 1-2 mg подкожно дневно.</div>
+                <div class="variant-row"><span class="variant-dose">100 mg</span><span class="variant-price">31.95 €</span></div>
+            </div>
+        </details>
+
+        <details class="product">
+            <summary class="catalog-item-summary">
+                <span class="catalog-name">Glow (CU+TB+BC+KPV)</span>
+                <span class="catalog-dose">комбо</span>
+                <span class="catalog-price">57.50 €</span>
+            </summary>
+            <div class="product-details">
+                <p class="marketing-text">Ултимативният стакинг (GHK-Cu, TB-500, BPC-157, KPV). Блокира възпаленията, лекува червата, регенерира стави/сухожилия и осигурява блестяща, здрава кожа.</p>
+                <div class="protocol">Прием: По специфична схема в зависимост от целите на регенерацията.</div>
+                <div class="variant-row"><span class="variant-dose">комбо</span><span class="variant-price">57.50 €</span></div>
+            </div>
+        </details>
+
+        <details class="product">
+            <summary class="catalog-item-summary">
+                <span class="catalog-name">Меланотан 2</span>
+                <span class="catalog-dose">10 mg</span>
+                <span class="catalog-price">25.00 €</span>
+            </summary>
+            <div class="product-details">
+                <p class="marketing-text">Стимулира производството на меланин. Гарантира дълбок, равномерен тен с минимално излагане на UV лъчи, предпазва от изгаряне и силно стимулира либидото.</p>
+                <div class="protocol">Прием: 250-500 mcg подкожно преди излагане на слънце/солариум.</div>
+                <div class="variant-row"><span class="variant-dose">10 mg</span><span class="variant-price">25.00 €</span></div>
+            </div>
+        </details>
+
+    </div>
+</details>
+
+<footer>PEP Каталог · 29.06.2026 г.</footer>
+</body>
+</html>
