@@ -53,7 +53,7 @@
     <!-- Detect embedded iframe mode before first paint (enables haptic relay to shell via postMessage) -->
     <script>(function(){if(new URLSearchParams(window.location.search).has('embedded')){document.documentElement.setAttribute('data-embedded-tab','1');}})();</script>
     <!-- In shellChat mode: hide everything except #chatWindow so only the chat drawer shows -->
-    <style>html[data-shell-chat="1"] body{background:transparent!important;overflow:hidden!important;opacity:1!important;}html[data-shell-chat="1"] body>*:not(#chatWindow){display:none!important;}html[data-shell-chat="1"] #chatWindow{position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;height:100%!important;max-height:none!important;border-radius:0!important;}</style>
+    <style>html[data-shell-chat="1"] body{background:transparent!important;overflow:hidden!important;opacity:1!important;}html[data-shell-chat="1"] body>*:not(#chatWindow):not(.game-modal-overlay){display:none!important;}html[data-shell-chat="1"] .game-modal-overlay{display:flex!important;z-index:10010!important;}html[data-shell-chat="1"] #chatWindow{position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;height:100%!important;max-height:none!important;border-radius:0!important;}</style>
     <style>
         :root {
             --primary-red: #0D9488;
@@ -6477,13 +6477,23 @@
             if (message.toLowerCase() === '*weekme') {
                 input.value = '';
                 addMessageToChat('*weekme', 'user', false);
+                if (document.documentElement.getAttribute('data-shell-chat') === '1' &&
+                    window.parent && window.parent !== window) {
+                    try {
+                        window.parent.postMessage({ type: 'NUTRIPLAN_WEEKLY_TEST' }, window.location.origin);
+                        addMessageToChat('Отварям седмичната настройка в плана…', 'assistant');
+                    } catch (_) {
+                        addMessageToChat('Неуспешно прехвърляне към плана.', 'assistant');
+                    }
+                    return;
+                }
                 if (window._gameTriggerWeeklyTest) {
                     var weekResult = window._gameTriggerWeeklyTest();
                     if (weekResult && weekResult.ok) {
-                        addMessageToChat('Стартирам седмичната процедура за тест на актуализацията…', 'assistant');
+                        addMessageToChat('Стартирам седмичната процедура…', 'assistant');
                     } else {
                         var days = weekResult && weekResult.daysRecorded != null ? weekResult.daysRecorded : 0;
-                        addMessageToChat('За тест са нужни поне 3 дни с gamification данни (имате ' + days + '). Активирайте *game и попълнете няколко дни.', 'assistant');
+                        addMessageToChat('За тест са нужни поне 3 дни с gamification данни (имате ' + days + '). Попълнете сутрешни/вечерни въпроси или отбележете хранения.', 'assistant');
                     }
                 } else {
                     addMessageToChat('Геймификационният модул не е зареждан.', 'assistant');
@@ -8859,10 +8869,53 @@
         function enableGame()    { localStorage.setItem(GAME_ENABLED_KEY, 'true'); }
 
         var _gameDataCache = null; // in-memory cache to avoid repeated JSON.parse
+
+        function invalidateGameDataCache() {
+            _gameDataCache = null;
+        }
+
+        function readGameDataFromStorage() {
+            try { return JSON.parse(localStorage.getItem(GAME_DATA_KEY) || '{}') || {}; }
+            catch (e) { return {}; }
+        }
+
+        function readGameDataFromAppData() {
+            try {
+                var sources = [
+                    window.NutriPlanAppData,
+                    (window.parent && window.parent !== window) ? window.parent.NutriPlanAppData : null
+                ];
+                for (var i = 0; i < sources.length; i++) {
+                    var src = sources[i];
+                    if (!src) continue;
+                    var parsed = typeof src.get === 'function' ? src.get('gameData') : null;
+                    if (parsed && typeof parsed === 'object' && Object.keys(parsed).length) return parsed;
+                    var raw = typeof src.getRaw === 'function' ? src.getRaw('gameData') : null;
+                    if (raw) {
+                        try {
+                            var fromRaw = JSON.parse(raw);
+                            if (fromRaw && typeof fromRaw === 'object' && Object.keys(fromRaw).length) return fromRaw;
+                        } catch (_) {}
+                    }
+                }
+            } catch (_) {}
+            return null;
+        }
+
+        function mergeGameDataSources(local, external) {
+            if (!external || !Object.keys(external).length) return local || {};
+            if (!local || !Object.keys(local).length) return external;
+            return Object.assign({}, external, local);
+        }
+
         function getGameData() {
             if (_gameDataCache) return _gameDataCache;
-            try { _gameDataCache = JSON.parse(localStorage.getItem(GAME_DATA_KEY) || '{}'); }
-            catch(e) { _gameDataCache = {}; }
+            var local = readGameDataFromStorage();
+            var external = readGameDataFromAppData();
+            _gameDataCache = mergeGameDataSources(local, external);
+            if (external && Object.keys(external).length > Object.keys(local || {}).length) {
+                try { localStorage.setItem(GAME_DATA_KEY, JSON.stringify(_gameDataCache)); } catch (_) {}
+            }
             return _gameDataCache;
         }
         function saveGameData(d) {
@@ -8913,7 +8966,19 @@
         window.NutriPlanAnalyticsSync = { schedule: scheduleAnalyticsSync, syncNow: syncAnalyticsToServer };
         // Invalidate cache when another tab or external code modifies the same key
         window.addEventListener('storage', function(e) {
-            if (e.key === GAME_DATA_KEY) _gameDataCache = null;
+            if (e.key === GAME_DATA_KEY) invalidateGameDataCache();
+        });
+        window.addEventListener('NUTRIPLAN_APP_DATA_READY', function(e) {
+            if (!e || !e.detail || !e.detail.keys || e.detail.keys.indexOf('gameData') >= 0) {
+                invalidateGameDataCache();
+            }
+        });
+        window.addEventListener('message', function(e) {
+            if (!e || !e.data || e.data.type !== 'NUTRIPLAN_APP_DATA_READY') return;
+            if (!e.data.keys || e.data.keys.indexOf('gameData') >= 0) invalidateGameDataCache();
+        });
+        window.addEventListener('NUTRIPLAN_RUN_WEEKLY_TEST', function() {
+            if (typeof triggerWeeklyTestFlow === 'function') triggerWeeklyTestFlow();
         });
 
         function emptyRecord(key) {
@@ -10140,32 +10205,48 @@
         // ── Weekly recap ──────────────────────────────────────────────────────
         function calcWeeklyScore() {
             var allData = getGameData();
-            var today = new Date();
-            var days = [], engSum=0, scoreSum=0, scoreCount=0, engCount=0, noDataDays=0;
-            for (var i=6; i>=0; i--) {
-                var d = new Date(today); d.setDate(d.getDate()-i);
-                var key = dateKey(d);
-                var rec = allData[key] || null;
-                days.push({ key:key, rec:rec });
-                if (rec) {
-                    var ds = rec.dailyScore || calcDayScore(rec);
-                    if (ds.score === null && (ds.engPct || 0) === 0) {
-                        noDataDays++;
+            var GS = window.GameScoring;
+            var todayKey = GS ? GS.dateKey(new Date()) : getTodayKey();
+            var days = GS
+                ? GS.buildLast7Days(allData, todayKey)
+                : (function() {
+                    var out = [];
+                    for (var i = 6; i >= 0; i--) {
+                        var d = new Date(); d.setDate(d.getDate() - i);
+                        var key = dateKey(d);
+                        out.push({ key: key, rec: allData[key] || null });
                     }
-                    engSum += ds.engPct || 0;
-                    engCount++;
-                    if (ds.score != null) {
-                        scoreSum += ds.score;
-                        scoreCount++;
-                    }
-                } else {
+                    return out;
+                })();
+
+            var engSum = 0, scoreSum = 0, scoreCount = 0, engCount = 0, noDataDays = 0;
+            days.forEach(function(day) {
+                var rec = day.rec;
+                if (!rec) {
                     noDataDays++;
+                    return;
                 }
-            }
-            return { days:days,
-                     avgScore:scoreCount>0?Math.round(scoreSum/scoreCount*10)/10:0,
-                     avgEngPct:engCount>0?Math.round(engSum/engCount):0,
-                     daysRecorded:engCount-noDataDays, noDataDays:noDataDays };
+                var ds = rec.dailyScore || calcDayScore(rec);
+                if (ds.score === null && (ds.engPct || 0) === 0) noDataDays++;
+                engSum += ds.engPct || 0;
+                engCount++;
+                if (ds.score != null) {
+                    scoreSum += ds.score;
+                    scoreCount++;
+                }
+            });
+
+            var daysRecorded = GS && GS.countDaysWithRecords
+                ? GS.countDaysWithRecords(days)
+                : days.filter(function(d) { return !!d.rec; }).length;
+
+            return {
+                days: days,
+                avgScore: scoreCount > 0 ? Math.round(scoreSum / scoreCount * 10) / 10 : 0,
+                avgEngPct: engCount > 0 ? Math.round(engSum / engCount) : 0,
+                daysRecorded: daysRecorded,
+                noDataDays: noDataDays
+            };
         }
 
         function showWeeklyRecapModal(wd) {
@@ -10272,6 +10353,7 @@
         }
 
         function getWeeklyPayloadBase() {
+            invalidateGameDataCache();
             var payload = {
                 gameData: getGameData(),
                 gameWeeklyAI: ensureWeeklyMeta(getWeeklyAIState())
@@ -10528,6 +10610,10 @@
             info.feedbackStatus = 'questions';
             saveWeeklyAIState(info);
 
+            if (window.NutriPlanAnalyticsSync && typeof window.NutriPlanAnalyticsSync.syncNow === 'function') {
+                try { await window.NutriPlanAnalyticsSync.syncNow(); } catch (_) {}
+            }
+
             var loadingOverlay = showWeeklyLoadingModal('Подготвяме въпросите...');
             try {
                 var qData = await fetchWeeklyQuestions();
@@ -10617,6 +10703,7 @@
         // ── Weekly AI trigger ─────────────────────────────────────────────────
         function triggerWeeklyTestFlow() {
             if (!isGameEnabled()) enableGame();
+            invalidateGameDataCache();
             var info = ensureWeeklyMeta(getWeeklyAIState());
             info.lastRun = null;
             delete info.nextDue;

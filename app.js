@@ -770,7 +770,16 @@
         var nextSrc = 'plan.html?chat=1&embedded=1&shellChat=1';
         if (shellChatFrame.getAttribute('src') !== nextSrc) {
             shellChatFrame.setAttribute('src', nextSrc);
+            shellChatFrame.addEventListener('load', function onShellChatLoad() {
+                shellChatFrame.removeEventListener('load', onShellChatLoad);
+                try {
+                    if (shellChatFrame.contentWindow) {
+                        shellChatFrame.contentWindow.NutriPlanAppData = window.NutriPlanAppData;
+                    }
+                } catch (_) {}
+            });
         } else if (shellChatFrame.contentWindow) {
+            try { shellChatFrame.contentWindow.NutriPlanAppData = window.NutriPlanAppData; } catch (_) {}
             shellChatFrame.contentWindow.dispatchEvent(new CustomEvent('NUTRIPLAN_SHELL_CHAT_OPEN'));
         }
         shellChatFrame.style.display = 'block';
@@ -818,6 +827,18 @@
         }
         if (data.type === 'NUTRIPLAN_OPEN_CHAT') {
             openShellChat();
+            return;
+        }
+        if (data.type === 'NUTRIPLAN_WEEKLY_TEST') {
+            closeShellChat();
+            switchTab('plan', true);
+            var planFrameWeekly = document.querySelector('[data-tab-view="plan"]');
+            if (planFrameWeekly) {
+                ensureFrameLoaded('plan');
+                setTimeout(function () {
+                    dispatchFrameEvent(planFrameWeekly, 'NUTRIPLAN_RUN_WEEKLY_TEST');
+                }, 400);
+            }
             return;
         }
         if (data.type === 'NUTRIPLAN_CLOSE_CHAT') {
