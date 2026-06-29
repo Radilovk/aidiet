@@ -2395,7 +2395,13 @@
             display: flex;
             gap: 6px;
             justify-content: center;
-            margin: 0 0 14px;
+            margin: 0 0 10px;
+        }
+        .game-qa-step {
+            font-size: 0.78rem;
+            color: #6b7280;
+            margin-bottom: 12px;
+            letter-spacing: 0.02em;
         }
         .game-qa-dot {
             width: 8px;
@@ -2434,14 +2440,32 @@
             transform: translateY(-1px);
         }
         .game-qa-skip {
+            margin-top: 14px;
+            background: none;
+            border: none;
+            color: #9ca3af;
+            font-size: 0.8rem;
+            cursor: pointer;
+            padding: 4px 8px;
+        }
+        .game-qa-skip:hover { color: #6b7280; }
+        .game-weekly-primary-sub {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 500;
+            opacity: 0.85;
+            margin-top: 4px;
+        }
+        .game-weekly-later {
             margin-top: 12px;
             background: none;
             border: none;
-            color: #6b7280;
+            color: #9ca3af;
             font-size: 0.82rem;
             cursor: pointer;
-            text-decoration: underline;
+            padding: 6px;
         }
+        .game-weekly-later:hover { color: #6b7280; }
         /* Confetti */
         .game-confetti { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
         .game-confetti span {
@@ -10065,20 +10089,15 @@
             var old = document.getElementById('gameWeeklyModal');
             if (old) old.remove();
             var avg = wd.avgScore;
-            var iconClass, iconColor, title, msg, color;
-            if      (avg>=4.5){ iconClass='fas fa-trophy'; iconColor='#fbbf24'; title='Фантастична седмица!'; color='#fbbf24';
-                msg='Изключително представяне! Вие сте на правилния път. Продължавайте!'; }
-            else if (avg>=3.5){ iconClass='fas fa-bullseye'; iconColor='#10b981'; title='Много добра седмица!'; color='#10b981';
-                msg='Отлично! Малко повече внимание ще ви доведе до перфекцията.'; }
-            else if (avg>=2.5){ iconClass='fas fa-chart-line'; iconColor='#0D9488'; title='Добри резултати!'; color='#0D9488';
-                msg='Напредвате стабилно. Наберете кой аспект да подобрите следващата седмица.'; }
-            else               { iconClass='fas fa-seedling'; iconColor='#6366f1'; title='Нова седмица, нов шанс!'; color='#6366f1';
-                msg='Всяка седмица е нов старт. Малките промени правят трайни резултати!'; }
+            var iconClass, iconColor, title, color;
+            if      (avg>=4.5){ iconClass='fas fa-trophy'; iconColor='#fbbf24'; title='Страхотна седмица!'; color='#fbbf24'; }
+            else if (avg>=3.5){ iconClass='fas fa-bullseye'; iconColor='#10b981'; title='Добра седмица!'; color='#10b981'; }
+            else if (avg>=2.5){ iconClass='fas fa-chart-line'; iconColor='#0D9488'; title='Устойчив напредък'; color='#0D9488'; }
+            else               { iconClass='fas fa-seedling'; iconColor='#6366f1'; title='Нова седмица'; color='#6366f1'; }
 
             var overlay = document.createElement('div');
             overlay.id = 'gameWeeklyModal';
             overlay.className = 'game-modal-overlay';
-            overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
 
             var modal = document.createElement('div');
             modal.className = 'game-modal';
@@ -10086,7 +10105,7 @@
             if (avg >= 3.5) {
                 var cf2 = document.createElement('div');
                 cf2.className = 'game-confetti';
-                makeConfetti(cf2, 40);
+                makeConfetti(cf2, 30);
                 modal.appendChild(cf2);
             }
 
@@ -10100,73 +10119,36 @@
             titleEl2.textContent = title;
             modal.appendChild(titleEl2);
 
-            var sc2 = document.createElement('div');
-            sc2.className = 'game-modal-score';
-            sc2.style.cssText = 'background:linear-gradient(135deg,'+color+','+color+'99);color:white;';
-            sc2.innerHTML = '\u0421\u0440\u0435\u0434\u043D\u0430 \u043E\u0446\u0435\u043D\u043A\u0430: <strong>' + avg + '/5</strong>';
-            modal.appendChild(sc2);
-
-            var en2 = document.createElement('div');
-            en2.className = 'game-modal-score';
-            en2.style.cssText = 'background:rgba(13,148,136,0.12);color:#0D9488;';
-            en2.innerHTML = '<i class="fas fa-chart-bar" style="color:#0D9488"></i> Ангажираност: <strong>' + wd.avgEngPct + '%</strong>';
-            modal.appendChild(en2);
-
-            if (wd.noDataDays > 0) {
-                var nd2 = document.createElement('div');
-                nd2.className = 'game-modal-score';
-                nd2.style.cssText = 'background:rgba(107,114,128,0.1);color:#6b7280;font-size:0.8rem;';
-                nd2.innerHTML = '<i class="fas fa-calendar-xmark"></i> ' + wd.noDataDays + ' ' + (wd.noDataDays === 1 ? 'ден' : 'дни') + ' без отбелязана активност';
-                modal.appendChild(nd2);
-            }
-
-            var mg2 = document.createElement('div');
-            mg2.className = 'game-modal-msg';
-            mg2.textContent = msg;
-            modal.appendChild(mg2);
-
-            // 7-day dot strip
             var dotsWrap = document.createElement('div');
-            dotsWrap.style.cssText = 'display:flex;gap:5px;justify-content:center;margin:6px 0 16px;';
+            dotsWrap.style.cssText = 'display:flex;gap:5px;justify-content:center;margin:14px 0 20px;';
             wd.days.forEach(function(day) {
                 var dot = document.createElement('div');
                 var ds2 = day.rec ? (day.rec.dailyScore||calcDayScore(day.rec)) : null;
                 var bg = '#e5e7eb';
                 if (ds2 && ds2.score !== null) bg = ds2.score>=4?'#10b981':ds2.score>=3?'#f59e0b':'#f87171';
-                dot.style.cssText = 'width:18px;height:18px;border-radius:50%;background:'+bg+';cursor:default;';
-                dot.title = day.key;
+                dot.style.cssText = 'width:20px;height:20px;border-radius:50%;background:'+bg+';';
                 dotsWrap.appendChild(dot);
             });
             modal.appendChild(dotsWrap);
 
-            var btnRow = document.createElement('div');
-            btnRow.className = 'game-modal-btn-row';
-
-            var profBtn = document.createElement('button');
-            profBtn.className = 'game-modal-btn';
-            profBtn.style.cssText = 'flex:1;background:rgba(13,148,136,0.1);color:#0D9488;border:1.5px solid rgba(13,148,136,0.25);';
-            profBtn.textContent = '\uD83D\uDCCA \u0412\u0438\u0436 \u0430\u043D\u0430\u043B\u0438\u0437\u0438';
-            profBtn.onclick = function(){ overlay.remove(); openShellTab('profile', 'profile.html'); };
-
-            var closBtn2 = document.createElement('button');
-            closBtn2.className = 'game-modal-btn';
-            closBtn2.style.cssText = 'flex:1;background:linear-gradient(135deg,'+color+',#0F766E);color:white;';
-            closBtn2.textContent = '\u2713 \u0417\u0430\u0442\u0432\u043E\u0440\u0438';
-            closBtn2.onclick = function(){ overlay.remove(); };
-
-            btnRow.appendChild(profBtn);
-            btnRow.appendChild(closBtn2);
-            modal.appendChild(btnRow);
-
-            var adaptBtn = document.createElement('button');
-            adaptBtn.className = 'game-modal-btn';
-            adaptBtn.style.cssText = 'width:100%;margin-top:10px;background:linear-gradient(135deg,#6366f1,#4f46e5);color:white;';
-            adaptBtn.textContent = '✨ Подобри плана за следващата седмица';
-            adaptBtn.onclick = function(){
+            var primaryBtn = document.createElement('button');
+            primaryBtn.className = 'game-modal-btn';
+            primaryBtn.style.cssText = 'width:100%;background:linear-gradient(135deg,'+color+',#0F766E);color:white;';
+            primaryBtn.innerHTML = 'Настрой следващата седмица<span class="game-weekly-primary-sub">5 бързи въпроса · около 30 сек</span>';
+            primaryBtn.onclick = function(){
                 overlay.remove();
                 startWeeklyFeedbackFlow(wd);
             };
-            modal.appendChild(adaptBtn);
+            modal.appendChild(primaryBtn);
+
+            var laterBtn = document.createElement('button');
+            laterBtn.className = 'game-weekly-later';
+            laterBtn.textContent = 'По-късно';
+            laterBtn.onclick = function(){
+                overlay.remove();
+                markWeeklySkipped();
+            };
+            modal.appendChild(laterBtn);
 
             overlay.appendChild(modal);
             document.body.appendChild(overlay);
@@ -10238,6 +10220,7 @@
 
             var idx = 0;
             var answers = [];
+            var total = questions.length;
 
             var overlay = document.createElement('div');
             overlay.id = 'gameWeeklyQAModal';
@@ -10246,23 +10229,15 @@
             var modal = document.createElement('div');
             modal.className = 'game-modal';
 
-            var titleEl = document.createElement('div');
-            titleEl.className = 'game-modal-title';
-            titleEl.textContent = 'Бърз feedback';
-            modal.appendChild(titleEl);
-
-            var subEl = document.createElement('div');
-            subEl.className = 'game-modal-msg';
-            subEl.style.fontSize = '0.82rem';
-            subEl.textContent = '5 въпроса · седмица ' + cycleNumber;
-            modal.appendChild(subEl);
+            var stepEl = document.createElement('div');
+            stepEl.className = 'game-qa-step';
+            modal.appendChild(stepEl);
 
             var progress = document.createElement('div');
             progress.className = 'game-qa-progress';
             questions.forEach(function(_, i) {
                 var dot = document.createElement('div');
                 dot.className = 'game-qa-dot' + (i === 0 ? ' active' : '');
-                dot.dataset.idx = String(i);
                 progress.appendChild(dot);
             });
             modal.appendChild(progress);
@@ -10277,7 +10252,7 @@
 
             var skipBtn = document.createElement('button');
             skipBtn.className = 'game-qa-skip';
-            skipBtn.textContent = 'Пропусни засега';
+            skipBtn.textContent = 'По-късно';
             skipBtn.onclick = function() {
                 overlay.remove();
                 if (onSkip) onSkip();
@@ -10286,6 +10261,7 @@
 
             function renderStep() {
                 var q = questions[idx];
+                stepEl.textContent = (idx + 1) + ' от ' + total;
                 qEl.textContent = q.text;
                 optsWrap.innerHTML = '';
                 progress.querySelectorAll('.game-qa-dot').forEach(function(dot, i) {
@@ -10315,7 +10291,7 @@
             document.body.appendChild(overlay);
         }
 
-        function showWeeklyAdaptingModal() {
+        function showWeeklyLoadingModal(text) {
             var old = document.getElementById('gameWeeklyAdaptModal');
             if (old) old.remove();
             var overlay = document.createElement('div');
@@ -10323,13 +10299,34 @@
             overlay.className = 'game-modal-overlay';
             var modal = document.createElement('div');
             modal.className = 'game-modal';
-            modal.innerHTML = '<div class="game-modal-emoji"><i class="fas fa-wand-magic-sparkles" style="color:#6366f1"></i></div>'
-                + '<div class="game-modal-title">Адаптираме плана</div>'
-                + '<div class="game-modal-msg">Анализираме отговорите и данните от седмицата...</div>'
-                + '<div style="margin:12px 0"><i class="fas fa-spinner fa-spin" style="color:#0D9488;font-size:1.5rem"></i></div>';
+            modal.innerHTML = '<div style="margin:8px 0 16px"><i class="fas fa-spinner fa-spin" style="color:#0D9488;font-size:1.6rem"></i></div>'
+                + '<div class="game-modal-title" style="font-size:1.1rem">' + (text || 'Момент...') + '</div>';
             overlay.appendChild(modal);
             document.body.appendChild(overlay);
             return overlay;
+        }
+
+        function showWeeklyErrorModal(message) {
+            var old = document.getElementById('gameWeeklyAdaptModal');
+            if (old) old.remove();
+            var overlay = document.createElement('div');
+            overlay.id = 'gameWeeklyAdaptModal';
+            overlay.className = 'game-modal-overlay';
+            var modal = document.createElement('div');
+            modal.className = 'game-modal';
+            modal.innerHTML = '<div class="game-modal-title">Не успяхме</div>';
+            var msg = document.createElement('div');
+            msg.className = 'game-modal-msg';
+            msg.textContent = message || 'Опитайте отново по-късно.';
+            modal.appendChild(msg);
+            var btn = document.createElement('button');
+            btn.className = 'game-modal-btn';
+            btn.style.cssText = 'width:100%;background:#0D9488;color:white;';
+            btn.textContent = 'Добре';
+            btn.onclick = function() { overlay.remove(); };
+            modal.appendChild(btn);
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
         }
 
         function showWeeklyResultModal(result) {
@@ -10339,36 +10336,28 @@
             var overlay = document.createElement('div');
             overlay.id = 'gameWeeklyAdaptModal';
             overlay.className = 'game-modal-overlay';
-            overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
 
             var modal = document.createElement('div');
             modal.className = 'game-modal';
 
-            var icon = result.changed ? 'fa-check-circle' : 'fa-heart';
-            var color = result.changed ? '#10b981' : '#6366f1';
-            modal.innerHTML = '<div class="game-modal-emoji"><i class="fas ' + icon + '" style="color:' + color + '"></i></div>'
-                + '<div class="game-modal-title">' + (result.changed ? 'Планът е актуализиран!' : 'Отлична седмица!') + '</div>';
+            var title = result.changed ? 'Планът е обновен' : 'Готово!';
+            modal.innerHTML = '<div class="game-modal-emoji"><i class="fas ' + (result.changed ? 'fa-check-circle' : 'fa-heart') + '" style="color:' + (result.changed ? '#10b981' : '#6366f1') + '"></i></div>'
+                + '<div class="game-modal-title">' + title + '</div>';
 
             var msg = document.createElement('div');
             msg.className = 'game-modal-msg';
-            msg.textContent = result.motivationMessage || '';
-            modal.appendChild(msg);
-
-            if (result.changeSummary && result.changeSummary.length) {
-                var list = document.createElement('ul');
-                list.style.cssText = 'text-align:left;font-size:0.85rem;color:var(--text-dark);opacity:0.85;margin:8px 0 14px;padding-left:18px;line-height:1.5';
-                result.changeSummary.forEach(function(item) {
-                    var li = document.createElement('li');
-                    li.textContent = item;
-                    list.appendChild(li);
-                });
-                modal.appendChild(list);
+            if (result.changed && result.changeSummary && result.changeSummary.length) {
+                msg.textContent = result.changeSummary.slice(0, 2).join(' · ');
+            } else {
+                var text = result.motivationMessage || 'Продължавайте по същия начин.';
+                msg.textContent = text.length > 140 ? text.slice(0, 137) + '...' : text;
             }
+            modal.appendChild(msg);
 
             var btn = document.createElement('button');
             btn.className = 'game-modal-btn';
             btn.style.cssText = 'width:100%;background:linear-gradient(135deg,#0D9488,#0F766E);color:white;';
-            btn.textContent = result.changed ? 'Виж новия план' : 'Продължи';
+            btn.textContent = 'Добре';
             btn.onclick = function() {
                 overlay.remove();
                 if (result.changed && typeof loadDietData === 'function') {
@@ -10459,8 +10448,10 @@
             info.feedbackStatus = 'questions';
             saveWeeklyAIState(info);
 
+            var loadingOverlay = showWeeklyLoadingModal('Подготвяме въпросите...');
             try {
                 var qData = await fetchWeeklyQuestions();
+                loadingOverlay.remove();
                 var questions = qData.questions;
                 var cycleNumber = qData.cycleNumber;
                 info.pendingQuestions = questions;
@@ -10468,7 +10459,7 @@
                 saveWeeklyAIState(info);
 
                 showWeeklyQuickAnswerModal(questions, cycleNumber, async function(answers) {
-                    var adaptingOverlay = showWeeklyAdaptingModal();
+                    var adaptingOverlay = showWeeklyLoadingModal('Подготвяме плана...');
                     try {
                         var result = await submitWeeklyAdaptation(questions, answers, cycleNumber);
                         adaptingOverlay.remove();
@@ -10479,15 +10470,16 @@
                         var st = getWeeklyAIState();
                         st.feedbackStatus = 'pending';
                         saveWeeklyAIState(st);
-                        alert(err.message || 'Грешка при адаптация на плана');
+                        showWeeklyErrorModal('Моля, опитайте отново по-късно.');
                     }
                 }, function() {
                     markWeeklySkipped();
                 });
             } catch (err) {
+                loadingOverlay.remove();
                 info.feedbackStatus = 'pending';
                 saveWeeklyAIState(info);
-                alert(err.message || 'Грешка при генериране на въпроси');
+                showWeeklyErrorModal('Моля, опитайте отново по-късно.');
             }
         }
 
@@ -10499,7 +10491,7 @@
             var cycleNumber = info.pendingCycleNumber || ((info.cycleNumber || 0) + 1);
             setTimeout(function() {
                 showWeeklyQuickAnswerModal(questions, cycleNumber, async function(answers) {
-                    var adaptingOverlay = showWeeklyAdaptingModal();
+                    var adaptingOverlay = showWeeklyLoadingModal('Подготвяме плана...');
                     try {
                         var result = await submitWeeklyAdaptation(questions, answers, cycleNumber);
                         adaptingOverlay.remove();
@@ -10510,7 +10502,7 @@
                         var st = getWeeklyAIState();
                         st.feedbackStatus = 'pending';
                         saveWeeklyAIState(st);
-                        alert(err.message || 'Грешка при адаптация на плана');
+                        showWeeklyErrorModal('Моля, опитайте отново по-късно.');
                     }
                 }, function() { markWeeklySkipped(); });
             }, 2000);

@@ -36,6 +36,6 @@
     "freeDayNumber": null,
     "weeklySchemeNotes": ""
   },
-  "motivationMessage": "съобщение към клиента (2-3 изречения, топло и конкретно)",
-  "changeSummary": ["промяна 1", "промяна 2"]
+  "motivationMessage": "съобщение към клиента (1 изречение, топло, без технически термини)",
+  "changeSummary": ["кратка промяна 1", "кратка промяна 2"]
 }
