@@ -2811,6 +2811,115 @@ async function handlePepResetDemo(request, env) {
   }
 }
 
+const PEP_CATALOG_SHARE_PREFIX = 'pep:catalog-share:';
+const PEP_CATALOG_MAX_HTML_BYTES = 5 * 1024 * 1024;
+
+function generatePepCatalogToken() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID().replace(/-/g, '').slice(0, 12);
+  }
+  return Math.random().toString(36).slice(2, 14);
+}
+
+function pepCatalogShareKey(token) {
+  return `${PEP_CATALOG_SHARE_PREFIX}${token}`;
+}
+
+function buildPepCatalogShareUrl(request, token) {
+  const url = new URL(request.url);
+  return `${url.origin}/pep-katalog/${token}`;
+}
+
+async function handlePepCatalogShare(request, env) {
+  try {
+    if (!env?.page_content) {
+      return jsonResponse({ error: 'Споделянето не е конфигурирано' }, 500);
+    }
+
+    const body = await request.json();
+    const html = String(body?.html || '');
+    const multiplier = Number(body?.multiplier);
+    if (!html.trim()) {
+      return jsonResponse({ error: 'Липсва HTML съдържание' }, 400);
+    }
+    if (!Number.isFinite(multiplier) || multiplier <= 0) {
+      return jsonResponse({ error: 'Невалиден множител' }, 400);
+    }
+
+    const byteSize = new TextEncoder().encode(html).byteLength;
+    if (byteSize > PEP_CATALOG_MAX_HTML_BYTES) {
+      return jsonResponse({ error: 'Каталогът е твърде голям за споделяне' }, 413);
+    }
+
+    let token = generatePepCatalogToken();
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const existing = await env.page_content.get(pepCatalogShareKey(token));
+      if (!existing) break;
+      token = generatePepCatalogToken();
+    }
+
+    const payload = {
+      html,
+      multiplier,
+      createdAt: pepNowISO()
+    };
+    const saved = await kvPutJSON(env, pepCatalogShareKey(token), payload, null);
+    if (!saved) {
+      return jsonResponse({ error: 'Неуспешно запазване на каталога' }, 500);
+    }
+
+    return jsonResponse({
+      success: true,
+      token,
+      url: buildPepCatalogShareUrl(request, token),
+      createdAt: payload.createdAt
+    });
+  } catch (error) {
+    console.error('PEP catalog share error:', error);
+    return jsonResponse({ error: error.message || 'Неуспешно споделяне на каталога' }, 500);
+  }
+}
+
+async function handlePepCatalogGet(request, env, token) {
+  try {
+    const cleanToken = String(token || '').trim().replace(/[^a-zA-Z0-9]/g, '');
+    if (!cleanToken || cleanToken.length < 8) {
+      return new Response('Невалиден линк.', {
+        status: 400,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+      });
+    }
+    if (!env?.page_content) {
+      return new Response('Каталогът не е наличен.', {
+        status: 503,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+      });
+    }
+
+    const record = await kvGetJSON(env, pepCatalogShareKey(cleanToken));
+    if (!record?.html) {
+      return new Response('Каталогът не е намерен.', {
+        status: 404,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+      });
+    }
+
+    return new Response(record.html, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'public, max-age=300'
+      }
+    });
+  } catch (error) {
+    console.error('PEP catalog get error:', error);
+    return new Response('Грешка при зареждане на каталога.', {
+      status: 500,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+    });
+  }
+}
+
 /**
  * Remove internal justification fields from plan before returning to client
  * These fields are only for the validator and should not be visible to the end user
@@ -16377,6 +16486,11 @@ export default {
         return await handleTestSendEmail(request, env);
       } else if (url.pathname === '/api/client-plan-status' && request.method === 'GET') {
         return await handleGetClientPlanStatus(request, env);
+      } else if (url.pathname.startsWith('/pep-katalog/') && request.method === 'GET') {
+        const token = decodeURIComponent(url.pathname.slice('/pep-katalog/'.length)).replace(/\/+$/, '');
+        return await handlePepCatalogGet(request, env, token);
+      } else if (url.pathname === '/api/pep/catalog/share' && request.method === 'POST') {
+        return await handlePepCatalogShare(request, env);
       } else if (url.pathname === '/api/pep/bootstrap' && request.method === 'GET') {
         return await handlePepBootstrap(request, env);
       } else if (url.pathname === '/api/pep/products' && request.method === 'POST') {
