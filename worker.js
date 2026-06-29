@@ -7007,7 +7007,7 @@ function buildWeeklyAdaptationContextSection(data) {
   return `\n\n═══ СЕДМИЧНА АДАПТАЦИЯ (АВТОМАТИЧНО) ═══\n${data.weeklyAdaptationContext}\n═══════════════════════════════════════════════════════════════`;
 }
 
-function buildWeeklyContextFromPayload(userData, plan, analytics, gameWeeklyAI, feedbackAnswers) {
+function buildWeeklyContextFromPayload(userData, plan, analytics, gameWeeklyAI, feedbackAnswers, serverAdaptHistory) {
   const cycleNumber = gameWeeklyAI?.cycleNumber || 1;
   const dietStartDate = gameWeeklyAI?.dietStartDate || '';
   let daysSinceStart = null;
@@ -7033,7 +7033,10 @@ function buildWeeklyContextFromPayload(userData, plan, analytics, gameWeeklyAI, 
     feedbackBlock = 'FB|answers|' + feedbackAnswers.map((a) => `${a.questionId}=${String(a.value).replace(/\|/g, '/')}`).join('|');
   }
 
-  const history = (gameWeeklyAI?.adaptationHistory || []).slice(-3);
+  const history = [
+    ...(serverAdaptHistory || []),
+    ...(gameWeeklyAI?.adaptationHistory || []),
+  ].filter((h) => h && h.cycleNumber != null).slice(-3);
   const histBlock = history.length
     ? 'HIST|' + history.map((h) => `c${h.cycleNumber}:L${h.level}`).join('|')
     : '';
@@ -7091,6 +7094,7 @@ async function resolveWeeklyJobInputs(env, { userId, clientId, userData, plan, g
     userData: resolvedUserData || {},
     plan: resolvedPlan,
     analytics,
+    weeklyAdaptHistory: profile?.weeklyAdaptHistory || [],
   };
 }
 
@@ -7197,8 +7201,8 @@ async function verifyWeeklyRequestAuth(userId, idToken, env) {
   }
 }
 
-async function generateWeeklyQuestions(env, userData, plan, analytics, gameWeeklyAI) {
-  const weeklyContext = buildWeeklyContextFromPayload(userData, plan, analytics, gameWeeklyAI);
+async function generateWeeklyQuestions(env, userData, plan, analytics, gameWeeklyAI, serverAdaptHistory) {
+  const weeklyContext = buildWeeklyContextFromPayload(userData, plan, analytics, gameWeeklyAI, null, serverAdaptHistory);
   const template = await requireKvPrompt(env, 'admin_weekly_questions_prompt');
   const prompt = template.replace(/\{weeklyContext\}/g, weeklyContext);
   const response = await callAIModel(env, prompt, 1200, 'weekly_questions', null, userData, null);
@@ -7208,8 +7212,8 @@ async function generateWeeklyQuestions(env, userData, plan, analytics, gameWeekl
   return { questions, contextNote: parsed.contextNote || '' };
 }
 
-async function getWeeklyAdaptationDecision(env, userData, plan, analytics, gameWeeklyAI, questions, answers) {
-  const weeklyContext = buildWeeklyContextFromPayload(userData, plan, analytics, gameWeeklyAI, answers);
+async function getWeeklyAdaptationDecision(env, userData, plan, analytics, gameWeeklyAI, questions, answers, serverAdaptHistory) {
+  const weeklyContext = buildWeeklyContextFromPayload(userData, plan, analytics, gameWeeklyAI, answers, serverAdaptHistory);
   const feedbackAnswers = formatFeedbackAnswersForPrompt(questions, answers);
   const template = await requireKvPrompt(env, 'admin_weekly_adaptation_prompt');
   const prompt = template
@@ -7249,6 +7253,15 @@ function releasePendingWeeklyIfDue(profile) {
   }
   const pending = profile.pendingWeekly;
   if (pending.notice) profile.weeklyAdaptNotice = pending.notice;
+  if (pending.adaptLevel != null && pending.notice?.cycleNumber != null) {
+    const hist = profile.weeklyAdaptHistory || [];
+    hist.push({
+      cycleNumber: pending.notice.cycleNumber,
+      level: pending.adaptLevel,
+      at: pending.notice.at || new Date().toISOString(),
+    });
+    profile.weeklyAdaptHistory = hist.slice(-5);
+  }
   if (pending.plan) {
     profile.plan = pending.plan;
     if (pending.userData) profile.userData = pending.userData;
@@ -7276,9 +7289,6 @@ async function applyWeeklyReleaseIfDue(env, profile, userId) {
         if (updated.planUpdatedAt) clientData.planUpdatedAt = updated.planUpdatedAt;
         delete clientData.pendingWeekly;
         await kvPutJSON(env, `client:${clientId}`, clientData, null);
-        if (clientData.planStatus === 'activated' && pending?.plan) {
-          await deliverPlanUpdateToClient(env, clientData, clientId, 'updated');
-        }
       }
     } catch (e) {
       console.warn('[WeeklyAdapt] client release failed:', e.message);
@@ -7289,13 +7299,13 @@ async function applyWeeklyReleaseIfDue(env, profile, userId) {
 
 async function runWeeklyAdaptation(env, payload, jobId) {
   const { userId, gameWeeklyAI, answers, questions, clientId } = payload;
-  const { userData, plan, analytics } = await resolveWeeklyJobInputs(env, payload);
+  const { userData, plan, analytics, weeklyAdaptHistory } = await resolveWeeklyJobInputs(env, payload);
   if (!plan?.weekPlan) throw new Error('Липсва план за адаптация');
   const cycleNumber = gameWeeklyAI?.cycleNumber || 1;
 
   try {
     const decision = await getWeeklyAdaptationDecision(
-      env, userData, plan, analytics, gameWeeklyAI, questions, answers
+      env, userData, plan, analytics, gameWeeklyAI, questions, answers, weeklyAdaptHistory
     );
     const noticeBase = {
       id: jobId,
@@ -7306,12 +7316,14 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       message: decision.motivationMessage,
       changes: (decision.changeSummary || []).slice(0, 2),
       cycleNumber,
+      adaptLevel: decision.adaptationLevel,
       at: new Date().toISOString(),
     };
 
     if (decision.adaptationLevel === 0) {
       await savePendingWeeklyRelease(env, userId, clientId, {
         notice: { ...noticeBase, changed: false },
+        adaptLevel: 0,
       });
       return;
     }
@@ -7340,6 +7352,7 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       notice,
       plan: newPlan,
       userData: enrichedData,
+      adaptLevel: decision.adaptationLevel,
     });
   } catch (error) {
     console.error('[WeeklyAdapt] job failed:', error);
@@ -7364,7 +7377,7 @@ async function handleWeeklyGenerateQuestions(request, env) {
       return jsonResponse({ error: e.message }, 401);
     }
 
-    const { userData, plan, analytics } = await resolveWeeklyJobInputs(env, body);
+    const { userData, plan, analytics, weeklyAdaptHistory } = await resolveWeeklyJobInputs(env, body);
     if (!plan?.weekPlan) {
       return jsonResponse({ error: 'Missing plan' }, 400);
     }
@@ -7374,7 +7387,7 @@ async function handleWeeklyGenerateQuestions(request, env) {
 
     const cycleNumber = (gameWeeklyAI?.cycleNumber || 0) + 1;
     const result = await generateWeeklyQuestions(
-      env, userData, plan, analytics, { ...gameWeeklyAI, cycleNumber }
+      env, userData, plan, analytics, { ...gameWeeklyAI, cycleNumber }, weeklyAdaptHistory
     );
 
     return jsonResponse({
@@ -7416,13 +7429,18 @@ async function handleWeeklyAdaptPlan(request, env, ctx) {
       return jsonResponse({ error: 'Missing plan' }, 400);
     }
 
+    const existingProfile = await kvGetJSON(env, `user_profile:${userId}`);
+    if (existingProfile?.pendingWeekly) {
+      return jsonResponse({ error: 'Адаптация вече е в процес. Опитайте след малко.' }, 409);
+    }
+
     const jobId = crypto.randomUUID();
-    const cycleNumber = (gameWeeklyAI?.cycleNumber || 0) + 1;
+    const resolvedCycle = (gameWeeklyAI?.cycleNumber || 0) + 1;
     const payload = {
       userId,
       clientId: clientId || '',
       gameData,
-      gameWeeklyAI: { ...(gameWeeklyAI || {}), cycleNumber },
+      gameWeeklyAI: { ...(gameWeeklyAI || {}), cycleNumber: resolvedCycle },
       answers,
       questions,
     };
@@ -7431,12 +7449,55 @@ async function handleWeeklyAdaptPlan(request, env, ctx) {
       await env.PLAN_QUEUE.send({ jobId, type: 'weekly_adapt', payload }, { contentType: 'json' });
     } else if (ctx) {
       ctx.waitUntil(runWeeklyAdaptation(env, payload, jobId));
+    } else {
+      return jsonResponse({ error: 'PLAN_QUEUE not configured' }, 503);
     }
 
-    return jsonResponse({ success: true, submitted: true });
+    return jsonResponse({ success: true, submitted: true, jobId, cycleNumber: resolvedCycle });
   } catch (error) {
     console.error('[WeeklyAdapt] adapt-plan error:', error);
     return jsonResponse({ error: error.message }, 500);
+  }
+}
+
+/**
+ * POST /api/weekly/ack-notice — clear weeklyAdaptNotice after client shows modal
+ */
+async function handleWeeklyAckNotice(request, env) {
+  try {
+    if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    const { userId, noticeId, idToken } = await request.json();
+    if (!userId || !noticeId) {
+      return jsonResponse({ error: 'Missing userId or noticeId' }, 400);
+    }
+    try {
+      await verifyWeeklyRequestAuth(userId, idToken, env);
+    } catch (e) {
+      return jsonResponse({ error: e.message }, 401);
+    }
+
+    const profile = (await kvGetJSON(env, `user_profile:${userId}`)) || { userId };
+    if (profile.weeklyAdaptNotice?.id === noticeId) {
+      delete profile.weeklyAdaptNotice;
+      const ttl = userId.startsWith('fb_') ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
+      await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
+    }
+
+    const clientId = profile.clientId || '';
+    if (clientId) {
+      try {
+        const clientData = await kvGetJSON(env, `client:${clientId}`);
+        if (clientData?.weeklyAdaptNotice?.id === noticeId) {
+          delete clientData.weeklyAdaptNotice;
+          await kvPutJSON(env, `client:${clientId}`, clientData, null);
+        }
+      } catch (_) {}
+    }
+
+    return jsonResponse({ success: true });
+  } catch (error) {
+    console.error('[WeeklyAdapt] ack-notice error:', error);
+    return jsonResponse({ error: error.message || 'Ack failed' }, 500);
   }
 }
 
@@ -16337,6 +16398,8 @@ export default {
         return await handleWeeklyGenerateQuestions(request, env);
       } else if (url.pathname === '/api/weekly/adapt-plan' && request.method === 'POST') {
         return await handleWeeklyAdaptPlan(request, env, ctx);
+      } else if (url.pathname === '/api/weekly/ack-notice' && request.method === 'POST') {
+        return await handleWeeklyAckNotice(request, env);
       } else if (url.pathname === '/api/user/check-account' && request.method === 'GET') {
         return await handleCheckAccountEmail(request, env);
       } else if (url.pathname === '/api/plan/claim' && request.method === 'GET') {
