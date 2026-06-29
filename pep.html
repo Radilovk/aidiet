@@ -712,63 +712,18 @@
             border: 1px solid var(--border);
             border-radius: var(--radius-md);
             overflow: hidden;
-            background: #fff;
-        }
-
-        .catalog-list {
-            list-style: none;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
+            background: #e2e8f0;
             padding: 8px;
+            max-height: 420px;
+            overflow-y: auto;
         }
 
-        .catalog-item {
-            border: 1px solid var(--border);
-            border-radius: var(--radius-md);
-            padding: 12px;
-            background: #fff;
+        .catalog-preview .category {
+            margin-bottom: 8px;
         }
 
-        .catalog-row {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 12px;
-        }
-
-        .catalog-name {
-            font-weight: 700;
-            font-size: 0.92rem;
-            line-height: 1.35;
-            word-break: break-word;
-        }
-
-        .catalog-dose {
-            display: inline-flex;
-            margin-top: 6px;
-            padding: 4px 8px;
-            border-radius: 999px;
-            background: var(--surface-alt);
-            color: var(--text-muted);
-            font-size: 0.78rem;
-            font-weight: 700;
-        }
-
-        .catalog-price {
-            font-size: 1.05rem;
-            font-weight: 800;
-            color: var(--primary);
-            white-space: nowrap;
-        }
-
-        .catalog-ref {
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 1px solid var(--border);
-            color: var(--text-muted);
-            font-size: 0.78rem;
-            line-height: 1.45;
+        .catalog-preview .category:last-child {
+            margin-bottom: 0;
         }
     </style>
 </head>
@@ -1099,6 +1054,130 @@
         { prodBase: 'Retatrutide', dosage: '5 mg', qty: 2, mult: 2.5, comment: 'Малка поръчка на дребно', date: '2025-05-15' },
         { prodBase: 'Глутатион', dosage: '600 mg', qty: 10, mult: 2, comment: 'Поръчка над 10 броя', date: '2025-05-16' },
         { prodBase: 'NAD+', dosage: '500 mg', qty: 3, mult: 1, comment: 'Лична употреба', date: '2025-05-17' }
+    ];
+
+    const CATALOG_NAME_ALIASES = {
+        'CJC-1295 + IPA': 'CJC-1295 + Ipamorelin',
+        'Ipamorelin + CJC': 'CJC-1295 + Ipamorelin'
+    };
+
+    const CATALOG_LIBRARY = [
+        {
+            title: 'Отслабване & Метаболизъм',
+            products: [
+                {
+                    key: 'Тирзепатид',
+                    name: 'Тирзепатид',
+                    marketing: 'Двоен GLP-1/GIP рецепторен агонист. Драстично потиска апетита, забавя стомашното изпразване и оптимизира инсулиновата чувствителност. Златен стандарт за редукция на тегло.',
+                    protocol: 'Прием: 2.5 mg подкожно веднъж седмично.'
+                },
+                {
+                    key: 'Retatrutide',
+                    name: 'Retatrutide',
+                    marketing: 'Тройна синергия (GLP-1/GIP/Glucagon). Най-агресивният агент за изгаряне на мазнини на пазара. Повишава базовия метаболизъм (BMR) и директно атакува мастните депа.',
+                    protocol: 'Прием: 2 mg подкожно веднъж седмично.'
+                },
+                {
+                    key: 'Mots-C',
+                    name: 'Mots-C',
+                    marketing: 'Митохондриален регулатор. Форсира тялото да използва мазнини и глюкоза за енергия. Осигурява метаболитна гъвкавост и екстремна физическа издръжливост.',
+                    protocol: 'Прием: 5-10 mg подкожно, 1-3 пъти седмично (преди натоварване).'
+                },
+                {
+                    key: 'SLU-PP-322',
+                    name: 'SLU-PP-322',
+                    marketing: 'Известен като "упражнение в спринцовка". Активира ERRα рецепторите, имитирайки ефектите на интензивна кардио тренировка на клетъчно ниво. Забързва липолизата.',
+                    protocol: 'Прием: 1-2 mg дневно подкожно.'
+                },
+                {
+                    key: 'LC120',
+                    name: 'LC120',
+                    marketing: 'Мощен липолитичен комплекс за локално таргетиране. Подпомага разграждането на упорити мастни депа в специфични зони.',
+                    protocol: 'Прием: По индивидуална схема за локално приложение.'
+                },
+                {
+                    key: 'LC216',
+                    name: 'LC216',
+                    marketing: 'Усъвършенстван липолитичен комплекс. Ускорява метаболизма на мастните киселини и предотвратява ново натрупване в третираните зони.',
+                    protocol: 'Прием: По индивидуална схема за локално приложение.'
+                }
+            ]
+        },
+        {
+            title: 'Антиейджинг & Здраве',
+            products: [
+                {
+                    key: 'Глутатион',
+                    name: 'Глутатион',
+                    marketing: 'Майсторският антиоксидант на тялото. Детоксикира черния дроб, изчиства свободните радикали, изсветлява кожата и осигурява дълбоко клетъчно подмладяване.',
+                    protocol: 'Прием: 200-600 mg подкожно/интрамускулно, 1-3 пъти седмично.'
+                },
+                {
+                    key: 'Тимозин Алфа',
+                    name: 'Тимозин Алфа',
+                    marketing: 'Елитна имунна модулация. Стимулира Т-клетките, възстановява компрометирана имунна система и осигурява защита срещу вирусни инфекции и възпаления.',
+                    protocol: 'Прием: 1.5 mg подкожно два пъти седмично.'
+                },
+                {
+                    key: 'NAD+',
+                    name: 'NAD+',
+                    marketing: 'Молекулата на младостта. Възстановява клетъчната енергия (ATP), регенерира ДНК щети и повишава неврологичния фокус и яснота.',
+                    protocol: 'Прием: 50-100 mg подкожно, 2-3 пъти седмично.'
+                }
+            ]
+        },
+        {
+            title: 'Мускулен Растеж & Оформяне',
+            products: [
+                {
+                    key: 'CJC-1295 + Ipamorelin',
+                    name: 'CJC-1295 + Ipamorelin',
+                    marketing: 'Златният стандарт за секреция на растежен хормон. Стимулира естественото производство на HGH, изгражда чиста мускулна маса, гори мазнини и гарантира дълбок възстановителен сън.',
+                    protocol: 'Прием: 100-300 mcg подкожно, вечер преди лягане на гладно.'
+                },
+                {
+                    key: 'Tesamorelin',
+                    name: 'Tesamorelin',
+                    marketing: 'Най-мощният пептид (GHRH) за директно таргетиране и изгаряне на висцерална мастна тъкан (коремната област). Повишава IGF-1 нивата.',
+                    protocol: 'Прием: 1-2 mg подкожно вечер, на празен стомах.'
+                },
+                {
+                    key: 'IGF-1LR3',
+                    name: 'IGF-1LR3',
+                    marketing: 'Инсулиноподобен растежен фактор (дълъг полуживот). Предизвиква системна мускулна хиперплазия (създаване на нови мускулни клетки) и блокира мускулния разпад.',
+                    protocol: 'Прием: 20-50 mcg подкожно в тренировъчни дни.'
+                },
+                {
+                    key: 'IGF-DES',
+                    name: 'IGF-DES',
+                    marketing: 'Супер-активна, къса версия на IGF-1. Действа мигновено. Идеален за локален растеж, екстремно напомпване и третиране на изоставащи мускулни групи.',
+                    protocol: 'Прием: 20-50 mcg двустранно (в тренирания мускул) преди тренировка.'
+                }
+            ]
+        },
+        {
+            title: 'Естетика & Регенерация',
+            products: [
+                {
+                    key: 'GHK-Cu',
+                    name: 'GHK-Cu',
+                    marketing: 'Медният пептид. Увеличава производството на колаген, сгъстява косата, лекува тъканни увреждания и изглажда фините линии и бръчки. Клетъчен ремонт на ДНК ниво.',
+                    protocol: 'Прием: 1-2 mg подкожно дневно.'
+                },
+                {
+                    key: 'Glow (CU+TB+BC+KPV)',
+                    name: 'Glow (CU+TB+BC+KPV)',
+                    marketing: 'Ултимативният стакинг (GHK-Cu, TB-500, BPC-157, KPV). Блокира възпаленията, лекува червата, регенерира стави/сухожилия и осигурява блестяща, здрава кожа.',
+                    protocol: 'Прием: По специфична схема в зависимост от целите на регенерацията.'
+                },
+                {
+                    key: 'Меланотан 2',
+                    name: 'Меланотан 2',
+                    marketing: 'Стимулира производството на меланин. Гарантира дълбок, равномерен тен с минимално излагане на UV лъчи, предпазва от изгаряне и силно стимулира либидото.',
+                    protocol: 'Прием: 250-500 mcg подкожно преди излагане на слънце/солариум.'
+                }
+            ]
+        }
     ];
 
     const STORAGE_PRODUCTS = 'pep_local_products';
@@ -2123,77 +2202,7 @@
         return `pep-katalog-x${formatMultiplierValue(multiplier)}.html`;
     }
 
-    function getCatalogExportProducts() {
-        return getSortedProducts().map((product) => ({
-            baseName: product.baseName,
-            dosage: product.dosage,
-            purchasePrice: safeNumber(product.purchasePrice)
-        }));
-    }
-
-    function renderCatalogItemCard(product, multiplier) {
-        const purchasePrice = safeNumber(product.purchasePrice);
-        const wholesale = purchasePrice * 2;
-        const retail = purchasePrice * 2.5;
-        const price = purchasePrice * multiplier;
-
-        return `
-            <li class="catalog-item">
-                <div class="catalog-row">
-                    <div>
-                        <div class="catalog-name">${escapeHtml(product.baseName)}</div>
-                        <span class="catalog-dose">${escapeHtml(product.dosage)}</span>
-                    </div>
-                    <div class="catalog-price">${formatMoney(price)}</div>
-                </div>
-                <div class="catalog-ref">Едро ×2: ${formatMoney(wholesale)} · Дребно ×2.5: ${formatMoney(retail)} · Доставна: ${formatMoney(purchasePrice)}</div>
-            </li>
-        `;
-    }
-
-    function renderCatalogListMarkup(multiplier, limit = null) {
-        const products = limit ? getSortedProducts().slice(0, limit) : getSortedProducts();
-        return `<ul class="catalog-list">${products.map((product) => renderCatalogItemCard(product, multiplier)).join('')}</ul>`;
-    }
-
-    function updatePortfolioPreview() {
-        const preview = document.getElementById('portfolioPreview');
-        const multiplier = getPortfolioMultiplier();
-        const total = getSortedProducts().length;
-
-        if (!total) {
-            preview.innerHTML = '<div class="empty-state">Каталогът е празен.</div>';
-            return;
-        }
-        if (!Number.isFinite(multiplier) || multiplier <= 0) {
-            preview.innerHTML = '<div class="empty-state">Въведи валиден множител.</div>';
-            return;
-        }
-
-        preview.innerHTML = `
-            <div class="catalog-preview">
-                ${renderCatalogListMarkup(multiplier, 5)}
-            </div>
-            <div class="inline-note" style="margin-top:10px;">
-                ×${formatMultiplierValue(multiplier)} · ${total} продукта${total > 5 ? ' · показани първите 5' : ''}
-            </div>
-        `;
-    }
-
-    function buildCatalogDocument(defaultMultiplier) {
-        const today = new Date().toLocaleDateString('bg-BG');
-        const total = getSortedProducts().length;
-        const multiplierLabel = formatMultiplierValue(defaultMultiplier);
-        const productsJson = JSON.stringify(getCatalogExportProducts()).replace(/</g, '\\u003c');
-
-        return `<!DOCTYPE html>
-<html lang="bg">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<title>PEP Каталог</title>
-<style>
+    const CATALOG_EXPORT_STYLES = `
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
     font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -2204,7 +2213,7 @@ body {
     margin: 0 auto;
     -webkit-font-smoothing: antialiased;
 }
-header, .toolbar, .catalog-item {
+header, .toolbar {
     background: #fff;
     border: 1px solid #dbe3ef;
     border-radius: 16px;
@@ -2241,52 +2250,308 @@ select, input {
     background: #fff;
     color: #0f172a;
 }
-.catalog-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
-.catalog-item { padding: 14px; line-height: 1.35; }
-.catalog-row {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
+.category {
+    background: #e2e8f0;
+    border-radius: 16px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    border: 1px solid #cbd5e1;
 }
-.catalog-name { font-weight: 700; font-size: 0.98rem; word-break: break-word; }
-.catalog-dose {
-    display: inline-flex;
-    margin-top: 6px;
-    padding: 4px 8px;
-    border-radius: 999px;
-    background: #f8fafc;
+.category-title {
+    padding: 14px 16px;
+    font-weight: 800;
+    font-size: 1.05rem;
+    color: #1e293b;
+    cursor: pointer;
+    list-style: none;
+    position: relative;
+    user-select: none;
+}
+.category-title::-webkit-details-marker { display: none; }
+.category-title::after {
+    content: '+';
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.4rem;
+    font-weight: 400;
+    line-height: 1;
     color: #64748b;
-    font-size: 0.78rem;
+    transition: transform 0.2s ease;
+}
+.category[open] > .category-title::after {
+    transform: translateY(-50%) rotate(45deg);
+}
+.category-content {
+    padding: 0 8px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.catalog-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.8fr) minmax(0, 0.8fr);
+    gap: 8px;
+    padding: 0 14px 8px;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #64748b;
     font-weight: 700;
 }
-.catalog-price {
-    font-size: 1.08rem;
-    font-weight: 800;
-    color: #2563eb;
-    white-space: nowrap;
+.catalog-head span:last-child,
+.catalog-price { text-align: right; }
+.product {
+    background: #fff;
+    border: 1px solid #dbe3ef;
+    border-radius: 14px;
+    overflow: hidden;
 }
-.catalog-ref {
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px solid #eef2f7;
+.catalog-item-summary {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.8fr) minmax(0, 0.8fr);
+    gap: 8px;
+    align-items: center;
+    padding: 14px;
+    font-size: 0.95rem;
+    line-height: 1.35;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+    position: relative;
+    transition: background 0.2s ease;
+}
+.catalog-item-summary::-webkit-details-marker { display: none; }
+.product[open] > .catalog-item-summary {
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+}
+.catalog-name { font-weight: 700; word-break: break-word; }
+.catalog-dose { color: #64748b; font-size: 0.88rem; }
+.catalog-price { font-weight: 800; color: #2563eb; white-space: nowrap; }
+.product-details {
+    padding: 14px;
+    background: #fff;
+    font-size: 0.9rem;
+    color: #334155;
+}
+.marketing-text { margin-bottom: 10px; line-height: 1.5; }
+.protocol {
+    font-weight: 600;
+    color: #0f172a;
+    margin-bottom: 12px;
+    background: #f1f5f9;
+    padding: 8px 10px;
+    border-radius: 8px;
+}
+.variants-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
     color: #64748b;
-    font-size: 0.78rem;
-    line-height: 1.45;
+    margin-bottom: 6px;
+    letter-spacing: 0.05em;
 }
+.variant-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-top: 1px dashed #cbd5e1;
+}
+.variant-row:first-of-type { border-top: none; }
+.variant-dose { font-weight: 600; color: #475569; }
+.variant-price { font-weight: 700; color: #2563eb; }
 footer {
     margin-top: 16px;
     padding: 0 4px 24px;
     text-align: center;
     color: #94a3b8;
     font-size: 0.78rem;
-}
-</style>
+}`;
+
+    function getCatalogProductKey(baseName) {
+        return CATALOG_NAME_ALIASES[baseName] || baseName;
+    }
+
+    function buildCatalogGroupsMap() {
+        const groups = new Map();
+        getSortedProducts().forEach((product) => {
+            const key = getCatalogProductKey(product.baseName);
+            if (!groups.has(key)) {
+                groups.set(key, { key, name: product.baseName, variants: [] });
+            }
+            groups.get(key).variants.push({
+                dosage: product.dosage,
+                purchasePrice: safeNumber(product.purchasePrice)
+            });
+        });
+        groups.forEach((group) => {
+            group.variants.sort((a, b) => a.purchasePrice - b.purchasePrice);
+        });
+        return groups;
+    }
+
+    function getProductSummaryDose(variants) {
+        if (!variants.length) {
+            return '—';
+        }
+        if (variants.length === 1) {
+            return variants[0].dosage;
+        }
+        return `от ${variants[0].dosage}`;
+    }
+
+    function buildCatalogModel() {
+        const groups = buildCatalogGroupsMap();
+        const usedKeys = new Set();
+        const categories = CATALOG_LIBRARY.map((category, index) => ({
+            title: category.title,
+            open: index === 0,
+            products: category.products
+                .map((profile) => {
+                    const group = groups.get(profile.key);
+                    if (!group || !group.variants.length) {
+                        return null;
+                    }
+                    usedKeys.add(profile.key);
+                    return {
+                        name: profile.name || group.name,
+                        marketing: profile.marketing,
+                        protocol: profile.protocol,
+                        summaryDose: getProductSummaryDose(group.variants),
+                        variants: group.variants
+                    };
+                })
+                .filter(Boolean)
+        })).filter((category) => category.products.length);
+
+        const otherProducts = [...groups.values()].filter((group) => !usedKeys.has(group.key));
+        if (otherProducts.length) {
+            categories.push({
+                title: 'Други продукти',
+                open: false,
+                products: otherProducts.map((group) => ({
+                    name: group.name,
+                    marketing: 'Наличен продукт от текущия PEP каталог.',
+                    protocol: 'Прием: по индивидуален протокол.',
+                    summaryDose: getProductSummaryDose(group.variants),
+                    variants: group.variants
+                }))
+            });
+        }
+
+        return {
+            uniqueCount: groups.size,
+            variantCount: getSortedProducts().length,
+            categories
+        };
+    }
+
+    function renderCatalogProductHtml(product, multiplier) {
+        const minPrice = product.variants[0].purchasePrice * multiplier;
+        const variantsTitle = product.variants.length > 1 ? '<div class="variants-title">Налични варианти</div>' : '';
+        const variantsHtml = product.variants.map((variant) => `
+            <div class="variant-row">
+                <span class="variant-dose">${escapeHtml(variant.dosage)}</span>
+                <span class="variant-price">${formatMoney(variant.purchasePrice * multiplier)}</span>
+            </div>
+        `).join('');
+
+        return `
+            <details class="product">
+                <summary class="catalog-item-summary">
+                    <span class="catalog-name">${escapeHtml(product.name)}</span>
+                    <span class="catalog-dose">${escapeHtml(product.summaryDose)}</span>
+                    <span class="catalog-price">${formatMoney(minPrice)}</span>
+                </summary>
+                <div class="product-details">
+                    <p class="marketing-text">${escapeHtml(product.marketing)}</p>
+                    <div class="protocol">${escapeHtml(product.protocol)}</div>
+                    ${variantsTitle}
+                    ${variantsHtml}
+                </div>
+            </details>
+        `;
+    }
+
+    function renderCatalogBodyHtml(model, multiplier, options = {}) {
+        const categories = options.preview ? model.categories.slice(0, 1) : model.categories;
+        const productLimit = options.preview ? 2 : null;
+        const categoryHtml = categories.map((category, index) => {
+            const products = productLimit ? category.products.slice(0, productLimit) : category.products;
+            if (!products.length) {
+                return '';
+            }
+            const openAttr = options.preview ? (index === 0 ? ' open' : '') : (category.open ? ' open' : '');
+            return `
+                <details class="category"${openAttr}>
+                    <summary class="category-title">${escapeHtml(category.title)}</summary>
+                    <div class="category-content">
+                        ${products.map((product) => renderCatalogProductHtml(product, multiplier)).join('')}
+                    </div>
+                </details>
+            `;
+        }).join('');
+
+        if (options.preview) {
+            return categoryHtml;
+        }
+
+        return `
+            <div class="catalog-head">
+                <span>Продукт</span>
+                <span>Основа</span>
+                <span>Цена</span>
+            </div>
+            ${categoryHtml}
+        `;
+    }
+
+    function updatePortfolioPreview() {
+        const preview = document.getElementById('portfolioPreview');
+        const multiplier = getPortfolioMultiplier();
+        const model = buildCatalogModel();
+
+        if (!model.variantCount) {
+            preview.innerHTML = '<div class="empty-state">Каталогът е празен.</div>';
+            return;
+        }
+        if (!Number.isFinite(multiplier) || multiplier <= 0) {
+            preview.innerHTML = '<div class="empty-state">Въведи валиден множител.</div>';
+            return;
+        }
+
+        preview.innerHTML = `
+            <style>${CATALOG_EXPORT_STYLES}</style>
+            <div class="catalog-preview">
+                ${renderCatalogBodyHtml(model, multiplier, { preview: true })}
+            </div>
+            <div class="inline-note" style="margin-top:10px;">
+                ×${formatMultiplierValue(multiplier)} · ${model.uniqueCount} уникални продукта · ${model.variantCount} варианта
+            </div>
+        `;
+    }
+
+    function buildCatalogDocument(defaultMultiplier) {
+        const today = new Date().toLocaleDateString('bg-BG');
+        const model = buildCatalogModel();
+        const multiplierLabel = formatMultiplierValue(defaultMultiplier);
+        const modelJson = JSON.stringify(model).replace(/</g, '\\u003c');
+
+        return `<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>PEP Каталог</title>
+<style>${CATALOG_EXPORT_STYLES}</style>
 </head>
 <body>
 <header>
     <h1>PEP Каталог</h1>
-    <div class="meta" id="catalogMeta">${total} продукта · ×${multiplierLabel} · ${escapeHtml(today)}</div>
+    <div class="meta" id="catalogMeta">${model.uniqueCount} уникални продукта · ×${multiplierLabel} · ${escapeHtml(today)}</div>
 </header>
 <section class="toolbar">
     <label for="catalogMultiplierSelect">Множител за цени</label>
@@ -2299,12 +2564,11 @@ footer {
         <input type="number" id="catalogMultiplierCustom" min="0.01" step="0.01" inputmode="decimal" value="${defaultMultiplier !== 2 && defaultMultiplier !== 2.5 ? multiplierLabel : defaultMultiplier}">
     </div>
 </section>
-<ul class="catalog-list" id="catalogList"></ul>
+<div id="catalogRoot"></div>
 <footer>PEP Каталог · ${escapeHtml(today)}</footer>
 <script>
-const catalogProducts = ${productsJson};
+const catalogModel = ${modelJson};
 const catalogDate = ${JSON.stringify(today)};
-let catalogMultiplier = ${defaultMultiplier};
 
 function formatCatalogMoney(value) {
     return Number(value || 0).toFixed(2) + ' €';
@@ -2329,37 +2593,44 @@ function getCatalogMultiplier() {
     return select === 'custom' ? custom : Number(select);
 }
 
-function renderCatalogList() {
-    const list = document.getElementById('catalogList');
-    const meta = document.getElementById('catalogMeta');
+function renderCatalogProduct(product, multiplier) {
+    const minPrice = product.variants[0].purchasePrice * multiplier;
+    const variantsTitle = product.variants.length > 1 ? '<div class="variants-title">Налични варианти</div>' : '';
+    const variantsHtml = product.variants.map(function(variant) {
+        return '<div class="variant-row"><span class="variant-dose">' + escapeCatalogHtml(variant.dosage) +
+            '</span><span class="variant-price">' + formatCatalogMoney(variant.purchasePrice * multiplier) + '</span></div>';
+    }).join('');
+    return '<details class="product"><summary class="catalog-item-summary">' +
+        '<span class="catalog-name">' + escapeCatalogHtml(product.name) + '</span>' +
+        '<span class="catalog-dose">' + escapeCatalogHtml(product.summaryDose) + '</span>' +
+        '<span class="catalog-price">' + formatCatalogMoney(minPrice) + '</span></summary>' +
+        '<div class="product-details"><p class="marketing-text">' + escapeCatalogHtml(product.marketing) + '</p>' +
+        '<div class="protocol">' + escapeCatalogHtml(product.protocol) + '</div>' +
+        variantsTitle + variantsHtml + '</div></details>';
+}
+
+function renderCatalog() {
     const multiplier = getCatalogMultiplier();
+    const meta = document.getElementById('catalogMeta');
+    const root = document.getElementById('catalogRoot');
 
     if (!Number.isFinite(multiplier) || multiplier <= 0) {
-        list.innerHTML = '<li class="catalog-item">Въведи валиден множител.</li>';
+        root.innerHTML = '<div class="category"><div class="category-content">Въведи валиден множител.</div></div>';
         return;
     }
 
-    catalogMultiplier = multiplier;
-    list.innerHTML = catalogProducts.map(function(product) {
-        const purchasePrice = Number(product.purchasePrice) || 0;
-        const price = purchasePrice * multiplier;
-        const wholesale = purchasePrice * 2;
-        const retail = purchasePrice * 2.5;
-        return '<li class="catalog-item">' +
-            '<div class="catalog-row">' +
-                '<div>' +
-                    '<div class="catalog-name">' + escapeCatalogHtml(product.baseName) + '</div>' +
-                    '<span class="catalog-dose">' + escapeCatalogHtml(product.dosage) + '</span>' +
-                '</div>' +
-                '<div class="catalog-price">' + formatCatalogMoney(price) + '</div>' +
-            '</div>' +
-            '<div class="catalog-ref">Едро ×2: ' + formatCatalogMoney(wholesale) +
-            ' · Дребно ×2.5: ' + formatCatalogMoney(retail) +
-            ' · Доставна: ' + formatCatalogMoney(purchasePrice) + '</div>' +
-        '</li>';
+    const categoriesHtml = catalogModel.categories.map(function(category, index) {
+        const openAttr = category.open ? ' open' : '';
+        const productsHtml = category.products.map(function(product) {
+            return renderCatalogProduct(product, multiplier);
+        }).join('');
+        return '<details class="category"' + openAttr + '><summary class="category-title">' +
+            escapeCatalogHtml(category.title) + '</summary><div class="category-content">' +
+            productsHtml + '</div></details>';
     }).join('');
 
-    meta.textContent = catalogProducts.length + ' продукта · ×' + formatCatalogMultiplier(multiplier) + ' · ' + catalogDate;
+    root.innerHTML = '<div class="catalog-head"><span>Продукт</span><span>Основа</span><span>Цена</span></div>' + categoriesHtml;
+    meta.textContent = catalogModel.uniqueCount + ' уникални продукта · ×' + formatCatalogMultiplier(multiplier) + ' · ' + catalogDate;
 }
 
 function syncCatalogMultiplierField() {
@@ -2370,17 +2641,16 @@ function syncCatalogMultiplierField() {
     if (!isCustom) {
         customInput.value = select.value;
     }
-    renderCatalogList();
+    renderCatalog();
 }
 
 document.getElementById('catalogMultiplierSelect').addEventListener('change', syncCatalogMultiplierField);
-document.getElementById('catalogMultiplierCustom').addEventListener('input', renderCatalogList);
+document.getElementById('catalogMultiplierCustom').addEventListener('input', renderCatalog);
 syncCatalogMultiplierField();
 <\/script>
 </body>
 </html>`;
     }
-
     function openPortfolioModal() {
         if (!state.products.length) {
             showBanner('Каталогът е празен.', 'error');
