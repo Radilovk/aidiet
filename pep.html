@@ -707,6 +707,48 @@
                 flex-basis: 100%;
             }
         }
+
+        .catalog-preview {
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            background: #fff;
+        }
+
+        .catalog-head,
+        .catalog-item {
+            display: grid;
+            grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.8fr) minmax(0, 0.8fr);
+            gap: 8px;
+            align-items: center;
+        }
+
+        .catalog-head {
+            padding: 10px 12px;
+            background: var(--surface-alt);
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: var(--text-muted);
+            font-weight: 700;
+        }
+
+        .catalog-head span:last-child,
+        .catalog-price { text-align: right; }
+
+        .catalog-list {
+            list-style: none;
+        }
+
+        .catalog-item {
+            padding: 12px;
+            border-top: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+
+        .catalog-name { font-weight: 700; }
+        .catalog-dose { color: var(--text-muted); font-size: 0.84rem; }
+        .catalog-price { font-weight: 800; color: var(--primary); white-space: nowrap; }
     </style>
 </head>
 <body>
@@ -777,7 +819,7 @@
         <div class="card-header">
             <div class="card-title">📊 Оперативна картина</div>
             <div class="action-row" style="width:min(100%, 420px);">
-                <button id="exportPortfolioBtn" class="btn-outline">PDF Каталог</button>
+                <button id="exportPortfolioBtn" class="btn-outline">HTML Каталог</button>
                 <button id="exportDataBtn" class="btn-outline">XLS</button>
             </div>
         </div>
@@ -933,7 +975,7 @@
 <div id="portfolioExportModal" class="modal" aria-hidden="true">
     <div class="modal-content" style="width:min(520px,100%);">
         <span class="close-portfolio-modal close-modal" aria-label="Затвори">&times;</span>
-        <div class="card-title">📄 PDF Каталог</div>
+        <div class="card-title">📱 HTML Каталог</div>
         <div class="edit-modal-grid">
             <div class="form-group full-width">
                 <label for="portfolioMultiplierSelect">Множител за цени</label>
@@ -949,12 +991,12 @@
             </div>
             <div class="form-group full-width">
                 <label>Преглед</label>
-                <div class="table-responsive" id="portfolioPreview">
+                <div id="portfolioPreview">
                     <div class="empty-state">Зареждане…</div>
                 </div>
             </div>
             <div class="form-group full-width">
-                <button id="generatePortfolioBtn">Изтегли PDF</button>
+                <button id="generatePortfolioBtn">Изтегли HTML</button>
             </div>
         </div>
     </div>
@@ -2053,32 +2095,30 @@
 
     function catalogFilename(multiplier) {
         const label = multiplier.toFixed(multiplier % 1 === 0 ? 0 : 2);
-        return `pep-katalog-x${label}.pdf`;
+        return `pep-katalog-x${label}.html`;
     }
 
-    function renderCatalogTableRows(multiplier, limit = null) {
+    function renderCatalogItems(multiplier, limit = null) {
         const products = limit ? getSortedProducts().slice(0, limit) : getSortedProducts();
         return products.map((product) => `
-            <tr>
-                <td>${escapeHtml(product.baseName)}</td>
-                <td>${escapeHtml(product.dosage)}</td>
-                <td style="text-align:right;font-weight:700;">${formatMoney(product.purchasePrice * multiplier)}</td>
-            </tr>
+            <li class="catalog-item">
+                <span class="catalog-name">${escapeHtml(product.baseName)}</span>
+                <span class="catalog-dose">${escapeHtml(product.dosage)}</span>
+                <span class="catalog-price">${formatMoney(product.purchasePrice * multiplier)}</span>
+            </li>
         `).join('');
     }
 
-    function renderCatalogTableMarkup(multiplier, limit = null) {
+    function renderCatalogPreviewMarkup(multiplier, limit = 5) {
         return `
-            <table>
-                <thead>
-                    <tr>
-                        <th>Продукт</th>
-                        <th>Съдържание (мг)</th>
-                        <th>Цена</th>
-                    </tr>
-                </thead>
-                <tbody>${renderCatalogTableRows(multiplier, limit)}</tbody>
-            </table>
+            <div class="catalog-preview">
+                <div class="catalog-head">
+                    <span>Продукт</span>
+                    <span>мг</span>
+                    <span>Цена</span>
+                </div>
+                <ul class="catalog-list">${renderCatalogItems(multiplier, limit)}</ul>
+            </div>
         `;
     }
 
@@ -2097,8 +2137,8 @@
         }
 
         preview.innerHTML = `
-            ${renderCatalogTableMarkup(multiplier, 5)}
-            <div class="inline-note" style="padding:10px 12px;border-top:1px solid var(--border);">
+            ${renderCatalogPreviewMarkup(multiplier, 5)}
+            <div class="inline-note" style="margin-top:10px;">
                 ×${multiplier.toFixed(multiplier % 1 === 0 ? 0 : 2)} · ${total} продукта${total > 5 ? ' · показани първите 5' : ''}
             </div>
         `;
@@ -2113,25 +2153,78 @@
 <html lang="bg">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <title>PEP Каталог</title>
 <style>
-@page { size: A4; margin: 14mm; }
-body { font-family: system-ui, sans-serif; color: #0f172a; background: #fff; }
-header { margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid #dbe3ef; }
-h1 { font-size: 20px; margin: 0 0 4px; }
-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-th, td { padding: 9px 10px; border-bottom: 1px solid #dbe3ef; text-align: left; }
-th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; background: #f8fafc; }
-td:last-child, th:last-child { text-align: right; font-weight: 700; }
-footer { margin-top: 14px; color: #64748b; font-size: 11px; text-align: center; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: #f3f6fb;
+    color: #0f172a;
+    padding: 16px;
+    max-width: 480px;
+    margin: 0 auto;
+    -webkit-font-smoothing: antialiased;
+}
+header {
+    background: #fff;
+    border: 1px solid #dbe3ef;
+    border-radius: 16px;
+    padding: 18px 16px;
+    margin-bottom: 12px;
+}
+h1 { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 6px; }
+.meta { color: #64748b; font-size: 0.88rem; line-height: 1.45; }
+.catalog-head,
+.catalog-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.8fr) minmax(0, 0.8fr);
+    gap: 8px;
+    align-items: center;
+}
+.catalog-head {
+    padding: 0 14px 8px;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #64748b;
+    font-weight: 700;
+}
+.catalog-head span:last-child,
+.catalog-price { text-align: right; }
+.catalog-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.catalog-item {
+    background: #fff;
+    border: 1px solid #dbe3ef;
+    border-radius: 14px;
+    padding: 14px;
+    font-size: 0.95rem;
+    line-height: 1.35;
+}
+.catalog-name { font-weight: 700; word-break: break-word; }
+.catalog-dose { color: #64748b; font-size: 0.88rem; }
+.catalog-price { font-weight: 800; color: #2563eb; white-space: nowrap; }
+footer {
+    margin-top: 16px;
+    padding: 0 4px 24px;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 0.78rem;
+}
 </style>
 </head>
 <body>
 <header>
-<h1>PEP Каталог</h1>
-<span style="color:#64748b;font-size:12px;">${total} продукта · ×${multiplierLabel} · ${escapeHtml(today)}</span>
+    <h1>PEP Каталог</h1>
+    <div class="meta">${total} продукта · ×${multiplierLabel} · ${escapeHtml(today)}</div>
 </header>
-${renderCatalogTableMarkup(multiplier)}
+<div class="catalog-head">
+    <span>Продукт</span>
+    <span>мг</span>
+    <span>Цена</span>
+</div>
+<ul class="catalog-list">${renderCatalogItems(multiplier)}</ul>
 <footer>PEP Каталог · ${escapeHtml(today)}</footer>
 </body>
 </html>`;
@@ -2165,7 +2258,7 @@ ${renderCatalogTableMarkup(multiplier)}
         updatePortfolioPreview();
     }
 
-    async function generatePortfolioPdf() {
+    function exportCatalogHtml() {
         const multiplier = getPortfolioMultiplier();
         if (!state.products.length) {
             throw new Error('Каталогът е празен.');
@@ -2173,47 +2266,31 @@ ${renderCatalogTableMarkup(multiplier)}
         if (!Number.isFinite(multiplier) || multiplier <= 0) {
             throw new Error('Въведи валиден множител.');
         }
-        if (typeof html2pdf === 'undefined') {
-            throw new Error('PDF библиотеката не е заредена.');
-        }
 
-        const iframe = document.createElement('iframe');
-        iframe.setAttribute('aria-hidden', 'true');
-        iframe.style.cssText = 'position:fixed;left:0;top:0;width:794px;height:100vh;border:0;opacity:1;z-index:-1;pointer-events:none;';
-        document.body.appendChild(iframe);
+        const html = buildCatalogDocument(multiplier);
+        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+        const objectUrl = URL.createObjectURL(blob);
+        const filename = catalogFilename(multiplier);
 
-        try {
-            const doc = iframe.contentDocument;
-            doc.open();
-            doc.write(buildCatalogDocument(multiplier));
-            doc.close();
-            await new Promise((resolve) => {
-                if (iframe.contentDocument.readyState === 'complete') resolve();
-                else iframe.addEventListener('load', resolve, { once: true });
-            });
-            await new Promise((resolve) => setTimeout(resolve, 300));
+        const link = document.createElement('a');
+        link.href = objectUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
 
-            const element = iframe.contentDocument.body;
-            await html2pdf().set({
-                margin: 10,
-                filename: catalogFilename(multiplier),
-                image: { type: 'jpeg', quality: 0.95 },
-                html2canvas: { scale: 2, useCORS: true, width: 794, windowWidth: 794 },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            }).from(element).save();
-        } finally {
-            document.body.removeChild(iframe);
-        }
+        window.open(objectUrl, '_blank');
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 3000);
 
         closePortfolioModal();
-        showBanner('PDF каталогът е изтеглен.', 'info');
+        showBanner('HTML каталогът е изтеглен. Отвори го на телефона и конвертирай в PDF при нужда.', 'info');
     }
 
     document.getElementById('exportPortfolioBtn').addEventListener('click', openPortfolioModal);
     document.querySelector('#portfolioExportModal .close-modal').addEventListener('click', closePortfolioModal);
     document.getElementById('portfolioMultiplierSelect').addEventListener('change', updatePortfolioMultiplierField);
     document.getElementById('portfolioMultiplierCustom').addEventListener('input', updatePortfolioPreview);
-    document.getElementById('generatePortfolioBtn').addEventListener('click', () => runSafely(generatePortfolioPdf));
+    document.getElementById('generatePortfolioBtn').addEventListener('click', () => runSafely(exportCatalogHtml));
 
     document.getElementById('exportDataBtn').addEventListener('click', () => {
         const rows = [['ID', 'Дата', 'Продукт', 'Количество', 'Тип запис', 'Приход (€)', 'Разход (€)', 'Бележка']];
@@ -2284,6 +2361,5 @@ ${renderCatalogTableMarkup(multiplier)}
     updateMultiplierHint();
     bootstrapData();
 </script>
-<script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
 </body>
 </html>
