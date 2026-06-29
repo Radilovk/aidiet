@@ -400,6 +400,19 @@ function serializeWeekPlanSummary(weekPlan) {
  * Full week plan for admin AI — every meal with kcal, grams, macros, patch path.
  * @param {object} weekPlan
  */
+/** Compact 7-day meal names for weekly adaptation prompts (not admin patch paths). */
+function serializeWeekPlanWeeklyCompact(weekPlan) {
+  if (!weekPlan || typeof weekPlan !== 'object') return '';
+  const lines = ['#WP v1'];
+  for (const dayKey of Object.keys(weekPlan).sort().slice(0, 7)) {
+    const meals = weekPlan[dayKey]?.meals;
+    if (!meals?.length) continue;
+    const names = meals.map((m) => esc(m.name || '')).filter(Boolean).join('+');
+    if (names) lines.push(`${dayKey}|${names}`);
+  }
+  return lines.length > 1 ? lines.join('\n') : '';
+}
+
 function serializeWeekPlanAdmin(weekPlan) {
   if (!weekPlan) return '';
   const lines = ['#PL v2 admin|day|idx|type|name|kcal|g|P|C|F|patch'];
@@ -6702,7 +6715,7 @@ async function deliverPlanUpdateToClient(env, clientData, clientId, kind = 'upda
       title: kind === 'ready' ? 'Планът е готов' : 'Обновен план',
       body: kind === 'ready'
         ? 'Вашият хранителен план е готов за преглед.'
-        : 'Специалистът актуализира вашия план.',
+        : 'Планът ви е актуализиран.',
       url: '/index.html?app=1&tab=plan',
       icon: '/icon-192x192.png',
       notificationType: 'plan_updated',
@@ -7006,7 +7019,14 @@ function buildWeeklyContextFromPayload(userData, plan, analytics, gameWeeklyAI, 
   const profile = serializeUserProfile(userData || {}, 'strategy');
   const analysisBlock = plan?.analysis ? serializeAnalysisForStep(plan.analysis, 2) : '';
   const strategyBlock = plan?.strategy ? serializeStrategyForMealPlan(plan.strategy) : '';
+  const summaryBlock = plan?.summary ? serializePlanSummary(plan.summary) : '';
+  const weekPlanBlock = plan?.weekPlan ? serializeWeekPlanWeeklyCompact(plan.weekPlan) : '';
   const axBlock = serializeAnalyticsBlock(analytics);
+
+  const mods = userData?.planModifications;
+  const modsBlock = mods?.length
+    ? 'MOD|' + mods.map((m) => String(m).replace(/\|/g, '/')).join('+')
+    : '';
 
   let feedbackBlock = '';
   if (feedbackAnswers?.length) {
@@ -7023,10 +7043,55 @@ function buildWeeklyContextFromPayload(userData, plan, analytics, gameWeeklyAI, 
     profile,
     analysisBlock,
     strategyBlock,
+    summaryBlock,
+    weekPlanBlock,
+    modsBlock,
     axBlock,
     feedbackBlock,
     histBlock,
   ].filter(Boolean).join('\n');
+}
+
+async function resolveWeeklyJobInputs(env, { userId, clientId, userData, plan, gameData, gameWeeklyAI }) {
+  let resolvedUserData = userData;
+  let resolvedPlan = plan;
+  let profile = null;
+
+  if (userId) {
+    profile = await kvGetJSON(env, `user_profile:${userId}`);
+    if (profile) {
+      if (!resolvedPlan?.weekPlan && profile.plan) resolvedPlan = profile.plan;
+      if (profile.userData) {
+        resolvedUserData = { ...profile.userData, ...(resolvedUserData || {}) };
+      }
+    }
+  }
+
+  if ((!resolvedPlan?.weekPlan || !resolvedUserData?.goal) && clientId) {
+    const client = await kvGetJSON(env, `client:${clientId}`);
+    if (client) {
+      if (!resolvedPlan?.weekPlan && client.plan) resolvedPlan = client.plan;
+      if (client.answers) {
+        resolvedUserData = { ...client.answers, ...(resolvedUserData || {}) };
+      }
+      if (!profile?.analytics && client.analytics) profile = { ...(profile || {}), analytics: client.analytics };
+    }
+  }
+
+  let analytics = null;
+  if (gameData && Object.keys(gameData).length) {
+    analytics = buildAnalyticsSummary(gameData, gameWeeklyAI || {});
+  } else if (profile?.analytics?.status) {
+    analytics = profile.analytics;
+  } else {
+    analytics = buildAnalyticsSummary({}, gameWeeklyAI || {});
+  }
+
+  return {
+    userData: resolvedUserData || {},
+    plan: resolvedPlan,
+    analytics,
+  };
 }
 
 function formatFeedbackAnswersForPrompt(questions, answers) {
@@ -7100,12 +7165,21 @@ function mergeWeeklyModifications(existing, decisionMods) {
 }
 
 function buildWeeklyAdaptationContextText(decision, analytics, feedbackAnswers, cycleNumber) {
+  const sc = decision.strategyChanges || {};
   const parts = [
     `Цикъл: ${cycleNumber}`,
     `Ниво: ${decision.adaptationLevel}`,
     decision.reasoning ? `Причина: ${decision.reasoning}` : '',
-    decision.strategyChanges?.weeklySchemeNotes ? `Бележки: ${decision.strategyChanges.weeklySchemeNotes}` : '',
   ];
+  if (sc.calorieAdjust) {
+    parts.push(`Калории: ${sc.calorieAdjust > 0 ? '+' : ''}${sc.calorieAdjust} kcal/ден`);
+  }
+  if (sc.freeDayNumber != null) {
+    parts.push(`Свободен ден: ден ${sc.freeDayNumber}`);
+  }
+  if (sc.weeklySchemeNotes) {
+    parts.push(`Бележки: ${sc.weeklySchemeNotes}`);
+  }
   if (feedbackAnswers?.length) {
     parts.push('Отговори: ' + feedbackAnswers.map((a) => `${a.questionId}=${a.value}`).join(', '));
   }
@@ -7214,8 +7288,9 @@ async function applyWeeklyReleaseIfDue(env, profile, userId) {
 }
 
 async function runWeeklyAdaptation(env, payload, jobId) {
-  const { userId, userData, plan, gameData, gameWeeklyAI, answers, questions, clientId } = payload;
-  const analytics = buildAnalyticsSummary(gameData || {}, gameWeeklyAI || {});
+  const { userId, gameWeeklyAI, answers, questions, clientId } = payload;
+  const { userData, plan, analytics } = await resolveWeeklyJobInputs(env, payload);
+  if (!plan?.weekPlan) throw new Error('Липсва план за адаптация');
   const cycleNumber = gameWeeklyAI?.cycleNumber || 1;
 
   try {
@@ -7284,9 +7359,10 @@ async function runWeeklyAdaptation(env, payload, jobId) {
 async function handleWeeklyGenerateQuestions(request, env) {
   try {
     if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
-    const { userId, userData, plan, gameData, gameWeeklyAI, idToken } = await request.json();
-    if (!userId || !userData || !plan) {
-      return jsonResponse({ error: 'Missing userId, userData or plan' }, 400);
+    const body = await request.json();
+    const { userId, gameData, gameWeeklyAI, idToken } = body;
+    if (!userId) {
+      return jsonResponse({ error: 'Missing userId' }, 400);
     }
     try {
       await verifyWeeklyRequestAuth(userId, idToken, env);
@@ -7294,7 +7370,10 @@ async function handleWeeklyGenerateQuestions(request, env) {
       return jsonResponse({ error: e.message }, 401);
     }
 
-    const analytics = buildAnalyticsSummary(gameData || {}, gameWeeklyAI || {});
+    const { userData, plan, analytics } = await resolveWeeklyJobInputs(env, body);
+    if (!plan?.weekPlan) {
+      return jsonResponse({ error: 'Missing plan' }, 400);
+    }
     if ((analytics.daysRecorded || 0) < 3) {
       return jsonResponse({ error: 'Недостатъчно данни за седмичен feedback (минимум 3 дни)' }, 400);
     }
@@ -7328,9 +7407,9 @@ async function handleWeeklyAdaptPlan(request, env, ctx) {
   try {
     if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
     const body = await request.json();
-    const { userId, userData, plan, gameData, gameWeeklyAI, answers, questions, clientId, idToken } = body;
-    if (!userId || !userData || !plan || !answers?.length) {
-      return jsonResponse({ error: 'Missing required fields' }, 400);
+    const { userId, gameData, gameWeeklyAI, answers, questions, clientId, idToken } = body;
+    if (!userId || !answers?.length) {
+      return jsonResponse({ error: 'Missing userId or answers' }, 400);
     }
     try {
       await verifyWeeklyRequestAuth(userId, idToken, env);
@@ -7338,13 +7417,16 @@ async function handleWeeklyAdaptPlan(request, env, ctx) {
       return jsonResponse({ error: e.message }, 401);
     }
 
+    const { plan } = await resolveWeeklyJobInputs(env, body);
+    if (!plan?.weekPlan) {
+      return jsonResponse({ error: 'Missing plan' }, 400);
+    }
+
     const jobId = crypto.randomUUID();
     const cycleNumber = (gameWeeklyAI?.cycleNumber || 0) + 1;
     const payload = {
       userId,
       clientId: clientId || '',
-      userData,
-      plan,
       gameData,
       gameWeeklyAI: { ...(gameWeeklyAI || {}), cycleNumber },
       answers,

@@ -10255,21 +10255,22 @@
         }
 
         function getWeeklyPayloadBase() {
-            var plan = null, userData = {};
-            try { plan = JSON.parse(localStorage.getItem('dietPlan') || 'null'); } catch(e) {}
-            try { userData = JSON.parse(localStorage.getItem('userData') || '{}'); } catch(e) {}
-            return {
-                userData: userData,
-                plan: plan,
+            var payload = {
                 gameData: getGameData(),
                 gameWeeklyAI: ensureWeeklyMeta(getWeeklyAIState())
             };
+            var uid = localStorage.getItem('userId') || '';
+            if (!uid.startsWith('fb_')) {
+                try { payload.plan = JSON.parse(localStorage.getItem('dietPlan') || 'null'); } catch(e) {}
+                try { payload.userData = JSON.parse(localStorage.getItem('userData') || '{}'); } catch(e) {}
+            }
+            return payload;
         }
 
         async function fetchWeeklyQuestions() {
             var base = getWeeklyPayloadBase();
             var authExtras = await getWeeklyAuthExtras();
-            if (!authExtras.userId || !base.plan) throw new Error('Липсва план или потребител');
+            if (!authExtras.userId) throw new Error('Липсва потребител');
             var resp = await fetch(ANALYTICS_WORKER + '/api/weekly/generate-questions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -10404,11 +10405,10 @@
             var modal = document.createElement('div');
             modal.className = 'game-modal';
             modal.innerHTML = '<div class="game-modal-emoji"><i class="fas fa-paper-plane" style="color:#6366f1"></i></div>'
-                + '<div class="game-weekly-badge">Преглед от Специалист</div>'
                 + '<div class="game-modal-title">Благодарим!</div>';
             var msg = document.createElement('div');
             msg.className = 'game-modal-msg';
-            msg.textContent = 'Информацията е изпратена към Специалист. При следващото отваряне ще видите актуализирания план.';
+            msg.textContent = 'Информацията е изпратена за преглед и актуализация. При следващото отваряне ще видите обновения план.';
             modal.appendChild(msg);
             var btn = document.createElement('button');
             btn.className = 'game-modal-btn';
@@ -10434,14 +10434,9 @@
             emo.innerHTML = '<i class="fas ' + (notice.changed ? 'fa-check-circle' : 'fa-heart') + '" style="color:' + (notice.changed ? '#10b981' : '#6366f1') + '"></i>';
             modal.appendChild(emo);
 
-            var badge = document.createElement('div');
-            badge.className = 'game-weekly-badge';
-            badge.textContent = 'Преглед от Специалист';
-            modal.appendChild(badge);
-
             var titleEl = document.createElement('div');
             titleEl.className = 'game-modal-title';
-            titleEl.textContent = notice.headline || (notice.changed ? 'Планът е актуализиран' : 'Съобщение от Специалист');
+            titleEl.textContent = notice.headline || (notice.changed ? 'Планът е актуализиран' : 'Прегледът е завършен');
             modal.appendChild(titleEl);
 
             if (notice.changed && notice.changes && notice.changes.length) {
@@ -10651,7 +10646,6 @@
                     startPromptInterval();
                     maybeRequestWeeklyAI();
                     resumeWeeklyFeedbackIfNeeded();
-                    maybeCheckWeeklyAdaptNotice();
                 }, 1600);
             }
             
