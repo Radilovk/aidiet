@@ -7335,12 +7335,6 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       );
     }
 
-    const now = new Date().toISOString();
-    newPlan._meta = {
-      ...(newPlan._meta || {}),
-      weeklyAdaptation: { cycleNumber, level: decision.adaptationLevel, at: now },
-    };
-
     const notice = { ...noticeBase, changed: true };
     await savePendingWeeklyRelease(env, userId, clientId, {
       notice,
