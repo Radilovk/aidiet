@@ -432,25 +432,6 @@
             color: var(--text-muted);
         }
 
-        .share-link-row {
-            display: flex;
-            gap: 8px;
-            align-items: stretch;
-        }
-
-        .share-link-row input {
-            flex: 1 1 auto;
-            min-width: 0;
-            background: var(--surface-alt);
-        }
-
-        .share-link-row button {
-            flex: 0 0 auto;
-            min-height: 46px;
-            padding: 0 14px;
-            white-space: nowrap;
-        }
-
         .sale-preview {
             display: flex;
             flex-direction: column;
@@ -973,7 +954,7 @@
         <div class="card-title">📱 HTML Каталог</div>
         <div class="edit-modal-grid">
             <div class="form-group full-width">
-                <label for="portfolioMultiplierSelect">Множител за цени</label>
+                <label for="portfolioMultiplierSelect">Ценово ниво (само за теб)</label>
                 <select id="portfolioMultiplierSelect">
                     <option value="2">Продажба на едро · ×2</option>
                     <option value="2.5" selected>Продажба на дребно · ×2.5</option>
@@ -981,7 +962,7 @@
                 </select>
             </div>
             <div class="form-group full-width">
-                <label for="portfolioMultiplierCustom">Стойност</label>
+                <label for="portfolioMultiplierCustom">Множител</label>
                 <input type="number" id="portfolioMultiplierCustom" value="2.5" min="0.01" step="0.01" inputmode="decimal" disabled>
             </div>
             <div class="form-group full-width">
@@ -989,22 +970,10 @@
                 <div id="portfolioPreview">
                     <div class="empty-state">Зареждане…</div>
                 </div>
-                <div class="inline-note" style="margin-top:8px;">В изтегления HTML можеш да смениш множителя директно на телефона.</div>
+                <div class="inline-note" style="margin-top:8px;">Клиентите виждат само крайните цени — без множител и вътрешна информация.</div>
             </div>
             <div class="form-group full-width">
-                <div class="action-row">
-                    <button id="generatePortfolioBtn">Изтегли HTML</button>
-                    <button id="sharePortfolioBtn" class="btn-outline" type="button">Сподели линк</button>
-                </div>
-            </div>
-            <div id="portfolioShareRow" class="form-group full-width" hidden>
-                <label for="portfolioShareUrl">Линк за споделяне</label>
-                <div class="share-link-row">
-                    <input type="text" id="portfolioShareUrl" readonly aria-label="Линк за споделяне">
-                    <button id="copyPortfolioShareBtn" class="btn-outline" type="button">Копирай</button>
-                    <button id="openPortfolioShareBtn" class="btn-outline" type="button">Отвори</button>
-                </div>
-                <div class="inline-note" style="margin-top:8px;">Линкът отваря каталога директно в браузъра — удобно за телефон.</div>
+                <button id="generatePortfolioBtn">Изтегли HTML</button>
             </div>
         </div>
     </div>
@@ -1214,11 +1183,7 @@
     const STORAGE_PRODUCTS = 'pep_local_products';
     const STORAGE_SALES = 'pep_local_sales';
     const REMOTE_API_BASE = 'https://aidiet.radilov-k.workers.dev/api/pep';
-    const REMOTE_CATALOG_SHARE_BASE = 'https://aidiet.radilov-k.workers.dev/pep-katalog';
     const API_BASE = window.location.hostname.endsWith('workers.dev') ? '/api/pep' : REMOTE_API_BASE;
-    const CATALOG_SHARE_BASE = window.location.hostname.endsWith('workers.dev')
-        ? `${window.location.origin}/pep-katalog`
-        : REMOTE_CATALOG_SHARE_BASE;
     const MULTIPLIER_META = {
         '2': { label: 'Продажба на едро', description: 'По-голямо количество с базова надценка ×2.' },
         '2.2': { label: 'Стандартна продажба', description: 'Най-подходящо за обичайните клиентски сделки.' },
@@ -1320,10 +1285,6 @@
         if (generatePortfolioBtn) {
             generatePortfolioBtn.disabled = isBusy;
         }
-        const sharePortfolioBtn = document.getElementById('sharePortfolioBtn');
-        if (sharePortfolioBtn) {
-            sharePortfolioBtn.disabled = isBusy || state.storageMode !== 'backend';
-        }
     }
 
     function showBanner(message, kind = 'info') {
@@ -1358,14 +1319,6 @@
         }
 
         updatedAt.textContent = state.lastSyncAt ? new Date(state.lastSyncAt).toLocaleTimeString('bg-BG') : '';
-
-        const sharePortfolioBtn = document.getElementById('sharePortfolioBtn');
-        if (sharePortfolioBtn) {
-            sharePortfolioBtn.disabled = state.isBusy || state.storageMode !== 'backend';
-            sharePortfolioBtn.title = state.storageMode !== 'backend'
-                ? 'Споделянето изисква връзка с backend'
-                : '';
-        }
     }
 
     async function requestJSON(path, options = {}) {
@@ -2241,12 +2194,9 @@
             : safeNumber(select);
     }
 
-    function formatMultiplierValue(multiplier) {
-        return multiplier.toFixed(multiplier % 1 === 0 ? 0 : 2);
-    }
-
-    function catalogFilename(multiplier) {
-        return `pep-katalog-x${formatMultiplierValue(multiplier)}.html`;
+    function catalogFilename() {
+        const today = new Date().toISOString().slice(0, 10);
+        return `pep-katalog-${today}.html`;
     }
 
     const CATALOG_EXPORT_STYLES = `
@@ -2260,43 +2210,15 @@ body {
     margin: 0 auto;
     -webkit-font-smoothing: antialiased;
 }
-header, .toolbar {
+header {
     background: #fff;
     border: 1px solid #dbe3ef;
     border-radius: 16px;
+    padding: 18px 16px;
+    margin-bottom: 12px;
 }
-header { padding: 18px 16px; margin-bottom: 12px; }
 h1 { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 6px; }
 .meta { color: #64748b; font-size: 0.88rem; line-height: 1.45; }
-.toolbar {
-    padding: 14px;
-    margin-bottom: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-.toolbar label {
-    font-size: 0.76rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-    color: #64748b;
-}
-.toolbar-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-}
-select, input {
-    width: 100%;
-    min-height: 46px;
-    border: 1px solid #dbe3ef;
-    border-radius: 12px;
-    padding: 0 12px;
-    font-size: 16px;
-    background: #fff;
-    color: #0f172a;
-}
 .category {
     background: #e2e8f0;
     border-radius: 16px;
@@ -2495,13 +2417,43 @@ footer {
         };
     }
 
-    function renderCatalogProductHtml(product, multiplier) {
-        const minPrice = product.variants[0].purchasePrice * multiplier;
+    function formatMultiplierValue(multiplier) {
+        return multiplier.toFixed(multiplier % 1 === 0 ? 0 : 2);
+    }
+
+    function buildClientCatalogModel(multiplier) {
+        const model = buildCatalogModel();
+        return {
+            uniqueCount: model.uniqueCount,
+            variantCount: model.variantCount,
+            categories: model.categories.map((category) => ({
+                title: category.title,
+                open: category.open,
+                products: category.products.map((product) => {
+                    const variants = product.variants.map((variant) => ({
+                        dosage: variant.dosage,
+                        price: Number((variant.purchasePrice * multiplier).toFixed(2))
+                    }));
+                    return {
+                        name: product.name,
+                        marketing: product.marketing,
+                        protocol: product.protocol,
+                        summaryDose: product.summaryDose,
+                        variants,
+                        minPrice: variants[0]?.price ?? 0
+                    };
+                })
+            }))
+        };
+    }
+
+    function renderCatalogProductHtml(product) {
+        const minPrice = product.minPrice ?? product.variants[0]?.price ?? 0;
         const variantsTitle = product.variants.length > 1 ? '<div class="variants-title">Налични варианти</div>' : '';
         const variantsHtml = product.variants.map((variant) => `
             <div class="variant-row">
                 <span class="variant-dose">${escapeHtml(variant.dosage)}</span>
-                <span class="variant-price">${formatMoney(variant.purchasePrice * multiplier)}</span>
+                <span class="variant-price">${formatMoney(variant.price)}</span>
             </div>
         `).join('');
 
@@ -2522,7 +2474,7 @@ footer {
         `;
     }
 
-    function renderCatalogBodyHtml(model, multiplier, options = {}) {
+    function renderCatalogBodyHtml(model, options = {}) {
         const categories = options.preview ? model.categories.slice(0, 1) : model.categories;
         const productLimit = options.preview ? 2 : null;
         const categoryHtml = categories.map((category, index) => {
@@ -2535,7 +2487,7 @@ footer {
                 <details class="category"${openAttr}>
                     <summary class="category-title">${escapeHtml(category.title)}</summary>
                     <div class="category-content">
-                        ${products.map((product) => renderCatalogProductHtml(product, multiplier)).join('')}
+                        ${products.map((product) => renderCatalogProductHtml(product)).join('')}
                     </div>
                 </details>
             `;
@@ -2558,7 +2510,7 @@ footer {
     function updatePortfolioPreview() {
         const preview = document.getElementById('portfolioPreview');
         const multiplier = getPortfolioMultiplier();
-        const model = buildCatalogModel();
+        const model = buildClientCatalogModel(multiplier);
 
         if (!model.variantCount) {
             preview.innerHTML = '<div class="empty-state">Каталогът е празен.</div>';
@@ -2572,19 +2524,17 @@ footer {
         preview.innerHTML = `
             <style>${CATALOG_EXPORT_STYLES}</style>
             <div class="catalog-preview">
-                ${renderCatalogBodyHtml(model, multiplier, { preview: true })}
+                ${renderCatalogBodyHtml(model, { preview: true })}
             </div>
             <div class="inline-note" style="margin-top:10px;">
-                ×${formatMultiplierValue(multiplier)} · ${model.uniqueCount} уникални продукта · ${model.variantCount} варианта
+                ×${formatMultiplierValue(multiplier)} · ${model.uniqueCount} продукта · ${model.variantCount} варианта
             </div>
         `;
     }
 
-    function buildCatalogDocument(defaultMultiplier) {
+    function buildCatalogDocument(multiplier) {
         const today = new Date().toLocaleDateString('bg-BG');
-        const model = buildCatalogModel();
-        const multiplierLabel = formatMultiplierValue(defaultMultiplier);
-        const modelJson = JSON.stringify(model).replace(/</g, '\\u003c');
+        const model = buildClientCatalogModel(multiplier);
 
         return `<!DOCTYPE html>
 <html lang="bg">
@@ -2598,111 +2548,12 @@ footer {
 <body>
 <header>
     <h1>PEP Каталог</h1>
-    <div class="meta" id="catalogMeta">${model.uniqueCount} уникални продукта · ×${multiplierLabel} · ${escapeHtml(today)}</div>
+    <div class="meta">${model.uniqueCount} продукта · Актуален към ${escapeHtml(today)}</div>
 </header>
-<section class="toolbar">
-    <label for="catalogMultiplierSelect">Множител за цени</label>
-    <div class="toolbar-row">
-        <select id="catalogMultiplierSelect">
-            <option value="2"${defaultMultiplier === 2 ? ' selected' : ''}>Едро · ×2</option>
-            <option value="2.5"${defaultMultiplier === 2.5 ? ' selected' : ''}>Дребно · ×2.5</option>
-            <option value="custom"${defaultMultiplier !== 2 && defaultMultiplier !== 2.5 ? ' selected' : ''}>Персонален</option>
-        </select>
-        <input type="number" id="catalogMultiplierCustom" min="0.01" step="0.01" inputmode="decimal" value="${defaultMultiplier !== 2 && defaultMultiplier !== 2.5 ? multiplierLabel : defaultMultiplier}">
-    </div>
-</section>
-<div id="catalogRoot"></div>
+${renderCatalogBodyHtml(model)}
 <footer>PEP Каталог · ${escapeHtml(today)}</footer>
-<script>
-const catalogModel = ${modelJson};
-const catalogDate = ${JSON.stringify(today)};
-
-function formatCatalogMoney(value) {
-    return Number(value || 0).toFixed(2) + ' €';
-}
-
-function formatCatalogMultiplier(value) {
-    const numeric = Number(value);
-    return numeric.toFixed(numeric % 1 === 0 ? 0 : 2);
-}
-
-function escapeCatalogHtml(value) {
-    return String(value ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-}
-
-function getCatalogMultiplier() {
-    const select = document.getElementById('catalogMultiplierSelect').value;
-    const custom = Number(document.getElementById('catalogMultiplierCustom').value);
-    return select === 'custom' ? custom : Number(select);
-}
-
-function renderCatalogProduct(product, multiplier) {
-    const minPrice = product.variants[0].purchasePrice * multiplier;
-    const variantsTitle = product.variants.length > 1 ? '<div class="variants-title">Налични варианти</div>' : '';
-    const variantsHtml = product.variants.map(function(variant) {
-        return '<div class="variant-row"><span class="variant-dose">' + escapeCatalogHtml(variant.dosage) +
-            '</span><span class="variant-price">' + formatCatalogMoney(variant.purchasePrice * multiplier) + '</span></div>';
-    }).join('');
-    return '<details class="product"><summary class="catalog-item-summary">' +
-        '<span class="catalog-name">' + escapeCatalogHtml(product.name) + '</span>' +
-        '<span class="catalog-dose">' + escapeCatalogHtml(product.summaryDose) + '</span>' +
-        '<span class="catalog-price">' + formatCatalogMoney(minPrice) + '</span></summary>' +
-        '<div class="product-details"><p class="marketing-text">' + escapeCatalogHtml(product.marketing) + '</p>' +
-        '<div class="protocol">' + escapeCatalogHtml(product.protocol) + '</div>' +
-        variantsTitle + variantsHtml + '</div></details>';
-}
-
-function renderCatalog() {
-    const multiplier = getCatalogMultiplier();
-    const meta = document.getElementById('catalogMeta');
-    const root = document.getElementById('catalogRoot');
-
-    if (!Number.isFinite(multiplier) || multiplier <= 0) {
-        root.innerHTML = '<div class="category"><div class="category-content">Въведи валиден множител.</div></div>';
-        return;
-    }
-
-    const categoriesHtml = catalogModel.categories.map(function(category, index) {
-        const openAttr = category.open ? ' open' : '';
-        const productsHtml = category.products.map(function(product) {
-            return renderCatalogProduct(product, multiplier);
-        }).join('');
-        return '<details class="category"' + openAttr + '><summary class="category-title">' +
-            escapeCatalogHtml(category.title) + '</summary><div class="category-content">' +
-            productsHtml + '</div></details>';
-    }).join('');
-
-    root.innerHTML = '<div class="catalog-head"><span>Продукт</span><span>Основа</span><span>Цена</span></div>' + categoriesHtml;
-    meta.textContent = catalogModel.uniqueCount + ' уникални продукта · ×' + formatCatalogMultiplier(multiplier) + ' · ' + catalogDate;
-}
-
-function syncCatalogMultiplierField() {
-    const select = document.getElementById('catalogMultiplierSelect');
-    const customInput = document.getElementById('catalogMultiplierCustom');
-    const isCustom = select.value === 'custom';
-    customInput.disabled = !isCustom;
-    if (!isCustom) {
-        customInput.value = select.value;
-    }
-    renderCatalog();
-}
-
-document.getElementById('catalogMultiplierSelect').addEventListener('change', syncCatalogMultiplierField);
-document.getElementById('catalogMultiplierCustom').addEventListener('input', renderCatalog);
-syncCatalogMultiplierField();
-<\/script>
 </body>
 </html>`;
-    }
-    function resetPortfolioShareRow() {
-        const shareRow = document.getElementById('portfolioShareRow');
-        const shareInput = document.getElementById('portfolioShareUrl');
-        if (shareRow) shareRow.hidden = true;
-        if (shareInput) shareInput.value = '';
     }
 
     function openPortfolioModal() {
@@ -2710,12 +2561,10 @@ syncCatalogMultiplierField();
             showBanner('Каталогът е празен.', 'error');
             return;
         }
-        resetPortfolioShareRow();
         updatePortfolioPreview();
         const modal = document.getElementById('portfolioExportModal');
         modal.style.display = 'flex';
         modal.setAttribute('aria-hidden', 'false');
-        updateStatusPanel();
     }
 
     function closePortfolioModal() {
@@ -2747,7 +2596,7 @@ syncCatalogMultiplierField();
         const html = buildCatalogDocument(multiplier);
         const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
         const objectUrl = URL.createObjectURL(blob);
-        const filename = catalogFilename(multiplier);
+        const filename = catalogFilename();
 
         const link = document.createElement('a');
         link.href = objectUrl;
@@ -2760,56 +2609,7 @@ syncCatalogMultiplierField();
         setTimeout(() => URL.revokeObjectURL(objectUrl), 3000);
 
         closePortfolioModal();
-        showBanner('HTML каталогът е изтеглен. Отвори го на телефона и конвертирай в PDF при нужда.', 'info');
-    }
-
-    async function shareCatalogHtml() {
-        if (state.storageMode !== 'backend') {
-            throw new Error('Споделянето изисква връзка с backend.');
-        }
-
-        const multiplier = getPortfolioMultiplier();
-        if (!state.products.length) {
-            throw new Error('Каталогът е празен.');
-        }
-        if (!Number.isFinite(multiplier) || multiplier <= 0) {
-            throw new Error('Въведи валиден множител.');
-        }
-
-        const html = buildCatalogDocument(multiplier);
-        const payload = await requestJSON(`${API_BASE}/catalog/share`, {
-            method: 'POST',
-            body: JSON.stringify({ html, multiplier })
-        });
-
-        const shareUrl = payload.url || `${CATALOG_SHARE_BASE}/${payload.token}`;
-        document.getElementById('portfolioShareUrl').value = shareUrl;
-        document.getElementById('portfolioShareRow').hidden = false;
-        showBanner('Линкът е готов за споделяне.', 'info');
-    }
-
-    async function copyPortfolioShareUrl() {
-        const input = document.getElementById('portfolioShareUrl');
-        if (!input?.value) {
-            throw new Error('Първо генерирай линк за споделяне.');
-        }
-
-        try {
-            await navigator.clipboard.writeText(input.value);
-        } catch (_) {
-            input.focus();
-            input.select();
-            document.execCommand('copy');
-        }
-        showBanner('Линкът е копиран.', 'info');
-    }
-
-    function openPortfolioShareUrl() {
-        const input = document.getElementById('portfolioShareUrl');
-        if (!input?.value) {
-            throw new Error('Първо генерирай линк за споделяне.');
-        }
-        window.open(input.value, '_blank', 'noopener,noreferrer');
+        showBanner('HTML каталогът е изтеглен. Сподели файла директно с клиента.', 'info');
     }
 
     document.getElementById('exportPortfolioBtn').addEventListener('click', openPortfolioModal);
@@ -2817,9 +2617,6 @@ syncCatalogMultiplierField();
     document.getElementById('portfolioMultiplierSelect').addEventListener('change', updatePortfolioMultiplierField);
     document.getElementById('portfolioMultiplierCustom').addEventListener('input', updatePortfolioPreview);
     document.getElementById('generatePortfolioBtn').addEventListener('click', () => runSafely(exportCatalogHtml));
-    document.getElementById('sharePortfolioBtn').addEventListener('click', () => runSafely(shareCatalogHtml));
-    document.getElementById('copyPortfolioShareBtn').addEventListener('click', () => runSafely(copyPortfolioShareUrl));
-    document.getElementById('openPortfolioShareBtn').addEventListener('click', () => runSafely(openPortfolioShareUrl));
 
     document.getElementById('exportDataBtn').addEventListener('click', () => {
         const rows = [['ID', 'Дата', 'Продукт', 'Количество', 'Тип запис', 'Приход (€)', 'Разход (€)', 'Бележка']];
