@@ -2000,6 +2000,7 @@ const RATE_LIMIT = {
   VALIDATE_QUESTIONNAIRE: { maxRequests: 8, windowSec: 60 },  // 8 validations/min per IP
   SOCIAL_AUTH:    { maxRequests: 10, windowSec: 60 },   // 10 auth attempts/min per IP
   FORGOT_PASSWORD:{ maxRequests: 5,  windowSec: 900 },  // 5 reset requests per 15 min per IP
+  XBODY_APPOINTMENTS: { maxRequests: 15, windowSec: 60 }, // 15 lookups/min per IP
 };
 
 /**
@@ -16286,6 +16287,86 @@ async function handleAIXChat(request, env) {
   return jsonResponse({ content, usage: data.usage });
 }
 
+/**
+ * GET /api/xbody/appointments?email=...
+ * Returns upcoming and past Acuity appointments for the given client email.
+ */
+async function handleXbodyAppointments(request, env) {
+  const userId = env.ACUITY_USER_ID;
+  const apiKey = env.ACUITY_API_KEY;
+  if (!userId || !apiKey) {
+    return jsonResponse({ error: 'Acuity API не е конфигуриран.' }, 503);
+  }
+
+  const url = new URL(request.url);
+  const email = String(url.searchParams.get('email') || '').trim().toLowerCase();
+  if (!email || !email.includes('@')) {
+    return jsonResponse({ error: 'Липсва валиден имейл.' }, 400);
+  }
+
+  const acuityUrl = new URL('https://acuityscheduling.com/api/v1/appointments');
+  acuityUrl.searchParams.set('email', email);
+  acuityUrl.searchParams.set('showall', 'true');
+  acuityUrl.searchParams.set('max', '100');
+  acuityUrl.searchParams.set('direction', 'DESC');
+  acuityUrl.searchParams.set('excludeForms', 'true');
+
+  const auth = btoa(`${userId}:${apiKey}`);
+  let resp;
+  try {
+    resp = await fetch(acuityUrl.toString(), {
+      headers: { Authorization: `Basic ${auth}` }
+    });
+  } catch (err) {
+    console.error('[xbody-appointments] fetch error:', err.message);
+    return jsonResponse({ error: 'Неуспешна връзка с Acuity.' }, 502);
+  }
+
+  if (!resp.ok) {
+    const body = await resp.text().catch(() => '');
+    console.error('[xbody-appointments] Acuity error:', resp.status, body.slice(0, 200));
+    return jsonResponse({ error: 'Грешка при зареждане на резервациите.' }, resp.status === 401 ? 503 : 502);
+  }
+
+  const appointments = await resp.json();
+  if (!Array.isArray(appointments)) {
+    return jsonResponse({ error: 'Неочакван отговор от Acuity.' }, 502);
+  }
+
+  const now = Date.now();
+  const upcoming = [];
+  const past = [];
+
+  for (const appt of appointments) {
+    const item = {
+      id: appt.id,
+      date: appt.date || '',
+      time: (appt.time || '').trim(),
+      endTime: (appt.endTime || '').trim(),
+      datetime: appt.datetime || '',
+      type: appt.type || 'Час',
+      duration: appt.duration || '',
+      calendar: appt.calendar || '',
+      location: appt.location || '',
+      canceled: Boolean(appt.canceled),
+      canClientCancel: Boolean(appt.canClientCancel),
+      canClientReschedule: Boolean(appt.canClientReschedule),
+      confirmationPage: appt.confirmationPage || ''
+    };
+
+    const when = item.datetime ? new Date(item.datetime).getTime() : NaN;
+    if (!item.canceled && Number.isFinite(when) && when >= now) {
+      upcoming.push(item);
+    } else {
+      past.push(item);
+    }
+  }
+
+  upcoming.sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+
+  return jsonResponse({ upcoming, past }, 200, { cacheControl: 'private, max-age=60' });
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -16543,6 +16624,10 @@ export default {
         const rlErr = await checkRateLimit(env, request, 'CHAT');
         if (rlErr) return rlErr;
         return await handleAIXChat(request, env);
+      } else if (url.pathname === '/api/xbody/appointments' && request.method === 'GET') {
+        const rlErr = await checkRateLimit(env, request, 'XBODY_APPOINTMENTS');
+        if (rlErr) return rlErr;
+        return await handleXbodyAppointments(request, env);
       } else {
         return jsonResponse({ error: 'Not found' }, 404);
       }
