@@ -351,15 +351,24 @@
             word-break: break-word;
         }
         .xbody-appt-status {
-            margin: -2px 0 0;
+            margin: 0;
             font-size: 0.78rem;
             color: #b91c1c;
             font-weight: 600;
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+        .xbody-appt-footer-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-height: 36px;
         }
         .xbody-appt-action {
+            flex: 0 0 auto;
+            margin-left: auto;
             display: flex;
             justify-content: flex-end;
-            padding-top: 2px;
         }
         .xbody-appt-change-btn {
             display: inline-flex;
@@ -1353,9 +1362,11 @@
                                 '<span class="xbody-appt-k">час</span>' +
                                 '<span class="xbody-appt-v">' + escapeHtml(labels.timeValue) + '</span>' +
                             '</div>' +
-                            status +
                         '</div>' +
-                        '<div class="xbody-appt-action">' + changeBtn + '</div>' +
+                        '<div class="xbody-appt-footer-row">' +
+                            status +
+                            '<div class="xbody-appt-action">' + changeBtn + '</div>' +
+                        '</div>' +
                     '</div>' +
                 '</article>';
             }
