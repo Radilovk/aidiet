@@ -96,8 +96,7 @@
                constant() = iOS 11.0–11.1; env() = iOS 11.2+ and all others. */
             padding-top: constant(safe-area-inset-top);
             padding-top: env(safe-area-inset-top);
-            padding-bottom: constant(safe-area-inset-bottom);
-            padding-bottom: env(safe-area-inset-bottom);
+            padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 84px);
             box-sizing: border-box;
         }
         iframe {
@@ -271,7 +270,7 @@
         .xbody-appt-body {
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
-            padding: 0 16px 8px;
+            padding: 4px 16px 12px;
             flex: 1 1 auto;
         }
         .xbody-appt-footer {
@@ -295,70 +294,91 @@
             color: #dc2626;
         }
         .xbody-appt-section {
-            margin-bottom: 14px;
+            margin-bottom: 16px;
         }
         .xbody-appt-section:last-child {
-            margin-bottom: 4px;
+            margin-bottom: 0;
         }
         .xbody-appt-section-label {
-            margin: 0 0 8px;
+            margin: 0 0 10px;
             font-size: 0.72rem;
             font-weight: 700;
             letter-spacing: 0.06em;
             text-transform: uppercase;
             color: #94a3b8;
         }
-        .xbody-appt-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            padding: 14px 0;
-            border-bottom: 1px solid #f1f5f9;
+        .xbody-appt-card {
+            background: #f8fafc;
+            border: 1px solid #e8edf3;
+            border-radius: 14px;
+            padding: 13px 14px 12px;
+            margin-bottom: 10px;
         }
-        .xbody-appt-row:last-child {
-            border-bottom: none;
-        }
-        .xbody-appt-row.canceled {
-            opacity: 0.55;
-        }
-        .xbody-appt-main {
-            flex: 1 1 auto;
-            min-width: 0;
-        }
-        .xbody-appt-date,
-        .xbody-appt-time {
-            margin: 0 0 4px;
-            font-size: 0.9rem;
-            color: #334155;
-            line-height: 1.45;
-        }
-        .xbody-appt-time {
+        .xbody-appt-card:last-child {
             margin-bottom: 0;
         }
+        .xbody-appt-card.canceled {
+            opacity: 0.58;
+        }
+        .xbody-appt-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .xbody-appt-info {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            min-width: 0;
+        }
+        .xbody-appt-line {
+            display: grid;
+            grid-template-columns: 2.75rem minmax(0, 1fr);
+            align-items: baseline;
+            column-gap: 12px;
+        }
+        .xbody-appt-k {
+            font-size: 0.76rem;
+            font-weight: 600;
+            color: #94a3b8;
+            letter-spacing: 0.01em;
+        }
+        .xbody-appt-v {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #0f172a;
+            line-height: 1.35;
+            word-break: break-word;
+        }
         .xbody-appt-status {
-            margin: 4px 0 0;
-            font-size: 0.8rem;
+            margin: -2px 0 0;
+            font-size: 0.78rem;
             color: #b91c1c;
             font-weight: 600;
         }
+        .xbody-appt-action {
+            display: flex;
+            justify-content: flex-end;
+            padding-top: 2px;
+        }
         .xbody-appt-change-btn {
-            flex: 0 0 auto;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            padding: 7px 12px;
+            min-height: 36px;
+            padding: 0 14px;
             border: 1px solid #fecaca;
             border-radius: 10px;
-            background: #fef2f2;
+            background: #ffffff;
             color: #b91c1c;
             font-size: 0.82rem;
-            font-weight: 600;
+            font-weight: 700;
             text-decoration: none;
             white-space: nowrap;
+            box-shadow: 0 1px 2px rgba(185, 28, 28, 0.06);
         }
         .xbody-appt-change-btn.disabled {
-            opacity: 0.45;
+            opacity: 0.4;
             pointer-events: none;
         }
 
@@ -377,23 +397,6 @@
         #xbody-onboarding.hidden,
         #acuity-scroll-container.hidden {
             display: none;
-        }
-
-        /* Covers Acuity login/signup in the iframe top-right corner */
-        #acuity-login-mask {
-            position: fixed;
-            top: 0;
-            right: 0;
-            width: 132px;
-            height: calc(env(safe-area-inset-top, 0px) + 54px);
-            padding-top: env(safe-area-inset-top, 0px);
-            background: #ffffff;
-            z-index: 450;
-            pointer-events: auto;
-            display: none;
-        }
-        #acuity-login-mask.visible {
-            display: block;
         }
 
         .xbody-onboarding-card {
@@ -661,8 +664,6 @@
         <span>Моите часове</span>
     </button>
 
-    <div id="acuity-login-mask" aria-hidden="true"></div>
-
     <div class="xbody-appt-overlay hidden" id="appointments-overlay" aria-hidden="true">
         <div class="xbody-appt-panel" role="dialog" aria-modal="true" aria-labelledby="appointments-title">
             <div class="xbody-appt-handle" aria-hidden="true"></div>
@@ -835,7 +836,6 @@
                 } catch (_) {}
                 onboarding.classList.add('hidden');
                 scrollContainer.classList.remove('hidden');
-                updateLoginMask();
                 frame.dataset.originalSrc = bookingUrl;
                 frame.src = bookingUrl;
             }
@@ -843,14 +843,6 @@
             frame.addEventListener('load', function () {
                 if (window.XBodySplash) window.XBodySplash.hide();
             });
-
-            function updateLoginMask() {
-                const mask = document.getElementById('acuity-login-mask');
-                if (!mask) return;
-                const visible = !scrollContainer.classList.contains('hidden');
-                mask.classList.toggle('visible', visible);
-                mask.setAttribute('aria-hidden', visible ? 'false' : 'true');
-            }
 
             function getStoredUserData() {
                 const fullName = (localStorage.getItem(STORAGE_KEYS.fullName) || '').trim();
@@ -1330,16 +1322,13 @@
             function formatAppointmentBg(item) {
                 const dt = parseApptDate(item);
                 if (!dt) {
-                    return {
-                        dateLine: 'дата: —',
-                        timeLine: 'час: —'
-                    };
+                    return { dateValue: '—', timeValue: '—' };
                 }
                 const dd = String(dt.getDate()).padStart(2, '0');
                 const mm = String(dt.getMonth() + 1).padStart(2, '0');
                 return {
-                    dateLine: 'дата: ' + BG_WEEKDAYS[dt.getDay()] + ', ' + dd + '.' + mm,
-                    timeLine: 'час: ' + formatTime24(item)
+                    dateValue: BG_WEEKDAYS[dt.getDay()] + ', ' + dd + '.' + mm,
+                    timeValue: formatTime24(item)
                 };
             }
 
@@ -1353,12 +1342,21 @@
                 const status = item.canceled
                     ? '<p class="xbody-appt-status">Отменен час</p>'
                     : '';
-                return '<article class="xbody-appt-row' + (item.canceled ? ' canceled' : '') + '">' +
-                    '<p class="xbody-appt-type">' + escapeHtml(item.type || 'Час') + '</p>' +
-                    '<p class="xbody-appt-date">' + escapeHtml(labels.dateLine) + '</p>' +
-                    '<p class="xbody-appt-time">' + escapeHtml(labels.timeLine) + '</p>' +
-                    status +
-                    changeBtn +
+                return '<article class="xbody-appt-card' + (item.canceled ? ' canceled' : '') + '">' +
+                    '<div class="xbody-appt-grid">' +
+                        '<div class="xbody-appt-info">' +
+                            '<div class="xbody-appt-line">' +
+                                '<span class="xbody-appt-k">дата</span>' +
+                                '<span class="xbody-appt-v">' + escapeHtml(labels.dateValue) + '</span>' +
+                            '</div>' +
+                            '<div class="xbody-appt-line">' +
+                                '<span class="xbody-appt-k">час</span>' +
+                                '<span class="xbody-appt-v">' + escapeHtml(labels.timeValue) + '</span>' +
+                            '</div>' +
+                            status +
+                        '</div>' +
+                        '<div class="xbody-appt-action">' + changeBtn + '</div>' +
+                    '</div>' +
                 '</article>';
             }
 
