@@ -6581,7 +6581,11 @@ async function ensureAssistantCacheFresh(env, session, card, planUpdatedAt, anal
  */
 function reconcilePlanAfterAssistantPatches(plan) {
   if (!plan?.weekPlan) return;
-  recalculateDayCalories(plan.weekPlan, plan.strategy || null);
+  if (plan.strategy?.weeklyScheme) {
+    alignWeekPlanDaysToScheme(plan.weekPlan, plan.strategy, 1, 7);
+  } else {
+    recalculateDayCalories(plan.weekPlan, plan.strategy || null);
+  }
 
   const avgMacros = calculateAverageMacrosFromPlan(plan.weekPlan);
   if (!plan.summary) plan.summary = {};
@@ -8288,10 +8292,53 @@ function getFreeMealSlotCalories(dayTarget) {
   return free ? (Number(free.calories) || 0) : 0;
 }
 
+// Maps AI-generated meal type variants to canonical allowed types
+const MEAL_TYPE_ALIASES = {
+  // Old canonical names → new canonical names (backward compat for stored plans)
+  'Закуска': 'Хранене 1',
+  'Обяд':    'Хранене 2',
+  'Следобедна закуска': 'Хранене 3',
+  'Вечеря':  'Хранене 4',
+  'Късна закуска': 'Хранене 5',
+  // AI-generated variants → canonical
+  'Междинно': 'Хранене 3',
+  'Междинна закуска': 'Хранене 3',
+  'Снак': 'Хранене 3',
+  'Снек': 'Хранене 3',
+  'Лека закуска': 'Хранене 3',
+  'Следобедна': 'Хранене 3',
+  'Десерт': 'Хранене 3',
+  'Предвечерна закуска': 'Хранене 5',
+  'Нощна закуска': 'Хранене 5',
+  // Beverage variants → Напитка
+  'Вода с лимон/Зелен чай': 'Напитка',
+  'Вода с лимон': 'Напитка',
+  'Зелен чай': 'Напитка',
+  'Чай': 'Напитка',
+  'Кафе': 'Напитка',
+  'Напитки': 'Напитка',
+};
+
 /**
  * Set each meal's macros/calories from strategy mealBreakdown (Step 2 targets).
  * Deterministic link between Step 2 architecture and Step 3 meals.
  */
+function normalizeMealTypesInWeekPlan(weekPlan) {
+  if (!weekPlan || typeof weekPlan !== 'object') return;
+  for (const day of Object.values(weekPlan)) {
+    if (!day?.meals?.length) continue;
+    for (const meal of day.meals) {
+      if (!meal?.type) continue;
+      const name = (meal.name || '').toLowerCase().trim();
+      if (name === 'свободно хранене' && meal.type !== 'Свободно хранене') {
+        meal.type = 'Свободно хранене';
+      } else if (MEAL_TYPE_ALIASES[meal.type]) {
+        meal.type = MEAL_TYPE_ALIASES[meal.type];
+      }
+    }
+  }
+}
+
 function alignMealsToBreakdown(dayPlan, dayTarget) {
   if (!dayPlan?.meals?.length || !dayTarget?.mealBreakdown) return false;
 
@@ -8313,6 +8360,7 @@ function alignMealsToBreakdown(dayPlan, dayTarget) {
 
 function alignWeekPlanDaysToScheme(weekPlan, strategy, startDay, endDay) {
   if (!weekPlan || !strategy?.weeklyScheme) return;
+  normalizeMealTypesInWeekPlan(weekPlan);
   for (let d = startDay; d <= endDay; d++) {
     const dayKey = `day${d}`;
     const schemeKey = DAY_NUMBER_TO_KEY[d - 1];
@@ -8351,33 +8399,6 @@ function syncPlanTargets(plan, analysis) {
 // values directly in meal.calories/meal.macros, so the daily calorie budget is correct
 // from the start without any backend adjustment.
 // Nutritional values are taken from FIXED_DESSERT to keep them in sync.
-// Maps AI-generated meal type variants to canonical allowed types
-const MEAL_TYPE_ALIASES = {
-  // Old canonical names → new canonical names (backward compat for stored plans)
-  'Закуска': 'Хранене 1',
-  'Обяд':    'Хранене 2',
-  'Следобедна закуска': 'Хранене 3',
-  'Вечеря':  'Хранене 4',
-  'Късна закуска': 'Хранене 5',
-  // AI-generated variants → canonical
-  'Междинно': 'Хранене 3',
-  'Междинна закуска': 'Хранене 3',
-  'Снак': 'Хранене 3',
-  'Снек': 'Хранене 3',
-  'Лека закуска': 'Хранене 3',
-  'Следобедна': 'Хранене 3',
-  'Десерт': 'Хранене 3',
-  'Предвечерна закуска': 'Хранене 5',
-  'Нощна закуска': 'Хранене 5',
-  // Beverage variants → Напитка
-  'Вода с лимон/Зелен чай': 'Напитка',
-  'Вода с лимон': 'Напитка',
-  'Зелен чай': 'Напитка',
-  'Чай': 'Напитка',
-  'Кафе': 'Напитка',
-  'Напитки': 'Напитка',
-};
-
 /**
  * Returns true when the user's foodCravings include 'Сладко' (sweets).
  * Handles both array (multi-select) and plain string values.
@@ -8616,7 +8637,7 @@ function validatePlan(plan, userData, substitutions = []) {
             // Validate portion sizes (weight field)
             if (meal.weight) {
               // Extract weight in grams, handling decimals and multiple servings
-              const weightMatch = meal.weight.match(/(\d+(?:\.\d+)?)\s*g/);
+              const weightMatch = meal.weight.match(/(\d+(?:\.\d+)?)\s*(?:g|г)/i);
               if (weightMatch) {
                 const weightGrams = parseFloat(weightMatch[1]);
                 if (weightGrams < 50) {
@@ -9309,6 +9330,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
         generatedAt: new Date().toISOString()
       }
     };
+    syncPlanTargets(result, analysis);
     
     // Update combined index once for this regeneration session
     await finalizeAISessionLogs(env, sessionId);

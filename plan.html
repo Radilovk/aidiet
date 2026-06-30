@@ -5627,6 +5627,13 @@
             if ((currentViewDateKey || todayDateKey()) !== todayDateKey()) {
                 resetPlanViewToToday();
             }
+            var storedAt = '';
+            try { storedAt = localStorage.getItem('planUpdatedAt') || ''; } catch (_) {}
+            var uid = localStorage.getItem('userId') || '';
+            var sig = storedAt + ':' + uid;
+            if (_planRenderedSig && sig && _planRenderedSig !== sig && typeof loadDietData === 'function') {
+                loadDietData({ force: true });
+            }
             consumePendingPlanUiAction();
             if (typeof checkOpenAppPrompts === 'function') checkOpenAppPrompts();
             maybeCheckWeeklyAdaptNotice();
@@ -8978,6 +8985,9 @@
         // Invalidate cache when another tab or external code modifies the same key
         window.addEventListener('storage', function(e) {
             if (e.key === GAME_DATA_KEY) invalidateGameDataCache();
+            if ((e.key === 'dietPlan' || e.key === 'planUpdatedAt') && typeof loadDietData === 'function') {
+                loadDietData({ force: true });
+            }
         });
         window.addEventListener('NUTRIPLAN_APP_DATA_READY', function(e) {
             if (!e || !e.detail || !e.detail.keys || e.detail.keys.indexOf('gameData') >= 0) {

@@ -351,14 +351,22 @@
     }
 
     function reloadPlanFrameIfUpdated(result) {
-        if (!result || !result.updated) return;
+        if (!result || (!result.updated && !result.applied)) return;
+        refreshPlanTab(result);
+    }
+
+    function refreshPlanTab(result) {
         var planFrame = document.querySelector('[data-tab-view="plan"]');
         if (!planFrame || !planFrame.contentWindow) return;
         try {
             if (typeof planFrame.contentWindow.loadDietData === 'function') {
                 planFrame.contentWindow.loadDietData({ force: true });
             }
-            dispatchFrameEvent(planFrame, 'NUTRIPLAN_PLAN_SYNCED', {});
+            if (result && result.notice) {
+                dispatchFrameEvent(planFrame, 'NUTRIPLAN_WEEKLY_ADAPT_READY', result.notice);
+            } else {
+                dispatchFrameEvent(planFrame, 'NUTRIPLAN_PLAN_SYNCED', { weekly: !!(result && result.planApplied) });
+            }
         } catch (_) {}
     }
 
@@ -402,7 +410,10 @@
             ? sync.maybeCheckWeeklyAdaptNotice(uid, opts)
             : Promise.resolve({ applied: false });
         return weeklyFirst.then(function (weekly) {
-            if (weekly && weekly.applied) return true;
+            if (weekly && weekly.applied) {
+                refreshPlanTab(weekly);
+                return true;
+            }
             return sync.maybeDailyPlanVersionCheck(uid, Object.assign({}, opts, { weeklyAlreadyChecked: true }))
                 .then(function (result) {
                     if (result && result.pending) {
