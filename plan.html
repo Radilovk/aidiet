@@ -6807,6 +6807,8 @@
                         // Update dietPlan and userData from server response
                         dietPlan = result.updatedPlan;
                         migrateMealTypes(dietPlan);
+                        alignPlanMealsToStrategy(dietPlan);
+                        correctPlanCalories(dietPlan);
                         if (result.updatedUserData) {
                             userData = result.updatedUserData;
                             localStorage.setItem('userData', JSON.stringify(userData));
@@ -6986,6 +6988,8 @@
             const lastSnapshot = planHistory.pop();
             dietPlan = lastSnapshot.plan;
             migrateMealTypes(dietPlan);
+            alignPlanMealsToStrategy(dietPlan);
+            correctPlanCalories(dietPlan);
             
             // Save to localStorage and backend
             localStorage.setItem('dietPlan', JSON.stringify(dietPlan));
