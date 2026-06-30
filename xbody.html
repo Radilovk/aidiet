@@ -158,27 +158,27 @@
             transform: scale(0.90);
         }
 
-        /* ── Appointments button (icon-only, mirrors back-btn) ── */
+        /* ── Appointments button ── */
         #appointments-btn {
             position: fixed;
-            top: calc(env(safe-area-inset-top, 0px) + 10px + 7.5mm);
-            right: 12px;
+            bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+            right: 16px;
             z-index: 500;
-            width: 36px;
-            height: 36px;
-            padding: 0;
+            height: 44px;
+            padding: 0 16px 0 14px;
             border: none;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.88);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.92);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
-            box-shadow: 0 1px 6px rgba(0, 0, 0, 0.16);
-            display: flex;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.14);
+            display: inline-flex;
             align-items: center;
-            justify-content: center;
+            gap: 8px;
             cursor: pointer;
-            color: #b91c1c;
-            font-size: 15px;
+            color: #374151;
+            font-size: 13px;
+            font-weight: 600;
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.25s ease, transform 0.12s ease;
@@ -190,7 +190,11 @@
             pointer-events: auto;
         }
         #appointments-btn:active {
-            transform: scale(0.90);
+            transform: scale(0.96);
+        }
+        #appointments-btn i {
+            color: #b91c1c;
+            font-size: 15px;
         }
 
         /* ── Appointments sheet ── */
@@ -305,10 +309,7 @@
             color: #94a3b8;
         }
         .xbody-appt-row {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 11px 0;
+            padding: 14px 0;
             border-bottom: 1px solid #f1f5f9;
         }
         .xbody-appt-row:last-child {
@@ -317,47 +318,41 @@
         .xbody-appt-row.canceled {
             opacity: 0.55;
         }
-        .xbody-appt-when {
-            flex: 0 0 72px;
-            line-height: 1.25;
-        }
-        .xbody-appt-day {
-            display: block;
-            font-size: 0.82rem;
+        .xbody-appt-type {
+            margin: 0 0 8px;
+            font-size: 0.95rem;
             font-weight: 700;
             color: #0f172a;
         }
-        .xbody-appt-hour {
-            display: block;
-            font-size: 0.78rem;
-            color: #64748b;
-        }
-        .xbody-appt-info {
-            flex: 1 1 auto;
-            min-width: 0;
-        }
-        .xbody-appt-type {
-            margin: 0;
+        .xbody-appt-date,
+        .xbody-appt-time {
+            margin: 0 0 4px;
             font-size: 0.9rem;
+            color: #334155;
+            line-height: 1.45;
+        }
+        .xbody-appt-status {
+            margin: 0 0 10px;
+            font-size: 0.8rem;
+            color: #b91c1c;
             font-weight: 600;
-            color: #0f172a;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
-        .xbody-appt-sub {
-            margin: 2px 0 0;
-            font-size: 0.78rem;
-            color: #94a3b8;
-        }
-        .xbody-appt-chevron {
-            flex: 0 0 auto;
-            color: #cbd5e1;
-            font-size: 11px;
+        .xbody-appt-change-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 14px;
+            border: 1px solid #fecaca;
+            border-radius: 10px;
+            background: #fef2f2;
+            color: #b91c1c;
+            font-size: 0.85rem;
+            font-weight: 600;
             text-decoration: none;
         }
-        .xbody-appt-chevron.has-link {
-            color: #b91c1c;
+        .xbody-appt-change-btn.disabled {
+            opacity: 0.45;
+            pointer-events: none;
         }
 
         #xbody-onboarding {
@@ -654,8 +649,9 @@
         <i class="fas fa-chevron-left"></i>
     </button>
 
-    <button id="appointments-btn" type="button" aria-label="Моите часове" title="Моите часове">
+    <button id="appointments-btn" type="button" aria-label="Моите часове">
         <i class="fas fa-calendar-check"></i>
+        <span>Моите часове</span>
     </button>
 
     <div id="acuity-login-mask" aria-hidden="true"></div>
@@ -717,37 +713,47 @@
         </iframe>
     </div>
     
-    <script src="https://embed.acuityscheduling.com/js/embed.js" type="text/javascript"></script>
+    <script src="https://embed.acuityscheduling.com/js/embed.js" type="text/javascript" defer></script>
 
     <script>
-        /* ── Splash (instant branded screen while Acuity loads) ── */
+        /* ── Splash (brief branded screen – never blocks Acuity) ── */
         (function () {
             const splash = document.getElementById('xbody-splash');
             if (!splash) return;
 
-            const MAX_MS = 12000;
+            const MIN_MS = 350;
+            const MAX_MS = 2200;
+            let shownAt = Date.now();
+            let hidden = false;
 
             function hideSplash() {
-                if (splash.classList.contains('hidden')) return;
-                splash.classList.add('hidden');
+                if (hidden) return;
+                const elapsed = Date.now() - shownAt;
+                const wait = Math.max(0, MIN_MS - elapsed);
                 window.setTimeout(function () {
-                    if (splash.parentNode) splash.parentNode.removeChild(splash);
-                }, 360);
+                    if (hidden) return;
+                    hidden = true;
+                    splash.classList.add('hidden');
+                    window.setTimeout(function () {
+                        if (splash.parentNode) splash.parentNode.removeChild(splash);
+                    }, 320);
+                }, wait);
             }
 
-            function showSplash() {
-                splash.classList.remove('hidden');
-            }
-
-            window.XBodySplash = { hide: hideSplash, show: showSplash };
+            window.XBodySplash = { hide: hideSplash };
             window.setTimeout(hideSplash, MAX_MS);
         })();
 
-        /* ── Service Worker ── */
+        /* ── Service Worker (deferred – not on critical path) ── */
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
+            const registerSw = function () {
                 navigator.serviceWorker.register('xbody-sw.js');
-            });
+            };
+            if ('requestIdleCallback' in window) {
+                requestIdleCallback(registerSw, { timeout: 4000 });
+            } else {
+                window.addEventListener('load', registerSw, { once: true });
+            }
         }
 
         /* ── iOS scroll-container recovery on app resume ──────────────────────
@@ -820,17 +826,16 @@
                     sessionStorage.setItem(STORAGE_KEYS.email, userData.email);
                     sessionStorage.setItem(STORAGE_KEYS.phone, userData.phone);
                 } catch (_) {}
-                if (window.XBodySplash) {
-                    window.XBodySplash.show();
-                }
                 onboarding.classList.add('hidden');
                 scrollContainer.classList.remove('hidden');
                 updateLoginMask();
                 frame.dataset.originalSrc = bookingUrl;
-                window.requestAnimationFrame(function () {
-                    frame.src = bookingUrl;
-                });
+                frame.src = bookingUrl;
             }
+
+            frame.addEventListener('load', function () {
+                if (window.XBodySplash) window.XBodySplash.hide();
+            });
 
             function updateLoginMask() {
                 const mask = document.getElementById('acuity-login-mask');
@@ -894,9 +899,7 @@
                     sessionStorage.setItem(STORAGE_KEYS.email, storedUserData.email);
                     sessionStorage.setItem(STORAGE_KEYS.phone, storedUserData.phone);
                 } catch (_) {}
-                window.requestAnimationFrame(function () {
-                    showBooking(storedUserData);
-                });
+                showBooking(storedUserData);
             } else if (window.XBodySplash) {
                 window.XBodySplash.hide();
             }
@@ -1135,6 +1138,7 @@
 
                 if (homeHeight === null) {
                     homeHeight = h; // first message = home-page baseline
+                    if (window.XBodySplash) window.XBodySplash.hide();
                     return;
                 }
 
@@ -1180,7 +1184,12 @@
                 phone: 'xbody_booking_phone'
             };
             const CACHE_PREFIX = 'xbody_appt_cache:';
-            const CACHE_TTL_MS = 30 * 60 * 1000;
+            const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+            const BG_WEEKDAYS = ['неделя', 'понеделник', 'вторник', 'сряда', 'четвъртък', 'петък', 'събота'];
+            const BG_MONTHS = {
+                january: 0, february: 1, march: 2, april: 3, may: 4, june: 5,
+                july: 6, august: 7, september: 8, october: 9, november: 10, december: 11
+            };
             const WORKER_URL = (window.location.hostname.endsWith('workers.dev') || window.location.hostname === 'localhost')
                 ? ''
                 : 'https://aidiet.radilov-k.workers.dev';
@@ -1226,9 +1235,7 @@
                     if (!parsed || !parsed.fetchedAt || !parsed.data) {
                         return null;
                     }
-                    if (Date.now() - parsed.fetchedAt > CACHE_TTL_MS) {
-                        return null;
-                    }
+                    parsed.stale = (Date.now() - parsed.fetchedAt) > CACHE_TTL_MS;
                     return parsed;
                 } catch (_) {
                     return null;
@@ -1264,40 +1271,88 @@
                     return 'преди ' + mins + ' мин';
                 }
                 const hours = Math.round(mins / 60);
-                return 'преди ' + hours + ' ч';
+                if (hours < 24) {
+                    return 'преди ' + hours + ' ч';
+                }
+                const days = Math.round(hours / 24);
+                return 'преди ' + days + ' д';
             }
 
-            function splitDateLabel(dateText) {
-                const text = String(dateText || '').trim();
+            function parseApptDate(item) {
+                if (item && item.datetime) {
+                    const dt = new Date(item.datetime);
+                    if (!isNaN(dt.getTime())) {
+                        return dt;
+                    }
+                }
+                const text = String((item && item.date) || '').trim();
                 if (!text) {
-                    return { day: '—', month: '' };
+                    return null;
                 }
-                const parts = text.split(/\s+/);
-                if (parts.length >= 2) {
-                    return { day: parts[0], month: parts.slice(1).join(' ') };
+                const match = text.match(/^([A-Za-z]+)\s+(\d{1,2}),?\s*(\d{4})?/);
+                if (match) {
+                    const month = BG_MONTHS[match[1].toLowerCase()];
+                    if (month !== undefined) {
+                        const year = match[3] ? parseInt(match[3], 10) : new Date().getFullYear();
+                        return new Date(year, month, parseInt(match[2], 10));
+                    }
                 }
-                return { day: text, month: '' };
+                const fallback = Date.parse(text);
+                return isNaN(fallback) ? null : new Date(fallback);
+            }
+
+            function formatTime24(item) {
+                const dt = parseApptDate(item);
+                if (dt) {
+                    const h = dt.getHours();
+                    const m = String(dt.getMinutes()).padStart(2, '0');
+                    return h + ':' + m;
+                }
+                const raw = String((item && item.time) || '').trim().toLowerCase();
+                const m = raw.match(/^(\d{1,2}):(\d{2})\s*(am|pm)?/);
+                if (!m) {
+                    return raw || '—';
+                }
+                let hour = parseInt(m[1], 10);
+                const mins = m[2];
+                if (m[3] === 'pm' && hour < 12) hour += 12;
+                if (m[3] === 'am' && hour === 12) hour = 0;
+                return hour + ':' + mins;
+            }
+
+            function formatAppointmentBg(item) {
+                const dt = parseApptDate(item);
+                if (!dt) {
+                    return {
+                        dateLine: 'дата: —',
+                        timeLine: 'час: —'
+                    };
+                }
+                const dd = String(dt.getDate()).padStart(2, '0');
+                const mm = String(dt.getMonth() + 1).padStart(2, '0');
+                return {
+                    dateLine: 'дата: ' + BG_WEEKDAYS[dt.getDay()] + ', ' + dd + '.' + mm,
+                    timeLine: 'час: ' + formatTime24(item)
+                };
             }
 
             function renderRow(item) {
-                const labels = splitDateLabel(item.date);
-                const hour = (item.time || '').trim();
-                const link = item.confirmationPage
-                    ? '<a class="xbody-appt-chevron has-link" href="' + escapeHtml(item.confirmationPage) +
-                        '" target="_blank" rel="noopener noreferrer" aria-label="Детайли"><i class="fas fa-chevron-right"></i></a>'
-                    : '<span class="xbody-appt-chevron" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>';
-                const sub = item.canceled ? 'Отменен' : (item.calendar || '');
-                return '<div class="xbody-appt-row' + (item.canceled ? ' canceled' : '') + '">' +
-                    '<div class="xbody-appt-when">' +
-                        '<span class="xbody-appt-day">' + escapeHtml(labels.day) + '</span>' +
-                        '<span class="xbody-appt-hour">' + escapeHtml(labels.month) + (labels.month && hour ? ' · ' : '') + escapeHtml(hour) + '</span>' +
-                    '</div>' +
-                    '<div class="xbody-appt-info">' +
-                        '<p class="xbody-appt-type">' + escapeHtml(item.type) + '</p>' +
-                        (sub ? '<p class="xbody-appt-sub">' + escapeHtml(sub) + '</p>' : '') +
-                    '</div>' +
-                    link +
-                '</div>';
+                const labels = formatAppointmentBg(item);
+                const canChange = Boolean(item.confirmationPage) && !item.canceled;
+                const changeBtn = canChange
+                    ? '<a class="xbody-appt-change-btn" href="' + escapeHtml(item.confirmationPage) +
+                        '" target="_blank" rel="noopener noreferrer">Промяна</a>'
+                    : '<span class="xbody-appt-change-btn disabled">Промяна</span>';
+                const status = item.canceled
+                    ? '<p class="xbody-appt-status">Отменен час</p>'
+                    : '';
+                return '<article class="xbody-appt-row' + (item.canceled ? ' canceled' : '') + '">' +
+                    '<p class="xbody-appt-type">' + escapeHtml(item.type || 'Час') + '</p>' +
+                    '<p class="xbody-appt-date">' + escapeHtml(labels.dateLine) + '</p>' +
+                    '<p class="xbody-appt-time">' + escapeHtml(labels.timeLine) + '</p>' +
+                    status +
+                    changeBtn +
+                '</article>';
             }
 
             function renderSection(title, items) {
@@ -1310,34 +1365,39 @@
                 '</section>';
             }
 
-            function setFooter(fetchedAt, fromCache) {
+            function setFooter(fetchedAt, fromCache, stale) {
                 if (!fetchedAt) {
                     footerEl.classList.add('hidden');
                     footerEl.textContent = '';
                     return;
                 }
                 footerEl.classList.remove('hidden');
-                footerEl.textContent = (fromCache ? 'Запазени данни ' : 'Обновено ') + formatAge(fetchedAt) + ' · натисни ↻ за ново зареждане';
+                let note = (fromCache ? 'Запазени данни ' : 'Обновено ') + formatAge(fetchedAt);
+                if (stale) {
+                    note += ' · данните може да са остарели';
+                }
+                note += ' · натисни ↻ за обновяване';
+                footerEl.textContent = note;
             }
 
-            function renderAppointments(data, fetchedAt, fromCache) {
+            function renderAppointments(data, fetchedAt, fromCache, stale) {
                 const upcoming = Array.isArray(data.upcoming) ? data.upcoming : [];
                 const past = Array.isArray(data.past) ? data.past : [];
 
                 if (!upcoming.length && !past.length) {
-                    bodyEl.innerHTML = '<div class="xbody-appt-state">Нямаш запазени часове.</div>';
+                    bodyEl.innerHTML = '<div class="xbody-appt-state">Нямаш запазени часове.<br>Натисни ↻, за да ги заредиш.</div>';
                 } else {
                     bodyEl.innerHTML =
-                        renderSection('Предстоящи', upcoming) +
-                        renderSection('Минали', past);
+                        renderSection('Предстоящи часове', upcoming) +
+                        renderSection('Минали часове', past);
                 }
-                setFooter(fetchedAt, fromCache);
+                setFooter(fetchedAt, fromCache, stale);
             }
 
-            function applyCache(data, fetchedAt, fromCache) {
+            function applyCache(data, fetchedAt, fromCache, stale) {
                 memoryCache = data;
                 memoryFetchedAt = fetchedAt;
-                renderAppointments(data, fetchedAt, fromCache);
+                renderAppointments(data, fetchedAt, fromCache, stale);
             }
 
             function setLoadingState(message) {
@@ -1366,10 +1426,29 @@
                     past: Array.isArray(data.past) ? data.past : []
                 };
                 writeLocalCache(contact.email, payload, fetchedAt);
-                applyCache(payload, fetchedAt, false);
+                applyCache(payload, fetchedAt, false, false);
             }
 
-            async function loadAppointments(force) {
+            function showCachedAppointments() {
+                const contact = getUserContact();
+                if (!contact) {
+                    setLoadingState('Няма запазен имейл.');
+                    return;
+                }
+                if (memoryCache && memoryFetchedAt) {
+                    applyCache(memoryCache, memoryFetchedAt, true, false);
+                    return;
+                }
+                const local = readLocalCache(contact.email);
+                if (local) {
+                    applyCache(local.data, local.fetchedAt, true, local.stale);
+                    return;
+                }
+                bodyEl.innerHTML = '<div class="xbody-appt-state">Нямаш заредени часове.<br>Натисни ↻, за да ги заредиш от системата.</div>';
+                footerEl.classList.add('hidden');
+            }
+
+            async function fetchFromNetwork(force) {
                 const contact = getUserContact();
                 if (!contact) {
                     setLoadingState('Няма запазен имейл.');
@@ -1377,19 +1456,6 @@
                 }
                 if (loading) {
                     return;
-                }
-
-                if (!force && memoryCache && memoryFetchedAt) {
-                    applyCache(memoryCache, memoryFetchedAt, true);
-                    return;
-                }
-
-                if (!force) {
-                    const local = readLocalCache(contact.email);
-                    if (local) {
-                        applyCache(local.data, local.fetchedAt, true);
-                        return;
-                    }
                 }
 
                 loading = true;
@@ -1402,7 +1468,7 @@
                     await fetchFromServer(contact, force);
                 } catch (err) {
                     if (memoryCache) {
-                        applyCache(memoryCache, memoryFetchedAt, true);
+                        applyCache(memoryCache, memoryFetchedAt, true, true);
                         footerEl.classList.remove('hidden');
                         footerEl.textContent = 'Неуспешно обновяване · показваме запазени данни';
                     } else {
@@ -1417,7 +1483,7 @@
             function openModal() {
                 overlay.classList.remove('hidden');
                 overlay.setAttribute('aria-hidden', 'false');
-                loadAppointments(false);
+                showCachedAppointments();
             }
 
             function closeModal() {
@@ -1428,7 +1494,7 @@
             btn.addEventListener('click', openModal);
             closeBtn.addEventListener('click', closeModal);
             refreshBtn.addEventListener('click', function () {
-                loadAppointments(true);
+                fetchFromNetwork(true);
             });
             overlay.addEventListener('click', function (event) {
                 if (event.target === overlay) {

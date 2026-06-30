@@ -16292,7 +16292,7 @@ async function handleAIXChat(request, env) {
  * Returns upcoming and past Acuity appointments for the given client email.
  * Responses are cached in KV for 10 minutes unless refresh=1.
  */
-const XBODY_APPT_CACHE_TTL_SEC = 600;
+const XBODY_APPT_CACHE_TTL_SEC = 3600;
 
 async function handleXbodyAppointments(request, env) {
   const userId = env.ACUITY_USER_ID;
