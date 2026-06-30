@@ -8244,11 +8244,26 @@ function enforceCalorieGuardrails(analysis, data, referenceTdee) {
   }
 }
 
+/** Canonicalize meal type strings inside strategy mealBreakdown (Step 2 aliases). */
+function normalizeMealBreakdownTypes(strategy) {
+  if (!strategy?.weeklyScheme) return;
+  for (const day of Object.values(strategy.weeklyScheme)) {
+    if (!day?.mealBreakdown?.length) continue;
+    for (const entry of day.mealBreakdown) {
+      if (!entry?.type) continue;
+      if (MEAL_TYPE_ALIASES[entry.type]) {
+        entry.type = MEAL_TYPE_ALIASES[entry.type];
+      }
+    }
+  }
+}
+
 /**
  * Ensure weeklyScheme mealBreakdown sums match per-day calorie/macro targets.
  */
 function normalizeWeeklyScheme(strategy, defaultDailyCalories) {
   if (!strategy?.weeklyScheme) return;
+  normalizeMealBreakdownTypes(strategy);
 
   for (const key of DAY_NUMBER_TO_KEY) {
     const day = strategy.weeklyScheme[key];
@@ -8360,6 +8375,7 @@ function alignMealsToBreakdown(dayPlan, dayTarget) {
 
 function alignWeekPlanDaysToScheme(weekPlan, strategy, startDay, endDay) {
   if (!weekPlan || !strategy?.weeklyScheme) return;
+  normalizeMealBreakdownTypes(strategy);
   normalizeMealTypesInWeekPlan(weekPlan);
   for (let d = startDay; d <= endDay; d++) {
     const dayKey = `day${d}`;
