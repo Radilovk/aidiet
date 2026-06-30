@@ -309,6 +309,10 @@
             color: #94a3b8;
         }
         .xbody-appt-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
             padding: 14px 0;
             border-bottom: 1px solid #f1f5f9;
         }
@@ -318,11 +322,9 @@
         .xbody-appt-row.canceled {
             opacity: 0.55;
         }
-        .xbody-appt-type {
-            margin: 0 0 8px;
-            font-size: 0.95rem;
-            font-weight: 700;
-            color: #0f172a;
+        .xbody-appt-main {
+            flex: 1 1 auto;
+            min-width: 0;
         }
         .xbody-appt-date,
         .xbody-appt-time {
@@ -331,24 +333,29 @@
             color: #334155;
             line-height: 1.45;
         }
+        .xbody-appt-time {
+            margin-bottom: 0;
+        }
         .xbody-appt-status {
-            margin: 0 0 10px;
+            margin: 4px 0 0;
             font-size: 0.8rem;
             color: #b91c1c;
             font-weight: 600;
         }
         .xbody-appt-change-btn {
+            flex: 0 0 auto;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            padding: 8px 14px;
+            padding: 7px 12px;
             border: 1px solid #fecaca;
             border-radius: 10px;
             background: #fef2f2;
             color: #b91c1c;
-            font-size: 0.85rem;
+            font-size: 0.82rem;
             font-weight: 600;
             text-decoration: none;
+            white-space: nowrap;
         }
         .xbody-appt-change-btn.disabled {
             opacity: 0.45;
