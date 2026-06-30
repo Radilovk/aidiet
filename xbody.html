@@ -14,6 +14,34 @@
     <meta name="apple-mobile-web-app-title" content="XBody">
     <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#1A0A0A':'#FEE2E2';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
     <link rel="apple-touch-icon" href="xbody-icon-192.png">
+    <link rel="apple-touch-startup-image" href="xbody-icon-512.png">
+    <link rel="preload" as="image" href="xbody-icon-512.png">
+    <link rel="preconnect" href="https://xbody.as.me">
+    <link rel="dns-prefetch" href="https://xbody.as.me">
+
+    <style>
+        /* Critical splash – same icon asset as the PWA app icon */
+        #xbody-splash {
+            position: fixed;
+            inset: 0;
+            z-index: 1200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fef2f2;
+            transition: opacity 0.32s ease, visibility 0.32s ease;
+        }
+        #xbody-splash.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+        #xbody-splash img {
+            width: min(42vmin, 192px);
+            height: min(42vmin, 192px);
+            object-fit: contain;
+        }
+    </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <style>
@@ -348,6 +376,24 @@
         #acuity-scroll-container.hidden {
             display: none;
         }
+
+        /* Covers Acuity login/signup in the iframe top-right corner */
+        #acuity-login-mask {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 132px;
+            height: calc(env(safe-area-inset-top, 0px) + 54px);
+            padding-top: env(safe-area-inset-top, 0px);
+            background: #ffffff;
+            z-index: 450;
+            pointer-events: auto;
+            display: none;
+        }
+        #acuity-login-mask.visible {
+            display: block;
+        }
+
         .xbody-onboarding-card {
             width: 100%;
             max-width: 460px;
@@ -573,6 +619,10 @@
 </head>
 <body>
 
+    <div id="xbody-splash" role="status" aria-live="polite" aria-label="Зареждане на XBody">
+        <img src="xbody-icon-512.png" width="192" height="192" alt="XBody">
+    </div>
+
     <!-- PWA Install Modal -->
     <div class="pwa-modal-overlay hidden" id="pwaModalOverlay">
         <div class="pwa-modal" role="dialog" aria-modal="true" aria-labelledby="pwaModalTitle">
@@ -607,6 +657,8 @@
     <button id="appointments-btn" type="button" aria-label="Моите часове" title="Моите часове">
         <i class="fas fa-calendar-check"></i>
     </button>
+
+    <div id="acuity-login-mask" aria-hidden="true"></div>
 
     <div class="xbody-appt-overlay hidden" id="appointments-overlay" aria-hidden="true">
         <div class="xbody-appt-panel" role="dialog" aria-modal="true" aria-labelledby="appointments-title">
@@ -668,6 +720,29 @@
     <script src="https://embed.acuityscheduling.com/js/embed.js" type="text/javascript"></script>
 
     <script>
+        /* ── Splash (instant branded screen while Acuity loads) ── */
+        (function () {
+            const splash = document.getElementById('xbody-splash');
+            if (!splash) return;
+
+            const MAX_MS = 12000;
+
+            function hideSplash() {
+                if (splash.classList.contains('hidden')) return;
+                splash.classList.add('hidden');
+                window.setTimeout(function () {
+                    if (splash.parentNode) splash.parentNode.removeChild(splash);
+                }, 360);
+            }
+
+            function showSplash() {
+                splash.classList.remove('hidden');
+            }
+
+            window.XBodySplash = { hide: hideSplash, show: showSplash };
+            window.setTimeout(hideSplash, MAX_MS);
+        })();
+
         /* ── Service Worker ── */
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
@@ -745,10 +820,24 @@
                     sessionStorage.setItem(STORAGE_KEYS.email, userData.email);
                     sessionStorage.setItem(STORAGE_KEYS.phone, userData.phone);
                 } catch (_) {}
+                if (window.XBodySplash) {
+                    window.XBodySplash.show();
+                }
                 onboarding.classList.add('hidden');
                 scrollContainer.classList.remove('hidden');
+                updateLoginMask();
                 frame.dataset.originalSrc = bookingUrl;
-                frame.src = bookingUrl;
+                window.requestAnimationFrame(function () {
+                    frame.src = bookingUrl;
+                });
+            }
+
+            function updateLoginMask() {
+                const mask = document.getElementById('acuity-login-mask');
+                if (!mask) return;
+                const visible = !scrollContainer.classList.contains('hidden');
+                mask.classList.toggle('visible', visible);
+                mask.setAttribute('aria-hidden', visible ? 'false' : 'true');
             }
 
             function getStoredUserData() {
@@ -805,8 +894,11 @@
                     sessionStorage.setItem(STORAGE_KEYS.email, storedUserData.email);
                     sessionStorage.setItem(STORAGE_KEYS.phone, storedUserData.phone);
                 } catch (_) {}
-                showBooking(storedUserData);
-                return;
+                window.requestAnimationFrame(function () {
+                    showBooking(storedUserData);
+                });
+            } else if (window.XBodySplash) {
+                window.XBodySplash.hide();
             }
 
             form.addEventListener('submit', function (event) {
@@ -1033,6 +1125,7 @@
                     homeHeight  = null; // re-baseline on next setHeight
                     msgNavDepth = 0;
                     if (navDepth === 0) setVisible(false);
+                    if (window.XBodySplash) window.XBodySplash.hide();
                     return;
                 }
 

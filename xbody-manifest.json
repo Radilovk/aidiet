@@ -6,7 +6,7 @@
   "start_url": "xbody.html",
   "scope": "/xbody.html",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "background_color": "#fef2f2",
   "theme_color": "#FEE2E2",
   "orientation": "portrait",
   "icons": [
