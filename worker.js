@@ -16288,7 +16288,7 @@ async function handleAIXChat(request, env) {
 }
 
 /**
- * GET /api/xbody/appointments?email=...&phone=...
+ * GET /api/xbody/appointments?email=...
  * Returns upcoming and past Acuity appointments for the given client email.
  */
 async function handleXbodyAppointments(request, env) {
@@ -16304,16 +16304,12 @@ async function handleXbodyAppointments(request, env) {
     return jsonResponse({ error: 'Липсва валиден имейл.' }, 400);
   }
 
-  const phone = String(url.searchParams.get('phone') || '').trim();
   const acuityUrl = new URL('https://acuityscheduling.com/api/v1/appointments');
   acuityUrl.searchParams.set('email', email);
   acuityUrl.searchParams.set('showall', 'true');
   acuityUrl.searchParams.set('max', '100');
   acuityUrl.searchParams.set('direction', 'DESC');
   acuityUrl.searchParams.set('excludeForms', 'true');
-  if (phone) {
-    acuityUrl.searchParams.set('phone', phone);
-  }
 
   const auth = btoa(`${userId}:${apiKey}`);
   let resp;

@@ -1199,9 +1199,6 @@
                 const params = new URLSearchParams({
                     email: contact.email
                 });
-                if (contact.phone) {
-                    params.set('phone', contact.phone);
-                }
 
                 try {
                     const resp = await fetch(WORKER_URL + '/api/xbody/appointments?' + params.toString());
