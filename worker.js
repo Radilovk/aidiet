@@ -16288,9 +16288,12 @@ async function handleAIXChat(request, env) {
 }
 
 /**
- * GET /api/xbody/appointments?email=...
+ * GET /api/xbody/appointments?email=...&refresh=1
  * Returns upcoming and past Acuity appointments for the given client email.
+ * Responses are cached in KV for 10 minutes unless refresh=1.
  */
+const XBODY_APPT_CACHE_TTL_SEC = 600;
+
 async function handleXbodyAppointments(request, env) {
   const userId = env.ACUITY_USER_ID;
   const apiKey = env.ACUITY_API_KEY;
@@ -16304,10 +16307,25 @@ async function handleXbodyAppointments(request, env) {
     return jsonResponse({ error: 'Липсва валиден имейл.' }, 400);
   }
 
+  const forceRefresh = url.searchParams.get('refresh') === '1';
+  const cacheKey = `xbody:appt:${email}`;
+
+  if (!forceRefresh && env.page_content) {
+    try {
+      const cached = await env.page_content.get(cacheKey);
+      if (cached) {
+        const payload = JSON.parse(cached);
+        return jsonResponse(payload, 200, { cacheControl: 'private, max-age=300' });
+      }
+    } catch (err) {
+      console.warn('[xbody-appointments] KV cache read failed:', err.message);
+    }
+  }
+
   const acuityUrl = new URL('https://acuityscheduling.com/api/v1/appointments');
   acuityUrl.searchParams.set('email', email);
   acuityUrl.searchParams.set('showall', 'true');
-  acuityUrl.searchParams.set('max', '100');
+  acuityUrl.searchParams.set('max', '40');
   acuityUrl.searchParams.set('direction', 'DESC');
   acuityUrl.searchParams.set('excludeForms', 'true');
 
@@ -16364,7 +16382,19 @@ async function handleXbodyAppointments(request, env) {
 
   upcoming.sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime());
 
-  return jsonResponse({ upcoming, past }, 200, { cacheControl: 'private, max-age=60' });
+  const payload = { upcoming, past, fetchedAt: Date.now() };
+
+  if (env.page_content) {
+    try {
+      await env.page_content.put(cacheKey, JSON.stringify(payload), {
+        expirationTtl: XBODY_APPT_CACHE_TTL_SEC
+      });
+    } catch (err) {
+      console.warn('[xbody-appointments] KV cache write failed:', err.message);
+    }
+  }
+
+  return jsonResponse(payload, 200, { cacheControl: 'private, max-age=300' });
 }
 
 export default {
