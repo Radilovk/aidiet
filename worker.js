@@ -12294,6 +12294,7 @@ function getPromptKVKey(type) {
     'analysis': 'admin_analysis_prompt',
     'strategy': 'admin_strategy_prompt',
     'meal_plan': 'admin_meal_plan_prompt',
+    'meal_enrichment': 'admin_meal_enrichment_prompt',
     'summary': 'admin_summary_prompt',
     'plan': 'admin_plan_prompt',
     'emoeat': 'admin_emoeat_prompt',
@@ -12365,6 +12366,7 @@ async function handleGetDefaultPrompt(request, env) {
       'analysis': 'admin_analysis_prompt',
       'strategy': 'admin_strategy_prompt',
       'meal_plan': 'admin_meal_plan_prompt',
+      'meal_enrichment': 'admin_meal_enrichment_prompt',
       'summary': 'admin_summary_prompt',
       'consultation': 'admin_consultation_prompt',
       'modification': 'admin_modification_prompt',
@@ -12380,7 +12382,7 @@ async function handleGetDefaultPrompt(request, env) {
     const kvKey = promptKeyMap[type];
     if (!kvKey) {
       return jsonResponse({ 
-        error: `Unknown prompt type: ${type}. Valid types: analysis, strategy, meal_plan, summary, consultation, modification, correction, emoeat, food_analysis, menu_analysis, validation` 
+        error: `Unknown prompt type: ${type}. Valid types: analysis, strategy, meal_plan, meal_enrichment, summary, consultation, modification, correction, emoeat, food_analysis, menu_analysis, validation` 
       }, 400);
     }
     
@@ -12915,6 +12917,7 @@ async function handleGetConfig(request, env) {
       analysisPrompt,
       strategyPrompt,
       mealPlanPrompt,
+      mealEnrichmentPrompt,
       summaryPrompt,
       correctionPrompt,
       protocolProvider,
@@ -12949,6 +12952,7 @@ async function handleGetConfig(request, env) {
       env.page_content.get('admin_analysis_prompt'),
       env.page_content.get('admin_strategy_prompt'),
       env.page_content.get('admin_meal_plan_prompt'),
+      env.page_content.get('admin_meal_enrichment_prompt'),
       env.page_content.get('admin_summary_prompt'),
       env.page_content.get('admin_correction_prompt'),
       env.page_content.get('admin_protocol_provider'),
@@ -12990,6 +12994,7 @@ async function handleGetConfig(request, env) {
       analysisPrompt,
       strategyPrompt,
       mealPlanPrompt,
+      mealEnrichmentPrompt,
       summaryPrompt,
       correctionPrompt,
       protocolProvider: protocolProvider || null,
