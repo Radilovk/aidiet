@@ -14,21 +14,21 @@
     <meta name="apple-mobile-web-app-title" content="XBody">
     <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#1A0A0A':'#FEE2E2';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
     <link rel="apple-touch-icon" href="xbody-icon-192.png">
+    <link rel="apple-touch-startup-image" href="xbody-icon-512.png">
+    <link rel="preload" as="image" href="xbody-icon-512.png">
     <link rel="preconnect" href="https://xbody.as.me">
     <link rel="dns-prefetch" href="https://xbody.as.me">
 
     <style>
-        /* Critical splash – paints before external CSS/JS for instant branded open */
+        /* Critical splash – same icon asset as the PWA app icon */
         #xbody-splash {
             position: fixed;
             inset: 0;
             z-index: 1200;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 14px;
-            background: linear-gradient(180deg, #fef2f2 0%, #ffffff 52%);
+            background: #fef2f2;
             transition: opacity 0.32s ease, visibility 0.32s ease;
         }
         #xbody-splash.hidden {
@@ -37,17 +37,9 @@
             pointer-events: none;
         }
         #xbody-splash img {
-            width: 88px;
-            height: 88px;
-            border-radius: 20px;
-            box-shadow: 0 10px 28px rgba(185, 28, 28, 0.14);
-        }
-        #xbody-splash span {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            font-size: 1.05rem;
-            font-weight: 700;
-            color: #0f172a;
-            letter-spacing: 0.01em;
+            width: min(42vmin, 192px);
+            height: min(42vmin, 192px);
+            object-fit: contain;
         }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -628,8 +620,7 @@
 <body>
 
     <div id="xbody-splash" role="status" aria-live="polite" aria-label="Зареждане на XBody">
-        <img src="xbody-icon-192.png" width="88" height="88" alt="">
-        <span>XBody Ability</span>
+        <img src="xbody-icon-512.png" width="192" height="192" alt="XBody">
     </div>
 
     <!-- PWA Install Modal -->
