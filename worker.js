@@ -7172,6 +7172,39 @@ function mergeWeeklyModifications(existing, decisionMods) {
   return Array.from(mods);
 }
 
+/**
+ * Apply a weekly calorie delta deterministically to strategy.weeklyScheme.
+ * Level ≤1 adaptations regenerate only Step 3 (meals), which reuses the existing
+ * strategy — so a calorie change must be written into the per-day scheme here,
+ * otherwise the new meals would be aligned to the old (unchanged) calorie targets.
+ */
+function applyWeeklyCalorieAdjust(strategy, delta) {
+  if (!strategy?.weeklyScheme || !Number(delta)) return;
+  const MIN_DAY_CALORIES = 1000;
+  for (const key of DAY_NUMBER_TO_KEY) {
+    const day = strategy.weeklyScheme[key];
+    if (!day || !Array.isArray(day.mealBreakdown) || day.mealBreakdown.length === 0) continue;
+    const base = Number(day.calories) ||
+      day.mealBreakdown.reduce((s, m) => s + (Number(m.calories) || 0), 0);
+    if (base <= 0) continue;
+    const target = Math.max(MIN_DAY_CALORIES, base + Number(delta));
+    const ratio = target / base;
+    if (Math.abs(ratio - 1) < 0.01) continue;
+    let sc = 0, sp = 0, scb = 0, sf = 0;
+    for (const m of day.mealBreakdown) {
+      m.calories = Math.round((Number(m.calories) || 0) * ratio);
+      m.protein = Math.round((Number(m.protein) || 0) * ratio);
+      m.carbs = Math.round((Number(m.carbs) || 0) * ratio);
+      m.fats = Math.round((Number(m.fats) || 0) * ratio);
+      sc += m.calories; sp += m.protein; scb += m.carbs; sf += m.fats;
+    }
+    day.calories = sc;
+    day.protein = sp;
+    day.carbs = scb;
+    day.fats = sf;
+  }
+}
+
 function buildWeeklyAdaptationContextText(decision, analytics, feedbackAnswers, cycleNumber) {
   const sc = decision.strategyChanges || {};
   const parts = [
@@ -7346,6 +7379,12 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     if (regenStep === 'step1_analysis') {
       newPlan = await generatePlanMultiStep(env, enrichedData);
     } else {
+      // Step-3-only regen reuses the existing strategy, so write any calorie change
+      // into the per-day scheme before the new meals are aligned to it.
+      const calorieAdjust = Number(decision.strategyChanges?.calorieAdjust) || 0;
+      if (calorieAdjust && regenStep === 'step3_mealplan' && plan.strategy) {
+        applyWeeklyCalorieAdjust(plan.strategy, calorieAdjust);
+      }
       newPlan = await regenerateFromStep(
         env, enrichedData, plan, regenStep, { [regenStep]: ['weekly adaptation'] }, 1
       );
