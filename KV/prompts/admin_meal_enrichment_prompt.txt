@@ -1,0 +1,31 @@
+Обогати ТЕКСТОВОТО съдържание на храненията за ДНИ {startDay}-{endDay} за {userData.name}.
+
+=== ПРОФИЛ ===
+Цел: {userData.goal} | Модификатор: "{dietaryModifier}"
+Любими: {dietLove} | Нежелани: {dietDislike}
+Потребителски бележки: {additionalNotes}
+
+=== СКЕЛЕТ НА ХРАНЕНИЯ (НЕ ПРОМЕНЯЙ ЧИСЛА) ===
+{mealsSkeletonJSON}
+
+=== ЗАДАЧА ===
+За всяко хранене обогати САМО полетата name, description и benefits.
+Числата (type, weight, calories, macros, dessert) са ФИНАЛНИ — копирай ги без промяна.
+
+{MEAL_NAME_FORMAT_INSTRUCTIONS}
+
+=== ПОЛЗИ (benefits) ===
+• 1 кратко изречение на български за всяко хранене
+• Фокус: здравословен ефект, ситост, енергия, храносмилане — според съставките
+• БЕЗ повторение на грамажи и калории
+• При "Свободно хранене": насърчителен, психологически подкрепящ тон
+
+JSON ФОРМАТ (дни {startDay}-{endDay}):
+{
+  "day{startDay}": {
+    "meals": [
+      {"type": "...", "name": "...", "weight": "...", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X}}
+    ]
+  }
+}
+Върни САМО валиден JSON. Запази същия брой хранения и същите type/weight/calories/macros/dessert стойности.

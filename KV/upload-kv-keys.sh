@@ -85,6 +85,16 @@ else
 fi
 echo ""
 
+# admin_meal_enrichment_prompt (Step 5 - meal copy enrichment)
+echo "📤 Качване на admin_meal_enrichment_prompt..."
+if wrangler kv:key put --namespace-id=$NAMESPACE_ID \
+    "admin_meal_enrichment_prompt" --path="$KV_DIR/prompts/admin_meal_enrichment_prompt.txt"; then
+    echo "✅ admin_meal_enrichment_prompt качен успешно"
+else
+    echo "❌ Грешка при качване на admin_meal_enrichment_prompt"
+fi
+echo ""
+
 # admin_summary_prompt (new separate prompt)
 echo "📤 Качване на admin_summary_prompt..."
 if wrangler kv:key put --namespace-id=$NAMESPACE_ID \

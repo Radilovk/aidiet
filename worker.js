@@ -3729,7 +3729,6 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
       medicalConditions_musculoskeletal_details: data['medicalConditions_Мускулно-скелетни_детайл'] || '',
       DAILY_CALORIE_TOLERANCE,
       MAX_LATE_SNACK_CALORIES,
-      MEAL_NAME_FORMAT_INSTRUCTIONS,
       freeMealInstruction: buildFreeMealInstruction(strategy, startDay, endDay),
       sweetsCravingRule,
       additionalNotes: buildCombinedAdditionalNotes(data),
@@ -3751,13 +3750,12 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
 {
   "dayN": {
     "meals": [
-      {"type": "Хранене 1|Хранене 2|Свободно хранене|Хранене 3|Хранене 4|Хранене 5", "name": "име", "weight": "Xg", "description": "текст", "benefits": "текст", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число}}
-    ],
-    "dailyTotals": {"calories": число, "protein": число, "carbs": число, "fats": число}
+      {"type": "Хранене 1|Хранене 2|Свободно хранене|Хранене 3|Хранене 4|Хранене 5", "name": "име", "weight": "Xg", "description": "продукт 200g; продукт 150g", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число}}
+    ]
   }
 }
 
-ВАЖНО: Върни САМО JSON обект {} без други текст или обяснения! НЕ връщай JSON масив []!`;
+ВАЖНО: Върни САМО JSON обект {} без други текст или обяснения! НЕ връщай JSON масив []! БЕЗ dailyTotals и БЕЗ benefits!`;
     }
     if (analysisBlock && !prompt.includes('#AN v1')) {
       prompt = prompt.replace(
@@ -3766,6 +3764,107 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
       );
     }
   return prompt;
+}
+
+/** Compact meal skeleton for Step 5 enrichment (numbers are final, copy-only pass). */
+function serializeMealsSkeletonForEnrichment(weekPlan, startDay, endDay) {
+  const result = {};
+  for (let d = startDay; d <= endDay; d++) {
+    const dayKey = `day${d}`;
+    const day = weekPlan[dayKey];
+    if (!day?.meals) continue;
+    result[dayKey] = {
+      meals: day.meals.map(meal => {
+        const skeleton = {
+          type: meal.type,
+          name: meal.name || '',
+          weight: meal.weight || '',
+          description: meal.description || '',
+          calories: meal.calories,
+          macros: meal.macros ? { ...meal.macros } : undefined
+        };
+        if (meal.dessert) skeleton.dessert = meal.dessert === true ? true : !!meal.dessert;
+        return skeleton;
+      })
+    };
+  }
+  return JSON.stringify(result, null, 2);
+}
+
+/** Merge enriched copy fields without touching numeric/meal structure. */
+function applyMealEnrichment(weekPlan, enrichmentData, startDay, endDay) {
+  if (!enrichmentData || typeof enrichmentData !== 'object') return;
+  for (let d = startDay; d <= endDay; d++) {
+    const dayKey = `day${d}`;
+    const enrichedDay = enrichmentData[dayKey];
+    const day = weekPlan[dayKey];
+    if (!enrichedDay?.meals || !day?.meals) continue;
+    for (let i = 0; i < day.meals.length; i++) {
+      const meal = day.meals[i];
+      const enriched = enrichedDay.meals.find(m => m.type === meal.type) || enrichedDay.meals[i];
+      if (!enriched) continue;
+      if (enriched.name) meal.name = enriched.name;
+      if (enriched.description) meal.description = enriched.description;
+      if (enriched.benefits) meal.benefits = enriched.benefits;
+    }
+  }
+}
+
+async function generateMealEnrichmentPrompt(data, strategy, weekPlan, startDay, endDay, env) {
+  const dietaryModifier = strategy.dietaryModifier || 'Балансирано';
+  const mealsSkeletonJSON = serializeMealsSkeletonForEnrichment(weekPlan, startDay, endDay);
+  const customPrompt = await requireKvPrompt(env, 'admin_meal_enrichment_prompt');
+  let prompt = replacePromptVariables(customPrompt, {
+    userData: data,
+    strategyData: strategy,
+    dietaryModifier,
+    dietLove: data.dietLove || 'няма',
+    dietDislike: data.dietDislike || 'няма',
+    additionalNotes: buildCombinedAdditionalNotes(data),
+    mealsSkeletonJSON,
+    startDay,
+    endDay,
+    MEAL_NAME_FORMAT_INSTRUCTIONS
+  });
+  if (!hasJsonFormatInstructions(prompt)) {
+    prompt += `
+
+═══ ФОРМАТ НА ОТГОВОР ═══
+Отговори САМО с валиден JSON обект. Запази type, weight, calories, macros и dessert без промяна. Обогати name, description и benefits.`;
+  }
+  return prompt;
+}
+
+/**
+ * Step 5: enrich meal copy (name format, cooking notes, benefits) after numeric alignment.
+ */
+async function enrichWeekPlanCopy(env, data, strategy, weekPlan, sessionId = null) {
+  const totalDays = 7;
+  const chunks = Math.ceil(totalDays / DAYS_PER_CHUNK);
+  for (let chunkIndex = 0; chunkIndex < chunks; chunkIndex++) {
+    const startDay = chunkIndex * DAYS_PER_CHUNK + 1;
+    const endDay = Math.min(startDay + DAYS_PER_CHUNK - 1, totalDays);
+    try {
+      const enrichmentPrompt = await generateMealEnrichmentPrompt(
+        data, strategy, weekPlan, startDay, endDay, env
+      );
+      const enrichmentResponse = await callAIModel(
+        env, enrichmentPrompt, MEAL_ENRICHMENT_TOKEN_LIMIT,
+        `step5_enrichment_chunk_${chunkIndex + 1}`, sessionId, data
+      );
+      let enrichmentData = parseAIResponse(enrichmentResponse);
+      if (!enrichmentData || enrichmentData.error) {
+        console.warn(`Step 5 enrichment chunk ${chunkIndex + 1} failed, keeping skeleton copy:`, enrichmentData?.error);
+        continue;
+      }
+      if (Array.isArray(enrichmentData)) {
+        enrichmentData = Object.fromEntries(enrichmentData.map((item, i) => [`day${startDay + i}`, item]));
+      }
+      applyMealEnrichment(weekPlan, enrichmentData, startDay, endDay);
+    } catch (error) {
+      console.warn(`Step 5 enrichment chunk ${chunkIndex + 1} error, keeping skeleton copy:`, error.message);
+    }
+  }
 }
 
 /**
@@ -8009,6 +8108,7 @@ async function handleGetClientPlanStatus(request, env) {
 
 // Token limits optimized through prompt simplification (not artificial limits)
 const MEAL_PLAN_TOKEN_LIMIT = 8000; // Sufficient for detailed meal generation
+const MEAL_ENRICHMENT_TOKEN_LIMIT = 6000; // Step 5: name/description/benefits copy only (2-day chunks)
 const SUMMARY_TOKEN_LIMIT = 3500; // Summary generation: must fit up to 10 recommendations, 10 forbidden foods, 3 psychology tips, 3 supplements + summary object
 
 // Validation constants
@@ -10188,6 +10288,14 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
   }
 
   alignWeekPlanDaysToScheme(weekPlan, strategy, 1, 7);
+
+  // Step 5: enrich copy (name format, cooking, benefits) — numbers already aligned
+  try {
+    await enrichWeekPlanCopy(env, data, strategy, weekPlan, sessionId);
+    console.log('Step 5 enrichment complete');
+  } catch (error) {
+    console.warn('Step 5 enrichment failed, plan usable with skeleton copy:', error.message);
+  }
   
   // Generate summary, recommendations, etc. in final request
   try {
