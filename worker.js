@@ -16362,7 +16362,7 @@ async function handleXbodyAppointments(request, env) {
     }
   }
 
-  upcoming.sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+  upcoming.sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime());
 
   return jsonResponse({ upcoming, past }, 200, { cacheControl: 'private, max-age=60' });
 }
