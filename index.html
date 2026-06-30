@@ -1795,6 +1795,41 @@
             display: block;
         }
         .spa-bottom-nav { z-index: 10001; }
+
+        /* --- Wide screens: constrain the app to a centered mobile-width column ---
+           The embedded pages are mobile-first; without this they stretch edge-to-edge
+           on desktop/fullscreen, spreading the header controls to the far corners. */
+        @media (min-width: 900px) {
+            body.spa-mode {
+                background: #e6eaed;
+            }
+            [data-theme="dark"] body.spa-mode {
+                background: #05100f;
+            }
+            .spa-shell {
+                background: transparent;
+            }
+            .spa-tab-stack {
+                left: 50%;
+                right: auto;
+                transform: translateX(-50%);
+                width: min(460px, 100%);
+                box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 24px 70px rgba(0, 0, 0, 0.18);
+            }
+            .spa-bottom-nav {
+                left: 50% !important;
+                right: auto !important;
+                transform: translateX(-50%);
+                width: min(460px, 100%);
+            }
+            #spaShellChatFrame {
+                left: 50% !important;
+                right: auto !important;
+                transform: translateX(-50%);
+                max-width: 460px;
+                box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 24px 70px rgba(0, 0, 0, 0.18);
+            }
+        }
     </style>
     <script>
         // Apply color scheme from admin settings
