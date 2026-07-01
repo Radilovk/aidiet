@@ -2108,7 +2108,6 @@ const pendingSessionLogs = new Map(); // sessionId → [logId, ...]
 // Validation constants (moved here to be available early in code)
 const DAILY_CALORIE_TOLERANCE = 50; // ±50 kcal tolerance for daily calorie target
 const MACRO_GRAM_TOLERANCE = 4; // ±4g per macro when validating AI meals vs mealBreakdown
-const MEAL_PLAN_CHUNK_MAX_RETRIES = 1; // One retry per chunk with validation errors
 const MAX_LATE_SNACK_CALORIES = 200; // Maximum calories allowed for late-night snacks
 
 /**
@@ -8240,7 +8239,7 @@ function getFreeMealSlotCalories(dayTarget) {
 
 /**
  * Step 3 meals: AI is authoritative for grams/macros/calories.
- * Backend syncs calories from macros and validates against mealBreakdown.
+ * Backend syncs calories from macros; validatePlan() handles post-generation checks.
  */
 function syncMealCaloriesFromMacros(meal) {
   if (!meal || meal.type === 'Свободно хранене' || meal.type === 'Напитка' || !meal.macros) return;
@@ -8282,30 +8281,6 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum) {
     }
   }
   return errors;
-}
-
-function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay) {
-  const errors = [];
-  if (!weekPlan || !strategy?.weeklyScheme) return errors;
-  normalizeMealBreakdownTypes(strategy);
-  for (let d = startDay; d <= endDay; d++) {
-    const dayPlan = weekPlan[`day${d}`];
-    const schemeKey = DAY_NUMBER_TO_KEY[d - 1];
-    const dayTarget = strategy.weeklyScheme[schemeKey];
-    if (dayPlan && dayTarget) {
-      errors.push(...validateMealsAgainstScheme(dayPlan, dayTarget, d));
-    }
-  }
-  return errors;
-}
-
-function buildChunkValidationRetryComment(errors) {
-  if (!errors?.length) return '';
-  return `═══ КОРЕКЦИЯ — ПРЕДИШНИЯТ ОТГОВОР ИМА ГРЕШКИ ═══
-Поправи САМО посочените несъответствия. Запази продуктите и структурата на дните.
-${errors.map((e, i) => `${i + 1}. ${e}`).join('\n')}
-
-ЗАДЪЛЖИТЕЛНО: meal.calories/macros = mealBreakdown цели (±${DAILY_CALORIE_TOLERANCE} kcal, ±${MACRO_GRAM_TOLERANCE}g). description с "числоg" на всеки продукт.`;
 }
 
 function finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay) {
@@ -10108,70 +10083,41 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
     const daysInChunk = endDay - startDay + 1;
     
     try {
-      let chunkComment = errorPreventionComment;
-      let attempt = 0;
+      const chunkPrompt = await generateMealPlanChunkPrompt(
+        data, analysis, strategy, bmr, recommendedCalories,
+        startDay, endDay, previousDays, env, errorPreventionComment, cachedFoodLists
+      );
 
-      while (true) {
-        const chunkPrompt = await generateMealPlanChunkPrompt(
-          data, analysis, strategy, bmr, recommendedCalories,
-          startDay, endDay, previousDays, env, chunkComment, cachedFoodLists
-        );
+      const chunkResponse = await callAIModel(env, chunkPrompt, MEAL_PLAN_TOKEN_LIMIT, `step3_meal_plan_chunk_${chunkIndex + 1}`, sessionId, data, buildCompactAnalysisForStep3(analysis));
+      let chunkData = parseAIResponse(chunkResponse);
 
-        const stepLabel = attempt > 0
-          ? `step3_meal_plan_chunk_${chunkIndex + 1}_retry`
-          : `step3_meal_plan_chunk_${chunkIndex + 1}`;
-        const chunkResponse = await callAIModel(env, chunkPrompt, MEAL_PLAN_TOKEN_LIMIT, stepLabel, sessionId, data, buildCompactAnalysisForStep3(analysis));
-        let chunkData = parseAIResponse(chunkResponse);
-
-        if (!chunkData || chunkData.error) {
-          const errorMsg = chunkData?.error || 'Invalid response';
-          throw new Error(`Chunk ${chunkIndex + 1} failed: ${errorMsg}`);
-        }
-
-        if (Array.isArray(chunkData)) {
-          chunkData = Object.fromEntries(chunkData.map((item, i) => [`day${startDay + i}`, item]));
-        }
-
-        console.log(`Chunk ${chunkIndex + 1} data keys (attempt ${attempt + 1}):`, Object.keys(chunkData));
-
-        for (let day = startDay; day <= endDay; day++) {
-          const dayKey = `day${day}`;
-          if (chunkData[dayKey]) {
-            weekPlan[dayKey] = chunkData[dayKey];
-            const dayEntry = { day, meals: chunkData[dayKey].meals || [] };
-            const existingIdx = previousDays.findIndex(p => p.day === day);
-            if (existingIdx >= 0) {
-              previousDays[existingIdx] = dayEntry;
-            } else {
-              previousDays.push(dayEntry);
-            }
-          } else {
-            console.error(`Missing ${dayKey} in chunk ${chunkIndex + 1}. Available keys:`, Object.keys(chunkData));
-            throw new Error(`Missing ${dayKey} in chunk ${chunkIndex + 1} response. Available keys: ${Object.keys(chunkData).join(', ')}`);
-          }
-        }
-
-        injectFixedDesserts(weekPlan);
-        finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay);
-
-        const validationErrors = validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay);
-        if (!validationErrors.length) break;
-
-        if (attempt >= MEAL_PLAN_CHUNK_MAX_RETRIES) {
-          throw new Error(`валидация неуспешна след ${attempt + 1} опита: ${validationErrors.join('; ')}`);
-        }
-
-        for (let day = startDay; day <= endDay; day++) {
-          delete weekPlan[`day${day}`];
-          const idx = previousDays.findIndex(p => p.day === day);
-          if (idx >= 0) previousDays.splice(idx, 1);
-        }
-
-        chunkComment = [errorPreventionComment, buildChunkValidationRetryComment(validationErrors)]
-          .filter(Boolean).join('\n\n');
-        attempt++;
-        console.warn(`Chunk ${chunkIndex + 1} validation failed (attempt ${attempt}), retrying:`, validationErrors);
+      if (!chunkData || chunkData.error) {
+        const errorMsg = chunkData?.error || 'Invalid response';
+        throw new Error(`Chunk ${chunkIndex + 1} failed: ${errorMsg}`);
       }
+
+      if (Array.isArray(chunkData)) {
+        chunkData = Object.fromEntries(chunkData.map((item, i) => [`day${startDay + i}`, item]));
+      }
+
+      console.log(`Chunk ${chunkIndex + 1} data keys:`, Object.keys(chunkData));
+
+      for (let day = startDay; day <= endDay; day++) {
+        const dayKey = `day${day}`;
+        if (chunkData[dayKey]) {
+          weekPlan[dayKey] = chunkData[dayKey];
+          previousDays.push({
+            day,
+            meals: chunkData[dayKey].meals || []
+          });
+        } else {
+          console.error(`Missing ${dayKey} in chunk ${chunkIndex + 1}. Available keys:`, Object.keys(chunkData));
+          throw new Error(`Missing ${dayKey} in chunk ${chunkIndex + 1} response. Available keys: ${Object.keys(chunkData).join(', ')}`);
+        }
+      }
+
+      injectFixedDesserts(weekPlan);
+      finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay);
     } catch (error) {
       throw new Error(`Генериране на дни ${startDay}-${endDay}: ${error.message}`);
     }
