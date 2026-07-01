@@ -5,12 +5,13 @@
 Любими: {dietLove} | Нежелани: {dietDislike}
 Потребителски бележки: {additionalNotes}
 
-=== СКЕЛЕТ НА ХРАНЕНИЯ (НЕ ПРОМЕНЯЙ ЧИСЛА) ===
+=== СКЕЛЕТ НА ХРАНЕНИЯ (НЕ ПРОМЕНЯЙ ЧИСЛА И ГРАМАЖИ) ===
 {mealsSkeletonJSON}
 
 === ЗАДАЧА ===
-За всяко хранене обогати САМО полетата name, description и benefits.
-Числата (type, weight, calories, macros, dessert) са ФИНАЛНИ — копирай ги без промяна.
+За всяко хранене обогати САМО полетата name и benefits.
+Полето description от Стъпка 3 съдържа финални грамажи на продуктите — НЕ го променяй и НЕ го връщай в отговора.
+Числата (type, weight, description, calories, macros, dessert) са ФИНАЛНИ — копирай ги без промяна.
 
 {MEAL_NAME_FORMAT_INSTRUCTIONS}
 
@@ -28,4 +29,4 @@ JSON ФОРМАТ (дни {startDay}-{endDay}):
     ]
   }
 }
-Върни САМО валиден JSON. Запази същия брой хранения и същите type/weight/calories/macros/dessert стойности.
+Върни САМО валиден JSON. Запази същия брой хранения и същите type/weight/description/calories/macros/dessert стойности.
