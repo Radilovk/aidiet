@@ -3750,7 +3750,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
 {
   "dayN": {
     "meals": [
-      {"type": "Хранене 1|Хранене 2|Свободно хранене|Хранене 3|Хранене 4|Хранене 5", "name": "име", "weight": "Xg", "description": "продукт 200g; продукт 150g", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число}}
+      {"type": "Хранене 1|Хранене 2|Свободно хранене|Хранене 3|Хранене 4|Хранене 5", "name": "име", "weight": "Xg", "ingredients": "продукт 200g; продукт 150g", "description": "продукт 200g; продукт 150g", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число}}
     ]
   }
 }
@@ -3779,7 +3779,8 @@ function serializeMealsSkeletonForEnrichment(weekPlan, startDay, endDay) {
           type: meal.type,
           name: meal.name || '',
           weight: meal.weight || '',
-          description: meal.description || '',
+          ingredients: meal.ingredients || meal.description || '',
+          preparation: meal.preparation || '',
           calories: meal.calories,
           macros: meal.macros ? { ...meal.macros } : undefined
         };
@@ -3804,8 +3805,10 @@ function applyMealEnrichment(weekPlan, enrichmentData, startDay, endDay) {
       const enriched = enrichedDay.meals.find(m => m.type === meal.type) || enrichedDay.meals[i];
       if (!enriched) continue;
       if (enriched.name) meal.name = enriched.name;
-      if (enriched.description) meal.description = enriched.description;
+      const prep = enriched.preparation || enriched.description;
+      if (prep && !looksLikeIngredientList(prep)) meal.preparation = prep;
       if (enriched.benefits) meal.benefits = enriched.benefits;
+      // ingredients are canonical — never overwrite from enrichment AI
     }
   }
 }
@@ -3830,7 +3833,7 @@ async function generateMealEnrichmentPrompt(data, strategy, weekPlan, startDay, 
     prompt += `
 
 ═══ ФОРМАТ НА ОТГОВОР ═══
-Отговори САМО с валиден JSON обект. Запази type, weight, calories, macros и dessert без промяна. Обогати name, description и benefits.`;
+Отговори САМО с валиден JSON обект. Запази type, weight, ingredients, calories, macros и dessert без промяна. Обогати name, preparation и benefits.`;
   }
   return prompt;
 }
@@ -8477,6 +8480,71 @@ const MEAL_TYPE_ALIASES = {
  * Set each meal's macros/calories from strategy mealBreakdown (Step 2 targets).
  * Deterministic link between Step 2 architecture and Step 3 meals.
  */
+function looksLikeIngredientList(text) {
+  if (!text || typeof text !== 'string') return false;
+  const t = text.trim();
+  return /\d+\s*(g|г|gr)\b/i.test(t) && !/^[•\-\*]/.test(t);
+}
+
+function parseMealIngredients(text) {
+  if (!text || typeof text !== 'string') return [];
+  return text.split(/[;\n]+/).map(s => s.trim()).filter(Boolean).map(part => {
+    const m = part.match(/^(.+?)\s+(\d+(?:[.,]\d+)?)\s*(g|г|gr|грама)?\s*$/i);
+    if (m) {
+      return { name: m[1].trim(), grams: parseFloat(String(m[2]).replace(',', '.')) };
+    }
+    return { name: part, grams: null };
+  });
+}
+
+function formatMealIngredients(items) {
+  return items
+    .map(it => (it.grams != null && it.grams > 0 ? `${it.name} ${Math.round(it.grams)}g` : it.name))
+    .join('; ');
+}
+
+function normalizeMealIngredients(meal) {
+  if (!meal || meal.type === 'Свободно хранене' || meal.type === 'Напитка') return;
+  if (meal.ingredients && String(meal.ingredients).trim()) {
+    meal.description = meal.ingredients;
+    return;
+  }
+  const source = meal.description || '';
+  if (looksLikeIngredientList(source)) {
+    meal.ingredients = source.trim();
+    meal.description = meal.ingredients;
+  }
+}
+
+function scaleMealIngredientGrams(meal, factor) {
+  if (!meal || !isFinite(factor) || factor <= 0 || Math.abs(factor - 1) < 0.02) return;
+  normalizeMealIngredients(meal);
+  if (!meal.ingredients) return;
+  const items = parseMealIngredients(meal.ingredients);
+  if (!items.length) return;
+  let scaled = false;
+  for (const it of items) {
+    if (it.grams != null && it.grams > 0) {
+      it.grams = Math.max(1, Math.round(it.grams * factor));
+      scaled = true;
+    }
+  }
+  if (!scaled) return;
+  meal.ingredients = formatMealIngredients(items);
+  meal.description = meal.ingredients;
+  const totalGrams = items.reduce((sum, it) => sum + (it.grams || 0), 0);
+  if (totalGrams > 0) meal.weight = `${totalGrams}г`;
+}
+
+function normalizeWeekPlanIngredients(weekPlan, startDay = 1, endDay = 7) {
+  if (!weekPlan) return;
+  for (let d = startDay; d <= endDay; d++) {
+    const day = weekPlan[`day${d}`];
+    if (!day?.meals) continue;
+    for (const meal of day.meals) normalizeMealIngredients(meal);
+  }
+}
+
 function normalizeMealTypesInWeekPlan(weekPlan) {
   if (!weekPlan || typeof weekPlan !== 'object') return;
   for (const day of Object.values(weekPlan)) {
@@ -8501,12 +8569,18 @@ function alignMealsToBreakdown(dayPlan, dayTarget) {
     if (meal.type === 'Свободно хранене' || meal.type === 'Напитка') continue;
     const target = dayTarget.mealBreakdown.find(m => m.type === meal.type);
     if (!target) continue;
+    normalizeMealIngredients(meal);
+    const oldCal = macrosToCalories(meal.macros) || Number(meal.calories) || 0;
     meal.macros = {
       protein: Math.round(Number(target.protein) || 0),
       carbs: Math.round(Number(target.carbs) || 0),
       fats: Math.round(Number(target.fats) || 0)
     };
     meal.calories = macrosToCalories(meal.macros);
+    const newCal = meal.calories;
+    if (oldCal > 0 && newCal > 0 && Math.abs(newCal - oldCal) > 2) {
+      scaleMealIngredientGrams(meal, newCal / oldCal);
+    }
     changed = true;
   }
   return changed;
@@ -10281,6 +10355,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       }
       // Replace any "dessert": true markers with the fixed dessert object
       injectFixedDesserts(weekPlan);
+      normalizeWeekPlanIngredients(weekPlan, startDay, endDay);
       alignWeekPlanDaysToScheme(weekPlan, strategy, startDay, endDay);
     } catch (error) {
       throw new Error(`Генериране на дни ${startDay}-${endDay}: ${error.message}`);
@@ -10288,6 +10363,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
   }
 
   alignWeekPlanDaysToScheme(weekPlan, strategy, 1, 7);
+  normalizeWeekPlanIngredients(weekPlan, 1, 7);
 
   // Step 5: enrich copy (name format, cooking, benefits) — numbers already aligned
   try {

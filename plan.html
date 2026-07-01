@@ -1254,7 +1254,58 @@
         }
         
         .modal-body p {
-            margin-bottom: 12px;
+            margin: 0 0 12px;
+        }
+
+        .modal-ingredients {
+            margin-bottom: 16px;
+        }
+
+        .modal-ingredients-title {
+            font-size: 0.82rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--primary-red);
+            margin-bottom: 8px;
+        }
+
+        .modal-ingredients-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .modal-ingredients-list li {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(13, 148, 136, 0.1);
+        }
+
+        .modal-ingredients-list li:last-child {
+            border-bottom: none;
+        }
+
+        .ingredient-name {
+            flex: 1;
+            color: var(--text-dark);
+        }
+
+        .ingredient-grams {
+            font-weight: 700;
+            color: var(--primary-red);
+            white-space: nowrap;
+        }
+
+        .modal-preparation-label {
+            font-size: 0.82rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-light);
+            margin: 12px 0 8px;
         }
 
         .modal-benefit {
@@ -4075,6 +4126,8 @@
                 <span id="mWeightText"></span>
             </div>
             <div class="modal-body">
+                <div class="modal-ingredients" id="mIngredients" style="display:none;"></div>
+                <div class="modal-preparation-label" id="mPrepLabel" style="display:none;">Начин на приготвяне</div>
                 <p id="mDesc">Описание...</p>
                 <div class="modal-benefit">
                     <strong><i class="fas fa-heartbeat"></i> Ползи:</strong> <span id="mBenefit">Текст ползи...</span>
@@ -5067,6 +5120,13 @@
                     if (!meal || meal.type === 'Свободно хранене' || meal.type === 'Напитка') return;
                     var target = dayTarget.mealBreakdown.find(function(m) { return m.type === meal.type; });
                     if (!target) return;
+                    normalizeMealIngredients(meal);
+                    var oldCal = 0;
+                    if (meal.macros) {
+                        oldCal = Math.round((parseFloat(meal.macros.protein) || 0) * 4 + (parseFloat(meal.macros.carbs) || 0) * 4 + (parseFloat(meal.macros.fats) || 0) * 9);
+                    } else if (meal.calories) {
+                        oldCal = parseInt(meal.calories, 10) || 0;
+                    }
                     meal.macros = {
                         protein: Math.round(Number(target.protein) || 0),
                         carbs: Math.round(Number(target.carbs) || 0),
@@ -5076,6 +5136,9 @@
                     var c = meal.macros.carbs;
                     var f = meal.macros.fats;
                     meal.calories = Math.round(p * 4 + c * 4 + f * 9);
+                    if (oldCal > 0 && meal.calories > 0 && Math.abs(meal.calories - oldCal) > 2) {
+                        scaleMealIngredientGrams(meal, meal.calories / oldCal);
+                    }
                 });
             });
         }
@@ -5152,6 +5215,80 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML.replace(/\n/g, '<br>');
+        }
+
+        function looksLikeIngredientList(text) {
+            if (!text || typeof text !== 'string') return false;
+            var t = text.trim();
+            return /\d+\s*(g|г|gr)\b/i.test(t) && !/^[•\-\*]/.test(t);
+        }
+
+        function parseMealIngredients(text) {
+            if (!text || typeof text !== 'string') return [];
+            return text.split(/[;\n]+/).map(function(s) { return s.trim(); }).filter(Boolean).map(function(part) {
+                var m = part.match(/^(.+?)\s+(\d+(?:[.,]\d+)?)\s*(g|г|gr|грама)?\s*$/i);
+                if (m) return { name: m[1].trim(), grams: parseFloat(String(m[2]).replace(',', '.')) };
+                return { name: part, grams: null };
+            });
+        }
+
+        function formatMealIngredients(items) {
+            return items.map(function(it) {
+                return (it.grams != null && it.grams > 0) ? (it.name + ' ' + Math.round(it.grams) + 'g') : it.name;
+            }).join('; ');
+        }
+
+        function normalizeMealIngredients(meal) {
+            if (!meal || meal.type === 'Свободно хранене' || meal.type === 'Напитка') return;
+            if (meal.ingredients && String(meal.ingredients).trim()) {
+                meal.description = meal.ingredients;
+                return;
+            }
+            var source = meal.description || '';
+            if (looksLikeIngredientList(source)) {
+                meal.ingredients = source.trim();
+                meal.description = meal.ingredients;
+            }
+        }
+
+        function scaleMealIngredientGrams(meal, factor) {
+            if (!meal || !isFinite(factor) || factor <= 0 || Math.abs(factor - 1) < 0.02) return;
+            normalizeMealIngredients(meal);
+            if (!meal.ingredients) return;
+            var items = parseMealIngredients(meal.ingredients);
+            if (!items.length) return;
+            var scaled = false;
+            items.forEach(function(it) {
+                if (it.grams != null && it.grams > 0) {
+                    it.grams = Math.max(1, Math.round(it.grams * factor));
+                    scaled = true;
+                }
+            });
+            if (!scaled) return;
+            meal.ingredients = formatMealIngredients(items);
+            meal.description = meal.ingredients;
+            var totalGrams = items.reduce(function(sum, it) { return sum + (it.grams || 0); }, 0);
+            if (totalGrams > 0) meal.weight = totalGrams + 'г';
+        }
+
+        function resolveMealIngredients(meal) {
+            if (!meal) return '';
+            if (meal.ingredients && String(meal.ingredients).trim()) return meal.ingredients.trim();
+            if (looksLikeIngredientList(meal.description)) return meal.description.trim();
+            return '';
+        }
+
+        function formatIngredientsHtml(text) {
+            if (!text) return '';
+            var parts = text.split(/[;\n]+/).map(function(s) { return s.trim(); }).filter(Boolean);
+            if (!parts.length) return escapeHtmlWithBreaks(text);
+            return '<div class="modal-ingredients-title">Състав</div><ul class="modal-ingredients-list">' + parts.map(function(part) {
+                var m = part.match(/^(.+?)\s+(\d+(?:[.,]\d+)?)\s*(g|г)?\s*$/i);
+                if (m) {
+                    return '<li><span class="ingredient-name">' + escapeHtml(m[1].trim()) + '</span><span class="ingredient-grams">' + m[2] + 'g</span></li>';
+                }
+                return '<li><span class="ingredient-name">' + escapeHtml(part) + '</span></li>';
+            }).join('') + '</ul>';
         }
 
         // --- Date-key helpers (global scope, shared by renderDay and addToMyMenu) ---
@@ -5337,13 +5474,14 @@
                         );
                     } else {
                         openModal(
-                            meal.name, 
-                            meal.description || '', 
+                            meal.name,
+                            meal.preparation || (looksLikeIngredientList(meal.description) ? '' : (meal.description || '')),
                             meal.benefits || '',
                             meal.macros || null,
                             meal.dessert || null,
                             meal.weight || null,
-                            meal.calories || null
+                            meal.calories || null,
+                            resolveMealIngredients(meal)
                         );
                     }
                 };
@@ -5993,7 +6131,7 @@
             return item;
         }
 
-        function openModal(title, description, benefit, macros, dessert, weight, calories) {
+        function openModal(title, description, benefit, macros, dessert, weight, calories, ingredients) {
             // Strip dessert name from title to avoid duplication with the mDessert section below
             let displayTitle = title;
             if (dessert && dessert.name) {
@@ -6039,8 +6177,28 @@
                 }
             }
             
-            // Display description as-is (contains ingredient weights from AI)
-            mDesc.innerHTML = escapeHtmlWithBreaks(description);
+            const mIngredients = document.getElementById('mIngredients');
+            const mPrepLabel = document.getElementById('mPrepLabel');
+            if (mIngredients) {
+                if (ingredients) {
+                    mIngredients.innerHTML = formatIngredientsHtml(ingredients);
+                    mIngredients.style.display = 'block';
+                } else {
+                    mIngredients.innerHTML = '';
+                    mIngredients.style.display = 'none';
+                }
+            }
+            if (mPrepLabel) {
+                mPrepLabel.style.display = (description && String(description).trim()) ? 'block' : 'none';
+            }
+
+            // Display preparation / legacy description (cooking notes from Step 5)
+            mDesc.innerHTML = escapeHtmlWithBreaks(description || '');
+            if (!description || !String(description).trim()) {
+                mDesc.style.display = 'none';
+            } else {
+                mDesc.style.display = 'block';
+            }
             mBenefit.textContent = benefit;
             
             // Render dessert component section if present (as part of meal description)
