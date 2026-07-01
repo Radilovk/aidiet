@@ -2108,6 +2108,7 @@ const pendingSessionLogs = new Map(); // sessionId → [logId, ...]
 
 // Validation constants (moved here to be available early in code)
 const DAILY_CALORIE_TOLERANCE = 50; // ±50 kcal tolerance for daily calorie target
+const MACRO_GRAM_TOLERANCE = 4; // ±4g per macro when validating AI meals vs mealBreakdown
 const MAX_LATE_SNACK_CALORIES = 200; // Maximum calories allowed for late-night snacks
 
 /**
@@ -3739,6 +3740,13 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
     
     const weeklySection = buildWeeklyAdaptationContextSection(data);
     if (weeklySection && !prompt.includes('СЕДМИЧНА АДАПТАЦИЯ')) prompt += weeklySection;
+
+    if (!prompt.includes('ЗАДЪЛЖИТЕЛНО: ГРАМАЖИ В DESCRIPTION')) {
+      prompt += `
+
+═══ ЗАДЪЛЖИТЕЛНО: ТИ СМЯТАШ ГРАМАЖИ И МАКРОСИ ═══
+За всяко хранене: грамаж "числоg" на всеки продукт в description, meal.macros и meal.calories = целите от mealBreakdown (±${DAILY_CALORIE_TOLERANCE} kcal, ±${MACRO_GRAM_TOLERANCE}g macro). protein×4+carbs×4+fats×9≈calories.`;
+    }
     
     // CRITICAL: Ensure JSON format instructions are included even with custom prompts
     if (!hasJsonFormatInstructions(prompt)) {
@@ -3763,6 +3771,9 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
         '=== ПРОФИЛ ===',
         `${analysisBlock}\n${strategyBlock}\n\n=== ПРОФИЛ ===`
       );
+    }
+    if (errorPreventionComment) {
+      prompt = errorPreventionComment + '\n\n' + prompt;
     }
   return prompt;
 }
@@ -8173,19 +8184,19 @@ const MEAL_NAME_FORMAT_INSTRUCTIONS = `=== ФОРМАТ НА MEAL NAME И DESCRI
 ✗ "Пилешки гърди на скара с картофено пюре и салата Шопска" (смесено описание)
 ✗ "Печена бяла риба, приготвена с киноа и подправки" (изречение)
 
-ФОРМАТ НА "description":
-- Структурирай description с булет пойнти (•) за разделяне на компонентите
-- Всеки компонент на хранене (салата, основно ястие, гарнитура, хляб) започва на нов ред с •
-- В description пиши ВСИЧКИ уточнения за:
-  * Начин на приготвяне (печено, задушено, на скара, пресно и т.н.)
-  * Препоръки за приготвяне
-  * Конкретни подправки (сол, черен пипер, риган, магданоз и т.н.)
-  * Допълнителни продукти (зехтин, лимон, чесън и т.н.)
-  * Количества и пропорции
+ФОРМАТ НА "description" (ЗАДЪЛЖИТЕЛНО с грамаж на всеки ред):
+- Всеки продукт/компонент на ОТДЕЛЕН ред, започва с •
+- ЗАДЪЛЖИТЕЛНО: грамаж във формат "числоg" на ВСЕКИ ред (напр. 200g, 150g)
+- Формат на ред: • [продукт] [число]g — [кратко готвене/подправки]
+- НЕ пиши description без грамажи — клиентът ги вижда в приложението
 
-Пример за ПРАВИЛНА комбинация name + description:
-name: "• Зелена салата\\n• Пилешки гърди с киноа\\n• Хляб: 1 филия пълнозърнест"
-description: "• Зелена салата от листа, краставици и чери домати с лимонов дресинг.\\n• Пилешките гърди се приготвят на скара или печени в тава с малко зехтин, подправени със сол, черен пипер и риган.\\n• Киноата се готви според инструкциите.\\n• 1 филия пълнозърнест хляб."`;
+Пример:
+name: "• Шопска салата\\n• Пилешки гърди с ориз"
+description: "• домати 80g; краставица 60g; сирене 50g — шопска салата\\n• пилешко филе 180g — на скара с риган\\n• ориз 150g — сварен\\n• зехтин 10g — за салатата"
+
+ЗАБРАНЕНО за description:
+✗ Само готвене без грамажи ("• Пилешките гърди се пекат на скара...")
+✗ Изречения без "числоg" на реда`;
 
 function buildSweetsCravingRule(foodCravings, strategy) {
   if (!userHasSweetsCraving(foodCravings) || strategy?.includeDessert === false) return '';
@@ -8203,8 +8214,8 @@ function macrosToCalories(macros) {
 }
 
 // Replaces "dessert": true markers with the fixed dessert object and adds dessert
-// grams to meal.weight. Macro/calorie totals are set from strategy mealBreakdown
-// by alignMealsToBreakdown() immediately after injection.
+// grams to meal.weight. AI must include dessert macros in meal.calories/macros;
+// finalizeWeekPlanDays() syncs calories from macros after injection.
 function injectFixedDesserts(weekPlan) {
   for (const dayKey of Object.keys(weekPlan)) {
     const day = weekPlan[dayKey];
@@ -8475,9 +8486,14 @@ const MEAL_TYPE_ALIASES = {
 };
 
 /**
- * Set each meal's macros/calories from strategy mealBreakdown (Step 2 targets).
- * Deterministic link between Step 2 architecture and Step 3 meals.
+ * Step 3 meals: AI is authoritative for grams/macros/calories.
+ * Backend syncs calories from macros; validatePlan() handles post-generation checks.
  */
+function syncMealCaloriesFromMacros(meal) {
+  if (!meal || meal.type === 'Свободно хранене' || meal.type === 'Напитка' || !meal.macros) return;
+  meal.calories = macrosToCalories(meal.macros);
+}
+
 function normalizeMealTypesInWeekPlan(weekPlan) {
   if (!weekPlan || typeof weekPlan !== 'object') return;
   for (const day of Object.values(weekPlan)) {
@@ -8494,37 +8510,58 @@ function normalizeMealTypesInWeekPlan(weekPlan) {
   }
 }
 
-function alignMealsToBreakdown(dayPlan, dayTarget) {
-  if (!dayPlan?.meals?.length || !dayTarget?.mealBreakdown) return false;
+function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum) {
+  const errors = [];
+  if (!dayPlan?.meals?.length || !dayTarget?.mealBreakdown?.length) return errors;
 
-  let changed = false;
   for (const meal of dayPlan.meals) {
     if (meal.type === 'Свободно хранене' || meal.type === 'Напитка') continue;
     const target = dayTarget.mealBreakdown.find(m => m.type === meal.type);
     if (!target) continue;
-    meal.macros = {
-      protein: Math.round(Number(target.protein) || 0),
-      carbs: Math.round(Number(target.carbs) || 0),
-      fats: Math.round(Number(target.fats) || 0)
-    };
-    meal.calories = macrosToCalories(meal.macros);
-    changed = true;
+
+    const targetCal = Number(target.calories) || 0;
+    const mealCal = Number(meal.calories) || macrosToCalories(meal.macros);
+    if (targetCal > 0 && Math.abs(mealCal - targetCal) > DAILY_CALORIE_TOLERANCE) {
+      errors.push(`Ден ${dayNum} ${meal.type}: калории ${mealCal} ≠ цел ${targetCal} (±${DAILY_CALORIE_TOLERANCE})`);
+    }
+
+    for (const field of ['protein', 'carbs', 'fats']) {
+      const tv = Number(target[field]) || 0;
+      const mv = Number(meal.macros?.[field]) || 0;
+      if (tv > 0 && Math.abs(mv - tv) > MACRO_GRAM_TOLERANCE) {
+        errors.push(`Ден ${dayNum} ${meal.type}: ${field} ${mv}g ≠ цел ${tv}g (±${MACRO_GRAM_TOLERANCE})`);
+      }
+    }
+
+    if (!meal.description || !/\d+\s*(g|г)\b/i.test(meal.description)) {
+      errors.push(`Ден ${dayNum} ${meal.type}: липсват грамажи (числоg) в description`);
+    }
+
+    if (meal.macros && mealCal > 0) {
+      const fromMacros = macrosToCalories(meal.macros);
+      if (Math.abs(fromMacros - mealCal) > DAILY_CALORIE_TOLERANCE) {
+        errors.push(`Ден ${dayNum} ${meal.type}: calories ${mealCal} ≠ P×4+C×4+F×9 (${fromMacros})`);
+      }
+    }
   }
-  return changed;
+  return errors;
 }
 
-function alignWeekPlanDaysToScheme(weekPlan, strategy, startDay, endDay) {
-  if (!weekPlan || !strategy?.weeklyScheme) return;
+function finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay) {
+  if (!weekPlan) return;
   normalizeMealBreakdownTypes(strategy);
   normalizeMealTypesInWeekPlan(weekPlan);
   for (let d = startDay; d <= endDay; d++) {
-    const dayKey = `day${d}`;
-    const schemeKey = DAY_NUMBER_TO_KEY[d - 1];
-    if (weekPlan[dayKey] && strategy.weeklyScheme[schemeKey]) {
-      alignMealsToBreakdown(weekPlan[dayKey], strategy.weeklyScheme[schemeKey]);
-    }
+    const day = weekPlan[`day${d}`];
+    if (!day?.meals) continue;
+    for (const meal of day.meals) syncMealCaloriesFromMacros(meal);
   }
   recalculateDayCalories(weekPlan, strategy);
+}
+
+/** @deprecated Use finalizeWeekPlanDays — kept as alias for callers outside meal-plan flow */
+function alignWeekPlanDaysToScheme(weekPlan, strategy, startDay, endDay) {
+  finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay);
 }
 
 /**
@@ -8809,6 +8846,17 @@ function validatePlan(plan, userData, substitutions = []) {
           const error = `Ден ${i} има ${mealsWithoutMacros} хранения без макронутриенти`;
           errors.push(error);
           stepErrors.step3_mealplan.push(error);
+        }
+
+        if (plan.strategy?.weeklyScheme) {
+          const schemeKey = DAY_NUMBER_TO_KEY[i - 1];
+          const dayTarget = plan.strategy.weeklyScheme[schemeKey];
+          if (dayTarget) {
+            for (const err of validateMealsAgainstScheme(day, dayTarget, i)) {
+              errors.push(err);
+              stepErrors.step3_mealplan.push(err);
+            }
+          }
         }
         
         // Validate daily calorie totals
@@ -10248,49 +10296,45 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         data, analysis, strategy, bmr, recommendedCalories,
         startDay, endDay, previousDays, env, errorPreventionComment, cachedFoodLists
       );
-      
+
       const chunkResponse = await callAIModel(env, chunkPrompt, MEAL_PLAN_TOKEN_LIMIT, `step3_meal_plan_chunk_${chunkIndex + 1}`, sessionId, data, buildCompactAnalysisForStep3(analysis));
       let chunkData = parseAIResponse(chunkResponse);
-      
+
       if (!chunkData || chunkData.error) {
-        const errorMsg = chunkData.error || 'Invalid response';
+        const errorMsg = chunkData?.error || 'Invalid response';
         throw new Error(`Chunk ${chunkIndex + 1} failed: ${errorMsg}`);
       }
-      
-      // If AI returns an array instead of {dayN:{...}}, remap by position.
+
       if (Array.isArray(chunkData)) {
         chunkData = Object.fromEntries(chunkData.map((item, i) => [`day${startDay + i}`, item]));
       }
-      
-      // Log the structure of chunkData for debugging
+
       console.log(`Chunk ${chunkIndex + 1} data keys:`, Object.keys(chunkData));
-      
-      // Merge chunk data into weekPlan
+
       for (let day = startDay; day <= endDay; day++) {
         const dayKey = `day${day}`;
         if (chunkData[dayKey]) {
           weekPlan[dayKey] = chunkData[dayKey];
           previousDays.push({
-            day: day,
+            day,
             meals: chunkData[dayKey].meals || []
           });
         } else {
-          // Log what keys are actually present
           console.error(`Missing ${dayKey} in chunk ${chunkIndex + 1}. Available keys:`, Object.keys(chunkData));
           throw new Error(`Missing ${dayKey} in chunk ${chunkIndex + 1} response. Available keys: ${Object.keys(chunkData).join(', ')}`);
         }
       }
-      // Replace any "dessert": true markers with the fixed dessert object
+
       injectFixedDesserts(weekPlan);
-      alignWeekPlanDaysToScheme(weekPlan, strategy, startDay, endDay);
+      finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay);
     } catch (error) {
       throw new Error(`Генериране на дни ${startDay}-${endDay}: ${error.message}`);
     }
   }
 
-  alignWeekPlanDaysToScheme(weekPlan, strategy, 1, 7);
+  finalizeWeekPlanDays(weekPlan, strategy, 1, 7);
 
-  // Step 5: enrich copy (name format, cooking, benefits) — numbers already aligned
+  // Step 5: enrich copy (name format, cooking, benefits) — numbers from Step 3
   try {
     await enrichWeekPlanCopy(env, data, strategy, weekPlan, sessionId);
     console.log('Step 5 enrichment complete');
