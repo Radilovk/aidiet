@@ -8194,6 +8194,7 @@ function enforceCalorieGuardrails(analysis, data, referenceTdee) {
  */
 function normalizeWeeklyScheme(strategy, defaultDailyCalories) {
   if (!strategy?.weeklyScheme) return;
+  normalizeMealBreakdownTypes(strategy);
 
   for (const key of DAY_NUMBER_TO_KEY) {
     const day = strategy.weeklyScheme[key];
@@ -8378,6 +8379,35 @@ const MEAL_TYPE_ALIASES = {
   'Кафе': 'Напитка',
   'Напитки': 'Напитка',
 };
+
+function normalizeMealBreakdownTypes(strategy) {
+  if (!strategy?.weeklyScheme) return;
+  for (const day of Object.values(strategy.weeklyScheme)) {
+    if (!day?.mealBreakdown?.length) continue;
+    for (const entry of day.mealBreakdown) {
+      if (!entry?.type) continue;
+      if (MEAL_TYPE_ALIASES[entry.type]) {
+        entry.type = MEAL_TYPE_ALIASES[entry.type];
+      }
+    }
+  }
+}
+
+function normalizeMealTypesInWeekPlan(weekPlan) {
+  if (!weekPlan || typeof weekPlan !== 'object') return;
+  for (const day of Object.values(weekPlan)) {
+    if (!day?.meals?.length) continue;
+    for (const meal of day.meals) {
+      if (!meal?.type) continue;
+      const name = (meal.name || '').toLowerCase().trim();
+      if (name === 'свободно хранене' && meal.type !== 'Свободно хранене') {
+        meal.type = 'Свободно хранене';
+      } else if (MEAL_TYPE_ALIASES[meal.type]) {
+        meal.type = MEAL_TYPE_ALIASES[meal.type];
+      }
+    }
+  }
+}
 
 /**
  * Returns true when the user's foodCravings include 'Сладко' (sweets).
