@@ -2107,6 +2107,8 @@ const pendingSessionLogs = new Map(); // sessionId → [logId, ...]
 
 // Validation constants (moved here to be available early in code)
 const DAILY_CALORIE_TOLERANCE = 50; // ±50 kcal tolerance for daily calorie target
+const MACRO_GRAM_TOLERANCE = 4; // ±4g per macro when validating AI meals vs mealBreakdown
+const MEAL_PLAN_CHUNK_MAX_RETRIES = 1; // One retry per chunk with validation errors
 const MAX_LATE_SNACK_CALORIES = 200; // Maximum calories allowed for late-night snacks
 
 /**
@@ -3729,7 +3731,6 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
       medicalConditions_musculoskeletal_details: data['medicalConditions_Мускулно-скелетни_детайл'] || '',
       DAILY_CALORIE_TOLERANCE,
       MAX_LATE_SNACK_CALORIES,
-      MEAL_NAME_FORMAT_INSTRUCTIONS,
       freeMealInstruction: buildFreeMealInstruction(strategy, startDay, endDay),
       sweetsCravingRule,
       additionalNotes: buildCombinedAdditionalNotes(data),
@@ -3743,9 +3744,8 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
     if (!prompt.includes('ЗАДЪЛЖИТЕЛНО: ГРАМАЖИ В DESCRIPTION')) {
       prompt += `
 
-═══ ЗАДЪЛЖИТЕЛНО: ГРАМАЖИ В DESCRIPTION ═══
-Изброй продуктите по име (отделен ред с •). Грамажите се преизчисляват автоматично от системата според mealBreakdown — важни са имената и категорията на храните.
-Пример: "• пилешко филе\\n• ориз\\n• домати"`;
+═══ ЗАДЪЛЖИТЕЛНО: ТИ СМЯТАШ ГРАМАЖИ И МАКРОСИ ═══
+За всяко хранене: грамаж "числоg" на всеки продукт в description, meal.macros и meal.calories = целите от mealBreakdown (±${DAILY_CALORIE_TOLERANCE} kcal, ±${MACRO_GRAM_TOLERANCE}g macro). protein×4+carbs×4+fats×9≈calories.`;
     }
     
     // CRITICAL: Ensure JSON format instructions are included even with custom prompts
@@ -3759,19 +3759,21 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
 {
   "dayN": {
     "meals": [
-      {"type": "Хранене 1|Хранене 2|Свободно хранене|Хранене 3|Хранене 4|Хранене 5", "name": "име", "weight": "Xg", "description": "• продукт\\n• продукт", "benefits": "текст", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число}}
-    ],
-    "dailyTotals": {"calories": число, "protein": число, "carbs": число, "fats": число}
+      {"type": "Хранене 1|Хранене 2|Свободно хранене|Хранене 3|Хранене 4|Хранене 5", "name": "име", "weight": "Xg", "description": "• продукт 200g; • продукт 150g", "benefits": "...", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число}}
+    ]
   }
 }
 
-ВАЖНО: Върни САМО JSON обект {} без други текст или обяснения! НЕ връщай JSON масив []!`;
+ВАЖНО: Върни САМО JSON обект {} без други текст или обяснения! НЕ връщай JSON масив []! БЕЗ dailyTotals!`;
     }
     if (analysisBlock && !prompt.includes('#AN v1')) {
       prompt = prompt.replace(
         '=== ПРОФИЛ ===',
         `${analysisBlock}\n${strategyBlock}\n\n=== ПРОФИЛ ===`
       );
+    }
+    if (errorPreventionComment) {
+      prompt = errorPreventionComment + '\n\n' + prompt;
     }
   return prompt;
 }
@@ -8006,8 +8008,8 @@ function macrosToCalories(macros) {
 }
 
 // Replaces "dessert": true markers with the fixed dessert object and adds dessert
-// grams to meal.weight. Macro/calorie totals are set from strategy mealBreakdown
-// by alignMealsToBreakdown() immediately after injection.
+// grams to meal.weight. AI must include dessert macros in meal.calories/macros;
+// finalizeWeekPlanDays() syncs calories from macros after injection.
 function injectFixedDesserts(weekPlan) {
   for (const dayKey of Object.keys(weekPlan)) {
     const day = weekPlan[dayKey];
@@ -8236,207 +8238,90 @@ function getFreeMealSlotCalories(dayTarget) {
 }
 
 /**
- * Set each meal's macros/calories from strategy mealBreakdown (Step 2 targets).
- * Deterministic link between Step 2 architecture and Step 3 meals.
+ * Step 3 meals: AI is authoritative for grams/macros/calories.
+ * Backend syncs calories from macros and validates against mealBreakdown.
  */
-
-// Simplified per-100g macro density for gram allocation (not a full food DB).
-const GRAM_ALLOC_DENSITY = {
-  PRO: { protein: 22, carbs: 0, fats: 5 },
-  ENG: { protein: 3, carbs: 25, fats: 1 },
-  FAT: { protein: 0, carbs: 0, fats: 100 },
-  VOL: { protein: 1, carbs: 4, fats: 0 },
-  MIXED: { protein: 12, carbs: 15, fats: 8 }
-};
-
-function classifyProductRole(name) {
-  const n = String(name || '').toLowerCase();
-  if (/ориз|киноа|овес|паста|хляб|картоф|леща|боб|нахут|мюсли|каша|елда|булгур|гриз|макарон|пълнозърнест/.test(n)) return 'ENG';
-  if (/зехтин|масло|авокадо|ядк|семе|тахан|маслин|шарлан|олио/.test(n)) return 'FAT';
-  if (/салат|домат|крастав|чушк|броколи|тиквич|морков|зеленч|маруля|спанак|гъби|карфиол|тиква|зеле|лук|чесън|праз|еринги/.test(n)) return 'VOL';
-  if (/пиле|пилеш|гърди|месо|риба|сьомга|треска|яйц|сирен|извара|мляко|скир|тофу|кисело мляко|свин|говед|кайма|пъстърва|тон|сьомга|протеин/.test(n)) return 'PRO';
-  return 'MIXED';
+function syncMealCaloriesFromMacros(meal) {
+  if (!meal || meal.type === 'Свободно хранене' || meal.type === 'Напитка' || !meal.macros) return;
+  meal.calories = macrosToCalories(meal.macros);
 }
 
-/** Extract product names from AI description/name (grams and cooking stripped). */
-function extractMealProductNames(meal) {
-  const names = [];
-  const seen = new Set();
-  const add = (raw) => {
-    let name = String(raw || '')
-      .replace(/^[•\-\*]\s*/, '')
-      .replace(/\s+\d+(?:[.,]\d+)?\s*(g|г)\b.*$/i, '')
-      .replace(/\s*[—\-].*$/, '')
-      .replace(/^хляб:\s*/i, 'хляб ')
-      .trim();
-    if (name.length > 1 && !seen.has(name.toLowerCase())) {
-      seen.add(name.toLowerCase());
-      names.push(name);
-    }
-  };
-  const desc = meal.description || '';
-  if (desc) {
-    desc.split(/[\n;]+/).forEach(part => add(part));
-  }
-  if (!names.length && meal.name) {
-    String(meal.name).split(/\n+/).forEach(line => add(line));
-  }
-  return names;
-}
+function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum) {
+  const errors = [];
+  if (!dayPlan?.meals?.length || !dayTarget?.mealBreakdown?.length) return errors;
 
-function macroContribFromGrams(grams, density) {
-  return {
-    protein: grams * density.protein / 100,
-    carbs: grams * density.carbs / 100,
-    fats: grams * density.fats / 100
-  };
-}
-
-function sumMacroContrib(items) {
-  return items.reduce((acc, item) => {
-    const d = GRAM_ALLOC_DENSITY[item.role] || GRAM_ALLOC_DENSITY.MIXED;
-    const m = macroContribFromGrams(item.grams, d);
-    acc.protein += m.protein;
-    acc.carbs += m.carbs;
-    acc.fats += m.fats;
-    return acc;
-  }, { protein: 0, carbs: 0, fats: 0 });
-}
-
-/** Macros available for main meal components (exclude fixed dessert). */
-function getAllocatableMacros(meal) {
-  const m = {
-    protein: Number(meal.macros?.protein) || 0,
-    carbs: Number(meal.macros?.carbs) || 0,
-    fats: Number(meal.macros?.fats) || 0
-  };
-  if (meal.dessert && typeof meal.dessert === 'object' && meal.dessert.macros) {
-    m.protein = Math.max(0, m.protein - (Number(meal.dessert.macros.protein) || 0));
-    m.carbs = Math.max(0, m.carbs - (Number(meal.dessert.macros.carbs) || 0));
-    m.fats = Math.max(0, m.fats - (Number(meal.dessert.macros.fats) || 0));
-  }
-  return m;
-}
-
-/**
- * Deterministic gram allocation from final meal macros + product names.
- * Step 3 AI picks products; code assigns grams to match mealBreakdown targets.
- */
-function allocateMealGramsFromMacros(meal) {
-  if (!meal?.macros || meal.type === 'Свободно хранене' || meal.type === 'Напитка') return;
-
-  const names = extractMealProductNames(meal);
-  if (!names.length) return;
-
-  const target = getAllocatableMacros(meal);
-  const items = names.map(name => ({ name, role: classifyProductRole(name), grams: 0 }));
-  const vol = items.filter(i => i.role === 'VOL');
-  const pro = items.filter(i => i.role === 'PRO' || i.role === 'MIXED');
-  const eng = items.filter(i => i.role === 'ENG');
-  const fat = items.filter(i => i.role === 'FAT');
-
-  let remP = target.protein;
-  let remC = target.carbs;
-  let remF = target.fats;
-
-  vol.forEach(i => {
-    i.grams = 100;
-    const m = macroContribFromGrams(i.grams, GRAM_ALLOC_DENSITY.VOL);
-    remP = Math.max(0, remP - m.protein);
-    remC = Math.max(0, remC - m.carbs);
-    remF = Math.max(0, remF - m.fats);
-  });
-
-  if (pro.length && remP > 0) {
-    const gPer = Math.round((remP / pro.length) / (GRAM_ALLOC_DENSITY.PRO.protein / 100));
-    const grams = Math.min(320, Math.max(50, gPer || 100));
-    pro.forEach(i => { i.grams = grams; });
-    const used = sumMacroContrib(pro);
-    remP = Math.max(0, remP - used.protein);
-    remC = Math.max(0, remC - used.carbs);
-    remF = Math.max(0, remF - used.fats);
-  }
-
-  if (eng.length && remC > 0) {
-    const gPer = Math.round((remC / eng.length) / (GRAM_ALLOC_DENSITY.ENG.carbs / 100));
-    const grams = Math.min(280, Math.max(35, gPer || 80));
-    eng.forEach(i => { i.grams = grams; });
-    const used = sumMacroContrib(eng);
-    remP = Math.max(0, remP - used.protein);
-    remC = Math.max(0, remC - used.carbs);
-    remF = Math.max(0, remF - used.fats);
-  }
-
-  if (fat.length && remF > 3) {
-    const gPer = Math.round((remF / fat.length) / (GRAM_ALLOC_DENSITY.FAT.fats / 100));
-    const grams = Math.min(35, Math.max(5, gPer || 10));
-    fat.forEach(i => { i.grams = grams; });
-    remF = Math.max(0, remF - sumMacroContrib(fat).fats);
-  } else if (remF > 5) {
-    items.push({ name: 'зехтин', role: 'FAT', grams: Math.min(20, Math.round(remF)) });
-    remF = 0;
-  }
-
-  const allocated = items.filter(i => i.grams > 0);
-  if (!allocated.length) return;
-
-  // Fine-tune portion sizes toward target calories (±12%)
-  const targetCal = macrosToCalories(target);
-  let actual = sumMacroContrib(allocated);
-  let actualCal = macrosToCalories(actual);
-  if (targetCal > 0 && actualCal > 0) {
-    const factor = targetCal / actualCal;
-    if (factor >= 0.88 && factor <= 1.12) {
-      allocated.forEach(i => {
-        if (i.role !== 'VOL') i.grams = Math.max(5, Math.round(i.grams * factor));
-      });
-    }
-  }
-
-  meal.description = allocated.map(i => `• ${i.name} ${i.grams}g`).join('\n');
-  const totalGrams = allocated.reduce((s, i) => s + i.grams, 0);
-  if (totalGrams > 0) meal.weight = `${totalGrams}г`;
-}
-
-function allocateWeekPlanGrams(weekPlan, startDay, endDay) {
-  if (!weekPlan) return;
-  for (let d = startDay; d <= endDay; d++) {
-    const day = weekPlan[`day${d}`];
-    if (!day?.meals) continue;
-    for (const meal of day.meals) allocateMealGramsFromMacros(meal);
-  }
-}
-
-function alignMealsToBreakdown(dayPlan, dayTarget) {
-  if (!dayPlan?.meals?.length || !dayTarget?.mealBreakdown) return false;
-
-  let changed = false;
   for (const meal of dayPlan.meals) {
     if (meal.type === 'Свободно хранене' || meal.type === 'Напитка') continue;
     const target = dayTarget.mealBreakdown.find(m => m.type === meal.type);
     if (!target) continue;
-    meal.macros = {
-      protein: Math.round(Number(target.protein) || 0),
-      carbs: Math.round(Number(target.carbs) || 0),
-      fats: Math.round(Number(target.fats) || 0)
-    };
-    meal.calories = macrosToCalories(meal.macros);
-    allocateMealGramsFromMacros(meal);
-    changed = true;
-  }
-  return changed;
-}
 
-function alignWeekPlanDaysToScheme(weekPlan, strategy, startDay, endDay) {
-  if (!weekPlan || !strategy?.weeklyScheme) return;
-  for (let d = startDay; d <= endDay; d++) {
-    const dayKey = `day${d}`;
-    const schemeKey = DAY_NUMBER_TO_KEY[d - 1];
-    if (weekPlan[dayKey] && strategy.weeklyScheme[schemeKey]) {
-      alignMealsToBreakdown(weekPlan[dayKey], strategy.weeklyScheme[schemeKey]);
+    const targetCal = Number(target.calories) || 0;
+    const mealCal = Number(meal.calories) || macrosToCalories(meal.macros);
+    if (targetCal > 0 && Math.abs(mealCal - targetCal) > DAILY_CALORIE_TOLERANCE) {
+      errors.push(`Ден ${dayNum} ${meal.type}: калории ${mealCal} ≠ цел ${targetCal} (±${DAILY_CALORIE_TOLERANCE})`);
+    }
+
+    for (const field of ['protein', 'carbs', 'fats']) {
+      const tv = Number(target[field]) || 0;
+      const mv = Number(meal.macros?.[field]) || 0;
+      if (tv > 0 && Math.abs(mv - tv) > MACRO_GRAM_TOLERANCE) {
+        errors.push(`Ден ${dayNum} ${meal.type}: ${field} ${mv}g ≠ цел ${tv}g (±${MACRO_GRAM_TOLERANCE})`);
+      }
+    }
+
+    if (!meal.description || !/\d+\s*(g|г)\b/i.test(meal.description)) {
+      errors.push(`Ден ${dayNum} ${meal.type}: липсват грамажи (числоg) в description`);
+    }
+
+    if (meal.macros && mealCal > 0) {
+      const fromMacros = macrosToCalories(meal.macros);
+      if (Math.abs(fromMacros - mealCal) > DAILY_CALORIE_TOLERANCE) {
+        errors.push(`Ден ${dayNum} ${meal.type}: calories ${mealCal} ≠ P×4+C×4+F×9 (${fromMacros})`);
+      }
     }
   }
+  return errors;
+}
+
+function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay) {
+  const errors = [];
+  if (!weekPlan || !strategy?.weeklyScheme) return errors;
+  normalizeMealBreakdownTypes(strategy);
+  for (let d = startDay; d <= endDay; d++) {
+    const dayPlan = weekPlan[`day${d}`];
+    const schemeKey = DAY_NUMBER_TO_KEY[d - 1];
+    const dayTarget = strategy.weeklyScheme[schemeKey];
+    if (dayPlan && dayTarget) {
+      errors.push(...validateMealsAgainstScheme(dayPlan, dayTarget, d));
+    }
+  }
+  return errors;
+}
+
+function buildChunkValidationRetryComment(errors) {
+  if (!errors?.length) return '';
+  return `═══ КОРЕКЦИЯ — ПРЕДИШНИЯТ ОТГОВОР ИМА ГРЕШКИ ═══
+Поправи САМО посочените несъответствия. Запази продуктите и структурата на дните.
+${errors.map((e, i) => `${i + 1}. ${e}`).join('\n')}
+
+ЗАДЪЛЖИТЕЛНО: meal.calories/macros = mealBreakdown цели (±${DAILY_CALORIE_TOLERANCE} kcal, ±${MACRO_GRAM_TOLERANCE}g). description с "числоg" на всеки продукт.`;
+}
+
+function finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay) {
+  if (!weekPlan) return;
+  normalizeMealBreakdownTypes(strategy);
+  normalizeMealTypesInWeekPlan(weekPlan);
+  for (let d = startDay; d <= endDay; d++) {
+    const day = weekPlan[`day${d}`];
+    if (!day?.meals) continue;
+    for (const meal of day.meals) syncMealCaloriesFromMacros(meal);
+  }
   recalculateDayCalories(weekPlan, strategy);
+}
+
+/** @deprecated Use finalizeWeekPlanDays — kept as alias for callers outside meal-plan flow */
+function alignWeekPlanDaysToScheme(weekPlan, strategy, startDay, endDay) {
+  finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay);
 }
 
 /**
@@ -8748,6 +8633,17 @@ function validatePlan(plan, userData, substitutions = []) {
           const error = `Ден ${i} има ${mealsWithoutMacros} хранения без макронутриенти`;
           errors.push(error);
           stepErrors.step3_mealplan.push(error);
+        }
+
+        if (plan.strategy?.weeklyScheme) {
+          const schemeKey = DAY_NUMBER_TO_KEY[i - 1];
+          const dayTarget = plan.strategy.weeklyScheme[schemeKey];
+          if (dayTarget) {
+            for (const err of validateMealsAgainstScheme(day, dayTarget, i)) {
+              errors.push(err);
+              stepErrors.step3_mealplan.push(err);
+            }
+          }
         }
         
         // Validate daily calorie totals
@@ -10182,51 +10078,76 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
     const daysInChunk = endDay - startDay + 1;
     
     try {
-      const chunkPrompt = await generateMealPlanChunkPrompt(
-        data, analysis, strategy, bmr, recommendedCalories,
-        startDay, endDay, previousDays, env, errorPreventionComment, cachedFoodLists
-      );
-      
-      const chunkResponse = await callAIModel(env, chunkPrompt, MEAL_PLAN_TOKEN_LIMIT, `step3_meal_plan_chunk_${chunkIndex + 1}`, sessionId, data, buildCompactAnalysisForStep3(analysis));
-      let chunkData = parseAIResponse(chunkResponse);
-      
-      if (!chunkData || chunkData.error) {
-        const errorMsg = chunkData.error || 'Invalid response';
-        throw new Error(`Chunk ${chunkIndex + 1} failed: ${errorMsg}`);
-      }
-      
-      // If AI returns an array instead of {dayN:{...}}, remap by position.
-      if (Array.isArray(chunkData)) {
-        chunkData = Object.fromEntries(chunkData.map((item, i) => [`day${startDay + i}`, item]));
-      }
-      
-      // Log the structure of chunkData for debugging
-      console.log(`Chunk ${chunkIndex + 1} data keys:`, Object.keys(chunkData));
-      
-      // Merge chunk data into weekPlan
-      for (let day = startDay; day <= endDay; day++) {
-        const dayKey = `day${day}`;
-        if (chunkData[dayKey]) {
-          weekPlan[dayKey] = chunkData[dayKey];
-          previousDays.push({
-            day: day,
-            meals: chunkData[dayKey].meals || []
-          });
-        } else {
-          // Log what keys are actually present
-          console.error(`Missing ${dayKey} in chunk ${chunkIndex + 1}. Available keys:`, Object.keys(chunkData));
-          throw new Error(`Missing ${dayKey} in chunk ${chunkIndex + 1} response. Available keys: ${Object.keys(chunkData).join(', ')}`);
+      let chunkComment = errorPreventionComment;
+      let attempt = 0;
+
+      while (true) {
+        const chunkPrompt = await generateMealPlanChunkPrompt(
+          data, analysis, strategy, bmr, recommendedCalories,
+          startDay, endDay, previousDays, env, chunkComment, cachedFoodLists
+        );
+
+        const stepLabel = attempt > 0
+          ? `step3_meal_plan_chunk_${chunkIndex + 1}_retry`
+          : `step3_meal_plan_chunk_${chunkIndex + 1}`;
+        const chunkResponse = await callAIModel(env, chunkPrompt, MEAL_PLAN_TOKEN_LIMIT, stepLabel, sessionId, data, buildCompactAnalysisForStep3(analysis));
+        let chunkData = parseAIResponse(chunkResponse);
+
+        if (!chunkData || chunkData.error) {
+          const errorMsg = chunkData?.error || 'Invalid response';
+          throw new Error(`Chunk ${chunkIndex + 1} failed: ${errorMsg}`);
         }
+
+        if (Array.isArray(chunkData)) {
+          chunkData = Object.fromEntries(chunkData.map((item, i) => [`day${startDay + i}`, item]));
+        }
+
+        console.log(`Chunk ${chunkIndex + 1} data keys (attempt ${attempt + 1}):`, Object.keys(chunkData));
+
+        for (let day = startDay; day <= endDay; day++) {
+          const dayKey = `day${day}`;
+          if (chunkData[dayKey]) {
+            weekPlan[dayKey] = chunkData[dayKey];
+            const dayEntry = { day, meals: chunkData[dayKey].meals || [] };
+            const existingIdx = previousDays.findIndex(p => p.day === day);
+            if (existingIdx >= 0) {
+              previousDays[existingIdx] = dayEntry;
+            } else {
+              previousDays.push(dayEntry);
+            }
+          } else {
+            console.error(`Missing ${dayKey} in chunk ${chunkIndex + 1}. Available keys:`, Object.keys(chunkData));
+            throw new Error(`Missing ${dayKey} in chunk ${chunkIndex + 1} response. Available keys: ${Object.keys(chunkData).join(', ')}`);
+          }
+        }
+
+        injectFixedDesserts(weekPlan);
+        finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay);
+
+        const validationErrors = validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay);
+        if (!validationErrors.length) break;
+
+        if (attempt >= MEAL_PLAN_CHUNK_MAX_RETRIES) {
+          throw new Error(`валидация неуспешна след ${attempt + 1} опита: ${validationErrors.join('; ')}`);
+        }
+
+        for (let day = startDay; day <= endDay; day++) {
+          delete weekPlan[`day${day}`];
+          const idx = previousDays.findIndex(p => p.day === day);
+          if (idx >= 0) previousDays.splice(idx, 1);
+        }
+
+        chunkComment = [errorPreventionComment, buildChunkValidationRetryComment(validationErrors)]
+          .filter(Boolean).join('\n\n');
+        attempt++;
+        console.warn(`Chunk ${chunkIndex + 1} validation failed (attempt ${attempt}), retrying:`, validationErrors);
       }
-      // Replace any "dessert": true markers with the fixed dessert object
-      injectFixedDesserts(weekPlan);
-      alignWeekPlanDaysToScheme(weekPlan, strategy, startDay, endDay);
     } catch (error) {
       throw new Error(`Генериране на дни ${startDay}-${endDay}: ${error.message}`);
     }
   }
 
-  alignWeekPlanDaysToScheme(weekPlan, strategy, 1, 7);
+  finalizeWeekPlanDays(weekPlan, strategy, 1, 7);
   
   // Generate summary, recommendations, etc. in final request
   try {
