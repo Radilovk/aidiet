@@ -2000,6 +2000,7 @@ const RATE_LIMIT = {
   VALIDATE_QUESTIONNAIRE: { maxRequests: 8, windowSec: 60 },  // 8 validations/min per IP
   SOCIAL_AUTH:    { maxRequests: 10, windowSec: 60 },   // 10 auth attempts/min per IP
   FORGOT_PASSWORD:{ maxRequests: 5,  windowSec: 900 },  // 5 reset requests per 15 min per IP
+  XBODY_APPOINTMENTS: { maxRequests: 15, windowSec: 60 }, // 15 lookups/min per IP
 };
 
 /**
@@ -3758,12 +3759,12 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
 {
   "dayN": {
     "meals": [
-      {"type": "Хранене 1|Хранене 2|Свободно хранене|Хранене 3|Хранене 4|Хранене 5", "name": "име", "weight": "Xg", "description": "• продукт 200g; • продукт 150g", "benefits": "...", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число}}
+      {"type": "Хранене 1|Хранене 2|Свободно хранене|Хранене 3|Хранене 4|Хранене 5", "name": "име", "weight": "Xg", "description": "продукт 200g; продукт 150g", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число}}
     ]
   }
 }
 
-ВАЖНО: Върни САМО JSON обект {} без други текст или обяснения! НЕ връщай JSON масив []! БЕЗ dailyTotals!`;
+ВАЖНО: Върни САМО JSON обект {} без други текст или обяснения! НЕ връщай JSON масив []! БЕЗ dailyTotals и БЕЗ benefits!`;
     }
     if (analysisBlock && !prompt.includes('#AN v1')) {
       prompt = prompt.replace(
@@ -3775,6 +3776,107 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
       prompt = errorPreventionComment + '\n\n' + prompt;
     }
   return prompt;
+}
+
+/** Compact meal skeleton for Step 5 enrichment (numbers are final, copy-only pass). */
+function serializeMealsSkeletonForEnrichment(weekPlan, startDay, endDay) {
+  const result = {};
+  for (let d = startDay; d <= endDay; d++) {
+    const dayKey = `day${d}`;
+    const day = weekPlan[dayKey];
+    if (!day?.meals) continue;
+    result[dayKey] = {
+      meals: day.meals.map(meal => {
+        const skeleton = {
+          type: meal.type,
+          name: meal.name || '',
+          weight: meal.weight || '',
+          description: meal.description || '',
+          calories: meal.calories,
+          macros: meal.macros ? { ...meal.macros } : undefined
+        };
+        if (meal.dessert) skeleton.dessert = meal.dessert === true ? true : !!meal.dessert;
+        return skeleton;
+      })
+    };
+  }
+  return JSON.stringify(result, null, 2);
+}
+
+/** Merge enriched copy fields without touching numeric/meal structure. */
+function applyMealEnrichment(weekPlan, enrichmentData, startDay, endDay) {
+  if (!enrichmentData || typeof enrichmentData !== 'object') return;
+  for (let d = startDay; d <= endDay; d++) {
+    const dayKey = `day${d}`;
+    const enrichedDay = enrichmentData[dayKey];
+    const day = weekPlan[dayKey];
+    if (!enrichedDay?.meals || !day?.meals) continue;
+    for (let i = 0; i < day.meals.length; i++) {
+      const meal = day.meals[i];
+      const enriched = enrichedDay.meals.find(m => m.type === meal.type) || enrichedDay.meals[i];
+      if (!enriched) continue;
+      if (enriched.name) meal.name = enriched.name;
+      if (enriched.description) meal.description = enriched.description;
+      if (enriched.benefits) meal.benefits = enriched.benefits;
+    }
+  }
+}
+
+async function generateMealEnrichmentPrompt(data, strategy, weekPlan, startDay, endDay, env) {
+  const dietaryModifier = strategy.dietaryModifier || 'Балансирано';
+  const mealsSkeletonJSON = serializeMealsSkeletonForEnrichment(weekPlan, startDay, endDay);
+  const customPrompt = await requireKvPrompt(env, 'admin_meal_enrichment_prompt');
+  let prompt = replacePromptVariables(customPrompt, {
+    userData: data,
+    strategyData: strategy,
+    dietaryModifier,
+    dietLove: data.dietLove || 'няма',
+    dietDislike: data.dietDislike || 'няма',
+    additionalNotes: buildCombinedAdditionalNotes(data),
+    mealsSkeletonJSON,
+    startDay,
+    endDay,
+    MEAL_NAME_FORMAT_INSTRUCTIONS
+  });
+  if (!hasJsonFormatInstructions(prompt)) {
+    prompt += `
+
+═══ ФОРМАТ НА ОТГОВОР ═══
+Отговори САМО с валиден JSON обект. Запази type, weight, calories, macros и dessert без промяна. Обогати name, description и benefits.`;
+  }
+  return prompt;
+}
+
+/**
+ * Step 5: enrich meal copy (name format, cooking notes, benefits) after numeric alignment.
+ */
+async function enrichWeekPlanCopy(env, data, strategy, weekPlan, sessionId = null) {
+  const totalDays = 7;
+  const chunks = Math.ceil(totalDays / DAYS_PER_CHUNK);
+  for (let chunkIndex = 0; chunkIndex < chunks; chunkIndex++) {
+    const startDay = chunkIndex * DAYS_PER_CHUNK + 1;
+    const endDay = Math.min(startDay + DAYS_PER_CHUNK - 1, totalDays);
+    try {
+      const enrichmentPrompt = await generateMealEnrichmentPrompt(
+        data, strategy, weekPlan, startDay, endDay, env
+      );
+      const enrichmentResponse = await callAIModel(
+        env, enrichmentPrompt, MEAL_ENRICHMENT_TOKEN_LIMIT,
+        `step5_enrichment_chunk_${chunkIndex + 1}`, sessionId, data
+      );
+      let enrichmentData = parseAIResponse(enrichmentResponse);
+      if (!enrichmentData || enrichmentData.error) {
+        console.warn(`Step 5 enrichment chunk ${chunkIndex + 1} failed, keeping skeleton copy:`, enrichmentData?.error);
+        continue;
+      }
+      if (Array.isArray(enrichmentData)) {
+        enrichmentData = Object.fromEntries(enrichmentData.map((item, i) => [`day${startDay + i}`, item]));
+      }
+      applyMealEnrichment(weekPlan, enrichmentData, startDay, endDay);
+    } catch (error) {
+      console.warn(`Step 5 enrichment chunk ${chunkIndex + 1} error, keeping skeleton copy:`, error.message);
+    }
+  }
 }
 
 /**
@@ -6590,7 +6692,11 @@ async function ensureAssistantCacheFresh(env, session, card, planUpdatedAt, anal
  */
 function reconcilePlanAfterAssistantPatches(plan) {
   if (!plan?.weekPlan) return;
-  recalculateDayCalories(plan.weekPlan, plan.strategy || null);
+  if (plan.strategy?.weeklyScheme) {
+    alignWeekPlanDaysToScheme(plan.weekPlan, plan.strategy, 1, 7);
+  } else {
+    recalculateDayCalories(plan.weekPlan, plan.strategy || null);
+  }
 
   const avgMacros = calculateAverageMacrosFromPlan(plan.weekPlan);
   if (!plan.summary) plan.summary = {};
@@ -7016,7 +7122,7 @@ function buildWeeklyAdaptationContextSection(data) {
   return `\n\n═══ СЕДМИЧНА АДАПТАЦИЯ (АВТОМАТИЧНО) ═══\n${data.weeklyAdaptationContext}\n═══════════════════════════════════════════════════════════════`;
 }
 
-function buildWeeklyContextFromPayload(userData, plan, analytics, gameWeeklyAI, feedbackAnswers) {
+function buildWeeklyContextFromPayload(userData, plan, analytics, gameWeeklyAI, feedbackAnswers, serverAdaptHistory) {
   const cycleNumber = gameWeeklyAI?.cycleNumber || 1;
   const dietStartDate = gameWeeklyAI?.dietStartDate || '';
   let daysSinceStart = null;
@@ -7042,7 +7148,10 @@ function buildWeeklyContextFromPayload(userData, plan, analytics, gameWeeklyAI, 
     feedbackBlock = 'FB|answers|' + feedbackAnswers.map((a) => `${a.questionId}=${String(a.value).replace(/\|/g, '/')}`).join('|');
   }
 
-  const history = (gameWeeklyAI?.adaptationHistory || []).slice(-3);
+  const history = [
+    ...(serverAdaptHistory || []),
+    ...(gameWeeklyAI?.adaptationHistory || []),
+  ].filter((h) => h && h.cycleNumber != null).slice(-3);
   const histBlock = history.length
     ? 'HIST|' + history.map((h) => `c${h.cycleNumber}:L${h.level}`).join('|')
     : '';
@@ -7100,6 +7209,7 @@ async function resolveWeeklyJobInputs(env, { userId, clientId, userData, plan, g
     userData: resolvedUserData || {},
     plan: resolvedPlan,
     analytics,
+    weeklyAdaptHistory: profile?.weeklyAdaptHistory || [],
   };
 }
 
@@ -7173,6 +7283,39 @@ function mergeWeeklyModifications(existing, decisionMods) {
   return Array.from(mods);
 }
 
+/**
+ * Apply a weekly calorie delta deterministically to strategy.weeklyScheme.
+ * Level ≤1 adaptations regenerate only Step 3 (meals), which reuses the existing
+ * strategy — so a calorie change must be written into the per-day scheme here,
+ * otherwise the new meals would be aligned to the old (unchanged) calorie targets.
+ */
+function applyWeeklyCalorieAdjust(strategy, delta) {
+  if (!strategy?.weeklyScheme || !Number(delta)) return;
+  const MIN_DAY_CALORIES = 1000;
+  for (const key of DAY_NUMBER_TO_KEY) {
+    const day = strategy.weeklyScheme[key];
+    if (!day || !Array.isArray(day.mealBreakdown) || day.mealBreakdown.length === 0) continue;
+    const base = Number(day.calories) ||
+      day.mealBreakdown.reduce((s, m) => s + (Number(m.calories) || 0), 0);
+    if (base <= 0) continue;
+    const target = Math.max(MIN_DAY_CALORIES, base + Number(delta));
+    const ratio = target / base;
+    if (Math.abs(ratio - 1) < 0.01) continue;
+    let sc = 0, sp = 0, scb = 0, sf = 0;
+    for (const m of day.mealBreakdown) {
+      m.calories = Math.round((Number(m.calories) || 0) * ratio);
+      m.protein = Math.round((Number(m.protein) || 0) * ratio);
+      m.carbs = Math.round((Number(m.carbs) || 0) * ratio);
+      m.fats = Math.round((Number(m.fats) || 0) * ratio);
+      sc += m.calories; sp += m.protein; scb += m.carbs; sf += m.fats;
+    }
+    day.calories = sc;
+    day.protein = sp;
+    day.carbs = scb;
+    day.fats = sf;
+  }
+}
+
 function buildWeeklyAdaptationContextText(decision, analytics, feedbackAnswers, cycleNumber) {
   const sc = decision.strategyChanges || {};
   const parts = [
@@ -7206,8 +7349,8 @@ async function verifyWeeklyRequestAuth(userId, idToken, env) {
   }
 }
 
-async function generateWeeklyQuestions(env, userData, plan, analytics, gameWeeklyAI) {
-  const weeklyContext = buildWeeklyContextFromPayload(userData, plan, analytics, gameWeeklyAI);
+async function generateWeeklyQuestions(env, userData, plan, analytics, gameWeeklyAI, serverAdaptHistory) {
+  const weeklyContext = buildWeeklyContextFromPayload(userData, plan, analytics, gameWeeklyAI, null, serverAdaptHistory);
   const template = await requireKvPrompt(env, 'admin_weekly_questions_prompt');
   const prompt = template.replace(/\{weeklyContext\}/g, weeklyContext);
   const response = await callAIModel(env, prompt, 1200, 'weekly_questions', null, userData, null);
@@ -7217,8 +7360,8 @@ async function generateWeeklyQuestions(env, userData, plan, analytics, gameWeekl
   return { questions, contextNote: parsed.contextNote || '' };
 }
 
-async function getWeeklyAdaptationDecision(env, userData, plan, analytics, gameWeeklyAI, questions, answers) {
-  const weeklyContext = buildWeeklyContextFromPayload(userData, plan, analytics, gameWeeklyAI, answers);
+async function getWeeklyAdaptationDecision(env, userData, plan, analytics, gameWeeklyAI, questions, answers, serverAdaptHistory) {
+  const weeklyContext = buildWeeklyContextFromPayload(userData, plan, analytics, gameWeeklyAI, answers, serverAdaptHistory);
   const feedbackAnswers = formatFeedbackAnswersForPrompt(questions, answers);
   const template = await requireKvPrompt(env, 'admin_weekly_adaptation_prompt');
   const prompt = template
@@ -7258,6 +7401,15 @@ function releasePendingWeeklyIfDue(profile) {
   }
   const pending = profile.pendingWeekly;
   if (pending.notice) profile.weeklyAdaptNotice = pending.notice;
+  if (pending.adaptLevel != null && pending.notice?.cycleNumber != null) {
+    const hist = profile.weeklyAdaptHistory || [];
+    hist.push({
+      cycleNumber: pending.notice.cycleNumber,
+      level: pending.adaptLevel,
+      at: pending.notice.at || new Date().toISOString(),
+    });
+    profile.weeklyAdaptHistory = hist.slice(-5);
+  }
   if (pending.plan) {
     profile.plan = pending.plan;
     if (pending.userData) profile.userData = pending.userData;
@@ -7285,9 +7437,6 @@ async function applyWeeklyReleaseIfDue(env, profile, userId) {
         if (updated.planUpdatedAt) clientData.planUpdatedAt = updated.planUpdatedAt;
         delete clientData.pendingWeekly;
         await kvPutJSON(env, `client:${clientId}`, clientData, null);
-        if (clientData.planStatus === 'activated' && pending?.plan) {
-          await deliverPlanUpdateToClient(env, clientData, clientId, 'updated');
-        }
       }
     } catch (e) {
       console.warn('[WeeklyAdapt] client release failed:', e.message);
@@ -7298,13 +7447,13 @@ async function applyWeeklyReleaseIfDue(env, profile, userId) {
 
 async function runWeeklyAdaptation(env, payload, jobId) {
   const { userId, gameWeeklyAI, answers, questions, clientId } = payload;
-  const { userData, plan, analytics } = await resolveWeeklyJobInputs(env, payload);
+  const { userData, plan, analytics, weeklyAdaptHistory } = await resolveWeeklyJobInputs(env, payload);
   if (!plan?.weekPlan) throw new Error('Липсва план за адаптация');
   const cycleNumber = gameWeeklyAI?.cycleNumber || 1;
 
   try {
     const decision = await getWeeklyAdaptationDecision(
-      env, userData, plan, analytics, gameWeeklyAI, questions, answers
+      env, userData, plan, analytics, gameWeeklyAI, questions, answers, weeklyAdaptHistory
     );
     const noticeBase = {
       id: jobId,
@@ -7315,12 +7464,14 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       message: decision.motivationMessage,
       changes: (decision.changeSummary || []).slice(0, 2),
       cycleNumber,
+      adaptLevel: decision.adaptationLevel,
       at: new Date().toISOString(),
     };
 
     if (decision.adaptationLevel === 0) {
       await savePendingWeeklyRelease(env, userId, clientId, {
         notice: { ...noticeBase, changed: false },
+        adaptLevel: 0,
       });
       return;
     }
@@ -7339,6 +7490,12 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     if (regenStep === 'step1_analysis') {
       newPlan = await generatePlanMultiStep(env, enrichedData);
     } else {
+      // Step-3-only regen reuses the existing strategy, so write any calorie change
+      // into the per-day scheme before the new meals are aligned to it.
+      const calorieAdjust = Number(decision.strategyChanges?.calorieAdjust) || 0;
+      if (calorieAdjust && regenStep === 'step3_mealplan' && plan.strategy) {
+        applyWeeklyCalorieAdjust(plan.strategy, calorieAdjust);
+      }
       newPlan = await regenerateFromStep(
         env, enrichedData, plan, regenStep, { [regenStep]: ['weekly adaptation'] }, 1
       );
@@ -7349,6 +7506,7 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       notice,
       plan: newPlan,
       userData: enrichedData,
+      adaptLevel: decision.adaptationLevel,
     });
   } catch (error) {
     console.error('[WeeklyAdapt] job failed:', error);
@@ -7373,7 +7531,7 @@ async function handleWeeklyGenerateQuestions(request, env) {
       return jsonResponse({ error: e.message }, 401);
     }
 
-    const { userData, plan, analytics } = await resolveWeeklyJobInputs(env, body);
+    const { userData, plan, analytics, weeklyAdaptHistory } = await resolveWeeklyJobInputs(env, body);
     if (!plan?.weekPlan) {
       return jsonResponse({ error: 'Missing plan' }, 400);
     }
@@ -7383,7 +7541,7 @@ async function handleWeeklyGenerateQuestions(request, env) {
 
     const cycleNumber = (gameWeeklyAI?.cycleNumber || 0) + 1;
     const result = await generateWeeklyQuestions(
-      env, userData, plan, analytics, { ...gameWeeklyAI, cycleNumber }
+      env, userData, plan, analytics, { ...gameWeeklyAI, cycleNumber }, weeklyAdaptHistory
     );
 
     return jsonResponse({
@@ -7425,13 +7583,18 @@ async function handleWeeklyAdaptPlan(request, env, ctx) {
       return jsonResponse({ error: 'Missing plan' }, 400);
     }
 
+    const existingProfile = await kvGetJSON(env, `user_profile:${userId}`);
+    if (existingProfile?.pendingWeekly) {
+      return jsonResponse({ error: 'Адаптация вече е в процес. Опитайте след малко.' }, 409);
+    }
+
     const jobId = crypto.randomUUID();
-    const cycleNumber = (gameWeeklyAI?.cycleNumber || 0) + 1;
+    const resolvedCycle = (gameWeeklyAI?.cycleNumber || 0) + 1;
     const payload = {
       userId,
       clientId: clientId || '',
       gameData,
-      gameWeeklyAI: { ...(gameWeeklyAI || {}), cycleNumber },
+      gameWeeklyAI: { ...(gameWeeklyAI || {}), cycleNumber: resolvedCycle },
       answers,
       questions,
     };
@@ -7440,12 +7603,55 @@ async function handleWeeklyAdaptPlan(request, env, ctx) {
       await env.PLAN_QUEUE.send({ jobId, type: 'weekly_adapt', payload }, { contentType: 'json' });
     } else if (ctx) {
       ctx.waitUntil(runWeeklyAdaptation(env, payload, jobId));
+    } else {
+      return jsonResponse({ error: 'PLAN_QUEUE not configured' }, 503);
     }
 
-    return jsonResponse({ success: true, submitted: true });
+    return jsonResponse({ success: true, submitted: true, jobId, cycleNumber: resolvedCycle });
   } catch (error) {
     console.error('[WeeklyAdapt] adapt-plan error:', error);
     return jsonResponse({ error: error.message }, 500);
+  }
+}
+
+/**
+ * POST /api/weekly/ack-notice — clear weeklyAdaptNotice after client shows modal
+ */
+async function handleWeeklyAckNotice(request, env) {
+  try {
+    if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    const { userId, noticeId, idToken } = await request.json();
+    if (!userId || !noticeId) {
+      return jsonResponse({ error: 'Missing userId or noticeId' }, 400);
+    }
+    try {
+      await verifyWeeklyRequestAuth(userId, idToken, env);
+    } catch (e) {
+      return jsonResponse({ error: e.message }, 401);
+    }
+
+    const profile = (await kvGetJSON(env, `user_profile:${userId}`)) || { userId };
+    if (profile.weeklyAdaptNotice?.id === noticeId) {
+      delete profile.weeklyAdaptNotice;
+      const ttl = userId.startsWith('fb_') ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
+      await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
+    }
+
+    const clientId = profile.clientId || '';
+    if (clientId) {
+      try {
+        const clientData = await kvGetJSON(env, `client:${clientId}`);
+        if (clientData?.weeklyAdaptNotice?.id === noticeId) {
+          delete clientData.weeklyAdaptNotice;
+          await kvPutJSON(env, `client:${clientId}`, clientData, null);
+        }
+      } catch (_) {}
+    }
+
+    return jsonResponse({ success: true });
+  } catch (error) {
+    console.error('[WeeklyAdapt] ack-notice error:', error);
+    return jsonResponse({ error: error.message || 'Ack failed' }, 500);
   }
 }
 
@@ -7914,6 +8120,7 @@ async function handleGetClientPlanStatus(request, env) {
 
 // Token limits optimized through prompt simplification (not artificial limits)
 const MEAL_PLAN_TOKEN_LIMIT = 8000; // Sufficient for detailed meal generation
+const MEAL_ENRICHMENT_TOKEN_LIMIT = 6000; // Step 5: name/description/benefits copy only (2-day chunks)
 const SUMMARY_TOKEN_LIMIT = 3500; // Summary generation: must fit up to 10 recommendations, 10 forbidden foods, 3 psychology tips, 3 supplements + summary object
 
 // Validation constants
@@ -8188,6 +8395,20 @@ function enforceCalorieGuardrails(analysis, data, referenceTdee) {
   }
 }
 
+/** Canonicalize meal type strings inside strategy mealBreakdown (Step 2 aliases). */
+function normalizeMealBreakdownTypes(strategy) {
+  if (!strategy?.weeklyScheme) return;
+  for (const day of Object.values(strategy.weeklyScheme)) {
+    if (!day?.mealBreakdown?.length) continue;
+    for (const entry of day.mealBreakdown) {
+      if (!entry?.type) continue;
+      if (MEAL_TYPE_ALIASES[entry.type]) {
+        entry.type = MEAL_TYPE_ALIASES[entry.type];
+      }
+    }
+  }
+}
+
 /**
  * Ensure weeklyScheme mealBreakdown sums match per-day calorie/macro targets.
  */
@@ -8237,6 +8458,33 @@ function getFreeMealSlotCalories(dayTarget) {
   return free ? (Number(free.calories) || 0) : 0;
 }
 
+// Maps AI-generated meal type variants to canonical allowed types
+const MEAL_TYPE_ALIASES = {
+  // Old canonical names → new canonical names (backward compat for stored plans)
+  'Закуска': 'Хранене 1',
+  'Обяд':    'Хранене 2',
+  'Следобедна закуска': 'Хранене 3',
+  'Вечеря':  'Хранене 4',
+  'Късна закуска': 'Хранене 5',
+  // AI-generated variants → canonical
+  'Междинно': 'Хранене 3',
+  'Междинна закуска': 'Хранене 3',
+  'Снак': 'Хранене 3',
+  'Снек': 'Хранене 3',
+  'Лека закуска': 'Хранене 3',
+  'Следобедна': 'Хранене 3',
+  'Десерт': 'Хранене 3',
+  'Предвечерна закуска': 'Хранене 5',
+  'Нощна закуска': 'Хранене 5',
+  // Beverage variants → Напитка
+  'Вода с лимон/Зелен чай': 'Напитка',
+  'Вода с лимон': 'Напитка',
+  'Зелен чай': 'Напитка',
+  'Чай': 'Напитка',
+  'Кафе': 'Напитка',
+  'Напитки': 'Напитка',
+};
+
 /**
  * Step 3 meals: AI is authoritative for grams/macros/calories.
  * Backend syncs calories from macros; validatePlan() handles post-generation checks.
@@ -8244,6 +8492,22 @@ function getFreeMealSlotCalories(dayTarget) {
 function syncMealCaloriesFromMacros(meal) {
   if (!meal || meal.type === 'Свободно хранене' || meal.type === 'Напитка' || !meal.macros) return;
   meal.calories = macrosToCalories(meal.macros);
+}
+
+function normalizeMealTypesInWeekPlan(weekPlan) {
+  if (!weekPlan || typeof weekPlan !== 'object') return;
+  for (const day of Object.values(weekPlan)) {
+    if (!day?.meals?.length) continue;
+    for (const meal of day.meals) {
+      if (!meal?.type) continue;
+      const name = (meal.name || '').toLowerCase().trim();
+      if (name === 'свободно хранене' && meal.type !== 'Свободно хранене') {
+        meal.type = 'Свободно хранене';
+      } else if (MEAL_TYPE_ALIASES[meal.type]) {
+        meal.type = MEAL_TYPE_ALIASES[meal.type];
+      }
+    }
+  }
 }
 
 function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum) {
@@ -8328,62 +8592,6 @@ function syncPlanTargets(plan, analysis) {
 // values directly in meal.calories/meal.macros, so the daily calorie budget is correct
 // from the start without any backend adjustment.
 // Nutritional values are taken from FIXED_DESSERT to keep them in sync.
-// Maps AI-generated meal type variants to canonical allowed types
-const MEAL_TYPE_ALIASES = {
-  // Old canonical names → new canonical names (backward compat for stored plans)
-  'Закуска': 'Хранене 1',
-  'Обяд':    'Хранене 2',
-  'Следобедна закуска': 'Хранене 3',
-  'Вечеря':  'Хранене 4',
-  'Късна закуска': 'Хранене 5',
-  // AI-generated variants → canonical
-  'Междинно': 'Хранене 3',
-  'Междинна закуска': 'Хранене 3',
-  'Снак': 'Хранене 3',
-  'Снек': 'Хранене 3',
-  'Лека закуска': 'Хранене 3',
-  'Следобедна': 'Хранене 3',
-  'Десерт': 'Хранене 3',
-  'Предвечерна закуска': 'Хранене 5',
-  'Нощна закуска': 'Хранене 5',
-  // Beverage variants → Напитка
-  'Вода с лимон/Зелен чай': 'Напитка',
-  'Вода с лимон': 'Напитка',
-  'Зелен чай': 'Напитка',
-  'Чай': 'Напитка',
-  'Кафе': 'Напитка',
-  'Напитки': 'Напитка',
-};
-
-function normalizeMealBreakdownTypes(strategy) {
-  if (!strategy?.weeklyScheme) return;
-  for (const day of Object.values(strategy.weeklyScheme)) {
-    if (!day?.mealBreakdown?.length) continue;
-    for (const entry of day.mealBreakdown) {
-      if (!entry?.type) continue;
-      if (MEAL_TYPE_ALIASES[entry.type]) {
-        entry.type = MEAL_TYPE_ALIASES[entry.type];
-      }
-    }
-  }
-}
-
-function normalizeMealTypesInWeekPlan(weekPlan) {
-  if (!weekPlan || typeof weekPlan !== 'object') return;
-  for (const day of Object.values(weekPlan)) {
-    if (!day?.meals?.length) continue;
-    for (const meal of day.meals) {
-      if (!meal?.type) continue;
-      const name = (meal.name || '').toLowerCase().trim();
-      if (name === 'свободно хранене' && meal.type !== 'Свободно хранене') {
-        meal.type = 'Свободно хранене';
-      } else if (MEAL_TYPE_ALIASES[meal.type]) {
-        meal.type = MEAL_TYPE_ALIASES[meal.type];
-      }
-    }
-  }
-}
-
 /**
  * Returns true when the user's foodCravings include 'Сладко' (sweets).
  * Handles both array (multi-select) and plain string values.
@@ -8622,7 +8830,7 @@ function validatePlan(plan, userData, substitutions = []) {
             // Validate portion sizes (weight field)
             if (meal.weight) {
               // Extract weight in grams, handling decimals and multiple servings
-              const weightMatch = meal.weight.match(/(\d+(?:\.\d+)?)\s*g/);
+              const weightMatch = meal.weight.match(/(\d+(?:\.\d+)?)\s*(?:g|г)/i);
               if (weightMatch) {
                 const weightGrams = parseFloat(weightMatch[1]);
                 if (weightGrams < 50) {
@@ -9326,6 +9534,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
         generatedAt: new Date().toISOString()
       }
     };
+    syncPlanTargets(result, analysis);
     
     // Update combined index once for this regeneration session
     await finalizeAISessionLogs(env, sessionId);
@@ -10124,6 +10333,14 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
   }
 
   finalizeWeekPlanDays(weekPlan, strategy, 1, 7);
+
+  // Step 5: enrich copy (name format, cooking, benefits) — numbers from Step 3
+  try {
+    await enrichWeekPlanCopy(env, data, strategy, weekPlan, sessionId);
+    console.log('Step 5 enrichment complete');
+  } catch (error) {
+    console.warn('Step 5 enrichment failed, plan usable with skeleton copy:', error.message);
+  }
   
   // Generate summary, recommendations, etc. in final request
   try {
@@ -12121,6 +12338,7 @@ function getPromptKVKey(type) {
     'analysis': 'admin_analysis_prompt',
     'strategy': 'admin_strategy_prompt',
     'meal_plan': 'admin_meal_plan_prompt',
+    'meal_enrichment': 'admin_meal_enrichment_prompt',
     'summary': 'admin_summary_prompt',
     'plan': 'admin_plan_prompt',
     'emoeat': 'admin_emoeat_prompt',
@@ -12192,6 +12410,7 @@ async function handleGetDefaultPrompt(request, env) {
       'analysis': 'admin_analysis_prompt',
       'strategy': 'admin_strategy_prompt',
       'meal_plan': 'admin_meal_plan_prompt',
+      'meal_enrichment': 'admin_meal_enrichment_prompt',
       'summary': 'admin_summary_prompt',
       'consultation': 'admin_consultation_prompt',
       'modification': 'admin_modification_prompt',
@@ -12207,7 +12426,7 @@ async function handleGetDefaultPrompt(request, env) {
     const kvKey = promptKeyMap[type];
     if (!kvKey) {
       return jsonResponse({ 
-        error: `Unknown prompt type: ${type}. Valid types: analysis, strategy, meal_plan, summary, consultation, modification, correction, emoeat, food_analysis, menu_analysis, validation` 
+        error: `Unknown prompt type: ${type}. Valid types: analysis, strategy, meal_plan, meal_enrichment, summary, consultation, modification, correction, emoeat, food_analysis, menu_analysis, validation` 
       }, 400);
     }
     
@@ -12742,6 +12961,7 @@ async function handleGetConfig(request, env) {
       analysisPrompt,
       strategyPrompt,
       mealPlanPrompt,
+      mealEnrichmentPrompt,
       summaryPrompt,
       correctionPrompt,
       protocolProvider,
@@ -12776,6 +12996,7 @@ async function handleGetConfig(request, env) {
       env.page_content.get('admin_analysis_prompt'),
       env.page_content.get('admin_strategy_prompt'),
       env.page_content.get('admin_meal_plan_prompt'),
+      env.page_content.get('admin_meal_enrichment_prompt'),
       env.page_content.get('admin_summary_prompt'),
       env.page_content.get('admin_correction_prompt'),
       env.page_content.get('admin_protocol_provider'),
@@ -12817,6 +13038,7 @@ async function handleGetConfig(request, env) {
       analysisPrompt,
       strategyPrompt,
       mealPlanPrompt,
+      mealEnrichmentPrompt,
       summaryPrompt,
       correctionPrompt,
       protocolProvider: protocolProvider || null,
@@ -16222,6 +16444,116 @@ async function handleAIXChat(request, env) {
   return jsonResponse({ content, usage: data.usage });
 }
 
+/**
+ * GET /api/xbody/appointments?email=...&refresh=1
+ * Returns upcoming and past Acuity appointments for the given client email.
+ * Responses are cached in KV for 10 minutes unless refresh=1.
+ */
+const XBODY_APPT_CACHE_TTL_SEC = 3600;
+
+async function handleXbodyAppointments(request, env) {
+  const userId = env.ACUITY_USER_ID;
+  const apiKey = env.ACUITY_API_KEY;
+  if (!userId || !apiKey) {
+    return jsonResponse({ error: 'Acuity API не е конфигуриран.' }, 503);
+  }
+
+  const url = new URL(request.url);
+  const email = String(url.searchParams.get('email') || '').trim().toLowerCase();
+  if (!email || !email.includes('@')) {
+    return jsonResponse({ error: 'Липсва валиден имейл.' }, 400);
+  }
+
+  const forceRefresh = url.searchParams.get('refresh') === '1';
+  const cacheKey = `xbody:appt:${email}`;
+
+  if (!forceRefresh && env.page_content) {
+    try {
+      const cached = await env.page_content.get(cacheKey);
+      if (cached) {
+        const payload = JSON.parse(cached);
+        return jsonResponse(payload, 200, { cacheControl: 'private, max-age=300' });
+      }
+    } catch (err) {
+      console.warn('[xbody-appointments] KV cache read failed:', err.message);
+    }
+  }
+
+  const acuityUrl = new URL('https://acuityscheduling.com/api/v1/appointments');
+  acuityUrl.searchParams.set('email', email);
+  acuityUrl.searchParams.set('showall', 'true');
+  acuityUrl.searchParams.set('max', '40');
+  acuityUrl.searchParams.set('direction', 'DESC');
+  acuityUrl.searchParams.set('excludeForms', 'true');
+
+  const auth = btoa(`${userId}:${apiKey}`);
+  let resp;
+  try {
+    resp = await fetch(acuityUrl.toString(), {
+      headers: { Authorization: `Basic ${auth}` }
+    });
+  } catch (err) {
+    console.error('[xbody-appointments] fetch error:', err.message);
+    return jsonResponse({ error: 'Неуспешна връзка с Acuity.' }, 502);
+  }
+
+  if (!resp.ok) {
+    const body = await resp.text().catch(() => '');
+    console.error('[xbody-appointments] Acuity error:', resp.status, body.slice(0, 200));
+    return jsonResponse({ error: 'Грешка при зареждане на резервациите.' }, resp.status === 401 ? 503 : 502);
+  }
+
+  const appointments = await resp.json();
+  if (!Array.isArray(appointments)) {
+    return jsonResponse({ error: 'Неочакван отговор от Acuity.' }, 502);
+  }
+
+  const now = Date.now();
+  const upcoming = [];
+  const past = [];
+
+  for (const appt of appointments) {
+    const item = {
+      id: appt.id,
+      date: appt.date || '',
+      time: (appt.time || '').trim(),
+      endTime: (appt.endTime || '').trim(),
+      datetime: appt.datetime || '',
+      type: appt.type || 'Час',
+      duration: appt.duration || '',
+      calendar: appt.calendar || '',
+      location: appt.location || '',
+      canceled: Boolean(appt.canceled),
+      canClientCancel: Boolean(appt.canClientCancel),
+      canClientReschedule: Boolean(appt.canClientReschedule),
+      confirmationPage: appt.confirmationPage || ''
+    };
+
+    const when = item.datetime ? new Date(item.datetime).getTime() : NaN;
+    if (!item.canceled && Number.isFinite(when) && when >= now) {
+      upcoming.push(item);
+    } else {
+      past.push(item);
+    }
+  }
+
+  upcoming.sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime());
+
+  const payload = { upcoming, past, fetchedAt: Date.now() };
+
+  if (env.page_content) {
+    try {
+      await env.page_content.put(cacheKey, JSON.stringify(payload), {
+        expirationTtl: XBODY_APPT_CACHE_TTL_SEC
+      });
+    } catch (err) {
+      console.warn('[xbody-appointments] KV cache write failed:', err.message);
+    }
+  }
+
+  return jsonResponse(payload, 200, { cacheControl: 'private, max-age=300' });
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -16411,6 +16743,8 @@ export default {
         return await handleWeeklyGenerateQuestions(request, env);
       } else if (url.pathname === '/api/weekly/adapt-plan' && request.method === 'POST') {
         return await handleWeeklyAdaptPlan(request, env, ctx);
+      } else if (url.pathname === '/api/weekly/ack-notice' && request.method === 'POST') {
+        return await handleWeeklyAckNotice(request, env);
       } else if (url.pathname === '/api/user/check-account' && request.method === 'GET') {
         return await handleCheckAccountEmail(request, env);
       } else if (url.pathname === '/api/plan/claim' && request.method === 'GET') {
@@ -16477,6 +16811,10 @@ export default {
         const rlErr = await checkRateLimit(env, request, 'CHAT');
         if (rlErr) return rlErr;
         return await handleAIXChat(request, env);
+      } else if (url.pathname === '/api/xbody/appointments' && request.method === 'GET') {
+        const rlErr = await checkRateLimit(env, request, 'XBODY_APPOINTMENTS');
+        if (rlErr) return rlErr;
+        return await handleXbodyAppointments(request, env);
       } else {
         return jsonResponse({ error: 'Not found' }, 404);
       }

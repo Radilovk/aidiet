@@ -53,7 +53,7 @@
     <!-- Detect embedded iframe mode before first paint (enables haptic relay to shell via postMessage) -->
     <script>(function(){if(new URLSearchParams(window.location.search).has('embedded')){document.documentElement.setAttribute('data-embedded-tab','1');}})();</script>
     <!-- In shellChat mode: hide everything except #chatWindow so only the chat drawer shows -->
-    <style>html[data-shell-chat="1"] body{background:transparent!important;overflow:hidden!important;opacity:1!important;}html[data-shell-chat="1"] body>*:not(#chatWindow){display:none!important;}html[data-shell-chat="1"] #chatWindow{position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;height:100%!important;max-height:none!important;border-radius:0!important;}</style>
+    <style>html[data-shell-chat="1"] body{background:transparent!important;overflow:hidden!important;opacity:1!important;}html[data-shell-chat="1"] body>*:not(#chatWindow):not(.game-modal-overlay){display:none!important;}html[data-shell-chat="1"] .game-modal-overlay{display:flex!important;z-index:10010!important;}html[data-shell-chat="1"] #chatWindow{position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;height:100%!important;max-height:none!important;border-radius:0!important;}</style>
     <style>
         :root {
             --primary-red: #0D9488;
@@ -4552,7 +4552,7 @@
                 : Promise.resolve({ applied: false });
             weeklyFirst.then(function (weekly) {
                 if (weekly && weekly.applied) return;
-                sync.maybeDailyPlanVersionCheck(uid, opts).then(function (result) {
+                sync.maybeDailyPlanVersionCheck(uid, Object.assign({}, opts, { weeklyAlreadyChecked: true })).then(function (result) {
                     if ((result && result.pending) || (sync.hasPlanUpdatePending && sync.hasPlanUpdatePending())) {
                         if (typeof sync.maybePromptPendingPlanUpdate === 'function') {
                             sync.maybePromptPendingPlanUpdate(uid, opts);
@@ -4890,6 +4890,7 @@
 
                 dietPlan = JSON.parse(planData);
                 migrateMealTypes(dietPlan);
+                alignPlanMealsToStrategy(dietPlan);
                 correctPlanCalories(dietPlan);
                 userData = userDataStr ? JSON.parse(userDataStr) : {};
                 
@@ -5041,11 +5042,94 @@
             }
         }
 
+        // --- Meal alignment: Step 2 mealBreakdown is authoritative for per-meal macros/calories ---
+        const PLAN_DAY_NUMBER_TO_KEY = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+        var MEAL_TYPE_ALIASES = {
+            'Закуска': 'Хранене 1',
+            'Обяд': 'Хранене 2',
+            'Следобедна закуска': 'Хранене 3',
+            'Следобедна': 'Хранене 3',
+            'Десерт': 'Хранене 3',
+            'Вечеря': 'Хранене 4',
+            'Късна закуска': 'Хранене 5',
+            'Междинно': 'Хранене 3',
+            'Междинна закуска': 'Хранене 3',
+            'Снак': 'Хранене 3',
+            'Снек': 'Хранене 3',
+            'Лека закуска': 'Хранене 3',
+            'Предвечерна закуска': 'Хранене 5',
+            'Нощна закуска': 'Хранене 5',
+            'Вода с лимон/Зелен чай': 'Напитка',
+            'Вода с лимон': 'Напитка',
+            'Зелен чай': 'Напитка',
+            'Чай': 'Напитка',
+            'Кафе': 'Напитка',
+            'Напитки': 'Напитка'
+        };
+
+        function normalizeMealBreakdownTypes(strategy) {
+            if (!strategy || !strategy.weeklyScheme) return;
+            Object.keys(strategy.weeklyScheme).forEach(function(key) {
+                var day = strategy.weeklyScheme[key];
+                if (!day || !Array.isArray(day.mealBreakdown)) return;
+                day.mealBreakdown.forEach(function(entry) {
+                    if (entry && entry.type && MEAL_TYPE_ALIASES[entry.type]) {
+                        entry.type = MEAL_TYPE_ALIASES[entry.type];
+                    }
+                });
+            });
+        }
+
+        function normalizeWeekPlanMealTypes(weekPlan) {
+            if (!weekPlan) return;
+            Object.keys(weekPlan).forEach(function(dayKey) {
+                var day = weekPlan[dayKey];
+                if (!day || !Array.isArray(day.meals)) return;
+                day.meals.forEach(function(meal) {
+                    if (!meal || !meal.type) return;
+                    var name = (meal.name || '').toLowerCase().trim();
+                    if (name === 'свободно хранене' && meal.type !== 'Свободно хранене') {
+                        meal.type = 'Свободно хранене';
+                    } else if (MEAL_TYPE_ALIASES[meal.type]) {
+                        meal.type = MEAL_TYPE_ALIASES[meal.type];
+                    }
+                });
+            });
+        }
+
+        /** Align stored plan meals to strategy mealBreakdown (fixes legacy + APK cached plans). */
+        function alignPlanMealsToStrategy(plan) {
+            if (!plan || !plan.weekPlan || !plan.strategy || !plan.strategy.weeklyScheme) return;
+            normalizeMealBreakdownTypes(plan.strategy);
+            normalizeWeekPlanMealTypes(plan.weekPlan);
+            Object.keys(plan.weekPlan).forEach(function(dayKey) {
+                var dayNum = parseInt(dayKey.replace('day', ''), 10);
+                if (dayNum < 1 || dayNum > 7) return;
+                var schemeKey = PLAN_DAY_NUMBER_TO_KEY[dayNum - 1];
+                var dayPlan = plan.weekPlan[dayKey];
+                var dayTarget = plan.strategy.weeklyScheme[schemeKey];
+                if (!dayPlan || !dayTarget || !Array.isArray(dayTarget.mealBreakdown)) return;
+                dayPlan.meals.forEach(function(meal) {
+                    if (!meal || meal.type === 'Свободно хранене' || meal.type === 'Напитка') return;
+                    var target = dayTarget.mealBreakdown.find(function(m) { return m.type === meal.type; });
+                    if (!target) return;
+                    meal.macros = {
+                        protein: Math.round(Number(target.protein) || 0),
+                        carbs: Math.round(Number(target.carbs) || 0),
+                        fats: Math.round(Number(target.fats) || 0)
+                    };
+                    var p = meal.macros.protein;
+                    var c = meal.macros.carbs;
+                    var f = meal.macros.fats;
+                    meal.calories = Math.round(p * 4 + c * 4 + f * 9);
+                });
+            });
+        }
+
         // --- Calorie corrector: fixes per-meal calorie inconsistencies and sets free-meal planned calories ---
         // If a meal's declared calories differ from protein×4+carbs×4+fats×9 by more than 10%,
         // the calculated value is used. "Свободно хранене" gets its planned calories from the
         // strategy weeklyScheme Хранене 2 mealBreakdown entry so it is counted in dailyTotals.
-        const PLAN_DAY_NUMBER_TO_KEY = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
         function correctPlanCalories(plan) {
             if (!plan || !plan.weekPlan) return;
             Object.keys(plan.weekPlan).forEach(function(dayKey) {
@@ -5189,30 +5273,7 @@
          * subsequent logic sees only the canonical "Хранене N" types.
          */
         function migrateMealTypes(plan) {
-            var aliases = {
-                'Закуска':            'Хранене 1',
-                'Обяд':               'Хранене 2',
-                'Следобедна закуска': 'Хранене 3',
-                'Следобедна':         'Хранене 3',
-                'Десерт':             'Хранене 3',
-                'Вечеря':             'Хранене 4',
-                'Късна закуска':      'Хранене 5',
-                'Междинно':           'Хранене 3',
-                'Снак':               'Хранене 3',
-                'Снек':               'Хранене 3',
-                'Лека закуска':       'Хранене 3',
-            };
-            var weekPlan = plan && plan.weekPlan;
-            if (!weekPlan) return;
-            Object.keys(weekPlan).forEach(function(dayKey) {
-                var day = weekPlan[dayKey];
-                if (!day || !Array.isArray(day.meals)) return;
-                day.meals.forEach(function(meal) {
-                    if (meal && meal.type && aliases[meal.type]) {
-                        meal.type = aliases[meal.type];
-                    }
-                });
-            });
+            if (plan && plan.weekPlan) normalizeWeekPlanMealTypes(plan.weekPlan);
         }
 
         /**
@@ -5699,6 +5760,13 @@
             if ((currentViewDateKey || todayDateKey()) !== todayDateKey()) {
                 resetPlanViewToToday();
             }
+            var storedAt = '';
+            try { storedAt = localStorage.getItem('planUpdatedAt') || ''; } catch (_) {}
+            var uid = localStorage.getItem('userId') || '';
+            var sig = storedAt + ':' + uid;
+            if (_planRenderedSig && sig && _planRenderedSig !== sig && typeof loadDietData === 'function') {
+                loadDietData({ force: true });
+            }
             consumePendingPlanUiAction();
             if (typeof checkOpenAppPrompts === 'function') checkOpenAppPrompts();
             maybeCheckWeeklyAdaptNotice();
@@ -5711,6 +5779,17 @@
         window.addEventListener('NUTRIPLAN_WEEKLY_ADAPT_READY', function(e) {
             if (!e || !e.detail) return;
             var notice = e.detail;
+            if (notice.cycleNumber != null && notice.adaptLevel != null) {
+                try {
+                    var wInfo = JSON.parse(localStorage.getItem('gameWeeklyAI') || '{}');
+                    var wHist = (wInfo.adaptationHistory || []).filter(function(h) {
+                        return h.cycleNumber !== notice.cycleNumber;
+                    }).slice(-4);
+                    wHist.push({ cycleNumber: notice.cycleNumber, level: notice.adaptLevel, at: notice.at || new Date().toISOString() });
+                    wInfo.adaptationHistory = wHist;
+                    localStorage.setItem('gameWeeklyAI', JSON.stringify(wInfo));
+                } catch (_) {}
+            }
             if (notice.planApplied !== false && typeof loadDietData === 'function') {
                 loadDietData({ force: true });
             }
@@ -6549,13 +6628,23 @@
             if (message.toLowerCase() === '*weekme') {
                 input.value = '';
                 addMessageToChat('*weekme', 'user', false);
+                if (document.documentElement.getAttribute('data-shell-chat') === '1' &&
+                    window.parent && window.parent !== window) {
+                    try {
+                        window.parent.postMessage({ type: 'NUTRIPLAN_WEEKLY_TEST' }, window.location.origin);
+                        addMessageToChat('Отварям седмичната настройка в плана…', 'assistant');
+                    } catch (_) {
+                        addMessageToChat('Неуспешно прехвърляне към плана.', 'assistant');
+                    }
+                    return;
+                }
                 if (window._gameTriggerWeeklyTest) {
                     var weekResult = window._gameTriggerWeeklyTest();
                     if (weekResult && weekResult.ok) {
-                        addMessageToChat('Стартирам седмичната процедура за тест на актуализацията…', 'assistant');
+                        addMessageToChat('Стартирам седмичната процедура…', 'assistant');
                     } else {
                         var days = weekResult && weekResult.daysRecorded != null ? weekResult.daysRecorded : 0;
-                        addMessageToChat('За тест са нужни поне 3 дни с gamification данни (имате ' + days + '). Активирайте *game и попълнете няколко дни.', 'assistant');
+                        addMessageToChat('За тест са нужни поне 3 дни с gamification данни (имате ' + days + '). Попълнете сутрешни/вечерни въпроси или отбележете хранения.', 'assistant');
                     }
                 } else {
                     addMessageToChat('Геймификационният модул не е зареждан.', 'assistant');
@@ -6790,6 +6879,8 @@
                         // Update dietPlan and userData from server response
                         dietPlan = result.updatedPlan;
                         migrateMealTypes(dietPlan);
+                        alignPlanMealsToStrategy(dietPlan);
+                        correctPlanCalories(dietPlan);
                         if (result.updatedUserData) {
                             userData = result.updatedUserData;
                             localStorage.setItem('userData', JSON.stringify(userData));
@@ -6969,6 +7060,8 @@
             const lastSnapshot = planHistory.pop();
             dietPlan = lastSnapshot.plan;
             migrateMealTypes(dietPlan);
+            alignPlanMealsToStrategy(dietPlan);
+            correctPlanCalories(dietPlan);
             
             // Save to localStorage and backend
             localStorage.setItem('dietPlan', JSON.stringify(dietPlan));
@@ -8931,10 +9024,53 @@
         function enableGame()    { localStorage.setItem(GAME_ENABLED_KEY, 'true'); }
 
         var _gameDataCache = null; // in-memory cache to avoid repeated JSON.parse
+
+        function invalidateGameDataCache() {
+            _gameDataCache = null;
+        }
+
+        function readGameDataFromStorage() {
+            try { return JSON.parse(localStorage.getItem(GAME_DATA_KEY) || '{}') || {}; }
+            catch (e) { return {}; }
+        }
+
+        function readGameDataFromAppData() {
+            try {
+                var sources = [
+                    window.NutriPlanAppData,
+                    (window.parent && window.parent !== window) ? window.parent.NutriPlanAppData : null
+                ];
+                for (var i = 0; i < sources.length; i++) {
+                    var src = sources[i];
+                    if (!src) continue;
+                    var parsed = typeof src.get === 'function' ? src.get('gameData') : null;
+                    if (parsed && typeof parsed === 'object' && Object.keys(parsed).length) return parsed;
+                    var raw = typeof src.getRaw === 'function' ? src.getRaw('gameData') : null;
+                    if (raw) {
+                        try {
+                            var fromRaw = JSON.parse(raw);
+                            if (fromRaw && typeof fromRaw === 'object' && Object.keys(fromRaw).length) return fromRaw;
+                        } catch (_) {}
+                    }
+                }
+            } catch (_) {}
+            return null;
+        }
+
+        function mergeGameDataSources(local, external) {
+            if (!external || !Object.keys(external).length) return local || {};
+            if (!local || !Object.keys(local).length) return external;
+            return Object.assign({}, external, local);
+        }
+
         function getGameData() {
             if (_gameDataCache) return _gameDataCache;
-            try { _gameDataCache = JSON.parse(localStorage.getItem(GAME_DATA_KEY) || '{}'); }
-            catch(e) { _gameDataCache = {}; }
+            var local = readGameDataFromStorage();
+            var external = readGameDataFromAppData();
+            _gameDataCache = mergeGameDataSources(local, external);
+            if (external && Object.keys(external).length > Object.keys(local || {}).length) {
+                try { localStorage.setItem(GAME_DATA_KEY, JSON.stringify(_gameDataCache)); } catch (_) {}
+            }
             return _gameDataCache;
         }
         function saveGameData(d) {
@@ -8985,7 +9121,22 @@
         window.NutriPlanAnalyticsSync = { schedule: scheduleAnalyticsSync, syncNow: syncAnalyticsToServer };
         // Invalidate cache when another tab or external code modifies the same key
         window.addEventListener('storage', function(e) {
-            if (e.key === GAME_DATA_KEY) _gameDataCache = null;
+            if (e.key === GAME_DATA_KEY) invalidateGameDataCache();
+            if ((e.key === 'dietPlan' || e.key === 'planUpdatedAt') && typeof loadDietData === 'function') {
+                loadDietData({ force: true });
+            }
+        });
+        window.addEventListener('NUTRIPLAN_APP_DATA_READY', function(e) {
+            if (!e || !e.detail || !e.detail.keys || e.detail.keys.indexOf('gameData') >= 0) {
+                invalidateGameDataCache();
+            }
+        });
+        window.addEventListener('message', function(e) {
+            if (!e || !e.data || e.data.type !== 'NUTRIPLAN_APP_DATA_READY') return;
+            if (!e.data.keys || e.data.keys.indexOf('gameData') >= 0) invalidateGameDataCache();
+        });
+        window.addEventListener('NUTRIPLAN_RUN_WEEKLY_TEST', function() {
+            if (typeof triggerWeeklyTestFlow === 'function') triggerWeeklyTestFlow();
         });
 
         function emptyRecord(key) {
@@ -10212,32 +10363,48 @@
         // ── Weekly recap ──────────────────────────────────────────────────────
         function calcWeeklyScore() {
             var allData = getGameData();
-            var today = new Date();
-            var days = [], engSum=0, scoreSum=0, scoreCount=0, engCount=0, noDataDays=0;
-            for (var i=6; i>=0; i--) {
-                var d = new Date(today); d.setDate(d.getDate()-i);
-                var key = dateKey(d);
-                var rec = allData[key] || null;
-                days.push({ key:key, rec:rec });
-                if (rec) {
-                    var ds = rec.dailyScore || calcDayScore(rec);
-                    if (ds.score === null && (ds.engPct || 0) === 0) {
-                        noDataDays++;
+            var GS = window.GameScoring;
+            var todayKey = GS ? GS.dateKey(new Date()) : getTodayKey();
+            var days = GS
+                ? GS.buildLast7Days(allData, todayKey)
+                : (function() {
+                    var out = [];
+                    for (var i = 6; i >= 0; i--) {
+                        var d = new Date(); d.setDate(d.getDate() - i);
+                        var key = dateKey(d);
+                        out.push({ key: key, rec: allData[key] || null });
                     }
-                    engSum += ds.engPct || 0;
-                    engCount++;
-                    if (ds.score != null) {
-                        scoreSum += ds.score;
-                        scoreCount++;
-                    }
-                } else {
+                    return out;
+                })();
+
+            var engSum = 0, scoreSum = 0, scoreCount = 0, engCount = 0, noDataDays = 0;
+            days.forEach(function(day) {
+                var rec = day.rec;
+                if (!rec) {
                     noDataDays++;
+                    return;
                 }
-            }
-            return { days:days,
-                     avgScore:scoreCount>0?Math.round(scoreSum/scoreCount*10)/10:0,
-                     avgEngPct:engCount>0?Math.round(engSum/engCount):0,
-                     daysRecorded:engCount-noDataDays, noDataDays:noDataDays };
+                var ds = rec.dailyScore || calcDayScore(rec);
+                if (ds.score === null && (ds.engPct || 0) === 0) noDataDays++;
+                engSum += ds.engPct || 0;
+                engCount++;
+                if (ds.score != null) {
+                    scoreSum += ds.score;
+                    scoreCount++;
+                }
+            });
+
+            var daysRecorded = GS && GS.countDaysWithRecords
+                ? GS.countDaysWithRecords(days)
+                : days.filter(function(d) { return !!d.rec; }).length;
+
+            return {
+                days: days,
+                avgScore: scoreCount > 0 ? Math.round(scoreSum / scoreCount * 10) / 10 : 0,
+                avgEngPct: engCount > 0 ? Math.round(engSum / engCount) : 0,
+                daysRecorded: daysRecorded,
+                noDataDays: noDataDays
+            };
         }
 
         function showWeeklyRecapModal(wd) {
@@ -10344,6 +10511,7 @@
         }
 
         function getWeeklyPayloadBase() {
+            invalidateGameDataCache();
             var payload = {
                 gameData: getGameData(),
                 gameWeeklyAI: ensureWeeklyMeta(getWeeklyAIState())
@@ -10497,7 +10665,7 @@
                 + '<div class="game-modal-title">Благодарим!</div>';
             var msg = document.createElement('div');
             msg.className = 'game-modal-msg';
-            msg.textContent = 'Информацията е изпратена за преглед и актуализация. При следващото отваряне ще видите обновения план.';
+            msg.textContent = 'Информацията е изпратена за преглед и актуализация. Обикновено до няколко часа — при следващото отваряне ще видите обновения план.';
             modal.appendChild(msg);
             var btn = document.createElement('button');
             btn.className = 'game-modal-btn';
@@ -10550,7 +10718,14 @@
             btn.className = 'game-modal-btn';
             btn.style.cssText = 'width:100%;margin-top:14px;background:linear-gradient(135deg,#0D9488,#0F766E);color:white;';
             btn.textContent = notice.changed ? 'Започни новата седмица' : 'Продължи';
-            btn.onclick = function() { overlay.remove(); };
+            btn.onclick = function() {
+                overlay.remove();
+                if (notice && notice.id && window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.ackWeeklyNotice === 'function') {
+                    var uid = localStorage.getItem('userId') || '';
+                    var opts = (typeof buildPlanSyncOpts === 'function') ? buildPlanSyncOpts() : {};
+                    window.NutriPlanPlanSync.ackWeeklyNotice(uid, notice, opts);
+                }
+            };
             modal.appendChild(btn);
             overlay.appendChild(modal);
             document.body.appendChild(overlay);
@@ -10583,6 +10758,9 @@
             info.submittedAt = new Date().toISOString();
             info.lastRun = info.submittedAt;
             info.nextDue = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+            var hist = (info.adaptationHistory || []).slice(-4);
+            hist.push({ cycleNumber: cycleNumber, submittedAt: info.submittedAt });
+            info.adaptationHistory = hist;
             delete info.pendingQuestions;
             saveWeeklyAIState(info);
         }
@@ -10599,6 +10777,10 @@
             var info = ensureWeeklyMeta(getWeeklyAIState());
             info.feedbackStatus = 'questions';
             saveWeeklyAIState(info);
+
+            if (window.NutriPlanAnalyticsSync && typeof window.NutriPlanAnalyticsSync.syncNow === 'function') {
+                try { await window.NutriPlanAnalyticsSync.syncNow(); } catch (_) {}
+            }
 
             var loadingOverlay = showWeeklyLoadingModal('Подготвяме въпросите...');
             try {
@@ -10689,6 +10871,7 @@
         // ── Weekly AI trigger ─────────────────────────────────────────────────
         function triggerWeeklyTestFlow() {
             if (!isGameEnabled()) enableGame();
+            invalidateGameDataCache();
             var info = ensureWeeklyMeta(getWeeklyAIState());
             info.lastRun = null;
             delete info.nextDue;
@@ -10711,7 +10894,7 @@
                 return;
             }
             var wd = calcWeeklyScore();
-            if (wd.daysRecorded >= 5) {
+            if (wd.daysRecorded >= 3) {
                 var shownKey = 'gameWeeklyRecapShown_' + getTodayKey();
                 if (!localStorage.getItem(shownKey)) {
                     localStorage.setItem(shownKey, '1');
@@ -10719,11 +10902,6 @@
                     saveWeeklyAIState(info);
                     setTimeout(function() { showWeeklyRecapModal(wd); }, 1600);
                 }
-            } else {
-                info.lastRun = new Date().toISOString();
-                info.nextDue = new Date(now + 7 * 24 * 60 * 60 * 1000).toISOString();
-                info.feedbackStatus = 'skipped';
-                saveWeeklyAIState(info);
             }
         }
 

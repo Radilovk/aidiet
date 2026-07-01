@@ -211,6 +211,10 @@
         return days;
     }
 
+    function countDaysWithRecords(days) {
+        return days.filter(function (d) { return !!d.rec; }).length;
+    }
+
     global.GameScoring = {
         JUNK_MAX_POINTS: JUNK_MAX_POINTS,
         JUNK_PENALTY_PER_MEAL: JUNK_PENALTY_PER_MEAL,
@@ -218,6 +222,7 @@
         dateKey: dateKey,
         calcDayScore: calcDayScore,
         computeHealthIndex: computeHealthIndex,
-        buildLast7Days: buildLast7Days
+        buildLast7Days: buildLast7Days,
+        countDaysWithRecords: countDaysWithRecords
     };
 }(typeof window !== 'undefined' ? window : this));

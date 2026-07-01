@@ -589,6 +589,25 @@
         } catch (_) {}
     }
 
+    async function ackWeeklyNoticeOnServer(userId, notice, options) {
+        if (!userId || !notice || !notice.id) return;
+        options = buildPlanSyncOptions(options || {});
+        var headers = { 'Content-Type': 'application/json' };
+        if (options.getIdToken) {
+            try {
+                var token = await options.getIdToken();
+                if (token) headers.Authorization = 'Bearer ' + token;
+            } catch (_) {}
+        }
+        try {
+            await fetch(WORKER_URL + '/api/weekly/ack-notice', {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify({ userId: userId, noticeId: notice.id })
+            });
+        } catch (_) {}
+    }
+
     async function applyWeeklyAdaptIfReady(userId, options) {
         options = buildPlanSyncOptions(options || {});
         if (!userId) return { applied: false, reason: 'no-user' };
@@ -600,26 +619,21 @@
         var planApplied = false;
 
         if (notice.changed) {
-            if (data.planUpdatedAt) markPlanUpdatePending(data.planUpdatedAt);
-            var pull = await pullServerPlanIfNewer(userId, options);
-            if (pull.updated) {
+            var profile = await fetchUserProfile(userId, options);
+            if (profile && profile.found && profile.plan) {
+                applyServerPlanData(profile, userId);
                 planApplied = true;
-            } else {
-                var profile = await fetchUserProfile(userId, options);
-                if (profile && profile.found && profile.plan) {
-                    applyServerPlanData(profile, userId);
-                    clearPlanUpdatePending();
-                    planApplied = true;
-                }
+            }
+            if (!planApplied) {
+                return { applied: false, reason: 'plan-pull-failed', notice: notice };
             }
         }
 
         markWeeklyNoticeShown(notice);
-        if (planApplied) {
-            try {
-                global.dispatchEvent(new CustomEvent('NUTRIPLAN_PLAN_SYNCED', { detail: { weekly: true } }));
-            } catch (_) {}
-        }
+        ackWeeklyNoticeOnServer(userId, notice, options);
+        try {
+            global.dispatchEvent(new CustomEvent('NUTRIPLAN_PLAN_SYNCED', { detail: { weekly: true, planApplied: planApplied } }));
+        } catch (_) {}
         dispatchWeeklyAdaptReady(Object.assign({}, notice, { planApplied: planApplied }));
         return { applied: true, notice: notice, planApplied: planApplied };
     }
@@ -639,6 +653,7 @@
         if (!userId || userId.indexOf('fb_') !== 0) {
             return { checked: false, reason: 'no-user' };
         }
+        options = buildPlanSyncOptions(options || {});
         var today = localCalendarDate();
         try {
             if (localStorage.getItem(PLAN_VERSION_CHECK_DATE_KEY) === today) {
@@ -648,9 +663,11 @@
         } catch (_) {
             return { checked: false, reason: 'storage' };
         }
-        var weeklyResult = await applyWeeklyAdaptIfReady(userId, options);
-        if (weeklyResult.applied) {
-            return { checked: true, pending: false, weeklyShown: true };
+        if (!options.weeklyAlreadyChecked) {
+            var weeklyResult = await applyWeeklyAdaptIfReady(userId, options);
+            if (weeklyResult.applied) {
+                return { checked: true, pending: false, weeklyShown: true };
+            }
         }
         var data = await fetchPlanVersion(userId, options);
         if (!data || !data.found) return { checked: true, pending: false };
@@ -850,6 +867,7 @@
         maybeDailyPlanVersionCheck: maybeDailyPlanVersionCheck,
         applyWeeklyAdaptIfReady: applyWeeklyAdaptIfReady,
         maybeCheckWeeklyAdaptNotice: maybeCheckWeeklyAdaptNotice,
+        ackWeeklyNotice: ackWeeklyNoticeOnServer,
         confirmPlanUpdate: confirmPlanUpdate,
         showPlanUpdatePrompt: showPlanUpdatePrompt,
         maybePromptPendingPlanUpdate: maybePromptPendingPlanUpdate

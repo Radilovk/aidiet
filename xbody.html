@@ -14,6 +14,34 @@
     <meta name="apple-mobile-web-app-title" content="XBody">
     <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#1A0A0A':'#FEE2E2';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
     <link rel="apple-touch-icon" href="xbody-icon-192.png">
+    <link rel="apple-touch-startup-image" href="xbody-icon-512.png">
+    <link rel="preload" as="image" href="xbody-icon-512.png">
+    <link rel="preconnect" href="https://xbody.as.me">
+    <link rel="dns-prefetch" href="https://xbody.as.me">
+
+    <style>
+        /* Critical splash – same icon asset as the PWA app icon */
+        #xbody-splash {
+            position: fixed;
+            inset: 0;
+            z-index: 1200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fef2f2;
+            transition: opacity 0.32s ease, visibility 0.32s ease;
+        }
+        #xbody-splash.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+        #xbody-splash img {
+            width: min(42vmin, 192px);
+            height: min(42vmin, 192px);
+            object-fit: contain;
+        }
+    </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <style>
@@ -68,8 +96,7 @@
                constant() = iOS 11.0–11.1; env() = iOS 11.2+ and all others. */
             padding-top: constant(safe-area-inset-top);
             padding-top: env(safe-area-inset-top);
-            padding-bottom: constant(safe-area-inset-bottom);
-            padding-bottom: env(safe-area-inset-bottom);
+            padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 84px);
             box-sizing: border-box;
         }
         iframe {
@@ -130,6 +157,240 @@
             transform: scale(0.90);
         }
 
+        /* ── Appointments button ── */
+        #appointments-btn {
+            position: fixed;
+            bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+            right: 16px;
+            z-index: 500;
+            height: 44px;
+            padding: 0 16px 0 14px;
+            border: none;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.14);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            color: #374151;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease, transform 0.12s ease;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        #appointments-btn.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        #appointments-btn:active {
+            transform: scale(0.96);
+        }
+        #appointments-btn i {
+            color: #b91c1c;
+            font-size: 15px;
+        }
+
+        /* ── Appointments sheet ── */
+        .xbody-appt-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 800;
+            background: rgba(15, 23, 42, 0.38);
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding: 0 0 calc(env(safe-area-inset-bottom, 0px));
+            box-sizing: border-box;
+            animation: fadeInOverlay 0.22s ease;
+        }
+        .xbody-appt-overlay.hidden {
+            display: none;
+        }
+        .xbody-appt-panel {
+            width: 100%;
+            max-width: 520px;
+            max-height: min(70vh, 560px);
+            background: #ffffff;
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -8px 40px rgba(15, 23, 42, 0.14);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: scaleInModal 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .xbody-appt-handle {
+            width: 36px;
+            height: 4px;
+            border-radius: 999px;
+            background: #e2e8f0;
+            margin: 10px auto 0;
+            flex: 0 0 auto;
+        }
+        .xbody-appt-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 12px 16px 10px;
+        }
+        .xbody-appt-title {
+            margin: 0;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .xbody-appt-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .xbody-appt-icon-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 50%;
+            background: #f8fafc;
+            color: #64748b;
+            font-size: 14px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .xbody-appt-icon-btn:disabled {
+            opacity: 0.45;
+            cursor: default;
+        }
+        .xbody-appt-body {
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 4px 16px 12px;
+            flex: 1 1 auto;
+        }
+        .xbody-appt-footer {
+            padding: 8px 16px calc(env(safe-area-inset-bottom, 0px) + 12px);
+            border-top: 1px solid #f1f5f9;
+            color: #94a3b8;
+            font-size: 0.78rem;
+            text-align: center;
+        }
+        .xbody-appt-footer.hidden {
+            display: none;
+        }
+        .xbody-appt-state {
+            text-align: center;
+            color: #64748b;
+            padding: 28px 8px 32px;
+            font-size: 0.92rem;
+            line-height: 1.5;
+        }
+        .xbody-appt-state.error {
+            color: #dc2626;
+        }
+        .xbody-appt-section {
+            margin-bottom: 16px;
+        }
+        .xbody-appt-section:last-child {
+            margin-bottom: 0;
+        }
+        .xbody-appt-section-label {
+            margin: 0 0 10px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #94a3b8;
+        }
+        .xbody-appt-card {
+            background: #f8fafc;
+            border: 1px solid #e8edf3;
+            border-radius: 14px;
+            padding: 13px 14px 12px;
+            margin-bottom: 10px;
+        }
+        .xbody-appt-card:last-child {
+            margin-bottom: 0;
+        }
+        .xbody-appt-card.canceled {
+            opacity: 0.58;
+        }
+        .xbody-appt-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .xbody-appt-info {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            min-width: 0;
+        }
+        .xbody-appt-line {
+            display: grid;
+            grid-template-columns: 2.75rem minmax(0, 1fr);
+            align-items: baseline;
+            column-gap: 12px;
+        }
+        .xbody-appt-k {
+            font-size: 0.76rem;
+            font-weight: 600;
+            color: #94a3b8;
+            letter-spacing: 0.01em;
+        }
+        .xbody-appt-v {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #0f172a;
+            line-height: 1.35;
+            word-break: break-word;
+        }
+        .xbody-appt-status {
+            margin: 0;
+            font-size: 0.78rem;
+            color: #b91c1c;
+            font-weight: 600;
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+        .xbody-appt-footer-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-height: 36px;
+        }
+        .xbody-appt-action {
+            flex: 0 0 auto;
+            margin-left: auto;
+            display: flex;
+            justify-content: flex-end;
+        }
+        .xbody-appt-change-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 36px;
+            padding: 0 14px;
+            border: 1px solid #fecaca;
+            border-radius: 10px;
+            background: #ffffff;
+            color: #b91c1c;
+            font-size: 0.82rem;
+            font-weight: 700;
+            text-decoration: none;
+            white-space: nowrap;
+            box-shadow: 0 1px 2px rgba(185, 28, 28, 0.06);
+        }
+        .xbody-appt-change-btn.disabled {
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
         #xbody-onboarding {
             position: absolute;
             inset: 0;
@@ -146,6 +407,7 @@
         #acuity-scroll-container.hidden {
             display: none;
         }
+
         .xbody-onboarding-card {
             width: 100%;
             max-width: 460px;
@@ -371,6 +633,10 @@
 </head>
 <body>
 
+    <div id="xbody-splash" role="status" aria-live="polite" aria-label="Зареждане на XBody">
+        <img src="xbody-icon-512.png" width="192" height="192" alt="XBody">
+    </div>
+
     <!-- PWA Install Modal -->
     <div class="pwa-modal-overlay hidden" id="pwaModalOverlay">
         <div class="pwa-modal" role="dialog" aria-modal="true" aria-labelledby="pwaModalTitle">
@@ -401,6 +667,28 @@
     <button id="back-btn" aria-label="Назад">
         <i class="fas fa-chevron-left"></i>
     </button>
+
+    <button id="appointments-btn" type="button" aria-label="Моите часове">
+        <i class="fas fa-calendar-check"></i>
+        <span>Моите часове</span>
+    </button>
+
+    <div class="xbody-appt-overlay hidden" id="appointments-overlay" aria-hidden="true">
+        <div class="xbody-appt-panel" role="dialog" aria-modal="true" aria-labelledby="appointments-title">
+            <div class="xbody-appt-handle" aria-hidden="true"></div>
+            <div class="xbody-appt-header">
+                <h2 class="xbody-appt-title" id="appointments-title">Моите часове</h2>
+                <div class="xbody-appt-actions">
+                    <button class="xbody-appt-icon-btn" id="appointments-refresh" type="button" aria-label="Обнови" title="Обнови">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                    <button class="xbody-appt-icon-btn" id="appointments-close" type="button" aria-label="Затвори">✕</button>
+                </div>
+            </div>
+            <div class="xbody-appt-body" id="appointments-body"></div>
+            <div class="xbody-appt-footer hidden" id="appointments-footer"></div>
+        </div>
+    </div>
 
     <section id="xbody-onboarding">
         <div class="xbody-onboarding-card">
@@ -442,14 +730,47 @@
         </iframe>
     </div>
     
-    <script src="https://embed.acuityscheduling.com/js/embed.js" type="text/javascript"></script>
+    <script src="https://embed.acuityscheduling.com/js/embed.js" type="text/javascript" defer></script>
 
     <script>
-        /* ── Service Worker ── */
+        /* ── Splash (brief branded screen – never blocks Acuity) ── */
+        (function () {
+            const splash = document.getElementById('xbody-splash');
+            if (!splash) return;
+
+            const MIN_MS = 350;
+            const MAX_MS = 2200;
+            let shownAt = Date.now();
+            let hidden = false;
+
+            function hideSplash() {
+                if (hidden) return;
+                const elapsed = Date.now() - shownAt;
+                const wait = Math.max(0, MIN_MS - elapsed);
+                window.setTimeout(function () {
+                    if (hidden) return;
+                    hidden = true;
+                    splash.classList.add('hidden');
+                    window.setTimeout(function () {
+                        if (splash.parentNode) splash.parentNode.removeChild(splash);
+                    }, 320);
+                }, wait);
+            }
+
+            window.XBodySplash = { hide: hideSplash };
+            window.setTimeout(hideSplash, MAX_MS);
+        })();
+
+        /* ── Service Worker (deferred – not on critical path) ── */
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
+            const registerSw = function () {
                 navigator.serviceWorker.register('xbody-sw.js');
-            });
+            };
+            if ('requestIdleCallback' in window) {
+                requestIdleCallback(registerSw, { timeout: 4000 });
+            } else {
+                window.addEventListener('load', registerSw, { once: true });
+            }
         }
 
         /* ── iOS scroll-container recovery on app resume ──────────────────────
@@ -518,11 +839,19 @@
 
             function showBooking(userData) {
                 const bookingUrl = buildAcuityUrl(userData);
+                try {
+                    sessionStorage.setItem(STORAGE_KEYS.email, userData.email);
+                    sessionStorage.setItem(STORAGE_KEYS.phone, userData.phone);
+                } catch (_) {}
                 onboarding.classList.add('hidden');
                 scrollContainer.classList.remove('hidden');
                 frame.dataset.originalSrc = bookingUrl;
                 frame.src = bookingUrl;
             }
+
+            frame.addEventListener('load', function () {
+                if (window.XBodySplash) window.XBodySplash.hide();
+            });
 
             function getStoredUserData() {
                 const fullName = (localStorage.getItem(STORAGE_KEYS.fullName) || '').trim();
@@ -574,8 +903,13 @@
 
             const storedUserData = getStoredUserData();
             if (storedUserData) {
+                try {
+                    sessionStorage.setItem(STORAGE_KEYS.email, storedUserData.email);
+                    sessionStorage.setItem(STORAGE_KEYS.phone, storedUserData.phone);
+                } catch (_) {}
                 showBooking(storedUserData);
-                return;
+            } else if (window.XBodySplash) {
+                window.XBodySplash.hide();
             }
 
             form.addEventListener('submit', function (event) {
@@ -802,6 +1136,7 @@
                     homeHeight  = null; // re-baseline on next setHeight
                     msgNavDepth = 0;
                     if (navDepth === 0) setVisible(false);
+                    if (window.XBodySplash) window.XBodySplash.hide();
                     return;
                 }
 
@@ -811,6 +1146,7 @@
 
                 if (homeHeight === null) {
                     homeHeight = h; // first message = home-page baseline
+                    if (window.XBodySplash) window.XBodySplash.hide();
                     return;
                 }
 
@@ -847,6 +1183,349 @@
             }
 
             btn.addEventListener('click', doBack);
+        })();
+
+        /* ── My appointments (cached, fetch only on demand) ── */
+        (function () {
+            const STORAGE_KEYS = {
+                email: 'xbody_booking_email',
+                phone: 'xbody_booking_phone'
+            };
+            const CACHE_PREFIX = 'xbody_appt_cache:';
+            const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+            const BG_WEEKDAYS = ['неделя', 'понеделник', 'вторник', 'сряда', 'четвъртък', 'петък', 'събота'];
+            const BG_MONTHS = {
+                january: 0, february: 1, march: 2, april: 3, may: 4, june: 5,
+                july: 6, august: 7, september: 8, october: 9, november: 10, december: 11
+            };
+            const WORKER_URL = (window.location.hostname.endsWith('workers.dev') || window.location.hostname === 'localhost')
+                ? ''
+                : 'https://aidiet.radilov-k.workers.dev';
+
+            const btn = document.getElementById('appointments-btn');
+            const overlay = document.getElementById('appointments-overlay');
+            const closeBtn = document.getElementById('appointments-close');
+            const refreshBtn = document.getElementById('appointments-refresh');
+            const bodyEl = document.getElementById('appointments-body');
+            const footerEl = document.getElementById('appointments-footer');
+            const scrollContainer = document.getElementById('acuity-scroll-container');
+            if (!btn || !overlay || !closeBtn || !refreshBtn || !bodyEl || !footerEl) {
+                return;
+            }
+
+            let memoryCache = null;
+            let memoryFetchedAt = 0;
+            let loading = false;
+
+            function getUserContact() {
+                const email = (
+                    sessionStorage.getItem(STORAGE_KEYS.email) ||
+                    localStorage.getItem(STORAGE_KEYS.email) ||
+                    ''
+                ).trim().toLowerCase();
+                if (!email) {
+                    return null;
+                }
+                return { email: email };
+            }
+
+            function cacheStorageKey(email) {
+                return CACHE_PREFIX + email;
+            }
+
+            function readLocalCache(email) {
+                try {
+                    const raw = localStorage.getItem(cacheStorageKey(email));
+                    if (!raw) {
+                        return null;
+                    }
+                    const parsed = JSON.parse(raw);
+                    if (!parsed || !parsed.fetchedAt || !parsed.data) {
+                        return null;
+                    }
+                    parsed.stale = (Date.now() - parsed.fetchedAt) > CACHE_TTL_MS;
+                    return parsed;
+                } catch (_) {
+                    return null;
+                }
+            }
+
+            function writeLocalCache(email, data, fetchedAt) {
+                try {
+                    localStorage.setItem(cacheStorageKey(email), JSON.stringify({
+                        fetchedAt: fetchedAt,
+                        data: data
+                    }));
+                } catch (_) {}
+            }
+
+            function updateButtonVisibility() {
+                const hasContact = Boolean(getUserContact());
+                const bookingVisible = scrollContainer && !scrollContainer.classList.contains('hidden');
+                btn.classList.toggle('visible', hasContact && bookingVisible);
+            }
+
+            function escapeHtml(value) {
+                return String(value || '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;');
+            }
+
+            function formatAge(fetchedAt) {
+                const mins = Math.max(1, Math.round((Date.now() - fetchedAt) / 60000));
+                if (mins < 60) {
+                    return 'преди ' + mins + ' мин';
+                }
+                const hours = Math.round(mins / 60);
+                if (hours < 24) {
+                    return 'преди ' + hours + ' ч';
+                }
+                const days = Math.round(hours / 24);
+                return 'преди ' + days + ' д';
+            }
+
+            function parseApptDate(item) {
+                if (item && item.datetime) {
+                    const dt = new Date(item.datetime);
+                    if (!isNaN(dt.getTime())) {
+                        return dt;
+                    }
+                }
+                const text = String((item && item.date) || '').trim();
+                if (!text) {
+                    return null;
+                }
+                const match = text.match(/^([A-Za-z]+)\s+(\d{1,2}),?\s*(\d{4})?/);
+                if (match) {
+                    const month = BG_MONTHS[match[1].toLowerCase()];
+                    if (month !== undefined) {
+                        const year = match[3] ? parseInt(match[3], 10) : new Date().getFullYear();
+                        return new Date(year, month, parseInt(match[2], 10));
+                    }
+                }
+                const fallback = Date.parse(text);
+                return isNaN(fallback) ? null : new Date(fallback);
+            }
+
+            function formatTime24(item) {
+                const dt = parseApptDate(item);
+                if (dt) {
+                    const h = dt.getHours();
+                    const m = String(dt.getMinutes()).padStart(2, '0');
+                    return h + ':' + m;
+                }
+                const raw = String((item && item.time) || '').trim().toLowerCase();
+                const m = raw.match(/^(\d{1,2}):(\d{2})\s*(am|pm)?/);
+                if (!m) {
+                    return raw || '—';
+                }
+                let hour = parseInt(m[1], 10);
+                const mins = m[2];
+                if (m[3] === 'pm' && hour < 12) hour += 12;
+                if (m[3] === 'am' && hour === 12) hour = 0;
+                return hour + ':' + mins;
+            }
+
+            function formatAppointmentBg(item) {
+                const dt = parseApptDate(item);
+                if (!dt) {
+                    return { dateValue: '—', timeValue: '—' };
+                }
+                const dd = String(dt.getDate()).padStart(2, '0');
+                const mm = String(dt.getMonth() + 1).padStart(2, '0');
+                return {
+                    dateValue: BG_WEEKDAYS[dt.getDay()] + ', ' + dd + '.' + mm,
+                    timeValue: formatTime24(item)
+                };
+            }
+
+            function renderRow(item) {
+                const labels = formatAppointmentBg(item);
+                const canChange = Boolean(item.confirmationPage) && !item.canceled;
+                const changeBtn = canChange
+                    ? '<a class="xbody-appt-change-btn" href="' + escapeHtml(item.confirmationPage) +
+                        '" target="_blank" rel="noopener noreferrer">Промяна</a>'
+                    : '<span class="xbody-appt-change-btn disabled">Промяна</span>';
+                const status = item.canceled
+                    ? '<p class="xbody-appt-status">Отменен час</p>'
+                    : '';
+                return '<article class="xbody-appt-card' + (item.canceled ? ' canceled' : '') + '">' +
+                    '<div class="xbody-appt-grid">' +
+                        '<div class="xbody-appt-info">' +
+                            '<div class="xbody-appt-line">' +
+                                '<span class="xbody-appt-k">дата</span>' +
+                                '<span class="xbody-appt-v">' + escapeHtml(labels.dateValue) + '</span>' +
+                            '</div>' +
+                            '<div class="xbody-appt-line">' +
+                                '<span class="xbody-appt-k">час</span>' +
+                                '<span class="xbody-appt-v">' + escapeHtml(labels.timeValue) + '</span>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="xbody-appt-footer-row">' +
+                            status +
+                            '<div class="xbody-appt-action">' + changeBtn + '</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</article>';
+            }
+
+            function renderSection(title, items) {
+                if (!items.length) {
+                    return '';
+                }
+                return '<section class="xbody-appt-section">' +
+                    '<h3 class="xbody-appt-section-label">' + escapeHtml(title) + '</h3>' +
+                    items.map(renderRow).join('') +
+                '</section>';
+            }
+
+            function setFooter(fetchedAt, fromCache, stale) {
+                if (!fetchedAt) {
+                    footerEl.classList.add('hidden');
+                    footerEl.textContent = '';
+                    return;
+                }
+                footerEl.classList.remove('hidden');
+                let note = (fromCache ? 'Запазени данни ' : 'Обновено ') + formatAge(fetchedAt);
+                if (stale) {
+                    note += ' · данните може да са остарели';
+                }
+                note += ' · натисни ↻ за обновяване';
+                footerEl.textContent = note;
+            }
+
+            function renderAppointments(data, fetchedAt, fromCache, stale) {
+                const upcoming = Array.isArray(data.upcoming) ? data.upcoming : [];
+                const past = Array.isArray(data.past) ? data.past : [];
+
+                if (!upcoming.length && !past.length) {
+                    bodyEl.innerHTML = '<div class="xbody-appt-state">Нямаш запазени часове.<br>Натисни ↻, за да ги заредиш.</div>';
+                } else {
+                    bodyEl.innerHTML =
+                        renderSection('Предстоящи часове', upcoming) +
+                        renderSection('Минали часове', past);
+                }
+                setFooter(fetchedAt, fromCache, stale);
+            }
+
+            function applyCache(data, fetchedAt, fromCache, stale) {
+                memoryCache = data;
+                memoryFetchedAt = fetchedAt;
+                renderAppointments(data, fetchedAt, fromCache, stale);
+            }
+
+            function setLoadingState(message) {
+                bodyEl.innerHTML = '<div class="xbody-appt-state">' + escapeHtml(message) + '</div>';
+                footerEl.classList.add('hidden');
+            }
+
+            function setRefreshBusy(busy) {
+                refreshBtn.disabled = busy;
+                refreshBtn.querySelector('i').classList.toggle('fa-spin', busy);
+            }
+
+            async function fetchFromServer(contact, force) {
+                const params = new URLSearchParams({ email: contact.email });
+                if (force) {
+                    params.set('refresh', '1');
+                }
+                const resp = await fetch(WORKER_URL + '/api/xbody/appointments?' + params.toString());
+                const data = await resp.json().catch(function () { return {}; });
+                if (!resp.ok) {
+                    throw new Error(data.error || 'Грешка при зареждане.');
+                }
+                const fetchedAt = data.fetchedAt || Date.now();
+                const payload = {
+                    upcoming: Array.isArray(data.upcoming) ? data.upcoming : [],
+                    past: Array.isArray(data.past) ? data.past : []
+                };
+                writeLocalCache(contact.email, payload, fetchedAt);
+                applyCache(payload, fetchedAt, false, false);
+            }
+
+            function showCachedAppointments() {
+                const contact = getUserContact();
+                if (!contact) {
+                    setLoadingState('Няма запазен имейл.');
+                    return;
+                }
+                if (memoryCache && memoryFetchedAt) {
+                    applyCache(memoryCache, memoryFetchedAt, true, false);
+                    return;
+                }
+                const local = readLocalCache(contact.email);
+                if (local) {
+                    applyCache(local.data, local.fetchedAt, true, local.stale);
+                    return;
+                }
+                bodyEl.innerHTML = '<div class="xbody-appt-state">Нямаш заредени часове.<br>Натисни ↻, за да ги заредиш от системата.</div>';
+                footerEl.classList.add('hidden');
+            }
+
+            async function fetchFromNetwork(force) {
+                const contact = getUserContact();
+                if (!contact) {
+                    setLoadingState('Няма запазен имейл.');
+                    return;
+                }
+                if (loading) {
+                    return;
+                }
+
+                loading = true;
+                setRefreshBusy(true);
+                if (!memoryCache) {
+                    setLoadingState('Зареждане...');
+                }
+
+                try {
+                    await fetchFromServer(contact, force);
+                } catch (err) {
+                    if (memoryCache) {
+                        applyCache(memoryCache, memoryFetchedAt, true, true);
+                        footerEl.classList.remove('hidden');
+                        footerEl.textContent = 'Неуспешно обновяване · показваме запазени данни';
+                    } else {
+                        setLoadingState(err.message || 'Грешка при зареждане.');
+                    }
+                } finally {
+                    loading = false;
+                    setRefreshBusy(false);
+                }
+            }
+
+            function openModal() {
+                overlay.classList.remove('hidden');
+                overlay.setAttribute('aria-hidden', 'false');
+                showCachedAppointments();
+            }
+
+            function closeModal() {
+                overlay.classList.add('hidden');
+                overlay.setAttribute('aria-hidden', 'true');
+            }
+
+            btn.addEventListener('click', openModal);
+            closeBtn.addEventListener('click', closeModal);
+            refreshBtn.addEventListener('click', function () {
+                fetchFromNetwork(true);
+            });
+            overlay.addEventListener('click', function (event) {
+                if (event.target === overlay) {
+                    closeModal();
+                }
+            });
+
+            updateButtonVisibility();
+            if (scrollContainer) {
+                new MutationObserver(updateButtonVisibility).observe(scrollContainer, {
+                    attributes: true,
+                    attributeFilter: ['class']
+                });
+            }
+            window.addEventListener('storage', updateButtonVisibility);
         })();
     </script>
 </body>
