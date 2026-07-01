@@ -2046,7 +2046,7 @@
             <div class="card">
                 <h2><i class="fas fa-pen-fancy"></i> AI Промпт за Обогатяване на Хранения (Стъпка 5)</h2>
                 <div class="info-box" style="background: #e8f4fd; border-left: 4px solid #3498db;">
-                    <strong>Enrichment:</strong> След Стъпка 3 и числовото подравняване — обогатява <code>name</code>, <code>description</code> (готвене) и <code>benefits</code>. Не променя калории, макроси или грамаж.
+                    <strong>Enrichment:</strong> След Стъпка 3 — обогатява само <code>name</code> и <code>benefits</code>. Грамажите в <code>description</code> остават от Стъпка 3.
                 </div>
                 <div class="info-box" style="background: #d1f2eb; border-left: 4px solid #1abc9c;">
                     <strong>🔄 Синхронизация:</strong> Промените се запазват <strong>веднага</strong> в бекенда и се използват при <strong>следващото генериране</strong> на план.
@@ -2059,7 +2059,7 @@
                     <strong>Променливи:</strong> {userData}, {strategyData}, {dietaryModifier}, {dietLove}, {dietDislike}, {additionalNotes}, {mealsSkeletonJSON}, {startDay}, {endDay}, {MEAL_NAME_FORMAT_INSTRUCTIONS}
                 </div>
                 <div class="info-box-warning">
-                    <strong>⚠️ ВАЖНО - JSON Формат:</strong> Промптът трябва да инструктира AI да върне JSON с обогатени name/description/benefits, запазвайки type/weight/calories/macros.
+                    <strong>⚠️ ВАЖНО - JSON Формат:</strong> Промптът трябва да инструктира AI да върне JSON с обогатени name/benefits, запазвайки type/weight/description/calories/macros.
                 </div>
                 <button class="btn" onclick="saveMealEnrichmentPrompt()">
                     <i class="fas fa-save"></i> Запази Промпт за Обогатяване

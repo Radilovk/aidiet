@@ -3803,7 +3803,7 @@ function serializeMealsSkeletonForEnrichment(weekPlan, startDay, endDay) {
   return JSON.stringify(result, null, 2);
 }
 
-/** Merge enriched copy fields without touching numeric/meal structure. */
+/** Merge enriched copy fields without touching numeric/meal structure or Step 3 grammages. */
 function applyMealEnrichment(weekPlan, enrichmentData, startDay, endDay) {
   if (!enrichmentData || typeof enrichmentData !== 'object') return;
   for (let d = startDay; d <= endDay; d++) {
@@ -3816,11 +3816,17 @@ function applyMealEnrichment(weekPlan, enrichmentData, startDay, endDay) {
       const enriched = enrichedDay.meals.find(m => m.type === meal.type) || enrichedDay.meals[i];
       if (!enriched) continue;
       if (enriched.name) meal.name = enriched.name;
-      if (enriched.description) meal.description = enriched.description;
       if (enriched.benefits) meal.benefits = enriched.benefits;
+      // description stays from Step 3 (product grams) — enrichment must not erase it
     }
   }
 }
+
+// Step 5 enrichment: structured meal names only (grams live in Step 3 description).
+const MEAL_ENRICHMENT_NAME_INSTRUCTIONS = `=== ФОРМАТ НА name ===
+- Структурирай с • на отделни редове (салата, основно, хляб ако има)
+- БЕЗ изречения и без етикети "Салата:" / "Основно:"
+Пример: "• Шопска салата\\n• Пилешки гърди с ориз"`;
 
 async function generateMealEnrichmentPrompt(data, strategy, weekPlan, startDay, endDay, env) {
   const dietaryModifier = strategy.dietaryModifier || 'Балансирано';
@@ -3836,13 +3842,13 @@ async function generateMealEnrichmentPrompt(data, strategy, weekPlan, startDay, 
     mealsSkeletonJSON,
     startDay,
     endDay,
-    MEAL_NAME_FORMAT_INSTRUCTIONS
+    MEAL_NAME_FORMAT_INSTRUCTIONS: MEAL_ENRICHMENT_NAME_INSTRUCTIONS
   });
   if (!hasJsonFormatInstructions(prompt)) {
     prompt += `
 
 ═══ ФОРМАТ НА ОТГОВОР ═══
-Отговори САМО с валиден JSON обект. Запази type, weight, calories, macros и dessert без промяна. Обогати name, description и benefits.`;
+Отговори САМО с валиден JSON обект. Запази type, weight, description, calories, macros и dessert без промяна. Обогати САМО name и benefits.`;
   }
   return prompt;
 }
@@ -8547,6 +8553,15 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum) {
   return errors;
 }
 
+function sumDescriptionGrams(text) {
+  if (!text) return 0;
+  let sum = 0;
+  for (const m of String(text).matchAll(/(\d+(?:[.,]\d+)?)\s*(?:g|г)\b/gi)) {
+    sum += parseFloat(m[1].replace(',', '.'));
+  }
+  return sum;
+}
+
 function finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay) {
   if (!weekPlan) return;
   normalizeMealBreakdownTypes(strategy);
@@ -8554,7 +8569,13 @@ function finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay) {
   for (let d = startDay; d <= endDay; d++) {
     const day = weekPlan[`day${d}`];
     if (!day?.meals) continue;
-    for (const meal of day.meals) syncMealCaloriesFromMacros(meal);
+    for (const meal of day.meals) {
+      syncMealCaloriesFromMacros(meal);
+      if ((!meal.weight || !/\d/.test(String(meal.weight))) && meal.description) {
+        const total = sumDescriptionGrams(meal.description);
+        if (total > 0) meal.weight = Math.round(total) + 'g';
+      }
+    }
   }
   recalculateDayCalories(weekPlan, strategy);
 }
