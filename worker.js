@@ -3744,9 +3744,8 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
       prompt += `
 
 ═══ ЗАДЪЛЖИТЕЛНО: ГРАМАЖИ В DESCRIPTION ═══
-Полето description ТРЯБВА да съдържа грамаж "числоg" за ВСЕКИ продукт (отделен ред с •).
-Пример: "• пилешко филе 180g — на скара\\n• ориз 150g — сварен\\n• домати 100g — салата"
-БЕЗ грамажи в description = невалиден отговор.`;
+Изброй продуктите по име (отделен ред с •). Грамажите се преизчисляват автоматично от системата според mealBreakdown — важни са имената и категорията на храните.
+Пример: "• пилешко филе\\n• ориз\\n• домати"`;
     }
     
     // CRITICAL: Ensure JSON format instructions are included even with custom prompts
@@ -3760,7 +3759,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
 {
   "dayN": {
     "meals": [
-      {"type": "Хранене 1|Хранене 2|Свободно хранене|Хранене 3|Хранене 4|Хранене 5", "name": "име", "weight": "Xg", "description": "• продукт 200g — готвене\\n• продукт 150g", "benefits": "текст", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число}}
+      {"type": "Хранене 1|Хранене 2|Свободно хранене|Хранене 3|Хранене 4|Хранене 5", "name": "име", "weight": "Xg", "description": "• продукт\\n• продукт", "benefits": "текст", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число}}
     ],
     "dailyTotals": {"calories": число, "protein": число, "carbs": число, "fats": число}
   }
@@ -8240,20 +8239,172 @@ function getFreeMealSlotCalories(dayTarget) {
  * Set each meal's macros/calories from strategy mealBreakdown (Step 2 targets).
  * Deterministic link between Step 2 architecture and Step 3 meals.
  */
-function scaleTextGramValues(text, factor) {
-  if (!text || !isFinite(factor) || factor <= 0 || Math.abs(factor - 1) < 0.02) return text;
-  return String(text).replace(/(\d+(?:[.,]\d+)?)\s*(g|г)\b/gi, (match, num, unit) => {
-    const scaled = Math.max(1, Math.round(parseFloat(String(num).replace(',', '.')) * factor));
-    return `${scaled}${unit}`;
-  });
+
+// Simplified per-100g macro density for gram allocation (not a full food DB).
+const GRAM_ALLOC_DENSITY = {
+  PRO: { protein: 22, carbs: 0, fats: 5 },
+  ENG: { protein: 3, carbs: 25, fats: 1 },
+  FAT: { protein: 0, carbs: 0, fats: 100 },
+  VOL: { protein: 1, carbs: 4, fats: 0 },
+  MIXED: { protein: 12, carbs: 15, fats: 8 }
+};
+
+function classifyProductRole(name) {
+  const n = String(name || '').toLowerCase();
+  if (/ориз|киноа|овес|паста|хляб|картоф|леща|боб|нахут|мюсли|каша|елда|булгур|гриз|макарон|пълнозърнест/.test(n)) return 'ENG';
+  if (/зехтин|масло|авокадо|ядк|семе|тахан|маслин|шарлан|олио/.test(n)) return 'FAT';
+  if (/салат|домат|крастав|чушк|броколи|тиквич|морков|зеленч|маруля|спанак|гъби|карфиол|тиква|зеле|лук|чесън|праз|еринги/.test(n)) return 'VOL';
+  if (/пиле|пилеш|гърди|месо|риба|сьомга|треска|яйц|сирен|извара|мляко|скир|тофу|кисело мляко|свин|говед|кайма|пъстърва|тон|сьомга|протеин/.test(n)) return 'PRO';
+  return 'MIXED';
 }
 
-function scaleMealWeightString(weight, factor) {
-  if (!weight || !isFinite(factor) || factor <= 0 || Math.abs(factor - 1) < 0.02) return weight;
-  const m = String(weight).match(/(\d+(?:[.,]\d+)?)/);
-  if (!m) return weight;
-  const scaled = Math.max(1, Math.round(parseFloat(m[1]) * factor));
-  return `${scaled}г`;
+/** Extract product names from AI description/name (grams and cooking stripped). */
+function extractMealProductNames(meal) {
+  const names = [];
+  const seen = new Set();
+  const add = (raw) => {
+    let name = String(raw || '')
+      .replace(/^[•\-\*]\s*/, '')
+      .replace(/\s+\d+(?:[.,]\d+)?\s*(g|г)\b.*$/i, '')
+      .replace(/\s*[—\-].*$/, '')
+      .replace(/^хляб:\s*/i, 'хляб ')
+      .trim();
+    if (name.length > 1 && !seen.has(name.toLowerCase())) {
+      seen.add(name.toLowerCase());
+      names.push(name);
+    }
+  };
+  const desc = meal.description || '';
+  if (desc) {
+    desc.split(/[\n;]+/).forEach(part => add(part));
+  }
+  if (!names.length && meal.name) {
+    String(meal.name).split(/\n+/).forEach(line => add(line));
+  }
+  return names;
+}
+
+function macroContribFromGrams(grams, density) {
+  return {
+    protein: grams * density.protein / 100,
+    carbs: grams * density.carbs / 100,
+    fats: grams * density.fats / 100
+  };
+}
+
+function sumMacroContrib(items) {
+  return items.reduce((acc, item) => {
+    const d = GRAM_ALLOC_DENSITY[item.role] || GRAM_ALLOC_DENSITY.MIXED;
+    const m = macroContribFromGrams(item.grams, d);
+    acc.protein += m.protein;
+    acc.carbs += m.carbs;
+    acc.fats += m.fats;
+    return acc;
+  }, { protein: 0, carbs: 0, fats: 0 });
+}
+
+/** Macros available for main meal components (exclude fixed dessert). */
+function getAllocatableMacros(meal) {
+  const m = {
+    protein: Number(meal.macros?.protein) || 0,
+    carbs: Number(meal.macros?.carbs) || 0,
+    fats: Number(meal.macros?.fats) || 0
+  };
+  if (meal.dessert && typeof meal.dessert === 'object' && meal.dessert.macros) {
+    m.protein = Math.max(0, m.protein - (Number(meal.dessert.macros.protein) || 0));
+    m.carbs = Math.max(0, m.carbs - (Number(meal.dessert.macros.carbs) || 0));
+    m.fats = Math.max(0, m.fats - (Number(meal.dessert.macros.fats) || 0));
+  }
+  return m;
+}
+
+/**
+ * Deterministic gram allocation from final meal macros + product names.
+ * Step 3 AI picks products; code assigns grams to match mealBreakdown targets.
+ */
+function allocateMealGramsFromMacros(meal) {
+  if (!meal?.macros || meal.type === 'Свободно хранене' || meal.type === 'Напитка') return;
+
+  const names = extractMealProductNames(meal);
+  if (!names.length) return;
+
+  const target = getAllocatableMacros(meal);
+  const items = names.map(name => ({ name, role: classifyProductRole(name), grams: 0 }));
+  const vol = items.filter(i => i.role === 'VOL');
+  const pro = items.filter(i => i.role === 'PRO' || i.role === 'MIXED');
+  const eng = items.filter(i => i.role === 'ENG');
+  const fat = items.filter(i => i.role === 'FAT');
+
+  let remP = target.protein;
+  let remC = target.carbs;
+  let remF = target.fats;
+
+  vol.forEach(i => {
+    i.grams = 100;
+    const m = macroContribFromGrams(i.grams, GRAM_ALLOC_DENSITY.VOL);
+    remP = Math.max(0, remP - m.protein);
+    remC = Math.max(0, remC - m.carbs);
+    remF = Math.max(0, remF - m.fats);
+  });
+
+  if (pro.length && remP > 0) {
+    const gPer = Math.round((remP / pro.length) / (GRAM_ALLOC_DENSITY.PRO.protein / 100));
+    const grams = Math.min(320, Math.max(50, gPer || 100));
+    pro.forEach(i => { i.grams = grams; });
+    const used = sumMacroContrib(pro);
+    remP = Math.max(0, remP - used.protein);
+    remC = Math.max(0, remC - used.carbs);
+    remF = Math.max(0, remF - used.fats);
+  }
+
+  if (eng.length && remC > 0) {
+    const gPer = Math.round((remC / eng.length) / (GRAM_ALLOC_DENSITY.ENG.carbs / 100));
+    const grams = Math.min(280, Math.max(35, gPer || 80));
+    eng.forEach(i => { i.grams = grams; });
+    const used = sumMacroContrib(eng);
+    remP = Math.max(0, remP - used.protein);
+    remC = Math.max(0, remC - used.carbs);
+    remF = Math.max(0, remF - used.fats);
+  }
+
+  if (fat.length && remF > 3) {
+    const gPer = Math.round((remF / fat.length) / (GRAM_ALLOC_DENSITY.FAT.fats / 100));
+    const grams = Math.min(35, Math.max(5, gPer || 10));
+    fat.forEach(i => { i.grams = grams; });
+    remF = Math.max(0, remF - sumMacroContrib(fat).fats);
+  } else if (remF > 5) {
+    items.push({ name: 'зехтин', role: 'FAT', grams: Math.min(20, Math.round(remF)) });
+    remF = 0;
+  }
+
+  const allocated = items.filter(i => i.grams > 0);
+  if (!allocated.length) return;
+
+  // Fine-tune portion sizes toward target calories (±12%)
+  const targetCal = macrosToCalories(target);
+  let actual = sumMacroContrib(allocated);
+  let actualCal = macrosToCalories(actual);
+  if (targetCal > 0 && actualCal > 0) {
+    const factor = targetCal / actualCal;
+    if (factor >= 0.88 && factor <= 1.12) {
+      allocated.forEach(i => {
+        if (i.role !== 'VOL') i.grams = Math.max(5, Math.round(i.grams * factor));
+      });
+    }
+  }
+
+  meal.description = allocated.map(i => `• ${i.name} ${i.grams}g`).join('\n');
+  const totalGrams = allocated.reduce((s, i) => s + i.grams, 0);
+  if (totalGrams > 0) meal.weight = `${totalGrams}г`;
+}
+
+function allocateWeekPlanGrams(weekPlan, startDay, endDay) {
+  if (!weekPlan) return;
+  for (let d = startDay; d <= endDay; d++) {
+    const day = weekPlan[`day${d}`];
+    if (!day?.meals) continue;
+    for (const meal of day.meals) allocateMealGramsFromMacros(meal);
+  }
 }
 
 function alignMealsToBreakdown(dayPlan, dayTarget) {
@@ -8264,19 +8415,13 @@ function alignMealsToBreakdown(dayPlan, dayTarget) {
     if (meal.type === 'Свободно хранене' || meal.type === 'Напитка') continue;
     const target = dayTarget.mealBreakdown.find(m => m.type === meal.type);
     if (!target) continue;
-    const oldCal = macrosToCalories(meal.macros) || Number(meal.calories) || 0;
     meal.macros = {
       protein: Math.round(Number(target.protein) || 0),
       carbs: Math.round(Number(target.carbs) || 0),
       fats: Math.round(Number(target.fats) || 0)
     };
     meal.calories = macrosToCalories(meal.macros);
-    const newCal = meal.calories;
-    if (oldCal > 0 && newCal > 0 && Math.abs(newCal - oldCal) > 2) {
-      const factor = newCal / oldCal;
-      if (meal.description) meal.description = scaleTextGramValues(meal.description, factor);
-      if (meal.weight) meal.weight = scaleMealWeightString(meal.weight, factor);
-    }
+    allocateMealGramsFromMacros(meal);
     changed = true;
   }
   return changed;
