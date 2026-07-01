@@ -1,6 +1,6 @@
 // Service Worker for XBody Ability PWA
 // Minimal, isolated from the NutriPlan service worker
-const CACHE_NAME = 'xbody-v7';
+const CACHE_NAME = 'xbody-v8';
 // Core files that MUST be cached for the PWA shell to work offline.
 const STATIC_CACHE = [
   'xbody.html',
@@ -46,6 +46,28 @@ self.addEventListener('activate', (event) => {
     })
   );
   self.clients.claim();
+});
+
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (_) {}
+
+  if (data.type !== 'xbody-appt-changed') {
+    return;
+  }
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      clients.forEach((client) => {
+        client.postMessage({
+          type: 'xbody-appt-changed',
+          email: data.email || ''
+        });
+      });
+    })
+  );
 });
 
 self.addEventListener('fetch', (event) => {
