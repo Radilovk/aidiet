@@ -3739,6 +3739,15 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
     
     const weeklySection = buildWeeklyAdaptationContextSection(data);
     if (weeklySection && !prompt.includes('СЕДМИЧНА АДАПТАЦИЯ')) prompt += weeklySection;
+
+    if (!prompt.includes('ЗАДЪЛЖИТЕЛНО: ГРАМАЖИ В DESCRIPTION')) {
+      prompt += `
+
+═══ ЗАДЪЛЖИТЕЛНО: ГРАМАЖИ В DESCRIPTION ═══
+Полето description ТРЯБВА да съдържа грамаж "числоg" за ВСЕКИ продукт (отделен ред с •).
+Пример: "• пилешко филе 180g — на скара\\n• ориз 150g — сварен\\n• домати 100g — салата"
+БЕЗ грамажи в description = невалиден отговор.`;
+    }
     
     // CRITICAL: Ensure JSON format instructions are included even with custom prompts
     if (!hasJsonFormatInstructions(prompt)) {
@@ -3751,7 +3760,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
 {
   "dayN": {
     "meals": [
-      {"type": "Хранене 1|Хранене 2|Свободно хранене|Хранене 3|Хранене 4|Хранене 5", "name": "име", "weight": "Xg", "description": "текст", "benefits": "текст", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число}}
+      {"type": "Хранене 1|Хранене 2|Свободно хранене|Хранене 3|Хранене 4|Хранене 5", "name": "име", "weight": "Xg", "description": "• продукт 200g — готвене\\n• продукт 150g", "benefits": "текст", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число}}
     ],
     "dailyTotals": {"calories": число, "protein": число, "carbs": число, "fats": число}
   }
@@ -7968,19 +7977,19 @@ const MEAL_NAME_FORMAT_INSTRUCTIONS = `=== ФОРМАТ НА MEAL NAME И DESCRI
 ✗ "Пилешки гърди на скара с картофено пюре и салата Шопска" (смесено описание)
 ✗ "Печена бяла риба, приготвена с киноа и подправки" (изречение)
 
-ФОРМАТ НА "description":
-- Структурирай description с булет пойнти (•) за разделяне на компонентите
-- Всеки компонент на хранене (салата, основно ястие, гарнитура, хляб) започва на нов ред с •
-- В description пиши ВСИЧКИ уточнения за:
-  * Начин на приготвяне (печено, задушено, на скара, пресно и т.н.)
-  * Препоръки за приготвяне
-  * Конкретни подправки (сол, черен пипер, риган, магданоз и т.н.)
-  * Допълнителни продукти (зехтин, лимон, чесън и т.н.)
-  * Количества и пропорции
+ФОРМАТ НА "description" (ЗАДЪЛЖИТЕЛНО с грамаж на всеки ред):
+- Всеки продукт/компонент на ОТДЕЛЕН ред, започва с •
+- ЗАДЪЛЖИТЕЛНО: грамаж във формат "числоg" на ВСЕКИ ред (напр. 200g, 150g)
+- Формат на ред: • [продукт] [число]g — [кратко готвене/подправки]
+- НЕ пиши description без грамажи — клиентът ги вижда в приложението
 
-Пример за ПРАВИЛНА комбинация name + description:
-name: "• Зелена салата\\n• Пилешки гърди с киноа\\n• Хляб: 1 филия пълнозърнест"
-description: "• Зелена салата от листа, краставици и чери домати с лимонов дресинг.\\n• Пилешките гърди се приготвят на скара или печени в тава с малко зехтин, подправени със сол, черен пипер и риган.\\n• Киноата се готви според инструкциите.\\n• 1 филия пълнозърнест хляб."`;
+Пример:
+name: "• Шопска салата\\n• Пилешки гърди с ориз"
+description: "• домати 80g; краставица 60g; сирене 50g — шопска салата\\n• пилешко филе 180g — на скара с риган\\n• ориз 150g — сварен\\n• зехтин 10g — за салатата"
+
+ЗАБРАНЕНО за description:
+✗ Само готвене без грамажи ("• Пилешките гърди се пекат на скара...")
+✗ Изречения без "числоg" на реда`;
 
 function buildSweetsCravingRule(foodCravings, strategy) {
   if (!userHasSweetsCraving(foodCravings) || strategy?.includeDessert === false) return '';
@@ -8231,6 +8240,22 @@ function getFreeMealSlotCalories(dayTarget) {
  * Set each meal's macros/calories from strategy mealBreakdown (Step 2 targets).
  * Deterministic link between Step 2 architecture and Step 3 meals.
  */
+function scaleTextGramValues(text, factor) {
+  if (!text || !isFinite(factor) || factor <= 0 || Math.abs(factor - 1) < 0.02) return text;
+  return String(text).replace(/(\d+(?:[.,]\d+)?)\s*(g|г)\b/gi, (match, num, unit) => {
+    const scaled = Math.max(1, Math.round(parseFloat(String(num).replace(',', '.')) * factor));
+    return `${scaled}${unit}`;
+  });
+}
+
+function scaleMealWeightString(weight, factor) {
+  if (!weight || !isFinite(factor) || factor <= 0 || Math.abs(factor - 1) < 0.02) return weight;
+  const m = String(weight).match(/(\d+(?:[.,]\d+)?)/);
+  if (!m) return weight;
+  const scaled = Math.max(1, Math.round(parseFloat(m[1]) * factor));
+  return `${scaled}г`;
+}
+
 function alignMealsToBreakdown(dayPlan, dayTarget) {
   if (!dayPlan?.meals?.length || !dayTarget?.mealBreakdown) return false;
 
@@ -8239,12 +8264,19 @@ function alignMealsToBreakdown(dayPlan, dayTarget) {
     if (meal.type === 'Свободно хранене' || meal.type === 'Напитка') continue;
     const target = dayTarget.mealBreakdown.find(m => m.type === meal.type);
     if (!target) continue;
+    const oldCal = macrosToCalories(meal.macros) || Number(meal.calories) || 0;
     meal.macros = {
       protein: Math.round(Number(target.protein) || 0),
       carbs: Math.round(Number(target.carbs) || 0),
       fats: Math.round(Number(target.fats) || 0)
     };
     meal.calories = macrosToCalories(meal.macros);
+    const newCal = meal.calories;
+    if (oldCal > 0 && newCal > 0 && Math.abs(newCal - oldCal) > 2) {
+      const factor = newCal / oldCal;
+      if (meal.description) meal.description = scaleTextGramValues(meal.description, factor);
+      if (meal.weight) meal.weight = scaleMealWeightString(meal.weight, factor);
+    }
     changed = true;
   }
   return changed;

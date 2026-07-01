@@ -1227,6 +1227,52 @@
             margin-top: 16px;
         }
 
+        .modal-ingredients-title {
+            font-size: 0.82rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--primary-red);
+            margin-bottom: 8px;
+        }
+
+        .modal-ingredients-list {
+            list-style: none;
+            margin: 0 0 16px;
+            padding: 0;
+        }
+
+        .modal-ingredients-list li {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(13, 148, 136, 0.1);
+        }
+
+        .modal-ingredients-list li:last-child { border-bottom: none; }
+
+        .ingredient-grams {
+            font-weight: 700;
+            color: var(--primary-red);
+            white-space: nowrap;
+        }
+
+        .ingredient-note {
+            font-weight: 400;
+            color: var(--text-light);
+            font-size: 0.9em;
+        }
+
+        .modal-prep-label {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--text-light);
+            margin: 8px 0;
+        }
+
+        .modal-prep-text { margin: 0; }
+
         /* Weight / calorie badge displayed in modal below title */
         .modal-weight-badge {
             display: inline-flex;
@@ -5070,6 +5116,32 @@
             return div.innerHTML.replace(/\n/g, '<br>');
         }
 
+        /** Parse description into ingredient rows with gram weights for modal display. */
+        function renderMealDescriptionHtml(description) {
+            if (!description) return '';
+            var items = [];
+            var lines = String(description).split(/\n/).map(function(l) { return l.trim(); }).filter(Boolean);
+            if (lines.length === 1 && lines[0].indexOf(';') >= 0) {
+                lines = lines[0].split(';').map(function(s) { return s.trim(); }).filter(Boolean);
+            }
+            lines.forEach(function(line) {
+                var chunks = line.split(';').map(function(s) { return s.replace(/^[•\-\*]\s*/, '').trim(); }).filter(Boolean);
+                chunks.forEach(function(sp) {
+                    var m = sp.match(/^(.+?)\s+(\d+(?:[.,]\d+)?)\s*(g|г)\b(?:\s*[—\-]\s*(.+))?$/i);
+                    if (m) items.push({ name: m[1].trim(), grams: m[2] + 'g', note: (m[4] || '').trim() });
+                });
+            });
+            if (!items.length) return escapeHtmlWithBreaks(description);
+            var html = '<div class="modal-ingredients-title">Състав</div><ul class="modal-ingredients-list">';
+            items.forEach(function(it) {
+                html += '<li><span class="ingredient-name">' + escapeHtml(it.name) +
+                    (it.note ? '<span class="ingredient-note"> — ' + escapeHtml(it.note) + '</span>' : '') +
+                    '</span><span class="ingredient-grams">' + escapeHtml(it.grams) + '</span></li>';
+            });
+            html += '</ul>';
+            return html;
+        }
+
         // --- Date-key helpers (global scope, shared by renderDay and addToMyMenu) ---
         function _zp(n) { return n < 10 ? '0' + n : '' + n; }
         /** Return 'YYYY-MM-DD' for the calendar date that corresponds to plan day 1-7 (Mon-Sun). */
@@ -5960,8 +6032,8 @@
                 }
             }
             
-            // Display description as-is (contains ingredient weights from AI)
-            mDesc.innerHTML = escapeHtmlWithBreaks(description);
+            // Display description — structured ingredient grams when present
+            mDesc.innerHTML = renderMealDescriptionHtml(description);
             mBenefit.textContent = benefit;
             
             // Render dessert component section if present (as part of meal description)
