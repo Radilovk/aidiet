@@ -927,6 +927,10 @@
                     clearUserData();
                 }
 
+                window.dispatchEvent(new CustomEvent('xbody-appt-invalidate', {
+                    detail: { email: userData.email.trim().toLowerCase() }
+                }));
+
                 showBooking(userData);
             });
         })();
@@ -1185,13 +1189,15 @@
             btn.addEventListener('click', doBack);
         })();
 
-        /* ── My appointments (cached, fetch only on demand) ── */
+        /* ── My appointments (cache-first, smart refresh) ── */
         (function () {
             const STORAGE_KEYS = {
                 email: 'xbody_booking_email',
                 phone: 'xbody_booking_phone'
             };
             const CACHE_PREFIX = 'xbody_appt_cache:';
+            const DIRTY_PREFIX = 'xbody_appt_dirty:';
+            const SESSION_OPEN_PREFIX = 'xbody_appt_session_open:';
             const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
             const BG_WEEKDAYS = ['неделя', 'понеделник', 'вторник', 'сряда', 'четвъртък', 'петък', 'събота'];
             const BG_MONTHS = {
@@ -1215,6 +1221,7 @@
 
             let memoryCache = null;
             let memoryFetchedAt = 0;
+            let memoryVersion = null;
             let loading = false;
 
             function getUserContact() {
@@ -1231,6 +1238,51 @@
 
             function cacheStorageKey(email) {
                 return CACHE_PREFIX + email;
+            }
+
+            function dirtyStorageKey(email) {
+                return DIRTY_PREFIX + email;
+            }
+
+            function sessionOpenKey(email) {
+                return SESSION_OPEN_PREFIX + email;
+            }
+
+            function isDirty(email) {
+                try {
+                    return localStorage.getItem(dirtyStorageKey(email)) === '1';
+                } catch (_) {
+                    return false;
+                }
+            }
+
+            function markDirty(email) {
+                if (!email) {
+                    return;
+                }
+                try {
+                    localStorage.setItem(dirtyStorageKey(email), '1');
+                } catch (_) {}
+            }
+
+            function clearDirty(email) {
+                try {
+                    localStorage.removeItem(dirtyStorageKey(email));
+                } catch (_) {}
+            }
+
+            function hasOpenedThisSession(email) {
+                try {
+                    return sessionStorage.getItem(sessionOpenKey(email)) === '1';
+                } catch (_) {
+                    return false;
+                }
+            }
+
+            function markOpenedThisSession(email) {
+                try {
+                    sessionStorage.setItem(sessionOpenKey(email), '1');
+                } catch (_) {}
             }
 
             function readLocalCache(email) {
@@ -1250,13 +1302,22 @@
                 }
             }
 
-            function writeLocalCache(email, data, fetchedAt) {
+            function writeLocalCache(email, data, fetchedAt, version) {
                 try {
                     localStorage.setItem(cacheStorageKey(email), JSON.stringify({
                         fetchedAt: fetchedAt,
+                        version: version || null,
                         data: data
                     }));
                 } catch (_) {}
+            }
+
+            function getLocalVersion(email) {
+                if (memoryVersion) {
+                    return memoryVersion;
+                }
+                const local = readLocalCache(email);
+                return local && local.version ? local.version : null;
             }
 
             function updateButtonVisibility() {
@@ -1401,7 +1462,7 @@
                 const past = Array.isArray(data.past) ? data.past : [];
 
                 if (!upcoming.length && !past.length) {
-                    bodyEl.innerHTML = '<div class="xbody-appt-state">Нямаш запазени часове.<br>Натисни ↻, за да ги заредиш.</div>';
+                    bodyEl.innerHTML = '<div class="xbody-appt-state">Нямаш запазени часове.</div>';
                 } else {
                     bodyEl.innerHTML =
                         renderSection('Предстоящи часове', upcoming) +
@@ -1410,9 +1471,10 @@
                 setFooter(fetchedAt, fromCache, stale);
             }
 
-            function applyCache(data, fetchedAt, fromCache, stale) {
+            function applyCache(data, fetchedAt, fromCache, stale, version) {
                 memoryCache = data;
                 memoryFetchedAt = fetchedAt;
+                memoryVersion = version || null;
                 renderAppointments(data, fetchedAt, fromCache, stale);
             }
 
@@ -1437,12 +1499,55 @@
                     throw new Error(data.error || 'Грешка при зареждане.');
                 }
                 const fetchedAt = data.fetchedAt || Date.now();
+                const version = data.version || null;
                 const payload = {
                     upcoming: Array.isArray(data.upcoming) ? data.upcoming : [],
                     past: Array.isArray(data.past) ? data.past : []
                 };
-                writeLocalCache(contact.email, payload, fetchedAt);
-                applyCache(payload, fetchedAt, false, false);
+                writeLocalCache(contact.email, payload, fetchedAt, version);
+                applyCache(payload, fetchedAt, false, false, version);
+                clearDirty(contact.email);
+            }
+
+            async function fetchServerVersion(contact) {
+                const params = new URLSearchParams({ email: contact.email });
+                const resp = await fetch(WORKER_URL + '/api/xbody/appointments/version?' + params.toString());
+                const data = await resp.json().catch(function () { return {}; });
+                if (!resp.ok) {
+                    throw new Error(data.error || 'Грешка при проверка.');
+                }
+                return data.version || null;
+            }
+
+            async function syncIfChanged() {
+                const contact = getUserContact();
+                if (!contact || loading) {
+                    return;
+                }
+
+                const localVersion = getLocalVersion(contact.email);
+                if (!localVersion) {
+                    await fetchFromNetwork(true);
+                    return;
+                }
+
+                try {
+                    const serverVersion = await fetchServerVersion(contact);
+                    if (serverVersion && serverVersion === localVersion) {
+                        clearDirty(contact.email);
+                        if (memoryCache) {
+                            applyCache(memoryCache, memoryFetchedAt, true, false, localVersion);
+                        }
+                        return;
+                    }
+                    await fetchFromNetwork(true);
+                } catch (_) {
+                    if (memoryCache) {
+                        applyCache(memoryCache, memoryFetchedAt, true, true, localVersion);
+                        footerEl.classList.remove('hidden');
+                        footerEl.textContent = 'Неуспешна проверка · показваме запазени данни';
+                    }
+                }
             }
 
             function showCachedAppointments() {
@@ -1452,15 +1557,15 @@
                     return;
                 }
                 if (memoryCache && memoryFetchedAt) {
-                    applyCache(memoryCache, memoryFetchedAt, true, false);
+                    applyCache(memoryCache, memoryFetchedAt, true, false, memoryVersion);
                     return;
                 }
                 const local = readLocalCache(contact.email);
                 if (local) {
-                    applyCache(local.data, local.fetchedAt, true, local.stale);
+                    applyCache(local.data, local.fetchedAt, true, local.stale, local.version);
                     return;
                 }
-                bodyEl.innerHTML = '<div class="xbody-appt-state">Нямаш заредени часове.<br>Натисни ↻, за да ги заредиш от системата.</div>';
+                bodyEl.innerHTML = '<div class="xbody-appt-state">Зареждане на часовете...</div>';
                 footerEl.classList.add('hidden');
             }
 
@@ -1484,7 +1589,7 @@
                     await fetchFromServer(contact, force);
                 } catch (err) {
                     if (memoryCache) {
-                        applyCache(memoryCache, memoryFetchedAt, true, true);
+                        applyCache(memoryCache, memoryFetchedAt, true, true, memoryVersion);
                         footerEl.classList.remove('hidden');
                         footerEl.textContent = 'Неуспешно обновяване · показваме запазени данни';
                     } else {
@@ -1500,6 +1605,21 @@
                 overlay.classList.remove('hidden');
                 overlay.setAttribute('aria-hidden', 'false');
                 showCachedAppointments();
+
+                const contact = getUserContact();
+                if (!contact) {
+                    return;
+                }
+
+                if (!hasOpenedThisSession(contact.email)) {
+                    markOpenedThisSession(contact.email);
+                    fetchFromNetwork(true);
+                    return;
+                }
+
+                if (isDirty(contact.email)) {
+                    syncIfChanged();
+                }
             }
 
             function closeModal() {
@@ -1518,6 +1638,55 @@
                 }
             });
 
+            window.addEventListener('storage', function (event) {
+                updateButtonVisibility();
+                if (!event.key || event.key.indexOf(CACHE_PREFIX) !== 0) {
+                    return;
+                }
+                const email = event.key.slice(CACHE_PREFIX.length);
+                const contact = getUserContact();
+                if (!contact || contact.email !== email) {
+                    return;
+                }
+                const local = readLocalCache(email);
+                if (local) {
+                    applyCache(local.data, local.fetchedAt, true, local.stale, local.version);
+                    clearDirty(email);
+                }
+            });
+
+            window.addEventListener('xbody-appt-invalidate', function (event) {
+                const email = (event.detail && event.detail.email) || (getUserContact() && getUserContact().email);
+                if (email) {
+                    markDirty(email);
+                }
+            });
+
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.addEventListener('message', function (event) {
+                    if (!event.data || event.data.type !== 'xbody-appt-changed') {
+                        return;
+                    }
+                    const email = (event.data.email || '').trim().toLowerCase();
+                    const contact = getUserContact();
+                    if (email && contact && contact.email !== email) {
+                        return;
+                    }
+                    if (contact) {
+                        markDirty(contact.email);
+                    }
+                    if (!overlay.classList.contains('hidden')) {
+                        syncIfChanged();
+                    }
+                });
+            }
+
+            window.XBodyAppointments = {
+                markDirty: function (email) {
+                    markDirty((email || '').trim().toLowerCase() || (getUserContact() && getUserContact().email));
+                }
+            };
+
             updateButtonVisibility();
             if (scrollContainer) {
                 new MutationObserver(updateButtonVisibility).observe(scrollContainer, {
@@ -1525,7 +1694,6 @@
                     attributeFilter: ['class']
                 });
             }
-            window.addEventListener('storage', updateButtonVisibility);
         })();
     </script>
 </body>

@@ -16565,9 +16565,54 @@ async function handleAIXChat(request, env) {
 /**
  * GET /api/xbody/appointments?email=...&refresh=1
  * Returns upcoming and past Acuity appointments for the given client email.
- * Responses are cached in KV for 10 minutes unless refresh=1.
+ * Responses are cached in KV unless refresh=1.
+ *
+ * GET /api/xbody/appointments/version?email=...
+ * Lightweight KV-only check – returns version + fetchedAt without calling Acuity.
  */
 const XBODY_APPT_CACHE_TTL_SEC = 3600;
+
+function computeXbodyApptVersion(upcoming, past) {
+  const parts = [];
+  for (const item of [...(upcoming || []), ...(past || [])]) {
+    parts.push(String(item.id) + ':' + (item.datetime || '') + ':' + (item.canceled ? '1' : '0'));
+  }
+  parts.sort();
+  const str = parts.join('|');
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
+  }
+  return 'v' + (hash >>> 0).toString(36);
+}
+
+async function handleXbodyAppointmentsVersion(request, env) {
+  const url = new URL(request.url);
+  const email = String(url.searchParams.get('email') || '').trim().toLowerCase();
+  if (!email || !email.includes('@')) {
+    return jsonResponse({ error: 'Липсва валиден имейл.' }, 400);
+  }
+
+  if (!env.page_content) {
+    return jsonResponse({ version: null, fetchedAt: null });
+  }
+
+  try {
+    const cached = await env.page_content.get(`xbody:appt:${email}`);
+    if (!cached) {
+      return jsonResponse({ version: null, fetchedAt: null }, 200, { cacheControl: 'private, no-cache' });
+    }
+    const payload = JSON.parse(cached);
+    const version = payload.version || computeXbodyApptVersion(payload.upcoming, payload.past);
+    return jsonResponse({
+      version: version,
+      fetchedAt: payload.fetchedAt || null
+    }, 200, { cacheControl: 'private, no-cache' });
+  } catch (err) {
+    console.warn('[xbody-appointments] version check failed:', err.message);
+    return jsonResponse({ version: null, fetchedAt: null }, 200, { cacheControl: 'private, no-cache' });
+  }
+}
 
 async function handleXbodyAppointments(request, env) {
   const userId = env.ACUITY_USER_ID;
@@ -16590,6 +16635,9 @@ async function handleXbodyAppointments(request, env) {
       const cached = await env.page_content.get(cacheKey);
       if (cached) {
         const payload = JSON.parse(cached);
+        if (!payload.version) {
+          payload.version = computeXbodyApptVersion(payload.upcoming, payload.past);
+        }
         return jsonResponse(payload, 200, { cacheControl: 'private, max-age=300' });
       }
     } catch (err) {
@@ -16657,7 +16705,12 @@ async function handleXbodyAppointments(request, env) {
 
   upcoming.sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime());
 
-  const payload = { upcoming, past, fetchedAt: Date.now() };
+  const payload = {
+    upcoming,
+    past,
+    fetchedAt: Date.now(),
+    version: computeXbodyApptVersion(upcoming, past)
+  };
 
   if (env.page_content) {
     try {
@@ -16929,6 +16982,10 @@ export default {
         const rlErr = await checkRateLimit(env, request, 'CHAT');
         if (rlErr) return rlErr;
         return await handleAIXChat(request, env);
+      } else if (url.pathname === '/api/xbody/appointments/version' && request.method === 'GET') {
+        const rlErr = await checkRateLimit(env, request, 'XBODY_APPOINTMENTS');
+        if (rlErr) return rlErr;
+        return await handleXbodyAppointmentsVersion(request, env);
       } else if (url.pathname === '/api/xbody/appointments' && request.method === 'GET') {
         const rlErr = await checkRateLimit(env, request, 'XBODY_APPOINTMENTS');
         if (rlErr) return rlErr;
