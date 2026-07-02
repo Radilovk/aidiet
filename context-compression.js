@@ -395,19 +395,6 @@ export function serializeWeekPlanSummary(weekPlan) {
   return lines.join('\n');
 }
 
-/** Compact 7-day meal names for weekly adaptation prompts (not admin patch paths). */
-export function serializeWeekPlanWeeklyCompact(weekPlan) {
-  if (!weekPlan || typeof weekPlan !== 'object') return '';
-  const lines = ['#WP v1'];
-  for (const dayKey of Object.keys(weekPlan).sort().slice(0, 7)) {
-    const meals = weekPlan[dayKey]?.meals;
-    if (!meals?.length) continue;
-    const names = meals.map((m) => esc(m.name || '')).filter(Boolean).join('+');
-    if (names) lines.push(`${dayKey}|${names}`);
-  }
-  return lines.length > 1 ? lines.join('\n') : '';
-}
-
 /**
  * Full week plan for admin AI — every meal with kcal, grams, macros, patch path.
  * @param {object} weekPlan

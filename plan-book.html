@@ -1798,7 +1798,6 @@
         }
     </style>
 <script src="./platform.js"></script>
-<script src="./plan-utils.js"></script>
 </head>
 <body>
 
@@ -2004,7 +2003,69 @@
         'use strict';
 
         // ===== HELPERS =====
-        // plan-utils.js: correctPlanCalories
+
+        // Calorie corrector: fixes per-meal calorie inconsistencies and sets free-meal planned calories
+        var BOOK_DAY_NUMBER_TO_KEY = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+        function correctPlanCalories(plan) {
+            if (!plan || !plan.weekPlan) return;
+            Object.keys(plan.weekPlan).forEach(function(dayKey) {
+                var dayData = plan.weekPlan[dayKey];
+                if (!dayData || !Array.isArray(dayData.meals)) return;
+                var dayNum = parseInt(dayKey.replace('day', ''), 10);
+                var weekdayKey = (dayNum >= 1 && dayNum <= 7) ? BOOK_DAY_NUMBER_TO_KEY[dayNum - 1] : null;
+                var totalCal = 0, totalProtein = 0, totalCarbs = 0, totalFats = 0;
+                dayData.meals.forEach(function(meal) {
+                    if (meal.type === 'Свободно хранене') {
+                        var freeCal = 0;
+                        if (plan.strategy && plan.strategy.weeklyScheme && weekdayKey) {
+                            var ds = plan.strategy.weeklyScheme[weekdayKey];
+                            if (ds && Array.isArray(ds.mealBreakdown)) {
+                                var lunchEntry = ds.mealBreakdown.find(function(m) {
+                                    return m.type === 'Хранене 2' || m.type === 'Свободно хранене';
+                                });
+                                if (lunchEntry && lunchEntry.calories) freeCal = parseInt(lunchEntry.calories) || 0;
+                            }
+                            if (!freeCal && plan.strategy.weeklyScheme[weekdayKey]) {
+                                var ds2 = plan.strategy.weeklyScheme[weekdayKey];
+                                if (ds2.calories && ds2.meals) freeCal = Math.round(ds2.calories / ds2.meals);
+                            }
+                        }
+                        if (freeCal > 0) meal._plannedCalories = freeCal;
+                        totalCal += freeCal;
+                        if (plan.strategy && plan.strategy.weeklyScheme && weekdayKey) {
+                            var dsFree = plan.strategy.weeklyScheme[weekdayKey];
+                            if (dsFree && Array.isArray(dsFree.mealBreakdown)) {
+                                var freeEntry = dsFree.mealBreakdown.find(function(m) {
+                                    return m.type === 'Хранене 2' || m.type === 'Свободно хранене';
+                                });
+                                if (freeEntry) {
+                                    totalProtein += parseFloat(freeEntry.protein) || 0;
+                                    totalCarbs += parseFloat(freeEntry.carbs) || 0;
+                                    totalFats += parseFloat(freeEntry.fats) || 0;
+                                }
+                            }
+                        }
+                        return;
+                    }
+                    if (meal.macros) {
+                        var p = parseFloat(meal.macros.protein) || 0;
+                        var c = parseFloat(meal.macros.carbs) || 0;
+                        var f = parseFloat(meal.macros.fats) || 0;
+                        var calcCal = Math.round(p * 4 + c * 4 + f * 9);
+                        if (calcCal > 0) meal.calories = calcCal;
+                        totalProtein += p;
+                        totalCarbs += c;
+                        totalFats += f;
+                    }
+                    totalCal += parseInt(meal.calories) || 0;
+                });
+                if (!dayData.dailyTotals) dayData.dailyTotals = {};
+                dayData.dailyTotals.calories = totalCal;
+                if (totalProtein > 0) dayData.dailyTotals.protein = Math.round(totalProtein);
+                if (totalCarbs > 0) dayData.dailyTotals.carbs = Math.round(totalCarbs);
+                if (totalFats > 0) dayData.dailyTotals.fats = Math.round(totalFats);
+            });
+        }
 
         function esc(text) {
             if (!text) return '';
