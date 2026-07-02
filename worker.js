@@ -1,30 +1,472 @@
-import {
-  serializeUserProfile,
-  serializeBackendCalculations,
-  serializeAnalysisForStep,
-  serializeStrategyForMealPlan,
-  serializeWeeklySchemeTargets,
-  serializePreviousDays,
-  serializeWeekPlanSummary,
-  serializeWeekPlanWeeklyCompact,
-  serializeWeekPlanAdmin,
-  formatPromptValue,
-  estimateTokenCount,
-} from './context-compression.js';
-import {
-  buildAnalyticsSummary,
-  serializeAnalyticsBlock,
-} from './analytics-compression.js';
-import {
-  applyJsonPatches,
-  buildPatchDocument,
-  mergePatchDocument,
-} from './json-patch.js';
-import {
-  buildClientCard,
-  serializePlanSummary,
-} from './client-card.js';
+// ═══ NPCF context-compression (inlined) ═══
+/**
+ * NutriPlan Context Format (NPCF) — domain-specific token compression
+ * for AI plan generation prompts. Lossless for medical/clinical fields.
+ *
+ * Tiers:
+ *   full     — Step 1 analysis (all questionnaire fields, deduped vs notes sections)
+ *   strategy — Step 2 (behavior + diet + medical summary)
+ *   meal     — Step 3 chunks (minimal profile fields)
+ *   summary  — Step 4 (identity + goal + health flags)
+ */
 
+/** @typedef {'full'|'strategy'|'meal'|'summary'} ProfileTier */
+
+const NP_LEGEND = '#NP v1 | U=идентичност L=начин_на_живот B=история H=навици D=диета M=медицина CP=протокол';
+
+const METADATA_KEYS = new Set([
+  '_dq_text_map', 'files', 'plan', 'planStatus', 'planModifications',
+  'userId', 'clientId', 'timestamp', 'id', 'email',
+]);
+
+const CONDITION_DETAIL_KEYS = new Set([
+  'medicalConditions_Сърдечно-съдови_детайл',
+  'medicalConditions_Ендокринни_детайл',
+  'medicalConditions_Храносмилателни_детайл',
+  'medicalConditions_Метаболитни_детайл',
+  'medicalConditions_Мускулно-скелетни_детайл',
+  'medicalConditions_Алергии',
+  'medicalConditions_Автоимунно',
+]);
+
+const PROTOCOL_FIELD_IDS = new Set([
+  'bloodSugarLevels', 'insulinResistanceSymptoms', 'familyDiabetes',
+  'autoimmuneDiagnosis', 'autoimmuneFlares', 'foodSensitivities', 'triggerFoods',
+  'giSymptoms', 'bowelFrequency', 'giTriggers',
+  'menopauseStatus', 'menopauseSymptoms', 'strengthTraining',
+  'celluliteAreas', 'waterRetention', 'sedentaryHours',
+  'stressSources', 'stressSymptoms', 'relaxationPractices',
+  'postpartumStatus', 'breastfeedingFrequency', 'postpartumGoal',
+  'waistCircumference', 'fatDistribution', 'metabolicSyndrome',
+  'smokingHistory', 'quitDuration', 'cravingsTriggers', 'weightGainConcern',
+  'fastingExperience', 'longevityGoals', 'currentSupplements', 'longevitySupplDetails',
+  'detoxReason', 'toxinExposure', 'liverSymptoms',
+]);
+
+const MEAL_TYPE_SHORT = {
+  'Хранене 1': 'H1',
+  'Хранене 2': 'H2',
+  'Хранене 3': 'H3',
+  'Хранене 4': 'H4',
+  'Хранене 5': 'H5',
+  'Свободно хранене': 'SF',
+};
+
+const DAY_KEY_SHORT = {
+  monday: 'пн', tuesday: 'вт', wednesday: 'ср', thursday: 'чт',
+  friday: 'пт', saturday: 'сб', sunday: 'нд',
+};
+
+/**
+ * @param {unknown} value
+ * @returns {boolean}
+ */
+function hasContent(value) {
+  if (value == null || value === '') return false;
+  if (typeof value === 'string' || Array.isArray(value)) return value.length > 0;
+  return true;
+}
+
+/**
+ * @param {unknown} value
+ * @returns {string}
+ */
+function esc(value) {
+  if (value == null || value === '') return '';
+  const s = Array.isArray(value) ? value.filter(Boolean).join('+') : String(value).trim();
+  return s.replace(/\|/g, '/').replace(/\n+/g, ' ').replace(/\s+/g, ' ');
+}
+
+/**
+ * @param {Record<string, unknown>} data
+ * @param {{ excludeAggregatedNotes?: boolean, excludeClinicalProtocol?: boolean }} opts
+ */
+function getExcludedKeys(data, opts = {}) {
+  const excluded = new Set(METADATA_KEYS);
+  if (opts.excludeAggregatedNotes) {
+    excluded.add('additionalNotes');
+    for (const key of CONDITION_DETAIL_KEYS) excluded.add(key);
+    for (const key of PROTOCOL_FIELD_IDS) excluded.add(key);
+    for (const key of Object.keys(data)) {
+      if (key.startsWith('dq_')) excluded.add(key);
+    }
+  }
+  if (opts.excludeClinicalProtocol) {
+    excluded.add('clinicalProtocol');
+    excluded.add('clinicalProtocolName');
+  }
+  return excluded;
+}
+
+/**
+ * Serialize user profile for plan generation prompts.
+ * @param {Record<string, unknown>} data
+ * @param {ProfileTier} tier
+ * @param {{ hasNotesSection?: boolean, hasClinicalSection?: boolean }} [options]
+ * @returns {string}
+ */
+function serializeUserProfile(data, tier = 'full', options = {}) {
+  if (!data || typeof data !== 'object') return '';
+
+  const excludeOpts = {
+    excludeAggregatedNotes: tier === 'full' && !!options.hasNotesSection,
+    excludeClinicalProtocol: tier === 'full' && !!options.hasClinicalSection,
+  };
+  const excluded = getExcludedKeys(data, excludeOpts);
+
+  if (tier === 'meal') {
+    const lines = [
+      `${NP_LEGEND} tier=meal`,
+      `U|${esc(data.name)}|${esc(data.age)}|${esc(data.gender?.[0] || data.gender)}|${esc(data.goal)}`,
+      `L|sleep=${esc(data.sleepHours)}|chr=${esc(data.chronotype)}|str=${esc(data.stressLevel)}`,
+      `D|love=${esc(data.dietLove)}|avoid=${esc(data.dietDislike)}`,
+      `M|${esc(data.medicalConditions)}|meds=${esc(data.medications === 'Да' ? data.medicationsDetails || 'Да' : 'Не')}`,
+    ];
+    return lines.filter(l => !l.endsWith('=') && !l.endsWith('|')).join('\n');
+  }
+
+  if (tier === 'summary') {
+    return [
+      `${NP_LEGEND} tier=summary`,
+      `U|${esc(data.name)}|${esc(data.age)}|${esc(data.gender)}|${esc(data.goal)}`,
+      `M|${esc(data.medicalConditions)}|meds=${esc(data.medications === 'Да' ? data.medicationsDetails || 'Да' : 'не')}`,
+      `L|str=${esc(data.stressLevel)}|sleep=${esc(data.sleepHours || data.sleepDuration)}|act=${esc(data.sportActivity || data.dailyActivityLevel)}`,
+    ].join('\n');
+  }
+
+  if (tier === 'strategy') {
+    return [
+      `${NP_LEGEND} tier=strategy`,
+      `U|${esc(data.name)}|${esc(data.age)}|${esc(data.gender)}|${esc(data.weight)}|${esc(data.height)}|${esc(data.goal)}|${esc(data.lossKg)}kg`,
+      `L|sleep=${esc(data.sleepHours)}|intr=${esc(data.sleepInterrupt)}|chr=${esc(data.chronotype)}|act=${esc(data.dailyActivityLevel)}|str=${esc(data.stressLevel)}|sport=${esc(data.sportActivity)}|water=${esc(data.waterIntake)}|sweet=${esc(data.drinksSweet)}|alc=${esc(data.drinksAlcohol)}`,
+      `B|wgChg=${esc(data.weightChange)}|wgDet=${esc(data.weightChangeDetails)}|dHist=${esc(data.dietHistory)}|dType=${esc(data.dietType || data.dietHistoryType)}|dRes=${esc(data.dietResult || data.dietHistoryResult)}|ovr=${esc(data.overeatingFrequency)}`,
+      `H|hab=${esc(data.eatingHabits)}|crv=${esc(data.foodCravings)}|trg=${esc(data.foodTriggers)}|cmp=${esc(data.compensationMethods)}|soc=${esc(data.socialComparison)}`,
+      `D|pref=${esc(data.dietPreference)}|love=${esc(data.dietLove)}|avoid=${esc(data.dietDislike)}|prefO=${esc(data.dietPreference_other)}|goalO=${esc(data.goal_other)}`,
+      `M|${esc(data.medicalConditions)}|meds=${esc(data.medications)}|medDet=${esc(data.medicationsDetails)}|medO=${esc(data.medicalConditions_other)}`,
+      data.clinicalProtocol ? `CP|${esc(data.clinicalProtocol)}` : '',
+    ].filter(Boolean).join('\n');
+  }
+
+  // tier === 'full' — lossless compact lines, skip fields rendered elsewhere
+  const lines = [`${NP_LEGEND} tier=full`];
+
+  lines.push(`U|${esc(data.name)}|${esc(data.age)}|${esc(data.gender)}|${esc(data.weight)}|${esc(data.height)}|${esc(data.goal)}|${esc(data.lossKg)}kg`);
+
+  const lifestyle = [
+    data.sleepHours != null ? `sleep=${esc(data.sleepHours)}` : '',
+    data.sleepInterrupt ? `intr=${esc(data.sleepInterrupt)}` : '',
+    data.chronotype ? `chr=${esc(data.chronotype)}` : '',
+    data.dailyActivityLevel ? `act=${esc(data.dailyActivityLevel)}` : '',
+    data.stressLevel ? `str=${esc(data.stressLevel)}` : '',
+    data.sportActivity ? `sport=${esc(data.sportActivity)}` : '',
+    data.waterIntake ? `water=${esc(data.waterIntake)}` : '',
+    data.drinksSweet ? `sweet=${esc(data.drinksSweet)}` : '',
+    data.drinksAlcohol ? `alc=${esc(data.drinksAlcohol)}` : '',
+  ].filter(Boolean).join('|');
+  if (lifestyle) lines.push(`L|${lifestyle}`);
+
+  const history = [
+    data.weightChange ? `wgChg=${esc(data.weightChange)}` : '',
+    data.weightChangeDetails ? `wgDet=${esc(data.weightChangeDetails)}` : '',
+    data.dietHistory ? `dHist=${esc(data.dietHistory)}` : '',
+    data.dietType || data.dietHistoryType ? `dType=${esc(data.dietType || data.dietHistoryType)}` : '',
+    data.dietResult || data.dietHistoryResult ? `dRes=${esc(data.dietResult || data.dietHistoryResult)}` : '',
+    data.overeatingFrequency ? `ovr=${esc(data.overeatingFrequency)}` : '',
+  ].filter(Boolean).join('|');
+  if (history) lines.push(`B|${history}`);
+
+  const habits = [
+    hasContent(data.eatingHabits) ? `hab=${esc(data.eatingHabits)}` : '',
+    hasContent(data.foodCravings) ? `crv=${esc(data.foodCravings)}` : '',
+    data.foodCravings_other ? `crvO=${esc(data.foodCravings_other)}` : '',
+    hasContent(data.foodTriggers) ? `trg=${esc(data.foodTriggers)}` : '',
+    data.foodTriggers_other ? `trgO=${esc(data.foodTriggers_other)}` : '',
+    hasContent(data.compensationMethods) ? `cmp=${esc(data.compensationMethods)}` : '',
+    data.compensationMethods_other ? `cmpO=${esc(data.compensationMethods_other)}` : '',
+    data.socialComparison ? `soc=${esc(data.socialComparison)}` : '',
+  ].filter(Boolean).join('|');
+  if (habits) lines.push(`H|${habits}`);
+
+  const diet = [
+    hasContent(data.dietPreference) ? `pref=${esc(data.dietPreference)}` : '',
+    data.dietPreference_other ? `prefO=${esc(data.dietPreference_other)}` : '',
+    data.dietLove ? `love=${esc(data.dietLove)}` : '',
+    data.dietDislike ? `avoid=${esc(data.dietDislike)}` : '',
+    data.goal_other ? `goalO=${esc(data.goal_other)}` : '',
+  ].filter(Boolean).join('|');
+  if (diet) lines.push(`D|${diet}`);
+
+  const med = [
+    hasContent(data.medicalConditions) ? esc(data.medicalConditions) : '',
+    data.medications ? `meds=${esc(data.medications)}` : '',
+    data.medicationsDetails ? `medDet=${esc(data.medicationsDetails)}` : '',
+    data.medicalConditions_other ? `medO=${esc(data.medicalConditions_other)}` : '',
+  ].filter(Boolean).join('|');
+  if (med) lines.push(`M|${med}`);
+
+  if (data.clinicalProtocol && !excludeOpts.excludeClinicalProtocol) {
+    lines.push(`CP|${esc(data.clinicalProtocol)}`);
+  }
+
+  // Residual fields not covered above (lossless catch-all)
+  const covered = new Set([
+    'name', 'age', 'gender', 'weight', 'height', 'goal', 'lossKg',
+    'sleepHours', 'sleepInterrupt', 'chronotype', 'dailyActivityLevel', 'stressLevel',
+    'sportActivity', 'waterIntake', 'drinksSweet', 'drinksAlcohol',
+    'weightChange', 'weightChangeDetails', 'dietHistory', 'dietType', 'dietHistoryType',
+    'dietResult', 'dietHistoryResult', 'overeatingFrequency',
+    'eatingHabits', 'foodCravings', 'foodCravings_other', 'foodTriggers', 'foodTriggers_other',
+    'compensationMethods', 'compensationMethods_other', 'socialComparison',
+    'dietPreference', 'dietPreference_other', 'dietLove', 'dietDislike', 'goal_other',
+    'medicalConditions', 'medications', 'medicationsDetails', 'medicalConditions_other',
+    'clinicalProtocol', 'clinicalProtocolName',
+  ]);
+  for (const key of excluded) covered.add(key);
+
+  const extras = [];
+  for (const [key, value] of Object.entries(data)) {
+    if (covered.has(key) || excluded.has(key)) continue;
+    if (value == null || value === '' || (Array.isArray(value) && !value.length)) continue;
+    extras.push(`${key}=${esc(value)}`);
+  }
+  if (extras.length) lines.push(`X|${extras.join('|')}`);
+
+  return lines.join('\n');
+}
+
+/**
+ * @param {{ activityScore?: object, bmr?: number, tdee?: number, safeDeficit_reference?: object, baselineMacros?: object }} calc
+ * @returns {string}
+ */
+function serializeBackendCalculations(calc) {
+  if (!calc) return '';
+  const lines = ['#BC v1'];
+  const as = calc.activityScore;
+  if (as) {
+    lines.push(`AS|sc=${as.combinedScore ?? ''}|lv=${esc(as.activityLevel)}`);
+  }
+  if (calc.bmr != null || calc.tdee != null) {
+    lines.push(`BM|bmr=${calc.bmr ?? ''}|tdee=${calc.tdee ?? ''}`);
+  }
+  const df = calc.safeDeficit_reference;
+  if (df) {
+    lines.push(`DF|tgt=${df.targetCalories ?? ''}|pct=${df.deficitPercent ?? ''}|max=${df.maxDeficitCalories ?? ''}`);
+  }
+  const mc = calc.baselineMacros;
+  if (mc) {
+    lines.push(`MC|p=${mc.protein ?? ''}%|c=${mc.carbs ?? ''}%|f=${mc.fats ?? ''}%|pkg=${mc.proteinGramsPerKg ?? ''}`);
+  }
+  return lines.join('\n');
+}
+
+/**
+ * Compact analysis block for inter-step prompts.
+ * @param {object} analysis
+ * @param {2|3|4} step
+ */
+function serializeAnalysisForStep(analysis, step) {
+  if (!analysis) return '';
+  if (step === 3) {
+    const cals = analysis.Final_Calories || analysis.recommendedCalories || '';
+    const mr = analysis.macroRatios;
+    const mg = analysis.macroGrams;
+    return [
+      '#AN v1 step=3',
+      `bmr=${analysis.bmr ?? ''}|cal=${cals}`,
+      mr ? `pct|P${mr.protein ?? ''}/C${mr.carbs ?? ''}/F${mr.fats ?? ''}` : '',
+      mg ? `g|P${mg.protein ?? ''}/C${mg.carbs ?? ''}/F${mg.fats ?? ''}` : '',
+    ].filter(Boolean).join('\n');
+  }
+  if (step === 4) {
+    const probs = (analysis.keyProblems || []).slice(0, 6).map(p =>
+      `${esc(p.title)}:${p.severity || ''}`
+    ).join('+');
+    const needs = (analysis.nutritionalNeeds || analysis.nutritionalDeficiencies || []).slice(0, 5).join('+');
+    return [
+      '#AN v1 step=4',
+      `bmr=${analysis.bmr ?? ''}|cal=${analysis.Final_Calories || analysis.recommendedCalories || ''}`,
+      analysis.psychoProfile?.temperament ? `temp=${esc(analysis.psychoProfile.temperament)}@${analysis.psychoProfile.probability ?? 0}%` : '',
+      analysis.psychologicalProfile ? `psy=${esc(String(analysis.psychologicalProfile).slice(0, 400))}` : '',
+      probs ? `prob=${probs}` : '',
+      needs ? `need=${esc(needs)}` : '',
+    ].filter(Boolean).join('\n');
+  }
+  // step 2
+  const cm = analysis.correctedMetabolism || {};
+  const mg = analysis.macroGrams || {};
+  const mr = analysis.macroRatios || {};
+  return [
+    '#AN v1 step=2',
+    `bmi=${analysis.bmi ?? ''}|bmr=${cm.realBMR ?? analysis.bmr ?? ''}|tdee=${cm.realTDEE ?? ''}`,
+    `temp=${esc(analysis.psychoProfile?.temperament)}@${analysis.psychoProfile?.probability ?? 0}%`,
+    `pct|P${mr.protein ?? ''}/C${mr.carbs ?? ''}/F${mr.fats ?? ''}`,
+    `g|P${mg.protein ?? ''}/C${mg.carbs ?? ''}/F${mg.fats ?? ''}`,
+  ].join('\n');
+}
+
+/**
+ * @param {object} strategy
+ * @returns {string}
+ */
+function serializeStrategyForMealPlan(strategy) {
+  if (!strategy) return '';
+  const inc = (strategy.preferredFoodCategories || strategy.foodsToInclude || []).join('+');
+  const avoid = (strategy.avoidFoodCategories || strategy.foodsToAvoid || []).join('+');
+  const principles = (strategy.keyPrinciples || []).join(';');
+  return [
+    '#ST v1',
+    `type=${esc(strategy.dietType || strategy.dietaryModifier || 'Балансирана')}|pat=${esc(strategy.weeklyMealPattern)}`,
+    `timing=${esc(strategy.mealTiming?.pattern || strategy.mealTiming)}|mod=${esc(strategy.dietaryModifier)}`,
+    principles ? `pr=${esc(principles)}` : '',
+    inc ? `in=${esc(inc)}` : '',
+    avoid ? `out=${esc(avoid)}` : '',
+    strategy.calorieDistribution ? `cd=${esc(String(strategy.calorieDistribution).slice(0, 200))}` : '',
+    strategy.macroDistribution ? `md=${esc(String(strategy.macroDistribution).slice(0, 200))}` : '',
+    strategy.freeDayNumber != null ? `free=D${strategy.freeDayNumber}` : '',
+    strategy.includeDessert === false ? 'dessert=0' : '',
+  ].filter(Boolean).join('\n');
+}
+
+/**
+ * Compact weekly calorie/macro targets for meal plan chunks.
+ * @param {object} strategy
+ * @param {number} startDay
+ * @param {number} endDay
+ * @param {number} recommendedCalories
+ * @param {Record<number, string>} dayNumberToKey
+ * @param {number} calorieTolerance
+ */
+function serializeWeeklySchemeTargets(strategy, startDay, endDay, recommendedCalories, dayNumberToKey, calorieTolerance = 50) {
+  const freeDayNum = strategy?.freeDayNumber != null ? Number(strategy.freeDayNumber) : null;
+  const lines = [`#WK v1 ±${calorieTolerance}kcal | H1-H5=Хранене1-5 SF=Свободно`];
+
+  for (let d = startDay; d <= endDay; d++) {
+    const key = dayNumberToKey[d - 1];
+    const dayTarget = strategy?.weeklyScheme?.[key];
+    const kcal = dayTarget?.calories || recommendedCalories;
+    const macro = dayTarget?.protein != null
+      ? `/B${dayTarget.protein}C${dayTarget.carbs}M${dayTarget.fats}`
+      : '';
+    const freeTag = (freeDayNum != null && d === freeDayNum) ? '*SF' : '';
+    let line = `D${d}/${DAY_KEY_SHORT[key] || key}:${kcal}${macro}${freeTag}`;
+
+    if (dayTarget?.mealBreakdown?.length) {
+      const meals = dayTarget.mealBreakdown.map(m => {
+        const t = MEAL_TYPE_SHORT[m.type] || m.type;
+        if (m.type === 'Свободно хранене') {
+          return `${t}:${m.calories ?? 0}/B${m.protein ?? 0}C${m.carbs ?? 0}M${m.fats ?? 0}`;
+        }
+        return `${t}:${m.calories}/B${m.protein}C${m.carbs}M${m.fats}`;
+      }).join(',');
+      line += `|${meals}`;
+    }
+    lines.push(line);
+  }
+  return lines.join('\n');
+}
+
+/**
+ * @param {Array<{day: number, meals: Array<{name: string}>}>} previousDays
+ * @returns {string}
+ */
+function serializePreviousDays(previousDays) {
+  if (!previousDays?.length) return '';
+  const parts = previousDays.map(d => {
+    const names = (d.meals || []).map(m => esc(m.name)).join(',');
+    return `D${d.day}:${names}`;
+  });
+  return `#PD v1 ${parts.join('|')}`;
+}
+
+/**
+ * Compact week plan for summary step (names + calories only).
+ * @param {object} weekPlan
+ */
+function serializeWeekPlanSummary(weekPlan) {
+  if (!weekPlan) return '';
+  const lines = ['#PL v1'];
+  for (const [dayKey, dayData] of Object.entries(weekPlan)) {
+    if (!dayData?.meals) continue;
+    const meals = dayData.meals.map(m => {
+      const t = (m.type || '?')[0];
+      return `${t}:${esc(m.name)}@${m.calories ?? 0}`;
+    }).join(',');
+    lines.push(`${dayKey}|${meals}`);
+  }
+  return lines.join('\n');
+}
+
+/**
+ * Full week plan for admin AI — every meal with kcal, grams, macros, patch path.
+ * @param {object} weekPlan
+ */
+/** Compact 7-day meal names for weekly adaptation prompts (not admin patch paths). */
+function serializeWeekPlanWeeklyCompact(weekPlan) {
+  if (!weekPlan || typeof weekPlan !== 'object') return '';
+  const lines = ['#WP v1'];
+  for (const dayKey of Object.keys(weekPlan).sort().slice(0, 7)) {
+    const meals = weekPlan[dayKey]?.meals;
+    if (!meals?.length) continue;
+    const names = meals.map((m) => esc(m.name || '')).filter(Boolean).join('+');
+    if (names) lines.push(`${dayKey}|${names}`);
+  }
+  return lines.length > 1 ? lines.join('\n') : '';
+}
+
+function serializeWeekPlanAdmin(weekPlan) {
+  if (!weekPlan) return '';
+  const lines = ['#PL v2 admin|day|idx|type|name|kcal|g|P|C|F|patch'];
+  for (const [dayKey, dayData] of Object.entries(weekPlan)) {
+    if (!dayData?.meals?.length) continue;
+    const meals = dayData.meals;
+    let dayKcal = 0;
+    let dayP = 0;
+    let dayC = 0;
+    let dayF = 0;
+    for (let i = 0; i < meals.length; i++) {
+      const m = meals[i];
+      const type = MEAL_TYPE_SHORT[m.type] || esc(String(m.type || '?').slice(0, 3));
+      const kcal = Number(m.calories) || 0;
+      const g = parseInt(String(m.weight || '0').replace(/[^\d]/g, ''), 10) || 0;
+      const p = Number(m.macros?.protein) || 0;
+      const c = Number(m.macros?.carbs) || 0;
+      const f = Number(m.macros?.fats ?? m.macros?.fat) || 0;
+      dayKcal += kcal;
+      dayP += p;
+      dayC += c;
+      dayF += f;
+      const patch = `/plan/weekPlan/${dayKey}/meals/${i}`;
+      lines.push(`${dayKey}|${i}|${type}|${esc(m.name)}|${kcal}|${g}|${p}|${c}|${f}|${patch}`);
+    }
+    lines.push(`${dayKey}|T|—|ден_общо|${dayKcal}|—|${dayP}|${dayC}|${dayF}|`);
+  }
+  return lines.join('\n');
+}
+
+/**
+ * @param {unknown} value
+ * @returns {string}
+ */
+function formatPromptValue(value) {
+  if (value == null) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
+}
+
+/**
+ * @param {string} text
+ * @returns {number}
+ */
+function estimateTokenCount(text) {
+  if (!text) return 0;
+  const cyrillicChars = (text.match(/[\u0400-\u04FF]/g) || []).length;
+  const cyrillicRatio = cyrillicChars / text.length;
+  const charsPerToken = 4 - cyrillicRatio;
+  return Math.ceil(text.length / charsPerToken);
+}
+
+// ═══ End NPCF ═══
 
 /**
  * Cloudflare Worker for AI Diet Application
@@ -3300,6 +3742,14 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
     const weeklySection = buildWeeklyAdaptationContextSection(data);
     if (weeklySection && !prompt.includes('СЕДМИЧНА АДАПТАЦИЯ')) prompt += weeklySection;
 
+    if (!prompt.includes('ЗАДЪЛЖИТЕЛНО: ГРАМАЖИ В DESCRIPTION')) {
+      prompt += `
+
+═══ ЗАДЪЛЖИТЕЛНО: ТИ СМЯТАШ ГРАМАЖИ И МАКРОСИ ═══
+За всяко хранене: грамаж "числоg" на всеки продукт в description, meal.macros и meal.calories = целите от mealBreakdown (±${DAILY_CALORIE_TOLERANCE} kcal, ±${MACRO_GRAM_TOLERANCE}g macro). protein×4+carbs×4+fats×9≈calories.`;
+    }
+    
+    // CRITICAL: Ensure JSON format instructions are included even with custom prompts
     if (!hasJsonFormatInstructions(prompt)) {
       prompt += `
 
@@ -3310,12 +3760,12 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
 {
   "dayN": {
     "meals": [
-      {"type": "Хранене 1|Хранене 2|Свободно хранене|Хранене 3|Хранене 4|Хранене 5", "name": "име", "weight": "Xg", "description": "• продукт\\n• продукт", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число}}
+      {"type": "Хранене 1|Хранене 2|Свободно хранене|Хранене 3|Хранене 4|Хранене 5", "name": "име", "weight": "Xg", "description": "продукт 200g; продукт 150g", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число}}
     ]
   }
 }
 
-ВАЖНО: Върни САМО JSON обект {} без други текст или обяснения! НЕ връщай JSON масив []! БЕЗ dailyTotals и БЕЗ benefits! Грамажите се смятат автоматично от системата.`;
+ВАЖНО: Върни САМО JSON обект {} без други текст или обяснения! НЕ връщай JSON масив []! БЕЗ dailyTotals и БЕЗ benefits!`;
     }
     if (analysisBlock && !prompt.includes('#AN v1')) {
       prompt = prompt.replace(
@@ -3367,6 +3817,10 @@ function applyMealEnrichment(weekPlan, enrichmentData, startDay, endDay) {
       const enriched = enrichedDay.meals.find(m => m.type === meal.type) || enrichedDay.meals[i];
       if (!enriched) continue;
       if (enriched.name) meal.name = enriched.name;
+      // Step 5 often strips grams — only accept enriched description if it still has them
+      if (enriched.description && hasGramsInDescription(enriched.description)) {
+        meal.description = enriched.description;
+      }
       if (enriched.benefits) meal.benefits = enriched.benefits;
     }
   }
@@ -3385,13 +3839,14 @@ async function generateMealEnrichmentPrompt(data, strategy, weekPlan, startDay, 
     additionalNotes: buildCombinedAdditionalNotes(data),
     mealsSkeletonJSON,
     startDay,
-    endDay
+    endDay,
+    MEAL_NAME_FORMAT_INSTRUCTIONS
   });
   if (!hasJsonFormatInstructions(prompt)) {
     prompt += `
 
 ═══ ФОРМАТ НА ОТГОВОР ═══
-Отговори САМО с валиден JSON обект. Запази type, weight, calories, macros, description и dessert без промяна. Обогати САМО name и benefits.`;
+Отговори САМО с валиден JSON обект. Запази type, weight, calories, macros и dessert без промяна. Обогати name, description и benefits.`;
   }
   return prompt;
 }
@@ -5356,6 +5811,633 @@ async function handleDeleteClients(request, env) {
   }
 }
 
+// ═══ Admin Assistant inlined modules (single worker deploy) ═══
+/**
+ * Server-side gamification analytics compression for admin client card (#AX v1).
+ * Mirrors game-scoring.js logic (plan.html / game-analytics.html).
+ */
+
+const HEALTH_WEIGHTS = {
+  engagement: 0.30,
+  sleep: 0.22,
+  balance: 0.18,
+  activity: 0.18,
+  water: 0.10,
+  extraCals: 0.05,
+};
+
+const JUNK_MAX_POINTS = 20;
+const JUNK_PENALTY_PER_MEAL = 7;
+
+function zp(n) { return n < 10 ? `0${n}` : `${n}`; }
+
+function dateKey(d = new Date()) {
+  return `${d.getFullYear()}-${zp(d.getMonth() + 1)}-${zp(d.getDate())}`;
+}
+
+function emptyDayScore() {
+  return { score: null, engPct: 0, junkCount: 0, calorieDelta: 0, calorieBalance: 'balanced' };
+}
+
+/**
+ * @param {object|null} rec
+ * @param {string} todayKey
+ */
+function calcDayScore(rec, todayKey) {
+  if (!rec) return emptyDayScore();
+  const meals = Object.keys(rec.meals || {});
+  let mealPts = 0;
+  const mealMax = meals.length * 10;
+
+  meals.forEach((m) => {
+    if (rec.meals[m] === true) mealPts += 10;
+  });
+
+  let junkCount = 0;
+  let extraCalSum = 0;
+  let freeMealCalSum = 0;
+  (rec.extraMeals || []).forEach((em) => {
+    const isConsumed = !em.isAddedToPlan || em.countCalories !== false;
+    if (em.isJunk && isConsumed && !em.isFreeMealReplacement) junkCount++;
+    if (em.isFreeMealReplacement) freeMealCalSum += (em.calories || 0);
+    else if (!(em.isAddedToPlan && !em.countCalories)) extraCalSum += (em.calories || 0);
+  });
+
+  const mealCalMap = rec.mealCalories || {};
+  let completedPlanCals = 0;
+  meals.forEach((mt) => {
+    if (rec.meals[mt] === true && mealCalMap[mt]) completedPlanCals += mealCalMap[mt];
+  });
+  const totalConsumed = completedPlanCals + extraCalSum + freeMealCalSum;
+  const planned = rec.plannedCalories ? (rec.plannedCalories + freeMealCalSum) : null;
+  let excessCalories = false;
+  let calorieBalance = 'balanced';
+  let calorieDelta = 0;
+
+  if (totalConsumed > 0 && planned && planned > 0) {
+    const excessPct = (totalConsumed - planned) / planned;
+    calorieDelta = Math.round(totalConsumed - planned);
+    if (excessPct > 0.10) { excessCalories = true; calorieBalance = 'surplus'; }
+    else if (excessPct > 0) { calorieBalance = 'surplus'; }
+    else if (excessPct < -0.10 && completedPlanCals > 0 && (rec.morningCheck || rec.eveningCheck)) {
+      const recDate = rec.date || todayKey;
+      const dayIsDone = recDate < todayKey || new Date().getHours() >= 20;
+      if (dayIsDone) calorieBalance = 'deficit';
+    }
+  } else if (extraCalSum > 0 && (!planned || planned === 0)) {
+    calorieDelta = extraCalSum;
+    if (extraCalSum > 200) { excessCalories = true; calorieBalance = 'surplus'; }
+    else if (extraCalSum > 50) { calorieBalance = 'surplus'; }
+  }
+
+  const sleepPts = rec.morningCheck ? (rec.morningCheck.sleptWell ? 10 : 0) : null;
+  const waterPts = rec.eveningCheck?.waterIntake != null ? (rec.eveningCheck.waterIntake ? 10 : 0) : null;
+  const activityPts = rec.eveningCheck?.activityLevel != null ? ([0, 0, 5, 10][rec.eveningCheck.activityLevel] || 0) : null;
+  const balancePts = rec.eveningCheck?.emotionalBalance != null ? ([0, 0, 5, 10][rec.eveningCheck.emotionalBalance] || 0) : null;
+  const wellnessEarned = (sleepPts || 0) + (waterPts || 0) + (activityPts || 0) + (balancePts || 0);
+  const wellnessMax = 40;
+
+  const allMealsOk = meals.length > 0 && meals.every((m) => rec.meals[m] === true);
+  const has5StarBlocker = !allMealsOk || excessCalories ||
+    (rec.morningCheck?.sleptWell === false) ||
+    (rec.eveningCheck?.waterIntake === false) ||
+    (rec.eveningCheck?.activityLevel === 1) ||
+    (rec.eveningCheck?.emotionalBalance === 1) ||
+    junkCount > 0;
+
+  const done = meals.filter((m) => rec.meals[m] === true).length;
+  const mealEngPct = meals.length > 0 ? (done / meals.length) * 50 : 0;
+  const mornEngPct = rec.morningCheck ? 15 : 0;
+  const eveEngPct = (rec.eveningCheck && (
+    rec.eveningCheck.activityLevel != null ||
+    rec.eveningCheck.emotionalBalance != null ||
+    rec.eveningCheck.waterIntake != null
+  )) ? 15 : 0;
+  const hasAnyEngagement = mealEngPct > 0 || mornEngPct > 0 || eveEngPct > 0 || junkCount > 0;
+  const junkPct = hasAnyEngagement ? Math.max(0, JUNK_MAX_POINTS - junkCount * JUNK_PENALTY_PER_MEAL) : 0;
+  const engPct = Math.round(mealEngPct + mornEngPct + eveEngPct + junkPct);
+
+  const totalMax = mealMax + wellnessMax;
+  const totalEarned = mealPts + wellnessEarned;
+  const hasAnyActivity = totalEarned > 0 || meals.length > 0;
+  let score = null;
+
+  if (totalMax > 0 && hasAnyActivity) {
+    const pct = totalEarned / totalMax;
+    if (pct >= 1.00 && !has5StarBlocker) score = 5;
+    else if (pct >= 0.80) score = 4;
+    else if (pct >= 0.55) score = 3;
+    else if (pct >= 0.30) score = 2;
+    else if (pct > 0) score = 1;
+    if (score === 5 && has5StarBlocker) score = 4;
+    if (score != null && score > 3 && (junkCount > 0 || excessCalories)) score = 3;
+    if (score != null && score > 2 && junkCount > 0 && excessCalories) score = 2;
+  }
+
+  return { score, engPct, junkCount, calorieDelta, calorieBalance, excessCalories };
+}
+
+function computeHealthIndex(m) {
+  let healthScore = 0;
+  let totalWeight = HEALTH_WEIGHTS.engagement;
+  healthScore += (m.engagementPct || 0) * HEALTH_WEIGHTS.engagement;
+
+  if (m.sleepPct != null) { healthScore += m.sleepPct * HEALTH_WEIGHTS.sleep; totalWeight += HEALTH_WEIGHTS.sleep; }
+  if (m.balancePct != null) { healthScore += m.balancePct * HEALTH_WEIGHTS.balance; totalWeight += HEALTH_WEIGHTS.balance; }
+  if (m.actPct != null) { healthScore += m.actPct * HEALTH_WEIGHTS.activity; totalWeight += HEALTH_WEIGHTS.activity; }
+  if (m.waterPct != null) { healthScore += m.waterPct * HEALTH_WEIGHTS.water; totalWeight += HEALTH_WEIGHTS.water; }
+
+  const extraCalsWeight = Math.max(0, 100 - Math.round((m.totalExtraCals || 0) / 700 * 100));
+  healthScore += extraCalsWeight * HEALTH_WEIGHTS.extraCals;
+  totalWeight += HEALTH_WEIGHTS.extraCals;
+
+  return Math.round(Math.max(0, Math.min(100, healthScore / totalWeight)));
+}
+
+function buildLast7Days(allData, todayKey) {
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const dd = new Date();
+    dd.setDate(dd.getDate() - i);
+    const key = dateKey(dd);
+    if (key <= todayKey) days.push({ key, rec: allData?.[key] || null });
+  }
+  return days;
+}
+
+function pctAvg(values) {
+  const valid = values.filter((v) => v != null);
+  return valid.length ? Math.round(valid.reduce((a, b) => a + b, 0) / valid.length) : null;
+}
+
+function calcStreak(days, todayKey) {
+  let streak = 0;
+  let streakStart = days.length - 1;
+  if (streakStart >= 0 && days[streakStart].key === todayKey &&
+      (!days[streakStart].rec || calcDayScore(days[streakStart].rec, todayKey).score == null)) {
+    streakStart--;
+  }
+  for (let si = streakStart; si >= 0; si--) {
+    const sc = days[si].rec ? calcDayScore(days[si].rec, todayKey).score : null;
+    if (sc != null && sc >= 4) streak++;
+    else break;
+  }
+  return streak;
+}
+
+function compactDayLine(d, todayKey) {
+  if (!d.rec) return `${d.key.slice(5)}:—`;
+  const s = calcDayScore(d.rec, todayKey);
+  const bal = s.calorieBalance === 'surplus' ? '+' : s.calorieBalance === 'deficit' ? '-' : '=';
+  return `${d.key.slice(5)}:${s.score ?? '—'}/${s.engPct}/${s.junkCount}/${bal}${Math.abs(s.calorieDelta)}`;
+}
+
+/**
+ * Build compact analytics summary from raw gameData.
+ * @param {Record<string, object>} gameData
+ * @param {object} [gameWeeklyAI]
+ */
+function buildAnalyticsSummary(gameData = {}, gameWeeklyAI = {}) {
+  const todayKey = dateKey();
+  const days = buildLast7Days(gameData, todayKey);
+  const weekScores = days.map((d) => (d.rec ? calcDayScore(d.rec, todayKey) : null));
+  const validScores = weekScores.filter((s) => s?.score != null);
+  const avgScore = validScores.length
+    ? Math.round(validScores.reduce((a, s) => a + s.score, 0) / validScores.length * 10) / 10
+    : null;
+
+  const engForAvg = days.map((d) => (d.rec ? calcDayScore(d.rec, todayKey).engPct : 0));
+  const engagementPct = Math.round(engForAvg.reduce((a, b) => a + b, 0) / days.length);
+
+  const extraCalsByDay = days.map((d) => {
+    if (!d.rec?.extraMeals) return 0;
+    return d.rec.extraMeals.reduce((s, em) => {
+      if (em.isFreeMealReplacement) return s;
+      if (em.isAddedToPlan && !em.countCalories) return s;
+      return s + (em.calories || 0);
+    }, 0);
+  });
+  const totalExtraCals = extraCalsByDay.reduce((s, v) => s + v, 0);
+
+  const calBalanceByDay = days.map((d) => (d.rec ? calcDayScore(d.rec, todayKey).calorieDelta : 0));
+  const netCalBalance = calBalanceByDay.reduce((s, v) => s + v, 0);
+
+  const sleepByDay = days.map((d) => (
+    d.rec?.morningCheck?.sleptWell != null ? (d.rec.morningCheck.sleptWell ? 100 : 0) : null
+  ));
+  const balanceByDay = days.map((d) => (
+    d.rec?.eveningCheck?.emotionalBalance != null
+      ? Math.round((d.rec.eveningCheck.emotionalBalance - 1) / 2 * 100) : null
+  ));
+  const actByDay = days.map((d) => (
+    d.rec?.eveningCheck?.activityLevel != null
+      ? Math.round((d.rec.eveningCheck.activityLevel - 1) / 2 * 100) : null
+  ));
+  const waterByDay = days.map((d) => (
+    d.rec?.eveningCheck?.waterIntake != null ? (d.rec.eveningCheck.waterIntake ? 100 : 0) : null
+  ));
+
+  const calAdherencePct = (() => {
+    const vals = [];
+    days.forEach((d) => {
+      if (!d.rec) return;
+      const mealCalMap = d.rec.mealCalories || {};
+      const consumed = Object.keys(d.rec.meals || {}).reduce((sum, mt) =>
+        sum + (d.rec.meals[mt] && mealCalMap[mt] ? mealCalMap[mt] : 0), 0);
+      const extra = (d.rec.extraMeals || []).reduce((sum, em) => {
+        if (em.isFreeMealReplacement || (em.isAddedToPlan && !em.countCalories)) return sum;
+        return sum + (em.calories || 0);
+      }, 0);
+      const total = consumed + extra;
+      const plan = d.rec.plannedCalories;
+      if (total > 0 && plan) vals.push(Math.min(100, Math.round(total / plan * 100)));
+    });
+    return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
+  })();
+
+  let junk7 = 0;
+  days.forEach((d) => {
+    (d.rec?.extraMeals || []).forEach((em) => {
+      const isConsumed = !em.isAddedToPlan || em.countCalories !== false;
+      if (em.isJunk && isConsumed) junk7++;
+    });
+  });
+
+  const pastScores = weekScores.slice(0, -1);
+  const firstHalf = pastScores.slice(0, Math.floor(pastScores.length / 2)).filter((s) => s?.score != null);
+  const lastHalf = pastScores.slice(Math.ceil(pastScores.length / 2)).filter((s) => s?.score != null);
+  let trend = 'flat';
+  if (lastHalf.length && firstHalf.length) {
+    const lh = lastHalf.reduce((a, s) => a + s.score, 0) / lastHalf.length;
+    const fh = firstHalf.reduce((a, s) => a + s.score, 0) / firstHalf.length;
+    if (lh > fh + 0.3) trend = 'up';
+    else if (fh > lh + 0.3) trend = 'down';
+  }
+
+  const healthIndex = computeHealthIndex({
+    engagementPct,
+    sleepPct: pctAvg(sleepByDay),
+    balancePct: pctAvg(balanceByDay),
+    actPct: pctAvg(actByDay),
+    waterPct: pctAvg(waterByDay),
+    totalExtraCals,
+  });
+
+  const daysWithData = days.filter((d) => d.rec).length;
+  if (daysWithData === 0) {
+    return {
+      status: 'empty',
+      daysRecorded: 0,
+      syncedAt: new Date().toISOString(),
+    };
+  }
+
+  return {
+    status: 'active',
+    healthIndex,
+    avgScore,
+    streak: calcStreak(days, todayKey),
+    adherence: engagementPct,
+    calAdherence: calAdherencePct,
+    junk7,
+    netCalBalance,
+    trend,
+    daysRecorded: daysWithData,
+    dimensions: {
+      eng: engagementPct,
+      slp: pctAvg(sleepByDay),
+      bal: pctAvg(balanceByDay),
+      act: pctAvg(actByDay),
+      wtr: pctAvg(waterByDay),
+    },
+    last7: days.map((d) => compactDayLine(d, todayKey)).join('|'),
+    weeklyAI: {
+      lastRun: gameWeeklyAI.lastRun || null,
+      nextDue: gameWeeklyAI.nextDue || null,
+      lastSummary: gameWeeklyAI.lastSummary || gameWeeklyAI.summary || null,
+    },
+    syncedAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * Serialize analytics object to #AX v1 card line block.
+ * @param {object|null} analytics
+ */
+function serializeAnalyticsBlock(analytics) {
+  if (!analytics || analytics.status === 'empty') {
+    return '#AX v1 status=empty|note=няма_записани_дни';
+  }
+  if (analytics.status !== 'active') {
+    return '#AX v1 status=pending|note=аналитичен_модул_не_синхронизиран';
+  }
+  const dim = analytics.dimensions || {};
+  const lines = [
+    '#AX v1 status=active',
+    `hi=${analytics.healthIndex}|avg=${analytics.avgScore ?? '—'}|str=${analytics.streak}|adh=${analytics.adherence}`,
+    `cal=${analytics.calAdherence ?? '—'}|junk7=${analytics.junk7}|net=${analytics.netCalBalance}|tr=${analytics.trend}`,
+    `dim|eng=${dim.eng ?? '—'}|slp=${dim.slp ?? '—'}|bal=${dim.bal ?? '—'}|act=${dim.act ?? '—'}|wtr=${dim.wtr ?? '—'}`,
+    `d7|${analytics.last7}`,
+    analytics.syncedAt ? `sync=${analytics.syncedAt.slice(0, 10)}` : '',
+  ];
+  const wai = analytics.weeklyAI;
+  if (wai?.nextDue) lines.push(`revDue=${wai.nextDue.slice(0, 10)}`);
+  if (wai?.lastSummary) lines.push(`rev=${String(wai.lastSummary).replace(/\|/g, '/').slice(0, 280)}`);
+  return lines.filter(Boolean).join('\n');
+}
+
+/**
+ * Minimal RFC 6902 JSON Patch (replace, add, remove) with path allowlist.
+ */
+
+const ALLOWED_PREFIXES = ['/answers', '/plan', '/adminNotes'];
+const MAX_PATCHES = 25;
+
+/** @typedef {{ op: 'replace'|'add'|'remove', path: string, value?: unknown }} JsonPatchOperation */
+
+/**
+ * @param {string} pointer
+ */
+function parsePointer(pointer) {
+  if (typeof pointer !== 'string' || !pointer.startsWith('/')) {
+    throw new Error(`Невалиден path: ${pointer}`);
+  }
+  if (pointer === '/') return [''];
+  return pointer.slice(1).split('/').map(seg => seg.replace(/~1/g, '/').replace(/~0/g, '~'));
+}
+
+/**
+ * @param {string} path
+ */
+function assertAllowedPath(path) {
+  if (!ALLOWED_PREFIXES.some(p => path === p || path.startsWith(`${p}/`))) {
+    throw new Error(`Забранен path: ${path}`);
+  }
+}
+
+/**
+ * @param {JsonPatchOperation[]} patches
+ * @returns {JsonPatchOperation[]}
+ */
+function validateJsonPatches(patches) {
+  if (!Array.isArray(patches) || patches.length === 0) {
+    throw new Error('Липсва масив patches');
+  }
+  if (patches.length > MAX_PATCHES) {
+    throw new Error(`Максимум ${MAX_PATCHES} patch операции`);
+  }
+  for (const p of patches) {
+    if (!p || typeof p !== 'object') throw new Error('Невалидна patch операция');
+    const op = /** @type {JsonPatchOperation} */ (p).op;
+    if (!['replace', 'add', 'remove'].includes(op)) {
+      throw new Error(`Неподдържана операция: ${op}`);
+    }
+    assertAllowedPath(/** @type {JsonPatchOperation} */ (p).path);
+    if (op !== 'remove' && !Object.prototype.hasOwnProperty.call(p, 'value')) {
+      throw new Error(`Липсва value за ${op} ${/** @type {JsonPatchOperation} */ (p).path}`);
+    }
+  }
+  return patches;
+}
+
+/**
+ * @param {unknown} doc
+ * @param {string[]} path
+ */
+function getAtPath(doc, path) {
+  let cur = doc;
+  for (const key of path) {
+    if (cur == null) throw new Error(`Path not found: /${path.join('/')}`);
+    cur = cur[key];
+  }
+  return cur;
+}
+
+/**
+ * @param {Record<string, unknown>} doc
+ * @param {JsonPatchOperation[]} patches
+ * @returns {{ document: Record<string, unknown>, touchedPlan: boolean, touchedAnswers: boolean }}
+ */
+function applyJsonPatches(doc, patches) {
+  validateJsonPatches(patches);
+  const document = JSON.parse(JSON.stringify(doc));
+  let touchedPlan = false;
+  let touchedAnswers = false;
+
+  for (const patch of patches) {
+    if (patch.path.startsWith('/plan')) touchedPlan = true;
+    if (patch.path.startsWith('/answers')) touchedAnswers = true;
+
+    const segments = parsePointer(patch.path);
+    if (segments.length === 0) throw new Error('Празен path');
+
+    if (patch.op === 'remove') {
+      const parentPath = segments.slice(0, -1);
+      const key = segments[segments.length - 1];
+      const parent = parentPath.length ? getAtPath(document, parentPath) : document;
+      if (Array.isArray(parent) && key === '-') throw new Error('remove не поддържа -');
+      if (Array.isArray(parent)) parent.splice(Number(key), 1);
+      else delete parent[key];
+      continue;
+    }
+
+    const parentPath = segments.slice(0, -1);
+    const key = segments[segments.length - 1];
+    const parent = parentPath.length ? getAtPath(document, parentPath) : document;
+
+    if (patch.op === 'add') {
+      if (Array.isArray(parent)) {
+        if (key === '-') parent.push(patch.value);
+        else parent.splice(Number(key), 0, patch.value);
+      } else {
+        parent[key] = patch.value;
+      }
+      continue;
+    }
+
+    // replace
+    if (Array.isArray(parent) && key !== '-') {
+      parent[Number(key)] = patch.value;
+    } else {
+      parent[key] = patch.value;
+    }
+  }
+
+  return { document, touchedPlan, touchedAnswers };
+}
+
+/**
+ * @param {object} clientData
+ */
+function buildPatchDocument(clientData) {
+  return {
+    answers: clientData.answers || {},
+    plan: clientData.plan || null,
+    adminNotes: clientData.adminNotes || '',
+  };
+}
+
+/**
+ * @param {object} clientData
+ * @param {Record<string, unknown>} patched
+ */
+function mergePatchDocument(clientData, patched) {
+  clientData.answers = patched.answers || {};
+  clientData.plan = patched.plan ?? null;
+  if (patched.adminNotes !== undefined) clientData.adminNotes = patched.adminNotes;
+  return clientData;
+}
+
+/**
+ * NutriPlan Client Card (CC v1) — compressed, structured dossier for admin AI assistant.
+ * Extends NPCF (context-compression.js) with plan metadata, outputs, and analytics slot.
+ */
+
+
+const cardEsc = (value) => {
+  if (value == null || value === '') return '';
+  const s = Array.isArray(value) ? value.filter(Boolean).join('+') : String(value).trim();
+  return s.replace(/\|/g, '/').replace(/\n+/g, ' ').replace(/\s+/g, ' ');
+};
+
+/**
+ * @param {object} analysis
+ * @returns {string}
+ */
+function serializeAnalysisAdmin(analysis) {
+  if (!analysis) return '';
+  const probs = (analysis.keyProblems || []).slice(0, 8).map(p =>
+    `${cardEsc(p.title || p.name)}:${p.severity || ''}`
+  ).join('+');
+  const needs = (analysis.nutritionalNeeds || analysis.nutritionalDeficiencies || []).slice(0, 6).join('+');
+  const cm = analysis.correctedMetabolism || {};
+  const mr = analysis.macroRatios || {};
+  const mg = analysis.macroGrams || {};
+  return [
+    '#AN v1 admin',
+    `bmi=${analysis.bmi ?? ''}|bmr=${cm.realBMR ?? analysis.bmr ?? ''}|tdee=${cm.realTDEE ?? analysis.tdee ?? ''}|cal=${analysis.Final_Calories || analysis.recommendedCalories || ''}`,
+    analysis.psychoProfile?.temperament ? `temp=${cardEsc(analysis.psychoProfile.temperament)}@${analysis.psychoProfile.probability ?? 0}%` : '',
+    analysis.psychologicalProfile ? `psy=${cardEsc(String(analysis.psychologicalProfile).slice(0, 500))}` : '',
+    analysis.holisticSummary ? `hol=${cardEsc(String(analysis.holisticSummary).slice(0, 400))}` : '',
+    probs ? `prob=${probs}` : '',
+    needs ? `need=${cardEsc(needs)}` : '',
+    mr.protein != null ? `pct|P${mr.protein}/C${mr.carbs}/F${mr.fats}` : '',
+    mg.protein != null ? `g|P${mg.protein}/C${mg.carbs}/F${mg.fats}` : '',
+  ].filter(Boolean).join('\n');
+}
+
+/**
+ * @param {object} summary
+ * @returns {string}
+ */
+function serializePlanSummary(summary) {
+  if (!summary) return '';
+  const m = summary.macros || {};
+  return [
+    '#SM v1',
+    `bmr=${summary.bmr ?? ''}|cal=${summary.dailyCalories ?? ''}`,
+    m.protein != null ? `mac|P${m.protein}/C${m.carbs}/F${m.fats}` : '',
+    summary.overview ? `ov=${cardEsc(String(summary.overview).slice(0, 300))}` : '',
+  ].filter(Boolean).join('\n');
+}
+
+/**
+ * @param {unknown} items
+ * @param {number} max
+ * @returns {string}
+ */
+function serializeList(items, max = 12) {
+  if (!items) return '';
+  if (Array.isArray(items)) return items.slice(0, max).map(i => cardEsc(typeof i === 'string' ? i : i?.text || i?.name || JSON.stringify(i))).join('+');
+  if (typeof items === 'object') return cardEsc(JSON.stringify(items).slice(0, 400));
+  return cardEsc(String(items).slice(0, 400));
+}
+
+/**
+ * @param {object} psychology
+ * @returns {string}
+ */
+function serializePsychology(psychology) {
+  if (!psychology) return '';
+  const parts = [];
+  if (psychology.profile) parts.push(`prof=${cardEsc(String(psychology.profile).slice(0, 300))}`);
+  if (psychology.tips?.length) parts.push(`tips=${serializeList(psychology.tips, 6)}`);
+  if (psychology.challenges?.length) parts.push(`ch=${serializeList(psychology.challenges, 5)}`);
+  if (psychology.motivation) parts.push(`mot=${cardEsc(String(psychology.motivation).slice(0, 200))}`);
+  return parts.length ? `#PS v1 ${parts.join('|')}` : '';
+}
+
+/**
+ * @param {object|null} analytics
+ * @returns {string}
+ */
+function serializeAnalytics(analytics) {
+  return serializeAnalyticsBlock(analytics);
+}
+
+/**
+ * Build compressed client card text from full client record.
+ * @param {object} clientData
+ * @param {{ analytics?: object|null }} [options]
+ * @returns {{ card: string, tokenEstimate: number, sections: Record<string, boolean> }}
+ */
+function buildClientCard(clientData, options = {}) {
+  const answers = clientData?.answers || {};
+  const plan = clientData?.plan || null;
+  const analytics = options.analytics ?? clientData?.analytics ?? null;
+
+  const hasNotes = Boolean(answers.additionalNotes);
+  const hasClinical = Boolean(answers.clinicalProtocol);
+  const profile = serializeUserProfile(answers, 'full', { hasNotesSection: hasNotes, hasClinicalSection: hasClinical });
+
+  const meta = [
+    '#CC v1 — Клиентски картон',
+    `META|id=${cardEsc(clientData?.id)}|st=${cardEsc(clientData?.planStatus || 'none')}|sub=${cardEsc((clientData?.submittedAt || clientData?.timestamp || '').slice(0, 10))}|act=${cardEsc((clientData?.planActivatedAt || '').slice(0, 10) || '—')}|uid=${cardEsc(clientData?.userId || '—')}|upd=${cardEsc((clientData?.planUpdatedAt || '').slice(0, 10) || '—')}`,
+    clientData?.planGenerationError ? `ERR|${cardEsc(clientData.planGenerationError)}` : '',
+    answers.email ? `EM|${cardEsc(answers.email)}` : '',
+    answers.additionalNotes ? `NT|${cardEsc(String(answers.additionalNotes).slice(0, 500))}` : '',
+    (clientData?.files?.length) ? `FL|count=${clientData.files.length}|names=${clientData.files.slice(0, 5).map(f => cardEsc(f.name)).join('+')}` : '',
+  ].filter(Boolean);
+
+  const planBlocks = [];
+  if (plan) {
+    const analysis = plan.analysis || plan.step0 || null;
+    if (analysis) planBlocks.push(serializeAnalysisAdmin(analysis));
+    if (plan.strategy) planBlocks.push(serializeStrategyForMealPlan(plan.strategy));
+    if (plan.summary) planBlocks.push(serializePlanSummary(plan.summary));
+    if (plan.weekPlan) planBlocks.push(serializeWeekPlanAdmin(plan.weekPlan));
+    if (plan.recommendations) planBlocks.push(`#RC v1 ${serializeList(plan.recommendations, 15)}`);
+    if (plan.forbidden) planBlocks.push(`#FB v1 ${serializeList(plan.forbidden, 15)}`);
+    if (plan.psychology) planBlocks.push(serializePsychology(plan.psychology));
+    if (plan.supplements) planBlocks.push(`#SP v1 ${serializeList(plan.supplements, 10)}`);
+    if (plan.waterIntake) planBlocks.push(`#WT v1 ${cardEsc(typeof plan.waterIntake === 'string' ? plan.waterIntake : JSON.stringify(plan.waterIntake).slice(0, 200))}`);
+    if (clientData?.adminNotes) planBlocks.push(`#AD v1 ${cardEsc(String(clientData.adminNotes).slice(0, 400))}`);
+  } else {
+    planBlocks.push('#PL v2 status=none');
+  }
+
+  planBlocks.push(serializeAnalytics(analytics));
+
+  const card = [...meta, '', profile, '', ...planBlocks.filter(Boolean)].join('\n');
+  const tokenEstimate = estimateTokenCount(card);
+
+  return {
+    card,
+    tokenEstimate,
+    sections: {
+      meta: true,
+      profile: Boolean(profile),
+      analysis: Boolean(plan?.analysis || plan?.step0),
+      strategy: Boolean(plan?.strategy),
+      weekPlan: Boolean(plan?.weekPlan),
+      recommendations: Boolean(plan?.recommendations),
+      analytics: analytics?.status === 'active',
+    },
+  };
+}
+
+
+// ═══ End inlined modules ═══
 
 // ─── Admin AI Assistant (Gemini Context Caching) ───────────────────────────
 
@@ -5615,7 +6697,7 @@ async function ensureAssistantCacheFresh(env, session, card, planUpdatedAt, anal
 function reconcilePlanAfterAssistantPatches(plan) {
   if (!plan?.weekPlan) return;
   if (plan.strategy?.weeklyScheme) {
-    finalizeWeekPlanDays(plan.weekPlan, plan.strategy, 1, 7);
+    alignWeekPlanDaysToScheme(plan.weekPlan, plan.strategy, 1, 7);
   } else {
     recalculateDayCalories(plan.weekPlan, plan.strategy || null);
   }
@@ -7051,6 +8133,12 @@ const MAX_MEALS_PER_DAY = 5; // Maximum number of meals per day (when there's cl
 // Deprecated fixed floor — use getMinRecommendedCalories(gender) for per-user minimums.
 const MIN_DAILY_CALORIES = MIN_RECOMMENDED_CALORIES_FEMALE;
 // Note: DAILY_CALORIE_TOLERANCE and MAX_LATE_SNACK_CALORIES moved earlier in file (line ~580) to be available in template strings
+const MAX_CORRECTION_ATTEMPTS = 1; // Maximum number of AI correction attempts before failing.
+// Reduced from 4 to 1: each correction attempt generates up to 7 AI calls (fetch subrequests).
+// With 4 corrections the baseline alone was ~94 subrequests — well above Cloudflare's 50-subrequest
+// limit per Worker invocation. With 1 correction the baseline is 46 (safe), and even with a
+// handful of transient Gemini retries we stay comfortably under the limit.
+const CORRECTION_TOKEN_LIMIT = 8000; // Token limit for AI correction requests - must be high for detailed corrections
 const MEAL_ORDER_MAP = { 'Напитка': 0, 'Хранене 1': 0, 'Хранене 2': 1, 'Свободно хранене': 1, 'Хранене 3': 2, 'Хранене 4': 3, 'Хранене 5': 4 }; // Chronological meal order
 const ALLOWED_MEAL_TYPES = ['Напитка', 'Хранене 1', 'Хранене 2', 'Свободно хранене', 'Хранене 3', 'Хранене 4', 'Хранене 5']; // Valid meal types
 // Fixed dessert object injected by the backend for users who crave sweets.
@@ -7071,6 +8159,48 @@ const FIXED_DESSERT_WEIGHT_GRAMS = (() => {
   const m = FIXED_DESSERT.weight.match(/(\d+(?:\.\d+)?)/);
   return m ? parseFloat(m[1]) : 0;
 })();
+
+// Injected into KV meal-plan/correction prompts via {MEAL_NAME_FORMAT_INSTRUCTIONS} — stays in worker.
+const MEAL_NAME_FORMAT_INSTRUCTIONS = `=== ФОРМАТ НА MEAL NAME И DESCRIPTION ===
+КРИТИЧНО ВАЖНО: Спазвай СТРОГО следния формат за структуриране на name и description:
+
+ФОРМАТ НА "name" (структуриран със СИМВОЛИ):
+- Използвай символи (•, -, *) за структура, НЕ пиши изречения
+- Разделяй компонентите на отделни редове със символи
+- Формат: компонент след компонент (без смесване)
+- НЕ използвай етикети като "Салата:", "Основно:" - пиши директно названията на ястията
+
+Структура (по ред, само ако е налично):
+• [Вид салата в естествена форма] (ако има - напр. "Шопска салата", "салата Цезар", "салата от пресни зеленчуци")
+• [Основно ястие] (ако има гарнитура: "с гарнитура / гарнитура от [име на гарнитура]")
+• [Хляб: количество и вид] (ако има, напр. "1 филия пълнозърнест")
+
+Примери за ПРАВИЛЕН формат на name:
+✓ "• Шопска салата\\n• Пилешки гърди на скара с картофено пюре"
+✓ "• Бяла риба печена с киноа"
+✓ "• Зелена салата\\n• Леща яхния\\n• Хляб: 1 филия пълнозърнест"
+✓ "• Салата от пресни зеленчуци\\n• Пилешко филе с киноа"
+✓ "• Овесена каша с боровинки" (за закуска без салата/хляб)
+
+ЗАБРАНЕНИ формати за name (НЕ пиши така):
+✗ "• Салата: Шопска" (твърдо кодирани етикети)
+✗ "• Основно: Пилешки гърди" (твърдо кодирани етикети)
+✗ "Пилешки гърди на скара с картофено пюре и салата Шопска" (смесено описание)
+✗ "Печена бяла риба, приготвена с киноа и подправки" (изречение)
+
+ФОРМАТ НА "description" (ЗАДЪЛЖИТЕЛНО с грамаж на всеки ред):
+- Всеки продукт/компонент на ОТДЕЛЕН ред, започва с •
+- ЗАДЪЛЖИТЕЛНО: грамаж във формат "числоg" на ВСЕКИ ред (напр. 200g, 150g)
+- Формат на ред: • [продукт] [число]g — [кратко готвене/подправки]
+- НЕ пиши description без грамажи — клиентът ги вижда в приложението
+
+Пример:
+name: "• Шопска салата\\n• Пилешки гърди с ориз"
+description: "• домати 80g; краставица 60g; сирене 50g — шопска салата\\n• пилешко филе 180g — на скара с риган\\n• ориз 150g — сварен\\n• зехтин 10g — за салатата"
+
+ЗАБРАНЕНО за description:
+✗ Само готвене без грамажи ("• Пилешките гърди се пекат на скара...")
+✗ Изречения без "числоg" на реда`;
 
 function buildSweetsCravingRule(foodCravings, strategy) {
   if (!userHasSweetsCraving(foodCravings) || strategy?.includeDessert === false) return '';
@@ -7359,6 +8489,15 @@ const MEAL_TYPE_ALIASES = {
   'Напитки': 'Напитка',
 };
 
+/**
+ * Step 3 meals: AI is authoritative for grams/macros/calories.
+ * Backend syncs calories from macros; validatePlan() handles post-generation checks.
+ */
+function syncMealCaloriesFromMacros(meal) {
+  if (!meal || meal.type === 'Свободно хранене' || meal.type === 'Напитка' || !meal.macros) return;
+  meal.calories = macrosToCalories(meal.macros);
+}
+
 function normalizeMealTypesInWeekPlan(weekPlan) {
   if (!weekPlan || typeof weekPlan !== 'object') return;
   for (const day of Object.values(weekPlan)) {
@@ -7379,24 +8518,7 @@ function hasGramsInDescription(description) {
   return !!description && /\d+\s*(g|г)\b/i.test(description);
 }
 
-const GRAM_ALLOC_DENSITY = {
-  PRO: { protein: 22, carbs: 0, fats: 5 },
-  ENG: { protein: 3, carbs: 25, fats: 1 },
-  FAT: { protein: 0, carbs: 0, fats: 100 },
-  VOL: { protein: 1, carbs: 4, fats: 0 },
-  MIXED: { protein: 12, carbs: 15, fats: 8 }
-};
-
-function classifyProductRole(name) {
-  const n = String(name || '').toLowerCase();
-  if (/ориз|киноа|овес|паста|хляб|картоф|леща|боб|нахут|мюсли|каша|елда|булгур|гриз|макарон|пълнозърнест/.test(n)) return 'ENG';
-  if (/зехтин|масло|авокадо|ядк|семе|тахан|маслин|шарлан|олио/.test(n)) return 'FAT';
-  if (/салат|домат|крастав|чушк|броколи|тиквич|морков|зеленч|маруля|спанак|гъби|карфиол|тиква|зеле|лук|чесън|праз|еринги/.test(n)) return 'VOL';
-  if (/пиле|пилеш|гърди|месо|риба|сьомга|треска|яйц|сирен|извара|мляко|скир|тофу|кисело мляко|свин|говед|кайма|пъстърва|тон|протеин/.test(n)) return 'PRO';
-  return 'MIXED';
-}
-
-/** Product names from AI description/name (grams and cooking stripped). */
+/** Product names from description/name when grams are missing (cooking text stripped). */
 function extractMealProductNames(meal) {
   const names = [];
   const seen = new Set();
@@ -7420,141 +8542,44 @@ function extractMealProductNames(meal) {
   return names;
 }
 
-function macroContribFromGrams(grams, density) {
-  return {
-    protein: grams * density.protein / 100,
-    carbs: grams * density.carbs / 100,
-    fats: grams * density.fats / 100
-  };
-}
-
-function sumMacroContrib(items) {
-  return items.reduce((acc, item) => {
-    const d = GRAM_ALLOC_DENSITY[item.role] || GRAM_ALLOC_DENSITY.MIXED;
-    const m = macroContribFromGrams(item.grams, d);
-    acc.protein += m.protein;
-    acc.carbs += m.carbs;
-    acc.fats += m.fats;
-    return acc;
-  }, { protein: 0, carbs: 0, fats: 0 });
-}
-
-function getAllocatableMacros(meal) {
-  const m = {
-    protein: Number(meal.macros?.protein) || 0,
-    carbs: Number(meal.macros?.carbs) || 0,
-    fats: Number(meal.macros?.fats) || 0
-  };
-  if (meal.dessert && typeof meal.dessert === 'object' && meal.dessert.macros) {
-    m.protein = Math.max(0, m.protein - (Number(meal.dessert.macros.protein) || 0));
-    m.carbs = Math.max(0, m.carbs - (Number(meal.dessert.macros.carbs) || 0));
-    m.fats = Math.max(0, m.fats - (Number(meal.dessert.macros.fats) || 0));
-  }
-  return m;
-}
-
-/** Deterministic grams from mealBreakdown macros + product names. */
-function allocateMealGramsFromMacros(meal) {
-  if (!meal?.macros || meal.type === 'Свободно хранене' || meal.type === 'Напитка') return;
+/** Deterministic fallback: assign grams per product when AI omitted them. */
+function ensureMealGrams(meal) {
+  if (!meal || meal.type === 'Свободно хранене' || meal.type === 'Напитка') return;
+  if (hasGramsInDescription(meal.description)) return;
 
   const names = extractMealProductNames(meal);
   if (!names.length) return;
 
-  const target = getAllocatableMacros(meal);
-  const items = names.map(name => ({ name, role: classifyProductRole(name), grams: 0 }));
-  const vol = items.filter(i => i.role === 'VOL');
-  const pro = items.filter(i => i.role === 'PRO' || i.role === 'MIXED');
-  const eng = items.filter(i => i.role === 'ENG');
-  const fat = items.filter(i => i.role === 'FAT');
+  const totalFromWeight = parseInt(String(meal.weight || '').match(/\d+/)?.[0] || '0', 10);
+  const perItem = totalFromWeight > 0
+    ? Math.max(5, Math.round(totalFromWeight / names.length))
+    : Math.max(30, Math.round((Number(meal.calories) || 350) / names.length / 2.5));
 
-  let remP = target.protein;
-  let remC = target.carbs;
-  let remF = target.fats;
-
-  vol.forEach(i => {
-    i.grams = 100;
-    const m = macroContribFromGrams(i.grams, GRAM_ALLOC_DENSITY.VOL);
-    remP = Math.max(0, remP - m.protein);
-    remC = Math.max(0, remC - m.carbs);
-    remF = Math.max(0, remF - m.fats);
-  });
-
-  if (pro.length && remP > 0) {
-    const gPer = Math.round((remP / pro.length) / (GRAM_ALLOC_DENSITY.PRO.protein / 100));
-    const grams = Math.min(320, Math.max(50, gPer || 100));
-    pro.forEach(i => { i.grams = grams; });
-    const used = sumMacroContrib(pro);
-    remP = Math.max(0, remP - used.protein);
-    remC = Math.max(0, remC - used.carbs);
-    remF = Math.max(0, remF - used.fats);
-  }
-
-  if (eng.length && remC > 0) {
-    const gPer = Math.round((remC / eng.length) / (GRAM_ALLOC_DENSITY.ENG.carbs / 100));
-    const grams = Math.min(280, Math.max(35, gPer || 80));
-    eng.forEach(i => { i.grams = grams; });
-    const used = sumMacroContrib(eng);
-    remP = Math.max(0, remP - used.protein);
-    remC = Math.max(0, remC - used.carbs);
-    remF = Math.max(0, remF - used.fats);
-  }
-
-  if (fat.length && remF > 3) {
-    const gPer = Math.round((remF / fat.length) / (GRAM_ALLOC_DENSITY.FAT.fats / 100));
-    const grams = Math.min(35, Math.max(5, gPer || 10));
-    fat.forEach(i => { i.grams = grams; });
-    remF = Math.max(0, remF - sumMacroContrib(fat).fats);
-  } else if (remF > 5) {
-    items.push({ name: 'зехтин', role: 'FAT', grams: Math.min(20, Math.round(remF)) });
-  }
-
-  const allocated = items.filter(i => i.grams > 0);
-  if (!allocated.length) return;
-
-  const targetCal = macrosToCalories(target);
-  let actualCal = macrosToCalories(sumMacroContrib(allocated));
-  if (targetCal > 0 && actualCal > 0) {
-    const factor = targetCal / actualCal;
-    allocated.forEach(i => {
-      if (i.role !== 'VOL') i.grams = Math.max(5, Math.round(i.grams * factor));
-    });
-    actualCal = macrosToCalories(sumMacroContrib(allocated));
-  }
-
-  meal.description = allocated.map(i => `• ${i.name} ${i.grams}g`).join('\n');
-  let totalGrams = allocated.reduce((s, i) => s + i.grams, 0);
-  if (meal.dessert && typeof meal.dessert === 'object' && FIXED_DESSERT_WEIGHT_GRAMS > 0) {
-    totalGrams += FIXED_DESSERT_WEIGHT_GRAMS;
-  }
-  if (totalGrams > 0) meal.weight = `${totalGrams}г`;
-}
-
-function alignMealsToBreakdown(dayPlan, dayTarget) {
-  if (!dayPlan?.meals?.length || !dayTarget?.mealBreakdown) return;
-  for (const meal of dayPlan.meals) {
-    if (meal.type === 'Свободно хранене' || meal.type === 'Напитка') continue;
-    const target = dayTarget.mealBreakdown.find(m => m.type === meal.type);
-    if (!target) continue;
-    meal.macros = {
-      protein: Math.round(Number(target.protein) || 0),
-      carbs: Math.round(Number(target.carbs) || 0),
-      fats: Math.round(Number(target.fats) || 0)
-    };
-    meal.calories = macrosToCalories(meal.macros);
-    allocateMealGramsFromMacros(meal);
+  meal.description = names.map(n => `• ${n} ${perItem}g`).join('\n');
+  if (!/\d/.test(String(meal.weight || ''))) {
+    meal.weight = `${perItem * names.length}g`;
   }
 }
 
-function validateChunkHasProducts(weekPlan, startDay, endDay) {
-  const errors = [];
+function ensureWeekPlanMealGrams(weekPlan, startDay = 1, endDay = 7) {
+  if (!weekPlan) return;
   for (let d = startDay; d <= endDay; d++) {
     const day = weekPlan[`day${d}`];
     if (!day?.meals) continue;
-    for (const meal of day.meals) {
-      if (meal.type === 'Свободно хранене' || meal.type === 'Напитка') continue;
-      if (!extractMealProductNames(meal).length) {
-        errors.push(`Ден ${d} ${meal.type}: липсват продукти в description/name`);
-      }
+    for (const meal of day.meals) ensureMealGrams(meal);
+  }
+}
+
+function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay) {
+  const errors = [];
+  if (!weekPlan || !strategy?.weeklyScheme) return errors;
+  normalizeMealBreakdownTypes(strategy);
+  for (let d = startDay; d <= endDay; d++) {
+    const dayPlan = weekPlan[`day${d}`];
+    const schemeKey = DAY_NUMBER_TO_KEY[d - 1];
+    const dayTarget = strategy.weeklyScheme[schemeKey];
+    if (dayPlan && dayTarget) {
+      errors.push(...validateMealsAgainstScheme(dayPlan, dayTarget, d));
     }
   }
   return errors;
@@ -7563,8 +8588,10 @@ function validateChunkHasProducts(weekPlan, startDay, endDay) {
 function buildChunkValidationRetryComment(errors) {
   if (!errors?.length) return '';
   return `═══ КОРЕКЦИЯ — ПРЕДИШНИЯТ ОТГОВОР ИМА ГРЕШКИ ═══
+Поправи САМО посочените несъответствия. Запази продуктите и структурата на дните.
 ${errors.map((e, i) => `${i + 1}. ${e}`).join('\n')}
-ЗАДЪЛЖИТЕЛНО: всяко хранене трябва да има продукти в description (по един на ред с •).`;
+
+ЗАДЪЛЖИТЕЛНО: meal.calories/macros = mealBreakdown цели (±${DAILY_CALORIE_TOLERANCE} kcal, ±${MACRO_GRAM_TOLERANCE}g). description с "числоg" на всеки продукт.`;
 }
 
 function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum) {
@@ -7608,16 +8635,17 @@ function finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay) {
   if (!weekPlan) return;
   normalizeMealBreakdownTypes(strategy);
   normalizeMealTypesInWeekPlan(weekPlan);
-  if (strategy?.weeklyScheme) {
-    for (let d = startDay; d <= endDay; d++) {
-      const dayKey = `day${d}`;
-      const schemeKey = DAY_NUMBER_TO_KEY[d - 1];
-      const dayPlan = weekPlan[dayKey];
-      const dayTarget = strategy.weeklyScheme[schemeKey];
-      if (dayPlan && dayTarget) alignMealsToBreakdown(dayPlan, dayTarget);
-    }
+  for (let d = startDay; d <= endDay; d++) {
+    const day = weekPlan[`day${d}`];
+    if (!day?.meals) continue;
+    for (const meal of day.meals) syncMealCaloriesFromMacros(meal);
   }
   recalculateDayCalories(weekPlan, strategy);
+}
+
+/** @deprecated Use finalizeWeekPlanDays — kept as alias for callers outside meal-plan flow */
+function alignWeekPlanDaysToScheme(weekPlan, strategy, startDay, endDay) {
+  finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay);
 }
 
 /**
@@ -8322,6 +9350,55 @@ function checkADLEv8Rules(meal) {
   }
   
   return warnings;
+}
+
+/**
+ * Generate correction prompt for AI when plan validation fails
+ * This allows the AI to fix specific issues instead of regenerating from scratch
+ * 
+ * @param {Object} plan - The generated plan that failed validation
+ * @param {string[]} validationErrors - Array of specific validation error messages
+ * @param {Object} userData - User profile data for context
+ * @returns {Promise<string>} Prompt instructing AI to correct specific errors in the plan
+ */
+async function generateCorrectionPrompt(plan, validationErrors, userData, env) {
+  const customPrompt = await requireKvPrompt(env, 'admin_correction_prompt');
+  const _combinedNotes = buildCombinedAdditionalNotes(userData);
+    const additionalNotesSection = _combinedNotes
+      ? `═══ 🔥 КРИТИЧНО ВАЖНА ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ 🔥 ═══\n⚠️ МАКСИМАЛЕН ПРИОРИТЕТ при корекциите!\n${_combinedNotes}\n⚠️ ЗАДЪЛЖИТЕЛНО: Всички корекции трябва да уважават тази информация!\n═══════════════════════════════════════════════════════════════`
+      : '';
+    let prompt = replacePromptVariables(customPrompt, {
+      validationErrors: validationErrors,
+      plan: plan,
+      userData: userData,
+      errorsFormatted: validationErrors.map((error, idx) => `${idx + 1}. ${error}`).join('\n'),
+      planJSON: JSON.stringify(plan, null, 2),
+      userDataJSON: JSON.stringify({
+        name: userData.name,
+        age: userData.age,
+        gender: userData.gender,
+        goal: userData.goal,
+        medicalConditions: userData.medicalConditions,
+        dietPreference: userData.dietPreference,
+        dietDislike: userData.dietDislike,
+        dietLove: userData.dietLove,
+        additionalNotes: _combinedNotes || undefined
+      }, null, 2),
+      additionalNotes: _combinedNotes,
+      additionalNotesSection,
+      MEAL_NAME_FORMAT_INSTRUCTIONS,
+      MIN_DAILY_CALORIES: MIN_DAILY_CALORIES
+    });
+
+  if (!hasJsonFormatInstructions(prompt)) {
+    prompt += `
+
+═══ КРИТИЧНО ВАЖНО - ФОРМАТ НА ОТГОВОР ═══
+Отговори САМО с валиден JSON обект - ПЪЛНИЯ КОРИГИРАН план БЕЗ допълнителни обяснения или текст преди или след JSON.
+
+ВАЖНО: Върни САМО JSON без други текст или обяснения!`;
+  }
+  return prompt;
 }
 
 /**
@@ -9342,11 +10419,17 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         injectFixedDesserts(weekPlan);
         finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay);
 
-        const validationErrors = validateChunkHasProducts(weekPlan, startDay, endDay);
+        const validationErrors = validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay);
         if (!validationErrors.length) break;
 
         if (attempt >= MEAL_PLAN_CHUNK_MAX_RETRIES) {
-          throw new Error(`липсват продукти след ${attempt + 1} опита: ${validationErrors.join('; ')}`);
+          const nonGramErrors = validationErrors.filter(e => !e.includes('грамажи'));
+          if (nonGramErrors.length) {
+            throw new Error(`валидация неуспешна след ${attempt + 1} опита: ${validationErrors.join('; ')}`);
+          }
+          console.warn(`Chunk ${chunkIndex + 1} gram fallback after retry:`, validationErrors);
+          ensureWeekPlanMealGrams(weekPlan, startDay, endDay);
+          break;
         }
 
         for (let day = startDay; day <= endDay; day++) {
@@ -9358,7 +10441,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         chunkComment = [errorPreventionComment, buildChunkValidationRetryComment(validationErrors)]
           .filter(Boolean).join('\n\n');
         attempt++;
-        console.warn(`Chunk ${chunkIndex + 1} missing products (attempt ${attempt}), retrying:`, validationErrors);
+        console.warn(`Chunk ${chunkIndex + 1} validation failed (attempt ${attempt}), retrying:`, validationErrors);
       }
     } catch (error) {
       throw new Error(`Генериране на дни ${startDay}-${endDay}: ${error.message}`);
@@ -9370,9 +10453,11 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
   // Step 5: enrich copy (name format, cooking, benefits) — numbers from Step 3
   try {
     await enrichWeekPlanCopy(env, data, strategy, weekPlan, sessionId);
+    ensureWeekPlanMealGrams(weekPlan);
     console.log('Step 5 enrichment complete');
   } catch (error) {
     console.warn('Step 5 enrichment failed, plan usable with skeleton copy:', error.message);
+    ensureWeekPlanMealGrams(weekPlan);
   }
   
   // Generate summary, recommendations, etc. in final request
