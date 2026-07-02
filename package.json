@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
+    "verify-worker-bundle": "node scripts/verify-worker-bundle.mjs",
     "serve": "python -m http.server 8000",
     "test": "echo \"Open test.html in browser to test the application\""
   },

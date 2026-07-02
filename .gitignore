@@ -6,6 +6,7 @@ yarn-error.log*
 
 # Cloudflare Workers
 .wrangler/
+.wrangler-bundle-tmp/
 wrangler.toml.lock
 dist/
 worker/
