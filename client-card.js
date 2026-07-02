@@ -49,7 +49,7 @@ function serializeAnalysisAdmin(analysis) {
  * @param {object} summary
  * @returns {string}
  */
-function serializePlanSummary(summary) {
+export function serializePlanSummary(summary) {
   if (!summary) return '';
   const m = summary.macros || {};
   return [

@@ -3602,6 +3602,7 @@
     })();</script>
 
     <script src="./game-scoring.js"></script>
+    <script src="./plan-utils.js"></script>
     <script src="./session-utils.js"></script>
     <script src="./diagnostics-log.js"></script>
     <script src="./platform.js"></script>
@@ -5041,146 +5042,13 @@
             }
         }
 
-        // --- Meal alignment: Step 2 mealBreakdown is authoritative for per-meal macros/calories ---
-        const PLAN_DAY_NUMBER_TO_KEY = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-        var MEAL_TYPE_ALIASES = {
-            'Закуска': 'Хранене 1',
-            'Обяд': 'Хранене 2',
-            'Следобедна закуска': 'Хранене 3',
-            'Следобедна': 'Хранене 3',
-            'Десерт': 'Хранене 3',
-            'Вечеря': 'Хранене 4',
-            'Късна закуска': 'Хранене 5',
-            'Междинно': 'Хранене 3',
-            'Междинна закуска': 'Хранене 3',
-            'Снак': 'Хранене 3',
-            'Снек': 'Хранене 3',
-            'Лека закуска': 'Хранене 3',
-            'Предвечерна закуска': 'Хранене 5',
-            'Нощна закуска': 'Хранене 5',
-            'Вода с лимон/Зелен чай': 'Напитка',
-            'Вода с лимон': 'Напитка',
-            'Зелен чай': 'Напитка',
-            'Чай': 'Напитка',
-            'Кафе': 'Напитка',
-            'Напитки': 'Напитка'
-        };
-
-        function normalizeWeekPlanMealTypes(weekPlan) {
-            if (!weekPlan) return;
-            Object.keys(weekPlan).forEach(function(dayKey) {
-                var day = weekPlan[dayKey];
-                if (!day || !Array.isArray(day.meals)) return;
-                day.meals.forEach(function(meal) {
-                    if (!meal || !meal.type) return;
-                    var name = (meal.name || '').toLowerCase().trim();
-                    if (name === 'свободно хранене' && meal.type !== 'Свободно хранене') {
-                        meal.type = 'Свободно хранене';
-                    } else if (MEAL_TYPE_ALIASES[meal.type]) {
-                        meal.type = MEAL_TYPE_ALIASES[meal.type];
-                    }
-                });
-            });
-        }
-
-        // --- Calorie corrector: fixes per-meal calorie inconsistencies and sets free-meal planned calories ---
-        // If a meal's declared calories differ from protein×4+carbs×4+fats×9 by more than 10%,
-        // the calculated value is used. "Свободно хранене" gets its planned calories from the
-        // strategy weeklyScheme Хранене 2 mealBreakdown entry so it is counted in dailyTotals.
-        function correctPlanCalories(plan) {
-            if (!plan || !plan.weekPlan) return;
-            Object.keys(plan.weekPlan).forEach(function(dayKey) {
-                var dayData = plan.weekPlan[dayKey];
-                if (!dayData || !Array.isArray(dayData.meals)) return;
-                var dayNum = parseInt(dayKey.replace('day', ''), 10);
-                var weekdayKey = (dayNum >= 1 && dayNum <= 7) ? PLAN_DAY_NUMBER_TO_KEY[dayNum - 1] : null;
-                var totalCal = 0, totalProtein = 0, totalCarbs = 0, totalFats = 0;
-                dayData.meals.forEach(function(meal) {
-                    if (meal.type === 'Свободно хранене') {
-                        // Estimate planned calories for the free meal from strategy mealBreakdown
-                        var freeCal = 0;
-                        if (plan.strategy && plan.strategy.weeklyScheme && weekdayKey) {
-                            var ds = plan.strategy.weeklyScheme[weekdayKey];
-                            if (ds && Array.isArray(ds.mealBreakdown)) {
-                                var lunchEntry = ds.mealBreakdown.find(function(m) {
-                                    return m.type === 'Хранене 2' || m.type === 'Свободно хранене';
-                                });
-                                if (lunchEntry && lunchEntry.calories) freeCal = parseInt(lunchEntry.calories) || 0;
-                            }
-                            // Fallback: evenly distribute day calories across meals
-                            if (!freeCal && plan.strategy.weeklyScheme[weekdayKey]) {
-                                var ds2 = plan.strategy.weeklyScheme[weekdayKey];
-                                if (ds2.calories && ds2.meals) freeCal = Math.round(ds2.calories / ds2.meals);
-                            }
-                        }
-                        if (freeCal > 0) meal._plannedCalories = freeCal;
-                        totalCal += freeCal;
-                        if (plan.strategy && plan.strategy.weeklyScheme && weekdayKey) {
-                            var dsFree = plan.strategy.weeklyScheme[weekdayKey];
-                            if (dsFree && Array.isArray(dsFree.mealBreakdown)) {
-                                var freeEntry = dsFree.mealBreakdown.find(function(m) {
-                                    return m.type === 'Хранене 2' || m.type === 'Свободно хранене';
-                                });
-                                if (freeEntry) {
-                                    totalProtein += parseFloat(freeEntry.protein) || 0;
-                                    totalCarbs += parseFloat(freeEntry.carbs) || 0;
-                                    totalFats += parseFloat(freeEntry.fats) || 0;
-                                }
-                            }
-                        }
-                        return;
-                    }
-                    if (meal.macros) {
-                        var p = parseFloat(meal.macros.protein) || 0;
-                        var c = parseFloat(meal.macros.carbs) || 0;
-                        var f = parseFloat(meal.macros.fats) || 0;
-                        var calcCal = Math.round(p * 4 + c * 4 + f * 9);
-                        if (calcCal > 0) meal.calories = calcCal;
-                        totalProtein += p;
-                        totalCarbs += c;
-                        totalFats += f;
-                    }
-                    totalCal += parseInt(meal.calories) || 0;
-                });
-                if (!dayData.dailyTotals) dayData.dailyTotals = {};
-                dayData.dailyTotals.calories = totalCal;
-                if (totalProtein > 0) dayData.dailyTotals.protein = Math.round(totalProtein);
-                if (totalCarbs > 0) dayData.dailyTotals.carbs = Math.round(totalCarbs);
-                if (totalFats > 0) dayData.dailyTotals.fats = Math.round(totalFats);
-            });
-        }
+        // plan-utils.js: PLAN_DAY_NUMBER_TO_KEY, migrateMealTypes, correctPlanCalories, renderMealDescriptionHtml
 
         // Helper function to escape HTML and preserve newlines as <br>
         function escapeHtmlWithBreaks(text) {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML.replace(/\n/g, '<br>');
-        }
-
-        /** Parse description into ingredient rows with gram weights for modal display. */
-        function renderMealDescriptionHtml(description) {
-            if (!description) return '';
-            var items = [];
-            var lines = String(description).split(/\n/).map(function(l) { return l.trim(); }).filter(Boolean);
-            if (lines.length === 1 && lines[0].indexOf(';') >= 0) {
-                lines = lines[0].split(';').map(function(s) { return s.trim(); }).filter(Boolean);
-            }
-            lines.forEach(function(line) {
-                var chunks = line.split(';').map(function(s) { return s.replace(/^[•\-\*]\s*/, '').trim(); }).filter(Boolean);
-                chunks.forEach(function(sp) {
-                    var m = sp.match(/^(.+?)\s+(\d+(?:[.,]\d+)?)\s*(g|г)\b(?:\s*[—\-]\s*(.+))?$/i);
-                    if (m) items.push({ name: m[1].trim(), grams: m[2] + 'g', note: (m[4] || '').trim() });
-                });
-            });
-            if (!items.length) return escapeHtmlWithBreaks(description);
-            var html = '<div class="modal-ingredients-title">Състав</div><ul class="modal-ingredients-list">';
-            items.forEach(function(it) {
-                html += '<li><span class="ingredient-name">' + escapeHtml(it.name) +
-                    (it.note ? '<span class="ingredient-note"> — ' + escapeHtml(it.note) + '</span>' : '') +
-                    '</span><span class="ingredient-grams">' + escapeHtml(it.grams) + '</span></li>';
-            });
-            html += '</ul>';
-            return html;
         }
 
         // --- Date-key helpers (global scope, shared by renderDay and addToMyMenu) ---
@@ -5224,17 +5092,7 @@
             return (suitability.verdict || '') + (suitability.explanation ? ': ' + suitability.explanation : '');
         }
 
-        /**
-         * Migrates old meal type strings in a stored plan to the new canonical names.
-         * Called once after JSON.parse() on load; mutates the plan in-place so all
-         * subsequent logic sees only the canonical "Хранене N" types.
-         */
-        function migrateMealTypes(plan) {
-            if (plan && plan.weekPlan) normalizeWeekPlanMealTypes(plan.weekPlan);
-        }
-
-        /**
-         * Return the earliest hour at which a named meal type becomes available for check-in.
+        // --- Date-key helpers (global scope, shared by renderDay and addToMyMenu) ---
          * Returns -1 for unknown / intermediate meal types that are eaten "now".
          */
         function _mealUnlockHour(type) {
