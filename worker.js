@@ -8584,11 +8584,10 @@ function allocateMealGramsFromMacros(meal) {
   let actualCal = macrosToCalories(sumMacroContrib(allocated));
   if (targetCal > 0 && actualCal > 0) {
     const factor = targetCal / actualCal;
-    if (factor >= 0.88 && factor <= 1.12) {
-      allocated.forEach(i => {
-        if (i.role !== 'VOL') i.grams = Math.max(5, Math.round(i.grams * factor));
-      });
-    }
+    allocated.forEach(i => {
+      if (i.role !== 'VOL') i.grams = Math.max(5, Math.round(i.grams * factor));
+    });
+    actualCal = macrosToCalories(sumMacroContrib(allocated));
   }
 
   meal.description = allocated.map(i => `• ${i.name} ${i.grams}g`).join('\n');
