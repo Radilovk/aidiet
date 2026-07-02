@@ -7,12 +7,22 @@ on:
     paths:
       - 'worker.js'
       - 'wrangler.toml'
+      - 'context-compression.js'
+      - 'analytics-compression.js'
+      - 'json-patch.js'
+      - 'client-card.js'
+      - 'jsconfig.json'
   pull_request:
     branches:
       - main
     paths:
       - 'worker.js'
       - 'wrangler.toml'
+      - 'context-compression.js'
+      - 'analytics-compression.js'
+      - 'json-patch.js'
+      - 'client-card.js'
+      - 'jsconfig.json'
   workflow_dispatch:
 
 jobs:
