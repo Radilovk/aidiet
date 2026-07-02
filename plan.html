@@ -4890,7 +4890,6 @@
 
                 dietPlan = JSON.parse(planData);
                 migrateMealTypes(dietPlan);
-                alignPlanMealsToStrategy(dietPlan);
                 correctPlanCalories(dietPlan);
                 userData = userDataStr ? JSON.parse(userDataStr) : {};
                 
@@ -5067,19 +5066,6 @@
             'Напитки': 'Напитка'
         };
 
-        function normalizeMealBreakdownTypes(strategy) {
-            if (!strategy || !strategy.weeklyScheme) return;
-            Object.keys(strategy.weeklyScheme).forEach(function(key) {
-                var day = strategy.weeklyScheme[key];
-                if (!day || !Array.isArray(day.mealBreakdown)) return;
-                day.mealBreakdown.forEach(function(entry) {
-                    if (entry && entry.type && MEAL_TYPE_ALIASES[entry.type]) {
-                        entry.type = MEAL_TYPE_ALIASES[entry.type];
-                    }
-                });
-            });
-        }
-
         function normalizeWeekPlanMealTypes(weekPlan) {
             if (!weekPlan) return;
             Object.keys(weekPlan).forEach(function(dayKey) {
@@ -5093,35 +5079,6 @@
                     } else if (MEAL_TYPE_ALIASES[meal.type]) {
                         meal.type = MEAL_TYPE_ALIASES[meal.type];
                     }
-                });
-            });
-        }
-
-        /** Align stored plan meals to strategy mealBreakdown (fixes legacy + APK cached plans). */
-        function alignPlanMealsToStrategy(plan) {
-            if (!plan || !plan.weekPlan || !plan.strategy || !plan.strategy.weeklyScheme) return;
-            normalizeMealBreakdownTypes(plan.strategy);
-            normalizeWeekPlanMealTypes(plan.weekPlan);
-            Object.keys(plan.weekPlan).forEach(function(dayKey) {
-                var dayNum = parseInt(dayKey.replace('day', ''), 10);
-                if (dayNum < 1 || dayNum > 7) return;
-                var schemeKey = PLAN_DAY_NUMBER_TO_KEY[dayNum - 1];
-                var dayPlan = plan.weekPlan[dayKey];
-                var dayTarget = plan.strategy.weeklyScheme[schemeKey];
-                if (!dayPlan || !dayTarget || !Array.isArray(dayTarget.mealBreakdown)) return;
-                dayPlan.meals.forEach(function(meal) {
-                    if (!meal || meal.type === 'Свободно хранене' || meal.type === 'Напитка') return;
-                    var target = dayTarget.mealBreakdown.find(function(m) { return m.type === meal.type; });
-                    if (!target) return;
-                    meal.macros = {
-                        protein: Math.round(Number(target.protein) || 0),
-                        carbs: Math.round(Number(target.carbs) || 0),
-                        fats: Math.round(Number(target.fats) || 0)
-                    };
-                    var p = meal.macros.protein;
-                    var c = meal.macros.carbs;
-                    var f = meal.macros.fats;
-                    meal.calories = Math.round(p * 4 + c * 4 + f * 9);
                 });
             });
         }
@@ -6879,7 +6836,6 @@
                         // Update dietPlan and userData from server response
                         dietPlan = result.updatedPlan;
                         migrateMealTypes(dietPlan);
-                        alignPlanMealsToStrategy(dietPlan);
                         correctPlanCalories(dietPlan);
                         if (result.updatedUserData) {
                             userData = result.updatedUserData;
@@ -7060,7 +7016,6 @@
             const lastSnapshot = planHistory.pop();
             dietPlan = lastSnapshot.plan;
             migrateMealTypes(dietPlan);
-            alignPlanMealsToStrategy(dietPlan);
             correctPlanCalories(dietPlan);
             
             // Save to localStorage and backend
