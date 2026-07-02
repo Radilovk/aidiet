@@ -7,12 +7,24 @@ on:
     paths:
       - 'worker.js'
       - 'wrangler.toml'
+      - 'context-compression.js'
+      - 'analytics-compression.js'
+      - 'json-patch.js'
+      - 'client-card.js'
+      - '.github/workflows/deploy-worker.yml'
+      - 'scripts/verify-worker-bundle.mjs'
   pull_request:
     branches:
       - main
     paths:
       - 'worker.js'
       - 'wrangler.toml'
+      - 'context-compression.js'
+      - 'analytics-compression.js'
+      - 'json-patch.js'
+      - 'client-card.js'
+      - '.github/workflows/deploy-worker.yml'
+      - 'scripts/verify-worker-bundle.mjs'
   workflow_dispatch:
 
 jobs:
@@ -33,6 +45,9 @@ jobs:
 
       - name: Install npm dependencies
         run: npm ci
+
+      - name: Verify worker bundle includes all modules
+        run: npm run verify-worker-bundle
 
       # Create the queues if they do not yet exist in Cloudflare.
       # This step requires the Queues:Edit permission on CLOUDFLARE_API_TOKEN.
