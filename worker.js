@@ -6935,6 +6935,56 @@ async function handleUpdateClientPlan(request, env, ctx) {
   }
 }
 
+// ─── Admin: Reprocess plan gram allocation ───
+async function handleAdminReprocessPlanGrams(request, env, ctx) {
+  try {
+    const body = await request.json();
+    const clientIds = Array.isArray(body.clientIds)
+      ? body.clientIds
+      : (body.clientId ? [body.clientId] : []);
+    if (!clientIds.length) {
+      return jsonResponse({ error: 'Missing clientId or clientIds' }, 400);
+    }
+    if (!env.page_content) {
+      return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    }
+
+    const results = [];
+    for (const clientId of clientIds) {
+      try {
+        const raw = await env.page_content.get(`client:${clientId}`);
+        if (!raw) {
+          results.push({ clientId, success: false, error: 'Client not found' });
+          continue;
+        }
+        const clientData = JSON.parse(raw);
+        if (!clientData.plan) {
+          results.push({ clientId, success: false, error: 'No plan' });
+          continue;
+        }
+
+        const wasActivated = clientData.planStatus === 'activated';
+        reprocessPlanGramAllocation(clientData.plan);
+        clientData.planUpdatedAt = new Date().toISOString();
+        await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
+
+        if (wasActivated) {
+          await syncActivatedPlanToUserProfile(env, clientData, clientId);
+        }
+
+        results.push({ clientId, success: true, name: clientData.answers?.name || clientId });
+      } catch (err) {
+        results.push({ clientId, success: false, error: err.message });
+      }
+    }
+
+    return jsonResponse({ success: true, results });
+  } catch (error) {
+    console.error('Error reprocessing plan grams:', error);
+    return jsonResponse({ error: `Failed to reprocess plan grams: ${error.message}` }, 500);
+  }
+}
+
 // ─── Admin: Activate client plan ───
 async function handleActivateClientPlan(request, env, ctx) {
   try {
@@ -7384,16 +7434,60 @@ const GRAM_ALLOC_DENSITY = {
   ENG: { protein: 3, carbs: 25, fats: 1 },
   FAT: { protein: 0, carbs: 0, fats: 100 },
   VOL: { protein: 1, carbs: 4, fats: 0 },
+  FRUIT: { protein: 0.5, carbs: 12, fats: 0.2 },
+  SWEET: { protein: 0, carbs: 80, fats: 0 },
   MIXED: { protein: 12, carbs: 15, fats: 8 }
 };
 
 function classifyProductRole(name) {
-  const n = String(name || '').toLowerCase();
-  if (/ориз|киноа|овес|паста|хляб|картоф|леща|боб|нахут|мюсли|каша|елда|булгур|гриз|макарон|пълнозърнест/.test(n)) return 'ENG';
-  if (/зехтин|масло|авокадо|ядк|семе|тахан|маслин|шарлан|олио/.test(n)) return 'FAT';
-  if (/салат|домат|крастав|чушк|броколи|тиквич|морков|зеленч|маруля|спанак|гъби|карфиол|тиква|зеле|лук|чесън|праз|еринги/.test(n)) return 'VOL';
-  if (/пиле|пилеш|гърди|месо|риба|сьомга|треска|яйц|сирен|извара|мляко|скир|тофу|кисело мляко|свин|говед|кайма|пъстърва|тон|протеин/.test(n)) return 'PRO';
+  const n = String(name || '').toLowerCase().trim();
+  if (!n) return 'SEASON';
+
+  if (/черен пипер|бял пипер|канела|стевия|сол\b|подправ|риган|копър|магданоз|сумак|куркума|джинджифил|чесън на прах|босилек/.test(n)) return 'SEASON';
+  if (/^лимон|^лайм|лимонов сок/.test(n)) return 'SEASON';
+
+  if (/мед|захар|мелас|сироп/.test(n)) return 'SWEET';
+
+  if (/ябълк|боровин|ягод|малин|портокал|грозде|круша|череш|слива|манго|ананас|плод|нектарин|киви|диня|пъпеш/.test(n)) return 'FRUIT';
+
+  if (/протеин|суроват/.test(n)) return 'PRO_SUP';
+
+  if (/ориз|киноа|овес|паста|хляб|картоф|леща|боб|нахут|мюсли|каша|елда|булгур|гриз|макарон|пълнозърнест|тортила|батат|сладък картоф/.test(n)) return 'ENG';
+
+  if (/зехтин|масло|авокадо|бадем|орех|кашу|лешник|фъстък|семе|чия|тахан|маслин|олио|шамфъстък|макадамия|пекан|ядк/.test(n)) return 'FAT';
+
+  if (/салат|домат|крастав|чушк|броколи|тиквич|морков|зеленч|маруля|спанак|гъби|карфиол|тиква|зеле|лук|чесън|праз|еринги|айсберг|репич/.test(n)) return 'VOL';
+
+  if (/пиле|пилеш|гърди|месо|риба|сьомга|треска|яйц|сирен|извара|мляко|скир|тофу|кисело мляко|свин|говед|кайма|пъстърва|тон|пуеш|кашкавал/.test(n)) return 'PRO';
+
   return 'MIXED';
+}
+
+function getSeasoningGrams(name) {
+  const n = String(name || '').toLowerCase();
+  if (/пипер|канела|стевия/.test(n)) return 2;
+  if (/лимон|лайм/.test(n)) return 15;
+  return 3;
+}
+
+function cleanExtractedProductName(raw) {
+  const trimmed = String(raw || '').trim();
+  const withoutBullet = trimmed.replace(/^[•\-\*]\s*/, '');
+  if (/^десерт\s*:/i.test(withoutBullet) || /десерт\s*:\s*\d+\s*ккал/i.test(withoutBullet)) return '';
+  return trimmed
+    .replace(/^[•\-\*]\s*/, '')
+    .replace(/\s+\d+(?:[.,]\d+)?\s*(?:g|г)\b.*$/i, '')
+    .replace(/\s+\d+(?:[.,]\d+)?\s*(?:g|г)\s*$/i, '')
+    .replace(/\s*\(\d+\s*бр\.?[^)]*\)/gi, '')
+    .replace(/\([^)]*\d+\s*(?:g|г)[^)]*\)/gi, '')
+    .replace(/\([^)]*(?:по желание|включена в макрос)[^)]*\)/gi, '')
+    .replace(/\s*\(\d+\s*%\s*[^)]*\)/gi, '')
+    .replace(/\s*[—\-].*$/, '')
+    .replace(/,\s*(?:приготв|наряз|печен|варен|на пара|задуш|запеч|маринов|овкус|сварен|без|с\s+(?:малко|лек)|или\s+).*/i, '')
+    .replace(/^една супена лъжица\s+/i, '')
+    .replace(/\.\s*$/, '')
+    .replace(/^хляб:\s*/i, 'хляб ')
+    .trim();
 }
 
 /** Product names from AI description/name (grams and cooking stripped). */
@@ -7401,12 +7495,7 @@ function extractMealProductNames(meal) {
   const names = [];
   const seen = new Set();
   const add = (raw) => {
-    let name = String(raw || '')
-      .replace(/^[•\-\*]\s*/, '')
-      .replace(/\s+\d+(?:[.,]\d+)?\s*(g|г)\b.*$/i, '')
-      .replace(/\s*[—\-].*$/, '')
-      .replace(/^хляб:\s*/i, 'хляб ')
-      .trim();
+    const name = cleanExtractedProductName(raw);
     if (name.length > 1 && !seen.has(name.toLowerCase())) {
       seen.add(name.toLowerCase());
       names.push(name);
@@ -7462,26 +7551,44 @@ function allocateMealGramsFromMacros(meal) {
 
   const target = getAllocatableMacros(meal);
   const items = names.map(name => ({ name, role: classifyProductRole(name), grams: 0 }));
+
+  const season = items.filter(i => i.role === 'SEASON');
+  const proSup = items.filter(i => i.role === 'PRO_SUP');
   const vol = items.filter(i => i.role === 'VOL');
-  const pro = items.filter(i => i.role === 'PRO' || i.role === 'MIXED');
+  const pro = items.filter(i => i.role === 'PRO');
   const eng = items.filter(i => i.role === 'ENG');
   const fat = items.filter(i => i.role === 'FAT');
+  const fruit = items.filter(i => i.role === 'FRUIT');
+  const sweet = items.filter(i => i.role === 'SWEET');
+  const mixed = items.filter(i => i.role === 'MIXED');
 
   let remP = target.protein;
   let remC = target.carbs;
   let remF = target.fats;
 
-  vol.forEach(i => {
-    i.grams = 100;
-    const m = macroContribFromGrams(i.grams, GRAM_ALLOC_DENSITY.VOL);
+  season.forEach(i => { i.grams = getSeasoningGrams(i.name); });
+
+  proSup.forEach(i => {
+    i.grams = 30;
+    const m = macroContribFromGrams(i.grams, GRAM_ALLOC_DENSITY.PRO);
     remP = Math.max(0, remP - m.protein);
     remC = Math.max(0, remC - m.carbs);
     remF = Math.max(0, remF - m.fats);
   });
 
+  if (vol.length && remC > 0) {
+    const volCarbBudget = remC * 0.35;
+    const gPer = Math.min(100, Math.max(60, Math.round((volCarbBudget / vol.length) / (GRAM_ALLOC_DENSITY.VOL.carbs / 100)) || 80));
+    vol.forEach(i => { i.grams = gPer; });
+    const used = sumMacroContrib(vol);
+    remP = Math.max(0, remP - used.protein);
+    remC = Math.max(0, remC - used.carbs);
+    remF = Math.max(0, remF - used.fats);
+  }
+
   if (pro.length && remP > 0) {
     const gPer = Math.round((remP / pro.length) / (GRAM_ALLOC_DENSITY.PRO.protein / 100));
-    const grams = Math.min(320, Math.max(50, gPer || 100));
+    const grams = Math.min(250, Math.max(80, gPer || 120));
     pro.forEach(i => { i.grams = grams; });
     const used = sumMacroContrib(pro);
     remP = Math.max(0, remP - used.protein);
@@ -7491,7 +7598,7 @@ function allocateMealGramsFromMacros(meal) {
 
   if (eng.length && remC > 0) {
     const gPer = Math.round((remC / eng.length) / (GRAM_ALLOC_DENSITY.ENG.carbs / 100));
-    const grams = Math.min(280, Math.max(35, gPer || 80));
+    const grams = Math.min(250, Math.max(40, gPer || 100));
     eng.forEach(i => { i.grams = grams; });
     const used = sumMacroContrib(eng);
     remP = Math.max(0, remP - used.protein);
@@ -7499,26 +7606,66 @@ function allocateMealGramsFromMacros(meal) {
     remF = Math.max(0, remF - used.fats);
   }
 
-  if (fat.length && remF > 3) {
-    const gPer = Math.round((remF / fat.length) / (GRAM_ALLOC_DENSITY.FAT.fats / 100));
-    const grams = Math.min(35, Math.max(5, gPer || 10));
-    fat.forEach(i => { i.grams = grams; });
+  if (fruit.length && remC > 0) {
+    const gPer = Math.round((remC / fruit.length) / (GRAM_ALLOC_DENSITY.FRUIT.carbs / 100));
+    const grams = Math.min(120, Math.max(40, gPer || 80));
+    fruit.forEach(i => { i.grams = grams; });
+    const used = sumMacroContrib(fruit);
+    remP = Math.max(0, remP - used.protein);
+    remC = Math.max(0, remC - used.carbs);
+    remF = Math.max(0, remF - used.fats);
+  }
+
+  if (sweet.length && remC > 0) {
+    sweet.forEach(i => {
+      i.grams = Math.min(15, Math.max(5, Math.round(remC / sweet.length / (GRAM_ALLOC_DENSITY.SWEET.carbs / 100)) || 10));
+    });
+    remC = Math.max(0, remC - sumMacroContrib(sweet).carbs);
+  }
+
+  if (fat.length && remF > 2) {
+    fat.forEach(i => {
+      const isOil = /зехтин|масло|олио/.test(i.name.toLowerCase());
+      const maxG = isOil ? 20 : 30;
+      const gPer = Math.round((remF / fat.length) / (GRAM_ALLOC_DENSITY.FAT.fats / 100));
+      i.grams = Math.min(maxG, Math.max(5, gPer || 10));
+    });
     remF = Math.max(0, remF - sumMacroContrib(fat).fats);
-  } else if (remF > 5) {
-    items.push({ name: 'зехтин', role: 'FAT', grams: Math.min(20, Math.round(remF)) });
+  } else if (remF > 5 && !fat.length) {
+    items.push({ name: 'зехтин', role: 'FAT', grams: Math.min(15, Math.round(remF)) });
+  }
+
+  if (mixed.length) {
+    if (remP > 5) {
+      const gPer = Math.round((remP / mixed.length) / (GRAM_ALLOC_DENSITY.MIXED.protein / 100));
+      mixed.forEach(i => { i.grams = Math.min(150, Math.max(40, gPer || 80)); });
+    } else if (remC > 5) {
+      const gPer = Math.round((remC / mixed.length) / (GRAM_ALLOC_DENSITY.MIXED.carbs / 100));
+      mixed.forEach(i => { i.grams = Math.min(150, Math.max(40, gPer || 80)); });
+    } else {
+      mixed.forEach(i => { i.grams = 50; });
+    }
   }
 
   const allocated = items.filter(i => i.grams > 0);
   if (!allocated.length) return;
 
+  const scaleItems = allocated.filter(i => i.role !== 'SEASON');
   const targetCal = macrosToCalories(target);
-  let actualCal = macrosToCalories(sumMacroContrib(allocated));
-  if (targetCal > 0 && actualCal > 0) {
+  let actualCal = macrosToCalories(sumMacroContrib(scaleItems));
+  if (targetCal > 0 && actualCal > 0 && scaleItems.length) {
     const factor = targetCal / actualCal;
-    allocated.forEach(i => {
-      if (i.role !== 'VOL') i.grams = Math.max(5, Math.round(i.grams * factor));
+    scaleItems.forEach(i => {
+      const isOil = /зехтин|масло|олио/.test(i.name.toLowerCase());
+      const minG = i.role === 'FAT' ? 5 : (i.role === 'SWEET' ? 5 : 15);
+      const maxG = i.role === 'FAT' && isOil ? 25
+        : i.role === 'FAT' ? 35
+        : i.role === 'PRO' ? 280
+        : i.role === 'SWEET' ? 15
+        : 280;
+      i.grams = Math.min(maxG, Math.max(minG, Math.round(i.grams * factor)));
     });
-    actualCal = macrosToCalories(sumMacroContrib(allocated));
+    actualCal = macrosToCalories(sumMacroContrib(scaleItems));
   }
 
   meal.description = allocated.map(i => `• ${i.name} ${i.grams}g`).join('\n');
@@ -7527,6 +7674,15 @@ function allocateMealGramsFromMacros(meal) {
     totalGrams += FIXED_DESSERT_WEIGHT_GRAMS;
   }
   if (totalGrams > 0) meal.weight = `${totalGrams}г`;
+}
+
+/** Re-run gram allocation for an existing stored plan (admin repair). */
+function reprocessPlanGramAllocation(plan) {
+  if (!plan?.weekPlan) return plan;
+  normalizeMealBreakdownTypes(plan.strategy || {});
+  normalizeWeeklyScheme(plan.strategy || {}, plan.summary?.dailyCalories || plan.analysis?.Final_Calories);
+  finalizeWeekPlanDays(plan.weekPlan, plan.strategy || {}, 1, 7);
+  return plan;
 }
 
 function alignMealsToBreakdown(dayPlan, dayTarget) {
@@ -15853,6 +16009,8 @@ export default {
         return await handleDeleteClients(request, env);
       } else if (url.pathname === '/api/admin/update-client-plan' && request.method === 'POST') {
         return await handleUpdateClientPlan(request, env, ctx);
+      } else if (url.pathname === '/api/admin/reprocess-plan-grams' && request.method === 'POST') {
+        return await handleAdminReprocessPlanGrams(request, env, ctx);
       } else if (url.pathname === '/api/admin/activate-client-plan' && request.method === 'POST') {
         return await handleActivateClientPlan(request, env, ctx);
       } else if (url.pathname === '/api/admin/client-card' && request.method === 'GET') {
