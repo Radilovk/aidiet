@@ -1615,6 +1615,13 @@ const CORS_HEADERS = {
   'Cross-Origin-Opener-Policy': 'same-origin-allow-popups'
 };
 
+// Temporary lock while admin edits client plans (remove when editing is complete).
+const PLAN_EDITING_LOCK_ENABLED = true;
+const PLAN_EDITING_ALLOWED_CLIENT_IDS = new Set(['client_1781138769382_8b8mu']);
+const PLAN_EDITING_ALLOWED_USER_IDS = new Set(['fb_Os1kJ6EpeCcQwelBVp5UdVeK8kq1']);
+const PLAN_EDITING_ALLOWED_EMAILS = new Set(['radilov.k@gmail.com']);
+const PLAN_EDITING_MESSAGE = 'Вашият хранителен план е в процес на редакция. Моля, опитайте по-късно.';
+
 // Cache for admin configuration to reduce KV reads
 let adminConfigCache = null;
 let adminConfigCacheTime = 0;
@@ -4884,6 +4891,27 @@ function normalizeEmail(value) {
   return String(value || '').trim().toLowerCase();
 }
 
+function isPlanEditingAllowed({ clientId, userId, email } = {}) {
+  if (!PLAN_EDITING_LOCK_ENABLED) return true;
+  const cid = String(clientId || '').trim();
+  const uid = String(userId || '').trim();
+  const em = normalizeEmail(email);
+  if (cid && PLAN_EDITING_ALLOWED_CLIENT_IDS.has(cid)) return true;
+  if (uid && PLAN_EDITING_ALLOWED_USER_IDS.has(uid)) return true;
+  if (em && PLAN_EDITING_ALLOWED_EMAILS.has(em)) return true;
+  return false;
+}
+
+function planEditingBlockedResponse() {
+  return jsonResponse({
+    found: false,
+    success: false,
+    planEditing: true,
+    blocked: true,
+    message: PLAN_EDITING_MESSAGE,
+  });
+}
+
 async function findClientByEmail(env, email) {
   const normalizedEmail = normalizeEmail(email);
   if (!normalizedEmail || !env.page_content) return null;
@@ -5791,6 +5819,14 @@ async function handleClaimPlanUpdate(request, env) {
     if (!clientData?.plan || clientData.planStatus !== 'activated') {
       await env.page_content.delete(`plan_claim:${token}`);
       return jsonResponse({ found: false, error: 'Plan not available' }, 404);
+    }
+
+    if (!isPlanEditingAllowed({
+      clientId: claim.clientId,
+      userId: claim.userId || clientData.userId,
+      email: clientData.answers?.email,
+    })) {
+      return planEditingBlockedResponse();
     }
 
     await env.page_content.delete(`plan_claim:${token}`);
@@ -7000,6 +7036,13 @@ async function handleGetClientPlanStatus(request, env) {
       return jsonResponse({ error: 'Client not found' }, 404);
     }
     const clientData = JSON.parse(raw);
+    if (!isPlanEditingAllowed({
+      clientId,
+      userId: clientData.userId,
+      email: clientData.answers?.email,
+    })) {
+      return planEditingBlockedResponse();
+    }
     const response = {
       success: true,
       planStatus: clientData.planStatus || 'none',
@@ -14741,6 +14784,14 @@ async function handleGetPlanVersion(request, env) {
       return jsonResponse({ found: false }, 404);
     }
 
+    if (!isPlanEditingAllowed({
+      userId: resolvedUserId,
+      clientId: profile.clientId,
+      email: profile.userData?.email,
+    })) {
+      return planEditingBlockedResponse();
+    }
+
     const releasedProfile = await applyWeeklyReleaseIfDue(env, profile, resolvedUserId);
     const planUpdatedAt = getEffectivePlanUpdatedAt(releasedProfile);
     const clientVersion = (url.searchParams.get('v') || '').trim();
@@ -14914,6 +14965,14 @@ async function handleGetUserProfile(request, env) {
     }
 
     profile = await applyWeeklyReleaseIfDue(env, profile, resolvedUserId);
+
+    if (!isPlanEditingAllowed({
+      userId: resolvedUserId,
+      clientId: profile.clientId || clientId,
+      email: profile.userData?.email || requestedEmail,
+    }) && (profile.plan || profile.clientId || planSource === 'questionnaire2')) {
+      return planEditingBlockedResponse();
+    }
 
     const planUpdatedAt = getEffectivePlanUpdatedAt(profile);
 

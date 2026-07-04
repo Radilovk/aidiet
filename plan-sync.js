@@ -9,6 +9,13 @@
     var LOGIN_FETCH_FLAG = 'np_fetch_plan_on_next_auth';
     var PLAN_UPDATE_PENDING_KEY = 'np_plan_refresh_pending';
     var PLAN_VERSION_CHECK_DATE_KEY = 'np_plan_version_check_date';
+    var PLAN_EDITING_LOCK_ENABLED = true;
+    var PLAN_EDITING_MESSAGE = 'Вашият хранителен план е в процес на редакция. Моля, опитайте по-късно.';
+    var PLAN_EDITING_ALLOWED = {
+        clientIds: { 'client_1781138769382_8b8mu': true },
+        userIds: { 'fb_Os1kJ6EpeCcQwelBVp5UdVeK8kq1': true },
+        emails: { 'radilov.k@gmail.com': true }
+    };
     var _pendingBridgeBound = false;
     var _planUpdateApplyInFlight = null;
     var _planUpdatePromptVisible = false;
@@ -104,8 +111,106 @@
         }
     }
 
+    function normalizeEmail(value) {
+        return String(value || '').trim().toLowerCase();
+    }
+
+    function isPlanEditingAllowedLocally() {
+        if (!PLAN_EDITING_LOCK_ENABLED) return true;
+        try {
+            var clientId = localStorage.getItem('pendingClientId') || '';
+            var userId = localStorage.getItem('userId') || '';
+            var userData = JSON.parse(localStorage.getItem('userData') || '{}');
+            var email = normalizeEmail(userData.email);
+            if (clientId && PLAN_EDITING_ALLOWED.clientIds[clientId]) return true;
+            if (userId && PLAN_EDITING_ALLOWED.userIds[userId]) return true;
+            if (email && PLAN_EDITING_ALLOWED.emails[email]) return true;
+        } catch (_) {}
+        return false;
+    }
+
+    function clearBlockedPlanSession() {
+        try {
+            localStorage.removeItem('dietPlan');
+            localStorage.removeItem('planSource');
+            localStorage.removeItem('pendingClientId');
+            localStorage.removeItem('planJobId');
+            localStorage.removeItem('planJobSource');
+            localStorage.removeItem('np_profile_sync_sig');
+            localStorage.removeItem('np_profile_synced');
+        } catch (_) {}
+    }
+
+    function ensurePlanEditingOverlay(message) {
+        var overlayId = 'npPlanEditingOverlay';
+        var overlay = document.getElementById(overlayId);
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = overlayId;
+            overlay.setAttribute('role', 'alertdialog');
+            overlay.setAttribute('aria-modal', 'true');
+            overlay.setAttribute('aria-labelledby', 'npPlanEditingTitle');
+            overlay.style.cssText = 'position:fixed;inset:0;background:rgba(10,26,26,.72);backdrop-filter:blur(8px);z-index:10000;display:flex;align-items:center;justify-content:center;padding:24px;';
+            overlay.innerHTML = [
+                '<div style="background:var(--card-bg,rgba(255,255,255,.95));border:1px solid rgba(13,148,136,.18);border-radius:24px;padding:32px 28px;max-width:420px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.28);">',
+                '<div style="width:56px;height:56px;margin:0 auto 16px;border-radius:50%;background:linear-gradient(135deg,rgba(13,148,136,.15),rgba(6,182,212,.12));display:flex;align-items:center;justify-content:center;">',
+                '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>',
+                '</div>',
+                '<h2 id="npPlanEditingTitle" style="margin:0 0 10px;font-size:1.15rem;font-weight:700;color:var(--text-dark,#0F2F2E);">План в процес на редакция</h2>',
+                '<p id="npPlanEditingMessage" style="margin:0 0 20px;font-size:.92rem;line-height:1.55;color:var(--text-light,#6b7280);"></p>',
+                '<a href="index.html?stay=1" style="display:inline-flex;align-items:center;justify-content:center;padding:12px 20px;border-radius:14px;font-weight:700;text-decoration:none;background:linear-gradient(135deg,#0D9488,#0F766E);color:#fff;">Към началото</a>',
+                '</div>'
+            ].join('');
+            document.body.appendChild(overlay);
+        }
+        var msgEl = document.getElementById('npPlanEditingMessage');
+        if (msgEl) msgEl.textContent = message || PLAN_EDITING_MESSAGE;
+        overlay.style.display = 'flex';
+        try { document.body.style.overflow = 'hidden'; } catch (_) {}
+        return overlay;
+    }
+
+    function handlePlanEditingBlocked(message) {
+        clearBlockedPlanSession();
+        if (document.body) {
+            ensurePlanEditingOverlay(message);
+        }
+        return true;
+    }
+
+    function enforcePlanEditingLock(options) {
+        options = options || {};
+        if (!PLAN_EDITING_LOCK_ENABLED || isPlanEditingAllowedLocally()) {
+            return false;
+        }
+        var hadPlan = false;
+        try {
+            hadPlan = !!localStorage.getItem('dietPlan') ||
+                !!localStorage.getItem('pendingClientId') ||
+                localStorage.getItem('planSource') === 'questionnaire2';
+        } catch (_) {}
+        if (options.clearPlan !== false && hadPlan) {
+            clearBlockedPlanSession();
+        }
+        if (options.showOverlay !== false && (hadPlan || options.forceOverlay)) {
+            if (document.body) {
+                ensurePlanEditingOverlay(options.message);
+            } else {
+                document.addEventListener('DOMContentLoaded', function () {
+                    ensurePlanEditingOverlay(options.message);
+                }, { once: true });
+            }
+        }
+        return true;
+    }
+
     function applyServerPlanData(data, userId) {
-        if (!data || !data.found) return false;
+        if (!data || !data.found) {
+            if (data && data.planEditing) {
+                handlePlanEditingBlocked(data.message);
+            }
+            return false;
+        }
 
         var updated = false;
         if (data.plan) {
@@ -173,8 +278,13 @@
         if ((resp.status === 401 || resp.status === 403) && headers.Authorization) {
             resp = await fetch(url.toString(), { cache: 'no-store' });
         }
+        var data = await resp.json().catch(function () { return null; });
+        if (data && data.planEditing) {
+            handlePlanEditingBlocked(data.message);
+            return data;
+        }
         if (!resp.ok) return null;
-        return resp.json().catch(function () { return null; });
+        return data;
     }
 
     async function restoreProfileFromServer(userId, options) {
@@ -225,10 +335,6 @@
             }
         }
         return false;
-    }
-
-    function normalizeEmail(value) {
-        return String(value || '').trim().toLowerCase();
     }
 
     async function checkAccountRequiresAuth(email) {
@@ -426,8 +532,12 @@
 
         try {
             var resp = await fetch(WORKER_URL + '/api/client-plan-status?clientId=' + encodeURIComponent(clientId));
+            var data = await resp.json().catch(function () { return null; });
+            if (data && data.planEditing) {
+                handlePlanEditingBlocked(data.message);
+                return { activated: false, blocked: true };
+            }
             if (!resp.ok) return { activated: false };
-            var data = await resp.json();
             if (!data.success || data.planStatus !== 'activated') return { activated: false };
 
             if (data.plan) {
@@ -562,8 +672,13 @@
             if ((resp.status === 401 || resp.status === 403) && headers.Authorization) {
                 resp = await fetch(url.toString(), { cache: 'no-store' });
             }
+            var data = await resp.json().catch(function () { return null; });
+            if (data && data.planEditing) {
+                handlePlanEditingBlocked(data.message);
+                return data;
+            }
             if (!resp.ok) return null;
-            return resp.json().catch(function () { return null; });
+            return data;
         } catch (_) {
             return null;
         }
@@ -820,6 +935,10 @@
             var url = WORKER_URL + '/api/plan/claim?t=' + encodeURIComponent(token);
             var resp = await fetch(url, { cache: 'no-store' });
             var data = await resp.json().catch(function () { return null; });
+            if (data && data.planEditing) {
+                handlePlanEditingBlocked(data.message);
+                return { ok: false, reason: 'plan-editing', blocked: true };
+            }
             if (!resp.ok || !data || !data.found) {
                 return { ok: false, reason: (data && data.error) || 'claim-failed' };
             }
@@ -870,9 +989,39 @@
         ackWeeklyNotice: ackWeeklyNoticeOnServer,
         confirmPlanUpdate: confirmPlanUpdate,
         showPlanUpdatePrompt: showPlanUpdatePrompt,
-        maybePromptPendingPlanUpdate: maybePromptPendingPlanUpdate
+        maybePromptPendingPlanUpdate: maybePromptPendingPlanUpdate,
+        PLAN_EDITING_LOCK_ENABLED: PLAN_EDITING_LOCK_ENABLED,
+        PLAN_EDITING_MESSAGE: PLAN_EDITING_MESSAGE,
+        isPlanEditingAllowedLocally: isPlanEditingAllowedLocally,
+        enforcePlanEditingLock: enforcePlanEditingLock,
+        handlePlanEditingBlocked: handlePlanEditingBlocked,
+        clearBlockedPlanSession: clearBlockedPlanSession
     };
 
     bindPlanUpdatePendingBridge();
     reconcilePlanUpdatePending();
+
+    (function initPlanEditingLock() {
+        if (!PLAN_EDITING_LOCK_ENABLED || isPlanEditingAllowedLocally()) return;
+        var path = global.location.pathname || '';
+        var isPlanPage = /\/plan\.html$/i.test(path);
+        var isProfilePage = /\/profile\.html$/i.test(path);
+        var isPlanPendingPage = /\/plan-pending\.html$/i.test(path);
+        var params = new URLSearchParams(global.location.search || '');
+        var isIndexPlanTab = /\/index\.html$/i.test(path) && (params.get('tab') === 'plan' || params.get('tab') === 'profile');
+        var hasClientSession = false;
+        try {
+            hasClientSession = !!localStorage.getItem('dietPlan') ||
+                !!localStorage.getItem('pendingClientId') ||
+                localStorage.getItem('planSource') === 'questionnaire2' ||
+                !!localStorage.getItem('userId');
+        } catch (_) {}
+        if (isPlanPage || isProfilePage || isPlanPendingPage) {
+            enforcePlanEditingLock({ forceOverlay: true });
+        } else if (isIndexPlanTab && hasClientSession) {
+            enforcePlanEditingLock({ forceOverlay: true });
+        } else if (hasClientSession) {
+            enforcePlanEditingLock({ showOverlay: false, clearPlan: true });
+        }
+    }());
 }(window));
