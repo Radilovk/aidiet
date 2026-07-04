@@ -7418,196 +7418,13 @@ function normalizeMealTypesInWeekPlan(weekPlan) {
   }
 }
 
-function hasGramsInDescription(description) {
-  return !!description && /\d+\s*(g|г)\b/i.test(description);
-}
-
-const GRAM_ALLOC_DENSITY = {
-  PRO: { protein: 22, carbs: 0, fats: 5 },
-  ENG: { protein: 3, carbs: 25, fats: 1 },
-  FAT: { protein: 0, carbs: 0, fats: 100 },
-  VOL: { protein: 1, carbs: 4, fats: 0 },
-  MIXED: { protein: 12, carbs: 15, fats: 8 }
-};
-
-function classifyProductRole(name) {
-  const n = String(name || '').toLowerCase();
-  if (/ориз|киноа|овес|паста|хляб|картоф|леща|боб|нахут|мюсли|каша|елда|булгур|гриз|макарон|пълнозърнест/.test(n)) return 'ENG';
-  if (/зехтин|масло|авокадо|ядк|семе|тахан|маслин|шарлан|олио/.test(n)) return 'FAT';
-  if (/салат|домат|крастав|чушк|броколи|тиквич|морков|зеленч|маруля|спанак|гъби|карфиол|тиква|зеле|лук|чесън|праз|еринги/.test(n)) return 'VOL';
-  if (/пиле|пилеш|гърди|месо|риба|сьомга|треска|яйц|сирен|извара|мляко|скир|тофу|кисело мляко|свин|говед|кайма|пъстърва|тон|протеин/.test(n)) return 'PRO';
-  return 'MIXED';
-}
-
-/** Product names from AI description/name (grams and cooking stripped). */
-function extractMealProductNames(meal) {
-  const names = [];
-  const seen = new Set();
-  const add = (raw) => {
-    let name = String(raw || '')
-      .replace(/^[•\-\*]\s*/, '')
-      .replace(/\s+\d+(?:[.,]\d+)?\s*(g|г)\b.*$/i, '')
-      .replace(/\s*[—\-].*$/, '')
-      .replace(/^хляб:\s*/i, 'хляб ')
-      .trim();
-    if (name.length > 1 && !seen.has(name.toLowerCase())) {
-      seen.add(name.toLowerCase());
-      names.push(name);
-    }
-  };
-  const desc = meal.description || '';
-  if (desc) desc.split(/[\n;]+/).forEach(part => add(part));
-  if (!names.length && meal.name) {
-    String(meal.name).split(/\n+/).forEach(line => add(line));
-  }
-  return names;
-}
-
-function macroContribFromGrams(grams, density) {
-  return {
-    protein: grams * density.protein / 100,
-    carbs: grams * density.carbs / 100,
-    fats: grams * density.fats / 100
-  };
-}
-
-function sumMacroContrib(items) {
-  return items.reduce((acc, item) => {
-    const d = GRAM_ALLOC_DENSITY[item.role] || GRAM_ALLOC_DENSITY.MIXED;
-    const m = macroContribFromGrams(item.grams, d);
-    acc.protein += m.protein;
-    acc.carbs += m.carbs;
-    acc.fats += m.fats;
-    return acc;
-  }, { protein: 0, carbs: 0, fats: 0 });
-}
-
-function getAllocatableMacros(meal) {
-  const m = {
-    protein: Number(meal.macros?.protein) || 0,
-    carbs: Number(meal.macros?.carbs) || 0,
-    fats: Number(meal.macros?.fats) || 0
-  };
-  if (meal.dessert && typeof meal.dessert === 'object' && meal.dessert.macros) {
-    m.protein = Math.max(0, m.protein - (Number(meal.dessert.macros.protein) || 0));
-    m.carbs = Math.max(0, m.carbs - (Number(meal.dessert.macros.carbs) || 0));
-    m.fats = Math.max(0, m.fats - (Number(meal.dessert.macros.fats) || 0));
-  }
-  return m;
-}
-
-/** Deterministic grams from mealBreakdown macros + product names. */
-function allocateMealGramsFromMacros(meal) {
-  if (!meal?.macros || meal.type === 'Свободно хранене' || meal.type === 'Напитка') return;
-
-  const names = extractMealProductNames(meal);
-  if (!names.length) return;
-
-  const target = getAllocatableMacros(meal);
-  const items = names.map(name => ({ name, role: classifyProductRole(name), grams: 0 }));
-  const vol = items.filter(i => i.role === 'VOL');
-  const pro = items.filter(i => i.role === 'PRO' || i.role === 'MIXED');
-  const eng = items.filter(i => i.role === 'ENG');
-  const fat = items.filter(i => i.role === 'FAT');
-
-  let remP = target.protein;
-  let remC = target.carbs;
-  let remF = target.fats;
-
-  vol.forEach(i => {
-    i.grams = 100;
-    const m = macroContribFromGrams(i.grams, GRAM_ALLOC_DENSITY.VOL);
-    remP = Math.max(0, remP - m.protein);
-    remC = Math.max(0, remC - m.carbs);
-    remF = Math.max(0, remF - m.fats);
-  });
-
-  if (pro.length && remP > 0) {
-    const gPer = Math.round((remP / pro.length) / (GRAM_ALLOC_DENSITY.PRO.protein / 100));
-    const grams = Math.min(320, Math.max(50, gPer || 100));
-    pro.forEach(i => { i.grams = grams; });
-    const used = sumMacroContrib(pro);
-    remP = Math.max(0, remP - used.protein);
-    remC = Math.max(0, remC - used.carbs);
-    remF = Math.max(0, remF - used.fats);
-  }
-
-  if (eng.length && remC > 0) {
-    const gPer = Math.round((remC / eng.length) / (GRAM_ALLOC_DENSITY.ENG.carbs / 100));
-    const grams = Math.min(280, Math.max(35, gPer || 80));
-    eng.forEach(i => { i.grams = grams; });
-    const used = sumMacroContrib(eng);
-    remP = Math.max(0, remP - used.protein);
-    remC = Math.max(0, remC - used.carbs);
-    remF = Math.max(0, remF - used.fats);
-  }
-
-  if (fat.length && remF > 3) {
-    const gPer = Math.round((remF / fat.length) / (GRAM_ALLOC_DENSITY.FAT.fats / 100));
-    const grams = Math.min(35, Math.max(5, gPer || 10));
-    fat.forEach(i => { i.grams = grams; });
-    remF = Math.max(0, remF - sumMacroContrib(fat).fats);
-  } else if (remF > 5) {
-    items.push({ name: 'зехтин', role: 'FAT', grams: Math.min(20, Math.round(remF)) });
-  }
-
-  const allocated = items.filter(i => i.grams > 0);
-  if (!allocated.length) return;
-
-  const targetCal = macrosToCalories(target);
-  let actualCal = macrosToCalories(sumMacroContrib(allocated));
-  if (targetCal > 0 && actualCal > 0) {
-    const factor = targetCal / actualCal;
-    allocated.forEach(i => {
-      if (i.role !== 'VOL') i.grams = Math.max(5, Math.round(i.grams * factor));
-    });
-    actualCal = macrosToCalories(sumMacroContrib(allocated));
-  }
-
-  meal.description = allocated.map(i => `• ${i.name} ${i.grams}g`).join('\n');
-  let totalGrams = allocated.reduce((s, i) => s + i.grams, 0);
-  if (meal.dessert && typeof meal.dessert === 'object' && FIXED_DESSERT_WEIGHT_GRAMS > 0) {
-    totalGrams += FIXED_DESSERT_WEIGHT_GRAMS;
-  }
-  if (totalGrams > 0) meal.weight = `${totalGrams}г`;
-}
-
-function alignMealsToBreakdown(dayPlan, dayTarget) {
-  if (!dayPlan?.meals?.length || !dayTarget?.mealBreakdown) return;
-  for (const meal of dayPlan.meals) {
-    if (meal.type === 'Свободно хранене' || meal.type === 'Напитка') continue;
-    const target = dayTarget.mealBreakdown.find(m => m.type === meal.type);
-    if (!target) continue;
-    meal.macros = {
-      protein: Math.round(Number(target.protein) || 0),
-      carbs: Math.round(Number(target.carbs) || 0),
-      fats: Math.round(Number(target.fats) || 0)
-    };
-    meal.calories = macrosToCalories(meal.macros);
-    allocateMealGramsFromMacros(meal);
-  }
-}
-
-function validateChunkHasProducts(weekPlan, startDay, endDay) {
-  const errors = [];
-  for (let d = startDay; d <= endDay; d++) {
-    const day = weekPlan[`day${d}`];
-    if (!day?.meals) continue;
-    for (const meal of day.meals) {
-      if (meal.type === 'Свободно хранене' || meal.type === 'Напитка') continue;
-      if (!extractMealProductNames(meal).length) {
-        errors.push(`Ден ${d} ${meal.type}: липсват продукти в description/name`);
-      }
-    }
-  }
-  return errors;
-}
-
-function buildChunkValidationRetryComment(errors) {
-  if (!errors?.length) return '';
-  return `═══ КОРЕКЦИЯ — ПРЕДИШНИЯТ ОТГОВОР ИМА ГРЕШКИ ═══
-${errors.map((e, i) => `${i + 1}. ${e}`).join('\n')}
-ЗАДЪЛЖИТЕЛНО: всяко хранене трябва да има продукти в description (по един на ред с •).`;
+/**
+ * Step 3 meals: AI is authoritative for grams/macros/calories.
+ * Backend syncs calories from macros and validates against mealBreakdown.
+ */
+function syncMealCaloriesFromMacros(meal) {
+  if (!meal || meal.type === 'Свободно хранене' || meal.type === 'Напитка' || !meal.macros) return;
+  meal.calories = macrosToCalories(meal.macros);
 }
 
 function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum) {
@@ -7633,7 +7450,7 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum) {
       }
     }
 
-    if (!hasGramsInDescription(meal.description)) {
+    if (!meal.description || !/\d+\s*(g|г)\b/i.test(meal.description)) {
       errors.push(`Ден ${dayNum} ${meal.type}: липсват грамажи (числоg) в description`);
     }
 
@@ -7647,20 +7464,45 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum) {
   return errors;
 }
 
+function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay) {
+  const errors = [];
+  if (!weekPlan || !strategy?.weeklyScheme) return errors;
+  normalizeMealBreakdownTypes(strategy);
+  for (let d = startDay; d <= endDay; d++) {
+    const dayPlan = weekPlan[`day${d}`];
+    const schemeKey = DAY_NUMBER_TO_KEY[d - 1];
+    const dayTarget = strategy.weeklyScheme[schemeKey];
+    if (dayPlan && dayTarget) {
+      errors.push(...validateMealsAgainstScheme(dayPlan, dayTarget, d));
+    }
+  }
+  return errors;
+}
+
+function buildChunkValidationRetryComment(errors) {
+  if (!errors?.length) return '';
+  return `═══ КОРЕКЦИЯ — ПРЕДИШНИЯТ ОТГОВОР ИМА ГРЕШКИ ═══
+Поправи САМО посочените несъответствия. Запази продуктите и структурата на дните.
+${errors.map((e, i) => `${i + 1}. ${e}`).join('\n')}
+
+ЗАДЪЛЖИТЕЛНО: meal.calories/macros = mealBreakdown цели (±${DAILY_CALORIE_TOLERANCE} kcal, ±${MACRO_GRAM_TOLERANCE}g). description с "числоg" на всеки продукт.`;
+}
+
 function finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay) {
   if (!weekPlan) return;
   normalizeMealBreakdownTypes(strategy);
   normalizeMealTypesInWeekPlan(weekPlan);
-  if (strategy?.weeklyScheme) {
-    for (let d = startDay; d <= endDay; d++) {
-      const dayKey = `day${d}`;
-      const schemeKey = DAY_NUMBER_TO_KEY[d - 1];
-      const dayPlan = weekPlan[dayKey];
-      const dayTarget = strategy.weeklyScheme[schemeKey];
-      if (dayPlan && dayTarget) alignMealsToBreakdown(dayPlan, dayTarget);
-    }
+  for (let d = startDay; d <= endDay; d++) {
+    const day = weekPlan[`day${d}`];
+    if (!day?.meals) continue;
+    for (const meal of day.meals) syncMealCaloriesFromMacros(meal);
   }
   recalculateDayCalories(weekPlan, strategy);
+}
+
+/** @deprecated Use finalizeWeekPlanDays — kept as alias for callers outside meal-plan flow */
+function alignWeekPlanDaysToScheme(weekPlan, strategy, startDay, endDay) {
+  finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay);
 }
 
 /**
@@ -9385,11 +9227,11 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         injectFixedDesserts(weekPlan);
         finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay);
 
-        const validationErrors = validateChunkHasProducts(weekPlan, startDay, endDay);
+        const validationErrors = validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay);
         if (!validationErrors.length) break;
 
         if (attempt >= MEAL_PLAN_CHUNK_MAX_RETRIES) {
-          throw new Error(`липсват продукти след ${attempt + 1} опита: ${validationErrors.join('; ')}`);
+          throw new Error(`валидация неуспешна след ${attempt + 1} опита: ${validationErrors.join('; ')}`);
         }
 
         for (let day = startDay; day <= endDay; day++) {
@@ -9401,7 +9243,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         chunkComment = [errorPreventionComment, buildChunkValidationRetryComment(validationErrors)]
           .filter(Boolean).join('\n\n');
         attempt++;
-        console.warn(`Chunk ${chunkIndex + 1} missing products (attempt ${attempt}), retrying:`, validationErrors);
+        console.warn(`Chunk ${chunkIndex + 1} validation failed (attempt ${attempt}), retrying:`, validationErrors);
       }
     } catch (error) {
       throw new Error(`Генериране на дни ${startDay}-${endDay}: ${error.message}`);
