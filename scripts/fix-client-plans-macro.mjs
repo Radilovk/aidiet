@@ -486,6 +486,30 @@ async function updatePlan(id, plan) {
   if (!data.success) throw new Error(data.error || 'update failed');
 }
 
+/** Push fixed plan into user_profile so login/device restore sees it immediately. */
+async function syncUserProfile(clientId, client) {
+  const userId = client.userId;
+  if (!userId || !client.plan) {
+    console.log('  профил: пропуснат (няма userId)');
+    return false;
+  }
+  const res = await fetch(`${WORKER_URL}/api/user/save-profile`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId,
+      plan: client.plan,
+      userData: client.answers || {},
+      clientId,
+      planSource: client.planStatus === 'activated' ? '' : 'questionnaire2',
+    }),
+  });
+  const data = await res.json();
+  if (!data.success) throw new Error(data.error || 'profile sync failed');
+  console.log(`  профил ✓ ${userId}`);
+  return true;
+}
+
 async function main() {
   const report = [];
   for (const { id, name, backup } of CLIENTS) {
@@ -497,6 +521,7 @@ async function main() {
     if (backup) await restoreOriginalDescriptions(client, backup);
     const n = fixPlan(client.plan);
     await updatePlan(id, client.plan);
+    await syncUserProfile(id, client);
     const rows = analyzePlan(client.plan, name);
     report.push(...rows);
     const sample = client.plan.weekPlan.day1.meals.find((m) => m.type === 'Хранене 2');
