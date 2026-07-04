@@ -57,6 +57,11 @@
     <script>(function(){
         // Native notification taps: notification-launch.js owns routing + deferred plan redirect
         if (window.__nutriplanNotificationLaunch) return;
+        // Block client plan/profile access while plans are being edited (except Kamen)
+        var planSync = window.NutriPlanPlanSync;
+        if (planSync && typeof planSync.enforcePlanEditingLock === 'function') {
+            if (planSync.enforcePlanEditingLock({ showOverlay: false })) return;
+        }
         // Skip redirect if explicitly staying on index (?stay=1) or if login required
         var params = new URLSearchParams(window.location.search);
         if (params.has('stay') || params.has('login') || params.has('app')) return;
