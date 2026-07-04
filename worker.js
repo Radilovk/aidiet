@@ -3336,7 +3336,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
   return prompt;
 }
 
-/** Compact meal skeleton for Step 5 enrichment (numbers are final, copy-only pass). */
+/** Compact meal skeleton for Step 5 quality review (targets fixed, products/grams reviewable). */
 function serializeMealsSkeletonForEnrichment(weekPlan, startDay, endDay) {
   const result = {};
   for (let d = startDay; d <= endDay; d++) {
@@ -3361,7 +3361,7 @@ function serializeMealsSkeletonForEnrichment(weekPlan, startDay, endDay) {
   return JSON.stringify(result, null, 2);
 }
 
-/** Merge enriched copy fields without touching numeric/meal structure. */
+/** Merge Step 5 review fields; calories/macros/type/dessert stay from Step 3. */
 function applyMealEnrichment(weekPlan, enrichmentData, startDay, endDay) {
   if (!enrichmentData || typeof enrichmentData !== 'object') return;
   for (let d = startDay; d <= endDay; d++) {
@@ -3374,14 +3374,25 @@ function applyMealEnrichment(weekPlan, enrichmentData, startDay, endDay) {
       const enriched = enrichedDay.meals.find(m => m.type === meal.type) || enrichedDay.meals[i];
       if (!enriched) continue;
       if (enriched.name) meal.name = enriched.name;
+      if (enriched.description) meal.description = enriched.description;
+      if (enriched.weight) meal.weight = enriched.weight;
       if (enriched.benefits) meal.benefits = enriched.benefits;
     }
   }
 }
 
-async function generateMealEnrichmentPrompt(data, strategy, weekPlan, startDay, endDay, env) {
+async function generateMealEnrichmentPrompt(data, strategy, weekPlan, startDay, endDay, env, options = {}) {
   const dietaryModifier = strategy.dietaryModifier || 'Балансирано';
   const mealsSkeletonJSON = serializeMealsSkeletonForEnrichment(weekPlan, startDay, endDay);
+  let recommendedCalories = Number(options.recommendedCalories) || 0;
+  if (!recommendedCalories && strategy?.weeklyScheme) {
+    const firstDay = strategy.weeklyScheme[DAY_NUMBER_TO_KEY[startDay - 1]] ||
+      Object.values(strategy.weeklyScheme)[0];
+    recommendedCalories = Number(firstDay?.calories) || 0;
+  }
+  const weeklySchemeByDayText = serializeWeeklySchemeTargets(
+    strategy, startDay, endDay, recommendedCalories, DAY_NUMBER_TO_KEY, DAILY_CALORIE_TOLERANCE
+  );
   const customPrompt = await requireKvPrompt(env, 'admin_meal_enrichment_prompt');
   let prompt = replacePromptVariables(customPrompt, {
     userData: data,
@@ -3391,6 +3402,7 @@ async function generateMealEnrichmentPrompt(data, strategy, weekPlan, startDay, 
     dietDislike: data.dietDislike || 'няма',
     additionalNotes: buildCombinedAdditionalNotes(data),
     mealsSkeletonJSON,
+    weeklySchemeByDayText,
     startDay,
     endDay
   });
@@ -3398,15 +3410,15 @@ async function generateMealEnrichmentPrompt(data, strategy, weekPlan, startDay, 
     prompt += `
 
 ═══ ФОРМАТ НА ОТГОВОР ═══
-Отговори САМО с валиден JSON обект. Запази type, weight, calories, macros, description и dessert без промяна. Обогати САМО name и benefits.`;
+Отговори САМО с валиден JSON обект. Запази type, calories, macros и dessert без промяна. Коригирай description, weight, name и benefits при нужда.`;
   }
   return prompt;
 }
 
 /**
- * Step 5: enrich meal copy (name format, cooking notes, benefits) after numeric alignment.
+ * Step 5: review product combinations and grams; fix inadequate portions and copy.
  */
-async function enrichWeekPlanCopy(env, data, strategy, weekPlan, sessionId = null) {
+async function enrichWeekPlanCopy(env, data, strategy, weekPlan, sessionId = null, options = {}) {
   const totalDays = 7;
   const chunks = Math.ceil(totalDays / DAYS_PER_CHUNK);
   for (let chunkIndex = 0; chunkIndex < chunks; chunkIndex++) {
@@ -3414,7 +3426,7 @@ async function enrichWeekPlanCopy(env, data, strategy, weekPlan, sessionId = nul
     const endDay = Math.min(startDay + DAYS_PER_CHUNK - 1, totalDays);
     try {
       const enrichmentPrompt = await generateMealEnrichmentPrompt(
-        data, strategy, weekPlan, startDay, endDay, env
+        data, strategy, weekPlan, startDay, endDay, env, options
       );
       const enrichmentResponse = await callAIModel(
         env, enrichmentPrompt, MEAL_ENRICHMENT_TOKEN_LIMIT,
@@ -3422,15 +3434,16 @@ async function enrichWeekPlanCopy(env, data, strategy, weekPlan, sessionId = nul
       );
       let enrichmentData = parseAIResponse(enrichmentResponse);
       if (!enrichmentData || enrichmentData.error) {
-        console.warn(`Step 5 enrichment chunk ${chunkIndex + 1} failed, keeping skeleton copy:`, enrichmentData?.error);
+        console.warn(`Step 5 review chunk ${chunkIndex + 1} failed, keeping Step 3 output:`, enrichmentData?.error);
         continue;
       }
       if (Array.isArray(enrichmentData)) {
         enrichmentData = Object.fromEntries(enrichmentData.map((item, i) => [`day${startDay + i}`, item]));
       }
       applyMealEnrichment(weekPlan, enrichmentData, startDay, endDay);
+      finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay);
     } catch (error) {
-      console.warn(`Step 5 enrichment chunk ${chunkIndex + 1} error, keeping skeleton copy:`, error.message);
+      console.warn(`Step 5 review chunk ${chunkIndex + 1} error, keeping Step 3 output:`, error.message);
     }
   }
 }
@@ -7085,7 +7098,7 @@ async function handleGetClientPlanStatus(request, env) {
 
 // Token limits optimized through prompt simplification (not artificial limits)
 const MEAL_PLAN_TOKEN_LIMIT = 8000; // Sufficient for detailed meal generation
-const MEAL_ENRICHMENT_TOKEN_LIMIT = 6000; // Step 5: name/description/benefits copy only (2-day chunks)
+const MEAL_ENRICHMENT_TOKEN_LIMIT = 6000; // Step 5: review/fix grams, combinations, copy (2-day chunks)
 const SUMMARY_TOKEN_LIMIT = 3500; // Summary generation: must fit up to 10 recommendations, 10 forbidden foods, 3 psychology tips, 3 supplements + summary object
 
 // Validation constants
@@ -9252,12 +9265,12 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
 
   finalizeWeekPlanDays(weekPlan, strategy, 1, 7);
 
-  // Step 5: enrich copy (name format, cooking, benefits) — numbers from Step 3
+  // Step 5: review combinations/grams and fix copy — targets from Step 3 unchanged
   try {
-    await enrichWeekPlanCopy(env, data, strategy, weekPlan, sessionId);
-    console.log('Step 5 enrichment complete');
+    await enrichWeekPlanCopy(env, data, strategy, weekPlan, sessionId, { recommendedCalories });
+    console.log('Step 5 review complete');
   } catch (error) {
-    console.warn('Step 5 enrichment failed, plan usable with skeleton copy:', error.message);
+    console.warn('Step 5 review failed, plan usable with Step 3 output:', error.message);
   }
   
   // Generate summary, recommendations, etc. in final request
