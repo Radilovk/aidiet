@@ -24,6 +24,13 @@ import {
   buildClientCard,
   serializePlanSummary,
 } from './client-card.js';
+import {
+  syncWeekPlanNutritionFromDatabase,
+  normalizeFoodKey,
+  lookupFoodProfile,
+  profileToKvArray,
+  kvArrayToProfile,
+} from './food-nutrition.js';
 
 
 /**
@@ -3317,12 +3324,12 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
 {
   "dayN": {
     "meals": [
-      {"type": "Хранене 1|Хранене 2|Свободно хранене|Хранене 3|Хранене 4|Хранене 5", "name": "име", "weight": "Xg", "description": "• продукт\\n• продукт", "calories": число, "macros": {"protein": число, "carbs": число, "fats": число}}
+      {"type": "Хранене 1|Хранене 2|Свободно хранене|Хранене 3|Хранене 4|Хранене 5", "name": "име", "description": "• продукт 150g\\n• продукт 80g"}
     ]
   }
 }
 
-ВАЖНО: Върни САМО JSON обект {} без други текст или обяснения! НЕ връщай JSON масив []! БЕЗ dailyTotals и БЕЗ benefits! Грамажите се смятат автоматично от системата.`;
+ВАЖНО: Върни САМО JSON обект {} без други текст или обяснения! НЕ връщай JSON масив []! БЕЗ dailyTotals, benefits, calories, macros или weight — калориите се смятат от бекенда по продуктите.`;
     }
     if (analysisBlock && !prompt.includes('#AN v1')) {
       prompt = prompt.replace(
@@ -3361,7 +3368,7 @@ function serializeMealsSkeletonForEnrichment(weekPlan, startDay, endDay) {
   return JSON.stringify(result, null, 2);
 }
 
-/** Merge Step 5 review fields; calories/macros/type/dessert stay from Step 3. */
+/** Merge Step 5 review fields; type/dessert stay; nutrition recalculated by backend after merge. */
 function applyMealEnrichment(weekPlan, enrichmentData, startDay, endDay) {
   if (!enrichmentData || typeof enrichmentData !== 'object') return;
   for (let d = startDay; d <= endDay; d++) {
@@ -3375,7 +3382,6 @@ function applyMealEnrichment(weekPlan, enrichmentData, startDay, endDay) {
       if (!enriched) continue;
       if (enriched.name) meal.name = enriched.name;
       if (enriched.description) meal.description = enriched.description;
-      if (enriched.weight) meal.weight = enriched.weight;
       if (enriched.benefits) meal.benefits = enriched.benefits;
     }
   }
@@ -3410,7 +3416,7 @@ async function generateMealEnrichmentPrompt(data, strategy, weekPlan, startDay, 
     prompt += `
 
 ═══ ФОРМАТ НА ОТГОВОР ═══
-Отговори САМО с валиден JSON обект. Запази type, calories, macros и dessert без промяна. Коригирай description, weight, name и benefits при нужда.`;
+Отговори САМО с валиден JSON обект. Запази type и dessert без промяна. Коригирай description, name и benefits при нужда. Без calories, macros или weight.`;
   }
   return prompt;
 }
@@ -3441,6 +3447,7 @@ async function enrichWeekPlanCopy(env, data, strategy, weekPlan, sessionId = nul
         enrichmentData = Object.fromEntries(enrichmentData.map((item, i) => [`day${startDay + i}`, item]));
       }
       applyMealEnrichment(weekPlan, enrichmentData, startDay, endDay);
+      await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay);
       finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay);
     } catch (error) {
       console.warn(`Step 5 review chunk ${chunkIndex + 1} error, keeping Step 3 output:`, error.message);
@@ -7432,12 +7439,73 @@ function normalizeMealTypesInWeekPlan(weekPlan) {
 }
 
 /**
- * Step 3 meals: AI is authoritative for grams/macros/calories.
- * Backend syncs calories from macros and validates against mealBreakdown.
+ * Step 3: AI picks products + grams. Backend calculates macros/calories from food DB.
  */
 function syncMealCaloriesFromMacros(meal) {
   if (!meal || meal.type === 'Свободно хранене' || meal.type === 'Напитка' || !meal.macros) return;
   meal.calories = macrosToCalories(meal.macros);
+}
+
+const FOOD_NUTRITION_EXTRA_KV_KEY = 'food_nutrition_extra';
+
+async function loadFoodNutritionExtraDb(env) {
+  try {
+    const raw = await env.page_content?.get(FOOD_NUTRITION_EXTRA_KV_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch (_) {
+    return {};
+  }
+}
+
+async function saveFoodNutritionExtraDb(env, extraDb) {
+  if (!env.page_content) return;
+  await env.page_content.put(FOOD_NUTRITION_EXTRA_KV_KEY, JSON.stringify(extraDb));
+}
+
+async function fetchFoodNutritionViaAI(env, productName) {
+  const prompt = `Хранителен продукт: "${productName}". Върни САМО JSON със средни хранителни стойности на 100g (числа): {"kcal":N,"p":N,"c":N,"f":N}. Без текст.`;
+  try {
+    const response = await callAIModel(env, prompt, 256, 'food_nutrition_lookup', null, null, null);
+    const data = parseAIResponse(response);
+    if (data && data.p != null && data.c != null && data.f != null) {
+      const p = Number(data.p) || 0;
+      const c = Number(data.c) || 0;
+      const f = Number(data.f) || 0;
+      return { kcal: Number(data.kcal) || Math.round(p * 4 + c * 4 + f * 9), p, c, f };
+    }
+  } catch (e) {
+    console.warn('[food-nutrition] AI lookup failed for', productName, e.message);
+  }
+  return null;
+}
+
+async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay) {
+  const extraDb = await loadFoodNutritionExtraDb(env);
+  let unknowns = syncWeekPlanNutritionFromDatabase(weekPlan, strategy, startDay, endDay, extraDb);
+
+  const namesToResolve = unknowns
+    .filter(n => n && n !== 'no-parsed-items')
+    .filter(n => !extraDb[normalizeFoodKey(n)])
+    .slice(0, 6);
+
+  if (!namesToResolve.length) return unknowns;
+
+  let updated = false;
+  for (const name of namesToResolve) {
+    const profile = await fetchFoodNutritionViaAI(env, name);
+    if (profile) {
+      extraDb[normalizeFoodKey(name)] = profileToKvArray(profile);
+      updated = true;
+    }
+  }
+  if (updated) {
+    await saveFoodNutritionExtraDb(env, extraDb);
+    unknowns = syncWeekPlanNutritionFromDatabase(weekPlan, strategy, startDay, endDay, extraDb);
+  }
+  if (unknowns.length) {
+    console.warn('[food-nutrition] Unknown products after sync:', unknowns.slice(0, 10).join(', '));
+  }
+  return unknowns;
 }
 
 function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum) {
@@ -7498,7 +7566,7 @@ function buildChunkValidationRetryComment(errors) {
 Поправи САМО посочените несъответствия. Запази продуктите и структурата на дните.
 ${errors.map((e, i) => `${i + 1}. ${e}`).join('\n')}
 
-ЗАДЪЛЖИТЕЛНО: meal.calories/macros = mealBreakdown цели (±${DAILY_CALORIE_TOLERANCE} kcal, ±${MACRO_GRAM_TOLERANCE}g). description с "числоg" на всеки продукт.`;
+ЗАДЪЛЖИТЕЛНО: description с "числоg" на всеки продукт; грамажите да са реалистични за целевите калории/макроси от mealBreakdown. Калориите и макросите се смятат от бекенда — не ги връщай в JSON.`;
 }
 
 function finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay) {
@@ -9238,6 +9306,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         }
 
         injectFixedDesserts(weekPlan);
+        await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay);
         finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay);
 
         const validationErrors = validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay);
@@ -9263,15 +9332,16 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
     }
   }
 
-  finalizeWeekPlanDays(weekPlan, strategy, 1, 7);
-
-  // Step 5: review combinations/grams and fix copy — targets from Step 3 unchanged
+  // Step 5: review combinations/grams and fix copy — backend recalculates nutrition after each chunk
   try {
     await enrichWeekPlanCopy(env, data, strategy, weekPlan, sessionId, { recommendedCalories });
     console.log('Step 5 review complete');
   } catch (error) {
     console.warn('Step 5 review failed, plan usable with Step 3 output:', error.message);
   }
+
+  await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, 1, 7);
+  finalizeWeekPlanDays(weekPlan, strategy, 1, 7);
   
   // Generate summary, recommendations, etc. in final request
   try {
