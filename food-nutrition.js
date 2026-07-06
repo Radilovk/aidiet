@@ -7,22 +7,15 @@ import {
   FOOD_ALIASES,
   GENERIC_FOOD_PROFILE,
 } from './food-nutrition-data.js';
+import { normalizeFoodKey } from './food-utils.js';
+import { resolveCatalogEntry } from './food-catalog.js';
+
+export { normalizeFoodKey } from './food-utils.js';
 
 const GRAM_LINE_RE = /^(.+?)\s+(\d+(?:[.,]\d+)?)\s*(g|г)\b(?:\s*[—\-]\s*(.+))?$/i;
 
 /** @typedef {{ kcal: number, p: number, c: number, f: number }} NutritionProfile */
 /** @typedef {{ name: string, grams: number, key: string, profile: NutritionProfile, unknown?: boolean }} ParsedFoodItem */
-
-export function normalizeFoodKey(name) {
-  return String(name || '')
-    .toLowerCase()
-    .replace(/^[•\-\*]\s*/, '')
-    .replace(/\([^)]*\)/g, ' ')
-    .replace(/\[[^\]]*\]/g, ' ')
-    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
 
 function arrayToProfile(arr) {
   return { kcal: arr[0], p: arr[1], c: arr[2], f: arr[3] };
@@ -43,11 +36,21 @@ function buildDbIndex(extraDb = {}) {
 /**
  * Lookup nutrition profile by product name (exact → alias → substring).
  */
-export function lookupFoodProfile(name, extraDb = {}) {
+export function lookupFoodProfile(name, extraDb = {}, { strictCatalog = true } = {}) {
   const index = buildDbIndex(extraDb);
   const normalized = normalizeFoodKey(name);
   if (!normalized) {
     return { profile: arrayToProfile(GENERIC_FOOD_PROFILE), key: 'generic', unknown: true };
+  }
+
+  const catalogHit = resolveCatalogEntry(name);
+  if (catalogHit.entry) {
+    const catalogKey = normalizeFoodKey(catalogHit.entry.nutritionKey);
+    if (index.has(catalogKey)) {
+      return { profile: index.get(catalogKey), key: catalogHit.entry.name, unknown: false };
+    }
+  } else if (strictCatalog) {
+    return { profile: arrayToProfile(GENERIC_FOOD_PROFILE), key: normalized, unknown: true };
   }
 
   const aliasTarget = FOOD_ALIASES[normalized];

@@ -30,7 +30,12 @@ import {
   lookupFoodProfile,
   profileToKvArray,
   kvArrayToProfile,
+  parseMealDescription,
 } from './food-nutrition.js';
+import {
+  buildCatalogPromptSection,
+  validateProductNamesInCatalog,
+} from './food-catalog.js';
 
 
 /**
@@ -1682,6 +1687,7 @@ const pendingSessionLogs = new Map(); // sessionId → [logId, ...]
 const DAILY_CALORIE_TOLERANCE = 50; // ±50 kcal tolerance for daily calorie target
 const MACRO_GRAM_TOLERANCE = 4; // ±4g per macro when validating AI meals vs mealBreakdown
 const MEAL_PLAN_CHUNK_MAX_RETRIES = 1; // One retry per chunk when validation fails
+const CATALOG_STRICT_MODE = true; // Step 3: only catalog products; no AI nutrition lookup
 const MAX_LATE_SNACK_CALORIES = 200; // Maximum calories allowed for late-night snacks
 
 /**
@@ -3113,6 +3119,31 @@ function invalidateFoodListsCache() {
   foodListsCacheTime = 0;
 }
 
+/** Collect blocked food terms from user profile for catalog filtering */
+function collectUserBlockedFoodTerms(data) {
+  const terms = [];
+  const pushSplit = (val) => {
+    if (!val) return;
+    String(val).split(/[,;|\n]/).forEach(s => {
+      const t = s.trim();
+      if (t.length >= 2) terms.push(t);
+    });
+  };
+  pushSplit(data.dietDislike);
+  pushSplit(data['medicalConditions_Алергии']);
+  if (Array.isArray(data.planModifications)) {
+    for (const mod of data.planModifications) {
+      if (typeof mod === 'string' && mod.startsWith('exclude_food:')) {
+        terms.push(mod.slice('exclude_food:'.length).trim());
+      }
+    }
+  }
+  if (Array.isArray(data.forbidden)) {
+    data.forbidden.forEach(f => pushSplit(f));
+  }
+  return terms;
+}
+
 /**
  * Get goal-based hacks from KV storage or use defaults
  * @param {object} env - Worker environment with KV binding
@@ -3266,6 +3297,16 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
     strategy, startDay, endDay, recommendedCalories, DAY_NUMBER_TO_KEY, DAILY_CALORIE_TOLERANCE
   );
 
+  const blockedFoodTerms = collectUserBlockedFoodTerms(data);
+  const catalogSection = buildCatalogPromptSection({
+    strategy,
+    startDay,
+    endDay,
+    dietaryModifier,
+    blockedTerms: blockedFoodTerms,
+    preferLove: String(data.dietLove || '').split(/[,;]/).map(s => s.trim()).filter(Boolean),
+  });
+
   const customPrompt = await requireKvPrompt(env, 'admin_meal_plan_prompt');
 
   // All necessary values are already computed above (analysisCompact, strategyCompact,
@@ -3290,7 +3331,8 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
       previousDaysContext,
       dynamicWhitelistSection,
       dynamicBlacklistSection,
-      dynamicMainlistSection,
+      dynamicMainlistSection: CATALOG_STRICT_MODE ? '' : dynamicMainlistSection,
+      catalogSection,
       dietLove: data.dietLove || 'няма',
       dietDislike: data.dietDislike || 'няма',
       goal_other: data.goal_other || '',
@@ -7480,8 +7522,15 @@ async function fetchFoodNutritionViaAI(env, productName) {
 }
 
 async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay) {
-  const extraDb = await loadFoodNutritionExtraDb(env);
+  const extraDb = CATALOG_STRICT_MODE ? {} : await loadFoodNutritionExtraDb(env);
   let unknowns = syncWeekPlanNutritionFromDatabase(weekPlan, strategy, startDay, endDay, extraDb);
+
+  if (CATALOG_STRICT_MODE) {
+    if (unknowns.length) {
+      console.warn('[food-catalog] Unknown products (strict):', unknowns.slice(0, 10).join(', '));
+    }
+    return unknowns;
+  }
 
   const namesToResolve = unknowns
     .filter(n => n && n !== 'no-parsed-items')
@@ -7535,6 +7584,14 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum) {
       errors.push(`Ден ${dayNum} ${meal.type}: липсват грамажи (числоg) в description`);
     }
 
+    if (meal.description && CATALOG_STRICT_MODE) {
+      const productNames = parseMealDescription(meal.description).map(i => i.name);
+      const notInCatalog = validateProductNamesInCatalog(productNames);
+      if (notInCatalog.length) {
+        errors.push(`Ден ${dayNum} ${meal.type}: продукти извън каталога: ${notInCatalog.join(', ')}`);
+      }
+    }
+
     if (meal.macros && mealCal > 0) {
       const fromMacros = macrosToCalories(meal.macros);
       if (Math.abs(fromMacros - mealCal) > DAILY_CALORIE_TOLERANCE) {
@@ -7566,7 +7623,7 @@ function buildChunkValidationRetryComment(errors) {
 Поправи САМО посочените несъответствия. Запази продуктите и структурата на дните.
 ${errors.map((e, i) => `${i + 1}. ${e}`).join('\n')}
 
-ЗАДЪЛЖИТЕЛНО: description с "числоg" на всеки продукт; грамажите да са реалистични за целевите калории/макроси от mealBreakdown. Калориите и макросите се смятат от бекенда — не ги връщай в JSON.`;
+ЗАДЪЛЖИТЕЛНО: description с "числоg" на всеки продукт; използвай САМО имена от КАТАЛОГА; предпочитай по-универсални продукти. Калориите се смятат от бекенда.`;
 }
 
 function finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay) {
