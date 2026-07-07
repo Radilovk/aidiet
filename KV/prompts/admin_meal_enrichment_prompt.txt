@@ -1,29 +1,33 @@
-Обогати ТЕКСТОВОТО съдържание на храненията за ДНИ {startDay}-{endDay} за {userData.name}.
+Обогати текста за ДЕН {startDay} за {userData.name}.
 
 === ПРОФИЛ ===
 Цел: {userData.goal} | Модификатор: "{dietaryModifier}"
 Любими: {dietLove} | Нежелани: {dietDislike}
-Потребителски бележки: {additionalNotes}
 
-=== СКЕЛЕТ НА ХРАНЕНИЯ (НЕ ПРОМЕНЯЙ ЧИСЛА ИЛИ DESCRIPTION) ===
+=== ПЛАН ОТ STEP 3 (продукти и грамажи — НЕ ПРОМЕНЯЙ) ===
 {mealsSkeletonJSON}
 
-=== ЗАДАЧА ===
-За всяко хранене обогати САМО полетата name и benefits.
-НЕ променяй description, weight, calories, macros, type или dessert — те са финални.
+=== ЗАДАЧА (Step 5 — текст и рецепти) ===
+За всяко хранене подобри САМО:
+• name — ясно, кратко, апетитно име на ястието на български
+• benefits — 1 кратко изречение здравословен ефект
+• recipe — кратка рецепта (2–5 стъпки) за приготвяне според продуктите в description; естествен български
 
-=== ПОЛЗИ (benefits) ===
-• 1 кратко изречение на български за всяко хранене
-• Фокус: здравословен ефект, ситост, енергия, храносмилане
-• БЕЗ повторение на грамажи и калории
-• При "Свободно хранене": насърчителен, психологически подкрепящ тон
+Полето description (продукти + грамажи) е ФИНАЛНО от Step 3 — не го променяй, не добавяй/махай продукти.
 
-JSON ФОРМАТ (дни {startDay}-{endDay}):
+НЕ правиш:
+• НЕ променяй type, dessert или description
+• НЕ връщай calories, macros или weight
+• НЕ измисляй продукти извън description
+
+При "Свободно хранене": насърчителен benefits; recipe може да е празен низ "".
+
+JSON — само ден {startDay}:
 {
   "day{startDay}": {
     "meals": [
-      {"type": "...", "name": "...", "weight": "...", "description": "...", "benefits": "...", "calories": X, "macros": {"protein": X, "carbs": X, "fats": X}}
+      {"type": "...", "name": "...", "benefits": "...", "recipe": "1. ...\n2. ..."}
     ]
   }
 }
-Върни САМО валиден JSON. Копирай description, weight, calories, macros, type и dessert без промяна.
+Върни САМО валиден JSON. Копирай type и dessert без промяна.

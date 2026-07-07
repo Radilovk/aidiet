@@ -7,6 +7,11 @@ on:
     paths:
       - 'worker.js'
       - 'wrangler.toml'
+      - 'food-catalog.js'
+      - 'food-catalog-data.js'
+      - 'food-utils.js'
+      - 'food-nutrition.js'
+      - 'food-nutrition-data.js'
       - 'context-compression.js'
       - 'analytics-compression.js'
       - 'json-patch.js'
@@ -18,6 +23,11 @@ on:
     paths:
       - 'worker.js'
       - 'wrangler.toml'
+      - 'food-catalog.js'
+      - 'food-catalog-data.js'
+      - 'food-utils.js'
+      - 'food-nutrition.js'
+      - 'food-nutrition-data.js'
       - 'context-compression.js'
       - 'analytics-compression.js'
       - 'json-patch.js'
