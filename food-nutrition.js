@@ -12,6 +12,12 @@ import { resolveCatalogEntry } from './food-catalog.js';
 
 export { normalizeFoodKey } from './food-utils.js';
 
+export const GRAM_ROUND_STEP = 10;
+const CONDIMENT_MAX_GRAMS = 15;
+const MACRO_TOLERANCE_G = 4;
+const KCAL_TOLERANCE = 50;
+const GRAM_CAPS = { PRO: 250, ENG: 220, VOL: 200, FAT: 35, default: 300 };
+
 const GRAM_LINE_RE = /^(.+?)\s+(\d+(?:[.,]\d+)?)\s*(g|г)\b(?:\s*[—\-]\s*(.+))?$/i;
 
 /** @typedef {{ kcal: number, p: number, c: number, f: number }} NutritionProfile */
@@ -107,10 +113,126 @@ export function parseMealDescription(description) {
   return items;
 }
 
-export function roundGrams(grams, step = 5) {
+export function roundGrams(grams, step = GRAM_ROUND_STEP) {
   const g = Number(grams) || 0;
   if (g <= 0) return step;
   return Math.max(step, Math.round(g / step) * step);
+}
+
+function getCatalogMeta(name) {
+  const { entry } = resolveCatalogEntry(name);
+  if (!entry) return { slots: [], group: null };
+  return { slots: entry.slots || [], group: entry.group || null };
+}
+
+function isCondimentItem(item) {
+  return getCatalogMeta(item.name).group === 'condiment';
+}
+
+function isReadyMealItem(item) {
+  return getCatalogMeta(item.name).group === 'ready_meal';
+}
+
+function itemHasSlot(item, slot) {
+  return getCatalogMeta(item.name).slots.includes(slot);
+}
+
+function clampItemGrams(item, grams) {
+  let cap = GRAM_CAPS.default;
+  if (isCondimentItem(item)) return Math.min(roundGrams(grams), CONDIMENT_MAX_GRAMS);
+  if (itemHasSlot(item, 'PRO')) cap = Math.min(cap, GRAM_CAPS.PRO);
+  if (itemHasSlot(item, 'ENG') && !itemHasSlot(item, 'PRO')) cap = Math.min(cap, GRAM_CAPS.ENG);
+  if (itemHasSlot(item, 'FAT') && !itemHasSlot(item, 'PRO') && !itemHasSlot(item, 'ENG')) cap = Math.min(cap, GRAM_CAPS.FAT);
+  if (itemHasSlot(item, 'VOL') && !itemHasSlot(item, 'PRO') && !itemHasSlot(item, 'ENG')) cap = Math.min(cap, GRAM_CAPS.VOL);
+  return roundGrams(Math.min(Math.max(grams, GRAM_ROUND_STEP), cap));
+}
+
+function pickPrimaryDriver(items, slot, macroKey) {
+  const pool = items.filter(it => itemHasSlot(it, slot) && !isCondimentItem(it));
+  if (!pool.length) return null;
+  return pool.sort((a, b) => (b.profile[macroKey] || 0) - (a.profile[macroKey] || 0))[0];
+}
+
+/** Balance grams toward macro + kcal targets (10g steps). */
+export function balanceItemsToMacroTargets(items, target, dessertNutrition = null) {
+  if (!items.length || !target) return items;
+
+  let targetP = Number(target.protein) || 0;
+  let targetC = Number(target.carbs) || 0;
+  let targetF = Number(target.fats) || 0;
+  let targetKcal = Number(target.calories) || 0;
+
+  if (dessertNutrition) {
+    targetP = Math.max(0, targetP - dessertNutrition.p);
+    targetC = Math.max(0, targetC - dessertNutrition.c);
+    targetF = Math.max(0, targetF - dessertNutrition.f);
+    targetKcal = Math.max(50, targetKcal - dessertNutrition.kcal);
+  }
+
+  const working = items.map(it => ({
+    ...it,
+    grams: isCondimentItem(it) ? Math.min(it.grams, CONDIMENT_MAX_GRAMS) : roundGrams(it.grams),
+  }));
+
+  if (working.length === 1 && isReadyMealItem(working[0]) && targetKcal > 0) {
+    return scaleItemsToTargetCalories(working, targetKcal + (dessertNutrition?.kcal || 0), dessertNutrition);
+  }
+
+  const primaryPro = pickPrimaryDriver(working, 'PRO', 'p');
+  const primaryEng = pickPrimaryDriver(working, 'ENG', 'c');
+  const primaryFat = pickPrimaryDriver(working, 'FAT', 'f');
+
+  for (const it of working) {
+    if (itemHasSlot(it, 'VOL') && !itemHasSlot(it, 'PRO') && !itemHasSlot(it, 'ENG')) {
+      it.grams = roundGrams(Math.max(it.grams, 80));
+    }
+  }
+
+  for (let iter = 0; iter < 36; iter++) {
+    const totals = sumItemNutrition(working);
+    const dP = targetP - totals.p;
+    const dC = targetC - totals.c;
+    const dF = targetF - totals.f;
+    const dK = targetKcal - totals.kcal;
+
+    if (Math.abs(dP) <= MACRO_TOLERANCE_G && Math.abs(dC) <= MACRO_TOLERANCE_G
+      && Math.abs(dF) <= MACRO_TOLERANCE_G && Math.abs(dK) <= KCAL_TOLERANCE) {
+      break;
+    }
+
+    if (primaryPro && Math.abs(dP) > MACRO_TOLERANCE_G && primaryPro.profile.p > 0) {
+      const stepG = roundGrams((dP / primaryPro.profile.p) * 100);
+      const delta = Math.sign(dP) * Math.min(Math.max(stepG, GRAM_ROUND_STEP), 40);
+      primaryPro.grams = clampItemGrams(primaryPro, primaryPro.grams + delta);
+    }
+
+    if (primaryEng && Math.abs(dC) > MACRO_TOLERANCE_G && primaryEng.profile.c > 0) {
+      const stepG = roundGrams((dC / primaryEng.profile.c) * 100);
+      const delta = Math.sign(dC) * Math.min(Math.max(stepG, GRAM_ROUND_STEP), 50);
+      primaryEng.grams = clampItemGrams(primaryEng, primaryEng.grams + delta);
+    }
+
+    if (primaryFat && Math.abs(dF) > MACRO_TOLERANCE_G && primaryFat.profile.f > 0) {
+      const stepG = roundGrams((dF / primaryFat.profile.f) * 100);
+      const delta = Math.sign(dF) * Math.min(Math.max(stepG, GRAM_ROUND_STEP), 25);
+      primaryFat.grams = clampItemGrams(primaryFat, primaryFat.grams + delta);
+    }
+
+    if (iter > 8 && Math.abs(dK) > KCAL_TOLERANCE && targetKcal > 0) {
+      const cur = sumItemNutrition(working).kcal;
+      if (cur > 0) {
+        const factor = targetKcal / cur;
+        if (factor >= 0.75 && factor <= 1.25) {
+          for (const it of working) {
+            if (isCondimentItem(it)) continue;
+            it.grams = clampItemGrams(it, it.grams * factor);
+          }
+        }
+      }
+    }
+  }
+
+  return working;
 }
 
 export function nutritionFromGrams(profile, grams) {
@@ -205,7 +327,11 @@ export function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}
     : 0;
 
   const targetKcal = Number(target?.calories) || Number(meal.calories) || 0;
-  if (targetKcal > 0) {
+  const hasMacroTargets = target && (Number(target.protein) > 0 || Number(target.carbs) > 0 || Number(target.fats) > 0);
+
+  if (hasMacroTargets) {
+    items = balanceItemsToMacroTargets(items, target, dessertNutrition);
+  } else if (targetKcal > 0) {
     items = scaleItemsToTargetCalories(items, targetKcal, dessertNutrition);
   }
 

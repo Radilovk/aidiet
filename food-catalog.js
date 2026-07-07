@@ -8,6 +8,7 @@ import {
   DEFAULT_MIN_UNIVERSALITY,
   CATALOG_PROMPT_LIMIT_PER_SLOT,
 } from './food-catalog-data.js';
+import { FOOD_NUTRITION_PER_100G } from './food-nutrition-data.js';
 import { normalizeFoodKey } from './food-utils.js';
 
 const SLOT_LABELS = {
@@ -16,6 +17,26 @@ const SLOT_LABELS = {
   VOL: 'зеленчуци [VOL]',
   FAT: 'мазнини/ядки [FAT]',
 };
+
+function nutritionArrayToProfile(arr) {
+  if (!arr || arr.length < 4) return null;
+  return { kcal: arr[0], p: arr[1], c: arr[2], f: arr[3] };
+}
+
+/** Per-100g nutrition for a catalog entry */
+export function getCatalogEntryNutrition(entry) {
+  if (!entry) return null;
+  const key = normalizeFoodKey(entry.nutritionKey);
+  const raw = FOOD_NUTRITION_PER_100G[entry.nutritionKey] || FOOD_NUTRITION_PER_100G[key];
+  return nutritionArrayToProfile(raw);
+}
+
+/** Compact label for Step 3: "Име (165kcal P31/C0/F4 на 100g)" */
+export function formatCatalogEntryLabel(entry) {
+  const n = getCatalogEntryNutrition(entry);
+  if (!n) return entry.name;
+  return `${entry.name} (${Math.round(n.kcal)}kcal P${Math.round(n.p)}/C${Math.round(n.c)}/F${Math.round(n.f)} на 100g)`;
+}
 
 let catalogIndexCache = null;
 
@@ -226,22 +247,29 @@ export function getCatalogCandidatesForChunk({
 export function formatCatalogSectionForPrompt(candidatesBySlot, { minUniversality = DEFAULT_MIN_UNIVERSALITY } = {}) {
   const lines = [
     `=== КАТАЛОГ ХРАНИ (ЗАДЪЛЖИТЕЛНО — използвай САМО тези имена) ===`,
-    `Универсалност ≥${minUniversality}: предпочитай по-общи варианти (Риба, Ориз, Плод) пред конкретни (Лаврак, Киноа, Манго), освен ако целта изисква друго.`,
+    `Универсалност ≥${minUniversality}: предпочитай по-общи варианти (Риба, Ориз, Плод) пред конкретни (Лаврак, Киноа, Манго).`,
+    `Стойности в скоби = на 100g. Ориентирай грамажите към целите от mealBreakdown. Закръгляй на 10g.`,
     `Готова храна = един ред в description ИЛИ разбий на продукти от каталога.`,
   ];
 
   for (const slot of ['PRO', 'ENG', 'VOL', 'FAT']) {
     const items = candidatesBySlot.get(slot) || [];
     if (!items.length) continue;
-    lines.push(`${SLOT_LABELS[slot]}: ${items.map(i => i.name).join(', ')}`);
+    lines.push(`${SLOT_LABELS[slot]}:`);
+    for (const item of items) {
+      lines.push(`  • ${formatCatalogEntryLabel(item)}`);
+    }
   }
 
   const ready = candidatesBySlot.get('READY') || [];
   if (ready.length) {
-    lines.push(`Готови ястия: ${ready.map(i => i.name).join(', ')}`);
+    lines.push(`Готови ястия:`);
+    for (const item of ready) {
+      lines.push(`  • ${formatCatalogEntryLabel(item)}`);
+    }
   }
 
-  lines.push(`НЕ използвай продукти извън каталога. Подправки — минимални грамажи, не като основен макроизточник.`);
+  lines.push(`НЕ използвай продукти извън каталога. Подправки — макс 10–15g, не като основен макроизточник.`);
   return lines.join('\n');
 }
 
