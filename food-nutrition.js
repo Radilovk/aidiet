@@ -8,16 +8,36 @@ import {
   GENERIC_FOOD_PROFILE,
 } from './food-nutrition-data.js';
 import { normalizeFoodKey } from './food-utils.js';
-import { resolveCatalogEntry } from './food-catalog.js';
+import { resolveCatalogEntry, getRepairCandidatesForMeal } from './food-catalog.js';
 
 export { normalizeFoodKey } from './food-utils.js';
 
 export const GRAM_ROUND_STEP = 10;
+
+// Percentage-based validation tolerance (replaces old fixed ±50kcal/±4g):
+// calories are the easiest thing to get right (few products dominate kcal), macros
+// are inherently harder (depend on exact product mix) so they get more slack.
+// A small absolute floor keeps tiny targets from becoming impossibly strict.
+export const CALORIE_TOLERANCE_PERCENT = 0.05;
+export const MACRO_TOLERANCE_PERCENT = 0.10;
+const MIN_CALORIE_TOLERANCE_KCAL = 25;
+const MIN_MACRO_TOLERANCE_G = 3;
+
+export function calorieTolerance(targetKcal) {
+  return Math.max(MIN_CALORIE_TOLERANCE_KCAL, Math.round((Number(targetKcal) || 0) * CALORIE_TOLERANCE_PERCENT));
+}
+
+export function macroTolerance(targetGrams) {
+  return Math.max(MIN_MACRO_TOLERANCE_G, Math.round((Number(targetGrams) || 0) * MACRO_TOLERANCE_PERCENT));
+}
 const CONDIMENT_MAX_GRAMS = 15;
 // Realistic max grams per food group (prevents absurd portions, e.g. 130g nuts).
+// carb raised from 220→280g: 220 was a hard ceiling for legitimate high-calorie/
+// high-carb targets (bulking diets, athletes) — a single ~800kcal dinner needing
+// 75g+ carbs from one rice-type item alone could not reach target even with repair.
 const GROUP_CAPS = {
   fat: 40, protein: 260, dairy: 400, legume: 260,
-  carb: 220, vegetable: 260, fruit: 260, ready_meal: 450,
+  carb: 280, vegetable: 260, fruit: 260, ready_meal: 450,
   condiment: CONDIMENT_MAX_GRAMS, default: 300,
 };
 // kcal-weighted so hitting P/C/F also lands calories (kcal = 4P + 4C + 9F).
@@ -221,6 +241,123 @@ export function balanceItemsToMacroTargets(items, target, dessertNutrition = nul
   return working;
 }
 
+function weightedSquaredError(totals, targetP, targetC, targetF) {
+  const dp = totals.p - targetP;
+  const dc = totals.c - targetC;
+  const df = totals.f - targetF;
+  return MACRO_WEIGHTS.p * dp * dp + MACRO_WEIGHTS.c * dc * dc + MACRO_WEIGHTS.f * df * df;
+}
+
+function mealWithinTolerance(totals, target, dessertNutrition) {
+  const p = totals.p + (dessertNutrition?.p || 0);
+  const c = totals.c + (dessertNutrition?.c || 0);
+  const f = totals.f + (dessertNutrition?.f || 0);
+  const kcal = Math.round(p * 4 + c * 4 + f * 9);
+  const targetP = Number(target.protein) || 0;
+  const targetC = Number(target.carbs) || 0;
+  const targetF = Number(target.fats) || 0;
+  const targetKcal = Number(target.calories) || 0;
+
+  if (targetKcal > 0 && Math.abs(kcal - targetKcal) > calorieTolerance(targetKcal)) return false;
+  if (targetP > 0 && Math.abs(p - targetP) > macroTolerance(targetP)) return false;
+  if (targetC > 0 && Math.abs(c - targetC) > macroTolerance(targetC)) return false;
+  if (targetF > 0 && Math.abs(f - targetF) > macroTolerance(targetF)) return false;
+  return true;
+}
+
+const REPAIR_TRIAL_CANDIDATES = 12; // top-N universal candidates tried per repair round
+const REPAIR_MAX_ADDITIONS = 2;     // cap on new items the repair engine may add
+
+/**
+ * Matching-pursuit repair: when the AI's chosen products can't structurally reach a
+ * meal's macro target (e.g. a protein-only breakfast against a high-carb goal), no
+ * amount of gram-adjustment on those items alone will close the gap. Instead of
+ * failing validation and asking the AI to retry the whole day, greedily add the ONE
+ * catalog item (from a diet/timing-filtered pool) that most reduces the remaining
+ * error — trialled by literally re-running the existing coordinate-descent balancer
+ * with it included — then keep it if it helps. Repeats up to REPAIR_MAX_ADDITIONS
+ * times. Reuses balanceItemsToMacroTargets for every trial; no separate solver.
+ */
+export function repairItemsToTolerance(items, target, dessertNutrition, candidatePool) {
+  let current = items;
+  let currentTotals = sumItemNutrition(current);
+  if (mealWithinTolerance(currentTotals, target, dessertNutrition)) {
+    return { items: current, repaired: false, addedCount: 0 };
+  }
+
+  const usedKeys = new Set(current.map(it => normalizeFoodKey(it.key || it.name)));
+  const trialPool = (candidatePool || []).slice(0, REPAIR_TRIAL_CANDIDATES);
+  const targetP = Number(target.protein) || 0;
+  const targetC = Number(target.carbs) || 0;
+  const targetF = Number(target.fats) || 0;
+  let addedCount = 0;
+
+  // Phase 1 (forward matching pursuit): close under-shoots by bringing in a missing
+  // macro driver — e.g. a protein-only breakfast gets a carb source added.
+  for (let round = 0; round < REPAIR_MAX_ADDITIONS; round++) {
+    let best = null;
+    let bestError = Infinity;
+
+    for (const candidate of trialPool) {
+      const key = normalizeFoodKey(candidate.entry.nutritionKey);
+      if (usedKeys.has(key)) continue;
+
+      const trialItems = [...current, {
+        name: candidate.entry.name, grams: GRAM_ROUND_STEP, key,
+        profile: candidate.profile, unknown: false,
+      }];
+      const balanced = balanceItemsToMacroTargets(trialItems, target, dessertNutrition);
+      const totals = sumItemNutrition(balanced);
+      const error = weightedSquaredError(totals, targetP, targetC, targetF);
+      if (error < bestError) {
+        bestError = error;
+        best = { key, balanced, totals };
+      }
+    }
+
+    if (!best) break;
+    current = best.balanced;
+    currentTotals = best.totals;
+    usedKeys.add(best.key);
+    addedCount++;
+
+    if (mealWithinTolerance(currentTotals, target, dessertNutrition)) break;
+  }
+
+  // Phase 2 (backward pruning): a common residual failure is overshoot — e.g. the AI
+  // already included two fat sources (zehtin + nuts) so protein/carbs land fine but
+  // fat/kcal run over. Try dropping each item in turn (AI-picked or repair-added) and
+  // re-balancing the rest; keep the drop only if it reduces the overall error. This is
+  // the natural complement to Phase 1 — same trial-and-measure approach, in reverse.
+  let trimmed = false;
+  for (let round = 0; round < REPAIR_MAX_ADDITIONS && current.length > 1; round++) {
+    if (mealWithinTolerance(currentTotals, target, dessertNutrition)) break;
+    const baseError = weightedSquaredError(currentTotals, targetP, targetC, targetF);
+
+    let best = null;
+    let bestError = baseError;
+
+    for (let i = 0; i < current.length; i++) {
+      const trialItems = current.filter((_, idx) => idx !== i);
+      if (!trialItems.length) continue;
+      const balanced = balanceItemsToMacroTargets(trialItems, target, dessertNutrition);
+      const totals = sumItemNutrition(balanced);
+      const error = weightedSquaredError(totals, targetP, targetC, targetF);
+      if (error < bestError) {
+        bestError = error;
+        best = { balanced, totals };
+      }
+    }
+
+    if (!best) break;
+    current = best.balanced;
+    currentTotals = best.totals;
+    trimmed = true;
+  }
+
+  return { items: current, repaired: addedCount > 0 || trimmed, addedCount };
+}
+
 export function nutritionFromGrams(profile, grams) {
   const factor = (Number(grams) || 0) / 100;
   const p = profile.p * factor;
@@ -290,7 +427,7 @@ export function formatMealWeight(totalGrams, dessertWeightGrams = 0) {
  * Apply database nutrition to a single meal.
  * Sets description, weight, macros, calories from calculated values.
  */
-export function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}) {
+export function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}, repairContext = null) {
   if (!meal || meal.type === 'Свободно хранене' || meal.type === 'Напитка') {
     return { ok: true, unknowns: [] };
   }
@@ -317,6 +454,14 @@ export function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}
 
   if (hasMacroTargets) {
     items = balanceItemsToMacroTargets(items, target, dessertNutrition);
+    if (repairContext) {
+      const pool = getRepairCandidatesForMeal(
+        meal.type, repairContext.dietaryModifier, repairContext.blockedTerms, repairContext.clinicalProtocolId
+      );
+      const repair = repairItemsToTolerance(items, target, dessertNutrition, pool);
+      items = repair.items;
+      if (repair.repaired) meal._autoRepaired = repair.addedCount;
+    }
   } else if (targetKcal > 0) {
     items = scaleItemsToTargetCalories(items, targetKcal, dessertNutrition);
   }
@@ -341,7 +486,7 @@ export function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}
 }
 
 /** Sync nutrition for all meals in a weekPlan chunk. Returns unknown product names. */
-export function syncWeekPlanNutritionFromDatabase(weekPlan, strategy, startDay, endDay, extraDb = {}) {
+export function syncWeekPlanNutritionFromDatabase(weekPlan, strategy, startDay, endDay, extraDb = {}, repairContext = null) {
   const unknowns = [];
   if (!weekPlan || !strategy?.weeklyScheme) return unknowns;
 
@@ -353,7 +498,7 @@ export function syncWeekPlanNutritionFromDatabase(weekPlan, strategy, startDay, 
 
     for (const meal of day.meals) {
       const target = dayTarget?.mealBreakdown?.find(m => m.type === meal.type) || null;
-      const result = applyMealNutritionFromDatabase(meal, target, extraDb);
+      const result = applyMealNutritionFromDatabase(meal, target, extraDb, repairContext);
       if (result.unknowns?.length) unknowns.push(...result.unknowns);
     }
   }

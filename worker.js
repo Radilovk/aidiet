@@ -31,10 +31,13 @@ import {
   profileToKvArray,
   kvArrayToProfile,
   parseMealDescription,
+  calorieTolerance,
+  macroTolerance,
 } from './food-nutrition.js';
 import {
   buildCatalogPromptSection,
   validateProductNamesInCatalog,
+  validateProductNamesAgainstProtocol,
 } from './food-catalog.js';
 
 
@@ -1684,8 +1687,9 @@ const LOGGING_STATUS_CACHE_TTL = 60 * 1000; // 1 minute cache
 const pendingSessionLogs = new Map(); // sessionId → [logId, ...]
 
 // Validation constants (moved here to be available early in code)
-const DAILY_CALORIE_TOLERANCE = 50; // ±50 kcal tolerance for daily calorie target
-const MACRO_GRAM_TOLERANCE = 4; // ±4g per macro when validating AI meals vs mealBreakdown
+// Calorie/macro tolerance is now percentage-based — see calorieTolerance()/macroTolerance()
+// in food-nutrition.js (single source of truth, also used by the backend auto-repair engine).
+const CALORIE_ROUNDING_TOLERANCE = 5; // kcal vs P×4+C×4+F×9 self-consistency check (rounding only)
 const MEAL_PLAN_CHUNK_MAX_RETRIES = 2; // Up to 2 retries per day when macro/kcal validation fails
 const CATALOG_STRICT_MODE = true; // Step 3: only catalog products; no AI nutrition lookup
 const MAX_LATE_SNACK_CALORIES = 200; // Maximum calories allowed for late-night snacks
@@ -2409,6 +2413,13 @@ function removeInternalJustifications(plan) {
   if (cleanPlan.strategy) {
     delete cleanPlan.strategy.mealCountJustification;
     delete cleanPlan.strategy.afterDinnerMealJustification;
+  }
+  // _autoRepaired is an internal marker set by the backend macro-repair engine
+  // (food-nutrition.js repairItemsToTolerance) — useful for logs, not for the client.
+  if (cleanPlan.weekPlan) {
+    for (const day of Object.values(cleanPlan.weekPlan)) {
+      for (const meal of day?.meals || []) delete meal._autoRepaired;
+    }
   }
   return cleanPlan;
 }
@@ -3321,7 +3332,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
 
   // Compact per-day calorie/macro targets (NPCF #WK v1)
   const weeklySchemeByDayText = serializeWeeklySchemeTargets(
-    strategy, startDay, endDay, recommendedCalories, DAY_NUMBER_TO_KEY, DAILY_CALORIE_TOLERANCE
+    strategy, startDay, endDay, recommendedCalories, DAY_NUMBER_TO_KEY
   );
 
   const blockedFoodTerms = collectUserBlockedFoodTerms(data);
@@ -3332,6 +3343,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
     dietaryModifier,
     blockedTerms: blockedFoodTerms,
     preferLove: String(data.dietLove || '').split(/[,;]/).map(s => s.trim()).filter(Boolean),
+    clinicalProtocolId: data.clinicalProtocol || null,
   });
 
   const customPrompt = await requireKvPrompt(env, 'admin_meal_plan_prompt');
@@ -3371,7 +3383,6 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
       medicalConditions_digestive_details: data['medicalConditions_Храносмилателни_детайл'] || '',
       medicalConditions_metabolic_details: data['medicalConditions_Метаболитни_детайл'] || '',
       medicalConditions_musculoskeletal_details: data['medicalConditions_Мускулно-скелетни_детайл'] || '',
-      DAILY_CALORIE_TOLERANCE,
       MAX_LATE_SNACK_CALORIES,
       freeMealInstruction: buildFreeMealInstruction(strategy, startDay, endDay),
       sweetsCravingRule,
@@ -3465,7 +3476,7 @@ async function generateMealEnrichmentPrompt(data, strategy, weekPlan, startDay, 
     recommendedCalories = Number(firstDay?.calories) || 0;
   }
   const weeklySchemeByDayText = serializeWeeklySchemeTargets(
-    strategy, startDay, endDay, recommendedCalories, DAY_NUMBER_TO_KEY, DAILY_CALORIE_TOLERANCE
+    strategy, startDay, endDay, recommendedCalories, DAY_NUMBER_TO_KEY
   );
   const customPrompt = await requireKvPrompt(env, 'admin_meal_enrichment_prompt');
   let prompt = replacePromptVariables(customPrompt, {
@@ -7179,7 +7190,7 @@ const MIN_MEALS_PER_DAY = 1; // Minimum number of meals per day (1 for intermitt
 const MAX_MEALS_PER_DAY = 5; // Maximum number of meals per day (when there's clear reasoning and strategy)
 // Deprecated fixed floor — use getMinRecommendedCalories(gender) for per-user minimums.
 const MIN_DAILY_CALORIES = MIN_RECOMMENDED_CALORIES_FEMALE;
-// Note: DAILY_CALORIE_TOLERANCE and MAX_LATE_SNACK_CALORIES moved earlier in file (line ~580) to be available in template strings
+// Note: calorieTolerance()/macroTolerance() live in food-nutrition.js; MAX_LATE_SNACK_CALORIES moved earlier in file (line ~580) to be available in template strings
 const MEAL_ORDER_MAP = { 'Напитка': 0, 'Хранене 1': 0, 'Хранене 2': 1, 'Свободно хранене': 1, 'Хранене 3': 2, 'Хранене 4': 3, 'Хранене 5': 4 }; // Chronological meal order
 const ALLOWED_MEAL_TYPES = ['Напитка', 'Хранене 1', 'Хранене 2', 'Свободно хранене', 'Хранене 3', 'Хранене 4', 'Хранене 5']; // Valid meal types
 // Fixed dessert object injected by the backend for users who crave sweets.
@@ -7436,7 +7447,7 @@ function normalizeWeeklyScheme(strategy, defaultDailyCalories) {
     if (!day.fats && sumF > 0) day.fats = sumF;
     if (!day.meals) day.meals = day.mealBreakdown.length;
 
-    if (sumCals > 0 && targetCals > 0 && Math.abs(sumCals - targetCals) > DAILY_CALORIE_TOLERANCE) {
+    if (sumCals > 0 && targetCals > 0 && Math.abs(sumCals - targetCals) > calorieTolerance(targetCals)) {
       const ratio = targetCals / sumCals;
       for (const m of day.mealBreakdown) {
         m.calories = Math.round((Number(m.calories) || 0) * ratio);
@@ -7444,7 +7455,7 @@ function normalizeWeeklyScheme(strategy, defaultDailyCalories) {
         m.carbs = Math.round((Number(m.carbs) || 0) * ratio);
         m.fats = Math.round((Number(m.fats) || 0) * ratio);
       }
-    } else if (sumCals > 0 && Math.abs(sumCals - (Number(day.calories) || 0)) > DAILY_CALORIE_TOLERANCE) {
+    } else if (sumCals > 0 && Math.abs(sumCals - (Number(day.calories) || 0)) > calorieTolerance(day.calories)) {
       day.calories = sumCals;
       day.protein = sumP;
       day.carbs = sumC;
@@ -7545,9 +7556,19 @@ async function fetchFoodNutritionViaAI(env, productName) {
   return null;
 }
 
-async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay) {
+async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data = null) {
   const extraDb = CATALOG_STRICT_MODE ? {} : await loadFoodNutritionExtraDb(env);
-  let unknowns = syncWeekPlanNutritionFromDatabase(weekPlan, strategy, startDay, endDay, extraDb);
+  // Repair context lets the backend auto-fix meals whose AI-chosen products can't
+  // structurally reach the macro target (see repairItemsToTolerance in food-nutrition.js)
+  // instead of failing validation and forcing an expensive AI retry of the whole day.
+  const repairContext = CATALOG_STRICT_MODE
+    ? {
+        dietaryModifier: strategy?.dietaryModifier,
+        blockedTerms: data ? collectUserBlockedFoodTerms(data) : [],
+        clinicalProtocolId: data?.clinicalProtocol || null,
+      }
+    : null;
+  let unknowns = syncWeekPlanNutritionFromDatabase(weekPlan, strategy, startDay, endDay, extraDb, repairContext);
 
   if (CATALOG_STRICT_MODE) {
     if (unknowns.length) {
@@ -7581,7 +7602,7 @@ async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay
   return unknowns;
 }
 
-function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum) {
+function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocolId = null) {
   const errors = [];
   if (!dayPlan?.meals?.length || !dayTarget?.mealBreakdown?.length) return errors;
 
@@ -7592,15 +7613,15 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum) {
 
     const targetCal = Number(target.calories) || 0;
     const mealCal = Number(meal.calories) || macrosToCalories(meal.macros);
-    if (targetCal > 0 && Math.abs(mealCal - targetCal) > DAILY_CALORIE_TOLERANCE) {
-      errors.push(`Ден ${dayNum} ${meal.type}: калории ${mealCal} ≠ цел ${targetCal} (±${DAILY_CALORIE_TOLERANCE})`);
+    if (targetCal > 0 && Math.abs(mealCal - targetCal) > calorieTolerance(targetCal)) {
+      errors.push(`Ден ${dayNum} ${meal.type}: калории ${mealCal} ≠ цел ${targetCal} (±${calorieTolerance(targetCal)}, 5%)`);
     }
 
     for (const field of ['protein', 'carbs', 'fats']) {
       const tv = Number(target[field]) || 0;
       const mv = Number(meal.macros?.[field]) || 0;
-      if (tv > 0 && Math.abs(mv - tv) > MACRO_GRAM_TOLERANCE) {
-        errors.push(`Ден ${dayNum} ${meal.type}: ${field} ${mv}g ≠ цел ${tv}g (±${MACRO_GRAM_TOLERANCE})`);
+      if (tv > 0 && Math.abs(mv - tv) > macroTolerance(tv)) {
+        errors.push(`Ден ${dayNum} ${meal.type}: ${field} ${mv}g ≠ цел ${tv}g (±${macroTolerance(tv)}, 10%)`);
       }
     }
 
@@ -7614,11 +7635,19 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum) {
       if (notInCatalog.length) {
         errors.push(`Ден ${dayNum} ${meal.type}: продукти извън каталога: ${notInCatalog.join(', ')}`);
       }
+      // Defense-in-depth: catch clinical-protocol-forbidden foods even if the AI
+      // ignored the filtered catalog candidates (e.g. AIP + eggs/dairy/nightshades).
+      if (clinicalProtocolId) {
+        const forbidden = validateProductNamesAgainstProtocol(productNames, clinicalProtocolId);
+        if (forbidden.length) {
+          errors.push(`Ден ${dayNum} ${meal.type}: забранени при клиничния протокол: ${forbidden.join(', ')}`);
+        }
+      }
     }
 
     if (meal.macros && mealCal > 0) {
       const fromMacros = macrosToCalories(meal.macros);
-      if (Math.abs(fromMacros - mealCal) > DAILY_CALORIE_TOLERANCE) {
+      if (Math.abs(fromMacros - mealCal) > CALORIE_ROUNDING_TOLERANCE) {
         errors.push(`Ден ${dayNum} ${meal.type}: calories ${mealCal} ≠ P×4+C×4+F×9 (${fromMacros})`);
       }
     }
@@ -7626,7 +7655,7 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum) {
   return errors;
 }
 
-function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay) {
+function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay, clinicalProtocolId = null) {
   const errors = [];
   if (!weekPlan || !strategy?.weeklyScheme) return errors;
   normalizeMealBreakdownTypes(strategy);
@@ -7635,10 +7664,20 @@ function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay
     const schemeKey = DAY_NUMBER_TO_KEY[d - 1];
     const dayTarget = strategy.weeklyScheme[schemeKey];
     if (dayPlan && dayTarget) {
-      errors.push(...validateMealsAgainstScheme(dayPlan, dayTarget, d));
+      errors.push(...validateMealsAgainstScheme(dayPlan, dayTarget, d, clinicalProtocolId));
     }
   }
   return errors;
+}
+
+function countAutoRepairedMeals(weekPlan, startDay, endDay) {
+  let count = 0;
+  for (let d = startDay; d <= endDay; d++) {
+    for (const meal of weekPlan[`day${d}`]?.meals || []) {
+      if (meal._autoRepaired) count++;
+    }
+  }
+  return count;
 }
 
 function buildChunkValidationRetryComment(errors) {
@@ -9387,10 +9426,15 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         }
 
         injectFixedDesserts(weekPlan);
-        await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay);
+        await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
         finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay);
 
-        validationErrors = validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay);
+        const repairedCount = countAutoRepairedMeals(weekPlan, startDay, endDay);
+        if (repairedCount > 0) {
+          console.log(`Дни ${startDay}-${endDay}: backend auto-repair коригира ${repairedCount} хранене(я) без AI retry`);
+        }
+
+        validationErrors = validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay, data.clinicalProtocol || null);
         lastAiFailure = null;
       } catch (aiError) {
         // AI call/parse failure — no plan data to score; retry with the same slot empty.
