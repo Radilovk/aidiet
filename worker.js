@@ -53,7 +53,7 @@ import {
  * - NutriPlan Context Format (context-compression.js) for plan generation steps
  * - Step 1: lossless pipe-serialized profile + backend calcs (deduped vs notes sections)
  * - Steps 2–4: tiered profile + compact analysis/strategy/weekly-scheme blocks
- * - Step 3 ×4 chunks: compressed weekly targets + previous-day meal names
+ * - Step 3 ×7 chunks (1 day each): compact targets + catalog + previous-day names
  * - replacePromptVariables uses compact JSON (no pretty-print)
  * 
  * ARCHITECTURE - Plan Generation (Reorganized for efficiency):
@@ -80,7 +80,7 @@ import {
  *      - Output: Summary, recommendations, supplements
  *      - SIMPLIFICATION: Removed verbose guidelines, kept AI flexibility
  * 
- * Total: 1 (analysis) + 1 (strategy) + 4 (meal plan sub-steps) + 1 (summary) = 7 steps
+ * Total: 1 (analysis) + 1 (strategy) + 7 (meal plan days) + 7 (enrichment days) + 1 (summary)
  * 
  * OPTIMIZATION STRATEGY (Reorganization, NOT just adding tokens):
  *   - Step 3: Removed ~200 lines of duplicate ADLE rules (70% prompt reduction)
@@ -3216,6 +3216,25 @@ function invalidateCustomPromptsCache(key = null) {
   }
 }
 
+/** Compact analysis/strategy lines for single-day Step 3 (avoids full JSON blocks per call). */
+function buildStep3CompactContext(analysis, strategy, dietaryModifier) {
+  const ag = analysis?.macroGrams;
+  const ar = analysis?.macroRatios;
+  const macroLine = ag
+    ? `Дневни макроси: P${ag.protein ?? '?'}g / C${ag.carbs ?? '?'}g / F${ag.fats ?? '?'}g` +
+      (ar ? ` (${ar.protein}/${ar.carbs}/${ar.fats}%)` : '')
+    : '';
+  const principles = (strategy?.keyPrinciples || []).slice(0, 3).join('; ');
+  const avoid = (strategy?.avoidFoodCategories || strategy?.foodsToAvoid || []).slice(0, 6).join(', ');
+  const strategyLine = [
+    `Модификатор: ${dietaryModifier}`,
+    strategy?.mealCountJustification ? `Хранения: ${strategy.mealCountJustification}` : '',
+    principles ? `Принципи: ${principles}` : '',
+    avoid ? `Избягвай: ${avoid}` : '',
+  ].filter(Boolean).join(' | ');
+  return { analysisBlock: macroLine, strategyBlock: strategyLine };
+}
+
 /**
  * Generate prompt for a chunk of days (progressive generation)
  */
@@ -3248,8 +3267,16 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
     previousDaysContext = `\n\n${serializePreviousDays(previousDays)}\nПОВТОРЕНИЕ: max 5 ястия/седмица — избягвай горните, освен ако е необходимо.`;
   }
   
-  const analysisBlock = serializeAnalysisForStep(analysis, 3);
-  const strategyBlock = serializeStrategyForMealPlan(strategy);
+  const useCompactStep3Context = (endDay - startDay + 1) <= 1;
+  const compactCtx = useCompactStep3Context
+    ? buildStep3CompactContext(analysis, strategy, dietaryModifier)
+    : null;
+  const analysisBlock = compactCtx
+    ? compactCtx.analysisBlock
+    : serializeAnalysisForStep(analysis, 3);
+  const strategyBlock = compactCtx
+    ? compactCtx.strategyBlock
+    : serializeStrategyForMealPlan(strategy);
   
   // Legacy compact fields kept for KV prompt backward compatibility
   const strategyCompact = {
@@ -3373,7 +3400,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
 
 ВАЖНО: Върни САМО JSON обект {} без други текст или обяснения! НЕ връщай JSON масив []! БЕЗ dailyTotals, benefits, calories, macros или weight — калориите се смятат от бекенда по продуктите.`;
     }
-    if (analysisBlock && !prompt.includes('#AN v1')) {
+    if (!useCompactStep3Context && analysisBlock && !prompt.includes('#AN v1')) {
       prompt = prompt.replace(
         '=== ПРОФИЛ ===',
         `${analysisBlock}\n${strategyBlock}\n\n=== ПРОФИЛ ===`
@@ -3385,7 +3412,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
   return prompt;
 }
 
-/** Compact meal skeleton for Step 5 quality review (targets fixed, products/grams reviewable). */
+/** Compact meal skeleton for Step 5 — products/grams are read-only (backend finalizes nutrition). */
 function serializeMealsSkeletonForEnrichment(weekPlan, startDay, endDay) {
   const result = {};
   for (let d = startDay; d <= endDay; d++) {
@@ -3397,10 +3424,9 @@ function serializeMealsSkeletonForEnrichment(weekPlan, startDay, endDay) {
         const skeleton = {
           type: meal.type,
           name: meal.name || '',
-          weight: meal.weight || '',
           description: meal.description || '',
-          calories: meal.calories,
-          macros: meal.macros ? { ...meal.macros } : undefined
+          benefits: meal.benefits || '',
+          recipe: meal.recipe || '',
         };
         if (meal.dessert) skeleton.dessert = meal.dessert === true ? true : !!meal.dessert;
         return skeleton;
@@ -3410,7 +3436,7 @@ function serializeMealsSkeletonForEnrichment(weekPlan, startDay, endDay) {
   return JSON.stringify(result, null, 2);
 }
 
-/** Merge Step 5 review fields; type/dessert stay; nutrition recalculated by backend after merge. */
+/** Merge Step 5 copy fields only — never description/grams (nutrition stays from Step 3 backend). */
 function applyMealEnrichment(weekPlan, enrichmentData, startDay, endDay) {
   if (!enrichmentData || typeof enrichmentData !== 'object') return;
   for (let d = startDay; d <= endDay; d++) {
@@ -3423,8 +3449,8 @@ function applyMealEnrichment(weekPlan, enrichmentData, startDay, endDay) {
       const enriched = enrichedDay.meals.find(m => m.type === meal.type) || enrichedDay.meals[i];
       if (!enriched) continue;
       if (enriched.name) meal.name = enriched.name;
-      if (enriched.description) meal.description = enriched.description;
       if (enriched.benefits) meal.benefits = enriched.benefits;
+      if (enriched.recipe) meal.recipe = enriched.recipe;
     }
   }
 }
@@ -3458,13 +3484,13 @@ async function generateMealEnrichmentPrompt(data, strategy, weekPlan, startDay, 
     prompt += `
 
 ═══ ФОРМАТ НА ОТГОВОР ═══
-Отговори САМО с валиден JSON обект. Запази type и dessert без промяна. Коригирай description, name и benefits при нужда. Без calories, macros или weight.`;
+Отговори САМО с валиден JSON обект. Запази type и dessert. Коригирай name, benefits и recipe. НЕ променяй description. Без calories, macros или weight.`;
   }
   return prompt;
 }
 
 /**
- * Step 5: review product combinations and grams; fix inadequate portions and copy.
+ * Step 5: enrich meal copy (name, benefits, recipe) — products/grams stay from Step 3 + backend.
  */
 async function enrichWeekPlanCopy(env, data, strategy, weekPlan, sessionId = null, options = {}) {
   const totalDays = 7;
@@ -3482,17 +3508,15 @@ async function enrichWeekPlanCopy(env, data, strategy, weekPlan, sessionId = nul
       );
       let enrichmentData = parseAIResponse(enrichmentResponse);
       if (!enrichmentData || enrichmentData.error) {
-        console.warn(`Step 5 review chunk ${chunkIndex + 1} failed, keeping Step 3 output:`, enrichmentData?.error);
+        console.warn(`Step 5 enrichment chunk ${chunkIndex + 1} failed, keeping Step 3 output:`, enrichmentData?.error);
         continue;
       }
       if (Array.isArray(enrichmentData)) {
         enrichmentData = Object.fromEntries(enrichmentData.map((item, i) => [`day${startDay + i}`, item]));
       }
       applyMealEnrichment(weekPlan, enrichmentData, startDay, endDay);
-      await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay);
-      finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay);
     } catch (error) {
-      console.warn(`Step 5 review chunk ${chunkIndex + 1} error, keeping Step 3 output:`, error.message);
+      console.warn(`Step 5 enrichment chunk ${chunkIndex + 1} error, keeping Step 3 output:`, error.message);
     }
   }
 }
@@ -7147,7 +7171,7 @@ async function handleGetClientPlanStatus(request, env) {
 
 // Token limits optimized through prompt simplification (not artificial limits)
 const MEAL_PLAN_TOKEN_LIMIT = 8000; // Sufficient for detailed meal generation
-const MEAL_ENRICHMENT_TOKEN_LIMIT = 6000; // Step 5: review/fix grams, combinations, copy (2-day chunks)
+const MEAL_ENRICHMENT_TOKEN_LIMIT = 4000; // Step 5: name, benefits, recipe copy (1 day per call)
 const SUMMARY_TOKEN_LIMIT = 3500; // Summary generation: must fit up to 10 recommendations, 10 forbidden foods, 3 psychology tips, 3 supplements + summary object
 
 // Validation constants
@@ -7809,7 +7833,7 @@ function applyFoodSubstitutions(meal, fixes) {
   return applied;
 }
 
-const DAYS_PER_CHUNK = 2; // Generate 2 days at a time (4 chunks: days 1-2, 3-4, 5-6, 7)
+const DAYS_PER_CHUNK = 1; // One day per AI call (7 chunks) — max focus per mealBreakdown
 
 /**
  * REQUIREMENT 4: Validate plan against all parameters and check for contradictions
@@ -9389,15 +9413,14 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
     }
   }
 
-  // Step 5: review combinations/grams and fix copy — backend recalculates nutrition after each chunk
+  // Step 5: name, benefits, recipe copy (products/grams unchanged from Step 3)
   try {
     await enrichWeekPlanCopy(env, data, strategy, weekPlan, sessionId, { recommendedCalories });
-    console.log('Step 5 review complete');
+    console.log('Step 5 enrichment complete');
   } catch (error) {
-    console.warn('Step 5 review failed, plan usable with Step 3 output:', error.message);
+    console.warn('Step 5 enrichment failed, plan usable with Step 3 output:', error.message);
   }
 
-  await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, 1, 7);
   finalizeWeekPlanDays(weekPlan, strategy, 1, 7);
   
   // Generate summary, recommendations, etc. in final request
