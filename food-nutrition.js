@@ -284,13 +284,14 @@ export function repairItemsToTolerance(items, target, dessertNutrition, candidat
 
   const usedKeys = new Set(current.map(it => normalizeFoodKey(it.key || it.name)));
   const trialPool = (candidatePool || []).slice(0, REPAIR_TRIAL_CANDIDATES);
+  const targetP = Number(target.protein) || 0;
+  const targetC = Number(target.carbs) || 0;
+  const targetF = Number(target.fats) || 0;
   let addedCount = 0;
 
+  // Phase 1 (forward matching pursuit): close under-shoots by bringing in a missing
+  // macro driver — e.g. a protein-only breakfast gets a carb source added.
   for (let round = 0; round < REPAIR_MAX_ADDITIONS; round++) {
-    const targetP = Number(target.protein) || 0;
-    const targetC = Number(target.carbs) || 0;
-    const targetF = Number(target.fats) || 0;
-
     let best = null;
     let bestError = Infinity;
 
@@ -320,7 +321,38 @@ export function repairItemsToTolerance(items, target, dessertNutrition, candidat
     if (mealWithinTolerance(currentTotals, target, dessertNutrition)) break;
   }
 
-  return { items: current, repaired: addedCount > 0, addedCount };
+  // Phase 2 (backward pruning): a common residual failure is overshoot — e.g. the AI
+  // already included two fat sources (zehtin + nuts) so protein/carbs land fine but
+  // fat/kcal run over. Try dropping each item in turn (AI-picked or repair-added) and
+  // re-balancing the rest; keep the drop only if it reduces the overall error. This is
+  // the natural complement to Phase 1 — same trial-and-measure approach, in reverse.
+  let trimmed = false;
+  for (let round = 0; round < REPAIR_MAX_ADDITIONS && current.length > 1; round++) {
+    if (mealWithinTolerance(currentTotals, target, dessertNutrition)) break;
+    const baseError = weightedSquaredError(currentTotals, targetP, targetC, targetF);
+
+    let best = null;
+    let bestError = baseError;
+
+    for (let i = 0; i < current.length; i++) {
+      const trialItems = current.filter((_, idx) => idx !== i);
+      if (!trialItems.length) continue;
+      const balanced = balanceItemsToMacroTargets(trialItems, target, dessertNutrition);
+      const totals = sumItemNutrition(balanced);
+      const error = weightedSquaredError(totals, targetP, targetC, targetF);
+      if (error < bestError) {
+        bestError = error;
+        best = { balanced, totals };
+      }
+    }
+
+    if (!best) break;
+    current = best.balanced;
+    currentTotals = best.totals;
+    trimmed = true;
+  }
+
+  return { items: current, repaired: addedCount > 0 || trimmed, addedCount };
 }
 
 export function nutritionFromGrams(profile, grams) {
