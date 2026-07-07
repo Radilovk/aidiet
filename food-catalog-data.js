@@ -213,6 +213,41 @@ export const FOOD_CATALOG = [
   item('meal_skry_bowl', 'Купа със скир', 'купа скир', 'ready_meal', ['PRO'], ['breakfast', 'snack', 'late_snack'], 4, { vegetarian: true }),
 ];
 
+/**
+ * Catalog-level exclusions for clinical protocols with genuinely restrictive
+ * whole-food eliminations. Most protocols (e.g. avoid alcohol/processed food/sugar)
+ * need no entry here — the catalog is whole-foods-only already, so those
+ * restrictions are automatically satisfied. Only list protocols where the AI
+ * prompt's restriction text alone isn't a reliable enough safety guarantee
+ * (e.g. AIP eliminates entire food groups the catalog would otherwise offer
+ * as PRO/ENG/FAT sources — a silent AI slip here means feeding a forbidden
+ * food to someone with an autoimmune condition, not just an inaccurate macro).
+ * Keyed by clinicalProtocol id (matches CLINICAL_PROTOCOLS in worker.js).
+ */
+export const CLINICAL_PROTOCOL_EXCLUSIONS = {
+  autoimmune_aip: {
+    excludeGroups: ['dairy', 'legume'],
+    excludeNutritionKeys: [
+      // eggs
+      'яйца', 'яйчни белтъци', 'варено яйце', 'омлет',
+      // nightshades (protocol explicitly names these 4)
+      'домат', 'чери домати', 'доматено пюре', 'чушка', 'патладжан', 'картофи',
+      // nuts & seeds (all FAT/PRO items derived from nuts/seeds)
+      'ядки', 'бадеми', 'орехи', 'кашу', 'лешници', 'фъстъци', 'фъстъчено масло',
+      'бадемово масло', 'тахан', 'семена чиа', 'ленено семе', 'тиквени семки',
+      'слънчогледови семки', 'шамфъстък', 'хумус',
+      // grains (incl. gluten) — AIP eliminates ALL grains, not just gluten ones
+      'хляб', 'хляб пълнозърнест', 'ръжен хляб', 'овесени ядки', 'овес', 'паста',
+      'киноа', 'булгур', 'просо', 'елда', 'тортила', 'царевица',
+      'ориз', 'ориз бял', 'ориз кафяв', 'каша',
+      // soy (legume family, not covered by the 'legume' group tag)
+      'тофу', 'темпе',
+      // dairy-derived items catalogued under 'fat'/'protein', not 'dairy' — not covered by excludeGroups
+      'масло', 'протеин суроватка',
+    ],
+  },
+};
+
 /** Meal type → timing keys used for catalog filtering */
 export const MEAL_TYPE_TIMING = {
   'Хранене 1': 'breakfast',

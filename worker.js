@@ -37,6 +37,7 @@ import {
 import {
   buildCatalogPromptSection,
   validateProductNamesInCatalog,
+  validateProductNamesAgainstProtocol,
 } from './food-catalog.js';
 
 
@@ -3342,6 +3343,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
     dietaryModifier,
     blockedTerms: blockedFoodTerms,
     preferLove: String(data.dietLove || '').split(/[,;]/).map(s => s.trim()).filter(Boolean),
+    clinicalProtocolId: data.clinicalProtocol || null,
   });
 
   const customPrompt = await requireKvPrompt(env, 'admin_meal_plan_prompt');
@@ -7560,7 +7562,11 @@ async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay
   // structurally reach the macro target (see repairItemsToTolerance in food-nutrition.js)
   // instead of failing validation and forcing an expensive AI retry of the whole day.
   const repairContext = CATALOG_STRICT_MODE
-    ? { dietaryModifier: strategy?.dietaryModifier, blockedTerms: data ? collectUserBlockedFoodTerms(data) : [] }
+    ? {
+        dietaryModifier: strategy?.dietaryModifier,
+        blockedTerms: data ? collectUserBlockedFoodTerms(data) : [],
+        clinicalProtocolId: data?.clinicalProtocol || null,
+      }
     : null;
   let unknowns = syncWeekPlanNutritionFromDatabase(weekPlan, strategy, startDay, endDay, extraDb, repairContext);
 
@@ -7596,7 +7602,7 @@ async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay
   return unknowns;
 }
 
-function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum) {
+function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocolId = null) {
   const errors = [];
   if (!dayPlan?.meals?.length || !dayTarget?.mealBreakdown?.length) return errors;
 
@@ -7629,6 +7635,14 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum) {
       if (notInCatalog.length) {
         errors.push(`Ден ${dayNum} ${meal.type}: продукти извън каталога: ${notInCatalog.join(', ')}`);
       }
+      // Defense-in-depth: catch clinical-protocol-forbidden foods even if the AI
+      // ignored the filtered catalog candidates (e.g. AIP + eggs/dairy/nightshades).
+      if (clinicalProtocolId) {
+        const forbidden = validateProductNamesAgainstProtocol(productNames, clinicalProtocolId);
+        if (forbidden.length) {
+          errors.push(`Ден ${dayNum} ${meal.type}: забранени при клиничния протокол: ${forbidden.join(', ')}`);
+        }
+      }
     }
 
     if (meal.macros && mealCal > 0) {
@@ -7641,7 +7655,7 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum) {
   return errors;
 }
 
-function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay) {
+function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay, clinicalProtocolId = null) {
   const errors = [];
   if (!weekPlan || !strategy?.weeklyScheme) return errors;
   normalizeMealBreakdownTypes(strategy);
@@ -7650,7 +7664,7 @@ function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay
     const schemeKey = DAY_NUMBER_TO_KEY[d - 1];
     const dayTarget = strategy.weeklyScheme[schemeKey];
     if (dayPlan && dayTarget) {
-      errors.push(...validateMealsAgainstScheme(dayPlan, dayTarget, d));
+      errors.push(...validateMealsAgainstScheme(dayPlan, dayTarget, d, clinicalProtocolId));
     }
   }
   return errors;
@@ -9420,7 +9434,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
           console.log(`Дни ${startDay}-${endDay}: backend auto-repair коригира ${repairedCount} хранене(я) без AI retry`);
         }
 
-        validationErrors = validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay);
+        validationErrors = validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay, data.clinicalProtocol || null);
         lastAiFailure = null;
       } catch (aiError) {
         // AI call/parse failure — no plan data to score; retry with the same slot empty.

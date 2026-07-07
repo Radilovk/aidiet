@@ -7,6 +7,7 @@ import {
   MEAL_TYPE_TIMING,
   DEFAULT_MIN_UNIVERSALITY,
   CATALOG_PROMPT_LIMIT_PER_SLOT,
+  CLINICAL_PROTOCOL_EXCLUSIONS,
 } from './food-catalog-data.js';
 import { FOOD_NUTRITION_PER_100G } from './food-nutrition-data.js';
 import { normalizeFoodKey } from './food-utils.js';
@@ -119,6 +120,15 @@ function isDietCompatible(entry, diet) {
   return true;
 }
 
+/** True if a clinical protocol's food-group elimination excludes this catalog entry. */
+function isExcludedByProtocol(entry, clinicalProtocolId) {
+  const rule = clinicalProtocolId && CLINICAL_PROTOCOL_EXCLUSIONS[clinicalProtocolId];
+  if (!rule) return false;
+  if (rule.excludeGroups?.includes(entry.group)) return true;
+  if (rule.excludeNutritionKeys?.includes(entry.nutritionKey)) return true;
+  return false;
+}
+
 function isBlockedByTerms(entry, blockedTerms = []) {
   const nameLower = entry.name.toLowerCase();
   const keyLower = entry.nutritionKey.toLowerCase();
@@ -163,6 +173,7 @@ export function getCatalogCandidatesForChunk({
   blockedTerms = [],
   minUniversality = DEFAULT_MIN_UNIVERSALITY,
   preferLove = [],
+  clinicalProtocolId = null,
 }) {
   const index = buildCatalogIndex();
   const diet = normalizeDietModifier(dietaryModifier);
@@ -199,6 +210,7 @@ export function getCatalogCandidatesForChunk({
     if (entry.universality < minUniversality) continue;
     if (!isDietCompatible(entry, diet)) continue;
     if (isBlockedByTerms(entry, blockedTerms)) continue;
+    if (isExcludedByProtocol(entry, clinicalProtocolId)) continue;
 
     const entryTimings = entry.timing;
     const timingMatch = [...timings].some(t => entryTimings.includes(t));
@@ -236,6 +248,7 @@ export function getCatalogCandidatesForChunk({
     .filter(e => e.universality >= minUniversality)
     .filter(e => isDietCompatible(e, diet))
     .filter(e => !isBlockedByTerms(e, blockedTerms))
+    .filter(e => !isExcludedByProtocol(e, clinicalProtocolId))
     .filter(e => e.timing.some(t => timings.has(t)))
     .sort((a, b) => b.universality - a.universality || a.name.localeCompare(b.name, 'bg'))
     .slice(0, 12);
@@ -279,7 +292,7 @@ export function formatCatalogSectionForPrompt(candidatesBySlot, { minUniversalit
  * candidates: excludes composite ready meals/condiments (poor "basis vectors" for
  * closing a macro gap) and isn't limited to a day range, just one meal's timing.
  */
-export function getRepairCandidatesForMeal(mealType, dietaryModifier = 'Балансирано', blockedTerms = []) {
+export function getRepairCandidatesForMeal(mealType, dietaryModifier = 'Балансирано', blockedTerms = [], clinicalProtocolId = null) {
   const index = buildCatalogIndex();
   const diet = normalizeDietModifier(dietaryModifier);
   const timing = mealTypeToTiming(mealType);
@@ -289,6 +302,7 @@ export function getRepairCandidatesForMeal(mealType, dietaryModifier = 'Бала
     .filter(e => e.timing.includes(timing))
     .filter(e => isDietCompatible(e, diet))
     .filter(e => !isBlockedByTerms(e, blockedTerms))
+    .filter(e => !isExcludedByProtocol(e, clinicalProtocolId))
     .map(entry => ({ entry, profile: getCatalogEntryNutrition(entry) }))
     .filter(c => c.profile)
     .sort((a, b) => b.entry.universality - a.entry.universality || a.entry.name.localeCompare(b.entry.name, 'bg'));
@@ -308,6 +322,22 @@ export function validateProductNamesInCatalog(names) {
     if (isUnknown) unknown.push(name);
   }
   return [...new Set(unknown)];
+}
+
+/**
+ * Defense-in-depth: even though the prompt/repair candidate pools already exclude
+ * clinical-protocol-forbidden foods, a validation-layer check catches any AI slip
+ * (e.g. it ignores the catalog and writes a forbidden item by name anyway) so it's
+ * flagged as an error and retried, rather than silently reaching the client.
+ */
+export function validateProductNamesAgainstProtocol(names, clinicalProtocolId) {
+  if (!clinicalProtocolId || !CLINICAL_PROTOCOL_EXCLUSIONS[clinicalProtocolId]) return [];
+  const violations = [];
+  for (const name of names) {
+    const { entry } = resolveCatalogEntry(name);
+    if (entry && isExcludedByProtocol(entry, clinicalProtocolId)) violations.push(name);
+  }
+  return [...new Set(violations)];
 }
 
 export function getCatalogNutritionKey(name) {

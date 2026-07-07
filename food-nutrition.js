@@ -32,9 +32,12 @@ export function macroTolerance(targetGrams) {
 }
 const CONDIMENT_MAX_GRAMS = 15;
 // Realistic max grams per food group (prevents absurd portions, e.g. 130g nuts).
+// carb raised from 220→280g: 220 was a hard ceiling for legitimate high-calorie/
+// high-carb targets (bulking diets, athletes) — a single ~800kcal dinner needing
+// 75g+ carbs from one rice-type item alone could not reach target even with repair.
 const GROUP_CAPS = {
   fat: 40, protein: 260, dairy: 400, legume: 260,
-  carb: 220, vegetable: 260, fruit: 260, ready_meal: 450,
+  carb: 280, vegetable: 260, fruit: 260, ready_meal: 450,
   condiment: CONDIMENT_MAX_GRAMS, default: 300,
 };
 // kcal-weighted so hitting P/C/F also lands calories (kcal = 4P + 4C + 9F).
@@ -452,7 +455,9 @@ export function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}
   if (hasMacroTargets) {
     items = balanceItemsToMacroTargets(items, target, dessertNutrition);
     if (repairContext) {
-      const pool = getRepairCandidatesForMeal(meal.type, repairContext.dietaryModifier, repairContext.blockedTerms);
+      const pool = getRepairCandidatesForMeal(
+        meal.type, repairContext.dietaryModifier, repairContext.blockedTerms, repairContext.clinicalProtocolId
+      );
       const repair = repairItemsToTolerance(items, target, dessertNutrition, pool);
       items = repair.items;
       if (repair.repaired) meal._autoRepaired = repair.addedCount;
