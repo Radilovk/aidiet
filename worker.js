@@ -9339,17 +9339,24 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
     }
   }
   
-  // Generate meal plan in chunks
+  // Generate meal plan in chunks. Some plan beats no plan: after exhausting retries,
+  // keep the best-scoring attempt (fewest validation errors) instead of failing the
+  // whole week. AI call failures still retry; only macro/kcal tolerance misses fall back.
+  const generationWarnings = [];
   for (let chunkIndex = 0; chunkIndex < chunks; chunkIndex++) {
     const startDay = chunkIndex * DAYS_PER_CHUNK + 1;
     const endDay = Math.min(startDay + DAYS_PER_CHUNK - 1, totalDays);
     const daysInChunk = endDay - startDay + 1;
-    
-    try {
-      let chunkComment = errorPreventionComment;
-      let attempt = 0;
 
-      while (true) {
+    let chunkComment = errorPreventionComment;
+    let attempt = 0;
+    let bestSnapshot = null;
+    let bestErrors = null;
+    let lastAiFailure = null;
+
+    while (true) {
+      let validationErrors;
+      try {
         const chunkPrompt = await generateMealPlanChunkPrompt(
           data, analysis, strategy, bmr, recommendedCalories,
           startDay, endDay, previousDays, env, chunkComment, cachedFoodLists
@@ -9362,8 +9369,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         let chunkData = parseAIResponse(chunkResponse);
 
         if (!chunkData || chunkData.error) {
-          const errorMsg = chunkData?.error || 'Invalid response';
-          throw new Error(`Chunk ${chunkIndex + 1} failed: ${errorMsg}`);
+          throw new Error(chunkData?.error || 'Invalid response');
         }
 
         if (Array.isArray(chunkData)) {
@@ -9374,42 +9380,73 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
 
         for (let day = startDay; day <= endDay; day++) {
           const dayKey = `day${day}`;
-          if (chunkData[dayKey]) {
-            weekPlan[dayKey] = chunkData[dayKey];
-            const dayEntry = { day, meals: chunkData[dayKey].meals || [] };
-            const existingIdx = previousDays.findIndex(p => p.day === day);
-            if (existingIdx >= 0) previousDays[existingIdx] = dayEntry;
-            else previousDays.push(dayEntry);
-          } else {
-            console.error(`Missing ${dayKey} in chunk ${chunkIndex + 1}. Available keys:`, Object.keys(chunkData));
-            throw new Error(`Missing ${dayKey} in chunk ${chunkIndex + 1} response. Available keys: ${Object.keys(chunkData).join(', ')}`);
+          if (!chunkData[dayKey]) {
+            throw new Error(`Missing ${dayKey} in response. Available keys: ${Object.keys(chunkData).join(', ')}`);
           }
+          weekPlan[dayKey] = chunkData[dayKey];
         }
 
         injectFixedDesserts(weekPlan);
         await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay);
         finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay);
 
-        const validationErrors = validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay);
-        if (!validationErrors.length) break;
-
-        if (attempt >= MEAL_PLAN_CHUNK_MAX_RETRIES) {
-          throw new Error(`валидация неуспешна след ${attempt + 1} опита: ${validationErrors.join('; ')}`);
-        }
-
-        for (let day = startDay; day <= endDay; day++) {
-          delete weekPlan[`day${day}`];
-          const idx = previousDays.findIndex(p => p.day === day);
-          if (idx >= 0) previousDays.splice(idx, 1);
-        }
-
-        chunkComment = [errorPreventionComment, buildChunkValidationRetryComment(validationErrors)]
-          .filter(Boolean).join('\n\n');
-        attempt++;
-        console.warn(`Chunk ${chunkIndex + 1} validation failed (attempt ${attempt}), retrying:`, validationErrors);
+        validationErrors = validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay);
+        lastAiFailure = null;
+      } catch (aiError) {
+        // AI call/parse failure — no plan data to score; retry with the same slot empty.
+        lastAiFailure = aiError.message;
+        validationErrors = null;
       }
-    } catch (error) {
-      throw new Error(`Генериране на дни ${startDay}-${endDay}: ${error.message}`);
+
+      if (validationErrors !== null) {
+        const daysSnapshot = {};
+        for (let day = startDay; day <= endDay; day++) {
+          daysSnapshot[`day${day}`] = JSON.parse(JSON.stringify(weekPlan[`day${day}`]));
+        }
+
+        if (!validationErrors.length) {
+          bestSnapshot = daysSnapshot;
+          bestErrors = [];
+          break;
+        }
+        if (!bestSnapshot || validationErrors.length < bestErrors.length) {
+          bestSnapshot = daysSnapshot;
+          bestErrors = validationErrors;
+        }
+      }
+
+      if (attempt >= MEAL_PLAN_CHUNK_MAX_RETRIES) {
+        if (bestSnapshot) {
+          // Some plan beats no plan: keep the best attempt found and continue.
+          for (const [dayKey, dayData] of Object.entries(bestSnapshot)) {
+            weekPlan[dayKey] = dayData;
+          }
+          if (bestErrors.length) {
+            const warning = `Дни ${startDay}-${endDay}: план използван с отклонения след ${attempt + 1} опита: ${bestErrors.join('; ')}`;
+            console.warn(warning);
+            generationWarnings.push(warning);
+          }
+        } else {
+          // Every attempt failed at the AI-call level — nothing usable to fall back to.
+          throw new Error(`Генериране на дни ${startDay}-${endDay}: ${lastAiFailure || 'няма валиден отговор след всички опити'}`);
+        }
+        break;
+      }
+
+      for (let day = startDay; day <= endDay; day++) {
+        delete weekPlan[`day${day}`];
+      }
+      chunkComment = [errorPreventionComment, validationErrors?.length ? buildChunkValidationRetryComment(validationErrors) : null]
+        .filter(Boolean).join('\n\n');
+      attempt++;
+      console.warn(`Chunk ${chunkIndex + 1} attempt ${attempt} failed, retrying:`, validationErrors || lastAiFailure);
+    }
+
+    for (let day = startDay; day <= endDay; day++) {
+      const dayEntry = { day, meals: weekPlan[`day${day}`]?.meals || [] };
+      const existingIdx = previousDays.findIndex(p => p.day === day);
+      if (existingIdx >= 0) previousDays[existingIdx] = dayEntry;
+      else previousDays.push(dayEntry);
     }
   }
 
@@ -9449,7 +9486,8 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         forbidden: strategy.avoidFoodCategories || strategy.foodsToAvoid || ['Бързи храни', 'Газирани напитки', 'Сладкиши'],
         psychology: strategy.psychologicalSupport || [],
         waterIntake: strategy.hydrationStrategy || "2-2.5л дневно",
-        supplements: strategy.supplementRecommendations || []
+        supplements: strategy.supplementRecommendations || [],
+        generationWarnings
       };
     }
     
@@ -9464,7 +9502,8 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       forbidden: summaryData.forbidden || strategy.avoidFoodCategories || strategy.foodsToAvoid || ['Бързи храни', 'Газирани напитки', 'Сладкиши'],
       psychology: summaryData.psychology || strategy.psychologicalSupport || [],
       waterIntake: summaryData.waterIntake || strategy.hydrationStrategy || "2-2.5л дневно",
-      supplements: summaryData.supplements || strategy.supplementRecommendations || []
+      supplements: summaryData.supplements || strategy.supplementRecommendations || [],
+      generationWarnings
     };
   } catch (error) {
     console.error('Summary generation failed:', error);
@@ -9486,7 +9525,8 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       forbidden: strategy.avoidFoodCategories || strategy.foodsToAvoid || ['Бързи храни', 'Газирани напитки', 'Сладкиши'],
       psychology: strategy.psychologicalSupport || [],
       waterIntake: strategy.hydrationStrategy || "2-2.5л дневно",
-      supplements: strategy.supplementRecommendations || []
+      supplements: strategy.supplementRecommendations || [],
+      generationWarnings
     };
   }
 }
