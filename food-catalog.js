@@ -273,6 +273,27 @@ export function formatCatalogSectionForPrompt(candidatesBySlot, { minUniversalit
   return lines.join('\n');
 }
 
+/**
+ * Flat, nutrition-attached candidate pool for the backend auto-repair engine
+ * (food-nutrition.js repairItemsToTolerance) — distinct from the AI-facing prompt
+ * candidates: excludes composite ready meals/condiments (poor "basis vectors" for
+ * closing a macro gap) and isn't limited to a day range, just one meal's timing.
+ */
+export function getRepairCandidatesForMeal(mealType, dietaryModifier = 'Балансирано', blockedTerms = []) {
+  const index = buildCatalogIndex();
+  const diet = normalizeDietModifier(dietaryModifier);
+  const timing = mealTypeToTiming(mealType);
+
+  return index.all
+    .filter(e => e.group !== 'condiment' && e.group !== 'ready_meal')
+    .filter(e => e.timing.includes(timing))
+    .filter(e => isDietCompatible(e, diet))
+    .filter(e => !isBlockedByTerms(e, blockedTerms))
+    .map(entry => ({ entry, profile: getCatalogEntryNutrition(entry) }))
+    .filter(c => c.profile)
+    .sort((a, b) => b.entry.universality - a.entry.universality || a.entry.name.localeCompare(b.entry.name, 'bg'));
+}
+
 export function buildCatalogPromptSection(options) {
   const candidates = getCatalogCandidatesForChunk(options);
   return formatCatalogSectionForPrompt(candidates, {

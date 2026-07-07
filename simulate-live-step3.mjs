@@ -19,12 +19,12 @@ import { buildCatalogPromptSection, validateProductNamesInCatalog } from './food
 import {
   syncWeekPlanNutritionFromDatabase,
   parseMealDescription,
+  calorieTolerance,
+  macroTolerance,
 } from './food-nutrition.js';
 import { serializeWeeklySchemeTargets, formatPromptValue } from './context-compression.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DAILY_CALORIE_TOLERANCE = 50;
-const MACRO_GRAM_TOLERANCE = 4;
 const MAX_LATE_SNACK_CALORIES = 200;
 const MEAL_PLAN_TOKEN_LIMIT = 8000;
 const MAX_RETRIES = 2;
@@ -248,14 +248,14 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum) {
     if (!target) continue;
     const targetCal = Number(target.calories) || 0;
     const mealCal = Number(meal.calories) || macrosToCalories(meal.macros);
-    if (targetCal > 0 && Math.abs(mealCal - targetCal) > DAILY_CALORIE_TOLERANCE) {
-      errors.push(`Ден ${dayNum} ${meal.type}: калории ${mealCal} ≠ цел ${targetCal}`);
+    if (targetCal > 0 && Math.abs(mealCal - targetCal) > calorieTolerance(targetCal)) {
+      errors.push(`Ден ${dayNum} ${meal.type}: калории ${mealCal} ≠ цел ${targetCal} (±${calorieTolerance(targetCal)})`);
     }
     for (const field of ['protein', 'carbs', 'fats']) {
       const tv = Number(target[field]) || 0;
       const mv = Number(meal.macros?.[field]) || 0;
-      if (tv > 0 && Math.abs(mv - tv) > MACRO_GRAM_TOLERANCE) {
-        errors.push(`Ден ${dayNum} ${meal.type}: ${field} ${mv}g ≠ цел ${tv}g`);
+      if (tv > 0 && Math.abs(mv - tv) > macroTolerance(tv)) {
+        errors.push(`Ден ${dayNum} ${meal.type}: ${field} ${mv}g ≠ цел ${tv}g (±${macroTolerance(tv)})`);
       }
     }
     if (!meal.description || !/\d+\s*(g|г)\b/i.test(meal.description)) {
@@ -284,7 +284,7 @@ function buildPrompt(template, scenario, startDay = 1) {
     preferLove: [],
   });
   const weeklySchemeByDayText = serializeWeeklySchemeTargets(
-    strategy, startDay, startDay, recommendedCalories, DAY_NUMBER_TO_KEY, DAILY_CALORIE_TOLERANCE
+    strategy, startDay, startDay, recommendedCalories, DAY_NUMBER_TO_KEY
   );
   return replacePromptVariables(template, {
     userData: data,
@@ -306,7 +306,6 @@ function buildPrompt(template, scenario, startDay = 1) {
     freeMealInstruction: '',
     additionalNotes: '',
     clinicalProtocolSection: '',
-    DAILY_CALORIE_TOLERANCE,
     MAX_LATE_SNACK_CALORIES,
   });
 }
@@ -382,7 +381,8 @@ async function runScenario(env, template, scenario) {
       if (!parsed || parsed.error) throw new Error(parsed?.error || 'invalid json');
 
       const weekPlan = { day1: parsed.day1 || parsed };
-      syncWeekPlanNutritionFromDatabase(weekPlan, strategy, 1, 1, {});
+      const repairContext = { dietaryModifier: strategy.dietaryModifier, blockedTerms: [] };
+      syncWeekPlanNutritionFromDatabase(weekPlan, strategy, 1, 1, {}, repairContext);
       const errors = validateMealsAgainstScheme(weekPlan.day1, strategy.weeklyScheme.monday, 1);
 
       if (!errors.length) {
@@ -408,8 +408,9 @@ async function runScenario(env, template, scenario) {
 
 function summarizeMeals(meals) {
   return (meals || []).map(m => {
-    const prods = (m.description || '').split('\n').filter(Boolean).slice(0, 3).join(' | ');
-    return `  ${m.type}: ${m.calories}kcal P${m.macros?.protein}/C${m.macros?.carbs}/F${m.macros?.fats} — ${prods}`;
+    const prods = (m.description || '').split('\n').filter(Boolean).join(' | ');
+    const repaired = m._autoRepaired ? ` [auto-repair +${m._autoRepaired}]` : '';
+    return `  ${m.type}: ${m.calories}kcal P${m.macros?.protein}/C${m.macros?.carbs}/F${m.macros?.fats} — ${prods}${repaired}`;
   }).join('\n');
 }
 

@@ -333,11 +333,11 @@ export function serializeStrategyForMealPlan(strategy) {
  * @param {number} endDay
  * @param {number} recommendedCalories
  * @param {Record<number, string>} dayNumberToKey
- * @param {number} calorieTolerance
+ * @param {string} toleranceLabel
  */
-export function serializeWeeklySchemeTargets(strategy, startDay, endDay, recommendedCalories, dayNumberToKey, calorieTolerance = 50) {
+export function serializeWeeklySchemeTargets(strategy, startDay, endDay, recommendedCalories, dayNumberToKey, toleranceLabel = 'kcal±5%/макро±10%') {
   const freeDayNum = strategy?.freeDayNumber != null ? Number(strategy.freeDayNumber) : null;
-  const lines = [`#WK v1 ±${calorieTolerance}kcal | H1-H5=Хранене1-5 SF=Свободно`];
+  const lines = [`#WK v1 ${toleranceLabel} | H1-H5=Хранене1-5 SF=Свободно`];
 
   for (let d = startDay; d <= endDay; d++) {
     const key = dayNumberToKey[d - 1];
