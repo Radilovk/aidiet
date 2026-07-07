@@ -1,7 +1,15 @@
 /**
- * Live Step 3 simulation — Gemini picks products, backend balances macros.
+ * Live Step 3 simulation — AI picks products, backend balances macros.
+ *
  * Run: node simulate-live-step3.mjs
- * Requires .dev.vars with GEMINI_API_KEY (gitignored).
+ *
+ * Secrets:
+ * - Production GEMINI_API_KEY lives in Cloudflare Worker secrets (valid there).
+ * - .dev.vars is only for local dev; a stale GEMINI key here overrides nothing
+ *   in production but breaks local direct-Gemini tests. Leave GEMINI out of
+ *   .dev.vars unless you paste the current key from the CF dashboard.
+ * - Without local GEMINI, the script uses OpenRouter google/gemini-2.5-flash
+ *   (same model as production) or OpenAI fallback.
  */
 
 import fs from 'node:fs';
@@ -95,7 +103,45 @@ function parseAIResponse(response) {
   return { error: 'parse failed' };
 }
 
+async function callGeminiDirect(apiKey, prompt, maxTokens = 8000) {
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          maxOutputTokens: maxTokens,
+          responseMimeType: 'application/json',
+          thinkingConfig: { thinkingBudget: 0 },
+        },
+      }),
+    }
+  );
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Gemini ${res.status}: ${err.slice(0, 200)}`);
+  }
+  const data = await res.json();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) throw new Error('Empty Gemini response');
+  return { text, provider: 'google/gemini-2.5-flash' };
+}
+
 async function callAI(env, prompt, maxTokens = 8000) {
+  if (env.GEMINI_API_KEY) {
+    try {
+      return await callGeminiDirect(env.GEMINI_API_KEY, prompt, maxTokens);
+    } catch (e) {
+      if (e.message.includes('API_KEY_INVALID') || e.message.includes('API key not valid')) {
+        console.warn('Local GEMINI_API_KEY invalid — falling back to OpenRouter/OpenAI');
+      } else {
+        throw e;
+      }
+    }
+  }
+
   const jsonBody = (messages, model) => ({
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -368,13 +414,18 @@ function summarizeMeals(meals) {
 }
 
 async function main() {
-  const env = loadDevVars();
-  if (!env.OPEN_ROUTER && !env.OPENAI_API_KEY) {
-    throw new Error('Need OPEN_ROUTER or OPENAI_API_KEY in .dev.vars');
+  const env = { ...loadDevVars(), ...process.env };
+  if (!env.GEMINI_API_KEY && !env.OPEN_ROUTER && !env.OPENAI_API_KEY) {
+    throw new Error('Need GEMINI_API_KEY, OPEN_ROUTER, or OPENAI_API_KEY in .dev.vars / env');
   }
 
   const template = fs.readFileSync(path.join(__dirname, 'KV/prompts/admin_meal_plan_prompt.txt'), 'utf8');
-  console.log('=== Live Step 3 simulation (AI + backend balancer) ===\n');
+  console.log('=== Live Step 3 simulation (AI + backend balancer) ===');
+  console.log('Production worker: google/gemini-2.5-flash via CF secrets');
+  if (env.GEMINI_API_KEY) console.log('Local provider: direct Gemini (from .dev.vars)');
+  else if (env.OPEN_ROUTER) console.log('Local provider: OpenRouter google/gemini-2.5-flash');
+  else console.log('Local provider: OpenAI gpt-4o-mini');
+  console.log('');
 
   const results = [];
   for (const scenario of SCENARIOS) {
