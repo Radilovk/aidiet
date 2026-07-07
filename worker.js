@@ -1686,7 +1686,7 @@ const pendingSessionLogs = new Map(); // sessionId → [logId, ...]
 // Validation constants (moved here to be available early in code)
 const DAILY_CALORIE_TOLERANCE = 50; // ±50 kcal tolerance for daily calorie target
 const MACRO_GRAM_TOLERANCE = 4; // ±4g per macro when validating AI meals vs mealBreakdown
-const MEAL_PLAN_CHUNK_MAX_RETRIES = 1; // One retry per chunk when validation fails
+const MEAL_PLAN_CHUNK_MAX_RETRIES = 2; // Up to 2 retries per day when macro/kcal validation fails
 const CATALOG_STRICT_MODE = true; // Step 3: only catalog products; no AI nutrition lookup
 const MAX_LATE_SNACK_CALORIES = 200; // Maximum calories allowed for late-night snacks
 
@@ -9296,7 +9296,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
   const weekPlan = {};
   const previousDays = []; // Track previous days for variety
   
-  // Cache dynamic food lists once (prevents 4 redundant calls per generation)
+  // Cache dynamic food lists once (prevents redundant KV reads across 7 day-chunks)
   const cachedFoodLists = await getDynamicFoodListsSections(env);
   
   // Parse BMR and calories - handle both numeric and string values

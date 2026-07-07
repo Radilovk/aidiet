@@ -14,9 +14,14 @@ export { normalizeFoodKey } from './food-utils.js';
 
 export const GRAM_ROUND_STEP = 10;
 const CONDIMENT_MAX_GRAMS = 15;
-const MACRO_TOLERANCE_G = 4;
-const KCAL_TOLERANCE = 50;
-const GRAM_CAPS = { PRO: 250, ENG: 220, VOL: 200, FAT: 35, default: 300 };
+// Realistic max grams per food group (prevents absurd portions, e.g. 130g nuts).
+const GROUP_CAPS = {
+  fat: 40, protein: 260, dairy: 400, legume: 260,
+  carb: 220, vegetable: 260, fruit: 260, ready_meal: 450,
+  condiment: CONDIMENT_MAX_GRAMS, default: 300,
+};
+// kcal-weighted so hitting P/C/F also lands calories (kcal = 4P + 4C + 9F).
+const MACRO_WEIGHTS = { p: 4, c: 4, f: 9 };
 
 const GRAM_LINE_RE = /^(.+?)\s+(\d+(?:[.,]\d+)?)\s*(g|г)\b(?:\s*[—\-]\s*(.+))?$/i;
 
@@ -137,23 +142,22 @@ function itemHasSlot(item, slot) {
   return getCatalogMeta(item.name).slots.includes(slot);
 }
 
+function itemGroup(item) {
+  return getCatalogMeta(item.name).group;
+}
+
 function clampItemGrams(item, grams) {
-  let cap = GRAM_CAPS.default;
-  if (isCondimentItem(item)) return Math.min(roundGrams(grams), CONDIMENT_MAX_GRAMS);
-  if (itemHasSlot(item, 'PRO')) cap = Math.min(cap, GRAM_CAPS.PRO);
-  if (itemHasSlot(item, 'ENG') && !itemHasSlot(item, 'PRO')) cap = Math.min(cap, GRAM_CAPS.ENG);
-  if (itemHasSlot(item, 'FAT') && !itemHasSlot(item, 'PRO') && !itemHasSlot(item, 'ENG')) cap = Math.min(cap, GRAM_CAPS.FAT);
-  if (itemHasSlot(item, 'VOL') && !itemHasSlot(item, 'PRO') && !itemHasSlot(item, 'ENG')) cap = Math.min(cap, GRAM_CAPS.VOL);
-  return roundGrams(Math.min(Math.max(grams, GRAM_ROUND_STEP), cap));
+  const group = itemGroup(item);
+  const cap = GROUP_CAPS[group] || GROUP_CAPS.default;
+  const min = group === 'condiment' ? GRAM_ROUND_STEP : GRAM_ROUND_STEP;
+  return roundGrams(Math.min(Math.max(grams, min), cap));
 }
 
-function pickPrimaryDriver(items, slot, macroKey) {
-  const pool = items.filter(it => itemHasSlot(it, slot) && !isCondimentItem(it));
-  if (!pool.length) return null;
-  return pool.sort((a, b) => (b.profile[macroKey] || 0) - (a.profile[macroKey] || 0))[0];
-}
-
-/** Balance grams toward macro + kcal targets (10g steps). */
+/**
+ * Balance grams toward P/C/F targets via kcal-weighted coordinate-descent least squares.
+ * Robust to coupled macros (e.g. nuts add both fat and protein) and converges to 10g steps.
+ * Backend owns the numbers; AI only picks products + rough grams.
+ */
 export function balanceItemsToMacroTargets(items, target, dessertNutrition = null) {
   if (!items.length || !target) return items;
 
@@ -174,61 +178,43 @@ export function balanceItemsToMacroTargets(items, target, dessertNutrition = nul
     grams: isCondimentItem(it) ? Math.min(it.grams, CONDIMENT_MAX_GRAMS) : roundGrams(it.grams),
   }));
 
+  // A single composite/ready meal has no separable drivers — scale by calories only.
   if (working.length === 1 && isReadyMealItem(working[0]) && targetKcal > 0) {
     return scaleItemsToTargetCalories(working, targetKcal + (dessertNutrition?.kcal || 0), dessertNutrition);
   }
 
-  const primaryPro = pickPrimaryDriver(working, 'PRO', 'p');
-  const primaryEng = pickPrimaryDriver(working, 'ENG', 'c');
-  const primaryFat = pickPrimaryDriver(working, 'FAT', 'f');
+  const variable = working.filter(it => !isCondimentItem(it));
+  const perGram = (it) => ({ p: it.profile.p / 100, c: it.profile.c / 100, f: it.profile.f / 100 });
 
-  for (const it of working) {
-    if (itemHasSlot(it, 'VOL') && !itemHasSlot(it, 'PRO') && !itemHasSlot(it, 'ENG')) {
-      it.grams = roundGrams(Math.max(it.grams, 80));
+  // Coordinate descent: for each item solve the 1-D weighted least-squares optimum
+  // holding the others fixed, then clamp+round. Repeat until stable.
+  for (let iter = 0; iter < 60; iter++) {
+    let maxChange = 0;
+    for (const it of variable) {
+      const v = perGram(it);
+      const denom = MACRO_WEIGHTS.p * v.p * v.p + MACRO_WEIGHTS.c * v.c * v.c + MACRO_WEIGHTS.f * v.f * v.f;
+      if (denom <= 0) continue;
+
+      let rp = targetP, rc = targetC, rf = targetF;
+      for (const other of working) {
+        if (other === it) continue;
+        rp -= (other.profile.p / 100) * other.grams;
+        rc -= (other.profile.c / 100) * other.grams;
+        rf -= (other.profile.f / 100) * other.grams;
+      }
+
+      const numer = MACRO_WEIGHTS.p * v.p * rp + MACRO_WEIGHTS.c * v.c * rc + MACRO_WEIGHTS.f * v.f * rf;
+      const optimal = clampItemGrams(it, numer / denom);
+      maxChange = Math.max(maxChange, Math.abs(optimal - it.grams));
+      it.grams = optimal;
     }
+    if (maxChange < GRAM_ROUND_STEP) break;
   }
 
-  for (let iter = 0; iter < 36; iter++) {
-    const totals = sumItemNutrition(working);
-    const dP = targetP - totals.p;
-    const dC = targetC - totals.c;
-    const dF = targetF - totals.f;
-    const dK = targetKcal - totals.kcal;
-
-    if (Math.abs(dP) <= MACRO_TOLERANCE_G && Math.abs(dC) <= MACRO_TOLERANCE_G
-      && Math.abs(dF) <= MACRO_TOLERANCE_G && Math.abs(dK) <= KCAL_TOLERANCE) {
-      break;
-    }
-
-    if (primaryPro && Math.abs(dP) > MACRO_TOLERANCE_G && primaryPro.profile.p > 0) {
-      const stepG = roundGrams((dP / primaryPro.profile.p) * 100);
-      const delta = Math.sign(dP) * Math.min(Math.max(stepG, GRAM_ROUND_STEP), 40);
-      primaryPro.grams = clampItemGrams(primaryPro, primaryPro.grams + delta);
-    }
-
-    if (primaryEng && Math.abs(dC) > MACRO_TOLERANCE_G && primaryEng.profile.c > 0) {
-      const stepG = roundGrams((dC / primaryEng.profile.c) * 100);
-      const delta = Math.sign(dC) * Math.min(Math.max(stepG, GRAM_ROUND_STEP), 50);
-      primaryEng.grams = clampItemGrams(primaryEng, primaryEng.grams + delta);
-    }
-
-    if (primaryFat && Math.abs(dF) > MACRO_TOLERANCE_G && primaryFat.profile.f > 0) {
-      const stepG = roundGrams((dF / primaryFat.profile.f) * 100);
-      const delta = Math.sign(dF) * Math.min(Math.max(stepG, GRAM_ROUND_STEP), 25);
-      primaryFat.grams = clampItemGrams(primaryFat, primaryFat.grams + delta);
-    }
-
-    if (iter > 8 && Math.abs(dK) > KCAL_TOLERANCE && targetKcal > 0) {
-      const cur = sumItemNutrition(working).kcal;
-      if (cur > 0) {
-        const factor = targetKcal / cur;
-        if (factor >= 0.75 && factor <= 1.25) {
-          for (const it of working) {
-            if (isCondimentItem(it)) continue;
-            it.grams = clampItemGrams(it, it.grams * factor);
-          }
-        }
-      }
+  // Realism floor: a pure vegetable side should be a visible portion.
+  for (const it of variable) {
+    if (itemHasSlot(it, 'VOL') && !itemHasSlot(it, 'PRO') && !itemHasSlot(it, 'ENG') && it.grams < 50) {
+      it.grams = 50;
     }
   }
 
