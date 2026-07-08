@@ -289,8 +289,10 @@ export function formatCatalogSectionForPrompt(candidatesBySlot, { minUniversalit
 /**
  * Flat, nutrition-attached candidate pool for the backend auto-repair engine
  * (food-nutrition.js repairItemsToTolerance) — distinct from the AI-facing prompt
- * candidates: excludes composite ready meals/condiments (poor "basis vectors" for
- * closing a macro gap) and isn't limited to a day range, just one meal's timing.
+ * candidates: excludes composite ready meals/condiments AND VOL-only vegetables (all
+ * poor "basis vectors" for closing a macro gap — a vegetable can only "close" a gap
+ * by ballooning to an absurd portion) and isn't limited to a day range, just one
+ * meal's timing.
  */
 export function getRepairCandidatesForMeal(mealType, dietaryModifier = 'Балансирано', blockedTerms = [], clinicalProtocolId = null) {
   const index = buildCatalogIndex();
@@ -299,6 +301,7 @@ export function getRepairCandidatesForMeal(mealType, dietaryModifier = 'Бала
 
   return index.all
     .filter(e => e.group !== 'condiment' && e.group !== 'ready_meal')
+    .filter(e => e.slots.some(s => s !== 'VOL'))
     .filter(e => e.timing.includes(timing))
     .filter(e => isDietCompatible(e, diet))
     .filter(e => !isBlockedByTerms(e, blockedTerms))

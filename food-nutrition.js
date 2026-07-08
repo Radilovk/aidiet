@@ -132,7 +132,8 @@ export function parseMealDescription(description) {
       const name = m[1].trim();
       const grams = Math.max(1, Math.round(parseFloat(String(m[2]).replace(',', '.'))));
       const { profile, key, unknown } = lookupFoodProfile(name);
-      items.push({ name, grams, key, profile, unknown: !!unknown });
+      // aiGrams preserves the AI's original portion as a realism anchor for the balancer.
+      items.push({ name, grams, aiGrams: grams, key, profile, unknown: !!unknown });
     }
   }
   return items;
@@ -224,7 +225,13 @@ export function balanceItemsToMacroTargets(items, target, dessertNutrition = nul
       }
 
       const numer = MACRO_WEIGHTS.p * v.p * rp + MACRO_WEIGHTS.c * v.c * rc + MACRO_WEIGHTS.f * v.f * rf;
-      const optimal = clampItemGrams(it, numer / denom);
+      let optimal = clampItemGrams(it, numer / denom);
+      // Pure vegetables are macro-sparse: left unbounded, the least-squares step uses
+      // them as "carb ballast" and balloons a 100g salad to 250g. Anchor VOL-only items
+      // to the AI's culinary judgement (±50% of its grams); macro-dense items do the work.
+      if (it.aiGrams > 0 && itemHasSlot(it, 'VOL') && !itemHasSlot(it, 'PRO') && !itemHasSlot(it, 'ENG') && !itemHasSlot(it, 'FAT')) {
+        optimal = clampItemGrams(it, Math.min(Math.max(optimal, it.aiGrams * 0.5), it.aiGrams * 1.5));
+      }
       maxChange = Math.max(maxChange, Math.abs(optimal - it.grams));
       it.grams = optimal;
     }
@@ -267,6 +274,27 @@ function mealWithinTolerance(totals, target, dessertNutrition) {
 
 const REPAIR_TRIAL_CANDIDATES = 12; // top-N universal candidates tried per repair round
 const REPAIR_MAX_ADDITIONS = 2;     // cap on new items the repair engine may add
+// An addition must either land the meal in tolerance or cut the weighted error by at
+// least this fraction — otherwise it's macro noise dressed up as food and is rejected.
+const REPAIR_MIN_ERROR_IMPROVEMENT = 0.4;
+// A repair-added product must end up as a culinarily sensible portion. Oils/nuts are
+// legitimate at 10g; anything else below ~40g (e.g. "Говеждо месо 20g" next to salmon)
+// is an absurd line on a plate, so the addition is rejected instead.
+const REPAIR_MIN_ADDED_GRAMS_FAT = GRAM_ROUND_STEP;
+const REPAIR_MIN_ADDED_GRAMS_DEFAULT = 40;
+
+function itemSlots(item) {
+  return getCatalogMeta(item.name).slots;
+}
+
+// Family identity for dedup: "Пилешки гърди" (genericOf pro_chicken) and "Пилешко
+// месо" (id pro_chicken) are the same food family — matching by nutritionKey alone
+// let the repair engine add a second chicken/fish line to a meal that already had one.
+function foodFamilyId(name) {
+  const { entry } = resolveCatalogEntry(name);
+  if (!entry) return normalizeFoodKey(name);
+  return entry.genericOf || entry.id;
+}
 
 /**
  * Matching-pursuit repair: when the AI's chosen products can't structurally reach a
@@ -277,6 +305,13 @@ const REPAIR_MAX_ADDITIONS = 2;     // cap on new items the repair engine may ad
  * error — trialled by literally re-running the existing coordinate-descent balancer
  * with it included — then keep it if it helps. Repeats up to REPAIR_MAX_ADDITIONS
  * times. Reuses balanceItemsToMacroTargets for every trial; no separate solver.
+ *
+ * Repair fills structural gaps ONLY: a candidate is eligible just when every slot it
+ * covers is missing from the meal (a carb source for a meal with none, a fat source
+ * for a fat-free meal). If a slot is already covered but its item is capped/deficient,
+ * that is the AI's product choice to fix via the validation-retry path — adding a
+ * parallel second source here is what produced absurd combos (chicken in porridge,
+ * beef next to salmon, lettuce in a fruit snack).
  */
 export function repairItemsToTolerance(items, target, dessertNutrition, candidatePool) {
   let current = items;
@@ -285,7 +320,8 @@ export function repairItemsToTolerance(items, target, dessertNutrition, candidat
     return { items: current, repaired: false, addedCount: 0 };
   }
 
-  const usedKeys = new Set(current.map(it => normalizeFoodKey(it.key || it.name)));
+  const usedFamilies = new Set(current.map(it => foodFamilyId(it.name)));
+  const coveredSlots = new Set(current.flatMap(itemSlots));
   const trialPool = (candidatePool || []).slice(0, REPAIR_TRIAL_CANDIDATES);
   const targetP = Number(target.protein) || 0;
   const targetC = Number(target.carbs) || 0;
@@ -295,40 +331,56 @@ export function repairItemsToTolerance(items, target, dessertNutrition, candidat
   // Phase 1 (forward matching pursuit): close under-shoots by bringing in a missing
   // macro driver — e.g. a protein-only breakfast gets a carb source added.
   for (let round = 0; round < REPAIR_MAX_ADDITIONS; round++) {
+    const baseError = weightedSquaredError(currentTotals, targetP, targetC, targetF);
     let best = null;
     let bestError = Infinity;
 
     for (const candidate of trialPool) {
-      const key = normalizeFoodKey(candidate.entry.nutritionKey);
-      if (usedKeys.has(key)) continue;
+      const family = candidate.entry.genericOf || candidate.entry.id;
+      if (usedFamilies.has(family)) continue;
+      const slots = candidate.entry.slots || [];
+      if (!slots.length || slots.some(s => coveredSlots.has(s))) continue;
 
       const trialItems = [...current, {
-        name: candidate.entry.name, grams: GRAM_ROUND_STEP, key,
+        name: candidate.entry.name, grams: GRAM_ROUND_STEP,
+        key: normalizeFoodKey(candidate.entry.nutritionKey),
         profile: candidate.profile, unknown: false,
       }];
       const balanced = balanceItemsToMacroTargets(trialItems, target, dessertNutrition);
+      const added = balanced.find(it => it.name === candidate.entry.name);
+      const minGrams = candidate.entry.group === 'fat'
+        ? REPAIR_MIN_ADDED_GRAMS_FAT
+        : REPAIR_MIN_ADDED_GRAMS_DEFAULT;
+      if (!added || added.grams < minGrams) continue;
+
       const totals = sumItemNutrition(balanced);
       const error = weightedSquaredError(totals, targetP, targetC, targetF);
       if (error < bestError) {
         bestError = error;
-        best = { key, balanced, totals };
+        best = { entry: candidate.entry, family, balanced, totals };
       }
     }
 
     if (!best) break;
+    const inTolerance = mealWithinTolerance(best.totals, target, dessertNutrition);
+    if (!inTolerance && bestError > baseError * (1 - REPAIR_MIN_ERROR_IMPROVEMENT)) break;
+
     current = best.balanced;
     currentTotals = best.totals;
-    usedKeys.add(best.key);
+    usedFamilies.add(best.family);
+    for (const s of best.entry.slots) coveredSlots.add(s);
     addedCount++;
 
-    if (mealWithinTolerance(currentTotals, target, dessertNutrition)) break;
+    if (inTolerance) break;
   }
 
   // Phase 2 (backward pruning): a common residual failure is overshoot — e.g. the AI
   // already included two fat sources (zehtin + nuts) so protein/carbs land fine but
   // fat/kcal run over. Try dropping each item in turn (AI-picked or repair-added) and
-  // re-balancing the rest; keep the drop only if it reduces the overall error. This is
-  // the natural complement to Phase 1 — same trial-and-measure approach, in reverse.
+  // re-balancing the rest; keep the drop only if it reduces the overall error. Only an
+  // item whose every slot stays covered by the remaining items may be dropped — pruning
+  // must remove a REDUNDANT source (the second fat), never the meal's only vegetable,
+  // only protein, or only carb.
   let trimmed = false;
   for (let round = 0; round < REPAIR_MAX_ADDITIONS && current.length > 1; round++) {
     if (mealWithinTolerance(currentTotals, target, dessertNutrition)) break;
@@ -340,6 +392,10 @@ export function repairItemsToTolerance(items, target, dessertNutrition, candidat
     for (let i = 0; i < current.length; i++) {
       const trialItems = current.filter((_, idx) => idx !== i);
       if (!trialItems.length) continue;
+      const mySlots = itemSlots(current[i]);
+      const remainingSlots = new Set(trialItems.flatMap(itemSlots));
+      if (mySlots.some(s => !remainingSlots.has(s))) continue;
+
       const balanced = balanceItemsToMacroTargets(trialItems, target, dessertNutrition);
       const totals = sumItemNutrition(balanced);
       const error = weightedSquaredError(totals, targetP, targetC, targetF);
@@ -460,7 +516,7 @@ export function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}
       );
       const repair = repairItemsToTolerance(items, target, dessertNutrition, pool);
       items = repair.items;
-      if (repair.repaired) meal._autoRepaired = repair.addedCount;
+      if (repair.repaired) meal._autoRepaired = repair.addedCount || 'pruned';
     }
   } else if (targetKcal > 0) {
     items = scaleItemsToTargetCalories(items, targetKcal, dessertNutrition);
