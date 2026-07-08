@@ -244,6 +244,10 @@ export const CLINICAL_PROTOCOL_EXCLUSIONS = {
       'тофу', 'темпе',
       // dairy-derived items catalogued under 'fat'/'protein', not 'dairy' — not covered by excludeGroups
       'масло', 'протеин суроватка',
+      // ready meals (group 'ready_meal', so excludeGroups misses them) containing
+      // dairy, grains, legumes or nightshades
+      'овесена каша', 'кисело мляко с овес', 'купа извара', 'купа скир',
+      'ориз с пиле', 'риба с картофи', 'сандвич пиле', 'яхния леща', 'боб яхния',
     ],
   },
 };

@@ -1,5 +1,16 @@
 /**
  * Food nutrition engine — parse meal descriptions, lookup per-100g values, calculate macros.
+ *
+ * Division of labor (deliberately simple):
+ *   - The AI composes each meal: products + grams. Culinary sense is its job.
+ *   - The backend owns the arithmetic: macros/kcal are always computed FROM the grams
+ *     via this database, then all grams are scaled by ONE shared factor to the meal's
+ *     calorie target (composition and ratios stay exactly as the AI wrote them).
+ *   - One bounded exception: protein drivers may be pre-adjusted ±20% toward the
+ *     protein target before scaling (protein is the macro clients actually track).
+ * There is NO per-item macro solver and NO product add/remove "repair" here — those
+ * produced distorted portions and absurd combinations; structural product problems
+ * are the AI-retry path's job, with precise validation errors.
  */
 
 import {
@@ -8,16 +19,16 @@ import {
   GENERIC_FOOD_PROFILE,
 } from './food-nutrition-data.js';
 import { normalizeFoodKey } from './food-utils.js';
-import { resolveCatalogEntry, getRepairCandidatesForMeal } from './food-catalog.js';
+import { resolveCatalogEntry } from './food-catalog.js';
 
 export { normalizeFoodKey } from './food-utils.js';
 
 export const GRAM_ROUND_STEP = 10;
 
-// Percentage-based validation tolerance (replaces old fixed ±50kcal/±4g):
-// calories are the easiest thing to get right (few products dominate kcal), macros
-// are inherently harder (depend on exact product mix) so they get more slack.
-// A small absolute floor keeps tiny targets from becoming impossibly strict.
+// Percentage-based validation tolerance: calories are the backend's own arithmetic
+// (scaling guarantees them except in pathological cases), macros follow the AI's
+// product mix so they get more slack. A small absolute floor keeps tiny targets
+// from becoming impossibly strict.
 export const CALORIE_TOLERANCE_PERCENT = 0.05;
 export const MACRO_TOLERANCE_PERCENT = 0.10;
 const MIN_CALORIE_TOLERANCE_KCAL = 25;
@@ -30,18 +41,8 @@ export function calorieTolerance(targetKcal) {
 export function macroTolerance(targetGrams) {
   return Math.max(MIN_MACRO_TOLERANCE_G, Math.round((Number(targetGrams) || 0) * MACRO_TOLERANCE_PERCENT));
 }
+
 const CONDIMENT_MAX_GRAMS = 15;
-// Realistic max grams per food group (prevents absurd portions, e.g. 130g nuts).
-// carb raised from 220→280g: 220 was a hard ceiling for legitimate high-calorie/
-// high-carb targets (bulking diets, athletes) — a single ~800kcal dinner needing
-// 75g+ carbs from one rice-type item alone could not reach target even with repair.
-const GROUP_CAPS = {
-  fat: 40, protein: 260, dairy: 400, legume: 260,
-  carb: 280, vegetable: 260, fruit: 260, ready_meal: 450,
-  condiment: CONDIMENT_MAX_GRAMS, default: 300,
-};
-// kcal-weighted so hitting P/C/F also lands calories (kcal = 4P + 4C + 9F).
-const MACRO_WEIGHTS = { p: 4, c: 4, f: 9 };
 
 const GRAM_LINE_RE = /^(.+?)\s+(\d+(?:[.,]\d+)?)\s*(g|г)\b(?:\s*[—\-]\s*(.+))?$/i;
 
@@ -132,8 +133,7 @@ export function parseMealDescription(description) {
       const name = m[1].trim();
       const grams = Math.max(1, Math.round(parseFloat(String(m[2]).replace(',', '.'))));
       const { profile, key, unknown } = lookupFoodProfile(name);
-      // aiGrams preserves the AI's original portion as a realism anchor for the balancer.
-      items.push({ name, grams, aiGrams: grams, key, profile, unknown: !!unknown });
+      items.push({ name, grams, key, profile, unknown: !!unknown });
     }
   }
   return items;
@@ -155,263 +155,8 @@ function isCondimentItem(item) {
   return getCatalogMeta(item.name).group === 'condiment';
 }
 
-function isReadyMealItem(item) {
-  return getCatalogMeta(item.name).group === 'ready_meal';
-}
-
-function itemHasSlot(item, slot) {
-  return getCatalogMeta(item.name).slots.includes(slot);
-}
-
-function itemGroup(item) {
-  return getCatalogMeta(item.name).group;
-}
-
-function clampItemGrams(item, grams) {
-  const group = itemGroup(item);
-  const cap = GROUP_CAPS[group] || GROUP_CAPS.default;
-  const min = group === 'condiment' ? GRAM_ROUND_STEP : GRAM_ROUND_STEP;
-  return roundGrams(Math.min(Math.max(grams, min), cap));
-}
-
-/**
- * Balance grams toward P/C/F targets via kcal-weighted coordinate-descent least squares.
- * Robust to coupled macros (e.g. nuts add both fat and protein) and converges to 10g steps.
- * Backend owns the numbers; AI only picks products + rough grams.
- */
-export function balanceItemsToMacroTargets(items, target, dessertNutrition = null) {
-  if (!items.length || !target) return items;
-
-  let targetP = Number(target.protein) || 0;
-  let targetC = Number(target.carbs) || 0;
-  let targetF = Number(target.fats) || 0;
-  let targetKcal = Number(target.calories) || 0;
-
-  if (dessertNutrition) {
-    targetP = Math.max(0, targetP - dessertNutrition.p);
-    targetC = Math.max(0, targetC - dessertNutrition.c);
-    targetF = Math.max(0, targetF - dessertNutrition.f);
-    targetKcal = Math.max(50, targetKcal - dessertNutrition.kcal);
-  }
-
-  const working = items.map(it => ({
-    ...it,
-    grams: isCondimentItem(it) ? Math.min(it.grams, CONDIMENT_MAX_GRAMS) : roundGrams(it.grams),
-  }));
-
-  // A single composite/ready meal has no separable drivers — scale by calories only.
-  if (working.length === 1 && isReadyMealItem(working[0]) && targetKcal > 0) {
-    return scaleItemsToTargetCalories(working, targetKcal + (dessertNutrition?.kcal || 0), dessertNutrition);
-  }
-
-  const variable = working.filter(it => !isCondimentItem(it));
-  const perGram = (it) => ({ p: it.profile.p / 100, c: it.profile.c / 100, f: it.profile.f / 100 });
-
-  // Coordinate descent: for each item solve the 1-D weighted least-squares optimum
-  // holding the others fixed, then clamp+round. Repeat until stable.
-  for (let iter = 0; iter < 60; iter++) {
-    let maxChange = 0;
-    for (const it of variable) {
-      const v = perGram(it);
-      const denom = MACRO_WEIGHTS.p * v.p * v.p + MACRO_WEIGHTS.c * v.c * v.c + MACRO_WEIGHTS.f * v.f * v.f;
-      if (denom <= 0) continue;
-
-      let rp = targetP, rc = targetC, rf = targetF;
-      for (const other of working) {
-        if (other === it) continue;
-        rp -= (other.profile.p / 100) * other.grams;
-        rc -= (other.profile.c / 100) * other.grams;
-        rf -= (other.profile.f / 100) * other.grams;
-      }
-
-      const numer = MACRO_WEIGHTS.p * v.p * rp + MACRO_WEIGHTS.c * v.c * rc + MACRO_WEIGHTS.f * v.f * rf;
-      let optimal = clampItemGrams(it, numer / denom);
-      // Pure vegetables are macro-sparse: left unbounded, the least-squares step uses
-      // them as "carb ballast" and balloons a 100g salad to 250g. Anchor VOL-only items
-      // to the AI's culinary judgement (±50% of its grams); macro-dense items do the work.
-      if (it.aiGrams > 0 && itemHasSlot(it, 'VOL') && !itemHasSlot(it, 'PRO') && !itemHasSlot(it, 'ENG') && !itemHasSlot(it, 'FAT')) {
-        optimal = clampItemGrams(it, Math.min(Math.max(optimal, it.aiGrams * 0.5), it.aiGrams * 1.5));
-      }
-      maxChange = Math.max(maxChange, Math.abs(optimal - it.grams));
-      it.grams = optimal;
-    }
-    if (maxChange < GRAM_ROUND_STEP) break;
-  }
-
-  // Realism floor: a pure vegetable side should be a visible portion.
-  for (const it of variable) {
-    if (itemHasSlot(it, 'VOL') && !itemHasSlot(it, 'PRO') && !itemHasSlot(it, 'ENG') && it.grams < 50) {
-      it.grams = 50;
-    }
-  }
-
-  return working;
-}
-
-function weightedSquaredError(totals, targetP, targetC, targetF) {
-  const dp = totals.p - targetP;
-  const dc = totals.c - targetC;
-  const df = totals.f - targetF;
-  return MACRO_WEIGHTS.p * dp * dp + MACRO_WEIGHTS.c * dc * dc + MACRO_WEIGHTS.f * df * df;
-}
-
-function mealWithinTolerance(totals, target, dessertNutrition) {
-  const p = totals.p + (dessertNutrition?.p || 0);
-  const c = totals.c + (dessertNutrition?.c || 0);
-  const f = totals.f + (dessertNutrition?.f || 0);
-  const kcal = Math.round(p * 4 + c * 4 + f * 9);
-  const targetP = Number(target.protein) || 0;
-  const targetC = Number(target.carbs) || 0;
-  const targetF = Number(target.fats) || 0;
-  const targetKcal = Number(target.calories) || 0;
-
-  if (targetKcal > 0 && Math.abs(kcal - targetKcal) > calorieTolerance(targetKcal)) return false;
-  if (targetP > 0 && Math.abs(p - targetP) > macroTolerance(targetP)) return false;
-  if (targetC > 0 && Math.abs(c - targetC) > macroTolerance(targetC)) return false;
-  if (targetF > 0 && Math.abs(f - targetF) > macroTolerance(targetF)) return false;
-  return true;
-}
-
-const REPAIR_TRIAL_CANDIDATES = 12; // top-N universal candidates tried per repair round
-const REPAIR_MAX_ADDITIONS = 2;     // cap on new items the repair engine may add
-// An addition must either land the meal in tolerance or cut the weighted error by at
-// least this fraction — otherwise it's macro noise dressed up as food and is rejected.
-const REPAIR_MIN_ERROR_IMPROVEMENT = 0.4;
-// A repair-added product must end up as a culinarily sensible portion. Oils/nuts are
-// legitimate at 10g; anything else below ~40g (e.g. "Говеждо месо 20g" next to salmon)
-// is an absurd line on a plate, so the addition is rejected instead.
-const REPAIR_MIN_ADDED_GRAMS_FAT = GRAM_ROUND_STEP;
-const REPAIR_MIN_ADDED_GRAMS_DEFAULT = 40;
-
-function itemSlots(item) {
-  return getCatalogMeta(item.name).slots;
-}
-
-// Family identity for dedup: "Пилешки гърди" (genericOf pro_chicken) and "Пилешко
-// месо" (id pro_chicken) are the same food family — matching by nutritionKey alone
-// let the repair engine add a second chicken/fish line to a meal that already had one.
-function foodFamilyId(name) {
-  const { entry } = resolveCatalogEntry(name);
-  if (!entry) return normalizeFoodKey(name);
-  return entry.genericOf || entry.id;
-}
-
-/**
- * Matching-pursuit repair: when the AI's chosen products can't structurally reach a
- * meal's macro target (e.g. a protein-only breakfast against a high-carb goal), no
- * amount of gram-adjustment on those items alone will close the gap. Instead of
- * failing validation and asking the AI to retry the whole day, greedily add the ONE
- * catalog item (from a diet/timing-filtered pool) that most reduces the remaining
- * error — trialled by literally re-running the existing coordinate-descent balancer
- * with it included — then keep it if it helps. Repeats up to REPAIR_MAX_ADDITIONS
- * times. Reuses balanceItemsToMacroTargets for every trial; no separate solver.
- *
- * Repair fills structural gaps ONLY: a candidate is eligible just when every slot it
- * covers is missing from the meal (a carb source for a meal with none, a fat source
- * for a fat-free meal). If a slot is already covered but its item is capped/deficient,
- * that is the AI's product choice to fix via the validation-retry path — adding a
- * parallel second source here is what produced absurd combos (chicken in porridge,
- * beef next to salmon, lettuce in a fruit snack).
- */
-export function repairItemsToTolerance(items, target, dessertNutrition, candidatePool) {
-  let current = items;
-  let currentTotals = sumItemNutrition(current);
-  if (mealWithinTolerance(currentTotals, target, dessertNutrition)) {
-    return { items: current, repaired: false, addedCount: 0 };
-  }
-
-  const usedFamilies = new Set(current.map(it => foodFamilyId(it.name)));
-  const coveredSlots = new Set(current.flatMap(itemSlots));
-  const trialPool = (candidatePool || []).slice(0, REPAIR_TRIAL_CANDIDATES);
-  const targetP = Number(target.protein) || 0;
-  const targetC = Number(target.carbs) || 0;
-  const targetF = Number(target.fats) || 0;
-  let addedCount = 0;
-
-  // Phase 1 (forward matching pursuit): close under-shoots by bringing in a missing
-  // macro driver — e.g. a protein-only breakfast gets a carb source added.
-  for (let round = 0; round < REPAIR_MAX_ADDITIONS; round++) {
-    const baseError = weightedSquaredError(currentTotals, targetP, targetC, targetF);
-    let best = null;
-    let bestError = Infinity;
-
-    for (const candidate of trialPool) {
-      const family = candidate.entry.genericOf || candidate.entry.id;
-      if (usedFamilies.has(family)) continue;
-      const slots = candidate.entry.slots || [];
-      if (!slots.length || slots.some(s => coveredSlots.has(s))) continue;
-
-      const trialItems = [...current, {
-        name: candidate.entry.name, grams: GRAM_ROUND_STEP,
-        key: normalizeFoodKey(candidate.entry.nutritionKey),
-        profile: candidate.profile, unknown: false,
-      }];
-      const balanced = balanceItemsToMacroTargets(trialItems, target, dessertNutrition);
-      const added = balanced.find(it => it.name === candidate.entry.name);
-      const minGrams = candidate.entry.group === 'fat'
-        ? REPAIR_MIN_ADDED_GRAMS_FAT
-        : REPAIR_MIN_ADDED_GRAMS_DEFAULT;
-      if (!added || added.grams < minGrams) continue;
-
-      const totals = sumItemNutrition(balanced);
-      const error = weightedSquaredError(totals, targetP, targetC, targetF);
-      if (error < bestError) {
-        bestError = error;
-        best = { entry: candidate.entry, family, balanced, totals };
-      }
-    }
-
-    if (!best) break;
-    const inTolerance = mealWithinTolerance(best.totals, target, dessertNutrition);
-    if (!inTolerance && bestError > baseError * (1 - REPAIR_MIN_ERROR_IMPROVEMENT)) break;
-
-    current = best.balanced;
-    currentTotals = best.totals;
-    usedFamilies.add(best.family);
-    for (const s of best.entry.slots) coveredSlots.add(s);
-    addedCount++;
-
-    if (inTolerance) break;
-  }
-
-  // Phase 2 (backward pruning): a common residual failure is overshoot — e.g. the AI
-  // already included two fat sources (zehtin + nuts) so protein/carbs land fine but
-  // fat/kcal run over. Try dropping each item in turn (AI-picked or repair-added) and
-  // re-balancing the rest; keep the drop only if it reduces the overall error. Only an
-  // item whose every slot stays covered by the remaining items may be dropped — pruning
-  // must remove a REDUNDANT source (the second fat), never the meal's only vegetable,
-  // only protein, or only carb.
-  let trimmed = false;
-  for (let round = 0; round < REPAIR_MAX_ADDITIONS && current.length > 1; round++) {
-    if (mealWithinTolerance(currentTotals, target, dessertNutrition)) break;
-    const baseError = weightedSquaredError(currentTotals, targetP, targetC, targetF);
-
-    let best = null;
-    let bestError = baseError;
-
-    for (let i = 0; i < current.length; i++) {
-      const trialItems = current.filter((_, idx) => idx !== i);
-      if (!trialItems.length) continue;
-      const mySlots = itemSlots(current[i]);
-      const remainingSlots = new Set(trialItems.flatMap(itemSlots));
-      if (mySlots.some(s => !remainingSlots.has(s))) continue;
-
-      const balanced = balanceItemsToMacroTargets(trialItems, target, dessertNutrition);
-      const totals = sumItemNutrition(balanced);
-      const error = weightedSquaredError(totals, targetP, targetC, targetF);
-      if (error < bestError) {
-        bestError = error;
-        best = { balanced, totals };
-      }
-    }
-
-    if (!best) break;
-    current = best.balanced;
-    currentTotals = best.totals;
-    trimmed = true;
-  }
-
-  return { items: current, repaired: addedCount > 0 || trimmed, addedCount };
+function capCondimentGrams(item, grams) {
+  return isCondimentItem(item) ? Math.min(grams, CONDIMENT_MAX_GRAMS) : grams;
 }
 
 export function nutritionFromGrams(profile, grams) {
@@ -451,7 +196,55 @@ export function macrosToNutritionProfile(macros) {
   return { p, c, f, kcal: Math.round(p * 4 + c * 4 + f * 9) };
 }
 
-/** Scale item grams so total kcal approaches target (preserves product ratios). */
+// The single bounded macro lever: protein drivers may move ±20% toward the protein
+// target before calorie scaling. One factor across all drivers, so a chicken+rice
+// dish stays the same dish with a slightly bigger/smaller chicken portion.
+export const PROTEIN_ADJUST_MAX_PERCENT = 0.2;
+
+function isProteinDriverItem(item) {
+  if (getCatalogMeta(item.name).slots.includes('PRO')) return true;
+  return (Number(item.profile?.p) || 0) >= 15; // fallback for non-catalog items
+}
+
+export function adjustProteinItemsTowardTarget(items, targetProtein) {
+  const goal = Number(targetProtein) || 0;
+  if (goal <= 0 || !items.length) return items;
+
+  const totals = sumItemNutrition(items);
+  const deficit = goal - totals.p;
+  if (Math.abs(deficit) <= macroTolerance(goal)) return items;
+
+  const driverProtein = items.reduce(
+    (sum, it) => sum + (isProteinDriverItem(it) && !isCondimentItem(it) ? (it.profile.p / 100) * it.grams : 0),
+    0
+  );
+  if (driverProtein <= 0) return items;
+
+  const factor = Math.min(
+    1 + PROTEIN_ADJUST_MAX_PERCENT,
+    Math.max(1 - PROTEIN_ADJUST_MAX_PERCENT, (driverProtein + deficit) / driverProtein)
+  );
+  return items.map(it =>
+    isProteinDriverItem(it) && !isCondimentItem(it)
+      ? { ...it, grams: roundGrams(it.grams * factor) }
+      : it
+  );
+}
+
+// Stability guards for calorie scaling: a wildly under/over-portioned AI pick gets
+// capped instead of blown up into an implausible plate (validation then reports the
+// residual gap and the AI retries); rounding nudges keep the composition recognizable.
+export const SCALE_FACTOR_MIN = 0.5;
+export const SCALE_FACTOR_MAX = 3;
+const RESIDUAL_STOP_KCAL = 20;
+const MAX_NUDGE_STEPS_PER_ITEM = 3;
+
+/**
+ * Scale item grams so total kcal approaches target with ONE shared factor —
+ * preserves the AI's product ratios. After 10g rounding, items are nudged one
+ * step at a time toward the goal (an oil line is ~88kcal per step, so plain
+ * rounding alone can leave a visible kcal gap).
+ */
 export function scaleItemsToTargetCalories(items, targetKcal, dessertNutrition = null) {
   if (!items.length || !targetKcal || targetKcal <= 0) return items;
 
@@ -462,11 +255,39 @@ export function scaleItemsToTargetCalories(items, targetKcal, dessertNutrition =
   }
   if (base.kcal <= 0) return items;
 
-  const factor = goal / base.kcal;
-  return items.map(item => ({
+  const factor = Math.min(SCALE_FACTOR_MAX, Math.max(SCALE_FACTOR_MIN, goal / base.kcal));
+  const scaled = items.map(item => ({
     ...item,
-    grams: roundGrams(item.grams * factor),
+    grams: capCondimentGrams(item, roundGrams(item.grams * factor)),
   }));
+
+  const nudges = new Map();
+  for (let guard = 0; guard < 12; guard++) {
+    const residual = goal - sumItemNutrition(scaled).kcal;
+    if (Math.abs(residual) <= RESIDUAL_STOP_KCAL) break;
+    const dir = Math.sign(residual);
+
+    let best = null;
+    let bestAbs = Math.abs(residual);
+    for (const item of scaled) {
+      const nextGrams = item.grams + GRAM_ROUND_STEP * dir;
+      if (nextGrams < GRAM_ROUND_STEP) continue;
+      if (isCondimentItem(item) && nextGrams > CONDIMENT_MAX_GRAMS) continue;
+      if ((nudges.get(item) || 0) >= MAX_NUDGE_STEPS_PER_ITEM) continue;
+      const stepKcal = ((Number(item.profile.kcal) || (item.profile.p * 4 + item.profile.c * 4 + item.profile.f * 9)) / 100) * GRAM_ROUND_STEP * dir;
+      const abs = Math.abs(residual - stepKcal);
+      if (abs < bestAbs) {
+        bestAbs = abs;
+        best = item;
+      }
+    }
+
+    if (!best) break;
+    best.grams += GRAM_ROUND_STEP * dir;
+    nudges.set(best, (nudges.get(best) || 0) + 1);
+  }
+
+  return scaled;
 }
 
 export function formatMealDescription(items) {
@@ -483,7 +304,7 @@ export function formatMealWeight(totalGrams, dessertWeightGrams = 0) {
  * Apply database nutrition to a single meal.
  * Sets description, weight, macros, calories from calculated values.
  */
-export function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}, repairContext = null) {
+export function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}) {
   if (!meal || meal.type === 'Свободно хранене' || meal.type === 'Напитка') {
     return { ok: true, unknowns: [] };
   }
@@ -495,7 +316,7 @@ export function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}
 
   items = items.map(item => {
     const { profile, key, unknown } = lookupFoodProfile(item.name, extraDb);
-    return { ...item, profile, key, unknown: !!unknown };
+    return { ...item, profile, key, unknown: !!unknown, grams: capCondimentGrams(item, item.grams) };
   });
 
   const dessertNutrition = (meal.dessert && typeof meal.dessert === 'object')
@@ -506,19 +327,12 @@ export function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}
     : 0;
 
   const targetKcal = Number(target?.calories) || Number(meal.calories) || 0;
-  const hasMacroTargets = target && (Number(target.protein) > 0 || Number(target.carbs) > 0 || Number(target.fats) > 0);
+  const proteinGoal = Math.max(0, (Number(target?.protein) || 0) - (dessertNutrition?.p || 0));
 
-  if (hasMacroTargets) {
-    items = balanceItemsToMacroTargets(items, target, dessertNutrition);
-    if (repairContext) {
-      const pool = getRepairCandidatesForMeal(
-        meal.type, repairContext.dietaryModifier, repairContext.blockedTerms, repairContext.clinicalProtocolId
-      );
-      const repair = repairItemsToTolerance(items, target, dessertNutrition, pool);
-      items = repair.items;
-      if (repair.repaired) meal._autoRepaired = repair.addedCount || 'pruned';
-    }
-  } else if (targetKcal > 0) {
+  if (proteinGoal > 0) {
+    items = adjustProteinItemsTowardTarget(items, proteinGoal);
+  }
+  if (targetKcal > 0) {
     items = scaleItemsToTargetCalories(items, targetKcal, dessertNutrition);
   }
 
@@ -542,7 +356,7 @@ export function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}
 }
 
 /** Sync nutrition for all meals in a weekPlan chunk. Returns unknown product names. */
-export function syncWeekPlanNutritionFromDatabase(weekPlan, strategy, startDay, endDay, extraDb = {}, repairContext = null) {
+export function syncWeekPlanNutritionFromDatabase(weekPlan, strategy, startDay, endDay, extraDb = {}) {
   const unknowns = [];
   if (!weekPlan || !strategy?.weeklyScheme) return unknowns;
 
@@ -554,7 +368,7 @@ export function syncWeekPlanNutritionFromDatabase(weekPlan, strategy, startDay, 
 
     for (const meal of day.meals) {
       const target = dayTarget?.mealBreakdown?.find(m => m.type === meal.type) || null;
-      const result = applyMealNutritionFromDatabase(meal, target, extraDb, repairContext);
+      const result = applyMealNutritionFromDatabase(meal, target, extraDb);
       if (result.unknowns?.length) unknowns.push(...result.unknowns);
     }
   }
