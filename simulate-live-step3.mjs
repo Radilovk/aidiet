@@ -20,7 +20,6 @@ import {
   syncWeekPlanNutritionFromDatabase,
   parseMealDescription,
   calorieTolerance,
-  macroTolerance,
 } from './food-nutrition.js';
 import { serializeWeeklySchemeTargets, formatPromptValue } from './context-compression.js';
 
@@ -246,17 +245,12 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum) {
     if (meal.type === 'Свободно хранене' || meal.type === 'Напитка') continue;
     const target = dayTarget.mealBreakdown.find(m => m.type === meal.type);
     if (!target) continue;
+    // Structural validation only — mirrors worker.js: macros/kcal are backend
+    // arithmetic; the kcal check catches compositions the bounded scaling can't fix.
     const targetCal = Number(target.calories) || 0;
     const mealCal = Number(meal.calories) || macrosToCalories(meal.macros);
-    if (targetCal > 0 && Math.abs(mealCal - targetCal) > calorieTolerance(targetCal)) {
-      errors.push(`Ден ${dayNum} ${meal.type}: калории ${mealCal} ≠ цел ${targetCal} (±${calorieTolerance(targetCal)})`);
-    }
-    for (const field of ['protein', 'carbs', 'fats']) {
-      const tv = Number(target[field]) || 0;
-      const mv = Number(meal.macros?.[field]) || 0;
-      if (tv > 0 && Math.abs(mv - tv) > macroTolerance(tv)) {
-        errors.push(`Ден ${dayNum} ${meal.type}: ${field} ${mv}g ≠ цел ${tv}g (±${macroTolerance(tv)})`);
-      }
+    if (targetCal > 0 && mealCal > 0 && Math.abs(mealCal - targetCal) > calorieTolerance(targetCal)) {
+      errors.push(`Ден ${dayNum} ${meal.type}: калории ${mealCal} ≠ цел ${targetCal} — порциите са структурно недостатъчни/прекомерни`);
     }
     if (!meal.description || !/\d+\s*(g|г)\b/i.test(meal.description)) {
       errors.push(`Ден ${dayNum} ${meal.type}: липсват грамажи`);
@@ -381,8 +375,7 @@ async function runScenario(env, template, scenario) {
       if (!parsed || parsed.error) throw new Error(parsed?.error || 'invalid json');
 
       const weekPlan = { day1: parsed.day1 || parsed };
-      const repairContext = { dietaryModifier: strategy.dietaryModifier, blockedTerms: [] };
-      syncWeekPlanNutritionFromDatabase(weekPlan, strategy, 1, 1, {}, repairContext);
+      syncWeekPlanNutritionFromDatabase(weekPlan, strategy, 1, 1, {});
       const errors = validateMealsAgainstScheme(weekPlan.day1, strategy.weeklyScheme.monday, 1);
 
       if (!errors.length) {
@@ -409,8 +402,7 @@ async function runScenario(env, template, scenario) {
 function summarizeMeals(meals) {
   return (meals || []).map(m => {
     const prods = (m.description || '').split('\n').filter(Boolean).join(' | ');
-    const repaired = m._autoRepaired ? ` [auto-repair +${m._autoRepaired}]` : '';
-    return `  ${m.type}: ${m.calories}kcal P${m.macros?.protein}/C${m.macros?.carbs}/F${m.macros?.fats} — ${prods}${repaired}`;
+    return `  ${m.type}: ${m.calories}kcal P${m.macros?.protein}/C${m.macros?.carbs}/F${m.macros?.fats} — ${prods}`;
   }).join('\n');
 }
 

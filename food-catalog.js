@@ -113,9 +113,13 @@ function isDietCompatible(entry, diet) {
     if (!fishKeys.has(entry.nutritionKey)) return false;
   }
   if (diet.glutenFree && GLUTEN_KEYS.has(entry.nutritionKey)) return false;
-  if (diet.keto && entry.group === 'carb' && entry.universality >= 4 && !['овесени ядки', 'овес'].includes(entry.nutritionKey)) {
-    const highCarb = ['ориз', 'ориз бял', 'ориз кафяв', 'хляб', 'паста', 'картофи', 'киноа', 'булгур'];
-    if (highCarb.includes(entry.nutritionKey)) return false;
+  // Keto: token match so composite ready meals (Ориз с пиле, Риба с картофи,
+  // Сандвич с пиле) are excluded along with the plain grain/starch items.
+  if (diet.keto && (entry.group === 'carb' || entry.group === 'ready_meal')) {
+    const highCarbTokens = ['ориз', 'хляб', 'паста', 'макарони', 'картофи', 'киноа',
+      'булгур', 'овес', 'каша', 'сандвич', 'тортила', 'просо', 'елда', 'царевица'];
+    const key = normalizeFoodKey(entry.nutritionKey);
+    if (highCarbTokens.some(t => key.includes(t))) return false;
   }
   return true;
 }
@@ -284,28 +288,6 @@ export function formatCatalogSectionForPrompt(candidatesBySlot, { minUniversalit
 
   lines.push(`НЕ използвай продукти извън каталога. Подправки — макс 10–15g, не като основен макроизточник.`);
   return lines.join('\n');
-}
-
-/**
- * Flat, nutrition-attached candidate pool for the backend auto-repair engine
- * (food-nutrition.js repairItemsToTolerance) — distinct from the AI-facing prompt
- * candidates: excludes composite ready meals/condiments (poor "basis vectors" for
- * closing a macro gap) and isn't limited to a day range, just one meal's timing.
- */
-export function getRepairCandidatesForMeal(mealType, dietaryModifier = 'Балансирано', blockedTerms = [], clinicalProtocolId = null) {
-  const index = buildCatalogIndex();
-  const diet = normalizeDietModifier(dietaryModifier);
-  const timing = mealTypeToTiming(mealType);
-
-  return index.all
-    .filter(e => e.group !== 'condiment' && e.group !== 'ready_meal')
-    .filter(e => e.timing.includes(timing))
-    .filter(e => isDietCompatible(e, diet))
-    .filter(e => !isBlockedByTerms(e, blockedTerms))
-    .filter(e => !isExcludedByProtocol(e, clinicalProtocolId))
-    .map(entry => ({ entry, profile: getCatalogEntryNutrition(entry) }))
-    .filter(c => c.profile)
-    .sort((a, b) => b.entry.universality - a.entry.universality || a.entry.name.localeCompare(b.entry.name, 'bg'));
 }
 
 export function buildCatalogPromptSection(options) {
