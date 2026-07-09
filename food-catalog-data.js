@@ -182,12 +182,15 @@ export const FOOD_CATALOG = [
 
   // ── CONDIMENTS (small portions, not macro drivers) ──
   item('cond_soy', 'Соев сос', 'соев сос', 'condiment', ['VOL'], ['main'], 4, { vegan: true, vegetarian: true }),
-  item('cond_hummus', 'Хумус', 'хумус', 'condiment', ['PRO', 'FAT'], ['snack', 'main'], 4, { vegan: true, vegetarian: true }),
+  // Хумус is a real snack food (морков+хумус), not a condiment — the 15g condiment
+  // cap made legitimate portions unreachable. Legume group: AIP exclusion still holds.
+  item('cond_hummus', 'Хумус', 'хумус', 'legume', ['PRO', 'FAT'], ['snack', 'main'], 4, { vegan: true, vegetarian: true }),
   item('cond_mustard', 'Горчица', 'горчица', 'condiment', ['VOL'], ['main'], 4, { vegan: true, vegetarian: true }),
   item('cond_lemon_juice', 'Лимонов сок', 'лимонов сок', 'condiment', ['VOL'], ['main'], 4, { vegan: true, vegetarian: true }),
   item('cond_vinegar', 'Оцет', 'оцет', 'condiment', ['VOL'], ['main'], 4, { vegan: true, vegetarian: true }),
   item('cond_tomato_paste', 'Доматено пюре', 'доматено пюре', 'condiment', ['VOL'], ['main'], 4, { vegan: true, vegetarian: true }),
-  item('cond_coconut_milk', 'Кокосово мляко', 'кокосово мляко', 'condiment', ['FAT'], ['main'], 3, { vegan: true, vegetarian: true }),
+  // Cooking ingredient (curry/soups use 50–100g), not a 15g condiment.
+  item('cond_coconut_milk', 'Кокосово мляко', 'кокосово мляко', 'fat', ['FAT'], ['main'], 3, { vegan: true, vegetarian: true }),
   item('cond_cinnamon', 'Канела', 'канела', 'condiment', ['VOL'], ['breakfast'], 3, { vegan: true, vegetarian: true }),
   item('cond_turmeric', 'Куркума', 'куркума', 'condiment', ['VOL'], ['main'], 3, { vegan: true, vegetarian: true }),
   item('cond_ginger', 'Джинджифил', 'джинджифил', 'condiment', ['VOL'], ['main'], 3, { vegan: true, vegetarian: true }),
