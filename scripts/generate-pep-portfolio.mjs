@@ -56,17 +56,17 @@ const loaderHtml = `<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="description" content="Премиум пептиден каталог — научно обосновани продукти за метаболизъм, антиейджинг, мускулен растеж и регенерация.">
+<meta name="description" content="Портфолио Пептиди — професионален каталог с научно обосновани пептидни терапии.">
 <meta name="color-scheme" content="light">
-<meta name="theme-color" content="#F0FDFA">
+<meta name="theme-color" content="#F7F9FC">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://biocode.website/pep-portfolio.html">
-<meta property="og:title" content="PEP Портфолио — Премиум Пептиди">
-<meta property="og:description" content="Научно обосновани пептиди за отслабване, антиейджинг, мускулен растеж и естетика.">
+<meta property="og:title" content="Портфолио Пептиди">
+<meta property="og:description" content="Професионален каталог на пептидни терапии с клинично обоснована информация.">
 <meta property="og:locale" content="bg_BG">
 <link rel="canonical" href="https://biocode.website/pep-portfolio.html">
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192x192.png">
-<title>PEP Портфолио — Премиум Пептиди</title>
+<title>Портфолио Пептиди</title>
 <style>
 #portfolio-loader {
     position: fixed; inset: 0; z-index: 9999;

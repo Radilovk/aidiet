@@ -951,7 +951,7 @@
 <div id="portfolioExportModal" class="modal" aria-hidden="true">
     <div class="modal-content" style="width:min(520px,100%);">
         <span class="close-portfolio-modal close-modal" aria-label="Затвори">&times;</span>
-        <div class="card-title">🧬 PEP Портфолио</div>
+        <div class="card-title">Портфолио Пептиди</div>
         <div class="edit-modal-grid">
             <div class="form-group full-width">
                 <label for="portfolioMultiplierSelect">Ценово ниво (само за теб)</label>
@@ -973,8 +973,8 @@
                 <div class="inline-note" style="margin-top:8px;">Клиентите виждат само крайните цени — без множител и вътрешна информация.</div>
             </div>
             <div class="form-group full-width" style="display:flex;gap:10px;flex-wrap:wrap;">
-                <button id="publishPortfolioBtn" style="flex:1;min-width:140px;background:linear-gradient(135deg,#0D9488,#0891B2);">🌐 Публикувай онлайн</button>
-                <button id="generatePortfolioBtn" class="btn-outline" style="flex:1;min-width:140px;">📥 Изтегли HTML</button>
+                <button id="publishPortfolioBtn" style="flex:1;min-width:140px;background:linear-gradient(135deg,#0B3D3A,#1565C0);">Публикувай онлайн</button>
+                <button id="generatePortfolioBtn" class="btn-outline" style="flex:1;min-width:140px;">Изтегли HTML</button>
             </div>
             <div class="form-group full-width">
                 <div class="inline-note" id="portfolioPublishNote">Онлайн адрес: <a href="https://biocode.website/pep-portfolio.html" target="_blank" rel="noopener">biocode.website/pep-portfolio.html</a></div>
@@ -1037,7 +1037,9 @@
         { baseName: 'LC120', dosage: 'комбо', purchasePrice: 7.50 },
         { baseName: 'Retatrutide', dosage: '5 mg', purchasePrice: 15.34 },
         { baseName: 'Retatrutide', dosage: '10 mg', purchasePrice: 25.56 },
+        { baseName: 'Retatrutide', dosage: '20 mg', purchasePrice: 45.00 },
         { baseName: 'Mots-C', dosage: '10 mg', purchasePrice: 12.78 },
+        { baseName: 'Mots-C', dosage: '40 mg', purchasePrice: 30.00 },
         { baseName: 'Ipamorelin + CJC', dosage: '5+5 mg', purchasePrice: 8.50 },
         { baseName: 'Тирзепатид', dosage: '5 mg', purchasePrice: 12.78 },
         { baseName: 'Тирзепатид', dosage: '10 mg', purchasePrice: 20.45 },
@@ -1082,39 +1084,51 @@
     const CATALOG_LIBRARY = [
         {
             title: 'Отслабване & Метаболизъм',
-            icon: '⚡',
-            description: 'Научно доказани агенти за контрол на теглото, метаболитна оптимизация и устойчива енергия.',
-            accent: '#0D9488',
+            code: 'MET',
+            description: 'Инкретинови агонисти, митохондриални модулиатори и липолитични комплекси за контрол на телесното тегло и метаболитна оптимизация.',
+            accent: '#0B3D3A',
             products: [
                 {
                     key: 'Тирзепатид',
                     name: 'Тирзепатид',
-                    badge: 'Златен стандарт',
-                    tagline: 'Двойно действие срещу глада и инсулиновата резистентност',
-                    marketing: 'Тирзепатидът е революционен пептид, който работи на два фронта едновременно — намалява апетита и подобрява начина, по който тялото обработва захарта. Клиентите усещат по-бързо насищане, по-малко тревожност от храна и по-лесно спазване на калориен дефицит без постоянна борба с глада.',
-                    science: 'Двойен GLP-1/GIP рецепторен агонист. Клинични изследвания (SURMOUNT) показват средна загуба на тегло до 22.5% при продължителна употреба. Забавя гастропразненето и подобрява инсулиновата чувствителност.',
-                    benefits: ['Драстично намаляване на апетита', 'Подобрена гликемична контрола', 'Устойчива загуба на мазнини', 'Веднъж седмично приложение'],
-                    protocol: 'Старт: 2.5 mg подкожно веднъж седмично. Титрация до 5–15 mg според толерантност и цел.'
+                    badge: 'Dual Agonist',
+                    tagline: 'Двойен GLP-1/GIP рецепторен агонист — златен стандарт в метаболитната терапия',
+                    marketing: 'Тирзепатидът (Mounjaro/Zepbound) е първият одобрен двоен инкретинов агонист, комбиниращ GLP-1 и GIP активност. Клинично доказано намалява телесното тегло, подобрява гликемичния контрол и оптимизира липидния профил. Подходящ за клиенти с наднормено тегло, затлъстяване или тип 2 диабет с нужда от значителна редукция на теглото.',
+                    mechanism: 'Агонист на GLP-1R и GIPR. GLP-1 намалява апетита чрез хипоталамус и забавя гастропразненето. GIP подобрява инсулиновата секреция и модулира мастния метаболизъм в адипоцитите.',
+                    science: 'SURMOUNT-1 (NEJM 2022): при 15 mg — средна загуба 20.9% телесно тегло за 72 седмици. SURMOUNT-3: до 26.6% с lifestyle intervention. FDA одобрен за затлъстяване и тип 2 диабет.',
+                    indication: 'Затлъстяване (BMI ≥30), наднормено тегло (BMI ≥27) с коморбидности, тип 2 диабет с наднормено тегло.',
+                    benefits: ['До 22.5% загуба на телесно тегло', 'Подобрен гликемичен контрол', 'Намаляване на апетита и калориен прием', 'Веднъж седмично приложение', 'Налични: 5 / 10 / 30 mg'],
+                    duration: 'Минимум 12–24 седмици за титрация и оценка. Дългосрочна поддръжаща терапия при необходимост.',
+                    cautions: 'ГИ ефекти при титрация. Противопоказан при MEN2, медуларен карцином, тежък гастропарез. Задължителна медицинска консултация.',
+                    protocol: 'Старт: 2.5 mg подкожно 1× седмично. Титрация с 2.5 mg на всеки 4 седмици до 5–15 mg. 30 mg флакон за поддръжка на висока доза.'
                 },
                 {
                     key: 'Retatrutide',
                     name: 'Retatrutide',
-                    badge: 'Топ избор',
-                    tagline: 'Тройна мощ — най-агресивният метаболитен ускорител',
-                    marketing: 'Retatrutide е следващото поколение в метаболитната терапия. За разлика от класическите GLP-1 агенти, той активира три хормонални пътя едновременно — не само намалява глада, но и директно ускорява изгарянето на мазнини и повишава енергийния разход дори в покой.',
-                    science: 'Тройна GLP-1/GIP/Glucagon рецепторна агонистична активност. Фаза II данни (Eli Lilly) демонстрират до 24% загуба на телесно тегло за 48 седмици — най-високият резултат сред всички тествани агенти.',
-                    benefits: ['Максимално изгаряне на мазнини', 'Повишен базов метаболизъм (BMR)', 'Синергия на три хормонални пътя', 'Налични дози: 5 / 10 / 20 mg'],
-                    protocol: 'Старт: 2 mg подкожно веднъж седмично. Постепенна титрация до 4–12 mg. Изберете дозировката според целта и опита.',
+                    badge: 'Triple Agonist',
+                    tagline: 'Тройна инкретинова агонистична терапия — GLP-1, GIP и Glucagon',
+                    marketing: 'Retatrutide (LY3437943) представлява най-новото поколение инкретинова терапия с едновременна активност върху три рецепторни пътя. За разлика от тирзепатид (GLP-1/GIP) или семаглутид (GLP-1), Retatrutide добавя глюкагонов компонент, който директно повишава енергийния разход и ускорява окислението на мастни киселини — дори в състояние на покой. Подходящ за клиенти със значителен излишък на тегло, метаболитен синдром или плато при монотерапия с GLP-1 агонисти.',
+                    mechanism: 'Селективен троен агонист на GLP-1R, GIPR и GCGR рецепторите. GLP-1 компонентът намалява апетита и забавя гастропразненето. GIP подобрява инсулиновата секреция и липидния метаболизъм. Glucagon компонентът повишава термогенезата и липолизата в черния дроб и мастната тъкан.',
+                    science: 'Фаза II клинични данни (Eli Lilly, NEJM 2023): при 12 mg доза — средна загуба на телесно тегло 24.2% за 48 седмици. Най-високият документиран резултат сред всички тествани анти-обезитетни агенти. Значимо подобрение на HbA1c, кръвно налягане и липиден профил.',
+                    indication: 'Наднормено тегло (BMI >27), затлъстяване (BMI >30), метаболитен синдром, инсулинорезистентност, резистентност към GLP-1 monotherapy.',
+                    benefits: ['До 24% загуба на телесно тегло в клинични изпитвания', 'Повишен базов метаболизъм чрез глюкагонов път', 'Синергично потискане на апетита', 'Подобрена гликемична и липидна регулация', 'Веднъж седмично подкожно приложение'],
+                    duration: '16–48 седмици с постепенна титрация. Поддръжаща фаза след постигане на целево тегло.',
+                    cautions: 'ГИ нежелани ефекти (гадене, повръщане) при титрация — обичайни и преходни. Противопоказан при MEN2, медуларен карцином на щитовидната жлеза, анамнеза за панкреатит. Задължителна консултация преди старт.',
+                    protocol: 'Стартова доза: 2 mg подкожно 1× седмично. Титрация: +2 mg на всеки 4 седмици до 4–12 mg според толерантност. Избор на флакон: 5 mg (старт/ниска доза), 10 mg (средна титрация), 20 mg (поддръжка/висока доза).',
                     link: { url: 'reta.html', label: 'Протокол за хранене при Retatrutide' }
                 },
                 {
                     key: 'Mots-C',
                     name: 'Mots-C',
-                    tagline: 'Митохондриален ускорител — енергия от мазнини',
-                    marketing: 'Mots-C е пептид, който „включва“ митохондриите — енергийните централи на клетките. Помага на тялото да гори мазнини вместо да ги складира, подобрява издръжливостта и дава устойчива енергия без кофеинови сривове.',
-                    science: 'Митохондриално-кодиран пептид, който активира AMPK пътя и подобрява метаболитната гъвкавост (metabolic flexibility). Повишава окислението на мастни киселини и глюкозна утилизация.',
-                    benefits: ['По-ефективно изгаряне на мазнини', 'Повишена физическа издръжливост', 'Метаболитна гъвкавост', 'Подкрепа при инсулинова резистентност'],
-                    protocol: '5–10 mg подкожно, 1–3 пъти седмично (оптимално преди тренировка).'
+                    tagline: 'Митохондриален пептид за метаболитна гъвкавост и издръжливост',
+                    marketing: 'Mots-C е ендогенен митохондриален пептид, който действа като метаболитен сигнал между митохондриите и ядрото. Подобрява способността на организма да превключва между използване на глюкоза и мастни киселини. Идеален като адювант при отслабване, инсулинорезистентност или за повишаване на физическата издръжливост.',
+                    mechanism: 'Активира AMPK и подобрява митохондриалната функция. Инхибира фолатния цикъл, което води до повишено окисление на мастни киселини и подобрена глюкозна утилизация.',
+                    science: 'Lee et al., Cell Metabolism 2015: предотвратява затлъстяване при високомазнина диета и подобрява глюкозния хомеостаз. При хора — повишава издръжливостта и метаболитната гъвкавост.',
+                    indication: 'Метаболитен синдром, инсулинорезистентност, плато при отслабване, ниска физическа издръжливост.',
+                    benefits: ['Подобрена метаболитна гъвкавост', 'Ускорено окисление на мастни киселини', 'Повишена физическа издръжливост', 'Налични: 10 mg и 40 mg'],
+                    duration: '8–12 седмици активна фаза.',
+                    cautions: 'Оптимален ефект при комбинация с физическа активност и контролиран хранителен режим.',
+                    protocol: '10 mg: 5–10 mg подкожно, 1–3× седмично. 40 mg: 2–4 дози седмично за по-висок общ седмичен прием.'
                 },
                 {
                     key: 'SLU-PP-322',
@@ -1147,9 +1161,9 @@
         },
         {
             title: 'Антиейджинг & Здраве',
-            icon: '🧬',
-            description: 'Клетъчно подмладяване, детоксикация и имунна оптимизация на молекулярно ниво.',
-            accent: '#6366F1',
+            code: 'AGE',
+            description: 'Клетъчна регенерация, антиоксидантна защита, NAD+ реплетиране и имунна модулация.',
+            accent: '#1E3A5F',
             products: [
                 {
                     key: 'Глутатион',
@@ -1184,9 +1198,9 @@
         },
         {
             title: 'Мускулен Растеж & Оформяне',
-            icon: '💪',
-            description: 'Пептиди за естествена секреция на растежен хормон, мускулна хиперплазия и дефиниция.',
-            accent: '#3B82F6',
+            code: 'MUS',
+            description: 'GH секретагоги, IGF-1 аналози и GHRH пептиди за мускулна хиперплазия и телесна композиция.',
+            accent: '#1565C0',
             products: [
                 {
                     key: 'CJC-1295 + Ipamorelin',
@@ -1229,9 +1243,9 @@
         },
         {
             title: 'Естетика & Регенерация',
-            icon: '✨',
-            description: 'Кожа, коса, стави и тъканна регенерация — отвътре навън.',
-            accent: '#EC4899',
+            code: 'REG',
+            description: 'Колагенова стимулация, тъканна регенерация, кожна и структурна оптимизация.',
+            accent: '#5B4B8A',
             products: [
                 {
                     key: 'GHK-Cu',
@@ -2282,246 +2296,315 @@
 
     function catalogFilename() {
         const today = new Date().toISOString().slice(0, 10);
-        return `pep-katalog-${today}.html`;
+        return `pep-portfolio-${today}.html`;
     }
 
     const CATALOG_EXPORT_STYLES = `
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-    --bio-primary: #0D9488;
-    --bio-primary-light: #CCFBF1;
-    --bio-primary-dark: #0F766E;
-    --bio-accent: #06B6D4;
-    --bio-surface: rgba(255,255,255,0.82);
-    --bio-text: #0F2F2E;
-    --bio-muted: #64748B;
-    --bio-border: rgba(13,148,136,0.12);
-    --bio-radius: 20px;
-    --bio-shadow: 0 8px 32px rgba(13,148,136,0.08);
+    --p-primary: #0B3D3A;
+    --p-primary-mid: #1565C0;
+    --p-bg: #F7F9FC;
+    --p-surface: #FFFFFF;
+    --p-text: #1A2332;
+    --p-muted: #5A6578;
+    --p-border: #DDE3ED;
+    --p-border-light: #EEF2F7;
+    --p-accent-bg: #EEF4FA;
+    --p-radius: 4px;
+    --p-font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 body {
-    font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
-    background: #F0FDFA;
-    color: var(--bio-text);
+    font-family: var(--p-font);
+    background: var(--p-bg);
+    color: var(--p-text);
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
+    font-size: 15px;
+    line-height: 1.6;
 }
-.bg-mesh {
+.bg-grid {
     position: fixed; inset: 0; z-index: 0; pointer-events: none;
-    background:
-        radial-gradient(ellipse 80% 60% at 10% 10%, rgba(13,148,136,0.09) 0%, transparent 55%),
-        radial-gradient(ellipse 60% 50% at 90% 80%, rgba(6,182,212,0.07) 0%, transparent 50%),
-        radial-gradient(ellipse 50% 40% at 50% 50%, rgba(99,102,241,0.04) 0%, transparent 60%);
+    background-image:
+        linear-gradient(var(--p-border-light) 1px, transparent 1px),
+        linear-gradient(90deg, var(--p-border-light) 1px, transparent 1px);
+    background-size: 48px 48px;
+    opacity: 0.45;
 }
 .page-wrap {
     position: relative; z-index: 1;
-    max-width: 720px; margin: 0 auto;
-    padding: 20px 16px 48px;
+    max-width: 1080px; margin: 0 auto;
+    padding: 32px 24px 64px;
 }
-.hero {
-    background: var(--bio-surface);
-    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--bio-border);
-    border-radius: 24px;
-    padding: 28px 24px;
-    margin-bottom: 20px;
-    box-shadow: var(--bio-shadow);
-    text-align: center;
+.site-header {
+    border-bottom: 2px solid var(--p-primary);
+    padding-bottom: 28px; margin-bottom: 28px;
 }
-.hero-badge {
-    display: inline-flex; align-items: center; gap: 6px;
-    background: var(--bio-primary-light);
-    color: var(--bio-primary-dark);
-    font-size: 0.72rem; font-weight: 700;
+.brand-line {
+    font-size: 0.68rem; font-weight: 700;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--p-primary-mid); margin-bottom: 10px;
+}
+.site-header h1 {
+    font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+    font-weight: 800; letter-spacing: -0.03em;
+    color: var(--p-primary); line-height: 1.1;
+    margin-bottom: 12px;
+}
+.header-lead {
+    font-size: 1rem; color: var(--p-muted);
+    max-width: 720px; line-height: 1.65; margin-bottom: 20px;
+}
+.header-meta {
+    display: flex; flex-wrap: wrap; gap: 24px;
+    padding-top: 16px; border-top: 1px solid var(--p-border);
+}
+.meta-item { min-width: 80px; }
+.meta-val {
+    font-size: 1.5rem; font-weight: 800;
+    color: var(--p-primary); letter-spacing: -0.02em;
+}
+.meta-label {
+    font-size: 0.68rem; font-weight: 600;
     text-transform: uppercase; letter-spacing: 0.08em;
-    padding: 5px 12px; border-radius: 999px;
-    margin-bottom: 14px;
+    color: var(--p-muted); margin-top: 2px;
 }
-.hero-badge::before { content: '🧬'; font-size: 0.85rem; }
-h1 {
-    font-size: clamp(1.5rem, 4vw, 2rem);
-    font-weight: 900; letter-spacing: -0.03em;
-    line-height: 1.15; margin-bottom: 8px;
-    background: linear-gradient(135deg, #0F766E 0%, #0891B2 100%);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    background-clip: text;
+.toolbar {
+    display: flex; flex-wrap: wrap; gap: 12px;
+    align-items: center; margin-bottom: 24px;
 }
-.hero-sub {
-    color: var(--bio-muted); font-size: 0.95rem;
-    line-height: 1.55; max-width: 480px; margin: 0 auto 16px;
+.search-input {
+    flex: 1; min-width: 220px;
+    padding: 11px 14px 11px 36px;
+    border: 1px solid var(--p-border);
+    border-radius: var(--p-radius);
+    font: inherit; color: var(--p-text);
+    background: var(--p-surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%235A6578' stroke-width='2'%3E%3Ccircle cx='7' cy='7' r='5'/%3E%3Cpath d='M11 11l3 3'/%3E%3C/svg%3E") 12px center no-repeat;
+    transition: border-color 0.15s;
 }
-.hero-stats {
-    display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;
+.search-input:focus { outline: none; border-color: var(--p-primary-mid); }
+.category-nav { display: flex; flex-wrap: wrap; gap: 6px; }
+.nav-pill {
+    display: inline-block; padding: 7px 12px;
+    font-size: 0.72rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--p-muted); text-decoration: none;
+    border: 1px solid var(--p-border);
+    border-radius: var(--p-radius);
+    background: var(--p-surface);
+    transition: all 0.15s;
 }
-.hero-stat { text-align: center; }
-.hero-stat-val {
-    font-size: 1.4rem; font-weight: 800;
-    color: var(--bio-primary); letter-spacing: -0.02em;
+.nav-pill:hover { border-color: var(--p-primary); color: var(--p-primary); }
+.catalog-head {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 12px; padding: 8px 20px;
+    font-size: 0.65rem; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--p-muted); font-weight: 700;
+    border-bottom: 1px solid var(--p-border);
+    margin-bottom: 8px;
 }
-.hero-stat-label {
-    font-size: 0.72rem; color: var(--bio-muted);
-    text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;
-}
+.catalog-head span:last-child, .catalog-price { text-align: right; }
 .category {
-    background: var(--bio-surface);
-    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-    border: 1px solid var(--bio-border);
-    border-radius: var(--bio-radius);
-    margin-bottom: 14px;
-    overflow: hidden;
-    box-shadow: var(--bio-shadow);
+    background: var(--p-surface);
+    border: 1px solid var(--p-border);
+    margin-bottom: 16px;
+    scroll-margin-top: 16px;
 }
 .category-title {
-    display: flex; align-items: center; gap: 10px;
-    padding: 16px 18px;
-    font-weight: 800; font-size: 1rem;
-    color: var(--bio-text);
+    display: flex; align-items: flex-start; gap: 14px;
+    padding: 18px 20px;
     cursor: pointer; list-style: none;
-    position: relative; user-select: none;
-    border-left: 4px solid var(--cat-accent, var(--bio-primary));
-}
-.category-icon { font-size: 1.2rem; flex-shrink: 0; }
-.category-text { flex: 1; min-width: 0; }
-.category-desc {
-    display: block; font-size: 0.78rem; font-weight: 400;
-    color: var(--bio-muted); margin-top: 2px; line-height: 1.4;
+    user-select: none; position: relative;
+    border-left: 3px solid var(--cat-accent, var(--p-primary));
 }
 .category-title::-webkit-details-marker { display: none; }
+.category-code {
+    flex-shrink: 0; width: 40px; height: 40px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.62rem; font-weight: 800;
+    letter-spacing: 0.04em;
+    color: var(--cat-accent, var(--p-primary));
+    background: var(--p-accent-bg);
+    border: 1px solid var(--p-border);
+}
+.category-text { flex: 1; min-width: 0; }
+.category-name {
+    display: block; font-weight: 700; font-size: 1rem;
+    color: var(--p-text); letter-spacing: -0.01em;
+}
+.category-desc {
+    display: block; font-size: 0.82rem; font-weight: 400;
+    color: var(--p-muted); margin-top: 4px; line-height: 1.5;
+}
 .category-title::after {
-    content: ''; flex-shrink: 0;
-    width: 28px; height: 28px;
-    background: var(--bio-primary-light);
-    border-radius: 50%;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%230D9488' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    content: ''; flex-shrink: 0; align-self: center;
+    width: 20px; height: 20px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235A6578' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
     background-repeat: no-repeat; background-position: center;
-    transition: transform 0.25s ease;
+    transition: transform 0.2s;
 }
 .category[open] > .category-title::after { transform: rotate(180deg); }
 .category-content {
-    padding: 0 10px 10px;
-    display: flex; flex-direction: column; gap: 8px;
+    padding: 0 16px 16px;
+    display: flex; flex-direction: column; gap: 1px;
+    background: var(--p-border-light);
 }
-.catalog-head {
-    display: grid;
-    grid-template-columns: minmax(0,1.5fr) minmax(0,0.7fr) minmax(0,0.8fr);
-    gap: 8px; padding: 0 14px 10px;
-    font-size: 0.68rem; text-transform: uppercase;
-    letter-spacing: 0.08em; color: var(--bio-muted); font-weight: 700;
-}
-.catalog-head span:last-child, .catalog-price { text-align: right; }
 .product {
-    background: #fff;
-    border: 1px solid var(--bio-border);
-    border-radius: 16px; overflow: hidden;
-    transition: box-shadow 0.2s ease;
+    background: var(--p-surface);
+    border: 1px solid var(--p-border);
+    transition: border-color 0.15s;
 }
-.product[open] { box-shadow: 0 4px 20px rgba(13,148,136,0.1); }
+.product.is-hidden { display: none; }
+.product[open] { border-color: var(--p-primary-mid); }
 .catalog-item-summary {
     display: grid;
-    grid-template-columns: minmax(0,1.5fr) minmax(0,0.7fr) minmax(0,0.8fr);
-    gap: 8px; align-items: center;
-    padding: 14px 16px;
-    font-size: 0.93rem; line-height: 1.35;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 12px; align-items: center;
+    padding: 16px 20px;
     cursor: pointer; list-style: none;
-    user-select: none; position: relative;
-    transition: background 0.2s ease;
+    user-select: none;
 }
 .catalog-item-summary::-webkit-details-marker { display: none; }
 .product[open] > .catalog-item-summary {
-    background: linear-gradient(135deg, #F0FDFA 0%, #fff 100%);
-    border-bottom: 1px solid var(--bio-border);
+    background: var(--p-accent-bg);
+    border-bottom: 1px solid var(--p-border);
 }
 .catalog-name-wrap { min-width: 0; }
-.catalog-name { font-weight: 700; word-break: break-word; display: block; }
+.catalog-name {
+    font-weight: 700; font-size: 0.95rem;
+    word-break: break-word; display: block;
+    letter-spacing: -0.01em;
+}
 .product-badge {
-    display: inline-block; margin-top: 3px;
-    font-size: 0.65rem; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.05em;
-    background: var(--bio-primary-light); color: var(--bio-primary-dark);
-    padding: 2px 7px; border-radius: 6px;
+    display: inline-block; margin-top: 4px;
+    font-size: 0.6rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--p-primary-mid);
+    border: 1px solid var(--p-border);
+    padding: 2px 6px;
 }
-.catalog-dose { color: var(--bio-muted); font-size: 0.85rem; }
+.catalog-dose { color: var(--p-muted); font-size: 0.84rem; }
 .catalog-price {
-    font-weight: 800; color: var(--bio-primary);
-    white-space: nowrap; font-size: 1rem;
+    font-weight: 700; color: var(--p-primary);
+    white-space: nowrap; font-size: 1.05rem;
+    font-variant-numeric: tabular-nums;
 }
-.catalog-price-from { font-size: 0.68rem; font-weight: 500; color: var(--bio-muted); display: block; }
-.product-details { padding: 16px; background: #fff; }
+.catalog-price-from {
+    font-size: 0.62rem; font-weight: 500;
+    color: var(--p-muted); display: block;
+    text-transform: uppercase; letter-spacing: 0.06em;
+}
+.product-details { padding: 24px 20px; }
 .product-tagline {
-    font-size: 0.88rem; font-weight: 600;
-    color: var(--bio-primary-dark); margin-bottom: 10px; line-height: 1.4;
+    font-size: 0.92rem; font-weight: 600;
+    color: var(--p-primary); margin-bottom: 16px;
+    line-height: 1.45; padding-bottom: 12px;
+    border-bottom: 1px solid var(--p-border-light);
 }
-.marketing-text {
-    font-size: 0.9rem; line-height: 1.6;
-    color: #334155; margin-bottom: 12px;
+.detail-grid {
+    display: grid; gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    margin-bottom: 20px;
 }
-.science-block {
-    background: linear-gradient(135deg, #F0FDFA 0%, #ECFEFF 100%);
-    border: 1px solid rgba(13,148,136,0.15);
-    border-radius: 12px; padding: 12px 14px;
-    margin-bottom: 12px;
+.detail-section {
+    border: 1px solid var(--p-border-light);
+    padding: 14px 16px;
+    background: #FAFBFD;
 }
-.science-label {
-    font-size: 0.68rem; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.07em;
-    color: var(--bio-primary); margin-bottom: 5px;
-    display: flex; align-items: center; gap: 5px;
+.detail-section h4 {
+    font-size: 0.65rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--p-primary-mid); margin-bottom: 8px;
 }
-.science-label::before { content: '🔬'; font-size: 0.8rem; }
-.science-text { font-size: 0.83rem; line-height: 1.55; color: #475569; }
-.benefits-list {
-    list-style: none; margin-bottom: 12px;
-    display: grid; gap: 5px;
+.detail-section p, .detail-section ul {
+    font-size: 0.86rem; line-height: 1.6; color: #3D4A5C;
 }
+.benefits-list { list-style: none; display: grid; gap: 4px; }
 .benefits-list li {
-    font-size: 0.85rem; color: #334155;
-    padding-left: 20px; position: relative; line-height: 1.45;
+    padding-left: 14px; position: relative;
 }
 .benefits-list li::before {
-    content: '✓'; position: absolute; left: 0;
-    color: var(--bio-primary); font-weight: 700; font-size: 0.8rem;
+    content: ''; position: absolute; left: 0; top: 0.55em;
+    width: 5px; height: 5px;
+    background: var(--p-primary-mid);
+    border-radius: 50%;
 }
-.protocol {
-    font-weight: 600; color: var(--bio-text);
-    background: #F8FAFC; border: 1px solid #E2E8F0;
-    padding: 10px 12px; border-radius: 10px;
-    font-size: 0.85rem; line-height: 1.5; margin-bottom: 12px;
+.info-row {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 12px; margin-bottom: 16px;
 }
-.protocol::before { content: '💉 '; }
+.info-box {
+    border-left: 2px solid var(--p-primary);
+    padding: 10px 14px; background: var(--p-accent-bg);
+    font-size: 0.84rem; line-height: 1.55;
+}
+.info-box strong {
+    display: block; font-size: 0.62rem;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--p-primary); margin-bottom: 4px;
+}
+.caution-box {
+    border-left: 2px solid #C62828;
+    padding: 10px 14px; background: #FEF5F5;
+    font-size: 0.82rem; line-height: 1.55; color: #5C3030;
+    margin-bottom: 16px;
+}
+.caution-box strong {
+    display: block; font-size: 0.62rem;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: #C62828; margin-bottom: 4px;
+}
 .product-link {
-    display: inline-flex; align-items: center; gap: 6px;
-    color: var(--bio-primary); font-weight: 600;
-    font-size: 0.85rem; text-decoration: none;
-    padding: 8px 14px; border-radius: 10px;
-    background: var(--bio-primary-light);
-    margin-bottom: 12px; transition: background 0.2s;
+    display: inline-block;
+    color: var(--p-primary-mid); font-weight: 600;
+    font-size: 0.84rem; text-decoration: none;
+    border-bottom: 1px solid var(--p-primary-mid);
+    margin-bottom: 16px;
 }
-.product-link:hover { background: #99F6E4; }
-.variants-title {
-    font-size: 0.72rem; font-weight: 700;
-    text-transform: uppercase; color: var(--bio-muted);
-    margin-bottom: 6px; letter-spacing: 0.06em;
+.product-link:hover { color: var(--p-primary); }
+.pricing-block { margin-top: 4px; }
+.pricing-block h4 {
+    font-size: 0.65rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--p-muted); margin-bottom: 8px;
 }
-.variant-row {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 8px 0; border-top: 1px dashed #E2E8F0;
+.variant-table {
+    width: 100%; border-collapse: collapse;
+    font-size: 0.88rem;
 }
-.variant-row:first-of-type { border-top: none; }
-.variant-dose { font-weight: 600; color: #475569; font-size: 0.9rem; }
-.variant-price { font-weight: 800; color: var(--bio-primary); font-size: 0.95rem; }
-footer {
-    margin-top: 24px; padding: 20px 8px;
-    text-align: center; color: #94A3B8; font-size: 0.78rem; line-height: 1.5;
+.variant-table th, .variant-table td {
+    padding: 10px 12px; text-align: left;
+    border-bottom: 1px solid var(--p-border-light);
 }
-footer strong { color: var(--bio-primary); }
-@media (max-width: 480px) {
+.variant-table th {
+    font-size: 0.62rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--p-muted); background: #FAFBFD;
+}
+.variant-table td:last-child, .variant-table th:last-child { text-align: right; }
+.variant-table tr:last-child td { border-bottom: none; }
+.variant-price { font-weight: 700; color: var(--p-primary); font-variant-numeric: tabular-nums; }
+.site-footer {
+    margin-top: 40px; padding-top: 24px;
+    border-top: 1px solid var(--p-border);
+    display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px;
+    font-size: 0.78rem; color: var(--p-muted);
+}
+.site-footer strong { color: var(--p-primary); font-weight: 700; }
+.no-results {
+    display: none; text-align: center; padding: 40px 20px;
+    color: var(--p-muted); font-size: 0.9rem;
+}
+.no-results.visible { display: block; }
+@media (max-width: 640px) {
+    .page-wrap { padding: 20px 14px 48px; }
     .catalog-head { display: none; }
-    .catalog-item-summary {
-        grid-template-columns: 1fr auto;
-        grid-template-rows: auto auto;
-    }
-    .catalog-dose { grid-column: 1; font-size: 0.8rem; }
+    .catalog-item-summary { grid-template-columns: 1fr auto; }
+    .catalog-dose { grid-column: 1; }
     .catalog-price { grid-column: 2; grid-row: 1 / 3; align-self: center; }
+    .detail-grid, .info-row { grid-template-columns: 1fr; }
+    .header-meta { gap: 16px; }
 }`;
 
     function getCatalogProductKey(baseName) {
@@ -2571,9 +2654,9 @@ footer strong { color: var(--bio-primary); }
         const usedKeys = new Set();
         const categories = CATALOG_LIBRARY.map((category, index) => ({
             title: category.title,
-            icon: category.icon || '',
+            code: category.code || '',
             description: category.description || '',
-            accent: category.accent || '#0D9488',
+            accent: category.accent || '#0B3D3A',
             open: index === 0,
             products: category.products
                 .map((profile) => {
@@ -2587,8 +2670,12 @@ footer strong { color: var(--bio-primary); }
                         badge: profile.badge || '',
                         tagline: profile.tagline || '',
                         marketing: profile.marketing,
+                        mechanism: profile.mechanism || '',
                         science: profile.science || '',
+                        indication: profile.indication || '',
                         benefits: profile.benefits || [],
+                        duration: profile.duration || '',
+                        cautions: profile.cautions || '',
                         protocol: profile.protocol,
                         link: profile.link || null,
                         summaryDose: getProductSummaryDose(group.variants),
@@ -2631,7 +2718,7 @@ footer strong { color: var(--bio-primary); }
             variantCount: model.variantCount,
             categories: model.categories.map((category) => ({
                 title: category.title,
-                icon: category.icon,
+                code: category.code,
                 description: category.description,
                 accent: category.accent,
                 open: category.open,
@@ -2645,8 +2732,12 @@ footer strong { color: var(--bio-primary); }
                         badge: product.badge,
                         tagline: product.tagline,
                         marketing: product.marketing,
+                        mechanism: product.mechanism,
                         science: product.science,
+                        indication: product.indication,
                         benefits: product.benefits,
+                        duration: product.duration,
+                        cautions: product.cautions,
                         protocol: product.protocol,
                         link: product.link,
                         summaryDose: product.summaryDose,
@@ -2664,25 +2755,64 @@ footer strong { color: var(--bio-primary); }
         const priceLabel = hasMultiple ? '<span class="catalog-price-from">от</span>' : '';
         const badgeHtml = product.badge ? `<span class="product-badge">${escapeHtml(product.badge)}</span>` : '';
         const taglineHtml = product.tagline ? `<p class="product-tagline">${escapeHtml(product.tagline)}</p>` : '';
+        const searchData = [product.name, product.tagline, product.marketing, product.mechanism, product.indication, product.science, ...(product.benefits || [])].filter(Boolean).join(' ');
+
+        const mechanismHtml = product.mechanism ? `
+            <div class="detail-section">
+                <h4>Механизъм на действие</h4>
+                <p>${escapeHtml(product.mechanism)}</p>
+            </div>` : '';
+        const overviewHtml = product.marketing ? `
+            <div class="detail-section">
+                <h4>Клиничен преглед</h4>
+                <p>${escapeHtml(product.marketing)}</p>
+            </div>` : '';
         const scienceHtml = product.science ? `
-            <div class="science-block">
-                <div class="science-label">Научна основа</div>
-                <p class="science-text">${escapeHtml(product.science)}</p>
+            <div class="detail-section">
+                <h4>Научна доказателствена база</h4>
+                <p>${escapeHtml(product.science)}</p>
+            </div>` : '';
+        const indicationHtml = product.indication ? `
+            <div class="detail-section">
+                <h4>Показания</h4>
+                <p>${escapeHtml(product.indication)}</p>
             </div>` : '';
         const benefitsHtml = product.benefits?.length ? `
-            <ul class="benefits-list">${product.benefits.map((b) => `<li>${escapeHtml(b)}</li>`).join('')}</ul>` : '';
+            <div class="detail-section">
+                <h4>Терапевтични ползи</h4>
+                <ul class="benefits-list">${product.benefits.map((b) => `<li>${escapeHtml(b)}</li>`).join('')}</ul>
+            </div>` : '';
+
+        const infoRowHtml = (product.protocol || product.duration) ? `
+            <div class="info-row">
+                ${product.protocol ? `<div class="info-box"><strong>Протокол на приложение</strong>${escapeHtml(product.protocol)}</div>` : ''}
+                ${product.duration ? `<div class="info-box"><strong>Продължителност на курса</strong>${escapeHtml(product.duration)}</div>` : ''}
+            </div>` : '';
+
+        const cautionHtml = product.cautions ? `
+            <div class="caution-box"><strong>Предпазни мерки</strong>${escapeHtml(product.cautions)}</div>` : '';
+
         const linkHtml = product.link ? `
-            <a class="product-link" href="${escapeHtml(product.link.url)}" target="_blank" rel="noopener">${escapeHtml(product.link.label)} →</a>` : '';
-        const variantsTitle = hasMultiple ? '<div class="variants-title">Налични дозировки & цени</div>' : '';
-        const variantsHtml = product.variants.map((variant) => `
-            <div class="variant-row">
-                <span class="variant-dose">${escapeHtml(variant.dosage)}</span>
-                <span class="variant-price">${formatMoney(variant.price)}</span>
-            </div>
+            <a class="product-link" href="${escapeHtml(product.link.url)}">${escapeHtml(product.link.label)}</a>` : '';
+
+        const variantRows = product.variants.map((variant) => `
+            <tr>
+                <td>${escapeHtml(variant.dosage)}</td>
+                <td class="variant-price">${formatMoney(variant.price)}</td>
+            </tr>
         `).join('');
 
+        const pricingHtml = `
+            <div class="pricing-block">
+                <h4>${hasMultiple ? 'Налични дозировки и цени' : 'Цена'}</h4>
+                <table class="variant-table">
+                    <thead><tr><th>Дозировка</th><th>Цена</th></tr></thead>
+                    <tbody>${variantRows}</tbody>
+                </table>
+            </div>`;
+
         return `
-            <details class="product">
+            <details class="product" data-search="${escapeHtml(searchData)}">
                 <summary class="catalog-item-summary">
                     <span class="catalog-name-wrap">
                         <span class="catalog-name">${escapeHtml(product.name)}</span>
@@ -2693,16 +2823,26 @@ footer strong { color: var(--bio-primary); }
                 </summary>
                 <div class="product-details">
                     ${taglineHtml}
-                    <p class="marketing-text">${escapeHtml(product.marketing)}</p>
-                    ${scienceHtml}
-                    ${benefitsHtml}
-                    <div class="protocol">${escapeHtml(product.protocol)}</div>
+                    <div class="detail-grid">
+                        ${overviewHtml}
+                        ${mechanismHtml}
+                        ${scienceHtml}
+                        ${indicationHtml}
+                        ${benefitsHtml}
+                    </div>
+                    ${infoRowHtml}
+                    ${cautionHtml}
                     ${linkHtml}
-                    ${variantsTitle}
-                    ${variantsHtml}
+                    ${pricingHtml}
                 </div>
             </details>
         `;
+    }
+
+    function renderCatalogNavHtml(categories) {
+        return categories.map((category, index) => `
+            <a class="nav-pill" href="#cat-${index}">${escapeHtml(category.code || category.title)}</a>
+        `).join('');
     }
 
     function renderCatalogBodyHtml(model, options = {}) {
@@ -2718,10 +2858,13 @@ footer strong { color: var(--bio-primary); }
                 ? `<span class="category-desc">${escapeHtml(category.description)}</span>`
                 : '';
             return `
-                <details class="category"${openAttr} style="--cat-accent:${escapeHtml(category.accent || '#0D9488')}">
+                <details class="category" id="cat-${index}"${openAttr} style="--cat-accent:${escapeHtml(category.accent || '#0B3D3A')}">
                     <summary class="category-title">
-                        <span class="category-icon">${escapeHtml(category.icon || '')}</span>
-                        <span class="category-text">${escapeHtml(category.title)}${descHtml}</span>
+                        <span class="category-code">${escapeHtml(category.code || String(index + 1).padStart(2, '0'))}</span>
+                        <span class="category-text">
+                            <span class="category-name">${escapeHtml(category.title)}</span>
+                            ${descHtml}
+                        </span>
                     </summary>
                     <div class="category-content">
                         ${products.map((product) => renderCatalogProductHtml(product)).join('')}
@@ -2735,12 +2878,17 @@ footer strong { color: var(--bio-primary); }
         }
 
         return `
+            <div class="toolbar">
+                <input type="search" class="search-input" id="portfolioSearch" placeholder="Търсене по продукт, механизъм, показание..." autocomplete="off">
+                <nav class="category-nav">${renderCatalogNavHtml(categories)}</nav>
+            </div>
             <div class="catalog-head">
                 <span>Продукт</span>
-                <span>Доза</span>
+                <span>Дозировка</span>
                 <span>Цена</span>
             </div>
-            ${categoryHtml}
+            <div id="catalogBody">${categoryHtml}</div>
+            <div class="no-results" id="noResults">Няма намерени продукти по зададените критерии.</div>
         `;
     }
 
@@ -2770,6 +2918,30 @@ footer strong { color: var(--bio-primary); }
     }
 
     const PORTFOLIO_PUBLIC_URL = 'https://biocode.website/pep-portfolio.html';
+    const PORTFOLIO_BRAND = 'Портфолио Пептиди';
+
+    const CATALOG_PORTFOLIO_SCRIPT = `
+(function(){
+    var input = document.getElementById('portfolioSearch');
+    if (!input) return;
+    input.addEventListener('input', function() {
+        var q = input.value.trim().toLowerCase();
+        var products = document.querySelectorAll('.product');
+        var visible = 0;
+        products.forEach(function(el) {
+            var match = !q || (el.getAttribute('data-search') || '').toLowerCase().indexOf(q) !== -1;
+            el.classList.toggle('is-hidden', !match);
+            if (match) visible++;
+        });
+        document.querySelectorAll('.category').forEach(function(cat) {
+            var hasVisible = cat.querySelector('.product:not(.is-hidden)');
+            cat.style.display = hasVisible || !q ? '' : 'none';
+            if (q && hasVisible) cat.open = true;
+        });
+        var noRes = document.getElementById('noResults');
+        if (noRes) noRes.classList.toggle('visible', q.length > 0 && visible === 0);
+    });
+})();`;
 
     function buildCatalogDocument(multiplier) {
         const today = new Date().toLocaleDateString('bg-BG');
@@ -2780,36 +2952,41 @@ footer strong { color: var(--bio-primary); }
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="description" content="Премиум пептиден каталог — научно обосновани продукти за метаболизъм, антиейджинг, мускулен растеж и регенерация.">
+<meta name="description" content="Портфолио Пептиди — професионален каталог с научно обосновани пептидни терапии за метаболизъм, антиейджинг, мускулна оптимизация и регенерация.">
 <meta name="color-scheme" content="light">
-<meta name="theme-color" content="#F0FDFA">
+<meta name="theme-color" content="#F7F9FC">
 <meta property="og:type" content="website">
 <meta property="og:url" content="${PORTFOLIO_PUBLIC_URL}">
-<meta property="og:title" content="PEP Портфолио — Премиум Пептиди">
-<meta property="og:description" content="Научно обосновани пептиди за отслабване, антиейджинг, мускулен растеж и естетика.">
+<meta property="og:title" content="${PORTFOLIO_BRAND}">
+<meta property="og:description" content="Научно обосновани пептидни терапии — метаболизъм, антиейджинг, мускули, регенерация.">
 <meta property="og:locale" content="bg_BG">
 <link rel="canonical" href="${PORTFOLIO_PUBLIC_URL}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<title>PEP Портфолио — Премиум Пептиди</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<title>${PORTFOLIO_BRAND}</title>
 <style>${CATALOG_EXPORT_STYLES}</style>
 </head>
 <body>
-<div class="bg-mesh"></div>
+<div class="bg-grid"></div>
 <div class="page-wrap">
-<header class="hero">
-    <div class="hero-badge">Biotechnology 2026</div>
-    <h1>PEP Портфолио</h1>
-    <p class="hero-sub">Премиум пептиди с научна основа — за метаболизъм, младост, мускули и регенерация. Разбираеми за всеки, подкрепени от клинични изследвания.</p>
-    <div class="hero-stats">
-        <div class="hero-stat"><div class="hero-stat-val">${model.uniqueCount}</div><div class="hero-stat-label">Продукта</div></div>
-        <div class="hero-stat"><div class="hero-stat-val">${model.variantCount}</div><div class="hero-stat-label">Дозировки</div></div>
-        <div class="hero-stat"><div class="hero-stat-val">4</div><div class="hero-stat-label">Категории</div></div>
+<header class="site-header">
+    <div class="brand-line">Biotechnology Portfolio</div>
+    <h1>${PORTFOLIO_BRAND}</h1>
+    <p class="header-lead">Професионален каталог на пептидни терапии с клинично обоснована информация. Всеки продукт е систематизиран по терапевтична категория, механизъм на действие, показания, протокол и налични дозировки.</p>
+    <div class="header-meta">
+        <div class="meta-item"><div class="meta-val">${model.uniqueCount}</div><div class="meta-label">Продукта</div></div>
+        <div class="meta-item"><div class="meta-val">${model.variantCount}</div><div class="meta-label">Дозировки</div></div>
+        <div class="meta-item"><div class="meta-val">4</div><div class="meta-label">Категории</div></div>
+        <div class="meta-item"><div class="meta-val">${escapeHtml(today)}</div><div class="meta-label">Актуализация</div></div>
     </div>
 </header>
 ${renderCatalogBodyHtml(model)}
-<footer><strong>PEP Портфолио</strong> · Актуален към ${escapeHtml(today)}<br>Научно обосновани пептиди · Консултация при поръчка</footer>
+<footer class="site-footer">
+    <div><strong>${PORTFOLIO_BRAND}</strong> — Научно обосновани пептидни терапии</div>
+    <div>Консултация и индивидуален протокол при поръчка</div>
+</footer>
 </div>
+<script>${CATALOG_PORTFOLIO_SCRIPT}</script>
 </body>
 </html>`;
     }
