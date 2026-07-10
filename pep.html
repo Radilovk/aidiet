@@ -970,14 +970,14 @@
                 <div id="portfolioPreview">
                     <div class="empty-state">Зареждане…</div>
                 </div>
-                <div class="inline-note" style="margin-top:8px;">Клиентите виждат само крайните цени — без множител и вътрешна информация. Промени множителя и натисни „Публикувай онлайн", за да обновиш публичните цени.</div>
+                <div class="inline-note" style="margin-top:8px;">Клиентите виждат само крайните цени. Смени множителя, провери прегледа и натисни „Публикувай онлайн".</div>
             </div>
             <div class="form-group full-width" style="display:flex;gap:10px;flex-wrap:wrap;">
                 <button id="publishPortfolioBtn" style="flex:1;min-width:140px;background:linear-gradient(135deg,#0B3D3A,#1565C0);">Публикувай онлайн</button>
                 <button id="generatePortfolioBtn" class="btn-outline" style="flex:1;min-width:140px;">Изтегли HTML</button>
             </div>
             <div class="form-group full-width">
-                <div class="inline-note" id="portfolioPublishNote">Онлайн адрес: <a href="https://biocode.website/pep-portfolio.html" target="_blank" rel="noopener">biocode.website/pep-portfolio.html</a><br>Страницата зарежда последната публикувана версия от API. „Публикувай онлайн" записва актуални цени според избрания множител.</div>
+                <div class="inline-note" id="portfolioPublishNote">Онлайн: <a href="https://biocode.website/pep-portfolio.html" target="_blank" rel="noopener">biocode.website/pep-portfolio.html</a></div>
             </div>
         </div>
     </div>
@@ -3417,7 +3417,6 @@ body {
 
     const PORTFOLIO_PUBLIC_URL = 'https://biocode.website/pep-portfolio.html';
     const PORTFOLIO_BRAND = 'Портфолио Пептиди';
-    const PORTFOLIO_TEMPLATE_VERSION = 2;
 
     const CATALOG_PORTFOLIO_SCRIPT = `
 (function(){
@@ -3447,7 +3446,6 @@ body {
         const model = buildClientCatalogModel(multiplier);
 
         return `<!DOCTYPE html>
-<!-- portfolio-template:${PORTFOLIO_TEMPLATE_VERSION} -->
 <html lang="bg">
 <head>
 <meta charset="UTF-8">
