@@ -1818,11 +1818,57 @@ function formatPepProductName(baseName, dosage) {
   return `${String(baseName || '').trim()} ${String(dosage || '').trim()}`.trim();
 }
 
+const PEP_PRODUCT_NAME_ALIASES = {
+  'CJC-1295 + IPA': 'CJC-1295 + Ipamorelin',
+  'Ipamorelin + CJC': 'CJC-1295 + Ipamorelin',
+  'Tirzepatide': 'Тирзепатид',
+  'Tirzepatid': 'Тирзепатид',
+  'Ретатрутид': 'Retatrutide',
+  'Retatrutid': 'Retatrutide',
+  'Retatrutude': 'Retatrutide',
+  'MOTS-C': 'Mots-C',
+  'Mot-C': 'Mots-C',
+  'GHK Cu': 'GHK-Cu',
+  'GHK-CU': 'GHK-Cu',
+  'Melanotan 2': 'Меланотан 2',
+  'Melanotan II': 'Меланотан 2',
+  'Glutathione': 'Глутатион',
+  'Thymosin Alpha': 'Тимозин Алфа',
+  'Thymosin Alfa': 'Тимозин Алфа',
+  'NAD': 'NAD+'
+};
+
+function normalizePepProductBaseName(baseName) {
+  const trimmed = String(baseName || '').trim();
+  if (PEP_PRODUCT_NAME_ALIASES[trimmed]) {
+    return PEP_PRODUCT_NAME_ALIASES[trimmed];
+  }
+  const lower = trimmed.toLowerCase();
+  if (/retatrut/i.test(lower)) return 'Retatrutide';
+  if (/^mots-?c$/i.test(lower) || lower === 'mot-c') return 'Mots-C';
+  if (/tirzepatid|тирзепатид/i.test(lower)) return 'Тирзепатид';
+  if (/melanotan/i.test(lower)) return 'Меланотан 2';
+  if (/glutathione|глутатион/i.test(lower)) return 'Глутатион';
+  return trimmed;
+}
+
+function normalizePepProductDosage(dosage) {
+  const raw = String(dosage || '').trim();
+  if (!raw) return raw;
+  if (/^комбо$/i.test(raw)) return 'комбо';
+  if (/^(\d+(?:\.\d+)?)$/.test(raw)) return `${raw} mg`;
+  const compact = raw.match(/^(\d+(?:\.\d+)?)\s*(mg|mcg|g|ml)$/i);
+  if (compact) return `${compact[1]} ${compact[2].toLowerCase()}`;
+  const glued = raw.match(/^(\d+(?:\.\d+)?)(mg|mcg|g|ml)$/i);
+  if (glued) return `${glued[1]} ${glued[2].toLowerCase()}`;
+  return raw;
+}
+
 function normalizePepProductRow(row) {
   return {
     id: Number(row.id),
-    baseName: String(row.baseName ?? row.base_name ?? '').trim(),
-    dosage: String(row.dosage ?? '').trim(),
+    baseName: normalizePepProductBaseName(row.baseName ?? row.base_name ?? ''),
+    dosage: normalizePepProductDosage(row.dosage ?? ''),
     purchasePrice: Number(row.purchasePrice ?? row.purchase_price ?? 0)
   };
 }

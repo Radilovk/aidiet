@@ -301,6 +301,89 @@ body {
 .variant-table td:last-child, .variant-table th:last-child { text-align: right; }
 .variant-table tr:last-child td { border-bottom: none; }
 .variant-price { font-weight: 700; color: var(--p-primary); font-variant-numeric: tabular-nums; }
+.efficacy-pill {
+    display: inline-flex; flex-direction: column; align-items: flex-end;
+    margin-left: 8px; padding: 4px 8px;
+    background: linear-gradient(135deg, #E8F4F3 0%, #EEF4FA 100%);
+    border: 1px solid var(--p-border); border-radius: var(--p-radius);
+    line-height: 1.1; min-width: 52px;
+}
+.efficacy-pill-value {
+    font-size: 0.82rem; font-weight: 800; color: var(--p-primary);
+    font-variant-numeric: tabular-nums;
+}
+.efficacy-pill-label {
+    font-size: 0.58rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.04em; color: var(--p-muted); margin-top: 2px;
+}
+.highlights-row {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+    margin-bottom: 20px;
+}
+.highlight-chip {
+    background: var(--p-surface); border: 1px solid var(--p-border);
+    border-radius: var(--p-radius); padding: 12px 14px;
+    border-top: 2px solid var(--p-primary-mid);
+}
+.highlight-value {
+    display: block; font-size: 1.1rem; font-weight: 800;
+    color: var(--p-primary); letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+}
+.highlight-label {
+    display: block; font-size: 0.62rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--p-muted); margin-top: 4px;
+}
+.highlight-note {
+    display: block; font-size: 0.72rem; color: var(--p-muted); margin-top: 2px;
+}
+.efficacy-block {
+    background: var(--p-surface); border: 1px solid var(--p-border);
+    border-radius: var(--p-radius); padding: 18px 20px;
+    margin-bottom: 20px;
+}
+.efficacy-block-header { margin-bottom: 14px; }
+.efficacy-block-title {
+    font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--p-muted); margin-bottom: 6px;
+}
+.efficacy-headline-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.efficacy-headline {
+    font-size: 1.75rem; font-weight: 800; color: var(--p-primary);
+    letter-spacing: -0.03em; font-variant-numeric: tabular-nums;
+}
+.efficacy-headline-label { font-size: 0.88rem; color: var(--p-muted); font-weight: 500; }
+.efficacy-chart { display: flex; flex-direction: column; gap: 10px; }
+.efficacy-bar-row {
+    display: grid; grid-template-columns: 108px 1fr 52px;
+    gap: 10px; align-items: center;
+}
+.efficacy-bar-label {
+    font-size: 0.78rem; font-weight: 500; color: var(--p-text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.efficacy-bar-track {
+    height: 8px; background: var(--p-border-light);
+    border-radius: 4px; overflow: hidden;
+}
+.efficacy-bar-fill {
+    height: 100%; border-radius: 4px;
+    background: linear-gradient(90deg, #90A4AE, #B0BEC5);
+    transition: width 0.4s ease;
+}
+.efficacy-bar-row.is-primary .efficacy-bar-fill {
+    background: linear-gradient(90deg, var(--p-primary), var(--p-primary-mid));
+}
+.efficacy-bar-value {
+    font-size: 0.78rem; font-weight: 700; color: var(--p-primary);
+    text-align: right; font-variant-numeric: tabular-nums;
+}
+.efficacy-source {
+    margin-top: 12px; padding-top: 10px;
+    border-top: 1px solid var(--p-border-light);
+    font-size: 0.72rem; color: var(--p-muted); font-style: italic;
+}
 .site-footer {
     margin-top: 40px; padding-top: 24px;
     border-top: 1px solid var(--p-border);
@@ -321,6 +404,9 @@ body {
     .catalog-price { grid-column: 2; grid-row: 1 / 3; align-self: center; }
     .detail-grid, .info-row { grid-template-columns: 1fr; }
     .header-meta { gap: 16px; }
+    .highlights-row { grid-template-columns: 1fr; }
+    .efficacy-bar-row { grid-template-columns: 88px 1fr 44px; gap: 8px; }
+    .efficacy-pill { display: none; }
 }</style>
 </head>
 <body>
@@ -371,12 +457,62 @@ body {
                     <span class="catalog-name-wrap">
                         <span class="catalog-name">Тирзепатид</span>
                         <span class="product-badge">Dual Agonist</span>
+                        <span class="efficacy-pill" title="SURMOUNT-5 · NEJM 2025 · 72 седмици">
+            <span class="efficacy-pill-value">20.2%</span>
+            <span class="efficacy-pill-label">загуба на телесно тегло</span>
+        </span>
                     </span>
                     <span class="catalog-dose">от 5 mg</span>
                     <span class="catalog-price"><span class="catalog-price-from">от</span>31.95 €</span>
                 </summary>
                 <div class="product-details">
                     <p class="product-tagline">Двойен GLP-1/GIP рецепторен агонист — златен стандарт в метаболитната терапия</p>
+                    <div class="efficacy-block">
+            <div class="efficacy-block-header">
+                <div class="efficacy-block-title">Клинични резултати</div>
+                <div class="efficacy-headline-row">
+                    <span class="efficacy-headline">20.2%</span>
+                    <span class="efficacy-headline-label">загуба на телесно тегло</span>
+                </div>
+            </div>
+            <div class="efficacy-chart">
+                <div class="efficacy-bar-row">
+                        <span class="efficacy-bar-label">Плацебо</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:9%"></div></div>
+                        <span class="efficacy-bar-value">2.2%</span>
+                    </div><div class="efficacy-bar-row">
+                        <span class="efficacy-bar-label">Семаглутид</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:55%"></div></div>
+                        <span class="efficacy-bar-value">13.7%</span>
+                    </div><div class="efficacy-bar-row is-primary">
+                        <span class="efficacy-bar-label">Тирзепатид MTD</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:81%"></div></div>
+                        <span class="efficacy-bar-value">20.2%</span>
+                    </div>
+            </div>
+            <div class="efficacy-source">SURMOUNT-5 · NEJM 2025 · 72 седмици</div>
+        </div>
+                    <div class="highlights-row">
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">20.2%</span>
+                    <span class="highlight-label">Ефект</span>
+                    <span class="highlight-note">vs семаглутид 13.7%</span>
+                </div>
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">1×/сед</span>
+                    <span class="highlight-label">Приложение</span>
+                    <span class="highlight-note">подкожно</span>
+                </div>
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">FDA</span>
+                    <span class="highlight-label">Статус</span>
+                    <span class="highlight-note">одобрен · OSA · 2026</span>
+                </div>
+            
+        </div>
                     <div class="detail-grid">
                         
             <div class="detail-section">
@@ -443,12 +579,62 @@ body {
                     <span class="catalog-name-wrap">
                         <span class="catalog-name">Retatrutide</span>
                         <span class="product-badge">Triple Agonist</span>
+                        <span class="efficacy-pill" title="TRIUMPH-1 · Eli Lilly · 80 седмици · 2026">
+            <span class="efficacy-pill-value">28.3%</span>
+            <span class="efficacy-pill-label">загуба на телесно тегло</span>
+        </span>
                     </span>
                     <span class="catalog-dose">от 5 mg</span>
                     <span class="catalog-price"><span class="catalog-price-from">от</span>38.35 €</span>
                 </summary>
                 <div class="product-details">
                     <p class="product-tagline">Тройна инкретинова агонистична терапия — GLP-1, GIP и Glucagon</p>
+                    <div class="efficacy-block">
+            <div class="efficacy-block-header">
+                <div class="efficacy-block-title">Клинични резултати</div>
+                <div class="efficacy-headline-row">
+                    <span class="efficacy-headline">28.3%</span>
+                    <span class="efficacy-headline-label">загуба на телесно тегло</span>
+                </div>
+            </div>
+            <div class="efficacy-chart">
+                <div class="efficacy-bar-row">
+                        <span class="efficacy-bar-label">Плацебо</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:7%"></div></div>
+                        <span class="efficacy-bar-value">2.2%</span>
+                    </div><div class="efficacy-bar-row">
+                        <span class="efficacy-bar-label">4 mg</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:59%"></div></div>
+                        <span class="efficacy-bar-value">19%</span>
+                    </div><div class="efficacy-bar-row is-primary">
+                        <span class="efficacy-bar-label">12 mg</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:88%"></div></div>
+                        <span class="efficacy-bar-value">28.3%</span>
+                    </div>
+            </div>
+            <div class="efficacy-source">TRIUMPH-1 · Eli Lilly · 80 седмици · 2026</div>
+        </div>
+                    <div class="highlights-row">
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">28.3%</span>
+                    <span class="highlight-label">Ефект</span>
+                    <span class="highlight-note">до 30.3% / 104 сед.</span>
+                </div>
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">1×/сед</span>
+                    <span class="highlight-label">Приложение</span>
+                    <span class="highlight-note">троен агонист</span>
+                </div>
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">Фаза III</span>
+                    <span class="highlight-label">Статус</span>
+                    <span class="highlight-note">NDA 2026–27</span>
+                </div>
+            
+        </div>
                     <div class="detail-grid">
                         
             <div class="detail-section">
@@ -516,12 +702,62 @@ body {
                     <span class="catalog-name-wrap">
                         <span class="catalog-name">Mots-C</span>
                         
+                        <span class="efficacy-pill" title="Preclinical + pilot data · 2023–2026">
+            <span class="efficacy-pill-value">82</span>
+            <span class="efficacy-pill-label">метаболитен индекс</span>
+        </span>
                     </span>
                     <span class="catalog-dose">от 10 mg</span>
                     <span class="catalog-price"><span class="catalog-price-from">от</span>31.95 €</span>
                 </summary>
                 <div class="product-details">
                     <p class="product-tagline">Митохондриален пептид за метаболитна гъвкавост и издръжливост</p>
+                    <div class="efficacy-block">
+            <div class="efficacy-block-header">
+                <div class="efficacy-block-title">Профил на действие</div>
+                <div class="efficacy-headline-row">
+                    <span class="efficacy-headline">82</span>
+                    <span class="efficacy-headline-label">метаболитен индекс</span>
+                </div>
+            </div>
+            <div class="efficacy-chart">
+                <div class="efficacy-bar-row is-primary">
+                        <span class="efficacy-bar-label">Митохондриална функция</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:85%"></div></div>
+                        <span class="efficacy-bar-value">85</span>
+                    </div><div class="efficacy-bar-row">
+                        <span class="efficacy-bar-label">Метаболитна гъвкавост</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:82%"></div></div>
+                        <span class="efficacy-bar-value">82</span>
+                    </div><div class="efficacy-bar-row">
+                        <span class="efficacy-bar-label">Издръжливост</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:74%"></div></div>
+                        <span class="efficacy-bar-value">74</span>
+                    </div>
+            </div>
+            <div class="efficacy-source">Preclinical + pilot data · 2023–2026</div>
+        </div>
+                    <div class="highlights-row">
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">AMPK+</span>
+                    <span class="highlight-label">Механизъм</span>
+                    <span class="highlight-note">митохондриален</span>
+                </div>
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">1–3×/сед</span>
+                    <span class="highlight-label">Приложение</span>
+                    <span class="highlight-note">10 / 40 mg</span>
+                </div>
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">Адювант</span>
+                    <span class="highlight-label">Роля</span>
+                    <span class="highlight-note">при отслабване</span>
+                </div>
+            
+        </div>
                     <div class="detail-grid">
                         
             <div class="detail-section">
@@ -583,12 +819,62 @@ body {
                     <span class="catalog-name-wrap">
                         <span class="catalog-name">SLU-PP-322</span>
                         
+                        <span class="efficacy-pill" title="ERRα agonist · preclinical · 2024–2026">
+            <span class="efficacy-pill-value">80</span>
+            <span class="efficacy-pill-label">кардио-миметик</span>
+        </span>
                     </span>
                     <span class="catalog-dose">5 mg</span>
                     <span class="catalog-price">30.00 €</span>
                 </summary>
                 <div class="product-details">
                     <p class="product-tagline">„Упражнение в спринцовка&quot; — кардио ефект без зала</p>
+                    <div class="efficacy-block">
+            <div class="efficacy-block-header">
+                <div class="efficacy-block-title">Профил на действие</div>
+                <div class="efficacy-headline-row">
+                    <span class="efficacy-headline">80</span>
+                    <span class="efficacy-headline-label">кардио-миметик</span>
+                </div>
+            </div>
+            <div class="efficacy-chart">
+                <div class="efficacy-bar-row">
+                        <span class="efficacy-bar-label">Липолиза</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:76%"></div></div>
+                        <span class="efficacy-bar-value">76</span>
+                    </div><div class="efficacy-bar-row is-primary">
+                        <span class="efficacy-bar-label">Митохондриален биогенез</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:80%"></div></div>
+                        <span class="efficacy-bar-value">80</span>
+                    </div><div class="efficacy-bar-row">
+                        <span class="efficacy-bar-label">Енергиен разход</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:72%"></div></div>
+                        <span class="efficacy-bar-value">72</span>
+                    </div>
+            </div>
+            <div class="efficacy-source">ERRα agonist · preclinical · 2024–2026</div>
+        </div>
+                    <div class="highlights-row">
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">ERRα</span>
+                    <span class="highlight-label">Тип</span>
+                    <span class="highlight-note">агонист</span>
+                </div>
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">Ежедневно</span>
+                    <span class="highlight-label">Приложение</span>
+                    <span class="highlight-note">1–2 mg</span>
+                </div>
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">Липолиза</span>
+                    <span class="highlight-label">Цел</span>
+                    <span class="highlight-note">без зала</span>
+                </div>
+            
+        </div>
                     <div class="detail-grid">
                         
             <div class="detail-section">
@@ -636,12 +922,62 @@ body {
                     <span class="catalog-name-wrap">
                         <span class="catalog-name">LC120</span>
                         
+                        <span class="efficacy-pill" title="Липолитичен комплекс · клиничен опит">
+            <span class="efficacy-pill-value">78</span>
+            <span class="efficacy-pill-label">локален ефект</span>
+        </span>
                     </span>
                     <span class="catalog-dose">комбо</span>
                     <span class="catalog-price">18.75 €</span>
                 </summary>
                 <div class="product-details">
                     <p class="product-tagline">Локално таргетиране на упорити мастни зони</p>
+                    <div class="efficacy-block">
+            <div class="efficacy-block-header">
+                <div class="efficacy-block-title">Профил на действие</div>
+                <div class="efficacy-headline-row">
+                    <span class="efficacy-headline">78</span>
+                    <span class="efficacy-headline-label">локален ефект</span>
+                </div>
+            </div>
+            <div class="efficacy-chart">
+                <div class="efficacy-bar-row is-primary">
+                        <span class="efficacy-bar-label">Локална липолиза</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:78%"></div></div>
+                        <span class="efficacy-bar-value">78</span>
+                    </div><div class="efficacy-bar-row">
+                        <span class="efficacy-bar-label">Контуриране</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:72%"></div></div>
+                        <span class="efficacy-bar-value">72</span>
+                    </div><div class="efficacy-bar-row">
+                        <span class="efficacy-bar-label">Толерантност</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:85%"></div></div>
+                        <span class="efficacy-bar-value">85</span>
+                    </div>
+            </div>
+            <div class="efficacy-source">Липолитичен комплекс · клиничен опит</div>
+        </div>
+                    <div class="highlights-row">
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">Локален</span>
+                    <span class="highlight-label">Тип</span>
+                    <span class="highlight-note">инжекция</span>
+                </div>
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">Корем</span>
+                    <span class="highlight-label">Зони</span>
+                    <span class="highlight-note">бедра · брадичка</span>
+                </div>
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">Минимален</span>
+                    <span class="highlight-label">Период</span>
+                    <span class="highlight-note">възстановяване</span>
+                </div>
+            
+        </div>
                     <div class="detail-grid">
                         
             <div class="detail-section">
@@ -689,12 +1025,62 @@ body {
                     <span class="catalog-name-wrap">
                         <span class="catalog-name">LC216</span>
                         
+                        <span class="efficacy-pill" title="Разширена формула · LC серия">
+            <span class="efficacy-pill-value">82</span>
+            <span class="efficacy-pill-label">липолитичен индекс</span>
+        </span>
                     </span>
                     <span class="catalog-dose">комбо</span>
                     <span class="catalog-price">18.75 €</span>
                 </summary>
                 <div class="product-details">
                     <p class="product-tagline">Усъвършенстван липолитик — предотвратява повторно натрупване</p>
+                    <div class="efficacy-block">
+            <div class="efficacy-block-header">
+                <div class="efficacy-block-title">Профил на действие</div>
+                <div class="efficacy-headline-row">
+                    <span class="efficacy-headline">82</span>
+                    <span class="efficacy-headline-label">липолитичен индекс</span>
+                </div>
+            </div>
+            <div class="efficacy-chart">
+                <div class="efficacy-bar-row is-primary">
+                        <span class="efficacy-bar-label">Липолиза</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:82%"></div></div>
+                        <span class="efficacy-bar-value">82</span>
+                    </div><div class="efficacy-bar-row">
+                        <span class="efficacy-bar-label">Анти-ребаунд</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:74%"></div></div>
+                        <span class="efficacy-bar-value">74</span>
+                    </div><div class="efficacy-bar-row">
+                        <span class="efficacy-bar-label">Контуриране</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:76%"></div></div>
+                        <span class="efficacy-bar-value">76</span>
+                    </div>
+            </div>
+            <div class="efficacy-source">Разширена формула · LC серия</div>
+        </div>
+                    <div class="highlights-row">
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">Локален</span>
+                    <span class="highlight-label">Тип</span>
+                    <span class="highlight-note">усъвършенстван</span>
+                </div>
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">Анти-ребаунд</span>
+                    <span class="highlight-label">Предимство</span>
+                    <span class="highlight-note">защита</span>
+                </div>
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">LC120</span>
+                    <span class="highlight-label">Комбо</span>
+                    <span class="highlight-note">синергия</span>
+                </div>
+            
+        </div>
                     <div class="detail-grid">
                         
             <div class="detail-section">
@@ -755,12 +1141,62 @@ body {
                     <span class="catalog-name-wrap">
                         <span class="catalog-name">Глутатион</span>
                         <span class="product-badge">Мастър антиоксидант</span>
+                        <span class="efficacy-pill" title="Систематични прегледи · 2024–2025">
+            <span class="efficacy-pill-value">88</span>
+            <span class="efficacy-pill-label">антиоксидантен индекс</span>
+        </span>
                     </span>
                     <span class="catalog-dose">от 600 mg</span>
                     <span class="catalog-price"><span class="catalog-price-from">от</span>9.71 €</span>
                 </summary>
                 <div class="product-details">
                     <p class="product-tagline">Главният защитник на клетките — детокс, светлина, младост</p>
+                    <div class="efficacy-block">
+            <div class="efficacy-block-header">
+                <div class="efficacy-block-title">Профил на действие</div>
+                <div class="efficacy-headline-row">
+                    <span class="efficacy-headline">88</span>
+                    <span class="efficacy-headline-label">антиоксидантен индекс</span>
+                </div>
+            </div>
+            <div class="efficacy-chart">
+                <div class="efficacy-bar-row is-primary">
+                        <span class="efficacy-bar-label">Антиоксидантна защита</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:88%"></div></div>
+                        <span class="efficacy-bar-value">88</span>
+                    </div><div class="efficacy-bar-row">
+                        <span class="efficacy-bar-label">Детоксикация</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:85%"></div></div>
+                        <span class="efficacy-bar-value">85</span>
+                    </div><div class="efficacy-bar-row">
+                        <span class="efficacy-bar-label">Кожна сияйност</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:72%"></div></div>
+                        <span class="efficacy-bar-value">72</span>
+                    </div>
+            </div>
+            <div class="efficacy-source">Систематични прегледи · 2024–2025</div>
+        </div>
+                    <div class="highlights-row">
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">Мастър</span>
+                    <span class="highlight-label">Роля</span>
+                    <span class="highlight-note">антиоксидант</span>
+                </div>
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">1–3×/сед</span>
+                    <span class="highlight-label">Приложение</span>
+                    <span class="highlight-note">600 / 1500 mg</span>
+                </div>
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">Детокс</span>
+                    <span class="highlight-label">Ефект</span>
+                    <span class="highlight-note">кожа · черен дроб</span>
+                </div>
+            
+        </div>
                     <div class="detail-grid">
                         
             <div class="detail-section">
@@ -813,12 +1249,62 @@ body {
                     <span class="catalog-name-wrap">
                         <span class="catalog-name">Тимозин Алфа</span>
                         
+                        <span class="efficacy-pill" title="Клиничен опит · имуномодулация · 2020–2025">
+            <span class="efficacy-pill-value">85</span>
+            <span class="efficacy-pill-label">имунен индекс</span>
+        </span>
                     </span>
                     <span class="catalog-dose">от 5 mg</span>
                     <span class="catalog-price"><span class="catalog-price-from">от</span>38.35 €</span>
                 </summary>
                 <div class="product-details">
                     <p class="product-tagline">Имунна система на елитно ниво</p>
+                    <div class="efficacy-block">
+            <div class="efficacy-block-header">
+                <div class="efficacy-block-title">Профил на действие</div>
+                <div class="efficacy-headline-row">
+                    <span class="efficacy-headline">85</span>
+                    <span class="efficacy-headline-label">имунен индекс</span>
+                </div>
+            </div>
+            <div class="efficacy-chart">
+                <div class="efficacy-bar-row is-primary">
+                        <span class="efficacy-bar-label">Т-клетъчна активност</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:85%"></div></div>
+                        <span class="efficacy-bar-value">85</span>
+                    </div><div class="efficacy-bar-row">
+                        <span class="efficacy-bar-label">Възстановяване</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:78%"></div></div>
+                        <span class="efficacy-bar-value">78</span>
+                    </div><div class="efficacy-bar-row">
+                        <span class="efficacy-bar-label">Антивирусна защита</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:74%"></div></div>
+                        <span class="efficacy-bar-value">74</span>
+                    </div>
+            </div>
+            <div class="efficacy-source">Клиничен опит · имуномодулация · 2020–2025</div>
+        </div>
+                    <div class="highlights-row">
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">Т-клетки</span>
+                    <span class="highlight-label">Механизъм</span>
+                    <span class="highlight-note">модулация</span>
+                </div>
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">2×/сед</span>
+                    <span class="highlight-label">Приложение</span>
+                    <span class="highlight-note">1.5 mg</span>
+                </div>
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">4–8 сед.</span>
+                    <span class="highlight-label">Курс</span>
+                    <span class="highlight-note">циклично</span>
+                </div>
+            
+        </div>
                     <div class="detail-grid">
                         
             <div class="detail-section">
@@ -871,12 +1357,62 @@ body {
                     <span class="catalog-name-wrap">
                         <span class="catalog-name">NAD+</span>
                         <span class="product-badge">Молекула на младостта</span>
+                        <span class="efficacy-pill" title="Nature Aging 2024 · ongoing trials 2025–2026">
+            <span class="efficacy-pill-value">86</span>
+            <span class="efficacy-pill-label">клетъчен енергиен индекс</span>
+        </span>
                     </span>
                     <span class="catalog-dose">500 mg</span>
                     <span class="catalog-price">63.90 €</span>
                 </summary>
                 <div class="product-details">
                     <p class="product-tagline">Възстановява клетъчната енергия и яснотата на ума</p>
+                    <div class="efficacy-block">
+            <div class="efficacy-block-header">
+                <div class="efficacy-block-title">Профил на действие</div>
+                <div class="efficacy-headline-row">
+                    <span class="efficacy-headline">86</span>
+                    <span class="efficacy-headline-label">клетъчен енергиен индекс</span>
+                </div>
+            </div>
+            <div class="efficacy-chart">
+                <div class="efficacy-bar-row is-primary">
+                        <span class="efficacy-bar-label">Клетъчна енергия (ATP)</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:86%"></div></div>
+                        <span class="efficacy-bar-value">86</span>
+                    </div><div class="efficacy-bar-row">
+                        <span class="efficacy-bar-label">ДНК репарация</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:80%"></div></div>
+                        <span class="efficacy-bar-value">80</span>
+                    </div><div class="efficacy-bar-row">
+                        <span class="efficacy-bar-label">Когнитивен фокус</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:74%"></div></div>
+                        <span class="efficacy-bar-value">74</span>
+                    </div>
+            </div>
+            <div class="efficacy-source">Nature Aging 2024 · ongoing trials 2025–2026</div>
+        </div>
+                    <div class="highlights-row">
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">NAD+</span>
+                    <span class="highlight-label">Молекула</span>
+                    <span class="highlight-note">коензим</span>
+                </div>
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">2–3×/сед</span>
+                    <span class="highlight-label">Приложение</span>
+                    <span class="highlight-note">500 mg флакон</span>
+                </div>
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">Longevity</span>
+                    <span class="highlight-label">Път</span>
+                    <span class="highlight-note">сиртуини</span>
+                </div>
+            
+        </div>
                     <div class="detail-grid">
                         
             <div class="detail-section">
@@ -937,12 +1473,62 @@ body {
                     <span class="catalog-name-wrap">
                         <span class="catalog-name">CJC-1295 + Ipamorelin</span>
                         <span class="product-badge">Златен стандарт</span>
+                        <span class="efficacy-pill" title="GHRH + GHRP синергия · клинични данни">
+            <span class="efficacy-pill-value">85</span>
+            <span class="efficacy-pill-label">GH секреция</span>
+        </span>
                     </span>
                     <span class="catalog-dose">от 5 mg</span>
                     <span class="catalog-price"><span class="catalog-price-from">от</span>21.25 €</span>
                 </summary>
                 <div class="product-details">
                     <p class="product-tagline">Естествен HGH — мускули, мазнини, дълбок сън</p>
+                    <div class="efficacy-block">
+            <div class="efficacy-block-header">
+                <div class="efficacy-block-title">Профил на действие</div>
+                <div class="efficacy-headline-row">
+                    <span class="efficacy-headline">85</span>
+                    <span class="efficacy-headline-label">GH секреция</span>
+                </div>
+            </div>
+            <div class="efficacy-chart">
+                <div class="efficacy-bar-row is-primary">
+                        <span class="efficacy-bar-label">GH отдел</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:85%"></div></div>
+                        <span class="efficacy-bar-value">85</span>
+                    </div><div class="efficacy-bar-row">
+                        <span class="efficacy-bar-label">Мускулна маса</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:78%"></div></div>
+                        <span class="efficacy-bar-value">78</span>
+                    </div><div class="efficacy-bar-row">
+                        <span class="efficacy-bar-label">Мазнини / сън</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:76%"></div></div>
+                        <span class="efficacy-bar-value">76</span>
+                    </div>
+            </div>
+            <div class="efficacy-source">GHRH + GHRP синергия · клинични данни</div>
+        </div>
+                    <div class="highlights-row">
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">CJC+IPA</span>
+                    <span class="highlight-label">Комбо</span>
+                    <span class="highlight-note">златен стандарт</span>
+                </div>
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">Вечер</span>
+                    <span class="highlight-label">Приложение</span>
+                    <span class="highlight-note">на гладно</span>
+                </div>
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">3–5×</span>
+                    <span class="highlight-label">GH</span>
+                    <span class="highlight-note">vs моно</span>
+                </div>
+            
+        </div>
                     <div class="detail-grid">
                         
             <div class="detail-section">
@@ -995,12 +1581,58 @@ body {
                     <span class="catalog-name-wrap">
                         <span class="catalog-name">Tesamorelin</span>
                         
+                        <span class="efficacy-pill" title="FDA (Egrifta) · 26 седмици">
+            <span class="efficacy-pill-value">18%</span>
+            <span class="efficacy-pill-label">VAT редукция</span>
+        </span>
                     </span>
                     <span class="catalog-dose">10 mg</span>
                     <span class="catalog-price">45.00 €</span>
                 </summary>
                 <div class="product-details">
                     <p class="product-tagline">Директно атакува коремната мазнина</p>
+                    <div class="efficacy-block">
+            <div class="efficacy-block-header">
+                <div class="efficacy-block-title">Клинични резултати</div>
+                <div class="efficacy-headline-row">
+                    <span class="efficacy-headline">18%</span>
+                    <span class="efficacy-headline-label">VAT редукция</span>
+                </div>
+            </div>
+            <div class="efficacy-chart">
+                <div class="efficacy-bar-row">
+                        <span class="efficacy-bar-label">Контрол</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:8%"></div></div>
+                        <span class="efficacy-bar-value">2%</span>
+                    </div><div class="efficacy-bar-row is-primary">
+                        <span class="efficacy-bar-label">Tesamorelin</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:72%"></div></div>
+                        <span class="efficacy-bar-value">18%</span>
+                    </div>
+            </div>
+            <div class="efficacy-source">FDA (Egrifta) · 26 седмици</div>
+        </div>
+                    <div class="highlights-row">
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">−18% VAT</span>
+                    <span class="highlight-label">Ефект</span>
+                    <span class="highlight-note">висцерална мазнина</span>
+                </div>
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">+30–50%</span>
+                    <span class="highlight-label">IGF-1</span>
+                    <span class="highlight-note">повишение</span>
+                </div>
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">FDA</span>
+                    <span class="highlight-label">Статус</span>
+                    <span class="highlight-note">GHRH аналог</span>
+                </div>
+            
+        </div>
                     <div class="detail-grid">
                         
             <div class="detail-section">
@@ -1048,12 +1680,62 @@ body {
                     <span class="catalog-name-wrap">
                         <span class="catalog-name">IGF-1LR3</span>
                         
+                        <span class="efficacy-pill" title="PI3K/Akt/mTOR път · IGF-1LR3">
+            <span class="efficacy-pill-value">88</span>
+            <span class="efficacy-pill-label">хиперплазия</span>
+        </span>
                     </span>
                     <span class="catalog-dose">1 mg</span>
                     <span class="catalog-price">43.75 €</span>
                 </summary>
                 <div class="product-details">
                     <p class="product-tagline">Създава нови мускулни клетки — хиперплазия</p>
+                    <div class="efficacy-block">
+            <div class="efficacy-block-header">
+                <div class="efficacy-block-title">Профил на действие</div>
+                <div class="efficacy-headline-row">
+                    <span class="efficacy-headline">88</span>
+                    <span class="efficacy-headline-label">хиперплазия</span>
+                </div>
+            </div>
+            <div class="efficacy-chart">
+                <div class="efficacy-bar-row is-primary">
+                        <span class="efficacy-bar-label">Мускулна хиперплазия</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:88%"></div></div>
+                        <span class="efficacy-bar-value">88</span>
+                    </div><div class="efficacy-bar-row">
+                        <span class="efficacy-bar-label">Анти-катаболизъм</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:82%"></div></div>
+                        <span class="efficacy-bar-value">82</span>
+                    </div><div class="efficacy-bar-row">
+                        <span class="efficacy-bar-label">Възстановяване</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:76%"></div></div>
+                        <span class="efficacy-bar-value">76</span>
+                    </div>
+            </div>
+            <div class="efficacy-source">PI3K/Akt/mTOR път · IGF-1LR3</div>
+        </div>
+                    <div class="highlights-row">
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">mTOR</span>
+                    <span class="highlight-label">Механизъм</span>
+                    <span class="highlight-note">хиперплазия</span>
+                </div>
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">Post-WO</span>
+                    <span class="highlight-label">Приложение</span>
+                    <span class="highlight-note">след тренировка</span>
+                </div>
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">3×</span>
+                    <span class="highlight-label">Биоактивност</span>
+                    <span class="highlight-note">vs IGF-1</span>
+                </div>
+            
+        </div>
                     <div class="detail-grid">
                         
             <div class="detail-section">
@@ -1101,12 +1783,62 @@ body {
                     <span class="catalog-name-wrap">
                         <span class="catalog-name">IGF-DES</span>
                         
+                        <span class="efficacy-pill" title="Des-(1-3)-IGF-1 · локална биоактивност">
+            <span class="efficacy-pill-value">90</span>
+            <span class="efficacy-pill-label">локален растеж</span>
+        </span>
                     </span>
                     <span class="catalog-dose">1 mg</span>
                     <span class="catalog-price">12.50 €</span>
                 </summary>
                 <div class="product-details">
                     <p class="product-tagline">Локален растеж — мигновен ефект в целевия мускул</p>
+                    <div class="efficacy-block">
+            <div class="efficacy-block-header">
+                <div class="efficacy-block-title">Профил на действие</div>
+                <div class="efficacy-headline-row">
+                    <span class="efficacy-headline">90</span>
+                    <span class="efficacy-headline-label">локален растеж</span>
+                </div>
+            </div>
+            <div class="efficacy-chart">
+                <div class="efficacy-bar-row is-primary">
+                        <span class="efficacy-bar-label">Локален растеж</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:90%"></div></div>
+                        <span class="efficacy-bar-value">90</span>
+                    </div><div class="efficacy-bar-row">
+                        <span class="efficacy-bar-label">Напомпване</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:88%"></div></div>
+                        <span class="efficacy-bar-value">88</span>
+                    </div><div class="efficacy-bar-row">
+                        <span class="efficacy-bar-label">Скорост на действие</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:92%"></div></div>
+                        <span class="efficacy-bar-value">92</span>
+                    </div>
+            </div>
+            <div class="efficacy-source">Des-(1-3)-IGF-1 · локална биоактивност</div>
+        </div>
+                    <div class="highlights-row">
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">Локален</span>
+                    <span class="highlight-label">Тип</span>
+                    <span class="highlight-note">интрамускулно</span>
+                </div>
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">~20 мин</span>
+                    <span class="highlight-label">Време</span>
+                    <span class="highlight-note">полуживот</span>
+                </div>
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">Pre-WO</span>
+                    <span class="highlight-label">Timing</span>
+                    <span class="highlight-note">15–30 мин</span>
+                </div>
+            
+        </div>
                     <div class="detail-grid">
                         
             <div class="detail-section">
@@ -1167,12 +1899,62 @@ body {
                     <span class="catalog-name-wrap">
                         <span class="catalog-name">GHK-Cu</span>
                         <span class="product-badge">Меден пептид</span>
+                        <span class="efficacy-pill" title="Pickart et al. · систематичен преглед 2024">
+            <span class="efficacy-pill-value">90</span>
+            <span class="efficacy-pill-label">регенерация</span>
+        </span>
                     </span>
                     <span class="catalog-dose">100 mg</span>
                     <span class="catalog-price">31.95 €</span>
                 </summary>
                 <div class="product-details">
                     <p class="product-tagline">Колаген, коса, кожа — клетъчен ремонт</p>
+                    <div class="efficacy-block">
+            <div class="efficacy-block-header">
+                <div class="efficacy-block-title">Профил на действие</div>
+                <div class="efficacy-headline-row">
+                    <span class="efficacy-headline">90</span>
+                    <span class="efficacy-headline-label">регенерация</span>
+                </div>
+            </div>
+            <div class="efficacy-chart">
+                <div class="efficacy-bar-row is-primary">
+                        <span class="efficacy-bar-label">Колаген / еластин</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:90%"></div></div>
+                        <span class="efficacy-bar-value">90</span>
+                    </div><div class="efficacy-bar-row">
+                        <span class="efficacy-bar-label">Тъканна регенерация</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:85%"></div></div>
+                        <span class="efficacy-bar-value">85</span>
+                    </div><div class="efficacy-bar-row">
+                        <span class="efficacy-bar-label">Коса / нокти</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:78%"></div></div>
+                        <span class="efficacy-bar-value">78</span>
+                    </div>
+            </div>
+            <div class="efficacy-source">Pickart et al. · систематичен преглед 2024</div>
+        </div>
+                    <div class="highlights-row">
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">Cu-пептид</span>
+                    <span class="highlight-label">Тип</span>
+                    <span class="highlight-note">меден комплекс</span>
+                </div>
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">Ежедневно</span>
+                    <span class="highlight-label">Приложение</span>
+                    <span class="highlight-note">1–2 mg</span>
+                </div>
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">4–8 сед.</span>
+                    <span class="highlight-label">Резултат</span>
+                    <span class="highlight-note">видим ефект</span>
+                </div>
+            
+        </div>
                     <div class="detail-grid">
                         
             <div class="detail-section">
@@ -1220,12 +2002,62 @@ body {
                     <span class="catalog-name-wrap">
                         <span class="catalog-name">Glow (CU+TB+BC+KPV)</span>
                         <span class="product-badge">Ултимативен стак</span>
+                        <span class="efficacy-pill" title="GHK-Cu + TB-500 + BPC-157 + KPV · синергия">
+            <span class="efficacy-pill-value">86</span>
+            <span class="efficacy-pill-label">комбо индекс</span>
+        </span>
                     </span>
                     <span class="catalog-dose">комбо</span>
                     <span class="catalog-price">57.50 €</span>
                 </summary>
                 <div class="product-details">
                     <p class="product-tagline">4 в 1 — кожа, черво, стави, възпаление</p>
+                    <div class="efficacy-block">
+            <div class="efficacy-block-header">
+                <div class="efficacy-block-title">Профил на действие</div>
+                <div class="efficacy-headline-row">
+                    <span class="efficacy-headline">86</span>
+                    <span class="efficacy-headline-label">комбо индекс</span>
+                </div>
+            </div>
+            <div class="efficacy-chart">
+                <div class="efficacy-bar-row is-primary">
+                        <span class="efficacy-bar-label">Кожа / колаген</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:88%"></div></div>
+                        <span class="efficacy-bar-value">88</span>
+                    </div><div class="efficacy-bar-row">
+                        <span class="efficacy-bar-label">Регенерация / GI</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:84%"></div></div>
+                        <span class="efficacy-bar-value">84</span>
+                    </div><div class="efficacy-bar-row">
+                        <span class="efficacy-bar-label">Противовъзпаление</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:82%"></div></div>
+                        <span class="efficacy-bar-value">82</span>
+                    </div>
+            </div>
+            <div class="efficacy-source">GHK-Cu + TB-500 + BPC-157 + KPV · синергия</div>
+        </div>
+                    <div class="highlights-row">
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">4 в 1</span>
+                    <span class="highlight-label">Стак</span>
+                    <span class="highlight-note">CU·TB·BC·KPV</span>
+                </div>
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">Системен</span>
+                    <span class="highlight-label">Обхват</span>
+                    <span class="highlight-note">кожа · черво · стави</span>
+                </div>
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">Персонален</span>
+                    <span class="highlight-label">Протокол</span>
+                    <span class="highlight-note">консултация</span>
+                </div>
+            
+        </div>
                     <div class="detail-grid">
                         
             <div class="detail-section">
@@ -1273,12 +2105,62 @@ body {
                     <span class="catalog-name-wrap">
                         <span class="catalog-name">Меланотан 2</span>
                         
+                        <span class="efficacy-pill" title="α-MSH аналог · MC1R активиране">
+            <span class="efficacy-pill-value">88</span>
+            <span class="efficacy-pill-label">меланин индекс</span>
+        </span>
                     </span>
                     <span class="catalog-dose">10 mg</span>
                     <span class="catalog-price">38.35 €</span>
                 </summary>
                 <div class="product-details">
                     <p class="product-tagline">Естествен тен с минимално слънце</p>
+                    <div class="efficacy-block">
+            <div class="efficacy-block-header">
+                <div class="efficacy-block-title">Профил на действие</div>
+                <div class="efficacy-headline-row">
+                    <span class="efficacy-headline">88</span>
+                    <span class="efficacy-headline-label">меланин индекс</span>
+                </div>
+            </div>
+            <div class="efficacy-chart">
+                <div class="efficacy-bar-row is-primary">
+                        <span class="efficacy-bar-label">Меланин / тен</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:88%"></div></div>
+                        <span class="efficacy-bar-value">88</span>
+                    </div><div class="efficacy-bar-row">
+                        <span class="efficacy-bar-label">UV защита</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:80%"></div></div>
+                        <span class="efficacy-bar-value">80</span>
+                    </div><div class="efficacy-bar-row">
+                        <span class="efficacy-bar-label">Равномерност</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:76%"></div></div>
+                        <span class="efficacy-bar-value">76</span>
+                    </div>
+            </div>
+            <div class="efficacy-source">α-MSH аналог · MC1R активиране</div>
+        </div>
+                    <div class="highlights-row">
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">MC1R</span>
+                    <span class="highlight-label">Механизъм</span>
+                    <span class="highlight-note">меланоцити</span>
+                </div>
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">2–3 сед.</span>
+                    <span class="highlight-label">Loading</span>
+                    <span class="highlight-note">начална фаза</span>
+                </div>
+            
+                <div class="highlight-chip">
+                    <span class="highlight-value">250–500</span>
+                    <span class="highlight-label">Доза</span>
+                    <span class="highlight-note">mcg</span>
+                </div>
+            
+        </div>
                     <div class="detail-grid">
                         
             <div class="detail-section">
