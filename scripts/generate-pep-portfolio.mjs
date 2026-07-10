@@ -1,6 +1,7 @@
 /**
- * Generates pep-portfolio.html as standalone static catalog.
- * Run: node scripts/generate-pep-portfolio.mjs
+ * Generates pep-portfolio-static.html as standalone fallback catalog.
+ * pep-portfolio.html loads the published API version when available.
+ * Run: node scripts/generate-pep-portfolio.mjs [multiplier]
  */
 import { readFileSync, writeFileSync } from 'fs';
 import { fileURLToPath } from 'url';
@@ -32,6 +33,9 @@ const catalogFns = slice(
     lines.findIndex((l) => l.includes('function openPortfolioModal')) - 1
 );
 
+const multiplier = Number(process.argv[2] || '2.5');
+const safeMultiplier = Number.isFinite(multiplier) && multiplier > 0 ? multiplier : 2.5;
+
 const sandbox = `
 ${defaultProducts}
 function formatMoney(value) { return \`\${Number(value || 0).toFixed(2)} €\`; }
@@ -45,10 +49,11 @@ function getSortedProducts() {
 ${catalogLibrary}
 ${exportStyles}
 ${catalogFns}
-return buildCatalogDocument(2.5);
+return buildCatalogDocument(${safeMultiplier});
 `;
 
 const catalogHtml = new Function(sandbox)();
+const outputPath = join(root, 'pep-portfolio-static.html');
 
-writeFileSync(join(root, 'pep-portfolio.html'), catalogHtml);
-console.log('Generated pep-portfolio.html (' + Math.round(catalogHtml.length / 1024) + ' KB)');
+writeFileSync(outputPath, catalogHtml);
+console.log(`Generated pep-portfolio-static.html (×${safeMultiplier}, ${Math.round(catalogHtml.length / 1024)} KB)`);
