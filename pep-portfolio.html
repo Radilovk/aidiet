@@ -2,93 +2,32 @@
 <html lang="bg">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="description" content="Портфолио Пептиди — професионален каталог с научно обосновани пептидни терапии.">
-<meta name="color-scheme" content="light">
-<meta name="theme-color" content="#F7F9FC">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Портфолио Пептиди</title>
 <style>
-    body {
-        margin: 0;
-        font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-        background: #F7F9FC;
-        color: #5A6578;
-    }
-    .portfolio-loader {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        min-height: 100vh;
-        gap: 12px;
-        padding: 24px;
-        text-align: center;
-    }
-    .portfolio-loader strong {
-        color: #0B3D3A;
-        font-size: 1.1rem;
-    }
+body{margin:0;font-family:Inter,system-ui,sans-serif;background:#F7F9FC;color:#5A6578}
+.loader{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:12px;padding:24px;text-align:center}
+.loader strong{color:#0B3D3A;font-size:1.1rem}
 </style>
 </head>
 <body>
-<div class="portfolio-loader" id="loader">
+<div class="loader" id="loader">
     <strong>Портфолио Пептиди</strong>
-    <span>Зареждане на актуалния каталог…</span>
+    <span>Зареждане…</span>
 </div>
 <script>
-(function() {
-    var API = 'https://aidiet.radilov-k.workers.dev/api/pep/portfolio';
-    var STATIC = 'pep-portfolio-static.html';
-    var TEMPLATE_VERSION = 2;
-
-    function getTemplateVersion(html) {
-        if (!html) return 0;
-        var match = html.match(/portfolio-template:(\d+)/);
-        return match ? parseInt(match[1], 10) : 0;
-    }
-
-    function renderPortfolio(html) {
+fetch('https://aidiet.radilov-k.workers.dev/api/pep/portfolio', { cache: 'no-store' })
+    .then(function(r) { return r.ok ? r.json() : Promise.reject(); })
+    .then(function(data) {
+        if (!data || !data.html) throw new Error('empty');
         document.open();
-        document.write(html);
+        document.write(data.html);
         document.close();
-    }
-
-    function showError(message) {
-        var loader = document.getElementById('loader');
-        if (loader) {
-            loader.innerHTML = '<strong>Портфолио Пептиди</strong><span>' + message + '</span>';
-        }
-    }
-
-    Promise.all([
-        fetch(STATIC, { cache: 'no-store' }).then(function(r) { return r.ok ? r.text() : ''; }).catch(function() { return ''; }),
-        fetch(API, { cache: 'no-store' }).then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; })
-    ]).then(function(results) {
-        var staticHtml = results[0];
-        var apiPayload = results[1];
-        var apiHtml = apiPayload && apiPayload.html;
-        var apiVersion = getTemplateVersion(apiHtml);
-        var staticVersion = getTemplateVersion(staticHtml);
-
-        if (apiHtml && apiVersion >= TEMPLATE_VERSION) {
-            renderPortfolio(apiHtml);
-            return;
-        }
-        if (staticHtml && staticVersion >= TEMPLATE_VERSION) {
-            renderPortfolio(staticHtml);
-            return;
-        }
-        if (apiHtml) {
-            renderPortfolio(apiHtml);
-            return;
-        }
-        if (staticHtml) {
-            renderPortfolio(staticHtml);
-            return;
-        }
-        showError('Каталогът не е наличен в момента.');
+    })
+    .catch(function() {
+        document.getElementById('loader').innerHTML =
+            '<strong>Портфолио Пептиди</strong><span>Каталогът все още не е публикуван. Публикувай от pep.html.</span>';
     });
-})();
 </script>
 </body>
 </html>
