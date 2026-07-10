@@ -970,14 +970,14 @@
                 <div id="portfolioPreview">
                     <div class="empty-state">Зареждане…</div>
                 </div>
-                <div class="inline-note" style="margin-top:8px;">Клиентите виждат само крайните цени — без множител и вътрешна информация. Промени множителя и натисни „Публикувай онлайн", за да обновиш публичните цени.</div>
+                <div class="inline-note" style="margin-top:8px;">Клиентският каталог се обновява автоматично при промяна на множителя или продуктите.</div>
             </div>
             <div class="form-group full-width" style="display:flex;gap:10px;flex-wrap:wrap;">
-                <button id="publishPortfolioBtn" style="flex:1;min-width:140px;background:linear-gradient(135deg,#0B3D3A,#1565C0);">Публикувай онлайн</button>
+                <button id="publishPortfolioBtn" style="flex:1;min-width:140px;background:linear-gradient(135deg,#0B3D3A,#1565C0);">Обнови клиентския каталог</button>
                 <button id="generatePortfolioBtn" class="btn-outline" style="flex:1;min-width:140px;">Изтегли HTML</button>
             </div>
             <div class="form-group full-width">
-                <div class="inline-note" id="portfolioPublishNote">Онлайн адрес: <a href="https://biocode.website/pep-portfolio.html" target="_blank" rel="noopener">biocode.website/pep-portfolio.html</a><br>Страницата зарежда последната публикувана версия от API. „Публикувай онлайн" записва актуални цени според избрания множител.</div>
+                <div class="inline-note" id="portfolioPublishNote">Онлайн адрес: <a href="https://biocode.website/pep-portfolio.html" target="_blank" rel="noopener">biocode.website/pep-portfolio.html</a><br>Автоматична синхронизация при промяна на множител или каталог. Бутонът по-долу форсира ръчно обновяване.</div>
             </div>
         </div>
     </div>
@@ -1749,6 +1749,7 @@
             const payload = await requestJSON(`${API_BASE}/bootstrap`);
             normalizeBackendPayload(payload);
             hideBanner();
+            loadPortfolioMultiplierPreference();
         } catch (error) {
             loadLocalState();
             state.storageMode = 'local-fallback';
@@ -1758,6 +1759,7 @@
         }
         updateStatusPanel();
         refreshAllUI();
+        schedulePortfolioSync(1200, { silent: true });
     }
 
     function getNextLocalProductId() {
@@ -1794,6 +1796,7 @@
             saveLocalState();
             state.lastSyncAt = new Date().toISOString();
         }
+        schedulePortfolioSync(400);
     }
 
     async function updateProduct(productId, baseName, dosage, purchasePrice) {
@@ -1838,6 +1841,7 @@
             saveLocalState();
             state.lastSyncAt = new Date().toISOString();
         }
+        schedulePortfolioSync(400);
     }
 
     async function removeProduct(productId) {
@@ -1860,6 +1864,7 @@
             saveLocalState();
             state.lastSyncAt = new Date().toISOString();
         }
+        schedulePortfolioSync(400);
     }
 
     async function addSale(productId, quantity, multiplier, comment, dateValue) {
@@ -2586,6 +2591,81 @@
         if (Number.isFinite(multiplier) && multiplier > 0) {
             localStorage.setItem(STORAGE_PORTFOLIO_MULTIPLIER, String(multiplier));
         }
+    }
+
+    let portfolioSyncTimer = null;
+    let lastPublishedSignature = '';
+
+    function getActivePortfolioMultiplier() {
+        const stored = safeNumber(localStorage.getItem(STORAGE_PORTFOLIO_MULTIPLIER));
+        const modal = document.getElementById('portfolioExportModal');
+        const modalOpen = modal && modal.style.display === 'flex';
+        if (modalOpen) {
+            const live = getPortfolioMultiplier();
+            if (Number.isFinite(live) && live > 0) {
+                return live;
+            }
+        }
+        if (stored > 0) {
+            return stored;
+        }
+        return 2.5;
+    }
+
+    function buildPortfolioSyncSignature(multiplier) {
+        const productSig = state.products
+            .map((product) => `${product.id}:${product.baseName}:${product.dosage}:${product.purchasePrice}`)
+            .sort()
+            .join('|');
+        return `${multiplier}::${productSig}`;
+    }
+
+    async function syncPortfolioOnline(options = {}) {
+        if (!state.products.length || state.storageMode !== 'backend') {
+            return null;
+        }
+
+        const multiplier = options.multiplier ?? getActivePortfolioMultiplier();
+        if (!Number.isFinite(multiplier) || multiplier <= 0) {
+            return null;
+        }
+
+        const signature = buildPortfolioSyncSignature(multiplier);
+        if (!options.force && signature === lastPublishedSignature) {
+            return null;
+        }
+
+        savePortfolioMultiplierPreference(multiplier);
+        const html = buildCatalogDocument(multiplier);
+        const response = await fetch(`${API_BASE}/portfolio/publish`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ html, multiplier, publishedAt: new Date().toISOString() })
+        });
+
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.error || 'Синхронизацията на клиентския каталог неуспешна.');
+        }
+
+        const result = await response.json();
+        lastPublishedSignature = signature;
+
+        if (!options.silent) {
+            showBanner(`Клиентският каталог е обновен (×${formatMultiplierValue(multiplier)}). ${PORTFOLIO_PUBLIC_URL}`, 'info');
+        }
+
+        return result;
+    }
+
+    function schedulePortfolioSync(delayMs = 500, options = {}) {
+        if (state.storageMode !== 'backend' || !state.products.length) {
+            return;
+        }
+        clearTimeout(portfolioSyncTimer);
+        portfolioSyncTimer = setTimeout(() => {
+            runSafely(() => syncPortfolioOnline({ silent: true, ...options }));
+        }, delayMs);
     }
 
     function catalogFilename() {
@@ -3519,6 +3599,7 @@ ${renderCatalogBodyHtml(model)}
         }
         savePortfolioMultiplierPreference(getPortfolioMultiplier());
         updatePortfolioPreview();
+        schedulePortfolioSync(300, { force: true });
     }
 
     function exportCatalogHtml() {
@@ -3559,23 +3640,9 @@ ${renderCatalogBodyHtml(model)}
             throw new Error('Въведи валиден множител.');
         }
 
-        savePortfolioMultiplierPreference(multiplier);
-        const html = buildCatalogDocument(multiplier);
-        const response = await fetch(`${API_BASE}/portfolio/publish`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ html, multiplier, publishedAt: new Date().toISOString() })
-        });
-
-        if (!response.ok) {
-            const err = await response.json().catch(() => ({}));
-            throw new Error(err.error || 'Публикуването неуспешно.');
-        }
-
-        const result = await response.json();
+        await syncPortfolioOnline({ multiplier, force: true, silent: true });
         closePortfolioModal();
-        showBanner(`Портфолиото е публикувано онлайн (×${formatMultiplierValue(multiplier)})! ${PORTFOLIO_PUBLIC_URL}`, 'info');
-        return result;
+        showBanner(`Клиентският каталог е обновен (×${formatMultiplierValue(multiplier)})! ${PORTFOLIO_PUBLIC_URL}`, 'info');
     }
 
     document.getElementById('exportPortfolioBtn').addEventListener('click', openPortfolioModal);
@@ -3584,6 +3651,7 @@ ${renderCatalogBodyHtml(model)}
     document.getElementById('portfolioMultiplierCustom').addEventListener('input', () => {
         savePortfolioMultiplierPreference(getPortfolioMultiplier());
         updatePortfolioPreview();
+        schedulePortfolioSync(900, { force: true });
     });
     document.getElementById('generatePortfolioBtn').addEventListener('click', () => runSafely(exportCatalogHtml));
     document.getElementById('publishPortfolioBtn').addEventListener('click', () => runSafely(publishPortfolioOnline));
