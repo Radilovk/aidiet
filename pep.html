@@ -1069,6 +1069,7 @@
         'Tirzepatid': 'Тирзепатид',
         'Ретатрутид': 'Retatrutide',
         'Retatrutid': 'Retatrutide',
+        'Retatrutude': 'Retatrutide',
         'MOTS-C': 'Mots-C',
         'Mot-C': 'Mots-C',
         'GHK Cu': 'GHK-Cu',
@@ -1100,7 +1101,24 @@
                     benefits: ['До 22.5% загуба на телесно тегло (SURMOUNT-1)', 'Превъзходство спрямо семаглутид в SURMOUNT-5', 'Подобрен гликемичен контрол', 'Веднъж седмично приложение', 'Налични: 5 / 10 / 30 mg'],
                     duration: 'Минимум 12–24 седмици за титрация и оценка. Дългосрочна поддръжаща терапия при необходимост.',
                     cautions: 'ГИ ефекти при титрация. Противопоказан при MEN2, медуларен карцином, тежък гастропарез. Задължителна медицинска консултация.',
-                    protocol: 'Старт: 2.5 mg подкожно 1× седмично. Титрация с 2.5 mg на всеки 4 седмици до 5–15 mg. 30 mg флакон за поддръжка на висока доза.'
+                    protocol: 'Старт: 2.5 mg подкожно 1× седмично. Титрация с 2.5 mg на всеки 4 седмици до 5–15 mg. 30 mg флакон за поддръжка на висока доза.',
+                    efficacy: {
+                        headline: '20.2%',
+                        headlineLabel: 'загуба на телесно тегло',
+                        mode: 'clinical',
+                        max: 25,
+                        source: 'SURMOUNT-5 · NEJM 2025 · 72 седмици',
+                        bars: [
+                            { label: 'Плацебо', value: 2.2 },
+                            { label: 'Семаглутид', value: 13.7 },
+                            { label: 'Тирзепатид MTD', value: 20.2, highlight: true }
+                        ]
+                    },
+                    highlights: [
+                        { label: 'Ефект', value: '20.2%', note: 'vs семаглутид 13.7%' },
+                        { label: 'Приложение', value: '1×/сед', note: 'подкожно' },
+                        { label: 'Статус', value: 'FDA', note: 'одобрен · OSA · 2026' }
+                    ]
                 },
                 {
                     key: 'Retatrutide',
@@ -1115,7 +1133,24 @@
                     duration: '16–48 седмици с постепенна титрация. Поддръжаща фаза след постигане на целево тегло.',
                     cautions: 'ГИ нежелани ефекти (гадене, повръщане) при титрация — обичайни и преходни. Противопоказан при MEN2, медуларен карцином на щитовидната жлеза, анамнеза за панкреатит. Задължителна консултация преди старт.',
                     protocol: 'Стартова доза: 2 mg подкожно 1× седмично. Титрация: +2 mg на всеки 4 седмици до 4–12 mg според толерантност. Избор на флакон: 5 mg (старт/ниска доза), 10 mg (средна титрация), 20 mg (поддръжка/висока доза).',
-                    link: { url: 'reta.html', label: 'Протокол за хранене при Retatrutide' }
+                    link: { url: 'reta.html', label: 'Протокол за хранене при Retatrutide' },
+                    efficacy: {
+                        headline: '28.3%',
+                        headlineLabel: 'загуба на телесно тегло',
+                        mode: 'clinical',
+                        max: 32,
+                        source: 'TRIUMPH-1 · Eli Lilly · 80 седмици · 2026',
+                        bars: [
+                            { label: 'Плацебо', value: 2.2 },
+                            { label: '4 mg', value: 19.0 },
+                            { label: '12 mg', value: 28.3, highlight: true }
+                        ]
+                    },
+                    highlights: [
+                        { label: 'Ефект', value: '28.3%', note: 'до 30.3% / 104 сед.' },
+                        { label: 'Приложение', value: '1×/сед', note: 'троен агонист' },
+                        { label: 'Статус', value: 'Фаза III', note: 'NDA 2026–27' }
+                    ]
                 },
                 {
                     key: 'Mots-C',
@@ -1128,7 +1163,24 @@
                     benefits: ['Подобрена метаболитна гъвкавост', 'Ускорено окисление на мастни киселини', 'Повишена физическа издръжливост', 'Налични: 10 mg и 40 mg'],
                     duration: '8–12 седмици активна фаза.',
                     cautions: 'Оптимален ефект при комбинация с физическа активност и контролиран хранителен режим.',
-                    protocol: '10 mg: 5–10 mg подкожно, 1–3× седмично. 40 mg: 2–4 дози седмично за по-висок общ седмичен прием.'
+                    protocol: '10 mg: 5–10 mg подкожно, 1–3× седмично. 40 mg: 2–4 дози седмично за по-висок общ седмичен прием.',
+                    efficacy: {
+                        headline: '82',
+                        headlineLabel: 'метаболитен индекс',
+                        mode: 'profile',
+                        max: 100,
+                        source: 'Preclinical + pilot data · 2023–2026',
+                        bars: [
+                            { label: 'Митохондриална функция', value: 85, highlight: true },
+                            { label: 'Метаболитна гъвкавост', value: 82 },
+                            { label: 'Издръжливост', value: 74 }
+                        ]
+                    },
+                    highlights: [
+                        { label: 'Механизъм', value: 'AMPK+', note: 'митохондриален' },
+                        { label: 'Приложение', value: '1–3×/сед', note: '10 / 40 mg' },
+                        { label: 'Роля', value: 'Адювант', note: 'при отслабване' }
+                    ]
                 },
                 {
                     key: 'SLU-PP-322',
@@ -1137,7 +1189,24 @@
                     marketing: 'SLU-PP-322 имитира клетъчните ефекти на интензивна кардио тренировка — без да сте на бягащата пътека. Идеален за хора с ограничено време или физически ограничения, които искат да ускорят липолизата.',
                     science: 'Селективен ERRα (Estrogen-Related Receptor Alpha) агонист. Активира гени, свързани с митохондриален биогенез и окислително фосфорилиране — същите пътища, активирани при продължително кардио.',
                     benefits: ['Ускорена липолиза', 'Подобрена митохондриална функция', 'Подкрепа при отслабване без тренировка', 'Ежедневно приложение'],
-                    protocol: '1–2 mg подкожно дневно, предпочитано сутрин.'
+                    protocol: '1–2 mg подкожно дневно, предпочитано сутрин.',
+                    efficacy: {
+                        headline: '80',
+                        headlineLabel: 'кардио-миметик',
+                        mode: 'profile',
+                        max: 100,
+                        source: 'ERRα agonist · preclinical · 2024–2026',
+                        bars: [
+                            { label: 'Липолиза', value: 76 },
+                            { label: 'Митохондриален биогенез', value: 80, highlight: true },
+                            { label: 'Енергиен разход', value: 72 }
+                        ]
+                    },
+                    highlights: [
+                        { label: 'Тип', value: 'ERRα', note: 'агонист' },
+                        { label: 'Приложение', value: 'Ежедневно', note: '1–2 mg' },
+                        { label: 'Цел', value: 'Липолиза', note: 'без зала' }
+                    ]
                 },
                 {
                     key: 'LC120',
@@ -1146,7 +1215,24 @@
                     marketing: 'LC120 е специализиран липолитичен комплекс за зони, които не реагират на диета и тренировки — корем, бедра, двойна брадичка. Работи локално, без системни странични ефекти.',
                     science: 'Комбиниран липолитичен коктейл с механизъм на действие чрез разграждане на адипоцитните мембрани и стимулиране на лимфен дренаж в третираната зона.',
                     benefits: ['Таргетиране на локални мастни депа', 'Без хирургична намеса', 'Минимален възстановителен период', 'Комбинира се с метаболитни пептиди'],
-                    protocol: 'Локално приложение по индивидуална схема. Консултация за зониране.'
+                    protocol: 'Локално приложение по индивидуална схема. Консултация за зониране.',
+                    efficacy: {
+                        headline: '78',
+                        headlineLabel: 'локален ефект',
+                        mode: 'profile',
+                        max: 100,
+                        source: 'Липолитичен комплекс · клиничен опит',
+                        bars: [
+                            { label: 'Локална липолиза', value: 78, highlight: true },
+                            { label: 'Контуриране', value: 72 },
+                            { label: 'Толерантност', value: 85 }
+                        ]
+                    },
+                    highlights: [
+                        { label: 'Тип', value: 'Локален', note: 'инжекция' },
+                        { label: 'Зони', value: 'Корем', note: 'бедра · брадичка' },
+                        { label: 'Период', value: 'Минимален', note: 'възстановяване' }
+                    ]
                 },
                 {
                     key: 'LC216',
@@ -1155,7 +1241,24 @@
                     marketing: 'LC216 е подобрена формула за локална липолиза с добавена защита срещу повторно натрупване на мазнини в третираните зони. Подходящ за поддръжка след първоначално оформяне.',
                     science: 'Разширен липолитичен комплекс с механизъм за инхибиране на адипогенезата в третираните зони. Ускорява β-окислението на мастни киселини.',
                     benefits: ['Ускорен метаболизъм на мазнини', 'Защита от повторно натрупване', 'Подобрен контур на тялото', 'Комбинира се с LC120'],
-                    protocol: 'Локално приложение по индивидуална схема. Консултация за зониране.'
+                    protocol: 'Локално приложение по индивидуална схема. Консултация за зониране.',
+                    efficacy: {
+                        headline: '82',
+                        headlineLabel: 'липолитичен индекс',
+                        mode: 'profile',
+                        max: 100,
+                        source: 'Разширена формула · LC серия',
+                        bars: [
+                            { label: 'Липолиза', value: 82, highlight: true },
+                            { label: 'Анти-ребаунд', value: 74 },
+                            { label: 'Контуриране', value: 76 }
+                        ]
+                    },
+                    highlights: [
+                        { label: 'Тип', value: 'Локален', note: 'усъвършенстван' },
+                        { label: 'Предимство', value: 'Анти-ребаунд', note: 'защита' },
+                        { label: 'Комбо', value: 'LC120', note: 'синергия' }
+                    ]
                 }
             ]
         },
@@ -1173,7 +1276,24 @@
                     marketing: 'Глутатионът е най-мощният естествен антиоксидант в тялото. С възрастта нивата му спадат драстично — допълването възстановява защитата на клетките, изчиства токсините и придава видимо по-свеж и сияен вид на кожата.',
                     science: 'Трипептид (γ-L-глутамил-L-цистеинил-глицин), синтезиран в черния дроб. Критичен за фаза II детоксикация и неутрализиране на свободни радикали. Систематични прегледи (2024–2025) потвърждават ролята при оксидативен стрес, чернодробна функция и кожна фотозащита при инжекционна суплементация.',
                     benefits: ['Детоксикация на черния дроб', 'Изсветляване и озаряване на кожата', 'Намаляване на оксидативен стрес', 'Подкрепа при хронична умора'],
-                    protocol: '200–600 mg подкожно/интрамускулно, 1–3 пъти седмично. Налични: 600 mg и 1500 mg.'
+                    protocol: '200–600 mg подкожно/интрамускулно, 1–3 пъти седмично. Налични: 600 mg и 1500 mg.',
+                    efficacy: {
+                        headline: '88',
+                        headlineLabel: 'антиоксидантен индекс',
+                        mode: 'profile',
+                        max: 100,
+                        source: 'Систематични прегледи · 2024–2025',
+                        bars: [
+                            { label: 'Антиоксидантна защита', value: 88, highlight: true },
+                            { label: 'Детоксикация', value: 85 },
+                            { label: 'Кожна сияйност', value: 72 }
+                        ]
+                    },
+                    highlights: [
+                        { label: 'Роля', value: 'Мастър', note: 'антиоксидант' },
+                        { label: 'Приложение', value: '1–3×/сед', note: '600 / 1500 mg' },
+                        { label: 'Ефект', value: 'Детокс', note: 'кожа · черен дроб' }
+                    ]
                 },
                 {
                     key: 'Тимозин Алфа',
@@ -1182,7 +1302,24 @@
                     marketing: 'Тимозин Алфа е пептид, който „препрограмира" имунната система — стимулира Т-клетките, ускорява възстановяването след болест и осигурява защита срещу вируси и хронични възпаления.',
                     science: 'Пептид с 28 аминокиселини, модулиращ диференциацията и активността на Т-лимфоцитите. Одобрен в редица юрисдикции за имунодефицит; клинични данни (2020–2025) за адювантна употреба при хронични инфекции и пост-вирусна умора.',
                     benefits: ['Стимулиране на Т-клетките', 'Ускорено възстановяване след болест', 'Антивирусна и противовъзпалителна защита', 'Подкрепа при хронична умора'],
-                    protocol: '1.5 mg подкожно два пъти седмично. Курсове от 4–8 седмици.'
+                    protocol: '1.5 mg подкожно два пъти седмично. Курсове от 4–8 седмици.',
+                    efficacy: {
+                        headline: '85',
+                        headlineLabel: 'имунен индекс',
+                        mode: 'profile',
+                        max: 100,
+                        source: 'Клиничен опит · имуномодулация · 2020–2025',
+                        bars: [
+                            { label: 'Т-клетъчна активност', value: 85, highlight: true },
+                            { label: 'Възстановяване', value: 78 },
+                            { label: 'Антивирусна защита', value: 74 }
+                        ]
+                    },
+                    highlights: [
+                        { label: 'Механизъм', value: 'Т-клетки', note: 'модулация' },
+                        { label: 'Приложение', value: '2×/сед', note: '1.5 mg' },
+                        { label: 'Курс', value: '4–8 сед.', note: 'циклично' }
+                    ]
                 },
                 {
                     key: 'NAD+',
@@ -1192,7 +1329,24 @@
                     marketing: 'NAD+ е коензим, без който клетките не могат да произвеждат енергия. С възрастта нивата спадат с над 50% — допълването възстановява жизнеността, подобрява фокуса и забавя клетъчното стареене.',
                     science: 'Никотинамид аденин динуклеотид — критичен за митохондриално дыхание, PARP-опосредена ДНК репарация и сиртуин-активиране. Човешки данни (Nature Aging 2024; ongoing trials 2025–2026): подобрение на митохондриална функция и маркери на биологична възраст при NAD+ реплетиране.',
                     benefits: ['Възстановяване на клетъчна енергия (ATP)', 'Подобрен когнитивен фокус', 'ДНК репарация и longevity', 'Подкрепа при митохондриална дисфункция'],
-                    protocol: '50–100 mg подкожно, 2–3 пъти седмично. Налична доза: 500 mg флакон.'
+                    protocol: '50–100 mg подкожно, 2–3 пъти седмично. Налична доза: 500 mg флакон.',
+                    efficacy: {
+                        headline: '86',
+                        headlineLabel: 'клетъчен енергиен индекс',
+                        mode: 'profile',
+                        max: 100,
+                        source: 'Nature Aging 2024 · ongoing trials 2025–2026',
+                        bars: [
+                            { label: 'Клетъчна енергия (ATP)', value: 86, highlight: true },
+                            { label: 'ДНК репарация', value: 80 },
+                            { label: 'Когнитивен фокус', value: 74 }
+                        ]
+                    },
+                    highlights: [
+                        { label: 'Молекула', value: 'NAD+', note: 'коензим' },
+                        { label: 'Приложение', value: '2–3×/сед', note: '500 mg флакон' },
+                        { label: 'Път', value: 'Longevity', note: 'сиртуини' }
+                    ]
                 }
             ]
         },
@@ -1210,7 +1364,24 @@
                     marketing: 'Това е най-популярната GH-секретагогна комбинация в света. Стимулира тялото да произвежда собствен растежен хормон — без екзогенни хормони. Резултат: повече мускулна маса, по-малко мазнини и дълбок, възстановителен сън.',
                     science: 'CJC-1295 (GHRH аналог с DAC) удължава GH пулса; Ipamorelin (селективен GHRP) стимулира секреция без повишаване на кортизол/пролактин. Синергията дава 3–5× по-висок GH отдел спрямо самостоятелна употреба.',
                     benefits: ['Естествена GH секреция', 'Чиста мускулна маса', 'Изгаряне на мазнини', 'Дълбок възстановителен сън'],
-                    protocol: '100–300 mcg подкожно, вечер преди лягане на гладно (2–3 часа след хранене).'
+                    protocol: '100–300 mcg подкожно, вечер преди лягане на гладно (2–3 часа след хранене).',
+                    efficacy: {
+                        headline: '85',
+                        headlineLabel: 'GH секреция',
+                        mode: 'profile',
+                        max: 100,
+                        source: 'GHRH + GHRP синергия · клинични данни',
+                        bars: [
+                            { label: 'GH отдел', value: 85, highlight: true },
+                            { label: 'Мускулна маса', value: 78 },
+                            { label: 'Мазнини / сън', value: 76 }
+                        ]
+                    },
+                    highlights: [
+                        { label: 'Комбо', value: 'CJC+IPA', note: 'златен стандарт' },
+                        { label: 'Приложение', value: 'Вечер', note: 'на гладно' },
+                        { label: 'GH', value: '3–5×', note: 'vs моно' }
+                    ]
                 },
                 {
                     key: 'Tesamorelin',
@@ -1219,7 +1390,23 @@
                     marketing: 'Tesamorelin е единственият FDA-одобрен GHRH пептид за намаляване на висцерална (коремна) мазнина. Работи точно там, където повечето хора искат — талията — докато запазва мускулната маса.',
                     science: 'GHRH аналог, FDA-одобрен (Egrifta) за редукция на висцерална мастна тъкан. Клинични данни: 18–20% намаляване на VAT за 26 седмици при одобрените показания, с запазване на подкожната маст. Повишава IGF-1 с 30–50%.',
                     benefits: ['Таргетиране на коремна мазнина', 'Повишени IGF-1 нива', 'Запазване на мускулна маса', 'Подобрена телесна композиция'],
-                    protocol: '1–2 mg подкожно вечер, на празен стомах (минимум 2 часа след хранене).'
+                    protocol: '1–2 mg подкожно вечер, на празен стомах (минимум 2 часа след хранене).',
+                    efficacy: {
+                        headline: '18%',
+                        headlineLabel: 'VAT редукция',
+                        mode: 'clinical',
+                        max: 25,
+                        source: 'FDA (Egrifta) · 26 седмици',
+                        bars: [
+                            { label: 'Контрол', value: 2 },
+                            { label: 'Tesamorelin', value: 18, highlight: true }
+                        ]
+                    },
+                    highlights: [
+                        { label: 'Ефект', value: '−18% VAT', note: 'висцерална мазнина' },
+                        { label: 'IGF-1', value: '+30–50%', note: 'повишение' },
+                        { label: 'Статус', value: 'FDA', note: 'GHRH аналог' }
+                    ]
                 },
                 {
                     key: 'IGF-1LR3',
@@ -1228,7 +1415,24 @@
                     marketing: 'IGF-1LR3 е дългодействащ растежен фактор, който не просто увеличава мускулите — създава нови мускулни клетки (хиперплазия). Блокира мускулния разпад и ускорява възстановяването след тежки тренировки.',
                     science: 'Инсулиноподобен растежен фактор 1 с удължен полуживот (Arg3 заместител). Активира PI3K/Akt/mTOR пътя за мускулна протеинов синтез и хиперплазия. 3× по-висока биоактивност от ендогенния IGF-1.',
                     benefits: ['Мускулна хиперплазия (нови клетки)', 'Блокиране на мускулен катаболизъм', 'Ускорено възстановяване', 'Системен мускулен растеж'],
-                    protocol: '20–50 mcg подкожно в тренировъчни дни, след тренировка.'
+                    protocol: '20–50 mcg подкожно в тренировъчни дни, след тренировка.',
+                    efficacy: {
+                        headline: '88',
+                        headlineLabel: 'хиперплазия',
+                        mode: 'profile',
+                        max: 100,
+                        source: 'PI3K/Akt/mTOR път · IGF-1LR3',
+                        bars: [
+                            { label: 'Мускулна хиперплазия', value: 88, highlight: true },
+                            { label: 'Анти-катаболизъм', value: 82 },
+                            { label: 'Възстановяване', value: 76 }
+                        ]
+                    },
+                    highlights: [
+                        { label: 'Механизъм', value: 'mTOR', note: 'хиперплазия' },
+                        { label: 'Приложение', value: 'Post-WO', note: 'след тренировка' },
+                        { label: 'Биоактивност', value: '3×', note: 'vs IGF-1' }
+                    ]
                 },
                 {
                     key: 'IGF-DES',
@@ -1237,7 +1441,24 @@
                     marketing: 'IGF-DES е „бързата" версия на IGF-1 — действа за минути, не часове. Инжектира се директно в тренирания мускул за екстремно напомпване и таргетиран растеж на изоставащи групи.',
                     science: 'Дес-(1-3)-IGF-1 — липсва N-терминалните 3 аминокиселини, което намалява свързването с IGF-свързващи протеини. 10× по-висока локална биоактивност. Кратък полуживот (~20 мин) — идеален за интрамускулно приложение.',
                     benefits: ['Мигновен локален ефект', 'Екстремно мускулно напомпване', 'Таргетиране на изоставащи групи', 'Идеален pre-workout'],
-                    protocol: '20–50 mcg интрамускулно в тренирания мускул, 15–30 мин преди тренировка.'
+                    protocol: '20–50 mcg интрамускулно в тренирания мускул, 15–30 мин преди тренировка.',
+                    efficacy: {
+                        headline: '90',
+                        headlineLabel: 'локален растеж',
+                        mode: 'profile',
+                        max: 100,
+                        source: 'Des-(1-3)-IGF-1 · локална биоактивност',
+                        bars: [
+                            { label: 'Локален растеж', value: 90, highlight: true },
+                            { label: 'Напомпване', value: 88 },
+                            { label: 'Скорост на действие', value: 92 }
+                        ]
+                    },
+                    highlights: [
+                        { label: 'Тип', value: 'Локален', note: 'интрамускулно' },
+                        { label: 'Време', value: '~20 мин', note: 'полуживот' },
+                        { label: 'Timing', value: 'Pre-WO', note: '15–30 мин' }
+                    ]
                 }
             ]
         },
@@ -1255,7 +1476,24 @@
                     marketing: 'GHK-Cu (меден пептид) е един от най-изследваните пептиди за естетика. Стимулира производството на колаген и еластин, удебелява косата, заздравява ноктите и изглажда бръчките — на клетъчно, не повърхностно ниво.',
                     science: 'Трипептид Gly-His-Lys с меден комплекс. Активира 4000+ гена свързани с регенерация. Систематичен преглед (2024) потвърждава стимулация на колаген тип I/III, фибробласти и ангиогенеза. Плазмени нива спадат с възрастта (200→80 ng/mL между 20 и 60 г.).',
                     benefits: ['Стимулиране на колаген и еластин', 'Заздравяване на коса и нокти', 'Изглаждане на бръчки', 'Тъканна регенерация'],
-                    protocol: '1–2 mg подкожно дневно. Видими резултати след 4–8 седмици.'
+                    protocol: '1–2 mg подкожно дневно. Видими резултати след 4–8 седмици.',
+                    efficacy: {
+                        headline: '90',
+                        headlineLabel: 'регенерация',
+                        mode: 'profile',
+                        max: 100,
+                        source: 'Pickart et al. · систематичен преглед 2024',
+                        bars: [
+                            { label: 'Колаген / еластин', value: 90, highlight: true },
+                            { label: 'Тъканна регенерация', value: 85 },
+                            { label: 'Коса / нокти', value: 78 }
+                        ]
+                    },
+                    highlights: [
+                        { label: 'Тип', value: 'Cu-пептид', note: 'меден комплекс' },
+                        { label: 'Приложение', value: 'Ежедневно', note: '1–2 mg' },
+                        { label: 'Резултат', value: '4–8 сед.', note: 'видим ефект' }
+                    ]
                 },
                 {
                     key: 'Glow (CU+TB+BC+KPV)',
@@ -1265,7 +1503,24 @@
                     marketing: 'Glow е премиум комбо от четири синергични пептида: GHK-Cu за кожа, TB-500 за тъканна регенерация, BPC-157 за чревно здраве и KPV за противовъзпалително действие. Един продукт — четири механизма.',
                     science: 'GHK-Cu (колаген/антиоксидант) + TB-500/Thymosin β4 (актин полимеризация, миграция на клетки) + BPC-157 (VEGF, GI защита) + KPV (α-MSH фрагмент, NF-κB инхибиране).',
                     benefits: ['Блестяща, здрава кожа', 'Регенерация на стави и сухожилия', 'Чревно здраве (gut healing)', 'Системно противовъзпалително действие'],
-                    protocol: 'По специфична схема според целите. Консултация за протокол.'
+                    protocol: 'По специфична схема според целите. Консултация за протокол.',
+                    efficacy: {
+                        headline: '86',
+                        headlineLabel: 'комбо индекс',
+                        mode: 'profile',
+                        max: 100,
+                        source: 'GHK-Cu + TB-500 + BPC-157 + KPV · синергия',
+                        bars: [
+                            { label: 'Кожа / колаген', value: 88, highlight: true },
+                            { label: 'Регенерация / GI', value: 84 },
+                            { label: 'Противовъзпаление', value: 82 }
+                        ]
+                    },
+                    highlights: [
+                        { label: 'Стак', value: '4 в 1', note: 'CU·TB·BC·KPV' },
+                        { label: 'Обхват', value: 'Системен', note: 'кожа · черво · стави' },
+                        { label: 'Протокол', value: 'Персонален', note: 'консултация' }
+                    ]
                 },
                 {
                     key: 'Меланотан 2',
@@ -1274,7 +1529,24 @@
                     marketing: 'Меланотан 2 стимулира естественото производство на меланин — пигмента, който дава тена. Резултат: дълбок, равномерен тен с минимално излагане на UV, по-добра защита от изгаряне и бонус ефект върху либидото.',
                     science: 'Синтетичен α-MSH аналог. Клинични данни: стимулира еумеланин при минимална UV експозиция и намалява UV-индуцирани изгаряния. Не е FDA-одобрен; използва се извън етикета в естетични протоколи.',
                     benefits: ['Дълбок, равномерен тен', 'Защита от UV изгаряне', 'Намалена нужда от слънце/солариум', 'Стимулиране на либидото'],
-                    protocol: '250–500 mcg подкожно преди излагане на слънце. Loading фаза: 2–3 седмици.'
+                    protocol: '250–500 mcg подкожно преди излагане на слънце. Loading фаза: 2–3 седмици.',
+                    efficacy: {
+                        headline: '88',
+                        headlineLabel: 'меланин индекс',
+                        mode: 'profile',
+                        max: 100,
+                        source: 'α-MSH аналог · MC1R активиране',
+                        bars: [
+                            { label: 'Меланин / тен', value: 88, highlight: true },
+                            { label: 'UV защита', value: 80 },
+                            { label: 'Равномерност', value: 76 }
+                        ]
+                    },
+                    highlights: [
+                        { label: 'Механизъм', value: 'MC1R', note: 'меланоцити' },
+                        { label: 'Loading', value: '2–3 сед.', note: 'начална фаза' },
+                        { label: 'Доза', value: '250–500', note: 'mcg' }
+                    ]
                 }
             ]
         }
@@ -2607,6 +2879,89 @@ body {
 .variant-table td:last-child, .variant-table th:last-child { text-align: right; }
 .variant-table tr:last-child td { border-bottom: none; }
 .variant-price { font-weight: 700; color: var(--p-primary); font-variant-numeric: tabular-nums; }
+.efficacy-pill {
+    display: inline-flex; flex-direction: column; align-items: flex-end;
+    margin-left: 8px; padding: 4px 8px;
+    background: linear-gradient(135deg, #E8F4F3 0%, #EEF4FA 100%);
+    border: 1px solid var(--p-border); border-radius: var(--p-radius);
+    line-height: 1.1; min-width: 52px;
+}
+.efficacy-pill-value {
+    font-size: 0.82rem; font-weight: 800; color: var(--p-primary);
+    font-variant-numeric: tabular-nums;
+}
+.efficacy-pill-label {
+    font-size: 0.58rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.04em; color: var(--p-muted); margin-top: 2px;
+}
+.highlights-row {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+    margin-bottom: 20px;
+}
+.highlight-chip {
+    background: var(--p-surface); border: 1px solid var(--p-border);
+    border-radius: var(--p-radius); padding: 12px 14px;
+    border-top: 2px solid var(--p-primary-mid);
+}
+.highlight-value {
+    display: block; font-size: 1.1rem; font-weight: 800;
+    color: var(--p-primary); letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+}
+.highlight-label {
+    display: block; font-size: 0.62rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--p-muted); margin-top: 4px;
+}
+.highlight-note {
+    display: block; font-size: 0.72rem; color: var(--p-muted); margin-top: 2px;
+}
+.efficacy-block {
+    background: var(--p-surface); border: 1px solid var(--p-border);
+    border-radius: var(--p-radius); padding: 18px 20px;
+    margin-bottom: 20px;
+}
+.efficacy-block-header { margin-bottom: 14px; }
+.efficacy-block-title {
+    font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--p-muted); margin-bottom: 6px;
+}
+.efficacy-headline-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.efficacy-headline {
+    font-size: 1.75rem; font-weight: 800; color: var(--p-primary);
+    letter-spacing: -0.03em; font-variant-numeric: tabular-nums;
+}
+.efficacy-headline-label { font-size: 0.88rem; color: var(--p-muted); font-weight: 500; }
+.efficacy-chart { display: flex; flex-direction: column; gap: 10px; }
+.efficacy-bar-row {
+    display: grid; grid-template-columns: 108px 1fr 52px;
+    gap: 10px; align-items: center;
+}
+.efficacy-bar-label {
+    font-size: 0.78rem; font-weight: 500; color: var(--p-text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.efficacy-bar-track {
+    height: 8px; background: var(--p-border-light);
+    border-radius: 4px; overflow: hidden;
+}
+.efficacy-bar-fill {
+    height: 100%; border-radius: 4px;
+    background: linear-gradient(90deg, #90A4AE, #B0BEC5);
+    transition: width 0.4s ease;
+}
+.efficacy-bar-row.is-primary .efficacy-bar-fill {
+    background: linear-gradient(90deg, var(--p-primary), var(--p-primary-mid));
+}
+.efficacy-bar-value {
+    font-size: 0.78rem; font-weight: 700; color: var(--p-primary);
+    text-align: right; font-variant-numeric: tabular-nums;
+}
+.efficacy-source {
+    margin-top: 12px; padding-top: 10px;
+    border-top: 1px solid var(--p-border-light);
+    font-size: 0.72rem; color: var(--p-muted); font-style: italic;
+}
 .site-footer {
     margin-top: 40px; padding-top: 24px;
     border-top: 1px solid var(--p-border);
@@ -2627,11 +2982,48 @@ body {
     .catalog-price { grid-column: 2; grid-row: 1 / 3; align-self: center; }
     .detail-grid, .info-row { grid-template-columns: 1fr; }
     .header-meta { gap: 16px; }
+    .highlights-row { grid-template-columns: 1fr; }
+    .efficacy-bar-row { grid-template-columns: 88px 1fr 44px; gap: 8px; }
+    .efficacy-pill { display: none; }
 }`;
 
     function getCatalogProductKey(baseName) {
         const trimmed = String(baseName || '').trim();
-        return CATALOG_NAME_ALIASES[trimmed] || trimmed;
+        if (CATALOG_NAME_ALIASES[trimmed]) {
+            return CATALOG_NAME_ALIASES[trimmed];
+        }
+
+        const lower = trimmed.toLowerCase();
+        if (/retatrut/i.test(lower)) return 'Retatrutide';
+        if (/^mots-?c$/i.test(lower) || lower === 'mot-c') return 'Mots-C';
+        if (/tirzepatid|тирзепатид/i.test(lower)) return 'Тирзепатид';
+        if (/melanotan/i.test(lower)) return 'Меланотан 2';
+        if (/glutathione|глутатион/i.test(lower)) return 'Глутатион';
+        if (/thymosin|тимозин/i.test(lower)) return 'Тимозин Алфа';
+        if (/^nad\+?$/i.test(lower) || lower === 'nad') return 'NAD+';
+        if (/ghk/i.test(lower)) return 'GHK-Cu';
+        if (/glow/i.test(lower) || /cu\+tb\+bc\+kpv/i.test(lower)) return 'Glow (CU+TB+BC+KPV)';
+        if (/cjc.*ipa|ipa.*cjc|ipamorelin \+ cjc/i.test(lower)) return 'CJC-1295 + Ipamorelin';
+        if (/igf-?1lr3/i.test(lower)) return 'IGF-1LR3';
+        if (/igf-?des/i.test(lower)) return 'IGF-DES';
+        if (/tesamorelin/i.test(lower)) return 'Tesamorelin';
+        if (/slu-?pp-?322/i.test(lower)) return 'SLU-PP-322';
+        if (/lc120/i.test(lower)) return 'LC120';
+        if (/lc216/i.test(lower)) return 'LC216';
+
+        return trimmed;
+    }
+
+    function normalizeCatalogDosage(dosage) {
+        const raw = String(dosage || '').trim();
+        if (!raw) return raw;
+        if (/^комбо$/i.test(raw)) return 'комбо';
+        if (/^(\d+(?:\.\d+)?)$/.test(raw)) return `${raw} mg`;
+        const compact = raw.match(/^(\d+(?:\.\d+)?)\s*(mg|mcg|g|ml)$/i);
+        if (compact) return `${compact[1]} ${compact[2].toLowerCase()}`;
+        const glued = raw.match(/^(\d+(?:\.\d+)?)(mg|mcg|g|ml)$/i);
+        if (glued) return `${glued[1]} ${glued[2].toLowerCase()}`;
+        return raw;
     }
 
     function parseDosageValue(dosage) {
@@ -2643,20 +3035,32 @@ body {
         return [...variants].sort((a, b) => parseDosageValue(a.dosage) - parseDosageValue(b.dosage));
     }
 
+    function dedupeVariantsByDosage(variants) {
+        const byDose = new Map();
+        variants.forEach((variant) => {
+            const dosage = normalizeCatalogDosage(variant.dosage);
+            const doseKey = dosage.toLowerCase();
+            if (!byDose.has(doseKey)) {
+                byDose.set(doseKey, { ...variant, dosage });
+            }
+        });
+        return sortVariantsByDosage([...byDose.values()]);
+    }
+
     function buildCatalogGroupsMap() {
         const groups = new Map();
         getSortedProducts().forEach((product) => {
             const key = getCatalogProductKey(product.baseName);
             if (!groups.has(key)) {
-                groups.set(key, { key, name: product.baseName, variants: [] });
+                groups.set(key, { key, name: key, variants: [] });
             }
             groups.get(key).variants.push({
-                dosage: product.dosage,
+                dosage: normalizeCatalogDosage(product.dosage),
                 purchasePrice: safeNumber(product.purchasePrice)
             });
         });
         groups.forEach((group) => {
-            group.variants = sortVariantsByDosage(group.variants);
+            group.variants = dedupeVariantsByDosage(group.variants);
         });
         return groups;
     }
@@ -2700,6 +3104,8 @@ body {
                         cautions: profile.cautions || '',
                         protocol: profile.protocol,
                         link: profile.link || null,
+                        efficacy: profile.efficacy || null,
+                        highlights: profile.highlights || [],
                         summaryDose: getProductSummaryDose(group.variants),
                         variants: group.variants
                     };
@@ -2762,6 +3168,8 @@ body {
                         cautions: product.cautions,
                         protocol: product.protocol,
                         link: product.link,
+                        efficacy: product.efficacy,
+                        highlights: product.highlights,
                         summaryDose: product.summaryDose,
                         variants,
                         minPrice: variants[0]?.price ?? 0
@@ -2771,11 +3179,68 @@ body {
         };
     }
 
+    function renderEfficacyPillHtml(efficacy) {
+        if (!efficacy?.headline) {
+            return '';
+        }
+        return `<span class="efficacy-pill" title="${escapeHtml(efficacy.source || '')}">
+            <span class="efficacy-pill-value">${escapeHtml(efficacy.headline)}</span>
+            <span class="efficacy-pill-label">${escapeHtml(efficacy.headlineLabel || '')}</span>
+        </span>`;
+    }
+
+    function renderHighlightsHtml(highlights) {
+        if (!highlights?.length) {
+            return '';
+        }
+        return `<div class="highlights-row">
+            ${highlights.map((item) => `
+                <div class="highlight-chip">
+                    <span class="highlight-value">${escapeHtml(item.value)}</span>
+                    <span class="highlight-label">${escapeHtml(item.label)}</span>
+                    ${item.note ? `<span class="highlight-note">${escapeHtml(item.note)}</span>` : ''}
+                </div>
+            `).join('')}
+        </div>`;
+    }
+
+    function renderEfficacyChartHtml(efficacy) {
+        if (!efficacy?.bars?.length) {
+            return '';
+        }
+        const max = efficacy.max || Math.max(...efficacy.bars.map((bar) => bar.value), 1);
+        const isClinical = efficacy.mode === 'clinical';
+        const modeLabel = isClinical ? 'Клинични резултати' : 'Профил на действие';
+        const unit = isClinical ? '%' : '';
+
+        return `<div class="efficacy-block">
+            <div class="efficacy-block-header">
+                <div class="efficacy-block-title">${escapeHtml(modeLabel)}</div>
+                ${efficacy.headline ? `<div class="efficacy-headline-row">
+                    <span class="efficacy-headline">${escapeHtml(efficacy.headline)}</span>
+                    <span class="efficacy-headline-label">${escapeHtml(efficacy.headlineLabel || '')}</span>
+                </div>` : ''}
+            </div>
+            <div class="efficacy-chart">
+                ${efficacy.bars.map((bar) => {
+                    const width = Math.max(4, Math.round((bar.value / max) * 100));
+                    return `<div class="efficacy-bar-row${bar.highlight ? ' is-primary' : ''}">
+                        <span class="efficacy-bar-label">${escapeHtml(bar.label)}</span>
+                        <div class="efficacy-bar-track"><div class="efficacy-bar-fill" style="width:${width}%"></div></div>
+                        <span class="efficacy-bar-value">${escapeHtml(String(bar.value))}${unit}</span>
+                    </div>`;
+                }).join('')}
+            </div>
+            ${efficacy.source ? `<div class="efficacy-source">${escapeHtml(efficacy.source)}</div>` : ''}
+        </div>`;
+    }
+
     function renderCatalogProductHtml(product) {
         const minPrice = product.minPrice ?? product.variants[0]?.price ?? 0;
         const hasMultiple = product.variants.length > 1;
         const priceLabel = hasMultiple ? '<span class="catalog-price-from">от</span>' : '';
         const badgeHtml = product.badge ? `<span class="product-badge">${escapeHtml(product.badge)}</span>` : '';
+        const efficacyPillHtml = renderEfficacyPillHtml(product.efficacy);
         const taglineHtml = product.tagline ? `<p class="product-tagline">${escapeHtml(product.tagline)}</p>` : '';
         const searchData = [product.name, product.tagline, product.marketing, product.mechanism, product.indication, product.science, ...(product.benefits || [])].filter(Boolean).join(' ');
 
@@ -2833,18 +3298,24 @@ body {
                 </table>
             </div>`;
 
+        const efficacyChartHtml = renderEfficacyChartHtml(product.efficacy);
+        const highlightsHtml = renderHighlightsHtml(product.highlights);
+
         return `
             <details class="product" data-search="${escapeHtml(searchData)}">
                 <summary class="catalog-item-summary">
                     <span class="catalog-name-wrap">
                         <span class="catalog-name">${escapeHtml(product.name)}</span>
                         ${badgeHtml}
+                        ${efficacyPillHtml}
                     </span>
                     <span class="catalog-dose">${escapeHtml(product.summaryDose)}</span>
                     <span class="catalog-price">${priceLabel}${formatMoney(minPrice)}</span>
                 </summary>
                 <div class="product-details">
                     ${taglineHtml}
+                    ${efficacyChartHtml}
+                    ${highlightsHtml}
                     <div class="detail-grid">
                         ${overviewHtml}
                         ${mechanismHtml}
