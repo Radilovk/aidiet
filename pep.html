@@ -795,7 +795,7 @@
         <div class="card-header">
             <div class="card-title">📊 Оперативна картина</div>
             <div class="action-row" style="width:min(100%, 420px);">
-                <button id="exportPortfolioBtn" class="btn-outline">HTML Каталог</button>
+                <button id="exportPortfolioBtn" class="btn-outline">Портфолио</button>
                 <button id="exportDataBtn" class="btn-outline">XLS</button>
             </div>
         </div>
@@ -951,7 +951,7 @@
 <div id="portfolioExportModal" class="modal" aria-hidden="true">
     <div class="modal-content" style="width:min(520px,100%);">
         <span class="close-portfolio-modal close-modal" aria-label="Затвори">&times;</span>
-        <div class="card-title">📱 HTML Каталог</div>
+        <div class="card-title">🧬 PEP Портфолио</div>
         <div class="edit-modal-grid">
             <div class="form-group full-width">
                 <label for="portfolioMultiplierSelect">Ценово ниво (само за теб)</label>
@@ -972,8 +972,12 @@
                 </div>
                 <div class="inline-note" style="margin-top:8px;">Клиентите виждат само крайните цени — без множител и вътрешна информация.</div>
             </div>
+            <div class="form-group full-width" style="display:flex;gap:10px;flex-wrap:wrap;">
+                <button id="publishPortfolioBtn" style="flex:1;min-width:140px;background:linear-gradient(135deg,#0D9488,#0891B2);">🌐 Публикувай онлайн</button>
+                <button id="generatePortfolioBtn" class="btn-outline" style="flex:1;min-width:140px;">📥 Изтегли HTML</button>
+            </div>
             <div class="form-group full-width">
-                <button id="generatePortfolioBtn">Изтегли HTML</button>
+                <div class="inline-note" id="portfolioPublishNote">Онлайн адрес: <a href="https://biocode.website/pep-portfolio.html" target="_blank" rel="noopener">biocode.website/pep-portfolio.html</a></div>
             </div>
         </div>
     </div>
@@ -1058,123 +1062,205 @@
 
     const CATALOG_NAME_ALIASES = {
         'CJC-1295 + IPA': 'CJC-1295 + Ipamorelin',
-        'Ipamorelin + CJC': 'CJC-1295 + Ipamorelin'
+        'Ipamorelin + CJC': 'CJC-1295 + Ipamorelin',
+        'Tirzepatide': 'Тирзепатид',
+        'Tirzepatid': 'Тирзепатид',
+        'Ретатрутид': 'Retatrutide',
+        'Retatrutid': 'Retatrutide',
+        'MOTS-C': 'Mots-C',
+        'Mot-C': 'Mots-C',
+        'GHK Cu': 'GHK-Cu',
+        'GHK-CU': 'GHK-Cu',
+        'Melanotan 2': 'Меланотан 2',
+        'Melanotan II': 'Меланотан 2',
+        'Glutathione': 'Глутатион',
+        'Thymosin Alpha': 'Тимозин Алфа',
+        'Thymosin Alfa': 'Тимозин Алфа',
+        'NAD': 'NAD+'
     };
 
     const CATALOG_LIBRARY = [
         {
             title: 'Отслабване & Метаболизъм',
+            icon: '⚡',
+            description: 'Научно доказани агенти за контрол на теглото, метаболитна оптимизация и устойчива енергия.',
+            accent: '#0D9488',
             products: [
                 {
                     key: 'Тирзепатид',
                     name: 'Тирзепатид',
-                    marketing: 'Двоен GLP-1/GIP рецепторен агонист. Драстично потиска апетита, забавя стомашното изпразване и оптимизира инсулиновата чувствителност. Златен стандарт за редукция на тегло.',
-                    protocol: 'Прием: 2.5 mg подкожно веднъж седмично.'
+                    badge: 'Златен стандарт',
+                    tagline: 'Двойно действие срещу глада и инсулиновата резистентност',
+                    marketing: 'Тирзепатидът е революционен пептид, който работи на два фронта едновременно — намалява апетита и подобрява начина, по който тялото обработва захарта. Клиентите усещат по-бързо насищане, по-малко тревожност от храна и по-лесно спазване на калориен дефицит без постоянна борба с глада.',
+                    science: 'Двойен GLP-1/GIP рецепторен агонист. Клинични изследвания (SURMOUNT) показват средна загуба на тегло до 22.5% при продължителна употреба. Забавя гастропразненето и подобрява инсулиновата чувствителност.',
+                    benefits: ['Драстично намаляване на апетита', 'Подобрена гликемична контрола', 'Устойчива загуба на мазнини', 'Веднъж седмично приложение'],
+                    protocol: 'Старт: 2.5 mg подкожно веднъж седмично. Титрация до 5–15 mg според толерантност и цел.'
                 },
                 {
                     key: 'Retatrutide',
                     name: 'Retatrutide',
-                    marketing: 'Тройна синергия (GLP-1/GIP/Glucagon). Най-агресивният агент за изгаряне на мазнини на пазара. Повишава базовия метаболизъм (BMR) и директно атакува мастните депа.',
-                    protocol: 'Прием: 2 mg подкожно веднъж седмично.'
+                    badge: 'Топ избор',
+                    tagline: 'Тройна мощ — най-агресивният метаболитен ускорител',
+                    marketing: 'Retatrutide е следващото поколение в метаболитната терапия. За разлика от класическите GLP-1 агенти, той активира три хормонални пътя едновременно — не само намалява глада, но и директно ускорява изгарянето на мазнини и повишава енергийния разход дори в покой.',
+                    science: 'Тройна GLP-1/GIP/Glucagon рецепторна агонистична активност. Фаза II данни (Eli Lilly) демонстрират до 24% загуба на телесно тегло за 48 седмици — най-високият резултат сред всички тествани агенти.',
+                    benefits: ['Максимално изгаряне на мазнини', 'Повишен базов метаболизъм (BMR)', 'Синергия на три хормонални пътя', 'Налични дози: 5 / 10 / 20 mg'],
+                    protocol: 'Старт: 2 mg подкожно веднъж седмично. Постепенна титрация до 4–12 mg. Изберете дозировката според целта и опита.',
+                    link: { url: 'reta.html', label: 'Протокол за хранене при Retatrutide' }
                 },
                 {
                     key: 'Mots-C',
                     name: 'Mots-C',
-                    marketing: 'Митохондриален регулатор. Форсира тялото да използва мазнини и глюкоза за енергия. Осигурява метаболитна гъвкавост и екстремна физическа издръжливост.',
-                    protocol: 'Прием: 5-10 mg подкожно, 1-3 пъти седмично (преди натоварване).'
+                    tagline: 'Митохондриален ускорител — енергия от мазнини',
+                    marketing: 'Mots-C е пептид, който „включва“ митохондриите — енергийните централи на клетките. Помага на тялото да гори мазнини вместо да ги складира, подобрява издръжливостта и дава устойчива енергия без кофеинови сривове.',
+                    science: 'Митохондриално-кодиран пептид, който активира AMPK пътя и подобрява метаболитната гъвкавост (metabolic flexibility). Повишава окислението на мастни киселини и глюкозна утилизация.',
+                    benefits: ['По-ефективно изгаряне на мазнини', 'Повишена физическа издръжливост', 'Метаболитна гъвкавост', 'Подкрепа при инсулинова резистентност'],
+                    protocol: '5–10 mg подкожно, 1–3 пъти седмично (оптимално преди тренировка).'
                 },
                 {
                     key: 'SLU-PP-322',
                     name: 'SLU-PP-322',
-                    marketing: 'Известен като "упражнение в спринцовка". Активира ERRα рецепторите, имитирайки ефектите на интензивна кардио тренировка на клетъчно ниво. Забързва липолизата.',
-                    protocol: 'Прием: 1-2 mg дневно подкожно.'
+                    tagline: '„Упражнение в спринцовка" — кардио ефект без зала',
+                    marketing: 'SLU-PP-322 имитира клетъчните ефекти на интензивна кардио тренировка — без да сте на бягащата пътека. Идеален за хора с ограничено време или физически ограничения, които искат да ускорят липолизата.',
+                    science: 'Селективен ERRα (Estrogen-Related Receptor Alpha) агонист. Активира гени, свързани с митохондриален биогенез и окислително фосфорилиране — същите пътища, активирани при продължително кардио.',
+                    benefits: ['Ускорена липолиза', 'Подобрена митохондриална функция', 'Подкрепа при отслабване без тренировка', 'Ежедневно приложение'],
+                    protocol: '1–2 mg подкожно дневно, предпочитано сутрин.'
                 },
                 {
                     key: 'LC120',
                     name: 'LC120',
-                    marketing: 'Мощен липолитичен комплекс за локално таргетиране. Подпомага разграждането на упорити мастни депа в специфични зони.',
-                    protocol: 'Прием: По индивидуална схема за локално приложение.'
+                    tagline: 'Локално таргетиране на упорити мастни зони',
+                    marketing: 'LC120 е специализиран липолитичен комплекс за зони, които не реагират на диета и тренировки — корем, бедра, двойна брадичка. Работи локално, без системни странични ефекти.',
+                    science: 'Комбиниран липолитичен коктейл с механизъм на действие чрез разграждане на адипоцитните мембрани и стимулиране на лимфен дренаж в третираната зона.',
+                    benefits: ['Таргетиране на локални мастни депа', 'Без хирургична намеса', 'Минимален възстановителен период', 'Комбинира се с метаболитни пептиди'],
+                    protocol: 'Локално приложение по индивидуална схема. Консултация за зониране.'
                 },
                 {
                     key: 'LC216',
                     name: 'LC216',
-                    marketing: 'Усъвършенстван липолитичен комплекс. Ускорява метаболизма на мастните киселини и предотвратява ново натрупване в третираните зони.',
-                    protocol: 'Прием: По индивидуална схема за локално приложение.'
+                    tagline: 'Усъвършенстван липолитик — предотвратява повторно натрупване',
+                    marketing: 'LC216 е подобрена формула за локална липолиза с добавена защита срещу повторно натрупване на мазнини в третираните зони. Подходящ за поддръжка след първоначално оформяне.',
+                    science: 'Разширен липолитичен комплекс с механизъм за инхибиране на адипогенезата в третираните зони. Ускорява β-окислението на мастни киселини.',
+                    benefits: ['Ускорен метаболизъм на мазнини', 'Защита от повторно натрупване', 'Подобрен контур на тялото', 'Комбинира се с LC120'],
+                    protocol: 'Локално приложение по индивидуална схема. Консултация за зониране.'
                 }
             ]
         },
         {
             title: 'Антиейджинг & Здраве',
+            icon: '🧬',
+            description: 'Клетъчно подмладяване, детоксикация и имунна оптимизация на молекулярно ниво.',
+            accent: '#6366F1',
             products: [
                 {
                     key: 'Глутатион',
                     name: 'Глутатион',
-                    marketing: 'Майсторският антиоксидант на тялото. Детоксикира черния дроб, изчиства свободните радикали, изсветлява кожата и осигурява дълбоко клетъчно подмладяване.',
-                    protocol: 'Прием: 200-600 mg подкожно/интрамускулно, 1-3 пъти седмично.'
+                    badge: 'Мастър антиоксидант',
+                    tagline: 'Главният защитник на клетките — детокс, светлина, младост',
+                    marketing: 'Глутатионът е най-мощният естествен антиоксидант в тялото. С възрастта нивата му спадат драстично — допълването възстановява защитата на клетките, изчиства токсините и придава видимо по-свеж и сияен вид на кожата.',
+                    science: 'Трипептид (γ-L-глутамил-L-цистеинил-глицин), синтезиран в черния дроб. Критичен за фаза II детоксикация, регенерация на витамин C/E и неутрализиране на свободни радикали. Нива спадат с ~10% на десетилетие след 20-годишна възраст.',
+                    benefits: ['Детоксикация на черния дроб', 'Изсветляване и озаряване на кожата', 'Намаляване на оксидативен стрес', 'Подкрепа при хронична умора'],
+                    protocol: '200–600 mg подкожно/интрамускулно, 1–3 пъти седмично. Налични: 600 mg и 1500 mg.'
                 },
                 {
                     key: 'Тимозин Алфа',
                     name: 'Тимозин Алфа',
-                    marketing: 'Елитна имунна модулация. Стимулира Т-клетките, възстановява компрометирана имунна система и осигурява защита срещу вирусни инфекции и възпаления.',
-                    protocol: 'Прием: 1.5 mg подкожно два пъти седмично.'
+                    tagline: 'Имунна система на елитно ниво',
+                    marketing: 'Тимозин Алфа е пептид, който „препрограмира" имунната система — стимулира Т-клетките, ускорява възстановяването след болест и осигурява защита срещу вируси и хронични възпаления.',
+                    science: 'Пептид с 28 аминокиселини, модулиращ диференциацията и активността на Т-лимфоцитите. Клинично използван при имунодефицитни състояния и като адювант при хронични инфекции.',
+                    benefits: ['Стимулиране на Т-клетките', 'Ускорено възстановяване след болест', 'Антивирусна и противовъзпалителна защита', 'Подкрепа при хронична умора'],
+                    protocol: '1.5 mg подкожно два пъти седмично. Курсове от 4–8 седмици.'
                 },
                 {
                     key: 'NAD+',
                     name: 'NAD+',
-                    marketing: 'Молекулата на младостта. Възстановява клетъчната енергия (ATP), регенерира ДНК щети и повишава неврологичния фокус и яснота.',
-                    protocol: 'Прием: 50-100 mg подкожно, 2-3 пъти седмично.'
+                    badge: 'Молекула на младостта',
+                    tagline: 'Възстановява клетъчната енергия и яснотата на ума',
+                    marketing: 'NAD+ е коензим, без който клетките не могат да произвеждат енергия. С възрастта нивата спадат с над 50% — допълването възстановява жизнеността, подобрява фокуса и забавя клетъчното стареене.',
+                    science: 'Никотинамид аденин динуклеотид — критичен за митохондриално дыхание, PARP-опосредена ДНК репарация и сиртуин-активиране. Свързан с longevity пътищата на д-р Дейвид Синклер.',
+                    benefits: ['Възстановяване на клетъчна енергия (ATP)', 'Подобрен когнитивен фокус', 'ДНК репарация и longevity', 'Подкрепа при митохондриална дисфункция'],
+                    protocol: '50–100 mg подкожно, 2–3 пъти седмично. Налична доза: 500 mg флакон.'
                 }
             ]
         },
         {
             title: 'Мускулен Растеж & Оформяне',
+            icon: '💪',
+            description: 'Пептиди за естествена секреция на растежен хормон, мускулна хиперплазия и дефиниция.',
+            accent: '#3B82F6',
             products: [
                 {
                     key: 'CJC-1295 + Ipamorelin',
                     name: 'CJC-1295 + Ipamorelin',
-                    marketing: 'Златният стандарт за секреция на растежен хормон. Стимулира естественото производство на HGH, изгражда чиста мускулна маса, гори мазнини и гарантира дълбок възстановителен сън.',
-                    protocol: 'Прием: 100-300 mcg подкожно, вечер преди лягане на гладно.'
+                    badge: 'Златен стандарт',
+                    tagline: 'Естествен HGH — мускули, мазнини, дълбок сън',
+                    marketing: 'Това е най-популярната GH-секретагогна комбинация в света. Стимулира тялото да произвежда собствен растежен хормон — без екзогенни хормони. Резултат: повече мускулна маса, по-малко мазнини и дълбок, възстановителен сън.',
+                    science: 'CJC-1295 (GHRH аналог с DAC) удължава GH пулса; Ipamorelin (селективен GHRP) стимулира секреция без повишаване на кортизол/пролактин. Синергията дава 3–5× по-висок GH отдел спрямо самостоятелна употреба.',
+                    benefits: ['Естествена GH секреция', 'Чиста мускулна маса', 'Изгаряне на мазнини', 'Дълбок възстановителен сън'],
+                    protocol: '100–300 mcg подкожно, вечер преди лягане на гладно (2–3 часа след хранене).'
                 },
                 {
                     key: 'Tesamorelin',
                     name: 'Tesamorelin',
-                    marketing: 'Най-мощният пептид (GHRH) за директно таргетиране и изгаряне на висцерална мастна тъкан (коремната област). Повишава IGF-1 нивата.',
-                    protocol: 'Прием: 1-2 mg подкожно вечер, на празен стомах.'
+                    tagline: 'Директно атакува коремната мазнина',
+                    marketing: 'Tesamorelin е единственият FDA-одобрен GHRH пептид за намаляване на висцерална (коремна) мазнина. Работи точно там, където повечето хора искат — талията — докато запазва мускулната маса.',
+                    science: 'GHRH (Growth Hormone-Releasing Hormone) аналог. Клинични данни показват значимо намаляване на висцерална мастна тъкан при запазване на подкожната. Повишава IGF-1 с 30–50%.',
+                    benefits: ['Таргетиране на коремна мазнина', 'Повишени IGF-1 нива', 'Запазване на мускулна маса', 'Подобрена телесна композиция'],
+                    protocol: '1–2 mg подкожно вечер, на празен стомах (минимум 2 часа след хранене).'
                 },
                 {
                     key: 'IGF-1LR3',
                     name: 'IGF-1LR3',
-                    marketing: 'Инсулиноподобен растежен фактор (дълъг полуживот). Предизвиква системна мускулна хиперплазия (създаване на нови мускулни клетки) и блокира мускулния разпад.',
-                    protocol: 'Прием: 20-50 mcg подкожно в тренировъчни дни.'
+                    tagline: 'Създава нови мускулни клетки — хиперплазия',
+                    marketing: 'IGF-1LR3 е дългодействащ растежен фактор, който не просто увеличава мускулите — създава нови мускулни клетки (хиперплазия). Блокира мускулния разпад и ускорява възстановяването след тежки тренировки.',
+                    science: 'Инсулиноподобен растежен фактор 1 с удължен полуживот (Arg3 заместител). Активира PI3K/Akt/mTOR пътя за мускулна протеинов синтез и хиперплазия. 3× по-висока биоактивност от ендогенния IGF-1.',
+                    benefits: ['Мускулна хиперплазия (нови клетки)', 'Блокиране на мускулен катаболизъм', 'Ускорено възстановяване', 'Системен мускулен растеж'],
+                    protocol: '20–50 mcg подкожно в тренировъчни дни, след тренировка.'
                 },
                 {
                     key: 'IGF-DES',
                     name: 'IGF-DES',
-                    marketing: 'Супер-активна, къса версия на IGF-1. Действа мигновено. Идеален за локален растеж, екстремно напомпване и третиране на изоставащи мускулни групи.',
-                    protocol: 'Прием: 20-50 mcg двустранно (в тренирания мускул) преди тренировка.'
+                    tagline: 'Локален растеж — мигновен ефект в целевия мускул',
+                    marketing: 'IGF-DES е „бързата" версия на IGF-1 — действа за минути, не часове. Инжектира се директно в тренирания мускул за екстремно напомпване и таргетиран растеж на изоставащи групи.',
+                    science: 'Дес-(1-3)-IGF-1 — липсва N-терминалните 3 аминокиселини, което намалява свързването с IGF-свързващи протеини. 10× по-висока локална биоактивност. Кратък полуживот (~20 мин) — идеален за интрамускулно приложение.',
+                    benefits: ['Мигновен локален ефект', 'Екстремно мускулно напомпване', 'Таргетиране на изоставащи групи', 'Идеален pre-workout'],
+                    protocol: '20–50 mcg интрамускулно в тренирания мускул, 15–30 мин преди тренировка.'
                 }
             ]
         },
         {
             title: 'Естетика & Регенерация',
+            icon: '✨',
+            description: 'Кожа, коса, стави и тъканна регенерация — отвътре навън.',
+            accent: '#EC4899',
             products: [
                 {
                     key: 'GHK-Cu',
                     name: 'GHK-Cu',
-                    marketing: 'Медният пептид. Увеличава производството на колаген, сгъстява косата, лекува тъканни увреждания и изглажда фините линии и бръчки. Клетъчен ремонт на ДНК ниво.',
-                    protocol: 'Прием: 1-2 mg подкожно дневно.'
+                    badge: 'Меден пептид',
+                    tagline: 'Колаген, коса, кожа — клетъчен ремонт',
+                    marketing: 'GHK-Cu (меден пептид) е един от най-изследваните пептиди за естетика. Стимулира производството на колаген и еластин, удебелява косата, заздравява ноктите и изглажда бръчките — на клетъчно, не повърхностно ниво.',
+                    science: 'Трипептид Gly-His-Lys с меден комплекс. Активира 4000+ гена свързани с регенерация. Стимулира фибробласти, ангиогенеза и антиоксидантна защита. Нива спадат от 200 ng/mL (20 г.) до 80 ng/mL (60 г.).',
+                    benefits: ['Стимулиране на колаген и еластин', 'Заздравяване на коса и нокти', 'Изглаждане на бръчки', 'Тъканна регенерация'],
+                    protocol: '1–2 mg подкожно дневно. Видими резултати след 4–8 седмици.'
                 },
                 {
                     key: 'Glow (CU+TB+BC+KPV)',
                     name: 'Glow (CU+TB+BC+KPV)',
-                    marketing: 'Ултимативният стакинг (GHK-Cu, TB-500, BPC-157, KPV). Блокира възпаленията, лекува червата, регенерира стави/сухожилия и осигурява блестяща, здрава кожа.',
-                    protocol: 'Прием: По специфична схема в зависимост от целите на регенерацията.'
+                    badge: 'Ултимативен стак',
+                    tagline: '4 в 1 — кожа, черво, стави, възпаление',
+                    marketing: 'Glow е премиум комбо от четири синергични пептида: GHK-Cu за кожа, TB-500 за тъканна регенерация, BPC-157 за чревно здраве и KPV за противовъзпалително действие. Един продукт — четири механизма.',
+                    science: 'GHK-Cu (колаген/антиоксидант) + TB-500/Thymosin β4 (актин полимеризация, миграция на клетки) + BPC-157 (VEGF, GI защита) + KPV (α-MSH фрагмент, NF-κB инхибиране).',
+                    benefits: ['Блестяща, здрава кожа', 'Регенерация на стави и сухожилия', 'Чревно здраве (gut healing)', 'Системно противовъзпалително действие'],
+                    protocol: 'По специфична схема според целите. Консултация за протокол.'
                 },
                 {
                     key: 'Меланотан 2',
                     name: 'Меланотан 2',
-                    marketing: 'Стимулира производството на меланин. Гарантира дълбок, равномерен тен с минимално излагане на UV лъчи, предпазва от изгаряне и силно стимулира либидото.',
-                    protocol: 'Прием: 250-500 mcg подкожно преди излагане на слънце/солариум.'
+                    tagline: 'Естествен тен с минимално слънце',
+                    marketing: 'Меланотан 2 стимулира естественото производство на меланин — пигмента, който дава тена. Резултат: дълбок, равномерен тен с минимално излагане на UV, по-добра защита от изгаряне и бонус ефект върху либидото.',
+                    science: 'Синтетичен α-MSH (меланоцит-стимулиращ хормон) аналог. Активира MC1R рецепторите в меланоцитите. Клинични данни показват значимо намаляване на UV-индуцирани изгаряния.',
+                    benefits: ['Дълбок, равномерен тен', 'Защита от UV изгаряне', 'Намалена нужда от слънце/солариум', 'Стимулиране на либидото'],
+                    protocol: '250–500 mcg подкожно преди излагане на слънце. Loading фаза: 2–3 седмици.'
                 }
             ]
         }
@@ -2201,146 +2287,255 @@
 
     const CATALOG_EXPORT_STYLES = `
 * { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+    --bio-primary: #0D9488;
+    --bio-primary-light: #CCFBF1;
+    --bio-primary-dark: #0F766E;
+    --bio-accent: #06B6D4;
+    --bio-surface: rgba(255,255,255,0.82);
+    --bio-text: #0F2F2E;
+    --bio-muted: #64748B;
+    --bio-border: rgba(13,148,136,0.12);
+    --bio-radius: 20px;
+    --bio-shadow: 0 8px 32px rgba(13,148,136,0.08);
+}
 body {
     font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
-    background: #f3f6fb;
-    color: #0f172a;
-    padding: 16px;
-    max-width: 480px;
-    margin: 0 auto;
+    background: #F0FDFA;
+    color: var(--bio-text);
+    min-height: 100vh;
     -webkit-font-smoothing: antialiased;
 }
-header {
-    background: #fff;
-    border: 1px solid #dbe3ef;
-    border-radius: 16px;
-    padding: 18px 16px;
-    margin-bottom: 12px;
+.bg-mesh {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+        radial-gradient(ellipse 80% 60% at 10% 10%, rgba(13,148,136,0.09) 0%, transparent 55%),
+        radial-gradient(ellipse 60% 50% at 90% 80%, rgba(6,182,212,0.07) 0%, transparent 50%),
+        radial-gradient(ellipse 50% 40% at 50% 50%, rgba(99,102,241,0.04) 0%, transparent 60%);
 }
-h1 { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 6px; }
-.meta { color: #64748b; font-size: 0.88rem; line-height: 1.45; }
+.page-wrap {
+    position: relative; z-index: 1;
+    max-width: 720px; margin: 0 auto;
+    padding: 20px 16px 48px;
+}
+.hero {
+    background: var(--bio-surface);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--bio-border);
+    border-radius: 24px;
+    padding: 28px 24px;
+    margin-bottom: 20px;
+    box-shadow: var(--bio-shadow);
+    text-align: center;
+}
+.hero-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--bio-primary-light);
+    color: var(--bio-primary-dark);
+    font-size: 0.72rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 5px 12px; border-radius: 999px;
+    margin-bottom: 14px;
+}
+.hero-badge::before { content: '🧬'; font-size: 0.85rem; }
+h1 {
+    font-size: clamp(1.5rem, 4vw, 2rem);
+    font-weight: 900; letter-spacing: -0.03em;
+    line-height: 1.15; margin-bottom: 8px;
+    background: linear-gradient(135deg, #0F766E 0%, #0891B2 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.hero-sub {
+    color: var(--bio-muted); font-size: 0.95rem;
+    line-height: 1.55; max-width: 480px; margin: 0 auto 16px;
+}
+.hero-stats {
+    display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;
+}
+.hero-stat { text-align: center; }
+.hero-stat-val {
+    font-size: 1.4rem; font-weight: 800;
+    color: var(--bio-primary); letter-spacing: -0.02em;
+}
+.hero-stat-label {
+    font-size: 0.72rem; color: var(--bio-muted);
+    text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;
+}
 .category {
-    background: #e2e8f0;
-    border-radius: 16px;
-    margin-bottom: 12px;
+    background: var(--bio-surface);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--bio-border);
+    border-radius: var(--bio-radius);
+    margin-bottom: 14px;
     overflow: hidden;
-    border: 1px solid #cbd5e1;
+    box-shadow: var(--bio-shadow);
 }
 .category-title {
-    padding: 14px 16px;
-    font-weight: 800;
-    font-size: 1.05rem;
-    color: #1e293b;
-    cursor: pointer;
-    list-style: none;
-    position: relative;
-    user-select: none;
+    display: flex; align-items: center; gap: 10px;
+    padding: 16px 18px;
+    font-weight: 800; font-size: 1rem;
+    color: var(--bio-text);
+    cursor: pointer; list-style: none;
+    position: relative; user-select: none;
+    border-left: 4px solid var(--cat-accent, var(--bio-primary));
+}
+.category-icon { font-size: 1.2rem; flex-shrink: 0; }
+.category-text { flex: 1; min-width: 0; }
+.category-desc {
+    display: block; font-size: 0.78rem; font-weight: 400;
+    color: var(--bio-muted); margin-top: 2px; line-height: 1.4;
 }
 .category-title::-webkit-details-marker { display: none; }
 .category-title::after {
-    content: '+';
-    position: absolute;
-    right: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 1.4rem;
-    font-weight: 400;
-    line-height: 1;
-    color: #64748b;
-    transition: transform 0.2s ease;
+    content: ''; flex-shrink: 0;
+    width: 28px; height: 28px;
+    background: var(--bio-primary-light);
+    border-radius: 50%;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%230D9488' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: center;
+    transition: transform 0.25s ease;
 }
-.category[open] > .category-title::after {
-    transform: translateY(-50%) rotate(45deg);
-}
+.category[open] > .category-title::after { transform: rotate(180deg); }
 .category-content {
-    padding: 0 8px 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    padding: 0 10px 10px;
+    display: flex; flex-direction: column; gap: 8px;
 }
 .catalog-head {
     display: grid;
-    grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.8fr) minmax(0, 0.8fr);
-    gap: 8px;
-    padding: 0 14px 8px;
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-    color: #64748b;
-    font-weight: 700;
+    grid-template-columns: minmax(0,1.5fr) minmax(0,0.7fr) minmax(0,0.8fr);
+    gap: 8px; padding: 0 14px 10px;
+    font-size: 0.68rem; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--bio-muted); font-weight: 700;
 }
-.catalog-head span:last-child,
-.catalog-price { text-align: right; }
+.catalog-head span:last-child, .catalog-price { text-align: right; }
 .product {
     background: #fff;
-    border: 1px solid #dbe3ef;
-    border-radius: 14px;
-    overflow: hidden;
+    border: 1px solid var(--bio-border);
+    border-radius: 16px; overflow: hidden;
+    transition: box-shadow 0.2s ease;
 }
+.product[open] { box-shadow: 0 4px 20px rgba(13,148,136,0.1); }
 .catalog-item-summary {
     display: grid;
-    grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.8fr) minmax(0, 0.8fr);
-    gap: 8px;
-    align-items: center;
-    padding: 14px;
-    font-size: 0.95rem;
-    line-height: 1.35;
-    cursor: pointer;
-    list-style: none;
-    user-select: none;
-    position: relative;
+    grid-template-columns: minmax(0,1.5fr) minmax(0,0.7fr) minmax(0,0.8fr);
+    gap: 8px; align-items: center;
+    padding: 14px 16px;
+    font-size: 0.93rem; line-height: 1.35;
+    cursor: pointer; list-style: none;
+    user-select: none; position: relative;
     transition: background 0.2s ease;
 }
 .catalog-item-summary::-webkit-details-marker { display: none; }
 .product[open] > .catalog-item-summary {
-    background: #f8fafc;
-    border-bottom: 1px solid #e2e8f0;
+    background: linear-gradient(135deg, #F0FDFA 0%, #fff 100%);
+    border-bottom: 1px solid var(--bio-border);
 }
-.catalog-name { font-weight: 700; word-break: break-word; }
-.catalog-dose { color: #64748b; font-size: 0.88rem; }
-.catalog-price { font-weight: 800; color: #2563eb; white-space: nowrap; }
-.product-details {
-    padding: 14px;
-    background: #fff;
-    font-size: 0.9rem;
-    color: #334155;
+.catalog-name-wrap { min-width: 0; }
+.catalog-name { font-weight: 700; word-break: break-word; display: block; }
+.product-badge {
+    display: inline-block; margin-top: 3px;
+    font-size: 0.65rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    background: var(--bio-primary-light); color: var(--bio-primary-dark);
+    padding: 2px 7px; border-radius: 6px;
 }
-.marketing-text { margin-bottom: 10px; line-height: 1.5; }
-.protocol {
-    font-weight: 600;
-    color: #0f172a;
+.catalog-dose { color: var(--bio-muted); font-size: 0.85rem; }
+.catalog-price {
+    font-weight: 800; color: var(--bio-primary);
+    white-space: nowrap; font-size: 1rem;
+}
+.catalog-price-from { font-size: 0.68rem; font-weight: 500; color: var(--bio-muted); display: block; }
+.product-details { padding: 16px; background: #fff; }
+.product-tagline {
+    font-size: 0.88rem; font-weight: 600;
+    color: var(--bio-primary-dark); margin-bottom: 10px; line-height: 1.4;
+}
+.marketing-text {
+    font-size: 0.9rem; line-height: 1.6;
+    color: #334155; margin-bottom: 12px;
+}
+.science-block {
+    background: linear-gradient(135deg, #F0FDFA 0%, #ECFEFF 100%);
+    border: 1px solid rgba(13,148,136,0.15);
+    border-radius: 12px; padding: 12px 14px;
     margin-bottom: 12px;
-    background: #f1f5f9;
-    padding: 8px 10px;
-    border-radius: 8px;
 }
+.science-label {
+    font-size: 0.68rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.07em;
+    color: var(--bio-primary); margin-bottom: 5px;
+    display: flex; align-items: center; gap: 5px;
+}
+.science-label::before { content: '🔬'; font-size: 0.8rem; }
+.science-text { font-size: 0.83rem; line-height: 1.55; color: #475569; }
+.benefits-list {
+    list-style: none; margin-bottom: 12px;
+    display: grid; gap: 5px;
+}
+.benefits-list li {
+    font-size: 0.85rem; color: #334155;
+    padding-left: 20px; position: relative; line-height: 1.45;
+}
+.benefits-list li::before {
+    content: '✓'; position: absolute; left: 0;
+    color: var(--bio-primary); font-weight: 700; font-size: 0.8rem;
+}
+.protocol {
+    font-weight: 600; color: var(--bio-text);
+    background: #F8FAFC; border: 1px solid #E2E8F0;
+    padding: 10px 12px; border-radius: 10px;
+    font-size: 0.85rem; line-height: 1.5; margin-bottom: 12px;
+}
+.protocol::before { content: '💉 '; }
+.product-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--bio-primary); font-weight: 600;
+    font-size: 0.85rem; text-decoration: none;
+    padding: 8px 14px; border-radius: 10px;
+    background: var(--bio-primary-light);
+    margin-bottom: 12px; transition: background 0.2s;
+}
+.product-link:hover { background: #99F6E4; }
 .variants-title {
-    font-size: 0.8rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    color: #64748b;
-    margin-bottom: 6px;
-    letter-spacing: 0.05em;
+    font-size: 0.72rem; font-weight: 700;
+    text-transform: uppercase; color: var(--bio-muted);
+    margin-bottom: 6px; letter-spacing: 0.06em;
 }
 .variant-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 6px 0;
-    border-top: 1px dashed #cbd5e1;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0; border-top: 1px dashed #E2E8F0;
 }
 .variant-row:first-of-type { border-top: none; }
-.variant-dose { font-weight: 600; color: #475569; }
-.variant-price { font-weight: 700; color: #2563eb; }
+.variant-dose { font-weight: 600; color: #475569; font-size: 0.9rem; }
+.variant-price { font-weight: 800; color: var(--bio-primary); font-size: 0.95rem; }
 footer {
-    margin-top: 16px;
-    padding: 0 4px 24px;
-    text-align: center;
-    color: #94a3b8;
-    font-size: 0.78rem;
+    margin-top: 24px; padding: 20px 8px;
+    text-align: center; color: #94A3B8; font-size: 0.78rem; line-height: 1.5;
+}
+footer strong { color: var(--bio-primary); }
+@media (max-width: 480px) {
+    .catalog-head { display: none; }
+    .catalog-item-summary {
+        grid-template-columns: 1fr auto;
+        grid-template-rows: auto auto;
+    }
+    .catalog-dose { grid-column: 1; font-size: 0.8rem; }
+    .catalog-price { grid-column: 2; grid-row: 1 / 3; align-self: center; }
 }`;
 
     function getCatalogProductKey(baseName) {
-        return CATALOG_NAME_ALIASES[baseName] || baseName;
+        const trimmed = String(baseName || '').trim();
+        return CATALOG_NAME_ALIASES[trimmed] || trimmed;
+    }
+
+    function parseDosageValue(dosage) {
+        const match = String(dosage || '').match(/([\d.]+)/);
+        return match ? parseFloat(match[1]) : 0;
+    }
+
+    function sortVariantsByDosage(variants) {
+        return [...variants].sort((a, b) => parseDosageValue(a.dosage) - parseDosageValue(b.dosage));
     }
 
     function buildCatalogGroupsMap() {
@@ -2356,7 +2551,7 @@ footer {
             });
         });
         groups.forEach((group) => {
-            group.variants.sort((a, b) => a.purchasePrice - b.purchasePrice);
+            group.variants = sortVariantsByDosage(group.variants);
         });
         return groups;
     }
@@ -2376,6 +2571,9 @@ footer {
         const usedKeys = new Set();
         const categories = CATALOG_LIBRARY.map((category, index) => ({
             title: category.title,
+            icon: category.icon || '',
+            description: category.description || '',
+            accent: category.accent || '#0D9488',
             open: index === 0,
             products: category.products
                 .map((profile) => {
@@ -2386,8 +2584,13 @@ footer {
                     usedKeys.add(profile.key);
                     return {
                         name: profile.name || group.name,
+                        badge: profile.badge || '',
+                        tagline: profile.tagline || '',
                         marketing: profile.marketing,
+                        science: profile.science || '',
+                        benefits: profile.benefits || [],
                         protocol: profile.protocol,
+                        link: profile.link || null,
                         summaryDose: getProductSummaryDose(group.variants),
                         variants: group.variants
                     };
@@ -2428,6 +2631,9 @@ footer {
             variantCount: model.variantCount,
             categories: model.categories.map((category) => ({
                 title: category.title,
+                icon: category.icon,
+                description: category.description,
+                accent: category.accent,
                 open: category.open,
                 products: category.products.map((product) => {
                     const variants = product.variants.map((variant) => ({
@@ -2436,8 +2642,13 @@ footer {
                     }));
                     return {
                         name: product.name,
+                        badge: product.badge,
+                        tagline: product.tagline,
                         marketing: product.marketing,
+                        science: product.science,
+                        benefits: product.benefits,
                         protocol: product.protocol,
+                        link: product.link,
                         summaryDose: product.summaryDose,
                         variants,
                         minPrice: variants[0]?.price ?? 0
@@ -2449,7 +2660,20 @@ footer {
 
     function renderCatalogProductHtml(product) {
         const minPrice = product.minPrice ?? product.variants[0]?.price ?? 0;
-        const variantsTitle = product.variants.length > 1 ? '<div class="variants-title">Налични варианти</div>' : '';
+        const hasMultiple = product.variants.length > 1;
+        const priceLabel = hasMultiple ? '<span class="catalog-price-from">от</span>' : '';
+        const badgeHtml = product.badge ? `<span class="product-badge">${escapeHtml(product.badge)}</span>` : '';
+        const taglineHtml = product.tagline ? `<p class="product-tagline">${escapeHtml(product.tagline)}</p>` : '';
+        const scienceHtml = product.science ? `
+            <div class="science-block">
+                <div class="science-label">Научна основа</div>
+                <p class="science-text">${escapeHtml(product.science)}</p>
+            </div>` : '';
+        const benefitsHtml = product.benefits?.length ? `
+            <ul class="benefits-list">${product.benefits.map((b) => `<li>${escapeHtml(b)}</li>`).join('')}</ul>` : '';
+        const linkHtml = product.link ? `
+            <a class="product-link" href="${escapeHtml(product.link.url)}" target="_blank" rel="noopener">${escapeHtml(product.link.label)} →</a>` : '';
+        const variantsTitle = hasMultiple ? '<div class="variants-title">Налични дозировки & цени</div>' : '';
         const variantsHtml = product.variants.map((variant) => `
             <div class="variant-row">
                 <span class="variant-dose">${escapeHtml(variant.dosage)}</span>
@@ -2460,13 +2684,20 @@ footer {
         return `
             <details class="product">
                 <summary class="catalog-item-summary">
-                    <span class="catalog-name">${escapeHtml(product.name)}</span>
+                    <span class="catalog-name-wrap">
+                        <span class="catalog-name">${escapeHtml(product.name)}</span>
+                        ${badgeHtml}
+                    </span>
                     <span class="catalog-dose">${escapeHtml(product.summaryDose)}</span>
-                    <span class="catalog-price">${formatMoney(minPrice)}</span>
+                    <span class="catalog-price">${priceLabel}${formatMoney(minPrice)}</span>
                 </summary>
                 <div class="product-details">
+                    ${taglineHtml}
                     <p class="marketing-text">${escapeHtml(product.marketing)}</p>
+                    ${scienceHtml}
+                    ${benefitsHtml}
                     <div class="protocol">${escapeHtml(product.protocol)}</div>
+                    ${linkHtml}
                     ${variantsTitle}
                     ${variantsHtml}
                 </div>
@@ -2483,9 +2714,15 @@ footer {
                 return '';
             }
             const openAttr = options.preview ? (index === 0 ? ' open' : '') : (category.open ? ' open' : '');
+            const descHtml = category.description
+                ? `<span class="category-desc">${escapeHtml(category.description)}</span>`
+                : '';
             return `
-                <details class="category"${openAttr}>
-                    <summary class="category-title">${escapeHtml(category.title)}</summary>
+                <details class="category"${openAttr} style="--cat-accent:${escapeHtml(category.accent || '#0D9488')}">
+                    <summary class="category-title">
+                        <span class="category-icon">${escapeHtml(category.icon || '')}</span>
+                        <span class="category-text">${escapeHtml(category.title)}${descHtml}</span>
+                    </summary>
                     <div class="category-content">
                         ${products.map((product) => renderCatalogProductHtml(product)).join('')}
                     </div>
@@ -2500,7 +2737,7 @@ footer {
         return `
             <div class="catalog-head">
                 <span>Продукт</span>
-                <span>Основа</span>
+                <span>Доза</span>
                 <span>Цена</span>
             </div>
             ${categoryHtml}
@@ -2532,6 +2769,8 @@ footer {
         `;
     }
 
+    const PORTFOLIO_PUBLIC_URL = 'https://biocode.website/pep-portfolio.html';
+
     function buildCatalogDocument(multiplier) {
         const today = new Date().toLocaleDateString('bg-BG');
         const model = buildClientCatalogModel(multiplier);
@@ -2540,18 +2779,37 @@ footer {
 <html lang="bg">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<title>PEP Каталог</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="Премиум пептиден каталог — научно обосновани продукти за метаболизъм, антиейджинг, мускулен растеж и регенерация.">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#F0FDFA">
+<meta property="og:type" content="website">
+<meta property="og:url" content="${PORTFOLIO_PUBLIC_URL}">
+<meta property="og:title" content="PEP Портфолио — Премиум Пептиди">
+<meta property="og:description" content="Научно обосновани пептиди за отслабване, антиейджинг, мускулен растеж и естетика.">
+<meta property="og:locale" content="bg_BG">
+<link rel="canonical" href="${PORTFOLIO_PUBLIC_URL}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<title>PEP Портфолио — Премиум Пептиди</title>
 <style>${CATALOG_EXPORT_STYLES}</style>
 </head>
 <body>
-<header>
-    <h1>PEP Каталог</h1>
-    <div class="meta">${model.uniqueCount} продукта · Актуален към ${escapeHtml(today)}</div>
+<div class="bg-mesh"></div>
+<div class="page-wrap">
+<header class="hero">
+    <div class="hero-badge">Biotechnology 2026</div>
+    <h1>PEP Портфолио</h1>
+    <p class="hero-sub">Премиум пептиди с научна основа — за метаболизъм, младост, мускули и регенерация. Разбираеми за всеки, подкрепени от клинични изследвания.</p>
+    <div class="hero-stats">
+        <div class="hero-stat"><div class="hero-stat-val">${model.uniqueCount}</div><div class="hero-stat-label">Продукта</div></div>
+        <div class="hero-stat"><div class="hero-stat-val">${model.variantCount}</div><div class="hero-stat-label">Дозировки</div></div>
+        <div class="hero-stat"><div class="hero-stat-val">4</div><div class="hero-stat-label">Категории</div></div>
+    </div>
 </header>
 ${renderCatalogBodyHtml(model)}
-<footer>PEP Каталог · ${escapeHtml(today)}</footer>
+<footer><strong>PEP Портфолио</strong> · Актуален към ${escapeHtml(today)}<br>Научно обосновани пептиди · Консултация при поръчка</footer>
+</div>
 </body>
 </html>`;
     }
@@ -2612,11 +2870,39 @@ ${renderCatalogBodyHtml(model)}
         showBanner('HTML каталогът е изтеглен. Сподели файла директно с клиента.', 'info');
     }
 
+    async function publishPortfolioOnline() {
+        const multiplier = getPortfolioMultiplier();
+        if (!state.products.length) {
+            throw new Error('Каталогът е празен.');
+        }
+        if (!Number.isFinite(multiplier) || multiplier <= 0) {
+            throw new Error('Въведи валиден множител.');
+        }
+
+        const html = buildCatalogDocument(multiplier);
+        const response = await fetch(`${API_BASE}/portfolio/publish`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ html, multiplier, publishedAt: new Date().toISOString() })
+        });
+
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.error || 'Публикуването неуспешно.');
+        }
+
+        const result = await response.json();
+        closePortfolioModal();
+        showBanner(`Портфолиото е публикувано онлайн! ${PORTFOLIO_PUBLIC_URL}`, 'info');
+        return result;
+    }
+
     document.getElementById('exportPortfolioBtn').addEventListener('click', openPortfolioModal);
     document.querySelector('#portfolioExportModal .close-modal').addEventListener('click', closePortfolioModal);
     document.getElementById('portfolioMultiplierSelect').addEventListener('change', updatePortfolioMultiplierField);
     document.getElementById('portfolioMultiplierCustom').addEventListener('input', updatePortfolioPreview);
     document.getElementById('generatePortfolioBtn').addEventListener('click', () => runSafely(exportCatalogHtml));
+    document.getElementById('publishPortfolioBtn').addEventListener('click', () => runSafely(publishPortfolioOnline));
 
     document.getElementById('exportDataBtn').addEventListener('click', () => {
         const rows = [['ID', 'Дата', 'Продукт', 'Количество', 'Тип запис', 'Приход (€)', 'Разход (€)', 'Бележка']];

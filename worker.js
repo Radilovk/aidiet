@@ -1795,6 +1795,7 @@ async function kvPutJSON(env, key, data, ttl = AI_LOG_KV_TTL) {
 const PEP_PRODUCTS_KEY = 'pep:products';
 const PEP_SALES_KEY = 'pep:sales';
 const PEP_UPDATED_AT_KEY = 'pep:updated-at';
+const PEP_PORTFOLIO_KEY = 'pep:portfolio';
 let pepD1Initialized = false;
 
 function getPepStorageType(env) {
@@ -2393,6 +2394,60 @@ async function handlePepResetDemo(request, env) {
   } catch (error) {
     console.error('PEP reset demo error:', error);
     return jsonResponse({ error: error.message || 'Неуспешно възстановяване на демо данните' }, 500);
+  }
+}
+
+async function handlePepPublishPortfolio(request, env) {
+  try {
+    const storageType = getPepStorageType(env);
+    if (!storageType) {
+      return jsonResponse({ error: ERROR_MESSAGES.PEP_STORAGE_NOT_CONFIGURED }, 500);
+    }
+
+    const { html, multiplier, publishedAt } = await request.json();
+    if (!html || typeof html !== 'string' || html.length < 100) {
+      return jsonResponse({ error: 'Невалидно HTML съдържание за портфолио.' }, 400);
+    }
+    if (html.length > 2_000_000) {
+      return jsonResponse({ error: 'Портфолиото е твърде голямо за публикуване.' }, 400);
+    }
+
+    const portfolioData = {
+      html,
+      multiplier: Number(multiplier) || 2.5,
+      publishedAt: publishedAt || pepNowISO(),
+      url: 'https://biocode.website/pep-portfolio.html'
+    };
+
+    await kvPutJSON(env, PEP_PORTFOLIO_KEY, portfolioData, null);
+
+    return jsonResponse({
+      success: true,
+      publishedAt: portfolioData.publishedAt,
+      url: portfolioData.url
+    });
+  } catch (error) {
+    console.error('PEP publish portfolio error:', error);
+    return jsonResponse({ error: error.message || 'Неуспешно публикуване на портфолио.' }, 500);
+  }
+}
+
+async function handlePepGetPortfolio(request, env) {
+  try {
+    const portfolio = await kvGetJSON(env, PEP_PORTFOLIO_KEY);
+    if (!portfolio?.html) {
+      return jsonResponse({ error: 'Портфолиото все още не е публикувано.' }, 404);
+    }
+
+    return jsonResponse({
+      html: portfolio.html,
+      publishedAt: portfolio.publishedAt,
+      multiplier: portfolio.multiplier,
+      url: portfolio.url
+    }, 200, { cacheControl: 'public, max-age=300' });
+  } catch (error) {
+    console.error('PEP get portfolio error:', error);
+    return jsonResponse({ error: error.message || 'Грешка при зареждане на портфолио.' }, 500);
   }
 }
 
@@ -15993,6 +16048,10 @@ export default {
         return await handlePepDeleteSale(request, env);
       } else if (url.pathname === '/api/pep/reset-demo' && request.method === 'POST') {
         return await handlePepResetDemo(request, env);
+      } else if (url.pathname === '/api/pep/portfolio/publish' && request.method === 'POST') {
+        return await handlePepPublishPortfolio(request, env);
+      } else if (url.pathname === '/api/pep/portfolio' && request.method === 'GET') {
+        return await handlePepGetPortfolio(request, env);
       } else if (url.pathname === '/api/auth/social' && request.method === 'POST') {
         const rlErr = await checkRateLimit(env, request, 'SOCIAL_AUTH');
         if (rlErr) return rlErr;
