@@ -3417,6 +3417,7 @@ body {
 
     const PORTFOLIO_PUBLIC_URL = 'https://biocode.website/pep-portfolio.html';
     const PORTFOLIO_BRAND = 'Портфолио Пептиди';
+    const PORTFOLIO_TEMPLATE_VERSION = 2;
 
     const CATALOG_PORTFOLIO_SCRIPT = `
 (function(){
@@ -3446,6 +3447,7 @@ body {
         const model = buildClientCatalogModel(multiplier);
 
         return `<!DOCTYPE html>
+<!-- portfolio-template:${PORTFOLIO_TEMPLATE_VERSION} -->
 <html lang="bg">
 <head>
 <meta charset="UTF-8">

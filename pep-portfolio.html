@@ -38,27 +38,56 @@
 <script>
 (function() {
     var API = 'https://aidiet.radilov-k.workers.dev/api/pep/portfolio';
-    var FALLBACK = 'pep-portfolio-static.html';
+    var STATIC = 'pep-portfolio-static.html';
+    var TEMPLATE_VERSION = 2;
 
-    function showPublished(html) {
+    function getTemplateVersion(html) {
+        if (!html) return 0;
+        var match = html.match(/portfolio-template:(\d+)/);
+        return match ? parseInt(match[1], 10) : 0;
+    }
+
+    function renderPortfolio(html) {
         document.open();
         document.write(html);
         document.close();
     }
 
-    fetch(API, { cache: 'no-store' })
-        .then(function(response) {
-            return response.ok ? response.json() : Promise.reject(new Error('not-published'));
-        })
-        .then(function(payload) {
-            if (!payload || !payload.html) {
-                throw new Error('empty');
-            }
-            showPublished(payload.html);
-        })
-        .catch(function() {
-            window.location.replace(FALLBACK);
-        });
+    function showError(message) {
+        var loader = document.getElementById('loader');
+        if (loader) {
+            loader.innerHTML = '<strong>Портфолио Пептиди</strong><span>' + message + '</span>';
+        }
+    }
+
+    Promise.all([
+        fetch(STATIC, { cache: 'no-store' }).then(function(r) { return r.ok ? r.text() : ''; }).catch(function() { return ''; }),
+        fetch(API, { cache: 'no-store' }).then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; })
+    ]).then(function(results) {
+        var staticHtml = results[0];
+        var apiPayload = results[1];
+        var apiHtml = apiPayload && apiPayload.html;
+        var apiVersion = getTemplateVersion(apiHtml);
+        var staticVersion = getTemplateVersion(staticHtml);
+
+        if (apiHtml && apiVersion >= TEMPLATE_VERSION) {
+            renderPortfolio(apiHtml);
+            return;
+        }
+        if (staticHtml && staticVersion >= TEMPLATE_VERSION) {
+            renderPortfolio(staticHtml);
+            return;
+        }
+        if (apiHtml) {
+            renderPortfolio(apiHtml);
+            return;
+        }
+        if (staticHtml) {
+            renderPortfolio(staticHtml);
+            return;
+        }
+        showError('Каталогът не е наличен в момента.');
+    });
 })();
 </script>
 </body>
