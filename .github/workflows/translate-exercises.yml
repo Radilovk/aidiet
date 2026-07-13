@@ -1,0 +1,75 @@
+name: Translate FitPlan Exercises
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Max exercises to translate (0 = all)'
+        required: false
+        default: '0'
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/translate-exercises.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  translate:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Translate exercises via Gemini
+        working-directory: fitness
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GEMINI_API_KEY:-}" ]; then
+            echo "::error::GEMINI_API_KEY липсва в GitHub Secrets."
+            exit 1
+          fi
+          LIMIT="${{ github.event.inputs.limit || '0' }}"
+          if [ "$LIMIT" != "0" ]; then
+            node scripts/translate-exercises.mjs --limit "$LIMIT"
+          else
+            node scripts/translate-exercises.mjs
+          fi
+          npm run build:index
+
+      - name: Commit translations
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add fitness/data/exercise-translations-bg.json
+          if git diff --staged --quiet; then
+            echo "Няма нови преводи за commit."
+            exit 0
+          fi
+          git commit -m "chore(fitness): update exercise BG translations [automated]"
+          git push
+
+      - name: Upload exercise index to KV
+        if: github.ref == 'refs/heads/main'
+        working-directory: fitness
+        run: |
+          if [ ! -f data/exercise-index.json ]; then
+            echo "::warning::exercise-index.json липсва — пропускам KV upload."
+            exit 0
+          fi
+          npx wrangler kv key put exidx:v1 --path data/exercise-index.json \
+            --binding FITNESS_KV --env production --remote
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
