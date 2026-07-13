@@ -97,13 +97,59 @@ function el(tag, props = {}, ...children) {
   return node;
 }
 
-const VIEWS = ['wizard', 'loading', 'plan', 'error'];
+const VIEWS = ['home', 'wizard', 'loading', 'plan', 'error'];
+
+function hasCachedPlan() {
+  return Boolean(planRecord?.plan?.days?.length);
+}
+
+function formatPlanDate(iso) {
+  if (!iso) return '';
+  try {
+    return new Date(iso).toLocaleDateString('bg-BG', { day: 'numeric', month: 'long', year: 'numeric' });
+  } catch { return ''; }
+}
+
+function wizardHasProgress() {
+  return Object.keys(wizardState || {}).length > 0;
+}
+
+function renderHome() {
+  const hasPlan = hasCachedPlan();
+  const card = $('homePlanCard');
+  card.classList.toggle('hidden', !hasPlan);
+  $('btnMyProgram').classList.toggle('hidden', !hasPlan);
+
+  if (hasPlan) {
+    $('homePlanTitle').textContent = planRecord.plan.title || 'Твоят седмичен план';
+    const date = formatPlanDate(planRecord.createdAt);
+    $('homePlanMeta').textContent = date ? `Създаден на ${date}` : 'Запазена на това устройство';
+  }
+
+  const draft = wizardHasProgress() && !hasPlan;
+  $('btnContinueWizard').classList.toggle('hidden', !draft);
+  $('btnStartWizard').textContent = hasPlan ? 'Създай нов план' : 'Започни въпросника';
+}
+
+function openCachedProgram() {
+  if (!hasCachedPlan()) {
+    renderHome();
+    showView('home');
+    return;
+  }
+  activeDay = firstTrainingDay(planRecord.plan);
+  renderPlan();
+  showView('plan');
+}
+
 function showView(name) {
   for (const v of VIEWS) $(`view-${v}`).classList.toggle('hidden', v !== name);
   $('btnNewPlan').classList.toggle('hidden', name !== 'plan');
+  $('btnMyProgram').classList.toggle('hidden', !hasCachedPlan() || name === 'plan');
   $('chatFab').classList.toggle('hidden', name !== 'plan');
   if (name !== 'plan') closeChat();
-  window.scrollTo({ top: 0 });
+  document.body.dataset.view = name;
+  window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
 }
 
 // ============================================================
@@ -826,6 +872,33 @@ function init() {
   $('btnNext').addEventListener('click', nextStep);
   $('btnBack').addEventListener('click', prevStep);
 
+  $('btnOpenProgram').addEventListener('click', openCachedProgram);
+  $('btnMyProgram').addEventListener('click', openCachedProgram);
+  $('homePlanCard').addEventListener('click', (e) => {
+    if (e.target.closest('#btnOpenProgram')) return;
+    openCachedProgram();
+  });
+
+  const logo = document.querySelector('.app-header .logo');
+  if (logo) {
+    logo.addEventListener('click', (e) => {
+      if (!hasCachedPlan()) return;
+      e.preventDefault();
+      renderHome();
+      showView('home');
+    });
+  }
+  $('btnStartWizard').addEventListener('click', () => {
+    if (hasCachedPlan() && !confirm('Ще започнеш нов въпросник. Текущата програма остава запазена, докато не генерираш нова. Продължаваш ли?')) return;
+    stepIndex = 0;
+    renderStep();
+    showView('wizard');
+  });
+  $('btnContinueWizard').addEventListener('click', () => {
+    renderStep();
+    showView('wizard');
+  });
+
   // нов план (пази старите отговори за редакция)
   $('btnNewPlan').addEventListener('click', () => {
     if (!confirm('Ще започнеш нов въпросник (старите ти отговори са запазени за редакция). Продължаваш ли?')) return;
@@ -868,17 +941,33 @@ function init() {
   // начален екран
   const params = new URLSearchParams(location.search);
   const sharedPlanId = params.get('plan');
+  const forceNew = params.has('new');
+  const forceOpen = params.has('open');
 
   if (sharedPlanId && sharedPlanId !== planRecord?.planId) {
     loadSharedPlan(sharedPlanId);
-  } else if (planRecord?.plan) {
-    activeDay = firstTrainingDay(planRecord.plan);
-    renderPlan();
-    showView('plan');
+  } else if (forceOpen && hasCachedPlan()) {
+    openCachedProgram();
+  } else if (forceNew || !hasCachedPlan()) {
+    if (wizardHasProgress() && !forceNew) {
+      renderHome();
+      showView('home');
+    } else {
+      renderStep();
+      showView('wizard');
+    }
   } else {
-    renderStep();
-    showView('wizard');
+    renderHome();
+    showView('home');
   }
+
+  registerServiceWorker();
+}
+
+function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  const swUrl = new URL('./fitplan-sw.js', import.meta.url);
+  navigator.serviceWorker.register(swUrl.href, { scope: '/fitness/' }).catch(() => {});
 }
 
 init();
