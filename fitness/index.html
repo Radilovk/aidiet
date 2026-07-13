@@ -3,8 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
-  <!-- Критичен inline CSS: тъмен фон от първия кадър, преди външните файлове -->
-  <style>html { background: #0a0e13; color-scheme: dark; }</style>
+  <!-- Критичен inline CSS: mobile layout от кадър 0 (преди външните файлове / SW кеш) -->
+  <style>
+    html{background:#0a0e13;color-scheme:dark}
+    body{background:#0a0e13;color:#eef3f8;margin:0;overflow-x:hidden;-webkit-text-size-adjust:100%}
+    .hero-grid,.steps,.features{display:grid;grid-template-columns:1fr;gap:16px}
+    .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    .hero-ctas{display:flex;flex-direction:column;gap:10px}
+    .hero-ctas .btn-hero,.hero-ctas .btn-secondary{width:100%}
+    .nav-links a.nav-text{display:none}
+    .site-header{position:fixed;top:0;left:0;right:0;z-index:50}
+    .hero{padding-top:calc(96px + env(safe-area-inset-top,0px))}
+    .reveal{opacity:1;transform:none}
+    .float-chip{display:none}
+  </style>
   <meta name="theme-color" content="#0a0e13">
   <meta name="color-scheme" content="dark">
   <meta name="mobile-web-app-capable" content="yes">
