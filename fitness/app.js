@@ -12,6 +12,7 @@
 import { QUESTIONS, visibleOptions, validateQuestion, buildAnswers } from './questions.js';
 import { localizeExerciseDisplayName, sanitizeBgText } from './exercise-labels-bg.js';
 import { registerServiceWorker } from './common.js';
+import { applyIntensity, effortLabelFromRpe, rpeInfoForValue } from './intensity.js';
 
 // ============================================================
 // Конфигурация и локално хранилище
@@ -110,30 +111,11 @@ function el(tag, props = {}, ...children) {
 }
 
 const METRIC_INFO = {
-  rpe: {
-    title: 'RPE (интензитет)',
-    text: 'Субективна скала 1–10 за тежестта на серията. 10 = максимум; 7–8 означава, че можеш още 2–3 повторения с добра техника.',
-  },
-  effort: {
-    title: 'Тежест',
-    text: 'Опростен ориентир за начинаещи — съответства на RPE. Ако не си сигурен/на, започни с по-леката стъпка и увеличавай постепенно.',
-  },
   tempo: {
     title: 'Темпо',
     text: 'Формат долу–пауза–горе (напр. 2-0-2): секунди за долната фаза, пауза долу, секунди за горната. Бавният контрол намалява риска от контузия.',
   },
 };
-
-function effortLabelFromRpe(rpeStr) {
-  const nums = String(rpeStr || '').match(/\d+(?:\.\d+)?/g);
-  if (!nums?.length) return null;
-  const avg = nums.map(Number).reduce((a, b) => a + b, 0) / nums.length;
-  if (avg <= 5.5) return 'Много лека тежест';
-  if (avg <= 6.5) return 'Лека тежест';
-  if (avg <= 7.5) return 'Умерена тежест';
-  if (avg <= 8.5) return 'Тежка тежест';
-  return 'Максимална тежест';
-}
 
 let openMetricTip = null;
 
@@ -144,10 +126,12 @@ function closeMetricTip() {
   }
 }
 
-function renderMetricChip(label, infoKey, extraClass = '') {
+function renderMetricChip(label, infoOrKey, extraClass = '') {
+  const info = typeof infoOrKey === 'object' && infoOrKey
+    ? infoOrKey
+    : METRIC_INFO[infoOrKey];
   const chip = el('span', { class: `ex-chip ex-chip-metric${extraClass ? ` ${extraClass}` : ''}` }, label);
-  if (infoKey && METRIC_INFO[infoKey]) {
-    const info = METRIC_INFO[infoKey];
+  if (info) {
     const btn = el('button', {
       type: 'button',
       class: 'ex-chip-info',
@@ -664,30 +648,13 @@ function firstTrainingDay(plan) {
 // АДАПТАЦИЯ: детерминистични правила (0 заявки към бекенда)
 // ============================================================
 
-export function applyIntensity(ex, level) {
-  if (!level) return { ...ex, intensityNote: '' };
-  if (level < 0) {
-    return {
-      ...ex,
-      sets: Math.max(2, ex.sets - 1),
-      restSeconds: Math.min(240, ex.restSeconds + 30),
-      intensityNote: 'Олекотено: по-леки тежести (RPE 6–7), фокус върху чиста техника.',
-    };
-  }
-  return {
-    ...ex,
-    sets: Math.min(8, ex.sets + 1),
-    restSeconds: Math.max(45, ex.restSeconds - 15),
-    intensityNote: 'Интензивно: повиши тежестта (RPE 8–9), запази контрол в негативната фаза.',
-  };
-}
-
 /** Текущото упражнение за слот, със замяна и ниво на натоварване. */
 function effectiveExercise(dayIdx, exIdx) {
   const base = planRecord.plan.days[dayIdx].exercises[exIdx];
+  const day = planRecord.plan.days[dayIdx];
   const swapKey = `${dayIdx}-${exIdx}`;
   const altIdx = swaps[swapKey];
-  const adjusted = applyIntensity(base, intensity);
+  const adjusted = applyIntensity(base, intensity, day);
 
   if (altIdx !== undefined && altIdx >= 0 && base.alternatives?.[altIdx]) {
     const alt = base.alternatives[altIdx];
@@ -840,8 +807,11 @@ function renderExerciseCard(dayIdx, exIdx) {
   chips.append(el('span', { class: 'ex-chip', text: `почивка ${ex.restSeconds} сек` }));
   if (ex.rpe) {
     const effort = effortLabelFromRpe(ex.rpe);
-    if (effort) chips.append(renderMetricChip(effort, 'effort', 'effort-chip'));
-    chips.append(renderMetricChip(`RPE ${ex.rpe}`, 'rpe'));
+    const rpeInfo = rpeInfoForValue(ex.rpe);
+    if (effort && rpeInfo) {
+      chips.append(renderMetricChip(effort, { title: effort, text: rpeInfo.text }, 'effort-chip'));
+    }
+    chips.append(renderMetricChip(`RPE ${ex.rpe}`, rpeInfo));
   }
   if (ex.tempo) chips.append(renderMetricChip(`темпо ${ex.tempo}`, 'tempo'));
   main.append(chips);
