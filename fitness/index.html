@@ -12,8 +12,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="FitPlan AI">
-  <meta name="description" content="FitPlan AI — индивидуален седмичен тренировъчен план, създаден от AI за 30 секунди. Съобразен с твоето здраве, цел, опит и оборудване. С AI персонален треньор.">
-  <title>FitPlan AI — Тренировъчен план, създаден за твоето тяло</title>
+  <meta name="description" content="FitPlan AI — персонален седмичен тренировъчен план от 14 въпроса. Здраве, цел, оборудване. AI треньор в чата.">
+  <title>FitPlan AI — Тренировъчен план по мярка</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" href="../icon-192x192.png">
   <link rel="apple-touch-icon" href="../icon-192x192.png">
@@ -37,8 +37,8 @@
     <nav class="nav">
       <a class="logo" href="index.html">FIT<span>PLAN</span><em>AI</em></a>
       <div class="nav-links">
-        <a class="nav-text" href="#how">Как работи</a>
-        <a class="nav-text" href="#features">Възможности</a>
+        <a class="nav-text" href="#how">Процес</a>
+        <a class="nav-text" href="#features">Функции</a>
         <a class="nav-text" href="#faq">Въпроси</a>
         <a class="nav-cta-program hidden" data-my-program href="app.html?open=1">Моята програма</a>
         <a class="nav-cta" href="app.html" id="navCreatePlan">Създай план</a>
@@ -50,157 +50,116 @@
     <section class="hero wrap">
       <div class="hero-grid">
         <div>
-          <div class="eyebrow">AI персонален треньор</div>
-          <h1>Тренировъчен план, създаден за <span class="grad">твоето тяло</span>. Не за средностатистическото.</h1>
-          <p class="hero-sub">Отговори на <strong>14 въпроса за ~5 минути</strong> — за здравето, целта, опита и оборудването ти. AI анализира всичко и създава <strong>седмичен план с видео демонстрации</strong>, който се адаптира към теб с един клик.</p>
+          <h1>Тренировъчен план <span class="grad">по твоя мярка</span></h1>
+          <p class="hero-sub">14 въпроса → седмица програма с демонстрации. Адаптира се с един клик.</p>
           <div class="hero-ctas">
-            <a class="btn-hero hidden" id="heroMyProgram" data-my-program href="app.html?open=1">Моята програма ⚡</a>
-            <a class="btn-hero" href="app.html" id="heroCreatePlan">Създай моя план ⚡</a>
-            <a class="btn-secondary" href="#how">Как работи ↓</a>
+            <a class="btn-hero hidden" id="heroMyProgram" data-my-program href="app.html?open=1">Моята програма</a>
+            <a class="btn-hero" href="app.html" id="heroCreatePlan">Създай план</a>
+            <a class="btn-secondary" href="#how">Как работи</a>
           </div>
-          <p class="hero-note">Без регистрация · Планът остава на твоето устройство</p>
+          <p class="hero-note">Без регистрация · Планът е на устройството ти</p>
         </div>
         <div class="mockup-zone">
-          <div class="float-chip fc1"><b>1300+</b> упражнения с демонстрации</div>
           <div class="mockup" aria-hidden="true">
             <div class="mockup-day">Понеделник</div>
-            <div class="mockup-focus">Горна част — избутвания · ~50 мин</div>
-            <div class="mockup-ex"><div class="ico">🏋️</div><div><div class="nm">Избутване с щанга от лежанка</div><div class="st">4 × 8–10 · почивка 90 сек</div></div><div class="sw">⇄</div></div>
-            <div class="mockup-ex"><div class="ico">💪</div><div><div class="nm">Раменно избутване с дъмбели</div><div class="st">3 × 10–12 · почивка 75 сек</div></div><div class="sw">⇄</div></div>
-            <div class="mockup-ex"><div class="ico">🔥</div><div><div class="nm">Кофички на успоредка</div><div class="st">3 × до отказ –2 · RPE 8</div></div><div class="sw">⇄</div></div>
-            <div class="mockup-ex"><div class="ico">🧘</div><div><div class="nm">Разпускане и стречинг</div><div class="st">5 мин · дишане + мобилност</div></div></div>
+            <div class="mockup-focus">Горна част · ~50 мин</div>
+            <div class="mockup-ex"><div class="ico">🏋️</div><div><div class="nm">Лежанка</div><div class="st">4 × 8–10</div></div><div class="sw">⇄</div></div>
+            <div class="mockup-ex"><div class="ico">💪</div><div><div class="nm">Раменни с дъмбели</div><div class="st">3 × 10–12</div></div><div class="sw">⇄</div></div>
+            <div class="mockup-ex"><div class="ico">🧘</div><div><div class="nm">Стречинг</div><div class="st">5 мин</div></div></div>
           </div>
-          <div class="float-chip fc2">AI треньор <b>24/7</b> в чата</div>
         </div>
       </div>
 
       <div class="stats reveal">
-        <div class="stat"><b>14</b><span>въпроса · ~5 минути</span></div>
-        <div class="stat"><b>~30 сек</b><span>AI генерация</span></div>
-        <div class="stat"><b>1324</b><span>упражнения в базата</span></div>
-        <div class="stat"><b>7 дни</b><span>пълна седмична програма</span></div>
+        <div class="stat"><b>14</b><span>въпроса</span></div>
+        <div class="stat"><b>30 сек</b><span>генериране</span></div>
+        <div class="stat"><b>1300+</b><span>упражнения</span></div>
+        <div class="stat"><b>7</b><span>дни</span></div>
       </div>
     </section>
 
     <section id="how" class="landing-section wrap">
       <div class="sec-head reveal">
-        <div class="sec-eyebrow">Три стъпки</div>
-        <h2>От въпросник до готов план за минути</h2>
-        <p>Без шаблони „едно за всички“. Всеки план се създава наново — за теб.</p>
+        <h2>Три стъпки</h2>
       </div>
       <div class="steps">
         <div class="step reveal">
-          <div class="step-num">01</div>
-          <div class="step-ico">📋</div>
-          <h3>Разкажи ни за себе си</h3>
-          <p>14 внимателно подбрани въпроса: здравословен статус, ограничения и болки, сън, стрес, цел, оборудване и предпочитания. Всеки отговор влияе на плана.</p>
+          <h3>Профил</h3>
+          <p>Здраве, цел, опит и какво имаш под ръка.</p>
         </div>
         <div class="step reveal">
-          <div class="step-num">02</div>
-          <div class="step-ico">🧠</div>
-          <h3>AI анализира и създава</h3>
-          <p>Моделът прилага експертни треньорски правила: изключва рисковите движения, калибрира обема според опита ти и подбира упражнения само с наличното ти оборудване.</p>
+          <h3>Генерация</h3>
+          <p>AI съставя седмичен план — обем, split, упражнения.</p>
         </div>
         <div class="step reveal">
-          <div class="step-num">03</div>
-          <div class="step-ico">⚡</div>
-          <h3>Тренирай и адаптирай</h3>
-          <p>Получаваш 7-дневен план с GIF демонстрации. Замени упражнение, олекоти или утежни деня с един клик — и питай AI треньора си по всяко време.</p>
+          <h3>Тренировка</h3>
+          <p>Демо, замяна, интензитет и чат с треньора.</p>
         </div>
       </div>
     </section>
 
     <section id="features" class="landing-section wrap">
       <div class="sec-head reveal">
-        <div class="sec-eyebrow">Възможности</div>
-        <h2>Всичко, което очакваш от личен треньор</h2>
-        <p>Плюс скоростта и достъпността на AI.</p>
+        <h2>Какво получаваш</h2>
       </div>
       <div class="features">
         <div class="feature reveal">
-          <div class="f-ico">🎯</div>
-          <h3>Индивидуален седмичен план</h3>
-          <p>Split, обем и интензитет — според целта, опита и графика ти. Включени загрявка и разпускане за всеки ден.</p>
+          <h3>Седмичен план</h3>
+          <p>Split и обем по профила ти — с загрявка и финал.</p>
         </div>
         <div class="feature reveal">
-          <div class="f-ico">🎬</div>
-          <h3>Демонстрация на всяко упражнение</h3>
-          <p>Анимирана демонстрация и инструкции за изпълнение от база с 1324 упражнения. Клик върху снимката я уголемява.</p>
+          <h3>Демонстрации</h3>
+          <p>GIF и инструкции за всяко движение.</p>
         </div>
         <div class="feature reveal">
-          <div class="f-ico">⇄</div>
-          <h3>Замяна с един клик</h3>
-          <p>Не ти допада упражнение? Избери от готови алтернативи за същата мускулна група с твоето оборудване — мигновено, офлайн.</p>
+          <h3>Замяна</h3>
+          <p>Алтернативи за същата група — веднага, офлайн.</p>
         </div>
         <div class="feature reveal">
-          <div class="f-ico">⚖️</div>
-          <h3>Олекотяване и утежняване</h3>
-          <p>Тежък ден? Умора? Превключи целия план между олекотен, стандартен и интензивен режим — серии и почивки се преизчисляват мигновено.</p>
+          <h3>Интензитет</h3>
+          <p>Олекоти или утежни целия ден с един превключвател.</p>
         </div>
         <div class="feature reveal">
-          <div class="f-ico">💬</div>
-          <h3>AI персонален треньор</h3>
-          <p>Чат с треньор, който познава плана и профила ти: техника, мускулна треска, мотивация, корекции — по всяко време.</p>
+          <h3>AI треньор</h3>
+          <p>Чат, който познава плана и отговорите ти.</p>
         </div>
         <div class="feature reveal">
-          <div class="f-ico">🛡️</div>
-          <h3>Здравето ти е приоритет</h3>
-          <p>Болки, травми и заболявания се вземат предвид още при създаването — рисковите движения не влизат в плана ти изобщо.</p>
-        </div>
-      </div>
-    </section>
-
-    <section class="landing-section wrap">
-      <div class="safety-band reveal">
-        <div class="s-ico">🛡️</div>
-        <div>
-          <h2>Безопасността е вградена, не добавена</h2>
-          <p>Въпросникът не е формалност — той управлява твърди правила в генерацията:</p>
-          <ul>
-            <li><strong>Болка или травма в става?</strong> Всички движения, които я натоварват, се изключват автоматично и се заменят с безопасни.</li>
-            <li><strong>Хипертония или сърдечно-съдов риск?</strong> Интензитетът се ограничава, задържането на дъха се избягва, а планът те подсеща за лекарско одобрение.</li>
-            <li><strong>Бременност или следродилен период?</strong> Специфични правила за всеки триместър и постепенно връщане към натоварване.</li>
-          </ul>
+          <h3>Здравни правила</h3>
+          <p>Болки и ограничения филтрират рискови движения още при създаване.</p>
         </div>
       </div>
     </section>
 
     <section id="faq" class="landing-section wrap">
       <div class="sec-head reveal">
-        <div class="sec-eyebrow">Често задавани въпроси</div>
-        <h2>Питаш се дали е за теб?</h2>
+        <h2>Въпроси</h2>
       </div>
       <div class="faq reveal">
         <details>
-          <summary>Подходящо ли е за пълни начинаещи?</summary>
-          <p>Да — опитът е един от основните входове. Начинаещите получават план с фокус върху техника, базови движения и постепенно натоварване, а не копие на програма за напреднали.</p>
+          <summary>За начинаещи ли е?</summary>
+          <p>Да. Обемът и изборът на движения следват нивото ти.</p>
         </details>
         <details>
-          <summary>Нужна ли ми е фитнес зала?</summary>
-          <p>Не. Избираш оборудването, което реално имаш — само собствено тегло, ластици, дъмбели или пълна зала. Планът включва само изпълними за теб упражнения.</p>
+          <summary>Нужна ли е зала?</summary>
+          <p>Не — само това, което маркираш: тегло, ластици, дъмбели или пълна зала.</p>
         </details>
         <details>
-          <summary>Какво става, ако упражнение не ми допада или ми причинява дискомфорт?</summary>
-          <p>Всяко упражнение има бутон „Замени“ с готови алтернативи за същата мускулна група. При болка — спри упражнението и попитай AI треньора или специалист.</p>
+          <summary>Упражнение не ми пасва?</summary>
+          <p>Замени го с един клик или питай AI треньора. При болка — спри и се консултирай.</p>
         </details>
         <details>
-          <summary>Планът съобразява ли се със здравословни проблеми?</summary>
-          <p>Да — здравословният статус и опорно-двигателните ограничения са задължителна част от въпросника и действат като твърди правила при генерацията. Планът обаче е информативен и не замества лекарска консултация.</p>
-        </details>
-        <details>
-          <summary>Трябва ли ми регистрация? Къде се пази планът ми?</summary>
-          <p>Не искаме регистрация. Планът се съхранява на твоето устройство и остава достъпен при повторно отваряне на страницата — бутон „Моята програма“.</p>
+          <summary>Къде се пази планът?</summary>
+          <p>На устройството ти. Без акаунт. Бутон „Моята програма“ при следващо отваряне.</p>
         </details>
       </div>
     </section>
 
     <section class="landing-section wrap">
       <div class="final-cta reveal">
-        <h2>Първата ти тренировка може да е <span class="grad">утре сутрин</span></h2>
-        <p>5 минути въпросник. 30 секунди генерация. Седмичен план, който е само твой.</p>
+        <h2>Започни <span class="grad">сега</span></h2>
         <div class="final-cta-actions">
-          <a class="btn-hero hidden" data-my-program href="app.html?open=1">Моята програма ⚡</a>
-          <a class="btn-hero" href="app.html" id="finalCreatePlan">Създай моя план сега ⚡</a>
+          <a class="btn-hero hidden" data-my-program href="app.html?open=1">Моята програма</a>
+          <a class="btn-hero" href="app.html" id="finalCreatePlan">Създай план</a>
         </div>
       </div>
     </section>
@@ -211,14 +170,14 @@
       <div class="foot-grid">
         <a class="logo" href="index.html">FIT<span>PLAN</span><em>AI</em></a>
         <div class="foot-links">
-          <a href="#how">Как работи</a>
-          <a href="#features">Възможности</a>
+          <a href="#how">Процес</a>
+          <a href="#features">Функции</a>
           <a href="#faq">Въпроси</a>
           <a class="hidden" data-my-program href="app.html?open=1">Моята програма</a>
           <a href="app.html" id="footCreatePlan">Създай план</a>
         </div>
       </div>
-      <p class="disclaimer">© 2026 FitPlan AI · Плановете се генерират от изкуствен интелект на база предоставените от теб отговори и имат информативен характер. Те не представляват медицински съвет и не заместват консултация с лекар, физиотерапевт или квалифициран треньор. При съществуващи заболявания се консултирай със специалист преди започване на тренировъчна програма.</p>
+      <p class="disclaimer">© 2026 FitPlan AI · AI план с информативен характер. Не замества лекар или квалифициран треньор.</p>
     </div>
   </footer>
 
