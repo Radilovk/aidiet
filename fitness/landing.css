@@ -112,6 +112,8 @@ body {
   line-height: 1.12;
   letter-spacing: -.01em;
   margin-bottom: 16px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 .hero h1 .grad {
   background: var(--grad);
@@ -120,8 +122,9 @@ body {
 .hero-sub {
   color: var(--muted);
   font-size: clamp(16px, 2.8vw, 20px);
-  max-width: 540px;
+  max-width: min(540px, 100%);
   margin-bottom: 24px;
+  overflow-wrap: anywhere;
 }
 .hero-sub strong { color: var(--text); }
 
