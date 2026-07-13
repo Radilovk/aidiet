@@ -945,7 +945,8 @@ export function enrichPlanWithExercises(plan, index, { allowedEquipment = null, 
         ex.match = null;
         ex.alternatives = [];
       }
-      ex.displayName = localizeExerciseDisplayName(ex.canonicalName, ex.displayName, ex.equipmentHint);
+      ex.displayName = ex.match?.displayName
+        || localizeExerciseDisplayName(ex.canonicalName, ex.displayName, ex.equipmentHint);
     }
   }
   return plan;

@@ -1,6 +1,7 @@
 /**
- * Build-time преводи на упражнения (име + инструкции).
- * Източник: scripts/translate-exercises.mjs → data/exercise-translations-bg.json
+ * Преводи на упражнения (име + инструкции).
+ * Production: KV `exercise:translations:bg` + индекс `exidx:v1`.
+ * Локално: scripts/translate-exercises.mjs → data/exercise-translations-bg.json
  */
 
 export const TRANSLATIONS_FILE = 'exercise-translations-bg.json';

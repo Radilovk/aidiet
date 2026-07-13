@@ -307,6 +307,23 @@ test('enrichPlanWithExercises: закача match, медия и алтерна�
   assert.ok(ex.match.gifUrl.startsWith('https://'), 'медията е абсолютен URL');
   assert.ok(ex.alternatives.length >= 1);
   assert.ok(ex.alternatives.every((a) => a.id !== ex.match.id));
+  assert.equal(ex.displayName, 'Избутване с щанга от лежанка');
+});
+
+test('enrichPlanWithExercises: displayName от превод в индекса', () => {
+  const index = buildCompactIndex(RAW_DATASET, {
+    '0002': { nameBg: 'Избутване с дъмбели от лежанка', instructionsBg: 'BG инструкции.' },
+  });
+  const plan = normalizePlan({
+    title: 'X',
+    days: [{
+      day: 'Понеделник', type: 'strength',
+      exercises: [{ displayName: 'AI име', canonicalName: 'Dumbbell Bench Press', equipmentHint: 'dumbbell', bodyPart: 'chest', sets: 3, reps: '10', restSeconds: 60 }],
+    }],
+  });
+  enrichPlanWithExercises(plan, index, { env: {} });
+  assert.equal(plan.days[0].exercises[0].displayName, 'Избутване с дъмбели от лежанка');
+  assert.equal(plan.days[0].exercises[0].match.instructionsLang, 'bg');
 });
 
 test('enrichPlanWithExercises: без индекс планът остава непроменен и валиден', () => {

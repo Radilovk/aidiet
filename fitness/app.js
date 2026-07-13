@@ -770,11 +770,18 @@ function renderDay() {
   wrap.append(cardEl);
 }
 
+function exerciseDisplayName(ex) {
+  return ex.match?.displayName
+    || ex.displayName
+    || localizeExerciseDisplayName(ex.canonicalName, ex.displayName, ex.equipmentHint);
+}
+
 function renderExerciseCard(dayIdx, exIdx) {
   const ex = effectiveExercise(dayIdx, exIdx);
   const base = planRecord.plan.days[dayIdx].exercises[exIdx];
   const swapKey = `${dayIdx}-${exIdx}`;
   const media = ex.match;
+  const displayName = exerciseDisplayName(ex);
 
   const cardEl = el('div', { class: 'ex-card' });
 
@@ -783,7 +790,7 @@ function renderExerciseCard(dayIdx, exIdx) {
     const img = el('img', {
       class: 'ex-thumb',
       src: media.imageUrl || media.gifUrl,
-      alt: ex.displayName,
+      alt: displayName,
       loading: 'lazy',
       onclick: () => openLightbox(ex),
       onerror: (e) => { e.target.replaceWith(el('div', { class: 'ex-thumb-placeholder', text: '🏋' })); },
@@ -794,10 +801,7 @@ function renderExerciseCard(dayIdx, exIdx) {
   }
 
   const main = el('div', { class: 'ex-main' });
-  main.append(el('div', { class: 'ex-name', text: localizeExerciseDisplayName(ex.canonicalName, ex.displayName, ex.equipmentHint) }));
-  if (media && media.name !== ex.displayName) {
-    main.append(el('div', { class: 'ex-name-en', text: media.name }));
-  }
+  main.append(el('div', { class: 'ex-name', text: displayName }));
   if (ex.isSwapped) {
     main.append(el('div', { class: 'ex-swapped-tag', text: `⇄ заменено (ориг.: ${ex.originalName})` }));
   }
@@ -906,9 +910,10 @@ function escapeHtml(s) {
 function openLightbox(ex) {
   const media = ex.match;
   if (!media) return;
+  const displayName = exerciseDisplayName(ex);
   $('lightboxImg').src = media.gifUrl || media.imageUrl;
-  $('lightboxImg').alt = ex.displayName;
-  $('lightboxTitle').textContent = media.displayName || localizeExerciseDisplayName(ex.canonicalName, ex.displayName, ex.equipmentHint);
+  $('lightboxImg').alt = displayName;
+  $('lightboxTitle').textContent = displayName;
   const meta = [
     media.target && `цел: ${localizeTarget(media.target)}`,
     media.equipment && `оборудване: ${localizeEquipment(media.equipment)}`,

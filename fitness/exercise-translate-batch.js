@@ -148,7 +148,7 @@ export async function translateBatchResilient(apiKey, batch, model = DEFAULT_TRA
         return {
           [String(ex.id)]: {
             nameBg: localizeExerciseDisplayName(ex.name, '', ex.equipment),
-            instructionsBg: en ? `[EN] ${en}` : '',
+            instructionsBg: en || '',
             sourceHash: contentHash(ex.name, en),
             translatedAt: new Date().toISOString(),
             skippedSafety: true,

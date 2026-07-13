@@ -2476,25 +2476,9 @@
             </div>
 
             <div class="card" style="margin-top:20px;">
-                <h2><i class="fas fa-language"></i> Превод на упражнения (BG)</h2>
-                <div class="info-box">
-                    <strong>Еднократен build-time превод</strong> чрез Gemini 2.5 Flash (~$0.05 за всички ~1324 упражнения).
-                    Резултатът се записва в KV и индексът <code>exidx:v1</code> се обновява автоматично при завършване.
-                    Потребителите получават български имена и инструкции без латентност.
-                </div>
-                <div id="fitplanTranslateStatus" style="margin-bottom:14px;color:var(--text-gray);font-size:0.95rem;">
-                    Натисни „Статус“, за да видиш прогреса.
-                </div>
-                <div style="display:flex;gap:10px;flex-wrap:wrap;">
-                    <button type="button" class="btn" style="background:#6366f1;" onclick="loadFitplanTranslateStatus()">
-                        <i class="fas fa-chart-pie"></i> Статус
-                    </button>
-                    <button type="button" class="btn" style="background:#10b981;" id="fitplanTranslateAutoBtn" onclick="runFitplanTranslateAuto()">
-                        <i class="fas fa-play"></i> Стартирай автоматично
-                    </button>
-                    <button type="button" class="btn" style="background:#6b7280;" onclick="runFitplanTranslateStep(false)">
-                        <i class="fas fa-forward"></i> Една партида
-                    </button>
+                <h2><i class="fas fa-language"></i> Превод на упражнения</h2>
+                <div id="fitplanTranslateStatus" style="color:var(--text-gray);font-size:0.95rem;">
+                    Зареждане…
                 </div>
             </div>
             </div>
@@ -4009,6 +3993,7 @@
             }
             if (tabName === 'fitplan' && typeof loadFitplanGuidelines === 'function') {
                 loadFitplanGuidelines();
+                if (typeof loadFitplanTranslateStatus === 'function') loadFitplanTranslateStatus();
             }
 
             // Scroll to top of content on mobile
@@ -4231,24 +4216,17 @@
             }
         }
 
-        let fitplanTranslateRunning = false;
-
         function formatFitplanTranslateStatus(data) {
             if (!data) return '';
-            const parts = [
-                `Готови: ${data.done}/${data.total}`,
-                `остават ${data.remaining}`,
-                data.hasGemini ? 'Gemini ✓' : 'Gemini ✗',
-                data.hasKv ? 'KV ✓' : 'KV ✗',
-            ];
-            if (data.indexRebuilt) parts.push('индекс обновен');
-            return parts.join(' · ');
+            if (data.remaining === 0) {
+                return `✓ ${data.done}/${data.total} упражнения с български имена и инструкции (KV индекс)`;
+            }
+            return `Превод: ${data.done}/${data.total} (остават ${data.remaining})`;
         }
 
         async function loadFitplanTranslateStatus() {
             const status = document.getElementById('fitplanTranslateStatus');
             try {
-                if (status) status.textContent = 'Зареждане на статус…';
                 const response = await fetch(FITPLAN_WORKER_URL + '/api/admin/fitplan/translate-exercises', {
                     headers: fitplanAdminHeaders(),
                 });
@@ -4258,63 +4236,9 @@
                 return data;
             } catch (error) {
                 console.error('FitPlan translate status error:', error);
-                if (status) status.textContent = 'Грешка: ' + error.message;
-                showError('Статус на превод: ' + error.message);
+                if (status) status.textContent = 'Статус недостъпен';
                 return null;
             }
-        }
-
-        async function runFitplanTranslateStep(autoContinue = false) {
-            if (fitplanTranslateRunning) return null;
-            const status = document.getElementById('fitplanTranslateStatus');
-            const btn = document.getElementById('fitplanTranslateAutoBtn');
-            fitplanTranslateRunning = true;
-            if (btn) btn.disabled = true;
-            try {
-                if (status) status.textContent = 'Превод на партида…';
-                const response = await fetch(FITPLAN_WORKER_URL + '/api/admin/fitplan/translate-exercises', {
-                    method: 'POST',
-                    headers: { ...fitplanAdminHeaders(), 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ batches: 2, rebuildIndex: true }),
-                });
-                const data = await response.json();
-                if (!response.ok || !data.success) throw new Error(data.error || data.message || 'Грешка');
-                if (status) {
-                    status.textContent = `${formatFitplanTranslateStatus(data)} (+${data.addedThisRun || 0} този път)`;
-                }
-                if (data.complete) {
-                    showSuccess('Преводът е завършен' + (data.indexRebuilt ? ' и индексът е обновен в KV.' : '.'));
-                    return data;
-                }
-                if (autoContinue && data.remaining > 0) {
-                    await new Promise((r) => setTimeout(r, 400));
-                    fitplanTranslateRunning = false;
-                    if (btn) btn.disabled = false;
-                    return runFitplanTranslateStep(true);
-                }
-                return data;
-            } catch (error) {
-                console.error('FitPlan translate run error:', error);
-                if (status) status.textContent = 'Грешка: ' + error.message;
-                showError('Превод на упражнения: ' + error.message);
-                return null;
-            } finally {
-                fitplanTranslateRunning = false;
-                if (btn) btn.disabled = false;
-            }
-        }
-
-        async function runFitplanTranslateAuto() {
-            const current = await loadFitplanTranslateStatus();
-            if (current && current.remaining === 0) {
-                showSuccess('Всички упражнения вече са преведени.');
-                return;
-            }
-            if (current && !current.hasGemini) {
-                showError('Worker-ът няма GEMINI_API_KEY. Добави ключа в Cloudflare secrets.');
-                return;
-            }
-            await runFitplanTranslateStep(true);
         }
 
         document.addEventListener('DOMContentLoaded', () => {
