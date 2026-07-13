@@ -101,11 +101,8 @@ self.addEventListener('fetch', (event) => {
 
   if (!request.url.startsWith(self.registration.scope)) return;
 
-  // Landing страницата НЕ минава през SW — винаги директно от мрежата/HTTP кеша.
-  // Това предотвратява stale CSS при refresh (дори след посещение на app.html).
-  const p = url.pathname;
-  if (p.endsWith('/fitness/') || p.endsWith('/fitness') || p.endsWith('/fitness/index.html')
-      || p.includes('landing.') || (p.endsWith('/base.css') && p.includes('/fitness/'))) {
+  const path = url.pathname;
+  if (path.endsWith('/fitness/') || path.endsWith('/fitness/index.html') || path.includes('landing.')) {
     return;
   }
 
