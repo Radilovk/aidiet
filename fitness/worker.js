@@ -21,6 +21,8 @@
  *   GET  /api/exercises/search — локално търсене в базата (debug/бъдеща употреба)
  *   GET  /api/admin/fitplan/guidelines — админ: зарежда насоки за mini-RAG
  *   POST /api/admin/fitplan/guidelines — админ: записва насоки в KV
+ *   GET  /api/admin/fitplan/translate-exercises — статус на BG превод
+ *   POST /api/admin/fitplan/translate-exercises — партида превод + KV индекс
  *
  * Bindings / vars (wrangler.toml + secrets):
  *   FITNESS_KV            — KV namespace (кеш на индекса, планове, rate limits)
@@ -36,6 +38,18 @@
 
 import { localizeExerciseDisplayName, sanitizeBgText, sanitizePlanBulgarian } from './exercise-labels-bg.js';
 import { mergeExerciseTranslation } from './exercise-translations.js';
+import {
+  EXERCISE_TRANSLATIONS_KV_KEY,
+  DEFAULT_BATCH_SIZE,
+  DEFAULT_TRANSLATE_MODEL,
+  buildTranslateUserPayload,
+  callGeminiTranslate,
+  chunkBatches,
+  fetchExerciseDataset,
+  listPendingExercises,
+  normalizeBatchResult,
+  translationStats,
+} from './exercise-translate-batch.js';
 
 // ============================================================================
 // Константи
@@ -255,6 +269,22 @@ export function buildCompactIndex(rawList, translations = {}) {
 
 let bundledTranslations = null;
 
+/** Build-time преводи: KV → bundled JSON fallback. */
+export async function loadExerciseTranslations(env) {
+  if (env?.FITNESS_KV) {
+    try {
+      const kv = await env.FITNESS_KV.get(EXERCISE_TRANSLATIONS_KV_KEY, { type: 'json' });
+      if (kv && typeof kv === 'object' && Object.keys(kv).length) {
+        bundledTranslations = kv;
+        return kv;
+      }
+    } catch (e) {
+      console.error('KV read за exercise translations пропадна:', e.message);
+    }
+  }
+  return loadBundledTranslations();
+}
+
 /** Build-time преводи (data/exercise-translations-bg.json), ако са налични в bundle-а. */
 export async function loadBundledTranslations() {
   if (bundledTranslations !== null) return bundledTranslations;
@@ -298,7 +328,7 @@ async function loadExerciseIndex(env, ctx) {
       if (!res.ok) continue;
       const data = await res.json();
       const list = Array.isArray(data) ? data : (data.exercises || data.data || []);
-      const translations = await loadBundledTranslations();
+      const translations = await loadExerciseTranslations(env);
       const index = buildCompactIndex(list, translations);
       if (index.length > 50) {
         memoryIndex = index;
@@ -1167,6 +1197,88 @@ async function handleSaveAdminGuidelines(request, env) {
   return jsonResponse({ success: true, config });
 }
 
+async function saveExerciseTranslations(env, translations) {
+  await env.FITNESS_KV.put(EXERCISE_TRANSLATIONS_KV_KEY, JSON.stringify(translations));
+  bundledTranslations = translations;
+}
+
+async function rebuildExerciseIndexInKv(env, translations) {
+  const all = await fetchExerciseDataset(env.EXERCISE_DATASET_URL || undefined);
+  const index = buildCompactIndex(all, translations);
+  memoryIndex = index;
+  await env.FITNESS_KV.put(EXERCISE_INDEX_KV_KEY, JSON.stringify(index), { expirationTtl: EXERCISE_INDEX_TTL });
+  return {
+    count: index.length,
+    withBg: index.filter((e) => e.instructionsLang === 'bg').length,
+  };
+}
+
+async function handleGetTranslateExercisesStatus(request, env) {
+  if (!checkAdminSecret(request, env)) return errorResponse('Неоторизиран достъп', 401, 'unauthorized');
+
+  const translations = await loadExerciseTranslations(env);
+  let all = [];
+  try {
+    all = await fetchExerciseDataset(env.EXERCISE_DATASET_URL || undefined);
+  } catch (e) {
+    return errorResponse(`Dataset: ${e.message}`, 502, 'dataset_error');
+  }
+
+  const stats = translationStats(all, translations);
+  return jsonResponse({
+    success: true,
+    hasGemini: Boolean(env.GEMINI_API_KEY),
+    hasKv: Boolean(env.FITNESS_KV),
+    batchSize: DEFAULT_BATCH_SIZE,
+    ...stats,
+  });
+}
+
+async function handleRunTranslateExercises(request, env) {
+  if (!checkAdminSecret(request, env)) return errorResponse('Неоторизиран достъп', 401, 'unauthorized');
+  if (!env.GEMINI_API_KEY) return errorResponse('Липсва GEMINI_API_KEY в worker', 503, 'no_gemini');
+  if (!env.FITNESS_KV) return errorResponse('KV не е конфигурирано', 500, 'no_kv');
+
+  let body = {};
+  try { body = await request.json(); } catch { body = {}; }
+
+  const maxBatches = Math.min(Math.max(Number(body.batches) || 1, 1), 3);
+  const force = Boolean(body.force);
+  const rebuildIndex = body.rebuildIndex !== false;
+
+  const translations = await loadExerciseTranslations(env);
+  const all = await fetchExerciseDataset(env.EXERCISE_DATASET_URL || undefined);
+  const pending = listPendingExercises(all, translations, { force });
+  const batches = chunkBatches(pending, DEFAULT_BATCH_SIZE).slice(0, maxBatches);
+
+  let addedThisRun = 0;
+  for (const batch of batches) {
+    const model = env.GEMINI_MODEL || DEFAULT_TRANSLATE_MODEL;
+    const parsed = await callGeminiTranslate(env.GEMINI_API_KEY, buildTranslateUserPayload(batch), model);
+    const chunk = normalizeBatchResult(parsed, batch);
+    Object.assign(translations, chunk);
+    addedThisRun += Object.keys(chunk).length;
+  }
+
+  if (addedThisRun > 0) await saveExerciseTranslations(env, translations);
+
+  const stats = translationStats(all, translations);
+  let indexInfo = null;
+  if (rebuildIndex && stats.remaining === 0) {
+    indexInfo = await rebuildExerciseIndexInKv(env, translations);
+  }
+
+  return jsonResponse({
+    success: true,
+    addedThisRun,
+    batchesProcessed: batches.length,
+    complete: stats.remaining === 0,
+    indexRebuilt: Boolean(indexInfo),
+    index: indexInfo,
+    ...stats,
+  });
+}
+
 // ============================================================================
 // Router
 // ============================================================================
@@ -1208,6 +1320,12 @@ export default {
       }
       if (request.method === 'POST' && path === '/api/admin/fitplan/guidelines') {
         return await handleSaveAdminGuidelines(request, env);
+      }
+      if (request.method === 'GET' && path === '/api/admin/fitplan/translate-exercises') {
+        return await handleGetTranslateExercisesStatus(request, env);
+      }
+      if (request.method === 'POST' && path === '/api/admin/fitplan/translate-exercises') {
+        return await handleRunTranslateExercises(request, env);
       }
       return errorResponse('Не е намерено', 404, 'not_found');
     } catch (e) {
