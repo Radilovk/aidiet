@@ -215,7 +215,7 @@ export const QUESTIONS = [
         options: ['Силов тренинг', 'Кардио', 'HIIT', 'Функционален', 'Йога / мобилност', 'Отворен съм към препоръка'],
         required: true,
       },
-      { key: 'avoid', label: 'Движения, които не желаеш да включваме', type: 'text', placeholder: 'напр. бърпита, скачане, клек с щанга…' },
+      { key: 'avoid', label: 'Движения, които не желаеш да включваме', type: 'text', placeholder: 'напр. бърпи, скачане, клек с щанга…' },
       { key: 'freq', label: 'Брой тренировки седмично', type: 'choice', options: ['1–2', '3–4', '5–6', 'Ежедневно'], required: true },
       { key: 'duration', label: 'Продължителност на тренировка', type: 'choice', options: ['До 30 мин', '30–45 мин', '45–60 мин', 'Над 60 мин'], required: true },
       { key: 'timeOfDay', label: 'Предпочитано време на деня', type: 'choice', options: ['Сутрин', 'Обед', 'Следобед', 'Вечер', 'Варира'], required: true },

@@ -4,12 +4,13 @@
  * Икономичен дизайн (0 излишни заявки):
  *   - Планът се пази в localStorage → повторно отваряне не вика бекенда.
  *   - Смяна на упражнение → алтернативите са прекомпютнати в плана (0 заявки).
- *   - Олекотяване/затежняване → детерминистични правила тук (0 заявки).
+ *   - Олекотяване/утежняване → детерминистични правила тук (0 заявки).
  *   - Чат историята живее в localStorage; към бекенда пътуват само
  *     последните няколко реплики + planId.
  */
 
 import { QUESTIONS, visibleOptions, validateQuestion, buildAnswers } from './questions.js';
+import { localizeExerciseDisplayName, sanitizeBgText } from './exercise-labels-bg.js';
 
 // ============================================================
 // Конфигурация и локално хранилище
@@ -467,7 +468,7 @@ function effectiveExercise(dayIdx, exIdx) {
     const alt = base.alternatives[altIdx];
     return {
       ...adjusted,
-      displayName: alt.name,
+      displayName: alt.displayName || localizeExerciseDisplayName(alt.name, '', alt.equipment),
       canonicalName: alt.name,
       match: alt,
       notes: '', // бележката на оригинала не важи за алтернативата
@@ -492,9 +493,9 @@ const TYPE_LABELS = {
 function renderPlan() {
   const { plan } = planRecord;
 
-  $('planTitle').textContent = plan.title;
-  $('planSummary').textContent = plan.summary;
-  $('planSplit').textContent = plan.weeklySplit ? `Структура: ${plan.weeklySplit}` : '';
+  $('planTitle').textContent = sanitizeBgText(plan.title);
+  $('planSummary').textContent = sanitizeBgText(plan.summary);
+  $('planSplit').textContent = plan.weeklySplit ? `Структура: ${sanitizeBgText(plan.weeklySplit)}` : '';
 
   const safety = $('planSafety');
   safety.innerHTML = '';
@@ -601,7 +602,7 @@ function renderExerciseCard(dayIdx, exIdx) {
   }
 
   const main = el('div', { class: 'ex-main' });
-  main.append(el('div', { class: 'ex-name', text: ex.displayName }));
+  main.append(el('div', { class: 'ex-name', text: localizeExerciseDisplayName(ex.canonicalName, ex.displayName, ex.equipmentHint) }));
   if (media && media.name !== ex.displayName) {
     main.append(el('div', { class: 'ex-name-en', text: media.name }));
   }
@@ -683,13 +684,13 @@ function renderGuidelines() {
     ['📈 Как да прогресираш', g.progression],
     ['😴 Възстановяване', g.recovery],
     ['🍽 Хранене (общи насоки)', g.nutrition],
-    ['⚖ Кога да олекотиш или затежниш', g.adaptation],
+    ['⚖ Кога да олекотиш или утежниш', sanitizeBgText(g.adaptation)],
   ];
   for (const [title, text] of items) {
     if (!text) continue;
     wrap.append(el('details', { class: 'guide-item' },
       el('summary', { text: title }),
-      el('p', { text }),
+      el('p', { text: sanitizeBgText(text) }),
     ));
   }
 }
@@ -707,7 +708,7 @@ function openLightbox(ex) {
   if (!media) return;
   $('lightboxImg').src = media.gifUrl || media.imageUrl;
   $('lightboxImg').alt = ex.displayName;
-  $('lightboxTitle').textContent = ex.displayName;
+  $('lightboxTitle').textContent = localizeExerciseDisplayName(ex.canonicalName, ex.displayName, ex.equipmentHint);
   $('lightboxMeta').textContent = [media.name, media.target && `цел: ${media.target}`, media.equipment && `оборудване: ${media.equipment}`]
     .filter(Boolean).join(' · ');
   $('lightboxInstructions').textContent = media.instructions || '';
