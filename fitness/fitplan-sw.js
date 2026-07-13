@@ -1,17 +1,19 @@
 /**
  * FitPlan AI — service worker (app-like, офлайн, безопасни ъпдейти).
  *
+ * ПРИ ВСЯКА ПРОМЯНА ПО CSS/JS/HTML: вдигни VERSION. Новата версия създава
+ * празен кеш → следващото зареждане е атомарно свежо (никакви смесени файлове).
+ *
  * Стратегии:
- *   - Навигации (HTML):      network-first → кеш → кеширан app.html.
- *     Така новите деплойти стигат до клиента веднага щом има мрежа,
- *     а офлайн приложението пак се отваря.
- *   - Активи в scope-а:      stale-while-revalidate — мигновено от кеша,
- *     обновяване на заден план (без "залепване" на стари версии).
- *   - CDN медия (thumbnails/GIF): cache-first с таван на записите —
- *     планът работи офлайн с изображенията, без да издува квотата.
+ *   - Навигации (HTML):  network-first с cache:'no-cache' (винаги ревалидира
+ *     срещу сървъра — HTTP кешът на хостинга не може да върне стара страница),
+ *     при офлайн → кеш → кеширан app.html.
+ *   - Активи в scope-а:  stale-while-revalidate; ревалидацията също е
+ *     cache:'no-cache', за да не се "залепи" стара версия от HTTP кеша.
+ *   - CDN медия (thumbnails/GIF): cache-first с таван на записите.
  */
 
-const VERSION = 'v4';
+const VERSION = 'v5';
 const APP_CACHE = `fitplan-app-${VERSION}`;
 const IMG_CACHE = 'fitplan-img-v1';
 const IMG_CACHE_MAX_ENTRIES = 300;
@@ -38,8 +40,12 @@ const PRECACHE_ASSETS = [
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(APP_CACHE);
-    // Кеширане поединично: един липсващ файл не бива да проваля целия install.
-    await Promise.allSettled(PRECACHE_ASSETS.map((asset) => cache.add(asset)));
+    // cache:'reload' → precache-ът байпасва HTTP кеша на браузъра.
+    // Без това install можеше да запише СТАРИ файлове (max-age на хостинга)
+    // и следващият reload да "върне" старата версия.
+    await Promise.allSettled(
+      PRECACHE_ASSETS.map((asset) => cache.add(new Request(asset, { cache: 'reload' }))),
+    );
     await self.skipWaiting();
   })());
 });
@@ -68,14 +74,27 @@ async function trimCache(cacheName, maxEntries) {
   } catch { /* quota/приватен режим — не е критично */ }
 }
 
+/**
+ * Каноничен кеш ключ: URL без query. Така precache записът (app.css) и
+ * версионираната заявка (app.css?v=5) са ЕДИН запис — иначе ignoreSearch
+ * намираше първо стария precache и новата версия никога не се показваше.
+ */
+function cacheKey(request) {
+  const url = new URL(request.url);
+  url.search = '';
+  return url.href;
+}
+
 async function networkFirst(request) {
   const cache = await caches.open(APP_CACHE);
+  const key = cacheKey(request);
   try {
-    const fresh = await fetch(request);
-    if (fresh && fresh.ok) cache.put(request, fresh.clone());
+    // no-cache: ревалидация срещу сървъра (ETag) — никога стар HTML от HTTP кеша.
+    const fresh = await fetch(request, { cache: 'no-cache' });
+    if (fresh && fresh.ok) cache.put(key, fresh.clone());
     return fresh;
   } catch {
-    const cached = await cache.match(request, { ignoreSearch: request.mode === 'navigate' });
+    const cached = await cache.match(key);
     if (cached) return cached;
     // Офлайн навигация към непозната страница → отвори приложението.
     if (request.mode === 'navigate') {
@@ -88,10 +107,11 @@ async function networkFirst(request) {
 
 async function staleWhileRevalidate(request) {
   const cache = await caches.open(APP_CACHE);
-  const cached = await cache.match(request);
-  const network = fetch(request)
+  const key = cacheKey(request);
+  const cached = await cache.match(key);
+  const network = fetch(request, { cache: 'no-cache' })
     .then((res) => {
-      if (res && res.ok) cache.put(request, res.clone());
+      if (res && res.ok) cache.put(key, res.clone());
       return res;
     })
     .catch(() => null);

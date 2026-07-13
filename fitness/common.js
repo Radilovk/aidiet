@@ -78,6 +78,7 @@ export function registerServiceWorker() {
   // Относителен scope: работи и на прод (/fitness/), и при локална разработка.
   const scope = new URL('./', import.meta.url).pathname;
   navigator.serviceWorker
-    .register(new URL('./fitplan-sw.js', import.meta.url), { scope })
+    .register(new URL('./fitplan-sw.js', import.meta.url), { scope, updateViaCache: 'none' })
+    .then((reg) => { reg.update().catch(() => {}); })
     .catch(() => {});
 }
