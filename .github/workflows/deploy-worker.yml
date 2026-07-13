@@ -7,6 +7,7 @@ on:
     paths:
       - 'worker.js'
       - 'wrangler.toml'
+      - 'fitness/worker.js'
       - 'food-catalog.js'
       - 'food-catalog-data.js'
       - 'food-utils.js'
@@ -23,6 +24,7 @@ on:
     paths:
       - 'worker.js'
       - 'wrangler.toml'
+      - 'fitness/worker.js'
       - 'food-catalog.js'
       - 'food-catalog-data.js'
       - 'food-utils.js'

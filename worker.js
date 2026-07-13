@@ -24,6 +24,7 @@ import {
   buildClientCard,
   serializePlanSummary,
 } from './client-card.js';
+import fitnessWorker from './fitness/worker.js';
 import {
   syncWeekPlanNutritionFromDatabase,
   normalizeFoodKey,
@@ -15851,6 +15852,18 @@ async function handleXbodyAppointments(request, env) {
   return jsonResponse(payload, 200, { cacheControl: 'private, max-age=300' });
 }
 
+/** FitPlan AI routes — delegated to fitness/worker.js (uses FITNESS_KV or page_content). */
+function isFitnessRoute(pathname, method) {
+  if (method === 'GET' && (pathname === '/api/health' || pathname === '/api/exercises/search')) return true;
+  if (method === 'POST' && (pathname === '/api/plan/generate' || pathname === '/api/coach')) return true;
+  if (method === 'GET' && /^\/api\/plan\/[A-Za-z0-9-]{8,64}$/.test(pathname)) return true;
+  return false;
+}
+
+function fitnessEnv(env) {
+  return { ...env, FITNESS_KV: env.FITNESS_KV || env.page_content };
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -16120,6 +16133,8 @@ export default {
         const rlErr = await checkRateLimit(env, request, 'XBODY_APPOINTMENTS');
         if (rlErr) return rlErr;
         return await handleXbodyAppointments(request, env);
+      } else if (isFitnessRoute(url.pathname, request.method)) {
+        return fitnessWorker.fetch(request, fitnessEnv(env), ctx);
       } else {
         return jsonResponse({ error: 'Not found' }, 404);
       }

@@ -15,7 +15,8 @@ import { QUESTIONS, visibleOptions, validateQuestion, buildAnswers } from './que
 // Конфигурация и локално хранилище
 // ============================================================
 
-const DEFAULT_WORKER_URL = 'https://aidiet-fitness.radilov-k.workers.dev';
+const DEFAULT_WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
+const FALLBACK_WORKER_URL = 'https://aidiet-fitness.radilov-k.workers.dev';
 
 const store = {
   get(key, fallback = null) {
@@ -36,6 +37,28 @@ function workerUrl() {
   const param = new URLSearchParams(location.search).get('api');
   if (param) store.set('workerUrl', param.replace(/\/+$/, ''));
   return store.get('workerUrl') || DEFAULT_WORKER_URL;
+}
+
+/** API fetch with automatic fallback between main NutriPlan worker and dedicated FitPlan worker. */
+async function apiFetch(path, options = {}) {
+  const primary = workerUrl();
+  const secondary = primary === DEFAULT_WORKER_URL ? FALLBACK_WORKER_URL : DEFAULT_WORKER_URL;
+  const bases = primary === secondary ? [primary] : [primary, secondary];
+
+  let lastError;
+  for (let i = 0; i < bases.length; i++) {
+    const base = bases[i];
+    try {
+      const res = await fetch(`${base}${path}`, options);
+      if (res.status === 404 && i < bases.length - 1) continue;
+      if (res.ok || i === bases.length - 1) return res;
+    } catch (e) {
+      lastError = e;
+      if (i < bases.length - 1) continue;
+      throw e;
+    }
+  }
+  throw lastError || new Error('Сървърът не е достъпен');
 }
 
 // ============================================================
@@ -365,7 +388,7 @@ async function generatePlan() {
   const timeout = setTimeout(() => controller.abort(), 150000);
 
   try {
-    const res = await fetch(`${workerUrl()}/api/plan/generate`, {
+    const res = await apiFetch('/api/plan/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ answers }),
@@ -744,7 +767,7 @@ async function sendChatMessage(text) {
   box.scrollTop = box.scrollHeight;
 
   try {
-    const res = await fetch(`${workerUrl()}/api/coach`, {
+    const res = await apiFetch('/api/coach', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -779,7 +802,7 @@ async function loadSharedPlan(planId) {
   showView('loading');
   $('loadingTitle').textContent = 'Зареждам плана…';
   try {
-    const res = await fetch(`${workerUrl()}/api/plan/${encodeURIComponent(planId)}`);
+    const res = await apiFetch(`/api/plan/${encodeURIComponent(planId)}`);
     const data = await res.json();
     if (!res.ok || !data.success) throw new Error(data.message || 'Планът не е намерен.');
     planRecord = { planId, plan: data.plan, coachContext: data.coachContext || '', createdAt: data.createdAt };

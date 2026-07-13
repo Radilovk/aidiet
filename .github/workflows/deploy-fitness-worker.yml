@@ -1,0 +1,125 @@
+name: Deploy FitPlan AI Worker
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'fitness/**'
+      - '.github/workflows/deploy-fitness-worker.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'fitness/**'
+      - '.github/workflows/deploy-fitness-worker.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Ensure KV namespaces
+        id: kv
+        working-directory: fitness
+        run: |
+          set -euo pipefail
+          list_json=$(npx wrangler kv namespace list --json 2>/dev/null || echo '[]')
+
+          ensure_ns() {
+            local title="$1"
+            local id
+            id=$(echo "$list_json" | jq -r --arg t "$title" '.[] | select(.title == $t) | .id' | head -1)
+            if [ -z "$id" ] || [ "$id" = "null" ]; then
+              echo "Creating KV namespace: $title"
+              id=$(npx wrangler kv namespace create "$title" --json | jq -r '.id')
+            else
+              echo "KV namespace '$title' exists: $id"
+            fi
+            echo "$id"
+          }
+
+          STAGING_ID=$(ensure_ns "aidiet-fitness-staging")
+          PROD_ID=$(ensure_ns "aidiet-fitness-production")
+
+          sed -i "s/REPLACE_WITH_KV_STAGING_ID/$STAGING_ID/g" wrangler.toml
+          sed -i "s/REPLACE_WITH_KV_PRODUCTION_ID/$PROD_ID/g" wrangler.toml
+
+          echo "staging_kv_id=$STAGING_ID" >> "$GITHUB_OUTPUT"
+          echo "production_kv_id=$PROD_ID" >> "$GITHUB_OUTPUT"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Sync worker secrets (production)
+        if: github.event_name != 'pull_request'
+        working-directory: fitness
+        run: |
+          if [ -n "${GEMINI_API_KEY:-}" ]; then
+            echo "$GEMINI_API_KEY" | npx wrangler secret put GEMINI_API_KEY --env production
+          else
+            echo "::warning::GEMINI_API_KEY not in GitHub secrets — set it in repo Settings → Secrets for AI plan generation on aidiet-fitness worker."
+          fi
+          if [ -n "${OPENAI_API_KEY:-}" ]; then
+            echo "$OPENAI_API_KEY" | npx wrangler secret put OPENAI_API_KEY --env production
+          fi
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      - name: Sync worker secrets (staging)
+        if: github.event_name == 'pull_request'
+        working-directory: fitness
+        run: |
+          if [ -n "${GEMINI_API_KEY:-}" ]; then
+            echo "$GEMINI_API_KEY" | npx wrangler secret put GEMINI_API_KEY --env staging
+          fi
+          if [ -n "${OPENAI_API_KEY:-}" ]; then
+            echo "$OPENAI_API_KEY" | npx wrangler secret put OPENAI_API_KEY --env staging
+          fi
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      - name: Deploy FitPlan worker
+        working-directory: fitness
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "Deploying FitPlan AI to staging..."
+            npx wrangler deploy --env staging
+          else
+            echo "Deploying FitPlan AI to production..."
+            npx wrangler deploy --env production
+          fi
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Verify health endpoint
+        if: github.event_name != 'pull_request'
+        run: |
+          for i in 1 2 3 4 5; do
+            status=$(curl -sS -o /tmp/fitness-health.json -w "%{http_code}" https://aidiet-fitness.radilov-k.workers.dev/api/health || true)
+            if [ "$status" = "200" ]; then
+              cat /tmp/fitness-health.json
+              exit 0
+            fi
+            echo "Health check attempt $i failed (HTTP $status), retrying..."
+            sleep 5
+          done
+          echo "::error::FitPlan health check failed after deploy"
+          exit 1
