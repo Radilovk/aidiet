@@ -41,12 +41,12 @@ jobs:
             local id
             id=$(echo "$list_json" | jq -r --arg t "$title" '.[] | select(.title == $t) | .id' | head -1)
             if [ -z "$id" ] || [ "$id" = "null" ]; then
-              echo "Creating KV namespace: $title"
+              echo "Creating KV namespace: $title" >&2
               id=$(npx wrangler kv namespace create "$title" --json | jq -r '.id')
             else
-              echo "KV namespace '$title' exists: $id"
+              echo "KV namespace '$title' exists: $id" >&2
             fi
-            echo "$id"
+            printf '%s' "$id"
           }
 
           STAGING_ID=$(ensure_ns "aidiet-fitness-staging")
