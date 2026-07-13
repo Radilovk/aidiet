@@ -1,0 +1,17 @@
+{
+  "name": "aidiet-fitness",
+  "version": "1.0.0",
+  "description": "FitPlan AI — самостоятелен AI генератор на тренировъчни планове (лендинг + въпросник + Cloudflare Worker)",
+  "type": "module",
+  "main": "worker.js",
+  "scripts": {
+    "dev": "wrangler dev --env staging",
+    "deploy": "wrangler deploy --env production",
+    "deploy:staging": "wrangler deploy --env staging",
+    "serve": "python3 -m http.server 8080",
+    "test": "node --test"
+  },
+  "keywords": ["ai", "fitness", "workout", "cloudflare-workers", "gemini"],
+  "author": "Radilov-K",
+  "license": "MIT"
+}

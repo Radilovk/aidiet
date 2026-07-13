@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0e13">
+  <meta name="description" content="Отговори на 14 въпроса и получи индивидуален седмичен тренировъчен план, създаден от AI и съобразен с твоето здраве, цел и оборудване.">
+  <title>FitPlan AI — Твоят индивидуален тренировъчен план</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Sofia+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap&subset=cyrillic" rel="stylesheet">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+  <header class="app-header">
+    <a href="index.html" class="logo" aria-label="Начало">FIT<span>PLAN</span><em>AI</em></a>
+    <div class="header-actions">
+      <button id="btnNewPlan" class="btn-ghost sm hidden" type="button">＋ Нов план</button>
+    </div>
+  </header>
+
+  <main id="app">
+
+    <!-- ВЪПРОСНИК -->
+    <section id="view-wizard" class="view hidden" aria-label="Въпросник">
+      <div class="wizard-head">
+        <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-meta">
+          <span id="stepLabel">Въпрос 1 от 14</span>
+          <span id="stepPct">7%</span>
+        </div>
+      </div>
+      <div id="questionCard" class="q-card"></div>
+      <p id="stepError" class="step-error" hidden></p>
+      <div class="wizard-nav">
+        <button id="btnBack" class="btn-ghost" type="button">← Назад</button>
+        <button id="btnNext" class="btn-primary" type="button">Напред →</button>
+      </div>
+    </section>
+
+    <!-- ГЕНЕРИРАНЕ -->
+    <section id="view-loading" class="view hidden" aria-label="Генериране на план">
+      <div class="loading-stage">
+        <div class="pulse-rings"><i></i><i></i><i></i><b>AI</b></div>
+        <h2 id="loadingTitle">Създавам твоя план…</h2>
+        <p id="loadingStatus" class="loading-status">Анализирам профила ти…</p>
+        <p class="loading-hint">Обикновено отнема 20–40 секунди. Не затваряй страницата.</p>
+      </div>
+    </section>
+
+    <!-- ГРЕШКА -->
+    <section id="view-error" class="view hidden" aria-label="Грешка">
+      <div class="error-stage">
+        <div class="error-icon">⚠</div>
+        <h2>Нещо се обърка</h2>
+        <p id="errorMessage"></p>
+        <div class="error-actions">
+          <button id="btnRetry" class="btn-primary" type="button">Опитай отново</button>
+          <button id="btnBackToWizard" class="btn-ghost" type="button">Към въпросника</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ПЛАН -->
+    <section id="view-plan" class="view hidden" aria-label="Тренировъчен план">
+      <div class="plan-hero">
+        <p class="plan-eyebrow">Твоят индивидуален седмичен план</p>
+        <h1 id="planTitle"></h1>
+        <p id="planSummary" class="plan-summary"></p>
+        <p id="planSplit" class="plan-split"></p>
+        <div id="planSafety" class="plan-safety hidden"></div>
+      </div>
+
+      <div class="intensity-row">
+        <span class="intensity-label">Натоварване:</span>
+        <div class="intensity-seg" id="intensitySeg" role="radiogroup" aria-label="Ниво на натоварване">
+          <button type="button" data-level="-1">Олекотено</button>
+          <button type="button" data-level="0" class="active">Стандарт</button>
+          <button type="button" data-level="1">Интензивно</button>
+        </div>
+      </div>
+
+      <nav class="day-pills" id="dayPills" aria-label="Дни от седмицата"></nav>
+      <div id="dayContent" class="day-content"></div>
+
+      <div class="guidelines" id="guidelines"></div>
+
+      <p class="plan-disclaimer">Планът е генериран от AI на база твоите отговори и има информативен характер — не замества консултация с лекар или кинезитерапевт. При болка или дискомфорт спри упражнението.</p>
+    </section>
+
+  </main>
+
+  <!-- AI ТРЕНЬОР -->
+  <button id="chatFab" class="chat-fab hidden" type="button" aria-label="AI треньор">
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+  </button>
+
+  <div id="chatPanel" class="chat-panel hidden" role="dialog" aria-label="AI персонален треньор">
+    <div class="chat-head">
+      <div>
+        <strong>AI треньор</strong>
+        <span id="chatRemaining" class="chat-remaining"></span>
+      </div>
+      <button id="chatClose" class="chat-close" type="button" aria-label="Затвори">✕</button>
+    </div>
+    <div id="chatMessages" class="chat-messages"></div>
+    <form id="chatForm" class="chat-input-row">
+      <input id="chatInput" type="text" maxlength="600" placeholder="Попитай треньора…" autocomplete="off">
+      <button type="submit" class="chat-send" aria-label="Изпрати">➤</button>
+    </form>
+  </div>
+
+  <!-- LIGHTBOX -->
+  <div id="lightbox" class="lightbox hidden" role="dialog" aria-modal="true">
+    <div class="lightbox-inner">
+      <button id="lightboxClose" class="lightbox-close" type="button">✕ затвори</button>
+      <img id="lightboxImg" alt="">
+      <h3 id="lightboxTitle"></h3>
+      <p id="lightboxMeta" class="lightbox-meta"></p>
+      <p id="lightboxInstructions" class="lightbox-instructions"></p>
+    </div>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

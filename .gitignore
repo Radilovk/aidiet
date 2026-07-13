@@ -58,3 +58,6 @@ clients/*
 
 # Note: Historical development documentation is archived in docs/archive/
 # This keeps the root directory clean and focused on active documentation
+
+# FitPlan AI: генериран локален индекс (не се комитва)
+fitness/data/
