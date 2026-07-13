@@ -10,7 +10,7 @@
  */
 
 import { QUESTIONS, visibleOptions, validateQuestion, buildAnswers } from './questions.js';
-import { localizeExerciseDisplayName, sanitizeBgText } from './exercise-labels-bg.js';
+import { localizeExerciseDisplayName, localizeEquipment, localizeTarget, sanitizeBgText } from './exercise-labels-bg.js';
 import { registerServiceWorker } from './common.js';
 import { applyIntensity, effortLabelFromRpe, rpeInfoForValue } from './intensity.js';
 
@@ -908,9 +908,12 @@ function openLightbox(ex) {
   if (!media) return;
   $('lightboxImg').src = media.gifUrl || media.imageUrl;
   $('lightboxImg').alt = ex.displayName;
-  $('lightboxTitle').textContent = localizeExerciseDisplayName(ex.canonicalName, ex.displayName, ex.equipmentHint);
-  $('lightboxMeta').textContent = [media.name, media.target && `цел: ${media.target}`, media.equipment && `оборудване: ${media.equipment}`]
-    .filter(Boolean).join(' · ');
+  $('lightboxTitle').textContent = media.displayName || localizeExerciseDisplayName(ex.canonicalName, ex.displayName, ex.equipmentHint);
+  const meta = [
+    media.target && `цел: ${localizeTarget(media.target)}`,
+    media.equipment && `оборудване: ${localizeEquipment(media.equipment)}`,
+  ].filter(Boolean);
+  $('lightboxMeta').textContent = meta.join(' · ');
   $('lightboxInstructions').textContent = media.instructions || '';
   $('lightbox').classList.remove('hidden');
   document.body.style.overflow = 'hidden';

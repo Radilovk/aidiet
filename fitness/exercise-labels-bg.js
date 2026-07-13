@@ -30,21 +30,71 @@ const BG_TEXT_FIXES = [
 ];
 
 const EQUIP_BG = {
-  dumbbell: 'с дъмбели',
-  barbell: 'с щанга',
-  kettlebell: 'с гира',
-  cable: 'на кабел',
-  band: 'с ластик',
-  'body weight': 'със собствено тегло',
-  'smith machine': 'на Смит машина',
-  'leverage machine': 'на машина',
-  'ez barbell': 'с EZ лост',
-  'stability ball': 'с фитбол',
+  dumbbell: 'дъмбели',
+  barbell: 'щанга',
+  kettlebell: 'гира',
+  cable: 'кабел',
+  band: 'ластик',
+  'body weight': 'собствено тегло',
+  'smith machine': 'Смит машина',
+  'leverage machine': 'машина',
+  'ez barbell': 'EZ лост',
+  'stability ball': 'фитбол',
+  'medicine ball': 'медицинска топка',
+  'resistance band': 'ластик',
+  'assisted': 'с асистенция',
+  'weighted': 'с тежест',
+  'olympic barbell': 'олимпийска щанга',
+  'trap bar': 'трап бар',
+  'sled machine': 'сани',
+  'roller': 'ролер',
+  'rope': 'въже',
+  'wheel roller': 'ролер за корем',
+};
+
+const TARGET_BG = {
+  pectorals: 'гърди',
+  lats: 'широк гръбен',
+  traps: 'трапец',
+  delts: 'рамене',
+  shoulders: 'рамене',
+  biceps: 'бицепс',
+  triceps: 'трицепс',
+  forearms: 'предмишници',
+  abdominals: 'корем',
+  abs: 'корем',
+  glutes: 'седалищни',
+  quads: 'предно бедро',
+  hamstrings: 'задно бедро',
+  calves: 'прасци',
+  adductors: 'привеждащи',
+  abductors: 'отвеждащи',
+  'upper back': 'горен гръб',
+  'lower back': 'долен гръб',
+  chest: 'гърди',
+  back: 'гръб',
+  cardio: 'кардио',
+  spine: 'гръбнак',
+  neck: 'врат',
 };
 
 function equipPhrase(hint) {
   const key = norm(hint);
-  return EQUIP_BG[key] || (key ? `(${hint})` : '');
+  const label = EQUIP_BG[key];
+  if (label) return `с ${label}`;
+  return key ? `(${hint})` : '';
+}
+
+/** Кратък BG етикет за оборудване (lightbox/meta). */
+export function localizeEquipment(equipment) {
+  const key = norm(equipment);
+  return EQUIP_BG[key] || equipment || '';
+}
+
+/** Кратък BG етикет за целева мускулна група. */
+export function localizeTarget(target) {
+  const key = norm(target);
+  return TARGET_BG[key] || target || '';
 }
 
 /** Точни съвпадения по нормализирано EN име */

@@ -14,8 +14,9 @@
  *   node scripts/build-exercise-index.mjs https://example.com/exercises.json
  */
 
-import { writeFile, mkdir } from 'node:fs/promises';
+import { writeFile, mkdir, readFile, access } from 'node:fs/promises';
 import { buildCompactIndex } from '../worker.js';
+import { TRANSLATIONS_FILE } from '../exercise-translations.js';
 
 const CANDIDATES = process.argv[2]
   ? [process.argv[2]]
@@ -27,6 +28,16 @@ const CANDIDATES = process.argv[2]
     ];
 
 const OUT_PATH = new URL('../data/exercise-index.json', import.meta.url);
+const TRANSLATIONS_PATH = new URL(`../data/${TRANSLATIONS_FILE}`, import.meta.url);
+
+async function loadTranslations() {
+  try {
+    await access(TRANSLATIONS_PATH);
+    return JSON.parse(await readFile(TRANSLATIONS_PATH, 'utf8'));
+  } catch {
+    return {};
+  }
+}
 
 async function main() {
   let raw = null;
@@ -52,12 +63,15 @@ async function main() {
     process.exit(1);
   }
 
-  const index = buildCompactIndex(raw);
+  const translations = await loadTranslations();
+  const index = buildCompactIndex(raw, translations);
   await mkdir(new URL('../data/', import.meta.url), { recursive: true });
   await writeFile(OUT_PATH, JSON.stringify(index));
 
+  const withBg = index.filter((e) => e.instructionsLang === 'bg').length;
+
   const sizeKb = Math.round(JSON.stringify(index).length / 1024);
-  console.log(`\nИндекс: ${index.length} упражнения, ~${sizeKb} KB`);
+  console.log(`\nИндекс: ${index.length} упражнения, ~${sizeKb} KB (${withBg} с BG инструкции)`);
   console.log(`Записан в: ${OUT_PATH.pathname}`);
   console.log(`Източник:  ${sourceUrl}`);
 
