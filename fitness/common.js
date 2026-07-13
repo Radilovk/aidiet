@@ -58,6 +58,31 @@ export function applyCachedPlanCta() {
   if (footCreate) footCreate.textContent = 'Нов план';
 }
 
+/** Премахва NutriPlan (root) SW — FitPlan не трябва да е под негов контрол. */
+export async function releaseNutriPlanServiceWorker() {
+  if (!('serviceWorker' in navigator)) return false;
+
+  const regs = await navigator.serviceWorker.getRegistrations();
+  const foreign = regs.filter((r) => !r.scope.includes('/fitness/'));
+  if (!foreign.length) return false;
+
+  const hadController = Boolean(
+    navigator.serviceWorker.controller
+    && !navigator.serviceWorker.controller.scriptURL.includes('fitplan-sw'),
+  );
+
+  await Promise.all(foreign.map((r) => r.unregister()));
+
+  const key = 'fitplan.release-sw';
+  if (hadController && !sessionStorage.getItem(key)) {
+    sessionStorage.setItem(key, '1');
+    location.reload();
+    return true;
+  }
+  sessionStorage.removeItem(key);
+  return false;
+}
+
 export function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
 

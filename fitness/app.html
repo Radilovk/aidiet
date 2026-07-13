@@ -2,7 +2,10 @@
 <html lang="bg">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <script>
+  (function(){if(!('serviceWorker'in navigator))return;var k='fitplan.release-sw';navigator.serviceWorker.getRegistrations().then(function(rs){var fr=rs.filter(function(r){return !r.scope.includes('/fitness/')});if(!fr.length)return;var had=navigator.serviceWorker.controller&&!navigator.serviceWorker.controller.scriptURL.includes('fitplan-sw');Promise.all(fr.map(function(r){return r.unregister()})).then(function(){if(had&&!sessionStorage.getItem(k)){sessionStorage.setItem(k,'1');location.reload()}})})})();
+  </script>
   <!-- Критичен inline CSS: тъмен фон и splash от първия кадър, преди външните файлове -->
   <style>
     html { background: #0a0e13; color-scheme: dark; }

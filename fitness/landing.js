@@ -1,14 +1,5 @@
 import { applyCachedPlanCta } from './common.js';
 
-// Landing не ползва service worker — ако е останал от app.html, махаме го
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then((regs) => {
-    for (const reg of regs) {
-      if (reg.scope.includes('/fitness')) reg.unregister();
-    }
-  });
-}
-
 applyCachedPlanCta();
 
 if ('scrollRestoration' in history) {

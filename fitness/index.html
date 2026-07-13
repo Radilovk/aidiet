@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <script>
+  (function(){if(!('serviceWorker'in navigator))return;var k='fitplan.release-sw';navigator.serviceWorker.getRegistrations().then(function(rs){if(!rs.length)return;var had=navigator.serviceWorker.controller&&!navigator.serviceWorker.controller.scriptURL.includes('fitplan-sw');Promise.all(rs.map(function(r){return r.unregister()})).then(function(){if(had&&!sessionStorage.getItem(k)){sessionStorage.setItem(k,'1');location.reload()}})})})();
+  </script>
   <meta name="theme-color" content="#0a0e13">
   <meta name="color-scheme" content="dark">
   <meta name="mobile-web-app-capable" content="yes">

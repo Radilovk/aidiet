@@ -11,7 +11,7 @@
 
 import { QUESTIONS, visibleOptions, validateQuestion, buildAnswers } from './questions.js';
 import { localizeExerciseDisplayName, sanitizeBgText } from './exercise-labels-bg.js';
-import { registerServiceWorker } from './common.js';
+import { registerServiceWorker, releaseNutriPlanServiceWorker } from './common.js';
 
 // ============================================================
 // Конфигурация и локално хранилище
@@ -1062,4 +1062,9 @@ function init() {
   });
 }
 
-init();
+async function boot() {
+  if (await releaseNutriPlanServiceWorker()) return;
+  init();
+}
+
+boot();
