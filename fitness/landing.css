@@ -84,10 +84,11 @@ body {
 }
 .hero-grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 28px;
   align-items: center;
 }
+.hero-grid > * { min-width: 0; }
 
 .eyebrow {
   display: inline-flex; align-items: center; gap: 9px;
@@ -166,7 +167,7 @@ body {
 /* ---------- stats (mobile: 2 колони) ---------- */
 .stats {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   margin: 40px 0 16px;
 }
@@ -208,9 +209,11 @@ body {
 .steps,
 .features {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
 }
+.steps > *,
+.features > * { min-width: 0; }
 .step {
   background: linear-gradient(180deg, var(--surface), var(--bg-soft));
   border: 1px solid var(--border-soft);
@@ -253,10 +256,11 @@ body {
   border-radius: 24px;
   padding: clamp(22px, 5vw, 48px);
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   align-items: start;
 }
+.safety-band > * { min-width: 0; }
 .safety-band .s-ico { font-size: 38px; }
 .safety-band h2 { font-size: clamp(19px, 3.5vw, 27px); font-family: var(--font-display); font-weight: 900; margin-bottom: 8px; }
 .safety-band p { color: var(--muted); max-width: 720px; }
@@ -389,20 +393,20 @@ body {
 
 @media (min-width: 761px) {
   .stats {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     margin: clamp(40px, 8vw, 70px) 0 16px;
   }
 }
 
 @media (min-width: 821px) {
-  .steps { grid-template-columns: repeat(3, 1fr); }
+  .steps { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .step { transition: transform .2s, border-color .2s; }
   .step:hover { transform: translateY(-4px); border-color: var(--border); }
 }
 
 @media (min-width: 901px) {
   .hero-grid {
-    grid-template-columns: 1.15fr .85fr;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
     gap: clamp(28px, 5vw, 48px);
   }
   .mockup { transform: rotate(1.2deg); animation: floaty 7s ease-in-out infinite; }
@@ -437,7 +441,7 @@ body {
 
 @media (min-width: 641px) {
   .safety-band {
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto minmax(0, 1fr);
     gap: 22px;
   }
   .foot-grid {
@@ -448,11 +452,11 @@ body {
 }
 
 @media (min-width: 821px) and (max-width: 980px) {
-  .features { grid-template-columns: repeat(2, 1fr); }
+  .features { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (min-width: 981px) {
-  .features { grid-template-columns: repeat(3, 1fr); }
+  .features { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .feature { transition: transform .2s, border-color .2s, box-shadow .2s; }
   .feature:hover {
     transform: translateY(-4px);

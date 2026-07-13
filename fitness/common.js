@@ -58,24 +58,6 @@ export function applyCachedPlanCta() {
   if (footCreate) footCreate.textContent = 'Нов план';
 }
 
-/**
- * Премахва ВСИЧКИ /fitness/ записи от всички SW кешове.
- * Старият NutriPlan SW (stale-while-revalidate) отровяше landing.css при refresh.
- */
-export async function purgePoisonedFitnessCaches() {
-  if (!('caches' in window)) return;
-  try {
-    const names = await caches.keys();
-    await Promise.all(names.map(async (name) => {
-      const cache = await caches.open(name);
-      const keys = await cache.keys();
-      await Promise.all(keys.map((req) => {
-        if (req.url.includes('/fitness/')) return cache.delete(req);
-      }));
-    }));
-  } catch { /* ignore */ }
-}
-
 export function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
 
