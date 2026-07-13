@@ -22,7 +22,7 @@
  *   GET  /api/admin/fitplan/guidelines — админ: зарежда насоки за mini-RAG
  *   POST /api/admin/fitplan/guidelines — админ: записва насоки в KV
  *   GET  /api/admin/fitplan/translate-exercises — статус на BG превод
- *   POST /api/admin/fitplan/translate-exercises — партида превод + KV индекс
+ *   POST /api/admin/fitplan/translate-exercises — партида превод + KV индекс (resilient batches)
  *
  * Bindings / vars (wrangler.toml + secrets):
  *   FITNESS_KV            — KV namespace (кеш на индекса, планове, rate limits)
