@@ -8,6 +8,8 @@ export const EXERCISE_DATASET_URL = 'https://cdn.jsdelivr.net/gh/hasaneyldrm/exe
 export const EXERCISE_TRANSLATIONS_KV_KEY = 'exercise:translations:bg';
 export const DEFAULT_TRANSLATE_MODEL = 'gemini-2.5-flash';
 export const DEFAULT_BATCH_SIZE = 50;
+/** По-малки партиди в Worker (избягва timeout / MAX_TOKENS). */
+export const WORKER_BATCH_SIZE = 15;
 
 export const TRANSLATE_SYSTEM_PROMPT = `Ти си експерт по спортна медицина, кинезиология и професионален фитнес треньор.
 Превеждай на анатомично точен, професионален и четивен български език.
@@ -84,7 +86,7 @@ export async function fetchExerciseDataset(url = EXERCISE_DATASET_URL) {
   return Array.isArray(data) ? data : (data.exercises || data.data || []);
 }
 
-export async function callGeminiTranslate(apiKey, user, model = DEFAULT_TRANSLATE_MODEL) {
+export async function callGeminiTranslate(apiKey, user, model = DEFAULT_TRANSLATE_MODEL, maxOutputTokens = 8192) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
   const res = await fetch(url, {
     method: 'POST',
@@ -94,7 +96,7 @@ export async function callGeminiTranslate(apiKey, user, model = DEFAULT_TRANSLAT
       contents: [{ role: 'user', parts: [{ text: user }] }],
       generationConfig: {
         temperature: 0.1,
-        maxOutputTokens: 8192,
+        maxOutputTokens,
         responseMimeType: 'application/json',
         thinkingConfig: { thinkingBudget: 0 },
       },
@@ -105,12 +107,17 @@ export async function callGeminiTranslate(apiKey, user, model = DEFAULT_TRANSLAT
     throw new Error(`Gemini ${res.status}: ${err.slice(0, 400)}`);
   }
   const data = await res.json();
+  const finish = data.candidates?.[0]?.finishReason;
   const text = data.candidates?.[0]?.content?.parts
     ?.filter((p) => !p.thought)
     ?.map((p) => p.text)
     .join('') || '';
-  if (!text) throw new Error('Gemini: празен отговор');
-  return JSON.parse(text);
+  if (!text) throw new Error(`Gemini: празен отговор (${finish || 'unknown'})`);
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    throw new Error(`Gemini JSON parse: ${e.message}; finish=${finish}; tail=${text.slice(-120)}`);
+  }
 }
 
 export function listPendingExercises(all, existing, { force = false, limit = 0 } = {}) {

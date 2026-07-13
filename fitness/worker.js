@@ -42,6 +42,7 @@ import {
   EXERCISE_TRANSLATIONS_KV_KEY,
   DEFAULT_BATCH_SIZE,
   DEFAULT_TRANSLATE_MODEL,
+  WORKER_BATCH_SIZE,
   buildTranslateUserPayload,
   callGeminiTranslate,
   chunkBatches,
@@ -1229,7 +1230,7 @@ async function handleGetTranslateExercisesStatus(request, env) {
     success: true,
     hasGemini: Boolean(env.GEMINI_API_KEY),
     hasKv: Boolean(env.FITNESS_KV),
-    batchSize: DEFAULT_BATCH_SIZE,
+    batchSize: WORKER_BATCH_SIZE,
     ...stats,
   });
 }
@@ -1242,19 +1243,25 @@ async function handleRunTranslateExercises(request, env) {
   let body = {};
   try { body = await request.json(); } catch { body = {}; }
 
-  const maxBatches = Math.min(Math.max(Number(body.batches) || 1, 1), 3);
+  const maxBatches = Math.min(Math.max(Number(body.batches) || 1, 1), 2);
   const force = Boolean(body.force);
   const rebuildIndex = body.rebuildIndex !== false;
+  const batchSize = WORKER_BATCH_SIZE;
 
   const translations = await loadExerciseTranslations(env);
   const all = await fetchExerciseDataset(env.EXERCISE_DATASET_URL || undefined);
   const pending = listPendingExercises(all, translations, { force });
-  const batches = chunkBatches(pending, DEFAULT_BATCH_SIZE).slice(0, maxBatches);
+  const batches = chunkBatches(pending, batchSize).slice(0, maxBatches);
 
   let addedThisRun = 0;
   for (const batch of batches) {
     const model = env.GEMINI_MODEL || DEFAULT_TRANSLATE_MODEL;
-    const parsed = await callGeminiTranslate(env.GEMINI_API_KEY, buildTranslateUserPayload(batch), model);
+    const parsed = await callGeminiTranslate(
+      env.GEMINI_API_KEY,
+      buildTranslateUserPayload(batch),
+      model,
+      16384,
+    );
     const chunk = normalizeBatchResult(parsed, batch);
     Object.assign(translations, chunk);
     addedThisRun += Object.keys(chunk).length;
@@ -1325,7 +1332,12 @@ export default {
         return await handleGetTranslateExercisesStatus(request, env);
       }
       if (request.method === 'POST' && path === '/api/admin/fitplan/translate-exercises') {
-        return await handleRunTranslateExercises(request, env);
+        try {
+          return await handleRunTranslateExercises(request, env);
+        } catch (e) {
+          console.error('translate-exercises:', e.stack || e.message);
+          return errorResponse(e.message || 'Грешка при превод', 500, 'translate_error');
+        }
       }
       return errorResponse('Не е намерено', 404, 'not_found');
     } catch (e) {
