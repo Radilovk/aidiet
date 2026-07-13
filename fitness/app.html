@@ -2,10 +2,16 @@
 <html lang="bg">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
   <meta name="theme-color" content="#0a0e13">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="FitPlan AI">
   <meta name="description" content="Отговори на 14 въпроса и получи индивидуален седмичен тренировъчен план, създаден от AI и съобразен с твоето здраве, цел и оборудване.">
   <title>FitPlan AI — Твоят индивидуален тренировъчен план</title>
+  <link rel="icon" type="image/png" href="../icon-192x192.png">
+  <link rel="apple-touch-icon" href="../icon-192x192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Sofia+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap&subset=cyrillic" rel="stylesheet">
@@ -16,11 +22,35 @@
   <header class="app-header">
     <a href="index.html" class="logo" aria-label="Начало">FIT<span>PLAN</span><em>AI</em></a>
     <div class="header-actions">
+      <button id="btnMyProgram" class="btn-primary sm hidden" type="button">Моята програма</button>
       <button id="btnNewPlan" class="btn-ghost sm hidden" type="button">＋ Нов план</button>
     </div>
   </header>
 
   <main id="app">
+
+    <!-- НАЧАЛО -->
+    <section id="view-home" class="view hidden" aria-label="Начало">
+      <div class="home-stage">
+        <p class="home-eyebrow">FitPlan AI</p>
+        <h1 class="home-title">Твоят персонален тренировъчен план</h1>
+        <p class="home-lead">14 въпроса · AI анализ · седмична програма с демонстрации. Планът се пази на устройството ти.</p>
+
+        <div id="homePlanCard" class="home-plan-card hidden">
+          <p class="home-plan-label">Запазена програма</p>
+          <h2 id="homePlanTitle" class="home-plan-title"></h2>
+          <p id="homePlanMeta" class="home-plan-meta"></p>
+          <button id="btnOpenProgram" class="btn-primary btn-block" type="button">Моята програма</button>
+        </div>
+
+        <div class="home-actions">
+          <button id="btnStartWizard" class="btn-primary btn-block" type="button">Създай нов план</button>
+          <button id="btnContinueWizard" class="btn-ghost btn-block hidden" type="button">Продължи въпросника</button>
+        </div>
+
+        <p class="home-cache-note">Програмата се съхранява локално — достъпна офлайн след първо зареждане.</p>
+      </div>
+    </section>
 
     <!-- ВЪПРОСНИК -->
     <section id="view-wizard" class="view hidden" aria-label="Въпросник">
