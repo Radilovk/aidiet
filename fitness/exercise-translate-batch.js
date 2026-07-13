@@ -164,6 +164,8 @@ export async function translateBatchResilient(apiKey, batch, model = DEFAULT_TRA
     return { ...left, ...right };
   }
 }
+
+export function translationStats(all, existing) {
   const total = all.length;
   const done = all.filter((ex) => !needsTranslation(ex, existing, false)).length;
   return { total, done, remaining: total - done, stored: Object.keys(existing).length };
