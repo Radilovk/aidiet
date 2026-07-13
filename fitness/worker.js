@@ -844,20 +844,24 @@ async function handleGeneratePlan(request, env, ctx) {
   const guidelines = selectGuidelines(answers);
   const userPrompt = buildPlanUserPrompt(profileSummary, guidelines);
 
-  let rawText;
-  try {
-    rawText = await callAI(env, { system: PLAN_SYSTEM_PROMPT, user: userPrompt, temperature: 0.4, maxOutputTokens: 8192, jsonMode: true });
-  } catch (e) {
-    console.error('AI генерация пропадна:', e.message);
-    return errorResponse('AI услугата е временно недостъпна. Опитай отново след минута.', 502, 'ai_unavailable');
-  }
-
   let plan;
-  try {
-    plan = normalizePlan(parseAiJson(rawText));
-  } catch (e) {
-    console.error('Невалиден AI план:', e.message, rawText?.slice(0, 400));
-    return errorResponse('AI върна невалиден план. Опитай отново.', 502, 'ai_invalid');
+  let rawText;
+  const aiOpts = { system: PLAN_SYSTEM_PROMPT, user: userPrompt, temperature: 0.4, maxOutputTokens: 8192, jsonMode: true };
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      rawText = await callAI(env, aiOpts);
+      plan = normalizePlan(parseAiJson(rawText));
+      break;
+    } catch (e) {
+      const isLast = attempt === 1;
+      console.error(`AI план опит ${attempt + 1} пропадна:`, e.message, rawText?.slice(0, 200));
+      if (isLast) {
+        if (/JSON|Планът|дни/i.test(e.message)) {
+          return errorResponse('AI върна невалиден план. Опитай отново.', 502, 'ai_invalid');
+        }
+        return errorResponse('AI услугата е временно недостъпна. Опитай отново след минута.', 502, 'ai_unavailable');
+      }
+    }
   }
 
   const index = await indexPromise;
