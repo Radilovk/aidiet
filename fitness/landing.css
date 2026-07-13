@@ -403,6 +403,8 @@ body {
 }
 
 @media (max-width: 480px) {
+  /* по-леки декоративни ефекти на телефони — blur(90px) е скъп на по-стар GPU */
+  .orb { filter: blur(56px); opacity: .13; animation: none; }
   .hero { padding-top: calc(96px + var(--safe-top)); }
   .hero-ctas { flex-direction: column; }
   .hero-ctas .btn-hero,

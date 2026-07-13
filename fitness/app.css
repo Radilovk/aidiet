@@ -139,6 +139,13 @@ textarea { min-height: 120px; resize: vertical; }
   padding: 14px 16px;
   cursor: pointer;
   transition: all .16s ease;
+  -webkit-user-select: none;
+  user-select: none; /* дълго задържане на телефон не селектира текста на опцията */
+  touch-action: manipulation;
+}
+.opt-card input {
+  -webkit-user-select: text;
+  user-select: text;
 }
 .opt-card:hover { border-color: var(--muted); }
 .opt-card.active {
@@ -161,7 +168,7 @@ textarea { min-height: 120px; resize: vertical; }
 .opt-card.active .opt-mark { background: var(--volt); border-color: var(--volt); }
 .opt-text { font-weight: 600; font-size: 15.5px; }
 .opt-inputs { margin-top: 11px; display: flex; flex-direction: column; gap: 8px; padding-left: 34px; }
-.opt-inputs input { padding: 10px 13px; font-size: 15px; }
+.opt-inputs input { padding: 10px 13px; font-size: 16px; } /* ≥16px: без iOS auto-zoom */
 
 /* scale */
 .scale-wrap { padding: 14px 4px 6px; }
@@ -387,6 +394,8 @@ input[type="range"] {
   display: flex;
   gap: 8px;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
   padding: 4px 2px 12px;
   scrollbar-width: none;
 }
@@ -397,6 +406,8 @@ input[type="range"] {
   background: var(--surface);
   color: var(--text);
   border-radius: 14px;
+  -webkit-user-select: none;
+  user-select: none;
   padding: 10px 15px;
   font-family: var(--font-body);
   font-weight: 700;
@@ -510,9 +521,11 @@ input[type="range"] {
   font-size: 13.5px;
   font-weight: 700;
   border-radius: 999px;
-  padding: 7px 14px;
+  padding: 9px 16px;
+  min-height: 40px;
   cursor: pointer;
   transition: all .15s;
+  touch-action: manipulation;
 }
 .ex-btn:hover { color: var(--volt); border-color: var(--volt); }
 
@@ -620,12 +633,16 @@ input[type="range"] {
 .chat-remaining { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
 .chat-close {
   background: none; border: none; color: var(--muted);
-  font-size: 17px; cursor: pointer; padding: 6px;
+  font-size: 17px; cursor: pointer;
+  min-width: var(--touch-min); min-height: var(--touch-min);
+  display: grid; place-items: center;
 }
 .chat-close:hover { color: var(--text); }
 .chat-messages {
   flex: 1;
   overflow-y: auto;
+  overscroll-behavior: contain; /* скролът в чата не дърпа страницата зад него */
+  -webkit-overflow-scrolling: touch;
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -650,7 +667,7 @@ input[type="range"] {
   border-top: 1px solid var(--border-soft);
   background: var(--surface);
 }
-.chat-input-row input { flex: 1; padding: 11px 14px; font-size: 15px; border-radius: 999px; }
+.chat-input-row input { flex: 1; padding: 11px 14px; font-size: 16px; border-radius: 999px; } /* ≥16px: без iOS auto-zoom */
 .chat-send {
   width: 44px; height: 44px;
   flex: 0 0 auto;
@@ -681,6 +698,8 @@ input[type="range"] {
   width: 100%;
   max-height: min(90dvh, 90vh);
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 20px;

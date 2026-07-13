@@ -161,6 +161,26 @@ npx wrangler kv key put exidx:v1 --path data/exercise-index.json \
 `npm run serve` (статика на localhost:8080), после
 `http://localhost:8080/app.html?api=http://localhost:8787`.
 
+## PWA / app-like поведение
+
+- **`manifest.json`** — приложението е инсталируемо (Android „Add to Home
+  Screen“, iOS „Добави към начален екран“): standalone режим, портретна
+  ориентация, shortcuts „Моята програма“ и „Нов план“.
+- **`fitplan-sw.js`** — service worker с безопасни ъпдейти:
+  навигациите са *network-first* (нов деплой стига веднага при мрежа,
+  офлайн се отваря кешираното приложение), активите са
+  *stale-while-revalidate*, а CDN медията (thumbnail/GIF) е *cache-first*
+  с таван от 300 записа — планът работи офлайн с изображенията.
+- **Системен „назад“** (Android бутон/жест, iOS swipe) се обработва
+  in-app: затваря lightbox/чат, връща предишния въпрос във визарда,
+  връща от плана към началния екран — без да изхвърля потребителя.
+  Използва се „single sentinel“ модел: най-много един запис в историята,
+  затова изходът от приложението никога не се блокира.
+- **Mobile-first детайли**: всички полета са ≥16px (без iOS auto-zoom),
+  touch targets ≥40–44px, `overscroll-behavior: contain` на скролируемите
+  панели, safe-area отстъпи (dynamic island/жестова лента), тъмна
+  `color-scheme` за нативните контроли.
+
 ## Тестове
 
 ```bash

@@ -4,12 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
   <meta name="theme-color" content="#0a0e13">
+  <meta name="color-scheme" content="dark">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="FitPlan AI">
   <meta name="description" content="Отговори на 14 въпроса и получи индивидуален седмичен тренировъчен план, създаден от AI и съобразен с твоето здраве, цел и оборудване.">
   <title>FitPlan AI — Твоят индивидуален тренировъчен план</title>
+  <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" href="../icon-192x192.png">
   <link rel="apple-touch-icon" href="../icon-192x192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -77,7 +79,7 @@
       <div class="loading-stage">
         <div class="pulse-rings"><i></i><i></i><i></i><b>AI</b></div>
         <h2 id="loadingTitle">Създавам твоя план…</h2>
-        <p id="loadingStatus" class="loading-status">Анализирам профила ти…</p>
+        <p id="loadingStatus" class="loading-status" aria-live="polite">Анализирам профила ти…</p>
         <p class="loading-hint">Обикновено отнема 20–40 секунди. Не затваряй страницата.</p>
       </div>
     </section>
@@ -137,7 +139,7 @@
       </div>
       <button id="chatClose" class="chat-close" type="button" aria-label="Затвори">✕</button>
     </div>
-    <div id="chatMessages" class="chat-messages"></div>
+    <div id="chatMessages" class="chat-messages" aria-live="polite"></div>
     <form id="chatForm" class="chat-input-row">
       <input id="chatInput" type="text" maxlength="600" placeholder="Попитай треньора…" autocomplete="off">
       <button type="submit" class="chat-send" aria-label="Изпрати">➤</button>

@@ -41,7 +41,16 @@ function workerUrl() {
   return store.get('workerUrl') || DEFAULT_WORKER_URL;
 }
 
-/** API fetch with automatic fallback between main NutriPlan worker and dedicated FitPlan worker. */
+/**
+ * API fetch с автоматичен fallback между основния NutriPlan worker и
+ * отделния FitPlan worker.
+ *
+ * ВАЖНО за икономичността: преминаваме към резервния worker САМО при
+ * мрежова грешка или 404/405 (маршрутът не е монтиран там). Всеки друг
+ * отговор (429 rate limit, 400 валидация, 502 AI грешка) е реален отговор
+ * от бекенда — повторното изпращане към втория worker би дублирало AI
+ * заявки и разходи.
+ */
 async function apiFetch(path, options = {}) {
   const primary = workerUrl();
   const secondary = primary === DEFAULT_WORKER_URL ? FALLBACK_WORKER_URL : DEFAULT_WORKER_URL;
@@ -52,10 +61,12 @@ async function apiFetch(path, options = {}) {
     const base = bases[i];
     try {
       const res = await fetch(`${base}${path}`, options);
-      if (res.status === 404 && i < bases.length - 1) continue;
-      if (res.ok || i === bases.length - 1) return res;
+      const routeMissing = res.status === 404 || res.status === 405;
+      if (routeMissing && i < bases.length - 1) continue;
+      return res;
     } catch (e) {
       lastError = e;
+      if (e.name === 'AbortError') throw e; // потребителски timeout — не опитвай втори бекенд
       if (i < bases.length - 1) continue;
       throw e;
     }
@@ -144,13 +155,78 @@ function openCachedProgram() {
 }
 
 function showView(name) {
+  const prev = document.body.dataset.view;
   for (const v of VIEWS) $(`view-${v}`).classList.toggle('hidden', v !== name);
   $('btnNewPlan').classList.toggle('hidden', name !== 'plan');
   $('btnMyProgram').classList.toggle('hidden', !hasCachedPlan() || name === 'plan');
   $('chatFab').classList.toggle('hidden', name !== 'plan');
   if (name !== 'plan') closeChat();
   document.body.dataset.view = name;
-  window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
+  // App-like: навигация напред (след първоначалното зареждане) активира
+  // back-sentinel-а, за да работи системният бутон "назад".
+  if (prev && prev !== name && name !== 'home') armBackSentinel();
+  window.scrollTo(0, 0);
+}
+
+// ============================================================
+// App-like навигация: системният "назад" (Android бутон/жест, iOS swipe)
+// затваря наслагвания и връща предишния екран, вместо да изхвърля
+// потребителя от приложението.
+//
+// Модел "single sentinel": в историята стои най-много ЕДИН наш запис.
+// Всяко натискане на "назад" го консумира, отвива едно ниво вътрешно
+// състояние (lightbox → чат → стъпка на въпросника → екран → начало)
+// и записът се зарежда отново само ако има още нива. Така никога не
+// трупаме записи и потребителят винаги може да излезе от приложението.
+// ============================================================
+
+let sentinelArmed = false;
+let popNavigating = false; // true, докато обработваме popstate
+
+function armBackSentinel() {
+  if (sentinelArmed || popNavigating) return;
+  try {
+    history.pushState({ fitplan: true }, '');
+    sentinelArmed = true;
+  } catch { /* напр. sandbox iframe */ }
+}
+
+function hasInternalBackState() {
+  if (!$('lightbox').classList.contains('hidden')) return true;
+  if (!$('chatPanel').classList.contains('hidden')) return true;
+  const view = document.body.dataset.view;
+  if (view === 'wizard' && stepIndex > 0) return true;
+  return Boolean(view && view !== 'home');
+}
+
+function handlePopState() {
+  sentinelArmed = false;
+  popNavigating = true;
+  try {
+    if (!$('lightbox').classList.contains('hidden')) {
+      closeLightbox();
+    } else if (!$('chatPanel').classList.contains('hidden')) {
+      closeChat();
+    } else {
+      const view = document.body.dataset.view;
+      if (view === 'wizard' && stepIndex > 0) {
+        stepIndex--;
+        renderStep();
+      } else if (view && view !== 'home') {
+        renderHome();
+        showView('home');
+      }
+      // на начален екран: нищо — следващото "назад" излиза от приложението
+    }
+  } finally {
+    popNavigating = false;
+  }
+  if (hasInternalBackState()) {
+    try {
+      history.pushState({ fitplan: true }, '');
+      sentinelArmed = true;
+    } catch { /* noop */ }
+  }
 }
 
 // ============================================================
@@ -388,6 +464,7 @@ function nextStep() {
   if (stepIndex < QUESTIONS.length - 1) {
     stepIndex++;
     renderStep();
+    armBackSentinel(); // системният "назад" връща към предишния въпрос
   } else {
     generatePlan();
   }
@@ -712,8 +789,9 @@ function renderAltPanel(dayIdx, exIdx) {
   ));
 
   base.alternatives.forEach((alt, i) => {
+    const label = alt.displayName || localizeExerciseDisplayName(alt.name, '', alt.equipment);
     options.append(makeOption(
-      alt.name, alt.equipment ? `оборудване: ${alt.equipment}` : '',
+      label, alt.equipment ? `оборудване: ${alt.equipment}` : '',
       alt.imageUrl, current === i,
       () => { swaps[swapKey] = i; store.set('swaps', swaps); openAltPanel = null; renderDay(); },
     ));
@@ -761,9 +839,11 @@ function openLightbox(ex) {
   $('lightboxInstructions').textContent = media.instructions || '';
   $('lightbox').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
+  armBackSentinel();
 }
 
 function closeLightbox() {
+  if ($('lightbox').classList.contains('hidden')) return;
   $('lightbox').classList.add('hidden');
   $('lightboxImg').src = '';
   document.body.style.overflow = '';
@@ -780,10 +860,13 @@ function openChat() {
   $('chatFab').classList.add('hidden');
   renderChat();
   $('chatInput').focus();
+  armBackSentinel();
 }
 
 function closeChat() {
-  $('chatPanel').classList.add('hidden');
+  const panel = $('chatPanel');
+  if (panel.classList.contains('hidden')) return;
+  panel.classList.add('hidden');
   if (!$('view-plan').classList.contains('hidden')) $('chatFab').classList.remove('hidden');
 }
 
@@ -923,14 +1006,14 @@ function init() {
 
   // чат
   $('chatFab').addEventListener('click', openChat);
-  $('chatClose').addEventListener('click', closeChat);
+  $('chatClose').addEventListener('click', () => closeChat());
   $('chatForm').addEventListener('submit', (e) => {
     e.preventDefault();
     sendChatMessage($('chatInput').value);
   });
 
   // lightbox: ✕ / клик извън / Escape
-  $('lightboxClose').addEventListener('click', closeLightbox);
+  $('lightboxClose').addEventListener('click', () => closeLightbox());
   $('lightbox').addEventListener('click', (e) => { if (e.target === $('lightbox')) closeLightbox(); });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
@@ -938,6 +1021,9 @@ function init() {
       else if (!$('chatPanel').classList.contains('hidden')) closeChat();
     }
   });
+
+  // системен бутон "назад" (app-like)
+  window.addEventListener('popstate', handlePopState);
 
   // начален екран
   const params = new URLSearchParams(location.search);

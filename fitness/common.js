@@ -60,5 +60,9 @@ export function applyCachedPlanCta() {
 
 export function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
-  navigator.serviceWorker.register(new URL('./fitplan-sw.js', import.meta.url), { scope: '/fitness/' }).catch(() => {});
+  // Относителен scope: работи и на прод (/fitness/), и при локална разработка.
+  const scope = new URL('./', import.meta.url).pathname;
+  navigator.serviceWorker
+    .register(new URL('./fitplan-sw.js', import.meta.url), { scope })
+    .catch(() => {});
 }
