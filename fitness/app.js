@@ -11,7 +11,7 @@
 
 import { QUESTIONS, visibleOptions, validateQuestion, buildAnswers } from './questions.js';
 import { localizeExerciseDisplayName, sanitizeBgText } from './exercise-labels-bg.js';
-import { registerServiceWorker, purgePoisonedFitnessCaches } from './common.js';
+import { registerServiceWorker } from './common.js';
 
 // ============================================================
 // Конфигурация и локално хранилище
@@ -952,8 +952,6 @@ async function loadSharedPlan(planId) {
 }
 
 function init() {
-  purgePoisonedFitnessCaches();
-
   // навигация на визарда
   $('btnNext').addEventListener('click', nextStep);
   $('btnBack').addEventListener('click', prevStep);

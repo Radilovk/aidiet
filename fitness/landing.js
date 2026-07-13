@@ -1,9 +1,14 @@
-import { applyCachedPlanCta, purgePoisonedFitnessCaches } from './common.js';
+import { applyCachedPlanCta } from './common.js';
 
-// Почистване ПРЕДИ всичко друго (async, но стартира веднага)
-await purgePoisonedFitnessCaches();
+// Landing не ползва service worker — ако е останал от app.html, махаме го
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then((regs) => {
+    for (const reg of regs) {
+      if (reg.scope.includes('/fitness')) reg.unregister();
+    }
+  });
+}
 
-// Landing НЕ регистрира service worker — само app.html
 applyCachedPlanCta();
 
 if ('scrollRestoration' in history) {
@@ -16,7 +21,6 @@ if (header) {
   addEventListener('scroll', () => header.classList.toggle('scrolled', scrollY > 12), { passive: true });
 }
 
-// Лек scroll reveal — никога не крие съдържание (без opacity:0 по подразбиране)
 const reveals = [...document.querySelectorAll('.reveal')];
 if (reveals.length && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
   const io = new IntersectionObserver((entries) => {
