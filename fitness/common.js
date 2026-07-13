@@ -60,5 +60,24 @@ export function applyCachedPlanCta() {
 
 export function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
-  navigator.serviceWorker.register(new URL('./fitplan-sw.js', import.meta.url), { scope: '/fitness/' }).catch(() => {});
+
+  // Самолечение: когато НОВ service worker замени СТАР на вече отворена
+  // страница (ъпдейт на SW логиката), презареждаме еднократно, за да не
+  // останат смесени стари/нови файлове (точно това чупеше визията и
+  // предизвикваше мигане при старата cache-first версия).
+  // ВАЖНО: при първата инсталация (нямаше контролер) НЕ презареждаме —
+  // иначе първото посещение би мигнало.
+  const hadController = Boolean(navigator.serviceWorker.controller);
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (reloaded || !hadController) return;
+    reloaded = true;
+    location.reload();
+  });
+
+  // Относителен scope: работи и на прод (/fitness/), и при локална разработка.
+  const scope = new URL('./', import.meta.url).pathname;
+  navigator.serviceWorker
+    .register(new URL('./fitplan-sw.js', import.meta.url), { scope })
+    .catch(() => {});
 }

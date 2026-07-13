@@ -35,7 +35,7 @@ const EQUIP_BG = {
   kettlebell: 'с гира',
   cable: 'на кабел',
   band: 'с ластик',
-  'body weight': 'с собствено тегло',
+  'body weight': 'със собствено тегло',
   'smith machine': 'на Смит машина',
   'leverage machine': 'на машина',
   'ez barbell': 'с EZ лост',

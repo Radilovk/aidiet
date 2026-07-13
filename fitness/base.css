@@ -34,7 +34,17 @@ html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  color-scheme: dark; /* нативни контроли (range, scrollbar, keyboard accessory) в тъмна тема */
 }
+
+/* iOS Safari приближава (zoom) при фокус на input с font-size < 16px —
+   държим всички полета на минимум 16px, за да остане app-like. */
+input, select, textarea { font-size: 16px; }
+
+/* Без 300ms delay/double-tap zoom върху интерактивните елементи */
+button { touch-action: manipulation; }
+
+h1, h2, h3 { text-wrap: balance; }
 
 body {
   color: var(--text);

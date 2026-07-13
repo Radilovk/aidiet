@@ -40,8 +40,12 @@ main {
   padding: 20px clamp(12px, 4vw, 24px) calc(100px + var(--safe-bottom));
   width: 100%;
 }
-.view { animation: viewIn .35s ease both; }
-@keyframes viewIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.view { animation: viewIn .3s ease both; }
+@keyframes viewIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+/* Преди първия кадър (splash) няма entrance анимации — без "мигане" при зареждане */
+body:not(.booted) .view,
+body:not(.booted) .q-card { animation: none; }
 
 /* ---------- Wizard ---------- */
 .wizard-head { margin-bottom: 26px; }
@@ -139,6 +143,13 @@ textarea { min-height: 120px; resize: vertical; }
   padding: 14px 16px;
   cursor: pointer;
   transition: all .16s ease;
+  -webkit-user-select: none;
+  user-select: none; /* дълго задържане на телефон не селектира текста на опцията */
+  touch-action: manipulation;
+}
+.opt-card input {
+  -webkit-user-select: text;
+  user-select: text;
 }
 .opt-card:hover { border-color: var(--muted); }
 .opt-card.active {
@@ -161,7 +172,7 @@ textarea { min-height: 120px; resize: vertical; }
 .opt-card.active .opt-mark { background: var(--volt); border-color: var(--volt); }
 .opt-text { font-weight: 600; font-size: 15.5px; }
 .opt-inputs { margin-top: 11px; display: flex; flex-direction: column; gap: 8px; padding-left: 34px; }
-.opt-inputs input { padding: 10px 13px; font-size: 15px; }
+.opt-inputs input { padding: 10px 13px; font-size: 16px; } /* ≥16px: без iOS auto-zoom */
 
 /* scale */
 .scale-wrap { padding: 14px 4px 6px; }
@@ -387,6 +398,8 @@ input[type="range"] {
   display: flex;
   gap: 8px;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
   padding: 4px 2px 12px;
   scrollbar-width: none;
 }
@@ -397,6 +410,8 @@ input[type="range"] {
   background: var(--surface);
   color: var(--text);
   border-radius: 14px;
+  -webkit-user-select: none;
+  user-select: none;
   padding: 10px 15px;
   font-family: var(--font-body);
   font-weight: 700;
@@ -421,7 +436,8 @@ input[type="range"] {
   border-radius: var(--radius);
   padding: clamp(18px, 3.5vw, 28px);
   box-shadow: var(--shadow);
-  animation: viewIn .25s ease both;
+  /* без entrance анимация: картата се пре-рендерира при интензитет/замяна
+     и анимацията изглеждаше като мигане */
 }
 .day-card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
 .day-card-head h2 { font-family: var(--font-display); font-size: clamp(18px, 3vw, 22px); }
@@ -510,9 +526,11 @@ input[type="range"] {
   font-size: 13.5px;
   font-weight: 700;
   border-radius: 999px;
-  padding: 7px 14px;
+  padding: 9px 16px;
+  min-height: 40px;
   cursor: pointer;
   transition: all .15s;
+  touch-action: manipulation;
 }
 .ex-btn:hover { color: var(--volt); border-color: var(--volt); }
 
@@ -620,12 +638,16 @@ input[type="range"] {
 .chat-remaining { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
 .chat-close {
   background: none; border: none; color: var(--muted);
-  font-size: 17px; cursor: pointer; padding: 6px;
+  font-size: 17px; cursor: pointer;
+  min-width: var(--touch-min); min-height: var(--touch-min);
+  display: grid; place-items: center;
 }
 .chat-close:hover { color: var(--text); }
 .chat-messages {
   flex: 1;
   overflow-y: auto;
+  overscroll-behavior: contain; /* скролът в чата не дърпа страницата зад него */
+  -webkit-overflow-scrolling: touch;
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -650,7 +672,7 @@ input[type="range"] {
   border-top: 1px solid var(--border-soft);
   background: var(--surface);
 }
-.chat-input-row input { flex: 1; padding: 11px 14px; font-size: 15px; border-radius: 999px; }
+.chat-input-row input { flex: 1; padding: 11px 14px; font-size: 16px; border-radius: 999px; } /* ≥16px: без iOS auto-zoom */
 .chat-send {
   width: 44px; height: 44px;
   flex: 0 0 auto;
@@ -681,6 +703,8 @@ input[type="range"] {
   width: 100%;
   max-height: min(90dvh, 90vh);
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 20px;
