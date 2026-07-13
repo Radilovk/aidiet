@@ -14,6 +14,8 @@ import {
   findAlternatives,
   allowedEquipmentSet,
   selectGuidelines,
+  capGuidelineTexts,
+  buildPlanUserPrompt,
   buildProfileSummary,
   buildCoachContext,
   parseAiJson,
@@ -181,6 +183,36 @@ test('selectGuidelines: бременност и начинаещ', () => {
   assert.ok(joined.includes('бременност'));
   assert.ok(joined.includes('Начинаещи'));
   assert.ok(joined.includes('Ограничено оборудване'));
+});
+
+test('selectGuidelines: слива админ chunks и ограничава обема', () => {
+  const guidelines = selectGuidelines(
+    { goal: { main: 'Отслабване' }, experience: 'Начинаещ', health: [], healthFemale: [], equipment: ['Дъмбели'], age: 25 },
+    {
+      chunks: [
+        { tags: ['goal:отслабване'], text: 'АДМИН: персонален акцент върху NEAT и ходене.' },
+        { tags: ['level:начинаещ'], text: 'АДМИН: първо овладяване на шаблон движения.' },
+      ],
+    },
+  );
+  const joined = guidelines.join('\n');
+  assert.ok(joined.includes('АДМИН: персонален акцент'));
+  assert.ok(joined.includes('Отслабване'));
+  assert.ok(joined.length <= 2400);
+  assert.ok(guidelines.length <= 8);
+});
+
+test('capGuidelineTexts: спазва лимити', () => {
+  const capped = capGuidelineTexts(['a'.repeat(100), 'b'.repeat(100), 'c'.repeat(3000)], 2, 150);
+  assert.equal(capped.length, 2);
+  assert.ok(capped.join('').length <= 150);
+});
+
+test('buildPlanUserPrompt: foundation не влиза в system prompt структурата', () => {
+  const prompt = buildPlanUserPrompt('Профил', ['Насока 1'], 'Принцип А');
+  assert.ok(prompt.includes('БАЗОВИ ПРИНЦИПИ'));
+  assert.ok(prompt.includes('Принцип А'));
+  assert.ok(prompt.includes('Насока 1'));
 });
 
 // ----------------------------------------------------------------------------

@@ -19,6 +19,8 @@
  *   GET  /api/plan/:id         — връща съхранен план (за друго устройство / NutriPlan)
  *   POST /api/coach            — AI персонален треньор (чат)
  *   GET  /api/exercises/search — локално търсене в базата (debug/бъдеща употреба)
+ *   GET  /api/admin/fitplan/guidelines — админ: зарежда насоки за mini-RAG
+ *   POST /api/admin/fitplan/guidelines — админ: записва насоки в KV
  *
  * Bindings / vars (wrangler.toml + secrets):
  *   FITNESS_KV            — KV namespace (кеш на индекса, планове, rate limits)
@@ -60,6 +62,17 @@ const MAX_CHAT_HISTORY = 6;                   // последните 3 разм
 const MAX_CHAT_MESSAGE_CHARS = 600;
 const MAX_INSTRUCTION_CHARS = 600;
 
+// Admin mini-RAG: foundation + tagged chunks в KV (не в system prompt)
+export const ADMIN_GUIDELINES_KV_KEY = 'admin:guidelines';
+export const MAX_FOUNDATION_CHARS = 800;
+export const MAX_GUIDELINE_ITEMS = 8;
+export const MAX_GUIDELINE_CHARS = 2400;
+export const MAX_ADMIN_CHUNKS = 24;
+const ADMIN_GUIDELINES_CACHE_TTL = 5 * 60 * 1000;
+
+let adminGuidelinesCache = null;
+let adminGuidelinesCacheTime = 0;
+
 // Кеш в паметта на isolate-а — живее между заявките в рамките на един worker
 // instance. Първата заявка след cold start чете от KV; всички следващи са безплатни.
 let memoryIndex = null;
@@ -71,7 +84,7 @@ let memoryIndex = null;
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, X-Admin-Secret',
 };
 
 function jsonResponse(data, status = 200, extraHeaders = {}) {
@@ -419,8 +432,68 @@ export const GUIDELINE_CHUNKS = [
   },
 ];
 
+/** Ограничава броя и общата дължина на насоките в user prompt-а. */
+export function capGuidelineTexts(texts, maxItems = MAX_GUIDELINE_ITEMS, maxChars = MAX_GUIDELINE_CHARS) {
+  const result = [];
+  let total = 0;
+  for (const text of texts) {
+    const t = String(text || '').trim();
+    if (!t) continue;
+    if (result.length >= maxItems) break;
+    const remaining = maxChars - total;
+    if (remaining <= 0) break;
+    const slice = t.length > remaining ? t.slice(0, remaining) : t;
+    result.push(slice);
+    total += slice.length;
+  }
+  return result;
+}
+
+function normalizeAdminGuidelines(raw) {
+  const foundation = String(raw?.foundation || '').trim().slice(0, MAX_FOUNDATION_CHARS);
+  const chunks = (Array.isArray(raw?.chunks) ? raw.chunks : [])
+    .slice(0, MAX_ADMIN_CHUNKS)
+    .map((chunk) => {
+      const tags = (Array.isArray(chunk?.tags) ? chunk.tags : String(chunk?.tags || '').split(','))
+        .map((t) => String(t || '').trim().toLowerCase())
+        .filter(Boolean);
+      const text = String(chunk?.text || '').trim().slice(0, 500);
+      return tags.length && text ? { tags, text } : null;
+    })
+    .filter(Boolean);
+  return { foundation, chunks, updatedAt: raw?.updatedAt || null };
+}
+
+export async function loadAdminGuidelines(env) {
+  if (!env?.FITNESS_KV) return { foundation: '', chunks: [] };
+  const now = Date.now();
+  if (adminGuidelinesCache && (now - adminGuidelinesCacheTime) < ADMIN_GUIDELINES_CACHE_TTL) {
+    return adminGuidelinesCache;
+  }
+  const raw = await env.FITNESS_KV.get(ADMIN_GUIDELINES_KV_KEY);
+  if (!raw) {
+    adminGuidelinesCache = { foundation: '', chunks: [] };
+    adminGuidelinesCacheTime = now;
+    return adminGuidelinesCache;
+  }
+  try {
+    adminGuidelinesCache = normalizeAdminGuidelines(JSON.parse(raw));
+    adminGuidelinesCacheTime = now;
+    return adminGuidelinesCache;
+  } catch {
+    return { foundation: '', chunks: [] };
+  }
+}
+
+function checkAdminSecret(request, env) {
+  const secret = env.ADMIN_SECRET;
+  if (!secret) return true;
+  const provided = request.headers.get('X-Admin-Secret') || '';
+  return provided === secret;
+}
+
 /** Извлича таговете от профила и връща само релевантните насоки. */
-export function selectGuidelines(profile) {
+export function selectGuidelines(profile, adminConfig = null) {
   const tags = new Set();
   const goal = normalizeText(profile.goal?.main);
   if (goal) tags.add(`goal:${goal}`);
@@ -448,11 +521,16 @@ export function selectGuidelines(profile) {
   if (normalizeText(profile.preferences?.timeOfDay || '').includes('сутрин')) tags.add('time:сутрин');
   if (Number(profile.age) >= 50) tags.add('age:50+');
 
+  const allChunks = [...GUIDELINE_CHUNKS];
+  if (Array.isArray(adminConfig?.chunks)) {
+    allChunks.push(...adminConfig.chunks);
+  }
+
   const selected = [];
-  for (const chunk of GUIDELINE_CHUNKS) {
+  for (const chunk of allChunks) {
     if (chunk.tags.some((t) => tags.has(t))) selected.push(chunk.text);
   }
-  return selected;
+  return capGuidelineTexts(selected);
 }
 
 // ============================================================================
@@ -580,11 +658,15 @@ const PLAN_SYSTEM_PROMPT = `Ти си елитен български трень
   }
 }`;
 
-export function buildPlanUserPrompt(profileSummary, guidelines) {
+export function buildPlanUserPrompt(profileSummary, guidelines, foundation = '') {
+  const foundationText = String(foundation || '').trim().slice(0, MAX_FOUNDATION_CHARS);
+  const foundationBlock = foundationText
+    ? `\n\nБАЗОВИ ПРИНЦИПИ (физиология и биомеханика — винаги спазвай):\n${foundationText}`
+    : '';
   const guidelineBlock = guidelines.length
     ? `\n\nСПЕЦИФИЧНИ ЕКСПЕРТНИ НАСОКИ ЗА ТОЗИ ПРОФИЛ (спазвай ги):\n- ${guidelines.join('\n- ')}`
     : '';
-  return `ПРОФИЛ НА КЛИЕНТА (от въпросник):\n${profileSummary}${guidelineBlock}\n\nСъздай седмичния план сега. Отговори САМО с JSON.`;
+  return `ПРОФИЛ НА КЛИЕНТА (от въпросник):\n${profileSummary}${foundationBlock}${guidelineBlock}\n\nСъздай седмичния план сега. Отговори САМО с JSON.`;
 }
 
 // ============================================================================
@@ -857,8 +939,9 @@ async function handleGeneratePlan(request, env, ctx) {
   const indexPromise = loadExerciseIndex(env, ctx);
 
   const profileSummary = buildProfileSummary(answers);
-  const guidelines = selectGuidelines(answers);
-  const userPrompt = buildPlanUserPrompt(profileSummary, guidelines);
+  const adminGuidelines = await loadAdminGuidelines(env);
+  const guidelines = selectGuidelines(answers, adminGuidelines);
+  const userPrompt = buildPlanUserPrompt(profileSummary, guidelines, adminGuidelines.foundation);
 
   let plan;
   let rawText;
@@ -973,6 +1056,45 @@ async function handleExerciseSearch(url, env, ctx) {
   }, 200, { 'Cache-Control': 'public, max-age=3600' });
 }
 
+async function handleGetAdminGuidelines(request, env) {
+  if (!checkAdminSecret(request, env)) return errorResponse('Неоторизиран достъп', 401, 'unauthorized');
+  const config = await loadAdminGuidelines(env);
+  const builtinTags = [...new Set(GUIDELINE_CHUNKS.flatMap((c) => c.tags))].sort();
+  return jsonResponse({
+    success: true,
+    config,
+    limits: {
+      foundation: MAX_FOUNDATION_CHARS,
+      chunkText: 500,
+      maxChunks: MAX_ADMIN_CHUNKS,
+      injectedItems: MAX_GUIDELINE_ITEMS,
+      injectedChars: MAX_GUIDELINE_CHARS,
+    },
+    builtinTags,
+    builtinChunkCount: GUIDELINE_CHUNKS.length,
+  });
+}
+
+async function handleSaveAdminGuidelines(request, env) {
+  if (!checkAdminSecret(request, env)) return errorResponse('Неоторизиран достъп', 401, 'unauthorized');
+  if (!env.FITNESS_KV) return errorResponse('KV не е конфигурирано', 500);
+
+  let body;
+  try { body = await request.json(); } catch { return errorResponse('Невалиден JSON', 400); }
+
+  const config = normalizeAdminGuidelines({
+    foundation: body.foundation,
+    chunks: body.chunks,
+    updatedAt: new Date().toISOString(),
+  });
+
+  await env.FITNESS_KV.put(ADMIN_GUIDELINES_KV_KEY, JSON.stringify(config));
+  adminGuidelinesCache = config;
+  adminGuidelinesCacheTime = Date.now();
+
+  return jsonResponse({ success: true, config });
+}
+
 // ============================================================================
 // Router
 // ============================================================================
@@ -1008,6 +1130,12 @@ export default {
       }
       if (request.method === 'GET' && path === '/api/exercises/search') {
         return await handleExerciseSearch(url, env, ctx);
+      }
+      if (request.method === 'GET' && path === '/api/admin/fitplan/guidelines') {
+        return await handleGetAdminGuidelines(request, env);
+      }
+      if (request.method === 'POST' && path === '/api/admin/fitplan/guidelines') {
+        return await handleSaveAdminGuidelines(request, env);
       }
       return errorResponse('Не е намерено', 404, 'not_found');
     } catch (e) {

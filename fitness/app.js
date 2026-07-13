@@ -109,6 +109,71 @@ function el(tag, props = {}, ...children) {
   return node;
 }
 
+const METRIC_INFO = {
+  rpe: {
+    title: 'RPE (интензитет)',
+    text: 'Субективна скала 1–10 за тежестта на серията. 10 = максимум; 7–8 означава, че можеш още 2–3 повторения с добра техника.',
+  },
+  effort: {
+    title: 'Тежест',
+    text: 'Опростен ориентир за начинаещи — съответства на RPE. Ако не си сигурен/на, започни с по-леката стъпка и увеличавай постепенно.',
+  },
+  tempo: {
+    title: 'Темпо',
+    text: 'Формат долу–пауза–горе (напр. 2-0-2): секунди за долната фаза, пауза долу, секунди за горната. Бавният контрол намалява риска от контузия.',
+  },
+};
+
+function effortLabelFromRpe(rpeStr) {
+  const nums = String(rpeStr || '').match(/\d+(?:\.\d+)?/g);
+  if (!nums?.length) return null;
+  const avg = nums.map(Number).reduce((a, b) => a + b, 0) / nums.length;
+  if (avg <= 5.5) return 'Много лека тежест';
+  if (avg <= 6.5) return 'Лека тежест';
+  if (avg <= 7.5) return 'Умерена тежест';
+  if (avg <= 8.5) return 'Тежка тежест';
+  return 'Максимална тежест';
+}
+
+let openMetricTip = null;
+
+function closeMetricTip() {
+  if (openMetricTip) {
+    openMetricTip.remove();
+    openMetricTip = null;
+  }
+}
+
+function renderMetricChip(label, infoKey, extraClass = '') {
+  const chip = el('span', { class: `ex-chip ex-chip-metric${extraClass ? ` ${extraClass}` : ''}` }, label);
+  if (infoKey && METRIC_INFO[infoKey]) {
+    const info = METRIC_INFO[infoKey];
+    const btn = el('button', {
+      type: 'button',
+      class: 'ex-chip-info',
+      'aria-label': `Информация: ${info.title}`,
+      onclick: (e) => {
+        e.stopPropagation();
+        const existing = chip.querySelector('.ex-chip-tip');
+        if (existing) {
+          existing.remove();
+          if (openMetricTip === existing) openMetricTip = null;
+          return;
+        }
+        closeMetricTip();
+        const tip = el('div', { class: 'ex-chip-tip', role: 'tooltip' },
+          el('strong', { text: info.title }),
+          el('p', { text: info.text }),
+        );
+        chip.append(tip);
+        openMetricTip = tip;
+      },
+    }, 'i');
+    chip.append(btn);
+  }
+  return chip;
+}
+
 const VIEWS = ['home', 'wizard', 'loading', 'plan', 'error'];
 
 function hasCachedPlan() {
@@ -773,8 +838,12 @@ function renderExerciseCard(dayIdx, exIdx) {
   const chips = el('div', { class: 'ex-chips' });
   chips.append(el('span', { class: 'ex-chip', html: `<b>${ex.sets}</b> × ${escapeHtml(ex.reps)}` }));
   chips.append(el('span', { class: 'ex-chip', text: `почивка ${ex.restSeconds} сек` }));
-  if (ex.rpe) chips.append(el('span', { class: 'ex-chip', text: `RPE ${ex.rpe}` }));
-  if (ex.tempo) chips.append(el('span', { class: 'ex-chip', text: `темпо ${ex.tempo}` }));
+  if (ex.rpe) {
+    const effort = effortLabelFromRpe(ex.rpe);
+    if (effort) chips.append(renderMetricChip(effort, 'effort', 'effort-chip'));
+    chips.append(renderMetricChip(`RPE ${ex.rpe}`, 'rpe'));
+  }
+  if (ex.tempo) chips.append(renderMetricChip(`темпо ${ex.tempo}`, 'tempo'));
   main.append(chips);
 
   if (ex.notes) main.append(el('p', { class: 'ex-notes', text: ex.notes }));
@@ -989,6 +1058,10 @@ async function loadSharedPlan(planId) {
 
 function init() {
   const resumed = resumePendingGeneration();
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.ex-chip-metric')) closeMetricTip();
+  });
 
   // навигация на визарда
   $('btnNext').addEventListener('click', nextStep);

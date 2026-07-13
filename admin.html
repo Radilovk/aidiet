@@ -1614,6 +1614,9 @@
                 <button class="tab-btn" onclick="switchTab('ai-prompts', event)">
                     <i class="fas fa-robot"></i> AI Промпти
                 </button>
+                <button class="tab-btn" onclick="switchTab('fitplan', event)">
+                    <i class="fas fa-dumbbell"></i> FitPlan
+                </button>
                 <button class="tab-btn" onclick="switchTab('monitoring', event)">
                     <i class="fas fa-chart-line"></i> Мониторинг
                 </button>
@@ -2429,6 +2432,50 @@
 
             </div>
             <!-- End AI Prompts Tab -->
+
+            <!-- FitPlan Tab -->
+            <div id="tab-fitplan" class="tab-content">
+            <div class="card">
+                <h2><i class="fas fa-dumbbell"></i> FitPlan — Принципи за тренировки</h2>
+                <div class="info-box">
+                    <strong>Mini-RAG подход:</strong> Тук задаваш физиология, биомеханика и допълнителни насоки.
+                    Те <em>не</em> влизат в system prompt-а — извличат се по тагове от профила на клиента и се добавят
+                    само в user съобщението (макс. 8 порции / ~2400 знака). Вградените насоки в worker-а остават активни.
+                </div>
+
+                <div class="form-group">
+                    <label for="fitplanFoundation">Базови принципи (физиология и биомеханика)</label>
+                    <textarea id="fitplanFoundation" rows="6" maxlength="800" placeholder="Кратки универсални принципи: контрол на движението, дишане, прогресия, възстановяване, безопасни ъгли на ставите..."></textarea>
+                    <small id="fitplanFoundationCount" style="color: var(--text-gray);">0 / 800 знака</small>
+                </div>
+
+                <div class="form-group">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
+                        <label style="margin:0;">Допълнителни насоки по тагове</label>
+                        <button type="button" class="btn" style="background:#6366f1;" onclick="addFitplanChunkRow()">
+                            <i class="fas fa-plus"></i> Добави насока
+                        </button>
+                    </div>
+                    <small style="display:block;color:var(--text-gray);margin-bottom:12px;">
+                        Тагове (пример): <code>goal:отслабване</code>, <code>level:начинаещ</code>, <code>health:хипертония</code>.
+                        Пълен списък се зарежда от worker-а.
+                    </small>
+                    <div id="fitplanBuiltinTags" class="admin-assistant-meta" style="margin-bottom:14px;"></div>
+                    <div id="fitplanChunksList" style="display:flex;flex-direction:column;gap:12px;"></div>
+                </div>
+
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                    <button class="btn" onclick="saveFitplanGuidelines()">
+                        <i class="fas fa-save"></i> Запази FitPlan насоки
+                    </button>
+                    <button class="btn" style="background:#6b7280;" onclick="loadFitplanGuidelines(true)">
+                        <i class="fas fa-sync"></i> Презареди
+                    </button>
+                </div>
+                <div id="fitplanGuidelinesStatus" style="margin-top:12px;color:var(--text-gray);font-size:0.9rem;"></div>
+            </div>
+            </div>
+            <!-- End FitPlan Tab -->
 
             <!-- Monitoring Tab -->
             <div id="tab-monitoring" class="tab-content">
@@ -3411,6 +3458,10 @@
                 <i class="fas fa-robot" aria-hidden="true"></i>
                 <span>Промпти</span>
             </button>
+            <button class="mobile-nav-btn" id="mbn-fitplan" onclick="switchTab('fitplan', event)" aria-label="FitPlan">
+                <i class="fas fa-dumbbell" aria-hidden="true"></i>
+                <span>FitPlan</span>
+            </button>
             <button class="mobile-nav-btn" id="mbn-monitoring" onclick="switchTab('monitoring', event)" aria-label="Мониторинг">
                 <i class="fas fa-chart-line" aria-hidden="true"></i>
                 <span>Монит.</span>
@@ -3507,6 +3558,12 @@
                 tab: 'ai-prompts',
                 icon: 'fa-pen-fancy',
                 keywords: ['промпт', 'prompt', 'план', 'генериране', 'шаблон', 'инструкция', 'системен', 'system prompt', 'текст', 'хранене', 'диета']
+            },
+            {
+                title: 'FitPlan — Принципи за тренировки',
+                tab: 'fitplan',
+                icon: 'fa-dumbbell',
+                keywords: ['fitplan', 'фитнес', 'тренировка', 'тренировки', 'физиология', 'биомеханика', 'rpe', 'темпо', 'mini-rag', 'насоки', 'guidelines', 'workout', 'сила', 'хипертрофия']
             },
             {
                 title: 'AI Промпт за Анализ (Стъпка 1)',
@@ -3747,7 +3804,7 @@
 
         function goToSetting(tabName, cardTitle) {
             hideSuggestions();
-            const validTabs = ['configuration', 'ai-prompts', 'monitoring', 'features', 'protocols', 'ui-images'];
+            const validTabs = ['configuration', 'ai-prompts', 'fitplan', 'monitoring', 'features', 'protocols', 'ui-images'];
             if (!validTabs.includes(tabName)) return;
             switchTab(tabName, null);
             const input = document.getElementById('settingsSearchInput');
@@ -3870,7 +3927,7 @@
         // --- Tab Management ---
         function switchTab(tabName, evt) {
             // Validate tabName to prevent XSS
-            const validTabs = ['configuration', 'ai-prompts', 'monitoring', 'features', 'protocols', 'ui-images'];
+            const validTabs = ['configuration', 'ai-prompts', 'fitplan', 'monitoring', 'features', 'protocols', 'ui-images'];
             if (!validTabs.includes(tabName)) {
                 console.error('Invalid tab name:', tabName);
                 return;
@@ -3927,6 +3984,9 @@
             if (tabName === 'ui-images') {
                 loadAllUIImages();
             }
+            if (tabName === 'fitplan' && typeof loadFitplanGuidelines === 'function') {
+                loadFitplanGuidelines();
+            }
 
             // Scroll to top of content on mobile
             if (window.innerWidth <= 768) {
@@ -3938,7 +3998,7 @@
         function initializeTab() {
             const savedTab = localStorage.getItem('selectedTab') || 'configuration';
             // Validate saved tab to prevent XSS
-            const validTabs = ['configuration', 'ai-prompts', 'monitoring', 'features', 'protocols', 'ui-images'];
+            const validTabs = ['configuration', 'ai-prompts', 'fitplan', 'monitoring', 'features', 'protocols', 'ui-images'];
             const tabToLoad = validTabs.includes(savedTab) ? savedTab : 'configuration';
             
             const tabContents = document.querySelectorAll('.tab-content');
@@ -4011,6 +4071,147 @@
         // This password is visible in the browser source code and should not be used for security.
         const ADMIN_PASSWORD = 'nutriplan2024'; // TODO: Move to server-side auth
         const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
+        const FITPLAN_WORKER_URL = 'https://aidiet-fitness.radilov-k.workers.dev';
+
+        let fitplanGuidelinesLoaded = false;
+
+        function fitplanAdminHeaders() {
+            return {
+                'Content-Type': 'application/json',
+                'X-Admin-Secret': ADMIN_PASSWORD,
+            };
+        }
+
+        function updateFitplanFoundationCount() {
+            const el = document.getElementById('fitplanFoundation');
+            const counter = document.getElementById('fitplanFoundationCount');
+            if (!el || !counter) return;
+            counter.textContent = `${el.value.length} / 800 знака`;
+        }
+
+        function renderFitplanBuiltinTags(tags) {
+            const wrap = document.getElementById('fitplanBuiltinTags');
+            if (!wrap) return;
+            wrap.innerHTML = '';
+            (tags || []).forEach((tag) => {
+                const span = document.createElement('span');
+                span.textContent = tag;
+                wrap.appendChild(span);
+            });
+        }
+
+        function createFitplanChunkRow(chunk = { tags: [], text: '' }) {
+            const row = document.createElement('div');
+            row.className = 'pending-client-card';
+            row.style.flexDirection = 'column';
+            row.style.alignItems = 'stretch';
+            row.innerHTML = `
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+                    <div style="flex:1;min-width:220px;">
+                        <label style="font-size:0.82rem;color:var(--text-gray);">Тагове (запетая)</label>
+                        <input type="text" class="fitplan-chunk-tags" value="${escapeHtml((chunk.tags || []).join(', '))}" placeholder="goal:отслабване, level:начинаещ">
+                    </div>
+                    <button type="button" class="btn" style="background:#ef4444;align-self:flex-end;" onclick="this.closest('.pending-client-card').remove()">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+                <div style="margin-top:8px;">
+                    <label style="font-size:0.82rem;color:var(--text-gray);">Текст на насоката (макс. 500 знака)</label>
+                    <textarea class="fitplan-chunk-text" rows="3" maxlength="500">${escapeHtml(chunk.text || '')}</textarea>
+                </div>
+            `;
+            return row;
+        }
+
+        function addFitplanChunkRow(chunk) {
+            const list = document.getElementById('fitplanChunksList');
+            if (!list) return;
+            list.appendChild(createFitplanChunkRow(chunk));
+        }
+
+        function collectFitplanChunksFromDom() {
+            const rows = document.querySelectorAll('#fitplanChunksList .pending-client-card');
+            const chunks = [];
+            rows.forEach((row) => {
+                const tagsRaw = row.querySelector('.fitplan-chunk-tags')?.value || '';
+                const text = row.querySelector('.fitplan-chunk-text')?.value?.trim() || '';
+                const tags = tagsRaw.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean);
+                if (tags.length && text) chunks.push({ tags, text });
+            });
+            return chunks;
+        }
+
+        async function loadFitplanGuidelines(force) {
+            const status = document.getElementById('fitplanGuidelinesStatus');
+            if (fitplanGuidelinesLoaded && !force) return;
+            try {
+                if (status) status.textContent = 'Зареждане от FitPlan worker...';
+                const response = await fetch(FITPLAN_WORKER_URL + '/api/admin/fitplan/guidelines', {
+                    headers: fitplanAdminHeaders(),
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                const config = data.config || { foundation: '', chunks: [] };
+
+                const foundationEl = document.getElementById('fitplanFoundation');
+                if (foundationEl) {
+                    foundationEl.value = config.foundation || '';
+                    updateFitplanFoundationCount();
+                }
+
+                const list = document.getElementById('fitplanChunksList');
+                if (list) {
+                    list.innerHTML = '';
+                    (config.chunks || []).forEach((chunk) => addFitplanChunkRow(chunk));
+                }
+
+                renderFitplanBuiltinTags(data.builtinTags || []);
+                fitplanGuidelinesLoaded = true;
+
+                const updated = config.updatedAt
+                    ? `Последна промяна: ${new Date(config.updatedAt).toLocaleString('bg-BG')}. `
+                    : '';
+                if (status) {
+                    status.textContent = `${updated}Вградени насоки: ${data.builtinChunkCount || '?'}. Лимит при генерация: ${data.limits?.injectedItems || 8} порции / ${data.limits?.injectedChars || 2400} знака.`;
+                }
+            } catch (error) {
+                console.error('FitPlan guidelines load error:', error);
+                if (status) status.textContent = 'Грешка при зареждане. Увери се, че fitness worker-ът е деплойнат с новите endpoints.';
+                showError('Неуспешно зареждане на FitPlan насоки: ' + error.message);
+            }
+        }
+
+        async function saveFitplanGuidelines() {
+            const status = document.getElementById('fitplanGuidelinesStatus');
+            try {
+                const payload = {
+                    foundation: document.getElementById('fitplanFoundation')?.value || '',
+                    chunks: collectFitplanChunksFromDom(),
+                };
+                if (status) status.textContent = 'Запис...';
+                const response = await fetch(FITPLAN_WORKER_URL + '/api/admin/fitplan/guidelines', {
+                    method: 'POST',
+                    headers: fitplanAdminHeaders(),
+                    body: JSON.stringify(payload),
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                fitplanGuidelinesLoaded = true;
+                if (status && data.config?.updatedAt) {
+                    status.textContent = `Запазено на ${new Date(data.config.updatedAt).toLocaleString('bg-BG')}.`;
+                }
+                showSuccess('FitPlan насоките са запазени.');
+            } catch (error) {
+                console.error('FitPlan guidelines save error:', error);
+                if (status) status.textContent = 'Грешка при запис.';
+                showError('Неуспешен запис на FitPlan насоки: ' + error.message);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const foundationEl = document.getElementById('fitplanFoundation');
+            if (foundationEl) foundationEl.addEventListener('input', updateFitplanFoundationCount);
+        });
 
         // ============================================================================
         // QUESTION LABELS — human-readable labels for questionnaire answer keys
