@@ -2,7 +2,7 @@
 // Configure base path - use '/' for custom domain (biocode.website) or '/aidiet' for GitHub Pages
 const BASE_PATH = '';
 
-const CACHE_NAME = 'nutriplan-v11';
+const CACHE_NAME = 'nutriplan-v12';
 const DEFAULT_ICON = `${BASE_PATH}/icon-192x192.png`;
 const DEFAULT_BADGE = `${BASE_PATH}/icon-192x192.png`;
 const DEFAULT_TITLE = 'NutriPlan';
@@ -154,7 +154,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
+          if (cacheName !== CACHE_NAME && !cacheName.startsWith('fitplan-')) {
             console.log('[SW] Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
@@ -169,6 +169,12 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
+
+  // FitPlan AI (/fitness/) има собствен service worker и кеш — не прехващаме.
+  // Иначе stale-while-revalidate от NutriPlan SW връща остарели CSS/HTML при refresh.
+  if (url.pathname.startsWith('/fitness/') || url.pathname === '/fitness') {
+    return;
+  }
 
   // Skip non-GET requests
   if (request.method !== 'GET') {

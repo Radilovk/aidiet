@@ -1,35 +1,37 @@
-import { registerServiceWorker, applyCachedPlanCta } from './common.js';
+import { applyCachedPlanCta, purgePoisonedFitnessCaches } from './common.js';
 
-registerServiceWorker();
+// Почистване ПРЕДИ всичко друго (async, но стартира веднага)
+await purgePoisonedFitnessCaches();
+
+// Landing НЕ регистрира service worker — само app.html
 applyCachedPlanCta();
+
+if ('scrollRestoration' in history) {
+  history.scrollRestoration = 'manual';
+}
+scrollTo(0, 0);
 
 const header = document.getElementById('siteHeader');
 if (header) {
   addEventListener('scroll', () => header.classList.toggle('scrolled', scrollY > 12), { passive: true });
 }
 
-// Scroll reveal — съдържанието е видимо преди JS; анимира се само след js-ready.
+// Лек scroll reveal — никога не крие съдържание (без opacity:0 по подразбиране)
 const reveals = [...document.querySelectorAll('.reveal')];
-const io = new IntersectionObserver((entries) => {
-  for (const e of entries) {
-    if (e.isIntersecting) {
-      e.target.classList.add('in');
-      io.unobserve(e.target);
+if (reveals.length && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  const io = new IntersectionObserver((entries) => {
+    for (const e of entries) {
+      if (e.isIntersecting) {
+        e.target.classList.add('in');
+        io.unobserve(e.target);
+      }
     }
-  }
-}, { threshold: 0.12 });
+  }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
 
-for (const n of reveals) {
-  if (n.getBoundingClientRect().top < innerHeight * 0.95) {
-    n.classList.add('in', 'instant');
-  } else {
-    io.observe(n);
+  for (const n of reveals) {
+    if (n.getBoundingClientRect().top < innerHeight) n.classList.add('in');
+    else io.observe(n);
   }
+} else {
+  for (const n of reveals) n.classList.add('in');
 }
-
-requestAnimationFrame(() => {
-  document.documentElement.classList.add('js-ready');
-  requestAnimationFrame(() => {
-    for (const n of reveals) n.classList.remove('instant');
-  });
-});

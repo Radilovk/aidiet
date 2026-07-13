@@ -166,11 +166,13 @@ npx wrangler kv key put exidx:v1 --path data/exercise-index.json \
 - **`manifest.json`** — приложението е инсталируемо (Android „Add to Home
   Screen“, iOS „Добави към начален екран“): standalone режим, портретна
   ориентация, shortcuts „Моята програма“ и „Нов план“.
-- **`fitplan-sw.js`** — service worker с безопасни ъпдейти:
-  навигациите са *network-first* (нов деплой стига веднага при мрежа,
-  офлайн се отваря кешираното приложение), активите са
-  *stale-while-revalidate*, а CDN медията (thumbnail/GIF) е *cache-first*
-  с таван от 300 записа — планът работи офлайн с изображенията.
+- **`fitplan-sw.js`** — service worker (само `/fitness/` scope, регистрира се от
+  `app.html`): онлайн винаги зарежда от мрежата (`cache: no-store`), офлайн
+  fallback към кеш. CDN медия (thumbnail/GIF) е *cache-first* с таван 300.
+  **Главният NutriPlan `sw.js` (корен `/`) не прехваща `/fitness/`** — иначе
+  stale-while-revalidate връщаше остарели CSS при refresh на landing.
+- **Landing (`index.html`)** не регистрира SW; при зареждане почиства
+  отровени `/fitness/` записи от `nutriplan-*` кеша.
 - **Системен „назад“** (Android бутон/жест, iOS swipe) се обработва
   in-app: затваря lightbox/чат, връща предишния въпрос във визарда,
   връща от плана към началния екран — без да изхвърля потребителя.

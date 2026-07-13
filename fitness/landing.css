@@ -353,21 +353,11 @@ body {
 .foot-links a:hover { color: var(--text); }
 .disclaimer { font-size: 13px; opacity: .85; max-width: 780px; line-height: 1.55; }
 
-/* scroll reveal — видимо по подразбиране (без FOUC при refresh) */
+/* scroll reveal — съдържанието винаги видимо */
 .reveal {
   opacity: 1;
   transform: none;
 }
-html.js-ready .reveal:not(.in) {
-  opacity: 0;
-  transform: translateY(22px);
-  transition: opacity .6s ease, transform .6s cubic-bezier(.22, 1, .36, 1);
-}
-html.js-ready .reveal.in {
-  opacity: 1;
-  transform: none;
-}
-.reveal.instant { transition: none !important; }
 
 /* ---------- Tablet / Desktop (min-width) ---------- */
 @media (min-width: 481px) {
@@ -481,7 +471,7 @@ html.js-ready .reveal.in {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html.js-ready .reveal:not(.in) { opacity: 1; transform: none; transition: none; }
+  .reveal, .reveal:not(.in) { opacity: 1; transform: none; transition: none; }
   .orb, .mockup, .float-chip, .eyebrow::before { animation: none; }
   .step:hover, .feature:hover { transform: none; }
 }
