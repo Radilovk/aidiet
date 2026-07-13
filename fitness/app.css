@@ -1,62 +1,14 @@
 /* ============================================================
    FitPlan AI — стилове на приложението (въпросник / план / чат)
+   Изисква base.css
    ============================================================ */
-
-:root {
-  --bg: #0a0e13;
-  --bg-soft: #0e141b;
-  --surface: #121a23;
-  --surface-2: #18222d;
-  --border: #223041;
-  --border-soft: #1a2632;
-  --text: #eef3f8;
-  --muted: #8fa0b3;
-  --volt: #a8ff3e;
-  --volt-dim: #8fdd2e;
-  --teal: #35e0c2;
-  --danger: #ff6b6b;
-  --warn: #ffc94d;
-  --grad: linear-gradient(100deg, var(--volt), var(--teal));
-  --radius: 18px;
-  --radius-sm: 12px;
-  --font-display: 'Unbounded', system-ui, sans-serif;
-  --font-body: 'Sofia Sans', system-ui, -apple-system, sans-serif;
-  --shadow: 0 18px 50px -18px rgba(0, 0, 0, .65);
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-right: env(safe-area-inset-right, 0px);
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --safe-left: env(safe-area-inset-left, 0px);
-  --header-h: 58px;
-  --touch-min: 44px;
-}
-
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
-html {
-  scroll-behavior: smooth;
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-}
 
 body {
   background:
     radial-gradient(1000px 500px at 85% -10%, rgba(53, 224, 194, .07), transparent 60%),
     radial-gradient(900px 500px at -10% 10%, rgba(168, 255, 62, .06), transparent 55%),
     var(--bg);
-  color: var(--text);
-  font-family: var(--font-body);
-  font-size: 16px;
-  line-height: 1.55;
-  min-height: 100vh;
-  min-height: 100dvh;
-  -webkit-font-smoothing: antialiased;
-  -webkit-tap-highlight-color: transparent;
-  overflow-x: hidden;
-  padding-left: var(--safe-left);
-  padding-right: var(--safe-right);
 }
-
-.hidden { display: none !important; }
 
 /* ---------- Header ---------- */
 .app-header {
@@ -80,51 +32,6 @@ body {
   gap: 8px;
   flex-shrink: 0;
 }
-
-.logo {
-  font-family: var(--font-display);
-  font-weight: 900;
-  font-size: 17px;
-  letter-spacing: .06em;
-  text-decoration: none;
-  color: var(--text);
-}
-.logo span { color: var(--volt); }
-.logo em { font-style: normal; font-size: 11px; vertical-align: super; color: var(--teal); margin-left: 3px; }
-
-/* ---------- Общи бутони ---------- */
-.btn-primary, .btn-ghost {
-  font-family: var(--font-body);
-  font-weight: 700;
-  font-size: 16px;
-  border-radius: 999px;
-  padding: 14px 22px;
-  min-height: var(--touch-min);
-  cursor: pointer;
-  transition: transform .15s ease, box-shadow .2s ease, background .2s ease, opacity .2s;
-  border: none;
-  touch-action: manipulation;
-}
-.btn-primary.sm, .btn-ghost.sm {
-  padding: 10px 16px;
-  font-size: 14px;
-  min-height: 40px;
-}
-.btn-block { width: 100%; display: block; text-align: center; }
-.btn-primary {
-  background: var(--grad);
-  color: #0a1206;
-  box-shadow: 0 10px 30px -10px rgba(168, 255, 62, .45);
-}
-.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 14px 34px -10px rgba(168, 255, 62, .55); }
-.btn-primary:disabled { opacity: .55; cursor: wait; transform: none; }
-.btn-ghost {
-  background: transparent;
-  color: var(--muted);
-  border: 1px solid var(--border);
-}
-.btn-ghost:hover { color: var(--text); border-color: var(--muted); }
-.btn-ghost.sm { padding: 9px 14px; font-size: 13px; }
 
 /* ---------- Views ---------- */
 main {

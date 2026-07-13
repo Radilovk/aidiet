@@ -11,6 +11,7 @@
 
 import { QUESTIONS, visibleOptions, validateQuestion, buildAnswers } from './questions.js';
 import { localizeExerciseDisplayName, sanitizeBgText } from './exercise-labels-bg.js';
+import { registerServiceWorker } from './common.js';
 
 // ============================================================
 // Конфигурация и локално хранилище
@@ -962,12 +963,6 @@ function init() {
   }
 
   registerServiceWorker();
-}
-
-function registerServiceWorker() {
-  if (!('serviceWorker' in navigator)) return;
-  const swUrl = new URL('./fitplan-sw.js', import.meta.url);
-  navigator.serviceWorker.register(swUrl.href, { scope: '/fitness/' }).catch(() => {});
 }
 
 init();
