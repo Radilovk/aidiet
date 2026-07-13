@@ -59,15 +59,14 @@ export function applyCachedPlanCta() {
 }
 
 /**
- * Премахва /fitness/ записи от главния NutriPlan SW кеш (nutriplan-v*).
- * Те причиняваха stale CSS/HTML и счупен mobile layout при refresh.
+ * Премахва ВСИЧКИ /fitness/ записи от всички SW кешове.
+ * Старият NutriPlan SW (stale-while-revalidate) отровяше landing.css при refresh.
  */
 export async function purgePoisonedFitnessCaches() {
   if (!('caches' in window)) return;
   try {
     const names = await caches.keys();
     await Promise.all(names.map(async (name) => {
-      if (!name.startsWith('nutriplan-')) return;
       const cache = await caches.open(name);
       const keys = await cache.keys();
       await Promise.all(keys.map((req) => {

@@ -4,7 +4,7 @@
  * Стратегия: онлайн = винаги мрежа (без stale CSS/HTML); офлайн = кеш fallback.
  */
 
-const VERSION = 'v6';
+const VERSION = 'v7';
 const APP_CACHE = `fitplan-app-${VERSION}`;
 const IMG_CACHE = 'fitplan-img-v1';
 const IMG_CACHE_MAX_ENTRIES = 300;
@@ -100,6 +100,14 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (!request.url.startsWith(self.registration.scope)) return;
+
+  // Landing страницата НЕ минава през SW — винаги директно от мрежата/HTTP кеша.
+  // Това предотвратява stale CSS при refresh (дори след посещение на app.html).
+  const p = url.pathname;
+  if (p.endsWith('/fitness/') || p.endsWith('/fitness') || p.endsWith('/fitness/index.html')
+      || p.includes('landing.') || (p.endsWith('/base.css') && p.includes('/fitness/'))) {
+    return;
+  }
 
   event.respondWith(networkPrefer(request));
 });

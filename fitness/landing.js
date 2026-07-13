@@ -1,8 +1,9 @@
 import { applyCachedPlanCta, purgePoisonedFitnessCaches } from './common.js';
 
-// НЕ регистрираме service worker на landing — app.html го прави.
-// Тук само почистваме остарели /fitness/ записи от главния NutriPlan SW.
-purgePoisonedFitnessCaches();
+// Почистване ПРЕДИ всичко друго (async, но стартира веднага)
+await purgePoisonedFitnessCaches();
+
+// Landing НЕ регистрира service worker — само app.html
 applyCachedPlanCta();
 
 if ('scrollRestoration' in history) {
