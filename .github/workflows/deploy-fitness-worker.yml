@@ -84,15 +84,8 @@ jobs:
             status=$(curl -sS -o /tmp/fitness-health.json -w "%{http_code}" https://aidiet-fitness.radilov-k.workers.dev/api/health || true)
             if [ "$status" = "200" ]; then
               cat /tmp/fitness-health.json
-              if ! python3 - <<'PY'
-import json, sys
-data = json.load(open("/tmp/fitness-health.json"))
-providers = data.get("providers") or {}
-if not providers.get("gemini") and not providers.get("openai"):
-    print("::error::FitPlan worker has no AI provider keys (gemini/openai both false)")
-    sys.exit(1)
-PY
-              then
+              if ! jq -e '.providers.gemini == true or .providers.openai == true' /tmp/fitness-health.json >/dev/null 2>&1; then
+                echo "::error::FitPlan worker has no AI provider keys (gemini/openai both false)"
                 exit 1
               fi
               exit 0
