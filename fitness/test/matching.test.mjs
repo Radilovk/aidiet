@@ -268,6 +268,7 @@ test('parseAiJson: чист JSON, markdown огради и шум около с�
   assert.deepEqual(parseAiJson('```json\n{"a":1}\n```'), { a: 1 });
   assert.deepEqual(parseAiJson('Ето плана: {"a":{"b":2}} Готово.'), { a: { b: 2 } });
   assert.throws(() => parseAiJson('не е json'));
+  assert.throws(() => parseAiJson('{"days":[{"day":"Пн"'), /отрязан/i);
 });
 
 test('normalizePlan: допълва до 7 дни и ограничава стойностите', () => {

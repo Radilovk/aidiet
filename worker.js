@@ -15855,7 +15855,8 @@ async function handleXbodyAppointments(request, env) {
 /** FitPlan AI routes — delegated to fitness/worker.js (uses FITNESS_KV or page_content). */
 function isFitnessRoute(pathname, method) {
   if (method === 'GET' && (pathname === '/api/health' || pathname === '/api/exercises/search')) return true;
-  if (method === 'POST' && (pathname === '/api/plan/generate' || pathname === '/api/coach')) return true;
+  if (method === 'GET' && pathname === '/api/admin/fitplan/guidelines') return true;
+  if (method === 'POST' && (pathname === '/api/plan/generate' || pathname === '/api/coach' || pathname === '/api/admin/fitplan/guidelines')) return true;
   if (method === 'GET' && /^\/api\/plan\/[A-Za-z0-9-]{8,64}$/.test(pathname)) return true;
   return false;
 }

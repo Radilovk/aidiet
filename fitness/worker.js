@@ -620,6 +620,8 @@ const PLAN_SYSTEM_PROMPT = `Ти си елитен български трень
 
 СТРУКТУРА: точно 7 дни (понеделник-неделя). Дните за почивка са type "rest" с празен exercises масив и кратка препоръка в focus. Загрявка и разпускане — кратки текстови стъпки.
 
+КОМПАКТНОСТ (критично за валиден JSON): макс. 5 упражнения на тренировъчен ден; warmup/cooldown по до 3 стъпки; notes до 80 знака; guidelines по 1–2 изречения на поле.
+
 ОТГОВОРИ САМО С ВАЛИДЕН JSON без markdown ограждане, точно по тази схема:
 {
   "title": "кратко мотивиращо заглавие на плана",
@@ -669,6 +671,15 @@ export function buildPlanUserPrompt(profileSummary, guidelines, foundation = '')
   return `ПРОФИЛ НА КЛИЕНТА (от въпросник):\n${profileSummary}${foundationBlock}${guidelineBlock}\n\nСъздай седмичния план сега. Отговори САМО с JSON.`;
 }
 
+const COMPACT_PLAN_RETRY_HINT = `
+
+ВАЖНО — КОМПАКТЕН ИЗХОД (задължително):
+- Макс. 4 упражнения на тренировъчен ден.
+- warmup/cooldown: по 2 кратки стъпки.
+- notes: до 60 знака.
+- guidelines: по 1 кратко изречение на поле.
+- Отговори САМО с пълен, валиден JSON без markdown.`;
+
 // ============================================================================
 // AI доставчици: Gemini (основен) + OpenAI (fallback)
 // ============================================================================
@@ -676,14 +687,19 @@ export function buildPlanUserPrompt(profileSummary, guidelines, foundation = '')
 async function callGemini(env, { system, user, temperature = 0.4, maxOutputTokens = 8192, jsonMode = true }) {
   const model = env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.GEMINI_API_KEY}`;
+  const generationConfig = {
+    temperature,
+    maxOutputTokens,
+    ...(jsonMode ? { responseMimeType: 'application/json' } : {}),
+  };
+  // Gemini 2.5 Flash/Pro: thinking по подразбиране изяжда maxOutputTokens → отрязан JSON.
+  if (/gemini-2\.5/i.test(model)) {
+    generationConfig.thinkingConfig = { thinkingBudget: 0 };
+  }
   const body = {
     systemInstruction: { parts: [{ text: system }] },
     contents: [{ role: 'user', parts: [{ text: user }] }],
-    generationConfig: {
-      temperature,
-      maxOutputTokens,
-      ...(jsonMode ? { responseMimeType: 'application/json' } : {}),
-    },
+    generationConfig,
   };
   const res = await fetch(url, {
     method: 'POST',
@@ -695,8 +711,21 @@ async function callGemini(env, { system, user, temperature = 0.4, maxOutputToken
     throw new Error(`Gemini ${res.status}: ${errText.slice(0, 300)}`);
   }
   const data = await res.json();
-  const text = data.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') || '';
-  if (!text) throw new Error('Gemini: празен отговор');
+  const candidate = data.candidates?.[0];
+  const finishReason = candidate?.finishReason || '';
+  const parts = candidate?.content?.parts || [];
+  const text = parts
+    .filter((p) => !p.thought && p.text)
+    .map((p) => p.text)
+    .join('') || parts.map((p) => p.text).filter(Boolean).join('');
+  if (!text) {
+    throw new Error(`Gemini: празен отговор${finishReason ? ` (${finishReason})` : ''}`);
+  }
+  if (finishReason === 'MAX_TOKENS') {
+    const err = new Error('Gemini: отговорът е отрязан (MAX_TOKENS)');
+    err.truncated = true;
+    throw err;
+  }
   return text;
 }
 
@@ -724,8 +753,15 @@ async function callOpenAI(env, { system, user, temperature = 0.4, maxOutputToken
     throw new Error(`OpenAI ${res.status}: ${errText.slice(0, 300)}`);
   }
   const data = await res.json();
-  const text = data.choices?.[0]?.message?.content || '';
+  const choice = data.choices?.[0];
+  const text = choice?.message?.content || '';
+  const finishReason = choice?.finish_reason || '';
   if (!text) throw new Error('OpenAI: празен отговор');
+  if (finishReason === 'length') {
+    const err = new Error('OpenAI: отговорът е отрязан (length)');
+    err.truncated = true;
+    throw err;
+  }
   return text;
 }
 
@@ -744,6 +780,7 @@ async function callAI(env, opts) {
 /** Издръжлив JSON parse: сваля markdown огради и изрязва до най-външните скоби. */
 export function parseAiJson(text) {
   let t = String(text || '').trim();
+  if (!t) throw new Error('AI отговорът е празен');
   t = t.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
   try { return JSON.parse(t); } catch { /* опит с изрязване */ }
   const start = t.indexOf('{');
@@ -751,7 +788,14 @@ export function parseAiJson(text) {
   if (start >= 0 && end > start) {
     try { return JSON.parse(t.slice(start, end + 1)); } catch { /* пада долу */ }
   }
+  if (start >= 0 && end <= start) {
+    throw new Error('AI отговорът е отрязан преди края на JSON');
+  }
   throw new Error('AI отговорът не е валиден JSON');
+}
+
+function isPlanParseError(err) {
+  return /JSON|Планът|дни|отрязан|MAX_TOKENS/i.test(String(err?.message || '')) || Boolean(err?.truncated);
 }
 
 // ============================================================================
@@ -941,23 +985,39 @@ async function handleGeneratePlan(request, env, ctx) {
   const profileSummary = buildProfileSummary(answers);
   const adminGuidelines = await loadAdminGuidelines(env);
   const guidelines = selectGuidelines(answers, adminGuidelines);
-  const userPrompt = buildPlanUserPrompt(profileSummary, guidelines, adminGuidelines.foundation);
+  const baseUserPrompt = buildPlanUserPrompt(profileSummary, guidelines, adminGuidelines.foundation);
 
   let plan;
   let rawText;
-  const aiOpts = { system: PLAN_SYSTEM_PROMPT, user: userPrompt, temperature: 0.4, maxOutputTokens: 8192, jsonMode: true };
-  for (let attempt = 0; attempt < 2; attempt++) {
+  const maxAttempts = 3;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const userPrompt = attempt === 0 ? baseUserPrompt : `${baseUserPrompt}${COMPACT_PLAN_RETRY_HINT}`;
+    const aiOpts = {
+      system: PLAN_SYSTEM_PROMPT,
+      user: userPrompt,
+      temperature: attempt === 0 ? 0.4 : 0.25,
+      maxOutputTokens: 8192,
+      jsonMode: true,
+    };
     try {
       rawText = await callAI(env, aiOpts);
       plan = normalizePlan(parseAiJson(rawText));
       break;
     } catch (e) {
-      const isLast = attempt === 1;
-      console.error(`AI план опит ${attempt + 1} пропадна:`, e.message, rawText?.slice(0, 200));
+      const isLast = attempt === maxAttempts - 1;
+      console.error(
+        `AI план опит ${attempt + 1}/${maxAttempts} пропадна:`,
+        e.message,
+        `rawLen=${rawText?.length || 0}`,
+        rawText ? `tail=${JSON.stringify(rawText.slice(-120))}` : '',
+      );
       if (isLast) {
-        if (/JSON|Планът|дни/i.test(e.message)) {
+        if (isPlanParseError(e)) {
           return errorResponse('AI върна невалиден план. Опитай отново.', 502, 'ai_invalid');
         }
+        return errorResponse('AI услугата е временно недостъпна. Опитай отново след минута.', 502, 'ai_unavailable');
+      }
+      if (!isPlanParseError(e)) {
         return errorResponse('AI услугата е временно недостъпна. Опитай отново след минута.', 502, 'ai_unavailable');
       }
     }
