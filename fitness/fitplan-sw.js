@@ -2,11 +2,15 @@
  * FitPlan AI — service worker за офлайн кеш на приложението.
  * Scope: /fitness/
  */
-const CACHE = 'fitplan-app-v1';
+const CACHE = 'fitplan-app-v2';
 const ASSETS = [
   './',
   './index.html',
   './app.html',
+  './base.css',
+  './landing.css',
+  './landing.js',
+  './common.js',
   './app.css',
   './app.js',
   './questions.js',
