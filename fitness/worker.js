@@ -35,6 +35,7 @@
  */
 
 import { localizeExerciseDisplayName, sanitizeBgText, sanitizePlanBulgarian } from './exercise-labels-bg.js';
+import { mergeExerciseTranslation } from './exercise-translations.js';
 
 // ============================================================================
 // Константи
@@ -60,7 +61,7 @@ const MATCH_THRESHOLD = 0.35;                 // под този score → fallb
 const MAX_ALTERNATIVES = 3;
 const MAX_CHAT_HISTORY = 6;                   // последните 3 разменени реплики
 const MAX_CHAT_MESSAGE_CHARS = 600;
-const MAX_INSTRUCTION_CHARS = 600;
+const MAX_INSTRUCTION_CHARS = 1200;
 
 // Admin mini-RAG: foundation + tagged chunks в KV (не в system prompt)
 export const ADMIN_GUIDELINES_KV_KEY = 'admin:guidelines';
@@ -221,24 +222,18 @@ export function findAlternatives(index, matchedEntry, { allowedEquipment = null,
 // Компактен индекс на базата с упражнения
 // ============================================================================
 
-function pickInstructions(instructions) {
-  if (!instructions) return '';
-  if (typeof instructions === 'string') return instructions;
-  if (Array.isArray(instructions)) return instructions.join(' ');
-  const raw = instructions.bg || instructions.en || Object.values(instructions)[0] || '';
-  return Array.isArray(raw) ? raw.join(' ') : String(raw);
-}
-
 /**
  * Свежда суров запис от базата до компактен индексен запис.
  * Пази само необходимото за matching + рендериране (≈120 байта/запис без инструкции).
+ * @param {object[]} rawList
+ * @param {Record<string, {nameBg?: string, instructionsBg?: string}>} [translations]
  */
-export function buildCompactIndex(rawList) {
+export function buildCompactIndex(rawList, translations = {}) {
   const index = [];
   for (const raw of rawList || []) {
     const name = raw.name || '';
     if (!name) continue;
-    const entry = {
+    const entry = mergeExerciseTranslation({
       id: String(raw.id ?? index.length),
       name,
       nameNorm: normalizeText(name),
@@ -252,11 +247,24 @@ export function buildCompactIndex(rawList) {
       secondary: Array.isArray(raw.secondary_muscles) ? raw.secondary_muscles.slice(0, 4) : [],
       image: raw.image || '',
       gif: raw.gif_url || raw.gifUrl || '',
-      instructions: pickInstructions(raw.instructions).slice(0, MAX_INSTRUCTION_CHARS),
-    };
+    }, raw, translations, MAX_INSTRUCTION_CHARS);
     index.push(entry);
   }
   return index;
+}
+
+let bundledTranslations = null;
+
+/** Build-time преводи (data/exercise-translations-bg.json), ако са налични в bundle-а. */
+export async function loadBundledTranslations() {
+  if (bundledTranslations !== null) return bundledTranslations;
+  try {
+    const mod = await import('./data/exercise-translations-bg.json', { with: { type: 'json' } });
+    bundledTranslations = mod.default || mod;
+  } catch {
+    bundledTranslations = {};
+  }
+  return bundledTranslations;
 }
 
 /**
@@ -290,7 +298,8 @@ async function loadExerciseIndex(env, ctx) {
       if (!res.ok) continue;
       const data = await res.json();
       const list = Array.isArray(data) ? data : (data.exercises || data.data || []);
-      const index = buildCompactIndex(list);
+      const translations = await loadBundledTranslations();
+      const index = buildCompactIndex(list, translations);
       if (index.length > 50) {
         memoryIndex = index;
         if (env.FITNESS_KV) {
@@ -862,16 +871,19 @@ export function normalizePlan(plan) {
 // ============================================================================
 
 function entryToClientExercise(env, entry) {
+  const displayName = entry.nameBg || localizeExerciseDisplayName(entry.name, '', entry.equipment);
   return {
     id: entry.id,
     name: entry.name,
-    displayName: localizeExerciseDisplayName(entry.name, '', entry.equipment),
+    displayName,
+    nameBg: entry.nameBg || '',
     equipment: entry.equipment,
     target: entry.target,
     bodyPart: entry.bodyPart,
     imageUrl: mediaUrl(env, entry.image),
     gifUrl: mediaUrl(env, entry.gif),
     instructions: entry.instructions || '',
+    instructionsLang: entry.instructionsLang || '',
   };
 }
 
