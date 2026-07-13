@@ -12,8 +12,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="FitPlan AI">
-  <meta name="description" content="FitPlan AI — персонален седмичен тренировъчен план от 14 въпроса. Здраве, цел, оборудване. AI треньор в чата.">
-  <title>FitPlan AI — Тренировъчен план по мярка</title>
+  <meta name="description" content="FitPlan AI — твоята персонална тренировъчна програма от 14 въпроса. Демонстрации, замяна, AI треньор.">
+  <title>FitPlan AI — Това е точно твоята програма</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" href="../icon-192x192.png">
   <link rel="apple-touch-icon" href="../icon-192x192.png">
@@ -50,8 +50,8 @@
     <section class="hero wrap">
       <div class="hero-grid">
         <div>
-          <h1>Тренировъчен план <span class="grad">по твоя мярка</span></h1>
-          <p class="hero-sub">14 въпроса → седмица програма с демонстрации. Адаптира се с един клик.</p>
+          <h1>Това е точно <span class="grad">твоята програма!</span></h1>
+          <p class="hero-sub">14 въпроса → седмица с реални демонстрации. Адаптира се с един клик.</p>
           <div class="hero-ctas">
             <a class="btn-hero hidden" id="heroMyProgram" data-my-program href="app.html?open=1">Моята програма</a>
             <a class="btn-hero" href="app.html" id="heroCreatePlan">Създай план</a>
@@ -59,13 +59,52 @@
           </div>
           <p class="hero-note">Без регистрация · Планът е на устройството ти</p>
         </div>
-        <div class="mockup-zone">
-          <div class="mockup" aria-hidden="true">
-            <div class="mockup-day">Понеделник</div>
-            <div class="mockup-focus">Горна част · ~50 мин</div>
-            <div class="mockup-ex"><div class="ico">🏋️</div><div><div class="nm">Лежанка</div><div class="st">4 × 8–10</div></div><div class="sw">⇄</div></div>
-            <div class="mockup-ex"><div class="ico">💪</div><div><div class="nm">Раменни с дъмбели</div><div class="st">3 × 10–12</div></div><div class="sw">⇄</div></div>
-            <div class="mockup-ex"><div class="ico">🧘</div><div><div class="nm">Стречинг</div><div class="st">5 мин</div></div></div>
+        <div class="preview-zone">
+          <div class="preview-app" aria-hidden="true">
+            <div class="preview-pills">
+              <div class="preview-pill active"><span>Пн</span><small>Горна част</small></div>
+              <div class="preview-pill"><span>Вт</span><small>Почивка</small></div>
+              <div class="preview-pill"><span>Ср</span><small>Долна</small></div>
+            </div>
+            <div class="preview-day">
+              <div class="preview-day-head">
+                <h2>Понеделник</h2>
+                <span class="preview-badge">~50 мин</span>
+              </div>
+              <p class="preview-focus">Горна част — избутвания</p>
+              <div class="preview-ex-list">
+                <div class="preview-ex">
+                  <img class="preview-thumb" src="https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@main/images/0025-EIeI8Vf.jpg" alt="" width="64" height="64" loading="lazy">
+                  <div class="preview-ex-main">
+                    <div class="preview-ex-name">Избутване с щанга от лежанка</div>
+                    <div class="preview-chips">
+                      <span class="preview-chip"><b>4</b> × 8–10</span>
+                      <span class="preview-chip">почивка 90 сек</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="preview-ex">
+                  <img class="preview-thumb" src="https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@main/images/0405-znQUdHY.jpg" alt="" width="64" height="64" loading="lazy">
+                  <div class="preview-ex-main">
+                    <div class="preview-ex-name">Раменно избутване с дъмбели</div>
+                    <div class="preview-chips">
+                      <span class="preview-chip"><b>3</b> × 10–12</span>
+                      <span class="preview-chip">почивка 75 сек</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="preview-ex">
+                  <img class="preview-thumb" src="https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@main/images/2363-O2K9Vb5.jpg" alt="" width="64" height="64" loading="lazy">
+                  <div class="preview-ex-main">
+                    <div class="preview-ex-name">Кофички на успоредка</div>
+                    <div class="preview-chips">
+                      <span class="preview-chip"><b>3</b> × до отказ –2</span>
+                      <span class="preview-chip">RPE 8</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

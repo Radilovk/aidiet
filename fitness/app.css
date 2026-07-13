@@ -308,6 +308,18 @@ input[type="range"] {
   gap: 10px;
 }
 
+.home-generating {
+  margin: 0 0 1rem;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(53, 224, 194, .35);
+  background: rgba(53, 224, 194, .08);
+  color: var(--teal);
+  font-size: 0.9rem;
+  font-weight: 600;
+  max-width: 22rem;
+}
+
 .home-cache-note {
   margin-top: 1.25rem;
   font-size: 0.78rem;

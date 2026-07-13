@@ -11,7 +11,7 @@
 
 import { QUESTIONS, visibleOptions, validateQuestion, buildAnswers } from './questions.js';
 import { localizeExerciseDisplayName, sanitizeBgText } from './exercise-labels-bg.js';
-import { registerServiceWorker, releaseNutriPlanServiceWorker } from './common.js';
+import { registerServiceWorker } from './common.js';
 
 // ============================================================
 // Конфигурация и локално хранилище
@@ -141,6 +141,7 @@ function renderHome() {
   const draft = wizardHasProgress() && !hasPlan;
   $('btnContinueWizard').classList.toggle('hidden', !draft);
   $('btnStartWizard').textContent = hasPlan ? 'Създай нов план' : 'Започни въпросника';
+  updateGeneratingUi();
 }
 
 function openCachedProgram() {
@@ -161,6 +162,9 @@ function showView(name) {
   $('btnMyProgram').classList.toggle('hidden', !hasCachedPlan() || name === 'plan');
   $('chatFab').classList.toggle('hidden', name !== 'plan');
   if (name !== 'plan') closeChat();
+  if (prev === 'loading' && name !== 'loading') stopLoadingMessages();
+  if (name === 'loading' && planGenerationJob) startLoadingMessages();
+  updateGeneratingUi();
   document.body.dataset.view = name;
   // App-like: навигация напред (след първоначалното зареждане) активира
   // back-sentinel-а, за да работи системният бутон "назад".
@@ -487,6 +491,7 @@ const LOADING_MESSAGES = [
   'Още момент — финални щрихи…',
 ];
 let loadingTimer = null;
+let planGenerationJob = null;
 
 function startLoadingMessages() {
   let i = 0;
@@ -504,11 +509,7 @@ function stopLoadingMessages() {
   loadingTimer = null;
 }
 
-async function generatePlan() {
-  showView('loading');
-  startLoadingMessages();
-
-  const answers = buildAnswers(wizardState);
+async function runPlanGeneration(answers) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 150000);
 
@@ -518,6 +519,7 @@ async function generatePlan() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ answers }),
       signal: controller.signal,
+      keepalive: true,
     });
     const data = await res.json().catch(() => ({}));
 
@@ -551,7 +553,41 @@ async function generatePlan() {
   } finally {
     clearTimeout(timeout);
     stopLoadingMessages();
+    store.remove('generating');
+    planGenerationJob = null;
+    updateGeneratingUi();
   }
+}
+
+function updateGeneratingUi() {
+  const note = $('homeGeneratingNote');
+  if (note) note.classList.toggle('hidden', !planGenerationJob);
+}
+
+function generatePlan() {
+  if (planGenerationJob) {
+    showView('loading');
+    return planGenerationJob;
+  }
+
+  const answers = buildAnswers(wizardState);
+  store.set('generating', { startedAt: Date.now(), answers });
+  showView('loading');
+  startLoadingMessages();
+  armBackSentinel();
+  updateGeneratingUi();
+  planGenerationJob = runPlanGeneration(answers);
+  return planGenerationJob;
+}
+
+function resumePendingGeneration() {
+  const pending = store.get('generating');
+  if (!pending?.answers || planGenerationJob || hasCachedPlan()) return false;
+  showView('loading');
+  startLoadingMessages();
+  updateGeneratingUi();
+  planGenerationJob = runPlanGeneration(pending.answers);
+  return true;
 }
 
 function firstTrainingDay(plan) {
@@ -952,6 +988,8 @@ async function loadSharedPlan(planId) {
 }
 
 function init() {
+  const resumed = resumePendingGeneration();
+
   // навигация на визарда
   $('btnNext').addEventListener('click', nextStep);
   $('btnBack').addEventListener('click', prevStep);
@@ -1026,6 +1064,7 @@ function init() {
   window.addEventListener('popstate', handlePopState);
 
   // начален екран
+  if (!resumed) {
   const params = new URLSearchParams(location.search);
   const sharedPlanId = params.get('plan');
   const forceNew = params.has('new');
@@ -1047,6 +1086,7 @@ function init() {
     renderHome();
     showView('home');
   }
+  }
 
   registerServiceWorker();
 
@@ -1062,9 +1102,4 @@ function init() {
   });
 }
 
-async function boot() {
-  if (await releaseNutriPlanServiceWorker()) return;
-  init();
-}
-
-boot();
+init();
