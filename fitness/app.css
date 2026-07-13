@@ -37,7 +37,7 @@ body {
 main {
   max-width: 720px;
   margin: 0 auto;
-  padding: 20px clamp(12px, 4vw, 24px) calc(100px + var(--safe-bottom));
+  padding: 14px 12px calc(88px + var(--safe-bottom));
   width: 100%;
 }
 .view { animation: viewIn .3s ease both; }
@@ -195,8 +195,23 @@ input[type="range"] {
 }
 .scale-labels { display: flex; justify-content: space-between; color: var(--muted); font-size: 13.5px; margin-top: 4px; }
 
-/* навигация на визарда */
-.wizard-nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 24px; }
+/* навигация на визарда — mobile: sticky долу */
+.wizard-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 24px;
+  position: sticky;
+  bottom: 0;
+  margin-left: -12px;
+  margin-right: -12px;
+  margin-bottom: -14px;
+  padding: 12px 12px max(12px, var(--safe-bottom));
+  background: linear-gradient(transparent, var(--bg) 24%);
+  flex-direction: column-reverse;
+}
+.wizard-nav .btn-primary,
+.wizard-nav .btn-ghost { width: 100%; flex: 1; padding: 14px 10px; }
 .step-error {
   margin-top: 16px;
   color: var(--danger);
@@ -369,10 +384,18 @@ input[type="range"] {
 .plan-safety strong { color: var(--warn); display: block; margin-bottom: 5px; }
 .plan-safety ul { margin-left: 18px; }
 
-.intensity-row { display: flex; align-items: center; gap: 13px; flex-wrap: wrap; margin-bottom: 20px; }
+.intensity-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  margin-bottom: 20px;
+}
 .intensity-label { color: var(--muted); font-weight: 600; font-size: 14.5px; }
 .intensity-seg {
   display: inline-flex;
+  width: 100%;
+  justify-content: stretch;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -380,16 +403,19 @@ input[type="range"] {
   gap: 3px;
 }
 .intensity-seg button {
+  flex: 1;
+  min-height: var(--touch-min);
   border: none;
   background: transparent;
   color: var(--muted);
   font-family: var(--font-body);
   font-weight: 700;
-  font-size: 14px;
-  padding: 8px 16px;
+  font-size: 13px;
+  padding: 10px 8px;
   border-radius: 999px;
   cursor: pointer;
   transition: all .16s;
+  touch-action: manipulation;
 }
 .intensity-seg button.active { background: var(--grad); color: #0a1206; }
 
@@ -472,8 +498,8 @@ input[type="range"] {
 .ex-list { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
 .ex-card {
   display: grid;
-  grid-template-columns: 84px 1fr;
-  gap: 14px;
+  grid-template-columns: 64px 1fr;
+  gap: 10px;
   background: var(--surface-2);
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-sm);
@@ -482,7 +508,7 @@ input[type="range"] {
 }
 .ex-card:hover { border-color: var(--border); }
 .ex-thumb {
-  width: 84px; height: 84px;
+  width: 64px; height: 64px;
   border-radius: 10px;
   background: var(--bg);
   border: 1px solid var(--border-soft);
@@ -492,7 +518,7 @@ input[type="range"] {
   place-items: center;
 }
 .ex-thumb-placeholder {
-  width: 84px; height: 84px;
+  width: 64px; height: 64px;
   border-radius: 10px;
   background: var(--bg);
   border: 1px dashed var(--border);
@@ -593,9 +619,9 @@ input[type="range"] {
 /* ---------- Чат ---------- */
 .chat-fab {
   position: fixed;
-  right: max(16px, var(--safe-right));
-  bottom: max(16px, var(--safe-bottom));
-  width: 58px; height: 58px;
+  right: max(12px, var(--safe-right));
+  bottom: max(12px, var(--safe-bottom));
+  width: 52px; height: 52px;
   border-radius: 50%;
   border: none;
   background: var(--grad);
@@ -611,19 +637,22 @@ input[type="range"] {
 
 .chat-panel {
   position: fixed;
-  right: max(16px, var(--safe-right));
-  bottom: max(16px, var(--safe-bottom));
-  width: min(400px, calc(100vw - 32px - var(--safe-left) - var(--safe-right)));
-  height: min(560px, calc(100dvh - var(--header-h) - 32px - var(--safe-bottom)));
+  inset: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  max-width: 100%;
+  height: 100dvh;
   background: var(--bg-soft);
-  border: 1px solid var(--border);
-  border-radius: 20px;
+  border: none;
+  border-radius: 0;
   display: flex;
   flex-direction: column;
   z-index: 70;
-  box-shadow: 0 30px 70px -20px rgba(0, 0, 0, .8);
+  box-shadow: none;
   animation: chatIn .25s ease both;
   overflow: hidden;
+  padding-bottom: var(--safe-bottom);
 }
 @keyframes chatIn { from { opacity: 0; transform: translateY(24px) scale(.97); } to { opacity: 1; transform: none; } }
 .chat-head {
@@ -739,10 +768,65 @@ input[type="range"] {
 .lightbox-meta { color: var(--teal); font-size: 13.5px; font-weight: 700; margin-bottom: 10px; }
 .lightbox-instructions { color: var(--muted); font-size: 14.5px; text-align: left; }
 
-/* ---------- Responsive (mobile-first) ---------- */
-@media (max-width: 480px) {
-  body { font-size: 16px; }
+/* ---------- Desktop enhancements (min-width) ---------- */
+@media (min-width: 481px) {
+  .app-header {
+    padding: calc(12px + var(--safe-top)) calc(14px + var(--safe-right)) 12px calc(14px + var(--safe-left));
+  }
 
+  main {
+    padding: 20px clamp(12px, 4vw, 24px) calc(100px + var(--safe-bottom));
+  }
+
+  .q-card { padding: clamp(22px, 4vw, 36px); }
+
+  .wizard-nav {
+    position: static;
+    margin: 24px 0 0;
+    padding: 0;
+    background: none;
+    flex-direction: row;
+    gap: 12px;
+  }
+  .wizard-nav .btn-primary,
+  .wizard-nav .btn-ghost { width: auto; padding: 14px 22px; }
+
+  .intensity-row {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 13px;
+  }
+  .intensity-seg { width: auto; }
+  .intensity-seg button { flex: 0 1 auto; min-height: auto; padding: 8px 16px; }
+
+  .ex-card { grid-template-columns: 84px 1fr; gap: 14px; }
+  .ex-thumb, .ex-thumb-placeholder { width: 84px; height: 84px; }
+
+  .chat-fab {
+    width: 58px; height: 58px;
+    right: max(16px, var(--safe-right));
+    bottom: max(16px, var(--safe-bottom));
+  }
+
+  .chat-panel {
+    inset: auto;
+    right: max(16px, var(--safe-right));
+    bottom: max(16px, var(--safe-bottom));
+    width: min(400px, calc(100vw - 32px - var(--safe-left) - var(--safe-right)));
+    height: min(560px, calc(100dvh - var(--header-h) - 32px - var(--safe-bottom)));
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    box-shadow: 0 30px 70px -20px rgba(0, 0, 0, .8);
+    padding-bottom: 0;
+  }
+
+  .home-actions, .home-plan-card { max-width: 22rem; }
+
+  .error-actions { flex-direction: row; max-width: none; }
+}
+
+@media (max-width: 480px) {
   .app-header { padding: calc(10px + var(--safe-top)) 12px 10px 12px; }
   .logo { font-size: 15px; }
   .header-actions .btn-primary.sm,
@@ -751,62 +835,13 @@ input[type="range"] {
     font-size: 12.5px;
     min-height: 38px;
   }
-
-  main {
-    padding: 14px 12px calc(88px + var(--safe-bottom));
-  }
-
   .q-card { padding: 18px 16px; }
   .q-title { font-size: 1.15rem; }
   .opt-card { padding: 12px 14px; min-height: var(--touch-min); }
-
-  .wizard-nav {
-    position: sticky;
-    bottom: 0;
-    margin: 0 -12px -14px;
-    padding: 12px 12px max(12px, var(--safe-bottom));
-    background: linear-gradient(transparent, var(--bg) 24%);
-    flex-direction: column-reverse;
-    gap: 8px;
-  }
-  .wizard-nav .btn-primary,
-  .wizard-nav .btn-ghost { width: 100%; flex: 1; padding: 14px 10px; }
-
-  .intensity-row { flex-direction: column; align-items: stretch; gap: 8px; }
-  .intensity-seg { width: 100%; justify-content: stretch; }
-  .intensity-seg button { flex: 1; padding: 10px 8px; font-size: 13px; min-height: var(--touch-min); }
-
   .day-pill { min-width: 76px; padding: 9px 12px; font-size: 13px; }
-
-  .ex-card { grid-template-columns: 64px 1fr; gap: 10px; }
-  .ex-thumb, .ex-thumb-placeholder { width: 64px; height: 64px; }
-  .ex-actions { flex-wrap: wrap; }
-
-  .chat-fab {
-    width: 52px; height: 52px;
-    right: max(12px, var(--safe-right));
-    bottom: max(12px, var(--safe-bottom));
-  }
-
-  .chat-panel {
-    inset: 0;
-    right: 0;
-    bottom: 0;
-    width: 100%;
-    max-width: 100%;
-    height: 100dvh;
-    border-radius: 0;
-    border-left: none;
-    border-right: none;
-    border-bottom: none;
-    padding-bottom: var(--safe-bottom);
-  }
-
   .lightbox-inner { max-height: 88dvh; border-radius: 16px; padding: 16px; }
-
   .home-stage { min-height: min(62dvh, 480px); }
   .home-actions, .home-plan-card { max-width: 100%; }
-
   .error-actions { flex-direction: column; width: 100%; max-width: 280px; margin: 0 auto; }
   .error-actions .btn-primary,
   .error-actions .btn-ghost { width: 100%; }

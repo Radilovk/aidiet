@@ -11,7 +11,7 @@
  *     планът работи офлайн с изображенията, без да издува квотата.
  */
 
-const VERSION = 'v4';
+const VERSION = 'v5';
 const APP_CACHE = `fitplan-app-${VERSION}`;
 const IMG_CACHE = 'fitplan-img-v1';
 const IMG_CACHE_MAX_ENTRIES = 300;
@@ -127,6 +127,12 @@ self.addEventListener('fetch', (event) => {
   if (!request.url.startsWith(self.registration.scope)) return;
 
   if (request.mode === 'navigate') {
+    event.respondWith(networkFirst(request));
+    return;
+  }
+
+  // CSS/JS винаги от мрежата при refresh (офлайн → кеш) — без „залепнали“ стари стилове
+  if (request.destination === 'style' || request.destination === 'script') {
     event.respondWith(networkFirst(request));
     return;
   }
