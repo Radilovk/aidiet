@@ -15,14 +15,14 @@ name = "aidiet-fitness-staging"
 # и полученото id да се постави тук.
 [[env.staging.kv_namespaces]]
 binding = "FITNESS_KV"
-id = "REPLACE_WITH_KV_STAGING_ID"
+id = "81fc0991b2764918b682f9ca170abd4b"
 
 [env.production]
 name = "aidiet-fitness"
 
 [[env.production.kv_namespaces]]
 binding = "FITNESS_KV"
-id = "REPLACE_WITH_KV_PRODUCTION_ID"
+id = "81fc0991b2764918b682f9ca170abd4b"
 
 # Незадължителни настройки (могат и през dashboard-а):
 # [env.production.vars]

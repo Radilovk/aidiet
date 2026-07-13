@@ -29,38 +29,6 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Ensure KV namespaces
-        id: kv
-        working-directory: fitness
-        run: |
-          set -euo pipefail
-          list_json=$(npx wrangler kv namespace list --json 2>/dev/null || echo '[]')
-
-          ensure_ns() {
-            local title="$1"
-            local id
-            id=$(echo "$list_json" | jq -r --arg t "$title" '.[] | select(.title == $t) | .id' | head -1)
-            if [ -z "$id" ] || [ "$id" = "null" ]; then
-              echo "Creating KV namespace: $title" >&2
-              id=$(npx wrangler kv namespace create "$title" --json | jq -r '.id')
-            else
-              echo "KV namespace '$title' exists: $id" >&2
-            fi
-            printf '%s' "$id"
-          }
-
-          STAGING_ID=$(ensure_ns "aidiet-fitness-staging")
-          PROD_ID=$(ensure_ns "aidiet-fitness-production")
-
-          sed -i "s/REPLACE_WITH_KV_STAGING_ID/$STAGING_ID/g" wrangler.toml
-          sed -i "s/REPLACE_WITH_KV_PRODUCTION_ID/$PROD_ID/g" wrangler.toml
-
-          echo "staging_kv_id=$STAGING_ID" >> "$GITHUB_OUTPUT"
-          echo "production_kv_id=$PROD_ID" >> "$GITHUB_OUTPUT"
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
       - name: Sync worker secrets (production)
         if: github.event_name != 'pull_request'
         working-directory: fitness
@@ -68,7 +36,7 @@ jobs:
           if [ -n "${GEMINI_API_KEY:-}" ]; then
             echo "$GEMINI_API_KEY" | npx wrangler secret put GEMINI_API_KEY --env production
           else
-            echo "::warning::GEMINI_API_KEY not in GitHub secrets — set it in repo Settings → Secrets for AI plan generation on aidiet-fitness worker."
+            echo "::warning::GEMINI_API_KEY not in GitHub secrets — aidiet-fitness will reuse only if set manually in Cloudflare dashboard."
           fi
           if [ -n "${OPENAI_API_KEY:-}" ]; then
             echo "$OPENAI_API_KEY" | npx wrangler secret put OPENAI_API_KEY --env production
