@@ -44,12 +44,12 @@ import {
   DEFAULT_TRANSLATE_MODEL,
   WORKER_BATCH_SIZE,
   buildTranslateUserPayload,
-  callGeminiTranslate,
   chunkBatches,
   fetchExerciseDataset,
   listPendingExercises,
   normalizeBatchResult,
   translationStats,
+  translateBatchResilient,
 } from './exercise-translate-batch.js';
 
 // ============================================================================
@@ -1256,13 +1256,7 @@ async function handleRunTranslateExercises(request, env) {
   let addedThisRun = 0;
   for (const batch of batches) {
     const model = env.GEMINI_MODEL || DEFAULT_TRANSLATE_MODEL;
-    const parsed = await callGeminiTranslate(
-      env.GEMINI_API_KEY,
-      buildTranslateUserPayload(batch),
-      model,
-      16384,
-    );
-    const chunk = normalizeBatchResult(parsed, batch);
+    const chunk = await translateBatchResilient(env.GEMINI_API_KEY, batch, model);
     Object.assign(translations, chunk);
     addedThisRun += Object.keys(chunk).length;
   }

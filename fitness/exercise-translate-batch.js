@@ -134,7 +134,36 @@ export function chunkBatches(items, batchSize = DEFAULT_BATCH_SIZE) {
   return batches;
 }
 
-export function translationStats(all, existing) {
+export async function translateBatchResilient(apiKey, batch, model = DEFAULT_TRANSLATE_MODEL) {
+  if (!batch.length) return {};
+  try {
+    const parsed = await callGeminiTranslate(apiKey, buildTranslateUserPayload(batch), model, 16384);
+    return normalizeBatchResult(parsed, batch);
+  } catch (e) {
+    const msg = String(e.message || e);
+    if (batch.length <= 1) {
+      if (/PROHIBITED_CONTENT/i.test(msg)) {
+        const ex = batch[0];
+        const en = pickInstructionsEn(ex.instructions);
+        return {
+          [String(ex.id)]: {
+            nameBg: localizeExerciseDisplayName(ex.name, '', ex.equipment),
+            instructionsBg: en ? `[EN] ${en}` : '',
+            sourceHash: contentHash(ex.name, en),
+            translatedAt: new Date().toISOString(),
+            skippedSafety: true,
+          },
+        };
+      }
+      throw e;
+    }
+    if (!/PROHIBITED_CONTENT|MAX_TOKENS|JSON parse|празен отговор/i.test(msg)) throw e;
+    const mid = Math.ceil(batch.length / 2);
+    const left = await translateBatchResilient(apiKey, batch.slice(0, mid), model);
+    const right = await translateBatchResilient(apiKey, batch.slice(mid), model);
+    return { ...left, ...right };
+  }
+}
   const total = all.length;
   const done = all.filter((ex) => !needsTranslation(ex, existing, false)).length;
   return { total, done, remaining: total - done, stored: Object.keys(existing).length };
