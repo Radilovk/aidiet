@@ -50,6 +50,14 @@ const EQUIP_BG = {
   'roller': 'ролер',
   'rope': 'въже',
   'wheel roller': 'ролер за корем',
+  'bosu ball': 'BOSU топка',
+  'elliptical machine': 'елиптичен тренажор',
+  hammer: 'хамър',
+  'skierg machine': 'SkiErg',
+  'stationary bike': 'велоергометър',
+  'stepmill machine': 'стълбищен тренажор',
+  tire: 'гума',
+  'upper body ergometer': 'ергометър за горна част',
 };
 
 const TARGET_BG = {
@@ -76,6 +84,9 @@ const TARGET_BG = {
   cardio: 'кардио',
   spine: 'гръбнак',
   neck: 'врат',
+  'cardiovascular system': 'кардио',
+  'levator scapulae': 'повдигач на лопатката',
+  'serratus anterior': 'преден трицепс (serratus)',
 };
 
 function equipPhrase(hint) {

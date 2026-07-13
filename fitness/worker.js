@@ -16,7 +16,8 @@
  * Endpoints:
  *   GET  /api/health           — статус
  *   POST /api/plan/generate    — генерира план от отговорите на въпросника (1 AI заявка)
- *   GET  /api/plan/:id         — връща съхранен план (за друго устройство / NutriPlan)
+ *   GET  /api/plan/:id         — връща съхранен план (с актуални преводи от индекса)
+ *   POST /api/plan/refresh-exercises — обновява match/алтернативи от KV индекса
  *   POST /api/coach            — AI персонален треньор (чат)
  *   GET  /api/exercises/search — локално търсене в базата (debug/бъдеща употреба)
  *   GET  /api/admin/fitplan/guidelines — админ: зарежда насоки за mini-RAG
@@ -1083,11 +1084,40 @@ async function handleGeneratePlan(request, env, ctx) {
   return jsonResponse({ success: true, planId, plan, coachContext, generationsRemaining: rl.remaining });
 }
 
-async function handleGetPlan(planId, env) {
+async function handleGetPlan(planId, env, ctx) {
   if (!env.FITNESS_KV) return errorResponse('Хранилището не е конфигурирано', 500);
   const record = await env.FITNESS_KV.get(`plan:${planId}`, { type: 'json' });
   if (!record) return errorResponse('Планът не е намерен или е изтекъл', 404, 'not_found');
-  return jsonResponse({ success: true, planId, ...record }, 200, { 'Cache-Control': 'private, max-age=300' });
+
+  let plan = record.plan;
+  const index = await loadExerciseIndex(env, ctx);
+  if (index && plan) {
+    plan = enrichPlanWithExercises(JSON.parse(JSON.stringify(plan)), index, { env });
+  }
+
+  return jsonResponse({
+    success: true,
+    planId,
+    plan,
+    coachContext: record.coachContext,
+    createdAt: record.createdAt,
+  }, 200, { 'Cache-Control': 'private, max-age=300' });
+}
+
+async function handleRefreshPlanExercises(request, env, ctx) {
+  let body;
+  try { body = await request.json(); } catch { return errorResponse('Невалиден JSON', 400); }
+  const plan = body?.plan;
+  if (!plan?.days) return errorResponse('Липсва план', 400);
+
+  const index = await loadExerciseIndex(env, ctx);
+  if (!index) return jsonResponse({ success: true, plan });
+
+  const allowed = Array.isArray(body.allowedEquipment)
+    ? allowedEquipmentSet(body.allowedEquipment)
+    : null;
+  const refreshed = enrichPlanWithExercises(JSON.parse(JSON.stringify(plan)), index, { allowedEquipment: allowed, env });
+  return jsonResponse({ success: true, plan: refreshed });
 }
 
 async function handleCoach(request, env) {
@@ -1309,7 +1339,10 @@ export default {
       }
       const planMatch = path.match(/^\/api\/plan\/([A-Za-z0-9-]{8,64})$/);
       if (request.method === 'GET' && planMatch) {
-        return await handleGetPlan(planMatch[1], env);
+        return await handleGetPlan(planMatch[1], env, ctx);
+      }
+      if (request.method === 'POST' && path === '/api/plan/refresh-exercises') {
+        return await handleRefreshPlanExercises(request, env, ctx);
       }
       if (request.method === 'POST' && path === '/api/coach') {
         return await handleCoach(request, env);

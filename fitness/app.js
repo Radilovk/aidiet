@@ -199,9 +199,33 @@ function openCachedProgram() {
     showView('home');
     return;
   }
+  void openCachedProgramAsync();
+}
+
+async function openCachedProgramAsync() {
   activeDay = firstTrainingDay(planRecord.plan);
+  const refreshed = await refreshPlanExerciseMedia(planRecord.plan);
+  if (refreshed && refreshed !== planRecord.plan) {
+    planRecord = { ...planRecord, plan: refreshed };
+    store.set('plan', planRecord);
+  }
   renderPlan();
   showView('plan');
+}
+
+async function refreshPlanExerciseMedia(plan) {
+  try {
+    const res = await apiFetch('/api/plan/refresh-exercises', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.success && data.plan) return data.plan;
+  } catch {
+    /* офлайн — показваме кеширания план */
+  }
+  return plan;
 }
 
 function showView(name) {
@@ -870,7 +894,7 @@ function renderAltPanel(dayIdx, exIdx) {
   base.alternatives.forEach((alt, i) => {
     const label = alt.displayName || localizeExerciseDisplayName(alt.name, '', alt.equipment);
     options.append(makeOption(
-      label, alt.equipment ? `оборудване: ${alt.equipment}` : '',
+      label, alt.equipment ? `оборудване: ${localizeEquipment(alt.equipment)}` : '',
       alt.imageUrl, current === i,
       () => { swaps[swapKey] = i; store.set('swaps', swaps); openAltPanel = null; renderDay(); },
     ));
