@@ -687,14 +687,19 @@ const COMPACT_PLAN_RETRY_HINT = `
 async function callGemini(env, { system, user, temperature = 0.4, maxOutputTokens = 8192, jsonMode = true }) {
   const model = env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.GEMINI_API_KEY}`;
+  const generationConfig = {
+    temperature,
+    maxOutputTokens,
+    ...(jsonMode ? { responseMimeType: 'application/json' } : {}),
+  };
+  // Gemini 2.5 Flash/Pro: thinking по подразбиране изяжда maxOutputTokens → отрязан JSON.
+  if (/gemini-2\.5/i.test(model)) {
+    generationConfig.thinkingConfig = { thinkingBudget: 0 };
+  }
   const body = {
     systemInstruction: { parts: [{ text: system }] },
     contents: [{ role: 'user', parts: [{ text: user }] }],
-    generationConfig: {
-      temperature,
-      maxOutputTokens,
-      ...(jsonMode ? { responseMimeType: 'application/json' } : {}),
-    },
+    generationConfig,
   };
   const res = await fetch(url, {
     method: 'POST',
@@ -708,7 +713,11 @@ async function callGemini(env, { system, user, temperature = 0.4, maxOutputToken
   const data = await res.json();
   const candidate = data.candidates?.[0];
   const finishReason = candidate?.finishReason || '';
-  const text = candidate?.content?.parts?.map((p) => p.text).join('') || '';
+  const parts = candidate?.content?.parts || [];
+  const text = parts
+    .filter((p) => !p.thought && p.text)
+    .map((p) => p.text)
+    .join('') || parts.map((p) => p.text).filter(Boolean).join('');
   if (!text) {
     throw new Error(`Gemini: празен отговор${finishReason ? ` (${finishReason})` : ''}`);
   }
