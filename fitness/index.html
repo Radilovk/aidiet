@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
+  <!-- Критичен inline CSS: тъмен фон от първия кадър, преди външните файлове -->
+  <style>html { background: #0a0e13; color-scheme: dark; }</style>
   <meta name="theme-color" content="#0a0e13">
   <meta name="color-scheme" content="dark">
   <meta name="mobile-web-app-capable" content="yes">
@@ -16,7 +18,9 @@
   <link rel="apple-touch-icon" href="../icon-192x192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;500;700;900&family=Sofia+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap&subset=cyrillic" rel="stylesheet">
+  <!-- Шрифтовете не блокират първия кадър; display=optional — без видим FOUT "скок" -->
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;500;700;900&family=Sofia+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=optional&subset=cyrillic" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;500;700;900&family=Sofia+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=optional&subset=cyrillic" rel="stylesheet"></noscript>
   <link rel="stylesheet" href="base.css">
   <link rel="stylesheet" href="landing.css">
 </head>

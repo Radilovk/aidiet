@@ -1049,6 +1049,17 @@ function init() {
   }
 
   registerServiceWorker();
+
+  // Първи кадър е готов → маркирай като заредено (пуска entrance анимациите
+  // за следващите навигации) и махни splash-а плавно.
+  requestAnimationFrame(() => {
+    document.body.classList.add('booted');
+    const boot = $('boot');
+    if (boot) {
+      boot.classList.add('hide');
+      setTimeout(() => boot.remove(), 400);
+    }
+  });
 }
 
 init();

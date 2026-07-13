@@ -11,7 +11,7 @@
  *     планът работи офлайн с изображенията, без да издува квотата.
  */
 
-const VERSION = 'v3';
+const VERSION = 'v4';
 const APP_CACHE = `fitplan-app-${VERSION}`;
 const IMG_CACHE = 'fitplan-img-v1';
 const IMG_CACHE_MAX_ENTRIES = 300;
