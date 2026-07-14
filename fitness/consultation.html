@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#0a0e13">
+  <meta name="color-scheme" content="dark">
+  <title>FitPlan — Консултация</title>
+  <link rel="stylesheet" href="base.css">
+  <link rel="stylesheet" href="app.css">
+  <style>
+    .consult-hero { text-align: center; padding: 28px 0 8px; }
+    .consult-hero h1 { font-family: var(--font-display); font-size: clamp(22px, 5vw, 28px); margin-bottom: 8px; }
+    .consult-hero p { color: var(--muted); font-size: 15px; line-height: 1.5; max-width: 36rem; margin: 0 auto; }
+    .consult-intro-card { margin-top: 20px; }
+    .consult-done { text-align: center; padding: 48px 16px; }
+    .consult-done-icon { font-size: 52px; margin-bottom: 16px; }
+    .consult-done h2 { font-family: var(--font-display); margin-bottom: 10px; }
+    .consult-done p { color: var(--muted); line-height: 1.6; max-width: 28rem; margin: 0 auto 8px; }
+    .consult-error { color: #f87171; text-align: center; padding: 24px; }
+  </style>
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="logo" aria-hidden="true">FIT<span>PLAN</span><em>AI</em></div>
+  </header>
+
+  <main id="app" class="view" style="max-width:720px;margin:0 auto;padding:0 16px 40px;">
+
+    <section id="view-intro">
+      <div class="consult-hero">
+        <h1>Консултация за тренировъчен план</h1>
+        <p>Попълни въпросника — отговорите ще бъдат прегледани и на тяхна основа ще изготвим индивидуална програма.</p>
+      </div>
+      <div class="q-card consult-intro-card">
+        <h2 class="q-title">Твоите данни за контакт</h2>
+        <p class="q-subtitle">За да се свържем с теб след прегледа.</p>
+        <div class="q-body">
+          <div class="field">
+            <label class="field-label" for="clientName">Име и фамилия</label>
+            <input id="clientName" type="text" autocomplete="name" placeholder="Как да те наричаме">
+          </div>
+          <div class="field">
+            <label class="field-label" for="clientContact">Имейл или телефон</label>
+            <input id="clientContact" type="text" autocomplete="email" placeholder="за обратна връзка">
+          </div>
+        </div>
+        <p id="introError" class="step-error" hidden></p>
+        <button id="btnStartConsult" class="btn-primary btn-block" type="button" style="margin-top:16px;">Започни въпросника →</button>
+      </div>
+    </section>
+
+    <section id="view-wizard" class="hidden" aria-label="Въпросник">
+      <div class="wizard-head">
+        <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-meta">
+          <span id="stepLabel">Въпрос 1 от 14</span>
+          <span id="stepPct">7%</span>
+        </div>
+      </div>
+      <div id="questionCard" class="q-card"></div>
+      <p id="stepError" class="step-error" hidden></p>
+      <div class="wizard-nav">
+        <button id="btnBack" class="btn-ghost" type="button">← Назад</button>
+        <button id="btnNext" class="btn-primary" type="button">Напред →</button>
+      </div>
+    </section>
+
+    <section id="view-done" class="hidden" aria-label="Готово">
+      <div class="consult-done">
+        <div class="consult-done-icon">✓</div>
+        <h2>Благодарим ти!</h2>
+        <p>Въпросникът е изпратен успешно. Ще прегледаме отговорите ти и ще се свържем с теб за следващите стъпки.</p>
+        <p style="font-size:14px;color:var(--muted);">Можеш да затвориш тази страница.</p>
+      </div>
+    </section>
+
+    <section id="view-invalid" class="hidden">
+      <div class="consult-error">
+        <h2>Линкът не е валиден</h2>
+        <p>Моля, свържи се с нас за нов линк към въпросника.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <script type="module" src="consultation.js"></script>
+</body>
+</html>

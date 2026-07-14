@@ -13,6 +13,7 @@ import { QUESTIONS, visibleOptions, validateQuestion, buildAnswers } from './que
 import { localizeExerciseDisplayName, localizeEquipment, localizeTarget, sanitizeBgText } from './exercise-labels-bg.js';
 import { registerServiceWorker } from './common.js';
 import { applyIntensity, effortLabelFromRpe, rpeInfoForValue } from './intensity.js';
+import { createWizardController, el } from './wizard-ui.js';
 
 // ============================================================
 // Конфигурация и локално хранилище
@@ -80,7 +81,6 @@ async function apiFetch(path, options = {}) {
 // ============================================================
 
 let wizardState = store.get('wizard', {});
-let stepIndex = 0;
 let planRecord = store.get('plan', null);      // { planId, plan, coachContext, createdAt }
 let swaps = store.get('swaps', {});            // { "day-ex": altIndex } ; -1 = оригинал
 let intensity = store.get('intensity', 0);     // -1 | 0 | 1
@@ -94,21 +94,20 @@ let openAltPanel = null;                       // "day-ex" на отворен �
 
 const $ = (id) => document.getElementById(id);
 
-function el(tag, props = {}, ...children) {
-  const node = document.createElement(tag);
-  for (const [k, v] of Object.entries(props)) {
-    if (k === 'class') node.className = v;
-    else if (k === 'text') node.textContent = v;
-    else if (k === 'html') node.innerHTML = v; // само за доверени, статични низове
-    else if (k.startsWith('on')) node.addEventListener(k.slice(2), v);
-    else if (v !== undefined && v !== null && v !== false) node.setAttribute(k, v === true ? '' : v);
-  }
-  for (const child of children.flat()) {
-    if (child === null || child === undefined) continue;
-    node.append(child.nodeType ? child : document.createTextNode(child));
-  }
-  return node;
-}
+const wizard = createWizardController({
+  getEl: $,
+  questions: QUESTIONS,
+  visibleOptions,
+  validateQuestion,
+  getState: () => wizardState,
+  onPersist: saveWizard,
+  onComplete: generatePlan,
+  finalButtonText: 'Създай плана ⚡',
+});
+
+const renderStep = () => wizard.renderStep();
+const nextStep = () => { if (wizard.nextStep()) armBackSentinel(); };
+const prevStep = () => wizard.prevStep();
 
 const METRIC_INFO = {
   tempo: {
@@ -272,7 +271,7 @@ function hasInternalBackState() {
   if (!$('lightbox').classList.contains('hidden')) return true;
   if (!$('chatPanel').classList.contains('hidden')) return true;
   const view = document.body.dataset.view;
-  if (view === 'wizard' && stepIndex > 0) return true;
+  if (view === 'wizard' && wizard.getStepIndex() > 0) return true;
   return Boolean(view && view !== 'home');
 }
 
@@ -286,9 +285,9 @@ function handlePopState() {
       closeChat();
     } else {
       const view = document.body.dataset.view;
-      if (view === 'wizard' && stepIndex > 0) {
-        stepIndex--;
-        renderStep();
+      if (view === 'wizard' && wizard.getStepIndex() > 0) {
+        wizard.setStepIndex(wizard.getStepIndex() - 1);
+        wizard.renderStep();
       } else if (view && view !== 'home') {
         renderHome();
         showView('home');
@@ -311,245 +310,6 @@ function handlePopState() {
 // ============================================================
 
 function saveWizard() { store.set('wizard', wizardState); }
-
-function renderStep() {
-  const q = QUESTIONS[stepIndex];
-  const card = $('questionCard');
-  card.innerHTML = '';
-  $('stepError').hidden = true;
-
-  const pct = Math.round(((stepIndex + 1) / QUESTIONS.length) * 100);
-  $('progressFill').style.width = `${pct}%`;
-  $('stepLabel').textContent = `Въпрос ${q.num} от ${QUESTIONS.length}`;
-  $('stepPct').textContent = `${pct}%`;
-  $('btnBack').style.visibility = stepIndex === 0 ? 'hidden' : 'visible';
-  $('btnNext').textContent = stepIndex === QUESTIONS.length - 1 ? 'Създай плана ⚡' : 'Напред →';
-
-  card.append(el('h2', { class: 'q-title', text: q.title }));
-  if (q.subtitle) card.append(el('p', { class: 'q-subtitle', text: q.subtitle }));
-
-  const body = el('div', { class: 'q-body' });
-  card.append(body);
-
-  if (q.type === 'fields') renderFields(q, body);
-  else if (q.type === 'multi') renderMulti(q, body);
-  else if (q.type === 'single') renderSingle(q, body);
-  else if (q.type === 'scale') renderScale(q, body);
-  else if (q.type === 'text') renderTextArea(q, body);
-
-  // re-animate
-  card.style.animation = 'none';
-  void card.offsetHeight;
-  card.style.animation = '';
-}
-
-function renderFields(q, container) {
-  const state = wizardState[q.id] || (wizardState[q.id] = {});
-
-  const renderAll = () => {
-    container.innerHTML = '';
-    for (const f of q.fields) {
-      if (f.showIf && state[f.showIf.key] !== f.showIf.equals) continue;
-      const field = el('div', { class: 'field' });
-      field.append(el('label', { class: 'field-label', text: f.label }));
-
-      if (f.type === 'choice') {
-        const group = el('div', { class: 'choice-group' });
-        for (const opt of f.options) {
-          group.append(el('button', {
-            type: 'button',
-            class: `choice-btn${state[f.key] === opt ? ' active' : ''}`,
-            text: opt,
-            onclick: () => { state[f.key] = opt; saveWizard(); renderAll(); },
-          }));
-        }
-        field.append(group);
-      } else if (f.type === 'chips') {
-        const group = el('div', { class: 'chips-group' });
-        const selected = new Set(state[f.key] || []);
-        for (const opt of f.options) {
-          group.append(el('button', {
-            type: 'button',
-            class: `chip-btn${selected.has(opt) ? ' active' : ''}`,
-            text: opt,
-            onclick: () => {
-              selected.has(opt) ? selected.delete(opt) : selected.add(opt);
-              state[f.key] = [...selected];
-              saveWizard(); renderAll();
-            },
-          }));
-        }
-        field.append(group);
-      } else if (f.type === 'number') {
-        const input = el('input', {
-          type: 'number', inputmode: 'numeric', min: f.min, max: f.max,
-          value: state[f.key] ?? '',
-          oninput: (e) => { state[f.key] = e.target.value; saveWizard(); },
-        });
-        const wrap = el('div', { class: 'num-wrap' }, input);
-        if (f.suffix) wrap.append(el('span', { class: 'num-suffix', text: f.suffix }));
-        field.append(wrap);
-      } else { // text
-        field.append(el('input', {
-          type: 'text', placeholder: f.placeholder || '',
-          value: state[f.key] ?? '',
-          oninput: (e) => { state[f.key] = e.target.value; saveWizard(); },
-        }));
-      }
-      container.append(field);
-    }
-  };
-  renderAll();
-}
-
-function optionInputs(option) {
-  return option.inputs || (option.input ? [option.input] : []);
-}
-
-function renderMulti(q, container) {
-  const state = wizardState[q.id] || (wizardState[q.id] = { selected: [], inputs: {} });
-  const options = visibleOptions(q, wizardState);
-
-  const renderAll = () => {
-    container.innerHTML = '';
-    const list = el('div', { class: 'opt-list' });
-    const selected = new Set(state.selected);
-
-    for (const opt of options) {
-      const isActive = selected.has(opt.value);
-      const cardEl = el('div', { class: `opt-card${isActive ? ' active' : ''}`, role: 'checkbox', 'aria-checked': String(isActive), tabindex: '0' });
-      const row = el('div', { class: 'opt-row' },
-        el('span', { class: 'opt-mark', text: isActive ? '✓' : '' }),
-        el('span', { class: 'opt-text', text: opt.value }),
-      );
-      cardEl.append(row);
-
-      if (isActive && optionInputs(opt).length) {
-        const inputsWrap = el('div', { class: 'opt-inputs' });
-        for (const inp of optionInputs(opt)) {
-          inputsWrap.append(el('input', {
-            type: inp.type === 'number' ? 'number' : 'text',
-            placeholder: inp.placeholder || '',
-            value: state.inputs[inp.key] ?? '',
-            onclick: (e) => e.stopPropagation(),
-            oninput: (e) => { state.inputs[inp.key] = e.target.value; saveWizard(); },
-          }));
-        }
-        cardEl.append(inputsWrap);
-      }
-
-      const toggle = () => {
-        if (selected.has(opt.value)) selected.delete(opt.value);
-        else {
-          if (opt.exclusive) selected.clear();
-          else for (const o of options) if (o.exclusive) selected.delete(o.value);
-          selected.add(opt.value);
-        }
-        state.selected = [...selected];
-        saveWizard(); renderAll();
-      };
-      cardEl.addEventListener('click', (e) => { if (e.target.tagName !== 'INPUT') toggle(); });
-      cardEl.addEventListener('keydown', (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); } });
-      list.append(cardEl);
-    }
-    container.append(list);
-  };
-  renderAll();
-}
-
-function renderSingle(q, container) {
-  const state = wizardState[q.id] || (wizardState[q.id] = { selected: null, inputs: {} });
-
-  const renderAll = () => {
-    container.innerHTML = '';
-    const list = el('div', { class: 'opt-list' });
-    for (const opt of q.options) {
-      const isActive = state.selected === opt.value;
-      const cardEl = el('div', { class: `opt-card radio${isActive ? ' active' : ''}`, role: 'radio', 'aria-checked': String(isActive), tabindex: '0' });
-      cardEl.append(el('div', { class: 'opt-row' },
-        el('span', { class: 'opt-mark', text: isActive ? '●' : '' }),
-        el('span', { class: 'opt-text', text: opt.value }),
-      ));
-
-      if (isActive && optionInputs(opt).length) {
-        const inputsWrap = el('div', { class: 'opt-inputs' });
-        for (const inp of optionInputs(opt)) {
-          inputsWrap.append(el('input', {
-            type: inp.type === 'number' ? 'number' : 'text',
-            placeholder: inp.placeholder || '',
-            value: state.inputs[inp.key] ?? '',
-            onclick: (e) => e.stopPropagation(),
-            oninput: (e) => { state.inputs[inp.key] = e.target.value; saveWizard(); },
-          }));
-        }
-        cardEl.append(inputsWrap);
-      }
-
-      const select = () => { state.selected = opt.value; saveWizard(); renderAll(); };
-      cardEl.addEventListener('click', (e) => { if (e.target.tagName !== 'INPUT') select(); });
-      cardEl.addEventListener('keydown', (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); select(); } });
-      list.append(cardEl);
-    }
-    container.append(list);
-  };
-  renderAll();
-}
-
-function renderScale(q, container) {
-  const current = wizardState[q.id] ?? 5;
-  wizardState[q.id] = current;
-  saveWizard();
-
-  const valueEl = el('div', { class: 'scale-value', text: String(current) });
-  const range = el('input', {
-    type: 'range', min: q.min, max: q.max, value: current,
-    oninput: (e) => {
-      wizardState[q.id] = Number(e.target.value);
-      valueEl.textContent = e.target.value;
-      saveWizard();
-    },
-  });
-  container.append(el('div', { class: 'scale-wrap' },
-    valueEl, range,
-    el('div', { class: 'scale-labels' },
-      el('span', { text: `${q.min} — спокойно` }),
-      el('span', { text: `${q.max} — на предела` }),
-    ),
-  ));
-}
-
-function renderTextArea(q, container) {
-  container.append(el('textarea', {
-    placeholder: q.placeholder || '',
-    maxlength: '1500',
-    oninput: (e) => { wizardState[q.id] = e.target.value; saveWizard(); },
-  }, wizardState[q.id] || ''));
-}
-
-function nextStep() {
-  const q = QUESTIONS[stepIndex];
-  const error = validateQuestion(q, wizardState);
-  if (error) {
-    const errEl = $('stepError');
-    errEl.textContent = error;
-    errEl.hidden = false;
-    errEl.style.animation = 'none';
-    void errEl.offsetHeight;
-    errEl.style.animation = '';
-    return;
-  }
-  if (stepIndex < QUESTIONS.length - 1) {
-    stepIndex++;
-    renderStep();
-    armBackSentinel(); // системният "назад" връща към предишния въпрос
-  } else {
-    generatePlan();
-  }
-}
-
-function prevStep() {
-  if (stepIndex > 0) { stepIndex--; renderStep(); }
-}
 
 // ============================================================
 // ГЕНЕРАЦИЯ НА ПЛАН (единствената "тежка" AI заявка)
@@ -1087,8 +847,8 @@ function init() {
   }
   $('btnStartWizard').addEventListener('click', () => {
     if (hasCachedPlan() && !confirm('Ще започнеш нов въпросник. Текущата програма остава запазена, докато не генерираш нова. Продължаваш ли?')) return;
-    stepIndex = 0;
-    renderStep();
+    wizard.reset();
+    wizard.renderStep();
     showView('wizard');
   });
   $('btnContinueWizard').addEventListener('click', () => {
@@ -1099,8 +859,8 @@ function init() {
   // нов план (пази старите отговори за редакция)
   $('btnNewPlan').addEventListener('click', () => {
     if (!confirm('Ще започнеш нов въпросник (старите ти отговори са запазени за редакция). Продължаваш ли?')) return;
-    stepIndex = 0;
-    renderStep();
+    wizard.reset();
+    wizard.renderStep();
     showView('wizard');
   });
 
