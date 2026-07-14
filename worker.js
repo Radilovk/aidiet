@@ -15860,10 +15860,8 @@ function isFitnessRoute(pathname, method) {
   if (method === 'GET' && pathname === '/api/admin/fitplan/consultations') return true;
   if (method === 'GET' && pathname === '/api/admin/fitplan/consult-config') return true;
   if (method === 'GET' && pathname === '/api/admin/fitplan/client-programs') return true;
-  if (method === 'GET' && /^\/api\/admin\/fitplan\/client-programs\/[A-Za-z0-9_-]+$/.test(pathname)) return true;
-  if (method === 'PUT' && /^\/api\/admin\/fitplan\/client-programs\/[A-Za-z0-9_-]+\/plan$/.test(pathname)) return true;
   if (method === 'DELETE' && /^\/api\/admin\/fitplan\/client-programs\/[A-Za-z0-9_-]+$/.test(pathname)) return true;
-  if (method === 'POST' && (pathname === '/api/plan/generate' || pathname === '/api/plan/refresh-exercises' || pathname === '/api/fitplan/consultation' || pathname === '/api/coach' || pathname === '/api/admin/fitplan/guidelines' || pathname === '/api/admin/fitplan/translate-exercises' || pathname === '/api/admin/fitplan/consult-config' || pathname === '/api/admin/fitplan/client-programs' || /^\/api\/admin\/fitplan\/consultations\/[A-Za-z0-9_-]+\/read$/.test(pathname) || /^\/api\/admin\/fitplan\/client-programs\/[A-Za-z0-9_-]+(\/generate|\/approve|\/plan)?$/.test(pathname))) return true;
+  if (method === 'POST' && (pathname === '/api/plan/generate' || pathname === '/api/plan/refresh-exercises' || pathname === '/api/fitplan/consultation' || pathname === '/api/coach' || pathname === '/api/admin/fitplan/guidelines' || pathname === '/api/admin/fitplan/translate-exercises' || pathname === '/api/admin/fitplan/consult-config' || pathname === '/api/admin/fitplan/client-programs' || /^\/api\/admin\/fitplan\/consultations\/[A-Za-z0-9_-]+\/read$/.test(pathname) || /^\/api\/admin\/fitplan\/client-programs\/[A-Za-z0-9_-]+\/(generate|approve)$/.test(pathname))) return true;
   if (method === 'GET' && /^\/api\/plan\/[A-Za-z0-9-]{8,64}$/.test(pathname)) return true;
   return false;
 }
