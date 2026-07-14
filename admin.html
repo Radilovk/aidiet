@@ -2484,7 +2484,7 @@
                 <div class="form-group">
                     <label for="fitplanConsultLink">Линк към въпросника</label>
                     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                        <input type="text" id="fitplanConsultLink" readonly style="flex:1;min-width:220px;font-family:monospace;font-size:0.85rem;">
+                        <input type="text" id="fitplanConsultLink" readonly placeholder="Зареждане…" style="flex:1;min-width:220px;font-family:monospace;font-size:0.85rem;">
                         <button type="button" class="btn" style="background:#6366f1;" onclick="copyFitplanConsultLink()">
                             <i class="fas fa-copy"></i> Копирай
                         </button>
@@ -2498,13 +2498,7 @@
                     <i class="fas fa-sync"></i> Обнови консултации
                 </button>
                 <div id="fitplanConsultationsList" style="display:flex;flex-direction:column;gap:12px;">
-                    <p style="color:var(--text-gray);font-size:0.9rem;">Зареждане…</p>
-                </div>
-            </div>
-
-            <div class="card" style="margin-top:20px;">
-                <div id="fitplanTranslateStatus" style="color:var(--text-gray);font-size:0.95rem;">
-                    Зареждане…
+                    <p style="color:var(--text-gray);font-size:0.9rem;">Натисни „Обнови консултации“ или отвори таба отново.</p>
                 </div>
             </div>
             </div>
@@ -4019,7 +4013,6 @@
             }
             if (tabName === 'fitplan' && typeof loadFitplanGuidelines === 'function') {
                 loadFitplanGuidelines();
-                if (typeof loadFitplanTranslateStatus === 'function') loadFitplanTranslateStatus();
                 if (typeof loadFitplanConsultConfig === 'function') loadFitplanConsultConfig();
                 if (typeof loadFitplanConsultations === 'function') loadFitplanConsultations();
             }
@@ -4244,29 +4237,10 @@
             }
         }
 
-        function formatFitplanTranslateStatus(data) {
-            if (!data) return '';
-            if (data.remaining === 0) {
-                return `✓ ${data.done}/${data.total} упражнения с български имена и инструкции (KV индекс)`;
-            }
-            return `Превод: ${data.done}/${data.total} (остават ${data.remaining})`;
-        }
-
-        async function loadFitplanTranslateStatus() {
-            const status = document.getElementById('fitplanTranslateStatus');
-            try {
-                const response = await fetch(FITPLAN_WORKER_URL + '/api/admin/fitplan/translate-exercises', {
-                    headers: fitplanAdminHeaders(),
-                });
-                const data = await response.json();
-                if (!response.ok || !data.success) throw new Error(data.error || data.message || 'Грешка');
-                if (status) status.textContent = formatFitplanTranslateStatus(data);
-                return data;
-            } catch (error) {
-                console.error('FitPlan translate status error:', error);
-                if (status) status.textContent = 'Статус недостъпен';
-                return null;
-            }
+        function getFitplanPublicBase() {
+            const origin = window.location.origin.replace(/\/$/, '');
+            const dir = window.location.pathname.replace(/\/[^/]*$/, '').replace(/\/$/, '');
+            return origin + (dir || '');
         }
 
         let fitplanConsultConfigLoaded = false;
@@ -4275,18 +4249,23 @@
             if (fitplanConsultConfigLoaded && !force) return;
             const input = document.getElementById('fitplanConsultLink');
             if (!input) return;
+            input.value = '';
+            input.placeholder = 'Зареждане…';
             try {
                 const response = await fetch(FITPLAN_WORKER_URL + '/api/admin/fitplan/consult-config', {
                     headers: fitplanAdminHeaders(),
                 });
                 const data = await response.json();
-                if (!response.ok || !data.success) throw new Error(data.message || 'Грешка');
-                const base = window.location.origin.replace(/\/$/, '');
-                input.value = `${base}/${data.path}`;
+                if (!response.ok || !data.success) throw new Error(data.message || data.error || 'Грешка');
+                if (!data.path) throw new Error('Липсва път към въпросника');
+                input.value = `${getFitplanPublicBase()}/${data.path}`;
+                input.placeholder = '';
                 fitplanConsultConfigLoaded = true;
             } catch (error) {
                 console.error('FitPlan consult config error:', error);
-                input.value = 'Грешка при зареждане на линка';
+                input.value = '';
+                input.placeholder = 'Грешка — натисни „Нов линк“ или презареди таба';
+                showError('Неуспешно зареждане на консултационния линк: ' + error.message);
             }
         }
 
@@ -4312,9 +4291,11 @@
                 });
                 const data = await response.json();
                 if (!response.ok || !data.success) throw new Error(data.message || 'Грешка');
-                const base = window.location.origin.replace(/\/$/, '');
                 const input = document.getElementById('fitplanConsultLink');
-                if (input) input.value = `${base}/${data.path}`;
+                if (input) {
+                    input.value = `${getFitplanPublicBase()}/${data.path}`;
+                    input.placeholder = '';
+                }
                 fitplanConsultConfigLoaded = true;
                 showSuccess('Нов консултационен линк е готов.');
             } catch (error) {
