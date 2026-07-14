@@ -1624,7 +1624,7 @@ async function checkRateLimit(env, request, endpoint) {
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*', // TODO: Restrict to specific domains in production
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Admin-Secret',
   'Access-Control-Max-Age': '86400', // Cache preflight for 24 hours
   'Content-Type': 'application/json',
   // Required so that Firebase Authentication popup can post back to the opener
