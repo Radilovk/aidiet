@@ -16,6 +16,7 @@ import {
   selectGuidelines,
   capGuidelineTexts,
   buildPlanUserPrompt,
+  buildAdminPlanUserPrompt,
   buildProfileSummary,
   buildCoachContext,
   parseAiJson,
@@ -213,6 +214,19 @@ test('buildPlanUserPrompt: foundation не влиза в system prompt стру�
   assert.ok(prompt.includes('БАЗОВИ ПРИНЦИПИ'));
   assert.ok(prompt.includes('Принцип А'));
   assert.ok(prompt.includes('Насока 1'));
+});
+
+test('buildAdminPlanUserPrompt: включва профил, схема и указания от треньора', () => {
+  const prompt = buildAdminPlanUserPrompt({
+    clientProfile: 'Жена, 28 г., цел: релеф',
+    exampleScheme: 'Пон: гръб — лат пулдаун 4x10',
+    adminNotes: 'Без бърпита',
+  }, [], 'Принцип А');
+  assert.ok(prompt.includes('РЕЖИМ: Треньорът'));
+  assert.ok(prompt.includes('Жена, 28 г.'));
+  assert.ok(prompt.includes('лат пулдаун'));
+  assert.ok(prompt.includes('Без бърпита'));
+  assert.ok(prompt.includes('Принцип А'));
 });
 
 // ----------------------------------------------------------------------------
