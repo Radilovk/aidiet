@@ -22,7 +22,9 @@
  *   GET  /api/exercises/search — локално търсене в базата (debug/бъдеща употреба)
  *   GET  /api/admin/fitplan/guidelines — админ: зарежда насоки за mini-RAG
  *   POST /api/admin/fitplan/guidelines — админ: записва насоки в KV
- *   GET  /api/admin/fitplan/translate-exercises — статус на BG превод
+ *   POST /api/fitplan/consultation — скрит въпросник (консултация)
+ *   GET  /api/admin/fitplan/consultations — админ: списък консултации
+ *   GET  /api/admin/fitplan/consult-config — админ: линк с токен
  *   POST /api/admin/fitplan/translate-exercises — партида превод + KV индекс (resilient batches)
  *
  * Bindings / vars (wrangler.toml + secrets):
@@ -81,6 +83,9 @@ const MAX_INSTRUCTION_CHARS = 1200;
 
 // Admin mini-RAG: foundation + tagged chunks в KV (не в system prompt)
 export const ADMIN_GUIDELINES_KV_KEY = 'admin:guidelines';
+export const CONSULT_CONFIG_KV_KEY = 'admin:fitplan-consult';
+export const CONSULTATIONS_LIST_KV_KEY = 'fitplan_consultations_list';
+export const MAX_CONSULTATIONS = 200;
 export const MAX_FOUNDATION_CHARS = 800;
 export const MAX_GUIDELINE_ITEMS = 8;
 export const MAX_GUIDELINE_CHARS = 2400;
@@ -1311,6 +1316,128 @@ async function handleRunTranslateExercises(request, env) {
   });
 }
 
+function randomConsultToken() {
+  const bytes = new Uint8Array(12);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function loadConsultConfig(env) {
+  if (!env.FITNESS_KV) return { token: '' };
+  const raw = await env.FITNESS_KV.get(CONSULT_CONFIG_KV_KEY, { type: 'json' });
+  return raw && typeof raw === 'object' ? raw : { token: '' };
+}
+
+async function ensureConsultToken(env) {
+  const config = await loadConsultConfig(env);
+  if (config.token) return config;
+  const next = { token: randomConsultToken(), createdAt: new Date().toISOString() };
+  await env.FITNESS_KV.put(CONSULT_CONFIG_KV_KEY, JSON.stringify(next));
+  return next;
+}
+
+async function validateConsultAccess(env, accessKey) {
+  const config = await ensureConsultToken(env);
+  if (!accessKey || String(accessKey) !== config.token) {
+    return { ok: false, message: 'Невалиден или изтекъл линк за консултация' };
+  }
+  return { ok: true };
+}
+
+async function handleSubmitConsultation(request, env) {
+  if (!env.FITNESS_KV) return errorResponse('KV не е конфигурирано', 500);
+
+  let body;
+  try { body = await request.json(); } catch { return errorResponse('Невалиден JSON', 400); }
+
+  const access = await validateConsultAccess(env, body.accessKey);
+  if (!access.ok) return errorResponse(access.message, 403, 'forbidden');
+
+  const answers = body.answers;
+  if (!answers || typeof answers !== 'object') return errorResponse('Липсват отговори', 400);
+  if (!answers.gender || !answers.age) return errorResponse('Непълни основни данни', 400);
+
+  const client = body.client || {};
+  const name = String(client.name || '').trim();
+  const contact = String(client.contact || '').trim();
+  if (!name || !contact) return errorResponse('Липсват данни за контакт', 400);
+
+  const id = `fc_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+  const record = {
+    id,
+    clientName: name,
+    clientContact: contact,
+    answers,
+    summary: buildProfileSummary(answers),
+    status: 'new',
+    timestamp: new Date().toISOString(),
+    userAgent: request.headers.get('User-Agent') || '',
+  };
+
+  await env.FITNESS_KV.put(`fitplan_consultation:${id}`, JSON.stringify(record));
+
+  const listRaw = await env.FITNESS_KV.get(CONSULTATIONS_LIST_KV_KEY);
+  const list = listRaw ? JSON.parse(listRaw) : [];
+  list.unshift(id);
+  if (list.length > MAX_CONSULTATIONS) list.length = MAX_CONSULTATIONS;
+  await env.FITNESS_KV.put(CONSULTATIONS_LIST_KV_KEY, JSON.stringify(list));
+
+  return jsonResponse({ success: true, id });
+}
+
+async function handleGetConsultations(request, env) {
+  if (!checkAdminSecret(request, env)) return errorResponse('Неоторизиран достъп', 401, 'unauthorized');
+  if (!env.FITNESS_KV) return errorResponse('KV не е конфигурирано', 500);
+
+  const listRaw = await env.FITNESS_KV.get(CONSULTATIONS_LIST_KV_KEY);
+  const ids = listRaw ? JSON.parse(listRaw) : [];
+  const items = [];
+  for (const id of ids) {
+    const raw = await env.FITNESS_KV.get(`fitplan_consultation:${id}`);
+    if (raw) items.push(JSON.parse(raw));
+  }
+  return jsonResponse({ success: true, consultations: items });
+}
+
+async function handleGetConsultConfig(request, env) {
+  if (!checkAdminSecret(request, env)) return errorResponse('Неоторизиран достъп', 401, 'unauthorized');
+  if (!env.FITNESS_KV) return errorResponse('KV не е конфигурирано', 500);
+
+  const config = await ensureConsultToken(env);
+  return jsonResponse({
+    success: true,
+    token: config.token,
+    path: `fitness/consultation.html?k=${config.token}`,
+    createdAt: config.createdAt || null,
+  });
+}
+
+async function handleRegenerateConsultToken(request, env) {
+  if (!checkAdminSecret(request, env)) return errorResponse('Неоторизиран достъп', 401, 'unauthorized');
+  if (!env.FITNESS_KV) return errorResponse('KV не е конфигурирано', 500);
+
+  const config = { token: randomConsultToken(), createdAt: new Date().toISOString() };
+  await env.FITNESS_KV.put(CONSULT_CONFIG_KV_KEY, JSON.stringify(config));
+  return jsonResponse({
+    success: true,
+    token: config.token,
+    path: `fitness/consultation.html?k=${config.token}`,
+  });
+}
+
+async function handleMarkConsultationRead(request, env, id) {
+  if (!checkAdminSecret(request, env)) return errorResponse('Неоторизиран достъп', 401, 'unauthorized');
+  if (!env.FITNESS_KV) return errorResponse('KV не е конфигурирано', 500);
+
+  const raw = await env.FITNESS_KV.get(`fitplan_consultation:${id}`);
+  if (!raw) return errorResponse('Консултацията не е намерена', 404, 'not_found');
+  const record = JSON.parse(raw);
+  record.status = 'read';
+  record.readAt = new Date().toISOString();
+  await env.FITNESS_KV.put(`fitplan_consultation:${id}`, JSON.stringify(record));
+  return jsonResponse({ success: true });
+}
+
 // ============================================================================
 // Router
 // ============================================================================
@@ -1358,6 +1485,22 @@ export default {
       }
       if (request.method === 'GET' && path === '/api/admin/fitplan/translate-exercises') {
         return await handleGetTranslateExercisesStatus(request, env);
+      }
+      if (request.method === 'POST' && path === '/api/fitplan/consultation') {
+        return await handleSubmitConsultation(request, env);
+      }
+      if (request.method === 'GET' && path === '/api/admin/fitplan/consultations') {
+        return await handleGetConsultations(request, env);
+      }
+      if (request.method === 'GET' && path === '/api/admin/fitplan/consult-config') {
+        return await handleGetConsultConfig(request, env);
+      }
+      if (request.method === 'POST' && path === '/api/admin/fitplan/consult-config') {
+        return await handleRegenerateConsultToken(request, env);
+      }
+      const consultReadMatch = path.match(/^\/api\/admin\/fitplan\/consultations\/([A-Za-z0-9_-]+)\/read$/);
+      if (request.method === 'POST' && consultReadMatch) {
+        return await handleMarkConsultationRead(request, env, consultReadMatch[1]);
       }
       if (request.method === 'POST' && path === '/api/admin/fitplan/translate-exercises') {
         try {

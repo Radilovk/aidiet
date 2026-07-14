@@ -15857,7 +15857,9 @@ function isFitnessRoute(pathname, method) {
   if (method === 'GET' && (pathname === '/api/health' || pathname === '/api/exercises/search')) return true;
   if (method === 'GET' && pathname === '/api/admin/fitplan/guidelines') return true;
   if (method === 'GET' && pathname === '/api/admin/fitplan/translate-exercises') return true;
-  if (method === 'POST' && (pathname === '/api/plan/generate' || pathname === '/api/plan/refresh-exercises' || pathname === '/api/coach' || pathname === '/api/admin/fitplan/guidelines' || pathname === '/api/admin/fitplan/translate-exercises')) return true;
+  if (method === 'GET' && pathname === '/api/admin/fitplan/consultations') return true;
+  if (method === 'GET' && pathname === '/api/admin/fitplan/consult-config') return true;
+  if (method === 'POST' && (pathname === '/api/plan/generate' || pathname === '/api/plan/refresh-exercises' || pathname === '/api/fitplan/consultation' || pathname === '/api/coach' || pathname === '/api/admin/fitplan/guidelines' || pathname === '/api/admin/fitplan/translate-exercises' || pathname === '/api/admin/fitplan/consult-config' || /^\/api\/admin\/fitplan\/consultations\/[A-Za-z0-9_-]+\/read$/.test(pathname))) return true;
   if (method === 'GET' && /^\/api\/plan\/[A-Za-z0-9-]{8,64}$/.test(pathname)) return true;
   return false;
 }
