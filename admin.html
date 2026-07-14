@@ -2476,6 +2476,76 @@
             </div>
 
             <div class="card" style="margin-top:20px;">
+                <h2><i class="fas fa-user-check"></i> Клиентски програми (админ → AI → линк)</h2>
+                <div class="info-box">
+                    <strong>Работен процес:</strong> Опиши профила и примерна схема → AI генерира програмата → прегледай → одобри → изпрати линка на клиента.
+                    Клиентът отваря програмата в FitPlan интерфейса.
+                </div>
+
+                <input type="hidden" id="fcpId" value="">
+
+                <div class="form-group">
+                    <label for="fcpClientName">Име на клиент</label>
+                    <input type="text" id="fcpClientName" placeholder="Име и фамилия">
+                </div>
+                <div class="form-group">
+                    <label for="fcpClientContact">Контакт (имейл / телефон)</label>
+                    <input type="text" id="fcpClientContact" placeholder="за твоя справка">
+                </div>
+                <div class="form-group">
+                    <label for="fcpClientProfile">Профил на клиента (свободен текст)</label>
+                    <textarea id="fcpClientProfile" rows="8" placeholder="Възраст, пол, цел, здраве, опит, оборудване, ограничения, предпочитания, честота, време за тренировка..."></textarea>
+                    <small style="color:var(--text-gray);">Синтезирай цялата информация, с която разполагаш.</small>
+                </div>
+                <div class="form-group">
+                    <label for="fcpExampleScheme">Схема и указания</label>
+                    <textarea id="fcpExampleScheme" rows="8" placeholder="Дни, упражнения, серии/повторения, прогресия, какво да се избягва...&#10;Пон: гръб — лат пулдаун 4x10, гребане 3x12&#10;Сря: крака — клек, преса за крака..."></textarea>
+                    <small style="color:var(--text-gray);">Задай рамки и конкретика — AI ще ги следва и ще намери упражненията в базата.</small>
+                </div>
+
+                <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+                    <button type="button" class="btn" style="background:#6366f1;" onclick="saveFitplanClientProgram()">
+                        <i class="fas fa-save"></i> Запази чернова
+                    </button>
+                    <button type="button" class="btn" style="background:#8b5cf6;" onclick="generateFitplanClientProgram()">
+                        <i class="fas fa-magic"></i> Генерирай с AI
+                    </button>
+                    <button type="button" class="btn hidden" id="fcpPreviewBtn" style="background:#3498db;" onclick="previewFitplanClientProgram()">
+                        <i class="fas fa-eye"></i> Преглед като клиент
+                    </button>
+                    <button type="button" class="btn" style="background:#10b981;" onclick="approveFitplanClientProgram()">
+                        <i class="fas fa-check-circle"></i> Одобри и вземи линк
+                    </button>
+                    <button type="button" class="btn" style="background:#6b7280;" onclick="resetFitplanClientProgramForm()">
+                        <i class="fas fa-plus"></i> Нова програма
+                    </button>
+                </div>
+
+                <div id="fcpStatus" style="margin-bottom:12px;color:var(--text-gray);font-size:0.9rem;"></div>
+
+                <div class="form-group hidden" id="fcpLinkWrap">
+                    <label for="fcpClientLink">Линк за клиента</label>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <input type="text" id="fcpClientLink" readonly style="flex:1;min-width:220px;font-family:monospace;font-size:0.85rem;">
+                        <button type="button" class="btn" style="background:#6366f1;" onclick="copyFitplanClientProgramLink()">
+                            <i class="fas fa-copy"></i> Копирай
+                        </button>
+                        <a id="fcpClientLinkOpen" class="btn" style="background:#3498db;text-decoration:none;" href="#" target="_blank" rel="noopener">
+                            <i class="fas fa-external-link-alt"></i> Отвори
+                        </a>
+                    </div>
+                </div>
+
+                <h3 style="margin:20px 0 10px;font-size:1rem;"><i class="fas fa-list"></i> Запазени програми</h3>
+                <button type="button" class="btn" onclick="loadFitplanClientPrograms(true)" style="margin-bottom:14px;">
+                    <i class="fas fa-sync"></i> Обнови списъка
+                </button>
+                <div id="fcpProgramsList" style="display:flex;flex-direction:column;gap:12px;">
+                    <p style="color:var(--text-gray);font-size:0.9rem;">Зареждане…</p>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top:20px;">
                 <h2><i class="fas fa-clipboard-list"></i> Консултации (скрит въпросник)</h2>
                 <div class="info-box">
                     <strong>Само за админ.</strong> Линкът не е в публичния сайт — изпращаш го ръчно на клиент.
@@ -4015,6 +4085,7 @@
                 loadFitplanGuidelines();
                 if (typeof loadFitplanConsultConfig === 'function') loadFitplanConsultConfig();
                 if (typeof loadFitplanConsultations === 'function') loadFitplanConsultations();
+                if (typeof loadFitplanClientPrograms === 'function') loadFitplanClientPrograms();
             }
 
             // Scroll to top of content on mobile
@@ -4244,6 +4315,9 @@
         }
 
         let fitplanConsultConfigLoaded = false;
+        let fitplanConsultationsCache = [];
+        let fcpProgramsCache = [];
+        let fcpCurrentPlanId = null;
 
         async function loadFitplanConsultConfig(force = false) {
             if (fitplanConsultConfigLoaded && !force) return;
@@ -4318,9 +4392,11 @@
                 if (!items.length) {
                     list.innerHTML = '<p style="color:var(--text-gray);font-size:0.9rem;">Няма изпратени консултации.</p>';
                     list.dataset.loaded = '1';
+                    fitplanConsultationsCache = [];
                     return;
                 }
                 list.innerHTML = '';
+                fitplanConsultationsCache = items;
                 for (const item of items) {
                     const date = new Date(item.timestamp).toLocaleString('bg-BG');
                     const card = document.createElement('details');
@@ -4336,6 +4412,7 @@
                         </summary>
                         <pre style="white-space:pre-wrap;font-size:0.85rem;margin:12px 0 0;padding:12px;background:rgba(0,0,0,0.2);border-radius:8px;max-height:320px;overflow:auto;">${escapeHtml(item.summary || '')}</pre>
                         <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+                            <button type="button" class="btn" style="background:#8b5cf6;padding:6px 12px;font-size:0.85rem;" onclick="loadConsultationIntoClientProgramById('${item.id}')">Създай програма</button>
                             ${item.status !== 'read' ? `<button type="button" class="btn" style="background:#10b981;padding:6px 12px;font-size:0.85rem;" onclick="markFitplanConsultationRead('${item.id}', this)">Маркирай прегледана</button>` : ''}
                         </div>
                     `;
@@ -4363,6 +4440,248 @@
                 showSuccess('Маркирана като прегледана.');
             } catch (error) {
                 showError('Грешка: ' + error.message);
+            }
+        }
+
+        function fcpStatusLabel(status) {
+            return status === 'approved' ? 'Одобрена' : 'Чернова';
+        }
+
+        function resetFitplanClientProgramForm() {
+            document.getElementById('fcpId').value = '';
+            document.getElementById('fcpClientName').value = '';
+            document.getElementById('fcpClientContact').value = '';
+            document.getElementById('fcpClientProfile').value = '';
+            document.getElementById('fcpExampleScheme').value = '';
+            document.getElementById('fcpStatus').textContent = '';
+            document.getElementById('fcpLinkWrap').classList.add('hidden');
+            document.getElementById('fcpClientLink').value = '';
+            document.getElementById('fcpPreviewBtn').classList.add('hidden');
+            fcpCurrentPlanId = null;
+        }
+
+        function setFitplanClientProgramLink(path) {
+            const wrap = document.getElementById('fcpLinkWrap');
+            const input = document.getElementById('fcpClientLink');
+            const open = document.getElementById('fcpClientLinkOpen');
+            if (!path) {
+                wrap.classList.add('hidden');
+                return;
+            }
+            const url = `${getFitplanPublicBase()}/${path}`;
+            input.value = url;
+            open.href = url;
+            wrap.classList.remove('hidden');
+        }
+
+        function fillFitplanClientProgramForm(program) {
+            document.getElementById('fcpId').value = program.id || '';
+            document.getElementById('fcpClientName').value = program.clientName || '';
+            document.getElementById('fcpClientContact').value = program.clientContact || '';
+            document.getElementById('fcpClientProfile').value = program.clientProfile || '';
+            document.getElementById('fcpExampleScheme').value = program.exampleScheme || '';
+            fcpCurrentPlanId = program.planId || null;
+            const previewBtn = document.getElementById('fcpPreviewBtn');
+            if (fcpCurrentPlanId) previewBtn.classList.remove('hidden');
+            else previewBtn.classList.add('hidden');
+            const statusParts = [fcpStatusLabel(program.status)];
+            if (program.planTitle) statusParts.push(program.planTitle);
+            document.getElementById('fcpStatus').textContent = `Статус: ${statusParts.join(' · ')}`;
+            if (program.clientLinkPath) setFitplanClientProgramLink(program.clientLinkPath);
+            else document.getElementById('fcpLinkWrap').classList.add('hidden');
+        }
+
+        function previewFitplanClientProgram(planId) {
+            const id = planId || fcpCurrentPlanId;
+            if (!id) return showError('Първо генерирай програмата.');
+            window.open(`${getFitplanPublicBase()}/fitness/app.html?plan=${encodeURIComponent(id)}`, '_blank', 'noopener');
+        }
+
+        function loadConsultationIntoClientProgram(id, name, contact, summary) {
+            resetFitplanClientProgramForm();
+            document.getElementById('fcpClientName').value = name || '';
+            document.getElementById('fcpClientContact').value = contact || '';
+            document.getElementById('fcpClientProfile').value = summary || '';
+            document.getElementById('fcpExampleScheme').value = `От консултация (${id}). Допълни схемата по дни и упражнения.`;
+            document.getElementById('fcpStatus').textContent = 'Заредено от консултация — допълни схемата и генерирай.';
+            document.getElementById('fcpClientProfile').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            showSuccess('Данните от консултацията са заредени във формата.');
+        }
+
+        function loadConsultationIntoClientProgramById(id) {
+            const item = fitplanConsultationsCache.find((c) => c.id === id);
+            if (!item) return showError('Консултацията не е намерена. Обнови списъка.');
+            loadConsultationIntoClientProgram(item.id, item.clientName, item.clientContact, item.summary);
+        }
+
+        function readFitplanClientProgramPayload() {
+            return {
+                id: document.getElementById('fcpId').value.trim() || undefined,
+                clientName: document.getElementById('fcpClientName').value.trim(),
+                clientContact: document.getElementById('fcpClientContact').value.trim(),
+                clientProfile: document.getElementById('fcpClientProfile').value.trim(),
+                exampleScheme: document.getElementById('fcpExampleScheme').value.trim(),
+            };
+        }
+
+        async function saveFitplanClientProgram() {
+            const status = document.getElementById('fcpStatus');
+            const payload = readFitplanClientProgramPayload();
+            if (!payload.clientName) return showError('Въведи име на клиента.');
+            if (!payload.clientProfile) return showError('Въведи профил на клиента.');
+            status.textContent = 'Запазване…';
+            try {
+                const response = await fetch(FITPLAN_WORKER_URL + '/api/admin/fitplan/client-programs', {
+                    method: 'POST',
+                    headers: fitplanAdminHeaders(),
+                    body: JSON.stringify(payload),
+                });
+                const data = await response.json();
+                if (!response.ok || !data.success) throw new Error(data.message || 'Грешка');
+                fillFitplanClientProgramForm(data.program);
+                status.textContent = `Запазено · ${fcpStatusLabel(data.program.status)}`;
+                loadFitplanClientPrograms(true);
+                showSuccess('Черновата е запазена.');
+            } catch (error) {
+                status.textContent = '';
+                showError('Грешка при запис: ' + error.message);
+            }
+        }
+
+        async function generateFitplanClientProgram() {
+            const status = document.getElementById('fcpStatus');
+            let id = document.getElementById('fcpId').value.trim();
+            if (!id) {
+                await saveFitplanClientProgram();
+                id = document.getElementById('fcpId').value.trim();
+                if (!id) return;
+            }
+            status.textContent = 'AI генерира програмата… (до 1–2 мин)';
+            try {
+                const response = await fetch(`${FITPLAN_WORKER_URL}/api/admin/fitplan/client-programs/${encodeURIComponent(id)}/generate`, {
+                    method: 'POST',
+                    headers: fitplanAdminHeaders(),
+                });
+                const data = await response.json();
+                if (!response.ok || !data.success) throw new Error(data.message || 'Грешка');
+                fillFitplanClientProgramForm(data.program);
+                status.textContent = `${fcpStatusLabel(data.program.status)} · прегледай и одобри`;
+                loadFitplanClientPrograms(true);
+                showSuccess('Готово. Прегледай като клиент, после одобри.');
+            } catch (error) {
+                status.textContent = '';
+                showError('Грешка при генерация: ' + error.message);
+            }
+        }
+
+        async function approveFitplanClientProgram() {
+            const id = document.getElementById('fcpId').value.trim();
+            if (!id) return showError('Първо запази и генерирай програмата.');
+            const status = document.getElementById('fcpStatus');
+            status.textContent = 'Одобряване…';
+            try {
+                const response = await fetch(`${FITPLAN_WORKER_URL}/api/admin/fitplan/client-programs/${encodeURIComponent(id)}/approve`, {
+                    method: 'POST',
+                    headers: fitplanAdminHeaders(),
+                });
+                const data = await response.json();
+                if (!response.ok || !data.success) throw new Error(data.message || 'Грешка');
+                fillFitplanClientProgramForm(data.program);
+                setFitplanClientProgramLink(data.path);
+                status.textContent = 'Одобрено · линкът е готов за изпращане';
+                loadFitplanClientPrograms(true);
+                showSuccess('Програмата е одобрена. Копирай линка и го изпрати на клиента.');
+            } catch (error) {
+                status.textContent = '';
+                showError('Грешка при одобрение: ' + error.message);
+            }
+        }
+
+        async function copyFitplanClientProgramLink() {
+            const input = document.getElementById('fcpClientLink');
+            if (!input?.value) return;
+            try {
+                await navigator.clipboard.writeText(input.value);
+                showSuccess('Линкът е копиран.');
+            } catch {
+                input.select();
+                document.execCommand('copy');
+                showSuccess('Линкът е копиран.');
+            }
+        }
+
+        function openFitplanClientProgram(id) {
+            const item = fcpProgramsCache.find((p) => p.id === id);
+            if (!item) return showError('Програмата не е намерена. Обнови списъка.');
+            resetFitplanClientProgramForm();
+            fillFitplanClientProgramForm(item);
+            document.getElementById('fcpClientProfile').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        async function deleteFitplanClientProgram(id) {
+            if (!confirm('Изтриване на черновата?')) return;
+            try {
+                const response = await fetch(`${FITPLAN_WORKER_URL}/api/admin/fitplan/client-programs/${encodeURIComponent(id)}`, {
+                    method: 'DELETE',
+                    headers: fitplanAdminHeaders(),
+                });
+                const data = await response.json();
+                if (!response.ok || !data.success) throw new Error(data.message || 'Грешка');
+                if (document.getElementById('fcpId').value.trim() === id) resetFitplanClientProgramForm();
+                loadFitplanClientPrograms(true);
+                showSuccess('Изтрито.');
+            } catch (error) {
+                showError('Грешка: ' + error.message);
+            }
+        }
+
+        async function loadFitplanClientPrograms(force = false) {
+            const list = document.getElementById('fcpProgramsList');
+            if (!list) return;
+            if (!force && list.dataset.loaded === '1') return;
+            list.innerHTML = '<p style="color:var(--text-gray);"><i class="fas fa-spinner fa-spin"></i> Зареждане…</p>';
+            try {
+                const response = await fetch(FITPLAN_WORKER_URL + '/api/admin/fitplan/client-programs', {
+                    headers: fitplanAdminHeaders(),
+                });
+                const data = await response.json();
+                if (!response.ok || !data.success) throw new Error(data.message || 'Грешка');
+                const items = data.programs || [];
+                fcpProgramsCache = items;
+                if (!items.length) {
+                    list.innerHTML = '<p style="color:var(--text-gray);font-size:0.9rem;">Няма запазени програми.</p>';
+                    list.dataset.loaded = '1';
+                    return;
+                }
+                list.innerHTML = '';
+                for (const item of items) {
+                    const date = new Date(item.updatedAt || item.createdAt).toLocaleString('bg-BG');
+                    const card = document.createElement('div');
+                    card.className = 'pending-client-card';
+                    card.style.padding = '12px';
+                    card.innerHTML = `
+                        <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;">
+                            <div>
+                                <strong>${escapeHtml(item.clientName || 'Без име')}</strong>
+                                <span style="color:var(--text-gray);"> · ${escapeHtml(item.clientContact || '')}</span>
+                                <span class="report-badge badge-${item.status === 'approved' ? 'read' : 'unread'}" style="margin-left:8px;">${fcpStatusLabel(item.status)}</span>
+                            </div>
+                            <span style="color:var(--text-gray);font-size:0.85rem;">${date}</span>
+                        </div>
+                        <div style="margin-top:8px;color:var(--text-gray);font-size:0.9rem;">${escapeHtml(item.planTitle || 'Без генериран план')}</div>
+                        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+                            <button type="button" class="btn" style="background:#3498db;padding:6px 12px;font-size:0.85rem;" onclick="openFitplanClientProgram('${item.id}')">Отвори</button>
+                            ${item.hasPlan ? `<button type="button" class="btn" style="background:#6366f1;padding:6px 12px;font-size:0.85rem;" onclick="previewFitplanClientProgram('${item.planId}')">Преглед</button>` : ''}
+                            ${item.status !== 'approved' ? `<button type="button" class="btn" style="background:#e74c3c;padding:6px 12px;font-size:0.85rem;" onclick="deleteFitplanClientProgram('${item.id}')">Изтрий</button>` : ''}
+                            ${item.clientLinkPath ? `<button type="button" class="btn" style="background:#10b981;padding:6px 12px;font-size:0.85rem;" onclick="openFitplanClientProgram('${item.id}'); setTimeout(copyFitplanClientProgramLink, 300);">Копирай линк</button>` : ''}
+                        </div>
+                    `;
+                    list.appendChild(card);
+                }
+                list.dataset.loaded = '1';
+            } catch (error) {
+                console.error('FitPlan client programs error:', error);
+                list.innerHTML = '<p style="color:#e74c3c;">Грешка при зареждане.</p>';
             }
         }
 

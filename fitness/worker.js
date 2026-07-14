@@ -25,6 +25,7 @@
  *   POST /api/fitplan/consultation — скрит въпросник (консултация)
  *   GET  /api/admin/fitplan/consultations — админ: списък консултации
  *   GET  /api/admin/fitplan/consult-config — админ: линк с токен
+ *   GET/POST /api/admin/fitplan/client-programs — админ: клиентски програми
  *   POST /api/admin/fitplan/translate-exercises — партида превод + KV индекс (resilient batches)
  *
  * Bindings / vars (wrangler.toml + secrets):
@@ -85,7 +86,11 @@ const MAX_INSTRUCTION_CHARS = 1200;
 export const ADMIN_GUIDELINES_KV_KEY = 'admin:guidelines';
 export const CONSULT_CONFIG_KV_KEY = 'admin:fitplan-consult';
 export const CONSULTATIONS_LIST_KV_KEY = 'fitplan_consultations_list';
+export const CLIENT_PROGRAMS_LIST_KV_KEY = 'fitplan_client_programs_list';
 export const MAX_CONSULTATIONS = 200;
+export const MAX_CLIENT_PROGRAMS = 100;
+export const MAX_CLIENT_PROFILE_CHARS = 8000;
+export const MAX_EXAMPLE_SCHEME_CHARS = 10000;
 export const MAX_FOUNDATION_CHARS = 800;
 export const MAX_GUIDELINE_ITEMS = 8;
 export const MAX_GUIDELINE_CHARS = 2400;
@@ -717,6 +722,31 @@ export function buildPlanUserPrompt(profileSummary, guidelines, foundation = '')
   return `ПРОФИЛ НА КЛИЕНТА (от въпросник):\n${profileSummary}${foundationBlock}${guidelineBlock}\n\nСъздай седмичния план сега. Отговори САМО с JSON.`;
 }
 
+/** Промпт за админ-генерирана програма (профил + примерна схема от треньора). */
+export function buildAdminPlanUserPrompt(brief, guidelines = [], foundation = '') {
+  const { clientProfile = '', exampleScheme = '' } = brief || {};
+  const foundationText = String(foundation || '').trim().slice(0, MAX_FOUNDATION_CHARS);
+  const foundationBlock = foundationText
+    ? `\n\nБАЗОВИ ПРИНЦИПИ (физиология и биомеханика — винаги спазвай):\n${foundationText}`
+    : '';
+  const guidelineBlock = guidelines.length
+    ? `\n\nСПЕЦИФИЧНИ ЕКСПЕРТНИ НАСОКИ:\n- ${guidelines.join('\n- ')}`
+    : '';
+
+  const blocks = [
+    'РЕЖИМ: Треньорът е подготвил профила и примерна схема. Следвай конкретиката — дни, упражнения, обеми, ограничения.',
+    'canonicalName трябва да съвпада със стандартни имена от exercise бази, за да се намерят GIF/видеа.',
+    '',
+    'ПРОФИЛ И ДАННИ ЗА КЛИЕНТА (от треньора):',
+    String(clientProfile || '').trim(),
+  ];
+  if (String(exampleScheme || '').trim()) {
+    blocks.push('', 'СХЕМА, РАЗПРЕДЕЛЕНИЕ И УКАЗАНИЯ (задължително ориентирай се):', String(exampleScheme).trim());
+  }
+
+  return `${blocks.join('\n')}${foundationBlock}${guidelineBlock}\n\nСъздай седмичния план сега. Отговори САМО с JSON.`;
+}
+
 const COMPACT_PLAN_RETRY_HINT = `
 
 ВАЖНО — КОМПАКТЕН ИЗХОД (задължително):
@@ -1016,35 +1046,16 @@ function clientIp(request) {
 // Handlers
 // ============================================================================
 
-async function handleGeneratePlan(request, env, ctx) {
-  let body;
-  try { body = await request.json(); } catch { return errorResponse('Невалиден JSON', 400); }
-  const answers = body.answers;
-  if (!answers || typeof answers !== 'object') return errorResponse('Липсват отговори от въпросника', 400);
-  if (!answers.gender || !answers.age) return errorResponse('Непълни основни данни', 400);
-
-  const genLimit = Number(env.GEN_DAILY_LIMIT) || 3;
-  const rl = await checkDailyLimit(env, 'gen', clientIp(request), genLimit);
-  if (!rl.allowed) {
-    return errorResponse(`Достигнат е дневният лимит от ${genLimit} генерации. Опитай отново утре.`, 429, 'rate_limited');
-  }
-
-  // Индексът се зарежда паралелно с AI заявката — не удължава latency.
+async function executePlanGeneration(env, ctx, { userPrompt, coachProfileText, allowedEquipment = null }) {
   const indexPromise = loadExerciseIndex(env, ctx);
-
-  const profileSummary = buildProfileSummary(answers);
-  const adminGuidelines = await loadAdminGuidelines(env);
-  const guidelines = selectGuidelines(answers, adminGuidelines);
-  const baseUserPrompt = buildPlanUserPrompt(profileSummary, guidelines, adminGuidelines.foundation);
-
   let plan;
   let rawText;
   const maxAttempts = 3;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const userPrompt = attempt === 0 ? baseUserPrompt : `${baseUserPrompt}${COMPACT_PLAN_RETRY_HINT}`;
+    const user = attempt === 0 ? userPrompt : `${userPrompt}${COMPACT_PLAN_RETRY_HINT}`;
     const aiOpts = {
       system: PLAN_SYSTEM_PROMPT,
-      user: userPrompt,
+      user,
       temperature: attempt === 0 ? 0.4 : 0.25,
       maxOutputTokens: 8192,
       jsonMode: true,
@@ -1061,25 +1072,52 @@ async function handleGeneratePlan(request, env, ctx) {
         `rawLen=${rawText?.length || 0}`,
         rawText ? `tail=${JSON.stringify(rawText.slice(-120))}` : '',
       );
-      if (isLast) {
-        if (isPlanParseError(e)) {
-          return errorResponse('AI върна невалиден план. Опитай отново.', 502, 'ai_invalid');
-        }
-        return errorResponse('AI услугата е временно недостъпна. Опитай отново след минута.', 502, 'ai_unavailable');
-      }
-      if (!isPlanParseError(e)) {
-        return errorResponse('AI услугата е временно недостъпна. Опитай отново след минута.', 502, 'ai_unavailable');
-      }
+      if (isLast) throw e;
+      if (!isPlanParseError(e)) throw e;
     }
   }
 
   const index = await indexPromise;
-  const allowed = allowedEquipmentSet(answers.equipment);
-  enrichPlanWithExercises(plan, index, { allowedEquipment: allowed, env });
+  enrichPlanWithExercises(plan, index, { allowedEquipment, env });
   sanitizePlanBulgarian(plan);
+  const coachContext = buildCoachContext(coachProfileText, plan);
+  return { plan, coachContext };
+}
+
+async function handleGeneratePlan(request, env, ctx) {
+  let body;
+  try { body = await request.json(); } catch { return errorResponse('Невалиден JSON', 400); }
+  const answers = body.answers;
+  if (!answers || typeof answers !== 'object') return errorResponse('Липсват отговори от въпросника', 400);
+  if (!answers.gender || !answers.age) return errorResponse('Непълни основни данни', 400);
+
+  const genLimit = Number(env.GEN_DAILY_LIMIT) || 3;
+  const rl = await checkDailyLimit(env, 'gen', clientIp(request), genLimit);
+  if (!rl.allowed) {
+    return errorResponse(`Достигнат е дневният лимит от ${genLimit} генерации. Опитай отново утре.`, 429, 'rate_limited');
+  }
+
+  const profileSummary = buildProfileSummary(answers);
+  const adminGuidelines = await loadAdminGuidelines(env);
+  const guidelines = selectGuidelines(answers, adminGuidelines);
+  const baseUserPrompt = buildPlanUserPrompt(profileSummary, guidelines, adminGuidelines.foundation);
+
+  let plan;
+  let coachContext;
+  try {
+    ({ plan, coachContext } = await executePlanGeneration(env, ctx, {
+      userPrompt: baseUserPrompt,
+      coachProfileText: profileSummary,
+      allowedEquipment: allowedEquipmentSet(answers.equipment),
+    }));
+  } catch (e) {
+    if (isPlanParseError(e)) {
+      return errorResponse('AI върна невалиден план. Опитай отново.', 502, 'ai_invalid');
+    }
+    return errorResponse('AI услугата е временно недостъпна. Опитай отново след минута.', 502, 'ai_unavailable');
+  }
 
   const planId = crypto.randomUUID();
-  const coachContext = buildCoachContext(profileSummary, plan);
   const record = { plan, coachContext, createdAt: new Date().toISOString(), clientRef: body.clientRef || null };
 
   if (env.FITNESS_KV) {
@@ -1439,6 +1477,229 @@ async function handleMarkConsultationRead(request, env, id) {
 }
 
 // ============================================================================
+// Админ: клиентски програми (бриф → AI → одобрение → линк)
+// ============================================================================
+
+function clientProgramKvKey(id) {
+  return `fitplan_client_program:${id}`;
+}
+
+function trimClientProgramFields(body = {}) {
+  const legacyNotes = String(body.adminNotes || '').trim();
+  let exampleScheme = String(body.exampleScheme || '').trim();
+  if (legacyNotes && !exampleScheme.includes(legacyNotes)) {
+    exampleScheme = exampleScheme ? `${exampleScheme}\n\n${legacyNotes}` : legacyNotes;
+  }
+  return {
+    clientName: String(body.clientName || '').trim().slice(0, 120),
+    clientContact: String(body.clientContact || '').trim().slice(0, 200),
+    clientProfile: String(body.clientProfile || '').trim().slice(0, MAX_CLIENT_PROFILE_CHARS),
+    exampleScheme: exampleScheme.slice(0, MAX_EXAMPLE_SCHEME_CHARS),
+    consultationId: String(body.consultationId || '').trim().slice(0, 80) || null,
+  };
+}
+
+async function loadClientProgram(env, id) {
+  const raw = await env.FITNESS_KV.get(clientProgramKvKey(id));
+  return raw ? JSON.parse(raw) : null;
+}
+
+async function saveClientProgram(env, record) {
+  await env.FITNESS_KV.put(clientProgramKvKey(record.id), JSON.stringify(record));
+  const listRaw = await env.FITNESS_KV.get(CLIENT_PROGRAMS_LIST_KV_KEY);
+  const list = listRaw ? JSON.parse(listRaw) : [];
+  if (!list.includes(record.id)) {
+    list.unshift(record.id);
+    if (list.length > MAX_CLIENT_PROGRAMS) list.length = MAX_CLIENT_PROGRAMS;
+    await env.FITNESS_KV.put(CLIENT_PROGRAMS_LIST_KV_KEY, JSON.stringify(list));
+  }
+}
+
+function buildCoachProfileFromBrief(record) {
+  return [
+    `Клиент: ${record.clientName || '—'}`,
+    record.clientContact ? `Контакт: ${record.clientContact}` : '',
+    '',
+    record.clientProfile || '',
+    record.exampleScheme ? `\nСхема и указания:\n${record.exampleScheme}` : '',
+  ].filter(Boolean).join('\n');
+}
+
+function clientProgramPublicView(record) {
+  const planId = record.planId || null;
+  return {
+    id: record.id,
+    clientName: record.clientName,
+    clientContact: record.clientContact,
+    clientProfile: record.clientProfile,
+    exampleScheme: record.exampleScheme,
+    consultationId: record.consultationId,
+    status: record.status === 'approved' ? 'approved' : 'draft',
+    planId,
+    planTitle: record.planTitle || null,
+    hasPlan: Boolean(planId),
+    clientLinkPath: record.status === 'approved' && planId ? `fitness/app.html?plan=${planId}` : null,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
+    approvedAt: record.approvedAt || null,
+  };
+}
+
+async function handleListClientPrograms(request, env) {
+  if (!checkAdminSecret(request, env)) return errorResponse('Неоторизиран достъп', 401, 'unauthorized');
+  if (!env.FITNESS_KV) return errorResponse('KV не е конфигурирано', 500);
+
+  const listRaw = await env.FITNESS_KV.get(CLIENT_PROGRAMS_LIST_KV_KEY);
+  const ids = listRaw ? JSON.parse(listRaw) : [];
+  const items = [];
+  for (const id of ids) {
+    const record = await loadClientProgram(env, id);
+    if (record) items.push(clientProgramPublicView(record));
+  }
+  return jsonResponse({ success: true, programs: items });
+}
+
+async function handleSaveClientProgram(request, env) {
+  if (!checkAdminSecret(request, env)) return errorResponse('Неоторизиран достъп', 401, 'unauthorized');
+  if (!env.FITNESS_KV) return errorResponse('KV не е конфигурирано', 500);
+
+  let body;
+  try { body = await request.json(); } catch { return errorResponse('Невалиден JSON', 400); }
+
+  const fields = trimClientProgramFields(body);
+  if (!fields.clientName) return errorResponse('Моля, въведи име на клиента', 400);
+  if (!fields.clientProfile) return errorResponse('Моля, опиши профила на клиента', 400);
+
+  const now = new Date().toISOString();
+  let record = body.id ? await loadClientProgram(env, body.id) : null;
+
+  if (record && record.status === 'approved') {
+    return errorResponse('Одобрената програма не може да се редактира. Създай нова.', 400, 'locked');
+  }
+
+  if (!record) {
+    record = {
+      id: `fcp_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      status: 'draft',
+      planId: null,
+      planTitle: null,
+      createdAt: now,
+      approvedAt: null,
+    };
+  } else {
+    const briefChanged = fields.clientProfile !== record.clientProfile
+      || fields.exampleScheme !== record.exampleScheme;
+    if (briefChanged && record.planId) {
+      await env.FITNESS_KV.delete(`plan:${record.planId}`);
+      record.planId = null;
+      record.planTitle = null;
+    }
+  }
+
+  Object.assign(record, fields, { status: 'draft', updatedAt: now });
+  await saveClientProgram(env, record);
+  return jsonResponse({ success: true, program: clientProgramPublicView(record) });
+}
+
+async function handleGenerateClientProgram(request, env, ctx, id) {
+  if (!checkAdminSecret(request, env)) return errorResponse('Неоторизиран достъп', 401, 'unauthorized');
+  if (!env.FITNESS_KV) return errorResponse('KV не е конфигурирано', 500);
+
+  const record = await loadClientProgram(env, id);
+  if (!record) return errorResponse('Програмата не е намерена', 404, 'not_found');
+  if (record.status === 'approved') return errorResponse('Програмата вече е одобрена', 400, 'locked');
+  if (!record.clientProfile?.trim()) return errorResponse('Липсва описание на профила', 400);
+
+  const adminGuidelines = await loadAdminGuidelines(env);
+  const userPrompt = buildAdminPlanUserPrompt(record, [], adminGuidelines.foundation);
+  const coachProfileText = buildCoachProfileFromBrief(record);
+
+  let plan;
+  let coachContext;
+  try {
+    ({ plan, coachContext } = await executePlanGeneration(env, ctx, {
+      userPrompt,
+      coachProfileText,
+      allowedEquipment: null,
+    }));
+  } catch (e) {
+    if (isPlanParseError(e)) {
+      return errorResponse('AI върна невалиден план. Опитай отново или редактирай брифа.', 502, 'ai_invalid');
+    }
+    return errorResponse('AI услугата е временно недостъпна. Опитай отново след минута.', 502, 'ai_unavailable');
+  }
+
+  const planId = record.planId || crypto.randomUUID();
+  const now = new Date().toISOString();
+  const existingPlan = record.planId
+    ? await env.FITNESS_KV.get(`plan:${record.planId}`, { type: 'json' })
+    : null;
+
+  await env.FITNESS_KV.put(`plan:${planId}`, JSON.stringify({
+    plan,
+    coachContext,
+    createdAt: existingPlan?.createdAt || now,
+    status: 'draft',
+    clientProgramId: record.id,
+    clientName: record.clientName,
+  }), { expirationTtl: PLAN_TTL });
+
+  record.planId = planId;
+  record.planTitle = plan.title || null;
+  record.status = 'draft';
+  record.updatedAt = now;
+  record.approvedAt = null;
+  await saveClientProgram(env, record);
+
+  return jsonResponse({ success: true, program: clientProgramPublicView(record) });
+}
+
+async function handleApproveClientProgram(request, env, id) {
+  if (!checkAdminSecret(request, env)) return errorResponse('Неоторизиран достъп', 401, 'unauthorized');
+  if (!env.FITNESS_KV) return errorResponse('KV не е конфигурирано', 500);
+
+  const record = await loadClientProgram(env, id);
+  if (!record) return errorResponse('Програмата не е намерена', 404, 'not_found');
+  if (record.status === 'approved' && record.planId) {
+    const path = `fitness/app.html?plan=${record.planId}`;
+    return jsonResponse({ success: true, planId: record.planId, path, program: clientProgramPublicView(record) });
+  }
+  if (!record.planId) return errorResponse('Първо генерирай програмата с AI', 400);
+
+  const planRecord = await env.FITNESS_KV.get(`plan:${record.planId}`, { type: 'json' });
+  if (!planRecord?.plan?.days?.length) return errorResponse('Планът не е намерен. Генерирай отново.', 404, 'not_found');
+
+  const now = new Date().toISOString();
+  planRecord.status = 'approved';
+  planRecord.approvedAt = now;
+  await env.FITNESS_KV.put(`plan:${record.planId}`, JSON.stringify(planRecord), { expirationTtl: PLAN_TTL });
+
+  record.status = 'approved';
+  record.approvedAt = now;
+  record.updatedAt = now;
+  await saveClientProgram(env, record);
+
+  const path = `fitness/app.html?plan=${record.planId}`;
+  return jsonResponse({ success: true, planId: record.planId, path, program: clientProgramPublicView(record) });
+}
+
+async function handleDeleteClientProgram(request, env, id) {
+  if (!checkAdminSecret(request, env)) return errorResponse('Неоторизиран достъп', 401, 'unauthorized');
+  if (!env.FITNESS_KV) return errorResponse('KV не е конфигурирано', 500);
+
+  const record = await loadClientProgram(env, id);
+  if (!record) return errorResponse('Програмата не е намерена', 404, 'not_found');
+  if (record.status === 'approved') return errorResponse('Одобрената програма не може да се изтрие', 400, 'locked');
+
+  if (record.planId) await env.FITNESS_KV.delete(`plan:${record.planId}`);
+  await env.FITNESS_KV.delete(clientProgramKvKey(id));
+  const listRaw = await env.FITNESS_KV.get(CLIENT_PROGRAMS_LIST_KV_KEY);
+  const list = listRaw ? JSON.parse(listRaw) : [];
+  await env.FITNESS_KV.put(CLIENT_PROGRAMS_LIST_KV_KEY, JSON.stringify(list.filter((x) => x !== id)));
+  return jsonResponse({ success: true });
+}
+
+// ============================================================================
 // Router
 // ============================================================================
 
@@ -1501,6 +1762,24 @@ export default {
       const consultReadMatch = path.match(/^\/api\/admin\/fitplan\/consultations\/([A-Za-z0-9_-]+)\/read$/);
       if (request.method === 'POST' && consultReadMatch) {
         return await handleMarkConsultationRead(request, env, consultReadMatch[1]);
+      }
+      if (request.method === 'GET' && path === '/api/admin/fitplan/client-programs') {
+        return await handleListClientPrograms(request, env);
+      }
+      if (request.method === 'POST' && path === '/api/admin/fitplan/client-programs') {
+        return await handleSaveClientProgram(request, env);
+      }
+      const clientProgramGenerateMatch = path.match(/^\/api\/admin\/fitplan\/client-programs\/([A-Za-z0-9_-]+)\/generate$/);
+      if (request.method === 'POST' && clientProgramGenerateMatch) {
+        return await handleGenerateClientProgram(request, env, ctx, clientProgramGenerateMatch[1]);
+      }
+      const clientProgramApproveMatch = path.match(/^\/api\/admin\/fitplan\/client-programs\/([A-Za-z0-9_-]+)\/approve$/);
+      if (request.method === 'POST' && clientProgramApproveMatch) {
+        return await handleApproveClientProgram(request, env, clientProgramApproveMatch[1]);
+      }
+      const clientProgramDeleteMatch = path.match(/^\/api\/admin\/fitplan\/client-programs\/([A-Za-z0-9_-]+)$/);
+      if (request.method === 'DELETE' && clientProgramDeleteMatch) {
+        return await handleDeleteClientProgram(request, env, clientProgramDeleteMatch[1]);
       }
       if (request.method === 'POST' && path === '/api/admin/fitplan/translate-exercises') {
         try {
