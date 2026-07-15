@@ -12,7 +12,7 @@
 import { QUESTIONS, visibleOptions, validateQuestion, buildAnswers } from './questions.js';
 import { localizeExerciseDisplayName, localizeEquipment, localizeTarget, sanitizeBgText } from './exercise-labels-bg.js';
 import { registerServiceWorker } from './common.js';
-import { bindPwaInstallCard, maybeAutoInstall } from './pwa-install.js';
+import { bindPwaInstallCard } from './pwa-install.js';
 import { applyIntensity, effortLabelFromRpe, rpeInfoForValue } from './intensity.js';
 import { createWizardController, el } from './wizard-ui.js';
 
@@ -193,8 +193,7 @@ function renderHome() {
   $('btnContinueWizard').classList.toggle('hidden', !draft);
   $('btnStartWizard').textContent = hasPlan ? 'Създай нов план' : 'Започни въпросника';
   updateGeneratingUi();
-  refreshPwaInstall?.();
-  if (hasPlan) maybeAutoInstall();
+  void refreshPwaInstall?.();
 }
 
 function openCachedProgram() {
@@ -382,8 +381,7 @@ async function runPlanGeneration(answers) {
 
     renderPlan();
     showView('plan');
-    refreshPwaInstall?.();
-    maybeAutoInstall();
+    void refreshPwaInstall?.();
   } catch (e) {
     const message = e.name === 'AbortError'
       ? 'Заявката отне твърде дълго. Провери връзката и опитай отново.'
@@ -819,7 +817,7 @@ async function loadSharedPlan(planId) {
     activeDay = firstTrainingDay(data.plan);
     renderPlan();
     showView('plan');
-    refreshPwaInstall?.();
+    void refreshPwaInstall?.();
   } catch (e) {
     $('errorMessage').textContent = e.message;
     showView('error');
@@ -933,6 +931,7 @@ function init() {
 
   registerServiceWorker();
   refreshPwaInstall = bindPwaInstallCard($('pwaInstallCard'), { hasPlan: hasCachedPlan });
+  void refreshPwaInstall?.();
 
   // Първи кадър е готов → маркирай като заредено (пуска entrance анимациите
   // за следващите навигации) и махни splash-а плавно.

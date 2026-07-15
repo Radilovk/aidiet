@@ -939,50 +939,121 @@ input[type="range"] {
 .pwa-install-card {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  margin-top: 18px;
-  padding: 16px;
+  gap: clamp(10px, 2.5vw, 14px);
+  width: 100%;
+  max-width: min(22rem, 100%);
+  margin-top: clamp(14px, 3.5vw, 18px);
+  margin-inline: auto;
+  padding: clamp(14px, 3.5vw, 18px);
+  padding-bottom: calc(clamp(14px, 3.5vw, 18px) + var(--safe-bottom));
   border-radius: var(--radius);
   border: 1px solid rgba(53, 224, 194, .28);
   background: linear-gradient(145deg, rgba(124, 158, 255, .08), rgba(53, 224, 194, .06));
   box-shadow: var(--shadow);
+  text-align: left;
 }
 .pwa-install-top {
   display: flex;
-  gap: 14px;
+  gap: clamp(10px, 2.5vw, 14px);
   align-items: flex-start;
 }
-.pwa-install-top img {
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
+.pwa-install-icon {
+  width: clamp(44px, 12vw, 52px);
+  height: clamp(44px, 12vw, 52px);
+  border-radius: clamp(12px, 3vw, 14px);
   flex-shrink: 0;
+  box-shadow: 0 8px 24px -8px rgba(53, 224, 194, .35);
 }
 .pwa-install-body strong {
   display: block;
   font-family: var(--font-display);
-  font-size: 1rem;
+  font-size: clamp(0.92rem, 2.8vw, 1rem);
   margin-bottom: 4px;
+  line-height: 1.25;
 }
 .pwa-install-body p {
   color: var(--muted);
-  font-size: 0.92rem;
+  font-size: clamp(0.86rem, 2.5vw, 0.92rem);
   line-height: 1.45;
 }
 .pwa-hint {
   color: var(--muted);
-  font-size: 0.88rem;
+  font-size: clamp(0.82rem, 2.4vw, 0.88rem);
   line-height: 1.45;
-  padding-left: 2px;
 }
 .pwa-device-hint {
   margin-top: 6px;
-  font-size: 0.8rem !important;
+  font-size: clamp(0.74rem, 2.2vw, 0.8rem) !important;
   color: var(--brand-cyan) !important;
+  word-break: break-word;
+}
+.pwa-install-steps-wrap {
+  width: 100%;
+}
+.pwa-install-steps {
+  margin: 0;
+  padding-left: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--text);
+  font-size: clamp(0.84rem, 2.4vw, 0.9rem);
+  line-height: 1.45;
+}
+.pwa-install-steps li {
+  padding-left: 2px;
+}
+.pwa-toast {
+  font-size: 0.84rem;
+  color: var(--brand-cyan);
+  background: rgba(53, 224, 194, .08);
+  border: 1px solid rgba(53, 224, 194, .22);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  text-align: center;
 }
 .pwa-install-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
-.pwa-install-actions .btn-primary { flex: 1; min-width: 140px; }
+.pwa-install-actions .btn-primary {
+  flex: 1 1 140px;
+  min-width: 0;
+}
+.pwa-install-actions .btn-ghost {
+  flex: 1 1 100px;
+  min-width: 0;
+}
+.pwa-install-actions .pwa-dismiss {
+  flex: 0 1 auto;
+  font-size: 0.88rem;
+  opacity: 0.85;
+}
+
+@media (max-width: 380px) {
+  .pwa-install-top {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .pwa-install-actions {
+    flex-direction: column;
+  }
+  .pwa-install-actions .btn-primary,
+  .pwa-install-actions .btn-ghost {
+    width: 100%;
+    flex: none;
+  }
+}
+
+@media (max-height: 520px) and (orientation: landscape) {
+  .pwa-install-card {
+    margin-top: 10px;
+    padding: 12px;
+  }
+  .pwa-install-icon {
+    width: 40px;
+    height: 40px;
+  }
+}

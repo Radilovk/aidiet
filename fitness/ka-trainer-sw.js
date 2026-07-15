@@ -1,7 +1,7 @@
 /**
  * KA-TRAINER — service worker (само /fitness/ scope).
  */
-const VERSION = 'v1';
+const VERSION = 'v2';
 const APP_CACHE = `ka-trainer-app-${VERSION}`;
 const IMG_CACHE = 'ka-trainer-img-v1';
 const IMG_CACHE_MAX_ENTRIES = 300;

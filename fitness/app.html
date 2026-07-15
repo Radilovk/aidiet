@@ -99,7 +99,7 @@
 
         <div id="pwaInstallCard" class="pwa-install-card hidden" role="region" aria-label="Инсталирай приложението">
           <div class="pwa-install-top">
-            <img src="icons/icon-192.png" alt="" width="52" height="52">
+            <img src="icons/icon-192.png" alt="" class="pwa-install-icon" width="52" height="52">
             <div class="pwa-install-body">
               <strong>KA-TRAINER на началния екран</strong>
               <p data-pwa-text>Добави програмата на телефона си за бърз достъп.</p>
@@ -107,9 +107,12 @@
             </div>
           </div>
           <p class="pwa-hint" data-pwa-hint></p>
+          <div class="pwa-install-steps-wrap hidden" data-pwa-steps aria-live="polite"></div>
+          <p class="pwa-toast hidden" data-pwa-toast role="status"></p>
           <div class="pwa-install-actions">
             <button type="button" class="btn-primary" data-pwa-install>Инсталирай</button>
-            <button type="button" class="btn-ghost" data-pwa-dismiss>Не сега</button>
+            <button type="button" class="btn-ghost hidden" data-pwa-secondary>Копирай линк</button>
+            <button type="button" class="btn-ghost pwa-dismiss" data-pwa-dismiss>Не сега</button>
           </div>
         </div>
 

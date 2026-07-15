@@ -12,6 +12,8 @@
   "orientation": "portrait-primary",
   "background_color": "#0a0e13",
   "theme_color": "#0a0e13",
+  "prefer_related_applications": false,
+  "handle_links": "preferred",
   "categories": ["health", "fitness", "lifestyle"],
   "icons": [
     {
