@@ -679,15 +679,6 @@ input[type="range"] {
 .guide-item[open] summary::after { content: '−'; }
 .guide-item p { padding: 0 18px 16px; color: var(--muted); font-size: 15.5px; }
 
-.plan-disclaimer {
-  margin-top: 34px;
-  color: var(--muted);
-  font-size: 13.5px;
-  border-top: 1px solid var(--border-soft);
-  padding-top: 18px;
-  opacity: .85;
-}
-
 /* ---------- Чат ---------- */
 .chat-fab {
   position: fixed;
@@ -737,6 +728,26 @@ input[type="range"] {
 }
 .chat-head strong { font-family: var(--font-display); font-size: 14px; }
 .chat-remaining { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+.chat-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.chat-new {
+  background: rgba(53, 224, 194, .1);
+  border: 1px solid rgba(53, 224, 194, .28);
+  color: var(--brand-cyan);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 6px 12px;
+  min-height: 36px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.chat-new:hover { background: rgba(53, 224, 194, .16); color: var(--text); }
 .chat-close {
   background: none; border: none; color: var(--muted);
   font-size: 17px; cursor: pointer;
