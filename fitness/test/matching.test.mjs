@@ -1,5 +1,5 @@
 /**
- * Тестове за локалната логика на FitPlan AI (без мрежа, без AI):
+ * Тестове за локалната логика на KA-TRAINER (без мрежа, без AI):
  *   node --test test/
  */
 import { test } from 'node:test';

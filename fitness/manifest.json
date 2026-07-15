@@ -1,8 +1,8 @@
 {
-  "id": "fitplan-ai",
-  "name": "FitPlan AI — Тренировъчен план",
-  "short_name": "FitPlan AI",
-  "description": "Индивидуален седмичен тренировъчен план, създаден от AI — с демонстрации, адаптация и AI персонален треньор.",
+  "id": "ka-trainer",
+  "name": "KA-TRAINER — Тренировъчна програма",
+  "short_name": "KA-TRAINER",
+  "description": "Индивидуален седмичен тренировъчен план с демонстрации, адаптация и AI треньор.",
   "lang": "bg",
   "dir": "ltr",
   "start_url": "app.html?source=pwa",
@@ -15,19 +15,19 @@
   "categories": ["health", "fitness", "lifestyle"],
   "icons": [
     {
-      "src": "../icon-192x192.png",
+      "src": "icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "../icon-512x512.png",
+      "src": "icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "../icon-512x512.png",
+      "src": "icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
@@ -39,14 +39,7 @@
       "short_name": "Програма",
       "description": "Отвори запазената седмична програма",
       "url": "app.html?open=1",
-      "icons": [{ "src": "../icon-192x192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Нов план",
-      "short_name": "Нов план",
-      "description": "Започни нов въпросник",
-      "url": "app.html?new=1",
-      "icons": [{ "src": "../icon-192x192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }

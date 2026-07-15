@@ -1,12 +1,12 @@
 /* ============================================================
-   FitPlan AI — стилове на приложението (въпросник / план / чат)
+   KA-TRAINER — стилове на приложението (въпросник / план / чат)
    Изисква base.css
    ============================================================ */
 
 body {
   background:
-    radial-gradient(1000px 500px at 85% -10%, rgba(53, 224, 194, .07), transparent 60%),
-    radial-gradient(900px 500px at -10% 10%, rgba(168, 255, 62, .06), transparent 55%),
+    radial-gradient(1000px 500px at 85% -10%, rgba(53, 224, 194, .08), transparent 60%),
+    radial-gradient(900px 500px at -10% 10%, rgba(124, 158, 255, .08), transparent 55%),
     var(--bg);
 }
 
@@ -934,3 +934,55 @@ input[type="range"] {
   .view, .q-card, .day-card, .chat-panel { animation: none; }
   .btn-primary:hover, .chat-fab:hover { transform: none; }
 }
+
+/* ---------- PWA install (само след създаден план) ---------- */
+.pwa-install-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(53, 224, 194, .28);
+  background: linear-gradient(145deg, rgba(124, 158, 255, .08), rgba(53, 224, 194, .06));
+  box-shadow: var(--shadow);
+}
+.pwa-install-top {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.pwa-install-top img {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  flex-shrink: 0;
+}
+.pwa-install-body strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  margin-bottom: 4px;
+}
+.pwa-install-body p {
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+.pwa-hint {
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
+  padding-left: 2px;
+}
+.pwa-device-hint {
+  margin-top: 6px;
+  font-size: 0.8rem !important;
+  color: var(--brand-cyan) !important;
+}
+.pwa-install-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.pwa-install-actions .btn-primary { flex: 1; min-width: 140px; }

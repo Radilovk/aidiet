@@ -1,4 +1,4 @@
-# FitPlan AI — самостоятелен Cloudflare Worker (отделен от основния aidiet worker).
+# KA-TRAINER — самостоятелен Cloudflare Worker (отделен от основния aidiet worker).
 # Деплой:  cd fitness && npx wrangler deploy --env production
 # Secrets: npx wrangler secret put GEMINI_API_KEY --env production
 #          npx wrangler secret put OPENAI_API_KEY --env production   (по избор, fallback)

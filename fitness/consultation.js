@@ -1,6 +1,6 @@
 /**
  * Скрита консултационна страница — само с линк от админ.
- * Не е свързана с публичния FitPlan интерфейс.
+ * Не е свързана с публичния KA-TRAINER интерфейс.
  */
 import { QUESTIONS, visibleOptions, validateQuestion, buildAnswers } from './questions.js';
 import { createWizardController } from './wizard-ui.js';

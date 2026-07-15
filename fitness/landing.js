@@ -1,6 +1,7 @@
-import { applyCachedPlanCta } from './common.js';
+import { applyCachedPlanCta, registerServiceWorker } from './common.js';
 
 applyCachedPlanCta();
+registerServiceWorker();
 
 if ('scrollRestoration' in history) {
   history.scrollRestoration = 'manual';
