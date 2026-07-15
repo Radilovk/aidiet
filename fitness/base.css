@@ -91,10 +91,11 @@ body {
   color: transparent;
 }
 .logo-mark {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
+  width: clamp(40px, 11vw, 46px);
+  height: clamp(40px, 11vw, 46px);
+  border-radius: 11px;
   flex-shrink: 0;
+  object-fit: contain;
 }
 
 /* Бутони — един стил навсякъде */

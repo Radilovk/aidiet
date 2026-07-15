@@ -1,7 +1,7 @@
 /**
  * KA-TRAINER — service worker (само /fitness/ scope).
  */
-const VERSION = 'v2';
+const VERSION = 'v3';
 const APP_CACHE = `ka-trainer-app-${VERSION}`;
 const IMG_CACHE = 'ka-trainer-img-v1';
 const IMG_CACHE_MAX_ENTRIES = 300;
@@ -18,6 +18,7 @@ const PRECACHE_ASSETS = [
   './questions.js',
   './exercise-labels-bg.js',
   './common.js',
+  './icons/logo-mark.png',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/apple-touch-icon.png',

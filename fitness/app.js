@@ -742,6 +742,15 @@ function closeChat() {
   if (!$('view-plan').classList.contains('hidden')) $('chatFab').classList.remove('hidden');
 }
 
+function resetChat() {
+  if (chatBusy) return;
+  if (chatHistory.length && !confirm('Започни нов разговор? Предишните съобщения ще бъдат изтрити.')) return;
+  chatHistory = [];
+  store.set('chat', chatHistory);
+  renderChat();
+  $('chatInput').focus();
+}
+
 function renderChat() {
   const box = $('chatMessages');
   box.innerHTML = '';
@@ -885,6 +894,7 @@ function init() {
 
   // чат
   $('chatFab').addEventListener('click', openChat);
+  $('chatNew').addEventListener('click', resetChat);
   $('chatClose').addEventListener('click', () => closeChat());
   $('chatForm').addEventListener('submit', (e) => {
     e.preventDefault();

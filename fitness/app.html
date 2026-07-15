@@ -25,7 +25,7 @@
       -webkit-background-clip: text; background-clip: text; color: transparent;
     }
     #boot .boot-mark {
-      width: 72px; height: 72px; border-radius: 18px;
+      width: 80px; height: 80px; border-radius: 18px;
       box-shadow: 0 12px 40px -12px rgba(53, 224, 194, .45);
     }
     #boot .boot-dot {
@@ -59,14 +59,14 @@
 
   <!-- Splash: видим мигновено, маха се от app.js след избора на стартов екран -->
   <div id="boot" aria-hidden="true">
-    <img class="boot-mark" src="icons/icon-192.png" alt="" width="72" height="72">
+    <img class="boot-mark" src="icons/logo-mark.png" alt="" width="80" height="80">
     <div class="boot-logo">KA-TRAINER</div>
     <div class="boot-dot"></div>
   </div>
 
   <header class="app-header">
-    <a href="index.html" class="logo logo-brand" aria-label="Начало">
-      <img src="icons/icon-192.png" alt="" class="logo-mark" width="28" height="28">
+    <a href="index.html" class="logo logo-brand" aria-label="KA-TRAINER — Начало">
+      <img src="icons/logo-mark.png" alt="" class="logo-mark" width="44" height="44">
       <span class="logo-text">KA-TRAINER</span>
     </a>
     <div class="header-actions">
@@ -99,7 +99,7 @@
 
         <div id="pwaInstallCard" class="pwa-install-card hidden" role="region" aria-label="Инсталирай приложението">
           <div class="pwa-install-top">
-            <img src="icons/icon-192.png" alt="" class="pwa-install-icon" width="52" height="52">
+            <img src="icons/logo-mark.png" alt="" class="pwa-install-icon" width="52" height="52">
             <div class="pwa-install-body">
               <strong>KA-TRAINER на началния екран</strong>
               <p data-pwa-text>Добави програмата на телефона си за бърз достъп.</p>
@@ -185,8 +185,6 @@
       <div id="dayContent" class="day-content"></div>
 
       <div class="guidelines" id="guidelines"></div>
-
-      <p class="plan-disclaimer">Планът е генериран от AI на база твоите отговори и има информативен характер — не замества консултация с лекар или кинезитерапевт. При болка или дискомфорт спри упражнението.</p>
     </section>
 
   </main>
@@ -202,7 +200,10 @@
         <strong>AI треньор</strong>
         <span id="chatRemaining" class="chat-remaining"></span>
       </div>
-      <button id="chatClose" class="chat-close" type="button" aria-label="Затвори">✕</button>
+      <div class="chat-head-actions">
+        <button id="chatNew" class="chat-new" type="button" aria-label="Нов разговор">Нов</button>
+        <button id="chatClose" class="chat-close" type="button" aria-label="Затвори">✕</button>
+      </div>
     </div>
     <div id="chatMessages" class="chat-messages" aria-live="polite"></div>
     <form id="chatForm" class="chat-input-row">
