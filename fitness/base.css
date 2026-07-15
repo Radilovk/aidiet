@@ -1,4 +1,4 @@
-/* FitPlan AI — споделена база (всички страници) */
+/* KA-TRAINER — споделена база (всички страници) */
 
 :root {
   --bg: #0a0e13;
@@ -9,12 +9,15 @@
   --border-soft: #1a2632;
   --text: #eef3f8;
   --muted: #8fa0b3;
-  --volt: #a8ff3e;
-  --volt-dim: #8fdd2e;
-  --teal: #35e0c2;
+  --brand-blue: #7c9eff;
+  --brand-cyan: #35e0c2;
+  --brand-teal: #2dd4a8;
+  --volt: var(--brand-cyan);
+  --volt-dim: #2bc4a8;
+  --teal: var(--brand-teal);
   --danger: #ff6b6b;
   --warn: #ffc94d;
-  --grad: linear-gradient(100deg, var(--volt), var(--teal));
+  --grad: linear-gradient(100deg, var(--brand-blue), var(--brand-cyan), var(--brand-teal));
   --radius: 18px;
   --radius-sm: 12px;
   --font-display: 'Unbounded', system-ui, sans-serif;
@@ -74,8 +77,25 @@ body {
   color: var(--text);
   flex-shrink: 0;
 }
-.logo span { color: var(--volt); }
-.logo em { font-style: normal; font-size: 11px; vertical-align: super; color: var(--teal); margin-left: 3px; }
+.logo span { color: var(--brand-cyan); }
+.logo em { font-style: normal; font-size: 11px; vertical-align: super; color: var(--brand-teal); margin-left: 3px; }
+.logo-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.logo-text {
+  background: var(--grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.logo-mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
 
 /* Бутони — един стил навсякъде */
 .btn-primary,

@@ -1615,7 +1615,7 @@
                     <i class="fas fa-robot"></i> AI Промпти
                 </button>
                 <button class="tab-btn" onclick="switchTab('fitplan', event)">
-                    <i class="fas fa-dumbbell"></i> FitPlan
+                    <i class="fas fa-dumbbell"></i> KA-TRAINER
                 </button>
                 <button class="tab-btn" onclick="switchTab('monitoring', event)">
                     <i class="fas fa-chart-line"></i> Мониторинг
@@ -2436,7 +2436,7 @@
             <!-- FitPlan Tab -->
             <div id="tab-fitplan" class="tab-content">
             <div class="card">
-                <h2><i class="fas fa-dumbbell"></i> FitPlan — Принципи за тренировки</h2>
+                <h2><i class="fas fa-dumbbell"></i> KA-TRAINER — Принципи за тренировки</h2>
                 <div class="info-box">
                     <strong>Mini-RAG подход:</strong> Тук задаваш физиология, биомеханика и допълнителни насоки.
                     Те <em>не</em> влизат в system prompt-а — извличат се по тагове от профила на клиента и се добавят
@@ -2466,7 +2466,7 @@
 
                 <div style="display:flex;gap:10px;flex-wrap:wrap;">
                     <button class="btn" onclick="saveFitplanGuidelines()">
-                        <i class="fas fa-save"></i> Запази FitPlan насоки
+                        <i class="fas fa-save"></i> Запази KA-TRAINER насоки
                     </button>
                     <button class="btn" style="background:#6b7280;" onclick="loadFitplanGuidelines(true)">
                         <i class="fas fa-sync"></i> Презареди
@@ -2479,7 +2479,7 @@
                 <h2><i class="fas fa-user-check"></i> Клиентски програми (админ → AI → линк)</h2>
                 <div class="info-box">
                     <strong>Работен процес:</strong> Опиши профила и примерна схема → AI генерира програмата → прегледай → одобри → изпрати линка на клиента.
-                    Клиентът отваря програмата в FitPlan интерфейса.
+                    Клиентът отваря програмата в KA-TRAINER интерфейса.
                 </div>
 
                 <input type="hidden" id="fcpId" value="">
@@ -3555,9 +3555,9 @@
                 <i class="fas fa-robot" aria-hidden="true"></i>
                 <span>Промпти</span>
             </button>
-            <button class="mobile-nav-btn" id="mbn-fitplan" onclick="switchTab('fitplan', event)" aria-label="FitPlan">
+            <button class="mobile-nav-btn" id="mbn-fitplan" onclick="switchTab('fitplan', event)" aria-label="KA-TRAINER">
                 <i class="fas fa-dumbbell" aria-hidden="true"></i>
-                <span>FitPlan</span>
+                <span>KA-TRAINER</span>
             </button>
             <button class="mobile-nav-btn" id="mbn-monitoring" onclick="switchTab('monitoring', event)" aria-label="Мониторинг">
                 <i class="fas fa-chart-line" aria-hidden="true"></i>
@@ -3657,7 +3657,7 @@
                 keywords: ['промпт', 'prompt', 'план', 'генериране', 'шаблон', 'инструкция', 'системен', 'system prompt', 'текст', 'хранене', 'диета']
             },
             {
-                title: 'FitPlan — Принципи за тренировки',
+                title: 'KA-TRAINER — Принципи за тренировки',
                 tab: 'fitplan',
                 icon: 'fa-dumbbell',
                 keywords: ['fitplan', 'фитнес', 'тренировка', 'тренировки', 'физиология', 'биомеханика', 'rpe', 'темпо', 'mini-rag', 'насоки', 'guidelines', 'workout', 'сила', 'хипертрофия']
@@ -4245,7 +4245,7 @@
             const status = document.getElementById('fitplanGuidelinesStatus');
             if (fitplanGuidelinesLoaded && !force) return;
             try {
-                if (status) status.textContent = 'Зареждане от FitPlan worker...';
+                if (status) status.textContent = 'Зареждане от KA-TRAINER worker...';
                 const response = await fetch(FITPLAN_WORKER_URL + '/api/admin/fitplan/guidelines', {
                     headers: fitplanAdminHeaders(),
                 });
@@ -4277,7 +4277,7 @@
             } catch (error) {
                 console.error('FitPlan guidelines load error:', error);
                 if (status) status.textContent = 'Грешка при зареждане. Увери се, че fitness worker-ът е деплойнат с новите endpoints.';
-                showError('Неуспешно зареждане на FitPlan насоки: ' + error.message);
+                showError('Неуспешно зареждане на KA-TRAINER насоки: ' + error.message);
             }
         }
 
@@ -4300,11 +4300,11 @@
                 if (status && data.config?.updatedAt) {
                     status.textContent = `Запазено на ${new Date(data.config.updatedAt).toLocaleString('bg-BG')}.`;
                 }
-                showSuccess('FitPlan насоките са запазени.');
+                showSuccess('KA-TRAINER насоките са запазени.');
             } catch (error) {
                 console.error('FitPlan guidelines save error:', error);
                 if (status) status.textContent = 'Грешка при запис.';
-                showError('Неуспешен запис на FitPlan насоки: ' + error.message);
+                showError('Неуспешен запис на KA-TRAINER насоки: ' + error.message);
             }
         }
 

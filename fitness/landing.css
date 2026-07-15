@@ -1,4 +1,4 @@
-/* FitPlan AI — landing (index.html), истински mobile-first */
+/* KA-TRAINER — landing (index.html), истински mobile-first */
 
 body {
   background: var(--bg);
@@ -20,9 +20,9 @@ body {
   filter: blur(56px);
   opacity: .13;
 }
-.orb.o1 { width: min(520px, 90vw); height: min(520px, 90vw); background: var(--volt); top: -180px; right: -120px; }
-.orb.o2 { width: min(460px, 80vw); height: min(460px, 80vw); background: var(--teal); top: 45%; left: -200px; }
-.orb.o3 { width: min(380px, 70vw); height: min(380px, 70vw); background: #6d5dfc; bottom: -160px; right: 12%; }
+.orb.o1 { width: min(520px, 90vw); height: min(520px, 90vw); background: var(--brand-blue); top: -180px; right: -120px; }
+.orb.o2 { width: min(460px, 80vw); height: min(460px, 80vw); background: var(--brand-cyan); top: 45%; left: -200px; }
+.orb.o3 { width: min(380px, 70vw); height: min(380px, 70vw); background: var(--brand-teal); bottom: -160px; right: 12%; }
 .grid-lines {
   position: fixed; inset: 0; z-index: -1; pointer-events: none;
   background-image:

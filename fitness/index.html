@@ -4,19 +4,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <script>
-  (function(){if(!('serviceWorker'in navigator))return;var k='fitplan.release-sw';navigator.serviceWorker.getRegistrations().then(function(rs){if(!rs.length)return;var had=navigator.serviceWorker.controller&&!navigator.serviceWorker.controller.scriptURL.includes('fitplan-sw');Promise.all(rs.map(function(r){return r.unregister()})).then(function(){if(had&&!sessionStorage.getItem(k)){sessionStorage.setItem(k,'1');location.reload()}})})})();
+  (function(){if(!('serviceWorker'in navigator))return;var k='ka-trainer.release-sw';navigator.serviceWorker.getRegistrations().then(function(rs){if(!rs.length)return;var had=navigator.serviceWorker.controller&&!navigator.serviceWorker.controller.scriptURL.includes('ka-trainer-sw');Promise.all(rs.map(function(r){return r.unregister()})).then(function(){if(had&&!sessionStorage.getItem(k)){sessionStorage.setItem(k,'1');location.reload()}})})})();
   </script>
   <meta name="theme-color" content="#0a0e13">
   <meta name="color-scheme" content="dark">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="FitPlan AI">
-  <meta name="description" content="FitPlan AI — твоята персонална тренировъчна програма от 14 въпроса. Демонстрации, замяна, AI треньор.">
-  <title>FitPlan AI — Това е точно твоята програма</title>
+  <meta name="apple-mobile-web-app-title" content="KA-TRAINER">
+  <meta name="description" content="KA-TRAINER — твоята персонална тренировъчна програма от 14 въпроса. Демонстрации, замяна, AI треньор.">
+  <title>KA-TRAINER — Това е точно твоята програма</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="icon" type="image/png" href="../icon-192x192.png">
-  <link rel="apple-touch-icon" href="../icon-192x192.png">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;500;700;900&family=Sofia+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap&subset=cyrillic" rel="stylesheet">
@@ -35,7 +35,10 @@
 
   <header id="siteHeader" class="site-header">
     <nav class="nav">
-      <a class="logo" href="index.html">FIT<span>PLAN</span><em>AI</em></a>
+      <a class="logo logo-brand" href="index.html">
+        <img src="icons/icon-192.png" alt="" class="logo-mark" width="28" height="28">
+        <span class="logo-text">KA-TRAINER</span>
+      </a>
       <div class="nav-links">
         <a class="nav-text" href="#how">Процес</a>
         <a class="nav-text" href="#features">Функции</a>
@@ -207,7 +210,10 @@
   <footer class="site-footer">
     <div class="wrap">
       <div class="foot-grid">
-        <a class="logo" href="index.html">FIT<span>PLAN</span><em>AI</em></a>
+        <a class="logo logo-brand" href="index.html">
+        <img src="icons/icon-192.png" alt="" class="logo-mark" width="28" height="28">
+        <span class="logo-text">KA-TRAINER</span>
+      </a>
         <div class="foot-links">
           <a href="#how">Процес</a>
           <a href="#features">Функции</a>
@@ -216,7 +222,7 @@
           <a href="app.html" id="footCreatePlan">Създай план</a>
         </div>
       </div>
-      <p class="disclaimer">© 2026 FitPlan AI · AI план с информативен характер. Не замества лекар или квалифициран треньор.</p>
+      <p class="disclaimer">© 2026 KA-TRAINER · AI план с информативен характер. Не замества лекар или квалифициран треньор.</p>
     </div>
   </footer>
 

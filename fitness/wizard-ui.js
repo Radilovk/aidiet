@@ -1,5 +1,5 @@
 /**
- * Споделен UI за FitPlan въпросник (app + консултация).
+ * Споделен UI за KA-TRAINER въпросник (app + консултация).
  */
 export function el(tag, props = {}, ...children) {
   const node = document.createElement(tag);

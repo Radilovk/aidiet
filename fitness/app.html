@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <script>
-  (function(){if(!('serviceWorker'in navigator))return;var k='fitplan.release-sw';navigator.serviceWorker.getRegistrations().then(function(rs){var fr=rs.filter(function(r){return !r.scope.includes('/fitness/')});if(!fr.length)return;var had=navigator.serviceWorker.controller&&!navigator.serviceWorker.controller.scriptURL.includes('fitplan-sw');Promise.all(fr.map(function(r){return r.unregister()})).then(function(){if(had&&!sessionStorage.getItem(k)){sessionStorage.setItem(k,'1');location.reload()}})})})();
+  (function(){if(!('serviceWorker'in navigator))return;var k='ka-trainer.release-sw';navigator.serviceWorker.getRegistrations().then(function(rs){var fr=rs.filter(function(r){return !r.scope.includes('/fitness/')});if(!fr.length)return;var had=navigator.serviceWorker.controller&&!navigator.serviceWorker.controller.scriptURL.includes('ka-trainer-sw');Promise.all(fr.map(function(r){return r.unregister()})).then(function(){if(had&&!sessionStorage.getItem(k)){sessionStorage.setItem(k,'1');location.reload()}})})})();
   </script>
   <!-- Критичен inline CSS: тъмен фон и splash от първия кадър, преди външните файлове -->
   <style>
@@ -20,13 +20,17 @@
     #boot.hide { opacity: 0; pointer-events: none; }
     @keyframes bootAway { to { opacity: 0; visibility: hidden; } }
     #boot .boot-logo {
-      font-family: system-ui, sans-serif; font-weight: 900; font-size: 19px; letter-spacing: .08em;
-      color: #eef3f8;
+      font-family: system-ui, sans-serif; font-weight: 900; font-size: 17px; letter-spacing: .12em;
+      background: linear-gradient(100deg, #7c9eff, #35e0c2, #2dd4a8);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
     }
-    #boot .boot-logo b { color: #a8ff3e; }
+    #boot .boot-mark {
+      width: 72px; height: 72px; border-radius: 18px;
+      box-shadow: 0 12px 40px -12px rgba(53, 224, 194, .45);
+    }
     #boot .boot-dot {
       width: 10px; height: 10px; border-radius: 50%;
-      background: linear-gradient(100deg, #a8ff3e, #35e0c2);
+      background: linear-gradient(100deg, #7c9eff, #35e0c2, #2dd4a8);
       animation: bootPulse 1s ease-in-out infinite;
     }
     @keyframes bootPulse { 50% { transform: scale(1.8); opacity: .5; } }
@@ -36,12 +40,12 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="FitPlan AI">
-  <meta name="description" content="Отговори на 14 въпроса и получи индивидуален седмичен тренировъчен план, създаден от AI и съобразен с твоето здраве, цел и оборудване.">
-  <title>FitPlan AI — Твоят индивидуален тренировъчен план</title>
+  <meta name="apple-mobile-web-app-title" content="KA-TRAINER">
+  <meta name="description" content="KA-TRAINER — отговори на 14 въпроса и получи индивидуален седмичен тренировъчен план с демонстрации, адаптация и AI треньор.">
+  <title>KA-TRAINER — Твоят индивидуален тренировъчен план</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="icon" type="image/png" href="../icon-192x192.png">
-  <link rel="apple-touch-icon" href="../icon-192x192.png">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <!-- Шрифтовете се зареждат асинхронно (не блокират първия кадър); display=optional
@@ -55,12 +59,16 @@
 
   <!-- Splash: видим мигновено, маха се от app.js след избора на стартов екран -->
   <div id="boot" aria-hidden="true">
-    <div class="boot-logo">FIT<b>PLAN</b> AI</div>
+    <img class="boot-mark" src="icons/icon-192.png" alt="" width="72" height="72">
+    <div class="boot-logo">KA-TRAINER</div>
     <div class="boot-dot"></div>
   </div>
 
   <header class="app-header">
-    <a href="index.html" class="logo" aria-label="Начало">FIT<span>PLAN</span><em>AI</em></a>
+    <a href="index.html" class="logo logo-brand" aria-label="Начало">
+      <img src="icons/icon-192.png" alt="" class="logo-mark" width="28" height="28">
+      <span class="logo-text">KA-TRAINER</span>
+    </a>
     <div class="header-actions">
       <button id="btnMyProgram" class="btn-primary sm hidden" type="button">Моята програма</button>
       <button id="btnNewPlan" class="btn-ghost sm hidden" type="button">＋ Нов план</button>
@@ -72,7 +80,7 @@
     <!-- НАЧАЛО -->
     <section id="view-home" class="view hidden" aria-label="Начало">
       <div class="home-stage">
-        <p class="home-eyebrow">FitPlan AI</p>
+        <p class="home-eyebrow">KA-TRAINER</p>
         <h1 class="home-title">Твоят персонален тренировъчен план</h1>
         <p class="home-lead">14 въпроса · AI анализ · седмична програма с демонстрации. Планът се пази на устройството ти.</p>
 
@@ -87,6 +95,25 @@
         <div class="home-actions">
           <button id="btnStartWizard" class="btn-primary btn-block" type="button">Създай нов план</button>
           <button id="btnContinueWizard" class="btn-ghost btn-block hidden" type="button">Продължи въпросника</button>
+        </div>
+
+        <div id="pwaInstallCard" class="pwa-install-card hidden" role="region" aria-label="Инсталирай приложението">
+          <div class="pwa-install-top">
+            <img src="icons/icon-192.png" alt="" class="pwa-install-icon" width="52" height="52">
+            <div class="pwa-install-body">
+              <strong>KA-TRAINER на началния екран</strong>
+              <p data-pwa-text>Добави програмата на телефона си за бърз достъп.</p>
+              <p class="pwa-device-hint" data-pwa-device></p>
+            </div>
+          </div>
+          <p class="pwa-hint" data-pwa-hint></p>
+          <div class="pwa-install-steps-wrap hidden" data-pwa-steps aria-live="polite"></div>
+          <p class="pwa-toast hidden" data-pwa-toast role="status"></p>
+          <div class="pwa-install-actions">
+            <button type="button" class="btn-primary" data-pwa-install>Инсталирай</button>
+            <button type="button" class="btn-ghost hidden" data-pwa-secondary>Копирай линк</button>
+            <button type="button" class="btn-ghost pwa-dismiss" data-pwa-dismiss>Не сега</button>
+          </div>
         </div>
 
         <p class="home-cache-note">Програмата се съхранява локално — достъпна офлайн след първо зареждане.</p>

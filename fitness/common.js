@@ -1,5 +1,5 @@
 /**
- * FitPlan AI — споделена логика за всички страници.
+ * KA-TRAINER — споделена логика за всички страници.
  */
 
 export const PLAN_STORAGE_KEY = 'fitplan.plan';
@@ -71,6 +71,6 @@ export function registerServiceWorker() {
 
   const scope = new URL('./', import.meta.url).pathname;
   navigator.serviceWorker
-    .register(new URL('./fitplan-sw.js', import.meta.url), { scope })
+    .register(new URL('./ka-trainer-sw.js', import.meta.url), { scope })
     .catch(() => {});
 }

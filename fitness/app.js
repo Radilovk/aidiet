@@ -1,5 +1,5 @@
 /**
- * FitPlan AI — клиентска логика.
+ * KA-TRAINER — клиентска логика.
  *
  * Икономичен дизайн (0 излишни заявки):
  *   - Планът се пази в localStorage → повторно отваряне не вика бекенда.
@@ -12,6 +12,7 @@
 import { QUESTIONS, visibleOptions, validateQuestion, buildAnswers } from './questions.js';
 import { localizeExerciseDisplayName, localizeEquipment, localizeTarget, sanitizeBgText } from './exercise-labels-bg.js';
 import { registerServiceWorker } from './common.js';
+import { bindPwaInstallCard } from './pwa-install.js';
 import { applyIntensity, effortLabelFromRpe, rpeInfoForValue } from './intensity.js';
 import { createWizardController, el } from './wizard-ui.js';
 
@@ -45,7 +46,7 @@ function workerUrl() {
 
 /**
  * API fetch с автоматичен fallback между основния NutriPlan worker и
- * отделния FitPlan worker.
+ * отделния KA-TRAINER worker.
  *
  * ВАЖНО за икономичността: преминаваме към резервния worker САМО при
  * мрежова грешка или 404/405 (маршрутът не е монтиран там). Всеки друг
@@ -174,6 +175,8 @@ function wizardHasProgress() {
   return Object.keys(wizardState || {}).length > 0;
 }
 
+let refreshPwaInstall = null;
+
 function renderHome() {
   const hasPlan = hasCachedPlan();
   const card = $('homePlanCard');
@@ -190,6 +193,7 @@ function renderHome() {
   $('btnContinueWizard').classList.toggle('hidden', !draft);
   $('btnStartWizard').textContent = hasPlan ? 'Създай нов план' : 'Започни въпросника';
   updateGeneratingUi();
+  void refreshPwaInstall?.();
 }
 
 function openCachedProgram() {
@@ -377,6 +381,7 @@ async function runPlanGeneration(answers) {
 
     renderPlan();
     showView('plan');
+    void refreshPwaInstall?.();
   } catch (e) {
     const message = e.name === 'AbortError'
       ? 'Заявката отне твърде дълго. Провери връзката и опитай отново.'
@@ -812,6 +817,7 @@ async function loadSharedPlan(planId) {
     activeDay = firstTrainingDay(data.plan);
     renderPlan();
     showView('plan');
+    void refreshPwaInstall?.();
   } catch (e) {
     $('errorMessage').textContent = e.message;
     showView('error');
@@ -924,6 +930,8 @@ function init() {
   }
 
   registerServiceWorker();
+  refreshPwaInstall = bindPwaInstallCard($('pwaInstallCard'), { hasPlan: hasCachedPlan });
+  void refreshPwaInstall?.();
 
   // Първи кадър е готов → маркирай като заредено (пуска entrance анимациите
   // за следващите навигации) и махни splash-а плавно.
