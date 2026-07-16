@@ -61,14 +61,6 @@ export function applyCachedPlanCta() {
 export function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
 
-  const hadController = Boolean(navigator.serviceWorker.controller);
-  let reloaded = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (reloaded || !hadController) return;
-    reloaded = true;
-    location.reload();
-  });
-
   const scope = new URL('./', import.meta.url).pathname;
   navigator.serviceWorker
     .register(new URL('./ka-trainer-sw.js', import.meta.url), { scope })
