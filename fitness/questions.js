@@ -1,5 +1,5 @@
 /**
- * KA-TRAINER — декларативна дефиниция на клиентския въпросник (14 въпроса).
+ * KA-TRAINER — декларативна дефиниция на клиентския въпросник.
  *
  * Типове стъпки:
  *   fields — списък от полета (choice / chips / number / text / textarea)
@@ -9,8 +9,8 @@
  *   text   — свободен текст
  *
  * Условност:
- *   option.femaleOnly  — показва се само при Пол = Жена (въпрос 1)
- *   field.showIf       — { key, equals } спрямо стойност в същата стъпка
+ *   showIfGender — стъпката се показва само при избран пол (напр. 'Жена')
+ *   field.showIf — { key, equals } спрямо стойност в същата стъпка
  *
  * buildAnswers(state) превежда суровото състояние на визарда към формата,
  * който бекендът (worker.js → buildProfileSummary) очаква.
@@ -34,7 +34,7 @@ export const QUESTIONS = [
     id: 'health',
     num: 2,
     title: 'Здравословен статус',
-    subtitle: 'Избери всичко, което се отнася за теб. Това пряко влияе на безопасността на плана.',
+    subtitle: 'Общи медицински състояния, които влияят на безопасността на тренировката.',
     type: 'multi',
     options: [
       { value: 'Няма установени заболявания', exclusive: true },
@@ -46,18 +46,28 @@ export const QUESTIONS = [
       { value: 'Заболяване на щитовидната жлеза' },
       { value: 'Автоимунно заболяване' },
       { value: 'Приемам медикаменти редовно', input: { key: 'healthMeds', placeholder: 'какви медикаменти' } },
-      { value: 'Бременна', femaleOnly: true, input: { key: 'pregnancyTrimester', placeholder: 'кой триместър' } },
-      { value: 'Следродилен период', femaleOnly: true, input: { key: 'postpartumMonths', placeholder: 'преди колко месеца', type: 'number' } },
-      { value: 'Нередовен цикъл', femaleOnly: true },
-      { value: 'Аменорея', femaleOnly: true },
-      { value: 'Менопауза', femaleOnly: true },
-      { value: 'Хормонална контрацепция', femaleOnly: true },
       { value: 'Друго', input: { key: 'healthOther', placeholder: 'опиши' } },
     ],
   },
   {
-    id: 'limitations',
+    id: 'womenContext',
     num: 3,
+    showIfGender: 'Жена',
+    title: 'Женско здраве и тренировки',
+    subtitle: 'Отделен въпрос само за жени. Ако нищо не се отнася за теб — избери първата опция.',
+    type: 'single',
+    options: [
+      { value: 'Няма специфични състояния' },
+      { value: 'Бременна', input: { key: 'pregnancyTrimester', placeholder: 'кой триместър (1, 2 или 3)' } },
+      { value: 'Кърмя в момента', input: { key: 'breastfeedingMonths', placeholder: 'от колко месеца', type: 'number' } },
+      { value: 'Скоро след раждане (до 6 месеца)', input: { key: 'postpartumMonths', placeholder: 'преди колко месеца', type: 'number' } },
+      { value: 'Менопауза / перименопауза' },
+      { value: 'Други хормонални особености', input: { key: 'womenOther', placeholder: 'напр. нередовен цикъл, аменорея…' } },
+    ],
+  },
+  {
+    id: 'limitations',
+    num: 4,
     title: 'Опорно-двигателни ограничения и болка при движение',
     subtitle: 'Всичко посочено тук директно изключва натоварващите го движения от плана.',
     type: 'multi',
@@ -71,7 +81,7 @@ export const QUESTIONS = [
   },
   {
     id: 'weightChange',
-    num: 4,
+    num: 5,
     title: 'Рязка промяна в теглото през последните 6 месеца',
     type: 'single',
     options: [
@@ -94,7 +104,7 @@ export const QUESTIONS = [
   },
   {
     id: 'sleep',
-    num: 5,
+    num: 6,
     title: 'Качество на съня',
     type: 'single',
     options: [
@@ -106,7 +116,7 @@ export const QUESTIONS = [
   },
   {
     id: 'stress',
-    num: 6,
+    num: 7,
     title: 'Ниво на стрес',
     subtitle: '1 = напълно спокойно ежедневие, 10 = постоянно високо напрежение.',
     type: 'scale',
@@ -115,7 +125,7 @@ export const QUESTIONS = [
   },
   {
     id: 'dailyActivity',
-    num: 7,
+    num: 8,
     title: 'Активност през деня (извън тренировки)',
     type: 'single',
     options: [
@@ -127,7 +137,7 @@ export const QUESTIONS = [
   },
   {
     id: 'sportActivity',
-    num: 8,
+    num: 9,
     title: 'Спортна активност',
     subtitle: 'В контекста на дневната ти активност — тренираш ли в момента?',
     type: 'single',
@@ -139,7 +149,7 @@ export const QUESTIONS = [
   },
   {
     id: 'experience',
-    num: 9,
+    num: 10,
     title: 'Тренировъчен опит',
     type: 'single',
     options: [
@@ -151,7 +161,7 @@ export const QUESTIONS = [
   },
   {
     id: 'nutrition',
-    num: 10,
+    num: 11,
     title: 'Настоящ хранителен режим',
     type: 'fields',
     fields: [
@@ -168,7 +178,7 @@ export const QUESTIONS = [
   },
   {
     id: 'goal',
-    num: 11,
+    num: 12,
     title: 'Цел и срок',
     type: 'fields',
     fields: [
@@ -186,7 +196,7 @@ export const QUESTIONS = [
   },
   {
     id: 'equipment',
-    num: 12,
+    num: 13,
     title: 'Оборудване',
     subtitle: 'Планът ще включва само упражнения с наличното ти оборудване.',
     type: 'multi',
@@ -204,7 +214,7 @@ export const QUESTIONS = [
   },
   {
     id: 'preferences',
-    num: 13,
+    num: 14,
     title: 'Тип тренировки, предпочитания и логистика',
     type: 'fields',
     fields: [
@@ -223,7 +233,7 @@ export const QUESTIONS = [
   },
   {
     id: 'extraInfo',
-    num: 14,
+    num: 15,
     title: 'Допълнителна информация',
     subtitle: 'Всичко, което смяташ за релевантно и не беше покрито по-горе. (по избор)',
     type: 'text',
@@ -232,10 +242,15 @@ export const QUESTIONS = [
   },
 ];
 
-/** Кои опции от стъпка са видими при текущото състояние (условен женски блок). */
+/** Кои стъпки са активни при текущото състояние (условни стъпки по пол). */
+export function activeQuestions(state) {
+  const gender = state?.basics?.gender;
+  return QUESTIONS.filter((q) => !q.showIfGender || q.showIfGender === gender);
+}
+
+/** @deprecated Използвай activeQuestions. Запазено за обратна съвместимост. */
 export function visibleOptions(question, state) {
-  const isFemale = state?.basics?.gender === 'Жена';
-  return (question.options || []).filter((o) => !o.femaleOnly || isFemale);
+  return question.options || [];
 }
 
 /**
@@ -293,6 +308,7 @@ export function validateQuestion(question, state) {
 export function buildAnswers(state) {
   const basics = state.basics || {};
   const health = state.health || { selected: [], inputs: {} };
+  const women = state.womenContext || { selected: null, inputs: {} };
   const limitations = state.limitations || { selected: [], inputs: {} };
   const wc = state.weightChange || {};
   const sport = state.sportActivity || {};
@@ -301,16 +317,32 @@ export function buildAnswers(state) {
   const equipment = state.equipment || { selected: [], inputs: {} };
   const prefs = state.preferences || {};
 
-  const femaleValues = new Set(['Бременна', 'Следродилен период', 'Нередовен цикъл', 'Аменорея', 'Менопауза', 'Хормонална контрацепция']);
   const healthGeneral = [];
   const healthFemale = [];
+
   for (const sel of health.selected || []) {
-    let label = sel;
-    if (sel === 'Бременна' && health.inputs?.pregnancyTrimester) label = `Бременна — триместър: ${health.inputs.pregnancyTrimester}`;
-    if (sel === 'Следродилен период' && health.inputs?.postpartumMonths) label = `Следродилен период — ${health.inputs.postpartumMonths} месеца`;
-    if (femaleValues.has(sel)) healthFemale.push(label);
-    else if (sel !== 'Друго' && sel !== 'Приемам медикаменти редовно') healthGeneral.push(label);
-    else if (sel === 'Приемам медикаменти редовно') healthGeneral.push(sel);
+    if (sel === 'Друго' && health.inputs?.healthOther) {
+      healthGeneral.push(health.inputs.healthOther);
+    } else if (sel === 'Приемам медикаменти редовно') {
+      healthGeneral.push(sel);
+    } else if (sel !== 'Друго') {
+      healthGeneral.push(sel);
+    }
+  }
+  if (health.inputs?.healthMeds) healthGeneral.push(`медикаменти: ${health.inputs.healthMeds}`);
+
+  if (women.selected && women.selected !== 'Няма специфични състояния') {
+    let label = women.selected;
+    if (women.selected === 'Бременна' && women.inputs?.pregnancyTrimester) {
+      label = `Бременна — триместър: ${women.inputs.pregnancyTrimester}`;
+    } else if (women.selected === 'Кърмя в момента' && women.inputs?.breastfeedingMonths) {
+      label = `Кърмене — ${women.inputs.breastfeedingMonths} месеца`;
+    } else if (women.selected === 'Скоро след раждане (до 6 месеца)' && women.inputs?.postpartumMonths) {
+      label = `Следродилен период — ${women.inputs.postpartumMonths} месеца`;
+    } else if (women.selected === 'Други хормонални особености' && women.inputs?.womenOther) {
+      label = `Хормонални особености: ${women.inputs.womenOther}`;
+    }
+    healthFemale.push(label);
   }
 
   const limitationDetails = [];

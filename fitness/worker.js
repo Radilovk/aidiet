@@ -464,6 +464,10 @@ export const GUIDELINE_CHUNKS = [
     text: 'Следродилен период: постепенно връщане — първо тазово дъно и дълбоки коремни, после базови движения. Внимание за диастаза — без класически коремни преси преди проверка. Интензитетът се вдига едва след 3+ месеца при добро възстановяване.',
   },
   {
+    tags: ['health:кърмене'],
+    text: 'Кърмене: умерен интензитет, добра хидратация, без тренировки до отказ. Внимание при тазово дъно и диастаза — консултирай при нужда.',
+  },
+  {
     tags: ['health:менопауза'],
     text: 'Менопауза: приоритизирай съпротивителен тренинг с по-високи тежести (костна плътност) и балансови елементи. Възстановяването е по-бавно — минимум 48ч между тежки сесии за същите групи.',
   },
@@ -482,6 +486,14 @@ export const GUIDELINE_CHUNKS = [
   {
     tags: ['age:50+'],
     text: 'Възраст 50+: удължена загрявка, приоритет на контролирано темпо пред тежест, задължителни балансови и мобилност елементи, 48-72ч възстановяване между тежки сесии.',
+  },
+  {
+    tags: ['gender:жена'],
+    text: 'Жена: програмирай за женска физиология и цели — не копирай типичен мъжки powerlifting/bro-split. Приоритет: долна част (glutes, бедра), core и тазово дъно, горен гръб/posture; умерен обем на гръдобедрен без мъжки press-dominant акцент. При дефицит/отслабване — запази мускул на краката и glutes. Ако е посочен цикъл/хормони — варирай интензитета.',
+  },
+  {
+    tags: ['gender:мъж'],
+    text: 'Мъж: програмирай за мъжка анатомия и цели — основни многоставни (клек, тяга, натиск) са уместни според опита. Не използвай женски-специфични акценти (glute isolation focus) без указание от профила.',
   },
 ];
 
@@ -551,6 +563,10 @@ export function buildTagsFromAnswers(profile) {
   const goal = normalizeText(profile?.goal?.main);
   if (goal) tags.add(`goal:${goal}`);
 
+  const gender = normalizeText(profile?.gender || '');
+  if (gender.includes('жена')) tags.add('gender:жена');
+  else if (gender.includes('мъж')) tags.add('gender:мъж');
+
   const exp = normalizeText(profile?.experience || '');
   if (exp.includes('никакъв') || exp.includes('начинаещ')) tags.add('level:начинаещ');
   else if (exp.includes('напреднал')) tags.add('level:напреднал');
@@ -562,7 +578,8 @@ export function buildTagsFromAnswers(profile) {
   if (health.includes('диабет')) tags.add('health:диабет');
   const female = (profile?.healthFemale || []).map(normalizeText).join(' ');
   if (female.includes('бременна')) tags.add('health:бременност');
-  if (female.includes('следродилен')) tags.add('health:следродилен');
+  if (female.includes('следродилен') || female.includes('след раждане')) tags.add('health:следродилен');
+  if (female.includes('кърмене') || female.includes('кърмя')) tags.add('health:кърмене');
   if (female.includes('менопауза')) tags.add('health:менопауза');
 
   if (normalizeText(profile?.sleep || '').includes('лошо') || Number(profile?.stress) >= 8) {
@@ -581,8 +598,8 @@ export function buildTagsFromAnswers(profile) {
 }
 
 const TEXT_TAG_RULES = [
-  { tag: 'goal:отслабване', keys: ['отслабване', 'липолиза', 'отслаб', 'сваля', 'дефицит', 'goal:отслабване'] },
-  { tag: 'goal:покачване на мускулна маса', keys: ['хипертрофия', 'мускулна маса', 'покачване на маса', 'схема c', 'volume driven', 'goal:покачване'] },
+  { tag: 'goal:отслабване', keys: ['отслабване', 'липолиза', 'отслаб', 'сваля', 'дефицит', 'liss', 'goal:отслабване'] },
+  { tag: 'goal:покачване на мускулна маса', keys: ['хипертрофия', 'мускулна маса', 'покачване на маса', 'volume driven', 'goal:покачване'] },
   { tag: 'goal:силови показатели', keys: ['силови показатели', 'силов тренинг', 'атф-кф', 'схема d', '1rm', 'goal:силови'] },
   { tag: 'goal:рехабилитация след травма', keys: ['рехабилитация', 'рехаб', 'след травма', 'изометрия', 'схема b', 'goal:рехаб'] },
   { tag: 'goal:издръжливост', keys: ['издръжливост', 'zone 2', 'zone2', 'goal:издръжливост'] },
@@ -595,13 +612,16 @@ const TEXT_TAG_RULES = [
   { tag: 'health:сърдечно-съдово', keys: ['сърдечно', 'cardio риск', 'health:сърдечно'] },
   { tag: 'health:диабет', keys: ['диабет', 'преддиабет', 'health:диабет'] },
   { tag: 'health:бременност', keys: ['бременн', 'триместър', 'health:бременност'] },
-  { tag: 'health:следродилен', keys: ['следродил', 'health:следродилен'] },
-  { tag: 'health:менопауза', keys: ['менопауза', 'health:менопауза'] },
+  { tag: 'health:следродилен', keys: ['следродил', 'след раждане', 'health:следродилен'] },
+  { tag: 'health:кърмене', keys: ['кърмене', 'кърмя', 'health:кърмене'] },
+  { tag: 'health:менопауза', keys: ['менопауза', 'перименопауза', 'health:менопауза'] },
   { tag: 'sleep:лошо', keys: ['лош сън', 'sleep:лошо', 'лошо сън'] },
   { tag: 'stress:висок', keys: ['висок стрес', 'стрес 8', 'стрес 9', 'стрес 10', 'stress:висок'] },
   { tag: 'equipment:ограничено', keys: ['ограничено оборудване', 'само дъмбели', 'собствено тегло', 'equipment:ограничено'] },
   { tag: 'time:сутрин', keys: ['сутрешн', 'time:сутрин'] },
   { tag: 'age:50+', keys: ['над 50', '50+', 'age:50'] },
+  { tag: 'gender:жена', keys: ['жена', 'жени', 'пол жена', 'gender:жена', 'female'] },
+  { tag: 'gender:мъж', keys: ['мъж', 'мъже', 'пол мъж', 'gender:мъж', 'male'] },
 ];
 
 /** Тагове от свободен текст (админ бриф за клиент). */
@@ -614,66 +634,90 @@ export function extractTagsFromText(...parts) {
     if (keys.some((k) => combined.includes(normalizeText(k)))) tags.add(tag);
   }
 
-  const explicit = combined.match(/(?:goal|level|health|sleep|stress|equipment|time|age):[a-zа-я0-9+-]+/gi) || [];
+  const explicit = combined.match(/(?:goal|level|health|sleep|stress|equipment|time|age|gender):[a-zа-я0-9+-]+/gi) || [];
   for (const raw of explicit) tags.add(raw.toLowerCase().replace(/\s/g, ''));
 
   return tags;
 }
 
-/** Подбира насоки по тагове; админ chunks заместват hardcoded при съвпадащ таг. */
-export function pickGuidelineTexts(tags, adminConfig = null) {
+const UNIVERSAL_CHUNK_TAGS = new Set(['all', '*', 'общо']);
+
+function isUniversalChunkTags(tags) {
+  if (!tags?.length) return true;
+  return tags.some((t) => UNIVERSAL_CHUNK_TAGS.has(t));
+}
+
+function prioritizeGenderGuidelines(individual, tagSet, adminChunks) {
+  const genderTag = tagSet.has('gender:жена') ? 'gender:жена' : tagSet.has('gender:мъж') ? 'gender:мъж' : null;
+  if (!genderTag) return individual;
+  const genderTexts = [];
+  for (const chunk of adminChunks) {
+    if (chunk.tags?.includes(genderTag) && chunk.text) genderTexts.push(chunk.text);
+  }
+  const hardcodedGender = GUIDELINE_CHUNKS.find((c) => c.tags.includes(genderTag))?.text;
+  if (hardcodedGender) genderTexts.push(hardcodedGender);
+  const uniqueGender = [...new Set(genderTexts)];
+  const rest = individual.filter((t) => !uniqueGender.includes(t));
+  return [...uniqueGender, ...rest];
+}
+
+/**
+ * KA-TRAINER архитектура на насоки — два слоя:
+ * - individual: особености на клиента (таг-съвпадение) — НАЙ-ВИСОК приоритет
+ * - architecture: универсална рамка (foundation + chunks без таг / all / общо) — база
+ */
+export function selectGuidelineLayers(tags, adminConfig = null) {
   const tagSet = tags instanceof Set ? tags : new Set(tags);
   const adminChunks = Array.isArray(adminConfig?.chunks) ? adminConfig.chunks : [];
   const adminTagged = new Set();
   for (const chunk of adminChunks) {
-    for (const t of chunk.tags) adminTagged.add(t);
+    for (const t of chunk.tags || []) adminTagged.add(t);
   }
 
-  const selected = [];
+  const individual = [];
+  const architecture = [];
   const seen = new Set();
 
+  const push = (list, text) => {
+    if (!text || seen.has(text)) return;
+    seen.add(text);
+    list.push(text);
+  };
+
   for (const chunk of adminChunks) {
-    if (!chunk.tags.some((t) => tagSet.has(t))) continue;
-    if (seen.has(chunk.text)) continue;
-    seen.add(chunk.text);
-    selected.push(chunk.text);
+    if (!chunk.text) continue;
+    if (isUniversalChunkTags(chunk.tags)) push(architecture, chunk.text);
+    else if (chunk.tags.some((t) => tagSet.has(t))) push(individual, chunk.text);
   }
 
   for (const chunk of GUIDELINE_CHUNKS) {
     if (!chunk.tags.some((t) => tagSet.has(t))) continue;
     if (chunk.tags.some((t) => adminTagged.has(t))) continue;
-    if (seen.has(chunk.text)) continue;
-    seen.add(chunk.text);
-    selected.push(chunk.text);
+    push(individual, chunk.text);
   }
 
-  return capGuidelineTexts(selected);
+  const individualPrioritized = prioritizeGenderGuidelines(individual, tagSet, adminChunks);
+
+  return {
+    individual: capGuidelineTexts(individualPrioritized, MAX_GUIDELINE_ITEMS, MAX_GUIDELINE_CHARS),
+    architecture: capGuidelineTexts(architecture, 6, 2000),
+  };
 }
 
-/** Извлича таговете от профила и връща само релевантните насоки. */
+/** @deprecated Използвай selectGuidelineLayers. Връща само индивидуалния слой. */
+export function pickGuidelineTexts(tags, adminConfig = null) {
+  return selectGuidelineLayers(tags, adminConfig).individual;
+}
+
+/** Извлича насоките от въпросник/профил — два слоя (individual + architecture). */
 export function selectGuidelines(profile, adminConfig = null) {
-  return pickGuidelineTexts(buildTagsFromAnswers(profile), adminConfig);
+  return selectGuidelineLayers(buildTagsFromAnswers(profile), adminConfig);
 }
 
-/** Mini-RAG за админ клиентски бриф — всички admin chunks + съвпадащи по таг. */
+/** Mini-RAG за админ клиентски бриф — два слоя по KA-TRAINER архитектурата. */
 export function selectGuidelinesFromBrief(record, adminConfig = null) {
   const tags = extractTagsFromText(record?.clientProfile, record?.exampleScheme);
-  const matched = pickGuidelineTexts(tags, adminConfig);
-  const adminTexts = (adminConfig?.chunks || []).map((c) => c.text).filter(Boolean);
-
-  const combined = [];
-  const seen = new Set();
-  for (const text of [...adminTexts, ...matched]) {
-    if (!text || seen.has(text)) continue;
-    seen.add(text);
-    combined.push(text);
-  }
-
-  return capGuidelineTexts(
-    combined,
-    MAX_ADMIN_BRIEF_GUIDELINE_ITEMS,
-    MAX_ADMIN_BRIEF_GUIDELINE_CHARS,
-  );
+  return selectGuidelineLayers(tags, adminConfig);
 }
 
 // ============================================================================
@@ -743,6 +787,16 @@ const PLAN_SYSTEM_PROMPT = `Ти си елитен български трень
 
 Ако в потребителското съобщение има БАЗОВИ ПРИНЦИПИ, СПЕЦИФИЧНИ ЕКСПЕРТНИ НАСОКИ или указания от треньора — те имат абсолютен приоритет при структурата, обема, интензитета и избора на упражнения.
 
+KA-TRAINER АРХИТЕКТУРА НА ПРИОРИТЕТИ (задължително):
+1. ИНДИВИДУАЛНО (най-висок): профил на клиента, схема/указания от треньора, насоки със съвпадащи тагове за ТОЗИ клиент.
+2. АРХИТЕКТУРНА РАМКА (база): foundation + универсални насоки — приложи като обща логика, но ОТСТЪПИ при конфликт с индивидуалното.
+
+ПОЛ И ПЕРСОНАЛИЗАЦИЯ (критично):
+- Полът от профила е абсолютен факт — жена ≠ мъжки template и обратно.
+- При жена: не копирай типичен мъжки split (press/bench-dominant без долна част). Уважавай женски приоритети от профила и насоките.
+- При мъж: не използвай женски-специфични акценти без указание.
+- Всяко изречение от профила и схемата на треньора трябва да е отразено — не пропускай полета, ограничения или указания.
+
 ТВЪРДИ ПРАВИЛА ЗА БЕЗОПАСНОСТ (hard-veto):
 1. Ако клиентът е посочил болка/ограничение/операция в става или зона — ИЗКЛЮЧИ всички движения, които я натоварват директно, и предложи безопасни заместители. Не е информативно поле, а забрана.
 2. Движенията, които клиентът изрично не желае — не ги включвай.
@@ -805,40 +859,86 @@ const PLAN_SYSTEM_PROMPT = `Ти си елитен български трень
   }
 }`;
 
-export function buildPlanUserPrompt(profileSummary, guidelines, foundation = '') {
+export function buildPlanUserPrompt(profileSummary, layers, foundation = '') {
+  const { individual = [], architecture = [] } = layers || {};
   const foundationText = String(foundation || '').trim().slice(0, MAX_FOUNDATION_CHARS);
-  const foundationBlock = foundationText
-    ? `\n\nБАЗОВИ ПРИНЦИПИ (физиология и биомеханика — винаги спазвай):\n${foundationText}`
+
+  const individualBlock = [
+    '═══ ИНДИВИДУАЛЕН ПРОФИЛ (НАЙ-ВИСОК ПРИОРИТЕТ — над архитектурната рамка) ═══',
+    profileSummary,
+  ].join('\n');
+
+  const individualGuidelines = individual.length
+    ? `\n\nИНДИВИДУАЛНИ НАСОКИ ЗА ТОЗИ КЛИЕНТ (приоритет над общата рамка):\n- ${individual.join('\n- ')}`
     : '';
-  const guidelineBlock = guidelines.length
-    ? `\n\nСПЕЦИФИЧНИ ЕКСПЕРТНИ НАСОКИ ЗА ТОЗИ ПРОФИЛ (ЗАДЪЛЖИТЕЛНО спазвай — приоритет над общи предположения):\n- ${guidelines.join('\n- ')}`
+
+  const architectureParts = [];
+  if (foundationText) architectureParts.push(`Базови принципи (foundation):\n${foundationText}`);
+  if (architecture.length) architectureParts.push(`Универсални архитектурни насоки:\n- ${architecture.join('\n- ')}`);
+  const architectureBlock = architectureParts.length
+    ? `\n\n═══ АРХИТЕКТУРНА РАМКА (база — отстъпва при конфликт с индивидуалното) ═══\n${architectureParts.join('\n\n')}`
     : '';
-  return `ПРОФИЛ НА КЛИЕНТА (от въпросник):\n${profileSummary}${foundationBlock}${guidelineBlock}\n\nСъздай седмичния план сега. Отговори САМО с JSON.`;
+
+  return `${individualBlock}${individualGuidelines}${architectureBlock}\n\nСъздай седмичния план сега. Отговори САМО с JSON.`;
+}
+
+/** Блок с идентичност и чеклист — поставя се най-отгоре в админ промпта. */
+export function buildBriefIdentityBlock(brief) {
+  const profile = String(brief?.clientProfile || '').trim();
+  const scheme = String(brief?.exampleScheme || '').trim();
+  const tags = extractTagsFromText(profile, scheme);
+  const tagList = [...tags].sort().join(', ') || '—';
+
+  let genderLine = '';
+  if (tags.has('gender:жена')) {
+    genderLine = 'Пол: ЖЕНА — програмата е ИЗКЛЮЧИТЕЛНО за жена. Забранено е мъжки шаблон (press/bench-dominant split, игнориране на glutes/крака).';
+  } else if (tags.has('gender:мъж')) {
+    genderLine = 'Пол: МЪЖ — програмата е за мъж. Не използвай женски-специфични акценти без указание.';
+  }
+
+  return [
+    '═══ КРИТИЧНИ ИДЕНТИФИКАТОРИ (не променяй, не игнорирай) ═══',
+    genderLine,
+    `Открити тагове от профила: ${tagList}`,
+    '',
+    'ПРЕДИ ГЕНЕРАЦИЯ — провери:',
+    '□ Всяко изречение от ПРОФИЛА е отразено (здраве, оборудване, ограничения, цел, опит, пол)',
+    '□ Всяка точка от СХЕМАТА е структурна основа на седмицата',
+    '□ Всяка насока по-долу е приложена в упражненията, обема и интензитета',
+  ].filter(Boolean).join('\n');
 }
 
 /** Промпт за админ-генерирана програма (профил + примерна схема от треньора). */
-export function buildAdminPlanUserPrompt(brief, guidelines = [], foundation = '') {
+export function buildAdminPlanUserPrompt(brief, layers, foundation = '') {
+  const { individual = [], architecture = [] } = layers || {};
   const { clientProfile = '', exampleScheme = '' } = brief || {};
   const foundationText = String(foundation || '').trim().slice(0, MAX_FOUNDATION_CHARS);
-  const foundationBlock = foundationText
-    ? `\n\nБАЗОВИ ПРИНЦИПИ (физиология и биомеханика — винаги спазвай):\n${foundationText}`
-    : '';
-  const guidelineBlock = guidelines.length
-    ? `\n\nСПЕЦИФИЧНИ ЕКСПЕРТНИ НАСОКИ (ЗАДЪЛЖИТЕЛНО спазвай — приоритет над общи предположения):\n- ${guidelines.join('\n- ')}`
-    : '';
 
-  const blocks = [
-    'РЕЖИМ: Треньорът е подготвил профила и примерна схема. Следвай конкретиката — дни, упражнения, обеми, ограничения. Не игнорирай описанието на клиента.',
+  const individualBlock = [
+    buildBriefIdentityBlock(brief),
+    '',
+    'РЕЖИМ: Треньорът е подготвил профила и примерна схема. Следвай конкретиката — дни, упражнения, обеми, ограничения. Не игнорирай НИТО ЕДНО изречение от полетата по-долу.',
     'canonicalName трябва да съвпада със стандартни имена от exercise бази, за да се намерят GIF/видеа.',
     '',
-    'ПРОФИЛ И ДАННИ ЗА КЛИЕНТА (от треньора — задължително отрази в плана):',
+    'ПРОФИЛ И ДАННИ ЗА КЛИЕНТА (индивидуален — задължително отрази ВСИЧКО):',
     String(clientProfile || '').trim(),
   ];
   if (String(exampleScheme || '').trim()) {
-    blocks.push('', 'СХЕМА, РАЗПРЕДЕЛЕНИЕ И УКАЗАНИЯ (задължително — структурирай плана по тях):', String(exampleScheme).trim());
+    individualBlock.push('', 'СХЕМА, РАЗПРЕДЕЛЕНИЕ И УКАЗАНИЯ (индивидуални — структурирай плана по тях):', String(exampleScheme).trim());
   }
 
-  return `${blocks.join('\n')}${foundationBlock}${guidelineBlock}\n\nСъздай седмичния план сега. Отговори САМО с JSON.`;
+  const individualGuidelines = individual.length
+    ? `\n\nИНДИВИДУАЛНИ НАСОКИ ЗА ТОЗИ КЛИЕНТ (приоритет над архитектурната рамка):\n- ${individual.join('\n- ')}`
+    : '';
+
+  const architectureParts = [];
+  if (foundationText) architectureParts.push(`Базови принципи (foundation):\n${foundationText}`);
+  if (architecture.length) architectureParts.push(`Универсални архитектурни насоки:\n- ${architecture.join('\n- ')}`);
+  const architectureBlock = architectureParts.length
+    ? `\n\n═══ АРХИТЕКТУРНА РАМКА (база — отстъпва при конфликт с индивидуалното) ═══\n${architectureParts.join('\n\n')}`
+    : '';
+
+  return `${individualBlock.join('\n')}${individualGuidelines}${architectureBlock}\n\nСъздай седмичния план сега. Отговори САМО с JSON.`;
 }
 
 const COMPACT_PLAN_RETRY_HINT = `
@@ -1193,8 +1293,8 @@ async function handleGeneratePlan(request, env, ctx) {
 
   const profileSummary = buildProfileSummary(answers);
   const adminGuidelines = await loadAdminGuidelines(env);
-  const guidelines = selectGuidelines(answers, adminGuidelines);
-  const baseUserPrompt = buildPlanUserPrompt(profileSummary, guidelines, adminGuidelines.foundation);
+  const layers = selectGuidelines(answers, adminGuidelines);
+  const baseUserPrompt = buildPlanUserPrompt(profileSummary, layers, adminGuidelines.foundation);
 
   let plan;
   let coachContext;
@@ -1711,8 +1811,8 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
   if (!record.clientProfile?.trim()) return errorResponse('Липсва описание на профила', 400);
 
   const adminGuidelines = await loadAdminGuidelines(env);
-  const guidelines = selectGuidelinesFromBrief(record, adminGuidelines);
-  const userPrompt = buildAdminPlanUserPrompt(record, guidelines, adminGuidelines.foundation);
+  const layers = selectGuidelinesFromBrief(record, adminGuidelines);
+  const userPrompt = buildAdminPlanUserPrompt(record, layers, adminGuidelines.foundation);
   const coachProfileText = buildCoachProfileFromBrief(record);
 
   let plan;

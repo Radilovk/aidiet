@@ -2438,9 +2438,12 @@
             <div class="card">
                 <h2><i class="fas fa-dumbbell"></i> KA-TRAINER — Принципи за тренировки</h2>
                 <div class="info-box">
-                    <strong>Mini-RAG подход:</strong> Тук задаваш физиология, биомеханика и допълнителни насоки.
-                    Те <em>не</em> влизат в system prompt-а — извличат се по тагове от профила на клиента и се добавят
-                    само в user съобщението (макс. 8 порции / ~2400 знака). Вградените насоки в worker-а остават активни.
+                    <strong>KA-TRAINER архитектура (2 слоя):</strong>
+                    <ol style="margin:8px 0 0 18px;padding:0;">
+                        <li><strong>Архитектурна рамка</strong> — „Базови принципи“ + chunks <em>без таг</em> или с <code>all</code> / <code>общо</code> (универсална логика).</li>
+                        <li><strong>Индивидуални особености</strong> — chunks с тагове (<code>gender:жена</code>, <code>goal:отслабване</code>…) + профил/схема на клиента — <strong>по-висок приоритет</strong>, отстъпват при конфликт.</li>
+                    </ol>
+                    Насоките влизат в user prompt-а, не в system prompt-а. Вградените насоки в worker-а са fallback.
                 </div>
 
                 <div class="form-group">
@@ -2457,8 +2460,8 @@
                         </button>
                     </div>
                     <small style="display:block;color:var(--text-gray);margin-bottom:12px;">
-                        Тагове (пример): <code>goal:отслабване</code>, <code>level:начинаещ</code>, <code>health:хипертония</code>.
-                        Пълен списък се зарежда от worker-а.
+                        Тагове за <strong>индивидуални</strong> насоки: <code>gender:жена</code>, <code>goal:отслабване</code>, <code>level:начинаещ</code>.
+                        За <strong>архитектурна рамка</strong> остави таговете празни или ползвай <code>all</code> / <code>общо</code>.
                     </small>
                     <div id="fitplanBuiltinTags" class="admin-assistant-meta" style="margin-bottom:14px;"></div>
                     <div id="fitplanChunksList" style="display:flex;flex-direction:column;gap:12px;"></div>
@@ -2494,8 +2497,8 @@
                 </div>
                 <div class="form-group">
                     <label for="fcpClientProfile">Профил на клиента (свободен текст)</label>
-                    <textarea id="fcpClientProfile" rows="8" placeholder="Възраст, пол, цел, здраве, опит, оборудване, ограничения, предпочитания, честота, време за тренировка..."></textarea>
-                    <small style="color:var(--text-gray);">Синтезирай цялата информация, с която разполагаш.</small>
+                    <textarea id="fcpClientProfile" rows="8" placeholder="Задължително: пол (Жена/Мъж), възраст, цел, здраве, опит, оборудване, ограничения, предпочитания, честота, време за тренировка..."></textarea>
+                    <small style="color:var(--text-gray);">Започни с пола (Жена/Мъж) — системата избира релевантните насоки по тагове. Синтезирай цялата информация.</small>
                 </div>
                 <div class="form-group">
                     <label for="fcpExampleScheme">Схема и указания</label>
@@ -4212,7 +4215,7 @@
                 <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
                     <div style="flex:1;min-width:220px;">
                         <label style="font-size:0.82rem;color:var(--text-gray);">Тагове (запетая)</label>
-                        <input type="text" class="fitplan-chunk-tags" value="${escapeHtml((chunk.tags || []).join(', '))}" placeholder="goal:отслабване, level:начинаещ">
+                        <input type="text" class="fitplan-chunk-tags" value="${escapeHtml((chunk.tags || []).join(', '))}" placeholder="goal:отслабване, gender:жена, level:начинаещ">
                     </div>
                     <button type="button" class="btn" style="background:#ef4444;align-self:flex-end;" onclick="this.closest('.pending-client-card').remove()">
                         <i class="fas fa-trash"></i>
