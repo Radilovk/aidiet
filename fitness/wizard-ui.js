@@ -24,6 +24,7 @@ function optionInputs(option) {
 export function createWizardController({
   getEl,
   questions,
+  getQuestions,
   visibleOptions,
   validateQuestion,
   getState,
@@ -32,6 +33,15 @@ export function createWizardController({
   finalButtonText = 'Изпрати',
 }) {
   let stepIndex = 0;
+
+  const qs = () => (typeof getQuestions === 'function' ? getQuestions() : questions);
+
+  function clampStepIndex() {
+    const len = qs().length;
+    if (!len) return;
+    if (stepIndex >= len) stepIndex = len - 1;
+    if (stepIndex < 0) stepIndex = 0;
+  }
 
   function save() {
     onPersist?.();
@@ -219,14 +229,16 @@ export function createWizardController({
   }
 
   function renderStep() {
-    const q = questions[stepIndex];
+    clampStepIndex();
+    const list = qs();
+    const q = list[stepIndex];
     const card = getEl('questionCard');
     card.innerHTML = '';
     getEl('stepError').hidden = true;
 
-    const pct = Math.round(((stepIndex + 1) / questions.length) * 100);
+    const pct = Math.round(((stepIndex + 1) / list.length) * 100);
     getEl('progressFill').style.width = `${pct}%`;
-    getEl('stepLabel').textContent = `Въпрос ${q.num} от ${questions.length}`;
+    getEl('stepLabel').textContent = `Въпрос ${stepIndex + 1} от ${list.length}`;
     getEl('stepPct').textContent = `${pct}%`;
     getEl('btnBack').style.visibility = stepIndex === 0 ? 'hidden' : 'visible';
     getEl('btnNext').textContent = stepIndex === questions.length - 1 ? finalButtonText : 'Напред →';
@@ -249,7 +261,9 @@ export function createWizardController({
   }
 
   function nextStep() {
-    const q = questions[stepIndex];
+    clampStepIndex();
+    const list = qs();
+    const q = list[stepIndex];
     const error = validateQuestion(q, getState());
     if (error) {
       const errEl = getEl('stepError');
@@ -260,7 +274,7 @@ export function createWizardController({
       errEl.style.animation = '';
       return false;
     }
-    if (stepIndex < questions.length - 1) {
+    if (stepIndex < list.length - 1) {
       stepIndex += 1;
       renderStep();
       return true;
@@ -281,7 +295,7 @@ export function createWizardController({
   }
 
   function setStepIndex(idx) {
-    stepIndex = Math.max(0, Math.min(idx, questions.length - 1));
+    stepIndex = Math.max(0, Math.min(idx, qs().length - 1));
   }
 
   return {

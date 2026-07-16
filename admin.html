@@ -2438,9 +2438,12 @@
             <div class="card">
                 <h2><i class="fas fa-dumbbell"></i> KA-TRAINER — Принципи за тренировки</h2>
                 <div class="info-box">
-                    <strong>Mini-RAG подход:</strong> Тук задаваш физиология, биомеханика и допълнителни насоки.
-                    Те <em>не</em> влизат в system prompt-а — извличат се по тагове от профила на клиента и се добавят
-                    само в user съобщението (макс. 8 порции / ~2400 знака). Вградените насоки в worker-а остават активни.
+                    <strong>KA-TRAINER архитектура (2 слоя):</strong>
+                    <ol style="margin:8px 0 0 18px;padding:0;">
+                        <li><strong>Архитектурна рамка</strong> — „Базови принципи“ + chunks <em>без таг</em> или с <code>all</code> / <code>общо</code> (универсална логика).</li>
+                        <li><strong>Индивидуални особености</strong> — chunks с тагове (<code>gender:жена</code>, <code>goal:отслабване</code>…) + профил/схема на клиента — <strong>по-висок приоритет</strong>, отстъпват при конфликт.</li>
+                    </ol>
+                    Насоките влизат в user prompt-а, не в system prompt-а. Вградените насоки в worker-а са fallback.
                 </div>
 
                 <div class="form-group">
@@ -2457,8 +2460,8 @@
                         </button>
                     </div>
                     <small style="display:block;color:var(--text-gray);margin-bottom:12px;">
-                        Тагове (пример): <code>goal:отслабване</code>, <code>level:начинаещ</code>, <code>health:хипертония</code>.
-                        Пълен списък се зарежда от worker-а.
+                        Тагове за <strong>индивидуални</strong> насоки: <code>gender:жена</code>, <code>goal:отслабване</code>, <code>level:начинаещ</code>.
+                        За <strong>архитектурна рамка</strong> остави таговете празни или ползвай <code>all</code> / <code>общо</code>.
                     </small>
                     <div id="fitplanBuiltinTags" class="admin-assistant-meta" style="margin-bottom:14px;"></div>
                     <div id="fitplanChunksList" style="display:flex;flex-direction:column;gap:12px;"></div>

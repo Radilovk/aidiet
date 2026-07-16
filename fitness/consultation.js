@@ -2,7 +2,7 @@
  * Скрита консултационна страница — само с линк от админ.
  * Не е свързана с публичния KA-TRAINER интерфейс.
  */
-import { QUESTIONS, visibleOptions, validateQuestion, buildAnswers } from './questions.js';
+import { QUESTIONS, activeQuestions, visibleOptions, validateQuestion, buildAnswers } from './questions.js';
 import { createWizardController } from './wizard-ui.js';
 
 const DEFAULT_WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
@@ -17,6 +17,7 @@ let clientInfo = { name: '', contact: '' };
 const wizard = createWizardController({
   getEl: $,
   questions: QUESTIONS,
+  getQuestions: () => activeQuestions(wizardState),
   visibleOptions,
   validateQuestion,
   getState: () => wizardState,
