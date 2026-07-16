@@ -2494,8 +2494,8 @@
                 </div>
                 <div class="form-group">
                     <label for="fcpClientProfile">Профил на клиента (свободен текст)</label>
-                    <textarea id="fcpClientProfile" rows="8" placeholder="Възраст, пол, цел, здраве, опит, оборудване, ограничения, предпочитания, честота, време за тренировка..."></textarea>
-                    <small style="color:var(--text-gray);">Синтезирай цялата информация, с която разполагаш.</small>
+                    <textarea id="fcpClientProfile" rows="8" placeholder="Задължително: пол (Жена/Мъж), възраст, цел, здраве, опит, оборудване, ограничения, предпочитания, честота, време за тренировка..."></textarea>
+                    <small style="color:var(--text-gray);">Започни с пола (Жена/Мъж) — системата избира релевантните насоки по тагове. Синтезирай цялата информация.</small>
                 </div>
                 <div class="form-group">
                     <label for="fcpExampleScheme">Схема и указания</label>
@@ -4212,7 +4212,7 @@
                 <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
                     <div style="flex:1;min-width:220px;">
                         <label style="font-size:0.82rem;color:var(--text-gray);">Тагове (запетая)</label>
-                        <input type="text" class="fitplan-chunk-tags" value="${escapeHtml((chunk.tags || []).join(', '))}" placeholder="goal:отслабване, level:начинаещ">
+                        <input type="text" class="fitplan-chunk-tags" value="${escapeHtml((chunk.tags || []).join(', '))}" placeholder="goal:отслабване, gender:жена, level:начинаещ">
                     </div>
                     <button type="button" class="btn" style="background:#ef4444;align-self:flex-end;" onclick="this.closest('.pending-client-card').remove()">
                         <i class="fas fa-trash"></i>

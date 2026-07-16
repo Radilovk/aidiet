@@ -483,6 +483,14 @@ export const GUIDELINE_CHUNKS = [
     tags: ['age:50+'],
     text: 'Възраст 50+: удължена загрявка, приоритет на контролирано темпо пред тежест, задължителни балансови и мобилност елементи, 48-72ч възстановяване между тежки сесии.',
   },
+  {
+    tags: ['gender:жена'],
+    text: 'Жена: програмирай за женска физиология и цели — не копирай типичен мъжки powerlifting/bro-split. Приоритет: долна част (glutes, бедра), core и тазово дъно, горен гръб/posture; умерен обем на гръдобедрен без мъжки press-dominant акцент. При дефицит/отслабване — запази мускул на краката и glutes. Ако е посочен цикъл/хормони — варирай интензитета.',
+  },
+  {
+    tags: ['gender:мъж'],
+    text: 'Мъж: програмирай за мъжка анатомия и цели — основни многоставни (клек, тяга, натиск) са уместни според опита. Не използвай женски-специфични акценти (glute isolation focus) без указание от профила.',
+  },
 ];
 
 /** Ограничава броя и общата дължина на насоките в user prompt-а. */
@@ -551,6 +559,10 @@ export function buildTagsFromAnswers(profile) {
   const goal = normalizeText(profile?.goal?.main);
   if (goal) tags.add(`goal:${goal}`);
 
+  const gender = normalizeText(profile?.gender || '');
+  if (gender.includes('жена')) tags.add('gender:жена');
+  else if (gender.includes('мъж')) tags.add('gender:мъж');
+
   const exp = normalizeText(profile?.experience || '');
   if (exp.includes('никакъв') || exp.includes('начинаещ')) tags.add('level:начинаещ');
   else if (exp.includes('напреднал')) tags.add('level:напреднал');
@@ -581,8 +593,8 @@ export function buildTagsFromAnswers(profile) {
 }
 
 const TEXT_TAG_RULES = [
-  { tag: 'goal:отслабване', keys: ['отслабване', 'липолиза', 'отслаб', 'сваля', 'дефицит', 'goal:отслабване'] },
-  { tag: 'goal:покачване на мускулна маса', keys: ['хипертрофия', 'мускулна маса', 'покачване на маса', 'схема c', 'volume driven', 'goal:покачване'] },
+  { tag: 'goal:отслабване', keys: ['отслабване', 'липолиза', 'отслаб', 'сваля', 'дефицит', 'liss', 'goal:отслабване'] },
+  { tag: 'goal:покачване на мускулна маса', keys: ['хипертрофия', 'мускулна маса', 'покачване на маса', 'volume driven', 'goal:покачване'] },
   { tag: 'goal:силови показатели', keys: ['силови показатели', 'силов тренинг', 'атф-кф', 'схема d', '1rm', 'goal:силови'] },
   { tag: 'goal:рехабилитация след травма', keys: ['рехабилитация', 'рехаб', 'след травма', 'изометрия', 'схема b', 'goal:рехаб'] },
   { tag: 'goal:издръжливост', keys: ['издръжливост', 'zone 2', 'zone2', 'goal:издръжливост'] },
@@ -602,6 +614,8 @@ const TEXT_TAG_RULES = [
   { tag: 'equipment:ограничено', keys: ['ограничено оборудване', 'само дъмбели', 'собствено тегло', 'equipment:ограничено'] },
   { tag: 'time:сутрин', keys: ['сутрешн', 'time:сутрин'] },
   { tag: 'age:50+', keys: ['над 50', '50+', 'age:50'] },
+  { tag: 'gender:жена', keys: ['жена', 'жени', 'пол жена', 'gender:жена', 'female'] },
+  { tag: 'gender:мъж', keys: ['мъж', 'мъже', 'пол мъж', 'gender:мъж', 'male'] },
 ];
 
 /** Тагове от свободен текст (админ бриф за клиент). */
@@ -614,7 +628,7 @@ export function extractTagsFromText(...parts) {
     if (keys.some((k) => combined.includes(normalizeText(k)))) tags.add(tag);
   }
 
-  const explicit = combined.match(/(?:goal|level|health|sleep|stress|equipment|time|age):[a-zа-я0-9+-]+/gi) || [];
+  const explicit = combined.match(/(?:goal|level|health|sleep|stress|equipment|time|age|gender):[a-zа-я0-9+-]+/gi) || [];
   for (const raw of explicit) tags.add(raw.toLowerCase().replace(/\s/g, ''));
 
   return tags;
@@ -647,7 +661,21 @@ export function pickGuidelineTexts(tags, adminConfig = null) {
     selected.push(chunk.text);
   }
 
-  return capGuidelineTexts(selected);
+  let capped = capGuidelineTexts(selected);
+  const genderTag = tagSet.has('gender:жена') ? 'gender:жена' : tagSet.has('gender:мъж') ? 'gender:мъж' : null;
+  if (genderTag) {
+    const genderTexts = [];
+    for (const chunk of adminChunks) {
+      if (chunk.tags.includes(genderTag) && chunk.text) genderTexts.push(chunk.text);
+    }
+    const hardcodedGender = GUIDELINE_CHUNKS.find((c) => c.tags.includes(genderTag))?.text;
+    if (hardcodedGender) genderTexts.push(hardcodedGender);
+    const uniqueGender = [...new Set(genderTexts)];
+    const rest = capped.filter((t) => !uniqueGender.includes(t));
+    capped = capGuidelineTexts([...uniqueGender, ...rest]);
+  }
+
+  return capped;
 }
 
 /** Извлича таговете от профила и връща само релевантните насоки. */
@@ -655,15 +683,23 @@ export function selectGuidelines(profile, adminConfig = null) {
   return pickGuidelineTexts(buildTagsFromAnswers(profile), adminConfig);
 }
 
-/** Mini-RAG за админ клиентски бриф — всички admin chunks + съвпадащи по таг. */
+/** Mini-RAG за админ клиентски бриф — релевантни chunks по таг + универсални admin chunks. */
 export function selectGuidelinesFromBrief(record, adminConfig = null) {
   const tags = extractTagsFromText(record?.clientProfile, record?.exampleScheme);
   const matched = pickGuidelineTexts(tags, adminConfig);
-  const adminTexts = (adminConfig?.chunks || []).map((c) => c.text).filter(Boolean);
+
+  const universal = [];
+  for (const chunk of adminConfig?.chunks || []) {
+    if (!chunk.text) continue;
+    const chunkTags = chunk.tags || [];
+    if (!chunkTags.length || chunkTags.includes('all') || chunkTags.includes('*') || chunkTags.includes('общо')) {
+      universal.push(chunk.text);
+    }
+  }
 
   const combined = [];
   const seen = new Set();
-  for (const text of [...adminTexts, ...matched]) {
+  for (const text of [...matched, ...universal]) {
     if (!text || seen.has(text)) continue;
     seen.add(text);
     combined.push(text);
@@ -743,6 +779,12 @@ const PLAN_SYSTEM_PROMPT = `Ти си елитен български трень
 
 Ако в потребителското съобщение има БАЗОВИ ПРИНЦИПИ, СПЕЦИФИЧНИ ЕКСПЕРТНИ НАСОКИ или указания от треньора — те имат абсолютен приоритет при структурата, обема, интензитета и избора на упражнения.
 
+ПОЛ И ПЕРСОНАЛИЗАЦИЯ (критично):
+- Полът от профила е абсолютен факт — жена ≠ мъжки template и обратно.
+- При жена: не копирай типичен мъжки split (press/bench-dominant без долна част). Уважавай женски приоритети от профила и насоките.
+- При мъж: не използвай женски-специфични акценти без указание.
+- Всяко изречение от профила и схемата на треньора трябва да е отразено — не пропускай полета, ограничения или указания.
+
 ТВЪРДИ ПРАВИЛА ЗА БЕЗОПАСНОСТ (hard-veto):
 1. Ако клиентът е посочил болка/ограничение/операция в става или зона — ИЗКЛЮЧИ всички движения, които я натоварват директно, и предложи безопасни заместители. Не е информативно поле, а забрана.
 2. Движенията, които клиентът изрично не желае — не ги включвай.
@@ -816,6 +858,32 @@ export function buildPlanUserPrompt(profileSummary, guidelines, foundation = '')
   return `ПРОФИЛ НА КЛИЕНТА (от въпросник):\n${profileSummary}${foundationBlock}${guidelineBlock}\n\nСъздай седмичния план сега. Отговори САМО с JSON.`;
 }
 
+/** Блок с идентичност и чеклист — поставя се най-отгоре в админ промпта. */
+export function buildBriefIdentityBlock(brief) {
+  const profile = String(brief?.clientProfile || '').trim();
+  const scheme = String(brief?.exampleScheme || '').trim();
+  const tags = extractTagsFromText(profile, scheme);
+  const tagList = [...tags].sort().join(', ') || '—';
+
+  let genderLine = '';
+  if (tags.has('gender:жена')) {
+    genderLine = 'Пол: ЖЕНА — програмата е ИЗКЛЮЧИТЕЛНО за жена. Забранено е мъжки шаблон (press/bench-dominant split, игнориране на glutes/крака).';
+  } else if (tags.has('gender:мъж')) {
+    genderLine = 'Пол: МЪЖ — програмата е за мъж. Не използвай женски-специфични акценти без указание.';
+  }
+
+  return [
+    '═══ КРИТИЧНИ ИДЕНТИФИКАТОРИ (не променяй, не игнорирай) ═══',
+    genderLine,
+    `Открити тагове от профила: ${tagList}`,
+    '',
+    'ПРЕДИ ГЕНЕРАЦИЯ — провери:',
+    '□ Всяко изречение от ПРОФИЛА е отразено (здраве, оборудване, ограничения, цел, опит, пол)',
+    '□ Всяка точка от СХЕМАТА е структурна основа на седмицата',
+    '□ Всяка насока по-долу е приложена в упражненията, обема и интензитета',
+  ].filter(Boolean).join('\n');
+}
+
 /** Промпт за админ-генерирана програма (профил + примерна схема от треньора). */
 export function buildAdminPlanUserPrompt(brief, guidelines = [], foundation = '') {
   const { clientProfile = '', exampleScheme = '' } = brief || {};
@@ -828,14 +896,16 @@ export function buildAdminPlanUserPrompt(brief, guidelines = [], foundation = ''
     : '';
 
   const blocks = [
-    'РЕЖИМ: Треньорът е подготвил профила и примерна схема. Следвай конкретиката — дни, упражнения, обеми, ограничения. Не игнорирай описанието на клиента.',
+    buildBriefIdentityBlock(brief),
+    '',
+    'РЕЖИМ: Треньорът е подготвил профила и примерна схема. Следвай конкретиката — дни, упражнения, обеми, ограничения. Не игнорирай НИТО ЕДНО изречение от полетата по-долу.',
     'canonicalName трябва да съвпада със стандартни имена от exercise бази, за да се намерят GIF/видеа.',
     '',
-    'ПРОФИЛ И ДАННИ ЗА КЛИЕНТА (от треньора — задължително отрази в плана):',
+    'ПРОФИЛ И ДАННИ ЗА КЛИЕНТА (от треньора — задължително отрази ВСИЧКО):',
     String(clientProfile || '').trim(),
   ];
   if (String(exampleScheme || '').trim()) {
-    blocks.push('', 'СХЕМА, РАЗПРЕДЕЛЕНИЕ И УКАЗАНИЯ (задължително — структурирай плана по тях):', String(exampleScheme).trim());
+    blocks.push('', 'СХЕМА, РАЗПРЕДЕЛЕНИЕ И УКАЗАНИЯ (задължително — структурирай плана по тях, не ги пропускай):', String(exampleScheme).trim());
   }
 
   return `${blocks.join('\n')}${foundationBlock}${guidelineBlock}\n\nСъздай седмичния план сега. Отговори САМО с JSON.`;
