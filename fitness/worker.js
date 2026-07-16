@@ -1660,6 +1660,12 @@ async function handleSaveClientProgram(request, env) {
   let body;
   try { body = await request.json(); } catch { return errorResponse('Невалиден JSON', 400); }
 
+  if (body?.action === 'delete') {
+    const id = String(body.id || '').trim();
+    if (!id) return errorResponse('Липсва ID на програмата', 400);
+    return deleteClientProgramRecord(env, id);
+  }
+
   const fields = trimClientProgramFields(body);
   if (!fields.clientName) return errorResponse('Моля, въведи име на клиента', 400);
   if (!fields.clientProfile) return errorResponse('Моля, опиши профила на клиента', 400);
@@ -1778,10 +1784,7 @@ async function handleApproveClientProgram(request, env, id) {
   return jsonResponse({ success: true, planId: record.planId, path, program: clientProgramPublicView(record) });
 }
 
-async function handleDeleteClientProgram(request, env, id) {
-  if (!checkAdminSecret(request, env)) return errorResponse('Неоторизиран достъп', 401, 'unauthorized');
-  if (!env.FITNESS_KV) return errorResponse('KV не е конфигурирано', 500);
-
+async function deleteClientProgramRecord(env, id) {
   const record = await loadClientProgram(env, id);
   if (!record) return errorResponse('Програмата не е намерена', 404, 'not_found');
 
@@ -1791,6 +1794,12 @@ async function handleDeleteClientProgram(request, env, id) {
   const list = listRaw ? JSON.parse(listRaw) : [];
   await env.FITNESS_KV.put(CLIENT_PROGRAMS_LIST_KV_KEY, JSON.stringify(list.filter((x) => x !== id)));
   return jsonResponse({ success: true });
+}
+
+async function handleDeleteClientProgram(request, env, id) {
+  if (!checkAdminSecret(request, env)) return errorResponse('Неоторизиран достъп', 401, 'unauthorized');
+  if (!env.FITNESS_KV) return errorResponse('KV не е конфигурирано', 500);
+  return deleteClientProgramRecord(env, id);
 }
 
 // ============================================================================
