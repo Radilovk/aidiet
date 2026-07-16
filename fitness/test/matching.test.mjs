@@ -216,12 +216,14 @@ test('selectGuidelinesFromBrief: извлича насоки от свободе
       chunks: [
         { tags: ['goal:отслабване'], text: 'АДМИН отслабване: схема C + LISS.' },
         { tags: ['health:хипертония'], text: 'АДМИН ВАЖНО: без Валсалва.' },
+        { tags: ['goal:силови показатели'], text: 'АДМИН сила: не се ползва при този клиент.' },
       ],
     },
   );
   const joined = guidelines.join('\n');
   assert.ok(joined.includes('АДМИН отслабване'));
   assert.ok(joined.includes('АДМИН ВАЖНО'));
+  assert.ok(joined.includes('АДМИН сила'));
   assert.ok(!joined.includes('комбинирай съпротивителен тренинг'));
 });
 
