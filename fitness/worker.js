@@ -543,45 +543,131 @@ function checkAdminSecret(request, env) {
   return provided === secret;
 }
 
-/** Извлича таговете от профила и връща само релевантните насоки. */
-export function selectGuidelines(profile, adminConfig = null) {
+/** Тагове от структуриран въпросник (публичен app). */
+export function buildTagsFromAnswers(profile) {
   const tags = new Set();
-  const goal = normalizeText(profile.goal?.main);
+  const goal = normalizeText(profile?.goal?.main);
   if (goal) tags.add(`goal:${goal}`);
 
-  const exp = normalizeText(profile.experience || '');
+  const exp = normalizeText(profile?.experience || '');
   if (exp.includes('никакъв') || exp.includes('начинаещ')) tags.add('level:начинаещ');
   else if (exp.includes('напреднал')) tags.add('level:напреднал');
   else if (exp.includes('среден')) tags.add('level:среден');
 
-  const health = (profile.health || []).map(normalizeText).join(' ');
+  const health = (profile?.health || []).map(normalizeText).join(' ');
   if (health.includes('хипертония')) tags.add('health:хипертония');
   if (health.includes('сърдечно')) tags.add('health:сърдечно-съдово');
   if (health.includes('диабет')) tags.add('health:диабет');
-  const female = (profile.healthFemale || []).map(normalizeText).join(' ');
+  const female = (profile?.healthFemale || []).map(normalizeText).join(' ');
   if (female.includes('бременна')) tags.add('health:бременност');
   if (female.includes('следродилен')) tags.add('health:следродилен');
   if (female.includes('менопауза')) tags.add('health:менопауза');
 
-  if (normalizeText(profile.sleep || '').includes('лошо') || Number(profile.stress) >= 8) tags.add('sleep:лошо');
+  if (normalizeText(profile?.sleep || '').includes('лошо') || Number(profile?.stress) >= 8) {
+    tags.add('sleep:лошо');
+    tags.add('stress:висок');
+  }
 
-  const equipment = profile.equipment || [];
+  const equipment = profile?.equipment || [];
   const hasGym = equipment.some((e) => normalizeText(e).includes('зала'));
   if (!hasGym && equipment.length <= 2) tags.add('equipment:ограничено');
 
-  if (normalizeText(profile.preferences?.timeOfDay || '').includes('сутрин')) tags.add('time:сутрин');
-  if (Number(profile.age) >= 50) tags.add('age:50+');
+  if (normalizeText(profile?.preferences?.timeOfDay || '').includes('сутрин')) tags.add('time:сутрин');
+  if (Number(profile?.age) >= 50) tags.add('age:50+');
 
-  const allChunks = [...GUIDELINE_CHUNKS];
-  if (Array.isArray(adminConfig?.chunks)) {
-    allChunks.push(...adminConfig.chunks);
+  return tags;
+}
+
+const TEXT_TAG_RULES = [
+  { tag: 'goal:отслабване', keys: ['отслабване', 'липолиза', 'отслаб', 'сваля', 'дефицит', 'goal:отслабване'] },
+  { tag: 'goal:покачване на мускулна маса', keys: ['хипертрофия', 'мускулна маса', 'покачване на маса', 'схема c', 'volume driven', 'goal:покачване'] },
+  { tag: 'goal:силови показатели', keys: ['силови показатели', 'силов тренинг', 'атф-кф', 'схема d', '1rm', 'goal:силови'] },
+  { tag: 'goal:рехабилитация след травма', keys: ['рехабилитация', 'рехаб', 'след травма', 'изометрия', 'схема b', 'goal:рехаб'] },
+  { tag: 'goal:издръжливост', keys: ['издръжливост', 'zone 2', 'zone2', 'goal:издръжливост'] },
+  { tag: 'goal:рекомпозиция', keys: ['рекомпозиция', 'goal:рекомпозиция'] },
+  { tag: 'goal:обща кондиция', keys: ['обща кондиция', 'goal:обща'] },
+  { tag: 'level:начинаещ', keys: ['начинаещ', '0-6 мес', 'level:начинаещ'] },
+  { tag: 'level:среден', keys: ['среден опит', '2-5 год', 'level:среден'] },
+  { tag: 'level:напреднал', keys: ['напреднал', '5+ год', 'level:напреднал'] },
+  { tag: 'health:хипертония', keys: ['хипертония', 'високо кръвно', 'health:хипертония'] },
+  { tag: 'health:сърдечно-съдово', keys: ['сърдечно', 'cardio риск', 'health:сърдечно'] },
+  { tag: 'health:диабет', keys: ['диабет', 'преддиабет', 'health:диабет'] },
+  { tag: 'health:бременност', keys: ['бременн', 'триместър', 'health:бременност'] },
+  { tag: 'health:следродилен', keys: ['следродил', 'health:следродилен'] },
+  { tag: 'health:менопауза', keys: ['менопауза', 'health:менопауза'] },
+  { tag: 'sleep:лошо', keys: ['лош сън', 'sleep:лошо', 'лошо сън'] },
+  { tag: 'stress:висок', keys: ['висок стрес', 'стрес 8', 'стрес 9', 'стрес 10', 'stress:висок'] },
+  { tag: 'equipment:ограничено', keys: ['ограничено оборудване', 'само дъмбели', 'собствено тегло', 'equipment:ограничено'] },
+  { tag: 'time:сутрин', keys: ['сутрешн', 'time:сутрин'] },
+  { tag: 'age:50+', keys: ['над 50', '50+', 'age:50'] },
+];
+
+/** Тагове от свободен текст (админ бриф за клиент). */
+export function extractTagsFromText(...parts) {
+  const combined = normalizeText(parts.filter(Boolean).join(' '));
+  const tags = new Set();
+  if (!combined) return tags;
+
+  for (const { tag, keys } of TEXT_TAG_RULES) {
+    if (keys.some((k) => combined.includes(normalizeText(k)))) tags.add(tag);
+  }
+
+  const explicit = combined.match(/(?:goal|level|health|sleep|stress|equipment|time|age):[a-zа-я0-9+-]+/gi) || [];
+  for (const raw of explicit) tags.add(raw.toLowerCase().replace(/\s/g, ''));
+
+  return tags;
+}
+
+/** Подбира насоки по тагове; админ chunks заместват hardcoded при съвпадащ таг. */
+export function pickGuidelineTexts(tags, adminConfig = null) {
+  const tagSet = tags instanceof Set ? tags : new Set(tags);
+  const adminChunks = Array.isArray(adminConfig?.chunks) ? adminConfig.chunks : [];
+  const adminTagged = new Set();
+  for (const chunk of adminChunks) {
+    for (const t of chunk.tags) adminTagged.add(t);
   }
 
   const selected = [];
-  for (const chunk of allChunks) {
-    if (chunk.tags.some((t) => tags.has(t))) selected.push(chunk.text);
+  const seen = new Set();
+
+  for (const chunk of adminChunks) {
+    if (!chunk.tags.some((t) => tagSet.has(t))) continue;
+    if (seen.has(chunk.text)) continue;
+    seen.add(chunk.text);
+    selected.push(chunk.text);
   }
+
+  for (const chunk of GUIDELINE_CHUNKS) {
+    if (!chunk.tags.some((t) => tagSet.has(t))) continue;
+    if (chunk.tags.some((t) => adminTagged.has(t))) continue;
+    if (seen.has(chunk.text)) continue;
+    seen.add(chunk.text);
+    selected.push(chunk.text);
+  }
+
   return capGuidelineTexts(selected);
+}
+
+/** Извлича таговете от профила и връща само релевантните насоки. */
+export function selectGuidelines(profile, adminConfig = null) {
+  return pickGuidelineTexts(buildTagsFromAnswers(profile), adminConfig);
+}
+
+/** Mini-RAG за админ клиентски бриф (свободен текст + схема). */
+export function selectGuidelinesFromBrief(record, adminConfig = null) {
+  const tags = new Set([
+    ...extractTagsFromText(record?.clientProfile, record?.exampleScheme),
+  ]);
+  let texts = pickGuidelineTexts(tags, adminConfig);
+
+  if (texts.length < 2 && Array.isArray(adminConfig?.chunks) && adminConfig.chunks.length) {
+    const extra = adminConfig.chunks
+      .map((c) => c.text)
+      .filter((t) => t && !texts.includes(t));
+    texts = capGuidelineTexts([...texts, ...extra]);
+  }
+
+  return texts;
 }
 
 // ============================================================================
@@ -717,7 +803,7 @@ export function buildPlanUserPrompt(profileSummary, guidelines, foundation = '')
     ? `\n\nБАЗОВИ ПРИНЦИПИ (физиология и биомеханика — винаги спазвай):\n${foundationText}`
     : '';
   const guidelineBlock = guidelines.length
-    ? `\n\nСПЕЦИФИЧНИ ЕКСПЕРТНИ НАСОКИ ЗА ТОЗИ ПРОФИЛ (спазвай ги):\n- ${guidelines.join('\n- ')}`
+    ? `\n\nСПЕЦИФИЧНИ ЕКСПЕРТНИ НАСОКИ ЗА ТОЗИ ПРОФИЛ (ЗАДЪЛЖИТЕЛНО спазвай — приоритет над общи предположения):\n- ${guidelines.join('\n- ')}`
     : '';
   return `ПРОФИЛ НА КЛИЕНТА (от въпросник):\n${profileSummary}${foundationBlock}${guidelineBlock}\n\nСъздай седмичния план сега. Отговори САМО с JSON.`;
 }
@@ -730,7 +816,7 @@ export function buildAdminPlanUserPrompt(brief, guidelines = [], foundation = ''
     ? `\n\nБАЗОВИ ПРИНЦИПИ (физиология и биомеханика — винаги спазвай):\n${foundationText}`
     : '';
   const guidelineBlock = guidelines.length
-    ? `\n\nСПЕЦИФИЧНИ ЕКСПЕРТНИ НАСОКИ:\n- ${guidelines.join('\n- ')}`
+    ? `\n\nСПЕЦИФИЧНИ ЕКСПЕРТНИ НАСОКИ (ЗАДЪЛЖИТЕЛНО спазвай — приоритет над общи предположения):\n- ${guidelines.join('\n- ')}`
     : '';
 
   const blocks = [
@@ -1611,7 +1697,8 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
   if (!record.clientProfile?.trim()) return errorResponse('Липсва описание на профила', 400);
 
   const adminGuidelines = await loadAdminGuidelines(env);
-  const userPrompt = buildAdminPlanUserPrompt(record, [], adminGuidelines.foundation);
+  const guidelines = selectGuidelinesFromBrief(record, adminGuidelines);
+  const userPrompt = buildAdminPlanUserPrompt(record, guidelines, adminGuidelines.foundation);
   const coachProfileText = buildCoachProfileFromBrief(record);
 
   let plan;
@@ -1689,7 +1776,6 @@ async function handleDeleteClientProgram(request, env, id) {
 
   const record = await loadClientProgram(env, id);
   if (!record) return errorResponse('Програмата не е намерена', 404, 'not_found');
-  if (record.status === 'approved') return errorResponse('Одобрената програма не може да се изтрие', 400, 'locked');
 
   if (record.planId) await env.FITNESS_KV.delete(`plan:${record.planId}`);
   await env.FITNESS_KV.delete(clientProgramKvKey(id));
