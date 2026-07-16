@@ -94,6 +94,8 @@ export const MAX_EXAMPLE_SCHEME_CHARS = 10000;
 export const MAX_FOUNDATION_CHARS = 800;
 export const MAX_GUIDELINE_ITEMS = 8;
 export const MAX_GUIDELINE_CHARS = 2400;
+export const MAX_ADMIN_BRIEF_GUIDELINE_ITEMS = 12;
+export const MAX_ADMIN_BRIEF_GUIDELINE_CHARS = 4500;
 export const MAX_ADMIN_CHUNKS = 24;
 const ADMIN_GUIDELINES_CACHE_TTL = 5 * 60 * 1000;
 
@@ -110,7 +112,7 @@ let memoryIndex = null;
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, X-Admin-Secret',
 };
 
@@ -653,21 +655,25 @@ export function selectGuidelines(profile, adminConfig = null) {
   return pickGuidelineTexts(buildTagsFromAnswers(profile), adminConfig);
 }
 
-/** Mini-RAG за админ клиентски бриф (свободен текст + схема). */
+/** Mini-RAG за админ клиентски бриф — всички admin chunks + съвпадащи по таг. */
 export function selectGuidelinesFromBrief(record, adminConfig = null) {
-  const tags = new Set([
-    ...extractTagsFromText(record?.clientProfile, record?.exampleScheme),
-  ]);
-  let texts = pickGuidelineTexts(tags, adminConfig);
+  const tags = extractTagsFromText(record?.clientProfile, record?.exampleScheme);
+  const matched = pickGuidelineTexts(tags, adminConfig);
+  const adminTexts = (adminConfig?.chunks || []).map((c) => c.text).filter(Boolean);
 
-  if (texts.length < 2 && Array.isArray(adminConfig?.chunks) && adminConfig.chunks.length) {
-    const extra = adminConfig.chunks
-      .map((c) => c.text)
-      .filter((t) => t && !texts.includes(t));
-    texts = capGuidelineTexts([...texts, ...extra]);
+  const combined = [];
+  const seen = new Set();
+  for (const text of [...adminTexts, ...matched]) {
+    if (!text || seen.has(text)) continue;
+    seen.add(text);
+    combined.push(text);
   }
 
-  return texts;
+  return capGuidelineTexts(
+    combined,
+    MAX_ADMIN_BRIEF_GUIDELINE_ITEMS,
+    MAX_ADMIN_BRIEF_GUIDELINE_CHARS,
+  );
 }
 
 // ============================================================================
@@ -734,6 +740,8 @@ export function buildProfileSummary(a) {
 // ============================================================================
 
 const PLAN_SYSTEM_PROMPT = `Ти си елитен български треньор по силова и кондиционна подготовка (S&C) с 15+ години опит и образование по кинезитерапия. Създаваш индивидуален СЕДМИЧЕН тренировъчен план.
+
+Ако в потребителското съобщение има БАЗОВИ ПРИНЦИПИ, СПЕЦИФИЧНИ ЕКСПЕРТНИ НАСОКИ или указания от треньора — те имат абсолютен приоритет при структурата, обема, интензитета и избора на упражнения.
 
 ТВЪРДИ ПРАВИЛА ЗА БЕЗОПАСНОСТ (hard-veto):
 1. Ако клиентът е посочил болка/ограничение/операция в става или зона — ИЗКЛЮЧИ всички движения, които я натоварват директно, и предложи безопасни заместители. Не е информативно поле, а забрана.
@@ -820,14 +828,14 @@ export function buildAdminPlanUserPrompt(brief, guidelines = [], foundation = ''
     : '';
 
   const blocks = [
-    'РЕЖИМ: Треньорът е подготвил профила и примерна схема. Следвай конкретиката — дни, упражнения, обеми, ограничения.',
+    'РЕЖИМ: Треньорът е подготвил профила и примерна схема. Следвай конкретиката — дни, упражнения, обеми, ограничения. Не игнорирай описанието на клиента.',
     'canonicalName трябва да съвпада със стандартни имена от exercise бази, за да се намерят GIF/видеа.',
     '',
-    'ПРОФИЛ И ДАННИ ЗА КЛИЕНТА (от треньора):',
+    'ПРОФИЛ И ДАННИ ЗА КЛИЕНТА (от треньора — задължително отрази в плана):',
     String(clientProfile || '').trim(),
   ];
   if (String(exampleScheme || '').trim()) {
-    blocks.push('', 'СХЕМА, РАЗПРЕДЕЛЕНИЕ И УКАЗАНИЯ (задължително ориентирай се):', String(exampleScheme).trim());
+    blocks.push('', 'СХЕМА, РАЗПРЕДЕЛЕНИЕ И УКАЗАНИЯ (задължително — структурирай плана по тях):', String(exampleScheme).trim());
   }
 
   return `${blocks.join('\n')}${foundationBlock}${guidelineBlock}\n\nСъздай седмичния план сега. Отговори САМО с JSON.`;
@@ -1863,9 +1871,13 @@ export default {
       if (request.method === 'POST' && clientProgramApproveMatch) {
         return await handleApproveClientProgram(request, env, clientProgramApproveMatch[1]);
       }
-      const clientProgramDeleteMatch = path.match(/^\/api\/admin\/fitplan\/client-programs\/([A-Za-z0-9_-]+)$/);
+      const clientProgramDeleteMatch = path.match(/^\/api\/admin\/fitplan\/client-programs\/([A-Za-z0-9_-]+)(?:\/delete)?$/);
       if (request.method === 'DELETE' && clientProgramDeleteMatch) {
         return await handleDeleteClientProgram(request, env, clientProgramDeleteMatch[1]);
+      }
+      const clientProgramDeletePostMatch = path.match(/^\/api\/admin\/fitplan\/client-programs\/([A-Za-z0-9_-]+)\/delete$/);
+      if (request.method === 'POST' && clientProgramDeletePostMatch) {
+        return await handleDeleteClientProgram(request, env, clientProgramDeletePostMatch[1]);
       }
       if (request.method === 'POST' && path === '/api/admin/fitplan/translate-exercises') {
         try {

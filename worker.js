@@ -1623,7 +1623,7 @@ async function checkRateLimit(env, request, endpoint) {
 // Example: 'https://yourdomain.com, https://www.yourdomain.com'
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*', // TODO: Restrict to specific domains in production
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Admin-Secret',
   'Access-Control-Max-Age': '86400', // Cache preflight for 24 hours
   'Content-Type': 'application/json',
@@ -12547,7 +12547,7 @@ async function handleExportAILogs(request, env) {
           'Content-Type': 'text/plain; charset=utf-8',
           'Content-Disposition': 'attachment; filename="ai_communication_logs.txt"',
           'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type'
         }
       });
@@ -12565,7 +12565,7 @@ async function handleExportAILogs(request, env) {
           'Content-Type': 'text/plain; charset=utf-8',
           'Content-Disposition': 'attachment; filename="ai_communication_logs.txt"',
           'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type'
         }
       });
@@ -12663,7 +12663,7 @@ async function handleExportAILogs(request, env) {
         'Content-Type': 'text/plain; charset=utf-8',
         'Content-Disposition': `attachment; filename="ai_communication_logs_${new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').substring(0, 19)}.txt"`,
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type'
       }
     });
@@ -15861,6 +15861,7 @@ function isFitnessRoute(pathname, method) {
   if (method === 'GET' && pathname === '/api/admin/fitplan/consult-config') return true;
   if (method === 'GET' && pathname === '/api/admin/fitplan/client-programs') return true;
   if (method === 'DELETE' && /^\/api\/admin\/fitplan\/client-programs\/[A-Za-z0-9_-]+$/.test(pathname)) return true;
+  if (method === 'POST' && /^\/api\/admin\/fitplan\/client-programs\/[A-Za-z0-9_-]+\/delete$/.test(pathname)) return true;
   if (method === 'POST' && (pathname === '/api/plan/generate' || pathname === '/api/plan/refresh-exercises' || pathname === '/api/fitplan/consultation' || pathname === '/api/coach' || pathname === '/api/admin/fitplan/guidelines' || pathname === '/api/admin/fitplan/translate-exercises' || pathname === '/api/admin/fitplan/consult-config' || pathname === '/api/admin/fitplan/client-programs' || /^\/api\/admin\/fitplan\/consultations\/[A-Za-z0-9_-]+\/read$/.test(pathname) || /^\/api\/admin\/fitplan\/client-programs\/[A-Za-z0-9_-]+\/(generate|approve)$/.test(pathname))) return true;
   if (method === 'GET' && /^\/api\/plan\/[A-Za-z0-9-]{8,64}$/.test(pathname)) return true;
   return false;

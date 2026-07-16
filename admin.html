@@ -4628,13 +4628,14 @@
         }
 
         async function deleteFitplanClientProgram(id, approved = false) {
+            if (!id) return showError('Липсва ID на програмата.');
             const msg = approved
                 ? 'Изтриване на одобрена програма? Линкът към клиента ще спре да работи.'
                 : 'Изтриване на записа?';
             if (!confirm(msg)) return;
             try {
-                const response = await fetch(`${FITPLAN_WORKER_URL}/api/admin/fitplan/client-programs/${encodeURIComponent(id)}`, {
-                    method: 'DELETE',
+                const response = await fetch(`${FITPLAN_WORKER_URL}/api/admin/fitplan/client-programs/${encodeURIComponent(id)}/delete`, {
+                    method: 'POST',
                     headers: fitplanAdminHeaders(),
                 });
                 const data = await response.json();
@@ -4684,7 +4685,7 @@
                         <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
                             <button type="button" class="btn" style="background:#3498db;padding:6px 12px;font-size:0.85rem;" onclick="openFitplanClientProgram('${item.id}')">Отвори</button>
                             ${item.hasPlan ? `<button type="button" class="btn" style="background:#6366f1;padding:6px 12px;font-size:0.85rem;" onclick="previewFitplanClientProgram('${item.planId}')">Преглед</button>` : ''}
-                            <button type="button" class="btn" style="background:#e74c3c;padding:6px 12px;font-size:0.85rem;" onclick="deleteFitplanClientProgram('${item.id}', ${item.status === 'approved'})">Изтрий</button>
+                            <button type="button" class="btn" style="background:#e74c3c;padding:6px 12px;font-size:0.85rem;" data-fcp-delete="${escapeHtml(item.id)}" data-fcp-approved="${item.status === 'approved' ? '1' : '0'}">Изтрий</button>
                             ${item.clientLinkPath ? `<button type="button" class="btn" style="background:#10b981;padding:6px 12px;font-size:0.85rem;" onclick="openFitplanClientProgram('${item.id}'); setTimeout(copyFitplanClientProgramLink, 300);">Копирай линк</button>` : ''}
                         </div>
                     `;
@@ -4700,6 +4701,16 @@
         document.addEventListener('DOMContentLoaded', () => {
             const foundationEl = document.getElementById('fitplanFoundation');
             if (foundationEl) foundationEl.addEventListener('input', updateFitplanFoundationCount);
+
+            const fcpList = document.getElementById('fcpProgramsList');
+            if (fcpList) {
+                fcpList.addEventListener('click', (e) => {
+                    const btn = e.target.closest('[data-fcp-delete]');
+                    if (!btn) return;
+                    e.preventDefault();
+                    deleteFitplanClientProgram(btn.getAttribute('data-fcp-delete'), btn.getAttribute('data-fcp-approved') === '1');
+                });
+            }
         });
 
         // ============================================================================
