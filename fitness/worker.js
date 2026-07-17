@@ -1293,11 +1293,7 @@ function clientProgramKvKey(id) {
 }
 
 function trimClientProgramFields(body = {}) {
-  const legacyNotes = String(body.adminNotes || '').trim();
-  let exampleScheme = String(body.exampleScheme || '').trim();
-  if (legacyNotes && !exampleScheme.includes(legacyNotes)) {
-    exampleScheme = exampleScheme ? `${exampleScheme}\n\n${legacyNotes}` : legacyNotes;
-  }
+  const exampleScheme = String(body.exampleScheme || '').trim();
   const clientAnswers = body.clientAnswers && typeof body.clientAnswers === 'object' ? body.clientAnswers : null;
   const clientFormState = body.clientFormState && typeof body.clientFormState === 'object' ? body.clientFormState : null;
   const clientProfile = clientAnswers?.gender && clientAnswers?.age
