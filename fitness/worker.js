@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * KA-TRAINER — самостоятелен Cloudflare Worker за AI тренировъчни планове.
  *

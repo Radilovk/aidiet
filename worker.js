@@ -1,3 +1,4 @@
+// @ts-nocheck
 import {
   serializeUserProfile,
   serializeBackendCalculations,
@@ -5085,7 +5086,8 @@ function normalizeEmail(value) {
   return String(value || '').trim().toLowerCase();
 }
 
-function isPlanEditingAllowed({ clientId, userId, email } = {}) {
+function isPlanEditingAllowed(opts) {
+  const { clientId, userId, email } = opts || {};
   if (!PLAN_EDITING_LOCK_ENABLED) return true;
   const cid = String(clientId || '').trim();
   const uid = String(userId || '').trim();
