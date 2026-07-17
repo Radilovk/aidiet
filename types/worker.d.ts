@@ -1,5 +1,14 @@
 /// <reference types="@cloudflare/workers-types" />
 
+/** Локални ESM модули — fallback ако IDE не зареди jsconfig */
+declare module './context-compression.js';
+declare module './analytics-compression.js';
+declare module './json-patch.js';
+declare module './client-card.js';
+declare module './fitness/worker.js';
+declare module './food-nutrition.js';
+declare module './food-catalog.js';
+
 /** Разширения за custom грешки в worker.js */
 interface WorkerError extends Error {
   truncated?: boolean;
