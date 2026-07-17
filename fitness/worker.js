@@ -1301,15 +1301,15 @@ function trimClientProgramFields(body = {}) {
   let clientProfile = String(body.clientProfile || '').trim().slice(0, MAX_CLIENT_PROFILE_CHARS);
   const clientAnswers = body.clientAnswers && typeof body.clientAnswers === 'object' ? body.clientAnswers : null;
   const clientFormState = body.clientFormState && typeof body.clientFormState === 'object' ? body.clientFormState : null;
-  if (!clientProfile && clientAnswers?.gender && clientAnswers?.age) {
+  if (clientAnswers?.gender && clientAnswers?.age) {
     clientProfile = buildProfileSummary(clientAnswers).slice(0, MAX_CLIENT_PROFILE_CHARS);
   }
   return {
     clientName: String(body.clientName || '').trim().slice(0, 120),
     clientContact: String(body.clientContact || '').trim().slice(0, 200),
     clientProfile,
-    clientAnswers: clientProfile ? null : clientAnswers,
-    clientFormState: clientProfile ? null : clientFormState,
+    clientAnswers,
+    clientFormState,
     exampleScheme: exampleScheme.slice(0, MAX_EXAMPLE_SCHEME_CHARS),
     consultationId: String(body.consultationId || '').trim().slice(0, 80) || null,
   };
@@ -1383,8 +1383,8 @@ async function handleSaveClientProgram(request, env) {
 
   const fields = trimClientProgramFields(body);
   if (!fields.clientName) return errorResponse('Моля, въведи име на клиента', 400);
-  if (!fields.clientProfile) {
-    return errorResponse('Опиши клиента и програмата в полето за бриф', 400);
+  if (!fields.clientAnswers?.gender) {
+    return errorResponse('Попълни въпросника (поне пол и основни данни)', 400);
   }
 
   const now = new Date().toISOString();
