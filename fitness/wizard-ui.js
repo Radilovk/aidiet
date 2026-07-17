@@ -241,7 +241,7 @@ export function createWizardController({
     getEl('stepLabel').textContent = `Въпрос ${stepIndex + 1} от ${list.length}`;
     getEl('stepPct').textContent = `${pct}%`;
     getEl('btnBack').style.visibility = stepIndex === 0 ? 'hidden' : 'visible';
-    getEl('btnNext').textContent = stepIndex === questions.length - 1 ? finalButtonText : 'Напред →';
+    getEl('btnNext').textContent = stepIndex === list.length - 1 ? finalButtonText : 'Напред →';
 
     card.append(el('h2', { class: 'q-title', text: q.title }));
     if (q.subtitle) card.append(el('p', { class: 'q-subtitle', text: q.subtitle }));
