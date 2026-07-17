@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 /**
- * Typecheck на worker.js + свързани модули.
+ * Typecheck на worker.js + backend модули.
  * Използва: npm run typecheck:worker
+ *
+ * IDE: отвори Command Palette → "TypeScript: Select TypeScript Version" → Use Workspace Version
+ * Конфиг: tsconfig.json / jsconfig.json → types/worker.d.ts
  */
 import { spawnSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';

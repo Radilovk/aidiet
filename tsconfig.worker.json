@@ -17,12 +17,17 @@
   "include": [
     "worker.js",
     "fitness/worker.js",
+    "fitness/exercise-labels-bg.js",
+    "fitness/exercise-translate-batch.js",
+    "fitness/exercise-translations.js",
     "fitness/plan-generation.js",
     "fitness/profile-summary.js",
+    "fitness/normalize.js",
     "context-compression.js",
     "analytics-compression.js",
     "json-patch.js",
     "client-card.js",
+    "food-catalog-data.js",
     "types/**/*.d.ts"
   ],
   "exclude": ["node_modules", "android", "dist", ".wrangler"]

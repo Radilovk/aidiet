@@ -4,18 +4,38 @@
 interface WorkerError extends Error {
   truncated?: boolean;
   validationFailed?: boolean;
+  validationErrors?: unknown;
 }
 
-/** Gemini generationConfig — thinkingBudget (нов API) */
+/** Gemini generationConfig */
 interface GeminiThinkingConfig {
   thinkingBudget?: number;
 }
 
 interface GeminiGenerationConfig {
   responseMimeType?: string;
+  responseSchema?: unknown;
   temperature?: number;
   maxOutputTokens?: number;
+  topP?: number;
+  topK?: number;
   thinkingConfig?: GeminiThinkingConfig;
+}
+
+interface PlanEditLockArgs {
+  clientId?: string;
+  userId?: string;
+  email?: string;
+}
+
+/** Cloudflare Workers cache API */
+interface CacheStorage {
+  readonly default: Cache;
+}
+
+/** ECDH deriveBits — `public` е валидно в Workers runtime */
+interface EcdhDeriveBitsParams extends EcdhKeyDeriveParams {
+  public: CryptoKey;
 }
 
 /** JSON импорти */
@@ -25,21 +45,11 @@ declare module '*.json' {
 }
 
 declare module './data/exercise-translations-bg.json' {
-  const value: Record<string, string>;
+  const value: Record<string, { nameBg?: string; instructionsBg?: string }>;
   export default value;
 }
 
-/** Cloudflare Workers cache API */
-interface CacheStorage {
-  readonly default: Cache;
-}
-
-interface PlanEditLockArgs {
-  clientId?: string;
-  userId?: string;
-  email?: string;
-}
-
+/** Минимален Env */
 interface Env {
   page_content?: KVNamespace;
   FITNESS_KV?: KVNamespace;
@@ -48,6 +58,8 @@ interface Env {
   ADMIN_SECRET?: string;
   GEMINI_API_KEY?: string;
   OPENAI_API_KEY?: string;
+  GEMINI_MODEL?: string;
+  OPENAI_MODEL?: string;
   VAPID_EMAIL?: string;
   VAPID_PUBLIC_KEY?: string;
   VAPID_PRIVATE_KEY?: string;
