@@ -3,9 +3,9 @@
  * Модал + същият wizard като при клиентите → clientAnswers за AI.
  */
 import {
-  activeQuestions, buildAnswers, formStateFromAnswers,
+  activeQuestions, buildAnswers,
   validateQuestion, visibleOptions,
-} from './questions.js';
+} from './questions.js?v=3';
 import { buildProfileSummary } from './profile-summary.js';
 import { createWizardController, el } from './wizard-ui.js';
 
@@ -179,10 +179,8 @@ function reset() {
   syncUi();
 }
 
-function load(record = {}) {
-  if (record.clientFormState) state = record.clientFormState;
-  else if (record.clientAnswers) state = formStateFromAnswers(record.clientAnswers);
-  else state = {};
+function applyLoadedState(nextState) {
+  state = nextState && typeof nextState === 'object' ? nextState : {};
   lastGender = state.basics?.gender || null;
   if (wizard) {
     wizard.reset();
@@ -190,6 +188,26 @@ function load(record = {}) {
   } else {
     syncUi();
   }
+}
+
+function load(record = {}) {
+  if (record.clientFormState && typeof record.clientFormState === 'object') {
+    applyLoadedState(record.clientFormState);
+    return;
+  }
+  if (record.clientAnswers?.gender) {
+    import('./questions.js?v=3')
+      .then((mod) => {
+        applyLoadedState(
+          typeof mod.formStateFromAnswers === 'function'
+            ? mod.formStateFromAnswers(record.clientAnswers)
+            : {},
+        );
+      })
+      .catch(() => applyLoadedState({}));
+    return;
+  }
+  applyLoadedState({});
 }
 
 function validate() {
