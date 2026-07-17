@@ -21,6 +21,7 @@ worker/
 # IDE
 .vscode/*
 !.vscode/settings.json
+!.vscode/settings.json
 .idea/
 *.swp
 *.swo

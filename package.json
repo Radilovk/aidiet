@@ -5,8 +5,9 @@
   "main": "worker.js",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "npm run build:worker && wrangler deploy",
+    "deploy": "npm run test:worker && wrangler deploy",
     "build:worker": "node scripts/bundle-worker.mjs",
+    "test:worker": "node scripts/verify-worker.mjs",
     "serve": "python -m http.server 8000",
     "test": "echo \"Open test.html in browser to test the application\""
   },

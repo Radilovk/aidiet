@@ -25,6 +25,7 @@ on:
       - 'json-patch.js'
       - 'client-card.js'
       - 'scripts/bundle-worker.mjs'
+      - 'scripts/verify-worker.mjs'
       - '.github/workflows/deploy-worker.yml'
   pull_request:
     branches:
@@ -50,6 +51,7 @@ on:
       - 'json-patch.js'
       - 'client-card.js'
       - 'scripts/bundle-worker.mjs'
+      - 'scripts/verify-worker.mjs'
       - '.github/workflows/deploy-worker.yml'
   workflow_dispatch:
 
@@ -72,8 +74,8 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
-      - name: Verify worker bundle
-        run: npm run build:worker
+      - name: Verify worker (bundle + health)
+        run: npm run test:worker
 
       # Create the queues if they do not yet exist in Cloudflare.
       # This step requires the Queues:Edit permission on CLOUDFLARE_API_TOKEN.
@@ -113,3 +115,18 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Verify health after deploy
+        if: github.event_name != 'pull_request'
+        run: |
+          for i in 1 2 3 4 5; do
+            status=$(curl -sS -o /tmp/aidiet-health.json -w "%{http_code}" https://aidiet.radilov-k.workers.dev/api/health || true)
+            if [ "$status" = "200" ]; then
+              cat /tmp/aidiet-health.json
+              exit 0
+            fi
+            echo "Health check attempt $i failed (HTTP $status), retrying..."
+            sleep 5
+          done
+          echo "::error::aidiet worker health check failed after deploy"
+          exit 1
