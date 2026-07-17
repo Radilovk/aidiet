@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "AI-powered personalized nutrition planning application",
   "main": "worker.js",
-  "type": "module",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
