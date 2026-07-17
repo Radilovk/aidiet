@@ -11,6 +11,7 @@
  */
 
 import { normalizeText } from './normalize.js';
+import { buildProfileSummary } from './profile-summary.js';
 
 export const MAX_FOUNDATION_CHARS = 800;
 export const MAX_GUIDELINE_ITEMS = 8;
@@ -177,6 +178,45 @@ export function parseAdminBriefConstraints(clientProfile = '', exampleScheme = '
     exclusions: [...new Set(exclusions)],
     priorities: [...new Set(priorities)],
     schedule: [...new Set(schedule)],
+  };
+}
+
+/** Ограничения от структурирани answers + схема на треньора. */
+export function constraintsFromAnswers(answers, exampleScheme = '') {
+  const equipmentList = [];
+  for (const e of answers?.equipment || []) {
+    if (e && e !== 'Друго') equipmentList.push(e);
+  }
+  if (answers?.equipmentOther) {
+    for (const part of String(answers.equipmentOther).split(/[,;\n]/)) {
+      const t = part.trim();
+      if (t) equipmentList.push(t);
+    }
+  }
+
+  const exclusions = [];
+  if (answers?.preferences?.avoid?.trim()) {
+    exclusions.push(`Не желае движения: ${answers.preferences.avoid.trim()}`);
+  }
+  for (const lim of answers?.limitations || []) {
+    if (lim && !normalizeText(lim).includes('нямам')) exclusions.push(`Ограничение: ${lim}`);
+  }
+
+  const priorities = [];
+  if (answers?.extraInfo?.trim()) priorities.push(answers.extraInfo.trim());
+  const goalText = answers?.goal?.main === 'друго' ? answers.goal.other : answers?.goal?.main;
+  if (goalText) priorities.push(`Цел: ${goalText}`);
+
+  const schedule = [];
+  if (answers?.preferences?.freq) schedule.push(`${answers.preferences.freq} тренировки седмично`);
+  if (answers?.preferences?.duration) schedule.push(`Продължителност: ${answers.preferences.duration}`);
+
+  const fromScheme = parseAdminBriefConstraints('', exampleScheme);
+  return {
+    equipmentList: [...new Set([...equipmentList, ...fromScheme.equipmentList])],
+    exclusions: [...new Set([...exclusions, ...fromScheme.exclusions])],
+    priorities: [...new Set([...priorities, ...fromScheme.priorities])],
+    schedule: [...new Set([...schedule, ...fromScheme.schedule])],
   };
 }
 
@@ -411,9 +451,9 @@ export function buildBriefIdentityBlock(brief) {
 
 export function buildAdminPlanUserPrompt(brief, layers, foundation = '') {
   const { individual = [], architecture = [] } = layers || {};
-  const { clientProfile = '', exampleScheme = '' } = brief || {};
+  const { clientProfile = '', exampleScheme = '', constraints: presetConstraints } = brief || {};
   const foundationText = String(foundation || '').trim().slice(0, MAX_FOUNDATION_CHARS);
-  const constraints = parseAdminBriefConstraints(clientProfile, exampleScheme);
+  const constraints = presetConstraints || parseAdminBriefConstraints(clientProfile, exampleScheme);
   const hardRules = buildAdminHardRulesBlock(constraints);
 
   const individualBlock = [
@@ -456,9 +496,34 @@ export function buildAdminPlanUserPrompt(brief, layers, foundation = '') {
  * @param source — { answers } от въпросник ИЛИ { clientProfile, exampleScheme, clientName?, clientContact? } от админ
  */
 export function preparePlanGeneration(source, adminConfig, helpers) {
+  const foundation = adminConfig?.foundation || '';
+
+  if (source.clientAnswers) {
+    const answers = source.clientAnswers;
+    const profileText = helpers.buildProfileSummary(answers);
+    const layers = resolveGuidelineLayers(buildTagsFromAnswers(answers), adminConfig);
+    const brief = {
+      clientProfile: profileText,
+      exampleScheme: source.exampleScheme || '',
+      constraints: constraintsFromAnswers(answers, source.exampleScheme),
+    };
+    const coachProfileText = [
+      source.clientName ? `Клиент: ${source.clientName}` : 'Клиент: —',
+      source.clientContact ? `Контакт: ${source.clientContact}` : '',
+      '',
+      profileText,
+      source.exampleScheme ? `\nСхема и указания:\n${source.exampleScheme}` : '',
+    ].filter(Boolean).join('\n');
+    const equipmentInput = [...(answers.equipment || []), answers.equipmentOther].filter(Boolean);
+    return {
+      userPrompt: buildAdminPlanUserPrompt(brief, layers, foundation),
+      coachProfileText,
+      allowedEquipment: helpers.allowedEquipmentSet(equipmentInput),
+    };
+  }
+
   const tags = collectTags(source);
   const layers = resolveGuidelineLayers(tags, adminConfig);
-  const foundation = adminConfig?.foundation || '';
 
   if (source.answers) {
     const profileText = helpers.buildProfileSummary(source.answers);
