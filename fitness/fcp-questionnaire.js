@@ -1,14 +1,12 @@
 /**
  * KA-TRAINER — админ въпросник (модал). API е в admin.html inline.
  */
-const CACHE = 'v2';
-
 import {
   activeQuestions, buildAnswers,
   validateQuestion, visibleOptions,
-} from `./questions.js?${CACHE}`;
-import { buildProfileSummary } from `./profile-summary.js?${CACHE}`;
-import { createWizardController, el } from `./wizard-ui.js?${CACHE}`;
+} from './questions.js?v=2';
+import { buildProfileSummary } from './profile-summary.js?v=2';
+import { createWizardController, el } from './wizard-ui.js?v=2';
 
 const IDS = {
   questionCard: 'fcpQuestionCard',

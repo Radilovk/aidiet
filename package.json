@@ -5,7 +5,8 @@
   "main": "worker.js",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "npm run test:worker && wrangler deploy",
+    "deploy": "npm run test:worker && wrangler deploy --env production",
+    "deploy:staging": "npm run test:worker && wrangler deploy --env staging",
     "build:worker": "node scripts/bundle-worker.mjs",
     "test:worker": "node scripts/verify-worker.mjs",
     "serve": "python -m http.server 8000",
