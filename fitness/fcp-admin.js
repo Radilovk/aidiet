@@ -1,6 +1,6 @@
 /**
  * KA-TRAINER — админ въпросник за клиентски програми.
- * Един модул: модал + wizard + API за admin.html (window.FcpForm).
+ * Модал + същият wizard като при клиентите → clientAnswers за AI.
  */
 import {
   activeQuestions, buildAnswers, formStateFromAnswers,
@@ -34,7 +34,6 @@ function stepOk(q) {
 }
 
 function syncUi() {
-  if (!wizard) return;
   const list = activeQuestions(state);
   const done = list.filter(stepOk).length;
   const total = list.length;
@@ -44,7 +43,7 @@ function syncUi() {
     if (answers.gender && done === total) {
       statusEl.innerHTML = `<span class="fcp-q-complete"><i class="fas fa-check-circle"></i> Попълнен (${done}/${total})</span>`;
     } else if (done > 0) {
-      const cur = list[wizard.getStepIndex()];
+      const cur = wizard ? list[wizard.getStepIndex()] : null;
       statusEl.textContent = `${done}/${total} · ${cur?.title || ''}`;
     } else {
       statusEl.textContent = 'Не е попълнен';
@@ -61,18 +60,45 @@ function syncUi() {
     }
   }
 
+  if (!wizard) return;
   const nav = getEl('stepNav');
-  if (nav) {
-    const current = wizard.getStepIndex();
-    nav.innerHTML = '';
-    list.forEach((q, i) => {
-      const cls = ['fcp-step', i === current ? 'active' : '', stepOk(q) ? 'done' : ''].filter(Boolean).join(' ');
-      nav.append(el('button', {
-        type: 'button', class: cls, title: q.title, text: String(q.num),
-        onclick: () => { wizard.setStepIndex(i); wizard.renderStep(); syncUi(); getEl('stepError').hidden = true; },
-      }));
-    });
-  }
+  if (!nav) return;
+  const current = wizard.getStepIndex();
+  nav.innerHTML = '';
+  list.forEach((q, i) => {
+    const cls = ['fcp-step', i === current ? 'active' : '', stepOk(q) ? 'done' : ''].filter(Boolean).join(' ');
+    nav.append(el('button', {
+      type: 'button', class: cls, title: q.title, text: String(q.num),
+      onclick: () => {
+        wizard.setStepIndex(i);
+        wizard.renderStep();
+        syncUi();
+        const err = getEl('stepError');
+        if (err) err.hidden = true;
+      },
+    }));
+  });
+}
+
+function ensureWizard() {
+  ensureModal();
+  if (wizard) return;
+  wizard = createWizardController({
+    getEl,
+    getQuestions: () => activeQuestions(state),
+    visibleOptions,
+    validateQuestion,
+    getState: () => state,
+    onPersist: () => {
+      if (state.basics?.gender !== lastGender) {
+        lastGender = state.basics?.gender;
+        wizard.renderStep();
+      }
+      syncUi();
+    },
+    onComplete: () => { syncUi(); close(); },
+    finalButtonText: 'Готово',
+  });
 }
 
 function ensureModal() {
@@ -105,8 +131,15 @@ function ensureModal() {
 
   modal.querySelector('.fcp-modal-backdrop').addEventListener('click', close);
   modal.querySelector('.fcp-modal-close').addEventListener('click', close);
-  getEl('btnBack').addEventListener('click', () => { wizard.prevStep(); syncUi(); getEl('stepError').hidden = true; });
+  getEl('btnBack').addEventListener('click', () => {
+    ensureWizard();
+    wizard.prevStep();
+    syncUi();
+    const err = getEl('stepError');
+    if (err) err.hidden = true;
+  });
   getEl('btnNext').addEventListener('click', () => {
+    ensureWizard();
     const atEnd = wizard.getStepIndex() >= activeQuestions(state).length - 1;
     if (wizard.nextStep()) {
       syncUi();
@@ -116,29 +149,18 @@ function ensureModal() {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && modal && !modal.hidden) close();
   });
+}
 
-  wizard = createWizardController({
-    getEl,
-    getQuestions: () => activeQuestions(state),
-    visibleOptions,
-    validateQuestion,
-    getState: () => state,
-    onPersist: () => {
-      if (state.basics?.gender !== lastGender) {
-        lastGender = state.basics?.gender;
-        wizard.renderStep();
-      }
-      syncUi();
-    },
-    onComplete: () => { syncUi(); close(); },
-    finalButtonText: 'Готово',
-  });
+function renderWizard() {
+  ensureWizard();
+  wizard.renderStep();
+  syncUi();
 }
 
 function open() {
   ensureModal();
-  wizard.renderStep();
-  syncUi();
+  ensureWizard();
+  renderWizard();
   modal.hidden = false;
   document.body.style.overflow = 'hidden';
 }
@@ -153,7 +175,7 @@ function close() {
 function reset() {
   state = {};
   lastGender = null;
-  if (wizard) { wizard.reset(); wizard.renderStep(); }
+  if (wizard) wizard.reset();
   syncUi();
 }
 
@@ -162,8 +184,12 @@ function load(record = {}) {
   else if (record.clientAnswers) state = formStateFromAnswers(record.clientAnswers);
   else state = {};
   lastGender = state.basics?.gender || null;
-  if (wizard) { wizard.reset(); wizard.renderStep(); }
-  syncUi();
+  if (wizard) {
+    wizard.reset();
+    renderWizard();
+  } else {
+    syncUi();
+  }
 }
 
 function validate() {
@@ -187,13 +213,12 @@ function init() {
   statusEl = document.getElementById('fcpQuestionnaireStatus');
   previewEl = document.getElementById('fcpProfilePreview');
   document.getElementById('fcpOpenBtn')?.addEventListener('click', open);
-  ensureModal();
   syncUi();
 }
 
 window.FcpForm = {
   init, open, close, reset, load, validate, payload,
-  loadRecord: load, // backward compat
+  loadRecord: load,
 };
 
 if (document.readyState === 'loading') {
