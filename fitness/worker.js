@@ -73,6 +73,8 @@ import {
   buildAdminPlanUserPrompt,
   buildBriefIdentityBlock,
   preparePlanGeneration,
+  parseAdminBriefConstraints,
+  allowedEquipmentFromBrief,
 } from './plan-generation.js';
 
 export {
@@ -94,6 +96,8 @@ export {
   buildAdminPlanUserPrompt,
   buildBriefIdentityBlock,
   preparePlanGeneration,
+  parseAdminBriefConstraints,
+  allowedEquipmentFromBrief,
 };
 
 // ============================================================================
@@ -1464,7 +1468,7 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
   if (!record.clientProfile?.trim()) return errorResponse('Липсва описание на профила', 400);
 
   const adminGuidelines = await loadAdminGuidelines(env);
-  const { userPrompt, coachProfileText } = preparePlanGeneration(
+  const { userPrompt, coachProfileText, allowedEquipment } = preparePlanGeneration(
     {
       clientProfile: record.clientProfile,
       exampleScheme: record.exampleScheme,
@@ -1481,7 +1485,7 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
     ({ plan, coachContext } = await executePlanGeneration(env, ctx, {
       userPrompt,
       coachProfileText,
-      allowedEquipment: null,
+      allowedEquipment,
     }));
   } catch (e) {
     if (isPlanParseError(e)) {
