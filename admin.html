@@ -2436,240 +2436,117 @@
             <!-- FitPlan Tab -->
             <div id="tab-fitplan" class="tab-content">
             <style>
-                /* ── KA-TRAINER клиентски програми ── */
-                .fcp-layout {
-                    display: grid;
-                    grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
-                    gap: 20px;
-                    align-items: start;
+                .fcp-compact { display: flex; flex-direction: column; gap: 12px; }
+                .fcp-meta-row {
+                    display: grid; grid-template-columns: 1fr 1fr;
+                    gap: 10px;
                 }
-                @media (max-width: 960px) {
-                    .fcp-layout { grid-template-columns: 1fr; }
+                @media (max-width: 600px) { .fcp-meta-row { grid-template-columns: 1fr; } }
+                .fcp-meta-row label, .fcp-field-label {
+                    font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; display: block;
                 }
-                .fcp-client-row {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 12px;
-                    margin-bottom: 14px;
-                }
-                @media (max-width: 600px) {
-                    .fcp-client-row { grid-template-columns: 1fr; }
-                }
-                .fcp-client-row label { font-size: 0.82rem; font-weight: 600; margin-bottom: 4px; display: block; }
-                .fcp-client-row input {
+                .fcp-meta-row input, .fcp-scheme {
                     width: 100%; padding: 9px 11px; border: 1px solid #d1d5db;
                     border-radius: 10px; font: inherit; box-sizing: border-box;
                     background: var(--white); color: var(--text-dark);
                 }
-                [data-theme="dark"] .fcp-client-row input { border-color: var(--glass-border); }
-
-                .fcp-wizard {
-                    border: 1px solid #e5e7eb;
-                    border-radius: 14px;
-                    padding: 14px;
-                    background: var(--white);
-                }
-                [data-theme="dark"] .fcp-wizard { border-color: var(--glass-border); }
-
-                .fcp-steps {
-                    display: flex;
-                    flex-wrap: wrap;
-                    gap: 5px;
-                    margin-bottom: 12px;
-                }
-                .fcp-step {
-                    width: 28px; height: 28px;
-                    border-radius: 8px;
-                    border: 1px solid #d1d5db;
-                    background: #f9fafb;
-                    color: var(--text-gray);
-                    font-size: 0.72rem;
-                    font-weight: 700;
-                    cursor: pointer;
-                    padding: 0;
-                    transition: all .15s ease;
-                }
-                .fcp-step:hover { border-color: var(--primary-red); color: var(--primary-red); }
-                .fcp-step.active {
-                    background: var(--primary-red);
-                    border-color: var(--primary-red);
-                    color: #fff;
-                }
-                .fcp-step.done:not(.active) {
-                    background: var(--soft-red);
-                    border-color: var(--primary-red);
-                    color: var(--primary-dark);
-                }
-                [data-theme="dark"] .fcp-step { background: rgba(255,255,255,0.04); border-color: var(--glass-border); }
-                [data-theme="dark"] .fcp-step.done:not(.active) { background: rgba(45,212,191,0.12); }
-
-                .fcp-wizard-head { margin-bottom: 12px; }
-                .fcp-progress-track {
-                    height: 5px; border-radius: 99px;
-                    background: #e5e7eb; overflow: hidden;
-                }
-                [data-theme="dark"] .fcp-progress-track { background: rgba(255,255,255,0.08); }
-                .fcp-progress-fill {
-                    height: 100%; width: 7%;
-                    background: linear-gradient(90deg, var(--primary-red), var(--primary-dark));
-                    border-radius: 99px;
-                    transition: width .35s ease;
-                }
-                .fcp-progress-meta {
-                    display: flex; justify-content: space-between;
-                    margin-top: 6px; font-size: 0.78rem;
-                    color: var(--text-gray); font-weight: 600;
-                }
-
-                .fcp-q-card, .fcp-wizard .q-card {
-                    border: 1px solid #eef2f7;
-                    border-radius: 12px;
-                    padding: 16px;
+                [data-theme="dark"] .fcp-meta-row input,
+                [data-theme="dark"] .fcp-scheme { border-color: var(--glass-border); }
+                .fcp-scheme { min-height: 88px; max-height: 140px; resize: vertical; font-size: 0.88rem; line-height: 1.45; }
+                .fcp-hint { margin: 0; font-size: 0.78rem; color: var(--text-gray); line-height: 1.45; }
+                .fcp-q-row {
+                    display: flex; align-items: center; justify-content: space-between;
+                    gap: 12px; flex-wrap: wrap;
+                    padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 10px;
                     background: var(--bg-color);
-                    min-height: 200px;
-                    max-height: min(52vh, 480px);
-                    overflow-y: auto;
                 }
-                [data-theme="dark"] .fcp-q-card, [data-theme="dark"] .fcp-wizard .q-card {
-                    border-color: var(--glass-border);
-                }
-                .fcp-wizard .q-title {
-                    font-size: 1rem; font-weight: 700;
-                    margin: 0 0 4px; color: var(--text-dark);
-                    line-height: 1.35;
-                }
-                .fcp-wizard .q-subtitle {
-                    color: var(--text-gray); font-size: 0.82rem;
-                    margin: 0 0 14px; line-height: 1.45;
-                }
-                .fcp-wizard .field { margin-bottom: 14px; }
-                .fcp-wizard .field-label {
-                    display: block; font-weight: 600;
-                    font-size: 0.82rem; margin-bottom: 6px;
-                }
-                .fcp-wizard .choice-group, .fcp-wizard .chips-group {
-                    display: flex; flex-wrap: wrap; gap: 6px;
-                }
-                .fcp-wizard .choice-btn, .fcp-wizard .chip-btn {
-                    border: 1px solid #d1d5db; background: var(--white);
-                    border-radius: 999px; padding: 6px 12px;
-                    font-size: 0.8rem; font-weight: 600;
-                    cursor: pointer; color: var(--text-dark);
-                    transition: all .14s ease;
-                }
-                .fcp-wizard .choice-btn.active, .fcp-wizard .chip-btn.active {
-                    background: var(--soft-red);
-                    border-color: var(--primary-red);
-                    color: var(--primary-dark);
-                }
-                .fcp-wizard input[type="number"],
-                .fcp-wizard input[type="text"],
-                .fcp-wizard textarea {
-                    width: 100%; padding: 8px 10px;
-                    border: 1px solid #d1d5db; border-radius: 8px;
-                    font-size: 0.88rem; box-sizing: border-box;
-                    background: var(--white); color: var(--text-dark);
-                }
-                .fcp-wizard .num-wrap { display: flex; align-items: center; gap: 8px; max-width: 200px; }
-                .fcp-wizard .num-suffix { color: var(--text-gray); font-size: 0.82rem; }
-
-                .fcp-wizard .opt-list { display: flex; flex-direction: column; gap: 7px; }
-                .fcp-wizard .opt-card {
-                    border: 1px solid #e5e7eb; border-radius: 10px;
-                    padding: 10px 12px; cursor: pointer;
-                    background: var(--white);
-                    transition: border-color .14s ease;
-                }
-                .fcp-wizard .opt-card:hover { border-color: #9ca3af; }
-                .fcp-wizard .opt-card.active {
-                    border-color: var(--primary-red);
-                    background: var(--soft-red);
-                }
-                .fcp-wizard .opt-row { display: flex; align-items: flex-start; gap: 10px; }
-                .fcp-wizard .opt-mark {
-                    width: 18px; height: 18px; flex-shrink: 0;
-                    border: 2px solid #d1d5db; border-radius: 5px;
-                    display: grid; place-items: center;
-                    font-size: 11px; font-weight: 800;
-                }
-                .fcp-wizard .opt-card.radio .opt-mark { border-radius: 50%; }
-                .fcp-wizard .opt-card.active .opt-mark {
-                    background: var(--primary-red); border-color: var(--primary-red); color: #fff;
-                }
-                .fcp-wizard .opt-text { font-size: 0.84rem; font-weight: 600; line-height: 1.35; }
-                .fcp-wizard .opt-inputs { margin-top: 8px; padding-left: 28px; display: flex; flex-direction: column; gap: 6px; }
-
-                .fcp-wizard .scale-value {
-                    font-size: 2rem; font-weight: 800; text-align: center;
-                    color: var(--primary-red); margin-bottom: 8px;
-                }
-                .fcp-wizard .scale-labels {
-                    display: flex; justify-content: space-between;
-                    font-size: 0.75rem; color: var(--text-gray);
-                }
-                .fcp-wizard input[type="range"] { width: 100%; accent-color: var(--primary-red); }
-
-                .fcp-step-error {
-                    margin: 10px 0 0; padding: 8px 10px;
-                    border-radius: 8px; font-size: 0.82rem; font-weight: 600;
-                    color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca;
-                }
-                [data-theme="dark"] .fcp-step-error { background: rgba(185,28,28,0.15); border-color: rgba(248,113,113,0.35); }
-
-                .fcp-wizard-nav {
-                    display: flex; justify-content: space-between;
-                    gap: 8px; margin-top: 12px;
-                }
-                .fcp-btn-primary, .fcp-btn-ghost {
-                    border-radius: 10px; padding: 9px 16px;
-                    font-size: 0.85rem; font-weight: 700;
-                    cursor: pointer; border: none;
-                }
-                .fcp-btn-primary {
-                    background: var(--primary-red); color: #fff;
-                }
-                .fcp-btn-ghost {
-                    background: transparent; color: var(--text-gray);
-                    border: 1px solid #d1d5db;
-                }
-
-                .fcp-side-panel {
-                    display: flex; flex-direction: column; gap: 14px;
-                    position: sticky; top: 12px;
-                }
-                .fcp-side-panel textarea {
-                    width: 100%; min-height: 140px; resize: vertical;
-                    padding: 10px 12px; border: 1px solid #d1d5db;
-                    border-radius: 10px; font: inherit; box-sizing: border-box;
-                    background: var(--white); color: var(--text-dark);
-                }
-                .fcp-side-label {
-                    font-size: 0.82rem; font-weight: 700;
-                    margin-bottom: 6px; display: block;
-                }
-                .fcp-actions {
-                    display: flex; flex-wrap: wrap; gap: 8px;
-                }
-                .fcp-actions .btn {
-                    padding: 8px 14px !important;
-                    font-size: 0.82rem !important;
+                [data-theme="dark"] .fcp-q-row { border-color: var(--glass-border); }
+                #fcpQuestionnaireStatus { font-size: 0.84rem; color: var(--text-gray); }
+                .fcp-q-complete { color: var(--primary-dark); font-weight: 600; }
+                .fcp-q-done { color: var(--primary-dark); }
+                .fcp-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+                .fcp-toolbar .btn { padding: 8px 14px !important; font-size: 0.82rem !important; }
+                .fcp-link-row { display: flex; gap: 6px; flex-wrap: wrap; }
+                .fcp-link-row input {
+                    flex: 1; min-width: 180px; font-family: monospace; font-size: 0.78rem;
+                    padding: 8px; border-radius: 8px; border: 1px solid #d1d5db;
                 }
                 .fcp-preview {
-                    background: #f3f4f6; border-radius: 8px;
-                    padding: 10px; color: #374151;
-                    font-size: 0.78rem; line-height: 1.45;
-                    max-height: 160px; overflow-y: auto;
+                    background: #f3f4f6; border-radius: 8px; padding: 10px;
+                    font-size: 0.78rem; line-height: 1.45; max-height: 120px; overflow-y: auto;
+                    white-space: pre-wrap; color: #374151;
                 }
                 .fcp-preview-empty { color: #9ca3af; font-style: italic; }
-                [data-theme="dark"] .fcp-preview { background: rgba(0,0,0,0.2); color: var(--text-gray); }
+                .fcp-programs-toggle { cursor: pointer; font-size: 0.9rem; font-weight: 700; margin-top: 8px; }
 
-                .fcp-programs-toggle {
-                    cursor: pointer; user-select: none;
-                    display: flex; align-items: center; gap: 8px;
-                    font-size: 0.95rem; font-weight: 700;
-                    margin: 16px 0 10px;
+                /* Modal wizard */
+                .fcp-modal { position: fixed; inset: 0; z-index: 12000; display: flex; align-items: center; justify-content: center; padding: 16px; }
+                .fcp-modal.hidden { display: none; }
+                .fcp-modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.45); }
+                .fcp-modal-panel {
+                    position: relative; width: min(560px, 100%); max-height: min(90vh, 720px);
+                    background: var(--white); border-radius: 16px; overflow: hidden;
+                    box-shadow: 0 20px 50px rgba(0,0,0,0.25); display: flex; flex-direction: column;
                 }
-                .fcp-programs-body { margin-top: 8px; }
+                [data-theme="dark"] .fcp-modal-panel { background: #112B2B; }
+                .fcp-modal-head {
+                    display: flex; align-items: center; justify-content: space-between;
+                    padding: 14px 16px; border-bottom: 1px solid #e5e7eb;
+                }
+                .fcp-modal-head h3 { margin: 0; font-size: 1rem; }
+                .fcp-modal-close {
+                    border: none; background: transparent; font-size: 1.5rem; line-height: 1;
+                    cursor: pointer; color: var(--text-gray); padding: 0 4px;
+                }
+                .fcp-wizard { padding: 14px 16px 16px; overflow-y: auto; }
+                .fcp-steps { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+                .fcp-step {
+                    width: 26px; height: 26px; border-radius: 7px; border: 1px solid #d1d5db;
+                    background: #f9fafb; color: var(--text-gray); font-size: 0.7rem; font-weight: 700;
+                    cursor: pointer; padding: 0;
+                }
+                .fcp-step.active { background: var(--primary-red); border-color: var(--primary-red); color: #fff; }
+                .fcp-step.done:not(.active) { background: var(--soft-red); border-color: var(--primary-red); color: var(--primary-dark); }
+                .fcp-wizard-head { margin-bottom: 10px; }
+                .fcp-progress-track { height: 5px; border-radius: 99px; background: #e5e7eb; overflow: hidden; }
+                .fcp-progress-fill { height: 100%; width: 7%; background: linear-gradient(90deg, var(--primary-red), var(--primary-dark)); border-radius: 99px; transition: width .35s ease; }
+                .fcp-progress-meta { display: flex; justify-content: space-between; margin-top: 5px; font-size: 0.76rem; color: var(--text-gray); font-weight: 600; }
+                .fcp-q-card, .fcp-wizard .q-card { border: 1px solid #eef2f7; border-radius: 12px; padding: 14px; background: var(--bg-color); max-height: 42vh; overflow-y: auto; }
+                .fcp-wizard .q-title { font-size: 0.95rem; font-weight: 700; margin: 0 0 4px; line-height: 1.35; }
+                .fcp-wizard .q-subtitle { color: var(--text-gray); font-size: 0.8rem; margin: 0 0 12px; line-height: 1.4; }
+                .fcp-wizard .field { margin-bottom: 12px; }
+                .fcp-wizard .field-label { font-size: 0.8rem; font-weight: 600; margin-bottom: 5px; }
+                .fcp-wizard .choice-group, .fcp-wizard .chips-group { display: flex; flex-wrap: wrap; gap: 6px; }
+                .fcp-wizard .choice-btn, .fcp-wizard .chip-btn {
+                    border: 1px solid #d1d5db; background: var(--white); border-radius: 999px;
+                    padding: 6px 11px; font-size: 0.78rem; font-weight: 600; cursor: pointer;
+                }
+                .fcp-wizard .choice-btn.active, .fcp-wizard .chip-btn.active {
+                    background: var(--soft-red); border-color: var(--primary-red); color: var(--primary-dark);
+                }
+                .fcp-wizard input[type="number"], .fcp-wizard input[type="text"], .fcp-wizard textarea {
+                    width: 100%; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 8px;
+                    font-size: 0.86rem; box-sizing: border-box; background: var(--white); color: var(--text-dark);
+                }
+                .fcp-wizard .num-wrap { display: flex; align-items: center; gap: 8px; max-width: 200px; }
+                .fcp-wizard .num-suffix { color: var(--text-gray); font-size: 0.8rem; }
+                .fcp-wizard .opt-list { display: flex; flex-direction: column; gap: 6px; }
+                .fcp-wizard .opt-card { border: 1px solid #e5e7eb; border-radius: 9px; padding: 9px 11px; cursor: pointer; background: var(--white); }
+                .fcp-wizard .opt-card.active { border-color: var(--primary-red); background: var(--soft-red); }
+                .fcp-wizard .opt-row { display: flex; align-items: flex-start; gap: 9px; }
+                .fcp-wizard .opt-mark { width: 17px; height: 17px; border: 2px solid #d1d5db; border-radius: 5px; display: grid; place-items: center; font-size: 10px; font-weight: 800; flex-shrink: 0; }
+                .fcp-wizard .opt-card.radio .opt-mark { border-radius: 50%; }
+                .fcp-wizard .opt-card.active .opt-mark { background: var(--primary-red); border-color: var(--primary-red); color: #fff; }
+                .fcp-wizard .opt-text { font-size: 0.82rem; font-weight: 600; line-height: 1.35; }
+                .fcp-wizard .opt-inputs { margin-top: 7px; padding-left: 26px; display: flex; flex-direction: column; gap: 5px; }
+                .fcp-wizard .scale-value { font-size: 1.8rem; font-weight: 800; text-align: center; color: var(--primary-red); margin-bottom: 6px; }
+                .fcp-wizard .scale-labels { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-gray); }
+                .fcp-wizard input[type="range"] { width: 100%; accent-color: var(--primary-red); }
+                .fcp-step-error { margin: 8px 0 0; padding: 7px 9px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; }
+                .fcp-wizard-nav { display: flex; justify-content: space-between; gap: 8px; margin-top: 10px; }
+                .fcp-btn-primary, .fcp-btn-ghost { border-radius: 9px; padding: 8px 14px; font-size: 0.84rem; font-weight: 700; cursor: pointer; border: none; }
+                .fcp-btn-primary { background: var(--primary-red); color: #fff; }
+                .fcp-btn-ghost { background: transparent; color: var(--text-gray); border: 1px solid #d1d5db; }
             </style>
             <div class="card">
                 <h2><i class="fas fa-dumbbell"></i> KA-TRAINER — Принципи за тренировки</h2>
@@ -2716,79 +2593,79 @@
 
             <div class="card" style="margin-top:20px;">
                 <h2><i class="fas fa-user-check"></i> Клиентски програми</h2>
-                <p style="margin:0 0 16px;color:var(--text-gray);font-size:0.88rem;">
-                    Въпросник → схема → AI → одобрение → линк за клиента.
+                <p class="fcp-hint" style="margin-bottom:12px;">
+                    Попълни същия въпросник като клиентите → добави схема → AI генерира → одобри → линк.
                 </p>
 
                 <input type="hidden" id="fcpId" value="">
 
-                <div class="fcp-layout">
-                    <div class="fcp-col-main">
-                        <div class="fcp-client-row">
-                            <div>
-                                <label for="fcpClientName">Име</label>
-                                <input type="text" id="fcpClientName" placeholder="Име и фамилия">
-                            </div>
-                            <div>
-                                <label for="fcpClientContact">Контакт</label>
-                                <input type="text" id="fcpClientContact" placeholder="имейл / телефон">
-                            </div>
+                <div class="fcp-compact">
+                    <div class="fcp-meta-row">
+                        <div>
+                            <label for="fcpClientName">Име</label>
+                            <input type="text" id="fcpClientName" placeholder="Име">
                         </div>
-
-                        <div id="fcpLegacyNotice" class="hidden" style="margin-bottom:10px;padding:8px 12px;border-radius:8px;background:#fef3c7;color:#92400e;font-size:0.85rem;"></div>
-                        <div id="fcpStructuredForm" aria-label="Въпросник за клиент"></div>
+                        <div>
+                            <label for="fcpClientContact">Контакт</label>
+                            <input type="text" id="fcpClientContact" placeholder="имейл / телефон">
+                        </div>
                     </div>
 
-                    <div class="fcp-side-panel">
-                        <div>
-                            <label class="fcp-side-label" for="fcpExampleScheme">Схема и указания</label>
-                            <textarea id="fcpExampleScheme" rows="7" placeholder="Дни, упражнения, серии, забрани…&#10;Пон: гръб — лат пулдаун 4×10&#10;Сря: крака — клек, преса…"></textarea>
-                        </div>
+                    <div class="fcp-q-row">
+                        <div id="fcpQuestionnaireStatus">Въпросникът не е попълнен</div>
+                        <button type="button" class="btn" style="background:#6366f1;padding:8px 14px;font-size:0.82rem;" onclick="window.FcpForm?.open?.()">
+                            <i class="fas fa-clipboard-list"></i> Въпросник
+                        </button>
+                    </div>
 
-                        <details>
-                            <summary style="cursor:pointer;font-size:0.82rem;color:var(--text-gray);">Преглед на профила</summary>
-                            <pre id="fcpProfilePreview" class="fcp-preview fcp-preview-empty" style="margin-top:8px;white-space:pre-wrap;"></pre>
-                        </details>
+                    <div>
+                        <label class="fcp-field-label" for="fcpExampleScheme">Схема и указания (по избор)</label>
+                        <textarea id="fcpExampleScheme" class="fcp-scheme" placeholder="Дни, упражнения, серии, забрани…&#10;Пон: гръб — лат пулдаун 4×10&#10;Сря: крака — клек, hip thrust"></textarea>
+                        <p class="fcp-hint" style="margin-top:5px;">Тук описваш конкретната програма. Въпросникът дава профила; схемата задава рамката.</p>
+                    </div>
 
-                        <div class="fcp-actions">
-                            <button type="button" class="btn" style="background:#6366f1;" onclick="saveFitplanClientProgram()">
-                                <i class="fas fa-save"></i> Запази
-                            </button>
-                            <button type="button" class="btn" style="background:#8b5cf6;" onclick="generateFitplanClientProgram()">
-                                <i class="fas fa-magic"></i> AI
-                            </button>
-                            <button type="button" class="btn hidden" id="fcpPreviewBtn" style="background:#3498db;" onclick="previewFitplanClientProgram()">
-                                <i class="fas fa-eye"></i> Преглед
-                            </button>
-                            <button type="button" class="btn" style="background:#10b981;" onclick="approveFitplanClientProgram()">
-                                <i class="fas fa-check-circle"></i> Одобри
-                            </button>
-                            <button type="button" class="btn hidden" id="fcpDeleteBtn" style="background:#e74c3c;" onclick="deleteFitplanClientProgram(document.getElementById('fcpId').value.trim(), document.getElementById('fcpStatus').dataset.approved === '1')">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                            <button type="button" class="btn" style="background:#6b7280;" onclick="resetFitplanClientProgramForm()">
-                                <i class="fas fa-plus"></i> Нова
-                            </button>
-                        </div>
+                    <details>
+                        <summary class="fcp-hint" style="cursor:pointer;">Преглед на профила от въпросника</summary>
+                        <pre id="fcpProfilePreview" class="fcp-preview fcp-preview-empty" style="margin-top:8px;"></pre>
+                    </details>
 
-                        <div id="fcpStatus" style="color:var(--text-gray);font-size:0.82rem;"></div>
+                    <div class="fcp-toolbar">
+                        <button type="button" class="btn" style="background:#6366f1;" onclick="saveFitplanClientProgram()">
+                            <i class="fas fa-save"></i> Запази
+                        </button>
+                        <button type="button" class="btn" style="background:#8b5cf6;" onclick="generateFitplanClientProgram()">
+                            <i class="fas fa-magic"></i> Генерирай
+                        </button>
+                        <button type="button" class="btn hidden" id="fcpPreviewBtn" style="background:#3498db;" onclick="previewFitplanClientProgram()">
+                            <i class="fas fa-eye"></i> Преглед
+                        </button>
+                        <button type="button" class="btn" style="background:#10b981;" onclick="approveFitplanClientProgram()">
+                            <i class="fas fa-check-circle"></i> Одобри
+                        </button>
+                        <button type="button" class="btn hidden" id="fcpDeleteBtn" style="background:#e74c3c;" onclick="deleteFitplanClientProgram(document.getElementById('fcpId').value.trim(), document.getElementById('fcpStatus').dataset.approved === '1')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        <button type="button" class="btn" style="background:#6b7280;" onclick="resetFitplanClientProgramForm()">
+                            <i class="fas fa-plus"></i> Нова
+                        </button>
+                        <span id="fcpStatus" style="color:var(--text-gray);font-size:0.82rem;margin-left:auto;"></span>
+                    </div>
 
-                        <div class="form-group hidden" id="fcpLinkWrap" style="margin:0;">
-                            <label class="fcp-side-label" for="fcpClientLink">Линк за клиента</label>
-                            <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                                <input type="text" id="fcpClientLink" readonly style="flex:1;min-width:180px;font-family:monospace;font-size:0.78rem;padding:8px;border-radius:8px;border:1px solid #d1d5db;">
-                                <button type="button" class="btn" style="background:#6366f1;padding:6px 10px;font-size:0.8rem;" onclick="copyFitplanClientProgramLink()">
-                                    <i class="fas fa-copy"></i>
-                                </button>
-                                <a id="fcpClientLinkOpen" class="btn" style="background:#3498db;text-decoration:none;padding:6px 10px;font-size:0.8rem;" href="#" target="_blank" rel="noopener">
-                                    <i class="fas fa-external-link-alt"></i>
-                                </a>
-                            </div>
+                    <div class="form-group hidden" id="fcpLinkWrap" style="margin:0;">
+                        <label class="fcp-field-label">Линк за клиента</label>
+                        <div class="fcp-link-row" style="margin-top:6px;">
+                            <input type="text" id="fcpClientLink" readonly>
+                            <button type="button" class="btn" style="background:#6366f1;padding:6px 10px;font-size:0.8rem;" onclick="copyFitplanClientProgramLink()">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                            <a id="fcpClientLinkOpen" class="btn" style="background:#3498db;text-decoration:none;padding:6px 10px;font-size:0.8rem;" href="#" target="_blank" rel="noopener">
+                                <i class="fas fa-external-link-alt"></i>
+                            </a>
                         </div>
                     </div>
                 </div>
 
-                <details class="fcp-programs-body">
+                <details>
                     <summary class="fcp-programs-toggle"><i class="fas fa-list"></i> Запазени програми</summary>
                     <button type="button" class="btn" onclick="loadFitplanClientPrograms(true)" style="margin:10px 0 12px;padding:6px 12px;font-size:0.82rem;">
                         <i class="fas fa-sync"></i> Обнови
@@ -4705,8 +4582,8 @@
             document.getElementById('fcpId').value = '';
             document.getElementById('fcpClientName').value = '';
             document.getElementById('fcpClientContact').value = '';
-            window.FcpForm?.reset?.();
             document.getElementById('fcpExampleScheme').value = '';
+            window.FcpForm?.reset?.();
             const statusEl = document.getElementById('fcpStatus');
             statusEl.textContent = '';
             statusEl.dataset.approved = '0';
@@ -4738,7 +4615,6 @@
             window.FcpForm?.loadRecord?.({
                 clientFormState: program.clientFormState,
                 clientAnswers: program.clientAnswers,
-                clientProfile: program.clientProfile,
             });
             document.getElementById('fcpExampleScheme').value = program.exampleScheme || '';
             fcpCurrentPlanId = program.planId || null;
@@ -4765,11 +4641,10 @@
             resetFitplanClientProgramForm();
             document.getElementById('fcpClientName').value = name || '';
             document.getElementById('fcpClientContact').value = contact || '';
-            window.FcpForm?.setData?.({ clientProfile: summary || '' });
-            document.getElementById('fcpExampleScheme').value = `От консултация (${id}). Допълни схемата по дни и упражнения.`;
-            document.getElementById('fcpStatus').textContent = 'Заредено от консултация — допълни схемата и генерирай.';
-            document.getElementById('fcpStructuredForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
-            showSuccess('Данните от консултацията са заредени във формата.');
+            document.getElementById('fcpExampleScheme').value = summary ? `От консултация:\n${summary}` : '';
+            document.getElementById('fcpStatus').textContent = 'Заредено от консултация — попълни въпросника.';
+            window.FcpForm?.open?.();
+            showSuccess('Отвори и попълни въпросника.');
         }
 
         function loadConsultationIntoClientProgramById(id) {
@@ -4797,7 +4672,7 @@
             if (validationError) return showError(validationError);
             const payload = readFitplanClientProgramPayload();
             if (!payload.clientName) return showError('Въведи име на клиента.');
-            if (!payload.clientAnswers?.gender) return showError('Попълни структурираната бланка (поне пол и основни данни).');
+            if (!payload.clientAnswers?.gender) return showError('Попълни въпросника (поне пол и основни данни).');
             status.textContent = 'Запазване…';
             try {
                 const response = await fetch(FITPLAN_WORKER_URL + '/api/admin/fitplan/client-programs', {
@@ -4884,7 +4759,7 @@
             if (!item) return showError('Програмата не е намерена. Обнови списъка.');
             resetFitplanClientProgramForm();
             fillFitplanClientProgramForm(item);
-            document.getElementById('fcpStructuredForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            document.getElementById('fcpQuestionnaireStatus').scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
         async function deleteFitplanClientProgram(id, approved = false) {
@@ -11525,24 +11400,21 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
     <script type="module">
         import {
             initAdminClientForm,
-            setAdminFormData,
             loadAdminClientRecord,
             validateAdminClientForm,
             buildAdminClientPayload,
             resetAdminClientForm,
+            openAdminQuestionnaire,
         } from './fitness/admin-client-form.js';
 
         window.FcpForm = {
             init() {
-                const container = document.getElementById('fcpStructuredForm');
-                if (!container) return;
                 initAdminClientForm({
-                    container,
+                    status: document.getElementById('fcpQuestionnaireStatus'),
                     preview: document.getElementById('fcpProfilePreview'),
-                    legacyNotice: document.getElementById('fcpLegacyNotice'),
                 });
             },
-            setData(data) { setAdminFormData(data); },
+            open() { openAdminQuestionnaire(); },
             loadRecord(data) { loadAdminClientRecord(data); },
             validate() { return validateAdminClientForm(); },
             payload() { return buildAdminClientPayload(); },

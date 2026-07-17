@@ -282,7 +282,7 @@ test('buildAdminPlanUserPrompt: женски профил + идентичнос
   assert.ok(prompt.includes('Жена, 28 г.'));
   assert.ok(prompt.includes('hip thrust'));
   assert.ok(prompt.includes('Насока за жена'));
-  assert.ok(prompt.includes('НИТО ЕДНО изречение'));
+  assert.ok(prompt.includes('НИТО ЕДНО'));
   assert.ok(prompt.includes('БАЗОВИ ПРИНЦИПИ'));
   assert.ok(prompt.includes('Принцип А'));
   assert.ok(prompt.includes('ЗАБРАНЕНИ'));

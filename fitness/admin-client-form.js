@@ -1,6 +1,6 @@
 /**
- * KA-TRAINER — админ въпросник за клиентски програми.
- * Стъпков визард (същият UI като клиентския), компактен за админ панела.
+ * KA-TRAINER — админ въпросник в модал (същите въпроси като при клиентите).
+ * Компактен изглед на страницата; пълният въпросник се отваря в overlay.
  */
 import { activeQuestions, buildAnswers, validateQuestion, visibleOptions } from './questions.js';
 import { buildProfileSummary } from './profile-summary.js';
@@ -18,10 +18,11 @@ const DOM = {
 };
 
 let formState = {};
-let containerEl = null;
-let previewEl = null;
-let legacyEl = null;
 let wizard = null;
+let modalEl = null;
+let statusEl = null;
+let previewEl = null;
+let onUpdateCb = null;
 let lastGender = null;
 
 function $(id) {
@@ -32,6 +33,34 @@ function dom(key) {
   return $(DOM[key] || key);
 }
 
+function stepDone(q) {
+  return !validateQuestion(q, formState);
+}
+
+function progressSummary() {
+  const list = activeQuestions(formState);
+  const done = list.filter(stepDone).length;
+  const current = wizard?.getStepIndex() ?? 0;
+  const q = list[current];
+  return { total: list.length, done, currentTitle: q?.title || '' };
+}
+
+function updateStatus() {
+  if (!statusEl) return;
+  const { total, done, currentTitle } = progressSummary();
+  const answers = buildAnswers(formState);
+  if (answers.gender && done === total) {
+    statusEl.innerHTML = `<span class="fcp-q-done"><i class="fas fa-check-circle"></i> Въпросникът е попълнен (${done}/${total})</span>`;
+    statusEl.classList.add('fcp-q-complete');
+  } else if (answers.gender || done > 0) {
+    statusEl.innerHTML = `<span class="fcp-q-partial">${done}/${total} стъпки · ${currentTitle || 'продължи'}</span>`;
+    statusEl.classList.remove('fcp-q-complete');
+  } else {
+    statusEl.innerHTML = '<span class="fcp-q-empty">Въпросникът не е попълнен</span>';
+    statusEl.classList.remove('fcp-q-complete');
+  }
+}
+
 function updatePreview() {
   if (!previewEl) return;
   try {
@@ -40,16 +69,12 @@ function updatePreview() {
       previewEl.textContent = buildProfileSummary(answers);
       previewEl.classList.remove('fcp-preview-empty');
     } else {
-      previewEl.textContent = 'Попълни основните данни за преглед…';
+      previewEl.textContent = 'Попълни въпросника за преглед…';
       previewEl.classList.add('fcp-preview-empty');
     }
   } catch {
     previewEl.textContent = '';
   }
-}
-
-function stepDone(q) {
-  return !validateQuestion(q, formState);
 }
 
 function updateStepNav() {
@@ -58,12 +83,10 @@ function updateStepNav() {
   const list = activeQuestions(formState);
   const current = wizard?.getStepIndex() ?? 0;
   nav.innerHTML = '';
-
   list.forEach((q, idx) => {
-    const done = stepDone(q);
     const classes = ['fcp-step'];
     if (idx === current) classes.push('active');
-    else if (done) classes.push('done');
+    else if (stepDone(q)) classes.push('done');
     nav.append(el('button', {
       type: 'button',
       class: classes.join(' '),
@@ -79,28 +102,36 @@ function updateStepNav() {
   });
 }
 
-function buildShell(container) {
-  container.innerHTML = '';
-  container.className = 'fcp-wizard';
-
-  const stepNav = el('div', { class: 'fcp-steps', id: DOM.stepNav });
-  const head = el('div', { class: 'fcp-wizard-head' },
-    el('div', { class: 'fcp-progress-track', role: 'progressbar' },
-      el('div', { class: 'fcp-progress-fill', id: DOM.progressFill }),
-    ),
-    el('div', { class: 'fcp-progress-meta' },
-      el('span', { id: DOM.stepLabel }),
-      el('span', { id: DOM.stepPct }),
+function buildModal() {
+  if (modalEl) return;
+  modalEl = el('div', { class: 'fcp-modal hidden', id: 'fcpModal', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Клиентски въпросник' },
+    el('div', { class: 'fcp-modal-backdrop', onclick: () => closeModal() }),
+    el('div', { class: 'fcp-modal-panel' },
+      el('div', { class: 'fcp-modal-head' },
+        el('h3', { text: 'Клиентски въпросник' }),
+        el('button', { type: 'button', class: 'fcp-modal-close', text: '×', onclick: () => closeModal() }),
+      ),
+      el('div', { class: 'fcp-wizard', id: 'fcpWizardMount' },
+        el('div', { class: 'fcp-steps', id: DOM.stepNav }),
+        el('div', { class: 'fcp-wizard-head' },
+          el('div', { class: 'fcp-progress-track', role: 'progressbar' },
+            el('div', { class: 'fcp-progress-fill', id: DOM.progressFill }),
+          ),
+          el('div', { class: 'fcp-progress-meta' },
+            el('span', { id: DOM.stepLabel }),
+            el('span', { id: DOM.stepPct }),
+          ),
+        ),
+        el('div', { class: 'fcp-q-card', id: DOM.questionCard }),
+        el('p', { class: 'fcp-step-error', id: DOM.stepError, hidden: true }),
+        el('div', { class: 'fcp-wizard-nav' },
+          el('button', { type: 'button', class: 'fcp-btn-ghost', id: DOM.btnBack }, '← Назад'),
+          el('button', { type: 'button', class: 'fcp-btn-primary', id: DOM.btnNext }, 'Напред →'),
+        ),
+      ),
     ),
   );
-  const card = el('div', { class: 'fcp-q-card', id: DOM.questionCard });
-  const err = el('p', { class: 'fcp-step-error', id: DOM.stepError, hidden: true });
-  const nav = el('div', { class: 'fcp-wizard-nav' },
-    el('button', { type: 'button', class: 'fcp-btn-ghost', id: DOM.btnBack }, '← Назад'),
-    el('button', { type: 'button', class: 'fcp-btn-primary', id: DOM.btnNext }, 'Напред →'),
-  );
-
-  container.append(stepNav, head, card, err, nav);
+  document.body.append(modalEl);
 
   $(DOM.btnBack).addEventListener('click', () => {
     wizard.prevStep();
@@ -108,7 +139,16 @@ function buildShell(container) {
     dom('stepError').hidden = true;
   });
   $(DOM.btnNext).addEventListener('click', () => {
-    if (wizard.nextStep()) updateStepNav();
+    const list = activeQuestions(formState);
+    const atEnd = wizard.getStepIndex() >= list.length - 1;
+    if (wizard.nextStep()) {
+      updateStepNav();
+      if (atEnd) closeModal();
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modalEl && !modalEl.classList.contains('hidden')) closeModal();
   });
 }
 
@@ -125,52 +165,52 @@ function initWizard() {
         lastGender = g;
         wizard.renderStep();
       }
-      updatePreview();
       updateStepNav();
+      updateStatus();
+      updatePreview();
+      onUpdateCb?.();
     },
-    onComplete: () => updatePreview(),
+    onComplete: () => {
+      updateStatus();
+      updatePreview();
+      onUpdateCb?.();
+      closeModal();
+    },
     finalButtonText: 'Готово',
   });
-  wizard.renderStep();
-  updateStepNav();
-  updatePreview();
 }
 
-/** Инициализира формата в контейнера. */
-export function initAdminClientForm({ container, preview, legacyNotice }) {
-  containerEl = container;
+export function openAdminQuestionnaire() {
+  buildModal();
+  wizard.renderStep();
+  updateStepNav();
+  modalEl.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+export function closeModal() {
+  if (!modalEl) return;
+  modalEl.classList.add('hidden');
+  document.body.style.overflow = '';
+  updateStatus();
+  updatePreview();
+  onUpdateCb?.();
+}
+
+export function initAdminClientForm({ status, preview, onUpdate } = {}) {
+  statusEl = status;
   previewEl = preview;
-  legacyEl = legacyNotice;
+  onUpdateCb = onUpdate;
   formState = {};
-  buildShell(container);
   lastGender = null;
+  buildModal();
   initWizard();
+  updateStatus();
+  updatePreview();
 }
 
 export function getAdminFormState() {
   return JSON.parse(JSON.stringify(formState));
-}
-
-export function setAdminFormData({ clientAnswers, clientProfile } = {}) {
-  if (clientAnswers && typeof clientAnswers === 'object') {
-    formState = answersToFormState(clientAnswers);
-    if (legacyEl) legacyEl.classList.add('hidden');
-  } else if (clientProfile?.trim()) {
-    formState = {};
-    if (legacyEl) {
-      legacyEl.classList.remove('hidden');
-      legacyEl.textContent = 'Стар запис със свободен текст. Попълни въпросника и запази отново.';
-    }
-  } else {
-    formState = {};
-    if (legacyEl) legacyEl.classList.add('hidden');
-  }
-  if (wizard) {
-    wizard.reset();
-    wizard.renderStep();
-    updateStepNav();
-    updatePreview();
-  }
 }
 
 function answersToFormState(a) {
@@ -181,12 +221,10 @@ function answersToFormState(a) {
     heightCm: a.heightCm ?? '',
     weightKg: a.weightKg ?? '',
   };
-
   const healthSel = [];
   const healthInputs = { healthMeds: a.healthMeds || '', healthOther: a.healthOther || '' };
   for (const item of a.health || []) {
     if (item.startsWith('медикаменти:')) healthInputs.healthMeds = item.replace(/^медикаменти:\s*/, '');
-    else if (!['Приемам медикаменти редовно', 'Друго'].includes(item)) healthSel.push(item);
     else healthSel.push(item);
   }
   if (a.healthMeds && !healthSel.includes('Приемам медикаменти редовно')) {
@@ -255,6 +293,36 @@ function answersToFormState(a) {
   return s;
 }
 
+export function loadAdminClientRecord({ clientFormState, clientAnswers } = {}) {
+  if (clientFormState && typeof clientFormState === 'object') {
+    formState = clientFormState;
+  } else if (clientAnswers && typeof clientAnswers === 'object') {
+    formState = answersToFormState(clientAnswers);
+  } else {
+    formState = {};
+  }
+  lastGender = formState.basics?.gender || null;
+  if (wizard) {
+    wizard.reset();
+    wizard.renderStep();
+    updateStepNav();
+  }
+  updateStatus();
+  updatePreview();
+}
+
+export function resetAdminClientForm() {
+  formState = {};
+  lastGender = null;
+  if (wizard) {
+    wizard.reset();
+    wizard.renderStep();
+    updateStepNav();
+  }
+  updateStatus();
+  updatePreview();
+}
+
 export function validateAdminClientForm() {
   for (const q of activeQuestions(formState)) {
     const err = validateQuestion(q, formState);
@@ -270,31 +338,4 @@ export function buildAdminClientPayload() {
     clientFormState: getAdminFormState(),
     clientProfile: buildProfileSummary(clientAnswers),
   };
-}
-
-export function loadAdminClientRecord({ clientFormState, clientAnswers, clientProfile } = {}) {
-  if (clientFormState && typeof clientFormState === 'object') {
-    formState = clientFormState;
-    if (legacyEl) legacyEl.classList.add('hidden');
-  } else {
-    setAdminFormData({ clientAnswers, clientProfile });
-    return;
-  }
-  if (wizard) {
-    wizard.reset();
-    wizard.renderStep();
-    updateStepNav();
-    updatePreview();
-  }
-}
-
-export function resetAdminClientForm() {
-  formState = {};
-  if (legacyEl) legacyEl.classList.add('hidden');
-  if (wizard) {
-    wizard.reset();
-    wizard.renderStep();
-    updateStepNav();
-    updatePreview();
-  }
 }
