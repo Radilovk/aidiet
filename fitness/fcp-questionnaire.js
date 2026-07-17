@@ -1,12 +1,14 @@
 /**
  * KA-TRAINER — админ въпросник (модал). API е в admin.html inline.
  */
+const CACHE = 'v2';
+
 import {
   activeQuestions, buildAnswers,
   validateQuestion, visibleOptions,
-} from './questions.js';
-import { buildProfileSummary } from './profile-summary.js';
-import { createWizardController, el } from './wizard-ui.js';
+} from `./questions.js?${CACHE}`;
+import { buildProfileSummary } from `./profile-summary.js?${CACHE}`;
+import { createWizardController, el } from `./wizard-ui.js?${CACHE}`;
 
 const IDS = {
   questionCard: 'fcpQuestionCard',
@@ -154,10 +156,15 @@ function ensureModal() {
 export function open() {
   ensureModal();
   ensureWizard();
-  wizard.renderStep();
-  syncUi();
-  modal.hidden = false;
-  document.body.style.overflow = 'hidden';
+  requestAnimationFrame(() => {
+    if (!wizard) return;
+    wizard.renderStep();
+    syncUi();
+    if (modal) {
+      modal.hidden = false;
+      document.body.style.overflow = 'hidden';
+    }
+  });
 }
 
 export function close() {
