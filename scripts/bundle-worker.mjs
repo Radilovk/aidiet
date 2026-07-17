@@ -4,7 +4,7 @@
  * Wrangler deploy прави същото автоматично; този скрипт е за проверка и ръчен upload.
  */
 import { spawnSync } from 'node:child_process';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -34,6 +34,11 @@ const out = `${result.stdout || ''}${result.stderr || ''}`.trim();
 if (result.status !== 0) {
   console.error('❌ Worker bundle failed:\n', out || result.error?.message);
   process.exit(result.status ?? 1);
+}
+
+const bundled = readFileSync(outfile, 'utf8');
+if (!bundled.startsWith('// @ts-nocheck')) {
+  writeFileSync(outfile, `// @ts-nocheck\n${bundled}`, 'utf8');
 }
 
 console.log(`✅ Bundled → dist/worker.bundled.js`);
