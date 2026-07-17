@@ -77,6 +77,13 @@ jobs:
       - name: Verify worker (bundle + health)
         run: npm run test:worker
 
+      - name: Upload deploy bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: worker-deploy-bundle
+          path: worker.deploy.js
+          retention-days: 14
+
       # Create the queues if they do not yet exist in Cloudflare.
       # This step requires the Queues:Edit permission on CLOUDFLARE_API_TOKEN.
       - name: Create queues (idempotent)

@@ -1,7 +1,13 @@
 #!/usr/bin/env node
 /**
- * Bundle worker.js + всички import-и в един файл за Cloudflare.
- * Wrangler deploy прави същото автоматично; този скрипт е за проверка и ръчен upload.
+ * Bundle worker.js + всички import-и в ЕДИН файл.
+ *
+ * Ръчен Cloudflare dashboard upload:
+ *   npm run build:worker
+ *   → копирай СЪДЪРЖАНИЕТО на worker.deploy.js в Quick edit
+ *   → НЕ качвай source worker.js (има import-и → "No such module")
+ *
+ * Автоматичен deploy: npx wrangler deploy --env production
  */
 import { spawnSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -11,6 +17,14 @@ import { fileURLToPath } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const outDir = join(root, 'dist');
 const outfile = join(outDir, 'worker.bundled.js');
+const deployFile = join(root, 'worker.deploy.js');
+
+const BANNER = `/**
+ * DEPLOY ФАЙЛ — единен bundle за Cloudflare dashboard.
+ * Генериран от: npm run build:worker
+ * НЕ редактирай ръчно. За разработка ползвай source worker.js + wrangler deploy.
+ */
+`;
 
 mkdirSync(outDir, { recursive: true });
 
@@ -22,8 +36,9 @@ const result = spawnSync(
     'worker.js',
     '--bundle',
     '--format=esm',
-    '--platform=neutral',
+    '--platform=browser',
     '--target=es2022',
+    '--conditions=worker',
     `--outfile=${outfile}`,
     '--log-level=warning',
   ],
@@ -36,11 +51,15 @@ if (result.status !== 0) {
   process.exit(result.status ?? 1);
 }
 
-const bundled = readFileSync(outfile, 'utf8');
-if (!bundled.startsWith('// @ts-nocheck')) {
-  writeFileSync(outfile, `// @ts-nocheck\n${bundled}`, 'utf8');
+let bundled = readFileSync(outfile, 'utf8');
+if (/^import\s+/m.test(bundled)) {
+  console.error('❌ Bundle still contains external imports — не е готов за ръчен upload');
+  process.exit(1);
 }
 
-console.log(`✅ Bundled → dist/worker.bundled.js`);
-console.log('   Ръчен upload в Cloudflare dashboard: качи dist/worker.bundled.js (НЕ source worker.js)');
+writeFileSync(deployFile, BANNER + bundled, 'utf8');
+writeFileSync(outfile, bundled, 'utf8');
+
+console.log('✅ worker.deploy.js — качи ТОЗИ файл в Cloudflare dashboard');
+console.log('✅ dist/worker.bundled.js — същото съдържание');
 if (out) console.log(out);
