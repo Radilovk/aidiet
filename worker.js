@@ -1,11 +1,3 @@
-// @ts-check
-/**
- * @typedef {Error & {truncated?: boolean; validationFailed?: boolean; validationErrors?: unknown}} WorkerError
- * @typedef {{thinkingBudget?: number}} GeminiThinkingConfig
- * @typedef {{responseMimeType?: string; responseSchema?: unknown; temperature?: number; maxOutputTokens?: number; topP?: number; topK?: number; thinkingConfig?: GeminiThinkingConfig}} GeminiGenerationConfig
- * @typedef {{clientId?: string; userId?: string; email?: string}} PlanEditLockArgs
- * @typedef {EcdhKeyDeriveParams & {public: CryptoKey}} EcdhDeriveBitsParams
- */
 import {
   serializeUserProfile,
   serializeBackendCalculations,
