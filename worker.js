@@ -1,4 +1,3 @@
-/// <reference path="./types/worker.d.ts" />
 import {
   serializeUserProfile,
   serializeBackendCalculations,
