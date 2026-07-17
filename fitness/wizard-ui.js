@@ -52,10 +52,11 @@ export function createWizardController({
 
   function renderFields(q, container) {
     const state = getState()[q.id] || (getState()[q.id] = {});
+    const fields = Array.isArray(q.fields) ? q.fields : [];
 
     const renderAll = () => {
       container.innerHTML = '';
-      for (const f of q.fields) {
+      for (const f of fields) {
         if (f.showIf && state[f.showIf.key] !== f.showIf.equals) continue;
         const field = el('div', { class: 'field' });
         field.append(el('label', { class: 'field-label', text: f.label }));
@@ -112,7 +113,7 @@ export function createWizardController({
 
   function renderMulti(q, container) {
     const state = getState()[q.id] || (getState()[q.id] = { selected: [], inputs: {} });
-    const options = visibleOptions(q, getState());
+    const options = visibleOptions(q, getState()) || [];
 
     const renderAll = () => {
       container.innerHTML = '';
@@ -162,11 +163,12 @@ export function createWizardController({
 
   function renderSingle(q, container) {
     const state = getState()[q.id] || (getState()[q.id] = { selected: null, inputs: {} });
+    const options = Array.isArray(q.options) ? q.options : [];
 
     const renderAll = () => {
       container.innerHTML = '';
       const list = el('div', { class: 'opt-list' });
-      for (const opt of q.options) {
+      for (const opt of options) {
         const isActive = state.selected === opt.value;
         const cardEl = el('div', { class: `opt-card radio${isActive ? ' active' : ''}`, role: 'radio', 'aria-checked': String(isActive), tabindex: '0' });
         cardEl.append(el('div', { class: 'opt-row' },
