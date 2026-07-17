@@ -2435,6 +2435,32 @@
 
             <!-- FitPlan Tab -->
             <div id="tab-fitplan" class="tab-content">
+            <style>
+                .fcp-form { display:flex; flex-direction:column; gap:12px; }
+                .fcp-section { border:1px solid #e5e7eb; border-radius:10px; padding:14px; background:var(--bg-color,#fff); }
+                .fcp-section h4 { margin:0 0 6px; font-size:0.95rem; }
+                .fcp-section-sub { margin:0 0 10px; color:var(--text-gray); font-size:0.85rem; }
+                .fcp-fields { display:grid; gap:10px; }
+                .fcp-field { display:flex; flex-direction:column; gap:6px; }
+                .fcp-label { font-size:0.85rem; font-weight:600; }
+                .fcp-input, .fcp-textarea { width:100%; padding:8px 10px; border:1px solid #d1d5db; border-radius:8px; font:inherit; box-sizing:border-box; }
+                .fcp-textarea { min-height:72px; resize:vertical; }
+                .fcp-choice-group { display:flex; flex-wrap:wrap; gap:6px; }
+                .fcp-choice { border:1px solid #d1d5db; background:#f9fafb; border-radius:999px; padding:6px 12px; font-size:0.82rem; cursor:pointer; }
+                .fcp-choice.active { background:#6366f1; color:#fff; border-color:#6366f1; }
+                .fcp-opt-list { display:flex; flex-direction:column; gap:8px; }
+                .fcp-opt { display:flex; flex-direction:column; gap:6px; padding:10px 12px; border:1px solid #e5e7eb; border-radius:8px; cursor:pointer; }
+                .fcp-opt.active { border-color:#6366f1; background:#eef2ff; }
+                .fcp-opt-inputs { display:flex; flex-direction:column; gap:6px; margin-top:4px; }
+                .fcp-num-row { display:flex; align-items:center; gap:8px; }
+                .fcp-num-row .fcp-input { max-width:120px; }
+                .fcp-suffix { color:var(--text-gray); font-size:0.85rem; }
+                .fcp-scale-row { display:flex; align-items:center; gap:12px; }
+                .fcp-range { flex:1; }
+                .fcp-scale-val { min-width:24px; font-weight:700; }
+                .fcp-preview { background:#f3f4f6; border-radius:8px; padding:12px; color:#374151; }
+                .fcp-preview-empty { color:#9ca3af; font-style:italic; }
+            </style>
             <div class="card">
                 <h2><i class="fas fa-dumbbell"></i> KA-TRAINER — Принципи за тренировки</h2>
                 <div class="info-box">
@@ -2496,9 +2522,16 @@
                     <input type="text" id="fcpClientContact" placeholder="за твоя справка">
                 </div>
                 <div class="form-group">
-                    <label for="fcpClientProfile">Профил на клиента (свободен текст)</label>
-                    <textarea id="fcpClientProfile" rows="8" placeholder="Задължително: пол (Жена/Мъж), възраст, цел, здраве, опит, оборудване, ограничения, предпочитания, честота, време за тренировка..."></textarea>
-                    <small style="color:var(--text-gray);">Започни с пола (Жена/Мъж) — системата избира релевантните насоки по тагове. Синтезирай цялата информация.</small>
+                    <label>Профил на клиента — структурирана бланка</label>
+                    <div class="info-box" style="margin-bottom:12px;">
+                        <strong>Същите въпроси като клиентския въпросник.</strong> Попълни полетата — системата автоматично извлича пол, цел, оборудване, забрани и насоки. Свободният текст вече не е основен вход.
+                    </div>
+                    <div id="fcpLegacyNotice" class="hidden" style="margin-bottom:10px;padding:10px 12px;border-radius:8px;background:#fef3c7;color:#92400e;font-size:0.9rem;"></div>
+                    <div id="fcpStructuredForm" class="fcp-form"></div>
+                    <details style="margin-top:12px;">
+                        <summary style="cursor:pointer;color:var(--text-gray);font-size:0.9rem;">Преглед на автоматичния профил</summary>
+                        <pre id="fcpProfilePreview" class="fcp-preview fcp-preview-empty" style="margin-top:8px;white-space:pre-wrap;font-size:0.85rem;"></pre>
+                    </details>
                 </div>
                 <div class="form-group">
                     <label for="fcpExampleScheme">Схема и указания</label>
@@ -4457,7 +4490,7 @@
             document.getElementById('fcpId').value = '';
             document.getElementById('fcpClientName').value = '';
             document.getElementById('fcpClientContact').value = '';
-            document.getElementById('fcpClientProfile').value = '';
+            window.FcpForm?.reset?.();
             document.getElementById('fcpExampleScheme').value = '';
             const statusEl = document.getElementById('fcpStatus');
             statusEl.textContent = '';
@@ -4487,7 +4520,11 @@
             document.getElementById('fcpId').value = program.id || '';
             document.getElementById('fcpClientName').value = program.clientName || '';
             document.getElementById('fcpClientContact').value = program.clientContact || '';
-            document.getElementById('fcpClientProfile').value = program.clientProfile || '';
+            window.FcpForm?.loadRecord?.({
+                clientFormState: program.clientFormState,
+                clientAnswers: program.clientAnswers,
+                clientProfile: program.clientProfile,
+            });
             document.getElementById('fcpExampleScheme').value = program.exampleScheme || '';
             fcpCurrentPlanId = program.planId || null;
             const previewBtn = document.getElementById('fcpPreviewBtn');
@@ -4513,10 +4550,10 @@
             resetFitplanClientProgramForm();
             document.getElementById('fcpClientName').value = name || '';
             document.getElementById('fcpClientContact').value = contact || '';
-            document.getElementById('fcpClientProfile').value = summary || '';
+            window.FcpForm?.setData?.({ clientProfile: summary || '' });
             document.getElementById('fcpExampleScheme').value = `От консултация (${id}). Допълни схемата по дни и упражнения.`;
             document.getElementById('fcpStatus').textContent = 'Заредено от консултация — допълни схемата и генерирай.';
-            document.getElementById('fcpClientProfile').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            document.getElementById('fcpStructuredForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
             showSuccess('Данните от консултацията са заредени във формата.');
         }
 
@@ -4527,20 +4564,25 @@
         }
 
         function readFitplanClientProgramPayload() {
+            const built = window.FcpForm?.payload?.();
             return {
                 id: document.getElementById('fcpId').value.trim() || undefined,
                 clientName: document.getElementById('fcpClientName').value.trim(),
                 clientContact: document.getElementById('fcpClientContact').value.trim(),
-                clientProfile: document.getElementById('fcpClientProfile').value.trim(),
+                clientAnswers: built?.clientAnswers,
+                clientFormState: built?.clientFormState,
+                clientProfile: built?.clientProfile || '',
                 exampleScheme: document.getElementById('fcpExampleScheme').value.trim(),
             };
         }
 
         async function saveFitplanClientProgram() {
             const status = document.getElementById('fcpStatus');
+            const validationError = window.FcpForm?.validate?.();
+            if (validationError) return showError(validationError);
             const payload = readFitplanClientProgramPayload();
             if (!payload.clientName) return showError('Въведи име на клиента.');
-            if (!payload.clientProfile) return showError('Въведи профил на клиента.');
+            if (!payload.clientAnswers?.gender) return showError('Попълни структурираната бланка (поне пол и основни данни).');
             status.textContent = 'Запазване…';
             try {
                 const response = await fetch(FITPLAN_WORKER_URL + '/api/admin/fitplan/client-programs', {
@@ -4627,7 +4669,7 @@
             if (!item) return showError('Програмата не е намерена. Обнови списъка.');
             resetFitplanClientProgramForm();
             fillFitplanClientProgramForm(item);
-            document.getElementById('fcpClientProfile').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            document.getElementById('fcpStructuredForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
         async function deleteFitplanClientProgram(id, approved = false) {
@@ -11263,6 +11305,39 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 input.type = 'password';
                 icon.className = 'fas fa-eye';
             }
+        }
+    </script>
+    <script type="module">
+        import {
+            initAdminClientForm,
+            setAdminFormData,
+            loadAdminClientRecord,
+            validateAdminClientForm,
+            buildAdminClientPayload,
+            resetAdminClientForm,
+        } from './fitness/admin-client-form.js';
+
+        window.FcpForm = {
+            init() {
+                const container = document.getElementById('fcpStructuredForm');
+                if (!container) return;
+                initAdminClientForm({
+                    container,
+                    preview: document.getElementById('fcpProfilePreview'),
+                    legacyNotice: document.getElementById('fcpLegacyNotice'),
+                });
+            },
+            setData(data) { setAdminFormData(data); },
+            loadRecord(data) { loadAdminClientRecord(data); },
+            validate() { return validateAdminClientForm(); },
+            payload() { return buildAdminClientPayload(); },
+            reset() { resetAdminClientForm(); },
+        };
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => window.FcpForm.init());
+        } else {
+            window.FcpForm.init();
         }
     </script>
 </body>

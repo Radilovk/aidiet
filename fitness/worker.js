@@ -56,6 +56,7 @@ import {
   translateBatchResilient,
 } from './exercise-translate-batch.js';
 import { normalizeText, tokenize } from './normalize.js';
+import { buildProfileSummary } from './profile-summary.js';
 import {
   GUIDELINE_CHUNKS,
   MAX_FOUNDATION_CHARS,
@@ -73,11 +74,14 @@ import {
   buildAdminPlanUserPrompt,
   buildBriefIdentityBlock,
   preparePlanGeneration,
+  parseAdminBriefConstraints,
+  allowedEquipmentFromBrief,
 } from './plan-generation.js';
 
 export {
   normalizeText,
   tokenize,
+  buildProfileSummary,
   GUIDELINE_CHUNKS,
   MAX_FOUNDATION_CHARS,
   MAX_GUIDELINE_ITEMS,
@@ -94,6 +98,8 @@ export {
   buildAdminPlanUserPrompt,
   buildBriefIdentityBlock,
   preparePlanGeneration,
+  parseAdminBriefConstraints,
+  allowedEquipmentFromBrief,
 };
 
 // ============================================================================
@@ -464,63 +470,8 @@ function checkAdminSecret(request, env) {
 }
 
 // ============================================================================
-// Компактен профил от отговорите на въпросника
+// Компактен профил — profile-summary.js
 // ============================================================================
-
-function line(label, value) {
-  return value ? `${label}: ${value}` : '';
-}
-
-/**
- * Свежда 14-те отговора до компактен текстов профил (~250-400 токена),
- * използван и в промпта за генерация, и като контекст на AI треньора.
- */
-export function buildProfileSummary(a) {
-  const parts = [];
-  parts.push(`${a.gender || '?'}, ${a.age || '?'} г., ${a.heightCm || '?'} см, ${a.weightKg || '?'} кг`);
-
-  const health = [...(a.health || []), ...(a.healthFemale || [])].filter((h) => !normalizeText(h).includes('няма'));
-  if (a.healthMeds) health.push(`медикаменти: ${a.healthMeds}`);
-  if (a.healthOther) health.push(a.healthOther);
-  parts.push(line('Здраве', health.join('; ') || 'без установени заболявания'));
-
-  const limits = (a.limitations || []).filter((l) => !normalizeText(l).includes('нямам'));
-  parts.push(line('Опорно-двигателни ограничения (ЗАДЪЛЖИТЕЛНО СЪОБРАЗИ)', limits.join('; ')));
-
-  if (a.weightChange && a.weightChange.type && a.weightChange.type !== 'stable') {
-    const dir = a.weightChange.type === 'gain' ? 'качил(а)' : 'свалил(а)';
-    parts.push(`Тегло последните 6 мес: ${dir} ${a.weightChange.amountKg || '?'} кг (${a.weightChange.reason || 'без посочена причина'})`);
-  }
-
-  parts.push(line('Сън', a.sleep));
-  parts.push(line('Стрес (1-10)', a.stress));
-  parts.push(line('Дневна активност', a.dailyActivity));
-  if (a.sportActivity) {
-    parts.push(line('Спортна активност', a.sportActivity.status + (a.sportActivity.current ? ` — ${a.sportActivity.current}` : '')));
-  }
-  parts.push(line('Тренировъчен опит', a.experience));
-  if (a.nutrition) {
-    parts.push(line('Хранене', `${a.nutrition.type || '?'}${a.nutrition.custom ? ` (${a.nutrition.custom})` : ''}, ${a.nutrition.mealsPerDay || '?'} хранения/ден`));
-  }
-  if (a.goal) {
-    const goalText = a.goal.main === 'друго' ? a.goal.other : a.goal.main;
-    parts.push(line('ЦЕЛ', `${goalText || '?'}${a.goal.deadline ? `, срок: ${a.goal.deadline}` : ', без краен срок'}`));
-  }
-  parts.push(line('Оборудване', [...(a.equipment || []), a.equipmentOther].filter(Boolean).join(', ')));
-  if (a.preferences) {
-    const p = a.preferences;
-    parts.push(line('Предпочитания', [
-      (p.types || []).join('/'),
-      p.freq ? `${p.freq} трен./седм.` : '',
-      p.duration || '',
-      p.timeOfDay ? `време: ${p.timeOfDay}` : '',
-    ].filter(Boolean).join(', ')));
-    parts.push(line('НЕ ЖЕЛАЕ движения', p.avoid));
-  }
-  parts.push(line('Допълнително от клиента', a.extraInfo));
-
-  return parts.filter(Boolean).join('\n');
-}
 
 // ============================================================================
 // AI промпт за генерация на план
@@ -1347,10 +1298,18 @@ function trimClientProgramFields(body = {}) {
   if (legacyNotes && !exampleScheme.includes(legacyNotes)) {
     exampleScheme = exampleScheme ? `${exampleScheme}\n\n${legacyNotes}` : legacyNotes;
   }
+  const clientAnswers = body.clientAnswers && typeof body.clientAnswers === 'object' ? body.clientAnswers : null;
+  const clientFormState = body.clientFormState && typeof body.clientFormState === 'object' ? body.clientFormState : null;
+  let clientProfile = String(body.clientProfile || '').trim().slice(0, MAX_CLIENT_PROFILE_CHARS);
+  if (clientAnswers?.gender && clientAnswers?.age) {
+    clientProfile = buildProfileSummary(clientAnswers).slice(0, MAX_CLIENT_PROFILE_CHARS);
+  }
   return {
     clientName: String(body.clientName || '').trim().slice(0, 120),
     clientContact: String(body.clientContact || '').trim().slice(0, 200),
-    clientProfile: String(body.clientProfile || '').trim().slice(0, MAX_CLIENT_PROFILE_CHARS),
+    clientProfile,
+    clientAnswers,
+    clientFormState,
     exampleScheme: exampleScheme.slice(0, MAX_EXAMPLE_SCHEME_CHARS),
     consultationId: String(body.consultationId || '').trim().slice(0, 80) || null,
   };
@@ -1379,6 +1338,9 @@ function clientProgramPublicView(record) {
     clientName: record.clientName,
     clientContact: record.clientContact,
     clientProfile: record.clientProfile,
+    clientAnswers: record.clientAnswers || null,
+    clientFormState: record.clientFormState || null,
+    hasStructuredProfile: Boolean(record.clientAnswers?.gender),
     exampleScheme: record.exampleScheme,
     consultationId: record.consultationId,
     status: record.status === 'approved' ? 'approved' : 'draft',
@@ -1421,7 +1383,9 @@ async function handleSaveClientProgram(request, env) {
 
   const fields = trimClientProgramFields(body);
   if (!fields.clientName) return errorResponse('Моля, въведи име на клиента', 400);
-  if (!fields.clientProfile) return errorResponse('Моля, опиши профила на клиента', 400);
+  if (!fields.clientAnswers?.gender && !fields.clientProfile) {
+    return errorResponse('Попълни структурираната бланка (поне пол и основни данни)', 400);
+  }
 
   const now = new Date().toISOString();
   let record = body.id ? await loadClientProgram(env, body.id) : null;
@@ -1441,7 +1405,9 @@ async function handleSaveClientProgram(request, env) {
     };
   } else {
     const briefChanged = fields.clientProfile !== record.clientProfile
-      || fields.exampleScheme !== record.exampleScheme;
+      || fields.exampleScheme !== record.exampleScheme
+      || JSON.stringify(fields.clientAnswers || null) !== JSON.stringify(record.clientAnswers || null)
+      || JSON.stringify(fields.clientFormState || null) !== JSON.stringify(record.clientFormState || null);
     if (briefChanged && record.planId) {
       await env.FITNESS_KV.delete(`plan:${record.planId}`);
       record.planId = null;
@@ -1461,16 +1427,26 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
   const record = await loadClientProgram(env, id);
   if (!record) return errorResponse('Програмата не е намерена', 404, 'not_found');
   if (record.status === 'approved') return errorResponse('Програмата вече е одобрена', 400, 'locked');
-  if (!record.clientProfile?.trim()) return errorResponse('Липсва описание на профила', 400);
+  if (!record.clientAnswers?.gender && !record.clientProfile?.trim()) {
+    return errorResponse('Липсва профил на клиента', 400);
+  }
 
   const adminGuidelines = await loadAdminGuidelines(env);
-  const { userPrompt, coachProfileText } = preparePlanGeneration(
-    {
+  const genSource = record.clientAnswers?.gender
+    ? {
+      clientAnswers: record.clientAnswers,
+      exampleScheme: record.exampleScheme,
+      clientName: record.clientName,
+      clientContact: record.clientContact,
+    }
+    : {
       clientProfile: record.clientProfile,
       exampleScheme: record.exampleScheme,
       clientName: record.clientName,
       clientContact: record.clientContact,
-    },
+    };
+  const { userPrompt, coachProfileText, allowedEquipment } = preparePlanGeneration(
+    genSource,
     adminGuidelines,
     { buildProfileSummary, allowedEquipmentSet },
   );
@@ -1481,7 +1457,7 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
     ({ plan, coachContext } = await executePlanGeneration(env, ctx, {
       userPrompt,
       coachProfileText,
-      allowedEquipment: null,
+      allowedEquipment,
     }));
   } catch (e) {
     if (isPlanParseError(e)) {

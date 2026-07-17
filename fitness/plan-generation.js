@@ -11,6 +11,7 @@
  */
 
 import { normalizeText } from './normalize.js';
+import { buildProfileSummary } from './profile-summary.js';
 
 export const MAX_FOUNDATION_CHARS = 800;
 export const MAX_GUIDELINE_ITEMS = 8;
@@ -49,11 +50,8 @@ const TEXT_TAG_RULES = [
   { tag: 'goal:силови показатели', keys: ['силови показатели', 'силов тренинг', '1rm', 'goal:силови'] },
   { tag: 'goal:рехабилитация след травма', keys: ['рехабилитация', 'рехаб', 'след травма', 'goal:рехаб'] },
   { tag: 'goal:издръжливост', keys: ['издръжливост', 'zone 2', 'zone2', 'goal:издръжливост'] },
-  { tag: 'goal:рекомпозиция', keys: ['рекомпозиция', 'goal:рекомпозиция'] },
+  { tag: 'goal:рекомпозиция', keys: ['рекомпозиция', 'оформяне', 'стягане', 'релеф', 'тонус', 'дефиниция', 'goal:рекомпозиция'] },
   { tag: 'goal:обща кондиция', keys: ['обща кондиция', 'goal:обща'] },
-  { tag: 'level:начинаещ', keys: ['начинаещ', '0-6 мес', 'level:начинаещ'] },
-  { tag: 'level:среден', keys: ['среден опит', '2-5 год', 'level:среден'] },
-  { tag: 'level:напреднал', keys: ['напреднал', '5+ год', 'level:напреднал'] },
   { tag: 'health:хипертония', keys: ['хипертония', 'високо кръвно', 'health:хипертония'] },
   { tag: 'health:сърдечно-съдово', keys: ['сърдечно', 'cardio риск', 'health:сърдечно'] },
   { tag: 'health:диабет', keys: ['диабет', 'преддиабет', 'health:диабет'] },
@@ -65,7 +63,7 @@ const TEXT_TAG_RULES = [
   { tag: 'stress:висок', keys: ['висок стрес', 'стрес 8', 'стрес 9', 'стрес 10', 'stress:висок'] },
   { tag: 'equipment:ограничено', keys: ['ограничено оборудване', 'само дъмбели', 'собствено тегло', 'equipment:ограничено'] },
   { tag: 'time:сутрин', keys: ['сутрешн', 'time:сутрин'] },
-  { tag: 'age:50+', keys: ['над 50', '50+', 'age:50'] },
+  { tag: 'age:50+', keys: ['над 50', '50+', 'age:50', '50 години'] },
   { tag: 'gender:жена', keys: ['жена', 'жени', 'пол жена', 'gender:жена', 'female'] },
   { tag: 'gender:мъж', keys: ['мъж', 'мъже', 'пол мъж', 'gender:мъж', 'male'] },
 ];
@@ -100,14 +98,200 @@ function isUniversal(tags) {
   return !tags?.length || tags.some((t) => UNIVERSAL_TAGS.has(t));
 }
 
+/** Ниво от свободен текст — без фалшиви съвпадения (напр. „45 годишна“ ≠ 5+ год опит). */
+function extractLevelTags(combined) {
+  const tags = new Set();
+  if (/\bсреден\b|средно\s+начинаещ|2\s*5\s*год/.test(combined)) {
+    tags.add('level:среден');
+    return tags;
+  }
+  if (/\bнапреднал\b|\b5\+\s*години\b|\bнад\s*5\s*години?\s+опит/.test(combined)) {
+    tags.add('level:напреднал');
+    return tags;
+  }
+  if ((/\bначинаещ\b|0\s*6\s*мес/.test(combined) || /\bникакъв\b/.test(combined)) && !/средно\s+начинаещ/.test(combined)) {
+    tags.add('level:начинаещ');
+  }
+  return tags;
+}
+
+function extractAgeTag(combined) {
+  const m = combined.match(/\b(\d{2})\s*(?:годишн|г(?:одини)?)\b/);
+  const age = m ? Number(m[1]) : NaN;
+  return Number.isFinite(age) && age >= 50 ? 'age:50+' : null;
+}
+
+/**
+ * Извлича твърди ограничения от админ бриф (профил + схема).
+ * Профилът е свободен текст — AI не винаги го „чете“; тук го структурираме като hard-veto.
+ */
+export function parseAdminBriefConstraints(clientProfile = '', exampleScheme = '') {
+  const raw = [clientProfile, exampleScheme].filter(Boolean).join('\n');
+  const equipmentList = [];
+  const exclusions = [];
+  const priorities = [];
+  const schedule = [];
+
+  const equipMatch = raw.match(/(?:уреди|оборудване)\s*[:：]\s*([^\n]+)/i);
+  if (equipMatch) {
+    for (const item of equipMatch[1].split(/[,;]/)) {
+      const t = item.trim();
+      if (t) equipmentList.push(t);
+    }
+  }
+
+  for (const pattern of [
+    /гърди\s+не[^.\n]*/gi,
+    /без\s+гърди[^.\n]*/gi,
+    /без\s+страничн[иа]\s+рамен[ае][^.\n]*/gi,
+    /без\s+(?:бърпи|клек|мъртв|преси|кранч|падан)[^.\n]*/gi,
+    /не\s+(?:прави|правим|включвай|искам)[^.\n]*/gi,
+    /избягвай[^.\n]*/gi,
+    /забранено[^.\n]*/gi,
+  ]) {
+    for (const m of raw.match(pattern) || []) {
+      const t = m.trim();
+      if (t.length > 4) exclusions.push(t);
+    }
+  }
+
+  for (const pattern of [
+    /приоритет[^.\n]*/gi,
+    /акцент[^.\n]*/gi,
+    /фокус[^.\n]*/gi,
+  ]) {
+    for (const m of raw.match(pattern) || []) {
+      const t = m.trim();
+      if (t.length > 6) priorities.push(t);
+    }
+  }
+
+  for (const pattern of [
+    /\d+\s*тренировк[аи][^.\n]*/gi,
+    /без\s+(?:събота|неделя)[^.\n]*/gi,
+  ]) {
+    for (const m of raw.match(pattern) || []) schedule.push(m.trim());
+  }
+
+  return {
+    equipmentList: [...new Set(equipmentList)],
+    exclusions: [...new Set(exclusions)],
+    priorities: [...new Set(priorities)],
+    schedule: [...new Set(schedule)],
+  };
+}
+
+/** Ограничения от структурирани answers + схема на треньора. */
+export function constraintsFromAnswers(answers, exampleScheme = '') {
+  const equipmentList = [];
+  for (const e of answers?.equipment || []) {
+    if (e && e !== 'Друго') equipmentList.push(e);
+  }
+  if (answers?.equipmentOther) {
+    for (const part of String(answers.equipmentOther).split(/[,;\n]/)) {
+      const t = part.trim();
+      if (t) equipmentList.push(t);
+    }
+  }
+
+  const exclusions = [];
+  if (answers?.preferences?.avoid?.trim()) {
+    exclusions.push(`Не желае движения: ${answers.preferences.avoid.trim()}`);
+  }
+  for (const lim of answers?.limitations || []) {
+    if (lim && !normalizeText(lim).includes('нямам')) exclusions.push(`Ограничение: ${lim}`);
+  }
+
+  const priorities = [];
+  if (answers?.extraInfo?.trim()) priorities.push(answers.extraInfo.trim());
+  const goalText = answers?.goal?.main === 'друго' ? answers.goal.other : answers?.goal?.main;
+  if (goalText) priorities.push(`Цел: ${goalText}`);
+
+  const schedule = [];
+  if (answers?.preferences?.freq) schedule.push(`${answers.preferences.freq} тренировки седмично`);
+  if (answers?.preferences?.duration) schedule.push(`Продължителност: ${answers.preferences.duration}`);
+
+  const fromScheme = parseAdminBriefConstraints('', exampleScheme);
+  return {
+    equipmentList: [...new Set([...equipmentList, ...fromScheme.equipmentList])],
+    exclusions: [...new Set([...exclusions, ...fromScheme.exclusions])],
+    priorities: [...new Set([...priorities, ...fromScheme.priorities])],
+    schedule: [...new Set([...schedule, ...fromScheme.schedule])],
+  };
+}
+
+const ADMIN_EQUIPMENT_HINTS = [
+  { keys: ['скрипец', 'pulley', 'кабел'], hints: ['cable'] },
+  { keys: ['гирич', 'дъмбел', 'dumbbell'], hints: ['dumbbell'] },
+  { keys: ['лост', 'щанг', 'barbell'], hints: ['barbell'] },
+  { keys: ['машин', 'аддуктор', 'абдуктор'], hints: ['leverage machine'] },
+  { keys: ['степ', 'блокче'], hints: ['body weight'] },
+  { keys: ['ластик', 'band'], hints: ['band'] },
+];
+
+/** Позволено оборудване от админ бриф (за post-filter на упражнения). */
+export function allowedEquipmentFromBrief(clientProfile = '', exampleScheme = '') {
+  const { equipmentList } = parseAdminBriefConstraints(clientProfile, exampleScheme);
+  if (!equipmentList.length) return null;
+  const set = new Set(['body weight']);
+  for (const item of equipmentList) {
+    const n = normalizeText(item);
+    for (const { keys, hints } of ADMIN_EQUIPMENT_HINTS) {
+      if (keys.some((k) => n.includes(normalizeText(k)))) {
+        for (const h of hints) set.add(normalizeText(h));
+      }
+    }
+  }
+  return set.size > 1 ? set : null;
+}
+
+function buildAdminHardRulesBlock(constraints) {
+  const parts = [];
+  if (constraints.equipmentList?.length) {
+    parts.push(
+      'ЕДИНСТВЕНО ПОЗВОЛЕНО ОБОРУДВАНЕ (hard-veto — забранено е всичко извън списъка):',
+      ...constraints.equipmentList.map((e) => `• ${e}`),
+      'equipmentHint: cable за скрипец; leverage machine за машини; dumbbell за гирички; barbell само ако е изрично изброен лост/щанга.',
+    );
+  }
+  if (constraints.exclusions?.length) {
+    parts.push(
+      'ЗАБРАНЕНИ ДВИЖЕНИЯ / МУСКУЛНИ ГРУПИ (hard-veto — 0 серии, 0 упражнения):',
+      ...constraints.exclusions.map((e) => `• ${e}`),
+    );
+  }
+  if (constraints.priorities?.length) {
+    parts.push(
+      'ПРИОРИТЕТЕН ФОКУС (най-висок обем тук):',
+      ...constraints.priorities.map((p) => `• ${p}`),
+    );
+  }
+  if (constraints.schedule?.length) {
+    parts.push(
+      'ГРАФИК И СТРУКТУРА НА СЕДМИЦАТА:',
+      ...constraints.schedule.map((s) => `• ${s}`),
+    );
+  }
+  if (!parts.length) return '';
+  return [
+    '═══ ТВЪРДИ ПРАВИЛА ОТ ТРЕНЬОРА (hard-veto — над всичко друго) ═══',
+    ...parts,
+  ].join('\n');
+}
+
 /** Тагове от свободен текст (админ бриф). */
 export function extractTagsFromText(...parts) {
   const combined = normalizeText(parts.filter(Boolean).join(' '));
   const tags = new Set();
   if (!combined) return tags;
   for (const { tag, keys } of TEXT_TAG_RULES) {
+    if (tag.startsWith('level:') || tag === 'age:50+') continue;
     if (keys.some((k) => combined.includes(normalizeText(k)))) tags.add(tag);
   }
+  for (const t of extractLevelTags(combined)) tags.add(t);
+  const ageTag = extractAgeTag(combined);
+  if (ageTag) tags.add(ageTag);
+
   const explicit = combined.match(/(?:goal|level|health|sleep|stress|equipment|time|age|gender):[a-zа-я0-9+-]+/gi) || [];
   for (const raw of explicit) tags.add(raw.toLowerCase().replace(/\s/g, ''));
   return tags;
@@ -267,17 +451,31 @@ export function buildBriefIdentityBlock(brief) {
 
 export function buildAdminPlanUserPrompt(brief, layers, foundation = '') {
   const { individual = [], architecture = [] } = layers || {};
-  const { clientProfile = '', exampleScheme = '' } = brief || {};
+  const { clientProfile = '', exampleScheme = '', constraints: presetConstraints } = brief || {};
+  const foundationText = String(foundation || '').trim().slice(0, MAX_FOUNDATION_CHARS);
+  const constraints = presetConstraints || parseAdminBriefConstraints(clientProfile, exampleScheme);
+  const hardRules = buildAdminHardRulesBlock(constraints);
 
   const individualBlock = [
     buildBriefIdentityBlock(brief),
+  ];
+  if (hardRules) individualBlock.push('', hardRules);
+  if (foundationText) {
+    individualBlock.push(
+      '',
+      '═══ БАЗОВИ ПРИНЦИПИ НА ТРЕНЬОРА (задължителни — приложи във всяко упражнение) ═══',
+      foundationText,
+    );
+  }
+  individualBlock.push(
     '',
     'РЕЖИМ: Треньорът е подготвил профила и примерна схема. Следвай конкретиката — дни, упражнения, обеми, ограничения. Не игнорирай НИТО ЕДНО изречение от полетата по-долу.',
     'canonicalName трябва да съвпада със стандартни имена от exercise бази, за да се намерят GIF/видеа.',
+    'Преди финален JSON: провери дали всяко упражнение е от позволеното оборудване и не нарушава ЗАБРАНЕНИТЕ групи.',
     '',
     'ПРОФИЛ И ДАННИ ЗА КЛИЕНТА (индивидуален — задължително отрази ВСИЧКО):',
     String(clientProfile || '').trim(),
-  ];
+  );
   if (String(exampleScheme || '').trim()) {
     individualBlock.push('', 'СХЕМА, РАЗПРЕДЕЛЕНИЕ И УКАЗАНИЯ (индивидуални — структурирай плана по тях):', String(exampleScheme).trim());
   }
@@ -286,7 +484,11 @@ export function buildAdminPlanUserPrompt(brief, layers, foundation = '') {
     ? `\n\nИНДИВИДУАЛНИ НАСОКИ ЗА ТОЗИ КЛИЕНТ (приоритет над архитектурната рамка):\n- ${individual.join('\n- ')}`
     : '';
 
-  return `${individualBlock.join('\n')}${individualGuidelines}${formatArchitectureBlock(architecture, foundation)}\n\nСъздай седмичния план сега. Отговори САМО с JSON.`;
+  const architectureBlock = architecture.length
+    ? `\n\n═══ АРХИТЕКТУРНА РАМКА (универсални насоки — отстъпват при конфликт с индивидуалното) ═══\n- ${architecture.join('\n- ')}`
+    : '';
+
+  return `${individualBlock.join('\n')}${individualGuidelines}${architectureBlock}\n\nСъздай седмичния план сега. Отговори САМО с JSON.`;
 }
 
 /**
@@ -294,9 +496,34 @@ export function buildAdminPlanUserPrompt(brief, layers, foundation = '') {
  * @param source — { answers } от въпросник ИЛИ { clientProfile, exampleScheme, clientName?, clientContact? } от админ
  */
 export function preparePlanGeneration(source, adminConfig, helpers) {
+  const foundation = adminConfig?.foundation || '';
+
+  if (source.clientAnswers) {
+    const answers = source.clientAnswers;
+    const profileText = helpers.buildProfileSummary(answers);
+    const layers = resolveGuidelineLayers(buildTagsFromAnswers(answers), adminConfig);
+    const brief = {
+      clientProfile: profileText,
+      exampleScheme: source.exampleScheme || '',
+      constraints: constraintsFromAnswers(answers, source.exampleScheme),
+    };
+    const coachProfileText = [
+      source.clientName ? `Клиент: ${source.clientName}` : 'Клиент: —',
+      source.clientContact ? `Контакт: ${source.clientContact}` : '',
+      '',
+      profileText,
+      source.exampleScheme ? `\nСхема и указания:\n${source.exampleScheme}` : '',
+    ].filter(Boolean).join('\n');
+    const equipmentInput = [...(answers.equipment || []), answers.equipmentOther].filter(Boolean);
+    return {
+      userPrompt: buildAdminPlanUserPrompt(brief, layers, foundation),
+      coachProfileText,
+      allowedEquipment: helpers.allowedEquipmentSet(equipmentInput),
+    };
+  }
+
   const tags = collectTags(source);
   const layers = resolveGuidelineLayers(tags, adminConfig);
-  const foundation = adminConfig?.foundation || '';
 
   if (source.answers) {
     const profileText = helpers.buildProfileSummary(source.answers);
@@ -322,6 +549,6 @@ export function preparePlanGeneration(source, adminConfig, helpers) {
   return {
     userPrompt: buildAdminPlanUserPrompt(brief, layers, foundation),
     coachProfileText,
-    allowedEquipment: null,
+    allowedEquipment: allowedEquipmentFromBrief(source.clientProfile, source.exampleScheme),
   };
 }
