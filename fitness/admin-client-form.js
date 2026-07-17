@@ -1,38 +1,35 @@
 /**
- * KA-TRAINER — структурирана админ бланка за клиентски програми.
- * Използва същите въпроси като клиентския въпросник (questions.js).
+ * KA-TRAINER — админ въпросник за клиентски програми.
+ * Стъпков визард (същият UI като клиентския), компактен за админ панела.
  */
-import { QUESTIONS, activeQuestions, buildAnswers, validateQuestion } from './questions.js';
+import { activeQuestions, buildAnswers, validateQuestion, visibleOptions } from './questions.js';
 import { buildProfileSummary } from './profile-summary.js';
+import { createWizardController, el } from './wizard-ui.js';
+
+const DOM = {
+  questionCard: 'fcpQuestionCard',
+  progressFill: 'fcpProgressFill',
+  stepLabel: 'fcpStepLabel',
+  stepPct: 'fcpStepPct',
+  stepError: 'fcpStepError',
+  btnBack: 'fcpBtnBack',
+  btnNext: 'fcpBtnNext',
+  stepNav: 'fcpStepNav',
+};
 
 let formState = {};
 let containerEl = null;
 let previewEl = null;
 let legacyEl = null;
+let wizard = null;
+let lastGender = null;
 
-function el(tag, attrs = {}, children = []) {
-  const node = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs)) {
-    if (k === 'class') node.className = v;
-    else if (k === 'text') node.textContent = v;
-    else if (k.startsWith('on')) node.addEventListener(k.slice(2), v);
-    else if (v !== undefined && v !== null && v !== false) node.setAttribute(k, v === true ? '' : String(v));
-  }
-  for (const child of children) {
-    if (child == null) continue;
-    node.append(child.nodeType ? child : document.createTextNode(child));
-  }
-  return node;
+function $(id) {
+  return document.getElementById(id);
 }
 
-function ensureState(question) {
-  if (formState[question.id] !== undefined) return formState[question.id];
-  if (question.type === 'fields') formState[question.id] = {};
-  else if (question.type === 'multi') formState[question.id] = { selected: [], inputs: {} };
-  else if (question.type === 'single') formState[question.id] = { selected: null, inputs: {} };
-  else if (question.type === 'scale') formState[question.id] = 5;
-  else formState[question.id] = '';
-  return formState[question.id];
+function dom(key) {
+  return $(DOM[key] || key);
 }
 
 function updatePreview() {
@@ -43,7 +40,7 @@ function updatePreview() {
       previewEl.textContent = buildProfileSummary(answers);
       previewEl.classList.remove('fcp-preview-empty');
     } else {
-      previewEl.textContent = 'Попълни поне пол, възраст, ръст и тегло…';
+      previewEl.textContent = 'Попълни основните данни за преглед…';
       previewEl.classList.add('fcp-preview-empty');
     }
   } catch {
@@ -51,196 +48,92 @@ function updatePreview() {
   }
 }
 
-function rerender() {
-  if (!containerEl) return;
-  containerEl.innerHTML = '';
-  for (const q of activeQuestions(formState)) {
-    containerEl.append(renderSection(q));
-  }
-  updatePreview();
+function stepDone(q) {
+  return !validateQuestion(q, formState);
 }
 
-function renderSection(q) {
-  const section = el('div', { class: 'fcp-section', 'data-qid': q.id });
-  section.append(el('h4', { text: `${q.num}. ${q.title}` }));
-  if (q.subtitle) section.append(el('p', { class: 'fcp-section-sub', text: q.subtitle }));
+function updateStepNav() {
+  const nav = $(DOM.stepNav);
+  if (!nav) return;
+  const list = activeQuestions(formState);
+  const current = wizard?.getStepIndex() ?? 0;
+  nav.innerHTML = '';
 
-  if (q.type === 'fields') renderFields(q, section);
-  else if (q.type === 'multi') renderMulti(q, section);
-  else if (q.type === 'single') renderSingle(q, section);
-  else if (q.type === 'scale') renderScale(q, section);
-  else if (q.type === 'text') renderText(q, section);
-
-  return section;
-}
-
-function renderFields(q, section) {
-  const state = ensureState(q);
-  const wrap = el('div', { class: 'fcp-fields' });
-
-  const paint = () => {
-    wrap.innerHTML = '';
-    for (const f of q.fields) {
-      if (f.showIf && state[f.showIf.key] !== f.showIf.equals) continue;
-      const field = el('div', { class: 'fcp-field' });
-      field.append(el('label', { class: 'fcp-label', text: f.label + (f.required ? ' *' : '') }));
-
-      if (f.type === 'choice') {
-        const group = el('div', { class: 'fcp-choice-group' });
-        for (const opt of f.options) {
-          group.append(el('button', {
-            type: 'button',
-            class: `fcp-choice${state[f.key] === opt ? ' active' : ''}`,
-            text: opt,
-            onclick: () => { state[f.key] = opt; if (f.key === 'gender') rerender(); else paint(); updatePreview(); },
-          }));
-        }
-        field.append(group);
-      } else if (f.type === 'chips') {
-        const selected = new Set(state[f.key] || []);
-        const group = el('div', { class: 'fcp-choice-group' });
-        for (const opt of f.options) {
-          group.append(el('button', {
-            type: 'button',
-            class: `fcp-choice${selected.has(opt) ? ' active' : ''}`,
-            text: opt,
-            onclick: () => {
-              if (selected.has(opt)) selected.delete(opt);
-              else selected.add(opt);
-              state[f.key] = [...selected];
-              paint();
-              updatePreview();
-            },
-          }));
-        }
-        field.append(group);
-      } else if (f.type === 'number') {
-        const row = el('div', { class: 'fcp-num-row' });
-        const input = el('input', {
-          type: 'number', class: 'fcp-input', min: f.min, max: f.max,
-          value: state[f.key] ?? '',
-          oninput: (e) => { state[f.key] = e.target.value; updatePreview(); },
-        });
-        row.append(input);
-        if (f.suffix) row.append(el('span', { class: 'fcp-suffix', text: f.suffix }));
-        field.append(row);
-      } else {
-        field.append(el('input', {
-          type: 'text', class: 'fcp-input', placeholder: f.placeholder || '',
-          value: state[f.key] ?? '',
-          oninput: (e) => { state[f.key] = e.target.value; updatePreview(); },
-        }));
-      }
-      wrap.append(field);
-    }
-  };
-  paint();
-  section.append(wrap);
-}
-
-function renderMulti(q, section) {
-  const state = ensureState(q);
-  const list = el('div', { class: 'fcp-opt-list' });
-
-  const paint = () => {
-    list.innerHTML = '';
-    const selected = new Set(state.selected || []);
-    for (const opt of q.options) {
-      const active = selected.has(opt.value);
-      const card = el('label', { class: `fcp-opt${active ? ' active' : ''}` });
-      const cb = el('input', {
-        type: 'checkbox',
-        checked: active,
-        onchange: (e) => {
-          if (e.target.checked) {
-            if (opt.exclusive) selected.clear();
-            else for (const o of q.options) if (o.exclusive) selected.delete(o.value);
-            selected.add(opt.value);
-          } else selected.delete(opt.value);
-          state.selected = [...selected];
-          paint();
-          updatePreview();
-        },
-      });
-      card.append(cb, el('span', { text: opt.value }));
-
-      const inputs = opt.inputs || (opt.input ? [opt.input] : []);
-      if (active && inputs.length) {
-        const iw = el('div', { class: 'fcp-opt-inputs' });
-        for (const inp of inputs) {
-          iw.append(el('input', {
-            type: inp.type === 'number' ? 'number' : 'text',
-            class: 'fcp-input',
-            placeholder: inp.placeholder || '',
-            value: state.inputs[inp.key] ?? '',
-            oninput: (e) => { state.inputs[inp.key] = e.target.value; updatePreview(); },
-          }));
-        }
-        card.append(iw);
-      }
-      list.append(card);
-    }
-  };
-  paint();
-  section.append(list);
-}
-
-function renderSingle(q, section) {
-  const state = ensureState(q);
-  const list = el('div', { class: 'fcp-opt-list' });
-
-  const paint = () => {
-    list.innerHTML = '';
-    for (const opt of q.options) {
-      const active = state.selected === opt.value;
-      const card = el('label', { class: `fcp-opt${active ? ' active' : ''}` });
-      card.append(el('input', {
-        type: 'radio',
-        name: `fcp_${q.id}`,
-        checked: active,
-        onchange: () => { state.selected = opt.value; paint(); updatePreview(); },
-      }), el('span', { text: opt.value }));
-
-      const inputs = opt.inputs || (opt.input ? [opt.input] : []);
-      if (active && inputs.length) {
-        const iw = el('div', { class: 'fcp-opt-inputs' });
-        for (const inp of inputs) {
-          iw.append(el('input', {
-            type: inp.type === 'number' ? 'number' : 'text',
-            class: 'fcp-input',
-            placeholder: inp.placeholder || '',
-            value: state.inputs[inp.key] ?? '',
-            oninput: (e) => { state.inputs[inp.key] = e.target.value; updatePreview(); },
-          }));
-        }
-        card.append(iw);
-      }
-      list.append(card);
-    }
-  };
-  paint();
-  section.append(list);
-}
-
-function renderScale(q, section) {
-  const state = ensureState(q);
-  const input = el('input', {
-    type: 'range', class: 'fcp-range', min: q.min, max: q.max, value: state ?? 5,
-    oninput: (e) => { formState[q.id] = Number(e.target.value); val.textContent = e.target.value; updatePreview(); },
+  list.forEach((q, idx) => {
+    const done = stepDone(q);
+    const classes = ['fcp-step'];
+    if (idx === current) classes.push('active');
+    else if (done) classes.push('done');
+    nav.append(el('button', {
+      type: 'button',
+      class: classes.join(' '),
+      title: q.title,
+      text: String(q.num),
+      onclick: () => {
+        wizard.setStepIndex(idx);
+        wizard.renderStep();
+        updateStepNav();
+        dom('stepError').hidden = true;
+      },
+    }));
   });
-  const val = el('span', { class: 'fcp-scale-val', text: String(state ?? 5) });
-  section.append(el('div', { class: 'fcp-scale-row' }, input, val));
 }
 
-function renderText(q, section) {
-  const state = ensureState(q);
-  section.append(el('textarea', {
-    class: 'fcp-textarea',
-    rows: '3',
-    placeholder: q.placeholder || '',
-    value: state || '',
-    oninput: (e) => { formState[q.id] = e.target.value; updatePreview(); },
-  }));
+function buildShell(container) {
+  container.innerHTML = '';
+  container.className = 'fcp-wizard';
+
+  const stepNav = el('div', { class: 'fcp-steps', id: DOM.stepNav });
+  const head = el('div', { class: 'fcp-wizard-head' },
+    el('div', { class: 'fcp-progress-track', role: 'progressbar' },
+      el('div', { class: 'fcp-progress-fill', id: DOM.progressFill }),
+    ),
+    el('div', { class: 'fcp-progress-meta' },
+      el('span', { id: DOM.stepLabel }),
+      el('span', { id: DOM.stepPct }),
+    ),
+  );
+  const card = el('div', { class: 'fcp-q-card', id: DOM.questionCard });
+  const err = el('p', { class: 'fcp-step-error', id: DOM.stepError, hidden: true });
+  const nav = el('div', { class: 'fcp-wizard-nav' },
+    el('button', { type: 'button', class: 'fcp-btn-ghost', id: DOM.btnBack }, '← Назад'),
+    el('button', { type: 'button', class: 'fcp-btn-primary', id: DOM.btnNext }, 'Напред →'),
+  );
+
+  container.append(stepNav, head, card, err, nav);
+
+  $(DOM.btnBack).addEventListener('click', () => {
+    wizard.prevStep();
+    updateStepNav();
+    dom('stepError').hidden = true;
+  });
+  $(DOM.btnNext).addEventListener('click', () => {
+    if (wizard.nextStep()) updateStepNav();
+  });
+}
+
+function initWizard() {
+  wizard = createWizardController({
+    getEl: dom,
+    getQuestions: () => activeQuestions(formState),
+    visibleOptions,
+    validateQuestion,
+    getState: () => formState,
+    onPersist: () => {
+      const g = formState.basics?.gender;
+      if (g !== lastGender) {
+        lastGender = g;
+        wizard.renderStep();
+      }
+      updatePreview();
+      updateStepNav();
+    },
+    onComplete: () => updatePreview(),
+    finalButtonText: 'Готово',
+  });
+  wizard.renderStep();
+  updateStepNav();
+  updatePreview();
 }
 
 /** Инициализира формата в контейнера. */
@@ -249,15 +142,15 @@ export function initAdminClientForm({ container, preview, legacyNotice }) {
   previewEl = preview;
   legacyEl = legacyNotice;
   formState = {};
-  rerender();
+  buildShell(container);
+  lastGender = null;
+  initWizard();
 }
 
-/** Връща суровото състояние на формата (wizard state). */
 export function getAdminFormState() {
   return JSON.parse(JSON.stringify(formState));
 }
 
-/** Зарежда записан state или legacy clientProfile текст. */
 export function setAdminFormData({ clientAnswers, clientProfile } = {}) {
   if (clientAnswers && typeof clientAnswers === 'object') {
     formState = answersToFormState(clientAnswers);
@@ -266,16 +159,20 @@ export function setAdminFormData({ clientAnswers, clientProfile } = {}) {
     formState = {};
     if (legacyEl) {
       legacyEl.classList.remove('hidden');
-      legacyEl.textContent = 'Стар запис със свободен текст. Попълни структурираната бланка по-долу и запази отново.';
+      legacyEl.textContent = 'Стар запис със свободен текст. Попълни въпросника и запази отново.';
     }
   } else {
     formState = {};
     if (legacyEl) legacyEl.classList.add('hidden');
   }
-  rerender();
+  if (wizard) {
+    wizard.reset();
+    wizard.renderStep();
+    updateStepNav();
+    updatePreview();
+  }
 }
 
-/** Обратно от answers към wizard state (за зареждане на запис). */
 function answersToFormState(a) {
   const s = {};
   s.basics = {
@@ -284,23 +181,62 @@ function answersToFormState(a) {
     heightCm: a.heightCm ?? '',
     weightKg: a.weightKg ?? '',
   };
-  s.health = { selected: [...(a.health || [])], inputs: { healthMeds: a.healthMeds || '', healthOther: a.healthOther || '' } };
+
+  const healthSel = [];
+  const healthInputs = { healthMeds: a.healthMeds || '', healthOther: a.healthOther || '' };
+  for (const item of a.health || []) {
+    if (item.startsWith('медикаменти:')) healthInputs.healthMeds = item.replace(/^медикаменти:\s*/, '');
+    else if (!['Приемам медикаменти редовно', 'Друго'].includes(item)) healthSel.push(item);
+    else healthSel.push(item);
+  }
+  if (a.healthMeds && !healthSel.includes('Приемам медикаменти редовно')) {
+    healthSel.push('Приемам медикаменти редовно');
+  }
+  s.health = { selected: healthSel, inputs: healthInputs };
+
   if (a.healthFemale?.length) {
     const label = a.healthFemale[0];
     if (label.includes('Бременна')) {
       s.womenContext = { selected: 'Бременна', inputs: { pregnancyTrimester: label.split(':').pop()?.trim() || '' } };
     } else if (label.includes('Кърмене')) {
-      s.womenContext = { selected: 'Кърмя в момента', inputs: {} };
+      s.womenContext = { selected: 'Кърмя в момента', inputs: { breastfeedingMonths: label.match(/\d+/)?.[0] || '' } };
     } else if (label.includes('Следродилен')) {
-      s.womenContext = { selected: 'Скоро след раждане (до 6 месеца)', inputs: {} };
+      s.womenContext = { selected: 'Скоро след раждане (до 6 месеца)', inputs: { postpartumMonths: label.match(/\d+/)?.[0] || '' } };
     } else if (label.includes('Менопауза')) {
       s.womenContext = { selected: 'Менопауза / перименопауза', inputs: {} };
     } else {
       s.womenContext = { selected: 'Други хормонални особености', inputs: { womenOther: label } };
     }
   }
-  s.limitations = { selected: (a.limitations || []).map((l) => l.split(':')[0].trim()), inputs: {} };
-  s.weightChange = { selected: a.weightChange?.type === 'gain' ? 'Да, качих килограми' : a.weightChange?.type === 'loss' ? 'Да, свалих килограми' : 'Не, теглото ми е стабилно', inputs: {} };
+
+  const limSel = [];
+  const limInputs = {};
+  for (const item of a.limitations || []) {
+    const [base, detail] = item.split(':').map((x) => x.trim());
+    const keyMap = {
+      'Диагностициран проблем': 'limitDiagnosed',
+      'Болка при конкретно движение без официална диагноза': 'limitPainMove',
+      'Прекаран хирургичен опорно-двигателен проблем': 'limitSurgery',
+      'Друго': 'limitOther',
+    };
+    limSel.push(base);
+    if (detail && keyMap[base]) limInputs[keyMap[base]] = detail;
+  }
+  s.limitations = { selected: limSel, inputs: limInputs };
+
+  const wcInputs = {};
+  let wcSel = 'Не, теглото ми е стабилно';
+  if (a.weightChange?.type === 'gain') {
+    wcSel = 'Да, качих килограми';
+    wcInputs.gainKg = a.weightChange.amountKg ?? '';
+    wcInputs.gainReason = a.weightChange.reason || '';
+  } else if (a.weightChange?.type === 'loss') {
+    wcSel = 'Да, свалих килограми';
+    wcInputs.lossKg = a.weightChange.amountKg ?? '';
+    wcInputs.lossReason = a.weightChange.reason || '';
+  }
+  s.weightChange = { selected: wcSel, inputs: wcInputs };
+
   s.sleep = { selected: a.sleep || '' };
   s.stress = a.stress ?? 5;
   s.dailyActivity = { selected: a.dailyActivity || '' };
@@ -322,12 +258,11 @@ function answersToFormState(a) {
 export function validateAdminClientForm() {
   for (const q of activeQuestions(formState)) {
     const err = validateQuestion(q, formState);
-    if (err) return `${q.title}: ${err}`;
+    if (err) return `${q.num}. ${q.title}: ${err}`;
   }
   return null;
 }
 
-/** Payload за запис към API. */
 export function buildAdminClientPayload() {
   const clientAnswers = buildAnswers(formState);
   return {
@@ -337,7 +272,6 @@ export function buildAdminClientPayload() {
   };
 }
 
-/** Зарежда запис — предпочита запазен form state. */
 export function loadAdminClientRecord({ clientFormState, clientAnswers, clientProfile } = {}) {
   if (clientFormState && typeof clientFormState === 'object') {
     formState = clientFormState;
@@ -346,11 +280,21 @@ export function loadAdminClientRecord({ clientFormState, clientAnswers, clientPr
     setAdminFormData({ clientAnswers, clientProfile });
     return;
   }
-  rerender();
+  if (wizard) {
+    wizard.reset();
+    wizard.renderStep();
+    updateStepNav();
+    updatePreview();
+  }
 }
 
 export function resetAdminClientForm() {
   formState = {};
   if (legacyEl) legacyEl.classList.add('hidden');
-  rerender();
+  if (wizard) {
+    wizard.reset();
+    wizard.renderStep();
+    updateStepNav();
+    updatePreview();
+  }
 }
