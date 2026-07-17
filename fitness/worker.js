@@ -569,11 +569,11 @@ const COMPACT_PLAN_RETRY_HINT = `
 async function callGemini(env, { system, user, temperature = 0.4, maxOutputTokens = 8192, jsonMode = true }) {
   const model = env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.GEMINI_API_KEY}`;
-  const generationConfig = {
+  const generationConfig = /** @type {GeminiGenerationConfig} */ ({
     temperature,
     maxOutputTokens,
     ...(jsonMode ? { responseMimeType: 'application/json' } : {}),
-  };
+  });
   // Gemini 2.5 Flash/Pro: thinking по подразбиране изяжда maxOutputTokens → отрязан JSON.
   if (/gemini-2\.5/i.test(model)) {
     generationConfig.thinkingConfig = { thinkingBudget: 0 };
@@ -604,7 +604,7 @@ async function callGemini(env, { system, user, temperature = 0.4, maxOutputToken
     throw new Error(`Gemini: празен отговор${finishReason ? ` (${finishReason})` : ''}`);
   }
   if (finishReason === 'MAX_TOKENS') {
-    const err = new Error('Gemini: отговорът е отрязан (MAX_TOKENS)');
+    const err = /** @type {WorkerError} */ (new Error('Gemini: отговорът е отрязан (MAX_TOKENS)'));
     err.truncated = true;
     throw err;
   }
@@ -640,7 +640,7 @@ async function callOpenAI(env, { system, user, temperature = 0.4, maxOutputToken
   const finishReason = choice?.finish_reason || '';
   if (!text) throw new Error('OpenAI: празен отговор');
   if (finishReason === 'length') {
-    const err = new Error('OpenAI: отговорът е отрязан (length)');
+    const err = /** @type {WorkerError} */ (new Error('OpenAI: отговорът е отрязан (length)'));
     err.truncated = true;
     throw err;
   }
@@ -831,7 +831,7 @@ function todayStamp() {
 function secondsToMidnightUTC() {
   const now = new Date();
   const midnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
-  return Math.max(60, Math.floor((midnight - now) / 1000));
+  return Math.max(60, Math.floor((midnight.getTime() - now.getTime()) / 1000));
 }
 
 /** Връща {allowed, remaining}. При липса на KV — always allow (dev режим). */

@@ -15,7 +15,7 @@ function norm(text) {
 }
 
 /** Глобални корекции в AI/интерфейс текстове (без \\b — кирилицата не е word-boundary в JS) */
-const BG_TEXT_FIXES = [
+const BG_TEXT_FIXES = /** @type {[RegExp, string][]} */ ([
   [/затежняване/gi, 'утежняване'],
   [/затежняваш/gi, 'утежняваш'],
   [/затежнява/gi, 'утежнява'],
@@ -26,8 +26,8 @@ const BG_TEXT_FIXES = [
   [/бърпита/gi, 'бърпи'],
   [/бърпитата/gi, 'бърпи'],
   [/кранчове/gi, 'коремни преси'],
-  [/class crunches/gi, 'класически коремни преси'],
-];
+  [/\bclass crunches\b/gi, 'класически коремни преси'],
+]);
 
 const EQUIP_BG = {
   dumbbell: 'дъмбели',
@@ -276,8 +276,8 @@ export function sanitizeBgText(text) {
 
 /**
  * Връща естествено българско име за упражнение.
- * @param {string} canonicalName — EN каталожно име
- * @param {string} [aiDisplayName] — какво е върнал AI (fallback)
+ * @param {string} canonicalName - EN каталожно име
+ * @param {string} [aiDisplayName] - какво е върнал AI (fallback)
  * @param {string} [equipmentHint]
  */
 export function localizeExerciseDisplayName(canonicalName, aiDisplayName = '', equipmentHint = '') {

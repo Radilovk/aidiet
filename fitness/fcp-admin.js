@@ -26,8 +26,10 @@ let modal = null;
 let programsCache = [];
 let currentPlanId = null;
 
+const DEFAULT_WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
+
 const cfg = () => ({
-  workerUrl: window.FITPLAN_WORKER_URL || window.WORKER_URL || '',
+  workerUrl: window.FITPLAN_WORKER_URL || window.WORKER_URL || DEFAULT_WORKER_URL,
   headers: () => window.fitplanAdminHeaders?.() || { 'Content-Type': 'application/json' },
   ok: (m) => window.showSuccess?.(m),
   err: (m) => window.showError?.(m),

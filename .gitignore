@@ -1,4 +1,6 @@
-# Dependencies
+# Typecheck reports
+typecheck-worker-report.txt
+
 node_modules/
 npm-debug.log*
 yarn-debug.log*

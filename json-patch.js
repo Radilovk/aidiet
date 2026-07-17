@@ -6,6 +6,10 @@ const ALLOWED_PREFIXES = ['/answers', '/plan', '/adminNotes'];
 const MAX_PATCHES = 25;
 
 /**
+ * @typedef {{ op: 'replace' | 'add' | 'remove', path: string, value?: unknown }} JsonPatchOp
+ */
+
+/**
  * @param {string} pointer
  */
 function parsePointer(pointer) {
@@ -27,6 +31,7 @@ function assertAllowedPath(path) {
 
 /**
  * @param {unknown[]} patches
+ * @returns {JsonPatchOp[]}
  */
 export function validateJsonPatches(patches) {
   if (!Array.isArray(patches) || patches.length === 0) {
@@ -37,16 +42,17 @@ export function validateJsonPatches(patches) {
   }
   for (const p of patches) {
     if (!p || typeof p !== 'object') throw new Error('Невалидна patch операция');
-    const op = p.op;
+    const patch = /** @type {JsonPatchOp} */ (p);
+    const op = patch.op;
     if (!['replace', 'add', 'remove'].includes(op)) {
       throw new Error(`Неподдържана операция: ${op}`);
     }
-    assertAllowedPath(p.path);
-    if (op !== 'remove' && !Object.prototype.hasOwnProperty.call(p, 'value')) {
-      throw new Error(`Липсва value за ${op} ${p.path}`);
+    assertAllowedPath(patch.path);
+    if (op !== 'remove' && !Object.prototype.hasOwnProperty.call(patch, 'value')) {
+      throw new Error(`Липсва value за ${op} ${patch.path}`);
     }
   }
-  return patches;
+  return /** @type {JsonPatchOp[]} */ (patches);
 }
 
 /**
@@ -73,7 +79,8 @@ export function applyJsonPatches(doc, patches) {
   let touchedPlan = false;
   let touchedAnswers = false;
 
-  for (const patch of patches) {
+  for (const raw of patches) {
+    const patch = /** @type {JsonPatchOp} */ (raw);
     if (patch.path.startsWith('/plan')) touchedPlan = true;
     if (patch.path.startsWith('/answers')) touchedAnswers = true;
 
