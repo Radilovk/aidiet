@@ -1716,7 +1716,7 @@ const MAX_LATE_SNACK_CALORIES = 200; // Maximum calories allowed for late-night 
  */
 async function cacheSet(key, data, ttl = AI_LOG_CACHE_TTL) {
   try {
-    const cache = /** @type {CacheStorage} */ (caches).default;
+    const cache = caches.default;
     // Use a consistent cache domain for all AI logs
     // In Cloudflare Workers, cache keys are based on URL patterns
     const url = `https://ai-logs-cache.internal/${key}`;
@@ -1741,7 +1741,7 @@ async function cacheSet(key, data, ttl = AI_LOG_CACHE_TTL) {
  */
 async function cacheGet(key) {
   try {
-    const cache = /** @type {CacheStorage} */ (caches).default;
+    const cache = caches.default;
     const url = `https://ai-logs-cache.internal/${key}`;
     const response = await cache.match(url);
     if (!response) {
@@ -1762,7 +1762,7 @@ async function cacheGet(key) {
  */
 async function cacheDelete(key) {
   try {
-    const cache = /** @type {CacheStorage} */ (caches).default;
+    const cache = caches.default;
     const url = `https://ai-logs-cache.internal/${key}`;
     const deleted = await cache.delete(url);
     return deleted;
@@ -3794,7 +3794,7 @@ async function handleGeneratePlan(request, env, ctx) {
       result = await generatePlanCore(env, data);
     } catch (coreError) {
       console.error('handleGeneratePlan: generatePlanCore failed:', coreError);
-      if (/** @type {WorkerError} */ (coreError).validationFailed) {
+      if (coreError.validationFailed) {
         return jsonResponse({ error: coreError.message, validationFailed: true }, 400);
       }
       if (coreError.validationErrors) {
@@ -3859,7 +3859,7 @@ async function generatePlanCore(env, data, onAnalysisReady = null) {
   const valConfig = await getValidationConfig(env);
   const dataValidation = validateDataAdequacy(data, valConfig);
   if (!dataValidation.isValid) {
-    const err = /** @type {WorkerError} */ (new Error(dataValidation.errorMessage));
+    const err = /** @type {any} */ (new Error(dataValidation.errorMessage));
     err.validationFailed = true;
     throw err;
   }
@@ -5085,7 +5085,7 @@ function normalizeEmail(value) {
   return String(value || '').trim().toLowerCase();
 }
 
-function isPlanEditingAllowed({ clientId, userId, email } = /** @type {PlanEditLockArgs} */ ({})) {
+function isPlanEditingAllowed({ clientId, userId, email } = {}) {
   if (!PLAN_EDITING_LOCK_ENABLED) return true;
   const cid = String(clientId || '').trim();
   const uid = String(userId || '').trim();
@@ -6128,12 +6128,12 @@ async function callGeminiAssistant(env, opts) {
 
   const requestBody = {
     contents,
-    generationConfig: /** @type {GeminiGenerationConfig} */ ({
+    generationConfig: {
       responseMimeType: 'application/json',
       responseSchema: ADMIN_ASSISTANT_RESPONSE_SCHEMA,
       temperature: 0.4,
       thinkingConfig: { thinkingBudget: 0 },
-    }),
+    },
   };
   if (cachedContent) {
     requestBody.cachedContent = cachedContent;
@@ -7929,7 +7929,7 @@ function applyFoodSubstitutions(meal, fixes) {
     const re = new RegExp(escapeRegex(detect), 'gi');
     let changed = false;
     if (meal.name && re.test(meal.name)) {
-      meal.name = meal.name.replace(re, String(replace));
+      meal.name = meal.name.replace(re, replace);
       changed = true;
     }
     if (meal.description && new RegExp(escapeRegex(detect), 'gi').test(meal.description)) {
@@ -10168,7 +10168,7 @@ async function callGemini(env, prompt, modelName = 'gemini-2.5-flash', maxTokens
       };
       
       // Build generationConfig: add maxOutputTokens and/or JSON mime type as needed
-      const generationConfig = /** @type {GeminiGenerationConfig} */ ({});
+      const generationConfig = {};
       if (maxTokens) {
         generationConfig.maxOutputTokens = maxTokens;
       }
@@ -10388,10 +10388,10 @@ async function callClaudeVision(env, textPrompt, base64Image, mimeType, modelNam
  */
 async function callGeminiVision(env, textPrompt, base64Image, mimeType, modelName, maxTokens, thinkingBudget = undefined) {
   return await retryWithBackoff(async () => {
-    const generationConfig = /** @type {GeminiGenerationConfig} */ ({
+    const generationConfig = {
       maxOutputTokens: maxTokens,
       temperature: 0.3
-    });
+    };
     // Thinking configuration (see callGemini for full explanation).
     if (thinkingBudget !== undefined) {
       generationConfig.thinkingConfig = { thinkingBudget };
@@ -13662,7 +13662,7 @@ async function encryptWebPushPayload(payload, userPublicKey, userAuth) {
   
   // Perform ECDH to get shared secret
   const sharedSecret = await crypto.subtle.deriveBits(
-    /** @type {EcdhDeriveBitsParams} */ ({
+    /** @type {any} */({
       name: 'ECDH',
       public: importedUserPublicKey
     }),
