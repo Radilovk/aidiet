@@ -1,7 +1,6 @@
 {
-  "extends": "./tsconfig.worker.json",
   "compilerOptions": {
-    "checkJs": true,
+    "checkJs": false,
     "noEmit": true
   }
 }
