@@ -4190,7 +4190,9 @@
         // This password is visible in the browser source code and should not be used for security.
         const ADMIN_PASSWORD = 'nutriplan2024'; // TODO: Move to server-side auth
         const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
-        const FITPLAN_WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
+        const FITPLAN_WORKER_URL = WORKER_URL;
+        window.WORKER_URL = WORKER_URL;
+        window.FITPLAN_WORKER_URL = FITPLAN_WORKER_URL;
 
         let fitplanGuidelinesLoaded = false;
 
@@ -4200,6 +4202,7 @@
                 'X-Admin-Secret': ADMIN_PASSWORD,
             };
         }
+        window.fitplanAdminHeaders = fitplanAdminHeaders;
 
         function updateFitplanFoundationCount() {
             const el = document.getElementById('fitplanFoundation');
@@ -10991,6 +10994,6 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             }
         }
     </script>
-    <script type="module" src="./fitness/fcp-admin.js?v=4"></script>
+    <script type="module" src="./fitness/fcp-admin.js?v=5"></script>
 </body>
 </html>

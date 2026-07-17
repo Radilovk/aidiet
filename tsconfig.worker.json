@@ -11,11 +11,14 @@
     "noEmit": true,
     "strict": false,
     "skipLibCheck": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "maxNodeModuleJsDepth": 0
   },
   "include": [
     "worker.js",
     "fitness/worker.js",
+    "fitness/plan-generation.js",
+    "fitness/profile-summary.js",
     "context-compression.js",
     "analytics-compression.js",
     "json-patch.js",

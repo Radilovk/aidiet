@@ -7,7 +7,9 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "serve": "python -m http.server 8000",
-    "test": "echo \"Open test.html in browser to test the application\""
+    "test": "echo \"Open test.html in browser to test the application\"",
+    "typecheck:worker": "node scripts/typecheck-worker.mjs",
+    "typecheck:worker:raw": "tsc -p tsconfig.worker.json"
   },
   "keywords": [
     "ai",
