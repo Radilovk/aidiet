@@ -182,6 +182,7 @@ function initWizard() {
 
 export function openAdminQuestionnaire() {
   buildModal();
+  if (!wizard) initWizard();
   wizard.renderStep();
   updateStepNav();
   modalEl.classList.remove('hidden');
