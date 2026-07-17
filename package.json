@@ -5,11 +5,10 @@
   "main": "worker.js",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
+    "deploy": "npm run build:worker && wrangler deploy",
+    "build:worker": "node scripts/bundle-worker.mjs",
     "serve": "python -m http.server 8000",
-    "test": "echo \"Open test.html in browser to test the application\"",
-    "typecheck:worker": "node scripts/typecheck-worker.mjs",
-    "typecheck:worker:raw": "tsc -p tsconfig.worker.json"
+    "test": "echo \"Open test.html in browser to test the application\""
   },
   "keywords": [
     "ai",
@@ -23,8 +22,6 @@
   "license": "MIT",
   "devDependencies": {
     "@capacitor/cli": "^8.3.1",
-    "@cloudflare/workers-types": "^4.20260217.0",
-    "typescript": "^5.9.3",
     "wrangler": "^4.86.0"
   },
   "repository": {

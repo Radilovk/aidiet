@@ -19,6 +19,7 @@ on:
       - 'analytics-compression.js'
       - 'json-patch.js'
       - 'client-card.js'
+      - 'scripts/bundle-worker.mjs'
       - '.github/workflows/deploy-worker.yml'
   pull_request:
     branches:
@@ -38,6 +39,7 @@ on:
       - 'analytics-compression.js'
       - 'json-patch.js'
       - 'client-card.js'
+      - 'scripts/bundle-worker.mjs'
       - '.github/workflows/deploy-worker.yml'
   workflow_dispatch:
 
@@ -59,6 +61,9 @@ jobs:
 
       - name: Install npm dependencies
         run: npm ci
+
+      - name: Verify worker bundle
+        run: npm run build:worker
 
       # Create the queues if they do not yet exist in Cloudflare.
       # This step requires the Queues:Edit permission on CLOUDFLARE_API_TOKEN.
