@@ -40,7 +40,6 @@
  *   CHAT_DAILY_LIMIT      — по избор (default 30 съобщения/ден/план)
  */
 
-/// <reference path="../types/worker.d.ts" />
 import { localizeExerciseDisplayName, sanitizeBgText, sanitizePlanBulgarian } from './exercise-labels-bg.js';
 import { mergeExerciseTranslation } from './exercise-translations.js';
 import {
