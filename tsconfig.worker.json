@@ -28,6 +28,8 @@
     "json-patch.js",
     "client-card.js",
     "food-catalog-data.js",
+    "food-nutrition.js",
+    "food-catalog.js",
     "types/**/*.d.ts"
   ],
   "exclude": ["node_modules", "android", "dist", ".wrangler"]
