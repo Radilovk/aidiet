@@ -1298,12 +1298,11 @@ function trimClientProgramFields(body = {}) {
   if (legacyNotes && !exampleScheme.includes(legacyNotes)) {
     exampleScheme = exampleScheme ? `${exampleScheme}\n\n${legacyNotes}` : legacyNotes;
   }
-  let clientProfile = String(body.clientProfile || '').trim().slice(0, MAX_CLIENT_PROFILE_CHARS);
   const clientAnswers = body.clientAnswers && typeof body.clientAnswers === 'object' ? body.clientAnswers : null;
   const clientFormState = body.clientFormState && typeof body.clientFormState === 'object' ? body.clientFormState : null;
-  if (clientAnswers?.gender && clientAnswers?.age) {
-    clientProfile = buildProfileSummary(clientAnswers).slice(0, MAX_CLIENT_PROFILE_CHARS);
-  }
+  const clientProfile = clientAnswers?.gender && clientAnswers?.age
+    ? buildProfileSummary(clientAnswers).slice(0, MAX_CLIENT_PROFILE_CHARS)
+    : '';
   return {
     clientName: String(body.clientName || '').trim().slice(0, 120),
     clientContact: String(body.clientContact || '').trim().slice(0, 200),
@@ -1427,24 +1426,17 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
   const record = await loadClientProgram(env, id);
   if (!record) return errorResponse('Програмата не е намерена', 404, 'not_found');
   if (record.status === 'approved') return errorResponse('Програмата вече е одобрена', 400, 'locked');
-  if (!record.clientAnswers?.gender && !record.clientProfile?.trim()) {
-    return errorResponse('Липсва профил на клиента', 400);
+  if (!record.clientAnswers?.gender) {
+    return errorResponse('Попълни въпросника преди генерация', 400);
   }
 
   const adminGuidelines = await loadAdminGuidelines(env);
-  const genSource = record.clientAnswers?.gender
-    ? {
-      clientAnswers: record.clientAnswers,
-      exampleScheme: record.exampleScheme,
-      clientName: record.clientName,
-      clientContact: record.clientContact,
-    }
-    : {
-      clientProfile: record.clientProfile,
-      exampleScheme: record.exampleScheme,
-      clientName: record.clientName,
-      clientContact: record.clientContact,
-    };
+  const genSource = {
+    clientAnswers: record.clientAnswers,
+    exampleScheme: record.exampleScheme,
+    clientName: record.clientName,
+    clientContact: record.clientContact,
+  };
   const { userPrompt, coachProfileText, allowedEquipment } = preparePlanGeneration(
     genSource,
     adminGuidelines,

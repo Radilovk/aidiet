@@ -34,7 +34,10 @@ export function createWizardController({
 }) {
   let stepIndex = 0;
 
-  const qs = () => (typeof getQuestions === 'function' ? getQuestions() : questions);
+  const qs = () => {
+    const list = typeof getQuestions === 'function' ? getQuestions() : questions;
+    return Array.isArray(list) ? list : [];
+  };
 
   function clampStepIndex() {
     const len = qs().length;
@@ -231,17 +234,28 @@ export function createWizardController({
   function renderStep() {
     clampStepIndex();
     const list = qs();
+    if (!list.length) return;
+
     const q = list[stepIndex];
+    if (!q) return;
+
     const card = getEl('questionCard');
+    if (!card) return;
     card.innerHTML = '';
-    getEl('stepError').hidden = true;
+    const stepError = getEl('stepError');
+    if (stepError) stepError.hidden = true;
 
     const pct = Math.round(((stepIndex + 1) / list.length) * 100);
-    getEl('progressFill').style.width = `${pct}%`;
-    getEl('stepLabel').textContent = `Въпрос ${stepIndex + 1} от ${list.length}`;
-    getEl('stepPct').textContent = `${pct}%`;
-    getEl('btnBack').style.visibility = stepIndex === 0 ? 'hidden' : 'visible';
-    getEl('btnNext').textContent = stepIndex === list.length - 1 ? finalButtonText : 'Напред →';
+    const progressFill = getEl('progressFill');
+    if (progressFill) progressFill.style.width = `${pct}%`;
+    const stepLabel = getEl('stepLabel');
+    if (stepLabel) stepLabel.textContent = `Въпрос ${stepIndex + 1} от ${list.length}`;
+    const stepPct = getEl('stepPct');
+    if (stepPct) stepPct.textContent = `${pct}%`;
+    const btnBack = getEl('btnBack');
+    if (btnBack) btnBack.style.visibility = stepIndex === 0 ? 'hidden' : 'visible';
+    const btnNext = getEl('btnNext');
+    if (btnNext) btnNext.textContent = stepIndex === list.length - 1 ? finalButtonText : 'Напред →';
 
     card.append(el('h2', { class: 'q-title', text: q.title }));
     if (q.subtitle) card.append(el('p', { class: 'q-subtitle', text: q.subtitle }));
