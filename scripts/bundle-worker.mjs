@@ -42,4 +42,5 @@ if (!bundled.startsWith('// @ts-nocheck')) {
 }
 
 console.log(`✅ Bundled → dist/worker.bundled.js`);
+console.log('   Ръчен upload в Cloudflare dashboard: качи dist/worker.bundled.js (НЕ source worker.js)');
 if (out) console.log(out);
