@@ -8,6 +8,7 @@
     "deploy": "npm run test:worker && wrangler deploy --env production",
     "deploy:staging": "npm run test:worker && wrangler deploy --env staging",
     "build:worker": "node scripts/bundle-worker.mjs",
+    "typecheck:worker": "node scripts/typecheck-worker.mjs",
     "test:worker": "node scripts/verify-worker.mjs",
     "serve": "python -m http.server 8000",
     "test": "echo \"Open test.html in browser to test the application\""
@@ -24,6 +25,8 @@
   "license": "MIT",
   "devDependencies": {
     "@capacitor/cli": "^8.3.1",
+    "@cloudflare/workers-types": "^4.20260426.1",
+    "typescript": "^5.8.3",
     "wrangler": "^4.86.0"
   },
   "repository": {

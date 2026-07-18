@@ -1,7 +1,17 @@
 {
+  "extends": "./tsconfig.worker.json",
   "compilerOptions": {
-    "checkJs": false,
-    "noEmit": true
+    "checkJs": false
   },
-  "exclude": ["**/*"]
+  "exclude": [
+    "node_modules",
+    "android",
+    "dist",
+    ".wrangler",
+    "fitness/app.js",
+    "fitness/consultation.js",
+    "fitness/fcp-questionnaire.js",
+    "fitness/fitplan-sw.js",
+    "fitness/ka-trainer-sw.js"
+  ]
 }

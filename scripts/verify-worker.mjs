@@ -33,6 +33,11 @@ check('worker.js синтаксис', () => {
   if (!r.ok) throw new Error(r.out);
 });
 
+check('worker typecheck', () => {
+  const r = run('node', ['scripts/typecheck-worker.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(0, 20).join('\n'));
+});
+
 check('fitness/worker.js синтаксис', () => {
   const r = run('node', ['--check', 'fitness/worker.js']);
   if (!r.ok) throw new Error(r.out);
