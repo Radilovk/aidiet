@@ -28,8 +28,13 @@ function check(name, fn) {
   }
 }
 
-check('worker.js синтаксис', () => {
-  const r = run('node', ['--check', 'worker.js']);
+check('worker.entry.js синтаксис', () => {
+  const r = run('node', ['--check', 'worker.entry.js']);
+  if (!r.ok) throw new Error(r.out);
+});
+
+check('fitness/worker.js синтаксис', () => {
+  const r = run('node', ['--check', 'fitness/worker.js']);
   if (!r.ok) throw new Error(r.out);
 });
 
@@ -38,21 +43,24 @@ check('worker typecheck', () => {
   if (!r.ok) throw new Error(r.out.split('\n').slice(0, 20).join('\n'));
 });
 
-check('fitness/worker.js синтаксис', () => {
-  const r = run('node', ['--check', 'fitness/worker.js']);
-  if (!r.ok) throw new Error(r.out);
-});
-
-check('bundle (esbuild)', () => {
+check('worker.js bundle (без import-и)', () => {
   const r = run('node', ['scripts/bundle-worker.mjs']);
   if (!r.ok) throw new Error(r.out);
-  const bundle = join(root, 'dist/worker.bundled.js');
-  const size = statSync(bundle).size;
-  if (size < 500_000) throw new Error(`bundle твърде малък: ${size} bytes`);
-  const text = readFileSync(bundle, 'utf8');
+  const workerPath = join(root, 'worker.js');
+  const size = statSync(workerPath).size;
+  if (size < 500_000) throw new Error(`worker.js твърде малък: ${size} bytes`);
+  const text = readFileSync(workerPath, 'utf8');
   if (/^import\s+/m.test(text)) {
-    throw new Error('bundle съдържа външни import-и — не е самостоятелен файл');
+    throw new Error('worker.js съдържа import-и — не е готов за Cloudflare dashboard');
   }
+  if (!text.startsWith('// @ts-nocheck')) {
+    throw new Error('worker.js липсва @ts-nocheck — Cloudflare dashboard ще покаже TS грешки');
+  }
+});
+
+check('worker.js синтаксис', () => {
+  const r = run('node', ['--check', 'worker.js']);
+  if (!r.ok) throw new Error(r.out);
 });
 
 check('wrangler deploy --dry-run', () => {
