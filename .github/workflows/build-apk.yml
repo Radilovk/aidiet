@@ -37,8 +37,10 @@ on:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    outputs:
+      v_name: ${{ steps.build_apk.outputs.v_name }}
+      v_code: ${{ steps.build_apk.outputs.v_code }}
+      is_prod: ${{ steps.build_apk.outputs.is_prod }}
 
     steps:
       - name: Checkout repository
@@ -138,6 +140,7 @@ jobs:
             --exclude 'workererrors'
 
       - name: Build APK
+        id: build_apk
         env:
           ANDROID_KEYSTORE_PATH: ${{ github.workspace }}/nutriplan.keystore
           ANDROID_KEY_ALIAS: nutriplan
@@ -148,6 +151,9 @@ jobs:
           V_NAME="1.0.${V_CODE}"
           echo "V_CODE=${V_CODE}" >> "$GITHUB_ENV"
           echo "V_NAME=${V_NAME}" >> "$GITHUB_ENV"
+          echo "v_code=${V_CODE}" >> "$GITHUB_OUTPUT"
+          echo "v_name=${V_NAME}" >> "$GITHUB_OUTPUT"
+          echo "is_prod=${IS_PROD}" >> "$GITHUB_OUTPUT"
           ICON_SRC="icon-512x512.png"
           if [ ! -f "$ICON_SRC" ]; then ICON_SRC="icon-512.png"; fi
 
@@ -433,38 +439,95 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: NutriPlan-APK
+          retention-days: 30
           path: |
             android/app/build/outputs/apk/release/app-release.apk
             android/app/build/outputs/apk/debug/app-debug.apk
 
-      - name: Create Release
+      - name: Build summary
+        if: always()
+        run: |
+          echo "### APK build complete" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Version: **${V_NAME}** (build ${V_CODE})" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Artifact: \`NutriPlan-APK\` (30 days retention)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- If GitHub Releases is down, run **Publish APK Release** workflow manually." >> "$GITHUB_STEP_SUMMARY"
+
+  publish-release:
+    needs: build-apk
+    runs-on: ubuntu-latest
+    # APK is already in Actions artifacts — do not fail the whole pipeline when GitHub Releases API is flaky.
+    continue-on-error: true
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: NutriPlan-APK
+
+      - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="v-$(date +'%Y%m%d%H%M')-$(git rev-parse --short HEAD)"
-          if [ "$IS_PROD" = "true" ]; then
+          set -euo pipefail
+          V_NAME="${{ needs.build-apk.outputs.v_name }}"
+          V_CODE="${{ needs.build-apk.outputs.v_code }}"
+          IS_PROD="${{ needs.build-apk.outputs.is_prod }}"
+          TAG="v-build${V_CODE}-$(echo '${{ github.sha }}' | cut -c1-7)"
+
+          if [ "$IS_PROD" = "true" ] && [ -f android/app/build/outputs/apk/release/app-release.apk ]; then
             APK_FILE="android/app/build/outputs/apk/release/app-release.apk"
-          else
+          elif [ -f app-release.apk ]; then
+            APK_FILE="app-release.apk"
+          elif [ -f android/app/build/outputs/apk/release/app-release.apk ]; then
+            APK_FILE="android/app/build/outputs/apk/release/app-release.apk"
+          elif [ -f app-debug.apk ]; then
+            APK_FILE="app-debug.apk"
+          elif [ -f android/app/build/outputs/apk/debug/app-debug.apk ]; then
             APK_FILE="android/app/build/outputs/apk/debug/app-debug.apk"
+          else
+            echo "::error::APK not found after artifact download:"
+            find . -name '*.apk' -type f || true
+            exit 1
           fi
+
           APK_NAME="NutriPlan-v${V_NAME}.apk"
           APK_LATEST="NutriPlan.apk"
           cp "$APK_FILE" "$APK_NAME"
           cp "$APK_FILE" "$APK_LATEST"
 
-          # GitHub API occasionally returns 503 on release create — retry with backoff.
-          for attempt in 1 2 3 4 5; do
-            if gh release create "$TAG" "$APK_NAME" "$APK_LATEST" \
-              --title "NutriPlan v${V_NAME} ($TAG)" \
+          # Step 1: create lightweight release (no assets yet — smaller API call).
+          gh release delete "$TAG" -y 2>/dev/null || true
+          for attempt in 1 2 3 4 5 6; do
+            if gh release create "$TAG" \
+              --title "NutriPlan v${V_NAME} (${TAG})" \
               --notes "Автоматичен билд — версия ${V_NAME} (build ${V_CODE})."; then
-              echo "Release $TAG created successfully."
-              exit 0
+              break
             fi
-            if [ "$attempt" -eq 5 ]; then
-              echo "::error::gh release create failed after 5 attempts (APK artifact was uploaded)."
+            if [ "$attempt" -eq 6 ]; then
+              echo "::warning::Could not create GitHub release after 6 attempts. APK is in Actions artifacts."
               exit 1
             fi
-            wait_secs=$((attempt * 15))
-            echo "gh release create failed (attempt ${attempt}/5), retrying in ${wait_secs}s..."
-            sleep "$wait_secs"
+            echo "gh release create failed (attempt ${attempt}/6), retrying..."
+            sleep $((attempt * 20))
           done
+
+          # Step 2: upload each APK separately with retries (uploads.github.com often fails independently).
+          for asset in "$APK_NAME" "$APK_LATEST"; do
+            uploaded=0
+            for attempt in 1 2 3 4 5 6 7 8; do
+              if gh release upload "$TAG" "$asset" --clobber; then
+                uploaded=1
+                break
+              fi
+              echo "Upload ${asset} failed (attempt ${attempt}/8), retrying..."
+              sleep $((attempt * 20))
+            done
+            if [ "$uploaded" -ne 1 ]; then
+              echo "::warning::Failed to upload ${asset}. APK is in Actions artifacts — use Publish APK Release workflow."
+              exit 1
+            fi
+          done
+
+          echo "Release published: ${TAG}"
