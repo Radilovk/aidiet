@@ -271,11 +271,6 @@ export function activeQuestions(state) {
   return QUESTIONS.filter((q) => !q.showIfGender || q.showIfGender === gender);
 }
 
-/** @deprecated Използвай activeQuestions. Запазено за обратна съвместимост. */
-export function visibleOptions(question, state) {
-  return question.options || [];
-}
-
 /**
  * Валидация на една стъпка. Връща текст на грешка или null.
  * @param {object} question — елемент от QUESTIONS

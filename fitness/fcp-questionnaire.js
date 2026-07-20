@@ -3,7 +3,7 @@
  */
 import {
   activeQuestions, buildAnswers,
-  validateQuestion, visibleOptions,
+  validateQuestion,
 } from './questions.js?v=2';
 import { buildProfileSummary } from './profile-summary.js?v=2';
 import { createWizardController, el } from './wizard-ui.js?v=2';
@@ -86,7 +86,6 @@ function ensureWizard() {
   wizard = createWizardController({
     getEl,
     getQuestions: () => activeQuestions(state),
-    visibleOptions,
     validateQuestion,
     getState: () => state,
     onPersist: () => {

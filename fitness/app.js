@@ -9,7 +9,7 @@
  *     последните няколко реплики + planId.
  */
 
-import { QUESTIONS, activeQuestions, visibleOptions, validateQuestion, buildAnswers } from './questions.js';
+import { QUESTIONS, activeQuestions, validateQuestion, buildAnswers } from './questions.js';
 import { localizeExerciseDisplayName, localizeEquipment, localizeTarget, sanitizeBgText } from './exercise-labels-bg.js';
 import { registerServiceWorker } from './common.js';
 import { bindPwaInstallCard } from './pwa-install.js';
@@ -99,7 +99,6 @@ const wizard = createWizardController({
   getEl: $,
   questions: QUESTIONS,
   getQuestions: () => activeQuestions(wizardState),
-  visibleOptions,
   validateQuestion,
   getState: () => wizardState,
   onPersist: saveWizard,
