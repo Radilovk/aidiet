@@ -80,6 +80,9 @@ import {
   allowedEquipmentFromBrief,
   auditPlanGenderFit,
   GENDER_FIT_RETRY_HINT,
+  buildTrainerSystemAddon,
+  parseChunkTags,
+  shouldIncludeAdminChunk,
 } from './plan-generation.js';
 
 export {
@@ -108,6 +111,9 @@ export {
   allowedEquipmentFromBrief,
   auditPlanGenderFit,
   GENDER_FIT_RETRY_HINT,
+  buildTrainerSystemAddon,
+  parseChunkTags,
+  shouldIncludeAdminChunk,
 };
 
 // ============================================================================
@@ -439,9 +445,7 @@ function normalizeAdminGuidelines(raw) {
   const chunks = (Array.isArray(raw?.chunks) ? raw.chunks : [])
     .slice(0, MAX_ADMIN_CHUNKS)
     .map((chunk) => {
-      const tags = (Array.isArray(chunk?.tags) ? chunk.tags : String(chunk?.tags || '').split(','))
-        .map((t) => String(t || '').trim().toLowerCase())
-        .filter(Boolean);
+      const tags = parseChunkTags(chunk?.tags);
       const text = String(chunk?.text || '').trim().slice(0, 500);
       return text ? { tags, text } : null;
     })
@@ -860,8 +864,11 @@ function clientIp(request) {
 // Handlers
 // ============================================================================
 
-async function executePlanGeneration(env, ctx, { userPrompt, coachProfileText, allowedEquipment = null, clientTags = null }) {
+async function executePlanGeneration(env, ctx, { userPrompt, coachProfileText, allowedEquipment = null, clientTags = null, adminConfig = null }) {
   const indexPromise = loadExerciseIndex(env, ctx);
+  const tagSet = clientTags instanceof Set ? clientTags : new Set(clientTags || []);
+  const trainerAddon = buildTrainerSystemAddon(adminConfig, tagSet);
+  const system = trainerAddon ? `${PLAN_SYSTEM_PROMPT}\n\n${trainerAddon}` : PLAN_SYSTEM_PROMPT;
   let plan;
   let rawText;
   const maxAttempts = 3;
@@ -872,7 +879,7 @@ async function executePlanGeneration(env, ctx, { userPrompt, coachProfileText, a
       user += lastFailure === 'gender' ? GENDER_FIT_RETRY_HINT : COMPACT_PLAN_RETRY_HINT;
     }
     const aiOpts = {
-      system: PLAN_SYSTEM_PROMPT,
+      system,
       user,
       temperature: attempt === 0 ? 0.4 : 0.25,
       maxOutputTokens: 8192,
@@ -937,6 +944,7 @@ async function handleGeneratePlan(request, env, ctx) {
       coachProfileText,
       allowedEquipment,
       clientTags,
+      adminConfig: adminGuidelines,
     }));
   } catch (e) {
     if (isPlanParseError(e)) {
@@ -1482,6 +1490,7 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
       coachProfileText,
       allowedEquipment,
       clientTags,
+      adminConfig: adminGuidelines,
     }));
   } catch (e) {
     if (isPlanParseError(e)) {

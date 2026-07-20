@@ -120,6 +120,86 @@ function isUniversal(tags) {
   return !tags?.length || tags.some((t) => UNIVERSAL_TAGS.has(t));
 }
 
+const STANDARD_TAG_RE = /^(gender|goal|level|health|sleep|stress|equipment|time|age):/;
+
+export function isStandardMachineTag(tag) {
+  return STANDARD_TAG_RE.test(String(tag || '').trim().toLowerCase());
+}
+
+/** Тагове от админ UI / KV — поправя счупени split-ове от запетая в „пол (в1, в12)“. */
+export function parseChunkTags(raw) {
+  if (Array.isArray(raw)) {
+    return repairQuestionnaireTags(
+      raw.map((t) => String(t || '').trim().toLowerCase()).filter(Boolean),
+    );
+  }
+  const s = String(raw || '').trim().toLowerCase();
+  if (!s) return [];
+  if (/\(в\d/i.test(s)) return [s];
+  return repairQuestionnaireTags(s.split(',').map((t) => t.trim()).filter(Boolean));
+}
+
+function repairQuestionnaireTags(tags) {
+  if (!tags.length) return tags;
+  const out = [];
+  let buf = [];
+  for (const tag of tags) {
+    if (!buf.length && !tag.includes('(') && !tag.includes('в')) {
+      out.push(tag);
+      continue;
+    }
+    buf.push(tag);
+    const joined = buf.join(', ');
+    const opens = (joined.match(/\(/g) || []).length;
+    const closes = (joined.match(/\)/g) || []).length;
+    if (opens > 0 && opens <= closes) {
+      out.push(joined);
+      buf = [];
+    }
+  }
+  if (buf.length) out.push(buf.join(', '));
+  return [...new Set(out)];
+}
+
+function isQuestionnaireCategoryTag(tag) {
+  const t = String(tag || '').trim().toLowerCase();
+  if (isStandardMachineTag(t)) return false;
+  return /\(в\d|в\d+[\s.,)\]]/.test(t) || /^[а-яёъюяґ\d\s().,\-—]+$/i.test(t);
+}
+
+/** Админ chunks: questionnaire категории (В1…) винаги; machine tags (gender:жена) — филтър. */
+export function shouldIncludeAdminChunk(chunk, tagSet) {
+  const tags = chunk?.tags || [];
+  if (!tags.length || isUniversal(tags)) return true;
+
+  const stdTags = tags.filter(isStandardMachineTag);
+  const categoryTags = tags.filter(isQuestionnaireCategoryTag);
+
+  if (categoryTags.length > 0) return true;
+  if (stdTags.length > 0) return stdTags.some((t) => tagSet.has(t));
+  return true;
+}
+
+/** Правила от треньора → system prompt (Gemini ги спазва по-надеждно от user prompt). */
+export function buildTrainerSystemAddon(adminConfig, tagSet) {
+  const foundation = String(adminConfig?.foundation || '').trim().slice(0, MAX_FOUNDATION_CHARS);
+  const chunks = (Array.isArray(adminConfig?.chunks) ? adminConfig.chunks : [])
+    .filter((c) => c?.text && shouldIncludeAdminChunk(c, tagSet));
+
+  if (!foundation && !chunks.length) return '';
+
+  const lines = [
+    '═══ KA-TRAINER ПРАВИЛА ОТ ТРЕНЬОРА (абсолютен приоритет — над шаблони и общи знания) ═══',
+    'Приложи ВСИЧКИ правила по-долу в структурата, обема, интензитета и избора на упражнения.',
+  ];
+  if (foundation) lines.push(`БАЗОВИ ПРИНЦИПИ:\n${foundation}`);
+  chunks.forEach((c, i) => {
+    const label = (c.tags || []).join(', ') || 'общо';
+    lines.push(`[ПРАВИЛО ${i + 1} · ${label}]\n${String(c.text).trim()}`);
+  });
+  return lines.join('\n\n');
+}
+
 /** Ниво от свободен текст — без фалшиви съвпадения (напр. „45 годишна“ ≠ 5+ год опит). */
 function extractLevelTags(combined) {
   const tags = new Set();
@@ -396,6 +476,9 @@ export function resolveGuidelineLayers(tags, adminConfig = null) {
   const tagSet = tags instanceof Set ? tags : new Set(tags);
   const adminChunks = Array.isArray(adminConfig?.chunks) ? adminConfig.chunks : [];
   const adminTagged = new Set(adminChunks.flatMap((c) => c.tags || []));
+  const adminCoversGender = adminChunks.some(
+    (c) => shouldIncludeAdminChunk(c, tagSet) && /пол|gender|жена|мъж/i.test(`${(c.tags || []).join(' ')} ${c.text}`),
+  );
 
   const adminIndividual = [];
   const adminArchitecture = [];
@@ -408,14 +491,15 @@ export function resolveGuidelineLayers(tags, adminConfig = null) {
   };
 
   for (const chunk of adminChunks) {
-    if (!chunk.text) continue;
+    if (!chunk.text || !shouldIncludeAdminChunk(chunk, tagSet)) continue;
     if (isUniversal(chunk.tags)) push(adminArchitecture, chunk.text);
-    else if (chunk.tags.some((t) => tagSet.has(t))) push(adminIndividual, chunk.text);
+    else push(adminIndividual, chunk.text);
   }
 
   for (const chunk of GUIDELINE_CHUNKS) {
     if (!chunk.tags.some((t) => tagSet.has(t))) continue;
     if (chunk.tags.some((t) => adminTagged.has(t))) continue;
+    if (adminCoversGender && chunk.tags.some((t) => t.startsWith('gender:'))) continue;
     push(hardcodedIndividual, chunk.text);
   }
 
