@@ -9,6 +9,20 @@ on:
       - '**.css'
       - '**.js'
       - '!worker.js'
+      - '!worker.entry.js'
+      - '!plan-response-schemas.js'
+      - '!context-compression.js'
+      - '!analytics-compression.js'
+      - '!json-patch.js'
+      - '!client-card.js'
+      - '!food-nutrition.js'
+      - '!food-nutrition-data.js'
+      - '!food-catalog.js'
+      - '!food-catalog-data.js'
+      - '!food-utils.js'
+      - '!fitness/worker.js'
+      - '!fitness/exercise-translate-batch.js'
+      - '!scripts/**'
       - '**.json'
       - '**.png'
       - '**.jpg'
@@ -97,6 +111,20 @@ jobs:
             --exclude 'capacitor.config.json' \
             --exclude 'wrangler.toml' \
             --exclude 'worker.js' \
+            --exclude 'worker.entry.js' \
+            --exclude 'plan-response-schemas.js' \
+            --exclude 'context-compression.js' \
+            --exclude 'analytics-compression.js' \
+            --exclude 'json-patch.js' \
+            --exclude 'client-card.js' \
+            --exclude 'food-nutrition.js' \
+            --exclude 'food-nutrition-data.js' \
+            --exclude 'food-catalog.js' \
+            --exclude 'food-catalog-data.js' \
+            --exclude 'food-utils.js' \
+            --exclude 'fitness/worker.js' \
+            --exclude 'fitness/exercise-translate-batch.js' \
+            --exclude 'scripts/' \
             --exclude 'client_______________*.json' \
             --exclude 'Errorlist.txt' \
             --exclude 'ai_communication.txt' \
@@ -423,4 +451,20 @@ jobs:
           APK_LATEST="NutriPlan.apk"
           cp "$APK_FILE" "$APK_NAME"
           cp "$APK_FILE" "$APK_LATEST"
-          gh release create "$TAG" "$APK_NAME" "$APK_LATEST" --title "NutriPlan v${V_NAME} ($TAG)" --notes "Автоматичен билд — версия ${V_NAME} (build ${V_CODE})."
+
+          # GitHub API occasionally returns 503 on release create — retry with backoff.
+          for attempt in 1 2 3 4 5; do
+            if gh release create "$TAG" "$APK_NAME" "$APK_LATEST" \
+              --title "NutriPlan v${V_NAME} ($TAG)" \
+              --notes "Автоматичен билд — версия ${V_NAME} (build ${V_CODE})."; then
+              echo "Release $TAG created successfully."
+              exit 0
+            fi
+            if [ "$attempt" -eq 5 ]; then
+              echo "::error::gh release create failed after 5 attempts (APK artifact was uploaded)."
+              exit 1
+            fi
+            wait_secs=$((attempt * 15))
+            echo "gh release create failed (attempt ${attempt}/5), retrying in ${wait_secs}s..."
+            sleep "$wait_secs"
+          done
