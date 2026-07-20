@@ -14,8 +14,10 @@ import { normalizeText } from './normalize.js';
 import { buildProfileSummary } from './profile-summary.js';
 
 export const MAX_FOUNDATION_CHARS = 800;
-export const MAX_GUIDELINE_ITEMS = 8;
-export const MAX_GUIDELINE_CHARS = 2400;
+export const MAX_GUIDELINE_ITEMS = 12;
+export const MAX_GUIDELINE_CHARS = 3600;
+export const MAX_ARCHITECTURE_ITEMS = 8;
+export const MAX_ARCHITECTURE_CHARS = 2800;
 
 const UNIVERSAL_TAGS = new Set(['all', '*', 'общо']);
 
@@ -92,6 +94,26 @@ export function capGuidelineTexts(texts, maxItems = MAX_GUIDELINE_ITEMS, maxChar
     total += slice.length;
   }
   return result;
+}
+
+/** Админ RAG chunks винаги влизат; hardcoded fallback се реже при лимит. */
+function capIndividualGuidelines(adminTexts, hardcodedTexts, tagSet, adminChunks) {
+  const admin = adminTexts.map((t) => String(t || '').trim()).filter(Boolean);
+  const adminSet = new Set(admin);
+  const merged = prioritizeGenderGuidelines(
+    [...admin, ...hardcodedTexts.filter((t) => !adminSet.has(t))],
+    tagSet,
+    adminChunks,
+  );
+  const hardcodedOnly = merged.filter((t) => !adminSet.has(t));
+  const adminChars = admin.join('').length;
+  const hardcodedBudget = Math.max(0, MAX_GUIDELINE_CHARS - adminChars);
+  const hardcodedCapped = capGuidelineTexts(
+    hardcodedOnly,
+    Math.max(0, MAX_GUIDELINE_ITEMS - admin.length),
+    hardcodedBudget,
+  );
+  return capGuidelineTexts([...admin, ...hardcodedCapped], MAX_GUIDELINE_ITEMS, MAX_GUIDELINE_CHARS);
 }
 
 function isUniversal(tags) {
@@ -204,7 +226,8 @@ export function constraintsFromAnswers(answers, exampleScheme = '') {
 
   const priorities = [];
   if (answers?.extraInfo?.trim()) priorities.push(answers.extraInfo.trim());
-  const goalText = answers?.goal?.main === 'друго' ? answers.goal.other : answers?.goal?.main;
+  const goalMain = normalizeText(answers?.goal?.main);
+  const goalText = goalMain === 'друго' ? answers?.goal?.other : answers?.goal?.main;
   if (goalText) priorities.push(`Цел: ${goalText}`);
 
   const schedule = [];
@@ -301,7 +324,11 @@ export function extractTagsFromText(...parts) {
 export function buildTagsFromAnswers(answers) {
   const tags = new Set();
   const goal = normalizeText(answers?.goal?.main);
-  if (goal && GOAL_TAG_BY_ANSWER[goal]) tags.add(GOAL_TAG_BY_ANSWER[goal]);
+  if (goal && GOAL_TAG_BY_ANSWER[goal]) {
+    tags.add(GOAL_TAG_BY_ANSWER[goal]);
+  } else if (goal === 'друго' && answers?.goal?.other) {
+    for (const t of extractTagsFromText(answers.goal.other)) tags.add(t);
+  }
 
   const gender = normalizeText(answers?.gender || '');
   if (gender.includes('жена')) tags.add('gender:жена');
@@ -333,6 +360,15 @@ export function buildTagsFromAnswers(answers) {
   if (normalizeText(answers?.preferences?.timeOfDay || '').includes('сутрин')) tags.add('time:сутрин');
   if (Number(answers?.age) >= 50) tags.add('age:50+');
 
+  const freeText = [
+    answers?.goal?.other,
+    answers?.extraInfo,
+    answers?.preferences?.avoid,
+    answers?.healthOther,
+    ...(answers?.limitations || []),
+  ].filter(Boolean).join(' ');
+  for (const t of extractTagsFromText(freeText)) tags.add(t);
+
   return tags;
 }
 
@@ -361,8 +397,9 @@ export function resolveGuidelineLayers(tags, adminConfig = null) {
   const adminChunks = Array.isArray(adminConfig?.chunks) ? adminConfig.chunks : [];
   const adminTagged = new Set(adminChunks.flatMap((c) => c.tags || []));
 
-  const individual = [];
-  const architecture = [];
+  const adminIndividual = [];
+  const adminArchitecture = [];
+  const hardcodedIndividual = [];
   const seen = new Set();
   const push = (list, text) => {
     if (!text || seen.has(text)) return;
@@ -372,19 +409,19 @@ export function resolveGuidelineLayers(tags, adminConfig = null) {
 
   for (const chunk of adminChunks) {
     if (!chunk.text) continue;
-    if (isUniversal(chunk.tags)) push(architecture, chunk.text);
-    else if (chunk.tags.some((t) => tagSet.has(t))) push(individual, chunk.text);
+    if (isUniversal(chunk.tags)) push(adminArchitecture, chunk.text);
+    else if (chunk.tags.some((t) => tagSet.has(t))) push(adminIndividual, chunk.text);
   }
 
   for (const chunk of GUIDELINE_CHUNKS) {
     if (!chunk.tags.some((t) => tagSet.has(t))) continue;
     if (chunk.tags.some((t) => adminTagged.has(t))) continue;
-    push(individual, chunk.text);
+    push(hardcodedIndividual, chunk.text);
   }
 
   return {
-    individual: capGuidelineTexts(prioritizeGenderGuidelines(individual, tagSet, adminChunks)),
-    architecture: capGuidelineTexts(architecture, 6, 2000),
+    individual: capIndividualGuidelines(adminIndividual, hardcodedIndividual, tagSet, adminChunks),
+    architecture: capGuidelineTexts(adminArchitecture, MAX_ARCHITECTURE_ITEMS, MAX_ARCHITECTURE_CHARS),
   };
 }
 
@@ -427,12 +464,16 @@ export function buildPlanUserPrompt(profileSummary, layers, foundation = '') {
 export function buildBriefIdentityBlock(brief) {
   const profile = String(brief?.clientProfile || '').trim();
   const scheme = String(brief?.exampleScheme || '').trim();
-  const tags = extractTagsFromText(profile, scheme);
+  const tags = brief?.tags instanceof Set
+    ? brief.tags
+    : Array.isArray(brief?.tags)
+      ? new Set(brief.tags)
+      : extractTagsFromText(profile, scheme);
   const tagList = [...tags].sort().join(', ') || '—';
 
   let genderLine = '';
   if (tags.has('gender:жена')) {
-    genderLine = 'Пол: ЖЕНА — програмата е ИЗКЛЮЧИТЕЛНО за жена. Забранено е мъжки шаблон (press/bench-dominant split, игнориране на glutes/крака).';
+    genderLine = 'Пол: ЖЕНА — програмата е ИЗКЛЮЧИТЕЛНО за жена. Забранено е мъжки шаблон (press/bench-dominant split, игнориране на glutes/крака). Минимум 35% от силовите упражнения — долна част (glutes, бедра, задни бедра).';
   } else if (tags.has('gender:мъж')) {
     genderLine = 'Пол: МЪЖ — програмата е за мъж. Не използвай женски-специфични акценти без указание.';
   }
@@ -491,6 +532,47 @@ export function buildAdminPlanUserPrompt(brief, layers, foundation = '') {
   return `${individualBlock.join('\n')}${individualGuidelines}${architectureBlock}\n\nСъздай седмичния план сега. Отговори САМО с JSON.`;
 }
 
+const MALE_BIAS_EXERCISE = /bench press|incline bench|decline bench|skull crush|close.?grip bench|barbell curl|military press|overhead press|shoulder press/i;
+const FEMALE_PRIORITY_EXERCISE = /hip thrust|glute|abduction|adduction|clam|kickback|bulgarian split|romanian deadlift|rdl|step.?up|leg curl|hamstring curl|fire hydrant|frog pump/i;
+const LOWER_BODY_EXERCISE = /squat|lunge|leg press|hip|glute|calf|hamstring|quad|deadlift|step|adduct|abduct|thrust/i;
+
+/** Проверка дали планът съответства на пола на клиента (след AI генерация). */
+export function auditPlanGenderFit(plan, clientTags) {
+  const tagSet = clientTags instanceof Set ? clientTags : new Set(clientTags || []);
+  if (!tagSet.has('gender:жена')) return { ok: true, issues: [] };
+
+  const exercises = [];
+  for (const day of plan?.days || []) {
+    if (day.type === 'rest') continue;
+    for (const ex of day.exercises || []) {
+      exercises.push(String(ex.canonicalName || ex.displayName || '').trim());
+    }
+  }
+  if (!exercises.length) return { ok: true, issues: [] };
+
+  const maleBias = exercises.filter((name) => MALE_BIAS_EXERCISE.test(name));
+  const femalePriority = exercises.filter((name) => FEMALE_PRIORITY_EXERCISE.test(name));
+  const lowerBody = exercises.filter((name) => LOWER_BODY_EXERCISE.test(name));
+  const issues = [];
+
+  if (maleBias.length >= 3 && femalePriority.length < 2) {
+    issues.push(`Прекалено мъжки акцент (${maleBias.length} press/bench упражнения, само ${femalePriority.length} за glutes/крака).`);
+  }
+  if (lowerBody.length < Math.max(2, Math.ceil(exercises.length * 0.35))) {
+    issues.push(`Недостатъчен обем на долна част за жена: ${lowerBody.length}/${exercises.length} упражнения.`);
+  }
+
+  return { ok: issues.length === 0, issues };
+}
+
+export const GENDER_FIT_RETRY_HINT = `
+
+КРИТИЧНО — ПРОГРАМА ЗА ЖЕНА (задължителна корекция):
+- Клиентката е ЖЕНА — не генерирай мъжки bro-split / bench-dominant шаблон.
+- Минимум 35% от силовите упражнения: glutes, бедра, задни бедра (hip thrust, RDL, клек, lunges, abduction).
+- Ограничи bench/chest press до 1–2 упражнения седмично; не прави „гръден ден“ като при мъж.
+- Спази всички насоки от треньора по-горе. Отговори САМО с пълен валиден JSON.`;
+
 /**
  * Единна подготовка за AI генерация.
  * @param source — { answers } от въпросник ИЛИ { clientProfile, exampleScheme, clientName?, clientContact? } от админ
@@ -498,15 +580,28 @@ export function buildAdminPlanUserPrompt(brief, layers, foundation = '') {
 export function preparePlanGeneration(source, adminConfig, helpers) {
   const foundation = adminConfig?.foundation || '';
 
+  function buildFromAnswers(answers, extra = {}) {
+    const profileText = helpers.buildProfileSummary(answers);
+    const tags = buildTagsFromAnswers(answers);
+    const layers = resolveGuidelineLayers(tags, adminConfig);
+    const brief = {
+      clientProfile: profileText,
+      exampleScheme: extra.exampleScheme || '',
+      constraints: constraintsFromAnswers(answers, extra.exampleScheme || ''),
+      tags,
+    };
+    const equipmentInput = [...(answers.equipment || []), answers.equipmentOther].filter(Boolean);
+    return {
+      userPrompt: buildAdminPlanUserPrompt(brief, layers, foundation),
+      coachProfileText: extra.coachProfileText || profileText,
+      allowedEquipment: helpers.allowedEquipmentSet(equipmentInput),
+      clientTags: tags,
+    };
+  }
+
   if (source.clientAnswers) {
     const answers = source.clientAnswers;
     const profileText = helpers.buildProfileSummary(answers);
-    const layers = resolveGuidelineLayers(buildTagsFromAnswers(answers), adminConfig);
-    const brief = {
-      clientProfile: profileText,
-      exampleScheme: source.exampleScheme || '',
-      constraints: constraintsFromAnswers(answers, source.exampleScheme),
-    };
     const coachProfileText = [
       source.clientName ? `Клиент: ${source.clientName}` : 'Клиент: —',
       source.clientContact ? `Контакт: ${source.clientContact}` : '',
@@ -514,29 +609,23 @@ export function preparePlanGeneration(source, adminConfig, helpers) {
       profileText,
       source.exampleScheme ? `\nСхема и указания:\n${source.exampleScheme}` : '',
     ].filter(Boolean).join('\n');
-    const equipmentInput = [...(answers.equipment || []), answers.equipmentOther].filter(Boolean);
-    return {
-      userPrompt: buildAdminPlanUserPrompt(brief, layers, foundation),
+    return buildFromAnswers(answers, {
+      exampleScheme: source.exampleScheme || '',
       coachProfileText,
-      allowedEquipment: helpers.allowedEquipmentSet(equipmentInput),
-    };
+    });
   }
 
   const tags = collectTags(source);
   const layers = resolveGuidelineLayers(tags, adminConfig);
 
   if (source.answers) {
-    const profileText = helpers.buildProfileSummary(source.answers);
-    return {
-      userPrompt: buildPlanUserPrompt(profileText, layers, foundation),
-      coachProfileText: profileText,
-      allowedEquipment: helpers.allowedEquipmentSet(source.answers.equipment),
-    };
+    return buildFromAnswers(source.answers);
   }
 
   const brief = {
     clientProfile: source.clientProfile,
     exampleScheme: source.exampleScheme,
+    tags,
   };
   const coachProfileText = [
     source.clientName ? `Клиент: ${source.clientName}` : 'Клиент: —',
@@ -550,5 +639,6 @@ export function preparePlanGeneration(source, adminConfig, helpers) {
     userPrompt: buildAdminPlanUserPrompt(brief, layers, foundation),
     coachProfileText,
     allowedEquipment: allowedEquipmentFromBrief(source.clientProfile, source.exampleScheme),
+    clientTags: tags,
   };
 }

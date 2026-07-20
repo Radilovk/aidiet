@@ -62,6 +62,8 @@ import {
   MAX_FOUNDATION_CHARS,
   MAX_GUIDELINE_ITEMS,
   MAX_GUIDELINE_CHARS,
+  MAX_ARCHITECTURE_ITEMS,
+  MAX_ARCHITECTURE_CHARS,
   buildTagsFromAnswers,
   extractTagsFromText,
   resolveGuidelineLayers,
@@ -76,6 +78,8 @@ import {
   preparePlanGeneration,
   parseAdminBriefConstraints,
   allowedEquipmentFromBrief,
+  auditPlanGenderFit,
+  GENDER_FIT_RETRY_HINT,
 } from './plan-generation.js';
 
 export {
@@ -86,6 +90,8 @@ export {
   MAX_FOUNDATION_CHARS,
   MAX_GUIDELINE_ITEMS,
   MAX_GUIDELINE_CHARS,
+  MAX_ARCHITECTURE_ITEMS,
+  MAX_ARCHITECTURE_CHARS,
   buildTagsFromAnswers,
   extractTagsFromText,
   resolveGuidelineLayers,
@@ -100,6 +106,8 @@ export {
   preparePlanGeneration,
   parseAdminBriefConstraints,
   allowedEquipmentFromBrief,
+  auditPlanGenderFit,
+  GENDER_FIT_RETRY_HINT,
 };
 
 // ============================================================================
@@ -435,7 +443,7 @@ function normalizeAdminGuidelines(raw) {
         .map((t) => String(t || '').trim().toLowerCase())
         .filter(Boolean);
       const text = String(chunk?.text || '').trim().slice(0, 500);
-      return tags.length && text ? { tags, text } : null;
+      return text ? { tags, text } : null;
     })
     .filter(Boolean);
   return { foundation, chunks, updatedAt: raw?.updatedAt || null };
@@ -852,13 +860,17 @@ function clientIp(request) {
 // Handlers
 // ============================================================================
 
-async function executePlanGeneration(env, ctx, { userPrompt, coachProfileText, allowedEquipment = null }) {
+async function executePlanGeneration(env, ctx, { userPrompt, coachProfileText, allowedEquipment = null, clientTags = null }) {
   const indexPromise = loadExerciseIndex(env, ctx);
   let plan;
   let rawText;
   const maxAttempts = 3;
+  let lastFailure = 'parse';
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const user = attempt === 0 ? userPrompt : `${userPrompt}${COMPACT_PLAN_RETRY_HINT}`;
+    let user = userPrompt;
+    if (attempt > 0) {
+      user += lastFailure === 'gender' ? GENDER_FIT_RETRY_HINT : COMPACT_PLAN_RETRY_HINT;
+    }
     const aiOpts = {
       system: PLAN_SYSTEM_PROMPT,
       user,
@@ -869,6 +881,12 @@ async function executePlanGeneration(env, ctx, { userPrompt, coachProfileText, a
     try {
       rawText = await callAI(env, aiOpts);
       plan = normalizePlan(parseAiJson(rawText));
+      const genderAudit = auditPlanGenderFit(plan, clientTags);
+      if (!genderAudit.ok && attempt < maxAttempts - 1) {
+        lastFailure = 'gender';
+        console.warn('Gender audit failed, retry:', genderAudit.issues.join('; '));
+        continue;
+      }
       break;
     } catch (e) {
       const isLast = attempt === maxAttempts - 1;
@@ -880,6 +898,7 @@ async function executePlanGeneration(env, ctx, { userPrompt, coachProfileText, a
       );
       if (isLast) throw e;
       if (!isPlanParseError(e)) throw e;
+      lastFailure = 'parse';
     }
   }
 
@@ -904,7 +923,7 @@ async function handleGeneratePlan(request, env, ctx) {
   }
 
   const adminGuidelines = await loadAdminGuidelines(env);
-  const { userPrompt, coachProfileText, allowedEquipment } = preparePlanGeneration(
+  const { userPrompt, coachProfileText, allowedEquipment, clientTags } = preparePlanGeneration(
     { answers },
     adminGuidelines,
     { buildProfileSummary, allowedEquipmentSet },
@@ -917,6 +936,7 @@ async function handleGeneratePlan(request, env, ctx) {
       userPrompt,
       coachProfileText,
       allowedEquipment,
+      clientTags,
     }));
   } catch (e) {
     if (isPlanParseError(e)) {
@@ -1002,7 +1022,21 @@ async function handleCoach(request, env) {
     .map((m) => `${m.role === 'assistant' ? 'Треньор' : 'Клиент'}: ${String(m.text || '').slice(0, MAX_CHAT_MESSAGE_CHARS)}`)
     .join('\n');
 
-  const system = `${COACH_SYSTEM_PROMPT}\n\n=== КОНТЕКСТ ===\n${coachContext || '(няма зареден план — отговаряй общо)'}`;
+  const adminGuidelines = await loadAdminGuidelines(env);
+  const coachTags = extractTagsFromText(coachContext);
+  const coachLayers = resolveGuidelineLayers(coachTags, adminGuidelines);
+  const trainerGuidelines = [
+    adminGuidelines.foundation ? `БАЗОВИ ПРИНЦИПИ:\n${adminGuidelines.foundation}` : '',
+    coachLayers.individual.length ? `ИНДИВИДУАЛНИ НАСОКИ:\n- ${coachLayers.individual.join('\n- ')}` : '',
+    coachLayers.architecture.length ? `АРХИТЕКТУРНА РАМКА:\n- ${coachLayers.architecture.join('\n- ')}` : '',
+  ].filter(Boolean).join('\n\n');
+
+  const system = [
+    COACH_SYSTEM_PROMPT,
+    '\n=== КОНТЕКСТ ===',
+    coachContext || '(няма зареден план — отговаряй общо)',
+    trainerGuidelines ? `\n=== НАСОКИ ОТ ТРЕНЬОРА (KA-TRAINER) ===\n${trainerGuidelines}` : '',
+  ].join('\n');
   const user = history ? `${history}\nКлиент: ${message}` : `Клиент: ${message}`;
 
   let reply;
@@ -1433,7 +1467,7 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
     clientName: record.clientName,
     clientContact: record.clientContact,
   };
-  const { userPrompt, coachProfileText, allowedEquipment } = preparePlanGeneration(
+  const { userPrompt, coachProfileText, allowedEquipment, clientTags } = preparePlanGeneration(
     genSource,
     adminGuidelines,
     { buildProfileSummary, allowedEquipmentSet },
@@ -1446,6 +1480,7 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
       userPrompt,
       coachProfileText,
       allowedEquipment,
+      clientTags,
     }));
   } catch (e) {
     if (isPlanParseError(e)) {
