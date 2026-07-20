@@ -268,29 +268,36 @@ test('selectGuidelinesFromBrief: универсални admin chunks → archite
   assert.ok(!layers.individual.some((t) => t.includes('Само за сила')));
 });
 
-test('buildBriefIdentityBlock: жена → изричен полов блок', () => {
+test('buildBriefIdentityBlock: тагове в XML формат', () => {
   const block = buildBriefIdentityBlock({
     clientProfile: 'Жена, 32 г., цел релеф, 3 тренировки.',
     exampleScheme: 'Пон: glutes, Сря: гръб',
   });
-  assert.ok(block.includes('Пол: ЖЕНА'));
+  assert.ok(block.includes('<tags>'));
   assert.ok(block.includes('gender:жена'));
-  assert.ok(block.includes('провери'));
 });
 
-test('buildAdminPlanUserPrompt: включва профил, схема, идентичност и указания от треньора', () => {
+test('buildAdminPlanUserPrompt: context-only — профил, схема, constraints', () => {
   const prompt = buildAdminPlanUserPrompt({
     clientProfile: 'Жена, 28 г., цел: релеф',
     exampleScheme: 'Пон: гръб — лат пулдаун 4x10\nБез бърпита',
-  }, { individual: ['Насока за жена'], architecture: ['Универсално правило'] }, 'Принцип А');
-  assert.ok(prompt.indexOf('Пол: ЖЕНА') < prompt.indexOf('ПРОФИЛ И ДАННИ'));
-  assert.ok(prompt.includes('РЕЖИМ: Треньорът'));
+    tags: new Set(['gender:жена', 'goal:отслабване']),
+    constraints: {
+      exclusions: ['Не желае движения: бърпи'],
+      equipmentList: [],
+      priorities: [],
+      schedule: [],
+    },
+  });
+  assert.ok(prompt.includes('<profile>'));
+  assert.ok(prompt.includes('<scheme>'));
+  assert.ok(prompt.includes('<constraints>'));
   assert.ok(prompt.includes('Жена, 28 г.'));
   assert.ok(prompt.includes('лат пулдаун'));
-  assert.ok(prompt.includes('Без бърпита'));
-  assert.ok(prompt.includes('Насока за жена'));
-  assert.ok(prompt.includes('БАЗОВИ ПРИНЦИПИ'));
-  assert.ok(prompt.includes('АРХИТЕКТУРНА РАМКА'));
+  assert.ok(prompt.includes('бърпи'));
+  assert.ok(prompt.includes('Въз основа на данните по-горе'));
+  assert.ok(!prompt.includes('БАЗОВИ ПРИНЦИПИ'), 'foundation не е в user prompt');
+  assert.ok(!prompt.includes('ИНДИВИДУАЛНИ НАСОКИ'), 'RAG не е в user prompt');
 });
 
 test('capGuidelineTexts: спазва лимити', () => {
@@ -299,24 +306,17 @@ test('capGuidelineTexts: спазва лимити', () => {
   assert.ok(capped.join('').length <= 150);
 });
 
-test('buildAdminPlanUserPrompt: individual преди architecture', () => {
-  const prompt = buildAdminPlanUserPrompt({
-    clientProfile: 'Профил',
-    exampleScheme: '',
-  }, { individual: ['Насока 1'], architecture: ['Арх 1'] }, 'Принцип А');
-  assert.ok(prompt.includes('Принцип А'));
-  assert.ok(prompt.includes('Насока 1'));
-  assert.ok(prompt.includes('Арх 1'));
-  assert.ok(prompt.indexOf('Насока 1') < prompt.indexOf('АРХИТЕКТУРНА'));
-});
-
-test('selectGuidelines: пол жена → gender chunk', () => {
-  const { individual } = selectGuidelines(
-    { gender: 'Жена', goal: { main: 'Отслабване' }, experience: 'Начинаещ', health: [], healthFemale: [], equipment: ['Дъмбели'], age: 30 },
-    null,
-  );
-  const joined = individual.join('\n');
-  assert.ok(joined.includes('Жена: програмирай за женска физиология'));
+test('buildTrainerSystemAddon: RAG насоки в system с XML тагове', () => {
+  const layers = resolveGuidelineLayers(new Set(['gender:жена', 'goal:отслабване']), {
+    foundation: 'Принцип А',
+    chunks: [{ tags: ['пол (в1)'], text: 'ПОЛ — жени: glutes приоритет' }],
+  });
+  const addon = buildTrainerSystemAddon({ foundation: 'Принцип А', chunks: [] }, new Set(['gender:жена']), layers);
+  assert.ok(addon.includes('<trainer_rules>'));
+  assert.ok(addon.includes('<foundation>'));
+  assert.ok(addon.includes('Принцип А'));
+  assert.ok(addon.includes('<individual_guidelines>'));
+  assert.ok(addon.includes('глут') || addon.includes('ПОЛ') || addon.includes('Жена'));
 });
 
 const ADMIN_WOMAN_PROFILE = `Жена. 172 ръст, 51 кг, 45 годишна, без здравословни проблеми. тренира редовно. търси оформяне и стягане. акцент обем на дупе и изправяне на гърба заради лека кифоза. приоритет са бедра и дупе!
@@ -354,32 +354,35 @@ test('allowedEquipmentFromBrief: мапва админ уреди към EN hint
 });
 
 test('buildAdminPlanUserPrompt: hard-veto блок за женски админ бриф', () => {
-  const prompt = buildAdminPlanUserPrompt(
-    { clientProfile: ADMIN_WOMAN_PROFILE, exampleScheme: ADMIN_WOMAN_SCHEME },
-    { individual: ['Насока жена'], architecture: [] },
-    'Контрол и дишане',
-  );
-  assert.ok(prompt.includes('ТВЪРДИ ПРАВИЛА'));
+  const prompt = buildAdminPlanUserPrompt({
+    clientProfile: ADMIN_WOMAN_PROFILE,
+    exampleScheme: ADMIN_WOMAN_SCHEME,
+  });
+  assert.ok(prompt.includes('<constraints>'));
   assert.ok(prompt.includes('гърди не'));
   assert.ok(prompt.includes('странични рамена'));
-  assert.ok(prompt.includes('скрипец'));
-  assert.ok(prompt.includes('БАЗОВИ ПРИНЦИПИ'));
-  assert.ok(prompt.includes('Контрол и дишане'));
-  assert.ok(prompt.indexOf('ТВЪРДИ ПРАВИЛА') < prompt.indexOf('ПРОФИЛ И ДАННИ'));
+  assert.ok(prompt.includes('<profile>'));
+  assert.ok(prompt.indexOf('<constraints>') < prompt.indexOf('<profile>'));
 });
 
-test('preparePlanGeneration: публичен въпросник използва силния admin prompt', () => {
-  const { userPrompt, clientTags } = preparePlanGeneration(
+test('preparePlanGeneration: user=context, system=RAG', () => {
+  const { userPrompt, clientTags, guidelineLayers } = preparePlanGeneration(
     { answers: { gender: 'Жена', age: 32, goal: { main: 'Отслабване' }, experience: 'Начинаещ', health: [], healthFemale: [], equipment: ['Дъмбели'], preferences: {} } },
     { foundation: 'Принцип тест', chunks: [{ tags: ['gender:жена'], text: 'Админ жена насока' }] },
     { buildProfileSummary, allowedEquipmentSet },
   );
-  assert.ok(userPrompt.includes('Пол: ЖЕНА'));
-  assert.ok(userPrompt.includes('БАЗОВИ ПРИНЦИПИ'));
-  assert.ok(userPrompt.includes('Принцип тест'));
-  assert.ok(userPrompt.includes('Админ жена насока'));
-  assert.ok(userPrompt.includes('ТВЪРДИ ПРАВИЛА') || userPrompt.includes('ЗАДЪЛЖИТЕЛНО СЪОБРАЗИ'));
+  assert.ok(userPrompt.includes('<profile>'));
+  assert.ok(userPrompt.includes('Жена'));
+  assert.ok(!userPrompt.includes('Принцип тест'));
+  assert.ok(!userPrompt.includes('Админ жена насока'));
   assert.ok(clientTags.has('gender:жена'));
+  const addon = buildTrainerSystemAddon(
+    { foundation: 'Принцип тест', chunks: [{ tags: ['gender:жена'], text: 'Админ жена насока' }] },
+    clientTags,
+    guidelineLayers,
+  );
+  assert.ok(addon.includes('Принцип тест'));
+  assert.ok(addon.includes('Админ жена насока'));
 });
 
 test('buildProfileSummary: цел Друго показва custom текста', () => {
@@ -448,8 +451,8 @@ test('questionnaire admin tags влизат в prompt (локален fixture)',
   assert.ok(joined.includes('ПОЛ'), 'пол chunk');
   assert.ok(joined.includes('глутеус') || joined.includes('глут'), 'женски акцент');
   assert.ok(joined.includes('ОБОРУДВАНЕ') || joined.includes('В13'), 'equipment chunk');
-  const addon = buildTrainerSystemAddon(config, tags);
-  assert.ok(addon.includes('KA-TRAINER ПРАВИЛА'), 'system addon');
+  const addon = buildTrainerSystemAddon(config, tags, layers);
+  assert.ok(addon.includes('<trainer_rules>'));
   assert.ok(addon.includes('ПОЛ'), 'пол в system prompt');
 });
 
