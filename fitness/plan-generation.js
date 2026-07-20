@@ -245,6 +245,7 @@ export function parseAdminBriefConstraints(clientProfile = '', exampleScheme = '
   for (const pattern of [
     /гърди\s+не[^.\n]*/gi,
     /без\s+гърди[^.\n]*/gi,
+    /имплант[^.\n]*/gi,
     /без\s+страничн[иа]\s+рамен[ае][^.\n]*/gi,
     /без\s+(?:бърпи|клек|мъртв|преси|кранч|падан)[^.\n]*/gi,
     /не\s+(?:прави|правим|включвай|искам)[^.\n]*/gi,
@@ -302,6 +303,16 @@ export function constraintsFromAnswers(answers, exampleScheme = '') {
   }
   for (const lim of answers?.limitations || []) {
     if (lim && !normalizeText(lim).includes('нямам')) exclusions.push(`Ограничение: ${lim}`);
+  }
+  if (answers?.breastImplants?.implants) {
+    const months = answers.breastImplants.implantMonths ? ` (${answers.breastImplants.implantMonths} мес. след операция)` : '';
+    exclusions.push(`Гръдни импланти${months}: без натиск върху гърдите — без лежанки, флайс, кръстосани въдици, пуш-ъп, пек-дек, кабел кръстосване; само леки изолирани движения с леки тежести и без компресия`);
+  }
+  for (const h of [...(answers?.health || []), ...(answers?.healthFemale || [])]) {
+    if (/бременн|кърм/i.test(h)) {
+      exclusions.push('Бременност/кърмене: без коремни преси, без лежанки, без висок интензитет');
+      break;
+    }
   }
 
   const priorities = [];

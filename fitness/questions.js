@@ -66,8 +66,31 @@ export const QUESTIONS = [
     ],
   },
   {
-    id: 'limitations',
+    id: 'womenImplants',
     num: 4,
+    showIfGender: 'Жена',
+    title: 'Гръдни импланти',
+    subtitle: 'Влияе на избора и интензитета на упражненията за гърди. Отговори честно — за комфорт и безопасност.',
+    type: 'single',
+    options: [
+      { value: 'Нямам гръдни импланти' },
+      {
+        value: 'Да — под гърдната жлеза (subglandular)',
+        input: { key: 'implantMonths', placeholder: 'месеци от операцията (по избор)', type: 'number' },
+      },
+      {
+        value: 'Да — под гръдния мускул (submuscular)',
+        input: { key: 'implantMonths', placeholder: 'месеци от операцията (по избор)', type: 'number' },
+      },
+      {
+        value: 'Да — не знам / не съм сигурна',
+        input: { key: 'implantMonths', placeholder: 'месеци от операцията (по избор)', type: 'number' },
+      },
+    ],
+  },
+  {
+    id: 'limitations',
+    num: 5,
     title: 'Опорно-двигателни ограничения и болка при движение',
     subtitle: 'Всичко посочено тук директно изключва натоварващите го движения от плана.',
     type: 'multi',
@@ -81,7 +104,7 @@ export const QUESTIONS = [
   },
   {
     id: 'weightChange',
-    num: 5,
+    num: 6,
     title: 'Рязка промяна в теглото през последните 6 месеца',
     type: 'single',
     options: [
@@ -104,7 +127,7 @@ export const QUESTIONS = [
   },
   {
     id: 'sleep',
-    num: 6,
+    num: 7,
     title: 'Качество на съня',
     type: 'single',
     options: [
@@ -116,7 +139,7 @@ export const QUESTIONS = [
   },
   {
     id: 'stress',
-    num: 7,
+    num: 8,
     title: 'Ниво на стрес',
     subtitle: '1 = напълно спокойно ежедневие, 10 = постоянно високо напрежение.',
     type: 'scale',
@@ -125,7 +148,7 @@ export const QUESTIONS = [
   },
   {
     id: 'dailyActivity',
-    num: 8,
+    num: 9,
     title: 'Активност през деня (извън тренировки)',
     type: 'single',
     options: [
@@ -137,7 +160,7 @@ export const QUESTIONS = [
   },
   {
     id: 'sportActivity',
-    num: 9,
+    num: 10,
     title: 'Спортна активност',
     subtitle: 'В контекста на дневната ти активност — тренираш ли в момента?',
     type: 'single',
@@ -149,7 +172,7 @@ export const QUESTIONS = [
   },
   {
     id: 'experience',
-    num: 10,
+    num: 11,
     title: 'Тренировъчен опит',
     type: 'single',
     options: [
@@ -161,7 +184,7 @@ export const QUESTIONS = [
   },
   {
     id: 'nutrition',
-    num: 11,
+    num: 12,
     title: 'Настоящ хранителен режим',
     type: 'fields',
     fields: [
@@ -178,7 +201,7 @@ export const QUESTIONS = [
   },
   {
     id: 'goal',
-    num: 12,
+    num: 13,
     title: 'Цел и срок',
     type: 'fields',
     fields: [
@@ -196,7 +219,7 @@ export const QUESTIONS = [
   },
   {
     id: 'equipment',
-    num: 13,
+    num: 14,
     title: 'Оборудване',
     subtitle: 'Планът ще включва само упражнения с наличното ти оборудване.',
     type: 'multi',
@@ -214,7 +237,7 @@ export const QUESTIONS = [
   },
   {
     id: 'preferences',
-    num: 14,
+    num: 15,
     title: 'Тип тренировки, предпочитания и логистика',
     type: 'fields',
     fields: [
@@ -233,7 +256,7 @@ export const QUESTIONS = [
   },
   {
     id: 'extraInfo',
-    num: 15,
+    num: 16,
     title: 'Допълнителна информация',
     subtitle: 'Всичко, което смяташ за релевантно и не беше покрито по-горе. (по избор)',
     type: 'text',
@@ -309,6 +332,7 @@ export function buildAnswers(state) {
   const basics = state.basics || {};
   const health = state.health || { selected: [], inputs: {} };
   const women = state.womenContext || { selected: null, inputs: {} };
+  const implants = state.womenImplants || { selected: null, inputs: {} };
   const limitations = state.limitations || { selected: [], inputs: {} };
   const wc = state.weightChange || {};
   const sport = state.sportActivity || {};
@@ -345,6 +369,14 @@ export function buildAnswers(state) {
     healthFemale.push(label);
   }
 
+  let breastImplants = null;
+  if (implants.selected && implants.selected !== 'Нямам гръдни импланти') {
+    breastImplants = {
+      implants: implants.selected,
+      implantMonths: implants.inputs?.implantMonths ? Number(implants.inputs.implantMonths) : null,
+    };
+  }
+
   const limitationDetails = [];
   for (const sel of limitations.selected || []) {
     const inputMap = {
@@ -371,6 +403,7 @@ export function buildAnswers(state) {
     weightKg: Number(basics.weightKg) || null,
     health: healthGeneral,
     healthFemale,
+    breastImplants,
     healthMeds: health.inputs?.healthMeds || '',
     healthOther: health.inputs?.healthOther || '',
     limitations: limitationDetails,

@@ -14,6 +14,11 @@ export function buildProfileSummary(a) {
   if (a.healthOther) health.push(a.healthOther);
   parts.push(line('Здраве', health.join('; ') || 'без установени заболявания'));
 
+  if (a.breastImplants?.implants) {
+    const months = a.breastImplants.implantMonths ? `, ${a.breastImplants.implantMonths} мес. след операция` : '';
+    parts.push(line('Гръдни импланти', `${a.breastImplants.implants}${months}`));
+  }
+
   const limits = (a.limitations || []).filter((l) => !normalizeText(l).includes('нямам'));
   parts.push(line('Опорно-двигателни ограничения (ЗАДЪЛЖИТЕЛНО СЪОБРАЗИ)', limits.join('; ')));
 
