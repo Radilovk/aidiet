@@ -1,0 +1,102 @@
+name: Publish APK Release
+
+# Re-publish APK from a completed build when GitHub Releases API was temporarily down.
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'GitHub Actions run ID with NutriPlan-APK artifact (leave empty = latest successful build)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve source run
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -n "${{ inputs.run_id }}" ]; then
+            RUN_ID="${{ inputs.run_id }}"
+          else
+            RUN_ID=$(gh run list --workflow=build-apk.yml --branch=main --status=success --limit=1 --json databaseId --jq '.[0].databaseId')
+          fi
+          if [ -z "$RUN_ID" ] || [ "$RUN_ID" = "null" ]; then
+            echo "::error::No successful build-apk run found."
+            exit 1
+          fi
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "Using build run: $RUN_ID"
+
+      - name: Download APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: NutriPlan-APK
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.source.outputs.run_id }}
+
+      - name: Publish to GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          RUN_ID="${{ steps.source.outputs.run_id }}"
+          SHORT_SHA=$(gh run view "$RUN_ID" --json headSha --jq '.headSha' | cut -c1-7)
+          V_CODE=$(gh run view "$RUN_ID" --json number --jq '.number')
+          V_NAME="1.0.${V_CODE}"
+          TAG="v-build${V_CODE}-${SHORT_SHA}"
+
+          if [ -f app-release.apk ]; then
+            APK_FILE="app-release.apk"
+          elif [ -f release/app-release.apk ]; then
+            APK_FILE="release/app-release.apk"
+          elif [ -f android/app/build/outputs/apk/release/app-release.apk ]; then
+            APK_FILE="android/app/build/outputs/apk/release/app-release.apk"
+          elif [ -f app-debug.apk ]; then
+            APK_FILE="app-debug.apk"
+          else
+            echo "::error::APK not found in artifact. Contents:"
+            find . -name '*.apk' -type f
+            exit 1
+          fi
+
+          APK_NAME="NutriPlan-v${V_NAME}.apk"
+          APK_LATEST="NutriPlan.apk"
+          cp "$APK_FILE" "$APK_NAME"
+          cp "$APK_FILE" "$APK_LATEST"
+
+          publish_release() {
+            local tag="$1"
+            gh release delete "$tag" -y 2>/dev/null || true
+            gh release create "$tag" \
+              --title "NutriPlan v${V_NAME} (${tag})" \
+              --notes "Публикуван от workflow — build run ${V_CODE}, commit ${SHORT_SHA}."
+            for asset in "$APK_NAME" "$APK_LATEST"; do
+              local uploaded=0
+              for attempt in 1 2 3 4 5 6 7 8; do
+                if gh release upload "$tag" "$asset" --clobber; then
+                  uploaded=1
+                  break
+                fi
+                echo "Upload $asset failed (attempt $attempt/8), waiting..."
+                sleep $((attempt * 20))
+              done
+              if [ "$uploaded" -ne 1 ]; then
+                return 1
+              fi
+            done
+            return 0
+          }
+
+          if publish_release "$TAG"; then
+            echo "Release published: $TAG"
+            exit 0
+          fi
+          echo "::error::Failed to publish release after retries."
+          exit 1
