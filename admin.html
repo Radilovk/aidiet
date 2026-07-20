@@ -4538,13 +4538,25 @@
             };
         }
 
-        async function saveFitplanClientProgram() {
+        async function saveFitplanClientProgram(options = {}) {
+            const { silent = false } = options;
             const status = document.getElementById('fcpStatus');
             const validationError = window.FcpQuestionnaire?.validate?.();
-            if (validationError) return showError(validationError);
+            if (validationError) {
+                if (!silent) showError(validationError);
+                throw new Error(validationError);
+            }
             const payload = readFitplanClientProgramPayload();
-            if (!payload.clientName) return showError('Въведи име на клиента.');
-            if (!payload.clientAnswers?.gender) return showError('Попълни въпросника.');
+            if (!payload.clientName) {
+                const msg = 'Въведи име на клиента.';
+                if (!silent) showError(msg);
+                throw new Error(msg);
+            }
+            if (!payload.clientAnswers?.gender) {
+                const msg = 'Попълни въпросника.';
+                if (!silent) showError(msg);
+                throw new Error(msg);
+            }
             status.textContent = 'Запазване…';
             try {
                 const response = await fetch(FITPLAN_WORKER_URL + '/api/admin/fitplan/client-programs', {
@@ -4557,23 +4569,23 @@
                 fillFitplanClientProgramForm(data.program);
                 status.textContent = `Запазено · ${fcpStatusLabel(data.program.status)}`;
                 loadFitplanClientPrograms(true);
-                showSuccess('Черновата е запазена.');
+                if (!silent) showSuccess('Черновата е запазена.');
+                return data.program;
             } catch (error) {
                 status.textContent = '';
-                showError('Грешка при запис: ' + error.message);
+                if (!silent) showError('Грешка при запис: ' + error.message);
+                throw error;
             }
         }
 
         async function generateFitplanClientProgram() {
             const status = document.getElementById('fcpStatus');
-            let id = document.getElementById('fcpId').value.trim();
-            if (!id) {
-                await saveFitplanClientProgram();
-                id = document.getElementById('fcpId').value.trim();
-                if (!id) return;
-            }
-            status.textContent = 'AI генерира… (до 1–2 мин)';
             try {
+                status.textContent = 'Запазване на промените…';
+                await saveFitplanClientProgram({ silent: true });
+                const id = document.getElementById('fcpId').value.trim();
+                if (!id) return showError('Запазването неуспешно — липсва ID.');
+                status.textContent = 'AI генерира… (до 1–2 мин)';
                 const response = await fetch(`${FITPLAN_WORKER_URL}/api/admin/fitplan/client-programs/${encodeURIComponent(id)}/generate`, {
                     method: 'POST',
                     headers: fitplanAdminHeaders(),
@@ -4581,9 +4593,9 @@
                 const data = await response.json();
                 if (!response.ok || !data.success) throw new Error(data.message || 'Грешка');
                 fillFitplanClientProgramForm(data.program);
-                status.textContent = `${fcpStatusLabel(data.program.status)} · прегледай и одобри`;
+                status.textContent = `${fcpStatusLabel(data.program.status)} · ${data.program.planTitle || 'нов план'} · прегледай и одобри`;
                 loadFitplanClientPrograms(true);
-                showSuccess('Готово. Прегледай, после одобри.');
+                showSuccess(data.replacedPlanId ? 'Генериран е нов план (замени предишния).' : 'Готово. Прегледай, после одобри.');
             } catch (error) {
                 status.textContent = '';
                 showError('Грешка при генерация: ' + error.message);
@@ -4616,7 +4628,7 @@
         function previewFitplanClientProgram(planId) {
             const id = planId || fcpCurrentPlanId;
             if (!id) return showError('Първо генерирай програмата.');
-            window.open(`${getFitplanPublicBase()}/fitness/app.html?plan=${encodeURIComponent(id)}`, '_blank', 'noopener');
+            window.open(`${getFitplanPublicBase()}/fitness/app.html?plan=${encodeURIComponent(id)}&t=${Date.now()}`, '_blank', 'noopener');
         }
 
         async function copyFitplanClientProgramLink() {

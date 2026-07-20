@@ -3002,8 +3002,9 @@ async function handleGetPlan(planId, env, ctx) {
     planId,
     plan,
     coachContext: record.coachContext,
-    createdAt: record.createdAt
-  }, 200, { "Cache-Control": "private, max-age=300" });
+    createdAt: record.createdAt,
+    regeneratedAt: record.regeneratedAt || null
+  }, 200, { "Cache-Control": "private, no-cache, no-store, must-revalidate" });
 }
 async function handleRefreshPlanExercises(request, env, ctx) {
   let body;
@@ -3460,13 +3461,17 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
     }
     return errorResponse("AI \u0443\u0441\u043B\u0443\u0433\u0430\u0442\u0430 \u0435 \u0432\u0440\u0435\u043C\u0435\u043D\u043D\u043E \u043D\u0435\u0434\u043E\u0441\u0442\u044A\u043F\u043D\u0430. \u041E\u043F\u0438\u0442\u0430\u0439 \u043E\u0442\u043D\u043E\u0432\u043E \u0441\u043B\u0435\u0434 \u043C\u0438\u043D\u0443\u0442\u0430.", 502, "ai_unavailable");
   }
-  const planId = record.planId || crypto.randomUUID();
+  const oldPlanId = record.planId || null;
+  const planId = crypto.randomUUID();
   const now = (/* @__PURE__ */ new Date()).toISOString();
-  const existingPlan = record.planId ? await env.FITNESS_KV.get(`plan:${record.planId}`, { type: "json" }) : null;
+  if (oldPlanId && oldPlanId !== planId) {
+    await env.FITNESS_KV.delete(`plan:${oldPlanId}`);
+  }
   await env.FITNESS_KV.put(`plan:${planId}`, JSON.stringify({
     plan,
     coachContext,
-    createdAt: existingPlan?.createdAt || now,
+    createdAt: now,
+    regeneratedAt: now,
     status: "draft",
     clientProgramId: record.id,
     clientName: record.clientName
@@ -3477,7 +3482,12 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
   record.updatedAt = now;
   record.approvedAt = null;
   await saveClientProgram(env, record);
-  return jsonResponse({ success: true, program: clientProgramPublicView(record) });
+  return jsonResponse({
+    success: true,
+    program: clientProgramPublicView(record),
+    planId,
+    replacedPlanId: oldPlanId
+  });
 }
 async function handleApproveClientProgram(request, env, id) {
   if (!checkAdminSecret(request, env)) return errorResponse("\u041D\u0435\u043E\u0442\u043E\u0440\u0438\u0437\u0438\u0440\u0430\u043D \u0434\u043E\u0441\u0442\u044A\u043F", 401, "unauthorized");
