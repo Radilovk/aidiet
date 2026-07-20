@@ -18,12 +18,12 @@
 {clinicalProtocolSupplementSection}
 
 === ЗАДАЧА ===
-Въз основа на плана и профила по-горе, генерирай финални препоръки за 7-дневния план на {name}.
+Генерирай финални препоръки за 7-дневния план на {name}.
 
-- recommendations: точно 10 типа храни (не ястия), подходящи за {goal}, "{dietType}", {keyProblems} — извън blacklist
-- forbidden: точно 10 типа храни, неподходящи за {goal}, {keyProblems}, медикаменти — без противоречие с whitelist
-- supplements: мин. 3 с дозировка и обосновка; без опасни взаимодействия с {medications}
-- psychology: мин. 3 кратки персонализирани съвета за {name} ({temperament}, {psychologicalProfile}, сън, стрес, активност)
+- recommendations: точно 10 типа храни (не ястия) за {goal}, "{dietType}", {keyProblems}, {clinicalProtocolSection}, медикаменти {medications} — извън blacklist
+- forbidden: точно 10 типа храни за {goal}, {keyProblems}, {clinicalProtocolSection}, медикаменти — без противоречие с whitelist
+- supplements: мин. 3, свързани с {goal}, {keyProblems}, {clinicalProtocolSection}, {psychologicalProfile}, {temperament}, {medications}; дозировка + обосновка за този клиент; без опасни взаимодействия
+- psychology: мин. 3 конкретни съвета за {name}: {goal}, {psychologicalProfile}, {temperament}, сън, стрес, активност, {keyProblems} — не общи мотивационни фрази
 - waterIntake: от {hydrationStrategy}
 
 Върни САМО JSON.

@@ -3,10 +3,22 @@
  * Keeps JSON structure reliable in non-thinking mode without verbose prompt schemas.
  */
 
+const CANONICAL_MEAL_TYPES = [
+  'Хранене 1',
+  'Хранене 2',
+  'Хранене 3',
+  'Хранене 4',
+  'Хранене 5',
+  'Свободно хранене',
+];
+
+const KEY_PROBLEM_SEVERITIES = ['Borderline', 'Risky', 'Critical'];
+const KEY_PROBLEM_CATEGORIES = ['Sleep', 'Nutrition', 'Hydration', 'Stress', 'Activity', 'Medical'];
+
 const MEAL_PLAN_MEAL_SCHEMA = {
   type: 'object',
   properties: {
-    type: { type: 'string' },
+    type: { type: 'string', enum: CANONICAL_MEAL_TYPES },
     name: { type: 'string' },
     description: { type: 'string' },
     dessert: { type: 'boolean' },
@@ -202,9 +214,9 @@ export const ANALYSIS_RESPONSE_SCHEMA = {
         properties: {
           title: { type: 'string' },
           description: { type: 'string' },
-          severity: { type: 'string' },
+          severity: { type: 'string', enum: KEY_PROBLEM_SEVERITIES },
           severityValue: { type: 'number' },
-          category: { type: 'string' },
+          category: { type: 'string', enum: KEY_PROBLEM_CATEGORIES },
           impact: { type: 'string' },
         },
         required: ['title', 'description', 'severity', 'severityValue', 'category', 'impact'],

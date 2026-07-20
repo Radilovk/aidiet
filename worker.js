@@ -31,10 +31,20 @@ var init_exercise_translations_bg = __esm({
 });
 
 // plan-response-schemas.js
+var CANONICAL_MEAL_TYPES = [
+  "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1",
+  "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2",
+  "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3",
+  "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4",
+  "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5",
+  "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435"
+];
+var KEY_PROBLEM_SEVERITIES = ["Borderline", "Risky", "Critical"];
+var KEY_PROBLEM_CATEGORIES = ["Sleep", "Nutrition", "Hydration", "Stress", "Activity", "Medical"];
 var MEAL_PLAN_MEAL_SCHEMA = {
   type: "object",
   properties: {
-    type: { type: "string" },
+    type: { type: "string", enum: CANONICAL_MEAL_TYPES },
     name: { type: "string" },
     description: { type: "string" },
     dessert: { type: "boolean" }
@@ -229,9 +239,9 @@ var ANALYSIS_RESPONSE_SCHEMA = {
         properties: {
           title: { type: "string" },
           description: { type: "string" },
-          severity: { type: "string" },
+          severity: { type: "string", enum: KEY_PROBLEM_SEVERITIES },
           severityValue: { type: "number" },
-          category: { type: "string" },
+          category: { type: "string", enum: KEY_PROBLEM_CATEGORIES },
           impact: { type: "string" }
         },
         required: ["title", "description", "severity", "severityValue", "category", "impact"]

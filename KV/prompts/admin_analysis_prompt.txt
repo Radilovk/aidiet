@@ -31,6 +31,6 @@ correctedMetabolism.realBMR = bmr; realTDEE = Final_Calories.
 
 5. МАКРОСИ от Final_Calories: protein%/carbs%/fats% по цел, темперамент, клиника, хранителни навици. fats_g ≥ {MIN_FAT_GRAMS}. Баланс: P×4+C×4+F×9 ≈ Final_Calories (±15 kcal).
 
-6. АНАЛИЗ СТРАНИЦА: BMI+категория, physiologicalPhase, waterDeficit (нужда {waterMin}–{waterMax} л), negativeHealthFactors/hinderingFactors (severity 1-3), cumulativeRiskScore, metabolicReactivity (speed/adaptability по activityScore), keyProblems (3-6, Borderline/Risky/Critical), currentHealthStatus (score 0-100, занижено с {HEALTH_STATUS_UNDERESTIMATE_PERCENT}%), forecastPessimistic/Optimistic (12 месеца), healthRisks, nutritionalNeeds, successChance, metabolicProfile.
+6. АНАЛИЗ СТРАНИЦА: BMI+категория, physiologicalPhase, waterDeficit (нужда {waterMin}–{waterMax} л), negativeHealthFactors/hinderingFactors (severity 1-3), cumulativeRiskScore, metabolicReactivity (speed/adaptability по activityScore), keyProblems (3-6: severity Borderline|Risky|Critical, severityValue 0-100, category Sleep|Nutrition|Hydration|Stress|Activity|Medical, title+description+impact към клиента; БЕЗ Normal), currentHealthStatus (score 0-100, занижено с {HEALTH_STATUS_UNDERESTIMATE_PERCENT}%), forecastPessimistic/Optimistic (12 месеца, risks/improvements по 5), healthRisks, nutritionalNeeds, successChance, metabolicProfile.
 
 Върни САМО JSON.
