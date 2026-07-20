@@ -922,7 +922,7 @@ function init() {
   const forceNew = params.has('new');
   const forceOpen = params.has('open');
 
-  if (sharedPlanId && sharedPlanId !== planRecord?.planId) {
+  if (sharedPlanId) {
     loadSharedPlan(sharedPlanId);
   } else if (forceOpen && hasCachedPlan()) {
     openCachedProgram();

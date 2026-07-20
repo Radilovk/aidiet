@@ -972,7 +972,8 @@ async function handleGetPlan(planId, env, ctx) {
     plan,
     coachContext: record.coachContext,
     createdAt: record.createdAt,
-  }, 200, { 'Cache-Control': 'private, max-age=300' });
+    regeneratedAt: record.regeneratedAt || null,
+  }, 200, { 'Cache-Control': 'private, no-cache, no-store, must-revalidate' });
 }
 
 async function handleRefreshPlanExercises(request, env, ctx) {
@@ -1489,16 +1490,19 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
     return errorResponse('AI услугата е временно недостъпна. Опитай отново след минута.', 502, 'ai_unavailable');
   }
 
-  const planId = record.planId || crypto.randomUUID();
+  const oldPlanId = record.planId || null;
+  const planId = crypto.randomUUID();
   const now = new Date().toISOString();
-  const existingPlan = record.planId
-    ? await env.FITNESS_KV.get(`plan:${record.planId}`, { type: 'json' })
-    : null;
+
+  if (oldPlanId && oldPlanId !== planId) {
+    await env.FITNESS_KV.delete(`plan:${oldPlanId}`);
+  }
 
   await env.FITNESS_KV.put(`plan:${planId}`, JSON.stringify({
     plan,
     coachContext,
-    createdAt: existingPlan?.createdAt || now,
+    createdAt: now,
+    regeneratedAt: now,
     status: 'draft',
     clientProgramId: record.id,
     clientName: record.clientName,
@@ -1511,7 +1515,12 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
   record.approvedAt = null;
   await saveClientProgram(env, record);
 
-  return jsonResponse({ success: true, program: clientProgramPublicView(record) });
+  return jsonResponse({
+    success: true,
+    program: clientProgramPublicView(record),
+    planId,
+    replacedPlanId: oldPlanId,
+  });
 }
 
 async function handleApproveClientProgram(request, env, id) {
