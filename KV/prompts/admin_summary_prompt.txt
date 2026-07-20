@@ -20,10 +20,10 @@
 === ЗАДАЧА ===
 Генерирай финални препоръки за 7-дневния план на {name}.
 
-- recommendations: точно 10 типа храни (не ястия) за {goal}, "{dietType}", {keyProblems}, {clinicalProtocolSection}, медикаменти {medications} — извън blacklist
-- forbidden: точно 10 типа храни за {goal}, {keyProblems}, {clinicalProtocolSection}, медикаменти — без противоречие с whitelist
-- supplements: мин. 3, свързани с {goal}, {keyProblems}, {clinicalProtocolSection}, {psychologicalProfile}, {temperament}, {medications}; дозировка + обосновка за този клиент; без опасни взаимодействия
-- psychology: мин. 3 конкретни съвета за {name}: {goal}, {psychologicalProfile}, {temperament}, сън, стрес, активност, {keyProblems} — не общи мотивационни фрази
+- recommendations: 10 конкретни типове храни (не ястия), подходящи за {goal}, диета "{dietType}", {keyProblems}, {clinicalProtocolSection}, медикаменти: {medications} — да не попадат в {dynamicBlacklistSection}
+- forbidden: 10 конкретни типове храни (не ястия), неподходящи за {goal}, {clinicalProtocolSection}, диета "{dietType}", {keyProblems}, медикаменти: {medications} — да не противоречат на {dynamicWhitelistSection}
+- supplements: минимум 3 конкретни добавки, свързани с: {clinicalProtocolSection}, цел ({goal}). Да имат дозировка и кратка обосновка, съобразени с {psychologicalProfile}, {temperament}, {keyProblems}, и медикаменти ({medications}) — БЕЗ опасни взаимодействия с медикаментите
+- psychology: минимум 3 кратки, стегнати конкретни персонализирани психологически съвета, свързани с цел ({goal}), {clinicalProtocolSection} и адаптирани към {psychologicalProfile}, ({temperament}), сън, ниво на стрес, ниво на активност, пол и {keyProblems} на {name}
 - waterIntake: от {hydrationStrategy}
 
 Върни САМО JSON.
