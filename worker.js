@@ -1750,7 +1750,8 @@ function buildProfileSummary(a) {
     parts.push(line("\u0425\u0440\u0430\u043D\u0435\u043D\u0435", `${a.nutrition.type || "?"}${a.nutrition.custom ? ` (${a.nutrition.custom})` : ""}, ${a.nutrition.mealsPerDay || "?"} \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F/\u0434\u0435\u043D`));
   }
   if (a.goal) {
-    const goalText = a.goal.main === "\u0434\u0440\u0443\u0433\u043E" ? a.goal.other : a.goal.main;
+    const goalMain = normalizeText(a.goal.main);
+    const goalText = goalMain === "\u0434\u0440\u0443\u0433\u043E" ? a.goal.other : a.goal.main;
     parts.push(line("\u0426\u0415\u041B", `${goalText || "?"}${a.goal.deadline ? `, \u0441\u0440\u043E\u043A: ${a.goal.deadline}` : ", \u0431\u0435\u0437 \u043A\u0440\u0430\u0435\u043D \u0441\u0440\u043E\u043A"}`));
   }
   parts.push(line("\u041E\u0431\u043E\u0440\u0443\u0434\u0432\u0430\u043D\u0435", [...a.equipment || [], a.equipmentOther].filter(Boolean).join(", ")));
@@ -1770,8 +1771,10 @@ function buildProfileSummary(a) {
 
 // fitness/plan-generation.js
 var MAX_FOUNDATION_CHARS = 800;
-var MAX_GUIDELINE_ITEMS = 8;
-var MAX_GUIDELINE_CHARS = 2400;
+var MAX_GUIDELINE_ITEMS = 12;
+var MAX_GUIDELINE_CHARS = 3600;
+var MAX_ARCHITECTURE_ITEMS = 8;
+var MAX_ARCHITECTURE_CHARS = 2800;
 var UNIVERSAL_TAGS = /* @__PURE__ */ new Set(["all", "*", "\u043E\u0431\u0449\u043E"]);
 var GUIDELINE_CHUNKS = [
   { tags: ["goal:\u043E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435"], text: "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435: \u043A\u043E\u043C\u0431\u0438\u043D\u0438\u0440\u0430\u0439 \u0441\u044A\u043F\u0440\u043E\u0442\u0438\u0432\u0438\u0442\u0435\u043B\u0435\u043D \u0442\u0440\u0435\u043D\u0438\u043D\u0433 (\u0437\u0430\u043F\u0430\u0437\u0432\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430) \u0441 \u043A\u0430\u0440\u0434\u0438\u043E. \u041F\u0440\u0438\u043E\u0440\u0438\u0442\u0435\u0442 \u2014 \u043C\u043D\u043E\u0433\u043E\u0441\u0442\u0430\u0432\u043D\u0438 \u0434\u0432\u0438\u0436\u0435\u043D\u0438\u044F \u0441 \u0443\u043C\u0435\u0440\u0435\u043D\u0438 \u0442\u0435\u0436\u0435\u0441\u0442\u0438, 2-3 \u0441\u0435\u043A \u043A\u043E\u043D\u0442\u0440\u043E\u043B\u0438\u0440\u0430\u043D\u0430 \u043D\u0435\u0433\u0430\u0442\u0438\u0432\u043D\u0430 \u0444\u0430\u0437\u0430. \u041A\u0430\u0440\u0434\u0438\u043E \u0437\u043E\u043D\u0438: LISS 60-70% \u043E\u0442 \u043C\u0430\u043A\u0441. \u043F\u0443\u043B\u0441 \u0438\u043B\u0438 \u0438\u043D\u0442\u0435\u0440\u0432\u0430\u043B\u0438 \u0441\u043F\u043E\u0440\u0435\u0434 \u043E\u043F\u0438\u0442\u0430. \u0414\u0435\u0444\u0438\u0446\u0438\u0442\u044A\u0442 \u0438\u0434\u0432\u0430 \u043E\u0442 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E \u2014 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430\u0442\u0430 \u043F\u0430\u0437\u0438 \u043C\u0443\u0441\u043A\u0443\u043B\u0430." },
@@ -1843,6 +1846,24 @@ function capGuidelineTexts(texts, maxItems = MAX_GUIDELINE_ITEMS, maxChars = MAX
     total += slice.length;
   }
   return result;
+}
+function capIndividualGuidelines(adminTexts, hardcodedTexts, tagSet, adminChunks) {
+  const admin = adminTexts.map((t) => String(t || "").trim()).filter(Boolean);
+  const adminSet = new Set(admin);
+  const merged = prioritizeGenderGuidelines(
+    [...admin, ...hardcodedTexts.filter((t) => !adminSet.has(t))],
+    tagSet,
+    adminChunks
+  );
+  const hardcodedOnly = merged.filter((t) => !adminSet.has(t));
+  const adminChars = admin.join("").length;
+  const hardcodedBudget = Math.max(0, MAX_GUIDELINE_CHARS - adminChars);
+  const hardcodedCapped = capGuidelineTexts(
+    hardcodedOnly,
+    Math.max(0, MAX_GUIDELINE_ITEMS - admin.length),
+    hardcodedBudget
+  );
+  return capGuidelineTexts([...admin, ...hardcodedCapped], MAX_GUIDELINE_ITEMS, MAX_GUIDELINE_CHARS);
 }
 function isUniversal(tags) {
   return !tags?.length || tags.some((t) => UNIVERSAL_TAGS.has(t));
@@ -1937,7 +1958,8 @@ function constraintsFromAnswers(answers, exampleScheme = "") {
   }
   const priorities = [];
   if (answers?.extraInfo?.trim()) priorities.push(answers.extraInfo.trim());
-  const goalText = answers?.goal?.main === "\u0434\u0440\u0443\u0433\u043E" ? answers.goal.other : answers?.goal?.main;
+  const goalMain = normalizeText(answers?.goal?.main);
+  const goalText = goalMain === "\u0434\u0440\u0443\u0433\u043E" ? answers?.goal?.other : answers?.goal?.main;
   if (goalText) priorities.push(`\u0426\u0435\u043B: ${goalText}`);
   const schedule = [];
   if (answers?.preferences?.freq) schedule.push(`${answers.preferences.freq} \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`);
@@ -2023,7 +2045,11 @@ function extractTagsFromText(...parts) {
 function buildTagsFromAnswers(answers) {
   const tags = /* @__PURE__ */ new Set();
   const goal = normalizeText(answers?.goal?.main);
-  if (goal && GOAL_TAG_BY_ANSWER[goal]) tags.add(GOAL_TAG_BY_ANSWER[goal]);
+  if (goal && GOAL_TAG_BY_ANSWER[goal]) {
+    tags.add(GOAL_TAG_BY_ANSWER[goal]);
+  } else if (goal === "\u0434\u0440\u0443\u0433\u043E" && answers?.goal?.other) {
+    for (const t of extractTagsFromText(answers.goal.other)) tags.add(t);
+  }
   const gender = normalizeText(answers?.gender || "");
   if (gender.includes("\u0436\u0435\u043D\u0430")) tags.add("gender:\u0436\u0435\u043D\u0430");
   else if (gender.includes("\u043C\u044A\u0436")) tags.add("gender:\u043C\u044A\u0436");
@@ -2048,6 +2074,14 @@ function buildTagsFromAnswers(answers) {
   if (!hasGym && equipment.length <= 2) tags.add("equipment:\u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u043E");
   if (normalizeText(answers?.preferences?.timeOfDay || "").includes("\u0441\u0443\u0442\u0440\u0438\u043D")) tags.add("time:\u0441\u0443\u0442\u0440\u0438\u043D");
   if (Number(answers?.age) >= 50) tags.add("age:50+");
+  const freeText = [
+    answers?.goal?.other,
+    answers?.extraInfo,
+    answers?.preferences?.avoid,
+    answers?.healthOther,
+    ...answers?.limitations || []
+  ].filter(Boolean).join(" ");
+  for (const t of extractTagsFromText(freeText)) tags.add(t);
   return tags;
 }
 function collectTags(source) {
@@ -2071,8 +2105,9 @@ function resolveGuidelineLayers(tags, adminConfig = null) {
   const tagSet = tags instanceof Set ? tags : new Set(tags);
   const adminChunks = Array.isArray(adminConfig?.chunks) ? adminConfig.chunks : [];
   const adminTagged = new Set(adminChunks.flatMap((c) => c.tags || []));
-  const individual = [];
-  const architecture = [];
+  const adminIndividual = [];
+  const adminArchitecture = [];
+  const hardcodedIndividual = [];
   const seen = /* @__PURE__ */ new Set();
   const push = (list, text) => {
     if (!text || seen.has(text)) return;
@@ -2081,54 +2116,27 @@ function resolveGuidelineLayers(tags, adminConfig = null) {
   };
   for (const chunk of adminChunks) {
     if (!chunk.text) continue;
-    if (isUniversal(chunk.tags)) push(architecture, chunk.text);
-    else if (chunk.tags.some((t) => tagSet.has(t))) push(individual, chunk.text);
+    if (isUniversal(chunk.tags)) push(adminArchitecture, chunk.text);
+    else if (chunk.tags.some((t) => tagSet.has(t))) push(adminIndividual, chunk.text);
   }
   for (const chunk of GUIDELINE_CHUNKS) {
     if (!chunk.tags.some((t) => tagSet.has(t))) continue;
     if (chunk.tags.some((t) => adminTagged.has(t))) continue;
-    push(individual, chunk.text);
+    push(hardcodedIndividual, chunk.text);
   }
   return {
-    individual: capGuidelineTexts(prioritizeGenderGuidelines(individual, tagSet, adminChunks)),
-    architecture: capGuidelineTexts(architecture, 6, 2e3)
+    individual: capIndividualGuidelines(adminIndividual, hardcodedIndividual, tagSet, adminChunks),
+    architecture: capGuidelineTexts(adminArchitecture, MAX_ARCHITECTURE_ITEMS, MAX_ARCHITECTURE_CHARS)
   };
-}
-function formatArchitectureBlock(architecture, foundation) {
-  const foundationText = String(foundation || "").trim().slice(0, MAX_FOUNDATION_CHARS);
-  const parts = [];
-  if (foundationText) parts.push(`\u0411\u0430\u0437\u043E\u0432\u0438 \u043F\u0440\u0438\u043D\u0446\u0438\u043F\u0438 (foundation):
-${foundationText}`);
-  if (architecture?.length) parts.push(`\u0423\u043D\u0438\u0432\u0435\u0440\u0441\u0430\u043B\u043D\u0438 \u0430\u0440\u0445\u0438\u0442\u0435\u043A\u0442\u0443\u0440\u043D\u0438 \u043D\u0430\u0441\u043E\u043A\u0438:
-- ${architecture.join("\n- ")}`);
-  if (!parts.length) return "";
-  return `
-
-\u2550\u2550\u2550 \u0410\u0420\u0425\u0418\u0422\u0415\u041A\u0422\u0423\u0420\u041D\u0410 \u0420\u0410\u041C\u041A\u0410 (\u0431\u0430\u0437\u0430 \u2014 \u043E\u0442\u0441\u0442\u044A\u043F\u0432\u0430 \u043F\u0440\u0438 \u043A\u043E\u043D\u0444\u043B\u0438\u043A\u0442 \u0441 \u0438\u043D\u0434\u0438\u0432\u0438\u0434\u0443\u0430\u043B\u043D\u043E\u0442\u043E) \u2550\u2550\u2550
-${parts.join("\n\n")}`;
-}
-function buildPlanUserPrompt(profileSummary, layers, foundation = "") {
-  const { individual = [], architecture = [] } = layers || {};
-  const individualBlock = [
-    "\u2550\u2550\u2550 \u0418\u041D\u0414\u0418\u0412\u0418\u0414\u0423\u0410\u041B\u0415\u041D \u041F\u0420\u041E\u0424\u0418\u041B (\u041D\u0410\u0419-\u0412\u0418\u0421\u041E\u041A \u041F\u0420\u0418\u041E\u0420\u0418\u0422\u0415\u0422 \u2014 \u043D\u0430\u0434 \u0430\u0440\u0445\u0438\u0442\u0435\u043A\u0442\u0443\u0440\u043D\u0430\u0442\u0430 \u0440\u0430\u043C\u043A\u0430) \u2550\u2550\u2550",
-    profileSummary
-  ].join("\n");
-  const individualGuidelines = individual.length ? `
-
-\u0418\u041D\u0414\u0418\u0412\u0418\u0414\u0423\u0410\u041B\u041D\u0418 \u041D\u0410\u0421\u041E\u041A\u0418 \u0417\u0410 \u0422\u041E\u0417\u0418 \u041A\u041B\u0418\u0415\u041D\u0422 (\u043F\u0440\u0438\u043E\u0440\u0438\u0442\u0435\u0442 \u043D\u0430\u0434 \u043E\u0431\u0449\u0430\u0442\u0430 \u0440\u0430\u043C\u043A\u0430):
-- ${individual.join("\n- ")}` : "";
-  return `${individualBlock}${individualGuidelines}${formatArchitectureBlock(architecture, foundation)}
-
-\u0421\u044A\u0437\u0434\u0430\u0439 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u0438\u044F \u043F\u043B\u0430\u043D \u0441\u0435\u0433\u0430. \u041E\u0442\u0433\u043E\u0432\u043E\u0440\u0438 \u0421\u0410\u041C\u041E \u0441 JSON.`;
 }
 function buildBriefIdentityBlock(brief) {
   const profile = String(brief?.clientProfile || "").trim();
   const scheme = String(brief?.exampleScheme || "").trim();
-  const tags = extractTagsFromText(profile, scheme);
+  const tags = brief?.tags instanceof Set ? brief.tags : Array.isArray(brief?.tags) ? new Set(brief.tags) : extractTagsFromText(profile, scheme);
   const tagList = [...tags].sort().join(", ") || "\u2014";
   let genderLine = "";
   if (tags.has("gender:\u0436\u0435\u043D\u0430")) {
-    genderLine = "\u041F\u043E\u043B: \u0416\u0415\u041D\u0410 \u2014 \u043F\u0440\u043E\u0433\u0440\u0430\u043C\u0430\u0442\u0430 \u0435 \u0418\u0417\u041A\u041B\u042E\u0427\u0418\u0422\u0415\u041B\u041D\u041E \u0437\u0430 \u0436\u0435\u043D\u0430. \u0417\u0430\u0431\u0440\u0430\u043D\u0435\u043D\u043E \u0435 \u043C\u044A\u0436\u043A\u0438 \u0448\u0430\u0431\u043B\u043E\u043D (press/bench-dominant split, \u0438\u0433\u043D\u043E\u0440\u0438\u0440\u0430\u043D\u0435 \u043D\u0430 glutes/\u043A\u0440\u0430\u043A\u0430).";
+    genderLine = "\u041F\u043E\u043B: \u0416\u0415\u041D\u0410 \u2014 \u043F\u0440\u043E\u0433\u0440\u0430\u043C\u0430\u0442\u0430 \u0435 \u0418\u0417\u041A\u041B\u042E\u0427\u0418\u0422\u0415\u041B\u041D\u041E \u0437\u0430 \u0436\u0435\u043D\u0430. \u0417\u0430\u0431\u0440\u0430\u043D\u0435\u043D\u043E \u0435 \u043C\u044A\u0436\u043A\u0438 \u0448\u0430\u0431\u043B\u043E\u043D (press/bench-dominant split, \u0438\u0433\u043D\u043E\u0440\u0438\u0440\u0430\u043D\u0435 \u043D\u0430 glutes/\u043A\u0440\u0430\u043A\u0430). \u041C\u0438\u043D\u0438\u043C\u0443\u043C 35% \u043E\u0442 \u0441\u0438\u043B\u043E\u0432\u0438\u0442\u0435 \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F \u2014 \u0434\u043E\u043B\u043D\u0430 \u0447\u0430\u0441\u0442 (glutes, \u0431\u0435\u0434\u0440\u0430, \u0437\u0430\u0434\u043D\u0438 \u0431\u0435\u0434\u0440\u0430).";
   } else if (tags.has("gender:\u043C\u044A\u0436")) {
     genderLine = "\u041F\u043E\u043B: \u041C\u042A\u0416 \u2014 \u043F\u0440\u043E\u0433\u0440\u0430\u043C\u0430\u0442\u0430 \u0435 \u0437\u0430 \u043C\u044A\u0436. \u041D\u0435 \u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430\u0439 \u0436\u0435\u043D\u0441\u043A\u0438-\u0441\u043F\u0435\u0446\u0438\u0444\u0438\u0447\u043D\u0438 \u0430\u043A\u0446\u0435\u043D\u0442\u0438 \u0431\u0435\u0437 \u0443\u043A\u0430\u0437\u0430\u043D\u0438\u0435.";
   }
@@ -2184,17 +2192,62 @@ function buildAdminPlanUserPrompt(brief, layers, foundation = "") {
 
 \u0421\u044A\u0437\u0434\u0430\u0439 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u0438\u044F \u043F\u043B\u0430\u043D \u0441\u0435\u0433\u0430. \u041E\u0442\u0433\u043E\u0432\u043E\u0440\u0438 \u0421\u0410\u041C\u041E \u0441 JSON.`;
 }
+var MALE_BIAS_EXERCISE = /bench press|incline bench|decline bench|skull crush|close.?grip bench|barbell curl|military press|overhead press|shoulder press/i;
+var FEMALE_PRIORITY_EXERCISE = /hip thrust|glute|abduction|adduction|clam|kickback|bulgarian split|romanian deadlift|rdl|step.?up|leg curl|hamstring curl|fire hydrant|frog pump/i;
+var LOWER_BODY_EXERCISE = /squat|lunge|leg press|hip|glute|calf|hamstring|quad|deadlift|step|adduct|abduct|thrust/i;
+function auditPlanGenderFit(plan, clientTags) {
+  const tagSet = clientTags instanceof Set ? clientTags : new Set(clientTags || []);
+  if (!tagSet.has("gender:\u0436\u0435\u043D\u0430")) return { ok: true, issues: [] };
+  const exercises = [];
+  for (const day of plan?.days || []) {
+    if (day.type === "rest") continue;
+    for (const ex of day.exercises || []) {
+      exercises.push(String(ex.canonicalName || ex.displayName || "").trim());
+    }
+  }
+  if (!exercises.length) return { ok: true, issues: [] };
+  const maleBias = exercises.filter((name) => MALE_BIAS_EXERCISE.test(name));
+  const femalePriority = exercises.filter((name) => FEMALE_PRIORITY_EXERCISE.test(name));
+  const lowerBody = exercises.filter((name) => LOWER_BODY_EXERCISE.test(name));
+  const issues = [];
+  if (maleBias.length >= 3 && femalePriority.length < 2) {
+    issues.push(`\u041F\u0440\u0435\u043A\u0430\u043B\u0435\u043D\u043E \u043C\u044A\u0436\u043A\u0438 \u0430\u043A\u0446\u0435\u043D\u0442 (${maleBias.length} press/bench \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F, \u0441\u0430\u043C\u043E ${femalePriority.length} \u0437\u0430 glutes/\u043A\u0440\u0430\u043A\u0430).`);
+  }
+  if (lowerBody.length < Math.max(2, Math.ceil(exercises.length * 0.35))) {
+    issues.push(`\u041D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u044A\u0447\u0435\u043D \u043E\u0431\u0435\u043C \u043D\u0430 \u0434\u043E\u043B\u043D\u0430 \u0447\u0430\u0441\u0442 \u0437\u0430 \u0436\u0435\u043D\u0430: ${lowerBody.length}/${exercises.length} \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F.`);
+  }
+  return { ok: issues.length === 0, issues };
+}
+var GENDER_FIT_RETRY_HINT = `
+
+\u041A\u0420\u0418\u0422\u0418\u0427\u041D\u041E \u2014 \u041F\u0420\u041E\u0413\u0420\u0410\u041C\u0410 \u0417\u0410 \u0416\u0415\u041D\u0410 (\u0437\u0430\u0434\u044A\u043B\u0436\u0438\u0442\u0435\u043B\u043D\u0430 \u043A\u043E\u0440\u0435\u043A\u0446\u0438\u044F):
+- \u041A\u043B\u0438\u0435\u043D\u0442\u043A\u0430\u0442\u0430 \u0435 \u0416\u0415\u041D\u0410 \u2014 \u043D\u0435 \u0433\u0435\u043D\u0435\u0440\u0438\u0440\u0430\u0439 \u043C\u044A\u0436\u043A\u0438 bro-split / bench-dominant \u0448\u0430\u0431\u043B\u043E\u043D.
+- \u041C\u0438\u043D\u0438\u043C\u0443\u043C 35% \u043E\u0442 \u0441\u0438\u043B\u043E\u0432\u0438\u0442\u0435 \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F: glutes, \u0431\u0435\u0434\u0440\u0430, \u0437\u0430\u0434\u043D\u0438 \u0431\u0435\u0434\u0440\u0430 (hip thrust, RDL, \u043A\u043B\u0435\u043A, lunges, abduction).
+- \u041E\u0433\u0440\u0430\u043D\u0438\u0447\u0438 bench/chest press \u0434\u043E 1\u20132 \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E; \u043D\u0435 \u043F\u0440\u0430\u0432\u0438 \u201E\u0433\u0440\u044A\u0434\u0435\u043D \u0434\u0435\u043D\u201C \u043A\u0430\u0442\u043E \u043F\u0440\u0438 \u043C\u044A\u0436.
+- \u0421\u043F\u0430\u0437\u0438 \u0432\u0441\u0438\u0447\u043A\u0438 \u043D\u0430\u0441\u043E\u043A\u0438 \u043E\u0442 \u0442\u0440\u0435\u043D\u044C\u043E\u0440\u0430 \u043F\u043E-\u0433\u043E\u0440\u0435. \u041E\u0442\u0433\u043E\u0432\u043E\u0440\u0438 \u0421\u0410\u041C\u041E \u0441 \u043F\u044A\u043B\u0435\u043D \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON.`;
 function preparePlanGeneration(source, adminConfig, helpers) {
   const foundation = adminConfig?.foundation || "";
+  function buildFromAnswers(answers, extra = {}) {
+    const profileText = helpers.buildProfileSummary(answers);
+    const tags2 = buildTagsFromAnswers(answers);
+    const layers2 = resolveGuidelineLayers(tags2, adminConfig);
+    const brief2 = {
+      clientProfile: profileText,
+      exampleScheme: extra.exampleScheme || "",
+      constraints: constraintsFromAnswers(answers, extra.exampleScheme || ""),
+      tags: tags2
+    };
+    const equipmentInput = [...answers.equipment || [], answers.equipmentOther].filter(Boolean);
+    return {
+      userPrompt: buildAdminPlanUserPrompt(brief2, layers2, foundation),
+      coachProfileText: extra.coachProfileText || profileText,
+      allowedEquipment: helpers.allowedEquipmentSet(equipmentInput),
+      clientTags: tags2
+    };
+  }
   if (source.clientAnswers) {
     const answers = source.clientAnswers;
     const profileText = helpers.buildProfileSummary(answers);
-    const layers2 = resolveGuidelineLayers(buildTagsFromAnswers(answers), adminConfig);
-    const brief2 = {
-      clientProfile: profileText,
-      exampleScheme: source.exampleScheme || "",
-      constraints: constraintsFromAnswers(answers, source.exampleScheme)
-    };
     const coachProfileText2 = [
       source.clientName ? `\u041A\u043B\u0438\u0435\u043D\u0442: ${source.clientName}` : "\u041A\u043B\u0438\u0435\u043D\u0442: \u2014",
       source.clientContact ? `\u041A\u043E\u043D\u0442\u0430\u043A\u0442: ${source.clientContact}` : "",
@@ -2204,26 +2257,20 @@ function preparePlanGeneration(source, adminConfig, helpers) {
 \u0421\u0445\u0435\u043C\u0430 \u0438 \u0443\u043A\u0430\u0437\u0430\u043D\u0438\u044F:
 ${source.exampleScheme}` : ""
     ].filter(Boolean).join("\n");
-    const equipmentInput = [...answers.equipment || [], answers.equipmentOther].filter(Boolean);
-    return {
-      userPrompt: buildAdminPlanUserPrompt(brief2, layers2, foundation),
-      coachProfileText: coachProfileText2,
-      allowedEquipment: helpers.allowedEquipmentSet(equipmentInput)
-    };
+    return buildFromAnswers(answers, {
+      exampleScheme: source.exampleScheme || "",
+      coachProfileText: coachProfileText2
+    });
   }
   const tags = collectTags(source);
   const layers = resolveGuidelineLayers(tags, adminConfig);
   if (source.answers) {
-    const profileText = helpers.buildProfileSummary(source.answers);
-    return {
-      userPrompt: buildPlanUserPrompt(profileText, layers, foundation),
-      coachProfileText: profileText,
-      allowedEquipment: helpers.allowedEquipmentSet(source.answers.equipment)
-    };
+    return buildFromAnswers(source.answers);
   }
   const brief = {
     clientProfile: source.clientProfile,
-    exampleScheme: source.exampleScheme
+    exampleScheme: source.exampleScheme,
+    tags
   };
   const coachProfileText = [
     source.clientName ? `\u041A\u043B\u0438\u0435\u043D\u0442: ${source.clientName}` : "\u041A\u043B\u0438\u0435\u043D\u0442: \u2014",
@@ -2237,7 +2284,8 @@ ${source.exampleScheme}` : ""
   return {
     userPrompt: buildAdminPlanUserPrompt(brief, layers, foundation),
     coachProfileText,
-    allowedEquipment: allowedEquipmentFromBrief(source.clientProfile, source.exampleScheme)
+    allowedEquipment: allowedEquipmentFromBrief(source.clientProfile, source.exampleScheme),
+    clientTags: tags
   };
 }
 
@@ -2473,7 +2521,7 @@ function normalizeAdminGuidelines(raw) {
   const chunks = (Array.isArray(raw?.chunks) ? raw.chunks : []).slice(0, MAX_ADMIN_CHUNKS).map((chunk) => {
     const tags = (Array.isArray(chunk?.tags) ? chunk.tags : String(chunk?.tags || "").split(",")).map((t) => String(t || "").trim().toLowerCase()).filter(Boolean);
     const text = String(chunk?.text || "").trim().slice(0, 500);
-    return tags.length && text ? { tags, text } : null;
+    return text ? { tags, text } : null;
   }).filter(Boolean);
   return { foundation, chunks, updatedAt: raw?.updatedAt || null };
 }
@@ -2850,13 +2898,17 @@ async function checkDailyLimit(env, bucket, id, max) {
 function clientIp(request) {
   return request.headers.get("CF-Connecting-IP") || request.headers.get("X-Forwarded-For") || "unknown";
 }
-async function executePlanGeneration(env, ctx, { userPrompt, coachProfileText, allowedEquipment = null }) {
+async function executePlanGeneration(env, ctx, { userPrompt, coachProfileText, allowedEquipment = null, clientTags = null }) {
   const indexPromise = loadExerciseIndex(env, ctx);
   let plan;
   let rawText;
   const maxAttempts = 3;
+  let lastFailure = "parse";
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const user = attempt === 0 ? userPrompt : `${userPrompt}${COMPACT_PLAN_RETRY_HINT}`;
+    let user = userPrompt;
+    if (attempt > 0) {
+      user += lastFailure === "gender" ? GENDER_FIT_RETRY_HINT : COMPACT_PLAN_RETRY_HINT;
+    }
     const aiOpts = {
       system: PLAN_SYSTEM_PROMPT,
       user,
@@ -2867,6 +2919,12 @@ async function executePlanGeneration(env, ctx, { userPrompt, coachProfileText, a
     try {
       rawText = await callAI(env, aiOpts);
       plan = normalizePlan(parseAiJson(rawText));
+      const genderAudit = auditPlanGenderFit(plan, clientTags);
+      if (!genderAudit.ok && attempt < maxAttempts - 1) {
+        lastFailure = "gender";
+        console.warn("Gender audit failed, retry:", genderAudit.issues.join("; "));
+        continue;
+      }
       break;
     } catch (e) {
       const isLast = attempt === maxAttempts - 1;
@@ -2878,6 +2936,7 @@ async function executePlanGeneration(env, ctx, { userPrompt, coachProfileText, a
       );
       if (isLast) throw e;
       if (!isPlanParseError(e)) throw e;
+      lastFailure = "parse";
     }
   }
   const index = await indexPromise;
@@ -2902,7 +2961,7 @@ async function handleGeneratePlan(request, env, ctx) {
     return errorResponse(`\u0414\u043E\u0441\u0442\u0438\u0433\u043D\u0430\u0442 \u0435 \u0434\u043D\u0435\u0432\u043D\u0438\u044F\u0442 \u043B\u0438\u043C\u0438\u0442 \u043E\u0442 ${genLimit} \u0433\u0435\u043D\u0435\u0440\u0430\u0446\u0438\u0438. \u041E\u043F\u0438\u0442\u0430\u0439 \u043E\u0442\u043D\u043E\u0432\u043E \u0443\u0442\u0440\u0435.`, 429, "rate_limited");
   }
   const adminGuidelines = await loadAdminGuidelines(env);
-  const { userPrompt, coachProfileText, allowedEquipment } = preparePlanGeneration(
+  const { userPrompt, coachProfileText, allowedEquipment, clientTags } = preparePlanGeneration(
     { answers },
     adminGuidelines,
     { buildProfileSummary, allowedEquipmentSet }
@@ -2913,7 +2972,8 @@ async function handleGeneratePlan(request, env, ctx) {
     ({ plan, coachContext } = await executePlanGeneration(env, ctx, {
       userPrompt,
       coachProfileText,
-      allowedEquipment
+      allowedEquipment,
+      clientTags
     }));
   } catch (e) {
     if (isPlanParseError(e)) {
@@ -2985,10 +3045,25 @@ async function handleCoach(request, env) {
     coachContext = body.contextFallback.slice(0, 3200);
   }
   const history = (Array.isArray(body.history) ? body.history : []).slice(-MAX_CHAT_HISTORY).map((m) => `${m.role === "assistant" ? "\u0422\u0440\u0435\u043D\u044C\u043E\u0440" : "\u041A\u043B\u0438\u0435\u043D\u0442"}: ${String(m.text || "").slice(0, MAX_CHAT_MESSAGE_CHARS)}`).join("\n");
-  const system = `${COACH_SYSTEM_PROMPT}
-
-=== \u041A\u041E\u041D\u0422\u0415\u041A\u0421\u0422 ===
-${coachContext || "(\u043D\u044F\u043C\u0430 \u0437\u0430\u0440\u0435\u0434\u0435\u043D \u043F\u043B\u0430\u043D \u2014 \u043E\u0442\u0433\u043E\u0432\u0430\u0440\u044F\u0439 \u043E\u0431\u0449\u043E)"}`;
+  const adminGuidelines = await loadAdminGuidelines(env);
+  const coachTags = extractTagsFromText(coachContext);
+  const coachLayers = resolveGuidelineLayers(coachTags, adminGuidelines);
+  const trainerGuidelines = [
+    adminGuidelines.foundation ? `\u0411\u0410\u0417\u041E\u0412\u0418 \u041F\u0420\u0418\u041D\u0426\u0418\u041F\u0418:
+${adminGuidelines.foundation}` : "",
+    coachLayers.individual.length ? `\u0418\u041D\u0414\u0418\u0412\u0418\u0414\u0423\u0410\u041B\u041D\u0418 \u041D\u0410\u0421\u041E\u041A\u0418:
+- ${coachLayers.individual.join("\n- ")}` : "",
+    coachLayers.architecture.length ? `\u0410\u0420\u0425\u0418\u0422\u0415\u041A\u0422\u0423\u0420\u041D\u0410 \u0420\u0410\u041C\u041A\u0410:
+- ${coachLayers.architecture.join("\n- ")}` : ""
+  ].filter(Boolean).join("\n\n");
+  const system = [
+    COACH_SYSTEM_PROMPT,
+    "\n=== \u041A\u041E\u041D\u0422\u0415\u041A\u0421\u0422 ===",
+    coachContext || "(\u043D\u044F\u043C\u0430 \u0437\u0430\u0440\u0435\u0434\u0435\u043D \u043F\u043B\u0430\u043D \u2014 \u043E\u0442\u0433\u043E\u0432\u0430\u0440\u044F\u0439 \u043E\u0431\u0449\u043E)",
+    trainerGuidelines ? `
+=== \u041D\u0410\u0421\u041E\u041A\u0418 \u041E\u0422 \u0422\u0420\u0415\u041D\u042C\u041E\u0420\u0410 (KA-TRAINER) ===
+${trainerGuidelines}` : ""
+  ].join("\n");
   const user = history ? `${history}
 \u041A\u043B\u0438\u0435\u043D\u0442: ${message}` : `\u041A\u043B\u0438\u0435\u043D\u0442: ${message}`;
   let reply;
@@ -3365,7 +3440,7 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
     clientName: record.clientName,
     clientContact: record.clientContact
   };
-  const { userPrompt, coachProfileText, allowedEquipment } = preparePlanGeneration(
+  const { userPrompt, coachProfileText, allowedEquipment, clientTags } = preparePlanGeneration(
     genSource,
     adminGuidelines,
     { buildProfileSummary, allowedEquipmentSet }
@@ -3376,7 +3451,8 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
     ({ plan, coachContext } = await executePlanGeneration(env, ctx, {
       userPrompt,
       coachProfileText,
-      allowedEquipment
+      allowedEquipment,
+      clientTags
     }));
   } catch (e) {
     if (isPlanParseError(e)) {

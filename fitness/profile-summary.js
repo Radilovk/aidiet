@@ -33,7 +33,8 @@ export function buildProfileSummary(a) {
     parts.push(line('Хранене', `${a.nutrition.type || '?'}${a.nutrition.custom ? ` (${a.nutrition.custom})` : ''}, ${a.nutrition.mealsPerDay || '?'} хранения/ден`));
   }
   if (a.goal) {
-    const goalText = a.goal.main === 'друго' ? a.goal.other : a.goal.main;
+    const goalMain = normalizeText(a.goal.main);
+    const goalText = goalMain === 'друго' ? a.goal.other : a.goal.main;
     parts.push(line('ЦЕЛ', `${goalText || '?'}${a.goal.deadline ? `, срок: ${a.goal.deadline}` : ', без краен срок'}`));
   }
   parts.push(line('Оборудване', [...(a.equipment || []), a.equipmentOther].filter(Boolean).join(', ')));

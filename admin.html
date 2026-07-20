@@ -4258,7 +4258,7 @@
                 const tagsRaw = row.querySelector('.fitplan-chunk-tags')?.value || '';
                 const text = row.querySelector('.fitplan-chunk-text')?.value?.trim() || '';
                 const tags = tagsRaw.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean);
-                if (tags.length && text) chunks.push({ tags, text });
+                if (text) chunks.push({ tags, text });
             });
             return chunks;
         }
