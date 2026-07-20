@@ -27,13 +27,8 @@ import {
 import {
   buildClientCard,
   serializePlanSummary,
+  buildChatContext,
 } from './client-card.js';
-import {
-  buildChatContextSections,
-  detectChatSections,
-  resolveContextFromSections,
-  computeContextFingerprint,
-} from './chat-context-bundle.js';
 import fitnessWorker from './fitness/worker.js';
 import {
   syncWeekPlanNutritionFromDatabase,
@@ -4133,88 +4128,8 @@ async function handleGetPlanJobStatus(request, env) {
   return jsonResponse(JSON.parse(raw));
 }
 
-const CHAT_CTX_KV_PREFIX = 'chat_scc:';
-const CHAT_CTX_TTL_SECONDS = 2 * 60 * 60; // 2 hours
-
 /**
- * @param {import('@cloudflare/workers-types').KVNamespace} kv
- * @param {string} fingerprint
- */
-async function loadChatContextSections(kv, fingerprint) {
-  if (!kv || !fingerprint) return null;
-  try {
-    const raw = await kv.get(CHAT_CTX_KV_PREFIX + fingerprint);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * @param {import('@cloudflare/workers-types').KVNamespace} kv
- * @param {string} fingerprint
- * @param {Record<string, string>} sections
- */
-async function saveChatContextSections(kv, fingerprint, sections) {
-  if (!kv || !fingerprint || !sections) return;
-  try {
-    await kv.put(CHAT_CTX_KV_PREFIX + fingerprint, JSON.stringify(sections), {
-      expirationTtl: CHAT_CTX_TTL_SECONDS,
-    });
-  } catch (err) {
-    console.error('chat context KV cache write failed:', err?.message || err);
-  }
-}
-
-/**
- * Resolve SCC sections from request (KV cache, bundle payload, or legacy JSON).
- * @returns {Promise<{ sections: Record<string, string>|null, selectedIds: string[], cacheHit: boolean, fingerprint?: string }>}
- */
-async function resolveChatContextPayload(env, body) {
-  const {
-    contextFingerprint,
-    contextSections,
-    contextBundle,
-    userData,
-    userPlan,
-    message,
-    mode,
-  } = body;
-
-  let sections = contextBundle?.sections || null;
-  let cacheHit = false;
-
-  if (!sections && contextFingerprint) {
-    const cached = await loadChatContextSections(env.page_content, contextFingerprint);
-    if (cached) {
-      sections = cached;
-      cacheHit = true;
-    }
-  }
-
-  if (!sections && userData && userPlan) {
-    sections = buildChatContextSections(userData, userPlan);
-  }
-
-  if (!sections) {
-    return { sections: null, selectedIds: [], cacheHit: false };
-  }
-
-  const fingerprint = contextFingerprint || computeContextFingerprint(sections);
-  if (!cacheHit && contextBundle?.sections && fingerprint) {
-    await saveChatContextSections(env.page_content, fingerprint, sections);
-  }
-
-  const selectedIds = contextSections?.length
-    ? contextSections
-    : detectChatSections(message || '', mode || 'consultation');
-
-  return { sections, selectedIds, cacheHit, fingerprint };
-}
-
-/**
- * Handle chat assistant requests
- * Smart Context (SCC v1): intent-based NPCF sections + KV fingerprint cache
+ * Handle chat assistant requests — client sends pre-built NPCF contextText.
  */
 async function handleChat(request, env) {
   try {
@@ -4227,21 +4142,28 @@ async function handleChat(request, env) {
       userData,
       userPlan,
       conversationHistory,
+      contextText,
     } = body;
 
     if (!message) {
       return jsonResponse({ error: ERROR_MESSAGES.MISSING_MESSAGE }, 400);
     }
 
-    const { sections, selectedIds, cacheHit, fingerprint } = await resolveChatContextPayload(env, body);
-    if (!sections) {
+    let effectiveContextText = contextText;
+    if (!effectiveContextText && userData && userPlan) {
+      effectiveContextText = buildChatContext(
+        userData,
+        userPlan,
+        message,
+        mode || 'consultation',
+      ).contextText;
+    }
+    if (!effectiveContextText) {
       return jsonResponse({ error: ERROR_MESSAGES.MISSING_CONTEXT }, 400);
     }
 
-    const { contextText } = resolveContextFromSections(sections, /** @type {import('./chat-context-bundle.js').ChatSectionId[]} */ (selectedIds));
     const effectiveUserData = userData || {};
     const effectiveUserPlan = userPlan || {};
-
     const chatHistory = conversationHistory || [];
 
     const requestedMode = mode || 'consultation';
@@ -4252,7 +4174,7 @@ async function handleChat(request, env) {
       : requestedMode;
 
     const chatPrompt = await generateChatPrompt(
-      env, message, contextText, effectiveUserData, chatHistory, chatMode, effectiveUserPlan,
+      env, message, effectiveContextText, effectiveUserData, chatHistory, chatMode, effectiveUserPlan,
     );
 
     const aiResponse = await callAIModel(env, chatPrompt, 2000, 'chat_consultation', null, effectiveUserData, null, true);
@@ -4412,9 +4334,6 @@ async function handleChat(request, env) {
       response: finalResponse,
       conversationHistory: trimmedHistory,
       planUpdated: planWasUpdated,
-      contextCacheHit: cacheHit,
-      contextFingerprint: fingerprint,
-      contextSections: selectedIds,
     };
     
     // Include updated plan and userData if plan was regenerated

@@ -9,6 +9,7 @@ import {
   serializeStrategyForMealPlan,
   serializeWeekPlanSummary,
   serializeWeekPlanAdmin,
+  serializeWeekPlanClient,
   estimateTokenCount,
 } from './context-compression.js';
 import { serializeAnalyticsBlock } from './analytics-compression.js';
@@ -152,6 +153,109 @@ export function buildClientCard(clientData, options = {}) {
       recommendations: Boolean(plan?.recommendations),
       analytics: analytics?.status === 'active',
     },
+  };
+}
+
+/** @typedef {'profile'|'profile_full'|'summary'|'meals'|'analysis'|'strategy'|'recommendations'|'forbidden'|'psychology'|'supplements'|'water'} ChatSectionId */
+
+const CHAT_SECTION_ORDER = /** @type {const} */ ([
+  'profile', 'profile_full', 'summary', 'meals', 'analysis', 'strategy',
+  'recommendations', 'forbidden', 'psychology', 'supplements', 'water',
+]);
+
+const CHAT_BASE = ['profile', 'summary', 'meals', 'recommendations', 'forbidden'];
+const CHAT_MODIFICATION = [...CHAT_SECTION_ORDER];
+
+const CHAT_INTENTS = /** @type {Array<[RegExp, ChatSectionId|ChatSectionId[]]>} */ ([
+  [/\b(калори|kcal|ккал|bmr|tdee|енерги|макро|протеин|белтък|въглехидрат|мазнин|bmi|метабол)\b/iu, ['summary', 'analysis']],
+  [/\b(стратег|принцип|подход|режим|разпредел|свободн\w*\s+ден)\b/iu, 'strategy'],
+  [/\b(препоръч|съвет|насок)\b/iu, 'recommendations'],
+  [/\b(забран|избягв|не\s+ям|алерг|непоносим)\b/iu, 'forbidden'],
+  [/\b(психол|мотивац|стрес|навик|емоци|тригер)\b/iu, 'psychology'],
+  [/\b(добавк|витамин|минерал|суплемент)\b/iu, 'supplements'],
+  [/\b(вода|хидрат|течност)\b/iu, 'water'],
+  [/\b(анамнез|история|лекарств|медицин|сън|активност|спорт|хронотип)\b/iu, 'profile_full'],
+]);
+
+/**
+ * @param {Record<string, unknown>} userData
+ * @param {object|null} plan
+ * @returns {Record<string, string>}
+ */
+export function buildChatContextSections(userData, plan) {
+  const p = plan || {};
+  const hasNotes = Boolean(userData?.additionalNotes);
+  const sections = {
+    profile: serializeUserProfile(userData, 'strategy'),
+    profile_full: serializeUserProfile(userData, 'full', {
+      hasNotesSection: hasNotes,
+      hasClinicalSection: Boolean(userData?.clinicalProtocol),
+    }),
+    summary: serializePlanSummary(p.summary) || '',
+    meals: p.weekPlan ? serializeWeekPlanClient(p.weekPlan) : '',
+    analysis: serializeAnalysisForStep(p.analysis || p.step0, 4) || '',
+    strategy: serializeStrategyForMealPlan(p.strategy) || '',
+    recommendations: p.recommendations ? `#RC v1 ${serializeList(p.recommendations, 15)}` : '',
+    forbidden: p.forbidden ? `#FB v1 ${serializeList(p.forbidden, 15)}` : '',
+    psychology: serializePsychology(p.psychology),
+    supplements: p.supplements ? `#SP v1 ${serializeList(p.supplements, 10)}` : '',
+    water: p.waterIntake
+      ? `#WT v1 ${esc(typeof p.waterIntake === 'string' ? p.waterIntake : JSON.stringify(p.waterIntake).slice(0, 200))}`
+      : '',
+  };
+  for (const key of Object.keys(sections)) {
+    if (!sections[key]) delete sections[key];
+  }
+  return sections;
+}
+
+/**
+ * @param {string} message
+ * @param {string} [mode]
+ * @returns {ChatSectionId[]}
+ */
+export function selectChatSections(message, mode = 'consultation') {
+  if (mode === 'modification') return [...CHAT_MODIFICATION];
+  const picked = new Set(/** @type {ChatSectionId[]} */ (CHAT_BASE));
+  const msg = (message || '').toLowerCase();
+  for (const [pattern, target] of CHAT_INTENTS) {
+    if (!pattern.test(msg)) continue;
+    const ids = Array.isArray(target) ? target : [target];
+    for (const id of ids) picked.add(id);
+  }
+  if (picked.has('profile_full')) picked.delete('profile');
+  return CHAT_SECTION_ORDER.filter((id) => picked.has(id));
+}
+
+/**
+ * @param {Record<string, string>} sections
+ * @param {ChatSectionId[]} selectedIds
+ */
+export function assembleChatContextPrompt(sections, selectedIds) {
+  const lines = ['#CC chat v1 — NPCF контекст'];
+  for (const id of selectedIds) {
+    const text = sections[id];
+    if (!text) continue;
+    lines.push(`##[${id}]`, text);
+  }
+  return lines.join('\n');
+}
+
+/**
+ * @param {Record<string, unknown>} userData
+ * @param {object|null} plan
+ * @param {string} message
+ * @param {string} [mode]
+ */
+export function buildChatContext(userData, plan, message, mode = 'consultation') {
+  const sections = buildChatContextSections(userData, plan);
+  const selectedIds = selectChatSections(message, mode);
+  const contextText = assembleChatContextPrompt(sections, selectedIds);
+  return {
+    sections,
+    selectedIds,
+    contextText,
+    tokenEstimate: estimateTokenCount(contextText),
   };
 }
 

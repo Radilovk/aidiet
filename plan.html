@@ -3608,8 +3608,8 @@
     <script src="./platform-compat.js"></script>
     <script src="./plan-sync.js"></script>
     <script type="module">
-        import * as ChatCtx from './chat-context-bundle.js';
-        window.NutriPlanChatContext = ChatCtx;
+        import { buildChatContextSections, selectChatSections, assembleChatContextPrompt } from './client-card.js';
+        window.NutriPlanChatContext = { buildChatContextSections, selectChatSections, assembleChatContextPrompt };
         window.dispatchEvent(new Event('nutriplan-chat-context-ready'));
     </script>
     <script type="module">
@@ -4201,7 +4201,8 @@
         let chatMode = 'consultation'; // 'consultation', 'modification', or 'report'
         let modificationModeEnabled = false;
         let chatHistory = []; // Store chat messages for persistence
-        let chatContextFingerprint = null; // SCC v1 — skip resending bundle when unchanged
+        let cachedChatSections = null;
+        let cachedChatSectionsSig = '';
         
         // Enhancement #1: Retry mechanism state
         let isSending = false;
@@ -6542,10 +6543,35 @@
             }
         }
 
-        /**
-         * Build Smart Chat Context (SCC v1) request payload.
-         * Full plan/profile indexed once; each message sends only needed NPCF sections.
-         */
+        function getChatSectionsCacheSig() {
+            try {
+                return JSON.stringify({
+                    planUpdatedAt: localStorage.getItem('planUpdatedAt') || '',
+                    dailyCalories: dietPlan?.summary?.dailyCalories || 0,
+                    mods: (userData?.planModifications || []).length,
+                });
+            } catch (_) {
+                return String(Date.now());
+            }
+        }
+
+        function getChatSections() {
+            const sig = getChatSectionsCacheSig();
+            if (!cachedChatSections || cachedChatSectionsSig !== sig) {
+                const chatCtx = window.NutriPlanChatContext;
+                cachedChatSections = chatCtx
+                    ? chatCtx.buildChatContextSections(userData, dietPlan)
+                    : null;
+                cachedChatSectionsSig = sig;
+            }
+            return cachedChatSections;
+        }
+
+        function invalidateChatContextCache() {
+            cachedChatSections = null;
+            cachedChatSectionsSig = '';
+        }
+
         function buildSmartChatRequest(message, apiHistory) {
             const chatCtx = window.NutriPlanChatContext;
             if (!chatCtx || !userData || !dietPlan) {
@@ -6560,36 +6586,24 @@
                 };
             }
 
-            const allSections = chatCtx.buildChatContextSections(userData, dietPlan);
-            const fingerprint = chatCtx.computeContextFingerprint(allSections);
-            const selectedIds = chatCtx.detectChatSections(message, chatMode);
-            const planChanged = chatContextFingerprint !== fingerprint;
-
+            const sections = getChatSections();
+            const selectedIds = chatCtx.selectChatSections(message, chatMode);
+            const contextText = chatCtx.assembleChatContextPrompt(sections, selectedIds);
             const requestBody = {
                 userId: userId,
                 message: message,
                 conversationId: conversationId,
                 mode: chatMode,
                 conversationHistory: apiHistory,
-                contextFingerprint: fingerprint,
-                contextSections: selectedIds,
+                contextText: contextText,
             };
-
-            if (planChanged || !chatContextFingerprint) {
-                requestBody.contextBundle = { sections: allSections };
-            }
 
             if (chatMode === 'modification') {
                 requestBody.userData = userData;
                 requestBody.userPlan = dietPlan;
             }
 
-            chatContextFingerprint = fingerprint;
             return requestBody;
-        }
-
-        function invalidateChatContextCache() {
-            chatContextFingerprint = null;
         }
 
         async function sendMessage() {

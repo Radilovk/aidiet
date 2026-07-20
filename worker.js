@@ -1308,16 +1308,13 @@ function buildClientCard(clientData, options = {}) {
     }
   };
 }
-
-// chat-context-bundle.js
-var CHAT_SECTION_IDS = (
+var CHAT_SECTION_ORDER = (
   /** @type {const} */
   [
-    "profile_core",
+    "profile",
     "profile_full",
-    "plan_summary",
-    "plan_meals",
-    "plan_meals_light",
+    "summary",
+    "meals",
     "analysis",
     "strategy",
     "recommendations",
@@ -1327,141 +1324,78 @@ var CHAT_SECTION_IDS = (
     "water"
   ]
 );
-var INTENT_PATTERNS = (
-  /** @type {Record<string, RegExp>} */
-  {
-    plan_meals: /\b(грам|гр\.?|грамаж|порци|количеств|състав|продукт|рецепт|ястие|хранен|закуск|обяд|вечер|снек|какво\s+да\s+ям)\b/iu,
-    plan_summary: /\b(калори|kcal|ккал|bmr|tdee|енерги|дневн|общо\s+кал)\b/iu,
-    analysis: /\b(макро|протеин|белтък|въглехидрат|мазнин|bmi|метабол|дефицит|наднормен)\b/iu,
-    strategy: /\b(стратег|принцип|подход|режим|разпредел|свободн\w*\s+ден)\b/iu,
-    recommendations: /\b(препоръч|съвет|насок|съвети)\b/iu,
-    forbidden: /\b(забран|избягв|не\s+ям|алерг|непоносим|противопоказ)\b/iu,
-    psychology: /\b(психол|мотивац|стрес|навик|емоци|тригер|компулс)\b/iu,
-    supplements: /\b(добавк|витамин|минерал|суплемент)\b/iu,
-    water: /\b(вода|хидрат|течност)\b/iu,
-    profile_full: /\b(анамнез|история|лекарств|медицин|сън|активност|спорт|хронотип)\b/iu
-  }
+var CHAT_BASE = ["profile", "summary", "meals", "recommendations", "forbidden"];
+var CHAT_MODIFICATION = [...CHAT_SECTION_ORDER];
+var CHAT_INTENTS = (
+  /** @type {Array<[RegExp, ChatSectionId|ChatSectionId[]]>} */
+  [
+    [/\b(калори|kcal|ккал|bmr|tdee|енерги|макро|протеин|белтък|въглехидрат|мазнин|bmi|метабол)\b/iu, ["summary", "analysis"]],
+    [/\b(стратег|принцип|подход|режим|разпредел|свободн\w*\s+ден)\b/iu, "strategy"],
+    [/\b(препоръч|съвет|насок)\b/iu, "recommendations"],
+    [/\b(забран|избягв|не\s+ям|алерг|непоносим)\b/iu, "forbidden"],
+    [/\b(психол|мотивац|стрес|навик|емоци|тригер)\b/iu, "psychology"],
+    [/\b(добавк|витамин|минерал|суплемент)\b/iu, "supplements"],
+    [/\b(вода|хидрат|течност)\b/iu, "water"],
+    [/\b(анамнез|история|лекарств|медицин|сън|активност|спорт|хронотип)\b/iu, "profile_full"]
+  ]
 );
-var DEFAULT_CONSULTATION = ["profile_core", "plan_summary", "plan_meals", "recommendations", "forbidden"];
-var DEFAULT_MODIFICATION = [
-  "profile_full",
-  "plan_summary",
-  "plan_meals",
-  "analysis",
-  "strategy",
-  "recommendations",
-  "forbidden",
-  "psychology",
-  "supplements",
-  "water"
-];
-var esc3 = (value) => {
-  if (value == null || value === "") return "";
-  const s = Array.isArray(value) ? value.filter(Boolean).join("+") : String(value).trim();
-  return s.replace(/\|/g, "/").replace(/\n+/g, " ").replace(/\s+/g, " ");
-};
-function serializeList2(items, max = 12) {
-  if (!items) return "";
-  if (Array.isArray(items)) {
-    return items.slice(0, max).map((i) => esc3(typeof i === "string" ? i : i?.text || i?.name || "")).filter(Boolean).join("+");
-  }
-  return esc3(String(items).slice(0, 400));
-}
-function detectChatSections(message, mode = "consultation", options = {}) {
-  if (options.forceAll || mode === "modification") {
-    return (
-      /** @type {ChatSectionId[]} */
-      [...DEFAULT_MODIFICATION]
-    );
-  }
-  const sections = new Set(DEFAULT_CONSULTATION);
-  const msg = (message || "").toLowerCase();
-  for (const [section, pattern] of Object.entries(INTENT_PATTERNS)) {
-    if (!pattern.test(msg)) continue;
-    if (section === "plan_meals") {
-      sections.delete("plan_meals_light");
-      sections.add("plan_meals");
-    } else if (section === "plan_summary") {
-      sections.add("plan_summary");
-      sections.add("analysis");
-    } else {
-      sections.add(
-        /** @type {ChatSectionId} */
-        section
-      );
-    }
-  }
-  if (sections.has("profile_full")) {
-    sections.delete("profile_core");
-    sections.add("profile_full");
-  }
-  return (
-    /** @type {ChatSectionId[]} */
-    CHAT_SECTION_IDS.filter((id) => sections.has(id))
-  );
-}
-function buildChatContextSections(userData, userPlan, options = {}) {
-  const plan = userPlan || {};
-  const focusedDays = options.focusedDays?.length ? options.focusedDays : null;
-  const weekPlan = plan.weekPlan || null;
-  const psychology = plan.psychology;
-  let psychologyBlock = "";
-  if (psychology) {
-    const parts = [];
-    if (psychology.profile) parts.push(`prof=${esc3(String(psychology.profile).slice(0, 300))}`);
-    if (psychology.tips?.length) parts.push(`tips=${serializeList2(psychology.tips, 6)}`);
-    if (psychology.motivation) parts.push(`mot=${esc3(String(psychology.motivation).slice(0, 200))}`);
-    if (parts.length) psychologyBlock = `#PS v1 ${parts.join("|")}`;
-  }
+function buildChatContextSections(userData, plan) {
+  const p = plan || {};
+  const hasNotes = Boolean(userData?.additionalNotes);
   const sections = {
-    profile_core: serializeUserProfile(userData, "strategy"),
+    profile: serializeUserProfile(userData, "strategy"),
     profile_full: serializeUserProfile(userData, "full", {
-      hasNotesSection: Boolean(userData.additionalNotes),
-      hasClinicalSection: Boolean(userData.clinicalProtocol)
+      hasNotesSection: hasNotes,
+      hasClinicalSection: Boolean(userData?.clinicalProtocol)
     }),
-    plan_summary: serializePlanSummary(plan.summary) || "",
-    plan_meals: weekPlan ? serializeWeekPlanClient(weekPlan, focusedDays ? { days: focusedDays } : {}) : "",
-    plan_meals_light: weekPlan ? serializeWeekPlanSummary(weekPlan) : "",
-    analysis: serializeAnalysisForStep(plan.analysis || plan.step0, 4) || "",
-    strategy: serializeStrategyForMealPlan(plan.strategy) || "",
-    recommendations: plan.recommendations ? `#RC v1 ${serializeList2(plan.recommendations, 15)}` : "",
-    forbidden: plan.forbidden ? `#FB v1 ${serializeList2(plan.forbidden, 15)}` : "",
-    psychology: psychologyBlock,
-    supplements: plan.supplements ? `#SP v1 ${serializeList2(plan.supplements, 10)}` : "",
-    water: plan.waterIntake ? `#WT v1 ${esc3(typeof plan.waterIntake === "string" ? plan.waterIntake : JSON.stringify(plan.waterIntake).slice(0, 200))}` : ""
+    summary: serializePlanSummary(p.summary) || "",
+    meals: p.weekPlan ? serializeWeekPlanClient(p.weekPlan) : "",
+    analysis: serializeAnalysisForStep(p.analysis || p.step0, 4) || "",
+    strategy: serializeStrategyForMealPlan(p.strategy) || "",
+    recommendations: p.recommendations ? `#RC v1 ${serializeList(p.recommendations, 15)}` : "",
+    forbidden: p.forbidden ? `#FB v1 ${serializeList(p.forbidden, 15)}` : "",
+    psychology: serializePsychology(p.psychology),
+    supplements: p.supplements ? `#SP v1 ${serializeList(p.supplements, 10)}` : "",
+    water: p.waterIntake ? `#WT v1 ${esc2(typeof p.waterIntake === "string" ? p.waterIntake : JSON.stringify(p.waterIntake).slice(0, 200))}` : ""
   };
   for (const key of Object.keys(sections)) {
     if (!sections[key]) delete sections[key];
   }
   return sections;
 }
-function assembleContextPrompt(sections, selectedIds) {
-  const lines = [
-    "#SCC v1 \u2014 Smart Chat Context (NPCF)",
-    "\u041B\u0435\u0433\u0435\u043D\u0434\u0430: NP=\u043F\u0440\u043E\u0444\u0438\u043B PL=\u043F\u043B\u0430\u043D SM=\u043E\u0431\u043E\u0431\u0449\u0435\u043D\u0438\u0435 AN=\u0430\u043D\u0430\u043B\u0438\u0437 ST=\u0441\u0442\u0440\u0430\u0442\u0435\u0433\u0438\u044F RC=\u043F\u0440\u0435\u043F\u043E\u0440\u044A\u043A\u0438 FB=\u0437\u0430\u0431\u0440\u0430\u043D\u0435\u043D\u0438 PS=\u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433\u0438\u044F"
-  ];
+function selectChatSections(message, mode = "consultation") {
+  if (mode === "modification") return [...CHAT_MODIFICATION];
+  const picked = new Set(
+    /** @type {ChatSectionId[]} */
+    CHAT_BASE
+  );
+  const msg = (message || "").toLowerCase();
+  for (const [pattern, target] of CHAT_INTENTS) {
+    if (!pattern.test(msg)) continue;
+    const ids = Array.isArray(target) ? target : [target];
+    for (const id of ids) picked.add(id);
+  }
+  if (picked.has("profile_full")) picked.delete("profile");
+  return CHAT_SECTION_ORDER.filter((id) => picked.has(id));
+}
+function assembleChatContextPrompt(sections, selectedIds) {
+  const lines = ["#CC chat v1 \u2014 NPCF \u043A\u043E\u043D\u0442\u0435\u043A\u0441\u0442"];
   for (const id of selectedIds) {
     const text = sections[id];
     if (!text) continue;
-    lines.push(`##[${id}]`);
-    lines.push(text);
+    lines.push(`##[${id}]`, text);
   }
   return lines.join("\n");
 }
-function computeContextFingerprint(sections) {
-  const payload = Object.keys(sections).sort().map((k) => `${k}:${sections[k]}`).join("\n");
-  let hash = 5381;
-  for (let i = 0; i < payload.length; i++) {
-    hash = (hash << 5) + hash ^ payload.charCodeAt(i);
-  }
-  return `scc_${(hash >>> 0).toString(16)}_${payload.length}`;
-}
-function resolveContextFromSections(sections, selectedIds) {
-  const ids = selectedIds?.length ? selectedIds : CHAT_SECTION_IDS.filter((id) => sections[id]);
+function buildChatContext(userData, plan, message, mode = "consultation") {
+  const sections = buildChatContextSections(userData, plan);
+  const selectedIds = selectChatSections(message, mode);
+  const contextText = assembleChatContextPrompt(sections, selectedIds);
   return {
-    contextText: assembleContextPrompt(sections, ids),
-    selectedIds: ids,
-    tokenEstimate: estimateTokenCount(assembleContextPrompt(sections, ids))
+    sections,
+    selectedIds,
+    contextText,
+    tokenEstimate: estimateTokenCount(contextText)
   };
 }
 
@@ -7850,59 +7784,6 @@ async function handleGetPlanJobStatus(request, env) {
   if (!raw) return jsonResponse2({ status: "not_found" });
   return jsonResponse2(JSON.parse(raw));
 }
-var CHAT_CTX_KV_PREFIX = "chat_scc:";
-var CHAT_CTX_TTL_SECONDS = 2 * 60 * 60;
-async function loadChatContextSections(kv, fingerprint) {
-  if (!kv || !fingerprint) return null;
-  try {
-    const raw = await kv.get(CHAT_CTX_KV_PREFIX + fingerprint);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-async function saveChatContextSections(kv, fingerprint, sections) {
-  if (!kv || !fingerprint || !sections) return;
-  try {
-    await kv.put(CHAT_CTX_KV_PREFIX + fingerprint, JSON.stringify(sections), {
-      expirationTtl: CHAT_CTX_TTL_SECONDS
-    });
-  } catch (err) {
-    console.error("chat context KV cache write failed:", err?.message || err);
-  }
-}
-async function resolveChatContextPayload(env, body) {
-  const {
-    contextFingerprint,
-    contextSections,
-    contextBundle,
-    userData,
-    userPlan,
-    message,
-    mode
-  } = body;
-  let sections = contextBundle?.sections || null;
-  let cacheHit = false;
-  if (!sections && contextFingerprint) {
-    const cached = await loadChatContextSections(env.page_content, contextFingerprint);
-    if (cached) {
-      sections = cached;
-      cacheHit = true;
-    }
-  }
-  if (!sections && userData && userPlan) {
-    sections = buildChatContextSections(userData, userPlan);
-  }
-  if (!sections) {
-    return { sections: null, selectedIds: [], cacheHit: false };
-  }
-  const fingerprint = contextFingerprint || computeContextFingerprint(sections);
-  if (!cacheHit && contextBundle?.sections && fingerprint) {
-    await saveChatContextSections(env.page_content, fingerprint, sections);
-  }
-  const selectedIds = contextSections?.length ? contextSections : detectChatSections(message || "", mode || "consultation");
-  return { sections, selectedIds, cacheHit, fingerprint };
-}
 async function handleChat(request, env) {
   try {
     const body = await request.json();
@@ -7913,20 +7794,24 @@ async function handleChat(request, env) {
       mode,
       userData,
       userPlan,
-      conversationHistory
+      conversationHistory,
+      contextText
     } = body;
     if (!message) {
       return jsonResponse2({ error: ERROR_MESSAGES.MISSING_MESSAGE }, 400);
     }
-    const { sections, selectedIds, cacheHit, fingerprint } = await resolveChatContextPayload(env, body);
-    if (!sections) {
+    let effectiveContextText = contextText;
+    if (!effectiveContextText && userData && userPlan) {
+      effectiveContextText = buildChatContext(
+        userData,
+        userPlan,
+        message,
+        mode || "consultation"
+      ).contextText;
+    }
+    if (!effectiveContextText) {
       return jsonResponse2({ error: ERROR_MESSAGES.MISSING_CONTEXT }, 400);
     }
-    const { contextText } = resolveContextFromSections(
-      sections,
-      /** @type {import('./chat-context-bundle.js').ChatSectionId[]} */
-      selectedIds
-    );
     const effectiveUserData = userData || {};
     const effectiveUserPlan = userPlan || {};
     const chatHistory = conversationHistory || [];
@@ -7937,7 +7822,7 @@ async function handleChat(request, env) {
     const chatPrompt = await generateChatPrompt(
       env,
       message,
-      contextText,
+      effectiveContextText,
       effectiveUserData,
       chatHistory,
       chatMode,
@@ -8056,10 +7941,7 @@ async function handleChat(request, env) {
       success: true,
       response: finalResponse,
       conversationHistory: trimmedHistory,
-      planUpdated: planWasUpdated,
-      contextCacheHit: cacheHit,
-      contextFingerprint: fingerprint,
-      contextSections: selectedIds
+      planUpdated: planWasUpdated
     };
     if (planWasUpdated) {
       responseData.updatedPlan = updatedPlan;
@@ -15554,7 +15436,7 @@ async function handleGetCalendarIcs(request, env) {
   function fmtDt(d) {
     return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
   }
-  function esc4(s) {
+  function esc3(s) {
     return String(s).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r\n?|\n/g, "\\n");
   }
   const dtstamp = fmtDt(/* @__PURE__ */ new Date());
@@ -15570,13 +15452,13 @@ async function handleGetCalendarIcs(request, env) {
       `DTSTAMP:${dtstamp}`,
       `DTSTART:${fmtDt(d)}`,
       `DTEND:${fmtDt(dEnd)}`,
-      `SUMMARY:${esc4(title)}`,
-      `DESCRIPTION:${esc4(body)}`,
+      `SUMMARY:${esc3(title)}`,
+      `DESCRIPTION:${esc3(body)}`,
       `URL:${WORKER_BASE}/plan.html`,
       "BEGIN:VALARM",
       "TRIGGER:-PT0M",
       "ACTION:DISPLAY",
-      `DESCRIPTION:${esc4(title)}`,
+      `DESCRIPTION:${esc3(title)}`,
       "END:VALARM",
       "END:VEVENT"
     ].join("\r\n");
