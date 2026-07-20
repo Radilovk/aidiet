@@ -1,0 +1,93 @@
+# Deploy static frontend to GitHub Pages (biocode.website / github.io/aidiet)
+#
+# REQUIRED once (repo Settings → Pages → Build and deployment):
+#   Source: GitHub Actions  →  workflow: "Deploy GitHub Pages"
+# This replaces the built-in "pages build and deployment" job that cannot retry on API 503.
+#
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/deploy-pages.yml'
+      - 'CNAME'
+      - '.nojekyll'
+      - '**.html'
+      - '**.css'
+      - '**.js'
+      - '!worker.js'
+      - '!worker.entry.js'
+      - '!plan-response-schemas.js'
+      - '!context-compression.js'
+      - '!analytics-compression.js'
+      - '!json-patch.js'
+      - '!client-card.js'
+      - '!food-nutrition.js'
+      - '!food-nutrition-data.js'
+      - '!food-catalog.js'
+      - '!food-catalog-data.js'
+      - '!food-utils.js'
+      - '!fitness/worker.js'
+      - '!fitness/exercise-translate-batch.js'
+      - '!scripts/**'
+      - '**.json'
+      - '!package.json'
+      - '!package-lock.json'
+      - '**.png'
+      - '**.jpg'
+      - '**.jpeg'
+      - '**.svg'
+      - '**.webp'
+      - '**.ico'
+      - '**.webm'
+      - 'fitness/**'
+      - '.well-known/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages (retry on 502/503)
+        id: deployment
+        uses: Wandalen/wretry.action@v3.5.0
+        with:
+          action: actions/deploy-pages@v4
+          attempt_limit: 10
+          attempt_delay: 30000
+
+      - name: Deployment summary
+        if: always()
+        run: |
+          if [ "${{ steps.deployment.outcome }}" = "success" ]; then
+            echo "### GitHub Pages deployed" >> "$GITHUB_STEP_SUMMARY"
+            echo "URL: ${{ steps.deployment.outputs.page_url }}" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### GitHub Pages deploy failed (GitHub API outage?)" >> "$GITHUB_STEP_SUMMARY"
+            echo "Re-run this workflow manually when githubstatus.com is green." >> "$GITHUB_STEP_SUMMARY"
+          fi
