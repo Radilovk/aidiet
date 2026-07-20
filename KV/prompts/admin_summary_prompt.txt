@@ -1,41 +1,29 @@
-Стъпка 4: Финални препоръки за 7-дневния хранителен план на {name}.
-
+=== КОНТЕКСТ ===
 {analysisBlock}
 {weekPlan}
 
-Ти си експертен клиничен диетолог, ендокринолог и психолог. Тази стъпка поема изцяло аналитичната отговорност за препоръки за хранителни добавки, психологическа подкрепа и конкретни позволени/забранени храни.
+=== ПРОФИЛ ===
+{name} | Цел: {goal} | BMR: {bmr}
+Калории: {recommendedCalories} kcal/ден (цел) | Средни: {avgCalories} kcal/ден
+Макроси (средни): Б {avgProtein}г / В {avgCarbs}г / М {avgFats}г
+Темперамент: {temperament} ({temperamentProbability}%)
+Психопрофил: {psychologicalProfile}
+Тип диета: {dietType}
 
-КЛИЕНТ: {name}, Цел: {goal}, BMR: {bmr}
-Препоръчителни калории: {recommendedCalories} kcal/ден | Реални средни: {avgCalories} kcal/ден
-Макроси (средни): Белтъчини {avgProtein}г, Въглехидрати {avgCarbs}г, Мазнини {avgFats}г
-
-ТЕМПЕРАМЕНТ: {temperament} ({temperamentProbability}% вероятност)
-ПСИХОЛОГИЧЕСКИ ПРОФИЛ: {psychologicalProfile}
-ТИП ДИЕТА: {dietType}
-
-ЗДРАВНИ ДАННИ:
+=== ЗДРАВЕ ===
 {additionalNotesSection}
 {clinicalProtocolSection}
 Проблеми: {keyProblems} | Медикаменти: {medications}
 {dynamicWhitelistSection}{dynamicBlacklistSection}
 {clinicalProtocolSupplementSection}
-══════════════════════════════════════════════════════════
-📋 JSON ФОРМАТ НА ОТГОВОРА
-══════════════════════════════════════════════════════════
 
-JSON (ТОЧЕН ФОРМАТ):
-{
-  "summary": {"bmr": {bmr}, "dailyCalories": {avgCalories}, "macros": {"protein": {avgProtein}, "carbs": {avgCarbs}, "fats": {avgFats}}},
-  "recommendations": ["храна 1", "храна 2", "...", "храна 10"],
-  "forbidden": ["храна 1", "храна 2", "...", "храна 10"],
-  "psychology": ["съвет 1", "съвет 2", "съвет 3"],
-  "waterIntake": "{hydrationStrategy}",
-  "supplements": ["добавка 1 (дозировка)", "добавка 2 (дозировка)", "добавка 3 (дозировка)"]
-}
+=== ЗАДАЧА ===
+Въз основа на плана и профила по-горе, генерирай финални препоръки за 7-дневния план на {name}.
 
-ЗАДЪЛЖИТЕЛНО:
-- recommendations: 10 конкретни типове храни (не ястия), подходящи за {goal}, диета "{dietType}", {keyProblems},
-{clinicalProtocolSection},  медикаменти: {medications} — да не попадат в {dynamicBlacklistSection}
-- forbidden: 10 конкретни типове храни (не ястия), неподходящи за {goal}, {clinicalProtocolSection}, диета "{dietType}", {keyProblems}, медикаменти: {medications} — да не противоречат на {dynamicWhitelistSection}
-- supplements: минимум 3 конкретни добавки,  свързани с: {clinicalProtocolSection},  цел ({goal}). Да имат дозировка и кратка обосновка, съобразени с {psychologicalProfile}, {temperament}, {keyProblems}, и медикаменти ({medications}) — БЕЗ опасни взаимодействия с медикаментите
-- psychology: минимум 3 кратки, стегнати конкретни персонализирани психологически съвета, свързани с цел ({goal}), {clinicalProtocolSection} и адаптирани към {psychologicalProfile}, ({temperament}), сън, ниво на стрес, ниво на активност, пол и {keyProblems} на {name}
+- recommendations: точно 10 типа храни (не ястия), подходящи за {goal}, "{dietType}", {keyProblems} — извън blacklist
+- forbidden: точно 10 типа храни, неподходящи за {goal}, {keyProblems}, медикаменти — без противоречие с whitelist
+- supplements: мин. 3 с дозировка и обосновка; без опасни взаимодействия с {medications}
+- psychology: мин. 3 кратки персонализирани съвета за {name} ({temperament}, {psychologicalProfile}, сън, стрес, активност)
+- waterIntake: от {hydrationStrategy}
+
+Върни САМО JSON.

@@ -26,6 +26,347 @@ var init_exercise_translations_bg = __esm({
   }
 });
 
+// plan-response-schemas.js
+var MEAL_PLAN_MEAL_SCHEMA = {
+  type: "object",
+  properties: {
+    type: { type: "string" },
+    name: { type: "string" },
+    description: { type: "string" },
+    dessert: { type: "boolean" }
+  },
+  required: ["type", "name", "description"]
+};
+var MEAL_BREAKDOWN_ITEM_SCHEMA = {
+  type: "object",
+  properties: {
+    type: { type: "string" },
+    calories: { type: "number" },
+    protein: { type: "number" },
+    carbs: { type: "number" },
+    fats: { type: "number" }
+  },
+  required: ["type", "calories", "protein", "carbs", "fats"]
+};
+var WEEKLY_DAY_SCHEMA = {
+  type: "object",
+  properties: {
+    meals: { type: "number" },
+    calories: { type: "number" },
+    protein: { type: "number" },
+    carbs: { type: "number" },
+    fats: { type: "number" },
+    description: { type: "string" },
+    mealBreakdown: {
+      type: "array",
+      items: MEAL_BREAKDOWN_ITEM_SCHEMA
+    }
+  },
+  required: ["meals", "calories", "protein", "carbs", "fats", "mealBreakdown"]
+};
+var WEEKLY_SCHEME_SCHEMA = {
+  type: "object",
+  properties: {
+    monday: WEEKLY_DAY_SCHEMA,
+    tuesday: WEEKLY_DAY_SCHEMA,
+    wednesday: WEEKLY_DAY_SCHEMA,
+    thursday: WEEKLY_DAY_SCHEMA,
+    friday: WEEKLY_DAY_SCHEMA,
+    saturday: WEEKLY_DAY_SCHEMA,
+    sunday: WEEKLY_DAY_SCHEMA
+  },
+  required: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+};
+var PLAN_SYSTEM_INSTRUCTIONS = {
+  step1: "\u041A\u043B\u0438\u043D\u0438\u0447\u0435\u043D \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433, \u0435\u043D\u0434\u043E\u043A\u0440\u0438\u043D\u043E\u043B\u043E\u0433 \u0438 \u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433. \u041E\u0442\u0433\u043E\u0432\u0430\u0440\u044F\u0439 \u0421\u0410\u041C\u041E \u0441 \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. bmr \u0438 tdee \u0441\u0430 \u043E\u0442 \u0431\u0435\u043A\u0435\u043D\u0434\u0430 \u2014 \u043D\u0435 \u0433\u0438 \u043F\u0440\u0435\u0438\u0437\u0447\u0438\u0441\u043B\u044F\u0432\u0430\u0439.",
+  step2: "\u0415\u043A\u0441\u043F\u0435\u0440\u0442\u0435\u043D \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433. \u041E\u0442\u0433\u043E\u0432\u0430\u0440\u044F\u0439 \u0421\u0410\u041C\u041E \u0441 \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. \u041A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u043E\u0442 \u0430\u043D\u0430\u043B\u0438\u0437\u0430 \u0441\u0430 \u0444\u0438\u043D\u0430\u043B\u043D\u0438 \u2014 \u043D\u0435 \u0433\u0438 \u043F\u0440\u0435\u0438\u0437\u0447\u0438\u0441\u043B\u044F\u0432\u0430\u0439.",
+  step3: "\u0414\u0438\u0435\u0442\u043E\u043B\u043E\u0433 \u0437\u0430 \u0431\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438 \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u043B\u0430\u043D. \u041E\u0442\u0433\u043E\u0432\u0430\u0440\u044F\u0439 \u0421\u0410\u041C\u041E \u0441 \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. \u041F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u0421\u0410\u041C\u041E \u043E\u0442 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430; \u0438\u043C\u0435\u043D\u0430\u0442\u0430 \u0442\u043E\u0447\u043D\u043E \u043A\u0430\u043A\u0442\u043E \u0432 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430.",
+  step4: "\u041A\u043B\u0438\u043D\u0438\u0447\u0435\u043D \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433 \u0438 \u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433. \u041E\u0442\u0433\u043E\u0432\u0430\u0440\u044F\u0439 \u0421\u0410\u041C\u041E \u0441 \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON."
+};
+var ANALYSIS_RESPONSE_SCHEMA = {
+  type: "object",
+  properties: {
+    bmi: { type: "number" },
+    bmiCategory: { type: "string" },
+    bmr: { type: "number" },
+    tdee: { type: "number" },
+    Final_Calories: { type: "number" },
+    macroRatios: {
+      type: "object",
+      properties: {
+        protein: { type: "number" },
+        carbs: { type: "number" },
+        fats: { type: "number" }
+      },
+      required: ["protein", "carbs", "fats"]
+    },
+    macroGrams: {
+      type: "object",
+      properties: {
+        protein: { type: "number" },
+        carbs: { type: "number" },
+        fats: { type: "number" }
+      },
+      required: ["protein", "carbs", "fats"]
+    },
+    activityLevel: { type: "string" },
+    physiologicalPhase: { type: "string" },
+    waterDeficit: {
+      type: "object",
+      properties: {
+        dailyNeed: { type: "string" },
+        currentIntake: { type: "string" },
+        deficit: { type: "string" },
+        impactOnLipolysis: { type: "string" }
+      },
+      required: ["dailyNeed", "currentIntake", "deficit", "impactOnLipolysis"]
+    },
+    negativeHealthFactors: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          factor: { type: "string" },
+          severity: { type: "number" },
+          description: { type: "string" }
+        },
+        required: ["factor", "severity", "description"]
+      }
+    },
+    hinderingFactors: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          factor: { type: "string" },
+          severity: { type: "number" },
+          description: { type: "string" }
+        },
+        required: ["factor", "severity", "description"]
+      }
+    },
+    cumulativeRiskScore: { type: "string" },
+    psychoProfile: {
+      type: "object",
+      properties: {
+        temperament: { type: "string" },
+        probability: { type: "number" },
+        reasoning: { type: "string" }
+      },
+      required: ["temperament", "probability", "reasoning"]
+    },
+    metabolicReactivity: {
+      type: "object",
+      properties: {
+        speed: { type: "string" },
+        adaptability: { type: "string" }
+      },
+      required: ["speed", "adaptability"]
+    },
+    correctedMetabolism: {
+      type: "object",
+      properties: {
+        realBMR: { type: "number" },
+        realTDEE: { type: "number" },
+        clinicalAdjustmentPercent: { type: "number" },
+        metabolicAdjustmentPercent: { type: "number" },
+        goalAdjustmentPercent: { type: "number" },
+        correction: { type: "string" },
+        correctionPercent: { type: "string" }
+      },
+      required: [
+        "realBMR",
+        "realTDEE",
+        "clinicalAdjustmentPercent",
+        "metabolicAdjustmentPercent",
+        "goalAdjustmentPercent",
+        "correction",
+        "correctionPercent"
+      ]
+    },
+    metabolicProfile: { type: "string" },
+    healthRisks: { type: "array", items: { type: "string" } },
+    nutritionalNeeds: { type: "array", items: { type: "string" } },
+    psychologicalProfile: { type: "string" },
+    successChance: { type: "number" },
+    currentHealthStatus: {
+      type: "object",
+      properties: {
+        score: { type: "number" },
+        description: { type: "string" },
+        keyIssues: { type: "array", items: { type: "string" } }
+      },
+      required: ["score", "description", "keyIssues"]
+    },
+    forecastPessimistic: {
+      type: "object",
+      properties: {
+        timeframe: { type: "string" },
+        weight: { type: "string" },
+        health: { type: "string" },
+        risks: { type: "array", items: { type: "string" } }
+      },
+      required: ["timeframe", "weight", "health", "risks"]
+    },
+    forecastOptimistic: {
+      type: "object",
+      properties: {
+        timeframe: { type: "string" },
+        weight: { type: "string" },
+        health: { type: "string" },
+        improvements: { type: "array", items: { type: "string" } }
+      },
+      required: ["timeframe", "weight", "health", "improvements"]
+    },
+    keyProblems: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          description: { type: "string" },
+          severity: { type: "string" },
+          severityValue: { type: "number" },
+          category: { type: "string" },
+          impact: { type: "string" }
+        },
+        required: ["title", "description", "severity", "severityValue", "category", "impact"]
+      }
+    }
+  },
+  required: [
+    "bmi",
+    "bmiCategory",
+    "bmr",
+    "tdee",
+    "Final_Calories",
+    "macroRatios",
+    "macroGrams",
+    "correctedMetabolism",
+    "psychologicalProfile",
+    "keyProblems"
+  ]
+};
+var STRATEGY_RESPONSE_SCHEMA = {
+  type: "object",
+  properties: {
+    dietaryModifier: { type: "string" },
+    modifierReasoning: { type: "string" },
+    welcomeMessage: { type: "string" },
+    planJustification: { type: "string" },
+    longTermStrategy: { type: "string" },
+    mealCountJustification: { type: "string" },
+    afterDinnerMealJustification: { type: "string" },
+    dietType: { type: "string" },
+    weeklyMealPattern: { type: "string" },
+    weeklyScheme: WEEKLY_SCHEME_SCHEMA,
+    freeDayNumber: { type: "number" },
+    includeDessert: { type: "boolean" },
+    breakfastStrategy: { type: "string" },
+    calorieDistribution: { type: "string" },
+    macroDistribution: { type: "string" },
+    mealTiming: {
+      type: "object",
+      properties: {
+        pattern: { type: "string" },
+        fastingWindows: { type: "string" },
+        flexibility: { type: "string" },
+        chronotypeGuidance: { type: "string" }
+      },
+      required: ["pattern", "fastingWindows", "flexibility", "chronotypeGuidance"]
+    },
+    keyPrinciples: { type: "array", items: { type: "string" } },
+    preferredFoodCategories: { type: "array", items: { type: "string" } },
+    avoidFoodCategories: { type: "array", items: { type: "string" } },
+    hydrationStrategy: { type: "string" },
+    communicationStyle: {
+      type: "object",
+      properties: {
+        temperament: { type: "string" },
+        tone: { type: "string" },
+        approach: { type: "string" },
+        chatGuidelines: { type: "string" }
+      },
+      required: ["temperament", "tone", "approach", "chatGuidelines"]
+    }
+  },
+  required: [
+    "dietaryModifier",
+    "dietType",
+    "weeklyScheme",
+    "welcomeMessage",
+    "planJustification",
+    "mealTiming"
+  ]
+};
+var SUMMARY_RESPONSE_SCHEMA = {
+  type: "object",
+  properties: {
+    summary: {
+      type: "object",
+      properties: {
+        bmr: { type: "number" },
+        dailyCalories: { type: "number" },
+        macros: {
+          type: "object",
+          properties: {
+            protein: { type: "number" },
+            carbs: { type: "number" },
+            fats: { type: "number" }
+          },
+          required: ["protein", "carbs", "fats"]
+        }
+      },
+      required: ["bmr", "dailyCalories", "macros"]
+    },
+    recommendations: { type: "array", items: { type: "string" } },
+    forbidden: { type: "array", items: { type: "string" } },
+    psychology: { type: "array", items: { type: "string" } },
+    waterIntake: { type: "string" },
+    supplements: { type: "array", items: { type: "string" } }
+  },
+  required: ["summary", "recommendations", "forbidden", "psychology", "waterIntake", "supplements"]
+};
+function buildMealPlanDaySchema(dayNum) {
+  const dayKey = `day${dayNum}`;
+  return {
+    type: "object",
+    properties: {
+      [dayKey]: {
+        type: "object",
+        properties: {
+          meals: {
+            type: "array",
+            items: MEAL_PLAN_MEAL_SCHEMA
+          }
+        },
+        required: ["meals"]
+      }
+    },
+    required: [dayKey]
+  };
+}
+function getPlanStepResponseSchema(stepName) {
+  if (!stepName) return null;
+  if (stepName.startsWith("step1")) return ANALYSIS_RESPONSE_SCHEMA;
+  if (stepName.startsWith("step2")) return STRATEGY_RESPONSE_SCHEMA;
+  const chunkMatch = stepName.match(/^step3_meal_plan_chunk_(\d+)/);
+  if (chunkMatch) {
+    return buildMealPlanDaySchema(parseInt(chunkMatch[1], 10));
+  }
+  if (stepName.startsWith("step3") || stepName === "fallback_plan") {
+    return buildMealPlanDaySchema(1);
+  }
+  if (stepName.startsWith("step4") || stepName === "fallback_summary") {
+    return SUMMARY_RESPONSE_SCHEMA;
+  }
+  return null;
+}
+function getPlanSystemInstruction(stepKey) {
+  if (!stepKey) return null;
+  return PLAN_SYSTEM_INSTRUCTIONS[stepKey] || null;
+}
+
 // context-compression.js
 var NP_LEGEND = "#NP v1 | U=\u0438\u0434\u0435\u043D\u0442\u0438\u0447\u043D\u043E\u0441\u0442 L=\u043D\u0430\u0447\u0438\u043D_\u043D\u0430_\u0436\u0438\u0432\u043E\u0442 B=\u0438\u0441\u0442\u043E\u0440\u0438\u044F H=\u043D\u0430\u0432\u0438\u0446\u0438 D=\u0434\u0438\u0435\u0442\u0430 M=\u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0430 CP=\u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B";
 var METADATA_KEYS = /* @__PURE__ */ new Set([
@@ -6286,6 +6627,8 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = "unknown", 
   const cfgTemp = isChatStep ? config.chatTemperature !== void 0 ? config.chatTemperature : config.temperature : config.temperature;
   const cfgTopP = isChatStep ? config.chatTopP !== void 0 ? config.chatTopP : config.topP : config.topP;
   const cfgTopK = isChatStep ? config.chatTopK !== void 0 ? config.chatTopK : config.topK : config.topK;
+  const planResponseSchema = !skipJSONEnforcement ? getPlanStepResponseSchema(stepName) : null;
+  const planSystemInstruction = isPlanStep ? getPlanSystemInstruction(stepKey) : null;
   const requestData = {
     prompt: enforcedPrompt,
     estimatedInputTokens,
@@ -6315,7 +6658,19 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = "unknown", 
       response = await callClaude(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, cfgTemp, cfgTopP, cfgTopK);
       success = true;
     } else if (preferredProvider === "google" && env.GEMINI_API_KEY) {
-      response = await callGemini2(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, effectiveThinkingBudget, cfgTemp, cfgTopP, cfgTopK);
+      response = await callGemini2(
+        env,
+        enforcedPrompt,
+        modelName,
+        maxTokens,
+        !skipJSONEnforcement,
+        effectiveThinkingBudget,
+        cfgTemp,
+        cfgTopP,
+        cfgTopK,
+        planResponseSchema,
+        planSystemInstruction
+      );
       success = true;
     } else {
       if (env.OPENAI_API_KEY) {
@@ -6328,7 +6683,19 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = "unknown", 
         success = true;
       } else if (env.GEMINI_API_KEY) {
         console.warn("Preferred provider not available. Falling back to Google Gemini.");
-        response = await callGemini2(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, effectiveThinkingBudget, cfgTemp, cfgTopP, cfgTopK);
+        response = await callGemini2(
+          env,
+          enforcedPrompt,
+          modelName,
+          maxTokens,
+          !skipJSONEnforcement,
+          effectiveThinkingBudget,
+          cfgTemp,
+          cfgTopP,
+          cfgTopK,
+          planResponseSchema,
+          planSystemInstruction
+        );
         success = true;
       } else {
         throw new Error("No AI provider configured. Please configure at least one provider.");
@@ -6662,21 +7029,7 @@ ${serializePreviousDays(previousDays)}
   const weeklySection = buildWeeklyAdaptationContextSection(data);
   if (weeklySection && !prompt.includes("\u0421\u0415\u0414\u041C\u0418\u0427\u041D\u0410 \u0410\u0414\u0410\u041F\u0422\u0410\u0426\u0418\u042F")) prompt += weeklySection;
   if (!hasJsonFormatInstructions(prompt)) {
-    prompt += `
-
-\u2550\u2550\u2550 \u041A\u0420\u0418\u0422\u0418\u0427\u041D\u041E \u0412\u0410\u0416\u041D\u041E - \u0424\u041E\u0420\u041C\u0410\u0422 \u041D\u0410 \u041E\u0422\u0413\u041E\u0412\u041E\u0420 \u2550\u2550\u2550
-\u041E\u0442\u0433\u043E\u0432\u043E\u0440\u0438 \u0421\u0410\u041C\u041E \u0441 \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON \u043E\u0431\u0435\u043A\u0442 \u0411\u0415\u0417 \u0434\u043E\u043F\u044A\u043B\u043D\u0438\u0442\u0435\u043B\u043D\u0438 \u043E\u0431\u044F\u0441\u043D\u0435\u043D\u0438\u044F \u0438\u043B\u0438 \u0442\u0435\u043A\u0441\u0442 \u043F\u0440\u0435\u0434\u0438 \u0438\u043B\u0438 \u0441\u043B\u0435\u0434 JSON.
-
-\u0421\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0430\u0442\u0430 \u0422\u0420\u042F\u0411\u0412\u0410 \u0434\u0430 \u0435:
-{
-  "dayN": {
-    "meals": [
-      {"type": "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1|\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2|\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435|\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3|\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4|\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5", "name": "\u0438\u043C\u0435", "description": "\u2022 \u043F\u0440\u043E\u0434\u0443\u043A\u0442 150g\\n\u2022 \u043F\u0440\u043E\u0434\u0443\u043A\u0442 80g"}
-    ]
-  }
-}
-
-\u0412\u0410\u0416\u041D\u041E: \u0412\u044A\u0440\u043D\u0438 \u0421\u0410\u041C\u041E JSON \u043E\u0431\u0435\u043A\u0442 {} \u0431\u0435\u0437 \u0434\u0440\u0443\u0433\u0438 \u0442\u0435\u043A\u0441\u0442 \u0438\u043B\u0438 \u043E\u0431\u044F\u0441\u043D\u0435\u043D\u0438\u044F! \u041D\u0415 \u0432\u0440\u044A\u0449\u0430\u0439 JSON \u043C\u0430\u0441\u0438\u0432 []! \u0411\u0415\u0417 dailyTotals, benefits, calories, macros \u0438\u043B\u0438 weight \u2014 \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u0441\u0435 \u0441\u043C\u044F\u0442\u0430\u0442 \u043E\u0442 \u0431\u0435\u043A\u0435\u043D\u0434\u0430 \u043F\u043E \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438\u0442\u0435.`;
+    prompt = ensureJsonFormatInstructions(prompt);
   }
   if (!useCompactStep3Context && analysisBlock && !prompt.includes("#AN v1")) {
     prompt = prompt.replace(
@@ -6906,26 +7259,7 @@ async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, reco
 ${prompt}`;
   }
   if (!hasJsonFormatInstructions(prompt)) {
-    prompt += `
-
-\u2550\u2550\u2550 \u041A\u0420\u0418\u0422\u0418\u0427\u041D\u041E \u0412\u0410\u0416\u041D\u041E - \u0424\u041E\u0420\u041C\u0410\u0422 \u041D\u0410 \u041E\u0422\u0413\u041E\u0412\u041E\u0420 \u2550\u2550\u2550
-\u041E\u0442\u0433\u043E\u0432\u043E\u0440\u0438 \u0421\u0410\u041C\u041E \u0441 \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON \u043E\u0431\u0435\u043A\u0442 \u0411\u0415\u0417 \u0434\u043E\u043F\u044A\u043B\u043D\u0438\u0442\u0435\u043B\u043D\u0438 \u043E\u0431\u044F\u0441\u043D\u0435\u043D\u0438\u044F \u0438\u043B\u0438 \u0442\u0435\u043A\u0441\u0442 \u043F\u0440\u0435\u0434\u0438 \u0438\u043B\u0438 \u0441\u043B\u0435\u0434 JSON.
-
-\u0421\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0430\u0442\u0430 \u0422\u0420\u042F\u0411\u0412\u0410 \u0434\u0430 \u0435:
-{
-  "summary": {
-    "bmr": \u0447\u0438\u0441\u043B\u043E,
-    "dailyCalories": \u0447\u0438\u0441\u043B\u043E,
-    "macros": {"protein": \u0447\u0438\u0441\u043B\u043E, "carbs": \u0447\u0438\u0441\u043B\u043E, "fats": \u0447\u0438\u0441\u043B\u043E}
-  },
-  "recommendations": ["\u0442\u0435\u043A\u0441\u0442"],
-  "forbidden": ["\u0442\u0435\u043A\u0441\u0442"],
-  "psychology": ["\u0442\u0435\u043A\u0441\u0442"],
-  "waterIntake": "\u0442\u0435\u043A\u0441\u0442",
-  "supplements": ["\u0442\u0435\u043A\u0441\u0442"]
-}
-
-\u0412\u0410\u0416\u041D\u041E: \u0412\u044A\u0440\u043D\u0438 \u0421\u0410\u041C\u041E JSON \u0431\u0435\u0437 \u0434\u0440\u0443\u0433\u0438 \u0442\u0435\u043A\u0441\u0442 \u0438\u043B\u0438 \u043E\u0431\u044F\u0441\u043D\u0435\u043D\u0438\u044F!`;
+    prompt = ensureJsonFormatInstructions(prompt);
   }
   return prompt;
 }
@@ -10972,6 +11306,10 @@ function hasJsonFormatInstructions(prompt) {
   ];
   return jsonMarkers.some((marker) => prompt.includes(marker));
 }
+var JSON_FORMAT_REMINDER = "\n\n=== \u0424\u041E\u0420\u041C\u0410\u0422 ===\n\u041E\u0442\u0433\u043E\u0432\u043E\u0440\u0438 \u0421\u0410\u041C\u041E \u0441 \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON \u043E\u0431\u0435\u043A\u0442. \u0411\u0435\u0437 markdown, \u0431\u0435\u0437 \u0442\u0435\u043A\u0441\u0442 \u0438\u0437\u0432\u044A\u043D JSON.";
+function ensureJsonFormatInstructions(prompt) {
+  return hasJsonFormatInstructions(prompt) ? prompt : prompt + JSON_FORMAT_REMINDER;
+}
 function replacePromptVariables(template, variables) {
   return template.replace(/\{([\w.]+)\}/g, (match, key) => {
     const keys = key.split(".");
@@ -10994,9 +11332,8 @@ async function generateAnalysisPrompt(data, env, errorPreventionComment = null) 
   const waterMax = (parseFloat(data.weight) * WATER_PER_KG_MULTIPLIER + BASE_WATER_NEED_LITERS + ACTIVITY_WATER_BONUS_LITERS).toFixed(2);
   const customPrompt = await requireKvPrompt(env, "admin_analysis_prompt");
   const _combinedNotes = buildCombinedAdditionalNotes(data);
-  const additionalNotesSection = _combinedNotes ? `\u2550\u2550\u2550 \u{1F525} \u0414\u041E\u041F\u042A\u041B\u041D\u0418\u0422\u0415\u041B\u041D\u0410 \u0418\u041D\u0424\u041E\u0420\u041C\u0410\u0426\u0418\u042F \u041E\u0422 \u041F\u041E\u0422\u0420\u0415\u0411\u0418\u0422\u0415\u041B\u042F (\u041A\u0420\u0418\u0422\u0418\u0427\u0415\u041D \u041F\u0420\u0418\u041E\u0420\u0418\u0422\u0415\u0422) \u{1F525} \u2550\u2550\u2550
-${_combinedNotes}
-\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550` : "";
+  const additionalNotesSection = _combinedNotes ? `=== \u0414\u041E\u041F\u042A\u041B\u041D\u0418\u0422\u0415\u041B\u041D\u0410 \u0418\u041D\u0424\u041E\u0420\u041C\u0410\u0426\u0418\u042F (\u041A\u0420\u0418\u0422\u0418\u0427\u0415\u041D \u041F\u0420\u0418\u041E\u0420\u0418\u0422\u0415\u0422) ===
+${_combinedNotes}` : "";
   const _clinicalProtocol = getClinicalProtocol(data.clinicalProtocol);
   const clinicalProtocolSection = _clinicalProtocol ? buildClinicalProtocolPromptSection(_clinicalProtocol) : "";
   const backendCalcObj = {
@@ -11073,92 +11410,7 @@ ${_combinedNotes}
     prompt = errorPreventionComment + "\n\n" + prompt;
   }
   if (!hasJsonFormatInstructions(prompt)) {
-    prompt += `
-
-\u2550\u2550\u2550 \u041A\u0420\u0418\u0422\u0418\u0427\u041D\u041E \u0412\u0410\u0416\u041D\u041E - \u0424\u041E\u0420\u041C\u0410\u0422 \u041D\u0410 \u041E\u0422\u0413\u041E\u0412\u041E\u0420 \u2550\u2550\u2550
-\u041E\u0442\u0433\u043E\u0432\u043E\u0440\u0438 \u0421\u0410\u041C\u041E \u0441 \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON \u043E\u0431\u0435\u043A\u0442 \u0411\u0415\u0417 \u0434\u043E\u043F\u044A\u043B\u043D\u0438\u0442\u0435\u043B\u043D\u0438 \u043E\u0431\u044F\u0441\u043D\u0435\u043D\u0438\u044F \u0438\u043B\u0438 \u0442\u0435\u043A\u0441\u0442 \u043F\u0440\u0435\u0434\u0438 \u0438\u043B\u0438 \u0441\u043B\u0435\u0434 JSON.
-
-\u0421\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0430\u0442\u0430 \u0422\u0420\u042F\u0411\u0412\u0410 \u0434\u0430 \u0432\u043A\u043B\u044E\u0447\u0432\u0430:
-{
-  "bmi": \u0447\u0438\u0441\u043B\u043E,
-  "bmiCategory": "\u0442\u0435\u043A\u0441\u0442",
-  "bmr": \u0447\u0438\u0441\u043B\u043E,
-  "tdee": \u0447\u0438\u0441\u043B\u043E,
-  "Final_Calories": \u0447\u0438\u0441\u043B\u043E,
-  "macroRatios": {
-    "protein": \u0447\u0438\u0441\u043B\u043E,
-    "carbs": \u0447\u0438\u0441\u043B\u043E,
-    "fats": \u0447\u0438\u0441\u043B\u043E
-  },
-  "macroGrams": {
-    "protein": \u0447\u0438\u0441\u043B\u043E,
-    "carbs": \u0447\u0438\u0441\u043B\u043E,
-    "fats": \u0447\u0438\u0441\u043B\u043E
-  },
-  "activityLevel": "\u0442\u0435\u043A\u0441\u0442",
-  "physiologicalPhase": "\u0442\u0435\u043A\u0441\u0442",
-  "waterDeficit": {
-    "dailyNeed": "\u0442\u0435\u043A\u0441\u0442",
-    "currentIntake": "\u0442\u0435\u043A\u0441\u0442",
-    "deficit": "\u0442\u0435\u043A\u0441\u0442",
-    "impactOnLipolysis": "\u0442\u0435\u043A\u0441\u0442"
-  },
-  "negativeHealthFactors": [{"factor": "\u0442\u0435\u043A\u0441\u0442", "severity": \u0447\u0438\u0441\u043B\u043E, "description": "\u0442\u0435\u043A\u0441\u0442"}],
-  "hinderingFactors": [{"factor": "\u0442\u0435\u043A\u0441\u0442", "severity": \u0447\u0438\u0441\u043B\u043E, "description": "\u0442\u0435\u043A\u0441\u0442"}],
-  "cumulativeRiskScore": "\u0442\u0435\u043A\u0441\u0442",
-  "psychoProfile": {
-    "temperament": "\u0442\u0435\u043A\u0441\u0442",
-    "probability": \u0447\u0438\u0441\u043B\u043E,
-    "reasoning": "\u0442\u0435\u043A\u0441\u0442"
-  },
-  "metabolicReactivity": {
-    "speed": "\u0442\u0435\u043A\u0441\u0442",
-    "adaptability": "\u0442\u0435\u043A\u0441\u0442"
-  },
-  "correctedMetabolism": {
-    "realBMR": \u0447\u0438\u0441\u043B\u043E,
-    "realTDEE": \u0447\u0438\u0441\u043B\u043E,
-    "clinicalAdjustmentPercent": \u0447\u0438\u0441\u043B\u043E,
-    "metabolicAdjustmentPercent": \u0447\u0438\u0441\u043B\u043E,
-    "goalAdjustmentPercent": \u0447\u0438\u0441\u043B\u043E,
-    "correction": "\u0442\u0435\u043A\u0441\u0442",
-    "correctionPercent": "\u0442\u0435\u043A\u0441\u0442"
-  },
-  "metabolicProfile": "\u0442\u0435\u043A\u0441\u0442",
-  "healthRisks": ["\u0442\u0435\u043A\u0441\u0442"],
-  "nutritionalNeeds": ["\u0442\u0435\u043A\u0441\u0442"],
-  "psychologicalProfile": "\u0442\u0435\u043A\u0441\u0442",
-  "successChance": \u0447\u0438\u0441\u043B\u043E,
-  "currentHealthStatus": {
-    "score": \u0447\u0438\u0441\u043B\u043E,
-    "description": "\u0442\u0435\u043A\u0441\u0442",
-    "keyIssues": ["\u0442\u0435\u043A\u0441\u0442"]
-  },
-  "forecastPessimistic": {
-    "timeframe": "\u0442\u0435\u043A\u0441\u0442",
-    "weight": "\u0442\u0435\u043A\u0441\u0442",
-    "health": "\u0442\u0435\u043A\u0441\u0442",
-    "risks": ["\u0442\u0435\u043A\u0441\u0442", "\u0442\u0435\u043A\u0441\u0442", "\u0442\u0435\u043A\u0441\u0442", "\u0442\u0435\u043A\u0441\u0442", "\u0442\u0435\u043A\u0441\u0442"]
-  },
-  "forecastOptimistic": {
-    "timeframe": "\u0442\u0435\u043A\u0441\u0442",
-    "weight": "\u0442\u0435\u043A\u0441\u0442",
-    "health": "\u0442\u0435\u043A\u0441\u0442",
-    "improvements": ["\u0442\u0435\u043A\u0441\u0442", "\u0442\u0435\u043A\u0441\u0442", "\u0442\u0435\u043A\u0441\u0442", "\u0442\u0435\u043A\u0441\u0442", "\u0442\u0435\u043A\u0441\u0442"]
-  },
-  "keyProblems": [
-    {
-      "title": "\u0442\u0435\u043A\u0441\u0442",
-      "description": "\u0442\u0435\u043A\u0441\u0442",
-      "severity": "Borderline/Risky/Critical",
-      "severityValue": \u0447\u0438\u0441\u043B\u043E,
-      "category": "\u0442\u0435\u043A\u0441\u0442",
-      "impact": "\u0442\u0435\u043A\u0441\u0442"
-    }
-  ]
-}
-
-\u0412\u0410\u0416\u041D\u041E: \u0412\u044A\u0440\u043D\u0438 \u0421\u0410\u041C\u041E JSON \u0431\u0435\u0437 \u0434\u0440\u0443\u0433\u0438 \u0442\u0435\u043A\u0441\u0442 \u0438\u043B\u0438 \u043E\u0431\u044F\u0441\u043D\u0435\u043D\u0438\u044F!`;
+    prompt = ensureJsonFormatInstructions(prompt);
   }
   return prompt;
 }
@@ -11201,9 +11453,8 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
   const analysisBlock = serializeAnalysisForStep(analysis, 2);
   const userProfileBlock = serializeUserProfile(data, "strategy");
   const _combinedNotes = buildCombinedAdditionalNotes(data);
-  const additionalNotesSection = _combinedNotes ? `\u2550\u2550\u2550 \u0414\u041E\u041F\u042A\u041B\u041D\u0418\u0422\u0415\u041B\u041D\u0410 \u0418\u041D\u0424\u041E\u0420\u041C\u0410\u0426\u0418\u042F \u041E\u0422 \u041F\u041E\u0422\u0420\u0415\u0411\u0418\u0422\u0415\u041B\u042F (\u041A\u0420\u0418\u0422\u0418\u0427\u0415\u041D \u041F\u0420\u0418\u041E\u0420\u0418\u0422\u0415\u0422) \u2550\u2550\u2550
-${_combinedNotes}
-\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550` : "";
+  const additionalNotesSection = _combinedNotes ? `=== \u0414\u041E\u041F\u042A\u041B\u041D\u0418\u0422\u0415\u041B\u041D\u0410 \u0418\u041D\u0424\u041E\u0420\u041C\u0410\u0426\u0418\u042F (\u041A\u0420\u0418\u0422\u0418\u0427\u0415\u041D \u041F\u0420\u0418\u041E\u0420\u0418\u0422\u0415\u0422) ===
+${_combinedNotes}` : "";
   let prompt = replacePromptVariables(customPrompt, {
     userData: data,
     userProfileBlock,
@@ -11281,53 +11532,7 @@ ${_combinedNotes}
     prompt = errorPreventionComment + "\n\n" + prompt;
   }
   if (!hasJsonFormatInstructions(prompt)) {
-    prompt += `
-
-\u2550\u2550\u2550 \u041A\u0420\u0418\u0422\u0418\u0427\u041D\u041E \u0412\u0410\u0416\u041D\u041E - \u0424\u041E\u0420\u041C\u0410\u0422 \u041D\u0410 \u041E\u0422\u0413\u041E\u0412\u041E\u0420 \u2550\u2550\u2550
-\u041E\u0442\u0433\u043E\u0432\u043E\u0440\u0438 \u0421\u0410\u041C\u041E \u0441 \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON \u043E\u0431\u0435\u043A\u0442 \u0411\u0415\u0417 \u0434\u043E\u043F\u044A\u043B\u043D\u0438\u0442\u0435\u043B\u043D\u0438 \u043E\u0431\u044F\u0441\u043D\u0435\u043D\u0438\u044F \u0438\u043B\u0438 \u0442\u0435\u043A\u0441\u0442 \u043F\u0440\u0435\u0434\u0438 \u0438\u043B\u0438 \u0441\u043B\u0435\u0434 JSON.
-
-\u0421\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0430\u0442\u0430 \u0422\u0420\u042F\u0411\u0412\u0410 \u0434\u0430 \u0432\u043A\u043B\u044E\u0447\u0432\u0430:
-{
-  "dietaryModifier": "\u0442\u0435\u043A\u0441\u0442",
-  "modifierReasoning": "\u0442\u0435\u043A\u0441\u0442",
-  "welcomeMessage": "\u0442\u0435\u043A\u0441\u0442",
-  "planJustification": "\u0442\u0435\u043A\u0441\u0442",
-  "longTermStrategy": "\u0442\u0435\u043A\u0441\u0442",
-  "mealCountJustification": "\u0442\u0435\u043A\u0441\u0442",
-  "afterDinnerMealJustification": "\u0442\u0435\u043A\u0441\u0442",
-  "dietType": "\u0442\u0435\u043A\u0441\u0442",
-  "weeklyMealPattern": "\u0442\u0435\u043A\u0441\u0442",
-  "weeklyScheme": {
-    "monday": {"meals": \u0447\u0438\u0441\u043B\u043E, "calories": \u0447\u0438\u0441\u043B\u043E, "protein": \u0447\u0438\u0441\u043B\u043E, "carbs": \u0447\u0438\u0441\u043B\u043E, "fats": \u0447\u0438\u0441\u043B\u043E, "description": "\u0442\u0435\u043A\u0441\u0442", "mealBreakdown": [{"type": "\u0442\u0438\u043F", "calories": \u0447\u0438\u0441\u043B\u043E, "protein": \u0447\u0438\u0441\u043B\u043E, "carbs": \u0447\u0438\u0441\u043B\u043E, "fats": \u0447\u0438\u0441\u043B\u043E}]},
-    "tuesday": {"meals": \u0447\u0438\u0441\u043B\u043E, "calories": \u0447\u0438\u0441\u043B\u043E, "protein": \u0447\u0438\u0441\u043B\u043E, "carbs": \u0447\u0438\u0441\u043B\u043E, "fats": \u0447\u0438\u0441\u043B\u043E, "description": "\u0442\u0435\u043A\u0441\u0442", "mealBreakdown": [{"type": "\u0442\u0438\u043F", "calories": \u0447\u0438\u0441\u043B\u043E, "protein": \u0447\u0438\u0441\u043B\u043E, "carbs": \u0447\u0438\u0441\u043B\u043E, "fats": \u0447\u0438\u0441\u043B\u043E}]},
-    "wednesday": {"meals": \u0447\u0438\u0441\u043B\u043E, "calories": \u0447\u0438\u0441\u043B\u043E, "protein": \u0447\u0438\u0441\u043B\u043E, "carbs": \u0447\u0438\u0441\u043B\u043E, "fats": \u0447\u0438\u0441\u043B\u043E, "description": "\u0442\u0435\u043A\u0441\u0442", "mealBreakdown": [{"type": "\u0442\u0438\u043F", "calories": \u0447\u0438\u0441\u043B\u043E, "protein": \u0447\u0438\u0441\u043B\u043E, "carbs": \u0447\u0438\u0441\u043B\u043E, "fats": \u0447\u0438\u0441\u043B\u043E}]},
-    "thursday": {"meals": \u0447\u0438\u0441\u043B\u043E, "calories": \u0447\u0438\u0441\u043B\u043E, "protein": \u0447\u0438\u0441\u043B\u043E, "carbs": \u0447\u0438\u0441\u043B\u043E, "fats": \u0447\u0438\u0441\u043B\u043E, "description": "\u0442\u0435\u043A\u0441\u0442", "mealBreakdown": [{"type": "\u0442\u0438\u043F", "calories": \u0447\u0438\u0441\u043B\u043E, "protein": \u0447\u0438\u0441\u043B\u043E, "carbs": \u0447\u0438\u0441\u043B\u043E, "fats": \u0447\u0438\u0441\u043B\u043E}]},
-    "friday": {"meals": \u0447\u0438\u0441\u043B\u043E, "calories": \u0447\u0438\u0441\u043B\u043E, "protein": \u0447\u0438\u0441\u043B\u043E, "carbs": \u0447\u0438\u0441\u043B\u043E, "fats": \u0447\u0438\u0441\u043B\u043E, "description": "\u0442\u0435\u043A\u0441\u0442", "mealBreakdown": [{"type": "\u0442\u0438\u043F", "calories": \u0447\u0438\u0441\u043B\u043E, "protein": \u0447\u0438\u0441\u043B\u043E, "carbs": \u0447\u0438\u0441\u043B\u043E, "fats": \u0447\u0438\u0441\u043B\u043E}]},
-    "saturday": {"meals": \u0447\u0438\u0441\u043B\u043E, "calories": \u0447\u0438\u0441\u043B\u043E, "protein": \u0447\u0438\u0441\u043B\u043E, "carbs": \u0447\u0438\u0441\u043B\u043E, "fats": \u0447\u0438\u0441\u043B\u043E, "description": "\u0442\u0435\u043A\u0441\u0442", "mealBreakdown": [{"type": "\u0442\u0438\u043F", "calories": \u0447\u0438\u0441\u043B\u043E, "protein": \u0447\u0438\u0441\u043B\u043E, "carbs": \u0447\u0438\u0441\u043B\u043E, "fats": \u0447\u0438\u0441\u043B\u043E}]},
-    "sunday": {"meals": \u0447\u0438\u0441\u043B\u043E, "calories": \u0447\u0438\u0441\u043B\u043E, "protein": \u0447\u0438\u0441\u043B\u043E, "carbs": \u0447\u0438\u0441\u043B\u043E, "fats": \u0447\u0438\u0441\u043B\u043E, "description": "\u0442\u0435\u043A\u0441\u0442", "mealBreakdown": [{"type": "\u0442\u0438\u043F", "calories": \u0447\u0438\u0441\u043B\u043E, "protein": \u0447\u0438\u0441\u043B\u043E, "carbs": \u0447\u0438\u0441\u043B\u043E, "fats": \u0447\u0438\u0441\u043B\u043E}]}
-  },
-  "breakfastStrategy": "\u0442\u0435\u043A\u0441\u0442",
-  "calorieDistribution": "\u0442\u0435\u043A\u0441\u0442",
-  "macroDistribution": "\u0442\u0435\u043A\u0441\u0442",
-  "mealTiming": {
-    "pattern": "\u0442\u0435\u043A\u0441\u0442",
-    "fastingWindows": "\u0442\u0435\u043A\u0441\u0442",
-    "flexibility": "\u0442\u0435\u043A\u0441\u0442",
-    "chronotypeGuidance": "\u0442\u0435\u043A\u0441\u0442"
-  },
-  "keyPrinciples": ["\u0442\u0435\u043A\u0441\u0442"],
-  "preferredFoodCategories": ["\u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0430 \u043A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u044F (\u041D\u0415 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u0430 \u0445\u0440\u0430\u043D\u0430)"],
-  "avoidFoodCategories": ["\u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0430 \u043A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u044F \u0437\u0430 \u0438\u0437\u0431\u044F\u0433\u0432\u0430\u043D\u0435 (\u041D\u0415 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u0430 \u0445\u0440\u0430\u043D\u0430)"],
-  "hydrationStrategy": "\u0442\u0435\u043A\u0441\u0442",
-  "communicationStyle": {
-    "temperament": "\u0442\u0435\u043A\u0441\u0442",
-    "tone": "\u0442\u0435\u043A\u0441\u0442",
-    "approach": "\u0442\u0435\u043A\u0441\u0442",
-    "chatGuidelines": "\u0442\u0435\u043A\u0441\u0442"
-  }
-}
-
-\u0412\u0410\u0416\u041D\u041E: \u0412\u044A\u0440\u043D\u0438 \u0421\u0410\u041C\u041E JSON \u0431\u0435\u0437 \u0434\u0440\u0443\u0433\u0438 \u0442\u0435\u043A\u0441\u0442 \u0438\u043B\u0438 \u043E\u0431\u044F\u0441\u043D\u0435\u043D\u0438\u044F!`;
+    prompt = ensureJsonFormatInstructions(prompt);
   }
   return prompt;
 }
@@ -11966,12 +12171,15 @@ async function callClaude(env, prompt, modelName = "claude-3-5-sonnet-20241022",
     throw new Error(`Claude API failed: ${error.message}`);
   }
 }
-async function callGemini2(env, prompt, modelName = "gemini-2.5-flash", maxTokens = null, jsonMode = false, thinkingBudget = void 0, temperature = void 0, topP = void 0, topK = void 0) {
+async function callGemini2(env, prompt, modelName = "gemini-2.5-flash", maxTokens = null, jsonMode = false, thinkingBudget = void 0, temperature = void 0, topP = void 0, topK = void 0, responseSchema = null, systemInstruction = null) {
   try {
     return await retryWithBackoff(async () => {
       const requestBody = {
         contents: [{ parts: [{ text: prompt }] }]
       };
+      if (systemInstruction) {
+        requestBody.systemInstruction = { parts: [{ text: systemInstruction }] };
+      }
       const generationConfig = {};
       if (maxTokens) {
         generationConfig.maxOutputTokens = maxTokens;
@@ -11986,6 +12194,9 @@ async function callGemini2(env, prompt, modelName = "gemini-2.5-flash", maxToken
       }
       if (jsonMode) {
         generationConfig.responseMimeType = "application/json";
+        if (responseSchema) {
+          generationConfig.responseSchema = responseSchema;
+        }
       }
       if (Object.keys(generationConfig).length > 0) {
         requestBody.generationConfig = generationConfig;

@@ -1,4 +1,8 @@
 import {
+  getPlanStepResponseSchema,
+  getPlanSystemInstruction,
+} from './plan-response-schemas.js';
+import {
   serializeUserProfile,
   serializeBackendCalculations,
   serializeAnalysisForStep,
@@ -2865,6 +2869,9 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
     ? (config.chatTopK !== undefined ? config.chatTopK : config.topK)
     : config.topK;
 
+  const planResponseSchema = !skipJSONEnforcement ? getPlanStepResponseSchema(stepName) : null;
+  const planSystemInstruction = isPlanStep ? getPlanSystemInstruction(stepKey) : null;
+
   // Build request data object in memory (not written to cache here; combined with
   // the response in logAIResponse to reduce Cache API subrequests per call from 4 to 1).
   const requestData = {
@@ -2902,7 +2909,11 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
       response = await callClaude(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, cfgTemp, cfgTopP, cfgTopK);
       success = true;
     } else if (preferredProvider === 'google' && env.GEMINI_API_KEY) {
-      response = await callGemini(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, effectiveThinkingBudget, cfgTemp, cfgTopP, cfgTopK);
+      response = await callGemini(
+        env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement,
+        effectiveThinkingBudget, cfgTemp, cfgTopP, cfgTopK,
+        planResponseSchema, planSystemInstruction
+      );
       success = true;
     } else {
       // Fallback hierarchy if preferred not available
@@ -2916,7 +2927,11 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
         success = true;
       } else if (env.GEMINI_API_KEY) {
         console.warn('Preferred provider not available. Falling back to Google Gemini.');
-        response = await callGemini(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, effectiveThinkingBudget, cfgTemp, cfgTopP, cfgTopK);
+        response = await callGemini(
+          env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement,
+          effectiveThinkingBudget, cfgTemp, cfgTopP, cfgTopK,
+          planResponseSchema, planSystemInstruction
+        );
         success = true;
       } else {
         throw new Error('No AI provider configured. Please configure at least one provider.');
@@ -3492,21 +3507,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
     if (weeklySection && !prompt.includes('СЕДМИЧНА АДАПТАЦИЯ')) prompt += weeklySection;
 
     if (!hasJsonFormatInstructions(prompt)) {
-      prompt += `
-
-═══ КРИТИЧНО ВАЖНО - ФОРМАТ НА ОТГОВОР ═══
-Отговори САМО с валиден JSON обект БЕЗ допълнителни обяснения или текст преди или след JSON.
-
-Структурата ТРЯБВА да е:
-{
-  "dayN": {
-    "meals": [
-      {"type": "Хранене 1|Хранене 2|Свободно хранене|Хранене 3|Хранене 4|Хранене 5", "name": "име", "description": "• продукт 150g\\n• продукт 80g"}
-    ]
-  }
-}
-
-ВАЖНО: Върни САМО JSON обект {} без други текст или обяснения! НЕ връщай JSON масив []! БЕЗ dailyTotals, benefits, calories, macros или weight — калориите се смятат от бекенда по продуктите.`;
+      prompt = ensureJsonFormatInstructions(prompt);
     }
     if (!useCompactStep3Context && analysisBlock && !prompt.includes('#AN v1')) {
       prompt = prompt.replace(
@@ -3754,27 +3755,8 @@ async function generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, reco
     
     // CRITICAL: Ensure JSON format instructions are included even with custom prompts
     if (!hasJsonFormatInstructions(prompt)) {
-      prompt += `
-
-═══ КРИТИЧНО ВАЖНО - ФОРМАТ НА ОТГОВОР ═══
-Отговори САМО с валиден JSON обект БЕЗ допълнителни обяснения или текст преди или след JSON.
-
-Структурата ТРЯБВА да е:
-{
-  "summary": {
-    "bmr": число,
-    "dailyCalories": число,
-    "macros": {"protein": число, "carbs": число, "fats": число}
-  },
-  "recommendations": ["текст"],
-  "forbidden": ["текст"],
-  "psychology": ["текст"],
-  "waterIntake": "текст",
-  "supplements": ["текст"]
-}
-
-ВАЖНО: Върни САМО JSON без други текст или обяснения!`;
-  }
+      prompt = ensureJsonFormatInstructions(prompt);
+    }
   return prompt;
 }
 
@@ -8963,6 +8945,17 @@ function hasJsonFormatInstructions(prompt) {
   return jsonMarkers.some(marker => prompt.includes(marker));
 }
 
+const JSON_FORMAT_REMINDER = '\n\n=== ФОРМАТ ===\nОтговори САМО с валиден JSON обект. Без markdown, без текст извън JSON.';
+
+/**
+ * Append minimal JSON format reminder when KV prompt lacks explicit format instructions.
+ * @param {string} prompt
+ * @returns {string}
+ */
+function ensureJsonFormatInstructions(prompt) {
+  return hasJsonFormatInstructions(prompt) ? prompt : prompt + JSON_FORMAT_REMINDER;
+}
+
 /**
  * Replace variables in prompt template
  * Supports simple {variableName} and nested dot-notation {obj.field.nested} syntax
@@ -8998,7 +8991,7 @@ async function generateAnalysisPrompt(data, env, errorPreventionComment = null) 
   const customPrompt = await requireKvPrompt(env, 'admin_analysis_prompt');
   const _combinedNotes = buildCombinedAdditionalNotes(data);
     const additionalNotesSection = _combinedNotes
-      ? `═══ 🔥 ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ ОТ ПОТРЕБИТЕЛЯ (КРИТИЧЕН ПРИОРИТЕТ) 🔥 ═══\n${_combinedNotes}\n═══════════════════════════════════════════════════════════════`
+      ? `=== ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ (КРИТИЧЕН ПРИОРИТЕТ) ===\n${_combinedNotes}`
       : '';
     const _clinicalProtocol = getClinicalProtocol(data.clinicalProtocol);
     const clinicalProtocolSection = _clinicalProtocol ? buildClinicalProtocolPromptSection(_clinicalProtocol) : '';
@@ -9078,93 +9071,8 @@ async function generateAnalysisPrompt(data, env, errorPreventionComment = null) 
     // CRITICAL: Ensure JSON format instructions are included even with custom prompts
     // This prevents AI from responding with natural language instead of structured JSON
     if (!hasJsonFormatInstructions(prompt)) {
-      prompt += `
-
-═══ КРИТИЧНО ВАЖНО - ФОРМАТ НА ОТГОВОР ═══
-Отговори САМО с валиден JSON обект БЕЗ допълнителни обяснения или текст преди или след JSON.
-
-Структурата ТРЯБВА да включва:
-{
-  "bmi": число,
-  "bmiCategory": "текст",
-  "bmr": число,
-  "tdee": число,
-  "Final_Calories": число,
-  "macroRatios": {
-    "protein": число,
-    "carbs": число,
-    "fats": число
-  },
-  "macroGrams": {
-    "protein": число,
-    "carbs": число,
-    "fats": число
-  },
-  "activityLevel": "текст",
-  "physiologicalPhase": "текст",
-  "waterDeficit": {
-    "dailyNeed": "текст",
-    "currentIntake": "текст",
-    "deficit": "текст",
-    "impactOnLipolysis": "текст"
-  },
-  "negativeHealthFactors": [{"factor": "текст", "severity": число, "description": "текст"}],
-  "hinderingFactors": [{"factor": "текст", "severity": число, "description": "текст"}],
-  "cumulativeRiskScore": "текст",
-  "psychoProfile": {
-    "temperament": "текст",
-    "probability": число,
-    "reasoning": "текст"
-  },
-  "metabolicReactivity": {
-    "speed": "текст",
-    "adaptability": "текст"
-  },
-  "correctedMetabolism": {
-    "realBMR": число,
-    "realTDEE": число,
-    "clinicalAdjustmentPercent": число,
-    "metabolicAdjustmentPercent": число,
-    "goalAdjustmentPercent": число,
-    "correction": "текст",
-    "correctionPercent": "текст"
-  },
-  "metabolicProfile": "текст",
-  "healthRisks": ["текст"],
-  "nutritionalNeeds": ["текст"],
-  "psychologicalProfile": "текст",
-  "successChance": число,
-  "currentHealthStatus": {
-    "score": число,
-    "description": "текст",
-    "keyIssues": ["текст"]
-  },
-  "forecastPessimistic": {
-    "timeframe": "текст",
-    "weight": "текст",
-    "health": "текст",
-    "risks": ["текст", "текст", "текст", "текст", "текст"]
-  },
-  "forecastOptimistic": {
-    "timeframe": "текст",
-    "weight": "текст",
-    "health": "текст",
-    "improvements": ["текст", "текст", "текст", "текст", "текст"]
-  },
-  "keyProblems": [
-    {
-      "title": "текст",
-      "description": "текст",
-      "severity": "Borderline/Risky/Critical",
-      "severityValue": число,
-      "category": "текст",
-      "impact": "текст"
+      prompt = ensureJsonFormatInstructions(prompt);
     }
-  ]
-}
-
-ВАЖНО: Върни САМО JSON без други текст или обяснения!`;
-  }
   return prompt;
 }
 
@@ -9223,7 +9131,7 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
   const userProfileBlock = serializeUserProfile(data, 'strategy');
   const _combinedNotes = buildCombinedAdditionalNotes(data);
     const additionalNotesSection = _combinedNotes
-      ? `═══ ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ ОТ ПОТРЕБИТЕЛЯ (КРИТИЧЕН ПРИОРИТЕТ) ═══\n${_combinedNotes}\n═══════════════════════════════════════════════════════════════`
+      ? `=== ДОПЪЛНИТЕЛНА ИНФОРМАЦИЯ (КРИТИЧЕН ПРИОРИТЕТ) ===\n${_combinedNotes}`
       : '';
     // Replace variables in custom prompt
     let prompt = replacePromptVariables(customPrompt, {
@@ -9304,54 +9212,8 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
     
     // CRITICAL: Ensure JSON format instructions are included even with custom prompts
     if (!hasJsonFormatInstructions(prompt)) {
-      prompt += `
-
-═══ КРИТИЧНО ВАЖНО - ФОРМАТ НА ОТГОВОР ═══
-Отговори САМО с валиден JSON обект БЕЗ допълнителни обяснения или текст преди или след JSON.
-
-Структурата ТРЯБВА да включва:
-{
-  "dietaryModifier": "текст",
-  "modifierReasoning": "текст",
-  "welcomeMessage": "текст",
-  "planJustification": "текст",
-  "longTermStrategy": "текст",
-  "mealCountJustification": "текст",
-  "afterDinnerMealJustification": "текст",
-  "dietType": "текст",
-  "weeklyMealPattern": "текст",
-  "weeklyScheme": {
-    "monday": {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст", "mealBreakdown": [{"type": "тип", "calories": число, "protein": число, "carbs": число, "fats": число}]},
-    "tuesday": {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст", "mealBreakdown": [{"type": "тип", "calories": число, "protein": число, "carbs": число, "fats": число}]},
-    "wednesday": {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст", "mealBreakdown": [{"type": "тип", "calories": число, "protein": число, "carbs": число, "fats": число}]},
-    "thursday": {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст", "mealBreakdown": [{"type": "тип", "calories": число, "protein": число, "carbs": число, "fats": число}]},
-    "friday": {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст", "mealBreakdown": [{"type": "тип", "calories": число, "protein": число, "carbs": число, "fats": число}]},
-    "saturday": {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст", "mealBreakdown": [{"type": "тип", "calories": число, "protein": число, "carbs": число, "fats": число}]},
-    "sunday": {"meals": число, "calories": число, "protein": число, "carbs": число, "fats": число, "description": "текст", "mealBreakdown": [{"type": "тип", "calories": число, "protein": число, "carbs": число, "fats": число}]}
-  },
-  "breakfastStrategy": "текст",
-  "calorieDistribution": "текст",
-  "macroDistribution": "текст",
-  "mealTiming": {
-    "pattern": "текст",
-    "fastingWindows": "текст",
-    "flexibility": "текст",
-    "chronotypeGuidance": "текст"
-  },
-  "keyPrinciples": ["текст"],
-  "preferredFoodCategories": ["хранителна категория (НЕ конкретна храна)"],
-  "avoidFoodCategories": ["хранителна категория за избягване (НЕ конкретна храна)"],
-  "hydrationStrategy": "текст",
-  "communicationStyle": {
-    "temperament": "текст",
-    "tone": "текст",
-    "approach": "текст",
-    "chatGuidelines": "текст"
-  }
-}
-
-ВАЖНО: Върни САМО JSON без други текст или обяснения!`;
-  }
+      prompt = ensureJsonFormatInstructions(prompt);
+    }
   return prompt;
 }
 
@@ -10161,12 +10023,16 @@ async function callClaude(env, prompt, modelName = 'claude-3-5-sonnet-20241022',
 /**
  * Call Gemini API with automatic retry logic for transient errors
  */
-async function callGemini(env, prompt, modelName = 'gemini-2.5-flash', maxTokens = null, jsonMode = false, thinkingBudget = undefined, temperature = undefined, topP = undefined, topK = undefined) {
+async function callGemini(env, prompt, modelName = 'gemini-2.5-flash', maxTokens = null, jsonMode = false, thinkingBudget = undefined, temperature = undefined, topP = undefined, topK = undefined, responseSchema = null, systemInstruction = null) {
   try {
     return await retryWithBackoff(async () => {
       const requestBody = {
         contents: [{ parts: [{ text: prompt }] }]
       };
+
+      if (systemInstruction) {
+        requestBody.systemInstruction = { parts: [{ text: systemInstruction }] };
+      }
       
       // Build generationConfig: add maxOutputTokens and/or JSON mime type as needed
       /** @type {Record<string, unknown>} */
@@ -10191,6 +10057,9 @@ async function callGemini(env, prompt, modelName = 'gemini-2.5-flash', maxTokens
       // Enforce JSON-only output at the API level to prevent markdown-wrapped responses
       if (jsonMode) {
         generationConfig.responseMimeType = 'application/json';
+        if (responseSchema) {
+          generationConfig.responseSchema = responseSchema;
+        }
       }
       if (Object.keys(generationConfig).length > 0) {
         requestBody.generationConfig = generationConfig;
