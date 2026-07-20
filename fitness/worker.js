@@ -67,12 +67,9 @@ import {
   buildTagsFromAnswers,
   extractTagsFromText,
   resolveGuidelineLayers,
-  selectGuidelineLayers,
   capGuidelineTexts,
   selectGuidelines,
   selectGuidelinesFromBrief,
-  pickGuidelineTexts,
-  buildPlanUserPrompt,
   buildAdminPlanUserPrompt,
   buildBriefIdentityBlock,
   preparePlanGeneration,
@@ -98,12 +95,9 @@ export {
   buildTagsFromAnswers,
   extractTagsFromText,
   resolveGuidelineLayers,
-  selectGuidelineLayers,
   capGuidelineTexts,
   selectGuidelines,
   selectGuidelinesFromBrief,
-  pickGuidelineTexts,
-  buildPlanUserPrompt,
   buildAdminPlanUserPrompt,
   buildBriefIdentityBlock,
   preparePlanGeneration,
@@ -480,10 +474,6 @@ function checkAdminSecret(request, env) {
   const provided = request.headers.get('X-Admin-Secret') || '';
   return provided === secret;
 }
-
-// ============================================================================
-// Компактен профил — profile-summary.js
-// ============================================================================
 
 // ============================================================================
 // AI промпт за генерация на план
@@ -1033,12 +1023,7 @@ async function handleCoach(request, env) {
 
   const adminGuidelines = await loadAdminGuidelines(env);
   const coachTags = extractTagsFromText(coachContext);
-  const coachLayers = resolveGuidelineLayers(coachTags, adminGuidelines);
-  const trainerGuidelines = [
-    adminGuidelines.foundation ? `БАЗОВИ ПРИНЦИПИ:\n${adminGuidelines.foundation}` : '',
-    coachLayers.individual.length ? `ИНДИВИДУАЛНИ НАСОКИ:\n- ${coachLayers.individual.join('\n- ')}` : '',
-    coachLayers.architecture.length ? `АРХИТЕКТУРНА РАМКА:\n- ${coachLayers.architecture.join('\n- ')}` : '',
-  ].filter(Boolean).join('\n\n');
+  const trainerGuidelines = buildTrainerSystemAddon(adminGuidelines, coachTags);
 
   const system = [
     COACH_SYSTEM_PROMPT,

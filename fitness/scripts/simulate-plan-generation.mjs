@@ -9,11 +9,9 @@ import {
   resolveGuidelineLayers,
   buildTagsFromAnswers,
   buildTrainerSystemAddon,
+  auditPlanGenderFit,
 } from '../plan-generation.js';
 import { allowedEquipmentSet } from '../worker.js';
-
-const ADMIN_WOMAN_PROFILE = `Жена. 172 ръст, 51 кг, 45 годишна, без здравословни проблеми. тренира редовно. търси оформяне и стягане. акцент обем на дупе и изправяне на гърба заради лека кифоза. приоритет са бедра и дупе!
-гърди не защото има импланти`;
 
 const ADMIN_WOMAN_SCHEME = `3 тренировки седмично без събота и неделя. уреди: горен скрипец vertical pulley, машина за бедра аддуктор, абдуктор, лост 10 кг, гирички 2 до 10 кг, хоризонтален скрипец за гръб, степ блокче.
 придържаш се към упражнения за средно начинаещи. по прости и ефективни. без странични рамена.`;
@@ -37,6 +35,7 @@ const clientAnswers = {
   health: [],
   healthFemale: [],
   limitations: ['гърди не — импланти'],
+  breastImplants: { implants: 'Да — под гръдната жлеза (subglandular)', implantMonths: 6 },
   experience: 'Среден (2–5 години)',
   goal: { main: 'Рекомпозиция', other: '', deadline: '' },
   equipment: ['Дъмбели', 'Кабели/скрипец', 'Машини'],
@@ -131,12 +130,11 @@ try {
     }
   }
   section('AI EXERCISES', exercises.join('\n') || '(няма)');
-  const lower = exercises.filter((e) => /hip|glute|thrust|squat|lunge|rdl|adduct|abduct|leg|hamstring/i.test(e));
-  const bench = exercises.filter((e) => /bench|press|chest/i.test(e));
+  const audit = auditPlanGenderFit(plan, clientTags);
   section('AUDIT', [
-    `Долна част: ${lower.length}/${exercises.length}`,
-    `Bench/press: ${bench.length}`,
-    bench.join('\n') || '(няма bench)',
+    `gender fit: ${audit.ok ? 'OK' : 'FAIL'}`,
+    ...audit.issues,
+    `bench/press: ${exercises.filter((e) => /bench|press|chest/i.test(e)).length}`,
   ].join('\n'));
 } catch (e) {
   console.error('JSON parse failed:', e.message);

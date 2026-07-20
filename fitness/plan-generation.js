@@ -245,6 +245,7 @@ export function parseAdminBriefConstraints(clientProfile = '', exampleScheme = '
   for (const pattern of [
     /гърди\s+не[^.\n]*/gi,
     /без\s+гърди[^.\n]*/gi,
+    /имплант[^.\n]*/gi,
     /без\s+страничн[иа]\s+рамен[ае][^.\n]*/gi,
     /без\s+(?:бърпи|клек|мъртв|преси|кранч|падан)[^.\n]*/gi,
     /не\s+(?:прави|правим|включвай|искам)[^.\n]*/gi,
@@ -302,6 +303,16 @@ export function constraintsFromAnswers(answers, exampleScheme = '') {
   }
   for (const lim of answers?.limitations || []) {
     if (lim && !normalizeText(lim).includes('нямам')) exclusions.push(`Ограничение: ${lim}`);
+  }
+  if (answers?.breastImplants?.implants) {
+    const months = answers.breastImplants.implantMonths ? ` (${answers.breastImplants.implantMonths} мес. след операция)` : '';
+    exclusions.push(`Гръдни импланти${months}: без натиск върху гърдите — без лежанки, флайс, кръстосани въдици, пуш-ъп, пек-дек, кабел кръстосване; само леки изолирани движения с леки тежести и без компресия`);
+  }
+  for (const h of [...(answers?.health || []), ...(answers?.healthFemale || [])]) {
+    if (/бременн|кърм/i.test(h)) {
+      exclusions.push('Бременност/кърмене: без коремни преси, без лежанки, без висок интензитет');
+      break;
+    }
   }
 
   const priorities = [];
@@ -452,11 +463,6 @@ export function buildTagsFromAnswers(answers) {
   return tags;
 }
 
-function collectTags(source) {
-  if (source.answers) return buildTagsFromAnswers(source.answers);
-  return extractTagsFromText(source.clientProfile, source.exampleScheme);
-}
-
 function prioritizeGenderGuidelines(individual, tagSet, adminChunks) {
   const genderTag = tagSet.has('gender:жена') ? 'gender:жена' : tagSet.has('gender:мъж') ? 'gender:мъж' : null;
   if (!genderTag) return individual;
@@ -509,12 +515,6 @@ export function resolveGuidelineLayers(tags, adminConfig = null) {
   };
 }
 
-export const selectGuidelineLayers = resolveGuidelineLayers;
-
-export function pickGuidelineTexts(tags, adminConfig = null) {
-  return resolveGuidelineLayers(tags, adminConfig).individual;
-}
-
 export function selectGuidelines(profile, adminConfig = null) {
   return resolveGuidelineLayers(buildTagsFromAnswers(profile), adminConfig);
 }
@@ -522,27 +522,6 @@ export function selectGuidelines(profile, adminConfig = null) {
 export function selectGuidelinesFromBrief(record, adminConfig = null) {
   const tags = extractTagsFromText(record?.clientProfile, record?.exampleScheme);
   return resolveGuidelineLayers(tags, adminConfig);
-}
-
-function formatArchitectureBlock(architecture, foundation) {
-  const foundationText = String(foundation || '').trim().slice(0, MAX_FOUNDATION_CHARS);
-  const parts = [];
-  if (foundationText) parts.push(`Базови принципи (foundation):\n${foundationText}`);
-  if (architecture?.length) parts.push(`Универсални архитектурни насоки:\n- ${architecture.join('\n- ')}`);
-  if (!parts.length) return '';
-  return `\n\n═══ АРХИТЕКТУРНА РАМКА (база — отстъпва при конфликт с индивидуалното) ═══\n${parts.join('\n\n')}`;
-}
-
-export function buildPlanUserPrompt(profileSummary, layers, foundation = '') {
-  const { individual = [], architecture = [] } = layers || {};
-  const individualBlock = [
-    '═══ ИНДИВИДУАЛЕН ПРОФИЛ (НАЙ-ВИСОК ПРИОРИТЕТ — над архитектурната рамка) ═══',
-    profileSummary,
-  ].join('\n');
-  const individualGuidelines = individual.length
-    ? `\n\nИНДИВИДУАЛНИ НАСОКИ ЗА ТОЗИ КЛИЕНТ (приоритет над общата рамка):\n- ${individual.join('\n- ')}`
-    : '';
-  return `${individualBlock}${individualGuidelines}${formatArchitectureBlock(architecture, foundation)}\n\nСъздай седмичния план сега. Отговори САМО с JSON.`;
 }
 
 export function buildBriefIdentityBlock(brief) {
@@ -699,30 +678,9 @@ export function preparePlanGeneration(source, adminConfig, helpers) {
     });
   }
 
-  const tags = collectTags(source);
-  const layers = resolveGuidelineLayers(tags, adminConfig);
-
   if (source.answers) {
     return buildFromAnswers(source.answers);
   }
 
-  const brief = {
-    clientProfile: source.clientProfile,
-    exampleScheme: source.exampleScheme,
-    tags,
-  };
-  const coachProfileText = [
-    source.clientName ? `Клиент: ${source.clientName}` : 'Клиент: —',
-    source.clientContact ? `Контакт: ${source.clientContact}` : '',
-    '',
-    String(source.clientProfile || '').trim(),
-    source.exampleScheme ? `\nСхема и указания:\n${source.exampleScheme}` : '',
-  ].filter(Boolean).join('\n');
-
-  return {
-    userPrompt: buildAdminPlanUserPrompt(brief, layers, foundation),
-    coachProfileText,
-    allowedEquipment: allowedEquipmentFromBrief(source.clientProfile, source.exampleScheme),
-    clientTags: tags,
-  };
+  throw new Error('preparePlanGeneration: липсват answers или clientAnswers');
 }

@@ -13,7 +13,6 @@ test('renderStep с празен списък не хвърля (qs защита
   const wizard = createWizardController({
     getEl: () => null,
     getQuestions: () => undefined,
-    visibleOptions: () => [],
     validateQuestion: () => null,
     getState: () => ({}),
   });

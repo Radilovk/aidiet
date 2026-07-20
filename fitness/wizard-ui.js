@@ -25,7 +25,6 @@ export function createWizardController({
   getEl,
   questions,
   getQuestions,
-  visibleOptions,
   validateQuestion,
   getState,
   onPersist,
@@ -113,7 +112,7 @@ export function createWizardController({
 
   function renderMulti(q, container) {
     const state = getState()[q.id] || (getState()[q.id] = { selected: [], inputs: {} });
-    const options = visibleOptions(q, getState()) || [];
+    const options = q.options || [];
 
     const renderAll = () => {
       container.innerHTML = '';
