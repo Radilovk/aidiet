@@ -28,6 +28,12 @@ import {
   buildClientCard,
   serializePlanSummary,
 } from './client-card.js';
+import {
+  buildChatContextSections,
+  detectChatSections,
+  resolveContextFromSections,
+  computeContextFingerprint,
+} from './chat-context-bundle.js';
 import fitnessWorker from './fitness/worker.js';
 import {
   syncWeekPlanNutritionFromDatabase,
@@ -2965,40 +2971,28 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
 }
 
 /**
- * Generate chat prompt with full context for precise analysis
- * NOTE: Uses full data in both modes to ensure comprehensive understanding of user context
+ * Generate chat prompt with Smart Context (SCC v1) — NPCF sections, not raw JSON.
  */
-async function generateChatPrompt(env, userMessage, userData, userPlan, conversationHistory, mode = 'consultation') {
-  // Use FULL data for both modes to ensure precise, comprehensive analysis
-  // No compromise on data completeness for individualization and quality
+async function generateChatPrompt(env, userMessage, contextText, userData, conversationHistory, mode = 'consultation', userPlan = null) {
+  const name = userData?.name || 'клиента';
+  const baseContext = `Ти си личен диетолог, психолог и здравен асистент за ${name}.
 
-  // Base context with complete data
-  const baseContext = `Ти си личен диетолог, психолог и здравен асистент за ${userData.name}.
-
-КЛИЕНТСКИ ПРОФИЛ:
-${JSON.stringify(userData)}
-
-ПЪЛЕН ХРАНИТЕЛЕН ПЛАН:
-${JSON.stringify(userPlan)}
+КОНТЕКСТ (NPCF — използвай САМО релевантните секции за въпроса):
+${contextText}
 
 ${conversationHistory.length > 0 ? `ИСТОРИЯ НА РАЗГОВОРА:\n${conversationHistory.map(h => `${h.role}: ${h.content}`).join('\n')}` : ''}
 `;
 
-  // Get mode-specific instructions from KV (with caching)
   const chatPrompts = await getChatPrompts(env);
-
-  // Extract chatGuidelines from the plan's communicationStyle (top-level or under strategy)
   const commStyle = userPlan?.communicationStyle || userPlan?.strategy?.communicationStyle;
   const commGuidelines = String(commStyle?.chatGuidelines || '');
 
   let modeInstructions = '';
   if (mode === 'consultation') {
-    // Replace {communicationStyle} placeholder with client-specific guidelines from the plan
     modeInstructions = (chatPrompts.consultation || '').replace(/{communicationStyle}/g, commGuidelines);
   } else if (mode === 'modification') {
-    // Replace {goal} and {communicationStyle} placeholders
     modeInstructions = (chatPrompts.modification || '')
-      .replace(/{goal}/g, userData.goal || 'твоята цел')
+      .replace(/{goal}/g, userData?.goal || 'твоята цел')
       .replace(/{communicationStyle}/g, commGuidelines);
   }
 
@@ -3007,7 +3001,7 @@ ${modeInstructions}
 
 ВЪПРОС: ${userMessage}
 
-АСИСТЕНТ (отговори КРАТКО):`;
+АСИСТЕНТ (отговори КРАТКО, стриктно по данните в контекста — не измисляй грамажи/калории):`;
 
   return fullPrompt;
 }
@@ -4139,42 +4133,128 @@ async function handleGetPlanJobStatus(request, env) {
   return jsonResponse(JSON.parse(raw));
 }
 
+const CHAT_CTX_KV_PREFIX = 'chat_scc:';
+const CHAT_CTX_TTL_SECONDS = 2 * 60 * 60; // 2 hours
+
+/**
+ * @param {import('@cloudflare/workers-types').KVNamespace} kv
+ * @param {string} fingerprint
+ */
+async function loadChatContextSections(kv, fingerprint) {
+  if (!kv || !fingerprint) return null;
+  try {
+    const raw = await kv.get(CHAT_CTX_KV_PREFIX + fingerprint);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * @param {import('@cloudflare/workers-types').KVNamespace} kv
+ * @param {string} fingerprint
+ * @param {Record<string, string>} sections
+ */
+async function saveChatContextSections(kv, fingerprint, sections) {
+  if (!kv || !fingerprint || !sections) return;
+  try {
+    await kv.put(CHAT_CTX_KV_PREFIX + fingerprint, JSON.stringify(sections), {
+      expirationTtl: CHAT_CTX_TTL_SECONDS,
+    });
+  } catch (err) {
+    console.error('chat context KV cache write failed:', err?.message || err);
+  }
+}
+
+/**
+ * Resolve SCC sections from request (KV cache, bundle payload, or legacy JSON).
+ * @returns {Promise<{ sections: Record<string, string>|null, selectedIds: string[], cacheHit: boolean, fingerprint?: string }>}
+ */
+async function resolveChatContextPayload(env, body) {
+  const {
+    contextFingerprint,
+    contextSections,
+    contextBundle,
+    userData,
+    userPlan,
+    message,
+    mode,
+  } = body;
+
+  let sections = contextBundle?.sections || null;
+  let cacheHit = false;
+
+  if (!sections && contextFingerprint) {
+    const cached = await loadChatContextSections(env.page_content, contextFingerprint);
+    if (cached) {
+      sections = cached;
+      cacheHit = true;
+    }
+  }
+
+  if (!sections && userData && userPlan) {
+    sections = buildChatContextSections(userData, userPlan);
+  }
+
+  if (!sections) {
+    return { sections: null, selectedIds: [], cacheHit: false };
+  }
+
+  const fingerprint = contextFingerprint || computeContextFingerprint(sections);
+  if (!cacheHit && contextBundle?.sections && fingerprint) {
+    await saveChatContextSections(env.page_content, fingerprint, sections);
+  }
+
+  const selectedIds = contextSections?.length
+    ? contextSections
+    : detectChatSections(message || '', mode || 'consultation');
+
+  return { sections, selectedIds, cacheHit, fingerprint };
+}
+
 /**
  * Handle chat assistant requests
- * REVOLUTIONARY OPTIMIZATION: Supports both full-context (legacy) and cached-context modes
- * Cached-context mode reduces payload from 10-20KB to ~100 bytes (85-95% reduction)
+ * Smart Context (SCC v1): intent-based NPCF sections + KV fingerprint cache
  */
 async function handleChat(request, env) {
   try {
-    const { message, userId, conversationId, mode, userData, userPlan, conversationHistory } = await request.json();
-    
+    const body = await request.json();
+    const {
+      message,
+      userId,
+      conversationId,
+      mode,
+      userData,
+      userPlan,
+      conversationHistory,
+    } = body;
+
     if (!message) {
       return jsonResponse({ error: ERROR_MESSAGES.MISSING_MESSAGE }, 400);
     }
 
-    if (!userData || !userPlan) {
+    const { sections, selectedIds, cacheHit, fingerprint } = await resolveChatContextPayload(env, body);
+    if (!sections) {
       return jsonResponse({ error: ERROR_MESSAGES.MISSING_CONTEXT }, 400);
     }
 
-    const effectiveUserData = userData;
-    const effectiveUserPlan = userPlan;
+    const { contextText } = resolveContextFromSections(sections, /** @type {import('./chat-context-bundle.js').ChatSectionId[]} */ (selectedIds));
+    const effectiveUserData = userData || {};
+    const effectiveUserPlan = userPlan || {};
 
-    // Use conversation history from client (defaults to empty array)
     const chatHistory = conversationHistory || [];
-    
-    // Determine chat mode (default: consultation), enforcing admin mode configuration
+
     const requestedMode = mode || 'consultation';
     const chatPromptsConfig = await getChatPrompts(env);
     const modificationModeEnabled = chatPromptsConfig.modificationEnabled === true;
     const chatMode = (requestedMode === 'modification' && !modificationModeEnabled)
       ? 'consultation'
       : requestedMode;
-    
-    // Build chat prompt with context and mode
-    const chatPrompt = await generateChatPrompt(env, message, effectiveUserData, effectiveUserPlan, chatHistory, chatMode);
-    
-    // Call AI model with standard token limit (no need for large JSONs with new regeneration approach)
-    // Skip JSON enforcement for chat to get plain text conversational responses
+
+    const chatPrompt = await generateChatPrompt(
+      env, message, contextText, effectiveUserData, chatHistory, chatMode, effectiveUserPlan,
+    );
+
     const aiResponse = await callAIModel(env, chatPrompt, 2000, 'chat_consultation', null, effectiveUserData, null, true);
     
     // Check if the response contains a plan regeneration instruction
@@ -4250,8 +4330,8 @@ async function handleChat(request, env) {
             
             // Apply modifications to user data and regenerate plan
             // Use Set to avoid duplicates when accumulating modifications
-            const existingMods = new Set(userData.planModifications || []);
-            const excludedFoods = new Set((userData.dietDislike || '').split(',').map(f => f.trim()).filter(f => f));
+            const existingMods = new Set(effectiveUserData.planModifications || []);
+            const excludedFoods = new Set((effectiveUserData.dietDislike || '').split(',').map(f => f.trim()).filter(f => f));
             
             // Enhancement #4: Validate food exclusions against current plan
             const validatedModifications = [];
@@ -4272,7 +4352,7 @@ async function handleChat(request, env) {
             });
             
             const modifiedUserData = {
-              ...userData,
+              ...effectiveUserData,
               planModifications: Array.from(existingMods),
               dietDislike: Array.from(excludedFoods).join(', ')
             };
@@ -4331,7 +4411,10 @@ async function handleChat(request, env) {
       success: true, 
       response: finalResponse,
       conversationHistory: trimmedHistory,
-      planUpdated: planWasUpdated
+      planUpdated: planWasUpdated,
+      contextCacheHit: cacheHit,
+      contextFingerprint: fingerprint,
+      contextSections: selectedIds,
     };
     
     // Include updated plan and userData if plan was regenerated

@@ -409,6 +409,47 @@ export function serializeWeekPlanWeeklyCompact(weekPlan) {
 }
 
 /**
+ * Compact items line from meal.description (• product 150g).
+ * @param {string} [description]
+ * @returns {string}
+ */
+function compactMealItems(description) {
+  if (!description) return '';
+  return String(description)
+    .split('\n')
+    .map((line) => line.replace(/^[•\-*]\s*/, '').trim())
+    .filter(Boolean)
+    .map((line) => esc(line.replace(/\s+/g, '')))
+    .join('+');
+}
+
+/**
+ * Week plan for client chat — grams, macros, and per-product amounts.
+ * @param {object} weekPlan
+ * @param {{ days?: string[] }} [options]
+ */
+export function serializeWeekPlanClient(weekPlan, options = {}) {
+  if (!weekPlan) return '';
+  const dayFilter = options.days?.length ? new Set(options.days) : null;
+  const lines = ['#PL v2 chat|day|type|name|kcal|g|P|C|F|items'];
+  for (const [dayKey, dayData] of Object.entries(weekPlan)) {
+    if (dayFilter && !dayFilter.has(dayKey)) continue;
+    if (!dayData?.meals?.length) continue;
+    for (const m of dayData.meals) {
+      const type = MEAL_TYPE_SHORT[m.type] || esc(String(m.type || '?').slice(0, 3));
+      const kcal = Number(m.calories) || 0;
+      const g = parseInt(String(m.weight || '0').replace(/[^\d]/g, ''), 10) || 0;
+      const p = Number(m.macros?.protein) || 0;
+      const c = Number(m.macros?.carbs) || 0;
+      const f = Number(m.macros?.fats ?? m.macros?.fat) || 0;
+      const items = compactMealItems(m.description);
+      lines.push(`${dayKey}|${type}|${esc(m.name)}|${kcal}|${g}|${p}|${c}|${f}|${items}`);
+    }
+  }
+  return lines.length > 1 ? lines.join('\n') : '';
+}
+
+/**
  * Full week plan for admin AI — every meal with kcal, grams, macros, patch path.
  * @param {object} weekPlan
  */

@@ -3608,6 +3608,11 @@
     <script src="./platform-compat.js"></script>
     <script src="./plan-sync.js"></script>
     <script type="module">
+        import * as ChatCtx from './chat-context-bundle.js';
+        window.NutriPlanChatContext = ChatCtx;
+        window.dispatchEvent(new Event('nutriplan-chat-context-ready'));
+    </script>
+    <script type="module">
         import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
         import {
             getAuth, onAuthStateChanged,
@@ -4196,6 +4201,7 @@
         let chatMode = 'consultation'; // 'consultation', 'modification', or 'report'
         let modificationModeEnabled = false;
         let chatHistory = []; // Store chat messages for persistence
+        let chatContextFingerprint = null; // SCC v1 — skip resending bundle when unchanged
         
         // Enhancement #1: Retry mechanism state
         let isSending = false;
@@ -6537,36 +6543,53 @@
         }
 
         /**
-         * Helper function to create compact week plan for consultation mode
-         * Reduces payload size by ~60-70% while keeping essential meal information
-         * 
-         * FULL meal object: ~200-300 bytes (with description, benefits, weight)
-         * COMPACT meal object: ~50-70 bytes (only type, name, calories)
-         * 
-         * For a 7-day plan with 3 meals/day = 21 meals:
-         * - Full: ~5-6 KB
-         * - Compact: ~1.2-1.5 KB
-         * 
-         * This optimization allows AI to understand the meal plan context
-         * without needing detailed descriptions for consultation questions.
+         * Build Smart Chat Context (SCC v1) request payload.
+         * Full plan/profile indexed once; each message sends only needed NPCF sections.
          */
-        function compactWeekPlan(weekPlan) {
-            if (!weekPlan) return null;
-            
-            const compact = {};
-            for (const dayKey in weekPlan) {
-                if (weekPlan[dayKey] && weekPlan[dayKey].meals) {
-                    compact[dayKey] = {
-                        meals: weekPlan[dayKey].meals.map(meal => ({
-                            type: meal.type,
-                            name: meal.name,
-                            calories: meal.calories
-                            // Omit: time (removed), description, benefits, weight (not needed for consultation)
-                        }))
-                    };
-                }
+        function buildSmartChatRequest(message, apiHistory) {
+            const chatCtx = window.NutriPlanChatContext;
+            if (!chatCtx || !userData || !dietPlan) {
+                return {
+                    userId: userId,
+                    message: message,
+                    conversationId: conversationId,
+                    mode: chatMode,
+                    conversationHistory: apiHistory,
+                    userData: userData,
+                    userPlan: dietPlan,
+                };
             }
-            return compact;
+
+            const allSections = chatCtx.buildChatContextSections(userData, dietPlan);
+            const fingerprint = chatCtx.computeContextFingerprint(allSections);
+            const selectedIds = chatCtx.detectChatSections(message, chatMode);
+            const planChanged = chatContextFingerprint !== fingerprint;
+
+            const requestBody = {
+                userId: userId,
+                message: message,
+                conversationId: conversationId,
+                mode: chatMode,
+                conversationHistory: apiHistory,
+                contextFingerprint: fingerprint,
+                contextSections: selectedIds,
+            };
+
+            if (planChanged || !chatContextFingerprint) {
+                requestBody.contextBundle = { sections: allSections };
+            }
+
+            if (chatMode === 'modification') {
+                requestBody.userData = userData;
+                requestBody.userPlan = dietPlan;
+            }
+
+            chatContextFingerprint = fingerprint;
+            return requestBody;
+        }
+
+        function invalidateChatContextCache() {
+            chatContextFingerprint = null;
         }
 
         async function sendMessage() {
@@ -6803,43 +6826,7 @@
                     console.log(`[Optimization] Trimmed conversation history from ${chatHistory.length} to ${MAX_HISTORY_MESSAGES} messages`);
                 }
                 
-                // Build compact context: consultation uses summary fields; modification needs full data
-                let optimizedPlan, optimizedUserData;
-                if (chatMode === 'modification') {
-                    optimizedPlan = dietPlan;
-                    optimizedUserData = userData;
-                } else {
-                    optimizedPlan = {
-                        summary: dietPlan.summary,
-                        weekPlan: compactWeekPlan(dietPlan.weekPlan),
-                        recommendations: dietPlan.recommendations,
-                        forbidden: dietPlan.forbidden,
-                        communicationStyle: dietPlan.strategy?.communicationStyle
-                    };
-                    optimizedUserData = {
-                        name: userData.name,
-                        age: userData.age,
-                        weight: userData.weight,
-                        height: userData.height,
-                        gender: userData.gender,
-                        goal: userData.goal,
-                        dietPreference: userData.dietPreference,
-                        dietDislike: userData.dietDislike,
-                        dietLove: userData.dietLove,
-                        medicalConditions: userData.medicalConditions
-                    };
-                }
-
-                // Send to backend
-                const requestBody = {
-                    userId: userId,
-                    message: message,
-                    conversationId: conversationId,
-                    mode: chatMode,
-                    conversationHistory: apiHistory,
-                    userData: optimizedUserData,
-                    userPlan: optimizedPlan
-                };
+                const requestBody = buildSmartChatRequest(message, apiHistory);
                 
                 const response = await fetch('https://aidiet.radilov-k.workers.dev/api/chat', {
                     method: 'POST',
@@ -6873,6 +6860,7 @@
                     
                     // If plan was updated, update local storage with new plan
                     if (result.planUpdated && result.updatedPlan) {
+                        invalidateChatContextCache();
                         // Enhancement #6: Save current plan to history before updating
                         savePlanToHistory();
                         
