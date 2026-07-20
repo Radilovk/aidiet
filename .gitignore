@@ -1,7 +1,6 @@
 # Build artifacts
 dist/
 worker.deploy.js
-typecheck-worker-report.txt
 
 node_modules/
 npm-debug.log*

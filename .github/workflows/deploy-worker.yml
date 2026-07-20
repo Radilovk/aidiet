@@ -5,6 +5,7 @@ on:
     branches:
       - main
     paths:
+      - 'worker.entry.js'
       - 'worker.js'
       - 'wrangler.toml'
       - 'fitness/worker.js'
@@ -34,6 +35,7 @@ on:
     branches:
       - main
     paths:
+      - 'worker.entry.js'
       - 'worker.js'
       - 'wrangler.toml'
       - 'fitness/worker.js'
@@ -87,7 +89,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: worker-deploy-bundle
-          path: worker.deploy.js
+          path: worker.js
           retention-days: 14
 
       # Create the queues if they do not yet exist in Cloudflare.

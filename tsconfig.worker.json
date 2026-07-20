@@ -15,7 +15,7 @@
     "maxNodeModuleJsDepth": 0
   },
   "include": [
-    "worker.js",
+    "worker.entry.js",
     "fitness/worker.js",
     "fitness/exercise-labels-bg.js",
     "fitness/exercise-translate-batch.js",

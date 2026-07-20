@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Typecheck на worker.js + backend модули.
+ * Typecheck на worker.entry.js + backend модули.
  * npm run typecheck:worker
  */
 import { spawnSync } from 'node:child_process';

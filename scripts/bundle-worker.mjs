@@ -1,13 +1,12 @@
 #!/usr/bin/env node
 /**
- * Bundle worker.js + всички import-и в ЕДИН файл.
+ * Bundle worker.entry.js + всички import-и → worker.js (един файл).
  *
- * Ръчен Cloudflare dashboard upload:
- *   npm run build:worker
- *   → копирай СЪДЪРЖАНИЕТО на worker.deploy.js в Quick edit
- *   → НЕ качвай source worker.js (има import-и → "No such module")
+ * worker.js на main е готов за:
+ *   - Cloudflare dashboard Quick edit (копирай целия файл)
+ *   - wrangler deploy
  *
- * Автоматичен deploy: npx wrangler deploy --env production
+ * Редактирай worker.entry.js + модулите, после: npm run build:worker
  */
 import { spawnSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -15,14 +14,16 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const entry = join(root, 'worker.entry.js');
 const outDir = join(root, 'dist');
 const outfile = join(outDir, 'worker.bundled.js');
-const deployFile = join(root, 'worker.deploy.js');
+const deployFile = join(root, 'worker.js');
 
-const BANNER = `/**
- * DEPLOY ФАЙЛ — единен bundle за Cloudflare dashboard.
- * Генериран от: npm run build:worker
- * НЕ редактирай ръчно. За разработка ползвай source worker.js + wrangler deploy.
+const BANNER = `// @ts-nocheck
+/**
+ * AUTO-GENERATED — не редактирай ръчно.
+ * Източник: worker.entry.js + модули → npm run build:worker
+ * Качва се в Cloudflare dashboard като worker.js (един файл, без import-и).
  */
 `;
 
@@ -33,7 +34,7 @@ const result = spawnSync(
   bin,
   [
     'esbuild',
-    'worker.js',
+    'worker.entry.js',
     '--bundle',
     '--format=esm',
     '--platform=browser',
@@ -53,13 +54,11 @@ if (result.status !== 0) {
 
 let bundled = readFileSync(outfile, 'utf8');
 if (/^import\s+/m.test(bundled)) {
-  console.error('❌ Bundle still contains external imports — не е готов за ръчен upload');
+  console.error('❌ Bundle still contains external imports');
   process.exit(1);
 }
 
 writeFileSync(deployFile, BANNER + bundled, 'utf8');
-writeFileSync(outfile, bundled, 'utf8');
 
-console.log('✅ worker.deploy.js — качи ТОЗИ файл в Cloudflare dashboard');
-console.log('✅ dist/worker.bundled.js — същото съдържание');
+console.log('✅ worker.js — готов за Cloudflare dashboard и wrangler deploy');
 if (out) console.log(out);

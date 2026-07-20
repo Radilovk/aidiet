@@ -2,7 +2,7 @@
   "name": "aidiet",
   "version": "1.0.0",
   "description": "AI-powered personalized nutrition planning application",
-  "main": "worker.js",
+  "main": "worker.entry.js",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "npm run test:worker && wrangler deploy --env production",
