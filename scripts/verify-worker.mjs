@@ -56,6 +56,9 @@ check('worker.js bundle (без import-и)', () => {
   if (!text.startsWith('// @ts-nocheck')) {
     throw new Error('worker.js липсва @ts-nocheck — Cloudflare dashboard ще покаже TS грешки');
   }
+  if (!text.includes('/// <reference path="./types/worker.d.ts" />')) {
+    throw new Error('worker.js липсва reference към types/worker.d.ts');
+  }
 });
 
 check('worker.js синтаксис', () => {

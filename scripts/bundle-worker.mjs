@@ -20,10 +20,14 @@ const outfile = join(outDir, 'worker.bundled.js');
 const deployFile = join(root, 'worker.js');
 
 const BANNER = `// @ts-nocheck
+/// <reference path="./types/worker.d.ts" />
 /**
  * AUTO-GENERATED — не редактирай ръчно.
  * Източник: worker.entry.js + модули → npm run build:worker
  * Качва се в Cloudflare dashboard като worker.js (един файл, без import-и).
+ *
+ * IDE/Cloudflare: @ts-nocheck + types/worker.d.ts (локално) спират TS шума.
+ * CI: npm run typecheck:worker проверява източника и bundle-а.
  */
 `;
 
