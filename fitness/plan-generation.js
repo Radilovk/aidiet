@@ -12,6 +12,9 @@
 
 import { normalizeText } from './normalize.js';
 import { buildProfileSummary } from './profile-summary.js';
+import { GENDER_FIT_RETRY_HINT } from './plan-prompts.js';
+
+export { GENDER_FIT_RETRY_HINT };
 
 export const MAX_FOUNDATION_CHARS = 800;
 export const MAX_GUIDELINE_ITEMS = 12;
@@ -180,24 +183,28 @@ export function shouldIncludeAdminChunk(chunk, tagSet) {
   return true;
 }
 
-/** Правила от треньора → system prompt (Gemini ги спазва по-надеждно от user prompt). */
-export function buildTrainerSystemAddon(adminConfig, tagSet) {
+/** Правила от треньора + RAG насоки → system prompt. */
+export function buildTrainerSystemAddon(adminConfig, tagSet, layers = null) {
   const foundation = String(adminConfig?.foundation || '').trim().slice(0, MAX_FOUNDATION_CHARS);
-  const chunks = (Array.isArray(adminConfig?.chunks) ? adminConfig.chunks : [])
-    .filter((c) => c?.text && shouldIncludeAdminChunk(c, tagSet));
+  const resolved = layers || resolveGuidelineLayers(tagSet, adminConfig);
+  const individual = resolved?.individual || [];
+  const architecture = resolved?.architecture || [];
 
-  if (!foundation && !chunks.length) return '';
+  if (!foundation && !individual.length && !architecture.length) return '';
 
-  const lines = [
-    '═══ KA-TRAINER ПРАВИЛА ОТ ТРЕНЬОРА (абсолютен приоритет — над шаблони и общи знания) ═══',
-    'Приложи ВСИЧКИ правила по-долу в структурата, обема, интензитета и избора на упражнения.',
+  const parts = [
+    '<trainer_rules>',
+    'Приоритет: individual_guidelines > architecture_guidelines.',
   ];
-  if (foundation) lines.push(`БАЗОВИ ПРИНЦИПИ:\n${foundation}`);
-  chunks.forEach((c, i) => {
-    const label = (c.tags || []).join(', ') || 'общо';
-    lines.push(`[ПРАВИЛО ${i + 1} · ${label}]\n${String(c.text).trim()}`);
-  });
-  return lines.join('\n\n');
+  if (foundation) parts.push(`<foundation>\n${foundation}\n</foundation>`);
+  if (individual.length) {
+    parts.push(`<individual_guidelines>\n${individual.map((t) => `- ${t}`).join('\n')}\n</individual_guidelines>`);
+  }
+  if (architecture.length) {
+    parts.push(`<architecture_guidelines>\n${architecture.map((t) => `- ${t}`).join('\n')}\n</architecture_guidelines>`);
+  }
+  parts.push('</trainer_rules>');
+  return parts.join('\n\n');
 }
 
 /** Ниво от свободен текст — без фалшиви съвпадения (напр. „45 годишна“ ≠ 5+ год опит). */
@@ -533,66 +540,23 @@ export function buildBriefIdentityBlock(brief) {
       ? new Set(brief.tags)
       : extractTagsFromText(profile, scheme);
   const tagList = [...tags].sort().join(', ') || '—';
-
-  let genderLine = '';
-  if (tags.has('gender:жена')) {
-    genderLine = 'Пол: ЖЕНА — програмата е ИЗКЛЮЧИТЕЛНО за жена. Забранено е мъжки шаблон (press/bench-dominant split, игнориране на glutes/крака). Минимум 35% от силовите упражнения — долна част (glutes, бедра, задни бедра).';
-  } else if (tags.has('gender:мъж')) {
-    genderLine = 'Пол: МЪЖ — програмата е за мъж. Не използвай женски-специфични акценти без указание.';
-  }
-
-  return [
-    '═══ КРИТИЧНИ ИДЕНТИФИКАТОРИ (не променяй, не игнорирай) ═══',
-    genderLine,
-    `Открити тагове от профила: ${tagList}`,
-    '',
-    'ПРЕДИ ГЕНЕРАЦИЯ — провери:',
-    '□ Всяко изречение от ПРОФИЛА е отразено (здраве, оборудване, ограничения, цел, опит, пол)',
-    '□ Всяка точка от СХЕМАТА е структурна основа на седмицата',
-    '□ Всяка насока по-долу е приложена в упражненията, обема и интензитета',
-  ].filter(Boolean).join('\n');
+  return `<tags>${tagList}</tags>`;
 }
 
-export function buildAdminPlanUserPrompt(brief, layers, foundation = '') {
-  const { individual = [], architecture = [] } = layers || {};
+/** User prompt: само контекст (данни) + anchoring + задача. Правилата са в system. */
+export function buildAdminPlanUserPrompt(brief) {
   const { clientProfile = '', exampleScheme = '', constraints: presetConstraints } = brief || {};
-  const foundationText = String(foundation || '').trim().slice(0, MAX_FOUNDATION_CHARS);
   const constraints = presetConstraints || parseAdminBriefConstraints(clientProfile, exampleScheme);
   const hardRules = buildAdminHardRulesBlock(constraints);
 
-  const individualBlock = [
-    buildBriefIdentityBlock(brief),
-  ];
-  if (hardRules) individualBlock.push('', hardRules);
-  if (foundationText) {
-    individualBlock.push(
-      '',
-      '═══ БАЗОВИ ПРИНЦИПИ НА ТРЕНЬОРА (задължителни — приложи във всяко упражнение) ═══',
-      foundationText,
-    );
-  }
-  individualBlock.push(
-    '',
-    'РЕЖИМ: Треньорът е подготвил структуриран профил и примерна схема. Следвай конкретиката — дни, упражнения, обеми, ограничения. Не игнорирай НИТО ЕДНО поле от въпросника или схемата.',
-    'canonicalName трябва да съвпада със стандартни имена от exercise бази, за да се намерят GIF/видеа.',
-    'Преди финален JSON: провери дали всяко упражнение е от позволеното оборудване и не нарушава ЗАБРАНЕНИТЕ групи.',
-    '',
-    'ПРОФИЛ И ДАННИ ЗА КЛИЕНТА (индивидуален — задължително отрази ВСИЧКО):',
-    String(clientProfile || '').trim(),
-  );
+  const parts = [buildBriefIdentityBlock(brief)];
+  if (hardRules) parts.push(`<constraints>\n${hardRules}\n</constraints>`);
+  parts.push(`<profile>\n${String(clientProfile || '').trim()}\n</profile>`);
   if (String(exampleScheme || '').trim()) {
-    individualBlock.push('', 'СХЕМА, РАЗПРЕДЕЛЕНИЕ И УКАЗАНИЯ (индивидуални — структурирай плана по тях):', String(exampleScheme).trim());
+    parts.push(`<scheme>\n${String(exampleScheme).trim()}\n</scheme>`);
   }
 
-  const individualGuidelines = individual.length
-    ? `\n\nИНДИВИДУАЛНИ НАСОКИ ЗА ТОЗИ КЛИЕНТ (приоритет над архитектурната рамка):\n- ${individual.join('\n- ')}`
-    : '';
-
-  const architectureBlock = architecture.length
-    ? `\n\n═══ АРХИТЕКТУРНА РАМКА (универсални насоки — отстъпват при конфликт с индивидуалното) ═══\n- ${architecture.join('\n- ')}`
-    : '';
-
-  return `${individualBlock.join('\n')}${individualGuidelines}${architectureBlock}\n\nСъздай седмичния план сега. Отговори САМО с JSON.`;
+  return `${parts.join('\n\n')}\n\nВъз основа на данните по-горе, генерирай седмичен тренировъчен план. Отговори САМО с JSON.`;
 }
 
 const MALE_BIAS_EXERCISE = /bench press|incline bench|decline bench|skull crush|close.?grip bench|barbell curl|military press|overhead press|shoulder press/i;
@@ -628,21 +592,11 @@ export function auditPlanGenderFit(plan, clientTags) {
   return { ok: issues.length === 0, issues };
 }
 
-export const GENDER_FIT_RETRY_HINT = `
-
-КРИТИЧНО — ПРОГРАМА ЗА ЖЕНА (задължителна корекция):
-- Клиентката е ЖЕНА — не генерирай мъжки bro-split / bench-dominant шаблон.
-- Минимум 35% от силовите упражнения: glutes, бедра, задни бедра (hip thrust, RDL, клек, lunges, abduction).
-- Ограничи bench/chest press до 1–2 упражнения седмично; не прави „гръден ден“ като при мъж.
-- Спази всички насоки от треньора по-горе. Отговори САМО с пълен валиден JSON.`;
-
 /**
  * Единна подготовка за AI генерация.
  * @param source — { answers } от въпросник ИЛИ { clientProfile, exampleScheme, clientName?, clientContact? } от админ
  */
 export function preparePlanGeneration(source, adminConfig, helpers) {
-  const foundation = adminConfig?.foundation || '';
-
   function buildFromAnswers(answers, extra = {}) {
     const profileText = helpers.buildProfileSummary(answers);
     const tags = buildTagsFromAnswers(answers);
@@ -655,7 +609,8 @@ export function preparePlanGeneration(source, adminConfig, helpers) {
     };
     const equipmentInput = [...(answers.equipment || []), answers.equipmentOther].filter(Boolean);
     return {
-      userPrompt: buildAdminPlanUserPrompt(brief, layers, foundation),
+      userPrompt: buildAdminPlanUserPrompt(brief),
+      guidelineLayers: layers,
       coachProfileText: extra.coachProfileText || profileText,
       allowedEquipment: helpers.allowedEquipmentSet(equipmentInput),
       clientTags: tags,

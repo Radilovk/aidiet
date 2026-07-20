@@ -41,6 +41,12 @@
  */
 
 import { localizeExerciseDisplayName, sanitizeBgText, sanitizePlanBulgarian } from './exercise-labels-bg.js';
+import {
+  buildPlanSystemInstruction,
+  COMPACT_PLAN_RETRY_HINT,
+  GENDER_FIT_RETRY_HINT,
+  PLAN_RESPONSE_SCHEMA,
+} from './plan-prompts.js';
 import { mergeExerciseTranslation } from './exercise-translations.js';
 import {
   EXERCISE_TRANSLATIONS_KV_KEY,
@@ -76,7 +82,6 @@ import {
   parseAdminBriefConstraints,
   allowedEquipmentFromBrief,
   auditPlanGenderFit,
-  GENDER_FIT_RETRY_HINT,
   buildTrainerSystemAddon,
   parseChunkTags,
   shouldIncludeAdminChunk,
@@ -476,95 +481,6 @@ function checkAdminSecret(request, env) {
 }
 
 // ============================================================================
-// AI промпт за генерация на план
-// ============================================================================
-
-const PLAN_SYSTEM_PROMPT = `Ти си елитен български треньор по силова и кондиционна подготовка (S&C) с 15+ години опит и образование по кинезитерапия. Създаваш индивидуален СЕДМИЧЕН тренировъчен план.
-
-Ако в потребителското съобщение има БАЗОВИ ПРИНЦИПИ, СПЕЦИФИЧНИ ЕКСПЕРТНИ НАСОКИ или указания от треньора — те имат абсолютен приоритет при структурата, обема, интензитета и избора на упражнения.
-
-KA-TRAINER АРХИТЕКТУРА НА ПРИОРИТЕТИ (задължително):
-1. ИНДИВИДУАЛНО (най-висок): профил на клиента, схема/указания от треньора, насоки със съвпадащи тагове за ТОЗИ клиент.
-2. АРХИТЕКТУРНА РАМКА (база): foundation + универсални насоки — приложи като обща логика, но ОТСТЪПИ при конфликт с индивидуалното.
-
-ПОЛ И ПЕРСОНАЛИЗАЦИЯ (критично):
-- Полът от профила е абсолютен факт — жена ≠ мъжки template и обратно.
-- При жена: не копирай типичен мъжки split (press/bench-dominant без долна част). Уважавай женски приоритети от профила и насоките.
-- При мъж: не използвай женски-специфични акценти без указание.
-- Всяко изречение от профила и схемата на треньора трябва да е отразено — не пропускай полета, ограничения или указания.
-
-ТВЪРДИ ПРАВИЛА ЗА БЕЗОПАСНОСТ (hard-veto):
-1. Ако клиентът е посочил болка/ограничение/операция в става или зона — ИЗКЛЮЧИ всички движения, които я натоварват директно, и предложи безопасни заместители. Не е информативно поле, а забрана.
-2. Движенията, които клиентът изрично не желае — не ги включвай.
-3. При сърдечно-съдов/метаболитен риск — умерен интензитет, без задържане на дъха, отбележи нуждата от лекарско одобрение в safetyNotes.
-4. Използвай САМО оборудването, което клиентът реално има.
-
-ПРАВИЛА ЗА ИМЕНУВАНЕ НА БЪЛГАРСКИ (критично — използвай естествен фитнес жаргон, НЕ буквален превод):
-- displayName: името на упражнението НА БЪЛГАРСКИ (вижда го клиентът).
-- canonicalName: стандартното АНГЛИЙСКО име от exercise бази (пример: "Barbell Bench Press", "Lat Pulldown"). НЕ превеждай canonicalName.
-- equipmentHint: на английски (body weight, dumbbell, barbell, cable, leverage machine, band, kettlebell…).
-- bodyPart: на английски (chest, back, shoulders, upper arms, upper legs, lower legs, waist, cardio).
-
-ГЛОСАР — задължителни български термини:
-- Bench Press (от лежанка) → „Избутване от лежанка“ / „Избутване с щанга от лежанка“ / „Избутване с дъмбели от лежанка“. НИКОГА „лег преса“ за bench press — „лег преса“ е само за Leg Press (машина за крака).
-- Leg Press → „Преса за крака“ (машина), не „лег преса от лежанка“.
-- Floor Press → „Избутване от пода“ (само когато canonicalName съдържа Floor).
-- Overhead / Shoulder Press → „Раменно избутване“ или „Раменна преса“.
-- Squat → „Клек“, Deadlift → „Мъртва тяга“, Row → „Гребане“, Pull-up → „Набирания“, Dip → „Кофички“.
-- За адаптация на натоварването пиши „олекоти“ / „утежни“ — думата „затежни“ НЕ се използва в български.
-
-СТРУКТУРА: точно 7 дни (понеделник-неделя). Дните за почивка са type "rest" с празен exercises масив и кратка препоръка в focus. Загрявка и разпускане — кратки текстови стъпки.
-
-КОМПАКТНОСТ (критично за валиден JSON): макс. 5 упражнения на тренировъчен ден; warmup/cooldown по до 3 стъпки; notes до 80 знака; guidelines по 1–2 изречения на поле.
-
-ОТГОВОРИ САМО С ВАЛИДЕН JSON без markdown ограждане, точно по тази схема:
-{
-  "title": "кратко мотивиращо заглавие на плана",
-  "summary": "2-3 изречения защо планът е структуриран така за този клиент",
-  "weeklySplit": "кратко описание на split-а, напр. Upper/Lower + кардио",
-  "safetyNotes": ["важни предупреждения, ако има"],
-  "days": [
-    {
-      "day": "Понеделник",
-      "focus": "напр. Горна част — избутвания",
-      "type": "strength|cardio|hiit|mobility|rest|active-recovery",
-      "durationMin": 45,
-      "warmup": ["стъпка 1", "стъпка 2"],
-      "exercises": [
-        {
-          "displayName": "Избутване с щанга от лежанка",
-          "canonicalName": "Barbell Bench Press",
-          "equipmentHint": "barbell",
-          "bodyPart": "chest",
-          "sets": 4,
-          "reps": "8-10",
-          "restSeconds": 90,
-          "tempo": "2-0-2",
-          "rpe": "7-8",
-          "notes": "кратка техническа бележка на български"
-        }
-      ],
-      "cooldown": ["стъпка 1"]
-    }
-  ],
-  "guidelines": {
-    "progression": "как да прогресира седмица след седмица",
-    "recovery": "сън, почивка, мобилност",
-    "nutrition": "1-2 общи изречения (подробният хранителен режим е отделна услуга)",
-    "adaptation": "кога да олекотиш или утежниш тренировката според усещането"
-  }
-}`;
-
-const COMPACT_PLAN_RETRY_HINT = `
-
-ВАЖНО — КОМПАКТЕН ИЗХОД (задължително):
-- Макс. 4 упражнения на тренировъчен ден.
-- warmup/cooldown: по 2 кратки стъпки.
-- notes: до 60 знака.
-- guidelines: по 1 кратко изречение на поле.
-- Отговори САМО с пълен, валиден JSON без markdown.`;
-
-// ============================================================================
 // AI доставчици: Gemini (основен) + OpenAI (fallback)
 // ============================================================================
 
@@ -574,7 +490,10 @@ async function callGemini(env, { system, user, temperature = 0.4, maxOutputToken
   const generationConfig = /** @type {GeminiGenerationConfig} */ ({
     temperature,
     maxOutputTokens,
-    ...(jsonMode ? { responseMimeType: 'application/json' } : {}),
+    ...(jsonMode ? {
+      responseMimeType: 'application/json',
+      responseSchema: PLAN_RESPONSE_SCHEMA,
+    } : {}),
   });
   // Gemini 2.5 Flash/Pro: thinking по подразбиране изяжда maxOutputTokens → отрязан JSON.
   if (/gemini-2\.5/i.test(model)) {
@@ -854,11 +773,14 @@ function clientIp(request) {
 // Handlers
 // ============================================================================
 
-async function executePlanGeneration(env, ctx, { userPrompt, coachProfileText, allowedEquipment = null, clientTags = null, adminConfig = null }) {
+async function executePlanGeneration(env, ctx, {
+  userPrompt, coachProfileText, allowedEquipment = null, clientTags = null,
+  adminConfig = null, guidelineLayers = null,
+}) {
   const indexPromise = loadExerciseIndex(env, ctx);
   const tagSet = clientTags instanceof Set ? clientTags : new Set(clientTags || []);
-  const trainerAddon = buildTrainerSystemAddon(adminConfig, tagSet);
-  const system = trainerAddon ? `${PLAN_SYSTEM_PROMPT}\n\n${trainerAddon}` : PLAN_SYSTEM_PROMPT;
+  const trainerAddon = buildTrainerSystemAddon(adminConfig, tagSet, guidelineLayers);
+  const system = buildPlanSystemInstruction(trainerAddon);
   let plan;
   let rawText;
   const maxAttempts = 3;
@@ -920,7 +842,7 @@ async function handleGeneratePlan(request, env, ctx) {
   }
 
   const adminGuidelines = await loadAdminGuidelines(env);
-  const { userPrompt, coachProfileText, allowedEquipment, clientTags } = preparePlanGeneration(
+  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers } = preparePlanGeneration(
     { answers },
     adminGuidelines,
     { buildProfileSummary, allowedEquipmentSet },
@@ -935,6 +857,7 @@ async function handleGeneratePlan(request, env, ctx) {
       allowedEquipment,
       clientTags,
       adminConfig: adminGuidelines,
+      guidelineLayers,
     }));
   } catch (e) {
     if (isPlanParseError(e)) {
@@ -1027,10 +950,10 @@ async function handleCoach(request, env) {
 
   const system = [
     COACH_SYSTEM_PROMPT,
+    trainerGuidelines ? `\n${trainerGuidelines}` : '',
     '\n=== КОНТЕКСТ ===',
     coachContext || '(няма зареден план — отговаряй общо)',
-    trainerGuidelines ? `\n=== НАСОКИ ОТ ТРЕНЬОРА (KA-TRAINER) ===\n${trainerGuidelines}` : '',
-  ].join('\n');
+  ].filter(Boolean).join('\n');
   const user = history ? `${history}\nКлиент: ${message}` : `Клиент: ${message}`;
 
   let reply;
@@ -1461,7 +1384,7 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
     clientName: record.clientName,
     clientContact: record.clientContact,
   };
-  const { userPrompt, coachProfileText, allowedEquipment, clientTags } = preparePlanGeneration(
+  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers } = preparePlanGeneration(
     genSource,
     adminGuidelines,
     { buildProfileSummary, allowedEquipmentSet },
@@ -1476,6 +1399,7 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
       allowedEquipment,
       clientTags,
       adminConfig: adminGuidelines,
+      guidelineLayers,
     }));
   } catch (e) {
     if (isPlanParseError(e)) {

@@ -11,6 +11,7 @@ import {
   buildTrainerSystemAddon,
   auditPlanGenderFit,
 } from '../plan-generation.js';
+import { buildPlanSystemInstruction, PLAN_RESPONSE_SCHEMA } from '../plan-prompts.js';
 import { allowedEquipmentSet } from '../worker.js';
 
 const ADMIN_WOMAN_SCHEME = `3 тренировки седмично без събота и неделя. уреди: горен скрипец vertical pulley, машина за бедра аддуктор, абдуктор, лост 10 кг, гирички 2 до 10 кг, хоризонтален скрипец за гръб, степ блокче.
@@ -64,8 +65,9 @@ if (prod) {
 
 const tags = buildTagsFromAnswers(clientAnswers);
 const layers = resolveGuidelineLayers(tags, adminConfig);
-const trainerAddon = buildTrainerSystemAddon(adminConfig, tags);
-const { userPrompt, clientTags, allowedEquipment } = preparePlanGeneration(
+const trainerAddon = buildTrainerSystemAddon(adminConfig, tags, layers);
+const systemPrompt = buildPlanSystemInstruction(trainerAddon);
+const { userPrompt, clientTags, allowedEquipment, guidelineLayers } = preparePlanGeneration(
   {
     clientAnswers,
     exampleScheme: ADMIN_WOMAN_SCHEME,
@@ -78,15 +80,14 @@ const { userPrompt, clientTags, allowedEquipment } = preparePlanGeneration(
 section('TAGS', [...tags].sort().join(', '));
 section('LAYERS — individual', layers.individual.map((t, i) => `${i + 1}. ${t.slice(0, 200)}${t.length > 200 ? '…' : ''}`).join('\n\n') || '(празно)');
 section('LAYERS — architecture', layers.architecture.map((t, i) => `${i + 1}. ${t}`).join('\n\n') || '(празно)');
-section('SYSTEM ADDON (trainer rules → Gemini systemInstruction)', trainerAddon || '(празно)');
+section('SYSTEM PROMPT', systemPrompt.slice(0, 4000) + (systemPrompt.length > 4000 ? '\n…[truncated]' : ''));
 section('USER PROMPT (пълен)', userPrompt);
 section('STATS', [
+  `system chars: ${systemPrompt.length}`,
   `userPrompt chars: ${userPrompt.length}`,
-  `system addon chars: ${trainerAddon.length}`,
-  `individual items: ${layers.individual.length}`,
-  `architecture items: ${layers.architecture.length}`,
-  `admin chunks in layers: ${layers.individual.filter((t) => t.includes('В1') || t.includes('ПОЛ') || t.includes('АДМИН')).length}`,
-  `Пол: ЖЕНА block: ${userPrompt.includes('Пол: ЖЕНА') ? 'ДА' : 'НЕ'}`,
+  `total chars: ${systemPrompt.length + userPrompt.length}`,
+  `individual items: ${guidelineLayers.individual.length}`,
+  `architecture items: ${guidelineLayers.architecture.length}`,
 ].join('\n'));
 
 if (!live) {
@@ -99,18 +100,16 @@ if (!process.env.GEMINI_API_KEY) {
   process.exit(1);
 }
 
-const PLAN_SYSTEM_PROMPT = `Ти си елитен български треньор. Ако има БАЗОВИ ПРИНЦИПИ и НАСОКИ — абсолютен приоритет.`;
-const system = trainerAddon ? `${PLAN_SYSTEM_PROMPT}\n\n${trainerAddon}` : PLAN_SYSTEM_PROMPT;
-
 const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`;
 const body = {
-  systemInstruction: { parts: [{ text: system }] },
+  systemInstruction: { parts: [{ text: systemPrompt }] },
   contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
   generationConfig: {
     temperature: 0.4,
     maxOutputTokens: 8192,
     responseMimeType: 'application/json',
+    responseSchema: PLAN_RESPONSE_SCHEMA,
     thinkingConfig: { thinkingBudget: 0 },
   },
 };
