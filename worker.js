@@ -1868,6 +1868,73 @@ function capIndividualGuidelines(adminTexts, hardcodedTexts, tagSet, adminChunks
 function isUniversal(tags) {
   return !tags?.length || tags.some((t) => UNIVERSAL_TAGS.has(t));
 }
+var STANDARD_TAG_RE = /^(gender|goal|level|health|sleep|stress|equipment|time|age):/;
+function isStandardMachineTag(tag) {
+  return STANDARD_TAG_RE.test(String(tag || "").trim().toLowerCase());
+}
+function parseChunkTags(raw) {
+  if (Array.isArray(raw)) {
+    return repairQuestionnaireTags(
+      raw.map((t) => String(t || "").trim().toLowerCase()).filter(Boolean)
+    );
+  }
+  const s = String(raw || "").trim().toLowerCase();
+  if (!s) return [];
+  if (/\(в\d/i.test(s)) return [s];
+  return repairQuestionnaireTags(s.split(",").map((t) => t.trim()).filter(Boolean));
+}
+function repairQuestionnaireTags(tags) {
+  if (!tags.length) return tags;
+  const out = [];
+  let buf = [];
+  for (const tag of tags) {
+    if (!buf.length && !tag.includes("(") && !tag.includes("\u0432")) {
+      out.push(tag);
+      continue;
+    }
+    buf.push(tag);
+    const joined = buf.join(", ");
+    const opens = (joined.match(/\(/g) || []).length;
+    const closes = (joined.match(/\)/g) || []).length;
+    if (opens > 0 && opens <= closes) {
+      out.push(joined);
+      buf = [];
+    }
+  }
+  if (buf.length) out.push(buf.join(", "));
+  return [...new Set(out)];
+}
+function isQuestionnaireCategoryTag(tag) {
+  const t = String(tag || "").trim().toLowerCase();
+  if (isStandardMachineTag(t)) return false;
+  return /\(в\d|в\d+[\s.,)\]]/.test(t) || /^[а-яёъюяґ\d\s().,\-—]+$/i.test(t);
+}
+function shouldIncludeAdminChunk(chunk, tagSet) {
+  const tags = chunk?.tags || [];
+  if (!tags.length || isUniversal(tags)) return true;
+  const stdTags = tags.filter(isStandardMachineTag);
+  const categoryTags = tags.filter(isQuestionnaireCategoryTag);
+  if (categoryTags.length > 0) return true;
+  if (stdTags.length > 0) return stdTags.some((t) => tagSet.has(t));
+  return true;
+}
+function buildTrainerSystemAddon(adminConfig, tagSet) {
+  const foundation = String(adminConfig?.foundation || "").trim().slice(0, MAX_FOUNDATION_CHARS);
+  const chunks = (Array.isArray(adminConfig?.chunks) ? adminConfig.chunks : []).filter((c) => c?.text && shouldIncludeAdminChunk(c, tagSet));
+  if (!foundation && !chunks.length) return "";
+  const lines = [
+    "\u2550\u2550\u2550 KA-TRAINER \u041F\u0420\u0410\u0412\u0418\u041B\u0410 \u041E\u0422 \u0422\u0420\u0415\u041D\u042C\u041E\u0420\u0410 (\u0430\u0431\u0441\u043E\u043B\u044E\u0442\u0435\u043D \u043F\u0440\u0438\u043E\u0440\u0438\u0442\u0435\u0442 \u2014 \u043D\u0430\u0434 \u0448\u0430\u0431\u043B\u043E\u043D\u0438 \u0438 \u043E\u0431\u0449\u0438 \u0437\u043D\u0430\u043D\u0438\u044F) \u2550\u2550\u2550",
+    "\u041F\u0440\u0438\u043B\u043E\u0436\u0438 \u0412\u0421\u0418\u0427\u041A\u0418 \u043F\u0440\u0430\u0432\u0438\u043B\u0430 \u043F\u043E-\u0434\u043E\u043B\u0443 \u0432 \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0430\u0442\u0430, \u043E\u0431\u0435\u043C\u0430, \u0438\u043D\u0442\u0435\u043D\u0437\u0438\u0442\u0435\u0442\u0430 \u0438 \u0438\u0437\u0431\u043E\u0440\u0430 \u043D\u0430 \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F."
+  ];
+  if (foundation) lines.push(`\u0411\u0410\u0417\u041E\u0412\u0418 \u041F\u0420\u0418\u041D\u0426\u0418\u041F\u0418:
+${foundation}`);
+  chunks.forEach((c, i) => {
+    const label = (c.tags || []).join(", ") || "\u043E\u0431\u0449\u043E";
+    lines.push(`[\u041F\u0420\u0410\u0412\u0418\u041B\u041E ${i + 1} \xB7 ${label}]
+${String(c.text).trim()}`);
+  });
+  return lines.join("\n\n");
+}
 function extractLevelTags(combined) {
   const tags = /* @__PURE__ */ new Set();
   if (/\bсреден\b|средно\s+начинаещ|2\s*5\s*год/.test(combined)) {
@@ -2105,6 +2172,9 @@ function resolveGuidelineLayers(tags, adminConfig = null) {
   const tagSet = tags instanceof Set ? tags : new Set(tags);
   const adminChunks = Array.isArray(adminConfig?.chunks) ? adminConfig.chunks : [];
   const adminTagged = new Set(adminChunks.flatMap((c) => c.tags || []));
+  const adminCoversGender = adminChunks.some(
+    (c) => shouldIncludeAdminChunk(c, tagSet) && /пол|gender|жена|мъж/i.test(`${(c.tags || []).join(" ")} ${c.text}`)
+  );
   const adminIndividual = [];
   const adminArchitecture = [];
   const hardcodedIndividual = [];
@@ -2115,13 +2185,14 @@ function resolveGuidelineLayers(tags, adminConfig = null) {
     list.push(text);
   };
   for (const chunk of adminChunks) {
-    if (!chunk.text) continue;
+    if (!chunk.text || !shouldIncludeAdminChunk(chunk, tagSet)) continue;
     if (isUniversal(chunk.tags)) push(adminArchitecture, chunk.text);
-    else if (chunk.tags.some((t) => tagSet.has(t))) push(adminIndividual, chunk.text);
+    else push(adminIndividual, chunk.text);
   }
   for (const chunk of GUIDELINE_CHUNKS) {
     if (!chunk.tags.some((t) => tagSet.has(t))) continue;
     if (chunk.tags.some((t) => adminTagged.has(t))) continue;
+    if (adminCoversGender && chunk.tags.some((t) => t.startsWith("gender:"))) continue;
     push(hardcodedIndividual, chunk.text);
   }
   return {
@@ -2519,7 +2590,7 @@ function allowedEquipmentSet(equipmentAnswers) {
 function normalizeAdminGuidelines(raw) {
   const foundation = String(raw?.foundation || "").trim().slice(0, MAX_FOUNDATION_CHARS);
   const chunks = (Array.isArray(raw?.chunks) ? raw.chunks : []).slice(0, MAX_ADMIN_CHUNKS).map((chunk) => {
-    const tags = (Array.isArray(chunk?.tags) ? chunk.tags : String(chunk?.tags || "").split(",")).map((t) => String(t || "").trim().toLowerCase()).filter(Boolean);
+    const tags = parseChunkTags(chunk?.tags);
     const text = String(chunk?.text || "").trim().slice(0, 500);
     return text ? { tags, text } : null;
   }).filter(Boolean);
@@ -2898,8 +2969,13 @@ async function checkDailyLimit(env, bucket, id, max) {
 function clientIp(request) {
   return request.headers.get("CF-Connecting-IP") || request.headers.get("X-Forwarded-For") || "unknown";
 }
-async function executePlanGeneration(env, ctx, { userPrompt, coachProfileText, allowedEquipment = null, clientTags = null }) {
+async function executePlanGeneration(env, ctx, { userPrompt, coachProfileText, allowedEquipment = null, clientTags = null, adminConfig = null }) {
   const indexPromise = loadExerciseIndex(env, ctx);
+  const tagSet = clientTags instanceof Set ? clientTags : new Set(clientTags || []);
+  const trainerAddon = buildTrainerSystemAddon(adminConfig, tagSet);
+  const system = trainerAddon ? `${PLAN_SYSTEM_PROMPT}
+
+${trainerAddon}` : PLAN_SYSTEM_PROMPT;
   let plan;
   let rawText;
   const maxAttempts = 3;
@@ -2910,7 +2986,7 @@ async function executePlanGeneration(env, ctx, { userPrompt, coachProfileText, a
       user += lastFailure === "gender" ? GENDER_FIT_RETRY_HINT : COMPACT_PLAN_RETRY_HINT;
     }
     const aiOpts = {
-      system: PLAN_SYSTEM_PROMPT,
+      system,
       user,
       temperature: attempt === 0 ? 0.4 : 0.25,
       maxOutputTokens: 8192,
@@ -2973,7 +3049,8 @@ async function handleGeneratePlan(request, env, ctx) {
       userPrompt,
       coachProfileText,
       allowedEquipment,
-      clientTags
+      clientTags,
+      adminConfig: adminGuidelines
     }));
   } catch (e) {
     if (isPlanParseError(e)) {
@@ -3453,7 +3530,8 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
       userPrompt,
       coachProfileText,
       allowedEquipment,
-      clientTags
+      clientTags,
+      adminConfig: adminGuidelines
     }));
   } catch (e) {
     if (isPlanParseError(e)) {

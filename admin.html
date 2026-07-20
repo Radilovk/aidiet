@@ -2461,8 +2461,9 @@
                         </button>
                     </div>
                     <small style="display:block;color:var(--text-gray);margin-bottom:12px;">
-                        Тагове за <strong>индивидуални</strong> насоки: <code>gender:жена</code>, <code>goal:отслабване</code>, <code>level:начинаещ</code>.
-                        За <strong>архитектурна рамка</strong> остави таговете празни или ползвай <code>all</code> / <code>общо</code>.
+                        <strong>Категории от въпросника</strong> (пол, цел, здраве, оборудване…) — един ред, напр. <code>пол (в1, в12.other, в15)</code> — винаги се прилагат.
+                        <strong>Филтър по клиент</strong> (по избор): <code>gender:жена</code>, <code>goal:отслабване</code>.
+                        За универсални правила: празни тагове или <code>all</code> / <code>общо</code>. При няколко machine тага — раздели с <code>;</code>.
                     </small>
                     <div id="fitplanBuiltinTags" class="admin-assistant-meta" style="margin-bottom:14px;"></div>
                     <div id="fitplanChunksList" style="display:flex;flex-direction:column;gap:12px;"></div>
@@ -4257,7 +4258,10 @@
             rows.forEach((row) => {
                 const tagsRaw = row.querySelector('.fitplan-chunk-tags')?.value || '';
                 const text = row.querySelector('.fitplan-chunk-text')?.value?.trim() || '';
-                const tags = tagsRaw.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean);
+                // Запетая в „пол (в1, в12)“ — ползвай ; между тагове ИЛИ един ред като категория
+                const tags = tagsRaw.includes(';')
+                    ? tagsRaw.split(';').map((t) => t.trim().toLowerCase()).filter(Boolean)
+                    : tagsRaw.trim() ? [tagsRaw.trim().toLowerCase()] : [];
                 if (text) chunks.push({ tags, text });
             });
             return chunks;
