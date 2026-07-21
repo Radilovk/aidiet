@@ -10,10 +10,10 @@
 {clinicalProtocolSection}
 
 === ТИПОВЕ ХРАНЕНИЯ ===
-"Хранене 3" = следобедна закуска: плодове, сурови ядки, скир или кисело мляко — не сложно ястие.
-"Хранене 5" = късна закуска: само мазнини+белтъчини (скир, ядки, кисело мляко).
-"Свободно хранене" = замества Хранене 2 в свободния ден (calories/macros в mealBreakdown; в Стъпка 3 без calories/macros).
-3–5 хранения/ден.
+"Хранене 1" = закуска | "Хранене 2" = обяд | "Хранене 3" = следобедна закуска (плодове, сурови ядки, скир или кисело мляко — НЕ сложно ястие)
+"Хранене 4" = вечеря | "Хранене 5" = късна закуска (само мазнини+белтъчини: скир, ядки, кисело мляко)
+"Свободно хранене" = замества Хранене 2 в свободния ден (calories/macros в mealBreakdown; в Стъпка 3 meal поле БЕЗ calories/macros/description с продукти)
+Забранени display имена: Закуска, Обяд, Следобедна закуска, Вечеря, Късна закуска. 3–5 хранения/ден.
 
 Въз основа на профила по-горе, изпълни:
 
@@ -27,14 +27,29 @@
 1. Средно ≈{realTDEE} kcal/ден; коригирай макроси в weeklyScheme ако диетата изисква (напр. Кето).
 2. "Не закусвам" → без Хранене 1; вода с лимон/зелен чай; допуска се Хранене 3; мин. 3 хранения.
 3. mealBreakdown.length = meals. Нито едно хранене >~800 kcal → добави хранение: ≤2000→3 | 2000–2800→4 (+Хранене 3) | >2800→5 (+Хранене 3 и 5). Изключения: диабет/ИР, >4ч вечеря–сън (Хранене 5).
-4. СВОБОДНО ХРАНЕНЕ (съб=6, нед=7): ДА при тригери/емоционално/рестриктивна диета; НЕ при дефицит, диабет, ГР, хранително разстройство. freeDayNumber: null ако НЕ. Замести обяд; след това лека вечеря без въглехидрати.
-5. ДЕСЕРТ при "Сладко" — компонент на обяда, не отделно хранене. includeDessert: false при диабет, ИР, строга ниска калорийна цел.
-6. mealBreakdown суми = дневни calories/protein/carbs/fats.
+4. СВОБОДНО ХРАНЕНЕ (само събота freeDayNumber=6 или неделя freeDayNumber=7):
+   ДА при хранителни тригери, компенсаторни навици, емоционално хранене или рестриктивна история с диети.
+   НЕ при активен голям калориен дефицит, диабет, хранително разстройство (анорексия/булимия) или ГР → freeDayNumber: null.
+   В mealBreakdown на свободния ден ЗАМЕСТИ обяда с: {"type":"Свободно хранене","calories":N,"protein":N,"carbs":N,"fats":N}.
+   В Стъпка 3 самото meal остава без calories/macros и без продуктов description.
+   След свободното хранене — лека вечеря (Хранене 4) БЕЗ ориз/картофи/хляб/паста.
+5. ДЕСЕРТ КЪМ ОБЯД:
+   При "Сладко" в {foodCravings} системата добавя десерт като финален компонент на Хранене 2 (НЕ отделно хранене — калориите му са в mealBreakdown слота за обяд).
+   includeDessert: true|false — ЗАДЪЛЖИТЕЛНО поле. false при диабет, инсулинова резистентност, строга ниска калорийна цел или диета несъвместима с добавени захари.
+6. mealBreakdown суми = дневни calories/protein/carbs/fats. "Свободно хранене" се сумира само в mealBreakdown.
 
-ТЕКСТОВИ ПОЛЕТА:
-welcomeMessage: 150–250 думи, персонално към {name}.
-planJustification: мин. 100 символа, към клиента.
-mealCountJustification: мин. 20 символа.
-afterDinnerMealJustification: "Не са необходими" ако няма Хранене 5.
-chronotypeGuidance: ~5 думи за {chronotype}.
-preferredFoodCategories/avoidFoodCategories: категории, НЕ конкретни храни.
+=== ИЗХОД ===
+weeklyScheme: monday–sunday — всеки ден meals/calories/protein/carbs/fats/description/mealBreakdown.
+freeDayNumber: 6 | 7 | null — ЗАДЪЛЖИТЕЛНО поле.
+includeDessert: true | false — ЗАДЪЛЖИТЕЛНО поле.
+
+dietaryModifier, modifierReasoning (лично към {name}), dietType (към клиента)
+welcomeMessage: 150–250 думи — поздрав с име, ключови фактори, как планът е за него
+planJustification: към клиента, мин. 100 символа
+longTermStrategy, mealCountJustification (мин. 20 символа), afterDinnerMealJustification ("Не са необходими" ако няма Хранене 5)
+weeklyMealPattern, breakfastStrategy (ако не закусва), calorieDistribution, macroDistribution
+mealTiming: pattern, fastingWindows ("не се прилага" ако няма), flexibility, chronotypeGuidance (~5 думи за {chronotype})
+keyPrinciples (3), preferredFoodCategories (3 категории, НЕ конкретни храни), avoidFoodCategories (2)
+hydrationStrategy, communicationStyle (temperament, tone, approach, chatGuidelines за {name})
+
+Върни САМО JSON.
