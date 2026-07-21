@@ -11,6 +11,7 @@ export const PLAN_SYSTEM_CORE = `Ти си български S&C треньор
 2. <constraints> — hard-veto (забрани, оборудване, график)
 3. <profile>
 4. <trainer_rules> — само ако не противоречат на <scheme>
+5. <exercise_catalog> — canonicalName САМО от списъка (ако е подаден)
 
 HARD-VETO:
 - Болка/ограничение/операция → 0 упражнения, натоварващи зоната

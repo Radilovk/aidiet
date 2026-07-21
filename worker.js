@@ -1665,6 +1665,7 @@ var PLAN_SYSTEM_CORE = `\u0422\u0438 \u0441\u0438 \u0431\u044A\u043B\u0433\u0430
 2. <constraints> \u2014 hard-veto (\u0437\u0430\u0431\u0440\u0430\u043D\u0438, \u043E\u0431\u043E\u0440\u0443\u0434\u0432\u0430\u043D\u0435, \u0433\u0440\u0430\u0444\u0438\u043A)
 3. <profile>
 4. <trainer_rules> \u2014 \u0441\u0430\u043C\u043E \u0430\u043A\u043E \u043D\u0435 \u043F\u0440\u043E\u0442\u0438\u0432\u043E\u0440\u0435\u0447\u0430\u0442 \u043D\u0430 <scheme>
+5. <exercise_catalog> \u2014 canonicalName \u0421\u0410\u041C\u041E \u043E\u0442 \u0441\u043F\u0438\u0441\u044A\u043A\u0430 (\u0430\u043A\u043E \u0435 \u043F\u043E\u0434\u0430\u0434\u0435\u043D)
 
 HARD-VETO:
 - \u0411\u043E\u043B\u043A\u0430/\u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438\u0435/\u043E\u043F\u0435\u0440\u0430\u0446\u0438\u044F \u2192 0 \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F, \u043D\u0430\u0442\u043E\u0432\u0430\u0440\u0432\u0430\u0449\u0438 \u0437\u043E\u043D\u0430\u0442\u0430
@@ -1947,6 +1948,285 @@ function normalizeText(text) {
 function tokenize(text) {
   const norm2 = normalizeText(text);
   return norm2 ? norm2.split(" ") : [];
+}
+
+// fitness/exercise-metadata.js
+var EXERCISE_METADATA_KV_KEY = "exercise:metadata:v1";
+function heuristicClassification(raw) {
+  const name = normalizeText(raw?.name || "");
+  const equip = normalizeText(raw?.equipment || "");
+  const blob = `${name} ${equip}`;
+  let diff = 2;
+  let gf = 70;
+  let gm = 70;
+  const flags = [];
+  if (/snatch|clean and jerk|muscle up|pistol squat|dragon flag|handstand|kipping/.test(blob)) {
+    diff = 3;
+    flags.push("advanced");
+  } else if (/machine|lever|cable|band|smith|assisted|seated|lying/.test(blob)) {
+    diff = 1;
+  } else if (/barbell|olympic|kettlebell swing|deadlift|good morning/.test(blob)) {
+    diff = 3;
+    flags.push("barbell");
+  } else if (/body weight|bodyweight/.test(blob) && !/pull up|chin up|dip|push up/.test(blob)) {
+    diff = 1;
+  }
+  if (/hip thrust|glute|abduct|kickback|clam|frog|fire hydrant|pull through/.test(blob)) {
+    gf = 92;
+    flags.push("glute");
+  }
+  if (/bench press|skull crush|close grip|military press|barbell curl|upright row/.test(blob)) {
+    gf = 32;
+    gm = 88;
+    flags.push("press");
+  }
+  if (/squat|deadlift|row|pull up|chin up/.test(blob)) gm = Math.max(gm, 82);
+  return { diff, gf, gm, flags: [...new Set(flags)] };
+}
+function metadataForExercise(raw, store = {}) {
+  const id = String(raw?.id ?? "");
+  const saved = store[id];
+  if (saved?.diff) {
+    return {
+      diff: clampDiff(saved.diff),
+      gf: clampScore(saved.gf ?? 70),
+      gm: clampScore(saved.gm ?? 70),
+      flags: saved.flags || []
+    };
+  }
+  return heuristicClassification(raw);
+}
+function mergeExerciseMetadata(entry, raw, metadata = {}) {
+  const meta = metadataForExercise(raw, metadata);
+  return {
+    ...entry,
+    diff: meta.diff,
+    gf: meta.gf,
+    gm: meta.gm,
+    ...meta.flags?.length ? { flags: meta.flags } : {}
+  };
+}
+function clampDiff(n) {
+  const v = Number(n);
+  return v >= 1 && v <= 3 ? v : 2;
+}
+function clampScore(n) {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return 70;
+  return Math.max(0, Math.min(100, Math.round(v)));
+}
+function exerciseProfileFromAnswers(answers = {}) {
+  const gender = normalizeText(answers.gender || "");
+  const isFemale = gender.includes("\u0436\u0435\u043D\u0430");
+  const isMale = gender.includes("\u043C\u044A\u0436");
+  const exp = normalizeText(answers.experience || "");
+  let maxDiff = 2;
+  if (exp.includes("\u043D\u0430\u043F\u0440\u0435\u0434\u043D\u0430\u043B") || exp.includes("5+")) maxDiff = 3;
+  else if (exp.includes("\u043D\u0438\u043A\u0430\u043A\u044A\u0432") || exp.includes("\u043D\u0430\u0447\u0438\u043D\u0430\u0435\u0449") && !exp.includes("\u0441\u0440\u0435\u0434\u043D\u043E")) maxDiff = 1;
+  else if (exp.includes("\u0441\u0440\u0435\u0434\u0435\u043D")) maxDiff = 2;
+  let minGf = isFemale ? 50 : 35;
+  let minGm = isMale ? 50 : 35;
+  if (maxDiff === 1 && isFemale) minGf = 65;
+  if (maxDiff === 1 && isMale) minGm = 50;
+  if (maxDiff === 3) {
+    minGf = 30;
+    minGm = 30;
+  }
+  return { isFemale, isMale, maxDiff, minGf, minGm };
+}
+function fitsExerciseProfile(entry, profile) {
+  if (!profile) return true;
+  const diff = entry?.diff ?? 2;
+  const gf = entry?.gf ?? 70;
+  const gm = entry?.gm ?? 70;
+  if (diff > profile.maxDiff) return false;
+  if (profile.isFemale && gf < profile.minGf) return false;
+  if (profile.isMale && gm < profile.minGm) return false;
+  return true;
+}
+function passesEquipment(entry, allowedEquipment) {
+  if (!allowedEquipment) return true;
+  const eq = entry?.equipNorm || normalizeText(entry?.equipment);
+  return allowedEquipment.has(eq) || allowedEquipment.has("body weight");
+}
+function filterExercises(index, profile, allowedEquipment = null) {
+  if (!index?.length) return [];
+  return index.filter((e) => fitsExerciseProfile(e, profile) && passesEquipment(e, allowedEquipment));
+}
+var GROUP_ORDER = ["glutes", "quads", "hamstrings", "back", "chest", "shoulders", "arms", "core", "cardio", "other"];
+function groupKey(entry) {
+  const t = entry.targetNorm || entry.bodyNorm || "";
+  if (/glute/.test(t)) return "glutes";
+  if (/quad/.test(t)) return "quads";
+  if (/hamstring/.test(t)) return "hamstrings";
+  if (/lat|back|trap/.test(t)) return "back";
+  if (/chest|pec/.test(t)) return "chest";
+  if (/shoulder|delt/.test(t)) return "shoulders";
+  if (/bicep|tricep|forearm|arm/.test(t)) return "arms";
+  if (/ab|oblique|core|waist/.test(t)) return "core";
+  if (/cardio/.test(t)) return "cardio";
+  return "other";
+}
+function buildExerciseCatalogSnippet(index, profile, allowedEquipment = null, opts = {}) {
+  const maxTotal = opts.maxTotal ?? 120;
+  const maxPerGroup = opts.maxPerGroup ?? 14;
+  const filtered = filterExercises(index, profile, allowedEquipment);
+  if (!filtered.length) return "";
+  const groups = /* @__PURE__ */ new Map();
+  for (const entry of filtered) {
+    const g = groupKey(entry);
+    if (!groups.has(g)) groups.set(g, []);
+    groups.get(g).push(entry);
+  }
+  const lines = ["<exercise_catalog>", "canonicalName \u0421\u0410\u041C\u041E \u043E\u0442 \u0441\u043F\u0438\u0441\u044A\u043A\u0430 (d=\u0442\u0440\u0443\u0434\u043D\u043E\u0441\u0442 1\u20133):"];
+  let total = 0;
+  for (const g of GROUP_ORDER) {
+    const items = groups.get(g);
+    if (!items?.length) continue;
+    const slice = items.slice(0, maxPerGroup);
+    const part = slice.map((e) => `${e.name}|d${e.diff ?? 2}`).join(", ");
+    lines.push(`${g}: ${part}`);
+    total += slice.length;
+    if (total >= maxTotal) break;
+  }
+  lines.push("</exercise_catalog>");
+  return lines.join("\n");
+}
+
+// fitness/exercise-classify-batch.js
+var DEFAULT_CLASSIFY_MODEL = "gemini-2.5-flash";
+var WORKER_CLASSIFY_BATCH_SIZE = 12;
+var CLASSIFY_SYSTEM_PROMPT = `\u0422\u0438 \u0441\u0438 S&C \u0435\u043A\u0441\u043F\u0435\u0440\u0442. \u041A\u043B\u0430\u0441\u0438\u0444\u0438\u0446\u0438\u0440\u0430\u0448 \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F \u0437\u0430 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u043D \u0438\u0437\u0431\u043E\u0440 \u0432 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u044A\u0447\u043D\u0438 \u043F\u043B\u0430\u043D\u043E\u0432\u0435.
+
+\u0417\u0430 \u0432\u0441\u044F\u043A\u043E \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u0435 \u0432\u044A\u0440\u043D\u0438:
+- diff: 1 (\u043D\u0430\u0447\u0438\u043D\u0430\u0435\u0449) | 2 (\u0441\u0440\u0435\u0434\u0435\u043D) | 3 (\u043D\u0430\u043F\u0440\u0435\u0434\u043D\u0430\u043B/\u0442\u0435\u0445\u043D\u0438\u0447\u043D\u043E/\u0442\u0435\u0436\u043A\u043E)
+- gf: 0\u2013100 \u043A\u043E\u043B\u043A\u043E \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u043E \u0437\u0430 \u0436\u0435\u043D\u0441\u043A\u0438 \u043F\u043B\u0430\u043D (\u0434\u0443\u043F\u0435/\u0441\u0442\u044F\u0433\u0430\u043D\u0435/\u043F\u043E\u0441\u0442\u0443\u0440\u0430 = \u0432\u0438\u0441\u043E\u043A\u043E; \u0442\u0435\u0436\u044A\u043A \u043C\u044A\u0436\u043A\u0438 press \u043E\u0431\u0435\u043C = \u043D\u0438\u0441\u043A\u043E)
+- gm: 0\u2013100 \u043A\u043E\u043B\u043A\u043E \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u043E \u0437\u0430 \u043C\u044A\u0436\u043A\u0438 \u043F\u043B\u0430\u043D
+- flags: \u043A\u0440\u0430\u0442\u044A\u043A \u043C\u0430\u0441\u0438\u0432 \u043E\u0442: compound, isolation, barbell, machine, bodyweight, cardio, glute, press, olympic
+
+\u041F\u043E\u0432\u0435\u0447\u0435\u0442\u043E \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F \u0441\u0430 50\u201380 \u0438 \u0437\u0430 \u0434\u0432\u0430\u0442\u0430 \u043F\u043E\u043B\u0430. \u041A\u0440\u0430\u0439\u043D\u043E\u0441\u0442\u0438 \u0441\u0430\u043C\u043E \u043F\u0440\u0438 \u044F\u0441\u0435\u043D \u0430\u043A\u0446\u0435\u043D\u0442.
+\u0412\u0440\u044A\u0449\u0430\u0439 \u0421\u0410\u041C\u041E JSON \u0431\u0435\u0437 markdown.`;
+function classifyContentHash(name, equipment, instructionsEn) {
+  return contentHash(`${name}
+${equipment}`, instructionsEn);
+}
+function needsClassification(ex, existing, force = false) {
+  if (force) return true;
+  const id = String(ex.id);
+  const cur = existing[id];
+  if (!cur) return true;
+  const en = pickInstructionsEn(ex.instructions);
+  return cur.sourceHash !== classifyContentHash(ex.name || "", ex.equipment || "", en);
+}
+function buildClassifyUserPayload(batch) {
+  const items = batch.map((ex) => {
+    const h = heuristicClassification(ex);
+    return {
+      id: String(ex.id),
+      name: ex.name || "",
+      equipment: ex.equipment || "",
+      target: ex.target || ex.muscle_group || "",
+      hint: { diff: h.diff, gf: h.gf, gm: h.gm }
+    };
+  });
+  return `\u041A\u043B\u0430\u0441\u0438\u0444\u0438\u0446\u0438\u0440\u0430\u0439 ${items.length} \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F. hint \u0435 \u0435\u0432\u0440\u0438\u0441\u0442\u0438\u043A\u0430 \u2014 \u043A\u043E\u0440\u0438\u0433\u0438\u0440\u0430\u0439 \u043F\u0440\u0438 \u043D\u0443\u0436\u0434\u0430.
+
+\u0424\u043E\u0440\u043C\u0430\u0442:
+{"classifications":[{"id":"...","diff":1,"gf":85,"gm":70,"flags":["machine"]}]}
+
+${JSON.stringify({ exercises: items })}`;
+}
+function normalizeClassifyResult(parsed, batch) {
+  const list = parsed?.classifications || parsed?.exercises || (Array.isArray(parsed) ? parsed : []);
+  const byId = new Map(list.map((row) => [String(row.id), row]));
+  const out = {};
+  for (const ex of batch) {
+    const id = String(ex.id);
+    const row = byId.get(id);
+    const en = pickInstructionsEn(ex.instructions);
+    const hash = classifyContentHash(ex.name || "", ex.equipment || "", en);
+    const fallback = heuristicClassification(ex);
+    out[id] = {
+      diff: clampDiff2(row?.diff ?? fallback.diff),
+      gf: clampScore2(row?.gf ?? fallback.gf),
+      gm: clampScore2(row?.gm ?? fallback.gm),
+      flags: Array.isArray(row?.flags) ? row.flags.slice(0, 6) : fallback.flags,
+      sourceHash: hash,
+      classifiedAt: (/* @__PURE__ */ new Date()).toISOString()
+    };
+  }
+  return out;
+}
+function clampDiff2(n) {
+  const v = Number(n);
+  return v >= 1 && v <= 3 ? v : 2;
+}
+function clampScore2(n) {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return 70;
+  return Math.max(0, Math.min(100, Math.round(v)));
+}
+async function callGeminiClassify(apiKey, user, model = DEFAULT_CLASSIFY_MODEL) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: CLASSIFY_SYSTEM_PROMPT }] },
+      contents: [{ role: "user", parts: [{ text: user }] }],
+      generationConfig: {
+        temperature: 0.1,
+        maxOutputTokens: 8192,
+        responseMimeType: "application/json",
+        thinkingConfig: { thinkingBudget: 0 }
+      }
+    })
+  });
+  if (!res.ok) {
+    const err = await res.text().catch(() => "");
+    throw new Error(`Gemini ${res.status}: ${err.slice(0, 400)}`);
+  }
+  const data = await res.json();
+  const text = data.candidates?.[0]?.content?.parts?.filter((p) => !p.thought)?.map((p) => p.text).join("") || "";
+  if (!text) throw new Error("Gemini: \u043F\u0440\u0430\u0437\u0435\u043D \u043E\u0442\u0433\u043E\u0432\u043E\u0440");
+  return JSON.parse(text);
+}
+function listPendingClassifications(all, existing, { force = false, limit = 0 } = {}) {
+  let pending = all.filter((ex) => needsClassification(ex, existing, force));
+  if (limit > 0) pending = pending.slice(0, limit);
+  return pending;
+}
+async function classifyBatchResilient(apiKey, batch, model = DEFAULT_CLASSIFY_MODEL) {
+  if (!batch.length) return {};
+  try {
+    const parsed = await callGeminiClassify(apiKey, buildClassifyUserPayload(batch), model);
+    return normalizeClassifyResult(parsed, batch);
+  } catch (e) {
+    const msg = String(e.message || e);
+    if (batch.length <= 1) {
+      const ex = batch[0];
+      const en = pickInstructionsEn(ex.instructions);
+      const h = heuristicClassification(ex);
+      return {
+        [String(ex.id)]: {
+          ...h,
+          sourceHash: classifyContentHash(ex.name || "", ex.equipment || "", en),
+          classifiedAt: (/* @__PURE__ */ new Date()).toISOString(),
+          heuristicFallback: true
+        }
+      };
+    }
+    if (!/MAX_TOKENS|JSON|празен/i.test(msg)) throw e;
+    const mid = Math.ceil(batch.length / 2);
+    const left = await classifyBatchResilient(apiKey, batch.slice(0, mid), model);
+    const right = await classifyBatchResilient(apiKey, batch.slice(mid), model);
+    return { ...left, ...right };
+  }
+}
+function classificationStats(all, existing) {
+  const total = all.length;
+  const done = all.filter((ex) => !needsClassification(ex, existing, false)).length;
+  return { total, done, remaining: total - done, stored: Object.keys(existing).length };
 }
 
 // fitness/profile-summary.js
@@ -2596,7 +2876,8 @@ function preparePlanGeneration(source, adminConfig, helpers) {
       allowedEquipment: mergeAllowedEquipment(fromBrief, fromAnswers),
       clientTags: tags,
       hasScheme: schemeMode,
-      strictAssembly
+      strictAssembly,
+      exerciseProfile: answers?.gender ? exerciseProfileFromAnswers(answers) : null
     };
   }
   if (source.clientAnswers || source.strictScheme) {
@@ -2707,7 +2988,12 @@ function matchExercise(index, { canonicalName, equipmentHint, bodyPart }) {
   if (fallback) return { entry: fallback, score: 0, usedFallback: true };
   return best ? { entry: best, score: Math.min(1, Number(bestScore.toFixed(3))), usedFallback: true } : null;
 }
-function findAlternatives(index, matchedEntry, { allowedEquipment = null, limit = MAX_ALTERNATIVES, excludeIds = [] } = {}) {
+function findAlternatives(index, matchedEntry, {
+  allowedEquipment = null,
+  limit = MAX_ALTERNATIVES,
+  excludeIds = [],
+  exerciseProfile = null
+} = {}) {
   if (!index || !matchedEntry) return [];
   const exclude = /* @__PURE__ */ new Set([matchedEntry.id, ...excludeIds]);
   const target = matchedEntry.targetNorm;
@@ -2716,6 +3002,7 @@ function findAlternatives(index, matchedEntry, { allowedEquipment = null, limit 
   for (const entry of index) {
     if (exclude.has(entry.id)) continue;
     if (entry.nameNorm === matchedEntry.nameNorm) continue;
+    if (exerciseProfile && !fitsExerciseProfile(entry, exerciseProfile)) continue;
     const sameTarget = target && entry.targetNorm === target;
     const sameBody = body && entry.bodyNorm === body;
     if (!sameTarget && !sameBody) continue;
@@ -2734,12 +3021,12 @@ function findAlternatives(index, matchedEntry, { allowedEquipment = null, limit 
   }
   return picked;
 }
-function buildCompactIndex(rawList, translations = {}) {
+function buildCompactIndex(rawList, translations = {}, metadata = {}) {
   const index = [];
   for (const raw of rawList || []) {
     const name = raw.name || "";
     if (!name) continue;
-    const entry = mergeExerciseTranslation({
+    let entry = mergeExerciseTranslation({
       id: String(raw.id ?? index.length),
       name,
       nameNorm: normalizeText(name),
@@ -2754,11 +3041,31 @@ function buildCompactIndex(rawList, translations = {}) {
       image: raw.image || "",
       gif: raw.gif_url || raw.gifUrl || ""
     }, raw, translations, MAX_INSTRUCTION_CHARS);
+    entry = mergeExerciseMetadata(entry, raw, metadata);
     index.push(entry);
   }
   return index;
 }
+var bundledMetadata = null;
 var bundledTranslations = null;
+async function loadExerciseMetadata(env) {
+  if (env?.FITNESS_KV) {
+    try {
+      const kv = await env.FITNESS_KV.get(EXERCISE_METADATA_KV_KEY, { type: "json" });
+      if (kv && typeof kv === "object" && Object.keys(kv).length) {
+        bundledMetadata = kv;
+        return kv;
+      }
+    } catch (e) {
+      console.error("KV read \u0437\u0430 exercise metadata \u043F\u0440\u043E\u043F\u0430\u0434\u043D\u0430:", e.message);
+    }
+  }
+  return bundledMetadata || {};
+}
+async function saveExerciseMetadata(env, metadata) {
+  await env.FITNESS_KV.put(EXERCISE_METADATA_KV_KEY, JSON.stringify(metadata));
+  bundledMetadata = metadata;
+}
 async function loadExerciseTranslations(env) {
   if (env?.FITNESS_KV) {
     try {
@@ -2804,7 +3111,8 @@ async function loadExerciseIndex(env, ctx) {
       const data = await res.json();
       const list = Array.isArray(data) ? data : data.exercises || data.data || [];
       const translations = await loadExerciseTranslations(env);
-      const index = buildCompactIndex(list, translations);
+      const metadata = await loadExerciseMetadata(env);
+      const index = buildCompactIndex(list, translations, metadata);
       if (index.length > 50) {
         memoryIndex = index;
         if (env.FITNESS_KV) {
@@ -3087,16 +3395,25 @@ function entryToClientExercise(env, entry) {
     instructionsLang: entry.instructionsLang || ""
   };
 }
-function enrichPlanWithExercises(plan, index, { allowedEquipment = null, env = {} } = {}) {
+function enrichPlanWithExercises(plan, index, { allowedEquipment = null, env = {}, exerciseProfile = null } = {}) {
   if (!index) return plan;
   for (const day of plan.days) {
     const usedIds = [];
     for (const ex of day.exercises) {
-      const result = matchExercise(index, {
+      let result = matchExercise(index, {
         canonicalName: ex.canonicalName,
         equipmentHint: ex.equipmentHint,
         bodyPart: ex.bodyPart
       });
+      if (result?.entry && exerciseProfile && !fitsExerciseProfile(result.entry, exerciseProfile)) {
+        const swap = findAlternatives(index, result.entry, {
+          allowedEquipment,
+          exerciseProfile,
+          limit: 1,
+          excludeIds: usedIds
+        });
+        if (swap.length) result = { entry: swap[0], score: 0, usedFallback: true };
+      }
       if (result && result.entry) {
         ex.match = entryToClientExercise(env, result.entry);
         ex.matchScore = result.score;
@@ -3105,7 +3422,8 @@ function enrichPlanWithExercises(plan, index, { allowedEquipment = null, env = {
         ex.alternatives = findAlternatives(index, result.entry, {
           allowedEquipment,
           excludeIds: usedIds,
-          limit: MAX_ALTERNATIVES
+          limit: MAX_ALTERNATIVES,
+          exerciseProfile
         }).map((alt) => entryToClientExercise(env, alt));
         usedIds.push(...ex.alternatives.map((a) => a.id));
       } else {
@@ -3163,18 +3481,29 @@ async function executePlanGeneration(env, ctx, {
   adminConfig = null,
   guidelineLayers = null,
   hasScheme = false,
-  strictAssembly = false
+  strictAssembly = false,
+  exerciseProfile = null
 }) {
   const indexPromise = loadExerciseIndex(env, ctx);
   const tagSet = clientTags instanceof Set ? clientTags : new Set(clientTags || []);
   const trainerAddon = strictAssembly ? "" : buildTrainerSystemAddon(adminConfig, tagSet, guidelineLayers, { schemeMode: hasScheme, strictAssembly });
   const system = strictAssembly ? PLAN_SYSTEM_ASSEMBLY : buildPlanSystemInstruction(trainerAddon);
+  let catalogBlock = "";
+  if (!strictAssembly && !hasScheme && exerciseProfile) {
+    const index2 = await indexPromise;
+    if (index2?.length) {
+      catalogBlock = buildExerciseCatalogSnippet(index2, exerciseProfile, allowedEquipment);
+    }
+  }
+  const baseUser = catalogBlock ? `${userPrompt}
+
+${catalogBlock}` : userPrompt;
   let plan;
   let rawText;
   const maxAttempts = 3;
   let lastFailure = "parse";
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    let user = userPrompt;
+    let user = baseUser;
     if (attempt > 0) {
       user += strictAssembly ? STRICT_ASSEMBLY_RETRY_HINT : hasScheme ? COMPACT_PLAN_RETRY_HINT : lastFailure === "gender" ? GENDER_FIT_RETRY_HINT : COMPACT_PLAN_RETRY_HINT;
     }
@@ -3211,7 +3540,11 @@ async function executePlanGeneration(env, ctx, {
     }
   }
   const index = await indexPromise;
-  enrichPlanWithExercises(plan, index, { allowedEquipment, env });
+  enrichPlanWithExercises(plan, index, {
+    allowedEquipment,
+    env,
+    exerciseProfile: strictAssembly || hasScheme ? null : exerciseProfile
+  });
   sanitizePlanBulgarian(plan);
   const coachContext = buildCoachContext(coachProfileText, plan);
   return { plan, coachContext };
@@ -3232,7 +3565,7 @@ async function handleGeneratePlan(request, env, ctx) {
     return errorResponse(`\u0414\u043E\u0441\u0442\u0438\u0433\u043D\u0430\u0442 \u0435 \u0434\u043D\u0435\u0432\u043D\u0438\u044F\u0442 \u043B\u0438\u043C\u0438\u0442 \u043E\u0442 ${genLimit} \u0433\u0435\u043D\u0435\u0440\u0430\u0446\u0438\u0438. \u041E\u043F\u0438\u0442\u0430\u0439 \u043E\u0442\u043D\u043E\u0432\u043E \u0443\u0442\u0440\u0435.`, 429, "rate_limited");
   }
   const adminGuidelines = await loadAdminGuidelines(env);
-  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers, hasScheme, strictAssembly } = preparePlanGeneration(
+  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile } = preparePlanGeneration(
     { answers },
     adminGuidelines,
     { buildProfileSummary, allowedEquipmentSet }
@@ -3248,7 +3581,8 @@ async function handleGeneratePlan(request, env, ctx) {
       adminConfig: adminGuidelines,
       guidelineLayers,
       hasScheme,
-      strictAssembly
+      strictAssembly,
+      exerciseProfile
     }));
   } catch (e) {
     if (isPlanParseError(e)) {
@@ -3406,14 +3740,16 @@ async function saveExerciseTranslations(env, translations) {
   await env.FITNESS_KV.put(EXERCISE_TRANSLATIONS_KV_KEY, JSON.stringify(translations));
   bundledTranslations = translations;
 }
-async function rebuildExerciseIndexInKv(env, translations) {
+async function rebuildExerciseIndexInKv(env, translations, metadata) {
   const all = await fetchExerciseDataset(env.EXERCISE_DATASET_URL || void 0);
-  const index = buildCompactIndex(all, translations);
+  const meta = metadata ?? await loadExerciseMetadata(env);
+  const index = buildCompactIndex(all, translations, meta);
   memoryIndex = index;
   await env.FITNESS_KV.put(EXERCISE_INDEX_KV_KEY, JSON.stringify(index), { expirationTtl: EXERCISE_INDEX_TTL });
   return {
     count: index.length,
-    withBg: index.filter((e) => e.instructionsLang === "bg").length
+    withBg: index.filter((e) => e.instructionsLang === "bg").length,
+    withMeta: index.filter((e) => e.diff).length
   };
 }
 async function handleGetTranslateExercisesStatus(request, env) {
@@ -3464,6 +3800,65 @@ async function handleRunTranslateExercises(request, env) {
   let indexInfo = null;
   if (rebuildIndex && stats.remaining === 0) {
     indexInfo = await rebuildExerciseIndexInKv(env, translations);
+  }
+  return jsonResponse({
+    success: true,
+    addedThisRun,
+    batchesProcessed: batches.length,
+    complete: stats.remaining === 0,
+    indexRebuilt: Boolean(indexInfo),
+    index: indexInfo,
+    ...stats
+  });
+}
+async function handleGetClassifyExercisesStatus(request, env) {
+  if (!checkAdminSecret(request, env)) return errorResponse("\u041D\u0435\u043E\u0442\u043E\u0440\u0438\u0437\u0438\u0440\u0430\u043D \u0434\u043E\u0441\u0442\u044A\u043F", 401, "unauthorized");
+  const metadata = await loadExerciseMetadata(env);
+  let all = [];
+  try {
+    all = await fetchExerciseDataset(env.EXERCISE_DATASET_URL || void 0);
+  } catch (e) {
+    return errorResponse(`Dataset: ${e.message}`, 502, "dataset_error");
+  }
+  const stats = classificationStats(all, metadata);
+  return jsonResponse({
+    success: true,
+    hasGemini: Boolean(env.GEMINI_API_KEY),
+    hasKv: Boolean(env.FITNESS_KV),
+    batchSize: WORKER_CLASSIFY_BATCH_SIZE,
+    ...stats
+  });
+}
+async function handleRunClassifyExercises(request, env) {
+  if (!checkAdminSecret(request, env)) return errorResponse("\u041D\u0435\u043E\u0442\u043E\u0440\u0438\u0437\u0438\u0440\u0430\u043D \u0434\u043E\u0441\u0442\u044A\u043F", 401, "unauthorized");
+  if (!env.GEMINI_API_KEY) return errorResponse("\u041B\u0438\u043F\u0441\u0432\u0430 GEMINI_API_KEY \u0432 worker", 503, "no_gemini");
+  if (!env.FITNESS_KV) return errorResponse("KV \u043D\u0435 \u0435 \u043A\u043E\u043D\u0444\u0438\u0433\u0443\u0440\u0438\u0440\u0430\u043D\u043E", 500, "no_kv");
+  let body = {};
+  try {
+    body = await request.json();
+  } catch {
+    body = {};
+  }
+  const maxBatches = Math.min(Math.max(Number(body.batches) || 1, 1), 2);
+  const force = Boolean(body.force);
+  const rebuildIndex = body.rebuildIndex !== false;
+  const metadata = await loadExerciseMetadata(env);
+  const translations = await loadExerciseTranslations(env);
+  const all = await fetchExerciseDataset(env.EXERCISE_DATASET_URL || void 0);
+  const pending = listPendingClassifications(all, metadata, { force });
+  const batches = chunkBatches(pending, WORKER_CLASSIFY_BATCH_SIZE).slice(0, maxBatches);
+  let addedThisRun = 0;
+  for (const batch of batches) {
+    const model = env.GEMINI_MODEL || DEFAULT_CLASSIFY_MODEL;
+    const chunk = await classifyBatchResilient(env.GEMINI_API_KEY, batch, model);
+    Object.assign(metadata, chunk);
+    addedThisRun += Object.keys(chunk).length;
+  }
+  if (addedThisRun > 0) await saveExerciseMetadata(env, metadata);
+  const stats = classificationStats(all, metadata);
+  let indexInfo = null;
+  if (rebuildIndex && (stats.remaining === 0 || addedThisRun > 0)) {
+    indexInfo = await rebuildExerciseIndexInKv(env, translations, metadata);
   }
   return jsonResponse({
     success: true,
@@ -3718,7 +4113,7 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
     clientName: record.clientName,
     clientContact: record.clientContact
   };
-  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers, hasScheme, strictAssembly } = preparePlanGeneration(
+  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile } = preparePlanGeneration(
     genSource,
     adminGuidelines,
     { buildProfileSummary, allowedEquipmentSet }
@@ -3734,7 +4129,8 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
       adminConfig: adminGuidelines,
       guidelineLayers,
       hasScheme,
-      strictAssembly
+      strictAssembly,
+      exerciseProfile
     }));
   } catch (e) {
     if (isPlanParseError(e)) {
@@ -3850,6 +4246,9 @@ var worker_default = {
       if (request.method === "GET" && path === "/api/admin/fitplan/translate-exercises") {
         return await handleGetTranslateExercisesStatus(request, env);
       }
+      if (request.method === "GET" && path === "/api/admin/fitplan/classify-exercises") {
+        return await handleGetClassifyExercisesStatus(request, env);
+      }
       if (request.method === "POST" && path === "/api/fitplan/consultation") {
         return await handleSubmitConsultation(request, env);
       }
@@ -3887,6 +4286,14 @@ var worker_default = {
       const clientProgramDeletePostMatch = path.match(/^\/api\/admin\/fitplan\/client-programs\/([A-Za-z0-9_-]+)\/delete$/);
       if (request.method === "POST" && clientProgramDeletePostMatch) {
         return await handleDeleteClientProgram(request, env, clientProgramDeletePostMatch[1]);
+      }
+      if (request.method === "POST" && path === "/api/admin/fitplan/classify-exercises") {
+        try {
+          return await handleRunClassifyExercises(request, env);
+        } catch (e) {
+          console.error("classify-exercises:", e.stack || e.message);
+          return errorResponse(e.message || "\u0413\u0440\u0435\u0448\u043A\u0430 \u043F\u0440\u0438 \u043A\u043B\u0430\u0441\u0438\u0444\u0438\u043A\u0430\u0446\u0438\u044F", 500, "classify_error");
+        }
       }
       if (request.method === "POST" && path === "/api/admin/fitplan/translate-exercises") {
         try {
@@ -16728,12 +17135,13 @@ function isFitnessRoute(pathname, method) {
   if (method === "GET" && (pathname === "/api/health" || pathname === "/api/exercises/search")) return true;
   if (method === "GET" && pathname === "/api/admin/fitplan/guidelines") return true;
   if (method === "GET" && pathname === "/api/admin/fitplan/translate-exercises") return true;
+  if (method === "GET" && pathname === "/api/admin/fitplan/classify-exercises") return true;
   if (method === "GET" && pathname === "/api/admin/fitplan/consultations") return true;
   if (method === "GET" && pathname === "/api/admin/fitplan/consult-config") return true;
   if (method === "GET" && pathname === "/api/admin/fitplan/client-programs") return true;
   if (method === "DELETE" && /^\/api\/admin\/fitplan\/client-programs\/[A-Za-z0-9_-]+$/.test(pathname)) return true;
   if (method === "POST" && /^\/api\/admin\/fitplan\/client-programs\/[A-Za-z0-9_-]+\/delete$/.test(pathname)) return true;
-  if (method === "POST" && (pathname === "/api/plan/generate" || pathname === "/api/plan/refresh-exercises" || pathname === "/api/fitplan/consultation" || pathname === "/api/coach" || pathname === "/api/admin/fitplan/guidelines" || pathname === "/api/admin/fitplan/translate-exercises" || pathname === "/api/admin/fitplan/consult-config" || pathname === "/api/admin/fitplan/client-programs" || /^\/api\/admin\/fitplan\/consultations\/[A-Za-z0-9_-]+\/read$/.test(pathname) || /^\/api\/admin\/fitplan\/client-programs\/[A-Za-z0-9_-]+\/(generate|approve)$/.test(pathname))) return true;
+  if (method === "POST" && (pathname === "/api/plan/generate" || pathname === "/api/plan/refresh-exercises" || pathname === "/api/fitplan/consultation" || pathname === "/api/coach" || pathname === "/api/admin/fitplan/guidelines" || pathname === "/api/admin/fitplan/translate-exercises" || pathname === "/api/admin/fitplan/classify-exercises" || pathname === "/api/admin/fitplan/consult-config" || pathname === "/api/admin/fitplan/client-programs" || /^\/api\/admin\/fitplan\/consultations\/[A-Za-z0-9_-]+\/read$/.test(pathname) || /^\/api\/admin\/fitplan\/client-programs\/[A-Za-z0-9_-]+\/(generate|approve)$/.test(pathname))) return true;
   if (method === "GET" && /^\/api\/plan\/[A-Za-z0-9-]{8,64}$/.test(pathname)) return true;
   return false;
 }
