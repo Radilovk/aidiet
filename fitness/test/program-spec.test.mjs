@@ -60,14 +60,20 @@ test('buildVolumeBudget: зони boost първата зона', () => {
   assert.ok(volume.back >= volume.arms);
 });
 
-test('buildCompactProfileForPrompt: без дублиране на goal/freq', () => {
+test('buildCompactProfileForPrompt: свободен текст и друго', () => {
   const p = buildCompactProfileForPrompt({
     health: ['Хипертония'],
+    healthOther: 'астма',
     limitations: ['Болка: коляно'],
-    preferences: { avoid: 'клек' },
-    stress: 9,
+    preferences: { avoid: 'клек', types: ['Кардио'] },
+    extraInfo: 'работя на смени',
+    equipmentOther: 'резистентни ленти',
+    nutrition: { type: 'Друго', custom: 'веган', mealsPerDay: 4 },
   });
   assert.ok(p.includes('Хипертония'));
+  assert.ok(p.includes('астма'));
   assert.ok(p.includes('коляно'));
+  assert.ok(p.includes('смени'));
+  assert.ok(p.includes('веган'));
   assert.ok(!p.includes('трен./седм'));
 });

@@ -2502,18 +2502,45 @@ function formatProgramSpecBlock(spec) {
 function buildCompactProfileForPrompt(answers = {}) {
   const lines = [];
   const health = [...answers.health || [], ...answers.healthFemale || []].filter((h) => h && !normalizeText(h).includes("\u043D\u044F\u043C\u0430"));
+  if (answers.healthMeds?.trim()) health.push(`\u043C\u0435\u0434\u0438\u043A\u0430\u043C\u0435\u043D\u0442\u0438: ${answers.healthMeds.trim()}`);
+  if (answers.healthOther?.trim()) health.push(answers.healthOther.trim());
   if (health.length) lines.push(`\u0417\u0434\u0440\u0430\u0432\u0435: ${health.join("; ")}`);
   const limits = (answers.limitations || []).filter((l) => l && !normalizeText(l).includes("\u043D\u044F\u043C\u0430\u043C"));
   if (limits.length) lines.push(`\u041E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438\u044F: ${limits.join("; ")}`);
   if (answers.breastImplants?.implants) {
     lines.push(`\u0418\u043C\u043F\u043B\u0430\u043D\u0442\u0438: ${answers.breastImplants.implants}`);
   }
+  if (answers.weightChange?.type && answers.weightChange.type !== "stable") {
+    const dir = answers.weightChange.type === "gain" ? "+" : "\u2212";
+    lines.push(`\u0422\u0435\u0433\u043B\u043E 6\u043C: ${dir}${answers.weightChange.amountKg || "?"} \u043A\u0433${answers.weightChange.reason ? ` (${answers.weightChange.reason})` : ""}`);
+  }
+  if (answers.dailyActivity) lines.push(`\u0414\u043D\u0435\u0432\u043D\u0430 \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442: ${answers.dailyActivity}`);
+  if (answers.sportActivity?.status && answers.sportActivity.status !== "\u041D\u0435 \u0442\u0440\u0435\u043D\u0438\u0440\u0430\u043C \u0432 \u043C\u043E\u043C\u0435\u043D\u0442\u0430") {
+    lines.push(`\u0421\u043F\u043E\u0440\u0442: ${answers.sportActivity.status}${answers.sportActivity.current ? ` \u2014 ${answers.sportActivity.current}` : ""}`);
+  }
+  if (answers.nutrition?.type) {
+    const nut = answers.nutrition.type === "\u0414\u0440\u0443\u0433\u043E" && answers.nutrition.custom ? answers.nutrition.custom : answers.nutrition.type;
+    if (answers.nutrition.mealsPerDay) {
+      lines.push(`\u0425\u0440\u0430\u043D\u0435\u043D\u0435: ${nut}, ${answers.nutrition.mealsPerDay} \u0445\u0440\u0430\u043D./\u0434\u0435\u043D`);
+    } else {
+      lines.push(`\u0425\u0440\u0430\u043D\u0435\u043D\u0435: ${nut}`);
+    }
+  }
+  if (answers.goal?.deadline) lines.push(`\u0421\u0440\u043E\u043A: ${answers.goal.deadline}`);
+  const equipExtra = answers.equipmentOther?.trim();
+  if (equipExtra) lines.push(`\u041E\u0431\u043E\u0440\u0443\u0434\u0432\u0430\u043D\u0435 (\u0434\u0440\u0443\u0433\u043E): ${equipExtra}`);
+  const prefTypes = answers.preferences?.types;
+  if (prefTypes?.length) lines.push(`\u041F\u0440\u0435\u0434\u043F\u043E\u0447\u0438\u0442\u0430\u043D \u0442\u0438\u043F: ${prefTypes.join(", ")}`);
   if (answers.preferences?.avoid?.trim()) {
     lines.push(`\u0418\u0437\u0431\u044F\u0433\u0432\u0430\u0439: ${answers.preferences.avoid.trim()}`);
   }
+  if (answers.preferences?.timeOfDay) {
+    lines.push(`\u0412\u0440\u0435\u043C\u0435: ${answers.preferences.timeOfDay}`);
+  }
   const sleep = answers.sleep || "";
-  if (sleep && !/добър|нормал/i.test(sleep)) lines.push(`\u0421\u044A\u043D: ${sleep}`);
-  if (Number(answers.stress) >= 7) lines.push(`\u0421\u0442\u0440\u0435\u0441: ${answers.stress}/10`);
+  if (sleep) lines.push(`\u0421\u044A\u043D: ${sleep}`);
+  if (Number(answers.stress) >= 1) lines.push(`\u0421\u0442\u0440\u0435\u0441: ${answers.stress}/10`);
+  if (answers.extraInfo?.trim()) lines.push(`\u0414\u043E\u043F\u044A\u043B\u043D\u0438\u0442\u0435\u043B\u043D\u043E: ${answers.extraInfo.trim()}`);
   return lines.join("\n");
 }
 

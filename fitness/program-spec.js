@@ -235,22 +235,57 @@ export function formatProgramSpecBlock(spec) {
   return lines.join('\n');
 }
 
-/** Само health/limits контекст — не дублира program_spec. */
+/** Контекст извън program_spec — здраве, свободен текст, логистика. */
 export function buildCompactProfileForPrompt(answers = {}) {
   const lines = [];
   const health = [...(answers.health || []), ...(answers.healthFemale || [])]
     .filter((h) => h && !normalizeText(h).includes('няма'));
+  if (answers.healthMeds?.trim()) health.push(`медикаменти: ${answers.healthMeds.trim()}`);
+  if (answers.healthOther?.trim()) health.push(answers.healthOther.trim());
   if (health.length) lines.push(`Здраве: ${health.join('; ')}`);
+
   const limits = (answers.limitations || []).filter((l) => l && !normalizeText(l).includes('нямам'));
   if (limits.length) lines.push(`Ограничения: ${limits.join('; ')}`);
   if (answers.breastImplants?.implants) {
     lines.push(`Импланти: ${answers.breastImplants.implants}`);
   }
+
+  if (answers.weightChange?.type && answers.weightChange.type !== 'stable') {
+    const dir = answers.weightChange.type === 'gain' ? '+' : '−';
+    lines.push(`Тегло 6м: ${dir}${answers.weightChange.amountKg || '?'} кг${answers.weightChange.reason ? ` (${answers.weightChange.reason})` : ''}`);
+  }
+  if (answers.dailyActivity) lines.push(`Дневна активност: ${answers.dailyActivity}`);
+  if (answers.sportActivity?.status && answers.sportActivity.status !== 'Не тренирам в момента') {
+    lines.push(`Спорт: ${answers.sportActivity.status}${answers.sportActivity.current ? ` — ${answers.sportActivity.current}` : ''}`);
+  }
+  if (answers.nutrition?.type) {
+    const nut = answers.nutrition.type === 'Друго' && answers.nutrition.custom
+      ? answers.nutrition.custom
+      : answers.nutrition.type;
+    if (answers.nutrition.mealsPerDay) {
+      lines.push(`Хранене: ${nut}, ${answers.nutrition.mealsPerDay} хран./ден`);
+    } else {
+      lines.push(`Хранене: ${nut}`);
+    }
+  }
+  if (answers.goal?.deadline) lines.push(`Срок: ${answers.goal.deadline}`);
+
+  const equipExtra = answers.equipmentOther?.trim();
+  if (equipExtra) lines.push(`Оборудване (друго): ${equipExtra}`);
+
+  const prefTypes = answers.preferences?.types;
+  if (prefTypes?.length) lines.push(`Предпочитан тип: ${prefTypes.join(', ')}`);
   if (answers.preferences?.avoid?.trim()) {
     lines.push(`Избягвай: ${answers.preferences.avoid.trim()}`);
   }
+  if (answers.preferences?.timeOfDay) {
+    lines.push(`Време: ${answers.preferences.timeOfDay}`);
+  }
+
   const sleep = answers.sleep || '';
-  if (sleep && !/добър|нормал/i.test(sleep)) lines.push(`Сън: ${sleep}`);
-  if (Number(answers.stress) >= 7) lines.push(`Стрес: ${answers.stress}/10`);
+  if (sleep) lines.push(`Сън: ${sleep}`);
+  if (Number(answers.stress) >= 1) lines.push(`Стрес: ${answers.stress}/10`);
+  if (answers.extraInfo?.trim()) lines.push(`Допълнително: ${answers.extraInfo.trim()}`);
+
   return lines.join('\n');
 }
