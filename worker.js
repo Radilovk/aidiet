@@ -1668,7 +1668,7 @@ var PLAN_SYSTEM_CORE = `\u0422\u0438 \u0441\u0438 \u0431\u044A\u043B\u0433\u0430
 HARD-VETO:
 - \u0411\u043E\u043B\u043A\u0430/\u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438\u0435/\u043E\u043F\u0435\u0440\u0430\u0446\u0438\u044F \u2192 0 \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F, \u043D\u0430\u0442\u043E\u0432\u0430\u0440\u0432\u0430\u0449\u0438 \u0437\u043E\u043D\u0430\u0442\u0430
 - \u0418\u0437\u0440\u0438\u0447\u043D\u043E \u043D\u0435\u0436\u0435\u043B\u0430\u043D\u0438 \u0434\u0432\u0438\u0436\u0435\u043D\u0438\u044F \u2192 \u043D\u0435 \u0432\u043A\u043B\u044E\u0447\u0432\u0430\u0439
-- \u0421\u0430\u043C\u043E \u043F\u043E\u0441\u043E\u0447\u0435\u043D\u043E\u0442\u043E \u043E\u0431\u043E\u0440\u0443\u0434\u0432\u0430\u043D\u0435
+- <equipment> = \u0435\u0434\u0438\u043D\u0441\u0442\u0432\u0435\u043D\u043E \u043F\u043E\u0437\u0432\u043E\u043B\u0435\u043D\u043E; equipmentHint \u0442\u0440\u044F\u0431\u0432\u0430 \u0434\u0430 \u0441\u044A\u043E\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0430
 - \u0421\u044A\u0440\u0434\u0435\u0447\u043D\u043E-\u0441\u044A\u0434\u043E\u0432 \u0440\u0438\u0441\u043A \u2192 RPE\u22647, \u0431\u0435\u0437 Valsalva; safetyNotes: \u043B\u0435\u043A\u0430\u0440\u0441\u043A\u043E \u043E\u0434\u043E\u0431\u0440\u0435\u043D\u0438\u0435
 
 \u0418\u041C\u0415\u041D\u0423\u0412\u0410\u041D\u0415:
@@ -1679,7 +1679,7 @@ HARD-VETO:
 \u041A\u041E\u041C\u041F\u0410\u041A\u0422\u041D\u041E\u0421\u0422: \u043C\u0430\u043A\u0441. 5 \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F/\u0434\u0435\u043D; warmup/cooldown \u043F\u043E 3 \u0441\u0442\u044A\u043F\u043A\u0438; notes\u226480 \u0437\u043D\u0430\u043A\u0430; guidelines \u043F\u043E 1 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u0435/\u043F\u043E\u043B\u0435.`;
 var GENDER_FIT_RETRY_HINT = `
 
-\u041A\u041E\u0420\u0415\u041A\u0426\u0418\u042F: \u043A\u043B\u0438\u0435\u043D\u0442\u043A\u0430\u0442\u0430 \u0435 \u0436\u0435\u043D\u0430 \u2014 \u043D\u0430\u043C\u0430\u043B\u0438 bench/press; \u043C\u0438\u043D\u0438\u043C\u0443\u043C 35% \u0434\u043E\u043B\u043D\u0430 \u0447\u0430\u0441\u0442 (glutes, \u0431\u0435\u0434\u0440\u0430, RDL). \u041E\u0442\u0433\u043E\u0432\u043E\u0440\u0438 \u0421\u0410\u041C\u041E \u0441 \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON.`;
+\u041A\u041E\u0420\u0415\u041A\u0426\u0418\u042F (\u0436\u0435\u043D\u0430): ~40% \u0434\u043E\u043B\u043D\u0430 \u0447\u0430\u0441\u0442 (glutes, \u0431\u0435\u0434\u0440\u0430, RDL); \u0432\u043A\u043B\u044E\u0447\u0438 \u0433\u0440\u044A\u0431/posture (\u0440\u0435\u0434, \u043F\u0443\u043B\u0434\u0430\u0443\u043D); \u0433\u0440\u044A\u0434\u0438 max 1\u20132 press/\u0441\u0435\u0434\u043C \u2014 \u043D\u0435 \u043F\u0440\u0435\u043C\u0430\u0445\u0432\u0430\u0439 \u0433\u043E\u0440\u043D\u0430 \u0447\u0430\u0441\u0442. JSON \u0441\u0430\u043C\u043E.`;
 var COMPACT_PLAN_RETRY_HINT = `
 
 \u041A\u041E\u041C\u041F\u0410\u041A\u0422\u041D\u041E: \u043C\u0430\u043A\u0441. 4 \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F/\u0434\u0435\u043D; warmup/cooldown \u043F\u043E 2 \u0441\u0442\u044A\u043F\u043A\u0438; notes\u226460 \u0437\u043D\u0430\u043A\u0430. \u041E\u0442\u0433\u043E\u0432\u043E\u0440\u0438 \u0421\u0410\u041C\u041E \u0441 \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON.`;
@@ -2017,7 +2017,7 @@ var GUIDELINE_CHUNKS = [
   { tags: ["equipment:\u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u043E"], text: "\u041E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u043E \u043E\u0431\u043E\u0440\u0443\u0434\u0432\u0430\u043D\u0435: \u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430\u0439 tempo \u043C\u0430\u043D\u0438\u043F\u0443\u043B\u0430\u0446\u0438\u044F (3-1-3), unilateral \u0432\u0430\u0440\u0438\u0430\u043D\u0442\u0438, mechanical drop sets \u0438 \u043F\u043E-\u043A\u044A\u0441\u0438 \u043F\u043E\u0447\u0438\u0432\u043A\u0438 \u0437\u0430 \u043F\u0440\u043E\u0433\u0440\u0435\u0441\u0438\u0432\u043D\u043E \u043D\u0430\u0442\u043E\u0432\u0430\u0440\u0432\u0430\u043D\u0435 \u0431\u0435\u0437 \u043F\u043E\u0432\u0435\u0447\u0435 \u0442\u0435\u0436\u0435\u0441\u0442\u0438." },
   { tags: ["time:\u0441\u0443\u0442\u0440\u0438\u043D"], text: "\u0421\u0443\u0442\u0440\u0435\u0448\u043D\u0438 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438: \u0443\u0434\u044A\u043B\u0436\u0438 \u0437\u0430\u0433\u0440\u044F\u0432\u043A\u0430\u0442\u0430 \u0441 5 \u043C\u0438\u043D\u0443\u0442\u0438 (\u0441\u0442\u0430\u0432\u043D\u0430 \u043C\u043E\u0431\u0438\u043B\u043D\u043E\u0441\u0442 + \u043F\u043E\u0441\u0442\u0435\u043F\u0435\u043D\u043D\u043E \u0432\u0434\u0438\u0433\u0430\u043D\u0435 \u043D\u0430 \u043F\u0443\u043B\u0441\u0430) \u2014 \u0442\u044F\u043B\u043E\u0442\u043E \u0435 \u043F\u043E-\u0441\u043A\u043E\u0432\u0430\u043D\u043E \u0438 \u0432\u0435\u0440\u043E\u044F\u0442\u043D\u043E \u043D\u0430 \u0433\u043B\u0430\u0434\u043D\u043E. \u0422\u0435\u0436\u043A\u0438\u0442\u0435 \u043C\u0430\u043A\u0441\u0438\u043C\u0430\u043B\u043D\u0438 \u043E\u043F\u0438\u0442\u0438 \u0441\u0430 \u043F\u043E-\u0440\u0438\u0441\u043A\u043E\u0432\u0438 \u0440\u0430\u043D\u043E \u0441\u0443\u0442\u0440\u0438\u043D." },
   { tags: ["age:50+"], text: "\u0412\u044A\u0437\u0440\u0430\u0441\u0442 50+: \u0443\u0434\u044A\u043B\u0436\u0435\u043D\u0430 \u0437\u0430\u0433\u0440\u044F\u0432\u043A\u0430, \u043F\u0440\u0438\u043E\u0440\u0438\u0442\u0435\u0442 \u043D\u0430 \u043A\u043E\u043D\u0442\u0440\u043E\u043B\u0438\u0440\u0430\u043D\u043E \u0442\u0435\u043C\u043F\u043E \u043F\u0440\u0435\u0434 \u0442\u0435\u0436\u0435\u0441\u0442, \u0437\u0430\u0434\u044A\u043B\u0436\u0438\u0442\u0435\u043B\u043D\u0438 \u0431\u0430\u043B\u0430\u043D\u0441\u043E\u0432\u0438 \u0438 \u043C\u043E\u0431\u0438\u043B\u043D\u043E\u0441\u0442 \u0435\u043B\u0435\u043C\u0435\u043D\u0442\u0438, 48-72\u0447 \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435 \u043C\u0435\u0436\u0434\u0443 \u0442\u0435\u0436\u043A\u0438 \u0441\u0435\u0441\u0438\u0438." },
-  { tags: ["gender:\u0436\u0435\u043D\u0430"], text: "\u0416\u0435\u043D\u0430: \u043F\u0440\u043E\u0433\u0440\u0430\u043C\u0438\u0440\u0430\u0439 \u0437\u0430 \u0436\u0435\u043D\u0441\u043A\u0430 \u0444\u0438\u0437\u0438\u043E\u043B\u043E\u0433\u0438\u044F \u0438 \u0446\u0435\u043B\u0438 \u2014 \u043D\u0435 \u043A\u043E\u043F\u0438\u0440\u0430\u0439 \u0442\u0438\u043F\u0438\u0447\u0435\u043D \u043C\u044A\u0436\u043A\u0438 powerlifting/bro-split. \u041F\u0440\u0438\u043E\u0440\u0438\u0442\u0435\u0442: \u0434\u043E\u043B\u043D\u0430 \u0447\u0430\u0441\u0442 (glutes, \u0431\u0435\u0434\u0440\u0430), core \u0438 \u0442\u0430\u0437\u043E\u0432\u043E \u0434\u044A\u043D\u043E, \u0433\u043E\u0440\u0435\u043D \u0433\u0440\u044A\u0431/posture; \u0443\u043C\u0435\u0440\u0435\u043D \u043E\u0431\u0435\u043C \u043D\u0430 \u0433\u0440\u044A\u0434\u043E\u0431\u0435\u0434\u0440\u0435\u043D \u0431\u0435\u0437 \u043C\u044A\u0436\u043A\u0438 press-dominant \u0430\u043A\u0446\u0435\u043D\u0442. \u041F\u0440\u0438 \u0434\u0435\u0444\u0438\u0446\u0438\u0442/\u043E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435 \u2014 \u0437\u0430\u043F\u0430\u0437\u0438 \u043C\u0443\u0441\u043A\u0443\u043B \u043D\u0430 \u043A\u0440\u0430\u043A\u0430\u0442\u0430 \u0438 glutes. \u0410\u043A\u043E \u0435 \u043F\u043E\u0441\u043E\u0447\u0435\u043D \u0446\u0438\u043A\u044A\u043B/\u0445\u043E\u0440\u043C\u043E\u043D\u0438 \u2014 \u0432\u0430\u0440\u0438\u0440\u0430\u0439 \u0438\u043D\u0442\u0435\u043D\u0437\u0438\u0442\u0435\u0442\u0430." },
+  { tags: ["gender:\u0436\u0435\u043D\u0430"], text: "\u0416\u0435\u043D\u0430: \u0430\u043A\u0446\u0435\u043D\u0442 \u0434\u043E\u043B\u043D\u0430 \u0447\u0430\u0441\u0442 (glutes, \u0431\u0435\u0434\u0440\u0430) ~40% \u043E\u0431\u0435\u043C; \u0433\u0440\u044A\u0431/posture ~25%; \u0433\u0440\u044A\u0434\u043E\u0431\u0435\u0434\u0440\u0435\u043D \u0443\u043C\u0435\u0440\u0435\u043D (max 1\u20132 press \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E). \u041D\u0435 \u0435\u043B\u0438\u043C\u0438\u043D\u0438\u0440\u0430\u0439 \u0433\u043E\u0440\u043D\u0430 \u0447\u0430\u0441\u0442 \u2014 \u043D\u0435 \u043C\u044A\u0436\u043A\u0438 bro-split, \u043D\u0435 press-dominant." },
   { tags: ["gender:\u043C\u044A\u0436"], text: "\u041C\u044A\u0436: \u043F\u0440\u043E\u0433\u0440\u0430\u043C\u0438\u0440\u0430\u0439 \u0437\u0430 \u043C\u044A\u0436\u043A\u0430 \u0430\u043D\u0430\u0442\u043E\u043C\u0438\u044F \u0438 \u0446\u0435\u043B\u0438 \u2014 \u043E\u0441\u043D\u043E\u0432\u043D\u0438 \u043C\u043D\u043E\u0433\u043E\u0441\u0442\u0430\u0432\u043D\u0438 (\u043A\u043B\u0435\u043A, \u0442\u044F\u0433\u0430, \u043D\u0430\u0442\u0438\u0441\u043A) \u0441\u0430 \u0443\u043C\u0435\u0441\u0442\u043D\u0438 \u0441\u043F\u043E\u0440\u0435\u0434 \u043E\u043F\u0438\u0442\u0430. \u041D\u0435 \u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430\u0439 \u0436\u0435\u043D\u0441\u043A\u0438-\u0441\u043F\u0435\u0446\u0438\u0444\u0438\u0447\u043D\u0438 \u0430\u043A\u0446\u0435\u043D\u0442\u0438 (glute isolation focus) \u0431\u0435\u0437 \u0443\u043A\u0430\u0437\u0430\u043D\u0438\u0435 \u043E\u0442 \u043F\u0440\u043E\u0444\u0438\u043B\u0430." }
 ];
 var TEXT_TAG_RULES = [
@@ -2279,6 +2279,38 @@ function constraintsFromAnswers(answers, exampleScheme = "") {
     schedule: [.../* @__PURE__ */ new Set([...schedule, ...fromScheme.schedule])]
   };
 }
+var ADMIN_EQUIPMENT_HINTS = [
+  { keys: ["\u0441\u043A\u0440\u0438\u043F\u0435\u0446", "pulley", "\u043A\u0430\u0431\u0435\u043B", "cable"], hints: ["cable"] },
+  { keys: ["\u0433\u0438\u0440\u0438\u0447", "\u0434\u044A\u043C\u0431\u0435\u043B", "dumbbell"], hints: ["dumbbell"] },
+  { keys: ["\u043B\u043E\u0441\u0442", "\u0449\u0430\u043D\u0433", "barbell"], hints: ["barbell"] },
+  { keys: ["\u043C\u0430\u0448\u0438\u043D", "\u0430\u0434\u0434\u0443\u043A\u0442\u043E\u0440", "\u0430\u0431\u0434\u0443\u043A\u0442\u043E\u0440", "leg press", "\u043F\u0440\u0435\u0441\u0430"], hints: ["leverage machine"] },
+  { keys: ["\u0441\u0442\u0435\u043F", "\u0431\u043B\u043E\u043A\u0447\u0435"], hints: ["body weight"] },
+  { keys: ["\u043B\u0430\u0441\u0442\u0438\u043A", "band", "\u0440\u0435\u0437\u0438\u0441\u0442"], hints: ["band"] },
+  { keys: ["\u0433\u0438\u0440\u0430", "kettlebell"], hints: ["kettlebell"] },
+  { keys: ["\u0442\u043E\u043F\u043A\u0430", "ball"], hints: ["stability ball"] },
+  { keys: ["trx", "\u0440\u0435\u043C\u044A\u043A", "\u043F\u043E\u0434\u0432\u0435\u0441\u043A"], hints: ["body weight"] }
+];
+function equipmentHintTokensFromText(text) {
+  const out = /* @__PURE__ */ new Set();
+  const n = normalizeText(text);
+  if (!n) return out;
+  for (const { keys, hints } of ADMIN_EQUIPMENT_HINTS) {
+    if (keys.some((k) => n.includes(normalizeText(k)))) {
+      for (const h of hints) out.add(normalizeText(h));
+    }
+  }
+  return out;
+}
+function expandEquipmentAnswers(equipmentAnswers) {
+  const items = [];
+  for (const answer of equipmentAnswers || []) {
+    for (const part of String(answer).split(/[,;\n]/)) {
+      const t = part.trim();
+      if (t) items.push(t);
+    }
+  }
+  return items;
+}
 function buildAdminHardRulesBlock(constraints) {
   const parts = [];
   if (constraints.equipmentList?.length) {
@@ -2426,6 +2458,11 @@ function buildAdminPlanUserPrompt(brief) {
   const constraints = presetConstraints || parseAdminBriefConstraints(clientProfile, exampleScheme);
   const hardRules = buildAdminHardRulesBlock(constraints);
   const parts = [buildBriefIdentityBlock(brief)];
+  if (constraints.equipmentList?.length) {
+    parts.push(`<equipment>
+${constraints.equipmentList.join(", ")}
+</equipment>`);
+  }
   if (hardRules) parts.push(`<constraints>
 ${hardRules}
 </constraints>`);
@@ -2444,6 +2481,7 @@ ${String(exampleScheme).trim()}
 var MALE_BIAS_EXERCISE = /bench press|incline bench|decline bench|skull crush|close.?grip bench|barbell curl|military press|overhead press|shoulder press/i;
 var FEMALE_PRIORITY_EXERCISE = /hip thrust|glute|abduction|adduction|clam|kickback|bulgarian split|romanian deadlift|rdl|step.?up|leg curl|hamstring curl|fire hydrant|frog pump/i;
 var LOWER_BODY_EXERCISE = /squat|lunge|leg press|hip|glute|calf|hamstring|quad|deadlift|step|adduct|abduct|thrust/i;
+var UPPER_BACK_EXERCISE = /pulldown|pull-up|pullup|chin-up|row|face pull|rear delt|shrug|lat pull/i;
 function auditPlanGenderFit(plan, clientTags) {
   const tagSet = clientTags instanceof Set ? clientTags : new Set(clientTags || []);
   if (!tagSet.has("gender:\u0436\u0435\u043D\u0430")) return { ok: true, issues: [] };
@@ -2458,12 +2496,16 @@ function auditPlanGenderFit(plan, clientTags) {
   const maleBias = exercises.filter((name) => MALE_BIAS_EXERCISE.test(name));
   const femalePriority = exercises.filter((name) => FEMALE_PRIORITY_EXERCISE.test(name));
   const lowerBody = exercises.filter((name) => LOWER_BODY_EXERCISE.test(name));
+  const upperBack = exercises.filter((name) => UPPER_BACK_EXERCISE.test(name));
   const issues = [];
-  if (maleBias.length >= 3 && femalePriority.length < 2) {
+  if (maleBias.length >= 4 && femalePriority.length < 2) {
     issues.push(`\u041F\u0440\u0435\u043A\u0430\u043B\u0435\u043D\u043E \u043C\u044A\u0436\u043A\u0438 \u0430\u043A\u0446\u0435\u043D\u0442 (${maleBias.length} press/bench \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F, \u0441\u0430\u043C\u043E ${femalePriority.length} \u0437\u0430 glutes/\u043A\u0440\u0430\u043A\u0430).`);
   }
   if (lowerBody.length < Math.max(2, Math.ceil(exercises.length * 0.35))) {
     issues.push(`\u041D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u044A\u0447\u0435\u043D \u043E\u0431\u0435\u043C \u043D\u0430 \u0434\u043E\u043B\u043D\u0430 \u0447\u0430\u0441\u0442 \u0437\u0430 \u0436\u0435\u043D\u0430: ${lowerBody.length}/${exercises.length} \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F.`);
+  }
+  if (exercises.length >= 6 && upperBack.length < 2) {
+    issues.push(`\u041D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u044A\u0447\u0435\u043D \u0433\u043E\u0440\u0435\u043D \u0433\u0440\u044A\u0431/posture \u0437\u0430 \u0436\u0435\u043D\u0430: ${upperBack.length} \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F (\u043E\u0447\u0430\u043A\u0432\u0430\u0442 \u0441\u0435 \u22652).`);
   }
   return { ok: issues.length === 0, issues };
 }
@@ -2478,7 +2520,7 @@ function preparePlanGeneration(source, adminConfig, helpers) {
       constraints: constraintsFromAnswers(answers, extra.exampleScheme || ""),
       tags
     };
-    const equipmentInput = [...answers.equipment || [], answers.equipmentOther].filter(Boolean);
+    const equipmentInput = expandEquipmentAnswers([...answers.equipment || [], answers.equipmentOther].filter(Boolean));
     return {
       userPrompt: buildAdminPlanUserPrompt(brief),
       guidelineLayers: layers,
@@ -2726,14 +2768,17 @@ var EQUIPMENT_MAP = {
 };
 function allowedEquipmentSet(equipmentAnswers) {
   const set = /* @__PURE__ */ new Set(["body weight"]);
-  for (const answer of equipmentAnswers || []) {
+  const items = expandEquipmentAnswers(equipmentAnswers);
+  for (const answer of items) {
     const key = normalizeText(answer);
-    if (key in EQUIPMENT_MAP || EQUIPMENT_MAP[key] === null) {
-      if (EQUIPMENT_MAP[key] === null) return null;
-      for (const eq of EQUIPMENT_MAP[key] || []) set.add(normalizeText(eq));
-    } else if (key.includes("\u0437\u0430\u043B\u0430") || key.includes("gym")) {
+    if (EQUIPMENT_MAP[key] === null || key.includes("\u0437\u0430\u043B\u0430") || key.includes("gym")) {
       return null;
     }
+    if (key in EQUIPMENT_MAP) {
+      for (const eq of EQUIPMENT_MAP[key] || []) set.add(normalizeText(eq));
+      continue;
+    }
+    for (const hint of equipmentHintTokensFromText(answer)) set.add(hint);
   }
   return set;
 }

@@ -45,7 +45,7 @@ export const GUIDELINE_CHUNKS = [
   { tags: ['equipment:ограничено'], text: 'Ограничено оборудване: използвай tempo манипулация (3-1-3), unilateral варианти, mechanical drop sets и по-къси почивки за прогресивно натоварване без повече тежести.' },
   { tags: ['time:сутрин'], text: 'Сутрешни тренировки: удължи загрявката с 5 минути (ставна мобилност + постепенно вдигане на пулса) — тялото е по-сковано и вероятно на гладно. Тежките максимални опити са по-рискови рано сутрин.' },
   { tags: ['age:50+'], text: 'Възраст 50+: удължена загрявка, приоритет на контролирано темпо пред тежест, задължителни балансови и мобилност елементи, 48-72ч възстановяване между тежки сесии.' },
-  { tags: ['gender:жена'], text: 'Жена: програмирай за женска физиология и цели — не копирай типичен мъжки powerlifting/bro-split. Приоритет: долна част (glutes, бедра), core и тазово дъно, горен гръб/posture; умерен обем на гръдобедрен без мъжки press-dominant акцент. При дефицит/отслабване — запази мускул на краката и glutes. Ако е посочен цикъл/хормони — варирай интензитета.' },
+  { tags: ['gender:жена'], text: 'Жена: акцент долна част (glutes, бедра) ~40% обем; гръб/posture ~25%; гръдобедрен умерен (max 1–2 press седмично). Не елиминирай горна част — не мъжки bro-split, не press-dominant.' },
   { tags: ['gender:мъж'], text: 'Мъж: програмирай за мъжка анатомия и цели — основни многоставни (клек, тяга, натиск) са уместни според опита. Не използвай женски-специфични акценти (glute isolation focus) без указание от профила.' },
 ];
 
@@ -342,13 +342,40 @@ export function constraintsFromAnswers(answers, exampleScheme = '') {
 }
 
 const ADMIN_EQUIPMENT_HINTS = [
-  { keys: ['скрипец', 'pulley', 'кабел'], hints: ['cable'] },
+  { keys: ['скрипец', 'pulley', 'кабел', 'cable'], hints: ['cable'] },
   { keys: ['гирич', 'дъмбел', 'dumbbell'], hints: ['dumbbell'] },
   { keys: ['лост', 'щанг', 'barbell'], hints: ['barbell'] },
-  { keys: ['машин', 'аддуктор', 'абдуктор'], hints: ['leverage machine'] },
+  { keys: ['машин', 'аддуктор', 'абдуктор', 'leg press', 'преса'], hints: ['leverage machine'] },
   { keys: ['степ', 'блокче'], hints: ['body weight'] },
-  { keys: ['ластик', 'band'], hints: ['band'] },
+  { keys: ['ластик', 'band', 'резист'], hints: ['band'] },
+  { keys: ['гира', 'kettlebell'], hints: ['kettlebell'] },
+  { keys: ['топка', 'ball'], hints: ['stability ball'] },
+  { keys: ['trx', 'ремък', 'подвеск'], hints: ['body weight'] },
 ];
+
+/** BG текст (чип или „Друго“) → EN equipmentHint токени за филтър/AI. */
+export function equipmentHintTokensFromText(text) {
+  const out = new Set();
+  const n = normalizeText(text);
+  if (!n) return out;
+  for (const { keys, hints } of ADMIN_EQUIPMENT_HINTS) {
+    if (keys.some((k) => n.includes(normalizeText(k)))) {
+      for (const h of hints) out.add(normalizeText(h));
+    }
+  }
+  return out;
+}
+
+export function expandEquipmentAnswers(equipmentAnswers) {
+  const items = [];
+  for (const answer of equipmentAnswers || []) {
+    for (const part of String(answer).split(/[,;\n]/)) {
+      const t = part.trim();
+      if (t) items.push(t);
+    }
+  }
+  return items;
+}
 
 /** Позволено оборудване от админ бриф (за post-filter на упражнения). */
 export function allowedEquipmentFromBrief(clientProfile = '', exampleScheme = '') {
@@ -356,12 +383,7 @@ export function allowedEquipmentFromBrief(clientProfile = '', exampleScheme = ''
   if (!equipmentList.length) return null;
   const set = new Set(['body weight']);
   for (const item of equipmentList) {
-    const n = normalizeText(item);
-    for (const { keys, hints } of ADMIN_EQUIPMENT_HINTS) {
-      if (keys.some((k) => n.includes(normalizeText(k)))) {
-        for (const h of hints) set.add(normalizeText(h));
-      }
-    }
+    for (const hint of equipmentHintTokensFromText(item)) set.add(hint);
   }
   return set.size > 1 ? set : null;
 }
@@ -550,6 +572,9 @@ export function buildAdminPlanUserPrompt(brief) {
   const hardRules = buildAdminHardRulesBlock(constraints);
 
   const parts = [buildBriefIdentityBlock(brief)];
+  if (constraints.equipmentList?.length) {
+    parts.push(`<equipment>\n${constraints.equipmentList.join(', ')}\n</equipment>`);
+  }
   if (hardRules) parts.push(`<constraints>\n${hardRules}\n</constraints>`);
   parts.push(`<profile>\n${String(clientProfile || '').trim()}\n</profile>`);
   if (String(exampleScheme || '').trim()) {
@@ -562,6 +587,7 @@ export function buildAdminPlanUserPrompt(brief) {
 const MALE_BIAS_EXERCISE = /bench press|incline bench|decline bench|skull crush|close.?grip bench|barbell curl|military press|overhead press|shoulder press/i;
 const FEMALE_PRIORITY_EXERCISE = /hip thrust|glute|abduction|adduction|clam|kickback|bulgarian split|romanian deadlift|rdl|step.?up|leg curl|hamstring curl|fire hydrant|frog pump/i;
 const LOWER_BODY_EXERCISE = /squat|lunge|leg press|hip|glute|calf|hamstring|quad|deadlift|step|adduct|abduct|thrust/i;
+const UPPER_BACK_EXERCISE = /pulldown|pull-up|pullup|chin-up|row|face pull|rear delt|shrug|lat pull/i;
 
 /** Проверка дали планът съответства на пола на клиента (след AI генерация). */
 export function auditPlanGenderFit(plan, clientTags) {
@@ -580,13 +606,17 @@ export function auditPlanGenderFit(plan, clientTags) {
   const maleBias = exercises.filter((name) => MALE_BIAS_EXERCISE.test(name));
   const femalePriority = exercises.filter((name) => FEMALE_PRIORITY_EXERCISE.test(name));
   const lowerBody = exercises.filter((name) => LOWER_BODY_EXERCISE.test(name));
+  const upperBack = exercises.filter((name) => UPPER_BACK_EXERCISE.test(name));
   const issues = [];
 
-  if (maleBias.length >= 3 && femalePriority.length < 2) {
+  if (maleBias.length >= 4 && femalePriority.length < 2) {
     issues.push(`Прекалено мъжки акцент (${maleBias.length} press/bench упражнения, само ${femalePriority.length} за glutes/крака).`);
   }
   if (lowerBody.length < Math.max(2, Math.ceil(exercises.length * 0.35))) {
     issues.push(`Недостатъчен обем на долна част за жена: ${lowerBody.length}/${exercises.length} упражнения.`);
+  }
+  if (exercises.length >= 6 && upperBack.length < 2) {
+    issues.push(`Недостатъчен горен гръб/posture за жена: ${upperBack.length} упражнения (очакват се ≥2).`);
   }
 
   return { ok: issues.length === 0, issues };
@@ -607,7 +637,7 @@ export function preparePlanGeneration(source, adminConfig, helpers) {
       constraints: constraintsFromAnswers(answers, extra.exampleScheme || ''),
       tags,
     };
-    const equipmentInput = [...(answers.equipment || []), answers.equipmentOther].filter(Boolean);
+    const equipmentInput = expandEquipmentAnswers([...(answers.equipment || []), answers.equipmentOther].filter(Boolean));
     return {
       userPrompt: buildAdminPlanUserPrompt(brief),
       guidelineLayers: layers,
