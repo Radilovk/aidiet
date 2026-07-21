@@ -486,6 +486,7 @@
             /* 10000px is sufficient for 8+ form sections with ~50+ form fields
                This value accounts for potential future form expansion */
             max-height: 10000px;
+            overflow: visible;
         }
 
         .questionnaire-body {
@@ -943,7 +944,7 @@
 
         /* === SEPARATE NOTES CONTAINER (removed) === */
 
-        /* === QUESTIONNAIRE ACTIONS (bottom of expanded container) === */
+        /* === QUESTIONNAIRE ACTIONS (sticky while questionnaire is open) === */
         .questionnaire-actions {
             padding: 15px 20px;
             border-top: 1px solid rgba(13, 148, 136, 0.1);
@@ -953,8 +954,32 @@
             justify-content: center;
         }
 
+        .questionnaire-container.open .questionnaire-actions.is-stuck {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: calc(60px + var(--safe-area-inset-bottom));
+            z-index: 290;
+            margin: 0;
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-top: 1px solid rgba(13, 148, 136, 0.12);
+            box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.08);
+        }
+
+        .questionnaire-container.open .questionnaire-body {
+            padding-bottom: calc(88px + var(--safe-area-inset-bottom));
+        }
+
         [data-theme="dark"] .questionnaire-actions {
             border-top-color: rgba(45, 212, 191, 0.1);
+        }
+
+        [data-theme="dark"] .questionnaire-container.open .questionnaire-actions.is-stuck {
+            background: rgba(8, 22, 22, 0.96);
+            border-top-color: rgba(45, 212, 191, 0.12);
+            box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.35);
         }
 
         /* --- PROFILE DARK THEME ENHANCEMENTS --- */
@@ -2619,6 +2644,34 @@
         }
 
         // --- Questionnaire Collapsible Toggle ---
+        let questionnaireActionsObserver = null;
+
+        function syncQuestionnaireActionsStick() {
+            const container = document.getElementById('questionnaireContainer');
+            const actions = container?.querySelector('.questionnaire-actions');
+            if (!container || !actions) return;
+
+            if (!container.classList.contains('open')) {
+                actions.classList.remove('is-stuck');
+                return;
+            }
+
+            if (!('IntersectionObserver' in window)) {
+                actions.classList.add('is-stuck');
+                return;
+            }
+
+            if (!questionnaireActionsObserver) {
+                questionnaireActionsObserver = new IntersectionObserver(([entry]) => {
+                    const c = document.getElementById('questionnaireContainer');
+                    const a = c?.querySelector('.questionnaire-actions');
+                    if (!c || !a) return;
+                    a.classList.toggle('is-stuck', c.classList.contains('open') && entry.isIntersecting);
+                }, { threshold: 0, rootMargin: '0px 0px -70px 0px' });
+                questionnaireActionsObserver.observe(container);
+            }
+        }
+
         function toggleQuestionnaire() {
             const container = document.getElementById('questionnaireContainer');
             const header = container ? container.querySelector('.questionnaire-header') : null;
@@ -2627,6 +2680,11 @@
                 // Update aria-expanded for accessibility
                 if (header) {
                     header.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                }
+                if (!isOpen) {
+                    container.querySelector('.questionnaire-actions')?.classList.remove('is-stuck');
+                } else {
+                    syncQuestionnaireActionsStick();
                 }
             }
         }
@@ -2797,6 +2855,7 @@
                 container.classList.add('open');
                 if (header) header.setAttribute('aria-expanded', 'true');
             }
+            syncQuestionnaireActionsStick();
             if (container) {
                 setTimeout(function() { container.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
             }
@@ -3508,6 +3567,7 @@
                 initializeTheme();
                 loadUserData();
                 loadAnalysis(); // REQUIREMENT 1: Load analysis
+                syncQuestionnaireActionsStick();
                 if (window.NutriPlanDiagnostics) {
                     window.NutriPlanDiagnostics.ok('profile', 'setup-profile', 'Initial profile load complete');
                 }
