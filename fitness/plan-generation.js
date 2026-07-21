@@ -170,7 +170,11 @@ function isQuestionnaireCategoryTag(tag) {
   return /\(в\d|в\d+[\s.,)\]]/.test(t) || /^[а-яёъюяґ\d\s().,\-—]+$/i.test(t);
 }
 
-/** Админ chunks: questionnaire категории (В1…) винаги; machine tags (gender:жена) — филтър. */
+export function hasClientScheme(exampleScheme) {
+  return Boolean(String(exampleScheme || '').trim());
+}
+
+/** Админ chunks: questionnaire категории — само при съвпадение на пол; machine tags — филтър. */
 export function shouldIncludeAdminChunk(chunk, tagSet) {
   const tags = chunk?.tags || [];
   if (!tags.length || isUniversal(tags)) return true;
@@ -178,24 +182,34 @@ export function shouldIncludeAdminChunk(chunk, tagSet) {
   const stdTags = tags.filter(isStandardMachineTag);
   const categoryTags = tags.filter(isQuestionnaireCategoryTag);
 
-  if (categoryTags.length > 0) return true;
+  if (categoryTags.length > 0) {
+    const tokens = new Set(normalizeText(chunk.text || '').split(' ').filter(Boolean));
+    const femaleChunk = tokens.has('жена') || tokens.has('жени') || tokens.has('female');
+    const maleChunk = tokens.has('мъж') || tokens.has('мъже') || tokens.has('male');
+    if (femaleChunk && !tagSet.has('gender:жена')) return false;
+    if (maleChunk && !tagSet.has('gender:мъж')) return false;
+    return true;
+  }
   if (stdTags.length > 0) return stdTags.some((t) => tagSet.has(t));
   return true;
 }
 
 /** Правила от треньора + RAG насоки → system prompt. */
-export function buildTrainerSystemAddon(adminConfig, tagSet, layers = null) {
+export function buildTrainerSystemAddon(adminConfig, tagSet, layers = null, options = {}) {
+  const schemeMode = Boolean(options.schemeMode);
   const foundation = String(adminConfig?.foundation || '').trim().slice(0, MAX_FOUNDATION_CHARS);
-  const resolved = layers || resolveGuidelineLayers(tagSet, adminConfig);
-  const individual = resolved?.individual || [];
+  const resolved = layers || resolveGuidelineLayers(tagSet, adminConfig, options);
+  const individual = schemeMode ? [] : (resolved?.individual || []);
   const architecture = resolved?.architecture || [];
 
-  if (!foundation && !individual.length && !architecture.length) return '';
+  if (!foundation && !individual.length && !architecture.length && !schemeMode) return '';
 
-  const parts = [
-    '<trainer_rules>',
-    'Приоритет: individual_guidelines > architecture_guidelines.',
-  ];
+  const parts = ['<trainer_rules>'];
+  if (schemeMode) {
+    parts.push('<scheme> в user е задължителен шаблон — при конфликт scheme > тези правила.');
+  } else {
+    parts.push('Приоритет: individual_guidelines > architecture_guidelines.');
+  }
   if (foundation) parts.push(`<foundation>\n${foundation}\n</foundation>`);
   if (individual.length) {
     parts.push(`<individual_guidelines>\n${individual.map((t) => `- ${t}`).join('\n')}\n</individual_guidelines>`);
@@ -323,10 +337,13 @@ export function constraintsFromAnswers(answers, exampleScheme = '') {
   }
 
   const priorities = [];
+  const schemeMode = hasClientScheme(exampleScheme);
   const zoneText = String(answers?.goal?.zones || '').trim();
-  if (zoneText) priorities.push(`Зони↓: ${zoneText}`);
-  else if (normalizeText(answers?.gender || '').includes('жена')) {
-    priorities.push('Дупе>бедра; горна: постура/гръб');
+  if (!schemeMode) {
+    if (zoneText) priorities.push(`Зони↓: ${zoneText}`);
+    else if (normalizeText(answers?.gender || '').includes('жена')) {
+      priorities.push('Дупе>бедра; горна: постура/гръб');
+    }
   }
   if (answers?.extraInfo?.trim()) priorities.push(answers.extraInfo.trim());
 
@@ -388,6 +405,13 @@ export function allowedEquipmentFromBrief(clientProfile = '', exampleScheme = ''
     for (const hint of equipmentHintTokensFromText(item)) set.add(hint);
   }
   return set.size > 1 ? set : null;
+}
+
+export function mergeAllowedEquipment(a, b) {
+  if (a === null || b === null) return null;
+  if (!a) return b || null;
+  if (!b) return a || null;
+  return new Set([...a, ...b]);
 }
 
 function buildAdminHardRulesBlock(constraints) {
@@ -506,7 +530,8 @@ function prioritizeGenderGuidelines(individual, tagSet, adminChunks) {
 }
 
 /** Два слоя насоки: individual (таг) + architecture (universal). Foundation се добавя при prompt build. */
-export function resolveGuidelineLayers(tags, adminConfig = null) {
+export function resolveGuidelineLayers(tags, adminConfig = null, options = {}) {
+  const schemeMode = Boolean(options.schemeMode);
   const tagSet = tags instanceof Set ? tags : new Set(tags);
   const adminChunks = Array.isArray(adminConfig?.chunks) ? adminConfig.chunks : [];
   const adminTagged = new Set(adminChunks.flatMap((c) => c.tags || []));
@@ -527,18 +552,22 @@ export function resolveGuidelineLayers(tags, adminConfig = null) {
   for (const chunk of adminChunks) {
     if (!chunk.text || !shouldIncludeAdminChunk(chunk, tagSet)) continue;
     if (isUniversal(chunk.tags)) push(adminArchitecture, chunk.text);
-    else push(adminIndividual, chunk.text);
+    else if (!schemeMode) push(adminIndividual, chunk.text);
   }
 
-  for (const chunk of GUIDELINE_CHUNKS) {
-    if (!chunk.tags.some((t) => tagSet.has(t))) continue;
-    if (chunk.tags.some((t) => adminTagged.has(t))) continue;
-    if (adminCoversGender && chunk.tags.some((t) => t.startsWith('gender:'))) continue;
-    push(hardcodedIndividual, chunk.text);
+  if (!schemeMode) {
+    for (const chunk of GUIDELINE_CHUNKS) {
+      if (!chunk.tags.some((t) => tagSet.has(t))) continue;
+      if (chunk.tags.some((t) => adminTagged.has(t))) continue;
+      if (adminCoversGender && chunk.tags.some((t) => t.startsWith('gender:'))) continue;
+      push(hardcodedIndividual, chunk.text);
+    }
   }
 
   return {
-    individual: capIndividualGuidelines(adminIndividual, hardcodedIndividual, tagSet, adminChunks),
+    individual: schemeMode
+      ? []
+      : capIndividualGuidelines(adminIndividual, hardcodedIndividual, tagSet, adminChunks),
     architecture: capGuidelineTexts(adminArchitecture, MAX_ARCHITECTURE_ITEMS, MAX_ARCHITECTURE_CHARS),
   };
 }
@@ -564,23 +593,25 @@ export function buildBriefIdentityBlock(brief) {
   return `<tags>${tagList}</tags>`;
 }
 
-/** User prompt: само контекст (данни) + anchoring + задача. Правилата са в system. */
+/** User prompt: контекст + задача. <scheme> първи при наличие. */
 export function buildAdminPlanUserPrompt(brief) {
   const { clientProfile = '', exampleScheme = '', constraints: presetConstraints } = brief || {};
-  const constraints = presetConstraints || parseAdminBriefConstraints(clientProfile, exampleScheme);
+  const scheme = String(exampleScheme || '').trim();
+  const constraints = presetConstraints || parseAdminBriefConstraints(clientProfile, scheme);
   const hardRules = buildAdminHardRulesBlock(constraints);
 
   const parts = [buildBriefIdentityBlock(brief)];
+  if (scheme) parts.push(`<scheme>\n${scheme}\n</scheme>`);
   if (constraints.equipmentList?.length) {
     parts.push(`<equipment>\n${constraints.equipmentList.join(', ')}\n</equipment>`);
   }
   if (hardRules) parts.push(`<constraints>\n${hardRules}\n</constraints>`);
   parts.push(`<profile>\n${String(clientProfile || '').trim()}\n</profile>`);
-  if (String(exampleScheme || '').trim()) {
-    parts.push(`<scheme>\n${String(exampleScheme).trim()}\n</scheme>`);
-  }
 
-  return `${parts.join('\n\n')}\n\nВъз основа на данните по-горе, генерирай седмичен тренировъчен план. Отговори САМО с JSON.`;
+  const task = scheme
+    ? 'Следвай <scheme> точно (дни, упражнения, обем). Запълни 7 дни. JSON само.'
+    : 'Генерирай седмичен план от данните по-горе. JSON само.';
+  return `${parts.join('\n\n')}\n\n${task}`;
 }
 
 const MALE_BIAS_EXERCISE = /bench press|incline bench|decline bench|skull crush|close.?grip bench|barbell curl|military press|overhead press|shoulder press|tricep extension|bicep curl/i;
@@ -628,7 +659,8 @@ export function preparePlanGeneration(source, adminConfig, helpers) {
   function buildFromAnswers(answers, extra = {}) {
     const profileText = helpers.buildProfileSummary(answers);
     const tags = buildTagsFromAnswers(answers);
-    const layers = resolveGuidelineLayers(tags, adminConfig);
+    const schemeMode = hasClientScheme(extra.exampleScheme);
+    const layers = resolveGuidelineLayers(tags, adminConfig, { schemeMode });
     const brief = {
       clientProfile: profileText,
       exampleScheme: extra.exampleScheme || '',
@@ -636,12 +668,15 @@ export function preparePlanGeneration(source, adminConfig, helpers) {
       tags,
     };
     const equipmentInput = expandEquipmentAnswers([...(answers.equipment || []), answers.equipmentOther].filter(Boolean));
+    const fromBrief = allowedEquipmentFromBrief(profileText, extra.exampleScheme || '');
+    const fromAnswers = helpers.allowedEquipmentSet(equipmentInput);
     return {
       userPrompt: buildAdminPlanUserPrompt(brief),
       guidelineLayers: layers,
       coachProfileText: extra.coachProfileText || profileText,
-      allowedEquipment: helpers.allowedEquipmentSet(equipmentInput),
+      allowedEquipment: mergeAllowedEquipment(fromBrief, fromAnswers),
       clientTags: tags,
+      hasScheme: schemeMode,
     };
   }
 
