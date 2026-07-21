@@ -59,10 +59,12 @@ import {
 } from './exercise-classify-batch.js';
 import {
   EXERCISE_METADATA_KV_KEY,
+  SWAP_EQUIPMENT,
   buildExerciseCatalogSnippet,
   exerciseProfileFromAnswers,
   fitsExerciseProfile,
   mergeExerciseMetadata,
+  passesEquipment,
 } from './exercise-metadata.js';
 import { mergeExerciseTranslation } from './exercise-translations.js';
 import {
@@ -231,7 +233,7 @@ export function tokenOverlapScore(queryTokens, candidateTokens) {
  * Bonus от hints разграничава близки имена (Bench Press с щанга vs с дъмбели).
  * Връща { entry, score, usedFallback } или null ако базата е празна.
  */
-export function matchExercise(index, { canonicalName, equipmentHint, bodyPart }) {
+export function matchExercise(index, { canonicalName, equipmentHint, bodyPart, allowedEquipment = null }) {
   if (!index || !index.length) return null;
 
   const queryTokens = tokenize(canonicalName);
@@ -242,6 +244,7 @@ export function matchExercise(index, { canonicalName, equipmentHint, bodyPart })
   let bestScore = 0;
 
   for (const entry of index) {
+    if (!passesEquipment(entry, allowedEquipment)) continue;
     let score = tokenOverlapScore(queryTokens, entry.tokens);
     if (score === 0) continue;
     // Bonus от hints — само върху кандидати с текстово покритие.
@@ -264,9 +267,13 @@ export function matchExercise(index, { canonicalName, equipmentHint, bodyPart })
   // Fallback по категория: първи запис със същото equipment/target,
   // за да не остане празно поле в програмата.
   const fallback = index.find((e) =>
+    passesEquipment(e, allowedEquipment) &&
     (bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm)) &&
     (!equipNorm || e.equipNorm === equipNorm)
-  ) || index.find((e) => bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm));
+  ) || index.find((e) =>
+    passesEquipment(e, allowedEquipment) &&
+    bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm)
+  );
 
   if (fallback) return { entry: fallback, score: 0, usedFallback: true };
   return best ? { entry: best, score: Math.min(1, Number(bestScore.toFixed(3))), usedFallback: true } : null;
@@ -278,9 +285,10 @@ export function matchExercise(index, { canonicalName, equipmentHint, bodyPart })
  * разнообразие в оборудването (за да има смислен избор при замяна).
  */
 export function findAlternatives(index, matchedEntry, {
-  allowedEquipment = null, limit = MAX_ALTERNATIVES, excludeIds = [], exerciseProfile = null,
+  allowedEquipment = null, equipmentFilter = null, limit = MAX_ALTERNATIVES, excludeIds = [], exerciseProfile = null,
 } = {}) {
   if (!index || !matchedEntry) return [];
+  const equipFilter = equipmentFilter || allowedEquipment;
   const exclude = new Set([matchedEntry.id, ...excludeIds]);
   const target = matchedEntry.targetNorm;
   const body = matchedEntry.bodyNorm;
@@ -293,7 +301,7 @@ export function findAlternatives(index, matchedEntry, {
     const sameTarget = target && entry.targetNorm === target;
     const sameBody = body && entry.bodyNorm === body;
     if (!sameTarget && !sameBody) continue;
-    if (allowedEquipment && !allowedEquipment.has(entry.equipNorm)) continue;
+    if (!passesEquipment(entry, equipFilter)) continue;
     candidates.push({ entry, rank: (sameTarget ? 2 : 0) + (entry.equipNorm === matchedEntry.equipNorm ? 1 : 0) });
   }
 
@@ -760,8 +768,13 @@ export function enrichPlanWithExercises(plan, index, { allowedEquipment = null, 
         canonicalName: ex.canonicalName,
         equipmentHint: ex.equipmentHint,
         bodyPart: ex.bodyPart,
+        allowedEquipment,
       });
-      if (result?.entry && exerciseProfile && !fitsExerciseProfile(result.entry, exerciseProfile)) {
+      const needsSwap = result?.entry && (
+        (allowedEquipment && !passesEquipment(result.entry, allowedEquipment))
+        || (exerciseProfile && !fitsExerciseProfile(result.entry, exerciseProfile))
+      );
+      if (needsSwap) {
         const swap = findAlternatives(index, result.entry, {
           allowedEquipment, exerciseProfile, limit: 1, excludeIds: usedIds,
         });
@@ -772,8 +785,9 @@ export function enrichPlanWithExercises(plan, index, { allowedEquipment = null, 
         ex.matchScore = result.score;
         ex.matchFallback = result.usedFallback;
         usedIds.push(result.entry.id);
+        // Замяна в UI: само СТ / дъмбели / гири
         ex.alternatives = findAlternatives(index, result.entry, {
-          allowedEquipment,
+          equipmentFilter: SWAP_EQUIPMENT,
           excludeIds: usedIds,
           limit: MAX_ALTERNATIVES,
           exerciseProfile,
@@ -861,9 +875,9 @@ async function executePlanGeneration(env, ctx, {
   const system = strictAssembly ? PLAN_SYSTEM_ASSEMBLY : buildPlanSystemInstruction(trainerAddon);
 
   let catalogBlock = '';
-  if (!strictAssembly && !hasScheme && exerciseProfile) {
+  if (!strictAssembly) {
     const index = await indexPromise;
-    if (index?.length) {
+    if (index?.length && (allowedEquipment || exerciseProfile)) {
       catalogBlock = buildExerciseCatalogSnippet(index, exerciseProfile, allowedEquipment);
     }
   }
@@ -919,7 +933,7 @@ async function executePlanGeneration(env, ctx, {
   enrichPlanWithExercises(plan, index, {
     allowedEquipment,
     env,
-    exerciseProfile: (strictAssembly || hasScheme) ? null : exerciseProfile,
+    exerciseProfile: strictAssembly ? null : exerciseProfile,
   });
   sanitizePlanBulgarian(plan);
   const coachContext = buildCoachContext(coachProfileText, plan);
@@ -968,7 +982,13 @@ async function handleGeneratePlan(request, env, ctx) {
   }
 
   const planId = crypto.randomUUID();
-  const record = { plan, coachContext, createdAt: new Date().toISOString(), clientRef: body.clientRef || null };
+  const record = {
+    plan,
+    coachContext,
+    createdAt: new Date().toISOString(),
+    clientRef: body.clientRef || null,
+    allowedEquipment: allowedEquipment ? [...allowedEquipment] : null,
+  };
 
   if (env.FITNESS_KV) {
     ctx.waitUntil(env.FITNESS_KV.put(`plan:${planId}`, JSON.stringify(record), { expirationTtl: PLAN_TTL }));
@@ -985,7 +1005,8 @@ async function handleGetPlan(planId, env, ctx) {
   let plan = record.plan;
   const index = await loadExerciseIndex(env, ctx);
   if (index && plan) {
-    plan = enrichPlanWithExercises(JSON.parse(JSON.stringify(plan)), index, { env });
+    const allowed = record.allowedEquipment ? new Set(record.allowedEquipment) : null;
+    plan = enrichPlanWithExercises(JSON.parse(JSON.stringify(plan)), index, { env, allowedEquipment: allowed });
   }
 
   return jsonResponse({
@@ -1608,6 +1629,7 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
     status: 'draft',
     clientProgramId: record.id,
     clientName: record.clientName,
+    allowedEquipment: allowedEquipment ? [...allowedEquipment] : null,
   }), { expirationTtl: PLAN_TTL });
 
   record.planId = planId;

@@ -1710,7 +1710,7 @@ var STRICT_ASSEMBLY_RETRY_HINT = `
 \u041F\u041E\u0412\u0422\u041E\u0420: <scheme> \u0431\u0443\u043A\u0432\u0430\u043B\u043D\u043E \u2192 JSON. \u0411\u0435\u0437 \u043F\u0440\u043E\u043C\u0435\u043D\u0438 \u0432 \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0430\u0442\u0430.`;
 var GENDER_FIT_RETRY_HINT = `
 
-\u041A\u041E\u0420\u0415\u041A\u0426\u0418\u042F: \u0436\u0435\u043D\u0430 \u2014 \u0434\u0443\u043F\u0435 \u043D\u0430\u0439-\u0433\u043E\u043B\u044F\u043C \u043E\u0431\u0435\u043C; \u0431\u0435\u0434\u0440\u0430 < \u0434\u0443\u043F\u0435; \u0433\u043E\u0440\u043D\u0430 \u0447\u0430\u0441\u0442 \u0441\u0430\u043C\u043E \u043F\u043E\u0441\u0442\u0443\u0440\u0430/\u0433\u0440\u044A\u0431 (\u0431\u0435\u0437 bench/press/curl \u043E\u0431\u0435\u043C). JSON \u0441\u0430\u043C\u043E.`;
+\u041A\u041E\u0420\u0415\u041A\u0426\u0418\u042F: \u0436\u0435\u043D\u0430 \u2014 \u043F\u043E\u0432\u0435\u0447\u0435 glute, \u043F\u043E-\u043C\u0430\u043B\u043A\u043E bench/press/curl. JSON \u0441\u0430\u043C\u043E.`;
 var COMPACT_PLAN_RETRY_HINT = `
 
 \u041A\u041E\u041C\u041F\u0410\u041A\u0422\u041D\u041E: \u043C\u0430\u043A\u0441. 4 \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F/\u0434\u0435\u043D; notes\u226460 \u0437\u043D\u0430\u043A\u0430. \u0421\u0430\u043C\u043E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON.`;
@@ -2063,10 +2063,11 @@ function fitsExerciseProfile(entry, profile) {
   if (profile.isMale && gm < profile.minGm) return false;
   return true;
 }
+var SWAP_EQUIPMENT = /* @__PURE__ */ new Set(["body weight", "dumbbell", "kettlebell"]);
 function passesEquipment(entry, allowedEquipment) {
   if (!allowedEquipment) return true;
   const eq = entry?.equipNorm || normalizeText(entry?.equipment);
-  return allowedEquipment.has(eq) || allowedEquipment.has("body weight");
+  return allowedEquipment.has(eq);
 }
 function filterExercises(index, profile, allowedEquipment = null) {
   if (!index?.length) return [];
@@ -2324,6 +2325,7 @@ var GOAL_NORM = {
   "\u043E\u0431\u0449\u0430 \u043A\u043E\u043D\u0434\u0438\u0446\u0438\u044F": "\u043E\u0431\u0449\u0430",
   "\u0440\u0435\u0445\u0430\u0431\u0438\u043B\u0438\u0442\u0430\u0446\u0438\u044F \u0441\u043B\u0435\u0434 \u0442\u0440\u0430\u0432\u043C\u0430": "\u0440\u0435\u0445\u0430\u0431"
 };
+var DEFAULT_VOLUME = { glutes: 10, quads: 8, hamstrings: 6, back: 8, core: 6, chest: 6, shoulders: 6, arms: 6 };
 function goalKey(answers) {
   const main = normalizeText(answers?.goal?.main || "");
   if (main === "\u0434\u0440\u0443\u0433\u043E") return normalizeText(answers?.goal?.other || "") || "\u043E\u0431\u0449\u0430";
@@ -2395,9 +2397,13 @@ function baseVolumeByGoal(goalNorm) {
 }
 function applyLevelScale(vol, level) {
   const scale = level === 1 ? 0.8 : level === 3 ? 1.12 : 1;
-  const out = {};
-  for (const [k, v] of Object.entries(vol)) {
-    out[k] = Math.max(4, Math.round(v * scale));
+  const out = { ...DEFAULT_VOLUME, ...vol };
+  for (
+    const k of
+    /** @type {(keyof VolumeMap)[]} */
+    Object.keys(DEFAULT_VOLUME)
+  ) {
+    out[k] = Math.max(4, Math.round(out[k] * scale));
   }
   return out;
 }
@@ -2449,6 +2455,7 @@ function buildVolumeBudget(answers) {
   const level = parseLevel(answers?.experience);
   const goalNorm = goalKey(answers);
   let vol = baseVolumeByGoal(goalNorm);
+  if (!vol || typeof vol !== "object" || !Object.keys(vol).length) vol = { ...DEFAULT_VOLUME };
   vol = applyLevelScale(vol, level);
   vol = applyGenderBias(vol, isFemale, isMale);
   const zonesText = answers?.goal?.zones || "";
@@ -2559,15 +2566,14 @@ var MAX_ARCHITECTURE_CHARS = 2800;
 var UNIVERSAL_TAGS = /* @__PURE__ */ new Set(["all", "*", "\u043E\u0431\u0449\u043E"]);
 var GUIDELINE_CHUNKS = [
   { tags: ["goal:\u043E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435"], text: "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435: \u0437\u0430\u043F\u0430\u0437\u0438 \u0441\u0438\u043B\u043E\u0432 \u0442\u0440\u0435\u043D\u0438\u043D\u0433 + 1\u20132 \u043A\u0430\u0440\u0434\u0438\u043E \u0434\u043D\u0438. \u0414\u0435\u0444\u0438\u0446\u0438\u0442\u044A\u0442 \u0435 \u043E\u0442 \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u2014 \u043D\u0435 \u0438\u0437\u0442\u043E\u0449\u0430\u0432\u0430\u0439 \u043A\u043B\u0438\u0435\u043D\u0442\u0430 \u0432 \u0437\u0430\u043B\u0430\u0442\u0430." },
-  { tags: ["goal:\u043F\u043E\u043A\u0430\u0447\u0432\u0430\u043D\u0435 \u043D\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430"], text: "\u0425\u0438\u043F\u0435\u0440\u0442\u0440\u043E\u0444\u0438\u044F: \u043E\u0431\u0435\u043C\u044A\u0442 \u0435 \u0432 program_spec \u2014 \u0444\u043E\u043A\u0443\u0441 \u0432\u044A\u0440\u0445\u0443 \u043F\u0440\u043E\u0433\u0440\u0435\u0441\u0438\u044F \u0432 \u0437\u0430\u0434\u0430\u0434\u0435\u043D\u0438\u044F rep range; \u0432\u0441\u044F\u043A\u0430 \u0433\u0440\u0443\u043F\u0430 2\xD7/\u0441\u0435\u0434\u043C > 1\xD7." },
+  { tags: ["goal:\u043F\u043E\u043A\u0430\u0447\u0432\u0430\u043D\u0435 \u043D\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430"], text: "\u0425\u0438\u043F\u0435\u0440\u0442\u0440\u043E\u0444\u0438\u044F: \u043F\u0440\u043E\u0433\u0440\u0435\u0441\u0438\u044F \u2014 \u043F\u044A\u0440\u0432\u043E reps \u0432 \u0434\u0438\u0430\u043F\u0430\u0437\u043E\u043D\u0430, \u043F\u043E\u0441\u043B\u0435 \u0442\u0435\u0436\u0435\u0441\u0442; \u0432\u0441\u044F\u043A\u0430 \u0433\u0440\u0443\u043F\u0430 2\xD7/\u0441\u0435\u0434\u043C > 1\xD7." },
   { tags: ["goal:\u0441\u0438\u043B\u043E\u0432\u0438 \u043F\u043E\u043A\u0430\u0437\u0430\u0442\u0435\u043B\u0438"], text: "\u0421\u0438\u043B\u0430: \u043E\u0441\u043D\u043E\u0432\u043D\u0438 \u0434\u0432\u0438\u0436\u0435\u043D\u0438\u044F \u043F\u044A\u0440\u0432\u0438 \u0432 \u0434\u0435\u043D\u044F; \u0442\u0435\u0445\u043D\u0438\u043A\u0430 \u043F\u0440\u0435\u0434\u0438 \u0442\u0435\u0436\u0435\u0441\u0442; \u043F\u044A\u043B\u043D\u0438 \u043F\u043E\u0447\u0438\u0432\u043A\u0438 \u043F\u0440\u0438 \u0442\u0435\u0436\u043A\u0438 \u0441\u0435\u0440\u0438\u0438." },
   { tags: ["goal:\u0438\u0437\u0434\u0440\u044A\u0436\u043B\u0438\u0432\u043E\u0441\u0442"], text: "\u0418\u0437\u0434\u0440\u044A\u0436\u043B\u0438\u0432\u043E\u0441\u0442: \u043F\u0440\u0435\u043E\u0431\u043B\u0430\u0434\u0430\u0432\u0430 \u0437\u043E\u043D\u0430 2/\u0438\u0437\u0434\u0440\u044A\u0436\u043B\u0438\u0432\u043E\u0441\u0442; \u0441\u0438\u043B\u0430\u0442\u0430 \u0435 \u043F\u043E\u0434\u0434\u0440\u044A\u0436\u0430\u0449\u0430, \u043D\u0435 \u043E\u0441\u043D\u043E\u0432\u0435\u043D \u0430\u043A\u0446\u0435\u043D\u0442." },
   { tags: ["goal:\u0440\u0435\u043A\u043E\u043C\u043F\u043E\u0437\u0438\u0446\u0438\u044F"], text: "\u0420\u0435\u043A\u043E\u043C\u043F\u043E\u0437\u0438\u0446\u0438\u044F: \u0441\u0438\u043B\u043E\u0432 \u043E\u0431\u0435\u043C \u043F\u043E spec + \u0443\u043C\u0435\u0440\u0435\u043D\u043E \u043A\u0430\u0440\u0434\u0438\u043E; \u0437\u0430\u043B\u043E\u0436\u0438 \u0438\u0437\u043C\u0435\u0440\u0438\u043C\u0430 \u0441\u0438\u043B\u043E\u0432\u0430 \u043F\u0440\u043E\u0433\u0440\u0435\u0441\u0438\u044F." },
   { tags: ["goal:\u043E\u0431\u0449\u0430 \u043A\u043E\u043D\u0434\u0438\u0446\u0438\u044F"], text: "\u041E\u0431\u0449\u0430 \u043A\u043E\u043D\u0434\u0438\u0446\u0438\u044F: \u0431\u0430\u043B\u0430\u043D\u0441 \u0441\u0438\u043B\u0430 + \u043A\u0430\u0440\u0434\u0438\u043E + \u043C\u043E\u0431\u0438\u043B\u043D\u043E\u0441\u0442; \u0440\u0430\u0437\u043D\u043E\u043E\u0431\u0440\u0430\u0437\u0438\u0435 \u0437\u0430 \u043F\u0440\u0438\u0434\u044A\u0440\u0436\u0430\u043D\u0435." },
   { tags: ["goal:\u0440\u0435\u0445\u0430\u0431\u0438\u043B\u0438\u0442\u0430\u0446\u0438\u044F \u0441\u043B\u0435\u0434 \u0442\u0440\u0430\u0432\u043C\u0430"], text: "\u0420\u0435\u0445\u0430\u0431: \u0441\u0430\u043C\u043E \u0431\u0435\u0437\u0431\u043E\u043B\u0435\u0437\u043D\u0435\u043D ROM \u0438 \u043A\u043E\u043D\u0442\u0440\u043E\u043B; \u043F\u043B\u0430\u043D\u044A\u0442 \u043D\u0435 \u0437\u0430\u043C\u0435\u0441\u0442\u0432\u0430 \u0444\u0438\u0437\u0438\u043E\u0442\u0435\u0440\u0430\u043F\u0435\u0432\u0442." },
-  { tags: ["level:\u043D\u0430\u0447\u0438\u043D\u0430\u0435\u0449"], text: "\u041D\u0430\u0447\u0438\u043D\u0430\u0435\u0449\u0438: \u0442\u0435\u0445\u043D\u0438\u043A\u0430 \u0438 \u043A\u043E\u043D\u0442\u0440\u043E\u043B \u043F\u0440\u0435\u0434\u0438 \u0442\u0435\u0436\u0435\u0441\u0442; \u043C\u0430\u0448\u0438\u043D\u0438/\u0441\u043E\u0431\u0441\u0442\u0432\u0435\u043D\u043E \u0442\u0435\u0433\u043B\u043E \u043F\u0440\u0435\u0434 \u0441\u043B\u043E\u0436\u043D\u0438 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u0438 \u0442\u0435\u0436\u0435\u0441\u0442\u0438." },
-  { tags: ["level:\u0441\u0440\u0435\u0434\u0435\u043D"], text: "\u0421\u0440\u0435\u0434\u0435\u043D \u043E\u043F\u0438\u0442: \u0441\u043F\u043B\u0438\u0442\u044A\u0442 \u0435 \u0432 program_spec \u2014 \u0432\u0430\u0440\u0438\u0438\u0440\u0430\u0439 \u0438\u043D\u0442\u0435\u043D\u0437\u0438\u0442\u0435\u0442 \u0432 \u0440\u0430\u043C\u043A\u0438\u0442\u0435 \u043D\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430\u0442\u0430." },
-  { tags: ["level:\u043D\u0430\u043F\u0440\u0435\u0434\u043D\u0430\u043B"], text: "\u041D\u0430\u043F\u0440\u0435\u0434\u043D\u0430\u043B: \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0437\u0430\u0446\u0438\u044F \u043F\u043E program_spec; \u0438\u043D\u0442\u0435\u043D\u0437\u0438\u0444\u0438\u043A\u0430\u0442\u043E\u0440\u0438 \u043C\u0430\u043A\u0441. 1\u20132 \u043D\u0430 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430." },
+  { tags: ["level:\u043D\u0430\u0447\u0438\u043D\u0430\u0435\u0449"], text: "\u041D\u0430\u0447\u0438\u043D\u0430\u0435\u0449\u0438: \u0442\u0435\u0445\u043D\u0438\u043A\u0430 \u0438 \u043A\u043E\u043D\u0442\u0440\u043E\u043B \u043F\u0440\u0435\u0434\u0438 \u0442\u0435\u0436\u0435\u0441\u0442; \u043C\u0430\u0448\u0438\u043D\u0438/\u0421\u0422 \u043F\u0440\u0435\u0434 \u0441\u043B\u043E\u0436\u043D\u0438 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u0438 \u0442\u0435\u0436\u0435\u0441\u0442\u0438." },
+  { tags: ["level:\u043D\u0430\u043F\u0440\u0435\u0434\u043D\u0430\u043B"], text: "\u041D\u0430\u043F\u0440\u0435\u0434\u043D\u0430\u043B: \u0438\u043D\u0442\u0435\u043D\u0437\u0438\u0444\u0438\u043A\u0430\u0442\u043E\u0440\u0438 \u043C\u0430\u043A\u0441. 1\u20132 \u043D\u0430 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430." },
   { tags: ["health:\u0445\u0438\u043F\u0435\u0440\u0442\u043E\u043D\u0438\u044F", "health:\u0441\u044A\u0440\u0434\u0435\u0447\u043D\u043E-\u0441\u044A\u0434\u043E\u0432\u043E"], text: "\u0441\u044A\u0440\u0434\u0435\u0447\u043D\u043E-\u0441\u044A\u0434\u043E\u0432 \u0440\u0438\u0441\u043A: \u0431\u0435\u0437 Valsalva \u0438 \u043C\u0430\u043A\u0441 singles; \u0441\u043F\u0430\u0437\u0438 rpe \u043E\u0442 spec; safetyNotes: \u043B\u0435\u043A\u0430\u0440\u0441\u043A\u043E \u043E\u0434\u043E\u0431\u0440\u0435\u043D\u0438\u0435." },
   { tags: ["health:\u0434\u0438\u0430\u0431\u0435\u0442"], text: "\u0414\u0438\u0430\u0431\u0435\u0442: \u0440\u0435\u0434\u043E\u0432\u043D\u043E\u0441\u0442 > \u0438\u043D\u0442\u0435\u043D\u0437\u0438\u0442\u0435\u0442; \u0432\u043D\u0438\u043C\u0430\u043D\u0438\u0435 \u043F\u0440\u0438 \u0445\u0438\u043F\u043E\u0433\u043B\u0438\u043A\u0435\u043C\u0438\u044F \u2014 \u043D\u0435 \u043D\u0430 \u043F\u0440\u0430\u0437\u0435\u043D \u0441\u0442\u043E\u043C\u0430\u0445." },
   { tags: ["health:\u0431\u0440\u0435\u043C\u0435\u043D\u043D\u043E\u0441\u0442"], text: "\u0431\u0440\u0435\u043C\u0435\u043D\u043D\u043E\u0441\u0442: \u0441\u0430\u043C\u043E \u0441 \u043B\u0435\u043A\u0430\u0440\u0441\u043A\u043E \u043E\u0434\u043E\u0431\u0440\u0435\u043D\u0438\u0435. \u0411\u0435\u0437 \u043A\u043E\u0440\u0435\u043C\u043D\u0438 \u043A\u0440\u0430\u043D\u0447\u043E\u0432\u0435, \u043B\u0435\u0436\u0430\u043D\u043A\u0438 \u043F\u043E \u0433\u0440\u044A\u0431 (\u0441\u043B\u0435\u0434 1-\u0432\u0438 \u0442\u0440\u0438\u043C.), \u0437\u0430\u0434\u044A\u0440\u0436\u0430\u043D\u0435 \u043D\u0430 \u0434\u044A\u0445\u0430, \u043F\u0430\u0434\u0430\u043D\u0438\u044F. \u0423\u043C\u0435\u0440\u0435\u043D \u0438\u043D\u0442\u0435\u043D\u0437\u0438\u0442\u0435\u0442." },
@@ -2578,7 +2584,7 @@ var GUIDELINE_CHUNKS = [
   { tags: ["equipment:\u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u043E"], text: "\u041E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u043E \u043E\u0431\u043E\u0440\u0443\u0434\u0432\u0430\u043D\u0435: tempo, unilateral \u0438 \u043F\u043E-\u043A\u044A\u0441\u0438 \u043F\u043E\u0447\u0438\u0432\u043A\u0438 \u0432\u043C\u0435\u0441\u0442\u043E \u043F\u043E\u0432\u0435\u0447\u0435 \u0442\u0435\u0436\u0435\u0441\u0442." },
   { tags: ["time:\u0441\u0443\u0442\u0440\u0438\u043D"], text: "\u0421\u0443\u0442\u0440\u0435\u0448\u043D\u0438 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438: +5 \u043C\u0438\u043D \u0437\u0430\u0433\u0440\u044F\u0432\u043A\u0430; \u0431\u0435\u0437 \u043C\u0430\u043A\u0441 \u043E\u043F\u0438\u0442\u0438 \u043D\u0430 \u0433\u043B\u0430\u0434\u043D\u043E." },
   { tags: ["age:50+"], text: "\u0412\u044A\u0437\u0440\u0430\u0441\u0442 50+: \u0443\u0434\u044A\u043B\u0436\u0435\u043D\u0430 \u0437\u0430\u0433\u0440\u044F\u0432\u043A\u0430; \u043A\u043E\u043D\u0442\u0440\u043E\u043B\u0438\u0440\u0430\u043D\u043E \u0442\u0435\u043C\u043F\u043E; \u0431\u0430\u043B\u0430\u043D\u0441/\u043C\u043E\u0431\u0438\u043B\u043D\u043E\u0441\u0442; 48\u201372\u0447 \u043C\u0435\u0436\u0434\u0443 \u0442\u0435\u0436\u043A\u0438 \u0441\u0435\u0441\u0438\u0438." },
-  { tags: ["gender:\u0436\u0435\u043D\u0430"], text: "\u0416\u0435\u043D\u0430: \u043F\u0440\u0438\u043E\u0440\u0438\u0442\u0435\u0442 \u21161 \u0434\u0443\u043F\u0435 (\u043E\u0431\u0435\u043C+\u0444\u043E\u0440\u043C\u0430); \u0431\u0435\u0434\u0440\u0430 \u0441\u0442\u0435\u0433\u043D\u0430\u0442\u0438, \u043D\u043E < \u0434\u0443\u043F\u0435; \u0433\u043E\u0440\u043D\u0430 \u0447\u0430\u0441\u0442 \u0441\u0430\u043C\u043E \u043F\u043E\u0441\u0442\u0443\u0440\u0430/\u0433\u0440\u044A\u0431 \u2014 \u0431\u0435\u0437 bench/press/curl \u043E\u0431\u0435\u043C." },
+  { tags: ["gender:\u0436\u0435\u043D\u0430"], text: "\u0416\u0435\u043D\u0430: \u0433\u043E\u0440\u043D\u0430 \u0447\u0430\u0441\u0442 \u2014 \u043F\u043E\u0441\u0442\u0443\u0440\u0430/\u0433\u0440\u044A\u0431 \u0441\u0430\u043C\u043E; \u0431\u0435\u0437 bench/press/curl \u043E\u0431\u0435\u043C (\u043E\u0431\u0435\u043C\u044A\u0442 \u0435 \u0432 spec)." },
   { tags: ["gender:\u043C\u044A\u0436"], text: "\u041C\u044A\u0436: \u0431\u0435\u0437 glute-isolation \u0444\u043E\u043A\u0443\u0441 \u0431\u0435\u0437 \u0443\u043A\u0430\u0437\u0430\u043D\u0438\u0435 \u043E\u0442 \u043F\u0440\u043E\u0444\u0438\u043B\u0430 \u0438\u043B\u0438 zones\u2193." }
 ];
 var TEXT_TAG_RULES = [
@@ -2718,7 +2724,7 @@ function buildTrainerSystemAddon(adminConfig, tagSet, layers = null, options = {
   const schemeMode = Boolean(options.schemeMode);
   const foundation = String(adminConfig?.foundation || "").trim().slice(0, MAX_FOUNDATION_CHARS);
   const resolved = layers || resolveGuidelineLayers(tagSet, adminConfig, options);
-  const individual = schemeMode ? [] : resolved?.individual || [];
+  const individual = resolved?.individual || [];
   const architecture = resolved?.architecture || [];
   if (!foundation && !individual.length && !architecture.length && !schemeMode) return "";
   const parts = ["<trainer_rules>"];
@@ -2844,22 +2850,7 @@ function constraintsFromAnswers(answers, exampleScheme = "", options = {}) {
     }
   }
   const priorities = [];
-  if (!strictAssembly) {
-    const schemeMode = hasClientScheme(exampleScheme);
-    const zoneText = String(answers?.goal?.zones || "").trim();
-    if (!schemeMode) {
-      if (zoneText) priorities.push(`\u0417\u043E\u043D\u0438\u2193: ${zoneText}`);
-      else if (normalizeText(answers?.gender || "").includes("\u0436\u0435\u043D\u0430")) {
-        priorities.push("\u0414\u0443\u043F\u0435>\u0431\u0435\u0434\u0440\u0430; \u0433\u043E\u0440\u043D\u0430: \u043F\u043E\u0441\u0442\u0443\u0440\u0430/\u0433\u0440\u044A\u0431");
-      }
-    }
-    if (answers?.extraInfo?.trim()) priorities.push(answers.extraInfo.trim());
-  }
   const schedule = [];
-  if (!strictAssembly) {
-    if (answers?.preferences?.freq) schedule.push(`${answers.preferences.freq} \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`);
-    if (answers?.preferences?.duration) schedule.push(`\u041F\u0440\u043E\u0434\u044A\u043B\u0436\u0438\u0442\u0435\u043B\u043D\u043E\u0441\u0442: ${answers.preferences.duration}`);
-  }
   const fromScheme = parseAdminBriefConstraints("", exampleScheme);
   return {
     equipmentList: [.../* @__PURE__ */ new Set([...equipmentList, ...fromScheme.equipmentList])],
@@ -2909,11 +2900,9 @@ function allowedEquipmentFromBrief(clientProfile = "", exampleScheme = "") {
   }
   return set.size > 1 ? set : null;
 }
-function mergeAllowedEquipment(a, b) {
-  if (a === null || b === null) return null;
-  if (!a) return b || null;
-  if (!b) return a || null;
-  return /* @__PURE__ */ new Set([...a, ...b]);
+function mergeAllowedEquipment(fromBrief, fromAnswers) {
+  if (fromBrief?.size) return fromBrief;
+  return fromAnswers ?? null;
 }
 function buildAdminHardRulesBlock(constraints) {
   const parts = [];
@@ -3033,7 +3022,7 @@ function resolveGuidelineLayers(tags, adminConfig = null, options = {}) {
   for (const chunk of adminChunks) {
     if (!chunk.text || !shouldIncludeAdminChunk(chunk, tagSet)) continue;
     if (isUniversal(chunk.tags)) push(adminArchitecture, chunk.text);
-    else if (!schemeMode) push(adminIndividual, chunk.text);
+    else push(adminIndividual, chunk.text);
   }
   if (!schemeMode) {
     for (const chunk of GUIDELINE_CHUNKS) {
@@ -3043,8 +3032,9 @@ function resolveGuidelineLayers(tags, adminConfig = null, options = {}) {
       push(hardcodedIndividual, chunk.text);
     }
   }
+  const individual = strictAssembly ? [] : schemeMode ? capGuidelineTexts(adminIndividual) : capIndividualGuidelines(adminIndividual, hardcodedIndividual, tagSet, adminChunks);
   return {
-    individual: schemeMode || strictAssembly ? [] : capIndividualGuidelines(adminIndividual, hardcodedIndividual, tagSet, adminChunks),
+    individual,
     architecture: strictAssembly ? [] : capGuidelineTexts(adminArchitecture, MAX_ARCHITECTURE_ITEMS, MAX_ARCHITECTURE_CHARS)
   };
 }
@@ -3133,6 +3123,7 @@ function preparePlanGeneration(source, adminConfig, helpers) {
   function buildFromAnswers(answers, extra = {}) {
     const profileText = answers?.gender ? helpers.buildProfileSummary(answers) : "";
     const tags = answers?.gender ? buildTagsFromAnswers(answers) : /* @__PURE__ */ new Set();
+    for (const t of extractTagsFromText(profileText, extra.exampleScheme || "")) tags.add(t);
     const strictAssembly = isStrictAssembly(extra.strictScheme, extra.exampleScheme);
     const schemeMode = strictAssembly || hasClientScheme(extra.exampleScheme);
     const layers = resolveGuidelineLayers(tags, adminConfig, { schemeMode, strictAssembly });
@@ -3237,7 +3228,7 @@ function tokenOverlapScore(queryTokens, candidateTokens) {
   }
   return overlap / Math.max(new Set(queryTokens).size, candidateSet.size);
 }
-function matchExercise(index, { canonicalName, equipmentHint, bodyPart }) {
+function matchExercise(index, { canonicalName, equipmentHint, bodyPart, allowedEquipment = null }) {
   if (!index || !index.length) return null;
   const queryTokens = tokenize(canonicalName);
   const equipNorm = normalizeText(equipmentHint);
@@ -3245,6 +3236,7 @@ function matchExercise(index, { canonicalName, equipmentHint, bodyPart }) {
   let best = null;
   let bestScore = 0;
   for (const entry of index) {
+    if (!passesEquipment(entry, allowedEquipment)) continue;
     let score = tokenOverlapScore(queryTokens, entry.tokens);
     if (score === 0) continue;
     if (equipNorm && entry.equipNorm && (entry.equipNorm.includes(equipNorm) || equipNorm.includes(entry.equipNorm))) {
@@ -3262,18 +3254,22 @@ function matchExercise(index, { canonicalName, equipmentHint, bodyPart }) {
     return { entry: best, score: Math.min(1, Number(bestScore.toFixed(3))), usedFallback: false };
   }
   const fallback = index.find(
-    (e) => bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm) && (!equipNorm || e.equipNorm === equipNorm)
-  ) || index.find((e) => bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm));
+    (e) => passesEquipment(e, allowedEquipment) && (bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm)) && (!equipNorm || e.equipNorm === equipNorm)
+  ) || index.find(
+    (e) => passesEquipment(e, allowedEquipment) && bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm)
+  );
   if (fallback) return { entry: fallback, score: 0, usedFallback: true };
   return best ? { entry: best, score: Math.min(1, Number(bestScore.toFixed(3))), usedFallback: true } : null;
 }
 function findAlternatives(index, matchedEntry, {
   allowedEquipment = null,
+  equipmentFilter = null,
   limit = MAX_ALTERNATIVES,
   excludeIds = [],
   exerciseProfile = null
 } = {}) {
   if (!index || !matchedEntry) return [];
+  const equipFilter = equipmentFilter || allowedEquipment;
   const exclude = /* @__PURE__ */ new Set([matchedEntry.id, ...excludeIds]);
   const target = matchedEntry.targetNorm;
   const body = matchedEntry.bodyNorm;
@@ -3285,7 +3281,7 @@ function findAlternatives(index, matchedEntry, {
     const sameTarget = target && entry.targetNorm === target;
     const sameBody = body && entry.bodyNorm === body;
     if (!sameTarget && !sameBody) continue;
-    if (allowedEquipment && !allowedEquipment.has(entry.equipNorm)) continue;
+    if (!passesEquipment(entry, equipFilter)) continue;
     candidates.push({ entry, rank: (sameTarget ? 2 : 0) + (entry.equipNorm === matchedEntry.equipNorm ? 1 : 0) });
   }
   candidates.sort((a, b) => b.rank - a.rank);
@@ -3692,9 +3688,11 @@ function enrichPlanWithExercises(plan, index, { allowedEquipment = null, env = {
       let result = matchExercise(index, {
         canonicalName: ex.canonicalName,
         equipmentHint: ex.equipmentHint,
-        bodyPart: ex.bodyPart
+        bodyPart: ex.bodyPart,
+        allowedEquipment
       });
-      if (result?.entry && exerciseProfile && !fitsExerciseProfile(result.entry, exerciseProfile)) {
+      const needsSwap = result?.entry && (allowedEquipment && !passesEquipment(result.entry, allowedEquipment) || exerciseProfile && !fitsExerciseProfile(result.entry, exerciseProfile));
+      if (needsSwap) {
         const swap = findAlternatives(index, result.entry, {
           allowedEquipment,
           exerciseProfile,
@@ -3709,7 +3707,7 @@ function enrichPlanWithExercises(plan, index, { allowedEquipment = null, env = {
         ex.matchFallback = result.usedFallback;
         usedIds.push(result.entry.id);
         ex.alternatives = findAlternatives(index, result.entry, {
-          allowedEquipment,
+          equipmentFilter: SWAP_EQUIPMENT,
           excludeIds: usedIds,
           limit: MAX_ALTERNATIVES,
           exerciseProfile
@@ -3778,9 +3776,9 @@ async function executePlanGeneration(env, ctx, {
   const trainerAddon = strictAssembly ? "" : buildTrainerSystemAddon(adminConfig, tagSet, guidelineLayers, { schemeMode: hasScheme, strictAssembly });
   const system = strictAssembly ? PLAN_SYSTEM_ASSEMBLY : buildPlanSystemInstruction(trainerAddon);
   let catalogBlock = "";
-  if (!strictAssembly && !hasScheme && exerciseProfile) {
+  if (!strictAssembly) {
     const index2 = await indexPromise;
-    if (index2?.length) {
+    if (index2?.length && (allowedEquipment || exerciseProfile)) {
       catalogBlock = buildExerciseCatalogSnippet(index2, exerciseProfile, allowedEquipment);
     }
   }
@@ -3832,7 +3830,7 @@ ${catalogBlock}` : userPrompt;
   enrichPlanWithExercises(plan, index, {
     allowedEquipment,
     env,
-    exerciseProfile: strictAssembly || hasScheme ? null : exerciseProfile
+    exerciseProfile: strictAssembly ? null : exerciseProfile
   });
   sanitizePlanBulgarian(plan);
   const coachContext = buildCoachContext(coachProfileText, plan);
@@ -3880,7 +3878,13 @@ async function handleGeneratePlan(request, env, ctx) {
     return errorResponse("AI \u0443\u0441\u043B\u0443\u0433\u0430\u0442\u0430 \u0435 \u0432\u0440\u0435\u043C\u0435\u043D\u043D\u043E \u043D\u0435\u0434\u043E\u0441\u0442\u044A\u043F\u043D\u0430. \u041E\u043F\u0438\u0442\u0430\u0439 \u043E\u0442\u043D\u043E\u0432\u043E \u0441\u043B\u0435\u0434 \u043C\u0438\u043D\u0443\u0442\u0430.", 502, "ai_unavailable");
   }
   const planId = crypto.randomUUID();
-  const record = { plan, coachContext, createdAt: (/* @__PURE__ */ new Date()).toISOString(), clientRef: body.clientRef || null };
+  const record = {
+    plan,
+    coachContext,
+    createdAt: (/* @__PURE__ */ new Date()).toISOString(),
+    clientRef: body.clientRef || null,
+    allowedEquipment: allowedEquipment ? [...allowedEquipment] : null
+  };
   if (env.FITNESS_KV) {
     ctx.waitUntil(env.FITNESS_KV.put(`plan:${planId}`, JSON.stringify(record), { expirationTtl: PLAN_TTL }));
   }
@@ -3893,7 +3897,8 @@ async function handleGetPlan(planId, env, ctx) {
   let plan = record.plan;
   const index = await loadExerciseIndex(env, ctx);
   if (index && plan) {
-    plan = enrichPlanWithExercises(JSON.parse(JSON.stringify(plan)), index, { env });
+    const allowed = record.allowedEquipment ? new Set(record.allowedEquipment) : null;
+    plan = enrichPlanWithExercises(JSON.parse(JSON.stringify(plan)), index, { env, allowedEquipment: allowed });
   }
   return jsonResponse({
     success: true,
@@ -4440,7 +4445,8 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
     regeneratedAt: now,
     status: "draft",
     clientProgramId: record.id,
-    clientName: record.clientName
+    clientName: record.clientName,
+    allowedEquipment: allowedEquipment ? [...allowedEquipment] : null
   }), { expirationTtl: PLAN_TTL });
   record.planId = planId;
   record.planTitle = plan.title || null;

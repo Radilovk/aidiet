@@ -110,10 +110,13 @@ export function fitsExerciseProfile(entry, profile) {
   return true;
 }
 
-function passesEquipment(entry, allowedEquipment) {
+/** Алтернативи за замяна в UI — само СТ, дъмбели, гири. */
+export const SWAP_EQUIPMENT = new Set(['body weight', 'dumbbell', 'kettlebell']);
+
+export function passesEquipment(entry, allowedEquipment) {
   if (!allowedEquipment) return true;
   const eq = entry?.equipNorm || normalizeText(entry?.equipment);
-  return allowedEquipment.has(eq) || allowedEquipment.has('body weight');
+  return allowedEquipment.has(eq);
 }
 
 /** Филтрира индекс по профил + оборудване. */
