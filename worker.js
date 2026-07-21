@@ -54,7 +54,7 @@ var MEAL_PLAN_MEAL_SCHEMA = {
 var MEAL_BREAKDOWN_ITEM_SCHEMA = {
   type: "object",
   properties: {
-    type: { type: "string" },
+    type: { type: "string", enum: CANONICAL_MEAL_TYPES },
     calories: { type: "number" },
     protein: { type: "number" },
     carbs: { type: "number" },

@@ -31,6 +31,23 @@ correctedMetabolism.realBMR = bmr; realTDEE = Final_Calories.
 
 5. МАКРОСИ от Final_Calories: protein%/carbs%/fats% по цел, темперамент, клиника, хранителни навици. fats_g ≥ {MIN_FAT_GRAMS}. Баланс: P×4+C×4+F×9 ≈ Final_Calories (±15 kcal).
 
-6. АНАЛИЗ СТРАНИЦА: BMI+категория, physiologicalPhase, waterDeficit (нужда {waterMin}–{waterMax} л), negativeHealthFactors/hinderingFactors (severity 1-3), cumulativeRiskScore, metabolicReactivity (speed/adaptability по activityScore), keyProblems (3-6, Borderline/Risky/Critical), currentHealthStatus (score 0-100, занижено с {HEALTH_STATUS_UNDERESTIMATE_PERCENT}%), forecastPessimistic/Optimistic (12 месеца), healthRisks, nutritionalNeeds, successChance, metabolicProfile.
+6. АНАЛИЗ СТРАНИЦА:
+• BMI+категория, physiologicalPhase, waterDeficit (нужда {waterMin}–{waterMax} л)
+• negativeHealthFactors/hinderingFactors (severity 1-3), cumulativeRiskScore
+• metabolicReactivity (speed/adaptability по activityScore)
+• currentHealthStatus (score 0-100, занижено с {HEALTH_STATUS_UNDERESTIMATE_PERCENT}%)
+• forecastPessimistic/Optimistic (12 месеца), healthRisks, nutritionalNeeds, successChance, metabolicProfile
+
+keyProblems (3–6, САМО Borderline/Risky/Critical — БЕЗ Normal):
+Фокус на фактори, които АКТИВНО пречат на целта. За всеки проблем попълни:
+• title — кратко заглавие
+• description — към клиента, защо е проблем
+• severity — Borderline | Risky | Critical
+• severityValue — число 0–100, СЪОТВЕТСТВАЩО на severity (задължително за severity-meter):
+  - Borderline → 45–59
+  - Risky → 60–79
+  - Critical → 80–95
+• category — Sleep | Nutrition | Hydration | Stress | Activity | Medical
+• impact — към клиента, въздействие върху здравето и целта
 
 Върни САМО JSON.
