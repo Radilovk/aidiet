@@ -87,7 +87,7 @@ export function buildMinimalWeekPlan(strategy) {
         name: slot.type === 'Хранене 3' ? 'Ябълка с бадеми' : `Ястие ${i + 1}`,
         description: slot.type === 'Хранене 3'
           ? '• ябълка 150g\n• бадеми 20g'
-          : '• пилешки гърди 150g\n• броколи 120g\n• зехтир екстра върджин 10g',
+          : '• пилешки гърди 150g\n• броколи 120g\n• зехтин 10g',
         calories: slot.calories,
         macros: { protein: slot.protein, carbs: slot.carbs, fats: slot.fats },
       })),

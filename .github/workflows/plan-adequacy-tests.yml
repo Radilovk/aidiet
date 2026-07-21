@@ -21,12 +21,6 @@ on:
       - 'food-catalog.js'
       - 'food-nutrition.js'
       - '.github/workflows/plan-adequacy-tests.yml'
-  workflow_dispatch:
-    inputs:
-      run_live:
-        description: 'Run live E2E against production (slow, uses AI quota)'
-        type: boolean
-        default: false
 
 jobs:
   offline:
@@ -44,22 +38,8 @@ jobs:
       - name: Plan adequacy (offline)
         run: npm run test:plan-adequacy
 
+      - name: Meal scaling pipeline
+        run: node test-meal-scaling.mjs
+
       - name: Universality stress (catalog pools)
         run: node test-universality-stress.mjs
-
-  live:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' && inputs.run_live == true
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-
-      - run: npm ci
-
-      - name: Live plan adequacy (3 profiles)
-        run: npm run test:plan-adequacy:live -- --profiles=quick
-        timeout-minutes: 90

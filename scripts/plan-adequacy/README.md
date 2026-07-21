@@ -8,10 +8,9 @@
 # Offline (бързо, без AI) — пуска се на всеки PR
 npm run test:plan-adequacy
 
-# Live E2E срещу production (бавно, AI quota)
-npm run test:plan-adequacy:live
-npm run test:plan-adequacy:live -- --profiles=all
-npm run test:plan-adequacy:live -- --base=https://aidiet.radilov-k.workers.dev
+# Допълнителни offline pipeline тестове (включени и в CI)
+node test-meal-scaling.mjs
+node test-universality-stress.mjs
 ```
 
 ## Какво покриват offline тестовете
@@ -22,12 +21,12 @@ npm run test:plan-adequacy:live -- --base=https://aidiet.radilov-k.workers.dev
 | **Analysis** | Final_Calories, macroRatios/Grams баланс, currentHealthStatus, keyProblems severityValue |
 | **Strategy** | weeklyScheme, meal types, mealCountJustification |
 | **Meal plan** | Хранене 3 = snack, грамажи, каталог |
+| **Nutrition** | P×4+C×4+F×9, грамажи ↔ макроси, калории vs схема, реалистични порции/тегло |
+| **Foods** | Продукти извън каталога, прекалено конкретни/рядки храни (универсалност) |
+| **Combinations** | Множество въглехидрати, бобови+ориз, грах+риба, нелогични двойки |
 | **Frontend projection** | macrosVizContainer логика, single-score-container health % |
-
-## Live тестове
-
-10 разнообразни профила (отслабване, лактация, диабет, веган, bulking...).  
-В CI: `workflow_dispatch` → `run_live: true` (3 профила, ~30–60 мин).
+| **Meal scaling** | Backend мащабиране на грамажи към калорийна цел (test-meal-scaling.mjs) |
+| **Catalog pools** | Празни/течащи candidate pools при различни диети (test-universality-stress.mjs) |
 
 ## KV auto-upload
 

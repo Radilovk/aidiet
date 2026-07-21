@@ -84,6 +84,11 @@ check('plan adequacy (offline)', () => {
   if (!r.ok) throw new Error(r.out.split('\n').slice(-15).join('\n'));
 });
 
+check('meal scaling pipeline', () => {
+  const r = run('node', ['test-meal-scaling.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
+});
+
 check('catalog universality stress', () => {
   const r = run('node', ['test-universality-stress.mjs']);
   if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));

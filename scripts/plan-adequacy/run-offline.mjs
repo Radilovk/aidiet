@@ -1,14 +1,24 @@
 #!/usr/bin/env node
 /**
- * Offline plan adequacy tests — prompts, fixtures, frontend projection.
+ * Offline plan adequacy tests — prompts, fixtures, nutrition, foods, combinations.
  * npm run test:plan-adequacy
  */
 import { PROFILES } from './fixtures/profiles.mjs';
 import { buildGoldenAnalysis, BAD_ANALYSIS } from './fixtures/golden-analysis.mjs';
+import { BAD_MEALS, TYPICAL_MEALS } from './fixtures/bad-plans.mjs';
 import { validatePromptContracts, validateKvUploadCoverage } from './validators/prompts.mjs';
 import { validateAnalysis } from './validators/analysis.mjs';
 import { validateStrategy, validateMealPlan, buildMinimalWeekPlan } from './validators/plan.mjs';
 import { validateFrontendProjection } from './validators/frontend.mjs';
+import {
+  validateMealNutritionPipeline,
+  validateWeekPlanNutrition,
+  validateMealMacroArithmetic,
+  validateMealGramsAndWeight,
+} from './validators/nutrition.mjs';
+import { validateMealCatalog, validateWeekPlanFoods, validateMealFoodUniversality } from './validators/foods.mjs';
+import { validateMealCombinations, validateWeekPlanCombinations } from './validators/combinations.mjs';
+import { syncWeekPlanNutritionFromDatabase } from '../../food-nutrition.js';
 import { PLAN_SYSTEM_INSTRUCTIONS } from '../../plan-response-schemas.js';
 
 let passed = 0;
@@ -28,6 +38,16 @@ function run(name, fn) {
   } catch (e) {
     failed++;
     console.log(`\n✗ ${name}: ${e.message}`);
+  }
+}
+
+function expectBad(name, issues) {
+  if (issues.length === 0) {
+    failed++;
+    console.log(`✗ bad:${name} — очаквани грешки, но мина`);
+  } else {
+    passed++;
+    console.log(`✓ bad:${name} — хванати ${issues.length} проблема`);
   }
 }
 
@@ -62,22 +82,37 @@ for (const profile of PROFILES) {
 
 console.log('\n-- Bad analysis (трябва да fail-нат) --');
 for (const [key, bad] of Object.entries(BAD_ANALYSIS)) {
-  const issues = validateAnalysis(bad, PROFILES[0]);
-  const frontendIssues = validateFrontendProjection({ analysis: bad, summary: {} });
-  const all = [...issues, ...frontendIssues];
-  if (all.length === 0) {
-    failed++;
-    console.log(`✗ bad:${key} — очаквани грешки, но мина`);
-  } else {
-    passed++;
-    console.log(`✓ bad:${key} — хванати ${all.length} проблема`);
-  }
+  const issues = [
+    ...validateAnalysis(bad, PROFILES[0]),
+    ...validateFrontendProjection({ analysis: bad, summary: {} }),
+  ];
+  expectBad(key, issues);
+}
+
+console.log('\n-- Nutrition pipeline (типични хранения) --');
+for (const { meal, target } of TYPICAL_MEALS) {
+  run(`pipeline:${meal.type}`, () => validateMealNutritionPipeline(meal, target));
 }
 
 console.log('\n-- Synthetic full plan --');
-run('full plan structure', () => {
+run('full plan structure + nutrition + foods + combinations', () => {
   const profile = PROFILES[0];
   const analysis = buildGoldenAnalysis(profile);
+  const baseSlots = [
+    { type: 'Хранене 1', calories: 400, protein: 30, carbs: 35, fats: 12 },
+    { type: 'Хранене 2', calories: 500, protein: 40, carbs: 45, fats: 15 },
+    { type: 'Хранене 3', calories: 180, protein: 8, carbs: 22, fats: 8 },
+    { type: 'Хранене 4', calories: 420, protein: 35, carbs: 30, fats: 14 },
+  ];
+  const slotKcal = baseSlots.reduce((s, m) => s + m.calories, 0);
+  const scale = analysis.Final_Calories / slotKcal;
+  const mealBreakdown = baseSlots.map(s => ({
+    ...s,
+    calories: Math.round(s.calories * scale),
+    protein: Math.round(s.protein * scale),
+    carbs: Math.round(s.carbs * scale),
+    fats: Math.round(s.fats * scale),
+  }));
   const strategy = {
     dietaryModifier: 'Балансирано',
     dietType: 'Средиземноморска',
@@ -89,12 +124,7 @@ run('full plan structure', () => {
         protein: analysis.macroGrams.protein,
         carbs: analysis.macroGrams.carbs,
         fats: analysis.macroGrams.fats,
-        mealBreakdown: [
-          { type: 'Хранене 1', calories: 400, protein: 30, carbs: 35, fats: 12 },
-          { type: 'Хранене 2', calories: 500, protein: 40, carbs: 45, fats: 15 },
-          { type: 'Хранене 3', calories: 180, protein: 8, carbs: 22, fats: 8 },
-          { type: 'Хранене 4', calories: 420, protein: 35, carbs: 30, fats: 14 },
-        ],
+        mealBreakdown,
       },
       tuesday: {}, wednesday: {}, thursday: {}, friday: {}, saturday: {}, sunday: {},
     },
@@ -103,6 +133,8 @@ run('full plan structure', () => {
     strategy.weeklyScheme[day] = { ...strategy.weeklyScheme.monday };
   }
   const weekPlan = buildMinimalWeekPlan(strategy);
+  syncWeekPlanNutritionFromDatabase(weekPlan, strategy, 1, 7);
+
   const plan = {
     analysis,
     strategy,
@@ -118,9 +150,25 @@ run('full plan structure', () => {
   return [
     ...validateStrategy(strategy),
     ...validateMealPlan(weekPlan, strategy),
+    ...validateWeekPlanNutrition(weekPlan, strategy),
+    ...validateWeekPlanFoods(weekPlan),
+    ...validateWeekPlanCombinations(weekPlan),
     ...validateFrontendProjection(plan),
   ];
 });
+
+console.log('\n-- Bad meals (трябва да fail-нат) --');
+for (const [key, meal] of Object.entries(BAD_MEALS)) {
+  const issues = [
+    ...validateMealMacroArithmetic(meal),
+    ...validateMealGramsAndWeight(meal),
+    ...validateMealCatalog(meal),
+    ...validateMealFoodUniversality(meal),
+    ...validateMealCombinations(meal),
+    ...validateMealNutritionPipeline(meal, { calories: meal.calories, protein: meal.macros?.protein }),
+  ];
+  expectBad(key, issues);
+}
 
 console.log(`\n=== Обобщение: ${passed} pass, ${failed} fail ===`);
 process.exit(failed > 0 ? 1 : 0);
