@@ -3,12 +3,10 @@
 {weekPlan}
 
 === ПРОФИЛ ===
-{name} | Цел: {goal} | BMR: {bmr}
-Калории: {recommendedCalories} kcal/ден (цел) | Средни: {avgCalories} kcal/ден
-Макроси (средни): Б {avgProtein}г / В {avgCarbs}г / М {avgFats}г
-Темперамент: {temperament} ({temperamentProbability}%)
-Психопрофил: {psychologicalProfile}
-Тип диета: {dietType}
+{name} | Цел: {goal} | BMR: {bmr} | Диета: {dietType}
+Калории: {recommendedCalories} kcal (цел) | Средни: {avgCalories} kcal
+Макроси: Б {avgProtein}г / В {avgCarbs}г / М {avgFats}г
+Темперамент: {temperament} ({temperamentProbability}%) | Психопрофил: {psychologicalProfile}
 
 === ЗДРАВЕ ===
 {additionalNotesSection}
@@ -17,14 +15,13 @@
 {dynamicWhitelistSection}{dynamicBlacklistSection}
 {clinicalProtocolSupplementSection}
 
+Въз основа на информацията по-горе, изпълни:
+
 === ЗАДАЧА ===
-Финални препоръки за 7-дневния план на {name}. Персонализирай по профила — БЕЗ универсални съвети.
+Финални препоръки за 7-дневния план на {name} — персонализирани, не универсални.
 
-summary: bmr, dailyCalories (средни), macros (средни)
-recommendations: 10 конкретни типове храни (не ястия) за {goal}, "{dietType}", {keyProblems}, {clinicalProtocolSection}, медикаменти {medications} — извън {dynamicBlacklistSection}
-forbidden: 10 типове храни (не ястия), неподходящи за {goal}, {clinicalProtocolSection}, "{dietType}", {keyProblems}, {medications} — без противоречие с {dynamicWhitelistSection}
-supplements: мин. 3 с дозировка и обосновка — по {clinicalProtocolSection}, цел ({goal}), {psychologicalProfile}, {temperament}, {keyProblems}, {medications}; БЕЗ опасни взаимодействия
-psychology: мин. 3 кратки персонализирани съвета — цел ({goal}), {clinicalProtocolSection}, {psychologicalProfile}, {temperament}, сън, стрес, активност, пол, {keyProblems} на {name}
+recommendations: 10 типа храни (не ястия) за {goal}, "{dietType}", {keyProblems}, {clinicalProtocolSection}, {medications} — извън {dynamicBlacklistSection}
+forbidden: 10 типа храни (не ястия), неподходящи за {goal}, {clinicalProtocolSection}, "{dietType}", {keyProblems}, {medications} — без противоречие с {dynamicWhitelistSection}
+supplements: мин. 3 с дозировка — по {clinicalProtocolSection}, {goal}, {psychologicalProfile}, {temperament}, {keyProblems}, {medications}; БЕЗ опасни взаимодействия
+psychology: мин. 3 кратки съвета — {goal}, {clinicalProtocolSection}, {psychologicalProfile}, {temperament}, сън, стрес, активност, {keyProblems}
 waterIntake: от {hydrationStrategy}
-
-Върни САМО JSON.

@@ -1,51 +1,40 @@
 === ПРОФИЛ ===
 {name}, {age} год. | Цел: {goal} | BMI: {bmi} | Калории: {realTDEE} kcal/ден | Здраве: {medicalConditionsText}
-Макроси (Стъпка 1): Б≈{macroProteinG}г / В≈{macroCarbsG}г / М≈{macroFatsG}г ({macroProteinPct}%/{macroCarbsPct}%/{macroFatsPct}%) — коригируеми спрямо типа диета
-Темперамент: {temperament} ({temperamentProbability}%)
+Макроси (Стъпка 1): Б≈{macroProteinG}г / В≈{macroCarbsG}г / М≈{macroFatsG}г ({macroProteinPct}%/{macroCarbsPct}%/{macroFatsPct}%)
+Темперамент: {temperament} ({temperamentProbability}%) | Хронотип: {chronotype} | Стрес: {stressLevel} | Сън: {sleepHours}ч
+Навици: {eatingHabits} | Преяждане: {overeatingFrequency} | Желания: {foodCravings} | Тригери: {foodTriggers}
 Предпочитания: {dietPreference} | Нежелани: {dietDislike} | Любими: {dietLove}
-Навици: {eatingHabits} | Хронотип: {chronotype} | Стрес: {stressLevel} | Сън: {sleepHours}ч
-Поведение: Преяждане — {overeatingFrequency} | Желания: {foodCravings} | Тригери: {foodTriggers} | Компенсация: {compensationMethods}
-Напитки: Сладко — {drinksSweet} | Алкохол — {drinksAlcohol} | Диети: {dietHistory} ({dietHistoryType}, {dietHistoryResult})
-Лекарства: {medicationsText} | Промяна в тегло: {weightChange}{weightChangeDetails}
+Диети: {dietHistory} ({dietHistoryType}, {dietHistoryResult}) | Лекарства: {medicationsText}
 
 {additionalNotesSection}
 {clinicalProtocolSection}
 
-=== ДОПУСТИМИ ТИПОВЕ ХРАНЕНИЯ ===
-"Хранене 1" = Закуска (основно)
-"Хранене 2" = Обяд (основно)
-"Хранене 3" = Следобедна закуска — САМО: плодове, сурови ядки, скир или кисело мляко. НЕ сложно ястие.
-"Хранене 4" = Вечеря (основно)
-"Хранене 5" = Късна закуска — САМО мазнини+белтъчини: скир, сурови ядки или кисело мляко
-"Свободно хранене" = замества Хранене 2 в свободния ден (calories/macros в mealBreakdown; в Стъпка 3 meal поле без calories/macros)
-Забранени имена: Закуска, Обяд, Следобедна закуска, Вечеря, Късна закуска. Между 3 и 5 хранения на ден.
+=== ТИПОВЕ ХРАНЕНИЯ ===
+"Хранене 3" = следобедна закуска: плодове, сурови ядки, скир или кисело мляко — не сложно ястие.
+"Хранене 5" = късна закуска: само мазнини+белтъчини (скир, ядки, кисело мляко).
+"Свободно хранене" = замества Хранене 2 в свободния ден (calories/macros в mealBreakdown; в Стъпка 3 без calories/macros).
+3–5 хранения/ден.
+
+Въз основа на профила по-горе, изпълни:
 
 === ЗАДАЧА ===
-Определи диетична стратегия за {name}. Калориите са финални: {realTDEE} kcal/ден, без преизчисляване.
+Диетична стратегия за {name}. Калории финални: {realTDEE} kcal/ден. weeklyScheme = рамка (храните идват в Стъпка 3).
 
-Тип диета: по цел, здраве, overeatingFrequency, dietHistory, chronotype (ако не е в dietPreference). Избери и аргументирай:
-Отслабване: Средиземноморска, DASH, 16/8. Антиейджинг: MIND, Сините зони. Сърдечно-съдови: DASH, Портфолио. Автоимунни: AIP, Противовъзпалителна. Балансирани: Флекситарианство, Нордическа. Детокс: Високи фибри, Clean Eating. Мускули: Високопротеинов. Менопауза: Средиземноморска, НВ/НГИ. Емоционално: Mindful/Интуитивно хранене.
+Тип диета по цел, здраве, overeatingFrequency, dietHistory, chronotype (ако не е в dietPreference):
+Отслабване: Средиземноморска, DASH, 16/8 | Антиейджинг: MIND, Сините зони | Сърдечно: DASH, Портфолио | Автоимунни: AIP | Баланс: Флекситарианство, Нордическа | Детокс: Високи фибри | Мускули: Високопротеинов | Менопауза: Средиземноморска, НВ/НГИ | Емоционално: Mindful/Интуитивно
 
-ПРАВИЛА:
-1. Средно ≈{realTDEE} kcal/ден; дните варират (тренировъчни/почивни). Макросите от Стъпка 1 са база — коригирай в weeklyScheme ако диетата изисква (напр. Кето).
-2. "Не закусвам" → без Хранене 1; вода с лимон/зелен чай; допуска се Хранене 3; минимум 3 хранения.
-3. Брой хранения 3–5; mealBreakdown.length = meals. РЕАЛИСТИЧНОСТ: нито едно хранене >~800 kcal — иначе добави хранение:
-   ≤2000 → 3 | 2000–2800 → мин. 4 (добави Хранене 3) | >2800 → 5 (добави Хранене 3 и 5)
-   Изключения: диабет/ИР (по-чести) или >4ч между вечеря и сън (Хранене 5). Разпредели калориите с реалистичен грамаж.
-4. СВОБОДНО ХРАНЕНЕ (съб=6, нед=7): ДА при тригери, компенсация, емоционално хранене, рестриктивна диета; НЕ при голям дефицит, диабет, ГР, хранително разстройство. freeDayNumber: null ако НЕ. В mealBreakdown замести обяда с {"type":"Свободно хранене",...}; след него — лека вечеря без въглехидрати.
-5. ДЕСЕРТ: при "Сладко" в желанията — финален компонент на обяда (калориите в meal.calories на обяда, не отделно хранене). includeDessert: false при диабет, ИР, строга ниска калорийна цел.
-6. mealBreakdown суми = дневни calories/protein/carbs/fats. "Свободно хранене" се сумира само в mealBreakdown.
+ПРАВИЛА (приоритет):
+1. Средно ≈{realTDEE} kcal/ден; коригирай макроси в weeklyScheme ако диетата изисква (напр. Кето).
+2. "Не закусвам" → без Хранене 1; вода с лимон/зелен чай; допуска се Хранене 3; мин. 3 хранения.
+3. mealBreakdown.length = meals. Нито едно хранене >~800 kcal → добави хранение: ≤2000→3 | 2000–2800→4 (+Хранене 3) | >2800→5 (+Хранене 3 и 5). Изключения: диабет/ИР, >4ч вечеря–сън (Хранене 5).
+4. СВОБОДНО ХРАНЕНЕ (съб=6, нед=7): ДА при тригери/емоционално/рестриктивна диета; НЕ при дефицит, диабет, ГР, хранително разстройство. freeDayNumber: null ако НЕ. Замести обяд; след това лека вечеря без въглехидрати.
+5. ДЕСЕРТ при "Сладко" — компонент на обяда, не отделно хранене. includeDessert: false при диабет, ИР, строга ниска калорийна цел.
+6. mealBreakdown суми = дневни calories/protein/carbs/fats.
 
-=== ИЗХОД ===
-weeklyScheme: monday–sunday, всеки ден с meals/calories/protein/carbs/fats/description/mealBreakdown.
-dietaryModifier, modifierReasoning (лично към {name}), dietType (към клиента)
-welcomeMessage: 150–250 думи — поздрав с име, ключови фактори, как планът е за него, позитивна визия
-planJustification: към клиента, мин. 100 символа — цел, здраве, подход, очакван резултат
-longTermStrategy, mealCountJustification (мин. 20 символа), afterDinnerMealJustification ("Не са необходими" ако няма Хранене 5)
-weeklyMealPattern, breakfastStrategy (ако не закусва), calorieDistribution, macroDistribution
-freeDayNumber: 6|7|null, includeDessert: true|false
-mealTiming: pattern, fastingWindows ("не се прилага" ако няма), flexibility, chronotypeGuidance (~5 думи за {chronotype})
-keyPrinciples (3), preferredFoodCategories (3 категории, НЕ конкретни храни), avoidFoodCategories (2)
-hydrationStrategy, communicationStyle (temperament, tone, approach, chatGuidelines за {name})
-
-Върни САМО JSON.
+ТЕКСТОВИ ПОЛЕТА:
+welcomeMessage: 150–250 думи, персонално към {name}.
+planJustification: мин. 100 символа, към клиента.
+mealCountJustification: мин. 20 символа.
+afterDinnerMealJustification: "Не са необходими" ако няма Хранене 5.
+chronotypeGuidance: ~5 думи за {chronotype}.
+preferredFoodCategories/avoidFoodCategories: категории, НЕ конкретни храни.
