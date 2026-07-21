@@ -211,7 +211,7 @@ export function buildTrainerSystemAddon(adminConfig, tagSet, layers = null, opti
   const schemeMode = Boolean(options.schemeMode);
   const foundation = String(adminConfig?.foundation || '').trim().slice(0, MAX_FOUNDATION_CHARS);
   const resolved = layers || resolveGuidelineLayers(tagSet, adminConfig, options);
-  const individual = schemeMode ? [] : (resolved?.individual || []);
+  const individual = resolved?.individual || [];
   const architecture = resolved?.architecture || [];
 
   if (!foundation && !individual.length && !architecture.length && !schemeMode) return '';
@@ -410,11 +410,10 @@ export function allowedEquipmentFromBrief(clientProfile = '', exampleScheme = ''
   return set.size > 1 ? set : null;
 }
 
-export function mergeAllowedEquipment(a, b) {
-  if (a === null || b === null) return null;
-  if (!a) return b || null;
-  if (!b) return a || null;
-  return new Set([...a, ...b]);
+export function mergeAllowedEquipment(fromBrief, fromAnswers) {
+  // Изрични уреди в схема/бриф имат приоритет над „пълна зала“ от въпросника
+  if (fromBrief?.size) return fromBrief;
+  return fromAnswers ?? null;
 }
 
 function buildAdminHardRulesBlock(constraints) {
@@ -553,7 +552,7 @@ export function resolveGuidelineLayers(tags, adminConfig = null, options = {}) {
   for (const chunk of adminChunks) {
     if (!chunk.text || !shouldIncludeAdminChunk(chunk, tagSet)) continue;
     if (isUniversal(chunk.tags)) push(adminArchitecture, chunk.text);
-    else if (!schemeMode) push(adminIndividual, chunk.text);
+    else push(adminIndividual, chunk.text);
   }
 
   if (!schemeMode) {
@@ -565,10 +564,14 @@ export function resolveGuidelineLayers(tags, adminConfig = null, options = {}) {
     }
   }
 
+  const individual = strictAssembly
+    ? []
+    : schemeMode
+      ? capGuidelineTexts(adminIndividual)
+      : capIndividualGuidelines(adminIndividual, hardcodedIndividual, tagSet, adminChunks);
+
   return {
-    individual: (schemeMode || strictAssembly)
-      ? []
-      : capIndividualGuidelines(adminIndividual, hardcodedIndividual, tagSet, adminChunks),
+    individual,
     architecture: strictAssembly
       ? []
       : capGuidelineTexts(adminArchitecture, MAX_ARCHITECTURE_ITEMS, MAX_ARCHITECTURE_CHARS),
@@ -680,6 +683,7 @@ export function preparePlanGeneration(source, adminConfig, helpers) {
   function buildFromAnswers(answers, extra = {}) {
     const profileText = answers?.gender ? helpers.buildProfileSummary(answers) : '';
     const tags = answers?.gender ? buildTagsFromAnswers(answers) : new Set();
+    for (const t of extractTagsFromText(profileText, extra.exampleScheme || '')) tags.add(t);
     const strictAssembly = isStrictAssembly(extra.strictScheme, extra.exampleScheme);
     const schemeMode = strictAssembly || hasClientScheme(extra.exampleScheme);
     const layers = resolveGuidelineLayers(tags, adminConfig, { schemeMode, strictAssembly });
