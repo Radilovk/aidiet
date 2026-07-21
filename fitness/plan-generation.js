@@ -174,6 +174,10 @@ export function hasClientScheme(exampleScheme) {
   return Boolean(String(exampleScheme || '').trim());
 }
 
+export function isStrictAssembly(strictScheme, exampleScheme) {
+  return Boolean(strictScheme) && hasClientScheme(exampleScheme);
+}
+
 /** Админ chunks: questionnaire категории — само при съвпадение на пол; machine tags — филтър. */
 export function shouldIncludeAdminChunk(chunk, tagSet) {
   const tags = chunk?.tags || [];
@@ -196,6 +200,9 @@ export function shouldIncludeAdminChunk(chunk, tagSet) {
 
 /** Правила от треньора + RAG насоки → system prompt. */
 export function buildTrainerSystemAddon(adminConfig, tagSet, layers = null, options = {}) {
+  const strictAssembly = Boolean(options.strictAssembly);
+  if (strictAssembly) return '';
+
   const schemeMode = Boolean(options.schemeMode);
   const foundation = String(adminConfig?.foundation || '').trim().slice(0, MAX_FOUNDATION_CHARS);
   const resolved = layers || resolveGuidelineLayers(tagSet, adminConfig, options);
@@ -306,7 +313,8 @@ export function parseAdminBriefConstraints(clientProfile = '', exampleScheme = '
 }
 
 /** Ограничения от структурирани answers + схема на треньора. */
-export function constraintsFromAnswers(answers, exampleScheme = '') {
+export function constraintsFromAnswers(answers, exampleScheme = '', options = {}) {
+  const strictAssembly = Boolean(options.strictAssembly);
   const equipmentList = [];
   for (const e of answers?.equipment || []) {
     if (e && e !== 'Друго') equipmentList.push(e);
@@ -337,26 +345,30 @@ export function constraintsFromAnswers(answers, exampleScheme = '') {
   }
 
   const priorities = [];
-  const schemeMode = hasClientScheme(exampleScheme);
-  const zoneText = String(answers?.goal?.zones || '').trim();
-  if (!schemeMode) {
-    if (zoneText) priorities.push(`Зони↓: ${zoneText}`);
-    else if (normalizeText(answers?.gender || '').includes('жена')) {
-      priorities.push('Дупе>бедра; горна: постура/гръб');
+  if (!strictAssembly) {
+    const schemeMode = hasClientScheme(exampleScheme);
+    const zoneText = String(answers?.goal?.zones || '').trim();
+    if (!schemeMode) {
+      if (zoneText) priorities.push(`Зони↓: ${zoneText}`);
+      else if (normalizeText(answers?.gender || '').includes('жена')) {
+        priorities.push('Дупе>бедра; горна: постура/гръб');
+      }
     }
+    if (answers?.extraInfo?.trim()) priorities.push(answers.extraInfo.trim());
   }
-  if (answers?.extraInfo?.trim()) priorities.push(answers.extraInfo.trim());
 
   const schedule = [];
-  if (answers?.preferences?.freq) schedule.push(`${answers.preferences.freq} тренировки седмично`);
-  if (answers?.preferences?.duration) schedule.push(`Продължителност: ${answers.preferences.duration}`);
+  if (!strictAssembly) {
+    if (answers?.preferences?.freq) schedule.push(`${answers.preferences.freq} тренировки седмично`);
+    if (answers?.preferences?.duration) schedule.push(`Продължителност: ${answers.preferences.duration}`);
+  }
 
   const fromScheme = parseAdminBriefConstraints('', exampleScheme);
   return {
     equipmentList: [...new Set([...equipmentList, ...fromScheme.equipmentList])],
     exclusions: [...new Set([...exclusions, ...fromScheme.exclusions])],
-    priorities: [...new Set([...priorities, ...fromScheme.priorities])],
-    schedule: [...new Set([...schedule, ...fromScheme.schedule])],
+    priorities: strictAssembly ? [...fromScheme.priorities] : [...new Set([...priorities, ...fromScheme.priorities])],
+    schedule: strictAssembly ? [...fromScheme.schedule] : [...new Set([...schedule, ...fromScheme.schedule])],
   };
 }
 
@@ -531,7 +543,8 @@ function prioritizeGenderGuidelines(individual, tagSet, adminChunks) {
 
 /** Два слоя насоки: individual (таг) + architecture (universal). Foundation се добавя при prompt build. */
 export function resolveGuidelineLayers(tags, adminConfig = null, options = {}) {
-  const schemeMode = Boolean(options.schemeMode);
+  const strictAssembly = Boolean(options.strictAssembly);
+  const schemeMode = Boolean(options.schemeMode) || strictAssembly;
   const tagSet = tags instanceof Set ? tags : new Set(tags);
   const adminChunks = Array.isArray(adminConfig?.chunks) ? adminConfig.chunks : [];
   const adminTagged = new Set(adminChunks.flatMap((c) => c.tags || []));
@@ -565,10 +578,12 @@ export function resolveGuidelineLayers(tags, adminConfig = null, options = {}) {
   }
 
   return {
-    individual: schemeMode
+    individual: (schemeMode || strictAssembly)
       ? []
       : capIndividualGuidelines(adminIndividual, hardcodedIndividual, tagSet, adminChunks),
-    architecture: capGuidelineTexts(adminArchitecture, MAX_ARCHITECTURE_ITEMS, MAX_ARCHITECTURE_CHARS),
+    architecture: strictAssembly
+      ? []
+      : capGuidelineTexts(adminArchitecture, MAX_ARCHITECTURE_ITEMS, MAX_ARCHITECTURE_CHARS),
   };
 }
 
@@ -593,24 +608,34 @@ export function buildBriefIdentityBlock(brief) {
   return `<tags>${tagList}</tags>`;
 }
 
-/** User prompt: контекст + задача. <scheme> първи при наличие. */
-export function buildAdminPlanUserPrompt(brief) {
+/** User prompt: контекст + задача. strictAssembly = само scheme. */
+export function buildAdminPlanUserPrompt(brief, options = {}) {
+  const strictAssembly = Boolean(options.strictAssembly);
   const { clientProfile = '', exampleScheme = '', constraints: presetConstraints } = brief || {};
   const scheme = String(exampleScheme || '').trim();
-  const constraints = presetConstraints || parseAdminBriefConstraints(clientProfile, scheme);
+  const constraints = presetConstraints || parseAdminBriefConstraints(
+    strictAssembly ? '' : clientProfile,
+    scheme,
+  );
   const hardRules = buildAdminHardRulesBlock(constraints);
 
   const parts = [buildBriefIdentityBlock(brief)];
   if (scheme) parts.push(`<scheme>\n${scheme}\n</scheme>`);
-  if (constraints.equipmentList?.length) {
-    parts.push(`<equipment>\n${constraints.equipmentList.join(', ')}\n</equipment>`);
+  if (!strictAssembly) {
+    if (constraints.equipmentList?.length) {
+      parts.push(`<equipment>\n${constraints.equipmentList.join(', ')}\n</equipment>`);
+    }
+    if (hardRules) parts.push(`<constraints>\n${hardRules}\n</constraints>`);
+    parts.push(`<profile>\n${String(clientProfile || '').trim()}\n</profile>`);
+  } else if (hardRules) {
+    parts.push(`<constraints>\n${hardRules}\n</constraints>`);
   }
-  if (hardRules) parts.push(`<constraints>\n${hardRules}\n</constraints>`);
-  parts.push(`<profile>\n${String(clientProfile || '').trim()}\n</profile>`);
 
-  const task = scheme
-    ? 'Следвай <scheme> точно (дни, упражнения, обем). Запълни 7 дни. JSON само.'
-    : 'Генерирай седмичен план от данните по-горе. JSON само.';
+  const task = strictAssembly
+    ? 'ASSEMBLY: сглоби JSON от <scheme> буквално. Само canonicalName/displayName. JSON само.'
+    : (scheme
+      ? 'Следвай <scheme> точно (дни, упражнения, обем). Запълни 7 дни. JSON само.'
+      : 'Генерирай седмичен план от данните по-горе. JSON само.');
   return `${parts.join('\n\n')}\n\n${task}`;
 }
 
@@ -657,42 +682,44 @@ export function auditPlanGenderFit(plan, clientTags) {
  */
 export function preparePlanGeneration(source, adminConfig, helpers) {
   function buildFromAnswers(answers, extra = {}) {
-    const profileText = helpers.buildProfileSummary(answers);
-    const tags = buildTagsFromAnswers(answers);
-    const schemeMode = hasClientScheme(extra.exampleScheme);
-    const layers = resolveGuidelineLayers(tags, adminConfig, { schemeMode });
+    const profileText = answers?.gender ? helpers.buildProfileSummary(answers) : '';
+    const tags = answers?.gender ? buildTagsFromAnswers(answers) : new Set();
+    const strictAssembly = isStrictAssembly(extra.strictScheme, extra.exampleScheme);
+    const schemeMode = strictAssembly || hasClientScheme(extra.exampleScheme);
+    const layers = resolveGuidelineLayers(tags, adminConfig, { schemeMode, strictAssembly });
     const brief = {
       clientProfile: profileText,
       exampleScheme: extra.exampleScheme || '',
-      constraints: constraintsFromAnswers(answers, extra.exampleScheme || ''),
+      constraints: constraintsFromAnswers(answers || {}, extra.exampleScheme || '', { strictAssembly }),
       tags,
     };
-    const equipmentInput = expandEquipmentAnswers([...(answers.equipment || []), answers.equipmentOther].filter(Boolean));
+    const equipmentInput = expandEquipmentAnswers([...(answers?.equipment || []), answers?.equipmentOther].filter(Boolean));
     const fromBrief = allowedEquipmentFromBrief(profileText, extra.exampleScheme || '');
     const fromAnswers = helpers.allowedEquipmentSet(equipmentInput);
     return {
-      userPrompt: buildAdminPlanUserPrompt(brief),
+      userPrompt: buildAdminPlanUserPrompt(brief, { strictAssembly }),
       guidelineLayers: layers,
       coachProfileText: extra.coachProfileText || profileText,
       allowedEquipment: mergeAllowedEquipment(fromBrief, fromAnswers),
       clientTags: tags,
       hasScheme: schemeMode,
+      strictAssembly,
     };
   }
 
-  if (source.clientAnswers) {
-    const answers = source.clientAnswers;
-    const profileText = helpers.buildProfileSummary(answers);
+  if (source.clientAnswers || source.strictScheme) {
+    const answers = source.clientAnswers || {};
+    const profileText = answers.gender ? helpers.buildProfileSummary(answers) : '';
     const coachProfileText = [
       source.clientName ? `Клиент: ${source.clientName}` : 'Клиент: —',
       source.clientContact ? `Контакт: ${source.clientContact}` : '',
-      '',
-      profileText,
-      source.exampleScheme ? `\nСхема и указания:\n${source.exampleScheme}` : '',
+      profileText ? `\n${profileText}` : '',
+      source.exampleScheme ? `\nСхема:\n${source.exampleScheme}` : '',
     ].filter(Boolean).join('\n');
     return buildFromAnswers(answers, {
       exampleScheme: source.exampleScheme || '',
       coachProfileText,
+      strictScheme: source.strictScheme,
     });
   }
 

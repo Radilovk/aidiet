@@ -520,6 +520,33 @@ test('preparePlanGeneration: hasScheme при exampleScheme', () => {
   assert.ok(userPrompt.indexOf('<scheme>') < userPrompt.indexOf('<profile>'));
 });
 
+test('preparePlanGeneration: strictAssembly — само scheme, без profile/RAG', () => {
+  const { strictAssembly, userPrompt, guidelineLayers } = preparePlanGeneration(
+    {
+      strictScheme: true,
+      exampleScheme: 'Пон: Barbell Hip Thrust 4x10, 60с\nВто: почивка',
+      clientName: 'Тест',
+    },
+    { foundation: 'Принцип', chunks: [{ tags: ['gender:жена'], text: 'Жена: дупе' }] },
+    { buildProfileSummary, allowedEquipmentSet },
+  );
+  assert.equal(strictAssembly, true);
+  assert.ok(userPrompt.includes('ASSEMBLY:'));
+  assert.ok(!userPrompt.includes('<profile>'));
+  assert.equal(guidelineLayers.individual.length, 0);
+  assert.equal(guidelineLayers.architecture.length, 0);
+});
+
+test('buildTrainerSystemAddon: strictAssembly → празен', () => {
+  const addon = buildTrainerSystemAddon(
+    { foundation: 'Принцип' },
+    new Set(['gender:жена']),
+    { individual: ['x'], architecture: ['y'] },
+    { strictAssembly: true },
+  );
+  assert.equal(addon, '');
+});
+
 test('auditPlanGenderFit: жена с glutes/крака → OK', () => {
   const plan = normalizePlan({
     title: 'X',

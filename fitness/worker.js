@@ -46,6 +46,8 @@ import {
   COMPACT_PLAN_RETRY_HINT,
   GENDER_FIT_RETRY_HINT,
   PLAN_RESPONSE_SCHEMA,
+  PLAN_SYSTEM_ASSEMBLY,
+  STRICT_ASSEMBLY_RETRY_HINT,
 } from './plan-prompts.js';
 import { mergeExerciseTranslation } from './exercise-translations.js';
 import {
@@ -90,6 +92,7 @@ import {
   constraintsFromAnswers,
   hasClientScheme,
   mergeAllowedEquipment,
+  isStrictAssembly,
 } from './plan-generation.js';
 
 export {
@@ -121,6 +124,7 @@ export {
   constraintsFromAnswers,
   hasClientScheme,
   mergeAllowedEquipment,
+  isStrictAssembly,
 };
 
 // ============================================================================
@@ -786,12 +790,14 @@ function clientIp(request) {
 
 async function executePlanGeneration(env, ctx, {
   userPrompt, coachProfileText, allowedEquipment = null, clientTags = null,
-  adminConfig = null, guidelineLayers = null, hasScheme = false,
+  adminConfig = null, guidelineLayers = null, hasScheme = false, strictAssembly = false,
 }) {
   const indexPromise = loadExerciseIndex(env, ctx);
   const tagSet = clientTags instanceof Set ? clientTags : new Set(clientTags || []);
-  const trainerAddon = buildTrainerSystemAddon(adminConfig, tagSet, guidelineLayers, { schemeMode: hasScheme });
-  const system = buildPlanSystemInstruction(trainerAddon);
+  const trainerAddon = strictAssembly
+    ? ''
+    : buildTrainerSystemAddon(adminConfig, tagSet, guidelineLayers, { schemeMode: hasScheme, strictAssembly });
+  const system = strictAssembly ? PLAN_SYSTEM_ASSEMBLY : buildPlanSystemInstruction(trainerAddon);
   let plan;
   let rawText;
   const maxAttempts = 3;
@@ -799,9 +805,11 @@ async function executePlanGeneration(env, ctx, {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     let user = userPrompt;
     if (attempt > 0) {
-      user += hasScheme
-        ? COMPACT_PLAN_RETRY_HINT
-        : (lastFailure === 'gender' ? GENDER_FIT_RETRY_HINT : COMPACT_PLAN_RETRY_HINT);
+      user += strictAssembly
+        ? STRICT_ASSEMBLY_RETRY_HINT
+        : (hasScheme
+          ? COMPACT_PLAN_RETRY_HINT
+          : (lastFailure === 'gender' ? GENDER_FIT_RETRY_HINT : COMPACT_PLAN_RETRY_HINT));
     }
     const aiOpts = {
       system,
@@ -813,7 +821,7 @@ async function executePlanGeneration(env, ctx, {
     try {
       rawText = await callAI(env, aiOpts);
       plan = normalizePlan(parseAiJson(rawText));
-      if (!hasScheme) {
+      if (!hasScheme && !strictAssembly) {
         const genderAudit = auditPlanGenderFit(plan, clientTags);
         if (!genderAudit.ok && attempt < maxAttempts - 1) {
           lastFailure = 'gender';
@@ -857,7 +865,7 @@ async function handleGeneratePlan(request, env, ctx) {
   }
 
   const adminGuidelines = await loadAdminGuidelines(env);
-  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers, hasScheme } = preparePlanGeneration(
+  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers, hasScheme, strictAssembly } = preparePlanGeneration(
     { answers },
     adminGuidelines,
     { buildProfileSummary, allowedEquipmentSet },
@@ -874,6 +882,7 @@ async function handleGeneratePlan(request, env, ctx) {
       adminConfig: adminGuidelines,
       guidelineLayers,
       hasScheme,
+      strictAssembly,
     }));
   } catch (e) {
     if (isPlanParseError(e)) {
@@ -1261,6 +1270,7 @@ function clientProgramKvKey(id) {
 
 function trimClientProgramFields(body = {}) {
   const exampleScheme = String(body.exampleScheme || '').trim();
+  const strictScheme = Boolean(body.strictScheme);
   const clientAnswers = body.clientAnswers && typeof body.clientAnswers === 'object' ? body.clientAnswers : null;
   const clientFormState = body.clientFormState && typeof body.clientFormState === 'object' ? body.clientFormState : null;
   const clientProfile = clientAnswers?.gender && clientAnswers?.age
@@ -1273,6 +1283,7 @@ function trimClientProgramFields(body = {}) {
     clientAnswers,
     clientFormState,
     exampleScheme: exampleScheme.slice(0, MAX_EXAMPLE_SCHEME_CHARS),
+    strictScheme,
     consultationId: String(body.consultationId || '').trim().slice(0, 80) || null,
   };
 }
@@ -1304,6 +1315,7 @@ function clientProgramPublicView(record) {
     clientFormState: record.clientFormState || null,
     hasStructuredProfile: Boolean(record.clientAnswers?.gender),
     exampleScheme: record.exampleScheme,
+    strictScheme: Boolean(record.strictScheme),
     consultationId: record.consultationId,
     status: record.status === 'approved' ? 'approved' : 'draft',
     planId,
@@ -1345,7 +1357,11 @@ async function handleSaveClientProgram(request, env) {
 
   const fields = trimClientProgramFields(body);
   if (!fields.clientName) return errorResponse('Моля, въведи име на клиента', 400);
-  if (!fields.clientAnswers?.gender) {
+  if (fields.strictScheme) {
+    if (!fields.exampleScheme) {
+      return errorResponse('При „Само сглобяване“ попълни пълната програма в схемата', 400);
+    }
+  } else if (!fields.clientAnswers?.gender) {
     return errorResponse('Попълни въпросника (поне пол и основни данни)', 400);
   }
 
@@ -1368,6 +1384,7 @@ async function handleSaveClientProgram(request, env) {
   } else {
     const briefChanged = fields.clientProfile !== record.clientProfile
       || fields.exampleScheme !== record.exampleScheme
+      || Boolean(fields.strictScheme) !== Boolean(record.strictScheme)
       || JSON.stringify(fields.clientAnswers || null) !== JSON.stringify(record.clientAnswers || null)
       || JSON.stringify(fields.clientFormState || null) !== JSON.stringify(record.clientFormState || null);
     if (briefChanged && record.planId) {
@@ -1389,18 +1406,22 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
   const record = await loadClientProgram(env, id);
   if (!record) return errorResponse('Програмата не е намерена', 404, 'not_found');
   if (record.status === 'approved') return errorResponse('Програмата вече е одобрена', 400, 'locked');
-  if (!record.clientAnswers?.gender) {
+  if (!record.strictScheme && !record.clientAnswers?.gender) {
     return errorResponse('Попълни въпросника преди генерация', 400);
+  }
+  if (record.strictScheme && !record.exampleScheme?.trim()) {
+    return errorResponse('Попълни схемата с пълната програма', 400);
   }
 
   const adminGuidelines = await loadAdminGuidelines(env);
   const genSource = {
-    clientAnswers: record.clientAnswers,
+    clientAnswers: record.clientAnswers || {},
     exampleScheme: record.exampleScheme,
+    strictScheme: record.strictScheme,
     clientName: record.clientName,
     clientContact: record.clientContact,
   };
-  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers, hasScheme } = preparePlanGeneration(
+  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers, hasScheme, strictAssembly } = preparePlanGeneration(
     genSource,
     adminGuidelines,
     { buildProfileSummary, allowedEquipmentSet },
@@ -1417,6 +1438,7 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
       adminConfig: adminGuidelines,
       guidelineLayers,
       hasScheme,
+      strictAssembly,
     }));
   } catch (e) {
     if (isPlanParseError(e)) {

@@ -1678,6 +1678,16 @@ HARD-VETO:
 - \u041E\u043B\u0435\u043A\u043E\u0442\u0438/\u0443\u0442\u0435\u0436\u043D\u0438 \u2014 \u043D\u0435 \u201E\u0437\u0430\u0442\u0435\u0436\u043D\u0438\u201C
 
 \u041A\u041E\u041C\u041F\u0410\u041A\u0422\u041D\u041E\u0421\u0422: \u043C\u0430\u043A\u0441. 5 \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F/\u0434\u0435\u043D; warmup/cooldown \u043F\u043E 3 \u0441\u0442\u044A\u043F\u043A\u0438; notes\u226480 \u0437\u043D\u0430\u043A\u0430; guidelines \u043F\u043E 1 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u0435/\u043F\u043E\u043B\u0435.`;
+var PLAN_SYSTEM_ASSEMBLY = `\u0421\u0433\u043B\u043E\u0431\u044F\u0432\u0430\u0448 \u0433\u043E\u0442\u043E\u0432\u0430 \u043F\u0440\u043E\u0433\u0440\u0430\u043C\u0430 \u0432 JSON. \u041D\u0415 \u043F\u0440\u043E\u043C\u0435\u043D\u044F\u0448 <scheme>.
+
+\u0417\u0410\u0414\u0410\u0427\u0410: canonicalName (EN) \u0437\u0430 \u0432\u0441\u044F\u043A\u043E \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u0435; displayName BG; equipmentHint/bodyPart EN.
+\u0417\u0430\u043F\u0430\u0437\u0438 \u0434\u043D\u0438, \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F, \u0441\u0435\u0440\u0438\u0438, \u043F\u043E\u0432\u0442\u043E\u0440\u0435\u043D\u0438\u044F, \u043F\u043E\u0447\u0438\u0432\u043A\u0438 \u0422\u041E\u0427\u041D\u041E \u043E\u0442 scheme. \u0411\u0435\u0437 \u0434\u043E\u0431\u0430\u0432\u044F\u043D\u0435/\u043F\u0440\u0435\u043C\u0430\u0445\u0432\u0430\u043D\u0435/\u043F\u0440\u0435\u043D\u0430\u0440\u0435\u0436\u0434\u0430\u043D\u0435.
+
+\u0418\u041C\u0415\u041D\u0423\u0412\u0410\u041D\u0415: Bench Press \u2192 \u201E\u0418\u0437\u0431\u0443\u0442\u0432\u0430\u043D\u0435 \u043E\u0442 \u043B\u0435\u0436\u0430\u043D\u043A\u0430\u201C. Leg Press \u2192 \u201E\u041F\u0440\u0435\u0441\u0430 \u0437\u0430 \u043A\u0440\u0430\u043A\u0430\u201C.
+JSON: 7 \u0434\u043D\u0438; warmup/cooldown \u043A\u0440\u0430\u0442\u043A\u0438; guidelines \u043F\u043E 1 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u0435.`;
+var STRICT_ASSEMBLY_RETRY_HINT = `
+
+\u041F\u041E\u0412\u0422\u041E\u0420: <scheme> \u0431\u0443\u043A\u0432\u0430\u043B\u043D\u043E \u2014 \u0441\u0430\u043C\u043E \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F + JSON. \u0411\u0435\u0437 \u043F\u0440\u043E\u043C\u0435\u043D\u0438 \u0432 \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0430\u0442\u0430. JSON \u0441\u0430\u043C\u043E.`;
 var GENDER_FIT_RETRY_HINT = `
 
 \u041A\u041E\u0420\u0415\u041A\u0426\u0418\u042F (\u0436\u0435\u043D\u0430): \u043F\u0440\u0438\u043E\u0440\u0438\u0442\u0435\u0442 \u0434\u0443\u043F\u0435 (\u043E\u0431\u0435\u043C+\u0444\u043E\u0440\u043C\u0430); \u0431\u0435\u0434\u0440\u0430 \u0441\u0442\u0435\u0433\u043D\u0430\u0442\u0438, \u043D\u043E \u043F\u043E-\u043C\u0430\u043B\u044A\u043A \u043E\u0431\u0435\u043C \u043E\u0442 \u0434\u0443\u043F\u0435; \u0433\u043E\u0440\u043D\u0430 \u0447\u0430\u0441\u0442 \u0441\u0430\u043C\u043E \u043F\u043E\u0441\u0442\u0443\u0440\u0430/\u0433\u0440\u044A\u0431 (\u0440\u0435\u0434, \u043F\u0443\u043B\u0434\u0430\u0443\u043D) \u2014 \u0431\u0435\u0437 bench/press/curl \u043E\u0431\u0435\u043C. JSON \u0441\u0430\u043C\u043E.`;
@@ -2133,6 +2143,9 @@ function isQuestionnaireCategoryTag(tag) {
 function hasClientScheme(exampleScheme) {
   return Boolean(String(exampleScheme || "").trim());
 }
+function isStrictAssembly(strictScheme, exampleScheme) {
+  return Boolean(strictScheme) && hasClientScheme(exampleScheme);
+}
 function shouldIncludeAdminChunk(chunk, tagSet) {
   const tags = chunk?.tags || [];
   if (!tags.length || isUniversal(tags)) return true;
@@ -2150,6 +2163,8 @@ function shouldIncludeAdminChunk(chunk, tagSet) {
   return true;
 }
 function buildTrainerSystemAddon(adminConfig, tagSet, layers = null, options = {}) {
+  const strictAssembly = Boolean(options.strictAssembly);
+  if (strictAssembly) return "";
   const schemeMode = Boolean(options.schemeMode);
   const foundation = String(adminConfig?.foundation || "").trim().slice(0, MAX_FOUNDATION_CHARS);
   const resolved = layers || resolveGuidelineLayers(tagSet, adminConfig, options);
@@ -2249,7 +2264,8 @@ function parseAdminBriefConstraints(clientProfile = "", exampleScheme = "") {
     schedule: [...new Set(schedule)]
   };
 }
-function constraintsFromAnswers(answers, exampleScheme = "") {
+function constraintsFromAnswers(answers, exampleScheme = "", options = {}) {
+  const strictAssembly = Boolean(options.strictAssembly);
   const equipmentList = [];
   for (const e of answers?.equipment || []) {
     if (e && e !== "\u0414\u0440\u0443\u0433\u043E") equipmentList.push(e);
@@ -2278,24 +2294,28 @@ function constraintsFromAnswers(answers, exampleScheme = "") {
     }
   }
   const priorities = [];
-  const schemeMode = hasClientScheme(exampleScheme);
-  const zoneText = String(answers?.goal?.zones || "").trim();
-  if (!schemeMode) {
-    if (zoneText) priorities.push(`\u0417\u043E\u043D\u0438\u2193: ${zoneText}`);
-    else if (normalizeText(answers?.gender || "").includes("\u0436\u0435\u043D\u0430")) {
-      priorities.push("\u0414\u0443\u043F\u0435>\u0431\u0435\u0434\u0440\u0430; \u0433\u043E\u0440\u043D\u0430: \u043F\u043E\u0441\u0442\u0443\u0440\u0430/\u0433\u0440\u044A\u0431");
+  if (!strictAssembly) {
+    const schemeMode = hasClientScheme(exampleScheme);
+    const zoneText = String(answers?.goal?.zones || "").trim();
+    if (!schemeMode) {
+      if (zoneText) priorities.push(`\u0417\u043E\u043D\u0438\u2193: ${zoneText}`);
+      else if (normalizeText(answers?.gender || "").includes("\u0436\u0435\u043D\u0430")) {
+        priorities.push("\u0414\u0443\u043F\u0435>\u0431\u0435\u0434\u0440\u0430; \u0433\u043E\u0440\u043D\u0430: \u043F\u043E\u0441\u0442\u0443\u0440\u0430/\u0433\u0440\u044A\u0431");
+      }
     }
+    if (answers?.extraInfo?.trim()) priorities.push(answers.extraInfo.trim());
   }
-  if (answers?.extraInfo?.trim()) priorities.push(answers.extraInfo.trim());
   const schedule = [];
-  if (answers?.preferences?.freq) schedule.push(`${answers.preferences.freq} \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`);
-  if (answers?.preferences?.duration) schedule.push(`\u041F\u0440\u043E\u0434\u044A\u043B\u0436\u0438\u0442\u0435\u043B\u043D\u043E\u0441\u0442: ${answers.preferences.duration}`);
+  if (!strictAssembly) {
+    if (answers?.preferences?.freq) schedule.push(`${answers.preferences.freq} \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`);
+    if (answers?.preferences?.duration) schedule.push(`\u041F\u0440\u043E\u0434\u044A\u043B\u0436\u0438\u0442\u0435\u043B\u043D\u043E\u0441\u0442: ${answers.preferences.duration}`);
+  }
   const fromScheme = parseAdminBriefConstraints("", exampleScheme);
   return {
     equipmentList: [.../* @__PURE__ */ new Set([...equipmentList, ...fromScheme.equipmentList])],
     exclusions: [.../* @__PURE__ */ new Set([...exclusions, ...fromScheme.exclusions])],
-    priorities: [.../* @__PURE__ */ new Set([...priorities, ...fromScheme.priorities])],
-    schedule: [.../* @__PURE__ */ new Set([...schedule, ...fromScheme.schedule])]
+    priorities: strictAssembly ? [...fromScheme.priorities] : [.../* @__PURE__ */ new Set([...priorities, ...fromScheme.priorities])],
+    schedule: strictAssembly ? [...fromScheme.schedule] : [.../* @__PURE__ */ new Set([...schedule, ...fromScheme.schedule])]
   };
 }
 var ADMIN_EQUIPMENT_HINTS = [
@@ -2446,7 +2466,8 @@ function prioritizeGenderGuidelines(individual, tagSet, adminChunks) {
   return [...uniqueGender, ...rest];
 }
 function resolveGuidelineLayers(tags, adminConfig = null, options = {}) {
-  const schemeMode = Boolean(options.schemeMode);
+  const strictAssembly = Boolean(options.strictAssembly);
+  const schemeMode = Boolean(options.schemeMode) || strictAssembly;
   const tagSet = tags instanceof Set ? tags : new Set(tags);
   const adminChunks = Array.isArray(adminConfig?.chunks) ? adminConfig.chunks : [];
   const adminTagged = new Set(adminChunks.flatMap((c) => c.tags || []));
@@ -2476,8 +2497,8 @@ function resolveGuidelineLayers(tags, adminConfig = null, options = {}) {
     }
   }
   return {
-    individual: schemeMode ? [] : capIndividualGuidelines(adminIndividual, hardcodedIndividual, tagSet, adminChunks),
-    architecture: capGuidelineTexts(adminArchitecture, MAX_ARCHITECTURE_ITEMS, MAX_ARCHITECTURE_CHARS)
+    individual: schemeMode || strictAssembly ? [] : capIndividualGuidelines(adminIndividual, hardcodedIndividual, tagSet, adminChunks),
+    architecture: strictAssembly ? [] : capGuidelineTexts(adminArchitecture, MAX_ARCHITECTURE_ITEMS, MAX_ARCHITECTURE_CHARS)
   };
 }
 function buildBriefIdentityBlock(brief) {
@@ -2487,27 +2508,37 @@ function buildBriefIdentityBlock(brief) {
   const tagList = [...tags].sort().join(", ") || "\u2014";
   return `<tags>${tagList}</tags>`;
 }
-function buildAdminPlanUserPrompt(brief) {
+function buildAdminPlanUserPrompt(brief, options = {}) {
+  const strictAssembly = Boolean(options.strictAssembly);
   const { clientProfile = "", exampleScheme = "", constraints: presetConstraints } = brief || {};
   const scheme = String(exampleScheme || "").trim();
-  const constraints = presetConstraints || parseAdminBriefConstraints(clientProfile, scheme);
+  const constraints = presetConstraints || parseAdminBriefConstraints(
+    strictAssembly ? "" : clientProfile,
+    scheme
+  );
   const hardRules = buildAdminHardRulesBlock(constraints);
   const parts = [buildBriefIdentityBlock(brief)];
   if (scheme) parts.push(`<scheme>
 ${scheme}
 </scheme>`);
-  if (constraints.equipmentList?.length) {
-    parts.push(`<equipment>
+  if (!strictAssembly) {
+    if (constraints.equipmentList?.length) {
+      parts.push(`<equipment>
 ${constraints.equipmentList.join(", ")}
 </equipment>`);
-  }
-  if (hardRules) parts.push(`<constraints>
+    }
+    if (hardRules) parts.push(`<constraints>
 ${hardRules}
 </constraints>`);
-  parts.push(`<profile>
+    parts.push(`<profile>
 ${String(clientProfile || "").trim()}
 </profile>`);
-  const task = scheme ? "\u0421\u043B\u0435\u0434\u0432\u0430\u0439 <scheme> \u0442\u043E\u0447\u043D\u043E (\u0434\u043D\u0438, \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F, \u043E\u0431\u0435\u043C). \u0417\u0430\u043F\u044A\u043B\u043D\u0438 7 \u0434\u043D\u0438. JSON \u0441\u0430\u043C\u043E." : "\u0413\u0435\u043D\u0435\u0440\u0438\u0440\u0430\u0439 \u0441\u0435\u0434\u043C\u0438\u0447\u0435\u043D \u043F\u043B\u0430\u043D \u043E\u0442 \u0434\u0430\u043D\u043D\u0438\u0442\u0435 \u043F\u043E-\u0433\u043E\u0440\u0435. JSON \u0441\u0430\u043C\u043E.";
+  } else if (hardRules) {
+    parts.push(`<constraints>
+${hardRules}
+</constraints>`);
+  }
+  const task = strictAssembly ? "ASSEMBLY: \u0441\u0433\u043B\u043E\u0431\u0438 JSON \u043E\u0442 <scheme> \u0431\u0443\u043A\u0432\u0430\u043B\u043D\u043E. \u0421\u0430\u043C\u043E canonicalName/displayName. JSON \u0441\u0430\u043C\u043E." : scheme ? "\u0421\u043B\u0435\u0434\u0432\u0430\u0439 <scheme> \u0442\u043E\u0447\u043D\u043E (\u0434\u043D\u0438, \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F, \u043E\u0431\u0435\u043C). \u0417\u0430\u043F\u044A\u043B\u043D\u0438 7 \u0434\u043D\u0438. JSON \u0441\u0430\u043C\u043E." : "\u0413\u0435\u043D\u0435\u0440\u0438\u0440\u0430\u0439 \u0441\u0435\u0434\u043C\u0438\u0447\u0435\u043D \u043F\u043B\u0430\u043D \u043E\u0442 \u0434\u0430\u043D\u043D\u0438\u0442\u0435 \u043F\u043E-\u0433\u043E\u0440\u0435. JSON \u0441\u0430\u043C\u043E.";
   return `${parts.join("\n\n")}
 
 ${task}`;
@@ -2544,43 +2575,46 @@ function auditPlanGenderFit(plan, clientTags) {
 }
 function preparePlanGeneration(source, adminConfig, helpers) {
   function buildFromAnswers(answers, extra = {}) {
-    const profileText = helpers.buildProfileSummary(answers);
-    const tags = buildTagsFromAnswers(answers);
-    const schemeMode = hasClientScheme(extra.exampleScheme);
-    const layers = resolveGuidelineLayers(tags, adminConfig, { schemeMode });
+    const profileText = answers?.gender ? helpers.buildProfileSummary(answers) : "";
+    const tags = answers?.gender ? buildTagsFromAnswers(answers) : /* @__PURE__ */ new Set();
+    const strictAssembly = isStrictAssembly(extra.strictScheme, extra.exampleScheme);
+    const schemeMode = strictAssembly || hasClientScheme(extra.exampleScheme);
+    const layers = resolveGuidelineLayers(tags, adminConfig, { schemeMode, strictAssembly });
     const brief = {
       clientProfile: profileText,
       exampleScheme: extra.exampleScheme || "",
-      constraints: constraintsFromAnswers(answers, extra.exampleScheme || ""),
+      constraints: constraintsFromAnswers(answers || {}, extra.exampleScheme || "", { strictAssembly }),
       tags
     };
-    const equipmentInput = expandEquipmentAnswers([...answers.equipment || [], answers.equipmentOther].filter(Boolean));
+    const equipmentInput = expandEquipmentAnswers([...answers?.equipment || [], answers?.equipmentOther].filter(Boolean));
     const fromBrief = allowedEquipmentFromBrief(profileText, extra.exampleScheme || "");
     const fromAnswers = helpers.allowedEquipmentSet(equipmentInput);
     return {
-      userPrompt: buildAdminPlanUserPrompt(brief),
+      userPrompt: buildAdminPlanUserPrompt(brief, { strictAssembly }),
       guidelineLayers: layers,
       coachProfileText: extra.coachProfileText || profileText,
       allowedEquipment: mergeAllowedEquipment(fromBrief, fromAnswers),
       clientTags: tags,
-      hasScheme: schemeMode
+      hasScheme: schemeMode,
+      strictAssembly
     };
   }
-  if (source.clientAnswers) {
-    const answers = source.clientAnswers;
-    const profileText = helpers.buildProfileSummary(answers);
+  if (source.clientAnswers || source.strictScheme) {
+    const answers = source.clientAnswers || {};
+    const profileText = answers.gender ? helpers.buildProfileSummary(answers) : "";
     const coachProfileText = [
       source.clientName ? `\u041A\u043B\u0438\u0435\u043D\u0442: ${source.clientName}` : "\u041A\u043B\u0438\u0435\u043D\u0442: \u2014",
       source.clientContact ? `\u041A\u043E\u043D\u0442\u0430\u043A\u0442: ${source.clientContact}` : "",
-      "",
-      profileText,
+      profileText ? `
+${profileText}` : "",
       source.exampleScheme ? `
-\u0421\u0445\u0435\u043C\u0430 \u0438 \u0443\u043A\u0430\u0437\u0430\u043D\u0438\u044F:
+\u0421\u0445\u0435\u043C\u0430:
 ${source.exampleScheme}` : ""
     ].filter(Boolean).join("\n");
     return buildFromAnswers(answers, {
       exampleScheme: source.exampleScheme || "",
-      coachProfileText
+      coachProfileText,
+      strictScheme: source.strictScheme
     });
   }
   if (source.answers) {
@@ -3128,12 +3162,13 @@ async function executePlanGeneration(env, ctx, {
   clientTags = null,
   adminConfig = null,
   guidelineLayers = null,
-  hasScheme = false
+  hasScheme = false,
+  strictAssembly = false
 }) {
   const indexPromise = loadExerciseIndex(env, ctx);
   const tagSet = clientTags instanceof Set ? clientTags : new Set(clientTags || []);
-  const trainerAddon = buildTrainerSystemAddon(adminConfig, tagSet, guidelineLayers, { schemeMode: hasScheme });
-  const system = buildPlanSystemInstruction(trainerAddon);
+  const trainerAddon = strictAssembly ? "" : buildTrainerSystemAddon(adminConfig, tagSet, guidelineLayers, { schemeMode: hasScheme, strictAssembly });
+  const system = strictAssembly ? PLAN_SYSTEM_ASSEMBLY : buildPlanSystemInstruction(trainerAddon);
   let plan;
   let rawText;
   const maxAttempts = 3;
@@ -3141,7 +3176,7 @@ async function executePlanGeneration(env, ctx, {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     let user = userPrompt;
     if (attempt > 0) {
-      user += hasScheme ? COMPACT_PLAN_RETRY_HINT : lastFailure === "gender" ? GENDER_FIT_RETRY_HINT : COMPACT_PLAN_RETRY_HINT;
+      user += strictAssembly ? STRICT_ASSEMBLY_RETRY_HINT : hasScheme ? COMPACT_PLAN_RETRY_HINT : lastFailure === "gender" ? GENDER_FIT_RETRY_HINT : COMPACT_PLAN_RETRY_HINT;
     }
     const aiOpts = {
       system,
@@ -3153,7 +3188,7 @@ async function executePlanGeneration(env, ctx, {
     try {
       rawText = await callAI(env, aiOpts);
       plan = normalizePlan(parseAiJson(rawText));
-      if (!hasScheme) {
+      if (!hasScheme && !strictAssembly) {
         const genderAudit = auditPlanGenderFit(plan, clientTags);
         if (!genderAudit.ok && attempt < maxAttempts - 1) {
           lastFailure = "gender";
@@ -3197,7 +3232,7 @@ async function handleGeneratePlan(request, env, ctx) {
     return errorResponse(`\u0414\u043E\u0441\u0442\u0438\u0433\u043D\u0430\u0442 \u0435 \u0434\u043D\u0435\u0432\u043D\u0438\u044F\u0442 \u043B\u0438\u043C\u0438\u0442 \u043E\u0442 ${genLimit} \u0433\u0435\u043D\u0435\u0440\u0430\u0446\u0438\u0438. \u041E\u043F\u0438\u0442\u0430\u0439 \u043E\u0442\u043D\u043E\u0432\u043E \u0443\u0442\u0440\u0435.`, 429, "rate_limited");
   }
   const adminGuidelines = await loadAdminGuidelines(env);
-  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers, hasScheme } = preparePlanGeneration(
+  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers, hasScheme, strictAssembly } = preparePlanGeneration(
     { answers },
     adminGuidelines,
     { buildProfileSummary, allowedEquipmentSet }
@@ -3212,7 +3247,8 @@ async function handleGeneratePlan(request, env, ctx) {
       clientTags,
       adminConfig: adminGuidelines,
       guidelineLayers,
-      hasScheme
+      hasScheme,
+      strictAssembly
     }));
   } catch (e) {
     if (isPlanParseError(e)) {
@@ -3549,6 +3585,7 @@ function clientProgramKvKey(id) {
 }
 function trimClientProgramFields(body = {}) {
   const exampleScheme = String(body.exampleScheme || "").trim();
+  const strictScheme = Boolean(body.strictScheme);
   const clientAnswers = body.clientAnswers && typeof body.clientAnswers === "object" ? body.clientAnswers : null;
   const clientFormState = body.clientFormState && typeof body.clientFormState === "object" ? body.clientFormState : null;
   const clientProfile = clientAnswers?.gender && clientAnswers?.age ? buildProfileSummary(clientAnswers).slice(0, MAX_CLIENT_PROFILE_CHARS) : "";
@@ -3559,6 +3596,7 @@ function trimClientProgramFields(body = {}) {
     clientAnswers,
     clientFormState,
     exampleScheme: exampleScheme.slice(0, MAX_EXAMPLE_SCHEME_CHARS),
+    strictScheme,
     consultationId: String(body.consultationId || "").trim().slice(0, 80) || null
   };
 }
@@ -3587,6 +3625,7 @@ function clientProgramPublicView(record) {
     clientFormState: record.clientFormState || null,
     hasStructuredProfile: Boolean(record.clientAnswers?.gender),
     exampleScheme: record.exampleScheme,
+    strictScheme: Boolean(record.strictScheme),
     consultationId: record.consultationId,
     status: record.status === "approved" ? "approved" : "draft",
     planId,
@@ -3626,7 +3665,11 @@ async function handleSaveClientProgram(request, env) {
   }
   const fields = trimClientProgramFields(body);
   if (!fields.clientName) return errorResponse("\u041C\u043E\u043B\u044F, \u0432\u044A\u0432\u0435\u0434\u0438 \u0438\u043C\u0435 \u043D\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430", 400);
-  if (!fields.clientAnswers?.gender) {
+  if (fields.strictScheme) {
+    if (!fields.exampleScheme) {
+      return errorResponse("\u041F\u0440\u0438 \u201E\u0421\u0430\u043C\u043E \u0441\u0433\u043B\u043E\u0431\u044F\u0432\u0430\u043D\u0435\u201C \u043F\u043E\u043F\u044A\u043B\u043D\u0438 \u043F\u044A\u043B\u043D\u0430\u0442\u0430 \u043F\u0440\u043E\u0433\u0440\u0430\u043C\u0430 \u0432 \u0441\u0445\u0435\u043C\u0430\u0442\u0430", 400);
+    }
+  } else if (!fields.clientAnswers?.gender) {
     return errorResponse("\u041F\u043E\u043F\u044A\u043B\u043D\u0438 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 (\u043F\u043E\u043D\u0435 \u043F\u043E\u043B \u0438 \u043E\u0441\u043D\u043E\u0432\u043D\u0438 \u0434\u0430\u043D\u043D\u0438)", 400);
   }
   const now = (/* @__PURE__ */ new Date()).toISOString();
@@ -3644,7 +3687,7 @@ async function handleSaveClientProgram(request, env) {
       approvedAt: null
     };
   } else {
-    const briefChanged = fields.clientProfile !== record.clientProfile || fields.exampleScheme !== record.exampleScheme || JSON.stringify(fields.clientAnswers || null) !== JSON.stringify(record.clientAnswers || null) || JSON.stringify(fields.clientFormState || null) !== JSON.stringify(record.clientFormState || null);
+    const briefChanged = fields.clientProfile !== record.clientProfile || fields.exampleScheme !== record.exampleScheme || Boolean(fields.strictScheme) !== Boolean(record.strictScheme) || JSON.stringify(fields.clientAnswers || null) !== JSON.stringify(record.clientAnswers || null) || JSON.stringify(fields.clientFormState || null) !== JSON.stringify(record.clientFormState || null);
     if (briefChanged && record.planId) {
       await env.FITNESS_KV.delete(`plan:${record.planId}`);
       record.planId = null;
@@ -3661,17 +3704,21 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
   const record = await loadClientProgram(env, id);
   if (!record) return errorResponse("\u041F\u0440\u043E\u0433\u0440\u0430\u043C\u0430\u0442\u0430 \u043D\u0435 \u0435 \u043D\u0430\u043C\u0435\u0440\u0435\u043D\u0430", 404, "not_found");
   if (record.status === "approved") return errorResponse("\u041F\u0440\u043E\u0433\u0440\u0430\u043C\u0430\u0442\u0430 \u0432\u0435\u0447\u0435 \u0435 \u043E\u0434\u043E\u0431\u0440\u0435\u043D\u0430", 400, "locked");
-  if (!record.clientAnswers?.gender) {
+  if (!record.strictScheme && !record.clientAnswers?.gender) {
     return errorResponse("\u041F\u043E\u043F\u044A\u043B\u043D\u0438 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 \u043F\u0440\u0435\u0434\u0438 \u0433\u0435\u043D\u0435\u0440\u0430\u0446\u0438\u044F", 400);
+  }
+  if (record.strictScheme && !record.exampleScheme?.trim()) {
+    return errorResponse("\u041F\u043E\u043F\u044A\u043B\u043D\u0438 \u0441\u0445\u0435\u043C\u0430\u0442\u0430 \u0441 \u043F\u044A\u043B\u043D\u0430\u0442\u0430 \u043F\u0440\u043E\u0433\u0440\u0430\u043C\u0430", 400);
   }
   const adminGuidelines = await loadAdminGuidelines(env);
   const genSource = {
-    clientAnswers: record.clientAnswers,
+    clientAnswers: record.clientAnswers || {},
     exampleScheme: record.exampleScheme,
+    strictScheme: record.strictScheme,
     clientName: record.clientName,
     clientContact: record.clientContact
   };
-  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers, hasScheme } = preparePlanGeneration(
+  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers, hasScheme, strictAssembly } = preparePlanGeneration(
     genSource,
     adminGuidelines,
     { buildProfileSummary, allowedEquipmentSet }
@@ -3686,7 +3733,8 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
       clientTags,
       adminConfig: adminGuidelines,
       guidelineLayers,
-      hasScheme
+      hasScheme,
+      strictAssembly
     }));
   } catch (e) {
     if (isPlanParseError(e)) {
