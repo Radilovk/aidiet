@@ -45,7 +45,7 @@ export const GUIDELINE_CHUNKS = [
   { tags: ['equipment:ограничено'], text: 'Ограничено оборудване: използвай tempo манипулация (3-1-3), unilateral варианти, mechanical drop sets и по-къси почивки за прогресивно натоварване без повече тежести.' },
   { tags: ['time:сутрин'], text: 'Сутрешни тренировки: удължи загрявката с 5 минути (ставна мобилност + постепенно вдигане на пулса) — тялото е по-сковано и вероятно на гладно. Тежките максимални опити са по-рискови рано сутрин.' },
   { tags: ['age:50+'], text: 'Възраст 50+: удължена загрявка, приоритет на контролирано темпо пред тежест, задължителни балансови и мобилност елементи, 48-72ч възстановяване между тежки сесии.' },
-  { tags: ['gender:жена'], text: 'Жена: акцент долна част (glutes, бедра) ~40% обем; гръб/posture ~25%; гръдобедрен умерен (max 1–2 press седмично). Не елиминирай горна част — не мъжки bro-split, не press-dominant.' },
+  { tags: ['gender:жена'], text: 'Жена: приоритет №1 дупе (glutes) — най-голям обем и форма (hip thrust, абдукция, kickback, RDL). Бедра стегнати, но по-малък обем от дупе. Горна част: само постура и стягане на гърба (ред, пулдаун, face pull) — без хипертрофия, без мъжки press/bench/curl. Не балансирай равномерно горна/долна част.' },
   { tags: ['gender:мъж'], text: 'Мъж: програмирай за мъжка анатомия и цели — основни многоставни (клек, тяга, натиск) са уместни според опита. Не използвай женски-специфични акценти (glute isolation focus) без указание от профила.' },
 ];
 
@@ -323,6 +323,9 @@ export function constraintsFromAnswers(answers, exampleScheme = '') {
   }
 
   const priorities = [];
+  if (normalizeText(answers?.gender || '').includes('жена')) {
+    priorities.push('Дупе (обем+форма) > стегнати бедра; горна част само постура/гръб — без мъжки press/bench/curl обем');
+  }
   if (answers?.extraInfo?.trim()) priorities.push(answers.extraInfo.trim());
   const goalMain = normalizeText(answers?.goal?.main);
   const goalText = goalMain === 'друго' ? answers?.goal?.other : answers?.goal?.main;
@@ -584,10 +587,10 @@ export function buildAdminPlanUserPrompt(brief) {
   return `${parts.join('\n\n')}\n\nВъз основа на данните по-горе, генерирай седмичен тренировъчен план. Отговори САМО с JSON.`;
 }
 
-const MALE_BIAS_EXERCISE = /bench press|incline bench|decline bench|skull crush|close.?grip bench|barbell curl|military press|overhead press|shoulder press/i;
-const FEMALE_PRIORITY_EXERCISE = /hip thrust|glute|abduction|adduction|clam|kickback|bulgarian split|romanian deadlift|rdl|step.?up|leg curl|hamstring curl|fire hydrant|frog pump/i;
-const LOWER_BODY_EXERCISE = /squat|lunge|leg press|hip|glute|calf|hamstring|quad|deadlift|step|adduct|abduct|thrust/i;
-const UPPER_BACK_EXERCISE = /pulldown|pull-up|pullup|chin-up|row|face pull|rear delt|shrug|lat pull/i;
+const MALE_BIAS_EXERCISE = /bench press|incline bench|decline bench|skull crush|close.?grip bench|barbell curl|military press|overhead press|shoulder press|tricep extension|bicep curl/i;
+const GLUTE_FOCUS_EXERCISE = /hip thrust|glute bridge|glute|abduct|kickback|clam|fire hydrant|frog pump|pull.?through/i;
+const GLUTE_SUPPORT_EXERCISE = /romanian deadlift|rdl|bulgarian split|step.?up|hamstring curl|leg curl/i;
+const THIGH_VOLUME_EXERCISE = /squat|lunge|leg press|leg extension|hack squat|front squat|goblet squat/i;
 
 /** Проверка дали планът съответства на пола на клиента (след AI генерация). */
 export function auditPlanGenderFit(plan, clientTags) {
@@ -603,20 +606,19 @@ export function auditPlanGenderFit(plan, clientTags) {
   }
   if (!exercises.length) return { ok: true, issues: [] };
 
+  const gluteFocus = exercises.filter((name) => GLUTE_FOCUS_EXERCISE.test(name) || GLUTE_SUPPORT_EXERCISE.test(name));
+  const thighVolume = exercises.filter((name) => THIGH_VOLUME_EXERCISE.test(name));
   const maleBias = exercises.filter((name) => MALE_BIAS_EXERCISE.test(name));
-  const femalePriority = exercises.filter((name) => FEMALE_PRIORITY_EXERCISE.test(name));
-  const lowerBody = exercises.filter((name) => LOWER_BODY_EXERCISE.test(name));
-  const upperBack = exercises.filter((name) => UPPER_BACK_EXERCISE.test(name));
   const issues = [];
 
-  if (maleBias.length >= 4 && femalePriority.length < 2) {
-    issues.push(`Прекалено мъжки акцент (${maleBias.length} press/bench упражнения, само ${femalePriority.length} за glutes/крака).`);
+  if (maleBias.length >= 2) {
+    issues.push(`Прекалено мъжки горен обем (${maleBias.length} press/bench/curl упражнения) — за жена само постура/гръб.`);
   }
-  if (lowerBody.length < Math.max(2, Math.ceil(exercises.length * 0.35))) {
-    issues.push(`Недостатъчен обем на долна част за жена: ${lowerBody.length}/${exercises.length} упражнения.`);
+  if (gluteFocus.length < Math.max(2, Math.ceil(exercises.length * 0.3))) {
+    issues.push(`Недостатъчен приоритет на дупе: ${gluteFocus.length}/${exercises.length} упражнения (очаква се ≥30%).`);
   }
-  if (exercises.length >= 6 && upperBack.length < 2) {
-    issues.push(`Недостатъчен горен гръб/posture за жена: ${upperBack.length} упражнения (очакват се ≥2).`);
+  if (thighVolume.length > gluteFocus.length) {
+    issues.push(`Бедрата имат повече обем от дупе: ${thighVolume.length} бедрени vs ${gluteFocus.length} за дупе.`);
   }
 
   return { ok: issues.length === 0, issues };

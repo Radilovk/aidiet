@@ -87,6 +87,7 @@ import {
   shouldIncludeAdminChunk,
   expandEquipmentAnswers,
   equipmentHintTokensFromText,
+  constraintsFromAnswers,
 } from './plan-generation.js';
 
 export {
@@ -115,6 +116,7 @@ export {
   buildTrainerSystemAddon,
   parseChunkTags,
   shouldIncludeAdminChunk,
+  constraintsFromAnswers,
 };
 
 // ============================================================================

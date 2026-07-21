@@ -33,6 +33,7 @@ import {
   buildTrainerSystemAddon,
   parseChunkTags,
   shouldIncludeAdminChunk,
+  constraintsFromAnswers,
 } from '../worker.js';
 
 import { QUESTIONS, activeQuestions, validateQuestion, buildAnswers } from '../questions.js';
@@ -266,7 +267,7 @@ test('selectGuidelinesFromBrief: извлича релевантни насок�
   assert.ok(joined.includes('АДМИН отслабване'));
   assert.ok(joined.includes('АДМИН ВАЖНО'));
   assert.ok(joined.includes('АДМИН жена'));
-  assert.ok(joined.includes('Жена: акцент долна част'), 'hardcoded gender:жена chunk');
+  assert.ok(joined.includes('Жена: приоритет №1 дупе'), 'hardcoded gender:жена chunk');
   assert.ok(!joined.includes('АДМИН сила'), 'несъвпадащ chunk по goal:силови не влиза');
   assert.ok(!joined.includes('комбинирай съпротивителен тренинг'));
 });
@@ -502,6 +503,29 @@ test('auditPlanGenderFit: жена с glutes/крака → OK', () => {
   });
   const audit = auditPlanGenderFit(plan, new Set(['gender:жена']));
   assert.equal(audit.ok, true);
+});
+
+test('auditPlanGenderFit: жена с клек-доминантен план без дупе → проблем', () => {
+  const plan = normalizePlan({
+    title: 'X',
+    days: [{
+      day: 'Понеделник', type: 'strength',
+      exercises: [
+        { canonicalName: 'Barbell Back Squat', sets: 4, reps: '8', restSeconds: 120 },
+        { canonicalName: 'Leg Press', sets: 4, reps: '12', restSeconds: 90 },
+        { canonicalName: 'Walking Lunge', sets: 3, reps: '12', restSeconds: 60 },
+        { canonicalName: 'Goblet Squat', sets: 3, reps: '12', restSeconds: 60 },
+      ],
+    }],
+  });
+  const audit = auditPlanGenderFit(plan, new Set(['gender:жена']));
+  assert.equal(audit.ok, false);
+  assert.ok(audit.issues.some((i) => /дупе/i.test(i)));
+});
+
+test('constraintsFromAnswers: жена получава приоритет дупе в constraints', () => {
+  const c = constraintsFromAnswers({ gender: 'Жена', equipment: [], limitations: [], health: [], healthFemale: [] });
+  assert.ok(c.priorities.some((p) => /дупе/i.test(p)));
 });
 
 // ----------------------------------------------------------------------------
