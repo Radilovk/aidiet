@@ -14,6 +14,11 @@ import { normalizeText } from './normalize.js';
 import { buildProfileSummary } from './profile-summary.js';
 import { exerciseProfileFromAnswers } from './exercise-metadata.js';
 import { GENDER_FIT_RETRY_HINT } from './plan-prompts.js';
+import {
+  buildProgramSpec,
+  formatProgramSpecBlock,
+  buildCompactProfileForPrompt,
+} from './program-spec.js';
 
 export { GENDER_FIT_RETRY_HINT };
 
@@ -612,7 +617,8 @@ export function buildBriefIdentityBlock(brief) {
 /** User prompt: контекст + задача. strictAssembly = само scheme. */
 export function buildAdminPlanUserPrompt(brief, options = {}) {
   const strictAssembly = Boolean(options.strictAssembly);
-  const { clientProfile = '', exampleScheme = '', constraints: presetConstraints } = brief || {};
+  const hasScheme = Boolean(String(brief?.exampleScheme || '').trim());
+  const { clientProfile = '', exampleScheme = '', constraints: presetConstraints, programSpec } = brief || {};
   const scheme = String(exampleScheme || '').trim();
   const constraints = presetConstraints || parseAdminBriefConstraints(
     strictAssembly ? '' : clientProfile,
@@ -627,7 +633,14 @@ export function buildAdminPlanUserPrompt(brief, options = {}) {
       parts.push(`<equipment>\n${constraints.equipmentList.join(', ')}\n</equipment>`);
     }
     if (hardRules) parts.push(`<constraints>\n${hardRules}\n</constraints>`);
-    parts.push(`<profile>\n${String(clientProfile || '').trim()}\n</profile>`);
+    if (programSpec && !hasScheme) {
+      parts.push(`<program_spec>\n${formatProgramSpecBlock(programSpec)}\n</program_spec>`);
+    }
+    const compactProfile = brief?.compactProfile?.trim()
+      || (programSpec ? '' : String(clientProfile || '').trim());
+    if (compactProfile) {
+      parts.push(`<profile>\n${compactProfile}\n</profile>`);
+    }
   } else if (hardRules) {
     parts.push(`<constraints>\n${hardRules}\n</constraints>`);
   }
@@ -636,7 +649,7 @@ export function buildAdminPlanUserPrompt(brief, options = {}) {
     ? 'ASSEMBLY: сглоби JSON от <scheme> буквално. Само canonicalName/displayName. JSON само.'
     : (scheme
       ? 'Следвай <scheme> точно (дни, упражнения, обем). Запълни 7 дни. JSON само.'
-      : 'Генерирай седмичен план от данните по-горе. JSON само.');
+      : 'От <program_spec> + <exercise_catalog>: 7 дни, canonicalName САМО от каталога, sets/reps/rest по spec. JSON само.');
   return `${parts.join('\n\n')}\n\n${task}`;
 }
 
@@ -688,11 +701,16 @@ export function preparePlanGeneration(source, adminConfig, helpers) {
     const strictAssembly = isStrictAssembly(extra.strictScheme, extra.exampleScheme);
     const schemeMode = strictAssembly || hasClientScheme(extra.exampleScheme);
     const layers = resolveGuidelineLayers(tags, adminConfig, { schemeMode, strictAssembly });
+    const programSpec = (!strictAssembly && !schemeMode && answers?.gender)
+      ? buildProgramSpec(answers)
+      : null;
     const brief = {
       clientProfile: profileText,
+      compactProfile: programSpec ? buildCompactProfileForPrompt(answers) : profileText,
       exampleScheme: extra.exampleScheme || '',
       constraints: constraintsFromAnswers(answers || {}, extra.exampleScheme || '', { strictAssembly }),
       tags,
+      programSpec,
     };
     const equipmentInput = expandEquipmentAnswers([...(answers?.equipment || []), answers?.equipmentOther].filter(Boolean));
     const fromBrief = allowedEquipmentFromBrief(profileText, extra.exampleScheme || '');

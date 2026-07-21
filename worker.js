@@ -1675,9 +1675,10 @@ var PLAN_SYSTEM_CORE = `\u0422\u0438 \u0441\u0438 \u0431\u044A\u043B\u0433\u0430
 \u041F\u0420\u0418\u041E\u0420\u0418\u0422\u0415\u0422 \u043F\u0440\u0438 \u043A\u043E\u043D\u0444\u043B\u0438\u043A\u0442:
 1. <scheme> \u2014 \u0430\u0431\u0441\u043E\u043B\u044E\u0442\u0435\u043D, \u0430\u043A\u043E \u0438\u043C\u0430 (\u0434\u043D\u0438, \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F, \u043E\u0431\u0435\u043C, \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0430)
 2. <constraints> \u2014 hard-veto (\u0437\u0430\u0431\u0440\u0430\u043D\u0438, \u043E\u0431\u043E\u0440\u0443\u0434\u0432\u0430\u043D\u0435, \u0433\u0440\u0430\u0444\u0438\u043A)
-3. <profile>
-4. <trainer_rules> \u2014 \u0441\u0430\u043C\u043E \u0430\u043A\u043E \u043D\u0435 \u043F\u0440\u043E\u0442\u0438\u0432\u043E\u0440\u0435\u0447\u0430\u0442 \u043D\u0430 <scheme>
-5. <exercise_catalog> \u2014 canonicalName \u0421\u0410\u041C\u041E \u043E\u0442 \u0441\u043F\u0438\u0441\u044A\u043A\u0430 (\u0430\u043A\u043E \u0435 \u043F\u043E\u0434\u0430\u0434\u0435\u043D)
+3. <program_spec> \u2014 \u0441\u043F\u043B\u0438\u0442, \u0441\u0435\u0434\u043C\u0438\u0447\u0435\u043D \u043E\u0431\u0435\u043C, reps/rest/RPE, \u0440\u0435\u0434 \u043D\u0430 \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F
+4. <profile> \u2014 \u0437\u0434\u0440\u0430\u0432\u0435/\u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438\u044F (\u043A\u043E\u043D\u0442\u0435\u043A\u0441\u0442)
+5. <trainer_rules> \u2014 \u0441\u0430\u043C\u043E \u0430\u043A\u043E \u043D\u0435 \u043F\u0440\u043E\u0442\u0438\u0432\u043E\u0440\u0435\u0447\u0430\u0442 \u043D\u0430 <scheme>
+6. <exercise_catalog> \u2014 canonicalName \u0421\u0410\u041C\u041E \u043E\u0442 \u0441\u043F\u0438\u0441\u044A\u043A\u0430 (\u0430\u043A\u043E \u0435 \u043F\u043E\u0434\u0430\u0434\u0435\u043D)
 
 HARD-VETO:
 - \u0411\u043E\u043B\u043A\u0430/\u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438\u0435/\u043E\u043F\u0435\u0440\u0430\u0446\u0438\u044F \u2192 0 \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F, \u043D\u0430\u0442\u043E\u0432\u0430\u0440\u0432\u0430\u0449\u0438 \u0437\u043E\u043D\u0430\u0442\u0430
@@ -2090,13 +2091,18 @@ function buildExerciseCatalogSnippet(index, profile, allowedEquipment = null, op
     if (!groups.has(g)) groups.set(g, []);
     groups.get(g).push(entry);
   }
-  const lines = ["<exercise_catalog>", "canonicalName \u0421\u0410\u041C\u041E \u043E\u0442 \u0441\u043F\u0438\u0441\u044A\u043A\u0430 (d=\u0442\u0440\u0443\u0434\u043D\u043E\u0441\u0442 1\u20133):"];
+  const lines = ["<exercise_catalog>", "canonicalName \u0421\u0410\u041C\u041E \u043E\u0442 \u0441\u043F\u0438\u0441\u044A\u043A\u0430 (d=\u0442\u0440\u0443\u0434\u043D\u043E\u0441\u0442, gf/gm=0-100, flags):"];
   let total = 0;
   for (const g of GROUP_ORDER) {
     const items = groups.get(g);
     if (!items?.length) continue;
     const slice = items.slice(0, maxPerGroup);
-    const part = slice.map((e) => `${e.name}|d${e.diff ?? 2}`).join(", ");
+    const part = slice.map((e) => {
+      const flags = (e.flags || []).slice(0, 3).join(",") || "-";
+      const gf = e.gf ?? 70;
+      const gm = e.gm ?? 70;
+      return `${e.name}|d${e.diff ?? 2}|gf${gf}|${flags}`;
+    }).join(", ");
     lines.push(`${g}: ${part}`);
     total += slice.length;
     if (total >= maxTotal) break;
@@ -2290,6 +2296,225 @@ function buildProfileSummary(a) {
   }
   parts.push(line("\u0414\u043E\u043F\u044A\u043B\u043D\u0438\u0442\u0435\u043B\u043D\u043E \u043E\u0442 \u043A\u043B\u0438\u0435\u043D\u0442\u0430", a.extraInfo));
   return parts.filter(Boolean).join("\n");
+}
+
+// fitness/program-spec.js
+var ZONE_TO_GROUP = [
+  { keys: ["\u0434\u0443\u043F\u0435", "\u0433\u043B\u0443\u0442", "\u0441\u0435\u0434\u0430\u043B\u0438\u0449"], group: "glutes" },
+  { keys: ["\u0431\u0435\u0434\u0440", "\u043A\u0440\u0430\u043A", "quad"], group: "quads" },
+  { keys: ["\u0437\u0430\u0434\u043D", "hamstring", "\u0431\u0435\u0434\u0440\u043E \u0437\u0430\u0434"], group: "hamstrings" },
+  { keys: ["\u043A\u043E\u0440\u0435\u043C", "\u0442\u0430\u0437", "\u043F\u0440\u0435\u0441\u0441", "core", "abs"], group: "core" },
+  { keys: ["\u0433\u044A\u0440\u0434\u0438", "\u0433\u0440\u044A\u0434", "chest", "pec"], group: "chest" },
+  { keys: ["\u0433\u0440\u044A\u0431", "\u043B\u0430\u0442", "back"], group: "back" },
+  { keys: ["\u0440\u0430\u043C", "shoulder", "\u0434\u0435\u043B\u0442"], group: "shoulders" },
+  { keys: ["\u0440\u044A\u0446\u0435", "\u0431\u0438\u0446\u0435\u043F\u0441", "\u0442\u0440\u0438\u0446\u0435\u043F\u0441", "arm"], group: "arms" }
+];
+var GOAL_NORM = {
+  "\u043E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435": "\u043E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435",
+  "\u043F\u043E\u043A\u0430\u0447\u0432\u0430\u043D\u0435 \u043D\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430": "\u0445\u0438\u043F\u0435\u0440\u0442\u0440\u043E\u0444\u0438\u044F",
+  "\u0440\u0435\u043A\u043E\u043C\u043F\u043E\u0437\u0438\u0446\u0438\u044F": "\u0440\u0435\u043A\u043E\u043C\u043F\u043E\u0437\u0438\u0446\u0438\u044F",
+  "\u0441\u0438\u043B\u043E\u0432\u0438 \u043F\u043E\u043A\u0430\u0437\u0430\u0442\u0435\u043B\u0438": "\u0441\u0438\u043B\u0430",
+  "\u0438\u0437\u0434\u0440\u044A\u0436\u043B\u0438\u0432\u043E\u0441\u0442": "\u0438\u0437\u0434\u0440\u044A\u0436\u043B\u0438\u0432\u043E\u0441\u0442",
+  "\u043E\u0431\u0449\u0430 \u043A\u043E\u043D\u0434\u0438\u0446\u0438\u044F": "\u043E\u0431\u0449\u0430",
+  "\u0440\u0435\u0445\u0430\u0431\u0438\u043B\u0438\u0442\u0430\u0446\u0438\u044F \u0441\u043B\u0435\u0434 \u0442\u0440\u0430\u0432\u043C\u0430": "\u0440\u0435\u0445\u0430\u0431"
+};
+function goalKey(answers) {
+  const main = normalizeText(answers?.goal?.main || "");
+  if (main === "\u0434\u0440\u0443\u0433\u043E") return normalizeText(answers?.goal?.other || "") || "\u043E\u0431\u0449\u0430";
+  return GOAL_NORM[main] || main || "\u043E\u0431\u0449\u0430";
+}
+function parseLevel(experience = "") {
+  const exp = normalizeText(experience);
+  if (exp.includes("\u043D\u0438\u043A\u0430\u043A\u044A\u0432") || exp.includes("\u043D\u0430\u0447\u0438\u043D\u0430\u0435\u0449") && !exp.includes("\u0441\u0440\u0435\u0434\u043D\u043E")) return 1;
+  if (exp.includes("\u043D\u0430\u043F\u0440\u0435\u0434\u043D\u0430\u043B") || exp.includes("5+")) return 3;
+  return 2;
+}
+function parseSessionCount(freq = "") {
+  const f = normalizeText(freq);
+  if (f.includes("\u0435\u0436\u0435\u0434\u043D\u0435\u0432")) return 6;
+  if (f.includes("5") && f.includes("6")) return 5;
+  if (f.includes("3") && f.includes("4")) return 3;
+  if (f.includes("1") && f.includes("2")) return 2;
+  return 3;
+}
+function parseDurationMin(duration = "") {
+  const d = normalizeText(duration);
+  if (d.includes("\u0434\u043E 30")) return 30;
+  if (d.includes("30") && d.includes("45")) return 45;
+  if (d.includes("45") && d.includes("60")) return 55;
+  if (d.includes("\u043D\u0430\u0434 60")) return 75;
+  return 45;
+}
+function suggestSplit(sessions, level, goalNorm, isFemale) {
+  if (sessions <= 2) return "full-body \xD72";
+  if (sessions === 3) {
+    if (level === 1) return "full-body \xD73";
+    return isFemale ? "lower/glute + upper/posture + full" : "upper/lower + full";
+  }
+  if (sessions === 4) return isFemale ? "glute/lower \xD72 + upper/posture \xD72" : "upper/lower \xD72";
+  if (sessions === 5) return level >= 3 ? "PPL + glute/lower" : "upper/lower + PPL";
+  return "PPL \xD72 (rotate)";
+}
+function parseZonesOrdered(zonesText = "") {
+  const ordered = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (const part of String(zonesText).split(/[,;/\n]+/)) {
+    const z = part.trim().toLowerCase();
+    if (!z) continue;
+    for (const { keys, group } of ZONE_TO_GROUP) {
+      if (keys.some((k) => z.includes(k)) && !seen.has(group)) {
+        seen.add(group);
+        ordered.push(group);
+        break;
+      }
+    }
+  }
+  return ordered;
+}
+function baseVolumeByGoal(goalNorm) {
+  const g = goalNorm;
+  if (g.includes("\u043E\u0442\u0441\u043B\u0430\u0431")) {
+    return { glutes: 10, quads: 8, hamstrings: 6, back: 8, core: 6, chest: 4, shoulders: 4, arms: 4 };
+  }
+  if (g.includes("\u0445\u0438\u043F\u0435\u0440\u0442\u0440\u043E\u0444") || g.includes("\u0440\u0435\u043A\u043E\u043C\u043F\u043E\u0437")) {
+    return { glutes: 14, quads: 12, hamstrings: 10, back: 12, core: 6, chest: 10, shoulders: 8, arms: 8 };
+  }
+  if (g.includes("\u0441\u0438\u043B\u0430")) {
+    return { glutes: 8, quads: 10, hamstrings: 8, back: 12, core: 4, chest: 8, shoulders: 6, arms: 6 };
+  }
+  if (g.includes("\u0438\u0437\u0434\u0440\u044A\u0436\u043B\u0438\u0432") || g.includes("\u0440\u0435\u0445\u0430\u0431")) {
+    return { glutes: 8, quads: 8, hamstrings: 6, back: 8, core: 8, chest: 4, shoulders: 4, arms: 4 };
+  }
+  return { glutes: 10, quads: 8, hamstrings: 6, back: 8, core: 6, chest: 6, shoulders: 6, arms: 6 };
+}
+function applyLevelScale(vol, level) {
+  const scale = level === 1 ? 0.8 : level === 3 ? 1.12 : 1;
+  const out = {};
+  for (const [k, v] of Object.entries(vol)) {
+    out[k] = Math.max(4, Math.round(v * scale));
+  }
+  return out;
+}
+function applyGenderBias(vol, isFemale, isMale) {
+  const out = { ...vol };
+  if (isFemale) {
+    out.glutes = Math.round((out.glutes || 8) * 1.35);
+    out.quads = Math.round((out.quads || 8) * 0.9);
+    out.chest = Math.min(out.chest || 4, 4);
+    out.arms = Math.min(out.arms || 4, 5);
+  } else if (isMale) {
+    out.chest = Math.round((out.chest || 8) * 1.1);
+    out.back = Math.round((out.back || 8) * 1.05);
+  }
+  return out;
+}
+function applyZoneBoost(vol, zonesOrdered) {
+  const out = { ...vol };
+  zonesOrdered.forEach((group, i) => {
+    const boost = i === 0 ? 4 : i === 1 ? 2 : 1;
+    out[group] = (out[group] || 6) + boost;
+  });
+  return out;
+}
+function repRangeForGoal(goalNorm, level) {
+  const g = goalNorm;
+  if (g.includes("\u0441\u0438\u043B\u0430")) return { reps: "4-6", rest: "120-180s" };
+  if (g.includes("\u0438\u0437\u0434\u0440\u044A\u0436\u043B\u0438\u0432") || g.includes("\u0440\u0435\u0445\u0430\u0431")) return { reps: "12-20", rest: "45-60s" };
+  if (g.includes("\u043E\u0442\u0441\u043B\u0430\u0431")) return { reps: "10-15", rest: "60-75s" };
+  if (level === 1) return { reps: "10-12", rest: "75-90s" };
+  return { reps: "8-12", rest: "60-90s" };
+}
+function rpeCapFromAnswers(answers = {}) {
+  const blob = [
+    ...answers.health || [],
+    ...answers.healthFemale || [],
+    answers.sleep || "",
+    answers.stress != null ? String(answers.stress) : ""
+  ].join(" ").toLowerCase();
+  if (/бременн|кърм|следродил|сърдечно|хипертон|кръвно/i.test(blob)) return 7;
+  if (/лош сън|много лош|stress|стрес.*[89]|стрес.*10/i.test(blob) || Number(answers.stress) >= 8) return 7;
+  if (/рехаб|травм/i.test(normalizeText(answers?.goal?.main || ""))) return 7;
+  return 8;
+}
+function buildVolumeBudget(answers) {
+  const gender = normalizeText(answers?.gender || "");
+  const isFemale = gender.includes("\u0436\u0435\u043D\u0430");
+  const isMale = gender.includes("\u043C\u044A\u0436");
+  const level = parseLevel(answers?.experience);
+  const goalNorm = goalKey(answers);
+  let vol = baseVolumeByGoal(goalNorm);
+  vol = applyLevelScale(vol, level);
+  vol = applyGenderBias(vol, isFemale, isMale);
+  const zonesText = answers?.goal?.zones || "";
+  const zonesOrdered = parseZonesOrdered(zonesText);
+  if (zonesOrdered.length) {
+    vol = applyZoneBoost(vol, zonesOrdered);
+  } else if (isFemale) {
+    vol = applyZoneBoost(vol, ["glutes", "quads"]);
+  }
+  return { volume: vol, zonesOrdered, zonesText: zonesText.trim() };
+}
+function buildProgramSpec(answers = {}) {
+  const gender = normalizeText(answers?.gender || "");
+  const isFemale = gender.includes("\u0436\u0435\u043D\u0430");
+  const level = parseLevel(answers?.experience);
+  const sessions = parseSessionCount(answers?.preferences?.freq);
+  const durationMin = parseDurationMin(answers?.preferences?.duration);
+  const goalNorm = goalKey(answers);
+  const goalLabel = answers?.goal?.main === "\u0414\u0440\u0443\u0433\u043E" ? answers?.goal?.other || "\u0414\u0440\u0443\u0433\u043E" : answers?.goal?.main || "\u2014";
+  const { volume, zonesOrdered, zonesText } = buildVolumeBudget(answers);
+  const { reps, rest } = repRangeForGoal(goalNorm, level);
+  const rpeMax = rpeCapFromAnswers(answers);
+  return {
+    sessions,
+    durationMin,
+    level,
+    goal: goalLabel,
+    goalNorm,
+    split: suggestSplit(sessions, level, goalNorm, isFemale),
+    zonesText,
+    zonesOrdered,
+    volume,
+    reps,
+    rest,
+    rpeMax,
+    isFemale,
+    orderHint: "compound\u2192isolation; zones\u2193 first each day"
+  };
+}
+function formatVolumeLine(volume) {
+  const order = ["glutes", "quads", "hamstrings", "back", "core", "chest", "shoulders", "arms"];
+  return order.filter((g) => volume[g]).map((g) => `${g}:${volume[g]}`).join(", ");
+}
+function formatProgramSpecBlock(spec) {
+  if (!spec) return "";
+  const lines = [
+    `sessions: ${spec.sessions} | dur: ${spec.durationMin}min | level: ${spec.level} | goal: ${spec.goal}`,
+    `split: ${spec.split}`
+  ];
+  if (spec.zonesText) lines.push(`zones\u2193: ${spec.zonesText}`);
+  else if (spec.isFemale) lines.push("zones\u2193: \u0434\u0443\u043F\u0435>\u0431\u0435\u0434\u0440\u0430 (default \u0436\u0435\u043D\u0430)");
+  lines.push(`volume/wk: ${formatVolumeLine(spec.volume)}`);
+  lines.push(`reps: ${spec.reps} | rest: ${spec.rest} | rpe\u2264${spec.rpeMax}`);
+  lines.push(`order: ${spec.orderHint}`);
+  return lines.join("\n");
+}
+function buildCompactProfileForPrompt(answers = {}) {
+  const lines = [];
+  const health = [...answers.health || [], ...answers.healthFemale || []].filter((h) => h && !normalizeText(h).includes("\u043D\u044F\u043C\u0430"));
+  if (health.length) lines.push(`\u0417\u0434\u0440\u0430\u0432\u0435: ${health.join("; ")}`);
+  const limits = (answers.limitations || []).filter((l) => l && !normalizeText(l).includes("\u043D\u044F\u043C\u0430\u043C"));
+  if (limits.length) lines.push(`\u041E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438\u044F: ${limits.join("; ")}`);
+  if (answers.breastImplants?.implants) {
+    lines.push(`\u0418\u043C\u043F\u043B\u0430\u043D\u0442\u0438: ${answers.breastImplants.implants}`);
+  }
+  if (answers.preferences?.avoid?.trim()) {
+    lines.push(`\u0418\u0437\u0431\u044F\u0433\u0432\u0430\u0439: ${answers.preferences.avoid.trim()}`);
+  }
+  const sleep = answers.sleep || "";
+  if (sleep && !/добър|нормал/i.test(sleep)) lines.push(`\u0421\u044A\u043D: ${sleep}`);
+  if (Number(answers.stress) >= 7) lines.push(`\u0421\u0442\u0440\u0435\u0441: ${answers.stress}/10`);
+  return lines.join("\n");
 }
 
 // fitness/plan-generation.js
@@ -2802,7 +3027,8 @@ function buildBriefIdentityBlock(brief) {
 }
 function buildAdminPlanUserPrompt(brief, options = {}) {
   const strictAssembly = Boolean(options.strictAssembly);
-  const { clientProfile = "", exampleScheme = "", constraints: presetConstraints } = brief || {};
+  const hasScheme = Boolean(String(brief?.exampleScheme || "").trim());
+  const { clientProfile = "", exampleScheme = "", constraints: presetConstraints, programSpec } = brief || {};
   const scheme = String(exampleScheme || "").trim();
   const constraints = presetConstraints || parseAdminBriefConstraints(
     strictAssembly ? "" : clientProfile,
@@ -2822,15 +3048,23 @@ ${constraints.equipmentList.join(", ")}
     if (hardRules) parts.push(`<constraints>
 ${hardRules}
 </constraints>`);
-    parts.push(`<profile>
-${String(clientProfile || "").trim()}
+    if (programSpec && !hasScheme) {
+      parts.push(`<program_spec>
+${formatProgramSpecBlock(programSpec)}
+</program_spec>`);
+    }
+    const compactProfile = brief?.compactProfile?.trim() || (programSpec ? "" : String(clientProfile || "").trim());
+    if (compactProfile) {
+      parts.push(`<profile>
+${compactProfile}
 </profile>`);
+    }
   } else if (hardRules) {
     parts.push(`<constraints>
 ${hardRules}
 </constraints>`);
   }
-  const task = strictAssembly ? "ASSEMBLY: \u0441\u0433\u043B\u043E\u0431\u0438 JSON \u043E\u0442 <scheme> \u0431\u0443\u043A\u0432\u0430\u043B\u043D\u043E. \u0421\u0430\u043C\u043E canonicalName/displayName. JSON \u0441\u0430\u043C\u043E." : scheme ? "\u0421\u043B\u0435\u0434\u0432\u0430\u0439 <scheme> \u0442\u043E\u0447\u043D\u043E (\u0434\u043D\u0438, \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F, \u043E\u0431\u0435\u043C). \u0417\u0430\u043F\u044A\u043B\u043D\u0438 7 \u0434\u043D\u0438. JSON \u0441\u0430\u043C\u043E." : "\u0413\u0435\u043D\u0435\u0440\u0438\u0440\u0430\u0439 \u0441\u0435\u0434\u043C\u0438\u0447\u0435\u043D \u043F\u043B\u0430\u043D \u043E\u0442 \u0434\u0430\u043D\u043D\u0438\u0442\u0435 \u043F\u043E-\u0433\u043E\u0440\u0435. JSON \u0441\u0430\u043C\u043E.";
+  const task = strictAssembly ? "ASSEMBLY: \u0441\u0433\u043B\u043E\u0431\u0438 JSON \u043E\u0442 <scheme> \u0431\u0443\u043A\u0432\u0430\u043B\u043D\u043E. \u0421\u0430\u043C\u043E canonicalName/displayName. JSON \u0441\u0430\u043C\u043E." : scheme ? "\u0421\u043B\u0435\u0434\u0432\u0430\u0439 <scheme> \u0442\u043E\u0447\u043D\u043E (\u0434\u043D\u0438, \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F, \u043E\u0431\u0435\u043C). \u0417\u0430\u043F\u044A\u043B\u043D\u0438 7 \u0434\u043D\u0438. JSON \u0441\u0430\u043C\u043E." : "\u041E\u0442 <program_spec> + <exercise_catalog>: 7 \u0434\u043D\u0438, canonicalName \u0421\u0410\u041C\u041E \u043E\u0442 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430, sets/reps/rest \u043F\u043E spec. JSON \u0441\u0430\u043C\u043E.";
   return `${parts.join("\n\n")}
 
 ${task}`;
@@ -2872,11 +3106,14 @@ function preparePlanGeneration(source, adminConfig, helpers) {
     const strictAssembly = isStrictAssembly(extra.strictScheme, extra.exampleScheme);
     const schemeMode = strictAssembly || hasClientScheme(extra.exampleScheme);
     const layers = resolveGuidelineLayers(tags, adminConfig, { schemeMode, strictAssembly });
+    const programSpec = !strictAssembly && !schemeMode && answers?.gender ? buildProgramSpec(answers) : null;
     const brief = {
       clientProfile: profileText,
+      compactProfile: programSpec ? buildCompactProfileForPrompt(answers) : profileText,
       exampleScheme: extra.exampleScheme || "",
       constraints: constraintsFromAnswers(answers || {}, extra.exampleScheme || "", { strictAssembly }),
-      tags
+      tags,
+      programSpec
     };
     const equipmentInput = expandEquipmentAnswers([...answers?.equipment || [], answers?.equipmentOther].filter(Boolean));
     const fromBrief = allowedEquipmentFromBrief(profileText, extra.exampleScheme || "");

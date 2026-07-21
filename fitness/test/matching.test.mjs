@@ -392,12 +392,12 @@ test('buildAdminPlanUserPrompt: hard-veto блок за женски админ 
 
 test('preparePlanGeneration: user=context, system=RAG', () => {
   const { userPrompt, clientTags, guidelineLayers } = preparePlanGeneration(
-    { answers: { gender: 'Жена', age: 32, goal: { main: 'Отслабване' }, experience: 'Начинаещ', health: [], healthFemale: [], equipment: ['Дъмбели'], preferences: {} } },
+    { answers: { gender: 'Жена', age: 32, goal: { main: 'Отслабване' }, experience: 'Начинаещ', health: [], healthFemale: [], equipment: ['Дъмбели'], preferences: { freq: '3–4', duration: '30–45 мин' } } },
     { foundation: 'Принцип тест', chunks: [{ tags: ['gender:жена'], text: 'Админ жена насока' }] },
     { buildProfileSummary, allowedEquipmentSet },
   );
-  assert.ok(userPrompt.includes('<profile>'));
-  assert.ok(userPrompt.includes('Жена'));
+  assert.ok(userPrompt.includes('<program_spec>'));
+  assert.ok(userPrompt.includes('sessions: 3'));
   assert.ok(!userPrompt.includes('Принцип тест'));
   assert.ok(!userPrompt.includes('Админ жена насока'));
   assert.ok(clientTags.has('gender:жена'));
