@@ -7784,6 +7784,10 @@ async function handleGetPlanJobStatus(request, env) {
   if (!raw) return jsonResponse2({ status: "not_found" });
   return jsonResponse2(JSON.parse(raw));
 }
+function chatContextHasMealGrams(text) {
+  if (!text) return false;
+  return text.split("\n").some((line2) => /^day\d+\|/.test(line2) && /\|\d+\|\d+\|\d+\|\d+\|\d+\|/.test(line2));
+}
 async function handleChat(request, env) {
   try {
     const body = await request.json();
@@ -7801,15 +7805,17 @@ async function handleChat(request, env) {
       return jsonResponse2({ error: ERROR_MESSAGES.MISSING_MESSAGE }, 400);
     }
     let effectiveContextText = contextText;
-    if (!effectiveContextText && userData && userPlan) {
-      effectiveContextText = buildChatContext(
+    if (userData && userPlan) {
+      const serverContext = buildChatContext(
         userData,
         userPlan,
         message,
         mode || "consultation"
       ).contextText;
-    }
-    if (!effectiveContextText) {
+      if (!chatContextHasMealGrams(effectiveContextText)) {
+        effectiveContextText = serverContext;
+      }
+    } else if (!effectiveContextText) {
       return jsonResponse2({ error: ERROR_MESSAGES.MISSING_CONTEXT }, 400);
     }
     const effectiveUserData = userData || {};
