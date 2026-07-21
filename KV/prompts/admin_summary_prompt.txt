@@ -18,12 +18,13 @@
 {clinicalProtocolSupplementSection}
 
 === ЗАДАЧА ===
-Генерирай финални препоръки за 7-дневния план на {name}.
+Финални препоръки за 7-дневния план на {name}. Персонализирай по профила — БЕЗ универсални съвети.
 
-- recommendations: 10 конкретни типове храни (не ястия), подходящи за {goal}, диета "{dietType}", {keyProblems}, {clinicalProtocolSection}, медикаменти: {medications} — да не попадат в {dynamicBlacklistSection}
-- forbidden: 10 конкретни типове храни (не ястия), неподходящи за {goal}, {clinicalProtocolSection}, диета "{dietType}", {keyProblems}, медикаменти: {medications} — да не противоречат на {dynamicWhitelistSection}
-- supplements: минимум 3 конкретни добавки, свързани с: {clinicalProtocolSection}, цел ({goal}). Да имат дозировка и кратка обосновка, съобразени с {psychologicalProfile}, {temperament}, {keyProblems}, и медикаменти ({medications}) — БЕЗ опасни взаимодействия с медикаментите
-- psychology: минимум 3 кратки, стегнати конкретни персонализирани психологически съвета, свързани с цел ({goal}), {clinicalProtocolSection} и адаптирани към {psychologicalProfile}, ({temperament}), сън, ниво на стрес, ниво на активност, пол и {keyProblems} на {name}
-- waterIntake: от {hydrationStrategy}
+summary: bmr, dailyCalories (средни), macros (средни)
+recommendations: 10 конкретни типове храни (не ястия) за {goal}, "{dietType}", {keyProblems}, {clinicalProtocolSection}, медикаменти {medications} — извън {dynamicBlacklistSection}
+forbidden: 10 типове храни (не ястия), неподходящи за {goal}, {clinicalProtocolSection}, "{dietType}", {keyProblems}, {medications} — без противоречие с {dynamicWhitelistSection}
+supplements: мин. 3 с дозировка и обосновка — по {clinicalProtocolSection}, цел ({goal}), {psychologicalProfile}, {temperament}, {keyProblems}, {medications}; БЕЗ опасни взаимодействия
+psychology: мин. 3 кратки персонализирани съвета — цел ({goal}), {clinicalProtocolSection}, {psychologicalProfile}, {temperament}, сън, стрес, активност, пол, {keyProblems} на {name}
+waterIntake: от {hydrationStrategy}
 
 Върни САМО JSON.

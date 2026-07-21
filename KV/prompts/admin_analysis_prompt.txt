@@ -1,53 +1,53 @@
 === ПРАВИЛА ===
-bmr и tdee са от бекенда — НЕ ги преизчислявай. Игнорирай recommendedCalories/macroRatios/macroGrams от backendCalculations — изчисли калориите по корекциите по-долу.
+bmr и tdee са от бекенда — НЕ ги преизчислявай. Игнорирай recommendedCalories/macroRatios/macroGrams от backendCalculations.
 
 === КЛИЕНТСКИ ДАННИ (NPCF v1) ===
 Формат: U=идентичност, L=начин_на_живот, B=история, H=навици, D=диета, M=медицина, CP=протокол, X=други.
 {userData}
 
-=== БЕКЕНД ИЗЧИСЛЕНИЯ (справочни) ===
+=== БЕКЕНД ИЗЧИСЛЕНИЯ ===
 {backendCalculations}
 
 {additionalNotesSection}
 {clinicalProtocolSection}
 
 === ЗАДАЧА ===
-Въз основа на информацията по-горе, изпълни:
 
-1. ТЕМПЕРАМЕНТ — по age, gender, chronotype, sleepHours, sleepInterrupt, stressLevel, foodTriggers, overeatingFrequency, compensationMethods, dailyActivityLevel, sportActivity. Попълни само ако >{TEMPERAMENT_CONFIDENCE_THRESHOLD}%: Холерик|Сангвиник|Флегматик|Меланхолик.
+1. ТЕМПЕРАМЕНТ — по age, gender, chronotype, sleepHours, sleepInterrupt, stressLevel, foodTriggers, overeatingFrequency, compensationMethods, dailyActivityLevel, sportActivity.
+Попълни psychoProfile само ако >{TEMPERAMENT_CONFIDENCE_THRESHOLD}%: Холерик|Сангвиник|Флегматик|Меланхолик + probability + reasoning.
 
-2. ПСИХОПРОФИЛ — стегнат текст на база темперамент + goal, lossKg, dietHistory, eatingHabits, foodCravings, drinksSweet, drinksAlcohol, compensationMethods, additionalNotes.
+2. ПСИХОПРОФИЛ — стегнат текст: темперамент + age, gender, goal, lossKg, dietHistory, eatingHabits, foodCravings, drinksSweet, drinksAlcohol, waterIntake, socialComparison, dietPreference, dietDislike, dietLove, weightChange, compensationMethods, additionalNotes.
 
 3. КОРЕКЦИИ НА TDEE (само %):
-• clinicalAdjustmentPercent [-15..+5]: medicalConditions, medications. ЛАКТАЦИЯ (postpartum_lactation): +round(350/tdee×100)% — БЕЗ горна граница +5%.
-• metabolicAdjustmentPercent [-10..+5]: sportActivity, сън, стрес, психопрофил, темперамент.
-• goalAdjustmentPercent [-20..+15]: goal, lossKg, bmi, dietHistory, психопрофил. ЛАКТАЦИЯ+ОТСЛАБВАНЕ: max -5%.
-• Ако сборът е по-отрицателен от -25%: ограничи goalAdjustmentPercent до total = -25%.
+• clinicalAdjustmentPercent [-15..+5] — medicalConditions, medications (additionalNotes само ако клинично). Пример: хипотиреоидизъм -8%, диабет Т2 -5%, без диагноза 0. ЛАКТАЦИЯ (postpartum_lactation): +round(350/tdee×100)% — БЕЗ горна граница +5%.
+• metabolicAdjustmentPercent [-10..+5] — sportActivity, сън, стрес, психопрофил, темперамент. Пример: хроничен стрес + лош сън -5%; оптимален сън + нисък стрес +2%.
+• goalAdjustmentPercent [-20..+15] — goal, lossKg, bmi, dietHistory, психопрофил, метаболитна реактивност; клинична преценка спрямо реалния потенциал. ЛАКТАЦИЯ+ОТСЛАБВАНЕ: max -5%.
+• Ако сборът < -25%: ограничи goalAdjustmentPercent до total = -25%.
 
-4. ФИНАЛНИ КАЛОРИИ: totalAdjustment% = clinical + metabolic + goal (мин. -25%). Final_Calories = round(tdee × (1 + totalAdjustment%/100)).
-Пример: tdee=2000, total=-25% → Final_Calories=1500.
-Минимум {MIN_RECOMMENDED_CALORIES} kcal → correctedMetabolism.correction описва повдигането.
-correctedMetabolism.realBMR = bmr; realTDEE = Final_Calories.
+4. ФИНАЛНИ КАЛОРИИ:
+totalAdjustment% = clinical + metabolic + goal (мин. -25%). Final_Calories = round(tdee × (1 + totalAdjustment%/100)).
+Примери: tdee 2000, -20% → 1600; tdee 2000, -25% → 1500; tdee 2127, -25% → 1595.
+Минимум {MIN_RECOMMENDED_CALORIES} kcal → correction="Повдигнато до минималния безопасен праг."; иначе correction="Корекция по проценти спрямо клинични/метаболитни/целеви критерии."
+correctedMetabolism: realBMR=bmr, realTDEE=Final_Calories, correctionPercent="<total>%".
 
-5. МАКРОСИ от Final_Calories: protein%/carbs%/fats% по цел, темперамент, клиника, хранителни навици. fats_g ≥ {MIN_FAT_GRAMS}. Баланс: P×4+C×4+F×9 ≈ Final_Calories (±15 kcal).
+5. МАКРОСИ от Final_Calories — по цел/lossKg, темперамент, психопрофил, eatingHabits, foodCravings, foodTriggers, compensationMethods, drinksSweet, drinksAlcohol, medicalConditions, medications:
+protein_g = round(Final×P%/100/4); fats_g = round(Final×F%/100/9); carbs_g = round(Final×C%/100/4).
+Провери P×4+C×4+F×9 ≈ Final (±15). Ако не: carbs_g = round((Final - P×4 - F×9)/4). fats_g ≥ {MIN_FAT_GRAMS} — иначе увеличи fats%, намали carbs%.
 
 6. АНАЛИЗ СТРАНИЦА:
-• BMI+категория, physiologicalPhase, waterDeficit (нужда {waterMin}–{waterMax} л)
-• negativeHealthFactors/hinderingFactors (severity 1-3), cumulativeRiskScore
-• metabolicReactivity (speed/adaptability по activityScore)
-• currentHealthStatus (score 0-100, занижено с {HEALTH_STATUS_UNDERESTIMATE_PERCENT}%)
-• forecastPessimistic/Optimistic (12 месеца), healthRisks, nutritionalNeeds, successChance, metabolicProfile
-
-keyProblems (3–6, САМО Borderline/Risky/Critical — БЕЗ Normal):
-Фокус на фактори, които АКТИВНО пречат на целта. За всеки проблем попълни:
-• title — кратко заглавие
-• description — към клиента, защо е проблем
-• severity — Borderline | Risky | Critical
-• severityValue — число 0–100, СЪОТВЕТСТВАЩО на severity (задължително за severity-meter):
-  - Borderline → 45–59
-  - Risky → 60–79
-  - Critical → 80–95
-• category — Sleep | Nutrition | Hydration | Stress | Activity | Medical
-• impact — към клиента, въздействие върху здравето и целта
+• BMI = weight/(height/100)²; категория: Поднормено <18.5, Нормално 18.5-25, Наднормено 25-30, Затлъстяване >30
+• physiologicalPhase: Млад 18-30, Зряла 31-50, Средна 51-65, Напреднала 65+
+• waterDeficit: нужда {waterMin}–{waterMax} л/ден, дефицит спрямо waterIntake, impactOnLipolysis
+• negativeHealthFactors (severity 1-3): медицински условия и лекарства
+• hinderingFactors (severity 1-3): стрес, сън/прекъсвания, навици, тригери за целта
+• cumulativeRiskScore: припокриване на факторите → сума на тежестта
+• metabolicReactivity: speed Бавен/Среден/Бърз, adaptability Ниска/Средна/Висока (activityScore, dietHistory, chronotype, stressLevel)
+• activityLevel: ниво 1-10 и описание
+• metabolicProfile, healthRisks (≥3), nutritionalNeeds (≥3)
+• successChance: -100 до +100
+• currentHealthStatus: score 0-100 занижено с {HEALTH_STATUS_UNDERESTIMATE_PERCENT}%, description, keyIssues
+• forecastPessimistic/Optimistic: timeframe 12 месеца, weight, health, risks/improvements (по 5)
+• keyProblems (3–6, САМО Borderline/Risky/Critical, БЕЗ Normal) — фактори, АКТИВНО пречищи на целта:
+  title; description (към клиента, защо е проблем); severity; severityValue 0–100 съответстващо на severity (Borderline 45–59, Risky 60–79, Critical 80–95); category; impact (към клиента).
 
 Върни САМО JSON.
