@@ -10,6 +10,9 @@
     "build:worker": "node scripts/bundle-worker.mjs",
     "typecheck:worker": "node scripts/typecheck-worker.mjs",
     "test:worker": "node scripts/verify-worker.mjs",
+    "test:plan-adequacy": "node scripts/plan-adequacy/run-offline.mjs",
+    "test:plan-adequacy:live": "node scripts/plan-adequacy/run-live.mjs",
+    "upload:kv": "bash KV/upload-kv-keys.sh",
     "serve": "python -m http.server 8000",
     "test": "echo \"Open test.html in browser to test the application\""
   },

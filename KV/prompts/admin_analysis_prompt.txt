@@ -22,8 +22,16 @@
 
 4. Final_Calories = round(tdee × (1 + total%/100)); мин. {MIN_RECOMMENDED_CALORIES} → correction описва повдигането. realBMR=bmr; realTDEE=Final_Calories.
 
-5. МАКРОСИ от Final_Calories по цел, темперамент, клиника, хранителни навици. fats_g ≥ {MIN_FAT_GRAMS}. P×4+C×4+F×9 ≈ Final (±15).
+5. МАКРОСИ — изчисли САМО от Final_Calories:
+macroRatios (%) по goal, lossKg, темперамент, eatingHabits, foodCravings, medicalConditions, medications. protein+carbs+fats = 100 (само числа).
+protein_g = round(Final×P%/4); fats_g = round(Final×F%/9); carbs_g = round((Final - protein_g×4 - fats_g×9)/4).
+fats_g ≥ {MIN_FAT_GRAMS}. macroGrams — само числа (грамове). Пример: Final 1600, P30/C35/F35 → 120/140/62.
 
-6. АНАЛИЗ СТРАНИЦА: physiologicalPhase, waterDeficit ({waterMin}–{waterMax} л), negativeHealthFactors/hinderingFactors (1-3), cumulativeRiskScore, metabolicReactivity (activityScore), activityLevel, forecasts 12 мес., healthRisks, nutritionalNeeds, successChance [-100..100], currentHealthStatus (занижено {HEALTH_STATUS_UNDERESTIMATE_PERCENT}%).
+6. АНАЛИЗ СТРАНИЦА: physiologicalPhase, waterDeficit ({waterMin}–{waterMax} л), negativeHealthFactors/hinderingFactors (1-3), cumulativeRiskScore, metabolicReactivity (activityScore), activityLevel, forecasts 12 мес., healthRisks, nutritionalNeeds, successChance [-100..100].
+currentHealthStatus:
+• Честна оценка 0–100 по BMI, медицина, сън, стрес, навици, keyProblems.
+• score = round(оценка × (1 - {HEALTH_STATUS_UNDERESTIMATE_PERCENT}/100)).
+• description: към клиента, съответства на score — конкретни слабости/силни страни, не общи фрази.
+• keyIssues: 2–4 конкретни проблема.
 keyProblems 3–6 — САМО Borderline/Risky/Critical, БЕЗ Normal; фактори активно пречещи на целта:
 severityValue съответства на severity: Borderline 45–59, Risky 60–79, Critical 80–95. description и impact — към клиента.
