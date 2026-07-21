@@ -2439,18 +2439,19 @@
             <div class="card">
                 <h2><i class="fas fa-dumbbell"></i> KA-TRAINER — Принципи за тренировки</h2>
                 <div class="info-box">
-                    <strong>KA-TRAINER архитектура (2 слоя):</strong>
+                    <strong>KA-TRAINER — какво влиза в AI:</strong>
                     <ol style="margin:8px 0 0 18px;padding:0;">
-                        <li><strong>Архитектурна рамка</strong> — „Базови принципи“ + chunks <em>без таг</em> или с <code>all</code> / <code>общо</code> (универсална логика).</li>
-                        <li><strong>Индивидуални особености</strong> — chunks с тагове (<code>gender:жена</code>, <code>goal:отслабване</code>…) — в <code>&lt;trainer_rules&gt;</code> в system prompt.</li>
-                        <li><strong>Схема и указания</strong> (при клиентска програма) — <strong>абсолютен приоритет</strong> в <code>&lt;scheme&gt;</code>; при конфликт scheme &gt; насоки.</li>
+                        <li><strong>program_spec</strong> (автоматично) — сплит, обем, reps от въпросника. Не пиши това в насоките.</li>
+                        <li><strong>Базови принципи</strong> + chunks <code>all</code>/<code>общо</code> — твоя философия и техника (архитектура).</li>
+                        <li><strong>Chunks по таг</strong> — кратки правила-делта (<code>gender:жена</code>, <code>goal:отслабване</code>…) в <code>&lt;trainer_rules&gt;</code>.</li>
+                        <li><strong>Схема</strong> (клиентска програма) — абсолютен приоритет в <code>&lt;scheme&gt;</code>; при конфликт scheme &gt; всичко.</li>
                     </ol>
-                    RAG насоките влизат в system prompt. Вградените насоки в worker-а са fallback без админ chunks.
+                    Пиши само това, което AI <em>не</em> знае от въпросника и program_spec. Админ chunks &gt; вграден fallback.
                 </div>
 
                 <div class="form-group">
-                    <label for="fitplanFoundation">Базови принципи (физиология и биомеханика)</label>
-                    <textarea id="fitplanFoundation" rows="6" maxlength="800" placeholder="Кратки универсални принципи: контрол на движението, дишане, прогресия, възстановяване, безопасни ъгли на ставите..."></textarea>
+                    <label for="fitplanFoundation">Базови принципи</label>
+                    <textarea id="fitplanFoundation" rows="6" maxlength="800" placeholder="Твоя философия и техника — кратко. Без сплит/обем/reps (идват от program_spec). Напр.: контрол на ексцентриката, дишане, как комуникираш RPE с клиента…"></textarea>
                     <small id="fitplanFoundationCount" style="color: var(--text-gray);">0 / 800 знака</small>
                 </div>
 
@@ -2462,9 +2463,10 @@
                         </button>
                     </div>
                     <small style="display:block;color:var(--text-gray);margin-bottom:12px;">
-                        <strong>Категории от въпросника</strong> (пол, цел, здраве…) — напр. <code>пол (в1, в12.other, в15)</code> — прилагат се при съвпадение (напр. женски текст само за жени).
-                        <strong>Филтър по клиент</strong> (по избор): <code>gender:жена</code>, <code>goal:отслабване</code>.
-                        За универсални правила: празни тагове или <code>all</code> / <code>общо</code>. При няколко machine тага — раздели с <code>;</code>.
+                        <strong>Кратки правила-делта</strong> — не дублирай program_spec (сплит, обем, reps).
+                        <strong>Тагове:</strong> <code>gender:жена</code>, <code>goal:отслабване</code>, <code>level:начинаещ</code>, <code>health:бременност</code>…
+                        <strong>Категории от въпросника:</strong> <code>пол (в1, в12.other, в15)</code> — прилагат се при съвпадение на пол.
+                        Универсални: празни тагове или <code>all</code> / <code>общо</code>. Няколко тага — раздели с <code>;</code>.
                     </small>
                     <div id="fitplanBuiltinTags" class="admin-assistant-meta" style="margin-bottom:14px;"></div>
                     <div id="fitplanChunksList" style="display:flex;flex-direction:column;gap:12px;"></div>
@@ -2479,33 +2481,6 @@
                     </button>
                 </div>
                 <div id="fitplanGuidelinesStatus" style="margin-top:12px;color:var(--text-gray);font-size:0.9rem;"></div>
-            </div>
-
-            <div class="card" style="margin-top:20px;">
-                <h2><i class="fas fa-database"></i> База упражнения</h2>
-                <div class="info-box">
-                    <strong>EFP (Exercise Fitness Profile):</strong> трудност 1–3 + gender fit (0–100).
-                    Преводът добавя BG инструкции; класификацията филтрира каталога за AI (напр. начинаеща жена).
-                    Всяко натискане обработва до 2 партиди (~12–25 упражнения).
-                </div>
-                <div id="fitplanExerciseDatasetStatus" style="color:var(--text-gray);font-size:0.9rem;margin-bottom:12px;">
-                    Натисни „Статус“ за зареждане.
-                </div>
-                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-                    <button type="button" class="btn" style="background:#6b7280;" onclick="loadFitplanExerciseDatasetStatus(true)">
-                        <i class="fas fa-sync"></i> Статус
-                    </button>
-                    <button type="button" class="btn" style="background:#6366f1;" id="fitplanTranslateBatchBtn" onclick="runFitplanTranslateBatch()">
-                        <i class="fas fa-language"></i> Партида превод
-                    </button>
-                    <button type="button" class="btn" style="background:#8b5cf6;" id="fitplanClassifyBatchBtn" onclick="runFitplanClassifyBatch()">
-                        <i class="fas fa-tags"></i> Партида класификация
-                    </button>
-                    <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;color:var(--text-gray);cursor:pointer;">
-                        <input type="checkbox" id="fitplanExerciseForce" style="width:auto;margin:0;">
-                        Принудително (force)
-                    </label>
-                </div>
             </div>
 
             <div class="card" id="fcpCard" style="margin-top:20px;">
@@ -4133,9 +4108,6 @@
             if (tabName === 'ui-images') {
                 loadAllUIImages();
             }
-            if (tabName === 'fitplan' && typeof loadFitplanExerciseDatasetStatus === 'function') {
-                loadFitplanExerciseDatasetStatus();
-            }
             if (tabName === 'fitplan' && typeof loadFitplanGuidelines === 'function') {
                 loadFitplanGuidelines();
                 if (typeof loadFitplanConsultConfig === 'function') loadFitplanConsultConfig();
@@ -4275,7 +4247,7 @@
                 </div>
                 <div style="margin-top:8px;">
                     <label style="font-size:0.82rem;color:var(--text-gray);">Текст на насоката (макс. 500 знака)</label>
-                    <textarea class="fitplan-chunk-text" rows="3" maxlength="500">${escapeHtml(chunk.text || '')}</textarea>
+                        <textarea class="fitplan-chunk-text" rows="3" maxlength="500" placeholder="Кратко правило-делта за този таг (без сплит/обем/reps)…">${escapeHtml(chunk.text || '')}</textarea>
                 </div>
             `;
             return row;
@@ -4500,86 +4472,6 @@
                 showError('Грешка: ' + error.message);
             }
         }
-
-        let fitplanExerciseDatasetLoaded = false;
-
-        function formatFitplanExerciseDatasetStatus(translate, classify) {
-            const parts = [];
-            if (translate) {
-                parts.push(`Превод: ${translate.done}/${translate.total} (${translate.remaining} остават)`);
-            }
-            if (classify) {
-                parts.push(`EFP: ${classify.done}/${classify.total} (${classify.remaining} остават)`);
-            }
-            const flags = [];
-            if (translate?.hasGemini === false || classify?.hasGemini === false) flags.push('липсва GEMINI_API_KEY');
-            if (translate?.hasKv === false || classify?.hasKv === false) flags.push('липсва KV');
-            if (flags.length) parts.push(`⚠ ${flags.join(', ')}`);
-            return parts.join(' · ') || 'Няма данни';
-        }
-
-        async function loadFitplanExerciseDatasetStatus(force = false) {
-            const statusEl = document.getElementById('fitplanExerciseDatasetStatus');
-            if (!statusEl) return;
-            if (fitplanExerciseDatasetLoaded && !force) return;
-            statusEl.textContent = 'Зареждане…';
-            try {
-                const headers = fitplanAdminHeaders();
-                const [trRes, clRes] = await Promise.all([
-                    fetch(FITPLAN_WORKER_URL + '/api/admin/fitplan/translate-exercises', { headers }),
-                    fetch(FITPLAN_WORKER_URL + '/api/admin/fitplan/classify-exercises', { headers }),
-                ]);
-                const translate = trRes.ok ? await trRes.json() : null;
-                const classify = clRes.ok ? await clRes.json() : null;
-                if (!trRes.ok && !clRes.ok) {
-                    statusEl.textContent = 'Грешка при зареждане на статуса.';
-                    return;
-                }
-                statusEl.textContent = formatFitplanExerciseDatasetStatus(translate, classify);
-                fitplanExerciseDatasetLoaded = true;
-            } catch (e) {
-                statusEl.textContent = 'Грешка: ' + (e.message || 'мрежа');
-            }
-        }
-        window.loadFitplanExerciseDatasetStatus = loadFitplanExerciseDatasetStatus;
-
-        async function runFitplanExerciseBatch(endpoint, btnId, label) {
-            const btn = document.getElementById(btnId);
-            const statusEl = document.getElementById('fitplanExerciseDatasetStatus');
-            const force = Boolean(document.getElementById('fitplanExerciseForce')?.checked);
-            if (btn?.disabled) return;
-            if (btn) btn.disabled = true;
-            if (statusEl) statusEl.textContent = `${label}…`;
-            try {
-                const response = await fetch(FITPLAN_WORKER_URL + endpoint, {
-                    method: 'POST',
-                    headers: fitplanAdminHeaders(),
-                    body: JSON.stringify({ batches: 2, force }),
-                });
-                const data = await response.json().catch(() => ({}));
-                if (!response.ok) throw new Error(data.error || data.message || `HTTP ${response.status}`);
-                const extra = data.indexRebuilt ? ' · индекс обновен' : '';
-                if (statusEl) {
-                    statusEl.textContent = `${label}: +${data.addedThisRun || 0} (${data.done}/${data.total}, остават ${data.remaining})${extra}`;
-                }
-                fitplanExerciseDatasetLoaded = false;
-                await loadFitplanExerciseDatasetStatus(true);
-            } catch (e) {
-                if (statusEl) statusEl.textContent = `${label} — грешка: ${e.message}`;
-            } finally {
-                if (btn) btn.disabled = false;
-            }
-        }
-
-        async function runFitplanTranslateBatch() {
-            return runFitplanExerciseBatch('/api/admin/fitplan/translate-exercises', 'fitplanTranslateBatchBtn', 'Превод');
-        }
-        window.runFitplanTranslateBatch = runFitplanTranslateBatch;
-
-        async function runFitplanClassifyBatch() {
-            return runFitplanExerciseBatch('/api/admin/fitplan/classify-exercises', 'fitplanClassifyBatchBtn', 'Класификация');
-        }
-        window.runFitplanClassifyBatch = runFitplanClassifyBatch;
 
         // --- Клиентски програми (същият FITPLAN_WORKER_URL като консултациите) ---
         let fcpProgramsCache = [];

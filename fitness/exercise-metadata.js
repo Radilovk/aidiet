@@ -155,14 +155,19 @@ export function buildExerciseCatalogSnippet(index, profile, allowedEquipment = n
     groups.get(g).push(entry);
   }
 
-  const lines = ['<exercise_catalog>', 'canonicalName САМО от списъка (d=трудност 1–3):'];
+  const lines = ['<exercise_catalog>', 'canonicalName САМО отдолу (d=трудност, gf=подходящост жена, flags=c/i/glute/press…):'];
   let total = 0;
 
   for (const g of GROUP_ORDER) {
     const items = groups.get(g);
     if (!items?.length) continue;
     const slice = items.slice(0, maxPerGroup);
-    const part = slice.map((e) => `${e.name}|d${e.diff ?? 2}`).join(', ');
+    const part = slice.map((e) => {
+      const flags = (e.flags || []).slice(0, 3).join(',') || '-';
+      const gf = e.gf ?? 70;
+      const gm = e.gm ?? 70;
+      return `${e.name}|d${e.diff ?? 2}|gf${gf}|${flags}`;
+    }).join(', ');
     lines.push(`${g}: ${part}`);
     total += slice.length;
     if (total >= maxTotal) break;

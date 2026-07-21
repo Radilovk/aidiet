@@ -14,6 +14,11 @@ import { normalizeText } from './normalize.js';
 import { buildProfileSummary } from './profile-summary.js';
 import { exerciseProfileFromAnswers } from './exercise-metadata.js';
 import { GENDER_FIT_RETRY_HINT } from './plan-prompts.js';
+import {
+  buildProgramSpec,
+  formatProgramSpecBlock,
+  buildCompactProfileForPrompt,
+} from './program-spec.js';
 
 export { GENDER_FIT_RETRY_HINT };
 
@@ -26,28 +31,27 @@ export const MAX_ARCHITECTURE_CHARS = 2800;
 const UNIVERSAL_TAGS = new Set(['all', '*', 'общо']);
 
 export const GUIDELINE_CHUNKS = [
-  { tags: ['goal:отслабване'], text: 'Отслабване: комбинирай съпротивителен тренинг (запазва мускулна маса) с кардио. Приоритет — многоставни движения с умерени тежести, 2-3 сек контролирана негативна фаза. Кардио зони: LISS 60-70% от макс. пулс или интервали според опита. Дефицитът идва от храненето — тренировката пази мускула.' },
-  { tags: ['goal:покачване на мускулна маса'], text: 'Хипертрофия: 10-20 работни серии на мускулна група седмично, 6-12 повторения при 65-80% 1RM, почивка 60-120 сек, близо до отказ (RIR 1-3). Прогресия: първо повторения в диапазона, после тежест. Всяка група 2x седмично е по-ефективно от 1x.' },
-  { tags: ['goal:силови показатели'], text: 'Сила: акцент върху основни движения (клек, тяга, преси) при 75-90% 1RM, 3-6 повторения, пълна почивка 2-4 мин. Обемът на помощните упражнения умерен. Техниката е с абсолютен приоритет пред тежестта.' },
-  { tags: ['goal:издръжливост'], text: 'Издръжливост: 60-70% обем в зона 2, 1-2 интервални сесии седмично. Силова поддръжка 2x седмично с 15-20 повторения или кръгов формат за мускулна издръжливост.' },
-  { tags: ['goal:рекомпозиция'], text: 'Рекомпозиция: тренирай като за хипертрофия (обемът строи мускул), добави 1-2 кратки кардио/HIIT сесии. Реалистично темпо — бавна видима промяна, затова заложи измерими силови прогресии за мотивация.' },
-  { tags: ['goal:обща кондиция'], text: 'Обща кондиция: балансиран микс — 2 дни цялостен силов тренинг, 1-2 дни кардио/функционален, 1 ден мобилност/активно възстановяване. Разнообразието поддържа придържането.' },
-  { tags: ['goal:рехабилитация след травма'], text: 'Рехабилитация: работи само в безболезнен диапазон, изокинетичен контрол, ниска тежест/високи повторения (12-20), едностранни упражнения за балансиране на асиметрии. Изрично напомняй, че планът не замества физиотерапевт.' },
-  { tags: ['level:начинаещ'], text: 'Начинаещи (0-6 мес): 2-3 тренировки за цяло тяло седмично, 8-12 серии на група седмично стигат. Машини и собствено тегло преди свободни тежести за сложните движения. Първите 4-6 седмици фокус върху техника, RIR 3-4.' },
-  { tags: ['level:среден'], text: 'Среден опит (2–5 г): горна/долна част или push/pull/крака, 10–16 серии на група седмично, периодизация на интензитета (тежка/лека седмица или вълнообразна в рамките на седмицата).' },
-  { tags: ['level:напреднал'], text: 'Напреднали (5+ г): специализация по приоритетни групи, 14-20+ серии за приоритетните, поддръжка за останалите. Интензификационни техники (drop sets, rest-pause, cluster) пестеливо — 1-2 на тренировка.' },
-  { tags: ['health:хипертония', 'health:сърдечно-съдово'], text: 'ВАЖНО (сърдечно-съдов риск): избягвай продължителни изометрични задържания и Валсалва маньовър, без максимални единични опити. Дишането е непрекъснато, интензитет умерен (RPE ≤7), по-дълги почивки. Препоръчай медицинско одобрение преди старт.' },
-  { tags: ['health:диабет'], text: 'Диабет/преддиабет: редовността е по-важна от интензитета. Комбинация сила + кардио подобрява инсулиновата чувствителност. Внимание при хипогликемия — тренировка след хранене, не на празен стомах.' },
-  { tags: ['health:бременност'], text: 'КРИТИЧНО (бременност): планът трябва да е одобрен от лекар. Без упражнения по гръб след 1-ви триместър, без коремни кранчове, без задържане на дъха, без риск от падане/удар. Умерен интензитет ("можеш да говориш"). Тазово дъно и дишане с приоритет.' },
-  { tags: ['health:следродилен'], text: 'Следродилен период: постепенно връщане — първо тазово дъно и дълбоки коремни, после базови движения. Внимание за диастаза — без класически коремни преси преди проверка. Интензитетът се вдига едва след 3+ месеца при добро възстановяване.' },
-  { tags: ['health:кърмене'], text: 'Кърмене: умерен интензитет, добра хидратация, без тренировки до отказ. Внимание при тазово дъно и диастаза — консултирай при нужда.' },
-  { tags: ['health:менопауза'], text: 'Менопауза: приоритизирай съпротивителен тренинг с по-високи тежести (костна плътност) и балансови елементи. Възстановяването е по-бавно — минимум 48ч между тежки сесии за същите групи.' },
-  { tags: ['sleep:лошо', 'stress:висок'], text: 'Лош сън/висок стрес: намали обема с ~20% спрямо стандартната препоръка, избягвай тренировки до отказ, добави дихателни упражнения в cooldown. Възстановяването е лимитиращият фактор — не добавяй HIIT повече от 1x седмично.' },
-  { tags: ['equipment:ограничено'], text: 'Ограничено оборудване: използвай tempo манипулация (3-1-3), unilateral варианти, mechanical drop sets и по-къси почивки за прогресивно натоварване без повече тежести.' },
-  { tags: ['time:сутрин'], text: 'Сутрешни тренировки: удължи загрявката с 5 минути (ставна мобилност + постепенно вдигане на пулса) — тялото е по-сковано и вероятно на гладно. Тежките максимални опити са по-рискови рано сутрин.' },
-  { tags: ['age:50+'], text: 'Възраст 50+: удължена загрявка, приоритет на контролирано темпо пред тежест, задължителни балансови и мобилност елементи, 48-72ч възстановяване между тежки сесии.' },
-  { tags: ['gender:жена'], text: 'Жена: приоритет №1 дупе (glutes) — най-голям обем и форма (hip thrust, абдукция, kickback, RDL). Бедра стегнати, но по-малък обем от дупе. Горна част: само постура и стягане на гърба (ред, пулдаун, face pull) — без хипертрофия, без мъжки press/bench/curl. Не балансирай равномерно горна/долна част.' },
-  { tags: ['gender:мъж'], text: 'Мъж: програмирай за мъжка анатомия и цели — основни многоставни (клек, тяга, натиск) са уместни според опита. Не използвай женски-специфични акценти (glute isolation focus) без указание от профила.' },
+  { tags: ['goal:отслабване'], text: 'Отслабване: запази силов тренинг + 1–2 кардио дни. Дефицитът е от хранене — не изтощавай клиента в залата.' },
+  { tags: ['goal:покачване на мускулна маса'], text: 'Хипертрофия: прогресия — първо reps в диапазона, после тежест; всяка група 2×/седм > 1×.' },
+  { tags: ['goal:силови показатели'], text: 'Сила: основни движения първи в деня; техника преди тежест; пълни почивки при тежки серии.' },
+  { tags: ['goal:издръжливост'], text: 'Издръжливост: преобладава зона 2/издръжливост; силата е поддръжаща, не основен акцент.' },
+  { tags: ['goal:рекомпозиция'], text: 'Рекомпозиция: силов обем по spec + умерено кардио; заложи измерима силова прогресия.' },
+  { tags: ['goal:обща кондиция'], text: 'Обща кондиция: баланс сила + кардио + мобилност; разнообразие за придържане.' },
+  { tags: ['goal:рехабилитация след травма'], text: 'Рехаб: само безболезнен ROM и контрол; планът не замества физиотерапевт.' },
+  { tags: ['level:начинаещ'], text: 'Начинаещи: техника и контрол преди тежест; машини/СТ пред сложни свободни тежести.' },
+  { tags: ['level:напреднал'], text: 'Напреднал: интензификатори макс. 1–2 на тренировка.' },
+  { tags: ['health:хипертония', 'health:сърдечно-съдово'], text: 'сърдечно-съдов риск: без Valsalva и макс singles; спази rpe от spec; safetyNotes: лекарско одобрение.' },
+  { tags: ['health:диабет'], text: 'Диабет: редовност > интензитет; внимание при хипогликемия — не на празен стомах.' },
+  { tags: ['health:бременност'], text: 'бременност: само с лекарско одобрение. Без коремни кранчове, лежанки по гръб (след 1-ви трим.), задържане на дъха, падания. Умерен интензитет.' },
+  { tags: ['health:следродилен'], text: 'След раждане: постепенно — тазово дъно, после базови движения; без класически преси при съмнение за диастаза.' },
+  { tags: ['health:кърмене'], text: 'Кърмене: умерен интензитет, хидратация; без тренировки до отказ.' },
+  { tags: ['health:менопауза'], text: 'Менопауза: акцент силов тренинг (кости) + баланс; мин. 48ч между тежки сесии за една група.' },
+  { tags: ['sleep:лошо', 'stress:висок'], text: 'Лош сън/стрес: намали обем с ~20% под spec; без отказ; cooldown с дишане; макс. 1 HIIT/седм.' },
+  { tags: ['equipment:ограничено'], text: 'Ограничено оборудване: tempo, unilateral и по-къси почивки вместо повече тежест.' },
+  { tags: ['time:сутрин'], text: 'Сутрешни тренировки: +5 мин загрявка; без макс опити на гладно.' },
+  { tags: ['age:50+'], text: 'Възраст 50+: удължена загрявка; контролирано темпо; баланс/мобилност; 48–72ч между тежки сесии.' },
+  { tags: ['gender:жена'], text: 'Жена: горна част — постура/гръб само; без bench/press/curl обем (обемът е в spec).' },
+  { tags: ['gender:мъж'], text: 'Мъж: без glute-isolation фокус без указание от профила или zones↓.' },
 ];
 
 const TEXT_TAG_RULES = [
@@ -214,9 +218,9 @@ export function buildTrainerSystemAddon(adminConfig, tagSet, layers = null, opti
 
   const parts = ['<trainer_rules>'];
   if (schemeMode) {
-    parts.push('<scheme> в user е задължителен шаблон — при конфликт scheme > тези правила.');
+    parts.push('Схемата в user е абсолютна. Тук само допълнения — без промяна на дни, обем или упражнения.');
   } else {
-    parts.push('Приоритет: individual_guidelines > architecture_guidelines.');
+    parts.push('Делта над <program_spec> — не повтаряй сплит, обем, reps/rest. individual_guidelines > architecture_guidelines.');
   }
   if (foundation) parts.push(`<foundation>\n${foundation}\n</foundation>`);
   if (individual.length) {
@@ -346,23 +350,9 @@ export function constraintsFromAnswers(answers, exampleScheme = '', options = {}
   }
 
   const priorities = [];
-  if (!strictAssembly) {
-    const schemeMode = hasClientScheme(exampleScheme);
-    const zoneText = String(answers?.goal?.zones || '').trim();
-    if (!schemeMode) {
-      if (zoneText) priorities.push(`Зони↓: ${zoneText}`);
-      else if (normalizeText(answers?.gender || '').includes('жена')) {
-        priorities.push('Дупе>бедра; горна: постура/гръб');
-      }
-    }
-    if (answers?.extraInfo?.trim()) priorities.push(answers.extraInfo.trim());
-  }
+  // zones, female bias, freq/duration, extraInfo → program_spec + profile (не дублираме тук)
 
   const schedule = [];
-  if (!strictAssembly) {
-    if (answers?.preferences?.freq) schedule.push(`${answers.preferences.freq} тренировки седмично`);
-    if (answers?.preferences?.duration) schedule.push(`Продължителност: ${answers.preferences.duration}`);
-  }
 
   const fromScheme = parseAdminBriefConstraints('', exampleScheme);
   return {
@@ -452,10 +442,7 @@ function buildAdminHardRulesBlock(constraints) {
     );
   }
   if (!parts.length) return '';
-  return [
-    '═══ ТВЪРДИ ПРАВИЛА ОТ ТРЕНЬОРА (hard-veto — над всичко друго) ═══',
-    ...parts,
-  ].join('\n');
+  return ['HARD-VETO (над program_spec и trainer_rules):', ...parts].join('\n');
 }
 
 /** Тагове от свободен текст (админ бриф). */
@@ -612,7 +599,8 @@ export function buildBriefIdentityBlock(brief) {
 /** User prompt: контекст + задача. strictAssembly = само scheme. */
 export function buildAdminPlanUserPrompt(brief, options = {}) {
   const strictAssembly = Boolean(options.strictAssembly);
-  const { clientProfile = '', exampleScheme = '', constraints: presetConstraints } = brief || {};
+  const hasScheme = Boolean(String(brief?.exampleScheme || '').trim());
+  const { clientProfile = '', exampleScheme = '', constraints: presetConstraints, programSpec } = brief || {};
   const scheme = String(exampleScheme || '').trim();
   const constraints = presetConstraints || parseAdminBriefConstraints(
     strictAssembly ? '' : clientProfile,
@@ -627,16 +615,23 @@ export function buildAdminPlanUserPrompt(brief, options = {}) {
       parts.push(`<equipment>\n${constraints.equipmentList.join(', ')}\n</equipment>`);
     }
     if (hardRules) parts.push(`<constraints>\n${hardRules}\n</constraints>`);
-    parts.push(`<profile>\n${String(clientProfile || '').trim()}\n</profile>`);
+    if (programSpec && !hasScheme) {
+      parts.push(`<program_spec>\n${formatProgramSpecBlock(programSpec)}\n</program_spec>`);
+    }
+    const compactProfile = brief?.compactProfile?.trim()
+      || (programSpec ? '' : String(clientProfile || '').trim());
+    if (compactProfile) {
+      parts.push(`<profile>\n${compactProfile}\n</profile>`);
+    }
   } else if (hardRules) {
     parts.push(`<constraints>\n${hardRules}\n</constraints>`);
   }
 
   const task = strictAssembly
-    ? 'ASSEMBLY: сглоби JSON от <scheme> буквално. Само canonicalName/displayName. JSON само.'
+    ? 'ASSEMBLY: сглоби JSON от <scheme> буквално. canonicalName + displayName. JSON само.'
     : (scheme
-      ? 'Следвай <scheme> точно (дни, упражнения, обем). Запълни 7 дни. JSON само.'
-      : 'Генерирай седмичен план от данните по-горе. JSON само.');
+      ? 'Следвай <scheme> точно. Запълни 7 дни. JSON само.'
+      : 'Генерирай 7 дни от <program_spec> + <exercise_catalog>. canonicalName САМО от каталога. volume/reps/rest по spec. JSON само.');
   return `${parts.join('\n\n')}\n\n${task}`;
 }
 
@@ -688,11 +683,16 @@ export function preparePlanGeneration(source, adminConfig, helpers) {
     const strictAssembly = isStrictAssembly(extra.strictScheme, extra.exampleScheme);
     const schemeMode = strictAssembly || hasClientScheme(extra.exampleScheme);
     const layers = resolveGuidelineLayers(tags, adminConfig, { schemeMode, strictAssembly });
+    const programSpec = (!strictAssembly && !schemeMode && answers?.gender)
+      ? buildProgramSpec(answers)
+      : null;
     const brief = {
       clientProfile: profileText,
+      compactProfile: programSpec ? buildCompactProfileForPrompt(answers) : profileText,
       exampleScheme: extra.exampleScheme || '',
       constraints: constraintsFromAnswers(answers || {}, extra.exampleScheme || '', { strictAssembly }),
       tags,
+      programSpec,
     };
     const equipmentInput = expandEquipmentAnswers([...(answers?.equipment || []), answers?.equipmentOther].filter(Boolean));
     const fromBrief = allowedEquipmentFromBrief(profileText, extra.exampleScheme || '');
