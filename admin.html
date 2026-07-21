@@ -2442,9 +2442,10 @@
                     <strong>KA-TRAINER архитектура (2 слоя):</strong>
                     <ol style="margin:8px 0 0 18px;padding:0;">
                         <li><strong>Архитектурна рамка</strong> — „Базови принципи“ + chunks <em>без таг</em> или с <code>all</code> / <code>общо</code> (универсална логика).</li>
-                        <li><strong>Индивидуални особености</strong> — chunks с тагове (<code>gender:жена</code>, <code>goal:отслабване</code>…) + профил/схема на клиента — <strong>по-висок приоритет</strong>, отстъпват при конфликт.</li>
+                        <li><strong>Индивидуални особености</strong> — chunks с тагове (<code>gender:жена</code>, <code>goal:отслабване</code>…) — в <code>&lt;trainer_rules&gt;</code> в system prompt.</li>
+                        <li><strong>Схема и указания</strong> (при клиентска програма) — <strong>абсолютен приоритет</strong> в <code>&lt;scheme&gt;</code>; при конфликт scheme &gt; насоки.</li>
                     </ol>
-                    Насоките влизат в user prompt-а, не в system prompt-а. Вградените насоки в worker-а са fallback.
+                    RAG насоките влизат в system prompt. Вградените насоки в worker-а са fallback без админ chunks.
                 </div>
 
                 <div class="form-group">
@@ -2461,7 +2462,7 @@
                         </button>
                     </div>
                     <small style="display:block;color:var(--text-gray);margin-bottom:12px;">
-                        <strong>Категории от въпросника</strong> (пол, цел, здраве, оборудване…) — един ред, напр. <code>пол (в1, в12.other, в15)</code> — винаги се прилагат.
+                        <strong>Категории от въпросника</strong> (пол, цел, здраве…) — напр. <code>пол (в1, в12.other, в15)</code> — прилагат се при съвпадение (напр. женски текст само за жени).
                         <strong>Филтър по клиент</strong> (по избор): <code>gender:жена</code>, <code>goal:отслабване</code>.
                         За универсални правила: празни тагове или <code>all</code> / <code>общо</code>. При няколко machine тага — раздели с <code>;</code>.
                     </small>

@@ -88,6 +88,8 @@ import {
   expandEquipmentAnswers,
   equipmentHintTokensFromText,
   constraintsFromAnswers,
+  hasClientScheme,
+  mergeAllowedEquipment,
 } from './plan-generation.js';
 
 export {
@@ -117,6 +119,8 @@ export {
   parseChunkTags,
   shouldIncludeAdminChunk,
   constraintsFromAnswers,
+  hasClientScheme,
+  mergeAllowedEquipment,
 };
 
 // ============================================================================
@@ -782,11 +786,11 @@ function clientIp(request) {
 
 async function executePlanGeneration(env, ctx, {
   userPrompt, coachProfileText, allowedEquipment = null, clientTags = null,
-  adminConfig = null, guidelineLayers = null,
+  adminConfig = null, guidelineLayers = null, hasScheme = false,
 }) {
   const indexPromise = loadExerciseIndex(env, ctx);
   const tagSet = clientTags instanceof Set ? clientTags : new Set(clientTags || []);
-  const trainerAddon = buildTrainerSystemAddon(adminConfig, tagSet, guidelineLayers);
+  const trainerAddon = buildTrainerSystemAddon(adminConfig, tagSet, guidelineLayers, { schemeMode: hasScheme });
   const system = buildPlanSystemInstruction(trainerAddon);
   let plan;
   let rawText;
@@ -795,7 +799,9 @@ async function executePlanGeneration(env, ctx, {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     let user = userPrompt;
     if (attempt > 0) {
-      user += lastFailure === 'gender' ? GENDER_FIT_RETRY_HINT : COMPACT_PLAN_RETRY_HINT;
+      user += hasScheme
+        ? COMPACT_PLAN_RETRY_HINT
+        : (lastFailure === 'gender' ? GENDER_FIT_RETRY_HINT : COMPACT_PLAN_RETRY_HINT);
     }
     const aiOpts = {
       system,
@@ -807,11 +813,13 @@ async function executePlanGeneration(env, ctx, {
     try {
       rawText = await callAI(env, aiOpts);
       plan = normalizePlan(parseAiJson(rawText));
-      const genderAudit = auditPlanGenderFit(plan, clientTags);
-      if (!genderAudit.ok && attempt < maxAttempts - 1) {
-        lastFailure = 'gender';
-        console.warn('Gender audit failed, retry:', genderAudit.issues.join('; '));
-        continue;
+      if (!hasScheme) {
+        const genderAudit = auditPlanGenderFit(plan, clientTags);
+        if (!genderAudit.ok && attempt < maxAttempts - 1) {
+          lastFailure = 'gender';
+          console.warn('Gender audit failed, retry:', genderAudit.issues.join('; '));
+          continue;
+        }
       }
       break;
     } catch (e) {
@@ -849,7 +857,7 @@ async function handleGeneratePlan(request, env, ctx) {
   }
 
   const adminGuidelines = await loadAdminGuidelines(env);
-  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers } = preparePlanGeneration(
+  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers, hasScheme } = preparePlanGeneration(
     { answers },
     adminGuidelines,
     { buildProfileSummary, allowedEquipmentSet },
@@ -865,6 +873,7 @@ async function handleGeneratePlan(request, env, ctx) {
       clientTags,
       adminConfig: adminGuidelines,
       guidelineLayers,
+      hasScheme,
     }));
   } catch (e) {
     if (isPlanParseError(e)) {
@@ -1391,7 +1400,7 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
     clientName: record.clientName,
     clientContact: record.clientContact,
   };
-  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers } = preparePlanGeneration(
+  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers, hasScheme } = preparePlanGeneration(
     genSource,
     adminGuidelines,
     { buildProfileSummary, allowedEquipmentSet },
@@ -1407,6 +1416,7 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
       clientTags,
       adminConfig: adminGuidelines,
       guidelineLayers,
+      hasScheme,
     }));
   } catch (e) {
     if (isPlanParseError(e)) {

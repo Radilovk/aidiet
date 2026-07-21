@@ -313,7 +313,8 @@ test('buildAdminPlanUserPrompt: context-only — профил, схема, const
   assert.ok(prompt.includes('Жена, 28 г.'));
   assert.ok(prompt.includes('лат пулдаун'));
   assert.ok(prompt.includes('бърпи'));
-  assert.ok(prompt.includes('Въз основа на данните по-горе'));
+  assert.ok(prompt.indexOf('<scheme>') < prompt.indexOf('<profile>'), 'scheme преди profile');
+  assert.ok(prompt.includes('Следвай <scheme>'));
   assert.ok(!prompt.includes('БАЗОВИ ПРИНЦИПИ'), 'foundation не е в user prompt');
   assert.ok(!prompt.includes('ИНДИВИДУАЛНИ НАСОКИ'), 'RAG не е в user prompt');
 });
@@ -335,6 +336,12 @@ test('buildTrainerSystemAddon: RAG насоки в system с XML тагове', 
   assert.ok(addon.includes('Принцип А'));
   assert.ok(addon.includes('<individual_guidelines>'));
   assert.ok(addon.includes('глут') || addon.includes('ПОЛ') || addon.includes('Жена'));
+});
+
+test('buildTrainerSystemAddon: schemeMode маркира scheme приоритет', () => {
+  const addon = buildTrainerSystemAddon({ foundation: 'Принцип А' }, new Set(['gender:жена']), { individual: [], architecture: [] }, { schemeMode: true });
+  assert.ok(addon.includes('scheme'));
+  assert.ok(!addon.includes('<individual_guidelines>'));
 });
 
 const ADMIN_WOMAN_PROFILE = `Жена. 172 ръст, 51 кг, 45 годишна, без здравословни проблеми. тренира редовно. търси оформяне и стягане. акцент обем на дупе и изправяне на гърба заради лека кифоза. приоритет са бедра и дупе!
@@ -481,11 +488,36 @@ test('parseChunkTags: не чупи запетая в (в1, в12)', () => {
   assert.deepEqual(repaired, ['пол (в1, в12.other, в15)']);
 });
 
-test('shouldIncludeAdminChunk: questionnaire категория винаги true', () => {
+test('shouldIncludeAdminChunk: questionnaire категория — пол филтър', () => {
   const chunk = { tags: ['пол (в1', 'в12.other', 'в15)'], text: 'Жени: glutes' };
-  assert.equal(shouldIncludeAdminChunk(chunk, new Set()), true);
+  assert.equal(shouldIncludeAdminChunk(chunk, new Set(['gender:жена'])), true);
+  assert.equal(shouldIncludeAdminChunk(chunk, new Set(['gender:мъж'])), false, 'женски chunk не за мъж');
+  const neutral = { tags: ['оборудване (в13)'], text: 'ОБОРУДВАНЕ: само маркирания инвентар.' };
+  assert.equal(shouldIncludeAdminChunk(neutral, new Set()), true);
   assert.equal(shouldIncludeAdminChunk({ tags: ['gender:мъж'], text: 'x' }, new Set(['gender:жена'])), false);
   assert.equal(shouldIncludeAdminChunk({ tags: ['gender:жена'], text: 'x' }, new Set(['gender:жена'])), true);
+});
+
+test('resolveGuidelineLayers: schemeMode изключва hardcoded individual', () => {
+  const layers = resolveGuidelineLayers(new Set(['gender:жена', 'goal:отслабване']), null, { schemeMode: true });
+  assert.equal(layers.individual.length, 0);
+  assert.ok(!layers.individual.some((t) => /приоритет №1 дупе/i.test(t)));
+});
+
+test('preparePlanGeneration: hasScheme при exampleScheme', () => {
+  const { hasScheme, userPrompt } = preparePlanGeneration(
+    {
+      clientAnswers: {
+        gender: 'Жена', age: 30, goal: { main: 'Рекомпозиция' }, experience: 'Среден (2–5 години)',
+        health: [], healthFemale: [], equipment: ['Дъмбели'], preferences: {},
+      },
+      exampleScheme: 'Пон: hip thrust 4x10',
+    },
+    null,
+    { buildProfileSummary, allowedEquipmentSet },
+  );
+  assert.equal(hasScheme, true);
+  assert.ok(userPrompt.indexOf('<scheme>') < userPrompt.indexOf('<profile>'));
 });
 
 test('auditPlanGenderFit: жена с glutes/крака → OK', () => {
