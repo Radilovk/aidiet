@@ -12,6 +12,7 @@
 
 import { normalizeText } from './normalize.js';
 import { buildProfileSummary } from './profile-summary.js';
+import { exerciseProfileFromAnswers } from './exercise-metadata.js';
 import { GENDER_FIT_RETRY_HINT } from './plan-prompts.js';
 
 export { GENDER_FIT_RETRY_HINT };
@@ -704,6 +705,7 @@ export function preparePlanGeneration(source, adminConfig, helpers) {
       clientTags: tags,
       hasScheme: schemeMode,
       strictAssembly,
+      exerciseProfile: answers?.gender ? exerciseProfileFromAnswers(answers) : null,
     };
   }
 

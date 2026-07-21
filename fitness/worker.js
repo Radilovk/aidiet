@@ -27,6 +27,7 @@
  *   GET  /api/admin/fitplan/consult-config — админ: линк с токен
  *   GET/POST /api/admin/fitplan/client-programs — админ: клиентски програми
  *   POST /api/admin/fitplan/translate-exercises — партида превод + KV индекс (resilient batches)
+ *   GET/POST /api/admin/fitplan/classify-exercises — EFP класификация (diff/gf/gm) + KV индекс
  *
  * Bindings / vars (wrangler.toml + secrets):
  *   FITNESS_KV            — KV namespace (кеш на индекса, планове, rate limits)
@@ -49,6 +50,20 @@ import {
   PLAN_SYSTEM_ASSEMBLY,
   STRICT_ASSEMBLY_RETRY_HINT,
 } from './plan-prompts.js';
+import {
+  WORKER_CLASSIFY_BATCH_SIZE,
+  classifyBatchResilient,
+  classificationStats,
+  listPendingClassifications,
+  DEFAULT_CLASSIFY_MODEL,
+} from './exercise-classify-batch.js';
+import {
+  EXERCISE_METADATA_KV_KEY,
+  buildExerciseCatalogSnippet,
+  exerciseProfileFromAnswers,
+  fitsExerciseProfile,
+  mergeExerciseMetadata,
+} from './exercise-metadata.js';
 import { mergeExerciseTranslation } from './exercise-translations.js';
 import {
   EXERCISE_TRANSLATIONS_KV_KEY,
@@ -262,7 +277,9 @@ export function matchExercise(index, { canonicalName, equipmentHint, bodyPart })
  * оборудване, различно упражнение. Връща до `limit` записа, като предпочита
  * разнообразие в оборудването (за да има смислен избор при замяна).
  */
-export function findAlternatives(index, matchedEntry, { allowedEquipment = null, limit = MAX_ALTERNATIVES, excludeIds = [] } = {}) {
+export function findAlternatives(index, matchedEntry, {
+  allowedEquipment = null, limit = MAX_ALTERNATIVES, excludeIds = [], exerciseProfile = null,
+} = {}) {
   if (!index || !matchedEntry) return [];
   const exclude = new Set([matchedEntry.id, ...excludeIds]);
   const target = matchedEntry.targetNorm;
@@ -272,6 +289,7 @@ export function findAlternatives(index, matchedEntry, { allowedEquipment = null,
   for (const entry of index) {
     if (exclude.has(entry.id)) continue;
     if (entry.nameNorm === matchedEntry.nameNorm) continue;
+    if (exerciseProfile && !fitsExerciseProfile(entry, exerciseProfile)) continue;
     const sameTarget = target && entry.targetNorm === target;
     const sameBody = body && entry.bodyNorm === body;
     if (!sameTarget && !sameBody) continue;
@@ -302,14 +320,15 @@ export function findAlternatives(index, matchedEntry, { allowedEquipment = null,
  * Свежда суров запис от базата до компактен индексен запис.
  * Пази само необходимото за matching + рендериране (≈120 байта/запис без инструкции).
  * @param {object[]} rawList
- * @param {Record<string, {nameBg?: string, instructionsBg?: string}>} [translations]
+ * @param {Record<string, object>} [translations]
+ * @param {Record<string, object>} [metadata]
  */
-export function buildCompactIndex(rawList, translations = {}) {
+export function buildCompactIndex(rawList, translations = {}, metadata = {}) {
   const index = [];
   for (const raw of rawList || []) {
     const name = raw.name || '';
     if (!name) continue;
-    const entry = mergeExerciseTranslation({
+    let entry = mergeExerciseTranslation({
       id: String(raw.id ?? index.length),
       name,
       nameNorm: normalizeText(name),
@@ -324,12 +343,46 @@ export function buildCompactIndex(rawList, translations = {}) {
       image: raw.image || '',
       gif: raw.gif_url || raw.gifUrl || '',
     }, raw, translations, MAX_INSTRUCTION_CHARS);
+    entry = mergeExerciseMetadata(entry, raw, metadata);
     index.push(entry);
   }
   return index;
 }
 
+let bundledMetadata = null;
 let bundledTranslations = null;
+
+export async function loadExerciseMetadata(env) {
+  if (env?.FITNESS_KV) {
+    try {
+      const kv = await env.FITNESS_KV.get(EXERCISE_METADATA_KV_KEY, { type: 'json' });
+      if (kv && typeof kv === 'object' && Object.keys(kv).length) {
+        bundledMetadata = kv;
+        return kv;
+      }
+    } catch (e) {
+      console.error('KV read за exercise metadata пропадна:', e.message);
+    }
+  }
+  return loadBundledMetadata();
+}
+
+/** Build-time EFP (data/exercise-metadata.json), ако е наличен в bundle-а. */
+export async function loadBundledMetadata() {
+  if (bundledMetadata !== null) return bundledMetadata;
+  try {
+    const mod = await import('./data/exercise-metadata.json', { with: { type: 'json' } });
+    bundledMetadata = mod.default || mod;
+  } catch {
+    bundledMetadata = {};
+  }
+  return bundledMetadata;
+}
+
+async function saveExerciseMetadata(env, metadata) {
+  await env.FITNESS_KV.put(EXERCISE_METADATA_KV_KEY, JSON.stringify(metadata));
+  bundledMetadata = metadata;
+}
 
 /** Build-time преводи: KV → bundled JSON fallback. */
 export async function loadExerciseTranslations(env) {
@@ -391,7 +444,8 @@ async function loadExerciseIndex(env, ctx) {
       const data = await res.json();
       const list = Array.isArray(data) ? data : (data.exercises || data.data || []);
       const translations = await loadExerciseTranslations(env);
-      const index = buildCompactIndex(list, translations);
+      const metadata = await loadExerciseMetadata(env);
+      const index = buildCompactIndex(list, translations, metadata);
       if (index.length > 50) {
         memoryIndex = index;
         if (env.FITNESS_KV) {
@@ -696,27 +750,33 @@ function entryToClientExercise(env, entry) {
   };
 }
 
-export function enrichPlanWithExercises(plan, index, { allowedEquipment = null, env = {} } = {}) {
+export function enrichPlanWithExercises(plan, index, { allowedEquipment = null, env = {}, exerciseProfile = null } = {}) {
   if (!index) return plan; // без база: планът остава валиден, само без медия
 
   for (const day of plan.days) {
     const usedIds = [];
     for (const ex of day.exercises) {
-      const result = matchExercise(index, {
+      let result = matchExercise(index, {
         canonicalName: ex.canonicalName,
         equipmentHint: ex.equipmentHint,
         bodyPart: ex.bodyPart,
       });
+      if (result?.entry && exerciseProfile && !fitsExerciseProfile(result.entry, exerciseProfile)) {
+        const swap = findAlternatives(index, result.entry, {
+          allowedEquipment, exerciseProfile, limit: 1, excludeIds: usedIds,
+        });
+        if (swap.length) result = { entry: swap[0], score: 0, usedFallback: true };
+      }
       if (result && result.entry) {
         ex.match = entryToClientExercise(env, result.entry);
         ex.matchScore = result.score;
         ex.matchFallback = result.usedFallback;
         usedIds.push(result.entry.id);
-        // Прекомпютнати алтернативи → смяната на упражнение е 0 заявки към бекенда.
         ex.alternatives = findAlternatives(index, result.entry, {
           allowedEquipment,
           excludeIds: usedIds,
           limit: MAX_ALTERNATIVES,
+          exerciseProfile,
         }).map((alt) => entryToClientExercise(env, alt));
         usedIds.push(...ex.alternatives.map((a) => a.id));
       } else {
@@ -791,6 +851,7 @@ function clientIp(request) {
 async function executePlanGeneration(env, ctx, {
   userPrompt, coachProfileText, allowedEquipment = null, clientTags = null,
   adminConfig = null, guidelineLayers = null, hasScheme = false, strictAssembly = false,
+  exerciseProfile = null,
 }) {
   const indexPromise = loadExerciseIndex(env, ctx);
   const tagSet = clientTags instanceof Set ? clientTags : new Set(clientTags || []);
@@ -798,12 +859,22 @@ async function executePlanGeneration(env, ctx, {
     ? ''
     : buildTrainerSystemAddon(adminConfig, tagSet, guidelineLayers, { schemeMode: hasScheme, strictAssembly });
   const system = strictAssembly ? PLAN_SYSTEM_ASSEMBLY : buildPlanSystemInstruction(trainerAddon);
+
+  let catalogBlock = '';
+  if (!strictAssembly && !hasScheme && exerciseProfile) {
+    const index = await indexPromise;
+    if (index?.length) {
+      catalogBlock = buildExerciseCatalogSnippet(index, exerciseProfile, allowedEquipment);
+    }
+  }
+  const baseUser = catalogBlock ? `${userPrompt}\n\n${catalogBlock}` : userPrompt;
+
   let plan;
   let rawText;
   const maxAttempts = 3;
   let lastFailure = 'parse';
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    let user = userPrompt;
+    let user = baseUser;
     if (attempt > 0) {
       user += strictAssembly
         ? STRICT_ASSEMBLY_RETRY_HINT
@@ -845,7 +916,11 @@ async function executePlanGeneration(env, ctx, {
   }
 
   const index = await indexPromise;
-  enrichPlanWithExercises(plan, index, { allowedEquipment, env });
+  enrichPlanWithExercises(plan, index, {
+    allowedEquipment,
+    env,
+    exerciseProfile: (strictAssembly || hasScheme) ? null : exerciseProfile,
+  });
   sanitizePlanBulgarian(plan);
   const coachContext = buildCoachContext(coachProfileText, plan);
   return { plan, coachContext };
@@ -865,7 +940,7 @@ async function handleGeneratePlan(request, env, ctx) {
   }
 
   const adminGuidelines = await loadAdminGuidelines(env);
-  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers, hasScheme, strictAssembly } = preparePlanGeneration(
+  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile } = preparePlanGeneration(
     { answers },
     adminGuidelines,
     { buildProfileSummary, allowedEquipmentSet },
@@ -883,6 +958,7 @@ async function handleGeneratePlan(request, env, ctx) {
       guidelineLayers,
       hasScheme,
       strictAssembly,
+      exerciseProfile,
     }));
   } catch (e) {
     if (isPlanParseError(e)) {
@@ -1061,14 +1137,16 @@ async function saveExerciseTranslations(env, translations) {
   bundledTranslations = translations;
 }
 
-async function rebuildExerciseIndexInKv(env, translations) {
+async function rebuildExerciseIndexInKv(env, translations, metadata) {
   const all = await fetchExerciseDataset(env.EXERCISE_DATASET_URL || undefined);
-  const index = buildCompactIndex(all, translations);
+  const meta = metadata ?? await loadExerciseMetadata(env);
+  const index = buildCompactIndex(all, translations, meta);
   memoryIndex = index;
   await env.FITNESS_KV.put(EXERCISE_INDEX_KV_KEY, JSON.stringify(index), { expirationTtl: EXERCISE_INDEX_TTL });
   return {
     count: index.length,
     withBg: index.filter((e) => e.instructionsLang === 'bg').length,
+    withMeta: index.filter((e) => e.diff).length,
   };
 }
 
@@ -1125,6 +1203,72 @@ async function handleRunTranslateExercises(request, env) {
   let indexInfo = null;
   if (rebuildIndex && stats.remaining === 0) {
     indexInfo = await rebuildExerciseIndexInKv(env, translations);
+  }
+
+  return jsonResponse({
+    success: true,
+    addedThisRun,
+    batchesProcessed: batches.length,
+    complete: stats.remaining === 0,
+    indexRebuilt: Boolean(indexInfo),
+    index: indexInfo,
+    ...stats,
+  });
+}
+
+async function handleGetClassifyExercisesStatus(request, env) {
+  if (!checkAdminSecret(request, env)) return errorResponse('Неоторизиран достъп', 401, 'unauthorized');
+
+  const metadata = await loadExerciseMetadata(env);
+  let all = [];
+  try {
+    all = await fetchExerciseDataset(env.EXERCISE_DATASET_URL || undefined);
+  } catch (e) {
+    return errorResponse(`Dataset: ${e.message}`, 502, 'dataset_error');
+  }
+
+  const stats = classificationStats(all, metadata);
+  return jsonResponse({
+    success: true,
+    hasGemini: Boolean(env.GEMINI_API_KEY),
+    hasKv: Boolean(env.FITNESS_KV),
+    batchSize: WORKER_CLASSIFY_BATCH_SIZE,
+    ...stats,
+  });
+}
+
+async function handleRunClassifyExercises(request, env) {
+  if (!checkAdminSecret(request, env)) return errorResponse('Неоторизиран достъп', 401, 'unauthorized');
+  if (!env.GEMINI_API_KEY) return errorResponse('Липсва GEMINI_API_KEY в worker', 503, 'no_gemini');
+  if (!env.FITNESS_KV) return errorResponse('KV не е конфигурирано', 500, 'no_kv');
+
+  let body = {};
+  try { body = await request.json(); } catch { body = {}; }
+
+  const maxBatches = Math.min(Math.max(Number(body.batches) || 1, 1), 2);
+  const force = Boolean(body.force);
+  const rebuildIndex = body.rebuildIndex !== false;
+
+  const metadata = await loadExerciseMetadata(env);
+  const translations = await loadExerciseTranslations(env);
+  const all = await fetchExerciseDataset(env.EXERCISE_DATASET_URL || undefined);
+  const pending = listPendingClassifications(all, metadata, { force });
+  const batches = chunkBatches(pending, WORKER_CLASSIFY_BATCH_SIZE).slice(0, maxBatches);
+
+  let addedThisRun = 0;
+  for (const batch of batches) {
+    const model = env.GEMINI_MODEL || DEFAULT_CLASSIFY_MODEL;
+    const chunk = await classifyBatchResilient(env.GEMINI_API_KEY, batch, model);
+    Object.assign(metadata, chunk);
+    addedThisRun += Object.keys(chunk).length;
+  }
+
+  if (addedThisRun > 0) await saveExerciseMetadata(env, metadata);
+
+  const stats = classificationStats(all, metadata);
+  let indexInfo = null;
+  if (rebuildIndex && (stats.remaining === 0 || addedThisRun > 0)) {
+    indexInfo = await rebuildExerciseIndexInKv(env, translations, metadata);
   }
 
   return jsonResponse({
@@ -1421,7 +1565,7 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
     clientName: record.clientName,
     clientContact: record.clientContact,
   };
-  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers, hasScheme, strictAssembly } = preparePlanGeneration(
+  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile } = preparePlanGeneration(
     genSource,
     adminGuidelines,
     { buildProfileSummary, allowedEquipmentSet },
@@ -1439,6 +1583,7 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
       guidelineLayers,
       hasScheme,
       strictAssembly,
+      exerciseProfile,
     }));
   } catch (e) {
     if (isPlanParseError(e)) {
@@ -1575,6 +1720,9 @@ export default {
       if (request.method === 'GET' && path === '/api/admin/fitplan/translate-exercises') {
         return await handleGetTranslateExercisesStatus(request, env);
       }
+      if (request.method === 'GET' && path === '/api/admin/fitplan/classify-exercises') {
+        return await handleGetClassifyExercisesStatus(request, env);
+      }
       if (request.method === 'POST' && path === '/api/fitplan/consultation') {
         return await handleSubmitConsultation(request, env);
       }
@@ -1612,6 +1760,14 @@ export default {
       const clientProgramDeletePostMatch = path.match(/^\/api\/admin\/fitplan\/client-programs\/([A-Za-z0-9_-]+)\/delete$/);
       if (request.method === 'POST' && clientProgramDeletePostMatch) {
         return await handleDeleteClientProgram(request, env, clientProgramDeletePostMatch[1]);
+      }
+      if (request.method === 'POST' && path === '/api/admin/fitplan/classify-exercises') {
+        try {
+          return await handleRunClassifyExercises(request, env);
+        } catch (e) {
+          console.error('classify-exercises:', e.stack || e.message);
+          return errorResponse(e.message || 'Грешка при класификация', 500, 'classify_error');
+        }
       }
       if (request.method === 'POST' && path === '/api/admin/fitplan/translate-exercises') {
         try {
