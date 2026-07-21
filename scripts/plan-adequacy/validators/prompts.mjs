@@ -21,6 +21,9 @@ const PROMPT_CONTRACTS = {
     'mealCountJustification',
     'weeklyScheme',
     'Свободно хранене',
+    'freeDayNumber',
+    'includeDessert',
+    'ДЕСЕРТ',
     'Въз основа на профила по-горе',
   ],
   'KV/prompts/admin_meal_plan_prompt.txt': [
@@ -28,6 +31,8 @@ const PROMPT_CONTRACTS = {
     'САМО',
     'ПРИМЕР',
     'каталога',
+    'Свободно хранене',
+    'dessert',
     'Въз основа на каталога',
   ],
   'KV/prompts/admin_summary_prompt.txt': [

@@ -2771,7 +2771,7 @@ function buildFreeMealInstruction(strategy, startDay, endDay) {
   if (freeDayNumber == null) return '';
   const dayNum = Number(freeDayNumber);
   if (isNaN(dayNum) || dayNum < startDay || dayNum > endDay) return '';
-  return `\n\n=== СВОБОДНО ХРАНЕНЕ (Ден ${dayNum}) ===\nЗАДЪЛЖИТЕЛНО за ден ${dayNum}: ЗАМЕНИ Хранене 2 (Хранене 2 НЕ се генерира!) с хранене точно така: {"type": "Свободно хранене", "name": "Свободно хранене", "weight": "-"} — БЕЗ поле "calories" и БЕЗ поле "macros" за това хранене!\nХранене 1 и Хранене 4 за ден ${dayNum} генерирай НОРМАЛНО с калории и макроси.\ndailyTotals за ден ${dayNum}: включвай планираните калории за Хранене 2 слот (от strategy mealBreakdown) за свободното хранене, плюс калориите от всички останали хранения.`;
+  return `\n\n=== СВОБОДНО ХРАНЕНЕ (Ден ${dayNum}) ===\nЗАДЪЛЖИТЕЛНО за ден ${dayNum}: ЗАМЕНИ Хранене 2 (Хранене 2 НЕ се генерира!) с точно: {"type": "Свободно хранене", "name": "Свободно хранене"} — БЕЗ description, calories, macros, weight, benefits или dessert.\nХранене 1 и Хранене 4 за ден ${dayNum} генерирай НОРМАЛНО. Хранене 4 в този ден — лека вечеря БЕЗ ориз/картофи/хляб/паста.\nКалориите за свободния обеден слот идват от strategy mealBreakdown и се включват в dailyTotals от бекенда.`;
 }
 
 /**
@@ -2784,6 +2784,21 @@ function enforceWeekendFreeDay(strategy) {
   if (!isNaN(d) && (d < 6 || d > 7)) {
     strategy.freeDayNumber = 7;
   }
+}
+
+/** Default includeDessert when Step 2 omits the flag (sweets craving minus clinical blocks). */
+function normalizeStrategyDessertFlag(strategy, userData) {
+  if (!strategy || strategy.includeDessert !== undefined) return;
+  if (!userHasSweetsCraving(userData?.foodCravings)) {
+    strategy.includeDessert = false;
+    return;
+  }
+  const conditions = userData?.medicalConditions;
+  const blocked = Array.isArray(conditions) && conditions.some(c => {
+    const s = String(c);
+    return s.includes('Диабет') || s.includes('Инсулинова резистентност');
+  });
+  strategy.includeDessert = !blocked;
 }
 
 
@@ -8547,6 +8562,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       
       strategy = parseAIResponse(strategyResponse);
       enforceWeekendFreeDay(strategy);
+      normalizeStrategyDessertFlag(strategy, data);
       normalizeWeeklyScheme(strategy, parseFinalCalories(analysis.Final_Calories));
       
       if (!strategy || strategy.error) {
@@ -8831,6 +8847,7 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
       
       strategy = parseAIResponse(strategyResponse);
       enforceWeekendFreeDay(strategy);
+      normalizeStrategyDessertFlag(strategy, data);
       normalizeWeeklyScheme(strategy, parseFinalCalories(analysis.Final_Calories));
       
       if (!strategy || strategy.error) {
