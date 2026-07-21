@@ -3,12 +3,10 @@
 {weekPlan}
 
 === ПРОФИЛ ===
-{name} | Цел: {goal} | BMR: {bmr}
-Калории: {recommendedCalories} kcal/ден (цел) | Средни: {avgCalories} kcal/ден
-Макроси (средни): Б {avgProtein}г / В {avgCarbs}г / М {avgFats}г
-Темперамент: {temperament} ({temperamentProbability}%)
-Психопрофил: {psychologicalProfile}
-Тип диета: {dietType}
+{name} | Цел: {goal} | BMR: {bmr} | Диета: {dietType}
+Калории: {recommendedCalories} kcal (цел) | Средни: {avgCalories} kcal
+Макроси: Б {avgProtein}г / В {avgCarbs}г / М {avgFats}г
+Темперамент: {temperament} ({temperamentProbability}%) | Психопрофил: {psychologicalProfile}
 
 === ЗДРАВЕ ===
 {additionalNotesSection}
@@ -17,13 +15,13 @@
 {dynamicWhitelistSection}{dynamicBlacklistSection}
 {clinicalProtocolSupplementSection}
 
+Въз основа на информацията по-горе, изпълни:
+
 === ЗАДАЧА ===
-Генерирай финални препоръки за 7-дневния план на {name}.
+Финални препоръки за 7-дневния план на {name} — персонализирани, не универсални.
 
-- recommendations: 10 конкретни типове храни (не ястия), подходящи за {goal}, диета "{dietType}", {keyProblems}, {clinicalProtocolSection}, медикаменти: {medications} — да не попадат в {dynamicBlacklistSection}
-- forbidden: 10 конкретни типове храни (не ястия), неподходящи за {goal}, {clinicalProtocolSection}, диета "{dietType}", {keyProblems}, медикаменти: {medications} — да не противоречат на {dynamicWhitelistSection}
-- supplements: минимум 3 конкретни добавки, свързани с: {clinicalProtocolSection}, цел ({goal}). Да имат дозировка и кратка обосновка, съобразени с {psychologicalProfile}, {temperament}, {keyProblems}, и медикаменти ({medications}) — БЕЗ опасни взаимодействия с медикаментите
-- psychology: минимум 3 кратки, стегнати конкретни персонализирани психологически съвета, свързани с цел ({goal}), {clinicalProtocolSection} и адаптирани към {psychologicalProfile}, ({temperament}), сън, ниво на стрес, ниво на активност, пол и {keyProblems} на {name}
-- waterIntake: от {hydrationStrategy}
-
-Върни САМО JSON.
+recommendations: 10 типа храни (не ястия) за {goal}, "{dietType}", {keyProblems}, {clinicalProtocolSection}, {medications} — извън {dynamicBlacklistSection}
+forbidden: 10 типа храни (не ястия), неподходящи за {goal}, {clinicalProtocolSection}, "{dietType}", {keyProblems}, {medications} — без противоречие с {dynamicWhitelistSection}
+supplements: мин. 3 с дозировка — по {clinicalProtocolSection}, {goal}, {psychologicalProfile}, {temperament}, {keyProblems}, {medications}; БЕЗ опасни взаимодействия
+psychology: мин. 3 кратки съвета — {goal}, {clinicalProtocolSection}, {psychologicalProfile}, {temperament}, сън, стрес, активност, {keyProblems}
+waterIntake: от {hydrationStrategy}
