@@ -30,6 +30,10 @@ on:
       - 'scripts/typecheck-worker.mjs'
       - 'scripts/bundle-worker.mjs'
       - 'scripts/verify-worker.mjs'
+      - 'KV/**'
+      - 'plan-response-schemas.js'
+      - 'scripts/plan-adequacy/**'
+      - '.github/workflows/deploy-kv.yml'
       - '.github/workflows/deploy-worker.yml'
   pull_request:
     branches:
@@ -60,6 +64,10 @@ on:
       - 'scripts/typecheck-worker.mjs'
       - 'scripts/bundle-worker.mjs'
       - 'scripts/verify-worker.mjs'
+      - 'KV/**'
+      - 'plan-response-schemas.js'
+      - 'scripts/plan-adequacy/**'
+      - '.github/workflows/deploy-kv.yml'
       - '.github/workflows/deploy-worker.yml'
   workflow_dispatch:
 

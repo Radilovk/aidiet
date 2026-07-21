@@ -79,6 +79,21 @@ check('production health endpoint', () => {
   if (!data.success) throw new Error(`health: ${r.out}`);
 });
 
+check('plan adequacy (offline)', () => {
+  const r = run('node', ['scripts/plan-adequacy/run-offline.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-15).join('\n'));
+});
+
+check('meal scaling pipeline', () => {
+  const r = run('node', ['test-meal-scaling.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
+});
+
+check('catalog universality stress', () => {
+  const r = run('node', ['test-universality-stress.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
+});
+
 check('fitness тестове', () => {
   const r = run('npm', ['test'], { cwd: join(root, 'fitness') });
   if (!r.ok) throw new Error(r.out.split('\n').slice(-8).join('\n'));
