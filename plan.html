@@ -3610,6 +3610,7 @@
     <script type="module">
         import { buildChatContextSections, selectChatSections, assembleChatContextPrompt } from './client-card.js';
         window.NutriPlanChatContext = { buildChatContextSections, selectChatSections, assembleChatContextPrompt };
+        if (window._resolveNutriPlanChatContext) window._resolveNutriPlanChatContext(window.NutriPlanChatContext);
         window.dispatchEvent(new Event('nutriplan-chat-context-ready'));
     </script>
     <script type="module">
@@ -4201,8 +4202,16 @@
         let chatMode = 'consultation'; // 'consultation', 'modification', or 'report'
         let modificationModeEnabled = false;
         let chatHistory = []; // Store chat messages for persistence
-        let cachedChatSections = null;
-        let cachedChatSectionsSig = '';
+        window.NutriPlanChatContextReady = window.NutriPlanChatContextReady || new Promise(function(resolve) {
+            if (window.NutriPlanChatContext) {
+                resolve(window.NutriPlanChatContext);
+                return;
+            }
+            window._resolveNutriPlanChatContext = resolve;
+            window.addEventListener('nutriplan-chat-context-ready', function() {
+                resolve(window.NutriPlanChatContext);
+            }, { once: true });
+        });
         
         // Enhancement #1: Retry mechanism state
         let isSending = false;
@@ -4899,6 +4908,7 @@
                 migrateMealTypes(dietPlan);
                 alignPlanMealsToStrategy(dietPlan);
                 correctPlanCalories(dietPlan);
+                invalidateChatContextCache();
                 userData = userDataStr ? JSON.parse(userDataStr) : {};
                 
                 // Validate plan structure
@@ -6543,67 +6553,30 @@
             }
         }
 
-        function getChatSectionsCacheSig() {
-            try {
-                return JSON.stringify({
-                    planUpdatedAt: localStorage.getItem('planUpdatedAt') || '',
-                    dailyCalories: dietPlan?.summary?.dailyCalories || 0,
-                    mods: (userData?.planModifications || []).length,
-                });
-            } catch (_) {
-                return String(Date.now());
-            }
-        }
+        function invalidateChatContextCache() { /* reserved for plan reload hooks */ }
 
-        function getChatSections() {
-            const sig = getChatSectionsCacheSig();
-            if (!cachedChatSections || cachedChatSectionsSig !== sig) {
-                const chatCtx = window.NutriPlanChatContext;
-                cachedChatSections = chatCtx
-                    ? chatCtx.buildChatContextSections(userData, dietPlan)
-                    : null;
-                cachedChatSectionsSig = sig;
-            }
-            return cachedChatSections;
-        }
-
-        function invalidateChatContextCache() {
-            cachedChatSections = null;
-            cachedChatSectionsSig = '';
-        }
-
-        function buildSmartChatRequest(message, apiHistory) {
-            const chatCtx = window.NutriPlanChatContext;
-            if (!chatCtx || !userData || !dietPlan) {
-                return {
-                    userId: userId,
-                    message: message,
-                    conversationId: conversationId,
-                    mode: chatMode,
-                    conversationHistory: apiHistory,
-                    userData: userData,
-                    userPlan: dietPlan,
-                };
-            }
-
-            const sections = getChatSections();
-            const selectedIds = chatCtx.selectChatSections(message, chatMode);
-            const contextText = chatCtx.assembleChatContextPrompt(sections, selectedIds);
-            const requestBody = {
+        async function buildSmartChatRequest(message, apiHistory) {
+            const base = {
                 userId: userId,
                 message: message,
                 conversationId: conversationId,
                 mode: chatMode,
                 conversationHistory: apiHistory,
-                contextText: contextText,
+                userData: userData,
+                userPlan: dietPlan,
             };
+            if (!userData || !dietPlan) return base;
 
-            if (chatMode === 'modification') {
-                requestBody.userData = userData;
-                requestBody.userPlan = dietPlan;
+            try {
+                const chatCtx = await window.NutriPlanChatContextReady;
+                if (!chatCtx) return base;
+                const sections = chatCtx.buildChatContextSections(userData, dietPlan);
+                const selectedIds = chatCtx.selectChatSections(message, chatMode);
+                base.contextText = chatCtx.assembleChatContextPrompt(sections, selectedIds);
+            } catch (err) {
+                console.warn('[chat] context build failed, server will rebuild from userPlan', err);
             }
-
-            return requestBody;
+            return base;
         }
 
         async function sendMessage() {
@@ -6840,7 +6813,7 @@
                     console.log(`[Optimization] Trimmed conversation history from ${chatHistory.length} to ${MAX_HISTORY_MESSAGES} messages`);
                 }
                 
-                const requestBody = buildSmartChatRequest(message, apiHistory);
+                const requestBody = await buildSmartChatRequest(message, apiHistory);
                 
                 const response = await fetch('https://aidiet.radilov-k.workers.dev/api/chat', {
                     method: 'POST',

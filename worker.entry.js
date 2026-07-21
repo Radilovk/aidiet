@@ -4129,6 +4129,15 @@ async function handleGetPlanJobStatus(request, env) {
 }
 
 /**
+ * @param {string} text
+ * @returns {boolean}
+ */
+function chatContextHasMealGrams(text) {
+  if (!text) return false;
+  return text.split('\n').some((line) => /^day\d+\|/.test(line) && /\|\d+\|\d+\|\d+\|\d+\|\d+\|/.test(line));
+}
+
+/**
  * Handle chat assistant requests — client sends pre-built NPCF contextText.
  */
 async function handleChat(request, env) {
@@ -4150,15 +4159,17 @@ async function handleChat(request, env) {
     }
 
     let effectiveContextText = contextText;
-    if (!effectiveContextText && userData && userPlan) {
-      effectiveContextText = buildChatContext(
+    if (userData && userPlan) {
+      const serverContext = buildChatContext(
         userData,
         userPlan,
         message,
         mode || 'consultation',
       ).contextText;
-    }
-    if (!effectiveContextText) {
+      if (!chatContextHasMealGrams(effectiveContextText)) {
+        effectiveContextText = serverContext;
+      }
+    } else if (!effectiveContextText) {
       return jsonResponse({ error: ERROR_MESSAGES.MISSING_CONTEXT }, 400);
     }
 
