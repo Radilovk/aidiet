@@ -1972,7 +1972,7 @@ function buildProfileSummary(a) {
   if (a.goal) {
     const goalMain = normalizeText(a.goal.main);
     const goalText = goalMain === "\u0434\u0440\u0443\u0433\u043E" ? a.goal.other : a.goal.main;
-    parts.push(line("\u0426\u0415\u041B", `${goalText || "?"}${a.goal.deadline ? `, \u0441\u0440\u043E\u043A: ${a.goal.deadline}` : ", \u0431\u0435\u0437 \u043A\u0440\u0430\u0435\u043D \u0441\u0440\u043E\u043A"}`));
+    parts.push(line("\u0426\u0415\u041B", `${goalText || "?"}${a.goal.deadline ? `, \u0441\u0440\u043E\u043A: ${a.goal.deadline}` : ", \u0431\u0435\u0437 \u0441\u0440\u043E\u043A"}`));
   }
   parts.push(line("\u041E\u0431\u043E\u0440\u0443\u0434\u0432\u0430\u043D\u0435", [...a.equipment || [], a.equipmentOther].filter(Boolean).join(", ")));
   if (a.preferences) {
@@ -2264,13 +2264,12 @@ function constraintsFromAnswers(answers, exampleScheme = "") {
     }
   }
   const priorities = [];
-  if (normalizeText(answers?.gender || "").includes("\u0436\u0435\u043D\u0430")) {
-    priorities.push("\u0414\u0443\u043F\u0435 (\u043E\u0431\u0435\u043C+\u0444\u043E\u0440\u043C\u0430) > \u0441\u0442\u0435\u0433\u043D\u0430\u0442\u0438 \u0431\u0435\u0434\u0440\u0430; \u0433\u043E\u0440\u043D\u0430 \u0447\u0430\u0441\u0442 \u0441\u0430\u043C\u043E \u043F\u043E\u0441\u0442\u0443\u0440\u0430/\u0433\u0440\u044A\u0431 \u2014 \u0431\u0435\u0437 \u043C\u044A\u0436\u043A\u0438 press/bench/curl \u043E\u0431\u0435\u043C");
+  const zoneText = String(answers?.goal?.zones || "").trim();
+  if (zoneText) priorities.push(`\u0417\u043E\u043D\u0438\u2193: ${zoneText}`);
+  else if (normalizeText(answers?.gender || "").includes("\u0436\u0435\u043D\u0430")) {
+    priorities.push("\u0414\u0443\u043F\u0435>\u0431\u0435\u0434\u0440\u0430; \u0433\u043E\u0440\u043D\u0430: \u043F\u043E\u0441\u0442\u0443\u0440\u0430/\u0433\u0440\u044A\u0431");
   }
   if (answers?.extraInfo?.trim()) priorities.push(answers.extraInfo.trim());
-  const goalMain = normalizeText(answers?.goal?.main);
-  const goalText = goalMain === "\u0434\u0440\u0443\u0433\u043E" ? answers?.goal?.other : answers?.goal?.main;
-  if (goalText) priorities.push(`\u0426\u0435\u043B: ${goalText}`);
   const schedule = [];
   if (answers?.preferences?.freq) schedule.push(`${answers.preferences.freq} \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`);
   if (answers?.preferences?.duration) schedule.push(`\u041F\u0440\u043E\u0434\u044A\u043B\u0436\u0438\u0442\u0435\u043B\u043D\u043E\u0441\u0442: ${answers.preferences.duration}`);
@@ -2330,10 +2329,7 @@ function buildAdminHardRulesBlock(constraints) {
     );
   }
   if (constraints.priorities?.length) {
-    parts.push(
-      "\u041F\u0420\u0418\u041E\u0420\u0418\u0422\u0415\u0422\u0415\u041D \u0424\u041E\u041A\u0423\u0421 (\u043D\u0430\u0439-\u0432\u0438\u0441\u043E\u043A \u043E\u0431\u0435\u043C \u0442\u0443\u043A):",
-      ...constraints.priorities.map((p) => `\u2022 ${p}`)
-    );
+    parts.push("\u041F\u0420\u0418\u041E\u0420\u0418\u0422\u0415\u0422:", ...constraints.priorities.map((p) => `\u2022 ${p}`));
   }
   if (constraints.schedule?.length) {
     parts.push(

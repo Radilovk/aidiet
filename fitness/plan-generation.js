@@ -323,13 +323,12 @@ export function constraintsFromAnswers(answers, exampleScheme = '') {
   }
 
   const priorities = [];
-  if (normalizeText(answers?.gender || '').includes('жена')) {
-    priorities.push('Дупе (обем+форма) > стегнати бедра; горна част само постура/гръб — без мъжки press/bench/curl обем');
+  const zoneText = String(answers?.goal?.zones || '').trim();
+  if (zoneText) priorities.push(`Зони↓: ${zoneText}`);
+  else if (normalizeText(answers?.gender || '').includes('жена')) {
+    priorities.push('Дупе>бедра; горна: постура/гръб');
   }
   if (answers?.extraInfo?.trim()) priorities.push(answers.extraInfo.trim());
-  const goalMain = normalizeText(answers?.goal?.main);
-  const goalText = goalMain === 'друго' ? answers?.goal?.other : answers?.goal?.main;
-  if (goalText) priorities.push(`Цел: ${goalText}`);
 
   const schedule = [];
   if (answers?.preferences?.freq) schedule.push(`${answers.preferences.freq} тренировки седмично`);
@@ -407,10 +406,7 @@ function buildAdminHardRulesBlock(constraints) {
     );
   }
   if (constraints.priorities?.length) {
-    parts.push(
-      'ПРИОРИТЕТЕН ФОКУС (най-висок обем тук):',
-      ...constraints.priorities.map((p) => `• ${p}`),
-    );
+    parts.push('ПРИОРИТЕТ:', ...constraints.priorities.map((p) => `• ${p}`));
   }
   if (constraints.schedule?.length) {
     parts.push(
