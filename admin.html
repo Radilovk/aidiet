@@ -2439,18 +2439,19 @@
             <div class="card">
                 <h2><i class="fas fa-dumbbell"></i> KA-TRAINER — Принципи за тренировки</h2>
                 <div class="info-box">
-                    <strong>KA-TRAINER архитектура (2 слоя):</strong>
+                    <strong>KA-TRAINER — какво влиза в AI:</strong>
                     <ol style="margin:8px 0 0 18px;padding:0;">
-                        <li><strong>Архитектурна рамка</strong> — „Базови принципи“ + chunks <em>без таг</em> или с <code>all</code> / <code>общо</code> (универсална логика).</li>
-                        <li><strong>Индивидуални особености</strong> — chunks с тагове (<code>gender:жена</code>, <code>goal:отслабване</code>…) — в <code>&lt;trainer_rules&gt;</code> в system prompt.</li>
-                        <li><strong>Схема и указания</strong> (при клиентска програма) — <strong>абсолютен приоритет</strong> в <code>&lt;scheme&gt;</code>; при конфликт scheme &gt; насоки.</li>
+                        <li><strong>program_spec</strong> (автоматично) — сплит, обем, reps от въпросника. Не пиши това в насоките.</li>
+                        <li><strong>Базови принципи</strong> + chunks <code>all</code>/<code>общо</code> — твоя философия и техника (архитектура).</li>
+                        <li><strong>Chunks по таг</strong> — кратки правила-делта (<code>gender:жена</code>, <code>goal:отслабване</code>…) в <code>&lt;trainer_rules&gt;</code>.</li>
+                        <li><strong>Схема</strong> (клиентска програма) — абсолютен приоритет в <code>&lt;scheme&gt;</code>; при конфликт scheme &gt; всичко.</li>
                     </ol>
-                    RAG насоките влизат в system prompt. Вградените насоки в worker-а са fallback без админ chunks.
+                    Пиши само това, което AI <em>не</em> знае от въпросника и program_spec. Админ chunks &gt; вграден fallback.
                 </div>
 
                 <div class="form-group">
-                    <label for="fitplanFoundation">Базови принципи (физиология и биомеханика)</label>
-                    <textarea id="fitplanFoundation" rows="6" maxlength="800" placeholder="Кратки универсални принципи: контрол на движението, дишане, прогресия, възстановяване, безопасни ъгли на ставите..."></textarea>
+                    <label for="fitplanFoundation">Базови принципи</label>
+                    <textarea id="fitplanFoundation" rows="6" maxlength="800" placeholder="Твоя философия и техника — кратко. Без сплит/обем/reps (идват от program_spec). Напр.: контрол на ексцентриката, дишане, как комуникираш RPE с клиента…"></textarea>
                     <small id="fitplanFoundationCount" style="color: var(--text-gray);">0 / 800 знака</small>
                 </div>
 
@@ -2462,9 +2463,10 @@
                         </button>
                     </div>
                     <small style="display:block;color:var(--text-gray);margin-bottom:12px;">
-                        <strong>Категории от въпросника</strong> (пол, цел, здраве…) — напр. <code>пол (в1, в12.other, в15)</code> — прилагат се при съвпадение (напр. женски текст само за жени).
-                        <strong>Филтър по клиент</strong> (по избор): <code>gender:жена</code>, <code>goal:отслабване</code>.
-                        За универсални правила: празни тагове или <code>all</code> / <code>общо</code>. При няколко machine тага — раздели с <code>;</code>.
+                        <strong>Кратки правила-делта</strong> — не дублирай program_spec (сплит, обем, reps).
+                        <strong>Тагове:</strong> <code>gender:жена</code>, <code>goal:отслабване</code>, <code>level:начинаещ</code>, <code>health:бременност</code>…
+                        <strong>Категории от въпросника:</strong> <code>пол (в1, в12.other, в15)</code> — прилагат се при съвпадение на пол.
+                        Универсални: празни тагове или <code>all</code> / <code>общо</code>. Няколко тага — раздели с <code>;</code>.
                     </small>
                     <div id="fitplanBuiltinTags" class="admin-assistant-meta" style="margin-bottom:14px;"></div>
                     <div id="fitplanChunksList" style="display:flex;flex-direction:column;gap:12px;"></div>
@@ -4245,7 +4247,7 @@
                 </div>
                 <div style="margin-top:8px;">
                     <label style="font-size:0.82rem;color:var(--text-gray);">Текст на насоката (макс. 500 знака)</label>
-                    <textarea class="fitplan-chunk-text" rows="3" maxlength="500">${escapeHtml(chunk.text || '')}</textarea>
+                        <textarea class="fitplan-chunk-text" rows="3" maxlength="500" placeholder="Кратко правило-делта за този таг (без сплит/обем/reps)…">${escapeHtml(chunk.text || '')}</textarea>
                 </div>
             `;
             return row;

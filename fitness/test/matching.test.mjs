@@ -340,7 +340,7 @@ test('buildTrainerSystemAddon: RAG насоки в system с XML тагове', 
 
 test('buildTrainerSystemAddon: schemeMode маркира scheme приоритет', () => {
   const addon = buildTrainerSystemAddon({ foundation: 'Принцип А' }, new Set(['gender:жена']), { individual: [], architecture: [] }, { schemeMode: true });
-  assert.ok(addon.includes('scheme'));
+  assert.ok(addon.includes('абсолютна'));
   assert.ok(!addon.includes('<individual_guidelines>'));
 });
 

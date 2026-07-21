@@ -155,7 +155,7 @@ export function buildExerciseCatalogSnippet(index, profile, allowedEquipment = n
     groups.get(g).push(entry);
   }
 
-  const lines = ['<exercise_catalog>', 'canonicalName САМО от списъка (d=трудност, gf/gm=0-100, flags):'];
+  const lines = ['<exercise_catalog>', 'canonicalName САМО отдолу (d=трудност, gf=подходящост жена, flags=c/i/glute/press…):'];
   let total = 0;
 
   for (const g of GROUP_ORDER) {
