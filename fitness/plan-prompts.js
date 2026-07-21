@@ -48,7 +48,7 @@ export const STRICT_ASSEMBLY_RETRY_HINT = `
 
 export const GENDER_FIT_RETRY_HINT = `
 
-КОРЕКЦИЯ: жена — дупе най-голям обем; бедра < дупе; горна част само постура/гръб (без bench/press/curl обем). JSON само.`;
+КОРЕКЦИЯ: жена — повече glute, по-малко bench/press/curl. JSON само.`;
 
 export const COMPACT_PLAN_RETRY_HINT = `
 

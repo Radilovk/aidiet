@@ -32,15 +32,14 @@ const UNIVERSAL_TAGS = new Set(['all', '*', 'общо']);
 
 export const GUIDELINE_CHUNKS = [
   { tags: ['goal:отслабване'], text: 'Отслабване: запази силов тренинг + 1–2 кардио дни. Дефицитът е от хранене — не изтощавай клиента в залата.' },
-  { tags: ['goal:покачване на мускулна маса'], text: 'Хипертрофия: обемът е в program_spec — фокус върху прогресия в зададения rep range; всяка група 2×/седм > 1×.' },
+  { tags: ['goal:покачване на мускулна маса'], text: 'Хипертрофия: прогресия — първо reps в диапазона, после тежест; всяка група 2×/седм > 1×.' },
   { tags: ['goal:силови показатели'], text: 'Сила: основни движения първи в деня; техника преди тежест; пълни почивки при тежки серии.' },
   { tags: ['goal:издръжливост'], text: 'Издръжливост: преобладава зона 2/издръжливост; силата е поддръжаща, не основен акцент.' },
   { tags: ['goal:рекомпозиция'], text: 'Рекомпозиция: силов обем по spec + умерено кардио; заложи измерима силова прогресия.' },
   { tags: ['goal:обща кондиция'], text: 'Обща кондиция: баланс сила + кардио + мобилност; разнообразие за придържане.' },
   { tags: ['goal:рехабилитация след травма'], text: 'Рехаб: само безболезнен ROM и контрол; планът не замества физиотерапевт.' },
-  { tags: ['level:начинаещ'], text: 'Начинаещи: техника и контрол преди тежест; машини/собствено тегло пред сложни свободни тежести.' },
-  { tags: ['level:среден'], text: 'Среден опит: сплитът е в program_spec — вариирай интензитет в рамките на седмицата.' },
-  { tags: ['level:напреднал'], text: 'Напреднал: специализация по program_spec; интензификатори макс. 1–2 на тренировка.' },
+  { tags: ['level:начинаещ'], text: 'Начинаещи: техника и контрол преди тежест; машини/СТ пред сложни свободни тежести.' },
+  { tags: ['level:напреднал'], text: 'Напреднал: интензификатори макс. 1–2 на тренировка.' },
   { tags: ['health:хипертония', 'health:сърдечно-съдово'], text: 'сърдечно-съдов риск: без Valsalva и макс singles; спази rpe от spec; safetyNotes: лекарско одобрение.' },
   { tags: ['health:диабет'], text: 'Диабет: редовност > интензитет; внимание при хипогликемия — не на празен стомах.' },
   { tags: ['health:бременност'], text: 'бременност: само с лекарско одобрение. Без коремни кранчове, лежанки по гръб (след 1-ви трим.), задържане на дъха, падания. Умерен интензитет.' },
@@ -51,7 +50,7 @@ export const GUIDELINE_CHUNKS = [
   { tags: ['equipment:ограничено'], text: 'Ограничено оборудване: tempo, unilateral и по-къси почивки вместо повече тежест.' },
   { tags: ['time:сутрин'], text: 'Сутрешни тренировки: +5 мин загрявка; без макс опити на гладно.' },
   { tags: ['age:50+'], text: 'Възраст 50+: удължена загрявка; контролирано темпо; баланс/мобилност; 48–72ч между тежки сесии.' },
-  { tags: ['gender:жена'], text: 'Жена: приоритет №1 дупе (обем+форма); бедра стегнати, но < дупе; горна част само постура/гръб — без bench/press/curl обем.' },
+  { tags: ['gender:жена'], text: 'Жена: горна част — постура/гръб само; без bench/press/curl обем (обемът е в spec).' },
   { tags: ['gender:мъж'], text: 'Мъж: без glute-isolation фокус без указание от профила или zones↓.' },
 ];
 
@@ -351,23 +350,9 @@ export function constraintsFromAnswers(answers, exampleScheme = '', options = {}
   }
 
   const priorities = [];
-  if (!strictAssembly) {
-    const schemeMode = hasClientScheme(exampleScheme);
-    const zoneText = String(answers?.goal?.zones || '').trim();
-    if (!schemeMode) {
-      if (zoneText) priorities.push(`Зони↓: ${zoneText}`);
-      else if (normalizeText(answers?.gender || '').includes('жена')) {
-        priorities.push('Дупе>бедра; горна: постура/гръб');
-      }
-    }
-    if (answers?.extraInfo?.trim()) priorities.push(answers.extraInfo.trim());
-  }
+  // zones, female bias, freq/duration, extraInfo → program_spec + profile (не дублираме тук)
 
   const schedule = [];
-  if (!strictAssembly) {
-    if (answers?.preferences?.freq) schedule.push(`${answers.preferences.freq} тренировки седмично`);
-    if (answers?.preferences?.duration) schedule.push(`Продължителност: ${answers.preferences.duration}`);
-  }
 
   const fromScheme = parseAdminBriefConstraints('', exampleScheme);
   return {
