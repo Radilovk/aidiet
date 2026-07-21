@@ -85,6 +85,9 @@ import {
   buildTrainerSystemAddon,
   parseChunkTags,
   shouldIncludeAdminChunk,
+  expandEquipmentAnswers,
+  equipmentHintTokensFromText,
+  constraintsFromAnswers,
 } from './plan-generation.js';
 
 export {
@@ -113,6 +116,7 @@ export {
   buildTrainerSystemAddon,
   parseChunkTags,
   shouldIncludeAdminChunk,
+  constraintsFromAnswers,
 };
 
 // ============================================================================
@@ -422,15 +426,18 @@ export const EQUIPMENT_MAP = {
  * ако клиентът има пълна зала (без филтър).
  */
 export function allowedEquipmentSet(equipmentAnswers) {
-  const set = new Set(['body weight']); // собственото тегло е винаги налично
-  for (const answer of equipmentAnswers || []) {
+  const set = new Set(['body weight']);
+  const items = expandEquipmentAnswers(equipmentAnswers);
+  for (const answer of items) {
     const key = normalizeText(answer);
-    if (key in EQUIPMENT_MAP || EQUIPMENT_MAP[key] === null) {
-      if (EQUIPMENT_MAP[key] === null) return null;
-      for (const eq of EQUIPMENT_MAP[key] || []) set.add(normalizeText(eq));
-    } else if (key.includes('зала') || key.includes('gym')) {
+    if (EQUIPMENT_MAP[key] === null || key.includes('зала') || key.includes('gym')) {
       return null;
     }
+    if (key in EQUIPMENT_MAP) {
+      for (const eq of EQUIPMENT_MAP[key] || []) set.add(normalizeText(eq));
+      continue;
+    }
+    for (const hint of equipmentHintTokensFromText(answer)) set.add(hint);
   }
   return set;
 }

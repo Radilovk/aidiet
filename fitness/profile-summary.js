@@ -40,7 +40,7 @@ export function buildProfileSummary(a) {
   if (a.goal) {
     const goalMain = normalizeText(a.goal.main);
     const goalText = goalMain === 'друго' ? a.goal.other : a.goal.main;
-    parts.push(line('ЦЕЛ', `${goalText || '?'}${a.goal.deadline ? `, срок: ${a.goal.deadline}` : ', без краен срок'}`));
+    parts.push(line('ЦЕЛ', `${goalText || '?'}${a.goal.deadline ? `, срок: ${a.goal.deadline}` : ', без срок'}`));
   }
   parts.push(line('Оборудване', [...(a.equipment || []), a.equipmentOther].filter(Boolean).join(', ')));
   if (a.preferences) {

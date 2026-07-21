@@ -11,6 +11,7 @@
  * Условност:
  *   showIfGender — стъпката се показва само при избран пол (напр. 'Жена')
  *   field.showIf — { key, equals } спрямо стойност в същата стъпка
+ *   field.showIfIn — { key, values[] } показва при някоя от стойностите
  *
  * buildAnswers(state) превежда суровото състояние на визарда към формата,
  * който бекендът (worker.js → buildProfileSummary) очаква.
@@ -213,6 +214,13 @@ export const QUESTIONS = [
         required: true,
       },
       { key: 'other', label: 'Опиши целта', type: 'text', showIf: { key: 'main', equals: 'Друго' } },
+      {
+        key: 'zones',
+        label: 'Приоритетни зони',
+        type: 'text',
+        placeholder: 'по ред на важност, напр. бедра, корем, дупе',
+        showIfIn: { key: 'main', values: ['Отслабване', 'Покачване на мускулна маса', 'Рекомпозиция', 'Друго'] },
+      },
       { key: 'timeframe', label: 'Времева рамка', type: 'choice', options: ['Без краен срок', 'Конкретна дата'], required: true },
       { key: 'deadline', label: 'Дата / събитие', type: 'text', placeholder: 'напр. 1 септември, сватба през май…', showIf: { key: 'timeframe', equals: 'Конкретна дата' } },
     ],
@@ -265,6 +273,19 @@ export const QUESTIONS = [
   },
 ];
 
+const GOALS_WITH_ZONES = new Set(['Отслабване', 'Покачване на мускулна маса', 'Рекомпозиция', 'Друго']);
+
+/** Видимо ли е поле в fields стъпка (showIf / showIfIn). */
+export function fieldVisible(field, stepValue = {}) {
+  if (field?.showIfIn) {
+    return (field.showIfIn.values || []).includes(stepValue?.[field.showIfIn.key]);
+  }
+  if (field?.showIf) {
+    return stepValue?.[field.showIf.key] === field.showIf.equals;
+  }
+  return true;
+}
+
 /** Кои стъпки са активни при текущото състояние (условни стъпки по пол). */
 export function activeQuestions(state) {
   const gender = state?.basics?.gender;
@@ -281,7 +302,7 @@ export function validateQuestion(question, state) {
 
   if (question.type === 'fields') {
     for (const f of question.fields) {
-      if (f.showIf && value?.[f.showIf.key] !== f.showIf.equals) continue;
+      if (!fieldVisible(f, value)) continue;
       const v = value?.[f.key];
       if (f.required && (v === undefined || v === null || v === '' || (Array.isArray(v) && !v.length))) {
         return `Моля, попълни „${f.label}“.`;
@@ -419,6 +440,7 @@ export function buildAnswers(state) {
     goal: {
       main: goal.main || '',
       other: goal.other || '',
+      zones: GOALS_WITH_ZONES.has(goal.main) ? (goal.zones || '').trim() : '',
       deadline: goal.timeframe === 'Конкретна дата' ? (goal.deadline || '') : '',
     },
     equipment: (equipment.selected || []).filter((e) => e !== 'Друго'),

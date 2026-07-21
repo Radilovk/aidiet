@@ -1,6 +1,8 @@
 /**
  * Споделен UI за KA-TRAINER въпросник (app + консултация).
  */
+import { fieldVisible } from './questions.js';
+
 export function el(tag, props = {}, ...children) {
   const node = document.createElement(tag);
   for (const [k, v] of Object.entries(props)) {
@@ -56,7 +58,7 @@ export function createWizardController({
     const renderAll = () => {
       container.innerHTML = '';
       for (const f of fields) {
-        if (f.showIf && state[f.showIf.key] !== f.showIf.equals) continue;
+        if (!fieldVisible(f, state)) continue;
         const field = el('div', { class: 'field' });
         field.append(el('label', { class: 'field-label', text: f.label }));
 
