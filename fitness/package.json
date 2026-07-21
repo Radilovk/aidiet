@@ -10,6 +10,7 @@
     "deploy:staging": "wrangler deploy --env staging",
     "serve": "python3 -m http.server 8080",
     "translate:exercises": "node scripts/translate-exercises.mjs",
+    "classify:exercises": "node scripts/classify-exercises.mjs",
     "build:index": "node scripts/build-exercise-index.mjs",
     "test": "node --test"
   },

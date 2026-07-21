@@ -13,19 +13,22 @@ import {
   classificationStats,
   listPendingClassifications,
   CLASSIFY_BATCH_SIZE,
+  classifyContentHash,
 } from '../exercise-classify-batch.js';
+import { pickInstructionsEn } from '../exercise-translations.js';
 import { heuristicClassification } from '../exercise-metadata.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const outFile = join(root, 'data', 'exercise-metadata.json');
 
 const force = process.argv.includes('--force');
+const heuristicOnly = process.argv.includes('--heuristic-only');
 const limitArg = process.argv.find((a) => a.startsWith('--limit='));
 const limit = limitArg ? Number(limitArg.split('=')[1]) : 0;
 
 const apiKey = process.env.GEMINI_API_KEY;
-if (!apiKey) {
-  console.error('GEMINI_API_KEY липсва');
+if (!heuristicOnly && !apiKey) {
+  console.error('GEMINI_API_KEY липсва (или ползвай --heuristic-only)');
   process.exit(1);
 }
 
@@ -37,8 +40,9 @@ try {
 } catch { /* първи run */ }
 
 let pending = listPendingClassifications(all, existing, { force, limit });
-console.log(`Pending: ${pending.length} / ${all.length}`);
+console.log(`Pending: ${pending.length} / ${all.length}${heuristicOnly ? ' (heuristic-only)' : ''}`);
 
+if (!heuristicOnly) {
 const batches = chunkBatches(pending, CLASSIFY_BATCH_SIZE);
 const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
@@ -47,15 +51,24 @@ for (let i = 0; i < batches.length; i++) {
   process.stdout.write(`Batch ${i + 1}/${batches.length} (${batch.length})… `);
   const chunk = await classifyBatchResilient(apiKey, batch, model);
   Object.assign(existing, chunk);
-  console.log(`+${Object.keys(chunk).length}`);
+  mkdirSync(dirname(outFile), { recursive: true });
+  writeFileSync(outFile, JSON.stringify(existing, null, 0));
+  console.log(`+${Object.keys(chunk).length} (total ${Object.keys(existing).length})`);
+}
 }
 
-// Heuristic fallback за останалите
+// Heuristic fallback за останалите (или пълен rebuild при --heuristic-only --force)
 for (const ex of all) {
   const id = String(ex.id);
-  if (!existing[id]) {
+  if (!existing[id] || (heuristicOnly && force)) {
     const h = heuristicClassification(ex);
-    existing[id] = { ...h, classifiedAt: new Date().toISOString(), heuristicOnly: true };
+    const en = pickInstructionsEn(ex.instructions);
+    existing[id] = {
+      ...h,
+      sourceHash: classifyContentHash(ex.name || '', ex.equipment || '', en),
+      classifiedAt: new Date().toISOString(),
+      heuristicOnly: true,
+    };
   }
 }
 

@@ -61,6 +61,11 @@ declare module './data/exercise-translations-bg.json' {
   export default value;
 }
 
+declare module './data/exercise-metadata.json' {
+  const value: Record<string, { diff?: number; gf?: number; gm?: number; flags?: string[] }>;
+  export default value;
+}
+
 /** Минимален Env */
 interface Env {
   page_content?: KVNamespace;

@@ -364,7 +364,19 @@ export async function loadExerciseMetadata(env) {
       console.error('KV read за exercise metadata пропадна:', e.message);
     }
   }
-  return bundledMetadata || {};
+  return loadBundledMetadata();
+}
+
+/** Build-time EFP (data/exercise-metadata.json), ако е наличен в bundle-а. */
+export async function loadBundledMetadata() {
+  if (bundledMetadata !== null) return bundledMetadata;
+  try {
+    const mod = await import('./data/exercise-metadata.json', { with: { type: 'json' } });
+    bundledMetadata = mod.default || mod;
+  } catch {
+    bundledMetadata = {};
+  }
+  return bundledMetadata;
 }
 
 async function saveExerciseMetadata(env, metadata) {
