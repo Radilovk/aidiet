@@ -52,15 +52,23 @@ jobs:
           V_NAME="1.0.${V_CODE}"
           TAG="v-build${V_CODE}-${SHORT_SHA}"
 
-          if [ -f app-release.apk ]; then
-            APK_FILE="app-release.apk"
-          elif [ -f release/app-release.apk ]; then
+          if [ -f release/app-release.apk ]; then
             APK_FILE="release/app-release.apk"
+          elif [ -f release/app-debug.apk ]; then
+            APK_FILE="release/app-debug.apk"
+          elif [ -f app-release.apk ]; then
+            APK_FILE="app-release.apk"
           elif [ -f android/app/build/outputs/apk/release/app-release.apk ]; then
             APK_FILE="android/app/build/outputs/apk/release/app-release.apk"
           elif [ -f app-debug.apk ]; then
             APK_FILE="app-debug.apk"
           else
+            APK_FILE="$(find . -name 'app-release.apk' -type f | head -1 || true)"
+            if [ -z "$APK_FILE" ]; then
+              APK_FILE="$(find . -name 'app-debug.apk' -type f | head -1 || true)"
+            fi
+          fi
+          if [ -z "${APK_FILE:-}" ] || [ ! -f "$APK_FILE" ]; then
             echo "::error::APK not found in artifact. Contents:"
             find . -name '*.apk' -type f
             exit 1

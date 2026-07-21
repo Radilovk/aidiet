@@ -434,15 +434,20 @@ jobs:
               -PaidietVersionName="$V_NAME" \
               -PaidietVersionCode="$V_CODE"
           fi
+          cd ..
+          mkdir -p release
+          if [ "$IS_PROD" = "true" ]; then
+            cp android/app/build/outputs/apk/release/app-release.apk release/app-release.apk
+          else
+            cp android/app/build/outputs/apk/debug/app-debug.apk release/app-debug.apk
+          fi
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: NutriPlan-APK
           retention-days: 30
-          path: |
-            android/app/build/outputs/apk/release/app-release.apk
-            android/app/build/outputs/apk/debug/app-debug.apk
+          path: release/*.apk
 
       - name: Build summary
         if: always()
@@ -476,7 +481,11 @@ jobs:
           IS_PROD="${{ needs.build-apk.outputs.is_prod }}"
           TAG="v-build${V_CODE}-$(echo '${{ github.sha }}' | cut -c1-7)"
 
-          if [ "$IS_PROD" = "true" ] && [ -f android/app/build/outputs/apk/release/app-release.apk ]; then
+          if [ -f release/app-release.apk ]; then
+            APK_FILE="release/app-release.apk"
+          elif [ -f release/app-debug.apk ]; then
+            APK_FILE="release/app-debug.apk"
+          elif [ "$IS_PROD" = "true" ] && [ -f android/app/build/outputs/apk/release/app-release.apk ]; then
             APK_FILE="android/app/build/outputs/apk/release/app-release.apk"
           elif [ -f app-release.apk ]; then
             APK_FILE="app-release.apk"
@@ -487,6 +496,12 @@ jobs:
           elif [ -f android/app/build/outputs/apk/debug/app-debug.apk ]; then
             APK_FILE="android/app/build/outputs/apk/debug/app-debug.apk"
           else
+            APK_FILE="$(find . -name 'app-release.apk' -type f | head -1 || true)"
+            if [ -z "$APK_FILE" ]; then
+              APK_FILE="$(find . -name 'app-debug.apk' -type f | head -1 || true)"
+            fi
+          fi
+          if [ -z "${APK_FILE:-}" ] || [ ! -f "$APK_FILE" ]; then
             echo "::error::APK not found after artifact download:"
             find . -name '*.apk' -type f || true
             exit 1
