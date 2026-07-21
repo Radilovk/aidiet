@@ -2509,9 +2509,13 @@
                     </div>
 
                     <div>
-                        <label class="fcp-field-label" for="fcpExampleScheme">Схема и указания (по избор)</label>
-                        <textarea id="fcpExampleScheme" class="fcp-scheme" placeholder="Дни, упражнения, серии, забрани…&#10;Пон: гръб — лат пулдаун 4×10&#10;Сря: крака — клек, hip thrust"></textarea>
-                        <p class="fcp-hint" style="margin-top:5px;">Тук описваш конкретната програма. Въпросникът дава профила; схемата задава рамката.</p>
+                        <label class="fcp-field-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px;">
+                            <input type="checkbox" id="fcpStrictScheme" style="width:auto;margin:0;">
+                            <span>Само сглобяване — AI намира упражнения, не променя програмата</span>
+                        </label>
+                        <label class="fcp-field-label" for="fcpExampleScheme" id="fcpSchemeLabel">Схема и указания (по избор)</label>
+                        <textarea id="fcpExampleScheme" class="fcp-scheme" placeholder="Пълна програма — дни, упражнения, серии, повторения, почивки…&#10;Пон: гръб — лат пулдаун 4×10, 90с&#10;Вто: почивка&#10;Сря: дупе — hip thrust 4×12, 60с"></textarea>
+                        <p class="fcp-hint" id="fcpSchemeHint" style="margin-top:5px;">Тук описваш конкретната програма. Въпросникът дава профила; схемата задава рамката.</p>
                     </div>
 
                     <details>
@@ -4482,11 +4486,27 @@
             return status === 'approved' ? 'Одобрена' : 'Чернова';
         }
 
+        function fcpUpdateStrictSchemeUi() {
+            const strict = document.getElementById('fcpStrictScheme')?.checked;
+            const label = document.getElementById('fcpSchemeLabel');
+            const hint = document.getElementById('fcpSchemeHint');
+            if (label) label.textContent = strict ? 'Програма (задължително)' : 'Схема и указания (по избор)';
+            if (hint) {
+                hint.textContent = strict
+                    ? 'Опиши цялата програма тук. AI само намира упражненията и сглобява JSON — без промени в съдържанието. Въпросникът е по избор.'
+                    : 'Тук описваш конкретната програма. Въпросникът дава профила; схемата задава рамката.';
+            }
+        }
+
+        document.getElementById('fcpStrictScheme')?.addEventListener('change', fcpUpdateStrictSchemeUi);
+
         function resetFitplanClientProgramForm() {
             document.getElementById('fcpId').value = '';
             document.getElementById('fcpClientName').value = '';
             document.getElementById('fcpClientContact').value = '';
             document.getElementById('fcpExampleScheme').value = '';
+            document.getElementById('fcpStrictScheme').checked = false;
+            fcpUpdateStrictSchemeUi();
             window.FcpQuestionnaire?.reset?.();
             const statusEl = document.getElementById('fcpStatus');
             statusEl.textContent = '';
@@ -4518,6 +4538,8 @@
             document.getElementById('fcpClientContact').value = program.clientContact || '';
             window.FcpQuestionnaire?.load?.({ clientFormState: program.clientFormState });
             document.getElementById('fcpExampleScheme').value = program.exampleScheme || '';
+            document.getElementById('fcpStrictScheme').checked = Boolean(program.strictScheme);
+            fcpUpdateStrictSchemeUi();
             fcpCurrentPlanId = program.planId || null;
             document.getElementById('fcpPreviewBtn').classList.toggle('hidden', !fcpCurrentPlanId);
             const statusParts = [fcpStatusLabel(program.status)];
@@ -4540,16 +4562,25 @@
                 clientFormState: built?.clientFormState,
                 clientProfile: built?.clientProfile || '',
                 exampleScheme: document.getElementById('fcpExampleScheme').value.trim(),
+                strictScheme: document.getElementById('fcpStrictScheme').checked,
             };
         }
 
         async function saveFitplanClientProgram(options = {}) {
             const { silent = false } = options;
             const status = document.getElementById('fcpStatus');
-            const validationError = window.FcpQuestionnaire?.validate?.();
-            if (validationError) {
-                if (!silent) showError(validationError);
-                throw new Error(validationError);
+            const strictScheme = document.getElementById('fcpStrictScheme').checked;
+            const schemeText = document.getElementById('fcpExampleScheme').value.trim();
+            if (!strictScheme) {
+                const validationError = window.FcpQuestionnaire?.validate?.();
+                if (validationError) {
+                    if (!silent) showError(validationError);
+                    throw new Error(validationError);
+                }
+            } else if (!schemeText) {
+                const msg = 'При „Само сглобяване“ попълни пълната програма в полето.';
+                if (!silent) showError(msg);
+                throw new Error(msg);
             }
             const payload = readFitplanClientProgramPayload();
             if (!payload.clientName) {
@@ -4557,8 +4588,8 @@
                 if (!silent) showError(msg);
                 throw new Error(msg);
             }
-            if (!payload.clientAnswers?.gender) {
-                const msg = 'Попълни въпросника.';
+            if (!payload.clientAnswers?.gender && !payload.strictScheme) {
+                const msg = 'Попълни въпросника или включи „Само сглобяване“ с пълна програма.';
                 if (!silent) showError(msg);
                 throw new Error(msg);
             }

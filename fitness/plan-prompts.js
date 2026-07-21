@@ -25,6 +25,19 @@ HARD-VETO:
 
 КОМПАКТНОСТ: макс. 5 упражнения/ден; warmup/cooldown по 3 стъпки; notes≤80 знака; guidelines по 1 изречение/поле.`;
 
+/** System prompt при strict assembly — само JSON + именуване, без тренировъчна логика. */
+export const PLAN_SYSTEM_ASSEMBLY = `Сглобяваш готова програма в JSON. НЕ променяш <scheme>.
+
+ЗАДАЧА: canonicalName (EN) за всяко упражнение; displayName BG; equipmentHint/bodyPart EN.
+Запази дни, упражнения, серии, повторения, почивки ТОЧНО от scheme. Без добавяне/премахване/пренареждане.
+
+ИМЕНУВАНЕ: Bench Press → „Избутване от лежанка“. Leg Press → „Преса за крака“.
+JSON: 7 дни; warmup/cooldown кратки; guidelines по 1 изречение.`;
+
+export const STRICT_ASSEMBLY_RETRY_HINT = `
+
+ПОВТОР: <scheme> буквално — само упражнения + JSON. Без промени в структурата. JSON само.`;
+
 export const GENDER_FIT_RETRY_HINT = `
 
 КОРЕКЦИЯ (жена): приоритет дупе (обем+форма); бедра стегнати, но по-малък обем от дупе; горна част само постура/гръб (ред, пулдаун) — без bench/press/curl обем. JSON само.`;
