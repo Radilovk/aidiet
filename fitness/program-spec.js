@@ -25,6 +25,11 @@ const GOAL_NORM = {
   'рехабилитация след травма': 'рехаб',
 };
 
+/** @typedef {{ glutes: number; quads: number; hamstrings: number; back: number; core: number; chest: number; shoulders: number; arms: number }} VolumeMap */
+
+/** @type {VolumeMap} */
+const DEFAULT_VOLUME = { glutes: 10, quads: 8, hamstrings: 6, back: 8, core: 6, chest: 6, shoulders: 6, arms: 6 };
+
 function goalKey(answers) {
   const main = normalizeText(answers?.goal?.main || '');
   if (main === 'друго') return normalizeText(answers?.goal?.other || '') || 'обща';
@@ -101,15 +106,22 @@ function baseVolumeByGoal(goalNorm) {
   return { glutes: 10, quads: 8, hamstrings: 6, back: 8, core: 6, chest: 6, shoulders: 6, arms: 6 };
 }
 
+/**
+ * @param {VolumeMap} vol
+ * @param {number} level
+ * @returns {VolumeMap}
+ */
 function applyLevelScale(vol, level) {
   const scale = level === 1 ? 0.8 : (level === 3 ? 1.12 : 1);
-  const out = {};
-  for (const [k, v] of Object.entries(vol)) {
-    out[k] = Math.max(4, Math.round(v * scale));
+  /** @type {VolumeMap} */
+  const out = { ...DEFAULT_VOLUME, ...vol };
+  for (const k of /** @type {(keyof VolumeMap)[]} */ (Object.keys(DEFAULT_VOLUME))) {
+    out[k] = Math.max(4, Math.round(out[k] * scale));
   }
   return out;
 }
 
+/** @param {VolumeMap} vol @returns {VolumeMap} */
 function applyGenderBias(vol, isFemale, isMale) {
   const out = { ...vol };
   if (isFemale) {
@@ -124,6 +136,7 @@ function applyGenderBias(vol, isFemale, isMale) {
   return out;
 }
 
+/** @param {VolumeMap} vol @returns {VolumeMap} */
 function applyZoneBoost(vol, zonesOrdered) {
   const out = { ...vol };
   zonesOrdered.forEach((group, i) => {
@@ -164,6 +177,7 @@ export function buildVolumeBudget(answers) {
   const goalNorm = goalKey(answers);
 
   let vol = baseVolumeByGoal(goalNorm);
+  if (!vol || typeof vol !== 'object' || !Object.keys(vol).length) vol = { ...DEFAULT_VOLUME };
   vol = applyLevelScale(vol, level);
   vol = applyGenderBias(vol, isFemale, isMale);
 
