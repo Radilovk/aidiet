@@ -5,13 +5,47 @@ on:
     branches:
       - main
     paths:
-      - 'fitness/**'
+      - 'fitness/worker.js'
+      - 'fitness/wrangler.toml'
+      - 'fitness/package.json'
+      - 'fitness/package-lock.json'
+      - 'fitness/exercise-metadata.js'
+      - 'fitness/exercise-synonyms.js'
+      - 'fitness/exercise-labels-bg.js'
+      - 'fitness/exercise-translations.js'
+      - 'fitness/exercise-translate-batch.js'
+      - 'fitness/exercise-classify-batch.js'
+      - 'fitness/normalize.js'
+      - 'fitness/plan-generation.js'
+      - 'fitness/plan-prompts.js'
+      - 'fitness/program-spec.js'
+      - 'fitness/session-principles.js'
+      - 'fitness/profile-summary.js'
+      - 'fitness/data/**'
+      - 'fitness/scripts/**'
       - '.github/workflows/deploy-fitness-worker.yml'
   pull_request:
     branches:
       - main
     paths:
-      - 'fitness/**'
+      - 'fitness/worker.js'
+      - 'fitness/wrangler.toml'
+      - 'fitness/package.json'
+      - 'fitness/package-lock.json'
+      - 'fitness/exercise-metadata.js'
+      - 'fitness/exercise-synonyms.js'
+      - 'fitness/exercise-labels-bg.js'
+      - 'fitness/exercise-translations.js'
+      - 'fitness/exercise-translate-batch.js'
+      - 'fitness/exercise-classify-batch.js'
+      - 'fitness/normalize.js'
+      - 'fitness/plan-generation.js'
+      - 'fitness/plan-prompts.js'
+      - 'fitness/program-spec.js'
+      - 'fitness/session-principles.js'
+      - 'fitness/profile-summary.js'
+      - 'fitness/data/**'
+      - 'fitness/scripts/**'
       - '.github/workflows/deploy-fitness-worker.yml'
   workflow_dispatch:
 
@@ -53,23 +87,6 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
-      - name: Sync worker secrets (staging)
-        if: github.event_name == 'pull_request'
-        working-directory: fitness
-        run: |
-          set -euo pipefail
-          if [ -n "${GEMINI_API_KEY:-}" ]; then
-            printf '%s' "$GEMINI_API_KEY" | npx wrangler secret put GEMINI_API_KEY --env staging
-          fi
-          if [ -n "${OPENAI_API_KEY:-}" ]; then
-            printf '%s' "$OPENAI_API_KEY" | npx wrangler secret put OPENAI_API_KEY --env staging
-          fi
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-
       - name: Deploy FitPlan worker
         working-directory: fitness
         run: |
@@ -83,6 +100,28 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Sync worker secrets (staging, post-deploy)
+        if: github.event_name == 'pull_request'
+        working-directory: fitness
+        run: |
+          sync_secret() {
+            local name="$1"
+            local val="$2"
+            if [ -z "$val" ]; then return 0; fi
+            if printf '%s' "$val" | npx wrangler secret put "$name" --env staging; then
+              echo "$name синхронизиран към aidiet-fitness-staging."
+            else
+              echo "::warning::Неуспешен post-deploy sync на $name към staging."
+            fi
+          }
+          sync_secret GEMINI_API_KEY "${GEMINI_API_KEY:-}"
+          sync_secret OPENAI_API_KEY "${OPENAI_API_KEY:-}"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
       - name: Verify health endpoint
         if: github.event_name != 'pull_request'
