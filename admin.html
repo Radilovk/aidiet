@@ -2436,7 +2436,7 @@
             <!-- FitPlan Tab -->
             <div id="tab-fitplan" class="tab-content">
             <link rel="stylesheet" href="./fitness/fcp-admin.css">
-            <link rel="stylesheet" href="./fitness/fcp-editor.css?v=2">
+            <link rel="stylesheet" href="./fitness/fcp-editor.css?v=3">
             <div class="card">
                 <h2><i class="fas fa-dumbbell"></i> KA-TRAINER — Принципи за тренировки</h2>
                 <div class="info-box">
@@ -4778,6 +4778,12 @@
                 list.innerHTML = '<p style="color:#e74c3c;">Грешка при зареждане.</p>';
             }
         }
+
+        function patchFcpProgramCache(id, patch) {
+            const item = fcpProgramsCache.find(p => p.id === id);
+            if (item && patch && typeof patch === 'object') Object.assign(item, patch);
+        }
+        window.patchFcpProgramCache = patchFcpProgramCache;
 
         function openFitplanClientProgram(id) {
             const item = fcpProgramsCache.find((p) => p.id === id);
@@ -11319,6 +11325,6 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         }
     </script>
     <script type="module" src="./fitness/fcp-questionnaire.js?v=2"></script>
-    <script type="module" src="./fitness/fcp-program-editor.js?v=2"></script>
+    <script type="module" src="./fitness/fcp-program-editor.js?v=3"></script>
 </body>
 </html>
