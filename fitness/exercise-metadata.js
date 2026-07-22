@@ -211,9 +211,18 @@ export function filterExercises(index, profile, allowedEquipment = null, modalit
   );
 }
 
-const GROUP_ORDER = ['glutes', 'quads', 'hamstrings', 'back', 'chest', 'shoulders', 'arms', 'core', 'cardio', 'other'];
+const MODALITY_GROUPS = ['mobility', 'cardio', 'hiit'];
+const GROUP_ORDER = ['glutes', 'quads', 'hamstrings', 'back', 'chest', 'shoulders', 'arms', 'core', ...MODALITY_GROUPS, 'other'];
 
+/**
+ * Групира упражнението: не-силова модалност (mobility/cardio/hiit) взима
+ * приоритет пред мускулната група, за да не бъде изместена от нея при
+ * ограничен бюджет — иначе clean/stretch упражнения потъват в „quads“/„back“
+ * зад силовите варианти и никога не се показват на AI-я.
+ */
 function groupKey(entry) {
+  const modality = inferExerciseModality(entry);
+  if (MODALITY_GROUPS.includes(modality)) return modality;
   const t = entry.targetNorm || entry.bodyNorm || '';
   if (/glute/.test(t)) return 'glutes';
   if (/quad/.test(t)) return 'quads';
@@ -223,13 +232,15 @@ function groupKey(entry) {
   if (/shoulder|delt/.test(t)) return 'shoulders';
   if (/bicep|tricep|forearm|arm/.test(t)) return 'arms';
   if (/ab|oblique|core|waist/.test(t)) return 'core';
-  if (/cardio/.test(t)) return 'cardio';
   return 'other';
 }
 
 /**
  * Компактен каталог за AI prompt (~2KB).
  * canonicalName = entry.name (EN от dataset).
+ * opts.modalities — активните dayFocus типове в седмицата (от ProgramSpec);
+ * филтрира и подрежда каталога така, че mobility/cardio/hiit дните да имат
+ * реални, релевантни упражнения вместо силови машини по подразбиране.
  */
 export function buildExerciseCatalogSnippet(index, profile, allowedEquipment = null, opts = {}) {
   const maxTotal = opts.maxTotal ?? 120;
@@ -244,18 +255,39 @@ export function buildExerciseCatalogSnippet(index, profile, allowedEquipment = n
     if (!groups.has(g)) groups.set(g, []);
     groups.get(g).push(entry);
   }
+
+  const isFemale = Boolean(profile?.isFemale);
+  const isMale = Boolean(profile?.isMale);
   for (const items of groups.values()) {
-    items.sort((a, b) => (a.diff ?? 2) - (b.diff ?? 2) || (a.name || '').localeCompare(b.name || ''));
+    items.sort((a, b) => {
+      const diffCmp = (a.diff ?? 2) - (b.diff ?? 2);
+      if (diffCmp) return diffCmp;
+      // При равна трудност: най-подходящите за пола на клиента първо.
+      const relCmp = isFemale
+        ? (b.gf ?? 70) - (a.gf ?? 70)
+        : isMale
+          ? (b.gm ?? 70) - (a.gm ?? 70)
+          : 0;
+      if (relCmp) return relCmp;
+      return (a.name || '').localeCompare(b.name || '');
+    });
   }
+
+  // Активните не-силови модалности (mobility/cardio/hiit) излизат първи, за
+  // да не бъдат изтласкани от бюджета, преди редовните мускулни групи.
+  const priorityGroups = (modalities || []).filter((m) => MODALITY_GROUPS.includes(m));
+  const orderedGroups = [...new Set([...priorityGroups, ...GROUP_ORDER])];
 
   const maxDiff = profile?.maxDiff;
   const lines = ['<exercise_catalog>', `canonicalName САМО отдолу${maxDiff ? `; d≤${maxDiff}` : ''} (d=1 лесно|2 средно|3 трудно, gf=жена):`];
   let total = 0;
 
-  for (const g of GROUP_ORDER) {
+  for (const g of orderedGroups) {
+    const remaining = maxTotal - total;
+    if (remaining <= 0) break;
     const items = groups.get(g);
     if (!items?.length) continue;
-    const slice = items.slice(0, maxPerGroup);
+    const slice = items.slice(0, Math.min(maxPerGroup, remaining));
     const part = slice.map((e) => {
       const flags = (e.flags || []).slice(0, 3).join(',') || '-';
       const gf = e.gf ?? 70;
@@ -264,7 +296,6 @@ export function buildExerciseCatalogSnippet(index, profile, allowedEquipment = n
     }).join(', ');
     lines.push(`${g}: ${part}`);
     total += slice.length;
-    if (total >= maxTotal) break;
   }
 
   lines.push('</exercise_catalog>');

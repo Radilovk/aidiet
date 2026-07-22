@@ -34,13 +34,3 @@ export function formatSessionFrame(spec = {}) {
   }
   return lines.join(' | ');
 }
-
-/** @deprecated */
-export function buildSessionPrinciples(spec = {}) {
-  return { frame: formatSessionFrame(spec), budget: sessionPhaseBudget(spec.durationMin) };
-}
-
-/** @deprecated */
-export function formatSessionPrinciplesBlock(spec) {
-  return formatSessionFrame(spec);
-}

@@ -18,7 +18,6 @@ import {
   EQUIPMENT_RETRY_HINT,
   SESSION_STRUCTURE_RETRY_HINT,
   DIFF_RETRY_HINT,
-  MODALITY_RETRY_HINT,
 } from './plan-prompts.js';
 import {
   buildProgramSpec,
@@ -32,7 +31,6 @@ export {
   EQUIPMENT_RETRY_HINT,
   SESSION_STRUCTURE_RETRY_HINT,
   DIFF_RETRY_HINT,
-  MODALITY_RETRY_HINT,
 };
 
 export const MAX_FOUNDATION_CHARS = 800;
@@ -755,11 +753,6 @@ export function auditPlanExerciseProfile(plan, exerciseProfile, index = []) {
     }
   }
   return issues;
-}
-
-/** @deprecated използвай auditPlanSessionStructure */
-export function auditPlanModality(plan, programSpec = null) {
-  return auditPlanSessionStructure(plan, programSpec);
 }
 
 const CHEST_IMPLANT_RE = /bench|fly|chest press|push-?up|pec deck|crossover|dip|пек.?дек|избутване от лежанка|лъжичк/i;
