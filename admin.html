@@ -2436,6 +2436,7 @@
             <!-- FitPlan Tab -->
             <div id="tab-fitplan" class="tab-content">
             <link rel="stylesheet" href="./fitness/fcp-admin.css">
+            <link rel="stylesheet" href="./fitness/fcp-editor.css">
             <div class="card">
                 <h2><i class="fas fa-dumbbell"></i> KA-TRAINER — Принципи за тренировки</h2>
                 <div class="info-box">
@@ -2534,6 +2535,9 @@
                         </button>
                         <button type="button" class="btn hidden" id="fcpPreviewBtn" style="background:#3498db;" onclick="previewFitplanClientProgram()">
                             <i class="fas fa-eye"></i> Преглед
+                        </button>
+                        <button type="button" class="btn hidden" id="fcpEditorBtn" style="background:#f59e0b;" onclick="openFitplanProgramEditor()">
+                            <i class="fas fa-edit"></i> Редактор на упражнения
                         </button>
                         <button type="button" class="btn" style="background:#10b981;" onclick="approveFitplanClientProgram()">
                             <i class="fas fa-check-circle"></i> Одобри
@@ -4516,6 +4520,7 @@
             document.getElementById('fcpLinkWrap').classList.add('hidden');
             document.getElementById('fcpClientLink').value = '';
             document.getElementById('fcpPreviewBtn').classList.add('hidden');
+            document.getElementById('fcpEditorBtn')?.classList.add('hidden');
             document.getElementById('fcpDeleteBtn')?.classList.add('hidden');
             fcpCurrentPlanId = null;
         }
@@ -4544,6 +4549,7 @@
             fcpUpdateStrictSchemeUi();
             fcpCurrentPlanId = program.planId || null;
             document.getElementById('fcpPreviewBtn').classList.toggle('hidden', !fcpCurrentPlanId);
+            document.getElementById('fcpEditorBtn')?.classList.toggle('hidden', !fcpCurrentPlanId);
             const statusParts = [fcpStatusLabel(program.status)];
             if (program.planTitle) statusParts.push(program.planTitle);
             const statusEl = document.getElementById('fcpStatus');
@@ -4669,6 +4675,15 @@
             window.open(`${getFitplanPublicBase()}/fitness/app.html?plan=${encodeURIComponent(id)}&t=${Date.now()}`, '_blank', 'noopener');
         }
 
+        function openFitplanProgramEditor(programId) {
+            const id = programId || document.getElementById('fcpId').value.trim();
+            if (!id) return showError('Първо запази и генерирай програмата.');
+            const item = fcpProgramsCache.find((p) => p.id === id);
+            const clientName = item?.clientName || document.getElementById('fcpClientName').value.trim();
+            if (!window.FcpProgramEditor) return showError('Редакторът все още се зарежда — опитай отново след секунда.');
+            window.FcpProgramEditor.open({ id, clientName });
+        }
+
         async function copyFitplanClientProgramLink() {
             const input = document.getElementById('fcpClientLink');
             if (!input?.value) return;
@@ -4750,6 +4765,7 @@
                         <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
                             <button type="button" class="btn" style="background:#3498db;padding:6px 12px;font-size:0.85rem;" onclick="openFitplanClientProgram('${item.id}')">Отвори</button>
                             ${item.hasPlan ? `<button type="button" class="btn" style="background:#6366f1;padding:6px 12px;font-size:0.85rem;" onclick="previewFitplanClientProgram('${item.planId}')">Преглед</button>` : ''}
+                            ${item.hasPlan ? `<button type="button" class="btn" style="background:#f59e0b;padding:6px 12px;font-size:0.85rem;" onclick="openFitplanProgramEditor('${item.id}')">Редактор</button>` : ''}
                             <button type="button" class="btn" style="background:#e74c3c;padding:6px 12px;font-size:0.85rem;" onclick="deleteFitplanClientProgram('${item.id}', ${item.status === 'approved'})">Изтрий</button>
                             ${item.clientLinkPath ? `<button type="button" class="btn" style="background:#10b981;padding:6px 12px;font-size:0.85rem;" onclick="openFitplanClientProgram('${item.id}'); setTimeout(copyFitplanClientProgramLink, 300);">Копирай линк</button>` : ''}
                         </div>
@@ -11303,5 +11319,6 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         }
     </script>
     <script type="module" src="./fitness/fcp-questionnaire.js?v=2"></script>
+    <script type="module" src="./fitness/fcp-program-editor.js?v=1"></script>
 </body>
 </html>
