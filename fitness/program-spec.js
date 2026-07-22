@@ -3,6 +3,7 @@
  * AI попълва упражнения от филтриран каталог; не измисля макроструктурата.
  */
 import { normalizeText } from './normalize.js';
+import { formatSessionPrinciplesBlock } from './session-principles.js';
 
 const ZONE_TO_GROUP = [
   { keys: ['дупе', 'глут', 'седалищ'], group: 'glutes' },
@@ -64,7 +65,7 @@ function focusForDayType(type) {
   return map[type] || type;
 }
 
-/** Детерминистичен шаблон: кой ден какъв тип (без смесване в един ден). */
+/** Детерминистичен шаблон: основен фокус (dayFocus) на всеки тренировъчен ден. */
 export function buildWeekDayTypes(sessions, modality, goalNorm = '') {
   const n = Math.min(6, Math.max(2, sessions || 3));
   const slots = TRAINING_SLOTS[n] || TRAINING_SLOTS[3];
@@ -280,16 +281,18 @@ export function buildProgramSpec(answers = {}) {
   let repsOut = reps;
   let restOut = rest;
   if (modality === 'mobility') {
-    split = `mobility/stretch ×${sessions}`;
-    orderHint = 'flow: гръб/таз → крака → финал; без силови compound';
+    split = `mobility/yoga ×${sessions}`;
+    orderHint = 'основен блок: flow/пози/hold; warmup/cooldown с кардио и стреч по session_principles';
     repsOut = '30-60s hold';
     restOut = '15-30s';
   } else if (modality === 'cardio') {
     split = `cardio ×${sessions}`;
-    orderHint = 'zone 2 base + 1 quality interval; без тежки серии';
+    orderHint = 'основен блок: zone 2/темпо; warmup/cooldown по session_principles';
   } else if (modality === 'hiit') {
     split = `HIIT ×${sessions}`;
-    orderHint = 'warmup → intervals → cooldown; без тежка щанга';
+    orderHint = 'основен блок: интервали; warmup прогресивен, cooldown лесен кардио+стреч';
+  } else {
+    orderHint = 'compound→isolation в exercises; warmup=кардио+мобилност, cooldown=стреч+леко кардио';
   }
 
   return {
@@ -301,6 +304,14 @@ export function buildProgramSpec(answers = {}) {
     modality,
     dayTypes,
     weekModalities: modalitiesInWeek(dayTypes),
+    sessionPrinciples: formatSessionPrinciplesBlock({
+      durationMin,
+      level,
+      goalNorm,
+      goal: goalLabel,
+      modality,
+      dayTypes,
+    }),
     split,
     zonesText,
     zonesOrdered,
@@ -334,7 +345,12 @@ export function formatProgramSpecBlock(spec) {
       .filter((d) => d.type !== 'rest')
       .map((d) => `${d.day.slice(0, 2)}=${d.type}`)
       .join(', ');
-    if (dt) lines.push(`dayTypes: ${dt} (един тип/ден — без смесване)`);
+    if (dt) lines.push(`dayFocus: ${dt} (основен акцент на exercises блока)`);
+  }
+  if (spec.sessionPrinciples) {
+    lines.push('<session_principles>');
+    lines.push(spec.sessionPrinciples);
+    lines.push('</session_principles>');
   }
   if (spec.zonesText) lines.push(`zones↓: ${spec.zonesText}`);
   else if (spec.isFemale) lines.push('zones↓: дупе>бедра (default жена)');

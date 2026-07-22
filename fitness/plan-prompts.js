@@ -19,9 +19,9 @@ export const PLAN_SYSTEM_CORE = `Ти си български S&C треньор
 - Не измисляй сплит, седмичен обем или rep range — вземи от <program_spec>
 - Разпредели volume/wk по тренировъчните дни според split
 - canonicalName само от <exercise_catalog>; equipmentHint съответства на <equipment>
-- Ред в деня: compound→isolation; zones↓ (от spec) първи
-- Един ден = един тип (strength|cardio|hiit|mobility) по dayTypes от <program_spec>; без смесване (напр. bench + yoga в един ден)
-- mobility дни: stretch/yoga от каталога; strength дни: без stretch/yoga като основни упражнения
+- Ред в exercises: compound→isolation; zones↓ (от spec) първи в основния блок
+- Структура на сесията: warmup (кардио+мобилност) → exercises (по dayFocus) → cooldown (стреч+леко кардио) — виж <session_principles>
+- dayFocus задава ОСНОВНИЯ блок за деня; загрявка и финал винаги могат да включват кардио и стречинг
 
 HARD-VETO:
 - Болка/ограничение/операция → 0 натоварване на зоната
@@ -60,9 +60,12 @@ export const EQUIPMENT_RETRY_HINT = `
 
 КОРЕКЦИЯ: equipmentHint само от <equipment>; canonicalName от <exercise_catalog> с позволено оборудване. JSON само.`;
 
-export const MODALITY_RETRY_HINT = `
+export const SESSION_STRUCTURE_RETRY_HINT = `
 
-КОРЕКЦИЯ: спази dayTypes от <program_spec> — един тип/ден; mobility без bench/squat; strength без yoga/stretch. JSON само.`;
+КОРЕКЦИЯ: спази <session_principles> — warmup (кардио+мобилност) → exercises по dayFocus → cooldown (стреч+леко кардио). JSON само.`;
+
+/** @deprecated използвай SESSION_STRUCTURE_RETRY_HINT */
+export const MODALITY_RETRY_HINT = SESSION_STRUCTURE_RETRY_HINT;
 
 export const COMPACT_PLAN_RETRY_HINT = `
 

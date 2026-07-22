@@ -33,6 +33,7 @@ import {
   auditPlan,
   auditPlanConstraints,
   auditPlanModality,
+  auditPlanSessionStructure,
   classifySchemeInput,
   isStructuredScheme,
   buildTrainerSystemAddon,
@@ -514,7 +515,7 @@ test('auditPlanConstraints: импланти и странични рамена'
   assert.equal(audit.ok, false);
 });
 
-test('auditPlanModality: bench в mobility ден → проблем', () => {
+test('auditPlanSessionStructure: bench в mobility основен блок → проблем', () => {
   const programSpec = buildProgramSpec({
     gender: 'Жена',
     experience: 'Среден',
@@ -525,14 +526,58 @@ test('auditPlanModality: bench в mobility ден → проблем', () => {
     title: 'X',
     days: [{
       day: 'Понеделник', type: 'mobility',
+      warmup: ['a', 'b', 'c'],
+      cooldown: ['x', 'y', 'z'],
       exercises: [
         { canonicalName: 'Barbell Bench Press', equipmentHint: 'barbell', sets: 3, reps: '10', restSeconds: 60 },
         { canonicalName: 'Hamstring Stretch', equipmentHint: 'body weight', sets: 2, reps: '30s', restSeconds: 15 },
       ],
     }],
   });
-  const issues = auditPlanModality(plan, programSpec);
-  assert.ok(issues.some((i) => /bench/i.test(i) && /mobility/i.test(i)));
+  const issues = auditPlanSessionStructure(plan, programSpec);
+  assert.ok(issues.some((i) => /bench/i.test(i)));
+});
+
+test('auditPlanSessionStructure: stretch в strength ден е OK', () => {
+  const programSpec = buildProgramSpec({
+    gender: 'Мъж',
+    experience: 'Среден',
+    goal: { main: 'Рекомпозиция' },
+    preferences: { types: ['Силов тренинг'], freq: '3–4', duration: '45–60 мин' },
+  });
+  const plan = {
+    title: 'X',
+    days: [{
+      day: 'Понеделник', type: 'strength',
+      warmup: ['кардио', 'мобилност', 'активация'],
+      cooldown: ['стреч', 'ходене', 'дыхание'],
+      exercises: [
+        { canonicalName: 'Barbell Squat', equipmentHint: 'barbell', sets: 4, reps: '8', restSeconds: 90 },
+        { canonicalName: 'Hamstring Stretch', equipmentHint: 'body weight', sets: 2, reps: '30s', restSeconds: 15 },
+      ],
+    }],
+  };
+  const issues = auditPlanSessionStructure(plan, programSpec);
+  assert.equal(issues.length, 0);
+});
+
+test('auditPlanSessionStructure: липсва warmup → проблем', () => {
+  const programSpec = buildProgramSpec({
+    gender: 'Мъж',
+    experience: 'Среден',
+    goal: { main: 'Рекомпозиция' },
+    preferences: { types: ['Силов тренинг'], freq: '3–4', duration: '45–60 мин' },
+  });
+  const plan = normalizePlan({
+    title: 'X',
+    days: [{
+      day: 'Понеделник', type: 'strength',
+      cooldown: ['a', 'b', 'c'],
+      exercises: [{ canonicalName: 'Push-up', sets: 3, reps: '10', restSeconds: 60 }],
+    }],
+  });
+  const issues = auditPlanSessionStructure(plan, programSpec);
+  assert.ok(issues.some((i) => /warmup/i.test(i)));
 });
 
 test('auditPlanGenderFit: жена с мъжки bench-dominant план → проблем', () => {

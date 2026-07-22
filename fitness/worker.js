@@ -107,6 +107,7 @@ import {
   auditPlan,
   auditPlanConstraints,
   auditPlanModality,
+  auditPlanSessionStructure,
   auditRetryHint,
   classifySchemeInput,
   isStructuredScheme,
@@ -146,6 +147,7 @@ export {
   auditPlan,
   auditPlanConstraints,
   auditPlanModality,
+  auditPlanSessionStructure,
   auditRetryHint,
   classifySchemeInput,
   isStructuredScheme,
@@ -896,8 +898,7 @@ async function executePlanGeneration(env, ctx, {
   if (!strictAssembly) {
     const index = await indexPromise;
     if (index?.length) {
-      const modalities = programSpec?.weekModalities?.length ? programSpec.weekModalities : null;
-      catalogBlock = buildExerciseCatalogSnippet(index, exerciseProfile, allowedEquipment, { modalities });
+      catalogBlock = buildExerciseCatalogSnippet(index, exerciseProfile, allowedEquipment);
     }
   }
   const baseUser = catalogBlock ? `${userPrompt}\n\n${catalogBlock}` : userPrompt;

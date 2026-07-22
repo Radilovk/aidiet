@@ -12,15 +12,27 @@
 
 import { normalizeText } from './normalize.js';
 import { buildProfileSummary } from './profile-summary.js';
-import { exerciseProfileFromAnswers, inferExerciseModality, modalityMatchesDay } from './exercise-metadata.js';
-import { GENDER_FIT_RETRY_HINT, CONSTRAINT_RETRY_HINT, EQUIPMENT_RETRY_HINT, MODALITY_RETRY_HINT } from './plan-prompts.js';
+import { exerciseProfileFromAnswers } from './exercise-metadata.js';
+import {
+  GENDER_FIT_RETRY_HINT,
+  CONSTRAINT_RETRY_HINT,
+  EQUIPMENT_RETRY_HINT,
+  SESSION_STRUCTURE_RETRY_HINT,
+  MODALITY_RETRY_HINT,
+} from './plan-prompts.js';
 import {
   buildProgramSpec,
   formatProgramSpecBlock,
   buildCompactProfileForPrompt,
 } from './program-spec.js';
 
-export { GENDER_FIT_RETRY_HINT, CONSTRAINT_RETRY_HINT, EQUIPMENT_RETRY_HINT, MODALITY_RETRY_HINT };
+export {
+  GENDER_FIT_RETRY_HINT,
+  CONSTRAINT_RETRY_HINT,
+  EQUIPMENT_RETRY_HINT,
+  SESSION_STRUCTURE_RETRY_HINT,
+  MODALITY_RETRY_HINT,
+};
 
 export const MAX_FOUNDATION_CHARS = 800;
 export const MAX_GUIDELINE_ITEMS = 12;
@@ -703,8 +715,10 @@ export function auditPlanGenderFit(plan, clientTags) {
   return { ok: issues.length === 0, issues };
 }
 
-/** Един ден = един тип; упражнения да съответстват на day.type от spec. */
-export function auditPlanModality(plan, programSpec = null) {
+const HEAVY_COMPOUND_RE = /bench press|barbell squat|back squat|deadlift|hip thrust|leg press/i;
+
+/** dayFocus + задължителна структура warmup/exercises/cooldown; без veto за стреч/кардио в сесия. */
+export function auditPlanSessionStructure(plan, programSpec = null) {
   const dayTypes = programSpec?.dayTypes;
   if (!dayTypes?.length) return [];
   const typeByDay = new Map(dayTypes.map((d) => [normalizeText(d.day), d.type]));
@@ -715,17 +729,26 @@ export function auditPlanModality(plan, programSpec = null) {
     if (!expected || expected === 'rest') continue;
     const sessionType = day.type || expected;
     if (sessionType !== expected) {
-      issues.push(`${day.day}: тип ${sessionType} ≠ очакван ${expected} от program_spec`);
+      issues.push(`${day.day}: dayFocus ${sessionType} ≠ очакван ${expected} от program_spec`);
     }
-    if (day.type === 'rest') continue;
-    for (const ex of day.exercises || []) {
-      const mod = inferExerciseModality(ex.canonicalName || ex.displayName || '');
-      if (!modalityMatchesDay(sessionType, mod)) {
-        issues.push(`${day.day}: „${ex.canonicalName || ex.displayName}“ не пасва на ${sessionType} (=${mod})`);
+    if (day.type === 'rest' && !(day.exercises?.length)) continue;
+    if (!day.warmup?.length) issues.push(`${day.day}: липсва warmup (3 стъпки)`);
+    if (!day.cooldown?.length) issues.push(`${day.day}: липсва cooldown (3 стъпки)`);
+    if (expected === 'mobility') {
+      for (const ex of day.exercises || []) {
+        const name = String(ex.canonicalName || ex.displayName || '');
+        if (HEAVY_COMPOUND_RE.test(name)) {
+          issues.push(`${day.day}: „${name}“ не е за основен mobility блок — премести в силов ден или махни`);
+        }
       }
     }
   }
   return issues;
+}
+
+/** @deprecated използвай auditPlanSessionStructure */
+export function auditPlanModality(plan, programSpec = null) {
+  return auditPlanSessionStructure(plan, programSpec);
 }
 
 const CHEST_IMPLANT_RE = /bench|fly|chest press|push-?up|pec deck|crossover|dip|пек.?дек|избутване от лежанка|лъжичк/i;
@@ -778,7 +801,7 @@ export function auditPlan(plan, { clientTags = null, constraints = null, allowed
   const gender = auditPlanGenderFit(plan, clientTags);
   if (!gender.ok) issues.push(...gender.issues);
   issues.push(...auditPlanConstraints(plan, constraints || {}));
-  issues.push(...auditPlanModality(plan, programSpec));
+  issues.push(...auditPlanSessionStructure(plan, programSpec));
   const equip = auditPlanEquipment(plan, allowedEquipment);
   if (!equip.ok) issues.push(...equip.issues);
   return { ok: issues.length === 0, issues };
@@ -786,7 +809,7 @@ export function auditPlan(plan, { clientTags = null, constraints = null, allowed
 
 export function auditRetryHint(issues = []) {
   const joined = issues.join(' ');
-  if (/не пасва на|тип.*≠|modality|mobility|стречинг/i.test(joined)) return MODALITY_RETRY_HINT;
+  if (/dayFocus|warmup|cooldown|session_principles|основен mobility/i.test(joined)) return SESSION_STRUCTURE_RETRY_HINT;
   if (/имплант|забранено|гърди/i.test(joined)) return CONSTRAINT_RETRY_HINT;
   if (/оборудване/i.test(joined)) return EQUIPMENT_RETRY_HINT;
   if (/дупе|мъжки|bench|press/i.test(joined)) return GENDER_FIT_RETRY_HINT;
