@@ -50,6 +50,14 @@ export const GENDER_FIT_RETRY_HINT = `
 
 КОРЕКЦИЯ: жена — повече glute, по-малко bench/press/curl. JSON само.`;
 
+export const CONSTRAINT_RETRY_HINT = `
+
+КОРЕКЦИЯ: спази <constraints> hard-veto — премахни забранените движения (импланти/гърди, avoid). JSON само.`;
+
+export const EQUIPMENT_RETRY_HINT = `
+
+КОРЕКЦИЯ: equipmentHint само от <equipment>; canonicalName от <exercise_catalog> с позволено оборудване. JSON само.`;
+
 export const COMPACT_PLAN_RETRY_HINT = `
 
 КОМПАКТНО: макс. 4 упражнения/ден; notes≤60 знака. Само валиден JSON.`;

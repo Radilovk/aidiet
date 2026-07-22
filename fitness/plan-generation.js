@@ -13,14 +13,14 @@
 import { normalizeText } from './normalize.js';
 import { buildProfileSummary } from './profile-summary.js';
 import { exerciseProfileFromAnswers } from './exercise-metadata.js';
-import { GENDER_FIT_RETRY_HINT } from './plan-prompts.js';
+import { GENDER_FIT_RETRY_HINT, CONSTRAINT_RETRY_HINT, EQUIPMENT_RETRY_HINT } from './plan-prompts.js';
 import {
   buildProgramSpec,
   formatProgramSpecBlock,
   buildCompactProfileForPrompt,
 } from './program-spec.js';
 
-export { GENDER_FIT_RETRY_HINT };
+export { GENDER_FIT_RETRY_HINT, CONSTRAINT_RETRY_HINT, EQUIPMENT_RETRY_HINT };
 
 export const MAX_FOUNDATION_CHARS = 800;
 export const MAX_GUIDELINE_ITEMS = 12;
@@ -177,6 +177,32 @@ function isQuestionnaireCategoryTag(tag) {
 
 export function hasClientScheme(exampleScheme) {
   return Boolean(String(exampleScheme || '').trim());
+}
+
+const EXERCISE_LINE_RE = /(\d+\s*[x×х]\s*\d+|\d+\s*серии|\d+\s*по\s*\d+|sets?\s*[:=]?\s*\d+)/i;
+const DAY_LINE_RE = /^(пон|вто|сря|чет|пет|съб|нед|mon|tue|wed|thu|fri|sat|sun|ден\s*\d|day\s*\d)/i;
+
+/**
+ * brief — свободен текст (уреди, акценти); structured — дни/упражнения/серии.
+ * Brief НЕ е абсолютна схема — ProgramSpec + каталог остават активни.
+ */
+export function classifySchemeInput(schemeText = '') {
+  const raw = String(schemeText || '').trim();
+  if (!raw) return 'none';
+  const lines = raw.split(/\n+/).map((l) => l.trim()).filter(Boolean);
+  let exerciseLines = 0;
+  let hasDay = false;
+  for (const line of lines) {
+    if (EXERCISE_LINE_RE.test(line)) exerciseLines++;
+    if (DAY_LINE_RE.test(line)) hasDay = true;
+  }
+  if (exerciseLines === 0 && EXERCISE_LINE_RE.test(raw)) exerciseLines = 1;
+  if (exerciseLines >= 2 || (hasDay && exerciseLines >= 1)) return 'structured';
+  return 'brief';
+}
+
+export function isStructuredScheme(exampleScheme) {
+  return classifySchemeInput(exampleScheme) === 'structured';
 }
 
 export function isStrictAssembly(strictScheme, exampleScheme) {
@@ -602,23 +628,25 @@ export function buildBriefIdentityBlock(brief) {
 /** User prompt: контекст + задача. strictAssembly = само scheme. */
 export function buildAdminPlanUserPrompt(brief, options = {}) {
   const strictAssembly = Boolean(options.strictAssembly);
-  const hasScheme = Boolean(String(brief?.exampleScheme || '').trim());
-  const { clientProfile = '', exampleScheme = '', constraints: presetConstraints, programSpec } = brief || {};
+  const { clientProfile = '', exampleScheme = '', trainerBrief = '', constraints: presetConstraints, programSpec } = brief || {};
   const scheme = String(exampleScheme || '').trim();
+  const briefText = String(trainerBrief || '').trim();
+  const hasStructuredScheme = Boolean(scheme);
   const constraints = presetConstraints || parseAdminBriefConstraints(
     strictAssembly ? '' : clientProfile,
-    scheme,
+    [scheme, briefText].filter(Boolean).join('\n'),
   );
   const hardRules = buildAdminHardRulesBlock(constraints);
 
   const parts = [buildBriefIdentityBlock(brief)];
   if (scheme) parts.push(`<scheme>\n${scheme}\n</scheme>`);
+  if (briefText) parts.push(`<trainer_brief>\n${briefText}\n</trainer_brief>`);
   if (!strictAssembly) {
     if (constraints.equipmentList?.length) {
       parts.push(`<equipment>\n${constraints.equipmentList.join(', ')}\n</equipment>`);
     }
     if (hardRules) parts.push(`<constraints>\n${hardRules}\n</constraints>`);
-    if (programSpec && !hasScheme) {
+    if (programSpec) {
       parts.push(`<program_spec>\n${formatProgramSpecBlock(programSpec)}\n</program_spec>`);
     }
     const compactProfile = brief?.compactProfile?.trim()
@@ -632,7 +660,7 @@ export function buildAdminPlanUserPrompt(brief, options = {}) {
 
   const task = strictAssembly
     ? 'ASSEMBLY: сглоби JSON от <scheme> буквално. canonicalName + displayName. JSON само.'
-    : (scheme
+    : (hasStructuredScheme
       ? 'Следвай <scheme> точно. Запълни 7 дни. JSON само.'
       : 'Генерирай 7 дни от <program_spec> + <exercise_catalog>. canonicalName САМО от каталога. volume/reps/rest по spec. JSON само.');
   return `${parts.join('\n\n')}\n\n${task}`;
@@ -675,6 +703,69 @@ export function auditPlanGenderFit(plan, clientTags) {
   return { ok: issues.length === 0, issues };
 }
 
+const CHEST_IMPLANT_RE = /bench|fly|chest press|push-?up|pec deck|crossover|dip|пек.?дек|избутване от лежанка|лъжичк/i;
+const LATERAL_RAISE_RE = /lateral raise|side raise|страничн/i;
+
+/** Hard-veto: импланти, avoid, оборудване. */
+export function auditPlanConstraints(plan, constraints = {}) {
+  const issues = [];
+  const exclusions = constraints?.exclusions || [];
+  const blob = exclusions.join(' ').toLowerCase();
+  const implantRule = /имплант|гърди не|без натиск върху гърдите/i.test(blob);
+  const avoidLateral = /страничн/i.test(blob) || exclusions.some((e) => /не желае.*страничн/i.test(e));
+
+  for (const day of plan?.days || []) {
+    if (day.type === 'rest') continue;
+    for (const ex of day.exercises || []) {
+      const name = String(ex.canonicalName || ex.displayName || '');
+      if (implantRule && CHEST_IMPLANT_RE.test(name)) {
+        issues.push(`Забранено (импланти/гърди): ${name}`);
+      }
+      if (avoidLateral && LATERAL_RAISE_RE.test(name)) {
+        issues.push(`Забранено движение: ${name}`);
+      }
+    }
+  }
+  return issues;
+}
+
+export function auditPlanEquipment(plan, allowedEquipment) {
+  if (!allowedEquipment?.size) return { ok: true, issues: [] };
+  const issues = [];
+  for (const day of plan?.days || []) {
+    if (day.type === 'rest') continue;
+    for (const ex of day.exercises || []) {
+      const hint = normalizeText(ex.equipmentHint || '');
+      if (!hint) continue;
+      if (allowedEquipment.has(hint)) continue;
+      const ok = [...allowedEquipment].some((a) => hint.includes(a) || a.includes(hint));
+      if (!ok) {
+        issues.push(`Непозволено оборудване: ${ex.canonicalName || ex.displayName} (${ex.equipmentHint})`);
+      }
+    }
+  }
+  return { ok: issues.length === 0, issues };
+}
+
+/** Обединен post-AI audit + retry hint. */
+export function auditPlan(plan, { clientTags = null, constraints = null, allowedEquipment = null } = {}) {
+  const issues = [];
+  const gender = auditPlanGenderFit(plan, clientTags);
+  if (!gender.ok) issues.push(...gender.issues);
+  issues.push(...auditPlanConstraints(plan, constraints || {}));
+  const equip = auditPlanEquipment(plan, allowedEquipment);
+  if (!equip.ok) issues.push(...equip.issues);
+  return { ok: issues.length === 0, issues };
+}
+
+export function auditRetryHint(issues = []) {
+  const joined = issues.join(' ');
+  if (/имплант|забранено|гърди/i.test(joined)) return CONSTRAINT_RETRY_HINT;
+  if (/оборудване/i.test(joined)) return EQUIPMENT_RETRY_HINT;
+  if (/дупе|мъжки|bench|press/i.test(joined)) return GENDER_FIT_RETRY_HINT;
+  return CONSTRAINT_RETRY_HINT;
+}
+
 /**
  * Единна подготовка за AI генерация.
  * @param source — { answers } от въпросник ИЛИ { clientProfile, exampleScheme, clientName?, clientContact? } от админ
@@ -683,23 +774,29 @@ export function preparePlanGeneration(source, adminConfig, helpers) {
   function buildFromAnswers(answers, extra = {}) {
     const profileText = answers?.gender ? helpers.buildProfileSummary(answers) : '';
     const tags = answers?.gender ? buildTagsFromAnswers(answers) : new Set();
-    for (const t of extractTagsFromText(profileText, extra.exampleScheme || '')) tags.add(t);
-    const strictAssembly = isStrictAssembly(extra.strictScheme, extra.exampleScheme);
-    const schemeMode = strictAssembly || hasClientScheme(extra.exampleScheme);
+    const schemeText = String(extra.exampleScheme || '').trim();
+    const schemeKind = classifySchemeInput(schemeText);
+    for (const t of extractTagsFromText(profileText, schemeText)) {
+      if (t.startsWith('goal:') && [...tags].some((x) => x.startsWith('goal:'))) continue;
+      tags.add(t);
+    }
+    const strictAssembly = isStrictAssembly(extra.strictScheme, schemeText);
+    const structuredScheme = schemeKind === 'structured';
+    const schemeMode = strictAssembly || structuredScheme;
     const layers = resolveGuidelineLayers(tags, adminConfig, { schemeMode, strictAssembly });
-    const programSpec = (!strictAssembly && !schemeMode && answers?.gender)
-      ? buildProgramSpec(answers)
-      : null;
+    const programSpec = (!strictAssembly && answers?.gender) ? buildProgramSpec(answers) : null;
+    const planConstraints = constraintsFromAnswers(answers || {}, schemeText, { strictAssembly });
     const brief = {
       clientProfile: profileText,
       compactProfile: programSpec ? buildCompactProfileForPrompt(answers) : profileText,
-      exampleScheme: extra.exampleScheme || '',
-      constraints: constraintsFromAnswers(answers || {}, extra.exampleScheme || '', { strictAssembly }),
+      exampleScheme: structuredScheme ? schemeText : '',
+      trainerBrief: schemeKind === 'brief' ? schemeText : '',
+      constraints: planConstraints,
       tags,
       programSpec,
     };
     const equipmentInput = expandEquipmentAnswers([...(answers?.equipment || []), answers?.equipmentOther].filter(Boolean));
-    const fromBrief = allowedEquipmentFromBrief(profileText, extra.exampleScheme || '');
+    const fromBrief = allowedEquipmentFromBrief(profileText, schemeText);
     const fromAnswers = helpers.allowedEquipmentSet(equipmentInput);
     return {
       userPrompt: buildAdminPlanUserPrompt(brief, { strictAssembly }),
@@ -707,9 +804,11 @@ export function preparePlanGeneration(source, adminConfig, helpers) {
       coachProfileText: extra.coachProfileText || profileText,
       allowedEquipment: mergeAllowedEquipment(fromBrief, fromAnswers),
       clientTags: tags,
-      hasScheme: schemeMode,
+      hasScheme: structuredScheme,
       strictAssembly,
       exerciseProfile: answers?.gender ? exerciseProfileFromAnswers(answers) : null,
+      constraints: planConstraints,
+      schemeKind,
     };
   }
 

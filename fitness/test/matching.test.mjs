@@ -30,6 +30,10 @@ import {
   buildTagsFromAnswers,
   preparePlanGeneration,
   auditPlanGenderFit,
+  auditPlan,
+  auditPlanConstraints,
+  classifySchemeInput,
+  isStructuredScheme,
   buildTrainerSystemAddon,
   parseChunkTags,
   shouldIncludeAdminChunk,
@@ -412,15 +416,26 @@ test('filterExercises: само позволено оборудване в ка�
 });
 
 test('buildAdminPlanUserPrompt: hard-veto блок за женски админ бриф', () => {
+  const spec = buildProgramSpec({
+    gender: 'Жена',
+    goal: { main: 'Рекомпозиция' },
+    experience: 'Среден (2–5 години)',
+    preferences: { freq: '3', duration: '45–60 мин' },
+  });
   const prompt = buildAdminPlanUserPrompt({
     clientProfile: ADMIN_WOMAN_PROFILE,
-    exampleScheme: ADMIN_WOMAN_SCHEME,
+    trainerBrief: ADMIN_WOMAN_SCHEME,
+    programSpec: spec,
+    compactProfile: 'Жена, 45 г.',
   });
+  assert.ok(prompt.includes('<trainer_brief>'));
+  assert.ok(!prompt.includes('<scheme>'));
+  assert.ok(prompt.includes('<program_spec>'));
   assert.ok(prompt.includes('<constraints>'));
   assert.ok(prompt.includes('гърди не'));
   assert.ok(prompt.includes('странични рамена'));
-  assert.ok(prompt.includes('<profile>'));
-  assert.ok(prompt.indexOf('<constraints>') < prompt.indexOf('<profile>'));
+  assert.ok(prompt.includes('<program_spec>'));
+  assert.ok(prompt.includes('Генерирай 7 дни от <program_spec>'));
 });
 
 test('preparePlanGeneration: user=context, system=RAG', () => {
@@ -472,6 +487,30 @@ test('resolveGuidelineLayers: админ chunks не се режат от hardco
     })),
   });
   assert.equal(layers.individual.filter((t) => t.startsWith('АДМИН')).length, 10);
+});
+
+test('auditPlanConstraints: импланти и странични рамена', () => {
+  const constraints = {
+    exclusions: [
+      'Гръдни импланти: без натиск',
+      'Не желае движения: странични рамена',
+    ],
+  };
+  const plan = normalizePlan({
+    title: 'X',
+    days: [{
+      day: 'Пон', type: 'strength',
+      exercises: [
+        { canonicalName: 'Barbell Bench Press', equipmentHint: 'barbell', sets: 3, reps: '10', restSeconds: 60 },
+        { canonicalName: 'Dumbbell Lateral Raise', equipmentHint: 'dumbbell', sets: 3, reps: '12', restSeconds: 60 },
+      ],
+    }],
+  });
+  const issues = auditPlanConstraints(plan, constraints);
+  assert.ok(issues.some((i) => /имплант|гърди/i.test(i)));
+  assert.ok(issues.some((i) => /страничн|Lateral/i.test(i)));
+  const audit = auditPlan(plan, { constraints, clientTags: new Set(['gender:жена']) });
+  assert.equal(audit.ok, false);
 });
 
 test('auditPlanGenderFit: жена с мъжки bench-dominant план → проблем', () => {
@@ -541,8 +580,15 @@ test('resolveGuidelineLayers: schemeMode — admin chunks да, hardcoded не',
   assert.ok(!layers.individual.some((t) => /приоритет №1 дупе/i.test(t)));
 });
 
-test('preparePlanGeneration: hasScheme при exampleScheme + admin RAG', () => {
-  const { hasScheme, userPrompt, guidelineLayers } = preparePlanGeneration(
+test('classifySchemeInput: brief vs structured', () => {
+  assert.equal(classifySchemeInput(''), 'none');
+  assert.equal(classifySchemeInput(ADMIN_WOMAN_SCHEME), 'brief');
+  assert.equal(classifySchemeInput('Пон: Hip Thrust 4x10\nВто: Cable Kickback 3x15'), 'structured');
+  assert.equal(isStructuredScheme('Пон: Lat Pulldown 4x10'), true);
+});
+
+test('preparePlanGeneration: admin brief → program_spec + trainer_brief, не schemeMode', () => {
+  const { hasScheme, userPrompt, guidelineLayers, schemeKind } = preparePlanGeneration(
     {
       clientAnswers: {
         gender: 'Жена', age: 30, goal: { main: 'Рекомпозиция' }, experience: 'Среден (2–5 години)',
@@ -553,9 +599,29 @@ test('preparePlanGeneration: hasScheme при exampleScheme + admin RAG', () => 
     { foundation: 'Принцип тест', chunks: [{ tags: ['gender:жена'], text: 'Админ жена насока' }] },
     { buildProfileSummary, allowedEquipmentSet },
   );
+  assert.equal(schemeKind, 'brief');
+  assert.equal(hasScheme, false);
+  assert.ok(userPrompt.includes('<trainer_brief>'));
+  assert.ok(userPrompt.includes('<program_spec>'));
+  assert.ok(!userPrompt.includes('<scheme>\n3 тренировки'));
+  assert.ok(guidelineLayers.individual.some((t) => t.includes('Админ жена') || t.includes('Жена:')));
+});
+
+test('preparePlanGeneration: structured scheme → hasScheme', () => {
+  const { hasScheme, userPrompt } = preparePlanGeneration(
+    {
+      clientAnswers: {
+        gender: 'Жена', age: 30, goal: { main: 'Рекомпозиция' }, experience: 'Среден',
+        health: [], healthFemale: [], equipment: ['Дъмбели'], preferences: {},
+      },
+      exampleScheme: 'Пон: Hip Thrust 4x10\nВто: Cable Kickback 3x15',
+    },
+    null,
+    { buildProfileSummary, allowedEquipmentSet },
+  );
   assert.equal(hasScheme, true);
-  assert.ok(userPrompt.indexOf('<scheme>') < userPrompt.indexOf('<profile>'));
-  assert.ok(guidelineLayers.individual.some((t) => t.includes('Админ жена')));
+  assert.ok(userPrompt.includes('<scheme>'));
+  assert.ok(userPrompt.includes('Следвай <scheme>'));
 });
 
 test('preparePlanGeneration: strictAssembly — само scheme, без profile/RAG', () => {
