@@ -8,6 +8,8 @@ import {
   formatProgramSpecBlock,
   buildCompactProfileForPrompt,
   buildVolumeBudget,
+  resolveTrainingModality,
+  buildWeekDayTypes,
 } from '../program-spec.js';
 
 test('parseLevel: начинаещ → 1', () => {
@@ -58,6 +60,34 @@ test('buildVolumeBudget: зони boost първата зона', () => {
   });
   assert.ok(zonesOrdered.includes('back'));
   assert.ok(volume.back >= volume.arms);
+});
+
+test('resolveTrainingModality: йога / mixed / сила', () => {
+  assert.equal(resolveTrainingModality({ preferences: { types: ['Йога / мобилност'] } }), 'mobility');
+  assert.equal(resolveTrainingModality({ preferences: { types: ['Силов тренинг', 'Кардио'] } }), 'mixed');
+  assert.equal(resolveTrainingModality({ preferences: { types: ['Силов тренинг'] } }), 'strength');
+});
+
+test('buildProgramSpec: йога → mobility dayTypes без strength split', () => {
+  const spec = buildProgramSpec({
+    gender: 'Жена',
+    experience: 'Среден',
+    goal: { main: 'Обща кондиция' },
+    preferences: { types: ['Йога / мобилност'], freq: '3–4', duration: '30–45 мин' },
+  });
+  assert.equal(spec.modality, 'mobility');
+  assert.ok(spec.split.includes('mobility'));
+  assert.ok(spec.dayTypes.every((d) => d.type === 'rest' || d.type === 'mobility'));
+  const block = formatProgramSpecBlock(spec);
+  assert.ok(block.includes('dayTypes:'));
+  assert.ok(block.includes('mobility'));
+});
+
+test('buildWeekDayTypes: mixed разделя типове по дни', () => {
+  const week = buildWeekDayTypes(3, 'mixed', 'рекомпозиция');
+  const training = week.filter((d) => d.type !== 'rest');
+  assert.equal(training.length, 3);
+  assert.ok(new Set(training.map((d) => d.type)).size >= 2);
 });
 
 test('buildCompactProfileForPrompt: свободен текст и друго', () => {

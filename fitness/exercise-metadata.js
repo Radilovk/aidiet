@@ -113,16 +113,55 @@ export function fitsExerciseProfile(entry, profile) {
 /** Алтернативи за замяна в UI — само СТ, дъмбели, гири. */
 export const SWAP_EQUIPMENT = new Set(['body weight', 'dumbbell', 'kettlebell']);
 
+const MOBILITY_RE = /stretch|yoga|mobility|pilates|flexibility|foam|pigeon|child pose|cat cow|downward|spinal twist/i;
+const CARDIO_RE = /run|cycle|elliptic|row machine|jump rope|burpee|jog|cardio|walking|stepper/i;
+const HIIT_RE = /hiit|tabata|sprint interval|mountain climber|battle rope/i;
+const STRENGTH_RE = /press|squat|deadlift|curl|row|pull up|lunge|thrust|extension|raise|fly|kickback/i;
+
+/** Модалност на упражнение (от индекс или име). */
+export function inferExerciseModality(entryOrName) {
+  const name = typeof entryOrName === 'string'
+    ? entryOrName
+    : `${entryOrName?.name || ''} ${(entryOrName?.flags || []).join(' ')}`;
+  const n = normalizeText(name);
+  if (MOBILITY_RE.test(n)) return 'mobility';
+  if (HIIT_RE.test(n)) return 'hiit';
+  if (CARDIO_RE.test(n) || normalizeText(entryOrName?.equipment || '').includes('cardio')) return 'cardio';
+  if (STRENGTH_RE.test(n)) return 'strength';
+  if (typeof entryOrName === 'object' && entryOrName?.diff === 1 && /stretch|mobil/.test(n)) return 'mobility';
+  return 'strength';
+}
+
+export function modalityMatchesDay(sessionType, exerciseMod) {
+  const day = normalizeText(sessionType);
+  const ex = exerciseMod;
+  if (day === 'rest') return true;
+  if (day === 'mobility') return ex === 'mobility';
+  if (day === 'cardio') return ex === 'cardio' || ex === 'mobility';
+  if (day === 'hiit') return ex === 'hiit' || ex === 'cardio' || ex === 'strength';
+  return ex === 'strength';
+}
+
+export function passesModality(entry, modalities = null) {
+  if (!modalities?.length) return true;
+  const mod = inferExerciseModality(entry);
+  return modalities.some((m) => modalityMatchesDay(m, mod));
+}
+
 export function passesEquipment(entry, allowedEquipment) {
   if (!allowedEquipment) return true;
   const eq = entry?.equipNorm || normalizeText(entry?.equipment);
   return allowedEquipment.has(eq);
 }
 
-/** Филтрира индекс по профил + оборудване. */
-export function filterExercises(index, profile, allowedEquipment = null) {
+/** Филтрира индекс по профил + оборудване + модалност (EFP diff/gf/gm). */
+export function filterExercises(index, profile, allowedEquipment = null, modalities = null) {
   if (!index?.length) return [];
-  return index.filter((e) => fitsExerciseProfile(e, profile) && passesEquipment(e, allowedEquipment));
+  return index.filter((e) =>
+    fitsExerciseProfile(e, profile)
+    && passesEquipment(e, allowedEquipment)
+    && passesModality(e, modalities)
+  );
 }
 
 const GROUP_ORDER = ['glutes', 'quads', 'hamstrings', 'back', 'chest', 'shoulders', 'arms', 'core', 'cardio', 'other'];
@@ -148,7 +187,8 @@ function groupKey(entry) {
 export function buildExerciseCatalogSnippet(index, profile, allowedEquipment = null, opts = {}) {
   const maxTotal = opts.maxTotal ?? 120;
   const maxPerGroup = opts.maxPerGroup ?? 14;
-  const filtered = filterExercises(index, profile, allowedEquipment);
+  const modalities = opts.modalities || null;
+  const filtered = filterExercises(index, profile, allowedEquipment, modalities);
   if (!filtered.length) return '';
 
   const groups = new Map();

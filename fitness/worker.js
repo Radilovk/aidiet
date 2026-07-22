@@ -48,6 +48,7 @@ import {
   GENDER_FIT_RETRY_HINT,
   CONSTRAINT_RETRY_HINT,
   EQUIPMENT_RETRY_HINT,
+  MODALITY_RETRY_HINT,
   PLAN_RESPONSE_SCHEMA,
   PLAN_SYSTEM_ASSEMBLY,
   STRICT_ASSEMBLY_RETRY_HINT,
@@ -105,6 +106,7 @@ import {
   auditPlanGenderFit,
   auditPlan,
   auditPlanConstraints,
+  auditPlanModality,
   auditRetryHint,
   classifySchemeInput,
   isStructuredScheme,
@@ -143,12 +145,14 @@ export {
   auditPlanGenderFit,
   auditPlan,
   auditPlanConstraints,
+  auditPlanModality,
   auditRetryHint,
   classifySchemeInput,
   isStructuredScheme,
   GENDER_FIT_RETRY_HINT,
   CONSTRAINT_RETRY_HINT,
   EQUIPMENT_RETRY_HINT,
+  MODALITY_RETRY_HINT,
   buildTrainerSystemAddon,
   parseChunkTags,
   shouldIncludeAdminChunk,
@@ -879,7 +883,7 @@ function clientIp(request) {
 async function executePlanGeneration(env, ctx, {
   userPrompt, coachProfileText, allowedEquipment = null, clientTags = null,
   adminConfig = null, guidelineLayers = null, hasScheme = false, strictAssembly = false,
-  exerciseProfile = null, constraints = null,
+  exerciseProfile = null, constraints = null, programSpec = null,
 }) {
   const indexPromise = loadExerciseIndex(env, ctx);
   const tagSet = clientTags instanceof Set ? clientTags : new Set(clientTags || []);
@@ -892,7 +896,8 @@ async function executePlanGeneration(env, ctx, {
   if (!strictAssembly) {
     const index = await indexPromise;
     if (index?.length) {
-      catalogBlock = buildExerciseCatalogSnippet(index, exerciseProfile, allowedEquipment);
+      const modalities = programSpec?.weekModalities?.length ? programSpec.weekModalities : null;
+      catalogBlock = buildExerciseCatalogSnippet(index, exerciseProfile, allowedEquipment, { modalities });
     }
   }
   const baseUser = catalogBlock ? `${userPrompt}\n\n${catalogBlock}` : userPrompt;
@@ -928,7 +933,7 @@ async function executePlanGeneration(env, ctx, {
       rawText = await callAI(env, aiOpts);
       plan = normalizePlan(parseAiJson(rawText));
       if (!strictAssembly) {
-        const planAudit = auditPlan(plan, { clientTags: tagSet, constraints, allowedEquipment });
+        const planAudit = auditPlan(plan, { clientTags: tagSet, constraints, allowedEquipment, programSpec });
         if (!planAudit.ok && attempt < maxAttempts - 1) {
           lastFailure = 'audit';
           lastAuditIssues = planAudit.issues;
@@ -976,7 +981,7 @@ async function handleGeneratePlan(request, env, ctx) {
   }
 
   const adminGuidelines = await loadAdminGuidelines(env);
-  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile, constraints } = preparePlanGeneration(
+  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile, constraints, programSpec } = preparePlanGeneration(
     { answers },
     adminGuidelines,
     { buildProfileSummary, allowedEquipmentSet },
@@ -996,6 +1001,7 @@ async function handleGeneratePlan(request, env, ctx) {
       strictAssembly,
       exerciseProfile,
       constraints,
+      programSpec,
     }));
   } catch (e) {
     if (isPlanParseError(e)) {
@@ -1609,7 +1615,7 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
     clientName: record.clientName,
     clientContact: record.clientContact,
   };
-  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile, constraints } = preparePlanGeneration(
+  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile, constraints, programSpec } = preparePlanGeneration(
     genSource,
     adminGuidelines,
     { buildProfileSummary, allowedEquipmentSet },
@@ -1629,6 +1635,7 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
       strictAssembly,
       exerciseProfile,
       constraints,
+      programSpec,
     }));
   } catch (e) {
     if (isPlanParseError(e)) {

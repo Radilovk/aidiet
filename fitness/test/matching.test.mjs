@@ -32,6 +32,7 @@ import {
   auditPlanGenderFit,
   auditPlan,
   auditPlanConstraints,
+  auditPlanModality,
   classifySchemeInput,
   isStructuredScheme,
   buildTrainerSystemAddon,
@@ -511,6 +512,27 @@ test('auditPlanConstraints: импланти и странични рамена'
   assert.ok(issues.some((i) => /страничн|Lateral/i.test(i)));
   const audit = auditPlan(plan, { constraints, clientTags: new Set(['gender:жена']) });
   assert.equal(audit.ok, false);
+});
+
+test('auditPlanModality: bench в mobility ден → проблем', () => {
+  const programSpec = buildProgramSpec({
+    gender: 'Жена',
+    experience: 'Среден',
+    goal: { main: 'Обща кондиция' },
+    preferences: { types: ['Йога / мобилност'], freq: '3–4', duration: '30–45 мин' },
+  });
+  const plan = normalizePlan({
+    title: 'X',
+    days: [{
+      day: 'Понеделник', type: 'mobility',
+      exercises: [
+        { canonicalName: 'Barbell Bench Press', equipmentHint: 'barbell', sets: 3, reps: '10', restSeconds: 60 },
+        { canonicalName: 'Hamstring Stretch', equipmentHint: 'body weight', sets: 2, reps: '30s', restSeconds: 15 },
+      ],
+    }],
+  });
+  const issues = auditPlanModality(plan, programSpec);
+  assert.ok(issues.some((i) => /bench/i.test(i) && /mobility/i.test(i)));
 });
 
 test('auditPlanGenderFit: жена с мъжки bench-dominant план → проблем', () => {

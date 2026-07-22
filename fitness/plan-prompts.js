@@ -20,6 +20,8 @@ export const PLAN_SYSTEM_CORE = `Ти си български S&C треньор
 - Разпредели volume/wk по тренировъчните дни според split
 - canonicalName само от <exercise_catalog>; equipmentHint съответства на <equipment>
 - Ред в деня: compound→isolation; zones↓ (от spec) първи
+- Един ден = един тип (strength|cardio|hiit|mobility) по dayTypes от <program_spec>; без смесване (напр. bench + yoga в един ден)
+- mobility дни: stretch/yoga от каталога; strength дни: без stretch/yoga като основни упражнения
 
 HARD-VETO:
 - Болка/ограничение/операция → 0 натоварване на зоната
@@ -57,6 +59,10 @@ export const CONSTRAINT_RETRY_HINT = `
 export const EQUIPMENT_RETRY_HINT = `
 
 КОРЕКЦИЯ: equipmentHint само от <equipment>; canonicalName от <exercise_catalog> с позволено оборудване. JSON само.`;
+
+export const MODALITY_RETRY_HINT = `
+
+КОРЕКЦИЯ: спази dayTypes от <program_spec> — един тип/ден; mobility без bench/squat; strength без yoga/stretch. JSON само.`;
 
 export const COMPACT_PLAN_RETRY_HINT = `
 

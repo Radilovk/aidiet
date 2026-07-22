@@ -12,15 +12,15 @@
 
 import { normalizeText } from './normalize.js';
 import { buildProfileSummary } from './profile-summary.js';
-import { exerciseProfileFromAnswers } from './exercise-metadata.js';
-import { GENDER_FIT_RETRY_HINT, CONSTRAINT_RETRY_HINT, EQUIPMENT_RETRY_HINT } from './plan-prompts.js';
+import { exerciseProfileFromAnswers, inferExerciseModality, modalityMatchesDay } from './exercise-metadata.js';
+import { GENDER_FIT_RETRY_HINT, CONSTRAINT_RETRY_HINT, EQUIPMENT_RETRY_HINT, MODALITY_RETRY_HINT } from './plan-prompts.js';
 import {
   buildProgramSpec,
   formatProgramSpecBlock,
   buildCompactProfileForPrompt,
 } from './program-spec.js';
 
-export { GENDER_FIT_RETRY_HINT, CONSTRAINT_RETRY_HINT, EQUIPMENT_RETRY_HINT };
+export { GENDER_FIT_RETRY_HINT, CONSTRAINT_RETRY_HINT, EQUIPMENT_RETRY_HINT, MODALITY_RETRY_HINT };
 
 export const MAX_FOUNDATION_CHARS = 800;
 export const MAX_GUIDELINE_ITEMS = 12;
@@ -703,6 +703,31 @@ export function auditPlanGenderFit(plan, clientTags) {
   return { ok: issues.length === 0, issues };
 }
 
+/** Един ден = един тип; упражнения да съответстват на day.type от spec. */
+export function auditPlanModality(plan, programSpec = null) {
+  const dayTypes = programSpec?.dayTypes;
+  if (!dayTypes?.length) return [];
+  const typeByDay = new Map(dayTypes.map((d) => [normalizeText(d.day), d.type]));
+  const issues = [];
+  for (const day of plan?.days || []) {
+    const key = normalizeText(day.day);
+    const expected = typeByDay.get(key);
+    if (!expected || expected === 'rest') continue;
+    const sessionType = day.type || expected;
+    if (sessionType !== expected) {
+      issues.push(`${day.day}: тип ${sessionType} ≠ очакван ${expected} от program_spec`);
+    }
+    if (day.type === 'rest') continue;
+    for (const ex of day.exercises || []) {
+      const mod = inferExerciseModality(ex.canonicalName || ex.displayName || '');
+      if (!modalityMatchesDay(sessionType, mod)) {
+        issues.push(`${day.day}: „${ex.canonicalName || ex.displayName}“ не пасва на ${sessionType} (=${mod})`);
+      }
+    }
+  }
+  return issues;
+}
+
 const CHEST_IMPLANT_RE = /bench|fly|chest press|push-?up|pec deck|crossover|dip|пек.?дек|избутване от лежанка|лъжичк/i;
 const LATERAL_RAISE_RE = /lateral raise|side raise|страничн/i;
 
@@ -748,11 +773,12 @@ export function auditPlanEquipment(plan, allowedEquipment) {
 }
 
 /** Обединен post-AI audit + retry hint. */
-export function auditPlan(plan, { clientTags = null, constraints = null, allowedEquipment = null } = {}) {
+export function auditPlan(plan, { clientTags = null, constraints = null, allowedEquipment = null, programSpec = null } = {}) {
   const issues = [];
   const gender = auditPlanGenderFit(plan, clientTags);
   if (!gender.ok) issues.push(...gender.issues);
   issues.push(...auditPlanConstraints(plan, constraints || {}));
+  issues.push(...auditPlanModality(plan, programSpec));
   const equip = auditPlanEquipment(plan, allowedEquipment);
   if (!equip.ok) issues.push(...equip.issues);
   return { ok: issues.length === 0, issues };
@@ -760,6 +786,7 @@ export function auditPlan(plan, { clientTags = null, constraints = null, allowed
 
 export function auditRetryHint(issues = []) {
   const joined = issues.join(' ');
+  if (/не пасва на|тип.*≠|modality|mobility|стречинг/i.test(joined)) return MODALITY_RETRY_HINT;
   if (/имплант|забранено|гърди/i.test(joined)) return CONSTRAINT_RETRY_HINT;
   if (/оборудване/i.test(joined)) return EQUIPMENT_RETRY_HINT;
   if (/дупе|мъжки|bench|press/i.test(joined)) return GENDER_FIT_RETRY_HINT;
@@ -809,6 +836,7 @@ export function preparePlanGeneration(source, adminConfig, helpers) {
       exerciseProfile: answers?.gender ? exerciseProfileFromAnswers(answers) : null,
       constraints: planConstraints,
       schemeKind,
+      programSpec,
     };
   }
 
