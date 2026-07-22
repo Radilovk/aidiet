@@ -449,23 +449,25 @@ function openPicker({ mode, dayIndex, exIndex = null }) {
   };
   const panel = modal.querySelector('.fcp-editor-panel');
   const picker = el('div', { class: 'fcp-picker' },
-    el('div', { class: 'fcp-picker-head' },
-      el('h4', { text: mode === 'swap' ? 'Смени упражнението' : 'Добави упражнение' }),
-      el('button', { type: 'button', class: 'fcp-modal-close', 'aria-label': 'Затвори', onclick: () => closePicker() }, '×'),
-    ),
-    el('div', { class: 'fcp-picker-search' },
-      el('input', {
-        type: 'text', placeholder: 'Търси по дума (напр. клек, дупе, гребане)…', autofocus: true,
-        oninput: debounce((e) => { state.picker.q = e.target.value; runPickerSearch(); }, 250),
-      }),
+    el('div', { class: 'fcp-picker-top' },
+      el('div', { class: 'fcp-picker-head' },
+        el('h4', { text: mode === 'swap' ? 'Смени упражнението' : 'Добави упражнение' }),
+        el('button', { type: 'button', class: 'fcp-modal-close', 'aria-label': 'Затвори', onclick: () => closePicker() }, '×'),
+      ),
+      el('div', { class: 'fcp-picker-search' },
+        el('input', {
+          type: 'search', enterkeyhint: 'search',
+          placeholder: 'Търси (клек, дупе, гребане…)',
+          oninput: debounce((e) => { state.picker.q = e.target.value; runPickerSearch(); }, 250),
+        }),
+      ),
     ),
     el('div', { class: 'fcp-picker-filters', id: 'fcpPickerFilters' }),
+    el('div', { class: 'fcp-picker-results-hint', id: 'fcpPickerResultsHint', text: 'Резултати' }),
     el('div', { class: 'fcp-picker-results', id: 'fcpPickerResults' }, '…'),
   );
   panel.append(picker);
-  // Ако facets вече са кеширани от предишно отваряне — рендерираме веднага,
-  // без да чакаме мрежата. Иначе идват заедно с първите резултати в 1 заявка
-  // (viж runPickerSearch: facets=1 се добавя само докато кешът е празен).
+  picker.querySelector('.fcp-picker-search input')?.focus({ preventScroll: true });
   if (facetsCache) renderPickerFilters(facetsCache);
   runPickerSearch();
 }
@@ -475,69 +477,84 @@ function closePicker() {
   modal.querySelector('.fcp-picker')?.remove();
 }
 
+function makePickerChip(label, isActive, onClick, extraClass = '') {
+  const btn = el('button', {
+    type: 'button',
+    class: `fcp-picker-chip${extraClass ? ` ${extraClass}` : ''}${isActive ? ' active' : ''}`,
+    onclick: onClick,
+  }, label);
+  return btn;
+}
+
 function renderPickerFilters(facets) {
   const wrap = $('#fcpPickerFilters');
-  if (!wrap) return;
+  if (!wrap || !state?.picker) return;
   wrap.innerHTML = '';
+  const p = state.picker;
+
+  const primary = el('div', { class: 'fcp-picker-filters-primary' });
 
   const modalityRow = el('div', { class: 'fcp-picker-filter-row' }, el('span', { class: 'fcp-picker-flabel', text: 'Тип упражнение' }));
   for (const [value, label] of [['strength', 'Силови'], ['cardio', 'Кардио'], ['hiit', 'HIIT'], ['mobility', 'Мобилност']]) {
-    modalityRow.append(el('button', {
-      type: 'button', class: 'fcp-picker-chip',
-      onclick: (e) => {
-        toggleSetValue(state.picker.modality, value);
-        e.currentTarget.classList.toggle('active');
-        runPickerSearch();
-      },
-    }, label));
+    modalityRow.append(makePickerChip(label, p.modality.has(value), (e) => {
+      toggleSetValue(p.modality, value);
+      e.currentTarget.classList.toggle('active');
+      runPickerSearch();
+    }));
   }
-  wrap.append(modalityRow);
+  primary.append(modalityRow);
 
   const diffRow = el('div', { class: 'fcp-picker-filter-row' }, el('span', { class: 'fcp-picker-flabel', text: 'Трудност' }));
   for (const d of [1, 2, 3]) {
-    const chip = el('button', {
-      type: 'button', class: 'fcp-picker-chip fcp-picker-diff-chip',
-      onclick: (e) => {
-        const active = state.picker.diffMax === d;
-        state.picker.diffMax = active ? null : d;
-        wrap.querySelectorAll('.fcp-picker-diff-chip').forEach((b) => b.classList.remove('active'));
-        if (!active) e.currentTarget.classList.add('active');
-        runPickerSearch();
-      },
-    }, DIFF_LABELS[d]);
-    diffRow.append(chip);
+    diffRow.append(makePickerChip(DIFF_LABELS[d], p.diffMax === d, (e) => {
+      const active = p.diffMax === d;
+      p.diffMax = active ? null : d;
+      wrap.querySelectorAll('.fcp-picker-diff-chip').forEach((b) => b.classList.remove('active'));
+      if (!active) e.currentTarget.classList.add('active');
+      runPickerSearch();
+    }, 'fcp-picker-diff-chip'));
   }
-  wrap.append(diffRow);
+  primary.append(diffRow);
+  wrap.append(primary);
+
+  const hasAdvanced = facets.equipment?.length || facets.target?.length;
+  if (!hasAdvanced) return;
+
+  const activeAdvanced = p.equipment.size + p.target.size;
+  const advanced = el('details', { class: 'fcp-picker-filters-advanced', ...(activeAdvanced ? { open: true } : {}) });
+  advanced.append(el('summary', { class: 'fcp-picker-advanced-summary' },
+    el('span', { text: 'Оборудване и мускулна група' }),
+    activeAdvanced ? el('span', { class: 'fcp-picker-filter-count', text: String(activeAdvanced) }) : null,
+  ));
+
+  const body = el('div', { class: 'fcp-picker-filters-advanced-body' });
 
   if (facets.equipment?.length) {
     const row = el('div', { class: 'fcp-picker-filter-row' }, el('span', { class: 'fcp-picker-flabel', text: 'Оборудване' }));
     for (const f of facets.equipment.slice(0, 14)) {
-      row.append(el('button', {
-        type: 'button', class: 'fcp-picker-chip',
-        onclick: (e) => {
-          toggleSetValue(state.picker.equipment, f.value);
-          e.currentTarget.classList.toggle('active');
-          runPickerSearch();
-        },
-      }, `${f.label} (${f.count})`));
+      row.append(makePickerChip(`${f.label} (${f.count})`, p.equipment.has(f.value), (e) => {
+        toggleSetValue(p.equipment, f.value);
+        e.currentTarget.classList.toggle('active');
+        runPickerSearch();
+      }));
     }
-    wrap.append(row);
+    body.append(row);
   }
 
   if (facets.target?.length) {
     const row = el('div', { class: 'fcp-picker-filter-row' }, el('span', { class: 'fcp-picker-flabel', text: 'Мускулна група' }));
     for (const f of facets.target.slice(0, 20)) {
-      row.append(el('button', {
-        type: 'button', class: 'fcp-picker-chip',
-        onclick: (e) => {
-          toggleSetValue(state.picker.target, f.value);
-          e.currentTarget.classList.toggle('active');
-          runPickerSearch();
-        },
-      }, `${f.label} (${f.count})`));
+      row.append(makePickerChip(`${f.label} (${f.count})`, p.target.has(f.value), (e) => {
+        toggleSetValue(p.target, f.value);
+        e.currentTarget.classList.toggle('active');
+        runPickerSearch();
+      }));
     }
-    wrap.append(row);
+    body.append(row);
   }
+
+  advanced.append(body);
+  wrap.append(advanced);
 }
 
 function toggleSetValue(set, value) {
@@ -577,13 +594,15 @@ async function runPickerSearch() {
 
 function renderPickerResults(items) {
   const results = $('#fcpPickerResults');
+  const hint = $('#fcpPickerResultsHint');
   results.innerHTML = '';
+  if (hint) hint.textContent = items.length ? `Резултати (${items.length})` : 'Резултати';
   if (!items.length) {
     results.append(el('p', { class: 'fcp-picker-empty', text: 'Няма съвпадения — опитай друга дума или махни филтър.' }));
     return;
   }
   for (const item of items) {
-    const row = el('div', { class: 'fcp-picker-row', onclick: () => pickExercise(item) },
+    const row = el('button', { type: 'button', class: 'fcp-picker-row', onclick: () => pickExercise(item) },
       item.imageUrl ? el('img', { src: item.imageUrl, loading: 'lazy', alt: '' }) : el('div', { class: 'fcp-editor-ex-thumb' }),
       el('div', { class: 'fcp-picker-row-main' },
         el('div', { class: 'fcp-picker-row-name', text: item.displayName || item.name }),
