@@ -181,112 +181,11 @@
             border: 2px solid var(--soft-red);
             border-radius: 12px;
             padding: 10px 12px;
-            font-size: 16px;
+            font-size: 0.9rem;
             background: var(--bg-color);
             color: var(--text-dark);
             font-family: inherit;
         }
-
-        /* Client modal — план редактор (мобилен) */
-        .client-modal-overlay {
-            padding: 20px;
-            align-items: center;
-            justify-content: center;
-        }
-        .client-modal-content {
-            max-width: 860px;
-            max-height: 92vh;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-        .client-modal-close {
-            min-width: 44px;
-            min-height: 44px;
-            display: grid;
-            place-items: center;
-            border-radius: 10px;
-        }
-        .plan-tab-btn {
-            min-height: 44px;
-        }
-        .client-plan-editor {
-            width: 100%;
-            box-sizing: border-box;
-            min-height: 350px;
-            font-family: ui-monospace, monospace;
-            font-size: 16px;
-            border: 2px solid #6366f1;
-            border-radius: 10px;
-            padding: 14px;
-            resize: vertical;
-            background: #f9fafb;
-            color: var(--text-dark);
-        }
-        .plan-tab-content[data-tab="readable"] {
-            max-height: 520px;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        @media (max-width: 768px) {
-            .client-modal-overlay {
-                padding: 0 !important;
-                align-items: flex-end !important;
-            }
-            .client-modal-content {
-                max-width: 100% !important;
-                max-height: min(94dvh, 100%) !important;
-                border-radius: 16px 16px 0 0 !important;
-            }
-            .client-modal-content > div:first-child {
-                padding: 16px !important;
-            }
-            .client-modal-content > div:last-child {
-                padding: 16px !important;
-                padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important;
-            }
-            .plan-tab-btn {
-                flex: 1 1 calc(50% - 4px);
-                min-height: 44px;
-                padding: 10px 12px !important;
-                font-size: 0.85rem !important;
-                justify-content: center;
-            }
-            .client-plan-editor {
-                min-height: 45dvh !important;
-            }
-            .plan-tab-content[data-tab="readable"] {
-                max-height: none !important;
-                overflow: visible !important;
-            }
-            .admin-assistant-panel {
-                min-height: 320px;
-            }
-            .admin-assistant-messages {
-                max-height: min(40dvh, 280px);
-            }
-            .client-plan-save-btn,
-            .client-plan-activate-btn,
-            .client-modal-download,
-            .client-modal-close-btn {
-                min-height: 44px;
-                flex: 1 1 calc(50% - 5px);
-                justify-content: center;
-            }
-
-            .mobile-nav-btn {
-                font-size: 0.62rem;
-                padding: 4px 1px;
-                gap: 2px;
-            }
-            .mobile-nav-btn i {
-                font-size: 1.15rem;
-            }
-            #mbn-fitplan .nav-label-long { display: none; }
-            #mbn-fitplan .nav-label-short { display: inline; }
-        }
-
-        #mbn-fitplan .nav-label-short { display: none; }
 
         .clients-toolbar {
             display: flex;
@@ -2536,7 +2435,6 @@
 
             <!-- FitPlan Tab -->
             <div id="tab-fitplan" class="tab-content">
-            <link rel="stylesheet" href="./fitness/fcp-admin.css?v=4">
             <link rel="stylesheet" href="./fitness/fcp-admin.css">
             <link rel="stylesheet" href="./fitness/fcp-editor.css">
             <div class="card">
@@ -2575,7 +2473,7 @@
                     <div id="fitplanChunksList" style="display:flex;flex-direction:column;gap:12px;"></div>
                 </div>
 
-                <div class="fcp-action-row">
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
                     <button class="btn" onclick="saveFitplanGuidelines()">
                         <i class="fas fa-save"></i> Запази KA-TRAINER насоки
                     </button>
@@ -2608,14 +2506,14 @@
 
                     <div class="fcp-q-row">
                         <div id="fcpQuestionnaireStatus">Въпросникът не е попълнен</div>
-                        <button type="button" id="fcpOpenBtn" class="btn" style="background:#6366f1;" onclick="fcpOpenQuestionnaire()">
+                        <button type="button" id="fcpOpenBtn" class="btn" style="background:#6366f1;padding:8px 14px;font-size:0.82rem;" onclick="fcpOpenQuestionnaire()">
                             <i class="fas fa-clipboard-list"></i> Въпросник
                         </button>
                     </div>
 
                     <div>
-                        <label class="fcp-field-label fcp-strict-label" for="fcpStrictScheme">
-                            <input type="checkbox" id="fcpStrictScheme">
+                        <label class="fcp-field-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px;">
+                            <input type="checkbox" id="fcpStrictScheme" style="width:auto;margin:0;">
                             <span>Само сглобяване — AI намира упражнения, не променя програмата</span>
                         </label>
                         <label class="fcp-field-label" for="fcpExampleScheme" id="fcpSchemeLabel">Схема и указания (по избор)</label>
@@ -2656,12 +2554,12 @@
                     <div class="form-group hidden" id="fcpLinkWrap" style="margin:0;">
                         <label class="fcp-field-label">Линк за клиента</label>
                         <div class="fcp-link-row" style="margin-top:6px;">
-                            <input type="text" id="fcpClientLink" class="fcp-link-input" readonly>
-                            <button type="button" class="btn" style="background:#6366f1;" onclick="copyFitplanClientProgramLink()">
-                                <i class="fas fa-copy"></i> Копирай
+                            <input type="text" id="fcpClientLink" readonly>
+                            <button type="button" class="btn" style="background:#6366f1;padding:6px 10px;font-size:0.8rem;" onclick="copyFitplanClientProgramLink()">
+                                <i class="fas fa-copy"></i>
                             </button>
-                            <a id="fcpClientLinkOpen" class="btn" style="background:#3498db;text-decoration:none;" href="#" target="_blank" rel="noopener">
-                                <i class="fas fa-external-link-alt"></i> Отвори
+                            <a id="fcpClientLinkOpen" class="btn" style="background:#3498db;text-decoration:none;padding:6px 10px;font-size:0.8rem;" href="#" target="_blank" rel="noopener">
+                                <i class="fas fa-external-link-alt"></i>
                             </a>
                         </div>
                     </div>
@@ -2669,7 +2567,7 @@
 
                 <details>
                     <summary class="fcp-programs-toggle"><i class="fas fa-list"></i> Запазени програми</summary>
-                    <button type="button" class="btn fcp-refresh-btn" onclick="loadFitplanClientPrograms(true)" style="margin:10px 0 12px;">
+                    <button type="button" class="btn" onclick="loadFitplanClientPrograms(true)" style="margin:10px 0 12px;padding:6px 12px;font-size:0.82rem;">
                         <i class="fas fa-sync"></i> Обнови
                     </button>
                     <div id="fcpProgramsList" style="display:flex;flex-direction:column;gap:10px;">
@@ -2686,8 +2584,8 @@
                 </div>
                 <div class="form-group">
                     <label for="fitplanConsultLink">Линк към въпросника</label>
-                    <div class="fcp-link-row">
-                        <input type="text" id="fitplanConsultLink" class="fcp-link-input" readonly placeholder="Зареждане…">
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <input type="text" id="fitplanConsultLink" readonly placeholder="Зареждане…" style="flex:1;min-width:220px;font-family:monospace;font-size:0.85rem;">
                         <button type="button" class="btn" style="background:#6366f1;" onclick="copyFitplanConsultLink()">
                             <i class="fas fa-copy"></i> Копирай
                         </button>
@@ -3690,8 +3588,7 @@
             </button>
             <button class="mobile-nav-btn" id="mbn-fitplan" onclick="switchTab('fitplan', event)" aria-label="KA-TRAINER">
                 <i class="fas fa-dumbbell" aria-hidden="true"></i>
-                <span class="nav-label-long">KA-TRAINER</span>
-                <span class="nav-label-short">Трен.</span>
+                <span>KA-TRAINER</span>
             </button>
             <button class="mobile-nav-btn" id="mbn-monitoring" onclick="switchTab('monitoring', event)" aria-label="Мониторинг">
                 <i class="fas fa-chart-line" aria-hidden="true"></i>
@@ -4344,7 +4241,7 @@
             row.style.alignItems = 'stretch';
             row.innerHTML = `
                 <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-                    <div style="flex:1;min-width:0;">
+                    <div style="flex:1;min-width:220px;">
                         <label style="font-size:0.82rem;color:var(--text-gray);">Тагове (запетая)</label>
                         <input type="text" class="fitplan-chunk-tags" value="${escapeHtml((chunk.tags || []).join(', '))}" placeholder="goal:отслабване, gender:жена, level:начинаещ">
                     </div>
@@ -4541,16 +4438,16 @@
                     card.style.padding = '12px';
                     const statusLabel = item.status === 'read' ? 'Прегледана' : 'Нова';
                     card.innerHTML = `
-                        <summary>
+                        <summary style="cursor:pointer;font-weight:600;">
                             ${escapeHtml(item.clientName || 'Без име')}
                             <span style="color:var(--text-gray);font-weight:400;"> · ${escapeHtml(item.clientContact || '')}</span>
                             <span class="report-badge badge-${item.status === 'read' ? 'read' : 'unread'}" style="margin-left:8px;">${statusLabel}</span>
-                            <span class="fcp-consult-date">${date}</span>
+                            <span style="float:right;color:var(--text-gray);font-size:0.85rem;">${date}</span>
                         </summary>
-                        <pre style="white-space:pre-wrap;font-size:0.85rem;margin:12px 0 0;padding:12px;background:rgba(0,0,0,0.2);border-radius:8px;max-height:min(50dvh,320px);overflow:auto;">${escapeHtml(item.summary || '')}</pre>
-                        <div class="fcp-list-actions">
-                            <button type="button" class="btn" style="background:#8b5cf6;" onclick="loadConsultationIntoClientProgramById('${item.id}')">Създай програма</button>
-                            ${item.status !== 'read' ? `<button type="button" class="btn" style="background:#10b981;" onclick="markFitplanConsultationRead('${item.id}', this)">Маркирай прегледана</button>` : ''}
+                        <pre style="white-space:pre-wrap;font-size:0.85rem;margin:12px 0 0;padding:12px;background:rgba(0,0,0,0.2);border-radius:8px;max-height:320px;overflow:auto;">${escapeHtml(item.summary || '')}</pre>
+                        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+                            <button type="button" class="btn" style="background:#8b5cf6;padding:6px 12px;font-size:0.85rem;" onclick="loadConsultationIntoClientProgramById('${item.id}')">Създай програма</button>
+                            ${item.status !== 'read' ? `<button type="button" class="btn" style="background:#10b981;padding:6px 12px;font-size:0.85rem;" onclick="markFitplanConsultationRead('${item.id}', this)">Маркирай прегледана</button>` : ''}
                         </div>
                     `;
                     list.appendChild(card);
@@ -4865,11 +4762,6 @@
                             <span style="color:var(--text-gray);font-size:0.85rem;">${date}</span>
                         </div>
                         <div style="margin-top:8px;color:var(--text-gray);font-size:0.9rem;">${escapeHtml(item.planTitle || 'Без генериран план')}</div>
-                        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;" class="fcp-list-actions">
-                            <button type="button" class="btn" style="background:#3498db;" onclick="openFitplanClientProgram('${item.id}')">Отвори</button>
-                            ${item.hasPlan ? `<button type="button" class="btn" style="background:#6366f1;" onclick="previewFitplanClientProgram('${item.planId}')">Преглед</button>` : ''}
-                            <button type="button" class="btn" style="background:#e74c3c;" onclick="deleteFitplanClientProgram('${item.id}', ${item.status === 'approved'})">Изтрий</button>
-                            ${item.clientLinkPath ? `<button type="button" class="btn" style="background:#10b981;" onclick="openFitplanClientProgram('${item.id}'); setTimeout(copyFitplanClientProgramLink, 300);">Копирай линк</button>` : ''}
                         <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
                             <button type="button" class="btn" style="background:#3498db;padding:6px 12px;font-size:0.85rem;" onclick="openFitplanClientProgram('${item.id}')">Отвори</button>
                             ${item.hasPlan ? `<button type="button" class="btn" style="background:#6366f1;padding:6px 12px;font-size:0.85rem;" onclick="previewFitplanClientProgram('${item.planId}')">Преглед</button>` : ''}
@@ -10069,29 +9961,29 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                                     </div>
 
                                     <!-- Plan tabs -->
-                    <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;" class="plan-tab-bar">
-                                        <button class="btn plan-tab-btn" data-tab="readable" style="background:var(--primary-red);">
+                                    <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
+                                        <button class="btn plan-tab-btn" data-tab="readable" style="font-size:0.82rem;padding:6px 12px;background:var(--primary-red);">
                                             <i class="fas fa-list"></i> Преглед
                                         </button>
-                                        <button class="btn plan-tab-btn" data-tab="json" style="background:#6366f1;">
-                                            <i class="fas fa-code"></i> JSON
+                                        <button class="btn plan-tab-btn" data-tab="json" style="font-size:0.82rem;padding:6px 12px;background:#6366f1;">
+                                            <i class="fas fa-code"></i> JSON редактор
                                         </button>
-                                        <button class="btn plan-tab-btn" data-tab="assistant" style="background:#7c3aed;">
-                                            <i class="fas fa-robot"></i> AI
+                                        <button class="btn plan-tab-btn" data-tab="assistant" style="font-size:0.82rem;padding:6px 12px;background:#7c3aed;">
+                                            <i class="fas fa-robot"></i> AI Асистент
                                         </button>
                                     </div>
 
                                     <!-- Readable plan view -->
-                                    <div class="plan-tab-content" data-tab="readable" style="background:var(--card-bg);border-radius:10px;padding:16px;">
+                                    <div class="plan-tab-content" data-tab="readable" style="background:var(--card-bg);border-radius:10px;padding:16px;max-height:520px;overflow-y:auto;">
                                         ${planReadableHtml}
                                     </div>
 
                                     <!-- JSON editor -->
                                     <div class="plan-tab-content" data-tab="json" style="display:none;">
-                                        <textarea class="client-plan-editor">${escapeHtml(JSON.stringify(client.plan, null, 2))}</textarea>
-                                        <div style="display:flex;gap:8px;margin-top:8px;justify-content:flex-end;flex-wrap:wrap;">
-                                            <button class="btn client-plan-save-btn" data-client-id="${escapeHtml(client.id)}" style="background:#6366f1;">
-                                                <i class="fas fa-save"></i> Запази
+                                        <textarea class="client-plan-editor" style="width:100%;min-height:350px;font-family:monospace;font-size:0.8rem;border:2px solid #6366f1;border-radius:10px;padding:14px;resize:vertical;background:#f9fafb;color:var(--text-dark);">${escapeHtml(JSON.stringify(client.plan, null, 2))}</textarea>
+                                        <div style="display:flex;gap:8px;margin-top:8px;justify-content:flex-end;">
+                                            <button class="btn client-plan-save-btn" data-client-id="${escapeHtml(client.id)}" style="background:#6366f1;font-size:0.85rem;padding:7px 16px;">
+                                                <i class="fas fa-save"></i> Запази промените
                                             </button>
                                         </div>
                                     </div>
