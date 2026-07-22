@@ -11,12 +11,13 @@
 
 import { normalizeText } from './normalize.js';
 import { buildProfileSummary } from './profile-summary.js';
-import { exerciseProfileFromAnswers } from './exercise-metadata.js';
+import { exerciseProfileFromContext, fitsExerciseProfile } from './exercise-metadata.js';
 import {
   GENDER_FIT_RETRY_HINT,
   CONSTRAINT_RETRY_HINT,
   EQUIPMENT_RETRY_HINT,
   SESSION_STRUCTURE_RETRY_HINT,
+  DIFF_RETRY_HINT,
   MODALITY_RETRY_HINT,
 } from './plan-prompts.js';
 import {
@@ -30,6 +31,7 @@ export {
   CONSTRAINT_RETRY_HINT,
   EQUIPMENT_RETRY_HINT,
   SESSION_STRUCTURE_RETRY_HINT,
+  DIFF_RETRY_HINT,
   MODALITY_RETRY_HINT,
 };
 
@@ -736,6 +738,25 @@ export function auditPlanSessionStructure(plan, programSpec = null) {
   return issues;
 }
 
+/** Проверка d/gf/gm на избраните упражнения спрямо индекса. */
+export function auditPlanExerciseProfile(plan, exerciseProfile, index = []) {
+  if (!exerciseProfile || !index?.length) return [];
+  const byNorm = new Map(index.map((e) => [normalizeText(e.name), e]));
+  const issues = [];
+  for (const day of plan?.days || []) {
+    if (day.type === 'rest') continue;
+    for (const ex of day.exercises || []) {
+      const name = String(ex.canonicalName || ex.displayName || '');
+      const entry = byNorm.get(normalizeText(name));
+      if (!entry) continue;
+      if (!fitsExerciseProfile(entry, exerciseProfile)) {
+        issues.push(`${day.day}: „${name}“ d${entry.diff ?? 2} > max d${exerciseProfile.maxDiff} от spec`);
+      }
+    }
+  }
+  return issues;
+}
+
 /** @deprecated използвай auditPlanSessionStructure */
 export function auditPlanModality(plan, programSpec = null) {
   return auditPlanSessionStructure(plan, programSpec);
@@ -786,12 +807,20 @@ export function auditPlanEquipment(plan, allowedEquipment) {
 }
 
 /** Обединен post-AI audit + retry hint. */
-export function auditPlan(plan, { clientTags = null, constraints = null, allowedEquipment = null, programSpec = null } = {}) {
+export function auditPlan(plan, {
+  clientTags = null,
+  constraints = null,
+  allowedEquipment = null,
+  programSpec = null,
+  exerciseProfile = null,
+  exerciseIndex = null,
+} = {}) {
   const issues = [];
   const gender = auditPlanGenderFit(plan, clientTags);
   if (!gender.ok) issues.push(...gender.issues);
   issues.push(...auditPlanConstraints(plan, constraints || {}));
   issues.push(...auditPlanSessionStructure(plan, programSpec));
+  issues.push(...auditPlanExerciseProfile(plan, exerciseProfile, exerciseIndex));
   const equip = auditPlanEquipment(plan, allowedEquipment);
   if (!equip.ok) issues.push(...equip.issues);
   return { ok: issues.length === 0, issues };
@@ -799,6 +828,7 @@ export function auditPlan(plan, { clientTags = null, constraints = null, allowed
 
 export function auditRetryHint(issues = []) {
   const joined = issues.join(' ');
+  if (/d\d.*> max|maxDiff|d≤/i.test(joined)) return DIFF_RETRY_HINT;
   if (/dayFocus|warmup|cooldown|session_principles|основен mobility/i.test(joined)) return SESSION_STRUCTURE_RETRY_HINT;
   if (/имплант|забранено|гърди/i.test(joined)) return CONSTRAINT_RETRY_HINT;
   if (/оборудване/i.test(joined)) return EQUIPMENT_RETRY_HINT;
@@ -846,7 +876,11 @@ export function preparePlanGeneration(source, adminConfig, helpers) {
       clientTags: tags,
       hasScheme: structuredScheme,
       strictAssembly,
-      exerciseProfile: answers?.gender ? exerciseProfileFromAnswers(answers) : null,
+      exerciseProfile: strictAssembly ? null : exerciseProfileFromContext({
+        answers,
+        tags,
+        profileText: [profileText, schemeText].filter(Boolean).join('\n'),
+      }),
       constraints: planConstraints,
       schemeKind,
       programSpec,

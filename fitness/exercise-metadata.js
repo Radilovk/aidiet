@@ -79,24 +79,66 @@ function clampScore(n) {
 }
 
 /** Профил за филтър от answers (въпросник / админ). */
+export function resolveMaxDiff(experience = '', tags = null, profileText = '') {
+  const exp = normalizeText(experience || '');
+  const tagSet = tags instanceof Set ? tags : new Set(tags || []);
+  const blob = normalizeText(profileText || '');
+
+  if (exp.includes('напреднал') || exp.includes('5+')) return 3;
+  if (exp.includes('никакъв') || (exp.includes('начинаещ') && !exp.includes('средно'))) return 1;
+  if (exp.includes('среден')) return 2;
+
+  if (tagSet.has('level:напреднал')) return 3;
+  if (tagSet.has('level:начинаещ')) return 1;
+  if (tagSet.has('level:среден')) return 2;
+
+  if (/\bнапреднал\b|\b5\+\s*години/.test(blob)) return 3;
+  if ((/\bначинаещ\b|\bникакъв\b|0\s*6\s*мес/.test(blob)) && !/средно\s+начинаещ/.test(blob)) return 1;
+  if (/\bсреден\b|средно\s+начинаещ/.test(blob)) return 2;
+
+  return 2;
+}
+
+function applyMaxDiffToProfile(profile, maxDiff) {
+  const out = { ...profile, maxDiff };
+  if (maxDiff === 1 && profile.isFemale) out.minGf = Math.max(out.minGf, 65);
+  if (maxDiff === 1 && profile.isMale) out.minGm = Math.max(out.minGm, 50);
+  if (maxDiff === 3) { out.minGf = 30; out.minGm = 30; }
+  return out;
+}
+
 export function exerciseProfileFromAnswers(answers = {}) {
   const gender = normalizeText(answers.gender || '');
   const isFemale = gender.includes('жена');
   const isMale = gender.includes('мъж');
-  const exp = normalizeText(answers.experience || '');
-
-  let maxDiff = 2;
-  if (exp.includes('напреднал') || exp.includes('5+')) maxDiff = 3;
-  else if (exp.includes('никакъв') || (exp.includes('начинаещ') && !exp.includes('средно'))) maxDiff = 1;
-  else if (exp.includes('среден')) maxDiff = 2;
 
   let minGf = isFemale ? 50 : 35;
   let minGm = isMale ? 50 : 35;
-  if (maxDiff === 1 && isFemale) minGf = 65;
-  if (maxDiff === 1 && isMale) minGm = 50;
-  if (maxDiff === 3) { minGf = 30; minGm = 30; }
+  const maxDiff = resolveMaxDiff(answers.experience);
 
-  return { isFemale, isMale, maxDiff, minGf, minGm };
+  return applyMaxDiffToProfile({ isFemale, isMale, maxDiff, minGf, minGm }, maxDiff);
+}
+
+/** Профил от answers + тагове/бриф (админ път без пълен въпросник). */
+export function exerciseProfileFromContext({ answers = {}, tags = null, profileText = '' } = {}) {
+  const base = exerciseProfileFromAnswers(answers);
+  const tagSet = tags instanceof Set ? tags : new Set(tags || []);
+
+  if (!answers.gender && tagSet.has('gender:жена')) {
+    base.isFemale = true;
+    base.isMale = false;
+    base.minGf = 50;
+    base.minGm = 35;
+  }
+  if (!answers.gender && tagSet.has('gender:мъж')) {
+    base.isMale = true;
+    base.isFemale = false;
+    base.minGm = 50;
+    base.minGf = 35;
+  }
+
+  const maxDiff = resolveMaxDiff(answers.experience, tagSet, profileText);
+  return applyMaxDiffToProfile(base, maxDiff);
 }
 
 export function fitsExerciseProfile(entry, profile) {
@@ -197,8 +239,12 @@ export function buildExerciseCatalogSnippet(index, profile, allowedEquipment = n
     if (!groups.has(g)) groups.set(g, []);
     groups.get(g).push(entry);
   }
+  for (const items of groups.values()) {
+    items.sort((a, b) => (a.diff ?? 2) - (b.diff ?? 2) || (a.name || '').localeCompare(b.name || ''));
+  }
 
-  const lines = ['<exercise_catalog>', 'canonicalName САМО отдолу (d=трудност, gf=подходящост жена, flags=c/i/glute/press…):'];
+  const maxDiff = profile?.maxDiff;
+  const lines = ['<exercise_catalog>', `canonicalName САМО отдолу${maxDiff ? `; d≤${maxDiff}` : ''} (d=1 лесно|2 средно|3 трудно, gf=жена):`];
   let total = 0;
 
   for (const g of GROUP_ORDER) {

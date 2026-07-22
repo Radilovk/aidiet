@@ -11,7 +11,7 @@ export const PLAN_SYSTEM_CORE = `Български S&C треньор → се�
 
 БЕЗ <scheme>:
 - split, volume/wk, reps/rest/RPE, dayFocus, session — САМО от <program_spec>
-- canonicalName САМО от <exercise_catalog>; equipmentHint от <equipment>
+- canonicalName САМО от <exercise_catalog>; equipmentHint от <equipment>; d≤maxDiff от spec
 
 HARD-VETO: <constraints>; болка/забрана → 0 натоварване на зоната
 
@@ -47,6 +47,10 @@ export const EQUIPMENT_RETRY_HINT = `
 export const SESSION_STRUCTURE_RETRY_HINT = `
 
 КОРЕКЦИЯ: session от program_spec; warmup+cooldown по 3 стъпки. JSON само.`;
+
+export const DIFF_RETRY_HINT = `
+
+КОРЕКЦИЯ: само упражнения с d≤maxDiff от program_spec; canonicalName от каталога. JSON само.`;
 
 /** @deprecated използвай SESSION_STRUCTURE_RETRY_HINT */
 export const MODALITY_RETRY_HINT = SESSION_STRUCTURE_RETRY_HINT;

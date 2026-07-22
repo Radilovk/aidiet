@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {
   heuristicClassification,
   exerciseProfileFromAnswers,
+  exerciseProfileFromContext,
+  resolveMaxDiff,
   fitsExerciseProfile,
   filterExercises,
   buildExerciseCatalogSnippet,
@@ -24,6 +26,33 @@ test('exerciseProfileFromAnswers: жена начинаеща → строг ф�
   });
   assert.equal(p.maxDiff, 1);
   assert.ok(p.minGf >= 65);
+});
+
+test('resolveMaxDiff: от experience, тагове и бриф', () => {
+  assert.equal(resolveMaxDiff('Никакъв / начинаещ'), 1);
+  assert.equal(resolveMaxDiff('', new Set(['level:напреднал'])), 3);
+  assert.equal(resolveMaxDiff('', null, 'средно начинаещи упражнения'), 2);
+});
+
+test('exerciseProfileFromContext: админ бриф без answers.experience', () => {
+  const p = exerciseProfileFromContext({
+    answers: { gender: 'Жена' },
+    tags: new Set(['gender:жена', 'level:начинаещ']),
+    profileText: 'начинаеща',
+  });
+  assert.equal(p.maxDiff, 1);
+  assert.ok(p.minGf >= 65);
+});
+
+test('buildExerciseCatalogSnippet: сортира по diff и показва maxDiff', () => {
+  const index = [
+    { name: 'Hard Move', diff: 3, gf: 70, gm: 70, equipNorm: 'barbell', targetNorm: 'chest' },
+    { name: 'Easy Move', diff: 1, gf: 80, gm: 70, equipNorm: 'cable', targetNorm: 'chest' },
+  ];
+  const profile = exerciseProfileFromAnswers({ gender: 'Мъж', experience: 'Напреднал' });
+  const catalog = buildExerciseCatalogSnippet(index, profile);
+  assert.ok(catalog.includes('d≤3'));
+  assert.ok(catalog.indexOf('Easy Move') < catalog.indexOf('Hard Move'));
 });
 
 test('fitsExerciseProfile + catalog', () => {
