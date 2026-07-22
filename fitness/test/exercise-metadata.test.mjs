@@ -11,6 +11,8 @@ import {
   mergeExerciseMetadata,
   inferExerciseModality,
   modalityMatchesDay,
+  searchExerciseIndex,
+  computeExerciseFacets,
 } from '../exercise-metadata.js';
 
 test('heuristicClassification: hip thrust → висок gf', () => {
@@ -90,4 +92,49 @@ test('mergeExerciseMetadata: heuristic без KV', () => {
   const entry = mergeExerciseMetadata({ id: '1', name: 'hip thrust' }, { id: '1', name: 'hip thrust' }, {});
   assert.ok(entry.diff >= 1);
   assert.ok(entry.gf >= 80);
+});
+
+const SEARCH_INDEX = [
+  { name: 'Barbell Squat', nameBg: 'Клек с щанга', diff: 3, gf: 65, gm: 88, equipment: 'barbell', equipNorm: 'barbell', target: 'quads', targetNorm: 'quads', tokens: ['barbell', 'squat'] },
+  { name: 'Hip Thrust', nameBg: 'Хип тръст', diff: 2, gf: 92, gm: 70, equipment: 'barbell', equipNorm: 'barbell', target: 'glutes', targetNorm: 'glutes', tokens: ['hip', 'thrust'] },
+  { name: 'Standing Hamstring Stretch', nameBg: '', diff: 1, gf: 80, gm: 70, equipment: 'body weight', equipNorm: 'body weight', target: 'hamstrings', targetNorm: 'hamstrings', tokens: ['standing', 'hamstring', 'stretch'] },
+];
+
+test('searchExerciseIndex: BG синоним намира EN упражнение', () => {
+  const { results, total } = searchExerciseIndex(SEARCH_INDEX, { q: 'клек' });
+  assert.equal(total, 1);
+  assert.equal(results[0].entry.name, 'Barbell Squat');
+});
+
+test('searchExerciseIndex: филтър по target + diff range', () => {
+  const byTarget = searchExerciseIndex(SEARCH_INDEX, { target: ['glutes'] });
+  assert.equal(byTarget.results.length, 1);
+  assert.equal(byTarget.results[0].entry.name, 'Hip Thrust');
+
+  const byDiff = searchExerciseIndex(SEARCH_INDEX, { diffMax: 1 });
+  assert.equal(byDiff.results.length, 1);
+  assert.equal(byDiff.results[0].entry.name, 'Standing Hamstring Stretch');
+});
+
+test('searchExerciseIndex: филтър по модалност (mobility изключва strength)', () => {
+  const { results } = searchExerciseIndex(SEARCH_INDEX, { modality: ['mobility'] });
+  assert.equal(results.length, 1);
+  assert.equal(results[0].entry.name, 'Standing Hamstring Stretch');
+});
+
+test('searchExerciseIndex: пагинация (limit/offset)', () => {
+  const page1 = searchExerciseIndex(SEARCH_INDEX, { limit: 2, offset: 0 });
+  const page2 = searchExerciseIndex(SEARCH_INDEX, { limit: 2, offset: 2 });
+  assert.equal(page1.total, 3);
+  assert.equal(page1.results.length, 2);
+  assert.equal(page2.results.length, 1);
+});
+
+test('computeExerciseFacets: брой + BG етикет по оборудване/target', () => {
+  const facets = computeExerciseFacets(SEARCH_INDEX);
+  const barbell = facets.equipment.find((e) => e.value === 'barbell');
+  assert.equal(barbell.count, 2);
+  assert.equal(barbell.label, 'щанга');
+  const glutes = facets.target.find((t) => t.value === 'glutes');
+  assert.equal(glutes.count, 1);
 });

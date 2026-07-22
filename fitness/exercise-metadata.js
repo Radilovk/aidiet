@@ -2,7 +2,9 @@
  * Exercise Fitness Profile (EFP) — трудност (1–3) + gender fit (0–100).
  * Production: KV `exercise:metadata:v1` + индекс `exidx:v1`.
  */
-import { normalizeText } from './normalize.js';
+import { normalizeText, tokenize, tokenOverlapScore } from './normalize.js';
+import { expandSearchTokens } from './exercise-synonyms.js';
+import { localizeEquipment, localizeTarget } from './exercise-labels-bg.js';
 
 /** @typedef {{ gender?: string, experience?: string }} AnswersInput */
 /** @typedef {{ isFemale: boolean, isMale: boolean, maxDiff: number, minGf: number, minGm: number }} ExerciseProfileFilter */
@@ -300,4 +302,99 @@ export function buildExerciseCatalogSnippet(index, profile, allowedEquipment = n
 
   lines.push('</exercise_catalog>');
   return lines.join('\n');
+}
+
+// ============================================================================
+// Админ търсене/филтър (program editor) — по дума+синоними и всички EFP полета.
+// ============================================================================
+
+const searchTokenCache = new WeakMap();
+
+/** EN име + BG превод + BG етикети на target/equipment — за търсене по дума. */
+function searchTokensForEntry(entry) {
+  const cached = searchTokenCache.get(entry);
+  if (cached) return cached;
+  const tokens = new Set(entry.tokens?.length ? entry.tokens : tokenize(entry.name));
+  for (const t of tokenize(entry.nameBg)) tokens.add(t);
+  for (const t of tokenize(localizeTarget(entry.target))) tokens.add(t);
+  for (const t of tokenize(localizeEquipment(entry.equipment))) tokens.add(t);
+  const arr = [...tokens];
+  searchTokenCache.set(entry, arr);
+  return arr;
+}
+
+/**
+ * Търсене/филтър в индекса по всички EFP параметри — за админ picker.
+ * @param {object[]} index
+ * @param {{
+ *   q?: string, equipment?: string[], target?: string[], modality?: string[],
+ *   diffMin?: number|null, diffMax?: number|null, minGf?: number|null, minGm?: number|null,
+ *   limit?: number, offset?: number,
+ * }} options
+ */
+export function searchExerciseIndex(index, options = {}) {
+  const {
+    q = '', equipment = null, target = null, modality = null,
+    diffMin = null, diffMax = null, minGf = null, minGm = null,
+    limit = 40, offset = 0,
+  } = options;
+
+  const queryTokens = expandSearchTokens(q);
+  const equipSet = equipment?.length ? new Set(equipment.map(normalizeText)) : null;
+  const targetSet = target?.length ? new Set(target.map(normalizeText)) : null;
+  const modalitySet = modality?.length ? new Set(modality) : null;
+
+  const scored = [];
+  for (const entry of index || []) {
+    if (equipSet && !equipSet.has(entry.equipNorm)) continue;
+    if (targetSet && !targetSet.has(entry.targetNorm) && !targetSet.has(entry.bodyNorm)) continue;
+    const diff = entry.diff ?? 2;
+    if (diffMin != null && diff < diffMin) continue;
+    if (diffMax != null && diff > diffMax) continue;
+    if (minGf != null && (entry.gf ?? 70) < minGf) continue;
+    if (minGm != null && (entry.gm ?? 70) < minGm) continue;
+    if (modalitySet && !modalitySet.has(inferExerciseModality(entry))) continue;
+
+    let score = 1;
+    if (queryTokens.length) {
+      score = tokenOverlapScore(queryTokens, searchTokensForEntry(entry));
+      if (score <= 0) continue;
+    }
+    scored.push({ entry, score });
+  }
+
+  scored.sort((a, b) =>
+    b.score - a.score
+    || (a.entry.diff ?? 2) - (b.entry.diff ?? 2)
+    || (a.entry.name || '').localeCompare(b.entry.name || ''));
+
+  return {
+    total: scored.length,
+    results: scored.slice(Math.max(0, offset), Math.max(0, offset) + Math.max(1, limit)),
+  };
+}
+
+/** Facets (равностойности + брой) за филтър dropdown-ите в admin picker-а. */
+export function computeExerciseFacets(index) {
+  const equipment = new Map();
+  const target = new Map();
+  for (const entry of index || []) {
+    if (entry.equipNorm) {
+      if (!equipment.has(entry.equipNorm)) {
+        equipment.set(entry.equipNorm, { value: entry.equipNorm, label: localizeEquipment(entry.equipment) || entry.equipment, count: 0 });
+      }
+      equipment.get(entry.equipNorm).count++;
+    }
+    if (entry.targetNorm) {
+      if (!target.has(entry.targetNorm)) {
+        target.set(entry.targetNorm, { value: entry.targetNorm, label: localizeTarget(entry.target) || entry.target, count: 0 });
+      }
+      target.get(entry.targetNorm).count++;
+    }
+  }
+  const byCount = (a, b) => b.count - a.count;
+  return {
+    equipment: [...equipment.values()].sort(byCount),
+    target: [...target.values()].sort(byCount),
+  };
 }
