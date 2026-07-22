@@ -19,13 +19,15 @@
  *   GET  /api/plan/:id         — връща съхранен план (с актуални преводи от индекса)
  *   POST /api/plan/refresh-exercises — обновява match/алтернативи от KV индекса
  *   POST /api/coach            — AI персонален треньор (чат)
- *   GET  /api/exercises/search — локално търсене в базата (debug/бъдеща употреба)
+ *   GET  /api/exercises/search — търсене по дума+синоними и филтри (equipment/target/modality/diff/gf/gm); ползва се и от admin picker-а
  *   GET  /api/admin/fitplan/guidelines — админ: зарежда насоки за mini-RAG
  *   POST /api/admin/fitplan/guidelines — админ: записва насоки в KV
  *   POST /api/fitplan/consultation — скрит въпросник (консултация)
  *   GET  /api/admin/fitplan/consultations — админ: списък консултации
  *   GET  /api/admin/fitplan/consult-config — админ: линк с токен
  *   GET/POST /api/admin/fitplan/client-programs — админ: клиентски програми
+ *   GET  /api/admin/fitplan/client-programs/:id/plan — админ: структуриран план за редактор
+ *   POST /api/admin/fitplan/client-programs/:id/plan — админ: запис на ръчно редактиран план (без AI)
  *   POST /api/admin/fitplan/translate-exercises — партида превод + KV индекс (resilient batches)
  *   GET/POST /api/admin/fitplan/classify-exercises — EFP класификация (diff/gf/gm) + KV индекс
  *
@@ -48,7 +50,6 @@ import {
   GENDER_FIT_RETRY_HINT,
   CONSTRAINT_RETRY_HINT,
   EQUIPMENT_RETRY_HINT,
-  MODALITY_RETRY_HINT,
   PLAN_RESPONSE_SCHEMA,
   PLAN_SYSTEM_ASSEMBLY,
   STRICT_ASSEMBLY_RETRY_HINT,
@@ -64,11 +65,14 @@ import {
   EXERCISE_METADATA_KV_KEY,
   SWAP_EQUIPMENT,
   buildExerciseCatalogSnippet,
+  computeExerciseFacets,
   exerciseProfileFromAnswers,
   exerciseProfileFromContext,
   fitsExerciseProfile,
+  inferExerciseModality,
   mergeExerciseMetadata,
   passesEquipment,
+  searchExerciseIndex,
 } from './exercise-metadata.js';
 import { mergeExerciseTranslation } from './exercise-translations.js';
 import {
@@ -84,7 +88,7 @@ import {
   translationStats,
   translateBatchResilient,
 } from './exercise-translate-batch.js';
-import { normalizeText, tokenize } from './normalize.js';
+import { normalizeText, tokenize, tokenOverlapScore } from './normalize.js';
 import { buildProfileSummary } from './profile-summary.js';
 import {
   GUIDELINE_CHUNKS,
@@ -107,7 +111,6 @@ import {
   auditPlanGenderFit,
   auditPlan,
   auditPlanConstraints,
-  auditPlanModality,
   auditPlanSessionStructure,
   auditPlanExerciseProfile,
   auditRetryHint,
@@ -127,6 +130,7 @@ import {
 export {
   normalizeText,
   tokenize,
+  tokenOverlapScore,
   buildProfileSummary,
   GUIDELINE_CHUNKS,
   MAX_FOUNDATION_CHARS,
@@ -148,7 +152,6 @@ export {
   auditPlanGenderFit,
   auditPlan,
   auditPlanConstraints,
-  auditPlanModality,
   auditPlanSessionStructure,
   auditPlanExerciseProfile,
   auditRetryHint,
@@ -157,7 +160,6 @@ export {
   GENDER_FIT_RETRY_HINT,
   CONSTRAINT_RETRY_HINT,
   EQUIPMENT_RETRY_HINT,
-  MODALITY_RETRY_HINT,
   buildTrainerSystemAddon,
   parseChunkTags,
   shouldIncludeAdminChunk,
@@ -184,7 +186,10 @@ const DATASET_URL_CANDIDATES = [
   'https://raw.githubusercontent.com/hasaneyldrm/exercises-dataset/main/data/exercises.json',
 ];
 
-const EXERCISE_INDEX_KV_KEY = 'exidx:v1';
+// v2: loadExerciseMetadata вече слива bundled класификация с KV (виж по-долу) —
+// смяна на ключа изчиства стар кеш, изграден преди тази поправка (иначе 30-дневния
+// TTL би задържал грешно недоклассифицирани записи чак до естествения му изтек).
+const EXERCISE_INDEX_KV_KEY = 'exidx:v2';
 const EXERCISE_INDEX_TTL = 60 * 60 * 24 * 30; // 30 дни; при промяна на схемата — нов ключ
 const PLAN_TTL = 60 * 60 * 24 * 90;           // планът живее 90 дни в KV
 const MATCH_THRESHOLD = 0.35;                 // под този score → fallback по категория
@@ -238,20 +243,6 @@ function errorResponse(message, status = 400, code = 'error') {
 // ============================================================================
 
 /**
- * Token overlap score:
- *   score = брой съвпадащи думи / max(думи в заявката, думи в кандидата)
- */
-export function tokenOverlapScore(queryTokens, candidateTokens) {
-  if (!queryTokens.length || !candidateTokens.length) return 0;
-  const candidateSet = new Set(candidateTokens);
-  let overlap = 0;
-  for (const token of new Set(queryTokens)) {
-    if (candidateSet.has(token)) overlap++;
-  }
-  return overlap / Math.max(new Set(queryTokens).size, candidateSet.size);
-}
-
-/**
  * Намира най-добрия запис в индекса за подадено canonicalName + hints.
  * Bonus от hints разграничава близки имена (Bench Press с щанга vs с дъмбели).
  * Връща { entry, score, usedFallback } или null ако базата е празна.
@@ -277,8 +268,12 @@ export function matchExercise(index, {
     if (equipNorm && entry.equipNorm && (entry.equipNorm.includes(equipNorm) || equipNorm.includes(entry.equipNorm))) {
       score += 0.15;
     }
-    if (bodyNorm && (entry.targetNorm === bodyNorm || entry.bodyNorm === bodyNorm)) {
-      score += 0.1;
+    if (bodyNorm) {
+      if (entry.targetNorm === bodyNorm || entry.bodyNorm === bodyNorm) score += 0.1;
+      // Хинтът за мускулна група не съвпада — вероятно случайно съвпадение на
+      // общи думи (напр. "press") между напълно различни категории (гърди vs
+      // крака). Наказание, за да не спечели слабо, грешно-категорийно "най-добро".
+      else score -= 0.25;
     }
     if (score > bestScore) {
       bestScore = score;
@@ -304,6 +299,10 @@ export function matchExercise(index, {
   );
 
   if (fallback) return { entry: fallback, score: 0, usedFallback: true };
+  // Имаме bodyPart hint, но нищо от same категория не мина filters — по-добре
+  // без медия/match (клиентът вижда AI-текста), отколкото грешна категория
+  // (напр. упражнение за гърди показано като "упражнение за крака").
+  if (bodyNorm) return null;
   return best ? { entry: best, score: Math.min(1, Number(bestScore.toFixed(3))), usedFallback: true } : null;
 }
 
@@ -388,22 +387,7 @@ export function buildCompactIndex(rawList, translations = {}, metadata = {}) {
 let bundledMetadata = null;
 let bundledTranslations = null;
 
-export async function loadExerciseMetadata(env) {
-  if (env?.FITNESS_KV) {
-    try {
-      const kv = await env.FITNESS_KV.get(EXERCISE_METADATA_KV_KEY, { type: 'json' });
-      if (kv && typeof kv === 'object' && Object.keys(kv).length) {
-        bundledMetadata = kv;
-        return kv;
-      }
-    } catch (e) {
-      console.error('KV read за exercise metadata пропадна:', e.message);
-    }
-  }
-  return loadBundledMetadata();
-}
-
-/** Build-time EFP (data/exercise-metadata.json), ако е наличен в bundle-а. */
+/** Build-time EFP (data/exercise-metadata.json) — пълна класификация на целия dataset. */
 export async function loadBundledMetadata() {
   if (bundledMetadata !== null) return bundledMetadata;
   try {
@@ -413,6 +397,29 @@ export async function loadBundledMetadata() {
     bundledMetadata = {};
   }
   return bundledMetadata;
+}
+
+/**
+ * KV `exercise:metadata:v1` (админ batch-класификация) слято с bundled
+ * fallback — KV печели за всеки id, bundled покрива всичко останало.
+ * Преди тази поправка: ако KV имаше ПОНЕ 1 запис, целият bundled fallback
+ * (пълна класификация 1324/1324, ~680 d1) се игнорираше изцяло — недовършена
+ * batch-класификация в production водеше до грубия heuristic fallback
+ * (почти без d1) за всичко извън тези няколко KV записа.
+ */
+export async function loadExerciseMetadata(env) {
+  const bundled = await loadBundledMetadata();
+  if (env?.FITNESS_KV) {
+    try {
+      const kv = await env.FITNESS_KV.get(EXERCISE_METADATA_KV_KEY, { type: 'json' });
+      if (kv && typeof kv === 'object' && Object.keys(kv).length) {
+        return { ...bundled, ...kv };
+      }
+    } catch (e) {
+      console.error('KV read за exercise metadata пропадна:', e.message);
+    }
+  }
+  return bundled;
 }
 
 async function saveExerciseMetadata(env, metadata) {
@@ -769,9 +776,9 @@ export function normalizePlan(plan) {
 // Обогатяване: локален matching + медия + прекомпютнати алтернативи
 // ============================================================================
 
-function entryToClientExercise(env, entry) {
+function entryToClientExercise(env, entry, { includeInstructions = true } = {}) {
   const displayName = entry.nameBg || localizeExerciseDisplayName(entry.name, '', entry.equipment);
-  return {
+  const out = {
     id: entry.id,
     name: entry.name,
     displayName,
@@ -781,9 +788,15 @@ function entryToClientExercise(env, entry) {
     bodyPart: entry.bodyPart,
     imageUrl: mediaUrl(env, entry.image),
     gifUrl: mediaUrl(env, entry.gif),
-    instructions: entry.instructions || '',
-    instructionsLang: entry.instructionsLang || '',
   };
+  // instructions може да е до MAX_INSTRUCTION_CHARS на запис — излишно
+  // трафик за списъчни резултати като search picker-а, който показва
+  // само име+баджове, не пълни инструкции.
+  if (includeInstructions) {
+    out.instructions = entry.instructions || '';
+    out.instructionsLang = entry.instructionsLang || '';
+  }
+  return out;
 }
 
 export function enrichPlanWithExercises(plan, index, { allowedEquipment = null, env = {}, exerciseProfile = null } = {}) {
@@ -907,7 +920,9 @@ async function executePlanGeneration(env, ctx, {
   if (!strictAssembly) {
     const index = await indexPromise;
     if (index?.length) {
-      catalogBlock = buildExerciseCatalogSnippet(index, exerciseProfile, allowedEquipment);
+      catalogBlock = buildExerciseCatalogSnippet(index, exerciseProfile, allowedEquipment, {
+        modalities: programSpec?.weekModalities || null,
+      });
     }
   }
   const baseUser = catalogBlock ? `${userPrompt}\n\n${catalogBlock}` : userPrompt;
@@ -1136,29 +1151,58 @@ async function handleCoach(request, env) {
   return jsonResponse({ success: true, reply: reply.trim(), messagesRemaining: rl.remaining });
 }
 
+function csvParam(url, key) {
+  const raw = url.searchParams.get(key) || '';
+  return raw.split(',').map((s) => s.trim()).filter(Boolean);
+}
+
+function numParam(url, key) {
+  const raw = url.searchParams.get(key);
+  if (raw === null || raw === '') return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Търсене в базата с упражнения — по дума (+синоними) и всички EFP филтри
+ * (оборудване, мускулна група, модалност, трудност, gender-fit).
+ * Ползва се и от admin picker-а (редактор на клиентски програми).
+ */
 async function handleExerciseSearch(url, env, ctx) {
   const index = await loadExerciseIndex(env, ctx);
   if (!index) return errorResponse('Базата с упражнения не е налична', 503);
-  const q = url.searchParams.get('q') || '';
-  const equipment = url.searchParams.get('equipment') || '';
-  const target = url.searchParams.get('target') || '';
-  const queryTokens = tokenize(q);
-  const equipNorm = normalizeText(equipment);
-  const targetNorm = normalizeText(target);
 
-  const results = [];
-  for (const entry of index) {
-    if (equipNorm && entry.equipNorm !== equipNorm) continue;
-    if (targetNorm && entry.targetNorm !== targetNorm && entry.bodyNorm !== targetNorm) continue;
-    const score = queryTokens.length ? tokenOverlapScore(queryTokens, entry.tokens) : 0.01;
-    if (score > 0) results.push({ score, entry });
-  }
-  results.sort((a, b) => b.score - a.score);
-  return jsonResponse({
+  const { total, results } = searchExerciseIndex(index, {
+    q: url.searchParams.get('q') || '',
+    equipment: csvParam(url, 'equipment'),
+    target: csvParam(url, 'target'),
+    modality: csvParam(url, 'modality'),
+    diffMin: numParam(url, 'diffMin'),
+    diffMax: numParam(url, 'diffMax'),
+    minGf: numParam(url, 'minGf'),
+    minGm: numParam(url, 'minGm'),
+    limit: Math.min(100, Math.max(1, numParam(url, 'limit') || 40)),
+    offset: Math.max(0, numParam(url, 'offset') || 0),
+  });
+
+  const payload = {
     success: true,
     count: results.length,
-    results: results.slice(0, 20).map(({ score, entry }) => ({ score, ...entryToClientExercise(env, entry) })),
-  }, 200, { 'Cache-Control': 'public, max-age=3600' });
+    total,
+    results: results.map(({ score, entry }) => ({
+      score,
+      ...entryToClientExercise(env, entry, { includeInstructions: false }),
+      diff: entry.diff ?? 2,
+      gf: entry.gf ?? 70,
+      gm: entry.gm ?? 70,
+      modality: inferExerciseModality(entry),
+      flags: entry.flags || [],
+    })),
+  };
+  if (url.searchParams.get('facets') === '1') {
+    payload.facets = computeExerciseFacets(index);
+  }
+  return jsonResponse(payload, 200, { 'Cache-Control': 'public, max-age=1800' });
 }
 
 async function handleGetAdminGuidelines(request, env) {
@@ -1725,6 +1769,82 @@ async function handleApproveClientProgram(request, env, id) {
   return jsonResponse({ success: true, planId: record.planId, path, program: clientProgramPublicView(record) });
 }
 
+/**
+ * Зарежда структурирания план (дни/упражнения) за ръчна редакция в админ
+ * редактора. Работи независимо от draft/approved статус — одобрена
+ * програма може да се коригира без нова AI генерация.
+ */
+async function handleAdminGetClientProgramPlan(request, env, ctx, id) {
+  if (!checkAdminSecret(request, env)) return errorResponse('Неоторизиран достъп', 401, 'unauthorized');
+  if (!env.FITNESS_KV) return errorResponse('KV не е конфигурирано', 500);
+
+  const record = await loadClientProgram(env, id);
+  if (!record) return errorResponse('Програмата не е намерена', 404, 'not_found');
+  if (!record.planId) return errorResponse('Няма генериран план — генерирай първо с AI', 404, 'not_found');
+
+  const planRecord = await env.FITNESS_KV.get(`plan:${record.planId}`, { type: 'json' });
+  if (!planRecord?.plan) return errorResponse('Планът не е намерен. Генерирай отново.', 404, 'not_found');
+
+  const index = await loadExerciseIndex(env, ctx);
+  const allowed = planRecord.allowedEquipment ? new Set(planRecord.allowedEquipment) : null;
+  const plan = index
+    ? enrichPlanWithExercises(JSON.parse(JSON.stringify(planRecord.plan)), index, { env, allowedEquipment: allowed })
+    : planRecord.plan;
+
+  return jsonResponse({
+    success: true,
+    planId: record.planId,
+    plan,
+    status: planRecord.status || 'draft',
+  }, 200, { 'Cache-Control': 'private, no-cache, no-store, must-revalidate' });
+}
+
+/**
+ * Записва ръчно редактиран план (упражнения/дни/пренареждане) — без AI.
+ * Минава през същия детерминистичен pipeline като след AI генерация
+ * (normalizePlan → enrichPlanWithExercises → sanitizePlanBulgarian), за
+ * да излязат коректни BG имена, медия и алтернативи за новите/сменените
+ * упражнения.
+ */
+async function handleAdminUpdateClientProgramPlan(request, env, ctx, id) {
+  if (!checkAdminSecret(request, env)) return errorResponse('Неоторизиран достъп', 401, 'unauthorized');
+  if (!env.FITNESS_KV) return errorResponse('KV не е конфигурирано', 500);
+
+  const record = await loadClientProgram(env, id);
+  if (!record) return errorResponse('Програмата не е намерена', 404, 'not_found');
+  if (!record.planId) return errorResponse('Няма генериран план за редакция', 404, 'not_found');
+
+  let body;
+  try { body = await request.json(); } catch { return errorResponse('Невалиден JSON', 400); }
+  if (!body?.plan) return errorResponse('Липсва план', 400);
+
+  let plan;
+  try {
+    plan = normalizePlan(body.plan);
+  } catch (e) {
+    return errorResponse(`Невалиден план: ${e.message}`, 400);
+  }
+
+  const planRecord = await env.FITNESS_KV.get(`plan:${record.planId}`, { type: 'json' });
+  if (!planRecord) return errorResponse('Планът не е намерен. Генерирай отново.', 404, 'not_found');
+
+  const index = await loadExerciseIndex(env, ctx);
+  const allowed = planRecord.allowedEquipment ? new Set(planRecord.allowedEquipment) : null;
+  if (index) enrichPlanWithExercises(plan, index, { env, allowedEquipment: allowed });
+  sanitizePlanBulgarian(plan);
+
+  const now = new Date().toISOString();
+  planRecord.plan = plan;
+  planRecord.editedAt = now;
+  await env.FITNESS_KV.put(`plan:${record.planId}`, JSON.stringify(planRecord), { expirationTtl: PLAN_TTL });
+
+  record.planTitle = plan.title || record.planTitle;
+  record.updatedAt = now;
+  await saveClientProgram(env, record);
+
+  return jsonResponse({ success: true, plan, program: clientProgramPublicView(record) });
+}
+
 async function deleteClientProgramRecord(env, id) {
   const record = await loadClientProgram(env, id);
   if (!record) return errorResponse('Програмата не е намерена', 404, 'not_found');
@@ -1823,6 +1943,13 @@ export default {
       const clientProgramApproveMatch = path.match(/^\/api\/admin\/fitplan\/client-programs\/([A-Za-z0-9_-]+)\/approve$/);
       if (request.method === 'POST' && clientProgramApproveMatch) {
         return await handleApproveClientProgram(request, env, clientProgramApproveMatch[1]);
+      }
+      const clientProgramPlanMatch = path.match(/^\/api\/admin\/fitplan\/client-programs\/([A-Za-z0-9_-]+)\/plan$/);
+      if (request.method === 'GET' && clientProgramPlanMatch) {
+        return await handleAdminGetClientProgramPlan(request, env, ctx, clientProgramPlanMatch[1]);
+      }
+      if (request.method === 'POST' && clientProgramPlanMatch) {
+        return await handleAdminUpdateClientProgramPlan(request, env, ctx, clientProgramPlanMatch[1]);
       }
       const clientProgramDeleteMatch = path.match(/^\/api\/admin\/fitplan\/client-programs\/([A-Za-z0-9_-]+)(?:\/delete)?$/);
       if (request.method === 'DELETE' && clientProgramDeleteMatch) {

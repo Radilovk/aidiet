@@ -2771,7 +2771,7 @@ function buildFreeMealInstruction(strategy, startDay, endDay) {
   if (freeDayNumber == null) return '';
   const dayNum = Number(freeDayNumber);
   if (isNaN(dayNum) || dayNum < startDay || dayNum > endDay) return '';
-  return `\n\n=== СВОБОДНО ХРАНЕНЕ (Ден ${dayNum}) ===\nЗАДЪЛЖИТЕЛНО за ден ${dayNum}: ЗАМЕНИ Хранене 2 (Хранене 2 НЕ се генерира!) с хранене точно така: {"type": "Свободно хранене", "name": "Свободно хранене", "weight": "-"} — БЕЗ поле "calories" и БЕЗ поле "macros" за това хранене!\nХранене 1 и Хранене 4 за ден ${dayNum} генерирай НОРМАЛНО с калории и макроси.\ndailyTotals за ден ${dayNum}: включвай планираните калории за Хранене 2 слот (от strategy mealBreakdown) за свободното хранене, плюс калориите от всички останали хранения.`;
+  return `\n\n=== СВОБОДНО ХРАНЕНЕ (Ден ${dayNum}) ===\nЗАДЪЛЖИТЕЛНО за ден ${dayNum}: ЗАМЕНИ Хранене 2 (Хранене 2 НЕ се генерира!) с точно: {"type": "Свободно хранене", "name": "Свободно хранене"} — БЕЗ description, calories, macros, weight, benefits или dessert.\nХранене 1 и Хранене 4 за ден ${dayNum} генерирай НОРМАЛНО. Хранене 4 в този ден — лека вечеря БЕЗ ориз/картофи/хляб/паста.\nКалориите за свободния обеден слот идват от strategy mealBreakdown и се включват в dailyTotals от бекенда.`;
 }
 
 /**
@@ -2784,6 +2784,21 @@ function enforceWeekendFreeDay(strategy) {
   if (!isNaN(d) && (d < 6 || d > 7)) {
     strategy.freeDayNumber = 7;
   }
+}
+
+/** Default includeDessert when Step 2 omits the flag (sweets craving minus clinical blocks). */
+function normalizeStrategyDessertFlag(strategy, userData) {
+  if (!strategy || strategy.includeDessert !== undefined) return;
+  if (!userHasSweetsCraving(userData?.foodCravings)) {
+    strategy.includeDessert = false;
+    return;
+  }
+  const conditions = userData?.medicalConditions;
+  const blocked = Array.isArray(conditions) && conditions.some(c => {
+    const s = String(c);
+    return s.includes('Диабет') || s.includes('Инсулинова резистентност');
+  });
+  strategy.includeDessert = !blocked;
 }
 
 
@@ -4129,6 +4144,15 @@ async function handleGetPlanJobStatus(request, env) {
 }
 
 /**
+ * @param {string} text
+ * @returns {boolean}
+ */
+function chatContextHasMealGrams(text) {
+  if (!text) return false;
+  return text.split('\n').some((line) => /^day\d+\|/.test(line) && /\|\d+\|\d+\|\d+\|\d+\|\d+\|/.test(line));
+}
+
+/**
  * Handle chat assistant requests — client sends pre-built NPCF contextText.
  */
 async function handleChat(request, env) {
@@ -4150,15 +4174,17 @@ async function handleChat(request, env) {
     }
 
     let effectiveContextText = contextText;
-    if (!effectiveContextText && userData && userPlan) {
-      effectiveContextText = buildChatContext(
+    if (userData && userPlan) {
+      const serverContext = buildChatContext(
         userData,
         userPlan,
         message,
         mode || 'consultation',
       ).contextText;
-    }
-    if (!effectiveContextText) {
+      if (!chatContextHasMealGrams(effectiveContextText)) {
+        effectiveContextText = serverContext;
+      }
+    } else if (!effectiveContextText) {
       return jsonResponse({ error: ERROR_MESSAGES.MISSING_CONTEXT }, 400);
     }
 
@@ -8536,6 +8562,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       
       strategy = parseAIResponse(strategyResponse);
       enforceWeekendFreeDay(strategy);
+      normalizeStrategyDessertFlag(strategy, data);
       normalizeWeeklyScheme(strategy, parseFinalCalories(analysis.Final_Calories));
       
       if (!strategy || strategy.error) {
@@ -8820,6 +8847,7 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
       
       strategy = parseAIResponse(strategyResponse);
       enforceWeekendFreeDay(strategy);
+      normalizeStrategyDessertFlag(strategy, data);
       normalizeWeeklyScheme(strategy, parseFinalCalories(analysis.Final_Calories));
       
       if (!strategy || strategy.error) {
@@ -15736,7 +15764,8 @@ function isFitnessRoute(pathname, method) {
   if (method === 'GET' && pathname === '/api/admin/fitplan/client-programs') return true;
   if (method === 'DELETE' && /^\/api\/admin\/fitplan\/client-programs\/[A-Za-z0-9_-]+$/.test(pathname)) return true;
   if (method === 'POST' && /^\/api\/admin\/fitplan\/client-programs\/[A-Za-z0-9_-]+\/delete$/.test(pathname)) return true;
-  if (method === 'POST' && (pathname === '/api/plan/generate' || pathname === '/api/plan/refresh-exercises' || pathname === '/api/fitplan/consultation' || pathname === '/api/coach' || pathname === '/api/admin/fitplan/guidelines' || pathname === '/api/admin/fitplan/translate-exercises' || pathname === '/api/admin/fitplan/classify-exercises' || pathname === '/api/admin/fitplan/consult-config' || pathname === '/api/admin/fitplan/client-programs' || /^\/api\/admin\/fitplan\/consultations\/[A-Za-z0-9_-]+\/read$/.test(pathname) || /^\/api\/admin\/fitplan\/client-programs\/[A-Za-z0-9_-]+\/(generate|approve)$/.test(pathname))) return true;
+  if (method === 'GET' && /^\/api\/admin\/fitplan\/client-programs\/[A-Za-z0-9_-]+\/plan$/.test(pathname)) return true;
+  if (method === 'POST' && (pathname === '/api/plan/generate' || pathname === '/api/plan/refresh-exercises' || pathname === '/api/fitplan/consultation' || pathname === '/api/coach' || pathname === '/api/admin/fitplan/guidelines' || pathname === '/api/admin/fitplan/translate-exercises' || pathname === '/api/admin/fitplan/classify-exercises' || pathname === '/api/admin/fitplan/consult-config' || pathname === '/api/admin/fitplan/client-programs' || /^\/api\/admin\/fitplan\/consultations\/[A-Za-z0-9_-]+\/read$/.test(pathname) || /^\/api\/admin\/fitplan\/client-programs\/[A-Za-z0-9_-]+\/(generate|approve|plan)$/.test(pathname))) return true;
   if (method === 'GET' && /^\/api\/plan\/[A-Za-z0-9-]{8,64}$/.test(pathname)) return true;
   return false;
 }

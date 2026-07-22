@@ -1,0 +1,47 @@
+name: Deploy KV Prompts
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'KV/**'
+      - '.github/workflows/deploy-kv.yml'
+  workflow_dispatch:
+
+jobs:
+  upload-kv:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Upload all KV keys
+        run: bash KV/upload-kv-keys.sh
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          KV_UPLOAD_REMOTE: '1'
+
+      - name: Verify sample keys
+        run: |
+          NS="81fc0991b2764918b682f9ca170abd4b"
+          for key in admin_analysis_prompt admin_strategy_prompt admin_meal_plan_prompt admin_summary_prompt admin_ai_model; do
+            echo "Checking $key..."
+            npx wrangler kv key get --namespace-id="$NS" "$key" --remote | head -3
+            echo "..."
+          done
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

@@ -52,9 +52,6 @@ export const DIFF_RETRY_HINT = `
 
 КОРЕКЦИЯ: само упражнения с d≤maxDiff от program_spec; canonicalName от каталога. JSON само.`;
 
-/** @deprecated използвай SESSION_STRUCTURE_RETRY_HINT */
-export const MODALITY_RETRY_HINT = SESSION_STRUCTURE_RETRY_HINT;
-
 export const COMPACT_PLAN_RETRY_HINT = `
 
 КОМПАКТНО: макс. 4 упражнения/ден; notes≤60 знака. Само валиден JSON.`;

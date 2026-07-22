@@ -1,0 +1,45 @@
+name: Plan Adequacy Tests
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'KV/**'
+      - 'plan-response-schemas.js'
+      - 'worker.entry.js'
+      - 'scripts/plan-adequacy/**'
+      - 'food-catalog.js'
+      - 'food-nutrition.js'
+      - '.github/workflows/plan-adequacy-tests.yml'
+  pull_request:
+    paths:
+      - 'KV/**'
+      - 'plan-response-schemas.js'
+      - 'worker.entry.js'
+      - 'scripts/plan-adequacy/**'
+      - 'food-catalog.js'
+      - 'food-nutrition.js'
+      - '.github/workflows/plan-adequacy-tests.yml'
+
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Plan adequacy (offline)
+        run: npm run test:plan-adequacy
+
+      - name: Meal scaling pipeline
+        run: node test-meal-scaling.mjs
+
+      - name: Universality stress (catalog pools)
+        run: node test-universality-stress.mjs

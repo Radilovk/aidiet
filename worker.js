@@ -10,8 +10,13 @@
  */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
-var __esm = (fn, res) => function __init() {
-  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+var __esm = (fn, res, err) => function __init() {
+  if (err) throw err[0];
+  try {
+    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+  } catch (e) {
+    throw err = [e], e;
+  }
 };
 var __export = (target, all) => {
   for (var name in all)
@@ -104,9 +109,9 @@ var WEEKLY_SCHEME_SCHEMA = {
   required: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 };
 var PLAN_SYSTEM_INSTRUCTIONS = {
-  step1: "\u041A\u043B\u0438\u043D\u0438\u0447\u0435\u043D \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433, \u0435\u043D\u0434\u043E\u043A\u0440\u0438\u043D\u043E\u043B\u043E\u0433 \u0438 \u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. bmr \u0438 tdee \u0441\u0430 \u043E\u0442 \u0431\u0435\u043A\u0435\u043D\u0434\u0430 \u2014 \u043D\u0435 \u0433\u0438 \u043F\u0440\u0435\u0438\u0437\u0447\u0438\u0441\u043B\u044F\u0432\u0430\u0439. \u0418\u0433\u043D\u043E\u0440\u0438\u0440\u0430\u0439 recommendedCalories/macroRatios/macroGrams \u043E\u0442 backendCalculations.",
-  step2: '\u0415\u043A\u0441\u043F\u0435\u0440\u0442\u0435\u043D \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. \u041A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u043E\u0442 \u0430\u043D\u0430\u043B\u0438\u0437\u0430 \u0441\u0430 \u0444\u0438\u043D\u0430\u043B\u043D\u0438 \u2014 \u043D\u0435 \u0433\u0438 \u043F\u0440\u0435\u0438\u0437\u0447\u0438\u0441\u043B\u044F\u0432\u0430\u0439. \u0422\u0438\u043F\u043E\u0432\u0435 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F: \u0441\u0430\u043C\u043E "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1"\u2013"\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5" \u0438 "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435". \u0417\u0430\u0431\u0440\u0430\u043D\u0435\u043D\u0438 display \u0438\u043C\u0435\u043D\u0430: \u0417\u0430\u043A\u0443\u0441\u043A\u0430, \u041E\u0431\u044F\u0434, \u0421\u043B\u0435\u0434\u043E\u0431\u0435\u0434\u043D\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430, \u0412\u0435\u0447\u0435\u0440\u044F, \u041A\u044A\u0441\u043D\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430.',
-  step3: "\u0414\u0438\u0435\u0442\u043E\u043B\u043E\u0433 \u0437\u0430 \u0431\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438 \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u043B\u0430\u043D. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. \u041F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u0421\u0410\u041C\u041E \u043E\u0442 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430; \u0438\u043C\u0435\u043D\u0430\u0442\u0430 \u0442\u043E\u0447\u043D\u043E \u043A\u0430\u043A\u0442\u043E \u0432 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430.",
+  step1: "\u041A\u043B\u0438\u043D\u0438\u0447\u0435\u043D \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433, \u0435\u043D\u0434\u043E\u043A\u0440\u0438\u043D\u043E\u043B\u043E\u0433 \u0438 \u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. bmr \u0438 tdee \u0441\u0430 \u043E\u0442 \u0431\u0435\u043A\u0435\u043D\u0434\u0430 \u2014 \u043D\u0435 \u0433\u0438 \u043F\u0440\u0435\u0438\u0437\u0447\u0438\u0441\u043B\u044F\u0432\u0430\u0439. \u0418\u0433\u043D\u043E\u0440\u0438\u0440\u0430\u0439 recommendedCalories/macroRatios/macroGrams \u043E\u0442 backendCalculations. macroRatios \u0438 macroGrams \u2014 \u0441\u0430\u043C\u043E \u0447\u0438\u0441\u043B\u0430.",
+  step2: '\u0415\u043A\u0441\u043F\u0435\u0440\u0442\u0435\u043D \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. \u041A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u043E\u0442 \u0430\u043D\u0430\u043B\u0438\u0437\u0430 \u0441\u0430 \u0444\u0438\u043D\u0430\u043B\u043D\u0438 \u2014 \u043D\u0435 \u0433\u0438 \u043F\u0440\u0435\u0438\u0437\u0447\u0438\u0441\u043B\u044F\u0432\u0430\u0439. \u0422\u0438\u043F\u043E\u0432\u0435 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F: \u0441\u0430\u043C\u043E "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1"\u2013"\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5" \u0438 "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435". \u0417\u0430\u0431\u0440\u0430\u043D\u0435\u043D\u0438 display \u0438\u043C\u0435\u043D\u0430: \u0417\u0430\u043A\u0443\u0441\u043A\u0430, \u041E\u0431\u044F\u0434, \u0421\u043B\u0435\u0434\u043E\u0431\u0435\u0434\u043D\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430, \u0412\u0435\u0447\u0435\u0440\u044F, \u041A\u044A\u0441\u043D\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430. \u0417\u0430\u0434\u044A\u043B\u0436\u0438\u0442\u0435\u043B\u043D\u0438 \u043F\u043E\u043B\u0435\u0442\u0430: freeDayNumber (6|7|null), includeDessert (true|false). \u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0437\u0430\u043C\u0435\u0441\u0442\u0432\u0430 \u043E\u0431\u044F\u0434 \u0432 mealBreakdown \u043D\u0430 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u0438\u044F \u0434\u0435\u043D.',
+  step3: "\u0414\u0438\u0435\u0442\u043E\u043B\u043E\u0433 \u0437\u0430 \u0431\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438 \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u043B\u0430\u043D. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. \u041F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u0421\u0410\u041C\u041E \u043E\u0442 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430; \u0438\u043C\u0435\u043D\u0430\u0442\u0430 \u0442\u043E\u0447\u043D\u043E \u043A\u0430\u043A\u0442\u043E \u0432 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430. dessert:true \u0441\u0430\u043C\u043E \u043D\u0430 \u0425\u0440\u0430\u043D\u0435\u043D\u0435 2. \u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435: \u0441\u0430\u043C\u043E type+name, \u0431\u0435\u0437 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u0438 \u0431\u0435\u0437 macros.",
   step4: "\u041A\u043B\u0438\u043D\u0438\u0447\u0435\u043D \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433 \u0438 \u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. \u041F\u0440\u0435\u043F\u043E\u0440\u044A\u043A\u0438\u0442\u0435 \u0441\u0430 \u043F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u0438\u0437\u0438\u0440\u0430\u043D\u0438 \u043F\u043E \u043F\u0440\u043E\u0444\u0438\u043B\u0430 \u2014 \u043D\u0435 \u0443\u043D\u0438\u0432\u0435\u0440\u0441\u0430\u043B\u043D\u0438."
 };
 var ANALYSIS_RESPONSE_SCHEMA = {
@@ -322,7 +327,8 @@ var STRATEGY_RESPONSE_SCHEMA = {
     "weeklyScheme",
     "welcomeMessage",
     "planJustification",
-    "mealTiming"
+    "mealTiming",
+    "includeDessert"
   ]
 };
 var SUMMARY_RESPONSE_SCHEMA = {
@@ -1471,11 +1477,47 @@ var EQUIP_BG = {
   tire: "\u0433\u0443\u043C\u0430",
   "upper body ergometer": "\u0435\u0440\u0433\u043E\u043C\u0435\u0442\u044A\u0440 \u0437\u0430 \u0433\u043E\u0440\u043D\u0430 \u0447\u0430\u0441\u0442"
 };
+var TARGET_BG = {
+  pectorals: "\u0433\u044A\u0440\u0434\u0438",
+  lats: "\u0448\u0438\u0440\u043E\u043A \u0433\u0440\u044A\u0431\u0435\u043D",
+  traps: "\u0442\u0440\u0430\u043F\u0435\u0446",
+  delts: "\u0440\u0430\u043C\u0435\u043D\u0435",
+  shoulders: "\u0440\u0430\u043C\u0435\u043D\u0435",
+  biceps: "\u0431\u0438\u0446\u0435\u043F\u0441",
+  triceps: "\u0442\u0440\u0438\u0446\u0435\u043F\u0441",
+  forearms: "\u043F\u0440\u0435\u0434\u043C\u0438\u0448\u043D\u0438\u0446\u0438",
+  abdominals: "\u043A\u043E\u0440\u0435\u043C",
+  abs: "\u043A\u043E\u0440\u0435\u043C",
+  glutes: "\u0441\u0435\u0434\u0430\u043B\u0438\u0449\u043D\u0438",
+  quads: "\u043F\u0440\u0435\u0434\u043D\u043E \u0431\u0435\u0434\u0440\u043E",
+  hamstrings: "\u0437\u0430\u0434\u043D\u043E \u0431\u0435\u0434\u0440\u043E",
+  calves: "\u043F\u0440\u0430\u0441\u0446\u0438",
+  adductors: "\u043F\u0440\u0438\u0432\u0435\u0436\u0434\u0430\u0449\u0438",
+  abductors: "\u043E\u0442\u0432\u0435\u0436\u0434\u0430\u0449\u0438",
+  "upper back": "\u0433\u043E\u0440\u0435\u043D \u0433\u0440\u044A\u0431",
+  "lower back": "\u0434\u043E\u043B\u0435\u043D \u0433\u0440\u044A\u0431",
+  chest: "\u0433\u044A\u0440\u0434\u0438",
+  back: "\u0433\u0440\u044A\u0431",
+  cardio: "\u043A\u0430\u0440\u0434\u0438\u043E",
+  spine: "\u0433\u0440\u044A\u0431\u043D\u0430\u043A",
+  neck: "\u0432\u0440\u0430\u0442",
+  "cardiovascular system": "\u043A\u0430\u0440\u0434\u0438\u043E",
+  "levator scapulae": "\u043F\u043E\u0432\u0434\u0438\u0433\u0430\u0447 \u043D\u0430 \u043B\u043E\u043F\u0430\u0442\u043A\u0430\u0442\u0430",
+  "serratus anterior": "\u043F\u0440\u0435\u0434\u0435\u043D \u0442\u0440\u0438\u0446\u0435\u043F\u0441 (serratus)"
+};
 function equipPhrase(hint) {
   const key = norm(hint);
   const label = EQUIP_BG[key];
   if (label) return `\u0441 ${label}`;
   return key ? `(${hint})` : "";
+}
+function localizeEquipment(equipment) {
+  const key = norm(equipment);
+  return EQUIP_BG[key] || equipment || "";
+}
+function localizeTarget(target) {
+  const key = norm(target);
+  return TARGET_BG[key] || target || "";
 }
 var EXACT_BG = {
   "barbell bench press": "\u0418\u0437\u0431\u0443\u0442\u0432\u0430\u043D\u0435 \u0441 \u0449\u0430\u043D\u0433\u0430 \u043E\u0442 \u043B\u0435\u0436\u0430\u043D\u043A\u0430",
@@ -1670,34 +1712,20 @@ function sanitizePlanBulgarian(plan) {
 }
 
 // fitness/plan-prompts.js
-var PLAN_SYSTEM_CORE = `\u0422\u0438 \u0441\u0438 \u0431\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438 S&C \u0442\u0440\u0435\u043D\u044C\u043E\u0440. \u0413\u0435\u043D\u0435\u0440\u0438\u0440\u0430\u0448 \u0441\u0435\u0434\u043C\u0438\u0447\u0435\u043D \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u044A\u0447\u0435\u043D \u043F\u043B\u0430\u043D (7 \u0434\u043D\u0438) \u0432 JSON.
+var PLAN_SYSTEM_CORE = `\u0411\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438 S&C \u0442\u0440\u0435\u043D\u044C\u043E\u0440 \u2192 \u0441\u0435\u0434\u043C\u0438\u0447\u0435\u043D \u043F\u043B\u0430\u043D (7 \u0434\u043D\u0438) JSON.
 
-\u041F\u0420\u0418\u041E\u0420\u0418\u0422\u0415\u0422 \u043F\u0440\u0438 \u043A\u043E\u043D\u0444\u043B\u0438\u043A\u0442:
-1. <scheme> \u2014 \u0430\u0431\u0441\u043E\u043B\u044E\u0442\u0435\u043D (\u0434\u043D\u0438, \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F, \u043E\u0431\u0435\u043C, \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0430)
-2. <constraints> \u2014 hard-veto (\u0437\u0430\u0431\u0440\u0430\u043D\u0438, \u043E\u0431\u043E\u0440\u0443\u0434\u0432\u0430\u043D\u0435, \u0433\u0440\u0430\u0444\u0438\u043A)
-3. <program_spec> \u2014 \u0441\u043F\u043B\u0438\u0442, \u0441\u0435\u0434\u043C\u0438\u0447\u0435\u043D \u043E\u0431\u0435\u043C, reps/rest/RPE, \u0440\u0435\u0434
-4. <profile> \u2014 \u0437\u0434\u0440\u0430\u0432\u0435 \u0438 \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438\u044F (\u043A\u043E\u043D\u0442\u0435\u043A\u0441\u0442)
-5. <trainer_rules> \u2014 \u0434\u0435\u043B\u0442\u0430 \u043E\u0442 \u0442\u0440\u0435\u043D\u044C\u043E\u0440\u0430; \u043D\u0435 \u043F\u0440\u043E\u0442\u0438\u0432\u043E\u0440\u0435\u0447\u0438 \u043D\u0430 1\u20133
-6. <exercise_catalog> \u2014 canonicalName \u0421\u0410\u041C\u041E \u043E\u0442 \u0441\u043F\u0438\u0441\u044A\u043A\u0430 (\u0430\u043A\u043E \u0435 \u043F\u043E\u0434\u0430\u0434\u0435\u043D)
+\u041F\u0420\u0418\u041E\u0420\u0418\u0422\u0415\u0422: <scheme> > <constraints> > <program_spec> > <profile> > <trainer_rules> > <exercise_catalog>
 
-\u0413\u0415\u041D\u0415\u0420\u0410\u0426\u0418\u042F (\u043A\u043E\u0433\u0430\u0442\u043E \u043D\u044F\u043C\u0430 <scheme>):
-- \u041D\u0435 \u0438\u0437\u043C\u0438\u0441\u043B\u044F\u0439 \u0441\u043F\u043B\u0438\u0442, \u0441\u0435\u0434\u043C\u0438\u0447\u0435\u043D \u043E\u0431\u0435\u043C \u0438\u043B\u0438 rep range \u2014 \u0432\u0437\u0435\u043C\u0438 \u043E\u0442 <program_spec>
-- \u0420\u0430\u0437\u043F\u0440\u0435\u0434\u0435\u043B\u0438 volume/wk \u043F\u043E \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u044A\u0447\u043D\u0438\u0442\u0435 \u0434\u043D\u0438 \u0441\u043F\u043E\u0440\u0435\u0434 split
-- canonicalName \u0441\u0430\u043C\u043E \u043E\u0442 <exercise_catalog>; equipmentHint \u0441\u044A\u043E\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0430 \u043D\u0430 <equipment>
-- \u0420\u0435\u0434 \u0432 \u0434\u0435\u043D\u044F: compound\u2192isolation; zones\u2193 (\u043E\u0442 spec) \u043F\u044A\u0440\u0432\u0438
+\u0411\u0415\u0417 <scheme>:
+- split, volume/wk, reps/rest/RPE, dayFocus, session \u2014 \u0421\u0410\u041C\u041E \u043E\u0442 <program_spec>
+- canonicalName \u0421\u0410\u041C\u041E \u043E\u0442 <exercise_catalog>; equipmentHint \u043E\u0442 <equipment>; d\u2264maxDiff \u043E\u0442 spec
 
-HARD-VETO:
-- \u0411\u043E\u043B\u043A\u0430/\u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438\u0435/\u043E\u043F\u0435\u0440\u0430\u0446\u0438\u044F \u2192 0 \u043D\u0430\u0442\u043E\u0432\u0430\u0440\u0432\u0430\u043D\u0435 \u043D\u0430 \u0437\u043E\u043D\u0430\u0442\u0430
-- \u0418\u0437\u0440\u0438\u0447\u043D\u043E \u043D\u0435\u0436\u0435\u043B\u0430\u043D\u0438 \u0434\u0432\u0438\u0436\u0435\u043D\u0438\u044F \u2192 \u043D\u0435 \u0432\u043A\u043B\u044E\u0447\u0432\u0430\u0439
-- <equipment> = \u0435\u0434\u0438\u043D\u0441\u0442\u0432\u0435\u043D\u043E \u043F\u043E\u0437\u0432\u043E\u043B\u0435\u043D\u043E
-- \u0421\u044A\u0440\u0434\u0435\u0447\u043D\u043E-\u0441\u044A\u0434\u043E\u0432 \u0440\u0438\u0441\u043A \u2192 \u0441\u043F\u0430\u0437\u0438 rpe \u043E\u0442 spec; safetyNotes: \u043B\u0435\u043A\u0430\u0440\u0441\u043A\u043E \u043E\u0434\u043E\u0431\u0440\u0435\u043D\u0438\u0435
+HARD-VETO: <constraints>; \u0431\u043E\u043B\u043A\u0430/\u0437\u0430\u0431\u0440\u0430\u043D\u0430 \u2192 0 \u043D\u0430\u0442\u043E\u0432\u0430\u0440\u0432\u0430\u043D\u0435 \u043D\u0430 \u0437\u043E\u043D\u0430\u0442\u0430
 
-\u0418\u041C\u0415\u041D\u0423\u0412\u0410\u041D\u0415:
-- displayName: \u0431\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438 | canonicalName: EN | equipmentHint/bodyPart: EN
-- Bench Press \u2192 \u201E\u0418\u0437\u0431\u0443\u0442\u0432\u0430\u043D\u0435 \u043E\u0442 \u043B\u0435\u0436\u0430\u043D\u043A\u0430\u201C. \u041D\u0418\u041A\u041E\u0413\u0410 \u201E\u043B\u0435\u0433 \u043F\u0440\u0435\u0441\u0430\u201C \u0437\u0430 bench. Leg Press \u2192 \u201E\u041F\u0440\u0435\u0441\u0430 \u0437\u0430 \u043A\u0440\u0430\u043A\u0430\u201C.
-- \u041E\u043B\u0435\u043A\u043E\u0442\u0438/\u0443\u0442\u0435\u0436\u043D\u0438 \u2014 \u043D\u0435 \u201E\u0437\u0430\u0442\u0435\u0436\u043D\u0438\u201C
+\u0418\u041C\u0415\u041D\u0410: displayName BG | canonicalName/equipmentHint/bodyPart EN
+Bench Press \u2192 \u201E\u0418\u0437\u0431\u0443\u0442\u0432\u0430\u043D\u0435 \u043E\u0442 \u043B\u0435\u0436\u0430\u043D\u043A\u0430\u201C (\u041D\u0415 \u201E\u043B\u0435\u0433 \u043F\u0440\u0435\u0441\u0430\u201C). Leg Press \u2192 \u201E\u041F\u0440\u0435\u0441\u0430 \u0437\u0430 \u043A\u0440\u0430\u043A\u0430\u201C. \u0423\u0442\u0435\u0436\u043D\u0438/\u043E\u043B\u0435\u043A\u043E\u0442\u0438.
 
-\u0424\u041E\u0420\u041C\u0410\u0422: \u043C\u0430\u043A\u0441. 5 \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F/\u0434\u0435\u043D; warmup/cooldown \u043F\u043E 3 \u0441\u0442\u044A\u043F\u043A\u0438; notes\u226480 \u0437\u043D\u0430\u043A\u0430; guidelines \u043F\u043E 1 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u0435.`;
+\u0424\u041E\u0420\u041C\u0410\u0422: \u22645 exercises/\u0434\u0435\u043D; warmup/cooldown \u043F\u043E 3 \u0441\u0442\u044A\u043F\u043A\u0438; notes\u226480; guidelines \u043F\u043E 1 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u0435.`;
 var PLAN_SYSTEM_ASSEMBLY = `\u0421\u0433\u043B\u043E\u0431\u044F\u0432\u0430\u0448 \u0433\u043E\u0442\u043E\u0432\u0430 \u043F\u0440\u043E\u0433\u0440\u0430\u043C\u0430 \u0432 JSON. \u041D\u0415 \u043F\u0440\u043E\u043C\u0435\u043D\u044F\u0448 <scheme>.
 
 \u0417\u0410\u0414\u0410\u0427\u0410: \u0437\u0430 \u0432\u0441\u044F\u043A\u043E \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u0435 \u043E\u0442 scheme \u2014 canonicalName (EN) \u0437\u0430 lookup; displayName (BG); equipmentHint/bodyPart (EN).
@@ -1717,6 +1745,12 @@ var CONSTRAINT_RETRY_HINT = `
 var EQUIPMENT_RETRY_HINT = `
 
 \u041A\u041E\u0420\u0415\u041A\u0426\u0418\u042F: equipmentHint \u0441\u0430\u043C\u043E \u043E\u0442 <equipment>; canonicalName \u043E\u0442 <exercise_catalog> \u0441 \u043F\u043E\u0437\u0432\u043E\u043B\u0435\u043D\u043E \u043E\u0431\u043E\u0440\u0443\u0434\u0432\u0430\u043D\u0435. JSON \u0441\u0430\u043C\u043E.`;
+var SESSION_STRUCTURE_RETRY_HINT = `
+
+\u041A\u041E\u0420\u0415\u041A\u0426\u0418\u042F: session \u043E\u0442 program_spec; warmup+cooldown \u043F\u043E 3 \u0441\u0442\u044A\u043F\u043A\u0438. JSON \u0441\u0430\u043C\u043E.`;
+var DIFF_RETRY_HINT = `
+
+\u041A\u041E\u0420\u0415\u041A\u0426\u0418\u042F: \u0441\u0430\u043C\u043E \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F \u0441 d\u2264maxDiff \u043E\u0442 program_spec; canonicalName \u043E\u0442 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430. JSON \u0441\u0430\u043C\u043E.`;
 var COMPACT_PLAN_RETRY_HINT = `
 
 \u041A\u041E\u041C\u041F\u0410\u041A\u0422\u041D\u041E: \u043C\u0430\u043A\u0441. 4 \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F/\u0434\u0435\u043D; notes\u226460 \u0437\u043D\u0430\u043A\u0430. \u0421\u0430\u043C\u043E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON.`;
@@ -1974,6 +2008,111 @@ function tokenize(text) {
   const norm2 = normalizeText(text);
   return norm2 ? norm2.split(" ") : [];
 }
+function tokenOverlapScore(queryTokens, candidateTokens) {
+  if (!queryTokens?.length || !candidateTokens?.length) return 0;
+  const candidateSet = new Set(candidateTokens);
+  let overlap = 0;
+  for (const token of new Set(queryTokens)) {
+    if (candidateSet.has(token)) overlap++;
+  }
+  return overlap / Math.max(new Set(queryTokens).size, candidateSet.size);
+}
+
+// fitness/exercise-synonyms.js
+var SYNONYMS = {
+  "\u043A\u043B\u0435\u043A": ["squat"],
+  "\u043A\u043B\u0435\u043A\u043E\u0432\u0435": ["squat"],
+  "\u043A\u043B\u0435\u043A \u0441 \u0433\u0438\u0440\u0430": ["goblet", "squat"],
+  "\u043F\u0440\u0435\u0434\u0435\u043D \u043A\u043B\u0435\u043A": ["front", "squat"],
+  "\u0442\u044F\u0433\u0430": ["deadlift", "row"],
+  "\u043C\u044A\u0440\u0442\u0432\u0430 \u0442\u044F\u0433\u0430": ["deadlift"],
+  "\u0440\u0443\u043C\u044A\u043D\u0441\u043A\u0430 \u0442\u044F\u0433\u0430": ["romanian", "deadlift"],
+  "\u0441\u0443\u043C\u043E \u0442\u044F\u0433\u0430": ["sumo", "deadlift"],
+  "\u043B\u0435\u0436\u0430\u043D\u043A\u0430": ["bench", "press"],
+  "\u0431\u0435\u043D\u0447": ["bench", "press"],
+  "\u0433\u0440\u0435\u0431\u0430\u043D\u0435": ["row"],
+  "\u043D\u0430\u0431\u0438\u0440\u0430\u043D\u0438\u044F": ["pull", "up", "chin"],
+  "\u0434\u0443\u043F\u0435": ["glute"],
+  "\u0441\u0435\u0434\u0430\u043B\u0438\u0449\u0435": ["glute"],
+  "\u0441\u0435\u0434\u0430\u043B\u0438\u0449\u043D\u0438": ["glute"],
+  "\u0431\u0435\u0434\u0440\u0430": ["quad", "thigh"],
+  "\u043F\u0440\u0435\u0434\u043D\u043E \u0431\u0435\u0434\u0440\u043E": ["quad"],
+  "\u0437\u0430\u0434\u043D\u043E \u0431\u0435\u0434\u0440\u043E": ["hamstring"],
+  "\u043F\u0440\u0430\u0441\u0446\u0438": ["calf"],
+  "\u043A\u043E\u0440\u0435\u043C": ["ab", "abdominal", "core"],
+  "\u043A\u043E\u0440\u0435\u043C\u043D\u0438": ["crunch", "ab"],
+  "\u043A\u043E\u0440\u0435\u043C \u043F\u0440\u0435\u0441\u0438": ["crunch"],
+  "\u0433\u044A\u0440\u0434\u0438": ["chest", "pec"],
+  "\u0433\u0440\u044A\u0431": ["back", "lat", "row", "pulldown"],
+  "\u0448\u0438\u0440\u043E\u043A \u0433\u0440\u044A\u0431\u0435\u043D": ["lat"],
+  "\u0440\u0430\u043C\u043E": ["shoulder", "delt"],
+  "\u0440\u0430\u043C\u0435\u043D\u0435": ["shoulder", "delt"],
+  "\u0431\u0438\u0446\u0435\u043F\u0441": ["bicep", "curl"],
+  "\u0442\u0440\u0438\u0446\u0435\u043F\u0441": ["tricep"],
+  "\u043F\u0440\u0435\u0434\u043C\u0438\u0448\u043D\u0438\u0446\u0430": ["forearm"],
+  "\u0438\u0437\u043F\u0430\u0434": ["lunge"],
+  "\u0438\u0437\u043F\u0430\u0434\u0438": ["lunge"],
+  "\u043A\u043E\u0444\u0438\u0447\u043A\u0438": ["dip"],
+  "\u0441\u0433\u044A\u0432\u0430\u043D\u0435": ["curl"],
+  "\u0440\u0430\u0437\u0433\u044A\u0432\u0430\u043D\u0435": ["extension"],
+  "\u043F\u043E\u0432\u0434\u0438\u0433\u0430\u043D\u0435": ["raise"],
+  "\u0441\u0442\u0440\u0430\u043D\u0438\u0447\u043D\u043E \u043F\u043E\u0432\u0434\u0438\u0433\u0430\u043D\u0435": ["lateral", "raise"],
+  "\u043F\u0440\u0435\u0434\u043D\u043E \u043F\u043E\u0432\u0434\u0438\u0433\u0430\u043D\u0435": ["front", "raise"],
+  "\u0434\u044A\u0440\u043F\u0430\u043D\u0435": ["pull", "row", "pulldown", "face"],
+  "\u0434\u044A\u0440\u043F\u0430\u043D\u0435 \u043A\u044A\u043C \u043B\u0438\u0446\u0435\u0442\u043E": ["face", "pull"],
+  "\u0432\u044A\u0436\u0435": ["rope"],
+  "\u0441\u043A\u0440\u0438\u043F\u0435\u0446": ["cable"],
+  "\u043A\u0430\u0431\u0435\u043B": ["cable"],
+  "\u043C\u0430\u0448\u0438\u043D\u0430": ["machine", "leverage"],
+  "\u0449\u0430\u043D\u0433\u0430": ["barbell"],
+  "\u0434\u044A\u043C\u0431\u0435\u043B": ["dumbbell"],
+  "\u0434\u044A\u043C\u0431\u0435\u043B\u0438": ["dumbbell"],
+  "\u0433\u0438\u0440\u0430": ["kettlebell"],
+  "\u0433\u0438\u0440\u0438\u0447\u043A\u0438": ["kettlebell"],
+  "\u043B\u0430\u0441\u0442\u0438\u043A": ["band"],
+  "\u0444\u0438\u0442\u0431\u043E\u043B": ["stability", "ball"],
+  "\u0441\u043E\u0431\u0441\u0442\u0432\u0435\u043D\u043E \u0442\u0435\u0433\u043B\u043E": ["body", "weight"],
+  "\u043A\u0430\u0440\u0434\u0438\u043E": ["cardio", "run", "cycle", "jump"],
+  "\u0431\u044F\u0433\u0430\u043D\u0435": ["run", "treadmill"],
+  "\u043A\u043E\u043B\u043E\u0435\u0437\u0434\u0435\u043D\u0435": ["cycle", "bike"],
+  "\u0441\u043A\u0430\u0447\u0430\u043D\u0435": ["jump", "rope"],
+  "\u0439\u043E\u0433\u0430": ["stretch", "yoga", "mobility"],
+  "\u043C\u043E\u0431\u0438\u043B\u043D\u043E\u0441\u0442": ["stretch", "mobility"],
+  "\u0440\u0430\u0437\u0442\u044F\u0433\u0430\u043D\u0435": ["stretch"],
+  "\u0441\u0442\u0440\u0435\u0447\u0438\u043D\u0433": ["stretch"],
+  "\u043F\u043B\u0430\u043D\u043A": ["plank"],
+  "\u0445\u0438\u043F \u0442\u0440\u044A\u0441\u0442": ["hip", "thrust"],
+  "\u0432\u043E\u0435\u043D\u043D\u0430 \u043F\u0440\u0435\u0441\u0430": ["military", "press"],
+  "\u0440\u0430\u043C\u0435\u043D\u043D\u0430 \u043F\u0440\u0435\u0441\u0430": ["overhead", "press", "shoulder"],
+  "\u0444\u0440\u0435\u043D\u0441\u043A\u0430 \u043F\u0440\u0435\u0441\u0430": ["skull", "crusher"],
+  "\u0447\u0443\u043A \u0441\u0433\u044A\u0432\u0430\u043D\u0435": ["hammer", "curl"],
+  "\u043F\u0440\u0435\u0441\u0430 \u0437\u0430 \u043A\u0440\u0430\u043A\u0430": ["leg", "press"],
+  "\u0440\u0430\u0437\u0442\u0432\u0430\u0440\u044F\u043D\u0435": ["fly"],
+  "\u043F\u043E\u0432\u0434\u0438\u0433\u0430\u043D\u0435 \u043D\u0430 \u0440\u0430\u043C\u0435\u043D\u0435": ["shrug"],
+  "\u0441\u043F\u043B\u0438\u0442 \u043A\u043B\u0435\u043A": ["split", "squat"],
+  "ohp": ["overhead", "press"],
+  "rdl": ["romanian", "deadlift"],
+  "delts": ["shoulder"],
+  "lats": ["back", "lat"],
+  "pecs": ["chest", "pec"],
+  "abs": ["core", "abdominal"],
+  "quads": ["quad"],
+  "traps": ["trap"]
+};
+var MULTI_WORD_KEYS = Object.keys(SYNONYMS).filter((k) => k.includes(" "));
+function expandSearchTokens(query) {
+  const base = tokenize(query);
+  if (!base.length) return base;
+  const out = new Set(base);
+  const raw = normalizeText(query);
+  for (const key of MULTI_WORD_KEYS) {
+    if (raw.includes(key)) for (const v of SYNONYMS[key]) out.add(v);
+  }
+  for (const token of base) {
+    if (SYNONYMS[token]) for (const v of SYNONYMS[token]) out.add(v);
+  }
+  return [...out];
+}
 
 // fitness/exercise-metadata.js
 var EXERCISE_METADATA_KV_KEY = "exercise:metadata:v1";
@@ -2040,24 +2179,64 @@ function clampScore(n) {
   if (!Number.isFinite(v)) return 70;
   return Math.max(0, Math.min(100, Math.round(v)));
 }
-function exerciseProfileFromAnswers(answers = {}) {
+function resolveMaxDiff(experience = "", tags = null, profileText = "") {
+  const exp = normalizeText(experience || "");
+  const tagSet = tags instanceof Set ? tags : new Set(tags || []);
+  const blob = normalizeText(profileText || "");
+  if (exp.includes("\u043D\u0430\u043F\u0440\u0435\u0434\u043D\u0430\u043B") || exp.includes("5+")) return 3;
+  if (exp.includes("\u043D\u0438\u043A\u0430\u043A\u044A\u0432") || exp.includes("\u043D\u0430\u0447\u0438\u043D\u0430\u0435\u0449") && !exp.includes("\u0441\u0440\u0435\u0434\u043D\u043E")) return 1;
+  if (exp.includes("\u0441\u0440\u0435\u0434\u0435\u043D")) return 2;
+  if (tagSet.has("level:\u043D\u0430\u043F\u0440\u0435\u0434\u043D\u0430\u043B")) return 3;
+  if (tagSet.has("level:\u043D\u0430\u0447\u0438\u043D\u0430\u0435\u0449")) return 1;
+  if (tagSet.has("level:\u0441\u0440\u0435\u0434\u0435\u043D")) return 2;
+  if (/\bнапреднал\b|\b5\+\s*години/.test(blob)) return 3;
+  if (/\bначинаещ\b|\bникакъв\b|0\s*6\s*мес/.test(blob) && !/средно\s+начинаещ/.test(blob)) return 1;
+  if (/\bсреден\b|средно\s+начинаещ/.test(blob)) return 2;
+  return 2;
+}
+function applyMaxDiffToProfile(profile, maxDiff) {
+  const out = { ...profile, maxDiff };
+  if (maxDiff === 1 && profile.isFemale) out.minGf = Math.max(out.minGf, 65);
+  if (maxDiff === 1 && profile.isMale) out.minGm = Math.max(out.minGm, 50);
+  if (maxDiff === 3) {
+    out.minGf = 30;
+    out.minGm = 30;
+  }
+  return out;
+}
+function exerciseProfileFromAnswers(answers = (
+  /** @type {AnswersInput} */
+  {}
+)) {
   const gender = normalizeText(answers.gender || "");
   const isFemale = gender.includes("\u0436\u0435\u043D\u0430");
   const isMale = gender.includes("\u043C\u044A\u0436");
-  const exp = normalizeText(answers.experience || "");
-  let maxDiff = 2;
-  if (exp.includes("\u043D\u0430\u043F\u0440\u0435\u0434\u043D\u0430\u043B") || exp.includes("5+")) maxDiff = 3;
-  else if (exp.includes("\u043D\u0438\u043A\u0430\u043A\u044A\u0432") || exp.includes("\u043D\u0430\u0447\u0438\u043D\u0430\u0435\u0449") && !exp.includes("\u0441\u0440\u0435\u0434\u043D\u043E")) maxDiff = 1;
-  else if (exp.includes("\u0441\u0440\u0435\u0434\u0435\u043D")) maxDiff = 2;
   let minGf = isFemale ? 50 : 35;
   let minGm = isMale ? 50 : 35;
-  if (maxDiff === 1 && isFemale) minGf = 65;
-  if (maxDiff === 1 && isMale) minGm = 50;
-  if (maxDiff === 3) {
-    minGf = 30;
-    minGm = 30;
+  const maxDiff = resolveMaxDiff(answers.experience);
+  return applyMaxDiffToProfile({ isFemale, isMale, maxDiff, minGf, minGm }, maxDiff);
+}
+function exerciseProfileFromContext(ctx = (
+  /** @type {ExerciseProfileContextInput} */
+  {}
+)) {
+  const { answers = {}, tags = null, profileText = "" } = ctx;
+  const base = exerciseProfileFromAnswers(answers);
+  const tagSet = tags instanceof Set ? tags : new Set(tags || []);
+  if (!answers.gender && tagSet.has("gender:\u0436\u0435\u043D\u0430")) {
+    base.isFemale = true;
+    base.isMale = false;
+    base.minGf = 50;
+    base.minGm = 35;
   }
-  return { isFemale, isMale, maxDiff, minGf, minGm };
+  if (!answers.gender && tagSet.has("gender:\u043C\u044A\u0436")) {
+    base.isMale = true;
+    base.isFemale = false;
+    base.minGm = 50;
+    base.minGf = 35;
+  }
+  const maxDiff = resolveMaxDiff(answers.experience, tagSet, profileText);
+  return applyMaxDiffToProfile(base, maxDiff);
 }
 function fitsExerciseProfile(entry, profile) {
   if (!profile) return true;
@@ -2070,17 +2249,50 @@ function fitsExerciseProfile(entry, profile) {
   return true;
 }
 var SWAP_EQUIPMENT = /* @__PURE__ */ new Set(["body weight", "dumbbell", "kettlebell"]);
+var MOBILITY_RE = /stretch|yoga|mobility|pilates|flexibility|foam|pigeon|child pose|cat cow|downward|spinal twist/i;
+var CARDIO_RE = /run|cycle|elliptic|row machine|jump rope|burpee|jog|cardio|walking|stepper/i;
+var HIIT_RE = /hiit|tabata|sprint interval|mountain climber|battle rope/i;
+var STRENGTH_RE = /press|squat|deadlift|curl|row|pull up|lunge|thrust|extension|raise|fly|kickback/i;
+function inferExerciseModality(entryOrName) {
+  const name = typeof entryOrName === "string" ? entryOrName : `${entryOrName?.name || ""} ${(entryOrName?.flags || []).join(" ")}`;
+  const n = normalizeText(name);
+  if (MOBILITY_RE.test(n)) return "mobility";
+  if (HIIT_RE.test(n)) return "hiit";
+  if (CARDIO_RE.test(n) || normalizeText(entryOrName?.equipment || "").includes("cardio")) return "cardio";
+  if (STRENGTH_RE.test(n)) return "strength";
+  if (typeof entryOrName === "object" && entryOrName?.diff === 1 && /stretch|mobil/.test(n)) return "mobility";
+  return "strength";
+}
+function modalityMatchesDay(sessionType, exerciseMod) {
+  const day = normalizeText(sessionType);
+  const ex = exerciseMod;
+  if (day === "rest") return true;
+  if (day === "mobility") return ex === "mobility";
+  if (day === "cardio") return ex === "cardio" || ex === "mobility";
+  if (day === "hiit") return ex === "hiit" || ex === "cardio" || ex === "strength";
+  return ex === "strength";
+}
+function passesModality(entry, modalities = null) {
+  if (!modalities?.length) return true;
+  const mod = inferExerciseModality(entry);
+  return modalities.some((m) => modalityMatchesDay(m, mod));
+}
 function passesEquipment(entry, allowedEquipment) {
   if (!allowedEquipment) return true;
   const eq = entry?.equipNorm || normalizeText(entry?.equipment);
   return allowedEquipment.has(eq);
 }
-function filterExercises(index, profile, allowedEquipment = null) {
+function filterExercises(index, profile, allowedEquipment = null, modalities = null) {
   if (!index?.length) return [];
-  return index.filter((e) => fitsExerciseProfile(e, profile) && passesEquipment(e, allowedEquipment));
+  return index.filter(
+    (e) => fitsExerciseProfile(e, profile) && passesEquipment(e, allowedEquipment) && passesModality(e, modalities)
+  );
 }
-var GROUP_ORDER = ["glutes", "quads", "hamstrings", "back", "chest", "shoulders", "arms", "core", "cardio", "other"];
+var MODALITY_GROUPS = ["mobility", "cardio", "hiit"];
+var GROUP_ORDER = ["glutes", "quads", "hamstrings", "back", "chest", "shoulders", "arms", "core", ...MODALITY_GROUPS, "other"];
 function groupKey(entry) {
+  const modality = inferExerciseModality(entry);
+  if (MODALITY_GROUPS.includes(modality)) return modality;
   const t = entry.targetNorm || entry.bodyNorm || "";
   if (/glute/.test(t)) return "glutes";
   if (/quad/.test(t)) return "quads";
@@ -2090,13 +2302,13 @@ function groupKey(entry) {
   if (/shoulder|delt/.test(t)) return "shoulders";
   if (/bicep|tricep|forearm|arm/.test(t)) return "arms";
   if (/ab|oblique|core|waist/.test(t)) return "core";
-  if (/cardio/.test(t)) return "cardio";
   return "other";
 }
 function buildExerciseCatalogSnippet(index, profile, allowedEquipment = null, opts = {}) {
   const maxTotal = opts.maxTotal ?? 120;
   const maxPerGroup = opts.maxPerGroup ?? 14;
-  const filtered = filterExercises(index, profile, allowedEquipment);
+  const modalities = opts.modalities || null;
+  const filtered = filterExercises(index, profile, allowedEquipment, modalities);
   if (!filtered.length) return "";
   const groups = /* @__PURE__ */ new Map();
   for (const entry of filtered) {
@@ -2104,12 +2316,28 @@ function buildExerciseCatalogSnippet(index, profile, allowedEquipment = null, op
     if (!groups.has(g)) groups.set(g, []);
     groups.get(g).push(entry);
   }
-  const lines = ["<exercise_catalog>", "canonicalName \u0421\u0410\u041C\u041E \u043E\u0442\u0434\u043E\u043B\u0443 (d=\u0442\u0440\u0443\u0434\u043D\u043E\u0441\u0442, gf=\u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u043E\u0441\u0442 \u0436\u0435\u043D\u0430, flags=c/i/glute/press\u2026):"];
+  const isFemale = Boolean(profile?.isFemale);
+  const isMale = Boolean(profile?.isMale);
+  for (const items of groups.values()) {
+    items.sort((a, b) => {
+      const diffCmp = (a.diff ?? 2) - (b.diff ?? 2);
+      if (diffCmp) return diffCmp;
+      const relCmp = isFemale ? (b.gf ?? 70) - (a.gf ?? 70) : isMale ? (b.gm ?? 70) - (a.gm ?? 70) : 0;
+      if (relCmp) return relCmp;
+      return (a.name || "").localeCompare(b.name || "");
+    });
+  }
+  const priorityGroups = (modalities || []).filter((m) => MODALITY_GROUPS.includes(m));
+  const orderedGroups = [.../* @__PURE__ */ new Set([...priorityGroups, ...GROUP_ORDER])];
+  const maxDiff = profile?.maxDiff;
+  const lines = ["<exercise_catalog>", `canonicalName \u0421\u0410\u041C\u041E \u043E\u0442\u0434\u043E\u043B\u0443${maxDiff ? `; d\u2264${maxDiff}` : ""} (d=1 \u043B\u0435\u0441\u043D\u043E|2 \u0441\u0440\u0435\u0434\u043D\u043E|3 \u0442\u0440\u0443\u0434\u043D\u043E, gf=\u0436\u0435\u043D\u0430):`];
   let total = 0;
-  for (const g of GROUP_ORDER) {
+  for (const g of orderedGroups) {
+    const remaining = maxTotal - total;
+    if (remaining <= 0) break;
     const items = groups.get(g);
     if (!items?.length) continue;
-    const slice = items.slice(0, maxPerGroup);
+    const slice = items.slice(0, Math.min(maxPerGroup, remaining));
     const part = slice.map((e) => {
       const flags = (e.flags || []).slice(0, 3).join(",") || "-";
       const gf = e.gf ?? 70;
@@ -2118,10 +2346,84 @@ function buildExerciseCatalogSnippet(index, profile, allowedEquipment = null, op
     }).join(", ");
     lines.push(`${g}: ${part}`);
     total += slice.length;
-    if (total >= maxTotal) break;
   }
   lines.push("</exercise_catalog>");
   return lines.join("\n");
+}
+var searchTokenCache = /* @__PURE__ */ new WeakMap();
+function searchTokensForEntry(entry) {
+  const cached = searchTokenCache.get(entry);
+  if (cached) return cached;
+  const tokens = new Set(entry.tokens?.length ? entry.tokens : tokenize(entry.name));
+  for (const t of tokenize(entry.nameBg)) tokens.add(t);
+  for (const t of tokenize(localizeTarget(entry.target))) tokens.add(t);
+  for (const t of tokenize(localizeEquipment(entry.equipment))) tokens.add(t);
+  const arr = [...tokens];
+  searchTokenCache.set(entry, arr);
+  return arr;
+}
+function searchExerciseIndex(index, options = {}) {
+  const {
+    q = "",
+    equipment = null,
+    target = null,
+    modality = null,
+    diffMin = null,
+    diffMax = null,
+    minGf = null,
+    minGm = null,
+    limit = 40,
+    offset = 0
+  } = options;
+  const queryTokens = expandSearchTokens(q);
+  const equipSet = equipment?.length ? new Set(equipment.map(normalizeText)) : null;
+  const targetSet = target?.length ? new Set(target.map(normalizeText)) : null;
+  const modalitySet = modality?.length ? new Set(modality) : null;
+  const scored = [];
+  for (const entry of index || []) {
+    if (equipSet && !equipSet.has(entry.equipNorm)) continue;
+    if (targetSet && !targetSet.has(entry.targetNorm) && !targetSet.has(entry.bodyNorm)) continue;
+    const diff = entry.diff ?? 2;
+    if (diffMin != null && diff < diffMin) continue;
+    if (diffMax != null && diff > diffMax) continue;
+    if (minGf != null && (entry.gf ?? 70) < minGf) continue;
+    if (minGm != null && (entry.gm ?? 70) < minGm) continue;
+    if (modalitySet && !modalitySet.has(inferExerciseModality(entry))) continue;
+    let score = 1;
+    if (queryTokens.length) {
+      score = tokenOverlapScore(queryTokens, searchTokensForEntry(entry));
+      if (score <= 0) continue;
+    }
+    scored.push({ entry, score });
+  }
+  scored.sort((a, b) => b.score - a.score || (a.entry.diff ?? 2) - (b.entry.diff ?? 2) || (a.entry.name || "").localeCompare(b.entry.name || ""));
+  return {
+    total: scored.length,
+    results: scored.slice(Math.max(0, offset), Math.max(0, offset) + Math.max(1, limit))
+  };
+}
+function computeExerciseFacets(index) {
+  const equipment = /* @__PURE__ */ new Map();
+  const target = /* @__PURE__ */ new Map();
+  for (const entry of index || []) {
+    if (entry.equipNorm) {
+      if (!equipment.has(entry.equipNorm)) {
+        equipment.set(entry.equipNorm, { value: entry.equipNorm, label: localizeEquipment(entry.equipment) || entry.equipment, count: 0 });
+      }
+      equipment.get(entry.equipNorm).count++;
+    }
+    if (entry.targetNorm) {
+      if (!target.has(entry.targetNorm)) {
+        target.set(entry.targetNorm, { value: entry.targetNorm, label: localizeTarget(entry.target) || entry.target, count: 0 });
+      }
+      target.get(entry.targetNorm).count++;
+    }
+  }
+  const byCount = (a, b) => b.count - a.count;
+  return {
+    equipment: [...equipment.values()].sort(byCount),
+    target: [...target.values()].sort(byCount)
+  };
 }
 
 // fitness/exercise-classify-batch.js
@@ -2311,6 +2613,30 @@ function buildProfileSummary(a) {
   return parts.filter(Boolean).join("\n");
 }
 
+// fitness/session-principles.js
+function sessionPhaseBudget(durationMin = 45) {
+  const total = Math.max(20, durationMin);
+  const warmup = Math.max(5, Math.round(total * 0.12));
+  const cooldown = Math.max(5, Math.round(total * 0.12));
+  const main = Math.max(10, total - warmup - cooldown);
+  return { warmup, main, cooldown, total };
+}
+var FOCUS_DELTA = {
+  mobility: "mobility exercises: \u0431\u0435\u0437 bench/squat/deadlift/leg press",
+  hiit: "hiit exercises: \u226425min \u0440\u0430\u0431\u043E\u0442\u0430; \u0431\u0435\u0437 \u0449\u0430\u043D\u0433\u0430",
+  cardio: "cardio exercises: zone2/\u0442\u0435\u043C\u043F\u043E; \u0431\u0435\u0437 \u0442\u0435\u0436\u043A\u0438 \u0441\u0438\u043B\u043E\u0432\u0438 \u0441\u0435\u0440\u0438\u0438 \u0432 exercises"
+};
+function formatSessionFrame(spec = {}) {
+  if (!spec) return "";
+  const { warmup, main, cooldown } = sessionPhaseBudget(spec.durationMin);
+  const lines = [`warmup(3)\u2192exercises(dayFocus)\u2192cooldown(3) ~${warmup}+${main}+${cooldown}min`];
+  const focuses = [...new Set((spec.dayTypes || []).map((d) => d.type).filter((t) => t && t !== "rest"))];
+  for (const f of focuses) {
+    if (FOCUS_DELTA[f]) lines.push(FOCUS_DELTA[f]);
+  }
+  return lines.join(" | ");
+}
+
 // fitness/program-spec.js
 var ZONE_TO_GROUP = [
   { keys: ["\u0434\u0443\u043F\u0435", "\u0433\u043B\u0443\u0442", "\u0441\u0435\u0434\u0430\u043B\u0438\u0449"], group: "glutes" },
@@ -2332,6 +2658,61 @@ var GOAL_NORM = {
   "\u0440\u0435\u0445\u0430\u0431\u0438\u043B\u0438\u0442\u0430\u0446\u0438\u044F \u0441\u043B\u0435\u0434 \u0442\u0440\u0430\u0432\u043C\u0430": "\u0440\u0435\u0445\u0430\u0431"
 };
 var DEFAULT_VOLUME = { glutes: 10, quads: 8, hamstrings: 6, back: 8, core: 6, chest: 6, shoulders: 6, arms: 6 };
+var DAY_NAMES = ["\u041F\u043E\u043D\u0435\u0434\u0435\u043B\u043D\u0438\u043A", "\u0412\u0442\u043E\u0440\u043D\u0438\u043A", "\u0421\u0440\u044F\u0434\u0430", "\u0427\u0435\u0442\u0432\u044A\u0440\u0442\u044A\u043A", "\u041F\u0435\u0442\u044A\u043A", "\u0421\u044A\u0431\u043E\u0442\u0430", "\u041D\u0435\u0434\u0435\u043B\u044F"];
+var TRAINING_SLOTS = {
+  2: [0, 3],
+  3: [0, 2, 4],
+  4: [0, 1, 3, 5],
+  5: [0, 1, 2, 4, 5],
+  6: [0, 1, 2, 3, 4, 5]
+};
+function resolveTrainingModality(answers = {}) {
+  const types = (answers?.preferences?.types || []).map((t2) => normalizeText(t2));
+  if (!types.length || types.some((t2) => t2.includes("\u043E\u0442\u0432\u043E\u0440\u0435\u043D"))) return "mixed";
+  if (types.length > 1) return "mixed";
+  const t = types[0] || "";
+  if (t.includes("\u0439\u043E\u0433\u0430") || t.includes("\u043C\u043E\u0431\u0438\u043B\u043D\u043E\u0441\u0442")) return "mobility";
+  if (t.includes("hiit")) return "hiit";
+  if (t.includes("\u043A\u0430\u0440\u0434\u0438\u043E")) return "cardio";
+  if (t.includes("\u0444\u0443\u043D\u043A\u0446\u0438\u043E\u043D\u0430\u043B")) return "functional";
+  return "strength";
+}
+function focusForDayType(type) {
+  const map = {
+    strength: "\u0421\u0438\u043B\u0430",
+    cardio: "\u041A\u0430\u0440\u0434\u0438\u043E",
+    hiit: "HIIT",
+    mobility: "\u041C\u043E\u0431\u0438\u043B\u043D\u043E\u0441\u0442 / \u0441\u0442\u0440\u0435\u0447\u0438\u043D\u0433",
+    rest: "\u041F\u043E\u0447\u0438\u0432\u043A\u0430"
+  };
+  return map[type] || type;
+}
+function buildWeekDayTypes(sessions, modality, goalNorm = "") {
+  const n = Math.min(6, Math.max(2, sessions || 3));
+  const slots = TRAINING_SLOTS[n] || TRAINING_SLOTS[3];
+  let types;
+  if (modality === "mixed") {
+    const cycle = String(goalNorm).includes("\u0438\u0437\u0434\u0440\u044A\u0436\u043B\u0438\u0432") ? ["cardio", "strength", "mobility"] : ["strength", "mobility", "cardio"];
+    types = slots.map((_, i) => cycle[i % cycle.length]);
+  } else if (modality === "mobility") {
+    types = slots.map(() => "mobility");
+  } else if (modality === "cardio") {
+    types = slots.map(() => "cardio");
+  } else if (modality === "hiit") {
+    types = slots.map(() => "hiit");
+  } else {
+    types = slots.map(() => "strength");
+  }
+  return DAY_NAMES.map((day, i) => {
+    const slotIdx = slots.indexOf(i);
+    if (slotIdx === -1) return { day, type: "rest", focus: "\u041F\u043E\u0447\u0438\u0432\u043A\u0430" };
+    const type = types[slotIdx] || "strength";
+    return { day, type, focus: focusForDayType(type) };
+  });
+}
+function modalitiesInWeek(dayTypes = []) {
+  return [...new Set(dayTypes.map((d) => d.type).filter((t) => t && t !== "rest"))];
+}
 function goalKey(answers) {
   const main = normalizeText(answers?.goal?.main || "");
   if (main === "\u0434\u0440\u0443\u0433\u043E") return normalizeText(answers?.goal?.other || "") || "\u043E\u0431\u0449\u0430";
@@ -2484,21 +2865,49 @@ function buildProgramSpec(answers = {}) {
   const { volume, zonesOrdered, zonesText } = buildVolumeBudget(answers);
   const { reps, rest } = repRangeForGoal(goalNorm, level);
   const rpeMax = rpeCapFromAnswers(answers);
+  const modality = resolveTrainingModality(answers);
+  const dayTypes = buildWeekDayTypes(sessions, modality, goalNorm);
+  let split = suggestSplit(sessions, level, goalNorm, isFemale);
+  let orderHint = "compound\u2192isolation; zones\u2193 first each day";
+  let repsOut = reps;
+  let restOut = rest;
+  if (modality === "mobility") {
+    split = `mobility/yoga \xD7${sessions}`;
+    orderHint = "\u043E\u0441\u043D\u043E\u0432\u0435\u043D \u0431\u043B\u043E\u043A: flow/\u043F\u043E\u0437\u0438/hold; warmup/cooldown \u0441 \u043A\u0430\u0440\u0434\u0438\u043E \u0438 \u0441\u0442\u0440\u0435\u0447 \u043F\u043E session_principles";
+    repsOut = "30-60s hold";
+    restOut = "15-30s";
+  } else if (modality === "cardio") {
+    split = `cardio \xD7${sessions}`;
+    orderHint = "\u043E\u0441\u043D\u043E\u0432\u0435\u043D \u0431\u043B\u043E\u043A: zone 2/\u0442\u0435\u043C\u043F\u043E; warmup/cooldown \u043F\u043E session_principles";
+  } else if (modality === "hiit") {
+    split = `HIIT \xD7${sessions}`;
+    orderHint = "\u043E\u0441\u043D\u043E\u0432\u0435\u043D \u0431\u043B\u043E\u043A: \u0438\u043D\u0442\u0435\u0440\u0432\u0430\u043B\u0438; warmup \u043F\u0440\u043E\u0433\u0440\u0435\u0441\u0438\u0432\u0435\u043D, cooldown \u043B\u0435\u0441\u0435\u043D \u043A\u0430\u0440\u0434\u0438\u043E+\u0441\u0442\u0440\u0435\u0447";
+  } else {
+    orderHint = "compound\u2192isolation \u0432 exercises; warmup=\u043A\u0430\u0440\u0434\u0438\u043E+\u043C\u043E\u0431\u0438\u043B\u043D\u043E\u0441\u0442, cooldown=\u0441\u0442\u0440\u0435\u0447+\u043B\u0435\u043A\u043E \u043A\u0430\u0440\u0434\u0438\u043E";
+  }
   return {
     sessions,
     durationMin,
     level,
+    maxDiff: level,
     goal: goalLabel,
     goalNorm,
-    split: suggestSplit(sessions, level, goalNorm, isFemale),
+    modality,
+    dayTypes,
+    weekModalities: modalitiesInWeek(dayTypes),
+    sessionFrame: formatSessionFrame({
+      durationMin,
+      dayTypes
+    }),
+    split,
     zonesText,
     zonesOrdered,
     volume,
-    reps,
-    rest,
+    reps: repsOut,
+    rest: restOut,
     rpeMax,
     isFemale,
-    orderHint: "compound\u2192isolation; zones\u2193 first each day"
+    orderHint
   };
 }
 function formatVolumeLine(volume) {
@@ -2508,14 +2917,19 @@ function formatVolumeLine(volume) {
 function formatProgramSpecBlock(spec) {
   if (!spec) return "";
   const lines = [
-    `sessions: ${spec.sessions} | dur: ${spec.durationMin}min | level: ${spec.level} | goal: ${spec.goal}`,
+    `sessions: ${spec.sessions} | dur: ${spec.durationMin}min | level: ${spec.level} | maxDiff: d\u2264${spec.maxDiff ?? spec.level} | goal: ${spec.goal}`,
+    `modality: ${spec.modality || "strength"}`,
     `split: ${spec.split}`
   ];
+  if (spec.dayTypes?.length) {
+    const dt = spec.dayTypes.filter((d) => d.type !== "rest").map((d) => `${d.day.slice(0, 2)}=${d.type}`).join(", ");
+    if (dt) lines.push(`dayFocus: ${dt}`);
+  }
+  if (spec.sessionFrame) lines.push(`session: ${spec.sessionFrame}`);
   if (spec.zonesText) lines.push(`zones\u2193: ${spec.zonesText}`);
-  else if (spec.isFemale) lines.push("zones\u2193: \u0434\u0443\u043F\u0435>\u0431\u0435\u0434\u0440\u0430 (default \u0436\u0435\u043D\u0430)");
+  else if (spec.isFemale) lines.push("zones\u2193: \u0434\u0443\u043F\u0435>\u0431\u0435\u0434\u0440\u0430");
   lines.push(`volume/wk: ${formatVolumeLine(spec.volume)}`);
   lines.push(`reps: ${spec.reps} | rest: ${spec.rest} | rpe\u2264${spec.rpeMax}`);
-  lines.push(`order: ${spec.orderHint}`);
   return lines.join("\n");
 }
 function buildCompactProfileForPrompt(answers = {}) {
@@ -2548,11 +2962,6 @@ function buildCompactProfileForPrompt(answers = {}) {
   if (answers.goal?.deadline) lines.push(`\u0421\u0440\u043E\u043A: ${answers.goal.deadline}`);
   const equipExtra = answers.equipmentOther?.trim();
   if (equipExtra) lines.push(`\u041E\u0431\u043E\u0440\u0443\u0434\u0432\u0430\u043D\u0435 (\u0434\u0440\u0443\u0433\u043E): ${equipExtra}`);
-  const prefTypes = answers.preferences?.types;
-  if (prefTypes?.length) lines.push(`\u041F\u0440\u0435\u0434\u043F\u043E\u0447\u0438\u0442\u0430\u043D \u0442\u0438\u043F: ${prefTypes.join(", ")}`);
-  if (answers.preferences?.avoid?.trim()) {
-    lines.push(`\u0418\u0437\u0431\u044F\u0433\u0432\u0430\u0439: ${answers.preferences.avoid.trim()}`);
-  }
   if (answers.preferences?.timeOfDay) {
     lines.push(`\u0412\u0440\u0435\u043C\u0435: ${answers.preferences.timeOfDay}`);
   }
@@ -2571,27 +2980,17 @@ var MAX_ARCHITECTURE_ITEMS = 8;
 var MAX_ARCHITECTURE_CHARS = 2800;
 var UNIVERSAL_TAGS = /* @__PURE__ */ new Set(["all", "*", "\u043E\u0431\u0449\u043E"]);
 var GUIDELINE_CHUNKS = [
-  { tags: ["goal:\u043E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435"], text: "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435: \u0437\u0430\u043F\u0430\u0437\u0438 \u0441\u0438\u043B\u043E\u0432 \u0442\u0440\u0435\u043D\u0438\u043D\u0433 + 1\u20132 \u043A\u0430\u0440\u0434\u0438\u043E \u0434\u043D\u0438. \u0414\u0435\u0444\u0438\u0446\u0438\u0442\u044A\u0442 \u0435 \u043E\u0442 \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u2014 \u043D\u0435 \u0438\u0437\u0442\u043E\u0449\u0430\u0432\u0430\u0439 \u043A\u043B\u0438\u0435\u043D\u0442\u0430 \u0432 \u0437\u0430\u043B\u0430\u0442\u0430." },
-  { tags: ["goal:\u043F\u043E\u043A\u0430\u0447\u0432\u0430\u043D\u0435 \u043D\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430"], text: "\u0425\u0438\u043F\u0435\u0440\u0442\u0440\u043E\u0444\u0438\u044F: \u043F\u0440\u043E\u0433\u0440\u0435\u0441\u0438\u044F \u2014 \u043F\u044A\u0440\u0432\u043E reps \u0432 \u0434\u0438\u0430\u043F\u0430\u0437\u043E\u043D\u0430, \u043F\u043E\u0441\u043B\u0435 \u0442\u0435\u0436\u0435\u0441\u0442; \u0432\u0441\u044F\u043A\u0430 \u0433\u0440\u0443\u043F\u0430 2\xD7/\u0441\u0435\u0434\u043C > 1\xD7." },
-  { tags: ["goal:\u0441\u0438\u043B\u043E\u0432\u0438 \u043F\u043E\u043A\u0430\u0437\u0430\u0442\u0435\u043B\u0438"], text: "\u0421\u0438\u043B\u0430: \u043E\u0441\u043D\u043E\u0432\u043D\u0438 \u0434\u0432\u0438\u0436\u0435\u043D\u0438\u044F \u043F\u044A\u0440\u0432\u0438 \u0432 \u0434\u0435\u043D\u044F; \u0442\u0435\u0445\u043D\u0438\u043A\u0430 \u043F\u0440\u0435\u0434\u0438 \u0442\u0435\u0436\u0435\u0441\u0442; \u043F\u044A\u043B\u043D\u0438 \u043F\u043E\u0447\u0438\u0432\u043A\u0438 \u043F\u0440\u0438 \u0442\u0435\u0436\u043A\u0438 \u0441\u0435\u0440\u0438\u0438." },
-  { tags: ["goal:\u0438\u0437\u0434\u0440\u044A\u0436\u043B\u0438\u0432\u043E\u0441\u0442"], text: "\u0418\u0437\u0434\u0440\u044A\u0436\u043B\u0438\u0432\u043E\u0441\u0442: \u043F\u0440\u0435\u043E\u0431\u043B\u0430\u0434\u0430\u0432\u0430 \u0437\u043E\u043D\u0430 2/\u0438\u0437\u0434\u0440\u044A\u0436\u043B\u0438\u0432\u043E\u0441\u0442; \u0441\u0438\u043B\u0430\u0442\u0430 \u0435 \u043F\u043E\u0434\u0434\u0440\u044A\u0436\u0430\u0449\u0430, \u043D\u0435 \u043E\u0441\u043D\u043E\u0432\u0435\u043D \u0430\u043A\u0446\u0435\u043D\u0442." },
-  { tags: ["goal:\u0440\u0435\u043A\u043E\u043C\u043F\u043E\u0437\u0438\u0446\u0438\u044F"], text: "\u0420\u0435\u043A\u043E\u043C\u043F\u043E\u0437\u0438\u0446\u0438\u044F: \u0441\u0438\u043B\u043E\u0432 \u043E\u0431\u0435\u043C \u043F\u043E spec + \u0443\u043C\u0435\u0440\u0435\u043D\u043E \u043A\u0430\u0440\u0434\u0438\u043E; \u0437\u0430\u043B\u043E\u0436\u0438 \u0438\u0437\u043C\u0435\u0440\u0438\u043C\u0430 \u0441\u0438\u043B\u043E\u0432\u0430 \u043F\u0440\u043E\u0433\u0440\u0435\u0441\u0438\u044F." },
-  { tags: ["goal:\u043E\u0431\u0449\u0430 \u043A\u043E\u043D\u0434\u0438\u0446\u0438\u044F"], text: "\u041E\u0431\u0449\u0430 \u043A\u043E\u043D\u0434\u0438\u0446\u0438\u044F: \u0431\u0430\u043B\u0430\u043D\u0441 \u0441\u0438\u043B\u0430 + \u043A\u0430\u0440\u0434\u0438\u043E + \u043C\u043E\u0431\u0438\u043B\u043D\u043E\u0441\u0442; \u0440\u0430\u0437\u043D\u043E\u043E\u0431\u0440\u0430\u0437\u0438\u0435 \u0437\u0430 \u043F\u0440\u0438\u0434\u044A\u0440\u0436\u0430\u043D\u0435." },
-  { tags: ["goal:\u0440\u0435\u0445\u0430\u0431\u0438\u043B\u0438\u0442\u0430\u0446\u0438\u044F \u0441\u043B\u0435\u0434 \u0442\u0440\u0430\u0432\u043C\u0430"], text: "\u0420\u0435\u0445\u0430\u0431: \u0441\u0430\u043C\u043E \u0431\u0435\u0437\u0431\u043E\u043B\u0435\u0437\u043D\u0435\u043D ROM \u0438 \u043A\u043E\u043D\u0442\u0440\u043E\u043B; \u043F\u043B\u0430\u043D\u044A\u0442 \u043D\u0435 \u0437\u0430\u043C\u0435\u0441\u0442\u0432\u0430 \u0444\u0438\u0437\u0438\u043E\u0442\u0435\u0440\u0430\u043F\u0435\u0432\u0442." },
-  { tags: ["level:\u043D\u0430\u0447\u0438\u043D\u0430\u0435\u0449"], text: "\u041D\u0430\u0447\u0438\u043D\u0430\u0435\u0449\u0438: \u0442\u0435\u0445\u043D\u0438\u043A\u0430 \u0438 \u043A\u043E\u043D\u0442\u0440\u043E\u043B \u043F\u0440\u0435\u0434\u0438 \u0442\u0435\u0436\u0435\u0441\u0442; \u043C\u0430\u0448\u0438\u043D\u0438/\u0421\u0422 \u043F\u0440\u0435\u0434 \u0441\u043B\u043E\u0436\u043D\u0438 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u0438 \u0442\u0435\u0436\u0435\u0441\u0442\u0438." },
-  { tags: ["level:\u043D\u0430\u043F\u0440\u0435\u0434\u043D\u0430\u043B"], text: "\u041D\u0430\u043F\u0440\u0435\u0434\u043D\u0430\u043B: \u0438\u043D\u0442\u0435\u043D\u0437\u0438\u0444\u0438\u043A\u0430\u0442\u043E\u0440\u0438 \u043C\u0430\u043A\u0441. 1\u20132 \u043D\u0430 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430." },
-  { tags: ["health:\u0445\u0438\u043F\u0435\u0440\u0442\u043E\u043D\u0438\u044F", "health:\u0441\u044A\u0440\u0434\u0435\u0447\u043D\u043E-\u0441\u044A\u0434\u043E\u0432\u043E"], text: "\u0441\u044A\u0440\u0434\u0435\u0447\u043D\u043E-\u0441\u044A\u0434\u043E\u0432 \u0440\u0438\u0441\u043A: \u0431\u0435\u0437 Valsalva \u0438 \u043C\u0430\u043A\u0441 singles; \u0441\u043F\u0430\u0437\u0438 rpe \u043E\u0442 spec; safetyNotes: \u043B\u0435\u043A\u0430\u0440\u0441\u043A\u043E \u043E\u0434\u043E\u0431\u0440\u0435\u043D\u0438\u0435." },
-  { tags: ["health:\u0434\u0438\u0430\u0431\u0435\u0442"], text: "\u0414\u0438\u0430\u0431\u0435\u0442: \u0440\u0435\u0434\u043E\u0432\u043D\u043E\u0441\u0442 > \u0438\u043D\u0442\u0435\u043D\u0437\u0438\u0442\u0435\u0442; \u0432\u043D\u0438\u043C\u0430\u043D\u0438\u0435 \u043F\u0440\u0438 \u0445\u0438\u043F\u043E\u0433\u043B\u0438\u043A\u0435\u043C\u0438\u044F \u2014 \u043D\u0435 \u043D\u0430 \u043F\u0440\u0430\u0437\u0435\u043D \u0441\u0442\u043E\u043C\u0430\u0445." },
-  { tags: ["health:\u0431\u0440\u0435\u043C\u0435\u043D\u043D\u043E\u0441\u0442"], text: "\u0431\u0440\u0435\u043C\u0435\u043D\u043D\u043E\u0441\u0442: \u0441\u0430\u043C\u043E \u0441 \u043B\u0435\u043A\u0430\u0440\u0441\u043A\u043E \u043E\u0434\u043E\u0431\u0440\u0435\u043D\u0438\u0435. \u0411\u0435\u0437 \u043A\u043E\u0440\u0435\u043C\u043D\u0438 \u043A\u0440\u0430\u043D\u0447\u043E\u0432\u0435, \u043B\u0435\u0436\u0430\u043D\u043A\u0438 \u043F\u043E \u0433\u0440\u044A\u0431 (\u0441\u043B\u0435\u0434 1-\u0432\u0438 \u0442\u0440\u0438\u043C.), \u0437\u0430\u0434\u044A\u0440\u0436\u0430\u043D\u0435 \u043D\u0430 \u0434\u044A\u0445\u0430, \u043F\u0430\u0434\u0430\u043D\u0438\u044F. \u0423\u043C\u0435\u0440\u0435\u043D \u0438\u043D\u0442\u0435\u043D\u0437\u0438\u0442\u0435\u0442." },
-  { tags: ["health:\u0441\u043B\u0435\u0434\u0440\u043E\u0434\u0438\u043B\u0435\u043D"], text: "\u0421\u043B\u0435\u0434 \u0440\u0430\u0436\u0434\u0430\u043D\u0435: \u043F\u043E\u0441\u0442\u0435\u043F\u0435\u043D\u043D\u043E \u2014 \u0442\u0430\u0437\u043E\u0432\u043E \u0434\u044A\u043D\u043E, \u043F\u043E\u0441\u043B\u0435 \u0431\u0430\u0437\u043E\u0432\u0438 \u0434\u0432\u0438\u0436\u0435\u043D\u0438\u044F; \u0431\u0435\u0437 \u043A\u043B\u0430\u0441\u0438\u0447\u0435\u0441\u043A\u0438 \u043F\u0440\u0435\u0441\u0438 \u043F\u0440\u0438 \u0441\u044A\u043C\u043D\u0435\u043D\u0438\u0435 \u0437\u0430 \u0434\u0438\u0430\u0441\u0442\u0430\u0437\u0430." },
-  { tags: ["health:\u043A\u044A\u0440\u043C\u0435\u043D\u0435"], text: "\u041A\u044A\u0440\u043C\u0435\u043D\u0435: \u0443\u043C\u0435\u0440\u0435\u043D \u0438\u043D\u0442\u0435\u043D\u0437\u0438\u0442\u0435\u0442, \u0445\u0438\u0434\u0440\u0430\u0442\u0430\u0446\u0438\u044F; \u0431\u0435\u0437 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u0434\u043E \u043E\u0442\u043A\u0430\u0437." },
-  { tags: ["health:\u043C\u0435\u043D\u043E\u043F\u0430\u0443\u0437\u0430"], text: "\u041C\u0435\u043D\u043E\u043F\u0430\u0443\u0437\u0430: \u0430\u043A\u0446\u0435\u043D\u0442 \u0441\u0438\u043B\u043E\u0432 \u0442\u0440\u0435\u043D\u0438\u043D\u0433 (\u043A\u043E\u0441\u0442\u0438) + \u0431\u0430\u043B\u0430\u043D\u0441; \u043C\u0438\u043D. 48\u0447 \u043C\u0435\u0436\u0434\u0443 \u0442\u0435\u0436\u043A\u0438 \u0441\u0435\u0441\u0438\u0438 \u0437\u0430 \u0435\u0434\u043D\u0430 \u0433\u0440\u0443\u043F\u0430." },
-  { tags: ["sleep:\u043B\u043E\u0448\u043E", "stress:\u0432\u0438\u0441\u043E\u043A"], text: "\u041B\u043E\u0448 \u0441\u044A\u043D/\u0441\u0442\u0440\u0435\u0441: \u043D\u0430\u043C\u0430\u043B\u0438 \u043E\u0431\u0435\u043C \u0441 ~20% \u043F\u043E\u0434 spec; \u0431\u0435\u0437 \u043E\u0442\u043A\u0430\u0437; cooldown \u0441 \u0434\u0438\u0448\u0430\u043D\u0435; \u043C\u0430\u043A\u0441. 1 HIIT/\u0441\u0435\u0434\u043C." },
-  { tags: ["equipment:\u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u043E"], text: "\u041E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u043E \u043E\u0431\u043E\u0440\u0443\u0434\u0432\u0430\u043D\u0435: tempo, unilateral \u0438 \u043F\u043E-\u043A\u044A\u0441\u0438 \u043F\u043E\u0447\u0438\u0432\u043A\u0438 \u0432\u043C\u0435\u0441\u0442\u043E \u043F\u043E\u0432\u0435\u0447\u0435 \u0442\u0435\u0436\u0435\u0441\u0442." },
-  { tags: ["time:\u0441\u0443\u0442\u0440\u0438\u043D"], text: "\u0421\u0443\u0442\u0440\u0435\u0448\u043D\u0438 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438: +5 \u043C\u0438\u043D \u0437\u0430\u0433\u0440\u044F\u0432\u043A\u0430; \u0431\u0435\u0437 \u043C\u0430\u043A\u0441 \u043E\u043F\u0438\u0442\u0438 \u043D\u0430 \u0433\u043B\u0430\u0434\u043D\u043E." },
-  { tags: ["age:50+"], text: "\u0412\u044A\u0437\u0440\u0430\u0441\u0442 50+: \u0443\u0434\u044A\u043B\u0436\u0435\u043D\u0430 \u0437\u0430\u0433\u0440\u044F\u0432\u043A\u0430; \u043A\u043E\u043D\u0442\u0440\u043E\u043B\u0438\u0440\u0430\u043D\u043E \u0442\u0435\u043C\u043F\u043E; \u0431\u0430\u043B\u0430\u043D\u0441/\u043C\u043E\u0431\u0438\u043B\u043D\u043E\u0441\u0442; 48\u201372\u0447 \u043C\u0435\u0436\u0434\u0443 \u0442\u0435\u0436\u043A\u0438 \u0441\u0435\u0441\u0438\u0438." },
-  { tags: ["gender:\u0436\u0435\u043D\u0430"], text: "\u0416\u0435\u043D\u0430: \u0433\u043E\u0440\u043D\u0430 \u0447\u0430\u0441\u0442 \u2014 \u043F\u043E\u0441\u0442\u0443\u0440\u0430/\u0433\u0440\u044A\u0431 \u0441\u0430\u043C\u043E; \u0431\u0435\u0437 bench/press/curl \u043E\u0431\u0435\u043C (\u043E\u0431\u0435\u043C\u044A\u0442 \u0435 \u0432 spec)." },
-  { tags: ["gender:\u043C\u044A\u0436"], text: "\u041C\u044A\u0436: \u0431\u0435\u0437 glute-isolation \u0444\u043E\u043A\u0443\u0441 \u0431\u0435\u0437 \u0443\u043A\u0430\u0437\u0430\u043D\u0438\u0435 \u043E\u0442 \u043F\u0440\u043E\u0444\u0438\u043B\u0430 \u0438\u043B\u0438 zones\u2193." }
+  { tags: ["goal:\u0440\u0435\u0445\u0430\u0431\u0438\u043B\u0438\u0442\u0430\u0446\u0438\u044F \u0441\u043B\u0435\u0434 \u0442\u0440\u0430\u0432\u043C\u0430"], text: "\u0420\u0435\u0445\u0430\u0431: \u0431\u0435\u0437\u0431\u043E\u043B\u0435\u0437\u043D\u0435\u043D ROM; \u043D\u0435 \u0437\u0430\u043C\u0435\u0441\u0442\u0432\u0430 \u0444\u0438\u0437\u0438\u043E\u0442\u0435\u0440\u0430\u043F\u0435\u0432\u0442." },
+  { tags: ["health:\u0445\u0438\u043F\u0435\u0440\u0442\u043E\u043D\u0438\u044F", "health:\u0441\u044A\u0440\u0434\u0435\u0447\u043D\u043E-\u0441\u044A\u0434\u043E\u0432\u043E"], text: "\u0421\u044A\u0440\u0434\u0435\u0447\u043D\u043E-\u0441\u044A\u0434\u043E\u0432 \u0440\u0438\u0441\u043A: \u0431\u0435\u0437 Valsalva/m\u0430\u043A\u0441 singles; rpe\u2264spec; safetyNotes: \u043B\u0435\u043A\u0430\u0440\u0441\u043A\u043E \u043E\u0434\u043E\u0431\u0440\u0435\u043D\u0438\u0435." },
+  { tags: ["health:\u0434\u0438\u0430\u0431\u0435\u0442"], text: "\u0414\u0438\u0430\u0431\u0435\u0442: \u0440\u0435\u0434\u043E\u0432\u043D\u043E\u0441\u0442 > \u0438\u043D\u0442\u0435\u043D\u0437\u0438\u0442\u0435\u0442; \u0432\u043D\u0438\u043C\u0430\u043D\u0438\u0435 \u043F\u0440\u0438 \u0445\u0438\u043F\u043E\u0433\u043B\u0438\u043A\u0435\u043C\u0438\u044F." },
+  { tags: ["health:\u0431\u0440\u0435\u043C\u0435\u043D\u043D\u043E\u0441\u0442"], text: "\u0411\u0440\u0435\u043C\u0435\u043D\u043D\u043E\u0441\u0442: \u043B\u0435\u043A\u0430\u0440\u0441\u043A\u043E \u043E\u0434\u043E\u0431\u0440\u0435\u043D\u0438\u0435. \u0411\u0435\u0437 \u043A\u0440\u0430\u043D\u0447\u043E\u0432\u0435, \u043B\u0435\u0436\u0430\u043D\u043A\u0438 \u043F\u043E \u0433\u0440\u044A\u0431 (\u0441\u043B\u0435\u0434 1-\u0432\u0438 \u0442\u0440\u0438\u043C.), \u0437\u0430\u0434\u044A\u0440\u0436\u0430\u043D\u0435 \u043D\u0430 \u0434\u044A\u0445\u0430, \u043F\u0430\u0434\u0430\u043D\u0438\u044F." },
+  { tags: ["health:\u0441\u043B\u0435\u0434\u0440\u043E\u0434\u0438\u043B\u0435\u043D"], text: "\u0421\u043B\u0435\u0434 \u0440\u0430\u0436\u0434\u0430\u043D\u0435: \u0442\u0430\u0437\u043E\u0432\u043E \u0434\u044A\u043D\u043E \u2192 \u0431\u0430\u0437\u043E\u0432\u0438 \u0434\u0432\u0438\u0436\u0435\u043D\u0438\u044F; \u0431\u0435\u0437 \u043A\u043B\u0430\u0441\u0438\u0447\u0435\u0441\u043A\u0438 \u043F\u0440\u0435\u0441\u0438 \u043F\u0440\u0438 \u0441\u044A\u043C\u043D\u0435\u043D\u0438\u0435 \u0437\u0430 \u0434\u0438\u0430\u0441\u0442\u0430\u0437\u0430." },
+  { tags: ["health:\u043A\u044A\u0440\u043C\u0435\u043D\u0435"], text: "\u041A\u044A\u0440\u043C\u0435\u043D\u0435: \u0443\u043C\u0435\u0440\u0435\u043D \u0438\u043D\u0442\u0435\u043D\u0437\u0438\u0442\u0435\u0442; \u0431\u0435\u0437 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u0434\u043E \u043E\u0442\u043A\u0430\u0437." },
+  { tags: ["health:\u043C\u0435\u043D\u043E\u043F\u0430\u0443\u0437\u0430"], text: "\u041C\u0435\u043D\u043E\u043F\u0430\u0443\u0437\u0430: \u0441\u0438\u043B\u043E\u0432 \u0430\u043A\u0446\u0435\u043D\u0442 (\u043A\u043E\u0441\u0442\u0438); 48\u0447 \u043C\u0435\u0436\u0434\u0443 \u0442\u0435\u0436\u043A\u0438 \u0441\u0435\u0441\u0438\u0438 \u0437\u0430 \u0435\u0434\u043D\u0430 \u0433\u0440\u0443\u043F\u0430." },
+  { tags: ["sleep:\u043B\u043E\u0448\u043E", "stress:\u0432\u0438\u0441\u043E\u043A"], text: "\u041B\u043E\u0448 \u0441\u044A\u043D/\u0441\u0442\u0440\u0435\u0441: -20% \u043E\u0431\u0435\u043C \u043F\u043E\u0434 spec; \u043C\u0430\u043A\u0441 1 HIIT/\u0441\u0435\u0434\u043C." },
+  { tags: ["equipment:\u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u043E"], text: "\u041E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u043E \u043E\u0431\u043E\u0440\u0443\u0434\u0432\u0430\u043D\u0435: tempo/unilateral \u0432\u043C\u0435\u0441\u0442\u043E \u043F\u043E\u0432\u0435\u0447\u0435 \u0442\u0435\u0436\u0435\u0441\u0442." },
+  { tags: ["time:\u0441\u0443\u0442\u0440\u0438\u043D"], text: "\u0421\u0443\u0442\u0440\u0438\u043D: +5 \u043C\u0438\u043D warmup; \u0431\u0435\u0437 \u043C\u0430\u043A\u0441 \u043D\u0430 \u0433\u043B\u0430\u0434\u043D\u043E." },
+  { tags: ["age:50+"], text: "50+: \u0443\u0434\u044A\u043B\u0436\u0435\u043D\u0430 warmup; 48\u201372\u0447 \u043C\u0435\u0436\u0434\u0443 \u0442\u0435\u0436\u043A\u0438 \u0441\u0435\u0441\u0438\u0438." }
 ];
 var TEXT_TAG_RULES = [
   { tag: "goal:\u043E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435", keys: ["\u043E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435", "\u043B\u0438\u043F\u043E\u043B\u0438\u0437\u0430", "\u043E\u0442\u0441\u043B\u0430\u0431", "\u0441\u0432\u0430\u043B\u044F", "\u0434\u0435\u0444\u0438\u0446\u0438\u0442", "liss", "goal:\u043E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435"] },
@@ -2751,9 +3150,9 @@ function buildTrainerSystemAddon(adminConfig, tagSet, layers = null, options = {
   if (!foundation && !individual.length && !architecture.length && !schemeMode) return "";
   const parts = ["<trainer_rules>"];
   if (schemeMode) {
-    parts.push("\u0421\u0445\u0435\u043C\u0430\u0442\u0430 \u0432 user \u0435 \u0430\u0431\u0441\u043E\u043B\u044E\u0442\u043D\u0430. \u0422\u0443\u043A \u0441\u0430\u043C\u043E \u0434\u043E\u043F\u044A\u043B\u043D\u0435\u043D\u0438\u044F \u2014 \u0431\u0435\u0437 \u043F\u0440\u043E\u043C\u044F\u043D\u0430 \u043D\u0430 \u0434\u043D\u0438, \u043E\u0431\u0435\u043C \u0438\u043B\u0438 \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F.");
+    parts.push("\u0421\u0445\u0435\u043C\u0430\u0442\u0430 \u0435 \u0430\u0431\u0441\u043E\u043B\u044E\u0442\u043D\u0430. \u0422\u0443\u043A \u0441\u0430\u043C\u043E \u0434\u0435\u043B\u0442\u0430 \u2014 \u0431\u0435\u0437 \u043F\u0440\u043E\u043C\u044F\u043D\u0430 \u043D\u0430 \u0434\u043D\u0438/\u043E\u0431\u0435\u043C/\u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F.");
   } else {
-    parts.push("\u0414\u0435\u043B\u0442\u0430 \u043D\u0430\u0434 <program_spec> \u2014 \u043D\u0435 \u043F\u043E\u0432\u0442\u0430\u0440\u044F\u0439 \u0441\u043F\u043B\u0438\u0442, \u043E\u0431\u0435\u043C, reps/rest. individual_guidelines > architecture_guidelines.");
+    parts.push("\u0421\u0430\u043C\u043E \u0434\u0435\u043B\u0442\u0430 \u043D\u0430\u0434 program_spec. individual > architecture.");
   }
   if (foundation) parts.push(`<foundation>
 ${foundation}
@@ -3145,6 +3544,51 @@ function auditPlanGenderFit(plan, clientTags) {
   }
   return { ok: issues.length === 0, issues };
 }
+var HEAVY_COMPOUND_RE = /bench press|barbell squat|back squat|deadlift|hip thrust|leg press/i;
+function auditPlanSessionStructure(plan, programSpec = null) {
+  const dayTypes = programSpec?.dayTypes;
+  if (!dayTypes?.length) return [];
+  const typeByDay = new Map(dayTypes.map((d) => [normalizeText(d.day), d.type]));
+  const issues = [];
+  for (const day of plan?.days || []) {
+    const key = normalizeText(day.day);
+    const expected = typeByDay.get(key);
+    if (!expected || expected === "rest") continue;
+    const sessionType = day.type || expected;
+    if (sessionType !== expected) {
+      issues.push(`${day.day}: dayFocus ${sessionType} \u2260 \u043E\u0447\u0430\u043A\u0432\u0430\u043D ${expected} \u043E\u0442 program_spec`);
+    }
+    if (day.type === "rest" && !day.exercises?.length) continue;
+    if (!day.warmup?.length) issues.push(`${day.day}: \u043B\u0438\u043F\u0441\u0432\u0430 warmup (3 \u0441\u0442\u044A\u043F\u043A\u0438)`);
+    if (!day.cooldown?.length) issues.push(`${day.day}: \u043B\u0438\u043F\u0441\u0432\u0430 cooldown (3 \u0441\u0442\u044A\u043F\u043A\u0438)`);
+    if (expected === "mobility") {
+      for (const ex of day.exercises || []) {
+        const name = String(ex.canonicalName || ex.displayName || "");
+        if (HEAVY_COMPOUND_RE.test(name)) {
+          issues.push(`${day.day}: \u201E${name}\u201C \u043D\u0435 \u0435 \u0437\u0430 \u043E\u0441\u043D\u043E\u0432\u0435\u043D mobility \u0431\u043B\u043E\u043A \u2014 \u043F\u0440\u0435\u043C\u0435\u0441\u0442\u0438 \u0432 \u0441\u0438\u043B\u043E\u0432 \u0434\u0435\u043D \u0438\u043B\u0438 \u043C\u0430\u0445\u043D\u0438`);
+        }
+      }
+    }
+  }
+  return issues;
+}
+function auditPlanExerciseProfile(plan, exerciseProfile, index = []) {
+  if (!exerciseProfile || !index?.length) return [];
+  const byNorm = new Map(index.map((e) => [normalizeText(e.name), e]));
+  const issues = [];
+  for (const day of plan?.days || []) {
+    if (day.type === "rest") continue;
+    for (const ex of day.exercises || []) {
+      const name = String(ex.canonicalName || ex.displayName || "");
+      const entry = byNorm.get(normalizeText(name));
+      if (!entry) continue;
+      if (!fitsExerciseProfile(entry, exerciseProfile)) {
+        issues.push(`${day.day}: \u201E${name}\u201C d${entry.diff ?? 2} > max d${exerciseProfile.maxDiff} \u043E\u0442 spec`);
+      }
+    }
+  }
+  return issues;
+}
 var CHEST_IMPLANT_RE = /bench|fly|chest press|push-?up|pec deck|crossover|dip|пек.?дек|избутване от лежанка|лъжичк/i;
 var LATERAL_RAISE_RE = /lateral raise|side raise|страничн/i;
 function auditPlanConstraints(plan, constraints = {}) {
@@ -3184,17 +3628,28 @@ function auditPlanEquipment(plan, allowedEquipment) {
   }
   return { ok: issues.length === 0, issues };
 }
-function auditPlan(plan, { clientTags = null, constraints = null, allowedEquipment = null } = {}) {
+function auditPlan(plan, {
+  clientTags = null,
+  constraints = null,
+  allowedEquipment = null,
+  programSpec = null,
+  exerciseProfile = null,
+  exerciseIndex = null
+} = {}) {
   const issues = [];
   const gender = auditPlanGenderFit(plan, clientTags);
   if (!gender.ok) issues.push(...gender.issues);
   issues.push(...auditPlanConstraints(plan, constraints || {}));
+  issues.push(...auditPlanSessionStructure(plan, programSpec));
+  issues.push(...auditPlanExerciseProfile(plan, exerciseProfile, exerciseIndex));
   const equip = auditPlanEquipment(plan, allowedEquipment);
   if (!equip.ok) issues.push(...equip.issues);
   return { ok: issues.length === 0, issues };
 }
 function auditRetryHint(issues = []) {
   const joined = issues.join(" ");
+  if (/d\d.*> max|maxDiff|d≤/i.test(joined)) return DIFF_RETRY_HINT;
+  if (/dayFocus|warmup|cooldown|session_principles|основен mobility/i.test(joined)) return SESSION_STRUCTURE_RETRY_HINT;
   if (/имплант|забранено|гърди/i.test(joined)) return CONSTRAINT_RETRY_HINT;
   if (/оборудване/i.test(joined)) return EQUIPMENT_RETRY_HINT;
   if (/дупе|мъжки|bench|press/i.test(joined)) return GENDER_FIT_RETRY_HINT;
@@ -3236,9 +3691,14 @@ function preparePlanGeneration(source, adminConfig, helpers) {
       clientTags: tags,
       hasScheme: structuredScheme,
       strictAssembly,
-      exerciseProfile: answers?.gender ? exerciseProfileFromAnswers(answers) : null,
+      exerciseProfile: strictAssembly ? null : exerciseProfileFromContext({
+        answers,
+        tags,
+        profileText: [profileText, schemeText].filter(Boolean).join("\n")
+      }),
       constraints: planConstraints,
-      schemeKind
+      schemeKind,
+      programSpec
     };
   }
   if (source.clientAnswers || source.strictScheme) {
@@ -3275,7 +3735,7 @@ var DATASET_URL_CANDIDATES = [
   "https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@main/data/exercises.json",
   "https://raw.githubusercontent.com/hasaneyldrm/exercises-dataset/main/data/exercises.json"
 ];
-var EXERCISE_INDEX_KV_KEY = "exidx:v1";
+var EXERCISE_INDEX_KV_KEY = "exidx:v2";
 var EXERCISE_INDEX_TTL = 60 * 60 * 24 * 30;
 var PLAN_TTL = 60 * 60 * 24 * 90;
 var MATCH_THRESHOLD = 0.35;
@@ -3310,16 +3770,13 @@ function jsonResponse(data, status = 200, extraHeaders = {}) {
 function errorResponse(message, status = 400, code = "error") {
   return jsonResponse({ success: false, code, message }, status);
 }
-function tokenOverlapScore(queryTokens, candidateTokens) {
-  if (!queryTokens.length || !candidateTokens.length) return 0;
-  const candidateSet = new Set(candidateTokens);
-  let overlap = 0;
-  for (const token of new Set(queryTokens)) {
-    if (candidateSet.has(token)) overlap++;
-  }
-  return overlap / Math.max(new Set(queryTokens).size, candidateSet.size);
-}
-function matchExercise(index, { canonicalName, equipmentHint, bodyPart, allowedEquipment = null }) {
+function matchExercise(index, {
+  canonicalName,
+  equipmentHint,
+  bodyPart,
+  allowedEquipment = null,
+  exerciseProfile = null
+}) {
   if (!index || !index.length) return null;
   const queryTokens = tokenize(canonicalName);
   const equipNorm = normalizeText(equipmentHint);
@@ -3328,13 +3785,15 @@ function matchExercise(index, { canonicalName, equipmentHint, bodyPart, allowedE
   let bestScore = 0;
   for (const entry of index) {
     if (!passesEquipment(entry, allowedEquipment)) continue;
+    if (exerciseProfile && !fitsExerciseProfile(entry, exerciseProfile)) continue;
     let score = tokenOverlapScore(queryTokens, entry.tokens);
     if (score === 0) continue;
     if (equipNorm && entry.equipNorm && (entry.equipNorm.includes(equipNorm) || equipNorm.includes(entry.equipNorm))) {
       score += 0.15;
     }
-    if (bodyNorm && (entry.targetNorm === bodyNorm || entry.bodyNorm === bodyNorm)) {
-      score += 0.1;
+    if (bodyNorm) {
+      if (entry.targetNorm === bodyNorm || entry.bodyNorm === bodyNorm) score += 0.1;
+      else score -= 0.25;
     }
     if (score > bestScore) {
       bestScore = score;
@@ -3345,11 +3804,12 @@ function matchExercise(index, { canonicalName, equipmentHint, bodyPart, allowedE
     return { entry: best, score: Math.min(1, Number(bestScore.toFixed(3))), usedFallback: false };
   }
   const fallback = index.find(
-    (e) => passesEquipment(e, allowedEquipment) && (bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm)) && (!equipNorm || e.equipNorm === equipNorm)
+    (e) => passesEquipment(e, allowedEquipment) && (!exerciseProfile || fitsExerciseProfile(e, exerciseProfile)) && (bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm)) && (!equipNorm || e.equipNorm === equipNorm)
   ) || index.find(
-    (e) => passesEquipment(e, allowedEquipment) && bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm)
+    (e) => passesEquipment(e, allowedEquipment) && (!exerciseProfile || fitsExerciseProfile(e, exerciseProfile)) && bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm)
   );
   if (fallback) return { entry: fallback, score: 0, usedFallback: true };
+  if (bodyNorm) return null;
   return best ? { entry: best, score: Math.min(1, Number(bestScore.toFixed(3))), usedFallback: true } : null;
 }
 function findAlternatives(index, matchedEntry, {
@@ -3414,20 +3874,6 @@ function buildCompactIndex(rawList, translations = {}, metadata = {}) {
 }
 var bundledMetadata = null;
 var bundledTranslations = null;
-async function loadExerciseMetadata(env) {
-  if (env?.FITNESS_KV) {
-    try {
-      const kv = await env.FITNESS_KV.get(EXERCISE_METADATA_KV_KEY, { type: "json" });
-      if (kv && typeof kv === "object" && Object.keys(kv).length) {
-        bundledMetadata = kv;
-        return kv;
-      }
-    } catch (e) {
-      console.error("KV read \u0437\u0430 exercise metadata \u043F\u0440\u043E\u043F\u0430\u0434\u043D\u0430:", e.message);
-    }
-  }
-  return loadBundledMetadata();
-}
 async function loadBundledMetadata() {
   if (bundledMetadata !== null) return bundledMetadata;
   try {
@@ -3437,6 +3883,20 @@ async function loadBundledMetadata() {
     bundledMetadata = {};
   }
   return bundledMetadata;
+}
+async function loadExerciseMetadata(env) {
+  const bundled = await loadBundledMetadata();
+  if (env?.FITNESS_KV) {
+    try {
+      const kv = await env.FITNESS_KV.get(EXERCISE_METADATA_KV_KEY, { type: "json" });
+      if (kv && typeof kv === "object" && Object.keys(kv).length) {
+        return { ...bundled, ...kv };
+      }
+    } catch (e) {
+      console.error("KV read \u0437\u0430 exercise metadata \u043F\u0440\u043E\u043F\u0430\u0434\u043D\u0430:", e.message);
+    }
+  }
+  return bundled;
 }
 async function saveExerciseMetadata(env, metadata) {
   await env.FITNESS_KV.put(EXERCISE_METADATA_KV_KEY, JSON.stringify(metadata));
@@ -3701,13 +4161,13 @@ function parseAiJson(text) {
 function isPlanParseError(err) {
   return /JSON|Планът|дни|отрязан|MAX_TOKENS/i.test(String(err?.message || "")) || Boolean(err?.truncated);
 }
-var DAY_NAMES = ["\u041F\u043E\u043D\u0435\u0434\u0435\u043B\u043D\u0438\u043A", "\u0412\u0442\u043E\u0440\u043D\u0438\u043A", "\u0421\u0440\u044F\u0434\u0430", "\u0427\u0435\u0442\u0432\u044A\u0440\u0442\u044A\u043A", "\u041F\u0435\u0442\u044A\u043A", "\u0421\u044A\u0431\u043E\u0442\u0430", "\u041D\u0435\u0434\u0435\u043B\u044F"];
+var DAY_NAMES2 = ["\u041F\u043E\u043D\u0435\u0434\u0435\u043B\u043D\u0438\u043A", "\u0412\u0442\u043E\u0440\u043D\u0438\u043A", "\u0421\u0440\u044F\u0434\u0430", "\u0427\u0435\u0442\u0432\u044A\u0440\u0442\u044A\u043A", "\u041F\u0435\u0442\u044A\u043A", "\u0421\u044A\u0431\u043E\u0442\u0430", "\u041D\u0435\u0434\u0435\u043B\u044F"];
 function normalizePlan(plan) {
   if (!plan || typeof plan !== "object") throw new Error("\u041F\u043B\u0430\u043D\u044A\u0442 \u043B\u0438\u043F\u0441\u0432\u0430");
   const days = Array.isArray(plan.days) ? plan.days : [];
   if (!days.length) throw new Error("\u041F\u043B\u0430\u043D\u044A\u0442 \u043D\u044F\u043C\u0430 \u0434\u043D\u0438");
   const normDays = days.slice(0, 7).map((d, i) => ({
-    day: String(d.day || DAY_NAMES[i] || `\u0414\u0435\u043D ${i + 1}`),
+    day: String(d.day || DAY_NAMES2[i] || `\u0414\u0435\u043D ${i + 1}`),
     focus: String(d.focus || ""),
     type: String(d.type || "strength"),
     durationMin: Number(d.durationMin) || null,
@@ -3732,7 +4192,7 @@ function normalizePlan(plan) {
   }));
   while (normDays.length < 7) {
     normDays.push({
-      day: DAY_NAMES[normDays.length],
+      day: DAY_NAMES2[normDays.length],
       focus: "\u041F\u043E\u0447\u0438\u0432\u043A\u0430 \u0438 \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435",
       type: "rest",
       durationMin: null,
@@ -3755,9 +4215,9 @@ function normalizePlan(plan) {
     }
   };
 }
-function entryToClientExercise(env, entry) {
+function entryToClientExercise(env, entry, { includeInstructions = true } = {}) {
   const displayName = entry.nameBg || localizeExerciseDisplayName(entry.name, "", entry.equipment);
-  return {
+  const out = {
     id: entry.id,
     name: entry.name,
     displayName,
@@ -3766,10 +4226,13 @@ function entryToClientExercise(env, entry) {
     target: entry.target,
     bodyPart: entry.bodyPart,
     imageUrl: mediaUrl(env, entry.image),
-    gifUrl: mediaUrl(env, entry.gif),
-    instructions: entry.instructions || "",
-    instructionsLang: entry.instructionsLang || ""
+    gifUrl: mediaUrl(env, entry.gif)
   };
+  if (includeInstructions) {
+    out.instructions = entry.instructions || "";
+    out.instructionsLang = entry.instructionsLang || "";
+  }
+  return out;
 }
 function enrichPlanWithExercises(plan, index, { allowedEquipment = null, env = {}, exerciseProfile = null } = {}) {
   if (!index) return plan;
@@ -3780,7 +4243,8 @@ function enrichPlanWithExercises(plan, index, { allowedEquipment = null, env = {
         canonicalName: ex.canonicalName,
         equipmentHint: ex.equipmentHint,
         bodyPart: ex.bodyPart,
-        allowedEquipment
+        allowedEquipment,
+        exerciseProfile
       });
       const needsSwap = result?.entry && (allowedEquipment && !passesEquipment(result.entry, allowedEquipment) || exerciseProfile && !fitsExerciseProfile(result.entry, exerciseProfile));
       if (needsSwap) {
@@ -3861,7 +4325,8 @@ async function executePlanGeneration(env, ctx, {
   hasScheme = false,
   strictAssembly = false,
   exerciseProfile = null,
-  constraints = null
+  constraints = null,
+  programSpec = null
 }) {
   const indexPromise = loadExerciseIndex(env, ctx);
   const tagSet = clientTags instanceof Set ? clientTags : new Set(clientTags || []);
@@ -3871,7 +4336,9 @@ async function executePlanGeneration(env, ctx, {
   if (!strictAssembly) {
     const index2 = await indexPromise;
     if (index2?.length) {
-      catalogBlock = buildExerciseCatalogSnippet(index2, exerciseProfile, allowedEquipment);
+      catalogBlock = buildExerciseCatalogSnippet(index2, exerciseProfile, allowedEquipment, {
+        modalities: programSpec?.weekModalities || null
+      });
     }
   }
   const baseUser = catalogBlock ? `${userPrompt}
@@ -3908,7 +4375,15 @@ ${catalogBlock}` : userPrompt;
       rawText = await callAI(env, aiOpts);
       plan = normalizePlan(parseAiJson(rawText));
       if (!strictAssembly) {
-        const planAudit = auditPlan(plan, { clientTags: tagSet, constraints, allowedEquipment });
+        const index2 = await indexPromise;
+        const planAudit = auditPlan(plan, {
+          clientTags: tagSet,
+          constraints,
+          allowedEquipment,
+          programSpec,
+          exerciseProfile,
+          exerciseIndex: index2
+        });
         if (!planAudit.ok && attempt < maxAttempts - 1) {
           lastFailure = "audit";
           lastAuditIssues = planAudit.issues;
@@ -3956,7 +4431,7 @@ async function handleGeneratePlan(request, env, ctx) {
     return errorResponse(`\u0414\u043E\u0441\u0442\u0438\u0433\u043D\u0430\u0442 \u0435 \u0434\u043D\u0435\u0432\u043D\u0438\u044F\u0442 \u043B\u0438\u043C\u0438\u0442 \u043E\u0442 ${genLimit} \u0433\u0435\u043D\u0435\u0440\u0430\u0446\u0438\u0438. \u041E\u043F\u0438\u0442\u0430\u0439 \u043E\u0442\u043D\u043E\u0432\u043E \u0443\u0442\u0440\u0435.`, 429, "rate_limited");
   }
   const adminGuidelines = await loadAdminGuidelines(env);
-  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile, constraints } = preparePlanGeneration(
+  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile, constraints, programSpec } = preparePlanGeneration(
     { answers },
     adminGuidelines,
     { buildProfileSummary, allowedEquipmentSet }
@@ -3974,7 +4449,8 @@ async function handleGeneratePlan(request, env, ctx) {
       hasScheme,
       strictAssembly,
       exerciseProfile,
-      constraints
+      constraints,
+      programSpec
     }));
   } catch (e) {
     if (isPlanParseError(e)) {
@@ -4075,28 +4551,49 @@ ${trainerGuidelines}` : "",
   }
   return jsonResponse({ success: true, reply: reply.trim(), messagesRemaining: rl.remaining });
 }
+function csvParam(url, key) {
+  const raw = url.searchParams.get(key) || "";
+  return raw.split(",").map((s) => s.trim()).filter(Boolean);
+}
+function numParam(url, key) {
+  const raw = url.searchParams.get(key);
+  if (raw === null || raw === "") return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
 async function handleExerciseSearch(url, env, ctx) {
   const index = await loadExerciseIndex(env, ctx);
   if (!index) return errorResponse("\u0411\u0430\u0437\u0430\u0442\u0430 \u0441 \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F \u043D\u0435 \u0435 \u043D\u0430\u043B\u0438\u0447\u043D\u0430", 503);
-  const q = url.searchParams.get("q") || "";
-  const equipment = url.searchParams.get("equipment") || "";
-  const target = url.searchParams.get("target") || "";
-  const queryTokens = tokenize(q);
-  const equipNorm = normalizeText(equipment);
-  const targetNorm = normalizeText(target);
-  const results = [];
-  for (const entry of index) {
-    if (equipNorm && entry.equipNorm !== equipNorm) continue;
-    if (targetNorm && entry.targetNorm !== targetNorm && entry.bodyNorm !== targetNorm) continue;
-    const score = queryTokens.length ? tokenOverlapScore(queryTokens, entry.tokens) : 0.01;
-    if (score > 0) results.push({ score, entry });
-  }
-  results.sort((a, b) => b.score - a.score);
-  return jsonResponse({
+  const { total, results } = searchExerciseIndex(index, {
+    q: url.searchParams.get("q") || "",
+    equipment: csvParam(url, "equipment"),
+    target: csvParam(url, "target"),
+    modality: csvParam(url, "modality"),
+    diffMin: numParam(url, "diffMin"),
+    diffMax: numParam(url, "diffMax"),
+    minGf: numParam(url, "minGf"),
+    minGm: numParam(url, "minGm"),
+    limit: Math.min(100, Math.max(1, numParam(url, "limit") || 40)),
+    offset: Math.max(0, numParam(url, "offset") || 0)
+  });
+  const payload = {
     success: true,
     count: results.length,
-    results: results.slice(0, 20).map(({ score, entry }) => ({ score, ...entryToClientExercise(env, entry) }))
-  }, 200, { "Cache-Control": "public, max-age=3600" });
+    total,
+    results: results.map(({ score, entry }) => ({
+      score,
+      ...entryToClientExercise(env, entry, { includeInstructions: false }),
+      diff: entry.diff ?? 2,
+      gf: entry.gf ?? 70,
+      gm: entry.gm ?? 70,
+      modality: inferExerciseModality(entry),
+      flags: entry.flags || []
+    }))
+  };
+  if (url.searchParams.get("facets") === "1") {
+    payload.facets = computeExerciseFacets(index);
+  }
+  return jsonResponse(payload, 200, { "Cache-Control": "public, max-age=1800" });
 }
 async function handleGetAdminGuidelines(request, env) {
   if (!checkAdminSecret(request, env)) return errorResponse("\u041D\u0435\u043E\u0442\u043E\u0440\u0438\u0437\u0438\u0440\u0430\u043D \u0434\u043E\u0441\u0442\u044A\u043F", 401, "unauthorized");
@@ -4512,7 +5009,7 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
     clientName: record.clientName,
     clientContact: record.clientContact
   };
-  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile, constraints } = preparePlanGeneration(
+  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile, constraints, programSpec } = preparePlanGeneration(
     genSource,
     adminGuidelines,
     { buildProfileSummary, allowedEquipmentSet }
@@ -4530,7 +5027,8 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
       hasScheme,
       strictAssembly,
       exerciseProfile,
-      constraints
+      constraints,
+      programSpec
     }));
   } catch (e) {
     if (isPlanParseError(e)) {
@@ -4589,6 +5087,58 @@ async function handleApproveClientProgram(request, env, id) {
   await saveClientProgram(env, record);
   const path = `fitness/app.html?plan=${record.planId}`;
   return jsonResponse({ success: true, planId: record.planId, path, program: clientProgramPublicView(record) });
+}
+async function handleAdminGetClientProgramPlan(request, env, ctx, id) {
+  if (!checkAdminSecret(request, env)) return errorResponse("\u041D\u0435\u043E\u0442\u043E\u0440\u0438\u0437\u0438\u0440\u0430\u043D \u0434\u043E\u0441\u0442\u044A\u043F", 401, "unauthorized");
+  if (!env.FITNESS_KV) return errorResponse("KV \u043D\u0435 \u0435 \u043A\u043E\u043D\u0444\u0438\u0433\u0443\u0440\u0438\u0440\u0430\u043D\u043E", 500);
+  const record = await loadClientProgram(env, id);
+  if (!record) return errorResponse("\u041F\u0440\u043E\u0433\u0440\u0430\u043C\u0430\u0442\u0430 \u043D\u0435 \u0435 \u043D\u0430\u043C\u0435\u0440\u0435\u043D\u0430", 404, "not_found");
+  if (!record.planId) return errorResponse("\u041D\u044F\u043C\u0430 \u0433\u0435\u043D\u0435\u0440\u0438\u0440\u0430\u043D \u043F\u043B\u0430\u043D \u2014 \u0433\u0435\u043D\u0435\u0440\u0438\u0440\u0430\u0439 \u043F\u044A\u0440\u0432\u043E \u0441 AI", 404, "not_found");
+  const planRecord = await env.FITNESS_KV.get(`plan:${record.planId}`, { type: "json" });
+  if (!planRecord?.plan) return errorResponse("\u041F\u043B\u0430\u043D\u044A\u0442 \u043D\u0435 \u0435 \u043D\u0430\u043C\u0435\u0440\u0435\u043D. \u0413\u0435\u043D\u0435\u0440\u0438\u0440\u0430\u0439 \u043E\u0442\u043D\u043E\u0432\u043E.", 404, "not_found");
+  const index = await loadExerciseIndex(env, ctx);
+  const allowed = planRecord.allowedEquipment ? new Set(planRecord.allowedEquipment) : null;
+  const plan = index ? enrichPlanWithExercises(JSON.parse(JSON.stringify(planRecord.plan)), index, { env, allowedEquipment: allowed }) : planRecord.plan;
+  return jsonResponse({
+    success: true,
+    planId: record.planId,
+    plan,
+    status: planRecord.status || "draft"
+  }, 200, { "Cache-Control": "private, no-cache, no-store, must-revalidate" });
+}
+async function handleAdminUpdateClientProgramPlan(request, env, ctx, id) {
+  if (!checkAdminSecret(request, env)) return errorResponse("\u041D\u0435\u043E\u0442\u043E\u0440\u0438\u0437\u0438\u0440\u0430\u043D \u0434\u043E\u0441\u0442\u044A\u043F", 401, "unauthorized");
+  if (!env.FITNESS_KV) return errorResponse("KV \u043D\u0435 \u0435 \u043A\u043E\u043D\u0444\u0438\u0433\u0443\u0440\u0438\u0440\u0430\u043D\u043E", 500);
+  const record = await loadClientProgram(env, id);
+  if (!record) return errorResponse("\u041F\u0440\u043E\u0433\u0440\u0430\u043C\u0430\u0442\u0430 \u043D\u0435 \u0435 \u043D\u0430\u043C\u0435\u0440\u0435\u043D\u0430", 404, "not_found");
+  if (!record.planId) return errorResponse("\u041D\u044F\u043C\u0430 \u0433\u0435\u043D\u0435\u0440\u0438\u0440\u0430\u043D \u043F\u043B\u0430\u043D \u0437\u0430 \u0440\u0435\u0434\u0430\u043A\u0446\u0438\u044F", 404, "not_found");
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return errorResponse("\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON", 400);
+  }
+  if (!body?.plan) return errorResponse("\u041B\u0438\u043F\u0441\u0432\u0430 \u043F\u043B\u0430\u043D", 400);
+  let plan;
+  try {
+    plan = normalizePlan(body.plan);
+  } catch (e) {
+    return errorResponse(`\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u0435\u043D \u043F\u043B\u0430\u043D: ${e.message}`, 400);
+  }
+  const planRecord = await env.FITNESS_KV.get(`plan:${record.planId}`, { type: "json" });
+  if (!planRecord) return errorResponse("\u041F\u043B\u0430\u043D\u044A\u0442 \u043D\u0435 \u0435 \u043D\u0430\u043C\u0435\u0440\u0435\u043D. \u0413\u0435\u043D\u0435\u0440\u0438\u0440\u0430\u0439 \u043E\u0442\u043D\u043E\u0432\u043E.", 404, "not_found");
+  const index = await loadExerciseIndex(env, ctx);
+  const allowed = planRecord.allowedEquipment ? new Set(planRecord.allowedEquipment) : null;
+  if (index) enrichPlanWithExercises(plan, index, { env, allowedEquipment: allowed });
+  sanitizePlanBulgarian(plan);
+  const now = (/* @__PURE__ */ new Date()).toISOString();
+  planRecord.plan = plan;
+  planRecord.editedAt = now;
+  await env.FITNESS_KV.put(`plan:${record.planId}`, JSON.stringify(planRecord), { expirationTtl: PLAN_TTL });
+  record.planTitle = plan.title || record.planTitle;
+  record.updatedAt = now;
+  await saveClientProgram(env, record);
+  return jsonResponse({ success: true, plan, program: clientProgramPublicView(record) });
 }
 async function deleteClientProgramRecord(env, id) {
   const record = await loadClientProgram(env, id);
@@ -4679,6 +5229,13 @@ var worker_default = {
       const clientProgramApproveMatch = path.match(/^\/api\/admin\/fitplan\/client-programs\/([A-Za-z0-9_-]+)\/approve$/);
       if (request.method === "POST" && clientProgramApproveMatch) {
         return await handleApproveClientProgram(request, env, clientProgramApproveMatch[1]);
+      }
+      const clientProgramPlanMatch = path.match(/^\/api\/admin\/fitplan\/client-programs\/([A-Za-z0-9_-]+)\/plan$/);
+      if (request.method === "GET" && clientProgramPlanMatch) {
+        return await handleAdminGetClientProgramPlan(request, env, ctx, clientProgramPlanMatch[1]);
+      }
+      if (request.method === "POST" && clientProgramPlanMatch) {
+        return await handleAdminUpdateClientProgramPlan(request, env, ctx, clientProgramPlanMatch[1]);
       }
       const clientProgramDeleteMatch = path.match(/^\/api\/admin\/fitplan\/client-programs\/([A-Za-z0-9_-]+)(?:\/delete)?$/);
       if (request.method === "DELETE" && clientProgramDeleteMatch) {
@@ -7752,9 +8309,9 @@ function buildFreeMealInstruction(strategy, startDay, endDay) {
   return `
 
 === \u0421\u0412\u041E\u0411\u041E\u0414\u041D\u041E \u0425\u0420\u0410\u041D\u0415\u041D\u0415 (\u0414\u0435\u043D ${dayNum}) ===
-\u0417\u0410\u0414\u042A\u041B\u0416\u0418\u0422\u0415\u041B\u041D\u041E \u0437\u0430 \u0434\u0435\u043D ${dayNum}: \u0417\u0410\u041C\u0415\u041D\u0418 \u0425\u0440\u0430\u043D\u0435\u043D\u0435 2 (\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2 \u041D\u0415 \u0441\u0435 \u0433\u0435\u043D\u0435\u0440\u0438\u0440\u0430!) \u0441 \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0442\u043E\u0447\u043D\u043E \u0442\u0430\u043A\u0430: {"type": "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435", "name": "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435", "weight": "-"} \u2014 \u0411\u0415\u0417 \u043F\u043E\u043B\u0435 "calories" \u0438 \u0411\u0415\u0417 \u043F\u043E\u043B\u0435 "macros" \u0437\u0430 \u0442\u043E\u0432\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435!
-\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1 \u0438 \u0425\u0440\u0430\u043D\u0435\u043D\u0435 4 \u0437\u0430 \u0434\u0435\u043D ${dayNum} \u0433\u0435\u043D\u0435\u0440\u0438\u0440\u0430\u0439 \u041D\u041E\u0420\u041C\u0410\u041B\u041D\u041E \u0441 \u043A\u0430\u043B\u043E\u0440\u0438\u0438 \u0438 \u043C\u0430\u043A\u0440\u043E\u0441\u0438.
-dailyTotals \u0437\u0430 \u0434\u0435\u043D ${dayNum}: \u0432\u043A\u043B\u044E\u0447\u0432\u0430\u0439 \u043F\u043B\u0430\u043D\u0438\u0440\u0430\u043D\u0438\u0442\u0435 \u043A\u0430\u043B\u043E\u0440\u0438\u0438 \u0437\u0430 \u0425\u0440\u0430\u043D\u0435\u043D\u0435 2 \u0441\u043B\u043E\u0442 (\u043E\u0442 strategy mealBreakdown) \u0437\u0430 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u043E\u0442\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435, \u043F\u043B\u044E\u0441 \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u043E\u0442 \u0432\u0441\u0438\u0447\u043A\u0438 \u043E\u0441\u0442\u0430\u043D\u0430\u043B\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F.`;
+\u0417\u0410\u0414\u042A\u041B\u0416\u0418\u0422\u0415\u041B\u041D\u041E \u0437\u0430 \u0434\u0435\u043D ${dayNum}: \u0417\u0410\u041C\u0415\u041D\u0418 \u0425\u0440\u0430\u043D\u0435\u043D\u0435 2 (\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2 \u041D\u0415 \u0441\u0435 \u0433\u0435\u043D\u0435\u0440\u0438\u0440\u0430!) \u0441 \u0442\u043E\u0447\u043D\u043E: {"type": "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435", "name": "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435"} \u2014 \u0411\u0415\u0417 description, calories, macros, weight, benefits \u0438\u043B\u0438 dessert.
+\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1 \u0438 \u0425\u0440\u0430\u043D\u0435\u043D\u0435 4 \u0437\u0430 \u0434\u0435\u043D ${dayNum} \u0433\u0435\u043D\u0435\u0440\u0438\u0440\u0430\u0439 \u041D\u041E\u0420\u041C\u0410\u041B\u041D\u041E. \u0425\u0440\u0430\u043D\u0435\u043D\u0435 4 \u0432 \u0442\u043E\u0437\u0438 \u0434\u0435\u043D \u2014 \u043B\u0435\u043A\u0430 \u0432\u0435\u0447\u0435\u0440\u044F \u0411\u0415\u0417 \u043E\u0440\u0438\u0437/\u043A\u0430\u0440\u0442\u043E\u0444\u0438/\u0445\u043B\u044F\u0431/\u043F\u0430\u0441\u0442\u0430.
+\u041A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u0437\u0430 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u0438\u044F \u043E\u0431\u0435\u0434\u0435\u043D \u0441\u043B\u043E\u0442 \u0438\u0434\u0432\u0430\u0442 \u043E\u0442 strategy mealBreakdown \u0438 \u0441\u0435 \u0432\u043A\u043B\u044E\u0447\u0432\u0430\u0442 \u0432 dailyTotals \u043E\u0442 \u0431\u0435\u043A\u0435\u043D\u0434\u0430.`;
 }
 function enforceWeekendFreeDay(strategy) {
   if (!strategy || strategy.freeDayNumber == null) return;
@@ -7762,6 +8319,19 @@ function enforceWeekendFreeDay(strategy) {
   if (!isNaN(d) && (d < 6 || d > 7)) {
     strategy.freeDayNumber = 7;
   }
+}
+function normalizeStrategyDessertFlag(strategy, userData) {
+  if (!strategy || strategy.includeDessert !== void 0) return;
+  if (!userHasSweetsCraving(userData?.foodCravings)) {
+    strategy.includeDessert = false;
+    return;
+  }
+  const conditions = userData?.medicalConditions;
+  const blocked = Array.isArray(conditions) && conditions.some((c) => {
+    const s = String(c);
+    return s.includes("\u0414\u0438\u0430\u0431\u0435\u0442") || s.includes("\u0418\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430 \u0440\u0435\u0437\u0438\u0441\u0442\u0435\u043D\u0442\u043D\u043E\u0441\u0442");
+  });
+  strategy.includeDessert = !blocked;
 }
 async function isAILoggingEnabled(env) {
   const now = Date.now();
@@ -8717,6 +9287,10 @@ async function handleGetPlanJobStatus(request, env) {
   if (!raw) return jsonResponse2({ status: "not_found" });
   return jsonResponse2(JSON.parse(raw));
 }
+function chatContextHasMealGrams(text) {
+  if (!text) return false;
+  return text.split("\n").some((line2) => /^day\d+\|/.test(line2) && /\|\d+\|\d+\|\d+\|\d+\|\d+\|/.test(line2));
+}
 async function handleChat(request, env) {
   try {
     const body = await request.json();
@@ -8734,15 +9308,17 @@ async function handleChat(request, env) {
       return jsonResponse2({ error: ERROR_MESSAGES.MISSING_MESSAGE }, 400);
     }
     let effectiveContextText = contextText;
-    if (!effectiveContextText && userData && userPlan) {
-      effectiveContextText = buildChatContext(
+    if (userData && userPlan) {
+      const serverContext = buildChatContext(
         userData,
         userPlan,
         message,
         mode || "consultation"
       ).contextText;
-    }
-    if (!effectiveContextText) {
+      if (!chatContextHasMealGrams(effectiveContextText)) {
+        effectiveContextText = serverContext;
+      }
+    } else if (!effectiveContextText) {
       return jsonResponse2({ error: ERROR_MESSAGES.MISSING_CONTEXT }, 400);
     }
     const effectiveUserData = userData || {};
@@ -12194,6 +12770,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
       strategy = parseAIResponse(strategyResponse);
       enforceWeekendFreeDay(strategy);
+      normalizeStrategyDessertFlag(strategy, data);
       normalizeWeeklyScheme(strategy, parseFinalCalories(analysis.Final_Calories));
       if (!strategy || strategy.error) {
         throw new Error(`\u0420\u0435\u0433\u0435\u043D\u0435\u0440\u0430\u0446\u0438\u044F\u0442\u0430 \u043D\u0430 \u0441\u0442\u0440\u0430\u0442\u0435\u0433\u0438\u044F\u0442\u0430 \u0441\u0435 \u043F\u0440\u043E\u0432\u0430\u043B\u0438: ${strategy?.error || "\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u0435\u043D \u0444\u043E\u0440\u043C\u0430\u0442"}`);
@@ -12417,6 +12994,7 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
       console.log(`Step 2 tokens: input=${strategyInputTokens}, output=${strategyOutputTokens}, cumulative=${cumulativeTokens.total}`);
       strategy = parseAIResponse(strategyResponse);
       enforceWeekendFreeDay(strategy);
+      normalizeStrategyDessertFlag(strategy, data);
       normalizeWeeklyScheme(strategy, parseFinalCalories(analysis.Final_Calories));
       if (!strategy || strategy.error) {
         const errorMsg = strategy.error || "\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u0435\u043D \u0444\u043E\u0440\u043C\u0430\u0442 \u043D\u0430 \u043E\u0442\u0433\u043E\u0432\u043E\u0440";
@@ -17542,7 +18120,8 @@ function isFitnessRoute(pathname, method) {
   if (method === "GET" && pathname === "/api/admin/fitplan/client-programs") return true;
   if (method === "DELETE" && /^\/api\/admin\/fitplan\/client-programs\/[A-Za-z0-9_-]+$/.test(pathname)) return true;
   if (method === "POST" && /^\/api\/admin\/fitplan\/client-programs\/[A-Za-z0-9_-]+\/delete$/.test(pathname)) return true;
-  if (method === "POST" && (pathname === "/api/plan/generate" || pathname === "/api/plan/refresh-exercises" || pathname === "/api/fitplan/consultation" || pathname === "/api/coach" || pathname === "/api/admin/fitplan/guidelines" || pathname === "/api/admin/fitplan/translate-exercises" || pathname === "/api/admin/fitplan/classify-exercises" || pathname === "/api/admin/fitplan/consult-config" || pathname === "/api/admin/fitplan/client-programs" || /^\/api\/admin\/fitplan\/consultations\/[A-Za-z0-9_-]+\/read$/.test(pathname) || /^\/api\/admin\/fitplan\/client-programs\/[A-Za-z0-9_-]+\/(generate|approve)$/.test(pathname))) return true;
+  if (method === "GET" && /^\/api\/admin\/fitplan\/client-programs\/[A-Za-z0-9_-]+\/plan$/.test(pathname)) return true;
+  if (method === "POST" && (pathname === "/api/plan/generate" || pathname === "/api/plan/refresh-exercises" || pathname === "/api/fitplan/consultation" || pathname === "/api/coach" || pathname === "/api/admin/fitplan/guidelines" || pathname === "/api/admin/fitplan/translate-exercises" || pathname === "/api/admin/fitplan/classify-exercises" || pathname === "/api/admin/fitplan/consult-config" || pathname === "/api/admin/fitplan/client-programs" || /^\/api\/admin\/fitplan\/consultations\/[A-Za-z0-9_-]+\/read$/.test(pathname) || /^\/api\/admin\/fitplan\/client-programs\/[A-Za-z0-9_-]+\/(generate|approve|plan)$/.test(pathname))) return true;
   if (method === "GET" && /^\/api\/plan\/[A-Za-z0-9-]{8,64}$/.test(pathname)) return true;
   return false;
 }
