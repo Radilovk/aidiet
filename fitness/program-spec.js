@@ -3,6 +3,7 @@
  * AI попълва упражнения от филтриран каталог; не измисля макроструктурата.
  */
 import { normalizeText } from './normalize.js';
+import { formatSessionFrame } from './session-principles.js';
 
 const ZONE_TO_GROUP = [
   { keys: ['дупе', 'глут', 'седалищ'], group: 'glutes' },
@@ -29,6 +30,71 @@ const GOAL_NORM = {
 
 /** @type {VolumeMap} */
 const DEFAULT_VOLUME = { glutes: 10, quads: 8, hamstrings: 6, back: 8, core: 6, chest: 6, shoulders: 6, arms: 6 };
+
+const DAY_NAMES = ['Понеделник', 'Вторник', 'Сряда', 'Четвъртък', 'Петък', 'Събота', 'Неделя'];
+
+const TRAINING_SLOTS = {
+  2: [0, 3],
+  3: [0, 2, 4],
+  4: [0, 1, 3, 5],
+  5: [0, 1, 2, 4, 5],
+  6: [0, 1, 2, 3, 4, 5],
+};
+
+/** От preferences.types → основна модалност на седмицата. */
+export function resolveTrainingModality(answers = {}) {
+  const types = (answers?.preferences?.types || []).map((t) => normalizeText(t));
+  if (!types.length || types.some((t) => t.includes('отворен'))) return 'mixed';
+  if (types.length > 1) return 'mixed';
+  const t = types[0] || '';
+  if (t.includes('йога') || t.includes('мобилност')) return 'mobility';
+  if (t.includes('hiit')) return 'hiit';
+  if (t.includes('кардио')) return 'cardio';
+  if (t.includes('функционал')) return 'functional';
+  return 'strength';
+}
+
+function focusForDayType(type) {
+  const map = {
+    strength: 'Сила',
+    cardio: 'Кардио',
+    hiit: 'HIIT',
+    mobility: 'Мобилност / стречинг',
+    rest: 'Почивка',
+  };
+  return map[type] || type;
+}
+
+/** Детерминистичен шаблон: основен фокус (dayFocus) на всеки тренировъчен ден. */
+export function buildWeekDayTypes(sessions, modality, goalNorm = '') {
+  const n = Math.min(6, Math.max(2, sessions || 3));
+  const slots = TRAINING_SLOTS[n] || TRAINING_SLOTS[3];
+  let types;
+  if (modality === 'mixed') {
+    const cycle = String(goalNorm).includes('издръжлив')
+      ? ['cardio', 'strength', 'mobility']
+      : ['strength', 'mobility', 'cardio'];
+    types = slots.map((_, i) => cycle[i % cycle.length]);
+  } else if (modality === 'mobility') {
+    types = slots.map(() => 'mobility');
+  } else if (modality === 'cardio') {
+    types = slots.map(() => 'cardio');
+  } else if (modality === 'hiit') {
+    types = slots.map(() => 'hiit');
+  } else {
+    types = slots.map(() => 'strength');
+  }
+  return DAY_NAMES.map((day, i) => {
+    const slotIdx = slots.indexOf(i);
+    if (slotIdx === -1) return { day, type: 'rest', focus: 'Почивка' };
+    const type = types[slotIdx] || 'strength';
+    return { day, type, focus: focusForDayType(type) };
+  });
+}
+
+function modalitiesInWeek(dayTypes = []) {
+  return [...new Set(dayTypes.map((d) => d.type).filter((t) => t && t !== 'rest'))];
+}
 
 function goalKey(answers) {
   const main = normalizeText(answers?.goal?.main || '');
@@ -207,6 +273,27 @@ export function buildProgramSpec(answers = {}) {
   const { volume, zonesOrdered, zonesText } = buildVolumeBudget(answers);
   const { reps, rest } = repRangeForGoal(goalNorm, level);
   const rpeMax = rpeCapFromAnswers(answers);
+  const modality = resolveTrainingModality(answers);
+  const dayTypes = buildWeekDayTypes(sessions, modality, goalNorm);
+
+  let split = suggestSplit(sessions, level, goalNorm, isFemale);
+  let orderHint = 'compound→isolation; zones↓ first each day';
+  let repsOut = reps;
+  let restOut = rest;
+  if (modality === 'mobility') {
+    split = `mobility/yoga ×${sessions}`;
+    orderHint = 'основен блок: flow/пози/hold; warmup/cooldown с кардио и стреч по session_principles';
+    repsOut = '30-60s hold';
+    restOut = '15-30s';
+  } else if (modality === 'cardio') {
+    split = `cardio ×${sessions}`;
+    orderHint = 'основен блок: zone 2/темпо; warmup/cooldown по session_principles';
+  } else if (modality === 'hiit') {
+    split = `HIIT ×${sessions}`;
+    orderHint = 'основен блок: интервали; warmup прогресивен, cooldown лесен кардио+стреч';
+  } else {
+    orderHint = 'compound→isolation в exercises; warmup=кардио+мобилност, cooldown=стреч+леко кардио';
+  }
 
   return {
     sessions,
@@ -214,15 +301,22 @@ export function buildProgramSpec(answers = {}) {
     level,
     goal: goalLabel,
     goalNorm,
-    split: suggestSplit(sessions, level, goalNorm, isFemale),
+    modality,
+    dayTypes,
+    weekModalities: modalitiesInWeek(dayTypes),
+    sessionFrame: formatSessionFrame({
+      durationMin,
+      dayTypes,
+    }),
+    split,
     zonesText,
     zonesOrdered,
     volume,
-    reps,
-    rest,
+    reps: repsOut,
+    rest: restOut,
     rpeMax,
     isFemale,
-    orderHint: 'compound→isolation; zones↓ first each day',
+    orderHint,
   };
 }
 
@@ -239,17 +333,25 @@ export function formatProgramSpecBlock(spec) {
   if (!spec) return '';
   const lines = [
     `sessions: ${spec.sessions} | dur: ${spec.durationMin}min | level: ${spec.level} | goal: ${spec.goal}`,
+    `modality: ${spec.modality || 'strength'}`,
     `split: ${spec.split}`,
   ];
+  if (spec.dayTypes?.length) {
+    const dt = spec.dayTypes
+      .filter((d) => d.type !== 'rest')
+      .map((d) => `${d.day.slice(0, 2)}=${d.type}`)
+      .join(', ');
+    if (dt) lines.push(`dayFocus: ${dt}`);
+  }
+  if (spec.sessionFrame) lines.push(`session: ${spec.sessionFrame}`);
   if (spec.zonesText) lines.push(`zones↓: ${spec.zonesText}`);
-  else if (spec.isFemale) lines.push('zones↓: дупе>бедра (default жена)');
+  else if (spec.isFemale) lines.push('zones↓: дупе>бедра');
   lines.push(`volume/wk: ${formatVolumeLine(spec.volume)}`);
   lines.push(`reps: ${spec.reps} | rest: ${spec.rest} | rpe≤${spec.rpeMax}`);
-  lines.push(`order: ${spec.orderHint}`);
   return lines.join('\n');
 }
 
-/** Контекст извън program_spec — здраве, свободен текст, логистика. */
+/** Контекст извън program_spec — без полета вече в spec/constraints. */
 export function buildCompactProfileForPrompt(answers = {}) {
   const lines = [];
   const health = [...(answers.health || []), ...(answers.healthFemale || [])]
@@ -287,11 +389,6 @@ export function buildCompactProfileForPrompt(answers = {}) {
   const equipExtra = answers.equipmentOther?.trim();
   if (equipExtra) lines.push(`Оборудване (друго): ${equipExtra}`);
 
-  const prefTypes = answers.preferences?.types;
-  if (prefTypes?.length) lines.push(`Предпочитан тип: ${prefTypes.join(', ')}`);
-  if (answers.preferences?.avoid?.trim()) {
-    lines.push(`Избягвай: ${answers.preferences.avoid.trim()}`);
-  }
   if (answers.preferences?.timeOfDay) {
     lines.push(`Време: ${answers.preferences.timeOfDay}`);
   }

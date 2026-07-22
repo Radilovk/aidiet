@@ -46,6 +46,9 @@ import {
   buildPlanSystemInstruction,
   COMPACT_PLAN_RETRY_HINT,
   GENDER_FIT_RETRY_HINT,
+  CONSTRAINT_RETRY_HINT,
+  EQUIPMENT_RETRY_HINT,
+  MODALITY_RETRY_HINT,
   PLAN_RESPONSE_SCHEMA,
   PLAN_SYSTEM_ASSEMBLY,
   STRICT_ASSEMBLY_RETRY_HINT,
@@ -101,6 +104,13 @@ import {
   parseAdminBriefConstraints,
   allowedEquipmentFromBrief,
   auditPlanGenderFit,
+  auditPlan,
+  auditPlanConstraints,
+  auditPlanModality,
+  auditPlanSessionStructure,
+  auditRetryHint,
+  classifySchemeInput,
+  isStructuredScheme,
   buildTrainerSystemAddon,
   parseChunkTags,
   shouldIncludeAdminChunk,
@@ -134,7 +144,17 @@ export {
   parseAdminBriefConstraints,
   allowedEquipmentFromBrief,
   auditPlanGenderFit,
+  auditPlan,
+  auditPlanConstraints,
+  auditPlanModality,
+  auditPlanSessionStructure,
+  auditRetryHint,
+  classifySchemeInput,
+  isStructuredScheme,
   GENDER_FIT_RETRY_HINT,
+  CONSTRAINT_RETRY_HINT,
+  EQUIPMENT_RETRY_HINT,
+  MODALITY_RETRY_HINT,
   buildTrainerSystemAddon,
   parseChunkTags,
   shouldIncludeAdminChunk,
@@ -865,7 +885,7 @@ function clientIp(request) {
 async function executePlanGeneration(env, ctx, {
   userPrompt, coachProfileText, allowedEquipment = null, clientTags = null,
   adminConfig = null, guidelineLayers = null, hasScheme = false, strictAssembly = false,
-  exerciseProfile = null,
+  exerciseProfile = null, constraints = null, programSpec = null,
 }) {
   const indexPromise = loadExerciseIndex(env, ctx);
   const tagSet = clientTags instanceof Set ? clientTags : new Set(clientTags || []);
@@ -877,7 +897,7 @@ async function executePlanGeneration(env, ctx, {
   let catalogBlock = '';
   if (!strictAssembly) {
     const index = await indexPromise;
-    if (index?.length && (allowedEquipment || exerciseProfile)) {
+    if (index?.length) {
       catalogBlock = buildExerciseCatalogSnippet(index, exerciseProfile, allowedEquipment);
     }
   }
@@ -887,14 +907,21 @@ async function executePlanGeneration(env, ctx, {
   let rawText;
   const maxAttempts = 3;
   let lastFailure = 'parse';
+  let lastAuditIssues = [];
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     let user = baseUser;
     if (attempt > 0) {
-      user += strictAssembly
-        ? STRICT_ASSEMBLY_RETRY_HINT
-        : (hasScheme
-          ? COMPACT_PLAN_RETRY_HINT
-          : (lastFailure === 'gender' ? GENDER_FIT_RETRY_HINT : COMPACT_PLAN_RETRY_HINT));
+      if (strictAssembly) {
+        user += STRICT_ASSEMBLY_RETRY_HINT;
+      } else if (lastFailure === 'audit') {
+        user += auditRetryHint(lastAuditIssues);
+      } else if (hasScheme) {
+        user += COMPACT_PLAN_RETRY_HINT;
+      } else if (lastFailure === 'gender') {
+        user += GENDER_FIT_RETRY_HINT;
+      } else {
+        user += COMPACT_PLAN_RETRY_HINT;
+      }
     }
     const aiOpts = {
       system,
@@ -906,11 +933,12 @@ async function executePlanGeneration(env, ctx, {
     try {
       rawText = await callAI(env, aiOpts);
       plan = normalizePlan(parseAiJson(rawText));
-      if (!hasScheme && !strictAssembly) {
-        const genderAudit = auditPlanGenderFit(plan, clientTags);
-        if (!genderAudit.ok && attempt < maxAttempts - 1) {
-          lastFailure = 'gender';
-          console.warn('Gender audit failed, retry:', genderAudit.issues.join('; '));
+      if (!strictAssembly) {
+        const planAudit = auditPlan(plan, { clientTags: tagSet, constraints, allowedEquipment, programSpec });
+        if (!planAudit.ok && attempt < maxAttempts - 1) {
+          lastFailure = 'audit';
+          lastAuditIssues = planAudit.issues;
+          console.warn('Plan audit failed, retry:', planAudit.issues.join('; '));
           continue;
         }
       }
@@ -954,7 +982,7 @@ async function handleGeneratePlan(request, env, ctx) {
   }
 
   const adminGuidelines = await loadAdminGuidelines(env);
-  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile } = preparePlanGeneration(
+  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile, constraints, programSpec } = preparePlanGeneration(
     { answers },
     adminGuidelines,
     { buildProfileSummary, allowedEquipmentSet },
@@ -973,6 +1001,8 @@ async function handleGeneratePlan(request, env, ctx) {
       hasScheme,
       strictAssembly,
       exerciseProfile,
+      constraints,
+      programSpec,
     }));
   } catch (e) {
     if (isPlanParseError(e)) {
@@ -1586,7 +1616,7 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
     clientName: record.clientName,
     clientContact: record.clientContact,
   };
-  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile } = preparePlanGeneration(
+  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile, constraints, programSpec } = preparePlanGeneration(
     genSource,
     adminGuidelines,
     { buildProfileSummary, allowedEquipmentSet },
@@ -1605,6 +1635,8 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
       hasScheme,
       strictAssembly,
       exerciseProfile,
+      constraints,
+      programSpec,
     }));
   } catch (e) {
     if (isPlanParseError(e)) {

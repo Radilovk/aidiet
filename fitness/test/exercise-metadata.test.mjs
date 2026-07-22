@@ -7,6 +7,8 @@ import {
   filterExercises,
   buildExerciseCatalogSnippet,
   mergeExerciseMetadata,
+  inferExerciseModality,
+  modalityMatchesDay,
 } from '../exercise-metadata.js';
 
 test('heuristicClassification: hip thrust → висок gf', () => {
@@ -39,6 +41,20 @@ test('fitsExerciseProfile + catalog', () => {
   assert.ok(catalog.includes('<exercise_catalog>'));
   assert.ok(catalog.includes('kickback'));
   assert.ok(!catalog.includes('bench press'));
+});
+
+test('inferExerciseModality + filter по mobility', () => {
+  assert.equal(inferExerciseModality('Standing Hamstring Stretch'), 'mobility');
+  assert.equal(inferExerciseModality('Barbell Bench Press'), 'strength');
+  assert.equal(modalityMatchesDay('mobility', 'mobility'), true);
+  assert.equal(modalityMatchesDay('mobility', 'strength'), false);
+  const index = [
+    { name: 'Hamstring Stretch', diff: 1, gf: 80, gm: 70, equipNorm: 'body weight' },
+    { name: 'Barbell Squat', diff: 3, gf: 70, gm: 85, equipNorm: 'barbell' },
+  ];
+  const filtered = filterExercises(index, null, null, ['mobility']);
+  assert.equal(filtered.length, 1);
+  assert.ok(filtered[0].name.includes('Stretch'));
 });
 
 test('mergeExerciseMetadata: heuristic без KV', () => {

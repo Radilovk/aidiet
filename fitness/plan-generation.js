@@ -1,26 +1,37 @@
 /**
  * KA-TRAINER — единен pipeline за генериране на план.
  *
- * Два входа, един алгоритъм:
- *   1. Въпросник (клиент) — структурирани answers
- *   2. Админ бриф — clientProfile + exampleScheme
+ * Архитектура (един AI call + до 3 retry при audit):
+ *   КОД (детерминистично): ProgramSpec, EFP каталог, constraints, equipment, audit
+ *   AI (една заявка): избор упражнения от каталог + warmup/cooldown текст + JSON
+ *   Няма нужда от multi-step AI — числата и veto-тата идват от кода.
  *
- * Два слоя насоки:
- *   individual  — таг-съвпадение + профил/схема (най-висок приоритет)
- *   architecture — universal chunks (база); foundation се добавя при prompt build
+ * Два входа: въпросник (answers) | админ бриф (clientProfile + scheme)
  */
 
 import { normalizeText } from './normalize.js';
 import { buildProfileSummary } from './profile-summary.js';
 import { exerciseProfileFromAnswers } from './exercise-metadata.js';
-import { GENDER_FIT_RETRY_HINT } from './plan-prompts.js';
+import {
+  GENDER_FIT_RETRY_HINT,
+  CONSTRAINT_RETRY_HINT,
+  EQUIPMENT_RETRY_HINT,
+  SESSION_STRUCTURE_RETRY_HINT,
+  MODALITY_RETRY_HINT,
+} from './plan-prompts.js';
 import {
   buildProgramSpec,
   formatProgramSpecBlock,
   buildCompactProfileForPrompt,
 } from './program-spec.js';
 
-export { GENDER_FIT_RETRY_HINT };
+export {
+  GENDER_FIT_RETRY_HINT,
+  CONSTRAINT_RETRY_HINT,
+  EQUIPMENT_RETRY_HINT,
+  SESSION_STRUCTURE_RETRY_HINT,
+  MODALITY_RETRY_HINT,
+};
 
 export const MAX_FOUNDATION_CHARS = 800;
 export const MAX_GUIDELINE_ITEMS = 12;
@@ -30,28 +41,19 @@ export const MAX_ARCHITECTURE_CHARS = 2800;
 
 const UNIVERSAL_TAGS = new Set(['all', '*', 'общо']);
 
+/** RAG насоки — само health/safety/edge; goal/level/gender са в ProgramSpec + audit. */
 export const GUIDELINE_CHUNKS = [
-  { tags: ['goal:отслабване'], text: 'Отслабване: запази силов тренинг + 1–2 кардио дни. Дефицитът е от хранене — не изтощавай клиента в залата.' },
-  { tags: ['goal:покачване на мускулна маса'], text: 'Хипертрофия: прогресия — първо reps в диапазона, после тежест; всяка група 2×/седм > 1×.' },
-  { tags: ['goal:силови показатели'], text: 'Сила: основни движения първи в деня; техника преди тежест; пълни почивки при тежки серии.' },
-  { tags: ['goal:издръжливост'], text: 'Издръжливост: преобладава зона 2/издръжливост; силата е поддръжаща, не основен акцент.' },
-  { tags: ['goal:рекомпозиция'], text: 'Рекомпозиция: силов обем по spec + умерено кардио; заложи измерима силова прогресия.' },
-  { tags: ['goal:обща кондиция'], text: 'Обща кондиция: баланс сила + кардио + мобилност; разнообразие за придържане.' },
-  { tags: ['goal:рехабилитация след травма'], text: 'Рехаб: само безболезнен ROM и контрол; планът не замества физиотерапевт.' },
-  { tags: ['level:начинаещ'], text: 'Начинаещи: техника и контрол преди тежест; машини/СТ пред сложни свободни тежести.' },
-  { tags: ['level:напреднал'], text: 'Напреднал: интензификатори макс. 1–2 на тренировка.' },
-  { tags: ['health:хипертония', 'health:сърдечно-съдово'], text: 'сърдечно-съдов риск: без Valsalva и макс singles; спази rpe от spec; safetyNotes: лекарско одобрение.' },
-  { tags: ['health:диабет'], text: 'Диабет: редовност > интензитет; внимание при хипогликемия — не на празен стомах.' },
-  { tags: ['health:бременност'], text: 'бременност: само с лекарско одобрение. Без коремни кранчове, лежанки по гръб (след 1-ви трим.), задържане на дъха, падания. Умерен интензитет.' },
-  { tags: ['health:следродилен'], text: 'След раждане: постепенно — тазово дъно, после базови движения; без класически преси при съмнение за диастаза.' },
-  { tags: ['health:кърмене'], text: 'Кърмене: умерен интензитет, хидратация; без тренировки до отказ.' },
-  { tags: ['health:менопауза'], text: 'Менопауза: акцент силов тренинг (кости) + баланс; мин. 48ч между тежки сесии за една група.' },
-  { tags: ['sleep:лошо', 'stress:висок'], text: 'Лош сън/стрес: намали обем с ~20% под spec; без отказ; cooldown с дишане; макс. 1 HIIT/седм.' },
-  { tags: ['equipment:ограничено'], text: 'Ограничено оборудване: tempo, unilateral и по-къси почивки вместо повече тежест.' },
-  { tags: ['time:сутрин'], text: 'Сутрешни тренировки: +5 мин загрявка; без макс опити на гладно.' },
-  { tags: ['age:50+'], text: 'Възраст 50+: удължена загрявка; контролирано темпо; баланс/мобилност; 48–72ч между тежки сесии.' },
-  { tags: ['gender:жена'], text: 'Жена: горна част — постура/гръб само; без bench/press/curl обем (обемът е в spec).' },
-  { tags: ['gender:мъж'], text: 'Мъж: без glute-isolation фокус без указание от профила или zones↓.' },
+  { tags: ['goal:рехабилитация след травма'], text: 'Рехаб: безболезнен ROM; не замества физиотерапевт.' },
+  { tags: ['health:хипертония', 'health:сърдечно-съдово'], text: 'Сърдечно-съдов риск: без Valsalva/mакс singles; rpe≤spec; safetyNotes: лекарско одобрение.' },
+  { tags: ['health:диабет'], text: 'Диабет: редовност > интензитет; внимание при хипогликемия.' },
+  { tags: ['health:бременност'], text: 'Бременност: лекарско одобрение. Без кранчове, лежанки по гръб (след 1-ви трим.), задържане на дъха, падания.' },
+  { tags: ['health:следродилен'], text: 'След раждане: тазово дъно → базови движения; без класически преси при съмнение за диастаза.' },
+  { tags: ['health:кърмене'], text: 'Кърмене: умерен интензитет; без тренировки до отказ.' },
+  { tags: ['health:менопауза'], text: 'Менопауза: силов акцент (кости); 48ч между тежки сесии за една група.' },
+  { tags: ['sleep:лошо', 'stress:висок'], text: 'Лош сън/стрес: -20% обем под spec; макс 1 HIIT/седм.' },
+  { tags: ['equipment:ограничено'], text: 'Ограничено оборудване: tempo/unilateral вместо повече тежест.' },
+  { tags: ['time:сутрин'], text: 'Сутрин: +5 мин warmup; без макс на гладно.' },
+  { tags: ['age:50+'], text: '50+: удължена warmup; 48–72ч между тежки сесии.' },
 ];
 
 const TEXT_TAG_RULES = [
@@ -179,6 +181,32 @@ export function hasClientScheme(exampleScheme) {
   return Boolean(String(exampleScheme || '').trim());
 }
 
+const EXERCISE_LINE_RE = /(\d+\s*[x×х]\s*\d+|\d+\s*серии|\d+\s*по\s*\d+|sets?\s*[:=]?\s*\d+)/i;
+const DAY_LINE_RE = /^(пон|вто|сря|чет|пет|съб|нед|mon|tue|wed|thu|fri|sat|sun|ден\s*\d|day\s*\d)/i;
+
+/**
+ * brief — свободен текст (уреди, акценти); structured — дни/упражнения/серии.
+ * Brief НЕ е абсолютна схема — ProgramSpec + каталог остават активни.
+ */
+export function classifySchemeInput(schemeText = '') {
+  const raw = String(schemeText || '').trim();
+  if (!raw) return 'none';
+  const lines = raw.split(/\n+/).map((l) => l.trim()).filter(Boolean);
+  let exerciseLines = 0;
+  let hasDay = false;
+  for (const line of lines) {
+    if (EXERCISE_LINE_RE.test(line)) exerciseLines++;
+    if (DAY_LINE_RE.test(line)) hasDay = true;
+  }
+  if (exerciseLines === 0 && EXERCISE_LINE_RE.test(raw)) exerciseLines = 1;
+  if (exerciseLines >= 2 || (hasDay && exerciseLines >= 1)) return 'structured';
+  return 'brief';
+}
+
+export function isStructuredScheme(exampleScheme) {
+  return classifySchemeInput(exampleScheme) === 'structured';
+}
+
 export function isStrictAssembly(strictScheme, exampleScheme) {
   return Boolean(strictScheme) && hasClientScheme(exampleScheme);
 }
@@ -218,9 +246,9 @@ export function buildTrainerSystemAddon(adminConfig, tagSet, layers = null, opti
 
   const parts = ['<trainer_rules>'];
   if (schemeMode) {
-    parts.push('Схемата в user е абсолютна. Тук само допълнения — без промяна на дни, обем или упражнения.');
+    parts.push('Схемата е абсолютна. Тук само делта — без промяна на дни/обем/упражнения.');
   } else {
-    parts.push('Делта над <program_spec> — не повтаряй сплит, обем, reps/rest. individual_guidelines > architecture_guidelines.');
+    parts.push('Само делта над program_spec. individual > architecture.');
   }
   if (foundation) parts.push(`<foundation>\n${foundation}\n</foundation>`);
   if (individual.length) {
@@ -602,23 +630,25 @@ export function buildBriefIdentityBlock(brief) {
 /** User prompt: контекст + задача. strictAssembly = само scheme. */
 export function buildAdminPlanUserPrompt(brief, options = {}) {
   const strictAssembly = Boolean(options.strictAssembly);
-  const hasScheme = Boolean(String(brief?.exampleScheme || '').trim());
-  const { clientProfile = '', exampleScheme = '', constraints: presetConstraints, programSpec } = brief || {};
+  const { clientProfile = '', exampleScheme = '', trainerBrief = '', constraints: presetConstraints, programSpec } = brief || {};
   const scheme = String(exampleScheme || '').trim();
+  const briefText = String(trainerBrief || '').trim();
+  const hasStructuredScheme = Boolean(scheme);
   const constraints = presetConstraints || parseAdminBriefConstraints(
     strictAssembly ? '' : clientProfile,
-    scheme,
+    [scheme, briefText].filter(Boolean).join('\n'),
   );
   const hardRules = buildAdminHardRulesBlock(constraints);
 
   const parts = [buildBriefIdentityBlock(brief)];
   if (scheme) parts.push(`<scheme>\n${scheme}\n</scheme>`);
+  if (briefText) parts.push(`<trainer_brief>\n${briefText}\n</trainer_brief>`);
   if (!strictAssembly) {
     if (constraints.equipmentList?.length) {
       parts.push(`<equipment>\n${constraints.equipmentList.join(', ')}\n</equipment>`);
     }
     if (hardRules) parts.push(`<constraints>\n${hardRules}\n</constraints>`);
-    if (programSpec && !hasScheme) {
+    if (programSpec) {
       parts.push(`<program_spec>\n${formatProgramSpecBlock(programSpec)}\n</program_spec>`);
     }
     const compactProfile = brief?.compactProfile?.trim()
@@ -632,7 +662,7 @@ export function buildAdminPlanUserPrompt(brief, options = {}) {
 
   const task = strictAssembly
     ? 'ASSEMBLY: сглоби JSON от <scheme> буквално. canonicalName + displayName. JSON само.'
-    : (scheme
+    : (hasStructuredScheme
       ? 'Следвай <scheme> точно. Запълни 7 дни. JSON само.'
       : 'Генерирай 7 дни от <program_spec> + <exercise_catalog>. canonicalName САМО от каталога. volume/reps/rest по spec. JSON само.');
   return `${parts.join('\n\n')}\n\n${task}`;
@@ -675,6 +705,107 @@ export function auditPlanGenderFit(plan, clientTags) {
   return { ok: issues.length === 0, issues };
 }
 
+const HEAVY_COMPOUND_RE = /bench press|barbell squat|back squat|deadlift|hip thrust|leg press/i;
+
+/** dayFocus + задължителна структура warmup/exercises/cooldown; без veto за стреч/кардио в сесия. */
+export function auditPlanSessionStructure(plan, programSpec = null) {
+  const dayTypes = programSpec?.dayTypes;
+  if (!dayTypes?.length) return [];
+  const typeByDay = new Map(dayTypes.map((d) => [normalizeText(d.day), d.type]));
+  const issues = [];
+  for (const day of plan?.days || []) {
+    const key = normalizeText(day.day);
+    const expected = typeByDay.get(key);
+    if (!expected || expected === 'rest') continue;
+    const sessionType = day.type || expected;
+    if (sessionType !== expected) {
+      issues.push(`${day.day}: dayFocus ${sessionType} ≠ очакван ${expected} от program_spec`);
+    }
+    if (day.type === 'rest' && !(day.exercises?.length)) continue;
+    if (!day.warmup?.length) issues.push(`${day.day}: липсва warmup (3 стъпки)`);
+    if (!day.cooldown?.length) issues.push(`${day.day}: липсва cooldown (3 стъпки)`);
+    if (expected === 'mobility') {
+      for (const ex of day.exercises || []) {
+        const name = String(ex.canonicalName || ex.displayName || '');
+        if (HEAVY_COMPOUND_RE.test(name)) {
+          issues.push(`${day.day}: „${name}“ не е за основен mobility блок — премести в силов ден или махни`);
+        }
+      }
+    }
+  }
+  return issues;
+}
+
+/** @deprecated използвай auditPlanSessionStructure */
+export function auditPlanModality(plan, programSpec = null) {
+  return auditPlanSessionStructure(plan, programSpec);
+}
+
+const CHEST_IMPLANT_RE = /bench|fly|chest press|push-?up|pec deck|crossover|dip|пек.?дек|избутване от лежанка|лъжичк/i;
+const LATERAL_RAISE_RE = /lateral raise|side raise|страничн/i;
+
+/** Hard-veto: импланти, avoid, оборудване. */
+export function auditPlanConstraints(plan, constraints = {}) {
+  const issues = [];
+  const exclusions = constraints?.exclusions || [];
+  const blob = exclusions.join(' ').toLowerCase();
+  const implantRule = /имплант|гърди не|без натиск върху гърдите/i.test(blob);
+  const avoidLateral = /страничн/i.test(blob) || exclusions.some((e) => /не желае.*страничн/i.test(e));
+
+  for (const day of plan?.days || []) {
+    if (day.type === 'rest') continue;
+    for (const ex of day.exercises || []) {
+      const name = String(ex.canonicalName || ex.displayName || '');
+      if (implantRule && CHEST_IMPLANT_RE.test(name)) {
+        issues.push(`Забранено (импланти/гърди): ${name}`);
+      }
+      if (avoidLateral && LATERAL_RAISE_RE.test(name)) {
+        issues.push(`Забранено движение: ${name}`);
+      }
+    }
+  }
+  return issues;
+}
+
+export function auditPlanEquipment(plan, allowedEquipment) {
+  if (!allowedEquipment?.size) return { ok: true, issues: [] };
+  const issues = [];
+  for (const day of plan?.days || []) {
+    if (day.type === 'rest') continue;
+    for (const ex of day.exercises || []) {
+      const hint = normalizeText(ex.equipmentHint || '');
+      if (!hint) continue;
+      if (allowedEquipment.has(hint)) continue;
+      const ok = [...allowedEquipment].some((a) => hint.includes(a) || a.includes(hint));
+      if (!ok) {
+        issues.push(`Непозволено оборудване: ${ex.canonicalName || ex.displayName} (${ex.equipmentHint})`);
+      }
+    }
+  }
+  return { ok: issues.length === 0, issues };
+}
+
+/** Обединен post-AI audit + retry hint. */
+export function auditPlan(plan, { clientTags = null, constraints = null, allowedEquipment = null, programSpec = null } = {}) {
+  const issues = [];
+  const gender = auditPlanGenderFit(plan, clientTags);
+  if (!gender.ok) issues.push(...gender.issues);
+  issues.push(...auditPlanConstraints(plan, constraints || {}));
+  issues.push(...auditPlanSessionStructure(plan, programSpec));
+  const equip = auditPlanEquipment(plan, allowedEquipment);
+  if (!equip.ok) issues.push(...equip.issues);
+  return { ok: issues.length === 0, issues };
+}
+
+export function auditRetryHint(issues = []) {
+  const joined = issues.join(' ');
+  if (/dayFocus|warmup|cooldown|session_principles|основен mobility/i.test(joined)) return SESSION_STRUCTURE_RETRY_HINT;
+  if (/имплант|забранено|гърди/i.test(joined)) return CONSTRAINT_RETRY_HINT;
+  if (/оборудване/i.test(joined)) return EQUIPMENT_RETRY_HINT;
+  if (/дупе|мъжки|bench|press/i.test(joined)) return GENDER_FIT_RETRY_HINT;
+  return CONSTRAINT_RETRY_HINT;
+}
+
 /**
  * Единна подготовка за AI генерация.
  * @param source — { answers } от въпросник ИЛИ { clientProfile, exampleScheme, clientName?, clientContact? } от админ
@@ -683,23 +814,29 @@ export function preparePlanGeneration(source, adminConfig, helpers) {
   function buildFromAnswers(answers, extra = {}) {
     const profileText = answers?.gender ? helpers.buildProfileSummary(answers) : '';
     const tags = answers?.gender ? buildTagsFromAnswers(answers) : new Set();
-    for (const t of extractTagsFromText(profileText, extra.exampleScheme || '')) tags.add(t);
-    const strictAssembly = isStrictAssembly(extra.strictScheme, extra.exampleScheme);
-    const schemeMode = strictAssembly || hasClientScheme(extra.exampleScheme);
+    const schemeText = String(extra.exampleScheme || '').trim();
+    const schemeKind = classifySchemeInput(schemeText);
+    for (const t of extractTagsFromText(profileText, schemeText)) {
+      if (t.startsWith('goal:') && [...tags].some((x) => x.startsWith('goal:'))) continue;
+      tags.add(t);
+    }
+    const strictAssembly = isStrictAssembly(extra.strictScheme, schemeText);
+    const structuredScheme = schemeKind === 'structured';
+    const schemeMode = strictAssembly || structuredScheme;
     const layers = resolveGuidelineLayers(tags, adminConfig, { schemeMode, strictAssembly });
-    const programSpec = (!strictAssembly && !schemeMode && answers?.gender)
-      ? buildProgramSpec(answers)
-      : null;
+    const programSpec = (!strictAssembly && answers?.gender) ? buildProgramSpec(answers) : null;
+    const planConstraints = constraintsFromAnswers(answers || {}, schemeText, { strictAssembly });
     const brief = {
       clientProfile: profileText,
       compactProfile: programSpec ? buildCompactProfileForPrompt(answers) : profileText,
-      exampleScheme: extra.exampleScheme || '',
-      constraints: constraintsFromAnswers(answers || {}, extra.exampleScheme || '', { strictAssembly }),
+      exampleScheme: structuredScheme ? schemeText : '',
+      trainerBrief: schemeKind === 'brief' ? schemeText : '',
+      constraints: planConstraints,
       tags,
       programSpec,
     };
     const equipmentInput = expandEquipmentAnswers([...(answers?.equipment || []), answers?.equipmentOther].filter(Boolean));
-    const fromBrief = allowedEquipmentFromBrief(profileText, extra.exampleScheme || '');
+    const fromBrief = allowedEquipmentFromBrief(profileText, schemeText);
     const fromAnswers = helpers.allowedEquipmentSet(equipmentInput);
     return {
       userPrompt: buildAdminPlanUserPrompt(brief, { strictAssembly }),
@@ -707,9 +844,12 @@ export function preparePlanGeneration(source, adminConfig, helpers) {
       coachProfileText: extra.coachProfileText || profileText,
       allowedEquipment: mergeAllowedEquipment(fromBrief, fromAnswers),
       clientTags: tags,
-      hasScheme: schemeMode,
+      hasScheme: structuredScheme,
       strictAssembly,
       exerciseProfile: answers?.gender ? exerciseProfileFromAnswers(answers) : null,
+      constraints: planConstraints,
+      schemeKind,
+      programSpec,
     };
   }
 
