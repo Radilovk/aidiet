@@ -186,7 +186,10 @@ const DATASET_URL_CANDIDATES = [
   'https://raw.githubusercontent.com/hasaneyldrm/exercises-dataset/main/data/exercises.json',
 ];
 
-const EXERCISE_INDEX_KV_KEY = 'exidx:v1';
+// v2: loadExerciseMetadata вече слива bundled класификация с KV (виж по-долу) —
+// смяна на ключа изчиства стар кеш, изграден преди тази поправка (иначе 30-дневния
+// TTL би задържал грешно недоклассифицирани записи чак до естествения му изтек).
+const EXERCISE_INDEX_KV_KEY = 'exidx:v2';
 const EXERCISE_INDEX_TTL = 60 * 60 * 24 * 30; // 30 дни; при промяна на схемата — нов ключ
 const PLAN_TTL = 60 * 60 * 24 * 90;           // планът живее 90 дни в KV
 const MATCH_THRESHOLD = 0.35;                 // под този score → fallback по категория
@@ -384,22 +387,7 @@ export function buildCompactIndex(rawList, translations = {}, metadata = {}) {
 let bundledMetadata = null;
 let bundledTranslations = null;
 
-export async function loadExerciseMetadata(env) {
-  if (env?.FITNESS_KV) {
-    try {
-      const kv = await env.FITNESS_KV.get(EXERCISE_METADATA_KV_KEY, { type: 'json' });
-      if (kv && typeof kv === 'object' && Object.keys(kv).length) {
-        bundledMetadata = kv;
-        return kv;
-      }
-    } catch (e) {
-      console.error('KV read за exercise metadata пропадна:', e.message);
-    }
-  }
-  return loadBundledMetadata();
-}
-
-/** Build-time EFP (data/exercise-metadata.json), ако е наличен в bundle-а. */
+/** Build-time EFP (data/exercise-metadata.json) — пълна класификация на целия dataset. */
 export async function loadBundledMetadata() {
   if (bundledMetadata !== null) return bundledMetadata;
   try {
@@ -409,6 +397,29 @@ export async function loadBundledMetadata() {
     bundledMetadata = {};
   }
   return bundledMetadata;
+}
+
+/**
+ * KV `exercise:metadata:v1` (админ batch-класификация) слято с bundled
+ * fallback — KV печели за всеки id, bundled покрива всичко останало.
+ * Преди тази поправка: ако KV имаше ПОНЕ 1 запис, целият bundled fallback
+ * (пълна класификация 1324/1324, ~680 d1) се игнорираше изцяло — недовършена
+ * batch-класификация в production водеше до грубия heuristic fallback
+ * (почти без d1) за всичко извън тези няколко KV записа.
+ */
+export async function loadExerciseMetadata(env) {
+  const bundled = await loadBundledMetadata();
+  if (env?.FITNESS_KV) {
+    try {
+      const kv = await env.FITNESS_KV.get(EXERCISE_METADATA_KV_KEY, { type: 'json' });
+      if (kv && typeof kv === 'object' && Object.keys(kv).length) {
+        return { ...bundled, ...kv };
+      }
+    } catch (e) {
+      console.error('KV read за exercise metadata пропадна:', e.message);
+    }
+  }
+  return bundled;
 }
 
 async function saveExerciseMetadata(env, metadata) {
@@ -765,9 +776,9 @@ export function normalizePlan(plan) {
 // Обогатяване: локален matching + медия + прекомпютнати алтернативи
 // ============================================================================
 
-function entryToClientExercise(env, entry) {
+function entryToClientExercise(env, entry, { includeInstructions = true } = {}) {
   const displayName = entry.nameBg || localizeExerciseDisplayName(entry.name, '', entry.equipment);
-  return {
+  const out = {
     id: entry.id,
     name: entry.name,
     displayName,
@@ -777,9 +788,15 @@ function entryToClientExercise(env, entry) {
     bodyPart: entry.bodyPart,
     imageUrl: mediaUrl(env, entry.image),
     gifUrl: mediaUrl(env, entry.gif),
-    instructions: entry.instructions || '',
-    instructionsLang: entry.instructionsLang || '',
   };
+  // instructions може да е до MAX_INSTRUCTION_CHARS на запис — излишно
+  // трафик за списъчни резултати като search picker-а, който показва
+  // само име+баджове, не пълни инструкции.
+  if (includeInstructions) {
+    out.instructions = entry.instructions || '';
+    out.instructionsLang = entry.instructionsLang || '';
+  }
+  return out;
 }
 
 export function enrichPlanWithExercises(plan, index, { allowedEquipment = null, env = {}, exerciseProfile = null } = {}) {
@@ -1174,7 +1191,7 @@ async function handleExerciseSearch(url, env, ctx) {
     total,
     results: results.map(({ score, entry }) => ({
       score,
-      ...entryToClientExercise(env, entry),
+      ...entryToClientExercise(env, entry, { includeInstructions: false }),
       diff: entry.diff ?? 2,
       gf: entry.gf ?? 70,
       gm: entry.gm ?? 70,

@@ -1,6 +1,6 @@
 /**
  * Exercise Fitness Profile (EFP) — трудност (1–3) + gender fit (0–100).
- * Production: KV `exercise:metadata:v1` + индекс `exidx:v1`.
+ * Production: KV `exercise:metadata:v1` + индекс `exidx:v2`.
  */
 import { normalizeText, tokenize, tokenOverlapScore } from './normalize.js';
 import { expandSearchTokens } from './exercise-synonyms.js';

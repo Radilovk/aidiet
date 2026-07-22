@@ -41,7 +41,7 @@ AI генерира седмичен тренировъчен план с дем
 │  │           приоритет при конфликт. От профила се извличат тагове.  │     │
 │  └──────────────────────────────────────────────────────────────────┘     │
 │                                                                           │
-│  KV: exidx:v1 (индекс) · plan:<id> (90 дни) · rl:* (дневни лимити)       │
+│  KV: exidx:v2 (индекс) · plan:<id> (90 дни) · rl:* (дневни лимити)       │
 └──────┬──────────────────────────────────────┬─────────────────────────────┘
        │                                      │
 ┌──────▼──────────┐                 ┌─────────▼──────────┐
@@ -153,7 +153,7 @@ npm run deploy            # = wrangler deploy --env production
 
 ```bash
 node scripts/build-exercise-index.mjs
-npx wrangler kv key put exidx:v1 --path data/exercise-index.json \
+npx wrangler kv key put exidx:v2 --path data/exercise-index.json \
     --binding FITNESS_KV --env production --remote
 ```
 

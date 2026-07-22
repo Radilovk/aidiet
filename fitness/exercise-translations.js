@@ -1,6 +1,6 @@
 /**
  * Преводи на упражнения (име + инструкции).
- * Production: KV `exercise:translations:bg` + индекс `exidx:v1`.
+ * Production: KV `exercise:translations:bg` + индекс `exidx:v2`.
  * Локално: scripts/translate-exercises.mjs → data/exercise-translations-bg.json
  */
 

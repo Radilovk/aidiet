@@ -1,113 +1,159 @@
-/* KA-TRAINER — редактор на клиентска програма (упражнения/дни/пренареждане) */
+/* KA-TRAINER — редактор на клиентска програма (упражнения/дни/пренареждане).
+   Mobile-first: базовите стилове са за телефон; desktop само добавя простор. */
 .fcp-editor-panel {
-  width: min(1200px, 97vw);
+  width: min(720px, 97vw);
   max-height: min(94vh, 900px);
   height: min(94vh, 900px);
 }
-.fcp-editor-head-actions { display: flex; align-items: center; gap: 8px; }
-#fcpEditorStatus { font-size: 0.78rem; color: var(--text-gray); margin-right: 4px; }
-.fcp-editor-save { background: #10b981 !important; color: #fff; border: none; border-radius: 9px; padding: 7px 14px; font-size: 0.84rem; font-weight: 700; cursor: pointer; }
+.fcp-editor-head { flex-wrap: wrap; gap: 8px; row-gap: 6px; }
+.fcp-editor-head-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+#fcpEditorStatus { font-size: 0.78rem; color: var(--text-gray); }
+.fcp-editor-save {
+  background: #10b981 !important; color: #fff; border: none; border-radius: 9px;
+  padding: 9px 16px; font-size: 0.86rem; font-weight: 700; cursor: pointer; min-height: 40px;
+}
 .fcp-editor-save[disabled] { opacity: 0.55; cursor: default; }
 
-.fcp-editor-body {
-  flex: 1; display: flex; gap: 10px; padding: 12px; overflow-x: auto; overflow-y: hidden;
-  align-items: stretch;
+.fcp-editor-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+
+/* --- Ден-пилюли: хоризонтален избор на активния ден, без Kanban скрол --- */
+.fcp-editor-daypills {
+  display: flex; gap: 6px; padding: 10px 12px; overflow-x: auto; flex-shrink: 0;
+  border-bottom: 1px solid #e5e7eb; -webkit-overflow-scrolling: touch;
 }
-.fcp-editor-day {
-  flex: 0 0 250px; width: 250px; display: flex; flex-direction: column; gap: 8px;
-  background: var(--bg-color); border: 1px solid #e5e7eb; border-radius: 12px; padding: 10px;
-  overflow-y: auto;
+[data-theme="dark"] .fcp-editor-daypills { border-color: var(--glass-border); }
+.fcp-editor-pill {
+  flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  min-width: 56px; min-height: 44px; padding: 6px 10px; border-radius: 12px; border: 1px solid #d1d5db;
+  background: var(--white); cursor: pointer; font: inherit;
 }
-[data-theme="dark"] .fcp-editor-day { border-color: var(--glass-border); }
-.fcp-editor-day.drop-hover { border-color: var(--primary-red); box-shadow: 0 0 0 2px var(--soft-red) inset; }
-.fcp-editor-day-head { display: flex; flex-direction: column; gap: 5px; }
-.fcp-editor-day-title { display: flex; align-items: center; justify-content: space-between; }
-.fcp-editor-day-title strong { font-size: 0.86rem; }
-.fcp-editor-day select.fcp-editor-type {
-  font-size: 0.74rem; font-weight: 700; border-radius: 999px; padding: 3px 8px; border: 1px solid #d1d5db;
-  background: var(--white); color: var(--text-dark);
+.fcp-editor-pill strong { font-size: 0.78rem; }
+.fcp-editor-pill small { font-size: 0.66rem; color: var(--text-gray); max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fcp-editor-pill.active { border-color: var(--primary-red); background: var(--soft-red); }
+.fcp-editor-pill.active small { color: var(--primary-dark); }
+.fcp-editor-pill.rest { opacity: 0.65; }
+.fcp-editor-pill.has-exercises strong::after { content: ' •'; color: var(--primary-red); }
+
+/* --- Единичен ден: скролируемо съдържание --- */
+.fcp-editor-daypanel { flex: 1; overflow-y: auto; padding: 12px; -webkit-overflow-scrolling: touch; }
+
+.fcp-editor-day-head { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+.fcp-editor-field { display: flex; flex-direction: column; gap: 3px; }
+.fcp-editor-field label { font-size: 0.7rem; color: var(--text-gray); font-weight: 700; }
+.fcp-editor-focus, .fcp-editor-day select.fcp-editor-type {
+  font-size: 0.86rem; padding: 9px 10px; border: 1px solid #d1d5db; border-radius: 9px;
+  background: var(--white); color: var(--text-dark); box-sizing: border-box; min-height: 40px;
 }
-.fcp-editor-day input.fcp-editor-focus { font-size: 0.78rem; padding: 5px 7px; border: 1px solid #d1d5db; border-radius: 7px; width: 100%; box-sizing: border-box; }
-.fcp-editor-day-meta { display: flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-gray); }
-.fcp-editor-day-meta input[type="number"] { width: 46px; padding: 3px 5px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.74rem; }
-.fcp-editor-day-swap { display: flex; gap: 5px; align-items: center; }
-.fcp-editor-day-swap select { flex: 1; font-size: 0.72rem; padding: 3px; border-radius: 6px; border: 1px solid #d1d5db; }
-.fcp-editor-mini-btn { border: 1px solid #d1d5db; background: var(--white); border-radius: 6px; font-size: 0.72rem; padding: 3px 6px; cursor: pointer; line-height: 1; }
+.fcp-editor-day-row2 { display: flex; gap: 8px; flex-wrap: wrap; }
+.fcp-editor-day-row2 > * { flex: 1 1 140px; }
+.fcp-editor-duration-wrap { display: flex; align-items: center; gap: 6px; }
+.fcp-editor-duration-wrap input { width: 64px; padding: 9px 8px; border: 1px solid #d1d5db; border-radius: 9px; font-size: 0.86rem; min-height: 40px; box-sizing: border-box; }
+
+.fcp-editor-day-swap { display: flex; gap: 6px; align-items: center; }
+.fcp-editor-day-swap select { flex: 1; font-size: 0.8rem; padding: 8px; border-radius: 9px; border: 1px solid #d1d5db; min-height: 40px; }
+.fcp-editor-mini-btn {
+  border: 1px solid #d1d5db; background: var(--white); border-radius: 8px; font-size: 0.86rem;
+  padding: 8px 12px; cursor: pointer; line-height: 1; min-height: 40px;
+}
 .fcp-editor-mini-btn:hover { border-color: var(--primary-red); }
 
-.fcp-editor-phase details { font-size: 0.74rem; }
-.fcp-editor-phase summary { cursor: pointer; color: var(--text-gray); font-weight: 600; }
-.fcp-editor-phase textarea { width: 100%; box-sizing: border-box; font-size: 0.74rem; margin-top: 4px; border-radius: 7px; border: 1px solid #d1d5db; padding: 5px; resize: vertical; min-height: 44px; }
-.fcp-editor-phase label { display: block; font-size: 0.7rem; color: var(--text-gray); margin-top: 4px; }
+.fcp-editor-phase details { font-size: 0.8rem; margin-top: 4px; }
+.fcp-editor-phase summary { cursor: pointer; color: var(--text-gray); font-weight: 600; padding: 6px 0; }
+.fcp-editor-phase textarea { width: 100%; box-sizing: border-box; font-size: 0.82rem; margin-top: 4px; border-radius: 9px; border: 1px solid #d1d5db; padding: 8px; resize: vertical; min-height: 56px; }
+.fcp-editor-phase label { display: block; font-size: 0.72rem; color: var(--text-gray); margin-top: 6px; }
 
-.fcp-editor-exlist { display: flex; flex-direction: column; gap: 6px; flex: 1; min-height: 30px; }
-.fcp-editor-exlist.empty::before { content: 'Няма упражнения'; font-size: 0.74rem; color: #9ca3af; font-style: italic; }
+.fcp-editor-section-title { font-size: 0.8rem; font-weight: 700; margin: 14px 0 8px; color: var(--text-gray); text-transform: uppercase; letter-spacing: 0.02em; }
+.fcp-editor-exlist { display: flex; flex-direction: column; gap: 10px; }
+.fcp-editor-empty { font-size: 0.82rem; color: #9ca3af; font-style: italic; padding: 14px 0; text-align: center; border: 1px dashed #d1d5db; border-radius: 10px; }
 
 .fcp-editor-excard {
-  display: flex; gap: 7px; align-items: flex-start; background: var(--white); border: 1px solid #e5e7eb;
-  border-radius: 10px; padding: 7px; cursor: grab;
+  display: flex; flex-direction: column; gap: 8px; background: var(--white); border: 1px solid #e5e7eb;
+  border-radius: 12px; padding: 10px;
 }
 [data-theme="dark"] .fcp-editor-excard { background: #16302f; border-color: var(--glass-border); }
 .fcp-editor-excard.dragging { opacity: 0.4; }
-.fcp-editor-excard.drag-over-before { box-shadow: 0 -2px 0 var(--primary-red) inset; }
-.fcp-editor-excard.drag-over-after { box-shadow: 0 2px 0 var(--primary-red) inset; }
-.fcp-editor-ex-handle { color: #9ca3af; font-size: 0.9rem; padding-top: 2px; user-select: none; }
-.fcp-editor-ex-thumb { width: 34px; height: 34px; border-radius: 7px; object-fit: cover; background: #f3f4f6; flex-shrink: 0; }
+.fcp-editor-ex-top { display: flex; gap: 8px; align-items: flex-start; }
+.fcp-editor-ex-handle { color: #9ca3af; font-size: 1rem; padding: 8px 2px 8px 0; cursor: grab; touch-action: none; }
+.fcp-editor-ex-thumb { width: 44px; height: 44px; border-radius: 9px; object-fit: cover; background: #f3f4f6; flex-shrink: 0; }
 .fcp-editor-ex-main { flex: 1; min-width: 0; }
-.fcp-editor-ex-name { font-size: 0.8rem; font-weight: 700; line-height: 1.25; }
-.fcp-editor-ex-sub { font-size: 0.68rem; color: var(--text-gray); word-break: break-word; }
-.fcp-editor-ex-fields { display: flex; align-items: center; gap: 4px; margin-top: 5px; flex-wrap: wrap; }
-.fcp-editor-ex-fields input { width: 40px; padding: 3px 4px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.72rem; text-align: center; }
-.fcp-editor-ex-fields input.fcp-editor-reps { width: 46px; }
-.fcp-editor-ex-fields span { font-size: 0.68rem; color: var(--text-gray); }
-.fcp-editor-ex-detail { display: none; margin-top: 5px; gap: 4px; flex-wrap: wrap; }
+.fcp-editor-ex-name { font-size: 0.88rem; font-weight: 700; line-height: 1.3; }
+.fcp-editor-ex-sub { font-size: 0.72rem; color: var(--text-gray); word-break: break-word; margin-top: 1px; }
+
+.fcp-editor-ex-fields { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.fcp-editor-ex-fields > div { display: flex; flex-direction: column; gap: 2px; }
+.fcp-editor-ex-fields label { font-size: 0.64rem; color: var(--text-gray); font-weight: 700; text-transform: uppercase; }
+.fcp-editor-ex-fields input {
+  width: 100%; box-sizing: border-box; padding: 8px 7px; border: 1px solid #d1d5db; border-radius: 8px;
+  font-size: 0.82rem; text-align: center; min-height: 38px;
+}
+
+.fcp-editor-ex-detail { display: none; gap: 6px; flex-wrap: wrap; padding-top: 4px; border-top: 1px dashed #e5e7eb; }
+[data-theme="dark"] .fcp-editor-ex-detail { border-color: var(--glass-border); }
 .fcp-editor-ex-detail.open { display: flex; }
-.fcp-editor-ex-detail input, .fcp-editor-ex-detail textarea { font-size: 0.7rem; padding: 3px 5px; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box; }
-.fcp-editor-ex-detail textarea { width: 100%; min-height: 30px; resize: vertical; }
-.fcp-editor-ex-actions { display: flex; flex-direction: column; gap: 3px; align-items: flex-end; }
-.fcp-editor-ex-actions button { border: none; background: transparent; cursor: pointer; font-size: 0.85rem; padding: 1px 3px; color: var(--text-gray); }
-.fcp-editor-ex-actions button:hover { color: var(--primary-red); }
+.fcp-editor-ex-detail input, .fcp-editor-ex-detail textarea {
+  font-size: 0.78rem; padding: 7px 8px; border: 1px solid #d1d5db; border-radius: 8px; box-sizing: border-box; min-height: 36px;
+}
+.fcp-editor-ex-detail textarea { width: 100%; min-height: 44px; resize: vertical; }
+.fcp-editor-ex-detail-toggle { align-self: flex-start; background: none; border: none; color: var(--text-gray); font-size: 0.74rem; font-weight: 700; cursor: pointer; padding: 4px 0; min-height: 32px; }
+
+.fcp-editor-ex-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.fcp-editor-ex-actions button {
+  border: 1px solid #d1d5db; background: var(--white); border-radius: 8px; cursor: pointer; font-size: 0.78rem;
+  padding: 7px 10px; min-height: 36px; color: var(--text-dark); display: inline-flex; align-items: center; gap: 4px;
+}
+[data-theme="dark"] .fcp-editor-ex-actions button { background: #1c3a39; }
+.fcp-editor-ex-actions button:hover { border-color: var(--primary-red); color: var(--primary-red); }
+.fcp-editor-ex-actions button.danger:hover { border-color: #e74c3c; color: #e74c3c; }
+.fcp-editor-ex-moveto { flex: 1 1 auto; min-width: 120px; }
+.fcp-editor-ex-moveto select {
+  width: 100%; font-size: 0.78rem; padding: 7px 8px; border: 1px solid #d1d5db; border-radius: 8px; min-height: 36px;
+  box-sizing: border-box;
+}
 
 .fcp-editor-addbtn {
-  margin-top: auto; border: 1px dashed #d1d5db; background: transparent; border-radius: 9px; padding: 7px;
-  font-size: 0.76rem; font-weight: 600; color: var(--text-gray); cursor: pointer;
+  margin-top: 12px; width: 100%; border: 1px dashed #d1d5db; background: transparent; border-radius: 10px;
+  padding: 12px; font-size: 0.84rem; font-weight: 700; color: var(--text-gray); cursor: pointer; min-height: 44px;
 }
 .fcp-editor-addbtn:hover { border-color: var(--primary-red); color: var(--primary-red); }
 
-/* Picker — плъзгащ overlay панел вдясно */
+/* --- Picker: полноекранен overlay (търсене + филтри + резултати) --- */
 .fcp-picker { position: absolute; inset: 0; background: var(--white); display: flex; flex-direction: column; z-index: 5; }
 [data-theme="dark"] .fcp-picker { background: #112B2B; }
 .fcp-picker[hidden] { display: none; }
-.fcp-picker-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid #e5e7eb; }
+.fcp-picker-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; }
 [data-theme="dark"] .fcp-picker-head { border-color: var(--glass-border); }
 .fcp-picker-head h4 { margin: 0; font-size: 0.92rem; }
-.fcp-picker-search { padding: 10px 14px 0; }
-.fcp-picker-search input { width: 100%; box-sizing: border-box; padding: 9px 11px; border-radius: 10px; border: 1px solid #d1d5db; font-size: 0.86rem; }
-.fcp-picker-filters { padding: 10px 14px; display: flex; flex-direction: column; gap: 6px; }
-.fcp-picker-filter-row { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
-.fcp-picker-filter-row .fcp-picker-flabel { font-size: 0.7rem; color: var(--text-gray); font-weight: 700; margin-right: 3px; }
+.fcp-picker-search { padding: 10px 14px 0; flex-shrink: 0; }
+.fcp-picker-search input { width: 100%; box-sizing: border-box; padding: 11px 12px; border-radius: 10px; border: 1px solid #d1d5db; font-size: 0.9rem; min-height: 44px; }
+.fcp-picker-filters { padding: 10px 14px; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+.fcp-picker-filter-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.fcp-picker-filter-row .fcp-picker-flabel { font-size: 0.7rem; color: var(--text-gray); font-weight: 700; margin-right: 3px; flex: 0 0 100%; }
 .fcp-picker-chip {
-  border: 1px solid #d1d5db; background: var(--white); border-radius: 999px; padding: 4px 10px;
-  font-size: 0.72rem; font-weight: 600; cursor: pointer;
+  border: 1px solid #d1d5db; background: var(--white); border-radius: 999px; padding: 7px 12px;
+  font-size: 0.76rem; font-weight: 600; cursor: pointer; min-height: 36px;
 }
 .fcp-picker-chip.active { background: var(--soft-red); border-color: var(--primary-red); color: var(--primary-dark); }
-.fcp-picker-results { flex: 1; overflow-y: auto; padding: 6px 14px 14px; display: flex; flex-direction: column; gap: 6px; }
-.fcp-picker-empty { color: #9ca3af; font-style: italic; font-size: 0.82rem; padding: 20px 0; text-align: center; }
+.fcp-picker-results { flex: 1; overflow-y: auto; padding: 6px 14px 14px; display: flex; flex-direction: column; gap: 8px; -webkit-overflow-scrolling: touch; }
+.fcp-picker-empty { color: #9ca3af; font-style: italic; font-size: 0.84rem; padding: 24px 0; text-align: center; }
 .fcp-picker-row {
-  display: flex; align-items: center; gap: 9px; padding: 7px; border: 1px solid #e5e7eb; border-radius: 10px;
-  cursor: pointer; background: var(--white); text-align: left;
+  display: flex; align-items: center; gap: 10px; padding: 9px; border: 1px solid #e5e7eb; border-radius: 10px;
+  cursor: pointer; background: var(--white); text-align: left; min-height: 60px;
 }
 [data-theme="dark"] .fcp-picker-row { background: #16302f; border-color: var(--glass-border); }
-.fcp-picker-row:hover { border-color: var(--primary-red); }
-.fcp-picker-row img { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; background: #f3f4f6; flex-shrink: 0; }
+.fcp-picker-row:hover, .fcp-picker-row:active { border-color: var(--primary-red); }
+.fcp-picker-row img { width: 44px; height: 44px; border-radius: 9px; object-fit: cover; background: #f3f4f6; flex-shrink: 0; }
 .fcp-picker-row-main { flex: 1; min-width: 0; }
-.fcp-picker-row-name { font-size: 0.82rem; font-weight: 700; }
+.fcp-picker-row-name { font-size: 0.84rem; font-weight: 700; }
 .fcp-picker-row-sub { font-size: 0.7rem; color: var(--text-gray); }
-.fcp-picker-badges { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 3px; }
-.fcp-picker-badge { font-size: 0.62rem; font-weight: 700; padding: 1px 6px; border-radius: 999px; background: #f3f4f6; color: var(--text-gray); }
+.fcp-picker-badges { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+.fcp-picker-badge { font-size: 0.62rem; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: #f3f4f6; color: var(--text-gray); }
 [data-theme="dark"] .fcp-picker-badge { background: rgba(255,255,255,0.08); }
 
 @media (max-width: 720px) {
   .fcp-editor-panel { width: 100vw; height: 100vh; max-height: 100vh; border-radius: 0; }
-  .fcp-editor-day { flex: 0 0 200px; width: 200px; }
+}
+
+@media (min-width: 560px) {
+  .fcp-editor-day-row2 { flex-wrap: nowrap; }
+  .fcp-editor-ex-top { align-items: center; }
 }
