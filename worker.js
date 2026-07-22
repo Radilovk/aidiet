@@ -1711,6 +1711,12 @@ var STRICT_ASSEMBLY_RETRY_HINT = `
 var GENDER_FIT_RETRY_HINT = `
 
 \u041A\u041E\u0420\u0415\u041A\u0426\u0418\u042F: \u0436\u0435\u043D\u0430 \u2014 \u043F\u043E\u0432\u0435\u0447\u0435 glute, \u043F\u043E-\u043C\u0430\u043B\u043A\u043E bench/press/curl. JSON \u0441\u0430\u043C\u043E.`;
+var CONSTRAINT_RETRY_HINT = `
+
+\u041A\u041E\u0420\u0415\u041A\u0426\u0418\u042F: \u0441\u043F\u0430\u0437\u0438 <constraints> hard-veto \u2014 \u043F\u0440\u0435\u043C\u0430\u0445\u043D\u0438 \u0437\u0430\u0431\u0440\u0430\u043D\u0435\u043D\u0438\u0442\u0435 \u0434\u0432\u0438\u0436\u0435\u043D\u0438\u044F (\u0438\u043C\u043F\u043B\u0430\u043D\u0442\u0438/\u0433\u044A\u0440\u0434\u0438, avoid). JSON \u0441\u0430\u043C\u043E.`;
+var EQUIPMENT_RETRY_HINT = `
+
+\u041A\u041E\u0420\u0415\u041A\u0426\u0418\u042F: equipmentHint \u0441\u0430\u043C\u043E \u043E\u0442 <equipment>; canonicalName \u043E\u0442 <exercise_catalog> \u0441 \u043F\u043E\u0437\u0432\u043E\u043B\u0435\u043D\u043E \u043E\u0431\u043E\u0440\u0443\u0434\u0432\u0430\u043D\u0435. JSON \u0441\u0430\u043C\u043E.`;
 var COMPACT_PLAN_RETRY_HINT = `
 
 \u041A\u041E\u041C\u041F\u0410\u041A\u0422\u041D\u041E: \u043C\u0430\u043A\u0441. 4 \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F/\u0434\u0435\u043D; notes\u226460 \u0437\u043D\u0430\u043A\u0430. \u0421\u0430\u043C\u043E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON.`;
@@ -2699,6 +2705,22 @@ function isQuestionnaireCategoryTag(tag) {
 function hasClientScheme(exampleScheme) {
   return Boolean(String(exampleScheme || "").trim());
 }
+var EXERCISE_LINE_RE = /(\d+\s*[x×х]\s*\d+|\d+\s*серии|\d+\s*по\s*\d+|sets?\s*[:=]?\s*\d+)/i;
+var DAY_LINE_RE = /^(пон|вто|сря|чет|пет|съб|нед|mon|tue|wed|thu|fri|sat|sun|ден\s*\d|day\s*\d)/i;
+function classifySchemeInput(schemeText = "") {
+  const raw = String(schemeText || "").trim();
+  if (!raw) return "none";
+  const lines = raw.split(/\n+/).map((l) => l.trim()).filter(Boolean);
+  let exerciseLines = 0;
+  let hasDay = false;
+  for (const line2 of lines) {
+    if (EXERCISE_LINE_RE.test(line2)) exerciseLines++;
+    if (DAY_LINE_RE.test(line2)) hasDay = true;
+  }
+  if (exerciseLines === 0 && EXERCISE_LINE_RE.test(raw)) exerciseLines = 1;
+  if (exerciseLines >= 2 || hasDay && exerciseLines >= 1) return "structured";
+  return "brief";
+}
 function isStrictAssembly(strictScheme, exampleScheme) {
   return Boolean(strictScheme) && hasClientScheme(exampleScheme);
 }
@@ -3047,18 +3069,22 @@ function buildBriefIdentityBlock(brief) {
 }
 function buildAdminPlanUserPrompt(brief, options = {}) {
   const strictAssembly = Boolean(options.strictAssembly);
-  const hasScheme = Boolean(String(brief?.exampleScheme || "").trim());
-  const { clientProfile = "", exampleScheme = "", constraints: presetConstraints, programSpec } = brief || {};
+  const { clientProfile = "", exampleScheme = "", trainerBrief = "", constraints: presetConstraints, programSpec } = brief || {};
   const scheme = String(exampleScheme || "").trim();
+  const briefText = String(trainerBrief || "").trim();
+  const hasStructuredScheme = Boolean(scheme);
   const constraints = presetConstraints || parseAdminBriefConstraints(
     strictAssembly ? "" : clientProfile,
-    scheme
+    [scheme, briefText].filter(Boolean).join("\n")
   );
   const hardRules = buildAdminHardRulesBlock(constraints);
   const parts = [buildBriefIdentityBlock(brief)];
   if (scheme) parts.push(`<scheme>
 ${scheme}
 </scheme>`);
+  if (briefText) parts.push(`<trainer_brief>
+${briefText}
+</trainer_brief>`);
   if (!strictAssembly) {
     if (constraints.equipmentList?.length) {
       parts.push(`<equipment>
@@ -3068,7 +3094,7 @@ ${constraints.equipmentList.join(", ")}
     if (hardRules) parts.push(`<constraints>
 ${hardRules}
 </constraints>`);
-    if (programSpec && !hasScheme) {
+    if (programSpec) {
       parts.push(`<program_spec>
 ${formatProgramSpecBlock(programSpec)}
 </program_spec>`);
@@ -3084,7 +3110,7 @@ ${compactProfile}
 ${hardRules}
 </constraints>`);
   }
-  const task = strictAssembly ? "ASSEMBLY: \u0441\u0433\u043B\u043E\u0431\u0438 JSON \u043E\u0442 <scheme> \u0431\u0443\u043A\u0432\u0430\u043B\u043D\u043E. canonicalName + displayName. JSON \u0441\u0430\u043C\u043E." : scheme ? "\u0421\u043B\u0435\u0434\u0432\u0430\u0439 <scheme> \u0442\u043E\u0447\u043D\u043E. \u0417\u0430\u043F\u044A\u043B\u043D\u0438 7 \u0434\u043D\u0438. JSON \u0441\u0430\u043C\u043E." : "\u0413\u0435\u043D\u0435\u0440\u0438\u0440\u0430\u0439 7 \u0434\u043D\u0438 \u043E\u0442 <program_spec> + <exercise_catalog>. canonicalName \u0421\u0410\u041C\u041E \u043E\u0442 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430. volume/reps/rest \u043F\u043E spec. JSON \u0441\u0430\u043C\u043E.";
+  const task = strictAssembly ? "ASSEMBLY: \u0441\u0433\u043B\u043E\u0431\u0438 JSON \u043E\u0442 <scheme> \u0431\u0443\u043A\u0432\u0430\u043B\u043D\u043E. canonicalName + displayName. JSON \u0441\u0430\u043C\u043E." : hasStructuredScheme ? "\u0421\u043B\u0435\u0434\u0432\u0430\u0439 <scheme> \u0442\u043E\u0447\u043D\u043E. \u0417\u0430\u043F\u044A\u043B\u043D\u0438 7 \u0434\u043D\u0438. JSON \u0441\u0430\u043C\u043E." : "\u0413\u0435\u043D\u0435\u0440\u0438\u0440\u0430\u0439 7 \u0434\u043D\u0438 \u043E\u0442 <program_spec> + <exercise_catalog>. canonicalName \u0421\u0410\u041C\u041E \u043E\u0442 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430. volume/reps/rest \u043F\u043E spec. JSON \u0441\u0430\u043C\u043E.";
   return `${parts.join("\n\n")}
 
 ${task}`;
@@ -3119,25 +3145,88 @@ function auditPlanGenderFit(plan, clientTags) {
   }
   return { ok: issues.length === 0, issues };
 }
+var CHEST_IMPLANT_RE = /bench|fly|chest press|push-?up|pec deck|crossover|dip|пек.?дек|избутване от лежанка|лъжичк/i;
+var LATERAL_RAISE_RE = /lateral raise|side raise|страничн/i;
+function auditPlanConstraints(plan, constraints = {}) {
+  const issues = [];
+  const exclusions = constraints?.exclusions || [];
+  const blob = exclusions.join(" ").toLowerCase();
+  const implantRule = /имплант|гърди не|без натиск върху гърдите/i.test(blob);
+  const avoidLateral = /страничн/i.test(blob) || exclusions.some((e) => /не желае.*страничн/i.test(e));
+  for (const day of plan?.days || []) {
+    if (day.type === "rest") continue;
+    for (const ex of day.exercises || []) {
+      const name = String(ex.canonicalName || ex.displayName || "");
+      if (implantRule && CHEST_IMPLANT_RE.test(name)) {
+        issues.push(`\u0417\u0430\u0431\u0440\u0430\u043D\u0435\u043D\u043E (\u0438\u043C\u043F\u043B\u0430\u043D\u0442\u0438/\u0433\u044A\u0440\u0434\u0438): ${name}`);
+      }
+      if (avoidLateral && LATERAL_RAISE_RE.test(name)) {
+        issues.push(`\u0417\u0430\u0431\u0440\u0430\u043D\u0435\u043D\u043E \u0434\u0432\u0438\u0436\u0435\u043D\u0438\u0435: ${name}`);
+      }
+    }
+  }
+  return issues;
+}
+function auditPlanEquipment(plan, allowedEquipment) {
+  if (!allowedEquipment?.size) return { ok: true, issues: [] };
+  const issues = [];
+  for (const day of plan?.days || []) {
+    if (day.type === "rest") continue;
+    for (const ex of day.exercises || []) {
+      const hint = normalizeText(ex.equipmentHint || "");
+      if (!hint) continue;
+      if (allowedEquipment.has(hint)) continue;
+      const ok = [...allowedEquipment].some((a) => hint.includes(a) || a.includes(hint));
+      if (!ok) {
+        issues.push(`\u041D\u0435\u043F\u043E\u0437\u0432\u043E\u043B\u0435\u043D\u043E \u043E\u0431\u043E\u0440\u0443\u0434\u0432\u0430\u043D\u0435: ${ex.canonicalName || ex.displayName} (${ex.equipmentHint})`);
+      }
+    }
+  }
+  return { ok: issues.length === 0, issues };
+}
+function auditPlan(plan, { clientTags = null, constraints = null, allowedEquipment = null } = {}) {
+  const issues = [];
+  const gender = auditPlanGenderFit(plan, clientTags);
+  if (!gender.ok) issues.push(...gender.issues);
+  issues.push(...auditPlanConstraints(plan, constraints || {}));
+  const equip = auditPlanEquipment(plan, allowedEquipment);
+  if (!equip.ok) issues.push(...equip.issues);
+  return { ok: issues.length === 0, issues };
+}
+function auditRetryHint(issues = []) {
+  const joined = issues.join(" ");
+  if (/имплант|забранено|гърди/i.test(joined)) return CONSTRAINT_RETRY_HINT;
+  if (/оборудване/i.test(joined)) return EQUIPMENT_RETRY_HINT;
+  if (/дупе|мъжки|bench|press/i.test(joined)) return GENDER_FIT_RETRY_HINT;
+  return CONSTRAINT_RETRY_HINT;
+}
 function preparePlanGeneration(source, adminConfig, helpers) {
   function buildFromAnswers(answers, extra = {}) {
     const profileText = answers?.gender ? helpers.buildProfileSummary(answers) : "";
     const tags = answers?.gender ? buildTagsFromAnswers(answers) : /* @__PURE__ */ new Set();
-    for (const t of extractTagsFromText(profileText, extra.exampleScheme || "")) tags.add(t);
-    const strictAssembly = isStrictAssembly(extra.strictScheme, extra.exampleScheme);
-    const schemeMode = strictAssembly || hasClientScheme(extra.exampleScheme);
+    const schemeText = String(extra.exampleScheme || "").trim();
+    const schemeKind = classifySchemeInput(schemeText);
+    for (const t of extractTagsFromText(profileText, schemeText)) {
+      if (t.startsWith("goal:") && [...tags].some((x) => x.startsWith("goal:"))) continue;
+      tags.add(t);
+    }
+    const strictAssembly = isStrictAssembly(extra.strictScheme, schemeText);
+    const structuredScheme = schemeKind === "structured";
+    const schemeMode = strictAssembly || structuredScheme;
     const layers = resolveGuidelineLayers(tags, adminConfig, { schemeMode, strictAssembly });
-    const programSpec = !strictAssembly && !schemeMode && answers?.gender ? buildProgramSpec(answers) : null;
+    const programSpec = !strictAssembly && answers?.gender ? buildProgramSpec(answers) : null;
+    const planConstraints = constraintsFromAnswers(answers || {}, schemeText, { strictAssembly });
     const brief = {
       clientProfile: profileText,
       compactProfile: programSpec ? buildCompactProfileForPrompt(answers) : profileText,
-      exampleScheme: extra.exampleScheme || "",
-      constraints: constraintsFromAnswers(answers || {}, extra.exampleScheme || "", { strictAssembly }),
+      exampleScheme: structuredScheme ? schemeText : "",
+      trainerBrief: schemeKind === "brief" ? schemeText : "",
+      constraints: planConstraints,
       tags,
       programSpec
     };
     const equipmentInput = expandEquipmentAnswers([...answers?.equipment || [], answers?.equipmentOther].filter(Boolean));
-    const fromBrief = allowedEquipmentFromBrief(profileText, extra.exampleScheme || "");
+    const fromBrief = allowedEquipmentFromBrief(profileText, schemeText);
     const fromAnswers = helpers.allowedEquipmentSet(equipmentInput);
     return {
       userPrompt: buildAdminPlanUserPrompt(brief, { strictAssembly }),
@@ -3145,9 +3234,11 @@ function preparePlanGeneration(source, adminConfig, helpers) {
       coachProfileText: extra.coachProfileText || profileText,
       allowedEquipment: mergeAllowedEquipment(fromBrief, fromAnswers),
       clientTags: tags,
-      hasScheme: schemeMode,
+      hasScheme: structuredScheme,
       strictAssembly,
-      exerciseProfile: answers?.gender ? exerciseProfileFromAnswers(answers) : null
+      exerciseProfile: answers?.gender ? exerciseProfileFromAnswers(answers) : null,
+      constraints: planConstraints,
+      schemeKind
     };
   }
   if (source.clientAnswers || source.strictScheme) {
@@ -3769,7 +3860,8 @@ async function executePlanGeneration(env, ctx, {
   guidelineLayers = null,
   hasScheme = false,
   strictAssembly = false,
-  exerciseProfile = null
+  exerciseProfile = null,
+  constraints = null
 }) {
   const indexPromise = loadExerciseIndex(env, ctx);
   const tagSet = clientTags instanceof Set ? clientTags : new Set(clientTags || []);
@@ -3778,7 +3870,7 @@ async function executePlanGeneration(env, ctx, {
   let catalogBlock = "";
   if (!strictAssembly) {
     const index2 = await indexPromise;
-    if (index2?.length && (allowedEquipment || exerciseProfile)) {
+    if (index2?.length) {
       catalogBlock = buildExerciseCatalogSnippet(index2, exerciseProfile, allowedEquipment);
     }
   }
@@ -3789,10 +3881,21 @@ ${catalogBlock}` : userPrompt;
   let rawText;
   const maxAttempts = 3;
   let lastFailure = "parse";
+  let lastAuditIssues = [];
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     let user = baseUser;
     if (attempt > 0) {
-      user += strictAssembly ? STRICT_ASSEMBLY_RETRY_HINT : hasScheme ? COMPACT_PLAN_RETRY_HINT : lastFailure === "gender" ? GENDER_FIT_RETRY_HINT : COMPACT_PLAN_RETRY_HINT;
+      if (strictAssembly) {
+        user += STRICT_ASSEMBLY_RETRY_HINT;
+      } else if (lastFailure === "audit") {
+        user += auditRetryHint(lastAuditIssues);
+      } else if (hasScheme) {
+        user += COMPACT_PLAN_RETRY_HINT;
+      } else if (lastFailure === "gender") {
+        user += GENDER_FIT_RETRY_HINT;
+      } else {
+        user += COMPACT_PLAN_RETRY_HINT;
+      }
     }
     const aiOpts = {
       system,
@@ -3804,11 +3907,12 @@ ${catalogBlock}` : userPrompt;
     try {
       rawText = await callAI(env, aiOpts);
       plan = normalizePlan(parseAiJson(rawText));
-      if (!hasScheme && !strictAssembly) {
-        const genderAudit = auditPlanGenderFit(plan, clientTags);
-        if (!genderAudit.ok && attempt < maxAttempts - 1) {
-          lastFailure = "gender";
-          console.warn("Gender audit failed, retry:", genderAudit.issues.join("; "));
+      if (!strictAssembly) {
+        const planAudit = auditPlan(plan, { clientTags: tagSet, constraints, allowedEquipment });
+        if (!planAudit.ok && attempt < maxAttempts - 1) {
+          lastFailure = "audit";
+          lastAuditIssues = planAudit.issues;
+          console.warn("Plan audit failed, retry:", planAudit.issues.join("; "));
           continue;
         }
       }
@@ -3852,7 +3956,7 @@ async function handleGeneratePlan(request, env, ctx) {
     return errorResponse(`\u0414\u043E\u0441\u0442\u0438\u0433\u043D\u0430\u0442 \u0435 \u0434\u043D\u0435\u0432\u043D\u0438\u044F\u0442 \u043B\u0438\u043C\u0438\u0442 \u043E\u0442 ${genLimit} \u0433\u0435\u043D\u0435\u0440\u0430\u0446\u0438\u0438. \u041E\u043F\u0438\u0442\u0430\u0439 \u043E\u0442\u043D\u043E\u0432\u043E \u0443\u0442\u0440\u0435.`, 429, "rate_limited");
   }
   const adminGuidelines = await loadAdminGuidelines(env);
-  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile } = preparePlanGeneration(
+  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile, constraints } = preparePlanGeneration(
     { answers },
     adminGuidelines,
     { buildProfileSummary, allowedEquipmentSet }
@@ -3869,7 +3973,8 @@ async function handleGeneratePlan(request, env, ctx) {
       guidelineLayers,
       hasScheme,
       strictAssembly,
-      exerciseProfile
+      exerciseProfile,
+      constraints
     }));
   } catch (e) {
     if (isPlanParseError(e)) {
@@ -4407,7 +4512,7 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
     clientName: record.clientName,
     clientContact: record.clientContact
   };
-  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile } = preparePlanGeneration(
+  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile, constraints } = preparePlanGeneration(
     genSource,
     adminGuidelines,
     { buildProfileSummary, allowedEquipmentSet }
@@ -4424,7 +4529,8 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
       guidelineLayers,
       hasScheme,
       strictAssembly,
-      exerciseProfile
+      exerciseProfile,
+      constraints
     }));
   } catch (e) {
     if (isPlanParseError(e)) {
