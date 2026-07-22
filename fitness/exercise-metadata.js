@@ -4,6 +4,10 @@
  */
 import { normalizeText } from './normalize.js';
 
+/** @typedef {{ gender?: string, experience?: string }} AnswersInput */
+/** @typedef {{ isFemale: boolean, isMale: boolean, maxDiff: number, minGf: number, minGm: number }} ExerciseProfileFilter */
+/** @typedef {{ answers?: AnswersInput, tags?: Iterable<string>|Set<string>|null, profileText?: string }} ExerciseProfileContextInput */
+
 export const EXERCISE_METADATA_KV_KEY = 'exercise:metadata:v1';
 
 /** Евристичен bootstrap преди/без AI класификация. */
@@ -107,7 +111,7 @@ function applyMaxDiffToProfile(profile, maxDiff) {
   return out;
 }
 
-export function exerciseProfileFromAnswers(answers = {}) {
+export function exerciseProfileFromAnswers(answers = /** @type {AnswersInput} */ ({})) {
   const gender = normalizeText(answers.gender || '');
   const isFemale = gender.includes('жена');
   const isMale = gender.includes('мъж');
@@ -120,7 +124,8 @@ export function exerciseProfileFromAnswers(answers = {}) {
 }
 
 /** Профил от answers + тагове/бриф (админ път без пълен въпросник). */
-export function exerciseProfileFromContext({ answers = {}, tags = null, profileText = '' } = {}) {
+export function exerciseProfileFromContext(ctx = /** @type {ExerciseProfileContextInput} */ ({})) {
+  const { answers = {}, tags = null, profileText = '' } = ctx;
   const base = exerciseProfileFromAnswers(answers);
   const tagSet = tags instanceof Set ? tags : new Set(tags || []);
 
