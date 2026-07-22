@@ -48,7 +48,6 @@ import {
   GENDER_FIT_RETRY_HINT,
   CONSTRAINT_RETRY_HINT,
   EQUIPMENT_RETRY_HINT,
-  MODALITY_RETRY_HINT,
   PLAN_RESPONSE_SCHEMA,
   PLAN_SYSTEM_ASSEMBLY,
   STRICT_ASSEMBLY_RETRY_HINT,
@@ -107,7 +106,6 @@ import {
   auditPlanGenderFit,
   auditPlan,
   auditPlanConstraints,
-  auditPlanModality,
   auditPlanSessionStructure,
   auditPlanExerciseProfile,
   auditRetryHint,
@@ -148,7 +146,6 @@ export {
   auditPlanGenderFit,
   auditPlan,
   auditPlanConstraints,
-  auditPlanModality,
   auditPlanSessionStructure,
   auditPlanExerciseProfile,
   auditRetryHint,
@@ -157,7 +154,6 @@ export {
   GENDER_FIT_RETRY_HINT,
   CONSTRAINT_RETRY_HINT,
   EQUIPMENT_RETRY_HINT,
-  MODALITY_RETRY_HINT,
   buildTrainerSystemAddon,
   parseChunkTags,
   shouldIncludeAdminChunk,
@@ -907,7 +903,9 @@ async function executePlanGeneration(env, ctx, {
   if (!strictAssembly) {
     const index = await indexPromise;
     if (index?.length) {
-      catalogBlock = buildExerciseCatalogSnippet(index, exerciseProfile, allowedEquipment);
+      catalogBlock = buildExerciseCatalogSnippet(index, exerciseProfile, allowedEquipment, {
+        modalities: programSpec?.weekModalities || null,
+      });
     }
   }
   const baseUser = catalogBlock ? `${userPrompt}\n\n${catalogBlock}` : userPrompt;

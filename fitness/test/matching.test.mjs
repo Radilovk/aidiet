@@ -32,7 +32,6 @@ import {
   auditPlanGenderFit,
   auditPlan,
   auditPlanConstraints,
-  auditPlanModality,
   auditPlanSessionStructure,
   auditPlanExerciseProfile,
   classifySchemeInput,
