@@ -128,6 +128,32 @@ test('matchExercise: празен индекс → null', () => {
   assert.equal(matchExercise(null, { canonicalName: 'x' }), null);
 });
 
+test('matchExercise: не подменя с грешна категория при случайно съвпадение на дума ("press")', () => {
+  // Няма реален "Leg Press" в индекса и единствения кандидат за "крака"
+  // (Barbell Squat) е изключен от оборудването → нищо не бива да замести
+  // грешно с "Bench Press" само защото и двете съдържат думата "press".
+  const index = [
+    { id: '1', name: 'Barbell Bench Press', nameNorm: 'barbell bench press', tokens: ['barbell', 'bench', 'press'], equipNorm: 'barbell', targetNorm: 'pectorals', bodyNorm: 'chest' },
+    { id: '2', name: 'Barbell Squat', nameNorm: 'barbell squat', tokens: ['barbell', 'squat'], equipNorm: 'barbell', targetNorm: 'quads', bodyNorm: 'upper legs' },
+  ];
+  const allowed = new Set(['machine', 'body weight']); // без "barbell" — Squat също се изключва
+  const result = matchExercise(index, {
+    canonicalName: 'Leg Press', equipmentHint: 'machine', bodyPart: 'upper legs', allowedEquipment: allowed,
+  });
+  assert.equal(result, null, 'по-добре без медия, отколкото грешна категория (гърди вместо крака)');
+});
+
+test('matchExercise: силно съвпадение на име надделява дори при грешен bodyPart hint', () => {
+  const index = [
+    { id: '1', name: 'Barbell Bench Press', nameNorm: 'barbell bench press', tokens: ['barbell', 'bench', 'press'], equipNorm: 'barbell', targetNorm: 'pectorals', bodyNorm: 'chest' },
+    { id: '2', name: 'Barbell Squat', nameNorm: 'barbell squat', tokens: ['barbell', 'squat'], equipNorm: 'barbell', targetNorm: 'quads', bodyNorm: 'upper legs' },
+  ];
+  // AI е сгрешил bodyPart ("chest" вместо "upper legs"), но самото име
+  // недвусмислено сочи Barbell Squat — точното име трябва да надделее.
+  const result = matchExercise(index, { canonicalName: 'Barbell Squat', equipmentHint: 'barbell', bodyPart: 'chest' });
+  assert.equal(result.entry.name, 'Barbell Squat');
+});
+
 // ----------------------------------------------------------------------------
 // Алтернативи
 // ----------------------------------------------------------------------------
