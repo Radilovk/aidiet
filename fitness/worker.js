@@ -65,6 +65,7 @@ import {
   SWAP_EQUIPMENT,
   buildExerciseCatalogSnippet,
   exerciseProfileFromAnswers,
+  exerciseProfileFromContext,
   fitsExerciseProfile,
   mergeExerciseMetadata,
   passesEquipment,
@@ -108,6 +109,7 @@ import {
   auditPlanConstraints,
   auditPlanModality,
   auditPlanSessionStructure,
+  auditPlanExerciseProfile,
   auditRetryHint,
   classifySchemeInput,
   isStructuredScheme,
@@ -148,6 +150,7 @@ export {
   auditPlanConstraints,
   auditPlanModality,
   auditPlanSessionStructure,
+  auditPlanExerciseProfile,
   auditRetryHint,
   classifySchemeInput,
   isStructuredScheme,
@@ -253,7 +256,9 @@ export function tokenOverlapScore(queryTokens, candidateTokens) {
  * Bonus от hints разграничава близки имена (Bench Press с щанга vs с дъмбели).
  * Връща { entry, score, usedFallback } или null ако базата е празна.
  */
-export function matchExercise(index, { canonicalName, equipmentHint, bodyPart, allowedEquipment = null }) {
+export function matchExercise(index, {
+  canonicalName, equipmentHint, bodyPart, allowedEquipment = null, exerciseProfile = null,
+}) {
   if (!index || !index.length) return null;
 
   const queryTokens = tokenize(canonicalName);
@@ -265,6 +270,7 @@ export function matchExercise(index, { canonicalName, equipmentHint, bodyPart, a
 
   for (const entry of index) {
     if (!passesEquipment(entry, allowedEquipment)) continue;
+    if (exerciseProfile && !fitsExerciseProfile(entry, exerciseProfile)) continue;
     let score = tokenOverlapScore(queryTokens, entry.tokens);
     if (score === 0) continue;
     // Bonus от hints — само върху кандидати с текстово покритие.
@@ -288,10 +294,12 @@ export function matchExercise(index, { canonicalName, equipmentHint, bodyPart, a
   // за да не остане празно поле в програмата.
   const fallback = index.find((e) =>
     passesEquipment(e, allowedEquipment) &&
+    (!exerciseProfile || fitsExerciseProfile(e, exerciseProfile)) &&
     (bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm)) &&
     (!equipNorm || e.equipNorm === equipNorm)
   ) || index.find((e) =>
     passesEquipment(e, allowedEquipment) &&
+    (!exerciseProfile || fitsExerciseProfile(e, exerciseProfile)) &&
     bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm)
   );
 
@@ -789,6 +797,7 @@ export function enrichPlanWithExercises(plan, index, { allowedEquipment = null, 
         equipmentHint: ex.equipmentHint,
         bodyPart: ex.bodyPart,
         allowedEquipment,
+        exerciseProfile,
       });
       const needsSwap = result?.entry && (
         (allowedEquipment && !passesEquipment(result.entry, allowedEquipment))
@@ -934,7 +943,15 @@ async function executePlanGeneration(env, ctx, {
       rawText = await callAI(env, aiOpts);
       plan = normalizePlan(parseAiJson(rawText));
       if (!strictAssembly) {
-        const planAudit = auditPlan(plan, { clientTags: tagSet, constraints, allowedEquipment, programSpec });
+        const index = await indexPromise;
+        const planAudit = auditPlan(plan, {
+          clientTags: tagSet,
+          constraints,
+          allowedEquipment,
+          programSpec,
+          exerciseProfile,
+          exerciseIndex: index,
+        });
         if (!planAudit.ok && attempt < maxAttempts - 1) {
           lastFailure = 'audit';
           lastAuditIssues = planAudit.issues;

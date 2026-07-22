@@ -47,7 +47,7 @@ test('formatProgramSpecBlock: компактен XML блок', () => {
   });
   const block = formatProgramSpecBlock(spec);
   assert.ok(block.includes('sessions: 3'));
-  assert.ok(block.includes('volume/wk:'));
+  assert.ok(block.includes('maxDiff:'));
   assert.ok(block.includes('zones↓:'));
   assert.ok(block.includes('reps:'));
 });

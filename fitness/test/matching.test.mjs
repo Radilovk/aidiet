@@ -34,6 +34,7 @@ import {
   auditPlanConstraints,
   auditPlanModality,
   auditPlanSessionStructure,
+  auditPlanExerciseProfile,
   classifySchemeInput,
   isStructuredScheme,
   buildTrainerSystemAddon,
@@ -43,7 +44,7 @@ import {
 } from '../worker.js';
 
 import { mergeAllowedEquipment } from '../plan-generation.js';
-import { filterExercises, passesEquipment, SWAP_EQUIPMENT } from '../exercise-metadata.js';
+import { filterExercises, passesEquipment, SWAP_EQUIPMENT, exerciseProfileFromAnswers } from '../exercise-metadata.js';
 
 import { QUESTIONS, activeQuestions, validateQuestion, buildAnswers, fieldVisible } from '../questions.js';
 import { localizeExerciseDisplayName, sanitizeBgText } from '../exercise-labels-bg.js';
@@ -512,6 +513,31 @@ test('auditPlanConstraints: импланти и странични рамена'
   assert.ok(issues.some((i) => /страничн|Lateral/i.test(i)));
   const audit = auditPlan(plan, { constraints, clientTags: new Set(['gender:жена']) });
   assert.equal(audit.ok, false);
+});
+
+test('auditPlanExerciseProfile: bench d3 при maxDiff 1 → проблем', () => {
+  const index = [
+    { name: 'Barbell Bench Press', diff: 3, gf: 32, gm: 88, equipNorm: 'barbell', targetNorm: 'chest' },
+  ];
+  const profile = exerciseProfileFromAnswers({ gender: 'Жена', experience: 'Никакъв / начинаещ' });
+  const plan = {
+    days: [{
+      day: 'Понеделник', type: 'strength',
+      exercises: [{ canonicalName: 'Barbell Bench Press' }],
+    }],
+  };
+  const issues = auditPlanExerciseProfile(plan, profile, index);
+  assert.ok(issues.some((i) => /bench/i.test(i) && /max d1/i.test(i)));
+});
+
+test('matchExercise: спазва exerciseProfile maxDiff', () => {
+  const index = [
+    { id: '1', name: 'Barbell Squat', nameNorm: 'barbell squat', tokens: ['barbell', 'squat'], diff: 3, gf: 70, gm: 85, equipNorm: 'barbell', targetNorm: 'quads', bodyNorm: 'upper legs' },
+    { id: '2', name: 'Cable Glute Kickback', nameNorm: 'cable glute kickback', tokens: ['cable', 'glute', 'kickback'], diff: 1, gf: 90, gm: 70, equipNorm: 'cable', targetNorm: 'glutes', bodyNorm: 'upper legs' },
+  ];
+  const profile = exerciseProfileFromAnswers({ gender: 'Жена', experience: 'Начинаещ' });
+  const hard = matchExercise(index, { canonicalName: 'Barbell Squat', equipmentHint: 'barbell', bodyPart: 'upper legs', exerciseProfile: profile });
+  assert.equal(hard?.entry?.name, 'Cable Glute Kickback');
 });
 
 test('auditPlanSessionStructure: bench в mobility основен блок → проблем', () => {

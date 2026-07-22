@@ -299,6 +299,7 @@ export function buildProgramSpec(answers = {}) {
     sessions,
     durationMin,
     level,
+    maxDiff: level,
     goal: goalLabel,
     goalNorm,
     modality,
@@ -332,7 +333,7 @@ export function formatVolumeLine(volume) {
 export function formatProgramSpecBlock(spec) {
   if (!spec) return '';
   const lines = [
-    `sessions: ${spec.sessions} | dur: ${spec.durationMin}min | level: ${spec.level} | goal: ${spec.goal}`,
+    `sessions: ${spec.sessions} | dur: ${spec.durationMin}min | level: ${spec.level} | maxDiff: d≤${spec.maxDiff ?? spec.level} | goal: ${spec.goal}`,
     `modality: ${spec.modality || 'strength'}`,
     `split: ${spec.split}`,
   ];
