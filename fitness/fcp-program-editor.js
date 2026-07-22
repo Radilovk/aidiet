@@ -459,7 +459,10 @@ function openPicker({ mode, dayIndex, exIndex = null }) {
         oninput: debounce((e) => { state.picker.q = e.target.value; runPickerSearch(); }, 250),
       }),
     ),
-    el('div', { class: 'fcp-picker-filters', id: 'fcpPickerFilters' }),
+    el('details', { class: 'fcp-picker-filters-toggle' },
+      el('summary', { id: 'fcpPickerFiltersSummary', text: 'Филтри' }),
+      el('div', { class: 'fcp-picker-filters', id: 'fcpPickerFilters' }),
+    ),
     el('div', { class: 'fcp-picker-results', id: 'fcpPickerResults' }, '…'),
   );
   panel.append(picker);
@@ -487,6 +490,7 @@ function renderPickerFilters(facets) {
       onclick: (e) => {
         toggleSetValue(state.picker.modality, value);
         e.currentTarget.classList.toggle('active');
+        updateFilterSummary();
         runPickerSearch();
       },
     }, label));
@@ -502,6 +506,7 @@ function renderPickerFilters(facets) {
         state.picker.diffMax = active ? null : d;
         wrap.querySelectorAll('.fcp-picker-diff-chip').forEach((b) => b.classList.remove('active'));
         if (!active) e.currentTarget.classList.add('active');
+        updateFilterSummary();
         runPickerSearch();
       },
     }, DIFF_LABELS[d]);
@@ -517,6 +522,7 @@ function renderPickerFilters(facets) {
         onclick: (e) => {
           toggleSetValue(state.picker.equipment, f.value);
           e.currentTarget.classList.toggle('active');
+          updateFilterSummary();
           runPickerSearch();
         },
       }, `${f.label} (${f.count})`));
@@ -532,6 +538,7 @@ function renderPickerFilters(facets) {
         onclick: (e) => {
           toggleSetValue(state.picker.target, f.value);
           e.currentTarget.classList.toggle('active');
+          updateFilterSummary();
           runPickerSearch();
         },
       }, `${f.label} (${f.count})`));
@@ -543,6 +550,16 @@ function renderPickerFilters(facets) {
 function toggleSetValue(set, value) {
   if (set.has(value)) set.delete(value);
   else set.add(value);
+}
+
+/** Брой активни филтри в <summary> — филтрите са свити по подразбиране,
+ * за да не изместват резултатите извън видимата част на малък екран. */
+function updateFilterSummary() {
+  const summary = $('#fcpPickerFiltersSummary');
+  if (!summary) return;
+  const p = state.picker;
+  const count = p.modality.size + p.equipment.size + p.target.size + (p.diffMax != null ? 1 : 0);
+  summary.textContent = count ? `Филтри (${count} активни)` : 'Филтри';
 }
 
 async function runPickerSearch() {
