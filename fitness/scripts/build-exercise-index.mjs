@@ -7,7 +7,7 @@
  * предварително (нулев cold-start fetch) или да provision-неш нов namespace:
  *
  *   node scripts/build-exercise-index.mjs
- *   npx wrangler kv key put exidx:v1 --path data/exercise-index.json \
+ *   npx wrangler kv key put exidx:v2 --path data/exercise-index.json \
  *       --binding FITNESS_KV --env production --remote
  *
  * Източникът може да се override-не:

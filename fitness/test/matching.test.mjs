@@ -40,6 +40,8 @@ import {
   parseChunkTags,
   shouldIncludeAdminChunk,
   constraintsFromAnswers,
+  loadExerciseMetadata,
+  loadBundledMetadata,
 } from '../worker.js';
 
 import { mergeAllowedEquipment } from '../plan-generation.js';
@@ -121,6 +123,33 @@ test('matchExercise: под прага → fallback по категория, н�
   assert.ok(result, 'очаква се fallback резултат');
   assert.equal(result.usedFallback, true);
   assert.equal(result.entry.bodyNorm, 'chest');
+});
+
+test('loadExerciseMetadata: частичен KV слива с bundled, не го изтрива изцяло', async () => {
+  const bundled = await loadBundledMetadata();
+  const bundledIds = Object.keys(bundled);
+  assert.ok(bundledIds.length > 100, 'очаква се пълен bundled fallback (целия dataset)');
+
+  const sampleId = bundledIds[0];
+  const fakeKv = {
+    async get(key) {
+      if (key !== 'exercise:metadata:v1') return null;
+      // Production сценарий: batch-класификацията е обходила само 1 запис в KV.
+      return { [sampleId]: { diff: 3, gf: 1, gm: 1, flags: ['kv-override'] } };
+    },
+  };
+
+  const merged = await loadExerciseMetadata({ FITNESS_KV: fakeKv });
+  assert.equal(Object.keys(merged).length, bundledIds.length, 'bundled записите извън KV overlap-а трябва да оцелеят');
+  assert.deepEqual(merged[sampleId], { diff: 3, gf: 1, gm: 1, flags: ['kv-override'] }, 'KV печели за overlap-ващ id');
+  const otherId = bundledIds.find((id) => id !== sampleId);
+  assert.deepEqual(merged[otherId], bundled[otherId], 'останалите bundled записи не бива да бъдат изтрити от частичен KV');
+});
+
+test('loadExerciseMetadata: без FITNESS_KV → чист bundled fallback', async () => {
+  const bundled = await loadBundledMetadata();
+  const result = await loadExerciseMetadata({});
+  assert.deepEqual(result, bundled);
 });
 
 test('matchExercise: празен индекс → null', () => {

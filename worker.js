@@ -3735,7 +3735,7 @@ var DATASET_URL_CANDIDATES = [
   "https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@main/data/exercises.json",
   "https://raw.githubusercontent.com/hasaneyldrm/exercises-dataset/main/data/exercises.json"
 ];
-var EXERCISE_INDEX_KV_KEY = "exidx:v1";
+var EXERCISE_INDEX_KV_KEY = "exidx:v2";
 var EXERCISE_INDEX_TTL = 60 * 60 * 24 * 30;
 var PLAN_TTL = 60 * 60 * 24 * 90;
 var MATCH_THRESHOLD = 0.35;
@@ -3874,20 +3874,6 @@ function buildCompactIndex(rawList, translations = {}, metadata = {}) {
 }
 var bundledMetadata = null;
 var bundledTranslations = null;
-async function loadExerciseMetadata(env) {
-  if (env?.FITNESS_KV) {
-    try {
-      const kv = await env.FITNESS_KV.get(EXERCISE_METADATA_KV_KEY, { type: "json" });
-      if (kv && typeof kv === "object" && Object.keys(kv).length) {
-        bundledMetadata = kv;
-        return kv;
-      }
-    } catch (e) {
-      console.error("KV read \u0437\u0430 exercise metadata \u043F\u0440\u043E\u043F\u0430\u0434\u043D\u0430:", e.message);
-    }
-  }
-  return loadBundledMetadata();
-}
 async function loadBundledMetadata() {
   if (bundledMetadata !== null) return bundledMetadata;
   try {
@@ -3897,6 +3883,20 @@ async function loadBundledMetadata() {
     bundledMetadata = {};
   }
   return bundledMetadata;
+}
+async function loadExerciseMetadata(env) {
+  const bundled = await loadBundledMetadata();
+  if (env?.FITNESS_KV) {
+    try {
+      const kv = await env.FITNESS_KV.get(EXERCISE_METADATA_KV_KEY, { type: "json" });
+      if (kv && typeof kv === "object" && Object.keys(kv).length) {
+        return { ...bundled, ...kv };
+      }
+    } catch (e) {
+      console.error("KV read \u0437\u0430 exercise metadata \u043F\u0440\u043E\u043F\u0430\u0434\u043D\u0430:", e.message);
+    }
+  }
+  return bundled;
 }
 async function saveExerciseMetadata(env, metadata) {
   await env.FITNESS_KV.put(EXERCISE_METADATA_KV_KEY, JSON.stringify(metadata));
@@ -4215,9 +4215,9 @@ function normalizePlan(plan) {
     }
   };
 }
-function entryToClientExercise(env, entry) {
+function entryToClientExercise(env, entry, { includeInstructions = true } = {}) {
   const displayName = entry.nameBg || localizeExerciseDisplayName(entry.name, "", entry.equipment);
-  return {
+  const out = {
     id: entry.id,
     name: entry.name,
     displayName,
@@ -4226,10 +4226,13 @@ function entryToClientExercise(env, entry) {
     target: entry.target,
     bodyPart: entry.bodyPart,
     imageUrl: mediaUrl(env, entry.image),
-    gifUrl: mediaUrl(env, entry.gif),
-    instructions: entry.instructions || "",
-    instructionsLang: entry.instructionsLang || ""
+    gifUrl: mediaUrl(env, entry.gif)
   };
+  if (includeInstructions) {
+    out.instructions = entry.instructions || "";
+    out.instructionsLang = entry.instructionsLang || "";
+  }
+  return out;
 }
 function enrichPlanWithExercises(plan, index, { allowedEquipment = null, env = {}, exerciseProfile = null } = {}) {
   if (!index) return plan;
@@ -4579,7 +4582,7 @@ async function handleExerciseSearch(url, env, ctx) {
     total,
     results: results.map(({ score, entry }) => ({
       score,
-      ...entryToClientExercise(env, entry),
+      ...entryToClientExercise(env, entry, { includeInstructions: false }),
       diff: entry.diff ?? 2,
       gf: entry.gf ?? 70,
       gm: entry.gm ?? 70,
