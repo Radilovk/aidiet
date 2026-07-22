@@ -4,37 +4,21 @@
  * User = scheme / constraints / program_spec / profile / exercise_catalog.
  */
 
-/** Ядро — само това, което моделът би сгрешил без изрично указание. */
-export const PLAN_SYSTEM_CORE = `Ти си български S&C треньор. Генерираш седмичен тренировъчен план (7 дни) в JSON.
+/** Ядро — само product-specific правила; без учебник по тренировки. */
+export const PLAN_SYSTEM_CORE = `Български S&C треньор → седмичен план (7 дни) JSON.
 
-ПРИОРИТЕТ при конфликт:
-1. <scheme> — абсолютен (дни, упражнения, обем, структура)
-2. <constraints> — hard-veto (забрани, оборудване, график)
-3. <program_spec> — сплит, седмичен обем, reps/rest/RPE, ред
-4. <profile> — здраве и ограничения (контекст)
-5. <trainer_rules> — делта от треньора; не противоречи на 1–3
-6. <exercise_catalog> — canonicalName САМО от списъка (ако е подаден)
+ПРИОРИТЕТ: <scheme> > <constraints> > <program_spec> > <profile> > <trainer_rules> > <exercise_catalog>
 
-ГЕНЕРАЦИЯ (когато няма <scheme>):
-- Не измисляй сплит, седмичен обем или rep range — вземи от <program_spec>
-- Разпредели volume/wk по тренировъчните дни според split
-- canonicalName само от <exercise_catalog>; equipmentHint съответства на <equipment>
-- Ред в exercises: compound→isolation; zones↓ (от spec) първи в основния блок
-- Структура на сесията: warmup (кардио+мобилност) → exercises (по dayFocus) → cooldown (стреч+леко кардио) — виж <session_principles>
-- dayFocus задава ОСНОВНИЯ блок за деня; загрявка и финал винаги могат да включват кардио и стречинг
+БЕЗ <scheme>:
+- split, volume/wk, reps/rest/RPE, dayFocus, session — САМО от <program_spec>
+- canonicalName САМО от <exercise_catalog>; equipmentHint от <equipment>
 
-HARD-VETO:
-- Болка/ограничение/операция → 0 натоварване на зоната
-- Изрично нежелани движения → не включвай
-- <equipment> = единствено позволено
-- Сърдечно-съдов риск → спази rpe от spec; safetyNotes: лекарско одобрение
+HARD-VETO: <constraints>; болка/забрана → 0 натоварване на зоната
 
-ИМЕНУВАНЕ:
-- displayName: български | canonicalName: EN | equipmentHint/bodyPart: EN
-- Bench Press → „Избутване от лежанка“. НИКОГА „лег преса“ за bench. Leg Press → „Преса за крака“.
-- Олекоти/утежни — не „затежни“
+ИМЕНА: displayName BG | canonicalName/equipmentHint/bodyPart EN
+Bench Press → „Избутване от лежанка“ (НЕ „лег преса“). Leg Press → „Преса за крака“. Утежни/олекоти.
 
-ФОРМАТ: макс. 5 упражнения/ден; warmup/cooldown по 3 стъпки; notes≤80 знака; guidelines по 1 изречение.`;
+ФОРМАТ: ≤5 exercises/ден; warmup/cooldown по 3 стъпки; notes≤80; guidelines по 1 изречение.`;
 
 export const PLAN_SYSTEM_ASSEMBLY = `Сглобяваш готова програма в JSON. НЕ променяш <scheme>.
 
@@ -62,7 +46,7 @@ export const EQUIPMENT_RETRY_HINT = `
 
 export const SESSION_STRUCTURE_RETRY_HINT = `
 
-КОРЕКЦИЯ: спази <session_principles> — warmup (кардио+мобилност) → exercises по dayFocus → cooldown (стреч+леко кардио). JSON само.`;
+КОРЕКЦИЯ: session от program_spec; warmup+cooldown по 3 стъпки. JSON само.`;
 
 /** @deprecated използвай SESSION_STRUCTURE_RETRY_HINT */
 export const MODALITY_RETRY_HINT = SESSION_STRUCTURE_RETRY_HINT;

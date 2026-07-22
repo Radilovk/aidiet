@@ -80,7 +80,7 @@ test('buildProgramSpec: йога → mobility dayTypes без strength split', (
   assert.ok(spec.dayTypes.every((d) => d.type === 'rest' || d.type === 'mobility'));
   const block = formatProgramSpecBlock(spec);
   assert.ok(block.includes('dayFocus:'));
-  assert.ok(block.includes('session_principles'));
+  assert.ok(block.includes('session:'));
   assert.ok(block.includes('mobility'));
 });
 

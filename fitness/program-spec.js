@@ -3,7 +3,7 @@
  * AI попълва упражнения от филтриран каталог; не измисля макроструктурата.
  */
 import { normalizeText } from './normalize.js';
-import { formatSessionPrinciplesBlock } from './session-principles.js';
+import { formatSessionFrame } from './session-principles.js';
 
 const ZONE_TO_GROUP = [
   { keys: ['дупе', 'глут', 'седалищ'], group: 'glutes' },
@@ -304,12 +304,8 @@ export function buildProgramSpec(answers = {}) {
     modality,
     dayTypes,
     weekModalities: modalitiesInWeek(dayTypes),
-    sessionPrinciples: formatSessionPrinciplesBlock({
+    sessionFrame: formatSessionFrame({
       durationMin,
-      level,
-      goalNorm,
-      goal: goalLabel,
-      modality,
       dayTypes,
     }),
     split,
@@ -345,22 +341,17 @@ export function formatProgramSpecBlock(spec) {
       .filter((d) => d.type !== 'rest')
       .map((d) => `${d.day.slice(0, 2)}=${d.type}`)
       .join(', ');
-    if (dt) lines.push(`dayFocus: ${dt} (основен акцент на exercises блока)`);
+    if (dt) lines.push(`dayFocus: ${dt}`);
   }
-  if (spec.sessionPrinciples) {
-    lines.push('<session_principles>');
-    lines.push(spec.sessionPrinciples);
-    lines.push('</session_principles>');
-  }
+  if (spec.sessionFrame) lines.push(`session: ${spec.sessionFrame}`);
   if (spec.zonesText) lines.push(`zones↓: ${spec.zonesText}`);
-  else if (spec.isFemale) lines.push('zones↓: дупе>бедра (default жена)');
+  else if (spec.isFemale) lines.push('zones↓: дупе>бедра');
   lines.push(`volume/wk: ${formatVolumeLine(spec.volume)}`);
   lines.push(`reps: ${spec.reps} | rest: ${spec.rest} | rpe≤${spec.rpeMax}`);
-  lines.push(`order: ${spec.orderHint}`);
   return lines.join('\n');
 }
 
-/** Контекст извън program_spec — здраве, свободен текст, логистика. */
+/** Контекст извън program_spec — без полета вече в spec/constraints. */
 export function buildCompactProfileForPrompt(answers = {}) {
   const lines = [];
   const health = [...(answers.health || []), ...(answers.healthFemale || [])]
@@ -398,11 +389,6 @@ export function buildCompactProfileForPrompt(answers = {}) {
   const equipExtra = answers.equipmentOther?.trim();
   if (equipExtra) lines.push(`Оборудване (друго): ${equipExtra}`);
 
-  const prefTypes = answers.preferences?.types;
-  if (prefTypes?.length) lines.push(`Предпочитан тип: ${prefTypes.join(', ')}`);
-  if (answers.preferences?.avoid?.trim()) {
-    lines.push(`Избягвай: ${answers.preferences.avoid.trim()}`);
-  }
   if (answers.preferences?.timeOfDay) {
     lines.push(`Време: ${answers.preferences.timeOfDay}`);
   }
