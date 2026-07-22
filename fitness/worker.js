@@ -265,8 +265,12 @@ export function matchExercise(index, {
     if (equipNorm && entry.equipNorm && (entry.equipNorm.includes(equipNorm) || equipNorm.includes(entry.equipNorm))) {
       score += 0.15;
     }
-    if (bodyNorm && (entry.targetNorm === bodyNorm || entry.bodyNorm === bodyNorm)) {
-      score += 0.1;
+    if (bodyNorm) {
+      if (entry.targetNorm === bodyNorm || entry.bodyNorm === bodyNorm) score += 0.1;
+      // Хинтът за мускулна група не съвпада — вероятно случайно съвпадение на
+      // общи думи (напр. "press") между напълно различни категории (гърди vs
+      // крака). Наказание, за да не спечели слабо, грешно-категорийно "най-добро".
+      else score -= 0.25;
     }
     if (score > bestScore) {
       bestScore = score;
@@ -292,6 +296,10 @@ export function matchExercise(index, {
   );
 
   if (fallback) return { entry: fallback, score: 0, usedFallback: true };
+  // Имаме bodyPart hint, но нищо от same категория не мина filters — по-добре
+  // без медия/match (клиентът вижда AI-текста), отколкото грешна категория
+  // (напр. упражнение за гърди показано като "упражнение за крака").
+  if (bodyNorm) return null;
   return best ? { entry: best, score: Math.min(1, Number(bestScore.toFixed(3))), usedFallback: true } : null;
 }
 
