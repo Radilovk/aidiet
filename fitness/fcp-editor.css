@@ -32,10 +32,21 @@
 }
 .fcp-editor-pill strong { font-size: 0.78rem; }
 .fcp-editor-pill small { font-size: 0.66rem; color: var(--text-gray); max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fcp-editor-pill-count {
+  font-size: 0.62rem; font-weight: 800; line-height: 1;
+  min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
+  background: var(--primary-red); color: #fff;
+  display: inline-flex; align-items: center; justify-content: center;
+}
 .fcp-editor-pill.active { border-color: var(--primary-red); background: var(--soft-red); }
 .fcp-editor-pill.active small { color: var(--primary-dark); }
 .fcp-editor-pill.rest { opacity: 0.65; }
-.fcp-editor-pill.has-exercises strong::after { content: ' •'; color: var(--primary-red); }
+
+.fcp-editor-loading,
+.fcp-editor-error {
+  padding: 2rem 1rem; text-align: center; font-size: 0.88rem; color: var(--text-gray);
+}
+.fcp-editor-error { color: #e74c3c; }
 
 /* --- Единичен ден: скролируемо съдържание --- */
 .fcp-editor-daypanel { flex: 1; overflow-y: auto; padding: 12px; -webkit-overflow-scrolling: touch; }
@@ -165,8 +176,19 @@
   font-size: 0.8rem; font-weight: 600; cursor: pointer; min-height: 44px; line-height: 1.2;
 }
 .fcp-picker-chip.active { background: var(--soft-red); border-color: var(--primary-red); color: var(--primary-dark); }
+.fcp-picker-results-bar {
+  flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 8px 14px 0;
+}
+.fcp-picker-clear-btn {
+  border: 1px solid #d1d5db; background: var(--white); border-radius: 8px;
+  padding: 6px 10px; font-size: 0.72rem; font-weight: 700; color: var(--text-gray);
+  cursor: pointer; min-height: 32px; flex-shrink: 0;
+}
+.fcp-picker-clear-btn:hover { border-color: var(--primary-red); color: var(--primary-red); }
+.hidden { display: none !important; }
 .fcp-picker-results-hint {
-  flex-shrink: 0; padding: 8px 14px 0; font-size: 0.72rem; color: var(--text-gray); font-weight: 600;
+  flex: 1; min-width: 0; font-size: 0.72rem; color: var(--text-gray); font-weight: 600;
 }
 .fcp-picker-results {
   flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 8px 14px 14px;
@@ -208,6 +230,13 @@
   }
   .fcp-editor-daypanel {
     padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+  .fcp-editor-ex-actions button {
+    min-height: 44px; padding: 8px 12px;
+  }
+  .fcp-editor-ex-actions .fcp-editor-action-up,
+  .fcp-editor-ex-actions .fcp-editor-action-down {
+    min-width: 44px; justify-content: center;
   }
 }
 
