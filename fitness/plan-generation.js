@@ -664,7 +664,7 @@ export function buildAdminPlanUserPrompt(brief, options = {}) {
     ? 'ASSEMBLY: сглоби JSON от <scheme> буквално. canonicalName + displayName. JSON само.'
     : (hasStructuredScheme
       ? 'Следвай <scheme> точно. Запълни 7 дни. JSON само.'
-      : 'Генерирай 7 дни от <program_spec> + <exercise_catalog>. canonicalName САМО от каталога. volume/reps/rest по spec. JSON само.');
+      : 'Генерирай 7 дни от <program_spec> + <exercise_catalog>. canonicalName САМО от каталога. volume/reps/rest/order/logic по spec — обоснован подход, без случайни упражнения. JSON само.');
   return `${parts.join('\n\n')}\n\n${task}`;
 }
 

@@ -72,6 +72,9 @@ import {
   inferExerciseModality,
   mergeExerciseMetadata,
   passesEquipment,
+  pickPreferredExercise,
+  isSameAlternativeFamily,
+  compareExercisePreference,
   searchExerciseIndex,
 } from './exercise-metadata.js';
 import { mergeExerciseTranslation } from './exercise-translations.js';
@@ -256,54 +259,53 @@ export function matchExercise(index, {
   const equipNorm = normalizeText(equipmentHint);
   const bodyNorm = normalizeText(bodyPart);
 
-  let best = null;
-  let bestScore = 0;
+  const scored = [];
 
   for (const entry of index) {
     if (!passesEquipment(entry, allowedEquipment)) continue;
     if (exerciseProfile && !fitsExerciseProfile(entry, exerciseProfile)) continue;
     let score = tokenOverlapScore(queryTokens, entry.tokens);
     if (score === 0) continue;
-    // Bonus от hints — само върху кандидати с текстово покритие.
     if (equipNorm && entry.equipNorm && (entry.equipNorm.includes(equipNorm) || equipNorm.includes(entry.equipNorm))) {
       score += 0.15;
     }
     if (bodyNorm) {
       if (entry.targetNorm === bodyNorm || entry.bodyNorm === bodyNorm) score += 0.1;
-      // Хинтът за мускулна група не съвпада — вероятно случайно съвпадение на
-      // общи думи (напр. "press") между напълно различни категории (гърди vs
-      // крака). Наказание, за да не спечели слабо, грешно-категорийно "най-добро".
       else score -= 0.25;
     }
-    if (score > bestScore) {
-      bestScore = score;
-      best = entry;
-    }
+    scored.push({ entry, score });
   }
 
-  if (best && bestScore >= MATCH_THRESHOLD) {
+  scored.sort((a, b) => b.score - a.score);
+
+  if (scored.length && scored[0].score >= MATCH_THRESHOLD) {
+    const bestScore = scored[0].score;
+    const ties = scored
+      .filter((s) => s.score >= bestScore - 0.02)
+      .map((s) => s.entry);
+    const best = pickPreferredExercise(ties, exerciseProfile) || scored[0].entry;
     return { entry: best, score: Math.min(1, Number(bestScore.toFixed(3))), usedFallback: false };
   }
 
-  // Fallback по категория: първи запис със същото equipment/target,
-  // за да не остане празно поле в програмата.
-  const fallback = index.find((e) =>
+  const fallbackPool = index.filter((e) =>
     passesEquipment(e, allowedEquipment) &&
     (!exerciseProfile || fitsExerciseProfile(e, exerciseProfile)) &&
-    (bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm)) &&
+    bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm) &&
     (!equipNorm || e.equipNorm === equipNorm)
-  ) || index.find((e) =>
-    passesEquipment(e, allowedEquipment) &&
-    (!exerciseProfile || fitsExerciseProfile(e, exerciseProfile)) &&
-    bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm)
   );
+  const fallback = pickPreferredExercise(fallbackPool, exerciseProfile)
+    || index.find((e) =>
+      passesEquipment(e, allowedEquipment) &&
+      (!exerciseProfile || fitsExerciseProfile(e, exerciseProfile)) &&
+      bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm)
+    );
 
   if (fallback) return { entry: fallback, score: 0, usedFallback: true };
-  // Имаме bodyPart hint, но нищо от same категория не мина filters — по-добре
-  // без медия/match (клиентът вижда AI-текста), отколкото грешна категория
-  // (напр. упражнение за гърди показано като "упражнение за крака").
   if (bodyNorm) return null;
-  return best ? { entry: best, score: Math.min(1, Number(bestScore.toFixed(3))), usedFallback: true } : null;
+  const weakBest = scored[0]?.entry;
+  return weakBest
+    ? { entry: pickPreferredExercise([weakBest], exerciseProfile) || weakBest, score: Math.min(1, Number(scored[0].score.toFixed(3))), usedFallback: true }
+    : null;
 }
 
 /**
@@ -312,32 +314,27 @@ export function matchExercise(index, {
  * разнообразие в оборудването (за да има смислен избор при замяна).
  */
 export function findAlternatives(index, matchedEntry, {
-  allowedEquipment = null, equipmentFilter = null, limit = MAX_ALTERNATIVES, excludeIds = [], exerciseProfile = null,
+  allowedEquipment = null, equipmentFilter = null, limit = MAX_ALTERNATIVES, excludeIds = [], exerciseProfile = null, sessionType = null,
 } = {}) {
   if (!index || !matchedEntry) return [];
   const equipFilter = equipmentFilter || allowedEquipment;
   const exclude = new Set([matchedEntry.id, ...excludeIds]);
-  const target = matchedEntry.targetNorm;
-  const body = matchedEntry.bodyNorm;
 
   const candidates = [];
   for (const entry of index) {
     if (exclude.has(entry.id)) continue;
     if (entry.nameNorm === matchedEntry.nameNorm) continue;
     if (exerciseProfile && !fitsExerciseProfile(entry, exerciseProfile)) continue;
-    const sameTarget = target && entry.targetNorm === target;
-    const sameBody = body && entry.bodyNorm === body;
-    if (!sameTarget && !sameBody) continue;
+    if (!isSameAlternativeFamily(matchedEntry, entry, sessionType)) continue;
     if (!passesEquipment(entry, equipFilter)) continue;
-    candidates.push({ entry, rank: (sameTarget ? 2 : 0) + (entry.equipNorm === matchedEntry.equipNorm ? 1 : 0) });
+    candidates.push(entry);
   }
 
-  candidates.sort((a, b) => b.rank - a.rank);
+  candidates.sort((a, b) => compareExercisePreference(a, b, exerciseProfile));
 
-  // Разнообразие: макс 2 с едно и също оборудване.
   const picked = [];
   const equipCount = {};
-  for (const { entry } of candidates) {
+  for (const entry of candidates) {
     if (picked.length >= limit) break;
     const eq = entry.equipNorm || '?';
     if ((equipCount[eq] || 0) >= 2) continue;
@@ -818,7 +815,7 @@ export function enrichPlanWithExercises(plan, index, { allowedEquipment = null, 
       );
       if (needsSwap) {
         const swap = findAlternatives(index, result.entry, {
-          allowedEquipment, exerciseProfile, limit: 1, excludeIds: usedIds,
+          allowedEquipment, exerciseProfile, limit: 1, excludeIds: usedIds, sessionType: day.type,
         });
         if (swap.length) result = { entry: swap[0], score: 0, usedFallback: true };
       }
@@ -827,12 +824,12 @@ export function enrichPlanWithExercises(plan, index, { allowedEquipment = null, 
         ex.matchScore = result.score;
         ex.matchFallback = result.usedFallback;
         usedIds.push(result.entry.id);
-        // Замяна в UI: само СТ / дъмбели / гири
         ex.alternatives = findAlternatives(index, result.entry, {
           equipmentFilter: SWAP_EQUIPMENT,
           excludeIds: usedIds,
           limit: MAX_ALTERNATIVES,
           exerciseProfile,
+          sessionType: day.type,
         }).map((alt) => entryToClientExercise(env, alt));
         usedIds.push(...ex.alternatives.map((a) => a.id));
       } else {

@@ -258,6 +258,23 @@ export function buildVolumeBudget(answers) {
   return { volume: vol, zonesOrdered, zonesText: zonesText.trim() };
 }
 
+function buildApproachRationale({
+  sessions, level, goal, split, modality, volume, zonesText, isFemale, dayTypes,
+}) {
+  const parts = [`${split} — ${sessions} сесии, ниво ${level}, цел ${goal}, модалност ${modality}.`];
+  if (zonesText) parts.push(`Приоритет зони: ${zonesText}.`);
+  else if (isFemale) parts.push('Женски bias: glute/бедра над bench.');
+  const activeDays = (dayTypes || [])
+    .filter((d) => d.type !== 'rest')
+    .map((d) => `${d.day.slice(0, 2)}=${d.type}`)
+    .join(', ');
+  if (activeDays) parts.push(`Разпределение: ${activeDays}.`);
+  const volLine = formatVolumeLine(volume);
+  if (volLine) parts.push(`Обем/седм: ${volLine}.`);
+  parts.push('Ред и подбор: compound→isolation; по dayFocus и обем; без случайни избори.');
+  return parts.join(' ');
+}
+
 /** Детерминистичен ProgramSpec от answers. */
 export function buildProgramSpec(answers = {}) {
   const gender = normalizeText(answers?.gender || '');
@@ -318,6 +335,9 @@ export function buildProgramSpec(answers = {}) {
     rpeMax,
     isFemale,
     orderHint,
+    approachRationale: buildApproachRationale({
+      sessions, level, goal: goalLabel, split, modality, volume, zonesText, isFemale, dayTypes,
+    }),
   };
 }
 
@@ -349,6 +369,8 @@ export function formatProgramSpecBlock(spec) {
   else if (spec.isFemale) lines.push('zones↓: дупе>бедра');
   lines.push(`volume/wk: ${formatVolumeLine(spec.volume)}`);
   lines.push(`reps: ${spec.reps} | rest: ${spec.rest} | rpe≤${spec.rpeMax}`);
+  if (spec.orderHint) lines.push(`order: ${spec.orderHint}`);
+  if (spec.approachRationale) lines.push(`logic: ${spec.approachRationale}`);
   return lines.join('\n');
 }
 

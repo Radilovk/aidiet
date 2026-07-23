@@ -49,7 +49,7 @@ import { filterExercises, passesEquipment, SWAP_EQUIPMENT, exerciseProfileFromAn
 
 import { QUESTIONS, activeQuestions, validateQuestion, buildAnswers, answersToFormState, fieldVisible } from '../questions.js';
 import { localizeExerciseDisplayName, sanitizeBgText } from '../exercise-labels-bg.js';
-import { buildProgramSpec } from '../program-spec.js';
+import { buildProgramSpec, formatProgramSpecBlock } from '../program-spec.js';
 
 // ----------------------------------------------------------------------------
 // Fixtures: миниатюрна извадка със схемата на hasaneyldrm/exercises-dataset
@@ -204,6 +204,53 @@ test('findAlternatives: без филтър (пълна зала) връща д�
   const bench = INDEX.find((e) => e.name === 'Barbell Bench Press');
   const alts = findAlternatives(INDEX, bench, { allowedEquipment: null, limit: 3 });
   assert.equal(alts.length, 3);
+});
+
+test('findAlternatives: отхвърля различна модалност и по-високо d', () => {
+  const strength = {
+    id: 's1', name: 'Glute Bridge', nameNorm: 'glute bridge', equipNorm: 'body weight',
+    targetNorm: 'glutes', bodyNorm: 'upper legs', tokens: tokenize('Glute Bridge'), diff: 1, flags: ['compound', 'bodyweight', 'glute'],
+  };
+  const mobilityAlt = {
+    id: 'm1', name: 'Pigeon Stretch', nameNorm: 'pigeon stretch', equipNorm: 'body weight',
+    targetNorm: 'glutes', bodyNorm: 'upper legs', tokens: tokenize('Pigeon Stretch'), diff: 1, flags: ['mobility'],
+  };
+  const harderAlt = {
+    id: 'h1', name: 'Barbell Hip Thrust', nameNorm: 'barbell hip thrust', equipNorm: 'barbell',
+    targetNorm: 'glutes', bodyNorm: 'upper legs', tokens: tokenize('Barbell Hip Thrust'), diff: 3, flags: ['compound', 'barbell', 'glute'],
+  };
+  const goodAlt = {
+    id: 'g1', name: 'Bodyweight Glute Bridge', nameNorm: 'bodyweight glute bridge', equipNorm: 'body weight',
+    targetNorm: 'glutes', bodyNorm: 'upper legs', tokens: tokenize('Bodyweight Glute Bridge'), diff: 1, flags: ['compound', 'bodyweight', 'glute'],
+  };
+  const miniIndex = [strength, mobilityAlt, harderAlt, goodAlt];
+  const alts = findAlternatives(miniIndex, strength, { allowedEquipment: null, limit: 3, sessionType: 'strength' });
+  assert.deepEqual(alts.map((a) => a.id), ['g1']);
+});
+
+test('matchExercise: при равен score предпочита по-просто оборудване', () => {
+  const profile = exerciseProfileFromAnswers({ gender: 'Жена', experience: 'Начинаещ–среден (6 месеца – 2 години)' });
+  const result = matchExercise(INDEX, {
+    canonicalName: 'Bench Press',
+    equipmentHint: 'barbell',
+    bodyPart: 'chest',
+    exerciseProfile: profile,
+  });
+  assert.ok(['Dumbbell Bench Press', 'Push-up', 'Band Chest Press'].includes(result.entry.name));
+  assert.notEqual(result.entry.name, 'Barbell Bench Press');
+});
+
+test('formatProgramSpecBlock: включва order и logic', () => {
+  const spec = buildProgramSpec({
+    gender: 'Жена', age: 28, heightCm: 165, weightKg: 62,
+    experience: 'Начинаещ–среден (6 месеца – 2 години)',
+    goal: { main: 'Отслабване', zones: 'бедра, дупе', timeframe: 'Без краен срок' },
+    preferences: { types: ['Силов тренинг'], freq: '3–4', duration: '45–60 мин', timeOfDay: 'Вечер' },
+    equipment: ['Дъмбели'],
+  });
+  const block = formatProgramSpecBlock(spec);
+  assert.match(block, /order:/);
+  assert.match(block, /logic:/);
 });
 
 // ----------------------------------------------------------------------------
