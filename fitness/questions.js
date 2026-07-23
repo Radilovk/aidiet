@@ -361,8 +361,9 @@ export function buildAnswers(state) {
   const healthFemale = [];
 
   for (const sel of health.selected || []) {
-    if (sel === 'Друго' && health.inputs?.healthOther) {
-      healthGeneral.push(health.inputs.healthOther);
+    if (sel === 'Друго') {
+      const other = (health.inputs?.healthOther || '').trim();
+      healthGeneral.push(other || 'Друго');
     } else if (sel === 'Приемам медикаменти редовно') {
       healthGeneral.push(sel);
     } else if (sel !== 'Друго') {
