@@ -455,3 +455,165 @@ export function buildAnswers(state) {
     extraInfo: String(state.extraInfo || '').trim(),
   };
 }
+
+/**
+ * Обратно преобразуване на answers → сурово състояние на визарда.
+ * Използва се при зареждане на стари консултации без запазен formState.
+ * За пълна точност предпочитай директно запазения formState.
+ */
+export function answersToFormState(answers) {
+  if (!answers || typeof answers !== 'object') return {};
+
+  const healthQuestion = QUESTIONS.find((q) => q.id === 'health');
+  const healthOptionValues = new Set((healthQuestion?.options || []).map((o) => o.value));
+  const healthSelected = [];
+  const healthInputs = {};
+
+  for (const item of answers.health || []) {
+    if (item === 'Приемам медикаменти редовно') {
+      healthSelected.push(item);
+    } else if (item.startsWith('медикаменти: ')) {
+      healthSelected.push('Приемам медикаменти редовно');
+      healthInputs.healthMeds = item.slice('медикаменти: '.length);
+    } else if (healthOptionValues.has(item)) {
+      healthSelected.push(item);
+    } else {
+      healthSelected.push('Друго');
+      healthInputs.healthOther = item;
+    }
+  }
+  if (answers.healthMeds && !healthInputs.healthMeds) {
+    if (!healthSelected.includes('Приемам медикаменти редовно')) healthSelected.push('Приемам медикаменти редовно');
+    healthInputs.healthMeds = answers.healthMeds;
+  }
+  if (answers.healthOther && !healthInputs.healthOther) {
+    if (!healthSelected.includes('Друго')) healthSelected.push('Друго');
+    healthInputs.healthOther = answers.healthOther;
+  }
+
+  let womenSelected = 'Няма специфични състояния';
+  const womenInputs = {};
+  for (const label of answers.healthFemale || []) {
+    if (label.startsWith('Бременна')) {
+      womenSelected = 'Бременна';
+      const match = label.match(/триместър:\s*(.+)$/i);
+      if (match) womenInputs.pregnancyTrimester = match[1].trim();
+    } else if (label.startsWith('Кърмене')) {
+      womenSelected = 'Кърмя в момента';
+      const match = label.match(/(\d+)/);
+      if (match) womenInputs.breastfeedingMonths = match[1];
+    } else if (label.startsWith('Следродилен')) {
+      womenSelected = 'Скоро след раждане (до 6 месеца)';
+      const match = label.match(/(\d+)/);
+      if (match) womenInputs.postpartumMonths = match[1];
+    } else if (label.startsWith('Хормонални особености:')) {
+      womenSelected = 'Други хормонални особености';
+      womenInputs.womenOther = label.replace(/^Хормонални особености:\s*/, '');
+    } else {
+      womenSelected = label;
+    }
+  }
+
+  const limitInputKeys = {
+    'Диагностициран проблем': 'limitDiagnosed',
+    'Болка при конкретно движение без официална диагноза': 'limitPainMove',
+    'Прекаран хирургичен опорно-двигателен проблем': 'limitSurgery',
+    'Друго': 'limitOther',
+  };
+  const limitSelected = [];
+  const limitInputs = {};
+  for (const item of answers.limitations || []) {
+    const sep = item.indexOf(': ');
+    if (sep > -1) {
+      const key = item.slice(0, sep);
+      const val = item.slice(sep + 2);
+      limitSelected.push(key);
+      const inputKey = limitInputKeys[key];
+      if (inputKey) limitInputs[inputKey] = val;
+    } else {
+      limitSelected.push(item);
+    }
+  }
+
+  const wc = answers.weightChange || { type: 'stable' };
+  let weightChange;
+  if (wc.type === 'gain') {
+    weightChange = {
+      selected: 'Да, качих килограми',
+      inputs: {
+        gainKg: wc.amountKg != null ? String(wc.amountKg) : '',
+        gainReason: wc.reason || '',
+      },
+    };
+  } else if (wc.type === 'loss') {
+    weightChange = {
+      selected: 'Да, свалих килограми',
+      inputs: {
+        lossKg: wc.amountKg != null ? String(wc.amountKg) : '',
+        lossReason: wc.reason || '',
+      },
+    };
+  } else {
+    weightChange = { selected: 'Не, теглото ми е стабилно', inputs: {} };
+  }
+
+  const equipmentSelected = [...(answers.equipment || [])];
+  const equipmentInputs = {};
+  if (answers.equipmentOther) {
+    equipmentSelected.push('Друго');
+    equipmentInputs.equipmentOther = answers.equipmentOther;
+  }
+
+  const goal = answers.goal || {};
+  const prefs = answers.preferences || {};
+
+  return {
+    basics: {
+      gender: answers.gender || '',
+      age: answers.age != null ? String(answers.age) : '',
+      heightCm: answers.heightCm != null ? String(answers.heightCm) : '',
+      weightKg: answers.weightKg != null ? String(answers.weightKg) : '',
+    },
+    health: { selected: healthSelected, inputs: healthInputs },
+    womenContext: { selected: womenSelected, inputs: womenInputs },
+    womenImplants: answers.breastImplants?.implants
+      ? {
+        selected: answers.breastImplants.implants,
+        inputs: answers.breastImplants.implantMonths != null
+          ? { implantMonths: String(answers.breastImplants.implantMonths) }
+          : {},
+      }
+      : { selected: 'Нямам гръдни импланти', inputs: {} },
+    limitations: { selected: limitSelected, inputs: limitInputs },
+    weightChange,
+    sleep: answers.sleep ? { selected: answers.sleep } : {},
+    stress: answers.stress != null ? answers.stress : '',
+    dailyActivity: answers.dailyActivity ? { selected: answers.dailyActivity } : {},
+    sportActivity: {
+      selected: answers.sportActivity?.status || '',
+      inputs: answers.sportActivity?.current ? { sportCurrent: answers.sportActivity.current } : {},
+    },
+    experience: answers.experience ? { selected: answers.experience } : {},
+    nutrition: {
+      type: answers.nutrition?.type || '',
+      custom: answers.nutrition?.custom || '',
+      mealsPerDay: answers.nutrition?.mealsPerDay != null ? String(answers.nutrition.mealsPerDay) : '',
+    },
+    goal: {
+      main: goal.main || '',
+      other: goal.other || '',
+      zones: goal.zones || '',
+      timeframe: goal.deadline ? 'Конкретна дата' : 'Без краен срок',
+      deadline: goal.deadline || '',
+    },
+    equipment: { selected: equipmentSelected, inputs: equipmentInputs },
+    preferences: {
+      types: prefs.types || [],
+      avoid: prefs.avoid || '',
+      freq: prefs.freq || '',
+      duration: prefs.duration || '',
+      timeOfDay: prefs.timeOfDay || '',
+    },
+    extraInfo: answers.extraInfo || '',
+  };
+}

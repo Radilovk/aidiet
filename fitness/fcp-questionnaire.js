@@ -2,7 +2,7 @@
  * KA-TRAINER — админ въпросник (модал). API е в admin.html inline.
  */
 import {
-  activeQuestions, buildAnswers,
+  activeQuestions, buildAnswers, answersToFormState,
   validateQuestion,
 } from './questions.js?v=2';
 import { buildProfileSummary } from './profile-summary.js?v=2';
@@ -190,6 +190,18 @@ export function load(record = {}) {
   syncUi();
 }
 
+export function loadFromConsultation({ formState, answers } = {}) {
+  if (formState && typeof formState === 'object' && Object.keys(formState).length) {
+    load({ clientFormState: formState });
+    return true;
+  }
+  if (answers && typeof answers === 'object' && answers.gender) {
+    load({ clientFormState: answersToFormState(answers) });
+    return true;
+  }
+  return false;
+}
+
 export function validate() {
   for (const q of activeQuestions(state)) {
     const err = validateQuestion(q, state);
@@ -208,4 +220,4 @@ export function payload() {
 }
 
 // За admin.html inline (без await при първо отваряне)
-window.FcpQuestionnaire = { open, close, reset, load, validate, payload };
+window.FcpQuestionnaire = { open, close, reset, load, loadFromConsultation, validate, payload };
