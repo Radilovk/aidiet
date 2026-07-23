@@ -1446,6 +1446,7 @@ async function handleSubmitConsultation(request, env) {
     clientName: name,
     clientContact: contact,
     answers,
+    formState: body.formState && typeof body.formState === 'object' ? body.formState : null,
     summary: buildProfileSummary(answers),
     status: 'new',
     timestamp: new Date().toISOString(),

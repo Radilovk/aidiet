@@ -1,6 +1,6 @@
 /**
  * Скрита консултационна страница — само с линк от админ.
- * Не е свързана с публичния KA-TRAINER интерфейс.
+ * Споделя същия въпросник (questions.js + wizard-ui.js) като публичния KA-TRAINER (app.js).
  */
 import { QUESTIONS, activeQuestions, validateQuestion, buildAnswers } from './questions.js';
 import { createWizardController } from './wizard-ui.js';
@@ -11,6 +11,7 @@ const ACCESS_KEY = new URLSearchParams(location.search).get('k') || '';
 
 const $ = (id) => document.getElementById(id);
 const wizardState = {};
+let lastGender = null;
 
 let clientInfo = { name: '', contact: '' };
 
@@ -20,6 +21,12 @@ const wizard = createWizardController({
   getQuestions: () => activeQuestions(wizardState),
   validateQuestion,
   getState: () => wizardState,
+  onPersist: () => {
+    if (wizardState.basics?.gender !== lastGender) {
+      lastGender = wizardState.basics?.gender;
+      wizard.renderStep();
+    }
+  },
   onComplete: submitConsultation,
   finalButtonText: 'Изпрати отговорите ✓',
 });
@@ -63,6 +70,7 @@ function startWizard() {
   }
   err.hidden = true;
   clientInfo = { name, contact };
+  lastGender = null;
   wizard.reset();
   wizard.renderStep();
   showView('wizard');
@@ -87,6 +95,7 @@ async function submitConsultation() {
         accessKey: ACCESS_KEY,
         client: clientInfo,
         answers,
+        formState: JSON.parse(JSON.stringify(wizardState)),
       }),
     });
     const data = await res.json().catch(() => ({}));

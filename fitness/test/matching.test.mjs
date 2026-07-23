@@ -47,7 +47,7 @@ import {
 import { mergeAllowedEquipment } from '../plan-generation.js';
 import { filterExercises, passesEquipment, SWAP_EQUIPMENT, exerciseProfileFromAnswers } from '../exercise-metadata.js';
 
-import { QUESTIONS, activeQuestions, validateQuestion, buildAnswers, fieldVisible } from '../questions.js';
+import { QUESTIONS, activeQuestions, validateQuestion, buildAnswers, answersToFormState, fieldVisible } from '../questions.js';
 import { localizeExerciseDisplayName, sanitizeBgText } from '../exercise-labels-bg.js';
 import { buildProgramSpec } from '../program-spec.js';
 
@@ -1101,6 +1101,43 @@ test('buildAnswers: превежда състоянието на визарда 
   assert.deepEqual(answers.equipment, ['Собствено тегло', 'Ластици']);
   assert.equal(answers.preferences.avoid, 'скачане');
   assert.equal(answers.extraInfo, 'работя на смени');
+});
+
+test('answersToFormState: обратно преобразуване за зареждане от консултация', () => {
+  const state = {
+    basics: { gender: 'Жена', age: '29', heightCm: '165', weightKg: '60' },
+    health: { selected: ['Приемам медикаменти редовно'], inputs: { healthMeds: 'витамини' } },
+    womenContext: { selected: 'Бременна', inputs: { pregnancyTrimester: 'втори' } },
+    womenImplants: { selected: 'Да — под гръдния мускул (submuscular)', inputs: { implantMonths: '8' } },
+    limitations: { selected: ['Диагностициран проблем'], inputs: { limitDiagnosed: 'ляво коляно' } },
+    weightChange: { selected: 'Да, качих килограми', inputs: { gainKg: '4', gainReason: 'бременност' } },
+    sleep: { selected: 'Средно, понякога прекъснат сън' },
+    stress: 7,
+    dailyActivity: { selected: 'Заседнала работа, минимално движение' },
+    sportActivity: { selected: 'Тренирам системно', inputs: { sportCurrent: 'йога' } },
+    experience: { selected: 'Начинаещ–среден (6 месеца – 2 години)' },
+    nutrition: { type: 'Специфична диета', custom: 'вегетарианска', mealsPerDay: '4' },
+    goal: { main: 'Обща кондиция', timeframe: 'Без краен срок' },
+    equipment: { selected: ['Собствено тегло', 'Ластици'], inputs: {} },
+    preferences: { types: ['Йога / мобилност'], avoid: 'скачане', freq: '3–4', duration: '30–45 мин', timeOfDay: 'Сутрин' },
+    extraInfo: 'работя на смени',
+  };
+  const answers = buildAnswers(state);
+  const restored = answersToFormState(answers);
+  const roundtrip = buildAnswers(restored);
+
+  assert.equal(roundtrip.gender, answers.gender);
+  assert.equal(roundtrip.age, answers.age);
+  assert.deepEqual(roundtrip.healthFemale, answers.healthFemale);
+  assert.deepEqual(roundtrip.breastImplants, answers.breastImplants);
+  assert.equal(roundtrip.healthMeds, answers.healthMeds);
+  assert.deepEqual(roundtrip.limitations, answers.limitations);
+  assert.deepEqual(roundtrip.weightChange, answers.weightChange);
+  assert.equal(roundtrip.sportActivity.current, answers.sportActivity.current);
+  assert.equal(roundtrip.nutrition.custom, answers.nutrition.custom);
+  assert.deepEqual(roundtrip.equipment, answers.equipment);
+  assert.equal(roundtrip.preferences.avoid, answers.preferences.avoid);
+  assert.equal(roundtrip.extraInfo, answers.extraInfo);
 });
 
 test('buildAnswers + constraints: гръдни импланти → hard-veto за гърди', async () => {
