@@ -23,6 +23,23 @@ function optionInputs(option) {
   return option.inputs || (option.input ? [option.input] : []);
 }
 
+function isEditableTarget(node) {
+  if (!node?.tagName) return false;
+  const tag = node.tagName;
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || node.isContentEditable;
+}
+
+function bindOptionInput(inp, state, save) {
+  return el('input', {
+    type: inp.type === 'number' ? 'number' : 'text',
+    placeholder: inp.placeholder || '',
+    value: state.inputs[inp.key] ?? '',
+    onclick: (e) => e.stopPropagation(),
+    onkeydown: (e) => e.stopPropagation(),
+    oninput: (e) => { state.inputs[inp.key] = e.target.value; save(); },
+  });
+}
+
 export function createWizardController({
   getEl,
   questions,
@@ -132,13 +149,7 @@ export function createWizardController({
         if (isActive && optionInputs(opt).length) {
           const inputsWrap = el('div', { class: 'opt-inputs' });
           for (const inp of optionInputs(opt)) {
-            inputsWrap.append(el('input', {
-              type: inp.type === 'number' ? 'number' : 'text',
-              placeholder: inp.placeholder || '',
-              value: state.inputs[inp.key] ?? '',
-              onclick: (e) => e.stopPropagation(),
-              oninput: (e) => { state.inputs[inp.key] = e.target.value; save(); },
-            }));
+            inputsWrap.append(bindOptionInput(inp, state, save));
           }
           cardEl.append(inputsWrap);
         }
@@ -153,8 +164,11 @@ export function createWizardController({
           state.selected = [...selected];
           save(); renderAll();
         };
-        cardEl.addEventListener('click', (e) => { if (e.target.tagName !== 'INPUT') toggle(); });
-        cardEl.addEventListener('keydown', (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); } });
+        cardEl.addEventListener('click', (e) => { if (!isEditableTarget(e.target)) toggle(); });
+        cardEl.addEventListener('keydown', (e) => {
+          if (isEditableTarget(e.target)) return;
+          if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); }
+        });
         list.append(cardEl);
       }
       container.append(list);
@@ -180,20 +194,17 @@ export function createWizardController({
         if (isActive && optionInputs(opt).length) {
           const inputsWrap = el('div', { class: 'opt-inputs' });
           for (const inp of optionInputs(opt)) {
-            inputsWrap.append(el('input', {
-              type: inp.type === 'number' ? 'number' : 'text',
-              placeholder: inp.placeholder || '',
-              value: state.inputs[inp.key] ?? '',
-              onclick: (e) => e.stopPropagation(),
-              oninput: (e) => { state.inputs[inp.key] = e.target.value; save(); },
-            }));
+            inputsWrap.append(bindOptionInput(inp, state, save));
           }
           cardEl.append(inputsWrap);
         }
 
         const select = () => { state.selected = opt.value; save(); renderAll(); };
-        cardEl.addEventListener('click', (e) => { if (e.target.tagName !== 'INPUT') select(); });
-        cardEl.addEventListener('keydown', (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); select(); } });
+        cardEl.addEventListener('click', (e) => { if (!isEditableTarget(e.target)) select(); });
+        cardEl.addEventListener('keydown', (e) => {
+          if (isEditableTarget(e.target)) return;
+          if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); select(); }
+        });
         list.append(cardEl);
       }
       container.append(list);

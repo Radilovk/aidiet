@@ -6,7 +6,7 @@ import {
   validateQuestion,
 } from './questions.js?v=3';
 import { buildProfileSummary } from './profile-summary.js?v=2';
-import { createWizardController, el } from './wizard-ui.js?v=2';
+import { createWizardController, el } from './wizard-ui.js?v=3';
 
 const IDS = {
   questionCard: 'fcpQuestionCard',
