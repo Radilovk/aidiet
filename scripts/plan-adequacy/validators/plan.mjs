@@ -63,6 +63,7 @@ export function validateMealPlan(weekPlan, strategy = {}) {
           issues.push(`day${d} Хранене 5: ${cals} kcal > ${MAX_LATE_SNACK_CALORIES}`);
         }
       }
+      if (meal.type === 'Свободно хранене' || meal.type === 'Напитка') continue;
       if (!meal.description || !/\d+\s*(g|г)\b/i.test(meal.description)) {
         issues.push(`day${d} "${meal.name}": липсват грамажи в description`);
       }
