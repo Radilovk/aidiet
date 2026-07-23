@@ -4,7 +4,7 @@
 import {
   activeQuestions, buildAnswers, answersToFormState,
   validateQuestion,
-} from './questions.js?v=2';
+} from './questions.js?v=3';
 import { buildProfileSummary } from './profile-summary.js?v=2';
 import { createWizardController, el } from './wizard-ui.js?v=2';
 
@@ -180,13 +180,12 @@ export function reset() {
 
 export function load(record = {}) {
   state = (record.clientFormState && typeof record.clientFormState === 'object')
-    ? record.clientFormState
+    ? JSON.parse(JSON.stringify(record.clientFormState))
     : {};
   lastGender = state.basics?.gender || null;
-  if (wizard) {
-    wizard.reset();
-    wizard.renderStep();
-  }
+  ensureWizard();
+  wizard.reset();
+  wizard.renderStep();
   syncUi();
 }
 
@@ -220,4 +219,8 @@ export function payload() {
 }
 
 // За admin.html inline (без await при първо отваряне)
-window.FcpQuestionnaire = { open, close, reset, load, loadFromConsultation, validate, payload };
+try {
+  window.FcpQuestionnaire = { open, close, reset, load, loadFromConsultation, validate, payload };
+} catch (e) {
+  console.error('[FcpQuestionnaire] init failed:', e);
+}
