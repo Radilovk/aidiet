@@ -664,7 +664,7 @@ export function buildAdminPlanUserPrompt(brief, options = {}) {
     ? 'ASSEMBLY: сглоби JSON от <scheme> буквално. canonicalName + displayName. JSON само.'
     : (hasStructuredScheme
       ? 'Следвай <scheme> точно. Запълни 7 дни. JSON само.'
-      : 'Генерирай 7 дни от <program_spec> + <exercise_catalog>. canonicalName САМО от каталога. volume/reps/rest по spec. JSON само.');
+      : 'Проектирай седмичен план (7 дни) от клиентския контекст + <exercise_catalog>. canonicalName САМО от каталога. Split, dayFocus, обем и reps/rest — твои решения, съобразени с brief/constraints/program_spec; обосновай в summary, weeklySplit и focus. Без случайни упражнения. JSON само.');
   return `${parts.join('\n\n')}\n\n${task}`;
 }
 
@@ -707,30 +707,26 @@ export function auditPlanGenderFit(plan, clientTags) {
 
 const HEAVY_COMPOUND_RE = /bench press|barbell squat|back squat|deadlift|hip thrust|leg press/i;
 
-/** dayFocus + задължителна структура warmup/exercises/cooldown; без veto за стреч/кардио в сесия. */
+/** Структурен audit: warmup/cooldown, modality safety — без твърдо dayFocus от program_spec. */
 export function auditPlanSessionStructure(plan, programSpec = null) {
-  const dayTypes = programSpec?.dayTypes;
-  if (!dayTypes?.length) return [];
-  const typeByDay = new Map(dayTypes.map((d) => [normalizeText(d.day), d.type]));
   const issues = [];
   for (const day of plan?.days || []) {
-    const key = normalizeText(day.day);
-    const expected = typeByDay.get(key);
-    if (!expected || expected === 'rest') continue;
-    const sessionType = day.type || expected;
-    if (sessionType !== expected) {
-      issues.push(`${day.day}: dayFocus ${sessionType} ≠ очакван ${expected} от program_spec`);
-    }
     if (day.type === 'rest' && !(day.exercises?.length)) continue;
-    if (!day.warmup?.length) issues.push(`${day.day}: липсва warmup (3 стъпки)`);
-    if (!day.cooldown?.length) issues.push(`${day.day}: липсва cooldown (3 стъпки)`);
-    if (expected === 'mobility') {
+    if (day.type !== 'rest') {
+      if (!day.warmup?.length) issues.push(`${day.day}: липсва warmup (3 стъпки)`);
+      if (!day.cooldown?.length) issues.push(`${day.day}: липсва cooldown (3 стъпки)`);
+    }
+    if (day.type === 'mobility') {
       for (const ex of day.exercises || []) {
         const name = String(ex.canonicalName || ex.displayName || '');
         if (HEAVY_COMPOUND_RE.test(name)) {
           issues.push(`${day.day}: „${name}“ не е за основен mobility блок — премести в силов ден или махни`);
         }
       }
+    }
+    const focus = String(day.focus || '').trim();
+    if (day.type !== 'rest' && focus.length < 12) {
+      issues.push(`${day.day}: focus трябва да обоснова сесията (не само една дума)`);
     }
   }
   return issues;

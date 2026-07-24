@@ -162,6 +162,98 @@ export function fitsExerciseProfile(entry, profile) {
 /** Алтернативи за замяна в UI — само СТ, дъмбели, гири. */
 export const SWAP_EQUIPMENT = new Set(['body weight', 'dumbbell', 'kettlebell']);
 
+/** По-нисък ранг = по-просто/предпочитано оборудване (СТ → щанга). */
+export function equipmentSimplicityRank(equipNorm) {
+  const eq = normalizeText(equipNorm || '');
+  if (!eq) return 5;
+  const table = {
+    'body weight': 0,
+    dumbbell: 1,
+    kettlebell: 2,
+    band: 3,
+    'resistance band': 3,
+    'medicine ball': 4,
+    assisted: 4,
+    'stability ball': 4,
+    cable: 5,
+    rope: 5,
+    machine: 6,
+    'leverage machine': 6,
+    'smith machine': 7,
+    barbell: 8,
+    'ez barbell': 8,
+    'olympic barbell': 8,
+  };
+  if (table[eq] !== undefined) return table[eq];
+  if (eq.includes('body weight')) return 0;
+  if (eq.includes('dumbbell')) return 1;
+  if (eq.includes('kettlebell')) return 2;
+  if (eq.includes('band')) return 3;
+  if (eq.includes('cable')) return 5;
+  if (eq.includes('machine') || eq.includes('lever')) return 6;
+  if (eq.includes('barbell')) return 8;
+  return 5;
+}
+
+/** По-висок = по-естествено/лесно движение при равни кандидати. */
+export function naturalMovementScore(entry) {
+  const flags = entry?.flags || [];
+  let score = 0;
+  if (flags.includes('bodyweight')) score += 3;
+  if (flags.includes('compound')) score += 2;
+  if (flags.includes('isolation')) score -= 1;
+  if (flags.includes('machine')) score -= 2;
+  score += Math.max(0, 8 - equipmentSimplicityRank(entry?.equipNorm || entry?.equipment));
+  return score;
+}
+
+/**
+ * Сравнява два кандидата: по-лесно (d↓), по-малко оборудване, по-естествено движение.
+ * Връща <0 ако a е по-предпочитан.
+ */
+export function compareExercisePreference(a, b, profile = null) {
+  const diffA = a?.diff ?? 2;
+  const diffB = b?.diff ?? 2;
+  if (diffA !== diffB) return diffA - diffB;
+
+  const eqA = equipmentSimplicityRank(a?.equipNorm || a?.equipment);
+  const eqB = equipmentSimplicityRank(b?.equipNorm || b?.equipment);
+  if (eqA !== eqB) return eqA - eqB;
+
+  const natA = naturalMovementScore(a);
+  const natB = naturalMovementScore(b);
+  if (natA !== natB) return natB - natA;
+
+  if (profile?.isFemale) {
+    const gfA = a?.gf ?? 70;
+    const gfB = b?.gf ?? 70;
+    if (gfA !== gfB) return gfB - gfA;
+  } else if (profile?.isMale) {
+    const gmA = a?.gm ?? 70;
+    const gmB = b?.gm ?? 70;
+    if (gmA !== gmB) return gmB - gmA;
+  }
+
+  return (a?.name || '').localeCompare(b?.name || '');
+}
+
+export function pickPreferredExercise(candidates, profile = null) {
+  if (!candidates?.length) return null;
+  return [...candidates].sort((a, b) => compareExercisePreference(a, b, profile))[0];
+}
+
+/** Алтернатива е валидна само при същата модалност, целева група и трудност. */
+export function isSameAlternativeFamily(matchedEntry, candidate, sessionType = null) {
+  if (!matchedEntry || !candidate) return false;
+  if (!matchedEntry.targetNorm || candidate.targetNorm !== matchedEntry.targetNorm) return false;
+  const matchedMod = inferExerciseModality(matchedEntry);
+  const candMod = inferExerciseModality(candidate);
+  if (matchedMod !== candMod) return false;
+  if (sessionType && !modalityMatchesDay(sessionType, candMod)) return false;
+  if ((candidate.diff ?? 2) > (matchedEntry.diff ?? 2)) return false;
+  return true;
+}
+
 const MOBILITY_RE = /stretch|yoga|mobility|pilates|flexibility|foam|pigeon|child pose|cat cow|downward|spinal twist/i;
 const CARDIO_RE = /run|cycle|elliptic|row machine|jump rope|burpee|jog|cardio|walking|stepper/i;
 const HIIT_RE = /hiit|tabata|sprint interval|mountain climber|battle rope/i;
@@ -258,19 +350,10 @@ export function buildExerciseCatalogSnippet(index, profile, allowedEquipment = n
     groups.get(g).push(entry);
   }
 
-  const isFemale = Boolean(profile?.isFemale);
-  const isMale = Boolean(profile?.isMale);
   for (const items of groups.values()) {
     items.sort((a, b) => {
-      const diffCmp = (a.diff ?? 2) - (b.diff ?? 2);
-      if (diffCmp) return diffCmp;
-      // При равна трудност: най-подходящите за пола на клиента първо.
-      const relCmp = isFemale
-        ? (b.gf ?? 70) - (a.gf ?? 70)
-        : isMale
-          ? (b.gm ?? 70) - (a.gm ?? 70)
-          : 0;
-      if (relCmp) return relCmp;
+      const pref = compareExercisePreference(a, b, profile);
+      if (pref !== 0) return pref;
       return (a.name || '').localeCompare(b.name || '');
     });
   }
