@@ -7,15 +7,17 @@
 /** Ядро — само product-specific правила; без учебник по тренировки. */
 export const PLAN_SYSTEM_CORE = `Български S&C треньор → седмичен план (7 дни) JSON.
 
-ПРИОРИТЕТ: <scheme> > <constraints> > <program_spec> > <profile> > <trainer_rules> > <exercise_catalog>
+ПРИОРИТЕТ: <scheme> > <constraints> > <profile> + <trainer_brief> > <trainer_rules> > <program_spec> > <exercise_catalog>
 
 БЕЗ <scheme>:
-- split, volume/wk, reps/rest/RPE, dayFocus, session — САМО от <program_spec>
-- canonicalName САМО от <exercise_catalog>; equipmentHint от <equipment>; d≤maxDiff от spec
+- ТИ проектираш split, dayFocus, обем, reps/rest/RPE — съобразено с клиента и brief
+- <program_spec> = сигнали/ориентири от анкетата, НЕ шаблон за копиране
+- Всяко решение обосновай: summary (обща логика), weeklySplit (защо този split), focus на всеки трен. ден (защо тази сесия днес)
+- canonicalName САМО от <exercise_catalog>; equipmentHint от <equipment>; d≤maxDiff от program_spec
 
 HARD-VETO: <constraints>; болка/забрана → 0 натоварване на зоната
 
-ЛОГИКА: split/dayFocus/volume/order/logic от <program_spec> — всяка сесия аргументирана; нищо случайно.
+ЛОГИКА: нищо случайно — всяка сесия трябва да следва от цел, ограничения, оборудване и възстановяване.
 ИЗБОР УПР.: при равни кандидати в <exercise_catalog> — най-просто оборудване (СТ>дъмбел>гира>кабел>машина>щанга), най-нисък d, естествено движение.
 АЛТЕРНАТИВИ (системата ги генерира): същата модалност, мускулна група и d — без mobility/cardio при сила.
 
@@ -50,7 +52,7 @@ export const EQUIPMENT_RETRY_HINT = `
 
 export const SESSION_STRUCTURE_RETRY_HINT = `
 
-КОРЕКЦИЯ: session от program_spec; warmup+cooldown по 3 стъпки. JSON само.`;
+КОРЕКЦИЯ: warmup+cooldown по 3 стъпки; mobility без тежки compound; обосновай focus. JSON само.`;
 
 export const DIFF_RETRY_HINT = `
 
@@ -82,9 +84,9 @@ export const PLAN_RESPONSE_SCHEMA = {
   type: 'object',
   required: ['title', 'summary', 'weeklySplit', 'safetyNotes', 'days', 'guidelines'],
   properties: {
-    title: { type: 'string' },
-    summary: { type: 'string' },
-    weeklySplit: { type: 'string' },
+    title: { type: 'string', description: 'Plan title' },
+    summary: { type: 'string', description: 'Overall program logic and why this approach fits the client' },
+    weeklySplit: { type: 'string', description: 'Split structure with brief rationale (why this distribution)' },
     safetyNotes: { type: 'array', items: { type: 'string' } },
     days: {
       type: 'array',
@@ -93,7 +95,7 @@ export const PLAN_RESPONSE_SCHEMA = {
         required: ['day', 'focus', 'type', 'durationMin', 'warmup', 'exercises', 'cooldown'],
         properties: {
           day: { type: 'string' },
-          focus: { type: 'string' },
+          focus: { type: 'string', description: 'Session focus AND brief rationale for this day structure' },
           type: {
             type: 'string',
             enum: ['strength', 'cardio', 'hiit', 'mobility', 'rest', 'active-recovery'],

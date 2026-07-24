@@ -240,7 +240,7 @@ test('matchExercise: при равен score предпочита по-прос�
   assert.notEqual(result.entry.name, 'Barbell Bench Press');
 });
 
-test('formatProgramSpecBlock: включва order и logic', () => {
+test('formatProgramSpecBlock: включва ориентири и изискване за обосновка', () => {
   const spec = buildProgramSpec({
     gender: 'Жена', age: 28, heightCm: 165, weightKg: 62,
     experience: 'Начинаещ–среден (6 месеца – 2 години)',
@@ -249,8 +249,9 @@ test('formatProgramSpecBlock: включва order и logic', () => {
     equipment: ['Дъмбели'],
   });
   const block = formatProgramSpecBlock(spec);
-  assert.match(block, /order:/);
-  assert.match(block, /logic:/);
+  assert.match(block, /типичен split/);
+  assert.match(block, /обосновай/);
+  assert.match(block, /референтен седмичен обем/);
 });
 
 // ----------------------------------------------------------------------------
@@ -538,7 +539,7 @@ test('buildAdminPlanUserPrompt: hard-veto блок за женски админ 
   assert.ok(prompt.includes('гърди не'));
   assert.ok(prompt.includes('странични рамена'));
   assert.ok(prompt.includes('<program_spec>'));
-  assert.ok(prompt.includes('Генерирай 7 дни от <program_spec>'));
+  assert.ok(prompt.includes('Генерирай 7 дни от <program_spec>') || prompt.includes('Проектирай седмичен план'));
 });
 
 test('preparePlanGeneration: user=context, system=RAG', () => {
@@ -548,7 +549,7 @@ test('preparePlanGeneration: user=context, system=RAG', () => {
     { buildProfileSummary, allowedEquipmentSet },
   );
   assert.ok(userPrompt.includes('<program_spec>'));
-  assert.ok(userPrompt.includes('sessions: 3'));
+  assert.ok(userPrompt.includes('freq: ~3'));
   assert.ok(!userPrompt.includes('Принцип тест'));
   assert.ok(!userPrompt.includes('Админ жена насока'));
   assert.ok(clientTags.has('gender:жена'));
@@ -652,6 +653,7 @@ test('auditPlanSessionStructure: bench в mobility основен блок → �
     title: 'X',
     days: [{
       day: 'Понеделник', type: 'mobility',
+      focus: 'Мобилност гръб и таз — без тежки натоварвания',
       warmup: ['a', 'b', 'c'],
       cooldown: ['x', 'y', 'z'],
       exercises: [
@@ -675,6 +677,7 @@ test('auditPlanSessionStructure: stretch в strength ден е OK', () => {
     title: 'X',
     days: [{
       day: 'Понеделник', type: 'strength',
+      focus: 'Долна част — клекове и glute work след почивка',
       warmup: ['кардио', 'мобилност', 'активация'],
       cooldown: ['стреч', 'ходене', 'дыхание'],
       exercises: [
@@ -704,6 +707,28 @@ test('auditPlanSessionStructure: липсва warmup → проблем', () => 
   });
   const issues = auditPlanSessionStructure(plan, programSpec);
   assert.ok(issues.some((i) => /warmup/i.test(i)));
+});
+
+test('auditPlanSessionStructure: AI може да избере различен dayFocus от ориентира', () => {
+  const programSpec = buildProgramSpec({
+    gender: 'Жена',
+    experience: 'Среден',
+    goal: { main: 'Рекомпозиция' },
+    preferences: { types: ['Силов тренинг'], freq: '3–4', duration: '45–60 мин' },
+  });
+  const plan = {
+    title: 'X',
+    days: [{
+      day: 'Сряда',
+      type: 'cardio',
+      focus: 'Умерено кардио за възстановяване между силовите дни',
+      warmup: ['a', 'b', 'c'],
+      cooldown: ['x', 'y', 'z'],
+      exercises: [{ canonicalName: 'Walking', equipmentHint: 'body weight', sets: 1, reps: '20min', restSeconds: 0 }],
+    }],
+  };
+  const issues = auditPlanSessionStructure(plan, programSpec);
+  assert.ok(!issues.some((i) => /dayFocus|очакван/i.test(i)));
 });
 
 test('auditPlanGenderFit: жена с мъжки bench-dominant план → проблем', () => {
@@ -946,7 +971,7 @@ test('buildAdminPlanUserPrompt: зони в program_spec', () => {
     tags: new Set(['gender:жена', 'goal:отслабване']),
   });
   assert.ok(prompt.includes('<program_spec>'));
-  assert.ok(prompt.includes('zones↓: бедра, корем'));
+  assert.ok(prompt.includes('priority zones: бедра, корем'));
   assert.ok(!prompt.includes('ПРИОРИТЕТ:'));
 });
 

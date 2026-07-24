@@ -1,6 +1,6 @@
 /**
- * ProgramSpec — детерминистичен слой: сплит, обем, reps, RPE от answers.
- * AI попълва упражнения от филтриран каталог; не измисля макроструктурата.
+ * ProgramSpec — клиентски сигнали от answers (честота, ниво, зони, ориентири).
+ * AI проектира split/обем/dayFocus с обосновка; кодът не налага готов шаблон.
  */
 import { normalizeText } from './normalize.js';
 import { formatSessionFrame } from './session-principles.js';
@@ -349,28 +349,27 @@ export function formatVolumeLine(volume) {
     .join(', ');
 }
 
-/** Компактен блок за user prompt (~15 реда). */
+/** Компактен блок за user prompt — сигнали за преценка, не шаблон за копиране. */
 export function formatProgramSpecBlock(spec) {
   if (!spec) return '';
   const lines = [
-    `sessions: ${spec.sessions} | dur: ${spec.durationMin}min | level: ${spec.level} | maxDiff: d≤${spec.maxDiff ?? spec.level} | goal: ${spec.goal}`,
-    `modality: ${spec.modality || 'strength'}`,
-    `split: ${spec.split}`,
+    'СИГНАЛИ ОТ АНКЕТАТА (ориентири — прецени и обосновай в summary/weeklySplit/focus):',
+    `freq: ~${spec.sessions} седм. | dur: ~${spec.durationMin}min | level: ${spec.level} | maxDiff: d≤${spec.maxDiff ?? spec.level} | goal: ${spec.goal}`,
+    `modality preference: ${spec.modality || 'strength'}`,
   ];
-  if (spec.dayTypes?.length) {
-    const dt = spec.dayTypes
-      .filter((d) => d.type !== 'rest')
-      .map((d) => `${d.day.slice(0, 2)}=${d.type}`)
-      .join(', ');
-    if (dt) lines.push(`dayFocus: ${dt}`);
-  }
-  if (spec.sessionFrame) lines.push(`session: ${spec.sessionFrame}`);
-  if (spec.zonesText) lines.push(`zones↓: ${spec.zonesText}`);
-  else if (spec.isFemale) lines.push('zones↓: дупе>бедра');
-  lines.push(`volume/wk: ${formatVolumeLine(spec.volume)}`);
-  lines.push(`reps: ${spec.reps} | rest: ${spec.rest} | rpe≤${spec.rpeMax}`);
-  if (spec.orderHint) lines.push(`order: ${spec.orderHint}`);
-  if (spec.approachRationale) lines.push(`logic: ${spec.approachRationale}`);
+  if (spec.zonesText) lines.push(`priority zones: ${spec.zonesText}`);
+  else if (spec.isFemale) lines.push('priority zones: дупе/бедра (женски bias)');
+  lines.push(`rpe ceiling: ≤${spec.rpeMax}`);
+  lines.push('');
+  lines.push('Референтни ориентири (адаптирай според brief, constraints и контекст):');
+  lines.push(`- типичен split при тези сигнали: ${spec.split}`);
+  lines.push(`- референтен седмичен обем (серии): ${formatVolumeLine(spec.volume)}`);
+  lines.push(`- типични reps/rest: ${spec.reps} / ${spec.rest}`);
+  if (spec.orderHint) lines.push(`- ред в сесия: ${spec.orderHint}`);
+  if (spec.sessionFrame) lines.push(`- рамка на сесия: ${spec.sessionFrame}`);
+  if (spec.approachRationale) lines.push(`- отправна точка: ${spec.approachRationale}`);
+  lines.push('');
+  lines.push('ЗАДЪЛЖИТЕЛНО: проектирай split, dayFocus, обем и reps/rest съобразено с клиента; всяко решение — с кратка обосновка в focus на деня и в weeklySplit.');
   return lines.join('\n');
 }
 
@@ -393,7 +392,12 @@ export function buildCompactProfileForPrompt(answers = {}) {
     const dir = answers.weightChange.type === 'gain' ? '+' : '−';
     lines.push(`Тегло 6м: ${dir}${answers.weightChange.amountKg || '?'} кг${answers.weightChange.reason ? ` (${answers.weightChange.reason})` : ''}`);
   }
-  if (answers.dailyActivity) lines.push(`Дневна активност: ${answers.dailyActivity}`);
+  if (answers.dailyActivity) {
+    const act = typeof answers.dailyActivity === 'string'
+      ? answers.dailyActivity
+      : (answers.dailyActivity.selected || answers.dailyActivity.other || '');
+    if (act) lines.push(`Дневна активност: ${act}`);
+  }
   if (answers.sportActivity?.status && answers.sportActivity.status !== 'Не тренирам в момента') {
     lines.push(`Спорт: ${answers.sportActivity.status}${answers.sportActivity.current ? ` — ${answers.sportActivity.current}` : ''}`);
   }

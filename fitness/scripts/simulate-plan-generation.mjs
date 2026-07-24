@@ -239,7 +239,7 @@ log('COMPLEXITY ASSESSMENT', [
   `  • ${userTok + catalogTok} tok context to parse (profile + constraints + spec + ~120 exercises)`,
   `  • AI must: pick 12–20 exercises from catalog, assign sets/reps from spec,`,
   `    write 9 warmup + 9 cooldown steps, 4 guidelines, respect hard-veto`,
-  `  • CODE already handles: split, volume/wk, dayFocus, reps/rest/RPE, audit, matching`,
+  `  • CODE филтрира каталог, maxDiff, constraints; audit след AI`,
   `OUTPUT complexity: structured JSON, 7 days, ${exerciseCount} exercises in sample`,
   `VERDICT (token budget):`,
   totalInputTok > 6000 ? '  ⚠ INPUT >6k tok — high context' : `  ✓ INPUT ~${totalInputTok} tok — умерен (далеч от лимита)`,

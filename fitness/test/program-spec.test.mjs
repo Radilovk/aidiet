@@ -46,10 +46,10 @@ test('formatProgramSpecBlock: компактен XML блок', () => {
     preferences: { freq: '3–4', duration: '45–60 мин' },
   });
   const block = formatProgramSpecBlock(spec);
-  assert.ok(block.includes('sessions: 3'));
+  assert.ok(block.includes('freq: ~3'));
   assert.ok(block.includes('maxDiff:'));
-  assert.ok(block.includes('zones↓:'));
-  assert.ok(block.includes('reps:'));
+  assert.ok(block.includes('priority zones:'));
+  assert.ok(block.includes('типични reps/rest:'));
 });
 
 test('buildVolumeBudget: зони boost първата зона', () => {
@@ -79,9 +79,9 @@ test('buildProgramSpec: йога → mobility dayTypes без strength split', (
   assert.ok(spec.split.includes('mobility'));
   assert.ok(spec.dayTypes.every((d) => d.type === 'rest' || d.type === 'mobility'));
   const block = formatProgramSpecBlock(spec);
-  assert.ok(block.includes('dayFocus:'));
-  assert.ok(block.includes('session:'));
-  assert.ok(block.includes('mobility'));
+  assert.ok(block.includes('modality preference: mobility'));
+  assert.ok(block.includes('типичен split'));
+  assert.ok(block.includes('рамка на сесия'));
 });
 
 test('buildWeekDayTypes: mixed разделя типове по дни', () => {
