@@ -5,6 +5,7 @@ import {
   exerciseMatchesApparatus,
   expandApparatusIds,
   apparatusLabel,
+  groupApparatusByMuscle,
 } from '../equipment-apparatus.js';
 
 test('searchApparatus: намира лег преса по BG', () => {
@@ -16,6 +17,19 @@ test('searchApparatus: филтър по категория', () => {
   const hits = searchApparatus({ category: 'bench' });
   assert.ok(hits.every((h) => h.category === 'bench'));
   assert.ok(hits.some((h) => h.id === 'bench_flat'));
+});
+
+test('searchApparatus: филтър по мускулна група', () => {
+  const hits = searchApparatus({ muscle: 'chest' });
+  assert.ok(hits.length >= 3);
+  assert.ok(hits.every((h) => h.muscle === 'chest'));
+});
+
+test('groupApparatusByMuscle: групира видимите', () => {
+  const all = searchApparatus({});
+  const groups = groupApparatusByMuscle(all);
+  assert.ok(groups.length >= 5);
+  assert.equal(groups.reduce((n, g) => n + g.items.length, 0), all.length);
 });
 
 test('exerciseMatchesApparatus: leg press упражнение', () => {

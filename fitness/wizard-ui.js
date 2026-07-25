@@ -156,6 +156,7 @@ export function createWizardController({
         }
 
         if (isActive && opt.equipmentPicker) {
+          cardEl.classList.add('has-equip-picker');
           const pickerWrap = el('div', { class: 'equip-picker-wrap' });
           mountEquipmentSelect(pickerWrap, {
             selected: state.pickedItems || [],

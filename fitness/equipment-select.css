@@ -1,38 +1,243 @@
-.equip-picker-wrap { margin-top: 8px; padding-left: 26px; }
-.equip-picker-filters { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+/* Споделени променливи — client (KA-TRAINER тъмна тема) */
+.equip-picker {
+  --ep-bg: var(--surface, #121a23);
+  --ep-surface: var(--surface-2, #18222d);
+  --ep-border: var(--border, #223041);
+  --ep-text: var(--text, #eef3f8);
+  --ep-muted: var(--muted, #8fa0b3);
+  --ep-accent: var(--volt, #35e0c2);
+  --ep-accent-soft: rgba(53, 224, 194, 0.14);
+  --ep-accent-text: var(--volt, #35e0c2);
+  --ep-check-border: var(--border, #223041);
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+  color: var(--ep-text);
+}
+
+.equip-picker-wrap {
+  margin-top: 10px;
+  padding-left: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.equip-picker-head { margin-bottom: 8px; }
+.equip-picker-meta {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--ep-muted);
+  line-height: 1.35;
+}
+
+.equip-picker-toolbar { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+.equip-picker-filter-row { display: flex; flex-direction: column; gap: 5px; }
+.equip-picker-filter-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ep-muted);
+}
+
+.equip-picker-filters { display: flex; flex-wrap: wrap; gap: 5px; }
 .equip-picker-filter {
-  border: 1px solid var(--border, #d1d5db); background: var(--surface-2, #f3f4f6);
-  color: var(--text, inherit); border-radius: 999px; padding: 5px 10px;
-  font-size: 0.72rem; font-weight: 600; cursor: pointer;
+  border: 1px solid var(--ep-border);
+  background: var(--ep-surface);
+  color: var(--ep-text);
+  border-radius: 999px;
+  padding: 5px 11px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1.2;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
 }
+.equip-picker-filter:hover { border-color: var(--ep-accent); }
 .equip-picker-filter.active {
-  background: rgba(53, 224, 194, .12);
-  border-color: var(--volt, var(--primary-red, #0d9488));
-  color: var(--volt, var(--primary-dark, #0f766e));
+  background: var(--ep-accent-soft);
+  border-color: var(--ep-accent);
+  color: var(--ep-accent-text);
 }
+
 .equip-picker-search {
-  width: 100%; box-sizing: border-box; padding: 9px 11px; border-radius: 9px;
-  border: 1px solid var(--border, #d1d5db); font-size: 16px; margin-bottom: 8px;
-  background: var(--surface, #fff); color: var(--text, inherit);
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--ep-border);
+  font-size: 16px;
+  margin-bottom: 10px;
+  background: var(--ep-bg);
+  color: var(--ep-text);
 }
-.equip-picker-selected { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+.equip-picker-search::placeholder { color: var(--ep-muted); opacity: 0.85; }
+.equip-picker-search:focus {
+  outline: none;
+  border-color: var(--ep-accent);
+  box-shadow: 0 0 0 2px var(--ep-accent-soft);
+}
+
+.equip-picker-selected {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.equip-picker-selected[hidden] { display: none !important; }
+
 .equip-picker-sel-chip {
-  border: 1px solid var(--volt, var(--primary-red, #0d9488));
-  background: rgba(53, 224, 194, .1); color: var(--text, inherit);
-  border-radius: 999px; padding: 4px 10px; font-size: 0.72rem; font-weight: 600; cursor: pointer;
+  border: 1px solid var(--ep-accent);
+  background: var(--ep-accent-soft);
+  color: var(--ep-accent-text);
+  border-radius: 999px;
+  padding: 5px 11px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  line-height: 1.2;
 }
-.equip-picker-list {
-  display: flex; flex-direction: column; gap: 4px;
-  max-height: 220px; overflow-y: auto;
+
+.equip-picker-scroll {
+  max-height: min(360px, 48vh);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ep-border) transparent;
 }
+.equip-picker-scroll::-webkit-scrollbar { width: 6px; }
+.equip-picker-scroll::-webkit-scrollbar-thumb {
+  background: var(--ep-border);
+  border-radius: 99px;
+}
+
+.equip-picker-group { margin-bottom: 12px; }
+.equip-picker-group:last-child { margin-bottom: 0; }
+.equip-picker-group-title {
+  margin: 0 0 6px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ep-muted);
+}
+
+.equip-picker-grid { display: flex; flex-direction: column; gap: 5px; }
+
 .equip-picker-item {
-  text-align: left; border: 1px solid var(--border, #d1d5db);
-  background: var(--surface-2, var(--bg-soft, #f9fafb));
-  color: var(--text, inherit); border-radius: 8px; padding: 8px 10px;
-  font-size: 0.82rem; font-weight: 500; cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--ep-border);
+  background: var(--ep-surface);
+  color: var(--ep-text);
+  border-radius: 10px;
+  padding: 9px 11px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
 }
+.equip-picker-item:hover { border-color: var(--ep-accent); }
 .equip-picker-item.active {
-  border-color: var(--volt, var(--primary-red, #0d9488));
-  background: rgba(53, 224, 194, .1);
+  border-color: var(--ep-accent);
+  background: var(--ep-accent-soft);
 }
-.equip-picker-empty { font-size: 0.78rem; color: var(--muted, #9ca3af); margin: 4px 0; }
+
+.equip-picker-check {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  border: 2px solid var(--ep-check-border);
+  border-radius: 5px;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  color: #fff;
+}
+.equip-picker-item.active .equip-picker-check {
+  background: var(--ep-accent);
+  border-color: var(--ep-accent);
+}
+
+.equip-picker-item-body { flex: 1; min-width: 0; }
+.equip-picker-item-label {
+  display: block;
+  font-size: 0.84rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ep-text);
+}
+.equip-picker-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 4px;
+}
+.equip-picker-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--ep-accent-soft);
+  color: var(--ep-accent-text);
+  line-height: 1.3;
+}
+.equip-picker-badge-muted {
+  background: transparent;
+  border: 1px solid var(--ep-border);
+  color: var(--ep-muted);
+}
+
+.equip-picker-empty {
+  font-size: 0.8rem;
+  color: var(--ep-muted);
+  margin: 8px 0;
+  text-align: center;
+}
+
+/* Admin въпросник — NutriPlan teal тема */
+.fcp-wizard .equip-picker {
+  --ep-bg: var(--white, #fff);
+  --ep-surface: var(--bg-color, #f9fafb);
+  --ep-border: #e5e7eb;
+  --ep-text: var(--text-dark, #0f2f2e);
+  --ep-muted: var(--text-gray, #6b7280);
+  --ep-accent: var(--primary-red, #0d9488);
+  --ep-accent-soft: var(--soft-red, #ccfbf1);
+  --ep-accent-text: var(--primary-dark, #0f766e);
+  --ep-check-border: #d1d5db;
+}
+
+[data-theme="dark"] .fcp-wizard .equip-picker {
+  --ep-bg: #0f2323;
+  --ep-surface: #142e2e;
+  --ep-border: var(--glass-border, rgba(45, 212, 191, 0.15));
+  --ep-text: var(--text-dark, #e0f5f0);
+  --ep-muted: var(--text-gray, #9ca3af);
+  --ep-accent: var(--primary-red, #2dd4bf);
+  --ep-accent-soft: rgba(45, 212, 191, 0.12);
+  --ep-accent-text: #99f6e4;
+  --ep-check-border: rgba(255, 255, 255, 0.2);
+}
+
+.fcp-wizard .opt-card.has-equip-picker.active {
+  border-color: var(--primary-red);
+  background: var(--soft-red);
+}
+
+.fcp-wizard .q-card:has(.equip-picker),
+.fcp-q-card:has(.equip-picker) {
+  max-height: min(72vh, 680px);
+}
+
+.fcp-wizard .equip-picker-search,
+.fcp-wizard .equip-picker-item-label,
+.fcp-wizard .equip-picker-filter {
+  font-family: inherit;
+}
