@@ -38,8 +38,6 @@ import {
   kvArrayToProfile,
   parseMealDescription,
   calorieTolerance,
-  validateDescriptionGramRules,
-  PORTION_RULES_PROMPT,
 } from './food-nutrition.js';
 import {
   buildCatalogPromptSection,
@@ -7735,26 +7733,11 @@ async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay
 }
 
 /**
- * Validate AI-written gram steps BEFORE backend scaling.
- */
-function collectWeekPlanGramRuleErrors(weekPlan, startDay, endDay) {
-  const errors = [];
-  for (let d = startDay; d <= endDay; d++) {
-    for (const meal of weekPlan[`day${d}`]?.meals || []) {
-      if (meal.type === 'Свободно хранене' || meal.type === 'Напитка') continue;
-      for (const err of validateDescriptionGramRules(meal.description || '')) {
-        errors.push(`Ден ${d} ${meal.type}: ${err}`);
-      }
-    }
-  }
-  return errors;
-}
-
-/**
- * Structural validation after backend sync. Macros/kcal are computed FROM the grams
- * via the nutrition DB and scaled to the calorie target. AI is retried for: invalid
- * gram steps (pre-sync), unknown products, forbidden foods, or compositions where
- * bounded scaling (×0.5–×3) could not reach the target.
+ * Structural validation only. Macros/kcal are computed by the backend FROM the
+ * grams and scaled to the calorie target, so numeric precision is guaranteed by
+ * construction — the AI is retried only for problems it can actually fix: missing
+ * grams, unknown products, forbidden foods, or a composition so under/over-portioned
+ * that the bounded calorie scaling (×0.5–×3) could not reach the target.
  */
 function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocolId = null) {
   const errors = [];
@@ -7815,7 +7798,7 @@ function buildChunkValidationRetryComment(errors) {
 Поправи САМО посочените несъответствия. Запази продуктите и структурата на дните.
 ${errors.map((e, i) => `${i + 1}. ${e}`).join('\n')}
 
-ЗАДЪЛЖИТЕЛНО: ${PORTION_RULES_PROMPT} Бекендът мащабира пропорционално към калорийната цел и изчислява macros/kcal от грамажите — не добавяй calories/macros.`;
+ЗАДЪЛЖИТЕЛНО: description с "числоg" на всеки продукт; яйца/плодове — "2 яйца (120g)" / "1 ябълка (150g)"; САМО имена от КАТАЛОГА. Бекендът изчислява macros/kcal от грамажите и мащабира порциите към калорийната цел.`;
 }
 
 function finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay) {
@@ -9437,13 +9420,10 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         }
 
         injectFixedDesserts(weekPlan);
+        await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
+        finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay);
 
-        validationErrors = collectWeekPlanGramRuleErrors(weekPlan, startDay, endDay);
-        if (!validationErrors.length) {
-          await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
-          finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay);
-          validationErrors = validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay, data.clinicalProtocol || null);
-        }
+        validationErrors = validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay, data.clinicalProtocol || null);
         lastAiFailure = null;
       } catch (aiError) {
         // AI call/parse failure — no plan data to score; retry with the same slot empty.
