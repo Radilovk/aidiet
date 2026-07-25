@@ -1,3 +1,5 @@
+import { EQUIPMENT_PICKER_OPTION, GYM_EQUIPMENT_OPTION } from './equipment-groups.js';
+
 /**
  * KA-TRAINER — декларативна дефиниция на клиентския въпросник.
  *
@@ -232,18 +234,9 @@ export const QUESTIONS = [
     subtitle: 'Планът ще включва само упражнения с наличното ти оборудване.',
     type: 'multi',
     options: [
-      { value: 'Пълно оборудване на зала' },
+      { value: GYM_EQUIPMENT_OPTION, exclusive: true },
+      { value: EQUIPMENT_PICKER_OPTION, equipmentPicker: true },
       { value: 'Собствено тегло' },
-      { value: 'Дъмбели / гирички' },
-      { value: 'Щанга и дискове' },
-      { value: 'Уреди (машини + кабел)' },
-      { value: 'Кабели / скрипец' },
-      { value: 'Силови машини' },
-      { value: 'Кардио тренажори' },
-      { value: 'Пудовка' },
-      { value: 'Ластици' },
-      { value: 'Стабилизираща топка' },
-      { value: 'TRX / окачени ремъци' },
       { value: 'Друго', input: { key: 'equipmentOther', placeholder: 'опиши' } },
     ],
   },
@@ -323,6 +316,10 @@ export function validateQuestion(question, state) {
 
   if (question.type === 'multi') {
     if (!value?.selected?.length) return 'Избери поне една опция.';
+    const picker = question.options?.find((o) => o.equipmentPicker);
+    if (picker && value.selected.includes(picker.value) && !(value.pickedGroups?.length)) {
+      return 'Избери поне една група оборудване.';
+    }
     return null;
   }
 
@@ -449,6 +446,7 @@ export function buildAnswers(state) {
       deadline: goal.timeframe === 'Конкретна дата' ? (goal.deadline || '') : '',
     },
     equipment: (equipment.selected || []).filter((e) => e !== 'Друго'),
+    equipmentPickedGroups: equipment.pickedGroups || [],
     equipmentOther: equipment.inputs?.equipmentOther || '',
     preferences: {
       types: prefs.types || [],
@@ -564,6 +562,10 @@ export function answersToFormState(answers) {
 
   const equipmentSelected = [...(answers.equipment || [])];
   const equipmentInputs = {};
+  const equipmentPickedGroups = [...(answers.equipmentPickedGroups || [])];
+  if (equipmentPickedGroups.length && !equipmentSelected.includes(EQUIPMENT_PICKER_OPTION)) {
+    equipmentSelected.push(EQUIPMENT_PICKER_OPTION);
+  }
   if (answers.equipmentOther) {
     equipmentSelected.push('Друго');
     equipmentInputs.equipmentOther = answers.equipmentOther;
@@ -611,7 +613,7 @@ export function answersToFormState(answers) {
       timeframe: goal.deadline ? 'Конкретна дата' : 'Без краен срок',
       deadline: goal.deadline || '',
     },
-    equipment: { selected: equipmentSelected, inputs: equipmentInputs },
+    equipment: { selected: equipmentSelected, inputs: equipmentInputs, pickedGroups: equipmentPickedGroups },
     preferences: {
       types: prefs.types || [],
       avoid: prefs.avoid || '',

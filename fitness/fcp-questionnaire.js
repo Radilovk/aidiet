@@ -4,9 +4,9 @@
 import {
   activeQuestions, buildAnswers, answersToFormState,
   validateQuestion,
-} from './questions.js?v=5';
+} from './questions.js?v=6';
 import { buildProfileSummary } from './profile-summary.js?v=2';
-import { createWizardController, el } from './wizard-ui.js?v=3';
+import { createWizardController, el } from './wizard-ui.js?v=4';
 
 const IDS = {
   questionCard: 'fcpQuestionCard',
@@ -97,6 +97,7 @@ function ensureWizard() {
     },
     onComplete: () => { syncUi(); close(); },
     finalButtonText: 'Готово',
+    apiBase: window.FITPLAN_WORKER_URL || window.WORKER_URL || '',
   });
 }
 

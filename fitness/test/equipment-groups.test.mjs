@@ -44,11 +44,8 @@ test('buildVirtualEquipmentFacets: сумира machine + cable', () => {
   assert.equal(facets[0].count, 277);
 });
 
-test('QUESTIONNAIRE_EQUIPMENT_MAP: уреди, силови и кардио', () => {
-  assert.ok(QUESTIONNAIRE_EQUIPMENT_MAP['уреди (машини + кабел)'].includes('cable'));
-  assert.ok(QUESTIONNAIRE_EQUIPMENT_MAP['уреди (машини + кабел)'].includes('smith machine'));
-  assert.ok(QUESTIONNAIRE_EQUIPMENT_MAP['силови машини'].includes('leverage machine'));
-  assert.ok(!QUESTIONNAIRE_EQUIPMENT_MAP['силови машини'].includes('elliptical machine'));
-  assert.ok(QUESTIONNAIRE_EQUIPMENT_MAP['кардио тренажори'].includes('elliptical machine'));
-  assert.ok(QUESTIONNAIRE_EQUIPMENT_MAP['машини'].includes('smith machine'));
+test('QUESTIONNAIRE_EQUIPMENT_MAP: legacy опции', () => {
+  assert.ok(QUESTIONNAIRE_EQUIPMENT_MAP['дъмбели'].includes('dumbbell'));
+  assert.equal(QUESTIONNAIRE_EQUIPMENT_MAP['пълно оборудване на зала'], null);
+  assert.ok(QUESTIONNAIRE_EQUIPMENT_MAP['ластици'].includes('band'));
 });

@@ -44,7 +44,7 @@
  */
 
 import { localizeExerciseDisplayName, sanitizeBgText, sanitizePlanBulgarian } from './exercise-labels-bg.js';
-import { QUESTIONNAIRE_EQUIPMENT_MAP } from './equipment-groups.js';
+import { QUESTIONNAIRE_EQUIPMENT_MAP, EQUIPMENT_PICKER_OPTION, expandEquipmentGroupIds } from './equipment-groups.js';
 import {
   buildPlanSystemInstruction,
   COMPACT_PLAN_RETRY_HINT,
@@ -519,11 +519,18 @@ export const EQUIPMENT_MAP = QUESTIONNAIRE_EQUIPMENT_MAP;
  * Връща Set от позволени equipment стойности (EN, нормализирани) или null,
  * ако клиентът има пълна зала (без филтър).
  */
-export function allowedEquipmentSet(equipmentAnswers) {
+export function allowedEquipmentSet(equipmentAnswers, pickedGroups = []) {
   const set = new Set(['body weight']);
+  const pickerKey = normalizeText(EQUIPMENT_PICKER_OPTION);
+
+  if (pickedGroups?.length) {
+    for (const norm of expandEquipmentGroupIds(pickedGroups)) set.add(normalizeText(norm));
+  }
+
   const items = expandEquipmentAnswers(equipmentAnswers);
   for (const answer of items) {
     const key = normalizeText(answer);
+    if (key === pickerKey) continue;
     if (EQUIPMENT_MAP[key] === null || key.includes('зала') || key.includes('gym')) {
       return null;
     }
