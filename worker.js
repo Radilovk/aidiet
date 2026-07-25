@@ -6087,7 +6087,7 @@ function formatCatalogSectionForPrompt(candidatesBySlot, { minUniversality = DEF
   const lines = [
     `=== \u041A\u0410\u0422\u0410\u041B\u041E\u0413 \u0425\u0420\u0410\u041D\u0418 (\u0417\u0410\u0414\u042A\u041B\u0416\u0418\u0422\u0415\u041B\u041D\u041E \u2014 \u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430\u0439 \u0421\u0410\u041C\u041E \u0442\u0435\u0437\u0438 \u0438\u043C\u0435\u043D\u0430) ===`,
     `\u0423\u043D\u0438\u0432\u0435\u0440\u0441\u0430\u043B\u043D\u043E\u0441\u0442 \u2265${minUniversality}: \u043F\u0440\u0435\u0434\u043F\u043E\u0447\u0438\u0442\u0430\u0439 \u043F\u043E-\u043E\u0431\u0449\u0438 \u0432\u0430\u0440\u0438\u0430\u043D\u0442\u0438 (\u0420\u0438\u0431\u0430, \u041E\u0440\u0438\u0437, \u041F\u043B\u043E\u0434) \u043F\u0440\u0435\u0434 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u0438 (\u041B\u0430\u0432\u0440\u0430\u043A, \u041A\u0438\u043D\u043E\u0430, \u041C\u0430\u043D\u0433\u043E).`,
-    `\u0421\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438 \u0432 \u0441\u043A\u043E\u0431\u0438 = \u043D\u0430 100g. \u0413\u0440\u0430\u043C\u0430\u0436\u0438: \u0438\u0437\u0447\u0438\u0441\u043B\u0438 \u043E\u0442 mealBreakdown \u0438 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430; \u043E\u0441\u043D\u043E\u0432\u043D\u0438 \u043D\u0430 50g; \u0434\u043E\u0431\u0430\u0432\u043A\u0438 \u043D\u0430 10g; \u044F\u0439\u0446\u0430 60g/\u0431\u0440.; \u043F\u043B\u043E\u0434\u043E\u0432\u0435 \u2014 \u0431\u0440\u043E\u0439 \xD7 \u0433\u0440\u0430\u043C\u0430\u0436.`,
+    `\u0421\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438 \u0432 \u0441\u043A\u043E\u0431\u0438 = \u043D\u0430 100g. \u0413\u0440\u0430\u043C\u0430\u0436\u0438 \u043E\u0442 mealBreakdown: \u043E\u0441\u043D\u043E\u0432\u043D\u0438 \u043D\u0430 50g; \u0434\u043E\u0431\u0430\u0432\u043A\u0438 (\u0437\u0435\u0445\u0442\u0438\u043D, \u044F\u0434\u043A\u0438) \u043D\u0430 10g; \u044F\u0439\u0446\u0430 60g/\u0431\u0440. \u2192 "2 \u044F\u0439\u0446\u0430 (120g)"; \u043F\u043B\u043E\u0434\u043E\u0432\u0435 \u2192 "1 \u044F\u0431\u044A\u043B\u043A\u0430 (150g)".`,
     `\u0413\u043E\u0442\u043E\u0432\u0430 \u0445\u0440\u0430\u043D\u0430 = \u0435\u0434\u0438\u043D \u0440\u0435\u0434 \u0432 description \u0418\u041B\u0418 \u0440\u0430\u0437\u0431\u0438\u0439 \u043D\u0430 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u043E\u0442 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430.`
   ];
   for (const slot of ["PRO", "ENG", "VOL", "FAT"]) {
@@ -6134,115 +6134,9 @@ function validateProductNamesAgainstProtocol(names, clinicalProtocolId) {
 
 // food-nutrition.js
 var GRAM_ROUND_STEP = 10;
-var MAIN_GRAM_ROUND_STEP = 50;
-var SMALL_ADDITIVE_KEYS = /* @__PURE__ */ new Set([
-  "\u0437\u0435\u0445\u0442\u0438\u043D",
-  "\u043E\u043B\u0438\u043E",
-  "\u044F\u0434\u043A\u0438",
-  "\u0431\u0430\u0434\u0435\u043C\u0438",
-  "\u043E\u0440\u0435\u0445\u0438",
-  "\u043A\u0430\u0448\u0443",
-  "\u043B\u0435\u0448\u043D\u0438\u0446\u0438",
-  "\u0444\u044A\u0441\u0442\u044A\u0446\u0438",
-  "\u0448\u0430\u043C\u0444\u044A\u0441\u0442\u044A\u043A",
-  "\u0444\u044A\u0441\u0442\u044A\u0447\u0435\u043D\u043E \u043C\u0430\u0441\u043B\u043E",
-  "\u0431\u0430\u0434\u0435\u043C\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E",
-  "\u0442\u0430\u0445\u0430\u043D",
-  "\u043C\u0430\u0441\u043B\u043E",
-  "\u043A\u043E\u043A\u043E\u0441\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E",
-  "\u0441\u043B\u044A\u043D\u0447\u043E\u0433\u043B\u0435\u0434\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E",
-  "\u0441\u0435\u043C\u0435\u043D\u0430 \u0447\u0438\u0430",
-  "\u043B\u0435\u043D\u0435\u043D\u043E \u0441\u0435\u043C\u0435",
-  "\u0442\u0438\u043A\u0432\u0435\u043D\u0438 \u0441\u0435\u043C\u043A\u0438",
-  "\u0441\u043B\u044A\u043D\u0447\u043E\u0433\u043B\u0435\u0434\u043E\u0432\u0438 \u0441\u0435\u043C\u043A\u0438",
-  "\u043C\u0435\u0434",
-  "\u0441\u043E\u0435\u0432 \u0441\u043E\u0441",
-  "\u0445\u0443\u043C\u0443\u0441",
-  "\u0433\u043E\u0440\u0447\u0438\u0446\u0430",
-  "\u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A",
-  "\u043E\u0446\u0435\u0442",
-  "\u0434\u043E\u043C\u0430\u0442\u0435\u043D\u043E \u043F\u044E\u0440\u0435",
-  "\u043A\u043E\u043A\u043E\u0441\u043E\u0432\u043E \u043C\u043B\u044F\u043A\u043E",
-  "\u043A\u0430\u043D\u0435\u043B\u0430",
-  "\u043A\u0443\u0440\u043A\u0443\u043C\u0430",
-  "\u0434\u0436\u0438\u043D\u0434\u0436\u0438\u0444\u0438\u043B"
-]);
-var COUNTABLE_UNITS = {
-  "\u044F\u0439\u0446\u0430": { unit: 60, singular: "\u044F\u0439\u0446\u0435", plural: "\u044F\u0439\u0446\u0430", catalog: "\u042F\u0439\u0446\u0430" },
-  "\u0432\u0430\u0440\u0435\u043D\u043E \u044F\u0439\u0446\u0435": { unit: 60, singular: "\u0432\u0430\u0440\u0435\u043D\u043E \u044F\u0439\u0446\u0435", plural: "\u0432\u0430\u0440\u0435\u043D\u0438 \u044F\u0439\u0446\u0430", catalog: "\u0412\u0430\u0440\u0435\u043D\u043E \u044F\u0439\u0446\u0435" },
-  "\u044F\u0431\u044A\u043B\u043A\u0430": { unit: 150, singular: "\u044F\u0431\u044A\u043B\u043A\u0430", plural: "\u044F\u0431\u044A\u043B\u043A\u0438", catalog: "\u042F\u0431\u044A\u043B\u043A\u0430" },
-  "\u0431\u0430\u043D\u0430\u043D": { unit: 120, singular: "\u0431\u0430\u043D\u0430\u043D", plural: "\u0431\u0430\u043D\u0430\u043D\u0430", catalog: "\u0411\u0430\u043D\u0430\u043D" },
-  "\u043A\u0438\u0432\u0438": { unit: 80, singular: "\u043A\u0438\u0432\u0438", plural: "\u043A\u0438\u0432\u0438", catalog: "\u041A\u0438\u0432\u0438" },
-  "\u043F\u043E\u0440\u0442\u043E\u043A\u0430\u043B": { unit: 150, singular: "\u043F\u043E\u0440\u0442\u043E\u043A\u0430\u043B", plural: "\u043F\u043E\u0440\u0442\u043E\u043A\u0430\u043B\u0438", catalog: "\u041F\u043E\u0440\u0442\u043E\u043A\u0430\u043B" },
-  "\u043C\u0430\u043D\u0434\u0430\u0440\u0438\u043D\u0430": { unit: 80, singular: "\u043C\u0430\u043D\u0434\u0430\u0440\u0438\u043D\u0430", plural: "\u043C\u0430\u043D\u0434\u0430\u0440\u0438", catalog: "\u041C\u0430\u043D\u0434\u0430\u0440\u0438\u043D\u0430" },
-  "\u043F\u0440\u0430\u0441\u043A\u043E\u0432\u0430": { unit: 150, singular: "\u043F\u0440\u0430\u0441\u043A\u043E\u0432\u0430", plural: "\u043F\u0440\u0430\u0441\u043A\u043E\u0432\u0438", catalog: "\u041F\u0440\u0430\u0441\u043A\u043E\u0432\u0430" },
-  "\u043A\u0440\u0443\u0448\u0430": { unit: 150, singular: "\u043A\u0440\u0443\u0448\u0430", plural: "\u043A\u0440\u0443\u0448\u0438", catalog: "\u041A\u0440\u0443\u0448\u0430" },
-  "\u0433\u0440\u0435\u0439\u043F\u0444\u0440\u0443\u0442": { unit: 200, singular: "\u0433\u0440\u0435\u0439\u043F\u0444\u0440\u0443\u0442", plural: "\u0433\u0440\u0435\u0439\u043F\u0444\u0440\u0443\u0442\u0430", catalog: "\u0413\u0440\u0435\u0439\u043F\u0444\u0440\u0443\u0442" }
-};
-var PORTION_RULES_PROMPT = "\u0413\u0440\u0430\u043C\u0430\u0436\u0438: \u0438\u0437\u0447\u0438\u0441\u043B\u0438 \u043E\u0442 mealBreakdown kcal/P/C/F \u0438 \u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438\u0442\u0435 \u043D\u0430 100g \u0432 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430. \u041E\u0441\u043D\u043E\u0432\u043D\u0438 \u2014 \u043D\u0430 50g; \u0434\u043E\u0431\u0430\u0432\u043A\u0438 (\u0437\u0435\u0445\u0442\u0438\u043D, \u044F\u0434\u043A\u0438) \u2014 \u043D\u0430 10g; \u044F\u0439\u0446\u0430 \u2014 60g/\u0431\u0440.; \u043F\u043B\u043E\u0434\u043E\u0432\u0435 \u2014 \u0431\u0440\u043E\u0439 \xD7 \u0441\u0440\u0435\u0434\u0435\u043D \u0433\u0440\u0430\u043C\u0430\u0436.";
-function resolveCountableKey(name) {
-  const normalized = normalizeFoodKey(name);
-  if (COUNTABLE_UNITS[normalized]) return normalized;
-  for (const [key, spec] of Object.entries(COUNTABLE_UNITS)) {
-    if (normalized === normalizeFoodKey(spec.singular) || normalized === normalizeFoodKey(spec.plural)) return key;
-  }
-  return null;
-}
-function resolveCountableCatalogName(label) {
-  const key = resolveCountableKey(label);
-  return key ? COUNTABLE_UNITS[key].catalog : null;
-}
-function getCountableSpec(item2) {
-  const key = resolveCountableKey(item2?.key || item2?.name);
-  return key ? COUNTABLE_UNITS[key] : null;
-}
-function isSmallAdditiveItem(item2) {
-  const { entry } = resolveCatalogEntry(item2?.name);
-  if (entry?.group === "condiment") return true;
-  return SMALL_ADDITIVE_KEYS.has(normalizeFoodKey(item2?.key || item2?.name));
-}
-function getGramStep(item2) {
-  if (isSmallAdditiveItem(item2)) return GRAM_ROUND_STEP;
-  const countable = getCountableSpec(item2);
-  if (countable) return countable.unit;
-  return MAIN_GRAM_ROUND_STEP;
-}
-function roundGrams(grams, step = GRAM_ROUND_STEP) {
-  const g = Number(grams) || 0;
-  if (g <= 0) return step;
-  return Math.max(step, Math.round(g / step) * step);
-}
-function roundGramsForItem(item2, grams) {
-  const step = getGramStep(item2);
-  const rounded = roundGrams(grams, step);
-  const countable = getCountableSpec(item2);
-  if (!countable) return rounded;
-  return Math.max(1, Math.round(rounded / countable.unit)) * countable.unit;
-}
-function validateItemGrams(item2) {
-  const grams = Number(item2.grams) || 0;
-  if (grams <= 0) return `${item2.name}: \u043B\u0438\u043F\u0441\u0432\u0430 \u0433\u0440\u0430\u043C\u0430\u0436`;
-  const countable = getCountableSpec(item2);
-  if (countable) {
-    if (grams % countable.unit === 0) return null;
-    const count = Math.max(1, Math.round(grams / countable.unit));
-    const example = count === 1 ? `1 ${countable.singular} (${countable.unit}g)` : `${count} ${countable.plural} (${count * countable.unit}g)`;
-    return `${item2.name} ${grams}g \u2014 \u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430\u0439 ${countable.unit}g/\u0431\u0440., \u043D\u0430\u043F\u0440. ${example}`;
-  }
-  const step = getGramStep(item2);
-  if (grams % step === 0) return null;
-  return `${item2.name} ${grams}g \u2014 \u0437\u0430\u043A\u0440\u044A\u0433\u043B\u0438 \u043D\u0430 ${step}g (\u043D\u0430\u043F\u0440. ${roundGrams(grams, step)}g)`;
-}
-function formatItemLine(item2) {
-  const spec = getCountableSpec(item2);
-  if (!spec) return `\u2022 ${item2.name} ${item2.grams}g`;
-  const count = Math.max(1, Math.round(item2.grams / spec.unit));
-  const label = count === 1 ? spec.singular : spec.plural;
-  return `\u2022 ${count} ${label} (${count * spec.unit}g)`;
-}
 var CALORIE_TOLERANCE_PERCENT = 0.05;
 var MACRO_TOLERANCE_PERCENT = 0.1;
-var MIN_CALORIE_TOLERANCE_KCAL = 30;
+var MIN_CALORIE_TOLERANCE_KCAL = 25;
 var MIN_MACRO_TOLERANCE_G = 3;
 function calorieTolerance(targetKcal) {
   return Math.max(MIN_CALORIE_TOLERANCE_KCAL, Math.round((Number(targetKcal) || 0) * CALORIE_TOLERANCE_PERCENT));
@@ -6320,8 +6214,8 @@ function parseMealDescription(description) {
     for (const chunk of chunks) {
       const countMatch = chunk.match(COUNT_LINE_RE);
       if (countMatch) {
+        const name2 = countMatch[2].trim();
         const grams2 = Math.max(1, Math.round(parseFloat(String(countMatch[3]).replace(",", "."))));
-        const name2 = resolveCountableCatalogName(countMatch[2].trim()) || countMatch[2].trim();
         const { profile: profile2, key: key2, unknown: unknown2 } = lookupFoodProfile(name2);
         items.push({ name: name2, grams: grams2, key: key2, profile: profile2, unknown: !!unknown2 });
         continue;
@@ -6336,10 +6230,10 @@ function parseMealDescription(description) {
   }
   return items;
 }
-function validateDescriptionGramRules(description) {
-  const items = parseMealDescription(description);
-  if (!items.length) return ["\u043B\u0438\u043F\u0441\u0432\u0430\u0442 \u043F\u0430\u0440\u0441\u0438\u0440\u0443\u0435\u043C\u0438 \u0433\u0440\u0430\u043C\u0430\u0436\u0438 \u0432 description"];
-  return items.map(validateItemGrams).filter(Boolean);
+function roundGrams(grams, step = GRAM_ROUND_STEP) {
+  const g = Number(grams) || 0;
+  if (g <= 0) return step;
+  return Math.max(step, Math.round(g / step) * step);
 }
 function getCatalogMeta(name) {
   const { entry } = resolveCatalogEntry(name);
@@ -6407,13 +6301,13 @@ function adjustProteinItemsTowardTarget(items, targetProtein) {
     Math.max(1 - PROTEIN_ADJUST_MAX_PERCENT, (driverProtein + deficit) / driverProtein)
   );
   return items.map(
-    (it) => isProteinDriverItem(it) && !isCondimentItem(it) ? { ...it, grams: roundGramsForItem(it, it.grams * factor) } : it
+    (it) => isProteinDriverItem(it) && !isCondimentItem(it) ? { ...it, grams: roundGrams(it.grams * factor) } : it
   );
 }
 var SCALE_FACTOR_MIN = 0.5;
 var SCALE_FACTOR_MAX = 3;
 var RESIDUAL_STOP_KCAL = 20;
-var MAX_NUDGE_STEPS_PER_ITEM = 5;
+var MAX_NUDGE_STEPS_PER_ITEM = 3;
 function scaleItemsToTargetCalories(items, targetKcal, dessertNutrition = null) {
   if (!items.length || !targetKcal || targetKcal <= 0) return items;
   const base = sumItemNutrition(items);
@@ -6425,7 +6319,7 @@ function scaleItemsToTargetCalories(items, targetKcal, dessertNutrition = null) 
   const factor = Math.min(SCALE_FACTOR_MAX, Math.max(SCALE_FACTOR_MIN, goal / base.kcal));
   const scaled = items.map((item2) => ({
     ...item2,
-    grams: capCondimentGrams(item2, roundGramsForItem(item2, item2.grams * factor))
+    grams: capCondimentGrams(item2, roundGrams(item2.grams * factor))
   }));
   const nudges = /* @__PURE__ */ new Map();
   for (let guard = 0; guard < 12; guard++) {
@@ -6435,12 +6329,11 @@ function scaleItemsToTargetCalories(items, targetKcal, dessertNutrition = null) 
     let best = null;
     let bestAbs = Math.abs(residual);
     for (const item2 of scaled) {
-      const step = getGramStep(item2);
-      const nextGrams = item2.grams + step * dir;
-      if (nextGrams < step) continue;
+      const nextGrams = item2.grams + GRAM_ROUND_STEP * dir;
+      if (nextGrams < GRAM_ROUND_STEP) continue;
       if (isCondimentItem(item2) && nextGrams > CONDIMENT_MAX_GRAMS) continue;
       if ((nudges.get(item2) || 0) >= MAX_NUDGE_STEPS_PER_ITEM) continue;
-      const stepKcal = (Number(item2.profile.kcal) || item2.profile.p * 4 + item2.profile.c * 4 + item2.profile.f * 9) / 100 * step * dir;
+      const stepKcal = (Number(item2.profile.kcal) || item2.profile.p * 4 + item2.profile.c * 4 + item2.profile.f * 9) / 100 * GRAM_ROUND_STEP * dir;
       const abs = Math.abs(residual - stepKcal);
       if (abs < bestAbs) {
         bestAbs = abs;
@@ -6448,13 +6341,13 @@ function scaleItemsToTargetCalories(items, targetKcal, dessertNutrition = null) 
       }
     }
     if (!best) break;
-    best.grams += getGramStep(best) * dir;
+    best.grams += GRAM_ROUND_STEP * dir;
     nudges.set(best, (nudges.get(best) || 0) + 1);
   }
   return scaled;
 }
 function formatMealDescription(items) {
-  return items.map((item2) => formatItemLine(item2)).join("\n");
+  return items.map((item2) => `\u2022 ${item2.name} ${item2.grams}g`).join("\n");
 }
 function formatMealWeight(totalGrams, dessertWeightGrams = 0) {
   const total = Math.round((Number(totalGrams) || 0) + (Number(dessertWeightGrams) || 0));
@@ -6483,10 +6376,6 @@ function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}) {
   if (targetKcal > 0) {
     items = scaleItemsToTargetCalories(items, targetKcal, dessertNutrition);
   }
-  items = items.map((item2) => ({
-    ...item2,
-    grams: capCondimentGrams(item2, roundGramsForItem(item2, item2.grams))
-  }));
   const totals = sumItemNutrition(items);
   let p = Math.round(totals.p);
   let c = Math.round(totals.c);
@@ -12402,18 +12291,6 @@ async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay
   }
   return unknowns;
 }
-function collectWeekPlanGramRuleErrors(weekPlan, startDay, endDay) {
-  const errors = [];
-  for (let d = startDay; d <= endDay; d++) {
-    for (const meal of weekPlan[`day${d}`]?.meals || []) {
-      if (meal.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" || meal.type === "\u041D\u0430\u043F\u0438\u0442\u043A\u0430") continue;
-      for (const err of validateDescriptionGramRules(meal.description || "")) {
-        errors.push(`\u0414\u0435\u043D ${d} ${meal.type}: ${err}`);
-      }
-    }
-  }
-  return errors;
-}
 function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocolId = null) {
   const errors = [];
   if (!dayPlan?.meals?.length || !dayTarget?.mealBreakdown?.length) return errors;
@@ -12465,7 +12342,7 @@ function buildChunkValidationRetryComment(errors) {
 \u041F\u043E\u043F\u0440\u0430\u0432\u0438 \u0421\u0410\u041C\u041E \u043F\u043E\u0441\u043E\u0447\u0435\u043D\u0438\u0442\u0435 \u043D\u0435\u0441\u044A\u043E\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0438\u044F. \u0417\u0430\u043F\u0430\u0437\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438\u0442\u0435 \u0438 \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0430\u0442\u0430 \u043D\u0430 \u0434\u043D\u0438\u0442\u0435.
 ${errors.map((e, i) => `${i + 1}. ${e}`).join("\n")}
 
-\u0417\u0410\u0414\u042A\u041B\u0416\u0418\u0422\u0415\u041B\u041D\u041E: ${PORTION_RULES_PROMPT} \u0411\u0435\u043A\u0435\u043D\u0434\u044A\u0442 \u043C\u0430\u0449\u0430\u0431\u0438\u0440\u0430 \u043F\u0440\u043E\u043F\u043E\u0440\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u043A\u044A\u043C \u043A\u0430\u043B\u043E\u0440\u0438\u0439\u043D\u0430\u0442\u0430 \u0446\u0435\u043B \u0438 \u0438\u0437\u0447\u0438\u0441\u043B\u044F\u0432\u0430 macros/kcal \u043E\u0442 \u0433\u0440\u0430\u043C\u0430\u0436\u0438\u0442\u0435 \u2014 \u043D\u0435 \u0434\u043E\u0431\u0430\u0432\u044F\u0439 calories/macros.`;
+\u0417\u0410\u0414\u042A\u041B\u0416\u0418\u0422\u0415\u041B\u041D\u041E: description \u0441 "\u0447\u0438\u0441\u043B\u043Eg" \u043D\u0430 \u0432\u0441\u0435\u043A\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442; \u044F\u0439\u0446\u0430/\u043F\u043B\u043E\u0434\u043E\u0432\u0435 \u2014 "2 \u044F\u0439\u0446\u0430 (120g)" / "1 \u044F\u0431\u044A\u043B\u043A\u0430 (150g)"; \u0421\u0410\u041C\u041E \u0438\u043C\u0435\u043D\u0430 \u043E\u0442 \u041A\u0410\u0422\u0410\u041B\u041E\u0413\u0410. \u0411\u0435\u043A\u0435\u043D\u0434\u044A\u0442 \u0438\u0437\u0447\u0438\u0441\u043B\u044F\u0432\u0430 macros/kcal \u043E\u0442 \u0433\u0440\u0430\u043C\u0430\u0436\u0438\u0442\u0435 \u0438 \u043C\u0430\u0449\u0430\u0431\u0438\u0440\u0430 \u043F\u043E\u0440\u0446\u0438\u0438\u0442\u0435 \u043A\u044A\u043C \u043A\u0430\u043B\u043E\u0440\u0438\u0439\u043D\u0430\u0442\u0430 \u0446\u0435\u043B.`;
 }
 function finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay) {
   if (!weekPlan) return;
@@ -13707,12 +13584,9 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
           weekPlan[dayKey] = chunkData[dayKey];
         }
         injectFixedDesserts(weekPlan);
-        validationErrors = collectWeekPlanGramRuleErrors(weekPlan, startDay, endDay);
-        if (!validationErrors.length) {
-          await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
-          finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay);
-          validationErrors = validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay, data.clinicalProtocol || null);
-        }
+        await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
+        finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay);
+        validationErrors = validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay, data.clinicalProtocol || null);
         lastAiFailure = null;
       } catch (aiError) {
         lastAiFailure = aiError.message;
