@@ -11,6 +11,8 @@ import {
   EQUIP_NORM_LABELS,
   STRENGTH_MACHINE_NORMS,
 } from '../equipment-groups.js';
+import { STATION_DEFS } from '../equipment-stations.js';
+import { tokenize } from '../normalize.js';
 
 const INDEX_PATH = new URL('../data/exercise-index.json', import.meta.url);
 const OUT_PATH = new URL('../data/equipment-apparatus-catalog.json', import.meta.url);
@@ -88,15 +90,15 @@ async function main() {
     process.exit(1);
   }
 
-  const raw = index.filter(isApparatusExercise).map((entry) => ({
+  const machineRaw = index.filter(isApparatusExercise).map((entry) => ({
     entry,
     label: baseLabelFor(entry),
   }));
 
   const labelCounts = new Map();
-  for (const { label } of raw) labelCounts.set(label, (labelCounts.get(label) || 0) + 1);
+  for (const { label } of machineRaw) labelCounts.set(label, (labelCounts.get(label) || 0) + 1);
 
-  const catalog = raw.map(({ entry, label }) => {
+  const machineCatalog = machineRaw.map(({ entry, label }) => {
     const hint = nameHint(entry.name);
     const eq = equipLabel(entry.equipNorm);
     const subtitle = labelCounts.get(label) > 1 ? `${eq} · ${hint}` : eq;
@@ -111,9 +113,30 @@ async function main() {
       targetNorm: entry.targetNorm || '',
       category: categoryForEntry(entry),
       muscle: muscleForTarget(entry.targetNorm),
+      station: false,
       tokens: entry.tokens || [],
     };
-  }).sort((a, b) => {
+  });
+
+  const stationCatalog = STATION_DEFS.map((station) => ({
+    id: station.id,
+    name: station.label,
+    nameNorm: normalizeText(station.label),
+    label: station.label,
+    subtitle: station.subtitle,
+    equipNorm: 'station',
+    equipLabel: 'станция',
+    equipHints: station.equipHints,
+    targetNorm: '',
+    category: station.category,
+    muscle: station.muscle,
+    station: true,
+    matchRe: station.matchRe,
+    excludeRe: station.excludeRe || '',
+    tokens: tokenize(`${station.label} ${station.subtitle} ${station.searchTerms}`),
+  }));
+
+  const catalog = [...machineCatalog, ...stationCatalog].sort((a, b) => {
     const byLabel = a.label.localeCompare(b.label, 'bg');
     if (byLabel) return byLabel;
     return a.subtitle.localeCompare(b.subtitle, 'bg');

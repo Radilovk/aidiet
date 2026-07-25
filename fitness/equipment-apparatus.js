@@ -9,6 +9,8 @@ export const APPARATUS_CATEGORIES = [
   { id: 'all', label: 'Всички типове' },
   { id: 'machine', label: 'Силови машини' },
   { id: 'cable', label: 'Кабел / скрипец' },
+  { id: 'bench', label: 'Лежанки' },
+  { id: 'rack', label: 'Стойки' },
   { id: 'cardio', label: 'Кардио' },
 ];
 
@@ -32,6 +34,8 @@ export const APPARATUS_EQUIP_TYPES = [
   { id: 'smith machine', label: 'Смит' },
   { id: 'sled machine', label: 'Преса / шейна' },
   { id: 'assisted', label: 'С асистенция' },
+  { id: 'bench', label: 'Лежанки' },
+  { id: 'rack', label: 'Стойки' },
   { id: 'cardio', label: 'Кардио тренажор' },
 ];
 
@@ -52,6 +56,8 @@ function coreTokens(tokens = []) {
 function matchesEquipFilter(item, equip) {
   if (!equip || equip === 'all') return true;
   if (equip === 'cardio') return item.category === 'cardio';
+  if (equip === 'bench') return item.category === 'bench';
+  if (equip === 'rack') return item.category === 'rack';
   return item.equipNorm === equip;
 }
 
@@ -104,7 +110,10 @@ export function computeApparatusFacets(items = GYM_APPARATUS) {
   for (const item of items) {
     category.set(item.category, (category.get(item.category) || 0) + 1);
     muscle.set(item.muscle, (muscle.get(item.muscle) || 0) + 1);
-    const equipKey = item.category === 'cardio' ? 'cardio' : item.equipNorm;
+    let equipKey = item.equipNorm;
+    if (item.category === 'cardio') equipKey = 'cardio';
+    else if (item.category === 'bench') equipKey = 'bench';
+    else if (item.category === 'rack') equipKey = 'rack';
     equip.set(equipKey, (equip.get(equipKey) || 0) + 1);
   }
 
@@ -140,6 +149,16 @@ export function exerciseMatchesApparatus(entry, apparatusId) {
   if (!item) return false;
   if (entry?.id != null && String(entry.id) === String(apparatusId)) return true;
 
+  if (item.station) {
+    const eq = normalizeText(entry?.equipNorm || entry?.equipment);
+    const hints = (item.equipHints || []).map(normalizeText);
+    if (hints.length && !hints.includes(eq)) return false;
+    const name = String(entry?.name || entry?.nameNorm || '');
+    if (item.excludeRe && new RegExp(item.excludeRe, 'i').test(name)) return false;
+    if (item.matchRe && new RegExp(item.matchRe, 'i').test(name)) return true;
+    return false;
+  }
+
   const eq = normalizeText(entry?.equipNorm || entry?.equipment);
   if (item.equipNorm && eq !== item.equipNorm) return false;
 
@@ -165,7 +184,11 @@ export function expandApparatusIds(pickedIds) {
     const item = BY_ID.get(id);
     if (!item) continue;
     labels.push(item.subtitle ? `${item.label} (${item.subtitle})` : item.label);
-    if (item.equipNorm) equipHints.add(item.equipNorm);
+    if (item.station && item.equipHints?.length) {
+      for (const h of item.equipHints) equipHints.add(normalizeText(h));
+    } else if (item.equipNorm && item.equipNorm !== 'station') {
+      equipHints.add(item.equipNorm);
+    }
   }
   return { equipHints, labels };
 }

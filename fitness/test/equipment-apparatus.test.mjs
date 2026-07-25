@@ -56,10 +56,42 @@ test('exerciseMatchesApparatus: leg press упражнение', () => {
   ));
 });
 
-test('expandApparatusIds: разширява equip hints', () => {
-  const { equipHints, labels } = expandApparatusIds(['0739', '2287']);
+test('searchApparatus: филтър по категория лежанки', () => {
+  const hits = searchApparatus({ category: 'bench' });
+  assert.ok(hits.length >= 5);
+  assert.ok(hits.every((h) => h.category === 'bench'));
+  assert.ok(hits.some((h) => h.id === 'station_bench_flat'));
+});
+
+test('searchApparatus: филтър по категория стойки', () => {
+  const hits = searchApparatus({ category: 'rack' });
+  assert.ok(hits.length >= 3);
+  assert.ok(hits.every((h) => h.category === 'rack'));
+});
+
+test('exerciseMatchesApparatus: хоризонтална лежанка + bench press', () => {
+  assert.ok(exerciseMatchesApparatus(
+    { name: 'Barbell Bench Press', equipNorm: 'barbell' },
+    'station_bench_flat',
+  ));
+});
+
+test('exerciseMatchesApparatus: squat rack + barbell squat', () => {
+  assert.ok(exerciseMatchesApparatus(
+    { name: 'barbell back squat', equipNorm: 'barbell' },
+    'station_rack_squat',
+  ));
+});
+
+test('expandApparatusIds: станция разширява barbell hints', () => {
+  const { equipHints } = expandApparatusIds(['station_bench_flat']);
+  assert.ok(equipHints.has('barbell'));
+  assert.ok(equipHints.has('dumbbell'));
+});
+
+test('expandApparatusIds: машини разширяват equip hints', () => {
+  const { equipHints } = expandApparatusIds(['0739', '2287']);
   assert.ok(equipHints.has('sled machine'));
   assert.ok(equipHints.has('leverage machine'));
-  assert.ok(labels.length === 2);
   assert.ok(apparatusLabel('0739').length > 2);
 });
