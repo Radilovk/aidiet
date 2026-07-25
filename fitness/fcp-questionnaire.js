@@ -97,7 +97,6 @@ function ensureWizard() {
     },
     onComplete: () => { syncUi(); close(); },
     finalButtonText: 'Готово',
-    apiBase: window.FITPLAN_WORKER_URL || window.WORKER_URL || '',
   });
 }
 

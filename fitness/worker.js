@@ -44,7 +44,8 @@
  */
 
 import { localizeExerciseDisplayName, sanitizeBgText, sanitizePlanBulgarian } from './exercise-labels-bg.js';
-import { QUESTIONNAIRE_EQUIPMENT_MAP, EQUIPMENT_PICKER_OPTION, expandEquipmentGroupIds } from './equipment-groups.js';
+import { QUESTIONNAIRE_EQUIPMENT_MAP, EQUIPMENT_PICKER_OPTION } from './equipment-groups.js';
+import { expandApparatusIds, passesApparatusFilter } from './equipment-apparatus.js';
 import {
   buildPlanSystemInstruction,
   COMPACT_PLAN_RETRY_HINT,
@@ -252,7 +253,7 @@ function errorResponse(message, status = 400, code = 'error') {
  * Връща { entry, score, usedFallback } или null ако базата е празна.
  */
 export function matchExercise(index, {
-  canonicalName, equipmentHint, bodyPart, allowedEquipment = null, exerciseProfile = null,
+  canonicalName, equipmentHint, bodyPart, allowedEquipment = null, exerciseProfile = null, pickedApparatus = null,
 }) {
   if (!index || !index.length) return null;
 
@@ -264,6 +265,7 @@ export function matchExercise(index, {
 
   for (const entry of index) {
     if (!passesEquipment(entry, allowedEquipment)) continue;
+    if (!passesApparatusFilter(entry, pickedApparatus)) continue;
     if (exerciseProfile && !fitsExerciseProfile(entry, exerciseProfile)) continue;
     let score = tokenOverlapScore(queryTokens, entry.tokens);
     if (score === 0) continue;
@@ -290,6 +292,7 @@ export function matchExercise(index, {
 
   const fallbackPool = index.filter((e) =>
     passesEquipment(e, allowedEquipment) &&
+    passesApparatusFilter(e, pickedApparatus) &&
     (!exerciseProfile || fitsExerciseProfile(e, exerciseProfile)) &&
     bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm) &&
     (!equipNorm || e.equipNorm === equipNorm)
@@ -297,6 +300,7 @@ export function matchExercise(index, {
   const fallback = pickPreferredExercise(fallbackPool, exerciseProfile)
     || index.find((e) =>
       passesEquipment(e, allowedEquipment) &&
+      passesApparatusFilter(e, pickedApparatus) &&
       (!exerciseProfile || fitsExerciseProfile(e, exerciseProfile)) &&
       bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm)
     );
@@ -315,7 +319,7 @@ export function matchExercise(index, {
  * разнообразие в оборудването (за да има смислен избор при замяна).
  */
 export function findAlternatives(index, matchedEntry, {
-  allowedEquipment = null, equipmentFilter = null, limit = MAX_ALTERNATIVES, excludeIds = [], exerciseProfile = null, sessionType = null,
+  allowedEquipment = null, equipmentFilter = null, limit = MAX_ALTERNATIVES, excludeIds = [], exerciseProfile = null, sessionType = null, pickedApparatus = null,
 } = {}) {
   if (!index || !matchedEntry) return [];
   const equipFilter = equipmentFilter || allowedEquipment;
@@ -328,6 +332,7 @@ export function findAlternatives(index, matchedEntry, {
     if (exerciseProfile && !fitsExerciseProfile(entry, exerciseProfile)) continue;
     if (!isSameAlternativeFamily(matchedEntry, entry, sessionType)) continue;
     if (!passesEquipment(entry, equipFilter)) continue;
+    if (!passesApparatusFilter(entry, pickedApparatus)) continue;
     candidates.push(entry);
   }
 
@@ -519,12 +524,13 @@ export const EQUIPMENT_MAP = QUESTIONNAIRE_EQUIPMENT_MAP;
  * Връща Set от позволени equipment стойности (EN, нормализирани) или null,
  * ако клиентът има пълна зала (без филтър).
  */
-export function allowedEquipmentSet(equipmentAnswers, pickedGroups = []) {
+export function allowedEquipmentSet(equipmentAnswers, pickedItems = []) {
   const set = new Set(['body weight']);
   const pickerKey = normalizeText(EQUIPMENT_PICKER_OPTION);
 
-  if (pickedGroups?.length) {
-    for (const norm of expandEquipmentGroupIds(pickedGroups)) set.add(normalizeText(norm));
+  if (pickedItems?.length) {
+    const { equipHints } = expandApparatusIds(pickedItems);
+    for (const h of equipHints) set.add(h);
   }
 
   const items = expandEquipmentAnswers(equipmentAnswers);
@@ -795,7 +801,7 @@ function entryToClientExercise(env, entry, { includeInstructions = true } = {}) 
   return out;
 }
 
-export function enrichPlanWithExercises(plan, index, { allowedEquipment = null, env = {}, exerciseProfile = null } = {}) {
+export function enrichPlanWithExercises(plan, index, { allowedEquipment = null, pickedApparatus = null, env = {}, exerciseProfile = null } = {}) {
   if (!index) return plan; // без база: планът остава валиден, само без медия
 
   for (const day of plan.days) {
@@ -807,14 +813,16 @@ export function enrichPlanWithExercises(plan, index, { allowedEquipment = null, 
         bodyPart: ex.bodyPart,
         allowedEquipment,
         exerciseProfile,
+        pickedApparatus,
       });
       const needsSwap = result?.entry && (
         (allowedEquipment && !passesEquipment(result.entry, allowedEquipment))
+        || (pickedApparatus?.length && !passesApparatusFilter(result.entry, pickedApparatus))
         || (exerciseProfile && !fitsExerciseProfile(result.entry, exerciseProfile))
       );
       if (needsSwap) {
         const swap = findAlternatives(index, result.entry, {
-          allowedEquipment, exerciseProfile, limit: 1, excludeIds: usedIds, sessionType: day.type,
+          allowedEquipment, pickedApparatus, exerciseProfile, limit: 1, excludeIds: usedIds, sessionType: day.type,
         });
         if (swap.length) result = { entry: swap[0], score: 0, usedFallback: true };
       }
@@ -901,7 +909,7 @@ function clientIp(request) {
 // ============================================================================
 
 async function executePlanGeneration(env, ctx, {
-  userPrompt, coachProfileText, allowedEquipment = null, clientTags = null,
+  userPrompt, coachProfileText, allowedEquipment = null, pickedApparatus = null, clientTags = null,
   adminConfig = null, guidelineLayers = null, hasScheme = false, strictAssembly = false,
   exerciseProfile = null, constraints = null, programSpec = null,
 }) {
@@ -918,6 +926,7 @@ async function executePlanGeneration(env, ctx, {
     if (index?.length) {
       catalogBlock = buildExerciseCatalogSnippet(index, exerciseProfile, allowedEquipment, {
         modalities: programSpec?.weekModalities || null,
+        pickedApparatus,
       });
     }
   }
@@ -988,6 +997,7 @@ async function executePlanGeneration(env, ctx, {
   const index = await indexPromise;
   enrichPlanWithExercises(plan, index, {
     allowedEquipment,
+    pickedApparatus,
     env,
     exerciseProfile: strictAssembly ? null : exerciseProfile,
   });
@@ -1010,7 +1020,7 @@ async function handleGeneratePlan(request, env, ctx) {
   }
 
   const adminGuidelines = await loadAdminGuidelines(env);
-  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile, constraints, programSpec } = preparePlanGeneration(
+  const { userPrompt, coachProfileText, allowedEquipment, pickedApparatus, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile, constraints, programSpec } = preparePlanGeneration(
     { answers },
     adminGuidelines,
     { buildProfileSummary, allowedEquipmentSet },
@@ -1023,6 +1033,7 @@ async function handleGeneratePlan(request, env, ctx) {
       userPrompt,
       coachProfileText,
       allowedEquipment,
+      pickedApparatus,
       clientTags,
       adminConfig: adminGuidelines,
       guidelineLayers,
@@ -1046,6 +1057,7 @@ async function handleGeneratePlan(request, env, ctx) {
     createdAt: new Date().toISOString(),
     clientRef: body.clientRef || null,
     allowedEquipment: allowedEquipment ? [...allowedEquipment] : null,
+    pickedApparatus: pickedApparatus?.length ? [...pickedApparatus] : null,
   };
 
   if (env.FITNESS_KV) {
@@ -1064,7 +1076,9 @@ async function handleGetPlan(planId, env, ctx) {
   const index = await loadExerciseIndex(env, ctx);
   if (index && plan) {
     const allowed = record.allowedEquipment ? new Set(record.allowedEquipment) : null;
-    plan = enrichPlanWithExercises(JSON.parse(JSON.stringify(plan)), index, { env, allowedEquipment: allowed });
+    plan = enrichPlanWithExercises(JSON.parse(JSON.stringify(plan)), index, {
+      env, allowedEquipment: allowed, pickedApparatus: record.pickedApparatus || null,
+    });
   }
 
   return jsonResponse({
@@ -1674,7 +1688,7 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
     clientName: record.clientName,
     clientContact: record.clientContact,
   };
-  const { userPrompt, coachProfileText, allowedEquipment, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile, constraints, programSpec } = preparePlanGeneration(
+  const { userPrompt, coachProfileText, allowedEquipment, pickedApparatus, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile, constraints, programSpec } = preparePlanGeneration(
     genSource,
     adminGuidelines,
     { buildProfileSummary, allowedEquipmentSet },
@@ -1687,6 +1701,7 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
       userPrompt,
       coachProfileText,
       allowedEquipment,
+      pickedApparatus,
       clientTags,
       adminConfig: adminGuidelines,
       guidelineLayers,
@@ -1720,6 +1735,7 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
     clientProgramId: record.id,
     clientName: record.clientName,
     allowedEquipment: allowedEquipment ? [...allowedEquipment] : null,
+    pickedApparatus: pickedApparatus?.length ? [...pickedApparatus] : null,
   }), { expirationTtl: PLAN_TTL });
 
   record.planId = planId;

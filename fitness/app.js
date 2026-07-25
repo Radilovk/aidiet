@@ -104,7 +104,6 @@ const wizard = createWizardController({
   onPersist: saveWizard,
   onComplete: generatePlan,
   finalButtonText: 'Създай плана ⚡',
-  apiBase: workerUrl(),
 });
 
 const renderStep = () => wizard.renderStep();

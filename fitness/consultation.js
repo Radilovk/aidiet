@@ -29,7 +29,6 @@ const wizard = createWizardController({
   },
   onComplete: submitConsultation,
   finalButtonText: 'Изпрати отговорите ✓',
-  apiBase: DEFAULT_WORKER_URL,
 });
 
 async function apiFetch(path, options = {}) {

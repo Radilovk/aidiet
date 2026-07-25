@@ -280,12 +280,11 @@ test('allowedEquipmentSet: Друго/свободен текст → EN hint т
   assert.ok(set.has('band'));
 });
 
-test('allowedEquipmentSet: избрани групи от picker', () => {
-  const set = allowedEquipmentSet(['Посочи конкретни уреди'], ['dumbbell', 'equipment_rig']);
-  assert.ok(set.has('dumbbell'));
-  assert.ok(set.has('cable'));
-  assert.ok(set.has('smith machine'));
-  assert.ok(!set.has('kettlebell'));
+test('allowedEquipmentSet: избрани конкретни уреди от picker', () => {
+  const set = allowedEquipmentSet(['Посочи конкретни уреди'], ['leg_press', 'chest_press']);
+  assert.ok(set.has('sled machine'));
+  assert.ok(set.has('leverage machine'));
+  assert.ok(!set.has('dumbbell'));
 });
 
 test('buildAdminPlanUserPrompt: <equipment> таг при списък', () => {

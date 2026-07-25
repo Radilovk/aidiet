@@ -1,19 +1,38 @@
 .equip-picker-wrap { margin-top: 8px; padding-left: 26px; }
+.equip-picker-filters { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+.equip-picker-filter {
+  border: 1px solid var(--border, #d1d5db); background: var(--surface-2, #f3f4f6);
+  color: var(--text, inherit); border-radius: 999px; padding: 5px 10px;
+  font-size: 0.72rem; font-weight: 600; cursor: pointer;
+}
+.equip-picker-filter.active {
+  background: rgba(53, 224, 194, .12);
+  border-color: var(--volt, var(--primary-red, #0d9488));
+  color: var(--volt, var(--primary-dark, #0f766e));
+}
 .equip-picker-search {
   width: 100%; box-sizing: border-box; padding: 9px 11px; border-radius: 9px;
   border: 1px solid var(--border, #d1d5db); font-size: 16px; margin-bottom: 8px;
   background: var(--surface, #fff); color: var(--text, inherit);
 }
-.equip-picker-chips { display: flex; flex-wrap: wrap; gap: 6px; max-height: 200px; overflow-y: auto; }
-.equip-picker-chip {
-  border: 1px solid var(--border, #d1d5db); background: var(--surface-2, var(--bg-soft, #f3f4f6));
-  color: var(--text, inherit); border-radius: 999px; padding: 7px 12px;
-  font-size: 0.78rem; font-weight: 600; cursor: pointer; line-height: 1.2;
+.equip-picker-selected { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+.equip-picker-sel-chip {
+  border: 1px solid var(--volt, var(--primary-red, #0d9488));
+  background: rgba(53, 224, 194, .1); color: var(--text, inherit);
+  border-radius: 999px; padding: 4px 10px; font-size: 0.72rem; font-weight: 600; cursor: pointer;
 }
-.equip-picker-chip.active {
-  background: rgba(53, 224, 194, .12);
-  border-color: var(--volt, var(--primary-red, #e11d48));
-  color: var(--volt, var(--primary-dark, #9f1239));
+.equip-picker-list {
+  display: flex; flex-direction: column; gap: 4px;
+  max-height: 220px; overflow-y: auto;
+}
+.equip-picker-item {
+  text-align: left; border: 1px solid var(--border, #d1d5db);
+  background: var(--surface-2, var(--bg-soft, #f9fafb));
+  color: var(--text, inherit); border-radius: 8px; padding: 8px 10px;
+  font-size: 0.82rem; font-weight: 500; cursor: pointer;
+}
+.equip-picker-item.active {
+  border-color: var(--volt, var(--primary-red, #0d9488));
+  background: rgba(53, 224, 194, .1);
 }
 .equip-picker-empty { font-size: 0.78rem; color: var(--muted, #9ca3af); margin: 4px 0; }
-.equip-picker-summary { font-size: 0.72rem; color: var(--muted, #6b7280); margin: 8px 0 0; font-weight: 600; }
