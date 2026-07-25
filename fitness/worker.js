@@ -65,7 +65,6 @@ import {
 } from './exercise-classify-batch.js';
 import {
   EXERCISE_METADATA_KV_KEY,
-  SWAP_EQUIPMENT,
   buildExerciseCatalogSnippet,
   computeExerciseFacets,
   exerciseProfileFromAnswers,
@@ -832,7 +831,8 @@ export function enrichPlanWithExercises(plan, index, { allowedEquipment = null, 
         ex.matchFallback = result.usedFallback;
         usedIds.push(result.entry.id);
         ex.alternatives = findAlternatives(index, result.entry, {
-          equipmentFilter: SWAP_EQUIPMENT,
+          allowedEquipment,
+          pickedApparatus,
           excludeIds: usedIds,
           limit: MAX_ALTERNATIVES,
           exerciseProfile,
@@ -968,6 +968,7 @@ async function executePlanGeneration(env, ctx, {
           clientTags: tagSet,
           constraints,
           allowedEquipment,
+          pickedApparatus,
           programSpec,
           exerciseProfile,
           exerciseIndex: index,
@@ -1004,6 +1005,17 @@ async function executePlanGeneration(env, ctx, {
   sanitizePlanBulgarian(plan);
   const coachContext = buildCoachContext(coachProfileText, plan);
   return { plan, coachContext };
+}
+
+function compactExerciseProfile(profile) {
+  if (!profile) return null;
+  return {
+    maxDiff: profile.maxDiff,
+    minGf: profile.minGf,
+    minGm: profile.minGm,
+    isFemale: profile.isFemale,
+    isMale: profile.isMale,
+  };
 }
 
 async function handleGeneratePlan(request, env, ctx) {
@@ -1058,13 +1070,25 @@ async function handleGeneratePlan(request, env, ctx) {
     clientRef: body.clientRef || null,
     allowedEquipment: allowedEquipment ? [...allowedEquipment] : null,
     pickedApparatus: pickedApparatus?.length ? [...pickedApparatus] : null,
+    exerciseProfile: compactExerciseProfile(exerciseProfile),
   };
 
   if (env.FITNESS_KV) {
     ctx.waitUntil(env.FITNESS_KV.put(`plan:${planId}`, JSON.stringify(record), { expirationTtl: PLAN_TTL }));
   }
 
-  return jsonResponse({ success: true, planId, plan, coachContext, generationsRemaining: rl.remaining });
+  return jsonResponse({
+    success: true,
+    planId,
+    plan,
+    coachContext,
+    generationsRemaining: rl.remaining,
+    planConstraints: {
+      allowedEquipment: record.allowedEquipment,
+      pickedApparatus: record.pickedApparatus,
+      exerciseProfile: record.exerciseProfile,
+    },
+  });
 }
 
 async function handleGetPlan(planId, env, ctx) {
@@ -1077,7 +1101,10 @@ async function handleGetPlan(planId, env, ctx) {
   if (index && plan) {
     const allowed = record.allowedEquipment ? new Set(record.allowedEquipment) : null;
     plan = enrichPlanWithExercises(JSON.parse(JSON.stringify(plan)), index, {
-      env, allowedEquipment: allowed, pickedApparatus: record.pickedApparatus || null,
+      env,
+      allowedEquipment: allowed,
+      pickedApparatus: record.pickedApparatus || null,
+      exerciseProfile: record.exerciseProfile || null,
     });
   }
 
@@ -1100,10 +1127,33 @@ async function handleRefreshPlanExercises(request, env, ctx) {
   const index = await loadExerciseIndex(env, ctx);
   if (!index) return jsonResponse({ success: true, plan });
 
-  const allowed = Array.isArray(body.allowedEquipment)
-    ? allowedEquipmentSet(body.allowedEquipment)
-    : null;
-  const refreshed = enrichPlanWithExercises(JSON.parse(JSON.stringify(plan)), index, { allowedEquipment: allowed, env });
+  let allowed = null;
+  let pickedApparatus = null;
+  let exerciseProfile = null;
+
+  if (body.planId && env.FITNESS_KV) {
+    const record = await env.FITNESS_KV.get(`plan:${body.planId}`, { type: 'json' });
+    if (record) {
+      allowed = record.allowedEquipment ? new Set(record.allowedEquipment) : null;
+      pickedApparatus = record.pickedApparatus || null;
+      exerciseProfile = record.exerciseProfile || null;
+    }
+  }
+  if (!allowed && body.planConstraints?.allowedEquipment) {
+    allowed = new Set(body.planConstraints.allowedEquipment);
+    pickedApparatus = body.planConstraints.pickedApparatus || null;
+    exerciseProfile = body.planConstraints.exerciseProfile || null;
+  }
+  if (!allowed && Array.isArray(body.allowedEquipment)) {
+    allowed = allowedEquipmentSet(body.allowedEquipment);
+  }
+
+  const refreshed = enrichPlanWithExercises(JSON.parse(JSON.stringify(plan)), index, {
+    allowedEquipment: allowed,
+    pickedApparatus,
+    exerciseProfile,
+    env,
+  });
   return jsonResponse({ success: true, plan: refreshed });
 }
 
@@ -1736,6 +1786,7 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
     clientName: record.clientName,
     allowedEquipment: allowedEquipment ? [...allowedEquipment] : null,
     pickedApparatus: pickedApparatus?.length ? [...pickedApparatus] : null,
+    exerciseProfile: compactExerciseProfile(exerciseProfile),
   }), { expirationTtl: PLAN_TTL });
 
   record.planId = planId;
@@ -1801,7 +1852,12 @@ async function handleAdminGetClientProgramPlan(request, env, ctx, id) {
   const index = await loadExerciseIndex(env, ctx);
   const allowed = planRecord.allowedEquipment ? new Set(planRecord.allowedEquipment) : null;
   const plan = index
-    ? enrichPlanWithExercises(JSON.parse(JSON.stringify(planRecord.plan)), index, { env, allowedEquipment: allowed })
+    ? enrichPlanWithExercises(JSON.parse(JSON.stringify(planRecord.plan)), index, {
+      env,
+      allowedEquipment: allowed,
+      pickedApparatus: planRecord.pickedApparatus || null,
+      exerciseProfile: planRecord.exerciseProfile || null,
+    })
     : planRecord.plan;
 
   return jsonResponse({
@@ -1843,7 +1899,14 @@ async function handleAdminUpdateClientProgramPlan(request, env, ctx, id) {
 
   const index = await loadExerciseIndex(env, ctx);
   const allowed = planRecord.allowedEquipment ? new Set(planRecord.allowedEquipment) : null;
-  if (index) enrichPlanWithExercises(plan, index, { env, allowedEquipment: allowed });
+  if (index) {
+    enrichPlanWithExercises(plan, index, {
+      env,
+      allowedEquipment: allowed,
+      pickedApparatus: planRecord.pickedApparatus || null,
+      exerciseProfile: planRecord.exerciseProfile || null,
+    });
+  }
   sanitizePlanBulgarian(plan);
 
   const now = new Date().toISOString();

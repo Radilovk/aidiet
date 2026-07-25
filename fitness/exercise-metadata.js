@@ -252,7 +252,7 @@ export function isSameAlternativeFamily(matchedEntry, candidate, sessionType = n
   const candMod = inferExerciseModality(candidate);
   if (matchedMod !== candMod) return false;
   if (sessionType && !modalityMatchesDay(sessionType, candMod)) return false;
-  if ((candidate.diff ?? 2) > (matchedEntry.diff ?? 2)) return false;
+  if ((candidate.diff ?? 2) !== (matchedEntry.diff ?? 2)) return false;
   return true;
 }
 

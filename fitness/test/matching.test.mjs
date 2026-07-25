@@ -44,8 +44,8 @@ import {
   loadBundledMetadata,
 } from '../worker.js';
 
-import { mergeAllowedEquipment } from '../plan-generation.js';
-import { filterExercises, passesEquipment, SWAP_EQUIPMENT, exerciseProfileFromAnswers } from '../exercise-metadata.js';
+import { mergeAllowedEquipment, auditPlanExercises } from '../plan-generation.js';
+import { filterExercises, passesEquipment, exerciseProfileFromAnswers, isSameAlternativeFamily } from '../exercise-metadata.js';
 
 import { QUESTIONS, activeQuestions, validateQuestion, buildAnswers, answersToFormState, fieldVisible } from '../questions.js';
 import { localizeExerciseDisplayName, sanitizeBgText } from '../exercise-labels-bg.js';
@@ -187,23 +187,25 @@ test('matchExercise: силно съвпадение на име надделя�
 // Алтернативи
 // ----------------------------------------------------------------------------
 
-test('findAlternatives: същата цел, само позволено оборудване, без самото упражнение', () => {
-  const bench = INDEX.find((e) => e.name === 'Barbell Bench Press');
+test('findAlternatives: същата цел, трудност и позволено оборудване', () => {
+  const bench = INDEX.find((e) => e.name === 'Dumbbell Bench Press');
   const allowed = new Set(['body weight', 'dumbbell']);
   const alts = findAlternatives(INDEX, bench, { allowedEquipment: allowed, limit: 3 });
 
-  assert.ok(alts.length >= 2 && alts.length <= 3);
+  assert.ok(alts.length >= 1);
   for (const alt of alts) {
     assert.notEqual(alt.id, bench.id);
     assert.ok(allowed.has(alt.equipNorm), `непозволено оборудване: ${alt.equipment}`);
     assert.equal(alt.targetNorm, 'pectorals');
+    assert.equal(alt.diff ?? 2, bench.diff ?? 2);
   }
 });
 
-test('findAlternatives: без филтър (пълна зала) връща до limit', () => {
-  const bench = INDEX.find((e) => e.name === 'Barbell Bench Press');
+test('findAlternatives: без филтър (пълна зала) връща до limit при същата трудност', () => {
+  const bench = INDEX.find((e) => e.name === 'Dumbbell Bench Press');
   const alts = findAlternatives(INDEX, bench, { allowedEquipment: null, limit: 3 });
-  assert.equal(alts.length, 3);
+  assert.ok(alts.length >= 1);
+  assert.ok(alts.every((a) => (a.diff ?? 2) === (bench.diff ?? 2)));
 });
 
 test('findAlternatives: отхвърля различна модалност и по-високо d', () => {
@@ -639,6 +641,32 @@ test('auditPlanExerciseProfile: bench d3 при maxDiff 1 → проблем', (
   assert.ok(issues.some((i) => /bench/i.test(i) && /max d1/i.test(i)));
 });
 
+test('auditPlanExercises: извън избрани уреди и maxDiff → проблем', () => {
+  const index = [
+    { name: 'Barbell Bench Press', diff: 3, gf: 32, gm: 88, equipNorm: 'barbell', targetNorm: 'pectorals' },
+    { name: 'Sled 45 Leg Press', diff: 2, gf: 70, gm: 75, equipNorm: 'sled machine', targetNorm: 'quads' },
+  ];
+  const profile = exerciseProfileFromAnswers({ gender: 'Жена', experience: 'Никакъв / начинаещ' });
+  const plan = {
+    days: [{
+      day: 'Понеделник', type: 'strength',
+      exercises: [
+        { canonicalName: 'Barbell Bench Press' },
+        { canonicalName: 'Sled 45 Leg Press' },
+      ],
+    }],
+  };
+  const issues = auditPlanExercises(plan, {
+    allowedEquipment: new Set(['body weight', 'leverage machine', 'sled machine']),
+    pickedApparatus: ['leg_press'],
+    exerciseProfile: profile,
+    index,
+  });
+  assert.ok(issues.some((i) => /bench/i.test(i)));
+  assert.ok(issues.some((i) => /max d1/i.test(i)));
+  assert.ok(!issues.some((i) => /leg press/i.test(i) && /уред/i.test(i)));
+});
+
 test('matchExercise: спазва exerciseProfile maxDiff', () => {
   const index = [
     { id: '1', name: 'Barbell Squat', nameNorm: 'barbell squat', tokens: ['barbell', 'squat'], diff: 3, gf: 70, gm: 85, equipNorm: 'barbell', targetNorm: 'quads', bodyNorm: 'upper legs' },
@@ -1065,17 +1093,19 @@ test('enrichPlanWithExercises: закача match, медия и алтерна�
     title: 'X',
     days: [{
       day: 'Понеделник', type: 'strength',
-      exercises: [{ displayName: 'Избутване от лежанка', canonicalName: 'Bench Press', equipmentHint: 'barbell', bodyPart: 'chest', sets: 4, reps: '8-10', restSeconds: 90 }],
+      exercises: [{ displayName: 'Избутване с дъмбели', canonicalName: 'Dumbbell Bench Press', equipmentHint: 'dumbbell', bodyPart: 'chest', sets: 4, reps: '8-10', restSeconds: 90 }],
     }],
   });
   enrichPlanWithExercises(plan, INDEX, { allowedEquipment: null, env: {} });
   const ex = plan.days[0].exercises[0];
-  assert.equal(ex.match.name, 'Barbell Bench Press');
+  assert.equal(ex.match.name, 'Dumbbell Bench Press');
   assert.ok(ex.match.gifUrl.startsWith('https://'), 'медията е абсолютен URL');
   assert.ok(ex.alternatives.length >= 1);
   assert.ok(ex.alternatives.every((a) => a.id !== ex.match.id));
-  assert.ok(ex.alternatives.every((a) => SWAP_EQUIPMENT.has(normalizeText(a.equipment))), 'swap само СТ/дъмбели/гири');
-  assert.equal(ex.displayName, 'Избутване с щанга от лежанка');
+  const matchedDiff = ex.match.diff ?? 2;
+  assert.ok(ex.alternatives.every((a) => (a.diff ?? 2) === matchedDiff), 'алтернативите са със същата трудност');
+  assert.ok(ex.alternatives.every((a) => a.target === ex.match.target), 'алтернативите са със същата цел');
+  assert.equal(ex.displayName, 'Избутване с дъмбели от лежанка');
 });
 
 test('enrichPlanWithExercises: barbell → dumbbell при ограничено оборудване', () => {

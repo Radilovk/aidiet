@@ -11,9 +11,9 @@
 
 import { normalizeText } from './normalize.js';
 import { buildProfileSummary } from './profile-summary.js';
-import { exerciseProfileFromContext, fitsExerciseProfile } from './exercise-metadata.js';
+import { exerciseProfileFromContext, fitsExerciseProfile, passesEquipment } from './exercise-metadata.js';
 import { EQUIPMENT_PICKER_OPTION } from './equipment-groups.js';
-import { apparatusLabel } from './equipment-apparatus.js';
+import { apparatusLabel, passesApparatusFilter } from './equipment-apparatus.js';
 import {
   GENDER_FIT_RETRY_HINT,
   CONSTRAINT_RETRY_HINT,
@@ -740,6 +740,34 @@ export function auditPlanSessionStructure(plan, programSpec = null) {
   return issues;
 }
 
+/** Проверка на упражненията спрямо каталога, d≤maxDiff и оборудване/уреди. */
+export function auditPlanExercises(plan, { allowedEquipment = null, pickedApparatus = null, exerciseProfile = null, index = [] } = {}) {
+  if (!index?.length) return [];
+  const byNorm = new Map(index.map((e) => [normalizeText(e.name), e]));
+  const issues = [];
+  for (const day of plan?.days || []) {
+    if (day.type === 'rest') continue;
+    for (const ex of day.exercises || []) {
+      const name = String(ex.canonicalName || ex.displayName || '');
+      const entry = byNorm.get(normalizeText(name));
+      if (!entry) {
+        issues.push(`${day.day}: „${name}“ липсва в позволения каталог`);
+        continue;
+      }
+      if (exerciseProfile && !fitsExerciseProfile(entry, exerciseProfile)) {
+        issues.push(`${day.day}: „${name}“ d${entry.diff ?? 2} > max d${exerciseProfile.maxDiff}`);
+      }
+      if (allowedEquipment && !passesEquipment(entry, allowedEquipment)) {
+        issues.push(`${day.day}: „${name}“ извън позволеното оборудване (${entry.equipment})`);
+      }
+      if (pickedApparatus?.length && !passesApparatusFilter(entry, pickedApparatus)) {
+        issues.push(`${day.day}: „${name}“ извън избраните уреди`);
+      }
+    }
+  }
+  return issues;
+}
+
 /** Проверка d/gf/gm на избраните упражнения спрямо индекса. */
 export function auditPlanExerciseProfile(plan, exerciseProfile, index = []) {
   if (!exerciseProfile || !index?.length) return [];
@@ -808,6 +836,7 @@ export function auditPlan(plan, {
   clientTags = null,
   constraints = null,
   allowedEquipment = null,
+  pickedApparatus = null,
   programSpec = null,
   exerciseProfile = null,
   exerciseIndex = null,
@@ -817,9 +846,15 @@ export function auditPlan(plan, {
   if (!gender.ok) issues.push(...gender.issues);
   issues.push(...auditPlanConstraints(plan, constraints || {}));
   issues.push(...auditPlanSessionStructure(plan, programSpec));
-  issues.push(...auditPlanExerciseProfile(plan, exerciseProfile, exerciseIndex));
-  const equip = auditPlanEquipment(plan, allowedEquipment);
-  if (!equip.ok) issues.push(...equip.issues);
+  if (exerciseIndex?.length) {
+    issues.push(...auditPlanExercises(plan, {
+      allowedEquipment, pickedApparatus, exerciseProfile, index: exerciseIndex,
+    }));
+  } else {
+    issues.push(...auditPlanExerciseProfile(plan, exerciseProfile, exerciseIndex));
+    const equip = auditPlanEquipment(plan, allowedEquipment);
+    if (!equip.ok) issues.push(...equip.issues);
+  }
   return { ok: issues.length === 0, issues };
 }
 
