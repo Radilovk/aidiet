@@ -10,6 +10,7 @@ import {
   CLINICAL_PROTOCOL_EXCLUSIONS,
 } from './food-catalog-data.js';
 import { FOOD_NUTRITION_PER_100G } from './food-nutrition-data.js';
+import { PORTION_RULES_PROMPT } from './food-portion-rules.js';
 import { normalizeFoodKey } from './food-utils.js';
 
 const SLOT_LABELS = {
@@ -265,7 +266,7 @@ export function formatCatalogSectionForPrompt(candidatesBySlot, { minUniversalit
   const lines = [
     `=== КАТАЛОГ ХРАНИ (ЗАДЪЛЖИТЕЛНО — използвай САМО тези имена) ===`,
     `Универсалност ≥${minUniversality}: предпочитай по-общи варианти (Риба, Ориз, Плод) пред конкретни (Лаврак, Киноа, Манго).`,
-    `Стойности в скоби = на 100g. Ориентирай грамажите към целите от mealBreakdown. Основни продукти — на 50g (100, 150, 200); добавки (зехтин, ядки) — на 10g; яйца — на 60g/бр.; конкретни плодове — брой × среден грамаж.`,
+    `Стойности в скоби = на 100g. ${PORTION_RULES_PROMPT}`,
     `Готова храна = един ред в description ИЛИ разбий на продукти от каталога.`,
   ];
 

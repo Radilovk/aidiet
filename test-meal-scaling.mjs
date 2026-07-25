@@ -23,6 +23,7 @@ import {
   MAIN_GRAM_ROUND_STEP,
   roundGramsForItem,
   formatMealDescription,
+  validateDescriptionGramRules,
 } from './food-nutrition.js';
 
 const results = [];
@@ -148,6 +149,13 @@ console.log('\n=== 9. Грамажни стъпки: 50g основни, 10g д�
 
   const almond = parseMealDescription('• Бадеми 15g').map(i => ({ ...i, ...lookupFoodProfile(i.name) }))[0];
   check('ядките остават на 10g', roundGramsForItem(almond, 15) === 20);
+}
+
+console.log('\n=== 10. Валидация на AI грамажи преди бекенд sync ===');
+{
+  check('90g яйца → грешка за AI retry', validateDescriptionGramRules('• яйца 90g').some(e => /60g\/бр/.test(e)));
+  check('180g пилешко → грешка за 50g стъпка', validateDescriptionGramRules('• пилешки гърди 180g').some(e => /50g/.test(e)));
+  check('валидни грамажи → без грешки', validateDescriptionGramRules('• 2 яйца (120g)\n• пилешки гърди 150g\n• зехтин 10g').length === 0);
 }
 
 const passed = results.filter(Boolean).length;

@@ -1,16 +1,12 @@
 /**
  * Food nutrition engine — parse meal descriptions, lookup per-100g values, calculate macros.
  *
- * Division of labor (deliberately simple):
- *   - The AI composes each meal: products + grams. Culinary sense is its job.
- *   - The backend owns the arithmetic: macros/kcal are always computed FROM the grams
- *     via this database, then all grams are scaled by ONE shared factor to the meal's
- *     calorie target (composition and ratios stay exactly as the AI wrote them).
- *   - One bounded exception: protein drivers may be pre-adjusted ±20% toward the
- *     protein target before scaling (protein is the macro clients actually track).
- * There is NO per-item macro solver and NO product add/remove "repair" here — those
- * produced distorted portions and absurd combinations; structural product problems
- * are the AI-retry path's job, with precise validation errors.
+ * Division of labor:
+ *   - AI composes each meal from mealBreakdown + catalog per-100g values (see food-portion-rules.js).
+ *   - Validation rejects invalid gram steps → AI retries with concrete fixes.
+ *   - Backend scales the AI's proportions toward the calorie target (one shared factor),
+ *     rounds on the same steps, then computes macros/kcal FROM the final grams.
+ * There is NO per-item macro solver and NO product add/remove "repair" here.
  */
 
 import {
@@ -20,36 +16,28 @@ import {
 } from './food-nutrition-data.js';
 import { normalizeFoodKey } from './food-utils.js';
 import { resolveCatalogEntry } from './food-catalog.js';
+import {
+  GRAM_ROUND_STEP,
+  MAIN_GRAM_ROUND_STEP,
+  resolveCountableCatalogName,
+  getCountableSpec,
+  getGramStep,
+  roundGrams,
+  roundGramsForItem,
+  formatItemLine,
+  validateItemGrams,
+} from './food-portion-rules.js';
 
 export { normalizeFoodKey } from './food-utils.js';
-
-export const GRAM_ROUND_STEP = 10;
-export const MAIN_GRAM_ROUND_STEP = 50;
-
-/** Oils, nuts, seeds, condiments — stay on 10g steps. */
-const SMALL_ADDITIVE_KEYS = new Set([
-  'зехтин', 'олио', 'ядки', 'бадеми', 'орехи', 'кашу', 'лешници', 'фъстъци', 'шамфъстък',
-  'фъстъчено масло', 'бадемово масло', 'тахан', 'масло', 'кокосово масло', 'слънчогледово масло',
-  'семена чиа', 'ленено семе', 'тиквени семки', 'слънчогледови семки', 'мед',
-  'соев сос', 'хумус', 'горчица', 'лимонов сок', 'оцет', 'доматено пюре', 'кокосово мляко',
-  'канела', 'куркума', 'джинджифил',
-]);
-
-/** Whole eggs and common whole fruits — count × unit weight (Bulgarian diet norms). */
-const COUNTABLE_UNITS = {
-  'яйца': { unit: 60, singular: 'яйце', plural: 'яйца', catalog: 'Яйца' },
-  'варено яйце': { unit: 60, singular: 'варено яйце', plural: 'варени яйца', catalog: 'Варено яйце' },
-  'ябълка': { unit: 150, singular: 'ябълка', plural: 'ябълки', catalog: 'Ябълка' },
-  'банан': { unit: 120, singular: 'банан', plural: 'банана', catalog: 'Банан' },
-  'киви': { unit: 80, singular: 'киви', plural: 'киви', catalog: 'Киви' },
-  'портокал': { unit: 150, singular: 'портокал', plural: 'портокали', catalog: 'Портокал' },
-  'мандарина': { unit: 80, singular: 'мандарина', plural: 'мандари', catalog: 'Мандарина' },
-  'праскова': { unit: 150, singular: 'праскова', plural: 'праскови', catalog: 'Праскова' },
-  'круша': { unit: 150, singular: 'круша', plural: 'круши', catalog: 'Круша' },
-  'грейпфрут': { unit: 200, singular: 'грейпфрут', plural: 'грейпфрута', catalog: 'Грейпфрут' },
-};
-
-const COUNT_LINE_RE = /^(\d+)\s+(.+?)\s+\((\d+(?:[.,]\d+)?)\s*(g|г)\)\s*$/i;
+export {
+  GRAM_ROUND_STEP,
+  MAIN_GRAM_ROUND_STEP,
+  getGramStep,
+  roundGrams,
+  roundGramsForItem,
+  validateItemGrams,
+} from './food-portion-rules.js';
+export { PORTION_RULES_PROMPT } from './food-portion-rules.js';
 
 // Percentage-based validation tolerance: calories are the backend's own arithmetic
 // (scaling guarantees them except in pathological cases), macros follow the AI's
@@ -71,6 +59,7 @@ export function macroTolerance(targetGrams) {
 const CONDIMENT_MAX_GRAMS = 15;
 
 const GRAM_LINE_RE = /^(.+?)\s+(\d+(?:[.,]\d+)?)\s*(g|г)\b(?:\s*[—\-]\s*(.+))?$/i;
+const COUNT_LINE_RE = /^(\d+)\s+(.+?)\s+\((\d+(?:[.,]\d+)?)\s*(g|г)\)\s*$/i;
 
 /** @typedef {{ kcal: number, p: number, c: number, f: number }} NutritionProfile */
 /** @typedef {{ name: string, grams: number, key: string, profile: NutritionProfile, unknown?: boolean }} ParsedFoodItem */
@@ -173,53 +162,11 @@ export function parseMealDescription(description) {
   return items;
 }
 
-function resolveCountableKey(name) {
-  const normalized = normalizeFoodKey(name);
-  if (COUNTABLE_UNITS[normalized]) return normalized;
-  for (const [key, spec] of Object.entries(COUNTABLE_UNITS)) {
-    if (normalized === normalizeFoodKey(spec.singular) || normalized === normalizeFoodKey(spec.plural)) {
-      return key;
-    }
-  }
-  return null;
-}
-
-function resolveCountableCatalogName(label) {
-  const key = resolveCountableKey(label);
-  return key ? COUNTABLE_UNITS[key].catalog : null;
-}
-
-function getCountableSpec(item) {
-  const key = resolveCountableKey(item.key || item.name);
-  return key ? COUNTABLE_UNITS[key] : null;
-}
-
-function isSmallAdditiveItem(item) {
-  if (getCatalogMeta(item.name).group === 'condiment') return true;
-  const key = normalizeFoodKey(item.key || item.name);
-  return SMALL_ADDITIVE_KEYS.has(key);
-}
-
-export function getGramStep(item) {
-  if (isSmallAdditiveItem(item)) return GRAM_ROUND_STEP;
-  const countable = getCountableSpec(item);
-  if (countable) return countable.unit;
-  return MAIN_GRAM_ROUND_STEP;
-}
-
-export function roundGrams(grams, step = GRAM_ROUND_STEP) {
-  const g = Number(grams) || 0;
-  if (g <= 0) return step;
-  return Math.max(step, Math.round(g / step) * step);
-}
-
-export function roundGramsForItem(item, grams) {
-  const step = getGramStep(item);
-  const rounded = roundGrams(grams, step);
-  const countable = getCountableSpec(item);
-  if (!countable) return rounded;
-  const count = Math.max(1, Math.round(rounded / countable.unit));
-  return count * countable.unit;
+/** Validate AI-written grams before backend scaling — returns human-readable errors for retry. */
+export function validateDescriptionGramRules(description) {
+  const items = parseMealDescription(description);
+  if (!items.length) return ['липсват парсируеми грамажи в description'];
+  return items.map(validateItemGrams).filter(Boolean);
 }
 
 function getCatalogMeta(name) {
@@ -273,14 +220,11 @@ export function macrosToNutritionProfile(macros) {
   return { p, c, f, kcal: Math.round(p * 4 + c * 4 + f * 9) };
 }
 
-// The single bounded macro lever: protein drivers may move ±20% toward the protein
-// target before calorie scaling. One factor across all drivers, so a chicken+rice
-// dish stays the same dish with a slightly bigger/smaller chicken portion.
 export const PROTEIN_ADJUST_MAX_PERCENT = 0.2;
 
 function isProteinDriverItem(item) {
   if (getCatalogMeta(item.name).slots.includes('PRO')) return true;
-  return (Number(item.profile?.p) || 0) >= 15; // fallback for non-catalog items
+  return (Number(item.profile?.p) || 0) >= 15;
 }
 
 export function adjustProteinItemsTowardTarget(items, targetProtein) {
@@ -308,9 +252,6 @@ export function adjustProteinItemsTowardTarget(items, targetProtein) {
   );
 }
 
-// Stability guards for calorie scaling: a wildly under/over-portioned AI pick gets
-// capped instead of blown up into an implausible plate (validation then reports the
-// residual gap and the AI retries); rounding nudges keep the composition recognizable.
 export const SCALE_FACTOR_MIN = 0.5;
 export const SCALE_FACTOR_MAX = 3;
 const RESIDUAL_STOP_KCAL = 20;
@@ -318,9 +259,7 @@ const MAX_NUDGE_STEPS_PER_ITEM = 5;
 
 /**
  * Scale item grams so total kcal approaches target with ONE shared factor —
- * preserves the AI's product ratios. After item-aware rounding, items are nudged
- * one step at a time toward the goal (step = 10g for additives, 50g for mains,
- * unit weight for eggs/fruits).
+ * preserves the AI's product ratios. Rounding uses the same steps as PORTION_RULES_PROMPT.
  */
 export function scaleItemsToTargetCalories(items, targetKcal, dessertNutrition = null) {
   if (!items.length || !targetKcal || targetKcal <= 0) return items;
@@ -368,19 +307,8 @@ export function scaleItemsToTargetCalories(items, targetKcal, dessertNutrition =
   return scaled;
 }
 
-function formatCountableLine(item, spec) {
-  const count = Math.max(1, Math.round(item.grams / spec.unit));
-  const grams = count * spec.unit;
-  const label = count === 1 ? spec.singular : spec.plural;
-  return `• ${count} ${label} (${grams}g)`;
-}
-
 export function formatMealDescription(items) {
-  return items.map(item => {
-    const spec = getCountableSpec(item);
-    if (spec) return formatCountableLine(item, spec);
-    return `• ${item.name} ${item.grams}g`;
-  }).join('\n');
+  return items.map(item => formatItemLine(item)).join('\n');
 }
 
 export function formatMealWeight(totalGrams, dessertWeightGrams = 0) {
