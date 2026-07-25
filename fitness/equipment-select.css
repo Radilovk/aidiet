@@ -147,11 +147,14 @@
 .equip-picker-selected[hidden] { display: none !important; }
 
 .equip-picker-sel-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: 1px solid var(--ep-accent);
   background: var(--ep-accent-soft);
   color: var(--ep-accent-text);
   border-radius: 999px;
-  padding: 5px 11px;
+  padding: 4px 11px 4px 4px;
   font-size: 0.68rem;
   font-weight: 700;
   cursor: pointer;
@@ -159,6 +162,15 @@
   text-align: left;
   max-width: 100%;
 }
+.equip-picker-chip-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--ep-bg);
+}
+.equip-picker-chip-text { min-width: 0; }
 
 .equip-picker-scroll {
   flex: 1;
@@ -222,7 +234,7 @@
 
 .equip-picker-item {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 10px;
   width: 100%;
   text-align: left;
@@ -230,9 +242,25 @@
   background: var(--ep-surface);
   color: var(--ep-text);
   border-radius: 10px;
-  padding: 9px 11px;
+  padding: 8px 11px;
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
+}
+.equip-picker-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 9px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--ep-bg);
+  border: 1px solid var(--ep-border);
+}
+.equip-picker-thumb-fallback {
+  display: grid;
+  place-items: center;
+  font-size: 1.1rem;
+  color: var(--ep-muted);
+  line-height: 1;
 }
 .equip-picker-item:hover { border-color: var(--ep-accent); }
 .equip-picker-item.active {
@@ -244,7 +272,6 @@
   flex-shrink: 0;
   width: 18px;
   height: 18px;
-  margin-top: 2px;
   border: 2px solid var(--ep-check-border);
   border-radius: 5px;
   display: grid;
@@ -253,6 +280,7 @@
   font-weight: 800;
   line-height: 1;
   color: #fff;
+  margin-left: auto;
 }
 .equip-picker-item.active .equip-picker-check {
   background: var(--ep-accent);

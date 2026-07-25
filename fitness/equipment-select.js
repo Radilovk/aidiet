@@ -14,6 +14,7 @@ import {
   muscleLabel,
   searchApparatus,
 } from './equipment-apparatus.js';
+import { apparatusThumbUrl } from './equipment-media.js';
 
 function el(tag, props = {}, ...children) {
   const node = document.createElement(tag);
@@ -61,6 +62,32 @@ function makeFilterRow(label, options, activeId, counts, onPick) {
   return row;
 }
 
+const CATEGORY_ICON = {
+  machine: '⚙',
+  cable: '↕',
+  bench: '▭',
+  rack: '▣',
+  cardio: '♥',
+};
+
+function renderThumb(item) {
+  const src = apparatusThumbUrl(item);
+  if (src) {
+    return el('img', {
+      class: 'equip-picker-thumb',
+      src,
+      loading: 'lazy',
+      decoding: 'async',
+      alt: '',
+    });
+  }
+  return el('span', {
+    class: 'equip-picker-thumb equip-picker-thumb-fallback',
+    text: CATEGORY_ICON[item.category] || '◆',
+    'aria-hidden': 'true',
+  });
+}
+
 function renderItem(item, picked, onToggle) {
   const active = picked.has(item.id);
   const row = el('button', {
@@ -69,6 +96,7 @@ function renderItem(item, picked, onToggle) {
     onclick: (e) => { e.stopPropagation(); onToggle(item.id); },
   });
   row.append(
+    renderThumb(item),
     el('span', { class: 'equip-picker-check', text: active ? '✓' : '' }),
     el('span', { class: 'equip-picker-item-body' },
       el('span', { class: 'equip-picker-item-label', text: item.label }),
@@ -181,10 +209,9 @@ export function createEquipmentSelect(container, { getSelected, selected, onChan
     for (const id of picked) {
       const item = apparatusById(id);
       const chipText = item?.subtitle ? `${item.label} · ${item.subtitle}` : (item?.label || id);
-      selectedHost.append(el('button', {
+      const chip = el('button', {
         type: 'button',
         class: 'equip-picker-sel-chip',
-        text: `${chipText} ×`,
         title: 'Премахни',
         onclick: (e) => {
           e.stopPropagation();
@@ -194,7 +221,11 @@ export function createEquipmentSelect(container, { getSelected, selected, onChan
           paintList();
           paintMeta();
         },
-      }));
+      });
+      const thumbSrc = apparatusThumbUrl(item);
+      if (thumbSrc) chip.append(el('img', { class: 'equip-picker-chip-thumb', src: thumbSrc, loading: 'lazy', alt: '' }));
+      chip.append(el('span', { class: 'equip-picker-chip-text', text: `${chipText} ×` }));
+      selectedHost.append(chip);
     }
   };
 

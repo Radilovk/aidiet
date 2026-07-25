@@ -89,6 +89,23 @@ test('expandApparatusIds: станция разширява barbell hints', () =
   assert.ok(equipHints.has('dumbbell'));
 });
 
+import { apparatusThumbUrl } from '../equipment-media.js';
+
+test('apparatusThumbUrl: миниатюра от каталога', () => {
+  const item = GYM_APPARATUS.find((a) => a.image);
+  assert.ok(item);
+  const url = apparatusThumbUrl(item);
+  assert.match(url, /^https:\/\//);
+  assert.match(url, /images\//);
+});
+
+test('catalog: машини и станции имат image поле', () => {
+  const withImage = GYM_APPARATUS.filter((a) => a.image);
+  assert.ok(withImage.length >= 300);
+  const stations = GYM_APPARATUS.filter((a) => a.station);
+  assert.ok(stations.every((s) => s.image));
+});
+
 test('expandApparatusIds: машини разширяват equip hints', () => {
   const { equipHints } = expandApparatusIds(['0739', '2287']);
   assert.ok(equipHints.has('sled machine'));
