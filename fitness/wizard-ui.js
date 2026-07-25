@@ -50,7 +50,6 @@ export function createWizardController({
   onPersist,
   onComplete,
   finalButtonText = 'Изпрати',
-  apiBase = '',
 }) {
   let stepIndex = 0;
 
@@ -132,7 +131,7 @@ export function createWizardController({
   }
 
   function renderMulti(q, container) {
-    const state = getState()[q.id] || (getState()[q.id] = { selected: [], inputs: {}, pickedGroups: [] });
+    const state = getState()[q.id] || (getState()[q.id] = { selected: [], inputs: {}, pickedItems: [] });
     const options = q.options || [];
 
     const renderAll = () => {
@@ -159,9 +158,8 @@ export function createWizardController({
         if (isActive && opt.equipmentPicker) {
           const pickerWrap = el('div', { class: 'equip-picker-wrap' });
           mountEquipmentSelect(pickerWrap, {
-            apiBase,
-            selected: state.pickedGroups || [],
-            onChange: (ids) => { state.pickedGroups = ids; save(); },
+            selected: state.pickedItems || [],
+            onChange: (ids) => { state.pickedItems = ids; save(); },
           });
           cardEl.append(pickerWrap);
         }

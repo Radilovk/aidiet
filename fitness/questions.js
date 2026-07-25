@@ -317,7 +317,7 @@ export function validateQuestion(question, state) {
   if (question.type === 'multi') {
     if (!value?.selected?.length) return 'Избери поне една опция.';
     const picker = question.options?.find((o) => o.equipmentPicker);
-    if (picker && value.selected.includes(picker.value) && !(value.pickedGroups?.length)) {
+    if (picker && value.selected.includes(picker.value) && !(value.pickedItems?.length)) {
       return 'Избери поне една група оборудване.';
     }
     return null;
@@ -446,7 +446,7 @@ export function buildAnswers(state) {
       deadline: goal.timeframe === 'Конкретна дата' ? (goal.deadline || '') : '',
     },
     equipment: (equipment.selected || []).filter((e) => e !== 'Друго'),
-    equipmentPickedGroups: equipment.pickedGroups || [],
+    equipmentPickedItems: equipment.pickedItems || [],
     equipmentOther: equipment.inputs?.equipmentOther || '',
     preferences: {
       types: prefs.types || [],
@@ -562,8 +562,8 @@ export function answersToFormState(answers) {
 
   const equipmentSelected = [...(answers.equipment || [])];
   const equipmentInputs = {};
-  const equipmentPickedGroups = [...(answers.equipmentPickedGroups || [])];
-  if (equipmentPickedGroups.length && !equipmentSelected.includes(EQUIPMENT_PICKER_OPTION)) {
+  const equipmentPickedItems = [...(answers.equipmentPickedItems || answers.equipmentPickedGroups || [])];
+  if (equipmentPickedItems.length && !equipmentSelected.includes(EQUIPMENT_PICKER_OPTION)) {
     equipmentSelected.push(EQUIPMENT_PICKER_OPTION);
   }
   if (answers.equipmentOther) {
@@ -613,7 +613,7 @@ export function answersToFormState(answers) {
       timeframe: goal.deadline ? 'Конкретна дата' : 'Без краен срок',
       deadline: goal.deadline || '',
     },
-    equipment: { selected: equipmentSelected, inputs: equipmentInputs, pickedGroups: equipmentPickedGroups },
+    equipment: { selected: equipmentSelected, inputs: equipmentInputs, pickedItems: equipmentPickedItems },
     preferences: {
       types: prefs.types || [],
       avoid: prefs.avoid || '',

@@ -6,6 +6,7 @@ import { normalizeText, tokenize, tokenOverlapScore } from './normalize.js';
 import { expandSearchTokens } from './exercise-synonyms.js';
 import { localizeEquipment, localizeTarget } from './exercise-labels-bg.js';
 import { equipmentGroupIdForEntry, EQUIPMENT_GROUPS, buildVirtualEquipmentFacets } from './equipment-groups.js';
+import { passesApparatusFilter } from './equipment-apparatus.js';
 
 /** @typedef {{ gender?: string, experience?: string }} AnswersInput */
 /** @typedef {{ isFemale: boolean, isMale: boolean, maxDiff: number, minGf: number, minGm: number }} ExerciseProfileFilter */
@@ -251,7 +252,7 @@ export function isSameAlternativeFamily(matchedEntry, candidate, sessionType = n
   const candMod = inferExerciseModality(candidate);
   if (matchedMod !== candMod) return false;
   if (sessionType && !modalityMatchesDay(sessionType, candMod)) return false;
-  if ((candidate.diff ?? 2) > (matchedEntry.diff ?? 2)) return false;
+  if ((candidate.diff ?? 2) !== (matchedEntry.diff ?? 2)) return false;
   return true;
 }
 
@@ -297,11 +298,12 @@ export function passesEquipment(entry, allowedEquipment) {
 }
 
 /** Филтрира индекс по профил + оборудване + модалност (EFP diff/gf/gm). */
-export function filterExercises(index, profile, allowedEquipment = null, modalities = null) {
+export function filterExercises(index, profile, allowedEquipment = null, modalities = null, pickedApparatus = null) {
   if (!index?.length) return [];
   return index.filter((e) =>
     fitsExerciseProfile(e, profile)
     && passesEquipment(e, allowedEquipment)
+    && passesApparatusFilter(e, pickedApparatus)
     && passesModality(e, modalities)
   );
 }
@@ -341,7 +343,8 @@ export function buildExerciseCatalogSnippet(index, profile, allowedEquipment = n
   const maxTotal = opts.maxTotal ?? 120;
   const maxPerGroup = opts.maxPerGroup ?? 14;
   const modalities = opts.modalities || null;
-  const filtered = filterExercises(index, profile, allowedEquipment, modalities);
+  const pickedApparatus = opts.pickedApparatus || null;
+  const filtered = filterExercises(index, profile, allowedEquipment, modalities, pickedApparatus);
   if (!filtered.length) return '';
 
   const groups = new Map();

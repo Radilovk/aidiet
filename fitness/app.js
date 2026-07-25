@@ -104,7 +104,6 @@ const wizard = createWizardController({
   onPersist: saveWizard,
   onComplete: generatePlan,
   finalButtonText: 'Създай плана ⚡',
-  apiBase: workerUrl(),
 });
 
 const renderStep = () => wizard.renderStep();
@@ -222,7 +221,11 @@ async function refreshPlanExerciseMedia(plan) {
     const res = await apiFetch('/api/plan/refresh-exercises', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ plan }),
+      body: JSON.stringify({
+        plan,
+        planId: planRecord?.planId || null,
+        planConstraints: planRecord?.planConstraints || null,
+      }),
     });
     const data = await res.json().catch(() => ({}));
     if (res.ok && data.success && data.plan) return data.plan;
@@ -370,6 +373,7 @@ async function runPlanGeneration(answers) {
       plan: data.plan,
       coachContext: data.coachContext || '',
       createdAt: new Date().toISOString(),
+      planConstraints: data.planConstraints || null,
     };
     swaps = {};
     intensity = 0;

@@ -1,5 +1,6 @@
 import { normalizeText } from './normalize.js';
-import { EQUIPMENT_PICKER_OPTION, equipmentLabelForGroupId } from './equipment-groups.js';
+import { EQUIPMENT_PICKER_OPTION } from './equipment-groups.js';
+import { apparatusLabel } from './equipment-apparatus.js';
 
 function line(label, value) {
   return value ? `${label}: ${value}` : '';
@@ -10,9 +11,8 @@ function formatEquipment(a) {
   for (const e of a.equipment || []) {
     if (e && e !== EQUIPMENT_PICKER_OPTION) parts.push(e);
   }
-  if (a.equipmentPickedGroups?.length) {
-    parts.push(a.equipmentPickedGroups.map(equipmentLabelForGroupId).join(', '));
-  }
+  const picked = a.equipmentPickedItems || a.equipmentPickedGroups;
+  if (picked?.length) parts.push(picked.map(apparatusLabel).join(', '));
   if (a.equipmentOther) parts.push(a.equipmentOther);
   return parts.filter(Boolean).join(', ');
 }

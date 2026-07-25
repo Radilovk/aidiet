@@ -14,6 +14,7 @@ export const PLAN_SYSTEM_CORE = `Български S&C треньор → се�
 - <program_spec> = сигнали/ориентири от анкетата, НЕ шаблон за копиране
 - Всяко решение обосновай: summary (обща логика), weeklySplit (защо този split), focus на всеки трен. ден (защо тази сесия днес)
 - canonicalName САМО от <exercise_catalog>; equipmentHint от <equipment>; d≤maxDiff от program_spec
+- ЗАБРАНЕНО: упражнение извън каталога, с d>maxDiff или с оборудване/уред извън constraints
 
 HARD-VETO: <constraints>; болка/забрана → 0 натоварване на зоната
 

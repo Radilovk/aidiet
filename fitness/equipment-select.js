@@ -1,24 +1,7 @@
 /**
- * Избор на оборудване по групи — споделен от въпросник (app/консултация/админ).
+ * Избор на конкретни уреди/станции — въпросник (app/консултация/админ).
  */
-import { EQUIPMENT_GROUPS, buildVirtualEquipmentFacets } from './equipment-groups.js';
-import { expandSearchTokens } from './exercise-synonyms.js';
-import { tokenize, tokenOverlapScore } from './normalize.js';
-
-const SEARCH_EXTRA = {
-  equipment_rig: ['уреди', 'машини', 'кабел', 'скрипец'],
-  body_weight: ['собствено', 'тегло', 'trx', 'bodyweight'],
-  dumbbell: ['дъмбел', 'гирич', 'dumbbell', 'гира'],
-  barbell: ['щанга', 'лост', 'barbell', 'ez', 'диск'],
-  kettlebell: ['пудовка', 'kettlebell'],
-  cable: ['кабел', 'скрипец', 'cable', 'pulley'],
-  band: ['ластик', 'band', 'резист'],
-  machine: ['машина', 'преса', 'smith', 'смит', 'lever', 'hack'],
-  cardio_trainer: ['кардио', 'пътека', 'treadmill', 'велоерг', 'елипт', 'стълби', 'erg'],
-  balls: ['топка', 'фитбол', 'bosu', 'медицинска'],
-  weight_plate: ['диск', 'тежест', 'plate', 'weighted'],
-  accessory: ['въже', 'ролер', 'rope', 'гума'],
-};
+import { APPARATUS_CATEGORIES, searchApparatus } from './equipment-apparatus.js';
 
 function el(tag, props = {}, ...children) {
   const node = document.createElement(tag);
@@ -35,76 +18,82 @@ function el(tag, props = {}, ...children) {
   return node;
 }
 
-function fallbackFacets() {
-  return [
-    ...buildVirtualEquipmentFacets({ machine: 1, cable: 1 }),
-    ...EQUIPMENT_GROUPS.map((g) => ({ value: g.id, label: g.label, count: 0 })),
-  ];
-}
-
-async function loadFacets(apiBase) {
-  if (!apiBase) return fallbackFacets();
-  try {
-    const res = await fetch(`${apiBase}/api/exercises/search?facets=1&limit=1`);
-    const data = await res.json();
-    if (data.success && data.facets?.equipment?.length) return data.facets.equipment;
-  } catch { /* offline */ }
-  return fallbackFacets();
-}
-
-function matchesSearch(facet, tokens) {
-  if (!tokens.length) return true;
-  const extra = SEARCH_EXTRA[facet.value] || [];
-  return tokenOverlapScore(tokens, tokenize(`${facet.label} ${extra.join(' ')}`)) > 0;
-}
-
 /** @param {HTMLElement} container */
-export function mountEquipmentSelect(container, { apiBase, selected, onChange }) {
+export function mountEquipmentSelect(container, { selected, onChange }) {
   const picked = selected instanceof Set ? selected : new Set(selected || []);
-  let facets = fallbackFacets();
+  let category = 'all';
   let q = '';
 
   const render = () => {
     container.innerHTML = '';
-    const tokens = expandSearchTokens(q);
-    const visible = facets.filter((f) => matchesSearch(f, tokens));
+    const visible = searchApparatus({ query: q, category });
+
+    const filters = el('div', { class: 'equip-picker-filters' });
+    for (const cat of APPARATUS_CATEGORIES) {
+      filters.append(el('button', {
+        type: 'button',
+        class: `equip-picker-filter${category === cat.id ? ' active' : ''}`,
+        text: cat.label,
+        onclick: (e) => {
+          e.stopPropagation();
+          category = cat.id;
+          render();
+        },
+      }));
+    }
+    container.append(filters);
 
     container.append(el('input', {
       type: 'search',
       class: 'equip-picker-search',
-      placeholder: 'Търси (дъмбел, скрипец, пътека, машина…)',
+      placeholder: 'Търси уред (лег преса, лежанка, скрипец…)',
       value: q,
       onclick: (e) => e.stopPropagation(),
       onkeydown: (e) => e.stopPropagation(),
       oninput: (e) => { q = e.target.value; render(); },
     }));
 
-    const chips = el('div', { class: 'equip-picker-chips' });
-    if (!visible.length) {
-      chips.append(el('p', { class: 'equip-picker-empty', text: 'Няма съвпадение.' }));
-    } else {
-      for (const f of visible) {
-        const active = picked.has(f.value);
-        chips.append(el('button', {
+    if (picked.size) {
+      const sel = el('div', { class: 'equip-picker-selected' });
+      for (const id of picked) {
+        const item = visible.find((a) => a.id === id) || searchApparatus({}).find((a) => a.id === id);
+        sel.append(el('button', {
           type: 'button',
-          class: `equip-picker-chip${active ? ' active' : ''}`,
-          text: f.count ? `${f.label} (${f.count})` : f.label,
+          class: 'equip-picker-sel-chip',
+          text: `${item?.label || id} ×`,
           onclick: (e) => {
             e.stopPropagation();
-            if (picked.has(f.value)) picked.delete(f.value);
-            else picked.add(f.value);
+            picked.delete(id);
+            onChange?.([...picked]);
+            render();
+          },
+        }));
+      }
+      container.append(sel);
+    }
+
+    const list = el('div', { class: 'equip-picker-list' });
+    if (!visible.length) {
+      list.append(el('p', { class: 'equip-picker-empty', text: 'Няма съвпадение.' }));
+    } else {
+      for (const item of visible) {
+        const active = picked.has(item.id);
+        list.append(el('button', {
+          type: 'button',
+          class: `equip-picker-item${active ? ' active' : ''}`,
+          text: item.label,
+          onclick: (e) => {
+            e.stopPropagation();
+            if (picked.has(item.id)) picked.delete(item.id);
+            else picked.add(item.id);
             onChange?.([...picked]);
             render();
           },
         }));
       }
     }
-    container.append(chips);
-    if (picked.size) {
-      container.append(el('p', { class: 'equip-picker-summary', text: `Избрани групи: ${picked.size}` }));
-    }
+    container.append(list);
   };
 
   render();
-  loadFacets(apiBase).then((f) => { facets = f; render(); });
 }
