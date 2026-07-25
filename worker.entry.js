@@ -39,8 +39,8 @@ import {
   parseMealDescription,
   calorieTolerance,
   validateDescriptionGramRules,
+  PORTION_RULES_PROMPT,
 } from './food-nutrition.js';
-import { PORTION_RULES_PROMPT } from './food-portion-rules.js';
 import {
   buildCatalogPromptSection,
   validateProductNamesInCatalog,
@@ -4014,6 +4014,27 @@ async function generatePlanAndSave(env, data, jobId, clientId, options = {}) {
   }
 }
 
+/** @param {any} opts */
+async function dispatchPlanGenerationJob(env, ctx, opts) {
+  const { data, clientId = null, generationOptions = {}, jobId: preferredJobId } = opts || {};
+  const jobId = preferredJobId || crypto.randomUUID();
+  await env.page_content.put(
+    PLAN_JOB_PREFIX + jobId,
+    JSON.stringify({ status: 'pending', startedAt: Date.now(), clientId: clientId || null }),
+    { expirationTtl: PLAN_JOB_TTL_SEC }
+  );
+  const payload = { jobId, data, clientId: clientId || null, generationOptions };
+  if (env.PLAN_QUEUE) {
+    await env.PLAN_QUEUE.send(payload, { contentType: 'json' });
+  } else if (ctx) {
+    console.warn('dispatchPlanGenerationJob: PLAN_QUEUE not bound – ctx.waitUntil fallback');
+    ctx.waitUntil(generatePlanAndSave(env, data, jobId, clientId || null, generationOptions));
+  } else {
+    await generatePlanAndSave(env, data, jobId, clientId || null, generationOptions);
+  }
+  return jobId;
+}
+
 /**
  * POST /api/generate-plan-async
  * Starts a background diet-plan generation job and returns immediately with a jobId.
@@ -4038,9 +4059,9 @@ async function handleGeneratePlanAsync(request, env, ctx) {
     // Accept a client-generated jobId (UUID format) so the client can persist it
     // in localStorage BEFORE the request starts, enabling resume-on-reopen even
     // if the app is closed while the Worker is generating the plan.
-    const jobId = (rawBody._jobId && JOB_ID_UUID_RE.test(String(rawBody._jobId)))
+    const requestedJobId = (rawBody._jobId && JOB_ID_UUID_RE.test(String(rawBody._jobId)))
       ? String(rawBody._jobId)
-      : crypto.randomUUID();
+      : undefined;
     const clientId = (typeof rawBody._clientId === 'string' && rawBody._clientId.startsWith('client_'))
       ? rawBody._clientId : null;
     const requireApproval = rawBody._requireApproval === true;
@@ -4092,35 +4113,12 @@ async function handleGeneratePlanAsync(request, env, ctx) {
       userId: explicitUserId || '',
     };
 
-    // Write initial 'pending' marker so polling can detect the job even if the
-    // client disconnects and reconnects before the plan is ready.
-    // If this KV write fails the response will still contain the jobId but polling
-    // will immediately return 'not_found'; the user will then see a "session expired"
-    // error message and be prompted to retry.
-    await env.page_content.put(
-      PLAN_JOB_PREFIX + jobId,
-      JSON.stringify({ status: 'pending', startedAt: Date.now() }),
-      { expirationTtl: PLAN_JOB_TTL_SEC }
-    );
-
-    if (env.PLAN_QUEUE) {
-      // Preferred path: enqueue the job so it runs in a fresh Worker invocation
-      // with up to 15 minutes of execution time (see the queue handler below).
-      // The queue binding is configured in wrangler.toml; see the comment at the
-      // top of this function for the one-time setup command.
-      await env.PLAN_QUEUE.send({
-        jobId,
-        data,
-        clientId: resolvedClientId,
-        generationOptions,
-      }, { contentType: 'json' });
-    } else {
-      // Fallback: ctx.waitUntil() for local dev / environments without the queue.
-      // WARNING: This path may be cancelled by Cloudflare after ~30 seconds on the
-      // Bundled/Standard execution model.
-      console.warn('handleGeneratePlanAsync: PLAN_QUEUE not bound – falling back to ctx.waitUntil(). Run "wrangler queues create plan-generation" to fix this.');
-      ctx.waitUntil(generatePlanAndSave(env, data, jobId, resolvedClientId, generationOptions));
-    }
+    const jobId = await dispatchPlanGenerationJob(env, ctx, {
+      data,
+      clientId: resolvedClientId,
+      generationOptions,
+      jobId: requestedJobId,
+    });
 
     return jsonResponse({ success: true, jobId });
   } catch (error) {
@@ -7227,6 +7225,40 @@ async function handleActivateClientPlan(request, env, ctx) {
   }
 }
 
+async function handleAdminRegenerateClientPlan(request, env, ctx) {
+  try {
+    const { clientId } = await request.json();
+    if (!clientId) return jsonResponse({ error: 'Missing clientId' }, 400);
+    if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+
+    const raw = await env.page_content.get(`client:${clientId}`);
+    if (!raw) return jsonResponse({ error: 'Client not found' }, 404);
+
+    const clientData = JSON.parse(raw);
+    const data = normalizeQuestionnaireData(clientData.answers || {});
+    if (!data.name || !data.age || !data.weight || !data.height) {
+      return jsonResponse({ error: 'Непълни данни от въпросника' }, 400);
+    }
+
+    const jobId = await dispatchPlanGenerationJob(env, ctx, {
+      data,
+      clientId,
+      generationOptions: { userId: clientData.userId || '' },
+    });
+
+    clientData.planStatus = 'generating';
+    delete clientData.planGenerationError;
+    clientData.planGenerationJobId = jobId;
+    clientData.planUpdatedAt = new Date().toISOString();
+    await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
+
+    return jsonResponse({ success: true, jobId });
+  } catch (error) {
+    console.error('Error regenerating client plan:', error);
+    return jsonResponse({ error: error.message || 'Failed to regenerate plan' }, 500);
+  }
+}
+
 // ─── Public: Check client plan status ───
 async function handleGetClientPlanStatus(request, env) {
   try {
@@ -7704,17 +7736,13 @@ async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay
 
 /**
  * Validate AI-written gram steps BEFORE backend scaling.
- * Invalid increments are the AI's job to fix — backend only scales valid proportions.
  */
-function validateWeekPlanGramRules(weekPlan, startDay, endDay) {
+function collectWeekPlanGramRuleErrors(weekPlan, startDay, endDay) {
   const errors = [];
   for (let d = startDay; d <= endDay; d++) {
-    const day = weekPlan[`day${d}`];
-    if (!day?.meals?.length) continue;
-    for (const meal of day.meals) {
+    for (const meal of weekPlan[`day${d}`]?.meals || []) {
       if (meal.type === 'Свободно хранене' || meal.type === 'Напитка') continue;
-      if (!meal.description) continue;
-      for (const err of validateDescriptionGramRules(meal.description)) {
+      for (const err of validateDescriptionGramRules(meal.description || '')) {
         errors.push(`Ден ${d} ${meal.type}: ${err}`);
       }
     }
@@ -9410,10 +9438,8 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
 
         injectFixedDesserts(weekPlan);
 
-        validationErrors = validateWeekPlanGramRules(weekPlan, startDay, endDay);
-        if (validationErrors.length) {
-          // Skip backend sync — invalid AI grams must be fixed by the model.
-        } else {
+        validationErrors = collectWeekPlanGramRuleErrors(weekPlan, startDay, endDay);
+        if (!validationErrors.length) {
           await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
           finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay);
           validationErrors = validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay, data.clinicalProtocol || null);
@@ -16015,6 +16041,8 @@ export default {
         return await handleUpdateClientPlan(request, env, ctx);
       } else if (url.pathname === '/api/admin/activate-client-plan' && request.method === 'POST') {
         return await handleActivateClientPlan(request, env, ctx);
+      } else if (url.pathname === '/api/admin/regenerate-client-plan' && request.method === 'POST') {
+        return await handleAdminRegenerateClientPlan(request, env, ctx);
       } else if (url.pathname === '/api/admin/client-card' && request.method === 'GET') {
         return await handleAdminClientCard(request, env);
       } else if (url.pathname === '/api/admin/client-assistant/session' && request.method === 'POST') {

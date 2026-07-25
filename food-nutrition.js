@@ -2,7 +2,7 @@
  * Food nutrition engine — parse meal descriptions, lookup per-100g values, calculate macros.
  *
  * Division of labor:
- *   - AI composes each meal from mealBreakdown + catalog per-100g values (see food-portion-rules.js).
+ *   - AI composes each meal from mealBreakdown + catalog per-100g values.
  *   - Validation rejects invalid gram steps → AI retries with concrete fixes.
  *   - Backend scales the AI's proportions toward the calorie target (one shared factor),
  *     rounds on the same steps, then computes macros/kcal FROM the final grams.
@@ -16,28 +16,108 @@ import {
 } from './food-nutrition-data.js';
 import { normalizeFoodKey } from './food-utils.js';
 import { resolveCatalogEntry } from './food-catalog.js';
-import {
-  GRAM_ROUND_STEP,
-  MAIN_GRAM_ROUND_STEP,
-  resolveCountableCatalogName,
-  getCountableSpec,
-  getGramStep,
-  roundGrams,
-  roundGramsForItem,
-  formatItemLine,
-  validateItemGrams,
-} from './food-portion-rules.js';
 
 export { normalizeFoodKey } from './food-utils.js';
-export {
-  GRAM_ROUND_STEP,
-  MAIN_GRAM_ROUND_STEP,
-  getGramStep,
-  roundGrams,
-  roundGramsForItem,
-  validateItemGrams,
-} from './food-portion-rules.js';
-export { PORTION_RULES_PROMPT } from './food-portion-rules.js';
+
+// ── Portion rules (prompt, validation, scaling) ──────────────────────────
+export const GRAM_ROUND_STEP = 10;
+export const MAIN_GRAM_ROUND_STEP = 50;
+
+const SMALL_ADDITIVE_KEYS = new Set([
+  'зехтин', 'олио', 'ядки', 'бадеми', 'орехи', 'кашу', 'лешници', 'фъстъци', 'шамфъстък',
+  'фъстъчено масло', 'бадемово масло', 'тахан', 'масло', 'кокосово масло', 'слънчогледово масло',
+  'семена чиа', 'ленено семе', 'тиквени семки', 'слънчогледови семки', 'мед',
+  'соев сос', 'хумус', 'горчица', 'лимонов сок', 'оцет', 'доматено пюре', 'кокосово мляко',
+  'канела', 'куркума', 'джинджифил',
+]);
+
+const COUNTABLE_UNITS = {
+  'яйца': { unit: 60, singular: 'яйце', plural: 'яйца', catalog: 'Яйца' },
+  'варено яйце': { unit: 60, singular: 'варено яйце', plural: 'варени яйца', catalog: 'Варено яйце' },
+  'ябълка': { unit: 150, singular: 'ябълка', plural: 'ябълки', catalog: 'Ябълка' },
+  'банан': { unit: 120, singular: 'банан', plural: 'банана', catalog: 'Банан' },
+  'киви': { unit: 80, singular: 'киви', plural: 'киви', catalog: 'Киви' },
+  'портокал': { unit: 150, singular: 'портокал', plural: 'портокали', catalog: 'Портокал' },
+  'мандарина': { unit: 80, singular: 'мандарина', plural: 'мандари', catalog: 'Мандарина' },
+  'праскова': { unit: 150, singular: 'праскова', plural: 'праскови', catalog: 'Праскова' },
+  'круша': { unit: 150, singular: 'круша', plural: 'круши', catalog: 'Круша' },
+  'грейпфрут': { unit: 200, singular: 'грейпфрут', plural: 'грейпфрута', catalog: 'Грейпфрут' },
+};
+
+export const PORTION_RULES_PROMPT =
+  'Грамажи: изчисли от mealBreakdown kcal/P/C/F и стойностите на 100g в каталога. ' +
+  'Основни — на 50g; добавки (зехтин, ядки) — на 10g; яйца — 60g/бр.; плодове — брой × среден грамаж.';
+
+function resolveCountableKey(name) {
+  const normalized = normalizeFoodKey(name);
+  if (COUNTABLE_UNITS[normalized]) return normalized;
+  for (const [key, spec] of Object.entries(COUNTABLE_UNITS)) {
+    if (normalized === normalizeFoodKey(spec.singular) || normalized === normalizeFoodKey(spec.plural)) return key;
+  }
+  return null;
+}
+
+function resolveCountableCatalogName(label) {
+  const key = resolveCountableKey(label);
+  return key ? COUNTABLE_UNITS[key].catalog : null;
+}
+
+function getCountableSpec(item) {
+  const key = resolveCountableKey(item?.key || item?.name);
+  return key ? COUNTABLE_UNITS[key] : null;
+}
+
+function isSmallAdditiveItem(item) {
+  const { entry } = resolveCatalogEntry(item?.name);
+  if (entry?.group === 'condiment') return true;
+  return SMALL_ADDITIVE_KEYS.has(normalizeFoodKey(item?.key || item?.name));
+}
+
+export function getGramStep(item) {
+  if (isSmallAdditiveItem(item)) return GRAM_ROUND_STEP;
+  const countable = getCountableSpec(item);
+  if (countable) return countable.unit;
+  return MAIN_GRAM_ROUND_STEP;
+}
+
+export function roundGrams(grams, step = GRAM_ROUND_STEP) {
+  const g = Number(grams) || 0;
+  if (g <= 0) return step;
+  return Math.max(step, Math.round(g / step) * step);
+}
+
+export function roundGramsForItem(item, grams) {
+  const step = getGramStep(item);
+  const rounded = roundGrams(grams, step);
+  const countable = getCountableSpec(item);
+  if (!countable) return rounded;
+  return Math.max(1, Math.round(rounded / countable.unit)) * countable.unit;
+}
+
+export function validateItemGrams(item) {
+  const grams = Number(item.grams) || 0;
+  if (grams <= 0) return `${item.name}: липсва грамаж`;
+  const countable = getCountableSpec(item);
+  if (countable) {
+    if (grams % countable.unit === 0) return null;
+    const count = Math.max(1, Math.round(grams / countable.unit));
+    const example = count === 1
+      ? `1 ${countable.singular} (${countable.unit}g)`
+      : `${count} ${countable.plural} (${count * countable.unit}g)`;
+    return `${item.name} ${grams}g — използвай ${countable.unit}g/бр., напр. ${example}`;
+  }
+  const step = getGramStep(item);
+  if (grams % step === 0) return null;
+  return `${item.name} ${grams}g — закръгли на ${step}g (напр. ${roundGrams(grams, step)}g)`;
+}
+
+function formatItemLine(item) {
+  const spec = getCountableSpec(item);
+  if (!spec) return `• ${item.name} ${item.grams}g`;
+  const count = Math.max(1, Math.round(item.grams / spec.unit));
+  const label = count === 1 ? spec.singular : spec.plural;
+  return `• ${count} ${label} (${count * spec.unit}g)`;
+}
 
 // Percentage-based validation tolerance: calories are the backend's own arithmetic
 // (scaling guarantees them except in pathological cases), macros follow the AI's

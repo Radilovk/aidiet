@@ -5858,130 +5858,6 @@ var MEAL_TYPE_TIMING = {
 var DEFAULT_MIN_UNIVERSALITY = 3;
 var CATALOG_PROMPT_LIMIT_PER_SLOT = 14;
 
-// food-portion-rules.js
-var GRAM_ROUND_STEP = 10;
-var MAIN_GRAM_ROUND_STEP = 50;
-var SMALL_ADDITIVE_KEYS = /* @__PURE__ */ new Set([
-  "\u0437\u0435\u0445\u0442\u0438\u043D",
-  "\u043E\u043B\u0438\u043E",
-  "\u044F\u0434\u043A\u0438",
-  "\u0431\u0430\u0434\u0435\u043C\u0438",
-  "\u043E\u0440\u0435\u0445\u0438",
-  "\u043A\u0430\u0448\u0443",
-  "\u043B\u0435\u0448\u043D\u0438\u0446\u0438",
-  "\u0444\u044A\u0441\u0442\u044A\u0446\u0438",
-  "\u0448\u0430\u043C\u0444\u044A\u0441\u0442\u044A\u043A",
-  "\u0444\u044A\u0441\u0442\u044A\u0447\u0435\u043D\u043E \u043C\u0430\u0441\u043B\u043E",
-  "\u0431\u0430\u0434\u0435\u043C\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E",
-  "\u0442\u0430\u0445\u0430\u043D",
-  "\u043C\u0430\u0441\u043B\u043E",
-  "\u043A\u043E\u043A\u043E\u0441\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E",
-  "\u0441\u043B\u044A\u043D\u0447\u043E\u0433\u043B\u0435\u0434\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E",
-  "\u0441\u0435\u043C\u0435\u043D\u0430 \u0447\u0438\u0430",
-  "\u043B\u0435\u043D\u0435\u043D\u043E \u0441\u0435\u043C\u0435",
-  "\u0442\u0438\u043A\u0432\u0435\u043D\u0438 \u0441\u0435\u043C\u043A\u0438",
-  "\u0441\u043B\u044A\u043D\u0447\u043E\u0433\u043B\u0435\u0434\u043E\u0432\u0438 \u0441\u0435\u043C\u043A\u0438",
-  "\u043C\u0435\u0434",
-  "\u0441\u043E\u0435\u0432 \u0441\u043E\u0441",
-  "\u0445\u0443\u043C\u0443\u0441",
-  "\u0433\u043E\u0440\u0447\u0438\u0446\u0430",
-  "\u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A",
-  "\u043E\u0446\u0435\u0442",
-  "\u0434\u043E\u043C\u0430\u0442\u0435\u043D\u043E \u043F\u044E\u0440\u0435",
-  "\u043A\u043E\u043A\u043E\u0441\u043E\u0432\u043E \u043C\u043B\u044F\u043A\u043E",
-  "\u043A\u0430\u043D\u0435\u043B\u0430",
-  "\u043A\u0443\u0440\u043A\u0443\u043C\u0430",
-  "\u0434\u0436\u0438\u043D\u0434\u0436\u0438\u0444\u0438\u043B"
-]);
-var COUNTABLE_UNITS = {
-  "\u044F\u0439\u0446\u0430": { unit: 60, singular: "\u044F\u0439\u0446\u0435", plural: "\u044F\u0439\u0446\u0430", catalog: "\u042F\u0439\u0446\u0430" },
-  "\u0432\u0430\u0440\u0435\u043D\u043E \u044F\u0439\u0446\u0435": { unit: 60, singular: "\u0432\u0430\u0440\u0435\u043D\u043E \u044F\u0439\u0446\u0435", plural: "\u0432\u0430\u0440\u0435\u043D\u0438 \u044F\u0439\u0446\u0430", catalog: "\u0412\u0430\u0440\u0435\u043D\u043E \u044F\u0439\u0446\u0435" },
-  "\u044F\u0431\u044A\u043B\u043A\u0430": { unit: 150, singular: "\u044F\u0431\u044A\u043B\u043A\u0430", plural: "\u044F\u0431\u044A\u043B\u043A\u0438", catalog: "\u042F\u0431\u044A\u043B\u043A\u0430" },
-  "\u0431\u0430\u043D\u0430\u043D": { unit: 120, singular: "\u0431\u0430\u043D\u0430\u043D", plural: "\u0431\u0430\u043D\u0430\u043D\u0430", catalog: "\u0411\u0430\u043D\u0430\u043D" },
-  "\u043A\u0438\u0432\u0438": { unit: 80, singular: "\u043A\u0438\u0432\u0438", plural: "\u043A\u0438\u0432\u0438", catalog: "\u041A\u0438\u0432\u0438" },
-  "\u043F\u043E\u0440\u0442\u043E\u043A\u0430\u043B": { unit: 150, singular: "\u043F\u043E\u0440\u0442\u043E\u043A\u0430\u043B", plural: "\u043F\u043E\u0440\u0442\u043E\u043A\u0430\u043B\u0438", catalog: "\u041F\u043E\u0440\u0442\u043E\u043A\u0430\u043B" },
-  "\u043C\u0430\u043D\u0434\u0430\u0440\u0438\u043D\u0430": { unit: 80, singular: "\u043C\u0430\u043D\u0434\u0430\u0440\u0438\u043D\u0430", plural: "\u043C\u0430\u043D\u0434\u0430\u0440\u0438", catalog: "\u041C\u0430\u043D\u0434\u0430\u0440\u0438\u043D\u0430" },
-  "\u043F\u0440\u0430\u0441\u043A\u043E\u0432\u0430": { unit: 150, singular: "\u043F\u0440\u0430\u0441\u043A\u043E\u0432\u0430", plural: "\u043F\u0440\u0430\u0441\u043A\u043E\u0432\u0438", catalog: "\u041F\u0440\u0430\u0441\u043A\u043E\u0432\u0430" },
-  "\u043A\u0440\u0443\u0448\u0430": { unit: 150, singular: "\u043A\u0440\u0443\u0448\u0430", plural: "\u043A\u0440\u0443\u0448\u0438", catalog: "\u041A\u0440\u0443\u0448\u0430" },
-  "\u0433\u0440\u0435\u0439\u043F\u0444\u0440\u0443\u0442": { unit: 200, singular: "\u0433\u0440\u0435\u0439\u043F\u0444\u0440\u0443\u0442", plural: "\u0433\u0440\u0435\u0439\u043F\u0444\u0440\u0443\u0442\u0430", catalog: "\u0413\u0440\u0435\u0439\u043F\u0444\u0440\u0443\u0442" }
-};
-var PORTION_RULES_PROMPT = "\u0413\u0440\u0430\u043C\u0430\u0436\u0438: \u0438\u0437\u0447\u0438\u0441\u043B\u0438 \u043E\u0442 mealBreakdown kcal/P/C/F \u0438 \u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438\u0442\u0435 \u043D\u0430 100g \u0432 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430. \u041E\u0441\u043D\u043E\u0432\u043D\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u2014 \u043D\u0430 50g (100, 150, 200); \u0434\u043E\u0431\u0430\u0432\u043A\u0438 (\u0437\u0435\u0445\u0442\u0438\u043D, \u044F\u0434\u043A\u0438, \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u043A\u0438) \u2014 \u043D\u0430 10g; \u044F\u0439\u0446\u0430 \u2014 60g/\u0431\u0440. (\u043D\u0430\u043F\u0440. 2 \u044F\u0439\u0446\u0430 (120g)); \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u0438 \u043F\u043B\u043E\u0434\u043E\u0432\u0435 \u2014 \u0431\u0440\u043E\u0439 \xD7 \u0441\u0440\u0435\u0434\u0435\u043D \u0433\u0440\u0430\u043C\u0430\u0436 (\u043D\u0430\u043F\u0440. 1 \u044F\u0431\u044A\u043B\u043A\u0430 (150g)).";
-function getCatalogGroup(name) {
-  const { entry } = resolveCatalogEntry(name);
-  return entry?.group || null;
-}
-function resolveCountableKey(name) {
-  const normalized = normalizeFoodKey(name);
-  if (COUNTABLE_UNITS[normalized]) return normalized;
-  for (const [key, spec] of Object.entries(COUNTABLE_UNITS)) {
-    if (normalized === normalizeFoodKey(spec.singular) || normalized === normalizeFoodKey(spec.plural)) {
-      return key;
-    }
-  }
-  return null;
-}
-function resolveCountableCatalogName(label) {
-  const key = resolveCountableKey(label);
-  return key ? COUNTABLE_UNITS[key].catalog : null;
-}
-function getCountableSpec(item2) {
-  const key = resolveCountableKey(item2?.key || item2?.name);
-  return key ? COUNTABLE_UNITS[key] : null;
-}
-function isSmallAdditiveItem(item2) {
-  if (getCatalogGroup(item2?.name) === "condiment") return true;
-  return SMALL_ADDITIVE_KEYS.has(normalizeFoodKey(item2?.key || item2?.name));
-}
-function getGramStep(item2) {
-  if (isSmallAdditiveItem(item2)) return GRAM_ROUND_STEP;
-  const countable = getCountableSpec(item2);
-  if (countable) return countable.unit;
-  return MAIN_GRAM_ROUND_STEP;
-}
-function roundGrams(grams, step = GRAM_ROUND_STEP) {
-  const g = Number(grams) || 0;
-  if (g <= 0) return step;
-  return Math.max(step, Math.round(g / step) * step);
-}
-function roundGramsForItem(item2, grams) {
-  const step = getGramStep(item2);
-  const rounded = roundGrams(grams, step);
-  const countable = getCountableSpec(item2);
-  if (!countable) return rounded;
-  const count = Math.max(1, Math.round(rounded / countable.unit));
-  return count * countable.unit;
-}
-function validateItemGrams(item2) {
-  const grams = Number(item2.grams) || 0;
-  if (grams <= 0) return `${item2.name}: \u043B\u0438\u043F\u0441\u0432\u0430 \u0433\u0440\u0430\u043C\u0430\u0436`;
-  const countable = getCountableSpec(item2);
-  if (countable) {
-    if (grams % countable.unit !== 0) {
-      const count = Math.max(1, Math.round(grams / countable.unit));
-      const example = count === 1 ? `1 ${countable.singular} (${countable.unit}g)` : `${count} ${countable.plural} (${count * countable.unit}g)`;
-      return `${item2.name} ${grams}g \u2014 \u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430\u0439 ${countable.unit}g/\u0431\u0440., \u043D\u0430\u043F\u0440. ${example}`;
-    }
-    return null;
-  }
-  const step = getGramStep(item2);
-  if (grams % step !== 0) {
-    const nearest = roundGrams(grams, step);
-    return `${item2.name} ${grams}g \u2014 \u0437\u0430\u043A\u0440\u044A\u0433\u043B\u0438 \u043D\u0430 ${step}g (\u043D\u0430\u043F\u0440. ${nearest}g)`;
-  }
-  return null;
-}
-function formatCountableLine(item2, spec) {
-  const count = Math.max(1, Math.round(item2.grams / spec.unit));
-  const grams = count * spec.unit;
-  const label = count === 1 ? spec.singular : spec.plural;
-  return `\u2022 ${count} ${label} (${grams}g)`;
-}
-function formatItemLine(item2) {
-  const spec = getCountableSpec(item2);
-  if (spec) return formatCountableLine(item2, spec);
-  return `\u2022 ${item2.name} ${item2.grams}g`;
-}
-
 // food-catalog.js
 var SLOT_LABELS = {
   PRO: "\u0431\u0435\u043B\u0442\u044A\u0447\u0438\u043D\u0438 [PRO]",
@@ -6211,7 +6087,7 @@ function formatCatalogSectionForPrompt(candidatesBySlot, { minUniversality = DEF
   const lines = [
     `=== \u041A\u0410\u0422\u0410\u041B\u041E\u0413 \u0425\u0420\u0410\u041D\u0418 (\u0417\u0410\u0414\u042A\u041B\u0416\u0418\u0422\u0415\u041B\u041D\u041E \u2014 \u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430\u0439 \u0421\u0410\u041C\u041E \u0442\u0435\u0437\u0438 \u0438\u043C\u0435\u043D\u0430) ===`,
     `\u0423\u043D\u0438\u0432\u0435\u0440\u0441\u0430\u043B\u043D\u043E\u0441\u0442 \u2265${minUniversality}: \u043F\u0440\u0435\u0434\u043F\u043E\u0447\u0438\u0442\u0430\u0439 \u043F\u043E-\u043E\u0431\u0449\u0438 \u0432\u0430\u0440\u0438\u0430\u043D\u0442\u0438 (\u0420\u0438\u0431\u0430, \u041E\u0440\u0438\u0437, \u041F\u043B\u043E\u0434) \u043F\u0440\u0435\u0434 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u0438 (\u041B\u0430\u0432\u0440\u0430\u043A, \u041A\u0438\u043D\u043E\u0430, \u041C\u0430\u043D\u0433\u043E).`,
-    `\u0421\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438 \u0432 \u0441\u043A\u043E\u0431\u0438 = \u043D\u0430 100g. ${PORTION_RULES_PROMPT}`,
+    `\u0421\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438 \u0432 \u0441\u043A\u043E\u0431\u0438 = \u043D\u0430 100g. \u0413\u0440\u0430\u043C\u0430\u0436\u0438: \u0438\u0437\u0447\u0438\u0441\u043B\u0438 \u043E\u0442 mealBreakdown \u0438 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430; \u043E\u0441\u043D\u043E\u0432\u043D\u0438 \u043D\u0430 50g; \u0434\u043E\u0431\u0430\u0432\u043A\u0438 \u043D\u0430 10g; \u044F\u0439\u0446\u0430 60g/\u0431\u0440.; \u043F\u043B\u043E\u0434\u043E\u0432\u0435 \u2014 \u0431\u0440\u043E\u0439 \xD7 \u0433\u0440\u0430\u043C\u0430\u0436.`,
     `\u0413\u043E\u0442\u043E\u0432\u0430 \u0445\u0440\u0430\u043D\u0430 = \u0435\u0434\u0438\u043D \u0440\u0435\u0434 \u0432 description \u0418\u041B\u0418 \u0440\u0430\u0437\u0431\u0438\u0439 \u043D\u0430 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u043E\u0442 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430.`
   ];
   for (const slot of ["PRO", "ENG", "VOL", "FAT"]) {
@@ -6257,6 +6133,113 @@ function validateProductNamesAgainstProtocol(names, clinicalProtocolId) {
 }
 
 // food-nutrition.js
+var GRAM_ROUND_STEP = 10;
+var MAIN_GRAM_ROUND_STEP = 50;
+var SMALL_ADDITIVE_KEYS = /* @__PURE__ */ new Set([
+  "\u0437\u0435\u0445\u0442\u0438\u043D",
+  "\u043E\u043B\u0438\u043E",
+  "\u044F\u0434\u043A\u0438",
+  "\u0431\u0430\u0434\u0435\u043C\u0438",
+  "\u043E\u0440\u0435\u0445\u0438",
+  "\u043A\u0430\u0448\u0443",
+  "\u043B\u0435\u0448\u043D\u0438\u0446\u0438",
+  "\u0444\u044A\u0441\u0442\u044A\u0446\u0438",
+  "\u0448\u0430\u043C\u0444\u044A\u0441\u0442\u044A\u043A",
+  "\u0444\u044A\u0441\u0442\u044A\u0447\u0435\u043D\u043E \u043C\u0430\u0441\u043B\u043E",
+  "\u0431\u0430\u0434\u0435\u043C\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E",
+  "\u0442\u0430\u0445\u0430\u043D",
+  "\u043C\u0430\u0441\u043B\u043E",
+  "\u043A\u043E\u043A\u043E\u0441\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E",
+  "\u0441\u043B\u044A\u043D\u0447\u043E\u0433\u043B\u0435\u0434\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E",
+  "\u0441\u0435\u043C\u0435\u043D\u0430 \u0447\u0438\u0430",
+  "\u043B\u0435\u043D\u0435\u043D\u043E \u0441\u0435\u043C\u0435",
+  "\u0442\u0438\u043A\u0432\u0435\u043D\u0438 \u0441\u0435\u043C\u043A\u0438",
+  "\u0441\u043B\u044A\u043D\u0447\u043E\u0433\u043B\u0435\u0434\u043E\u0432\u0438 \u0441\u0435\u043C\u043A\u0438",
+  "\u043C\u0435\u0434",
+  "\u0441\u043E\u0435\u0432 \u0441\u043E\u0441",
+  "\u0445\u0443\u043C\u0443\u0441",
+  "\u0433\u043E\u0440\u0447\u0438\u0446\u0430",
+  "\u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A",
+  "\u043E\u0446\u0435\u0442",
+  "\u0434\u043E\u043C\u0430\u0442\u0435\u043D\u043E \u043F\u044E\u0440\u0435",
+  "\u043A\u043E\u043A\u043E\u0441\u043E\u0432\u043E \u043C\u043B\u044F\u043A\u043E",
+  "\u043A\u0430\u043D\u0435\u043B\u0430",
+  "\u043A\u0443\u0440\u043A\u0443\u043C\u0430",
+  "\u0434\u0436\u0438\u043D\u0434\u0436\u0438\u0444\u0438\u043B"
+]);
+var COUNTABLE_UNITS = {
+  "\u044F\u0439\u0446\u0430": { unit: 60, singular: "\u044F\u0439\u0446\u0435", plural: "\u044F\u0439\u0446\u0430", catalog: "\u042F\u0439\u0446\u0430" },
+  "\u0432\u0430\u0440\u0435\u043D\u043E \u044F\u0439\u0446\u0435": { unit: 60, singular: "\u0432\u0430\u0440\u0435\u043D\u043E \u044F\u0439\u0446\u0435", plural: "\u0432\u0430\u0440\u0435\u043D\u0438 \u044F\u0439\u0446\u0430", catalog: "\u0412\u0430\u0440\u0435\u043D\u043E \u044F\u0439\u0446\u0435" },
+  "\u044F\u0431\u044A\u043B\u043A\u0430": { unit: 150, singular: "\u044F\u0431\u044A\u043B\u043A\u0430", plural: "\u044F\u0431\u044A\u043B\u043A\u0438", catalog: "\u042F\u0431\u044A\u043B\u043A\u0430" },
+  "\u0431\u0430\u043D\u0430\u043D": { unit: 120, singular: "\u0431\u0430\u043D\u0430\u043D", plural: "\u0431\u0430\u043D\u0430\u043D\u0430", catalog: "\u0411\u0430\u043D\u0430\u043D" },
+  "\u043A\u0438\u0432\u0438": { unit: 80, singular: "\u043A\u0438\u0432\u0438", plural: "\u043A\u0438\u0432\u0438", catalog: "\u041A\u0438\u0432\u0438" },
+  "\u043F\u043E\u0440\u0442\u043E\u043A\u0430\u043B": { unit: 150, singular: "\u043F\u043E\u0440\u0442\u043E\u043A\u0430\u043B", plural: "\u043F\u043E\u0440\u0442\u043E\u043A\u0430\u043B\u0438", catalog: "\u041F\u043E\u0440\u0442\u043E\u043A\u0430\u043B" },
+  "\u043C\u0430\u043D\u0434\u0430\u0440\u0438\u043D\u0430": { unit: 80, singular: "\u043C\u0430\u043D\u0434\u0430\u0440\u0438\u043D\u0430", plural: "\u043C\u0430\u043D\u0434\u0430\u0440\u0438", catalog: "\u041C\u0430\u043D\u0434\u0430\u0440\u0438\u043D\u0430" },
+  "\u043F\u0440\u0430\u0441\u043A\u043E\u0432\u0430": { unit: 150, singular: "\u043F\u0440\u0430\u0441\u043A\u043E\u0432\u0430", plural: "\u043F\u0440\u0430\u0441\u043A\u043E\u0432\u0438", catalog: "\u041F\u0440\u0430\u0441\u043A\u043E\u0432\u0430" },
+  "\u043A\u0440\u0443\u0448\u0430": { unit: 150, singular: "\u043A\u0440\u0443\u0448\u0430", plural: "\u043A\u0440\u0443\u0448\u0438", catalog: "\u041A\u0440\u0443\u0448\u0430" },
+  "\u0433\u0440\u0435\u0439\u043F\u0444\u0440\u0443\u0442": { unit: 200, singular: "\u0433\u0440\u0435\u0439\u043F\u0444\u0440\u0443\u0442", plural: "\u0433\u0440\u0435\u0439\u043F\u0444\u0440\u0443\u0442\u0430", catalog: "\u0413\u0440\u0435\u0439\u043F\u0444\u0440\u0443\u0442" }
+};
+var PORTION_RULES_PROMPT = "\u0413\u0440\u0430\u043C\u0430\u0436\u0438: \u0438\u0437\u0447\u0438\u0441\u043B\u0438 \u043E\u0442 mealBreakdown kcal/P/C/F \u0438 \u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438\u0442\u0435 \u043D\u0430 100g \u0432 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430. \u041E\u0441\u043D\u043E\u0432\u043D\u0438 \u2014 \u043D\u0430 50g; \u0434\u043E\u0431\u0430\u0432\u043A\u0438 (\u0437\u0435\u0445\u0442\u0438\u043D, \u044F\u0434\u043A\u0438) \u2014 \u043D\u0430 10g; \u044F\u0439\u0446\u0430 \u2014 60g/\u0431\u0440.; \u043F\u043B\u043E\u0434\u043E\u0432\u0435 \u2014 \u0431\u0440\u043E\u0439 \xD7 \u0441\u0440\u0435\u0434\u0435\u043D \u0433\u0440\u0430\u043C\u0430\u0436.";
+function resolveCountableKey(name) {
+  const normalized = normalizeFoodKey(name);
+  if (COUNTABLE_UNITS[normalized]) return normalized;
+  for (const [key, spec] of Object.entries(COUNTABLE_UNITS)) {
+    if (normalized === normalizeFoodKey(spec.singular) || normalized === normalizeFoodKey(spec.plural)) return key;
+  }
+  return null;
+}
+function resolveCountableCatalogName(label) {
+  const key = resolveCountableKey(label);
+  return key ? COUNTABLE_UNITS[key].catalog : null;
+}
+function getCountableSpec(item2) {
+  const key = resolveCountableKey(item2?.key || item2?.name);
+  return key ? COUNTABLE_UNITS[key] : null;
+}
+function isSmallAdditiveItem(item2) {
+  const { entry } = resolveCatalogEntry(item2?.name);
+  if (entry?.group === "condiment") return true;
+  return SMALL_ADDITIVE_KEYS.has(normalizeFoodKey(item2?.key || item2?.name));
+}
+function getGramStep(item2) {
+  if (isSmallAdditiveItem(item2)) return GRAM_ROUND_STEP;
+  const countable = getCountableSpec(item2);
+  if (countable) return countable.unit;
+  return MAIN_GRAM_ROUND_STEP;
+}
+function roundGrams(grams, step = GRAM_ROUND_STEP) {
+  const g = Number(grams) || 0;
+  if (g <= 0) return step;
+  return Math.max(step, Math.round(g / step) * step);
+}
+function roundGramsForItem(item2, grams) {
+  const step = getGramStep(item2);
+  const rounded = roundGrams(grams, step);
+  const countable = getCountableSpec(item2);
+  if (!countable) return rounded;
+  return Math.max(1, Math.round(rounded / countable.unit)) * countable.unit;
+}
+function validateItemGrams(item2) {
+  const grams = Number(item2.grams) || 0;
+  if (grams <= 0) return `${item2.name}: \u043B\u0438\u043F\u0441\u0432\u0430 \u0433\u0440\u0430\u043C\u0430\u0436`;
+  const countable = getCountableSpec(item2);
+  if (countable) {
+    if (grams % countable.unit === 0) return null;
+    const count = Math.max(1, Math.round(grams / countable.unit));
+    const example = count === 1 ? `1 ${countable.singular} (${countable.unit}g)` : `${count} ${countable.plural} (${count * countable.unit}g)`;
+    return `${item2.name} ${grams}g \u2014 \u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430\u0439 ${countable.unit}g/\u0431\u0440., \u043D\u0430\u043F\u0440. ${example}`;
+  }
+  const step = getGramStep(item2);
+  if (grams % step === 0) return null;
+  return `${item2.name} ${grams}g \u2014 \u0437\u0430\u043A\u0440\u044A\u0433\u043B\u0438 \u043D\u0430 ${step}g (\u043D\u0430\u043F\u0440. ${roundGrams(grams, step)}g)`;
+}
+function formatItemLine(item2) {
+  const spec = getCountableSpec(item2);
+  if (!spec) return `\u2022 ${item2.name} ${item2.grams}g`;
+  const count = Math.max(1, Math.round(item2.grams / spec.unit));
+  const label = count === 1 ? spec.singular : spec.plural;
+  return `\u2022 ${count} ${label} (${count * spec.unit}g)`;
+}
 var CALORIE_TOLERANCE_PERCENT = 0.05;
 var MACRO_TOLERANCE_PERCENT = 0.1;
 var MIN_CALORIE_TOLERANCE_KCAL = 30;
@@ -9455,10 +9438,29 @@ async function generatePlanAndSave(env, data, jobId, clientId, options = {}) {
     }
   }
 }
+async function dispatchPlanGenerationJob(env, ctx, opts) {
+  const { data, clientId = null, generationOptions = {}, jobId: preferredJobId } = opts || {};
+  const jobId = preferredJobId || crypto.randomUUID();
+  await env.page_content.put(
+    PLAN_JOB_PREFIX + jobId,
+    JSON.stringify({ status: "pending", startedAt: Date.now(), clientId: clientId || null }),
+    { expirationTtl: PLAN_JOB_TTL_SEC }
+  );
+  const payload = { jobId, data, clientId: clientId || null, generationOptions };
+  if (env.PLAN_QUEUE) {
+    await env.PLAN_QUEUE.send(payload, { contentType: "json" });
+  } else if (ctx) {
+    console.warn("dispatchPlanGenerationJob: PLAN_QUEUE not bound \u2013 ctx.waitUntil fallback");
+    ctx.waitUntil(generatePlanAndSave(env, data, jobId, clientId || null, generationOptions));
+  } else {
+    await generatePlanAndSave(env, data, jobId, clientId || null, generationOptions);
+  }
+  return jobId;
+}
 async function handleGeneratePlanAsync(request, env, ctx) {
   try {
     const rawBody = await request.json();
-    const jobId = rawBody._jobId && JOB_ID_UUID_RE.test(String(rawBody._jobId)) ? String(rawBody._jobId) : crypto.randomUUID();
+    const requestedJobId = rawBody._jobId && JOB_ID_UUID_RE.test(String(rawBody._jobId)) ? String(rawBody._jobId) : void 0;
     const clientId = typeof rawBody._clientId === "string" && rawBody._clientId.startsWith("client_") ? rawBody._clientId : null;
     const requireApproval = rawBody._requireApproval === true;
     const explicitUserId = typeof rawBody._userId === "string" ? rawBody._userId.trim() : "";
@@ -9504,22 +9506,12 @@ async function handleGeneratePlanAsync(request, env, ctx) {
       requireApproval,
       userId: explicitUserId || ""
     };
-    await env.page_content.put(
-      PLAN_JOB_PREFIX + jobId,
-      JSON.stringify({ status: "pending", startedAt: Date.now() }),
-      { expirationTtl: PLAN_JOB_TTL_SEC }
-    );
-    if (env.PLAN_QUEUE) {
-      await env.PLAN_QUEUE.send({
-        jobId,
-        data,
-        clientId: resolvedClientId,
-        generationOptions
-      }, { contentType: "json" });
-    } else {
-      console.warn('handleGeneratePlanAsync: PLAN_QUEUE not bound \u2013 falling back to ctx.waitUntil(). Run "wrangler queues create plan-generation" to fix this.');
-      ctx.waitUntil(generatePlanAndSave(env, data, jobId, resolvedClientId, generationOptions));
-    }
+    const jobId = await dispatchPlanGenerationJob(env, ctx, {
+      data,
+      clientId: resolvedClientId,
+      generationOptions,
+      jobId: requestedJobId
+    });
     return jsonResponse2({ success: true, jobId });
   } catch (error) {
     console.error("handleGeneratePlanAsync error:", error);
@@ -12026,6 +12018,34 @@ async function handleActivateClientPlan(request, env, ctx) {
     return jsonResponse2({ error: `Failed to activate plan: ${error.message}` }, 500);
   }
 }
+async function handleAdminRegenerateClientPlan(request, env, ctx) {
+  try {
+    const { clientId } = await request.json();
+    if (!clientId) return jsonResponse2({ error: "Missing clientId" }, 400);
+    if (!env.page_content) return jsonResponse2({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    const raw = await env.page_content.get(`client:${clientId}`);
+    if (!raw) return jsonResponse2({ error: "Client not found" }, 404);
+    const clientData = JSON.parse(raw);
+    const data = normalizeQuestionnaireData(clientData.answers || {});
+    if (!data.name || !data.age || !data.weight || !data.height) {
+      return jsonResponse2({ error: "\u041D\u0435\u043F\u044A\u043B\u043D\u0438 \u0434\u0430\u043D\u043D\u0438 \u043E\u0442 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430" }, 400);
+    }
+    const jobId = await dispatchPlanGenerationJob(env, ctx, {
+      data,
+      clientId,
+      generationOptions: { userId: clientData.userId || "" }
+    });
+    clientData.planStatus = "generating";
+    delete clientData.planGenerationError;
+    clientData.planGenerationJobId = jobId;
+    clientData.planUpdatedAt = (/* @__PURE__ */ new Date()).toISOString();
+    await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
+    return jsonResponse2({ success: true, jobId });
+  } catch (error) {
+    console.error("Error regenerating client plan:", error);
+    return jsonResponse2({ error: error.message || "Failed to regenerate plan" }, 500);
+  }
+}
 async function handleGetClientPlanStatus(request, env) {
   try {
     const url = new URL(request.url);
@@ -12382,15 +12402,12 @@ async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay
   }
   return unknowns;
 }
-function validateWeekPlanGramRules(weekPlan, startDay, endDay) {
+function collectWeekPlanGramRuleErrors(weekPlan, startDay, endDay) {
   const errors = [];
   for (let d = startDay; d <= endDay; d++) {
-    const day = weekPlan[`day${d}`];
-    if (!day?.meals?.length) continue;
-    for (const meal of day.meals) {
+    for (const meal of weekPlan[`day${d}`]?.meals || []) {
       if (meal.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" || meal.type === "\u041D\u0430\u043F\u0438\u0442\u043A\u0430") continue;
-      if (!meal.description) continue;
-      for (const err of validateDescriptionGramRules(meal.description)) {
+      for (const err of validateDescriptionGramRules(meal.description || "")) {
         errors.push(`\u0414\u0435\u043D ${d} ${meal.type}: ${err}`);
       }
     }
@@ -13690,9 +13707,8 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
           weekPlan[dayKey] = chunkData[dayKey];
         }
         injectFixedDesserts(weekPlan);
-        validationErrors = validateWeekPlanGramRules(weekPlan, startDay, endDay);
-        if (validationErrors.length) {
-        } else {
+        validationErrors = collectWeekPlanGramRuleErrors(weekPlan, startDay, endDay);
+        if (!validationErrors.length) {
           await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
           finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay);
           validationErrors = validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay, data.clinicalProtocol || null);
@@ -18602,6 +18618,8 @@ var worker_entry_default = {
         return await handleUpdateClientPlan(request, env, ctx);
       } else if (url.pathname === "/api/admin/activate-client-plan" && request.method === "POST") {
         return await handleActivateClientPlan(request, env, ctx);
+      } else if (url.pathname === "/api/admin/regenerate-client-plan" && request.method === "POST") {
+        return await handleAdminRegenerateClientPlan(request, env, ctx);
       } else if (url.pathname === "/api/admin/client-card" && request.method === "GET") {
         return await handleAdminClientCard(request, env);
       } else if (url.pathname === "/api/admin/client-assistant/session" && request.method === "POST") {
