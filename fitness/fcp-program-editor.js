@@ -4,6 +4,8 @@
  * Минимални бекенд заявки: 1× зареждане на план, 1× запис; picker с кеш + abort.
  */
 import { el } from './wizard-ui.js?v=2';
+import { localizeEquipment } from './exercise-labels-bg.js';
+import { expandEquipmentGroupIds } from './equipment-groups.js';
 
 const DAY_TYPES = [
   ['strength', 'Сила'],
@@ -16,8 +18,9 @@ const DAY_TYPES = [
 const DAY_TYPE_LABELS = Object.fromEntries(DAY_TYPES);
 const DAY_SHORT = ['Пон', 'Вто', 'Сря', 'Чет', 'Пет', 'Съб', 'Нед'];
 const DIFF_LABELS = { 1: 'd1 лесно', 2: 'd2 средно', 3: 'd3 трудно' };
-const FACETS_SESSION_KEY = 'fcp.editor.facets.v1';
+const FACETS_SESSION_KEY = 'fcp.editor.facets.v2';
 const SEARCH_CACHE_MAX = 48;
+const PICKER_PAGE_SIZE = 50;
 
 const CAN_DRAG = typeof window !== 'undefined'
   && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
@@ -507,9 +510,14 @@ function swapDayContent(a, b) {
 // ============================================================================
 
 function buildSearchParams(p) {
-  const params = new URLSearchParams({ limit: '40' });
+  const offset = p.resultOffset || 0;
+  const params = new URLSearchParams({
+    limit: String(PICKER_PAGE_SIZE),
+    offset: String(offset),
+  });
   if (p.q?.trim()) params.set('q', p.q.trim());
-  if (p.equipment.size) params.set('equipment', [...p.equipment].join(','));
+  const equipNorms = expandEquipmentGroupIds([...p.equipment]);
+  if (equipNorms.size) params.set('equipment', [...equipNorms].join(','));
   if (p.target.size) params.set('target', [...p.target].join(','));
   if (p.modality.size) params.set('modality', [...p.modality].join(','));
   if (p.diffMax != null) params.set('diffMax', String(p.diffMax));
@@ -526,6 +534,7 @@ function openPicker({ mode, dayIndex, exIndex = null }) {
   state.picker = {
     open: true, mode, dayIndex, exIndex,
     q: '', equipment: new Set(), target: new Set(), modality: new Set(), diffMax: null,
+    resultOffset: 0, accumulated: [], total: 0, hasMore: false, loadingMore: false,
   };
   const panel = modal.querySelector('.fcp-editor-panel');
   const searchInput = el('input', {
@@ -649,7 +658,7 @@ function renderPickerFilters(facets) {
 
   if (facets.equipment?.length) {
     const row = el('div', { class: 'fcp-picker-filter-row' }, el('span', { class: 'fcp-picker-flabel', text: 'Оборудване' }));
-    for (const f of facets.equipment.slice(0, 14)) {
+    for (const f of facets.equipment || []) {
       row.append(makePickerChip(`${f.label} (${f.count})`, p.equipment.has(f.value), (e) => {
         toggleSetValue(p.equipment, f.value);
         e.currentTarget.classList.toggle('active');
@@ -669,7 +678,7 @@ function renderPickerFilters(facets) {
 
   if (facets.target?.length) {
     const row = el('div', { class: 'fcp-picker-filter-row' }, el('span', { class: 'fcp-picker-flabel', text: 'Мускулна група' }));
-    for (const f of facets.target.slice(0, 20)) {
+    for (const f of facets.target || []) {
       row.append(makePickerChip(`${f.label} (${f.count})`, p.target.has(f.value), (e) => {
         toggleSetValue(p.target, f.value);
         e.currentTarget.classList.toggle('active');
@@ -690,6 +699,46 @@ function toggleSetValue(set, value) {
 }
 
 async function runPickerSearch() {
+  if (!state?.picker) return;
+  state.picker.resultOffset = 0;
+  state.picker.accumulated = [];
+  state.picker.total = 0;
+  state.picker.hasMore = false;
+  state.picker.loadingMore = false;
+  await fetchPickerPage(false);
+}
+
+function bindPickerScroll() {
+  const box = $('#fcpPickerResults');
+  if (!box || box.dataset.scrollBound) return;
+  box.dataset.scrollBound = '1';
+  box.addEventListener('scroll', onPickerResultsScroll, { passive: true });
+}
+
+function onPickerResultsScroll() {
+  const box = $('#fcpPickerResults');
+  const p = state?.picker;
+  if (!box || !p?.hasMore || p.loadingMore) return;
+  if (box.scrollTop + box.clientHeight >= box.scrollHeight - 96) {
+    loadMorePickerResults();
+  }
+}
+
+async function loadMorePickerResults() {
+  const p = state?.picker;
+  if (!p || p.loadingMore || !p.hasMore) return;
+  p.loadingMore = true;
+  p.resultOffset = p.accumulated.length;
+  const sentinel = $('#fcpPickerLoadMore');
+  if (sentinel) sentinel.textContent = 'Зареждане…';
+  try {
+    await fetchPickerPage(true);
+  } finally {
+    p.loadingMore = false;
+  }
+}
+
+async function fetchPickerPage(append) {
   const results = $('#fcpPickerResults');
   if (!results || !state?.picker) return;
   const p = state.picker;
@@ -698,21 +747,27 @@ async function runPickerSearch() {
 
   updateClearFiltersBtn();
 
-  if (searchCache.has(cacheKey)) {
+  if (!append && p.resultOffset === 0 && searchCache.has(cacheKey)) {
     const cached = searchCache.get(cacheKey);
     if (needsFacets && cached.facets) {
       facetsCache = cached.facets;
       persistFacets();
       renderPickerFilters(facetsCache);
     }
-    renderPickerResults(cached.results || [], cached.total);
+    p.accumulated = cached.results || [];
+    p.total = cached.total ?? p.accumulated.length;
+    p.hasMore = p.accumulated.length < p.total;
+    renderPickerResults(p.accumulated, p.total);
+    bindPickerScroll();
     return;
   }
 
   searchAbort?.abort();
   searchAbort = new AbortController();
   const seq = ++searchSeq;
-  results.innerHTML = '<p class="fcp-picker-empty"><i class="fas fa-spinner fa-spin"></i> Търсене…</p>';
+  if (!append) {
+    results.innerHTML = '<p class="fcp-picker-empty"><i class="fas fa-spinner fa-spin"></i> Търсене…</p>';
+  }
 
   try {
     const res = await fetch(`${apiBase()}/api/exercises/search?${cacheKey}`, { signal: searchAbort.signal });
@@ -726,16 +781,26 @@ async function runPickerSearch() {
       renderPickerFilters(facetsCache);
     }
 
-    if (searchCache.size >= SEARCH_CACHE_MAX) {
-      searchCache.delete(searchCache.keys().next().value);
-    }
-    searchCache.set(cacheKey, { results: data.results || [], total: data.total, facets: data.facets || null });
+    const pageResults = data.results || [];
+    p.accumulated = append ? [...p.accumulated, ...pageResults] : pageResults;
+    p.total = data.total ?? p.accumulated.length;
+    p.hasMore = p.accumulated.length < p.total;
 
-    renderPickerResults(data.results || [], data.total);
+    if (!append && p.resultOffset === 0) {
+      if (searchCache.size >= SEARCH_CACHE_MAX) {
+        searchCache.delete(searchCache.keys().next().value);
+      }
+      searchCache.set(cacheKey, { results: pageResults, total: p.total, facets: data.facets || null });
+    }
+
+    renderPickerResults(p.accumulated, p.total);
+    bindPickerScroll();
   } catch (e) {
     if (e.name === 'AbortError') return;
     if (seq !== searchSeq) return;
-    results.innerHTML = `<p class="fcp-picker-empty">Грешка: ${escapeHtml(e.message)}</p>`;
+    if (!append) {
+      results.innerHTML = `<p class="fcp-picker-empty">Грешка: ${escapeHtml(e.message)}</p>`;
+    }
   }
 }
 
@@ -762,11 +827,18 @@ function renderPickerResults(items, total) {
         el('div', { class: 'fcp-picker-row-sub', text: item.name }),
         el('div', { class: 'fcp-picker-badges' },
           el('span', { class: 'fcp-picker-badge', text: `d${item.diff ?? 2}` }),
-          item.equipment ? el('span', { class: 'fcp-picker-badge', text: item.equipment }) : null,
+          item.equipment ? el('span', { class: 'fcp-picker-badge', text: localizeEquipment(item.equipment) || item.equipment }) : null,
           item.target ? el('span', { class: 'fcp-picker-badge', text: item.target }) : null,
         ),
       ),
     ));
+  }
+  if (state?.picker?.hasMore) {
+    results.append(el('p', {
+      class: 'fcp-picker-load-more',
+      id: 'fcpPickerLoadMore',
+      text: state.picker.loadingMore ? 'Зареждане…' : 'Превърти за още…',
+    }));
   }
 }
 

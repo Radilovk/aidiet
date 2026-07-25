@@ -130,11 +130,11 @@ test('searchExerciseIndex: пагинация (limit/offset)', () => {
   assert.equal(page2.results.length, 1);
 });
 
-test('computeExerciseFacets: брой + BG етикет по оборудване/target', () => {
+test('computeExerciseFacets: групирано оборудване + BG етикет', () => {
   const facets = computeExerciseFacets(SEARCH_INDEX);
   const barbell = facets.equipment.find((e) => e.value === 'barbell');
   assert.equal(barbell.count, 2);
-  assert.equal(barbell.label, 'щанга');
+  assert.equal(barbell.label, 'Щанга и лостове');
   const glutes = facets.target.find((t) => t.value === 'glutes');
   assert.equal(glutes.count, 1);
 });

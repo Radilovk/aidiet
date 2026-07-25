@@ -5,6 +5,7 @@
 import { normalizeText, tokenize, tokenOverlapScore } from './normalize.js';
 import { expandSearchTokens } from './exercise-synonyms.js';
 import { localizeEquipment, localizeTarget } from './exercise-labels-bg.js';
+import { equipmentGroupForNorm, EQUIPMENT_GROUPS } from './equipment-groups.js';
 
 /** @typedef {{ gender?: string, experience?: string }} AnswersInput */
 /** @typedef {{ isFemale: boolean, isMale: boolean, maxDiff: number, minGf: number, minGm: number }} ExerciseProfileFilter */
@@ -457,16 +458,23 @@ export function searchExerciseIndex(index, options = {}) {
   };
 }
 
-/** Facets (равностойности + брой) за филтър dropdown-ите в admin picker-а. */
+/** Facets (групирано оборудване + target) за admin picker. */
 export function computeExerciseFacets(index) {
   const equipment = new Map();
   const target = new Map();
+  const groupOrder = new Map(EQUIPMENT_GROUPS.map((g, i) => [g.id, i]));
   for (const entry of index || []) {
     if (entry.equipNorm) {
-      if (!equipment.has(entry.equipNorm)) {
-        equipment.set(entry.equipNorm, { value: entry.equipNorm, label: localizeEquipment(entry.equipment) || entry.equipment, count: 0 });
+      const group = equipmentGroupForNorm(entry.equipNorm);
+      const key = group?.id || entry.equipNorm;
+      if (!equipment.has(key)) {
+        equipment.set(key, {
+          value: key,
+          label: group?.label || localizeEquipment(entry.equipment) || entry.equipment,
+          count: 0,
+        });
       }
-      equipment.get(entry.equipNorm).count++;
+      equipment.get(key).count++;
     }
     if (entry.targetNorm) {
       if (!target.has(entry.targetNorm)) {
@@ -476,8 +484,14 @@ export function computeExerciseFacets(index) {
     }
   }
   const byCount = (a, b) => b.count - a.count;
+  const sortEquipment = (a, b) => {
+    const oa = groupOrder.has(a.value) ? groupOrder.get(a.value) : 999;
+    const ob = groupOrder.has(b.value) ? groupOrder.get(b.value) : 999;
+    if (oa !== ob) return oa - ob;
+    return byCount(a, b);
+  };
   return {
-    equipment: [...equipment.values()].sort(byCount),
+    equipment: [...equipment.values()].sort(sortEquipment),
     target: [...target.values()].sort(byCount),
   };
 }
