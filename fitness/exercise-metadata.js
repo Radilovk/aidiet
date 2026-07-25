@@ -5,7 +5,7 @@
 import { normalizeText, tokenize, tokenOverlapScore } from './normalize.js';
 import { expandSearchTokens } from './exercise-synonyms.js';
 import { localizeEquipment, localizeTarget } from './exercise-labels-bg.js';
-import { equipmentGroupForNorm, EQUIPMENT_GROUPS } from './equipment-groups.js';
+import { equipmentGroupIdForEntry, EQUIPMENT_GROUPS, buildVirtualEquipmentFacets } from './equipment-groups.js';
 
 /** @typedef {{ gender?: string, experience?: string }} AnswersInput */
 /** @typedef {{ isFemale: boolean, isMale: boolean, maxDiff: number, minGf: number, minGm: number }} ExerciseProfileFilter */
@@ -462,19 +462,21 @@ export function searchExerciseIndex(index, options = {}) {
 export function computeExerciseFacets(index) {
   const equipment = new Map();
   const target = new Map();
+  const countsByGroupId = {};
   const groupOrder = new Map(EQUIPMENT_GROUPS.map((g, i) => [g.id, i]));
   for (const entry of index || []) {
-    if (entry.equipNorm) {
-      const group = equipmentGroupForNorm(entry.equipNorm);
-      const key = group?.id || entry.equipNorm;
-      if (!equipment.has(key)) {
-        equipment.set(key, {
-          value: key,
+    const groupId = equipmentGroupIdForEntry(entry);
+    if (groupId) {
+      countsByGroupId[groupId] = (countsByGroupId[groupId] || 0) + 1;
+      if (!equipment.has(groupId)) {
+        const group = EQUIPMENT_GROUPS.find((g) => g.id === groupId);
+        equipment.set(groupId, {
+          value: groupId,
           label: group?.label || localizeEquipment(entry.equipment) || entry.equipment,
           count: 0,
         });
       }
-      equipment.get(key).count++;
+      equipment.get(groupId).count++;
     }
     if (entry.targetNorm) {
       if (!target.has(entry.targetNorm)) {
@@ -485,13 +487,19 @@ export function computeExerciseFacets(index) {
   }
   const byCount = (a, b) => b.count - a.count;
   const sortEquipment = (a, b) => {
+    if (a.value === 'equipment_rig') return -1;
+    if (b.value === 'equipment_rig') return 1;
     const oa = groupOrder.has(a.value) ? groupOrder.get(a.value) : 999;
     const ob = groupOrder.has(b.value) ? groupOrder.get(b.value) : 999;
     if (oa !== ob) return oa - ob;
     return byCount(a, b);
   };
+  const equipmentFacets = [...equipment.values()].sort(sortEquipment);
+  for (const virtual of buildVirtualEquipmentFacets(countsByGroupId)) {
+    equipmentFacets.unshift(virtual);
+  }
   return {
-    equipment: [...equipment.values()].sort(sortEquipment),
+    equipment: equipmentFacets,
     target: [...target.values()].sort(byCount),
   };
 }
