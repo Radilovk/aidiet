@@ -12,6 +12,7 @@
     "translate:exercises": "node scripts/translate-exercises.mjs",
     "classify:exercises": "node scripts/classify-exercises.mjs",
     "build:index": "node scripts/build-exercise-index.mjs",
+    "build:apparatus": "node scripts/build-apparatus-catalog.mjs",
     "test": "node --test"
   },
   "keywords": ["ai", "fitness", "workout", "cloudflare-workers", "gemini"],

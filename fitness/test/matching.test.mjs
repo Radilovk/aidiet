@@ -283,7 +283,7 @@ test('allowedEquipmentSet: Друго/свободен текст → EN hint т
 });
 
 test('allowedEquipmentSet: избрани конкретни уреди от picker', () => {
-  const set = allowedEquipmentSet(['Посочи конкретни уреди'], ['leg_press', 'chest_press']);
+  const set = allowedEquipmentSet(['Посочи конкретни уреди'], ['0739', '0577']);
   assert.ok(set.has('sled machine'));
   assert.ok(set.has('leverage machine'));
   assert.ok(!set.has('dumbbell'));
@@ -658,7 +658,7 @@ test('auditPlanExercises: извън избрани уреди и maxDiff → п
   };
   const issues = auditPlanExercises(plan, {
     allowedEquipment: new Set(['body weight', 'leverage machine', 'sled machine']),
-    pickedApparatus: ['leg_press'],
+    pickedApparatus: ['0739'],
     exerciseProfile: profile,
     index,
   });
