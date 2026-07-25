@@ -8,6 +8,7 @@ import { normalizeText } from '../normalize.js';
 import { localizeExerciseDisplayName } from '../exercise-labels-bg.js';
 import {
   CARDIO_TRAINER_NORMS,
+  EQUIP_NORM_LABELS,
   STRENGTH_MACHINE_NORMS,
 } from '../equipment-groups.js';
 
@@ -15,6 +16,8 @@ const INDEX_PATH = new URL('../data/exercise-index.json', import.meta.url);
 const OUT_PATH = new URL('../data/equipment-apparatus-catalog.json', import.meta.url);
 
 const CARDIO_LEVERAGE_NAME_RE = /treadmill|elliptical|cross trainer|stationary bike|cycle cross|stepmill|skierg|ergometer|rowing machine/i;
+const EQUIP_PREFIX_RE = /^(lever|leverage|cable|smith|sled|assisted|band)\s+/i;
+const META_SUFFIX_RE = /\s*\((male|female|back pov|side pov|front pov)\)\s*/gi;
 
 const APPARATUS_EQUIP_NORMS = new Set([
   'cable',
@@ -56,10 +59,26 @@ function muscleForTarget(targetNorm) {
   return TARGET_TO_MUSCLE[targetNorm] || 'general';
 }
 
+function equipLabel(equipNorm) {
+  return EQUIP_NORM_LABELS[equipNorm] || equipNorm;
+}
+
+function nameHint(name) {
+  return String(name || '')
+    .replace(META_SUFFIX_RE, ' ')
+    .replace(EQUIP_PREFIX_RE, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function baseLabelFor(entry) {
+  if (entry.nameBg?.trim()) return entry.nameBg.trim();
+  return localizeExerciseDisplayName(entry.name, '', entry.equipment);
+}
+
 function isApparatusExercise(entry) {
   const equip = entry?.equipNorm;
-  if (!equip || !APPARATUS_EQUIP_NORMS.has(equip)) return false;
-  return true;
+  return Boolean(equip && APPARATUS_EQUIP_NORMS.has(equip));
 }
 
 async function main() {
@@ -69,22 +88,36 @@ async function main() {
     process.exit(1);
   }
 
-  const catalog = index
-    .filter(isApparatusExercise)
-    .map((entry) => ({
+  const raw = index.filter(isApparatusExercise).map((entry) => ({
+    entry,
+    label: baseLabelFor(entry),
+  }));
+
+  const labelCounts = new Map();
+  for (const { label } of raw) labelCounts.set(label, (labelCounts.get(label) || 0) + 1);
+
+  const catalog = raw.map(({ entry, label }) => {
+    const hint = nameHint(entry.name);
+    const eq = equipLabel(entry.equipNorm);
+    const subtitle = labelCounts.get(label) > 1 ? `${eq} · ${hint}` : eq;
+    return {
       id: String(entry.id),
       name: entry.name,
       nameNorm: entry.nameNorm || normalizeText(entry.name),
-      label: (entry.nameBg && entry.nameBg.trim())
-        ? entry.nameBg.trim()
-        : localizeExerciseDisplayName(entry.name, '', entry.equipment),
+      label,
+      subtitle,
       equipNorm: entry.equipNorm,
+      equipLabel: eq,
       targetNorm: entry.targetNorm || '',
       category: categoryForEntry(entry),
       muscle: muscleForTarget(entry.targetNorm),
       tokens: entry.tokens || [],
-    }))
-    .sort((a, b) => a.label.localeCompare(b.label, 'bg'));
+    };
+  }).sort((a, b) => {
+    const byLabel = a.label.localeCompare(b.label, 'bg');
+    if (byLabel) return byLabel;
+    return a.subtitle.localeCompare(b.subtitle, 'bg');
+  });
 
   await writeFile(OUT_PATH, JSON.stringify(catalog));
 

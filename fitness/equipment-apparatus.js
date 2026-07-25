@@ -25,6 +25,16 @@ export const APPARATUS_MUSCLES = [
   { id: 'general', label: 'Многоцелеви' },
 ];
 
+export const APPARATUS_EQUIP_TYPES = [
+  { id: 'all', label: 'Всички уреди' },
+  { id: 'leverage machine', label: 'Силова машина' },
+  { id: 'cable', label: 'Кабел / скрипец' },
+  { id: 'smith machine', label: 'Смит' },
+  { id: 'sled machine', label: 'Преса / шейна' },
+  { id: 'assisted', label: 'С асистенция' },
+  { id: 'cardio', label: 'Кардио тренажор' },
+];
+
 const MUSCLE_BY_ID = new Map(APPARATUS_MUSCLES.map((m) => [m.id, m.label]));
 const CATEGORY_BY_ID = new Map(APPARATUS_CATEGORIES.map((c) => [c.id, c.label]));
 
@@ -39,6 +49,25 @@ function coreTokens(tokens = []) {
   return tokens.filter((t) => t.length > 1 && !MATCH_STOPWORDS.has(t));
 }
 
+function matchesEquipFilter(item, equip) {
+  if (!equip || equip === 'all') return true;
+  if (equip === 'cardio') return item.category === 'cardio';
+  return item.equipNorm === equip;
+}
+
+function searchHaystack(item) {
+  return tokenize([
+    item.label,
+    item.subtitle,
+    item.name,
+    item.nameNorm,
+    item.equipLabel,
+    item.equipNorm,
+    MUSCLE_BY_ID.get(item.muscle),
+    CATEGORY_BY_ID.get(item.category),
+  ].filter(Boolean).join(' '));
+}
+
 export function apparatusLabel(id) {
   return BY_ID.get(id)?.label || id;
 }
@@ -51,15 +80,35 @@ export function categoryLabel(id) {
   return CATEGORY_BY_ID.get(id) || id;
 }
 
-export function searchApparatus({ query = '', category = 'all', muscle = 'all' } = {}) {
+export function searchApparatus({
+  query = '',
+  category = 'all',
+  muscle = 'all',
+  equip = 'all',
+} = {}) {
   const tokens = expandSearchTokens(query);
   return GYM_APPARATUS.filter((a) => {
     if (category && category !== 'all' && a.category !== category) return false;
     if (muscle && muscle !== 'all' && a.muscle !== muscle) return false;
+    if (!matchesEquipFilter(a, equip)) return false;
     if (!tokens.length) return true;
-    const hay = tokenize(`${a.label} ${a.name} ${a.nameNorm} ${MUSCLE_BY_ID.get(a.muscle) || ''} ${CATEGORY_BY_ID.get(a.category) || ''}`);
-    return tokenOverlapScore(tokens, hay) > 0;
+    return tokenOverlapScore(tokens, searchHaystack(a)) > 0;
   });
+}
+
+export function computeApparatusFacets(items = GYM_APPARATUS) {
+  const category = new Map();
+  const muscle = new Map();
+  const equip = new Map();
+
+  for (const item of items) {
+    category.set(item.category, (category.get(item.category) || 0) + 1);
+    muscle.set(item.muscle, (muscle.get(item.muscle) || 0) + 1);
+    const equipKey = item.category === 'cardio' ? 'cardio' : item.equipNorm;
+    equip.set(equipKey, (equip.get(equipKey) || 0) + 1);
+  }
+
+  return { category, muscle, equip };
 }
 
 export function groupApparatusByMuscle(items) {
@@ -72,6 +121,18 @@ export function groupApparatusByMuscle(items) {
   return order
     .filter((id) => groups.has(id))
     .map((id) => ({ id, label: MUSCLE_BY_ID.get(id), items: groups.get(id) }));
+}
+
+export function groupApparatusByCategory(items) {
+  const order = APPARATUS_CATEGORIES.filter((c) => c.id !== 'all').map((c) => c.id);
+  const groups = new Map();
+  for (const item of items) {
+    if (!groups.has(item.category)) groups.set(item.category, []);
+    groups.get(item.category).push(item);
+  }
+  return order
+    .filter((id) => groups.has(id))
+    .map((id) => ({ id, label: CATEGORY_BY_ID.get(id), items: groups.get(id) }));
 }
 
 export function exerciseMatchesApparatus(entry, apparatusId) {
@@ -103,8 +164,12 @@ export function expandApparatusIds(pickedIds) {
   for (const id of pickedIds || []) {
     const item = BY_ID.get(id);
     if (!item) continue;
-    labels.push(item.label);
+    labels.push(item.subtitle ? `${item.label} (${item.subtitle})` : item.label);
     if (item.equipNorm) equipHints.add(item.equipNorm);
   }
   return { equipHints, labels };
+}
+
+export function apparatusById(id) {
+  return BY_ID.get(id) || null;
 }

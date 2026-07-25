@@ -1,11 +1,15 @@
 /**
  * Избор на конкретни уреди/станции — въпросник (app / консултация / админ).
+ * Клиентски каталог — без бекенд заявки.
  */
 import {
   APPARATUS_CATEGORIES,
+  APPARATUS_EQUIP_TYPES,
   APPARATUS_MUSCLES,
   GYM_APPARATUS,
+  apparatusById,
   categoryLabel,
+  computeApparatusFacets,
   groupApparatusByMuscle,
   muscleLabel,
   searchApparatus,
@@ -26,17 +30,32 @@ function el(tag, props = {}, ...children) {
   return node;
 }
 
-function makeFilterRow(label, options, activeId, onPick) {
+function debounce(fn, ms = 140) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), ms);
+  };
+}
+
+function makeChip(label, active, onPick, count) {
+  const text = count != null ? `${label} (${count})` : label;
+  return el('button', {
+    type: 'button',
+    class: `equip-picker-filter${active ? ' active' : ''}`,
+    text,
+    onclick: (e) => { e.stopPropagation(); onPick(); },
+  });
+}
+
+function makeFilterRow(label, options, activeId, counts, onPick) {
   const row = el('div', { class: 'equip-picker-filter-row' });
   row.append(el('span', { class: 'equip-picker-filter-label', text: label }));
   const chips = el('div', { class: 'equip-picker-filters' });
   for (const opt of options) {
-    chips.append(el('button', {
-      type: 'button',
-      class: `equip-picker-filter${activeId === opt.id ? ' active' : ''}`,
-      text: opt.label,
-      onclick: (e) => { e.stopPropagation(); onPick(opt.id); },
-    }));
+    const count = opt.id === 'all' ? null : counts?.get(opt.id);
+    if (opt.id !== 'all' && count === 0) continue;
+    chips.append(makeChip(opt.label, activeId === opt.id, () => onPick(opt.id), count));
   }
   row.append(chips);
   return row;
@@ -53,6 +72,9 @@ function renderItem(item, picked, onToggle) {
     el('span', { class: 'equip-picker-check', text: active ? '✓' : '' }),
     el('span', { class: 'equip-picker-item-body' },
       el('span', { class: 'equip-picker-item-label', text: item.label }),
+      item.subtitle
+        ? el('span', { class: 'equip-picker-item-sub', text: item.subtitle })
+        : null,
       el('span', { class: 'equip-picker-item-meta' },
         el('span', { class: 'equip-picker-badge', text: muscleLabel(item.muscle) }),
         el('span', { class: 'equip-picker-badge equip-picker-badge-muted', text: categoryLabel(item.category) }),
@@ -62,41 +84,91 @@ function renderItem(item, picked, onToggle) {
   return row;
 }
 
-/** @param {HTMLElement} container */
-export function mountEquipmentSelect(container, { selected, onChange }) {
-  const picked = selected instanceof Set ? selected : new Set(selected || []);
+function defaultCollapsed() {
+  const collapsed = new Set();
+  for (const m of APPARATUS_MUSCLES) {
+    if (m.id !== 'all') collapsed.add(m.id);
+  }
+  return collapsed;
+}
+
+/**
+ * @param {HTMLElement} container
+ * @param {{ getSelected?: () => string[], selected?: string[], onChange?: (ids: string[]) => void }} opts
+ */
+export function createEquipmentSelect(container, { getSelected, selected, onChange } = {}) {
+  const picked = new Set(getSelected?.() || selected || []);
   let category = 'all';
   let muscle = 'all';
+  let equip = 'all';
   let q = '';
+  const collapsed = defaultCollapsed();
+  const facets = computeApparatusFacets();
 
   container.classList.add('equip-picker');
   container.innerHTML = '';
 
+  const sticky = el('div', { class: 'equip-picker-sticky' });
   const head = el('div', { class: 'equip-picker-head' });
   const meta = el('p', { class: 'equip-picker-meta' });
-  head.append(meta);
+  const actions = el('div', { class: 'equip-picker-actions' });
+  head.append(meta, actions);
 
   const toolbar = el('div', { class: 'equip-picker-toolbar' });
   const search = el('input', {
     type: 'search',
     class: 'equip-picker-search',
-    placeholder: 'Търси уред, зона или тип…',
+    placeholder: 'Търси уред, мускул, кабел, преса…',
     autocomplete: 'off',
     onclick: (e) => e.stopPropagation(),
     onkeydown: (e) => e.stopPropagation(),
-    oninput: (e) => { q = e.target.value; paintList(); paintMeta(); },
+    oninput: debounce((e) => { q = e.target.value; paintList(); paintMeta(); }),
   });
 
   const selectedHost = el('div', { class: 'equip-picker-selected' });
   const scroll = el('div', { class: 'equip-picker-scroll' });
 
-  container.append(head, toolbar, search, selectedHost, scroll);
+  sticky.append(head, toolbar, search, selectedHost);
+  container.append(sticky, scroll);
+
+  const visibleItems = () => searchApparatus({ query: q, category, muscle, equip });
 
   const paintMeta = () => {
-    const visible = searchApparatus({ query: q, category, muscle });
+    const visible = visibleItems();
     const parts = [`${visible.length} от ${GYM_APPARATUS.length} уреда`];
     if (picked.size) parts.push(`${picked.size} избрани`);
     meta.textContent = parts.join(' · ');
+    actions.innerHTML = '';
+    if (visible.length) {
+      actions.append(el('button', {
+        type: 'button',
+        class: 'equip-picker-action',
+        text: 'Избери видимите',
+        onclick: (e) => {
+          e.stopPropagation();
+          for (const item of visible) picked.add(item.id);
+          onChange?.([...picked]);
+          paintSelected();
+          paintList();
+          paintMeta();
+        },
+      }));
+    }
+    if (picked.size) {
+      actions.append(el('button', {
+        type: 'button',
+        class: 'equip-picker-action equip-picker-action-muted',
+        text: 'Изчисти всички',
+        onclick: (e) => {
+          e.stopPropagation();
+          picked.clear();
+          onChange?.([]);
+          paintSelected();
+          paintList();
+          paintMeta();
+        },
+      }));
+    }
   };
 
   const paintSelected = () => {
@@ -107,11 +179,13 @@ export function mountEquipmentSelect(container, { selected, onChange }) {
     }
     selectedHost.hidden = false;
     for (const id of picked) {
-      const item = BY_ID_SAFE(id);
+      const item = apparatusById(id);
+      const chipText = item?.subtitle ? `${item.label} · ${item.subtitle}` : (item?.label || id);
       selectedHost.append(el('button', {
         type: 'button',
         class: 'equip-picker-sel-chip',
-        text: `${item?.label || id} ×`,
+        text: `${chipText} ×`,
+        title: 'Премахни',
         onclick: (e) => {
           e.stopPropagation();
           picked.delete(id);
@@ -127,13 +201,19 @@ export function mountEquipmentSelect(container, { selected, onChange }) {
   const paintToolbar = () => {
     toolbar.innerHTML = '';
     toolbar.append(
-      makeFilterRow('Тип', APPARATUS_CATEGORIES, category, (id) => {
+      makeFilterRow('Тип уред', APPARATUS_CATEGORIES, category, facets.category, (id) => {
         category = id;
         paintList();
         paintMeta();
         paintToolbar();
       }),
-      makeFilterRow('Мускулна група', APPARATUS_MUSCLES, muscle, (id) => {
+      makeFilterRow('Конкретен уред', APPARATUS_EQUIP_TYPES, equip, facets.equip, (id) => {
+        equip = id;
+        paintList();
+        paintMeta();
+        paintToolbar();
+      }),
+      makeFilterRow('Мускулна група', APPARATUS_MUSCLES, muscle, facets.muscle, (id) => {
         muscle = id;
         paintList();
         paintMeta();
@@ -144,11 +224,29 @@ export function mountEquipmentSelect(container, { selected, onChange }) {
 
   const paintList = () => {
     const focusSearch = document.activeElement === search;
-    const visible = searchApparatus({ query: q, category, muscle });
+    const visible = visibleItems();
     scroll.innerHTML = '';
 
     if (!visible.length) {
-      scroll.append(el('p', { class: 'equip-picker-empty', text: 'Няма съвпадение с филтрите.' }));
+      scroll.append(el('div', { class: 'equip-picker-empty-wrap' },
+        el('p', { class: 'equip-picker-empty', text: 'Няма съвпадение с филтрите.' }),
+        el('button', {
+          type: 'button',
+          class: 'equip-picker-action',
+          text: 'Нулирай филтрите',
+          onclick: (e) => {
+            e.stopPropagation();
+            category = 'all';
+            muscle = 'all';
+            equip = 'all';
+            q = '';
+            search.value = '';
+            paintToolbar();
+            paintList();
+            paintMeta();
+          },
+        }),
+      ));
       if (focusSearch) search.focus();
       return;
     }
@@ -162,23 +260,36 @@ export function mountEquipmentSelect(container, { selected, onChange }) {
       paintMeta();
     };
 
-    const grouped = (category === 'all' && muscle === 'all' && !q.trim())
-      ? groupApparatusByMuscle(visible)
-      : null;
+    const filtered = category !== 'all' || muscle !== 'all' || equip !== 'all' || q.trim();
+    const groups = groupApparatusByMuscle(visible);
 
-    if (grouped?.length) {
-      for (const group of grouped) {
-        const block = el('section', { class: 'equip-picker-group' });
-        block.append(el('h4', { class: 'equip-picker-group-title', text: group.label }));
+    for (const group of groups) {
+      const isCollapsed = filtered ? false : collapsed.has(group.id);
+      const section = el('section', { class: `equip-picker-group${isCollapsed ? ' collapsed' : ''}` });
+      const titleBtn = el('button', {
+        type: 'button',
+        class: 'equip-picker-group-title',
+        onclick: (e) => {
+          e.stopPropagation();
+          if (filtered) return;
+          if (collapsed.has(group.id)) collapsed.delete(group.id);
+          else collapsed.add(group.id);
+          paintList();
+        },
+      });
+      titleBtn.append(
+        el('span', { class: 'equip-picker-group-chevron', text: isCollapsed ? '▸' : '▾' }),
+        el('span', { class: 'equip-picker-group-name', text: group.label }),
+        el('span', { class: 'equip-picker-group-count', text: String(group.items.length) }),
+      );
+      section.append(titleBtn);
+
+      if (!isCollapsed) {
         const grid = el('div', { class: 'equip-picker-grid' });
         for (const item of group.items) grid.append(renderItem(item, picked, toggle));
-        block.append(grid);
-        scroll.append(block);
+        section.append(grid);
       }
-    } else {
-      const grid = el('div', { class: 'equip-picker-grid' });
-      for (const item of visible) grid.append(renderItem(item, picked, toggle));
-      scroll.append(grid);
+      scroll.append(section);
     }
 
     if (focusSearch) search.focus();
@@ -188,8 +299,30 @@ export function mountEquipmentSelect(container, { selected, onChange }) {
   paintSelected();
   paintList();
   paintMeta();
+
+  return {
+    attach(next) {
+      if (!next || next === container) return;
+      next.classList.add('equip-picker');
+      next.innerHTML = '';
+      next.append(sticky, scroll);
+      container = next;
+    },
+    syncSelection(ids = []) {
+      picked.clear();
+      for (const id of ids) picked.add(id);
+      paintSelected();
+      paintList();
+      paintMeta();
+    },
+    destroy() {
+      container.innerHTML = '';
+      container.classList.remove('equip-picker');
+    },
+  };
 }
 
-function BY_ID_SAFE(id) {
-  return GYM_APPARATUS.find((a) => a.id === id);
+/** @deprecated prefer createEquipmentSelect */
+export function mountEquipmentSelect(container, opts) {
+  return createEquipmentSelect(container, opts);
 }

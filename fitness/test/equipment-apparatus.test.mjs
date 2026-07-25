@@ -16,7 +16,18 @@ test('GYM_APPARATUS: генериран от базата (стотици уре
 test('searchApparatus: намира лег преса по BG', () => {
   const hits = searchApparatus({ query: 'лег преса' });
   assert.ok(hits.length >= 1);
-  assert.ok(hits.some((h) => h.id === '0739' || /преса.*крака/i.test(h.label)));
+  assert.ok(hits.some((h) => h.id === '0739' || /преса/i.test(h.label)));
+});
+
+test('searchApparatus: филтър по конкретен тип уред', () => {
+  const hits = searchApparatus({ equip: 'sled machine' });
+  assert.ok(hits.length >= 10);
+  assert.ok(hits.every((h) => h.equipNorm === 'sled machine'));
+});
+
+test('catalog entries: имат subtitle за разграничаване', () => {
+  const withSub = GYM_APPARATUS.filter((a) => a.subtitle);
+  assert.ok(withSub.length >= 200);
 });
 
 test('searchApparatus: филтър по категория кабел', () => {

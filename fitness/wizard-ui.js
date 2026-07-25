@@ -2,7 +2,7 @@
  * Споделен UI за KA-TRAINER въпросник (app + консултация).
  */
 import { fieldVisible } from './questions.js';
-import { mountEquipmentSelect } from './equipment-select.js';
+import { createEquipmentSelect } from './equipment-select.js';
 
 export function el(tag, props = {}, ...children) {
   const node = document.createElement(tag);
@@ -158,11 +158,16 @@ export function createWizardController({
         if (isActive && opt.equipmentPicker) {
           cardEl.classList.add('has-equip-picker');
           const pickerWrap = el('div', { class: 'equip-picker-wrap' });
-          mountEquipmentSelect(pickerWrap, {
-            selected: state.pickedItems || [],
-            onChange: (ids) => { state.pickedItems = ids; save(); },
-          });
           cardEl.append(pickerWrap);
+          if (!state._equipPicker) {
+            state._equipPicker = createEquipmentSelect(pickerWrap, {
+              getSelected: () => state.pickedItems || [],
+              onChange: (ids) => { state.pickedItems = ids; save(); },
+            });
+          } else {
+            state._equipPicker.attach(pickerWrap);
+            state._equipPicker.syncSelection(state.pickedItems || []);
+          }
         }
 
         const toggle = () => {
