@@ -65,6 +65,9 @@ export const EQUIP_NORM_LABELS = {
   tire: 'гума',
 };
 
+const machineGroup = EQUIPMENT_GROUPS.find((g) => g.id === 'machine');
+const cableGroup = EQUIPMENT_GROUPS.find((g) => g.id === 'cable');
+
 /** BG въпросник → EN equipNorm (null = без филтър). */
 export const QUESTIONNAIRE_EQUIPMENT_MAP = {
   'пълно оборудване на зала': null,
@@ -72,6 +75,8 @@ export const QUESTIONNAIRE_EQUIPMENT_MAP = {
   'дъмбели': ['dumbbell'],
   'дъмбели / гирички': ['dumbbell'],
   'щанга и дискове': ['barbell', 'ez barbell', 'olympic barbell', 'trap bar'],
+  'кабели / скрипец': [...(cableGroup?.norms || ['cable'])],
+  'машини': [...(machineGroup?.norms || [])],
   'пудовка': ['kettlebell'],
   'гира': ['kettlebell'],
   'ластици': ['band', 'resistance band'],

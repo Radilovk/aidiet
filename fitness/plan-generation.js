@@ -393,13 +393,13 @@ export function constraintsFromAnswers(answers, exampleScheme = '', options = {}
 
 const ADMIN_EQUIPMENT_HINTS = [
   { keys: ['скрипец', 'pulley', 'кабел', 'cable'], hints: ['cable'] },
-  { keys: ['гирич', 'дъмбел', 'dumbbell', 'гири '], hints: ['dumbbell'] },
+  { keys: ['гирич', 'дъмбел', 'dumbbell', 'гири ', 'гира'], hints: ['dumbbell'] },
   { keys: ['лост', 'щанг', 'barbell', 'ez'], hints: ['barbell', 'ez barbell'] },
   { keys: ['машин', 'аддуктор', 'абдуктор', 'leg press', 'преса', 'смит', 'smith', 'сани', 'sled'], hints: ['leverage machine', 'smith machine', 'sled machine'] },
   { keys: ['степ', 'блокче'], hints: ['body weight'] },
   { keys: ['ластик', 'band', 'резист'], hints: ['band'] },
   { keys: ['пудовк', 'kettlebell'], hints: ['kettlebell'] },
-  { keys: ['гира'], hints: ['kettlebell'] },
+  { keys: ['гира'], hints: ['dumbbell'] },
   { keys: ['диск', 'plate', 'тежест'], hints: ['weighted'] },
   { keys: ['топка', 'ball'], hints: ['stability ball'] },
   { keys: ['trx', 'ремък', 'подвеск'], hints: ['body weight'] },

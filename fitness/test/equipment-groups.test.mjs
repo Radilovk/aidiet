@@ -23,7 +23,10 @@ test('expandEquipmentGroupIds: машини включват smith/sled/lever', 
   assert.ok(norms.has('leverage machine'));
 });
 
-test('QUESTIONNAIRE_EQUIPMENT_MAP: пудовка и legacy гира', () => {
+test('QUESTIONNAIRE_EQUIPMENT_MAP: пудовка, машини и кабел', () => {
   assert.deepEqual(QUESTIONNAIRE_EQUIPMENT_MAP['пудовка'], ['kettlebell']);
   assert.deepEqual(QUESTIONNAIRE_EQUIPMENT_MAP['гира'], ['kettlebell']);
+  assert.ok(QUESTIONNAIRE_EQUIPMENT_MAP['машини'].includes('leverage machine'));
+  assert.ok(QUESTIONNAIRE_EQUIPMENT_MAP['машини'].includes('smith machine'));
+  assert.deepEqual(QUESTIONNAIRE_EQUIPMENT_MAP['кабели / скрипец'], ['cable']);
 });
