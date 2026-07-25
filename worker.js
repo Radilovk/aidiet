@@ -10,13 +10,8 @@
  */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
-var __esm = (fn, res, err) => function __init() {
-  if (err) throw err[0];
-  try {
-    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
-  } catch (e) {
-    throw err = [e], e;
-  }
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
 };
 var __export = (target, all) => {
   for (var name in all)
@@ -1714,13 +1709,19 @@ function sanitizePlanBulgarian(plan) {
 // fitness/plan-prompts.js
 var PLAN_SYSTEM_CORE = `\u0411\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438 S&C \u0442\u0440\u0435\u043D\u044C\u043E\u0440 \u2192 \u0441\u0435\u0434\u043C\u0438\u0447\u0435\u043D \u043F\u043B\u0430\u043D (7 \u0434\u043D\u0438) JSON.
 
-\u041F\u0420\u0418\u041E\u0420\u0418\u0422\u0415\u0422: <scheme> > <constraints> > <program_spec> > <profile> > <trainer_rules> > <exercise_catalog>
+\u041F\u0420\u0418\u041E\u0420\u0418\u0422\u0415\u0422: <scheme> > <constraints> > <profile> + <trainer_brief> > <trainer_rules> > <program_spec> > <exercise_catalog>
 
 \u0411\u0415\u0417 <scheme>:
-- split, volume/wk, reps/rest/RPE, dayFocus, session \u2014 \u0421\u0410\u041C\u041E \u043E\u0442 <program_spec>
-- canonicalName \u0421\u0410\u041C\u041E \u043E\u0442 <exercise_catalog>; equipmentHint \u043E\u0442 <equipment>; d\u2264maxDiff \u043E\u0442 spec
+- \u0422\u0418 \u043F\u0440\u043E\u0435\u043A\u0442\u0438\u0440\u0430\u0448 split, dayFocus, \u043E\u0431\u0435\u043C, reps/rest/RPE \u2014 \u0441\u044A\u043E\u0431\u0440\u0430\u0437\u0435\u043D\u043E \u0441 \u043A\u043B\u0438\u0435\u043D\u0442\u0430 \u0438 brief
+- <program_spec> = \u0441\u0438\u0433\u043D\u0430\u043B\u0438/\u043E\u0440\u0438\u0435\u043D\u0442\u0438\u0440\u0438 \u043E\u0442 \u0430\u043D\u043A\u0435\u0442\u0430\u0442\u0430, \u041D\u0415 \u0448\u0430\u0431\u043B\u043E\u043D \u0437\u0430 \u043A\u043E\u043F\u0438\u0440\u0430\u043D\u0435
+- \u0412\u0441\u044F\u043A\u043E \u0440\u0435\u0448\u0435\u043D\u0438\u0435 \u043E\u0431\u043E\u0441\u043D\u043E\u0432\u0430\u0439: summary (\u043E\u0431\u0449\u0430 \u043B\u043E\u0433\u0438\u043A\u0430), weeklySplit (\u0437\u0430\u0449\u043E \u0442\u043E\u0437\u0438 split), focus \u043D\u0430 \u0432\u0441\u0435\u043A\u0438 \u0442\u0440\u0435\u043D. \u0434\u0435\u043D (\u0437\u0430\u0449\u043E \u0442\u0430\u0437\u0438 \u0441\u0435\u0441\u0438\u044F \u0434\u043D\u0435\u0441)
+- canonicalName \u0421\u0410\u041C\u041E \u043E\u0442 <exercise_catalog>; equipmentHint \u043E\u0442 <equipment>; d\u2264maxDiff \u043E\u0442 program_spec
 
 HARD-VETO: <constraints>; \u0431\u043E\u043B\u043A\u0430/\u0437\u0430\u0431\u0440\u0430\u043D\u0430 \u2192 0 \u043D\u0430\u0442\u043E\u0432\u0430\u0440\u0432\u0430\u043D\u0435 \u043D\u0430 \u0437\u043E\u043D\u0430\u0442\u0430
+
+\u041B\u041E\u0413\u0418\u041A\u0410: \u043D\u0438\u0449\u043E \u0441\u043B\u0443\u0447\u0430\u0439\u043D\u043E \u2014 \u0432\u0441\u044F\u043A\u0430 \u0441\u0435\u0441\u0438\u044F \u0442\u0440\u044F\u0431\u0432\u0430 \u0434\u0430 \u0441\u043B\u0435\u0434\u0432\u0430 \u043E\u0442 \u0446\u0435\u043B, \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438\u044F, \u043E\u0431\u043E\u0440\u0443\u0434\u0432\u0430\u043D\u0435 \u0438 \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435.
+\u0418\u0417\u0411\u041E\u0420 \u0423\u041F\u0420.: \u043F\u0440\u0438 \u0440\u0430\u0432\u043D\u0438 \u043A\u0430\u043D\u0434\u0438\u0434\u0430\u0442\u0438 \u0432 <exercise_catalog> \u2014 \u043D\u0430\u0439-\u043F\u0440\u043E\u0441\u0442\u043E \u043E\u0431\u043E\u0440\u0443\u0434\u0432\u0430\u043D\u0435 (\u0421\u0422>\u0434\u044A\u043C\u0431\u0435\u043B>\u0433\u0438\u0440\u0430>\u043A\u0430\u0431\u0435\u043B>\u043C\u0430\u0448\u0438\u043D\u0430>\u0449\u0430\u043D\u0433\u0430), \u043D\u0430\u0439-\u043D\u0438\u0441\u044A\u043A d, \u0435\u0441\u0442\u0435\u0441\u0442\u0432\u0435\u043D\u043E \u0434\u0432\u0438\u0436\u0435\u043D\u0438\u0435.
+\u0410\u041B\u0422\u0415\u0420\u041D\u0410\u0422\u0418\u0412\u0418 (\u0441\u0438\u0441\u0442\u0435\u043C\u0430\u0442\u0430 \u0433\u0438 \u0433\u0435\u043D\u0435\u0440\u0438\u0440\u0430): \u0441\u044A\u0449\u0430\u0442\u0430 \u043C\u043E\u0434\u0430\u043B\u043D\u043E\u0441\u0442, \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u0433\u0440\u0443\u043F\u0430 \u0438 d \u2014 \u0431\u0435\u0437 mobility/cardio \u043F\u0440\u0438 \u0441\u0438\u043B\u0430.
 
 \u0418\u041C\u0415\u041D\u0410: displayName BG | canonicalName/equipmentHint/bodyPart EN
 Bench Press \u2192 \u201E\u0418\u0437\u0431\u0443\u0442\u0432\u0430\u043D\u0435 \u043E\u0442 \u043B\u0435\u0436\u0430\u043D\u043A\u0430\u201C (\u041D\u0415 \u201E\u043B\u0435\u0433 \u043F\u0440\u0435\u0441\u0430\u201C). Leg Press \u2192 \u201E\u041F\u0440\u0435\u0441\u0430 \u0437\u0430 \u043A\u0440\u0430\u043A\u0430\u201C. \u0423\u0442\u0435\u0436\u043D\u0438/\u043E\u043B\u0435\u043A\u043E\u0442\u0438.
@@ -1747,7 +1748,7 @@ var EQUIPMENT_RETRY_HINT = `
 \u041A\u041E\u0420\u0415\u041A\u0426\u0418\u042F: equipmentHint \u0441\u0430\u043C\u043E \u043E\u0442 <equipment>; canonicalName \u043E\u0442 <exercise_catalog> \u0441 \u043F\u043E\u0437\u0432\u043E\u043B\u0435\u043D\u043E \u043E\u0431\u043E\u0440\u0443\u0434\u0432\u0430\u043D\u0435. JSON \u0441\u0430\u043C\u043E.`;
 var SESSION_STRUCTURE_RETRY_HINT = `
 
-\u041A\u041E\u0420\u0415\u041A\u0426\u0418\u042F: session \u043E\u0442 program_spec; warmup+cooldown \u043F\u043E 3 \u0441\u0442\u044A\u043F\u043A\u0438. JSON \u0441\u0430\u043C\u043E.`;
+\u041A\u041E\u0420\u0415\u041A\u0426\u0418\u042F: warmup+cooldown \u043F\u043E 3 \u0441\u0442\u044A\u043F\u043A\u0438; mobility \u0431\u0435\u0437 \u0442\u0435\u0436\u043A\u0438 compound; \u043E\u0431\u043E\u0441\u043D\u043E\u0432\u0430\u0439 focus. JSON \u0441\u0430\u043C\u043E.`;
 var DIFF_RETRY_HINT = `
 
 \u041A\u041E\u0420\u0415\u041A\u0426\u0418\u042F: \u0441\u0430\u043C\u043E \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F \u0441 d\u2264maxDiff \u043E\u0442 program_spec; canonicalName \u043E\u0442 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430. JSON \u0441\u0430\u043C\u043E.`;
@@ -1774,9 +1775,9 @@ var PLAN_RESPONSE_SCHEMA = {
   type: "object",
   required: ["title", "summary", "weeklySplit", "safetyNotes", "days", "guidelines"],
   properties: {
-    title: { type: "string" },
-    summary: { type: "string" },
-    weeklySplit: { type: "string" },
+    title: { type: "string", description: "Plan title" },
+    summary: { type: "string", description: "Overall program logic and why this approach fits the client" },
+    weeklySplit: { type: "string", description: "Split structure with brief rationale (why this distribution)" },
     safetyNotes: { type: "array", items: { type: "string" } },
     days: {
       type: "array",
@@ -1785,7 +1786,7 @@ var PLAN_RESPONSE_SCHEMA = {
         required: ["day", "focus", "type", "durationMin", "warmup", "exercises", "cooldown"],
         properties: {
           day: { type: "string" },
-          focus: { type: "string" },
+          focus: { type: "string", description: "Session focus AND brief rationale for this day structure" },
           type: {
             type: "string",
             enum: ["strength", "cardio", "hiit", "mobility", "rest", "active-recovery"]
@@ -2249,6 +2250,82 @@ function fitsExerciseProfile(entry, profile) {
   return true;
 }
 var SWAP_EQUIPMENT = /* @__PURE__ */ new Set(["body weight", "dumbbell", "kettlebell"]);
+function equipmentSimplicityRank(equipNorm) {
+  const eq = normalizeText(equipNorm || "");
+  if (!eq) return 5;
+  const table = {
+    "body weight": 0,
+    dumbbell: 1,
+    kettlebell: 2,
+    band: 3,
+    "resistance band": 3,
+    "medicine ball": 4,
+    assisted: 4,
+    "stability ball": 4,
+    cable: 5,
+    rope: 5,
+    machine: 6,
+    "leverage machine": 6,
+    "smith machine": 7,
+    barbell: 8,
+    "ez barbell": 8,
+    "olympic barbell": 8
+  };
+  if (table[eq] !== void 0) return table[eq];
+  if (eq.includes("body weight")) return 0;
+  if (eq.includes("dumbbell")) return 1;
+  if (eq.includes("kettlebell")) return 2;
+  if (eq.includes("band")) return 3;
+  if (eq.includes("cable")) return 5;
+  if (eq.includes("machine") || eq.includes("lever")) return 6;
+  if (eq.includes("barbell")) return 8;
+  return 5;
+}
+function naturalMovementScore(entry) {
+  const flags = entry?.flags || [];
+  let score = 0;
+  if (flags.includes("bodyweight")) score += 3;
+  if (flags.includes("compound")) score += 2;
+  if (flags.includes("isolation")) score -= 1;
+  if (flags.includes("machine")) score -= 2;
+  score += Math.max(0, 8 - equipmentSimplicityRank(entry?.equipNorm || entry?.equipment));
+  return score;
+}
+function compareExercisePreference(a, b, profile = null) {
+  const diffA = a?.diff ?? 2;
+  const diffB = b?.diff ?? 2;
+  if (diffA !== diffB) return diffA - diffB;
+  const eqA = equipmentSimplicityRank(a?.equipNorm || a?.equipment);
+  const eqB = equipmentSimplicityRank(b?.equipNorm || b?.equipment);
+  if (eqA !== eqB) return eqA - eqB;
+  const natA = naturalMovementScore(a);
+  const natB = naturalMovementScore(b);
+  if (natA !== natB) return natB - natA;
+  if (profile?.isFemale) {
+    const gfA = a?.gf ?? 70;
+    const gfB = b?.gf ?? 70;
+    if (gfA !== gfB) return gfB - gfA;
+  } else if (profile?.isMale) {
+    const gmA = a?.gm ?? 70;
+    const gmB = b?.gm ?? 70;
+    if (gmA !== gmB) return gmB - gmA;
+  }
+  return (a?.name || "").localeCompare(b?.name || "");
+}
+function pickPreferredExercise(candidates, profile = null) {
+  if (!candidates?.length) return null;
+  return [...candidates].sort((a, b) => compareExercisePreference(a, b, profile))[0];
+}
+function isSameAlternativeFamily(matchedEntry, candidate, sessionType = null) {
+  if (!matchedEntry || !candidate) return false;
+  if (!matchedEntry.targetNorm || candidate.targetNorm !== matchedEntry.targetNorm) return false;
+  const matchedMod = inferExerciseModality(matchedEntry);
+  const candMod = inferExerciseModality(candidate);
+  if (matchedMod !== candMod) return false;
+  if (sessionType && !modalityMatchesDay(sessionType, candMod)) return false;
+  if ((candidate.diff ?? 2) > (matchedEntry.diff ?? 2)) return false;
+  return true;
+}
 var MOBILITY_RE = /stretch|yoga|mobility|pilates|flexibility|foam|pigeon|child pose|cat cow|downward|spinal twist/i;
 var CARDIO_RE = /run|cycle|elliptic|row machine|jump rope|burpee|jog|cardio|walking|stepper/i;
 var HIIT_RE = /hiit|tabata|sprint interval|mountain climber|battle rope/i;
@@ -2316,14 +2393,10 @@ function buildExerciseCatalogSnippet(index, profile, allowedEquipment = null, op
     if (!groups.has(g)) groups.set(g, []);
     groups.get(g).push(entry);
   }
-  const isFemale = Boolean(profile?.isFemale);
-  const isMale = Boolean(profile?.isMale);
   for (const items of groups.values()) {
     items.sort((a, b) => {
-      const diffCmp = (a.diff ?? 2) - (b.diff ?? 2);
-      if (diffCmp) return diffCmp;
-      const relCmp = isFemale ? (b.gf ?? 70) - (a.gf ?? 70) : isMale ? (b.gm ?? 70) - (a.gm ?? 70) : 0;
-      if (relCmp) return relCmp;
+      const pref = compareExercisePreference(a, b, profile);
+      if (pref !== 0) return pref;
       return (a.name || "").localeCompare(b.name || "");
     });
   }
@@ -2854,6 +2927,27 @@ function buildVolumeBudget(answers) {
   }
   return { volume: vol, zonesOrdered, zonesText: zonesText.trim() };
 }
+function buildApproachRationale({
+  sessions,
+  level,
+  goal,
+  split,
+  modality,
+  volume,
+  zonesText,
+  isFemale,
+  dayTypes
+}) {
+  const parts = [`${split} \u2014 ${sessions} \u0441\u0435\u0441\u0438\u0438, \u043D\u0438\u0432\u043E ${level}, \u0446\u0435\u043B ${goal}, \u043C\u043E\u0434\u0430\u043B\u043D\u043E\u0441\u0442 ${modality}.`];
+  if (zonesText) parts.push(`\u041F\u0440\u0438\u043E\u0440\u0438\u0442\u0435\u0442 \u0437\u043E\u043D\u0438: ${zonesText}.`);
+  else if (isFemale) parts.push("\u0416\u0435\u043D\u0441\u043A\u0438 bias: glute/\u0431\u0435\u0434\u0440\u0430 \u043D\u0430\u0434 bench.");
+  const activeDays = (dayTypes || []).filter((d) => d.type !== "rest").map((d) => `${d.day.slice(0, 2)}=${d.type}`).join(", ");
+  if (activeDays) parts.push(`\u0420\u0430\u0437\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0438\u0435: ${activeDays}.`);
+  const volLine = formatVolumeLine(volume);
+  if (volLine) parts.push(`\u041E\u0431\u0435\u043C/\u0441\u0435\u0434\u043C: ${volLine}.`);
+  parts.push("\u0420\u0435\u0434 \u0438 \u043F\u043E\u0434\u0431\u043E\u0440: compound\u2192isolation; \u043F\u043E dayFocus \u0438 \u043E\u0431\u0435\u043C; \u0431\u0435\u0437 \u0441\u043B\u0443\u0447\u0430\u0439\u043D\u0438 \u0438\u0437\u0431\u043E\u0440\u0438.");
+  return parts.join(" ");
+}
 function buildProgramSpec(answers = {}) {
   const gender = normalizeText(answers?.gender || "");
   const isFemale = gender.includes("\u0436\u0435\u043D\u0430");
@@ -2907,7 +3001,18 @@ function buildProgramSpec(answers = {}) {
     rest: restOut,
     rpeMax,
     isFemale,
-    orderHint
+    orderHint,
+    approachRationale: buildApproachRationale({
+      sessions,
+      level,
+      goal: goalLabel,
+      split,
+      modality,
+      volume,
+      zonesText,
+      isFemale,
+      dayTypes
+    })
   };
 }
 function formatVolumeLine(volume) {
@@ -2917,19 +3022,23 @@ function formatVolumeLine(volume) {
 function formatProgramSpecBlock(spec) {
   if (!spec) return "";
   const lines = [
-    `sessions: ${spec.sessions} | dur: ${spec.durationMin}min | level: ${spec.level} | maxDiff: d\u2264${spec.maxDiff ?? spec.level} | goal: ${spec.goal}`,
-    `modality: ${spec.modality || "strength"}`,
-    `split: ${spec.split}`
+    "\u0421\u0418\u0413\u041D\u0410\u041B\u0418 \u041E\u0422 \u0410\u041D\u041A\u0415\u0422\u0410\u0422\u0410 (\u043E\u0440\u0438\u0435\u043D\u0442\u0438\u0440\u0438 \u2014 \u043F\u0440\u0435\u0446\u0435\u043D\u0438 \u0438 \u043E\u0431\u043E\u0441\u043D\u043E\u0432\u0430\u0439 \u0432 summary/weeklySplit/focus):",
+    `freq: ~${spec.sessions} \u0441\u0435\u0434\u043C. | dur: ~${spec.durationMin}min | level: ${spec.level} | maxDiff: d\u2264${spec.maxDiff ?? spec.level} | goal: ${spec.goal}`,
+    `modality preference: ${spec.modality || "strength"}`
   ];
-  if (spec.dayTypes?.length) {
-    const dt = spec.dayTypes.filter((d) => d.type !== "rest").map((d) => `${d.day.slice(0, 2)}=${d.type}`).join(", ");
-    if (dt) lines.push(`dayFocus: ${dt}`);
-  }
-  if (spec.sessionFrame) lines.push(`session: ${spec.sessionFrame}`);
-  if (spec.zonesText) lines.push(`zones\u2193: ${spec.zonesText}`);
-  else if (spec.isFemale) lines.push("zones\u2193: \u0434\u0443\u043F\u0435>\u0431\u0435\u0434\u0440\u0430");
-  lines.push(`volume/wk: ${formatVolumeLine(spec.volume)}`);
-  lines.push(`reps: ${spec.reps} | rest: ${spec.rest} | rpe\u2264${spec.rpeMax}`);
+  if (spec.zonesText) lines.push(`priority zones: ${spec.zonesText}`);
+  else if (spec.isFemale) lines.push("priority zones: \u0434\u0443\u043F\u0435/\u0431\u0435\u0434\u0440\u0430 (\u0436\u0435\u043D\u0441\u043A\u0438 bias)");
+  lines.push(`rpe ceiling: \u2264${spec.rpeMax}`);
+  lines.push("");
+  lines.push("\u0420\u0435\u0444\u0435\u0440\u0435\u043D\u0442\u043D\u0438 \u043E\u0440\u0438\u0435\u043D\u0442\u0438\u0440\u0438 (\u0430\u0434\u0430\u043F\u0442\u0438\u0440\u0430\u0439 \u0441\u043F\u043E\u0440\u0435\u0434 brief, constraints \u0438 \u043A\u043E\u043D\u0442\u0435\u043A\u0441\u0442):");
+  lines.push(`- \u0442\u0438\u043F\u0438\u0447\u0435\u043D split \u043F\u0440\u0438 \u0442\u0435\u0437\u0438 \u0441\u0438\u0433\u043D\u0430\u043B\u0438: ${spec.split}`);
+  lines.push(`- \u0440\u0435\u0444\u0435\u0440\u0435\u043D\u0442\u0435\u043D \u0441\u0435\u0434\u043C\u0438\u0447\u0435\u043D \u043E\u0431\u0435\u043C (\u0441\u0435\u0440\u0438\u0438): ${formatVolumeLine(spec.volume)}`);
+  lines.push(`- \u0442\u0438\u043F\u0438\u0447\u043D\u0438 reps/rest: ${spec.reps} / ${spec.rest}`);
+  if (spec.orderHint) lines.push(`- \u0440\u0435\u0434 \u0432 \u0441\u0435\u0441\u0438\u044F: ${spec.orderHint}`);
+  if (spec.sessionFrame) lines.push(`- \u0440\u0430\u043C\u043A\u0430 \u043D\u0430 \u0441\u0435\u0441\u0438\u044F: ${spec.sessionFrame}`);
+  if (spec.approachRationale) lines.push(`- \u043E\u0442\u043F\u0440\u0430\u0432\u043D\u0430 \u0442\u043E\u0447\u043A\u0430: ${spec.approachRationale}`);
+  lines.push("");
+  lines.push("\u0417\u0410\u0414\u042A\u041B\u0416\u0418\u0422\u0415\u041B\u041D\u041E: \u043F\u0440\u043E\u0435\u043A\u0442\u0438\u0440\u0430\u0439 split, dayFocus, \u043E\u0431\u0435\u043C \u0438 reps/rest \u0441\u044A\u043E\u0431\u0440\u0430\u0437\u0435\u043D\u043E \u0441 \u043A\u043B\u0438\u0435\u043D\u0442\u0430; \u0432\u0441\u044F\u043A\u043E \u0440\u0435\u0448\u0435\u043D\u0438\u0435 \u2014 \u0441 \u043A\u0440\u0430\u0442\u043A\u0430 \u043E\u0431\u043E\u0441\u043D\u043E\u0432\u043A\u0430 \u0432 focus \u043D\u0430 \u0434\u0435\u043D\u044F \u0438 \u0432 weeklySplit.");
   return lines.join("\n");
 }
 function buildCompactProfileForPrompt(answers = {}) {
@@ -2947,7 +3056,10 @@ function buildCompactProfileForPrompt(answers = {}) {
     const dir = answers.weightChange.type === "gain" ? "+" : "\u2212";
     lines.push(`\u0422\u0435\u0433\u043B\u043E 6\u043C: ${dir}${answers.weightChange.amountKg || "?"} \u043A\u0433${answers.weightChange.reason ? ` (${answers.weightChange.reason})` : ""}`);
   }
-  if (answers.dailyActivity) lines.push(`\u0414\u043D\u0435\u0432\u043D\u0430 \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442: ${answers.dailyActivity}`);
+  if (answers.dailyActivity) {
+    const act = typeof answers.dailyActivity === "string" ? answers.dailyActivity : answers.dailyActivity.selected || answers.dailyActivity.other || "";
+    if (act) lines.push(`\u0414\u043D\u0435\u0432\u043D\u0430 \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442: ${act}`);
+  }
   if (answers.sportActivity?.status && answers.sportActivity.status !== "\u041D\u0435 \u0442\u0440\u0435\u043D\u0438\u0440\u0430\u043C \u0432 \u043C\u043E\u043C\u0435\u043D\u0442\u0430") {
     lines.push(`\u0421\u043F\u043E\u0440\u0442: ${answers.sportActivity.status}${answers.sportActivity.current ? ` \u2014 ${answers.sportActivity.current}` : ""}`);
   }
@@ -3509,7 +3621,7 @@ ${compactProfile}
 ${hardRules}
 </constraints>`);
   }
-  const task = strictAssembly ? "ASSEMBLY: \u0441\u0433\u043B\u043E\u0431\u0438 JSON \u043E\u0442 <scheme> \u0431\u0443\u043A\u0432\u0430\u043B\u043D\u043E. canonicalName + displayName. JSON \u0441\u0430\u043C\u043E." : hasStructuredScheme ? "\u0421\u043B\u0435\u0434\u0432\u0430\u0439 <scheme> \u0442\u043E\u0447\u043D\u043E. \u0417\u0430\u043F\u044A\u043B\u043D\u0438 7 \u0434\u043D\u0438. JSON \u0441\u0430\u043C\u043E." : "\u0413\u0435\u043D\u0435\u0440\u0438\u0440\u0430\u0439 7 \u0434\u043D\u0438 \u043E\u0442 <program_spec> + <exercise_catalog>. canonicalName \u0421\u0410\u041C\u041E \u043E\u0442 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430. volume/reps/rest \u043F\u043E spec. JSON \u0441\u0430\u043C\u043E.";
+  const task = strictAssembly ? "ASSEMBLY: \u0441\u0433\u043B\u043E\u0431\u0438 JSON \u043E\u0442 <scheme> \u0431\u0443\u043A\u0432\u0430\u043B\u043D\u043E. canonicalName + displayName. JSON \u0441\u0430\u043C\u043E." : hasStructuredScheme ? "\u0421\u043B\u0435\u0434\u0432\u0430\u0439 <scheme> \u0442\u043E\u0447\u043D\u043E. \u0417\u0430\u043F\u044A\u043B\u043D\u0438 7 \u0434\u043D\u0438. JSON \u0441\u0430\u043C\u043E." : "\u041F\u0440\u043E\u0435\u043A\u0442\u0438\u0440\u0430\u0439 \u0441\u0435\u0434\u043C\u0438\u0447\u0435\u043D \u043F\u043B\u0430\u043D (7 \u0434\u043D\u0438) \u043E\u0442 \u043A\u043B\u0438\u0435\u043D\u0442\u0441\u043A\u0438\u044F \u043A\u043E\u043D\u0442\u0435\u043A\u0441\u0442 + <exercise_catalog>. canonicalName \u0421\u0410\u041C\u041E \u043E\u0442 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430. Split, dayFocus, \u043E\u0431\u0435\u043C \u0438 reps/rest \u2014 \u0442\u0432\u043E\u0438 \u0440\u0435\u0448\u0435\u043D\u0438\u044F, \u0441\u044A\u043E\u0431\u0440\u0430\u0437\u0435\u043D\u0438 \u0441 brief/constraints/program_spec; \u043E\u0431\u043E\u0441\u043D\u043E\u0432\u0430\u0439 \u0432 summary, weeklySplit \u0438 focus. \u0411\u0435\u0437 \u0441\u043B\u0443\u0447\u0430\u0439\u043D\u0438 \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F. JSON \u0441\u0430\u043C\u043E.";
   return `${parts.join("\n\n")}
 
 ${task}`;
@@ -3546,28 +3658,24 @@ function auditPlanGenderFit(plan, clientTags) {
 }
 var HEAVY_COMPOUND_RE = /bench press|barbell squat|back squat|deadlift|hip thrust|leg press/i;
 function auditPlanSessionStructure(plan, programSpec = null) {
-  const dayTypes = programSpec?.dayTypes;
-  if (!dayTypes?.length) return [];
-  const typeByDay = new Map(dayTypes.map((d) => [normalizeText(d.day), d.type]));
   const issues = [];
   for (const day of plan?.days || []) {
-    const key = normalizeText(day.day);
-    const expected = typeByDay.get(key);
-    if (!expected || expected === "rest") continue;
-    const sessionType = day.type || expected;
-    if (sessionType !== expected) {
-      issues.push(`${day.day}: dayFocus ${sessionType} \u2260 \u043E\u0447\u0430\u043A\u0432\u0430\u043D ${expected} \u043E\u0442 program_spec`);
-    }
     if (day.type === "rest" && !day.exercises?.length) continue;
-    if (!day.warmup?.length) issues.push(`${day.day}: \u043B\u0438\u043F\u0441\u0432\u0430 warmup (3 \u0441\u0442\u044A\u043F\u043A\u0438)`);
-    if (!day.cooldown?.length) issues.push(`${day.day}: \u043B\u0438\u043F\u0441\u0432\u0430 cooldown (3 \u0441\u0442\u044A\u043F\u043A\u0438)`);
-    if (expected === "mobility") {
+    if (day.type !== "rest") {
+      if (!day.warmup?.length) issues.push(`${day.day}: \u043B\u0438\u043F\u0441\u0432\u0430 warmup (3 \u0441\u0442\u044A\u043F\u043A\u0438)`);
+      if (!day.cooldown?.length) issues.push(`${day.day}: \u043B\u0438\u043F\u0441\u0432\u0430 cooldown (3 \u0441\u0442\u044A\u043F\u043A\u0438)`);
+    }
+    if (day.type === "mobility") {
       for (const ex of day.exercises || []) {
         const name = String(ex.canonicalName || ex.displayName || "");
         if (HEAVY_COMPOUND_RE.test(name)) {
           issues.push(`${day.day}: \u201E${name}\u201C \u043D\u0435 \u0435 \u0437\u0430 \u043E\u0441\u043D\u043E\u0432\u0435\u043D mobility \u0431\u043B\u043E\u043A \u2014 \u043F\u0440\u0435\u043C\u0435\u0441\u0442\u0438 \u0432 \u0441\u0438\u043B\u043E\u0432 \u0434\u0435\u043D \u0438\u043B\u0438 \u043C\u0430\u0445\u043D\u0438`);
         }
       }
+    }
+    const focus = String(day.focus || "").trim();
+    if (day.type !== "rest" && focus.length < 12) {
+      issues.push(`${day.day}: focus \u0442\u0440\u044F\u0431\u0432\u0430 \u0434\u0430 \u043E\u0431\u043E\u0441\u043D\u043E\u0432\u0430 \u0441\u0435\u0441\u0438\u044F\u0442\u0430 (\u043D\u0435 \u0441\u0430\u043C\u043E \u0435\u0434\u043D\u0430 \u0434\u0443\u043C\u0430)`);
     }
   }
   return issues;
@@ -3781,8 +3889,7 @@ function matchExercise(index, {
   const queryTokens = tokenize(canonicalName);
   const equipNorm = normalizeText(equipmentHint);
   const bodyNorm = normalizeText(bodyPart);
-  let best = null;
-  let bestScore = 0;
+  const scored = [];
   for (const entry of index) {
     if (!passesEquipment(entry, allowedEquipment)) continue;
     if (exerciseProfile && !fitsExerciseProfile(entry, exerciseProfile)) continue;
@@ -3795,50 +3902,50 @@ function matchExercise(index, {
       if (entry.targetNorm === bodyNorm || entry.bodyNorm === bodyNorm) score += 0.1;
       else score -= 0.25;
     }
-    if (score > bestScore) {
-      bestScore = score;
-      best = entry;
-    }
+    scored.push({ entry, score });
   }
-  if (best && bestScore >= MATCH_THRESHOLD) {
+  scored.sort((a, b) => b.score - a.score);
+  if (scored.length && scored[0].score >= MATCH_THRESHOLD) {
+    const bestScore = scored[0].score;
+    const ties = scored.filter((s) => s.score >= bestScore - 0.02).map((s) => s.entry);
+    const best = pickPreferredExercise(ties, exerciseProfile) || scored[0].entry;
     return { entry: best, score: Math.min(1, Number(bestScore.toFixed(3))), usedFallback: false };
   }
-  const fallback = index.find(
-    (e) => passesEquipment(e, allowedEquipment) && (!exerciseProfile || fitsExerciseProfile(e, exerciseProfile)) && (bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm)) && (!equipNorm || e.equipNorm === equipNorm)
-  ) || index.find(
+  const fallbackPool = index.filter(
+    (e) => passesEquipment(e, allowedEquipment) && (!exerciseProfile || fitsExerciseProfile(e, exerciseProfile)) && bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm) && (!equipNorm || e.equipNorm === equipNorm)
+  );
+  const fallback = pickPreferredExercise(fallbackPool, exerciseProfile) || index.find(
     (e) => passesEquipment(e, allowedEquipment) && (!exerciseProfile || fitsExerciseProfile(e, exerciseProfile)) && bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm)
   );
   if (fallback) return { entry: fallback, score: 0, usedFallback: true };
   if (bodyNorm) return null;
-  return best ? { entry: best, score: Math.min(1, Number(bestScore.toFixed(3))), usedFallback: true } : null;
+  const weakBest = scored[0]?.entry;
+  return weakBest ? { entry: pickPreferredExercise([weakBest], exerciseProfile) || weakBest, score: Math.min(1, Number(scored[0].score.toFixed(3))), usedFallback: true } : null;
 }
 function findAlternatives(index, matchedEntry, {
   allowedEquipment = null,
   equipmentFilter = null,
   limit = MAX_ALTERNATIVES,
   excludeIds = [],
-  exerciseProfile = null
+  exerciseProfile = null,
+  sessionType = null
 } = {}) {
   if (!index || !matchedEntry) return [];
   const equipFilter = equipmentFilter || allowedEquipment;
   const exclude = /* @__PURE__ */ new Set([matchedEntry.id, ...excludeIds]);
-  const target = matchedEntry.targetNorm;
-  const body = matchedEntry.bodyNorm;
   const candidates = [];
   for (const entry of index) {
     if (exclude.has(entry.id)) continue;
     if (entry.nameNorm === matchedEntry.nameNorm) continue;
     if (exerciseProfile && !fitsExerciseProfile(entry, exerciseProfile)) continue;
-    const sameTarget = target && entry.targetNorm === target;
-    const sameBody = body && entry.bodyNorm === body;
-    if (!sameTarget && !sameBody) continue;
+    if (!isSameAlternativeFamily(matchedEntry, entry, sessionType)) continue;
     if (!passesEquipment(entry, equipFilter)) continue;
-    candidates.push({ entry, rank: (sameTarget ? 2 : 0) + (entry.equipNorm === matchedEntry.equipNorm ? 1 : 0) });
+    candidates.push(entry);
   }
-  candidates.sort((a, b) => b.rank - a.rank);
+  candidates.sort((a, b) => compareExercisePreference(a, b, exerciseProfile));
   const picked = [];
   const equipCount = {};
-  for (const { entry } of candidates) {
+  for (const entry of candidates) {
     if (picked.length >= limit) break;
     const eq = entry.equipNorm || "?";
     if ((equipCount[eq] || 0) >= 2) continue;
@@ -4252,7 +4359,8 @@ function enrichPlanWithExercises(plan, index, { allowedEquipment = null, env = {
           allowedEquipment,
           exerciseProfile,
           limit: 1,
-          excludeIds: usedIds
+          excludeIds: usedIds,
+          sessionType: day.type
         });
         if (swap.length) result = { entry: swap[0], score: 0, usedFallback: true };
       }
@@ -4265,7 +4373,8 @@ function enrichPlanWithExercises(plan, index, { allowedEquipment = null, env = {
           equipmentFilter: SWAP_EQUIPMENT,
           excludeIds: usedIds,
           limit: MAX_ALTERNATIVES,
-          exerciseProfile
+          exerciseProfile,
+          sessionType: day.type
         }).map((alt) => entryToClientExercise(env, alt));
         usedIds.push(...ex.alternatives.map((a) => a.id));
       } else {
@@ -4813,6 +4922,7 @@ async function handleSubmitConsultation(request, env) {
     clientName: name,
     clientContact: contact,
     answers,
+    formState: body.formState && typeof body.formState === "object" ? body.formState : null,
     summary: buildProfileSummary(answers),
     status: "new",
     timestamp: (/* @__PURE__ */ new Date()).toISOString(),
@@ -5977,7 +6087,7 @@ function formatCatalogSectionForPrompt(candidatesBySlot, { minUniversality = DEF
   const lines = [
     `=== \u041A\u0410\u0422\u0410\u041B\u041E\u0413 \u0425\u0420\u0410\u041D\u0418 (\u0417\u0410\u0414\u042A\u041B\u0416\u0418\u0422\u0415\u041B\u041D\u041E \u2014 \u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430\u0439 \u0421\u0410\u041C\u041E \u0442\u0435\u0437\u0438 \u0438\u043C\u0435\u043D\u0430) ===`,
     `\u0423\u043D\u0438\u0432\u0435\u0440\u0441\u0430\u043B\u043D\u043E\u0441\u0442 \u2265${minUniversality}: \u043F\u0440\u0435\u0434\u043F\u043E\u0447\u0438\u0442\u0430\u0439 \u043F\u043E-\u043E\u0431\u0449\u0438 \u0432\u0430\u0440\u0438\u0430\u043D\u0442\u0438 (\u0420\u0438\u0431\u0430, \u041E\u0440\u0438\u0437, \u041F\u043B\u043E\u0434) \u043F\u0440\u0435\u0434 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u0438 (\u041B\u0430\u0432\u0440\u0430\u043A, \u041A\u0438\u043D\u043E\u0430, \u041C\u0430\u043D\u0433\u043E).`,
-    `\u0421\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438 \u0432 \u0441\u043A\u043E\u0431\u0438 = \u043D\u0430 100g. \u041E\u0440\u0438\u0435\u043D\u0442\u0438\u0440\u0430\u0439 \u0433\u0440\u0430\u043C\u0430\u0436\u0438\u0442\u0435 \u043A\u044A\u043C \u0446\u0435\u043B\u0438\u0442\u0435 \u043E\u0442 mealBreakdown. \u0417\u0430\u043A\u0440\u044A\u0433\u043B\u044F\u0439 \u043D\u0430 10g.`,
+    `\u0421\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438 \u0432 \u0441\u043A\u043E\u0431\u0438 = \u043D\u0430 100g. \u0413\u0440\u0430\u043C\u0430\u0436\u0438: \u0438\u0437\u0447\u0438\u0441\u043B\u0438 \u043E\u0442 mealBreakdown \u0438 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430; \u043E\u0441\u043D\u043E\u0432\u043D\u0438 \u043D\u0430 50g; \u0434\u043E\u0431\u0430\u0432\u043A\u0438 \u043D\u0430 10g; \u044F\u0439\u0446\u0430 60g/\u0431\u0440.; \u043F\u043B\u043E\u0434\u043E\u0432\u0435 \u2014 \u0431\u0440\u043E\u0439 \xD7 \u0433\u0440\u0430\u043C\u0430\u0436.`,
     `\u0413\u043E\u0442\u043E\u0432\u0430 \u0445\u0440\u0430\u043D\u0430 = \u0435\u0434\u0438\u043D \u0440\u0435\u0434 \u0432 description \u0418\u041B\u0418 \u0440\u0430\u0437\u0431\u0438\u0439 \u043D\u0430 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u043E\u0442 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430.`
   ];
   for (const slot of ["PRO", "ENG", "VOL", "FAT"]) {
@@ -6024,9 +6134,115 @@ function validateProductNamesAgainstProtocol(names, clinicalProtocolId) {
 
 // food-nutrition.js
 var GRAM_ROUND_STEP = 10;
+var MAIN_GRAM_ROUND_STEP = 50;
+var SMALL_ADDITIVE_KEYS = /* @__PURE__ */ new Set([
+  "\u0437\u0435\u0445\u0442\u0438\u043D",
+  "\u043E\u043B\u0438\u043E",
+  "\u044F\u0434\u043A\u0438",
+  "\u0431\u0430\u0434\u0435\u043C\u0438",
+  "\u043E\u0440\u0435\u0445\u0438",
+  "\u043A\u0430\u0448\u0443",
+  "\u043B\u0435\u0448\u043D\u0438\u0446\u0438",
+  "\u0444\u044A\u0441\u0442\u044A\u0446\u0438",
+  "\u0448\u0430\u043C\u0444\u044A\u0441\u0442\u044A\u043A",
+  "\u0444\u044A\u0441\u0442\u044A\u0447\u0435\u043D\u043E \u043C\u0430\u0441\u043B\u043E",
+  "\u0431\u0430\u0434\u0435\u043C\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E",
+  "\u0442\u0430\u0445\u0430\u043D",
+  "\u043C\u0430\u0441\u043B\u043E",
+  "\u043A\u043E\u043A\u043E\u0441\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E",
+  "\u0441\u043B\u044A\u043D\u0447\u043E\u0433\u043B\u0435\u0434\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E",
+  "\u0441\u0435\u043C\u0435\u043D\u0430 \u0447\u0438\u0430",
+  "\u043B\u0435\u043D\u0435\u043D\u043E \u0441\u0435\u043C\u0435",
+  "\u0442\u0438\u043A\u0432\u0435\u043D\u0438 \u0441\u0435\u043C\u043A\u0438",
+  "\u0441\u043B\u044A\u043D\u0447\u043E\u0433\u043B\u0435\u0434\u043E\u0432\u0438 \u0441\u0435\u043C\u043A\u0438",
+  "\u043C\u0435\u0434",
+  "\u0441\u043E\u0435\u0432 \u0441\u043E\u0441",
+  "\u0445\u0443\u043C\u0443\u0441",
+  "\u0433\u043E\u0440\u0447\u0438\u0446\u0430",
+  "\u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A",
+  "\u043E\u0446\u0435\u0442",
+  "\u0434\u043E\u043C\u0430\u0442\u0435\u043D\u043E \u043F\u044E\u0440\u0435",
+  "\u043A\u043E\u043A\u043E\u0441\u043E\u0432\u043E \u043C\u043B\u044F\u043A\u043E",
+  "\u043A\u0430\u043D\u0435\u043B\u0430",
+  "\u043A\u0443\u0440\u043A\u0443\u043C\u0430",
+  "\u0434\u0436\u0438\u043D\u0434\u0436\u0438\u0444\u0438\u043B"
+]);
+var COUNTABLE_UNITS = {
+  "\u044F\u0439\u0446\u0430": { unit: 60, singular: "\u044F\u0439\u0446\u0435", plural: "\u044F\u0439\u0446\u0430", catalog: "\u042F\u0439\u0446\u0430" },
+  "\u0432\u0430\u0440\u0435\u043D\u043E \u044F\u0439\u0446\u0435": { unit: 60, singular: "\u0432\u0430\u0440\u0435\u043D\u043E \u044F\u0439\u0446\u0435", plural: "\u0432\u0430\u0440\u0435\u043D\u0438 \u044F\u0439\u0446\u0430", catalog: "\u0412\u0430\u0440\u0435\u043D\u043E \u044F\u0439\u0446\u0435" },
+  "\u044F\u0431\u044A\u043B\u043A\u0430": { unit: 150, singular: "\u044F\u0431\u044A\u043B\u043A\u0430", plural: "\u044F\u0431\u044A\u043B\u043A\u0438", catalog: "\u042F\u0431\u044A\u043B\u043A\u0430" },
+  "\u0431\u0430\u043D\u0430\u043D": { unit: 120, singular: "\u0431\u0430\u043D\u0430\u043D", plural: "\u0431\u0430\u043D\u0430\u043D\u0430", catalog: "\u0411\u0430\u043D\u0430\u043D" },
+  "\u043A\u0438\u0432\u0438": { unit: 80, singular: "\u043A\u0438\u0432\u0438", plural: "\u043A\u0438\u0432\u0438", catalog: "\u041A\u0438\u0432\u0438" },
+  "\u043F\u043E\u0440\u0442\u043E\u043A\u0430\u043B": { unit: 150, singular: "\u043F\u043E\u0440\u0442\u043E\u043A\u0430\u043B", plural: "\u043F\u043E\u0440\u0442\u043E\u043A\u0430\u043B\u0438", catalog: "\u041F\u043E\u0440\u0442\u043E\u043A\u0430\u043B" },
+  "\u043C\u0430\u043D\u0434\u0430\u0440\u0438\u043D\u0430": { unit: 80, singular: "\u043C\u0430\u043D\u0434\u0430\u0440\u0438\u043D\u0430", plural: "\u043C\u0430\u043D\u0434\u0430\u0440\u0438", catalog: "\u041C\u0430\u043D\u0434\u0430\u0440\u0438\u043D\u0430" },
+  "\u043F\u0440\u0430\u0441\u043A\u043E\u0432\u0430": { unit: 150, singular: "\u043F\u0440\u0430\u0441\u043A\u043E\u0432\u0430", plural: "\u043F\u0440\u0430\u0441\u043A\u043E\u0432\u0438", catalog: "\u041F\u0440\u0430\u0441\u043A\u043E\u0432\u0430" },
+  "\u043A\u0440\u0443\u0448\u0430": { unit: 150, singular: "\u043A\u0440\u0443\u0448\u0430", plural: "\u043A\u0440\u0443\u0448\u0438", catalog: "\u041A\u0440\u0443\u0448\u0430" },
+  "\u0433\u0440\u0435\u0439\u043F\u0444\u0440\u0443\u0442": { unit: 200, singular: "\u0433\u0440\u0435\u0439\u043F\u0444\u0440\u0443\u0442", plural: "\u0433\u0440\u0435\u0439\u043F\u0444\u0440\u0443\u0442\u0430", catalog: "\u0413\u0440\u0435\u0439\u043F\u0444\u0440\u0443\u0442" }
+};
+var PORTION_RULES_PROMPT = "\u0413\u0440\u0430\u043C\u0430\u0436\u0438: \u0438\u0437\u0447\u0438\u0441\u043B\u0438 \u043E\u0442 mealBreakdown kcal/P/C/F \u0438 \u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438\u0442\u0435 \u043D\u0430 100g \u0432 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430. \u041E\u0441\u043D\u043E\u0432\u043D\u0438 \u2014 \u043D\u0430 50g; \u0434\u043E\u0431\u0430\u0432\u043A\u0438 (\u0437\u0435\u0445\u0442\u0438\u043D, \u044F\u0434\u043A\u0438) \u2014 \u043D\u0430 10g; \u044F\u0439\u0446\u0430 \u2014 60g/\u0431\u0440.; \u043F\u043B\u043E\u0434\u043E\u0432\u0435 \u2014 \u0431\u0440\u043E\u0439 \xD7 \u0441\u0440\u0435\u0434\u0435\u043D \u0433\u0440\u0430\u043C\u0430\u0436.";
+function resolveCountableKey(name) {
+  const normalized = normalizeFoodKey(name);
+  if (COUNTABLE_UNITS[normalized]) return normalized;
+  for (const [key, spec] of Object.entries(COUNTABLE_UNITS)) {
+    if (normalized === normalizeFoodKey(spec.singular) || normalized === normalizeFoodKey(spec.plural)) return key;
+  }
+  return null;
+}
+function resolveCountableCatalogName(label) {
+  const key = resolveCountableKey(label);
+  return key ? COUNTABLE_UNITS[key].catalog : null;
+}
+function getCountableSpec(item2) {
+  const key = resolveCountableKey(item2?.key || item2?.name);
+  return key ? COUNTABLE_UNITS[key] : null;
+}
+function isSmallAdditiveItem(item2) {
+  const { entry } = resolveCatalogEntry(item2?.name);
+  if (entry?.group === "condiment") return true;
+  return SMALL_ADDITIVE_KEYS.has(normalizeFoodKey(item2?.key || item2?.name));
+}
+function getGramStep(item2) {
+  if (isSmallAdditiveItem(item2)) return GRAM_ROUND_STEP;
+  const countable = getCountableSpec(item2);
+  if (countable) return countable.unit;
+  return MAIN_GRAM_ROUND_STEP;
+}
+function roundGrams(grams, step = GRAM_ROUND_STEP) {
+  const g = Number(grams) || 0;
+  if (g <= 0) return step;
+  return Math.max(step, Math.round(g / step) * step);
+}
+function roundGramsForItem(item2, grams) {
+  const step = getGramStep(item2);
+  const rounded = roundGrams(grams, step);
+  const countable = getCountableSpec(item2);
+  if (!countable) return rounded;
+  return Math.max(1, Math.round(rounded / countable.unit)) * countable.unit;
+}
+function validateItemGrams(item2) {
+  const grams = Number(item2.grams) || 0;
+  if (grams <= 0) return `${item2.name}: \u043B\u0438\u043F\u0441\u0432\u0430 \u0433\u0440\u0430\u043C\u0430\u0436`;
+  const countable = getCountableSpec(item2);
+  if (countable) {
+    if (grams % countable.unit === 0) return null;
+    const count = Math.max(1, Math.round(grams / countable.unit));
+    const example = count === 1 ? `1 ${countable.singular} (${countable.unit}g)` : `${count} ${countable.plural} (${count * countable.unit}g)`;
+    return `${item2.name} ${grams}g \u2014 \u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430\u0439 ${countable.unit}g/\u0431\u0440., \u043D\u0430\u043F\u0440. ${example}`;
+  }
+  const step = getGramStep(item2);
+  if (grams % step === 0) return null;
+  return `${item2.name} ${grams}g \u2014 \u0437\u0430\u043A\u0440\u044A\u0433\u043B\u0438 \u043D\u0430 ${step}g (\u043D\u0430\u043F\u0440. ${roundGrams(grams, step)}g)`;
+}
+function formatItemLine(item2) {
+  const spec = getCountableSpec(item2);
+  if (!spec) return `\u2022 ${item2.name} ${item2.grams}g`;
+  const count = Math.max(1, Math.round(item2.grams / spec.unit));
+  const label = count === 1 ? spec.singular : spec.plural;
+  return `\u2022 ${count} ${label} (${count * spec.unit}g)`;
+}
 var CALORIE_TOLERANCE_PERCENT = 0.05;
 var MACRO_TOLERANCE_PERCENT = 0.1;
-var MIN_CALORIE_TOLERANCE_KCAL = 25;
+var MIN_CALORIE_TOLERANCE_KCAL = 30;
 var MIN_MACRO_TOLERANCE_G = 3;
 function calorieTolerance(targetKcal) {
   return Math.max(MIN_CALORIE_TOLERANCE_KCAL, Math.round((Number(targetKcal) || 0) * CALORIE_TOLERANCE_PERCENT));
@@ -6036,6 +6252,7 @@ function macroTolerance(targetGrams) {
 }
 var CONDIMENT_MAX_GRAMS = 15;
 var GRAM_LINE_RE = /^(.+?)\s+(\d+(?:[.,]\d+)?)\s*(g|г)\b(?:\s*[—\-]\s*(.+))?$/i;
+var COUNT_LINE_RE = /^(\d+)\s+(.+?)\s+\((\d+(?:[.,]\d+)?)\s*(g|г)\)\s*$/i;
 function arrayToProfile(arr) {
   return { kcal: arr[0], p: arr[1], c: arr[2], f: arr[3] };
 }
@@ -6101,6 +6318,14 @@ function parseMealDescription(description) {
   for (const line2 of lines) {
     const chunks = line2.split(";").map((s) => s.replace(/^[•\-\*]\s*/, "").trim()).filter(Boolean);
     for (const chunk of chunks) {
+      const countMatch = chunk.match(COUNT_LINE_RE);
+      if (countMatch) {
+        const grams2 = Math.max(1, Math.round(parseFloat(String(countMatch[3]).replace(",", "."))));
+        const name2 = resolveCountableCatalogName(countMatch[2].trim()) || countMatch[2].trim();
+        const { profile: profile2, key: key2, unknown: unknown2 } = lookupFoodProfile(name2);
+        items.push({ name: name2, grams: grams2, key: key2, profile: profile2, unknown: !!unknown2 });
+        continue;
+      }
       const m = chunk.match(GRAM_LINE_RE);
       if (!m) continue;
       const name = m[1].trim();
@@ -6111,10 +6336,10 @@ function parseMealDescription(description) {
   }
   return items;
 }
-function roundGrams(grams, step = GRAM_ROUND_STEP) {
-  const g = Number(grams) || 0;
-  if (g <= 0) return step;
-  return Math.max(step, Math.round(g / step) * step);
+function validateDescriptionGramRules(description) {
+  const items = parseMealDescription(description);
+  if (!items.length) return ["\u043B\u0438\u043F\u0441\u0432\u0430\u0442 \u043F\u0430\u0440\u0441\u0438\u0440\u0443\u0435\u043C\u0438 \u0433\u0440\u0430\u043C\u0430\u0436\u0438 \u0432 description"];
+  return items.map(validateItemGrams).filter(Boolean);
 }
 function getCatalogMeta(name) {
   const { entry } = resolveCatalogEntry(name);
@@ -6182,13 +6407,13 @@ function adjustProteinItemsTowardTarget(items, targetProtein) {
     Math.max(1 - PROTEIN_ADJUST_MAX_PERCENT, (driverProtein + deficit) / driverProtein)
   );
   return items.map(
-    (it) => isProteinDriverItem(it) && !isCondimentItem(it) ? { ...it, grams: roundGrams(it.grams * factor) } : it
+    (it) => isProteinDriverItem(it) && !isCondimentItem(it) ? { ...it, grams: roundGramsForItem(it, it.grams * factor) } : it
   );
 }
 var SCALE_FACTOR_MIN = 0.5;
 var SCALE_FACTOR_MAX = 3;
 var RESIDUAL_STOP_KCAL = 20;
-var MAX_NUDGE_STEPS_PER_ITEM = 3;
+var MAX_NUDGE_STEPS_PER_ITEM = 5;
 function scaleItemsToTargetCalories(items, targetKcal, dessertNutrition = null) {
   if (!items.length || !targetKcal || targetKcal <= 0) return items;
   const base = sumItemNutrition(items);
@@ -6200,7 +6425,7 @@ function scaleItemsToTargetCalories(items, targetKcal, dessertNutrition = null) 
   const factor = Math.min(SCALE_FACTOR_MAX, Math.max(SCALE_FACTOR_MIN, goal / base.kcal));
   const scaled = items.map((item2) => ({
     ...item2,
-    grams: capCondimentGrams(item2, roundGrams(item2.grams * factor))
+    grams: capCondimentGrams(item2, roundGramsForItem(item2, item2.grams * factor))
   }));
   const nudges = /* @__PURE__ */ new Map();
   for (let guard = 0; guard < 12; guard++) {
@@ -6210,11 +6435,12 @@ function scaleItemsToTargetCalories(items, targetKcal, dessertNutrition = null) 
     let best = null;
     let bestAbs = Math.abs(residual);
     for (const item2 of scaled) {
-      const nextGrams = item2.grams + GRAM_ROUND_STEP * dir;
-      if (nextGrams < GRAM_ROUND_STEP) continue;
+      const step = getGramStep(item2);
+      const nextGrams = item2.grams + step * dir;
+      if (nextGrams < step) continue;
       if (isCondimentItem(item2) && nextGrams > CONDIMENT_MAX_GRAMS) continue;
       if ((nudges.get(item2) || 0) >= MAX_NUDGE_STEPS_PER_ITEM) continue;
-      const stepKcal = (Number(item2.profile.kcal) || item2.profile.p * 4 + item2.profile.c * 4 + item2.profile.f * 9) / 100 * GRAM_ROUND_STEP * dir;
+      const stepKcal = (Number(item2.profile.kcal) || item2.profile.p * 4 + item2.profile.c * 4 + item2.profile.f * 9) / 100 * step * dir;
       const abs = Math.abs(residual - stepKcal);
       if (abs < bestAbs) {
         bestAbs = abs;
@@ -6222,13 +6448,13 @@ function scaleItemsToTargetCalories(items, targetKcal, dessertNutrition = null) 
       }
     }
     if (!best) break;
-    best.grams += GRAM_ROUND_STEP * dir;
+    best.grams += getGramStep(best) * dir;
     nudges.set(best, (nudges.get(best) || 0) + 1);
   }
   return scaled;
 }
 function formatMealDescription(items) {
-  return items.map((item2) => `\u2022 ${item2.name} ${item2.grams}g`).join("\n");
+  return items.map((item2) => formatItemLine(item2)).join("\n");
 }
 function formatMealWeight(totalGrams, dessertWeightGrams = 0) {
   const total = Math.round((Number(totalGrams) || 0) + (Number(dessertWeightGrams) || 0));
@@ -6257,6 +6483,10 @@ function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}) {
   if (targetKcal > 0) {
     items = scaleItemsToTargetCalories(items, targetKcal, dessertNutrition);
   }
+  items = items.map((item2) => ({
+    ...item2,
+    grams: capCondimentGrams(item2, roundGramsForItem(item2, item2.grams))
+  }));
   const totals = sumItemNutrition(items);
   let p = Math.round(totals.p);
   let c = Math.round(totals.c);
@@ -9208,10 +9438,29 @@ async function generatePlanAndSave(env, data, jobId, clientId, options = {}) {
     }
   }
 }
+async function dispatchPlanGenerationJob(env, ctx, opts) {
+  const { data, clientId = null, generationOptions = {}, jobId: preferredJobId } = opts || {};
+  const jobId = preferredJobId || crypto.randomUUID();
+  await env.page_content.put(
+    PLAN_JOB_PREFIX + jobId,
+    JSON.stringify({ status: "pending", startedAt: Date.now(), clientId: clientId || null }),
+    { expirationTtl: PLAN_JOB_TTL_SEC }
+  );
+  const payload = { jobId, data, clientId: clientId || null, generationOptions };
+  if (env.PLAN_QUEUE) {
+    await env.PLAN_QUEUE.send(payload, { contentType: "json" });
+  } else if (ctx) {
+    console.warn("dispatchPlanGenerationJob: PLAN_QUEUE not bound \u2013 ctx.waitUntil fallback");
+    ctx.waitUntil(generatePlanAndSave(env, data, jobId, clientId || null, generationOptions));
+  } else {
+    await generatePlanAndSave(env, data, jobId, clientId || null, generationOptions);
+  }
+  return jobId;
+}
 async function handleGeneratePlanAsync(request, env, ctx) {
   try {
     const rawBody = await request.json();
-    const jobId = rawBody._jobId && JOB_ID_UUID_RE.test(String(rawBody._jobId)) ? String(rawBody._jobId) : crypto.randomUUID();
+    const requestedJobId = rawBody._jobId && JOB_ID_UUID_RE.test(String(rawBody._jobId)) ? String(rawBody._jobId) : void 0;
     const clientId = typeof rawBody._clientId === "string" && rawBody._clientId.startsWith("client_") ? rawBody._clientId : null;
     const requireApproval = rawBody._requireApproval === true;
     const explicitUserId = typeof rawBody._userId === "string" ? rawBody._userId.trim() : "";
@@ -9257,22 +9506,12 @@ async function handleGeneratePlanAsync(request, env, ctx) {
       requireApproval,
       userId: explicitUserId || ""
     };
-    await env.page_content.put(
-      PLAN_JOB_PREFIX + jobId,
-      JSON.stringify({ status: "pending", startedAt: Date.now() }),
-      { expirationTtl: PLAN_JOB_TTL_SEC }
-    );
-    if (env.PLAN_QUEUE) {
-      await env.PLAN_QUEUE.send({
-        jobId,
-        data,
-        clientId: resolvedClientId,
-        generationOptions
-      }, { contentType: "json" });
-    } else {
-      console.warn('handleGeneratePlanAsync: PLAN_QUEUE not bound \u2013 falling back to ctx.waitUntil(). Run "wrangler queues create plan-generation" to fix this.');
-      ctx.waitUntil(generatePlanAndSave(env, data, jobId, resolvedClientId, generationOptions));
-    }
+    const jobId = await dispatchPlanGenerationJob(env, ctx, {
+      data,
+      clientId: resolvedClientId,
+      generationOptions,
+      jobId: requestedJobId
+    });
     return jsonResponse2({ success: true, jobId });
   } catch (error) {
     console.error("handleGeneratePlanAsync error:", error);
@@ -11779,6 +12018,34 @@ async function handleActivateClientPlan(request, env, ctx) {
     return jsonResponse2({ error: `Failed to activate plan: ${error.message}` }, 500);
   }
 }
+async function handleAdminRegenerateClientPlan(request, env, ctx) {
+  try {
+    const { clientId } = await request.json();
+    if (!clientId) return jsonResponse2({ error: "Missing clientId" }, 400);
+    if (!env.page_content) return jsonResponse2({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    const raw = await env.page_content.get(`client:${clientId}`);
+    if (!raw) return jsonResponse2({ error: "Client not found" }, 404);
+    const clientData = JSON.parse(raw);
+    const data = normalizeQuestionnaireData(clientData.answers || {});
+    if (!data.name || !data.age || !data.weight || !data.height) {
+      return jsonResponse2({ error: "\u041D\u0435\u043F\u044A\u043B\u043D\u0438 \u0434\u0430\u043D\u043D\u0438 \u043E\u0442 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430" }, 400);
+    }
+    const jobId = await dispatchPlanGenerationJob(env, ctx, {
+      data,
+      clientId,
+      generationOptions: { userId: clientData.userId || "" }
+    });
+    clientData.planStatus = "generating";
+    delete clientData.planGenerationError;
+    clientData.planGenerationJobId = jobId;
+    clientData.planUpdatedAt = (/* @__PURE__ */ new Date()).toISOString();
+    await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
+    return jsonResponse2({ success: true, jobId });
+  } catch (error) {
+    console.error("Error regenerating client plan:", error);
+    return jsonResponse2({ error: error.message || "Failed to regenerate plan" }, 500);
+  }
+}
 async function handleGetClientPlanStatus(request, env) {
   try {
     const url = new URL(request.url);
@@ -12135,6 +12402,18 @@ async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay
   }
   return unknowns;
 }
+function collectWeekPlanGramRuleErrors(weekPlan, startDay, endDay) {
+  const errors = [];
+  for (let d = startDay; d <= endDay; d++) {
+    for (const meal of weekPlan[`day${d}`]?.meals || []) {
+      if (meal.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" || meal.type === "\u041D\u0430\u043F\u0438\u0442\u043A\u0430") continue;
+      for (const err of validateDescriptionGramRules(meal.description || "")) {
+        errors.push(`\u0414\u0435\u043D ${d} ${meal.type}: ${err}`);
+      }
+    }
+  }
+  return errors;
+}
 function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocolId = null) {
   const errors = [];
   if (!dayPlan?.meals?.length || !dayTarget?.mealBreakdown?.length) return errors;
@@ -12186,7 +12465,7 @@ function buildChunkValidationRetryComment(errors) {
 \u041F\u043E\u043F\u0440\u0430\u0432\u0438 \u0421\u0410\u041C\u041E \u043F\u043E\u0441\u043E\u0447\u0435\u043D\u0438\u0442\u0435 \u043D\u0435\u0441\u044A\u043E\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0438\u044F. \u0417\u0430\u043F\u0430\u0437\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438\u0442\u0435 \u0438 \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0430\u0442\u0430 \u043D\u0430 \u0434\u043D\u0438\u0442\u0435.
 ${errors.map((e, i) => `${i + 1}. ${e}`).join("\n")}
 
-\u0417\u0410\u0414\u042A\u041B\u0416\u0418\u0422\u0415\u041B\u041D\u041E: description \u0441 "\u0447\u0438\u0441\u043B\u043Eg" \u043D\u0430 \u0432\u0441\u0435\u043A\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442 (\u0437\u0430\u043A\u0440\u044A\u0433\u043B\u044F\u043D\u0435 10g); \u0421\u0410\u041C\u041E \u0438\u043C\u0435\u043D\u0430 \u043E\u0442 \u041A\u0410\u0422\u0410\u041B\u041E\u0413\u0410; \u043E\u0431\u0449\u043E\u043F\u0440\u0438\u0435\u0442\u0438 \u043A\u043E\u043C\u0431\u0438\u043D\u0430\u0446\u0438\u0438. \u0411\u0435\u043A\u0435\u043D\u0434\u044A\u0442 \u0438\u0437\u0447\u0438\u0441\u043B\u044F\u0432\u0430 macros/kcal \u043E\u0442 \u0433\u0440\u0430\u043C\u0430\u0436\u0438\u0442\u0435 \u0438 \u043C\u0430\u0449\u0430\u0431\u0438\u0440\u0430 \u043F\u043E\u0440\u0446\u0438\u0438\u0442\u0435 \u043A\u044A\u043C \u043A\u0430\u043B\u043E\u0440\u0438\u0439\u043D\u0430\u0442\u0430 \u0446\u0435\u043B.`;
+\u0417\u0410\u0414\u042A\u041B\u0416\u0418\u0422\u0415\u041B\u041D\u041E: ${PORTION_RULES_PROMPT} \u0411\u0435\u043A\u0435\u043D\u0434\u044A\u0442 \u043C\u0430\u0449\u0430\u0431\u0438\u0440\u0430 \u043F\u0440\u043E\u043F\u043E\u0440\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u043A\u044A\u043C \u043A\u0430\u043B\u043E\u0440\u0438\u0439\u043D\u0430\u0442\u0430 \u0446\u0435\u043B \u0438 \u0438\u0437\u0447\u0438\u0441\u043B\u044F\u0432\u0430 macros/kcal \u043E\u0442 \u0433\u0440\u0430\u043C\u0430\u0436\u0438\u0442\u0435 \u2014 \u043D\u0435 \u0434\u043E\u0431\u0430\u0432\u044F\u0439 calories/macros.`;
 }
 function finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay) {
   if (!weekPlan) return;
@@ -13428,9 +13707,12 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
           weekPlan[dayKey] = chunkData[dayKey];
         }
         injectFixedDesserts(weekPlan);
-        await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
-        finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay);
-        validationErrors = validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay, data.clinicalProtocol || null);
+        validationErrors = collectWeekPlanGramRuleErrors(weekPlan, startDay, endDay);
+        if (!validationErrors.length) {
+          await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
+          finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay);
+          validationErrors = validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay, data.clinicalProtocol || null);
+        }
         lastAiFailure = null;
       } catch (aiError) {
         lastAiFailure = aiError.message;
@@ -18336,6 +18618,8 @@ var worker_entry_default = {
         return await handleUpdateClientPlan(request, env, ctx);
       } else if (url.pathname === "/api/admin/activate-client-plan" && request.method === "POST") {
         return await handleActivateClientPlan(request, env, ctx);
+      } else if (url.pathname === "/api/admin/regenerate-client-plan" && request.method === "POST") {
+        return await handleAdminRegenerateClientPlan(request, env, ctx);
       } else if (url.pathname === "/api/admin/client-card" && request.method === "GET") {
         return await handleAdminClientCard(request, env);
       } else if (url.pathname === "/api/admin/client-assistant/session" && request.method === "POST") {

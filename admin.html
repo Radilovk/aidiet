@@ -355,7 +355,7 @@
 
         .clients-mini-btn.view { background: var(--accent-blue); }
         .clients-mini-btn.download { background: #16a34a; }
-        .clients-mini-btn.delete { background: #dc2626; }
+        .clients-mini-btn.regen { background: #6366f1; }
 
         .clients-empty-state {
             text-align: center;
@@ -5341,6 +5341,12 @@
             if (planStatus === 'pending') {
                 return '<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;background:#fef3c7;color:#d97706;margin-left:8px;"><i class="fas fa-clock"></i> Очаква преглед</span>';
             }
+            if (planStatus === 'generating') {
+                return '<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;background:#dbeafe;color:#1d4ed8;margin-left:8px;"><i class="fas fa-spinner fa-spin"></i> Генериране</span>';
+            }
+            if (planStatus === 'failed') {
+                return '<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;background:#fee2e2;color:#dc2626;margin-left:8px;"><i class="fas fa-exclamation-circle"></i> Неуспешно</span>';
+            }
             return '';
         }
 
@@ -9319,6 +9325,71 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         // ============================================================================
         // PENDING PLANS MODULE — Central approval hub
         // ============================================================================
+        async function regenerateClientPlan(clientId, triggerBtn) {
+            if (!confirm('Стартира се ново AI генериране на плана от данните на въпросника. Продължи?')) return;
+            const origHtml = triggerBtn ? triggerBtn.innerHTML : '';
+            if (triggerBtn) {
+                triggerBtn.disabled = true;
+                triggerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            }
+            try {
+                const resp = await fetch(WORKER_URL + '/api/admin/regenerate-client-plan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ clientId })
+                });
+                const res = await resp.json();
+                if (!res.success) throw new Error(res.error || 'Unknown error');
+
+                const client = allClientsData.find(c => c.id === clientId);
+                if (client) {
+                    client.planStatus = 'generating';
+                    delete client.planGenerationError;
+                }
+                cacheClientsDirectorySnapshot();
+                renderPendingPlans();
+                if (clientsDirectoryHasLoaded) renderClientsDirectory();
+
+                showSuccess('Генерирането започна. Ще се обнови автоматично при готовност.');
+                pollPlanGenerationJob(res.jobId, () => {
+                    if (triggerBtn) {
+                        triggerBtn.disabled = false;
+                        triggerBtn.innerHTML = origHtml;
+                    }
+                });
+            } catch (e) {
+                showError('Грешка при генериране: ' + e.message);
+                if (triggerBtn) {
+                    triggerBtn.disabled = false;
+                    triggerBtn.innerHTML = origHtml;
+                }
+            }
+        }
+
+        async function pollPlanGenerationJob(jobId, onDone) {
+            for (let i = 0; i < 120; i++) {
+                await new Promise(r => setTimeout(r, 5000));
+                try {
+                    const resp = await fetch(WORKER_URL + '/api/plan-job-status?jobId=' + encodeURIComponent(jobId));
+                    const status = await resp.json();
+                    if (status.status === 'completed') {
+                        await loadClientsList(true);
+                        showSuccess('Планът е генериран успешно.');
+                        if (onDone) onDone();
+                        return;
+                    }
+                    if (status.status === 'failed') {
+                        await loadClientsList(true);
+                        showError('Генерирането неуспешно: ' + (status.error || 'неизвестна грешка'));
+                        if (onDone) onDone();
+                        return;
+                    }
+                    if (status.status === 'not_found') break;
+                } catch (_) { /* retry */ }
+            }
+            if (onDone) onDone();
+        }
+
         async function fetchClientsDirectory(forceRefresh = false) {
             if (forceRefresh) {
                 invalidateClientsDirectoryCache();
@@ -9369,6 +9440,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             pending.forEach(client => {
                 const dateStr = formatClientDate(client.submittedAt || client.timestamp);
                 const isFailed = client.planStatus === 'failed';
+                const isGenerating = client.planStatus === 'generating';
                 const failedBadge = isFailed ? `<span style="display:inline-block;background:#fee2e2;color:#dc2626;border-radius:4px;padding:2px 8px;font-size:0.78rem;margin-left:6px;"><i class="fas fa-exclamation-circle"></i> Неуспешно генериране</span>` : '';
                 const errorRow = isFailed && client.planGenerationError ? `<div style="color:#dc2626;font-size:0.8rem;margin-top:4px;"><i class="fas fa-bug"></i> ${escapeHtml(client.planGenerationError)}</div>` : '';
                 html += `
@@ -9386,7 +9458,10 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                             <button class="btn pending-view-btn" style="background:var(--accent-blue);font-size:0.85rem;padding:8px 14px;">
                                 <i class="fas fa-eye"></i> Преглед
                             </button>
-                            ${!isFailed ? `<button class="btn pending-activate-btn" data-client-id="${escapeHtml(client.id)}" style="background:#0D9488;font-size:0.85rem;padding:8px 14px;">
+                            <button class="btn pending-regen-btn" data-client-id="${escapeHtml(client.id)}" style="background:#6366f1;font-size:0.85rem;padding:8px 14px;" ${isGenerating ? 'disabled' : ''}>
+                                <i class="fas fa-sync-alt"></i> ${isGenerating ? 'Генерира...' : 'Ново генериране'}
+                            </button>
+                            ${!isFailed && !isGenerating ? `<button class="btn pending-activate-btn" data-client-id="${escapeHtml(client.id)}" style="background:#0D9488;font-size:0.85rem;padding:8px 14px;">
                                 <i class="fas fa-rocket"></i> Активирай
                             </button>` : ''}
                         </div>
@@ -9400,6 +9475,11 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 btn.addEventListener('click', function() {
                     const card = this.closest('.pending-client-card');
                     viewClientDetails(card.getAttribute('data-client-id'));
+                });
+            });
+            container.querySelectorAll('.pending-regen-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    regenerateClientPlan(this.getAttribute('data-client-id'), this);
                 });
             });
             container.querySelectorAll('.pending-activate-btn').forEach(btn => {
@@ -9538,6 +9618,9 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                         `).join('')}
                         <td>
                             <div class="clients-actions-cell">
+                                <button class="clients-mini-btn regen" data-client-regen="${escapeHtml(client.id)}" title="Ново генериране на план">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
                                 <button class="clients-mini-btn view" data-client-view="${escapeHtml(client.id)}">
                                     <i class="fas fa-eye"></i> Преглед
                                 </button>
@@ -9592,6 +9675,12 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                         clientsSortState.direction = 'desc';
                     }
                     renderClientsDirectory();
+                    return;
+                }
+
+                const regenBtn = event.target.closest('[data-client-regen]');
+                if (regenBtn) {
+                    regenerateClientPlan(regenBtn.getAttribute('data-client-regen'), regenBtn);
                     return;
                 }
 
@@ -9989,13 +10078,16 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                                 <div style="margin-top:18px;">
                                     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
                                         <h3 style="margin:0;color:var(--text-dark);font-size:1rem;"><i class="fas fa-utensils" style="color:var(--primary-red);margin-right:6px;"></i>Хранителен план ${statusBadgeHtml}</h3>
-                                        ${client.planStatus !== 'activated' ? `
-                                            <button class="btn client-plan-activate-btn" data-client-id="${escapeHtml(client.id)}" style="background:#0D9488;font-size:0.82rem;padding:6px 14px;margin-left:auto;">
+                                        <button class="btn client-plan-regen-btn" data-client-id="${escapeHtml(client.id)}" style="background:#6366f1;font-size:0.82rem;padding:6px 14px;margin-left:auto;" ${client.planStatus === 'generating' ? 'disabled' : ''}>
+                                            <i class="fas fa-sync-alt"></i> Ново генериране
+                                        </button>
+                                        ${client.planStatus !== 'activated' && client.planStatus !== 'generating' ? `
+                                            <button class="btn client-plan-activate-btn" data-client-id="${escapeHtml(client.id)}" style="background:#0D9488;font-size:0.82rem;padding:6px 14px;">
                                                 <i class="fas fa-rocket"></i> Активирай достъп
                                             </button>
-                                        ` : `
-                                            <span style="margin-left:auto;color:#0F766E;font-size:0.82rem;font-weight:600;"><i class="fas fa-check-circle"></i> Активиран на ${client.planActivatedAt ? new Date(client.planActivatedAt).toLocaleString('bg-BG') : '—'}</span>
-                                        `}
+                                        ` : client.planStatus === 'activated' ? `
+                                            <span style="color:#0F766E;font-size:0.82rem;font-weight:600;"><i class="fas fa-check-circle"></i> Активиран на ${client.planActivatedAt ? new Date(client.planActivatedAt).toLocaleString('bg-BG') : '—'}</span>
+                                        ` : ''}
                                     </div>
 
                                     <!-- Plan tabs -->
@@ -10052,6 +10144,11 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                             ` : `
                                 <div style="margin-top:18px;padding:16px;background:#f3f4f6;border-radius:10px;text-align:center;color:var(--text-gray);">
                                     <i class="fas fa-info-circle"></i> Няма генериран план за този клиент.
+                                </div>
+                                <div style="margin-top:12px;text-align:center;">
+                                    <button class="btn client-plan-regen-btn" data-client-id="${escapeHtml(client.id)}" style="background:#6366f1;font-size:0.85rem;padding:8px 16px;" ${client.planStatus === 'generating' ? 'disabled' : ''}>
+                                        <i class="fas fa-sync-alt"></i> Генерирай план
+                                    </button>
                                 </div>
                                 <div class="admin-assistant-panel" style="margin-top:18px;" data-client-id="${escapeHtml(client.id)}">
                                     <h3 style="margin:0 0 12px;color:var(--text-dark);font-size:1rem;"><i class="fas fa-robot" style="color:#7c3aed;margin-right:6px;"></i>AI Асистент (профил)</h3>
@@ -10170,6 +10267,13 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                         this.innerHTML = '<i class="fas fa-save"></i> Запази промените';
                         this.disabled = false;
                     }
+                });
+
+                // Regenerate plan
+                modal.querySelectorAll('.client-plan-regen-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        regenerateClientPlan(this.getAttribute('data-client-id'), this);
+                    });
                 });
 
                 // Activate plan

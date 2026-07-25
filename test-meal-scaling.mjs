@@ -20,6 +20,10 @@ import {
   calorieTolerance,
   nutritionFromGrams,
   SCALE_FACTOR_MAX,
+  MAIN_GRAM_ROUND_STEP,
+  roundGramsForItem,
+  formatMealDescription,
+  validateDescriptionGramRules,
 } from './food-nutrition.js';
 
 const results = [];
@@ -59,19 +63,19 @@ for (const m of TYPICAL_MEALS) {
 
 console.log('\n=== 3. Протеинов лост: ограничен до ±20% и само върху протеинови продукти ===');
 {
-  const items = parseMealDescription('• Пилешки гърди 100g\n• Ориз 150g\n• Домат 100g')
+  const items = parseMealDescription('• Пилешки гърди 150g\n• Ориз 150g\n• Домат 100g')
     .map(i => ({ ...i, ...lookupFoodProfile(i.name) }));
   // Deficit far beyond the lever's range: chicken must stop at exactly +20%.
   const adjusted = adjustProteinItemsTowardTarget(items, 80);
   const chicken = adjusted.find(i => i.name === 'Пилешки гърди');
   const rice = adjusted.find(i => i.name === 'Ориз');
   const tomato = adjusted.find(i => i.name === 'Домат');
-  check('протеиновият продукт е увеличен точно с 20%', chicken.grams === 120, `100g → ${chicken.grams}g`);
+  check('протеиновият продукт е увеличен точно с 20%', chicken.grams === 200, `150g → ${chicken.grams}g`);
   check('непротеиновите продукти не са пипнати', rice.grams === 150 && tomato.grams === 100);
 
   const down = adjustProteinItemsTowardTarget(items, 10);
   const chickenDown = down.find(i => i.name === 'Пилешки гърди');
-  check('надолу също е ограничен до −20%', chickenDown.grams === 80, `100g → ${chickenDown.grams}g`);
+  check('надолу също е ограничен до −20%', chickenDown.grams === 100, `150g → ${chickenDown.grams}g`);
 }
 
 console.log('\n=== 4. Записаните macros/kcal винаги отговарят на записаните грамажи ===');
@@ -96,7 +100,7 @@ console.log('\n=== 5. Патологичен вход: ограничен кое
   // 3300g. The clamp caps at ×3 and validation reports the residual gap for AI retry.
   const items = parseMealDescription('• Краставица 100g').map(i => ({ ...i, ...lookupFoodProfile(i.name) }));
   const scaled = scaleItemsToTargetCalories(items, 500);
-  const maxAllowed = 100 * SCALE_FACTOR_MAX + 30; // clamp + max rounding nudges
+  const maxAllowed = 100 * SCALE_FACTOR_MAX + 5 * MAIN_GRAM_ROUND_STEP;
   check('порцията е ограничена (×3), не 3кг краставици', scaled[0].grams <= maxAllowed, `${scaled[0].grams}g`);
 
   const meal = { type: 'Хранене 2', description: '• Краставица 100g' };
@@ -131,6 +135,27 @@ console.log('\n=== 8. Непознат продукт се докладва (з�
   const meal = { type: 'Хранене 2', description: '• Мистериозен специалитет 100g\n• Ориз 150g' };
   const res = applyMealNutritionFromDatabase(meal, { calories: 400 });
   check('unknown продуктът е върнат нагоре', res.unknowns.includes('Мистериозен специалитет'));
+}
+
+console.log('\n=== 9. Грамажни стъпки: 50g основни, 10g добавки, 60g яйца, брой плодове ===');
+{
+  const eggItems = parseMealDescription('• яйца 90g').map(i => ({ ...i, ...lookupFoodProfile(i.name) }));
+  check('яйцата се закръглят на 60g', roundGramsForItem(eggItems[0], 90) === 120);
+  check('яйцата се форматират с брой', /2 яйца \(120g\)/.test(formatMealDescription([{ ...eggItems[0], grams: 120 }])));
+
+  const fruitItems = parseMealDescription('• Ябълка 140g').map(i => ({ ...i, ...lookupFoodProfile(i.name) }));
+  check('плодът се закръгля до цял брой', roundGramsForItem(fruitItems[0], 140) === 150);
+  check('плодът се форматира с брой', /1 ябълка \(150g\)/.test(formatMealDescription([{ ...fruitItems[0], grams: 150 }])));
+
+  const almond = parseMealDescription('• Бадеми 15g').map(i => ({ ...i, ...lookupFoodProfile(i.name) }))[0];
+  check('ядките остават на 10g', roundGramsForItem(almond, 15) === 20);
+}
+
+console.log('\n=== 10. Валидация на AI грамажи преди бекенд sync ===');
+{
+  check('90g яйца → грешка за AI retry', validateDescriptionGramRules('• яйца 90g').some(e => /60g\/бр/.test(e)));
+  check('180g пилешко → грешка за 50g стъпка', validateDescriptionGramRules('• пилешки гърди 180g').some(e => /50g/.test(e)));
+  check('валидни грамажи → без грешки', validateDescriptionGramRules('• 2 яйца (120g)\n• пилешки гърди 150g\n• зехтин 10g').length === 0);
 }
 
 const passed = results.filter(Boolean).length;
