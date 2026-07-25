@@ -44,6 +44,7 @@
  */
 
 import { localizeExerciseDisplayName, sanitizeBgText, sanitizePlanBulgarian } from './exercise-labels-bg.js';
+import { QUESTIONNAIRE_EQUIPMENT_MAP } from './equipment-groups.js';
 import {
   buildPlanSystemInstruction,
   COMPACT_PLAN_RETRY_HINT,
@@ -512,16 +513,7 @@ function mediaUrl(env, relativePath) {
 // Оборудване: mapping BG (въпросник) → EN (база)
 // ============================================================================
 
-export const EQUIPMENT_MAP = {
-  'пълно оборудване на зала': null, // null = без филтър
-  'собствено тегло': ['body weight'],
-  'дъмбели': ['dumbbell'],
-  'щанга и дискове': ['barbell', 'ez barbell', 'olympic barbell'],
-  'гира': ['kettlebell'],
-  'ластици': ['band', 'resistance band'],
-  'стабилизираща топка': ['stability ball'],
-  'trx / окачени ремъци': ['body weight'],
-};
+export const EQUIPMENT_MAP = QUESTIONNAIRE_EQUIPMENT_MAP;
 
 /**
  * Връща Set от позволени equipment стойности (EN, нормализирани) или null,

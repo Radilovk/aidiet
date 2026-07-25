@@ -153,7 +153,14 @@
   flex-shrink: 0; padding: 0 14px 10px; display: flex; flex-direction: column; gap: 8px;
   max-height: min(38vh, 300px); overflow-y: auto; -webkit-overflow-scrolling: touch;
 }
-.fcp-picker-filters-primary { display: flex; flex-direction: column; gap: 8px; }
+.fcp-picker-load-more {
+  text-align: center; font-size: 0.75rem; color: var(--text-gray); padding: 10px 0 4px;
+}
+.fcp-picker-filters-primary {
+  display: flex; flex-direction: column; gap: 8px;
+  background: var(--bg-color); border-radius: 10px; padding: 8px;
+}
+[data-theme="dark"] .fcp-picker-filters-primary { background: #0f2221; }
 .fcp-picker-filters-advanced {
   border: 1px solid #e5e7eb; border-radius: 10px; background: var(--bg-color);
 }
@@ -172,19 +179,26 @@
 .fcp-picker-filter-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .fcp-picker-filter-row .fcp-picker-flabel { font-size: 0.72rem; color: var(--text-gray); font-weight: 700; flex: 0 0 100%; }
 .fcp-picker-chip {
-  border: 1px solid #d1d5db; background: var(--white); border-radius: 999px; padding: 10px 14px;
+  border: 1px solid #c5cdd8; background: var(--bg-color); color: var(--text-dark);
+  border-radius: 999px; padding: 10px 14px;
   font-size: 0.8rem; font-weight: 600; cursor: pointer; min-height: 44px; line-height: 1.2;
 }
+.fcp-picker-chip:hover { border-color: var(--primary-red); color: var(--primary-dark); }
 .fcp-picker-chip.active { background: var(--soft-red); border-color: var(--primary-red); color: var(--primary-dark); }
+[data-theme="dark"] .fcp-picker-chip {
+  background: #16302f; border-color: #2d4a48; color: #e8f4f2;
+}
+[data-theme="dark"] .fcp-picker-chip.active { background: rgba(255, 107, 107, 0.22); color: #fff; }
 .fcp-picker-results-bar {
   flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px;
   padding: 8px 14px 0;
 }
 .fcp-picker-clear-btn {
-  border: 1px solid #d1d5db; background: var(--white); border-radius: 8px;
-  padding: 6px 10px; font-size: 0.72rem; font-weight: 700; color: var(--text-gray);
+  border: 1px solid #c5cdd8; background: var(--bg-color); border-radius: 8px;
+  padding: 6px 10px; font-size: 0.72rem; font-weight: 700; color: var(--text-dark);
   cursor: pointer; min-height: 32px; flex-shrink: 0;
 }
+[data-theme="dark"] .fcp-picker-clear-btn { background: #16302f; border-color: #2d4a48; color: #e8f4f2; }
 .fcp-picker-clear-btn:hover { border-color: var(--primary-red); color: var(--primary-red); }
 .hidden { display: none !important; }
 .fcp-picker-results-hint {

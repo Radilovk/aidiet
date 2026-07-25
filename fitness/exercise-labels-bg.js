@@ -2,6 +2,7 @@
  * Българска терминология за упражнения и корекция на чести AI преводи.
  * canonicalName (EN) → естествен български фитнес жаргон.
  */
+import { EQUIP_NORM_LABELS, equipmentGroupLabelForNorm } from './equipment-groups.js';
 
 function norm(text) {
   return String(text || '')
@@ -30,34 +31,7 @@ const BG_TEXT_FIXES = /** @type {[RegExp, string][]} */ ([
 ]);
 
 const EQUIP_BG = {
-  dumbbell: 'дъмбели',
-  barbell: 'щанга',
-  kettlebell: 'гира',
-  cable: 'кабел',
-  band: 'ластик',
-  'body weight': 'собствено тегло',
-  'smith machine': 'Смит машина',
-  'leverage machine': 'машина',
-  'ez barbell': 'EZ лост',
-  'stability ball': 'фитбол',
-  'medicine ball': 'медицинска топка',
-  'resistance band': 'ластик',
-  'assisted': 'с асистенция',
-  'weighted': 'с тежест',
-  'olympic barbell': 'олимпийска щанга',
-  'trap bar': 'трап бар',
-  'sled machine': 'сани',
-  'roller': 'ролер',
-  'rope': 'въже',
-  'wheel roller': 'ролер за корем',
-  'bosu ball': 'BOSU топка',
-  'elliptical machine': 'елиптичен тренажор',
-  hammer: 'хамър',
-  'skierg machine': 'SkiErg',
-  'stationary bike': 'велоергометър',
-  'stepmill machine': 'стълбищен тренажор',
-  tire: 'гума',
-  'upper body ergometer': 'ергометър за горна част',
+  ...EQUIP_NORM_LABELS,
 };
 
 const TARGET_BG = {
@@ -99,7 +73,7 @@ function equipPhrase(hint) {
 /** Кратък BG етикет за оборудване (lightbox/meta). */
 export function localizeEquipment(equipment) {
   const key = norm(equipment);
-  return EQUIP_BG[key] || equipment || '';
+  return EQUIP_BG[key] || equipmentGroupLabelForNorm(key) || equipment || '';
 }
 
 /** Кратък BG етикет за целева мускулна група. */
@@ -123,7 +97,7 @@ const EXACT_BG = {
   'sled 45 leg press': 'Преса за крака под 45°',
   'barbell full squat': 'Клек с щанга',
   'barbell squat': 'Клек с щанга',
-  'goblet squat': 'Клек с гира',
+  'goblet squat': 'Клек с пудовка',
   'barbell deadlift': 'Мъртва тяга с щанга',
   'romanian deadlift': 'Румънска мъртва тяга',
   'dumbbell romanian deadlift': 'Румънска мъртва тяга с дъмбели',
@@ -206,7 +180,7 @@ function fromPatterns(c) {
   }
 
   if (/\bsquat\b/.test(c)) {
-    if (/\bgoblet\b/.test(c)) return 'Клек с гира';
+    if (/\bgoblet\b/.test(c)) return 'Клек с пудовка';
     if (/\bfront\b/.test(c)) return 'Преден клек';
     if (/\bbarbell\b/.test(c)) return 'Клек с щанга';
     if (/\bdumbbell\b/.test(c)) return 'Клек с дъмбели';

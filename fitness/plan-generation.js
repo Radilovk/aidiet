@@ -393,12 +393,15 @@ export function constraintsFromAnswers(answers, exampleScheme = '', options = {}
 
 const ADMIN_EQUIPMENT_HINTS = [
   { keys: ['скрипец', 'pulley', 'кабел', 'cable'], hints: ['cable'] },
-  { keys: ['гирич', 'дъмбел', 'dumbbell'], hints: ['dumbbell'] },
-  { keys: ['лост', 'щанг', 'barbell'], hints: ['barbell'] },
-  { keys: ['машин', 'аддуктор', 'абдуктор', 'leg press', 'преса'], hints: ['leverage machine'] },
+  { keys: ['гирич', 'дъмбел', 'dumbbell', 'гири ', 'гира'], hints: ['dumbbell'] },
+  { keys: ['лост', 'щанг', 'barbell', 'ez'], hints: ['barbell', 'ez barbell'] },
+  { keys: ['машин', 'аддуктор', 'абдуктор', 'leg press', 'преса', 'смит', 'smith', 'сани', 'sled', 'hack'], hints: ['leverage machine', 'smith machine', 'sled machine'] },
+  { keys: ['кардио', 'пътек', 'treadmill', 'велоерг', 'елипт', 'стълби', 'stepmill', 'ski erg', 'skierg'], hints: ['elliptical machine', 'stationary bike', 'stepmill machine', 'skierg machine', 'upper body ergometer'] },
   { keys: ['степ', 'блокче'], hints: ['body weight'] },
   { keys: ['ластик', 'band', 'резист'], hints: ['band'] },
-  { keys: ['гира', 'kettlebell'], hints: ['kettlebell'] },
+  { keys: ['пудовк', 'kettlebell'], hints: ['kettlebell'] },
+  { keys: ['гира'], hints: ['dumbbell'] },
+  { keys: ['диск', 'plate', 'тежест'], hints: ['weighted'] },
   { keys: ['топка', 'ball'], hints: ['stability ball'] },
   { keys: ['trx', 'ремък', 'подвеск'], hints: ['body weight'] },
 ];
@@ -450,7 +453,7 @@ function buildAdminHardRulesBlock(constraints) {
     parts.push(
       'ЕДИНСТВЕНО ПОЗВОЛЕНО ОБОРУДВАНЕ (hard-veto — забранено е всичко извън списъка):',
       ...constraints.equipmentList.map((e) => `• ${e}`),
-      'equipmentHint: cable за скрипец; leverage machine за машини; dumbbell за гирички; barbell само ако е изрично изброен лост/щанга.',
+      'equipmentHint: cable за скрипец; leverage/smith/sled machine за машини; dumbbell за дъмбели/гирички; kettlebell за пудовка; barbell/EZ за щанга и лостове; weighted за диск.',
     );
   }
   if (constraints.exclusions?.length) {
