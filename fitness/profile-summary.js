@@ -1,7 +1,20 @@
 import { normalizeText } from './normalize.js';
+import { EQUIPMENT_PICKER_OPTION, equipmentLabelForGroupId } from './equipment-groups.js';
 
 function line(label, value) {
   return value ? `${label}: ${value}` : '';
+}
+
+function formatEquipment(a) {
+  const parts = [];
+  for (const e of a.equipment || []) {
+    if (e && e !== EQUIPMENT_PICKER_OPTION) parts.push(e);
+  }
+  if (a.equipmentPickedGroups?.length) {
+    parts.push(a.equipmentPickedGroups.map(equipmentLabelForGroupId).join(', '));
+  }
+  if (a.equipmentOther) parts.push(a.equipmentOther);
+  return parts.filter(Boolean).join(', ');
 }
 
 /** Компактен текстов профил от структурирани answers (въпросник / админ бланка). */
@@ -42,7 +55,7 @@ export function buildProfileSummary(a) {
     const goalText = goalMain === 'друго' ? a.goal.other : a.goal.main;
     parts.push(line('ЦЕЛ', `${goalText || '?'}${a.goal.deadline ? `, срок: ${a.goal.deadline}` : ', без срок'}`));
   }
-  parts.push(line('Оборудване', [...(a.equipment || []), a.equipmentOther].filter(Boolean).join(', ')));
+  parts.push(line('Оборудване', formatEquipment(a)));
   if (a.preferences) {
     const p = a.preferences;
     parts.push(line('Предпочитания', [

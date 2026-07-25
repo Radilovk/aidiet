@@ -12,6 +12,7 @@
 import { normalizeText } from './normalize.js';
 import { buildProfileSummary } from './profile-summary.js';
 import { exerciseProfileFromContext, fitsExerciseProfile } from './exercise-metadata.js';
+import { EQUIPMENT_PICKER_OPTION, equipmentLabelForGroupId } from './equipment-groups.js';
 import {
   GENDER_FIT_RETRY_HINT,
   CONSTRAINT_RETRY_HINT,
@@ -350,7 +351,10 @@ export function constraintsFromAnswers(answers, exampleScheme = '', options = {}
   const strictAssembly = Boolean(options.strictAssembly);
   const equipmentList = [];
   for (const e of answers?.equipment || []) {
-    if (e && e !== 'Друго') equipmentList.push(e);
+    if (e && e !== 'Друго' && e !== EQUIPMENT_PICKER_OPTION) equipmentList.push(e);
+  }
+  for (const id of answers?.equipmentPickedGroups || []) {
+    equipmentList.push(equipmentLabelForGroupId(id));
   }
   if (answers?.equipmentOther) {
     for (const part of String(answers.equipmentOther).split(/[,;\n]/)) {
@@ -859,7 +863,7 @@ export function preparePlanGeneration(source, adminConfig, helpers) {
     };
     const equipmentInput = expandEquipmentAnswers([...(answers?.equipment || []), answers?.equipmentOther].filter(Boolean));
     const fromBrief = allowedEquipmentFromBrief(profileText, schemeText);
-    const fromAnswers = helpers.allowedEquipmentSet(equipmentInput);
+    const fromAnswers = helpers.allowedEquipmentSet(equipmentInput, answers?.equipmentPickedGroups);
     return {
       userPrompt: buildAdminPlanUserPrompt(brief, { strictAssembly }),
       guidelineLayers: layers,
