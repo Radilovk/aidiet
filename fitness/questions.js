@@ -1,4 +1,8 @@
-import { EQUIPMENT_PICKER_OPTION, GYM_EQUIPMENT_OPTION } from './equipment-groups.js';
+import {
+  buildQuestionnaireEquipmentOptions,
+  EQUIPMENT_PICKER_OPTION,
+  GYM_EQUIPMENT_OPTION,
+} from './equipment-groups.js';
 
 /**
  * KA-TRAINER — декларативна дефиниция на клиентския въпросник.
@@ -231,12 +235,13 @@ export const QUESTIONS = [
     id: 'equipment',
     num: 14,
     title: 'Оборудване',
-    subtitle: 'Планът ще включва само упражнения с наличното ти оборудване.',
+    subtitle: 'Планът ще включва само упражнения с наличното ти оборудване. Машините и кабелите се избират отделно.',
     type: 'multi',
+    equipmentLayout: true,
     options: [
       { value: GYM_EQUIPMENT_OPTION, exclusive: true },
       { value: EQUIPMENT_PICKER_OPTION, equipmentPicker: true },
-      { value: 'Собствено тегло' },
+      ...buildQuestionnaireEquipmentOptions(),
       { value: 'Друго', input: { key: 'equipmentOther', placeholder: 'опиши' } },
     ],
   },
@@ -318,7 +323,7 @@ export function validateQuestion(question, state) {
     if (!value?.selected?.length) return 'Избери поне една опция.';
     const picker = question.options?.find((o) => o.equipmentPicker);
     if (picker && value.selected.includes(picker.value) && !(value.pickedItems?.length)) {
-      return 'Избери поне една група оборудване.';
+      return 'Избери поне един уред от списъка.';
     }
     return null;
   }

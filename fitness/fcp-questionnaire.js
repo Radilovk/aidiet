@@ -4,9 +4,9 @@
 import {
   activeQuestions, buildAnswers, answersToFormState,
   validateQuestion,
-} from './questions.js?v=6';
+} from './questions.js?v=7';
 import { buildProfileSummary } from './profile-summary.js?v=2';
-import { createWizardController, el } from './wizard-ui.js?v=4';
+import { createWizardController, el } from './wizard-ui.js?v=5';
 
 const IDS = {
   questionCard: 'fcpQuestionCard',

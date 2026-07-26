@@ -16,21 +16,47 @@ const CARDIO_LEVERAGE_NAME_RE = /treadmill|elliptical|cross trainer|stationary b
 
 export const EQUIPMENT_GROUPS = [
   { id: 'body_weight', label: 'Собствено тегло', norms: ['body weight', 'assisted'] },
-  { id: 'dumbbell', label: 'Дъмбели', norms: ['dumbbell'] },
+  { id: 'dumbbell', label: 'Дъмбели / гири', norms: ['dumbbell'] },
   { id: 'barbell', label: 'Щанга и лостове', norms: ['barbell', 'ez barbell', 'olympic barbell', 'trap bar'] },
   { id: 'kettlebell', label: 'Пудовка', norms: ['kettlebell'] },
   { id: 'cable', label: 'Кабел / скрипец', norms: ['cable'] },
   { id: 'band', label: 'Ластици', norms: ['band', 'resistance band'] },
   { id: 'machine', label: 'Силови машини', norms: [...STRENGTH_MACHINE_NORMS] },
   { id: 'cardio_trainer', label: 'Кардио тренажори', norms: [...CARDIO_TRAINER_NORMS] },
-  { id: 'balls', label: 'Топки', norms: ['stability ball', 'medicine ball', 'bosu ball'] },
+  { id: 'balls', label: 'Топки / фитбол', norms: ['stability ball', 'medicine ball', 'bosu ball'] },
   { id: 'weight_plate', label: 'Тежест (Диск)', norms: ['weighted'] },
   { id: 'accessory', label: 'Аксесоари', norms: ['rope', 'roller', 'wheel roller', 'tire', 'hammer'] },
 ];
 
 export const VIRTUAL_EQUIPMENT_GROUPS = { equipment_rig: ['machine', 'cable'] };
 
-const GROUP_BY_ID = new Map(EQUIPMENT_GROUPS.map((g) => [g.id, g]));
+/** Допълнителни групи само за въпросника (няма отделен equipNorm в DB). */
+export const QUESTIONNAIRE_EXTRA_GROUPS = [
+  { id: 'step_platform', label: 'Степ платформа / блок', norms: ['body weight'] },
+];
+
+/** Групи извън „Посочи конкретни уреди“ (машини/кабел/кардио → apparatus picker). */
+export const QUESTIONNAIRE_EXCLUDED_GROUP_IDS = new Set(['machine', 'cable', 'cardio_trainer']);
+
+export const QUESTIONNAIRE_EQUIPMENT_SECTIONS = [
+  {
+    id: 'free_weights',
+    label: 'Свободни тежести',
+    groupIds: ['dumbbell', 'barbell', 'kettlebell', 'weight_plate'],
+  },
+  {
+    id: 'flexible',
+    label: 'Ластици и топки',
+    groupIds: ['band', 'balls'],
+  },
+  {
+    id: 'body_and_accessory',
+    label: 'Собствено тегло и аксесоари',
+    groupIds: ['body_weight', 'step_platform', 'accessory'],
+  },
+];
+
+const GROUP_BY_ID = new Map([...EQUIPMENT_GROUPS, ...QUESTIONNAIRE_EXTRA_GROUPS].map((g) => [g.id, g]));
 const NORM_TO_GROUP = new Map();
 for (const group of EQUIPMENT_GROUPS) {
   for (const norm of group.norms) NORM_TO_GROUP.set(norm, group);
@@ -48,16 +74,40 @@ export const EQUIP_NORM_LABELS = {
 };
 
 /** Legacy + текущи опции от въпросника. */
-export const QUESTIONNAIRE_EQUIPMENT_MAP = {
-  [normalizeText(GYM_EQUIPMENT_OPTION)]: null,
-  'собствено тегло': ['body weight'],
-  'дъмбели': ['dumbbell'], 'дъмбели / гирички': ['dumbbell'],
-  'щанга и дискове': ['barbell', 'ez barbell', 'olympic barbell', 'trap bar'],
-  'пудовка': ['kettlebell'], 'гира': ['kettlebell'],
-  'ластици': ['band', 'resistance band'],
-  'стабилизираща топка': ['stability ball', 'medicine ball', 'bosu ball'],
-  'trx / окачени ремъци': ['body weight'],
-};
+export const QUESTIONNAIRE_EQUIPMENT_MAP = (() => {
+  const map = {
+    [normalizeText(GYM_EQUIPMENT_OPTION)]: null,
+    [normalizeText(EQUIPMENT_PICKER_OPTION)]: [],
+  };
+  for (const group of [...EQUIPMENT_GROUPS, ...QUESTIONNAIRE_EXTRA_GROUPS]) {
+    if (QUESTIONNAIRE_EXCLUDED_GROUP_IDS.has(group.id)) continue;
+    map[normalizeText(group.label)] = group.norms;
+  }
+  // Legacy етикети
+  map['дъмбели'] = ['dumbbell'];
+  map['дъмбели / гирички'] = ['dumbbell'];
+  map['щанга и дискове'] = ['barbell', 'ez barbell', 'olympic barbell', 'trap bar'];
+  map['гира'] = ['kettlebell'];
+  map['стабилизираща топка'] = ['stability ball', 'medicine ball', 'bosu ball'];
+  map['trx / окачени ремъци'] = ['body weight'];
+  return map;
+})();
+
+export function questionnaireEquipmentGroups() {
+  const all = [...EQUIPMENT_GROUPS, ...QUESTIONNAIRE_EXTRA_GROUPS];
+  return all.filter((g) => !QUESTIONNAIRE_EXCLUDED_GROUP_IDS.has(g.id));
+}
+
+export function buildQuestionnaireEquipmentOptions() {
+  return questionnaireEquipmentGroups().map((g) => ({
+    value: g.label,
+    groupId: g.id,
+  }));
+}
+
+export function groupLabelById(id) {
+  return GROUP_BY_ID.get(id)?.label || id;
+}
 
 export function equipmentLabelForGroupId(id) {
   if (id === 'equipment_rig') return 'Уреди (машини + кабел)';
