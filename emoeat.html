@@ -23,7 +23,7 @@
     <link rel="canonical" href="https://biocode.website/emoeat.html">
     <link rel="icon" type="image/png" sizes="192x192" href="./icon-192x192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="./icon-512x512.png">
-    <link rel="manifest" href="./manifest.json">
+    <link rel="manifest" href="./emoeat-manifest.json">
     <link rel="apple-touch-icon" sizes="180x180" href="./icon-192x192.png">
     <link rel="apple-touch-icon" sizes="152x152" href="./icon-192x192.png">
     <title>Въпросник за Емоционално Хранене</title>
@@ -1570,55 +1570,6 @@
             color: var(--text-gray);
             margin-bottom: 20px;
         }
-        /* Bottom Navigation */
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            z-index: 300;
-            display: flex;
-            align-items: center;
-            justify-content: space-around;
-            height: calc(68px + var(--safe-area-inset-bottom, 0px));
-            padding: 4px 8px var(--safe-area-inset-bottom, 0px);
-            background: rgba(255, 255, 255, 0.92);
-            backdrop-filter: blur(24px) saturate(180%);
-            -webkit-backdrop-filter: blur(24px) saturate(180%);
-            border-top: 1px solid var(--glass-border);
-            box-shadow: 0 -4px 20px rgba(13, 148, 136, 0.06);
-        }
-        [data-theme="dark"] .bottom-nav {
-            background: rgba(8, 22, 22, 0.96);
-            border-top: none;
-            box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.5), 0 -1px 0 rgba(45, 212, 191, 0.08);
-        }
-        .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 3px;
-            text-decoration: none;
-            color: var(--text-light);
-            transition: color 0.25s ease;
-            min-width: 44px;
-            min-height: 44px;
-            padding: 4px 8px;
-            border-radius: 12px;
-        }
-        .nav-item.active, .nav-item:active {
-            color: var(--primary-red);
-        }
-        .nav-icon {
-            font-size: 1.3rem;
-            line-height: 1;
-        }
-        .nav-label {
-            font-size: 0.62rem;
-            font-weight: 600;
-            letter-spacing: 0.2px;
-        }
     </style>
     <script>
         // Apply saved theme
@@ -1633,15 +1584,14 @@
         })();
     </script>
 </head>
-<body data-page-theme="emoeat">
-    <script type="module" src="./auth-guard.js"></script>
+<body data-page-theme="emoeat" data-standalone-module="emoeat">
     <!-- Skip Navigation Link (Accessibility) -->
     <a href="#main-content" class="ds-skip-link">Премини към съдържанието</a>
     
     <!-- Site Navigation -->
-    <nav class="site-nav" role="navigation" aria-label="Главна навигация">
-        <a href="index.html" class="site-nav-logo" aria-label="NutriPlan начална страница">
-            <i class="fas fa-apple-alt" aria-hidden="true"></i> NutriPlan
+    <nav class="site-nav" role="navigation" aria-label="EmoEat навигация">
+        <a href="emoeat.html" class="site-nav-logo" aria-label="EmoEat начало">
+            <i class="fas fa-heart-pulse" aria-hidden="true"></i> EmoEat
         </a>
         <div class="site-nav-actions">
             <button type="button" class="theme-toggle" onclick="toggleTheme()" title="Смени темата" aria-label="Смени темата">
@@ -1659,18 +1609,16 @@
     <div class="site-nav-overlay" id="siteNavOverlay" onclick="closeSiteNav()"></div>
 
     <!-- Slide-in navigation menu -->
-    <nav class="site-nav-menu" id="siteNavMenu" role="dialog" aria-modal="true" aria-label="Навигационно меню">
-        <a href="index.html?app=1&tab=plan" class="site-nav-top-link" id="siteNavMyPlanLink" style="display:none;"><i class="fas fa-user-check"></i> Моят План</a>
-
-        <div class="site-nav-section-label">Начална страница</div>
-        <a href="index.html?stay=1"><i class="fas fa-home"></i> Начало</a>
-        <a href="index.html?stay=1#features"><i class="fas fa-star"></i> Функции</a>
-        <a href="index.html?stay=1#how-it-works"><i class="fas fa-info-circle"></i> Как работи</a>
-        <a href="index.html?stay=1#contact"><i class="fas fa-envelope"></i> Контакти</a>
+    <nav class="site-nav-menu" id="siteNavMenu" role="dialog" aria-modal="true" aria-label="EmoEat меню">
+        <div class="site-nav-section-label">EmoEat</div>
+        <a href="#" onclick="event.preventDefault(); closeSiteNav(); goToWelcome();"><i class="fas fa-home"></i> Начало</a>
+        <a href="#" id="siteNavResultsLink" style="display:none;" onclick="event.preventDefault(); closeSiteNav(); showSavedResults();"><i class="fas fa-chart-pie"></i> Моите резултати</a>
+        <a href="#" onclick="event.preventDefault(); closeSiteNav(); restartQuestionnaire();"><i class="fas fa-redo"></i> Нов анализ</a>
 
         <div class="site-nav-menu-divider"></div>
-        <div class="site-nav-section-label">Модули</div>
-        <a href="emoeat.html"><i class="fas fa-heart-pulse"></i> Емоционално Хранене</a>
+        <div class="site-nav-section-label">NutriPlan</div>
+        <a href="index.html?stay=1"><i class="fas fa-apple-alt"></i> Към NutriPlan</a>
+        <a href="features.html"><i class="fas fa-th-large"></i> Всички модули</a>
         <a href="longevity.html"><i class="fas fa-dna"></i> Дълголетие</a>
         <a href="protocol-landing.html"><i class="fas fa-stethoscope"></i> Клинични Протоколи</a>
     </nav>
@@ -2004,15 +1952,53 @@
             if (e.key === 'Escape') closeSiteNav();
         });
 
-        // Show "My Plan" link if user has a plan
-        (function() {
-            const dietPlan = localStorage.getItem('dietPlan');
-            const userId = localStorage.getItem('userId');
-            if (dietPlan && userId) {
-                const link = document.getElementById('siteNavMyPlanLink');
-                if (link) link.style.display = 'flex';
+        // Show "My Results" link if user has completed the questionnaire
+        function updateStandaloneNav() {
+            const completed = localStorage.getItem('emoeat_completed');
+            const link = document.getElementById('siteNavResultsLink');
+            if (link && completed) link.style.display = 'flex';
+        }
+
+        function goToWelcome() {
+            currentScreen = 'welcome';
+            currentQuestionIndex = 0;
+            showScreen('welcomeScreen');
+            document.getElementById('navFooter').style.display = 'flex';
+            updateProgress();
+            updateNavButtons();
+        }
+
+        function showSavedResults() {
+            const savedAnalysis = localStorage.getItem('emoeat_analysis');
+            if (savedAnalysis) {
+                try {
+                    const analysis = JSON.parse(savedAnalysis);
+                    currentScreen = 'results';
+                    generateAIResults(analysis);
+                    showScreen('resultsScreen');
+                    document.getElementById('navFooter').style.display = 'none';
+                    updateProgress();
+                    return;
+                } catch (e) { /* fall through */ }
             }
-        })();
+            const savedAnswers = localStorage.getItem('emoeat_answers');
+            if (savedAnswers) {
+                try {
+                    answers = JSON.parse(savedAnswers);
+                } catch (e) {
+                    answers = {};
+                }
+            }
+            if (answers && Object.keys(answers).length >= MIN_REQUIRED_ANSWERS) {
+                currentScreen = 'results';
+                generateFallbackResults();
+                showScreen('resultsScreen');
+                document.getElementById('navFooter').style.display = 'none';
+                updateProgress();
+                return;
+            }
+            goToWelcome();
+        }
 
         // ============================================
         // NAVIGATION
@@ -2147,6 +2133,7 @@
                     // Save answers to localStorage
                     localStorage.setItem('emoeat_answers', JSON.stringify(answers));
                     localStorage.setItem('emoeat_completed', new Date().toISOString());
+                    updateStandaloneNav();
 
                     // Update loading messages progressively
                     const loadingMessages = [
@@ -2636,6 +2623,7 @@
                 showScreen('welcomeScreen');
                 updateProgress();
                 updateNavButtons();
+                updateStandaloneNav();
             }
         }
 
@@ -2663,7 +2651,9 @@
                         currentScreen = 'results';
                         generateAIResults(analysis);
                         showScreen('resultsScreen');
+                        document.getElementById('navFooter').style.display = 'none';
                         updateProgress();
+                        updateStandaloneNav();
                         return;
                     } catch (e) {
                         // Saved analysis is corrupt — fall through to fallback
@@ -2675,40 +2665,20 @@
                     currentScreen = 'results';
                     generateFallbackResults();
                     showScreen('resultsScreen');
+                    document.getElementById('navFooter').style.display = 'none';
                     updateProgress();
+                    updateStandaloneNav();
                     return;
                 }
             }
 
             updateProgress();
             updateNavButtons();
+            updateStandaloneNav();
         }
 
         // Initialize on load
         init();
     </script>
-    <!-- Bottom Navigation -->
-    <nav class="bottom-nav" role="navigation" aria-label="Главно меню">
-        <a href="./index.html" class="nav-item" aria-label="Начало">
-            <i class="fas fa-home nav-icon"></i>
-            <span class="nav-label">Начало</span>
-        </a>
-        <a href="./plan.html" class="nav-item" aria-label="Моят план">
-            <i class="fas fa-utensils nav-icon"></i>
-            <span class="nav-label">План</span>
-        </a>
-        <a href="./guidelines.html" class="nav-item" aria-label="Насоки">
-            <i class="fas fa-book-open nav-icon"></i>
-            <span class="nav-label">Насоки</span>
-        </a>
-        <a href="./emoeat.html" class="nav-item active" aria-label="Емо хранене">
-            <i class="fas fa-heart nav-icon"></i>
-            <span class="nav-label">Емоции</span>
-        </a>
-        <a href="./profile.html" class="nav-item" aria-label="Профил">
-            <i class="fas fa-user nav-icon"></i>
-            <span class="nav-label">Профил</span>
-        </a>
-    </nav>
 </body>
 </html>

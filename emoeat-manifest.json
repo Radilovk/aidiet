@@ -1,0 +1,31 @@
+{
+  "id": "/emoeat.html",
+  "name": "EmoEat — Емоционално Хранене",
+  "short_name": "EmoEat",
+  "description": "Професионален въпросник за емоционално хранене. Разкрийте подсъзнателните тригери и получете персонализирани терапевтични стратегии.",
+  "start_url": "/emoeat.html",
+  "scope": "/emoeat.html",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#2E1065",
+  "theme_color": "#F0FDFA",
+  "orientation": "portrait-primary",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["health", "lifestyle", "medical"],
+  "lang": "bg-BG",
+  "dir": "ltr"
+}
