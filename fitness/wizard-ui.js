@@ -2,6 +2,7 @@
  * Споделен UI за KA-TRAINER въпросник (app + консултация).
  */
 import { fieldVisible } from './questions.js';
+import { renderEquipmentGroupSections } from './equipment-group-select.js';
 import { renderEquipmentSummary } from './equipment-select.js';
 
 export function el(tag, props = {}, ...children) {
@@ -133,13 +134,30 @@ export function createWizardController({
   function renderMulti(q, container) {
     const state = getState()[q.id] || (getState()[q.id] = { selected: [], inputs: {}, pickedItems: [] });
     const options = q.options || [];
+    const specialOptions = q.equipmentLayout
+      ? options.filter((o) => !o.groupId)
+      : options;
+    const groupOptions = q.equipmentLayout
+      ? options.filter((o) => o.groupId)
+      : [];
+
+    const applyToggle = (selected, opt) => {
+      if (selected.has(opt.value)) selected.delete(opt.value);
+      else {
+        if (opt.exclusive) selected.clear();
+        else for (const o of options) if (o.exclusive) selected.delete(o.value);
+        selected.add(opt.value);
+      }
+      state.selected = [...selected];
+      save();
+    };
 
     const renderAll = () => {
       container.innerHTML = '';
       const list = el('div', { class: 'opt-list' });
       const selected = new Set(state.selected);
 
-      for (const opt of options) {
+      for (const opt of specialOptions) {
         const isActive = selected.has(opt.value);
         const cardEl = el('div', { class: `opt-card${isActive ? ' active' : ''}`, role: 'checkbox', 'aria-checked': String(isActive), tabindex: '0' });
         cardEl.append(el('div', { class: 'opt-row' },
@@ -165,16 +183,7 @@ export function createWizardController({
           cardEl.append(pickerWrap);
         }
 
-        const toggle = () => {
-          if (selected.has(opt.value)) selected.delete(opt.value);
-          else {
-            if (opt.exclusive) selected.clear();
-            else for (const o of options) if (o.exclusive) selected.delete(o.value);
-            selected.add(opt.value);
-          }
-          state.selected = [...selected];
-          save(); renderAll();
-        };
+        const toggle = () => { applyToggle(selected, opt); renderAll(); };
         cardEl.addEventListener('click', (e) => { if (!isEditableTarget(e.target)) toggle(); });
         cardEl.addEventListener('keydown', (e) => {
           if (isEditableTarget(e.target)) return;
@@ -183,6 +192,16 @@ export function createWizardController({
         list.append(cardEl);
       }
       container.append(list);
+
+      if (groupOptions.length) {
+        const groupsHost = el('div', { class: 'equip-groups-host' });
+        renderEquipmentGroupSections(groupsHost, {
+          options: groupOptions,
+          selected,
+          onToggle: (value, opt) => { applyToggle(selected, opt); renderAll(); },
+        });
+        container.append(groupsHost);
+      }
     };
     renderAll();
   }

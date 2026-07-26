@@ -507,6 +507,60 @@
   text-align: center;
 }
 
+/* Групиран избор (дъмбели, щанга, ластици…) — извън apparatus picker */
+.equip-groups-host {
+  margin-top: 18px;
+  padding-top: 4px;
+}
+.equip-group-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.equip-group-section-title {
+  margin: 0 0 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted, var(--ep-muted, #8b9aab));
+}
+.equip-group-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.equip-group-chip {
+  appearance: none;
+  border: 1px solid var(--border, var(--ep-border, rgba(255, 255, 255, 0.12)));
+  background: var(--surface-2, var(--ep-surface, rgba(255, 255, 255, 0.04)));
+  color: inherit;
+  border-radius: 999px;
+  padding: 9px 14px;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.equip-group-chip:hover {
+  border-color: var(--muted, var(--ep-muted, #8b9aab));
+}
+.equip-group-chip.active {
+  border-color: var(--volt, var(--ep-accent, #35e0c2));
+  background: rgba(53, 224, 194, 0.12);
+  box-shadow: 0 0 0 1px var(--volt, var(--ep-accent, #35e0c2)) inset;
+}
+.fcp-wizard .equip-group-chip.active {
+  border-color: var(--primary-red, #0d9488);
+  background: var(--soft-red, #ccfbf1);
+  box-shadow: 0 0 0 1px var(--primary-red, #0d9488) inset;
+  color: var(--primary-dark, #0f766e);
+}
+
 /* Admin / FCP тема */
 .fcp-wizard .equip-fs-overlay,
 .fcp-wizard .equip-picker-summary,
