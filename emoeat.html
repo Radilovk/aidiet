@@ -23,7 +23,7 @@
     <link rel="canonical" href="https://biocode.website/emoeat.html">
     <link rel="icon" type="image/png" sizes="192x192" href="./icon-192x192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="./icon-512x512.png">
-    <link rel="manifest" href="./manifest.json">
+    <link rel="manifest" href="./emoeat-manifest.json">
     <link rel="apple-touch-icon" sizes="180x180" href="./icon-192x192.png">
     <link rel="apple-touch-icon" sizes="152x152" href="./icon-192x192.png">
     <title>Въпросник за Емоционално Хранене</title>
@@ -1549,6 +1549,171 @@
             color: var(--primary);
         }
 
+        /* Emotional Factors Profile */
+        .factors-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .factor-card {
+            background: var(--card-bg);
+            border-radius: var(--radius-sm);
+            padding: 16px 18px;
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .factor-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .factor-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .factor-icon.rose { background: rgba(236, 72, 153, 0.15); color: #EC4899; }
+        .factor-icon.purple { background: rgba(139, 92, 246, 0.15); color: #8B5CF6; }
+        .factor-icon.amber { background: rgba(245, 158, 11, 0.15); color: #F59E0B; }
+        .factor-icon.teal { background: rgba(13, 148, 136, 0.15); color: #0D9488; }
+        .factor-icon.blue { background: rgba(6, 182, 212, 0.15); color: #06B6D4; }
+        .factor-icon.red { background: rgba(239, 68, 68, 0.15); color: #EF4444; }
+
+        .factor-name {
+            font-weight: 700;
+            color: var(--text-dark);
+            font-size: 0.95rem;
+            flex: 1;
+        }
+
+        .factor-score {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .factor-bar {
+            height: 6px;
+            background: rgba(0, 0, 0, 0.06);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        [data-theme="dark"] .factor-bar { background: rgba(255, 255, 255, 0.08); }
+
+        .factor-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--accent-cool));
+            transition: width 1.2s ease;
+        }
+
+        .factor-desc {
+            font-size: 0.85rem;
+            color: var(--text-gray);
+            line-height: 1.5;
+            margin-bottom: 6px;
+        }
+
+        .factor-evidence {
+            font-size: 0.82rem;
+            color: var(--text-light);
+            font-style: italic;
+            border-left: 3px solid var(--primary-light);
+            padding-left: 10px;
+            margin-top: 6px;
+        }
+
+        .halt-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        .halt-item {
+            background: var(--card-bg);
+            border-radius: var(--radius-sm);
+            padding: 14px;
+            text-align: center;
+            border: 1px solid var(--glass-border);
+        }
+
+        .halt-letter {
+            font-size: 1.4rem;
+            font-weight: 900;
+            color: var(--primary);
+            line-height: 1;
+        }
+
+        .halt-label {
+            font-size: 0.75rem;
+            color: var(--text-gray);
+            margin: 4px 0 8px;
+        }
+
+        .halt-score {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .cycle-card {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(245, 158, 11, 0.08));
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            border-radius: var(--radius-sm);
+            padding: 18px;
+            margin-bottom: 24px;
+        }
+
+        .cycle-card h4 {
+            color: #EF4444;
+            font-size: 0.95rem;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .cycle-card p {
+            color: var(--text-gray);
+            font-size: 0.9rem;
+            line-height: 1.55;
+        }
+
+        .factor-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 16px 0 8px;
+        }
+
+        .factor-chip {
+            background: var(--primary-light);
+            color: var(--primary-dark);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
+        [data-theme="dark"] .factor-chip {
+            background: rgba(45, 212, 191, 0.12);
+            color: var(--primary);
+        }
+
         .error-card {
             background: var(--card-bg);
             border-radius: var(--radius);
@@ -1570,55 +1735,6 @@
             color: var(--text-gray);
             margin-bottom: 20px;
         }
-        /* Bottom Navigation */
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            z-index: 300;
-            display: flex;
-            align-items: center;
-            justify-content: space-around;
-            height: calc(68px + var(--safe-area-inset-bottom, 0px));
-            padding: 4px 8px var(--safe-area-inset-bottom, 0px);
-            background: rgba(255, 255, 255, 0.92);
-            backdrop-filter: blur(24px) saturate(180%);
-            -webkit-backdrop-filter: blur(24px) saturate(180%);
-            border-top: 1px solid var(--glass-border);
-            box-shadow: 0 -4px 20px rgba(13, 148, 136, 0.06);
-        }
-        [data-theme="dark"] .bottom-nav {
-            background: rgba(8, 22, 22, 0.96);
-            border-top: none;
-            box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.5), 0 -1px 0 rgba(45, 212, 191, 0.08);
-        }
-        .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 3px;
-            text-decoration: none;
-            color: var(--text-light);
-            transition: color 0.25s ease;
-            min-width: 44px;
-            min-height: 44px;
-            padding: 4px 8px;
-            border-radius: 12px;
-        }
-        .nav-item.active, .nav-item:active {
-            color: var(--primary-red);
-        }
-        .nav-icon {
-            font-size: 1.3rem;
-            line-height: 1;
-        }
-        .nav-label {
-            font-size: 0.62rem;
-            font-weight: 600;
-            letter-spacing: 0.2px;
-        }
     </style>
     <script>
         // Apply saved theme
@@ -1633,15 +1749,14 @@
         })();
     </script>
 </head>
-<body data-page-theme="emoeat">
-    <script type="module" src="./auth-guard.js"></script>
+<body data-page-theme="emoeat" data-standalone-module="emoeat">
     <!-- Skip Navigation Link (Accessibility) -->
     <a href="#main-content" class="ds-skip-link">Премини към съдържанието</a>
     
     <!-- Site Navigation -->
-    <nav class="site-nav" role="navigation" aria-label="Главна навигация">
-        <a href="index.html" class="site-nav-logo" aria-label="NutriPlan начална страница">
-            <i class="fas fa-apple-alt" aria-hidden="true"></i> NutriPlan
+    <nav class="site-nav" role="navigation" aria-label="EmoEat навигация">
+        <a href="emoeat.html" class="site-nav-logo" aria-label="EmoEat начало">
+            <i class="fas fa-heart-pulse" aria-hidden="true"></i> EmoEat
         </a>
         <div class="site-nav-actions">
             <button type="button" class="theme-toggle" onclick="toggleTheme()" title="Смени темата" aria-label="Смени темата">
@@ -1659,18 +1774,16 @@
     <div class="site-nav-overlay" id="siteNavOverlay" onclick="closeSiteNav()"></div>
 
     <!-- Slide-in navigation menu -->
-    <nav class="site-nav-menu" id="siteNavMenu" role="dialog" aria-modal="true" aria-label="Навигационно меню">
-        <a href="index.html?app=1&tab=plan" class="site-nav-top-link" id="siteNavMyPlanLink" style="display:none;"><i class="fas fa-user-check"></i> Моят План</a>
-
-        <div class="site-nav-section-label">Начална страница</div>
-        <a href="index.html?stay=1"><i class="fas fa-home"></i> Начало</a>
-        <a href="index.html?stay=1#features"><i class="fas fa-star"></i> Функции</a>
-        <a href="index.html?stay=1#how-it-works"><i class="fas fa-info-circle"></i> Как работи</a>
-        <a href="index.html?stay=1#contact"><i class="fas fa-envelope"></i> Контакти</a>
+    <nav class="site-nav-menu" id="siteNavMenu" role="dialog" aria-modal="true" aria-label="EmoEat меню">
+        <div class="site-nav-section-label">EmoEat</div>
+        <a href="#" onclick="event.preventDefault(); closeSiteNav(); goToWelcome();"><i class="fas fa-home"></i> Начало</a>
+        <a href="#" id="siteNavResultsLink" style="display:none;" onclick="event.preventDefault(); closeSiteNav(); showSavedResults();"><i class="fas fa-chart-pie"></i> Моите резултати</a>
+        <a href="#" onclick="event.preventDefault(); closeSiteNav(); restartQuestionnaire();"><i class="fas fa-redo"></i> Нов анализ</a>
 
         <div class="site-nav-menu-divider"></div>
-        <div class="site-nav-section-label">Модули</div>
-        <a href="emoeat.html"><i class="fas fa-heart-pulse"></i> Емоционално Хранене</a>
+        <div class="site-nav-section-label">NutriPlan</div>
+        <a href="index.html?stay=1"><i class="fas fa-apple-alt"></i> Към NutriPlan</a>
+        <a href="features.html"><i class="fas fa-th-large"></i> Всички модули</a>
         <a href="longevity.html"><i class="fas fa-dna"></i> Дълголетие</a>
         <a href="protocol-landing.html"><i class="fas fa-stethoscope"></i> Клинични Протоколи</a>
     </nav>
@@ -1697,8 +1810,17 @@
                 </div>
                 <h2 class="welcome-title">Разкрийте Подсъзнателните Ви Хранителни Тригери</h2>
                 <p class="welcome-subtitle">
-                    Този въпросник използва проективни техники за разкриване на емоционалните причини зад хранителните ви навици. Довършете изреченията спонтанно – достатъчни са дори 2-3 думи!
+                    Този въпросник използва проективни техники за разкриване на емоционалните причини зад хранителните ви навици — срам, самота, контрол, стрес, скука и други скрити тригери. Довършете изреченията спонтанно – достатъчни са дори 2-3 думи!
                 </p>
+
+                <div class="factor-chips" aria-label="Емоционални фактори, които ще бъдат анализирани">
+                    <span class="factor-chip">Утеха и самота</span>
+                    <span class="factor-chip">Срам и вина</span>
+                    <span class="factor-chip">Контрол и лишение</span>
+                    <span class="factor-chip">Стрес и бягство</span>
+                    <span class="factor-chip">Скука и стимулация</span>
+                    <span class="factor-chip">Детска привързаност</span>
+                </div>
 
                 <div class="welcome-features">
                     <div class="feature-card">
@@ -2004,15 +2126,53 @@
             if (e.key === 'Escape') closeSiteNav();
         });
 
-        // Show "My Plan" link if user has a plan
-        (function() {
-            const dietPlan = localStorage.getItem('dietPlan');
-            const userId = localStorage.getItem('userId');
-            if (dietPlan && userId) {
-                const link = document.getElementById('siteNavMyPlanLink');
-                if (link) link.style.display = 'flex';
+        // Show "My Results" link if user has completed the questionnaire
+        function updateStandaloneNav() {
+            const completed = localStorage.getItem('emoeat_completed');
+            const link = document.getElementById('siteNavResultsLink');
+            if (link && completed) link.style.display = 'flex';
+        }
+
+        function goToWelcome() {
+            currentScreen = 'welcome';
+            currentQuestionIndex = 0;
+            showScreen('welcomeScreen');
+            document.getElementById('navFooter').style.display = 'flex';
+            updateProgress();
+            updateNavButtons();
+        }
+
+        function showSavedResults() {
+            const savedAnalysis = localStorage.getItem('emoeat_analysis');
+            if (savedAnalysis) {
+                try {
+                    const analysis = JSON.parse(savedAnalysis);
+                    currentScreen = 'results';
+                    generateAIResults(analysis);
+                    showScreen('resultsScreen');
+                    document.getElementById('navFooter').style.display = 'none';
+                    updateProgress();
+                    return;
+                } catch (e) { /* fall through */ }
             }
-        })();
+            const savedAnswers = localStorage.getItem('emoeat_answers');
+            if (savedAnswers) {
+                try {
+                    answers = JSON.parse(savedAnswers);
+                } catch (e) {
+                    answers = {};
+                }
+            }
+            if (answers && Object.keys(answers).length >= MIN_REQUIRED_ANSWERS) {
+                currentScreen = 'results';
+                generateFallbackResults();
+                showScreen('resultsScreen');
+                document.getElementById('navFooter').style.display = 'none';
+                updateProgress();
+                return;
+            }
+            goToWelcome();
+        }
 
         // ============================================
         // NAVIGATION
@@ -2147,6 +2307,7 @@
                     // Save answers to localStorage
                     localStorage.setItem('emoeat_answers', JSON.stringify(answers));
                     localStorage.setItem('emoeat_completed', new Date().toISOString());
+                    updateStandaloneNav();
 
                     // Update loading messages progressively
                     const loadingMessages = [
@@ -2223,6 +2384,253 @@
         }
 
         // ============================================
+        // EMOTIONAL FACTOR ANALYSIS
+        // ============================================
+        const SKIP_ANSWERS = ['не се отнася', 'нямам такъв', 'не зная'];
+
+        const EMOTIONAL_FACTOR_DEFS = [
+            {
+                id: 'comfort_loneliness',
+                name: 'Утеха и самота',
+                icon: 'fa-heart',
+                color: 'rose',
+                questions: [1, 9],
+                keywords: ['сам', 'сама', 'самот', 'топл', 'уют', 'слад', 'шоколад', 'прегръд', 'любов', 'майка', 'детство', 'сигурност', 'липс', 'обятие', 'грижа'],
+                mechanism: 'Храната компенсира липсата на емоционална близост, топлина и привързаност — класически „глад на сърцето".'
+            },
+            {
+                id: 'shame_guilt',
+                name: 'Срам, вина и скрито хранене',
+                icon: 'fa-eye-slash',
+                color: 'purple',
+                questions: [2, 13],
+                keywords: ['срам', 'вина', 'скришно', 'тайно', 'грях', 'провал', 'лош', 'недостоен', 'критик', 'обижда', 'забранен', 'съжаление'],
+                mechanism: 'Цикъл на срам → тайно хранене → вина → още ограничения. Поддържа хроничното емоционално хранене.'
+            },
+            {
+                id: 'tension_anger',
+                name: 'Напрежение, гняв и конфликт',
+                icon: 'fa-bolt',
+                color: 'amber',
+                questions: [3, 8],
+                keywords: ['гняв', 'яд', 'напрежение', 'освобождаване', 'хрупкав', 'дъвча', 'конфликт', 'фрустрац', 'бяс', 'агрес', 'стрес'],
+                mechanism: 'Храната (особено хрупкава) става физически изход за потиснат гняв и нерешени конфликти — „глад на главата".'
+            },
+            {
+                id: 'control_restriction',
+                name: 'Контрол, лишение и диетична култура',
+                icon: 'fa-ban',
+                color: 'teal',
+                questions: [4, 11, 14],
+                keywords: ['контрол', 'празен', 'лишение', 'диета', 'наказание', 'строг', 'забран', 'перфект', 'тегло', 'външен вид', 'слаб', 'дисциплин'],
+                mechanism: 'Строгият контрол над храната маскира дълбока несигурност. Лишението често води до компулсивно преяждане.'
+            },
+            {
+                id: 'stress_escape',
+                name: 'Стрес, тревога и бягство',
+                icon: 'fa-running',
+                color: 'blue',
+                questions: [5, 12],
+                keywords: ['стрес', 'тревог', 'бягам', 'избягам', 'проблем', 'мисл', 'планирам', 'забрав', 'паника', 'страх', 'натрапчив', 'обсе'],
+                mechanism: 'Храната и мислите за нея заместват реалните проблеми — защитен механизъм срещу непоносими емоции.'
+            },
+            {
+                id: 'compulsion',
+                name: 'Загуба на контрол и преяждане',
+                icon: 'fa-utensils',
+                color: 'red',
+                questions: [6],
+                keywords: ['спра', 'продължавам', 'още', 'не мога', 'засищан', 'преяждан', 'компулсив', 'автомат', 'безкрай', 'празнота'],
+                mechanism: 'Трудността да спрете след физическо засищане сигнализира емоционална, не физиологична нужда от храна.'
+            },
+            {
+                id: 'numbing',
+                name: 'Емоционално изтръпване',
+                icon: 'fa-cloud',
+                color: 'purple',
+                questions: [7],
+                keywords: ['изтръпв', 'забрав', 'изключ', 'заглуш', 'болка', 'тежест', 'дискомфорт', 'спи', 'парализ', 'празнина', 'нищо'],
+                mechanism: 'Физическият дискомфорт от преяждането замества емоционалната болка — дисоциативен защитен механизъм.'
+            },
+            {
+                id: 'boredom_stimulation',
+                name: 'Скука, безразличие и нужда от стимулация',
+                icon: 'fa-fire-alt',
+                color: 'amber',
+                questions: [10],
+                keywords: ['скука', 'безразлич', 'празен', 'изтощ', 'бърнаут', 'монотон', 'пикант', 'солен', 'стимул', 'събуждан', 'умора'],
+                mechanism: 'При липса на смисъл или стимулация храната става единственият достъпен източник на удоволствие.'
+            },
+            {
+                id: 'real_need',
+                name: 'Нереализирана емоционална нужда',
+                icon: 'fa-star',
+                color: 'teal',
+                questions: [15],
+                keywords: ['почивк', 'внимание', 'интимност', 'границ', 'признание', 'подкрепа', 'спокойств', 'сигурност', 'любов', 'разбиране', 'свобода'],
+                mechanism: 'Позитивният въпрос разкрива какво всъщност търсите — и какво храната неуспешно се опитва да замести.'
+            }
+        ];
+
+        const HALT_DEFS = [
+            { key: 'hungry', letter: 'H', label: 'Гладен/на', questions: [4, 6], keywords: ['глад', 'празен', 'гладен', 'гладна', 'гладни', 'неял', 'неяла'] },
+            { key: 'angry', letter: 'A', label: 'Яд/стрес', questions: [3, 8], keywords: ['гняв', 'яд', 'стрес', 'конфликт', 'напрежение', 'фрустрац', 'бяс'] },
+            { key: 'lonely', letter: 'L', label: 'Самота', questions: [1, 9], keywords: ['сам', 'сама', 'самот', 'самота', 'изоставен', 'необичан', 'липс'] },
+            { key: 'tired', letter: 'T', label: 'Умора', questions: [10, 12], keywords: ['умор', 'изтощ', 'безсил', 'бърнаут', 'измор', 'изтощен', 'изтощена', 'безразлич'] }
+        ];
+
+        function isSkippedAnswer(text) {
+            const lower = (text || '').toLowerCase().trim();
+            return !lower || lower.length < 2 || SKIP_ANSWERS.some(s => lower.includes(s));
+        }
+
+        function scoreAnswer(text, keywords) {
+            if (isSkippedAnswer(text)) return 0;
+            const lower = text.toLowerCase();
+            let score = 20;
+            const matches = keywords.filter(k => lower.includes(k));
+            score += matches.length * 15;
+            if (text.length > 20) score += 10;
+            if (text.length > 50) score += 5;
+            return Math.min(100, score);
+        }
+
+        function computeEmotionalFactors(answerMap) {
+            const factors = EMOTIONAL_FACTOR_DEFS.map(def => {
+                let totalScore = 0;
+                let count = 0;
+                const evidence = [];
+
+                def.questions.forEach(qId => {
+                    const text = (answerMap[qId] || '').trim();
+                    const qScore = scoreAnswer(text, def.keywords);
+                    if (qScore > 0) {
+                        totalScore += qScore;
+                        count++;
+                        evidence.push({
+                            question: qId,
+                            quote: text.length > 70 ? text.substring(0, 70) + '…' : text
+                        });
+                    }
+                });
+
+                const intensity = count > 0 ? Math.round(totalScore / count) : 0;
+                return {
+                    id: def.id,
+                    name: def.name,
+                    icon: def.icon,
+                    color: def.color,
+                    mechanism: def.mechanism,
+                    intensity,
+                    evidence,
+                    sourceQuestions: def.questions.filter(q => !isSkippedAnswer(answerMap[q]))
+                };
+            }).filter(f => f.intensity > 0).sort((a, b) => b.intensity - a.intensity);
+
+            return factors;
+        }
+
+        function computeHaltProfile(answerMap) {
+            return HALT_DEFS.map(halt => {
+                let total = 0;
+                let count = 0;
+                halt.questions.forEach(qId => {
+                    const s = scoreAnswer(answerMap[qId] || '', halt.keywords);
+                    if (s > 0) { total += s; count++; }
+                });
+                const score = count > 0 ? Math.round(total / count) : 0;
+                let level = 'Нисък';
+                if (score >= 60) level = 'Висок';
+                else if (score >= 35) level = 'Умерен';
+                return { ...halt, score, level };
+            });
+        }
+
+        function detectShameBingeCycle(answerMap, factors) {
+            const shame = factors.find(f => f.id === 'shame_guilt');
+            const control = factors.find(f => f.id === 'control_restriction');
+            const compulsion = factors.find(f => f.id === 'compulsion');
+            const detected = shame && shame.intensity >= 35 &&
+                ((control && control.intensity >= 35) || (compulsion && compulsion.intensity >= 35));
+
+            if (!detected) return null;
+
+            const parts = [];
+            if (control && control.intensity >= 35) parts.push('строго лишение');
+            if (shame && shame.intensity >= 35) parts.push('срам от тайно хранене');
+            if (compulsion && compulsion.intensity >= 35) parts.push('загуба на контрол');
+
+            return {
+                detected: true,
+                description: 'Отговорите ви показват класически цикъл: ' + parts.join(' → ') +
+                    ' → вина → още ограничения. Този порочен кръг е един от най-честите механизми зад емоционалното хранене и може да бъде прекъснат с осъзнатост и самосъстрадание.'
+            };
+        }
+
+        function renderEmotionalFactorsSection(factors, haltProfile, shameCycle, aiFactors) {
+            const displayFactors = (aiFactors && aiFactors.length > 0)
+                ? aiFactors.slice(0, 6)
+                : factors.slice(0, 6);
+
+            if (displayFactors.length === 0) return '';
+
+            const factorsHtml = displayFactors.map(f => {
+                const intensity = f.intensity || f.score || 0;
+                let evidenceText = '';
+                if (typeof f.evidence === 'string') {
+                    evidenceText = f.evidence;
+                } else if (Array.isArray(f.evidence) && f.evidence.length > 0) {
+                    evidenceText = typeof f.evidence[0] === 'string' ? f.evidence[0] : (f.evidence[0].quote || '');
+                } else if (f.quote) {
+                    evidenceText = f.quote;
+                }
+                return `
+                    <div class="factor-card">
+                        <div class="factor-header">
+                            <div class="factor-icon ${escapeHtml(f.color || 'teal')}">
+                                <i class="fas ${sanitizeIconClass(f.icon || 'fa-circle')}"></i>
+                            </div>
+                            <div class="factor-name">${escapeHtml(f.name)}</div>
+                            <div class="factor-score">${intensity}%</div>
+                        </div>
+                        <div class="factor-bar"><div class="factor-bar-fill" style="width: ${intensity}%"></div></div>
+                        <div class="factor-desc">${escapeHtml(f.mechanism || f.insight || '')}</div>
+                        ${evidenceText ? `<div class="factor-evidence">„${escapeHtml(evidenceText)}"</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            const haltHtml = haltProfile ? `
+                <div class="section-title" style="margin-top: 8px;"><i class="fas fa-heart-pulse"></i> HALT Профил</div>
+                <p style="font-size: 0.85rem; color: var(--text-gray); margin-bottom: 12px;">Гладен/на · Яд/стрес · Самота · Умора — четирите най-чести тригера за импулсивно хранене</p>
+                <div class="halt-grid">
+                    ${haltProfile.map(h => `
+                        <div class="halt-item">
+                            <div class="halt-letter">${escapeHtml(h.letter)}</div>
+                            <div class="halt-label">${escapeHtml(h.label)}</div>
+                            <div class="halt-score">${escapeHtml(h.level || (h.score >= 60 ? 'Висок' : h.score >= 35 ? 'Умерен' : 'Нисък'))}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : '';
+
+            const cycleHtml = shameCycle ? `
+                <div class="cycle-card">
+                    <h4><i class="fas fa-sync-alt"></i> Открит цикъл: Срам → Лишение → Преяждане</h4>
+                    <p>${escapeHtml(shameCycle.description)}</p>
+                </div>
+            ` : '';
+
+            return `
+                <div class="section-title"><i class="fas fa-chart-bar"></i> Вашите Емоционални Фактори</div>
+                <p style="font-size: 0.88rem; color: var(--text-gray); margin-bottom: 14px;">На базата на вашите отговори — кои емоции най-силно влияят на хранителното ви поведение</p>
+                <div class="factors-grid">${factorsHtml}</div>
+                ${haltHtml}
+                ${cycleHtml}
+            `;
+        }
+
+        // ============================================
         // AI-POWERED RESULTS GENERATION
         // ============================================
         function generateAIResults(analysis) {
@@ -2234,6 +2642,24 @@
             const strategies = analysis.therapeuticStrategies || [];
             const emergency = analysis.emergencyProtocol || {};
             const hidden = analysis.hiddenMessage || '';
+
+            const computedFactors = computeEmotionalFactors(answers);
+            const haltProfile = analysis.haltProfile
+                ? HALT_DEFS.map(h => ({
+                    ...h,
+                    level: analysis.haltProfile[h.key]?.level || analysis.haltProfile[h.key]?.note || 'Нисък',
+                    score: analysis.haltProfile[h.key]?.score || 0
+                }))
+                : computeHaltProfile(answers);
+            const shameCycle = analysis.shameBingeCycle?.detected
+                ? analysis.shameBingeCycle
+                : detectShameBingeCycle(answers, computedFactors);
+            const factorsSection = renderEmotionalFactorsSection(
+                computedFactors,
+                haltProfile,
+                shameCycle,
+                analysis.emotionalFactors
+            );
 
             resultsScreen.innerHTML = `
                 <div class="results-screen">
@@ -2251,6 +2677,8 @@
                         <div class="hidden-message-text">${escapeHtml(hidden)}</div>
                     </div>
                     ` : ''}
+
+                    ${factorsSection}
 
                     <!-- Archetypes -->
                     <div class="section-title"><i class="fas fa-masks-theater"></i> Вашите Емоционални Архетипи</div>
@@ -2378,42 +2806,34 @@
         // ============================================
         function generateFallbackResults() {
             const resultsScreen = document.getElementById('resultsScreen');
-            const patterns = analyzePatterns();
+            const factors = computeEmotionalFactors(answers);
+            const haltProfile = computeHaltProfile(answers);
+            const shameCycle = detectShameBingeCycle(answers, factors);
+            const factorsSection = renderEmotionalFactorsSection(factors, haltProfile, shameCycle, null);
 
             resultsScreen.innerHTML = `
                 <div class="results-screen">
                     <div class="results-header">
                         <div class="results-icon" style="background: var(--accent-warm);">
-                            <i class="fas fa-exclamation-triangle"></i>
+                            <i class="fas fa-chart-bar"></i>
                         </div>
-                        <h2 class="results-title">Базов Емоционален Профил</h2>
-                        <p class="results-subtitle">AI анализът не е наличен в момента — показваме базова оценка</p>
+                        <h2 class="results-title">Вашият Емоционален Профил</h2>
+                        <p class="results-subtitle">Анализ на емоционалните фактори, свързани с храненето ви</p>
                     </div>
 
+                    ${factorsSection}
+
+                    ${factors.length === 0 ? `
                     <div class="profile-card">
                         <div class="profile-header">
                             <div class="profile-avatar"><i class="fas fa-user-circle"></i></div>
                             <div class="profile-info">
-                                <h3>Идентифицирани Модели</h3>
-                                <p>Базова оценка на емоционалните тригери</p>
-                            </div>
-                        </div>
-                        <div class="pattern-section">
-                            <div class="pattern-grid">
-                                ${patterns.map(p => `
-                                    <div class="pattern-item">
-                                        <div class="pattern-icon ${p.iconClass}">
-                                            <i class="fas ${p.icon}"></i>
-                                        </div>
-                                        <div class="pattern-content">
-                                            <h4>${escapeHtml(p.title)}</h4>
-                                            <p>${escapeHtml(p.description)}</p>
-                                        </div>
-                                    </div>
-                                `).join('')}
+                                <h3>Недостатъчно данни</h3>
+                                <p>Отговорете на повече въпроса за по-точен анализ на емоционалните тригери</p>
                             </div>
                         </div>
                     </div>
+                    ` : ''}
 
                     <div class="error-card">
                         <i class="fas fa-robot"></i>
@@ -2483,108 +2903,6 @@
             }
         }
 
-        // ============================================
-        // ORIGINAL PATTERN ANALYSIS (used as fallback)
-        // ============================================
-
-        function analyzePatterns() {
-            const patterns = [];
-
-            // Analyze based on specific answers
-            const heartHunger = answers[1] || '';
-            const secretEating = answers[2] || '';
-            const headHunger = answers[3] || '';
-            const emptiness = answers[4] || '';
-            const innerVoice = answers[5] || '';
-            const satiety = answers[6] || '';
-            const numbing = answers[7] || '';
-            const conflict = answers[8] || '';
-            const childhood = answers[9] || '';
-            const spicy = answers[10] || '';
-            const punishment = answers[11] || '';
-            const escape = answers[12] || '';
-            const innerCritic = answers[13] || '';
-            const dietFunction = answers[14] || '';
-            const realNeed = answers[15] || '';
-
-            // Heart Hunger Pattern
-            if (heartHunger.toLowerCase().includes('сладко') ||
-                heartHunger.toLowerCase().includes('шоколад') ||
-                heartHunger.toLowerCase().includes('сладолед') ||
-                heartHunger.toLowerCase().includes('кремообразно')) {
-                patterns.push({
-                    icon: 'fa-heart',
-                    iconClass: 'heart',
-                    title: 'Глад на Сърцето',
-                    description: 'Търсите утеха чрез сладки и кремообразни храни – сигнал за липса на емоционална свързаност.'
-                });
-            }
-
-            // Head Hunger Pattern
-            if (headHunger.toLowerCase().includes('освобождаване') ||
-                headHunger.toLowerCase().includes('облекчение') ||
-                headHunger.toLowerCase().includes('напрежение')) {
-                patterns.push({
-                    icon: 'fa-brain',
-                    iconClass: 'brain',
-                    title: 'Глад на Главата',
-                    description: 'Използвате хрупкави храни за физическо освобождаване на напрежение и потиснат гняв.'
-                });
-            }
-
-            // Emotional Numbing Pattern
-            if (numbing.toLowerCase().includes('забрав') ||
-                numbing.toLowerCase().includes('изключ') ||
-                numbing.toLowerCase().includes('изтръпв') ||
-                numbing.toLowerCase().includes('спир')) {
-                patterns.push({
-                    icon: 'fa-cloud',
-                    iconClass: 'shield',
-                    title: 'Емоционално Изтръпване',
-                    description: 'Използвате физическия дискомфорт от преяждането за заглушаване на болезнени емоции.'
-                });
-            }
-
-            // Control/Punishment Pattern
-            if (punishment.toLowerCase().includes('слаб') ||
-                punishment.toLowerCase().includes('недостоен') ||
-                punishment.toLowerCase().includes('лош') ||
-                punishment.toLowerCase().includes('провал')) {
-                patterns.push({
-                    icon: 'fa-balance-scale',
-                    iconClass: 'fire',
-                    title: 'Самонаказание',
-                    description: 'Дълбоки вярвания от диетичната култура водят до морализиране на храната и самонаказание.'
-                });
-            }
-
-            // Default patterns if none detected
-            if (patterns.length === 0) {
-                patterns.push({
-                    icon: 'fa-search',
-                    iconClass: 'brain',
-                    title: 'Емоционална Връзка с Храната',
-                    description: 'Храната играе роля в емоционалната ви регулация – продължете да изследвате тези връзки.'
-                });
-            }
-
-            // Always add real need pattern
-            const MAX_DESCRIPTION_LENGTH = 80;
-            if (realNeed.length > 5) {
-                const truncatedNeed = realNeed.length > MAX_DESCRIPTION_LENGTH
-                    ? realNeed.substring(0, MAX_DESCRIPTION_LENGTH) + '...'
-                    : realNeed;
-                patterns.push({
-                    icon: 'fa-star',
-                    iconClass: 'heart',
-                    title: 'Реална Нужда',
-                    description: `Идентифицирахте какво всъщност търсите: "${truncatedNeed}"`
-                });
-            }
-
-            return patterns.slice(0, 4); // Max 4 patterns
-        }
-
         function switchTherapyTab(event, tabId) {
             // Use currentTarget for button clicks to ensure we get the clicked button
             const clickedTab = event.currentTarget || event.target;
@@ -2608,7 +2926,8 @@
                 answers: answers,
                 completedAt: localStorage.getItem('emoeat_completed'),
                 analysis: savedAnalysis ? JSON.parse(savedAnalysis) : null,
-                patterns: analyzePatterns()
+                emotionalFactors: computeEmotionalFactors(answers),
+                haltProfile: computeHaltProfile(answers)
             };
 
             // Create downloadable JSON
@@ -2636,6 +2955,7 @@
                 showScreen('welcomeScreen');
                 updateProgress();
                 updateNavButtons();
+                updateStandaloneNav();
             }
         }
 
@@ -2663,7 +2983,9 @@
                         currentScreen = 'results';
                         generateAIResults(analysis);
                         showScreen('resultsScreen');
+                        document.getElementById('navFooter').style.display = 'none';
                         updateProgress();
+                        updateStandaloneNav();
                         return;
                     } catch (e) {
                         // Saved analysis is corrupt — fall through to fallback
@@ -2675,40 +2997,20 @@
                     currentScreen = 'results';
                     generateFallbackResults();
                     showScreen('resultsScreen');
+                    document.getElementById('navFooter').style.display = 'none';
                     updateProgress();
+                    updateStandaloneNav();
                     return;
                 }
             }
 
             updateProgress();
             updateNavButtons();
+            updateStandaloneNav();
         }
 
         // Initialize on load
         init();
     </script>
-    <!-- Bottom Navigation -->
-    <nav class="bottom-nav" role="navigation" aria-label="Главно меню">
-        <a href="./index.html" class="nav-item" aria-label="Начало">
-            <i class="fas fa-home nav-icon"></i>
-            <span class="nav-label">Начало</span>
-        </a>
-        <a href="./plan.html" class="nav-item" aria-label="Моят план">
-            <i class="fas fa-utensils nav-icon"></i>
-            <span class="nav-label">План</span>
-        </a>
-        <a href="./guidelines.html" class="nav-item" aria-label="Насоки">
-            <i class="fas fa-book-open nav-icon"></i>
-            <span class="nav-label">Насоки</span>
-        </a>
-        <a href="./emoeat.html" class="nav-item active" aria-label="Емо хранене">
-            <i class="fas fa-heart nav-icon"></i>
-            <span class="nav-label">Емоции</span>
-        </a>
-        <a href="./profile.html" class="nav-item" aria-label="Профил">
-            <i class="fas fa-user nav-icon"></i>
-            <span class="nav-label">Профил</span>
-        </a>
-    </nav>
 </body>
 </html>
