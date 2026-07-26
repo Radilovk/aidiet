@@ -1,17 +1,18 @@
 /**
- * Избор на конкретни уреди/станции — въпросник (app / консултация / админ).
+ * Избор на конкретни уреди — fullscreen sheet + обобщение за въпросника.
  * Клиентски каталог — без бекенд заявки.
  */
 import {
   APPARATUS_CATEGORIES,
   APPARATUS_EQUIP_TYPES,
-  APPARATUS_MUSCLES,
+  APPARATUS_ZONES,
   GYM_APPARATUS,
   apparatusById,
   categoryLabel,
   computeApparatusFacets,
-  groupApparatusByMuscle,
-  muscleLabel,
+  groupApparatusByZone,
+  targetLabelFor,
+  zoneLabel,
   searchApparatus,
 } from './equipment-apparatus.js';
 import { apparatusThumbUrl } from './equipment-media.js';
@@ -39,29 +40,6 @@ function debounce(fn, ms = 140) {
   };
 }
 
-function makeChip(label, active, onPick, count) {
-  const text = count != null ? `${label} (${count})` : label;
-  return el('button', {
-    type: 'button',
-    class: `equip-picker-filter${active ? ' active' : ''}`,
-    text,
-    onclick: (e) => { e.stopPropagation(); onPick(); },
-  });
-}
-
-function makeFilterRow(label, options, activeId, counts, onPick) {
-  const row = el('div', { class: 'equip-picker-filter-row' });
-  row.append(el('span', { class: 'equip-picker-filter-label', text: label }));
-  const chips = el('div', { class: 'equip-picker-filters' });
-  for (const opt of options) {
-    const count = opt.id === 'all' ? null : counts?.get(opt.id);
-    if (opt.id !== 'all' && count === 0) continue;
-    chips.append(makeChip(opt.label, activeId === opt.id, () => onPick(opt.id), count));
-  }
-  row.append(chips);
-  return row;
-}
-
 const CATEGORY_ICON = {
   machine: '⚙',
   cable: '↕',
@@ -70,22 +48,31 @@ const CATEGORY_ICON = {
   cardio: '♥',
 };
 
-function renderThumb(item) {
+let activeOverlay = null;
+
+function renderThumb(item, className = 'equip-picker-thumb') {
   const src = apparatusThumbUrl(item);
   if (src) {
-    return el('img', {
-      class: 'equip-picker-thumb',
-      src,
-      loading: 'lazy',
-      decoding: 'async',
-      alt: '',
-    });
+    return el('img', { class: className, src, loading: 'lazy', decoding: 'async', alt: '' });
   }
   return el('span', {
-    class: 'equip-picker-thumb equip-picker-thumb-fallback',
+    class: `${className} equip-picker-thumb-fallback`,
     text: CATEGORY_ICON[item.category] || '◆',
     'aria-hidden': 'true',
   });
+}
+
+function buildPickerState(getSelected, selected) {
+  return {
+    picked: new Set(getSelected?.() || selected || []),
+    zone: 'all',
+    category: 'all',
+    equip: 'all',
+    q: '',
+    filtersOpen: false,
+    collapsed: new Set(APPARATUS_ZONES.filter((z) => z.id !== 'all').map((z) => z.id)),
+    facets: computeApparatusFacets(),
+  };
 }
 
 function renderItem(item, picked, onToggle) {
@@ -97,73 +84,82 @@ function renderItem(item, picked, onToggle) {
   });
   row.append(
     renderThumb(item),
-    el('span', { class: 'equip-picker-check', text: active ? '✓' : '' }),
     el('span', { class: 'equip-picker-item-body' },
       el('span', { class: 'equip-picker-item-label', text: item.label }),
-      item.subtitle
-        ? el('span', { class: 'equip-picker-item-sub', text: item.subtitle })
-        : null,
+      item.subtitle ? el('span', { class: 'equip-picker-item-sub', text: item.subtitle }) : null,
       el('span', { class: 'equip-picker-item-meta' },
-        el('span', { class: 'equip-picker-badge', text: muscleLabel(item.muscle) }),
+        el('span', { class: 'equip-picker-badge', text: targetLabelFor(item) }),
         el('span', { class: 'equip-picker-badge equip-picker-badge-muted', text: categoryLabel(item.category) }),
       ),
     ),
+    el('span', { class: 'equip-picker-check', text: active ? '✓' : '' }),
   );
   return row;
 }
 
-function defaultCollapsed() {
-  const collapsed = new Set();
-  for (const m of APPARATUS_MUSCLES) {
-    if (m.id !== 'all') collapsed.add(m.id);
-  }
-  return collapsed;
-}
-
 /**
- * @param {HTMLElement} container
- * @param {{ getSelected?: () => string[], selected?: string[], onChange?: (ids: string[]) => void }} opts
+ * @param {HTMLElement} root
+ * @param {{ state: ReturnType<typeof buildPickerState>, onChange?: (ids: string[]) => void, onDone?: () => void, fullscreen?: boolean }} ctx
  */
-export function createEquipmentSelect(container, { getSelected, selected, onChange } = {}) {
-  const picked = new Set(getSelected?.() || selected || []);
-  let category = 'all';
-  let muscle = 'all';
-  let equip = 'all';
-  let q = '';
-  const collapsed = defaultCollapsed();
-  const facets = computeApparatusFacets();
+function mountPickerUi(root, ctx) {
+  const { state, onChange, onDone, fullscreen = false } = ctx;
+  const { picked } = state;
 
-  container.classList.add('equip-picker');
-  container.innerHTML = '';
+  root.classList.add('equip-picker');
+  if (fullscreen) root.classList.add('equip-picker--fullscreen');
+  root.innerHTML = '';
 
-  const sticky = el('div', { class: 'equip-picker-sticky' });
-  const head = el('div', { class: 'equip-picker-head' });
+  const top = el('div', { class: 'equip-picker-top' });
   const meta = el('p', { class: 'equip-picker-meta' });
   const actions = el('div', { class: 'equip-picker-actions' });
-  head.append(meta, actions);
 
-  const toolbar = el('div', { class: 'equip-picker-toolbar' });
+  const zoneRail = el('div', { class: 'equip-picker-zone-rail' });
+  const zoneScroll = el('div', { class: 'equip-picker-zone-scroll' });
+
+  const filterToggle = el('button', {
+    type: 'button',
+    class: 'equip-picker-filter-toggle',
+    text: 'Филтри',
+    onclick: (e) => {
+      e.stopPropagation();
+      state.filtersOpen = !state.filtersOpen;
+      paintFilters();
+    },
+  });
+
+  const filtersPanel = el('div', { class: 'equip-picker-filters-panel', hidden: true });
+  const categoryRow = el('div', { class: 'equip-picker-filter-row' });
+  const equipRow = el('div', { class: 'equip-picker-filter-row' });
+
   const search = el('input', {
     type: 'search',
     class: 'equip-picker-search',
-    placeholder: 'Търси уред, мускул, кабел, преса…',
+    placeholder: 'Търси уред, зона, преса, кабел…',
     autocomplete: 'off',
+    enterkeyhint: 'search',
     onclick: (e) => e.stopPropagation(),
     onkeydown: (e) => e.stopPropagation(),
-    oninput: debounce((e) => { q = e.target.value; paintList(); paintMeta(); }),
+    oninput: debounce((e) => { state.q = e.target.value; paintList(); paintMeta(); }),
   });
 
   const selectedHost = el('div', { class: 'equip-picker-selected' });
   const scroll = el('div', { class: 'equip-picker-scroll' });
 
-  sticky.append(head, toolbar, search, selectedHost);
-  container.append(sticky, scroll);
+  top.append(meta, actions);
+  zoneRail.append(zoneScroll, filterToggle);
+  filtersPanel.append(categoryRow, equipRow);
+  root.append(top, search, zoneRail, filtersPanel, selectedHost, scroll);
 
-  const visibleItems = () => searchApparatus({ query: q, category, muscle, equip });
+  const visibleItems = () => searchApparatus({
+    query: state.q,
+    category: state.category,
+    zone: state.zone,
+    equip: state.equip,
+  });
 
   const paintMeta = () => {
     const visible = visibleItems();
-    const parts = [`${visible.length} от ${GYM_APPARATUS.length} уреда`];
+    const parts = [`${visible.length} от ${GYM_APPARATUS.length}`];
     if (picked.size) parts.push(`${picked.size} избрани`);
     meta.textContent = parts.join(' · ');
     actions.innerHTML = '';
@@ -179,6 +175,7 @@ export function createEquipmentSelect(container, { getSelected, selected, onChan
           paintSelected();
           paintList();
           paintMeta();
+          paintZones();
         },
       }));
     }
@@ -186,7 +183,7 @@ export function createEquipmentSelect(container, { getSelected, selected, onChan
       actions.append(el('button', {
         type: 'button',
         class: 'equip-picker-action equip-picker-action-muted',
-        text: 'Изчисти всички',
+        text: 'Изчисти',
         onclick: (e) => {
           e.stopPropagation();
           picked.clear();
@@ -197,6 +194,9 @@ export function createEquipmentSelect(container, { getSelected, selected, onChan
         },
       }));
     }
+    filterToggle.classList.toggle('active', state.filtersOpen || state.category !== 'all' || state.equip !== 'all');
+    const extra = (state.category !== 'all' ? 1 : 0) + (state.equip !== 'all' ? 1 : 0);
+    filterToggle.textContent = extra ? `Филтри (${extra})` : 'Филтри';
   };
 
   const paintSelected = () => {
@@ -208,7 +208,6 @@ export function createEquipmentSelect(container, { getSelected, selected, onChan
     selectedHost.hidden = false;
     for (const id of picked) {
       const item = apparatusById(id);
-      const chipText = item?.subtitle ? `${item.label} · ${item.subtitle}` : (item?.label || id);
       const chip = el('button', {
         type: 'button',
         class: 'equip-picker-sel-chip',
@@ -220,37 +219,69 @@ export function createEquipmentSelect(container, { getSelected, selected, onChan
           paintSelected();
           paintList();
           paintMeta();
+          paintZones();
         },
       });
       const thumbSrc = apparatusThumbUrl(item);
       if (thumbSrc) chip.append(el('img', { class: 'equip-picker-chip-thumb', src: thumbSrc, loading: 'lazy', alt: '' }));
-      chip.append(el('span', { class: 'equip-picker-chip-text', text: `${chipText} ×` }));
+      const label = item?.label || id;
+      chip.append(el('span', { class: 'equip-picker-chip-text', text: `${label} ×` }));
       selectedHost.append(chip);
     }
   };
 
-  const paintToolbar = () => {
-    toolbar.innerHTML = '';
-    toolbar.append(
-      makeFilterRow('Тип уред', APPARATUS_CATEGORIES, category, facets.category, (id) => {
-        category = id;
+  const makeChip = (label, active, count, onPick) => el('button', {
+    type: 'button',
+    class: `equip-picker-filter${active ? ' active' : ''}`,
+    text: count != null ? `${label} (${count})` : label,
+    onclick: (e) => { e.stopPropagation(); onPick(); },
+  });
+
+  const paintZones = () => {
+    zoneScroll.innerHTML = '';
+    for (const z of APPARATUS_ZONES) {
+      const count = z.id === 'all' ? null : state.facets.zone?.get(z.id);
+      if (z.id !== 'all' && count === 0) continue;
+      zoneScroll.append(makeChip(z.label, state.zone === z.id, count, () => {
+        state.zone = z.id;
         paintList();
         paintMeta();
-        paintToolbar();
-      }),
-      makeFilterRow('Конкретен уред', APPARATUS_EQUIP_TYPES, equip, facets.equip, (id) => {
-        equip = id;
+        paintZones();
+      }));
+    }
+  };
+
+  const paintFilters = () => {
+    filtersPanel.hidden = !state.filtersOpen;
+    categoryRow.innerHTML = '';
+    equipRow.innerHTML = '';
+    categoryRow.append(el('span', { class: 'equip-picker-filter-label', text: 'Тип уред' }));
+    const catChips = el('div', { class: 'equip-picker-filters' });
+    for (const c of APPARATUS_CATEGORIES) {
+      const count = c.id === 'all' ? null : state.facets.category.get(c.id);
+      if (c.id !== 'all' && count === 0) continue;
+      catChips.append(makeChip(c.label, state.category === c.id, count, () => {
+        state.category = c.id;
         paintList();
         paintMeta();
-        paintToolbar();
-      }),
-      makeFilterRow('Мускулна група', APPARATUS_MUSCLES, muscle, facets.muscle, (id) => {
-        muscle = id;
+        paintFilters();
+      }));
+    }
+    categoryRow.append(catChips);
+
+    equipRow.append(el('span', { class: 'equip-picker-filter-label', text: 'Конкретен уред' }));
+    const eqChips = el('div', { class: 'equip-picker-filters' });
+    for (const e of APPARATUS_EQUIP_TYPES) {
+      const count = e.id === 'all' ? null : state.facets.equip.get(e.id);
+      if (e.id !== 'all' && count === 0) continue;
+      eqChips.append(makeChip(e.label, state.equip === e.id, count, () => {
+        state.equip = e.id;
         paintList();
         paintMeta();
-        paintToolbar();
-      }),
-    );
+        paintFilters();
+      }));
+    }
+    equipRow.append(eqChips);
   };
 
   const paintList = () => {
@@ -267,12 +298,13 @@ export function createEquipmentSelect(container, { getSelected, selected, onChan
           text: 'Нулирай филтрите',
           onclick: (e) => {
             e.stopPropagation();
-            category = 'all';
-            muscle = 'all';
-            equip = 'all';
-            q = '';
+            state.category = 'all';
+            state.zone = 'all';
+            state.equip = 'all';
+            state.q = '';
             search.value = '';
-            paintToolbar();
+            paintZones();
+            paintFilters();
             paintList();
             paintMeta();
           },
@@ -289,13 +321,14 @@ export function createEquipmentSelect(container, { getSelected, selected, onChan
       paintSelected();
       paintList();
       paintMeta();
+      paintZones();
     };
 
-    const filtered = category !== 'all' || muscle !== 'all' || equip !== 'all' || q.trim();
-    const groups = groupApparatusByMuscle(visible);
+    const filtered = state.category !== 'all' || state.zone !== 'all' || state.equip !== 'all' || state.q.trim();
+    const groups = groupApparatusByZone(visible);
 
     for (const group of groups) {
-      const isCollapsed = filtered ? false : collapsed.has(group.id);
+      const isCollapsed = filtered ? false : state.collapsed.has(group.id);
       const section = el('section', { class: `equip-picker-group${isCollapsed ? ' collapsed' : ''}` });
       const titleBtn = el('button', {
         type: 'button',
@@ -303,8 +336,8 @@ export function createEquipmentSelect(container, { getSelected, selected, onChan
         onclick: (e) => {
           e.stopPropagation();
           if (filtered) return;
-          if (collapsed.has(group.id)) collapsed.delete(group.id);
-          else collapsed.add(group.id);
+          if (state.collapsed.has(group.id)) state.collapsed.delete(group.id);
+          else state.collapsed.add(group.id);
           paintList();
         },
       });
@@ -314,7 +347,6 @@ export function createEquipmentSelect(container, { getSelected, selected, onChan
         el('span', { class: 'equip-picker-group-count', text: String(group.items.length) }),
       );
       section.append(titleBtn);
-
       if (!isCollapsed) {
         const grid = el('div', { class: 'equip-picker-grid' });
         for (const item of group.items) grid.append(renderItem(item, picked, toggle));
@@ -322,38 +354,168 @@ export function createEquipmentSelect(container, { getSelected, selected, onChan
       }
       scroll.append(section);
     }
-
     if (focusSearch) search.focus();
   };
 
-  paintToolbar();
+  paintZones();
+  paintFilters();
   paintSelected();
   paintList();
   paintMeta();
 
+  return { paintSelected, paintList, paintMeta, paintZones };
+}
+
+/**
+ * Fullscreen избор на уреди.
+ */
+export function openEquipmentPicker({ getSelected, selected, onChange, onClose } = {}) {
+  if (activeOverlay) return null;
+
+  const state = buildPickerState(getSelected, selected);
+  const prevOverflow = document.body.style.overflow;
+  document.body.style.overflow = 'hidden';
+
+  const overlay = el('div', {
+    class: 'equip-fs-overlay',
+    role: 'dialog',
+    'aria-modal': 'true',
+    'aria-label': 'Избор на уреди',
+  });
+
+  const sheet = el('div', { class: 'equip-fs-sheet' });
+  const header = el('header', { class: 'equip-fs-header' });
+  const title = el('h2', { class: 'equip-fs-title', text: 'Избери уреди' });
+  const closeBtn = el('button', {
+    type: 'button',
+    class: 'equip-fs-close',
+    text: '×',
+    'aria-label': 'Затвори',
+  });
+  header.append(closeBtn, title);
+
+  const body = el('div', { class: 'equip-fs-body' });
+  const footer = el('footer', { class: 'equip-fs-footer' });
+  const doneBtn = el('button', { type: 'button', class: 'equip-fs-done', text: 'Готово' });
+  const countHint = el('span', { class: 'equip-fs-count' });
+
+  footer.append(countHint, doneBtn);
+  sheet.append(header, body, footer);
+  overlay.append(sheet);
+  document.body.append(overlay);
+  activeOverlay = overlay;
+
+  const updateCount = () => {
+    const n = state.picked.size;
+    countHint.textContent = n ? `${n} избрани` : 'Избери поне един уред';
+    doneBtn.disabled = !n;
+  };
+
+  const ui = mountPickerUi(body, {
+    state,
+    fullscreen: true,
+    onChange: (ids) => {
+      onChange?.(ids);
+      updateCount();
+    },
+  });
+
+  const close = () => {
+    overlay.remove();
+    document.body.style.overflow = prevOverflow;
+    activeOverlay = null;
+    onClose?.();
+  };
+
+  closeBtn.onclick = (e) => { e.stopPropagation(); close(); };
+  doneBtn.onclick = (e) => { e.stopPropagation(); close(); };
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+  document.addEventListener('keydown', function onKey(e) {
+    if (e.key === 'Escape' && activeOverlay === overlay) {
+      document.removeEventListener('keydown', onKey);
+      close();
+    }
+  });
+
+  updateCount();
+  requestAnimationFrame(() => overlay.classList.add('open'));
+
   return {
-    attach(next) {
-      if (!next || next === container) return;
-      next.classList.add('equip-picker');
-      next.innerHTML = '';
-      next.append(sticky, scroll);
-      container = next;
-    },
+    close,
     syncSelection(ids = []) {
-      picked.clear();
-      for (const id of ids) picked.add(id);
-      paintSelected();
-      paintList();
-      paintMeta();
-    },
-    destroy() {
-      container.innerHTML = '';
-      container.classList.remove('equip-picker');
+      state.picked.clear();
+      for (const id of ids) state.picked.add(id);
+      ui.paintSelected();
+      ui.paintList();
+      ui.paintMeta();
+      updateCount();
     },
   };
 }
 
-/** @deprecated prefer createEquipmentSelect */
+/**
+ * Компактно обобщение + бутон за fullscreen — за въпросника.
+ */
+export function renderEquipmentSummary(container, { getSelected, selected, onChange } = {}) {
+  container.classList.add('equip-picker-summary');
+  container.innerHTML = '';
+
+  const paint = () => {
+    container.innerHTML = '';
+    const ids = getSelected?.() || selected || [];
+    const items = ids.map((id) => apparatusById(id)).filter(Boolean);
+
+    const head = el('div', { class: 'equip-summary-head' });
+    head.append(
+      el('p', {
+        class: 'equip-summary-text',
+        text: items.length
+          ? `${items.length} уреда избрани`
+          : 'Посочи кои уреди имаш в залата',
+      }),
+      el('button', {
+        type: 'button',
+        class: 'equip-summary-open',
+        text: items.length ? 'Промени' : 'Избери уреди',
+        onclick: (e) => {
+          e.stopPropagation();
+          openEquipmentPicker({
+            getSelected: () => [...(getSelected?.() || selected || [])],
+            onChange: (next) => {
+              onChange?.(next);
+              paint();
+            },
+          });
+        },
+      }),
+    );
+    container.append(head);
+
+    if (items.length) {
+      const preview = el('div', { class: 'equip-summary-preview' });
+      const shown = items.slice(0, 6);
+      for (const item of shown) preview.append(renderThumb(item, 'equip-summary-thumb'));
+      if (items.length > 6) {
+        preview.append(el('span', { class: 'equip-summary-more', text: `+${items.length - 6}` }));
+      }
+      container.append(preview);
+    }
+  };
+
+  paint();
+  return { refresh: paint };
+}
+
+/** @deprecated — използвай renderEquipmentSummary + openEquipmentPicker */
+export function createEquipmentSelect(container, opts) {
+  const state = buildPickerState(opts.getSelected, opts.selected);
+  return mountPickerUi(container, {
+    state,
+    onChange: opts.onChange,
+    fullscreen: false,
+  });
+}
+
 export function mountEquipmentSelect(container, opts) {
   return createEquipmentSelect(container, opts);
 }

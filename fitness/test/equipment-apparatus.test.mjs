@@ -30,6 +30,13 @@ test('catalog entries: имат subtitle за разграничаване', () 
   assert.ok(withSub.length >= 200);
 });
 
+test('searchApparatus: филтър по зона задно бедро', () => {
+  const hits = searchApparatus({ zone: 'hamstrings' });
+  assert.ok(hits.length >= 4);
+  assert.ok(hits.every((h) => h.targetNorm === 'hamstrings'));
+  assert.ok(hits.every((h) => !/бицепс/i.test(h.label)));
+});
+
 test('searchApparatus: филтър по категория кабел', () => {
   const hits = searchApparatus({ category: 'cable' });
   assert.ok(hits.length >= 100);

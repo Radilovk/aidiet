@@ -3,6 +3,7 @@
  */
 import { normalizeText, tokenize, tokenOverlapScore } from './normalize.js';
 import { expandSearchTokens } from './exercise-synonyms.js';
+import { localizeTarget } from './exercise-labels-bg.js';
 import catalogData from './data/equipment-apparatus-catalog.json' with { type: 'json' };
 
 export const APPARATUS_CATEGORIES = [
@@ -14,18 +15,26 @@ export const APPARATUS_CATEGORIES = [
   { id: 'cardio', label: 'Кардио' },
 ];
 
-export const APPARATUS_MUSCLES = [
+/** Зони за филтър и групиране — краката е разделен на предно/задно бедро и прасци. */
+export const APPARATUS_ZONES = [
   { id: 'all', label: 'Всички зони' },
   { id: 'chest', label: 'Гърди' },
   { id: 'back', label: 'Гръб' },
-  { id: 'legs', label: 'Крака' },
+  { id: 'quads', label: 'Предно бедро' },
+  { id: 'hamstrings', label: 'Задно бедро' },
+  { id: 'calves', label: 'Прасци' },
   { id: 'glutes', label: 'Седалищни' },
+  { id: 'adductors', label: 'Привеждащи' },
+  { id: 'abductors', label: 'Отвеждащи' },
   { id: 'shoulders', label: 'Рамене' },
   { id: 'arms', label: 'Ръце' },
   { id: 'core', label: 'Корем / гръбнак' },
   { id: 'cardio', label: 'Кардио' },
   { id: 'general', label: 'Многоцелеви' },
 ];
+
+/** @deprecated използвай APPARATUS_ZONES */
+export const APPARATUS_MUSCLES = APPARATUS_ZONES;
 
 export const APPARATUS_EQUIP_TYPES = [
   { id: 'all', label: 'Всички уреди' },
@@ -39,7 +48,7 @@ export const APPARATUS_EQUIP_TYPES = [
   { id: 'cardio', label: 'Кардио тренажор' },
 ];
 
-const MUSCLE_BY_ID = new Map(APPARATUS_MUSCLES.map((m) => [m.id, m.label]));
+const ZONE_BY_ID = new Map(APPARATUS_ZONES.map((z) => [z.id, z]));
 const CATEGORY_BY_ID = new Map(APPARATUS_CATEGORIES.map((c) => [c.id, c.label]));
 
 /** @type {typeof catalogData} */
@@ -49,8 +58,23 @@ const BY_ID = new Map(GYM_APPARATUS.map((a) => [a.id, a]));
 
 const MATCH_STOPWORDS = new Set(['male', 'female', 'pov', 'back', 'side', 'front', 'one', 'two', 'alternate', 'alternating']);
 
+const TARGET_ZONE = {
+  quads: 'quads',
+  hamstrings: 'hamstrings',
+  calves: 'calves',
+  adductors: 'adductors',
+  abductors: 'abductors',
+  glutes: 'glutes',
+};
+
 function coreTokens(tokens = []) {
   return tokens.filter((t) => t.length > 1 && !MATCH_STOPWORDS.has(t));
+}
+
+export function zoneForItem(item) {
+  if (item?.targetNorm && TARGET_ZONE[item.targetNorm]) return TARGET_ZONE[item.targetNorm];
+  if (item?.muscle === 'legs') return 'quads';
+  return item?.muscle || 'general';
 }
 
 function matchesEquipFilter(item, equip) {
@@ -61,15 +85,21 @@ function matchesEquipFilter(item, equip) {
   return item.equipNorm === equip;
 }
 
+function matchesZoneFilter(item, zone) {
+  if (!zone || zone === 'all') return true;
+  return zoneForItem(item) === zone;
+}
+
 function searchHaystack(item) {
   return tokenize([
     item.label,
     item.subtitle,
+    item.targetLabel,
     item.name,
     item.nameNorm,
     item.equipLabel,
     item.equipNorm,
-    MUSCLE_BY_ID.get(item.muscle),
+    ZONE_BY_ID.get(zoneForItem(item))?.label,
     CATEGORY_BY_ID.get(item.category),
   ].filter(Boolean).join(' '));
 }
@@ -79,7 +109,15 @@ export function apparatusLabel(id) {
 }
 
 export function muscleLabel(id) {
-  return MUSCLE_BY_ID.get(id) || id;
+  return ZONE_BY_ID.get(id)?.label || id;
+}
+
+export function zoneLabel(id) {
+  return ZONE_BY_ID.get(id)?.label || id;
+}
+
+export function targetLabelFor(item) {
+  return item?.targetLabel || localizeTarget(item?.targetNorm) || zoneLabel(zoneForItem(item));
 }
 
 export function categoryLabel(id) {
@@ -90,12 +128,13 @@ export function searchApparatus({
   query = '',
   category = 'all',
   muscle = 'all',
+  zone = muscle,
   equip = 'all',
 } = {}) {
   const tokens = expandSearchTokens(query);
   return GYM_APPARATUS.filter((a) => {
     if (category && category !== 'all' && a.category !== category) return false;
-    if (muscle && muscle !== 'all' && a.muscle !== muscle) return false;
+    if (!matchesZoneFilter(a, zone)) return false;
     if (!matchesEquipFilter(a, equip)) return false;
     if (!tokens.length) return true;
     return tokenOverlapScore(tokens, searchHaystack(a)) > 0;
@@ -104,12 +143,13 @@ export function searchApparatus({
 
 export function computeApparatusFacets(items = GYM_APPARATUS) {
   const category = new Map();
-  const muscle = new Map();
+  const zone = new Map();
   const equip = new Map();
 
   for (const item of items) {
     category.set(item.category, (category.get(item.category) || 0) + 1);
-    muscle.set(item.muscle, (muscle.get(item.muscle) || 0) + 1);
+    const z = zoneForItem(item);
+    zone.set(z, (zone.get(z) || 0) + 1);
     let equipKey = item.equipNorm;
     if (item.category === 'cardio') equipKey = 'cardio';
     else if (item.category === 'bench') equipKey = 'bench';
@@ -117,19 +157,24 @@ export function computeApparatusFacets(items = GYM_APPARATUS) {
     equip.set(equipKey, (equip.get(equipKey) || 0) + 1);
   }
 
-  return { category, muscle, equip };
+  return { category, muscle: zone, zone, equip };
 }
 
 export function groupApparatusByMuscle(items) {
-  const order = APPARATUS_MUSCLES.filter((m) => m.id !== 'all').map((m) => m.id);
+  return groupApparatusByZone(items);
+}
+
+export function groupApparatusByZone(items) {
+  const order = APPARATUS_ZONES.filter((z) => z.id !== 'all').map((z) => z.id);
   const groups = new Map();
   for (const item of items) {
-    if (!groups.has(item.muscle)) groups.set(item.muscle, []);
-    groups.get(item.muscle).push(item);
+    const id = zoneForItem(item);
+    if (!groups.has(id)) groups.set(id, []);
+    groups.get(id).push(item);
   }
   return order
     .filter((id) => groups.has(id))
-    .map((id) => ({ id, label: MUSCLE_BY_ID.get(id), items: groups.get(id) }));
+    .map((id) => ({ id, label: ZONE_BY_ID.get(id)?.label, items: groups.get(id) }));
 }
 
 export function groupApparatusByCategory(items) {

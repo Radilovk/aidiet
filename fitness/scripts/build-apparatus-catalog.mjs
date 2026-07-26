@@ -5,7 +5,7 @@
  */
 import { readFile, writeFile } from 'node:fs/promises';
 import { normalizeText } from '../normalize.js';
-import { localizeExerciseDisplayName } from '../exercise-labels-bg.js';
+import { localizeExerciseDisplayName, localizeTarget } from '../exercise-labels-bg.js';
 import {
   CARDIO_TRAINER_NORMS,
   EQUIP_NORM_LABELS,
@@ -126,6 +126,7 @@ async function main() {
       equipNorm: entry.equipNorm,
       equipLabel: eq,
       targetNorm: entry.targetNorm || '',
+      targetLabel: localizeTarget(entry.targetNorm),
       category: categoryForEntry(entry),
       muscle: muscleForTarget(entry.targetNorm),
       station: false,
@@ -147,6 +148,7 @@ async function main() {
       equipLabel: 'станция',
       equipHints: station.equipHints,
       targetNorm: '',
+      targetLabel: localizeTarget(station.muscle === 'legs' ? 'quads' : station.muscle),
       category: station.category,
       muscle: station.muscle,
       station: true,

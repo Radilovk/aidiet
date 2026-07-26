@@ -1330,6 +1330,7 @@ test('localizeExerciseDisplayName: bench press не става „лег пре�
     'Избутване с щанга от лежанка',
   );
   assert.equal(localizeExerciseDisplayName('Leg Press', 'Избутване от лежанка'), 'Преса за крака');
+  assert.equal(localizeExerciseDisplayName('lever lying leg curl', '', 'leverage machine'), 'Сгъване за задно бедро');
 });
 
 test('sanitizeBgText: утежни вместо затежни', () => {
