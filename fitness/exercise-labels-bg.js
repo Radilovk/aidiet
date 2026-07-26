@@ -199,6 +199,8 @@ function fromPatterns(c) {
   if (/\blateral raise\b/.test(c)) return 'Странично повдигане';
   if (/\bfront raise\b/.test(c)) return 'Предно повдигане';
   if (/\bface pull\b/.test(c)) return 'Дърпане към лицето';
+  if (/\bleg curl\b/.test(c)) return 'Сгъване за задно бедро';
+  if (/\bleg extension\b/.test(c)) return 'Разгъване за предно бедро';
   if (/\bcurl\b/.test(c)) {
     if (/\bhammer\b/.test(c)) return 'Чук сгъване';
     if (/\bdumbbell\b/.test(c)) return 'Сгъване за бицепс с дъмбели';
@@ -209,8 +211,6 @@ function fromPatterns(c) {
   if (/\blunge\b/.test(c)) return /\bwalking\b/.test(c) ? 'Изпади в ход' : 'Изпад';
   if (/\bdip\b/.test(c)) return 'Кофички';
   if (/\bplank\b/.test(c)) return 'Планк';
-  if (/\bleg curl\b/.test(c)) return 'Сгъване за задно бедро';
-  if (/\bleg extension\b/.test(c)) return 'Разгъване за предно бедро';
   if (/\bcalf raise\b/.test(c)) return 'Повдигане на прасци';
   if (/\bfly\b/.test(c)) return /\bcable\b/.test(c) ? 'Разтваряне на кабел' : 'Разтваряне';
   if (/\bcrunch\b/.test(c)) return 'Коремни преси';

@@ -5,7 +5,7 @@
  */
 import { readFile, writeFile } from 'node:fs/promises';
 import { normalizeText } from '../normalize.js';
-import { localizeExerciseDisplayName } from '../exercise-labels-bg.js';
+import { localizeExerciseDisplayName, localizeTarget } from '../exercise-labels-bg.js';
 import {
   CARDIO_TRAINER_NORMS,
   EQUIP_NORM_LABELS,
@@ -83,6 +83,21 @@ function isApparatusExercise(entry) {
   return Boolean(equip && APPARATUS_EQUIP_NORMS.has(equip));
 }
 
+function findStationMedia(index, station) {
+  const matchRe = new RegExp(station.matchRe, 'i');
+  const excludeRe = station.excludeRe ? new RegExp(station.excludeRe, 'i') : null;
+  const hints = new Set((station.equipHints || []).map((h) => h.toLowerCase()));
+  for (const entry of index) {
+    if (!entry.image) continue;
+    if (excludeRe && excludeRe.test(entry.name)) continue;
+    if (hints.size && !hints.has(entry.equipNorm)) continue;
+    if (matchRe.test(entry.name)) {
+      return { image: entry.image, gif: entry.gif || '' };
+    }
+  }
+  return { image: '', gif: '' };
+}
+
 async function main() {
   const index = JSON.parse(await readFile(INDEX_PATH, 'utf8'));
   if (!Array.isArray(index)) {
@@ -111,30 +126,39 @@ async function main() {
       equipNorm: entry.equipNorm,
       equipLabel: eq,
       targetNorm: entry.targetNorm || '',
+      targetLabel: localizeTarget(entry.targetNorm),
       category: categoryForEntry(entry),
       muscle: muscleForTarget(entry.targetNorm),
       station: false,
+      image: entry.image || '',
+      gif: entry.gif || '',
       tokens: entry.tokens || [],
     };
   });
 
-  const stationCatalog = STATION_DEFS.map((station) => ({
-    id: station.id,
-    name: station.label,
-    nameNorm: normalizeText(station.label),
-    label: station.label,
-    subtitle: station.subtitle,
-    equipNorm: 'station',
-    equipLabel: 'станция',
-    equipHints: station.equipHints,
-    targetNorm: '',
-    category: station.category,
-    muscle: station.muscle,
-    station: true,
-    matchRe: station.matchRe,
-    excludeRe: station.excludeRe || '',
-    tokens: tokenize(`${station.label} ${station.subtitle} ${station.searchTerms}`),
-  }));
+  const stationCatalog = STATION_DEFS.map((station) => {
+    const media = findStationMedia(index, station);
+    return {
+      id: station.id,
+      name: station.label,
+      nameNorm: normalizeText(station.label),
+      label: station.label,
+      subtitle: station.subtitle,
+      equipNorm: 'station',
+      equipLabel: 'станция',
+      equipHints: station.equipHints,
+      targetNorm: '',
+      targetLabel: localizeTarget(station.muscle === 'legs' ? 'quads' : station.muscle),
+      category: station.category,
+      muscle: station.muscle,
+      station: true,
+      matchRe: station.matchRe,
+      excludeRe: station.excludeRe || '',
+      image: media.image,
+      gif: media.gif,
+      tokens: tokenize(`${station.label} ${station.subtitle} ${station.searchTerms}`),
+    };
+  });
 
   const catalog = [...machineCatalog, ...stationCatalog].sort((a, b) => {
     const byLabel = a.label.localeCompare(b.label, 'bg');

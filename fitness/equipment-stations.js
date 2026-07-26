@@ -63,7 +63,7 @@ export const STATION_DEFS = [
     label: 'Стойка за клек / power rack',
     subtitle: 'станция · squat rack',
     category: 'rack',
-    muscle: 'legs',
+    muscle: 'general',
     equipHints: ['barbell', 'trap bar', 'olympic barbell'],
     matchRe: 'rack pull|back squat|front squat|full squat|overhead squat|barbell squat|barbell lunge|good morning|barbell step up|barbell split squat|zercher',
     excludeRe: 'machine|cable|smith machine|sled|hack squat|leg press|bench squat|goblet',

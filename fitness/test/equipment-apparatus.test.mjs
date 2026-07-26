@@ -30,6 +30,13 @@ test('catalog entries: имат subtitle за разграничаване', () 
   assert.ok(withSub.length >= 200);
 });
 
+test('searchApparatus: филтър по зона задно бедро', () => {
+  const hits = searchApparatus({ zone: 'hamstrings' });
+  assert.ok(hits.length >= 4);
+  assert.ok(hits.every((h) => h.targetNorm === 'hamstrings'));
+  assert.ok(hits.every((h) => !/бицепс/i.test(h.label)));
+});
+
 test('searchApparatus: филтър по категория кабел', () => {
   const hits = searchApparatus({ category: 'cable' });
   assert.ok(hits.length >= 100);
@@ -87,6 +94,23 @@ test('expandApparatusIds: станция разширява barbell hints', () =
   const { equipHints } = expandApparatusIds(['station_bench_flat']);
   assert.ok(equipHints.has('barbell'));
   assert.ok(equipHints.has('dumbbell'));
+});
+
+import { apparatusThumbUrl } from '../equipment-media.js';
+
+test('apparatusThumbUrl: миниатюра от каталога', () => {
+  const item = GYM_APPARATUS.find((a) => a.image);
+  assert.ok(item);
+  const url = apparatusThumbUrl(item);
+  assert.match(url, /^https:\/\//);
+  assert.match(url, /images\//);
+});
+
+test('catalog: машини и станции имат image поле', () => {
+  const withImage = GYM_APPARATUS.filter((a) => a.image);
+  assert.ok(withImage.length >= 300);
+  const stations = GYM_APPARATUS.filter((a) => a.station);
+  assert.ok(stations.every((s) => s.image));
 });
 
 test('expandApparatusIds: машини разширяват equip hints', () => {
