@@ -5228,11 +5228,6 @@
             lines.forEach(function(line) {
                 var chunks = line.split(';').map(function(s) { return s.replace(/^[•\-\*]\s*/, '').trim(); }).filter(Boolean);
                 chunks.forEach(function(sp) {
-                    var cm = sp.match(/^(\d+)\s+(.+?)\s+\((\d+(?:[.,]\d+)?)\s*(g|г)\)\s*$/i);
-                    if (cm) {
-                        items.push({ name: cm[1] + ' ' + cm[2].trim(), grams: cm[3] + 'g', note: '' });
-                        return;
-                    }
                     var m = sp.match(/^(.+?)\s+(\d+(?:[.,]\d+)?)\s*(g|г)\b(?:\s*[—\-]\s*(.+))?$/i);
                     if (m) items.push({ name: m[1].trim(), grams: m[2] + 'g', note: (m[4] || '').trim() });
                 });

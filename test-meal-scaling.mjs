@@ -133,14 +133,6 @@ console.log('\n=== 8. Непознат продукт се докладва (з�
   check('unknown продуктът е върнат нагоре', res.unknowns.includes('Мистериозен специалитет'));
 }
 
-console.log('\n=== 9. Формат "2 яйца (120g)" се парсва за изчисления ===');
-{
-  const items = parseMealDescription('• 2 яйца (120g)\n• спанак 100g');
-  const eggs = items.find(i => i.name === 'яйца');
-  check('яйцата се разпознават по име', !!eggs);
-  check('грамажът идва от скобите', eggs?.grams === 120, `${eggs?.grams}g`);
-}
-
 const passed = results.filter(Boolean).length;
 console.log(`\n=== Обобщение: ${passed}/${results.length} PASS ===`);
 process.exit(passed === results.length ? 0 : 1);

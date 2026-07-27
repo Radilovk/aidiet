@@ -45,7 +45,6 @@ export function macroTolerance(targetGrams) {
 const CONDIMENT_MAX_GRAMS = 15;
 
 const GRAM_LINE_RE = /^(.+?)\s+(\d+(?:[.,]\d+)?)\s*(g|г)\b(?:\s*[—\-]\s*(.+))?$/i;
-const COUNT_LINE_RE = /^(\d+)\s+(.+?)\s+\((\d+(?:[.,]\d+)?)\s*(g|г)\)\s*$/i;
 
 /** @typedef {{ kcal: number, p: number, c: number, f: number }} NutritionProfile */
 /** @typedef {{ name: string, grams: number, key: string, profile: NutritionProfile, unknown?: boolean }} ParsedFoodItem */
@@ -129,14 +128,6 @@ export function parseMealDescription(description) {
   for (const line of lines) {
     const chunks = line.split(';').map(s => s.replace(/^[•\-\*]\s*/, '').trim()).filter(Boolean);
     for (const chunk of chunks) {
-      const countMatch = chunk.match(COUNT_LINE_RE);
-      if (countMatch) {
-        const name = countMatch[2].trim();
-        const grams = Math.max(1, Math.round(parseFloat(String(countMatch[3]).replace(',', '.'))));
-        const { profile, key, unknown } = lookupFoodProfile(name);
-        items.push({ name, grams, key, profile, unknown: !!unknown });
-        continue;
-      }
       const m = chunk.match(GRAM_LINE_RE);
       if (!m) continue;
       const name = m[1].trim();
