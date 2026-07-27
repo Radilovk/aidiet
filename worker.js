@@ -4073,6 +4073,13 @@ ${source.exampleScheme}` : ""
 // fitness/worker.js
 var DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
 var DEFAULT_OPENAI_MODEL = "gpt-4o-mini";
+var PLAN_BASE_OUTPUT_TOKENS = 8192;
+var PLAN_THINKING_BUDGET = 1024;
+function resolvePlanGenerationBudget({ strictAssembly = false, hasScheme = false } = {}) {
+  const needsThinking = !strictAssembly && !hasScheme;
+  const thinkingBudget = needsThinking ? PLAN_THINKING_BUDGET : 0;
+  return { thinkingBudget, maxOutputTokens: PLAN_BASE_OUTPUT_TOKENS + thinkingBudget };
+}
 var DEFAULT_MEDIA_BASE = "https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@main/";
 var DATASET_URL_CANDIDATES = [
   "https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@main/exercises.json",
@@ -4376,7 +4383,7 @@ function checkAdminSecret(request, env) {
   const provided = request.headers.get("X-Admin-Secret") || "";
   return provided === secret;
 }
-async function callGemini(env, { system, user, temperature = 0.4, maxOutputTokens = 8192, jsonMode = true }) {
+async function callGemini(env, { system, user, temperature = 0.4, maxOutputTokens = 8192, jsonMode = true, thinkingBudget = 0 }) {
   const model = env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.GEMINI_API_KEY}`;
   const generationConfig = (
@@ -4391,7 +4398,7 @@ async function callGemini(env, { system, user, temperature = 0.4, maxOutputToken
     }
   );
   if (/gemini-2\.5/i.test(model)) {
-    generationConfig.thinkingConfig = { thinkingBudget: 0 };
+    generationConfig.thinkingConfig = { thinkingBudget };
   }
   const body = {
     systemInstruction: { parts: [{ text: system }] },
@@ -4695,6 +4702,7 @@ async function executePlanGeneration(env, ctx, {
   const baseUser = catalogBlock ? `${userPrompt}
 
 ${catalogBlock}` : userPrompt;
+  const { thinkingBudget, maxOutputTokens } = resolvePlanGenerationBudget({ strictAssembly, hasScheme });
   let plan;
   let rawText;
   const maxAttempts = 3;
@@ -4719,8 +4727,9 @@ ${catalogBlock}` : userPrompt;
       system,
       user,
       temperature: attempt === 0 ? 0.4 : 0.25,
-      maxOutputTokens: 8192,
-      jsonMode: true
+      maxOutputTokens,
+      jsonMode: true,
+      thinkingBudget
     };
     try {
       rawText = await callAI(env, aiOpts);
@@ -6398,7 +6407,7 @@ function formatCatalogSectionForPrompt(candidatesBySlot, { minUniversality = DEF
   const lines = [
     `=== \u041A\u0410\u0422\u0410\u041B\u041E\u0413 \u0425\u0420\u0410\u041D\u0418 (\u0417\u0410\u0414\u042A\u041B\u0416\u0418\u0422\u0415\u041B\u041D\u041E \u2014 \u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430\u0439 \u0421\u0410\u041C\u041E \u0442\u0435\u0437\u0438 \u0438\u043C\u0435\u043D\u0430) ===`,
     `\u0423\u043D\u0438\u0432\u0435\u0440\u0441\u0430\u043B\u043D\u043E\u0441\u0442 \u2265${minUniversality}: \u043F\u0440\u0435\u0434\u043F\u043E\u0447\u0438\u0442\u0430\u0439 \u043F\u043E-\u043E\u0431\u0449\u0438 \u0432\u0430\u0440\u0438\u0430\u043D\u0442\u0438 (\u0420\u0438\u0431\u0430, \u041E\u0440\u0438\u0437, \u041F\u043B\u043E\u0434) \u043F\u0440\u0435\u0434 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u0438 (\u041B\u0430\u0432\u0440\u0430\u043A, \u041A\u0438\u043D\u043E\u0430, \u041C\u0430\u043D\u0433\u043E).`,
-    `\u0421\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438 \u0432 \u0441\u043A\u043E\u0431\u0438 = \u043D\u0430 100g. \u0413\u0440\u0430\u043C\u0430\u0436\u0438 \u043E\u0442 mealBreakdown: \u043E\u0441\u043D\u043E\u0432\u043D\u0438 \u043D\u0430 50g; \u0434\u043E\u0431\u0430\u0432\u043A\u0438 (\u0437\u0435\u0445\u0442\u0438\u043D, \u044F\u0434\u043A\u0438) \u043D\u0430 10g; \u044F\u0439\u0446\u0430 60g/\u0431\u0440. \u2192 "2 \u044F\u0439\u0446\u0430 (120g)"; \u043F\u043B\u043E\u0434\u043E\u0432\u0435 \u2192 "1 \u044F\u0431\u044A\u043B\u043A\u0430 (150g)".`,
+    `\u0421\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438 \u0432 \u0441\u043A\u043E\u0431\u0438 = \u043D\u0430 100g. \u041E\u0440\u0438\u0435\u043D\u0442\u0438\u0440\u0430\u0439 \u0433\u0440\u0430\u043C\u0430\u0436\u0438\u0442\u0435 \u043A\u044A\u043C \u0446\u0435\u043B\u0438\u0442\u0435 \u043E\u0442 mealBreakdown. \u0417\u0430\u043A\u0440\u044A\u0433\u043B\u044F\u0439 \u043D\u0430 10g.`,
     `\u0413\u043E\u0442\u043E\u0432\u0430 \u0445\u0440\u0430\u043D\u0430 = \u0435\u0434\u0438\u043D \u0440\u0435\u0434 \u0432 description \u0418\u041B\u0418 \u0440\u0430\u0437\u0431\u0438\u0439 \u043D\u0430 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u043E\u0442 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430.`
   ];
   for (const slot of ["PRO", "ENG", "VOL", "FAT"]) {
@@ -6457,7 +6466,6 @@ function macroTolerance(targetGrams) {
 }
 var CONDIMENT_MAX_GRAMS = 15;
 var GRAM_LINE_RE = /^(.+?)\s+(\d+(?:[.,]\d+)?)\s*(g|г)\b(?:\s*[—\-]\s*(.+))?$/i;
-var COUNT_LINE_RE = /^(\d+)\s+(.+?)\s+\((\d+(?:[.,]\d+)?)\s*(g|г)\)\s*$/i;
 function arrayToProfile(arr) {
   return { kcal: arr[0], p: arr[1], c: arr[2], f: arr[3] };
 }
@@ -6523,14 +6531,6 @@ function parseMealDescription(description) {
   for (const line2 of lines) {
     const chunks = line2.split(";").map((s) => s.replace(/^[•\-\*]\s*/, "").trim()).filter(Boolean);
     for (const chunk of chunks) {
-      const countMatch = chunk.match(COUNT_LINE_RE);
-      if (countMatch) {
-        const name2 = countMatch[2].trim();
-        const grams2 = Math.max(1, Math.round(parseFloat(String(countMatch[3]).replace(",", "."))));
-        const { profile: profile2, key: key2, unknown: unknown2 } = lookupFoodProfile(name2);
-        items.push({ name: name2, grams: grams2, key: key2, profile: profile2, unknown: !!unknown2 });
-        continue;
-      }
       const m = chunk.match(GRAM_LINE_RE);
       if (!m) continue;
       const name = m[1].trim();
@@ -9638,29 +9638,10 @@ async function generatePlanAndSave(env, data, jobId, clientId, options = {}) {
     }
   }
 }
-async function dispatchPlanGenerationJob(env, ctx, opts) {
-  const { data, clientId = null, generationOptions = {}, jobId: preferredJobId } = opts || {};
-  const jobId = preferredJobId || crypto.randomUUID();
-  await env.page_content.put(
-    PLAN_JOB_PREFIX + jobId,
-    JSON.stringify({ status: "pending", startedAt: Date.now(), clientId: clientId || null }),
-    { expirationTtl: PLAN_JOB_TTL_SEC }
-  );
-  const payload = { jobId, data, clientId: clientId || null, generationOptions };
-  if (env.PLAN_QUEUE) {
-    await env.PLAN_QUEUE.send(payload, { contentType: "json" });
-  } else if (ctx) {
-    console.warn("dispatchPlanGenerationJob: PLAN_QUEUE not bound \u2013 ctx.waitUntil fallback");
-    ctx.waitUntil(generatePlanAndSave(env, data, jobId, clientId || null, generationOptions));
-  } else {
-    await generatePlanAndSave(env, data, jobId, clientId || null, generationOptions);
-  }
-  return jobId;
-}
 async function handleGeneratePlanAsync(request, env, ctx) {
   try {
     const rawBody = await request.json();
-    const requestedJobId = rawBody._jobId && JOB_ID_UUID_RE.test(String(rawBody._jobId)) ? String(rawBody._jobId) : void 0;
+    const jobId = rawBody._jobId && JOB_ID_UUID_RE.test(String(rawBody._jobId)) ? String(rawBody._jobId) : crypto.randomUUID();
     const clientId = typeof rawBody._clientId === "string" && rawBody._clientId.startsWith("client_") ? rawBody._clientId : null;
     const requireApproval = rawBody._requireApproval === true;
     const explicitUserId = typeof rawBody._userId === "string" ? rawBody._userId.trim() : "";
@@ -9706,12 +9687,22 @@ async function handleGeneratePlanAsync(request, env, ctx) {
       requireApproval,
       userId: explicitUserId || ""
     };
-    const jobId = await dispatchPlanGenerationJob(env, ctx, {
-      data,
-      clientId: resolvedClientId,
-      generationOptions,
-      jobId: requestedJobId
-    });
+    await env.page_content.put(
+      PLAN_JOB_PREFIX + jobId,
+      JSON.stringify({ status: "pending", startedAt: Date.now() }),
+      { expirationTtl: PLAN_JOB_TTL_SEC }
+    );
+    if (env.PLAN_QUEUE) {
+      await env.PLAN_QUEUE.send({
+        jobId,
+        data,
+        clientId: resolvedClientId,
+        generationOptions
+      }, { contentType: "json" });
+    } else {
+      console.warn('handleGeneratePlanAsync: PLAN_QUEUE not bound \u2013 falling back to ctx.waitUntil(). Run "wrangler queues create plan-generation" to fix this.');
+      ctx.waitUntil(generatePlanAndSave(env, data, jobId, resolvedClientId, generationOptions));
+    }
     return jsonResponse2({ success: true, jobId });
   } catch (error) {
     console.error("handleGeneratePlanAsync error:", error);
@@ -12218,34 +12209,6 @@ async function handleActivateClientPlan(request, env, ctx) {
     return jsonResponse2({ error: `Failed to activate plan: ${error.message}` }, 500);
   }
 }
-async function handleAdminRegenerateClientPlan(request, env, ctx) {
-  try {
-    const { clientId } = await request.json();
-    if (!clientId) return jsonResponse2({ error: "Missing clientId" }, 400);
-    if (!env.page_content) return jsonResponse2({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
-    const raw = await env.page_content.get(`client:${clientId}`);
-    if (!raw) return jsonResponse2({ error: "Client not found" }, 404);
-    const clientData = JSON.parse(raw);
-    const data = normalizeQuestionnaireData(clientData.answers || {});
-    if (!data.name || !data.age || !data.weight || !data.height) {
-      return jsonResponse2({ error: "\u041D\u0435\u043F\u044A\u043B\u043D\u0438 \u0434\u0430\u043D\u043D\u0438 \u043E\u0442 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430" }, 400);
-    }
-    const jobId = await dispatchPlanGenerationJob(env, ctx, {
-      data,
-      clientId,
-      generationOptions: { userId: clientData.userId || "" }
-    });
-    clientData.planStatus = "generating";
-    delete clientData.planGenerationError;
-    clientData.planGenerationJobId = jobId;
-    clientData.planUpdatedAt = (/* @__PURE__ */ new Date()).toISOString();
-    await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
-    return jsonResponse2({ success: true, jobId });
-  } catch (error) {
-    console.error("Error regenerating client plan:", error);
-    return jsonResponse2({ error: error.message || "Failed to regenerate plan" }, 500);
-  }
-}
 async function handleGetClientPlanStatus(request, env) {
   try {
     const url = new URL(request.url);
@@ -12653,7 +12616,7 @@ function buildChunkValidationRetryComment(errors) {
 \u041F\u043E\u043F\u0440\u0430\u0432\u0438 \u0421\u0410\u041C\u041E \u043F\u043E\u0441\u043E\u0447\u0435\u043D\u0438\u0442\u0435 \u043D\u0435\u0441\u044A\u043E\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0438\u044F. \u0417\u0430\u043F\u0430\u0437\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438\u0442\u0435 \u0438 \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0430\u0442\u0430 \u043D\u0430 \u0434\u043D\u0438\u0442\u0435.
 ${errors.map((e, i) => `${i + 1}. ${e}`).join("\n")}
 
-\u0417\u0410\u0414\u042A\u041B\u0416\u0418\u0422\u0415\u041B\u041D\u041E: description \u0441 "\u0447\u0438\u0441\u043B\u043Eg" \u043D\u0430 \u0432\u0441\u0435\u043A\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442; \u044F\u0439\u0446\u0430/\u043F\u043B\u043E\u0434\u043E\u0432\u0435 \u2014 "2 \u044F\u0439\u0446\u0430 (120g)" / "1 \u044F\u0431\u044A\u043B\u043A\u0430 (150g)"; \u0421\u0410\u041C\u041E \u0438\u043C\u0435\u043D\u0430 \u043E\u0442 \u041A\u0410\u0422\u0410\u041B\u041E\u0413\u0410. \u0411\u0435\u043A\u0435\u043D\u0434\u044A\u0442 \u0438\u0437\u0447\u0438\u0441\u043B\u044F\u0432\u0430 macros/kcal \u043E\u0442 \u0433\u0440\u0430\u043C\u0430\u0436\u0438\u0442\u0435 \u0438 \u043C\u0430\u0449\u0430\u0431\u0438\u0440\u0430 \u043F\u043E\u0440\u0446\u0438\u0438\u0442\u0435 \u043A\u044A\u043C \u043A\u0430\u043B\u043E\u0440\u0438\u0439\u043D\u0430\u0442\u0430 \u0446\u0435\u043B.`;
+\u0417\u0410\u0414\u042A\u041B\u0416\u0418\u0422\u0415\u041B\u041D\u041E: description \u0441 "\u0447\u0438\u0441\u043B\u043Eg" \u043D\u0430 \u0432\u0441\u0435\u043A\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442 (\u0437\u0430\u043A\u0440\u044A\u0433\u043B\u044F\u043D\u0435 10g); \u0421\u0410\u041C\u041E \u0438\u043C\u0435\u043D\u0430 \u043E\u0442 \u041A\u0410\u0422\u0410\u041B\u041E\u0413\u0410; \u043E\u0431\u0449\u043E\u043F\u0440\u0438\u0435\u0442\u0438 \u043A\u043E\u043C\u0431\u0438\u043D\u0430\u0446\u0438\u0438. \u0411\u0435\u043A\u0435\u043D\u0434\u044A\u0442 \u0438\u0437\u0447\u0438\u0441\u043B\u044F\u0432\u0430 macros/kcal \u043E\u0442 \u0433\u0440\u0430\u043C\u0430\u0436\u0438\u0442\u0435 \u0438 \u043C\u0430\u0449\u0430\u0431\u0438\u0440\u0430 \u043F\u043E\u0440\u0446\u0438\u0438\u0442\u0435 \u043A\u044A\u043C \u043A\u0430\u043B\u043E\u0440\u0438\u0439\u043D\u0430\u0442\u0430 \u0446\u0435\u043B.`;
 }
 function finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay) {
   if (!weekPlan) return;
@@ -18803,8 +18766,6 @@ var worker_entry_default = {
         return await handleUpdateClientPlan(request, env, ctx);
       } else if (url.pathname === "/api/admin/activate-client-plan" && request.method === "POST") {
         return await handleActivateClientPlan(request, env, ctx);
-      } else if (url.pathname === "/api/admin/regenerate-client-plan" && request.method === "POST") {
-        return await handleAdminRegenerateClientPlan(request, env, ctx);
       } else if (url.pathname === "/api/admin/client-card" && request.method === "GET") {
         return await handleAdminClientCard(request, env);
       } else if (url.pathname === "/api/admin/client-assistant/session" && request.method === "POST") {
