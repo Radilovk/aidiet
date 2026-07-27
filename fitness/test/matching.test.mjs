@@ -42,6 +42,7 @@ import {
   constraintsFromAnswers,
   loadExerciseMetadata,
   loadBundledMetadata,
+  resolvePlanGenerationBudget,
 } from '../worker.js';
 
 import { mergeAllowedEquipment, auditPlanExercises } from '../plan-generation.js';
@@ -892,6 +893,21 @@ test('preparePlanGeneration: strictAssembly — само scheme, без profile/
   assert.ok(!userPrompt.includes('<profile>'));
   assert.equal(guidelineLayers.individual.length, 0);
   assert.equal(guidelineLayers.architecture.length, 0);
+});
+
+test('resolvePlanGenerationBudget: thinking само при проектиране от нула (без scheme, без strictAssembly)', () => {
+  const fromScratch = resolvePlanGenerationBudget({ strictAssembly: false, hasScheme: false });
+  assert.ok(fromScratch.thinkingBudget > 0, 'дизайн от нула се нуждае от reasoning бюджет');
+  assert.ok(fromScratch.thinkingBudget <= 2048, 'бюджетът трябва да е строго ограничен, не „роман“');
+  assert.equal(fromScratch.maxOutputTokens, 8192 + fromScratch.thinkingBudget);
+
+  const strict = resolvePlanGenerationBudget({ strictAssembly: true, hasScheme: false });
+  assert.equal(strict.thinkingBudget, 0, 'ASSEMBLY е форматиране — без thinking');
+  assert.equal(strict.maxOutputTokens, 8192);
+
+  const scheme = resolvePlanGenerationBudget({ strictAssembly: false, hasScheme: true });
+  assert.equal(scheme.thinkingBudget, 0, 'структурирана schema за попълване — без thinking');
+  assert.equal(scheme.maxOutputTokens, 8192);
 });
 
 test('buildTrainerSystemAddon: strictAssembly → празен', () => {
