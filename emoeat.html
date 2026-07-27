@@ -551,46 +551,98 @@
             color: var(--text-light);
         }
 
-        .char-counter {
-            text-align: right;
-            font-size: 0.8rem;
-            color: var(--text-light);
-            margin-top: 8px;
+        .answer-input.optional-input {
+            min-height: 70px;
+            font-size: 0.92rem;
+            padding: 14px;
         }
 
-        /* Quick Response Buttons */
-        .quick-responses {
+        /* Multiple-choice Option Cards */
+        .option-list {
             display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 12px;
-            margin-bottom: 8px;
+            flex-direction: column;
+            gap: 10px;
         }
 
-        .quick-btn {
-            padding: 8px 14px;
-            font-size: 0.85rem;
-            border: 1px solid var(--primary);
-            border-radius: 20px;
+        .option-card {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            width: 100%;
+            padding: 16px 18px;
+            border: 2px solid var(--input-bg);
             background: var(--card-bg);
-            color: var(--primary);
+            border-radius: var(--radius-sm);
             cursor: pointer;
             transition: var(--transition);
-            white-space: nowrap;
+            box-shadow: var(--shadow-sm);
+            text-align: left;
+            font-family: inherit;
         }
 
-        .quick-btn:hover {
+        .option-card:hover {
+            border-color: var(--primary-light);
+        }
+
+        .option-card.selected {
+            border-color: var(--primary);
             background: var(--primary-light);
         }
 
-        .quick-btn:active {
-            background: var(--primary);
-            color: white;
+        [data-theme="dark"] .option-card.selected {
+            background: rgba(45, 212, 191, 0.12);
         }
 
-        [data-theme="dark"] .quick-btn {
+        .option-radio {
+            width: 22px;
+            height: 22px;
+            min-width: 22px;
+            border-radius: 50%;
+            border: 2px solid var(--text-light);
+            flex-shrink: 0;
+            margin-top: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+
+        .option-card.selected .option-radio {
             border-color: var(--primary);
-            background: var(--input-bg);
+            background: var(--primary);
+        }
+
+        .option-radio i {
+            font-size: 0.65rem;
+            color: white;
+            opacity: 0;
+            transform: scale(0.5);
+            transition: var(--transition);
+        }
+
+        .option-card.selected .option-radio i {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .option-text {
+            font-size: 0.98rem;
+            color: var(--text-dark);
+            line-height: 1.5;
+        }
+
+        .extra-toggle-btn {
+            background: none;
+            border: none;
+            color: var(--primary);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 14px 0 4px;
+            font-family: inherit;
         }
 
         /* Interpretation Box */
@@ -1714,6 +1766,30 @@
             color: var(--primary);
         }
 
+        .real-need-card {
+            background: linear-gradient(135deg, #F59E0B, #EA580C);
+            color: white;
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .real-need-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+
+        .real-need-text {
+            font-size: 1.05rem;
+            font-weight: 600;
+            line-height: 1.5;
+        }
+
         .error-card {
             background: var(--card-bg);
             border-radius: var(--radius);
@@ -1810,7 +1886,7 @@
                 </div>
                 <h2 class="welcome-title">Разкрийте Подсъзнателните Ви Хранителни Тригери</h2>
                 <p class="welcome-subtitle">
-                    Този въпросник използва проективни техники за разкриване на емоционалните причини зад хранителните ви навици — срам, самота, контрол, стрес, скука и други скрити тригери. Довършете изреченията спонтанно – достатъчни са дори 2-3 думи!
+                    Избери готовия отговор, който е най-близо до твоя опит — без писане. Тестът разкрива емоционалните причини зад хранителните ви навици: срам, самота, контрол, стрес, скука и други скрити тригери.
                 </p>
 
                 <div class="factor-chips" aria-label="Емоционални фактори, които ще бъдат анализирани">
@@ -1828,8 +1904,8 @@
                             <i class="fas fa-eye"></i>
                         </div>
                         <div class="feature-text">
-                            <h3>15 Бързи Въпроса</h3>
-                            <p>Довършете изречения с няколко думи – лесно и бързо</p>
+                            <h3>10 Въпроса, Готови Отговори</h3>
+                            <p>Само докосване — избираш отговор, не пишеш нищо</p>
                         </div>
                     </div>
                     <div class="feature-card">
@@ -1838,7 +1914,7 @@
                         </div>
                         <div class="feature-text">
                             <h3>Персонализиран Анализ</h3>
-                            <p>AI анализира вашите отговори за скрити модели</p>
+                            <p>AI анализира избраните отговори за скрити модели</p>
                         </div>
                     </div>
                     <div class="feature-card">
@@ -1846,8 +1922,8 @@
                             <i class="fas fa-hand-holding-heart"></i>
                         </div>
                         <div class="feature-text">
-                            <h3>Няма "Грешни" Отговори</h3>
-                            <p>Ако въпросът не се отнася за вас – просто го посочете</p>
+                            <h3>По Избор — Свои Думи</h3>
+                            <p>Всеки въпрос има вариант "не се отнася" и поле за лични думи</p>
                         </div>
                     </div>
                     <div class="feature-card">
@@ -1877,23 +1953,22 @@
                         <span id="categoryText">Емоционална Идентификация</span>
                     </span>
                     <h2 class="question-text" id="questionText">Зареждане...</h2>
-                    <p class="question-hint" id="questionHint">Довършете изречението спонтанно. Достатъчни са 2-3 думи, напр. "спокойствие", "страх и тревога", "нищо особено"</p>
+                    <p class="question-hint" id="questionHint">Избери отговора, който е най-близо до твоя опит</p>
                 </div>
 
+                <div class="option-list" id="optionList" role="radiogroup" aria-label="Възможни отговори"></div>
+
+                <button type="button" class="extra-toggle-btn" id="extraToggleBtn" onclick="toggleExtraInput()">
+                    <i class="fas fa-plus" id="extraToggleIcon"></i>
+                    <span id="extraToggleLabel">Добави собствени думи (по избор)</span>
+                </button>
                 <textarea
-                    class="answer-input"
-                    id="answerInput"
-                    placeholder="Довършете изречението с няколко думи..."
-                    oninput="handleAnswerInput()"
+                    class="answer-input optional-input"
+                    id="extraInput"
+                    style="display: none;"
+                    placeholder="Ако искаш, опиши с твои думи..."
+                    oninput="handleExtraInput()"
                 ></textarea>
-                
-                <div class="quick-responses" role="group" aria-label="Бързи отговори">
-                    <button type="button" class="quick-btn" onclick="setQuickResponse('Не се отнася за мен')" aria-label="Отговори: Не се отнася за мен">Не се отнася за мен</button>
-                    <button type="button" class="quick-btn" onclick="setQuickResponse('Нямам такъв опит')" aria-label="Отговори: Нямам такъв опит">Нямам такъв опит</button>
-                    <button type="button" class="quick-btn" onclick="setQuickResponse('Не зная')" aria-label="Отговори: Не зная">Не зная</button>
-                </div>
-                
-                <div class="char-counter"><span id="charCount">0</span> символа</div>
 
                 <div class="interpretation-box" id="interpretationBox" style="display: none;">
                     <div class="interpretation-title">
@@ -1942,108 +2017,144 @@
         const questions = [
             {
                 id: 1,
-                category: "Глад на Сърцето",
+                category: "Утеха и Близост",
                 icon: "fa-heart",
-                text: "Когато се чувствам напълно изтощен/а и сам/а вечер, първата храна, която ми идва наум, е...",
-                interpretation: "Идентифицира феномена \"глад на сърцето\". Разкрива специфичния комфортен стимул (обикновено сладък или кремообразен), използван за компенсиране на липсата на емоционална свързаност, окситоцин и топлина."
+                factorId: "comfort_loneliness",
+                text: "Когато се чувстваш самотен/а или ти липсва близост — обикновено вечер — какво правиш най-често?",
+                interpretation: "Разкрива дали храната замества липсваща емоционална топлина и близост — класическият \"глад на сърцето\".",
+                options: [
+                    { key: "A", text: "Посягам към нещо сладко, топло или кремообразно за утеха", intensity: 80 },
+                    { key: "B", text: "Търся храна, която ми напомня за детството и сигурността", intensity: 65 },
+                    { key: "C", text: "Търся близост с човек — обаждане, разговор, компания", intensity: 15 },
+                    { key: "D", text: "Не забелязвам връзка между самотата и храненето при мен", intensity: 0 }
+                ]
             },
             {
                 id: 2,
                 category: "Скрито Хранене",
                 icon: "fa-eye-slash",
-                text: "Ако трябва да бъда напълно честен/на, мисълта да ям скришно (когато никой не ме вижда) предизвиква в мен усещане за...",
-                interpretation: "Изследва наличието на дълбок срам, стигма и потенциална загуба на контрол. Скритото хранене е ключов индикатор за подсъзнателна патология на храненето и присъствие на травма."
+                factorId: "shame_guilt",
+                text: "Какво усещаш при мисълта да ядеш скришно, когато никой не те вижда?",
+                interpretation: "Скритото хранене е ключов индикатор за подсъзнателен срам и потенциална загуба на контрол над храненето.",
+                options: [
+                    { key: "A", text: "Силен срам и вина, сякаш правя нещо лошо", intensity: 90 },
+                    { key: "B", text: "Облекчение — най-накрая никой не ме съди", intensity: 55 },
+                    { key: "C", text: "Леко неудобство, без по-силни емоции", intensity: 30 },
+                    { key: "D", text: "Никога не ям скришно — не важи за мен", intensity: 0 }
+                ]
             },
             {
                 id: 3,
-                category: "Глад на Главата",
-                icon: "fa-head-side-brain",
-                text: "Когато агресивно дъвча нещо изключително хрупкаво и твърдо, усещам как в тялото ми...",
-                interpretation: "Тества за потиснат гняв, микроагресии и хронична фрустрация. Оценява доколко използвате челюстната мускулатура за акустично и физическо освобождаване на напрежение (\"глад на главата\")."
+                category: "Напрежение и Гняв",
+                icon: "fa-bolt",
+                factorId: "tension_anger",
+                text: "Когато си под напрежение, ядосан/а или очакваш труден разговор, какво се случва с апетита ти?",
+                interpretation: "Показва как автономната нервна система (\"борба или бягство\") и потиснатият гняв се изразяват през храненето.",
+                options: [
+                    { key: "A", text: "Преяждам с каквото ми попадне, без да усещам вкус", intensity: 85 },
+                    { key: "B", text: "Търся да хрупкам или дъвча нещо твърдо, за да се разтоваря", intensity: 75 },
+                    { key: "C", text: "Апетитът ми напълно изчезва", intensity: 55 },
+                    { key: "D", text: "Не забелязвам промяна в апетита си", intensity: 0 }
+                ]
             },
             {
                 id: 4,
-                category: "Лишение и Контрол",
+                category: "Контрол и Лишение",
                 icon: "fa-ban",
-                text: "Усещането за напълно празен стомах ме кара да се чувствам...",
-                interpretation: "Разкрива дълбокото отношение към лишението. За някои празнотата е символ на перфекционизъм и контрол, докато за други е тригер за екзистенциална паника и страх от изоставяне."
+                factorId: "control_restriction",
+                text: "Когато си наложиш строга диета или си забраниш определени храни, как се чувстваш най-често?",
+                interpretation: "Разкрива дали контролът над храната е илюзия за контрол над хаотичен живот и вярвания за собствената стойност.",
+                options: [
+                    { key: "A", text: "Като лош/недостоен човек, ако не се справя", intensity: 90 },
+                    { key: "B", text: "Обсебен/а — храната става единствената ми мисъл през деня", intensity: 80 },
+                    { key: "C", text: "В контрол и спокоен/а — докато не се сринa в преяждане", intensity: 65 },
+                    { key: "D", text: "Не си налагам строги диети или ограничения", intensity: 5 }
+                ]
             },
             {
                 id: 5,
-                category: "Вътрешен Монолог",
-                icon: "fa-comments",
-                text: "Ако храната можеше да ми говори в моменти на силен стрес, тя би ми казала...",
-                interpretation: "Проективна персонификация на храната. Показва каква роля играе храната във вътрешния монолог на психиката – дали е строг съдник, безусловно приемащ приятел, или наказващ авторитет."
+                category: "Бягство от Реалността",
+                icon: "fa-running",
+                factorId: "stress_escape",
+                text: "Когато искаш да избягаш от проблем или тежка ситуация, каква е ролята на храната?",
+                interpretation: "Идентифицира дали храната е защитен механизъм за дисоциация от непоносими емоции и отговорности.",
+                options: [
+                    { key: "A", text: "Ям автоматично, без да усещам какво точно ям", intensity: 85 },
+                    { key: "B", text: "Мислите ми се насочват изцяло към храна и планиране на ястия", intensity: 75 },
+                    { key: "C", text: "Търся други начини да се разсея — работа, сериали, разходка", intensity: 20 },
+                    { key: "D", text: "Не забелязвам връзка между стреса и храненето при мен", intensity: 0 }
+                ]
             },
             {
                 id: 6,
                 category: "Граница на Засищането",
                 icon: "fa-utensils",
-                text: "Най-трудният момент да спра да ям, дори когато вече усещам физическо засищане, е когато...",
-                interpretation: "Изследва границата между физиологичното засищане и емоционалната празнота. Разкрива тригерите за компулсивно преяждане и неспособността за интероцептивна саморегулация."
+                factorId: "compulsion",
+                text: "Кога ти е най-трудно да спреш да ядеш, дори усещайки физическо засищане?",
+                interpretation: "Изследва границата между физиологично засищане и емоционална празнота — ключов маркер за компулсивно хранене.",
+                options: [
+                    { key: "A", text: "Когато съм емоционално разстроен/а", intensity: 85 },
+                    { key: "B", text: "Когато храната е особено вкусна или \"забранена\"", intensity: 75 },
+                    { key: "C", text: "Когато съм сам/а и никой не гледа", intensity: 65 },
+                    { key: "D", text: "Обикновено спирам лесно, щом се заситя", intensity: 5 }
+                ]
             },
             {
                 id: 7,
                 category: "Емоционално Изтръпване",
                 icon: "fa-cloud",
-                text: "Чувството на физическа преялост (болезнена тежест в стомаха) всъщност ми помага да...",
-                interpretation: "Анализира парадоксалното използване на физическия дискомфорт като механизъм за емоционално изтръпване. Изключително често се използва при оцелели от травма за заглушаване на натрапчиви мисли."
+                factorId: "numbing",
+                text: "Усещането за тежест в стомаха след преяждане за теб е най-често...",
+                interpretation: "Физическият дискомфорт понякога заглушава натрапчиви мисли — честа стратегия при силен емоционален стрес.",
+                options: [
+                    { key: "A", text: "Начин да не мисля за болезнени неща — почти изтръпване", intensity: 85 },
+                    { key: "B", text: "Начин да се чувствам \"заземен/а\" и притихнал/а", intensity: 60 },
+                    { key: "C", text: "Просто неприятно физическо усещане, без по-дълбок смисъл", intensity: 20 },
+                    { key: "D", text: "Рядко преяждам до такава степен", intensity: 0 }
+                ]
             },
             {
                 id: 8,
-                category: "Конфликт и Апетит",
-                icon: "fa-bolt",
-                text: "Когато съм изправен/а пред неизбежен конфликт или труден разговор, апетитът ми...",
-                interpretation: "Индикатор за реакцията на автономната нервна система (\"борба или бягство\"). Помага да се разграничи дали силните емоции биологично потискат храненето, или го използвате като защитен щит."
+                category: "Вътрешен Критик",
+                icon: "fa-user-slash",
+                factorId: "shame_guilt",
+                text: "Какво казва вътрешният ти критик веднага след като ядеш нещо, което смяташ за \"забранено\"?",
+                interpretation: "Токсичният цикъл на срам и вина след хранене категоризира храни като \"забранени\" и поддържа емоционалното хранене.",
+                options: [
+                    { key: "A", text: "Обижда ме остро — \"лош/а съм\", \"нямам сила на волята\"", intensity: 90 },
+                    { key: "B", text: "Веднага планира как да \"компенсирам\" — спорт, диета", intensity: 65 },
+                    { key: "C", text: "Мърмори тихо, но не се задържа дълго", intensity: 40 },
+                    { key: "D", text: "Мълчи — нямам вътрешен критик след хранене", intensity: 0 }
+                ]
             },
             {
                 id: 9,
-                category: "Детска Носталгия",
-                icon: "fa-baby",
-                text: "Любимата ми, най-успокояваща храна от детството ми носи усещането за...",
-                interpretation: "Изследва носталгията, психологическата регресия и търсенето на базова сигурност. Разкрива какви първични нужди (напр. майчина безусловна грижа) несъзнателно се опитвате да пресъздадете чрез храната."
+                category: "Скука и Стимулация",
+                icon: "fa-fire-alt",
+                factorId: "boredom_stimulation",
+                text: "Кога най-силно ти се прищява пикантна, солена или наситена на вкус храна?",
+                interpretation: "Пикантното и соленото често търсят \"събуждане\" при скука, бърнаут или изтощение.",
+                options: [
+                    { key: "A", text: "Когато животът ми изглежда сив и монотонен", intensity: 75 },
+                    { key: "B", text: "Когато съм изтощен/а физически или емоционално", intensity: 65 },
+                    { key: "C", text: "Просто обичам тези вкусове — без връзка с настроението", intensity: 15 },
+                    { key: "D", text: "Не изпитвам силни желания от този тип", intensity: 0 }
+                ]
             },
             {
                 id: 10,
-                category: "Стимулация и Безразличие",
-                icon: "fa-fire-alt",
-                text: "Силното желание за пикантни или изключително солени храни при мен се появява, когато животът ми изглежда...",
-                interpretation: "Оценява нуждата от стимулация при състояния на безразличие, бърнаут или скука. Пикантното символизира търсене на \"събуждане\", а соленото често корелира с надбъбречно изтощение."
-            },
-            {
-                id: 11,
-                category: "Самонаказание",
-                icon: "fa-balance-scale",
-                text: "Наказанието и строгото лишение от определени \"лоши\" храни в ума ми са свързани с вярването, че аз съм...",
-                interpretation: "Разкрива дълбоко вкоренени дисфункционални вярвания от диетичната култура, усещането за собствена (без)стойност и подсъзнателната склонност към морално самонаказание."
-            },
-            {
-                id: 12,
-                category: "Бягство от Реалността",
-                icon: "fa-running",
-                text: "Храната доминира мислите ми абсолютно най-силно, когато се опитвам отчаяно да избягам от...",
-                interpretation: "Идентифицира конкретните житейски ситуации, травми или отговорности, които служат като катализатор за обсесивно мислене и планиране на храненията."
-            },
-            {
-                id: 13,
-                category: "Вътрешен Критик",
-                icon: "fa-user-slash",
-                text: "Моят вътрешен критик обикновено се появява и започва да ме обижда веднага след като изям...",
-                interpretation: "Изследва токсичния цикъл на срам и вина, който поддържа емоционалното хранене. Показва кои специфични храни са категоризирани като \"забранени\" и генерират последващ психологически дистрес."
-            },
-            {
-                id: 14,
-                category: "Ролята на Диетата",
-                icon: "fa-scale-balanced",
-                text: "Ако премахна контрола над теглото и външния си вид като цел номер едно, храната би се превърнала в...",
-                interpretation: "Отделя изкуствено физическия образ от храненето, за да разкрие истинската емоционална функция на хроничните диети (например осигуряване на илюзия за контрол над един иначе хаотичен живот)."
-            },
-            {
-                id: 15,
                 category: "Реална Нужда",
                 icon: "fa-star",
-                text: "За да се почувствам наистина удовлетворен/а, защитен/а и спокоен/на днес, без да използвам абсолютно никаква храна, аз всъщност се нуждая от...",
-                interpretation: "Положителен проективен въпрос, насочен към финално идентифициране на реалния дефицит (адекватна почивка, внимание, интимност, поставяне на здравословни граници), който храната неуспешно се опитва да запълни."
+                factorId: "real_need",
+                text: "Ако точно сега имаше начин да се почувстваш удовлетворен/а и спокоен/на без храна, от какво би имал/а нужда?",
+                interpretation: "Финалният позитивен въпрос сочи към реалния емоционален дефицит, който храната неуспешно се опитва да запълни.",
+                options: [
+                    { key: "A", text: "Повече почивка и сън", intensity: 0 },
+                    { key: "B", text: "Внимание, близост или разговор с някого", intensity: 0 },
+                    { key: "C", text: "По-малко отговорности и по-ясни лични граници", intensity: 0 },
+                    { key: "D", text: "Признание или усещане за постижение", intensity: 0 },
+                    { key: "E", text: "Друго — ще напиша сам/а", intensity: 0, revealsText: true }
+                ]
             }
         ];
 
@@ -2052,8 +2163,9 @@
         // ============================================
         let currentScreen = 'welcome'; // welcome, question, loading, results
         let currentQuestionIndex = 0;
-        let answers = {};
-        const MIN_REQUIRED_ANSWERS = 5; // Must match backend validation in handleGenerateEmoeatAnalysis
+        let answers = {};       // { [qId]: string } — final text sent to backend AI
+        let answerMeta = {};    // { [qId]: { optionKey, intensity, factorId, optionText, extra } } — local scoring
+        const MIN_REQUIRED_ANSWERS = 4; // Must match backend validation in handleGenerateEmoeatAnalysis
         const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
 
         // ============================================
@@ -2156,11 +2268,19 @@
                 } catch (e) { /* fall through */ }
             }
             const savedAnswers = localStorage.getItem('emoeat_answers');
+            const savedMeta = localStorage.getItem('emoeat_answer_meta');
             if (savedAnswers) {
                 try {
                     answers = JSON.parse(savedAnswers);
                 } catch (e) {
                     answers = {};
+                }
+            }
+            if (savedMeta) {
+                try {
+                    answerMeta = JSON.parse(savedMeta);
+                } catch (e) {
+                    answerMeta = {};
                 }
             }
             if (answers && Object.keys(answers).length >= MIN_REQUIRED_ANSWERS) {
@@ -2214,8 +2334,8 @@
                 btnNext.innerHTML = 'Започни <i class="fas fa-arrow-right"></i>';
             } else if (currentScreen === 'question') {
                 btnBack.style.visibility = 'visible';
-                const answer = answers[questions[currentQuestionIndex].id] || '';
-                btnNext.disabled = answer.trim().length < 2;
+                const q = questions[currentQuestionIndex];
+                btnNext.disabled = !answerMeta[q.id];
 
                 if (currentQuestionIndex === questions.length - 1) {
                     btnNext.innerHTML = 'Завърши <i class="fas fa-check"></i>';
@@ -2227,8 +2347,14 @@
             }
         }
 
+        function buildAnswerText(optionText, extra) {
+            const trimmedExtra = (extra || '').trim();
+            return trimmedExtra ? `${optionText} (допълнение: ${trimmedExtra})` : optionText;
+        }
+
         function renderQuestion() {
             const q = questions[currentQuestionIndex];
+            const meta = answerMeta[q.id];
 
             document.getElementById('questionCategory').innerHTML = `
                 <i class="fas ${q.icon}"></i>
@@ -2237,42 +2363,70 @@
             document.getElementById('questionText').textContent = q.text;
             document.getElementById('interpretationText').textContent = q.interpretation;
 
-            const input = document.getElementById('answerInput');
-            input.value = answers[q.id] || '';
-            document.getElementById('charCount').textContent = input.value.length;
+            const optionList = document.getElementById('optionList');
+            optionList.innerHTML = q.options.map(opt => `
+                <button type="button" class="option-card${meta && meta.optionKey === opt.key ? ' selected' : ''}"
+                        role="radio" aria-checked="${meta && meta.optionKey === opt.key ? 'true' : 'false'}"
+                        onclick="selectOption('${opt.key}')">
+                    <span class="option-radio"><i class="fas fa-check"></i></span>
+                    <span class="option-text">${escapeHtml(opt.text)}</span>
+                </button>
+            `).join('');
 
-            // Show interpretation after typing
+            const extraInput = document.getElementById('extraInput');
+            const extraToggleBtn = document.getElementById('extraToggleBtn');
+            const extraToggleIcon = document.getElementById('extraToggleIcon');
+            const extraToggleLabel = document.getElementById('extraToggleLabel');
+            extraInput.value = (meta && meta.extra) || '';
+
+            const selectedOpt = meta ? q.options.find(o => o.key === meta.optionKey) : null;
+            const shouldRevealExtra = !!(meta && meta.extra) || !!(selectedOpt && selectedOpt.revealsText);
+            extraInput.style.display = shouldRevealExtra ? 'block' : 'none';
+            extraToggleIcon.className = shouldRevealExtra ? 'fas fa-minus' : 'fas fa-plus';
+            extraToggleLabel.textContent = shouldRevealExtra ? 'Скрий полето за собствени думи' : 'Добави собствени думи (по избор)';
+            extraToggleBtn.style.display = 'flex';
+
+            // Show interpretation once an option has been selected
             const interpBox = document.getElementById('interpretationBox');
-            interpBox.style.display = input.value.length > 10 ? 'block' : 'none';
+            interpBox.style.display = meta ? 'block' : 'none';
         }
 
-        function handleAnswerInput() {
-            const input = document.getElementById('answerInput');
+        function selectOption(optionKey) {
             const q = questions[currentQuestionIndex];
-            answers[q.id] = input.value;
+            const opt = q.options.find(o => o.key === optionKey);
+            if (!opt) return;
 
-            document.getElementById('charCount').textContent = input.value.length;
+            const existingExtra = (answerMeta[q.id] && answerMeta[q.id].extra) || '';
+            answerMeta[q.id] = {
+                optionKey: opt.key,
+                optionText: opt.text,
+                intensity: opt.intensity,
+                factorId: q.factorId,
+                extra: existingExtra
+            };
+            answers[q.id] = buildAnswerText(opt.text, existingExtra);
 
-            // Show interpretation after some typing
-            const interpBox = document.getElementById('interpretationBox');
-            interpBox.style.display = input.value.length > 10 ? 'block' : 'none';
-
-            // Update button state - minimum 2 characters (allows short answers like "да", "не")
-            btnNext.disabled = input.value.trim().length < 2;
+            renderQuestion();
+            updateNavButtons();
         }
 
-        /**
-         * Sets a quick response in the answer input field.
-         * Used by quick response buttons for users who want to indicate
-         * that a question doesn't apply to them.
-         * @param {string} text - The response text to insert
-         */
-        function setQuickResponse(text) {
-            const input = document.getElementById('answerInput');
-            input.value = text;
-            handleAnswerInput();
-            // Focus back to input in case user wants to add more
-            input.focus();
+        function toggleExtraInput() {
+            const extraInput = document.getElementById('extraInput');
+            const isHidden = extraInput.style.display === 'none';
+            extraInput.style.display = isHidden ? 'block' : 'none';
+            document.getElementById('extraToggleIcon').className = isHidden ? 'fas fa-minus' : 'fas fa-plus';
+            document.getElementById('extraToggleLabel').textContent = isHidden
+                ? 'Скрий полето за собствени думи'
+                : 'Добави собствени думи (по избор)';
+            if (isHidden) extraInput.focus();
+        }
+
+        function handleExtraInput() {
+            const q = questions[currentQuestionIndex];
+            const extraInput = document.getElementById('extraInput');
+            if (!answerMeta[q.id]) return; // extra text without a selected option is not stored
+            answerMeta[q.id].extra = extraInput.value;
+            answers[q.id] = buildAnswerText(answerMeta[q.id].optionText, extraInput.value);
         }
 
         function goBack() {
@@ -2306,6 +2460,7 @@
 
                     // Save answers to localStorage
                     localStorage.setItem('emoeat_answers', JSON.stringify(answers));
+                    localStorage.setItem('emoeat_answer_meta', JSON.stringify(answerMeta));
                     localStorage.setItem('emoeat_completed', new Date().toISOString());
                     updateStandaloneNav();
 
@@ -2386,16 +2541,12 @@
         // ============================================
         // EMOTIONAL FACTOR ANALYSIS
         // ============================================
-        const SKIP_ANSWERS = ['не се отнася', 'нямам такъв', 'не зная'];
-
         const EMOTIONAL_FACTOR_DEFS = [
             {
                 id: 'comfort_loneliness',
                 name: 'Утеха и самота',
                 icon: 'fa-heart',
                 color: 'rose',
-                questions: [1, 9],
-                keywords: ['сам', 'сама', 'самот', 'топл', 'уют', 'слад', 'шоколад', 'прегръд', 'любов', 'майка', 'детство', 'сигурност', 'липс', 'обятие', 'грижа'],
                 mechanism: 'Храната компенсира липсата на емоционална близост, топлина и привързаност — класически „глад на сърцето".'
             },
             {
@@ -2403,35 +2554,27 @@
                 name: 'Срам, вина и скрито хранене',
                 icon: 'fa-eye-slash',
                 color: 'purple',
-                questions: [2, 13],
-                keywords: ['срам', 'вина', 'скришно', 'тайно', 'грях', 'провал', 'лош', 'недостоен', 'критик', 'обижда', 'забранен', 'съжаление'],
                 mechanism: 'Цикъл на срам → тайно хранене → вина → още ограничения. Поддържа хроничното емоционално хранене.'
             },
             {
                 id: 'tension_anger',
-                name: 'Напрежение, гняв и конфликт',
+                name: 'Напрежение и гняв',
                 icon: 'fa-bolt',
                 color: 'amber',
-                questions: [3, 8],
-                keywords: ['гняв', 'яд', 'напрежение', 'освобождаване', 'хрупкав', 'дъвча', 'конфликт', 'фрустрац', 'бяс', 'агрес', 'стрес'],
-                mechanism: 'Храната (особено хрупкава) става физически изход за потиснат гняв и нерешени конфликти — „глад на главата".'
+                mechanism: 'Храната става физически изход за потиснат гняв и нерешени конфликти, или апетитът реагира на автономната нервна система.'
             },
             {
                 id: 'control_restriction',
-                name: 'Контрол, лишение и диетична култура',
+                name: 'Контрол и лишение',
                 icon: 'fa-ban',
                 color: 'teal',
-                questions: [4, 11, 14],
-                keywords: ['контрол', 'празен', 'лишение', 'диета', 'наказание', 'строг', 'забран', 'перфект', 'тегло', 'външен вид', 'слаб', 'дисциплин'],
                 mechanism: 'Строгият контрол над храната маскира дълбока несигурност. Лишението често води до компулсивно преяждане.'
             },
             {
                 id: 'stress_escape',
-                name: 'Стрес, тревога и бягство',
+                name: 'Стрес и бягство',
                 icon: 'fa-running',
                 color: 'blue',
-                questions: [5, 12],
-                keywords: ['стрес', 'тревог', 'бягам', 'избягам', 'проблем', 'мисл', 'планирам', 'забрав', 'паника', 'страх', 'натрапчив', 'обсе'],
                 mechanism: 'Храната и мислите за нея заместват реалните проблеми — защитен механизъм срещу непоносими емоции.'
             },
             {
@@ -2439,8 +2582,6 @@
                 name: 'Загуба на контрол и преяждане',
                 icon: 'fa-utensils',
                 color: 'red',
-                questions: [6],
-                keywords: ['спра', 'продължавам', 'още', 'не мога', 'засищан', 'преяждан', 'компулсив', 'автомат', 'безкрай', 'празнота'],
                 mechanism: 'Трудността да спрете след физическо засищане сигнализира емоционална, не физиологична нужда от храна.'
             },
             {
@@ -2448,73 +2589,41 @@
                 name: 'Емоционално изтръпване',
                 icon: 'fa-cloud',
                 color: 'purple',
-                questions: [7],
-                keywords: ['изтръпв', 'забрав', 'изключ', 'заглуш', 'болка', 'тежест', 'дискомфорт', 'спи', 'парализ', 'празнина', 'нищо'],
                 mechanism: 'Физическият дискомфорт от преяждането замества емоционалната болка — дисоциативен защитен механизъм.'
             },
             {
                 id: 'boredom_stimulation',
-                name: 'Скука, безразличие и нужда от стимулация',
+                name: 'Скука и нужда от стимулация',
                 icon: 'fa-fire-alt',
                 color: 'amber',
-                questions: [10],
-                keywords: ['скука', 'безразлич', 'празен', 'изтощ', 'бърнаут', 'монотон', 'пикант', 'солен', 'стимул', 'събуждан', 'умора'],
                 mechanism: 'При липса на смисъл или стимулация храната става единственият достъпен източник на удоволствие.'
-            },
-            {
-                id: 'real_need',
-                name: 'Нереализирана емоционална нужда',
-                icon: 'fa-star',
-                color: 'teal',
-                questions: [15],
-                keywords: ['почивк', 'внимание', 'интимност', 'границ', 'признание', 'подкрепа', 'спокойств', 'сигурност', 'любов', 'разбиране', 'свобода'],
-                mechanism: 'Позитивният въпрос разкрива какво всъщност търсите — и какво храната неуспешно се опитва да замести.'
             }
         ];
 
+        // Which emotional factors feed into each HALT dimension (Hungry / Angry / Lonely / Tired)
         const HALT_DEFS = [
-            { key: 'hungry', letter: 'H', label: 'Гладен/на', questions: [4, 6], keywords: ['глад', 'празен', 'гладен', 'гладна', 'гладни', 'неял', 'неяла'] },
-            { key: 'angry', letter: 'A', label: 'Яд/стрес', questions: [3, 8], keywords: ['гняв', 'яд', 'стрес', 'конфликт', 'напрежение', 'фрустрац', 'бяс'] },
-            { key: 'lonely', letter: 'L', label: 'Самота', questions: [1, 9], keywords: ['сам', 'сама', 'самот', 'самота', 'изоставен', 'необичан', 'липс'] },
-            { key: 'tired', letter: 'T', label: 'Умора', questions: [10, 12], keywords: ['умор', 'изтощ', 'безсил', 'бърнаут', 'измор', 'изтощен', 'изтощена', 'безразлич'] }
+            { key: 'hungry', letter: 'H', label: 'Глад/Лишение', factorIds: ['control_restriction', 'compulsion'] },
+            { key: 'angry', letter: 'A', label: 'Яд/Напрежение', factorIds: ['tension_anger'] },
+            { key: 'lonely', letter: 'L', label: 'Самота', factorIds: ['comfort_loneliness'] },
+            { key: 'tired', letter: 'T', label: 'Умора/Скука', factorIds: ['stress_escape', 'boredom_stimulation'] }
         ];
 
-        function isSkippedAnswer(text) {
-            const lower = (text || '').toLowerCase().trim();
-            return !lower || lower.length < 2 || SKIP_ANSWERS.some(s => lower.includes(s));
-        }
+        const SHAME_CYCLE_THRESHOLD = 55;
 
-        function scoreAnswer(text, keywords) {
-            if (isSkippedAnswer(text)) return 0;
-            const lower = text.toLowerCase();
-            let score = 20;
-            const matches = keywords.filter(k => lower.includes(k));
-            score += matches.length * 15;
-            if (text.length > 20) score += 10;
-            if (text.length > 50) score += 5;
-            return Math.min(100, score);
-        }
+        function computeEmotionalFactors(meta) {
+            const byFactor = {};
+            questions.forEach(q => {
+                const m = meta[q.id];
+                if (!m || q.factorId === 'real_need') return;
+                if (!byFactor[q.factorId]) byFactor[q.factorId] = { total: 0, count: 0, evidence: [] };
+                byFactor[q.factorId].total += m.intensity;
+                byFactor[q.factorId].count += 1;
+                byFactor[q.factorId].evidence.push({ question: q.id, quote: m.optionText });
+            });
 
-        function computeEmotionalFactors(answerMap) {
-            const factors = EMOTIONAL_FACTOR_DEFS.map(def => {
-                let totalScore = 0;
-                let count = 0;
-                const evidence = [];
-
-                def.questions.forEach(qId => {
-                    const text = (answerMap[qId] || '').trim();
-                    const qScore = scoreAnswer(text, def.keywords);
-                    if (qScore > 0) {
-                        totalScore += qScore;
-                        count++;
-                        evidence.push({
-                            question: qId,
-                            quote: text.length > 70 ? text.substring(0, 70) + '…' : text
-                        });
-                    }
-                });
-
-                const intensity = count > 0 ? Math.round(totalScore / count) : 0;
+            return EMOTIONAL_FACTOR_DEFS.map(def => {
+                const agg = byFactor[def.id];
+                const intensity = agg ? Math.round(agg.total / agg.count) : 0;
                 return {
                     id: def.id,
                     name: def.name,
@@ -2522,43 +2631,36 @@
                     color: def.color,
                     mechanism: def.mechanism,
                     intensity,
-                    evidence,
-                    sourceQuestions: def.questions.filter(q => !isSkippedAnswer(answerMap[q]))
+                    evidence: agg ? agg.evidence : [],
+                    sourceQuestions: agg ? agg.evidence.map(e => e.question) : []
                 };
             }).filter(f => f.intensity > 0).sort((a, b) => b.intensity - a.intensity);
-
-            return factors;
         }
 
-        function computeHaltProfile(answerMap) {
+        function computeHaltProfile(factors) {
             return HALT_DEFS.map(halt => {
-                let total = 0;
-                let count = 0;
-                halt.questions.forEach(qId => {
-                    const s = scoreAnswer(answerMap[qId] || '', halt.keywords);
-                    if (s > 0) { total += s; count++; }
-                });
-                const score = count > 0 ? Math.round(total / count) : 0;
+                const relevant = factors.filter(f => halt.factorIds.includes(f.id) && f.intensity > 0);
+                const score = relevant.length ? Math.round(relevant.reduce((s, f) => s + f.intensity, 0) / relevant.length) : 0;
                 let level = 'Нисък';
                 if (score >= 60) level = 'Висок';
                 else if (score >= 35) level = 'Умерен';
-                return { ...halt, score, level };
+                return { key: halt.key, letter: halt.letter, label: halt.label, score, level };
             });
         }
 
-        function detectShameBingeCycle(answerMap, factors) {
+        function detectShameBingeCycle(factors) {
             const shame = factors.find(f => f.id === 'shame_guilt');
             const control = factors.find(f => f.id === 'control_restriction');
             const compulsion = factors.find(f => f.id === 'compulsion');
-            const detected = shame && shame.intensity >= 35 &&
-                ((control && control.intensity >= 35) || (compulsion && compulsion.intensity >= 35));
+            const detected = shame && shame.intensity >= SHAME_CYCLE_THRESHOLD &&
+                ((control && control.intensity >= SHAME_CYCLE_THRESHOLD) || (compulsion && compulsion.intensity >= SHAME_CYCLE_THRESHOLD));
 
             if (!detected) return null;
 
             const parts = [];
-            if (control && control.intensity >= 35) parts.push('строго лишение');
-            if (shame && shame.intensity >= 35) parts.push('срам от тайно хранене');
-            if (compulsion && compulsion.intensity >= 35) parts.push('загуба на контрол');
+            if (control && control.intensity >= SHAME_CYCLE_THRESHOLD) parts.push('строго лишение');
+            if (shame && shame.intensity >= SHAME_CYCLE_THRESHOLD) parts.push('срам от тайно хранене');
+            if (compulsion && compulsion.intensity >= SHAME_CYCLE_THRESHOLD) parts.push('загуба на контрол');
 
             return {
                 detected: true,
@@ -2567,10 +2669,22 @@
             };
         }
 
+        function renderRealNeedCard(meta) {
+            const realNeedMeta = meta[10];
+            if (!realNeedMeta) return '';
+            const text = (realNeedMeta.extra || '').trim() || realNeedMeta.optionText;
+            return `
+                <div class="real-need-card">
+                    <div class="real-need-label"><i class="fas fa-star"></i> Твоята реална нужда</div>
+                    <div class="real-need-text">${escapeHtml(text)}</div>
+                </div>
+            `;
+        }
+
         function renderEmotionalFactorsSection(factors, haltProfile, shameCycle, aiFactors) {
             const displayFactors = (aiFactors && aiFactors.length > 0)
-                ? aiFactors.slice(0, 6)
-                : factors.slice(0, 6);
+                ? aiFactors.slice(0, 8)
+                : factors.slice(0, 8);
 
             if (displayFactors.length === 0) return '';
 
@@ -2643,23 +2757,24 @@
             const emergency = analysis.emergencyProtocol || {};
             const hidden = analysis.hiddenMessage || '';
 
-            const computedFactors = computeEmotionalFactors(answers);
+            const computedFactors = computeEmotionalFactors(answerMeta);
             const haltProfile = analysis.haltProfile
                 ? HALT_DEFS.map(h => ({
                     ...h,
                     level: analysis.haltProfile[h.key]?.level || analysis.haltProfile[h.key]?.note || 'Нисък',
                     score: analysis.haltProfile[h.key]?.score || 0
                 }))
-                : computeHaltProfile(answers);
+                : computeHaltProfile(computedFactors);
             const shameCycle = analysis.shameBingeCycle?.detected
                 ? analysis.shameBingeCycle
-                : detectShameBingeCycle(answers, computedFactors);
+                : detectShameBingeCycle(computedFactors);
             const factorsSection = renderEmotionalFactorsSection(
                 computedFactors,
                 haltProfile,
                 shameCycle,
                 analysis.emotionalFactors
             );
+            const realNeedCard = renderRealNeedCard(answerMeta);
 
             resultsScreen.innerHTML = `
                 <div class="results-screen">
@@ -2677,6 +2792,8 @@
                         <div class="hidden-message-text">${escapeHtml(hidden)}</div>
                     </div>
                     ` : ''}
+
+                    ${realNeedCard}
 
                     ${factorsSection}
 
@@ -2806,10 +2923,11 @@
         // ============================================
         function generateFallbackResults() {
             const resultsScreen = document.getElementById('resultsScreen');
-            const factors = computeEmotionalFactors(answers);
-            const haltProfile = computeHaltProfile(answers);
-            const shameCycle = detectShameBingeCycle(answers, factors);
+            const factors = computeEmotionalFactors(answerMeta);
+            const haltProfile = computeHaltProfile(factors);
+            const shameCycle = detectShameBingeCycle(factors);
             const factorsSection = renderEmotionalFactorsSection(factors, haltProfile, shameCycle, null);
+            const realNeedCard = renderRealNeedCard(answerMeta);
 
             resultsScreen.innerHTML = `
                 <div class="results-screen">
@@ -2820,6 +2938,8 @@
                         <h2 class="results-title">Вашият Емоционален Профил</h2>
                         <p class="results-subtitle">Анализ на емоционалните фактори, свързани с храненето ви</p>
                     </div>
+
+                    ${realNeedCard}
 
                     ${factorsSection}
 
@@ -2861,11 +2981,19 @@
             // Ensure answers are available — fall back to localStorage if in-memory state is empty
             if (!answers || Object.keys(answers).length === 0) {
                 const savedAnswers = localStorage.getItem('emoeat_answers');
+                const savedMeta = localStorage.getItem('emoeat_answer_meta');
                 if (savedAnswers) {
                     try {
                         answers = JSON.parse(savedAnswers);
                     } catch (e) {
                         answers = {};
+                    }
+                }
+                if (savedMeta) {
+                    try {
+                        answerMeta = JSON.parse(savedMeta);
+                    } catch (e) {
+                        answerMeta = {};
                     }
                 }
             }
@@ -2922,12 +3050,13 @@
 
         function saveAndShare() {
             const savedAnalysis = localStorage.getItem('emoeat_analysis');
+            const computedFactors = computeEmotionalFactors(answerMeta);
             const data = {
                 answers: answers,
                 completedAt: localStorage.getItem('emoeat_completed'),
                 analysis: savedAnalysis ? JSON.parse(savedAnalysis) : null,
-                emotionalFactors: computeEmotionalFactors(answers),
-                haltProfile: computeHaltProfile(answers)
+                emotionalFactors: computedFactors,
+                haltProfile: computeHaltProfile(computedFactors)
             };
 
             // Create downloadable JSON
@@ -2945,9 +3074,11 @@
         function restartQuestionnaire() {
             if (confirm('Сигурни ли сте, че искате да започнете отначало? Текущите отговори ще бъдат изтрити.')) {
                 answers = {};
+                answerMeta = {};
                 currentQuestionIndex = 0;
                 currentScreen = 'welcome';
                 localStorage.removeItem('emoeat_answers');
+                localStorage.removeItem('emoeat_answer_meta');
                 localStorage.removeItem('emoeat_completed');
                 localStorage.removeItem('emoeat_analysis');
 
@@ -2965,11 +3096,19 @@
         function init() {
             // Check for saved progress
             const savedAnswers = localStorage.getItem('emoeat_answers');
+            const savedMeta = localStorage.getItem('emoeat_answer_meta');
             if (savedAnswers) {
                 try {
                     answers = JSON.parse(savedAnswers);
                 } catch (e) {
                     answers = {};
+                }
+            }
+            if (savedMeta) {
+                try {
+                    answerMeta = JSON.parse(savedMeta);
+                } catch (e) {
+                    answerMeta = {};
                 }
             }
 

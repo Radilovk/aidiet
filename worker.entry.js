@@ -11936,12 +11936,13 @@ async function handleGenerateProtocol(request, env) {
 
 /**
  * Generate EmoEat emotional eating analysis using AI
- * Takes 15 questionnaire answers and returns deeply personalized psychological analysis
+ * Takes 10 questionnaire answers (multiple-choice + optional free text) and
+ * returns deeply personalized psychological analysis
  */
 async function generateEmoeatPrompt(answers, env) {
   const customPrompt = await requireKvPrompt(env, 'admin_emoeat_prompt');
   const variables = {};
-  for (let i = 1; i <= 15; i++) {
+  for (let i = 1; i <= 10; i++) {
     variables[`answer${i}`] = (answers[i] || '').trim() || '(без отговор)';
   }
   return replacePromptVariables(customPrompt, variables);
@@ -11957,8 +11958,8 @@ async function handleGenerateEmoeatAnalysis(request, env) {
 
     // Validate that at least some answers exist
     const answeredCount = Object.values(data.answers).filter(a => a && String(a).trim().length > 0).length;
-    if (answeredCount < 5) {
-      return jsonResponse({ error: 'Моля, отговорете на поне 5 въпроса за пълноценен анализ' }, 400);
+    if (answeredCount < 4) {
+      return jsonResponse({ error: 'Моля, отговорете на поне 4 въпроса за пълноценен анализ' }, 400);
     }
 
     const prompt = await generateEmoeatPrompt(data.answers, env);
