@@ -180,6 +180,22 @@ export {
 const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
 const DEFAULT_OPENAI_MODEL = 'gpt-4o-mini';
 
+// Планов JSON бюджет + ограничен thinking бюджет само при проектиране от нула.
+const PLAN_BASE_OUTPUT_TOKENS = 8192;
+const PLAN_THINKING_BUDGET = 1024;
+
+/**
+ * Сглобяване/попълване по <scheme> е форматиране — не се нуждае от thinking.
+ * Проектиране от нула (split, dayFocus, обем, reps/rest/RPE от клиентски сигнали)
+ * е реално multi-step planning → малък фиксиран (не динамичен) thinking бюджет
+ * помага на модела да си изясни стратегия, без да „изяжда“ maxOutputTokens.
+ */
+export function resolvePlanGenerationBudget({ strictAssembly = false, hasScheme = false } = {}) {
+  const needsThinking = !strictAssembly && !hasScheme;
+  const thinkingBudget = needsThinking ? PLAN_THINKING_BUDGET : 0;
+  return { thinkingBudget, maxOutputTokens: PLAN_BASE_OUTPUT_TOKENS + thinkingBudget };
+}
+
 // hasaneyldrm/exercises-dataset — 1324 упражнения (GIF + thumbnail).
 // jsDelivr кешира агресивно => безплатен CDN трафик, нула натоварване на Worker-а.
 const DEFAULT_MEDIA_BASE = 'https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@main/';
@@ -597,7 +613,7 @@ function checkAdminSecret(request, env) {
 // AI доставчици: Gemini (основен) + OpenAI (fallback)
 // ============================================================================
 
-async function callGemini(env, { system, user, temperature = 0.4, maxOutputTokens = 8192, jsonMode = true }) {
+async function callGemini(env, { system, user, temperature = 0.4, maxOutputTokens = 8192, jsonMode = true, thinkingBudget = 0 }) {
   const model = env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.GEMINI_API_KEY}`;
   const generationConfig = /** @type {GeminiGenerationConfig} */ ({
@@ -609,8 +625,9 @@ async function callGemini(env, { system, user, temperature = 0.4, maxOutputToken
     } : {}),
   });
   // Gemini 2.5 Flash/Pro: thinking по подразбиране изяжда maxOutputTokens → отрязан JSON.
+  // thinkingBudget=0 → изключено (форматиране/assembly); >0 → строг таван за реална стратегия (design from scratch).
   if (/gemini-2\.5/i.test(model)) {
-    generationConfig.thinkingConfig = { thinkingBudget: 0 };
+    generationConfig.thinkingConfig = { thinkingBudget };
   }
   const body = {
     systemInstruction: { parts: [{ text: system }] },
@@ -932,6 +949,8 @@ async function executePlanGeneration(env, ctx, {
   }
   const baseUser = catalogBlock ? `${userPrompt}\n\n${catalogBlock}` : userPrompt;
 
+  const { thinkingBudget, maxOutputTokens } = resolvePlanGenerationBudget({ strictAssembly, hasScheme });
+
   let plan;
   let rawText;
   const maxAttempts = 3;
@@ -956,8 +975,9 @@ async function executePlanGeneration(env, ctx, {
       system,
       user,
       temperature: attempt === 0 ? 0.4 : 0.25,
-      maxOutputTokens: 8192,
+      maxOutputTokens,
       jsonMode: true,
+      thinkingBudget,
     };
     try {
       rawText = await callAI(env, aiOpts);
