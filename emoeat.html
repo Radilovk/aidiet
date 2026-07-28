@@ -2025,7 +2025,7 @@
                 interpretation: "Скритото хранене е един от най-силните индикатори за срам около храненето и за загуба на контрол.",
                 options: [
                     { key: "A", text: "Да — и после ми е неприятно да си спомням за това", loads: { shame_guilt: 0.9, compulsion: 0.3 } },
-                    { key: "B", text: "Да — насаме ми е по-спокойно да си хапна", loads: { shame_guilt: 0.5, control_restriction: 0.3 } },
+                    { key: "B", text: "Да — не искам да ми коментират какво ям", loads: { shame_guilt: 0.5, control_restriction: 0.3 } },
                     { key: "C", text: "Случва се, но не се замислям особено", loads: { shame_guilt: 0.25 } },
                     { key: "D", text: "Не — няма какво да крия за храненето си", loads: {} }
                 ]
@@ -2053,7 +2053,7 @@
                     { key: "A", text: "Ако се отклоня, ми се разваля целият ден", loads: { control_restriction: 0.85, shame_guilt: 0.6 } },
                     { key: "B", text: "Мисля за храна почти непрекъснато", loads: { control_restriction: 0.8, compulsion: 0.4 } },
                     { key: "C", text: "Издържам, но накрая обикновено се отприщвам", loads: { control_restriction: 0.7, compulsion: 0.75 } },
-                    { key: "D", text: "Не си поставям такива правила", loads: {} }
+                    { key: "D", text: "Минава спокойно — храната не ми е в центъра на деня", loads: {} }
                 ]
             },
             {
@@ -2078,7 +2078,7 @@
                 options: [
                     { key: "A", text: "Когато нещо ме е разстроило", loads: { compulsion: 0.8, comfort_loneliness: 0.4, numbing: 0.3 } },
                     { key: "B", text: "Когато ми е много вкусно и не мога да спра", loads: { compulsion: 0.7 } },
-                    { key: "C", text: "Когато съм сам/а и никой не гледа", loads: { compulsion: 0.65, shame_guilt: 0.45 } },
+                    { key: "C", text: "Когато ям пред екран или в движение", loads: { compulsion: 0.65, numbing: 0.3 } },
                     { key: "D", text: "Обикновено спирам, щом се нахраня", loads: {} }
                 ]
             },
@@ -2125,7 +2125,6 @@
                 id: 10,
                 category: "Истинската нужда",
                 icon: "fa-star",
-                factorId: "real_need",
                 text: "Кое от изброените може да те накара да се почувстваш по-добре, ако можеше да го имаш сега, веднага?",
                 interpretation: "Този въпрос сочи директно към реалната нужда, която храната неуспешно се опитва да запълни.",
                 options: [
@@ -2133,7 +2132,12 @@
                     { key: "B", text: "Някой да ме изслуша истински", loads: { comfort_loneliness: 0.45 } },
                     { key: "C", text: "Да ми паднат няколко задължения от главата", loads: { stress_escape: 0.35, tension_anger: 0.25 } },
                     { key: "D", text: "Някой да ми признае, че се справям", loads: { shame_guilt: 0.3, control_restriction: 0.2 } },
-                    { key: "E", text: "Друго — ще напиша сам/а", loads: {}, revealsText: true }
+                    // skipScoring: изборът "Друго" не е неутрален отговор, а отказ от
+                    // предложените варианти. Ако се брои като нула, той занулява шестте
+                    // фактора, които този въпрос носи — тоест точно нуждата, която
+                    // клиентът описва със свои думи. Затова въпросът се изважда изцяло
+                    // от знаменателя и остава само като текст за AI анализа.
+                    { key: "E", text: "Друго — ще напиша сам/а", loads: {}, revealsText: true, skipScoring: true }
                 ]
             }
         ];
@@ -2388,6 +2392,7 @@
                 optionKey: opt.key,
                 optionText: opt.text,
                 loads: opt.loads || {},
+                skipScoring: !!opt.skipScoring,
                 extra: existingExtra
             };
             answers[q.id] = buildAnswerText(opt.text, existingExtra);
@@ -2634,7 +2639,12 @@
             {
                 id: 'restriction_binge',
                 title: 'Правила → отприщване',
-                test: s => (s.control_restriction || 0) >= 55 && (s.compulsion || 0) >= 55,
+                // Прагът е свален от 55/55 на 50/45. Двата фактора са почти независими
+                // в матрицата (всеки поотделно надхвърля 55 в ~22-25% от профилите), така
+                // че съвпадението им при 55/55 се случваше в 5.6% — най-централният
+                // клиничен модел се оказваше и най-рядко откриваният. При 50/45 се
+                // задейства в 13.1%, наравно с останалите правила.
+                test: s => (s.control_restriction || 0) >= 50 && (s.compulsion || 0) >= 45,
                 description: 'Строгите правила и последвалото отприщване се редуват в затворен кръг. Всяко ограничение зарежда следващото преяждане, а то — следващото ограничение. Прекъсва се не с още дисциплина, а с намаляване на забраните.'
             },
             {
@@ -2684,6 +2694,9 @@
             questions.forEach(q => {
                 const answer = meta[q.id];
                 if (!answer) return;
+                // Отговор извън скалата ("Друго") не носи информация нито в
+                // числителя, нито в знаменателя — въпросът просто отпада.
+                if (answer.skipScoring) return;
                 const chosen = answer.loads || {};
                 const maxPerFactor = {};
                 q.options.forEach(opt => {
@@ -2779,9 +2792,11 @@
 
         function computeReliability(meta) {
             const answered = questions.filter(q => meta[q.id]).length;
+            // "Друго" не е неутрален избор — човекът не казва "нищо не ме натоварва",
+            // а че нуждата му не е в списъка. Затова не влиза в дела неутрални.
             const neutral = questions.filter(q => {
                 const answer = meta[q.id];
-                return answer && Object.keys(answer.loads || {}).length === 0;
+                return answer && !answer.skipScoring && Object.keys(answer.loads || {}).length === 0;
             }).length;
             const coverage = Math.round((answered / questions.length) * 100);
             const neutralShare = answered ? Math.round((neutral / answered) * 100) : 0;
