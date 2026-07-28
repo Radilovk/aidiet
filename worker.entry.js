@@ -11935,13 +11935,66 @@ async function handleGenerateProtocol(request, env) {
 }
 
 /**
- * Generate EmoEat emotional eating analysis using AI
- * Takes 10 questionnaire answers (multiple-choice + optional free text) and
- * returns deeply personalized psychological analysis
+ * Serialize the deterministic profile computed on the client (weight matrix over
+ * the questionnaire answers) into a compact prompt block. Client-supplied, so
+ * every field is validated, clamped and truncated before entering the prompt.
  */
-async function generateEmoeatPrompt(answers, env) {
+function serializeEmoeatProfile(profile) {
+  if (!profile || typeof profile !== 'object') return '(няма изчислен профил)';
+
+  const label = (value, maxLen = 60) => {
+    if (typeof value !== 'string' && typeof value !== 'number') return '';
+    return String(value).replace(/[\r\n]+/g, ' ').trim().slice(0, maxLen);
+  };
+  const score = value => {
+    const num = Number(value);
+    return Number.isFinite(num) ? Math.max(0, Math.min(100, Math.round(num))) : 0;
+  };
+  const list = value => (Array.isArray(value) ? value.slice(0, 8) : []);
+
+  const lines = [];
+
+  const factors = list(profile.factors).filter(f => f && f.name);
+  if (factors.length) {
+    lines.push('Фактори: ' + factors.map(f => `${label(f.name, 40)} ${score(f.intensity)}`).join(' | '));
+  }
+
+  const halt = list(profile.halt).filter(h => h && h.label);
+  if (halt.length) {
+    lines.push('HALT: ' + halt.map(h => `${label(h.label, 20)} ${score(h.score)} (${label(h.level, 12)})`).join(' | '));
+  }
+
+  const patterns = list(profile.patterns).map(p => label(p, 60)).filter(Boolean);
+  if (patterns.length) {
+    lines.push('Открити модели: ' + patterns.join('; '));
+  }
+
+  const archetypes = list(profile.archetypes).filter(a => a && a.name);
+  if (archetypes.length) {
+    lines.push('Архетипи по матрица: ' + archetypes.map(a => `${label(a.name, 30)} ${score(a.confidence)}%`).join(', '));
+  }
+
+  const reliability = profile.reliability;
+  const reliabilityLevel = reliability ? label(reliability.level, 20) : '';
+  if (reliabilityLevel) {
+    lines.push(
+      `Надеждност: ${reliabilityLevel} — ${score(reliability.answered)}/${score(reliability.total)} отговора, ` +
+      `${score(reliability.neutralShare)}% неутрални избора`
+    );
+  }
+
+  return lines.length ? lines.join('\n') : '(няма изчислен профил)';
+}
+
+/**
+ * Generate EmoEat emotional eating analysis using AI
+ * Takes 10 questionnaire answers (projective choice + optional free text) plus the
+ * deterministic profile computed from the weight matrix, and returns a deeply
+ * personalized psychological analysis
+ */
+async function generateEmoeatPrompt(answers, profile, env) {
   const customPrompt = await requireKvPrompt(env, 'admin_emoeat_prompt');
-  const variables = {};
+  const variables = { computedProfile: serializeEmoeatProfile(profile) };
   for (let i = 1; i <= 10; i++) {
     variables[`answer${i}`] = (answers[i] || '').trim() || '(без отговор)';
   }
@@ -11962,7 +12015,7 @@ async function handleGenerateEmoeatAnalysis(request, env) {
       return jsonResponse({ error: 'Моля, отговорете на поне 4 въпроса за пълноценен анализ' }, 400);
     }
 
-    const prompt = await generateEmoeatPrompt(data.answers, env);
+    const prompt = await generateEmoeatPrompt(data.answers, data.profile, env);
 
     const EMOEAT_TOKEN_LIMIT = 6000;
     const aiResponse = await callAIModel(

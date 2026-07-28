@@ -15856,9 +15856,46 @@ async function handleGenerateProtocol(request, env) {
     return jsonResponse2({ error: "Failed to generate protocol: " + error.message }, 500);
   }
 }
-async function generateEmoeatPrompt(answers, env) {
+function serializeEmoeatProfile(profile) {
+  if (!profile || typeof profile !== "object") return "(\u043D\u044F\u043C\u0430 \u0438\u0437\u0447\u0438\u0441\u043B\u0435\u043D \u043F\u0440\u043E\u0444\u0438\u043B)";
+  const label = (value, maxLen = 60) => {
+    if (typeof value !== "string" && typeof value !== "number") return "";
+    return String(value).replace(/[\r\n]+/g, " ").trim().slice(0, maxLen);
+  };
+  const score = (value) => {
+    const num = Number(value);
+    return Number.isFinite(num) ? Math.max(0, Math.min(100, Math.round(num))) : 0;
+  };
+  const list = (value) => Array.isArray(value) ? value.slice(0, 8) : [];
+  const lines = [];
+  const factors = list(profile.factors).filter((f) => f && f.name);
+  if (factors.length) {
+    lines.push("\u0424\u0430\u043A\u0442\u043E\u0440\u0438: " + factors.map((f) => `${label(f.name, 40)} ${score(f.intensity)}`).join(" | "));
+  }
+  const halt = list(profile.halt).filter((h) => h && h.label);
+  if (halt.length) {
+    lines.push("HALT: " + halt.map((h) => `${label(h.label, 20)} ${score(h.score)} (${label(h.level, 12)})`).join(" | "));
+  }
+  const patterns = list(profile.patterns).map((p) => label(p, 60)).filter(Boolean);
+  if (patterns.length) {
+    lines.push("\u041E\u0442\u043A\u0440\u0438\u0442\u0438 \u043C\u043E\u0434\u0435\u043B\u0438: " + patterns.join("; "));
+  }
+  const archetypes = list(profile.archetypes).filter((a) => a && a.name);
+  if (archetypes.length) {
+    lines.push("\u0410\u0440\u0445\u0435\u0442\u0438\u043F\u0438 \u043F\u043E \u043C\u0430\u0442\u0440\u0438\u0446\u0430: " + archetypes.map((a) => `${label(a.name, 30)} ${score(a.confidence)}%`).join(", "));
+  }
+  const reliability = profile.reliability;
+  const reliabilityLevel = reliability ? label(reliability.level, 20) : "";
+  if (reliabilityLevel) {
+    lines.push(
+      `\u041D\u0430\u0434\u0435\u0436\u0434\u043D\u043E\u0441\u0442: ${reliabilityLevel} \u2014 ${score(reliability.answered)}/${score(reliability.total)} \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0430, ${score(reliability.neutralShare)}% \u043D\u0435\u0443\u0442\u0440\u0430\u043B\u043D\u0438 \u0438\u0437\u0431\u043E\u0440\u0430`
+    );
+  }
+  return lines.length ? lines.join("\n") : "(\u043D\u044F\u043C\u0430 \u0438\u0437\u0447\u0438\u0441\u043B\u0435\u043D \u043F\u0440\u043E\u0444\u0438\u043B)";
+}
+async function generateEmoeatPrompt(answers, profile, env) {
   const customPrompt = await requireKvPrompt(env, "admin_emoeat_prompt");
-  const variables = {};
+  const variables = { computedProfile: serializeEmoeatProfile(profile) };
   for (let i = 1; i <= 10; i++) {
     variables[`answer${i}`] = (answers[i] || "").trim() || "(\u0431\u0435\u0437 \u043E\u0442\u0433\u043E\u0432\u043E\u0440)";
   }
@@ -15874,7 +15911,7 @@ async function handleGenerateEmoeatAnalysis(request, env) {
     if (answeredCount < 4) {
       return jsonResponse2({ error: "\u041C\u043E\u043B\u044F, \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0435\u0442\u0435 \u043D\u0430 \u043F\u043E\u043D\u0435 4 \u0432\u044A\u043F\u0440\u043E\u0441\u0430 \u0437\u0430 \u043F\u044A\u043B\u043D\u043E\u0446\u0435\u043D\u0435\u043D \u0430\u043D\u0430\u043B\u0438\u0437" }, 400);
     }
-    const prompt = await generateEmoeatPrompt(data.answers, env);
+    const prompt = await generateEmoeatPrompt(data.answers, data.profile, env);
     const EMOEAT_TOKEN_LIMIT = 6e3;
     const aiResponse = await callAIModel(
       env,

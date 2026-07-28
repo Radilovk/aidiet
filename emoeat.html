@@ -1745,6 +1745,16 @@
             line-height: 1.55;
         }
 
+        .reliability-note {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            font-size: 0.82rem;
+            color: var(--text-light);
+            line-height: 1.5;
+            margin: -8px 0 22px;
+        }
+
         .real-need-card {
             background: linear-gradient(135deg, #F59E0B, #EA580C);
             color: white;
@@ -1984,152 +1994,146 @@
         // ============================================
         // QUESTIONNAIRE DATA
         // ============================================
-        // Проективен принцип: стимулите и отговорите са образи/усещания, НЕ клинични
-        // самоописания. Клиентът не се пита директно "какъв ти е проблемът" — той
-        // избира спонтанно образа, който първи му хрумва. Тълкуването (архетип,
-        // механизъм, HALT) е задача на AI анализа, не на съзнателното самоетикетиране
-        // на клиента. Затова options[].text НИКОГА не съдържа думи като "срам",
-        // "контрол", "недостоен", "компулсивно" — само сензорни/образни фрази.
+        // Проективен принцип: питаме за конкретна ситуация от живота, не за
+        // самооценка. Отговорите са неща, които човек наистина би казал за себе си —
+        // без клинични етикети ("срам", "контрол", "компулсивно"). Психологическото
+        // значение се извлича от матрицата на тежестите (loads) и от AI анализа,
+        // не от съзнателното самоетикетиране на клиента.
+        //
+        // loads: колко силно даденият избор натоварва всеки емоционален фактор (0-1).
+        // Един избор може да натоварва няколко фактора едновременно — точно както
+        // в реалния психометричен анализ един отговор носи няколко значения.
         const questions = [
             {
                 id: 1,
-                category: "Глад на Сърцето",
+                category: "Вечер сам/а",
                 icon: "fa-heart",
-                factorId: "comfort_loneliness",
-                text: "Късно вечер, когато е тихо и се чувстваш най-сам/а — ако храната можеше да добие образ точно в този момент, какъв би бил той?",
-                interpretation: "Образът, който избираш, показва дали храната замества липсваща топлина и близост в момент на самота — класическият \"глад на сърцето\".",
+                text: "Вечер си сам/а и денят е бил дълъг. Какво обикновено се случва след това?",
+                interpretation: "Показва дали храната поема ролята на близост и утеха, когато е най-тихо — това, което наричаме \"глад на сърцето\".",
                 options: [
-                    { key: "A", text: "Топла, сладка прегръдка", intensity: 80 },
-                    { key: "B", text: "Позната миризма от отдавнашно време", intensity: 65 },
-                    { key: "C", text: "Глас на близък човек — не храна", intensity: 15 },
-                    { key: "D", text: "Никакъв образ — не мисля за храна тогава", intensity: 0 }
+                    { key: "A", text: "Отварям хладилника, макар да не съм гладен/на", loads: { comfort_loneliness: 0.9, compulsion: 0.3 } },
+                    { key: "B", text: "Сядам пред телевизора с нещо сладко или топло", loads: { comfort_loneliness: 0.7, boredom_stimulation: 0.3, numbing: 0.2 } },
+                    { key: "C", text: "Пиша или звъня на някого", loads: { comfort_loneliness: 0.1 } },
+                    { key: "D", text: "Лягам си — храната не ми е в главата", loads: {} }
                 ]
             },
             {
                 id: 2,
-                category: "Тайна Хапка",
+                category: "Когато никой не гледа",
                 icon: "fa-eye-slash",
-                factorId: "shame_guilt",
-                text: "Представи си момент, в който ядеш, докато никой не гледа. Каква сянка пада върху тази картина?",
-                interpretation: "Сянката, която усещаш в тайно хранене, издава дълбочината на срам и потенциална загуба на контрол над храненето.",
+                text: "Случва ли ти се да ядеш, когато няма никой около теб?",
+                interpretation: "Скритото хранене е един от най-силните индикатори за срам около храненето и за загуба на контрол.",
                 options: [
-                    { key: "A", text: "Тежка, задушаваща сянка", intensity: 90 },
-                    { key: "B", text: "Лека почивка от чужди очи", intensity: 55 },
-                    { key: "C", text: "Едва забележимо потрепване, което бързо минава", intensity: 30 },
-                    { key: "D", text: "Сцена, която просто не съществува за мен", intensity: 0 }
+                    { key: "A", text: "Да, и после ми е неприятно да си спомням за това", loads: { shame_guilt: 0.9, compulsion: 0.3 } },
+                    { key: "B", text: "Да, тогава ми е най-спокойно да ям", loads: { shame_guilt: 0.5, control_restriction: 0.3 } },
+                    { key: "C", text: "Случва се, но не се замислям особено", loads: { shame_guilt: 0.25 } },
+                    { key: "D", text: "Не, ям еднакво сам/а и пред хора", loads: {} }
                 ]
             },
             {
                 id: 3,
-                category: "Стегната Челюст",
+                category: "Преди спор",
                 icon: "fa-bolt",
-                factorId: "tension_anger",
-                text: "Стегнати рамене, свита челюст — точно преди труден разговор. Какво търси тялото ти в този момент?",
-                interpretation: "Реакцията на тялото при напрежение показва как гневът и стресът намират физически изход през храненето.",
+                text: "Предстои ти неприятен разговор или спор. Какво прави апетитът ти?",
+                interpretation: "Реакцията на апетита при напрежение показва как нервната система и потиснатият гняв намират изход през храненето.",
                 options: [
-                    { key: "A", text: "Нахлуване, което да заглуши всичко наведнъж", intensity: 85 },
-                    { key: "B", text: "Нещо, което да строши със зъби", intensity: 75 },
-                    { key: "C", text: "Пълна тишина — стомахът просто се затваря", intensity: 55 },
-                    { key: "D", text: "Тялото остава спокойно, каквото и да става", intensity: 0 }
+                    { key: "A", text: "Ям бързо и много, почти без да усетя", loads: { tension_anger: 0.7, compulsion: 0.6, numbing: 0.4 } },
+                    { key: "B", text: "Търся нещо твърдо за хрупкане", loads: { tension_anger: 0.85 } },
+                    { key: "C", text: "Не мога да сложа нищо в устата си", loads: { tension_anger: 0.5 } },
+                    { key: "D", text: "Апетитът ми остава същият", loads: {} }
                 ]
             },
             {
                 id: 4,
-                category: "Стегнат Обръч",
+                category: "Дните с правила",
                 icon: "fa-ban",
-                factorId: "control_restriction",
-                text: "Представи си ден, в който спазваш перфектно всяко свое хранително правило. Какво усещаш вътре, докато денят минава?",
-                interpretation: "Усещането зад строгия контрол разкрива дали диетата е илюзия за ред над хаотичен вътрешен свят.",
+                text: "Как минава денят, в който си решил/а да се храниш „както трябва\"?",
+                interpretation: "Начинът, по който преживяваш собствените си правила, разкрива дали контролът над храната крепи усещането ти за стойност и ред.",
                 options: [
-                    { key: "A", text: "Стегнат обръч, който не бива да се пука", intensity: 90 },
-                    { key: "B", text: "Мисъл за храна, която расте с всеки час", intensity: 80 },
-                    { key: "C", text: "Крехко спокойствие върху тънък лед", intensity: 65 },
-                    { key: "D", text: "Изобщо не мисля за храната по този начин", intensity: 5 }
+                    { key: "A", text: "Ако се отклоня, ми се разваля целият ден", loads: { control_restriction: 0.85, shame_guilt: 0.6 } },
+                    { key: "B", text: "Мисля за храна почти непрекъснато", loads: { control_restriction: 0.8, compulsion: 0.4 } },
+                    { key: "C", text: "Държа се, но накрая обикновено се отприщвам", loads: { control_restriction: 0.7, compulsion: 0.75 } },
+                    { key: "D", text: "Не си слагам такива правила", loads: {} }
                 ]
             },
             {
                 id: 5,
-                category: "Изчезване",
+                category: "Когато ти тежи",
                 icon: "fa-running",
-                factorId: "stress_escape",
-                text: "Представи си проблем, от който искаш просто да изчезнеш за момент. Къде отиват мислите ти?",
-                interpretation: "Посоката на мислите при бягство от проблем показва дали храната служи като защитен механизъм за разсейване.",
+                text: "Когато нещо ти тежи и искаш да не мислиш за него, къде отиваш?",
+                interpretation: "Посоката, в която тръгваш при тежък момент, показва дали храната ти служи като изход от непоносими емоции.",
                 options: [
-                    { key: "A", text: "Право в чинията, на автопилот", intensity: 85 },
-                    { key: "B", text: "В следващото ястие, което тепърва предстои", intensity: 75 },
-                    { key: "C", text: "Другаде — работа, екран, движение", intensity: 20 },
-                    { key: "D", text: "Мислите остават върху проблема", intensity: 0 }
+                    { key: "A", text: "В кухнята, почти без да усетя как", loads: { stress_escape: 0.85, numbing: 0.4, compulsion: 0.3 } },
+                    { key: "B", text: "Мисля какво ще ям после — това ме успокоява", loads: { stress_escape: 0.7, control_restriction: 0.25 } },
+                    { key: "C", text: "Заемам се с работа, разходка или сериал", loads: { stress_escape: 0.2 } },
+                    { key: "D", text: "Оставам с мисълта и я въртя в главата си", loads: { tension_anger: 0.25 } }
                 ]
             },
             {
                 id: 6,
-                category: "Отвъд Пълнотата",
+                category: "След ситост",
                 icon: "fa-utensils",
-                factorId: "compulsion",
-                text: "Тялото вече е подало сигнал \"достатъчно\", но ръката продължава. Кой е този момент?",
-                interpretation: "Границата между физическо засищане и продължаване на хранене издава емоционалната, не физиологичната природа на глада.",
+                text: "Кога най-често ти се случва да продължиш да ядеш, след като вече си сит/а?",
+                interpretation: "Границата между физическо засищане и продължаване на храненето издава емоционалната, а не физиологичната природа на глада.",
                 options: [
-                    { key: "A", text: "Моментът, в който чувството е по-силно от мен", intensity: 85 },
-                    { key: "B", text: "Моментът, в който вкусът е твърде хубав, за да спре", intensity: 75 },
-                    { key: "C", text: "Моментът, в който никой не брои хапките", intensity: 65 },
-                    { key: "D", text: "Такъв момент почти не се случва при мен", intensity: 5 }
+                    { key: "A", text: "Когато нещо ме е разстроило", loads: { compulsion: 0.8, comfort_loneliness: 0.4, numbing: 0.3 } },
+                    { key: "B", text: "Когато ми е много вкусно и не мога да оставя", loads: { compulsion: 0.7 } },
+                    { key: "C", text: "Когато съм сам/а и никой не гледа", loads: { compulsion: 0.65, shame_guilt: 0.45 } },
+                    { key: "D", text: "Обикновено спирам, щом се наситя", loads: {} }
                 ]
             },
             {
                 id: 7,
-                category: "Тежестта Отвътре",
+                category: "След преяждане",
                 icon: "fa-cloud",
-                factorId: "numbing",
-                text: "Тежестта в стомаха след преяждане носи странно усещане. Какво точно носи тя?",
-                interpretation: "Усещането след преяждане разкрива дали физическият дискомфорт служи за заглушаване на болезнени мисли.",
+                text: "Как се чувстваш, след като си изял/а повече, отколкото си искал/а?",
+                interpretation: "Усещането след преяждане разкрива дали физическата тежест служи за заглушаване на болезнени мисли.",
                 options: [
-                    { key: "A", text: "Плътна тишина, в която мислите потъват", intensity: 85 },
-                    { key: "B", text: "Усещане, че съм се \"прибрал/а\" обратно в тялото си", intensity: 60 },
-                    { key: "C", text: "Просто неудобство, нищо повече", intensity: 20 },
-                    { key: "D", text: "Рядко стигам до там", intensity: 0 }
+                    { key: "A", text: "Странно спокоен/на — сякаш нещо се изключва", loads: { numbing: 0.9 } },
+                    { key: "B", text: "Натежал/а, но и някак притихнал/а", loads: { numbing: 0.6 } },
+                    { key: "C", text: "Просто ми е физически неудобно", loads: { numbing: 0.2 } },
+                    { key: "D", text: "Рядко ми се случва", loads: {} }
                 ]
             },
             {
                 id: 8,
-                category: "Гласът След",
+                category: "Гласът отвътре",
                 icon: "fa-user-slash",
-                factorId: "shame_guilt",
-                text: "Веднага след последната хапка на нещо, което смяташ за \"забранено\", един глас се обажда пръв. Какъв е тонът му?",
-                interpretation: "Тонът на вътрешния глас след хранене издава токсичния цикъл на срам и вина, който поддържа модела.",
+                text: "Изял/а си нещо, което смяташ за „непозволено\". Какво си казваш веднага след това?",
+                interpretation: "Тонът на вътрешния глас след хранене издава цикъла на срам и вина, който поддържа целия модел.",
                 options: [
-                    { key: "A", text: "Остър, обвиняващ, безмилостен", intensity: 90 },
-                    { key: "B", text: "Делови — веднага скроява план \"за поправяне\"", intensity: 65 },
-                    { key: "C", text: "Тих мърморко, който бързо заглъхва", intensity: 40 },
-                    { key: "D", text: "Пълна тишина — никакъв глас", intensity: 0 }
+                    { key: "A", text: "Че нямам никаква воля", loads: { shame_guilt: 0.9 } },
+                    { key: "B", text: "Че трябва да го компенсирам — със спорт или гладуване", loads: { shame_guilt: 0.65, control_restriction: 0.7 } },
+                    { key: "C", text: "Мърморя си малко и продължавам напред", loads: { shame_guilt: 0.3 } },
+                    { key: "D", text: "Не разделям храните на позволени и непозволени", loads: {} }
                 ]
             },
             {
                 id: 9,
-                category: "Внезапен Пламък",
+                category: "Силните вкусове",
                 icon: "fa-fire-alt",
-                factorId: "boredom_stimulation",
-                text: "Внезапен глад за нещо пикантно или солено — кога най-често се появява той в твоя ден?",
-                interpretation: "Моментите на силен глад за интензивен вкус показват търсене на \"събуждане\" при скука или изтощение.",
+                text: "Кога ти се допада най-силно нещо пикантно, солено или с интензивен вкус?",
+                interpretation: "Гладът за интензивен вкус често е търсене на „събуждане\" при скука, монотонност или изтощение.",
                 options: [
-                    { key: "A", text: "В сивите часове, когато нищо не помръдва", intensity: 75 },
-                    { key: "B", text: "Когато енергията ми е на нулата", intensity: 65 },
-                    { key: "C", text: "Просто обичам тези вкусове, без особен повод", intensity: 15 },
-                    { key: "D", text: "Не познавам такъв глад", intensity: 0 }
+                    { key: "A", text: "Когато дните ми се сливат един в друг", loads: { boredom_stimulation: 0.8 } },
+                    { key: "B", text: "Когато съм изцеден/а до дъно", loads: { boredom_stimulation: 0.6, stress_escape: 0.3 } },
+                    { key: "C", text: "Просто харесвам такива вкусове", loads: { boredom_stimulation: 0.15 } },
+                    { key: "D", text: "Не търся такива вкусове", loads: {} }
                 ]
             },
             {
                 id: 10,
-                category: "Реалната Нужда",
+                category: "Истинската нужда",
                 icon: "fa-star",
                 factorId: "real_need",
-                text: "Ако точно сега можеше да получиш едно нещо — без храна — което да те остави наистина спокоен/а, то би било...",
-                interpretation: "Финалният въпрос сочи директно към реалния емоционален дефицит, който храната неуспешно се опитва да запълни.",
+                text: "Ако можеше да получиш едно нещо още днес — не храна — което да ти олекне, какво би било?",
+                interpretation: "Този въпрос сочи директно към реалната нужда, която храната неуспешно се опитва да запълни.",
                 options: [
-                    { key: "A", text: "Дълга, необезпокоявана почивка", intensity: 0 },
-                    { key: "B", text: "Близост и внимание от някого", intensity: 0 },
-                    { key: "C", text: "По-леки рамене — по-малко отговорности", intensity: 0 },
-                    { key: "D", text: "Признание за положените усилия", intensity: 0 },
-                    { key: "E", text: "Друго — ще напиша сам/а", intensity: 0, revealsText: true }
+                    { key: "A", text: "Да се наспя и да не ме търси никой", loads: { boredom_stimulation: 0.3, stress_escape: 0.2 } },
+                    { key: "B", text: "Някой да ме изслуша истински", loads: { comfort_loneliness: 0.45 } },
+                    { key: "C", text: "Да ми паднат няколко задължения от главата", loads: { stress_escape: 0.35, tension_anger: 0.25 } },
+                    { key: "D", text: "Някой да ми признае, че се справям", loads: { shame_guilt: 0.3, control_restriction: 0.2 } },
+                    { key: "E", text: "Друго — ще напиша сам/а", loads: {}, revealsText: true }
                 ]
             }
         ];
@@ -2140,7 +2144,7 @@
         let currentScreen = 'welcome'; // welcome, question, loading, results
         let currentQuestionIndex = 0;
         let answers = {};       // { [qId]: string } — final text sent to backend AI
-        let answerMeta = {};    // { [qId]: { optionKey, intensity, factorId, optionText, extra } } — local scoring
+        let answerMeta = {};    // { [qId]: { optionKey, optionText, loads, extra } } — local scoring
         const MIN_REQUIRED_ANSWERS = 4; // Must match backend validation in handleGenerateEmoeatAnalysis
         const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
 
@@ -2214,6 +2218,28 @@
             if (e.key === 'Escape') closeSiteNav();
         });
 
+        // Зарежда записаните отговори. Отговори от по-стара версия на теста (без
+        // матрицата на тежестите) се отхвърлят, за да не се смесват несъвместими схеми.
+        function loadSavedAnswers() {
+            let savedAnswers = {};
+            let savedMeta = {};
+            try {
+                savedAnswers = JSON.parse(localStorage.getItem('emoeat_answers') || '{}') || {};
+                savedMeta = JSON.parse(localStorage.getItem('emoeat_answer_meta') || '{}') || {};
+            } catch (e) {
+                savedAnswers = {};
+                savedMeta = {};
+            }
+
+            const metaEntries = Object.values(savedMeta);
+            const isCurrentSchema = metaEntries.length > 0 && metaEntries.every(m => m && typeof m.loads === 'object');
+            if (!isCurrentSchema) return false;
+
+            answers = savedAnswers;
+            answerMeta = savedMeta;
+            return Object.keys(answers).length > 0;
+        }
+
         // Show "My Results" link if user has completed the questionnaire
         function updateStandaloneNav() {
             const completed = localStorage.getItem('emoeat_completed');
@@ -2243,23 +2269,8 @@
                     return;
                 } catch (e) { /* fall through */ }
             }
-            const savedAnswers = localStorage.getItem('emoeat_answers');
-            const savedMeta = localStorage.getItem('emoeat_answer_meta');
-            if (savedAnswers) {
-                try {
-                    answers = JSON.parse(savedAnswers);
-                } catch (e) {
-                    answers = {};
-                }
-            }
-            if (savedMeta) {
-                try {
-                    answerMeta = JSON.parse(savedMeta);
-                } catch (e) {
-                    answerMeta = {};
-                }
-            }
-            if (answers && Object.keys(answers).length >= MIN_REQUIRED_ANSWERS) {
+            loadSavedAnswers();
+            if (Object.keys(answers).length >= MIN_REQUIRED_ANSWERS) {
                 currentScreen = 'results';
                 generateFallbackResults();
                 showScreen('resultsScreen');
@@ -2376,8 +2387,7 @@
             answerMeta[q.id] = {
                 optionKey: opt.key,
                 optionText: opt.text,
-                intensity: opt.intensity,
-                factorId: q.factorId,
+                loads: opt.loads || {},
                 extra: existingExtra
             };
             answers[q.id] = buildAnswerText(opt.text, existingExtra);
@@ -2461,7 +2471,7 @@
                         const response = await fetch(`${WORKER_URL}/api/generate-emoeat-analysis`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ answers: answers })
+                            body: JSON.stringify({ answers: answers, profile: buildProfilePayload() })
                         });
 
                         clearInterval(msgInterval);
@@ -2576,91 +2586,270 @@
             }
         ];
 
-        // Which emotional factors feed into each HALT dimension (Hungry / Angry / Lonely / Tired)
-        const HALT_DEFS = [
-            { key: 'hungry', letter: 'H', label: 'Глад/Лишение', factorIds: ['control_restriction', 'compulsion'] },
-            { key: 'angry', letter: 'A', label: 'Яд/Напрежение', factorIds: ['tension_anger'] },
-            { key: 'lonely', letter: 'L', label: 'Самота', factorIds: ['comfort_loneliness'] },
-            { key: 'tired', letter: 'T', label: 'Умора/Скука', factorIds: ['stress_escape', 'boredom_stimulation'] }
+        // Тежести на HALT измеренията спрямо емоционалните фактори (0-1).
+        const HALT_MATRIX = [
+            { key: 'hungry', letter: 'H', label: 'Глад/Лишение', weights: { control_restriction: 0.6, compulsion: 0.6 } },
+            { key: 'angry', letter: 'A', label: 'Яд/Напрежение', weights: { tension_anger: 1 } },
+            { key: 'lonely', letter: 'L', label: 'Самота', weights: { comfort_loneliness: 1, shame_guilt: 0.3 } },
+            { key: 'tired', letter: 'T', label: 'Умора/Скука', weights: { boredom_stimulation: 0.8, stress_escape: 0.5, numbing: 0.3 } }
         ];
 
-        const SHAME_CYCLE_THRESHOLD = 55;
+        // Прототипни профили на архетипите. Доминантният архетип се определя чрез
+        // косинусова близост между профила на клиента и всеки прототип.
+        const ARCHETYPE_MATRIX = [
+            {
+                name: 'Утешителят',
+                description: 'Храната поема ролята на близост и топлина — тя утешава там, където липсва човешка връзка.',
+                profile: { comfort_loneliness: 0.95, compulsion: 0.5, numbing: 0.35, boredom_stimulation: 0.3 }
+            },
+            {
+                name: 'Контрольорът',
+                description: 'Правилата около храната крепят усещането за ред — контролът над чинията замества контрола над живота.',
+                profile: { control_restriction: 0.95, shame_guilt: 0.45, compulsion: 0.35 }
+            },
+            {
+                name: 'Бунтовникът',
+                description: 'Всяко наложено ограничение среща вътрешен отпор — преяждането е бунт срещу собствените забрани.',
+                profile: { compulsion: 0.85, control_restriction: 0.55, tension_anger: 0.5 }
+            },
+            {
+                name: 'Упоителят',
+                description: 'Храната служи за изключване — тежестта в тялото заглушава мисли, които иначе са непоносими.',
+                profile: { numbing: 0.95, stress_escape: 0.75, compulsion: 0.45 }
+            },
+            {
+                name: 'Наказателят',
+                description: 'След всяко хранене идва присъда — строгите режими работят като форма на самонаказание.',
+                profile: { shame_guilt: 0.95, control_restriction: 0.75 }
+            },
+            {
+                name: 'Търсачът',
+                description: 'Храната запълва празнота от друг тип — липса на смисъл, стимулация или почивка.',
+                profile: { boredom_stimulation: 0.8, comfort_loneliness: 0.55, stress_escape: 0.5 }
+            }
+        ];
+
+        // Клинично значими модели. Всяко правило се проверява срещу профила на факторите.
+        const PATTERN_RULES = [
+            {
+                id: 'restriction_binge',
+                title: 'Правила → отприщване',
+                test: s => (s.control_restriction || 0) >= 55 && (s.compulsion || 0) >= 55,
+                description: 'Строгите правила и последвалото отприщване се редуват в затворен кръг. Всяко ограничение зарежда следващото преяждане, а то — следващото ограничение. Прекъсва се не с още дисциплина, а с намаляване на забраните.'
+            },
+            {
+                id: 'shame_secrecy',
+                title: 'Срам → тайно хранене → вина',
+                test: s => (s.shame_guilt || 0) >= 55 && ((s.compulsion || 0) >= 45 || (s.control_restriction || 0) >= 45),
+                description: 'Срамът тласка храненето към скришом, а тайното хранене захранва още повече срам. Този кръг работи в мълчание и се разпада, когато бъде изговорен на глас — пред човек или на хартия.'
+            },
+            {
+                id: 'dissociative',
+                title: 'Храненето като изключване',
+                test: s => (s.numbing || 0) >= 55 && (s.stress_escape || 0) >= 50,
+                description: 'Храната се използва като бутон за изключване от непоносимото. Това е защитен механизъм, който наистина работи в момента — затова е и толкова труден за оставяне без алтернатива.'
+            },
+            {
+                id: 'anger_oral',
+                title: 'Напрежението намира изход през устата',
+                test: s => (s.tension_anger || 0) >= 60,
+                description: 'Гневът и напрежението не намират директен изход и се разтоварват през челюстта и храненето. Тялото търси действие — дъвчене, стискане, движение — а не непременно храна.'
+            },
+            {
+                id: 'attachment_deficit',
+                title: 'Дефицит на близост',
+                test: s => (s.comfort_loneliness || 0) >= 60,
+                description: 'Храната застава на мястото на човешка близост. Вечерните часове са най-уязвими, защото тогава липсата се усеща най-ясно, а храната е най-достъпният отговор.'
+            },
+            {
+                id: 'depletion',
+                title: 'Изтощение и търсене на стимул',
+                test: s => (s.boredom_stimulation || 0) >= 55,
+                description: 'При изчерпана енергия и монотонни дни храната остава най-бързият достъпен стимул. Тук работи не контролът върху храненето, а възстановяването на съня и на смисъла в деня.'
+            }
+        ];
+
+        function levelFor(score) {
+            if (score >= 60) return 'Висок';
+            if (score >= 35) return 'Умерен';
+            return 'Нисък';
+        }
+
+        // Нормализирано скориране: за всеки фактор събираме тежестите на реално
+        // избраните отговори и ги делим на максимално възможните тежести само за
+        // въпросите, на които клиентът е отговорил. Така частично попълненият тест
+        // не изкривява резултата.
+        function computeFactorScores(meta) {
+            const acc = {};
+            questions.forEach(q => {
+                const answer = meta[q.id];
+                if (!answer) return;
+                const chosen = answer.loads || {};
+                const maxPerFactor = {};
+                q.options.forEach(opt => {
+                    Object.keys(opt.loads || {}).forEach(factorId => {
+                        maxPerFactor[factorId] = Math.max(maxPerFactor[factorId] || 0, opt.loads[factorId]);
+                    });
+                });
+                Object.keys(maxPerFactor).forEach(factorId => {
+                    if (!acc[factorId]) acc[factorId] = { got: 0, max: 0 };
+                    acc[factorId].got += chosen[factorId] || 0;
+                    acc[factorId].max += maxPerFactor[factorId];
+                });
+            });
+
+            const scores = {};
+            Object.keys(acc).forEach(factorId => {
+                const { got, max } = acc[factorId];
+                scores[factorId] = max > 0 ? Math.round((got / max) * 100) : 0;
+            });
+            return scores;
+        }
+
+        function collectEvidence(meta, factorId) {
+            const items = [];
+            questions.forEach(q => {
+                const answer = meta[q.id];
+                const weight = answer && answer.loads ? (answer.loads[factorId] || 0) : 0;
+                if (weight > 0) items.push({ question: q.id, quote: answer.optionText, weight });
+            });
+            return items.sort((a, b) => b.weight - a.weight).slice(0, 2);
+        }
 
         function computeEmotionalFactors(meta) {
-            const byFactor = {};
-            questions.forEach(q => {
-                const m = meta[q.id];
-                if (!m || q.factorId === 'real_need') return;
-                if (!byFactor[q.factorId]) byFactor[q.factorId] = { total: 0, count: 0, evidence: [] };
-                byFactor[q.factorId].total += m.intensity;
-                byFactor[q.factorId].count += 1;
-                byFactor[q.factorId].evidence.push({ question: q.id, quote: m.optionText });
-            });
+            const scores = computeFactorScores(meta);
+            return EMOTIONAL_FACTOR_DEFS.map(def => ({
+                id: def.id,
+                name: def.name,
+                icon: def.icon,
+                color: def.color,
+                mechanism: def.mechanism,
+                intensity: scores[def.id] || 0,
+                evidence: collectEvidence(meta, def.id)
+            })).filter(f => f.intensity > 0).sort((a, b) => b.intensity - a.intensity);
+        }
 
-            return EMOTIONAL_FACTOR_DEFS.map(def => {
-                const agg = byFactor[def.id];
-                const intensity = agg ? Math.round(agg.total / agg.count) : 0;
+        function computeHaltProfile(scores) {
+            return HALT_MATRIX.map(dim => {
+                let weighted = 0;
+                let totalWeight = 0;
+                Object.keys(dim.weights).forEach(factorId => {
+                    if (scores[factorId] === undefined) return;
+                    weighted += scores[factorId] * dim.weights[factorId];
+                    totalWeight += dim.weights[factorId];
+                });
+                const score = totalWeight ? Math.round(weighted / totalWeight) : 0;
+                return { key: dim.key, letter: dim.letter, label: dim.label, score, level: levelFor(score) };
+            });
+        }
+
+        // Косинусовата близост е инвариантна на мащаба: слаб профил би дал също
+        // толкова висока "прилика", колкото и силен. Затова я мащабираме според
+        // силата на най-изразения фактор — при бледи резултати не твърдим архетип.
+        const ARCHETYPE_SATURATION_SCORE = 60;
+
+        function deriveArchetypes(scores) {
+            const factorIds = EMOTIONAL_FACTOR_DEFS.map(f => f.id);
+            const user = factorIds.map(id => (scores[id] || 0) / 100);
+            const userNorm = Math.sqrt(user.reduce((sum, v) => sum + v * v, 0));
+            if (!userNorm) return [];
+
+            const peak = Math.max(...factorIds.map(id => scores[id] || 0));
+            const magnitude = Math.min(1, peak / ARCHETYPE_SATURATION_SCORE);
+
+            return ARCHETYPE_MATRIX.map(archetype => {
+                const proto = factorIds.map(id => archetype.profile[id] || 0);
+                const protoNorm = Math.sqrt(proto.reduce((sum, v) => sum + v * v, 0));
+                const dot = user.reduce((sum, v, i) => sum + v * proto[i], 0);
+                const similarity = dot / (userNorm * protoNorm);
                 return {
-                    id: def.id,
-                    name: def.name,
-                    icon: def.icon,
-                    color: def.color,
-                    mechanism: def.mechanism,
-                    intensity,
-                    evidence: agg ? agg.evidence : [],
-                    sourceQuestions: agg ? agg.evidence.map(e => e.question) : []
+                    name: archetype.name,
+                    description: archetype.description,
+                    confidence: Math.round(similarity * magnitude * 100)
                 };
-            }).filter(f => f.intensity > 0).sort((a, b) => b.intensity - a.intensity);
+            }).sort((a, b) => b.confidence - a.confidence);
         }
 
-        function computeHaltProfile(factors) {
-            return HALT_DEFS.map(halt => {
-                const relevant = factors.filter(f => halt.factorIds.includes(f.id) && f.intensity > 0);
-                const score = relevant.length ? Math.round(relevant.reduce((s, f) => s + f.intensity, 0) / relevant.length) : 0;
-                let level = 'Нисък';
-                if (score >= 60) level = 'Висок';
-                else if (score >= 35) level = 'Умерен';
-                return { key: halt.key, letter: halt.letter, label: halt.label, score, level };
-            });
+        function detectPatterns(scores) {
+            return PATTERN_RULES
+                .filter(rule => rule.test(scores))
+                .map(rule => ({ id: rule.id, title: rule.title, description: rule.description }))
+                .slice(0, 3);
         }
 
-        function detectShameBingeCycle(factors) {
-            const shame = factors.find(f => f.id === 'shame_guilt');
-            const control = factors.find(f => f.id === 'control_restriction');
-            const compulsion = factors.find(f => f.id === 'compulsion');
-            const detected = shame && shame.intensity >= SHAME_CYCLE_THRESHOLD &&
-                ((control && control.intensity >= SHAME_CYCLE_THRESHOLD) || (compulsion && compulsion.intensity >= SHAME_CYCLE_THRESHOLD));
+        function computeReliability(meta) {
+            const answered = questions.filter(q => meta[q.id]).length;
+            const neutral = questions.filter(q => {
+                const answer = meta[q.id];
+                return answer && Object.keys(answer.loads || {}).length === 0;
+            }).length;
+            const coverage = Math.round((answered / questions.length) * 100);
+            const neutralShare = answered ? Math.round((neutral / answered) * 100) : 0;
 
-            if (!detected) return null;
+            let level = 'висока';
+            let note = '';
+            if (coverage < 60) {
+                level = 'ниска';
+                note = 'Отговорите са малко — приемай профила по-скоро като ориентир, отколкото като заключение.';
+            } else if (neutralShare > 50) {
+                level = 'средна';
+                note = 'Повечето избори са неутрални. Възможно е картината да е по-мека от реалната — или наистина храненето да не е основното ти натоварване.';
+            }
+            return { answered, total: questions.length, coverage, neutralShare, level, note };
+        }
 
-            const parts = [];
-            if (control && control.intensity >= SHAME_CYCLE_THRESHOLD) parts.push('строго лишение');
-            if (shame && shame.intensity >= SHAME_CYCLE_THRESHOLD) parts.push('срам от тайно хранене');
-            if (compulsion && compulsion.intensity >= SHAME_CYCLE_THRESHOLD) parts.push('загуба на контрол');
-
+        // Компактен профил за backend-а — служи като анкор на AI анализа, за да не
+        // гадае интензитети, а да обяснява и задълбочава изчислените стойности.
+        function buildProfilePayload() {
+            const profile = analyzeAnswers(answerMeta);
             return {
-                detected: true,
-                description: 'Отговорите ви показват класически цикъл: ' + parts.join(' → ') +
-                    ' → вина → още ограничения. Този порочен кръг е един от най-честите механизми зад емоционалното хранене и може да бъде прекъснат с осъзнатост и самосъстрадание.'
+                factors: profile.factors.map(f => ({ name: f.name, intensity: f.intensity })),
+                halt: profile.halt.map(h => ({ label: h.label, score: h.score, level: h.level })),
+                patterns: profile.patterns.map(p => p.title),
+                archetypes: profile.archetypes.slice(0, 3).map(a => ({ name: a.name, confidence: a.confidence })),
+                reliability: {
+                    level: profile.reliability.level,
+                    answered: profile.reliability.answered,
+                    total: profile.reliability.total,
+                    neutralShare: profile.reliability.neutralShare
+                }
             };
         }
 
-        function renderRealNeedCard(meta) {
-            const realNeedMeta = meta[10];
-            if (!realNeedMeta) return '';
-            const text = (realNeedMeta.extra || '').trim() || realNeedMeta.optionText;
+        function analyzeAnswers(meta) {
+            const scores = computeFactorScores(meta);
+            const realNeedAnswer = meta[10];
+            return {
+                scores,
+                factors: computeEmotionalFactors(meta),
+                halt: computeHaltProfile(scores),
+                archetypes: deriveArchetypes(scores),
+                patterns: detectPatterns(scores),
+                reliability: computeReliability(meta),
+                realNeed: realNeedAnswer
+                    ? ((realNeedAnswer.extra || '').trim() || realNeedAnswer.optionText)
+                    : ''
+            };
+        }
+
+        function renderRealNeedCard(realNeedText) {
+            if (!realNeedText) return '';
             return `
                 <div class="real-need-card">
                     <div class="real-need-label"><i class="fas fa-star"></i> Твоята реална нужда</div>
-                    <div class="real-need-text">${escapeHtml(text)}</div>
+                    <div class="real-need-text">${escapeHtml(realNeedText)}</div>
                 </div>
             `;
         }
 
-        function renderEmotionalFactorsSection(factors, haltProfile, shameCycle, aiFactors) {
-            const displayFactors = (aiFactors && aiFactors.length > 0)
-                ? aiFactors.slice(0, 8)
-                : factors.slice(0, 8);
+        // Числата (интензитети, HALT, модели) идват единствено от локалната матрица —
+        // така секциите не могат да си противоречат. AI-то допълва с думи: прозрения,
+        // стратегии, архетипни описания.
+        function renderEmotionalFactorsSection(profile) {
+            const displayFactors = profile.factors.slice(0, 8);
+            const haltProfile = profile.halt;
+            const patterns = profile.patterns || [];
+            const reliability = profile.reliability;
 
             if (displayFactors.length === 0) return '';
 
@@ -2704,53 +2893,84 @@
                 </div>
             ` : '';
 
-            const cycleHtml = shameCycle ? `
-                <div class="cycle-card">
-                    <h4><i class="fas fa-sync-alt"></i> Открит цикъл: Срам → Лишение → Преяждане</h4>
-                    <p>${escapeHtml(shameCycle.description)}</p>
-                </div>
+            const patternsHtml = patterns.length > 0 ? `
+                <div class="section-title"><i class="fas fa-sync-alt"></i> Открити Модели</div>
+                ${patterns.map(p => `
+                    <div class="cycle-card">
+                        <h4><i class="fas fa-sync-alt"></i> ${escapeHtml(p.title)}</h4>
+                        <p>${escapeHtml(p.description)}</p>
+                    </div>
+                `).join('')}
+            ` : '';
+
+            const reliabilityHtml = (reliability && reliability.note) ? `
+                <p class="reliability-note">
+                    <i class="fas fa-circle-info"></i>
+                    Надеждност на профила: ${escapeHtml(reliability.level)} (${reliability.answered}/${reliability.total} отговора). ${escapeHtml(reliability.note)}
+                </p>
             ` : '';
 
             return `
                 <div class="section-title"><i class="fas fa-chart-bar"></i> Вашите Емоционални Фактори</div>
                 <p style="font-size: 0.88rem; color: var(--text-gray); margin-bottom: 14px;">На базата на вашите отговори — кои емоции най-силно влияят на хранителното ви поведение</p>
                 <div class="factors-grid">${factorsHtml}</div>
+                ${reliabilityHtml}
                 ${haltHtml}
-                ${cycleHtml}
+                ${patternsHtml}
+            `;
+        }
+
+        function renderLocalArchetypes(archetypes) {
+            const top = (archetypes || []).filter(a => a.confidence > 0).slice(0, 2);
+            if (top.length === 0) return '';
+            return `
+                <div class="section-title"><i class="fas fa-masks-theater"></i> Вашите Емоционални Архетипи</div>
+                ${top.map((a, index) => `
+                    <div class="archetype-card${index === 1 ? ' secondary' : ''}">
+                        <div class="archetype-badge">
+                            <i class="fas ${index === 0 ? 'fa-crown' : 'fa-layer-group'}"></i>
+                            ${index === 0 ? 'Доминантен Архетип' : 'Вторичен Архетип'}
+                        </div>
+                        <div class="archetype-name">${escapeHtml(a.name)}</div>
+                        <div class="archetype-desc">${escapeHtml(a.description)}</div>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" style="width: ${safeConfidence(a.confidence)}%"></div>
+                        </div>
+                        <div style="text-align: right; font-size: 0.8rem; color: var(--text-light); margin-top: 4px;">${safeConfidence(a.confidence)}% съответствие</div>
+                    </div>
+                `).join('')}
             `;
         }
 
         // ============================================
         // AI-POWERED RESULTS GENERATION
         // ============================================
+        // Името и процентът на архетипа идват от матрицата (обективни и възпроизводими),
+        // а описанието — от AI-то, ако е за същия архетип. Така двете не си противоречат.
+        function mergeArchetype(matrixArchetype, aiArchetype) {
+            if (!matrixArchetype) return aiArchetype || {};
+            const sameArchetype = aiArchetype && aiArchetype.name &&
+                aiArchetype.name.trim().toLowerCase() === matrixArchetype.name.toLowerCase();
+            return {
+                name: matrixArchetype.name,
+                confidence: matrixArchetype.confidence,
+                description: (sameArchetype && aiArchetype.description) || matrixArchetype.description
+            };
+        }
+
         function generateAIResults(analysis) {
             const resultsScreen = document.getElementById('resultsScreen');
-            const d = analysis.dominantArchetype || {};
-            const s = analysis.secondaryArchetype || {};
             const crossPatterns = analysis.crossPatterns || [];
             const insights = analysis.personalInsights || [];
             const strategies = analysis.therapeuticStrategies || [];
             const emergency = analysis.emergencyProtocol || {};
             const hidden = analysis.hiddenMessage || '';
 
-            const computedFactors = computeEmotionalFactors(answerMeta);
-            const haltProfile = analysis.haltProfile
-                ? HALT_DEFS.map(h => ({
-                    ...h,
-                    level: analysis.haltProfile[h.key]?.level || analysis.haltProfile[h.key]?.note || 'Нисък',
-                    score: analysis.haltProfile[h.key]?.score || 0
-                }))
-                : computeHaltProfile(computedFactors);
-            const shameCycle = analysis.shameBingeCycle?.detected
-                ? analysis.shameBingeCycle
-                : detectShameBingeCycle(computedFactors);
-            const factorsSection = renderEmotionalFactorsSection(
-                computedFactors,
-                haltProfile,
-                shameCycle,
-                analysis.emotionalFactors
-            );
-            const realNeedCard = renderRealNeedCard(answerMeta);
+            const profile = analyzeAnswers(answerMeta);
+            const d = mergeArchetype(profile.archetypes[0], analysis.dominantArchetype);
+            const s = mergeArchetype(profile.archetypes[1], analysis.secondaryArchetype);
+            const factorsSection = renderEmotionalFactorsSection(profile);
+            const realNeedCard = renderRealNeedCard(profile.realNeed);
 
             resultsScreen.innerHTML = `
                 <div class="results-screen">
@@ -2899,11 +3119,10 @@
         // ============================================
         function generateFallbackResults() {
             const resultsScreen = document.getElementById('resultsScreen');
-            const factors = computeEmotionalFactors(answerMeta);
-            const haltProfile = computeHaltProfile(factors);
-            const shameCycle = detectShameBingeCycle(factors);
-            const factorsSection = renderEmotionalFactorsSection(factors, haltProfile, shameCycle, null);
-            const realNeedCard = renderRealNeedCard(answerMeta);
+            const profile = analyzeAnswers(answerMeta);
+            const factorsSection = renderEmotionalFactorsSection(profile);
+            const realNeedCard = renderRealNeedCard(profile.realNeed);
+            const archetypesSection = renderLocalArchetypes(profile.archetypes);
 
             resultsScreen.innerHTML = `
                 <div class="results-screen">
@@ -2917,9 +3136,11 @@
 
                     ${realNeedCard}
 
+                    ${archetypesSection}
+
                     ${factorsSection}
 
-                    ${factors.length === 0 ? `
+                    ${profile.factors.length === 0 ? `
                     <div class="profile-card">
                         <div class="profile-header">
                             <div class="profile-avatar"><i class="fas fa-user-circle"></i></div>
@@ -2956,22 +3177,7 @@
         async function retryAIAnalysis() {
             // Ensure answers are available — fall back to localStorage if in-memory state is empty
             if (!answers || Object.keys(answers).length === 0) {
-                const savedAnswers = localStorage.getItem('emoeat_answers');
-                const savedMeta = localStorage.getItem('emoeat_answer_meta');
-                if (savedAnswers) {
-                    try {
-                        answers = JSON.parse(savedAnswers);
-                    } catch (e) {
-                        answers = {};
-                    }
-                }
-                if (savedMeta) {
-                    try {
-                        answerMeta = JSON.parse(savedMeta);
-                    } catch (e) {
-                        answerMeta = {};
-                    }
-                }
+                loadSavedAnswers();
             }
 
             currentScreen = 'loading';
@@ -2986,7 +3192,7 @@
                 const response = await fetch(`${WORKER_URL}/api/generate-emoeat-analysis`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ answers: answers })
+                    body: JSON.stringify({ answers: answers, profile: buildProfilePayload() })
                 });
                 const result = await response.json();
                 if (result.success && result.analysis) {
@@ -3026,13 +3232,11 @@
 
         function saveAndShare() {
             const savedAnalysis = localStorage.getItem('emoeat_analysis');
-            const computedFactors = computeEmotionalFactors(answerMeta);
             const data = {
                 answers: answers,
                 completedAt: localStorage.getItem('emoeat_completed'),
                 analysis: savedAnalysis ? JSON.parse(savedAnalysis) : null,
-                emotionalFactors: computedFactors,
-                haltProfile: computeHaltProfile(computedFactors)
+                profile: analyzeAnswers(answerMeta)
             };
 
             // Create downloadable JSON
@@ -3070,26 +3274,10 @@
         // INITIALIZATION
         // ============================================
         function init() {
-            // Check for saved progress
-            const savedAnswers = localStorage.getItem('emoeat_answers');
-            const savedMeta = localStorage.getItem('emoeat_answer_meta');
-            if (savedAnswers) {
-                try {
-                    answers = JSON.parse(savedAnswers);
-                } catch (e) {
-                    answers = {};
-                }
-            }
-            if (savedMeta) {
-                try {
-                    answerMeta = JSON.parse(savedMeta);
-                } catch (e) {
-                    answerMeta = {};
-                }
-            }
+            const hasSavedAnswers = loadSavedAnswers();
 
             // If the user previously completed the questionnaire, restore their results screen
-            const completed = localStorage.getItem('emoeat_completed');
+            const completed = hasSavedAnswers ? localStorage.getItem('emoeat_completed') : null;
             if (completed) {
                 const savedAnalysis = localStorage.getItem('emoeat_analysis');
                 if (savedAnalysis) {
