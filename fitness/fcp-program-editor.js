@@ -621,15 +621,25 @@ function pickerHasActiveFilters(p) {
 }
 
 function openPicker({ mode, dayIndex, exIndex = null }) {
+  const day = state.plan?.days?.[dayIndex];
+  const currentEx = mode === 'swap' && exIndex != null ? day?.exercises?.[exIndex] : null;
   state.picker = {
     open: true, mode, dayIndex, exIndex,
     q: '', equipment: new Set(), target: new Set(), modality: new Set(), diffMax: null,
     resultOffset: 0, accumulated: [], total: 0, hasMore: false, loadingMore: false,
+    alternatives: [], alternativesLoading: mode === 'swap' && Boolean(currentEx),
+    swapSource: currentEx ? {
+      canonicalName: currentEx.canonicalName || currentEx.match?.name,
+      id: currentEx.match?.id,
+      equipmentHint: currentEx.equipmentHint || currentEx.match?.equipment,
+      bodyPart: currentEx.bodyPart || currentEx.match?.bodyPart,
+      displayName: currentEx.displayName || currentEx.match?.displayName,
+    } : null,
   };
   const panel = modal.querySelector('.fcp-editor-panel');
   const searchInput = el('input', {
     type: 'search', enterkeyhint: 'search', autocomplete: 'off',
-    placeholder: 'Търси (клек, дупе, гребане…)',
+    placeholder: mode === 'swap' ? 'Или търси друго упражнение…' : 'Търси (клек, дупе, гребане…)',
     oninput: (e) => {
       state.picker.q = e.target.value;
       debouncedSearch();
@@ -658,11 +668,15 @@ function openPicker({ mode, dayIndex, exIndex = null }) {
         onclick: () => clearPickerFilters(),
       }, 'Изчисти филтрите'),
     ),
+    el('div', { class: 'fcp-picker-alternatives', id: 'fcpPickerAlternatives' }),
     el('div', { class: 'fcp-picker-results', id: 'fcpPickerResults' }, '…'),
   );
   panel.append(picker);
   searchInput.focus({ preventScroll: true });
   if (facetsCache) renderPickerFilters(facetsCache);
+  if (mode === 'swap' && currentEx) {
+    loadPickerAlternatives();
+  }
   runPickerSearch();
 }
 
@@ -788,6 +802,81 @@ function toggleSetValue(set, value) {
   else set.add(value);
 }
 
+async function loadPickerAlternatives() {
+  const p = state?.picker;
+  const wrap = $('#fcpPickerAlternatives');
+  if (!p?.swapSource || !wrap) return;
+
+  wrap.innerHTML = '<p class="fcp-picker-alt-hint"><i class="fas fa-spinner fa-spin"></i> Преки алтернативи…</p>';
+
+  const src = p.swapSource;
+  const day = state.plan?.days?.[p.dayIndex];
+  const params = new URLSearchParams({ limit: '8' });
+  if (src.id) params.set('id', src.id);
+  else if (src.canonicalName) params.set('canonicalName', src.canonicalName);
+  if (src.equipmentHint) params.set('equipmentHint', src.equipmentHint);
+  if (src.bodyPart) params.set('bodyPart', src.bodyPart);
+  if (day?.type) params.set('sessionType', day.type);
+
+  try {
+    const res = await fetch(`${apiBase()}/api/exercises/alternatives?${params}`);
+    const data = await res.json();
+    if (!state?.picker || state.picker !== p) return;
+    if (!res.ok || !data.success) throw new Error(data.message || 'Грешка');
+    p.alternatives = data.results || [];
+    p.alternativesLoading = false;
+    renderPickerAlternatives();
+  } catch (e) {
+    if (!state?.picker || state.picker !== p) return;
+    p.alternativesLoading = false;
+    wrap.innerHTML = `<p class="fcp-picker-alt-hint fcp-picker-alt-error">${escapeHtml(e.message)}</p>`;
+  }
+}
+
+function renderPickerAlternatives() {
+  const wrap = $('#fcpPickerAlternatives');
+  const p = state?.picker;
+  if (!wrap || !p || p.mode !== 'swap') return;
+  wrap.innerHTML = '';
+
+  const srcName = p.swapSource?.displayName || p.swapSource?.canonicalName;
+  if (srcName) {
+    wrap.append(el('p', { class: 'fcp-picker-alt-label', text: `Замяна на: ${srcName}` }));
+  }
+
+  if (p.alternativesLoading) {
+    wrap.append(el('p', { class: 'fcp-picker-alt-hint', text: 'Преки алтернативи…' }));
+    return;
+  }
+
+  if (!p.alternatives.length) {
+    wrap.append(el('p', { class: 'fcp-picker-alt-hint', text: 'Няма готови алтернативи — използвай търсенето по-долу.' }));
+    return;
+  }
+
+  wrap.append(el('p', { class: 'fcp-picker-alt-heading', text: 'Преки алтернативи' }));
+  const list = el('div', { class: 'fcp-picker-alt-list' });
+  for (const item of p.alternatives) {
+    list.append(buildPickerRow(item, 'fcp-picker-row-alt'));
+  }
+  wrap.append(list);
+}
+
+function buildPickerRow(item, extraClass = '') {
+  return el('button', { type: 'button', class: `fcp-picker-row${extraClass ? ` ${extraClass}` : ''}`, onclick: () => pickExercise(item) },
+    item.imageUrl ? el('img', { src: item.imageUrl, loading: 'lazy', alt: '' }) : el('div', { class: 'fcp-editor-ex-thumb' }),
+    el('div', { class: 'fcp-picker-row-main' },
+      el('div', { class: 'fcp-picker-row-name', text: item.displayName || item.name }),
+      el('div', { class: 'fcp-picker-row-sub', text: item.name }),
+      el('div', { class: 'fcp-picker-badges' },
+        el('span', { class: 'fcp-picker-badge', text: `d${item.diff ?? 2}` }),
+        item.equipment ? el('span', { class: 'fcp-picker-badge', text: localizeEquipment(item.equipment) || item.equipment }) : null,
+        item.target ? el('span', { class: 'fcp-picker-badge', text: item.target }) : null,
+      ),
+    ),
+  );
+}
+
 async function runPickerSearch() {
   if (!state?.picker) return;
   state.picker.resultOffset = 0;
@@ -910,18 +999,7 @@ function renderPickerResults(items, total) {
     return;
   }
   for (const item of items) {
-    results.append(el('button', { type: 'button', class: 'fcp-picker-row', onclick: () => pickExercise(item) },
-      item.imageUrl ? el('img', { src: item.imageUrl, loading: 'lazy', alt: '' }) : el('div', { class: 'fcp-editor-ex-thumb' }),
-      el('div', { class: 'fcp-picker-row-main' },
-        el('div', { class: 'fcp-picker-row-name', text: item.displayName || item.name }),
-        el('div', { class: 'fcp-picker-row-sub', text: item.name }),
-        el('div', { class: 'fcp-picker-badges' },
-          el('span', { class: 'fcp-picker-badge', text: `d${item.diff ?? 2}` }),
-          item.equipment ? el('span', { class: 'fcp-picker-badge', text: localizeEquipment(item.equipment) || item.equipment }) : null,
-          item.target ? el('span', { class: 'fcp-picker-badge', text: item.target }) : null,
-        ),
-      ),
-    ));
+    results.append(buildPickerRow(item));
   }
   if (state?.picker?.hasMore) {
     results.append(el('p', {

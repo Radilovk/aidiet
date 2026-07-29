@@ -20,6 +20,7 @@
  *   POST /api/plan/refresh-exercises — обновява match/алтернативи от KV индекса
  *   POST /api/coach            — AI персонален треньор (чат)
  *   GET  /api/exercises/search — търсене по дума+синоними и филтри (equipment/target/modality/diff/gf/gm); ползва се и от admin picker-а
+ *   GET  /api/exercises/alternatives — преки алтернативи за замяна (съща цел/модалност/d)
  *   GET  /api/admin/fitplan/guidelines — админ: зарежда насоки за mini-RAG
  *   POST /api/admin/fitplan/guidelines — админ: записва насоки в KV
  *   POST /api/fitplan/consultation — скрит въпросник (консултация)
@@ -1265,6 +1266,68 @@ async function handleExerciseSearch(url, env, ctx) {
   return jsonResponse(payload, 200, { 'Cache-Control': 'public, max-age=1800' });
 }
 
+/**
+ * Преки алтернативи за замяна — същата логика като enrichPlanWithExercises.
+ * Параметри: canonicalName или id; по избор equipment (csv), sessionType, limit.
+ */
+async function handleExerciseAlternatives(url, env, ctx) {
+  const index = await loadExerciseIndex(env, ctx);
+  if (!index) return errorResponse('Базата с упражнения не е налична', 503);
+
+  const id = String(url.searchParams.get('id') || '').trim();
+  const canonicalName = String(url.searchParams.get('canonicalName') || url.searchParams.get('name') || '').trim();
+  if (!id && !canonicalName) {
+    return errorResponse('Липсва canonicalName или id', 400, 'bad_request');
+  }
+
+  let matched = id ? index.find((e) => String(e.id) === id) : null;
+  if (!matched && canonicalName) {
+    const norm = normalizeText(canonicalName);
+    matched = index.find((e) => e.nameNorm === norm);
+    if (!matched) {
+      const result = matchExercise(index, {
+        canonicalName,
+        equipmentHint: url.searchParams.get('equipmentHint') || '',
+        bodyPart: url.searchParams.get('bodyPart') || '',
+      });
+      matched = result?.entry || null;
+    }
+  }
+  if (!matched) {
+    return jsonResponse({ success: true, count: 0, total: 0, results: [], source: null });
+  }
+
+  const equipList = csvParam(url, 'equipment');
+  const allowedEquipment = equipList.length
+    ? new Set(equipList.map((e) => normalizeText(e)))
+    : null;
+  const sessionType = url.searchParams.get('sessionType') || null;
+  const limit = Math.min(12, Math.max(1, numParam(url, 'limit') || MAX_ALTERNATIVES));
+
+  const alts = findAlternatives(index, matched, {
+    allowedEquipment,
+    limit,
+    sessionType,
+  });
+
+  const results = alts.map((entry) => ({
+    ...entryToClientExercise(env, entry, { includeInstructions: false }),
+    diff: entry.diff ?? 2,
+    gf: entry.gf ?? 70,
+    gm: entry.gm ?? 70,
+    modality: inferExerciseModality(entry),
+    flags: entry.flags || [],
+  }));
+
+  return jsonResponse({
+    success: true,
+    count: results.length,
+    total: results.length,
+    source: entryToClientExercise(env, matched, { includeInstructions: false }),
+    results,
+  }, 200, { 'Cache-Control': 'public, max-age=600' });
+}
+
 async function handleGetAdminGuidelines(request, env) {
   if (!checkAdminSecret(request, env)) return errorResponse('Неоторизиран достъп', 401, 'unauthorized');
   const config = await loadAdminGuidelines(env);
@@ -1977,6 +2040,9 @@ export default {
       }
       if (request.method === 'GET' && path === '/api/exercises/search') {
         return await handleExerciseSearch(url, env, ctx);
+      }
+      if (request.method === 'GET' && path === '/api/exercises/alternatives') {
+        return await handleExerciseAlternatives(url, env, ctx);
       }
       if (request.method === 'GET' && path === '/api/admin/fitplan/guidelines') {
         return await handleGetAdminGuidelines(request, env);

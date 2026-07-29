@@ -4512,7 +4512,7 @@
             document.getElementById('fcpId').value = '';
             document.getElementById('fcpClientName').value = '';
             document.getElementById('fcpClientContact').value = '';
-            document.getElementById('fcpExampleScheme').value = '';
+            document.getElementById('fcpExampleScheme').value = window.FcpUniversalBaseScheme || '';
             document.getElementById('fcpStrictScheme').checked = false;
             fcpUpdateStrictSchemeUi();
             window.FcpQuestionnaire?.reset?.();
@@ -11357,6 +11357,10 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         }
     </script>
     <script type="module" src="./fitness/fcp-questionnaire.js?v=7"></script>
-    <script type="module" src="./fitness/fcp-program-editor.js?v=5"></script>
+    <script type="module" src="./fitness/fcp-program-editor.js?v=6"></script>
+    <script type="module">
+        import { UNIVERSAL_BASE_SCHEME } from './fitness/plan-base-template.js';
+        window.FcpUniversalBaseScheme = UNIVERSAL_BASE_SCHEME;
+    </script>
 </body>
 </html>

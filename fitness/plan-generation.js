@@ -26,6 +26,7 @@ import {
   formatProgramSpecBlock,
   buildCompactProfileForPrompt,
 } from './program-spec.js';
+import { UNIVERSAL_BASE_ARCHITECTURE, shouldInjectUniversalBase } from './plan-base-template.js';
 
 export {
   GENDER_FIT_RETRY_HINT,
@@ -606,12 +607,18 @@ export function resolveGuidelineLayers(tags, adminConfig = null, options = {}) {
       ? capGuidelineTexts(adminIndividual)
       : capIndividualGuidelines(adminIndividual, hardcodedIndividual, tagSet, adminChunks);
 
-  return {
-    individual,
-    architecture: strictAssembly
-      ? []
-      : capGuidelineTexts(adminArchitecture, MAX_ARCHITECTURE_ITEMS, MAX_ARCHITECTURE_CHARS),
-  };
+  const cappedAdminArch = strictAssembly
+    ? []
+    : capGuidelineTexts(adminArchitecture, MAX_ARCHITECTURE_ITEMS, MAX_ARCHITECTURE_CHARS);
+  const injectBase = shouldInjectUniversalBase({
+    strictAssembly,
+    schemeKind: options.schemeKind || (schemeMode ? 'structured' : 'none'),
+  });
+  const architecture = injectBase
+    ? [...UNIVERSAL_BASE_ARCHITECTURE, ...cappedAdminArch]
+    : cappedAdminArch;
+
+  return { individual, architecture };
 }
 
 export function selectGuidelines(profile, adminConfig = null) {
@@ -885,7 +892,7 @@ export function preparePlanGeneration(source, adminConfig, helpers) {
     const strictAssembly = isStrictAssembly(extra.strictScheme, schemeText);
     const structuredScheme = schemeKind === 'structured';
     const schemeMode = strictAssembly || structuredScheme;
-    const layers = resolveGuidelineLayers(tags, adminConfig, { schemeMode, strictAssembly });
+    const layers = resolveGuidelineLayers(tags, adminConfig, { schemeMode, strictAssembly, schemeKind });
     const programSpec = (!strictAssembly && answers?.gender) ? buildProgramSpec(answers) : null;
     const planConstraints = constraintsFromAnswers(answers || {}, schemeText, { strictAssembly });
     const brief = {

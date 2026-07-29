@@ -50,6 +50,11 @@ import { filterExercises, passesEquipment, exerciseProfileFromAnswers, isSameAlt
 import { QUESTIONS, activeQuestions, validateQuestion, buildAnswers, answersToFormState, fieldVisible } from '../questions.js';
 import { localizeExerciseDisplayName, sanitizeBgText } from '../exercise-labels-bg.js';
 import { buildProgramSpec, formatProgramSpecBlock } from '../program-spec.js';
+import {
+  UNIVERSAL_BASE_SCHEME,
+  UNIVERSAL_BASE_ARCHITECTURE,
+  shouldInjectUniversalBase,
+} from '../plan-base-template.js';
 
 // ----------------------------------------------------------------------------
 // Fixtures: миниатюрна извадка със схемата на hasaneyldrm/exercises-dataset
@@ -1336,4 +1341,34 @@ test('localizeExerciseDisplayName: bench press не става „лег пре�
 test('sanitizeBgText: утежни вместо затежни', () => {
   assert.equal(sanitizeBgText('олекоти или затежни деня'), 'олекоти или утежни деня');
   assert.equal(sanitizeBgText('Кога да затежниш'), 'Кога да утежниш');
+});
+
+// ----------------------------------------------------------------------------
+// Универсална база (план на Диана, без mobility дни)
+// ----------------------------------------------------------------------------
+
+test('shouldInjectUniversalBase: само без клиентска схема', () => {
+  assert.equal(shouldInjectUniversalBase({ schemeKind: 'none' }), true);
+  assert.equal(shouldInjectUniversalBase({ schemeKind: 'brief' }), false);
+  assert.equal(shouldInjectUniversalBase({ schemeKind: 'structured' }), false);
+  assert.equal(shouldInjectUniversalBase({ strictAssembly: true, schemeKind: 'none' }), false);
+});
+
+test('UNIVERSAL_BASE_SCHEME: full-body ×2 без отделни mobility дни', () => {
+  assert.match(UNIVERSAL_BASE_SCHEME, /full-body × 2/i);
+  assert.match(UNIVERSAL_BASE_SCHEME, /Пон.*сила/i);
+  assert.match(UNIVERSAL_BASE_SCHEME, /Чет.*сила/i);
+  assert.match(UNIVERSAL_BASE_SCHEME, /почивка/i);
+  assert.doesNotMatch(UNIVERSAL_BASE_SCHEME, /Пет.*мобилност/i);
+});
+
+test('resolveGuidelineLayers: инжектира универсална база без схема', () => {
+  const layers = resolveGuidelineLayers(new Set(), null, { schemeKind: 'none' });
+  assert.ok(layers.architecture.some((t) => t.includes('Full-body × 2')));
+  assert.ok(layers.architecture.length >= UNIVERSAL_BASE_ARCHITECTURE.length);
+});
+
+test('resolveGuidelineLayers: без база при brief схема', () => {
+  const layers = resolveGuidelineLayers(new Set(), null, { schemeKind: 'brief' });
+  assert.ok(!layers.architecture.some((t) => t.includes('Full-body × 2')));
 });

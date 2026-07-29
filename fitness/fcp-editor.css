@@ -248,6 +248,18 @@
 .fcp-picker-results-hint {
   flex: 1; min-width: 0; font-size: 0.72rem; color: var(--text-gray); font-weight: 600;
 }
+.fcp-picker-alternatives {
+  flex-shrink: 0; padding: 0 14px 10px; border-bottom: 1px solid #e5e7eb;
+}
+[data-theme="dark"] .fcp-picker-alternatives { border-color: var(--glass-border); }
+.fcp-picker-alt-label { margin: 0 0 6px; font-size: 0.72rem; color: var(--text-gray); }
+.fcp-picker-alt-heading { margin: 0 0 8px; font-size: 0.78rem; font-weight: 700; color: var(--primary-dark); }
+[data-theme="dark"] .fcp-picker-alt-heading { color: #e8f4f2; }
+.fcp-picker-alt-hint { margin: 0; font-size: 0.78rem; color: #9ca3af; font-style: italic; }
+.fcp-picker-alt-error { color: #e74c3c; font-style: normal; }
+.fcp-picker-alt-list { display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto; }
+.fcp-picker-row-alt { border-color: rgba(255, 107, 107, 0.35); background: rgba(255, 107, 107, 0.04); }
+.fcp-picker-row-alt:hover { border-color: var(--primary-red); background: rgba(255, 107, 107, 0.08); }
 .fcp-picker-results {
   flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 8px 14px 14px;
   display: flex; flex-direction: column; gap: 8px; -webkit-overflow-scrolling: touch;
