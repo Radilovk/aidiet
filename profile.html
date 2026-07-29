@@ -2894,6 +2894,24 @@
             clearAlert();
         }
 
+        function fieldValueChanged(input) {
+            const field = input.getAttribute('data-field');
+            const newValue = input.value.trim();
+            let oldValue;
+            if (Array.isArray(originalData[field])) {
+                oldValue = originalData[field].join(', ');
+            } else {
+                oldValue = String(originalData[field] || '').trim();
+            }
+            return newValue !== oldValue;
+        }
+
+        function hasDietRelatedFieldChanges() {
+            return Array.from(document.querySelectorAll('[data-field]')).some(input =>
+                input.getAttribute('data-diet-related') === 'true' && fieldValueChanged(input)
+            );
+        }
+
         function checkChanges() {
             if (!isEditing) return;
 
@@ -2902,22 +2920,10 @@
             let hasAnyChanges = false;
 
             inputs.forEach(input => {
-                const field = input.getAttribute('data-field');
                 const isDietRelated = input.getAttribute('data-diet-related') === 'true';
-                const newValue = input.value.trim();
-                // For array fields, compare using the same comma-separated format used for display
-                let oldValue;
-                if (Array.isArray(originalData[field])) {
-                    oldValue = originalData[field].join(', ');
-                } else {
-                    oldValue = String(originalData[field] || '').trim();
-                }
-
-                if (newValue !== oldValue) {
+                if (fieldValueChanged(input)) {
                     hasAnyChanges = true;
-                    if (isDietRelated) {
-                        hasDietRelatedChanges = true;
-                    }
+                    if (isDietRelated) hasDietRelatedChanges = true;
                 }
             });
 
@@ -3017,6 +3023,11 @@
             const validationResult = validateFormDataWithDetails();
             if (!validationResult.isValid) {
                 showAlert(`⚠️ Моля, попълнете правилно полето: ${validationResult.fieldLabel}`, 'warning');
+                return;
+            }
+
+            if (!hasDietRelatedFieldChanges()) {
+                showAlert('Няма промени по полетата, свързани с плана. Използвайте „Запази“.', 'warning');
                 return;
             }
 

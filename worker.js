@@ -9012,7 +9012,19 @@ function collectUserBlockedFoodTerms(data) {
   if (Array.isArray(data.forbidden)) {
     data.forbidden.forEach((f) => pushSplit(f));
   }
+  if (Array.isArray(data.userFoodExclude)) {
+    data.userFoodExclude.forEach((f) => pushSplit(f));
+  }
   return terms;
+}
+function buildUserFoodPickerSection(data) {
+  const list = Array.isArray(data.userFoodList) ? data.userFoodList.map((s) => String(s).trim()).filter(Boolean) : [];
+  if (!list.length) return "";
+  const joined = list.join(", ");
+  const MAX_MAINLIST_CHARS = 1500;
+  const displayList = joined.length > MAX_MAINLIST_CHARS ? joined.slice(0, MAX_MAINLIST_CHARS) + "\u2026 [\u0441\u043F\u0438\u0441\u044A\u043A\u044A\u0442 \u0435 \u0441\u044A\u043A\u0440\u0430\u0442\u0435\u043D]" : joined;
+  return `
+\u041E\u0421\u041D\u041E\u0412\u0415\u041D \u0421\u041F\u0418\u0421\u042A\u041A \u0425\u0420\u0410\u041D\u0418 (\u0417\u0410\u0414\u042A\u041B\u0416\u0418\u0422\u0415\u041B\u041D\u041E \u2014 \u0438\u0437\u0431\u043E\u0440 \u043D\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430): \u0418\u0437\u043F\u043E\u043B\u0437\u0432\u0430\u0439 \u0421\u0410\u041C\u041E \u0442\u0435\u0437\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438: ${displayList}. \u0418\u0437\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u0435: \u0435\u0434\u0438\u043D\u0441\u0442\u0432\u0435\u043D\u043E \u043F\u0440\u0438 \u043A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u0447\u043D\u0430 \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0430 \u043F\u0440\u043E\u0442\u0438\u0432\u043E\u043F\u043E\u043A\u0430\u0437\u043D\u043E\u0441\u0442 (\u0430\u043B\u0435\u0440\u0433\u0438\u044F, \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0435) \u043D\u0430 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u0438\u044F \u043F\u043E\u0442\u0440\u0435\u0431\u0438\u0442\u0435\u043B.`;
 }
 async function getGoalHacks(env, goal) {
   try {
@@ -9125,6 +9137,10 @@ ${serializePreviousDays(previousDays)}
     dynamicWhitelistSection = foodLists.dynamicWhitelistSection;
     dynamicBlacklistSection = foodLists.dynamicBlacklistSection;
     dynamicMainlistSection = foodLists.dynamicMainlistSection || "";
+  }
+  const userFoodPickerSection = buildUserFoodPickerSection(data);
+  if (userFoodPickerSection) {
+    dynamicMainlistSection = userFoodPickerSection;
   }
   const medicalDetailsSection = [
     data["medicalConditions_\u0410\u043B\u0435\u0440\u0433\u0438\u0438"] ? `\u0410\u043B\u0435\u0440\u0433\u0438\u0438 (\u0412\u0410\u0416\u041D\u041E - \u0438\u0437\u0431\u044F\u0433\u0432\u0430\u0439): ${data["medicalConditions_\u0410\u043B\u0435\u0440\u0433\u0438\u0438"]}` : "",
@@ -12617,7 +12633,18 @@ function finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay) {
   for (let d = startDay; d <= endDay; d++) {
     const day = weekPlan[`day${d}`];
     if (!day?.meals) continue;
-    for (const meal of day.meals) syncMealCaloriesFromMacros(meal);
+    for (const meal of day.meals) {
+      if (meal.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435") {
+        meal.name = meal.name || "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435";
+        delete meal.description;
+        delete meal.weight;
+        delete meal.calories;
+        delete meal.macros;
+        delete meal.dessert;
+        continue;
+      }
+      syncMealCaloriesFromMacros(meal);
+    }
   }
   recalculateDayCalories(weekPlan, strategy);
 }
@@ -16433,6 +16460,9 @@ async function handleGetBlacklist(request, env) {
   }
 }
 async function handleAddToBlacklist(request, env) {
+  if (!checkAdminSecret2(request, env)) {
+    return jsonResponse2({ error: "\u041D\u0435\u043E\u0442\u043E\u0440\u0438\u0437\u0438\u0440\u0430\u043D \u0434\u043E\u0441\u0442\u044A\u043F" }, 401);
+  }
   try {
     const data = await request.json();
     const item2 = data.item?.trim()?.toLowerCase();
@@ -16466,6 +16496,9 @@ async function handleAddToBlacklist(request, env) {
   }
 }
 async function handleRemoveFromBlacklist(request, env) {
+  if (!checkAdminSecret2(request, env)) {
+    return jsonResponse2({ error: "\u041D\u0435\u043E\u0442\u043E\u0440\u0438\u0437\u0438\u0440\u0430\u043D \u0434\u043E\u0441\u0442\u044A\u043F" }, 401);
+  }
   try {
     const data = await request.json();
     const item2 = data.item?.trim()?.toLowerCase();
@@ -16487,7 +16520,15 @@ async function handleRemoveFromBlacklist(request, env) {
     return jsonResponse2({ error: `Failed to remove from blacklist: ${error.message}` }, 500);
   }
 }
+function checkAdminSecret2(request, env) {
+  const secret = env.ADMIN_SECRET;
+  if (!secret) return true;
+  return (request.headers.get("X-Admin-Secret") || "") === secret;
+}
 async function handleSetBlacklist(request, env) {
+  if (!checkAdminSecret2(request, env)) {
+    return jsonResponse2({ error: "\u041D\u0435\u043E\u0442\u043E\u0440\u0438\u0437\u0438\u0440\u0430\u043D \u0434\u043E\u0441\u0442\u044A\u043F" }, 401);
+  }
   try {
     if (!env.page_content) {
       return jsonResponse2({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
@@ -16580,6 +16621,9 @@ async function handleGetMainlist(request, env) {
   }
 }
 async function handleSetMainlist(request, env) {
+  if (!checkAdminSecret2(request, env)) {
+    return jsonResponse2({ error: "\u041D\u0435\u043E\u0442\u043E\u0440\u0438\u0437\u0438\u0440\u0430\u043D \u0434\u043E\u0441\u0442\u044A\u043F" }, 401);
+  }
   try {
     if (!env.page_content) {
       return jsonResponse2({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
@@ -16595,6 +16639,9 @@ async function handleSetMainlist(request, env) {
   }
 }
 async function handleAddToMainlist(request, env) {
+  if (!checkAdminSecret2(request, env)) {
+    return jsonResponse2({ error: "\u041D\u0435\u043E\u0442\u043E\u0440\u0438\u0437\u0438\u0440\u0430\u043D \u0434\u043E\u0441\u0442\u044A\u043F" }, 401);
+  }
   try {
     const data = await request.json();
     const item2 = data.item?.trim()?.toLowerCase();
@@ -16618,6 +16665,9 @@ async function handleAddToMainlist(request, env) {
   }
 }
 async function handleRemoveFromMainlist(request, env) {
+  if (!checkAdminSecret2(request, env)) {
+    return jsonResponse2({ error: "\u041D\u0435\u043E\u0442\u043E\u0440\u0438\u0437\u0438\u0440\u0430\u043D \u0434\u043E\u0441\u0442\u044A\u043F" }, 401);
+  }
   try {
     const data = await request.json();
     const item2 = data.item?.trim()?.toLowerCase();
@@ -16639,6 +16689,9 @@ async function handleRemoveFromMainlist(request, env) {
   }
 }
 async function handleClearMainlist(request, env) {
+  if (!checkAdminSecret2(request, env)) {
+    return jsonResponse2({ error: "\u041D\u0435\u043E\u0442\u043E\u0440\u0438\u0437\u0438\u0440\u0430\u043D \u0434\u043E\u0441\u0442\u044A\u043F" }, 401);
+  }
   try {
     if (!env.page_content) {
       return jsonResponse2({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
@@ -16665,6 +16718,9 @@ async function handleGetMainlistStatus(request, env) {
   }
 }
 async function handleSetMainlistEnabled(request, env) {
+  if (!checkAdminSecret2(request, env)) {
+    return jsonResponse2({ error: "\u041D\u0435\u043E\u0442\u043E\u0440\u0438\u0437\u0438\u0440\u0430\u043D \u0434\u043E\u0441\u0442\u044A\u043F" }, 401);
+  }
   try {
     if (!env.page_content) {
       return jsonResponse2({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
@@ -16693,6 +16749,9 @@ async function handleGetMainlistPresets(request, env) {
   }
 }
 async function handleSaveMainlistPreset(request, env) {
+  if (!checkAdminSecret2(request, env)) {
+    return jsonResponse2({ error: "\u041D\u0435\u043E\u0442\u043E\u0440\u0438\u0437\u0438\u0440\u0430\u043D \u0434\u043E\u0441\u0442\u044A\u043F" }, 401);
+  }
   try {
     if (!env.page_content) {
       return jsonResponse2({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
@@ -16713,6 +16772,9 @@ async function handleSaveMainlistPreset(request, env) {
   }
 }
 async function handleLoadMainlistPreset(request, env) {
+  if (!checkAdminSecret2(request, env)) {
+    return jsonResponse2({ error: "\u041D\u0435\u043E\u0442\u043E\u0440\u0438\u0437\u0438\u0440\u0430\u043D \u0434\u043E\u0441\u0442\u044A\u043F" }, 401);
+  }
   try {
     if (!env.page_content) {
       return jsonResponse2({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
@@ -16740,6 +16802,9 @@ async function handleLoadMainlistPreset(request, env) {
   }
 }
 async function handleDeleteMainlistPreset(request, env) {
+  if (!checkAdminSecret2(request, env)) {
+    return jsonResponse2({ error: "\u041D\u0435\u043E\u0442\u043E\u0440\u0438\u0437\u0438\u0440\u0430\u043D \u0434\u043E\u0441\u0442\u044A\u043F" }, 401);
+  }
   try {
     if (!env.page_content) {
       return jsonResponse2({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);

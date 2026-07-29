@@ -3268,7 +3268,24 @@ function collectUserBlockedFoodTerms(data) {
   if (Array.isArray(data.forbidden)) {
     data.forbidden.forEach(f => pushSplit(f));
   }
+  if (Array.isArray(data.userFoodExclude)) {
+    data.userFoodExclude.forEach(f => pushSplit(f));
+  }
   return terms;
+}
+
+/** Per-user food-picker inclusion list (overrides global KV mainlist for this request). */
+function buildUserFoodPickerSection(data) {
+  const list = Array.isArray(data.userFoodList)
+    ? data.userFoodList.map(s => String(s).trim()).filter(Boolean)
+    : [];
+  if (!list.length) return '';
+  const joined = list.join(', ');
+  const MAX_MAINLIST_CHARS = 1500;
+  const displayList = joined.length > MAX_MAINLIST_CHARS
+    ? joined.slice(0, MAX_MAINLIST_CHARS) + '… [списъкът е съкратен]'
+    : joined;
+  return `\nОСНОВЕН СПИСЪК ХРАНИ (ЗАДЪЛЖИТЕЛНО — избор на клиента): Използвай САМО тези продукти: ${displayList}. Изключение: единствено при категорична медицинска противопоказност (алергия, заболяване) на конкретния потребител.`;
 }
 
 /**
@@ -3437,6 +3454,11 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
     dynamicWhitelistSection = foodLists.dynamicWhitelistSection;
     dynamicBlacklistSection = foodLists.dynamicBlacklistSection;
     dynamicMainlistSection = foodLists.dynamicMainlistSection || '';
+  }
+
+  const userFoodPickerSection = buildUserFoodPickerSection(data);
+  if (userFoodPickerSection) {
+    dynamicMainlistSection = userFoodPickerSection;
   }
   
   // Build medical details section for meal plan prompt
@@ -7776,7 +7798,18 @@ function finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay) {
   for (let d = startDay; d <= endDay; d++) {
     const day = weekPlan[`day${d}`];
     if (!day?.meals) continue;
-    for (const meal of day.meals) syncMealCaloriesFromMacros(meal);
+    for (const meal of day.meals) {
+      if (meal.type === 'Свободно хранене') {
+        meal.name = meal.name || 'Свободно хранене';
+        delete meal.description;
+        delete meal.weight;
+        delete meal.calories;
+        delete meal.macros;
+        delete meal.dessert;
+        continue;
+      }
+      syncMealCaloriesFromMacros(meal);
+    }
   }
   recalculateDayCalories(weekPlan, strategy);
 }
@@ -12658,6 +12691,9 @@ async function handleGetBlacklist(request, env) {
  * Accepts {item, mode: 'ban'|'substitute', substitute?}.
  */
 async function handleAddToBlacklist(request, env) {
+  if (!checkAdminSecret(request, env)) {
+    return jsonResponse({ error: 'Неоторизиран достъп' }, 401);
+  }
   try {
     const data = await request.json();
     const item = data.item?.trim()?.toLowerCase();
@@ -12703,6 +12739,9 @@ async function handleAddToBlacklist(request, env) {
  * Matches by item name (works for both old string[] and new object[] format).
  */
 async function handleRemoveFromBlacklist(request, env) {
+  if (!checkAdminSecret(request, env)) {
+    return jsonResponse({ error: 'Неоторизиран достъп' }, 401);
+  }
   try {
     const data = await request.json();
     const item = data.item?.trim()?.toLowerCase();
@@ -12739,7 +12778,16 @@ async function handleRemoveFromBlacklist(request, env) {
  * Accepts { items: string[] } — all items are stored with mode='ban'.
  * Passing an empty array clears the blacklist completely.
  */
+function checkAdminSecret(request, env) {
+  const secret = env.ADMIN_SECRET;
+  if (!secret) return true;
+  return (request.headers.get('X-Admin-Secret') || '') === secret;
+}
+
 async function handleSetBlacklist(request, env) {
+  if (!checkAdminSecret(request, env)) {
+    return jsonResponse({ error: 'Неоторизиран достъп' }, 401);
+  }
   try {
     if (!env.page_content) {
       return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
@@ -12876,6 +12924,9 @@ async function handleGetMainlist(request, env) {
  * Accepts { items: string[] } — the full new list.
  */
 async function handleSetMainlist(request, env) {
+  if (!checkAdminSecret(request, env)) {
+    return jsonResponse({ error: 'Неоторизиран достъп' }, 401);
+  }
   try {
     if (!env.page_content) {
       return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
@@ -12898,6 +12949,9 @@ async function handleSetMainlist(request, env) {
  * Accepts { item: string }.
  */
 async function handleAddToMainlist(request, env) {
+  if (!checkAdminSecret(request, env)) {
+    return jsonResponse({ error: 'Неоторизиран достъп' }, 401);
+  }
   try {
     const data = await request.json();
     const item = data.item?.trim()?.toLowerCase();
@@ -12926,6 +12980,9 @@ async function handleAddToMainlist(request, env) {
  * Accepts { item: string }.
  */
 async function handleRemoveFromMainlist(request, env) {
+  if (!checkAdminSecret(request, env)) {
+    return jsonResponse({ error: 'Неоторизиран достъп' }, 401);
+  }
   try {
     const data = await request.json();
     const item = data.item?.trim()?.toLowerCase();
@@ -12951,6 +13008,9 @@ async function handleRemoveFromMainlist(request, env) {
  * Mainlist Management: Clear the entire mainlist.
  */
 async function handleClearMainlist(request, env) {
+  if (!checkAdminSecret(request, env)) {
+    return jsonResponse({ error: 'Неоторизиран достъп' }, 401);
+  }
   try {
     if (!env.page_content) {
       return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
@@ -12986,6 +13046,9 @@ async function handleGetMainlistStatus(request, env) {
  * Accepts { enabled: boolean }.
  */
 async function handleSetMainlistEnabled(request, env) {
+  if (!checkAdminSecret(request, env)) {
+    return jsonResponse({ error: 'Неоторизиран достъп' }, 401);
+  }
   try {
     if (!env.page_content) {
       return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
@@ -13023,6 +13086,9 @@ async function handleGetMainlistPresets(request, env) {
  * Accepts { name: string }.
  */
 async function handleSaveMainlistPreset(request, env) {
+  if (!checkAdminSecret(request, env)) {
+    return jsonResponse({ error: 'Неоторизиран достъп' }, 401);
+  }
   try {
     if (!env.page_content) {
       return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
@@ -13048,6 +13114,9 @@ async function handleSaveMainlistPreset(request, env) {
  * Accepts { name: string }.
  */
 async function handleLoadMainlistPreset(request, env) {
+  if (!checkAdminSecret(request, env)) {
+    return jsonResponse({ error: 'Неоторизиран достъп' }, 401);
+  }
   try {
     if (!env.page_content) {
       return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
@@ -13080,6 +13149,9 @@ async function handleLoadMainlistPreset(request, env) {
  * Accepts { name: string }.
  */
 async function handleDeleteMainlistPreset(request, env) {
+  if (!checkAdminSecret(request, env)) {
+    return jsonResponse({ error: 'Неоторизиран достъп' }, 401);
+  }
   try {
     if (!env.page_content) {
       return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);

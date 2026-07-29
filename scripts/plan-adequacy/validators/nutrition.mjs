@@ -59,6 +59,9 @@ export function validateMealGramsAndWeight(meal) {
   return issues;
 }
 
+/** Fixed dessert macros (sync with worker FIXED_DESSERT) */
+const DESSERT_MACROS = { protein: 2, carbs: 14, fats: 12 };
+
 /** Recompute macros from written grams — catches AI/backend drift */
 export function validateMealMacrosFromGrams(meal) {
   const issues = [];
@@ -71,6 +74,11 @@ export function validateMealMacrosFromGrams(meal) {
   if (!items.length) return issues;
 
   const totals = sumItemNutrition(items);
+  if (meal.dessert) {
+    totals.p += DESSERT_MACROS.protein;
+    totals.c += DESSERT_MACROS.carbs;
+    totals.f += DESSERT_MACROS.fats;
+  }
   const tolP = macroTolerance(meal.macros.protein);
   const tolC = macroTolerance(meal.macros.carbs);
   const tolF = macroTolerance(meal.macros.fats);
@@ -119,7 +127,15 @@ export function validateWeekPlanNutrition(weekPlan, strategy) {
 
     let dayKcal = 0;
     for (const meal of day.meals) {
-      if (meal.type === 'Свободно хранене' || meal.type === 'Напитка') continue;
+      if (meal.type === 'Свободно хранене') {
+        const freeTarget = dayTarget?.mealBreakdown?.find(
+          m => m.type === 'Свободно хранене' || m.type === 'Хранене 2'
+        );
+        const freeCal = Number(meal._plannedCalories) || Number(freeTarget?.calories) || 0;
+        dayKcal += freeCal;
+        continue;
+      }
+      if (meal.type === 'Напитка') continue;
 
       const target = dayTarget?.mealBreakdown?.find(m => m.type === meal.type);
       issues.push(
