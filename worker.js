@@ -4602,9 +4602,11 @@ function enrichPlanWithExercises(plan, index, {
   pickedApparatus = null,
   env = {},
   exerciseProfile = null,
-  materializeMatch = false
+  materializeMatch = false,
+  skipEquipmentSwap = false
 } = {}) {
   if (!index) return plan;
+  const matchEquipment = skipEquipmentSwap ? null : allowedEquipment;
   for (const day of plan.days) {
     const usedIds = [];
     for (const ex of day.exercises) {
@@ -4612,11 +4614,11 @@ function enrichPlanWithExercises(plan, index, {
         canonicalName: ex.canonicalName,
         equipmentHint: ex.equipmentHint,
         bodyPart: ex.bodyPart,
-        allowedEquipment,
-        exerciseProfile,
+        allowedEquipment: matchEquipment,
+        exerciseProfile: skipEquipmentSwap ? null : exerciseProfile,
         pickedApparatus
       });
-      const needsSwap = result?.entry && (allowedEquipment && !passesEquipment(result.entry, allowedEquipment) || pickedApparatus?.length && !passesApparatusFilter(result.entry, pickedApparatus) || exerciseProfile && !fitsExerciseProfile(result.entry, exerciseProfile));
+      const needsSwap = !skipEquipmentSwap && result?.entry && (allowedEquipment && !passesEquipment(result.entry, allowedEquipment) || pickedApparatus?.length && !passesApparatusFilter(result.entry, pickedApparatus) || exerciseProfile && !fitsExerciseProfile(result.entry, exerciseProfile));
       if (needsSwap) {
         const swap = findAlternatives(index, result.entry, {
           allowedEquipment,
@@ -4882,10 +4884,6 @@ async function handleGetPlan(planId, env, ctx) {
   if (!env.FITNESS_KV) return errorResponse("\u0425\u0440\u0430\u043D\u0438\u043B\u0438\u0449\u0435\u0442\u043E \u043D\u0435 \u0435 \u043A\u043E\u043D\u0444\u0438\u0433\u0443\u0440\u0438\u0440\u0430\u043D\u043E", 500);
   const record = await env.FITNESS_KV.get(`plan:${planId}`, { type: "json" });
   if (!record) return errorResponse("\u041F\u043B\u0430\u043D\u044A\u0442 \u043D\u0435 \u0435 \u043D\u0430\u043C\u0435\u0440\u0435\u043D \u0438\u043B\u0438 \u0435 \u0438\u0437\u0442\u0435\u043A\u044A\u043B", 404, "not_found");
-  if (record.clientProgramId) {
-    const clientProgram = await loadClientProgram(env, record.clientProgramId);
-    await repairPlanEquipmentFromClient(env, planId, record, clientProgram, { persist: true });
-  }
   let plan = record.plan;
   const index = await loadExerciseIndex(env, ctx);
   if (index && plan) {
@@ -4895,7 +4893,7 @@ async function handleGetPlan(planId, env, ctx) {
       allowedEquipment: allowed,
       pickedApparatus: record.pickedApparatus || null,
       exerciseProfile: record.exerciseProfile || null,
-      materializeMatch: true
+      skipEquipmentSwap: true
     });
   }
   return jsonResponse({
@@ -5499,27 +5497,6 @@ async function handleApproveClientProgram(request, env, id) {
   const path = clientPlanLinkPath(record.planId, record.planEditedAt);
   return jsonResponse({ success: true, planId: record.planId, path, program: clientProgramPublicView(record) });
 }
-function clientAllowedEquipmentFromRecord(clientProgramRecord) {
-  if (!clientProgramRecord?.clientAnswers) return void 0;
-  return allowedEquipmentSet(
-    clientProgramRecord.clientAnswers.equipment || [],
-    clientProgramRecord.clientAnswers.equipmentPickedItems || []
-  );
-}
-async function repairPlanEquipmentFromClient(env, planId, planRecord, clientProgramRecord, { persist = false } = {}) {
-  const clientEquip = clientAllowedEquipmentFromRecord(clientProgramRecord);
-  if (clientEquip === void 0) return planRecord;
-  const next = clientEquip?.size ? [...clientEquip] : null;
-  const prevKey = (planRecord.allowedEquipment || []).slice().sort().join("|");
-  const nextKey = (next || []).slice().sort().join("|");
-  if (prevKey !== nextKey) {
-    planRecord.allowedEquipment = next;
-    if (persist && env.FITNESS_KV) {
-      await env.FITNESS_KV.put(`plan:${planId}`, JSON.stringify(planRecord), { expirationTtl: PLAN_TTL });
-    }
-  }
-  return planRecord;
-}
 function planClientEnrichmentOptions(planRecord) {
   return {
     allowedEquipment: planRecord.allowedEquipment ? new Set(planRecord.allowedEquipment) : null,
@@ -5532,7 +5509,7 @@ function enrichPlanForClientView(plan, index, planRecord, env) {
   return enrichPlanWithExercises(JSON.parse(JSON.stringify(plan)), index, {
     env,
     ...planClientEnrichmentOptions(planRecord),
-    materializeMatch: true
+    skipEquipmentSwap: true
   });
 }
 async function handleAdminGetClientProgramPlan(request, env, ctx, id) {
@@ -5543,7 +5520,6 @@ async function handleAdminGetClientProgramPlan(request, env, ctx, id) {
   if (!record.planId) return errorResponse("\u041D\u044F\u043C\u0430 \u0433\u0435\u043D\u0435\u0440\u0438\u0440\u0430\u043D \u043F\u043B\u0430\u043D \u2014 \u0433\u0435\u043D\u0435\u0440\u0438\u0440\u0430\u0439 \u043F\u044A\u0440\u0432\u043E \u0441 AI", 404, "not_found");
   const planRecord = await env.FITNESS_KV.get(`plan:${record.planId}`, { type: "json" });
   if (!planRecord?.plan) return errorResponse("\u041F\u043B\u0430\u043D\u044A\u0442 \u043D\u0435 \u0435 \u043D\u0430\u043C\u0435\u0440\u0435\u043D. \u0413\u0435\u043D\u0435\u0440\u0438\u0440\u0430\u0439 \u043E\u0442\u043D\u043E\u0432\u043E.", 404, "not_found");
-  await repairPlanEquipmentFromClient(env, record.planId, planRecord, record, { persist: true });
   const index = await loadExerciseIndex(env, ctx);
   const plan = enrichPlanForClientView(planRecord.plan, index, planRecord, env);
   return jsonResponse({
@@ -5575,7 +5551,6 @@ async function handleAdminUpdateClientProgramPlan(request, env, ctx, id) {
   }
   const planRecord = await env.FITNESS_KV.get(`plan:${record.planId}`, { type: "json" });
   if (!planRecord) return errorResponse("\u041F\u043B\u0430\u043D\u044A\u0442 \u043D\u0435 \u0435 \u043D\u0430\u043C\u0435\u0440\u0435\u043D. \u0413\u0435\u043D\u0435\u0440\u0438\u0440\u0430\u0439 \u043E\u0442\u043D\u043E\u0432\u043E.", 404, "not_found");
-  await repairPlanEquipmentFromClient(env, record.planId, planRecord, record, { persist: true });
   sanitizePlanBulgarian(plan);
   const now = (/* @__PURE__ */ new Date()).toISOString();
   planRecord.plan = plan;
