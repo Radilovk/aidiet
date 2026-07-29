@@ -44,6 +44,39 @@ import {
   validateProductNamesInCatalog,
   validateProductNamesAgainstProtocol,
 } from './food-catalog.js';
+import {
+  MIN_RECOMMENDED_CALORIES_FEMALE,
+  MIN_RECOMMENDED_CALORIES_MALE,
+  MIN_FAT_GRAMS_PER_KG,
+  MAX_LATE_SNACK_CALORIES,
+  DAY_NUMBER_TO_KEY,
+  FIXED_DESSERT,
+  FIXED_DESSERT_WEIGHT_GRAMS,
+  MEAL_TYPE_ALIASES,
+  ALLOWED_MEAL_TYPES,
+  parseFinalCalories,
+  goalIncludes,
+  getMinRecommendedCalories,
+  macrosToCalories,
+  userHasSweetsCraving,
+  calculateBMR,
+  calculateUnifiedActivityScore,
+  calculateTDEE,
+  calculateSafeDeficit,
+  syncAnalysisCalories,
+  enforceCalorieGuardrails,
+  enforceWeekendFreeDay,
+  normalizeStrategyDessertFlag,
+  normalizeMealBreakdownTypes,
+  normalizeWeeklyScheme,
+  getFreeMealSlotCalories,
+  injectFixedDesserts,
+  recalculateDayCalories,
+  collectUserBlockedFoodTerms,
+  applyFoodSubstitutions,
+  validateMealsAgainstScheme as validateMealsAgainstSchemePure,
+  normalizeMealTypesInWeekPlan,
+} from './plan-pipeline-pure.js';
 
 
 /**
@@ -175,9 +208,6 @@ const DEFAULT_VALIDATION_CONFIG = {
     }
   }
 };
-const MIN_RECOMMENDED_CALORIES_FEMALE = 1200; // Hard floor - minimum safe calories for women
-const MIN_RECOMMENDED_CALORIES_MALE = 1500;   // Hard floor - minimum safe calories for men
-const MIN_FAT_GRAMS_PER_KG = 0.7; // Minimum dietary fat for hormonal function (g/kg body weight)
 
 // Analysis Configuration
 const WATER_PER_KG_MULTIPLIER = 0.035; // Liters per kg body weight
@@ -323,7 +353,6 @@ const DAY_NAMES_BG = {
 };
 
 // Map day numbers (1-7) to weekday keys used in strategy.weeklyScheme
-const DAY_NUMBER_TO_KEY = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
 // Bulgarian error message shown when REGENERATE_PLAN parsing fails and no clean response text remains
 const ERROR_MESSAGE_PARSE_FAILURE = ERROR_MESSAGES.PARSE_FAILURE;
@@ -867,141 +896,8 @@ function buildDynamicSubQuestionsText(data) {
   return lines.join('\n\n');
 }
 
-/**
- * Calculate BMR using Mifflin-St Jeor Equation
- * Men: BMR = 10 × weight(kg) + 6.25 × height(cm) - 5 × age(y) + 5
- * Women: BMR = 10 × weight(kg) + 6.25 × height(cm) - 5 × age(y) - 161
- * 
- * NOTE (2026-02-03): This function is DEPRECATED for primary calorie calculation.
- * AI model now calculates BMR/TDEE/calories holistically considering ALL correlates.
- * This function is kept ONLY for:
- * - Safety validation (ensure AI values are reasonable)
- * - Fallback if AI calculation fails
- * - Testing and comparison purposes
- * 
- * IMPORTANT: Never returns default values - all calculations are individualized
- * If required data is missing, throws an error to ensure proper data collection
- */
-function calculateBMR(data) {
-  if (!data.weight || !data.height || !data.age || !data.gender) {
-    throw new Error('Cannot calculate BMR: Missing required data (weight, height, age, or gender). All calculations must be individualized.');
-  }
-  
-  const weight = parseFloat(data.weight);
-  const height = parseFloat(data.height);
-  const age = parseFloat(data.age);
-  
-  if (isNaN(weight) || isNaN(height) || isNaN(age) || weight <= 0 || height <= 0 || age <= 0) {
-    throw new Error('Cannot calculate BMR: Invalid numerical values for weight, height, or age.');
-  }
-  
-  let bmr = 10 * weight + 6.25 * height - 5 * age;
-  
-  if (data.gender === 'Мъж') {
-    bmr += 5;
-  } else if (data.gender === 'Жена') {
-    bmr -= 161;
-  } else {
-    throw new Error('Cannot calculate BMR: Gender must be specified as "Мъж" or "Жена".');
-  }
-  
-  return Math.round(bmr);
-}
 
-/**
- * Calculate unified activity score (1-10 scale) - Issue #7 Resolution
- * Combines daily activity level (1-3) with sport/exercise frequency (0-7 days/week)
- * 
- * Scale interpretation:
- * - dailyActivityLevel: "Ниско"=1, "Средно"=2, "Високо"=3
- * - sportActivity: Extract days per week from string (0-7)
- * - Combined score = dailyActivityLevel + min(sportDays, 7)
- * 
- * Examples:
- * - Високо (3) + Ниска 1-2 дни (1.5avg) → ~4.5 → 5
- * - Ниско (1) + Средна 2-4 дни (3avg) → ~4
- * - Средно (2) + Висока 5-7 дни (6avg) → ~8
- */
-function calculateUnifiedActivityScore(data) {
-  // Map daily activity level to 1-3 scale
-  const dailyActivityMap = {
-    'Ниско': 1,
-    'Средно': 2,
-    'Високо': 3
-  };
-  
-  const dailyScore = dailyActivityMap[data.dailyActivityLevel] || 2;
-  
-  // Extract sport days from sportActivity string
-  // Using midpoint values for ranges: 1-2 days → 1.5, 2-4 days → 3, 5-7 days → 6
-  const SPORT_DAYS_LOW = 1.5;    // Average of 1-2 days range
-  const SPORT_DAYS_MEDIUM = 3;   // Average of 2-4 days range  
-  const SPORT_DAYS_HIGH = 6;     // Average of 5-7 days range
-  
-  let sportDays = 0;
-  if (data.sportActivity) {
-    const sportStr = data.sportActivity;
-    if (sportStr.includes('0 дни')) sportDays = 0;
-    else if (sportStr.includes('1–2 дни')) sportDays = SPORT_DAYS_LOW;
-    else if (sportStr.includes('2–4 дни')) sportDays = SPORT_DAYS_MEDIUM;
-    else if (sportStr.includes('5–7 дни')) sportDays = SPORT_DAYS_HIGH;
-  }
-  
-  // Combined score: 1-10 scale
-  const combinedScore = Math.min(10, Math.max(1, dailyScore + sportDays));
-  
-  return {
-    dailyScore,
-    sportDays,
-    combinedScore: Math.round(combinedScore * 10) / 10, // Round to 1 decimal
-    activityLevel: combinedScore <= 3 ? 'Ниска' : 
-                   combinedScore <= 6 ? 'Средна' : 
-                   combinedScore <= 8 ? 'Висока' : 'Много висока'
-  };
-}
 
-/**
- * Calculate TDEE (Total Daily Energy Expenditure) based on unified activity score
- * Updated multipliers based on 1-10 activity scale - Issue #7 & #10 Resolution
- * 
- * NOTE (2026-02-06): Updated to use unified activity score (1-10)
- * Maximum caloric deficit capped at 25% per Issue #9
- * AI model now calculates TDEE holistically. Kept for validation/fallback only.
- */
-function calculateTDEE(bmr, activityLevel) {
-  // Legacy support: if activityLevel is string, use old multipliers
-  if (typeof activityLevel === 'string') {
-    const activityMultipliers = {
-      'Никаква (0 дни седмично)': 1.2,
-      'Ниска (1–2 дни седмично)': 1.375,
-      'Средна (2–4 дни седмично)': 1.55,
-      'Висока (5–7 дни седмично)': 1.725,
-      'Много висока (атлети)': 1.9,
-      'default': 1.4
-    };
-    const multiplier = activityMultipliers[activityLevel] || activityMultipliers['default'];
-    return Math.round(bmr * multiplier);
-  }
-  
-  // New unified score-based multipliers (1-10 scale)
-  // Smoother progression for more accurate TDEE calculation
-  const scoreMultipliers = {
-    1: 1.2,    // Sedentary
-    2: 1.3,
-    3: 1.375,  // Light
-    4: 1.45,
-    5: 1.525,
-    6: 1.6,    // Moderate
-    7: 1.675,
-    8: 1.75,   // Very active
-    9: 1.85,
-    10: 1.95   // Extremely active
-  };
-  
-  const score = Math.round(activityLevel);
-  const multiplier = scoreMultipliers[score] || scoreMultipliers[5];
-  return Math.round(bmr * multiplier);
-}
 
 /**
  * Calculate BMI (Body Mass Index)
@@ -1105,35 +1001,6 @@ function calculateMacronutrientRatios(data, activityScore, tdee = null) {
   };
 }
 
-/**
- * Calculate safe caloric deficit - Issue #9 Resolution
- * Maximum 25% deficit, but AI can adjust for specific strategies
- * 
- * @returns {{targetCalories: number, deficitPercent: number, maxDeficitCalories: number, note?: string}}
- */
-function calculateSafeDeficit(tdee, goal) {
-  const MAX_DEFICIT_PERCENT = 0.25; // 25% maximum
-  
-  if (!goal || !goal.includes('Отслабване')) {
-    return {
-      targetCalories: tdee,
-      deficitPercent: 0,
-      maxDeficitCalories: tdee
-    };
-  }
-  
-  // Conservative deficit: 15-20% for most people
-  const standardDeficit = 0.18;
-  const targetCalories = Math.round(tdee * (1 - standardDeficit));
-  const maxDeficitCalories = Math.round(tdee * (1 - MAX_DEFICIT_PERCENT));
-  
-  return {
-    targetCalories,
-    deficitPercent: standardDeficit * 100,
-    maxDeficitCalories,
-    note: 'AI може да коригира при специални стратегии (напр. интермитентно гладуване)'
-  };
-}
 
 /**
  * Validate data adequacy - check for unrealistic, inappropriate, or invalid data
@@ -1700,7 +1567,6 @@ const pendingSessionLogs = new Map(); // sessionId → [logId, ...]
 // the bounded scaling could not fix.
 const MEAL_PLAN_CHUNK_MAX_RETRIES = 2; // Up to 2 retries per day when structural validation fails
 const CATALOG_STRICT_MODE = true; // Step 3: only catalog products; no AI nutrition lookup
-const MAX_LATE_SNACK_CALORIES = 200; // Maximum calories allowed for late-night snacks
 
 /**
  * Cache API helper functions for AI logging
@@ -2774,32 +2640,7 @@ function buildFreeMealInstruction(strategy, startDay, endDay) {
   return `\n\n=== СВОБОДНО ХРАНЕНЕ (Ден ${dayNum}) ===\nЗАДЪЛЖИТЕЛНО за ден ${dayNum}: ЗАМЕНИ Хранене 2 (Хранене 2 НЕ се генерира!) с точно: {"type": "Свободно хранене", "name": "Свободно хранене"} — БЕЗ description, calories, macros, weight, benefits или dessert.\nХранене 1 и Хранене 4 за ден ${dayNum} генерирай НОРМАЛНО. Хранене 4 в този ден — лека вечеря БЕЗ ориз/картофи/хляб/паста.\nКалориите за свободния обеден слот идват от strategy mealBreakdown и се включват в dailyTotals от бекенда.`;
 }
 
-/**
- * Enforce that freeDayNumber is always 6 (Saturday) or 7 (Sunday).
- * If the AI returned a weekday number (1-5), clamp it to 7 (Sunday).
- */
-function enforceWeekendFreeDay(strategy) {
-  if (!strategy || strategy.freeDayNumber == null) return;
-  const d = Number(strategy.freeDayNumber);
-  if (!isNaN(d) && (d < 6 || d > 7)) {
-    strategy.freeDayNumber = 7;
-  }
-}
 
-/** Default includeDessert when Step 2 omits the flag (sweets craving minus clinical blocks). */
-function normalizeStrategyDessertFlag(strategy, userData) {
-  if (!strategy || strategy.includeDessert !== undefined) return;
-  if (!userHasSweetsCraving(userData?.foodCravings)) {
-    strategy.includeDessert = false;
-    return;
-  }
-  const conditions = userData?.medicalConditions;
-  const blocked = Array.isArray(conditions) && conditions.some(c => {
-    const s = String(c);
-    return s.includes('Диабет') || s.includes('Инсулинова резистентност');
-  });
-  strategy.includeDessert = !blocked;
-}
 
 
 /**
@@ -3246,30 +3087,6 @@ function invalidateFoodListsCache() {
   foodListsCacheTime = 0;
 }
 
-/** Collect blocked food terms from user profile for catalog filtering */
-function collectUserBlockedFoodTerms(data) {
-  const terms = [];
-  const pushSplit = (val) => {
-    if (!val) return;
-    String(val).split(/[,;|\n]/).forEach(s => {
-      const t = s.trim();
-      if (t.length >= 2) terms.push(t);
-    });
-  };
-  pushSplit(data.dietDislike);
-  pushSplit(data['medicalConditions_Алергии']);
-  if (Array.isArray(data.planModifications)) {
-    for (const mod of data.planModifications) {
-      if (typeof mod === 'string' && mod.startsWith('exclude_food:')) {
-        terms.push(mod.slice('exclude_food:'.length).trim());
-      }
-    }
-  }
-  if (Array.isArray(data.forbidden)) {
-    data.forbidden.forEach(f => pushSplit(f));
-  }
-  return terms;
-}
 
 /**
  * Get goal-based hacks from KV storage or use defaults
@@ -7300,25 +7117,6 @@ const MAX_MEALS_PER_DAY = 5; // Maximum number of meals per day (when there's cl
 const MIN_DAILY_CALORIES = MIN_RECOMMENDED_CALORIES_FEMALE;
 // Note: calorieTolerance()/macroTolerance() live in food-nutrition.js; MAX_LATE_SNACK_CALORIES moved earlier in file (line ~580) to be available in template strings
 const MEAL_ORDER_MAP = { 'Напитка': 0, 'Хранене 1': 0, 'Хранене 2': 1, 'Свободно хранене': 1, 'Хранене 3': 2, 'Хранене 4': 3, 'Хранене 5': 4 }; // Chronological meal order
-const ALLOWED_MEAL_TYPES = ['Напитка', 'Хранене 1', 'Хранене 2', 'Свободно хранене', 'Хранене 3', 'Хранене 4', 'Хранене 5']; // Valid meal types
-// Fixed dessert object injected by the backend for users who crave sweets.
-// The AI includes the dessert's calories and macros directly in meal.calories/meal.macros,
-// and marks the meal with "dessert": true so the client can render the dessert detail card.
-// injectFixedDesserts() replaces the boolean marker with the full object and also adds the
-// dessert weight to meal.weight (the AI prompt does not instruct the AI to include it).
-const FIXED_DESSERT = {
-  name: 'Пълномаслен шоколад с лешници',
-  weight: '30г',
-  description: 'Насладете се на 2 реда млечен или черен шоколад с цели лешници.',
-  calories: 168,
-  macros: { protein: 2, carbs: 14, fats: 12 }
-};
-
-// Numeric grams value extracted from FIXED_DESSERT.weight (e.g. '30г' → 30).
-const FIXED_DESSERT_WEIGHT_GRAMS = (() => {
-  const m = FIXED_DESSERT.weight.match(/(\d+(?:\.\d+)?)/);
-  return m ? parseFloat(m[1]) : 0;
-})();
 
 function buildSweetsCravingRule(foodCravings, strategy) {
   if (!userHasSweetsCraving(foodCravings) || strategy?.includeDessert === false) return '';
@@ -7326,302 +7124,21 @@ function buildSweetsCravingRule(foodCravings, strategy) {
   return `\nВАЖНО - НУЖДА ОТ СЛАДКО: Клиентът изпитва нужда от сладки изделия. ЗАДЪЛЖИТЕЛНО добавяй към всеки "Хранене 2" (САМО Хранене 2, НЕ друго хранене) поле "dessert": true — десертът е финален компонент на Хранене 2, не отделно хранене. НЕ включвай наименованието на десерта в полето "name" на Хранене 2. meal.calories и meal.macros на Хранене 2 ТРЯБВА да включват стойностите на ЦЯЛОТО хранене заедно с десерта (${FIXED_DESSERT.calories} ккал, ${d.protein}г белтъчини, ${d.carbs}г въглехидрати, ${d.fats}г мазнини) — взимай тези стойности предвид при изграждане на дневния калориен баланс. ПРИ ХРАНЕНЕ 2 С ДЕСЕРТ — НЕ включвай картофи, ориз или хляб. ЗА ХРАНЕНЕ 3 в дни с десерт: задължително БЕЗ плодове — само кисело мляко, ядки, скир или протеинов шейк.`;
 }
 
-/** Calories from macro grams: protein×4 + carbs×4 + fats×9 */
-function macrosToCalories(macros) {
-  if (!macros) return 0;
-  const p = Number(macros.protein) || 0;
-  const c = Number(macros.carbs) || 0;
-  const f = Number(macros.fats) || 0;
-  return Math.round(p * 4 + c * 4 + f * 9);
-}
 
 // Replaces "dessert": true markers with the fixed dessert object and adds dessert
 // grams to meal.weight. AI must include dessert macros in meal.calories/macros;
 // finalizeWeekPlanDays() syncs calories from macros after injection.
-function injectFixedDesserts(weekPlan) {
-  for (const dayKey of Object.keys(weekPlan)) {
-    const day = weekPlan[dayKey];
-    if (day && day.meals) {
-      for (const meal of day.meals) {
-        if (meal.dessert && typeof meal.dessert !== 'object') {
-          meal.dessert = { ...FIXED_DESSERT, macros: { ...FIXED_DESSERT.macros }, _weightAddedToMeal: true };
-          if (meal.weight && FIXED_DESSERT_WEIGHT_GRAMS > 0) {
-            const mainMatch = String(meal.weight).match(/(\d+(?:\.\d+)?)/);
-            if (mainMatch) {
-              const totalGrams = Math.round(parseFloat(mainMatch[1]) + FIXED_DESSERT_WEIGHT_GRAMS);
-              meal.weight = `${totalGrams}г`;
-            }
-          }
-        }
-      }
-    }
-  }
-}
 
-/**
- * Sync meal.calories from macros and rebuild dailyTotals.
- * Free-meal slot calories/macros come from strategy mealBreakdown when available.
- */
-function recalculateDayCalories(weekPlan, strategy) {
-  for (const dayKey of Object.keys(weekPlan)) {
-    const day = weekPlan[dayKey];
-    if (!day || !Array.isArray(day.meals)) continue;
 
-    const dayNum = parseInt(String(dayKey).replace('day', ''), 10);
-    const schemeKey = dayNum >= 1 && dayNum <= 7 ? DAY_NUMBER_TO_KEY[dayNum - 1] : null;
-    const dayTarget = schemeKey && strategy?.weeklyScheme ? strategy.weeklyScheme[schemeKey] : null;
 
-    let totalCals = 0;
-    let totalProtein = 0;
-    let totalCarbs = 0;
-    let totalFats = 0;
 
-    for (const meal of day.meals) {
-      if (meal.type === 'Свободно хранене') {
-        const freeTarget = dayTarget?.mealBreakdown?.find(m =>
-          m.type === 'Свободно хранене' || m.type === 'Хранене 2'
-        );
-        const freeCal = freeTarget ? (Number(freeTarget.calories) || 0) : getFreeMealSlotCalories(dayTarget);
-        if (freeCal > 0) meal._plannedCalories = freeCal;
-        totalCals += freeCal;
-        if (freeTarget) {
-          totalProtein += Number(freeTarget.protein) || 0;
-          totalCarbs += Number(freeTarget.carbs) || 0;
-          totalFats += Number(freeTarget.fats) || 0;
-        }
-        continue;
-      }
-      if (meal.type === 'Напитка' || !meal.macros) continue;
 
-      const p = Number(meal.macros.protein) || 0;
-      const c = Number(meal.macros.carbs) || 0;
-      const f = Number(meal.macros.fats) || 0;
-      meal.calories = macrosToCalories(meal.macros);
-      totalCals += meal.calories;
-      totalProtein += p;
-      totalCarbs += c;
-      totalFats += f;
-    }
 
-    if (!day.dailyTotals) day.dailyTotals = {};
-    day.dailyTotals.calories = totalCals;
-    day.dailyTotals.protein = Math.round(totalProtein);
-    day.dailyTotals.carbs = Math.round(totalCarbs);
-    day.dailyTotals.fats = Math.round(totalFats);
-  }
-}
 
-/**
- * Parse a Final_Calories value (number or string) into an integer.
- * Returns 0 if the value is missing or non-numeric.
- */
-function parseFinalCalories(value) {
-  if (!value) return 0;
-  if (typeof value === 'number') return Math.round(value);
-  const m = String(value).match(/\d+/);
-  return m ? parseInt(m[0]) : 0;
-}
 
-/**
- * Sync analysis.correctedMetabolism.realTDEE to Final_Calories.
- * The prompt instructs the AI to set both to the same value, but models
- * occasionally place different numbers in each field. Using Final_Calories
- * as the single source of truth prevents Steps 2 and 3 from working with
- * diverging calorie targets.
- */
-function syncAnalysisCalories(analysis) {
-  if (!analysis) return;
-  const fc = parseFinalCalories(analysis.Final_Calories);
-  if (fc > 0 && analysis.correctedMetabolism) {
-    analysis.correctedMetabolism.realTDEE = fc;
-  }
-}
 
-/**
- * Check if goal string/array contains a keyword (handles clinical protocol composite goals).
- */
-function goalIncludes(goal, keyword) {
-  if (!goal || !keyword) return false;
-  if (Array.isArray(goal)) return goal.some(g => String(g).includes(keyword));
-  return String(goal).includes(keyword);
-}
 
-function getMinRecommendedCalories(gender) {
-  return gender === 'Мъж' ? MIN_RECOMMENDED_CALORIES_MALE : MIN_RECOMMENDED_CALORIES_FEMALE;
-}
 
-/**
- * Apply safety guardrails to AI calorie/macro output without replacing clinical judgment.
- * Clamps only dangerous extremes; AI retains authority on diet-specific targets.
- */
-function enforceCalorieGuardrails(analysis, data, referenceTdee) {
-  if (!analysis) return;
-
-  syncAnalysisCalories(analysis);
-
-  const tdee = referenceTdee || parseFinalCalories(analysis.tdee) || 0;
-  let fc = parseFinalCalories(analysis.Final_Calories);
-  if (fc <= 0 && tdee > 0) fc = tdee;
-
-  const cm = analysis.correctedMetabolism || (analysis.correctedMetabolism = {});
-  const minCal = getMinRecommendedCalories(data.gender);
-  const isLactation = data.clinicalProtocol === 'postpartum_lactation';
-  const maxDeficitRatio = 0.25;
-  const corrections = [];
-
-  if (tdee > 0 && fc > 0 && goalIncludes(data.goal, 'Отслабване') && !isLactation) {
-    const minAllowed = Math.round(tdee * (1 - maxDeficitRatio));
-    if (fc < minAllowed) {
-      fc = minAllowed;
-      corrections.push('Дефицитът е ограничен до безопасни 25%.');
-    }
-  }
-
-  if (fc > 0 && fc < minCal) {
-    fc = minCal;
-    corrections.push('Повдигнато до минималния безопасен праг.');
-  }
-
-  if (fc > 0) {
-    analysis.Final_Calories = fc;
-    cm.realTDEE = fc;
-  }
-
-  const weight = parseFloat(data.weight) || 70;
-  const minFatG = Math.round(weight * MIN_FAT_GRAMS_PER_KG);
-  const mg = analysis.macroGrams || (analysis.macroGrams = {});
-  const ratios = analysis.macroRatios;
-
-  if (fc > 0 && ratios && ratios.protein != null && ratios.fats != null) {
-    let proteinG = Math.round(fc * ratios.protein / 100 / 4);
-    let fatsG = Math.round(fc * ratios.fats / 100 / 9);
-    let carbsG = Math.round((fc - proteinG * 4 - fatsG * 9) / 4);
-
-    if (fatsG < minFatG) {
-      fatsG = minFatG;
-      carbsG = Math.max(0, Math.round((fc - proteinG * 4 - fatsG * 9) / 4));
-      corrections.push(`Мазнините са повдигнати до минимум ${minFatG}г.`);
-    }
-
-    mg.protein = proteinG;
-    mg.fats = fatsG;
-    mg.carbs = carbsG;
-  } else if (mg.fats > 0 && mg.fats < minFatG) {
-    mg.fats = minFatG;
-    corrections.push(`Мазнините са повдигнати до минимум ${minFatG}г.`);
-  }
-
-  if (corrections.length > 0) {
-    cm.correction = corrections.join(' ');
-    console.log('Calorie guardrails applied:', corrections.join(' '));
-  }
-}
-
-/** Canonicalize meal type strings inside strategy mealBreakdown (Step 2 aliases). */
-function normalizeMealBreakdownTypes(strategy) {
-  if (!strategy?.weeklyScheme) return;
-  for (const day of Object.values(strategy.weeklyScheme)) {
-    if (!day?.mealBreakdown?.length) continue;
-    for (const entry of day.mealBreakdown) {
-      if (!entry?.type) continue;
-      if (MEAL_TYPE_ALIASES[entry.type]) {
-        entry.type = MEAL_TYPE_ALIASES[entry.type];
-      }
-    }
-  }
-}
-
-/**
- * Ensure weeklyScheme mealBreakdown sums match per-day calorie/macro targets.
- */
-function normalizeWeeklyScheme(strategy, defaultDailyCalories) {
-  if (!strategy?.weeklyScheme) return;
-  normalizeMealBreakdownTypes(strategy);
-
-  for (const key of DAY_NUMBER_TO_KEY) {
-    const day = strategy.weeklyScheme[key];
-    if (!day || !Array.isArray(day.mealBreakdown) || day.mealBreakdown.length === 0) continue;
-
-    const sumField = (field) => day.mealBreakdown.reduce((s, m) => s + (Number(m[field]) || 0), 0);
-    const sumCals = sumField('calories');
-    const sumP = sumField('protein');
-    const sumC = sumField('carbs');
-    const sumF = sumField('fats');
-
-    const targetCals = Number(day.calories) || defaultDailyCalories || sumCals;
-    if (!day.calories && (sumCals > 0 || defaultDailyCalories)) day.calories = sumCals || defaultDailyCalories;
-    if (!day.protein && sumP > 0) day.protein = sumP;
-    if (!day.carbs && sumC > 0) day.carbs = sumC;
-    if (!day.fats && sumF > 0) day.fats = sumF;
-    if (!day.meals) day.meals = day.mealBreakdown.length;
-
-    if (sumCals > 0 && targetCals > 0 && Math.abs(sumCals - targetCals) > calorieTolerance(targetCals)) {
-      const ratio = targetCals / sumCals;
-      for (const m of day.mealBreakdown) {
-        m.calories = Math.round((Number(m.calories) || 0) * ratio);
-        m.protein = Math.round((Number(m.protein) || 0) * ratio);
-        m.carbs = Math.round((Number(m.carbs) || 0) * ratio);
-        m.fats = Math.round((Number(m.fats) || 0) * ratio);
-      }
-    } else if (sumCals > 0 && Math.abs(sumCals - (Number(day.calories) || 0)) > calorieTolerance(day.calories)) {
-      day.calories = sumCals;
-      day.protein = sumP;
-      day.carbs = sumC;
-      day.fats = sumF;
-    }
-  }
-}
-
-function getFreeMealSlotCalories(dayTarget) {
-  if (!dayTarget?.mealBreakdown) return 0;
-  const free = dayTarget.mealBreakdown.find(m =>
-    m.type === 'Свободно хранене' || m.type === 'Хранене 2'
-  );
-  return free ? (Number(free.calories) || 0) : 0;
-}
-
-// Maps AI-generated meal type variants to canonical allowed types
-const MEAL_TYPE_ALIASES = {
-  // Old canonical names → new canonical names (backward compat for stored plans)
-  'Закуска': 'Хранене 1',
-  'Обяд':    'Хранене 2',
-  'Следобедна закуска': 'Хранене 3',
-  'Вечеря':  'Хранене 4',
-  'Късна закуска': 'Хранене 5',
-  // AI-generated variants → canonical
-  'Междинно': 'Хранене 3',
-  'Междинна закуска': 'Хранене 3',
-  'Снак': 'Хранене 3',
-  'Снек': 'Хранене 3',
-  'Лека закуска': 'Хранене 3',
-  'Следобедна': 'Хранене 3',
-  'Десерт': 'Хранене 3',
-  'Предвечерна закуска': 'Хранене 5',
-  'Нощна закуска': 'Хранене 5',
-  // Beverage variants → Напитка
-  'Вода с лимон/Зелен чай': 'Напитка',
-  'Вода с лимон': 'Напитка',
-  'Зелен чай': 'Напитка',
-  'Чай': 'Напитка',
-  'Кафе': 'Напитка',
-  'Напитки': 'Напитка',
-};
-
-function normalizeMealTypesInWeekPlan(weekPlan) {
-  if (!weekPlan || typeof weekPlan !== 'object') return;
-  for (const day of Object.values(weekPlan)) {
-    if (!day?.meals?.length) continue;
-    for (const meal of day.meals) {
-      if (!meal?.type) continue;
-      const name = (meal.name || '').toLowerCase().trim();
-      if (name === 'свободно хранене' && meal.type !== 'Свободно хранене') {
-        meal.type = 'Свободно хранене';
-      } else if (MEAL_TYPE_ALIASES[meal.type]) {
-        meal.type = MEAL_TYPE_ALIASES[meal.type];
-      }
-    }
-  }
-}
 
 /**
  * Step 3: AI picks products + grams. Backend calculates macros/calories from food DB.
@@ -7700,49 +7217,12 @@ async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay
   return unknowns;
 }
 
-/**
- * Structural validation only. Macros/kcal are computed by the backend FROM the
- * grams and scaled to the calorie target, so numeric precision is guaranteed by
- * construction — the AI is retried only for problems it can actually fix: missing
- * grams, unknown products, forbidden foods, or a composition so under/over-portioned
- * that the bounded calorie scaling (×0.5–×3) could not reach the target.
- */
+
+
 function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocolId = null) {
-  const errors = [];
-  if (!dayPlan?.meals?.length || !dayTarget?.mealBreakdown?.length) return errors;
-
-  for (const meal of dayPlan.meals) {
-    if (meal.type === 'Свободно хранене' || meal.type === 'Напитка') continue;
-    const target = dayTarget.mealBreakdown.find(m => m.type === meal.type);
-    if (!target) continue;
-
-    if (!meal.description || !/\d+\s*(g|г)\b/i.test(meal.description)) {
-      errors.push(`Ден ${dayNum} ${meal.type}: липсват грамажи (числоg) в description`);
-    }
-
-    const targetCal = Number(target.calories) || 0;
-    const mealCal = Number(meal.calories) || macrosToCalories(meal.macros);
-    if (targetCal > 0 && mealCal > 0 && Math.abs(mealCal - targetCal) > calorieTolerance(targetCal)) {
-      errors.push(`Ден ${dayNum} ${meal.type}: калории ${mealCal} ≠ цел ${targetCal} — порциите са структурно недостатъчни/прекомерни, избери по-подходящи продукти или количества`);
-    }
-
-    if (meal.description && CATALOG_STRICT_MODE) {
-      const productNames = parseMealDescription(meal.description).map(i => i.name);
-      const notInCatalog = validateProductNamesInCatalog(productNames);
-      if (notInCatalog.length) {
-        errors.push(`Ден ${dayNum} ${meal.type}: продукти извън каталога: ${notInCatalog.join(', ')}`);
-      }
-      // Defense-in-depth: catch clinical-protocol-forbidden foods even if the AI
-      // ignored the filtered catalog candidates (e.g. AIP + eggs/dairy/nightshades).
-      if (clinicalProtocolId) {
-        const forbidden = validateProductNamesAgainstProtocol(productNames, clinicalProtocolId);
-        if (forbidden.length) {
-          errors.push(`Ден ${dayNum} ${meal.type}: забранени при клиничния протокол: ${forbidden.join(', ')}`);
-        }
-      }
-    }
-  }
-  return errors;
+  return validateMealsAgainstSchemePure(dayPlan, dayTarget, dayNum, clinicalProtocolId, {
+    strictCatalog: CATALOG_STRICT_MODE,
+  });
 }
 
 function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay, clinicalProtocolId = null) {
@@ -7814,14 +7294,6 @@ function syncPlanTargets(plan, analysis) {
 // values directly in meal.calories/meal.macros, so the daily calorie budget is correct
 // from the start without any backend adjustment.
 // Nutritional values are taken from FIXED_DESSERT to keep them in sync.
-/**
- * Returns true when the user's foodCravings include 'Сладко' (sweets).
- * Handles both array (multi-select) and plain string values.
- */
-function userHasSweetsCraving(foodCravings) {
-  if (Array.isArray(foodCravings)) return foodCravings.includes('Сладко');
-  return typeof foodCravings === 'string' && foodCravings.includes('Сладко');
-}
 
 // Foods allowed in late-night snacks (Хранене 5): fats + proteins only
 const LOW_GI_FOODS = [
@@ -7928,29 +7400,6 @@ function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/**
- * Apply food substitutions to a single meal object in-place.
- * `fixes` is an array of {detect, replace} from the KV blacklist.
- * Returns an array of human-readable substitution descriptions that were applied.
- * Longer phrases should appear before shorter sub-phrases in the fixes array.
- */
-function applyFoodSubstitutions(meal, fixes) {
-  const applied = [];
-  for (const { detect, replace } of fixes) {
-    const re = new RegExp(escapeRegex(detect), 'gi');
-    let changed = false;
-    if (meal.name && re.test(meal.name)) {
-      meal.name = meal.name.replace(re, String(replace));
-      changed = true;
-    }
-    if (meal.description && new RegExp(escapeRegex(detect), 'gi').test(meal.description)) {
-      meal.description = meal.description.replace(new RegExp(escapeRegex(detect), 'gi'), replace);
-      changed = true;
-    }
-    if (changed) applied.push(`${detect}→${replace}`);
-  }
-  return applied;
-}
 
 const DAYS_PER_CHUNK = 1; // One day per AI call (7 chunks) — max focus per mealBreakdown
 

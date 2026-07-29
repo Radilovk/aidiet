@@ -71,6 +71,12 @@ export function validateMealMacrosFromGrams(meal) {
   if (!items.length) return issues;
 
   const totals = sumItemNutrition(items);
+  // Dessert macros are injected into meal.macros but are not in description grams
+  if (meal.dessert && typeof meal.dessert === 'object' && meal.dessert.macros) {
+    totals.p += Number(meal.dessert.macros.protein) || 0;
+    totals.c += Number(meal.dessert.macros.carbs) || 0;
+    totals.f += Number(meal.dessert.macros.fats) || 0;
+  }
   const tolP = macroTolerance(meal.macros.protein);
   const tolC = macroTolerance(meal.macros.carbs);
   const tolF = macroTolerance(meal.macros.fats);
@@ -119,7 +125,15 @@ export function validateWeekPlanNutrition(weekPlan, strategy) {
 
     let dayKcal = 0;
     for (const meal of day.meals) {
-      if (meal.type === 'Свободно хранене' || meal.type === 'Напитка') continue;
+      if (meal.type === 'Напитка') continue;
+
+      if (meal.type === 'Свободно хранене') {
+        const freeTarget = dayTarget?.mealBreakdown?.find(m =>
+          m.type === 'Свободно хранене' || m.type === 'Хранене 2'
+        );
+        dayKcal += Number(freeTarget?.calories) || Number(meal._plannedCalories) || 0;
+        continue;
+      }
 
       const target = dayTarget?.mealBreakdown?.find(m => m.type === meal.type);
       issues.push(

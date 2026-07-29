@@ -7,8 +7,11 @@ on:
     paths:
       - 'KV/**'
       - 'plan-response-schemas.js'
+      - 'plan-pipeline-pure.js'
+      - 'plan-regen-contracts.js'
       - 'worker.entry.js'
       - 'scripts/plan-adequacy/**'
+      - 'scripts/plan-algorithm/**'
       - 'food-catalog.js'
       - 'food-nutrition.js'
       - '.github/workflows/plan-adequacy-tests.yml'
@@ -16,8 +19,11 @@ on:
     paths:
       - 'KV/**'
       - 'plan-response-schemas.js'
+      - 'plan-pipeline-pure.js'
+      - 'plan-regen-contracts.js'
       - 'worker.entry.js'
       - 'scripts/plan-adequacy/**'
+      - 'scripts/plan-algorithm/**'
       - 'food-catalog.js'
       - 'food-nutrition.js'
       - '.github/workflows/plan-adequacy-tests.yml'
@@ -37,6 +43,9 @@ jobs:
 
       - name: Plan adequacy (offline)
         run: npm run test:plan-adequacy
+
+      - name: Plan algorithm (offline)
+        run: npm run test:plan-algorithm
 
       - name: Meal scaling pipeline
         run: node test-meal-scaling.mjs

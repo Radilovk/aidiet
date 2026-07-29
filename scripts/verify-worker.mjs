@@ -84,6 +84,11 @@ check('plan adequacy (offline)', () => {
   if (!r.ok) throw new Error(r.out.split('\n').slice(-15).join('\n'));
 });
 
+check('plan algorithm (offline)', () => {
+  const r = run('node', ['scripts/plan-algorithm/run-offline.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-20).join('\n'));
+});
+
 check('meal scaling pipeline', () => {
   const r = run('node', ['test-meal-scaling.mjs']);
   if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
