@@ -80,7 +80,7 @@ const EXERCISE_SCHEMA = {
   },
 };
 
-/** Gemini responseSchema — constrained JSON. thinkingBudget: 0 при assembly/scheme (форматиране), малък фиксиран таван само при проектиране от нула (виж resolvePlanGenerationBudget в worker.js). */
+/** Gemini responseSchema — constrained JSON при thinkingBudget=0. */
 export const PLAN_RESPONSE_SCHEMA = {
   type: 'object',
   required: ['title', 'summary', 'weeklySplit', 'safetyNotes', 'days', 'guidelines'],
