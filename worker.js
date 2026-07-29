@@ -5296,6 +5296,7 @@ function clientProgramPublicView(record) {
     planTitle: record.planTitle || null,
     hasPlan: Boolean(planId),
     planBriefStale: Boolean(record.planBriefStale),
+    planEditedAt: record.planEditedAt || null,
     clientLinkPath: record.status === "approved" && planId ? clientPlanLinkPath(planId, record.planEditedAt) : null,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
@@ -5478,6 +5479,20 @@ function equipmentNormsFromPlan(plan) {
   }
   return set.size ? set : null;
 }
+function planClientEnrichmentOptions(planRecord) {
+  return {
+    allowedEquipment: planRecord.allowedEquipment ? new Set(planRecord.allowedEquipment) : null,
+    pickedApparatus: planRecord.pickedApparatus || null,
+    exerciseProfile: planRecord.exerciseProfile || null
+  };
+}
+function enrichPlanForClientView(plan, index, planRecord, env) {
+  if (!index) return plan;
+  return enrichPlanWithExercises(JSON.parse(JSON.stringify(plan)), index, {
+    env,
+    ...planClientEnrichmentOptions(planRecord)
+  });
+}
 async function handleAdminGetClientProgramPlan(request, env, ctx, id) {
   if (!checkAdminSecret(request, env)) return errorResponse("\u041D\u0435\u043E\u0442\u043E\u0440\u0438\u0437\u0438\u0440\u0430\u043D \u0434\u043E\u0441\u0442\u044A\u043F", 401, "unauthorized");
   if (!env.FITNESS_KV) return errorResponse("KV \u043D\u0435 \u0435 \u043A\u043E\u043D\u0444\u0438\u0433\u0443\u0440\u0438\u0440\u0430\u043D\u043E", 500);
@@ -5487,12 +5502,7 @@ async function handleAdminGetClientProgramPlan(request, env, ctx, id) {
   const planRecord = await env.FITNESS_KV.get(`plan:${record.planId}`, { type: "json" });
   if (!planRecord?.plan) return errorResponse("\u041F\u043B\u0430\u043D\u044A\u0442 \u043D\u0435 \u0435 \u043D\u0430\u043C\u0435\u0440\u0435\u043D. \u0413\u0435\u043D\u0435\u0440\u0438\u0440\u0430\u0439 \u043E\u0442\u043D\u043E\u0432\u043E.", 404, "not_found");
   const index = await loadExerciseIndex(env, ctx);
-  const plan = index ? enrichPlanWithExercises(JSON.parse(JSON.stringify(planRecord.plan)), index, {
-    env,
-    allowedEquipment: null,
-    pickedApparatus: planRecord.pickedApparatus || null,
-    exerciseProfile: null
-  }) : planRecord.plan;
+  const plan = enrichPlanForClientView(planRecord.plan, index, planRecord, env);
   return jsonResponse({
     success: true,
     planId: record.planId,
@@ -5542,7 +5552,8 @@ async function handleAdminUpdateClientProgramPlan(request, env, ctx, id) {
   record.planEditedAt = now;
   record.planBriefStale = false;
   await saveClientProgram(env, record);
-  return jsonResponse({ success: true, plan, program: clientProgramPublicView(record) });
+  const displayPlan = enrichPlanForClientView(plan, index, planRecord, env);
+  return jsonResponse({ success: true, plan: displayPlan, program: clientProgramPublicView(record) });
 }
 async function deleteClientProgramRecord(env, id) {
   const record = await loadClientProgram(env, id);
