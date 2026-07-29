@@ -383,18 +383,53 @@ input[type="range"] {
   color: transparent;
   margin-bottom: 12px;
 }
-.plan-summary { color: var(--muted); max-width: 640px; }
+.plan-summary { color: var(--muted); max-width: 640px; line-height: 1.55; }
 .plan-split { margin-top: 10px; font-weight: 700; color: var(--volt); font-size: 15px; }
+.plan-intro-top {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 .plan-safety {
-  margin-top: 16px;
   background: rgba(255, 201, 77, .08);
   border: 1px solid rgba(255, 201, 77, .35);
   border-radius: var(--radius-sm);
   padding: 13px 16px;
   font-size: 15px;
 }
-.plan-safety strong { color: var(--warn); display: block; margin-bottom: 5px; }
+.plan-safety-intro { margin-top: 4px; }
+.plan-safety-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 5px;
+}
+.plan-safety-head strong { color: var(--warn); display: block; }
+.plan-safety-dismiss {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(255, 201, 77, .45);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--warn);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: manipulation;
+}
 .plan-safety ul { margin-left: 18px; }
+.plan-safety-folded { margin: 0 18px 16px; border: none; background: transparent; padding: 0; }
+.plan-footnotes {
+  margin-top: 28px;
+  display: grid;
+  gap: 10px;
+}
+.plan-footnotes .guide-item-body { padding: 0 18px 16px; }
+.plan-footnotes .guide-item-body .plan-summary,
+.plan-footnotes .guide-item-body .plan-split { margin: 0; }
 
 .intensity-row {
   display: flex;
@@ -658,7 +693,6 @@ input[type="range"] {
 .alt-option .alt-eq { color: var(--muted); font-size: 12.5px; }
 
 /* насоки */
-.guidelines { margin-top: 28px; display: grid; gap: 10px; }
 .guide-item {
   background: var(--surface);
   border: 1px solid var(--border-soft);

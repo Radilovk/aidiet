@@ -237,6 +237,7 @@ async function refreshPlanExerciseMedia(plan) {
 
 function showView(name) {
   const prev = document.body.dataset.view;
+  if (prev === 'plan' && name !== 'plan') markPlanIntroSeen();
   for (const v of VIEWS) $(`view-${v}`).classList.toggle('hidden', v !== name);
   $('btnNewPlan').classList.toggle('hidden', name !== 'plan');
   $('btnMyProgram').classList.toggle('hidden', !hasCachedPlan() || name === 'plan');
@@ -476,22 +477,34 @@ const TYPE_LABELS = {
   mobility: 'Мобилност', rest: 'Почивка', 'active-recovery': 'Активно възст.',
 };
 
+function planIntroStorageKey() {
+  const id = planRecord?.planId;
+  return id ? `introSeen.${id}` : null;
+}
+
+function hasSeenPlanIntro() {
+  const key = planIntroStorageKey();
+  return key ? Boolean(store.get(key, false)) : true;
+}
+
+function markPlanIntroSeen() {
+  const key = planIntroStorageKey();
+  if (key) store.set(key, true);
+}
+
+function dismissPlanIntro() {
+  markPlanIntroSeen();
+  renderPlan();
+}
+
 function renderPlan() {
   const { plan } = planRecord;
 
   $('planTitle').textContent = sanitizeBgText(plan.title);
-  $('planSummary').textContent = sanitizeBgText(plan.summary);
-  $('planSplit').textContent = plan.weeklySplit ? `Структура: ${sanitizeBgText(plan.weeklySplit)}` : '';
 
-  const safety = $('planSafety');
-  safety.innerHTML = '';
-  if (plan.safetyNotes?.length) {
-    safety.append(el('strong', { text: '⚠ Важно за твоята безопасност' }));
-    safety.append(el('ul', {}, plan.safetyNotes.map((n) => el('li', { text: n }))));
-    safety.classList.remove('hidden');
-  } else {
-    safety.classList.add('hidden');
-  }
+  const firstVisit = !hasSeenPlanIntro();
+  renderPlanIntroTop(plan, firstVisit);
+  renderPlanFootnotes(plan, firstVisit);
 
   // сегмент за натоварване
   for (const btn of $('intensitySeg').querySelectorAll('button')) {
@@ -500,7 +513,97 @@ function renderPlan() {
 
   renderDayPills();
   renderDay();
-  renderGuidelines();
+}
+
+function renderPlanIntroTop(plan, firstVisit) {
+  const wrap = $('planIntroTop');
+  wrap.innerHTML = '';
+  const hasContent = Boolean(plan.summary || plan.weeklySplit || plan.safetyNotes?.length);
+  if (!firstVisit || !hasContent) {
+    wrap.classList.add('hidden');
+    return;
+  }
+  wrap.classList.remove('hidden');
+
+  if (plan.summary) {
+    wrap.append(el('p', { class: 'plan-summary', text: sanitizeBgText(plan.summary) }));
+  }
+  if (plan.weeklySplit) {
+    wrap.append(el('p', { class: 'plan-split', text: `Структура: ${sanitizeBgText(plan.weeklySplit)}` }));
+  }
+  if (plan.safetyNotes?.length) {
+    const safety = el('div', { class: 'plan-safety plan-safety-intro' });
+    const head = el('div', { class: 'plan-safety-head' },
+      el('strong', { text: '⚠ Важно за твоята безопасност' }),
+      el('button', {
+        type: 'button',
+        class: 'plan-safety-dismiss',
+        'aria-label': 'Затвори предупреждението',
+        onclick: () => dismissPlanIntro(),
+      }, '×'),
+    );
+    safety.append(head);
+    safety.append(el('ul', {}, plan.safetyNotes.map((n) => el('li', { text: n }))));
+    wrap.append(safety);
+  }
+}
+
+function renderPlanFootnotes(plan, firstVisit) {
+  const wrap = $('planFootnotes');
+  wrap.innerHTML = '';
+
+  const guidelineItems = [
+    ['📈 Как да прогресираш', plan.guidelines?.progression],
+    ['😴 Възстановяване', plan.guidelines?.recovery],
+    ['🍽 Хранене (общи насоки)', plan.guidelines?.nutrition],
+    ['⚖ Кога да олекотиш или утежниш', sanitizeBgText(plan.guidelines?.adaptation)],
+  ].filter(([, text]) => text);
+
+  const hasOverview = Boolean(plan.summary || plan.weeklySplit);
+  const hasSafety = Boolean(plan.safetyNotes?.length);
+  const hasFootnotes = guidelineItems.length || (!firstVisit && (hasOverview || hasSafety));
+
+  if (!hasFootnotes) {
+    wrap.classList.add('hidden');
+    return;
+  }
+  wrap.classList.remove('hidden');
+
+  if (firstVisit) {
+    for (const [title, text] of guidelineItems) {
+      wrap.append(el('details', { class: 'guide-item' },
+        el('summary', { text: title }),
+        el('p', { text: sanitizeBgText(text) }),
+      ));
+    }
+    return;
+  }
+
+  for (const [title, text] of guidelineItems) {
+    wrap.append(el('details', { class: 'guide-item' },
+      el('summary', { text: title }),
+      el('p', { text: sanitizeBgText(text) }),
+    ));
+  }
+
+  if (hasOverview) {
+    const overview = el('details', { class: 'guide-item guide-item-overview' });
+    overview.append(el('summary', { text: '📋 Обобщение на плана' }));
+    const body = el('div', { class: 'guide-item-body' });
+    if (plan.summary) body.append(el('p', { class: 'plan-summary', text: sanitizeBgText(plan.summary) }));
+    if (plan.weeklySplit) body.append(el('p', { class: 'plan-split', text: `Структура: ${sanitizeBgText(plan.weeklySplit)}` }));
+    overview.append(body);
+    wrap.append(overview);
+  }
+
+  if (hasSafety) {
+    const safetyBlock = el('details', { class: 'guide-item guide-item-safety' });
+    safetyBlock.append(el('summary', { text: '⚠ Безопасност и внимание' }));
+    const body = el('div', { class: 'plan-safety plan-safety-folded' });
+    body.append(el('ul', {}, plan.safetyNotes.map((n) => el('li', { text: n }))));
+    safetyBlock.append(body);
+    wrap.append(safetyBlock);
+  }
 }
 
 function renderDayPills() {
@@ -672,25 +775,6 @@ function renderAltPanel(dayIdx, exIdx) {
 
   panel.append(options);
   return panel;
-}
-
-function renderGuidelines() {
-  const g = planRecord.plan.guidelines || {};
-  const wrap = $('guidelines');
-  wrap.innerHTML = '';
-  const items = [
-    ['📈 Как да прогресираш', g.progression],
-    ['😴 Възстановяване', g.recovery],
-    ['🍽 Хранене (общи насоки)', g.nutrition],
-    ['⚖ Кога да олекотиш или утежниш', sanitizeBgText(g.adaptation)],
-  ];
-  for (const [title, text] of items) {
-    if (!text) continue;
-    wrap.append(el('details', { class: 'guide-item' },
-      el('summary', { text: title }),
-      el('p', { text: sanitizeBgText(text) }),
-    ));
-  }
 }
 
 function escapeHtml(s) {
