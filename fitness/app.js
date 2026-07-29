@@ -873,8 +873,10 @@ async function sendChatMessage(text) {
 // ============================================================
 
 async function loadSharedPlan(planId) {
-  const linkRv = new URLSearchParams(location.search).get('rv');
-  if (planRecord?.planId === planId && planRecord?.plan?.days?.length
+  const params = new URLSearchParams(location.search);
+  const linkRv = params.get('rv');
+  const forceFetch = Boolean(params.get('t') || params.get('rv'));
+  if (!forceFetch && planRecord?.planId === planId && planRecord?.plan?.days?.length
       && (!linkRv || linkRv === planRecord.syncedRv)) {
     activeDay = firstTrainingDay(planRecord.plan);
     renderPlan();

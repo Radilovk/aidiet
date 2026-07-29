@@ -182,16 +182,17 @@ export async function open(program) {
   state = { programId: id, planId: null, plan: null, dirty: false, activeDayIndex: 0, editorTab: 'days', picker: null, openDetails: new Set() };
 
   async function loadClientPlan(planId) {
-    const res = await fetch(`${apiBase()}/api/plan/${encodeURIComponent(planId)}`, { cache: 'no-store' });
+    const bust = Date.now();
+    const res = await fetch(`${apiBase()}/api/plan/${encodeURIComponent(planId)}?_=${bust}`, { cache: 'no-store' });
     const data = await res.json();
     if (!res.ok || !data.success) throw new Error(data.message || 'Грешка при зареждане');
     return { planId, plan: data.plan };
   }
 
   async function resolvePlanId() {
-    if (program?.planId) return program.planId;
-    const res = await fetch(`${apiBase()}/api/admin/fitplan/client-programs/${encodeURIComponent(id)}/plan`, {
+    const res = await fetch(`${apiBase()}/api/admin/fitplan/client-programs/${encodeURIComponent(id)}/plan?_=${Date.now()}`, {
       headers: adminHeaders(),
+      cache: 'no-store',
     });
     const data = await res.json();
     if (!res.ok || !data.success) throw new Error(data.message || 'Грешка при зареждане');
@@ -199,7 +200,7 @@ export async function open(program) {
   }
 
   try {
-    const planId = await resolvePlanId();
+    const planId = program?.planId || await resolvePlanId();
     const loaded = await loadClientPlan(planId);
     state.planId = loaded.planId;
     state.plan = loaded.plan;

@@ -1123,6 +1123,11 @@ async function handleGetPlan(planId, env, ctx) {
   const record = await env.FITNESS_KV.get(`plan:${planId}`, { type: 'json' });
   if (!record) return errorResponse('Планът не е намерен или е изтекъл', 404, 'not_found');
 
+  if (record.clientProgramId) {
+    const clientProgram = await loadClientProgram(env, record.clientProgramId);
+    await repairPlanEquipmentFromClient(env, planId, record, clientProgram, { persist: true });
+  }
+
   let plan = record.plan;
   const index = await loadExerciseIndex(env, ctx);
   if (index && plan) {
@@ -1843,6 +1848,30 @@ function equipmentNormsFromPlan(plan) {
   return set.size ? set : null;
 }
 
+function clientAllowedEquipmentFromRecord(clientProgramRecord) {
+  if (!clientProgramRecord?.clientAnswers) return undefined;
+  return allowedEquipmentSet(
+    clientProgramRecord.clientAnswers.equipment || [],
+    clientProgramRecord.clientAnswers.equipmentPickedItems || [],
+  );
+}
+
+/** Възстановява ограниченията от въпросника (не от equipmentHint на упражненията). */
+async function repairPlanEquipmentFromClient(env, planId, planRecord, clientProgramRecord, { persist = false } = {}) {
+  const clientEquip = clientAllowedEquipmentFromRecord(clientProgramRecord);
+  if (clientEquip === undefined) return planRecord;
+  const next = clientEquip?.size ? [...clientEquip] : null;
+  const prevKey = (planRecord.allowedEquipment || []).slice().sort().join('|');
+  const nextKey = (next || []).slice().sort().join('|');
+  if (prevKey !== nextKey) {
+    planRecord.allowedEquipment = next;
+    if (persist && env.FITNESS_KV) {
+      await env.FITNESS_KV.put(`plan:${planId}`, JSON.stringify(planRecord), { expirationTtl: PLAN_TTL });
+    }
+  }
+  return planRecord;
+}
+
 /** Същите ограничения като при GET /api/plan — за WYSIWYG в админ редактора. */
 function planClientEnrichmentOptions(planRecord) {
   return {
@@ -1876,6 +1905,8 @@ async function handleAdminGetClientProgramPlan(request, env, ctx, id) {
 
   const planRecord = await env.FITNESS_KV.get(`plan:${record.planId}`, { type: 'json' });
   if (!planRecord?.plan) return errorResponse('Планът не е намерен. Генерирай отново.', 404, 'not_found');
+
+  await repairPlanEquipmentFromClient(env, record.planId, planRecord, record, { persist: true });
 
   const index = await loadExerciseIndex(env, ctx);
   // Същото обогатяване като клиентския преглед — редакторът показва това, което вижда клиентът.
@@ -1920,23 +1951,13 @@ async function handleAdminUpdateClientProgramPlan(request, env, ctx, id) {
   const planRecord = await env.FITNESS_KV.get(`plan:${record.planId}`, { type: 'json' });
   if (!planRecord) return errorResponse('Планът не е намерен. Генерирай отново.', 404, 'not_found');
 
-  const index = await loadExerciseIndex(env, ctx);
-  if (index) {
-    // Запис: запазваме точните canonical полета от редактора (без equipment swap).
-    enrichPlanWithExercises(plan, index, {
-      env,
-      allowedEquipment: null,
-      pickedApparatus: planRecord.pickedApparatus || null,
-      exerciseProfile: null,
-    });
-  }
+  await repairPlanEquipmentFromClient(env, record.planId, planRecord, record, { persist: true });
+
   sanitizePlanBulgarian(plan);
 
   const now = new Date().toISOString();
   planRecord.plan = plan;
   planRecord.editedAt = now;
-  const equipFromPlan = equipmentNormsFromPlan(plan);
-  if (equipFromPlan) planRecord.allowedEquipment = [...equipFromPlan];
   await env.FITNESS_KV.put(`plan:${record.planId}`, JSON.stringify(planRecord), { expirationTtl: PLAN_TTL });
 
   record.planTitle = plan.title || record.planTitle;
@@ -1945,6 +1966,7 @@ async function handleAdminUpdateClientProgramPlan(request, env, ctx, id) {
   record.planBriefStale = false;
   await saveClientProgram(env, record);
 
+  const index = await loadExerciseIndex(env, ctx);
   const displayPlan = enrichPlanForClientView(plan, index, planRecord, env);
   return jsonResponse({ success: true, plan: displayPlan, program: clientProgramPublicView(record) });
 }
