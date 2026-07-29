@@ -181,14 +181,28 @@ export async function open(program) {
   setStatus('');
   state = { programId: id, planId: null, plan: null, dirty: false, activeDayIndex: 0, editorTab: 'days', picker: null, openDetails: new Set() };
 
-  try {
+  async function loadClientPlan(planId) {
+    const res = await fetch(`${apiBase()}/api/plan/${encodeURIComponent(planId)}`, { cache: 'no-store' });
+    const data = await res.json();
+    if (!res.ok || !data.success) throw new Error(data.message || 'Грешка при зареждане');
+    return { planId, plan: data.plan };
+  }
+
+  async function resolvePlanId() {
+    if (program?.planId) return program.planId;
     const res = await fetch(`${apiBase()}/api/admin/fitplan/client-programs/${encodeURIComponent(id)}/plan`, {
       headers: adminHeaders(),
     });
     const data = await res.json();
     if (!res.ok || !data.success) throw new Error(data.message || 'Грешка при зареждане');
-    state.planId = data.planId;
-    state.plan = data.plan;
+    return data.planId;
+  }
+
+  try {
+    const planId = await resolvePlanId();
+    const loaded = await loadClientPlan(planId);
+    state.planId = loaded.planId;
+    state.plan = loaded.plan;
     seedOpenDetailsFromPlan(state.plan, state.openDetails);
     state.activeDayIndex = firstUsefulDayIndex(state.plan);
     renderBoard();
@@ -228,7 +242,14 @@ async function save() {
     });
     const data = await res.json();
     if (!res.ok || !data.success) throw new Error(data.message || 'Грешка при запис');
-    state.plan = data.plan;
+    if (state.planId) {
+      const fresh = await fetch(`${apiBase()}/api/plan/${encodeURIComponent(state.planId)}`, { cache: 'no-store' });
+      const freshData = await fresh.json();
+      if (fresh.ok && freshData.success) state.plan = freshData.plan;
+      else state.plan = data.plan;
+    } else {
+      state.plan = data.plan;
+    }
     state.dirty = false;
     renderBoard({ preserveScroll: true });
     setStatus('Запазено ✓');
