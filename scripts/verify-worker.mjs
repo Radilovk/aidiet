@@ -99,6 +99,11 @@ check('food-picker per-user contract', () => {
   if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
 });
 
+check('skip-breakfast contract', () => {
+  const r = run('node', ['scripts/test-skip-breakfast.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
+});
+
 check('meal scaling pipeline', () => {
   const r = run('node', ['test-meal-scaling.mjs']);
   if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));

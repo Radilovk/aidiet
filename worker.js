@@ -8724,16 +8724,17 @@ function generateUserId(data) {
   const str = `${data.name}_${data.age}_${data.email || Date.now()}`;
   return btoa(str).replace(/[^a-zA-Z0-9]/g, "").substring(0, 32);
 }
-function buildFreeMealInstruction(strategy, startDay, endDay) {
+function buildFreeMealInstruction(strategy, startDay, endDay, userData = null) {
   const freeDayNumber = strategy && strategy.freeDayNumber;
   if (freeDayNumber == null) return "";
   const dayNum = Number(freeDayNumber);
   if (isNaN(dayNum) || dayNum < startDay || dayNum > endDay) return "";
+  const skipBreakfastNote = userSkipsBreakfast(userData) ? " \u0411\u0415\u0417 \u0425\u0440\u0430\u043D\u0435\u043D\u0435 1/\u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u2014 \u043A\u043B\u0438\u0435\u043D\u0442\u044A\u0442 \u043D\u0435 \u0437\u0430\u043A\u0443\u0441\u0432\u0430." : " \u0425\u0440\u0430\u043D\u0435\u043D\u0435 1 \u0438 \u0425\u0440\u0430\u043D\u0435\u043D\u0435 4 \u0437\u0430 \u0434\u0435\u043D " + dayNum + " \u0433\u0435\u043D\u0435\u0440\u0438\u0440\u0430\u0439 \u041D\u041E\u0420\u041C\u0410\u041B\u041D\u041E.";
   return `
 
 === \u0421\u0412\u041E\u0411\u041E\u0414\u041D\u041E \u0425\u0420\u0410\u041D\u0415\u041D\u0415 (\u0414\u0435\u043D ${dayNum}) ===
 \u0417\u0410\u0414\u042A\u041B\u0416\u0418\u0422\u0415\u041B\u041D\u041E \u0437\u0430 \u0434\u0435\u043D ${dayNum}: \u0417\u0410\u041C\u0415\u041D\u0418 \u0425\u0440\u0430\u043D\u0435\u043D\u0435 2 (\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2 \u041D\u0415 \u0441\u0435 \u0433\u0435\u043D\u0435\u0440\u0438\u0440\u0430!) \u0441 \u0442\u043E\u0447\u043D\u043E: {"type": "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435", "name": "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435"} \u2014 \u0411\u0415\u0417 description, calories, macros, weight, benefits \u0438\u043B\u0438 dessert.
-\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1 \u0438 \u0425\u0440\u0430\u043D\u0435\u043D\u0435 4 \u0437\u0430 \u0434\u0435\u043D ${dayNum} \u0433\u0435\u043D\u0435\u0440\u0438\u0440\u0430\u0439 \u041D\u041E\u0420\u041C\u0410\u041B\u041D\u041E. \u0425\u0440\u0430\u043D\u0435\u043D\u0435 4 \u0432 \u0442\u043E\u0437\u0438 \u0434\u0435\u043D \u2014 \u043B\u0435\u043A\u0430 \u0432\u0435\u0447\u0435\u0440\u044F \u0411\u0415\u0417 \u043E\u0440\u0438\u0437/\u043A\u0430\u0440\u0442\u043E\u0444\u0438/\u0445\u043B\u044F\u0431/\u043F\u0430\u0441\u0442\u0430.
+${skipBreakfastNote} \u0425\u0440\u0430\u043D\u0435\u043D\u0435 4 \u0432 \u0442\u043E\u0437\u0438 \u0434\u0435\u043D \u2014 \u043B\u0435\u043A\u0430 \u0432\u0435\u0447\u0435\u0440\u044F \u0411\u0415\u0417 \u043E\u0440\u0438\u0437/\u043A\u0430\u0440\u0442\u043E\u0444\u0438/\u0445\u043B\u044F\u0431/\u043F\u0430\u0441\u0442\u0430.
 \u041A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u0437\u0430 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u0438\u044F \u043E\u0431\u0435\u0434\u0435\u043D \u0441\u043B\u043E\u0442 \u0438\u0434\u0432\u0430\u0442 \u043E\u0442 strategy mealBreakdown \u0438 \u0441\u0435 \u0432\u043A\u043B\u044E\u0447\u0432\u0430\u0442 \u0432 dailyTotals \u043E\u0442 \u0431\u0435\u043A\u0435\u043D\u0434\u0430.`;
 }
 function enforceWeekendFreeDay(strategy) {
@@ -9103,6 +9104,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
     }
   }
   const sweetsCravingRule = buildSweetsCravingRule(data.foodCravings, strategy);
+  const skipBreakfastRule = buildSkipBreakfastRule(data);
   let previousDaysContext = "";
   if (previousDays.length > 0) {
     previousDaysContext = `
@@ -9199,8 +9201,9 @@ ${serializePreviousDays(previousDays)}
     medicalConditions_metabolic_details: data["medicalConditions_\u041C\u0435\u0442\u0430\u0431\u043E\u043B\u0438\u0442\u043D\u0438_\u0434\u0435\u0442\u0430\u0439\u043B"] || "",
     medicalConditions_musculoskeletal_details: data["medicalConditions_\u041C\u0443\u0441\u043A\u0443\u043B\u043D\u043E-\u0441\u043A\u0435\u043B\u0435\u0442\u043D\u0438_\u0434\u0435\u0442\u0430\u0439\u043B"] || "",
     MAX_LATE_SNACK_CALORIES,
-    freeMealInstruction: buildFreeMealInstruction(strategy, startDay, endDay),
+    freeMealInstruction: buildFreeMealInstruction(strategy, startDay, endDay, data),
     sweetsCravingRule,
+    skipBreakfastRule,
     additionalNotes: buildCombinedAdditionalNotes(data),
     clinicalProtocolSection: (() => {
       const p = getClinicalProtocol(data.clinicalProtocol);
@@ -11025,10 +11028,10 @@ async function ensureAssistantCacheFresh(env, session, card, planUpdatedAt, anal
   session.cardFingerprint = fingerprint;
   return { session, rebuilt: true };
 }
-function reconcilePlanAfterAssistantPatches(plan) {
+function reconcilePlanAfterAssistantPatches(plan, userData = null) {
   if (!plan?.weekPlan) return;
   if (plan.strategy?.weeklyScheme) {
-    finalizeWeekPlanDays(plan.weekPlan, plan.strategy, 1, 7);
+    finalizeWeekPlanDays(plan.weekPlan, plan.strategy, 1, 7, userData);
   } else {
     recalculateDayCalories(plan.weekPlan, plan.strategy || null);
   }
@@ -11228,7 +11231,7 @@ async function applyAssistantPatches(env, session, clientData, patches, ctx) {
   mergePatchDocument(clientData, document);
   const wasPreviouslyActivated = Boolean(clientData.planActivatedAt);
   if (touchedPlan) {
-    reconcilePlanAfterAssistantPatches(clientData.plan);
+    reconcilePlanAfterAssistantPatches(clientData.plan, clientData.answers);
     clientData.planUpdatedAt = (/* @__PURE__ */ new Date()).toISOString();
     if (wasPreviouslyActivated) {
       clientData.planStatus = "activated";
@@ -12274,6 +12277,14 @@ var FIXED_DESSERT_WEIGHT_GRAMS = (() => {
   const m = FIXED_DESSERT.weight.match(/(\d+(?:\.\d+)?)/);
   return m ? parseFloat(m[1]) : 0;
 })();
+function userSkipsBreakfast(userData) {
+  return Array.isArray(userData?.eatingHabits) && userData.eatingHabits.includes("\u041D\u0435 \u0437\u0430\u043A\u0443\u0441\u0432\u0430\u043C");
+}
+function buildSkipBreakfastRule(userData) {
+  if (!userSkipsBreakfast(userData)) return "";
+  return `
+\u0412\u0410\u0416\u041D\u041E - \u041D\u0415 \u0417\u0410\u041A\u0423\u0421\u0412\u0410: \u041A\u043B\u0438\u0435\u043D\u0442\u044A\u0442 \u041D\u0415 \u0417\u0410\u041A\u0423\u0421\u0412\u0410. \u0417\u0410\u0411\u0420\u0410\u041D\u0415\u041D\u041E \u0435 "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0417\u0430\u043A\u0443\u0441\u043A\u0430" \u0438 \u0432\u0441\u044F\u043A\u043E \u0441\u0443\u0442\u0440\u0435\u0448\u043D\u043E \u044F\u0441\u0442\u0438\u0435 (\u043E\u043C\u043B\u0435\u0442, \u044F\u0439\u0446\u0430, \u043A\u0430\u0448\u0430, \u043C\u044E\u0441\u043B\u0438). mealBreakdown \u041D\u0415 \u0441\u044A\u0434\u044A\u0440\u0436\u0430 \u0425\u0440\u0430\u043D\u0435\u043D\u0435 1 \u2014 \u041D\u0415 \u0433\u043E \u0433\u0435\u043D\u0435\u0440\u0438\u0440\u0430\u0439. \u0414\u043E\u043F\u0443\u0441\u0442\u0438\u043C\u043E \u0421\u0410\u041C\u041E {"type":"\u041D\u0430\u043F\u0438\u0442\u043A\u0430","name":"...","description":"\u2022 \u043F\u0440\u043E\u0434\u0443\u043A\u0442 Xg"}: \u0432\u043E\u0434\u0430 \u0441 \u043B\u0438\u043C\u043E\u043D, \u0437\u0435\u043B\u0435\u043D \u0447\u0430\u0439, \u043F\u0440\u043E\u0442\u0435\u0438\u043D\u043E\u0432 \u0448\u0435\u0439\u043A \u0438\u043B\u0438 \u0430\u0439\u0440\u0430\u043D \u2014 \u0431\u0435\u0437 \u043A\u0430\u043B\u043E\u0440\u0438\u0438/macros.`;
+}
 function buildSweetsCravingRule(foodCravings, strategy) {
   if (!userHasSweetsCraving(foodCravings) || strategy?.includeDessert === false) return "";
   const d = FIXED_DESSERT.macros;
@@ -12574,6 +12585,28 @@ async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay
   }
   return unknowns;
 }
+function validateMealTypesAgainstBreakdown(dayPlan, dayTarget, dayNum, userData = null) {
+  const errors = [];
+  if (!dayPlan?.meals?.length || !dayTarget?.mealBreakdown?.length) return errors;
+  const allowed = new Set(dayTarget.mealBreakdown.map((m) => m.type));
+  if (allowed.has("\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435")) allowed.delete("\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2");
+  for (const meal of dayPlan.meals) {
+    if (meal.type === "\u041D\u0430\u043F\u0438\u0442\u043A\u0430") {
+      if (!userSkipsBreakfast(userData)) {
+        errors.push(`\u0414\u0435\u043D ${dayNum}: "\u041D\u0430\u043F\u0438\u0442\u043A\u0430" \u043D\u0435 \u0435 \u0432 mealBreakdown`);
+      }
+      continue;
+    }
+    if (!allowed.has(meal.type)) {
+      if (meal.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1" && userSkipsBreakfast(userData)) {
+        errors.push(`\u0414\u0435\u043D ${dayNum}: \u041A\u043B\u0438\u0435\u043D\u0442\u044A\u0442 \u041D\u0415 \u0417\u0410\u041A\u0423\u0421\u0412\u0410 \u2014 \u0437\u0430\u0431\u0440\u0430\u043D\u0435\u043D\u043E \u0435 "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1"`);
+      } else {
+        errors.push(`\u0414\u0435\u043D ${dayNum}: "${meal.type}" \u043D\u0435 \u0435 \u0432 mealBreakdown \u0437\u0430 \u0442\u043E\u0437\u0438 \u0434\u0435\u043D`);
+      }
+    }
+  }
+  return errors;
+}
 function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocolId = null) {
   const errors = [];
   if (!dayPlan?.meals?.length || !dayTarget?.mealBreakdown?.length) return errors;
@@ -12614,7 +12647,7 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocol
   }
   return errors;
 }
-function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay, clinicalProtocolId = null) {
+function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay, clinicalProtocolId = null, userData = null) {
   const errors = [];
   if (!weekPlan || !strategy?.weeklyScheme) return errors;
   normalizeMealBreakdownTypes(strategy);
@@ -12623,6 +12656,7 @@ function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay
     const schemeKey = DAY_NUMBER_TO_KEY[d - 1];
     const dayTarget = strategy.weeklyScheme[schemeKey];
     if (dayPlan && dayTarget) {
+      errors.push(...validateMealTypesAgainstBreakdown(dayPlan, dayTarget, d, userData));
       errors.push(...validateMealsAgainstScheme(dayPlan, dayTarget, d, clinicalProtocolId));
       const dayKcal = Number(dayPlan.dailyTotals?.calories) || 0;
       const schemeKcal = Number(dayTarget.calories) || 0;
@@ -12644,10 +12678,22 @@ ${errors.map((e, i) => `${i + 1}. ${e}`).join("\n")}
 
 \u0417\u0410\u0414\u042A\u041B\u0416\u0418\u0422\u0415\u041B\u041D\u041E: description \u0441 "\u0447\u0438\u0441\u043B\u043Eg" \u043D\u0430 \u0432\u0441\u0435\u043A\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442 (\u0437\u0430\u043A\u0440\u044A\u0433\u043B\u044F\u043D\u0435 10g); \u0421\u0410\u041C\u041E \u0438\u043C\u0435\u043D\u0430 \u043E\u0442 \u041A\u0410\u0422\u0410\u041B\u041E\u0413\u0410; \u043E\u0431\u0449\u043E\u043F\u0440\u0438\u0435\u0442\u0438 \u043A\u043E\u043C\u0431\u0438\u043D\u0430\u0446\u0438\u0438. \u0411\u0435\u043A\u0435\u043D\u0434\u044A\u0442 \u0438\u0437\u0447\u0438\u0441\u043B\u044F\u0432\u0430 macros/kcal \u043E\u0442 \u0433\u0440\u0430\u043C\u0430\u0436\u0438\u0442\u0435 \u0438 \u043C\u0430\u0449\u0430\u0431\u0438\u0440\u0430 \u043F\u043E\u0440\u0446\u0438\u0438\u0442\u0435 \u043A\u044A\u043C \u043A\u0430\u043B\u043E\u0440\u0438\u0439\u043D\u0430\u0442\u0430 \u0446\u0435\u043B.`;
 }
-function finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay) {
+function enforceSkipBreakfastInWeekPlan(weekPlan, userData, startDay = 1, endDay = 7) {
+  if (!weekPlan || !userSkipsBreakfast(userData)) return;
+  for (let d = startDay; d <= endDay; d++) {
+    const day = weekPlan[`day${d}`];
+    if (!day?.meals?.length) continue;
+    day.meals = day.meals.filter((meal) => {
+      const type = meal?.type;
+      return type !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1" && type !== "\u0417\u0430\u043A\u0443\u0441\u043A\u0430";
+    });
+  }
+}
+function finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, userData = null) {
   if (!weekPlan) return;
   normalizeMealBreakdownTypes(strategy);
   normalizeMealTypesInWeekPlan(weekPlan);
+  enforceSkipBreakfastInWeekPlan(weekPlan, userData, startDay, endDay);
   for (let d = startDay; d <= endDay; d++) {
     const day = weekPlan[`day${d}`];
     if (!day?.meals) continue;
@@ -13896,8 +13942,8 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         }
         injectFixedDesserts(weekPlan);
         await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
-        finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay);
-        validationErrors = validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay, data.clinicalProtocol || null);
+        finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, data);
+        validationErrors = validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay, data.clinicalProtocol || null, data);
         lastAiFailure = null;
       } catch (aiError) {
         lastAiFailure = aiError.message;
@@ -13948,7 +13994,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
   } catch (error) {
     console.warn("Step 5 enrichment failed, plan usable with Step 3 output:", error.message);
   }
-  finalizeWeekPlanDays(weekPlan, strategy, 1, 7);
+  finalizeWeekPlanDays(weekPlan, strategy, 1, 7, data);
   try {
     const summaryPrompt = await generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan, env);
     const summaryResponse = await callAIModel(env, summaryPrompt, SUMMARY_TOKEN_LIMIT, "step4_summary", sessionId, data, buildCompactAnalysisForStep4(analysis));
