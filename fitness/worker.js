@@ -17,7 +17,6 @@
  *   GET  /api/health           — статус
  *   POST /api/plan/generate    — генерира план от отговорите на въпросника (1 AI заявка)
  *   GET  /api/plan/:id         — връща съхранен план (с актуални преводи от индекса)
- *   POST /api/plan/refresh-exercises — обновява match/алтернативи от KV индекса
  *   POST /api/coach            — AI персонален треньор (чат)
  *   GET  /api/exercises/search — търсене по дума+синоними и филтри (equipment/target/modality/diff/gf/gm); ползва се и от admin picker-а
  *   GET  /api/admin/fitplan/guidelines — админ: зарежда насоки за mini-RAG
@@ -196,6 +195,12 @@ const DATASET_URL_CANDIDATES = [
 const EXERCISE_INDEX_KV_KEY = 'exidx:v2';
 const EXERCISE_INDEX_TTL = 60 * 60 * 24 * 30; // 30 дни; при промяна на схемата — нов ключ
 const PLAN_TTL = 60 * 60 * 24 * 90;           // планът живее 90 дни в KV
+
+function clientPlanLinkPath(planId, planEditedAt) {
+  if (!planId) return null;
+  const base = `fitness/app.html?plan=${planId}`;
+  return planEditedAt ? `${base}&rv=${encodeURIComponent(planEditedAt)}` : base;
+}
 const MATCH_THRESHOLD = 0.35;                 // под този score → fallback по категория
 const MAX_ALTERNATIVES = 3;
 const MAX_CHAT_HISTORY = 6;                   // последните 3 разменени реплики
@@ -1118,45 +1123,6 @@ async function handleGetPlan(planId, env, ctx) {
   }, 200, { 'Cache-Control': 'private, no-cache, no-store, must-revalidate' });
 }
 
-async function handleRefreshPlanExercises(request, env, ctx) {
-  let body;
-  try { body = await request.json(); } catch { return errorResponse('Невалиден JSON', 400); }
-  const plan = body?.plan;
-  if (!plan?.days) return errorResponse('Липсва план', 400);
-
-  const index = await loadExerciseIndex(env, ctx);
-  if (!index) return jsonResponse({ success: true, plan });
-
-  let allowed = null;
-  let pickedApparatus = null;
-  let exerciseProfile = null;
-
-  if (body.planId && env.FITNESS_KV) {
-    const record = await env.FITNESS_KV.get(`plan:${body.planId}`, { type: 'json' });
-    if (record) {
-      allowed = record.allowedEquipment ? new Set(record.allowedEquipment) : null;
-      pickedApparatus = record.pickedApparatus || null;
-      exerciseProfile = record.exerciseProfile || null;
-    }
-  }
-  if (!allowed && body.planConstraints?.allowedEquipment) {
-    allowed = new Set(body.planConstraints.allowedEquipment);
-    pickedApparatus = body.planConstraints.pickedApparatus || null;
-    exerciseProfile = body.planConstraints.exerciseProfile || null;
-  }
-  if (!allowed && Array.isArray(body.allowedEquipment)) {
-    allowed = allowedEquipmentSet(body.allowedEquipment);
-  }
-
-  const refreshed = enrichPlanWithExercises(JSON.parse(JSON.stringify(plan)), index, {
-    allowedEquipment: allowed,
-    pickedApparatus,
-    exerciseProfile,
-    env,
-  });
-  return jsonResponse({ success: true, plan: refreshed });
-}
-
 async function handleCoach(request, env) {
   let body;
   try { body = await request.json(); } catch { return errorResponse('Невалиден JSON', 400); }
@@ -1639,7 +1605,9 @@ function clientProgramPublicView(record) {
     planTitle: record.planTitle || null,
     hasPlan: Boolean(planId),
     planBriefStale: Boolean(record.planBriefStale),
-    clientLinkPath: record.status === 'approved' && planId ? `fitness/app.html?plan=${planId}` : null,
+    clientLinkPath: record.status === 'approved' && planId
+      ? clientPlanLinkPath(planId, record.planEditedAt)
+      : null,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
     approvedAt: record.approvedAt || null,
@@ -1715,15 +1683,7 @@ async function handleSaveClientProgram(request, env) {
 
   Object.assign(record, fields, { status: 'draft', updatedAt: now });
   await saveClientProgram(env, record);
-  const program = clientProgramPublicView(record);
-  return jsonResponse({
-    success: true,
-    program,
-    planBriefStale: Boolean(record.planBriefStale),
-    warning: record.planBriefStale
-      ? 'Схемата или профилът са променени — планът не е обновен автоматично. Прегледай в редактора или генерирай отново.'
-      : null,
-  });
+  return jsonResponse({ success: true, program: clientProgramPublicView(record) });
 }
 
 async function handleGenerateClientProgram(request, env, ctx, id) {
@@ -1803,6 +1763,7 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
   record.planTitle = plan.title || null;
   record.status = 'draft';
   record.updatedAt = now;
+  record.planEditedAt = now;
   record.approvedAt = null;
   record.planBriefStale = false;
   await saveClientProgram(env, record);
@@ -1822,7 +1783,7 @@ async function handleApproveClientProgram(request, env, id) {
   const record = await loadClientProgram(env, id);
   if (!record) return errorResponse('Програмата не е намерена', 404, 'not_found');
   if (record.status === 'approved' && record.planId) {
-    const path = `fitness/app.html?plan=${record.planId}`;
+    const path = clientPlanLinkPath(record.planId, record.planEditedAt);
     return jsonResponse({ success: true, planId: record.planId, path, program: clientProgramPublicView(record) });
   }
   if (!record.planId) return errorResponse('Първо генерирай програмата с AI', 400);
@@ -1838,9 +1799,12 @@ async function handleApproveClientProgram(request, env, id) {
   record.status = 'approved';
   record.approvedAt = now;
   record.updatedAt = now;
+  if (!record.planEditedAt) {
+    record.planEditedAt = planRecord.editedAt || planRecord.regeneratedAt || planRecord.createdAt || now;
+  }
   await saveClientProgram(env, record);
 
-  const path = `fitness/app.html?plan=${record.planId}`;
+  const path = clientPlanLinkPath(record.planId, record.planEditedAt);
   return jsonResponse({ success: true, planId: record.planId, path, program: clientProgramPublicView(record) });
 }
 
@@ -1940,6 +1904,7 @@ async function handleAdminUpdateClientProgramPlan(request, env, ctx, id) {
 
   record.planTitle = plan.title || record.planTitle;
   record.updatedAt = now;
+  record.planEditedAt = now;
   record.planBriefStale = false;
   await saveClientProgram(env, record);
 
@@ -1993,9 +1958,6 @@ export default {
       const planMatch = path.match(/^\/api\/plan\/([A-Za-z0-9-]{8,64})$/);
       if (request.method === 'GET' && planMatch) {
         return await handleGetPlan(planMatch[1], env, ctx);
-      }
-      if (request.method === 'POST' && path === '/api/plan/refresh-exercises') {
-        return await handleRefreshPlanExercises(request, env, ctx);
       }
       if (request.method === 'POST' && path === '/api/coach') {
         return await handleCoach(request, env);

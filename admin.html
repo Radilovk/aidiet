@@ -4631,8 +4631,7 @@
                 fcpUpdatePlanStaleUi(data.program);
                 status.textContent = `Запазено · ${fcpStatusLabel(data.program.status)}`;
                 loadFitplanClientPrograms(true);
-                if (data.warning) showError(data.warning);
-                else if (!silent) showSuccess('Черновата е запазена.');
+                if (!silent) showSuccess('Черновата е запазена.');
                 return data.program;
             } catch (error) {
                 status.textContent = '';

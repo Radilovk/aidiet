@@ -4073,13 +4073,6 @@ ${source.exampleScheme}` : ""
 // fitness/worker.js
 var DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
 var DEFAULT_OPENAI_MODEL = "gpt-4o-mini";
-var PLAN_BASE_OUTPUT_TOKENS = 8192;
-var PLAN_THINKING_BUDGET = 1024;
-function resolvePlanGenerationBudget({ strictAssembly = false, hasScheme = false } = {}) {
-  const needsThinking = !strictAssembly && !hasScheme;
-  const thinkingBudget = needsThinking ? PLAN_THINKING_BUDGET : 0;
-  return { thinkingBudget, maxOutputTokens: PLAN_BASE_OUTPUT_TOKENS + thinkingBudget };
-}
 var DEFAULT_MEDIA_BASE = "https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@main/";
 var DATASET_URL_CANDIDATES = [
   "https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@main/exercises.json",
@@ -4090,6 +4083,11 @@ var DATASET_URL_CANDIDATES = [
 var EXERCISE_INDEX_KV_KEY = "exidx:v2";
 var EXERCISE_INDEX_TTL = 60 * 60 * 24 * 30;
 var PLAN_TTL = 60 * 60 * 24 * 90;
+function clientPlanLinkPath(planId, planEditedAt) {
+  if (!planId) return null;
+  const base = `fitness/app.html?plan=${planId}`;
+  return planEditedAt ? `${base}&rv=${encodeURIComponent(planEditedAt)}` : base;
+}
 var MATCH_THRESHOLD = 0.35;
 var MAX_ALTERNATIVES = 3;
 var MAX_CHAT_HISTORY = 6;
@@ -4383,7 +4381,7 @@ function checkAdminSecret(request, env) {
   const provided = request.headers.get("X-Admin-Secret") || "";
   return provided === secret;
 }
-async function callGemini(env, { system, user, temperature = 0.4, maxOutputTokens = 8192, jsonMode = true, thinkingBudget = 0 }) {
+async function callGemini(env, { system, user, temperature = 0.4, maxOutputTokens = 8192, jsonMode = true }) {
   const model = env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.GEMINI_API_KEY}`;
   const generationConfig = (
@@ -4398,7 +4396,7 @@ async function callGemini(env, { system, user, temperature = 0.4, maxOutputToken
     }
   );
   if (/gemini-2\.5/i.test(model)) {
-    generationConfig.thinkingConfig = { thinkingBudget };
+    generationConfig.thinkingConfig = { thinkingBudget: 0 };
   }
   const body = {
     systemInstruction: { parts: [{ text: system }] },
@@ -4702,7 +4700,6 @@ async function executePlanGeneration(env, ctx, {
   const baseUser = catalogBlock ? `${userPrompt}
 
 ${catalogBlock}` : userPrompt;
-  const { thinkingBudget, maxOutputTokens } = resolvePlanGenerationBudget({ strictAssembly, hasScheme });
   let plan;
   let rawText;
   const maxAttempts = 3;
@@ -4727,9 +4724,8 @@ ${catalogBlock}` : userPrompt;
       system,
       user,
       temperature: attempt === 0 ? 0.4 : 0.25,
-      maxOutputTokens,
-      jsonMode: true,
-      thinkingBudget
+      maxOutputTokens: 8192,
+      jsonMode: true
     };
     try {
       rawText = await callAI(env, aiOpts);
@@ -4880,44 +4876,6 @@ async function handleGetPlan(planId, env, ctx) {
     createdAt: record.createdAt,
     regeneratedAt: record.regeneratedAt || null
   }, 200, { "Cache-Control": "private, no-cache, no-store, must-revalidate" });
-}
-async function handleRefreshPlanExercises(request, env, ctx) {
-  let body;
-  try {
-    body = await request.json();
-  } catch {
-    return errorResponse("\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON", 400);
-  }
-  const plan = body?.plan;
-  if (!plan?.days) return errorResponse("\u041B\u0438\u043F\u0441\u0432\u0430 \u043F\u043B\u0430\u043D", 400);
-  const index = await loadExerciseIndex(env, ctx);
-  if (!index) return jsonResponse({ success: true, plan });
-  let allowed = null;
-  let pickedApparatus = null;
-  let exerciseProfile = null;
-  if (body.planId && env.FITNESS_KV) {
-    const record = await env.FITNESS_KV.get(`plan:${body.planId}`, { type: "json" });
-    if (record) {
-      allowed = record.allowedEquipment ? new Set(record.allowedEquipment) : null;
-      pickedApparatus = record.pickedApparatus || null;
-      exerciseProfile = record.exerciseProfile || null;
-    }
-  }
-  if (!allowed && body.planConstraints?.allowedEquipment) {
-    allowed = new Set(body.planConstraints.allowedEquipment);
-    pickedApparatus = body.planConstraints.pickedApparatus || null;
-    exerciseProfile = body.planConstraints.exerciseProfile || null;
-  }
-  if (!allowed && Array.isArray(body.allowedEquipment)) {
-    allowed = allowedEquipmentSet(body.allowedEquipment);
-  }
-  const refreshed = enrichPlanWithExercises(JSON.parse(JSON.stringify(plan)), index, {
-    allowedEquipment: allowed,
-    pickedApparatus,
-    exerciseProfile,
-    env
-  });
-  return jsonResponse({ success: true, plan: refreshed });
 }
 async function handleCoach(request, env) {
   let body;
@@ -5337,7 +5295,8 @@ function clientProgramPublicView(record) {
     planId,
     planTitle: record.planTitle || null,
     hasPlan: Boolean(planId),
-    clientLinkPath: record.status === "approved" && planId ? `fitness/app.html?plan=${planId}` : null,
+    planBriefStale: Boolean(record.planBriefStale),
+    clientLinkPath: record.status === "approved" && planId ? clientPlanLinkPath(planId, record.planEditedAt) : null,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
     approvedAt: record.approvedAt || null
@@ -5395,9 +5354,7 @@ async function handleSaveClientProgram(request, env) {
   } else {
     const briefChanged = fields.clientProfile !== record.clientProfile || fields.exampleScheme !== record.exampleScheme || Boolean(fields.strictScheme) !== Boolean(record.strictScheme) || JSON.stringify(fields.clientAnswers || null) !== JSON.stringify(record.clientAnswers || null) || JSON.stringify(fields.clientFormState || null) !== JSON.stringify(record.clientFormState || null);
     if (briefChanged && record.planId) {
-      await env.FITNESS_KV.delete(`plan:${record.planId}`);
-      record.planId = null;
-      record.planTitle = null;
+      record.planBriefStale = true;
     }
   }
   Object.assign(record, fields, { status: "draft", updatedAt: now });
@@ -5474,7 +5431,9 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
   record.planTitle = plan.title || null;
   record.status = "draft";
   record.updatedAt = now;
+  record.planEditedAt = now;
   record.approvedAt = null;
+  record.planBriefStale = false;
   await saveClientProgram(env, record);
   return jsonResponse({
     success: true,
@@ -5489,7 +5448,7 @@ async function handleApproveClientProgram(request, env, id) {
   const record = await loadClientProgram(env, id);
   if (!record) return errorResponse("\u041F\u0440\u043E\u0433\u0440\u0430\u043C\u0430\u0442\u0430 \u043D\u0435 \u0435 \u043D\u0430\u043C\u0435\u0440\u0435\u043D\u0430", 404, "not_found");
   if (record.status === "approved" && record.planId) {
-    const path2 = `fitness/app.html?plan=${record.planId}`;
+    const path2 = clientPlanLinkPath(record.planId, record.planEditedAt);
     return jsonResponse({ success: true, planId: record.planId, path: path2, program: clientProgramPublicView(record) });
   }
   if (!record.planId) return errorResponse("\u041F\u044A\u0440\u0432\u043E \u0433\u0435\u043D\u0435\u0440\u0438\u0440\u0430\u0439 \u043F\u0440\u043E\u0433\u0440\u0430\u043C\u0430\u0442\u0430 \u0441 AI", 400);
@@ -5502,9 +5461,22 @@ async function handleApproveClientProgram(request, env, id) {
   record.status = "approved";
   record.approvedAt = now;
   record.updatedAt = now;
+  if (!record.planEditedAt) {
+    record.planEditedAt = planRecord.editedAt || planRecord.regeneratedAt || planRecord.createdAt || now;
+  }
   await saveClientProgram(env, record);
-  const path = `fitness/app.html?plan=${record.planId}`;
+  const path = clientPlanLinkPath(record.planId, record.planEditedAt);
   return jsonResponse({ success: true, planId: record.planId, path, program: clientProgramPublicView(record) });
+}
+function equipmentNormsFromPlan(plan) {
+  const set = /* @__PURE__ */ new Set();
+  for (const day of plan?.days || []) {
+    for (const ex of day.exercises || []) {
+      const eq = normalizeText(ex.equipmentHint);
+      if (eq) set.add(eq);
+    }
+  }
+  return set.size ? set : null;
 }
 async function handleAdminGetClientProgramPlan(request, env, ctx, id) {
   if (!checkAdminSecret(request, env)) return errorResponse("\u041D\u0435\u043E\u0442\u043E\u0440\u0438\u0437\u0438\u0440\u0430\u043D \u0434\u043E\u0441\u0442\u044A\u043F", 401, "unauthorized");
@@ -5515,12 +5487,11 @@ async function handleAdminGetClientProgramPlan(request, env, ctx, id) {
   const planRecord = await env.FITNESS_KV.get(`plan:${record.planId}`, { type: "json" });
   if (!planRecord?.plan) return errorResponse("\u041F\u043B\u0430\u043D\u044A\u0442 \u043D\u0435 \u0435 \u043D\u0430\u043C\u0435\u0440\u0435\u043D. \u0413\u0435\u043D\u0435\u0440\u0438\u0440\u0430\u0439 \u043E\u0442\u043D\u043E\u0432\u043E.", 404, "not_found");
   const index = await loadExerciseIndex(env, ctx);
-  const allowed = planRecord.allowedEquipment ? new Set(planRecord.allowedEquipment) : null;
   const plan = index ? enrichPlanWithExercises(JSON.parse(JSON.stringify(planRecord.plan)), index, {
     env,
-    allowedEquipment: allowed,
+    allowedEquipment: null,
     pickedApparatus: planRecord.pickedApparatus || null,
-    exerciseProfile: planRecord.exerciseProfile || null
+    exerciseProfile: null
   }) : planRecord.plan;
   return jsonResponse({
     success: true,
@@ -5551,22 +5522,25 @@ async function handleAdminUpdateClientProgramPlan(request, env, ctx, id) {
   const planRecord = await env.FITNESS_KV.get(`plan:${record.planId}`, { type: "json" });
   if (!planRecord) return errorResponse("\u041F\u043B\u0430\u043D\u044A\u0442 \u043D\u0435 \u0435 \u043D\u0430\u043C\u0435\u0440\u0435\u043D. \u0413\u0435\u043D\u0435\u0440\u0438\u0440\u0430\u0439 \u043E\u0442\u043D\u043E\u0432\u043E.", 404, "not_found");
   const index = await loadExerciseIndex(env, ctx);
-  const allowed = planRecord.allowedEquipment ? new Set(planRecord.allowedEquipment) : null;
   if (index) {
     enrichPlanWithExercises(plan, index, {
       env,
-      allowedEquipment: allowed,
+      allowedEquipment: null,
       pickedApparatus: planRecord.pickedApparatus || null,
-      exerciseProfile: planRecord.exerciseProfile || null
+      exerciseProfile: null
     });
   }
   sanitizePlanBulgarian(plan);
   const now = (/* @__PURE__ */ new Date()).toISOString();
   planRecord.plan = plan;
   planRecord.editedAt = now;
+  const equipFromPlan = equipmentNormsFromPlan(plan);
+  if (equipFromPlan) planRecord.allowedEquipment = [...equipFromPlan];
   await env.FITNESS_KV.put(`plan:${record.planId}`, JSON.stringify(planRecord), { expirationTtl: PLAN_TTL });
   record.planTitle = plan.title || record.planTitle;
   record.updatedAt = now;
+  record.planEditedAt = now;
+  record.planBriefStale = false;
   await saveClientProgram(env, record);
   return jsonResponse({ success: true, plan, program: clientProgramPublicView(record) });
 }
@@ -5608,9 +5582,6 @@ var worker_default = {
       const planMatch = path.match(/^\/api\/plan\/([A-Za-z0-9-]{8,64})$/);
       if (request.method === "GET" && planMatch) {
         return await handleGetPlan(planMatch[1], env, ctx);
-      }
-      if (request.method === "POST" && path === "/api/plan/refresh-exercises") {
-        return await handleRefreshPlanExercises(request, env, ctx);
       }
       if (request.method === "POST" && path === "/api/coach") {
         return await handleCoach(request, env);
@@ -18588,7 +18559,7 @@ function isFitnessRoute(pathname, method) {
   if (method === "DELETE" && /^\/api\/admin\/fitplan\/client-programs\/[A-Za-z0-9_-]+$/.test(pathname)) return true;
   if (method === "POST" && /^\/api\/admin\/fitplan\/client-programs\/[A-Za-z0-9_-]+\/delete$/.test(pathname)) return true;
   if (method === "GET" && /^\/api\/admin\/fitplan\/client-programs\/[A-Za-z0-9_-]+\/plan$/.test(pathname)) return true;
-  if (method === "POST" && (pathname === "/api/plan/generate" || pathname === "/api/plan/refresh-exercises" || pathname === "/api/fitplan/consultation" || pathname === "/api/coach" || pathname === "/api/admin/fitplan/guidelines" || pathname === "/api/admin/fitplan/translate-exercises" || pathname === "/api/admin/fitplan/classify-exercises" || pathname === "/api/admin/fitplan/consult-config" || pathname === "/api/admin/fitplan/client-programs" || /^\/api\/admin\/fitplan\/consultations\/[A-Za-z0-9_-]+\/read$/.test(pathname) || /^\/api\/admin\/fitplan\/client-programs\/[A-Za-z0-9_-]+\/(generate|approve|plan)$/.test(pathname))) return true;
+  if (method === "POST" && (pathname === "/api/plan/generate" || pathname === "/api/fitplan/consultation" || pathname === "/api/coach" || pathname === "/api/admin/fitplan/guidelines" || pathname === "/api/admin/fitplan/translate-exercises" || pathname === "/api/admin/fitplan/classify-exercises" || pathname === "/api/admin/fitplan/consult-config" || pathname === "/api/admin/fitplan/client-programs" || /^\/api\/admin\/fitplan\/consultations\/[A-Za-z0-9_-]+\/read$/.test(pathname) || /^\/api\/admin\/fitplan\/client-programs\/[A-Za-z0-9_-]+\/(generate|approve|plan)$/.test(pathname))) return true;
   if (method === "GET" && /^\/api\/plan\/[A-Za-z0-9-]{8,64}$/.test(pathname)) return true;
   return false;
 }

@@ -2,7 +2,8 @@
  * KA-TRAINER — клиентска логика.
  *
  * Икономичен дизайн (0 излишни заявки):
- *   - Планът се пази в localStorage → повторно отваряне не вика бекенда.
+ *   - Планът се пази в localStorage → отваряне от началния екран = 0 заявки.
+ *   - Линк ?plan=&rv= → пълен fetch само при нов rv (след админ запис).
  *   - Смяна на упражнение → алтернативите са прекомпютнати в плана (0 заявки).
  *   - Олекотяване/утежняване → детерминистични правила тук (0 заявки).
  *   - Чат историята живее в localStorage; към бекенда пътуват само
@@ -82,7 +83,7 @@ async function apiFetch(path, options = {}) {
 // ============================================================
 
 let wizardState = store.get('wizard', {});
-let planRecord = store.get('plan', null);      // { planId, plan, coachContext, createdAt }
+let planRecord = store.get('plan', null);      // { planId, plan, coachContext, createdAt, syncedRv }
 let swaps = store.get('swaps', {});            // { "day-ex": altIndex } ; -1 = оригинал
 let intensity = store.get('intensity', 0);     // -1 | 0 | 1
 let chatHistory = store.get('chat', []);       // [{role, text}]
@@ -202,37 +203,9 @@ function openCachedProgram() {
     showView('home');
     return;
   }
-  void openCachedProgramAsync();
-}
-
-async function openCachedProgramAsync() {
   activeDay = firstTrainingDay(planRecord.plan);
-  const refreshed = await refreshPlanExerciseMedia(planRecord.plan);
-  if (refreshed && refreshed !== planRecord.plan) {
-    planRecord = { ...planRecord, plan: refreshed };
-    store.set('plan', planRecord);
-  }
   renderPlan();
   showView('plan');
-}
-
-async function refreshPlanExerciseMedia(plan) {
-  try {
-    const res = await apiFetch('/api/plan/refresh-exercises', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        plan,
-        planId: planRecord?.planId || null,
-        planConstraints: planRecord?.planConstraints || null,
-      }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (res.ok && data.success && data.plan) return data.plan;
-  } catch {
-    /* офлайн — показваме кеширания план */
-  }
-  return plan;
 }
 
 function showView(name) {
@@ -900,13 +873,30 @@ async function sendChatMessage(text) {
 // ============================================================
 
 async function loadSharedPlan(planId) {
+  const linkRv = new URLSearchParams(location.search).get('rv');
+  if (planRecord?.planId === planId && planRecord?.plan?.days?.length
+      && (!linkRv || linkRv === planRecord.syncedRv)) {
+    activeDay = firstTrainingDay(planRecord.plan);
+    renderPlan();
+    showView('plan');
+    void refreshPwaInstall?.();
+    return;
+  }
+
   showView('loading');
   $('loadingTitle').textContent = 'Зареждам плана…';
   try {
     const res = await apiFetch(`/api/plan/${encodeURIComponent(planId)}`);
     const data = await res.json();
     if (!res.ok || !data.success) throw new Error(data.message || 'Планът не е намерен.');
-    planRecord = { planId, plan: data.plan, coachContext: data.coachContext || '', createdAt: data.createdAt };
+    planRecord = {
+      planId,
+      plan: data.plan,
+      coachContext: data.coachContext || '',
+      createdAt: data.createdAt,
+      syncedRv: linkRv || null,
+      planConstraints: planRecord?.planConstraints || null,
+    };
     swaps = {}; intensity = 0; chatHistory = [];
     store.set('plan', planRecord);
     store.set('swaps', swaps);
