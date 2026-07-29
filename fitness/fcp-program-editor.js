@@ -164,7 +164,7 @@ export async function open(program) {
   $('#fcpEditorDayPills').innerHTML = '';
   $('#fcpEditorDayPanel').innerHTML = '<p class="fcp-editor-loading"><i class="fas fa-spinner fa-spin"></i> Зареждане…</p>';
   setStatus('');
-  state = { programId: id, planId: null, plan: null, dirty: false, activeDayIndex: 0, picker: null, openDetails: new Set() };
+  state = { programId: id, planId: null, plan: null, dirty: false, activeDayIndex: 0, editorTab: 'days', picker: null, openDetails: new Set() };
 
   try {
     const res = await fetch(`${apiBase()}/api/admin/fitplan/client-programs/${encodeURIComponent(id)}/plan`, {
@@ -227,8 +227,98 @@ async function save() {
 }
 
 function renderBoard({ preserveScroll = false } = {}) {
+  renderEditorTabs();
+  if (state.editorTab === 'text') {
+    $('#fcpEditorDayPills').innerHTML = '';
+    renderPlanTextPanel({ preserveScroll });
+    return;
+  }
   renderDayPills();
   renderDayPanel({ preserveScroll });
+}
+
+function renderEditorTabs() {
+  let tabs = $('#fcpEditorTabs');
+  if (!tabs) {
+    const body = $('#fcpEditorBody');
+    tabs = el('div', { class: 'fcp-editor-tabs', id: 'fcpEditorTabs' });
+    body.insertBefore(tabs, $('#fcpEditorDayPills'));
+  }
+  tabs.innerHTML = '';
+  const makeTab = (id, label) => el('button', {
+    type: 'button',
+    class: `fcp-editor-tab${state.editorTab === id ? ' active' : ''}`,
+    onclick: () => {
+      if (state.editorTab === id) return;
+      state.editorTab = id;
+      renderBoard();
+    },
+  }, label);
+  tabs.append(makeTab('text', 'Текстове за клиента'), makeTab('days', 'Дни и упражнения'));
+}
+
+function bindTextInput(value, onChange, tag = 'input', extra = {}) {
+  const isTextarea = tag === 'textarea';
+  return el(tag, {
+    ...extra,
+    ...(isTextarea ? {} : { value: value || '' }),
+    oninput: (e) => onChange(e.target.value),
+  }, isTextarea ? (value || '') : undefined);
+}
+
+function renderPlanTextPanel({ preserveScroll = false } = {}) {
+  const panel = $('#fcpEditorDayPanel');
+  const scrollTop = preserveScroll ? panel.scrollTop : 0;
+  panel.innerHTML = '';
+
+  const plan = state.plan;
+  plan.guidelines = plan.guidelines || {};
+
+  const section = (title) => el('div', { class: 'fcp-editor-section-title', text: title });
+
+  const titleInput = bindTextInput(plan.title || '', (v) => { plan.title = v; markDirty(); }, 'input', {
+    class: 'fcp-editor-focus', type: 'text', placeholder: 'Заглавие на плана',
+  });
+  const summaryTa = bindTextInput(plan.summary || '', (v) => { plan.summary = v; markDirty(); }, 'textarea', {
+    class: 'fcp-editor-textarea', rows: '5', placeholder: 'Общо обяснение и логика на програмата',
+  });
+  const splitTa = bindTextInput(plan.weeklySplit || '', (v) => { plan.weeklySplit = v; markDirty(); }, 'textarea', {
+    class: 'fcp-editor-textarea', rows: '3', placeholder: 'Седмична структура (split)',
+  });
+  const safetyTa = bindTextInput((plan.safetyNotes || []).join('\n'), (v) => {
+    plan.safetyNotes = v.split('\n').map((s) => s.trim()).filter(Boolean);
+    markDirty();
+  }, 'textarea', {
+    class: 'fcp-editor-textarea', rows: '4', placeholder: 'По една бележка на ред',
+  });
+
+  const guidelineField = (key, label, rows = 3) => {
+    const field = el('div', { class: 'fcp-editor-field' });
+    field.append(el('label', { text: label }));
+    field.append(bindTextInput(plan.guidelines[key] || '', (v) => {
+      plan.guidelines[key] = v;
+      markDirty();
+    }, 'textarea', { class: 'fcp-editor-textarea', rows: String(rows) }));
+    return field;
+  };
+
+  panel.append(
+    el('div', { class: 'fcp-editor-textpanel' },
+      section('Презентация'),
+      el('div', { class: 'fcp-editor-field' }, el('label', { text: 'Заглавие' }), titleInput),
+      el('div', { class: 'fcp-editor-field' }, el('label', { text: 'Обобщение (най-отгоре при първо отваряне)' }), summaryTa),
+      el('div', { class: 'fcp-editor-field' }, el('label', { text: 'Седмична структура' }), splitTa),
+      section('Безопасност'),
+      el('div', { class: 'fcp-editor-field' }, el('label', { text: 'Предупреждения (по ред)' }), safetyTa),
+      section('Насоки'),
+      guidelineField('progression', 'Как да прогресираш'),
+      guidelineField('recovery', 'Възстановяване'),
+      guidelineField('nutrition', 'Хранене'),
+      guidelineField('adaptation', 'Кога да олекотиш или утежниш'),
+    ),
+  );
+
+  requestAnimationFrame(() => { panel.scrollTop = scrollTop; });
 }
 
 function renderDayPills() {
@@ -854,6 +944,10 @@ function pickExercise(item) {
     ex.equipmentHint = item.equipment || '';
     ex.bodyPart = item.bodyPart || item.target || '';
     ex.match = { imageUrl: item.imageUrl, gifUrl: item.gifUrl };
+    ex.tempo = '';
+    ex.rpe = '';
+    ex.notes = '';
+    state.openDetails.delete(`${p.dayIndex}-${p.exIndex}`);
   } else {
     day.exercises = day.exercises || [];
     if (day.type === 'rest') day.type = 'strength';
