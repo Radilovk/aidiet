@@ -23,7 +23,6 @@ import {
   loadBundledMetadata,
   parseAiJson,
   normalizePlan,
-  resolvePlanGenerationBudget,
 } from '../worker.js';
 import { fetchExerciseDataset } from '../exercise-translate-batch.js';
 import { buildExerciseCatalogSnippet } from '../exercise-metadata.js';
@@ -271,17 +270,15 @@ if (!process.env.GEMINI_API_KEY) {
 
 const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`;
-const { thinkingBudget, maxOutputTokens } = resolvePlanGenerationBudget(prep);
-console.log(`thinkingBudget=${thinkingBudget} maxOutputTokens=${maxOutputTokens} (hasScheme=${prep.hasScheme}, strictAssembly=${prep.strictAssembly})`);
 const body = {
   systemInstruction: { parts: [{ text: systemPrompt }] },
   contents: [{ role: 'user', parts: [{ text: baseUser }] }],
   generationConfig: {
     temperature: 0.4,
-    maxOutputTokens,
+    maxOutputTokens: 8192,
     responseMimeType: 'application/json',
     responseSchema: PLAN_RESPONSE_SCHEMA,
-    thinkingConfig: { thinkingBudget },
+    thinkingConfig: { thinkingBudget: 0 },
   },
 };
 
