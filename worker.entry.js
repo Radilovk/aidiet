@@ -1701,6 +1701,7 @@ const pendingSessionLogs = new Map(); // sessionId → [logId, ...]
 const MEAL_PLAN_CHUNK_MAX_RETRIES = 2; // Up to 2 retries per day when structural validation fails
 const CATALOG_STRICT_MODE = true; // Step 3: only catalog products; no AI nutrition lookup
 const MAX_LATE_SNACK_CALORIES = 200; // Maximum calories allowed for late-night snacks
+const MAX_MEAL_WEIGHT_GRAMS = 800; // Maximum realistic single-meal portion (matches adequacy validators)
 
 /**
  * Cache API helper functions for AI logging
@@ -3268,7 +3269,24 @@ function collectUserBlockedFoodTerms(data) {
   if (Array.isArray(data.forbidden)) {
     data.forbidden.forEach(f => pushSplit(f));
   }
+  if (Array.isArray(data.userFoodExclude)) {
+    data.userFoodExclude.forEach(f => pushSplit(f));
+  }
   return terms;
+}
+
+/** Per-user food-picker inclusion list (overrides global KV mainlist for this request). */
+function buildUserFoodPickerSection(data) {
+  const list = Array.isArray(data.userFoodList)
+    ? data.userFoodList.map(s => String(s).trim()).filter(Boolean)
+    : [];
+  if (!list.length) return '';
+  const joined = list.join(', ');
+  const MAX_MAINLIST_CHARS = 1500;
+  const displayList = joined.length > MAX_MAINLIST_CHARS
+    ? joined.slice(0, MAX_MAINLIST_CHARS) + '… [списъкът е съкратен]'
+    : joined;
+  return `\nОСНОВЕН СПИСЪК ХРАНИ (ЗАДЪЛЖИТЕЛНО — избор на клиента): Използвай САМО тези продукти: ${displayList}. Изключение: единствено при категорична медицинска противопоказност (алергия, заболяване) на конкретния потребител.`;
 }
 
 /**
@@ -3437,6 +3455,11 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
     dynamicWhitelistSection = foodLists.dynamicWhitelistSection;
     dynamicBlacklistSection = foodLists.dynamicBlacklistSection;
     dynamicMainlistSection = foodLists.dynamicMainlistSection || '';
+  }
+
+  const userFoodPickerSection = buildUserFoodPickerSection(data);
+  if (userFoodPickerSection) {
+    dynamicMainlistSection = userFoodPickerSection;
   }
   
   // Build medical details section for meal plan prompt
@@ -7726,6 +7749,16 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocol
       errors.push(`Ден ${dayNum} ${meal.type}: калории ${mealCal} ≠ цел ${targetCal} — порциите са структурно недостатъчни/прекомерни, избери по-подходящи продукти или количества`);
     }
 
+    if (meal.weight) {
+      const weightMatch = String(meal.weight).match(/(\d+(?:\.\d+)?)\s*(?:g|г)/i);
+      if (weightMatch) {
+        const weightGrams = parseFloat(weightMatch[1]);
+        if (weightGrams > MAX_MEAL_WEIGHT_GRAMS) {
+          errors.push(`Ден ${dayNum} ${meal.type}: weight ${weightGrams}g > ${MAX_MEAL_WEIGHT_GRAMS}g`);
+        }
+      }
+    }
+
     if (meal.description && CATALOG_STRICT_MODE) {
       const productNames = parseMealDescription(meal.description).map(i => i.name);
       const notInCatalog = validateProductNamesInCatalog(productNames);
@@ -7755,6 +7788,14 @@ function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay
     const dayTarget = strategy.weeklyScheme[schemeKey];
     if (dayPlan && dayTarget) {
       errors.push(...validateMealsAgainstScheme(dayPlan, dayTarget, d, clinicalProtocolId));
+      const dayKcal = Number(dayPlan.dailyTotals?.calories) || 0;
+      const schemeKcal = Number(dayTarget.calories) || 0;
+      if (dayKcal > 0 && schemeKcal > 0) {
+        const tol = calorieTolerance(schemeKcal);
+        if (Math.abs(dayKcal - schemeKcal) > tol * 2) {
+          errors.push(`Ден ${d}: дневни ${dayKcal} kcal ≠ схема ${schemeKcal}`);
+        }
+      }
     }
   }
   return errors;
@@ -7776,7 +7817,18 @@ function finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay) {
   for (let d = startDay; d <= endDay; d++) {
     const day = weekPlan[`day${d}`];
     if (!day?.meals) continue;
-    for (const meal of day.meals) syncMealCaloriesFromMacros(meal);
+    for (const meal of day.meals) {
+      if (meal.type === 'Свободно хранене') {
+        meal.name = meal.name || 'Свободно хранене';
+        delete meal.description;
+        delete meal.weight;
+        delete meal.calories;
+        delete meal.macros;
+        delete meal.dessert;
+        continue;
+      }
+      syncMealCaloriesFromMacros(meal);
+    }
   }
   recalculateDayCalories(weekPlan, strategy);
 }
@@ -9417,21 +9469,16 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       }
 
       if (attempt >= MEAL_PLAN_CHUNK_MAX_RETRIES) {
-        if (bestSnapshot) {
-          // Some plan beats no plan: keep the best attempt found and continue.
+        if (bestSnapshot && !bestErrors?.length) {
           for (const [dayKey, dayData] of Object.entries(bestSnapshot)) {
             weekPlan[dayKey] = dayData;
           }
-          if (bestErrors.length) {
-            const warning = `Дни ${startDay}-${endDay}: план използван с отклонения след ${attempt + 1} опита: ${bestErrors.join('; ')}`;
-            console.warn(warning);
-            generationWarnings.push(warning);
-          }
-        } else {
-          // Every attempt failed at the AI-call level — nothing usable to fall back to.
-          throw new Error(`Генериране на дни ${startDay}-${endDay}: ${lastAiFailure || 'няма валиден отговор след всички опити'}`);
+          break;
         }
-        break;
+        const detail = bestErrors?.length
+          ? bestErrors.join('; ')
+          : (lastAiFailure || 'няма валиден отговор след всички опити');
+        throw new Error(`Генериране на дни ${startDay}-${endDay}: ${detail}`);
       }
 
       for (let day = startDay; day <= endDay; day++) {
@@ -12658,6 +12705,9 @@ async function handleGetBlacklist(request, env) {
  * Accepts {item, mode: 'ban'|'substitute', substitute?}.
  */
 async function handleAddToBlacklist(request, env) {
+  if (!checkAdminSecret(request, env)) {
+    return jsonResponse({ error: 'Неоторизиран достъп' }, 401);
+  }
   try {
     const data = await request.json();
     const item = data.item?.trim()?.toLowerCase();
@@ -12703,6 +12753,9 @@ async function handleAddToBlacklist(request, env) {
  * Matches by item name (works for both old string[] and new object[] format).
  */
 async function handleRemoveFromBlacklist(request, env) {
+  if (!checkAdminSecret(request, env)) {
+    return jsonResponse({ error: 'Неоторизиран достъп' }, 401);
+  }
   try {
     const data = await request.json();
     const item = data.item?.trim()?.toLowerCase();
@@ -12739,7 +12792,16 @@ async function handleRemoveFromBlacklist(request, env) {
  * Accepts { items: string[] } — all items are stored with mode='ban'.
  * Passing an empty array clears the blacklist completely.
  */
+function checkAdminSecret(request, env) {
+  const secret = env.ADMIN_SECRET;
+  if (!secret) return true;
+  return (request.headers.get('X-Admin-Secret') || '') === secret;
+}
+
 async function handleSetBlacklist(request, env) {
+  if (!checkAdminSecret(request, env)) {
+    return jsonResponse({ error: 'Неоторизиран достъп' }, 401);
+  }
   try {
     if (!env.page_content) {
       return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
@@ -12876,6 +12938,9 @@ async function handleGetMainlist(request, env) {
  * Accepts { items: string[] } — the full new list.
  */
 async function handleSetMainlist(request, env) {
+  if (!checkAdminSecret(request, env)) {
+    return jsonResponse({ error: 'Неоторизиран достъп' }, 401);
+  }
   try {
     if (!env.page_content) {
       return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
@@ -12898,6 +12963,9 @@ async function handleSetMainlist(request, env) {
  * Accepts { item: string }.
  */
 async function handleAddToMainlist(request, env) {
+  if (!checkAdminSecret(request, env)) {
+    return jsonResponse({ error: 'Неоторизиран достъп' }, 401);
+  }
   try {
     const data = await request.json();
     const item = data.item?.trim()?.toLowerCase();
@@ -12926,6 +12994,9 @@ async function handleAddToMainlist(request, env) {
  * Accepts { item: string }.
  */
 async function handleRemoveFromMainlist(request, env) {
+  if (!checkAdminSecret(request, env)) {
+    return jsonResponse({ error: 'Неоторизиран достъп' }, 401);
+  }
   try {
     const data = await request.json();
     const item = data.item?.trim()?.toLowerCase();
@@ -12951,6 +13022,9 @@ async function handleRemoveFromMainlist(request, env) {
  * Mainlist Management: Clear the entire mainlist.
  */
 async function handleClearMainlist(request, env) {
+  if (!checkAdminSecret(request, env)) {
+    return jsonResponse({ error: 'Неоторизиран достъп' }, 401);
+  }
   try {
     if (!env.page_content) {
       return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
@@ -12986,6 +13060,9 @@ async function handleGetMainlistStatus(request, env) {
  * Accepts { enabled: boolean }.
  */
 async function handleSetMainlistEnabled(request, env) {
+  if (!checkAdminSecret(request, env)) {
+    return jsonResponse({ error: 'Неоторизиран достъп' }, 401);
+  }
   try {
     if (!env.page_content) {
       return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
@@ -13023,6 +13100,9 @@ async function handleGetMainlistPresets(request, env) {
  * Accepts { name: string }.
  */
 async function handleSaveMainlistPreset(request, env) {
+  if (!checkAdminSecret(request, env)) {
+    return jsonResponse({ error: 'Неоторизиран достъп' }, 401);
+  }
   try {
     if (!env.page_content) {
       return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
@@ -13048,6 +13128,9 @@ async function handleSaveMainlistPreset(request, env) {
  * Accepts { name: string }.
  */
 async function handleLoadMainlistPreset(request, env) {
+  if (!checkAdminSecret(request, env)) {
+    return jsonResponse({ error: 'Неоторизиран достъп' }, 401);
+  }
   try {
     if (!env.page_content) {
       return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
@@ -13080,6 +13163,9 @@ async function handleLoadMainlistPreset(request, env) {
  * Accepts { name: string }.
  */
 async function handleDeleteMainlistPreset(request, env) {
+  if (!checkAdminSecret(request, env)) {
+    return jsonResponse({ error: 'Неоторизиран достъп' }, 401);
+  }
   try {
     if (!env.page_content) {
       return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);

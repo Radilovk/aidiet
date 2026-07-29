@@ -64,7 +64,9 @@ export function validateMealPlan(weekPlan, strategy = {}) {
         }
       }
       if (!meal.description || !/\d+\s*(g|г)\b/i.test(meal.description)) {
-        issues.push(`day${d} "${meal.name}": липсват грамажи в description`);
+        if (meal.type !== 'Свободно хранене') {
+          issues.push(`day${d} "${meal.name}": липсват грамажи в description`);
+        }
       }
     }
   }

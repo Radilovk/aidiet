@@ -1062,87 +1062,10 @@ async function handleSubmit() {
             return;
         }
 
-        // 2. Decide mode: exclusion vs inclusion
+        // 2. Per-user food preferences (passed in userData — no global KV changes)
         const totalVisible = countVisibleCatalogItems(blockedTerms);
         const useExclusionMode = filteredList.length >= EXCLUSION_THRESHOLD * totalVisible;
-
-        if (useExclusionMode) {
-            // ── EXCLUSION MODE ──────────────────────────────────────────────
-            // User selected most foods — record only the rejected ones as blacklist.
-            setLoading(true, 'Записване на изключенията…');
-            const unselected = getUnselectedVisibleItems(blockedTerms);
-
-            // Replace blacklist with only the unselected items
-            const blRes = await fetch(`${WORKER_URL}/api/admin/set-blacklist`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ items: unselected })
-            });
-            if (!blRes.ok) {
-                const errData = await blRes.json().catch(() => ({}));
-                throw new Error(errData.error || `HTTP ${blRes.status}`);
-            }
-
-            setLoading(true, 'Изчистване на предпочитанията…');
-
-            // Clear mainlist and disable it (everything except the blacklist is allowed)
-            const clearRes = await fetch(`${WORKER_URL}/api/admin/clear-mainlist`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({})
-            });
-            if (!clearRes.ok) {
-                const errData = await clearRes.json().catch(() => ({}));
-                throw new Error(errData.error || `HTTP ${clearRes.status}`);
-            }
-            const disableRes = await fetch(`${WORKER_URL}/api/admin/set-mainlist-enabled`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ enabled: false })
-            });
-            if (!disableRes.ok) {
-                const errData = await disableRes.json().catch(() => ({}));
-                throw new Error(errData.error || `HTTP ${disableRes.status}`);
-            }
-        } else {
-            // ── INCLUSION MODE ──────────────────────────────────────────────
-            // User selected only a subset — use strict mainlist so AI uses exactly these foods.
-            setLoading(true, 'Записване на предпочитаните продукти…');
-
-            // Clear any previously set exclusion blacklist
-            const clearBlRes = await fetch(`${WORKER_URL}/api/admin/set-blacklist`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ items: [] })
-            });
-            if (!clearBlRes.ok) {
-                const errData = await clearBlRes.json().catch(() => ({}));
-                throw new Error(errData.error || `HTTP ${clearBlRes.status}`);
-            }
-
-            // Set mainlist to exactly the selected items
-            const setRes = await fetch(`${WORKER_URL}/api/admin/set-mainlist`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ items: filteredList })
-            });
-            if (!setRes.ok) {
-                const errData = await setRes.json().catch(() => ({}));
-                throw new Error(errData.error || `HTTP ${setRes.status}`);
-            }
-
-            setLoading(true, 'Активиране на списъка…');
-
-            const enableRes = await fetch(`${WORKER_URL}/api/admin/set-mainlist-enabled`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ enabled: true })
-            });
-            if (!enableRes.ok) {
-                const errData = await enableRes.json().catch(() => ({}));
-                throw new Error(errData.error || `HTTP ${enableRes.status}`);
-            }
-        }
+        const userFoodExclude = useExclusionMode ? getUnselectedVisibleItems(blockedTerms) : [];
 
         // 3. Persist selection locally (for UI restore and debug)
         localStorage.setItem('userFoodList', JSON.stringify(filteredList));
@@ -1153,6 +1076,7 @@ async function handleSubmit() {
             debugBox.textContent = JSON.stringify({
                 mode: useExclusionMode ? 'exclusion' : 'inclusion',
                 userFoodList: filteredList,
+                userFoodExclude,
                 removedBlocked: list.filter(i => isBlocked(i, blockedTerms)),
                 count: filteredList.length,
                 totalVisible,
@@ -1165,36 +1089,66 @@ async function handleSubmit() {
         // 4. Check for existing user profile from questionnaire2
         const existingUserDataStr = localStorage.getItem('userData');
         if (existingUserDataStr) {
-            // Re-generate plan using the existing profile and the new food selection
             const userData = JSON.parse(existingUserDataStr);
+            if (useExclusionMode) {
+                userData.userFoodExclude = userFoodExclude;
+                delete userData.userFoodList;
+            } else {
+                userData.userFoodList = filteredList;
+                delete userData.userFoodExclude;
+            }
+            localStorage.setItem('userData', JSON.stringify(userData));
+
             setLoading(true, 'Генериране на план с избраните продукти…', 'Това може да отнеме до няколко минути');
 
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), PLAN_GENERATION_TIMEOUT_MS);
-
-            const planRes = await fetch(`${WORKER_URL}/api/generate-plan`, {
+            const jobId = crypto.randomUUID();
+            const startRes = await fetch(`${WORKER_URL}/api/generate-plan-async`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(userData),
-                signal: controller.signal
+                body: JSON.stringify({ ...userData, _jobId: jobId })
             });
-            clearTimeout(timeoutId);
-
-            if (!planRes.ok) {
-                const errData = await planRes.json().catch(() => ({}));
-                throw new Error(errData.error || `HTTP ${planRes.status}`);
+            if (!startRes.ok) {
+                const errData = await startRes.json().catch(() => ({}));
+                throw new Error(errData.error || `HTTP ${startRes.status}`);
+            }
+            const startData = await startRes.json();
+            if (!startData.success || !startData.jobId) {
+                throw new Error(startData.error || 'Неуспешно стартиране на генерирането');
             }
 
-            const result = await planRes.json();
-            if (!result.success) {
-                throw new Error(result.error || 'Грешка при генериране на плана');
+            const activeJobId = startData.jobId;
+            const MAX_POLLS = 72;
+            const POLL_BASE_DELAY = 5000;
+            const POLL_MAX_DELAY = 30000;
+            let polls = 0;
+            const nextPollDelay = () => Math.min(POLL_MAX_DELAY, POLL_BASE_DELAY * Math.pow(2, Math.min(polls - 1, 2)));
+
+            const poll = async () => {
+                polls++;
+                if (polls > MAX_POLLS) throw new Error('Генерирането отне твърде дълго. Моля, опитайте отново.');
+                const statusRes = await fetch(`${WORKER_URL}/api/plan-job-status?jobId=${encodeURIComponent(activeJobId)}`);
+                if (!statusRes.ok) {
+                    if (statusRes.status === 429 || statusRes.status >= 500) {
+                        await new Promise(r => setTimeout(r, nextPollDelay()));
+                        return poll();
+                    }
+                    throw new Error(`Грешка при проверка на статуса (${statusRes.status})`);
+                }
+                const statusData = await statusRes.json();
+                if (statusData.status === 'completed') return statusData;
+                if (statusData.status === 'failed') throw new Error(statusData.error || 'Генерирането на плана не успя');
+                if (statusData.status === 'not_found') throw new Error('Сесията за генериране е изтекла.');
+                await new Promise(r => setTimeout(r, nextPollDelay()));
+                return poll();
+            };
+
+            const result = await poll();
+            if (!result.success || !result.plan) {
+                throw new Error(result.error || 'Невалиден отговор от сървъра');
             }
 
-            // Save the new plan
             localStorage.setItem('dietPlan', JSON.stringify(result.plan));
-            if (result.userId) {
-                localStorage.setItem('userId', result.userId);
-            }
+            if (result.userId) localStorage.setItem('userId', result.userId);
             localStorage.removeItem('hasSeenPlanJustification');
 
             // Demo: increment plan generation counter

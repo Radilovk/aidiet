@@ -1862,6 +1862,7 @@
 <body>
     <script src="./session-utils.js"></script>
     <script src="./plan-sync.js"></script>
+    <script type="module" src="./plan-regen-fields.js"></script>
     <script src="./diagnostics-log.js"></script>
     <script src="./platform.js"></script>
     <script type="module" src="./auth-guard.js"></script>
@@ -2894,6 +2895,24 @@
             clearAlert();
         }
 
+        function fieldValueChanged(input) {
+            const field = input.getAttribute('data-field');
+            const newValue = input.value.trim();
+            let oldValue;
+            if (Array.isArray(originalData[field])) {
+                oldValue = originalData[field].join(', ');
+            } else {
+                oldValue = String(originalData[field] || '').trim();
+            }
+            return newValue !== oldValue;
+        }
+
+        function hasDietRelatedFieldChanges() {
+            return Array.from(document.querySelectorAll('[data-field]')).some(input =>
+                input.getAttribute('data-diet-related') === 'true' && fieldValueChanged(input)
+            );
+        }
+
         function checkChanges() {
             if (!isEditing) return;
 
@@ -2902,22 +2921,10 @@
             let hasAnyChanges = false;
 
             inputs.forEach(input => {
-                const field = input.getAttribute('data-field');
                 const isDietRelated = input.getAttribute('data-diet-related') === 'true';
-                const newValue = input.value.trim();
-                // For array fields, compare using the same comma-separated format used for display
-                let oldValue;
-                if (Array.isArray(originalData[field])) {
-                    oldValue = originalData[field].join(', ');
-                } else {
-                    oldValue = String(originalData[field] || '').trim();
-                }
-
-                if (newValue !== oldValue) {
+                if (fieldValueChanged(input)) {
                     hasAnyChanges = true;
-                    if (isDietRelated) {
-                        hasDietRelatedChanges = true;
-                    }
+                    if (isDietRelated) hasDietRelatedChanges = true;
                 }
             });
 
@@ -3020,6 +3027,12 @@
                 return;
             }
 
+            const updatedData = collectFormData();
+            if (!window.NutriPlanRegenFields?.hasDietRelatedProfileChanges(originalData, updatedData)) {
+                showAlert('Няма промени по полетата, свързани с плана. Използвайте „Запази“.', 'warning');
+                return;
+            }
+
             // Demo mode check: limit plan regeneration to once
             const isDemoUnlocked = localStorage.getItem('chatDemoLimitUnlocked') === 'true';
             const demoRegenCount = parseInt(localStorage.getItem('demoProfileRegenCount') || '0', 10);
@@ -3028,7 +3041,6 @@
                 return;
             }
 
-            const updatedData = collectFormData();
             const email = (updatedData.email || '').trim().toLowerCase();
             const sync = window.NutriPlanPlanSync;
             const replacingExistingPlan = sync && typeof sync.hasExistingPlanForEmail === 'function'

@@ -57,8 +57,14 @@ function analyzePlan(plan, profile) {
     ...validateFrontendProjection(plan),
   ];
 
-  if (!plan.summary?.recommendations?.length) issues.push('summary.recommendations липсва');
-  if (!plan.summary?.supplements?.length) issues.push('summary.supplements липсва');
+  const recommendations = plan.recommendations?.length
+    ? plan.recommendations
+    : plan.summary?.recommendations;
+  const supplements = plan.supplements?.length
+    ? plan.supplements
+    : plan.summary?.supplements;
+  if (!recommendations?.length) issues.push('recommendations липсва');
+  if (!supplements?.length) issues.push('supplements липсва');
 
   return [...new Set(issues)];
 }
