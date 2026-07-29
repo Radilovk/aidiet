@@ -1862,6 +1862,7 @@
 <body>
     <script src="./session-utils.js"></script>
     <script src="./plan-sync.js"></script>
+    <script type="module" src="./plan-regen-fields.js"></script>
     <script src="./diagnostics-log.js"></script>
     <script src="./platform.js"></script>
     <script type="module" src="./auth-guard.js"></script>
@@ -3026,7 +3027,8 @@
                 return;
             }
 
-            if (!hasDietRelatedFieldChanges()) {
+            const updatedData = collectFormData();
+            if (!window.NutriPlanRegenFields?.hasDietRelatedProfileChanges(originalData, updatedData)) {
                 showAlert('Няма промени по полетата, свързани с плана. Използвайте „Запази“.', 'warning');
                 return;
             }
@@ -3039,7 +3041,6 @@
                 return;
             }
 
-            const updatedData = collectFormData();
             const email = (updatedData.email || '').trim().toLowerCase();
             const sync = window.NutriPlanPlanSync;
             const replacingExistingPlan = sync && typeof sync.hasExistingPlanForEmail === 'function'

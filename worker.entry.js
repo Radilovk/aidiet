@@ -9450,21 +9450,16 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       }
 
       if (attempt >= MEAL_PLAN_CHUNK_MAX_RETRIES) {
-        if (bestSnapshot) {
-          // Some plan beats no plan: keep the best attempt found and continue.
+        if (bestSnapshot && !bestErrors?.length) {
           for (const [dayKey, dayData] of Object.entries(bestSnapshot)) {
             weekPlan[dayKey] = dayData;
           }
-          if (bestErrors.length) {
-            const warning = `Дни ${startDay}-${endDay}: план използван с отклонения след ${attempt + 1} опита: ${bestErrors.join('; ')}`;
-            console.warn(warning);
-            generationWarnings.push(warning);
-          }
-        } else {
-          // Every attempt failed at the AI-call level — nothing usable to fall back to.
-          throw new Error(`Генериране на дни ${startDay}-${endDay}: ${lastAiFailure || 'няма валиден отговор след всички опити'}`);
+          break;
         }
-        break;
+        const detail = bestErrors?.length
+          ? bestErrors.join('; ')
+          : (lastAiFailure || 'няма валиден отговор след всички опити');
+        throw new Error(`Генериране на дни ${startDay}-${endDay}: ${detail}`);
       }
 
       for (let day = startDay; day <= endDay; day++) {

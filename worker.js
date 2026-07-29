@@ -13901,19 +13901,14 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         }
       }
       if (attempt >= MEAL_PLAN_CHUNK_MAX_RETRIES) {
-        if (bestSnapshot) {
+        if (bestSnapshot && !bestErrors?.length) {
           for (const [dayKey, dayData] of Object.entries(bestSnapshot)) {
             weekPlan[dayKey] = dayData;
           }
-          if (bestErrors.length) {
-            const warning = `\u0414\u043D\u0438 ${startDay}-${endDay}: \u043F\u043B\u0430\u043D \u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430\u043D \u0441 \u043E\u0442\u043A\u043B\u043E\u043D\u0435\u043D\u0438\u044F \u0441\u043B\u0435\u0434 ${attempt + 1} \u043E\u043F\u0438\u0442\u0430: ${bestErrors.join("; ")}`;
-            console.warn(warning);
-            generationWarnings.push(warning);
-          }
-        } else {
-          throw new Error(`\u0413\u0435\u043D\u0435\u0440\u0438\u0440\u0430\u043D\u0435 \u043D\u0430 \u0434\u043D\u0438 ${startDay}-${endDay}: ${lastAiFailure || "\u043D\u044F\u043C\u0430 \u0432\u0430\u043B\u0438\u0434\u0435\u043D \u043E\u0442\u0433\u043E\u0432\u043E\u0440 \u0441\u043B\u0435\u0434 \u0432\u0441\u0438\u0447\u043A\u0438 \u043E\u043F\u0438\u0442\u0438"}`);
+          break;
         }
-        break;
+        const detail = bestErrors?.length ? bestErrors.join("; ") : lastAiFailure || "\u043D\u044F\u043C\u0430 \u0432\u0430\u043B\u0438\u0434\u0435\u043D \u043E\u0442\u0433\u043E\u0432\u043E\u0440 \u0441\u043B\u0435\u0434 \u0432\u0441\u0438\u0447\u043A\u0438 \u043E\u043F\u0438\u0442\u0438";
+        throw new Error(`\u0413\u0435\u043D\u0435\u0440\u0438\u0440\u0430\u043D\u0435 \u043D\u0430 \u0434\u043D\u0438 ${startDay}-${endDay}: ${detail}`);
       }
       for (let day = startDay; day <= endDay; day++) {
         delete weekPlan[`day${day}`];
