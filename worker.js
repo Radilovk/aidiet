@@ -4583,7 +4583,27 @@ function entryToClientExercise(env, entry, { includeInstructions = true } = {}) 
   }
   return out;
 }
-function enrichPlanWithExercises(plan, index, { allowedEquipment = null, pickedApparatus = null, env = {}, exerciseProfile = null } = {}) {
+function materializeExercisesFromMatch(plan) {
+  if (!plan?.days) return plan;
+  for (const day of plan.days) {
+    for (const ex of day.exercises || []) {
+      const m = ex.match;
+      if (!m?.name) continue;
+      ex.canonicalName = m.name;
+      if (m.displayName) ex.displayName = m.displayName;
+      if (m.equipment) ex.equipmentHint = m.equipment;
+      if (m.bodyPart || m.target) ex.bodyPart = m.bodyPart || m.target;
+    }
+  }
+  return plan;
+}
+function enrichPlanWithExercises(plan, index, {
+  allowedEquipment = null,
+  pickedApparatus = null,
+  env = {},
+  exerciseProfile = null,
+  materializeMatch = false
+} = {}) {
   if (!index) return plan;
   for (const day of plan.days) {
     const usedIds = [];
@@ -4609,6 +4629,11 @@ function enrichPlanWithExercises(plan, index, { allowedEquipment = null, pickedA
         if (swap.length) result = { entry: swap[0], score: 0, usedFallback: true };
       }
       if (result && result.entry) {
+        if (materializeMatch) {
+          ex.canonicalName = result.entry.name;
+          ex.equipmentHint = result.entry.equipment || ex.equipmentHint;
+          ex.bodyPart = result.entry.bodyPart || result.entry.target || ex.bodyPart;
+        }
         ex.match = entryToClientExercise(env, result.entry);
         ex.matchScore = result.score;
         ex.matchFallback = result.usedFallback;
@@ -4865,7 +4890,8 @@ async function handleGetPlan(planId, env, ctx) {
       env,
       allowedEquipment: allowed,
       pickedApparatus: record.pickedApparatus || null,
-      exerciseProfile: record.exerciseProfile || null
+      exerciseProfile: record.exerciseProfile || null,
+      materializeMatch: true
     });
   }
   return jsonResponse({
@@ -5490,7 +5516,8 @@ function enrichPlanForClientView(plan, index, planRecord, env) {
   if (!index) return plan;
   return enrichPlanWithExercises(JSON.parse(JSON.stringify(plan)), index, {
     env,
-    ...planClientEnrichmentOptions(planRecord)
+    ...planClientEnrichmentOptions(planRecord),
+    materializeMatch: true
   });
 }
 async function handleAdminGetClientProgramPlan(request, env, ctx, id) {
@@ -5523,6 +5550,7 @@ async function handleAdminUpdateClientProgramPlan(request, env, ctx, id) {
     return errorResponse("\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON", 400);
   }
   if (!body?.plan) return errorResponse("\u041B\u0438\u043F\u0441\u0432\u0430 \u043F\u043B\u0430\u043D", 400);
+  materializeExercisesFromMatch(body.plan);
   let plan;
   try {
     plan = normalizePlan(body.plan);

@@ -24,6 +24,7 @@ import {
   parseAiJson,
   normalizePlan,
   enrichPlanWithExercises,
+  materializeExercisesFromMatch,
   parseAdminBriefConstraints,
   allowedEquipmentFromBrief,
   extractTagsFromText,
@@ -1142,6 +1143,44 @@ test('enrichPlanWithExercises: без индекс планът остава н�
   const plan = normalizePlan({ title: 'X', days: [{ day: 'Пн', type: 'strength', exercises: [{ displayName: 'А', canonicalName: 'A', sets: 3, reps: '10', restSeconds: 60 }] }] });
   const result = enrichPlanWithExercises(plan, null, {});
   assert.equal(result.days[0].exercises[0].match, undefined);
+});
+
+test('materializeExercisesFromMatch: canonical полетата следват match от клиентския изглед', () => {
+  const plan = {
+    days: [{
+      exercises: [{
+        displayName: 'Сгъване на крака с дъмбел от лег',
+        canonicalName: 'dumbbell goblet squat',
+        equipmentHint: 'dumbbell',
+        bodyPart: 'quads',
+        match: {
+          name: 'dumbbell lying femoral',
+          displayName: 'Сгъване на крака с дъмбел от лег',
+          equipment: 'dumbbell',
+          target: 'hamstrings',
+        },
+      }],
+    }],
+  };
+  materializeExercisesFromMatch(plan);
+  const ex = plan.days[0].exercises[0];
+  assert.equal(ex.canonicalName, 'dumbbell lying femoral');
+  assert.equal(ex.bodyPart, 'hamstrings');
+});
+
+test('enrichPlanWithExercises: materializeMatch записва canonical от match', () => {
+  const plan = normalizePlan({
+    title: 'X',
+    days: [{
+      day: 'Понеделник', type: 'strength',
+      exercises: [{ displayName: 'Bench', canonicalName: 'Barbell Bench Press', equipmentHint: 'barbell', bodyPart: 'chest', sets: 3, reps: '10', restSeconds: 60 }],
+    }],
+  });
+  const allowed = new Set(['dumbbell']);
+  enrichPlanWithExercises(plan, INDEX, { allowedEquipment: allowed, env: {}, materializeMatch: true });
+  const ex = plan.days[0].exercises[0];
+  assert.equal(ex.canonicalName, ex.match.name);
+  assert.equal(ex.equipmentHint, 'dumbbell');
 });
 
 // ----------------------------------------------------------------------------

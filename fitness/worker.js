@@ -805,7 +805,24 @@ function entryToClientExercise(env, entry, { includeInstructions = true } = {}) 
   return out;
 }
 
-export function enrichPlanWithExercises(plan, index, { allowedEquipment = null, pickedApparatus = null, env = {}, exerciseProfile = null } = {}) {
+export function materializeExercisesFromMatch(plan) {
+  if (!plan?.days) return plan;
+  for (const day of plan.days) {
+    for (const ex of day.exercises || []) {
+      const m = ex.match;
+      if (!m?.name) continue;
+      ex.canonicalName = m.name;
+      if (m.displayName) ex.displayName = m.displayName;
+      if (m.equipment) ex.equipmentHint = m.equipment;
+      if (m.bodyPart || m.target) ex.bodyPart = m.bodyPart || m.target;
+    }
+  }
+  return plan;
+}
+
+export function enrichPlanWithExercises(plan, index, {
+  allowedEquipment = null, pickedApparatus = null, env = {}, exerciseProfile = null, materializeMatch = false,
+} = {}) {
   if (!index) return plan; // без база: планът остава валиден, само без медия
 
   for (const day of plan.days) {
@@ -831,6 +848,11 @@ export function enrichPlanWithExercises(plan, index, { allowedEquipment = null, 
         if (swap.length) result = { entry: swap[0], score: 0, usedFallback: true };
       }
       if (result && result.entry) {
+        if (materializeMatch) {
+          ex.canonicalName = result.entry.name;
+          ex.equipmentHint = result.entry.equipment || ex.equipmentHint;
+          ex.bodyPart = result.entry.bodyPart || result.entry.target || ex.bodyPart;
+        }
         ex.match = entryToClientExercise(env, result.entry);
         ex.matchScore = result.score;
         ex.matchFallback = result.usedFallback;
@@ -1110,6 +1132,7 @@ async function handleGetPlan(planId, env, ctx) {
       allowedEquipment: allowed,
       pickedApparatus: record.pickedApparatus || null,
       exerciseProfile: record.exerciseProfile || null,
+      materializeMatch: true,
     });
   }
 
@@ -1834,6 +1857,7 @@ function enrichPlanForClientView(plan, index, planRecord, env) {
   return enrichPlanWithExercises(JSON.parse(JSON.stringify(plan)), index, {
     env,
     ...planClientEnrichmentOptions(planRecord),
+    materializeMatch: true,
   });
 }
 
@@ -1883,6 +1907,8 @@ async function handleAdminUpdateClientProgramPlan(request, env, ctx, id) {
   let body;
   try { body = await request.json(); } catch { return errorResponse('Невалиден JSON', 400); }
   if (!body?.plan) return errorResponse('Липсва план', 400);
+
+  materializeExercisesFromMatch(body.plan);
 
   let plan;
   try {

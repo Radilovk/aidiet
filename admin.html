@@ -4702,9 +4702,11 @@
             const id = programId || document.getElementById('fcpId').value.trim();
             if (!id) return showError('Първо запази и генерирай програмата.');
             const item = fcpProgramsCache.find((p) => p.id === id);
+            const planId = item?.planId || fcpCurrentPlanId;
             const clientName = item?.clientName || document.getElementById('fcpClientName').value.trim();
+            if (!planId) return showError('Няма генериран план за редакция.');
             if (!window.FcpProgramEditor) return showError('Редакторът все още се зарежда — опитай отново след секунда.');
-            window.FcpProgramEditor.open({ id, clientName });
+            window.FcpProgramEditor.open({ id, planId, clientName });
         }
 
         async function copyFitplanClientProgramLink() {
@@ -11376,6 +11378,6 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         }
     </script>
     <script type="module" src="./fitness/fcp-questionnaire.js?v=7"></script>
-    <script type="module" src="./fitness/fcp-program-editor.js?v=6"></script>
+    <script type="module" src="./fitness/fcp-program-editor.js?v=7"></script>
 </body>
 </html>
