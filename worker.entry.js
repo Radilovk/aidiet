@@ -3477,6 +3477,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
   const weeklySchemeByDayText = serializeWeeklySchemeTargets(
     strategy, startDay, endDay, recommendedCalories, DAY_NUMBER_TO_KEY
   );
+  const expectedMealsInstruction = buildExpectedMealsInstruction(strategy, startDay, endDay);
 
   const blockedFoodTerms = collectUserBlockedFoodTerms(data);
   const catalogSection = buildCatalogPromptSection({
@@ -3503,6 +3504,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
       analysisCompact,
       strategyCompact,
       weeklySchemeByDayText,
+      expectedMealsInstruction,
       bmr,
       recommendedCalories,
       startDay,
@@ -7151,6 +7153,10 @@ async function handleUpdateClientPlan(request, env, ctx) {
     }
     const clientData = JSON.parse(raw);
     const wasPreviouslyActivated = Boolean(clientData.planActivatedAt);
+    if (plan?.weekPlan && plan?.strategy && clientData.answers) {
+      finalizeWeekPlanDays(plan.weekPlan, plan.strategy, 1, 7, clientData.answers);
+      if (plan.analysis) syncPlanTargets(plan, plan.analysis);
+    }
     clientData.plan = plan;
     if (userId) clientData.userId = userId;
     clientData.planUpdatedAt = new Date().toISOString();
@@ -7741,16 +7747,9 @@ function validateMealTypesAgainstBreakdown(dayPlan, dayTarget, dayNum, userData 
   const errors = [];
   if (!dayPlan?.meals?.length || !dayTarget?.mealBreakdown?.length) return errors;
 
-  const allowed = new Set(dayTarget.mealBreakdown.map(m => m.type));
-  if (allowed.has('Свободно хранене')) allowed.delete('Хранене 2');
+  const allowed = getAllowedMealTypes(dayTarget, userData);
 
   for (const meal of dayPlan.meals) {
-    if (meal.type === 'Напитка') {
-      if (!userSkipsBreakfast(userData)) {
-        errors.push(`Ден ${dayNum}: "Напитка" не е в mealBreakdown`);
-      }
-      continue;
-    }
     if (!allowed.has(meal.type)) {
       if (meal.type === 'Хранене 1' && userSkipsBreakfast(userData)) {
         errors.push(`Ден ${dayNum}: Клиентът НЕ ЗАКУСВА — забранено е "Хранене 1"`);
@@ -7759,6 +7758,7 @@ function validateMealTypesAgainstBreakdown(dayPlan, dayTarget, dayNum, userData 
       }
     }
   }
+  errors.push(...validateRequiredMealSlots(dayPlan, dayTarget, dayNum));
   return errors;
 }
 
@@ -7849,23 +7849,66 @@ ${errors.map((e, i) => `${i + 1}. ${e}`).join('\n')}
 ЗАДЪЛЖИТЕЛНО: description с "числоg" на всеки продукт (закръгляне 10g); САМО имена от КАТАЛОГА; общоприети комбинации. Бекендът изчислява macros/kcal от грамажите и мащабира порциите към калорийната цел.`;
 }
 
-function enforceSkipBreakfastInWeekPlan(weekPlan, userData, startDay = 1, endDay = 7) {
-  if (!weekPlan || !userSkipsBreakfast(userData)) return;
+function getAllowedMealTypes(dayTarget, userData = null) {
+  const allowed = new Set((dayTarget?.mealBreakdown || []).map(m => m.type));
+  if (allowed.has('Свободно хранене')) allowed.delete('Хранене 2');
+  if (userSkipsBreakfast(userData)) {
+    allowed.delete('Хранене 1');
+    allowed.add('Напитка');
+  }
+  return allowed;
+}
+
+/** Keep only meal slots defined in strategy mealBreakdown (single source of truth). */
+function alignDaysToMealBreakdown(weekPlan, strategy, startDay, endDay, userData = null) {
+  if (!weekPlan || !strategy?.weeklyScheme) return;
   for (let d = startDay; d <= endDay; d++) {
     const day = weekPlan[`day${d}`];
-    if (!day?.meals?.length) continue;
-    day.meals = day.meals.filter(meal => {
-      const type = meal?.type;
-      return type !== 'Хранене 1' && type !== 'Закуска';
-    });
+    const dayTarget = strategy.weeklyScheme[DAY_NUMBER_TO_KEY[d - 1]];
+    if (!day?.meals?.length || !dayTarget?.mealBreakdown?.length) continue;
+    const allowed = getAllowedMealTypes(dayTarget, userData);
+    const kept = [];
+    const seen = new Set();
+    for (const meal of day.meals) {
+      if (!meal?.type || !allowed.has(meal.type)) continue;
+      if (seen.has(meal.type)) continue;
+      seen.add(meal.type);
+      kept.push(meal);
+    }
+    kept.sort((a, b) => (MEAL_ORDER_MAP[a.type] ?? 9) - (MEAL_ORDER_MAP[b.type] ?? 9));
+    day.meals = kept;
   }
+}
+
+function buildExpectedMealsInstruction(strategy, startDay, endDay) {
+  const lines = [];
+  for (let d = startDay; d <= endDay; d++) {
+    const dayTarget = strategy?.weeklyScheme?.[DAY_NUMBER_TO_KEY[d - 1]];
+    if (!dayTarget?.mealBreakdown?.length) continue;
+    const slots = dayTarget.mealBreakdown.map(m => m.type).join(', ');
+    lines.push(`Ден ${d}: ТОЧНО тези типове (без други): ${slots}`);
+  }
+  return lines.length ? `\n${lines.join('\n')}` : '';
+}
+
+function validateRequiredMealSlots(dayPlan, dayTarget, dayNum) {
+  const errors = [];
+  if (!dayTarget?.mealBreakdown?.length) return errors;
+  const present = new Set((dayPlan?.meals || []).map(m => m.type));
+  for (const slot of dayTarget.mealBreakdown) {
+    if (slot.type === 'Хранене 2' && dayTarget.mealBreakdown.some(m => m.type === 'Свободно хранене')) continue;
+    if (!present.has(slot.type)) {
+      errors.push(`Ден ${dayNum}: липсва задължително "${slot.type}"`);
+    }
+  }
+  return errors;
 }
 
 function finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, userData = null) {
   if (!weekPlan) return;
   normalizeMealBreakdownTypes(strategy);
   normalizeMealTypesInWeekPlan(weekPlan);
-  enforceSkipBreakfastInWeekPlan(weekPlan, userData, startDay, endDay);
+  alignDaysToMealBreakdown(weekPlan, strategy, startDay, endDay, userData);
   for (let d = startDay; d <= endDay; d++) {
     const day = weekPlan[`day${d}`];
     if (!day?.meals) continue;
