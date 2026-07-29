@@ -1844,6 +1844,17 @@ async function handleApproveClientProgram(request, env, id) {
   return jsonResponse({ success: true, planId: record.planId, path, program: clientProgramPublicView(record) });
 }
 
+function equipmentNormsFromPlan(plan) {
+  const set = new Set();
+  for (const day of plan?.days || []) {
+    for (const ex of day.exercises || []) {
+      const eq = normalizeText(ex.equipmentHint);
+      if (eq) set.add(eq);
+    }
+  }
+  return set.size ? set : null;
+}
+
 /**
  * Зарежда структурирания план (дни/упражнения) за ръчна редакция в админ
  * редактора. Работи независимо от draft/approved статус — одобрена
@@ -1861,13 +1872,14 @@ async function handleAdminGetClientProgramPlan(request, env, ctx, id) {
   if (!planRecord?.plan) return errorResponse('Планът не е намерен. Генерирай отново.', 404, 'not_found');
 
   const index = await loadExerciseIndex(env, ctx);
-  const allowed = planRecord.allowedEquipment ? new Set(planRecord.allowedEquipment) : null;
+  // Ръчна редакция: не филтрираме по стар allowedEquipment от AI — иначе
+  // упражнения с дъмбел/щанга се сменят с грешни fallback-и (напр. разтягания).
   const plan = index
     ? enrichPlanWithExercises(JSON.parse(JSON.stringify(planRecord.plan)), index, {
       env,
-      allowedEquipment: allowed,
+      allowedEquipment: null,
       pickedApparatus: planRecord.pickedApparatus || null,
-      exerciseProfile: planRecord.exerciseProfile || null,
+      exerciseProfile: null,
     })
     : planRecord.plan;
 
@@ -1909,13 +1921,12 @@ async function handleAdminUpdateClientProgramPlan(request, env, ctx, id) {
   if (!planRecord) return errorResponse('Планът не е намерен. Генерирай отново.', 404, 'not_found');
 
   const index = await loadExerciseIndex(env, ctx);
-  const allowed = planRecord.allowedEquipment ? new Set(planRecord.allowedEquipment) : null;
   if (index) {
     enrichPlanWithExercises(plan, index, {
       env,
-      allowedEquipment: allowed,
+      allowedEquipment: null,
       pickedApparatus: planRecord.pickedApparatus || null,
-      exerciseProfile: planRecord.exerciseProfile || null,
+      exerciseProfile: null,
     });
   }
   sanitizePlanBulgarian(plan);
@@ -1923,6 +1934,8 @@ async function handleAdminUpdateClientProgramPlan(request, env, ctx, id) {
   const now = new Date().toISOString();
   planRecord.plan = plan;
   planRecord.editedAt = now;
+  const equipFromPlan = equipmentNormsFromPlan(plan);
+  if (equipFromPlan) planRecord.allowedEquipment = [...equipFromPlan];
   await env.FITNESS_KV.put(`plan:${record.planId}`, JSON.stringify(planRecord), { expirationTtl: PLAN_TTL });
 
   record.planTitle = plan.title || record.planTitle;
