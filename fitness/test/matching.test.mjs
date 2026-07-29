@@ -1168,6 +1168,19 @@ test('materializeExercisesFromMatch: canonical полетата следват m
   assert.equal(ex.bodyPart, 'hamstrings');
 });
 
+test('enrichPlanWithExercises: skipEquipmentSwap запазва записаните упражнения', () => {
+  const plan = normalizePlan({
+    title: 'X',
+    days: [{
+      day: 'Понеделник', type: 'strength',
+      exercises: [{ displayName: 'Машина', canonicalName: 'lever seated hip adduction', equipmentHint: 'leverage machine', bodyPart: 'adductors', sets: 3, reps: '10', restSeconds: 60 }],
+    }],
+  });
+  const allowed = allowedEquipmentSet(['Ластици', 'Собствено тегло', 'Гира']);
+  enrichPlanWithExercises(plan, INDEX, { allowedEquipment: allowed, env: {}, skipEquipmentSwap: true });
+  assert.equal(plan.days[0].exercises[0].canonicalName, 'lever seated hip adduction');
+});
+
 test('enrichPlanWithExercises: materializeMatch записва canonical от match', () => {
   const plan = normalizePlan({
     title: 'X',
