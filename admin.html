@@ -4687,10 +4687,15 @@
             }
         }
 
-        function previewFitplanClientProgram(planId) {
+        function previewFitplanClientProgram(planId, programId) {
             const id = planId || fcpCurrentPlanId;
             if (!id) return showError('Първо генерирай програмата.');
-            window.open(`${getFitplanPublicBase()}/fitness/app.html?plan=${encodeURIComponent(id)}&t=${Date.now()}`, '_blank', 'noopener');
+            const item = programId
+                ? fcpProgramsCache.find((p) => p.id === programId)
+                : fcpProgramsCache.find((p) => p.planId === id);
+            const rv = item?.planEditedAt;
+            const rvParam = rv ? `&rv=${encodeURIComponent(rv)}` : '';
+            window.open(`${getFitplanPublicBase()}/fitness/app.html?plan=${encodeURIComponent(id)}${rvParam}`, '_blank', 'noopener');
         }
 
         function openFitplanProgramEditor(programId) {
@@ -4810,7 +4815,7 @@
                         <div style="margin-top:8px;color:var(--text-gray);font-size:0.9rem;">${escapeHtml(item.planTitle || 'Без генериран план')}</div>
                         <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
                             <button type="button" class="btn" style="background:#3498db;padding:6px 12px;font-size:0.85rem;" onclick="openFitplanClientProgram('${item.id}')">Отвори</button>
-                            ${item.hasPlan ? `<button type="button" class="btn" style="background:#6366f1;padding:6px 12px;font-size:0.85rem;" onclick="previewFitplanClientProgram('${item.planId}')">Преглед</button>` : ''}
+                            ${item.hasPlan ? `<button type="button" class="btn" style="background:#6366f1;padding:6px 12px;font-size:0.85rem;" onclick="previewFitplanClientProgram('${item.planId}', '${item.id}')">Преглед</button>` : ''}
                             ${item.hasPlan ? `<button type="button" class="btn" style="background:#f59e0b;padding:6px 12px;font-size:0.85rem;" onclick="openFitplanProgramEditor('${item.id}')">Редактор</button>` : ''}
                             <button type="button" class="btn" style="background:#e74c3c;padding:6px 12px;font-size:0.85rem;" onclick="deleteFitplanClientProgram('${item.id}', ${item.status === 'approved'})">Изтрий</button>
                             ${item.clientLinkPath ? `<button type="button" class="btn" style="background:#10b981;padding:6px 12px;font-size:0.85rem;" onclick="openFitplanClientProgram('${item.id}'); setTimeout(copyFitplanClientProgramLink, 300);">Копирай линк</button>` : ''}
@@ -11371,6 +11376,6 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         }
     </script>
     <script type="module" src="./fitness/fcp-questionnaire.js?v=7"></script>
-    <script type="module" src="./fitness/fcp-program-editor.js?v=5"></script>
+    <script type="module" src="./fitness/fcp-program-editor.js?v=6"></script>
 </body>
 </html>

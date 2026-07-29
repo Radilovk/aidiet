@@ -1605,6 +1605,7 @@ function clientProgramPublicView(record) {
     planTitle: record.planTitle || null,
     hasPlan: Boolean(planId),
     planBriefStale: Boolean(record.planBriefStale),
+    planEditedAt: record.planEditedAt || null,
     clientLinkPath: record.status === 'approved' && planId
       ? clientPlanLinkPath(planId, record.planEditedAt)
       : null,
@@ -1819,6 +1820,23 @@ function equipmentNormsFromPlan(plan) {
   return set.size ? set : null;
 }
 
+/** Същите ограничения като при GET /api/plan — за WYSIWYG в админ редактора. */
+function planClientEnrichmentOptions(planRecord) {
+  return {
+    allowedEquipment: planRecord.allowedEquipment ? new Set(planRecord.allowedEquipment) : null,
+    pickedApparatus: planRecord.pickedApparatus || null,
+    exerciseProfile: planRecord.exerciseProfile || null,
+  };
+}
+
+function enrichPlanForClientView(plan, index, planRecord, env) {
+  if (!index) return plan;
+  return enrichPlanWithExercises(JSON.parse(JSON.stringify(plan)), index, {
+    env,
+    ...planClientEnrichmentOptions(planRecord),
+  });
+}
+
 /**
  * Зарежда структурирания план (дни/упражнения) за ръчна редакция в админ
  * редактора. Работи независимо от draft/approved статус — одобрена
@@ -1836,16 +1854,8 @@ async function handleAdminGetClientProgramPlan(request, env, ctx, id) {
   if (!planRecord?.plan) return errorResponse('Планът не е намерен. Генерирай отново.', 404, 'not_found');
 
   const index = await loadExerciseIndex(env, ctx);
-  // Ръчна редакция: не филтрираме по стар allowedEquipment от AI — иначе
-  // упражнения с дъмбел/щанга се сменят с грешни fallback-и (напр. разтягания).
-  const plan = index
-    ? enrichPlanWithExercises(JSON.parse(JSON.stringify(planRecord.plan)), index, {
-      env,
-      allowedEquipment: null,
-      pickedApparatus: planRecord.pickedApparatus || null,
-      exerciseProfile: null,
-    })
-    : planRecord.plan;
+  // Същото обогатяване като клиентския преглед — редакторът показва това, което вижда клиентът.
+  const plan = enrichPlanForClientView(planRecord.plan, index, planRecord, env);
 
   return jsonResponse({
     success: true,
@@ -1886,6 +1896,7 @@ async function handleAdminUpdateClientProgramPlan(request, env, ctx, id) {
 
   const index = await loadExerciseIndex(env, ctx);
   if (index) {
+    // Запис: запазваме точните canonical полета от редактора (без equipment swap).
     enrichPlanWithExercises(plan, index, {
       env,
       allowedEquipment: null,
@@ -1908,7 +1919,8 @@ async function handleAdminUpdateClientProgramPlan(request, env, ctx, id) {
   record.planBriefStale = false;
   await saveClientProgram(env, record);
 
-  return jsonResponse({ success: true, plan, program: clientProgramPublicView(record) });
+  const displayPlan = enrichPlanForClientView(plan, index, planRecord, env);
+  return jsonResponse({ success: true, plan: displayPlan, program: clientProgramPublicView(record) });
 }
 
 async function deleteClientProgramRecord(env, id) {

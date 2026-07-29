@@ -84,8 +84,23 @@ function markDirty() {
   setStatus('Незапазени промени…');
 }
 
-function escapeHtml(s) {
-  return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function detailToggleLabel(ex, open) {
+  if (open) return 'Скрий детайли';
+  const parts = [];
+  if (ex.tempo?.trim()) parts.push('темпо');
+  if (ex.rpe?.trim()) parts.push('RPE');
+  if (ex.notes?.trim()) parts.push('бележка');
+  return parts.length ? `Детайли: ${parts.join(', ')}` : 'Темпо / RPE / бележка';
+}
+
+function seedOpenDetailsFromPlan(plan, openDetails) {
+  plan.days.forEach((day, dayIndex) => {
+    (day.exercises || []).forEach((ex, exIndex) => {
+      if (ex.tempo?.trim() || ex.rpe?.trim() || ex.notes?.trim()) {
+        openDetails.add(`${dayIndex}-${exIndex}`);
+      }
+    });
+  });
 }
 
 function ensureModal() {
@@ -174,6 +189,7 @@ export async function open(program) {
     if (!res.ok || !data.success) throw new Error(data.message || 'Грешка при зареждане');
     state.planId = data.planId;
     state.plan = data.plan;
+    seedOpenDetailsFromPlan(state.plan, state.openDetails);
     state.activeDayIndex = firstUsefulDayIndex(state.plan);
     renderBoard();
   } catch (e) {
@@ -219,6 +235,7 @@ async function save() {
     window.patchFcpProgramCache?.(state.programId, {
       planTitle: state.plan.title || data.program?.planTitle,
       updatedAt: data.program?.updatedAt,
+      planEditedAt: data.program?.planEditedAt,
     });
   } catch (e) {
     btn.disabled = false;
@@ -493,13 +510,17 @@ function renderExerciseCard(day, dayIndex, ex, exIndex) {
     }, ex.notes || ''),
   );
   const detailToggle = el('button', {
-    type: 'button', class: 'fcp-editor-ex-detail-toggle',
+    type: 'button',
+    class: 'fcp-editor-ex-detail-toggle',
+    text: detailToggleLabel(ex, state.openDetails.has(detailKey)),
     onclick: () => {
       detailRow.classList.toggle('open');
-      if (detailRow.classList.contains('open')) state.openDetails.add(detailKey);
+      const open = detailRow.classList.contains('open');
+      if (open) state.openDetails.add(detailKey);
       else state.openDetails.delete(detailKey);
+      detailToggle.textContent = detailToggleLabel(ex, open);
     },
-  }, state.openDetails.has(detailKey) ? '▴ Скрий детайли' : '▾ Темпо / RPE / бележка');
+  });
 
   const main = el('div', { class: 'fcp-editor-ex-main' },
     el('div', { class: 'fcp-editor-ex-name', text: ex.displayName || ex.canonicalName || 'Упражнение' }),
@@ -944,8 +965,6 @@ function pickExercise(item) {
     ex.equipmentHint = item.equipment || '';
     ex.bodyPart = item.bodyPart || item.target || '';
     ex.match = { imageUrl: item.imageUrl, gifUrl: item.gifUrl };
-    ex.tempo = '';
-    ex.rpe = '';
     ex.notes = '';
     state.openDetails.delete(`${p.dayIndex}-${p.exIndex}`);
   } else {
