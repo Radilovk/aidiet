@@ -1701,6 +1701,7 @@ const pendingSessionLogs = new Map(); // sessionId → [logId, ...]
 const MEAL_PLAN_CHUNK_MAX_RETRIES = 2; // Up to 2 retries per day when structural validation fails
 const CATALOG_STRICT_MODE = true; // Step 3: only catalog products; no AI nutrition lookup
 const MAX_LATE_SNACK_CALORIES = 200; // Maximum calories allowed for late-night snacks
+const MAX_MEAL_WEIGHT_GRAMS = 800; // Maximum realistic single-meal portion (matches adequacy validators)
 
 /**
  * Cache API helper functions for AI logging
@@ -7748,6 +7749,16 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocol
       errors.push(`Ден ${dayNum} ${meal.type}: калории ${mealCal} ≠ цел ${targetCal} — порциите са структурно недостатъчни/прекомерни, избери по-подходящи продукти или количества`);
     }
 
+    if (meal.weight) {
+      const weightMatch = String(meal.weight).match(/(\d+(?:\.\d+)?)\s*(?:g|г)/i);
+      if (weightMatch) {
+        const weightGrams = parseFloat(weightMatch[1]);
+        if (weightGrams > MAX_MEAL_WEIGHT_GRAMS) {
+          errors.push(`Ден ${dayNum} ${meal.type}: weight ${weightGrams}g > ${MAX_MEAL_WEIGHT_GRAMS}g`);
+        }
+      }
+    }
+
     if (meal.description && CATALOG_STRICT_MODE) {
       const productNames = parseMealDescription(meal.description).map(i => i.name);
       const notInCatalog = validateProductNamesInCatalog(productNames);
@@ -7777,6 +7788,14 @@ function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay
     const dayTarget = strategy.weeklyScheme[schemeKey];
     if (dayPlan && dayTarget) {
       errors.push(...validateMealsAgainstScheme(dayPlan, dayTarget, d, clinicalProtocolId));
+      const dayKcal = Number(dayPlan.dailyTotals?.calories) || 0;
+      const schemeKcal = Number(dayTarget.calories) || 0;
+      if (dayKcal > 0 && schemeKcal > 0) {
+        const tol = calorieTolerance(schemeKcal);
+        if (Math.abs(dayKcal - schemeKcal) > tol * 2) {
+          errors.push(`Ден ${d}: дневни ${dayKcal} kcal ≠ схема ${schemeKcal}`);
+        }
+      }
     }
   }
   return errors;

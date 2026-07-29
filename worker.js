@@ -7883,6 +7883,7 @@ var pendingSessionLogs = /* @__PURE__ */ new Map();
 var MEAL_PLAN_CHUNK_MAX_RETRIES = 2;
 var CATALOG_STRICT_MODE = true;
 var MAX_LATE_SNACK_CALORIES = 200;
+var MAX_MEAL_WEIGHT_GRAMS = 800;
 async function cacheSet(key, data, ttl = AI_LOG_CACHE_TTL) {
   try {
     const cache = caches.default;
@@ -12588,6 +12589,15 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocol
     if (targetCal > 0 && mealCal > 0 && Math.abs(mealCal - targetCal) > calorieTolerance(targetCal)) {
       errors.push(`\u0414\u0435\u043D ${dayNum} ${meal.type}: \u043A\u0430\u043B\u043E\u0440\u0438\u0438 ${mealCal} \u2260 \u0446\u0435\u043B ${targetCal} \u2014 \u043F\u043E\u0440\u0446\u0438\u0438\u0442\u0435 \u0441\u0430 \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u043D\u043E \u043D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u044A\u0447\u043D\u0438/\u043F\u0440\u0435\u043A\u043E\u043C\u0435\u0440\u043D\u0438, \u0438\u0437\u0431\u0435\u0440\u0438 \u043F\u043E-\u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u0438\u043B\u0438 \u043A\u043E\u043B\u0438\u0447\u0435\u0441\u0442\u0432\u0430`);
     }
+    if (meal.weight) {
+      const weightMatch = String(meal.weight).match(/(\d+(?:\.\d+)?)\s*(?:g|г)/i);
+      if (weightMatch) {
+        const weightGrams = parseFloat(weightMatch[1]);
+        if (weightGrams > MAX_MEAL_WEIGHT_GRAMS) {
+          errors.push(`\u0414\u0435\u043D ${dayNum} ${meal.type}: weight ${weightGrams}g > ${MAX_MEAL_WEIGHT_GRAMS}g`);
+        }
+      }
+    }
     if (meal.description && CATALOG_STRICT_MODE) {
       const productNames = parseMealDescription(meal.description).map((i) => i.name);
       const notInCatalog = validateProductNamesInCatalog(productNames);
@@ -12614,6 +12624,14 @@ function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay
     const dayTarget = strategy.weeklyScheme[schemeKey];
     if (dayPlan && dayTarget) {
       errors.push(...validateMealsAgainstScheme(dayPlan, dayTarget, d, clinicalProtocolId));
+      const dayKcal = Number(dayPlan.dailyTotals?.calories) || 0;
+      const schemeKcal = Number(dayTarget.calories) || 0;
+      if (dayKcal > 0 && schemeKcal > 0) {
+        const tol = calorieTolerance(schemeKcal);
+        if (Math.abs(dayKcal - schemeKcal) > tol * 2) {
+          errors.push(`\u0414\u0435\u043D ${d}: \u0434\u043D\u0435\u0432\u043D\u0438 ${dayKcal} kcal \u2260 \u0441\u0445\u0435\u043C\u0430 ${schemeKcal}`);
+        }
+      }
     }
   }
   return errors;
