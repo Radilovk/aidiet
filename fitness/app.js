@@ -2,7 +2,9 @@
  * KA-TRAINER — клиентска логика.
  *
  * Икономичен дизайн (0 излишни заявки):
- *   - Планът се пази в localStorage → повторно отваряне не вика бекенда.
+ *   - Планът се пази в localStorage → повторно отваряне не тегли пълния план.
+ *   - При отваряне: една лека заявка /meta (само ревизия) — пълен план само ако
+ *     админът е записал промяна след последния sync.
  *   - Смяна на упражнение → алтернативите са прекомпютнати в плана (0 заявки).
  *   - Олекотяване/утежняване → детерминистични правила тук (0 заявки).
  *   - Чат историята живее в localStorage; към бекенда пътуват само
@@ -82,7 +84,33 @@ async function apiFetch(path, options = {}) {
 // ============================================================
 
 let wizardState = store.get('wizard', {});
-let planRecord = store.get('plan', null);      // { planId, plan, coachContext, createdAt }
+let planRecord = store.get('plan', null);      // { planId, plan, coachContext, createdAt, planRevision }
+
+function localPlanRevision(rec) {
+  return rec?.planRevision || rec?.editedAt || rec?.regeneratedAt || rec?.createdAt || null;
+}
+
+function applyPlanPayload(planId, data, { resetUserState = false } = {}) {
+  planRecord = {
+    planId,
+    plan: data.plan,
+    coachContext: data.coachContext || '',
+    createdAt: data.createdAt || planRecord?.createdAt || null,
+    regeneratedAt: data.regeneratedAt || null,
+    editedAt: data.editedAt || null,
+    planRevision: data.planRevision || localPlanRevision({ ...data, planId }),
+    planConstraints: resetUserState ? (data.planConstraints || null) : (planRecord?.planConstraints || data.planConstraints || null),
+  };
+  if (resetUserState) {
+    swaps = {};
+    intensity = 0;
+    chatHistory = [];
+    store.set('swaps', swaps);
+    store.set('intensity', intensity);
+    store.set('chat', chatHistory);
+  }
+  store.set('plan', planRecord);
+}
 let swaps = store.get('swaps', {});            // { "day-ex": altIndex } ; -1 = оригинал
 let intensity = store.get('intensity', 0);     // -1 | 0 | 1
 let chatHistory = store.get('chat', []);       // [{role, text}]
@@ -207,32 +235,35 @@ function openCachedProgram() {
 
 async function openCachedProgramAsync() {
   activeDay = firstTrainingDay(planRecord.plan);
-  const refreshed = await refreshPlanExerciseMedia(planRecord.plan);
-  if (refreshed && refreshed !== planRecord.plan) {
-    planRecord = { ...planRecord, plan: refreshed };
-    store.set('plan', planRecord);
-  }
+  const synced = await syncPlanIfStale(planRecord.planId);
+  if (synced) planRecord = synced;
   renderPlan();
   showView('plan');
 }
 
-async function refreshPlanExerciseMedia(plan) {
+/** Лека проверка на ревизията; пълен план само при админ промяна. */
+async function syncPlanIfStale(planId) {
+  if (!planId || !planRecord?.plan) return planRecord;
+
+  const localRev = localPlanRevision(planRecord);
   try {
-    const res = await apiFetch('/api/plan/refresh-exercises', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        plan,
-        planId: planRecord?.planId || null,
-        planConstraints: planRecord?.planConstraints || null,
-      }),
-    });
+    const metaRes = await apiFetch(`/api/plan/${encodeURIComponent(planId)}/meta`);
+    const meta = await metaRes.json().catch(() => ({}));
+    if (!metaRes.ok || !meta.success) return planRecord;
+
+    const remoteRev = meta.planRevision || localPlanRevision(meta);
+    if (remoteRev && localRev && remoteRev === localRev) return planRecord;
+
+    const res = await apiFetch(`/api/plan/${encodeURIComponent(planId)}`);
     const data = await res.json().catch(() => ({}));
-    if (res.ok && data.success && data.plan) return data.plan;
+    if (!res.ok || !data.success || !data.plan) return planRecord;
+
+    applyPlanPayload(planId, data, { resetUserState: true });
+    activeDay = firstTrainingDay(planRecord.plan);
+    return planRecord;
   } catch {
-    /* офлайн — показваме кеширания план */
+    return planRecord;
   }
-  return plan;
 }
 
 function showView(name) {
@@ -375,6 +406,7 @@ async function runPlanGeneration(answers) {
       coachContext: data.coachContext || '',
       createdAt: new Date().toISOString(),
       planConstraints: data.planConstraints || null,
+      planRevision: data.planRevision || null,
     };
     swaps = {};
     intensity = 0;
@@ -903,15 +935,23 @@ async function loadSharedPlan(planId) {
   showView('loading');
   $('loadingTitle').textContent = 'Зареждам плана…';
   try {
+    const cached = planRecord?.planId === planId ? planRecord : null;
+    if (cached?.plan?.days?.length) {
+      const synced = await syncPlanIfStale(planId);
+      if (synced?.plan) {
+        planRecord = synced;
+        activeDay = firstTrainingDay(planRecord.plan);
+        renderPlan();
+        showView('plan');
+        void refreshPwaInstall?.();
+        return;
+      }
+    }
+
     const res = await apiFetch(`/api/plan/${encodeURIComponent(planId)}`);
     const data = await res.json();
     if (!res.ok || !data.success) throw new Error(data.message || 'Планът не е намерен.');
-    planRecord = { planId, plan: data.plan, coachContext: data.coachContext || '', createdAt: data.createdAt };
-    swaps = {}; intensity = 0; chatHistory = [];
-    store.set('plan', planRecord);
-    store.set('swaps', swaps);
-    store.set('intensity', intensity);
-    store.set('chat', chatHistory);
+    applyPlanPayload(planId, data, { resetUserState: true });
     activeDay = firstTrainingDay(data.plan);
     renderPlan();
     showView('plan');

@@ -17,6 +17,7 @@
  *   GET  /api/health           — статус
  *   POST /api/plan/generate    — генерира план от отговорите на въпросника (1 AI заявка)
  *   GET  /api/plan/:id         — връща съхранен план (с актуални преводи от индекса)
+ *   GET  /api/plan/:id/meta    — лека ревизия (editedAt) за sync без пълен план
  *   POST /api/plan/refresh-exercises — обновява match/алтернативи от KV индекса
  *   POST /api/coach            — AI персонален треньор (чат)
  *   GET  /api/exercises/search — търсене по дума+синоними и филтри (equipment/target/modality/diff/gf/gm); ползва се и от admin picker-а
@@ -196,6 +197,11 @@ const DATASET_URL_CANDIDATES = [
 const EXERCISE_INDEX_KV_KEY = 'exidx:v2';
 const EXERCISE_INDEX_TTL = 60 * 60 * 24 * 30; // 30 дни; при промяна на схемата — нов ключ
 const PLAN_TTL = 60 * 60 * 24 * 90;           // планът живее 90 дни в KV
+
+/** Ревизия на плана — сменя се при AI регенерация или админ редакция. */
+function planRevisionFromRecord(record) {
+  return record?.editedAt || record?.regeneratedAt || record?.createdAt || null;
+}
 const MATCH_THRESHOLD = 0.35;                 // под този score → fallback по категория
 const MAX_ALTERNATIVES = 3;
 const MAX_CHAT_HISTORY = 6;                   // последните 3 разменени реплики
@@ -1091,6 +1097,22 @@ async function handleGeneratePlan(request, env, ctx) {
   });
 }
 
+async function handleGetPlanMeta(planId, env) {
+  if (!env.FITNESS_KV) return errorResponse('Хранилището не е конфигурирано', 500);
+  const record = await env.FITNESS_KV.get(`plan:${planId}`, { type: 'json' });
+  if (!record) return errorResponse('Планът не е намерен или е изтекъл', 404, 'not_found');
+
+  const planRevision = planRevisionFromRecord(record);
+  return jsonResponse({
+    success: true,
+    planId,
+    planRevision,
+    editedAt: record.editedAt || null,
+    regeneratedAt: record.regeneratedAt || null,
+    createdAt: record.createdAt || null,
+  }, 200, { 'Cache-Control': 'private, no-cache, no-store, must-revalidate' });
+}
+
 async function handleGetPlan(planId, env, ctx) {
   if (!env.FITNESS_KV) return errorResponse('Хранилището не е конфигурирано', 500);
   const record = await env.FITNESS_KV.get(`plan:${planId}`, { type: 'json' });
@@ -1108,6 +1130,7 @@ async function handleGetPlan(planId, env, ctx) {
     });
   }
 
+  const planRevision = planRevisionFromRecord(record);
   return jsonResponse({
     success: true,
     planId,
@@ -1115,6 +1138,8 @@ async function handleGetPlan(planId, env, ctx) {
     coachContext: record.coachContext,
     createdAt: record.createdAt,
     regeneratedAt: record.regeneratedAt || null,
+    editedAt: record.editedAt || null,
+    planRevision,
   }, 200, { 'Cache-Control': 'private, no-cache, no-store, must-revalidate' });
 }
 
@@ -1989,6 +2014,10 @@ export default {
       }
       if (request.method === 'POST' && path === '/api/plan/generate') {
         return await handleGeneratePlan(request, env, ctx);
+      }
+      const planMetaMatch = path.match(/^\/api\/plan\/([A-Za-z0-9-]{8,64})\/meta$/);
+      if (request.method === 'GET' && planMetaMatch) {
+        return await handleGetPlanMeta(planMetaMatch[1], env);
       }
       const planMatch = path.match(/^\/api\/plan\/([A-Za-z0-9-]{8,64})$/);
       if (request.method === 'GET' && planMatch) {
