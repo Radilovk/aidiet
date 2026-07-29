@@ -2520,6 +2520,10 @@
                         <label class="fcp-field-label" for="fcpExampleScheme" id="fcpSchemeLabel">Схема и указания (по избор)</label>
                         <textarea id="fcpExampleScheme" class="fcp-scheme" placeholder="Пълна програма — дни, упражнения, серии, повторения, почивки…&#10;Пон: гръб — лат пулдаун 4×10, 90с&#10;Вто: почивка&#10;Сря: дупе — hip thrust 4×12, 60с"></textarea>
                         <p class="fcp-hint" id="fcpSchemeHint" style="margin-top:5px;">Тук описваш конкретната програма. Въпросникът дава профила; схемата задава рамката.</p>
+                        <p class="fcp-hint hidden" id="fcpPlanStaleWarn" style="margin-top:8px;color:#b45309;font-weight:600;">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Схемата е променена, но <strong>планът за клиента не е обновен</strong> — отвори „Редактор“ и запази, или натисни „Генерирай“.
+                        </p>
                     </div>
 
                     <details>
@@ -4494,6 +4498,13 @@
             return status === 'approved' ? 'Одобрена' : 'Чернова';
         }
 
+        function fcpUpdatePlanStaleUi(program) {
+            const warn = document.getElementById('fcpPlanStaleWarn');
+            if (!warn) return;
+            const stale = Boolean(program?.planBriefStale && program?.hasPlan);
+            warn.classList.toggle('hidden', !stale);
+        }
+
         function fcpUpdateStrictSchemeUi() {
             const strict = document.getElementById('fcpStrictScheme')?.checked;
             const label = document.getElementById('fcpSchemeLabel');
@@ -4515,6 +4526,7 @@
             document.getElementById('fcpExampleScheme').value = '';
             document.getElementById('fcpStrictScheme').checked = false;
             fcpUpdateStrictSchemeUi();
+            fcpUpdatePlanStaleUi(null);
             window.FcpQuestionnaire?.reset?.();
             fcpConsultationId = null;
             const statusEl = document.getElementById('fcpStatus');
@@ -4550,6 +4562,7 @@
             document.getElementById('fcpExampleScheme').value = program.exampleScheme || '';
             document.getElementById('fcpStrictScheme').checked = Boolean(program.strictScheme);
             fcpUpdateStrictSchemeUi();
+            fcpUpdatePlanStaleUi(program);
             fcpCurrentPlanId = program.planId || null;
             document.getElementById('fcpPreviewBtn').classList.toggle('hidden', !fcpCurrentPlanId);
             document.getElementById('fcpEditorBtn')?.classList.toggle('hidden', !fcpCurrentPlanId);
@@ -4615,9 +4628,11 @@
                 const data = await response.json();
                 if (!response.ok || !data.success) throw new Error(data.message || 'Грешка');
                 fillFitplanClientProgramForm(data.program);
+                fcpUpdatePlanStaleUi(data.program);
                 status.textContent = `Запазено · ${fcpStatusLabel(data.program.status)}`;
                 loadFitplanClientPrograms(true);
-                if (!silent) showSuccess('Черновата е запазена.');
+                if (data.warning) showError(data.warning);
+                else if (!silent) showSuccess('Черновата е запазена.');
                 return data.program;
             } catch (error) {
                 status.textContent = '';

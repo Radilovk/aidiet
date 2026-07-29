@@ -1638,6 +1638,7 @@ function clientProgramPublicView(record) {
     planId,
     planTitle: record.planTitle || null,
     hasPlan: Boolean(planId),
+    planBriefStale: Boolean(record.planBriefStale),
     clientLinkPath: record.status === 'approved' && planId ? `fitness/app.html?plan=${planId}` : null,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
@@ -1705,15 +1706,24 @@ async function handleSaveClientProgram(request, env) {
       || JSON.stringify(fields.clientAnswers || null) !== JSON.stringify(record.clientAnswers || null)
       || JSON.stringify(fields.clientFormState || null) !== JSON.stringify(record.clientFormState || null);
     if (briefChanged && record.planId) {
-      await env.FITNESS_KV.delete(`plan:${record.planId}`);
-      record.planId = null;
-      record.planTitle = null;
+      // Не изтриваме ръчно редактирания план — само маркираме, че схемата/профилът
+      // вече не съвпадат с генерирания план. Планът остава за редакция/преглед,
+      // докато треньорът не натисне „Генерирай“ или не запише от редактора.
+      record.planBriefStale = true;
     }
   }
 
   Object.assign(record, fields, { status: 'draft', updatedAt: now });
   await saveClientProgram(env, record);
-  return jsonResponse({ success: true, program: clientProgramPublicView(record) });
+  const program = clientProgramPublicView(record);
+  return jsonResponse({
+    success: true,
+    program,
+    planBriefStale: Boolean(record.planBriefStale),
+    warning: record.planBriefStale
+      ? 'Схемата или профилът са променени — планът не е обновен автоматично. Прегледай в редактора или генерирай отново.'
+      : null,
+  });
 }
 
 async function handleGenerateClientProgram(request, env, ctx, id) {
@@ -1794,6 +1804,7 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
   record.status = 'draft';
   record.updatedAt = now;
   record.approvedAt = null;
+  record.planBriefStale = false;
   await saveClientProgram(env, record);
 
   return jsonResponse({
@@ -1916,6 +1927,7 @@ async function handleAdminUpdateClientProgramPlan(request, env, ctx, id) {
 
   record.planTitle = plan.title || record.planTitle;
   record.updatedAt = now;
+  record.planBriefStale = false;
   await saveClientProgram(env, record);
 
   return jsonResponse({ success: true, plan, program: clientProgramPublicView(record) });
