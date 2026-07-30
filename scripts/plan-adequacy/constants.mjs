@@ -5,7 +5,7 @@ export const HEALTH_STATUS_UNDERESTIMATE_PERCENT = 10;
 export const MIN_FAT_GRAMS_PER_KG = 0.7;
 export const MIN_RECOMMENDED_CALORIES_MALE = 1500;
 export const MIN_RECOMMENDED_CALORIES_FEMALE = 1200;
-export const MAX_LATE_SNACK_CALORIES = 250;
+export const MAX_LATE_SNACK_CALORIES = 200;
 export const CANONICAL_MEAL_TYPES = [
   'Хранене 1', 'Хранене 2', 'Хранене 3', 'Хранене 4', 'Хранене 5', 'Свободно хранене',
 ];
