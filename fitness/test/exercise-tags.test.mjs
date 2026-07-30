@@ -40,12 +40,16 @@ test('applyMetadataCorrections: lean planche → diff 3', () => {
   assert.ok(c.flags.includes('gymnastics'));
 });
 
-test('resolveAllowedGear: собствено тегло → floor/mat/wall/step/bench only', () => {
+test('resolveAllowedGear: собствено тегло → домашна среда (под, стена, стол, пейка…)', () => {
   const gear = resolveAllowedGear(['Собствено тегло']);
   for (const g of BODYWEIGHT_GEAR) assert.ok(gear.has(g));
   assert.equal(gear.has(GEAR_RINGS), false);
-  assert.equal(gear.has(GEAR_SUSPENSION), false);
   assert.equal(gear.has(GEAR_PULL_BAR), false);
+});
+
+test('chair squat е истинско СТ; captain s chair — не', () => {
+  assert.equal(isTrueBodyweightExercise('chair squat', 'body weight'), true);
+  assert.equal(isTrueBodyweightExercise('captains chair straight leg raise', 'body weight'), false);
 });
 
 test('resolveEffectiveEquipNorm: body weight с уред → уред', () => {

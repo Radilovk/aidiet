@@ -19,6 +19,7 @@ export const GEAR_MAT = 'mat';
 export const GEAR_WALL = 'wall';
 export const GEAR_STEP = 'step';
 export const GEAR_BENCH = 'bench';
+export const GEAR_CHAIR = 'chair';
 export const GEAR_PULL_BAR = 'pull_bar';
 export const GEAR_PARALLEL_BARS = 'parallel_bars';
 export const GEAR_RINGS = 'rings';
@@ -45,6 +46,7 @@ export const BODYWEIGHT_GEAR = new Set([
   GEAR_WALL,
   GEAR_STEP,
   GEAR_BENCH,
+  GEAR_CHAIR,
 ]);
 
 const GYMNASTICS_RE = /\b(ring|planche|muscle[- ]?up|kipping|skin the cat|iron cross(?! stretch)|l-sit|lsit|handstand|pistol squat|dragon flag|front lever|back lever|human flag|victorian)\b/i;
@@ -60,6 +62,8 @@ const MAT_RE = /\b(towel|mat\b|foam roll)\b/i;
 const STRETCH_RE = /\b(stretch|mobility|yoga|pilates|flexibility)\b/i;
 const ASSISTED_RE = /\b(assisted|band assisted|machine assisted)\b/i;
 
+const CHAIR_RE = /\bchair\b/i;
+const CAPTAINS_CHAIR_RE = /\bcaptain'?s?\s+chair\b/i;
 const BEGINNER_SAFE_RE = /\b(wall push|push-up \(wall\)|glute bridge|bird dog|dead bug|cat cow|clamshell|fire hydrant|step-up|bodyweight squat|chair squat|split squat(?! jump)|lunge|plank|crunch|march|marching|hamstring stretch|hip flexor stretch|child pose|cobra|sphinx)\b/i;
 
 const GEAR_TO_FILTER_NORM = {
@@ -142,6 +146,7 @@ const FREE_TEXT_GEAR_HINTS = [
   { keys: ['паралел', 'parallel bar'], gear: [GEAR_PARALLEL_BARS] },
   { keys: ['степ', 'платформа', 'блокче'], gear: [GEAR_STEP] },
   { keys: ['пейка', 'bench'], gear: [GEAR_BENCH] },
+  { keys: ['стол', 'chair'], gear: [GEAR_CHAIR] },
 ];
 
 function gearFromFreeText(text) {
@@ -171,6 +176,8 @@ export function inferRequiredGear(name = '', equipment = '') {
   if (MAT_RE.test(n)) gear.add(GEAR_MAT);
   if (BENCH_USE_RE.test(n)) gear.add(GEAR_BENCH);
   if (STEP_USE_RE.test(n)) gear.add(GEAR_STEP);
+  if (CHAIR_RE.test(n) && !CAPTAINS_CHAIR_RE.test(n) && !/machine|lever/i.test(eq)) gear.add(GEAR_CHAIR);
+  if (CAPTAINS_CHAIR_RE.test(n)) gear.add(GEAR_PULL_BAR);
   if (/\bring\b/.test(n)) gear.add(GEAR_RINGS);
   if (SUSPENDED_RE.test(n)) gear.add(GEAR_SUSPENSION);
   if (PARALLEL_BAR_RE.test(n)) gear.add(GEAR_PARALLEL_BARS);
