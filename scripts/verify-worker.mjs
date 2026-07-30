@@ -109,6 +109,16 @@ check('plan reconcile paths', () => {
   if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
 });
 
+check('late snack mealBreakdown clamp', () => {
+  const r = run('node', ['scripts/test-late-snack-normalize.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
+});
+
+check('ready meal decompose', () => {
+  const r = run('node', ['scripts/test-ready-meal-expand.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
+});
+
 check('meal scaling pipeline', () => {
   const r = run('node', ['test-meal-scaling.mjs']);
   if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));

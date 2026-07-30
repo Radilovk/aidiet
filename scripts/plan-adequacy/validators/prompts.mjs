@@ -23,6 +23,7 @@ const PROMPT_CONTRACTS = {
     'Свободно хранене',
     'freeDayNumber',
     'includeDessert',
+    'MAX_LATE_SNACK_CALORIES',
     'DESSERT WITH LUNCH',
     'Based on the profile above',
     '=== TASK ===',

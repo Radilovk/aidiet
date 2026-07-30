@@ -6412,7 +6412,7 @@ function formatCatalogSectionForPrompt(candidatesBySlot, { minUniversality = DEF
   }
   const ready = candidatesBySlot.get("READY") || [];
   if (ready.length) {
-    lines.push(`\u0413\u043E\u0442\u043E\u0432\u0438 \u044F\u0441\u0442\u0438\u044F:`);
+    lines.push(`\u0413\u043E\u0442\u043E\u0432\u0438 \u044F\u0441\u0442\u0438\u044F (backend \u0440\u0430\u0437\u0431\u0438\u0432\u0430 \u043D\u0430 \u0441\u0443\u0440\u043E\u0432\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u043F\u0440\u0438 \u0441\u0438\u043D\u0445\u0440\u043E\u043D):`);
     for (const item2 of ready) {
       lines.push(`  \u2022 ${formatCatalogEntryLabel(item2)}`);
     }
@@ -6457,6 +6457,52 @@ function macroTolerance(targetGrams) {
   return Math.max(MIN_MACRO_TOLERANCE_G, Math.round((Number(targetGrams) || 0) * MACRO_TOLERANCE_PERCENT));
 }
 var CONDIMENT_MAX_GRAMS = 15;
+var READY_MEAL_PARTS = {
+  meal_rice_chicken: [{ name: "\u043E\u0440\u0438\u0437", share: 0.42 }, { name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.58 }],
+  meal_fish_potato: [{ name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438", share: 0.55 }, { name: "\u0440\u0438\u0431\u0430", share: 0.45 }],
+  meal_omelet: [{ name: "\u044F\u0439\u0446\u0430", share: 1 }],
+  meal_boiled_egg: [{ name: "\u044F\u0439\u0446\u0430", share: 1 }],
+  meal_chicken_salad: [{ name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.55 }, { name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 0.45 }],
+  meal_green_salad: [{ name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 1 }],
+  meal_oatmeal: [{ name: "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438", share: 1 }],
+  meal_yogurt_oats: [{ name: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", share: 0.6 }, { name: "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438", share: 0.4 }],
+  meal_chicken_soup: [{ name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.35 }, { name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 0.65 }],
+  meal_veg_soup: [{ name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 1 }],
+  meal_lentil_stew: [{ name: "\u043B\u0435\u0449\u0430", share: 0.7 }, { name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 0.3 }],
+  meal_bean_stew: [{ name: "\u0431\u043E\u0431", share: 0.7 }, { name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 0.3 }],
+  meal_chicken_sandwich: [{ name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.4 }, { name: "\u0445\u043B\u044F\u0431", share: 0.6 }],
+  meal_cottage_bowl: [{ name: "\u0438\u0437\u0432\u0430\u0440\u0430", share: 1 }],
+  meal_skry_bowl: [{ name: "\u0441\u043A\u0438\u0440", share: 1 }]
+};
+function expandReadyMealItems(items, extraDb = {}) {
+  const out = [];
+  for (const item2 of items) {
+    const { entry } = resolveCatalogEntry(item2.name);
+    if (!entry || entry.group !== "ready_meal") {
+      out.push(item2);
+      continue;
+    }
+    if (entry.genericOf) {
+      const parent = FOOD_CATALOG.find((e) => e.id === entry.genericOf);
+      if (parent) {
+        const { profile, key, unknown } = lookupFoodProfile(parent.name, extraDb);
+        out.push({ ...item2, name: parent.name, profile, key, unknown: !!unknown });
+        continue;
+      }
+    }
+    const parts = READY_MEAL_PARTS[entry.id];
+    if (!parts?.length) {
+      out.push(item2);
+      continue;
+    }
+    for (const part of parts) {
+      const grams = roundGrams(item2.grams * part.share);
+      const { profile, key, unknown } = lookupFoodProfile(part.name, extraDb);
+      out.push({ name: part.name, grams, key, profile, unknown: !!unknown });
+    }
+  }
+  return out;
+}
 var GRAM_LINE_RE = /^(.+?)\s+(\d+(?:[.,]\d+)?)\s*(g|г)\b(?:\s*[—\-]\s*(.+))?$/i;
 function arrayToProfile(arr) {
   return { kcal: arr[0], p: arr[1], c: arr[2], f: arr[3] };
@@ -6531,7 +6577,7 @@ function parseMealDescription(description) {
       items.push({ name, grams, key, profile, unknown: !!unknown });
     }
   }
-  return items;
+  return expandReadyMealItems(items);
 }
 function roundGrams(grams, step = GRAM_ROUND_STEP) {
   const g = Number(grams) || 0;
@@ -7452,9 +7498,10 @@ function calculateMacronutrientRatios(data, activityScore, tdee = null) {
   } else {
     proteinPerKg = activityScore >= 7 ? 1.8 : activityScore >= 5 ? 1.4 : 1;
   }
-  if (goal.includes("\u041C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430")) {
+  const goalStr = Array.isArray(goal) ? goal.join(" ") : String(goal || "");
+  if (goalStr.toLowerCase().includes("\u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430")) {
     proteinPerKg *= 1.2;
-  } else if (goal.includes("\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435")) {
+  } else if (goalStr.toLowerCase().includes("\u043E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435")) {
     proteinPerKg *= 1.1;
   }
   const proteinGrams = weight * proteinPerKg;
@@ -8741,7 +8788,7 @@ function enforceWeekendFreeDay(strategy) {
   }
 }
 function normalizeStrategyDessertFlag(strategy, userData) {
-  if (!strategy || strategy.includeDessert !== void 0) return;
+  if (!strategy) return;
   if (!userHasSweetsCraving(userData?.foodCravings)) {
     strategy.includeDessert = false;
     return;
@@ -8752,6 +8799,15 @@ function normalizeStrategyDessertFlag(strategy, userData) {
     return s.includes("\u0414\u0438\u0430\u0431\u0435\u0442") || s.includes("\u0418\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430 \u0440\u0435\u0437\u0438\u0441\u0442\u0435\u043D\u0442\u043D\u043E\u0441\u0442");
   });
   strategy.includeDessert = !blocked;
+}
+function stripDessertsWhenDisabled(weekPlan, strategy) {
+  if (!weekPlan || strategy?.includeDessert !== false) return;
+  for (const day of Object.values(weekPlan)) {
+    if (!day?.meals) continue;
+    for (const meal of day.meals) {
+      if (meal.dessert) delete meal.dessert;
+    }
+  }
 }
 async function isAILoggingEnabled(env) {
   const now = Date.now();
@@ -11025,6 +11081,11 @@ async function ensureAssistantCacheFresh(env, session, card, planUpdatedAt, anal
 }
 async function reconcilePlanStructure(plan, userData = null, env = null) {
   if (!plan?.weekPlan) return plan;
+  if (plan.strategy) {
+    normalizeStrategyDessertFlag(plan.strategy, userData);
+    normalizeWeeklyScheme(plan.strategy, plan.summary?.dailyCalories || parseFinalCalories(plan.analysis?.Final_Calories));
+  }
+  stripDessertsWhenDisabled(plan.weekPlan, plan.strategy);
   injectFixedDesserts(plan.weekPlan);
   if (plan.strategy?.weeklyScheme) {
     if (env) {
@@ -12378,8 +12439,9 @@ function syncAnalysisCalories(analysis) {
 }
 function goalIncludes(goal, keyword) {
   if (!goal || !keyword) return false;
-  if (Array.isArray(goal)) return goal.some((g) => String(g).includes(keyword));
-  return String(goal).includes(keyword);
+  const kw = String(keyword).toLowerCase();
+  if (Array.isArray(goal)) return goal.some((g) => String(g).toLowerCase().includes(kw));
+  return String(goal).toLowerCase().includes(kw);
 }
 function getMinRecommendedCalories(gender) {
   return gender === "\u041C\u044A\u0436" ? MIN_RECOMMENDED_CALORIES_MALE : MIN_RECOMMENDED_CALORIES_FEMALE;
@@ -12447,12 +12509,44 @@ function normalizeMealBreakdownTypes(strategy) {
     }
   }
 }
+function lateSnackMacroTargets(kcal) {
+  const k = Math.max(50, Math.round(Number(kcal) || MAX_LATE_SNACK_CALORIES));
+  const capped = Math.min(k, MAX_LATE_SNACK_CALORIES);
+  const carbs = Math.min(15, Math.round(capped * 0.15 / 4));
+  const protein = Math.round(capped * 0.4 / 4);
+  const fats = Math.max(0, Math.round((capped - carbs * 4 - protein * 4) / 9));
+  return { calories: capped, protein, carbs, fats };
+}
+function clampLateSnackInMealBreakdown(day) {
+  if (!day?.mealBreakdown?.length) return;
+  const h5 = day.mealBreakdown.find((m) => m.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5");
+  if (!h5) return;
+  const maxKcal = MAX_LATE_SNACK_CALORIES;
+  const h5Kcal = Number(h5.calories) || 0;
+  const excessKcal = Math.max(0, h5Kcal - maxKcal);
+  if (excessKcal > 0) {
+    const excessP = Math.max(0, (Number(h5.protein) || 0) - lateSnackMacroTargets(maxKcal).protein);
+    const excessC = Math.max(0, (Number(h5.carbs) || 0) - lateSnackMacroTargets(maxKcal).carbs);
+    const excessF = Math.max(0, (Number(h5.fats) || 0) - lateSnackMacroTargets(maxKcal).fats);
+    const mains = day.mealBreakdown.filter((m) => m.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" || m.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4");
+    const sumMainKcal = mains.reduce((s, m) => s + (Number(m.calories) || 0), 0) || 1;
+    for (const m of mains) {
+      const share = (Number(m.calories) || 0) / sumMainKcal;
+      m.calories = Math.round((Number(m.calories) || 0) + excessKcal * share);
+      m.protein = Math.round((Number(m.protein) || 0) + excessP * share);
+      m.carbs = Math.round((Number(m.carbs) || 0) + excessC * share);
+      m.fats = Math.round((Number(m.fats) || 0) + excessF * share);
+    }
+  }
+  Object.assign(h5, lateSnackMacroTargets(h5Kcal > maxKcal ? maxKcal : h5Kcal || maxKcal));
+}
 function normalizeWeeklyScheme(strategy, defaultDailyCalories) {
   if (!strategy?.weeklyScheme) return;
   normalizeMealBreakdownTypes(strategy);
   for (const key of DAY_NUMBER_TO_KEY) {
     const day = strategy.weeklyScheme[key];
     if (!day || !Array.isArray(day.mealBreakdown) || day.mealBreakdown.length === 0) continue;
+    clampLateSnackInMealBreakdown(day);
     const sumField = (field) => day.mealBreakdown.reduce((s, m) => s + (Number(m[field]) || 0), 0);
     const sumCals = sumField("calories");
     const sumP = sumField("protein");
@@ -12758,10 +12852,12 @@ function userHasSweetsCraving(foodCravings) {
   if (Array.isArray(foodCravings)) return foodCravings.includes("\u0421\u043B\u0430\u0434\u043A\u043E");
   return typeof foodCravings === "string" && foodCravings.includes("\u0421\u043B\u0430\u0434\u043A\u043E");
 }
-var LOW_GI_FOODS = [
+var LATE_SNACK_ALLOWED_FOODS = [
   "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
   "\u0441\u043A\u0438\u0440",
   "\u043A\u0435\u0444\u0438\u0440",
+  "\u0438\u0437\u0432\u0430\u0440\u0430",
+  "\u043A\u0430\u0448\u043A\u0430\u0432\u0430\u043B",
   "\u044F\u0434\u043A\u0438",
   "\u0431\u0430\u0434\u0435\u043C\u0438",
   "\u043E\u0440\u0435\u0445\u0438",
@@ -12988,21 +13084,24 @@ function validatePlan(plan, userData, substitutions = []) {
               const error = `\u0414\u0435\u043D ${i}: \u0418\u043C\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F \u0441\u043B\u0435\u0434 \u0425\u0440\u0430\u043D\u0435\u043D\u0435 4 (${mealsAfterDinnerTypes.join(", ")}) \u0431\u0435\u0437 \u043E\u0431\u043E\u0441\u043D\u043E\u0432\u043A\u0430 \u0432 strategy.afterDinnerMealJustification. \u041C\u043E\u043B\u044F, \u0434\u043E\u0431\u0430\u0432\u0438 \u043E\u0431\u043E\u0441\u043D\u043E\u0432\u043A\u0430 \u0438\u043B\u0438 \u043F\u0440\u0435\u043C\u0430\u0445\u043D\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F\u0442\u0430 \u0441\u043B\u0435\u0434 \u0425\u0440\u0430\u043D\u0435\u043D\u0435 4.`;
               errors.push(error);
               stepErrors.step2_strategy.push(error);
-            } else if (mealsAfterDinner.length === 1 && mealsAfterDinnerTypes[0] === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5") {
-              const lateSnack = mealsAfterDinner[0];
-              const snackDescription = (lateSnack.description || "").toLowerCase();
-              const snackName = (lateSnack.name || "").toLowerCase();
-              const snackText = snackDescription + " " + snackName;
-              const hasAllowedFood = LOW_GI_FOODS.some((food) => snackText.includes(food));
-              if (!hasAllowedFood) {
-                const error = `\u0414\u0435\u043D ${i}: \u0425\u0440\u0430\u043D\u0435\u043D\u0435 5 \u0442\u0440\u044F\u0431\u0432\u0430 \u0434\u0430 \u0441\u044A\u0434\u044A\u0440\u0436\u0430 \u0441\u0430\u043C\u043E \u043C\u0430\u0437\u043D\u0438\u043D\u0438 \u0438 \u0431\u0435\u043B\u0442\u044A\u0447\u0438\u043D\u0438 (\u0441\u043A\u0438\u0440, \u0441\u0443\u0440\u043E\u0432\u0438 \u044F\u0434\u043A\u0438, \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E) \u0438\u043B\u0438 \u0434\u0430 \u0438\u043C\u0430 \u044F\u0441\u043D\u0430 \u043E\u0431\u043E\u0441\u043D\u043E\u0432\u043A\u0430 \u0432 strategy.afterDinnerMealJustification`;
-                errors.push(error);
-                stepErrors.step3_mealplan.push(error);
-              }
-              const snackCalories = parseInt(lateSnack.calories) || 0;
-              if (snackCalories > MAX_LATE_SNACK_CALORIES) {
-                console.log(`Warning \u0414\u0435\u043D ${i}: \u0425\u0440\u0430\u043D\u0435\u043D\u0435 5 \u0438\u043C\u0430 ${snackCalories} \u043A\u0430\u043B\u043E\u0440\u0438\u0438 - \u043F\u0440\u0435\u043F\u043E\u0440\u044A\u0447\u0432\u0430\u0442 \u0441\u0435 \u043C\u0430\u043A\u0441\u0438\u043C\u0443\u043C ${MAX_LATE_SNACK_CALORIES} \u043A\u0430\u043B\u043E\u0440\u0438\u0438 \u043F\u0440\u0438 \u043B\u0438\u043F\u0441\u0430 \u043D\u0430 \u043E\u0431\u043E\u0441\u043D\u043E\u0432\u043A\u0430`);
-              }
+            }
+          }
+          if (mealsAfterDinner.length === 1 && mealsAfterDinnerTypes[0] === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5") {
+            const lateSnack = mealsAfterDinner[0];
+            const snackDescription = (lateSnack.description || "").toLowerCase();
+            const snackName = (lateSnack.name || "").toLowerCase();
+            const snackText = snackDescription + " " + snackName;
+            const hasAllowedFood = LATE_SNACK_ALLOWED_FOODS.some((food) => snackText.includes(food));
+            if (!hasAllowedFood) {
+              const error = `\u0414\u0435\u043D ${i}: \u0425\u0440\u0430\u043D\u0435\u043D\u0435 5 \u0442\u0440\u044F\u0431\u0432\u0430 \u0434\u0430 \u0441\u044A\u0434\u044A\u0440\u0436\u0430 \u0441\u0430\u043C\u043E \u043C\u0430\u0437\u043D\u0438\u043D\u0438 \u0438 \u0431\u0435\u043B\u0442\u044A\u0447\u0438\u043D\u0438 (\u0441\u043A\u0438\u0440, \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E, \u044F\u0434\u043A\u0438, \u043A\u0430\u0448\u043A\u0430\u0432\u0430\u043B)`;
+              errors.push(error);
+              stepErrors.step3_mealplan.push(error);
+            }
+            const snackCalories = parseInt(lateSnack.calories) || 0;
+            if (snackCalories > MAX_LATE_SNACK_CALORIES) {
+              const error = `\u0414\u0435\u043D ${i}: \u0425\u0440\u0430\u043D\u0435\u043D\u0435 5 \u0438\u043C\u0430 ${snackCalories} \u043A\u0430\u043B\u043E\u0440\u0438\u0438 \u2014 \u043C\u0430\u043A\u0441\u0438\u043C\u0443\u043C ${MAX_LATE_SNACK_CALORIES}`;
+              errors.push(error);
+              stepErrors.step3_mealplan.push(error);
             }
           }
         }
@@ -13854,7 +13953,8 @@ ${_combinedNotes}` : "";
     clinicalProtocolName: (() => {
       const p = getClinicalProtocol(data.clinicalProtocol);
       return p ? p.name : "";
-    })()
+    })(),
+    MAX_LATE_SNACK_CALORIES
   });
   const weeklySection = buildWeeklyAdaptationContextSection(data);
   if (weeklySection && !prompt.includes("\u0421\u0415\u0414\u041C\u0418\u0427\u041D\u0410 \u0410\u0414\u0410\u041F\u0422\u0410\u0426\u0418\u042F")) prompt += weeklySection;

@@ -17,7 +17,8 @@ assert(src.includes('await reconcilePlanStructure(plan, clientData.answers, env)
 assert(src.includes('await reconcilePlanStructure(clientData.plan, clientData.answers, env)'), 'activate-client-plan reconciles');
 assert(src.includes('await reconcilePlanAfterAssistantPatches(clientData.plan, clientData.answers, env)'), 'assistant patches reconcile');
 assert(src.includes('await reconcilePlanStructure(structuredPlan, data, env)'), 'generatePlanCore reconciles');
-assert(src.includes('validateMealTypesAgainstBreakdown(day, dayTarget, i, userData)'), 'validatePlan checks mealBreakdown slots');
+assert(src.includes('normalizeStrategyDessertFlag(plan.strategy, userData)'), 'reconcile normalizes dessert flag');
+assert(src.includes('clampLateSnackInMealBreakdown(day)'), 'normalizeWeeklyScheme clamps H5');
 
 console.log(`\n=== plan-reconcile contract: ${pass} pass, ${fail} fail ===`);
 process.exit(fail ? 1 : 0);
