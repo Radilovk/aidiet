@@ -133,6 +133,21 @@ console.log('\n=== 8. Непознат продукт се докладва (з�
   check('unknown продуктът е върнат нагоре', res.unknowns.includes('Мистериозен специалитет'));
 }
 
+console.log('\n=== 9. Висококалорично хранене с много зеленчуци: под 800g, калориите в толеранс ===');
+{
+  const target = { calories: 900, protein: 55, carbs: 80, fats: 25 };
+  const meal = {
+    type: 'Хранене 2',
+    description: '• Пилешки гърди 150g\n• Ориз 150g\n• Броколи 200g\n• Зелена салата 150g\n• Домати 100g\n• Зехтин 10g',
+  };
+  applyMealNutritionFromDatabase(meal, target);
+  const weightMatch = String(meal.weight).match(/(\d+)/);
+  const weightGrams = weightMatch ? parseInt(weightMatch[1], 10) : 0;
+  const kcalOk = Math.abs(meal.calories - target.calories) <= calorieTolerance(target.calories);
+  check('тежестта е ≤800g', weightGrams > 0 && weightGrams <= 800, `${weightGrams}g`);
+  check('калориите са в толеранс при capped bulk scaling', kcalOk, `${meal.calories}kcal (цел ${target.calories})`);
+}
+
 const passed = results.filter(Boolean).length;
 console.log(`\n=== Обобщение: ${passed}/${results.length} PASS ===`);
 process.exit(passed === results.length ? 0 : 1);

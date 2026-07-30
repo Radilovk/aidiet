@@ -38,6 +38,7 @@ import {
   kvArrayToProfile,
   parseMealDescription,
   calorieTolerance,
+  MAX_MEAL_WEIGHT_GRAMS,
 } from './food-nutrition.js';
 import {
   buildCatalogPromptSection,
@@ -1702,7 +1703,6 @@ const pendingSessionLogs = new Map(); // sessionId → [logId, ...]
 const MEAL_PLAN_CHUNK_MAX_RETRIES = 2; // Up to 2 retries per day when structural validation fails
 const CATALOG_STRICT_MODE = true; // Step 3: only catalog products; no AI nutrition lookup
 const MAX_LATE_SNACK_CALORIES = 200; // Maximum calories allowed for late-night snacks
-const MAX_MEAL_WEIGHT_GRAMS = 800; // Maximum realistic single-meal portion (matches adequacy validators)
 
 /**
  * Cache API helper functions for AI logging
@@ -7639,9 +7639,26 @@ function clampLateSnackInMealBreakdown(day) {
 /**
  * Ensure weeklyScheme mealBreakdown sums match per-day calorie/macro targets.
  */
+function enforceFreeDayMealBreakdown(strategy) {
+  const freeDay = Number(strategy?.freeDayNumber);
+  if (!freeDay || freeDay < 1 || freeDay > 7 || !strategy?.weeklyScheme) return;
+  const day = strategy.weeklyScheme[DAY_NUMBER_TO_KEY[freeDay - 1]];
+  if (!day?.mealBreakdown?.length) return;
+
+  const freeIdx = day.mealBreakdown.findIndex(m => m.type === 'Свободно хранене');
+  const h2Idx = day.mealBreakdown.findIndex(m => m.type === 'Хранене 2');
+
+  if (freeIdx >= 0 && h2Idx >= 0) {
+    day.mealBreakdown.splice(h2Idx, 1);
+  } else if (h2Idx >= 0) {
+    day.mealBreakdown[h2Idx].type = 'Свободно хранене';
+  }
+}
+
 function normalizeWeeklyScheme(strategy, defaultDailyCalories) {
   if (!strategy?.weeklyScheme) return;
   normalizeMealBreakdownTypes(strategy);
+  enforceFreeDayMealBreakdown(strategy);
 
   for (const key of DAY_NUMBER_TO_KEY) {
     const day = strategy.weeklyScheme[key];
@@ -7656,10 +7673,6 @@ function normalizeWeeklyScheme(strategy, defaultDailyCalories) {
     const sumF = sumField('fats');
 
     const targetCals = Number(day.calories) || defaultDailyCalories || sumCals;
-    if (!day.calories && (sumCals > 0 || defaultDailyCalories)) day.calories = sumCals || defaultDailyCalories;
-    if (!day.protein && sumP > 0) day.protein = sumP;
-    if (!day.carbs && sumC > 0) day.carbs = sumC;
-    if (!day.fats && sumF > 0) day.fats = sumF;
     if (!day.meals) day.meals = day.mealBreakdown.length;
 
     if (sumCals > 0 && targetCals > 0 && Math.abs(sumCals - targetCals) > calorieTolerance(targetCals)) {
@@ -7670,12 +7683,13 @@ function normalizeWeeklyScheme(strategy, defaultDailyCalories) {
         m.carbs = Math.round((Number(m.carbs) || 0) * ratio);
         m.fats = Math.round((Number(m.fats) || 0) * ratio);
       }
-    } else if (sumCals > 0 && Math.abs(sumCals - (Number(day.calories) || 0)) > calorieTolerance(day.calories)) {
-      day.calories = sumCals;
-      day.protein = sumP;
-      day.carbs = sumC;
-      day.fats = sumF;
     }
+
+    // mealBreakdown is the contract — day totals always mirror slot sums
+    day.calories = sumField('calories');
+    day.protein = sumField('protein');
+    day.carbs = sumField('carbs');
+    day.fats = sumField('fats');
   }
 }
 
@@ -7892,7 +7906,8 @@ function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay
       errors.push(...validateMealTypesAgainstBreakdown(dayPlan, dayTarget, d, userData));
       errors.push(...validateMealsAgainstScheme(dayPlan, dayTarget, d, clinicalProtocolId));
       const dayKcal = Number(dayPlan.dailyTotals?.calories) || 0;
-      const schemeKcal = Number(dayTarget.calories) || 0;
+      const schemeKcal = (dayTarget.mealBreakdown || [])
+        .reduce((s, m) => s + (Number(m.calories) || 0), 0) || Number(dayTarget.calories) || 0;
       if (dayKcal > 0 && schemeKcal > 0) {
         const tol = calorieTolerance(schemeKcal);
         if (Math.abs(dayKcal - schemeKcal) > tol * 2) {

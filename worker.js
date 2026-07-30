@@ -7889,6 +7889,9 @@ function macroTolerance(targetGrams) {
   return Math.max(MIN_MACRO_TOLERANCE_G, Math.round((Number(targetGrams) || 0) * MACRO_TOLERANCE_PERCENT));
 }
 var CONDIMENT_MAX_GRAMS = 15;
+var MAX_MEAL_WEIGHT_GRAMS = 800;
+var BULK_ITEM_MAX_GRAMS = 150;
+var BULK_KCAL_PER_100G_MAX = 50;
 var READY_MEAL_PARTS = {
   meal_rice_chicken: [{ name: "\u043E\u0440\u0438\u0437", share: 0.42 }, { name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.58 }],
   meal_fish_potato: [{ name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438", share: 0.55 }, { name: "\u0440\u0438\u0431\u0430", share: 0.45 }],
@@ -8089,19 +8092,23 @@ var SCALE_FACTOR_MIN = 0.5;
 var SCALE_FACTOR_MAX = 3;
 var RESIDUAL_STOP_KCAL = 20;
 var MAX_NUDGE_STEPS_PER_ITEM = 3;
-function scaleItemsToTargetCalories(items, targetKcal, dessertNutrition = null) {
-  if (!items.length || !targetKcal || targetKcal <= 0) return items;
-  const base = sumItemNutrition(items);
-  let goal = targetKcal;
-  if (dessertNutrition?.kcal > 0) {
-    goal = Math.max(50, targetKcal - dessertNutrition.kcal);
-  }
-  if (base.kcal <= 0) return items;
-  const factor = Math.min(SCALE_FACTOR_MAX, Math.max(SCALE_FACTOR_MIN, goal / base.kcal));
-  const scaled = items.map((item2) => ({
-    ...item2,
-    grams: capCondimentGrams(item2, roundGrams(item2.grams * factor))
-  }));
+function kcalPer100(item2) {
+  const p = item2.profile;
+  if (!p) return 0;
+  return p.kcal || p.p * 4 + p.c * 4 + p.f * 9;
+}
+function isBulkItem(item2) {
+  const { group, slots } = getCatalogMeta(item2.name);
+  if (group === "vegetable" || group === "fruit") return true;
+  if (slots?.includes("VOL")) return true;
+  const k = kcalPer100(item2);
+  return k > 0 && k < BULK_KCAL_PER_100G_MAX;
+}
+function sumGrams(items) {
+  return items.reduce((s, it) => s + (Number(it.grams) || 0), 0);
+}
+function nudgeItemsTowardKcal(items, goal) {
+  const scaled = items.map((item2) => ({ ...item2 }));
   const nudges = /* @__PURE__ */ new Map();
   for (let guard = 0; guard < 12; guard++) {
     const residual = goal - sumItemNutrition(scaled).kcal;
@@ -8113,8 +8120,9 @@ function scaleItemsToTargetCalories(items, targetKcal, dessertNutrition = null) 
       const nextGrams = item2.grams + GRAM_ROUND_STEP * dir;
       if (nextGrams < GRAM_ROUND_STEP) continue;
       if (isCondimentItem(item2) && nextGrams > CONDIMENT_MAX_GRAMS) continue;
+      if (isBulkItem(item2) && nextGrams > BULK_ITEM_MAX_GRAMS) continue;
       if ((nudges.get(item2) || 0) >= MAX_NUDGE_STEPS_PER_ITEM) continue;
-      const stepKcal = (Number(item2.profile.kcal) || item2.profile.p * 4 + item2.profile.c * 4 + item2.profile.f * 9) / 100 * GRAM_ROUND_STEP * dir;
+      const stepKcal = kcalPer100(item2) / 100 * GRAM_ROUND_STEP * dir;
       const abs = Math.abs(residual - stepKcal);
       if (abs < bestAbs) {
         bestAbs = abs;
@@ -8126,6 +8134,61 @@ function scaleItemsToTargetCalories(items, targetKcal, dessertNutrition = null) 
     nudges.set(best, (nudges.get(best) || 0) + 1);
   }
   return scaled;
+}
+function scaleUniform(items, goal) {
+  const base = sumItemNutrition(items);
+  if (base.kcal <= 0) return items;
+  const factor = Math.min(SCALE_FACTOR_MAX, Math.max(SCALE_FACTOR_MIN, goal / base.kcal));
+  const scaled = items.map((item2) => ({
+    ...item2,
+    grams: capCondimentGrams(item2, roundGrams(item2.grams * factor))
+  }));
+  return nudgeItemsTowardKcal(scaled, goal);
+}
+function scaleWithBulkCap(items, goal) {
+  const bulk = items.filter(isBulkItem);
+  const dense = items.filter((it) => !isBulkItem(it));
+  if (!dense.length) return scaleUniform(items, goal);
+  const bulkCapped = bulk.map((item2) => ({
+    ...item2,
+    grams: capCondimentGrams(item2, Math.min(roundGrams(item2.grams), BULK_ITEM_MAX_GRAMS))
+  }));
+  const bulkKcal = sumItemNutrition(bulkCapped).kcal;
+  let denseScaled = scaleUniform(dense, Math.max(50, goal - bulkKcal));
+  let trimmedBulk = bulkCapped;
+  const denseGrams = sumGrams(denseScaled);
+  const allowedBulk = Math.max(0, MAX_MEAL_WEIGHT_GRAMS - denseGrams);
+  const bulkGrams = sumGrams(trimmedBulk);
+  if (bulkGrams > allowedBulk && allowedBulk >= 0 && bulkGrams > 0) {
+    const ratio = allowedBulk / bulkGrams;
+    trimmedBulk = bulkCapped.map((item2) => ({
+      ...item2,
+      grams: capCondimentGrams(item2, Math.max(GRAM_ROUND_STEP, roundGrams(item2.grams * ratio)))
+    }));
+    const trimmedBulkKcal = sumItemNutrition(trimmedBulk).kcal;
+    denseScaled = scaleUniform(dense, Math.max(50, goal - trimmedBulkKcal));
+  }
+  let result = [...trimmedBulk, ...denseScaled];
+  return nudgeItemsTowardKcal(result, goal);
+}
+function scaleItemsToTargetCalories(items, targetKcal, dessertNutrition = null) {
+  if (!items.length || !targetKcal || targetKcal <= 0) return items;
+  let goal = targetKcal;
+  if (dessertNutrition?.kcal > 0) {
+    goal = Math.max(50, targetKcal - dessertNutrition.kcal);
+  }
+  const base = sumItemNutrition(items);
+  if (base.kcal <= 0) return items;
+  const hasBulk = items.some(isBulkItem);
+  const uniformFactor = Math.min(SCALE_FACTOR_MAX, Math.max(SCALE_FACTOR_MIN, goal / base.kcal));
+  const projectedWeight = sumGrams(items.map((item2) => ({
+    ...item2,
+    grams: roundGrams(item2.grams * uniformFactor)
+  })));
+  if (!hasBulk || projectedWeight <= MAX_MEAL_WEIGHT_GRAMS) {
+    return scaleUniform(items, goal);
+  }
+  return scaleWithBulkCap(items, goal);
 }
 function formatMealDescription(items) {
   return items.map((item2) => `\u2022 ${item2.name} ${item2.grams}g`).join("\n");
@@ -9362,7 +9425,6 @@ var pendingSessionLogs = /* @__PURE__ */ new Map();
 var MEAL_PLAN_CHUNK_MAX_RETRIES = 2;
 var CATALOG_STRICT_MODE = true;
 var MAX_LATE_SNACK_CALORIES = 200;
-var MAX_MEAL_WEIGHT_GRAMS = 800;
 async function cacheSet(key, data, ttl = AI_LOG_CACHE_TTL) {
   try {
     const cache = caches.default;
@@ -13972,9 +14034,23 @@ function clampLateSnackInMealBreakdown(day) {
   }
   Object.assign(h5, lateSnackMacroTargets(h5Kcal > maxKcal ? maxKcal : h5Kcal || maxKcal));
 }
+function enforceFreeDayMealBreakdown(strategy) {
+  const freeDay = Number(strategy?.freeDayNumber);
+  if (!freeDay || freeDay < 1 || freeDay > 7 || !strategy?.weeklyScheme) return;
+  const day = strategy.weeklyScheme[DAY_NUMBER_TO_KEY[freeDay - 1]];
+  if (!day?.mealBreakdown?.length) return;
+  const freeIdx = day.mealBreakdown.findIndex((m) => m.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435");
+  const h2Idx = day.mealBreakdown.findIndex((m) => m.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2");
+  if (freeIdx >= 0 && h2Idx >= 0) {
+    day.mealBreakdown.splice(h2Idx, 1);
+  } else if (h2Idx >= 0) {
+    day.mealBreakdown[h2Idx].type = "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435";
+  }
+}
 function normalizeWeeklyScheme(strategy, defaultDailyCalories) {
   if (!strategy?.weeklyScheme) return;
   normalizeMealBreakdownTypes(strategy);
+  enforceFreeDayMealBreakdown(strategy);
   for (const key of DAY_NUMBER_TO_KEY) {
     const day = strategy.weeklyScheme[key];
     if (!day || !Array.isArray(day.mealBreakdown) || day.mealBreakdown.length === 0) continue;
@@ -13985,10 +14061,6 @@ function normalizeWeeklyScheme(strategy, defaultDailyCalories) {
     const sumC = sumField("carbs");
     const sumF = sumField("fats");
     const targetCals = Number(day.calories) || defaultDailyCalories || sumCals;
-    if (!day.calories && (sumCals > 0 || defaultDailyCalories)) day.calories = sumCals || defaultDailyCalories;
-    if (!day.protein && sumP > 0) day.protein = sumP;
-    if (!day.carbs && sumC > 0) day.carbs = sumC;
-    if (!day.fats && sumF > 0) day.fats = sumF;
     if (!day.meals) day.meals = day.mealBreakdown.length;
     if (sumCals > 0 && targetCals > 0 && Math.abs(sumCals - targetCals) > calorieTolerance(targetCals)) {
       const ratio = targetCals / sumCals;
@@ -13998,12 +14070,11 @@ function normalizeWeeklyScheme(strategy, defaultDailyCalories) {
         m.carbs = Math.round((Number(m.carbs) || 0) * ratio);
         m.fats = Math.round((Number(m.fats) || 0) * ratio);
       }
-    } else if (sumCals > 0 && Math.abs(sumCals - (Number(day.calories) || 0)) > calorieTolerance(day.calories)) {
-      day.calories = sumCals;
-      day.protein = sumP;
-      day.carbs = sumC;
-      day.fats = sumF;
     }
+    day.calories = sumField("calories");
+    day.protein = sumField("protein");
+    day.carbs = sumField("carbs");
+    day.fats = sumField("fats");
   }
 }
 function getFreeMealSlotCalories(dayTarget) {
@@ -14182,7 +14253,7 @@ function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay
       errors.push(...validateMealTypesAgainstBreakdown(dayPlan, dayTarget, d, userData));
       errors.push(...validateMealsAgainstScheme(dayPlan, dayTarget, d, clinicalProtocolId));
       const dayKcal = Number(dayPlan.dailyTotals?.calories) || 0;
-      const schemeKcal = Number(dayTarget.calories) || 0;
+      const schemeKcal = (dayTarget.mealBreakdown || []).reduce((s, m) => s + (Number(m.calories) || 0), 0) || Number(dayTarget.calories) || 0;
       if (dayKcal > 0 && schemeKcal > 0) {
         const tol = calorieTolerance(schemeKcal);
         if (Math.abs(dayKcal - schemeKcal) > tol * 2) {
