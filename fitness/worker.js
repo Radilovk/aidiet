@@ -81,6 +81,7 @@ import {
   searchExerciseIndex,
 } from './exercise-metadata.js';
 import { passesGearFilter, passesBeginnerSafety } from './exercise-tags.js';
+import { isGenderSpecificExerciseName } from './exercise-name-bg.js';
 import { mergeExerciseTranslation } from './exercise-translations.js';
 import {
   EXERCISE_TRANSLATIONS_KV_KEY,
@@ -277,7 +278,8 @@ export function matchExercise(index, {
   const bodyNorm = normalizeText(bodyPart);
 
   const passesFilters = (entry) =>
-    passesEquipment(entry, allowedEquipment)
+    !isGenderSpecificExerciseName(entry?.name)
+    && passesEquipment(entry, allowedEquipment)
     && passesApparatusFilter(entry, pickedApparatus)
     && passesGearFilter(entry, allowedGear)
     && (!exerciseProfile || fitsExerciseProfile(entry, exerciseProfile))

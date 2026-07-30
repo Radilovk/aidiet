@@ -3,6 +3,7 @@
  * canonicalName (EN) → естествен български фитнес жаргон.
  */
 import { EQUIP_NORM_LABELS, equipmentGroupLabelForNorm } from './equipment-groups.js';
+import { exerciseNameLookupKey, neutralExerciseName } from './exercise-name-bg.js';
 
 function norm(text) {
   return String(text || '')
@@ -136,6 +137,32 @@ const EXACT_BG = {
   'dip': 'Кофички',
   'chest dip': 'Кофички за гърди',
   'triceps dip': 'Кофички за трицепс',
+  'push-up': 'Лицева опора',
+  'push up': 'Лицева опора',
+  'push-up (wall)': 'Лицева опора на стена',
+  'push-up (wall) v. 2': 'Лицева опора на стена',
+  'kneeling push-up': 'Лицева опора на колене',
+  'incline push-up': 'Наклонена лицева опора',
+  'decline push-up': 'Лицева опора с повдигнати крака',
+  'diamond push-up': 'Лицева опора с ромб',
+  'chest tap push-up': 'Лицева опора с потупване на гърди',
+  'clock push-up': 'Лицева опора „стрелник“',
+  'glute bridge': 'Мостик за седалищни',
+  'glute bridge march': 'Мостик за седалищни с марш',
+  'glute bridge two legs on bench': 'Мостик за седалищни с крака на пейка',
+  'hamstring stretch': 'Разтягане на задно бедро',
+  'seated calf stretch': 'Разтягане на прасец седнал',
+  'forward lunge': 'Изпад напред',
+  'bodyweight squat': 'Клек със собствено тегло',
+  'chair squat': 'Клек на стол',
+  'iron cross stretch': 'Разтягане „железен кръст“',
+  'butterfly yoga pose': 'Поза пеперуда',
+  'child pose': 'Детска поза',
+  'cat cow': 'Поза котка-крава',
+  'dead bug': 'Мъртва буболечка',
+  'bird dog': 'Поза куче-птица',
+  'fire hydrant': 'Пожарен хидрант',
+  'clamshell': 'Черупка',
 };
 
 function fromPatterns(c) {
@@ -216,6 +243,59 @@ function fromPatterns(c) {
   if (/\bcrunch\b/.test(c)) return 'Коремни преси';
   if (/\bshrug\b/.test(c)) return 'Повдигане на рамене';
 
+  if (/\bpush[- ]?up\b/.test(c)) {
+    if (/\bwall\b/.test(c)) return 'Лицева опора на стена';
+    if (/\bkneeling\b/.test(c)) return 'Лицева опора на колене';
+    if (/\bincline\b/.test(c)) return 'Наклонена лицева опора';
+    if (/\bdecline\b/.test(c)) return 'Лицева опора с повдигнати крака';
+    if (/\bdiamond\b/.test(c)) return 'Лицева опора с ромб';
+    if (/\bchest tap\b/.test(c)) return 'Лицева опора с потупване на гърди';
+    if (/\bclock\b/.test(c)) return 'Лицева опора „стрелник“';
+    if (/\breverse grip\b/.test(c)) return 'Лицева опора с обратен хват';
+    if (/\bon box\b/.test(c)) return 'Наклонена лицева опора на степ';
+    return 'Лицева опора';
+  }
+
+  if (/\bsit[- ]?up\b/.test(c)) return /\bhalf\b/.test(c) ? 'Коремни преси наполовина' : 'Коремни преси';
+  if (/\bglute bridge\b/.test(c)) {
+    if (/\bon bench\b/.test(c) || /\btwo legs on bench\b/.test(c)) return 'Мостик за седалищни с крака на пейка';
+    if (/\bmarch\b/.test(c)) return 'Мостик за седалищни с марш';
+    return 'Мостик за седалищни';
+  }
+  if (/\bstretch\b/.test(c)) {
+    if (/\bhamstring\b/.test(c)) return 'Разтягане на задно бедро';
+    if (/\bcalf\b/.test(c)) return 'Разтягане на прасец';
+    if (/\bchest\b/.test(c) || /\bpec\b/.test(c)) return 'Разтягане на гърди';
+    if (/\blat\b/.test(c)) return 'Разтягане на гръб';
+    if (/\bhip\b/.test(c)) return 'Разтягане на хълбок';
+    if (/\bglute\b/.test(c)) return 'Разтягане на седалищни';
+    if (/\bshoulder\b/.test(c)) return 'Разтягане на рамене';
+    if (/\bquad\b/.test(c)) return 'Разтягане на предно бедро';
+    return 'Разтягане';
+  }
+  if (/\bsquat\b/.test(c) && !/\bstretch\b/.test(c)) {
+    if (/\bchair\b/.test(c)) return 'Клек на стол';
+    if (/\bwall\b/.test(c)) return 'Клек на стена';
+    if (/\bjump\b/.test(c) || /\bsemi\b/.test(c)) return 'Клек със скок';
+    return 'Клек';
+  }
+  if (/\bwall sit\b/.test(c)) return 'Седене на стена';
+  if (/\btoe touch\b/.test(c)) return 'Докосване на пръсти';
+  if (/\bhip adduction\b/.test(c)) return 'Привеждане на хълбок';
+  if (/\bhip abduction\b/.test(c)) return 'Отвеждане на хълбок';
+  if (/\btwist\b/.test(c)) return 'Завъртане на тялото';
+  if (/\bjack\b/.test(c) && /\bjump\b/.test(c)) return 'Скок „джак“';
+  if (/\bmountain climber\b/.test(c)) return 'Катерене на планина';
+  if (/\bdead bug\b/.test(c)) return 'Мъртва буболечка';
+  if (/\bbird dog\b/.test(c)) return 'Поза куче-птица';
+  if (/\bfire hydrant\b/.test(c)) return 'Пожарен хидрант';
+  if (/\bclamshell\b/.test(c)) return 'Черупка';
+  if (/\bbutterfly\b/.test(c)) return 'Поза пеперуда';
+  if (/\bchild pose\b/.test(c)) return 'Детска поза';
+  if (/\bcat cow\b/.test(c)) return 'Поза котка-крава';
+  if (/\bcobra\b/.test(c)) return 'Поза кобра';
+  if (/\bsphinx\b/.test(c)) return 'Поза сфинкс';
+
   return '';
 }
 
@@ -255,26 +335,22 @@ export function sanitizeBgText(text) {
  * @param {string} [equipmentHint]
  */
 export function localizeExerciseDisplayName(canonicalName, aiDisplayName = '', equipmentHint = '') {
-  const c = norm(canonicalName);
+  const neutral = neutralExerciseName(canonicalName);
+  const c = exerciseNameLookupKey(canonicalName);
   if (EXACT_BG[c]) return EXACT_BG[c];
 
   const patterned = fromPatterns(c);
   if (patterned) return patterned;
 
-  const fixedAi = fixBadAiName(aiDisplayName, canonicalName);
+  const fixedAi = fixBadAiName(aiDisplayName, neutral || canonicalName);
   if (fixedAi && fixedAi !== aiDisplayName) return sanitizeBgText(fixedAi);
 
   if (fixedAi && !/[a-z]{4,}/i.test(fixedAi)) return sanitizeBgText(fixedAi);
 
-  // Последен опит: преведи ключови EN думи в canonical
-  if (c) {
-    const eq = equipPhrase(equipmentHint);
-    const base = fromPatterns(c);
-    if (base) return base;
-    if (eq && canonicalName) return sanitizeBgText(`${canonicalName} ${eq}`.trim());
-  }
+  const retryPattern = fromPatterns(exerciseNameLookupKey(fixedAi || neutral));
+  if (retryPattern) return retryPattern;
 
-  return sanitizeBgText(fixedAi || canonicalName || 'Упражнение');
+  return sanitizeBgText(fixedAi || 'Упражнение');
 }
 
 export function sanitizePlanBulgarian(plan) {

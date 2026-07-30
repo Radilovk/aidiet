@@ -14,6 +14,7 @@ import {
   passesBeginnerSafety,
   passesGearFilter,
 } from './exercise-tags.js';
+import { isGenderSpecificExerciseName } from './exercise-name-bg.js';
 
 /** @typedef {{ gender?: string, experience?: string }} AnswersInput */
 /** @typedef {{ isFemale: boolean, isMale: boolean, maxDiff: number, minGf: number, minGm: number }} ExerciseProfileFilter */
@@ -387,6 +388,7 @@ export function filterExercises(index, profile, allowedEquipment = null, modalit
   return index.filter((e) =>
     fitsExerciseProfile(e, profile)
     && passesBeginnerSafety(e, profile)
+    && !isGenderSpecificExerciseName(e.name)
     && passesEquipment(e, allowedEquipment)
     && passesGearFilter(e, allowedGear)
     && passesApparatusFilter(e, pickedApparatus)
