@@ -331,13 +331,18 @@ function renderPlanTextPanel({ preserveScroll = false } = {}) {
     class: 'fcp-editor-textarea', rows: '4', placeholder: 'По една бележка на ред',
   });
 
-  const guidelineField = (key, label, rows = 3) => {
+  const guidelineField = (key, label, rows = 5) => {
     const field = el('div', { class: 'fcp-editor-field' });
     field.append(el('label', { text: label }));
+    field.append(el('span', { class: 'fcp-editor-hint', text: 'По един пункт на ред (bullet points)' }));
     field.append(bindTextInput(plan.guidelines[key] || '', (v) => {
       plan.guidelines[key] = v;
       markDirty();
-    }, 'textarea', { class: 'fcp-editor-textarea', rows: String(rows) }));
+    }, 'textarea', {
+      class: 'fcp-editor-textarea',
+      rows: String(rows),
+      placeholder: 'Пример:\nУвеличавай теглото с 1–2 кг, когато последните 2 повторения са лесни\nДобавяй 1 серия на всеки 2 седмици',
+    }));
     return field;
   };
 
@@ -345,15 +350,18 @@ function renderPlanTextPanel({ preserveScroll = false } = {}) {
     el('div', { class: 'fcp-editor-textpanel' },
       section('Презентация'),
       el('div', { class: 'fcp-editor-field' }, el('label', { text: 'Заглавие' }), titleInput),
-      el('div', { class: 'fcp-editor-field' }, el('label', { text: 'Обобщение (най-отгоре при първо отваряне)' }), summaryTa),
-      el('div', { class: 'fcp-editor-field' }, el('label', { text: 'Седмична структура' }), splitTa),
+      el('div', { class: 'fcp-editor-field' }, el('label', { text: 'Обобщение (интро модал при първо отваряне)' }), summaryTa),
+      el('div', { class: 'fcp-editor-field' }, el('label', { text: 'Седмична структура (интро модал)' }), splitTa),
       section('Безопасност'),
-      el('div', { class: 'fcp-editor-field' }, el('label', { text: 'Предупреждения (по ред)' }), safetyTa),
-      section('Насоки'),
-      guidelineField('progression', 'Как да прогресираш'),
-      guidelineField('recovery', 'Възстановяване'),
-      guidelineField('nutrition', 'Хранене'),
-      guidelineField('adaptation', 'Кога да олекотиш или утежниш'),
+      el('div', { class: 'fcp-editor-field' },
+        el('label', { text: 'Предупреждения (интро модал, по един пункт на ред)' }),
+        safetyTa,
+      ),
+      section('Насоки (guide-item контейнери)'),
+      guidelineField('progression', '📈 Как да прогресираш'),
+      guidelineField('recovery', '😴 Възстановяване'),
+      guidelineField('nutrition', '🍽 Хранене (общи насоки)'),
+      guidelineField('adaptation', '⚖ Кога да олекотиш или утежниш'),
     ),
   );
 

@@ -77,6 +77,15 @@ test('fitsExerciseProfile + catalog', () => {
 test('inferExerciseModality + filter по mobility', () => {
   assert.equal(inferExerciseModality('Standing Hamstring Stretch'), 'mobility');
   assert.equal(inferExerciseModality('Barbell Bench Press'), 'strength');
+  assert.equal(inferExerciseModality('walking lunge'), 'strength');
+  assert.equal(inferExerciseModality('walking high knees lunge'), 'strength');
+  assert.equal(inferExerciseModality('bicycle crunch'), 'strength');
+  assert.equal(inferExerciseModality('3/4 sit-up'), 'strength');
+  assert.equal(inferExerciseModality('crunch'), 'strength');
+  assert.equal(inferExerciseModality('rowing machine'), 'cardio');
+  assert.equal(inferExerciseModality('stationary bike'), 'cardio');
+  assert.equal(inferExerciseModality('burpee'), 'cardio');
+  assert.equal(inferExerciseModality('mountain climber'), 'hiit');
   assert.equal(modalityMatchesDay('mobility', 'mobility'), true);
   assert.equal(modalityMatchesDay('mobility', 'strength'), false);
   const index = [

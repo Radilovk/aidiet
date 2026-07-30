@@ -2488,17 +2488,26 @@ function isSameAlternativeFamily(matchedEntry, candidate, sessionType = null) {
   return true;
 }
 var MOBILITY_RE = /stretch|yoga|mobility|pilates|flexibility|foam|pigeon|child pose|cat cow|downward|spinal twist/i;
-var CARDIO_RE = /run|cycle|elliptic|row machine|jump rope|burpee|jog|cardio|walking|stepper/i;
-var HIIT_RE = /hiit|tabata|sprint interval|mountain climber|battle rope/i;
-var STRENGTH_RE = /press|squat|deadlift|curl|row|pull up|lunge|thrust|extension|raise|fly|kickback/i;
+var HIIT_RE = /\b(hiit|tabata|sprint interval|mountain climber|battle rope)\b/i;
+var CARDIO_EXPLICIT_RE = /\b(rowing machine|assault bike|air bike|stationary bike|recumbent bike|exercise bike|treadmill|elliptic|stairmaster|stepper|jump rope|jumping jack|burpee|high knees|ski erg|cross trainer)\b/i;
+var CARDIO_RE = /\b(run(?:ning)?|jog(?:ging)?|walk(?:ing)?|cardio)\b/i;
+var STRENGTH_RE = /\b(press|squat|deadlift|curl|pull[- ]?up|lunge|thrust|extension|raise|fly|kickback|crunch|sit[- ]?up|plank|bench|pulldown|pull down|hip thrust|glute bridge)\b/i;
+var STRENGTH_ROW_RE = /\b(row|rowing)\b/i;
 function inferExerciseModality(entryOrName) {
-  const name = typeof entryOrName === "string" ? entryOrName : `${entryOrName?.name || ""} ${(entryOrName?.flags || []).join(" ")}`;
+  const entry = typeof entryOrName === "object" ? entryOrName : null;
+  const name = typeof entryOrName === "string" ? entryOrName : `${entryOrName?.name || ""}`;
+  const flags = entry?.flags || [];
   const n = normalizeText(name);
+  const equip = normalizeText(entry?.equipment || "");
   if (MOBILITY_RE.test(n)) return "mobility";
   if (HIIT_RE.test(n)) return "hiit";
-  if (CARDIO_RE.test(n) || normalizeText(entryOrName?.equipment || "").includes("cardio")) return "cardio";
+  if (/\blunge\b/.test(n)) return "strength";
   if (STRENGTH_RE.test(n)) return "strength";
-  if (typeof entryOrName === "object" && entryOrName?.diff === 1 && /stretch|mobil/.test(n)) return "mobility";
+  if (equip.includes("cardio") || CARDIO_EXPLICIT_RE.test(n)) return "cardio";
+  if (STRENGTH_ROW_RE.test(n) && !/\b(machine|erg)\b/.test(n)) return "strength";
+  if (CARDIO_RE.test(n)) return "cardio";
+  if (flags.includes("cardio")) return "cardio";
+  if (entry?.diff === 1 && /stretch|mobil/.test(n)) return "mobility";
   return "strength";
 }
 function modalityMatchesDay(sessionType, exerciseMod) {

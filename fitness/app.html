@@ -222,6 +222,20 @@
     </div>
   </div>
 
-  <script type="module" src="app.js?v=2"></script>
+  <!-- ИНТРО МОДАЛ (първо отваряне на план) -->
+  <div id="planIntroModal" class="plan-intro-modal hidden" role="dialog" aria-modal="true" aria-labelledby="planIntroModalTitle">
+    <div class="plan-intro-backdrop" id="planIntroBackdrop"></div>
+    <div class="plan-intro-panel">
+      <div class="plan-intro-head">
+        <h2 id="planIntroModalTitle">Добре дошла в програмата</h2>
+      </div>
+      <div id="planIntroModalBody" class="plan-intro-body"></div>
+      <div class="plan-intro-actions">
+        <button id="planIntroClose" class="btn-primary" type="button">Разбрах, започвам</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="app.js?v=3"></script>
 </body>
 </html>

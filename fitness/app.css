@@ -431,6 +431,58 @@ input[type="range"] {
 .plan-footnotes .guide-item-body .plan-summary,
 .plan-footnotes .guide-item-body .plan-split { margin: 0; }
 
+.plan-intro-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 11000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(16px, var(--safe-top)) max(16px, var(--safe-right)) max(16px, var(--safe-bottom)) max(16px, var(--safe-left));
+}
+.plan-intro-modal.hidden { display: none; }
+.plan-intro-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, .62);
+  backdrop-filter: blur(4px);
+}
+.plan-intro-panel {
+  position: relative;
+  width: min(560px, 100%);
+  max-height: min(86vh, 720px);
+  overflow: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .45);
+}
+.plan-intro-head {
+  padding: 20px 22px 8px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.plan-intro-head h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(20px, 4.5vw, 26px);
+  font-weight: 800;
+  line-height: 1.25;
+}
+.plan-intro-body {
+  padding: 16px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.plan-intro-body .plan-summary { margin: 0; }
+.plan-intro-body .plan-split { margin: 0; }
+.plan-intro-body .plan-safety { margin: 0; }
+.plan-intro-actions {
+  padding: 8px 22px 20px;
+  border-top: 1px solid var(--border-soft);
+}
+.plan-intro-actions .btn-primary { width: 100%; }
+
 .intensity-row {
   display: flex;
   flex-direction: column;
@@ -712,6 +764,13 @@ input[type="range"] {
 .guide-item summary::after { content: '+'; color: var(--volt); font-size: 20px; font-weight: 400; }
 .guide-item[open] summary::after { content: '−'; }
 .guide-item p { padding: 0 18px 16px; color: var(--muted); font-size: 15.5px; }
+.guide-item .guide-bullets {
+  margin: 0 18px 16px 34px;
+  color: var(--muted);
+  font-size: 15.5px;
+  line-height: 1.55;
+}
+.guide-item .guide-bullets li + li { margin-top: 6px; }
 
 /* ---------- Чат ---------- */
 .chat-fab {
