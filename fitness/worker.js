@@ -75,6 +75,7 @@ import {
   pickPreferredExercise,
   isSameAlternativeFamily,
   compareExercisePreference,
+  compareAlternativeCloseness,
   searchExerciseIndex,
 } from './exercise-metadata.js';
 import { mergeExerciseTranslation } from './exercise-translations.js';
@@ -340,18 +341,9 @@ export function findAlternatives(index, matchedEntry, {
     candidates.push(entry);
   }
 
-  candidates.sort((a, b) => compareExercisePreference(a, b, exerciseProfile));
+  candidates.sort((a, b) => compareAlternativeCloseness(a, b, matchedEntry, exerciseProfile));
 
-  const picked = [];
-  const equipCount = {};
-  for (const entry of candidates) {
-    if (picked.length >= limit) break;
-    const eq = entry.equipNorm || '?';
-    if ((equipCount[eq] || 0) >= 2) continue;
-    equipCount[eq] = (equipCount[eq] || 0) + 1;
-    picked.push(entry);
-  }
-  return picked;
+  return candidates.slice(0, limit);
 }
 
 // ============================================================================

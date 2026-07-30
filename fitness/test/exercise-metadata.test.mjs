@@ -11,6 +11,9 @@ import {
   mergeExerciseMetadata,
   inferExerciseModality,
   modalityMatchesDay,
+  compareAlternativeCloseness,
+  alternativeClosenessScore,
+  isMachineEquipment,
   searchExerciseIndex,
   computeExerciseFacets,
 } from '../exercise-metadata.js';
@@ -101,6 +104,35 @@ test('mergeExerciseMetadata: heuristic без KV', () => {
   const entry = mergeExerciseMetadata({ id: '1', name: 'hip thrust' }, { id: '1', name: 'hip thrust' }, {});
   assert.ok(entry.diff >= 1);
   assert.ok(entry.gf >= 80);
+});
+
+test('alternativeClosenessScore: също оборудване и машини накрая', () => {
+  const base = {
+    name: 'dumbbell bench press',
+    equipNorm: 'dumbbell',
+    bodyNorm: 'chest',
+    tokens: ['dumbbell', 'bench', 'press'],
+  };
+  const sameEq = { name: 'dumbbell fly', equipNorm: 'dumbbell', bodyNorm: 'chest', tokens: ['dumbbell', 'fly'] };
+  const machine = { name: 'lever chest press', equipNorm: 'leverage machine', bodyNorm: 'chest', tokens: ['lever', 'chest', 'press'] };
+  assert.ok(alternativeClosenessScore(sameEq, base) < alternativeClosenessScore(machine, base));
+  assert.equal(isMachineEquipment('leverage machine'), true);
+  assert.equal(isMachineEquipment('dumbbell'), false);
+});
+
+test('compareAlternativeCloseness: предпочита същото оборудване и движение', () => {
+  const base = {
+    name: 'dumbbell bench press',
+    equipNorm: 'dumbbell',
+    bodyNorm: 'chest',
+    tokens: ['dumbbell', 'bench', 'press'],
+    diff: 2,
+    targetNorm: 'pectorals',
+    flags: ['compound', 'press'],
+  };
+  const close = { name: 'dumbbell incline bench press', equipNorm: 'dumbbell', bodyNorm: 'chest', tokens: ['dumbbell', 'incline', 'bench', 'press'], diff: 2, targetNorm: 'pectorals', flags: ['compound', 'press'] };
+  const machine = { name: 'lever chest press', equipNorm: 'leverage machine', bodyNorm: 'chest', tokens: ['lever', 'chest', 'press'], diff: 2, targetNorm: 'pectorals', flags: ['compound', 'machine', 'press'] };
+  assert.ok(compareAlternativeCloseness(close, machine, base) < 0);
 });
 
 const SEARCH_INDEX = [

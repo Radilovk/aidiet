@@ -2477,6 +2477,37 @@ function pickPreferredExercise(candidates, profile = null) {
   if (!candidates?.length) return null;
   return [...candidates].sort((a, b) => compareExercisePreference(a, b, profile))[0];
 }
+function isMachineEquipment(equipNorm) {
+  const eq = normalizeText(equipNorm || "");
+  return eq.includes("machine") || eq.includes("lever") || eq.includes("smith");
+}
+function alternativeClosenessScore(candidate, matchedEntry) {
+  if (!candidate || !matchedEntry) return 999;
+  let score = 0;
+  const eqM = normalizeText(matchedEntry.equipNorm || matchedEntry.equipment);
+  const eqC = normalizeText(candidate.equipNorm || candidate.equipment);
+  if (eqM && eqC) {
+    if (eqM === eqC) score -= 12;
+    else score += 8;
+  }
+  if (isMachineEquipment(eqC)) {
+    score += 30;
+    if (!isMachineEquipment(eqM)) score += 40;
+  }
+  if (matchedEntry.bodyNorm && candidate.bodyNorm) {
+    if (candidate.bodyNorm === matchedEntry.bodyNorm) score -= 4;
+    else score += 6;
+  }
+  const overlap = tokenOverlapScore(matchedEntry.tokens, candidate.tokens);
+  score -= Math.round(overlap * 20);
+  return score;
+}
+function compareAlternativeCloseness(a, b, matchedEntry, profile = null) {
+  const scoreA = alternativeClosenessScore(a, matchedEntry);
+  const scoreB = alternativeClosenessScore(b, matchedEntry);
+  if (scoreA !== scoreB) return scoreA - scoreB;
+  return compareExercisePreference(a, b, profile);
+}
 function isSameAlternativeFamily(matchedEntry, candidate, sessionType = null) {
   if (!matchedEntry || !candidate) return false;
   if (!matchedEntry.targetNorm || candidate.targetNorm !== matchedEntry.targetNorm) return false;
@@ -4197,17 +4228,8 @@ function findAlternatives(index, matchedEntry, {
     if (!passesApparatusFilter(entry, pickedApparatus)) continue;
     candidates.push(entry);
   }
-  candidates.sort((a, b) => compareExercisePreference(a, b, exerciseProfile));
-  const picked = [];
-  const equipCount = {};
-  for (const entry of candidates) {
-    if (picked.length >= limit) break;
-    const eq = entry.equipNorm || "?";
-    if ((equipCount[eq] || 0) >= 2) continue;
-    equipCount[eq] = (equipCount[eq] || 0) + 1;
-    picked.push(entry);
-  }
-  return picked;
+  candidates.sort((a, b) => compareAlternativeCloseness(a, b, matchedEntry, exerciseProfile));
+  return candidates.slice(0, limit);
 }
 function buildCompactIndex(rawList, translations = {}, metadata = {}) {
   const index = [];

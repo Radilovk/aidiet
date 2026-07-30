@@ -244,6 +244,51 @@ export function pickPreferredExercise(candidates, profile = null) {
   return [...candidates].sort((a, b) => compareExercisePreference(a, b, profile))[0];
 }
 
+/** Машинно/силово оборудване — алтернативи от него са на последно място. */
+export function isMachineEquipment(equipNorm) {
+  const eq = normalizeText(equipNorm || '');
+  return eq.includes('machine') || eq.includes('lever') || eq.includes('smith');
+}
+
+/**
+ * Колко „далече“ е кандидатът от оригиналното упражнение.
+ * По-нисък резултат = по-близка алтернатива (същ мускул, тип, движение).
+ */
+export function alternativeClosenessScore(candidate, matchedEntry) {
+  if (!candidate || !matchedEntry) return 999;
+  let score = 0;
+
+  const eqM = normalizeText(matchedEntry.equipNorm || matchedEntry.equipment);
+  const eqC = normalizeText(candidate.equipNorm || candidate.equipment);
+  if (eqM && eqC) {
+    if (eqM === eqC) score -= 12;
+    else score += 8;
+  }
+
+  if (isMachineEquipment(eqC)) {
+    score += 30;
+    if (!isMachineEquipment(eqM)) score += 40;
+  }
+
+  if (matchedEntry.bodyNorm && candidate.bodyNorm) {
+    if (candidate.bodyNorm === matchedEntry.bodyNorm) score -= 4;
+    else score += 6;
+  }
+
+  const overlap = tokenOverlapScore(matchedEntry.tokens, candidate.tokens);
+  score -= Math.round(overlap * 20);
+
+  return score;
+}
+
+/** Сравнява алтернативи по близост до оригинала; при равенство — compareExercisePreference. */
+export function compareAlternativeCloseness(a, b, matchedEntry, profile = null) {
+  const scoreA = alternativeClosenessScore(a, matchedEntry);
+  const scoreB = alternativeClosenessScore(b, matchedEntry);
+  if (scoreA !== scoreB) return scoreA - scoreB;
+  return compareExercisePreference(a, b, profile);
+}
+
 /** Алтернатива е валидна само при същата модалност, целева група и трудност. */
 export function isSameAlternativeFamily(matchedEntry, candidate, sessionType = null) {
   if (!matchedEntry || !candidate) return false;
