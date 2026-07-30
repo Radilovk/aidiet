@@ -6703,6 +6703,20 @@ function nudgeItemsTowardKcal(items, goal) {
   }
   return scaled;
 }
+function trimToMaxWeight(items) {
+  const working = items.map((i) => ({ ...i }));
+  for (let guard = 0; guard < 24 && sumGrams(working) > MAX_MEAL_WEIGHT_GRAMS; guard++) {
+    const candidates = [...working].filter((i) => i.grams > GRAM_ROUND_STEP);
+    candidates.sort((a, b) => {
+      const bulkDiff = (isBulkItem(b) ? 1 : 0) - (isBulkItem(a) ? 1 : 0);
+      return bulkDiff || b.grams - a.grams;
+    });
+    const target = candidates[0];
+    if (!target) break;
+    target.grams = Math.max(GRAM_ROUND_STEP, target.grams - GRAM_ROUND_STEP);
+  }
+  return working;
+}
 function scaleUniform(items, goal) {
   const base = sumItemNutrition(items);
   if (base.kcal <= 0) return items;
@@ -6787,6 +6801,9 @@ function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}) {
   }
   if (targetKcal > 0) {
     items = scaleItemsToTargetCalories(items, targetKcal, dessertNutrition);
+    if (sumGrams(items) > MAX_MEAL_WEIGHT_GRAMS) {
+      items = trimToMaxWeight(items);
+    }
   }
   const totals = sumItemNutrition(items);
   let p = Math.round(totals.p);
@@ -6821,6 +6838,162 @@ function syncWeekPlanNutritionFromDatabase(weekPlan, strategy, startDay, endDay,
 }
 function profileToKvArray(profile) {
   return [profile.kcal, profile.p, profile.c, profile.f];
+}
+
+// plan-normalize.js
+var MAX_PLATED_SLOT_KCAL_ABSOLUTE = 900;
+var MAX_PLATED_SLOT_KCAL_BASE = 800;
+var FREE_MEAL_MAX_DAILY_RATIO = 0.45;
+var MIN_MAIN_MEAL_WEIGHT_GRAMS = 50;
+var MIN_LIGHT_MEAL_WEIGHT_GRAMS = 20;
+var KEY_PROBLEM_SEVERITY_RANGES = {
+  Borderline: [45, 59],
+  Risky: [60, 79],
+  Critical: [80, 95]
+};
+var BUDGET_SLOT_TYPES = /* @__PURE__ */ new Set(["\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435", "\u041D\u0430\u043F\u0438\u0442\u043A\u0430"]);
+var LIGHT_MEAL_TYPES = /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5"]);
+var FIXED_KCAL_SLOT_TYPES = /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5"]);
+function isLightMealSlot(type) {
+  return LIGHT_MEAL_TYPES.has(type);
+}
+function minMealWeightGrams(mealType) {
+  return isLightMealSlot(mealType) ? MIN_LIGHT_MEAL_WEIGHT_GRAMS : MIN_MAIN_MEAL_WEIGHT_GRAMS;
+}
+function severityLabelForValue(value) {
+  const v = Number(value);
+  if (!Number.isFinite(v)) return null;
+  if (v >= KEY_PROBLEM_SEVERITY_RANGES.Critical[0]) return "Critical";
+  if (v >= KEY_PROBLEM_SEVERITY_RANGES.Risky[0]) return "Risky";
+  if (v >= KEY_PROBLEM_SEVERITY_RANGES.Borderline[0]) return "Borderline";
+  return "Borderline";
+}
+function sumField(breakdown, field) {
+  return breakdown.reduce((s, m) => s + (Number(m[field]) || 0), 0);
+}
+function platedSlots(breakdown) {
+  return breakdown.filter((m) => !BUDGET_SLOT_TYPES.has(m.type) && !FIXED_KCAL_SLOT_TYPES.has(m.type));
+}
+function redistributeMacros(slot, ratio) {
+  slot.calories = Math.round((Number(slot.calories) || 0) * ratio);
+  slot.protein = Math.round((Number(slot.protein) || 0) * ratio);
+  slot.carbs = Math.round((Number(slot.carbs) || 0) * ratio);
+  slot.fats = Math.round((Number(slot.fats) || 0) * ratio);
+}
+function maxPlatedSlotKcal(mealBreakdown, dailyKcal) {
+  const breakdown = mealBreakdown || [];
+  const daily = Math.max(0, Number(dailyKcal) || 0);
+  const freeKcal = breakdown.find((m) => m.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435")?.calories || 0;
+  const h5Kcal = breakdown.find((m) => m.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5")?.calories || 0;
+  const plated = platedSlots(breakdown);
+  const platedBudget = Math.max(0, daily - Number(freeKcal) - Number(h5Kcal));
+  const n = plated.length || 1;
+  const fairShare = platedBudget / n;
+  const dynamic = Math.ceil(fairShare * 1.1);
+  return Math.min(
+    MAX_PLATED_SLOT_KCAL_ABSOLUTE,
+    Math.max(MAX_PLATED_SLOT_KCAL_BASE, dynamic)
+  );
+}
+function capSlotMacros(slot, maxKcal) {
+  const current = Number(slot.calories) || 0;
+  if (current <= maxKcal) return 0;
+  const ratio = maxKcal / current;
+  redistributeMacros(slot, ratio);
+  return current - maxKcal;
+}
+function addMacrosToSlot(slot, deltaKcal, deltaP, deltaC, deltaF) {
+  slot.calories = Math.round((Number(slot.calories) || 0) + deltaKcal);
+  slot.protein = Math.round((Number(slot.protein) || 0) + deltaP);
+  slot.carbs = Math.round((Number(slot.carbs) || 0) + deltaC);
+  slot.fats = Math.round((Number(slot.fats) || 0) + deltaF);
+}
+function rebalanceMealBreakdownSlots(day, dailyKcal) {
+  if (!day?.mealBreakdown?.length) return;
+  const daily = Number(dailyKcal) || Number(day.calories) || sumField(day.mealBreakdown, "calories");
+  const free = day.mealBreakdown.find((m) => m.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435");
+  if (free) {
+    const maxFree = Math.max(350, Math.round(daily * FREE_MEAL_MAX_DAILY_RATIO));
+    const excess = capSlotMacros(free, maxFree);
+    if (excess > 0) {
+      const recipients = platedSlots(day.mealBreakdown).filter((m) => (Number(m.calories) || 0) < maxPlatedSlotKcal(day.mealBreakdown, daily));
+      const sum = recipients.reduce((s, m) => s + (Number(m.calories) || 0), 0) || recipients.length || 1;
+      for (const r of recipients) {
+        const share = (Number(r.calories) || 0) / sum || 1 / recipients.length;
+        addMacrosToSlot(r, Math.round(excess * share), 0, 0, 0);
+      }
+    }
+  }
+  const maxKcal = maxPlatedSlotKcal(day.mealBreakdown, daily);
+  for (let pass = 0; pass < 8; pass++) {
+    let poolKcal = 0;
+    let poolP = 0;
+    let poolC = 0;
+    let poolF = 0;
+    for (const slot of platedSlots(day.mealBreakdown)) {
+      const current = Number(slot.calories) || 0;
+      if (current > maxKcal) {
+        const ratio = maxKcal / current;
+        poolKcal += current - maxKcal;
+        poolP += (Number(slot.protein) || 0) * (1 - ratio);
+        poolC += (Number(slot.carbs) || 0) * (1 - ratio);
+        poolF += (Number(slot.fats) || 0) * (1 - ratio);
+        redistributeMacros(slot, ratio);
+      }
+    }
+    if (poolKcal <= 0) break;
+    const recipients = platedSlots(day.mealBreakdown).filter((m) => (Number(m.calories) || 0) < maxKcal - 5);
+    if (!recipients.length) break;
+    const headroom = recipients.map((m) => maxKcal - (Number(m.calories) || 0));
+    const totalHeadroom = headroom.reduce((a, b) => a + b, 0) || 1;
+    for (let i = 0; i < recipients.length; i++) {
+      const share = headroom[i] / totalHeadroom;
+      addMacrosToSlot(
+        recipients[i],
+        Math.round(poolKcal * share),
+        Math.round(poolP * share),
+        Math.round(poolC * share),
+        Math.round(poolF * share)
+      );
+    }
+  }
+}
+function normalizeAnalysisOutput(analysis) {
+  if (!analysis || typeof analysis !== "object") return analysis;
+  if (Array.isArray(analysis.keyProblems)) {
+    for (const problem of analysis.keyProblems) {
+      if (!problem || problem.severity === "Normal") continue;
+      const sv = Number(problem.severityValue);
+      if (!Number.isFinite(sv)) continue;
+      const band = KEY_PROBLEM_SEVERITY_RANGES[problem.severity];
+      if (!band || sv < band[0] || sv > band[1]) {
+        const label = severityLabelForValue(sv);
+        if (label) problem.severity = label;
+        else if (band) {
+          problem.severityValue = Math.round((band[0] + band[1]) / 2);
+        }
+      }
+    }
+  }
+  if (!analysis.currentHealthStatus || typeof analysis.currentHealthStatus !== "object") {
+    analysis.currentHealthStatus = {};
+  }
+  const hs = analysis.currentHealthStatus;
+  if (typeof hs.score !== "number" || Number.isNaN(hs.score)) {
+    const values = (analysis.keyProblems || []).map((p) => Number(p.severityValue)).filter((v) => Number.isFinite(v));
+    if (values.length) {
+      const avg = values.reduce((a, b) => a + b, 0) / values.length;
+      hs.score = Math.round(Math.max(15, Math.min(95, 100 - avg * 0.75)));
+    }
+  }
+  if (!hs.description || String(hs.description).length < 20) {
+    const titles = (analysis.keyProblems || []).slice(0, 3).map((p) => p.title).filter(Boolean);
+    hs.description = titles.length ? `\u0417\u0434\u0440\u0430\u0432\u043E\u0441\u043B\u043E\u0432\u043D\u043E\u0442\u043E \u0441\u044A\u0441\u0442\u043E\u044F\u043D\u0438\u0435 \u0435 \u043F\u043E\u0432\u043B\u0438\u044F\u043D\u043E \u043E\u0442: ${titles.join(", ")}.` : "\u041E\u0431\u0449\u0430\u0442\u0430 \u0437\u0434\u0440\u0430\u0432\u043D\u0430 \u043E\u0446\u0435\u043D\u043A\u0430 \u043E\u0442\u0440\u0430\u0437\u044F\u0432\u0430 \u043A\u043E\u043C\u0431\u0438\u043D\u0430\u0446\u0438\u044F\u0442\u0430 \u043E\u0442 \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0438, \u043C\u0435\u0442\u0430\u0431\u043E\u043B\u0438\u0442\u043D\u0438 \u0438 \u043F\u043E\u0432\u0435\u0434\u0435\u043D\u0447\u0435\u0441\u043A\u0438 \u0444\u0430\u043A\u0442\u043E\u0440\u0438.";
+  }
+  if (!Array.isArray(hs.keyIssues) || !hs.keyIssues.length) {
+    hs.keyIssues = (analysis.keyProblems || []).slice(0, 4).map((p) => p.title).filter(Boolean);
+  }
+  return analysis;
 }
 
 // worker.entry.js
@@ -11147,6 +11320,7 @@ async function reconcilePlanStructure(plan, userData = null, env = null) {
     normalizeStrategyDessertFlag(plan.strategy, userData);
     normalizeWeeklyScheme(plan.strategy, plan.summary?.dailyCalories || parseFinalCalories(plan.analysis?.Final_Calories));
   }
+  if (plan.analysis) normalizeAnalysisOutput(plan.analysis);
   stripDessertsWhenDisabled(plan.weekPlan, plan.strategy);
   injectFixedDesserts(plan.weekPlan);
   if (plan.strategy?.weeklyScheme) {
@@ -12623,12 +12797,13 @@ function normalizeWeeklyScheme(strategy, defaultDailyCalories) {
     const day = strategy.weeklyScheme[key];
     if (!day || !Array.isArray(day.mealBreakdown) || day.mealBreakdown.length === 0) continue;
     clampLateSnackInMealBreakdown(day);
-    const sumField = (field) => day.mealBreakdown.reduce((s, m) => s + (Number(m[field]) || 0), 0);
-    const sumCals = sumField("calories");
-    const sumP = sumField("protein");
-    const sumC = sumField("carbs");
-    const sumF = sumField("fats");
-    const targetCals = Number(day.calories) || defaultDailyCalories || sumCals;
+    const sumField2 = (field) => day.mealBreakdown.reduce((s, m) => s + (Number(m[field]) || 0), 0);
+    const targetCals = Number(day.calories) || defaultDailyCalories || sumField2("calories");
+    rebalanceMealBreakdownSlots(day, targetCals);
+    let sumCals = sumField2("calories");
+    let sumP = sumField2("protein");
+    let sumC = sumField2("carbs");
+    let sumF = sumField2("fats");
     if (!day.meals) day.meals = day.mealBreakdown.length;
     if (sumCals > 0 && targetCals > 0 && Math.abs(sumCals - targetCals) > calorieTolerance(targetCals)) {
       const ratio = targetCals / sumCals;
@@ -12639,10 +12814,10 @@ function normalizeWeeklyScheme(strategy, defaultDailyCalories) {
         m.fats = Math.round((Number(m.fats) || 0) * ratio);
       }
     }
-    day.calories = sumField("calories");
-    day.protein = sumField("protein");
-    day.carbs = sumField("carbs");
-    day.fats = sumField("fats");
+    day.calories = sumField2("calories");
+    day.protein = sumField2("protein");
+    day.carbs = sumField2("carbs");
+    day.fats = sumField2("fats");
   }
 }
 function getFreeMealSlotCalories(dayTarget) {
@@ -12788,8 +12963,11 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocol
       const weightMatch = String(meal.weight).match(/(\d+(?:\.\d+)?)\s*(?:g|г)/i);
       if (weightMatch) {
         const weightGrams = parseFloat(weightMatch[1]);
+        const minWeight = minMealWeightGrams(meal.type);
         if (weightGrams > MAX_MEAL_WEIGHT_GRAMS) {
           errors.push(`\u0414\u0435\u043D ${dayNum} ${meal.type}: weight ${weightGrams}g > ${MAX_MEAL_WEIGHT_GRAMS}g`);
+        } else if (weightGrams < minWeight) {
+          errors.push(`\u0414\u0435\u043D ${dayNum} ${meal.type}: weight ${weightGrams}g < ${minWeight}g`);
         }
       }
     }
@@ -13095,7 +13273,8 @@ function validatePlan(plan, userData, substitutions = []) {
               const weightMatch = meal.weight.match(/(\d+(?:\.\d+)?)\s*(?:g|г)/i);
               if (weightMatch) {
                 const weightGrams = parseFloat(weightMatch[1]);
-                if (weightGrams < 50) {
+                const minWeight = minMealWeightGrams(meal.type);
+                if (weightGrams < minWeight) {
                   warnings.push(`\u0414\u0435\u043D ${i}, \u0445\u0440\u0430\u043D\u0435\u043D\u0435 ${mealIndex + 1} (${meal.type}): \u041C\u043D\u043E\u0433\u043E \u043C\u0430\u043B\u043A\u0430 \u043F\u043E\u0440\u0446\u0438\u044F (${weightGrams}g) - \u043F\u0440\u043E\u0432\u0435\u0440\u0435\u0442\u0435 \u0434\u0430\u043B\u0438 \u0435 \u0440\u0435\u0430\u043B\u0438\u0441\u0442\u0438\u0447\u043D\u0430`);
                 } else if (weightGrams > 800) {
                   warnings.push(`\u0414\u0435\u043D ${i}, \u0445\u0440\u0430\u043D\u0435\u043D\u0435 ${mealIndex + 1} (${meal.type}): \u041C\u043D\u043E\u0433\u043E \u0433\u043E\u043B\u044F\u043C\u0430 \u043F\u043E\u0440\u0446\u0438\u044F (${weightGrams}g) - \u043F\u0440\u043E\u0432\u0435\u0440\u0435\u0442\u0435 \u0434\u0430\u043B\u0438 \u0435 \u0440\u0435\u0430\u043B\u0438\u0441\u0442\u0438\u0447\u043D\u0430`);
@@ -13466,6 +13645,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       cumulativeTokens.output += analysisOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
       analysis = parseAIResponse(analysisResponse);
+      normalizeAnalysisOutput(analysis);
       if (!analysis || analysis.error) {
         throw new Error(`\u0420\u0435\u0433\u0435\u043D\u0435\u0440\u0430\u0446\u0438\u044F\u0442\u0430 \u043D\u0430 \u0430\u043D\u0430\u043B\u0438\u0437\u0430 \u0441\u0435 \u043F\u0440\u043E\u0432\u0430\u043B\u0438: ${analysis?.error || "\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u0435\u043D \u0444\u043E\u0440\u043C\u0430\u0442"}`);
       }
@@ -13672,6 +13852,7 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
       console.log(`Step 1 tokens: input=${analysisInputTokens}, output=${analysisOutputTokens}, cumulative=${cumulativeTokens.total}`);
       analysis = parseAIResponse(analysisResponse);
+      normalizeAnalysisOutput(analysis);
       if (!analysis || analysis.error) {
         const errorMsg = analysis.error || "\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u0435\u043D \u0444\u043E\u0440\u043C\u0430\u0442 \u043D\u0430 \u043E\u0442\u0433\u043E\u0432\u043E\u0440";
         console.error("Analysis parsing failed:", errorMsg);

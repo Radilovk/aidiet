@@ -6,6 +6,7 @@ import {
   calorieTolerance,
   macroTolerance,
 } from '../../../food-nutrition.js';
+import { minMealWeightGrams } from '../../../plan-normalize.js';
 
 function macrosToCalories(macros) {
   const p = Number(macros?.protein) || 0;
@@ -44,14 +45,16 @@ export function validateMealGramsAndWeight(meal) {
   }
 
   const totalGrams = items.reduce((s, i) => s + i.grams, 0);
-  if (totalGrams < 50) issues.push(`"${meal.name}": общо ${totalGrams}g — твърде малко`);
+  const minTotal = minMealWeightGrams(meal.type);
+  if (totalGrams < minTotal) issues.push(`"${meal.name}": общо ${totalGrams}g — твърде малко`);
   if (totalGrams > 1200) issues.push(`"${meal.name}": общо ${totalGrams}g — абсурдна порция`);
 
   if (meal.weight) {
     const m = String(meal.weight).match(/(\d+(?:\.\d+)?)\s*(?:g|г)/i);
     if (m) {
       const wg = parseFloat(m[1]);
-      if (wg < 50) issues.push(`"${meal.name}": weight ${wg}g < 50g`);
+      const minW = minMealWeightGrams(meal.type);
+      if (wg < minW) issues.push(`"${meal.name}": weight ${wg}g < ${minW}g`);
       if (wg > 800) issues.push(`"${meal.name}": weight ${wg}g > 800g`);
     }
   }

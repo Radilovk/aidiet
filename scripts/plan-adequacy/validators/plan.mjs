@@ -1,4 +1,5 @@
 import { CANONICAL_MEAL_TYPES, MEAL3_ALLOWED, MEAL3_FORBIDDEN, MAX_LATE_SNACK_CALORIES } from '../constants.mjs';
+import { validateSlotCalories } from '../../../plan-normalize.js';
 
 const DISPLAY_NAMES = ['Закуска', 'Обяд', 'Следобедна закуска', 'Вечеря', 'Късна закуска'];
 
@@ -29,9 +30,8 @@ export function validateStrategy(strategy) {
       if (DISPLAY_NAMES.includes(entry.type)) {
         issues.push(`${day}: display име "${entry.type}" вместо канонично`);
       }
-      if (entry.calories > 800) {
-        issues.push(`${day}: ${entry.type} ${entry.calories} kcal > 800`);
-      }
+      const slotIssue = validateSlotCalories(entry, d);
+      if (slotIssue) issues.push(`${day}: ${slotIssue}`);
     }
   }
 
