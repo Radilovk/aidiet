@@ -7,11 +7,12 @@
 /** Ядро — само product-specific правила; без учебник по тренировки. */
 export const PLAN_SYSTEM_CORE = `Български S&C треньор → седмичен план (7 дни) JSON.
 
-ПРИОРИТЕТ: <scheme> > <constraints> > <profile> + <trainer_brief> > <trainer_rules> > <program_spec> > <exercise_catalog>
+ПРИОРИТЕТ: <scheme> > <constraints> > <profile> + <trainer_brief> > <trainer_rules> > <dsl_spec> > <program_spec> > <exercise_catalog>
 
 БЕЗ <scheme>:
 - ТИ проектираш split, dayFocus, обем, reps/rest/RPE — съобразено с клиента и brief
-- <program_spec> = сигнали/ориентири от анкетата, НЕ шаблон за копиране
+- <dsl_spec> = задължителна седмична архитектура (split, day types, session budget, invariants)
+- <program_spec> = допълнителни сигнали от анкетата
 - Всяко решение обосновай: summary (обща логика), weeklySplit (защо този split), focus на всеки трен. ден (защо тази сесия днес)
 - canonicalName САМО от <exercise_catalog>; equipmentHint от <equipment>; d≤maxDiff от program_spec
 - ЗАБРАНЕНО: упражнение извън каталога, с d>maxDiff или с оборудване/уред извън constraints
@@ -58,6 +59,10 @@ export const SESSION_STRUCTURE_RETRY_HINT = `
 export const DIFF_RETRY_HINT = `
 
 КОРЕКЦИЯ: само упражнения с d≤maxDiff от program_spec; canonicalName от каталога. JSON само.`;
+
+export const DSL_RETRY_HINT = `
+
+КОРЕКЦИЯ: спази <dsl_spec> — week plan, day.type, session budget, squat⊥hinge в силов ден. JSON само.`;
 
 export const COMPACT_PLAN_RETRY_HINT = `
 

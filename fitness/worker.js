@@ -942,7 +942,7 @@ function clientIp(request) {
 async function executePlanGeneration(env, ctx, {
   userPrompt, coachProfileText, allowedEquipment = null, pickedApparatus = null, clientTags = null,
   adminConfig = null, guidelineLayers = null, hasScheme = false, strictAssembly = false,
-  exerciseProfile = null, constraints = null, programSpec = null,
+  exerciseProfile = null, constraints = null, programSpec = null, dslSpec = null,
 }) {
   const indexPromise = loadExerciseIndex(env, ctx);
   const tagSet = clientTags instanceof Set ? clientTags : new Set(clientTags || []);
@@ -1001,6 +1001,7 @@ async function executePlanGeneration(env, ctx, {
           allowedEquipment,
           pickedApparatus,
           programSpec,
+          dslSpec,
           exerciseProfile,
           exerciseIndex: index,
         });
@@ -1063,7 +1064,7 @@ async function handleGeneratePlan(request, env, ctx) {
   }
 
   const adminGuidelines = await loadAdminGuidelines(env);
-  const { userPrompt, coachProfileText, allowedEquipment, pickedApparatus, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile, constraints, programSpec } = preparePlanGeneration(
+  const { userPrompt, coachProfileText, allowedEquipment, pickedApparatus, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile, constraints, programSpec, dslSpec } = preparePlanGeneration(
     { answers },
     adminGuidelines,
     { buildProfileSummary, allowedEquipmentSet },
@@ -1085,6 +1086,7 @@ async function handleGeneratePlan(request, env, ctx) {
       exerciseProfile,
       constraints,
       programSpec,
+      dslSpec,
     }));
   } catch (e) {
     if (isPlanParseError(e)) {
@@ -1736,7 +1738,7 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
     clientName: record.clientName,
     clientContact: record.clientContact,
   };
-  const { userPrompt, coachProfileText, allowedEquipment, pickedApparatus, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile, constraints, programSpec } = preparePlanGeneration(
+  const { userPrompt, coachProfileText, allowedEquipment, pickedApparatus, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile, constraints, programSpec, dslSpec } = preparePlanGeneration(
     genSource,
     adminGuidelines,
     { buildProfileSummary, allowedEquipmentSet },
@@ -1758,6 +1760,7 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
       exerciseProfile,
       constraints,
       programSpec,
+      dslSpec,
     }));
   } catch (e) {
     if (isPlanParseError(e)) {
