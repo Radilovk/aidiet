@@ -6,12 +6,15 @@ import {
   inferExerciseTraits,
   applyMetadataCorrections,
   resolveAllowedGear,
+  resolveEffectiveEquipNorm,
+  isTrueBodyweightExercise,
   passesGearFilter,
   passesBeginnerSafety,
   GEAR_FLOOR,
-  GEAR_WALL,
   GEAR_RINGS,
   GEAR_SUSPENSION,
+  GEAR_PULL_BAR,
+  BODYWEIGHT_GEAR,
 } from '../exercise-tags.js';
 import {
   filterExercises,
@@ -37,12 +40,28 @@ test('applyMetadataCorrections: lean planche → diff 3', () => {
   assert.ok(c.flags.includes('gymnastics'));
 });
 
-test('resolveAllowedGear: собствено тегло → floor+wall only', () => {
+test('resolveAllowedGear: собствено тегло → floor/mat/wall/step/bench only', () => {
   const gear = resolveAllowedGear(['Собствено тегло']);
-  assert.ok(gear.has(GEAR_FLOOR));
-  assert.ok(gear.has(GEAR_WALL));
+  for (const g of BODYWEIGHT_GEAR) assert.ok(gear.has(g));
   assert.equal(gear.has(GEAR_RINGS), false);
   assert.equal(gear.has(GEAR_SUSPENSION), false);
+  assert.equal(gear.has(GEAR_PULL_BAR), false);
+});
+
+test('resolveEffectiveEquipNorm: body weight с уред → уред', () => {
+  assert.equal(resolveEffectiveEquipNorm('ring dips', 'body weight'), 'rings');
+  assert.equal(resolveEffectiveEquipNorm('suspended row', 'body weight'), 'suspension');
+  assert.equal(resolveEffectiveEquipNorm('pull-up', 'body weight'), 'pull_up_bar');
+  assert.equal(resolveEffectiveEquipNorm('inverted row', 'body weight'), 'pull_up_bar');
+  assert.equal(resolveEffectiveEquipNorm('glute bridge', 'body weight'), 'body weight');
+  assert.equal(resolveEffectiveEquipNorm('hyperextension (on bench)', 'body weight'), 'body weight');
+  assert.equal(resolveEffectiveEquipNorm('step-up', 'body weight'), 'body weight');
+});
+
+test('isTrueBodyweightExercise: разграничава СТ от уред', () => {
+  assert.equal(isTrueBodyweightExercise('push-up', 'body weight'), true);
+  assert.equal(isTrueBodyweightExercise('ring dips', 'body weight'), false);
+  assert.equal(isTrueBodyweightExercise('exercise ball plank', 'stability ball'), false);
 });
 
 test('beginner woman bodyweight: no rings/suspended in catalog', async () => {

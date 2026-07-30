@@ -15,7 +15,7 @@ export const STRENGTH_MACHINE_NORMS = ['leverage machine', 'smith machine', 'sle
 const CARDIO_LEVERAGE_NAME_RE = /treadmill|elliptical|cross trainer|stationary bike|cycle cross|stepmill|skierg|ergometer|rowing machine/i;
 
 export const EQUIPMENT_GROUPS = [
-  { id: 'body_weight', label: 'Собствено тегло', norms: ['body weight', 'assisted'] },
+  { id: 'body_weight', label: 'Собствено тегло', norms: ['body weight'] },
   { id: 'dumbbell', label: 'Дъмбели / гири', norms: ['dumbbell'] },
   { id: 'barbell', label: 'Щанга и лостове', norms: ['barbell', 'ez barbell', 'olympic barbell', 'trap bar'] },
   { id: 'kettlebell', label: 'Пудовка', norms: ['kettlebell'] },
@@ -89,7 +89,7 @@ export const QUESTIONNAIRE_EQUIPMENT_MAP = (() => {
   map['щанга и дискове'] = ['barbell', 'ez barbell', 'olympic barbell', 'trap bar'];
   map['гира'] = ['kettlebell'];
   map['стабилизираща топка'] = ['stability ball', 'medicine ball', 'bosu ball'];
-  map['trx / окачени ремъци'] = ['body weight'];
+  map['trx / окачени ремъци'] = ['suspension'];
   return map;
 })();
 

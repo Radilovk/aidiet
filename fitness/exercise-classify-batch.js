@@ -18,15 +18,12 @@ export const CLASSIFY_SYSTEM_PROMPT = `Ти си S&C експерт. Класи�
 - diff: 1 (истински начинаещ) | 2 (среден) | 3 (напреднал/гимнастика/технично)
 - gf: 0–100 колко подходящо за женски план
 - gm: 0–100 колко подходящо за мъжки план
-- flags: от compound, isolation, barbell, machine, bodyweight, cardio, glute, press, olympic, gymnastics, suspension, rings, pull_bar, parallel_bars, beginner_safe, home_friendly, advanced
+- flags: compound, isolation, barbell, machine, bodyweight, true_bodyweight, mislabeled_bw, cardio, glute, press, olympic, gymnastics, suspension, rings, pull_bar, parallel_bars, beginner_safe, home_friendly, advanced
 
-ВАЖНО:
-- ring dips, muscle up, planche, skin the cat, kipping → diff=3, flags: gymnastics,rings,advanced
-- suspended/TRX упражнения → diff≥2, flags: suspension
-- pull-up/chin-up/dip на лост без асистенция → diff≥2, flags: pull_bar
-- parallel bars dips → diff≥2, flags: parallel_bars
-- floor stretch/yoga → diff=1
-- „body weight“ в equipment НЕ означава подходящо за домашна тренировка без уреди
+ВАЖНО — истинско СТ (true_bodyweight):
+- САМО под, кърпа/мат, стена, степ платформа, хоризонтална пейка
+- ring dips, muscle up, suspended row, pull-up на лост, parallel bars → НЕ са СТ — diff≥2/3, needs_* уред
+- „body weight“ в equipment полето често е грешно — класифицирай по реалния уред
 
 Повечето упражнения са 50–80 и за двата пола. Крайности само при ясен акцент.
 Връщай САМО JSON без markdown.`;
@@ -85,6 +82,7 @@ export function normalizeClassifyResult(parsed, batch) {
       gm: corrected.gm,
       flags: corrected.flags,
       gear: corrected.gear,
+      effectiveEquipNorm: corrected.effectiveEquipNorm,
       sourceHash: hash,
       classifiedAt: new Date().toISOString(),
     };
@@ -157,6 +155,7 @@ export async function classifyBatchResilient(apiKey, batch, model = DEFAULT_CLAS
           gm: corrected.gm,
           flags: corrected.flags,
           gear: corrected.gear,
+          effectiveEquipNorm: corrected.effectiveEquipNorm,
           sourceHash: classifyContentHash(ex.name || '', ex.equipment || '', en),
           classifiedAt: new Date().toISOString(),
           heuristicFallback: true,

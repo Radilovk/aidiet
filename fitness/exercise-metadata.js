@@ -95,6 +95,7 @@ export function mergeExerciseMetadata(entry, raw, metadata = {}) {
     diff: meta.diff,
     gf: meta.gf,
     gm: meta.gm,
+    effectiveEquipNorm: meta.effectiveEquipNorm || entry.equipNorm || normalizeText(entry.equipment),
     ...(meta.flags?.length ? { flags: meta.flags } : {}),
     ...(meta.gear?.length ? { gear: meta.gear } : {}),
     ...(meta.traits ? { traits: meta.traits } : {}),
@@ -376,7 +377,7 @@ export function passesModality(entry, modalities = null) {
 
 export function passesEquipment(entry, allowedEquipment) {
   if (!allowedEquipment) return true;
-  const eq = entry?.equipNorm || normalizeText(entry?.equipment);
+  const eq = entry?.effectiveEquipNorm || entry?.equipNorm || normalizeText(entry?.equipment);
   return allowedEquipment.has(eq);
 }
 
