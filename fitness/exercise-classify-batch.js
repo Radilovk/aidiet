@@ -4,6 +4,7 @@
 import { contentHash, fetchExerciseDataset, chunkBatches } from './exercise-translate-batch.js';
 import { pickInstructionsEn } from './exercise-translations.js';
 import { heuristicClassification } from './exercise-metadata.js';
+import { applyMetadataCorrections } from './exercise-tags.js';
 import { normalizeText } from './normalize.js';
 
 export const EXERCISE_METADATA_KV_KEY = 'exercise:metadata:v1';
@@ -14,10 +15,18 @@ export const WORKER_CLASSIFY_BATCH_SIZE = 12;
 export const CLASSIFY_SYSTEM_PROMPT = `Ти си S&C експерт. Класифицираш упражнения за автоматичен избор в тренировъчни планове.
 
 За всяко упражнение върни:
-- diff: 1 (начинаещ) | 2 (среден) | 3 (напреднал/технично/тежко)
-- gf: 0–100 колко подходящо за женски план (дупе/стягане/постура = високо; тежък мъжки press обем = ниско)
+- diff: 1 (истински начинаещ) | 2 (среден) | 3 (напреднал/гимнастика/технично)
+- gf: 0–100 колко подходящо за женски план
 - gm: 0–100 колко подходящо за мъжки план
-- flags: кратък масив от: compound, isolation, barbell, machine, bodyweight, cardio, glute, press, olympic
+- flags: от compound, isolation, barbell, machine, bodyweight, cardio, glute, press, olympic, gymnastics, suspension, rings, pull_bar, parallel_bars, beginner_safe, home_friendly, advanced
+
+ВАЖНО:
+- ring dips, muscle up, planche, skin the cat, kipping → diff=3, flags: gymnastics,rings,advanced
+- suspended/TRX упражнения → diff≥2, flags: suspension
+- pull-up/chin-up/dip на лост без асистенция → diff≥2, flags: pull_bar
+- parallel bars dips → diff≥2, flags: parallel_bars
+- floor stretch/yoga → diff=1
+- „body weight“ в equipment НЕ означава подходящо за домашна тренировка без уреди
 
 Повечето упражнения са 50–80 и за двата пола. Крайности само при ясен акцент.
 Връщай САМО JSON без markdown.`;
@@ -64,11 +73,18 @@ export function normalizeClassifyResult(parsed, batch) {
     const en = pickInstructionsEn(ex.instructions);
     const hash = classifyContentHash(ex.name || '', ex.equipment || '', en);
     const fallback = heuristicClassification(ex);
-    out[id] = {
+    const corrected = applyMetadataCorrections(ex, {
       diff: clampDiff(row?.diff ?? fallback.diff),
       gf: clampScore(row?.gf ?? fallback.gf),
       gm: clampScore(row?.gm ?? fallback.gm),
-      flags: Array.isArray(row?.flags) ? row.flags.slice(0, 6) : fallback.flags,
+      flags: Array.isArray(row?.flags) ? row.flags.slice(0, 8) : fallback.flags,
+    });
+    out[id] = {
+      diff: corrected.diff,
+      gf: corrected.gf,
+      gm: corrected.gm,
+      flags: corrected.flags,
+      gear: corrected.gear,
       sourceHash: hash,
       classifiedAt: new Date().toISOString(),
     };
@@ -133,9 +149,14 @@ export async function classifyBatchResilient(apiKey, batch, model = DEFAULT_CLAS
       const ex = batch[0];
       const en = pickInstructionsEn(ex.instructions);
       const h = heuristicClassification(ex);
+      const corrected = applyMetadataCorrections(ex, h);
       return {
         [String(ex.id)]: {
-          ...h,
+          diff: corrected.diff,
+          gf: corrected.gf,
+          gm: corrected.gm,
+          flags: corrected.flags,
+          gear: corrected.gear,
           sourceHash: classifyContentHash(ex.name || '', ex.equipment || '', en),
           classifiedAt: new Date().toISOString(),
           heuristicFallback: true,
