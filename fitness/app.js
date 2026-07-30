@@ -177,6 +177,11 @@ function wizardHasProgress() {
 }
 
 let refreshPwaInstall = null;
+let sharedPlanDelivery = Boolean(new URLSearchParams(location.search).get('plan'));
+
+function isDeliveredPlanSession() {
+  return sharedPlanDelivery;
+}
 
 function renderHome() {
   const hasPlan = hasCachedPlan();
@@ -226,6 +231,7 @@ function showView(name) {
   if (name === 'loading' && planGenerationJob) startLoadingMessages();
   updateGeneratingUi();
   document.body.dataset.view = name;
+  void refreshPwaInstall?.();
   // App-like: навигация напред (след първоначалното зареждане) активира
   // back-sentinel-а, за да работи системният бутон "назад".
   if (prev && prev !== name && name !== 'home') armBackSentinel();
@@ -485,6 +491,7 @@ function closePlanIntroModal() {
   document.body.style.overflow = '';
   markPlanIntroSeen();
   renderPlanFootnotes(planRecord.plan, false);
+  void refreshPwaInstall?.();
 }
 
 function openPlanIntroModal(plan) {
@@ -920,6 +927,7 @@ async function loadSharedPlan(planId) {
       syncedRv: linkRv || null,
       planConstraints: planRecord?.planConstraints || null,
     };
+    sharedPlanDelivery = true;
     swaps = {}; intensity = 0; chatHistory = [];
     store.set('plan', planRecord);
     store.set('swaps', swaps);
@@ -1045,7 +1053,11 @@ function init() {
   }
 
   registerServiceWorker();
-  refreshPwaInstall = bindPwaInstallCard($('pwaInstallCard'), { hasPlan: hasCachedPlan });
+  refreshPwaInstall = bindPwaInstallCard($('pwaInstallCard'), {
+    hasPlan: hasCachedPlan,
+    isDelivered: isDeliveredPlanSession,
+    dockEl: $('pwaInstallDock'),
+  });
   void refreshPwaInstall?.();
 
   // Първи кадър е готов → маркирай като заредено (пуска entrance анимациите
