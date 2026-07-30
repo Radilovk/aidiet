@@ -3886,6 +3886,7 @@ async function generatePlanCore(env, data, onAnalysisReady = null) {
 
   // Generate plan (multi-step AI)
   let structuredPlan = await generatePlanMultiStep(env, data, onAnalysisReady);
+  await reconcilePlanStructure(structuredPlan, data, env);
 
   // In-place structural fixes: food substitutions + warnings (no AI regen — stable path)
   try {
@@ -5868,20 +5869,23 @@ async function ensureAssistantCacheFresh(env, session, card, planUpdatedAt, anal
 }
 
 /**
- * Reconcile plan totals after admin AI patches (day totals + summary macros).
- * @param {object|null|undefined} plan
+ * Normalize plan structure + nutrition on every write path (admin, assistant, activate).
  */
-function reconcilePlanAfterAssistantPatches(plan, userData = null) {
-  if (!plan?.weekPlan) return;
+async function reconcilePlanStructure(plan, userData = null, env = null) {
+  if (!plan?.weekPlan) return plan;
+  injectFixedDesserts(plan.weekPlan);
   if (plan.strategy?.weeklyScheme) {
+    if (env) {
+      await resolveAndSyncWeekPlanNutrition(env, plan.weekPlan, plan.strategy, 1, 7, userData);
+    }
     finalizeWeekPlanDays(plan.weekPlan, plan.strategy, 1, 7, userData);
   } else {
     recalculateDayCalories(plan.weekPlan, plan.strategy || null);
   }
+  if (plan.analysis) syncPlanTargets(plan, plan.analysis);
 
   const avgMacros = calculateAverageMacrosFromPlan(plan.weekPlan);
   if (!plan.summary) plan.summary = {};
-
   if (avgMacros.protein != null) {
     plan.summary.averageMacros = {
       protein: avgMacros.protein,
@@ -5889,7 +5893,6 @@ function reconcilePlanAfterAssistantPatches(plan, userData = null) {
       fats: avgMacros.fats,
     };
   }
-
   let totalCals = 0;
   let dayCount = 0;
   for (const dayKey of Object.keys(plan.weekPlan)) {
@@ -5899,9 +5902,16 @@ function reconcilePlanAfterAssistantPatches(plan, userData = null) {
       dayCount++;
     }
   }
-  if (dayCount > 0) {
-    plan.summary.dailyCalories = Math.round(totalCals / dayCount);
-  }
+  if (dayCount > 0) plan.summary.dailyCalories = Math.round(totalCals / dayCount);
+  return plan;
+}
+
+/**
+ * Reconcile plan totals after admin AI patches (day totals + summary macros).
+ * @param {object|null|undefined} plan
+ */
+async function reconcilePlanAfterAssistantPatches(plan, userData = null, env = null) {
+  await reconcilePlanStructure(plan, userData, env);
 }
 
 /**
@@ -6116,7 +6126,7 @@ async function applyAssistantPatches(env, session, clientData, patches, ctx) {
 
   const wasPreviouslyActivated = Boolean(clientData.planActivatedAt);
   if (touchedPlan) {
-    reconcilePlanAfterAssistantPatches(clientData.plan, clientData.answers);
+    await reconcilePlanAfterAssistantPatches(clientData.plan, clientData.answers, env);
     clientData.planUpdatedAt = new Date().toISOString();
     if (wasPreviouslyActivated) {
       clientData.planStatus = 'activated';
@@ -7149,9 +7159,8 @@ async function handleUpdateClientPlan(request, env, ctx) {
     }
     const clientData = JSON.parse(raw);
     const wasPreviouslyActivated = Boolean(clientData.planActivatedAt);
-    if (plan?.weekPlan && plan?.strategy && clientData.answers) {
-      finalizeWeekPlanDays(plan.weekPlan, plan.strategy, 1, 7, clientData.answers);
-      if (plan.analysis) syncPlanTargets(plan, plan.analysis);
+    if (plan?.weekPlan && plan?.strategy) {
+      await reconcilePlanStructure(plan, clientData.answers, env);
     }
     clientData.plan = plan;
     if (userId) clientData.userId = userId;
@@ -7223,6 +7232,9 @@ async function handleActivateClientPlan(request, env, ctx) {
     const clientData = JSON.parse(raw);
     if (!clientData.plan) {
       return jsonResponse({ error: 'No plan to activate' }, 400);
+    }
+    if (clientData.plan?.weekPlan && clientData.plan?.strategy) {
+      await reconcilePlanStructure(clientData.plan, clientData.answers, env);
     }
     clientData.planStatus = 'activated';
     clientData.planActivatedAt = new Date().toISOString();
@@ -7833,11 +7845,10 @@ function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay
 
 function buildChunkValidationRetryComment(errors) {
   if (!errors?.length) return '';
-  return `═══ КОРЕКЦИЯ — ПРЕДИШНИЯТ ОТГОВОР ИМА ГРЕШКИ ═══
-Поправи САМО посочените несъответствия. Запази продуктите и структурата на дните.
+  return `═══ FIX LIST ═══
 ${errors.map((e, i) => `${i + 1}. ${e}`).join('\n')}
 
-ЗАДЪЛЖИТЕЛНО: description с "числоg" на всеки продукт (закръгляне 10g); САМО имена от КАТАЛОГА; общоприети комбинации. Бекендът изчислява macros/kcal от грамажите и мащабира порциите към калорийната цел.`;
+Rules: meals[].type = mealBreakdown only; description = catalog raw products + grams; backend computes macros/kcal.`;
 }
 
 function getAllowedMealTypes(dayTarget, userData = null) {
@@ -8201,9 +8212,23 @@ function validatePlan(plan, userData, substitutions = []) {
           const schemeKey = DAY_NUMBER_TO_KEY[i - 1];
           const dayTarget = plan.strategy.weeklyScheme[schemeKey];
           if (dayTarget) {
+            for (const err of validateMealTypesAgainstBreakdown(day, dayTarget, i, userData)) {
+              errors.push(err);
+              stepErrors.step3_mealplan.push(err);
+            }
             for (const err of validateMealsAgainstScheme(day, dayTarget, i)) {
               errors.push(err);
               stepErrors.step3_mealplan.push(err);
+            }
+            const dayKcal = Number(day.dailyTotals?.calories) || day.meals.reduce((s, m) => s + (Number(m.calories) || 0), 0);
+            const schemeKcal = Number(dayTarget.calories) || 0;
+            if (dayKcal > 0 && schemeKcal > 0) {
+              const tol = calorieTolerance(schemeKcal);
+              if (Math.abs(dayKcal - schemeKcal) > tol * 2) {
+                const err = `Ден ${i}: дневни ${dayKcal} kcal ≠ схема ${schemeKcal}`;
+                errors.push(err);
+                stepErrors.step3_mealplan.push(err);
+              }
             }
           }
         }

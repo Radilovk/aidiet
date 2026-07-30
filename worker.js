@@ -9510,6 +9510,7 @@ async function generatePlanCore(env, data, onAnalysisReady = null) {
     return { success: true, hasContradiction: true, warningData, userId };
   }
   let structuredPlan = await generatePlanMultiStep(env, data, onAnalysisReady);
+  await reconcilePlanStructure(structuredPlan, data, env);
   try {
     const foodLists = await getDynamicFoodListsSections(env);
     const validation = validatePlan(structuredPlan, data, foodLists.dynamicSubstitutions || []);
@@ -11022,13 +11023,18 @@ async function ensureAssistantCacheFresh(env, session, card, planUpdatedAt, anal
   session.cardFingerprint = fingerprint;
   return { session, rebuilt: true };
 }
-function reconcilePlanAfterAssistantPatches(plan, userData = null) {
-  if (!plan?.weekPlan) return;
+async function reconcilePlanStructure(plan, userData = null, env = null) {
+  if (!plan?.weekPlan) return plan;
+  injectFixedDesserts(plan.weekPlan);
   if (plan.strategy?.weeklyScheme) {
+    if (env) {
+      await resolveAndSyncWeekPlanNutrition(env, plan.weekPlan, plan.strategy, 1, 7, userData);
+    }
     finalizeWeekPlanDays(plan.weekPlan, plan.strategy, 1, 7, userData);
   } else {
     recalculateDayCalories(plan.weekPlan, plan.strategy || null);
   }
+  if (plan.analysis) syncPlanTargets(plan, plan.analysis);
   const avgMacros = calculateAverageMacrosFromPlan(plan.weekPlan);
   if (!plan.summary) plan.summary = {};
   if (avgMacros.protein != null) {
@@ -11047,9 +11053,11 @@ function reconcilePlanAfterAssistantPatches(plan, userData = null) {
       dayCount++;
     }
   }
-  if (dayCount > 0) {
-    plan.summary.dailyCalories = Math.round(totalCals / dayCount);
-  }
+  if (dayCount > 0) plan.summary.dailyCalories = Math.round(totalCals / dayCount);
+  return plan;
+}
+async function reconcilePlanAfterAssistantPatches(plan, userData = null, env = null) {
+  await reconcilePlanStructure(plan, userData, env);
 }
 async function resolveActivatedClientUserId(env, clientData) {
   if (clientData?.userId?.startsWith("fb_")) return clientData.userId;
@@ -11225,7 +11233,7 @@ async function applyAssistantPatches(env, session, clientData, patches, ctx) {
   mergePatchDocument(clientData, document);
   const wasPreviouslyActivated = Boolean(clientData.planActivatedAt);
   if (touchedPlan) {
-    reconcilePlanAfterAssistantPatches(clientData.plan, clientData.answers);
+    await reconcilePlanAfterAssistantPatches(clientData.plan, clientData.answers, env);
     clientData.planUpdatedAt = (/* @__PURE__ */ new Date()).toISOString();
     if (wasPreviouslyActivated) {
       clientData.planStatus = "activated";
@@ -12124,9 +12132,8 @@ async function handleUpdateClientPlan(request, env, ctx) {
     }
     const clientData = JSON.parse(raw);
     const wasPreviouslyActivated = Boolean(clientData.planActivatedAt);
-    if (plan?.weekPlan && plan?.strategy && clientData.answers) {
-      finalizeWeekPlanDays(plan.weekPlan, plan.strategy, 1, 7, clientData.answers);
-      if (plan.analysis) syncPlanTargets(plan, plan.analysis);
+    if (plan?.weekPlan && plan?.strategy) {
+      await reconcilePlanStructure(plan, clientData.answers, env);
     }
     clientData.plan = plan;
     if (userId) clientData.userId = userId;
@@ -12191,6 +12198,9 @@ async function handleActivateClientPlan(request, env, ctx) {
     const clientData = JSON.parse(raw);
     if (!clientData.plan) {
       return jsonResponse2({ error: "No plan to activate" }, 400);
+    }
+    if (clientData.plan?.weekPlan && clientData.plan?.strategy) {
+      await reconcilePlanStructure(clientData.plan, clientData.answers, env);
     }
     clientData.planStatus = "activated";
     clientData.planActivatedAt = (/* @__PURE__ */ new Date()).toISOString();
@@ -12659,11 +12669,10 @@ function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay
 }
 function buildChunkValidationRetryComment(errors) {
   if (!errors?.length) return "";
-  return `\u2550\u2550\u2550 \u041A\u041E\u0420\u0415\u041A\u0426\u0418\u042F \u2014 \u041F\u0420\u0415\u0414\u0418\u0428\u041D\u0418\u042F\u0422 \u041E\u0422\u0413\u041E\u0412\u041E\u0420 \u0418\u041C\u0410 \u0413\u0420\u0415\u0428\u041A\u0418 \u2550\u2550\u2550
-\u041F\u043E\u043F\u0440\u0430\u0432\u0438 \u0421\u0410\u041C\u041E \u043F\u043E\u0441\u043E\u0447\u0435\u043D\u0438\u0442\u0435 \u043D\u0435\u0441\u044A\u043E\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0438\u044F. \u0417\u0430\u043F\u0430\u0437\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438\u0442\u0435 \u0438 \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0430\u0442\u0430 \u043D\u0430 \u0434\u043D\u0438\u0442\u0435.
+  return `\u2550\u2550\u2550 FIX LIST \u2550\u2550\u2550
 ${errors.map((e, i) => `${i + 1}. ${e}`).join("\n")}
 
-\u0417\u0410\u0414\u042A\u041B\u0416\u0418\u0422\u0415\u041B\u041D\u041E: description \u0441 "\u0447\u0438\u0441\u043B\u043Eg" \u043D\u0430 \u0432\u0441\u0435\u043A\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442 (\u0437\u0430\u043A\u0440\u044A\u0433\u043B\u044F\u043D\u0435 10g); \u0421\u0410\u041C\u041E \u0438\u043C\u0435\u043D\u0430 \u043E\u0442 \u041A\u0410\u0422\u0410\u041B\u041E\u0413\u0410; \u043E\u0431\u0449\u043E\u043F\u0440\u0438\u0435\u0442\u0438 \u043A\u043E\u043C\u0431\u0438\u043D\u0430\u0446\u0438\u0438. \u0411\u0435\u043A\u0435\u043D\u0434\u044A\u0442 \u0438\u0437\u0447\u0438\u0441\u043B\u044F\u0432\u0430 macros/kcal \u043E\u0442 \u0433\u0440\u0430\u043C\u0430\u0436\u0438\u0442\u0435 \u0438 \u043C\u0430\u0449\u0430\u0431\u0438\u0440\u0430 \u043F\u043E\u0440\u0446\u0438\u0438\u0442\u0435 \u043A\u044A\u043C \u043A\u0430\u043B\u043E\u0440\u0438\u0439\u043D\u0430\u0442\u0430 \u0446\u0435\u043B.`;
+Rules: meals[].type = mealBreakdown only; description = catalog raw products + grams; backend computes macros/kcal.`;
 }
 function getAllowedMealTypes(dayTarget, userData = null) {
   const allowed = new Set((dayTarget?.mealBreakdown || []).map((m) => m.type));
@@ -12937,9 +12946,23 @@ function validatePlan(plan, userData, substitutions = []) {
           const schemeKey = DAY_NUMBER_TO_KEY[i - 1];
           const dayTarget = plan.strategy.weeklyScheme[schemeKey];
           if (dayTarget) {
+            for (const err of validateMealTypesAgainstBreakdown(day, dayTarget, i, userData)) {
+              errors.push(err);
+              stepErrors.step3_mealplan.push(err);
+            }
             for (const err of validateMealsAgainstScheme(day, dayTarget, i)) {
               errors.push(err);
               stepErrors.step3_mealplan.push(err);
+            }
+            const dayKcal = Number(day.dailyTotals?.calories) || day.meals.reduce((s, m) => s + (Number(m.calories) || 0), 0);
+            const schemeKcal = Number(dayTarget.calories) || 0;
+            if (dayKcal > 0 && schemeKcal > 0) {
+              const tol = calorieTolerance(schemeKcal);
+              if (Math.abs(dayKcal - schemeKcal) > tol * 2) {
+                const err = `\u0414\u0435\u043D ${i}: \u0434\u043D\u0435\u0432\u043D\u0438 ${dayKcal} kcal \u2260 \u0441\u0445\u0435\u043C\u0430 ${schemeKcal}`;
+                errors.push(err);
+                stepErrors.step3_mealplan.push(err);
+              }
             }
           }
         }

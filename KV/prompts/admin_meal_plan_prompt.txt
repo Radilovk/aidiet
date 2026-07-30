@@ -24,7 +24,7 @@ Favorites: {dietLove} | Dislikes: {dietDislike}
 Fill day {startDay} for {userData.name}. meals[].type MUST match this day's mealBreakdown exactly — no extra slots, no missing slots.
 • type — from mealBreakdown
 • name — dish title (Bulgarian)
-• description — catalog raw ingredients only, one per line: "• {product} {N}g" (eggs not omelet; chicken not "rice with chicken)
+• description — catalog raw ingredients only, one per line: "• {product} {N}g" (eggs not omelet; chicken not "rice with chicken")
 Catalog products only; exact catalog names. Grams from kcal/P/C/F in mealBreakdown, round to 10g. No calories, macros, weight, benefits.
 
 Macros: protein ≥20g → concentrated source; fats ≥10g → oil/nuts; carbs ≥25g → rice/potato/bread; high protein + low fat → lean sources.
