@@ -2767,12 +2767,15 @@ function generateUserId(data) {
  * Returns a non-empty string when the strategy includes a free day and the
  * given day range covers that day; otherwise returns an empty string.
  */
-function buildFreeMealInstruction(strategy, startDay, endDay) {
+function buildFreeMealInstruction(strategy, startDay, endDay, userData = null) {
   const freeDayNumber = strategy && strategy.freeDayNumber;
   if (freeDayNumber == null) return '';
   const dayNum = Number(freeDayNumber);
   if (isNaN(dayNum) || dayNum < startDay || dayNum > endDay) return '';
-  return `\n\n=== СВОБОДНО ХРАНЕНЕ (Ден ${dayNum}) ===\nЗАДЪЛЖИТЕЛНО за ден ${dayNum}: ЗАМЕНИ Хранене 2 (Хранене 2 НЕ се генерира!) с точно: {"type": "Свободно хранене", "name": "Свободно хранене"} — БЕЗ description, calories, macros, weight, benefits или dessert.\nХранене 1 и Хранене 4 за ден ${dayNum} генерирай НОРМАЛНО. Хранене 4 в този ден — лека вечеря БЕЗ ориз/картофи/хляб/паста.\nКалориите за свободния обеден слот идват от strategy mealBreakdown и се включват в dailyTotals от бекенда.`;
+  const skipBreakfastNote = userSkipsBreakfast(userData)
+    ? ' No Хранене 1 — client skips breakfast.'
+    : ' Generate Хранене 1 and Хранене 4 normally for this day.';
+  return `\nFREE MEAL (Day ${dayNum}): Replace Хранене 2 with {"type":"Свободно хранене","name":"Свободно хранене"} — no description/calories/macros/weight/benefits/dessert.${skipBreakfastNote} Light Хранене 4 dinner — no rice/potato/bread/pasta. Free-slot kcal from mealBreakdown; backend adds to dailyTotals.`;
 }
 
 /**
@@ -3523,7 +3526,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
       medicalConditions_metabolic_details: data['medicalConditions_Метаболитни_детайл'] || '',
       medicalConditions_musculoskeletal_details: data['medicalConditions_Мускулно-скелетни_детайл'] || '',
       MAX_LATE_SNACK_CALORIES,
-      freeMealInstruction: buildFreeMealInstruction(strategy, startDay, endDay),
+      freeMealInstruction: buildFreeMealInstruction(strategy, startDay, endDay, data),
       sweetsCravingRule,
       additionalNotes: buildCombinedAdditionalNotes(data),
       clinicalProtocolSection: (() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buildClinicalProtocolPromptSection(p) : ''; })(),
@@ -3883,6 +3886,7 @@ async function generatePlanCore(env, data, onAnalysisReady = null) {
 
   // Generate plan (multi-step AI)
   let structuredPlan = await generatePlanMultiStep(env, data, onAnalysisReady);
+  await reconcilePlanStructure(structuredPlan, data, env);
 
   // In-place structural fixes: food substitutions + warnings (no AI regen — stable path)
   try {
@@ -5865,20 +5869,23 @@ async function ensureAssistantCacheFresh(env, session, card, planUpdatedAt, anal
 }
 
 /**
- * Reconcile plan totals after admin AI patches (day totals + summary macros).
- * @param {object|null|undefined} plan
+ * Normalize plan structure + nutrition on every write path (admin, assistant, activate).
  */
-function reconcilePlanAfterAssistantPatches(plan) {
-  if (!plan?.weekPlan) return;
+async function reconcilePlanStructure(plan, userData = null, env = null) {
+  if (!plan?.weekPlan) return plan;
+  injectFixedDesserts(plan.weekPlan);
   if (plan.strategy?.weeklyScheme) {
-    finalizeWeekPlanDays(plan.weekPlan, plan.strategy, 1, 7);
+    if (env) {
+      await resolveAndSyncWeekPlanNutrition(env, plan.weekPlan, plan.strategy, 1, 7, userData);
+    }
+    finalizeWeekPlanDays(plan.weekPlan, plan.strategy, 1, 7, userData);
   } else {
     recalculateDayCalories(plan.weekPlan, plan.strategy || null);
   }
+  if (plan.analysis) syncPlanTargets(plan, plan.analysis);
 
   const avgMacros = calculateAverageMacrosFromPlan(plan.weekPlan);
   if (!plan.summary) plan.summary = {};
-
   if (avgMacros.protein != null) {
     plan.summary.averageMacros = {
       protein: avgMacros.protein,
@@ -5886,7 +5893,6 @@ function reconcilePlanAfterAssistantPatches(plan) {
       fats: avgMacros.fats,
     };
   }
-
   let totalCals = 0;
   let dayCount = 0;
   for (const dayKey of Object.keys(plan.weekPlan)) {
@@ -5896,9 +5902,16 @@ function reconcilePlanAfterAssistantPatches(plan) {
       dayCount++;
     }
   }
-  if (dayCount > 0) {
-    plan.summary.dailyCalories = Math.round(totalCals / dayCount);
-  }
+  if (dayCount > 0) plan.summary.dailyCalories = Math.round(totalCals / dayCount);
+  return plan;
+}
+
+/**
+ * Reconcile plan totals after admin AI patches (day totals + summary macros).
+ * @param {object|null|undefined} plan
+ */
+async function reconcilePlanAfterAssistantPatches(plan, userData = null, env = null) {
+  await reconcilePlanStructure(plan, userData, env);
 }
 
 /**
@@ -6113,7 +6126,7 @@ async function applyAssistantPatches(env, session, clientData, patches, ctx) {
 
   const wasPreviouslyActivated = Boolean(clientData.planActivatedAt);
   if (touchedPlan) {
-    reconcilePlanAfterAssistantPatches(clientData.plan);
+    await reconcilePlanAfterAssistantPatches(clientData.plan, clientData.answers, env);
     clientData.planUpdatedAt = new Date().toISOString();
     if (wasPreviouslyActivated) {
       clientData.planStatus = 'activated';
@@ -7146,6 +7159,9 @@ async function handleUpdateClientPlan(request, env, ctx) {
     }
     const clientData = JSON.parse(raw);
     const wasPreviouslyActivated = Boolean(clientData.planActivatedAt);
+    if (plan?.weekPlan && plan?.strategy) {
+      await reconcilePlanStructure(plan, clientData.answers, env);
+    }
     clientData.plan = plan;
     if (userId) clientData.userId = userId;
     clientData.planUpdatedAt = new Date().toISOString();
@@ -7216,6 +7232,9 @@ async function handleActivateClientPlan(request, env, ctx) {
     const clientData = JSON.parse(raw);
     if (!clientData.plan) {
       return jsonResponse({ error: 'No plan to activate' }, 400);
+    }
+    if (clientData.plan?.weekPlan && clientData.plan?.strategy) {
+      await reconcilePlanStructure(clientData.plan, clientData.answers, env);
     }
     clientData.planStatus = 'activated';
     clientData.planActivatedAt = new Date().toISOString();
@@ -7343,10 +7362,14 @@ const FIXED_DESSERT_WEIGHT_GRAMS = (() => {
   return m ? parseFloat(m[1]) : 0;
 })();
 
+function userSkipsBreakfast(userData) {
+  return Array.isArray(userData?.eatingHabits) && userData.eatingHabits.includes('Не закусвам');
+}
+
 function buildSweetsCravingRule(foodCravings, strategy) {
   if (!userHasSweetsCraving(foodCravings) || strategy?.includeDessert === false) return '';
   const d = FIXED_DESSERT.macros;
-  return `\nВАЖНО - НУЖДА ОТ СЛАДКО: Клиентът изпитва нужда от сладки изделия. ЗАДЪЛЖИТЕЛНО добавяй към всеки "Хранене 2" (САМО Хранене 2, НЕ друго хранене) поле "dessert": true — десертът е финален компонент на Хранене 2, не отделно хранене. НЕ включвай наименованието на десерта в полето "name" на Хранене 2. meal.calories и meal.macros на Хранене 2 ТРЯБВА да включват стойностите на ЦЯЛОТО хранене заедно с десерта (${FIXED_DESSERT.calories} ккал, ${d.protein}г белтъчини, ${d.carbs}г въглехидрати, ${d.fats}г мазнини) — взимай тези стойности предвид при изграждане на дневния калориен баланс. ПРИ ХРАНЕНЕ 2 С ДЕСЕРТ — НЕ включвай картофи, ориз или хляб. ЗА ХРАНЕНЕ 3 в дни с десерт: задължително БЕЗ плодове — само кисело мляко, ядки, скир или протеинов шейк.`;
+  return `\nSWEETS: "dessert": true on every Хранене 2 only (not in name; dessert kcal in lunch slot: ${FIXED_DESSERT.calories} kcal, P${d.protein}/C${d.carbs}/F${d.fats}g). No potato/rice/bread at lunch with dessert. Хранене 3 same day: no fruit — yogurt, nuts, skyr or protein shake only.`;
 }
 
 /** Calories from macro grams: protein×4 + carbs×4 + fats×9 */
@@ -7723,8 +7746,26 @@ async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay
   return unknowns;
 }
 
+function validateMealTypesAgainstBreakdown(dayPlan, dayTarget, dayNum, userData = null) {
+  const errors = [];
+  if (!dayPlan?.meals?.length || !dayTarget?.mealBreakdown?.length) return errors;
+
+  const allowed = getAllowedMealTypes(dayTarget, userData);
+
+  for (const meal of dayPlan.meals) {
+    if (!allowed.has(meal.type)) {
+      if (meal.type === 'Хранене 1' && userSkipsBreakfast(userData)) {
+        errors.push(`Ден ${dayNum}: Клиентът НЕ ЗАКУСВА — забранено е "Хранене 1"`);
+      } else {
+        errors.push(`Ден ${dayNum}: "${meal.type}" не е в mealBreakdown за този ден`);
+      }
+    }
+  }
+  errors.push(...validateRequiredMealSlots(dayPlan, dayTarget, dayNum));
+  return errors;
+}
+
 /**
- * Structural validation only. Macros/kcal are computed by the backend FROM the
  * grams and scaled to the calorie target, so numeric precision is guaranteed by
  * construction — the AI is retried only for problems it can actually fix: missing
  * grams, unknown products, forbidden foods, or a composition so under/over-portioned
@@ -7778,7 +7819,7 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocol
   return errors;
 }
 
-function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay, clinicalProtocolId = null) {
+function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay, clinicalProtocolId = null, userData = null) {
   const errors = [];
   if (!weekPlan || !strategy?.weeklyScheme) return errors;
   normalizeMealBreakdownTypes(strategy);
@@ -7787,6 +7828,7 @@ function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay
     const schemeKey = DAY_NUMBER_TO_KEY[d - 1];
     const dayTarget = strategy.weeklyScheme[schemeKey];
     if (dayPlan && dayTarget) {
+      errors.push(...validateMealTypesAgainstBreakdown(dayPlan, dayTarget, d, userData));
       errors.push(...validateMealsAgainstScheme(dayPlan, dayTarget, d, clinicalProtocolId));
       const dayKcal = Number(dayPlan.dailyTotals?.calories) || 0;
       const schemeKcal = Number(dayTarget.calories) || 0;
@@ -7803,17 +7845,61 @@ function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay
 
 function buildChunkValidationRetryComment(errors) {
   if (!errors?.length) return '';
-  return `═══ КОРЕКЦИЯ — ПРЕДИШНИЯТ ОТГОВОР ИМА ГРЕШКИ ═══
-Поправи САМО посочените несъответствия. Запази продуктите и структурата на дните.
+  return `═══ FIX LIST ═══
 ${errors.map((e, i) => `${i + 1}. ${e}`).join('\n')}
 
-ЗАДЪЛЖИТЕЛНО: description с "числоg" на всеки продукт (закръгляне 10g); САМО имена от КАТАЛОГА; общоприети комбинации. Бекендът изчислява macros/kcal от грамажите и мащабира порциите към калорийната цел.`;
+Rules: meals[].type = mealBreakdown only; description = catalog raw products + grams; backend computes macros/kcal.`;
 }
 
-function finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay) {
+function getAllowedMealTypes(dayTarget, userData = null) {
+  const allowed = new Set((dayTarget?.mealBreakdown || []).map(m => m.type));
+  if (allowed.has('Свободно хранене')) allowed.delete('Хранене 2');
+  if (userSkipsBreakfast(userData)) {
+    allowed.delete('Хранене 1');
+    allowed.add('Напитка');
+  }
+  return allowed;
+}
+
+/** Keep only meal slots defined in strategy mealBreakdown (single source of truth). */
+function alignDaysToMealBreakdown(weekPlan, strategy, startDay, endDay, userData = null) {
+  if (!weekPlan || !strategy?.weeklyScheme) return;
+  for (let d = startDay; d <= endDay; d++) {
+    const day = weekPlan[`day${d}`];
+    const dayTarget = strategy.weeklyScheme[DAY_NUMBER_TO_KEY[d - 1]];
+    if (!day?.meals?.length || !dayTarget?.mealBreakdown?.length) continue;
+    const allowed = getAllowedMealTypes(dayTarget, userData);
+    const kept = [];
+    const seen = new Set();
+    for (const meal of day.meals) {
+      if (!meal?.type || !allowed.has(meal.type)) continue;
+      if (seen.has(meal.type)) continue;
+      seen.add(meal.type);
+      kept.push(meal);
+    }
+    kept.sort((a, b) => (MEAL_ORDER_MAP[a.type] ?? 9) - (MEAL_ORDER_MAP[b.type] ?? 9));
+    day.meals = kept;
+  }
+}
+
+function validateRequiredMealSlots(dayPlan, dayTarget, dayNum) {
+  const errors = [];
+  if (!dayTarget?.mealBreakdown?.length) return errors;
+  const present = new Set((dayPlan?.meals || []).map(m => m.type));
+  for (const slot of dayTarget.mealBreakdown) {
+    if (slot.type === 'Хранене 2' && dayTarget.mealBreakdown.some(m => m.type === 'Свободно хранене')) continue;
+    if (!present.has(slot.type)) {
+      errors.push(`Ден ${dayNum}: липсва задължително "${slot.type}"`);
+    }
+  }
+  return errors;
+}
+
+function finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, userData = null) {
   if (!weekPlan) return;
   normalizeMealBreakdownTypes(strategy);
   normalizeMealTypesInWeekPlan(weekPlan);
+  alignDaysToMealBreakdown(weekPlan, strategy, startDay, endDay, userData);
   for (let d = startDay; d <= endDay; d++) {
     const day = weekPlan[`day${d}`];
     if (!day?.meals) continue;
@@ -7834,8 +7920,8 @@ function finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay) {
 }
 
 /** @deprecated Use finalizeWeekPlanDays — kept as alias for callers outside meal-plan flow */
-function alignWeekPlanDaysToScheme(weekPlan, strategy, startDay, endDay) {
-  finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay);
+function alignWeekPlanDaysToScheme(weekPlan, strategy, startDay, endDay, userData = null) {
+  finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, userData);
 }
 
 /**
@@ -8126,9 +8212,23 @@ function validatePlan(plan, userData, substitutions = []) {
           const schemeKey = DAY_NUMBER_TO_KEY[i - 1];
           const dayTarget = plan.strategy.weeklyScheme[schemeKey];
           if (dayTarget) {
+            for (const err of validateMealTypesAgainstBreakdown(day, dayTarget, i, userData)) {
+              errors.push(err);
+              stepErrors.step3_mealplan.push(err);
+            }
             for (const err of validateMealsAgainstScheme(day, dayTarget, i)) {
               errors.push(err);
               stepErrors.step3_mealplan.push(err);
+            }
+            const dayKcal = Number(day.dailyTotals?.calories) || day.meals.reduce((s, m) => s + (Number(m.calories) || 0), 0);
+            const schemeKcal = Number(dayTarget.calories) || 0;
+            if (dayKcal > 0 && schemeKcal > 0) {
+              const tol = calorieTolerance(schemeKcal);
+              if (Math.abs(dayKcal - schemeKcal) > tol * 2) {
+                const err = `Ден ${i}: дневни ${dayKcal} kcal ≠ схема ${schemeKcal}`;
+                errors.push(err);
+                stepErrors.step3_mealplan.push(err);
+              }
             }
           }
         }
@@ -9441,9 +9541,9 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
 
         injectFixedDesserts(weekPlan);
         await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
-        finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay);
+        finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, data);
 
-        validationErrors = validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay, data.clinicalProtocol || null);
+        validationErrors = validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay, data.clinicalProtocol || null, data);
         lastAiFailure = null;
       } catch (aiError) {
         // AI call/parse failure — no plan data to score; retry with the same slot empty.
@@ -9506,9 +9606,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
     console.warn('Step 5 enrichment failed, plan usable with Step 3 output:', error.message);
   }
 
-  finalizeWeekPlanDays(weekPlan, strategy, 1, 7);
-  
-  // Generate summary, recommendations, etc. in final request
+  finalizeWeekPlanDays(weekPlan, strategy, 1, 7, data);
   try {
     const summaryPrompt = await generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan, env);
     const summaryResponse = await callAIModel(env, summaryPrompt, SUMMARY_TOKEN_LIMIT, 'step4_summary', sessionId, data, buildCompactAnalysisForStep4(analysis));
