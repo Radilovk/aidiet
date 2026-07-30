@@ -96,7 +96,7 @@ function modalitiesInWeek(dayTypes = []) {
   return [...new Set(dayTypes.map((d) => d.type).filter((t) => t && t !== 'rest'))];
 }
 
-function goalKey(answers) {
+export function goalKey(answers) {
   const main = normalizeText(answers?.goal?.main || '');
   if (main === 'друго') return normalizeText(answers?.goal?.other || '') || 'обща';
   return GOAL_NORM[main] || main || 'обща';

@@ -20,12 +20,18 @@ import {
   EQUIPMENT_RETRY_HINT,
   SESSION_STRUCTURE_RETRY_HINT,
   DIFF_RETRY_HINT,
+  DSL_RETRY_HINT,
 } from './plan-prompts.js';
 import {
   buildProgramSpec,
   formatProgramSpecBlock,
   buildCompactProfileForPrompt,
 } from './program-spec.js';
+import {
+  buildDslSpec,
+  formatDslSpecBlock,
+  auditPlanDsl,
+} from './training-dsl.js';
 
 export {
   GENDER_FIT_RETRY_HINT,
@@ -33,6 +39,7 @@ export {
   EQUIPMENT_RETRY_HINT,
   SESSION_STRUCTURE_RETRY_HINT,
   DIFF_RETRY_HINT,
+  DSL_RETRY_HINT,
 };
 
 export const MAX_FOUNDATION_CHARS = 800;
@@ -638,7 +645,7 @@ export function buildBriefIdentityBlock(brief) {
 /** User prompt: контекст + задача. strictAssembly = само scheme. */
 export function buildAdminPlanUserPrompt(brief, options = {}) {
   const strictAssembly = Boolean(options.strictAssembly);
-  const { clientProfile = '', exampleScheme = '', trainerBrief = '', constraints: presetConstraints, programSpec } = brief || {};
+  const { clientProfile = '', exampleScheme = '', trainerBrief = '', constraints: presetConstraints, programSpec, dslSpec } = brief || {};
   const scheme = String(exampleScheme || '').trim();
   const briefText = String(trainerBrief || '').trim();
   const hasStructuredScheme = Boolean(scheme);
@@ -659,6 +666,9 @@ export function buildAdminPlanUserPrompt(brief, options = {}) {
     if (programSpec) {
       parts.push(`<program_spec>\n${formatProgramSpecBlock(programSpec)}\n</program_spec>`);
     }
+    if (dslSpec) {
+      parts.push(`<dsl_spec>\n${formatDslSpecBlock(dslSpec)}\n</dsl_spec>`);
+    }
     const compactProfile = brief?.compactProfile?.trim()
       || (programSpec ? '' : String(clientProfile || '').trim());
     if (compactProfile) {
@@ -672,7 +682,7 @@ export function buildAdminPlanUserPrompt(brief, options = {}) {
     ? 'ASSEMBLY: сглоби JSON от <scheme> буквално. canonicalName + displayName. JSON само.'
     : (hasStructuredScheme
       ? 'Следвай <scheme> точно. Запълни 7 дни. JSON само.'
-      : 'Проектирай седмичен план (7 дни) от клиентския контекст + <exercise_catalog>. canonicalName САМО от каталога. Split, dayFocus, обем и reps/rest — твои решения, съобразени с brief/constraints/program_spec; обосновай в summary, weeklySplit и focus. Без случайни упражнения. JSON само.');
+      : 'Проектирай седмичен план (7 дни) от <dsl_spec> + <exercise_catalog>. Следвай week plan и session budget от DSL. canonicalName САМО от каталога. Split/dayFocus/type — от dsl_spec; обосновай в summary и weeklySplit. Без случайни упражнения. JSON само.');
   return `${parts.join('\n\n')}\n\n${task}`;
 }
 
@@ -838,6 +848,7 @@ export function auditPlan(plan, {
   allowedEquipment = null,
   pickedApparatus = null,
   programSpec = null,
+  dslSpec = null,
   exerciseProfile = null,
   exerciseIndex = null,
 } = {}) {
@@ -846,6 +857,7 @@ export function auditPlan(plan, {
   if (!gender.ok) issues.push(...gender.issues);
   issues.push(...auditPlanConstraints(plan, constraints || {}));
   issues.push(...auditPlanSessionStructure(plan, programSpec));
+  if (dslSpec) issues.push(...auditPlanDsl(plan, dslSpec));
   if (exerciseIndex?.length) {
     issues.push(...auditPlanExercises(plan, {
       allowedEquipment, pickedApparatus, exerciseProfile, index: exerciseIndex,
@@ -860,6 +872,7 @@ export function auditPlan(plan, {
 
 export function auditRetryHint(issues = []) {
   const joined = issues.join(' ');
+  if (/squat|hinge|DSL|dsl_spec|week plan/i.test(joined)) return DSL_RETRY_HINT;
   if (/d\d.*> max|maxDiff|d≤/i.test(joined)) return DIFF_RETRY_HINT;
   if (/dayFocus|warmup|cooldown|session_principles|основен mobility/i.test(joined)) return SESSION_STRUCTURE_RETRY_HINT;
   if (/имплант|забранено|гърди/i.test(joined)) return CONSTRAINT_RETRY_HINT;
@@ -887,6 +900,7 @@ export function preparePlanGeneration(source, adminConfig, helpers) {
     const schemeMode = strictAssembly || structuredScheme;
     const layers = resolveGuidelineLayers(tags, adminConfig, { schemeMode, strictAssembly });
     const programSpec = (!strictAssembly && answers?.gender) ? buildProgramSpec(answers) : null;
+    const dslSpec = (!strictAssembly && answers?.gender) ? buildDslSpec(answers) : null;
     const planConstraints = constraintsFromAnswers(answers || {}, schemeText, { strictAssembly });
     const brief = {
       clientProfile: profileText,
@@ -896,6 +910,7 @@ export function preparePlanGeneration(source, adminConfig, helpers) {
       constraints: planConstraints,
       tags,
       programSpec,
+      dslSpec,
     };
     const equipmentInput = expandEquipmentAnswers([...(answers?.equipment || []), answers?.equipmentOther].filter(Boolean));
     const fromBrief = allowedEquipmentFromBrief(profileText, schemeText);
@@ -920,6 +935,7 @@ export function preparePlanGeneration(source, adminConfig, helpers) {
       constraints: planConstraints,
       schemeKind,
       programSpec,
+      dslSpec,
     };
   }
 
