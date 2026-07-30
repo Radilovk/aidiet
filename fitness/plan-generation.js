@@ -12,6 +12,7 @@
 import { normalizeText } from './normalize.js';
 import { buildProfileSummary } from './profile-summary.js';
 import { exerciseProfileFromContext, fitsExerciseProfile, passesEquipment } from './exercise-metadata.js';
+import { passesGearFilter, passesBeginnerSafety, resolveAllowedGear } from './exercise-tags.js';
 import { EQUIPMENT_PICKER_OPTION } from './equipment-groups.js';
 import { apparatusLabel, passesApparatusFilter } from './equipment-apparatus.js';
 import {
@@ -751,7 +752,7 @@ export function auditPlanSessionStructure(plan, programSpec = null) {
 }
 
 /** Проверка на упражненията спрямо каталога, d≤maxDiff и оборудване/уреди. */
-export function auditPlanExercises(plan, { allowedEquipment = null, pickedApparatus = null, exerciseProfile = null, index = [] } = {}) {
+export function auditPlanExercises(plan, { allowedEquipment = null, allowedGear = null, pickedApparatus = null, exerciseProfile = null, index = [] } = {}) {
   if (!index?.length) return [];
   const byNorm = new Map(index.map((e) => [normalizeText(e.name), e]));
   const issues = [];
@@ -766,6 +767,12 @@ export function auditPlanExercises(plan, { allowedEquipment = null, pickedAppara
       }
       if (exerciseProfile && !fitsExerciseProfile(entry, exerciseProfile)) {
         issues.push(`${day.day}: „${name}“ d${entry.diff ?? 2} > max d${exerciseProfile.maxDiff}`);
+      }
+      if (exerciseProfile && !passesBeginnerSafety(entry, exerciseProfile)) {
+        issues.push(`${day.day}: „${name}“ не е подходящо за начинаещ (skill/gear)`);
+      }
+      if (allowedGear && !passesGearFilter(entry, allowedGear)) {
+        issues.push(`${day.day}: „${name}“ изисква оборудване извън наличното (${(entry.gear || []).join('+')})`);
       }
       if (allowedEquipment && !passesEquipment(entry, allowedEquipment)) {
         issues.push(`${day.day}: „${name}“ извън позволеното оборудване (${entry.equipment})`);
@@ -846,6 +853,7 @@ export function auditPlan(plan, {
   clientTags = null,
   constraints = null,
   allowedEquipment = null,
+  allowedGear = null,
   pickedApparatus = null,
   programSpec = null,
   dslSpec = null,
@@ -860,7 +868,7 @@ export function auditPlan(plan, {
   if (dslSpec) issues.push(...auditPlanDsl(plan, dslSpec));
   if (exerciseIndex?.length) {
     issues.push(...auditPlanExercises(plan, {
-      allowedEquipment, pickedApparatus, exerciseProfile, index: exerciseIndex,
+      allowedEquipment, allowedGear, pickedApparatus, exerciseProfile, index: exerciseIndex,
     }));
   } else {
     issues.push(...auditPlanExerciseProfile(plan, exerciseProfile, exerciseIndex));
@@ -918,11 +926,14 @@ export function preparePlanGeneration(source, adminConfig, helpers) {
     const pickedApparatus = (answers?.equipmentPickedItems || answers?.equipmentPickedGroups)?.length
       ? [...(answers.equipmentPickedItems || answers.equipmentPickedGroups)]
       : null;
+    const fromAnswersGear = resolveAllowedGear(equipmentInput, pickedApparatus || []);
+    const allowedGear = fromAnswers === null ? null : fromAnswersGear;
     return {
       userPrompt: buildAdminPlanUserPrompt(brief, { strictAssembly }),
       guidelineLayers: layers,
       coachProfileText: extra.coachProfileText || profileText,
       allowedEquipment: mergeAllowedEquipment(fromBrief, fromAnswers),
+      allowedGear,
       pickedApparatus,
       clientTags: tags,
       hasScheme: structuredScheme,

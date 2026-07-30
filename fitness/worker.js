@@ -80,6 +80,7 @@ import {
   compareAlternativeCloseness,
   searchExerciseIndex,
 } from './exercise-metadata.js';
+import { passesGearFilter, passesBeginnerSafety } from './exercise-tags.js';
 import { mergeExerciseTranslation } from './exercise-translations.js';
 import {
   EXERCISE_TRANSLATIONS_KV_KEY,
@@ -267,7 +268,7 @@ function errorResponse(message, status = 400, code = 'error') {
  * Връща { entry, score, usedFallback } или null ако базата е празна.
  */
 export function matchExercise(index, {
-  canonicalName, equipmentHint, bodyPart, allowedEquipment = null, exerciseProfile = null, pickedApparatus = null,
+  canonicalName, equipmentHint, bodyPart, allowedEquipment = null, allowedGear = null, exerciseProfile = null, pickedApparatus = null,
 }) {
   if (!index || !index.length) return null;
 
@@ -275,12 +276,17 @@ export function matchExercise(index, {
   const equipNorm = normalizeText(equipmentHint);
   const bodyNorm = normalizeText(bodyPart);
 
+  const passesFilters = (entry) =>
+    passesEquipment(entry, allowedEquipment)
+    && passesApparatusFilter(entry, pickedApparatus)
+    && passesGearFilter(entry, allowedGear)
+    && (!exerciseProfile || fitsExerciseProfile(entry, exerciseProfile))
+    && (!exerciseProfile || passesBeginnerSafety(entry, exerciseProfile));
+
   const scored = [];
 
   for (const entry of index) {
-    if (!passesEquipment(entry, allowedEquipment)) continue;
-    if (!passesApparatusFilter(entry, pickedApparatus)) continue;
-    if (exerciseProfile && !fitsExerciseProfile(entry, exerciseProfile)) continue;
+    if (!passesFilters(entry)) continue;
     let score = tokenOverlapScore(queryTokens, entry.tokens);
     if (score === 0) continue;
     if (equipNorm && entry.equipNorm && (entry.equipNorm.includes(equipNorm) || equipNorm.includes(entry.equipNorm))) {
@@ -305,18 +311,14 @@ export function matchExercise(index, {
   }
 
   const fallbackPool = index.filter((e) =>
-    passesEquipment(e, allowedEquipment) &&
-    passesApparatusFilter(e, pickedApparatus) &&
-    (!exerciseProfile || fitsExerciseProfile(e, exerciseProfile)) &&
-    bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm) &&
-    (!equipNorm || e.equipNorm === equipNorm)
+    passesFilters(e)
+    && bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm)
+    && (!equipNorm || e.equipNorm === equipNorm)
   );
   const fallback = pickPreferredExercise(fallbackPool, exerciseProfile)
     || index.find((e) =>
-      passesEquipment(e, allowedEquipment) &&
-      passesApparatusFilter(e, pickedApparatus) &&
-      (!exerciseProfile || fitsExerciseProfile(e, exerciseProfile)) &&
-      bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm)
+      passesFilters(e)
+      && bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm)
     );
 
   if (fallback) return { entry: fallback, score: 0, usedFallback: true };
@@ -822,7 +824,7 @@ export function materializeExercisesFromMatch(plan) {
 }
 
 export function enrichPlanWithExercises(plan, index, {
-  allowedEquipment = null, pickedApparatus = null, env = {}, exerciseProfile = null,
+  allowedEquipment = null, allowedGear = null, pickedApparatus = null, env = {}, exerciseProfile = null,
   materializeMatch = false, skipEquipmentSwap = false,
 } = {}) {
   if (!index) return plan; // без база: планът остава валиден, само без медия
@@ -837,13 +839,16 @@ export function enrichPlanWithExercises(plan, index, {
         equipmentHint: ex.equipmentHint,
         bodyPart: ex.bodyPart,
         allowedEquipment: matchEquipment,
+        allowedGear: skipEquipmentSwap ? null : allowedGear,
         exerciseProfile: skipEquipmentSwap ? null : exerciseProfile,
         pickedApparatus,
       });
       const needsSwap = !skipEquipmentSwap && result?.entry && (
         (allowedEquipment && !passesEquipment(result.entry, allowedEquipment))
+        || (allowedGear && !passesGearFilter(result.entry, allowedGear))
         || (pickedApparatus?.length && !passesApparatusFilter(result.entry, pickedApparatus))
         || (exerciseProfile && !fitsExerciseProfile(result.entry, exerciseProfile))
+        || (exerciseProfile && !passesBeginnerSafety(result.entry, exerciseProfile))
       );
       if (needsSwap) {
         const swap = findAlternatives(index, result.entry, {
@@ -940,7 +945,7 @@ function clientIp(request) {
 // ============================================================================
 
 async function executePlanGeneration(env, ctx, {
-  userPrompt, coachProfileText, allowedEquipment = null, pickedApparatus = null, clientTags = null,
+  userPrompt, coachProfileText, allowedEquipment = null, allowedGear = null, pickedApparatus = null, clientTags = null,
   adminConfig = null, guidelineLayers = null, hasScheme = false, strictAssembly = false,
   exerciseProfile = null, constraints = null, programSpec = null, dslSpec = null,
 }) {
@@ -958,6 +963,7 @@ async function executePlanGeneration(env, ctx, {
       catalogBlock = buildExerciseCatalogSnippet(index, exerciseProfile, allowedEquipment, {
         modalities: programSpec?.weekModalities || null,
         pickedApparatus,
+        allowedGear,
       });
     }
   }
@@ -999,6 +1005,7 @@ async function executePlanGeneration(env, ctx, {
           clientTags: tagSet,
           constraints,
           allowedEquipment,
+          allowedGear,
           pickedApparatus,
           programSpec,
           dslSpec,
@@ -1030,6 +1037,7 @@ async function executePlanGeneration(env, ctx, {
   const index = await indexPromise;
   enrichPlanWithExercises(plan, index, {
     allowedEquipment,
+    allowedGear,
     pickedApparatus,
     env,
     exerciseProfile: strictAssembly ? null : exerciseProfile,
@@ -1064,7 +1072,7 @@ async function handleGeneratePlan(request, env, ctx) {
   }
 
   const adminGuidelines = await loadAdminGuidelines(env);
-  const { userPrompt, coachProfileText, allowedEquipment, pickedApparatus, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile, constraints, programSpec, dslSpec } = preparePlanGeneration(
+  const { userPrompt, coachProfileText, allowedEquipment, allowedGear, pickedApparatus, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile, constraints, programSpec, dslSpec } = preparePlanGeneration(
     { answers },
     adminGuidelines,
     { buildProfileSummary, allowedEquipmentSet },
@@ -1077,6 +1085,7 @@ async function handleGeneratePlan(request, env, ctx) {
       userPrompt,
       coachProfileText,
       allowedEquipment,
+      allowedGear,
       pickedApparatus,
       clientTags,
       adminConfig: adminGuidelines,
@@ -1738,7 +1747,7 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
     clientName: record.clientName,
     clientContact: record.clientContact,
   };
-  const { userPrompt, coachProfileText, allowedEquipment, pickedApparatus, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile, constraints, programSpec, dslSpec } = preparePlanGeneration(
+  const { userPrompt, coachProfileText, allowedEquipment, allowedGear, pickedApparatus, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile, constraints, programSpec, dslSpec } = preparePlanGeneration(
     genSource,
     adminGuidelines,
     { buildProfileSummary, allowedEquipmentSet },
@@ -1751,6 +1760,7 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
       userPrompt,
       coachProfileText,
       allowedEquipment,
+      allowedGear,
       pickedApparatus,
       clientTags,
       adminConfig: adminGuidelines,

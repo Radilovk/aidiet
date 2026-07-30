@@ -17,6 +17,7 @@ import {
 } from '../exercise-classify-batch.js';
 import { pickInstructionsEn } from '../exercise-translations.js';
 import { heuristicClassification } from '../exercise-metadata.js';
+import { applyMetadataCorrections } from '../exercise-tags.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const outFile = join(root, 'data', 'exercise-metadata.json');
@@ -62,9 +63,14 @@ for (const ex of all) {
   const id = String(ex.id);
   if (!existing[id] || (heuristicOnly && force)) {
     const h = heuristicClassification(ex);
+    const corrected = applyMetadataCorrections(ex, h);
     const en = pickInstructionsEn(ex.instructions);
     existing[id] = {
-      ...h,
+      diff: corrected.diff,
+      gf: corrected.gf,
+      gm: corrected.gm,
+      flags: corrected.flags,
+      gear: corrected.gear,
       sourceHash: classifyContentHash(ex.name || '', ex.equipment || '', en),
       classifiedAt: new Date().toISOString(),
       heuristicOnly: true,

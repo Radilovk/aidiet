@@ -7,6 +7,13 @@ import { expandSearchTokens } from './exercise-synonyms.js';
 import { localizeEquipment, localizeTarget } from './exercise-labels-bg.js';
 import { equipmentGroupIdForEntry, EQUIPMENT_GROUPS, buildVirtualEquipmentFacets } from './equipment-groups.js';
 import { passesApparatusFilter } from './equipment-apparatus.js';
+import {
+  applyMetadataCorrections,
+  inferExerciseTraits,
+  inferRequiredGear,
+  passesBeginnerSafety,
+  passesGearFilter,
+} from './exercise-tags.js';
 
 /** @typedef {{ gender?: string, experience?: string }} AnswersInput */
 /** @typedef {{ isFemale: boolean, isMale: boolean, maxDiff: number, minGf: number, minGm: number }} ExerciseProfileFilter */
@@ -19,21 +26,34 @@ export function heuristicClassification(raw) {
   const name = normalizeText(raw?.name || '');
   const equip = normalizeText(raw?.equipment || '');
   const blob = `${name} ${equip}`;
+  const traits = inferExerciseTraits(raw?.name || '', raw?.equipment || '');
   let diff = 2;
   let gf = 70;
   let gm = 70;
   const flags = [];
 
-  if (/snatch|clean and jerk|muscle up|pistol squat|dragon flag|handstand|kipping/.test(blob)) {
+  if (traits.stretch) {
+    diff = 1;
+    flags.push('bodyweight');
+  } else if (traits.gymnastics || traits.rings) {
+    diff = 3;
+    flags.push('gymnastics', 'advanced');
+  } else if (traits.suspended || traits.parallelBars) {
+    diff = 2;
+  } else if (traits.pullBar && !traits.assisted) {
+    diff = 2;
+  } else if (/snatch|clean and jerk|pistol squat|dragon flag|handstand|kipping|muscle up/.test(blob)) {
     diff = 3;
     flags.push('advanced');
-  } else if (/machine|lever|cable|band|smith|assisted|seated|lying/.test(blob)) {
+  } else if (/machine|lever|cable|band|smith|assisted|seated|lying/.test(blob) && !traits.highSkill) {
     diff = 1;
+    if (/machine|lever|smith/.test(blob)) flags.push('machine');
   } else if (/barbell|olympic|kettlebell swing|deadlift|good morning/.test(blob)) {
     diff = 3;
     flags.push('barbell');
-  } else if (/body weight|bodyweight/.test(blob) && !/pull up|chin up|dip|push up/.test(blob)) {
+  } else if (/body weight|bodyweight/.test(equip) && /squat|lunge|bridge|plank|push-up|push up|wall|march|stretch/.test(blob)) {
     diff = 1;
+    flags.push('bodyweight');
   }
 
   if (/hip thrust|glute|abduct|kickback|clam|frog|fire hydrant|pull through/.test(blob)) {
@@ -46,22 +66,26 @@ export function heuristicClassification(raw) {
     flags.push('press');
   }
   if (/squat|deadlift|row|pull up|chin up/.test(blob)) gm = Math.max(gm, 82);
+  if (/compound|press|squat|deadlift|lunge|thrust|row|pull|push/.test(blob)) flags.push('compound');
+  if (/curl|extension|fly|kickback|raise|crunch|stretch/.test(blob) && !flags.includes('compound')) flags.push('isolation');
+  if (traits.beginnerSafe) flags.push('beginner_safe');
+  if (traits.homeFriendly) flags.push('home_friendly');
 
-  return { diff, gf, gm, flags: [...new Set(flags)] };
+  return applyMetadataCorrections(raw, { diff, gf, gm, flags: [...new Set(flags)] });
 }
 
 export function metadataForExercise(raw, store = {}) {
   const id = String(raw?.id ?? '');
   const saved = store[id];
-  if (saved?.diff) {
-    return {
-      diff: clampDiff(saved.diff),
-      gf: clampScore(saved.gf ?? 70),
-      gm: clampScore(saved.gm ?? 70),
+  const base = saved?.diff
+    ? {
+      diff: saved.diff,
+      gf: saved.gf ?? 70,
+      gm: saved.gm ?? 70,
       flags: saved.flags || [],
-    };
-  }
-  return heuristicClassification(raw);
+    }
+    : heuristicClassification(raw);
+  return applyMetadataCorrections(raw, base);
 }
 
 export function mergeExerciseMetadata(entry, raw, metadata = {}) {
@@ -72,6 +96,8 @@ export function mergeExerciseMetadata(entry, raw, metadata = {}) {
     gf: meta.gf,
     gm: meta.gm,
     ...(meta.flags?.length ? { flags: meta.flags } : {}),
+    ...(meta.gear?.length ? { gear: meta.gear } : {}),
+    ...(meta.traits ? { traits: meta.traits } : {}),
   };
 }
 
@@ -354,12 +380,14 @@ export function passesEquipment(entry, allowedEquipment) {
   return allowedEquipment.has(eq);
 }
 
-/** Филтрира индекс по профил + оборудване + модалност (EFP diff/gf/gm). */
-export function filterExercises(index, profile, allowedEquipment = null, modalities = null, pickedApparatus = null) {
+/** Филтрира индекс по профил + оборудване + gear + модалност (EFP diff/gf/gm). */
+export function filterExercises(index, profile, allowedEquipment = null, modalities = null, pickedApparatus = null, allowedGear = null) {
   if (!index?.length) return [];
   return index.filter((e) =>
     fitsExerciseProfile(e, profile)
+    && passesBeginnerSafety(e, profile)
     && passesEquipment(e, allowedEquipment)
+    && passesGearFilter(e, allowedGear)
     && passesApparatusFilter(e, pickedApparatus)
     && passesModality(e, modalities)
   );
@@ -401,7 +429,8 @@ export function buildExerciseCatalogSnippet(index, profile, allowedEquipment = n
   const maxPerGroup = opts.maxPerGroup ?? 14;
   const modalities = opts.modalities || null;
   const pickedApparatus = opts.pickedApparatus || null;
-  const filtered = filterExercises(index, profile, allowedEquipment, modalities, pickedApparatus);
+  const allowedGear = opts.allowedGear ?? null;
+  const filtered = filterExercises(index, profile, allowedEquipment, modalities, pickedApparatus, allowedGear);
   if (!filtered.length) return '';
 
   const groups = new Map();
@@ -435,10 +464,10 @@ export function buildExerciseCatalogSnippet(index, profile, allowedEquipment = n
     if (!items?.length) continue;
     const slice = items.slice(0, Math.min(maxPerGroup, remaining));
     const part = slice.map((e) => {
-      const flags = (e.flags || []).slice(0, 3).join(',') || '-';
+      const flags = (e.flags || []).slice(0, 4).join(',') || '-';
       const gf = e.gf ?? 70;
-      const gm = e.gm ?? 70;
-      return `${e.name}|d${e.diff ?? 2}|gf${gf}|${flags}`;
+      const gear = (e.gear || inferRequiredGear(e.name, e.equipment || e.equipNorm)).slice(0, 3).join('+') || 'floor';
+      return `${e.name}|d${e.diff ?? 2}|gf${gf}|${gear}|${flags}`;
     }).join(', ');
     lines.push(`${g}: ${part}`);
     total += slice.length;
