@@ -45,6 +45,11 @@ export function macroTolerance(targetGrams) {
 
 const CONDIMENT_MAX_GRAMS = 15;
 
+/** Max realistic single-meal plate weight — athlete mains with veg-heavy AI picks must stay under this. */
+export const MAX_MEAL_WEIGHT_GRAMS = 800;
+const BULK_ITEM_MAX_GRAMS = 150;
+const BULK_KCAL_PER_100G_MAX = 50;
+
 /** Catalog ready_meal → raw product lines (weight shares, sum ≈ 1). */
 const READY_MEAL_PARTS = {
   meal_rice_chicken: [{ name: 'ориз', share: 0.42 }, { name: 'пилешко месо', share: 0.58 }],
@@ -289,28 +294,27 @@ export const SCALE_FACTOR_MAX = 3;
 const RESIDUAL_STOP_KCAL = 20;
 const MAX_NUDGE_STEPS_PER_ITEM = 3;
 
-/**
- * Scale item grams so total kcal approaches target with ONE shared factor —
- * preserves the AI's product ratios. After 10g rounding, items are nudged one
- * step at a time toward the goal (an oil line is ~88kcal per step, so plain
- * rounding alone can leave a visible kcal gap).
- */
-export function scaleItemsToTargetCalories(items, targetKcal, dessertNutrition = null) {
-  if (!items.length || !targetKcal || targetKcal <= 0) return items;
+function kcalPer100(item) {
+  const p = item.profile;
+  if (!p) return 0;
+  return p.kcal || (p.p * 4 + p.c * 4 + p.f * 9);
+}
 
-  const base = sumItemNutrition(items);
-  let goal = targetKcal;
-  if (dessertNutrition?.kcal > 0) {
-    goal = Math.max(50, targetKcal - dessertNutrition.kcal);
-  }
-  if (base.kcal <= 0) return items;
+/** Volume fillers — cap portions; calorie-dense items carry the target. */
+function isBulkItem(item) {
+  const { group, slots } = getCatalogMeta(item.name);
+  if (group === 'vegetable' || group === 'fruit') return true;
+  if (slots?.includes('VOL')) return true;
+  const k = kcalPer100(item);
+  return k > 0 && k < BULK_KCAL_PER_100G_MAX;
+}
 
-  const factor = Math.min(SCALE_FACTOR_MAX, Math.max(SCALE_FACTOR_MIN, goal / base.kcal));
-  const scaled = items.map(item => ({
-    ...item,
-    grams: capCondimentGrams(item, roundGrams(item.grams * factor)),
-  }));
+function sumGrams(items) {
+  return items.reduce((s, it) => s + (Number(it.grams) || 0), 0);
+}
 
+function nudgeItemsTowardKcal(items, goal) {
+  const scaled = items.map(item => ({ ...item }));
   const nudges = new Map();
   for (let guard = 0; guard < 12; guard++) {
     const residual = goal - sumItemNutrition(scaled).kcal;
@@ -323,8 +327,9 @@ export function scaleItemsToTargetCalories(items, targetKcal, dessertNutrition =
       const nextGrams = item.grams + GRAM_ROUND_STEP * dir;
       if (nextGrams < GRAM_ROUND_STEP) continue;
       if (isCondimentItem(item) && nextGrams > CONDIMENT_MAX_GRAMS) continue;
+      if (isBulkItem(item) && nextGrams > BULK_ITEM_MAX_GRAMS) continue;
       if ((nudges.get(item) || 0) >= MAX_NUDGE_STEPS_PER_ITEM) continue;
-      const stepKcal = ((Number(item.profile.kcal) || (item.profile.p * 4 + item.profile.c * 4 + item.profile.f * 9)) / 100) * GRAM_ROUND_STEP * dir;
+      const stepKcal = (kcalPer100(item) / 100) * GRAM_ROUND_STEP * dir;
       const abs = Math.abs(residual - stepKcal);
       if (abs < bestAbs) {
         bestAbs = abs;
@@ -336,8 +341,81 @@ export function scaleItemsToTargetCalories(items, targetKcal, dessertNutrition =
     best.grams += GRAM_ROUND_STEP * dir;
     nudges.set(best, (nudges.get(best) || 0) + 1);
   }
-
   return scaled;
+}
+
+function scaleUniform(items, goal) {
+  const base = sumItemNutrition(items);
+  if (base.kcal <= 0) return items;
+  const factor = Math.min(SCALE_FACTOR_MAX, Math.max(SCALE_FACTOR_MIN, goal / base.kcal));
+  const scaled = items.map(item => ({
+    ...item,
+    grams: capCondimentGrams(item, roundGrams(item.grams * factor)),
+  }));
+  return nudgeItemsTowardKcal(scaled, goal);
+}
+
+/**
+ * Cap bulk (veg/fruit) portions, scale calorie-dense items to the remaining kcal budget.
+ * Prevents uniform upscaling from turning 700kcal targets into 1kg plates.
+ */
+function scaleWithBulkCap(items, goal) {
+  const bulk = items.filter(isBulkItem);
+  const dense = items.filter(it => !isBulkItem(it));
+  if (!dense.length) return scaleUniform(items, goal);
+
+  const bulkCapped = bulk.map(item => ({
+    ...item,
+    grams: capCondimentGrams(item, Math.min(roundGrams(item.grams), BULK_ITEM_MAX_GRAMS)),
+  }));
+  const bulkKcal = sumItemNutrition(bulkCapped).kcal;
+  let denseScaled = scaleUniform(dense, Math.max(50, goal - bulkKcal));
+  let trimmedBulk = bulkCapped;
+
+  const denseGrams = sumGrams(denseScaled);
+  const allowedBulk = Math.max(0, MAX_MEAL_WEIGHT_GRAMS - denseGrams);
+  const bulkGrams = sumGrams(trimmedBulk);
+  if (bulkGrams > allowedBulk && allowedBulk >= 0 && bulkGrams > 0) {
+    const ratio = allowedBulk / bulkGrams;
+    trimmedBulk = bulkCapped.map(item => ({
+      ...item,
+      grams: capCondimentGrams(item, Math.max(GRAM_ROUND_STEP, roundGrams(item.grams * ratio))),
+    }));
+    const trimmedBulkKcal = sumItemNutrition(trimmedBulk).kcal;
+    denseScaled = scaleUniform(dense, Math.max(50, goal - trimmedBulkKcal));
+  }
+
+  let result = [...trimmedBulk, ...denseScaled];
+  return nudgeItemsTowardKcal(result, goal);
+}
+
+/**
+ * Scale item grams so total kcal approaches target.
+ * Bulk items (veg/fruit) stay capped; dense items absorb the calorie budget.
+ */
+export function scaleItemsToTargetCalories(items, targetKcal, dessertNutrition = null) {
+  if (!items.length || !targetKcal || targetKcal <= 0) return items;
+
+  let goal = targetKcal;
+  if (dessertNutrition?.kcal > 0) {
+    goal = Math.max(50, targetKcal - dessertNutrition.kcal);
+  }
+
+  const base = sumItemNutrition(items);
+  if (base.kcal <= 0) return items;
+
+  const hasBulk = items.some(isBulkItem);
+  const uniformFactor = Math.min(SCALE_FACTOR_MAX, Math.max(SCALE_FACTOR_MIN, goal / base.kcal));
+  const projectedWeight = sumGrams(items.map(item => ({
+    ...item,
+    grams: roundGrams(item.grams * uniformFactor),
+  })));
+
+  if (!hasBulk || projectedWeight <= MAX_MEAL_WEIGHT_GRAMS) {
+    return scaleUniform(items, goal);
+  }
+
+  return scaleWithBulkCap(items, goal);
 }
 
 export function formatMealDescription(items) {
