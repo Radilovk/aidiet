@@ -98,6 +98,7 @@
 .fcp-editor-day-head { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
 .fcp-editor-field { display: flex; flex-direction: column; gap: 3px; }
 .fcp-editor-field label { font-size: 0.7rem; color: var(--text-gray); font-weight: 700; }
+.fcp-editor-hint { font-size: 0.65rem; color: var(--text-gray); opacity: 0.85; margin-top: -1px; }
 .fcp-editor-focus, .fcp-editor-day select.fcp-editor-type {
   font-size: 0.86rem; padding: 9px 10px; border: 1px solid #d1d5db; border-radius: 9px;
   background: var(--white); color: var(--text-dark); box-sizing: border-box; min-height: 40px;

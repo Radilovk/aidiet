@@ -210,7 +210,13 @@ function openCachedProgram() {
 
 function showView(name) {
   const prev = document.body.dataset.view;
-  if (prev === 'plan' && name !== 'plan') markPlanIntroSeen();
+  if (prev === 'plan' && name !== 'plan') {
+    if (!$('planIntroModal').classList.contains('hidden')) {
+      $('planIntroModal').classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+    markPlanIntroSeen();
+  }
   for (const v of VIEWS) $(`view-${v}`).classList.toggle('hidden', v !== name);
   $('btnNewPlan').classList.toggle('hidden', name !== 'plan');
   $('btnMyProgram').classList.toggle('hidden', !hasCachedPlan() || name === 'plan');
@@ -252,6 +258,7 @@ function armBackSentinel() {
 function hasInternalBackState() {
   if (!$('lightbox').classList.contains('hidden')) return true;
   if (!$('chatPanel').classList.contains('hidden')) return true;
+  if (!$('planIntroModal').classList.contains('hidden')) return true;
   const view = document.body.dataset.view;
   if (view === 'wizard' && wizard.getStepIndex() > 0) return true;
   return Boolean(view && view !== 'home');
@@ -263,6 +270,8 @@ function handlePopState() {
   try {
     if (!$('lightbox').classList.contains('hidden')) {
       closeLightbox();
+    } else if (!$('planIntroModal').classList.contains('hidden')) {
+      closePlanIntroModal();
     } else if (!$('chatPanel').classList.contains('hidden')) {
       closeChat();
     } else {
@@ -465,9 +474,52 @@ function markPlanIntroSeen() {
   if (key) store.set(key, true);
 }
 
-function dismissPlanIntro() {
+function hasIntroModalContent(plan) {
+  return Boolean(plan.summary || plan.weeklySplit || plan.safetyNotes?.length);
+}
+
+function closePlanIntroModal() {
+  const modal = $('planIntroModal');
+  if (modal.classList.contains('hidden')) return;
+  modal.classList.add('hidden');
+  document.body.style.overflow = '';
   markPlanIntroSeen();
-  renderPlan();
+  renderPlanFootnotes(planRecord.plan, false);
+}
+
+function openPlanIntroModal(plan) {
+  const modal = $('planIntroModal');
+  const body = $('planIntroModalBody');
+  body.innerHTML = '';
+
+  if (plan.summary) {
+    body.append(el('p', { class: 'plan-summary', text: sanitizeBgText(plan.summary) }));
+  }
+  if (plan.weeklySplit) {
+    body.append(el('p', { class: 'plan-split', text: `Структура: ${sanitizeBgText(plan.weeklySplit)}` }));
+  }
+  if (plan.safetyNotes?.length) {
+    const safety = el('div', { class: 'plan-safety plan-safety-intro' });
+    safety.append(el('strong', { text: '⚠ Важно за твоята безопасност' }));
+    safety.append(el('ul', {}, plan.safetyNotes.map((n) => el('li', { text: n }))));
+    body.append(safety);
+  }
+
+  modal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  $('planIntroClose').focus();
+}
+
+function renderGuideContent(text) {
+  const lines = String(text || '').split('\n').map((s) => s.trim()).filter(Boolean);
+  if (!lines.length) return null;
+  if (lines.length === 1) {
+    return el('p', { text: sanitizeBgText(lines[0]) });
+  }
+  return el('ul', { class: 'guide-bullets' }, lines.map((line) => {
+    const clean = line.replace(/^[-•*]\s*/, '');
+    return el('li', { text: sanitizeBgText(clean) });
+  }));
 }
 
 function renderPlan() {
@@ -476,8 +528,12 @@ function renderPlan() {
   $('planTitle').textContent = sanitizeBgText(plan.title);
 
   const firstVisit = !hasSeenPlanIntro();
-  renderPlanIntroTop(plan, firstVisit);
+  renderPlanIntroTop(plan);
   renderPlanFootnotes(plan, firstVisit);
+
+  if (firstVisit && hasIntroModalContent(plan) && $('planIntroModal').classList.contains('hidden')) {
+    openPlanIntroModal(plan);
+  }
 
   // сегмент за натоварване
   for (const btn of $('intensitySeg').querySelectorAll('button')) {
@@ -488,37 +544,10 @@ function renderPlan() {
   renderDay();
 }
 
-function renderPlanIntroTop(plan, firstVisit) {
+function renderPlanIntroTop(plan) {
   const wrap = $('planIntroTop');
   wrap.innerHTML = '';
-  const hasContent = Boolean(plan.summary || plan.weeklySplit || plan.safetyNotes?.length);
-  if (!firstVisit || !hasContent) {
-    wrap.classList.add('hidden');
-    return;
-  }
-  wrap.classList.remove('hidden');
-
-  if (plan.summary) {
-    wrap.append(el('p', { class: 'plan-summary', text: sanitizeBgText(plan.summary) }));
-  }
-  if (plan.weeklySplit) {
-    wrap.append(el('p', { class: 'plan-split', text: `Структура: ${sanitizeBgText(plan.weeklySplit)}` }));
-  }
-  if (plan.safetyNotes?.length) {
-    const safety = el('div', { class: 'plan-safety plan-safety-intro' });
-    const head = el('div', { class: 'plan-safety-head' },
-      el('strong', { text: '⚠ Важно за твоята безопасност' }),
-      el('button', {
-        type: 'button',
-        class: 'plan-safety-dismiss',
-        'aria-label': 'Затвори предупреждението',
-        onclick: () => dismissPlanIntro(),
-      }, '×'),
-    );
-    safety.append(head);
-    safety.append(el('ul', {}, plan.safetyNotes.map((n) => el('li', { text: n }))));
-    wrap.append(safety);
-  }
+  wrap.classList.add('hidden');
 }
 
 function renderPlanFootnotes(plan, firstVisit) {
@@ -542,24 +571,16 @@ function renderPlanFootnotes(plan, firstVisit) {
   }
   wrap.classList.remove('hidden');
 
-  if (firstVisit) {
-    for (const [title, text] of guidelineItems) {
-      wrap.append(el('details', { class: 'guide-item' },
-        el('summary', { text: title }),
-        el('p', { text: sanitizeBgText(text) }),
-      ));
-    }
-    return;
-  }
-
   for (const [title, text] of guidelineItems) {
-    wrap.append(el('details', { class: 'guide-item' },
+    const item = el('details', { class: 'guide-item' },
       el('summary', { text: title }),
-      el('p', { text: sanitizeBgText(text) }),
-    ));
+    );
+    const content = renderGuideContent(text);
+    if (content) item.append(content);
+    wrap.append(item);
   }
 
-  if (hasOverview) {
+  if (!firstVisit && hasOverview) {
     const overview = el('details', { class: 'guide-item guide-item-overview' });
     overview.append(el('summary', { text: '📋 Обобщение на плана' }));
     const body = el('div', { class: 'guide-item-body' });
@@ -569,7 +590,7 @@ function renderPlanFootnotes(plan, firstVisit) {
     wrap.append(overview);
   }
 
-  if (hasSafety) {
+  if (!firstVisit && hasSafety) {
     const safetyBlock = el('details', { class: 'guide-item guide-item-safety' });
     safetyBlock.append(el('summary', { text: '⚠ Безопасност и внимание' }));
     const body = el('div', { class: 'plan-safety plan-safety-folded' });
@@ -982,12 +1003,15 @@ function init() {
     sendChatMessage($('chatInput').value);
   });
 
-  // lightbox: ✕ / клик извън / Escape
+  // lightbox + intro modal: ✕ / клик извън / Escape
   $('lightboxClose').addEventListener('click', () => closeLightbox());
   $('lightbox').addEventListener('click', (e) => { if (e.target === $('lightbox')) closeLightbox(); });
+  $('planIntroClose').addEventListener('click', () => closePlanIntroModal());
+  $('planIntroBackdrop').addEventListener('click', () => closePlanIntroModal());
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       if (!$('lightbox').classList.contains('hidden')) closeLightbox();
+      else if (!$('planIntroModal').classList.contains('hidden')) closePlanIntroModal();
       else if (!$('chatPanel').classList.contains('hidden')) closeChat();
     }
   });
