@@ -7,6 +7,8 @@ const AUTO_PROMPT_KEY = 'ka-trainer.pwa-auto';
 
 let deferredPrompt = null;
 let clientHintsCache = null;
+let pwaInitDone = false;
+const pwaChangeListeners = new Set();
 
 const IN_APP_RULES = [
   { pattern: /Instagram/i, id: 'instagram', name: 'Instagram' },
@@ -175,8 +177,14 @@ export function isTouchMobileViewport() {
   return coarse && narrow;
 }
 
-export function canOfferInstall() {
-  return !isStandaloneMode() && localStorage.getItem(DISMISS_KEY) !== '1';
+export function canOfferInstall({ delivered = false } = {}) {
+  if (isStandaloneMode()) return false;
+  if (delivered) return true;
+  try {
+    return localStorage.getItem(DISMISS_KEY) !== '1';
+  } catch {
+    return true;
+  }
 }
 
 /** Стратегия за инсталация според устройство и браузър. */
@@ -362,18 +370,26 @@ export function formatDeviceLabel(device) {
   return parts.join(' · ') || 'Мобилно устройство';
 }
 
+function notifyPwaChange() {
+  for (const fn of pwaChangeListeners) {
+    try { fn(); } catch { /* noop */ }
+  }
+}
+
 export function initPwaInstall({ onChange } = {}) {
-  const notify = () => { try { onChange?.(); } catch { /* noop */ } };
+  if (onChange) pwaChangeListeners.add(onChange);
+  if (pwaInitDone || typeof window === 'undefined') return;
+  pwaInitDone = true;
 
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
-    notify();
+    notifyPwaChange();
   });
 
   window.addEventListener('appinstalled', () => {
     deferredPrompt = null;
-    notify();
+    notifyPwaChange();
   });
 }
 
@@ -430,11 +446,11 @@ export function openInExternalBrowser() {
 }
 
 export function dismissInstallOffer() {
-  localStorage.setItem(DISMISS_KEY, '1');
+  try { localStorage.setItem(DISMISS_KEY, '1'); } catch { /* noop */ }
 }
 
-export function maybeAutoInstall(device, strategy) {
-  if (!canOfferInstall() || !deferredPrompt || !strategy?.canAutoInstall) return;
+export function maybeAutoInstall(device, strategy, { delivered = false } = {}) {
+  if (!canOfferInstall({ delivered }) || !deferredPrompt || !strategy?.canAutoInstall) return;
   if (device.inApp) return;
   if (sessionStorage.getItem(AUTO_PROMPT_KEY)) return;
   sessionStorage.setItem(AUTO_PROMPT_KEY, '1');
@@ -461,20 +477,25 @@ function renderSteps(stepsEl, steps) {
   stepsEl.classList.remove('hidden');
 }
 
-export function bindPwaInstallCard(cardEl, { hasPlan } = {}) {
+const PWA_VISIBLE_VIEWS = new Set(['home', 'plan']);
+
+export function bindPwaInstallCard(cardEl, { hasPlan, isDelivered, dockEl } = {}) {
   if (!cardEl) return;
 
   const btn = cardEl.querySelector('[data-pwa-install]');
   const secondaryBtn = cardEl.querySelector('[data-pwa-secondary]');
   const dismiss = cardEl.querySelector('[data-pwa-dismiss]');
+  const titleEl = cardEl.querySelector('[data-pwa-title]');
   const textEl = cardEl.querySelector('[data-pwa-text]');
   const hintEl = cardEl.querySelector('[data-pwa-hint]');
   const deviceEl = cardEl.querySelector('[data-pwa-device]');
   const stepsEl = cardEl.querySelector('[data-pwa-steps]');
   const toastEl = cardEl.querySelector('[data-pwa-toast]');
+  const rootDock = dockEl || cardEl.closest('.pwa-install-dock') || cardEl;
 
   let lastStrategy = null;
   let stepsVisible = false;
+  let deliveredStepsShown = false;
 
   const showToast = (msg) => {
     if (!toastEl) return;
@@ -486,21 +507,39 @@ export function bindPwaInstallCard(cardEl, { hasPlan } = {}) {
 
   const refresh = async () => {
     const hasPlanNow = Boolean(hasPlan?.());
-    const eligible = hasPlanNow && canOfferInstall()
-      && (isTouchMobileViewport() || deferredPrompt || detectDeviceSync().isMobileUa);
+    const delivered = Boolean(isDelivered?.());
+    const view = typeof document !== 'undefined' ? document.body?.dataset?.view : '';
+    const viewOk = !view || PWA_VISIBLE_VIEWS.has(view);
+    const deviceSync = detectDeviceSync();
+    const mobileish = isTouchMobileViewport() || deferredPrompt || deviceSync.isMobileUa;
+    const eligible = hasPlanNow && viewOk && canOfferInstall({ delivered })
+      && (delivered || mobileish);
 
+    rootDock.classList.toggle('hidden', !eligible);
     cardEl.classList.toggle('hidden', !eligible);
+    document.body?.classList.toggle('pwa-install-visible', eligible);
     if (!eligible) return;
 
     const device = await detectDevice();
     const strategy = getInstallStrategy(device, { hasNativePrompt: Boolean(deferredPrompt) });
     lastStrategy = strategy;
 
-    if (textEl) textEl.textContent = strategy.summary;
+    if (titleEl) {
+      titleEl.textContent = delivered
+        ? 'Добави програмата на телефона си'
+        : 'KA-TRAINER на началния екран';
+    }
+    if (textEl) {
+      textEl.textContent = delivered
+        ? 'Планът ти е готов — инсталирай KA-TRAINER за бърз достъп без да търсиш линка.'
+        : strategy.summary;
+    }
     if (hintEl) {
       hintEl.textContent = strategy.mode === 'native'
         ? 'Системен диалог на Android — без допълнителни стъпки.'
-        : 'Следвай стъпките по-долу за твоето устройство.';
+        : delivered
+          ? `Засечено: ${formatDeviceLabel(device)}. Следвай стъпките за твоето устройство.`
+          : 'Следвай стъпките по-долу за твоето устройство.';
     }
     if (deviceEl) deviceEl.textContent = formatDeviceLabel(device);
 
@@ -521,11 +560,18 @@ export function bindPwaInstallCard(cardEl, { hasPlan } = {}) {
         || (strategy.mode === 'in-app' ? 'Копирай линк' : 'Отвори в Chrome');
     }
 
+    if (delivered && !deliveredStepsShown && strategy.mode !== 'native') {
+      deliveredStepsShown = true;
+      stepsVisible = true;
+    }
+
     if (!stepsVisible) {
       stepsEl?.classList.add('hidden');
     } else {
       renderSteps(stepsEl, strategy.steps);
     }
+
+    if (delivered) maybeAutoInstall(device, strategy, { delivered: true });
   };
 
   btn?.addEventListener('click', async () => {
@@ -582,16 +628,13 @@ export function bindPwaInstallCard(cardEl, { hasPlan } = {}) {
 
   dismiss?.addEventListener('click', () => {
     dismissInstallOffer();
+    rootDock.classList.add('hidden');
     cardEl.classList.add('hidden');
+    document.body?.classList.remove('pwa-install-visible');
   });
 
   initPwaInstall({ onChange: () => { void refresh(); } });
   void refresh();
 
-  return async () => {
-    const device = await detectDevice();
-    const strategy = getInstallStrategy(device, { hasNativePrompt: Boolean(deferredPrompt) });
-    maybeAutoInstall(device, strategy);
-    return refresh();
-  };
+  return refresh;
 }

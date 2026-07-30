@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  canOfferInstall,
   detectDeviceSync,
   formatDeviceLabel,
   getInstallStrategy,
@@ -91,5 +92,24 @@ describe('formatDeviceLabel', () => {
     const label = formatDeviceLabel(device);
     assert.match(label, /iOS/);
     assert.match(label, /Safari/);
+  });
+});
+
+describe('canOfferInstall', () => {
+  it('при доставен план игнорира dismiss флага', () => {
+    const storage = new Map();
+    const prev = globalThis.localStorage;
+    globalThis.localStorage = {
+      getItem: (k) => storage.get(k) ?? null,
+      setItem: (k, v) => { storage.set(k, v); },
+      removeItem: (k) => { storage.delete(k); },
+    };
+    try {
+      storage.set('ka-trainer.pwa-dismiss', '1');
+      assert.equal(canOfferInstall({ delivered: true }), true);
+      assert.equal(canOfferInstall({ delivered: false }), false);
+    } finally {
+      globalThis.localStorage = prev;
+    }
   });
 });

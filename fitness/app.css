@@ -1039,7 +1039,28 @@ input[type="range"] {
   .btn-primary:hover, .chat-fab:hover { transform: none; }
 }
 
-/* ---------- PWA install (само след създаден план) ---------- */
+/* ---------- PWA install (след план / при линк от треньор) ---------- */
+.pwa-install-dock {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  z-index: 85;
+  padding: 0 clamp(10px, 3vw, 16px);
+  pointer-events: none;
+}
+.pwa-install-dock:not(.hidden) {
+  pointer-events: auto;
+}
+body[data-view="plan"].pwa-install-visible .pwa-install-dock {
+  bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+}
+.pwa-install-dock .pwa-install-card {
+  margin-top: 0;
+  margin-inline: auto;
+  max-width: min(28rem, 100%);
+  box-shadow: 0 16px 48px -12px rgba(0, 0, 0, .55), 0 0 0 1px rgba(53, 224, 194, .12);
+}
 .pwa-install-card {
   display: flex;
   flex-direction: column;
