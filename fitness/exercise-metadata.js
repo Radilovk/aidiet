@@ -14,6 +14,7 @@ import {
   passesBeginnerSafety,
   passesGearFilter,
 } from './exercise-tags.js';
+import { isGenderSpecificExerciseName } from './exercise-name-bg.js';
 
 /** @typedef {{ gender?: string, experience?: string }} AnswersInput */
 /** @typedef {{ isFemale: boolean, isMale: boolean, maxDiff: number, minGf: number, minGm: number }} ExerciseProfileFilter */
@@ -83,6 +84,9 @@ export function metadataForExercise(raw, store = {}) {
       gf: saved.gf ?? 70,
       gm: saved.gm ?? 70,
       flags: saved.flags || [],
+      ...(saved.gear?.length ? { gear: saved.gear } : {}),
+      ...(saved.effectiveEquipNorm ? { effectiveEquipNorm: saved.effectiveEquipNorm } : {}),
+      ...(saved.excluded ? { excluded: true } : {}),
     }
     : heuristicClassification(raw);
   return applyMetadataCorrections(raw, base);
@@ -95,9 +99,11 @@ export function mergeExerciseMetadata(entry, raw, metadata = {}) {
     diff: meta.diff,
     gf: meta.gf,
     gm: meta.gm,
+    effectiveEquipNorm: meta.effectiveEquipNorm || entry.equipNorm || normalizeText(entry.equipment),
     ...(meta.flags?.length ? { flags: meta.flags } : {}),
     ...(meta.gear?.length ? { gear: meta.gear } : {}),
     ...(meta.traits ? { traits: meta.traits } : {}),
+    ...(meta.excluded ? { excluded: true } : {}),
   };
 }
 
@@ -376,7 +382,7 @@ export function passesModality(entry, modalities = null) {
 
 export function passesEquipment(entry, allowedEquipment) {
   if (!allowedEquipment) return true;
-  const eq = entry?.equipNorm || normalizeText(entry?.equipment);
+  const eq = entry?.effectiveEquipNorm || entry?.equipNorm || normalizeText(entry?.equipment);
   return allowedEquipment.has(eq);
 }
 
@@ -384,8 +390,11 @@ export function passesEquipment(entry, allowedEquipment) {
 export function filterExercises(index, profile, allowedEquipment = null, modalities = null, pickedApparatus = null, allowedGear = null) {
   if (!index?.length) return [];
   return index.filter((e) =>
-    fitsExerciseProfile(e, profile)
+    !e.excluded
+    && !(e.flags || []).includes('excluded')
+    && fitsExerciseProfile(e, profile)
     && passesBeginnerSafety(e, profile)
+    && !isGenderSpecificExerciseName(e.name)
     && passesEquipment(e, allowedEquipment)
     && passesGearFilter(e, allowedGear)
     && passesApparatusFilter(e, pickedApparatus)

@@ -71,6 +71,7 @@ for (const ex of all) {
       gm: corrected.gm,
       flags: corrected.flags,
       gear: corrected.gear,
+      effectiveEquipNorm: corrected.effectiveEquipNorm,
       sourceHash: classifyContentHash(ex.name || '', ex.equipment || '', en),
       classifiedAt: new Date().toISOString(),
       heuristicOnly: true,

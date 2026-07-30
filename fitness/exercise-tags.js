@@ -1,6 +1,9 @@
 /**
- * Реални тагове за упражнения — gear (какво реално трябва) и traits (skill/safety).
- * Независимо от грешното equipment поле в exercises-dataset (ring dips = body weight).
+ * Реални тагове за упражнения — gear, effective equipment, traits.
+ * Dataset полето equipment=body weight често е грешно (ring dips, suspended row…).
+ *
+ * ИСТИНСКО СТ = само: под, кърпа/мат, стена, степ/височина, хоризонтална пейка.
+ * Всичко друго (халки, лост, TRX, машина…) → effectiveEquipNorm на съответния уред.
  */
 import { normalizeText } from './normalize.js';
 import {
@@ -11,15 +14,16 @@ import {
 } from './equipment-groups.js';
 import { expandApparatusIds } from './equipment-apparatus.js';
 
-/** Минимален набор за floor-only домашна тренировка. */
 export const GEAR_FLOOR = 'floor';
+export const GEAR_MAT = 'mat';
 export const GEAR_WALL = 'wall';
+export const GEAR_STEP = 'step';
+export const GEAR_BENCH = 'bench';
+export const GEAR_CHAIR = 'chair';
 export const GEAR_PULL_BAR = 'pull_bar';
 export const GEAR_PARALLEL_BARS = 'parallel_bars';
 export const GEAR_RINGS = 'rings';
 export const GEAR_SUSPENSION = 'suspension';
-export const GEAR_BENCH = 'bench';
-export const GEAR_BOX = 'box';
 export const GEAR_DUMBBELL = 'dumbbell';
 export const GEAR_KETTLEBELL = 'kettlebell';
 export const GEAR_BAND = 'band';
@@ -32,26 +36,83 @@ export const GEAR_ASSISTED = 'assisted';
 export const GEAR_WEIGHTED = 'weighted';
 export const GEAR_ROPE = 'rope';
 
+/** @deprecated alias */
+export const GEAR_BOX = GEAR_STEP;
+
+/** Какво е позволено при „Собствено тегло“ от въпросника. */
+export const BODYWEIGHT_GEAR = new Set([
+  GEAR_FLOOR,
+  GEAR_MAT,
+  GEAR_WALL,
+  GEAR_STEP,
+  GEAR_BENCH,
+  GEAR_CHAIR,
+]);
+
 const GYMNASTICS_RE = /\b(ring|planche|muscle[- ]?up|kipping|skin the cat|iron cross(?! stretch)|l-sit|lsit|handstand|pistol squat|dragon flag|front lever|back lever|human flag|victorian)\b/i;
 const SUSPENDED_RE = /\b(suspended|trx)\b/i;
 const PARALLEL_BAR_RE = /\b(parallel bar|high parallel|dip bar|dip station)\b/i;
-const PULL_BAR_RE = /\b(pull[- ]?up|chin[- ]?up|muscle[- ]?up|kipping|toes to bar|hanging)\b/i;
+const PULL_BAR_RE = /\b(pull[- ]?up|chin[- ]?up|muscle[- ]?up|kipping|toes to bar|hanging|fixed bar|single bar)\b/i;
+const INVERTED_ROW_RE = /\binverted row\b/i;
 const DIP_RE = /\b(dip|dips)\b/i;
-const BENCH_RE = /\b(on bench|bench hip|hyperextension \(on bench\)|decline|incline bench|flat bench)\b/i;
-const BOX_RE = /\b(on box|step[- ]?up|box jump|plyo box)\b/i;
+const BENCH_USE_RE = /\b(on bench|bench hip|hyperextension \(on bench\)|glute bridge two legs on bench|feet on bench|hands on bench)\b/i;
+const STEP_USE_RE = /\b(on box|step[- ]?up|step up|box step|plyo box|platform)\b/i;
 const WALL_RE = /\b(wall push|push-up \(wall\)|wall sit)\b/i;
-const STRETCH_RE = /\b(stretch|mobility|yoga|pilates|flexibility|foam roll)\b/i;
+const MAT_RE = /\b(towel|mat\b|foam roll)\b/i;
+const STRETCH_RE = /\b(stretch|mobility|yoga|pilates|flexibility)\b/i;
 const ASSISTED_RE = /\b(assisted|band assisted|machine assisted)\b/i;
 
+const CHAIR_RE = /\bchair\b/i;
+const CAPTAINS_CHAIR_RE = /\bcaptain'?s?\s+chair\b/i;
 const BEGINNER_SAFE_RE = /\b(wall push|push-up \(wall\)|glute bridge|bird dog|dead bug|cat cow|clamshell|fire hydrant|step-up|bodyweight squat|chair squat|split squat(?! jump)|lunge|plank|crunch|march|marching|hamstring stretch|hip flexor stretch|child pose|cobra|sphinx)\b/i;
+
+const GEAR_TO_FILTER_NORM = {
+  [GEAR_RINGS]: 'rings',
+  [GEAR_PULL_BAR]: 'pull_up_bar',
+  [GEAR_SUSPENSION]: 'suspension',
+  [GEAR_PARALLEL_BARS]: 'parallel_bars',
+  [GEAR_DUMBBELL]: 'dumbbell',
+  [GEAR_KETTLEBELL]: 'kettlebell',
+  [GEAR_BAND]: 'band',
+  [GEAR_BARBELL]: 'barbell',
+  [GEAR_CABLE]: 'cable',
+  [GEAR_MACHINE]: 'leverage machine',
+  [GEAR_CARDIO_MACHINE]: 'elliptical machine',
+  [GEAR_BALL]: 'stability ball',
+  [GEAR_ROPE]: 'rope',
+  [GEAR_WEIGHTED]: 'weighted',
+  [GEAR_ASSISTED]: 'assisted',
+};
+
+/** Приоритет при прекласификация на body weight → уред. */
+const APPARATUS_PRIORITY = [
+  GEAR_CARDIO_MACHINE,
+  GEAR_MACHINE,
+  GEAR_CABLE,
+  GEAR_BARBELL,
+  GEAR_DUMBBELL,
+  GEAR_KETTLEBELL,
+  GEAR_BAND,
+  GEAR_BALL,
+  GEAR_ROPE,
+  GEAR_WEIGHTED,
+  GEAR_ASSISTED,
+  GEAR_RINGS,
+  GEAR_SUSPENSION,
+  GEAR_PARALLEL_BARS,
+  GEAR_PULL_BAR,
+];
 
 const GROUP_GEAR = new Map();
 const GROUP_GEAR_NORM = new Map();
 for (const group of [...EQUIPMENT_GROUPS, ...QUESTIONNAIRE_EXTRA_GROUPS]) {
   const gear = [];
   for (const norm of group.norms) {
-    if (norm === 'body weight') { gear.push(GEAR_FLOOR, GEAR_WALL); continue; }
-    if (norm === 'assisted') { gear.push(GEAR_ASSISTED, GEAR_FLOOR); continue; }
+    if (norm === 'body weight') {
+      for (const g of BODYWEIGHT_GEAR) gear.push(g);
+      continue;
+    }
+    if (norm === 'assisted') { gear.push(GEAR_ASSISTED, GEAR_MACHINE); continue; }
     if (norm === 'dumbbell') gear.push(GEAR_DUMBBELL, GEAR_FLOOR);
     else if (norm === 'kettlebell') gear.push(GEAR_KETTLEBELL, GEAR_FLOOR);
     else if (norm === 'band' || norm === 'resistance band') gear.push(GEAR_BAND, GEAR_FLOOR);
@@ -68,8 +129,6 @@ for (const group of [...EQUIPMENT_GROUPS, ...QUESTIONNAIRE_EXTRA_GROUPS]) {
   GROUP_GEAR.set(group.label, [...new Set(gear)]);
   GROUP_GEAR_NORM.set(normalizeText(group.label), [...new Set(gear)]);
 }
-GROUP_GEAR.set('Степ платформа / блок', [GEAR_BOX, GEAR_FLOOR]);
-GROUP_GEAR_NORM.set(normalizeText('Степ платформа / блок'), [GEAR_BOX, GEAR_FLOOR]);
 
 const FREE_TEXT_GEAR_HINTS = [
   { keys: ['скрипец', 'pulley', 'кабел', 'cable'], gear: [GEAR_CABLE] },
@@ -79,12 +138,15 @@ const FREE_TEXT_GEAR_HINTS = [
   { keys: ['кардио', 'пътек', 'treadmill', 'велоерг', 'елипт', 'стълби', 'stepmill'], gear: [GEAR_CARDIO_MACHINE] },
   { keys: ['ластик', 'band', 'резист'], gear: [GEAR_BAND] },
   { keys: ['пудовк', 'kettlebell'], gear: [GEAR_KETTLEBELL] },
-  { keys: ['топка', 'ball'], gear: [GEAR_BALL] },
+  { keys: ['топка', 'ball', 'фитбол'], gear: [GEAR_BALL] },
   { keys: ['диск', 'plate', 'тежест'], gear: [GEAR_WEIGHTED] },
   { keys: ['халк', 'ring', 'гимнаст'], gear: [GEAR_RINGS] },
   { keys: ['trx', 'ремък', 'подвеск', 'suspended'], gear: [GEAR_SUSPENSION] },
-  { keys: ['лост за набиран', 'pull up bar', 'турник'], gear: [GEAR_PULL_BAR] },
+  { keys: ['лост за набиран', 'pull up bar', 'турник', 'турник'], gear: [GEAR_PULL_BAR] },
   { keys: ['паралел', 'parallel bar'], gear: [GEAR_PARALLEL_BARS] },
+  { keys: ['степ', 'платформа', 'блокче'], gear: [GEAR_STEP] },
+  { keys: ['пейка', 'bench'], gear: [GEAR_BENCH] },
+  { keys: ['стол', 'chair'], gear: [GEAR_CHAIR] },
 ];
 
 function gearFromFreeText(text) {
@@ -100,7 +162,7 @@ function gearFromFreeText(text) {
 }
 
 /**
- * Какво реално трябва за изпълнение (може >1).
+ * Какво реално трябва за изпълнение.
  * @param {string} name
  * @param {string} [equipment]
  * @returns {string[]}
@@ -111,14 +173,24 @@ export function inferRequiredGear(name = '', equipment = '') {
   const gear = new Set([GEAR_FLOOR]);
 
   if (WALL_RE.test(n)) gear.add(GEAR_WALL);
-  if (BENCH_RE.test(n)) gear.add(GEAR_BENCH);
-  if (BOX_RE.test(n)) gear.add(GEAR_BOX);
+  if (MAT_RE.test(n)) gear.add(GEAR_MAT);
+  if (BENCH_USE_RE.test(n)) gear.add(GEAR_BENCH);
+  if (STEP_USE_RE.test(n)) gear.add(GEAR_STEP);
+  if (CHAIR_RE.test(n) && !CAPTAINS_CHAIR_RE.test(n) && !/machine|lever/i.test(eq)) gear.add(GEAR_CHAIR);
+  if (CAPTAINS_CHAIR_RE.test(n)) gear.add(GEAR_PULL_BAR);
   if (/\bring\b/.test(n)) gear.add(GEAR_RINGS);
   if (SUSPENDED_RE.test(n)) gear.add(GEAR_SUSPENSION);
   if (PARALLEL_BAR_RE.test(n)) gear.add(GEAR_PARALLEL_BARS);
 
-  const needsBar = PULL_BAR_RE.test(n) && !ASSISTED_RE.test(n) && !/machine|band|lat pulldown|cable|lever/i.test(n);
+  if (INVERTED_ROW_RE.test(n)) {
+    if (/on bench|bench/i.test(n)) gear.add(GEAR_BENCH);
+    else gear.add(GEAR_PULL_BAR);
+  }
+
+  const needsBar = PULL_BAR_RE.test(n) && !ASSISTED_RE.test(n) && !/machine|band|lat pulldown|cable|lever|dumbbell|kettlebell/i.test(n)
+    && !INVERTED_ROW_RE.test(n);
   if (needsBar) gear.add(GEAR_PULL_BAR);
+
   if (DIP_RE.test(n) && !/floor|bench dip on floor|triceps dip on floor/i.test(n) && !/machine|band|cable|lever|dumbbell/i.test(n)) {
     if (/\bring\b/.test(n)) gear.add(GEAR_RINGS);
     else if (PARALLEL_BAR_RE.test(n)) gear.add(GEAR_PARALLEL_BARS);
@@ -139,9 +211,37 @@ export function inferRequiredGear(name = '', equipment = '') {
     gear.add(GEAR_CARDIO_MACHINE);
   }
 
-  if (STRETCH_RE.test(n) && gear.size === 1) gear.add(GEAR_FLOOR);
-
   return [...gear];
+}
+
+/** Само под/мат/стена/степ/пейка — без уреди. */
+export function isTrueBodyweightExercise(name = '', equipment = '') {
+  const gear = inferRequiredGear(name, equipment);
+  return gear.length > 0 && gear.every((g) => BODYWEIGHT_GEAR.has(g));
+}
+
+/**
+ * Реална категория за филтър — прекласифицира body weight с уред към уреда.
+ * @param {string} name
+ * @param {string} [equipment]
+ * @returns {string}
+ */
+export function resolveEffectiveEquipNorm(name = '', equipment = '') {
+  const eq = normalizeText(equipment || '');
+  const gear = inferRequiredGear(name, equipment);
+
+  if (isTrueBodyweightExercise(name, equipment)) return 'body weight';
+
+  for (const g of APPARATUS_PRIORITY) {
+    if (gear.includes(g) && GEAR_TO_FILTER_NORM[g]) return GEAR_TO_FILTER_NORM[g];
+  }
+
+  if (eq && eq !== 'body weight') return eq;
+
+  const extra = gear.filter((g) => !BODYWEIGHT_GEAR.has(g));
+  if (extra.length) return GEAR_TO_FILTER_NORM[extra[0]] || extra[0];
+
+  return 'body weight';
 }
 
 /**
@@ -152,6 +252,8 @@ export function inferExerciseTraits(name = '', equipment = '') {
   const n = normalizeText(name);
   const eq = normalizeText(equipment || '');
   const gear = inferRequiredGear(name, equipment);
+  const trueBodyweight = isTrueBodyweightExercise(name, equipment);
+  const effectiveEquipNorm = resolveEffectiveEquipNorm(name, equipment);
 
   const gymnastics = GYMNASTICS_RE.test(n);
   const suspended = SUSPENDED_RE.test(n) || gear.includes(GEAR_SUSPENSION);
@@ -161,11 +263,13 @@ export function inferExerciseTraits(name = '', equipment = '') {
   const highSkill = gymnastics || rings || /\b(pistol squat|one arm push|archer push|clapping push|clap push|drop push|depth jump|explosive|plyo|burpee|muscle)\b/i.test(n);
   const assisted = ASSISTED_RE.test(n) || eq === 'assisted' || /machine|lever|cable|band/i.test(eq);
   const stretch = STRETCH_RE.test(n);
-  const beginnerSafe = !highSkill && !rings && !suspended && !parallelBars
+  const beginnerSafe = trueBodyweight && !highSkill && !rings && !suspended && !parallelBars
     && (BEGINNER_SAFE_RE.test(n) || (stretch && !pullBar));
 
   return {
     gear,
+    trueBodyweight,
+    effectiveEquipNorm,
     gymnastics,
     suspended,
     rings,
@@ -175,12 +279,11 @@ export function inferExerciseTraits(name = '', equipment = '') {
     assisted,
     stretch,
     beginnerSafe,
-    homeFriendly: !gear.some((g) => [GEAR_MACHINE, GEAR_CABLE, GEAR_CARDIO_MACHINE, GEAR_RINGS, GEAR_PARALLEL_BARS, GEAR_SUSPENSION].includes(g)),
+    homeFriendly: trueBodyweight && !highSkill,
   };
 }
 
 /**
- * Коригира diff/gf/flags от traits — върху bundled или heuristic metadata.
  * @param {object} raw
  * @param {{ diff?: number, gf?: number, gm?: number, flags?: string[] }} meta
  */
@@ -192,6 +295,12 @@ export function applyMetadataCorrections(raw, meta = {}) {
   let gf = meta.gf ?? 70;
   let gm = meta.gm ?? 70;
   const flags = new Set(meta.flags || []);
+
+  if (!traits.trueBodyweight && normalizeText(equipment) === 'body weight') {
+    flags.add('mislabeled_bw');
+    flags.add(`needs_${traits.effectiveEquipNorm.replace(/\s+/g, '_')}`);
+  }
+  if (traits.trueBodyweight) flags.add('true_bodyweight');
 
   if (traits.gymnastics || traits.rings) {
     diff = Math.max(diff, 3);
@@ -231,11 +340,11 @@ export function applyMetadataCorrections(raw, meta = {}) {
     gm,
     flags: [...flags],
     gear: traits.gear,
+    effectiveEquipNorm: traits.effectiveEquipNorm,
     traits,
   };
 }
 
-/** @param {string[]} equipmentAnswers */
 function expandEquipmentAnswers(equipmentAnswers) {
   const items = [];
   for (const a of equipmentAnswers || []) {
@@ -246,7 +355,7 @@ function expandEquipmentAnswers(equipmentAnswers) {
 }
 
 /**
- * Позволен gear от въпросника. null = пълна зала / без ограничение.
+ * Позволен gear от въпросника. null = пълна зала.
  * @param {string[]} equipmentAnswers
  * @param {string[]} [pickedItems]
  * @returns {Set<string>|null}
@@ -254,7 +363,7 @@ function expandEquipmentAnswers(equipmentAnswers) {
 export function resolveAllowedGear(equipmentAnswers = [], pickedItems = []) {
   const gymKey = normalizeText(GYM_EQUIPMENT_OPTION);
   const pickerKey = normalizeText(EQUIPMENT_PICKER_OPTION);
-  const gear = new Set([GEAR_FLOOR, GEAR_WALL]);
+  const gear = new Set(BODYWEIGHT_GEAR);
 
   if (pickedItems?.length) {
     const { equipHints } = expandApparatusIds(pickedItems);
@@ -283,21 +392,14 @@ export function resolveAllowedGear(equipmentAnswers = [], pickedItems = []) {
   return gear;
 }
 
-/**
- * @param {object} entry
- * @param {Set<string>|null} allowedGear
- */
+/** @param {object} entry @param {Set<string>|null} allowedGear */
 export function passesGearFilter(entry, allowedGear) {
   if (!allowedGear) return true;
   const required = entry?.gear?.length ? entry.gear : inferRequiredGear(entry?.name, entry?.equipment || entry?.equipNorm);
   return required.every((g) => allowedGear.has(g));
 }
 
-/**
- * По-строг филтър за начинаещи: без high-skill, предпочита beginner_safe.
- * @param {object} entry
- * @param {{ maxDiff?: number }} profile
- */
+/** @param {object} entry @param {{ maxDiff?: number }} profile */
 export function passesBeginnerSafety(entry, profile) {
   if (!profile || profile.maxDiff > 1) return true;
   const traits = entry?.traits || inferExerciseTraits(entry?.name, entry?.equipment || entry?.equipNorm);

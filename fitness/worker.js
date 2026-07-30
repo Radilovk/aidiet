@@ -31,6 +31,8 @@
  *   POST /api/admin/fitplan/client-programs/:id/plan/restore — админ: възстановяване на версия
  *   POST /api/admin/fitplan/translate-exercises — партида превод + KV индекс (resilient batches)
  *   GET/POST /api/admin/fitplan/classify-exercises — EFP класификация (diff/gf/gm) + KV индекс
+ *   GET/PUT /api/admin/fitplan/exercise-catalog — редактируем каталог (метаданни + BG имена)
+ *   GET/POST /api/admin/fitplan/exercise-catalog/export|import — експорт/импорт на каталога
  *
  * Bindings / vars (wrangler.toml + secrets):
  *   FITNESS_KV            — KV namespace (кеш на индекса, планове, rate limits)
@@ -81,6 +83,17 @@ import {
   searchExerciseIndex,
 } from './exercise-metadata.js';
 import { passesGearFilter, passesBeginnerSafety } from './exercise-tags.js';
+import { isGenderSpecificExerciseName } from './exercise-name-bg.js';
+import {
+  buildCatalogFromIndex,
+  buildCatalogRecord,
+  exportCatalogPayload,
+  filterCatalogRecords,
+  importCatalogPayload,
+  normalizeCatalogPatch,
+  applyCatalogPatchToStores,
+  paginateCatalogRecords,
+} from './exercise-catalog.js';
 import { mergeExerciseTranslation } from './exercise-translations.js';
 import {
   EXERCISE_TRANSLATIONS_KV_KEY,
@@ -277,7 +290,8 @@ export function matchExercise(index, {
   const bodyNorm = normalizeText(bodyPart);
 
   const passesFilters = (entry) =>
-    passesEquipment(entry, allowedEquipment)
+    !isGenderSpecificExerciseName(entry?.name)
+    && passesEquipment(entry, allowedEquipment)
     && passesApparatusFilter(entry, pickedApparatus)
     && passesGearFilter(entry, allowedGear)
     && (!exerciseProfile || fitsExerciseProfile(entry, exerciseProfile))
@@ -2055,6 +2069,172 @@ async function handleDeleteClientProgram(request, env, id) {
   return deleteClientProgramRecord(env, id);
 }
 
+async function loadKvExerciseMetadata(env) {
+  if (!env?.FITNESS_KV) return {};
+  try {
+    const kv = await env.FITNESS_KV.get(EXERCISE_METADATA_KV_KEY, { type: 'json' });
+    return kv && typeof kv === 'object' ? kv : {};
+  } catch {
+    return {};
+  }
+}
+
+async function loadKvExerciseTranslations(env) {
+  if (!env?.FITNESS_KV) return {};
+  try {
+    const kv = await env.FITNESS_KV.get(EXERCISE_TRANSLATIONS_KV_KEY, { type: 'json' });
+    return kv && typeof kv === 'object' ? kv : {};
+  } catch {
+    return {};
+  }
+}
+
+async function loadExerciseCatalogContext(env) {
+  const [all, bundledMeta, kvMeta, bundledTr, kvTr] = await Promise.all([
+    fetchExerciseDataset(env.EXERCISE_DATASET_URL || undefined),
+    loadBundledMetadata(),
+    loadKvExerciseMetadata(env),
+    loadBundledTranslations(),
+    loadKvExerciseTranslations(env),
+  ]);
+  const mergedMeta = { ...bundledMeta, ...kvMeta };
+  const mergedTr = { ...(bundledTr || {}), ...kvTr };
+  const index = buildCompactIndex(all, mergedTr, mergedMeta);
+  const rawById = Object.fromEntries(all.map((row) => [String(row.id), row]));
+  return { all, index, rawById, bundledMeta, kvMeta, bundledTr, kvTr, mergedMeta, mergedTr };
+}
+
+async function handleGetExerciseCatalog(request, env, url) {
+  if (!checkAdminSecret(request, env)) return errorResponse('Неоторизиран достъп', 401, 'unauthorized');
+
+  const ctx = await loadExerciseCatalogContext(env);
+  const records = buildCatalogFromIndex(
+    ctx.index,
+    ctx.rawById,
+    ctx.bundledMeta,
+    ctx.kvMeta,
+    ctx.bundledTr,
+    ctx.kvTr,
+  );
+  const filtered = filterCatalogRecords(records, {
+    q: url.searchParams.get('q') || '',
+    diff: url.searchParams.get('diff') || '',
+    equipment: url.searchParams.get('equipment') || '',
+    excluded: url.searchParams.get('excluded') || '',
+    overridden: url.searchParams.get('overridden') || '',
+  });
+  const page = paginateCatalogRecords(
+    filtered,
+    url.searchParams.get('page'),
+    url.searchParams.get('limit'),
+  );
+
+  return jsonResponse({
+    success: true,
+    hasKv: Boolean(env.FITNESS_KV),
+    totalInDataset: ctx.index.length,
+    ...page,
+  });
+}
+
+async function handleGetExerciseCatalogItem(request, env, id) {
+  if (!checkAdminSecret(request, env)) return errorResponse('Неоторизиран достъп', 401, 'unauthorized');
+
+  const ctx = await loadExerciseCatalogContext(env);
+  const entry = ctx.index.find((row) => String(row.id) === String(id));
+  if (!entry) return errorResponse('Упражнението не е намерено', 404, 'not_found');
+
+  const record = buildCatalogRecord(
+    entry,
+    ctx.rawById[String(id)] || null,
+    ctx.bundledMeta,
+    ctx.kvMeta,
+    ctx.bundledTr,
+    ctx.kvTr,
+  );
+
+  return jsonResponse({ success: true, item: record });
+}
+
+async function handleUpdateExerciseCatalogItem(request, env, id) {
+  if (!checkAdminSecret(request, env)) return errorResponse('Неоторизиран достъп', 401, 'unauthorized');
+  if (!env.FITNESS_KV) return errorResponse('KV не е конфигурирано', 500, 'no_kv');
+
+  let body;
+  try { body = await request.json(); } catch { return errorResponse('Невалиден JSON', 400); }
+
+  const ctx = await loadExerciseCatalogContext(env);
+  const raw = ctx.rawById[String(id)];
+  if (!raw) return errorResponse('Упражнението не е намерено', 404, 'not_found');
+
+  const patch = normalizeCatalogPatch(body, raw);
+  if (patch.errors.length && !patch.metadata && !patch.translation) {
+    return errorResponse(patch.errors.join('; '), 400, 'invalid_patch');
+  }
+
+  const kvMeta = await loadKvExerciseMetadata(env);
+  const kvTr = await loadKvExerciseTranslations(env);
+  const applied = applyCatalogPatchToStores(id, patch, kvMeta, kvTr);
+
+  if (patch.metadata) await saveExerciseMetadata(env, applied.metadata);
+  if (patch.translation) await saveExerciseTranslations(env, applied.translations);
+
+  const mergedMeta = { ...ctx.bundledMeta, ...applied.metadata };
+  const mergedTr = { ...(ctx.bundledTr || {}), ...applied.translations };
+  const index = buildCompactIndex(ctx.all, mergedTr, mergedMeta);
+  const entry = index.find((row) => String(row.id) === String(id));
+  const indexInfo = await rebuildExerciseIndexInKv(env, mergedTr, mergedMeta);
+
+  return jsonResponse({
+    success: true,
+    item: buildCatalogRecord(entry, raw, ctx.bundledMeta, applied.metadata, ctx.bundledTr, applied.translations),
+    indexRebuilt: Boolean(indexInfo),
+    index: indexInfo,
+  });
+}
+
+async function handleExportExerciseCatalog(request, env) {
+  if (!checkAdminSecret(request, env)) return errorResponse('Неоторизиран достъп', 401, 'unauthorized');
+
+  const ctx = await loadExerciseCatalogContext(env);
+  const records = buildCatalogFromIndex(
+    ctx.index,
+    ctx.rawById,
+    ctx.bundledMeta,
+    ctx.kvMeta,
+    ctx.bundledTr,
+    ctx.kvTr,
+  );
+  const payload = exportCatalogPayload(records);
+  return jsonResponse({ success: true, ...payload });
+}
+
+async function handleImportExerciseCatalog(request, env) {
+  if (!checkAdminSecret(request, env)) return errorResponse('Неоторизиран достъп', 401, 'unauthorized');
+  if (!env.FITNESS_KV) return errorResponse('KV не е конфигурирано', 500, 'no_kv');
+
+  let body;
+  try { body = await request.json(); } catch { return errorResponse('Невалиден JSON', 400); }
+
+  const kvMeta = await loadKvExerciseMetadata(env);
+  const kvTr = await loadKvExerciseTranslations(env);
+  const imported = importCatalogPayload(body, kvMeta, kvTr);
+  await saveExerciseMetadata(env, imported.metadata);
+  await saveExerciseTranslations(env, imported.translations);
+
+  const ctx = await loadExerciseCatalogContext(env);
+  const mergedMeta = { ...ctx.bundledMeta, ...imported.metadata };
+  const mergedTr = { ...(ctx.bundledTr || {}), ...imported.translations };
+  const indexInfo = await rebuildExerciseIndexInKv(env, mergedTr, mergedMeta);
+
+  return jsonResponse({
+    success: true,
+    updated: imported.updated,
+    indexRebuilt: Boolean(indexInfo),
+    index: indexInfo,
+  });
+}
+
 // ============================================================================
 // Router
 // ============================================================================
@@ -2171,6 +2351,22 @@ export default {
           console.error('translate-exercises:', e.stack || e.message);
           return errorResponse(e.message || 'Грешка при превод', 500, 'translate_error');
         }
+      }
+      if (request.method === 'GET' && path === '/api/admin/fitplan/exercise-catalog/export') {
+        return await handleExportExerciseCatalog(request, env);
+      }
+      if (request.method === 'POST' && path === '/api/admin/fitplan/exercise-catalog/import') {
+        return await handleImportExerciseCatalog(request, env);
+      }
+      if (request.method === 'GET' && path === '/api/admin/fitplan/exercise-catalog') {
+        return await handleGetExerciseCatalog(request, env, url);
+      }
+      const exerciseCatalogItemMatch = path.match(/^\/api\/admin\/fitplan\/exercise-catalog\/([A-Za-z0-9_-]+)$/);
+      if (request.method === 'GET' && exerciseCatalogItemMatch) {
+        return await handleGetExerciseCatalogItem(request, env, exerciseCatalogItemMatch[1]);
+      }
+      if (request.method === 'PUT' && exerciseCatalogItemMatch) {
+        return await handleUpdateExerciseCatalogItem(request, env, exerciseCatalogItemMatch[1]);
       }
       return errorResponse('Не е намерено', 404, 'not_found');
     } catch (e) {
