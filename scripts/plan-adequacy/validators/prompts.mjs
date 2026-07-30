@@ -23,17 +23,19 @@ const PROMPT_CONTRACTS = {
     'Свободно хранене',
     'freeDayNumber',
     'includeDessert',
-    'ДЕСЕРТ',
-    'Въз основа на профила по-горе',
+    'DESSERT WITH LUNCH',
+    'Based on the profile above',
+    '=== TASK ===',
   ],
   'KV/prompts/admin_meal_plan_prompt.txt': [
     'Хранене 3',
-    'САМО',
-    'ПРИМЕР',
-    'каталога',
+    'ONLY',
+    'FORMAT',
+    'catalog',
     'Свободно хранене',
     'dessert',
-    'Въз основа на каталога',
+    'mealBreakdown',
+    '=== TASK',
   ],
   'KV/prompts/admin_summary_prompt.txt': [
     'recommendations',
@@ -58,8 +60,8 @@ export function validatePromptContracts() {
         issues.push(`${rel}: липсва "${needle}"`);
       }
     }
-    if (!text.includes('=== ЗАДАЧА')) {
-      issues.push(`${rel}: липсва секция === ЗАДАЧА (Gemini task-at-end)`);
+    if (!text.includes('=== ЗАДАЧА') && !text.includes('=== TASK')) {
+      issues.push(`${rel}: липсва секция === TASK (Gemini task-at-end)`);
     }
   }
   return issues;

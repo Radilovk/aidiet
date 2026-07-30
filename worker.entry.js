@@ -2773,9 +2773,9 @@ function buildFreeMealInstruction(strategy, startDay, endDay, userData = null) {
   const dayNum = Number(freeDayNumber);
   if (isNaN(dayNum) || dayNum < startDay || dayNum > endDay) return '';
   const skipBreakfastNote = userSkipsBreakfast(userData)
-    ? ' БЕЗ Хранене 1/закуска — клиентът не закусва.'
-    : ' Хранене 1 и Хранене 4 за ден ' + dayNum + ' генерирай НОРМАЛНО.';
-  return `\n\n=== СВОБОДНО ХРАНЕНЕ (Ден ${dayNum}) ===\nЗАДЪЛЖИТЕЛНО за ден ${dayNum}: ЗАМЕНИ Хранене 2 (Хранене 2 НЕ се генерира!) с точно: {"type": "Свободно хранене", "name": "Свободно хранене"} — БЕЗ description, calories, macros, weight, benefits или dessert.\n${skipBreakfastNote} Хранене 4 в този ден — лека вечеря БЕЗ ориз/картофи/хляб/паста.\nКалориите за свободния обеден слот идват от strategy mealBreakdown и се включват в dailyTotals от бекенда.`;
+    ? ' No Хранене 1 — client skips breakfast.'
+    : ' Generate Хранене 1 and Хранене 4 normally for this day.';
+  return `\nFREE MEAL (Day ${dayNum}): Replace Хранене 2 with {"type":"Свободно хранене","name":"Свободно хранене"} — no description/calories/macros/weight/benefits/dessert.${skipBreakfastNote} Light Хранене 4 dinner — no rice/potato/bread/pasta. Free-slot kcal from mealBreakdown; backend adds to dailyTotals.`;
 }
 
 /**
@@ -3408,7 +3408,6 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
   }
 
   const sweetsCravingRule = buildSweetsCravingRule(data.foodCravings, strategy);
-  const skipBreakfastRule = buildSkipBreakfastRule(data);
 
   // Build previous days context for variety (NPCF compact — meal names only)
   let previousDaysContext = '';
@@ -3477,7 +3476,6 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
   const weeklySchemeByDayText = serializeWeeklySchemeTargets(
     strategy, startDay, endDay, recommendedCalories, DAY_NUMBER_TO_KEY
   );
-  const expectedMealsInstruction = buildExpectedMealsInstruction(strategy, startDay, endDay);
 
   const blockedFoodTerms = collectUserBlockedFoodTerms(data);
   const catalogSection = buildCatalogPromptSection({
@@ -3504,7 +3502,6 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
       analysisCompact,
       strategyCompact,
       weeklySchemeByDayText,
-      expectedMealsInstruction,
       bmr,
       recommendedCalories,
       startDay,
@@ -3531,7 +3528,6 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
       MAX_LATE_SNACK_CALORIES,
       freeMealInstruction: buildFreeMealInstruction(strategy, startDay, endDay, data),
       sweetsCravingRule,
-      skipBreakfastRule,
       additionalNotes: buildCombinedAdditionalNotes(data),
       clinicalProtocolSection: (() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buildClinicalProtocolPromptSection(p) : ''; })(),
       weeklyAdaptationSection: buildWeeklyAdaptationContextSection(data)
@@ -7358,15 +7354,10 @@ function userSkipsBreakfast(userData) {
   return Array.isArray(userData?.eatingHabits) && userData.eatingHabits.includes('Не закусвам');
 }
 
-function buildSkipBreakfastRule(userData) {
-  if (!userSkipsBreakfast(userData)) return '';
-  return `\nВАЖНО - НЕ ЗАКУСВА: Клиентът НЕ ЗАКУСВА. ЗАБРАНЕНО е "Хранене 1", "Закуска" и всяко сутрешно ястие (омлет, яйца, каша, мюсли). mealBreakdown НЕ съдържа Хранене 1 — НЕ го генерирай. Допустимо САМО {"type":"Напитка","name":"...","description":"• продукт Xg"}: вода с лимон, зелен чай, протеинов шейк или айран — без калории/macros.`;
-}
-
 function buildSweetsCravingRule(foodCravings, strategy) {
   if (!userHasSweetsCraving(foodCravings) || strategy?.includeDessert === false) return '';
   const d = FIXED_DESSERT.macros;
-  return `\nВАЖНО - НУЖДА ОТ СЛАДКО: Клиентът изпитва нужда от сладки изделия. ЗАДЪЛЖИТЕЛНО добавяй към всеки "Хранене 2" (САМО Хранене 2, НЕ друго хранене) поле "dessert": true — десертът е финален компонент на Хранене 2, не отделно хранене. НЕ включвай наименованието на десерта в полето "name" на Хранене 2. meal.calories и meal.macros на Хранене 2 ТРЯБВА да включват стойностите на ЦЯЛОТО хранене заедно с десерта (${FIXED_DESSERT.calories} ккал, ${d.protein}г белтъчини, ${d.carbs}г въглехидрати, ${d.fats}г мазнини) — взимай тези стойности предвид при изграждане на дневния калориен баланс. ПРИ ХРАНЕНЕ 2 С ДЕСЕРТ — НЕ включвай картофи, ориз или хляб. ЗА ХРАНЕНЕ 3 в дни с десерт: задължително БЕЗ плодове — само кисело мляко, ядки, скир или протеинов шейк.`;
+  return `\nSWEETS: "dessert": true on every Хранене 2 only (not in name; dessert kcal in lunch slot: ${FIXED_DESSERT.calories} kcal, P${d.protein}/C${d.carbs}/F${d.fats}g). No potato/rice/bread at lunch with dessert. Хранене 3 same day: no fruit — yogurt, nuts, skyr or protein shake only.`;
 }
 
 /** Calories from macro grams: protein×4 + carbs×4 + fats×9 */
@@ -7878,17 +7869,6 @@ function alignDaysToMealBreakdown(weekPlan, strategy, startDay, endDay, userData
     kept.sort((a, b) => (MEAL_ORDER_MAP[a.type] ?? 9) - (MEAL_ORDER_MAP[b.type] ?? 9));
     day.meals = kept;
   }
-}
-
-function buildExpectedMealsInstruction(strategy, startDay, endDay) {
-  const lines = [];
-  for (let d = startDay; d <= endDay; d++) {
-    const dayTarget = strategy?.weeklyScheme?.[DAY_NUMBER_TO_KEY[d - 1]];
-    if (!dayTarget?.mealBreakdown?.length) continue;
-    const slots = dayTarget.mealBreakdown.map(m => m.type).join(', ');
-    lines.push(`Ден ${d}: ТОЧНО тези типове (без други): ${slots}`);
-  }
-  return lines.length ? `\n${lines.join('\n')}` : '';
 }
 
 function validateRequiredMealSlots(dayPlan, dayTarget, dayNum) {
