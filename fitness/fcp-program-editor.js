@@ -106,12 +106,6 @@ function recentMatchesPicker(item, p) {
 function getRecentForPicker(p) {
   return loadRecentExercises().filter((item) => recentMatchesPicker(item, p));
 }
-  debounced.flush = (...args) => {
-    clearTimeout(t);
-    fn(...args);
-  };
-  return debounced;
-}
 
 const debouncedSearch = debounce(() => runPickerSearch(), 400);
 
