@@ -492,10 +492,17 @@ export function bindPwaInstallCard(cardEl, { hasPlan, isDelivered, dockEl } = {}
   const stepsEl = cardEl.querySelector('[data-pwa-steps]');
   const toastEl = cardEl.querySelector('[data-pwa-toast]');
   const rootDock = dockEl || cardEl.closest('.pwa-install-dock') || cardEl;
+  const scrimEl = rootDock.querySelector?.('[data-pwa-scrim]');
 
   let lastStrategy = null;
   let stepsVisible = false;
   let deliveredStepsShown = false;
+
+  const closeDock = () => {
+    rootDock.classList.add('hidden');
+    document.body?.classList.remove('pwa-install-open');
+    document.body?.classList.remove('pwa-install-visible');
+  };
 
   const showToast = (msg) => {
     if (!toastEl) return;
@@ -516,7 +523,7 @@ export function bindPwaInstallCard(cardEl, { hasPlan, isDelivered, dockEl } = {}
       && (delivered || mobileish);
 
     rootDock.classList.toggle('hidden', !eligible);
-    cardEl.classList.toggle('hidden', !eligible);
+    document.body?.classList.toggle('pwa-install-open', eligible);
     document.body?.classList.toggle('pwa-install-visible', eligible);
     if (!eligible) return;
 
@@ -579,7 +586,7 @@ export function bindPwaInstallCard(cardEl, { hasPlan, isDelivered, dockEl } = {}
 
     if (lastStrategy.mode === 'native') {
       const outcome = await triggerInstall(lastStrategy);
-      if (outcome === 'accepted') cardEl.classList.add('hidden');
+      if (outcome === 'accepted') closeDock();
       void refresh();
       return;
     }
@@ -628,9 +635,12 @@ export function bindPwaInstallCard(cardEl, { hasPlan, isDelivered, dockEl } = {}
 
   dismiss?.addEventListener('click', () => {
     dismissInstallOffer();
-    rootDock.classList.add('hidden');
-    cardEl.classList.add('hidden');
-    document.body?.classList.remove('pwa-install-visible');
+    closeDock();
+  });
+
+  scrimEl?.addEventListener('click', () => {
+    dismissInstallOffer();
+    closeDock();
   });
 
   initPwaInstall({ onChange: () => { void refresh(); } });

@@ -53,7 +53,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Sofia+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=optional&subset=cyrillic" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Sofia+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=optional&subset=cyrillic" rel="stylesheet"></noscript>
   <link rel="stylesheet" href="base.css">
-  <link rel="stylesheet" href="app.css">
+  <link rel="stylesheet" href="app.css?v=2">
   <link rel="stylesheet" href="equipment-select.css?v=6">
 </head>
 <body>
@@ -169,23 +169,27 @@
 
   </main>
 
-  <div id="pwaInstallDock" class="pwa-install-dock hidden" aria-live="polite">
-    <div id="pwaInstallCard" class="pwa-install-card hidden" role="region" aria-label="Инсталирай приложението">
-      <div class="pwa-install-top">
-        <img src="icons/logo-mark.png" alt="" class="pwa-install-icon" width="52" height="52">
-        <div class="pwa-install-body">
-          <strong data-pwa-title>KA-TRAINER на началния екран</strong>
-          <p data-pwa-text>Добави програмата на телефона си за бърз достъп.</p>
-          <p class="pwa-device-hint" data-pwa-device></p>
+  <div id="pwaInstallDock" class="pwa-install-dock hidden" role="dialog" aria-modal="true" aria-labelledby="pwaInstallTitle">
+    <button type="button" class="pwa-install-scrim" data-pwa-scrim aria-label="Затвори"></button>
+    <div class="pwa-install-sheet">
+      <div class="pwa-install-handle" aria-hidden="true"></div>
+      <div id="pwaInstallCard" class="pwa-install-card" aria-label="Инсталирай приложението">
+        <div class="pwa-install-top">
+          <img src="icons/logo-mark.png" alt="" class="pwa-install-icon" width="52" height="52">
+          <div class="pwa-install-body">
+            <strong id="pwaInstallTitle" data-pwa-title>KA-TRAINER на началния екран</strong>
+            <p data-pwa-text>Добави програмата на телефона си за бърз достъп.</p>
+            <p class="pwa-device-hint" data-pwa-device></p>
+          </div>
         </div>
-      </div>
-      <p class="pwa-hint" data-pwa-hint></p>
-      <div class="pwa-install-steps-wrap hidden" data-pwa-steps aria-live="polite"></div>
-      <p class="pwa-toast hidden" data-pwa-toast role="status"></p>
-      <div class="pwa-install-actions">
-        <button type="button" class="btn-primary" data-pwa-install>Инсталирай</button>
-        <button type="button" class="btn-ghost hidden" data-pwa-secondary>Копирай линк</button>
-        <button type="button" class="btn-ghost pwa-dismiss" data-pwa-dismiss>Не сега</button>
+        <p class="pwa-hint" data-pwa-hint></p>
+        <div class="pwa-install-steps-wrap hidden" data-pwa-steps aria-live="polite"></div>
+        <p class="pwa-toast hidden" data-pwa-toast role="status"></p>
+        <div class="pwa-install-actions">
+          <button type="button" class="btn-primary" data-pwa-install>Инсталирай</button>
+          <button type="button" class="btn-ghost hidden" data-pwa-secondary>Копирай линк</button>
+          <button type="button" class="btn-ghost pwa-dismiss" data-pwa-dismiss>Не сега</button>
+        </div>
       </div>
     </div>
   </div>

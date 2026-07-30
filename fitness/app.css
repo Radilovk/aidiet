@@ -1037,45 +1037,73 @@ input[type="range"] {
 @media (prefers-reduced-motion: reduce) {
   .view, .q-card, .day-card, .chat-panel { animation: none; }
   .btn-primary:hover, .chat-fab:hover { transform: none; }
+  .pwa-install-sheet { animation: none; }
 }
 
 /* ---------- PWA install (след план / при линк от треньор) ---------- */
 .pwa-install-dock {
   position: fixed;
-  left: 0;
-  right: 0;
-  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-  z-index: 85;
-  padding: 0 clamp(10px, 3vw, 16px);
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
   pointer-events: none;
 }
 .pwa-install-dock:not(.hidden) {
   pointer-events: auto;
 }
-body[data-view="plan"].pwa-install-visible .pwa-install-dock {
-  bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+.pwa-install-scrim {
+  position: absolute;
+  inset: 0;
+  border: none;
+  padding: 0;
+  background: rgba(4, 8, 12, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  cursor: pointer;
+}
+.pwa-install-sheet {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 32rem;
+  padding: 0 clamp(12px, 3.5vw, 16px) calc(12px + env(safe-area-inset-bottom, 0px));
+  animation: pwaSheetIn .32s cubic-bezier(.22, 1, .36, 1);
+}
+@keyframes pwaSheetIn {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.pwa-install-handle {
+  width: 42px;
+  height: 4px;
+  margin: 0 auto 10px;
+  border-radius: 999px;
+  background: rgba(143, 160, 179, 0.55);
 }
 .pwa-install-dock .pwa-install-card {
-  margin-top: 0;
-  margin-inline: auto;
-  max-width: min(28rem, 100%);
-  box-shadow: 0 16px 48px -12px rgba(0, 0, 0, .55), 0 0 0 1px rgba(53, 224, 194, .12);
+  margin: 0;
+  max-width: none;
 }
 .pwa-install-card {
   display: flex;
   flex-direction: column;
   gap: clamp(10px, 2.5vw, 14px);
   width: 100%;
-  max-width: min(22rem, 100%);
-  margin-top: clamp(14px, 3.5vw, 18px);
-  margin-inline: auto;
-  padding: clamp(14px, 3.5vw, 18px);
-  padding-bottom: calc(clamp(14px, 3.5vw, 18px) + var(--safe-bottom));
-  border-radius: var(--radius);
-  border: 1px solid rgba(53, 224, 194, .28);
-  background: linear-gradient(145deg, rgba(124, 158, 255, .08), rgba(53, 224, 194, .06));
-  box-shadow: var(--shadow);
+  padding: clamp(16px, 4vw, 20px);
+  border-radius: 20px 20px var(--radius) var(--radius);
+  border: 1px solid var(--border);
+  border-top: 2px solid rgba(53, 224, 194, 0.45);
+  background: var(--surface);
+  background: linear-gradient(180deg, #151f2a 0%, var(--surface) 38%, #0f161e 100%);
+  box-shadow:
+    0 -8px 40px rgba(0, 0, 0, 0.45),
+    0 24px 60px -18px rgba(0, 0, 0, 0.85),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
   text-align: left;
+  color: var(--text);
 }
 .pwa-install-top {
   display: flex;
@@ -1114,6 +1142,10 @@ body[data-view="plan"].pwa-install-visible .pwa-install-dock {
 }
 .pwa-install-steps-wrap {
   width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
 }
 .pwa-install-steps {
   margin: 0;
@@ -1131,11 +1163,18 @@ body[data-view="plan"].pwa-install-visible .pwa-install-dock {
 .pwa-toast {
   font-size: 0.84rem;
   color: var(--brand-cyan);
-  background: rgba(53, 224, 194, .08);
-  border: 1px solid rgba(53, 224, 194, .22);
+  background: rgba(53, 224, 194, .12);
+  border: 1px solid rgba(53, 224, 194, .28);
   border-radius: var(--radius-sm);
   padding: 8px 12px;
   text-align: center;
+}
+body.pwa-install-open {
+  overflow: hidden;
+}
+body.pwa-install-open .chat-fab {
+  opacity: 0;
+  pointer-events: none;
 }
 .pwa-install-actions {
   display: flex;
