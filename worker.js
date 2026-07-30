@@ -4110,6 +4110,79 @@ ${source.exampleScheme}` : ""
   throw new Error("preparePlanGeneration: \u043B\u0438\u043F\u0441\u0432\u0430\u0442 answers \u0438\u043B\u0438 clientAnswers");
 }
 
+// fitness/plan-history.js
+var PLAN_HISTORY_MAX = 30;
+var PLAN_HISTORY_TTL = 60 * 60 * 24 * 90;
+var PLAN_HISTORY_SOURCE_LABELS = {
+  manual_edit: "\u0420\u044A\u0447\u043D\u0430 \u0440\u0435\u0434\u0430\u043A\u0446\u0438\u044F",
+  ai_generate: "AI \u0433\u0435\u043D\u0435\u0440\u0430\u0446\u0438\u044F",
+  ai_replace: "\u0417\u0430\u043C\u0435\u043D\u0435\u043D \u043F\u0440\u0438 \u043D\u043E\u0432\u0430 AI \u0433\u0435\u043D\u0435\u0440\u0430\u0446\u0438\u044F",
+  before_restore: "\u041F\u0440\u0435\u0434\u0438 \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435",
+  restore: "\u0412\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u0435\u043D\u0430 \u0432\u0435\u0440\u0441\u0438\u044F",
+  approve: "\u041E\u0434\u043E\u0431\u0440\u0435\u043D\u0438\u0435"
+};
+function planHistoryIndexKey(clientProgramId) {
+  return `fcp:planhist:index:${clientProgramId}`;
+}
+function planHistorySnapKey(clientProgramId, revId) {
+  return `fcp:planhist:snap:${clientProgramId}:${revId}`;
+}
+function makeRevisionId(date = /* @__PURE__ */ new Date()) {
+  return date.toISOString().replace(/[:.]/g, "-");
+}
+async function loadPlanHistoryIndex(env, clientProgramId) {
+  if (!env?.FITNESS_KV || !clientProgramId) return [];
+  const raw = await env.FITNESS_KV.get(planHistoryIndexKey(clientProgramId), { type: "json" });
+  return Array.isArray(raw) ? raw : [];
+}
+async function savePlanHistoryIndex(env, clientProgramId, index) {
+  if (!env?.FITNESS_KV || !clientProgramId) return [];
+  const trimmed = index.slice(0, PLAN_HISTORY_MAX);
+  await env.FITNESS_KV.put(
+    planHistoryIndexKey(clientProgramId),
+    JSON.stringify(trimmed),
+    { expirationTtl: PLAN_HISTORY_TTL }
+  );
+  return trimmed;
+}
+async function archiveClientProgramPlan(env, clientProgramId, planRecord, meta = {}) {
+  if (!env?.FITNESS_KV || !clientProgramId || !planRecord?.plan) return null;
+  const revId = meta.revId || makeRevisionId();
+  const entry = {
+    id: revId,
+    savedAt: meta.savedAt || (/* @__PURE__ */ new Date()).toISOString(),
+    source: meta.source || "manual_edit",
+    planId: meta.planId || planRecord.planId || null,
+    planTitle: planRecord.plan?.title || "",
+    note: meta.note || ""
+  };
+  await env.FITNESS_KV.put(
+    planHistorySnapKey(clientProgramId, revId),
+    JSON.stringify(planRecord),
+    { expirationTtl: PLAN_HISTORY_TTL }
+  );
+  const index = await loadPlanHistoryIndex(env, clientProgramId);
+  index.unshift(entry);
+  const removed = index.slice(PLAN_HISTORY_MAX);
+  const trimmed = index.slice(0, PLAN_HISTORY_MAX);
+  await savePlanHistoryIndex(env, clientProgramId, trimmed);
+  for (const old of removed) {
+    await env.FITNESS_KV.delete(planHistorySnapKey(clientProgramId, old.id));
+  }
+  return entry;
+}
+async function getClientProgramPlanRevision(env, clientProgramId, revId) {
+  if (!env?.FITNESS_KV || !clientProgramId || !revId) return null;
+  return env.FITNESS_KV.get(planHistorySnapKey(clientProgramId, revId), { type: "json" });
+}
+function formatPlanHistoryEntry(entry) {
+  if (!entry) return null;
+  return {
+    ...entry,
+    sourceLabel: PLAN_HISTORY_SOURCE_LABELS[entry.source] || entry.source
+  };
+}
+
 // fitness/worker.js
 var DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
 var DEFAULT_OPENAI_MODEL = "gpt-4o-mini";
@@ -5472,8 +5545,18 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
   const oldPlanId = record.planId || null;
   const planId = crypto.randomUUID();
   const now = (/* @__PURE__ */ new Date()).toISOString();
-  if (oldPlanId && oldPlanId !== planId) {
-    await env.FITNESS_KV.delete(`plan:${oldPlanId}`);
+  if (oldPlanId) {
+    const oldRecord = await env.FITNESS_KV.get(`plan:${oldPlanId}`, { type: "json" });
+    if (oldRecord?.plan) {
+      await archiveClientProgramPlan(env, record.id, oldRecord, {
+        source: "ai_replace",
+        planId: oldPlanId,
+        note: `\u0417\u0430\u043C\u0435\u043D\u0435\u043D \u0441 \u043D\u043E\u0432 AI \u043F\u043B\u0430\u043D ${planId}`
+      });
+    }
+    if (oldPlanId !== planId) {
+      await env.FITNESS_KV.delete(`plan:${oldPlanId}`);
+    }
   }
   await env.FITNESS_KV.put(`plan:${planId}`, JSON.stringify({
     plan,
@@ -5582,6 +5665,10 @@ async function handleAdminUpdateClientProgramPlan(request, env, ctx, id) {
   }
   const planRecord = await env.FITNESS_KV.get(`plan:${record.planId}`, { type: "json" });
   if (!planRecord) return errorResponse("\u041F\u043B\u0430\u043D\u044A\u0442 \u043D\u0435 \u0435 \u043D\u0430\u043C\u0435\u0440\u0435\u043D. \u0413\u0435\u043D\u0435\u0440\u0438\u0440\u0430\u0439 \u043E\u0442\u043D\u043E\u0432\u043E.", 404, "not_found");
+  await archiveClientProgramPlan(env, id, planRecord, {
+    source: "manual_edit",
+    planId: record.planId
+  });
   sanitizePlanBulgarian(plan);
   const now = (/* @__PURE__ */ new Date()).toISOString();
   planRecord.plan = plan;
@@ -5595,6 +5682,66 @@ async function handleAdminUpdateClientProgramPlan(request, env, ctx, id) {
   const index = await loadExerciseIndex(env, ctx);
   const displayPlan = enrichPlanForClientView(plan, index, planRecord, env);
   return jsonResponse({ success: true, plan: displayPlan, program: clientProgramPublicView(record) });
+}
+async function handleAdminListClientProgramPlanHistory(request, env, id) {
+  if (!checkAdminSecret(request, env)) return errorResponse("\u041D\u0435\u043E\u0442\u043E\u0440\u0438\u0437\u0438\u0440\u0430\u043D \u0434\u043E\u0441\u0442\u044A\u043F", 401, "unauthorized");
+  if (!env.FITNESS_KV) return errorResponse("KV \u043D\u0435 \u0435 \u043A\u043E\u043D\u0444\u0438\u0433\u0443\u0440\u0438\u0440\u0430\u043D\u043E", 500);
+  const record = await loadClientProgram(env, id);
+  if (!record) return errorResponse("\u041F\u0440\u043E\u0433\u0440\u0430\u043C\u0430\u0442\u0430 \u043D\u0435 \u0435 \u043D\u0430\u043C\u0435\u0440\u0435\u043D\u0430", 404, "not_found");
+  const revisions = await loadPlanHistoryIndex(env, id);
+  return jsonResponse({
+    success: true,
+    programId: id,
+    planId: record.planId || null,
+    revisions: revisions.map(formatPlanHistoryEntry),
+    sourceLabels: PLAN_HISTORY_SOURCE_LABELS
+  }, 200, { "Cache-Control": "private, no-cache, no-store, must-revalidate" });
+}
+async function handleAdminRestoreClientProgramPlan(request, env, ctx, id) {
+  if (!checkAdminSecret(request, env)) return errorResponse("\u041D\u0435\u043E\u0442\u043E\u0440\u0438\u0437\u0438\u0440\u0430\u043D \u0434\u043E\u0441\u0442\u044A\u043F", 401, "unauthorized");
+  if (!env.FITNESS_KV) return errorResponse("KV \u043D\u0435 \u0435 \u043A\u043E\u043D\u0444\u0438\u0433\u0443\u0440\u0438\u0440\u0430\u043D\u043E", 500);
+  const record = await loadClientProgram(env, id);
+  if (!record) return errorResponse("\u041F\u0440\u043E\u0433\u0440\u0430\u043C\u0430\u0442\u0430 \u043D\u0435 \u0435 \u043D\u0430\u043C\u0435\u0440\u0435\u043D\u0430", 404, "not_found");
+  if (!record.planId) return errorResponse("\u041D\u044F\u043C\u0430 \u0430\u043A\u0442\u0438\u0432\u0435\u043D \u043F\u043B\u0430\u043D \u0437\u0430 \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435", 404, "not_found");
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return errorResponse("\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON", 400);
+  }
+  const revisionId = String(body?.revisionId || "").trim();
+  if (!revisionId) return errorResponse("\u041B\u0438\u043F\u0441\u0432\u0430 revisionId", 400);
+  const snapshot = await getClientProgramPlanRevision(env, id, revisionId);
+  if (!snapshot?.plan) return errorResponse("\u0412\u0435\u0440\u0441\u0438\u044F\u0442\u0430 \u043D\u0435 \u0435 \u043D\u0430\u043C\u0435\u0440\u0435\u043D\u0430", 404, "not_found");
+  const current = await env.FITNESS_KV.get(`plan:${record.planId}`, { type: "json" });
+  if (current?.plan) {
+    await archiveClientProgramPlan(env, id, current, {
+      source: "before_restore",
+      planId: record.planId,
+      note: `\u041F\u0440\u0435\u0434\u0438 \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 ${revisionId}`
+    });
+  }
+  const now = (/* @__PURE__ */ new Date()).toISOString();
+  const restored = {
+    ...snapshot,
+    editedAt: now,
+    restoredAt: now,
+    restoredFrom: revisionId
+  };
+  await env.FITNESS_KV.put(`plan:${record.planId}`, JSON.stringify(restored), { expirationTtl: PLAN_TTL });
+  record.planTitle = restored.plan?.title || record.planTitle;
+  record.updatedAt = now;
+  record.planEditedAt = now;
+  record.planBriefStale = false;
+  await saveClientProgram(env, record);
+  const index = await loadExerciseIndex(env, ctx);
+  const displayPlan = enrichPlanForClientView(restored.plan, index, restored, env);
+  return jsonResponse({
+    success: true,
+    plan: displayPlan,
+    program: clientProgramPublicView(record),
+    restoredRevisionId: revisionId
+  });
 }
 async function deleteClientProgramRecord(env, id) {
   const record = await loadClientProgram(env, id);
@@ -5682,6 +5829,14 @@ var worker_default = {
       const clientProgramApproveMatch = path.match(/^\/api\/admin\/fitplan\/client-programs\/([A-Za-z0-9_-]+)\/approve$/);
       if (request.method === "POST" && clientProgramApproveMatch) {
         return await handleApproveClientProgram(request, env, clientProgramApproveMatch[1]);
+      }
+      const clientProgramPlanHistoryMatch = path.match(/^\/api\/admin\/fitplan\/client-programs\/([A-Za-z0-9_-]+)\/plan\/history$/);
+      if (request.method === "GET" && clientProgramPlanHistoryMatch) {
+        return await handleAdminListClientProgramPlanHistory(request, env, clientProgramPlanHistoryMatch[1]);
+      }
+      const clientProgramPlanRestoreMatch = path.match(/^\/api\/admin\/fitplan\/client-programs\/([A-Za-z0-9_-]+)\/plan\/restore$/);
+      if (request.method === "POST" && clientProgramPlanRestoreMatch) {
+        return await handleAdminRestoreClientProgramPlan(request, env, ctx, clientProgramPlanRestoreMatch[1]);
       }
       const clientProgramPlanMatch = path.match(/^\/api\/admin\/fitplan\/client-programs\/([A-Za-z0-9_-]+)\/plan$/);
       if (request.method === "GET" && clientProgramPlanMatch) {

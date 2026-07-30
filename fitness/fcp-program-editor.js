@@ -167,6 +167,10 @@ function ensureModal() {
         el('div', { class: 'fcp-editor-head-actions' },
           el('span', { id: 'fcpEditorStatus' }),
           el('button', {
+            type: 'button', class: 'fcp-editor-history', id: 'fcpEditorHistoryBtn',
+            onclick: () => openHistoryPanel(),
+          }, 'История'),
+          el('button', {
             type: 'button', class: 'fcp-editor-save', id: 'fcpEditorSaveBtn', disabled: true,
             onclick: () => save(),
           }, 'Запази'),
@@ -185,7 +189,8 @@ function ensureModal() {
   document.addEventListener('keydown', (e) => {
     if (!modal || modal.hidden) return;
     if (e.key === 'Escape') {
-      if (state?.picker?.open) closePicker();
+      if (modal.querySelector('.fcp-history-panel')) closeHistoryPanel();
+      else if (state?.picker?.open) closePicker();
       else close();
     }
   });
@@ -1101,6 +1106,102 @@ function pickExercise(item) {
   markDirty();
   closePicker();
   renderBoard({ preserveScroll: true });
+}
+
+const HISTORY_SOURCE_LABELS = {
+  manual_edit: 'Ръчна редакция',
+  ai_generate: 'AI генерация',
+  ai_replace: 'Заменен при AI',
+  before_restore: 'Преди възстановяване',
+  restore: 'Възстановена версия',
+  approve: 'Одобрение',
+};
+
+function formatHistoryDate(iso) {
+  if (!iso) return '';
+  try {
+    return new Date(iso).toLocaleString('bg-BG', {
+      day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+    });
+  } catch {
+    return iso;
+  }
+}
+
+function closeHistoryPanel() {
+  modal?.querySelector('.fcp-history-panel')?.remove();
+}
+
+async function openHistoryPanel() {
+  if (!state?.programId) return;
+  closeHistoryPanel();
+  const panel = el('div', { class: 'fcp-history-panel' },
+    el('div', { class: 'fcp-history-head' },
+      el('h4', { text: 'История на програмата' }),
+      el('button', { type: 'button', class: 'fcp-modal-close', 'aria-label': 'Затвори', onclick: () => closeHistoryPanel() }, '×'),
+    ),
+    el('div', { class: 'fcp-history-body', id: 'fcpHistoryBody' }, el('p', { class: 'fcp-picker-empty', text: 'Зареждане…' })),
+  );
+  modal.querySelector('.fcp-editor-panel')?.append(panel);
+
+  try {
+    const res = await fetch(`${apiBase()}/api/admin/fitplan/client-programs/${encodeURIComponent(state.programId)}/plan/history`, {
+      headers: adminHeaders(),
+      cache: 'no-store',
+    });
+    const data = await res.json();
+    const body = $('#fcpHistoryBody');
+    body.innerHTML = '';
+    if (!res.ok || !data.success) throw new Error(data.message || 'Грешка при зареждане');
+    const revisions = data.revisions || [];
+    if (!revisions.length) {
+      body.append(el('p', { class: 'fcp-picker-empty', text: 'Няма запазени версии още. Всяка редакция и AI генерация ще създават snapshot автоматично.' }));
+      return;
+    }
+    body.append(el('p', { class: 'fcp-history-hint', text: 'Последните 30 версии. Възстановяването запазва текущата версия преди замяната.' }));
+    for (const rev of revisions) {
+      const row = el('div', { class: 'fcp-history-row' },
+        el('div', { class: 'fcp-history-row-main' },
+          el('div', { class: 'fcp-history-title', text: rev.planTitle || 'Без заглавие' }),
+          el('div', { class: 'fcp-history-meta', text: `${formatHistoryDate(rev.savedAt)} · ${HISTORY_SOURCE_LABELS[rev.source] || rev.source}` }),
+          rev.note ? el('div', { class: 'fcp-history-note', text: rev.note }) : null,
+        ),
+        el('button', {
+          type: 'button',
+          class: 'fcp-history-restore',
+          onclick: () => restorePlanRevision(rev.id, rev.planTitle),
+        }, 'Възстанови'),
+      );
+      body.append(row);
+    }
+  } catch (e) {
+    const body = $('#fcpHistoryBody');
+    if (body) body.innerHTML = `<p class="fcp-picker-empty">Грешка: ${escapeHtml(e.message)}</p>`;
+  }
+}
+
+async function restorePlanRevision(revisionId, title) {
+  const label = title || 'тази версия';
+  if (!confirm(`Възстановяване на „${label}“?\n\nТекущата версия ще бъде запазена в историята преди замяната.`)) return;
+  try {
+    setStatus('Възстановяване…');
+    const res = await fetch(`${apiBase()}/api/admin/fitplan/client-programs/${encodeURIComponent(state.programId)}/plan/restore`, {
+      method: 'POST',
+      headers: adminHeaders(),
+      body: JSON.stringify({ revisionId }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) throw new Error(data.message || 'Грешка при възстановяване');
+    state.plan = data.plan;
+    state.dirty = false;
+    seedOpenDetailsFromPlan(state.plan, state.openDetails);
+    closeHistoryPanel();
+    renderBoard();
+    setStatus('Възстановена версия');
+    $('#fcpEditorSaveBtn').disabled = true;
+  } catch (e) {
+    setStatus(e.message, true);
+  }
 }
 
 window.FcpProgramEditor = { open, close };
