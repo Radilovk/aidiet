@@ -16,7 +16,14 @@ node test-universality-stress.mjs
 npm run test:plan-adequacy:live -- --confirm
 npm run test:plan-adequacy:live -- --confirm --profiles=all
 npm run test:plan-adequacy:live -- --confirm --base=https://aidiet.radilov-k.workers.dev
+
+# Hard-profile benchmark (stress тестове — Kamen, skip-breakfast, diabetes, vegan…)
+npm run test:plan-adequacy:benchmark -- --confirm
+npm run test:plan-adequacy:benchmark -- --confirm --profiles=quick   # 2 профила
+npm run test:plan-adequacy:benchmark -- --confirm --profiles=hard    # 6 трудни профила
 ```
+
+Резултатите се записват в `benchmark-results/benchmark-{mode}-{timestamp}.json`.
 
 `--confirm` (или `AIDIET_LIVE_TESTS=1`) е задължителен — без него скриптът отказва, за да не се пуска случайно.
 
