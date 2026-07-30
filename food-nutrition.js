@@ -20,6 +20,7 @@ import {
 } from './food-nutrition-data.js';
 import { normalizeFoodKey } from './food-utils.js';
 import { resolveCatalogEntry } from './food-catalog.js';
+import { FOOD_CATALOG } from './food-catalog-data.js';
 
 export { normalizeFoodKey } from './food-utils.js';
 
@@ -43,6 +44,55 @@ export function macroTolerance(targetGrams) {
 }
 
 const CONDIMENT_MAX_GRAMS = 15;
+
+/** Catalog ready_meal → raw product lines (weight shares, sum ≈ 1). */
+const READY_MEAL_PARTS = {
+  meal_rice_chicken: [{ name: 'ориз', share: 0.42 }, { name: 'пилешко месо', share: 0.58 }],
+  meal_fish_potato: [{ name: 'картофи', share: 0.55 }, { name: 'риба', share: 0.45 }],
+  meal_omelet: [{ name: 'яйца', share: 1 }],
+  meal_boiled_egg: [{ name: 'яйца', share: 1 }],
+  meal_chicken_salad: [{ name: 'пилешко месо', share: 0.55 }, { name: 'зеленчук', share: 0.45 }],
+  meal_green_salad: [{ name: 'зеленчук', share: 1 }],
+  meal_oatmeal: [{ name: 'овесени ядки', share: 1 }],
+  meal_yogurt_oats: [{ name: 'кисело мляко', share: 0.6 }, { name: 'овесени ядки', share: 0.4 }],
+  meal_chicken_soup: [{ name: 'пилешко месо', share: 0.35 }, { name: 'зеленчук', share: 0.65 }],
+  meal_veg_soup: [{ name: 'зеленчук', share: 1 }],
+  meal_lentil_stew: [{ name: 'леща', share: 0.7 }, { name: 'зеленчук', share: 0.3 }],
+  meal_bean_stew: [{ name: 'боб', share: 0.7 }, { name: 'зеленчук', share: 0.3 }],
+  meal_chicken_sandwich: [{ name: 'пилешко месо', share: 0.4 }, { name: 'хляб', share: 0.6 }],
+  meal_cottage_bowl: [{ name: 'извара', share: 1 }],
+  meal_skry_bowl: [{ name: 'скир', share: 1 }],
+};
+
+export function expandReadyMealItems(items, extraDb = {}) {
+  const out = [];
+  for (const item of items) {
+    const { entry } = resolveCatalogEntry(item.name);
+    if (!entry || entry.group !== 'ready_meal') {
+      out.push(item);
+      continue;
+    }
+    if (entry.genericOf) {
+      const parent = FOOD_CATALOG.find(e => e.id === entry.genericOf);
+      if (parent) {
+        const { profile, key, unknown } = lookupFoodProfile(parent.name, extraDb);
+        out.push({ ...item, name: parent.name, profile, key, unknown: !!unknown });
+        continue;
+      }
+    }
+    const parts = READY_MEAL_PARTS[entry.id];
+    if (!parts?.length) {
+      out.push(item);
+      continue;
+    }
+    for (const part of parts) {
+      const grams = roundGrams(item.grams * part.share);
+      const { profile, key, unknown } = lookupFoodProfile(part.name, extraDb);
+      out.push({ name: part.name, grams, key, profile, unknown: !!unknown });
+    }
+  }
+  return out;
+}
 
 const GRAM_LINE_RE = /^(.+?)\s+(\d+(?:[.,]\d+)?)\s*(g|г)\b(?:\s*[—\-]\s*(.+))?$/i;
 
@@ -136,7 +186,7 @@ export function parseMealDescription(description) {
       items.push({ name, grams, key, profile, unknown: !!unknown });
     }
   }
-  return items;
+  return expandReadyMealItems(items);
 }
 
 export function roundGrams(grams, step = GRAM_ROUND_STEP) {

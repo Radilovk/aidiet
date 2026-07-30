@@ -1047,9 +1047,10 @@ function calculateMacronutrientRatios(data, activityScore, tdee = null) {
   }
   
   // Adjust for goal
-  if (goal.includes('Мускулна маса')) {
+  const goalStr = Array.isArray(goal) ? goal.join(' ') : String(goal || '');
+  if (goalStr.toLowerCase().includes('мускулна маса')) {
     proteinPerKg *= 1.2;
-  } else if (goal.includes('Отслабване')) {
+  } else if (goalStr.toLowerCase().includes('отслабване')) {
     proteinPerKg *= 1.1; // Slightly more protein to preserve muscle
   }
   
@@ -2790,9 +2791,9 @@ function enforceWeekendFreeDay(strategy) {
   }
 }
 
-/** Default includeDessert when Step 2 omits the flag (sweets craving minus clinical blocks). */
+/** includeDessert follows sweet craving + clinical blocks (AI flag cannot override). */
 function normalizeStrategyDessertFlag(strategy, userData) {
-  if (!strategy || strategy.includeDessert !== undefined) return;
+  if (!strategy) return;
   if (!userHasSweetsCraving(userData?.foodCravings)) {
     strategy.includeDessert = false;
     return;
@@ -2803,6 +2804,16 @@ function normalizeStrategyDessertFlag(strategy, userData) {
     return s.includes('Диабет') || s.includes('Инсулинова резистентност');
   });
   strategy.includeDessert = !blocked;
+}
+
+function stripDessertsWhenDisabled(weekPlan, strategy) {
+  if (!weekPlan || strategy?.includeDessert !== false) return;
+  for (const day of Object.values(weekPlan)) {
+    if (!day?.meals) continue;
+    for (const meal of day.meals) {
+      if (meal.dessert) delete meal.dessert;
+    }
+  }
 }
 
 
@@ -5873,6 +5884,11 @@ async function ensureAssistantCacheFresh(env, session, card, planUpdatedAt, anal
  */
 async function reconcilePlanStructure(plan, userData = null, env = null) {
   if (!plan?.weekPlan) return plan;
+  if (plan.strategy) {
+    normalizeStrategyDessertFlag(plan.strategy, userData);
+    normalizeWeeklyScheme(plan.strategy, plan.summary?.dailyCalories || parseFinalCalories(plan.analysis?.Final_Calories));
+  }
+  stripDessertsWhenDisabled(plan.weekPlan, plan.strategy);
   injectFixedDesserts(plan.weekPlan);
   if (plan.strategy?.weeklyScheme) {
     if (env) {
@@ -7488,8 +7504,9 @@ function syncAnalysisCalories(analysis) {
  */
 function goalIncludes(goal, keyword) {
   if (!goal || !keyword) return false;
-  if (Array.isArray(goal)) return goal.some(g => String(g).includes(keyword));
-  return String(goal).includes(keyword);
+  const kw = String(keyword).toLowerCase();
+  if (Array.isArray(goal)) return goal.some(g => String(g).toLowerCase().includes(kw));
+  return String(goal).toLowerCase().includes(kw);
 }
 
 function getMinRecommendedCalories(gender) {
@@ -7578,6 +7595,48 @@ function normalizeMealBreakdownTypes(strategy) {
 }
 
 /**
+ * Fats+protein macro profile for a late snack slot (Хранене 5).
+ */
+function lateSnackMacroTargets(kcal) {
+  const k = Math.max(50, Math.round(Number(kcal) || MAX_LATE_SNACK_CALORIES));
+  const capped = Math.min(k, MAX_LATE_SNACK_CALORIES);
+  const carbs = Math.min(15, Math.round(capped * 0.15 / 4));
+  const protein = Math.round(capped * 0.40 / 4);
+  const fats = Math.max(0, Math.round((capped - carbs * 4 - protein * 4) / 9));
+  return { calories: capped, protein, carbs, fats };
+}
+
+/**
+ * Clamp Хранене 5 to MAX_LATE_SNACK_CALORIES and move surplus to Хранене 2/4.
+ */
+function clampLateSnackInMealBreakdown(day) {
+  if (!day?.mealBreakdown?.length) return;
+  const h5 = day.mealBreakdown.find(m => m.type === 'Хранене 5');
+  if (!h5) return;
+
+  const maxKcal = MAX_LATE_SNACK_CALORIES;
+  const h5Kcal = Number(h5.calories) || 0;
+  const excessKcal = Math.max(0, h5Kcal - maxKcal);
+
+  if (excessKcal > 0) {
+    const excessP = Math.max(0, (Number(h5.protein) || 0) - lateSnackMacroTargets(maxKcal).protein);
+    const excessC = Math.max(0, (Number(h5.carbs) || 0) - lateSnackMacroTargets(maxKcal).carbs);
+    const excessF = Math.max(0, (Number(h5.fats) || 0) - lateSnackMacroTargets(maxKcal).fats);
+    const mains = day.mealBreakdown.filter(m => m.type === 'Хранене 2' || m.type === 'Хранене 4');
+    const sumMainKcal = mains.reduce((s, m) => s + (Number(m.calories) || 0), 0) || 1;
+    for (const m of mains) {
+      const share = (Number(m.calories) || 0) / sumMainKcal;
+      m.calories = Math.round((Number(m.calories) || 0) + excessKcal * share);
+      m.protein = Math.round((Number(m.protein) || 0) + excessP * share);
+      m.carbs = Math.round((Number(m.carbs) || 0) + excessC * share);
+      m.fats = Math.round((Number(m.fats) || 0) + excessF * share);
+    }
+  }
+
+  Object.assign(h5, lateSnackMacroTargets(h5Kcal > maxKcal ? maxKcal : h5Kcal || maxKcal));
+}
+
+/**
  * Ensure weeklyScheme mealBreakdown sums match per-day calorie/macro targets.
  */
 function normalizeWeeklyScheme(strategy, defaultDailyCalories) {
@@ -7587,6 +7646,8 @@ function normalizeWeeklyScheme(strategy, defaultDailyCalories) {
   for (const key of DAY_NUMBER_TO_KEY) {
     const day = strategy.weeklyScheme[key];
     if (!day || !Array.isArray(day.mealBreakdown) || day.mealBreakdown.length === 0) continue;
+
+    clampLateSnackInMealBreakdown(day);
 
     const sumField = (field) => day.mealBreakdown.reduce((s, m) => s + (Number(m[field]) || 0), 0);
     const sumCals = sumField('calories');
@@ -7962,9 +8023,9 @@ function userHasSweetsCraving(foodCravings) {
 }
 
 // Foods allowed in late-night snacks (Хранене 5): fats + proteins only
-const LOW_GI_FOODS = [
-  'кисело мляко', 'скир', 'кефир',
-  'ядки', 'бадеми', 'орехи', 'кашу', 'лешници', 'шамфъстък', 'пекани', 'макадамия'
+const LATE_SNACK_ALLOWED_FOODS = [
+  'кисело мляко', 'скир', 'кефир', 'извара', 'кашкавал',
+  'ядки', 'бадеми', 'орехи', 'кашу', 'лешници', 'шамфъстък', 'пекани', 'макадамия',
 ];
 
 // ADLE v8 Universal Meal Constructor - Hard Rules and Constraints
@@ -8252,47 +8313,42 @@ function validatePlan(plan, userData, substitutions = []) {
         const dinnerIndex = mealTypes.findIndex(type => type === 'Хранене 4');
         
         if (dinnerIndex !== -1 && dinnerIndex !== mealTypes.length - 1) {
-          // Dinner exists but is not the last meal - check if there's justification
           const mealsAfterDinner = day.meals.slice(dinnerIndex + 1);
           const mealsAfterDinnerTypes = mealsAfterDinner.map(m => m.type);
-          
-          // Check if strategy provides specific justification for meals after dinner
-          const hasAfterDinnerJustification = plan.strategy && 
-                                               plan.strategy.afterDinnerMealJustification && 
-                                               plan.strategy.afterDinnerMealJustification !== 'Не са необходими';
-          
-          // Allow meals after dinner if there's clear justification in strategy
-          // Otherwise, require it to be a late-night snack with appropriate properties
+
+          const hasAfterDinnerJustification = plan.strategy &&
+            plan.strategy.afterDinnerMealJustification &&
+            plan.strategy.afterDinnerMealJustification !== 'Не са необходими';
+
           if (!hasAfterDinnerJustification) {
-            // No justification - apply strict rules for late-night snack only
-            if (mealsAfterDinner.length > 1 || 
+            if (mealsAfterDinner.length > 1 ||
                 (mealsAfterDinner.length === 1 && mealsAfterDinnerTypes[0] !== 'Хранене 5')) {
               const error = `Ден ${i}: Има хранения след Хранене 4 (${mealsAfterDinnerTypes.join(', ')}) без обосновка в strategy.afterDinnerMealJustification. Моля, добави обосновка или премахни храненията след Хранене 4.`;
               errors.push(error);
-              stepErrors.step2_strategy.push(error); // This is a strategy issue
-            } else if (mealsAfterDinner.length === 1 && mealsAfterDinnerTypes[0] === 'Хранене 5') {
-              // Validate that late-night snack contains only fats+proteins (skyr, raw nuts, yogurt)
-              const lateSnack = mealsAfterDinner[0];
-              const snackDescription = (lateSnack.description || '').toLowerCase();
-              const snackName = (lateSnack.name || '').toLowerCase();
-              const snackText = snackDescription + ' ' + snackName;
-              
-              const hasAllowedFood = LOW_GI_FOODS.some(food => snackText.includes(food));
-              
-              if (!hasAllowedFood) {
-                const error = `Ден ${i}: Хранене 5 трябва да съдържа само мазнини и белтъчини (скир, сурови ядки, кисело мляко) или да има ясна обосновка в strategy.afterDinnerMealJustification`;
-                errors.push(error);
-                stepErrors.step3_mealplan.push(error);
-              }
-              
-              // Validate that late-night snack is not too high in calories (warning only if no justification)
-              const snackCalories = parseInt(lateSnack.calories) || 0;
-              if (snackCalories > MAX_LATE_SNACK_CALORIES) {
-                console.log(`Warning Ден ${i}: Хранене 5 има ${snackCalories} калории - препоръчват се максимум ${MAX_LATE_SNACK_CALORIES} калории при липса на обосновка`);
-              }
+              stepErrors.step2_strategy.push(error);
             }
           }
-          // If there IS afterDinnerMealJustification, we allow meals after dinner without strict validation
+
+          if (mealsAfterDinner.length === 1 && mealsAfterDinnerTypes[0] === 'Хранене 5') {
+            const lateSnack = mealsAfterDinner[0];
+            const snackDescription = (lateSnack.description || '').toLowerCase();
+            const snackName = (lateSnack.name || '').toLowerCase();
+            const snackText = snackDescription + ' ' + snackName;
+
+            const hasAllowedFood = LATE_SNACK_ALLOWED_FOODS.some(food => snackText.includes(food));
+            if (!hasAllowedFood) {
+              const error = `Ден ${i}: Хранене 5 трябва да съдържа само мазнини и белтъчини (скир, кисело мляко, ядки, кашкавал)`;
+              errors.push(error);
+              stepErrors.step3_mealplan.push(error);
+            }
+
+            const snackCalories = parseInt(lateSnack.calories) || 0;
+            if (snackCalories > MAX_LATE_SNACK_CALORIES) {
+              const error = `Ден ${i}: Хранене 5 има ${snackCalories} калории — максимум ${MAX_LATE_SNACK_CALORIES}`;
+              errors.push(error);
+              stepErrors.step3_mealplan.push(error);
+            }
+          }
         }
         
         // Check for invalid meal types
@@ -9381,7 +9437,8 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
       sleepHours: data.sleepHours || '',
       TEMPERAMENT_CONFIDENCE_THRESHOLD,
       clinicalProtocolSection: (() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buildClinicalProtocolPromptSection(p) : ''; })(),
-      clinicalProtocolName: (() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? p.name : ''; })()
+      clinicalProtocolName: (() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? p.name : ''; })(),
+      MAX_LATE_SNACK_CALORIES,
     });
 
     const weeklySection = buildWeeklyAdaptationContextSection(data);

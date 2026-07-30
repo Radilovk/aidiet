@@ -280,7 +280,7 @@ export function formatCatalogSectionForPrompt(candidatesBySlot, { minUniversalit
 
   const ready = candidatesBySlot.get('READY') || [];
   if (ready.length) {
-    lines.push(`Готови ястия:`);
+    lines.push(`Готови ястия (backend разбива на сурови продукти при синхрон):`);
     for (const item of ready) {
       lines.push(`  • ${formatCatalogEntryLabel(item)}`);
     }
