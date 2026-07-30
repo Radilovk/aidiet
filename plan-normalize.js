@@ -1,0 +1,223 @@
+/**
+ * Universal plan normalization — deterministic fixes for common AI output drift.
+ * Used by worker (write path) and adequacy validators (read path).
+ *
+ * Principles:
+ *  1. mealBreakdown slots must be achievable (fair kcal share, absolute ceilings).
+ *  2. Budget slots (Свободно хранене) are calorie allowances, not plated meals.
+ *  3. Light slots (H3/H5) have lower minimum weight than main meals.
+ *  4. Analysis severity labels must match severityValue bands.
+ */
+
+export const MAX_PLATED_SLOT_KCAL_ABSOLUTE = 900;
+export const MAX_PLATED_SLOT_KCAL_BASE = 800;
+export const FREE_MEAL_MAX_DAILY_RATIO = 0.45;
+export const MIN_MAIN_MEAL_WEIGHT_GRAMS = 50;
+export const MIN_LIGHT_MEAL_WEIGHT_GRAMS = 20;
+
+export const KEY_PROBLEM_SEVERITY_RANGES = {
+  Borderline: [45, 59],
+  Risky: [60, 79],
+  Critical: [80, 95],
+};
+
+const BUDGET_SLOT_TYPES = new Set(['Свободно хранене', 'Напитка']);
+const LIGHT_MEAL_TYPES = new Set(['Хранене 3', 'Хранене 5']);
+const FIXED_KCAL_SLOT_TYPES = new Set(['Хранене 5']);
+
+export function isBudgetMealSlot(type) {
+  return BUDGET_SLOT_TYPES.has(type);
+}
+
+export function isLightMealSlot(type) {
+  return LIGHT_MEAL_TYPES.has(type);
+}
+
+export function minMealWeightGrams(mealType) {
+  return isLightMealSlot(mealType) ? MIN_LIGHT_MEAL_WEIGHT_GRAMS : MIN_MAIN_MEAL_WEIGHT_GRAMS;
+}
+
+export function severityLabelForValue(value) {
+  const v = Number(value);
+  if (!Number.isFinite(v)) return null;
+  if (v >= KEY_PROBLEM_SEVERITY_RANGES.Critical[0]) return 'Critical';
+  if (v >= KEY_PROBLEM_SEVERITY_RANGES.Risky[0]) return 'Risky';
+  if (v >= KEY_PROBLEM_SEVERITY_RANGES.Borderline[0]) return 'Borderline';
+  return 'Borderline';
+}
+
+function sumField(breakdown, field) {
+  return breakdown.reduce((s, m) => s + (Number(m[field]) || 0), 0);
+}
+
+function platedSlots(breakdown) {
+  return breakdown.filter(m => !BUDGET_SLOT_TYPES.has(m.type) && !FIXED_KCAL_SLOT_TYPES.has(m.type));
+}
+
+function redistributeMacros(slot, ratio) {
+  slot.calories = Math.round((Number(slot.calories) || 0) * ratio);
+  slot.protein = Math.round((Number(slot.protein) || 0) * ratio);
+  slot.carbs = Math.round((Number(slot.carbs) || 0) * ratio);
+  slot.fats = Math.round((Number(slot.fats) || 0) * ratio);
+}
+
+/**
+ * Per-slot kcal ceiling from daily budget and plated meal count.
+ * High-TDEE clients with few meals need a higher ceiling than 800 — but never above 900.
+ */
+export function maxPlatedSlotKcal(mealBreakdown, dailyKcal) {
+  const breakdown = mealBreakdown || [];
+  const daily = Math.max(0, Number(dailyKcal) || 0);
+  const freeKcal = breakdown.find(m => m.type === 'Свободно хранене')?.calories || 0;
+  const h5Kcal = breakdown.find(m => m.type === 'Хранене 5')?.calories || 0;
+  const plated = platedSlots(breakdown);
+  const platedBudget = Math.max(0, daily - Number(freeKcal) - Number(h5Kcal));
+  const n = plated.length || 1;
+  const fairShare = platedBudget / n;
+  const dynamic = Math.ceil(fairShare * 1.1);
+  return Math.min(
+    MAX_PLATED_SLOT_KCAL_ABSOLUTE,
+    Math.max(MAX_PLATED_SLOT_KCAL_BASE, dynamic),
+  );
+}
+
+function capSlotMacros(slot, maxKcal) {
+  const current = Number(slot.calories) || 0;
+  if (current <= maxKcal) return 0;
+  const ratio = maxKcal / current;
+  redistributeMacros(slot, ratio);
+  return current - maxKcal;
+}
+
+function addMacrosToSlot(slot, deltaKcal, deltaP, deltaC, deltaF) {
+  slot.calories = Math.round((Number(slot.calories) || 0) + deltaKcal);
+  slot.protein = Math.round((Number(slot.protein) || 0) + deltaP);
+  slot.carbs = Math.round((Number(slot.carbs) || 0) + deltaC);
+  slot.fats = Math.round((Number(slot.fats) || 0) + deltaF);
+}
+
+/**
+ * Rebalance plated slots: cap oversized entries, redistribute surplus fairly.
+ */
+export function rebalanceMealBreakdownSlots(day, dailyKcal) {
+  if (!day?.mealBreakdown?.length) return;
+
+  const daily = Number(dailyKcal) || Number(day.calories) || sumField(day.mealBreakdown, 'calories');
+  const free = day.mealBreakdown.find(m => m.type === 'Свободно хранене');
+  if (free) {
+    const maxFree = Math.max(350, Math.round(daily * FREE_MEAL_MAX_DAILY_RATIO));
+    const excess = capSlotMacros(free, maxFree);
+    if (excess > 0) {
+      // surplus from an oversized free-meal budget goes to plated slots below
+      const recipients = platedSlots(day.mealBreakdown).filter(m => (Number(m.calories) || 0) < maxPlatedSlotKcal(day.mealBreakdown, daily));
+      const sum = recipients.reduce((s, m) => s + (Number(m.calories) || 0), 0) || recipients.length || 1;
+      for (const r of recipients) {
+        const share = (Number(r.calories) || 0) / sum || 1 / recipients.length;
+        addMacrosToSlot(r, Math.round(excess * share), 0, 0, 0);
+      }
+    }
+  }
+
+  const maxKcal = maxPlatedSlotKcal(day.mealBreakdown, daily);
+
+  for (let pass = 0; pass < 8; pass++) {
+    let poolKcal = 0;
+    let poolP = 0;
+    let poolC = 0;
+    let poolF = 0;
+
+    for (const slot of platedSlots(day.mealBreakdown)) {
+      const current = Number(slot.calories) || 0;
+      if (current > maxKcal) {
+        const ratio = maxKcal / current;
+        poolKcal += current - maxKcal;
+        poolP += (Number(slot.protein) || 0) * (1 - ratio);
+        poolC += (Number(slot.carbs) || 0) * (1 - ratio);
+        poolF += (Number(slot.fats) || 0) * (1 - ratio);
+        redistributeMacros(slot, ratio);
+      }
+    }
+
+    if (poolKcal <= 0) break;
+
+    const recipients = platedSlots(day.mealBreakdown)
+      .filter(m => (Number(m.calories) || 0) < maxKcal - 5);
+    if (!recipients.length) break;
+
+    const headroom = recipients.map(m => maxKcal - (Number(m.calories) || 0));
+    const totalHeadroom = headroom.reduce((a, b) => a + b, 0) || 1;
+
+    for (let i = 0; i < recipients.length; i++) {
+      const share = headroom[i] / totalHeadroom;
+      addMacrosToSlot(
+        recipients[i],
+        Math.round(poolKcal * share),
+        Math.round(poolP * share),
+        Math.round(poolC * share),
+        Math.round(poolF * share),
+      );
+    }
+  }
+}
+
+/** Clamp severityValue ↔ severity label; fill missing health score. */
+export function normalizeAnalysisOutput(analysis) {
+  if (!analysis || typeof analysis !== 'object') return analysis;
+
+  if (Array.isArray(analysis.keyProblems)) {
+    for (const problem of analysis.keyProblems) {
+      if (!problem || problem.severity === 'Normal') continue;
+      const sv = Number(problem.severityValue);
+      if (!Number.isFinite(sv)) continue;
+
+      const band = KEY_PROBLEM_SEVERITY_RANGES[problem.severity];
+      if (!band || sv < band[0] || sv > band[1]) {
+        const label = severityLabelForValue(sv);
+        if (label) problem.severity = label;
+        else if (band) {
+          problem.severityValue = Math.round((band[0] + band[1]) / 2);
+        }
+      }
+    }
+  }
+
+  if (!analysis.currentHealthStatus || typeof analysis.currentHealthStatus !== 'object') {
+    analysis.currentHealthStatus = {};
+  }
+  const hs = analysis.currentHealthStatus;
+
+  if (typeof hs.score !== 'number' || Number.isNaN(hs.score)) {
+    const values = (analysis.keyProblems || [])
+      .map(p => Number(p.severityValue))
+      .filter(v => Number.isFinite(v));
+    if (values.length) {
+      const avg = values.reduce((a, b) => a + b, 0) / values.length;
+      hs.score = Math.round(Math.max(15, Math.min(95, 100 - avg * 0.75)));
+    }
+  }
+
+  if (!hs.description || String(hs.description).length < 20) {
+    const titles = (analysis.keyProblems || []).slice(0, 3).map(p => p.title).filter(Boolean);
+    hs.description = titles.length
+      ? `Здравословното състояние е повлияно от: ${titles.join(', ')}.`
+      : 'Общата здравна оценка отразява комбинацията от хранителни, метаболитни и поведенчески фактори.';
+  }
+
+  if (!Array.isArray(hs.keyIssues) || !hs.keyIssues.length) {
+    hs.keyIssues = (analysis.keyProblems || []).slice(0, 4).map(p => p.title).filter(Boolean);
+  }
+
+  return analysis;
+}
+
+/** Strategy validator helper — budget slots exempt from plated kcal cap. */
+export function validateSlotCalories(entry, dayScheme) {
+  if (!entry || isBudgetMealSlot(entry.type)) return null;
+  if (entry.type === 'Хранене 5') return null; // capped separately
+  const daily = Number(dayScheme?.calories) || sumField(dayScheme?.mealBreakdown || [], 'calories');
+  const maxKcal = maxPlatedSlotKcal(dayScheme?.mealBreakdown, daily);
+  if ((Number(entry.calories) || 0) > maxKcal) {
+    return `${entry.type} ${entry.calories} kcal > ${maxKcal}`;
+  }
+  return null;
+}

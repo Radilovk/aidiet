@@ -41,6 +41,11 @@ import {
   MAX_MEAL_WEIGHT_GRAMS,
 } from './food-nutrition.js';
 import {
+  rebalanceMealBreakdownSlots,
+  normalizeAnalysisOutput,
+  minMealWeightGrams,
+} from './plan-normalize.js';
+import {
   buildCatalogPromptSection,
   validateProductNamesInCatalog,
   validateProductNamesAgainstProtocol,
@@ -5888,6 +5893,7 @@ async function reconcilePlanStructure(plan, userData = null, env = null) {
     normalizeStrategyDessertFlag(plan.strategy, userData);
     normalizeWeeklyScheme(plan.strategy, plan.summary?.dailyCalories || parseFinalCalories(plan.analysis?.Final_Calories));
   }
+  if (plan.analysis) normalizeAnalysisOutput(plan.analysis);
   stripDessertsWhenDisabled(plan.weekPlan, plan.strategy);
   injectFixedDesserts(plan.weekPlan);
   if (plan.strategy?.weeklyScheme) {
@@ -7667,12 +7673,14 @@ function normalizeWeeklyScheme(strategy, defaultDailyCalories) {
     clampLateSnackInMealBreakdown(day);
 
     const sumField = (field) => day.mealBreakdown.reduce((s, m) => s + (Number(m[field]) || 0), 0);
-    const sumCals = sumField('calories');
-    const sumP = sumField('protein');
-    const sumC = sumField('carbs');
-    const sumF = sumField('fats');
+    const targetCals = Number(day.calories) || defaultDailyCalories || sumField('calories');
+    rebalanceMealBreakdownSlots(day, targetCals);
 
-    const targetCals = Number(day.calories) || defaultDailyCalories || sumCals;
+    let sumCals = sumField('calories');
+    let sumP = sumField('protein');
+    let sumC = sumField('carbs');
+    let sumF = sumField('fats');
+
     if (!day.meals) day.meals = day.mealBreakdown.length;
 
     if (sumCals > 0 && targetCals > 0 && Math.abs(sumCals - targetCals) > calorieTolerance(targetCals)) {
@@ -7869,8 +7877,11 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocol
       const weightMatch = String(meal.weight).match(/(\d+(?:\.\d+)?)\s*(?:g|г)/i);
       if (weightMatch) {
         const weightGrams = parseFloat(weightMatch[1]);
+        const minWeight = minMealWeightGrams(meal.type);
         if (weightGrams > MAX_MEAL_WEIGHT_GRAMS) {
           errors.push(`Ден ${dayNum} ${meal.type}: weight ${weightGrams}g > ${MAX_MEAL_WEIGHT_GRAMS}g`);
+        } else if (weightGrams < minWeight) {
+          errors.push(`Ден ${dayNum} ${meal.type}: weight ${weightGrams}g < ${minWeight}g`);
         }
       }
     }
@@ -8269,7 +8280,8 @@ function validatePlan(plan, userData, substitutions = []) {
               const weightMatch = meal.weight.match(/(\d+(?:\.\d+)?)\s*(?:g|г)/i);
               if (weightMatch) {
                 const weightGrams = parseFloat(weightMatch[1]);
-                if (weightGrams < 50) {
+                const minWeight = minMealWeightGrams(meal.type);
+                if (weightGrams < minWeight) {
                   warnings.push(`Ден ${i}, хранене ${mealIndex + 1} (${meal.type}): Много малка порция (${weightGrams}g) - проверете дали е реалистична`);
                 } else if (weightGrams > 800) {
                   warnings.push(`Ден ${i}, хранене ${mealIndex + 1} (${meal.type}): Много голяма порция (${weightGrams}g) - проверете дали е реалистична`);
@@ -8750,6 +8762,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
       
       analysis = parseAIResponse(analysisResponse);
+      normalizeAnalysisOutput(analysis);
       
       if (!analysis || analysis.error) {
         throw new Error(`Регенерацията на анализа се провали: ${analysis?.error || 'Невалиден формат'}`);
@@ -9013,6 +9026,7 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
       console.log(`Step 1 tokens: input=${analysisInputTokens}, output=${analysisOutputTokens}, cumulative=${cumulativeTokens.total}`);
       
       analysis = parseAIResponse(analysisResponse);
+      normalizeAnalysisOutput(analysis);
       
       if (!analysis || analysis.error) {
         const errorMsg = analysis.error || 'Невалиден формат на отговор';

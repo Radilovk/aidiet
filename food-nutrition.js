@@ -344,6 +344,21 @@ function nudgeItemsTowardKcal(items, goal) {
   return scaled;
 }
 
+function trimToMaxWeight(items) {
+  const working = items.map(i => ({ ...i }));
+  for (let guard = 0; guard < 24 && sumGrams(working) > MAX_MEAL_WEIGHT_GRAMS; guard++) {
+    const candidates = [...working].filter(i => i.grams > GRAM_ROUND_STEP);
+    candidates.sort((a, b) => {
+      const bulkDiff = (isBulkItem(b) ? 1 : 0) - (isBulkItem(a) ? 1 : 0);
+      return bulkDiff || b.grams - a.grams;
+    });
+    const target = candidates[0];
+    if (!target) break;
+    target.grams = Math.max(GRAM_ROUND_STEP, target.grams - GRAM_ROUND_STEP);
+  }
+  return working;
+}
+
 function scaleUniform(items, goal) {
   const base = sumItemNutrition(items);
   if (base.kcal <= 0) return items;
@@ -462,6 +477,9 @@ export function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}
   }
   if (targetKcal > 0) {
     items = scaleItemsToTargetCalories(items, targetKcal, dessertNutrition);
+    if (sumGrams(items) > MAX_MEAL_WEIGHT_GRAMS) {
+      items = trimToMaxWeight(items);
+    }
   }
 
   const totals = sumItemNutrition(items);

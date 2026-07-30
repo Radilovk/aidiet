@@ -1,0 +1,161 @@
+{
+  "timestamp": "2026-07-30T23:35:16.898Z",
+  "base": "https://aidiet.radilov-k.workers.dev",
+  "mode": "hard",
+  "provider": "google",
+  "model": "gemini-2.5-flash",
+  "pass": 1,
+  "total": 6,
+  "results": [
+    {
+      "id": "kamen_benchmark",
+      "ok": false,
+      "elapsed": 137,
+      "jobId": "a35b39d8-bfd2-4eb6-beb2-042f643da912",
+      "calories": 2774,
+      "includeDessert": false,
+      "mealsPerDay": 4,
+      "h5Slots": "monday:200, tuesday:200, wednesday:200, thursday:200, friday:200, saturday:200, sunday:200",
+      "issueCount": 16,
+      "issues": [
+        "monday: Хранене 2 900 kcal > 800",
+        "monday: Хранене 4 1424 kcal > 800",
+        "tuesday: Хранене 2 900 kcal > 800",
+        "tuesday: Хранене 4 1424 kcal > 800",
+        "wednesday: Хранене 2 900 kcal > 800",
+        "wednesday: Хранене 4 1424 kcal > 800",
+        "thursday: Хранене 2 900 kcal > 800",
+        "thursday: Хранене 4 1424 kcal > 800",
+        "friday: Хранене 2 900 kcal > 800",
+        "friday: Хранене 4 1424 kcal > 800",
+        "saturday: Свободно хранене 1200 kcal > 800",
+        "saturday: Хранене 4 1374 kcal > 800",
+        "sunday: Хранене 2 900 kcal > 800",
+        "sunday: Хранене 4 1424 kcal > 800",
+        "\"Кашкавал и хрупкави бадеми\": общо 40g — твърде малко",
+        "\"Кашкавал и хрупкави бадеми\": weight 40g < 50g"
+      ],
+      "scorecard": {
+        "structure": 0,
+        "strategy": 0,
+        "nutrition": 15,
+        "foods": 0,
+        "profile": 0,
+        "other": 1
+      },
+      "warnings": 0
+    },
+    {
+      "id": "skip_breakfast_athlete",
+      "ok": false,
+      "elapsed": 137,
+      "jobId": "1cf2ee07-ae68-4eaa-8774-9fc719c6eb52",
+      "calories": 2682,
+      "includeDessert": true,
+      "mealsPerDay": 4,
+      "h5Slots": "monday:200, tuesday:200, wednesday:200, thursday:200, friday:200, saturday:200, sunday:200",
+      "issueCount": 14,
+      "issues": [
+        "monday: Хранене 2 900 kcal > 800",
+        "monday: Хранене 4 1232 kcal > 800",
+        "tuesday: Хранене 2 900 kcal > 800",
+        "tuesday: Хранене 4 1232 kcal > 800",
+        "wednesday: Хранене 2 900 kcal > 800",
+        "wednesday: Хранене 4 1232 kcal > 800",
+        "thursday: Хранене 2 900 kcal > 800",
+        "thursday: Хранене 4 1232 kcal > 800",
+        "friday: Хранене 2 900 kcal > 800",
+        "friday: Хранене 4 1232 kcal > 800",
+        "saturday: Свободно хранене 900 kcal > 800",
+        "saturday: Хранене 4 1232 kcal > 800",
+        "sunday: Хранене 2 900 kcal > 800",
+        "sunday: Хранене 4 1232 kcal > 800"
+      ],
+      "scorecard": {
+        "structure": 0,
+        "strategy": 0,
+        "nutrition": 14,
+        "foods": 0,
+        "profile": 0,
+        "other": 0
+      },
+      "warnings": 0
+    },
+    {
+      "id": "diabetes_sweets_craving",
+      "ok": true,
+      "elapsed": 137,
+      "jobId": "81a044aa-45f0-4709-86c8-c0efa6dbd6ee",
+      "calories": 1436,
+      "includeDessert": false,
+      "mealsPerDay": 4,
+      "h5Slots": "none",
+      "issueCount": 0,
+      "issues": [],
+      "scorecard": {
+        "structure": 0,
+        "strategy": 0,
+        "nutrition": 0,
+        "foods": 0,
+        "profile": 0,
+        "other": 0
+      },
+      "warnings": 0
+    },
+    {
+      "id": "emotional_burger_stress",
+      "ok": false,
+      "elapsed": 137,
+      "jobId": "12431548-22a7-4f4e-9250-79eeba92bb06",
+      "calories": 1491,
+      "includeDessert": true,
+      "mealsPerDay": 3,
+      "h5Slots": "none",
+      "issueCount": 1,
+      "issues": [
+        "\"Компенсаторно поведение\": severityValue 60 извън Borderline (45-59)"
+      ],
+      "scorecard": {
+        "structure": 0,
+        "strategy": 0,
+        "nutrition": 0,
+        "foods": 0,
+        "profile": 0,
+        "other": 1
+      },
+      "warnings": 0
+    },
+    {
+      "id": "lactation_deficit",
+      "ok": false,
+      "elapsed": 129,
+      "jobId": "6aaa71df-e1d8-44f4-86ed-26957ad02bb6",
+      "calories": 1607,
+      "includeDessert": false,
+      "mealsPerDay": 4,
+      "h5Slots": "none",
+      "issueCount": 1,
+      "issues": [
+        "currentHealthStatus.score липсва"
+      ],
+      "scorecard": {
+        "structure": 1,
+        "strategy": 0,
+        "nutrition": 0,
+        "foods": 0,
+        "profile": 0,
+        "other": 0
+      },
+      "warnings": 0
+    },
+    {
+      "id": "vegan_active",
+      "ok": false,
+      "error": "Генерирането на план се провали: Стъпка 3 (Хранителен план - прогресивно): Генериране на дни 3-3: Ден 3 Хранене 4: weight 810g > 800g",
+      "issueCount": 1,
+      "issues": [
+        "Генерирането на план се провали: Стъпка 3 (Хранителен план - прогресивно): Генериране на дни 3-3: Ден 3 Хранене 4: weight 810g > 800g"
+      ]
+    }
+  ]
+}
