@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KA-TRAINER — Каталог упражнения</title>
+  <link rel="stylesheet" href="./exercise-catalog.css">
+</head>
+<body class="ec-page">
+  <div class="ec-shell">
+    <div class="ec-head">
+      <div>
+        <a class="ec-back" href="../admin.html#fitplan">← Админ панел</a>
+        <h1>Каталог упражнения</h1>
+        <p>Редактируема база: BG имена, класификатори (diff/gf/gm), тагове, gear, изключване от AI.</p>
+      </div>
+      <div class="ec-toolbar">
+        <button type="button" class="ec-btn ghost" id="ecExportBtn">Експорт JSON</button>
+        <label class="ec-btn ghost" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
+          Импорт JSON
+          <input type="file" id="ecImportFile" accept="application/json,.json" class="ec-hidden">
+        </label>
+      </div>
+    </div>
+
+    <div class="ec-layout" id="ecLayout">
+      <div class="ec-card">
+        <div class="ec-toolbar">
+          <div class="ec-field ec-field-grow">
+            <label for="ecSearch">Търсене</label>
+            <input type="search" id="ecSearch" placeholder="име, id, таг, оборудване…">
+          </div>
+          <div class="ec-field">
+            <label for="ecDiff">Трудност</label>
+            <select id="ecDiff">
+              <option value="">Всички</option>
+              <option value="1">1 — начинаещ</option>
+              <option value="2">2 — среден</option>
+              <option value="3">3 — напреднал</option>
+            </select>
+          </div>
+          <div class="ec-field">
+            <label for="ecExcluded">Изключени</label>
+            <select id="ecExcluded">
+              <option value="">Всички</option>
+              <option value="no">Активни</option>
+              <option value="yes">Само изключени</option>
+            </select>
+          </div>
+          <button type="button" class="ec-btn" id="ecSearchBtn">Търси</button>
+        </div>
+
+        <div class="ec-table-wrap">
+          <table class="ec-table" id="ecTable">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>EN име</th>
+                <th>BG име</th>
+                <th>d</th>
+                <th>gf/gm</th>
+                <th>Тагове</th>
+              </tr>
+            </thead>
+            <tbody id="ecTableBody"></tbody>
+          </table>
+        </div>
+        <div class="ec-pager">
+          <button type="button" class="ec-btn ghost" id="ecPrevBtn">←</button>
+          <span id="ecPagerMeta" class="ec-muted"></span>
+          <button type="button" class="ec-btn ghost" id="ecNextBtn">→</button>
+        </div>
+        <div class="ec-status" id="ecListStatus"></div>
+      </div>
+
+      <div class="ec-card ec-editor ec-hidden" id="ecEditor">
+        <h2 id="ecEditorTitle">Упражнение</h2>
+        <p class="sub" id="ecEditorSub"></p>
+        <div class="ec-grid">
+          <div class="ec-field full">
+            <label for="ecNameBg">Българско име (nameBg)</label>
+            <input type="text" id="ecNameBg" placeholder="Напр. Напад напред">
+            <span class="ec-muted" id="ecAutoNameHint"></span>
+          </div>
+          <div class="ec-field">
+            <label for="ecDiffEdit">Трудност (1–3)</label>
+            <input type="number" id="ecDiffEdit" min="1" max="3" step="1">
+          </div>
+          <div class="ec-field">
+            <label for="ecGf">GF (жена)</label>
+            <input type="number" id="ecGf" min="0" max="100" step="1">
+          </div>
+          <div class="ec-field">
+            <label for="ecGm">GM (мъж)</label>
+            <input type="number" id="ecGm" min="0" max="100" step="1">
+          </div>
+          <div class="ec-field full">
+            <label for="ecFlags">Тагове (flags)</label>
+            <input type="text" id="ecFlags" placeholder="compound, bodyweight, beginner_safe">
+          </div>
+          <div class="ec-field full">
+            <label for="ecGear">Gear (реален уред)</label>
+            <input type="text" id="ecGear" placeholder="floor, wall, bench, pull_bar">
+          </div>
+          <div class="ec-field full">
+            <label for="ecEquipNorm">Effective equip norm</label>
+            <input type="text" id="ecEquipNorm" placeholder="body weight, dumbbell, rings…">
+          </div>
+          <div class="ec-field full">
+            <label><input type="checkbox" id="ecExcluded"> Изключи от AI каталога</label>
+          </div>
+          <div class="ec-field full">
+            <label for="ecInstructionsBg">Инструкции BG</label>
+            <textarea id="ecInstructionsBg" rows="5"></textarea>
+          </div>
+        </div>
+        <div class="ec-editor-actions">
+          <button type="button" class="ec-btn" id="ecSaveBtn">Запази</button>
+          <button type="button" class="ec-btn ghost" id="ecCloseBtn">Затвори</button>
+        </div>
+        <div class="ec-status" id="ecEditorStatus"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const WORKER_URL = params.get('worker') || 'https://aidiet.radilov-k.workers.dev';
+    const ADMIN_PASSWORD = params.get('secret') || 'nutriplan2024';
+
+    const state = {
+      page: 1,
+      limit: 50,
+      total: 0,
+      pages: 1,
+      items: [],
+      selected: null,
+    };
+
+    function headers() {
+      return {
+        'Content-Type': 'application/json',
+        'X-Admin-Secret': ADMIN_PASSWORD,
+      };
+    }
+
+    function $(id) { return document.getElementById(id); }
+
+    function setStatus(el, text, isError) {
+      if (!el) return;
+      el.textContent = text || '';
+      el.style.color = isError ? '#b91c1c' : '';
+    }
+
+    function badge(text, cls) {
+      return `<span class="ec-badge ${cls || ''}">${text}</span>`;
+    }
+
+    function renderTable() {
+      const body = $('ecTableBody');
+      body.innerHTML = state.items.map((row) => {
+        const flags = (row.flags || []).slice(0, 4).map((f) => badge(f, f === 'excluded' ? 'off' : '')).join('');
+        const more = (row.flags || []).length > 4 ? badge(`+${row.flags.length - 4}`, 'warn') : '';
+        const active = state.selected?.id === row.id ? 'active' : '';
+        return `<tr class="${active}" data-id="${row.id}">
+          <td>${row.id}</td>
+          <td>${escapeHtml(row.name)}</td>
+          <td>${escapeHtml(row.displayName || row.nameBg || row.autoNameBg || '')}</td>
+          <td>${row.diff ?? ''}</td>
+          <td>${row.gf ?? ''}/${row.gm ?? ''}</td>
+          <td>${flags}${more}${row.excluded ? badge('изключено', 'off') : ''}</td>
+        </tr>`;
+      }).join('');
+
+      body.querySelectorAll('tr').forEach((tr) => {
+        tr.addEventListener('click', () => openEditor(tr.dataset.id));
+      });
+
+      $('ecPagerMeta').textContent = `Стр. ${state.page} / ${state.pages} · ${state.total} общо`;
+      $('ecPrevBtn').disabled = state.page <= 1;
+      $('ecNextBtn').disabled = state.page >= state.pages;
+    }
+
+    function escapeHtml(s) {
+      return String(s || '').replace(/[&<>"']/g, (c) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+      }[c]));
+    }
+
+    async function loadList() {
+      setStatus($('ecListStatus'), 'Зареждане…');
+      const q = new URLSearchParams({
+        page: String(state.page),
+        limit: String(state.limit),
+        q: $('ecSearch').value.trim(),
+        diff: $('ecDiff').value,
+        excluded: $('ecExcluded').value,
+      });
+      const res = await fetch(`${WORKER_URL}/api/admin/fitplan/exercise-catalog?${q}`, { headers: headers() });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || data.error || `HTTP ${res.status}`);
+      state.items = data.items || [];
+      state.page = data.page || 1;
+      state.pages = data.pages || 1;
+      state.total = data.total || 0;
+      renderTable();
+      setStatus($('ecListStatus'), `${data.totalInDataset || state.total} в dataset · показани ${state.items.length}`);
+    }
+
+    function showEditor(show) {
+      $('ecEditor').classList.toggle('ec-hidden', !show);
+      $('ecLayout').classList.toggle('has-editor', show);
+    }
+
+    async function openEditor(id) {
+      setStatus($('ecEditorStatus'), 'Зареждане…');
+      const res = await fetch(`${WORKER_URL}/api/admin/fitplan/exercise-catalog/${encodeURIComponent(id)}`, { headers: headers() });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setStatus($('ecEditorStatus'), data.message || 'Грешка', true);
+        return;
+      }
+      state.selected = data.item;
+      const row = data.item;
+      $('ecEditorTitle').textContent = row.name;
+      $('ecEditorSub').textContent = `${row.equipment || ''} · ${row.target || ''} · id ${row.id}`;
+      $('ecNameBg').value = row.nameBg || '';
+      $('ecAutoNameHint').textContent = row.nameBg ? '' : `Авто: ${row.autoNameBg || row.displayName || ''}`;
+      $('ecDiffEdit').value = row.diff ?? 2;
+      $('ecGf').value = row.gf ?? 70;
+      $('ecGm').value = row.gm ?? 70;
+      $('ecFlags').value = (row.flags || []).join(', ');
+      $('ecGear').value = (row.gear || []).join(', ');
+      $('ecEquipNorm').value = row.effectiveEquipNorm || '';
+      $('ecExcluded').checked = Boolean(row.excluded);
+      $('ecInstructionsBg').value = row.instructionsBg || '';
+      showEditor(true);
+      renderTable();
+      setStatus($('ecEditorStatus'), row.overridden?.metadata || row.overridden?.translation ? 'Има ръчни корекции в KV' : '');
+    }
+
+    async function saveEditor() {
+      if (!state.selected) return;
+      setStatus($('ecEditorStatus'), 'Запис…');
+      const payload = {
+        nameBg: $('ecNameBg').value,
+        diff: Number($('ecDiffEdit').value),
+        gf: Number($('ecGf').value),
+        gm: Number($('ecGm').value),
+        flags: $('ecFlags').value,
+        gear: $('ecGear').value,
+        effectiveEquipNorm: $('ecEquipNorm').value,
+        excluded: $('ecExcluded').checked,
+        instructionsBg: $('ecInstructionsBg').value,
+      };
+      const res = await fetch(`${WORKER_URL}/api/admin/fitplan/exercise-catalog/${encodeURIComponent(state.selected.id)}`, {
+        method: 'PUT',
+        headers: headers(),
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setStatus($('ecEditorStatus'), data.message || data.error || 'Грешка при запис', true);
+        return;
+      }
+      state.selected = data.item;
+      setStatus($('ecEditorStatus'), 'Запазено' + (data.indexRebuilt ? ' · индексът е обновен' : ''));
+      await loadList();
+      renderTable();
+    }
+
+    async function exportCatalog() {
+      setStatus($('ecListStatus'), 'Експорт…');
+      const res = await fetch(`${WORKER_URL}/api/admin/fitplan/exercise-catalog/export`, { headers: headers() });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || 'Експортът се провали');
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `exercise-catalog-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      setStatus($('ecListStatus'), `Експортирани ${data.count || 0} упражнения`);
+    }
+
+    async function importCatalog(file) {
+      const text = await file.text();
+      const payload = JSON.parse(text);
+      setStatus($('ecListStatus'), 'Импорт…');
+      const res = await fetch(`${WORKER_URL}/api/admin/fitplan/exercise-catalog/import`, {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || 'Импортът се провали');
+      setStatus($('ecListStatus'), `Импортирани ${data.updated || 0} записа` + (data.indexRebuilt ? ' · индекс обновен' : ''));
+      await loadList();
+    }
+
+    $('ecSearchBtn').addEventListener('click', () => { state.page = 1; loadList().catch((e) => setStatus($('ecListStatus'), e.message, true)); });
+    $('ecSearch').addEventListener('keydown', (e) => { if (e.key === 'Enter') { state.page = 1; loadList().catch((err) => setStatus($('ecListStatus'), err.message, true)); } });
+    $('ecPrevBtn').addEventListener('click', () => { if (state.page > 1) { state.page -= 1; loadList().catch((e) => setStatus($('ecListStatus'), e.message, true)); } });
+    $('ecNextBtn').addEventListener('click', () => { if (state.page < state.pages) { state.page += 1; loadList().catch((e) => setStatus($('ecListStatus'), e.message, true)); } });
+    $('ecSaveBtn').addEventListener('click', () => saveEditor().catch((e) => setStatus($('ecEditorStatus'), e.message, true)));
+    $('ecCloseBtn').addEventListener('click', () => { state.selected = null; showEditor(false); renderTable(); });
+    $('ecExportBtn').addEventListener('click', () => exportCatalog().catch((e) => setStatus($('ecListStatus'), e.message, true)));
+    $('ecImportFile').addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      importCatalog(file).catch((err) => setStatus($('ecListStatus'), err.message, true));
+      e.target.value = '';
+    });
+
+    loadList().catch((e) => setStatus($('ecListStatus'), e.message, true));
+  </script>
+</body>
+</html>

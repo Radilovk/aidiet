@@ -84,6 +84,9 @@ export function metadataForExercise(raw, store = {}) {
       gf: saved.gf ?? 70,
       gm: saved.gm ?? 70,
       flags: saved.flags || [],
+      ...(saved.gear?.length ? { gear: saved.gear } : {}),
+      ...(saved.effectiveEquipNorm ? { effectiveEquipNorm: saved.effectiveEquipNorm } : {}),
+      ...(saved.excluded ? { excluded: true } : {}),
     }
     : heuristicClassification(raw);
   return applyMetadataCorrections(raw, base);
@@ -100,6 +103,7 @@ export function mergeExerciseMetadata(entry, raw, metadata = {}) {
     ...(meta.flags?.length ? { flags: meta.flags } : {}),
     ...(meta.gear?.length ? { gear: meta.gear } : {}),
     ...(meta.traits ? { traits: meta.traits } : {}),
+    ...(meta.excluded ? { excluded: true } : {}),
   };
 }
 
@@ -386,7 +390,9 @@ export function passesEquipment(entry, allowedEquipment) {
 export function filterExercises(index, profile, allowedEquipment = null, modalities = null, pickedApparatus = null, allowedGear = null) {
   if (!index?.length) return [];
   return index.filter((e) =>
-    fitsExerciseProfile(e, profile)
+    !e.excluded
+    && !(e.flags || []).includes('excluded')
+    && fitsExerciseProfile(e, profile)
     && passesBeginnerSafety(e, profile)
     && !isGenderSpecificExerciseName(e.name)
     && passesEquipment(e, allowedEquipment)

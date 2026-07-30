@@ -131,9 +131,9 @@ const EXACT_BG = {
   'leg curl': 'Сгъване за задно бедро',
   'lying leg curl': 'Сгъване за задно бедро лежайки',
   'leg extension': 'Разгъване за предно бедро',
-  'lunge': 'Изпад',
-  'walking lunge': 'Изпади в ход',
-  'dumbbell lunge': 'Изпад с дъмбели',
+  'lunge': 'Напад',
+  'walking lunge': 'Напади в ход',
+  'dumbbell lunge': 'Напад с дъмбели',
   'dip': 'Кофички',
   'chest dip': 'Кофички за гърди',
   'triceps dip': 'Кофички за трицепс',
@@ -152,7 +152,7 @@ const EXACT_BG = {
   'glute bridge two legs on bench': 'Мостик за седалищни с крака на пейка',
   'hamstring stretch': 'Разтягане на задно бедро',
   'seated calf stretch': 'Разтягане на прасец седнал',
-  'forward lunge': 'Изпад напред',
+  'forward lunge': 'Напад напред',
   'bodyweight squat': 'Клек със собствено тегло',
   'chair squat': 'Клек на стол',
   'iron cross stretch': 'Разтягане „железен кръст“',
@@ -235,7 +235,7 @@ function fromPatterns(c) {
   }
   if (/\bpushdown\b/.test(c) || (/\bextension\b/.test(c) && /\btriceps\b/.test(c))) return 'Избутване за трицепс на кабел';
   if (/\bhip thrust\b/.test(c)) return 'Хип тръст';
-  if (/\blunge\b/.test(c)) return /\bwalking\b/.test(c) ? 'Изпади в ход' : 'Изпад';
+  if (/\blunge\b/.test(c)) return /\bwalking\b/.test(c) ? 'Напади в ход' : 'Напад';
   if (/\bdip\b/.test(c)) return 'Кофички';
   if (/\bplank\b/.test(c)) return 'Планк';
   if (/\bcalf raise\b/.test(c)) return 'Повдигане на прасци';

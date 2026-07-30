@@ -25,7 +25,7 @@ test('neutralExerciseName: маха половия маркер', () => {
 
 test('localizeExerciseDisplayName: полови варианти → неутрален BG превод', () => {
   assert.equal(localizeExerciseDisplayName('kneeling push-up (male)'), 'Лицева опора на колене');
-  assert.equal(localizeExerciseDisplayName('forward lunge (male)'), 'Изпад напред');
+  assert.equal(localizeExerciseDisplayName('forward lunge (male)'), 'Напад напред');
   assert.equal(localizeExerciseDisplayName('hamstring stretch'), 'Разтягане на задно бедро');
   assert.equal(localizeExerciseDisplayName('glute bridge march'), 'Мостик за седалищни с марш');
   assert.equal(localizeExerciseDisplayName('push-up (wall)'), 'Лицева опора на стена');

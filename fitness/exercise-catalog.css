@@ -1,0 +1,57 @@
+/* KA-TRAINER — каталог упражнения (админ) */
+.ec-page {
+  min-height: 100vh;
+  background: var(--bg-color, #f8fafc);
+  color: var(--text-dark, #0f172a);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+.ec-shell { max-width: 1280px; margin: 0 auto; padding: 20px 16px 48px; }
+.ec-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.ec-head h1 { margin: 0; font-size: 1.35rem; font-weight: 800; }
+.ec-head p { margin: 4px 0 0; color: var(--text-gray, #64748b); font-size: 0.9rem; }
+.ec-back { color: var(--primary-red, #dc2626); text-decoration: none; font-weight: 600; font-size: 0.88rem; }
+.ec-card {
+  background: var(--white, #fff);
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+[data-theme="dark"] .ec-card { background: #112B2B; border-color: rgba(255,255,255,0.08); }
+.ec-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; margin-bottom: 12px; }
+.ec-field { display: flex; flex-direction: column; gap: 4px; min-width: 120px; }
+.ec-field label { font-size: 0.74rem; font-weight: 700; color: var(--text-gray, #64748b); }
+.ec-field input, .ec-field select, .ec-field textarea {
+  border: 1px solid #d1d5db; border-radius: 9px; padding: 8px 10px; font: inherit; background: var(--white, #fff);
+}
+.ec-field-grow { flex: 1; min-width: 220px; }
+.ec-btn {
+  border: none; border-radius: 9px; padding: 8px 14px; font-size: 0.84rem; font-weight: 700; cursor: pointer;
+  background: var(--primary-red, #dc2626); color: #fff;
+}
+.ec-btn.secondary { background: #6b7280; }
+.ec-btn.ghost { background: transparent; color: var(--text-gray, #64748b); border: 1px solid #d1d5db; }
+.ec-status { font-size: 0.84rem; color: var(--text-gray, #64748b); margin: 8px 0 0; min-height: 1.2em; }
+.ec-table-wrap { overflow: auto; border: 1px solid #e5e7eb; border-radius: 12px; }
+.ec-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.ec-table th, .ec-table td { padding: 8px 10px; border-bottom: 1px solid #eef2f7; text-align: left; vertical-align: top; }
+.ec-table th { position: sticky; top: 0; background: #f8fafc; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.03em; color: #64748b; }
+.ec-table tr { cursor: pointer; }
+.ec-table tr:hover td { background: #fff7f7; }
+.ec-table tr.active td { background: #fef2f2; }
+.ec-badge { display: inline-block; padding: 2px 7px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; background: #f1f5f9; color: #334155; margin: 1px 2px 1px 0; }
+.ec-badge.warn { background: #fef3c7; color: #92400e; }
+.ec-badge.off { background: #fee2e2; color: #991b1b; }
+.ec-pager { display: flex; gap: 8px; align-items: center; justify-content: flex-end; margin-top: 10px; }
+.ec-layout { display: grid; grid-template-columns: 1fr; gap: 14px; }
+@media (min-width: 1080px) {
+  .ec-layout.has-editor { grid-template-columns: 1.2fr 0.8fr; }
+}
+.ec-editor h2 { margin: 0 0 4px; font-size: 1rem; }
+.ec-editor .sub { margin: 0 0 12px; color: var(--text-gray, #64748b); font-size: 0.8rem; }
+.ec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ec-grid .full { grid-column: 1 / -1; }
+.ec-editor textarea { min-height: 88px; resize: vertical; }
+.ec-editor-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.ec-muted { color: var(--text-gray, #64748b); font-size: 0.78rem; }
+.ec-hidden { display: none !important; }
