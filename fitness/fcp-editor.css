@@ -249,6 +249,15 @@
 .fcp-picker-results-hint {
   flex: 1; min-width: 0; font-size: 0.72rem; color: var(--text-gray); font-weight: 600;
 }
+.fcp-picker-section-label {
+  margin: 10px 0 6px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-gray);
+}
+.fcp-picker-section-label:first-child { margin-top: 0; }
 .fcp-picker-results {
   flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 8px 14px 14px;
   display: flex; flex-direction: column; gap: 8px; -webkit-overflow-scrolling: touch;

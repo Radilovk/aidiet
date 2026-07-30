@@ -19,6 +19,8 @@ const DAY_TYPE_LABELS = Object.fromEntries(DAY_TYPES);
 const DAY_SHORT = ['Пон', 'Вто', 'Сря', 'Чет', 'Пет', 'Съб', 'Нед'];
 const DIFF_LABELS = { 1: 'd1 лесно', 2: 'd2 средно', 3: 'd3 трудно' };
 const FACETS_SESSION_KEY = 'fcp.editor.facets.v2';
+const RECENT_EX_KEY = 'fcp.editor.recent.v1';
+const RECENT_EX_MAX = 20;
 const SEARCH_CACHE_MAX = 48;
 const PICKER_PAGE_SIZE = 50;
 
@@ -48,6 +50,62 @@ function debounce(fn, ms) {
     clearTimeout(t);
     t = setTimeout(() => fn(...args), ms);
   };
+  debounced.flush = () => {
+    clearTimeout(t);
+    fn();
+  };
+  return debounced;
+}
+
+function loadRecentExercises() {
+  try {
+    const raw = localStorage.getItem(RECENT_EX_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRecentExercise(item) {
+  if (!item?.id) return;
+  const entry = {
+    id: item.id,
+    name: item.name,
+    displayName: item.displayName || item.nameBg || item.name,
+    imageUrl: item.imageUrl || '',
+    gifUrl: item.gifUrl || '',
+    equipment: item.equipment || '',
+    target: item.target || '',
+    bodyPart: item.bodyPart || item.target || '',
+    diff: item.diff ?? 2,
+    modality: item.modality || '',
+  };
+  const list = loadRecentExercises().filter((x) => x.id !== entry.id);
+  list.unshift(entry);
+  if (list.length > RECENT_EX_MAX) list.length = RECENT_EX_MAX;
+  try { localStorage.setItem(RECENT_EX_KEY, JSON.stringify(list)); } catch { /* quota */ }
+}
+
+function recentMatchesPicker(item, p) {
+  const q = (p.q || '').trim().toLowerCase();
+  if (q) {
+    const hay = `${item.name} ${item.displayName || ''}`.toLowerCase();
+    if (!hay.includes(q)) return false;
+  }
+  if (p.equipment.size) {
+    const expanded = expandEquipmentGroupIds([...p.equipment]);
+    const eq = (item.equipment || '').toLowerCase();
+    if (eq && !expanded.has(eq)) return false;
+  }
+  if (p.target.size && item.target && !p.target.has(item.target)) return false;
+  if (p.modality.size && item.modality && !p.modality.has(item.modality)) return false;
+  if (p.diffMax != null && (item.diff ?? 2) > p.diffMax) return false;
+  return true;
+}
+
+function getRecentForPicker(p) {
+  return loadRecentExercises().filter((item) => recentMatchesPicker(item, p));
+}
   debounced.flush = (...args) => {
     clearTimeout(t);
     fn(...args);
@@ -898,7 +956,7 @@ async function fetchPickerPage(append) {
     p.accumulated = cached.results || [];
     p.total = cached.total ?? p.accumulated.length;
     p.hasMore = p.accumulated.length < p.total;
-    renderPickerResults(p.accumulated, p.total);
+    renderPickerResults(p.accumulated, p.total, getRecentForPicker(p));
     bindPickerScroll();
     return;
   }
@@ -934,7 +992,7 @@ async function fetchPickerPage(append) {
       searchCache.set(cacheKey, { results: pageResults, total: p.total, facets: data.facets || null });
     }
 
-    renderPickerResults(p.accumulated, p.total);
+    renderPickerResults(p.accumulated, p.total, getRecentForPicker(p));
     bindPickerScroll();
   } catch (e) {
     if (e.name === 'AbortError') return;
@@ -945,34 +1003,65 @@ async function fetchPickerPage(append) {
   }
 }
 
-function renderPickerResults(items, total) {
+function makePickerRow(item) {
+  return el('button', { type: 'button', class: 'fcp-picker-row', onclick: () => pickExercise(item) },
+    item.imageUrl ? el('img', { src: item.imageUrl, loading: 'lazy', alt: '' }) : el('div', { class: 'fcp-editor-ex-thumb' }),
+    el('div', { class: 'fcp-picker-row-main' },
+      el('div', { class: 'fcp-picker-row-name', text: item.displayName || item.name }),
+      el('div', { class: 'fcp-picker-row-sub', text: item.name }),
+      el('div', { class: 'fcp-picker-badges' },
+        el('span', { class: 'fcp-picker-badge', text: `d${item.diff ?? 2}` }),
+        item.equipment ? el('span', { class: 'fcp-picker-badge', text: localizeEquipment(item.equipment) || item.equipment }) : null,
+        item.target ? el('span', { class: 'fcp-picker-badge', text: item.target }) : null,
+      ),
+    ),
+  );
+}
+
+function renderPickerResults(items, total, recentItems = []) {
   const results = $('#fcpPickerResults');
   const hint = $('#fcpPickerResultsHint');
   results.innerHTML = '';
-  const shown = items.length;
-  const totalCount = total ?? shown;
+  const seen = new Set();
+  const recent = recentItems || [];
+  const shownRecent = recent.filter((item) => {
+    if (!item?.id || seen.has(item.id)) return false;
+    seen.add(item.id);
+    return true;
+  });
+  const apiItems = (items || []).filter((item) => {
+    if (!item?.id || seen.has(item.id)) return false;
+    seen.add(item.id);
+    return true;
+  });
+  const shown = shownRecent.length + apiItems.length;
+  const totalCount = total ?? apiItems.length;
   if (hint) {
-    hint.textContent = shown
-      ? (totalCount > shown ? `Резултати ${shown} от ${totalCount}` : `Резултати (${shown})`)
-      : 'Резултати';
+    if (!shown) {
+      hint.textContent = 'Резултати';
+    } else if (shownRecent.length && apiItems.length) {
+      hint.textContent = `Последни ${shownRecent.length} · резултати ${apiItems.length}${totalCount > apiItems.length ? ` от ${totalCount}` : ''}`;
+    } else if (shownRecent.length) {
+      hint.textContent = `Последно избрани (${shownRecent.length})`;
+    } else {
+      hint.textContent = totalCount > apiItems.length
+        ? `Резултати ${apiItems.length} от ${totalCount}`
+        : `Резултати (${apiItems.length})`;
+    }
   }
-  if (!items.length) {
+  if (!shown) {
     results.append(el('p', { class: 'fcp-picker-empty', text: 'Няма съвпадения — опитай друга дума или махни филтър.' }));
     return;
   }
-  for (const item of items) {
-    results.append(el('button', { type: 'button', class: 'fcp-picker-row', onclick: () => pickExercise(item) },
-      item.imageUrl ? el('img', { src: item.imageUrl, loading: 'lazy', alt: '' }) : el('div', { class: 'fcp-editor-ex-thumb' }),
-      el('div', { class: 'fcp-picker-row-main' },
-        el('div', { class: 'fcp-picker-row-name', text: item.displayName || item.name }),
-        el('div', { class: 'fcp-picker-row-sub', text: item.name }),
-        el('div', { class: 'fcp-picker-badges' },
-          el('span', { class: 'fcp-picker-badge', text: `d${item.diff ?? 2}` }),
-          item.equipment ? el('span', { class: 'fcp-picker-badge', text: localizeEquipment(item.equipment) || item.equipment }) : null,
-          item.target ? el('span', { class: 'fcp-picker-badge', text: item.target }) : null,
-        ),
-      ),
-    ));
+  if (shownRecent.length) {
+    results.append(el('p', { class: 'fcp-picker-section-label', text: 'Последно избрани' }));
+    for (const item of shownRecent) results.append(makePickerRow(item));
+  }
+  if (apiItems.length) {
+    if (shownRecent.length) {
+      results.append(el('p', { class: 'fcp-picker-section-label', text: 'Резултати от търсенето' }));
+    }
+    for (const item of apiItems) results.append(makePickerRow(item));
   }
   if (state?.picker?.hasMore) {
     results.append(el('p', {
@@ -987,6 +1076,8 @@ function pickExercise(item) {
   const p = state.picker;
   const day = state.plan.days[p.dayIndex];
   if (!day) return;
+
+  saveRecentExercise(item);
 
   if (p.mode === 'swap' && p.exIndex != null) {
     const ex = day.exercises[p.exIndex];
