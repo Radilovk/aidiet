@@ -27,6 +27,8 @@
  *   GET/POST /api/admin/fitplan/client-programs — админ: клиентски програми
  *   GET  /api/admin/fitplan/client-programs/:id/plan — админ: структуриран план за редактор
  *   POST /api/admin/fitplan/client-programs/:id/plan — админ: запис на ръчно редактиран план (без AI)
+ *   GET  /api/admin/fitplan/client-programs/:id/plan/history — админ: версии на плана (KV snapshots)
+ *   POST /api/admin/fitplan/client-programs/:id/plan/restore — админ: възстановяване на версия
  *   POST /api/admin/fitplan/translate-exercises — партида превод + KV индекс (resilient batches)
  *   GET/POST /api/admin/fitplan/classify-exercises — EFP класификация (diff/gf/gm) + KV индекс
  *
@@ -130,6 +132,13 @@ import {
   mergeAllowedEquipment,
   isStrictAssembly,
 } from './plan-generation.js';
+import {
+  archiveClientProgramPlan,
+  formatPlanHistoryEntry,
+  getClientProgramPlanRevision,
+  loadPlanHistoryIndex,
+  PLAN_HISTORY_SOURCE_LABELS,
+} from './plan-history.js';
 
 export {
   normalizeText,
@@ -1761,8 +1770,18 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
   const planId = crypto.randomUUID();
   const now = new Date().toISOString();
 
-  if (oldPlanId && oldPlanId !== planId) {
-    await env.FITNESS_KV.delete(`plan:${oldPlanId}`);
+  if (oldPlanId) {
+    const oldRecord = await env.FITNESS_KV.get(`plan:${oldPlanId}`, { type: 'json' });
+    if (oldRecord?.plan) {
+      await archiveClientProgramPlan(env, record.id, oldRecord, {
+        source: 'ai_replace',
+        planId: oldPlanId,
+        note: `Заменен с нов AI план ${planId}`,
+      });
+    }
+    if (oldPlanId !== planId) {
+      await env.FITNESS_KV.delete(`plan:${oldPlanId}`);
+    }
   }
 
   await env.FITNESS_KV.put(`plan:${planId}`, JSON.stringify({
@@ -1915,6 +1934,11 @@ async function handleAdminUpdateClientProgramPlan(request, env, ctx, id) {
   const planRecord = await env.FITNESS_KV.get(`plan:${record.planId}`, { type: 'json' });
   if (!planRecord) return errorResponse('Планът не е намерен. Генерирай отново.', 404, 'not_found');
 
+  await archiveClientProgramPlan(env, id, planRecord, {
+    source: 'manual_edit',
+    planId: record.planId,
+  });
+
   sanitizePlanBulgarian(plan);
 
   const now = new Date().toISOString();
@@ -1931,6 +1955,73 @@ async function handleAdminUpdateClientProgramPlan(request, env, ctx, id) {
   const index = await loadExerciseIndex(env, ctx);
   const displayPlan = enrichPlanForClientView(plan, index, planRecord, env);
   return jsonResponse({ success: true, plan: displayPlan, program: clientProgramPublicView(record) });
+}
+
+async function handleAdminListClientProgramPlanHistory(request, env, id) {
+  if (!checkAdminSecret(request, env)) return errorResponse('Неоторизиран достъп', 401, 'unauthorized');
+  if (!env.FITNESS_KV) return errorResponse('KV не е конфигурирано', 500);
+
+  const record = await loadClientProgram(env, id);
+  if (!record) return errorResponse('Програмата не е намерена', 404, 'not_found');
+
+  const revisions = await loadPlanHistoryIndex(env, id);
+  return jsonResponse({
+    success: true,
+    programId: id,
+    planId: record.planId || null,
+    revisions: revisions.map(formatPlanHistoryEntry),
+    sourceLabels: PLAN_HISTORY_SOURCE_LABELS,
+  }, 200, { 'Cache-Control': 'private, no-cache, no-store, must-revalidate' });
+}
+
+async function handleAdminRestoreClientProgramPlan(request, env, ctx, id) {
+  if (!checkAdminSecret(request, env)) return errorResponse('Неоторизиран достъп', 401, 'unauthorized');
+  if (!env.FITNESS_KV) return errorResponse('KV не е конфигурирано', 500);
+
+  const record = await loadClientProgram(env, id);
+  if (!record) return errorResponse('Програмата не е намерена', 404, 'not_found');
+  if (!record.planId) return errorResponse('Няма активен план за възстановяване', 404, 'not_found');
+
+  let body;
+  try { body = await request.json(); } catch { return errorResponse('Невалиден JSON', 400); }
+  const revisionId = String(body?.revisionId || '').trim();
+  if (!revisionId) return errorResponse('Липсва revisionId', 400);
+
+  const snapshot = await getClientProgramPlanRevision(env, id, revisionId);
+  if (!snapshot?.plan) return errorResponse('Версията не е намерена', 404, 'not_found');
+
+  const current = await env.FITNESS_KV.get(`plan:${record.planId}`, { type: 'json' });
+  if (current?.plan) {
+    await archiveClientProgramPlan(env, id, current, {
+      source: 'before_restore',
+      planId: record.planId,
+      note: `Преди възстановяване на ${revisionId}`,
+    });
+  }
+
+  const now = new Date().toISOString();
+  const restored = {
+    ...snapshot,
+    editedAt: now,
+    restoredAt: now,
+    restoredFrom: revisionId,
+  };
+  await env.FITNESS_KV.put(`plan:${record.planId}`, JSON.stringify(restored), { expirationTtl: PLAN_TTL });
+
+  record.planTitle = restored.plan?.title || record.planTitle;
+  record.updatedAt = now;
+  record.planEditedAt = now;
+  record.planBriefStale = false;
+  await saveClientProgram(env, record);
+
+  const index = await loadExerciseIndex(env, ctx);
+  const displayPlan = enrichPlanForClientView(restored.plan, index, restored, env);
+  return jsonResponse({
+    success: true,
+    plan: displayPlan,
+    program: clientProgramPublicView(record),
+    restoredRevisionId: revisionId,
+  });
 }
 
 async function deleteClientProgramRecord(env, id) {
@@ -2028,6 +2119,14 @@ export default {
       const clientProgramApproveMatch = path.match(/^\/api\/admin\/fitplan\/client-programs\/([A-Za-z0-9_-]+)\/approve$/);
       if (request.method === 'POST' && clientProgramApproveMatch) {
         return await handleApproveClientProgram(request, env, clientProgramApproveMatch[1]);
+      }
+      const clientProgramPlanHistoryMatch = path.match(/^\/api\/admin\/fitplan\/client-programs\/([A-Za-z0-9_-]+)\/plan\/history$/);
+      if (request.method === 'GET' && clientProgramPlanHistoryMatch) {
+        return await handleAdminListClientProgramPlanHistory(request, env, clientProgramPlanHistoryMatch[1]);
+      }
+      const clientProgramPlanRestoreMatch = path.match(/^\/api\/admin\/fitplan\/client-programs\/([A-Za-z0-9_-]+)\/plan\/restore$/);
+      if (request.method === 'POST' && clientProgramPlanRestoreMatch) {
+        return await handleAdminRestoreClientProgramPlan(request, env, ctx, clientProgramPlanRestoreMatch[1]);
       }
       const clientProgramPlanMatch = path.match(/^\/api\/admin\/fitplan\/client-programs\/([A-Za-z0-9_-]+)\/plan$/);
       if (request.method === 'GET' && clientProgramPlanMatch) {
