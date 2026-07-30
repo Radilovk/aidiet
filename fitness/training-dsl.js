@@ -116,7 +116,32 @@ export function mapAnswersToDslInput(answers = {}) {
   };
 }
 
-export function resolveSplit({ freq, split = 'auto', priority = 'none' } = {}) {
+/**
+ * @typedef {object} DslInput
+ * @property {'fat_loss'|'muscle'|'shape'|'conditioning'|'mobility'} goal
+ * @property {'beginner'|'late_beginner'} level
+ * @property {number} freq
+ * @property {'gym'|'dumbbells'|'bands'|'bodyweight'} env
+ * @property {30|45|60|75} session_min
+ * @property {number} days_available
+ * @property {'none'|'glute'|'posture'} priority
+ * @property {string[]} limits
+ * @property {string} split
+ * @property {string[]} [assumptions]
+ * @property {number} [rawLevel]
+ */
+
+/**
+ * @typedef {object} SplitOptions
+ * @property {number} [freq]
+ * @property {string} [split]
+ * @property {'none'|'glute'|'posture'} [priority]
+ */
+
+/**
+ * @param {SplitOptions} [opts]
+ */
+export function resolveSplit({ freq = 3, split = 'auto', priority = 'none' } = {}) {
   if (split && split !== 'auto') {
     return { template: split, label: String(split), variants: [] };
   }

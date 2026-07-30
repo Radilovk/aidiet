@@ -21,6 +21,8 @@
     "fitness/exercise-translate-batch.js",
     "fitness/exercise-translations.js",
     "fitness/plan-generation.js",
+    "fitness/training-dsl.js",
+    "fitness/program-spec.js",
     "fitness/profile-summary.js",
     "fitness/normalize.js",
     "context-compression.js",
