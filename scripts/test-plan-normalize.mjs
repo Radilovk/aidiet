@@ -10,6 +10,8 @@ import {
   validateLateSnackSlotContent,
   removeBreakfastSlotFromDay,
   userSkipsBreakfast,
+  isMealCaloriesAdequate,
+  slotCalorieTolerance,
   MAX_LATE_SNACK_CALORIES,
 } from '../plan-normalize.js';
 import { applyMealNutritionFromDatabase } from '../food-nutrition.js';
@@ -111,7 +113,6 @@ check('severityLabelForValue(60)=Risky', severityLabelForValue(60) === 'Risky');
 check('MAX_LATE_SNACK_CALORIES=200', MAX_LATE_SNACK_CALORIES === 200);
 
 {
-  const { isMealCaloriesAdequate, slotCalorieTolerance } = await import('../plan-normalize.js');
   check('adequacy: 836 vs 900 within 10%', isMealCaloriesAdequate(836, 900));
   check('adequacy: 562 vs 611 within 10%', isMealCaloriesAdequate(562, 611));
   check('adequacy: 700 vs 900 outside 10%', !isMealCaloriesAdequate(700, 900));
