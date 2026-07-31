@@ -21,6 +21,7 @@ import {
 import { normalizeFoodKey } from './food-utils.js';
 import { resolveCatalogEntry } from './food-catalog.js';
 import { FOOD_CATALOG } from './food-catalog-data.js';
+import { MAX_LATE_SNACK_CALORIES } from './plan-normalize.js';
 
 export { normalizeFoodKey } from './food-utils.js';
 
@@ -215,13 +216,20 @@ function isDairyItem(item) {
   return getCatalogMeta(item.name).group === 'dairy';
 }
 
+function isPortionCappedProtein(item) {
+  if (isBulkItem(item)) return false;
+  const { group, slots } = getCatalogMeta(item.name);
+  if (group === 'dairy') return false;
+  return group === 'protein' || slots?.includes('PRO');
+}
+
 function capCondimentGrams(item, grams) {
   return isCondimentItem(item) ? Math.min(grams, CONDIMENT_MAX_GRAMS) : grams;
 }
 
 function capItemGrams(item, grams) {
   let g = capCondimentGrams(item, grams);
-  if (isDairyItem(item)) g = Math.min(g, DAIRY_MAX_GRAMS);
+  if (isDairyItem(item) || isPortionCappedProtein(item)) g = Math.min(g, DAIRY_MAX_GRAMS);
   return g;
 }
 
@@ -493,6 +501,8 @@ export function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}
     }
   }
 
+  items = items.map(item => ({ ...item, grams: capItemGrams(item, item.grams) }));
+
   const totals = sumItemNutrition(items);
   let p = Math.round(totals.p);
   let c = Math.round(totals.c);
@@ -508,6 +518,18 @@ export function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}
   meal.weight = formatMealWeight(totals.grams, dessertWeight);
   meal.macros = { protein: p, carbs: c, fats: f };
   meal.calories = Math.round(p * 4 + c * 4 + f * 9);
+
+  if (meal.type === 'Хранене 5') {
+    const cap = Math.min(MAX_LATE_SNACK_CALORIES, Number(target?.calories) || MAX_LATE_SNACK_CALORIES);
+    if (meal.calories > cap) {
+      const ratio = cap / meal.calories;
+      p = Math.round(p * ratio);
+      c = Math.round(c * ratio);
+      f = Math.round(f * ratio);
+      meal.macros = { protein: p, carbs: c, fats: f };
+      meal.calories = Math.min(Math.round(p * 4 + c * 4 + f * 9), cap);
+    }
+  }
 
   return { ok: true, unknowns: totals.unknowns };
 }

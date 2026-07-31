@@ -216,6 +216,30 @@ export function isVeganUser(userData) {
   return dietPreferences(userData).some(p => p.includes('Веган'));
 }
 
+export function userSkipsBreakfast(userData) {
+  const habits = userData?.eatingHabits;
+  return Array.isArray(habits) && habits.some(h => String(h).includes('Не закусвам'));
+}
+
+/** Strip Хранене 1 from scheme when client skips breakfast; redistribute kcal to mains. */
+export function removeBreakfastSlotFromDay(day) {
+  if (!day?.mealBreakdown?.length) return;
+  const idx = day.mealBreakdown.findIndex(m => m.type === 'Хранене 1');
+  if (idx < 0) return;
+
+  const h1 = day.mealBreakdown.splice(idx, 1)[0];
+  const surplus = Number(h1.calories) || 0;
+  if (surplus > 0) {
+    const mains = day.mealBreakdown.filter(m => m.type === 'Хранене 2' || m.type === 'Хранене 4');
+    const sum = mains.reduce((s, m) => s + (Number(m.calories) || 0), 0) || mains.length || 1;
+    for (const m of mains) {
+      const share = (Number(m.calories) || 0) / sum || 1 / mains.length;
+      m.calories = Math.round((Number(m.calories) || 0) + surplus * share);
+    }
+  }
+  day.meals = day.mealBreakdown.length;
+}
+
 /** Step 3 prompt — one rule derived from dietary context, not per-profile branches. */
 export function buildMeal3PromptRule(userData) {
   if (isVeganUser(userData)) {

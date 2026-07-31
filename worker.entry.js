@@ -48,6 +48,8 @@ import {
   validateLateSnackSlotContent,
   repairWeekPlanLightSlots,
   buildMeal3PromptRule,
+  removeBreakfastSlotFromDay,
+  userSkipsBreakfast,
   MAX_LATE_SNACK_CALORIES,
 } from './plan-normalize.js';
 import {
@@ -5897,7 +5899,7 @@ async function reconcilePlanStructure(plan, userData = null, env = null) {
   if (!plan?.weekPlan) return plan;
   if (plan.strategy) {
     normalizeStrategyDessertFlag(plan.strategy, userData);
-    normalizeWeeklyScheme(plan.strategy, plan.summary?.dailyCalories || parseFinalCalories(plan.analysis?.Final_Calories));
+    normalizeWeeklyScheme(plan.strategy, plan.summary?.dailyCalories || parseFinalCalories(plan.analysis?.Final_Calories), userData);
   }
   if (plan.analysis) normalizeAnalysisOutput(plan.analysis);
   stripDessertsWhenDisabled(plan.weekPlan, plan.strategy);
@@ -7393,10 +7395,6 @@ const FIXED_DESSERT_WEIGHT_GRAMS = (() => {
   return m ? parseFloat(m[1]) : 0;
 })();
 
-function userSkipsBreakfast(userData) {
-  return Array.isArray(userData?.eatingHabits) && userData.eatingHabits.includes('Не закусвам');
-}
-
 function buildSweetsCravingRule(foodCravings, strategy) {
   if (!userHasSweetsCraving(foodCravings) || strategy?.includeDessert === false) return '';
   const d = FIXED_DESSERT.macros;
@@ -7670,7 +7668,7 @@ function enforceFreeDayMealBreakdown(strategy) {
   }
 }
 
-function normalizeWeeklyScheme(strategy, defaultDailyCalories) {
+function normalizeWeeklyScheme(strategy, defaultDailyCalories, userData = null) {
   if (!strategy?.weeklyScheme) return;
   normalizeMealBreakdownTypes(strategy);
   enforceFreeDayMealBreakdown(strategy);
@@ -7678,6 +7676,8 @@ function normalizeWeeklyScheme(strategy, defaultDailyCalories) {
   for (const key of DAY_NUMBER_TO_KEY) {
     const day = strategy.weeklyScheme[key];
     if (!day || !Array.isArray(day.mealBreakdown) || day.mealBreakdown.length === 0) continue;
+
+    if (userSkipsBreakfast(userData)) removeBreakfastSlotFromDay(day);
 
     clampLateSnackInMealBreakdown(day);
 
@@ -7862,7 +7862,7 @@ function validateMealTypesAgainstBreakdown(dayPlan, dayTarget, dayNum, userData 
       }
     }
   }
-  errors.push(...validateRequiredMealSlots(dayPlan, dayTarget, dayNum));
+  errors.push(...validateRequiredMealSlots(dayPlan, dayTarget, dayNum, userData));
   return errors;
 }
 
@@ -7995,11 +7995,12 @@ function alignDaysToMealBreakdown(weekPlan, strategy, startDay, endDay, userData
   }
 }
 
-function validateRequiredMealSlots(dayPlan, dayTarget, dayNum) {
+function validateRequiredMealSlots(dayPlan, dayTarget, dayNum, userData = null) {
   const errors = [];
   if (!dayTarget?.mealBreakdown?.length) return errors;
   const present = new Set((dayPlan?.meals || []).map(m => m.type));
   for (const slot of dayTarget.mealBreakdown) {
+    if (slot.type === 'Хранене 1' && userSkipsBreakfast(userData)) continue;
     if (slot.type === 'Хранене 2' && dayTarget.mealBreakdown.some(m => m.type === 'Свободно хранене')) continue;
     if (!present.has(slot.type)) {
       errors.push(`Ден ${dayNum}: липсва задължително "${slot.type}"`);
@@ -8825,7 +8826,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       strategy = parseAIResponse(strategyResponse);
       enforceWeekendFreeDay(strategy);
       normalizeStrategyDessertFlag(strategy, data);
-      normalizeWeeklyScheme(strategy, parseFinalCalories(analysis.Final_Calories));
+      normalizeWeeklyScheme(strategy, parseFinalCalories(analysis.Final_Calories), data);
       
       if (!strategy || strategy.error) {
         throw new Error(`Регенерацията на стратегията се провали: ${strategy?.error || 'Невалиден формат'}`);
@@ -9111,7 +9112,7 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
       strategy = parseAIResponse(strategyResponse);
       enforceWeekendFreeDay(strategy);
       normalizeStrategyDessertFlag(strategy, data);
-      normalizeWeeklyScheme(strategy, parseFinalCalories(analysis.Final_Calories));
+      normalizeWeeklyScheme(strategy, parseFinalCalories(analysis.Final_Calories), data);
       
       if (!strategy || strategy.error) {
         const errorMsg = strategy.error || 'Невалиден формат на отговор';

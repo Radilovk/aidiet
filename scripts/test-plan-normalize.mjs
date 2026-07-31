@@ -8,8 +8,11 @@ import {
   repairMeal3IfInvalid,
   repairMeal5IfInvalid,
   validateLateSnackSlotContent,
+  removeBreakfastSlotFromDay,
+  userSkipsBreakfast,
   MAX_LATE_SNACK_CALORIES,
 } from '../plan-normalize.js';
+import { applyMealNutritionFromDatabase } from '../food-nutrition.js';
 
 const results = [];
 function check(label, ok, detail = '') {
@@ -114,6 +117,26 @@ check('MAX_LATE_SNACK_CALORIES=200', MAX_LATE_SNACK_CALORIES === 200);
   const repaired5 = repairMeal5IfInvalid(h5, { dietPreference: [] });
   check('H5 repair: replaces invalid meal', repaired5);
   check('H5 repair: template valid', validateLateSnackSlotContent(h5).length === 0);
+}
+
+{
+  const day = {
+    meals: 4,
+    mealBreakdown: [
+      { type: 'Хранене 1', calories: 400, protein: 25, carbs: 40, fats: 12 },
+      { type: 'Хранене 2', calories: 700, protein: 50, carbs: 60, fats: 20 },
+      { type: 'Хранене 4', calories: 600, protein: 45, carbs: 50, fats: 18 },
+    ],
+  };
+  removeBreakfastSlotFromDay(day);
+  check('skip breakfast: H1 removed', !day.mealBreakdown.some(m => m.type === 'Хранене 1'));
+  check('skip breakfast: kcal preserved', day.mealBreakdown.reduce((s, m) => s + m.calories, 0) === 1700);
+}
+
+{
+  const meal = { type: 'Хранене 5', name: 'Скир с бадеми', description: '• Скир 120g\n• Бадеми 15g' };
+  applyMealNutritionFromDatabase(meal, { calories: 200, protein: 20, carbs: 8, fats: 10 });
+  check('H5 meal sync clamped ≤200', meal.calories <= MAX_LATE_SNACK_CALORIES, `${meal.calories} kcal`);
 }
 
 const passed = results.filter(Boolean).length;

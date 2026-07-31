@@ -156,6 +156,14 @@ console.log('\n=== 10. Млечни: cap на грамаж (не 730g скир) 
   check('скир ≤300g', skyr && skyr.grams <= 300, `${skyr?.grams}g`);
 }
 
+console.log('\n=== 11. Протеин (тофу): cap на грамаж ===');
+{
+  const meal = { type: 'Хранене 2', description: '• Тофу 200g\n• Броколи 150g\n• Ориз 100g' };
+  applyMealNutritionFromDatabase(meal, { calories: 750, protein: 55, carbs: 60, fats: 20 });
+  const tofu = parseMealDescription(meal.description).find(i => /тофу/i.test(i.name));
+  check('тофу ≤300g', tofu && tofu.grams <= 300, `${tofu?.grams}g`);
+}
+
 const passed = results.filter(Boolean).length;
 console.log(`\n=== Обобщение: ${passed}/${results.length} PASS ===`);
 process.exit(passed === results.length ? 0 : 1);
