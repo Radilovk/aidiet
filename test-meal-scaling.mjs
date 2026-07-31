@@ -148,6 +148,14 @@ console.log('\n=== 9. Висококалорично хранене с мног�
   check('калориите са в толеранс при capped bulk scaling', kcalOk, `${meal.calories}kcal (цел ${target.calories})`);
 }
 
+console.log('\n=== 10. Млечни: cap на грамаж (не 730g скир) ===');
+{
+  const meal = { type: 'Хранене 3', description: '• скир 200g\n• бадеми 20g' };
+  applyMealNutritionFromDatabase(meal, { calories: 600, protein: 45, carbs: 30, fats: 15 });
+  const skyr = parseMealDescription(meal.description).find(i => /скир/i.test(i.name));
+  check('скир ≤300g', skyr && skyr.grams <= 300, `${skyr?.grams}g`);
+}
+
 const passed = results.filter(Boolean).length;
 console.log(`\n=== Обобщение: ${passed}/${results.length} PASS ===`);
 process.exit(passed === results.length ? 0 : 1);

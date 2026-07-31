@@ -6457,6 +6457,7 @@ function macroTolerance(targetGrams) {
   return Math.max(MIN_MACRO_TOLERANCE_G, Math.round((Number(targetGrams) || 0) * MACRO_TOLERANCE_PERCENT));
 }
 var CONDIMENT_MAX_GRAMS = 15;
+var DAIRY_MAX_GRAMS = 300;
 var MAX_MEAL_WEIGHT_GRAMS = 800;
 var BULK_ITEM_MAX_GRAMS = 150;
 var BULK_KCAL_PER_100G_MAX = 50;
@@ -6595,8 +6596,16 @@ function getCatalogMeta(name) {
 function isCondimentItem(item2) {
   return getCatalogMeta(item2.name).group === "condiment";
 }
+function isDairyItem(item2) {
+  return getCatalogMeta(item2.name).group === "dairy";
+}
 function capCondimentGrams(item2, grams) {
   return isCondimentItem(item2) ? Math.min(grams, CONDIMENT_MAX_GRAMS) : grams;
+}
+function capItemGrams(item2, grams) {
+  let g = capCondimentGrams(item2, grams);
+  if (isDairyItem(item2)) g = Math.min(g, DAIRY_MAX_GRAMS);
+  return g;
 }
 function nutritionFromGrams(profile, grams) {
   const factor = (Number(grams) || 0) / 100;
@@ -6723,7 +6732,7 @@ function scaleUniform(items, goal) {
   const factor = Math.min(SCALE_FACTOR_MAX, Math.max(SCALE_FACTOR_MIN, goal / base.kcal));
   const scaled = items.map((item2) => ({
     ...item2,
-    grams: capCondimentGrams(item2, roundGrams(item2.grams * factor))
+    grams: capItemGrams(item2, roundGrams(item2.grams * factor))
   }));
   return nudgeItemsTowardKcal(scaled, goal);
 }
@@ -6733,7 +6742,7 @@ function scaleWithBulkCap(items, goal) {
   if (!dense.length) return scaleUniform(items, goal);
   const bulkCapped = bulk.map((item2) => ({
     ...item2,
-    grams: capCondimentGrams(item2, Math.min(roundGrams(item2.grams), BULK_ITEM_MAX_GRAMS))
+    grams: capItemGrams(item2, Math.min(roundGrams(item2.grams), BULK_ITEM_MAX_GRAMS))
   }));
   const bulkKcal = sumItemNutrition(bulkCapped).kcal;
   let denseScaled = scaleUniform(dense, Math.max(50, goal - bulkKcal));
@@ -6745,7 +6754,7 @@ function scaleWithBulkCap(items, goal) {
     const ratio = allowedBulk / bulkGrams;
     trimmedBulk = bulkCapped.map((item2) => ({
       ...item2,
-      grams: capCondimentGrams(item2, Math.max(GRAM_ROUND_STEP, roundGrams(item2.grams * ratio)))
+      grams: capItemGrams(item2, Math.max(GRAM_ROUND_STEP, roundGrams(item2.grams * ratio)))
     }));
     const trimmedBulkKcal = sumItemNutrition(trimmedBulk).kcal;
     denseScaled = scaleUniform(dense, Math.max(50, goal - trimmedBulkKcal));
@@ -6790,7 +6799,7 @@ function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}) {
   }
   items = items.map((item2) => {
     const { profile, key, unknown } = lookupFoodProfile(item2.name, extraDb);
-    return { ...item2, profile, key, unknown: !!unknown, grams: capCondimentGrams(item2, item2.grams) };
+    return { ...item2, profile, key, unknown: !!unknown, grams: capItemGrams(item2, item2.grams) };
   });
   const dessertNutrition = meal.dessert && typeof meal.dessert === "object" ? macrosToNutritionProfile(meal.dessert.macros) : null;
   const dessertWeight = meal.dessert && typeof meal.dessert === "object" && meal.dessert.weight ? parseFloat(String(meal.dessert.weight).match(/(\d+(?:\.\d+)?)/)?.[1] || "0") : 0;
@@ -6844,6 +6853,8 @@ function profileToKvArray(profile) {
 var MAX_PLATED_SLOT_KCAL_ABSOLUTE = 900;
 var MAX_PLATED_SLOT_KCAL_BASE = 800;
 var FREE_MEAL_MAX_DAILY_RATIO = 0.45;
+var FREE_DAY_DINNER_MAX_RATIO = 0.28;
+var FREE_DAY_DINNER_MAX_KCAL = 600;
 var MIN_MAIN_MEAL_WEIGHT_GRAMS = 50;
 var MIN_LIGHT_MEAL_WEIGHT_GRAMS = 20;
 var KEY_PROBLEM_SEVERITY_RANGES = {
@@ -6854,6 +6865,48 @@ var KEY_PROBLEM_SEVERITY_RANGES = {
 var BUDGET_SLOT_TYPES = /* @__PURE__ */ new Set(["\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435", "\u041D\u0430\u043F\u0438\u0442\u043A\u0430"]);
 var LIGHT_MEAL_TYPES = /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5"]);
 var FIXED_KCAL_SLOT_TYPES = /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5"]);
+var MEAL3_SNACK_ALLOWED = [
+  "\u043F\u043B\u043E\u0434",
+  "\u044F\u0431\u044A\u043B\u043A\u0430",
+  "\u043A\u0440\u0443\u0448\u0430",
+  "\u043F\u043E\u0440\u0442\u043E\u043A\u0430\u043B",
+  "\u0431\u0430\u043D\u0430\u043D",
+  "\u044F\u0433\u043E\u0434",
+  "\u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A",
+  "\u043C\u0430\u043B\u0438\u043D",
+  "\u044F\u0434\u043A\u0438",
+  "\u0431\u0430\u0434\u0435\u043C",
+  "\u043E\u0440\u0435\u0445",
+  "\u043A\u0430\u0448\u0443",
+  "\u043B\u0435\u0448\u043D\u0438\u043A",
+  "\u0448\u0430\u043C\u0444\u044A\u0441\u0442\u044A\u043A",
+  "\u0441\u043A\u0438\u0440",
+  "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+  "\u043A\u0435\u0444\u0438\u0440",
+  "\u0438\u0437\u0432\u0430\u0440\u0430"
+];
+var MEAL3_SNACK_FORBIDDEN = [
+  "\u043F\u0438\u043B\u0435\u0448\u043A",
+  "\u0433\u043E\u0432\u0435\u0436\u0434",
+  "\u0441\u0432\u0438\u043D\u0441\u043A",
+  "\u0440\u0438\u0431\u0430",
+  "\u0442\u0440\u0435\u0441\u043A\u0430",
+  "\u0441\u044C\u043E\u043C\u0433\u0430",
+  "\u0441\u043A\u0443\u043C\u0440\u0438",
+  "\u0442\u043E\u043D",
+  "\u043E\u0440\u0438\u0437",
+  "\u0445\u043B\u044F\u0431",
+  "\u043F\u0430\u0441\u0442\u0430",
+  "\u043A\u0430\u0440\u0442\u043E\u0444",
+  "\u043C\u0430\u043A\u0430\u0440\u043E\u043D",
+  "\u043E\u043C\u043B\u0435\u0442",
+  "\u044F\u0445\u043D\u0438",
+  "\u0445\u0443\u043C\u0443\u0441",
+  "\u043C\u0435\u0441\u043E",
+  "\u0444\u0438\u043B\u0435",
+  "\u0431\u0443\u0442\u0447\u0435",
+  "\u043A\u0430\u0439\u043C\u0430"
+];
 function isLightMealSlot(type) {
   return LIGHT_MEAL_TYPES.has(type);
 }
@@ -6957,6 +7010,38 @@ function rebalanceMealBreakdownSlots(day, dailyKcal) {
       );
     }
   }
+  enforceFreeDayDinnerCap(day, daily);
+}
+function enforceFreeDayDinnerCap(day, dailyKcal) {
+  const hasFree = day.mealBreakdown?.some((m) => m.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435");
+  if (!hasFree) return;
+  const h4 = day.mealBreakdown.find((m) => m.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4");
+  if (!h4) return;
+  const maxDinner = Math.min(
+    FREE_DAY_DINNER_MAX_KCAL,
+    Math.max(350, Math.round(dailyKcal * FREE_DAY_DINNER_MAX_RATIO))
+  );
+  const excessKcal = capSlotMacros(h4, maxDinner);
+  if (excessKcal <= 0) return;
+  const recipients = platedSlots(day.mealBreakdown).filter((m) => m.type !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4" && (Number(m.calories) || 0) < maxPlatedSlotKcal(day.mealBreakdown, dailyKcal));
+  if (!recipients.length) return;
+  const sum = recipients.reduce((s, m) => s + (Number(m.calories) || 0), 0) || recipients.length;
+  for (const r of recipients) {
+    const share = (Number(r.calories) || 0) / sum || 1 / recipients.length;
+    addMacrosToSlot(r, Math.round(excessKcal * share), 0, 0, 0);
+  }
+}
+function validateLightMealSlotContent(meal, dayNum = null) {
+  const errors = [];
+  if (!meal || meal.type !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3") return errors;
+  const text = `${meal.name || ""} ${meal.description || ""}`.toLowerCase();
+  const prefix = dayNum != null ? `\u0414\u0435\u043D ${dayNum}: ` : "";
+  if (MEAL3_SNACK_FORBIDDEN.some((f) => text.includes(f))) {
+    errors.push(`${prefix}\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3 \u043D\u0435 \u0435 \u043B\u0435\u043A\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u2014 "${meal.name}"`);
+  } else if (!MEAL3_SNACK_ALLOWED.some((f) => text.includes(f))) {
+    errors.push(`${prefix}\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3 \u043D\u0435 \u0435 \u043B\u0435\u043A\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u2014 "${meal.name}"`);
+  }
+  return errors;
 }
 function normalizeAnalysisOutput(analysis) {
   if (!analysis || typeof analysis !== "object") return analysis;
@@ -6973,6 +7058,23 @@ function normalizeAnalysisOutput(analysis) {
           problem.severityValue = Math.round((band[0] + band[1]) / 2);
         }
       }
+    }
+  }
+  if (!Array.isArray(analysis.keyProblems)) analysis.keyProblems = [];
+  if (analysis.keyProblems.length < 3) {
+    const extras = [].concat(analysis.hinderingFactors || []).concat(analysis.negativeHealthFactors || []).filter((f) => f && (f.factor || f.title));
+    for (const src of extras) {
+      if (analysis.keyProblems.length >= 3) break;
+      const title = src.factor || src.title;
+      if (analysis.keyProblems.some((p) => p.title === title)) continue;
+      analysis.keyProblems.push({
+        title,
+        description: src.description || title,
+        severity: src.severity >= 4 ? "Critical" : src.severity >= 3 ? "Risky" : "Borderline",
+        severityValue: typeof src.severity === "number" ? Math.min(90, src.severity * 18) : 55,
+        category: "Health",
+        impact: src.description || title
+      });
     }
   }
   if (!analysis.currentHealthStatus || typeof analysis.currentHealthStatus !== "object") {
@@ -12998,6 +13100,9 @@ function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay
     if (dayPlan && dayTarget) {
       errors.push(...validateMealTypesAgainstBreakdown(dayPlan, dayTarget, d, userData));
       errors.push(...validateMealsAgainstScheme(dayPlan, dayTarget, d, clinicalProtocolId));
+      for (const meal of dayPlan.meals || []) {
+        errors.push(...validateLightMealSlotContent(meal, d));
+      }
       const dayKcal = Number(dayPlan.dailyTotals?.calories) || 0;
       const schemeKcal = (dayTarget.mealBreakdown || []).reduce((s, m) => s + (Number(m.calories) || 0), 0) || Number(dayTarget.calories) || 0;
       if (dayKcal > 0 && schemeKcal > 0) {

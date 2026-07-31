@@ -27,9 +27,8 @@ export function validateMealCombinations(meal) {
   }
 
   const hasLegumes = LEGUMES.some(l => text.includes(l));
-  const hasEnergy = ENERGY.some(e => text.includes(e));
-  if (hasLegumes && hasEnergy) {
-    issues.push(`"${meal.name}": бобови + енергиен източник (ориз/картофи/паста)`);
+  if (hasLegumes && energyHits.length > 1) {
+    issues.push(`"${meal.name}": бобови + множество въглехидратни източници (${energyHits.join(', ')})`);
   }
 
   if (/грах|peas/.test(text) && /риба|fish|тон|сьомга|скумри|треска/.test(text)) {
