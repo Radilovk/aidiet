@@ -5914,6 +5914,7 @@ async function reconcilePlanStructure(plan, userData = null, env = null) {
       }
     }
     finalizeWeekPlanDays(plan.weekPlan, plan.strategy, 1, 7, userData);
+    reconcileAchievedSlotCalories(plan.weekPlan, plan.strategy, 1, 7);
   } else {
     recalculateDayCalories(plan.weekPlan, plan.strategy || null);
   }
@@ -9666,6 +9667,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
           await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
         }
         finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, data);
+        reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay);
 
         validationErrors = validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay, data.clinicalProtocol || null, data);
         lastAiFailure = null;

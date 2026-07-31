@@ -438,8 +438,8 @@ export function validateLateSnackSlotContent(meal, dayNum = null) {
     errors.push(`${prefix}Хранене 5 не е късна закуска — "${meal.name}"`);
   } else if (!MEAL5_SNACK_ALLOWED.some(f => text.includes(f))) {
     errors.push(`${prefix}Хранене 5 не е късна закуска — "${meal.name}"`);
-  } else if ((Number(meal.calories) || 0) > MAX_LATE_SNACK_CALORIES) {
-    errors.push(`${prefix}Хранене 5: ${meal.calories} kcal > ${MAX_LATE_SNACK_CALORIES}`);
+  } else if (!isMealCaloriesAdequate(meal.calories, MAX_LATE_SNACK_CALORIES)) {
+    errors.push(`${prefix}Хранене 5: ${meal.calories} kcal > ${MAX_LATE_SNACK_CALORIES} (±${slotCalorieTolerance(MAX_LATE_SNACK_CALORIES)})`);
   }
   return errors;
 }
@@ -588,6 +588,9 @@ export function reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endD
       if (target <= 0 || achieved <= 0) continue;
 
       if (isMealCaloriesAdequate(achieved, target)) {
+        slot.calories = achieved;
+      } else if (achieved < target) {
+        // Portion caps made the scheme target unreachable — align scheme to achieved.
         slot.calories = achieved;
       }
     }

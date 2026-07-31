@@ -8262,8 +8262,8 @@ function validateLateSnackSlotContent(meal, dayNum = null) {
     errors.push(`${prefix}\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5 \u043D\u0435 \u0435 \u043A\u044A\u0441\u043D\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u2014 "${meal.name}"`);
   } else if (!MEAL5_SNACK_ALLOWED.some((f) => text.includes(f))) {
     errors.push(`${prefix}\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5 \u043D\u0435 \u0435 \u043A\u044A\u0441\u043D\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u2014 "${meal.name}"`);
-  } else if ((Number(meal.calories) || 0) > MAX_LATE_SNACK_CALORIES) {
-    errors.push(`${prefix}\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5: ${meal.calories} kcal > ${MAX_LATE_SNACK_CALORIES}`);
+  } else if (!isMealCaloriesAdequate(meal.calories, MAX_LATE_SNACK_CALORIES)) {
+    errors.push(`${prefix}\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5: ${meal.calories} kcal > ${MAX_LATE_SNACK_CALORIES} (\xB1${slotCalorieTolerance(MAX_LATE_SNACK_CALORIES)})`);
   }
   return errors;
 }
@@ -8375,6 +8375,8 @@ function reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay) {
       const achieved = Number(meal.calories) || 0;
       if (target <= 0 || achieved <= 0) continue;
       if (isMealCaloriesAdequate(achieved, target)) {
+        slot.calories = achieved;
+      } else if (achieved < target) {
         slot.calories = achieved;
       }
     }
@@ -13141,6 +13143,7 @@ async function reconcilePlanStructure(plan, userData = null, env = null) {
       }
     }
     finalizeWeekPlanDays(plan.weekPlan, plan.strategy, 1, 7, userData);
+    reconcileAchievedSlotCalories(plan.weekPlan, plan.strategy, 1, 7);
   } else {
     recalculateDayCalories(plan.weekPlan, plan.strategy || null);
   }
@@ -16169,6 +16172,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
           await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
         }
         finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, data);
+        reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay);
         validationErrors = validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay, data.clinicalProtocol || null, data);
         lastAiFailure = null;
       } catch (aiError) {

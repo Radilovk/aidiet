@@ -132,6 +132,7 @@ check('MAX_LATE_SNACK_CALORIES=200', MAX_LATE_SNACK_CALORIES === 200);
   check('adequacy: 562 vs 611 within 10%', isMealCaloriesAdequate(562, 611));
   check('adequacy: 700 vs 900 outside 10%', !isMealCaloriesAdequate(700, 900));
   check('adequacy tolerance 900→90', slotCalorieTolerance(900) === 90);
+  check('H5 206 vs 200 within tolerance', isMealCaloriesAdequate(206, 200));
 }
 
 {
