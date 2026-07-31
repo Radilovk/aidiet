@@ -388,8 +388,11 @@ export function validateLateSnackSlotContent(meal, dayNum = null) {
     errors.push(`${prefix}Хранене 5 не е късна закуска — "${meal.name}"`);
   } else if (!MEAL5_SNACK_ALLOWED.some(f => text.includes(f))) {
     errors.push(`${prefix}Хранене 5 не е късна закуска — "${meal.name}"`);
-  } else if (!isMealCaloriesAdequate(meal.calories, MAX_LATE_SNACK_CALORIES)) {
-    errors.push(`${prefix}Хранене 5: ${meal.calories} kcal > ${MAX_LATE_SNACK_CALORIES} (±${slotCalorieTolerance(MAX_LATE_SNACK_CALORIES)})`);
+  } else {
+    const cal = Number(meal.calories) || 0;
+    if (cal > MAX_LATE_SNACK_CALORIES && !isMealCaloriesAdequate(cal, MAX_LATE_SNACK_CALORIES)) {
+      errors.push(`${prefix}Хранене 5: ${cal} kcal > ${MAX_LATE_SNACK_CALORIES} (±${slotCalorieTolerance(MAX_LATE_SNACK_CALORIES)})`);
+    }
   }
   return errors;
 }
@@ -552,11 +555,31 @@ export function reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endD
 /** Strategy validator helper — budget slots exempt from plated kcal cap. */
 export function validateSlotCalories(entry, dayScheme) {
   if (!entry || isBudgetMealSlot(entry.type)) return null;
-  if (entry.type === 'Хранене 5') return null; // capped separately
+  if (entry.type === 'Хранене 5') return null;
+
+  const cal = Number(entry.calories) || 0;
   const daily = Number(dayScheme?.calories) || sumField(dayScheme?.mealBreakdown || [], 'calories');
-  const maxKcal = maxPlatedSlotKcal(dayScheme?.mealBreakdown, daily);
-  if ((Number(entry.calories) || 0) > maxKcal) {
-    return `${entry.type} ${entry.calories} kcal > ${maxKcal}`;
+  const breakdown = dayScheme?.mealBreakdown || [];
+
+  if (entry.type === 'Хранене 3') {
+    if (cal > MAX_AFTERNOON_SNACK_CALORIES + slotCalorieTolerance(MAX_AFTERNOON_SNACK_CALORIES)) {
+      return `${entry.type} ${cal} kcal > ${MAX_AFTERNOON_SNACK_CALORIES}`;
+    }
+    return null;
   }
-  return null;
+
+  const softCap = maxPlatedSlotKcal(breakdown, daily);
+  if (entry.type === 'Хранене 2' || entry.type === 'Хранене 4') {
+    const mains = breakdown.filter(m => m.type === 'Хранене 2' || m.type === 'Хранене 4');
+    const fixed = breakdown
+      .filter(m => BUDGET_SLOT_TYPES.has(m.type) || m.type === 'Хранене 5' || m.type === 'Хранене 3')
+      .reduce((s, m) => s + (Number(m.calories) || 0), 0);
+    const fair = mains.length ? Math.ceil(Math.max(0, daily - fixed) / mains.length) : softCap;
+    const ceiling = Math.max(softCap, fair) + slotCalorieTolerance(Math.max(softCap, fair));
+    if (cal <= ceiling) return null;
+    return `${entry.type} ${cal} kcal > ${Math.max(softCap, fair)}`;
+  }
+
+  if (cal <= softCap) return null;
+  return `${entry.type} ${cal} kcal > ${softCap}`;
 }
