@@ -12,6 +12,9 @@
 export const MAX_PLATED_SLOT_KCAL_ABSOLUTE = 900;
 export const MAX_PLATED_SLOT_KCAL_BASE = 800;
 export const FREE_MEAL_MAX_DAILY_RATIO = 0.45;
+/** After free meal — dinner stays light (strategy rule). */
+export const FREE_DAY_DINNER_MAX_RATIO = 0.28;
+export const FREE_DAY_DINNER_MAX_KCAL = 600;
 export const MIN_MAIN_MEAL_WEIGHT_GRAMS = 50;
 export const MIN_LIGHT_MEAL_WEIGHT_GRAMS = 20;
 
@@ -24,6 +27,18 @@ export const KEY_PROBLEM_SEVERITY_RANGES = {
 const BUDGET_SLOT_TYPES = new Set(['Свободно хранене', 'Напитка']);
 const LIGHT_MEAL_TYPES = new Set(['Хранене 3', 'Хранене 5']);
 const FIXED_KCAL_SLOT_TYPES = new Set(['Хранене 5']);
+
+/** Хранене 3 — snack slot only (shared with worker + validators). */
+export const MEAL3_SNACK_ALLOWED = [
+  'плод', 'ябълка', 'круша', 'портокал', 'банан', 'ягод', 'боровинк', 'малин',
+  'ядки', 'бадем', 'орех', 'кашу', 'лешник', 'шамфъстък',
+  'скир', 'кисело мляко', 'кефир', 'извара',
+];
+export const MEAL3_SNACK_FORBIDDEN = [
+  'пилешк', 'говежд', 'свинск', 'риба', 'треска', 'сьомга', 'скумри', 'тон',
+  'ориз', 'хляб', 'паста', 'картоф', 'макарон', 'омлет', 'яхни', 'хумус',
+  'месо', 'филе', 'бутче', 'кайма',
+];
 
 export function isBudgetMealSlot(type) {
   return BUDGET_SLOT_TYPES.has(type);
@@ -158,6 +173,49 @@ export function rebalanceMealBreakdownSlots(day, dailyKcal) {
       );
     }
   }
+
+  enforceFreeDayDinnerCap(day, daily);
+}
+
+/** Free-day dinner (H4) must stay light — surplus goes to other plated slots. */
+function enforceFreeDayDinnerCap(day, dailyKcal) {
+  const hasFree = day.mealBreakdown?.some(m => m.type === 'Свободно хранене');
+  if (!hasFree) return;
+  const h4 = day.mealBreakdown.find(m => m.type === 'Хранене 4');
+  if (!h4) return;
+
+  const maxDinner = Math.min(
+    FREE_DAY_DINNER_MAX_KCAL,
+    Math.max(350, Math.round(dailyKcal * FREE_DAY_DINNER_MAX_RATIO)),
+  );
+  const excessKcal = capSlotMacros(h4, maxDinner);
+  if (excessKcal <= 0) return;
+
+  const recipients = platedSlots(day.mealBreakdown)
+    .filter(m => m.type !== 'Хранене 4' && (Number(m.calories) || 0) < maxPlatedSlotKcal(day.mealBreakdown, dailyKcal));
+  if (!recipients.length) return;
+
+  const sum = recipients.reduce((s, m) => s + (Number(m.calories) || 0), 0) || recipients.length;
+  for (const r of recipients) {
+    const share = (Number(r.calories) || 0) / sum || 1 / recipients.length;
+    addMacrosToSlot(r, Math.round(excessKcal * share), 0, 0, 0);
+  }
+}
+
+/** Validate Хранене 3 is a true snack (used during chunk generation, not only final validate). */
+export function validateLightMealSlotContent(meal, dayNum = null) {
+  const errors = [];
+  if (!meal || meal.type !== 'Хранене 3') return errors;
+
+  const text = `${meal.name || ''} ${meal.description || ''}`.toLowerCase();
+  const prefix = dayNum != null ? `Ден ${dayNum}: ` : '';
+
+  if (MEAL3_SNACK_FORBIDDEN.some(f => text.includes(f))) {
+    errors.push(`${prefix}Хранене 3 не е лека закуска — "${meal.name}"`);
+  } else if (!MEAL3_SNACK_ALLOWED.some(f => text.includes(f))) {
+    errors.push(`${prefix}Хранене 3 не е лека закуска — "${meal.name}"`);
+  }
+  return errors;
 }
 
 /** Clamp severityValue ↔ severity label; fill missing health score. */
@@ -178,6 +236,27 @@ export function normalizeAnalysisOutput(analysis) {
           problem.severityValue = Math.round((band[0] + band[1]) / 2);
         }
       }
+    }
+  }
+
+  if (!Array.isArray(analysis.keyProblems)) analysis.keyProblems = [];
+  if (analysis.keyProblems.length < 3) {
+    const extras = []
+      .concat(analysis.hinderingFactors || [])
+      .concat(analysis.negativeHealthFactors || [])
+      .filter(f => f && (f.factor || f.title));
+    for (const src of extras) {
+      if (analysis.keyProblems.length >= 3) break;
+      const title = src.factor || src.title;
+      if (analysis.keyProblems.some(p => p.title === title)) continue;
+      analysis.keyProblems.push({
+        title,
+        description: src.description || title,
+        severity: src.severity >= 4 ? 'Critical' : src.severity >= 3 ? 'Risky' : 'Borderline',
+        severityValue: typeof src.severity === 'number' ? Math.min(90, src.severity * 18) : 55,
+        category: 'Health',
+        impact: src.description || title,
+      });
     }
   }
 

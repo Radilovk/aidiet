@@ -44,6 +44,7 @@ import {
   rebalanceMealBreakdownSlots,
   normalizeAnalysisOutput,
   minMealWeightGrams,
+  validateLightMealSlotContent,
 } from './plan-normalize.js';
 import {
   buildCatalogPromptSection,
@@ -7916,6 +7917,9 @@ function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay
     if (dayPlan && dayTarget) {
       errors.push(...validateMealTypesAgainstBreakdown(dayPlan, dayTarget, d, userData));
       errors.push(...validateMealsAgainstScheme(dayPlan, dayTarget, d, clinicalProtocolId));
+      for (const meal of dayPlan.meals || []) {
+        errors.push(...validateLightMealSlotContent(meal, d));
+      }
       const dayKcal = Number(dayPlan.dailyTotals?.calories) || 0;
       const schemeKcal = (dayTarget.mealBreakdown || [])
         .reduce((s, m) => s + (Number(m.calories) || 0), 0) || Number(dayTarget.calories) || 0;

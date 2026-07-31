@@ -44,6 +44,7 @@ export function macroTolerance(targetGrams) {
 }
 
 const CONDIMENT_MAX_GRAMS = 15;
+const DAIRY_MAX_GRAMS = 300;
 
 /** Max realistic single-meal plate weight — athlete mains with veg-heavy AI picks must stay under this. */
 export const MAX_MEAL_WEIGHT_GRAMS = 800;
@@ -210,8 +211,18 @@ function isCondimentItem(item) {
   return getCatalogMeta(item.name).group === 'condiment';
 }
 
+function isDairyItem(item) {
+  return getCatalogMeta(item.name).group === 'dairy';
+}
+
 function capCondimentGrams(item, grams) {
   return isCondimentItem(item) ? Math.min(grams, CONDIMENT_MAX_GRAMS) : grams;
+}
+
+function capItemGrams(item, grams) {
+  let g = capCondimentGrams(item, grams);
+  if (isDairyItem(item)) g = Math.min(g, DAIRY_MAX_GRAMS);
+  return g;
 }
 
 export function nutritionFromGrams(profile, grams) {
@@ -365,7 +376,7 @@ function scaleUniform(items, goal) {
   const factor = Math.min(SCALE_FACTOR_MAX, Math.max(SCALE_FACTOR_MIN, goal / base.kcal));
   const scaled = items.map(item => ({
     ...item,
-    grams: capCondimentGrams(item, roundGrams(item.grams * factor)),
+    grams: capItemGrams(item, roundGrams(item.grams * factor)),
   }));
   return nudgeItemsTowardKcal(scaled, goal);
 }
@@ -381,7 +392,7 @@ function scaleWithBulkCap(items, goal) {
 
   const bulkCapped = bulk.map(item => ({
     ...item,
-    grams: capCondimentGrams(item, Math.min(roundGrams(item.grams), BULK_ITEM_MAX_GRAMS)),
+    grams: capItemGrams(item, Math.min(roundGrams(item.grams), BULK_ITEM_MAX_GRAMS)),
   }));
   const bulkKcal = sumItemNutrition(bulkCapped).kcal;
   let denseScaled = scaleUniform(dense, Math.max(50, goal - bulkKcal));
@@ -394,7 +405,7 @@ function scaleWithBulkCap(items, goal) {
     const ratio = allowedBulk / bulkGrams;
     trimmedBulk = bulkCapped.map(item => ({
       ...item,
-      grams: capCondimentGrams(item, Math.max(GRAM_ROUND_STEP, roundGrams(item.grams * ratio))),
+      grams: capItemGrams(item, Math.max(GRAM_ROUND_STEP, roundGrams(item.grams * ratio))),
     }));
     const trimmedBulkKcal = sumItemNutrition(trimmedBulk).kcal;
     denseScaled = scaleUniform(dense, Math.max(50, goal - trimmedBulkKcal));
@@ -459,7 +470,7 @@ export function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}
 
   items = items.map(item => {
     const { profile, key, unknown } = lookupFoodProfile(item.name, extraDb);
-    return { ...item, profile, key, unknown: !!unknown, grams: capCondimentGrams(item, item.grams) };
+    return { ...item, profile, key, unknown: !!unknown, grams: capItemGrams(item, item.grams) };
   });
 
   const dessertNutrition = (meal.dessert && typeof meal.dessert === 'object')

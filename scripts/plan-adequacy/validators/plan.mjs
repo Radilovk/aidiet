@@ -1,5 +1,5 @@
-import { CANONICAL_MEAL_TYPES, MEAL3_ALLOWED, MEAL3_FORBIDDEN, MAX_LATE_SNACK_CALORIES } from '../constants.mjs';
-import { validateSlotCalories } from '../../../plan-normalize.js';
+import { CANONICAL_MEAL_TYPES, MAX_LATE_SNACK_CALORIES } from '../constants.mjs';
+import { validateSlotCalories, validateLightMealSlotContent } from '../../../plan-normalize.js';
 
 const DISPLAY_NAMES = ['Закуска', 'Обяд', 'Следобедна закуска', 'Вечеря', 'Късна закуска'];
 
@@ -49,13 +49,8 @@ export function validateMealPlan(weekPlan, strategy = {}) {
       continue;
     }
     for (const meal of day.meals) {
-      const text = `${meal.name || ''} ${meal.description || ''}`.toLowerCase();
       if (meal.type === 'Хранене 3') {
-        const ok = MEAL3_ALLOWED.some(f => text.includes(f));
-        const bad = MEAL3_FORBIDDEN.some(f => text.includes(f));
-        if (!ok || bad) {
-          issues.push(`day${d} Хранене 3 не е лека закуска: "${meal.name}"`);
-        }
+        issues.push(...validateLightMealSlotContent(meal, d).map(e => e.replace(/^Ден \d+: /, `day${d} `)));
       }
       if (meal.type === 'Хранене 5') {
         const cals = parseInt(meal.calories, 10) || 0;

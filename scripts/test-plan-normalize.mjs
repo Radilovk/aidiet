@@ -4,6 +4,7 @@ import {
   normalizeAnalysisOutput,
   maxPlatedSlotKcal,
   severityLabelForValue,
+  validateLightMealSlotContent,
 } from '../plan-normalize.js';
 
 const results = [];
@@ -63,6 +64,26 @@ function check(label, ok, detail = '') {
 }
 
 check('severityLabelForValue(60)=Risky', severityLabelForValue(60) === 'Risky');
+
+{
+  const day = {
+    calories: 2774,
+    mealBreakdown: [
+      { type: 'Свободно хранене', calories: 1200, protein: 40, carbs: 100, fats: 50 },
+      { type: 'Хранене 3', calories: 250, protein: 10, carbs: 20, fats: 10 },
+      { type: 'Хранене 4', calories: 1063, protein: 70, carbs: 80, fats: 40 },
+      { type: 'Хранене 5', calories: 200, protein: 15, carbs: 5, fats: 12 },
+    ],
+  };
+  rebalanceMealBreakdownSlots(day, 2774);
+  const h4 = day.mealBreakdown.find(m => m.type === 'Хранене 4');
+  check('free day: H4 capped ≤600', h4.calories <= 600, `${h4.calories} kcal`);
+}
+
+{
+  const errs = validateLightMealSlotContent({ type: 'Хранене 3', name: 'Говеждо с броколи', description: '• говеждо 150g' }, 6);
+  check('H3 rejects cooked meat', errs.length > 0);
+}
 
 const passed = results.filter(Boolean).length;
 console.log(`\n=== ${passed}/${results.length} PASS ===`);
