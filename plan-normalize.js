@@ -250,6 +250,71 @@ export function repairMeal3IfInvalid(meal, userData) {
   return true;
 }
 
+/** Хранене 5 — fats+protein only (shared with worker + validators). */
+export const MEAL5_SNACK_ALLOWED = [
+  'кисело мляко', 'скир', 'кефир', 'извара', 'кашкавал',
+  'ядки', 'бадем', 'орех', 'кашу', 'лешник', 'шамфъстък',
+];
+export const MEAL5_SNACK_FORBIDDEN = [
+  'ориз', 'хляб', 'паста', 'картоф', 'макарон', 'банан', 'ябълка', 'плод',
+  'пилешк', 'говежд', 'риба', 'боб', 'мед', 'захар',
+];
+
+const MEAL5_REPAIR_VEGAN = {
+  name: 'Бадеми и орехи',
+  description: '• Бадеми 20g\n• Орехи 15g',
+};
+const MEAL5_REPAIR_DEFAULT = {
+  name: 'Скир с бадеми',
+  description: '• Скир 120g\n• Бадеми 15g',
+};
+
+export function validateLateSnackSlotContent(meal, dayNum = null) {
+  const errors = [];
+  if (!meal || meal.type !== 'Хранене 5') return errors;
+
+  const text = `${meal.name || ''} ${meal.description || ''}`.toLowerCase();
+  const prefix = dayNum != null ? `Ден ${dayNum}: ` : '';
+
+  if (MEAL5_SNACK_FORBIDDEN.some(f => text.includes(f))) {
+    errors.push(`${prefix}Хранене 5 не е късна закуска — "${meal.name}"`);
+  } else if (!MEAL5_SNACK_ALLOWED.some(f => text.includes(f))) {
+    errors.push(`${prefix}Хранене 5 не е късна закуска — "${meal.name}"`);
+  } else if ((Number(meal.calories) || 0) > MAX_LATE_SNACK_CALORIES) {
+    errors.push(`${prefix}Хранене 5: ${meal.calories} kcal > ${MAX_LATE_SNACK_CALORIES}`);
+  }
+  return errors;
+}
+
+export function repairMeal5IfInvalid(meal, userData) {
+  if (!meal || meal.type !== 'Хранене 5') return false;
+  if (!validateLateSnackSlotContent(meal).length) return false;
+
+  const tmpl = isVeganUser(userData) ? MEAL5_REPAIR_VEGAN : MEAL5_REPAIR_DEFAULT;
+  meal.name = tmpl.name;
+  meal.description = tmpl.description;
+  delete meal.calories;
+  delete meal.macros;
+  delete meal.weight;
+  return true;
+}
+
+/** Repair H3 or H5 when AI drifts — single entry for all write paths. */
+export function repairLightMealSlotIfInvalid(meal, userData) {
+  if (repairMeal3IfInvalid(meal, userData)) return true;
+  return repairMeal5IfInvalid(meal, userData);
+}
+
+export function repairWeekPlanLightSlots(weekPlan, startDay, endDay, userData) {
+  let repaired = false;
+  for (let d = startDay; d <= endDay; d++) {
+    for (const meal of weekPlan[`day${d}`]?.meals || []) {
+      if (repairLightMealSlotIfInvalid(meal, userData)) repaired = true;
+    }
+  }
+  return repaired;
+}
+
 /** Validate Хранене 3 is a true snack (used during chunk generation, not only final validate). */
 export function validateLightMealSlotContent(meal, dayNum = null) {
   const errors = [];

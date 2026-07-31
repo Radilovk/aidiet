@@ -45,7 +45,8 @@ import {
   normalizeAnalysisOutput,
   minMealWeightGrams,
   validateLightMealSlotContent,
-  repairMeal3IfInvalid,
+  validateLateSnackSlotContent,
+  repairWeekPlanLightSlots,
   buildMeal3PromptRule,
   MAX_LATE_SNACK_CALORIES,
 } from './plan-normalize.js';
@@ -5904,6 +5905,9 @@ async function reconcilePlanStructure(plan, userData = null, env = null) {
   if (plan.strategy?.weeklyScheme) {
     if (env) {
       await resolveAndSyncWeekPlanNutrition(env, plan.weekPlan, plan.strategy, 1, 7, userData);
+      if (repairWeekPlanLightSlots(plan.weekPlan, 1, 7, userData)) {
+        await resolveAndSyncWeekPlanNutrition(env, plan.weekPlan, plan.strategy, 1, 7, userData);
+      }
     }
     finalizeWeekPlanDays(plan.weekPlan, plan.strategy, 1, 7, userData);
   } else {
@@ -7932,6 +7936,7 @@ function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay
       errors.push(...validateMealsAgainstScheme(dayPlan, dayTarget, d, clinicalProtocolId));
       for (const meal of dayPlan.meals || []) {
         errors.push(...validateLightMealSlotContent(meal, d));
+        errors.push(...validateLateSnackSlotContent(meal, d));
       }
       const dayKcal = Number(dayPlan.dailyTotals?.calories) || 0;
       const schemeKcal = (dayTarget.mealBreakdown || [])
@@ -7948,14 +7953,7 @@ function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay
 }
 
 function repairWeekPlanMeal3Slots(weekPlan, startDay, endDay, userData) {
-  let repaired = false;
-  for (let d = startDay; d <= endDay; d++) {
-    const dayPlan = weekPlan[`day${d}`];
-    for (const meal of dayPlan?.meals || []) {
-      if (repairMeal3IfInvalid(meal, userData)) repaired = true;
-    }
-  }
-  return repaired;
+  return repairWeekPlanLightSlots(weekPlan, startDay, endDay, userData);
 }
 
 function buildChunkValidationRetryComment(errors) {
@@ -9496,6 +9494,7 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
       clinicalProtocolSection: (() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buildClinicalProtocolPromptSection(p) : ''; })(),
       clinicalProtocolName: (() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? p.name : ''; })(),
       MAX_LATE_SNACK_CALORIES,
+      meal3Rule: buildMeal3PromptRule(data),
     });
 
     const weeklySection = buildWeeklyAdaptationContextSection(data);

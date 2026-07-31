@@ -8498,6 +8498,81 @@ function repairMeal3IfInvalid(meal, userData) {
   delete meal.weight;
   return true;
 }
+var MEAL5_SNACK_ALLOWED = [
+  "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+  "\u0441\u043A\u0438\u0440",
+  "\u043A\u0435\u0444\u0438\u0440",
+  "\u0438\u0437\u0432\u0430\u0440\u0430",
+  "\u043A\u0430\u0448\u043A\u0430\u0432\u0430\u043B",
+  "\u044F\u0434\u043A\u0438",
+  "\u0431\u0430\u0434\u0435\u043C",
+  "\u043E\u0440\u0435\u0445",
+  "\u043A\u0430\u0448\u0443",
+  "\u043B\u0435\u0448\u043D\u0438\u043A",
+  "\u0448\u0430\u043C\u0444\u044A\u0441\u0442\u044A\u043A"
+];
+var MEAL5_SNACK_FORBIDDEN = [
+  "\u043E\u0440\u0438\u0437",
+  "\u0445\u043B\u044F\u0431",
+  "\u043F\u0430\u0441\u0442\u0430",
+  "\u043A\u0430\u0440\u0442\u043E\u0444",
+  "\u043C\u0430\u043A\u0430\u0440\u043E\u043D",
+  "\u0431\u0430\u043D\u0430\u043D",
+  "\u044F\u0431\u044A\u043B\u043A\u0430",
+  "\u043F\u043B\u043E\u0434",
+  "\u043F\u0438\u043B\u0435\u0448\u043A",
+  "\u0433\u043E\u0432\u0435\u0436\u0434",
+  "\u0440\u0438\u0431\u0430",
+  "\u0431\u043E\u0431",
+  "\u043C\u0435\u0434",
+  "\u0437\u0430\u0445\u0430\u0440"
+];
+var MEAL5_REPAIR_VEGAN = {
+  name: "\u0411\u0430\u0434\u0435\u043C\u0438 \u0438 \u043E\u0440\u0435\u0445\u0438",
+  description: "\u2022 \u0411\u0430\u0434\u0435\u043C\u0438 20g\n\u2022 \u041E\u0440\u0435\u0445\u0438 15g"
+};
+var MEAL5_REPAIR_DEFAULT = {
+  name: "\u0421\u043A\u0438\u0440 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438",
+  description: "\u2022 \u0421\u043A\u0438\u0440 120g\n\u2022 \u0411\u0430\u0434\u0435\u043C\u0438 15g"
+};
+function validateLateSnackSlotContent(meal, dayNum = null) {
+  const errors = [];
+  if (!meal || meal.type !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5") return errors;
+  const text = `${meal.name || ""} ${meal.description || ""}`.toLowerCase();
+  const prefix = dayNum != null ? `\u0414\u0435\u043D ${dayNum}: ` : "";
+  if (MEAL5_SNACK_FORBIDDEN.some((f) => text.includes(f))) {
+    errors.push(`${prefix}\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5 \u043D\u0435 \u0435 \u043A\u044A\u0441\u043D\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u2014 "${meal.name}"`);
+  } else if (!MEAL5_SNACK_ALLOWED.some((f) => text.includes(f))) {
+    errors.push(`${prefix}\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5 \u043D\u0435 \u0435 \u043A\u044A\u0441\u043D\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u2014 "${meal.name}"`);
+  } else if ((Number(meal.calories) || 0) > MAX_LATE_SNACK_CALORIES) {
+    errors.push(`${prefix}\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5: ${meal.calories} kcal > ${MAX_LATE_SNACK_CALORIES}`);
+  }
+  return errors;
+}
+function repairMeal5IfInvalid(meal, userData) {
+  if (!meal || meal.type !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5") return false;
+  if (!validateLateSnackSlotContent(meal).length) return false;
+  const tmpl = isVeganUser(userData) ? MEAL5_REPAIR_VEGAN : MEAL5_REPAIR_DEFAULT;
+  meal.name = tmpl.name;
+  meal.description = tmpl.description;
+  delete meal.calories;
+  delete meal.macros;
+  delete meal.weight;
+  return true;
+}
+function repairLightMealSlotIfInvalid(meal, userData) {
+  if (repairMeal3IfInvalid(meal, userData)) return true;
+  return repairMeal5IfInvalid(meal, userData);
+}
+function repairWeekPlanLightSlots(weekPlan, startDay, endDay, userData) {
+  let repaired = false;
+  for (let d = startDay; d <= endDay; d++) {
+    for (const meal of weekPlan[`day${d}`]?.meals || []) {
+      if (repairLightMealSlotIfInvalid(meal, userData)) repaired = true;
+    }
+  }
+  return repaired;
+}
 function validateLightMealSlotContent(meal, dayNum = null) {
   const errors = [];
   if (!meal || meal.type !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3") return errors;
@@ -12899,6 +12974,9 @@ async function reconcilePlanStructure(plan, userData = null, env = null) {
   if (plan.strategy?.weeklyScheme) {
     if (env) {
       await resolveAndSyncWeekPlanNutrition(env, plan.weekPlan, plan.strategy, 1, 7, userData);
+      if (repairWeekPlanLightSlots(plan.weekPlan, 1, 7, userData)) {
+        await resolveAndSyncWeekPlanNutrition(env, plan.weekPlan, plan.strategy, 1, 7, userData);
+      }
     }
     finalizeWeekPlanDays(plan.weekPlan, plan.strategy, 1, 7, userData);
   } else {
@@ -14580,6 +14658,7 @@ function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay
       errors.push(...validateMealsAgainstScheme(dayPlan, dayTarget, d, clinicalProtocolId));
       for (const meal of dayPlan.meals || []) {
         errors.push(...validateLightMealSlotContent(meal, d));
+        errors.push(...validateLateSnackSlotContent(meal, d));
       }
       const dayKcal = Number(dayPlan.dailyTotals?.calories) || 0;
       const schemeKcal = (dayTarget.mealBreakdown || []).reduce((s, m) => s + (Number(m.calories) || 0), 0) || Number(dayTarget.calories) || 0;
@@ -14594,14 +14673,7 @@ function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay
   return errors;
 }
 function repairWeekPlanMeal3Slots(weekPlan, startDay, endDay, userData) {
-  let repaired = false;
-  for (let d = startDay; d <= endDay; d++) {
-    const dayPlan = weekPlan[`day${d}`];
-    for (const meal of dayPlan?.meals || []) {
-      if (repairMeal3IfInvalid(meal, userData)) repaired = true;
-    }
-  }
-  return repaired;
+  return repairWeekPlanLightSlots(weekPlan, startDay, endDay, userData);
 }
 function buildChunkValidationRetryComment(errors) {
   if (!errors?.length) return "";
@@ -15799,7 +15871,8 @@ ${_combinedNotes}` : "";
       const p = getClinicalProtocol(data.clinicalProtocol);
       return p ? p.name : "";
     })(),
-    MAX_LATE_SNACK_CALORIES
+    MAX_LATE_SNACK_CALORIES,
+    meal3Rule: buildMeal3PromptRule(data)
   });
   const weeklySection = buildWeeklyAdaptationContextSection(data);
   if (weeklySection && !prompt.includes("\u0421\u0415\u0414\u041C\u0418\u0427\u041D\u0410 \u0410\u0414\u0410\u041F\u0422\u0410\u0426\u0418\u042F")) prompt += weeklySection;

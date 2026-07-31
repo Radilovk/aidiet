@@ -6,6 +6,8 @@ import {
   severityLabelForValue,
   validateLightMealSlotContent,
   repairMeal3IfInvalid,
+  repairMeal5IfInvalid,
+  validateLateSnackSlotContent,
   MAX_LATE_SNACK_CALORIES,
 } from '../plan-normalize.js';
 
@@ -104,6 +106,15 @@ check('severityLabelForValue(60)=Risky', severityLabelForValue(60) === 'Risky');
 }
 
 check('MAX_LATE_SNACK_CALORIES=200', MAX_LATE_SNACK_CALORIES === 200);
+
+{
+  const meal = { type: 'Хранене 5', name: 'Банан', description: '• Банан 150g', calories: 120 };
+  check('H5 rejects fruit', validateLateSnackSlotContent(meal).length > 0);
+  const h5 = { type: 'Хранене 5', name: 'Ориз', description: '• Ориз 100g' };
+  const repaired5 = repairMeal5IfInvalid(h5, { dietPreference: [] });
+  check('H5 repair: replaces invalid meal', repaired5);
+  check('H5 repair: template valid', validateLateSnackSlotContent(h5).length === 0);
+}
 
 const passed = results.filter(Boolean).length;
 console.log(`\n=== ${passed}/${results.length} PASS ===`);
