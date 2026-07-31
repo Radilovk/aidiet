@@ -2,8 +2,6 @@
 import {
   rebalanceMealBreakdownSlots,
   normalizeAnalysisOutput,
-  maxPlatedSlotKcal,
-  maxSlotKcal,
   severityLabelForValue,
   validateLightMealSlotContent,
   repairMeal3IfInvalid,

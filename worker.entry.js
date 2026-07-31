@@ -7822,7 +7822,6 @@ async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay
     if (unknowns.length) {
       console.warn('[food-catalog] Unknown products (strict):', unknowns.slice(0, 10).join(', '));
     }
-    reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay);
     return unknowns;
   }
 
@@ -7832,7 +7831,6 @@ async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay
     .slice(0, 6);
 
   if (!namesToResolve.length) {
-    reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay);
     return unknowns;
   }
 
@@ -7848,7 +7846,6 @@ async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay
     await saveFoodNutritionExtraDb(env, extraDb);
     unknowns = syncWeekPlanNutritionFromDatabase(weekPlan, strategy, startDay, endDay, extraDb);
   }
-  reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay);
   if (unknowns.length) {
     console.warn('[food-nutrition] Unknown products after sync:', unknowns.slice(0, 10).join(', '));
   }
@@ -7960,10 +7957,6 @@ function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay
   return errors;
 }
 
-function repairWeekPlanMeal3Slots(weekPlan, startDay, endDay, userData) {
-  return repairWeekPlanLightSlots(weekPlan, startDay, endDay, userData);
-}
-
 function buildChunkValidationRetryComment(errors) {
   if (!errors?.length) return '';
   return `═══ FIX LIST ═══
@@ -8039,11 +8032,6 @@ function finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, userData = n
     }
   }
   recalculateDayCalories(weekPlan, strategy);
-}
-
-/** @deprecated Use finalizeWeekPlanDays — kept as alias for callers outside meal-plan flow */
-function alignWeekPlanDaysToScheme(weekPlan, strategy, startDay, endDay, userData = null) {
-  finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, userData);
 }
 
 /**
@@ -9663,7 +9651,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
 
         injectFixedDesserts(weekPlan);
         await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
-        if (repairWeekPlanMeal3Slots(weekPlan, startDay, endDay, data)) {
+        if (repairWeekPlanLightSlots(weekPlan, startDay, endDay, data)) {
           await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
         }
         finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, data);
