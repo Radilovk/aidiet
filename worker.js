@@ -8289,6 +8289,8 @@ var FREE_DAY_DINNER_MAX_RATIO = 0.28;
 var FREE_DAY_DINNER_MAX_KCAL = 600;
 var MIN_MAIN_MEAL_WEIGHT_GRAMS = 50;
 var MIN_LIGHT_MEAL_WEIGHT_GRAMS = 20;
+var MAX_LATE_SNACK_CALORIES = 200;
+var NEGATIVE_HEALTH_TONE = /влошен|критичн|много лош/i;
 var KEY_PROBLEM_SEVERITY_RANGES = {
   Borderline: [45, 59],
   Risky: [60, 79],
@@ -8463,6 +8465,114 @@ function enforceFreeDayDinnerCap(day, dailyKcal) {
     addMacrosToSlot(r, Math.round(excessKcal * share), 0, 0, 0);
   }
 }
+function dietPreferences(userData) {
+  const raw = userData?.dietPreference;
+  if (Array.isArray(raw)) return raw.map(String);
+  return raw ? [String(raw)] : [];
+}
+function isVeganUser(userData) {
+  return dietPreferences(userData).some((p) => p.includes("\u0412\u0435\u0433\u0430\u043D"));
+}
+function buildMeal3PromptRule(userData) {
+  if (isVeganUser(userData)) {
+    return "\u043B\u0435\u043A\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430: \u043F\u043B\u043E\u0434 + \u044F\u0434\u043A\u0438 (\u0431\u0430\u043D\u0430\u043D/\u044F\u0431\u044A\u043B\u043A\u0430 + \u0431\u0430\u0434\u0435\u043C\u0438/\u043E\u0440\u0435\u0445\u0438). \u0411\u0415\u0417 \u0445\u0443\u043C\u0443\u0441, \u0445\u043B\u044F\u0431, \u043C\u043B\u0435\u0447\u043D\u0438, \u0433\u043E\u0442\u0432\u0435\u043D\u0438 \u044F\u0441\u0442\u0438\u044F, \u043C\u0435\u0441\u043E, \u0431\u043E\u0431";
+  }
+  return "\u043B\u0435\u043A\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430: \u043F\u043B\u043E\u0434 \u0438/\u0438\u043B\u0438 \u044F\u0434\u043A\u0438 \u0438/\u0438\u043B\u0438 \u0441\u043A\u0438\u0440/\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E. \u041D\u0415 \u0435 \u043C\u0438\u043D\u0438-\u043E\u0431\u044F\u0434 \u2014 \u0431\u0435\u0437 \u043C\u0435\u0441\u043E, \u0440\u0438\u0431\u0430, \u0431\u043E\u0431, \u043E\u0440\u0438\u0437, \u0445\u043B\u044F\u0431, \u0441\u0430\u043B\u0430\u0442\u0430";
+}
+var MEAL3_REPAIR_VEGAN = {
+  name: "\u0411\u0430\u043D\u0430\u043D \u0441 \u0431\u0430\u0434\u0435\u043C\u0438",
+  description: "\u2022 \u0411\u0430\u043D\u0430\u043D 120g\n\u2022 \u0411\u0430\u0434\u0435\u043C\u0438 25g"
+};
+var MEAL3_REPAIR_DEFAULT = {
+  name: "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u0431\u0430\u0434\u0435\u043C\u0438",
+  description: "\u2022 \u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E 150g\n\u2022 \u0411\u0430\u0434\u0435\u043C\u0438 20g"
+};
+function repairMeal3IfInvalid(meal, userData) {
+  if (!meal || meal.type !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3") return false;
+  if (!validateLightMealSlotContent(meal).length) return false;
+  const tmpl = isVeganUser(userData) ? MEAL3_REPAIR_VEGAN : MEAL3_REPAIR_DEFAULT;
+  meal.name = tmpl.name;
+  meal.description = tmpl.description;
+  delete meal.calories;
+  delete meal.macros;
+  delete meal.weight;
+  return true;
+}
+var MEAL5_SNACK_ALLOWED = [
+  "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+  "\u0441\u043A\u0438\u0440",
+  "\u043A\u0435\u0444\u0438\u0440",
+  "\u0438\u0437\u0432\u0430\u0440\u0430",
+  "\u043A\u0430\u0448\u043A\u0430\u0432\u0430\u043B",
+  "\u044F\u0434\u043A\u0438",
+  "\u0431\u0430\u0434\u0435\u043C",
+  "\u043E\u0440\u0435\u0445",
+  "\u043A\u0430\u0448\u0443",
+  "\u043B\u0435\u0448\u043D\u0438\u043A",
+  "\u0448\u0430\u043C\u0444\u044A\u0441\u0442\u044A\u043A"
+];
+var MEAL5_SNACK_FORBIDDEN = [
+  "\u043E\u0440\u0438\u0437",
+  "\u0445\u043B\u044F\u0431",
+  "\u043F\u0430\u0441\u0442\u0430",
+  "\u043A\u0430\u0440\u0442\u043E\u0444",
+  "\u043C\u0430\u043A\u0430\u0440\u043E\u043D",
+  "\u0431\u0430\u043D\u0430\u043D",
+  "\u044F\u0431\u044A\u043B\u043A\u0430",
+  "\u043F\u043B\u043E\u0434",
+  "\u043F\u0438\u043B\u0435\u0448\u043A",
+  "\u0433\u043E\u0432\u0435\u0436\u0434",
+  "\u0440\u0438\u0431\u0430",
+  "\u0431\u043E\u0431",
+  "\u043C\u0435\u0434",
+  "\u0437\u0430\u0445\u0430\u0440"
+];
+var MEAL5_REPAIR_VEGAN = {
+  name: "\u0411\u0430\u0434\u0435\u043C\u0438 \u0438 \u043E\u0440\u0435\u0445\u0438",
+  description: "\u2022 \u0411\u0430\u0434\u0435\u043C\u0438 20g\n\u2022 \u041E\u0440\u0435\u0445\u0438 15g"
+};
+var MEAL5_REPAIR_DEFAULT = {
+  name: "\u0421\u043A\u0438\u0440 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438",
+  description: "\u2022 \u0421\u043A\u0438\u0440 120g\n\u2022 \u0411\u0430\u0434\u0435\u043C\u0438 15g"
+};
+function validateLateSnackSlotContent(meal, dayNum = null) {
+  const errors = [];
+  if (!meal || meal.type !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5") return errors;
+  const text = `${meal.name || ""} ${meal.description || ""}`.toLowerCase();
+  const prefix = dayNum != null ? `\u0414\u0435\u043D ${dayNum}: ` : "";
+  if (MEAL5_SNACK_FORBIDDEN.some((f) => text.includes(f))) {
+    errors.push(`${prefix}\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5 \u043D\u0435 \u0435 \u043A\u044A\u0441\u043D\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u2014 "${meal.name}"`);
+  } else if (!MEAL5_SNACK_ALLOWED.some((f) => text.includes(f))) {
+    errors.push(`${prefix}\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5 \u043D\u0435 \u0435 \u043A\u044A\u0441\u043D\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u2014 "${meal.name}"`);
+  } else if ((Number(meal.calories) || 0) > MAX_LATE_SNACK_CALORIES) {
+    errors.push(`${prefix}\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5: ${meal.calories} kcal > ${MAX_LATE_SNACK_CALORIES}`);
+  }
+  return errors;
+}
+function repairMeal5IfInvalid(meal, userData) {
+  if (!meal || meal.type !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5") return false;
+  if (!validateLateSnackSlotContent(meal).length) return false;
+  const tmpl = isVeganUser(userData) ? MEAL5_REPAIR_VEGAN : MEAL5_REPAIR_DEFAULT;
+  meal.name = tmpl.name;
+  meal.description = tmpl.description;
+  delete meal.calories;
+  delete meal.macros;
+  delete meal.weight;
+  return true;
+}
+function repairLightMealSlotIfInvalid(meal, userData) {
+  if (repairMeal3IfInvalid(meal, userData)) return true;
+  return repairMeal5IfInvalid(meal, userData);
+}
+function repairWeekPlanLightSlots(weekPlan, startDay, endDay, userData) {
+  let repaired = false;
+  for (let d = startDay; d <= endDay; d++) {
+    for (const meal of weekPlan[`day${d}`]?.meals || []) {
+      if (repairLightMealSlotIfInvalid(meal, userData)) repaired = true;
+    }
+  }
+  return repaired;
+}
 function validateLightMealSlotContent(meal, dayNum = null) {
   const errors = [];
   if (!meal || meal.type !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3") return errors;
@@ -8520,9 +8630,12 @@ function normalizeAnalysisOutput(analysis) {
       hs.score = Math.round(Math.max(15, Math.min(95, 100 - avg * 0.75)));
     }
   }
+  const titles = (analysis.keyProblems || []).slice(0, 3).map((p) => p.title).filter(Boolean);
+  const neutralDescription = titles.length ? `\u0417\u0434\u0440\u0430\u0432\u043E\u0441\u043B\u043E\u0432\u043D\u043E\u0442\u043E \u0441\u044A\u0441\u0442\u043E\u044F\u043D\u0438\u0435 \u0435 \u043F\u043E\u0432\u043B\u0438\u044F\u043D\u043E \u043E\u0442: ${titles.join(", ")}.` : "\u041E\u0431\u0449\u0430\u0442\u0430 \u0437\u0434\u0440\u0430\u0432\u043D\u0430 \u043E\u0446\u0435\u043D\u043A\u0430 \u043E\u0442\u0440\u0430\u0437\u044F\u0432\u0430 \u043A\u043E\u043C\u0431\u0438\u043D\u0430\u0446\u0438\u044F\u0442\u0430 \u043E\u0442 \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0438, \u043C\u0435\u0442\u0430\u0431\u043E\u043B\u0438\u0442\u043D\u0438 \u0438 \u043F\u043E\u0432\u0435\u0434\u0435\u043D\u0447\u0435\u0441\u043A\u0438 \u0444\u0430\u043A\u0442\u043E\u0440\u0438.";
   if (!hs.description || String(hs.description).length < 20) {
-    const titles = (analysis.keyProblems || []).slice(0, 3).map((p) => p.title).filter(Boolean);
-    hs.description = titles.length ? `\u0417\u0434\u0440\u0430\u0432\u043E\u0441\u043B\u043E\u0432\u043D\u043E\u0442\u043E \u0441\u044A\u0441\u0442\u043E\u044F\u043D\u0438\u0435 \u0435 \u043F\u043E\u0432\u043B\u0438\u044F\u043D\u043E \u043E\u0442: ${titles.join(", ")}.` : "\u041E\u0431\u0449\u0430\u0442\u0430 \u0437\u0434\u0440\u0430\u0432\u043D\u0430 \u043E\u0446\u0435\u043D\u043A\u0430 \u043E\u0442\u0440\u0430\u0437\u044F\u0432\u0430 \u043A\u043E\u043C\u0431\u0438\u043D\u0430\u0446\u0438\u044F\u0442\u0430 \u043E\u0442 \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0438, \u043C\u0435\u0442\u0430\u0431\u043E\u043B\u0438\u0442\u043D\u0438 \u0438 \u043F\u043E\u0432\u0435\u0434\u0435\u043D\u0447\u0435\u0441\u043A\u0438 \u0444\u0430\u043A\u0442\u043E\u0440\u0438.";
+    hs.description = neutralDescription;
+  } else if (typeof hs.score === "number" && hs.score >= 50 && NEGATIVE_HEALTH_TONE.test(hs.description)) {
+    hs.description = neutralDescription;
   }
   if (!Array.isArray(hs.keyIssues) || !hs.keyIssues.length) {
     hs.keyIssues = (analysis.keyProblems || []).slice(0, 4).map((p) => p.title).filter(Boolean);
@@ -9699,7 +9812,6 @@ var LOGGING_STATUS_CACHE_TTL = 60 * 1e3;
 var pendingSessionLogs = /* @__PURE__ */ new Map();
 var MEAL_PLAN_CHUNK_MAX_RETRIES = 2;
 var CATALOG_STRICT_MODE = true;
-var MAX_LATE_SNACK_CALORIES = 200;
 async function cacheSet(key, data, ttl = AI_LOG_CACHE_TTL) {
   try {
     const cache = caches.default;
@@ -10925,6 +11037,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
     }
   }
   const sweetsCravingRule = buildSweetsCravingRule(data.foodCravings, strategy);
+  const meal3Rule = buildMeal3PromptRule(data);
   let previousDaysContext = "";
   if (previousDays.length > 0) {
     previousDaysContext = `
@@ -11021,6 +11134,7 @@ ${serializePreviousDays(previousDays)}
     medicalConditions_metabolic_details: data["medicalConditions_\u041C\u0435\u0442\u0430\u0431\u043E\u043B\u0438\u0442\u043D\u0438_\u0434\u0435\u0442\u0430\u0439\u043B"] || "",
     medicalConditions_musculoskeletal_details: data["medicalConditions_\u041C\u0443\u0441\u043A\u0443\u043B\u043D\u043E-\u0441\u043A\u0435\u043B\u0435\u0442\u043D\u0438_\u0434\u0435\u0442\u0430\u0439\u043B"] || "",
     MAX_LATE_SNACK_CALORIES,
+    meal3Rule,
     freeMealInstruction: buildFreeMealInstruction(strategy, startDay, endDay, data),
     sweetsCravingRule,
     additionalNotes: buildCombinedAdditionalNotes(data),
@@ -12860,6 +12974,9 @@ async function reconcilePlanStructure(plan, userData = null, env = null) {
   if (plan.strategy?.weeklyScheme) {
     if (env) {
       await resolveAndSyncWeekPlanNutrition(env, plan.weekPlan, plan.strategy, 1, 7, userData);
+      if (repairWeekPlanLightSlots(plan.weekPlan, 1, 7, userData)) {
+        await resolveAndSyncWeekPlanNutrition(env, plan.weekPlan, plan.strategy, 1, 7, userData);
+      }
     }
     finalizeWeekPlanDays(plan.weekPlan, plan.strategy, 1, 7, userData);
   } else {
@@ -14340,13 +14457,20 @@ function normalizeWeeklyScheme(strategy, defaultDailyCalories) {
     let sumF = sumField2("fats");
     if (!day.meals) day.meals = day.mealBreakdown.length;
     if (sumCals > 0 && targetCals > 0 && Math.abs(sumCals - targetCals) > calorieTolerance(targetCals)) {
-      const ratio = targetCals / sumCals;
-      for (const m of day.mealBreakdown) {
-        m.calories = Math.round((Number(m.calories) || 0) * ratio);
-        m.protein = Math.round((Number(m.protein) || 0) * ratio);
-        m.carbs = Math.round((Number(m.carbs) || 0) * ratio);
-        m.fats = Math.round((Number(m.fats) || 0) * ratio);
+      const fixedKcal = day.mealBreakdown.filter((m) => m.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5").reduce((s, m) => s + (Number(m.calories) || 0), 0);
+      const scalable = day.mealBreakdown.filter((m) => m.type !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5");
+      const scalableSum = scalable.reduce((s, m) => s + (Number(m.calories) || 0), 0);
+      const targetForScalable = targetCals - fixedKcal;
+      if (scalableSum > 0 && targetForScalable > 0) {
+        const ratio = targetForScalable / scalableSum;
+        for (const m of scalable) {
+          m.calories = Math.round((Number(m.calories) || 0) * ratio);
+          m.protein = Math.round((Number(m.protein) || 0) * ratio);
+          m.carbs = Math.round((Number(m.carbs) || 0) * ratio);
+          m.fats = Math.round((Number(m.fats) || 0) * ratio);
+        }
       }
+      clampLateSnackInMealBreakdown(day);
     }
     day.calories = sumField2("calories");
     day.protein = sumField2("protein");
@@ -14534,6 +14658,7 @@ function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay
       errors.push(...validateMealsAgainstScheme(dayPlan, dayTarget, d, clinicalProtocolId));
       for (const meal of dayPlan.meals || []) {
         errors.push(...validateLightMealSlotContent(meal, d));
+        errors.push(...validateLateSnackSlotContent(meal, d));
       }
       const dayKcal = Number(dayPlan.dailyTotals?.calories) || 0;
       const schemeKcal = (dayTarget.mealBreakdown || []).reduce((s, m) => s + (Number(m.calories) || 0), 0) || Number(dayTarget.calories) || 0;
@@ -14546,6 +14671,9 @@ function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay
     }
   }
   return errors;
+}
+function repairWeekPlanMeal3Slots(weekPlan, startDay, endDay, userData) {
+  return repairWeekPlanLightSlots(weekPlan, startDay, endDay, userData);
 }
 function buildChunkValidationRetryComment(errors) {
   if (!errors?.length) return "";
@@ -15743,7 +15871,8 @@ ${_combinedNotes}` : "";
       const p = getClinicalProtocol(data.clinicalProtocol);
       return p ? p.name : "";
     })(),
-    MAX_LATE_SNACK_CALORIES
+    MAX_LATE_SNACK_CALORIES,
+    meal3Rule: buildMeal3PromptRule(data)
   });
   const weeklySection = buildWeeklyAdaptationContextSection(data);
   if (weeklySection && !prompt.includes("\u0421\u0415\u0414\u041C\u0418\u0427\u041D\u0410 \u0410\u0414\u0410\u041F\u0422\u0410\u0426\u0418\u042F")) prompt += weeklySection;
@@ -15870,6 +15999,9 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         }
         injectFixedDesserts(weekPlan);
         await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
+        if (repairWeekPlanMeal3Slots(weekPlan, startDay, endDay, data)) {
+          await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
+        }
         finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, data);
         validationErrors = validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay, data.clinicalProtocol || null, data);
         lastAiFailure = null;

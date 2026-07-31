@@ -2,8 +2,7 @@
  * Contract + behavior for H5 mealBreakdown clamp (logic mirrored from worker.entry.js).
  */
 import { readFileSync } from 'node:fs';
-
-const MAX_LATE_SNACK_CALORIES = 200;
+import { MAX_LATE_SNACK_CALORIES } from '../plan-normalize.js';
 
 function lateSnackMacroTargets(kcal) {
   const k = Math.max(50, Math.round(Number(kcal) || MAX_LATE_SNACK_CALORIES));
@@ -48,6 +47,7 @@ function assert(cond, msg) {
 
 const src = readFileSync('worker.entry.js', 'utf8');
 assert(src.includes('function clampLateSnackInMealBreakdown'), 'worker has clampLateSnackInMealBreakdown');
+assert(src.includes("m.type !== 'Хранене 5'"), 'ratio scaling excludes H5');
 assert(src.includes('LATE_SNACK_ALLOWED_FOODS'), 'worker uses LATE_SNACK_ALLOWED_FOODS');
 assert(!src.includes('LOW_GI_FOODS'), 'LOW_GI_FOODS bypass removed');
 

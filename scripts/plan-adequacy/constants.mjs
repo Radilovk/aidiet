@@ -1,11 +1,12 @@
-/** Shared constants aligned with worker.entry.js / analysis.html */
+/** Shared constants — MAX_LATE_SNACK from plan-normalize (single source). */
+export { MAX_LATE_SNACK_CALORIES } from '../../plan-normalize.js';
+
 export const MIN_HEALTH_SCORE = 15;
 export const MAX_HEALTH_SCORE = 100;
 export const HEALTH_STATUS_UNDERESTIMATE_PERCENT = 10;
 export const MIN_FAT_GRAMS_PER_KG = 0.7;
 export const MIN_RECOMMENDED_CALORIES_MALE = 1500;
 export const MIN_RECOMMENDED_CALORIES_FEMALE = 1200;
-export const MAX_LATE_SNACK_CALORIES = 250;
 export const CANONICAL_MEAL_TYPES = [
   'Хранене 1', 'Хранене 2', 'Хранене 3', 'Хранене 4', 'Хранене 5', 'Свободно хранене',
 ];

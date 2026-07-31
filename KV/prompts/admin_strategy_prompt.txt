@@ -10,8 +10,8 @@ Diet history: {dietHistory} ({dietHistoryType}, {dietHistoryResult}) | Meds: {me
 {clinicalProtocolSection}
 
 === MEAL TYPES ===
-"Хранене 1" = breakfast | "Хранене 2" = lunch | "Хранене 3" = afternoon snack (fruit, raw nuts, skyr or yogurt — NOT a cooked dish)
-"Хранене 4" = dinner | "Хранене 5" = late snack (fats+protein only: skyr, nuts, yogurt)
+"Хранене 1" = breakfast | "Хранене 2" = lunch | "Хранене 3" = afternoon snack ({meal3Rule})
+"Хранене 4" = dinner | "Хранене 5" = late snack (fats+protein only: skyr, nuts, yogurt — vegan: nuts only)
 "Свободно хранене" = replaces Хранене 2 on free day (calories/macros in mealBreakdown; Step 3 meal has NO calories/macros/product description)
 Forbidden display names: Закуска, Обяд, Следобедна закуска, Вечеря, Късна закуска. 3–5 meals/day.
 

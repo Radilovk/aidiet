@@ -5,6 +5,10 @@ import {
   maxPlatedSlotKcal,
   severityLabelForValue,
   validateLightMealSlotContent,
+  repairMeal3IfInvalid,
+  repairMeal5IfInvalid,
+  validateLateSnackSlotContent,
+  MAX_LATE_SNACK_CALORIES,
 } from '../plan-normalize.js';
 
 const results = [];
@@ -83,6 +87,33 @@ check('severityLabelForValue(60)=Risky', severityLabelForValue(60) === 'Risky');
 {
   const errs = validateLightMealSlotContent({ type: 'Хранене 3', name: 'Говеждо с броколи', description: '• говеждо 150g' }, 6);
   check('H3 rejects cooked meat', errs.length > 0);
+}
+
+{
+  const meal = { type: 'Хранене 3', name: 'Говеждо с боб и салата', description: '• говеждо 100g' };
+  const repaired = repairMeal3IfInvalid(meal, { dietPreference: ['Веган'] });
+  check('H3 repair: vegan replaces invalid meal', repaired);
+  check('H3 repair: vegan template valid', validateLightMealSlotContent(meal).length === 0);
+}
+
+{
+  const analysis = {
+    keyProblems: [{ title: 'Стрес', severity: 'Risky', severityValue: 70 }],
+    currentHealthStatus: { score: 62, description: 'Много лошо здравословно състояние с критични проблеми.' },
+  };
+  normalizeAnalysisOutput(analysis);
+  check('Analysis: neutralize negative tone when score ≥50', !/критичн|много лош/i.test(analysis.currentHealthStatus.description));
+}
+
+check('MAX_LATE_SNACK_CALORIES=200', MAX_LATE_SNACK_CALORIES === 200);
+
+{
+  const meal = { type: 'Хранене 5', name: 'Банан', description: '• Банан 150g', calories: 120 };
+  check('H5 rejects fruit', validateLateSnackSlotContent(meal).length > 0);
+  const h5 = { type: 'Хранене 5', name: 'Ориз', description: '• Ориз 100g' };
+  const repaired5 = repairMeal5IfInvalid(h5, { dietPreference: [] });
+  check('H5 repair: replaces invalid meal', repaired5);
+  check('H5 repair: template valid', validateLateSnackSlotContent(h5).length === 0);
 }
 
 const passed = results.filter(Boolean).length;
