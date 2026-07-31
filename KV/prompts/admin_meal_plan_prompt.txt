@@ -32,7 +32,7 @@ Combinations: 2–6 products; one PRO + ENG if needed + veg; one of rice/potato/
 
 === MEAL TYPES ===
 • Хранене 2/4 — main meals (meat, fish, eggs, cooked combinations)
-• Хранене 3 — light snack only: fruit, raw nuts, skyr or yogurt. NO meat, fish, cooked dishes, rice, bread, pasta.
+• Хранене 3 — {meal3Rule}
 • Хранене 5 — fats+protein only (skyr, nuts, yogurt), max {MAX_LATE_SNACK_CALORIES} kcal
 • Свободно хранене — only if strategy plans it this day: {"type":"Свободно хранене","name":"Свободно хранене"} NO description/calories/macros/weight/dessert. Do not generate Хранене 2 that day.
 • "dessert": true — only on Хранене 2 when sweets needed; part of lunch, not a separate meal, not in name:

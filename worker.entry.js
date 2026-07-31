@@ -45,6 +45,9 @@ import {
   normalizeAnalysisOutput,
   minMealWeightGrams,
   validateLightMealSlotContent,
+  repairMeal3IfInvalid,
+  buildMeal3PromptRule,
+  MAX_LATE_SNACK_CALORIES,
 } from './plan-normalize.js';
 import {
   buildCatalogPromptSection,
@@ -1708,7 +1711,6 @@ const pendingSessionLogs = new Map(); // sessionId → [logId, ...]
 // the bounded scaling could not fix.
 const MEAL_PLAN_CHUNK_MAX_RETRIES = 2; // Up to 2 retries per day when structural validation fails
 const CATALOG_STRICT_MODE = true; // Step 3: only catalog products; no AI nutrition lookup
-const MAX_LATE_SNACK_CALORIES = 200; // Maximum calories allowed for late-night snacks
 
 /**
  * Cache API helper functions for AI logging
@@ -3425,6 +3427,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
   }
 
   const sweetsCravingRule = buildSweetsCravingRule(data.foodCravings, strategy);
+  const meal3Rule = buildMeal3PromptRule(data);
 
   // Build previous days context for variety (NPCF compact — meal names only)
   let previousDaysContext = '';
@@ -3543,6 +3546,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
       medicalConditions_metabolic_details: data['medicalConditions_Метаболитни_детайл'] || '',
       medicalConditions_musculoskeletal_details: data['medicalConditions_Мускулно-скелетни_детайл'] || '',
       MAX_LATE_SNACK_CALORIES,
+      meal3Rule,
       freeMealInstruction: buildFreeMealInstruction(strategy, startDay, endDay, data),
       sweetsCravingRule,
       additionalNotes: buildCombinedAdditionalNotes(data),
@@ -7685,13 +7689,22 @@ function normalizeWeeklyScheme(strategy, defaultDailyCalories) {
     if (!day.meals) day.meals = day.mealBreakdown.length;
 
     if (sumCals > 0 && targetCals > 0 && Math.abs(sumCals - targetCals) > calorieTolerance(targetCals)) {
-      const ratio = targetCals / sumCals;
-      for (const m of day.mealBreakdown) {
-        m.calories = Math.round((Number(m.calories) || 0) * ratio);
-        m.protein = Math.round((Number(m.protein) || 0) * ratio);
-        m.carbs = Math.round((Number(m.carbs) || 0) * ratio);
-        m.fats = Math.round((Number(m.fats) || 0) * ratio);
+      const fixedKcal = day.mealBreakdown
+        .filter(m => m.type === 'Хранене 5')
+        .reduce((s, m) => s + (Number(m.calories) || 0), 0);
+      const scalable = day.mealBreakdown.filter(m => m.type !== 'Хранене 5');
+      const scalableSum = scalable.reduce((s, m) => s + (Number(m.calories) || 0), 0);
+      const targetForScalable = targetCals - fixedKcal;
+      if (scalableSum > 0 && targetForScalable > 0) {
+        const ratio = targetForScalable / scalableSum;
+        for (const m of scalable) {
+          m.calories = Math.round((Number(m.calories) || 0) * ratio);
+          m.protein = Math.round((Number(m.protein) || 0) * ratio);
+          m.carbs = Math.round((Number(m.carbs) || 0) * ratio);
+          m.fats = Math.round((Number(m.fats) || 0) * ratio);
+        }
       }
+      clampLateSnackInMealBreakdown(day);
     }
 
     // mealBreakdown is the contract — day totals always mirror slot sums
@@ -7932,6 +7945,17 @@ function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay
     }
   }
   return errors;
+}
+
+function repairWeekPlanMeal3Slots(weekPlan, startDay, endDay, userData) {
+  let repaired = false;
+  for (let d = startDay; d <= endDay; d++) {
+    const dayPlan = weekPlan[`day${d}`];
+    for (const meal of dayPlan?.meals || []) {
+      if (repairMeal3IfInvalid(meal, userData)) repaired = true;
+    }
+  }
+  return repaired;
 }
 
 function buildChunkValidationRetryComment(errors) {
@@ -9631,6 +9655,9 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
 
         injectFixedDesserts(weekPlan);
         await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
+        if (repairWeekPlanMeal3Slots(weekPlan, startDay, endDay, data)) {
+          await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
+        }
         finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, data);
 
         validationErrors = validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay, data.clinicalProtocol || null, data);

@@ -17,6 +17,10 @@ export const FREE_DAY_DINNER_MAX_RATIO = 0.28;
 export const FREE_DAY_DINNER_MAX_KCAL = 600;
 export const MIN_MAIN_MEAL_WEIGHT_GRAMS = 50;
 export const MIN_LIGHT_MEAL_WEIGHT_GRAMS = 20;
+/** Late snack (H5) kcal ceiling — single source for worker + validators. */
+export const MAX_LATE_SNACK_CALORIES = 200;
+
+const NEGATIVE_HEALTH_TONE = /влошен|критичн|много лош/i;
 
 export const KEY_PROBLEM_SEVERITY_RANGES = {
   Borderline: [45, 59],
@@ -202,6 +206,50 @@ function enforceFreeDayDinnerCap(day, dailyKcal) {
   }
 }
 
+function dietPreferences(userData) {
+  const raw = userData?.dietPreference;
+  if (Array.isArray(raw)) return raw.map(String);
+  return raw ? [String(raw)] : [];
+}
+
+export function isVeganUser(userData) {
+  return dietPreferences(userData).some(p => p.includes('Веган'));
+}
+
+/** Step 3 prompt — one rule derived from dietary context, not per-profile branches. */
+export function buildMeal3PromptRule(userData) {
+  if (isVeganUser(userData)) {
+    return 'лека закуска: плод + ядки (банан/ябълка + бадеми/орехи). БЕЗ хумус, хляб, млечни, готвени ястия, месо, боб';
+  }
+  return 'лека закуска: плод и/или ядки и/или скир/кисело мляко. НЕ е мини-обяд — без месо, риба, боб, ориз, хляб, салата';
+}
+
+const MEAL3_REPAIR_VEGAN = {
+  name: 'Банан с бадеми',
+  description: '• Банан 120g\n• Бадеми 25g',
+};
+const MEAL3_REPAIR_DEFAULT = {
+  name: 'Кисело мляко с бадеми',
+  description: '• Кисело мляко 150g\n• Бадеми 20g',
+};
+
+/**
+ * Deterministic H3 repair when AI picks a non-snack — no retry dependency.
+ * Returns true if the meal was replaced (caller should re-sync nutrition).
+ */
+export function repairMeal3IfInvalid(meal, userData) {
+  if (!meal || meal.type !== 'Хранене 3') return false;
+  if (!validateLightMealSlotContent(meal).length) return false;
+
+  const tmpl = isVeganUser(userData) ? MEAL3_REPAIR_VEGAN : MEAL3_REPAIR_DEFAULT;
+  meal.name = tmpl.name;
+  meal.description = tmpl.description;
+  delete meal.calories;
+  delete meal.macros;
+  delete meal.weight;
+  return true;
+}
+
 /** Validate Хранене 3 is a true snack (used during chunk generation, not only final validate). */
 export function validateLightMealSlotContent(meal, dayNum = null) {
   const errors = [];
@@ -275,11 +323,15 @@ export function normalizeAnalysisOutput(analysis) {
     }
   }
 
+  const titles = (analysis.keyProblems || []).slice(0, 3).map(p => p.title).filter(Boolean);
+  const neutralDescription = titles.length
+    ? `Здравословното състояние е повлияно от: ${titles.join(', ')}.`
+    : 'Общата здравна оценка отразява комбинацията от хранителни, метаболитни и поведенчески фактори.';
+
   if (!hs.description || String(hs.description).length < 20) {
-    const titles = (analysis.keyProblems || []).slice(0, 3).map(p => p.title).filter(Boolean);
-    hs.description = titles.length
-      ? `Здравословното състояние е повлияно от: ${titles.join(', ')}.`
-      : 'Общата здравна оценка отразява комбинацията от хранителни, метаболитни и поведенчески фактори.';
+    hs.description = neutralDescription;
+  } else if (typeof hs.score === 'number' && hs.score >= 50 && NEGATIVE_HEALTH_TONE.test(hs.description)) {
+    hs.description = neutralDescription;
   }
 
   if (!Array.isArray(hs.keyIssues) || !hs.keyIssues.length) {
