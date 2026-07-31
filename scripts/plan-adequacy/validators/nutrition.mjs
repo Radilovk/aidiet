@@ -6,7 +6,11 @@ import {
   calorieTolerance,
   macroTolerance,
 } from '../../../food-nutrition.js';
-import { minMealWeightGrams } from '../../../plan-normalize.js';
+import {
+  minMealWeightGrams,
+  isMealCaloriesAdequate,
+  slotCalorieTolerance,
+} from '../../../plan-normalize.js';
 
 function macrosToCalories(macros) {
   const p = Number(macros?.protein) || 0;
@@ -109,9 +113,9 @@ export function validateMealNutritionPipeline(meal, target) {
   }
   if (target?.calories) {
     const diff = Math.abs(clone.calories - target.calories);
-    if (diff > calorieTolerance(target.calories)) {
+    if (!isMealCaloriesAdequate(clone.calories, target.calories)) {
       issues.push(
-        `"${meal.name}": калории ${clone.calories} далеч от цел ${target.calories} (±${calorieTolerance(target.calories)})`
+        `"${meal.name}": калории ${clone.calories} далеч от цел ${target.calories} (±${slotCalorieTolerance(target.calories)})`
       );
     }
   }
@@ -150,9 +154,8 @@ export function validateWeekPlanNutrition(weekPlan, strategy) {
       const mealCal = Number(meal.calories) || macrosToCalories(meal.macros);
       dayKcal += mealCal;
       if (target?.calories && mealCal > 0) {
-        const tol = calorieTolerance(target.calories);
-        if (Math.abs(mealCal - target.calories) > tol) {
-          issues.push(`day${d} ${meal.type}: ${mealCal} kcal ≠ схема ${target.calories} (±${tol})`);
+        if (!isMealCaloriesAdequate(mealCal, target.calories)) {
+          issues.push(`day${d} ${meal.type}: ${mealCal} kcal ≠ схема ${target.calories} (±${slotCalorieTolerance(target.calories)})`);
         }
       }
     }

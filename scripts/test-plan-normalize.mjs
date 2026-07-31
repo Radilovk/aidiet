@@ -111,6 +111,14 @@ check('severityLabelForValue(60)=Risky', severityLabelForValue(60) === 'Risky');
 check('MAX_LATE_SNACK_CALORIES=200', MAX_LATE_SNACK_CALORIES === 200);
 
 {
+  const { isMealCaloriesAdequate, slotCalorieTolerance } = await import('../plan-normalize.js');
+  check('adequacy: 836 vs 900 within 10%', isMealCaloriesAdequate(836, 900));
+  check('adequacy: 562 vs 611 within 10%', isMealCaloriesAdequate(562, 611));
+  check('adequacy: 700 vs 900 outside 10%', !isMealCaloriesAdequate(700, 900));
+  check('adequacy tolerance 900→90', slotCalorieTolerance(900) === 90);
+}
+
+{
   const meal = { type: 'Хранене 5', name: 'Банан', description: '• Банан 150g', calories: 120 };
   check('H5 rejects fruit', validateLateSnackSlotContent(meal).length > 0);
   const h5 = { type: 'Хранене 5', name: 'Ориз', description: '• Ориз 100g' };

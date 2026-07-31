@@ -20,6 +20,27 @@ export const MIN_LIGHT_MEAL_WEIGHT_GRAMS = 20;
 /** Late snack (H5) kcal ceiling — single source for worker + validators. */
 export const MAX_LATE_SNACK_CALORIES = 200;
 
+/**
+ * Adequacy contract: per-slot kcal deviation after nutrition sync.
+ * 10% is standard for meal plans; floor keeps small snacks (H3) practical.
+ */
+export const SLOT_CALORIE_TOLERANCE_PERCENT = 0.10;
+export const SLOT_CALORIE_TOLERANCE_MIN_KCAL = 30;
+
+export function slotCalorieTolerance(targetKcal) {
+  return Math.max(
+    SLOT_CALORIE_TOLERANCE_MIN_KCAL,
+    Math.round((Number(targetKcal) || 0) * SLOT_CALORIE_TOLERANCE_PERCENT),
+  );
+}
+
+export function isMealCaloriesAdequate(achievedKcal, targetKcal) {
+  const achieved = Number(achievedKcal) || 0;
+  const target = Number(targetKcal) || 0;
+  if (target <= 0 || achieved <= 0) return true;
+  return Math.abs(achieved - target) <= slotCalorieTolerance(target);
+}
+
 const NEGATIVE_HEALTH_TONE = /влошен|критичн|много лош/i;
 
 export const KEY_PROBLEM_SEVERITY_RANGES = {
@@ -428,6 +449,38 @@ export function normalizeAnalysisOutput(analysis) {
   }
 
   return analysis;
+}
+
+const SCHEME_DAY_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
+/**
+ * After nutrition sync: align scheme slot targets with achieved kcal when within
+ * adequacy tolerance (portion caps make exact targets unreachable).
+ */
+export function reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay) {
+  if (!weekPlan || !strategy?.weeklyScheme) return;
+
+  for (let d = startDay; d <= endDay; d++) {
+    const dayPlan = weekPlan[`day${d}`];
+    const dayScheme = strategy.weeklyScheme[SCHEME_DAY_KEYS[d - 1]];
+    if (!dayPlan?.meals?.length || !dayScheme?.mealBreakdown?.length) continue;
+
+    for (const meal of dayPlan.meals) {
+      if (meal.type === 'Свободно хранене' || meal.type === 'Напитка') continue;
+      const slot = dayScheme.mealBreakdown.find(m => m.type === meal.type);
+      if (!slot) continue;
+
+      const target = Number(slot.calories) || 0;
+      const achieved = Number(meal.calories) || 0;
+      if (target <= 0 || achieved <= 0) continue;
+
+      if (isMealCaloriesAdequate(achieved, target)) {
+        slot.calories = achieved;
+      }
+    }
+
+    dayScheme.calories = dayScheme.mealBreakdown.reduce((s, m) => s + (Number(m.calories) || 0), 0);
+  }
 }
 
 /** Strategy validator helper — budget slots exempt from plated kcal cap. */

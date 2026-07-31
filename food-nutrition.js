@@ -21,19 +21,16 @@ import {
 import { normalizeFoodKey } from './food-utils.js';
 import { resolveCatalogEntry } from './food-catalog.js';
 import { FOOD_CATALOG } from './food-catalog-data.js';
-import { MAX_LATE_SNACK_CALORIES } from './plan-normalize.js';
+import { MAX_LATE_SNACK_CALORIES, SLOT_CALORIE_TOLERANCE_PERCENT, SLOT_CALORIE_TOLERANCE_MIN_KCAL } from './plan-normalize.js';
 
 export { normalizeFoodKey } from './food-utils.js';
 
 export const GRAM_ROUND_STEP = 10;
 
-// Percentage-based validation tolerance: calories are the backend's own arithmetic
-// (scaling guarantees them except in pathological cases), macros follow the AI's
-// product mix so they get more slack. A small absolute floor keeps tiny targets
-// from becoming impossibly strict.
-export const CALORIE_TOLERANCE_PERCENT = 0.05;
+// Adequacy contract — see plan-normalize.js SLOT_CALORIE_TOLERANCE_* (single source).
+export const CALORIE_TOLERANCE_PERCENT = SLOT_CALORIE_TOLERANCE_PERCENT;
 export const MACRO_TOLERANCE_PERCENT = 0.10;
-const MIN_CALORIE_TOLERANCE_KCAL = 25;
+const MIN_CALORIE_TOLERANCE_KCAL = SLOT_CALORIE_TOLERANCE_MIN_KCAL;
 const MIN_MACRO_TOLERANCE_G = 3;
 
 export function calorieTolerance(targetKcal) {

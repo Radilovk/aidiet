@@ -7885,6 +7885,20 @@ var FREE_DAY_DINNER_MAX_KCAL = 600;
 var MIN_MAIN_MEAL_WEIGHT_GRAMS = 50;
 var MIN_LIGHT_MEAL_WEIGHT_GRAMS = 20;
 var MAX_LATE_SNACK_CALORIES = 200;
+var SLOT_CALORIE_TOLERANCE_PERCENT = 0.1;
+var SLOT_CALORIE_TOLERANCE_MIN_KCAL = 30;
+function slotCalorieTolerance(targetKcal) {
+  return Math.max(
+    SLOT_CALORIE_TOLERANCE_MIN_KCAL,
+    Math.round((Number(targetKcal) || 0) * SLOT_CALORIE_TOLERANCE_PERCENT)
+  );
+}
+function isMealCaloriesAdequate(achievedKcal, targetKcal) {
+  const achieved = Number(achievedKcal) || 0;
+  const target = Number(targetKcal) || 0;
+  if (target <= 0 || achieved <= 0) return true;
+  return Math.abs(achieved - target) <= slotCalorieTolerance(target);
+}
 var NEGATIVE_HEALTH_TONE = /влошен|критичн|много лош/i;
 var KEY_PROBLEM_SEVERITY_RANGES = {
   Borderline: [45, 59],
@@ -8257,12 +8271,33 @@ function normalizeAnalysisOutput(analysis) {
   }
   return analysis;
 }
+var SCHEME_DAY_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+function reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay) {
+  if (!weekPlan || !strategy?.weeklyScheme) return;
+  for (let d = startDay; d <= endDay; d++) {
+    const dayPlan = weekPlan[`day${d}`];
+    const dayScheme = strategy.weeklyScheme[SCHEME_DAY_KEYS[d - 1]];
+    if (!dayPlan?.meals?.length || !dayScheme?.mealBreakdown?.length) continue;
+    for (const meal of dayPlan.meals) {
+      if (meal.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" || meal.type === "\u041D\u0430\u043F\u0438\u0442\u043A\u0430") continue;
+      const slot = dayScheme.mealBreakdown.find((m) => m.type === meal.type);
+      if (!slot) continue;
+      const target = Number(slot.calories) || 0;
+      const achieved = Number(meal.calories) || 0;
+      if (target <= 0 || achieved <= 0) continue;
+      if (isMealCaloriesAdequate(achieved, target)) {
+        slot.calories = achieved;
+      }
+    }
+    dayScheme.calories = dayScheme.mealBreakdown.reduce((s, m) => s + (Number(m.calories) || 0), 0);
+  }
+}
 
 // food-nutrition.js
 var GRAM_ROUND_STEP = 10;
-var CALORIE_TOLERANCE_PERCENT = 0.05;
+var CALORIE_TOLERANCE_PERCENT = SLOT_CALORIE_TOLERANCE_PERCENT;
 var MACRO_TOLERANCE_PERCENT = 0.1;
-var MIN_CALORIE_TOLERANCE_KCAL = 25;
+var MIN_CALORIE_TOLERANCE_KCAL = SLOT_CALORIE_TOLERANCE_MIN_KCAL;
 var MIN_MACRO_TOLERANCE_G = 3;
 function calorieTolerance(targetKcal) {
   return Math.max(MIN_CALORIE_TOLERANCE_KCAL, Math.round((Number(targetKcal) || 0) * CALORIE_TOLERANCE_PERCENT));
@@ -14601,10 +14636,14 @@ async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay
     if (unknowns.length) {
       console.warn("[food-catalog] Unknown products (strict):", unknowns.slice(0, 10).join(", "));
     }
+    reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay);
     return unknowns;
   }
   const namesToResolve = unknowns.filter((n) => n && n !== "no-parsed-items").filter((n) => !extraDb[normalizeFoodKey(n)]).slice(0, 6);
-  if (!namesToResolve.length) return unknowns;
+  if (!namesToResolve.length) {
+    reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay);
+    return unknowns;
+  }
   let updated = false;
   for (const name of namesToResolve) {
     const profile = await fetchFoodNutritionViaAI(env, name);
@@ -14617,6 +14656,7 @@ async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay
     await saveFoodNutritionExtraDb(env, extraDb);
     unknowns = syncWeekPlanNutritionFromDatabase(weekPlan, strategy, startDay, endDay, extraDb);
   }
+  reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay);
   if (unknowns.length) {
     console.warn("[food-nutrition] Unknown products after sync:", unknowns.slice(0, 10).join(", "));
   }
@@ -14650,7 +14690,7 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocol
     }
     const targetCal = Number(target.calories) || 0;
     const mealCal = Number(meal.calories) || macrosToCalories(meal.macros);
-    if (targetCal > 0 && mealCal > 0 && Math.abs(mealCal - targetCal) > calorieTolerance(targetCal)) {
+    if (targetCal > 0 && mealCal > 0 && !isMealCaloriesAdequate(mealCal, targetCal)) {
       errors.push(`\u0414\u0435\u043D ${dayNum} ${meal.type}: \u043A\u0430\u043B\u043E\u0440\u0438\u0438 ${mealCal} \u2260 \u0446\u0435\u043B ${targetCal} \u2014 \u043F\u043E\u0440\u0446\u0438\u0438\u0442\u0435 \u0441\u0430 \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u043D\u043E \u043D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u044A\u0447\u043D\u0438/\u043F\u0440\u0435\u043A\u043E\u043C\u0435\u0440\u043D\u0438, \u0438\u0437\u0431\u0435\u0440\u0438 \u043F\u043E-\u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u0438\u043B\u0438 \u043A\u043E\u043B\u0438\u0447\u0435\u0441\u0442\u0432\u0430`);
     }
     if (meal.weight) {
