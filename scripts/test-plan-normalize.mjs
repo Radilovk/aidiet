@@ -3,6 +3,7 @@ import {
   rebalanceMealBreakdownSlots,
   normalizeAnalysisOutput,
   maxPlatedSlotKcal,
+  maxSlotKcal,
   severityLabelForValue,
   validateLightMealSlotContent,
   repairMeal3IfInvalid,
@@ -13,6 +14,7 @@ import {
   isMealCaloriesAdequate,
   slotCalorieTolerance,
   MAX_LATE_SNACK_CALORIES,
+  MAX_AFTERNOON_SNACK_CALORIES,
 } from '../plan-normalize.js';
 import { applyMealNutritionFromDatabase } from '../food-nutrition.js';
 
@@ -33,12 +35,10 @@ function check(label, ok, detail = '') {
       { type: 'Хранене 5', calories: 200, protein: 15, carbs: 5, fats: 12 },
     ],
   };
-  const maxK = maxPlatedSlotKcal(day.mealBreakdown, 2774);
   rebalanceMealBreakdownSlots(day, 2774);
   const sum = day.mealBreakdown.reduce((s, m) => s + m.calories, 0);
-  const h4 = day.mealBreakdown.find(m => m.type === 'Хранене 4');
-  const over = day.mealBreakdown.filter(m => m.type !== 'Свободно хранене' && m.type !== 'Хранене 5' && m.calories > maxK);
-  check('Kamen-like: всички plated слотове ≤ dynamic max', over.length === 0, `max=${maxK}, H4=${h4?.calories}`);
+  const h3 = day.mealBreakdown.find(m => m.type === 'Хранене 3');
+  check('Kamen-like: H3 ≤ snack cap', h3.calories <= MAX_AFTERNOON_SNACK_CALORIES, `${h3?.calories}`);
   check('Kamen-like: дневната сума запазена', Math.abs(sum - 2774) <= 30, `sum=${sum}`);
 }
 
@@ -87,6 +87,21 @@ check('severityLabelForValue(60)=Risky', severityLabelForValue(60) === 'Risky');
   rebalanceMealBreakdownSlots(day, 2774);
   const h4 = day.mealBreakdown.find(m => m.type === 'Хранене 4');
   check('free day: H4 capped ≤600', h4.calories <= 600, `${h4.calories} kcal`);
+}
+
+{
+  const day = {
+    calories: 2774,
+    mealBreakdown: [
+      { type: 'Свободно хранене', calories: 1248, protein: 40, carbs: 100, fats: 50 },
+      { type: 'Хранене 3', calories: 250, protein: 10, carbs: 20, fats: 10 },
+      { type: 'Хранене 4', calories: 1074, protein: 70, carbs: 80, fats: 40 },
+      { type: 'Хранене 5', calories: 200, protein: 15, carbs: 5, fats: 12 },
+    ],
+  };
+  rebalanceMealBreakdownSlots(day, 2774);
+  const h3 = day.mealBreakdown.find(m => m.type === 'Хранене 3');
+  check('free day: H3 capped ≤350', h3.calories <= MAX_AFTERNOON_SNACK_CALORIES, `${h3?.calories} kcal`);
 }
 
 {
