@@ -19,6 +19,29 @@ export const MIN_MAIN_MEAL_WEIGHT_GRAMS = 50;
 export const MIN_LIGHT_MEAL_WEIGHT_GRAMS = 20;
 /** Late snack (H5) kcal ceiling — single source for worker + validators. */
 export const MAX_LATE_SNACK_CALORIES = 200;
+/** Afternoon snack (H3) kcal ceiling — fruit/nuts/yogurt cannot reach main-meal targets. */
+export const MAX_AFTERNOON_SNACK_CALORIES = 350;
+
+/**
+ * Adequacy contract: per-slot kcal deviation after nutrition sync.
+ * 10% is standard for meal plans; floor keeps small snacks (H3) practical.
+ */
+export const SLOT_CALORIE_TOLERANCE_PERCENT = 0.10;
+export const SLOT_CALORIE_TOLERANCE_MIN_KCAL = 30;
+
+export function slotCalorieTolerance(targetKcal) {
+  return Math.max(
+    SLOT_CALORIE_TOLERANCE_MIN_KCAL,
+    Math.round((Number(targetKcal) || 0) * SLOT_CALORIE_TOLERANCE_PERCENT),
+  );
+}
+
+export function isMealCaloriesAdequate(achievedKcal, targetKcal) {
+  const achieved = Number(achievedKcal) || 0;
+  const target = Number(targetKcal) || 0;
+  if (target <= 0 || achieved <= 0) return true;
+  return Math.abs(achieved - target) <= slotCalorieTolerance(target);
+}
 
 const NEGATIVE_HEALTH_TONE = /влошен|критичн|много лош/i;
 
@@ -73,6 +96,23 @@ function platedSlots(breakdown) {
   return breakdown.filter(m => !BUDGET_SLOT_TYPES.has(m.type) && !FIXED_KCAL_SLOT_TYPES.has(m.type));
 }
 
+/** Main meals that can absorb surplus kcal — never light snacks; on free days dinner is capped separately. */
+function mainMealRecipients(day) {
+  const hasFree = day?.mealBreakdown?.some(m => m.type === 'Свободно хранене');
+  const mains = (day?.mealBreakdown || []).filter(m =>
+    m.type === 'Хранене 2' || (m.type === 'Хранене 4' && !hasFree),
+  );
+  if (mains.length) return mains;
+  const free = day?.mealBreakdown?.find(m => m.type === 'Свободно хранене');
+  return free ? [free] : [];
+}
+
+export function maxSlotKcal(slotType, mealBreakdown, dailyKcal) {
+  if (slotType === 'Хранене 5') return MAX_LATE_SNACK_CALORIES;
+  if (slotType === 'Хранене 3') return MAX_AFTERNOON_SNACK_CALORIES;
+  return maxPlatedSlotKcal(mealBreakdown, dailyKcal);
+}
+
 function redistributeMacros(slot, ratio) {
   slot.calories = Math.round((Number(slot.calories) || 0) * ratio);
   slot.protein = Math.round((Number(slot.protein) || 0) * ratio);
@@ -115,6 +155,45 @@ function addMacrosToSlot(slot, deltaKcal, deltaP, deltaC, deltaF) {
   slot.fats = Math.round((Number(slot.fats) || 0) + deltaF);
 }
 
+function maxFreeMealKcal(dailyKcal) {
+  return Math.max(350, Math.round((Number(dailyKcal) || 0) * FREE_MEAL_MAX_DAILY_RATIO));
+}
+
+/** Distribute surplus kcal to recipients; free-meal budget respects daily cap. */
+function distributeSurplusToRecipients(recipients, excessKcal, excessP, excessC, excessF, dailyKcal) {
+  if (!recipients.length || excessKcal <= 0) return excessKcal;
+
+  let remaining = excessKcal;
+  let remP = excessP;
+  let remC = excessC;
+  let remF = excessF;
+  const sum = recipients.reduce((s, m) => s + (Number(m.calories) || 0), 0) || recipients.length;
+
+  for (const m of recipients) {
+    const share = (Number(m.calories) || 0) / sum || 1 / recipients.length;
+    let addK = Math.round(remaining * share);
+    if (m.type === 'Свободно хранене') {
+      const headroom = Math.max(0, maxFreeMealKcal(dailyKcal) - (Number(m.calories) || 0));
+      addK = Math.min(addK, headroom);
+    }
+    if (addK <= 0) continue;
+    const ratio = addK / remaining;
+    addMacrosToSlot(m, addK, Math.round(remP * ratio), Math.round(remC * ratio), Math.round(remF * ratio));
+    remaining -= addK;
+    remP -= Math.round(remP * ratio);
+    remC -= Math.round(remC * ratio);
+    remF -= Math.round(remF * ratio);
+  }
+
+  if (remaining > 0) {
+    const fallback = recipients.find(m => m.type === 'Хранене 2' || m.type === 'Хранене 4') || recipients[0];
+    if (fallback && fallback.type !== 'Свободно хранене') {
+      addMacrosToSlot(fallback, remaining, remP, remC, remF);
+    }
+  }
+  return 0;
+}
+
 /**
  * Rebalance plated slots: cap oversized entries, redistribute surplus fairly.
  */
@@ -124,11 +203,13 @@ export function rebalanceMealBreakdownSlots(day, dailyKcal) {
   const daily = Number(dailyKcal) || Number(day.calories) || sumField(day.mealBreakdown, 'calories');
   const free = day.mealBreakdown.find(m => m.type === 'Свободно хранене');
   if (free) {
-    const maxFree = Math.max(350, Math.round(daily * FREE_MEAL_MAX_DAILY_RATIO));
+    const maxFree = maxFreeMealKcal(daily);
     const excess = capSlotMacros(free, maxFree);
     if (excess > 0) {
-      // surplus from an oversized free-meal budget goes to plated slots below
-      const recipients = platedSlots(day.mealBreakdown).filter(m => (Number(m.calories) || 0) < maxPlatedSlotKcal(day.mealBreakdown, daily));
+      // surplus from an oversized free-meal budget goes to main plated slots (not H3/H5)
+      const recipients = platedSlots(day.mealBreakdown).filter(m =>
+        !isLightMealSlot(m.type) && (Number(m.calories) || 0) < maxSlotKcal(m.type, day.mealBreakdown, daily),
+      );
       const sum = recipients.reduce((s, m) => s + (Number(m.calories) || 0), 0) || recipients.length || 1;
       for (const r of recipients) {
         const share = (Number(r.calories) || 0) / sum || 1 / recipients.length;
@@ -137,8 +218,6 @@ export function rebalanceMealBreakdownSlots(day, dailyKcal) {
     }
   }
 
-  const maxKcal = maxPlatedSlotKcal(day.mealBreakdown, daily);
-
   for (let pass = 0; pass < 8; pass++) {
     let poolKcal = 0;
     let poolP = 0;
@@ -146,10 +225,11 @@ export function rebalanceMealBreakdownSlots(day, dailyKcal) {
     let poolF = 0;
 
     for (const slot of platedSlots(day.mealBreakdown)) {
+      const slotMax = maxSlotKcal(slot.type, day.mealBreakdown, daily);
       const current = Number(slot.calories) || 0;
-      if (current > maxKcal) {
-        const ratio = maxKcal / current;
-        poolKcal += current - maxKcal;
+      if (current > slotMax) {
+        const ratio = slotMax / current;
+        poolKcal += current - slotMax;
         poolP += (Number(slot.protein) || 0) * (1 - ratio);
         poolC += (Number(slot.carbs) || 0) * (1 - ratio);
         poolF += (Number(slot.fats) || 0) * (1 - ratio);
@@ -160,10 +240,10 @@ export function rebalanceMealBreakdownSlots(day, dailyKcal) {
     if (poolKcal <= 0) break;
 
     const recipients = platedSlots(day.mealBreakdown)
-      .filter(m => (Number(m.calories) || 0) < maxKcal - 5);
+      .filter(m => (Number(m.calories) || 0) < maxSlotKcal(m.type, day.mealBreakdown, daily) - 5);
     if (!recipients.length) break;
 
-    const headroom = recipients.map(m => maxKcal - (Number(m.calories) || 0));
+    const headroom = recipients.map(m => maxSlotKcal(m.type, day.mealBreakdown, daily) - (Number(m.calories) || 0));
     const totalHeadroom = headroom.reduce((a, b) => a + b, 0) || 1;
 
     for (let i = 0; i < recipients.length; i++) {
@@ -179,6 +259,63 @@ export function rebalanceMealBreakdownSlots(day, dailyKcal) {
   }
 
   enforceFreeDayDinnerCap(day, daily);
+  clampMeal3InMealBreakdown(day, daily);
+  reconcileDailyCalories(day, daily);
+}
+
+/** After slot caps, restore daily kcal total — surplus goes to main meals or free-meal budget. */
+function reconcileDailyCalories(day, dailyKcal) {
+  const daily = Number(dailyKcal) || 0;
+  if (!daily || !day?.mealBreakdown?.length) return;
+
+  let diff = daily - sumField(day.mealBreakdown, 'calories');
+  if (Math.abs(diff) <= 5) return;
+
+  const hasFree = day.mealBreakdown.some(m => m.type === 'Свободно хранене');
+  const free = day.mealBreakdown.find(m => m.type === 'Свободно хранене');
+
+  if (diff > 0 && hasFree && free) {
+    const headroom = Math.max(0, maxFreeMealKcal(daily) - (Number(free.calories) || 0));
+    const addToFree = Math.min(diff, headroom);
+    if (addToFree > 0) {
+      addMacrosToSlot(free, addToFree, 0, 0, 0);
+      diff -= addToFree;
+    }
+  }
+
+  if (Math.abs(diff) <= 5) return;
+
+  const recipients = mainMealRecipients(day).filter(m =>
+    m.type !== 'Свободно хранене' || (Number(m.calories) || 0) < maxFreeMealKcal(daily),
+  );
+  if (!recipients.length) return;
+
+  distributeSurplusToRecipients(recipients, diff, 0, 0, 0, daily);
+}
+
+/**
+ * Clamp Хранене 3 to MAX_AFTERNOON_SNACK_CALORIES; surplus goes to main meals or free-meal budget.
+ */
+export function clampMeal3InMealBreakdown(day, dailyKcal = 0) {
+  if (!day?.mealBreakdown?.length) return;
+  const h3 = day.mealBreakdown.find(m => m.type === 'Хранене 3');
+  if (!h3) return;
+
+  const maxKcal = MAX_AFTERNOON_SNACK_CALORIES;
+  const h3Kcal = Number(h3.calories) || 0;
+  const excessKcal = Math.max(0, h3Kcal - maxKcal);
+  if (excessKcal <= 0) return;
+
+  const ratio = maxKcal / h3Kcal;
+  const excessP = (Number(h3.protein) || 0) * (1 - ratio);
+  const excessC = (Number(h3.carbs) || 0) * (1 - ratio);
+  const excessF = (Number(h3.fats) || 0) * (1 - ratio);
+  redistributeMacros(h3, ratio);
+
+  const recipients = mainMealRecipients(day);
+  if (!recipients.length) return;
+
+  distributeSurplusToRecipients(recipients, excessKcal, excessP, excessC, excessF, dailyKcal);
 }
 
 /** Free-day dinner (H4) must stay light — surplus goes to other plated slots. */
@@ -195,15 +332,12 @@ function enforceFreeDayDinnerCap(day, dailyKcal) {
   const excessKcal = capSlotMacros(h4, maxDinner);
   if (excessKcal <= 0) return;
 
-  const recipients = platedSlots(day.mealBreakdown)
-    .filter(m => m.type !== 'Хранене 4' && (Number(m.calories) || 0) < maxPlatedSlotKcal(day.mealBreakdown, dailyKcal));
+  const recipients = mainMealRecipients(day).filter(m =>
+    m.type !== 'Хранене 4' && (Number(m.calories) || 0) < maxSlotKcal(m.type, day.mealBreakdown, dailyKcal),
+  );
   if (!recipients.length) return;
 
-  const sum = recipients.reduce((s, m) => s + (Number(m.calories) || 0), 0) || recipients.length;
-  for (const r of recipients) {
-    const share = (Number(r.calories) || 0) / sum || 1 / recipients.length;
-    addMacrosToSlot(r, Math.round(excessKcal * share), 0, 0, 0);
-  }
+  distributeSurplusToRecipients(recipients, excessKcal, 0, 0, 0, dailyKcal);
 }
 
 function dietPreferences(userData) {
@@ -304,8 +438,8 @@ export function validateLateSnackSlotContent(meal, dayNum = null) {
     errors.push(`${prefix}Хранене 5 не е късна закуска — "${meal.name}"`);
   } else if (!MEAL5_SNACK_ALLOWED.some(f => text.includes(f))) {
     errors.push(`${prefix}Хранене 5 не е късна закуска — "${meal.name}"`);
-  } else if ((Number(meal.calories) || 0) > MAX_LATE_SNACK_CALORIES) {
-    errors.push(`${prefix}Хранене 5: ${meal.calories} kcal > ${MAX_LATE_SNACK_CALORIES}`);
+  } else if (!isMealCaloriesAdequate(meal.calories, MAX_LATE_SNACK_CALORIES)) {
+    errors.push(`${prefix}Хранене 5: ${meal.calories} kcal > ${MAX_LATE_SNACK_CALORIES} (±${slotCalorieTolerance(MAX_LATE_SNACK_CALORIES)})`);
   }
   return errors;
 }
@@ -428,6 +562,41 @@ export function normalizeAnalysisOutput(analysis) {
   }
 
   return analysis;
+}
+
+const SCHEME_DAY_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
+/**
+ * After nutrition sync: align scheme slot targets with achieved kcal when within
+ * adequacy tolerance (portion caps make exact targets unreachable).
+ */
+export function reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay) {
+  if (!weekPlan || !strategy?.weeklyScheme) return;
+
+  for (let d = startDay; d <= endDay; d++) {
+    const dayPlan = weekPlan[`day${d}`];
+    const dayScheme = strategy.weeklyScheme[SCHEME_DAY_KEYS[d - 1]];
+    if (!dayPlan?.meals?.length || !dayScheme?.mealBreakdown?.length) continue;
+
+    for (const meal of dayPlan.meals) {
+      if (meal.type === 'Свободно хранене' || meal.type === 'Напитка') continue;
+      const slot = dayScheme.mealBreakdown.find(m => m.type === meal.type);
+      if (!slot) continue;
+
+      const target = Number(slot.calories) || 0;
+      const achieved = Number(meal.calories) || 0;
+      if (target <= 0 || achieved <= 0) continue;
+
+      if (isMealCaloriesAdequate(achieved, target)) {
+        slot.calories = achieved;
+      } else if (achieved < target) {
+        // Portion caps made the scheme target unreachable — align scheme to achieved.
+        slot.calories = achieved;
+      }
+    }
+
+    dayScheme.calories = dayScheme.mealBreakdown.reduce((s, m) => s + (Number(m.calories) || 0), 0);
+  }
 }
 
 /** Strategy validator helper — budget slots exempt from plated kcal cap. */

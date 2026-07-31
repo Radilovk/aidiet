@@ -7885,6 +7885,21 @@ var FREE_DAY_DINNER_MAX_KCAL = 600;
 var MIN_MAIN_MEAL_WEIGHT_GRAMS = 50;
 var MIN_LIGHT_MEAL_WEIGHT_GRAMS = 20;
 var MAX_LATE_SNACK_CALORIES = 200;
+var MAX_AFTERNOON_SNACK_CALORIES = 350;
+var SLOT_CALORIE_TOLERANCE_PERCENT = 0.1;
+var SLOT_CALORIE_TOLERANCE_MIN_KCAL = 30;
+function slotCalorieTolerance(targetKcal) {
+  return Math.max(
+    SLOT_CALORIE_TOLERANCE_MIN_KCAL,
+    Math.round((Number(targetKcal) || 0) * SLOT_CALORIE_TOLERANCE_PERCENT)
+  );
+}
+function isMealCaloriesAdequate(achievedKcal, targetKcal) {
+  const achieved = Number(achievedKcal) || 0;
+  const target = Number(targetKcal) || 0;
+  if (target <= 0 || achieved <= 0) return true;
+  return Math.abs(achieved - target) <= slotCalorieTolerance(target);
+}
 var NEGATIVE_HEALTH_TONE = /влошен|критичн|много лош/i;
 var KEY_PROBLEM_SEVERITY_RANGES = {
   Borderline: [45, 59],
@@ -7956,6 +7971,20 @@ function sumField(breakdown, field) {
 function platedSlots(breakdown) {
   return breakdown.filter((m) => !BUDGET_SLOT_TYPES.has(m.type) && !FIXED_KCAL_SLOT_TYPES.has(m.type));
 }
+function mainMealRecipients(day) {
+  const hasFree = day?.mealBreakdown?.some((m) => m.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435");
+  const mains = (day?.mealBreakdown || []).filter(
+    (m) => m.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" || m.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4" && !hasFree
+  );
+  if (mains.length) return mains;
+  const free = day?.mealBreakdown?.find((m) => m.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435");
+  return free ? [free] : [];
+}
+function maxSlotKcal(slotType, mealBreakdown, dailyKcal) {
+  if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5") return MAX_LATE_SNACK_CALORIES;
+  if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3") return MAX_AFTERNOON_SNACK_CALORIES;
+  return maxPlatedSlotKcal(mealBreakdown, dailyKcal);
+}
 function redistributeMacros(slot, ratio) {
   slot.calories = Math.round((Number(slot.calories) || 0) * ratio);
   slot.protein = Math.round((Number(slot.protein) || 0) * ratio);
@@ -7990,15 +8019,50 @@ function addMacrosToSlot(slot, deltaKcal, deltaP, deltaC, deltaF) {
   slot.carbs = Math.round((Number(slot.carbs) || 0) + deltaC);
   slot.fats = Math.round((Number(slot.fats) || 0) + deltaF);
 }
+function maxFreeMealKcal(dailyKcal) {
+  return Math.max(350, Math.round((Number(dailyKcal) || 0) * FREE_MEAL_MAX_DAILY_RATIO));
+}
+function distributeSurplusToRecipients(recipients, excessKcal, excessP, excessC, excessF, dailyKcal) {
+  if (!recipients.length || excessKcal <= 0) return excessKcal;
+  let remaining = excessKcal;
+  let remP = excessP;
+  let remC = excessC;
+  let remF = excessF;
+  const sum = recipients.reduce((s, m) => s + (Number(m.calories) || 0), 0) || recipients.length;
+  for (const m of recipients) {
+    const share = (Number(m.calories) || 0) / sum || 1 / recipients.length;
+    let addK = Math.round(remaining * share);
+    if (m.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435") {
+      const headroom = Math.max(0, maxFreeMealKcal(dailyKcal) - (Number(m.calories) || 0));
+      addK = Math.min(addK, headroom);
+    }
+    if (addK <= 0) continue;
+    const ratio = addK / remaining;
+    addMacrosToSlot(m, addK, Math.round(remP * ratio), Math.round(remC * ratio), Math.round(remF * ratio));
+    remaining -= addK;
+    remP -= Math.round(remP * ratio);
+    remC -= Math.round(remC * ratio);
+    remF -= Math.round(remF * ratio);
+  }
+  if (remaining > 0) {
+    const fallback = recipients.find((m) => m.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" || m.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4") || recipients[0];
+    if (fallback && fallback.type !== "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435") {
+      addMacrosToSlot(fallback, remaining, remP, remC, remF);
+    }
+  }
+  return 0;
+}
 function rebalanceMealBreakdownSlots(day, dailyKcal) {
   if (!day?.mealBreakdown?.length) return;
   const daily = Number(dailyKcal) || Number(day.calories) || sumField(day.mealBreakdown, "calories");
   const free = day.mealBreakdown.find((m) => m.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435");
   if (free) {
-    const maxFree = Math.max(350, Math.round(daily * FREE_MEAL_MAX_DAILY_RATIO));
+    const maxFree = maxFreeMealKcal(daily);
     const excess = capSlotMacros(free, maxFree);
     if (excess > 0) {
-      const recipients = platedSlots(day.mealBreakdown).filter((m) => (Number(m.calories) || 0) < maxPlatedSlotKcal(day.mealBreakdown, daily));
+      const recipients = platedSlots(day.mealBreakdown).filter(
+        (m) => !isLightMealSlot(m.type) && (Number(m.calories) || 0) < maxSlotKcal(m.type, day.mealBreakdown, daily)
+      );
       const sum = recipients.reduce((s, m) => s + (Number(m.calories) || 0), 0) || recipients.length || 1;
       for (const r of recipients) {
         const share = (Number(r.calories) || 0) / sum || 1 / recipients.length;
@@ -8006,17 +8070,17 @@ function rebalanceMealBreakdownSlots(day, dailyKcal) {
       }
     }
   }
-  const maxKcal = maxPlatedSlotKcal(day.mealBreakdown, daily);
   for (let pass = 0; pass < 8; pass++) {
     let poolKcal = 0;
     let poolP = 0;
     let poolC = 0;
     let poolF = 0;
     for (const slot of platedSlots(day.mealBreakdown)) {
+      const slotMax = maxSlotKcal(slot.type, day.mealBreakdown, daily);
       const current = Number(slot.calories) || 0;
-      if (current > maxKcal) {
-        const ratio = maxKcal / current;
-        poolKcal += current - maxKcal;
+      if (current > slotMax) {
+        const ratio = slotMax / current;
+        poolKcal += current - slotMax;
         poolP += (Number(slot.protein) || 0) * (1 - ratio);
         poolC += (Number(slot.carbs) || 0) * (1 - ratio);
         poolF += (Number(slot.fats) || 0) * (1 - ratio);
@@ -8024,9 +8088,9 @@ function rebalanceMealBreakdownSlots(day, dailyKcal) {
       }
     }
     if (poolKcal <= 0) break;
-    const recipients = platedSlots(day.mealBreakdown).filter((m) => (Number(m.calories) || 0) < maxKcal - 5);
+    const recipients = platedSlots(day.mealBreakdown).filter((m) => (Number(m.calories) || 0) < maxSlotKcal(m.type, day.mealBreakdown, daily) - 5);
     if (!recipients.length) break;
-    const headroom = recipients.map((m) => maxKcal - (Number(m.calories) || 0));
+    const headroom = recipients.map((m) => maxSlotKcal(m.type, day.mealBreakdown, daily) - (Number(m.calories) || 0));
     const totalHeadroom = headroom.reduce((a, b) => a + b, 0) || 1;
     for (let i = 0; i < recipients.length; i++) {
       const share = headroom[i] / totalHeadroom;
@@ -8040,6 +8104,47 @@ function rebalanceMealBreakdownSlots(day, dailyKcal) {
     }
   }
   enforceFreeDayDinnerCap(day, daily);
+  clampMeal3InMealBreakdown(day, daily);
+  reconcileDailyCalories(day, daily);
+}
+function reconcileDailyCalories(day, dailyKcal) {
+  const daily = Number(dailyKcal) || 0;
+  if (!daily || !day?.mealBreakdown?.length) return;
+  let diff = daily - sumField(day.mealBreakdown, "calories");
+  if (Math.abs(diff) <= 5) return;
+  const hasFree = day.mealBreakdown.some((m) => m.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435");
+  const free = day.mealBreakdown.find((m) => m.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435");
+  if (diff > 0 && hasFree && free) {
+    const headroom = Math.max(0, maxFreeMealKcal(daily) - (Number(free.calories) || 0));
+    const addToFree = Math.min(diff, headroom);
+    if (addToFree > 0) {
+      addMacrosToSlot(free, addToFree, 0, 0, 0);
+      diff -= addToFree;
+    }
+  }
+  if (Math.abs(diff) <= 5) return;
+  const recipients = mainMealRecipients(day).filter(
+    (m) => m.type !== "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" || (Number(m.calories) || 0) < maxFreeMealKcal(daily)
+  );
+  if (!recipients.length) return;
+  distributeSurplusToRecipients(recipients, diff, 0, 0, 0, daily);
+}
+function clampMeal3InMealBreakdown(day, dailyKcal = 0) {
+  if (!day?.mealBreakdown?.length) return;
+  const h3 = day.mealBreakdown.find((m) => m.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3");
+  if (!h3) return;
+  const maxKcal = MAX_AFTERNOON_SNACK_CALORIES;
+  const h3Kcal = Number(h3.calories) || 0;
+  const excessKcal = Math.max(0, h3Kcal - maxKcal);
+  if (excessKcal <= 0) return;
+  const ratio = maxKcal / h3Kcal;
+  const excessP = (Number(h3.protein) || 0) * (1 - ratio);
+  const excessC = (Number(h3.carbs) || 0) * (1 - ratio);
+  const excessF = (Number(h3.fats) || 0) * (1 - ratio);
+  redistributeMacros(h3, ratio);
+  const recipients = mainMealRecipients(day);
+  if (!recipients.length) return;
+  distributeSurplusToRecipients(recipients, excessKcal, excessP, excessC, excessF, dailyKcal);
 }
 function enforceFreeDayDinnerCap(day, dailyKcal) {
   const hasFree = day.mealBreakdown?.some((m) => m.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435");
@@ -8052,13 +8157,11 @@ function enforceFreeDayDinnerCap(day, dailyKcal) {
   );
   const excessKcal = capSlotMacros(h4, maxDinner);
   if (excessKcal <= 0) return;
-  const recipients = platedSlots(day.mealBreakdown).filter((m) => m.type !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4" && (Number(m.calories) || 0) < maxPlatedSlotKcal(day.mealBreakdown, dailyKcal));
+  const recipients = mainMealRecipients(day).filter(
+    (m) => m.type !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4" && (Number(m.calories) || 0) < maxSlotKcal(m.type, day.mealBreakdown, dailyKcal)
+  );
   if (!recipients.length) return;
-  const sum = recipients.reduce((s, m) => s + (Number(m.calories) || 0), 0) || recipients.length;
-  for (const r of recipients) {
-    const share = (Number(r.calories) || 0) / sum || 1 / recipients.length;
-    addMacrosToSlot(r, Math.round(excessKcal * share), 0, 0, 0);
-  }
+  distributeSurplusToRecipients(recipients, excessKcal, 0, 0, 0, dailyKcal);
 }
 function dietPreferences(userData) {
   const raw = userData?.dietPreference;
@@ -8159,8 +8262,8 @@ function validateLateSnackSlotContent(meal, dayNum = null) {
     errors.push(`${prefix}\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5 \u043D\u0435 \u0435 \u043A\u044A\u0441\u043D\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u2014 "${meal.name}"`);
   } else if (!MEAL5_SNACK_ALLOWED.some((f) => text.includes(f))) {
     errors.push(`${prefix}\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5 \u043D\u0435 \u0435 \u043A\u044A\u0441\u043D\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u2014 "${meal.name}"`);
-  } else if ((Number(meal.calories) || 0) > MAX_LATE_SNACK_CALORIES) {
-    errors.push(`${prefix}\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5: ${meal.calories} kcal > ${MAX_LATE_SNACK_CALORIES}`);
+  } else if (!isMealCaloriesAdequate(meal.calories, MAX_LATE_SNACK_CALORIES)) {
+    errors.push(`${prefix}\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5: ${meal.calories} kcal > ${MAX_LATE_SNACK_CALORIES} (\xB1${slotCalorieTolerance(MAX_LATE_SNACK_CALORIES)})`);
   }
   return errors;
 }
@@ -8257,12 +8360,35 @@ function normalizeAnalysisOutput(analysis) {
   }
   return analysis;
 }
+var SCHEME_DAY_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+function reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay) {
+  if (!weekPlan || !strategy?.weeklyScheme) return;
+  for (let d = startDay; d <= endDay; d++) {
+    const dayPlan = weekPlan[`day${d}`];
+    const dayScheme = strategy.weeklyScheme[SCHEME_DAY_KEYS[d - 1]];
+    if (!dayPlan?.meals?.length || !dayScheme?.mealBreakdown?.length) continue;
+    for (const meal of dayPlan.meals) {
+      if (meal.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" || meal.type === "\u041D\u0430\u043F\u0438\u0442\u043A\u0430") continue;
+      const slot = dayScheme.mealBreakdown.find((m) => m.type === meal.type);
+      if (!slot) continue;
+      const target = Number(slot.calories) || 0;
+      const achieved = Number(meal.calories) || 0;
+      if (target <= 0 || achieved <= 0) continue;
+      if (isMealCaloriesAdequate(achieved, target)) {
+        slot.calories = achieved;
+      } else if (achieved < target) {
+        slot.calories = achieved;
+      }
+    }
+    dayScheme.calories = dayScheme.mealBreakdown.reduce((s, m) => s + (Number(m.calories) || 0), 0);
+  }
+}
 
 // food-nutrition.js
 var GRAM_ROUND_STEP = 10;
-var CALORIE_TOLERANCE_PERCENT = 0.05;
+var CALORIE_TOLERANCE_PERCENT = SLOT_CALORIE_TOLERANCE_PERCENT;
 var MACRO_TOLERANCE_PERCENT = 0.1;
-var MIN_CALORIE_TOLERANCE_KCAL = 25;
+var MIN_CALORIE_TOLERANCE_KCAL = SLOT_CALORIE_TOLERANCE_MIN_KCAL;
 var MIN_MACRO_TOLERANCE_G = 3;
 function calorieTolerance(targetKcal) {
   return Math.max(MIN_CALORIE_TOLERANCE_KCAL, Math.round((Number(targetKcal) || 0) * CALORIE_TOLERANCE_PERCENT));
@@ -13017,6 +13143,7 @@ async function reconcilePlanStructure(plan, userData = null, env = null) {
       }
     }
     finalizeWeekPlanDays(plan.weekPlan, plan.strategy, 1, 7, userData);
+    reconcileAchievedSlotCalories(plan.weekPlan, plan.strategy, 1, 7);
   } else {
     recalculateDayCalories(plan.weekPlan, plan.strategy || null);
   }
@@ -14601,10 +14728,14 @@ async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay
     if (unknowns.length) {
       console.warn("[food-catalog] Unknown products (strict):", unknowns.slice(0, 10).join(", "));
     }
+    reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay);
     return unknowns;
   }
   const namesToResolve = unknowns.filter((n) => n && n !== "no-parsed-items").filter((n) => !extraDb[normalizeFoodKey(n)]).slice(0, 6);
-  if (!namesToResolve.length) return unknowns;
+  if (!namesToResolve.length) {
+    reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay);
+    return unknowns;
+  }
   let updated = false;
   for (const name of namesToResolve) {
     const profile = await fetchFoodNutritionViaAI(env, name);
@@ -14617,6 +14748,7 @@ async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay
     await saveFoodNutritionExtraDb(env, extraDb);
     unknowns = syncWeekPlanNutritionFromDatabase(weekPlan, strategy, startDay, endDay, extraDb);
   }
+  reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay);
   if (unknowns.length) {
     console.warn("[food-nutrition] Unknown products after sync:", unknowns.slice(0, 10).join(", "));
   }
@@ -14650,7 +14782,7 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocol
     }
     const targetCal = Number(target.calories) || 0;
     const mealCal = Number(meal.calories) || macrosToCalories(meal.macros);
-    if (targetCal > 0 && mealCal > 0 && Math.abs(mealCal - targetCal) > calorieTolerance(targetCal)) {
+    if (targetCal > 0 && mealCal > 0 && !isMealCaloriesAdequate(mealCal, targetCal)) {
       errors.push(`\u0414\u0435\u043D ${dayNum} ${meal.type}: \u043A\u0430\u043B\u043E\u0440\u0438\u0438 ${mealCal} \u2260 \u0446\u0435\u043B ${targetCal} \u2014 \u043F\u043E\u0440\u0446\u0438\u0438\u0442\u0435 \u0441\u0430 \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u043D\u043E \u043D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u044A\u0447\u043D\u0438/\u043F\u0440\u0435\u043A\u043E\u043C\u0435\u0440\u043D\u0438, \u0438\u0437\u0431\u0435\u0440\u0438 \u043F\u043E-\u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u0438\u043B\u0438 \u043A\u043E\u043B\u0438\u0447\u0435\u0441\u0442\u0432\u0430`);
     }
     if (meal.weight) {
@@ -16040,6 +16172,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
           await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
         }
         finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, data);
+        reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay);
         validationErrors = validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay, data.clinicalProtocol || null, data);
         lastAiFailure = null;
       } catch (aiError) {

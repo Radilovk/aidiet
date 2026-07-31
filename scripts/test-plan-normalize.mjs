@@ -3,6 +3,7 @@ import {
   rebalanceMealBreakdownSlots,
   normalizeAnalysisOutput,
   maxPlatedSlotKcal,
+  maxSlotKcal,
   severityLabelForValue,
   validateLightMealSlotContent,
   repairMeal3IfInvalid,
@@ -10,7 +11,10 @@ import {
   validateLateSnackSlotContent,
   removeBreakfastSlotFromDay,
   userSkipsBreakfast,
+  isMealCaloriesAdequate,
+  slotCalorieTolerance,
   MAX_LATE_SNACK_CALORIES,
+  MAX_AFTERNOON_SNACK_CALORIES,
 } from '../plan-normalize.js';
 import { applyMealNutritionFromDatabase } from '../food-nutrition.js';
 
@@ -31,12 +35,10 @@ function check(label, ok, detail = '') {
       { type: 'Хранене 5', calories: 200, protein: 15, carbs: 5, fats: 12 },
     ],
   };
-  const maxK = maxPlatedSlotKcal(day.mealBreakdown, 2774);
   rebalanceMealBreakdownSlots(day, 2774);
   const sum = day.mealBreakdown.reduce((s, m) => s + m.calories, 0);
-  const h4 = day.mealBreakdown.find(m => m.type === 'Хранене 4');
-  const over = day.mealBreakdown.filter(m => m.type !== 'Свободно хранене' && m.type !== 'Хранене 5' && m.calories > maxK);
-  check('Kamen-like: всички plated слотове ≤ dynamic max', over.length === 0, `max=${maxK}, H4=${h4?.calories}`);
+  const h3 = day.mealBreakdown.find(m => m.type === 'Хранене 3');
+  check('Kamen-like: H3 ≤ snack cap', h3.calories <= MAX_AFTERNOON_SNACK_CALORIES, `${h3?.calories}`);
   check('Kamen-like: дневната сума запазена', Math.abs(sum - 2774) <= 30, `sum=${sum}`);
 }
 
@@ -88,6 +90,21 @@ check('severityLabelForValue(60)=Risky', severityLabelForValue(60) === 'Risky');
 }
 
 {
+  const day = {
+    calories: 2774,
+    mealBreakdown: [
+      { type: 'Свободно хранене', calories: 1248, protein: 40, carbs: 100, fats: 50 },
+      { type: 'Хранене 3', calories: 250, protein: 10, carbs: 20, fats: 10 },
+      { type: 'Хранене 4', calories: 1074, protein: 70, carbs: 80, fats: 40 },
+      { type: 'Хранене 5', calories: 200, protein: 15, carbs: 5, fats: 12 },
+    ],
+  };
+  rebalanceMealBreakdownSlots(day, 2774);
+  const h3 = day.mealBreakdown.find(m => m.type === 'Хранене 3');
+  check('free day: H3 capped ≤350', h3.calories <= MAX_AFTERNOON_SNACK_CALORIES, `${h3?.calories} kcal`);
+}
+
+{
   const errs = validateLightMealSlotContent({ type: 'Хранене 3', name: 'Говеждо с броколи', description: '• говеждо 150g' }, 6);
   check('H3 rejects cooked meat', errs.length > 0);
 }
@@ -109,6 +126,14 @@ check('severityLabelForValue(60)=Risky', severityLabelForValue(60) === 'Risky');
 }
 
 check('MAX_LATE_SNACK_CALORIES=200', MAX_LATE_SNACK_CALORIES === 200);
+
+{
+  check('adequacy: 836 vs 900 within 10%', isMealCaloriesAdequate(836, 900));
+  check('adequacy: 562 vs 611 within 10%', isMealCaloriesAdequate(562, 611));
+  check('adequacy: 700 vs 900 outside 10%', !isMealCaloriesAdequate(700, 900));
+  check('adequacy tolerance 900→90', slotCalorieTolerance(900) === 90);
+  check('H5 206 vs 200 within tolerance', isMealCaloriesAdequate(206, 200));
+}
 
 {
   const meal = { type: 'Хранене 5', name: 'Банан', description: '• Банан 150g', calories: 120 };

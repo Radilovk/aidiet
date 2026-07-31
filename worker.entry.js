@@ -50,6 +50,8 @@ import {
   buildMeal3PromptRule,
   removeBreakfastSlotFromDay,
   userSkipsBreakfast,
+  reconcileAchievedSlotCalories,
+  isMealCaloriesAdequate,
   MAX_LATE_SNACK_CALORIES,
 } from './plan-normalize.js';
 import {
@@ -5912,6 +5914,7 @@ async function reconcilePlanStructure(plan, userData = null, env = null) {
       }
     }
     finalizeWeekPlanDays(plan.weekPlan, plan.strategy, 1, 7, userData);
+    reconcileAchievedSlotCalories(plan.weekPlan, plan.strategy, 1, 7);
   } else {
     recalculateDayCalories(plan.weekPlan, plan.strategy || null);
   }
@@ -7819,6 +7822,7 @@ async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay
     if (unknowns.length) {
       console.warn('[food-catalog] Unknown products (strict):', unknowns.slice(0, 10).join(', '));
     }
+    reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay);
     return unknowns;
   }
 
@@ -7827,7 +7831,10 @@ async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay
     .filter(n => !extraDb[normalizeFoodKey(n)])
     .slice(0, 6);
 
-  if (!namesToResolve.length) return unknowns;
+  if (!namesToResolve.length) {
+    reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay);
+    return unknowns;
+  }
 
   let updated = false;
   for (const name of namesToResolve) {
@@ -7841,6 +7848,7 @@ async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay
     await saveFoodNutritionExtraDb(env, extraDb);
     unknowns = syncWeekPlanNutritionFromDatabase(weekPlan, strategy, startDay, endDay, extraDb);
   }
+  reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay);
   if (unknowns.length) {
     console.warn('[food-nutrition] Unknown products after sync:', unknowns.slice(0, 10).join(', '));
   }
@@ -7887,7 +7895,7 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocol
 
     const targetCal = Number(target.calories) || 0;
     const mealCal = Number(meal.calories) || macrosToCalories(meal.macros);
-    if (targetCal > 0 && mealCal > 0 && Math.abs(mealCal - targetCal) > calorieTolerance(targetCal)) {
+    if (targetCal > 0 && mealCal > 0 && !isMealCaloriesAdequate(mealCal, targetCal)) {
       errors.push(`Ден ${dayNum} ${meal.type}: калории ${mealCal} ≠ цел ${targetCal} — порциите са структурно недостатъчни/прекомерни, избери по-подходящи продукти или количества`);
     }
 
@@ -9659,6 +9667,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
           await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
         }
         finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, data);
+        reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay);
 
         validationErrors = validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay, data.clinicalProtocol || null, data);
         lastAiFailure = null;
