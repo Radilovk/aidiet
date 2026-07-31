@@ -5290,7 +5290,7 @@ var adminGuidelinesCacheTime = 0;
 var memoryIndex = null;
 var CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, X-Admin-Secret"
 };
 function jsonResponse(data, status = 200, extraHeaders = {}) {
@@ -9941,7 +9941,7 @@ async function checkRateLimit(env, request, endpoint) {
 var CORS_HEADERS2 = {
   "Access-Control-Allow-Origin": "*",
   // TODO: Restrict to specific domains in production
-  "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Admin-Secret",
   "Access-Control-Max-Age": "86400",
   // Cache preflight for 24 hours
@@ -18610,7 +18610,7 @@ async function handleExportAILogs(request, env) {
           "Content-Type": "text/plain; charset=utf-8",
           "Content-Disposition": 'attachment; filename="ai_communication_logs.txt"',
           "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
           "Access-Control-Allow-Headers": "Content-Type"
         }
       });
@@ -18624,7 +18624,7 @@ async function handleExportAILogs(request, env) {
           "Content-Type": "text/plain; charset=utf-8",
           "Content-Disposition": 'attachment; filename="ai_communication_logs.txt"',
           "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
           "Access-Control-Allow-Headers": "Content-Type"
         }
       });
@@ -18722,7 +18722,7 @@ async function handleExportAILogs(request, env) {
         "Content-Type": "text/plain; charset=utf-8",
         "Content-Disposition": `attachment; filename="ai_communication_logs_${(/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-").replace("T", "_").substring(0, 19)}.txt"`,
         "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type"
       }
     });
