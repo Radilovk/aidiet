@@ -540,12 +540,14 @@ export function reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endD
       const achieved = Number(meal.calories) || 0;
       if (target <= 0 || achieved <= 0) continue;
 
+      const ceiling = maxSlotKcal(meal.type, dayScheme.mealBreakdown, dayScheme.calories);
+      let aligned = target;
       if (isMealCaloriesAdequate(achieved, target)) {
-        slot.calories = achieved;
+        aligned = achieved;
       } else if (achieved < target) {
-        // Portion caps made the scheme target unreachable — align scheme to achieved.
-        slot.calories = achieved;
+        aligned = achieved;
       }
+      slot.calories = Math.min(aligned, ceiling);
     }
 
     dayScheme.calories = dayScheme.mealBreakdown.reduce((s, m) => s + (Number(m.calories) || 0), 0);
@@ -575,9 +577,9 @@ export function validateSlotCalories(entry, dayScheme) {
       .filter(m => BUDGET_SLOT_TYPES.has(m.type) || m.type === 'Хранене 5' || m.type === 'Хранене 3')
       .reduce((s, m) => s + (Number(m.calories) || 0), 0);
     const fair = mains.length ? Math.ceil(Math.max(0, daily - fixed) / mains.length) : softCap;
-    const ceiling = Math.max(softCap, fair) + slotCalorieTolerance(Math.max(softCap, fair));
-    if (cal <= ceiling) return null;
-    return `${entry.type} ${cal} kcal > ${Math.max(softCap, fair)}`;
+    const target = Math.max(softCap, fair);
+    if (cal <= target + slotCalorieTolerance(target) + 10) return null;
+    return `${entry.type} ${cal} kcal > ${target}`;
   }
 
   if (cal <= softCap) return null;

@@ -8342,11 +8342,14 @@ function reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay) {
       const target = Number(slot.calories) || 0;
       const achieved = Number(meal.calories) || 0;
       if (target <= 0 || achieved <= 0) continue;
+      const ceiling = maxSlotKcal(meal.type, dayScheme.mealBreakdown, dayScheme.calories);
+      let aligned = target;
       if (isMealCaloriesAdequate(achieved, target)) {
-        slot.calories = achieved;
+        aligned = achieved;
       } else if (achieved < target) {
-        slot.calories = achieved;
+        aligned = achieved;
       }
+      slot.calories = Math.min(aligned, ceiling);
     }
     dayScheme.calories = dayScheme.mealBreakdown.reduce((s, m) => s + (Number(m.calories) || 0), 0);
   }
