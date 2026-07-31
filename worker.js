@@ -8063,11 +8063,7 @@ function rebalanceMealBreakdownSlots(day, dailyKcal) {
       const recipients = platedSlots(day.mealBreakdown).filter(
         (m) => !isLightMealSlot(m.type) && (Number(m.calories) || 0) < maxSlotKcal(m.type, day.mealBreakdown, daily)
       );
-      const sum = recipients.reduce((s, m) => s + (Number(m.calories) || 0), 0) || recipients.length || 1;
-      for (const r of recipients) {
-        const share = (Number(r.calories) || 0) / sum || 1 / recipients.length;
-        addMacrosToSlot(r, Math.round(excess * share), 0, 0, 0);
-      }
+      distributeSurplusToRecipients(recipients, excess, 0, 0, 0, daily);
     }
   }
   for (let pass = 0; pass < 8; pass++) {
@@ -8088,7 +8084,7 @@ function rebalanceMealBreakdownSlots(day, dailyKcal) {
       }
     }
     if (poolKcal <= 0) break;
-    const recipients = platedSlots(day.mealBreakdown).filter((m) => (Number(m.calories) || 0) < maxSlotKcal(m.type, day.mealBreakdown, daily) - 5);
+    const recipients = platedSlots(day.mealBreakdown).filter((m) => !isLightMealSlot(m.type) && (Number(m.calories) || 0) < maxSlotKcal(m.type, day.mealBreakdown, daily) - 5);
     if (!recipients.length) break;
     const headroom = recipients.map((m) => maxSlotKcal(m.type, day.mealBreakdown, daily) - (Number(m.calories) || 0));
     const totalHeadroom = headroom.reduce((a, b) => a + b, 0) || 1;
@@ -8104,47 +8100,16 @@ function rebalanceMealBreakdownSlots(day, dailyKcal) {
     }
   }
   enforceFreeDayDinnerCap(day, daily);
-  clampMeal3InMealBreakdown(day, daily);
   reconcileDailyCalories(day, daily);
 }
 function reconcileDailyCalories(day, dailyKcal) {
   const daily = Number(dailyKcal) || 0;
   if (!daily || !day?.mealBreakdown?.length) return;
-  let diff = daily - sumField(day.mealBreakdown, "calories");
-  if (Math.abs(diff) <= 5) return;
-  const hasFree = day.mealBreakdown.some((m) => m.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435");
-  const free = day.mealBreakdown.find((m) => m.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435");
-  if (diff > 0 && hasFree && free) {
-    const headroom = Math.max(0, maxFreeMealKcal(daily) - (Number(free.calories) || 0));
-    const addToFree = Math.min(diff, headroom);
-    if (addToFree > 0) {
-      addMacrosToSlot(free, addToFree, 0, 0, 0);
-      diff -= addToFree;
-    }
-  }
-  if (Math.abs(diff) <= 5) return;
-  const recipients = mainMealRecipients(day).filter(
-    (m) => m.type !== "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" || (Number(m.calories) || 0) < maxFreeMealKcal(daily)
-  );
-  if (!recipients.length) return;
-  distributeSurplusToRecipients(recipients, diff, 0, 0, 0, daily);
-}
-function clampMeal3InMealBreakdown(day, dailyKcal = 0) {
-  if (!day?.mealBreakdown?.length) return;
-  const h3 = day.mealBreakdown.find((m) => m.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3");
-  if (!h3) return;
-  const maxKcal = MAX_AFTERNOON_SNACK_CALORIES;
-  const h3Kcal = Number(h3.calories) || 0;
-  const excessKcal = Math.max(0, h3Kcal - maxKcal);
-  if (excessKcal <= 0) return;
-  const ratio = maxKcal / h3Kcal;
-  const excessP = (Number(h3.protein) || 0) * (1 - ratio);
-  const excessC = (Number(h3.carbs) || 0) * (1 - ratio);
-  const excessF = (Number(h3.fats) || 0) * (1 - ratio);
-  redistributeMacros(h3, ratio);
+  const diff = daily - sumField(day.mealBreakdown, "calories");
+  if (diff <= 5) return;
   const recipients = mainMealRecipients(day);
   if (!recipients.length) return;
-  distributeSurplusToRecipients(recipients, excessKcal, excessP, excessC, excessF, dailyKcal);
+  distributeSurplusToRecipients(recipients, diff, 0, 0, 0, daily);
 }
 function enforceFreeDayDinnerCap(day, dailyKcal) {
   const hasFree = day.mealBreakdown?.some((m) => m.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435");
@@ -14728,12 +14693,10 @@ async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay
     if (unknowns.length) {
       console.warn("[food-catalog] Unknown products (strict):", unknowns.slice(0, 10).join(", "));
     }
-    reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay);
     return unknowns;
   }
   const namesToResolve = unknowns.filter((n) => n && n !== "no-parsed-items").filter((n) => !extraDb[normalizeFoodKey(n)]).slice(0, 6);
   if (!namesToResolve.length) {
-    reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay);
     return unknowns;
   }
   let updated = false;
@@ -14748,7 +14711,6 @@ async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay
     await saveFoodNutritionExtraDb(env, extraDb);
     unknowns = syncWeekPlanNutritionFromDatabase(weekPlan, strategy, startDay, endDay, extraDb);
   }
-  reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay);
   if (unknowns.length) {
     console.warn("[food-nutrition] Unknown products after sync:", unknowns.slice(0, 10).join(", "));
   }
@@ -14839,9 +14801,6 @@ function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay
     }
   }
   return errors;
-}
-function repairWeekPlanMeal3Slots(weekPlan, startDay, endDay, userData) {
-  return repairWeekPlanLightSlots(weekPlan, startDay, endDay, userData);
 }
 function buildChunkValidationRetryComment(errors) {
   if (!errors?.length) return "";
@@ -16168,7 +16127,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         }
         injectFixedDesserts(weekPlan);
         await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
-        if (repairWeekPlanMeal3Slots(weekPlan, startDay, endDay, data)) {
+        if (repairWeekPlanLightSlots(weekPlan, startDay, endDay, data)) {
           await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
         }
         finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, data);

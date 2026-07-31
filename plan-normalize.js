@@ -107,7 +107,7 @@ function mainMealRecipients(day) {
   return free ? [free] : [];
 }
 
-export function maxSlotKcal(slotType, mealBreakdown, dailyKcal) {
+function maxSlotKcal(slotType, mealBreakdown, dailyKcal) {
   if (slotType === 'Хранене 5') return MAX_LATE_SNACK_CALORIES;
   if (slotType === 'Хранене 3') return MAX_AFTERNOON_SNACK_CALORIES;
   return maxPlatedSlotKcal(mealBreakdown, dailyKcal);
@@ -206,15 +206,10 @@ export function rebalanceMealBreakdownSlots(day, dailyKcal) {
     const maxFree = maxFreeMealKcal(daily);
     const excess = capSlotMacros(free, maxFree);
     if (excess > 0) {
-      // surplus from an oversized free-meal budget goes to main plated slots (not H3/H5)
       const recipients = platedSlots(day.mealBreakdown).filter(m =>
         !isLightMealSlot(m.type) && (Number(m.calories) || 0) < maxSlotKcal(m.type, day.mealBreakdown, daily),
       );
-      const sum = recipients.reduce((s, m) => s + (Number(m.calories) || 0), 0) || recipients.length || 1;
-      for (const r of recipients) {
-        const share = (Number(r.calories) || 0) / sum || 1 / recipients.length;
-        addMacrosToSlot(r, Math.round(excess * share), 0, 0, 0);
-      }
+      distributeSurplusToRecipients(recipients, excess, 0, 0, 0, daily);
     }
   }
 
@@ -240,7 +235,7 @@ export function rebalanceMealBreakdownSlots(day, dailyKcal) {
     if (poolKcal <= 0) break;
 
     const recipients = platedSlots(day.mealBreakdown)
-      .filter(m => (Number(m.calories) || 0) < maxSlotKcal(m.type, day.mealBreakdown, daily) - 5);
+      .filter(m => !isLightMealSlot(m.type) && (Number(m.calories) || 0) < maxSlotKcal(m.type, day.mealBreakdown, daily) - 5);
     if (!recipients.length) break;
 
     const headroom = recipients.map(m => maxSlotKcal(m.type, day.mealBreakdown, daily) - (Number(m.calories) || 0));
@@ -259,7 +254,6 @@ export function rebalanceMealBreakdownSlots(day, dailyKcal) {
   }
 
   enforceFreeDayDinnerCap(day, daily);
-  clampMeal3InMealBreakdown(day, daily);
   reconcileDailyCalories(day, daily);
 }
 
@@ -267,55 +261,11 @@ export function rebalanceMealBreakdownSlots(day, dailyKcal) {
 function reconcileDailyCalories(day, dailyKcal) {
   const daily = Number(dailyKcal) || 0;
   if (!daily || !day?.mealBreakdown?.length) return;
-
-  let diff = daily - sumField(day.mealBreakdown, 'calories');
-  if (Math.abs(diff) <= 5) return;
-
-  const hasFree = day.mealBreakdown.some(m => m.type === 'Свободно хранене');
-  const free = day.mealBreakdown.find(m => m.type === 'Свободно хранене');
-
-  if (diff > 0 && hasFree && free) {
-    const headroom = Math.max(0, maxFreeMealKcal(daily) - (Number(free.calories) || 0));
-    const addToFree = Math.min(diff, headroom);
-    if (addToFree > 0) {
-      addMacrosToSlot(free, addToFree, 0, 0, 0);
-      diff -= addToFree;
-    }
-  }
-
-  if (Math.abs(diff) <= 5) return;
-
-  const recipients = mainMealRecipients(day).filter(m =>
-    m.type !== 'Свободно хранене' || (Number(m.calories) || 0) < maxFreeMealKcal(daily),
-  );
-  if (!recipients.length) return;
-
-  distributeSurplusToRecipients(recipients, diff, 0, 0, 0, daily);
-}
-
-/**
- * Clamp Хранене 3 to MAX_AFTERNOON_SNACK_CALORIES; surplus goes to main meals or free-meal budget.
- */
-export function clampMeal3InMealBreakdown(day, dailyKcal = 0) {
-  if (!day?.mealBreakdown?.length) return;
-  const h3 = day.mealBreakdown.find(m => m.type === 'Хранене 3');
-  if (!h3) return;
-
-  const maxKcal = MAX_AFTERNOON_SNACK_CALORIES;
-  const h3Kcal = Number(h3.calories) || 0;
-  const excessKcal = Math.max(0, h3Kcal - maxKcal);
-  if (excessKcal <= 0) return;
-
-  const ratio = maxKcal / h3Kcal;
-  const excessP = (Number(h3.protein) || 0) * (1 - ratio);
-  const excessC = (Number(h3.carbs) || 0) * (1 - ratio);
-  const excessF = (Number(h3.fats) || 0) * (1 - ratio);
-  redistributeMacros(h3, ratio);
-
+  const diff = daily - sumField(day.mealBreakdown, 'calories');
+  if (diff <= 5) return;
   const recipients = mainMealRecipients(day);
   if (!recipients.length) return;
-
-  distributeSurplusToRecipients(recipients, excessKcal, excessP, excessC, excessF, dailyKcal);
+  distributeSurplusToRecipients(recipients, diff, 0, 0, 0, daily);
 }
 
 /** Free-day dinner (H4) must stay light — surplus goes to other plated slots. */
