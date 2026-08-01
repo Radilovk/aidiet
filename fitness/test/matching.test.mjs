@@ -65,6 +65,8 @@ const RAW_DATASET = [
   { id: '0006', name: 'Lat Pulldown', equipment: 'cable', target: 'lats', body_part: 'back', secondary_muscles: ['biceps'], image: 'images/0006.jpg', gif_url: 'gifs/0006.gif', instructions: {} },
   { id: '0007', name: 'Band Chest Press', equipment: 'band', target: 'pectorals', body_part: 'chest', secondary_muscles: [], image: 'images/0007.jpg', gif_url: 'gifs/0007.gif', instructions: {} },
   { id: '0008', name: 'Cable Fly', equipment: 'cable', target: 'pectorals', body_part: 'chest', secondary_muscles: [], image: 'images/0008.jpg', gif_url: 'gifs/0008.gif', instructions: {} },
+  { id: '0009', name: 'power point plank', equipment: 'body weight', target: 'abs', body_part: 'waist', secondary_muscles: [], image: 'images/0009.jpg', gif_url: 'gifs/0009.gif', instructions: {} },
+  { id: '0010', name: 'front plank with twist', equipment: 'body weight', target: 'abs', body_part: 'waist', secondary_muscles: [], image: 'images/0010.jpg', gif_url: 'gifs/0010.gif', instructions: {} },
 ];
 
 const INDEX = buildCompactIndex(RAW_DATASET);
@@ -119,11 +121,24 @@ test('matchExercise: equipmentHint разграничава близки име�
   assert.equal(withBarbell.entry.name, 'Barbell Bench Press');
 });
 
-test('matchExercise: под прага → fallback по категория, не празно поле', () => {
-  const result = matchExercise(INDEX, { canonicalName: 'Totally Unknown Movement Pattern', equipmentHint: '', bodyPart: 'chest' });
-  assert.ok(result, 'очаква се fallback резултат');
+test('matchExercise: под прага → fallback по категория само при познато име, филтрирано от profile', () => {
+  const index = [
+    ...INDEX,
+    { id: '0099', name: 'Barbell Squat', nameNorm: 'barbell squat', tokens: ['barbell', 'squat'], diff: 3, gf: 70, gm: 85, equipNorm: 'barbell', targetNorm: 'quads', bodyNorm: 'upper legs', equipment: 'barbell', target: 'quads', bodyPart: 'upper legs', image: 'x.jpg', gif: 'x.gif' },
+    { id: '0100', name: 'Cable Glute Kickback', nameNorm: 'cable glute kickback', tokens: ['cable', 'glute', 'kickback'], diff: 1, gf: 90, gm: 70, equipNorm: 'cable', targetNorm: 'glutes', bodyNorm: 'upper legs', equipment: 'cable', target: 'glutes', bodyPart: 'upper legs', image: 'x.jpg', gif: 'x.gif' },
+  ];
+  const profile = exerciseProfileFromAnswers({ gender: 'Жена', experience: 'Начинаещ' });
+  const result = matchExercise(index, {
+    canonicalName: 'Barbell Squat', equipmentHint: 'barbell', bodyPart: 'upper legs', exerciseProfile: profile,
+  });
+  assert.ok(result, 'очаква се fallback в същата категория');
   assert.equal(result.usedFallback, true);
-  assert.equal(result.entry.bodyNorm, 'chest');
+  assert.equal(result.entry.name, 'Cable Glute Kickback');
+});
+
+test('matchExercise: непознато име → без случайна медия от категория', () => {
+  const result = matchExercise(INDEX, { canonicalName: 'Totally Unknown Movement Pattern', equipmentHint: '', bodyPart: 'chest' });
+  assert.equal(result, null);
 });
 
 test('loadExerciseMetadata: частичен KV слива с bundled, не го изтрива изцяло', async () => {
@@ -182,6 +197,37 @@ test('matchExercise: силно съвпадение на име надделя�
   // недвусмислено сочи Barbell Squat — точното име трябва да надделее.
   const result = matchExercise(index, { canonicalName: 'Barbell Squat', equipmentHint: 'barbell', bodyPart: 'chest' });
   assert.equal(result.entry.name, 'Barbell Squat');
+});
+
+test('matchExercise: bodyPart core/abdominals → waist (планк и коремни)', () => {
+  for (const bodyPart of ['core', 'abdominals', 'abs']) {
+    const result = matchExercise(INDEX, {
+      canonicalName: 'plank',
+      equipmentHint: 'body weight',
+      bodyPart,
+    });
+    assert.ok(result?.entry?.name, `plank + ${bodyPart} трябва да има медия`);
+    assert.ok(result.entry.image || result.entry.gif, `липсва image/gif за plank + ${bodyPart}`);
+  }
+});
+
+test('matchExercise: при непознат bodyPart hint опитва по име преди null', () => {
+  const result = matchExercise(INDEX, {
+    canonicalName: 'plank',
+    equipmentHint: 'body weight',
+    bodyPart: 'totally wrong zone',
+  });
+  assert.ok(result?.entry?.name?.includes('plank'), 'трябва fallback по име');
+  assert.equal(result.usedFallback, true);
+});
+
+test('matchExercise: непознато име не получава случайна медия от категория', () => {
+  const result = matchExercise(INDEX, {
+    canonicalName: 'bird dog',
+    equipmentHint: 'body weight',
+    bodyPart: 'core',
+  });
+  assert.equal(result, null);
 });
 
 // ----------------------------------------------------------------------------

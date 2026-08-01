@@ -1430,6 +1430,25 @@ function tokenize(text) {
   const norm2 = normalizeText(text);
   return norm2 ? norm2.split(" ") : [];
 }
+var BODY_PART_MATCH_ALIASES = {
+  core: "waist",
+  abs: "waist",
+  abdominals: "waist",
+  abdominal: "waist",
+  obliques: "waist"
+};
+function normalizeBodyPartForMatch(bodyPart) {
+  const norm2 = normalizeText(bodyPart);
+  return BODY_PART_MATCH_ALIASES[norm2] || norm2;
+}
+function exerciseMatchesBodyHint(bodyPart, entry) {
+  const norm2 = normalizeBodyPartForMatch(bodyPart);
+  if (!norm2 || !entry) return false;
+  const parts = new Set([entry.bodyNorm, entry.targetNorm].filter(Boolean));
+  if (parts.has(norm2)) return true;
+  if (norm2 === "waist" && parts.has("abs")) return true;
+  return false;
+}
 function tokenOverlapScore(queryTokens, candidateTokens) {
   if (!queryTokens?.length || !candidateTokens?.length) return 0;
   const candidateSet = new Set(candidateTokens);
@@ -5289,7 +5308,7 @@ function matchExercise(index, {
   if (!index || !index.length) return null;
   const queryTokens = tokenize(canonicalName);
   const equipNorm = normalizeText(equipmentHint);
-  const bodyNorm = normalizeText(bodyPart);
+  const bodyHint = normalizeText(bodyPart);
   const passesFilters = (entry) => !isGenderSpecificExerciseName(entry?.name) && passesEquipment(entry, allowedEquipment) && passesApparatusFilter(entry, pickedApparatus) && passesGearFilter(entry, allowedGear) && (!exerciseProfile || fitsExerciseProfile(entry, exerciseProfile)) && (!exerciseProfile || passesBeginnerSafety(entry, exerciseProfile));
   const scored = [];
   for (const entry of index) {
@@ -5299,8 +5318,8 @@ function matchExercise(index, {
     if (equipNorm && entry.equipNorm && (entry.equipNorm.includes(equipNorm) || equipNorm.includes(entry.equipNorm))) {
       score += 0.15;
     }
-    if (bodyNorm) {
-      if (entry.targetNorm === bodyNorm || entry.bodyNorm === bodyNorm) score += 0.1;
+    if (bodyHint) {
+      if (exerciseMatchesBodyHint(bodyPart, entry)) score += 0.1;
       else score -= 0.25;
     }
     scored.push({ entry, score });
@@ -5313,13 +5332,28 @@ function matchExercise(index, {
     return { entry: best, score: Math.min(1, Number(bestScore.toFixed(3))), usedFallback: false };
   }
   const fallbackPool = index.filter(
-    (e) => passesFilters(e) && bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm) && (!equipNorm || e.equipNorm === equipNorm)
+    (e) => passesFilters(e) && bodyHint && exerciseMatchesBodyHint(bodyPart, e) && (!equipNorm || e.equipNorm === equipNorm)
   );
-  const fallback = pickPreferredExercise(fallbackPool, exerciseProfile) || index.find(
-    (e) => passesFilters(e) && bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm)
-  );
-  if (fallback) return { entry: fallback, score: 0, usedFallback: true };
-  if (bodyNorm) return null;
+  const withOverlap = fallbackPool.filter((e) => tokenOverlapScore(queryTokens, e.tokens) > 0);
+  const hadStrongNameCandidate = index.some((e) => tokenOverlapScore(queryTokens, e.tokens) >= 0.5);
+  const pool = withOverlap.length ? withOverlap : hadStrongNameCandidate && !scored.length ? fallbackPool : [];
+  const fallback = pickPreferredExercise(pool, exerciseProfile) || pool.find(Boolean);
+  const broadPool = hadStrongNameCandidate && !scored.length ? index.filter((e) => passesFilters(e) && bodyHint && exerciseMatchesBodyHint(bodyPart, e)) : [];
+  const broadFallback = pickPreferredExercise(broadPool, exerciseProfile) || broadPool.find(Boolean);
+  const resolvedFallback = fallback || broadFallback;
+  if (resolvedFallback) return { entry: resolvedFallback, score: 0, usedFallback: true };
+  if (bodyHint) {
+    if (scored.length) {
+      const top = scored[0];
+      const nameScore = tokenOverlapScore(queryTokens, top.entry.tokens);
+      const minName = queryTokens.length === 1 ? 0.3 : 0.5;
+      if (nameScore >= minName) {
+        const entry = pickPreferredExercise([top.entry], exerciseProfile) || top.entry;
+        return { entry, score: Math.min(1, Number(nameScore.toFixed(3))), usedFallback: true };
+      }
+    }
+    return null;
+  }
   const weakBest = scored[0]?.entry;
   return weakBest ? { entry: pickPreferredExercise([weakBest], exerciseProfile) || weakBest, score: Math.min(1, Number(scored[0].score.toFixed(3))), usedFallback: true } : null;
 }
