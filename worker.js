@@ -8208,6 +8208,100 @@ function dietPreferences(userData) {
 function isVeganUser(userData) {
   return dietPreferences(userData).some((p) => p.includes("\u0412\u0435\u0433\u0430\u043D"));
 }
+function isKetoUser(userData) {
+  return dietPreferences(userData).some((p) => /кето|нисковъглехидрат/i.test(p));
+}
+var MIN_FAT_GRAMS_PER_KG = 0.7;
+function enforceKetoMacroGuardrails(analysis, userData) {
+  if (!analysis || !isKetoUser(userData)) return;
+  const fc = Number(analysis.Final_Calories) || Number(analysis.correctedMetabolism?.realTDEE) || 0;
+  if (fc <= 0) return;
+  const mg = analysis.macroGrams || (analysis.macroGrams = {});
+  const weight = parseFloat(userData?.weight) || 70;
+  const minFatG = Math.round(weight * MIN_FAT_GRAMS_PER_KG);
+  let proteinG = Math.round(Number(mg.protein) || 0);
+  let carbsG = Math.round(Number(mg.carbs) || 0);
+  let fatsG = Math.round(Number(mg.fats) || 0);
+  const carbPct = carbsG * 4 / fc * 100;
+  if (carbPct <= 15) return;
+  const maxCarbG = Math.round(fc * 0.15 / 4);
+  carbsG = Math.min(carbsG, maxCarbG);
+  fatsG = Math.max(minFatG, Math.round((fc - proteinG * 4 - carbsG * 4) / 9));
+  const macroKcal = proteinG * 4 + carbsG * 4 + fatsG * 9;
+  if (macroKcal > fc + 5) {
+    carbsG = Math.max(0, Math.round((fc - proteinG * 4 - fatsG * 9) / 4));
+  }
+  mg.protein = proteinG;
+  mg.carbs = Math.max(0, carbsG);
+  mg.fats = fatsG;
+  const ratios = analysis.macroRatios || (analysis.macroRatios = {});
+  ratios.protein = Math.round(proteinG * 4 / fc * 100);
+  ratios.carbs = Math.round(mg.carbs * 4 / fc * 100);
+  ratios.fats = Math.round(fatsG * 9 / fc * 100);
+  const ratioSum = ratios.protein + ratios.carbs + ratios.fats;
+  if (ratioSum !== 100 && ratioSum > 0) {
+    ratios.fats = Math.max(0, ratios.fats + (100 - ratioSum));
+  }
+}
+function profileGoalText(userData) {
+  const g = userData?.goal;
+  if (Array.isArray(g)) return g.join(" ").toLowerCase();
+  return String(g || "").toLowerCase();
+}
+function profileActivityText(userData) {
+  return [userData?.sportActivity, userData?.dailyActivityLevel].filter(Boolean).join(" ").toLowerCase();
+}
+function collectContextKeyProblemCandidates(analysis, userData) {
+  const out = [];
+  const keyIssues = analysis?.currentHealthStatus?.keyIssues;
+  if (Array.isArray(keyIssues)) {
+    for (const issue of keyIssues) {
+      if (typeof issue === "string" && issue.trim().length > 4) {
+        out.push({ title: issue.trim(), desc: issue.trim() });
+      }
+    }
+  }
+  if (!userData) return out;
+  const goal = profileGoalText(userData);
+  const activity = profileActivityText(userData);
+  if (goal.includes("\u043C\u0443\u0441\u043A\u0443\u043B")) {
+    out.push({
+      title: "\u041D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u044A\u0447\u0435\u043D \u043F\u0440\u043E\u0442\u0435\u0438\u043D\u043E\u0432 \u043F\u0440\u0438\u0435\u043C \u0437\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u0445\u0438\u043F\u0435\u0440\u0442\u0440\u043E\u0444\u0438\u044F",
+      desc: "\u041F\u0440\u0438 \u0446\u0435\u043B \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430 \u0435 \u043D\u0435\u043E\u0431\u0445\u043E\u0434\u0438\u043C \u0430\u0434\u0435\u043A\u0432\u0430\u0442\u0435\u043D \u0434\u043D\u0435\u0432\u0435\u043D \u043F\u0440\u043E\u0442\u0435\u0438\u043D \u0438 \u0440\u0430\u0437\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0438\u0435 \u043E\u043A\u043E\u043B\u043E \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438\u0442\u0435.",
+      severity: "Risky",
+      sv: 68
+    });
+    out.push({
+      title: "\u041D\u0435\u0440\u0430\u0432\u043D\u043E\u043C\u0435\u0440\u043D\u043E \u0440\u0430\u0437\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0438\u0435 \u043D\u0430 \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435",
+      desc: "\u041A\u043E\u043D\u0446\u0435\u043D\u0442\u0440\u0438\u0440\u0430\u043D\u0435\u0442\u043E \u043D\u0430 \u043A\u0430\u043B\u043E\u0440\u0438\u0438 \u0432 \u043C\u0430\u043B\u043A\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0430\u0432\u0430 \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435\u0442\u043E \u0438 \u0441\u0438\u043D\u0442\u0435\u0437\u0430 \u043D\u0430 \u043F\u0440\u043E\u0442\u0435\u0438\u043D.",
+      severity: "Borderline",
+      sv: 52
+    });
+  }
+  if (/много висок|ежедневно|интензив/i.test(activity)) {
+    out.push({
+      title: "\u0420\u0438\u0441\u043A \u043E\u0442 \u0435\u043D\u0435\u0440\u0433\u0438\u0435\u043D \u0434\u0435\u0444\u0438\u0446\u0438\u0442 \u043F\u0440\u0438 \u0432\u0438\u0441\u043E\u043A\u0430 \u043D\u0430\u0442\u043E\u0432\u0430\u0440\u0435\u043D\u043E\u0441\u0442",
+      desc: "\u0418\u043D\u0442\u0435\u043D\u0437\u0438\u0432\u043D\u0430\u0442\u0430 \u0444\u0438\u0437\u0438\u0447\u0435\u0441\u043A\u0430 \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442 \u043F\u043E\u0432\u0438\u0448\u0430\u0432\u0430 \u043D\u0443\u0436\u0434\u0438\u0442\u0435 \u043E\u0442 \u043A\u0430\u043B\u043E\u0440\u0438\u0438 \u0438 \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438 \u0437\u0430 \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435.",
+      severity: "Risky",
+      sv: 65
+    });
+    out.push({
+      title: "\u041F\u043E\u0432\u0438\u0448\u0435\u043D\u0430 \u043D\u0443\u0436\u0434\u0430 \u043E\u0442 \u0445\u0438\u0434\u0440\u0430\u0442\u0430\u0446\u0438\u044F \u0438 \u0435\u043B\u0435\u043A\u0442\u0440\u043E\u043B\u0438\u0442\u0438",
+      desc: "\u041F\u0440\u0438 \u0435\u0436\u0435\u0434\u043D\u0435\u0432\u043D\u0438 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u0437\u0430\u0433\u0443\u0431\u0430\u0442\u0430 \u043D\u0430 \u0442\u0435\u0447\u043D\u043E\u0441\u0442\u0438 \u0438 \u043C\u0438\u043D\u0435\u0440\u0430\u043B\u0438 \u043C\u043E\u0436\u0435 \u0434\u0430 \u043F\u043E\u0432\u043B\u0438\u044F\u0435 \u043D\u0430 \u043F\u0440\u0435\u0434\u0441\u0442\u0430\u0432\u044F\u043D\u0435\u0442\u043E.",
+      severity: "Borderline",
+      sv: 50
+    });
+  }
+  if (goal.includes("\u043E\u0442\u0441\u043B\u0430\u0431")) {
+    out.push({
+      title: "\u0420\u0438\u0441\u043A \u043E\u0442 \u0437\u0430\u0433\u0443\u0431\u0430 \u043D\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430 \u043F\u0440\u0438 \u0434\u0435\u0444\u0438\u0446\u0438\u0442",
+      desc: "\u0410\u0433\u0440\u0435\u0441\u0438\u0432\u043D\u0438\u044F\u0442 \u043A\u0430\u043B\u043E\u0440\u0438\u0435\u043D \u0434\u0435\u0444\u0438\u0446\u0438\u0442 \u0431\u0435\u0437 \u0434\u043E\u0441\u0442\u0430\u0442\u044A\u0447\u0435\u043D \u043F\u0440\u043E\u0442\u0435\u0438\u043D \u043C\u043E\u0436\u0435 \u0434\u0430 \u043D\u0430\u043C\u0430\u043B\u0438 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430\u0442\u0430 \u043C\u0430\u0441\u0430.",
+      severity: "Borderline",
+      sv: 55
+    });
+  }
+  return out;
+}
 function userSkipsBreakfast(userData) {
   const habits = userData?.eatingHabits;
   return Array.isArray(habits) && habits.some((h) => String(h).includes("\u041D\u0435 \u0437\u0430\u043A\u0443\u0441\u0432\u0430\u043C"));
@@ -8343,7 +8437,7 @@ function validateLightMealSlotContent(meal, dayNum = null) {
   }
   return errors;
 }
-function normalizeAnalysisOutput(analysis) {
+function normalizeAnalysisOutput(analysis, userData = null) {
   if (!analysis || typeof analysis !== "object") return analysis;
   if (Array.isArray(analysis.keyProblems)) {
     for (const problem of analysis.keyProblems) {
@@ -8381,6 +8475,18 @@ function normalizeAnalysisOutput(analysis) {
       if (analysis.keyProblems.length >= 3) break;
       const title = text.length > 72 ? `${text.slice(0, 69)}\u2026` : text;
       pushDerivedKeyProblem(analysis, title, text);
+    }
+  }
+  if (analysis.keyProblems.length < 3) {
+    for (const candidate of collectContextKeyProblemCandidates(analysis, userData)) {
+      if (analysis.keyProblems.length >= 3) break;
+      pushDerivedKeyProblem(
+        analysis,
+        candidate.title,
+        candidate.desc,
+        candidate.severity || "Borderline",
+        candidate.sv || 55
+      );
     }
   }
   if (!analysis.currentHealthStatus || typeof analysis.currentHealthStatus !== "object") {
@@ -8929,7 +9035,7 @@ var DEFAULT_VALIDATION_CONFIG = {
 };
 var MIN_RECOMMENDED_CALORIES_FEMALE = 1200;
 var MIN_RECOMMENDED_CALORIES_MALE = 1500;
-var MIN_FAT_GRAMS_PER_KG = 0.7;
+var MIN_FAT_GRAMS_PER_KG2 = 0.7;
 var WATER_PER_KG_MULTIPLIER = 0.035;
 var BASE_WATER_NEED_LITERS = 0.5;
 var ACTIVITY_WATER_BONUS_LITERS = 0.45;
@@ -13209,7 +13315,7 @@ async function reconcilePlanStructure(plan, userData = null, env = null) {
     normalizeStrategyDessertFlag(plan.strategy, userData);
     normalizeWeeklyScheme(plan.strategy, plan.summary?.dailyCalories || parseFinalCalories(plan.analysis?.Final_Calories), userData);
   }
-  if (plan.analysis) normalizeAnalysisOutput(plan.analysis);
+  if (plan.analysis) normalizeAnalysisOutput(plan.analysis, userData);
   stripDessertsWhenDisabled(plan.weekPlan, plan.strategy);
   injectFixedDesserts(plan.weekPlan);
   if (plan.strategy?.weeklyScheme) {
@@ -14605,7 +14711,7 @@ function enforceCalorieGuardrails(analysis, data, referenceTdee) {
     cm.realTDEE = fc;
   }
   const weight = parseFloat(data.weight) || 70;
-  const minFatG = Math.round(weight * MIN_FAT_GRAMS_PER_KG);
+  const minFatG = Math.round(weight * MIN_FAT_GRAMS_PER_KG2);
   const mg = analysis.macroGrams || (analysis.macroGrams = {});
   const ratios = analysis.macroRatios;
   if (fc > 0 && ratios && ratios.protein != null && ratios.fats != null) {
@@ -14624,6 +14730,7 @@ function enforceCalorieGuardrails(analysis, data, referenceTdee) {
     mg.fats = minFatG;
     corrections.push(`\u041C\u0430\u0437\u043D\u0438\u043D\u0438\u0442\u0435 \u0441\u0430 \u043F\u043E\u0432\u0434\u0438\u0433\u043D\u0430\u0442\u0438 \u0434\u043E \u043C\u0438\u043D\u0438\u043C\u0443\u043C ${minFatG}\u0433.`);
   }
+  enforceKetoMacroGuardrails(analysis, data);
   if (corrections.length > 0) {
     cm.correction = corrections.join(" ");
     console.log("Calorie guardrails applied:", corrections.join(" "));
@@ -15364,9 +15471,9 @@ function validatePlan(plan, userData, substitutions = []) {
   if (plan.analysis && plan.analysis.macroGrams && userData.weight) {
     const fatGrams = parseInt(plan.analysis.macroGrams.fats) || 0;
     const weight = parseFloat(userData.weight) || 70;
-    const minFatGrams = Math.round(weight * MIN_FAT_GRAMS_PER_KG);
+    const minFatGrams = Math.round(weight * MIN_FAT_GRAMS_PER_KG2);
     if (fatGrams > 0 && fatGrams < minFatGrams) {
-      const error = `\u041C\u0430\u0437\u043D\u0438\u043D\u0438\u0442\u0435 (${fatGrams}\u0433) \u0441\u0430 \u043F\u043E\u0434 \u043C\u0438\u043D\u0438\u043C\u0430\u043B\u043D\u0430\u0442\u0430 \u043D\u0443\u0436\u0434\u0430 \u043E\u0442 ${minFatGrams}\u0433 (${MIN_FAT_GRAMS_PER_KG}\u0433/\u043A\u0433) \u0437\u0430 \u0445\u043E\u0440\u043C\u043E\u043D\u0430\u043B\u043D\u0430 \u0444\u0443\u043D\u043A\u0446\u0438\u044F`;
+      const error = `\u041C\u0430\u0437\u043D\u0438\u043D\u0438\u0442\u0435 (${fatGrams}\u0433) \u0441\u0430 \u043F\u043E\u0434 \u043C\u0438\u043D\u0438\u043C\u0430\u043B\u043D\u0430\u0442\u0430 \u043D\u0443\u0436\u0434\u0430 \u043E\u0442 ${minFatGrams}\u0433 (${MIN_FAT_GRAMS_PER_KG2}\u0433/\u043A\u0433) \u0437\u0430 \u0445\u043E\u0440\u043C\u043E\u043D\u0430\u043B\u043D\u0430 \u0444\u0443\u043D\u043A\u0446\u0438\u044F`;
       errors.push(error);
       stepErrors.step1_analysis.push(error);
     }
@@ -15563,7 +15670,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       if (analysis.keyProblems && Array.isArray(analysis.keyProblems)) {
         analysis.keyProblems = analysis.keyProblems.filter((problem) => problem.severity !== "Normal");
       }
-      normalizeAnalysisOutput(analysis);
+      normalizeAnalysisOutput(analysis, data);
       const refActivity = calculateUnifiedActivityScore(data);
       const refBmr = calculateBMR(data);
       const refTdee = calculateTDEE(refBmr, refActivity.combinedScore);
@@ -15780,7 +15887,7 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
           console.log(`Filtered out ${originalCount - filteredCount} Normal severity problems from analysis`);
         }
       }
-      normalizeAnalysisOutput(analysis);
+      normalizeAnalysisOutput(analysis, data);
       const refActivity = calculateUnifiedActivityScore(data);
       const refBmr = calculateBMR(data);
       const refTdee = calculateTDEE(refBmr, refActivity.combinedScore);
@@ -15995,7 +16102,7 @@ ${_combinedNotes}` : "";
     TEMPERAMENT_CONFIDENCE_THRESHOLD,
     HEALTH_STATUS_UNDERESTIMATE_PERCENT,
     MIN_RECOMMENDED_CALORIES: data.gender === "\u041C\u044A\u0436" ? MIN_RECOMMENDED_CALORIES_MALE : MIN_RECOMMENDED_CALORIES_FEMALE,
-    MIN_FAT_GRAMS: Math.round((parseFloat(data.weight) || 70) * MIN_FAT_GRAMS_PER_KG),
+    MIN_FAT_GRAMS: Math.round((parseFloat(data.weight) || 70) * MIN_FAT_GRAMS_PER_KG2),
     clinicalProtocolSection,
     clinicalProtocolName: _clinicalProtocol ? _clinicalProtocol.name : ""
   });
