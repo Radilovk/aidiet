@@ -88,6 +88,28 @@ export function severityLabelForValue(value) {
   return 'Borderline';
 }
 
+function keyProblemTitleOverlaps(existingTitle, candidate) {
+  const a = String(existingTitle || '').toLowerCase();
+  const b = String(candidate || '').toLowerCase();
+  if (!a || !b) return false;
+  if (a.includes(b) || b.includes(a)) return true;
+  const words = b.split(/\s+/).filter(w => w.length > 5);
+  return words.some(w => a.includes(w));
+}
+
+function pushDerivedKeyProblem(analysis, title, description, severity = 'Borderline', severityValue = 55) {
+  if (!title || analysis.keyProblems.some(p => keyProblemTitleOverlaps(p.title, title))) return false;
+  analysis.keyProblems.push({
+    title,
+    description: description || title,
+    severity,
+    severityValue,
+    category: 'Health',
+    impact: description || title,
+  });
+  return true;
+}
+
 function sumField(breakdown, field) {
   return breakdown.reduce((s, m) => s + (Number(m[field]) || 0), 0);
 }
@@ -484,15 +506,24 @@ export function normalizeAnalysisOutput(analysis) {
     for (const src of extras) {
       if (analysis.keyProblems.length >= 3) break;
       const title = src.factor || src.title;
-      if (analysis.keyProblems.some(p => p.title === title)) continue;
-      analysis.keyProblems.push({
+      pushDerivedKeyProblem(
+        analysis,
         title,
-        description: src.description || title,
-        severity: src.severity >= 4 ? 'Critical' : src.severity >= 3 ? 'Risky' : 'Borderline',
-        severityValue: typeof src.severity === 'number' ? Math.min(90, src.severity * 18) : 55,
-        category: 'Health',
-        impact: src.description || title,
-      });
+        src.description || title,
+        src.severity >= 4 ? 'Critical' : src.severity >= 3 ? 'Risky' : 'Borderline',
+        typeof src.severity === 'number' ? Math.min(90, src.severity * 18) : 55,
+      );
+    }
+  }
+  if (analysis.keyProblems.length < 3) {
+    const riskLines = []
+      .concat(analysis.healthRisks || [])
+      .concat(analysis.nutritionalNeeds || [])
+      .filter(s => typeof s === 'string' && s.trim().length > 12);
+    for (const text of riskLines) {
+      if (analysis.keyProblems.length >= 3) break;
+      const title = text.length > 72 ? `${text.slice(0, 69)}…` : text;
+      pushDerivedKeyProblem(analysis, title, text);
     }
   }
 
