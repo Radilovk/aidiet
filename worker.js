@@ -8101,6 +8101,16 @@ function rebalanceMealBreakdownSlots(day, dailyKcal) {
   }
   enforceFreeDayDinnerCap(day, daily);
   reconcileDailyCalories(day, daily);
+  enforceFixedSlotCaps(day, daily);
+}
+function enforceFixedSlotCaps(day, dailyKcal) {
+  if (!day?.mealBreakdown?.length) return;
+  const daily = Number(dailyKcal) || Number(day.calories) || sumField(day.mealBreakdown, "calories");
+  for (const slot of day.mealBreakdown) {
+    if (slot.type !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3" && slot.type !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5") continue;
+    const cap = maxSlotKcal(slot.type, day.mealBreakdown, daily);
+    if ((Number(slot.calories) || 0) > cap) capSlotMacros(slot, cap);
+  }
 }
 function reconcileDailyCalories(day, dailyKcal) {
   const daily = Number(dailyKcal) || 0;
@@ -8343,11 +8353,14 @@ function reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay) {
       const achieved = Number(meal.calories) || 0;
       if (target <= 0 || achieved <= 0) continue;
       const ceiling = maxSlotKcal(meal.type, dayScheme.mealBreakdown, dayScheme.calories);
+      const isFixed = meal.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3" || meal.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5";
       let aligned = target;
-      if (isMealCaloriesAdequate(achieved, target)) {
+      if (!isFixed && isMealCaloriesAdequate(achieved, target)) {
         aligned = achieved;
-      } else if (achieved < target) {
+      } else if (!isFixed && achieved < target) {
         aligned = achieved;
+      } else if (isFixed && achieved > 0) {
+        aligned = Math.min(achieved, ceiling);
       }
       slot.calories = Math.min(aligned, ceiling);
     }
@@ -8631,6 +8644,17 @@ function nudgeItemsTowardKcal(items, goal) {
 }
 function trimToMaxWeight(items) {
   const working = items.map((i) => ({ ...i }));
+  let total = sumGrams(working);
+  if (total <= MAX_MEAL_WEIGHT_GRAMS) return working;
+  if (total > MAX_MEAL_WEIGHT_GRAMS) {
+    const ratio = MAX_MEAL_WEIGHT_GRAMS / total;
+    const proportional = working.map((item2) => ({
+      ...item2,
+      grams: capItemGrams(item2, Math.max(GRAM_ROUND_STEP, roundGrams(item2.grams * ratio)))
+    }));
+    if (sumGrams(proportional) <= MAX_MEAL_WEIGHT_GRAMS) return proportional;
+    working.splice(0, working.length, ...proportional);
+  }
   for (let guard = 0; guard < 24 && sumGrams(working) > MAX_MEAL_WEIGHT_GRAMS; guard++) {
     const candidates = [...working].filter((i) => i.grams > GRAM_ROUND_STEP);
     candidates.sort((a, b) => {
@@ -10864,6 +10888,10 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = "unknown", 
   const cfgTemp = isChatStep ? config.chatTemperature !== void 0 ? config.chatTemperature : config.temperature : config.temperature;
   const cfgTopP = isChatStep ? config.chatTopP !== void 0 ? config.chatTopP : config.topP : config.topP;
   const cfgTopK = isChatStep ? config.chatTopK !== void 0 ? config.chatTopK : config.topK : config.topK;
+  const PLAN_STEP_DEFAULT_TEMPERATURE = 0.2;
+  const PLAN_STEP_DEFAULT_TOP_P = 0.85;
+  const effectiveTemp = isPlanStep ? cfgTemp !== void 0 ? cfgTemp : PLAN_STEP_DEFAULT_TEMPERATURE : cfgTemp;
+  const effectiveTopP = isPlanStep ? cfgTopP !== void 0 ? cfgTopP : PLAN_STEP_DEFAULT_TOP_P : cfgTopP;
   const planResponseSchema = !skipJSONEnforcement ? getPlanStepResponseSchema(stepName) : null;
   const planSystemInstruction = isPlanStep ? getPlanSystemInstruction(stepKey) : null;
   const requestData = {
@@ -10889,10 +10917,10 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = "unknown", 
       response = generateMockResponse(enforcedPrompt);
       success = true;
     } else if (preferredProvider === "openai" && env.OPENAI_API_KEY) {
-      response = await callOpenAI2(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, cfgTemp, cfgTopP);
+      response = await callOpenAI2(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, effectiveTemp, effectiveTopP);
       success = true;
     } else if (preferredProvider === "anthropic" && env.ANTHROPIC_API_KEY) {
-      response = await callClaude(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, cfgTemp, cfgTopP, cfgTopK);
+      response = await callClaude(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, effectiveTemp, effectiveTopP, cfgTopK);
       success = true;
     } else if (preferredProvider === "google" && env.GEMINI_API_KEY) {
       response = await callGemini2(
@@ -10902,8 +10930,8 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = "unknown", 
         maxTokens,
         !skipJSONEnforcement,
         effectiveThinkingBudget,
-        cfgTemp,
-        cfgTopP,
+        effectiveTemp,
+        effectiveTopP,
         cfgTopK,
         planResponseSchema,
         planSystemInstruction
@@ -10912,11 +10940,11 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = "unknown", 
     } else {
       if (env.OPENAI_API_KEY) {
         console.warn("Preferred provider not available. Falling back to OpenAI.");
-        response = await callOpenAI2(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, cfgTemp, cfgTopP);
+        response = await callOpenAI2(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, effectiveTemp, effectiveTopP);
         success = true;
       } else if (env.ANTHROPIC_API_KEY) {
         console.warn("Preferred provider not available. Falling back to Anthropic.");
-        response = await callClaude(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, cfgTemp, cfgTopP, cfgTopK);
+        response = await callClaude(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, effectiveTemp, effectiveTopP, cfgTopK);
         success = true;
       } else if (env.GEMINI_API_KEY) {
         console.warn("Preferred provider not available. Falling back to Google Gemini.");
@@ -10927,8 +10955,8 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = "unknown", 
           maxTokens,
           !skipJSONEnforcement,
           effectiveThinkingBudget,
-          cfgTemp,
-          cfgTopP,
+          effectiveTemp,
+          effectiveTopP,
           cfgTopK,
           planResponseSchema,
           planSystemInstruction
@@ -13115,6 +13143,12 @@ async function reconcilePlanStructure(plan, userData = null, env = null) {
     }
     finalizeWeekPlanDays(plan.weekPlan, plan.strategy, 1, 7, userData);
     reconcileAchievedSlotCalories(plan.weekPlan, plan.strategy, 1, 7);
+    for (const key of DAY_NUMBER_TO_KEY) {
+      const day = plan.strategy.weeklyScheme[key];
+      if (!day) continue;
+      enforceFixedSlotCaps(day, day.calories);
+      clampLateSnackInMealBreakdown(day);
+    }
   } else {
     recalculateDayCalories(plan.weekPlan, plan.strategy || null);
   }
@@ -14610,6 +14644,8 @@ function normalizeWeeklyScheme(strategy, defaultDailyCalories, userData = null) 
     day.protein = sumField2("protein");
     day.carbs = sumField2("carbs");
     day.fats = sumField2("fats");
+    enforceFixedSlotCaps(day, targetCals);
+    clampLateSnackInMealBreakdown(day);
   }
 }
 function getFreeMealSlotCalories(dayTarget) {

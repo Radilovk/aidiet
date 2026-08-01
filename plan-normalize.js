@@ -255,6 +255,18 @@ export function rebalanceMealBreakdownSlots(day, dailyKcal) {
 
   enforceFreeDayDinnerCap(day, daily);
   reconcileDailyCalories(day, daily);
+  enforceFixedSlotCaps(day, daily);
+}
+
+/** Hard cap H3/H5 scheme slots — reconcile must not drift above fixed ceilings. */
+export function enforceFixedSlotCaps(day, dailyKcal) {
+  if (!day?.mealBreakdown?.length) return;
+  const daily = Number(dailyKcal) || Number(day.calories) || sumField(day.mealBreakdown, 'calories');
+  for (const slot of day.mealBreakdown) {
+    if (slot.type !== 'Хранене 3' && slot.type !== 'Хранене 5') continue;
+    const cap = maxSlotKcal(slot.type, day.mealBreakdown, daily);
+    if ((Number(slot.calories) || 0) > cap) capSlotMacros(slot, cap);
+  }
 }
 
 /** After slot caps, restore daily kcal total — surplus goes to main meals or free-meal budget. */
@@ -541,11 +553,14 @@ export function reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endD
       if (target <= 0 || achieved <= 0) continue;
 
       const ceiling = maxSlotKcal(meal.type, dayScheme.mealBreakdown, dayScheme.calories);
+      const isFixed = meal.type === 'Хранене 3' || meal.type === 'Хранене 5';
       let aligned = target;
-      if (isMealCaloriesAdequate(achieved, target)) {
+      if (!isFixed && isMealCaloriesAdequate(achieved, target)) {
         aligned = achieved;
-      } else if (achieved < target) {
+      } else if (!isFixed && achieved < target) {
         aligned = achieved;
+      } else if (isFixed && achieved > 0) {
+        aligned = Math.min(achieved, ceiling);
       }
       slot.calories = Math.min(aligned, ceiling);
     }

@@ -11,6 +11,7 @@ import {
   userSkipsBreakfast,
   isMealCaloriesAdequate,
   slotCalorieTolerance,
+  enforceFixedSlotCaps,
   MAX_LATE_SNACK_CALORIES,
   MAX_AFTERNOON_SNACK_CALORIES,
 } from '../plan-normalize.js';
@@ -100,6 +101,23 @@ check('severityLabelForValue(60)=Risky', severityLabelForValue(60) === 'Risky');
   rebalanceMealBreakdownSlots(day, 2774);
   const h3 = day.mealBreakdown.find(m => m.type === 'Хранене 3');
   check('free day: H3 capped ≤350', h3.calories <= MAX_AFTERNOON_SNACK_CALORIES, `${h3?.calories} kcal`);
+}
+
+{
+  const day = {
+    calories: 2774,
+    mealBreakdown: [
+      { type: 'Хранене 2', calories: 900, protein: 60, carbs: 80, fats: 30 },
+      { type: 'Хранене 3', calories: 437, protein: 20, carbs: 40, fats: 15 },
+      { type: 'Хранене 4', calories: 600, protein: 50, carbs: 50, fats: 20 },
+      { type: 'Хранене 5', calories: 204, protein: 15, carbs: 8, fats: 10 },
+    ],
+  };
+  enforceFixedSlotCaps(day, 2774);
+  const h3 = day.mealBreakdown.find(m => m.type === 'Хранене 3');
+  const h5 = day.mealBreakdown.find(m => m.type === 'Хранене 5');
+  check('enforceFixedSlotCaps: H3 ≤350', h3.calories <= 350, `${h3.calories}`);
+  check('enforceFixedSlotCaps: H5 ≤200', h5.calories <= 200, `${h5.calories}`);
 }
 
 {

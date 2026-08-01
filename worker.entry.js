@@ -52,6 +52,7 @@ import {
   userSkipsBreakfast,
   reconcileAchievedSlotCalories,
   isMealCaloriesAdequate,
+  enforceFixedSlotCaps,
   MAX_LATE_SNACK_CALORIES,
 } from './plan-normalize.js';
 import {
@@ -2902,7 +2903,6 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
     : isChatStep ? (config.chatThinkingBudget !== undefined ? config.chatThinkingBudget : config.thinkingBudget)
     : config.thinkingBudget;
 
-  // Sampling parameters: chat steps prefer chat-specific values, falling back to plan config
   const cfgTemp = isChatStep
     ? (config.chatTemperature !== undefined ? config.chatTemperature : config.temperature)
     : config.temperature;
@@ -2912,6 +2912,16 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
   const cfgTopK = isChatStep
     ? (config.chatTopK !== undefined ? config.chatTopK : config.topK)
     : config.topK;
+
+  // Plan steps: lower temperature/topP defaults for deterministic JSON (admin KV overrides).
+  const PLAN_STEP_DEFAULT_TEMPERATURE = 0.2;
+  const PLAN_STEP_DEFAULT_TOP_P = 0.85;
+  const effectiveTemp = isPlanStep
+    ? (cfgTemp !== undefined ? cfgTemp : PLAN_STEP_DEFAULT_TEMPERATURE)
+    : cfgTemp;
+  const effectiveTopP = isPlanStep
+    ? (cfgTopP !== undefined ? cfgTopP : PLAN_STEP_DEFAULT_TOP_P)
+    : cfgTopP;
 
   const planResponseSchema = !skipJSONEnforcement ? getPlanStepResponseSchema(stepName) : null;
   const planSystemInstruction = isPlanStep ? getPlanSystemInstruction(stepKey) : null;
@@ -2947,15 +2957,15 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
       success = true;
     } else if (preferredProvider === 'openai' && env.OPENAI_API_KEY) {
       // Try preferred provider first
-      response = await callOpenAI(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, cfgTemp, cfgTopP);
+      response = await callOpenAI(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, effectiveTemp, effectiveTopP);
       success = true;
     } else if (preferredProvider === 'anthropic' && env.ANTHROPIC_API_KEY) {
-      response = await callClaude(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, cfgTemp, cfgTopP, cfgTopK);
+      response = await callClaude(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, effectiveTemp, effectiveTopP, cfgTopK);
       success = true;
     } else if (preferredProvider === 'google' && env.GEMINI_API_KEY) {
       response = await callGemini(
         env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement,
-        effectiveThinkingBudget, cfgTemp, cfgTopP, cfgTopK,
+        effectiveThinkingBudget, effectiveTemp, effectiveTopP, cfgTopK,
         planResponseSchema, planSystemInstruction
       );
       success = true;
@@ -2963,17 +2973,17 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
       // Fallback hierarchy if preferred not available
       if (env.OPENAI_API_KEY) {
         console.warn('Preferred provider not available. Falling back to OpenAI.');
-        response = await callOpenAI(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, cfgTemp, cfgTopP);
+        response = await callOpenAI(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, effectiveTemp, effectiveTopP);
         success = true;
       } else if (env.ANTHROPIC_API_KEY) {
         console.warn('Preferred provider not available. Falling back to Anthropic.');
-        response = await callClaude(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, cfgTemp, cfgTopP, cfgTopK);
+        response = await callClaude(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, effectiveTemp, effectiveTopP, cfgTopK);
         success = true;
       } else if (env.GEMINI_API_KEY) {
         console.warn('Preferred provider not available. Falling back to Google Gemini.');
         response = await callGemini(
           env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement,
-          effectiveThinkingBudget, cfgTemp, cfgTopP, cfgTopK,
+          effectiveThinkingBudget, effectiveTemp, effectiveTopP, cfgTopK,
           planResponseSchema, planSystemInstruction
         );
         success = true;
@@ -5915,6 +5925,12 @@ async function reconcilePlanStructure(plan, userData = null, env = null) {
     }
     finalizeWeekPlanDays(plan.weekPlan, plan.strategy, 1, 7, userData);
     reconcileAchievedSlotCalories(plan.weekPlan, plan.strategy, 1, 7);
+    for (const key of DAY_NUMBER_TO_KEY) {
+      const day = plan.strategy.weeklyScheme[key];
+      if (!day) continue;
+      enforceFixedSlotCaps(day, day.calories);
+      clampLateSnackInMealBreakdown(day);
+    }
   } else {
     recalculateDayCalories(plan.weekPlan, plan.strategy || null);
   }
@@ -7719,6 +7735,8 @@ function normalizeWeeklyScheme(strategy, defaultDailyCalories, userData = null) 
     day.protein = sumField('protein');
     day.carbs = sumField('carbs');
     day.fats = sumField('fats');
+    enforceFixedSlotCaps(day, targetCals);
+    clampLateSnackInMealBreakdown(day);
   }
 }
 
