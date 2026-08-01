@@ -52,6 +52,10 @@ test-loading-animation.html
 # Test scripts
 test-whitelist-validation.js
 
+# Live benchmark output (local only)
+benchmark-results/
+typecheck-worker-report.txt
+
 # Client data from questionnaire2
 clients/*.json
 clients/*

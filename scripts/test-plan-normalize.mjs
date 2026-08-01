@@ -148,6 +148,31 @@ check('severityLabelForValue(60)=Risky', severityLabelForValue(60) === 'Risky');
 
 {
   const analysis = {
+    keyProblems: [
+      { title: 'Недостатъчен протеин', severity: 'Risky', severityValue: 68 },
+      { title: 'Ниска хидратация', severity: 'Borderline', severityValue: 52 },
+    ],
+    hinderingFactors: [{ factor: 'Висока тренировъчна натовареност', severity: 3, description: 'риск от дефицит' }],
+  };
+  normalizeAnalysisOutput(analysis);
+  check('Analysis: 2 problems + hinderingFactor → ≥3', analysis.keyProblems.length >= 3, `${analysis.keyProblems.length}`);
+}
+
+{
+  const analysis = {
+    keyProblems: [
+      { title: 'Потенциален дефицит на микронутриенти', severity: 'Risky', severityValue: 68, description: 'x', category: 'Health', impact: 'x' },
+      { title: 'Риск от недостатъчен протеинов прием', severity: 'Borderline', severityValue: 52, description: 'x', category: 'Health', impact: 'x' },
+    ],
+    healthRisks: ['Потенциален дефицит на витамин B12 поради веганска диета.'],
+    nutritionalNeeds: ['Осигуряване на адекватен прием на витамин B12 чрез обогатени храни или добавки.'],
+  };
+  normalizeAnalysisOutput(analysis);
+  check('Analysis: vegan-like 2 problems + risks → ≥3', analysis.keyProblems.length >= 3, `${analysis.keyProblems.length}`);
+}
+
+{
+  const analysis = {
     keyProblems: [{ title: 'Стрес', severity: 'Risky', severityValue: 70 }],
     currentHealthStatus: { score: 62, description: 'Много лошо здравословно състояние с критични проблеми.' },
   };

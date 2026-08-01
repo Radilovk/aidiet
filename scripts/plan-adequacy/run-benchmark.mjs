@@ -26,6 +26,7 @@ const CONFIRMED = args.includes('--confirm') || process.env.AIDIET_LIVE_TESTS ==
 const BASE = args.find(a => a.startsWith('--base='))?.split('=')[1]
   || 'https://aidiet.radilov-k.workers.dev';
 const MODE = args.find(a => a.startsWith('--profiles='))?.split('=')[1] || 'hard';
+const ONLY_IDS = args.find(a => a.startsWith('--only='))?.split('=')[1]?.split(',').map(s => s.trim()).filter(Boolean);
 const POLL_MS = 8000;
 const MAX_WAIT_MS = 28 * 60 * 1000;
 
@@ -35,13 +36,22 @@ const BENCHMARK_SETS = {
   all: [...HARD_PROFILES, ...PROFILES.filter(p => !HARD_PROFILES.some(h => h.id === p.id))],
 };
 
-const SELECTED = BENCHMARK_SETS[MODE] || HARD_PROFILES;
+const SELECTED = ONLY_IDS?.length
+  ? [...HARD_PROFILES, ...PROFILES.filter(p => !HARD_PROFILES.some(h => h.id === p.id))]
+      .filter(p => ONLY_IDS.includes(p.id))
+  : (BENCHMARK_SETS[MODE] || HARD_PROFILES);
+
+if (ONLY_IDS?.length && !SELECTED.length) {
+  console.error(`Няма профили за --only=${ONLY_IDS.join(',')}`);
+  process.exit(2);
+}
 
 if (!CONFIRMED) {
   console.error(`Live benchmark изисква --confirm (реални AI заявки).
 
   node scripts/plan-adequacy/run-benchmark.mjs --confirm
-  node scripts/plan-adequacy/run-benchmark.mjs --confirm --profiles=quick|hard|all`);
+  node scripts/plan-adequacy/run-benchmark.mjs --confirm --profiles=quick|hard|all
+  node scripts/plan-adequacy/run-benchmark.mjs --confirm --only=vegan_active`);
   process.exit(2);
 }
 
