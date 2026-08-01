@@ -76,6 +76,10 @@
       <div class="ec-card ec-editor ec-hidden" id="ecEditor">
         <h2 id="ecEditorTitle">Упражнение</h2>
         <p class="sub" id="ecEditorSub"></p>
+        <div class="ec-media" id="ecMedia">
+          <img id="ecMediaGif" class="ec-media-gif" alt="" hidden>
+          <p class="ec-muted ec-media-empty" id="ecMediaEmpty" hidden>Няма анимация</p>
+        </div>
         <div class="ec-grid">
           <div class="ec-field full">
             <label for="ecNameBg">Българско име (nameBg)</label>
@@ -127,6 +131,7 @@
     const params = new URLSearchParams(location.search);
     const WORKER_URL = params.get('worker') || 'https://aidiet.radilov-k.workers.dev';
     const ADMIN_PASSWORD = params.get('secret') || 'nutriplan2024';
+    const MEDIA_BASE = 'https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@main/';
 
     const state = {
       page: 1,
@@ -187,6 +192,35 @@
       }[c]));
     }
 
+    function mediaUrl(path) {
+      if (!path) return '';
+      if (/^https?:\/\//i.test(path)) return path;
+      return MEDIA_BASE.replace(/\/+$/, '/') + String(path).replace(/^\/+/, '');
+    }
+
+    function setEditorMedia(row) {
+      const img = $('ecMediaGif');
+      const empty = $('ecMediaEmpty');
+      const url = mediaUrl(row?.gif || row?.image);
+      if (url) {
+        img.hidden = false;
+        empty.hidden = true;
+        img.src = url;
+        img.alt = row.displayName || row.nameBg || row.name || '';
+      } else {
+        img.hidden = true;
+        img.removeAttribute('src');
+        empty.hidden = false;
+      }
+    }
+
+    function clearEditorMedia() {
+      const img = $('ecMediaGif');
+      img.hidden = true;
+      img.removeAttribute('src');
+      $('ecMediaEmpty').hidden = true;
+    }
+
     async function loadList() {
       setStatus($('ecListStatus'), 'Зареждане…');
       const q = new URLSearchParams({
@@ -234,6 +268,7 @@
       $('ecEquipNorm').value = row.effectiveEquipNorm || '';
       $('ecExcluded').checked = Boolean(row.excluded);
       $('ecInstructionsBg').value = row.instructionsBg || '';
+      setEditorMedia(row);
       showEditor(true);
       renderTable();
       setStatus($('ecEditorStatus'), row.overridden?.metadata || row.overridden?.translation ? 'Има ръчни корекции в KV' : '');
@@ -303,7 +338,7 @@
     $('ecPrevBtn').addEventListener('click', () => { if (state.page > 1) { state.page -= 1; loadList().catch((e) => setStatus($('ecListStatus'), e.message, true)); } });
     $('ecNextBtn').addEventListener('click', () => { if (state.page < state.pages) { state.page += 1; loadList().catch((e) => setStatus($('ecListStatus'), e.message, true)); } });
     $('ecSaveBtn').addEventListener('click', () => saveEditor().catch((e) => setStatus($('ecEditorStatus'), e.message, true)));
-    $('ecCloseBtn').addEventListener('click', () => { state.selected = null; showEditor(false); renderTable(); });
+    $('ecCloseBtn').addEventListener('click', () => { state.selected = null; clearEditorMedia(); showEditor(false); renderTable(); });
     $('ecExportBtn').addEventListener('click', () => exportCatalog().catch((e) => setStatus($('ecListStatus'), e.message, true)));
     $('ecImportFile').addEventListener('change', (e) => {
       const file = e.target.files?.[0];
