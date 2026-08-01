@@ -52,6 +52,7 @@ import {
   userSkipsBreakfast,
   reconcileAchievedSlotCalories,
   isMealCaloriesAdequate,
+  enforceFixedSlotCaps,
   MAX_LATE_SNACK_CALORIES,
 } from './plan-normalize.js';
 import {
@@ -2902,7 +2903,6 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
     : isChatStep ? (config.chatThinkingBudget !== undefined ? config.chatThinkingBudget : config.thinkingBudget)
     : config.thinkingBudget;
 
-  // Sampling parameters: chat steps prefer chat-specific values, falling back to plan config
   const cfgTemp = isChatStep
     ? (config.chatTemperature !== undefined ? config.chatTemperature : config.temperature)
     : config.temperature;
@@ -2912,6 +2912,16 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
   const cfgTopK = isChatStep
     ? (config.chatTopK !== undefined ? config.chatTopK : config.topK)
     : config.topK;
+
+  // Plan steps: lower temperature/topP defaults for deterministic JSON (admin KV overrides).
+  const PLAN_STEP_DEFAULT_TEMPERATURE = 0.2;
+  const PLAN_STEP_DEFAULT_TOP_P = 0.85;
+  const effectiveTemp = isPlanStep
+    ? (cfgTemp !== undefined ? cfgTemp : PLAN_STEP_DEFAULT_TEMPERATURE)
+    : cfgTemp;
+  const effectiveTopP = isPlanStep
+    ? (cfgTopP !== undefined ? cfgTopP : PLAN_STEP_DEFAULT_TOP_P)
+    : cfgTopP;
 
   const planResponseSchema = !skipJSONEnforcement ? getPlanStepResponseSchema(stepName) : null;
   const planSystemInstruction = isPlanStep ? getPlanSystemInstruction(stepKey) : null;
@@ -2947,15 +2957,15 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
       success = true;
     } else if (preferredProvider === 'openai' && env.OPENAI_API_KEY) {
       // Try preferred provider first
-      response = await callOpenAI(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, cfgTemp, cfgTopP);
+      response = await callOpenAI(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, effectiveTemp, effectiveTopP);
       success = true;
     } else if (preferredProvider === 'anthropic' && env.ANTHROPIC_API_KEY) {
-      response = await callClaude(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, cfgTemp, cfgTopP, cfgTopK);
+      response = await callClaude(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, effectiveTemp, effectiveTopP, cfgTopK);
       success = true;
     } else if (preferredProvider === 'google' && env.GEMINI_API_KEY) {
       response = await callGemini(
         env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement,
-        effectiveThinkingBudget, cfgTemp, cfgTopP, cfgTopK,
+        effectiveThinkingBudget, effectiveTemp, effectiveTopP, cfgTopK,
         planResponseSchema, planSystemInstruction
       );
       success = true;
@@ -2963,17 +2973,17 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
       // Fallback hierarchy if preferred not available
       if (env.OPENAI_API_KEY) {
         console.warn('Preferred provider not available. Falling back to OpenAI.');
-        response = await callOpenAI(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, cfgTemp, cfgTopP);
+        response = await callOpenAI(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, effectiveTemp, effectiveTopP);
         success = true;
       } else if (env.ANTHROPIC_API_KEY) {
         console.warn('Preferred provider not available. Falling back to Anthropic.');
-        response = await callClaude(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, cfgTemp, cfgTopP, cfgTopK);
+        response = await callClaude(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, effectiveTemp, effectiveTopP, cfgTopK);
         success = true;
       } else if (env.GEMINI_API_KEY) {
         console.warn('Preferred provider not available. Falling back to Google Gemini.');
         response = await callGemini(
           env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement,
-          effectiveThinkingBudget, cfgTemp, cfgTopP, cfgTopK,
+          effectiveThinkingBudget, effectiveTemp, effectiveTopP, cfgTopK,
           planResponseSchema, planSystemInstruction
         );
         success = true;
@@ -5915,6 +5925,12 @@ async function reconcilePlanStructure(plan, userData = null, env = null) {
     }
     finalizeWeekPlanDays(plan.weekPlan, plan.strategy, 1, 7, userData);
     reconcileAchievedSlotCalories(plan.weekPlan, plan.strategy, 1, 7);
+    for (const key of DAY_NUMBER_TO_KEY) {
+      const day = plan.strategy.weeklyScheme[key];
+      if (!day) continue;
+      enforceFixedSlotCaps(day, day.calories);
+      clampLateSnackInMealBreakdown(day);
+    }
   } else {
     recalculateDayCalories(plan.weekPlan, plan.strategy || null);
   }
@@ -7719,6 +7735,8 @@ function normalizeWeeklyScheme(strategy, defaultDailyCalories, userData = null) 
     day.protein = sumField('protein');
     day.carbs = sumField('carbs');
     day.fats = sumField('fats');
+    enforceFixedSlotCaps(day, targetCals);
+    clampLateSnackInMealBreakdown(day);
   }
 }
 
@@ -7822,7 +7840,6 @@ async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay
     if (unknowns.length) {
       console.warn('[food-catalog] Unknown products (strict):', unknowns.slice(0, 10).join(', '));
     }
-    reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay);
     return unknowns;
   }
 
@@ -7832,7 +7849,6 @@ async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay
     .slice(0, 6);
 
   if (!namesToResolve.length) {
-    reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay);
     return unknowns;
   }
 
@@ -7848,7 +7864,6 @@ async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay
     await saveFoodNutritionExtraDb(env, extraDb);
     unknowns = syncWeekPlanNutritionFromDatabase(weekPlan, strategy, startDay, endDay, extraDb);
   }
-  reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay);
   if (unknowns.length) {
     console.warn('[food-nutrition] Unknown products after sync:', unknowns.slice(0, 10).join(', '));
   }
@@ -7960,10 +7975,6 @@ function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay
   return errors;
 }
 
-function repairWeekPlanMeal3Slots(weekPlan, startDay, endDay, userData) {
-  return repairWeekPlanLightSlots(weekPlan, startDay, endDay, userData);
-}
-
 function buildChunkValidationRetryComment(errors) {
   if (!errors?.length) return '';
   return `═══ FIX LIST ═══
@@ -8039,11 +8050,6 @@ function finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, userData = n
     }
   }
   recalculateDayCalories(weekPlan, strategy);
-}
-
-/** @deprecated Use finalizeWeekPlanDays — kept as alias for callers outside meal-plan flow */
-function alignWeekPlanDaysToScheme(weekPlan, strategy, startDay, endDay, userData = null) {
-  finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, userData);
 }
 
 /**
@@ -9663,7 +9669,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
 
         injectFixedDesserts(weekPlan);
         await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
-        if (repairWeekPlanMeal3Slots(weekPlan, startDay, endDay, data)) {
+        if (repairWeekPlanLightSlots(weekPlan, startDay, endDay, data)) {
           await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
         }
         finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, data);

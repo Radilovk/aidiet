@@ -8063,11 +8063,7 @@ function rebalanceMealBreakdownSlots(day, dailyKcal) {
       const recipients = platedSlots(day.mealBreakdown).filter(
         (m) => !isLightMealSlot(m.type) && (Number(m.calories) || 0) < maxSlotKcal(m.type, day.mealBreakdown, daily)
       );
-      const sum = recipients.reduce((s, m) => s + (Number(m.calories) || 0), 0) || recipients.length || 1;
-      for (const r of recipients) {
-        const share = (Number(r.calories) || 0) / sum || 1 / recipients.length;
-        addMacrosToSlot(r, Math.round(excess * share), 0, 0, 0);
-      }
+      distributeSurplusToRecipients(recipients, excess, 0, 0, 0, daily);
     }
   }
   for (let pass = 0; pass < 8; pass++) {
@@ -8088,7 +8084,7 @@ function rebalanceMealBreakdownSlots(day, dailyKcal) {
       }
     }
     if (poolKcal <= 0) break;
-    const recipients = platedSlots(day.mealBreakdown).filter((m) => (Number(m.calories) || 0) < maxSlotKcal(m.type, day.mealBreakdown, daily) - 5);
+    const recipients = platedSlots(day.mealBreakdown).filter((m) => !isLightMealSlot(m.type) && (Number(m.calories) || 0) < maxSlotKcal(m.type, day.mealBreakdown, daily) - 5);
     if (!recipients.length) break;
     const headroom = recipients.map((m) => maxSlotKcal(m.type, day.mealBreakdown, daily) - (Number(m.calories) || 0));
     const totalHeadroom = headroom.reduce((a, b) => a + b, 0) || 1;
@@ -8104,47 +8100,26 @@ function rebalanceMealBreakdownSlots(day, dailyKcal) {
     }
   }
   enforceFreeDayDinnerCap(day, daily);
-  clampMeal3InMealBreakdown(day, daily);
   reconcileDailyCalories(day, daily);
+  enforceFixedSlotCaps(day, daily);
+}
+function enforceFixedSlotCaps(day, dailyKcal) {
+  if (!day?.mealBreakdown?.length) return;
+  const daily = Number(dailyKcal) || Number(day.calories) || sumField(day.mealBreakdown, "calories");
+  for (const slot of day.mealBreakdown) {
+    if (slot.type !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3" && slot.type !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5") continue;
+    const cap = maxSlotKcal(slot.type, day.mealBreakdown, daily);
+    if ((Number(slot.calories) || 0) > cap) capSlotMacros(slot, cap);
+  }
 }
 function reconcileDailyCalories(day, dailyKcal) {
   const daily = Number(dailyKcal) || 0;
   if (!daily || !day?.mealBreakdown?.length) return;
-  let diff = daily - sumField(day.mealBreakdown, "calories");
-  if (Math.abs(diff) <= 5) return;
-  const hasFree = day.mealBreakdown.some((m) => m.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435");
-  const free = day.mealBreakdown.find((m) => m.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435");
-  if (diff > 0 && hasFree && free) {
-    const headroom = Math.max(0, maxFreeMealKcal(daily) - (Number(free.calories) || 0));
-    const addToFree = Math.min(diff, headroom);
-    if (addToFree > 0) {
-      addMacrosToSlot(free, addToFree, 0, 0, 0);
-      diff -= addToFree;
-    }
-  }
-  if (Math.abs(diff) <= 5) return;
-  const recipients = mainMealRecipients(day).filter(
-    (m) => m.type !== "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" || (Number(m.calories) || 0) < maxFreeMealKcal(daily)
-  );
-  if (!recipients.length) return;
-  distributeSurplusToRecipients(recipients, diff, 0, 0, 0, daily);
-}
-function clampMeal3InMealBreakdown(day, dailyKcal = 0) {
-  if (!day?.mealBreakdown?.length) return;
-  const h3 = day.mealBreakdown.find((m) => m.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3");
-  if (!h3) return;
-  const maxKcal = MAX_AFTERNOON_SNACK_CALORIES;
-  const h3Kcal = Number(h3.calories) || 0;
-  const excessKcal = Math.max(0, h3Kcal - maxKcal);
-  if (excessKcal <= 0) return;
-  const ratio = maxKcal / h3Kcal;
-  const excessP = (Number(h3.protein) || 0) * (1 - ratio);
-  const excessC = (Number(h3.carbs) || 0) * (1 - ratio);
-  const excessF = (Number(h3.fats) || 0) * (1 - ratio);
-  redistributeMacros(h3, ratio);
+  const diff = daily - sumField(day.mealBreakdown, "calories");
+  if (diff <= 5) return;
   const recipients = mainMealRecipients(day);
   if (!recipients.length) return;
-  distributeSurplusToRecipients(recipients, excessKcal, excessP, excessC, excessF, dailyKcal);
+  distributeSurplusToRecipients(recipients, diff, 0, 0, 0, daily);
 }
 function enforceFreeDayDinnerCap(day, dailyKcal) {
   const hasFree = day.mealBreakdown?.some((m) => m.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435");
@@ -8262,8 +8237,11 @@ function validateLateSnackSlotContent(meal, dayNum = null) {
     errors.push(`${prefix}\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5 \u043D\u0435 \u0435 \u043A\u044A\u0441\u043D\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u2014 "${meal.name}"`);
   } else if (!MEAL5_SNACK_ALLOWED.some((f) => text.includes(f))) {
     errors.push(`${prefix}\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5 \u043D\u0435 \u0435 \u043A\u044A\u0441\u043D\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u2014 "${meal.name}"`);
-  } else if (!isMealCaloriesAdequate(meal.calories, MAX_LATE_SNACK_CALORIES)) {
-    errors.push(`${prefix}\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5: ${meal.calories} kcal > ${MAX_LATE_SNACK_CALORIES} (\xB1${slotCalorieTolerance(MAX_LATE_SNACK_CALORIES)})`);
+  } else {
+    const cal = Number(meal.calories) || 0;
+    if (cal > MAX_LATE_SNACK_CALORIES && !isMealCaloriesAdequate(cal, MAX_LATE_SNACK_CALORIES)) {
+      errors.push(`${prefix}\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5: ${cal} kcal > ${MAX_LATE_SNACK_CALORIES} (\xB1${slotCalorieTolerance(MAX_LATE_SNACK_CALORIES)})`);
+    }
   }
   return errors;
 }
@@ -8374,11 +8352,17 @@ function reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay) {
       const target = Number(slot.calories) || 0;
       const achieved = Number(meal.calories) || 0;
       if (target <= 0 || achieved <= 0) continue;
-      if (isMealCaloriesAdequate(achieved, target)) {
-        slot.calories = achieved;
-      } else if (achieved < target) {
-        slot.calories = achieved;
+      const ceiling = maxSlotKcal(meal.type, dayScheme.mealBreakdown, dayScheme.calories);
+      const isFixed = meal.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3" || meal.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5";
+      let aligned = target;
+      if (!isFixed && isMealCaloriesAdequate(achieved, target)) {
+        aligned = achieved;
+      } else if (!isFixed && achieved < target) {
+        aligned = achieved;
+      } else if (isFixed && achieved > 0) {
+        aligned = Math.min(achieved, ceiling);
       }
+      slot.calories = Math.min(aligned, ceiling);
     }
     dayScheme.calories = dayScheme.mealBreakdown.reduce((s, m) => s + (Number(m.calories) || 0), 0);
   }
@@ -8660,6 +8644,17 @@ function nudgeItemsTowardKcal(items, goal) {
 }
 function trimToMaxWeight(items) {
   const working = items.map((i) => ({ ...i }));
+  let total = sumGrams(working);
+  if (total <= MAX_MEAL_WEIGHT_GRAMS) return working;
+  if (total > MAX_MEAL_WEIGHT_GRAMS) {
+    const ratio = MAX_MEAL_WEIGHT_GRAMS / total;
+    const proportional = working.map((item2) => ({
+      ...item2,
+      grams: capItemGrams(item2, Math.max(GRAM_ROUND_STEP, roundGrams(item2.grams * ratio)))
+    }));
+    if (sumGrams(proportional) <= MAX_MEAL_WEIGHT_GRAMS) return proportional;
+    working.splice(0, working.length, ...proportional);
+  }
   for (let guard = 0; guard < 24 && sumGrams(working) > MAX_MEAL_WEIGHT_GRAMS; guard++) {
     const candidates = [...working].filter((i) => i.grams > GRAM_ROUND_STEP);
     candidates.sort((a, b) => {
@@ -10893,6 +10888,10 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = "unknown", 
   const cfgTemp = isChatStep ? config.chatTemperature !== void 0 ? config.chatTemperature : config.temperature : config.temperature;
   const cfgTopP = isChatStep ? config.chatTopP !== void 0 ? config.chatTopP : config.topP : config.topP;
   const cfgTopK = isChatStep ? config.chatTopK !== void 0 ? config.chatTopK : config.topK : config.topK;
+  const PLAN_STEP_DEFAULT_TEMPERATURE = 0.2;
+  const PLAN_STEP_DEFAULT_TOP_P = 0.85;
+  const effectiveTemp = isPlanStep ? cfgTemp !== void 0 ? cfgTemp : PLAN_STEP_DEFAULT_TEMPERATURE : cfgTemp;
+  const effectiveTopP = isPlanStep ? cfgTopP !== void 0 ? cfgTopP : PLAN_STEP_DEFAULT_TOP_P : cfgTopP;
   const planResponseSchema = !skipJSONEnforcement ? getPlanStepResponseSchema(stepName) : null;
   const planSystemInstruction = isPlanStep ? getPlanSystemInstruction(stepKey) : null;
   const requestData = {
@@ -10918,10 +10917,10 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = "unknown", 
       response = generateMockResponse(enforcedPrompt);
       success = true;
     } else if (preferredProvider === "openai" && env.OPENAI_API_KEY) {
-      response = await callOpenAI2(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, cfgTemp, cfgTopP);
+      response = await callOpenAI2(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, effectiveTemp, effectiveTopP);
       success = true;
     } else if (preferredProvider === "anthropic" && env.ANTHROPIC_API_KEY) {
-      response = await callClaude(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, cfgTemp, cfgTopP, cfgTopK);
+      response = await callClaude(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, effectiveTemp, effectiveTopP, cfgTopK);
       success = true;
     } else if (preferredProvider === "google" && env.GEMINI_API_KEY) {
       response = await callGemini2(
@@ -10931,8 +10930,8 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = "unknown", 
         maxTokens,
         !skipJSONEnforcement,
         effectiveThinkingBudget,
-        cfgTemp,
-        cfgTopP,
+        effectiveTemp,
+        effectiveTopP,
         cfgTopK,
         planResponseSchema,
         planSystemInstruction
@@ -10941,11 +10940,11 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = "unknown", 
     } else {
       if (env.OPENAI_API_KEY) {
         console.warn("Preferred provider not available. Falling back to OpenAI.");
-        response = await callOpenAI2(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, cfgTemp, cfgTopP);
+        response = await callOpenAI2(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, effectiveTemp, effectiveTopP);
         success = true;
       } else if (env.ANTHROPIC_API_KEY) {
         console.warn("Preferred provider not available. Falling back to Anthropic.");
-        response = await callClaude(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, cfgTemp, cfgTopP, cfgTopK);
+        response = await callClaude(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, effectiveTemp, effectiveTopP, cfgTopK);
         success = true;
       } else if (env.GEMINI_API_KEY) {
         console.warn("Preferred provider not available. Falling back to Google Gemini.");
@@ -10956,8 +10955,8 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = "unknown", 
           maxTokens,
           !skipJSONEnforcement,
           effectiveThinkingBudget,
-          cfgTemp,
-          cfgTopP,
+          effectiveTemp,
+          effectiveTopP,
           cfgTopK,
           planResponseSchema,
           planSystemInstruction
@@ -13144,6 +13143,12 @@ async function reconcilePlanStructure(plan, userData = null, env = null) {
     }
     finalizeWeekPlanDays(plan.weekPlan, plan.strategy, 1, 7, userData);
     reconcileAchievedSlotCalories(plan.weekPlan, plan.strategy, 1, 7);
+    for (const key of DAY_NUMBER_TO_KEY) {
+      const day = plan.strategy.weeklyScheme[key];
+      if (!day) continue;
+      enforceFixedSlotCaps(day, day.calories);
+      clampLateSnackInMealBreakdown(day);
+    }
   } else {
     recalculateDayCalories(plan.weekPlan, plan.strategy || null);
   }
@@ -14639,6 +14644,8 @@ function normalizeWeeklyScheme(strategy, defaultDailyCalories, userData = null) 
     day.protein = sumField2("protein");
     day.carbs = sumField2("carbs");
     day.fats = sumField2("fats");
+    enforceFixedSlotCaps(day, targetCals);
+    clampLateSnackInMealBreakdown(day);
   }
 }
 function getFreeMealSlotCalories(dayTarget) {
@@ -14728,12 +14735,10 @@ async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay
     if (unknowns.length) {
       console.warn("[food-catalog] Unknown products (strict):", unknowns.slice(0, 10).join(", "));
     }
-    reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay);
     return unknowns;
   }
   const namesToResolve = unknowns.filter((n) => n && n !== "no-parsed-items").filter((n) => !extraDb[normalizeFoodKey(n)]).slice(0, 6);
   if (!namesToResolve.length) {
-    reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay);
     return unknowns;
   }
   let updated = false;
@@ -14748,7 +14753,6 @@ async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay
     await saveFoodNutritionExtraDb(env, extraDb);
     unknowns = syncWeekPlanNutritionFromDatabase(weekPlan, strategy, startDay, endDay, extraDb);
   }
-  reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay);
   if (unknowns.length) {
     console.warn("[food-nutrition] Unknown products after sync:", unknowns.slice(0, 10).join(", "));
   }
@@ -14839,9 +14843,6 @@ function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay
     }
   }
   return errors;
-}
-function repairWeekPlanMeal3Slots(weekPlan, startDay, endDay, userData) {
-  return repairWeekPlanLightSlots(weekPlan, startDay, endDay, userData);
 }
 function buildChunkValidationRetryComment(errors) {
   if (!errors?.length) return "";
@@ -16168,7 +16169,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         }
         injectFixedDesserts(weekPlan);
         await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
-        if (repairWeekPlanMeal3Slots(weekPlan, startDay, endDay, data)) {
+        if (repairWeekPlanLightSlots(weekPlan, startDay, endDay, data)) {
           await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
         }
         finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, data);

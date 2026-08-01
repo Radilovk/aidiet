@@ -362,6 +362,20 @@ function nudgeItemsTowardKcal(items, goal) {
 
 function trimToMaxWeight(items) {
   const working = items.map(i => ({ ...i }));
+  let total = sumGrams(working);
+  if (total <= MAX_MEAL_WEIGHT_GRAMS) return working;
+
+  // Large overshoot: proportional trim (step-trim alone caps at ~24×10g reduction).
+  if (total > MAX_MEAL_WEIGHT_GRAMS) {
+    const ratio = MAX_MEAL_WEIGHT_GRAMS / total;
+    const proportional = working.map(item => ({
+      ...item,
+      grams: capItemGrams(item, Math.max(GRAM_ROUND_STEP, roundGrams(item.grams * ratio))),
+    }));
+    if (sumGrams(proportional) <= MAX_MEAL_WEIGHT_GRAMS) return proportional;
+    working.splice(0, working.length, ...proportional);
+  }
+
   for (let guard = 0; guard < 24 && sumGrams(working) > MAX_MEAL_WEIGHT_GRAMS; guard++) {
     const candidates = [...working].filter(i => i.grams > GRAM_ROUND_STEP);
     candidates.sort((a, b) => {

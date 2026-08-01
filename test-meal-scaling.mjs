@@ -164,6 +164,18 @@ console.log('\n=== 11. Протеин (тофу): cap на грамаж ===');
   check('тофу ≤300g', tofu && tofu.grams <= 300, `${tofu?.grams}g`);
 }
 
+console.log('\n=== 12. Пропорционален trim при >800g (athlete lunch) ===');
+{
+  const meal = {
+    type: 'Хранене 2',
+    description: '• Пилешки гърди 400g\n• Ориз 400g\n• Зехтин 30g',
+  };
+  applyMealNutritionFromDatabase(meal, { calories: 1100, protein: 70, carbs: 100, fats: 30 });
+  const weightMatch = String(meal.weight).match(/(\d+)/);
+  const weightGrams = weightMatch ? parseInt(weightMatch[1], 10) : 0;
+  check('тежестта е ≤800g след proportional trim', weightGrams > 0 && weightGrams <= 800, `${weightGrams}g`);
+}
+
 const passed = results.filter(Boolean).length;
 console.log(`\n=== Обобщение: ${passed}/${results.length} PASS ===`);
 process.exit(passed === results.length ? 0 : 1);
