@@ -39,6 +39,8 @@ import {
   parseMealDescription,
   calorieTolerance,
   MAX_MEAL_WEIGHT_GRAMS,
+  mealWeightGramsFromDescription,
+  formatMealWeight,
 } from './food-nutrition.js';
 import {
   rebalanceMealBreakdownSlots,
@@ -7914,16 +7916,13 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocol
       errors.push(`Ден ${dayNum} ${meal.type}: калории ${mealCal} ≠ цел ${targetCal} — порциите са структурно недостатъчни/прекомерни, избери по-подходящи продукти или количества`);
     }
 
-    if (meal.weight) {
-      const weightMatch = String(meal.weight).match(/(\d+(?:\.\d+)?)\s*(?:g|г)/i);
-      if (weightMatch) {
-        const weightGrams = parseFloat(weightMatch[1]);
-        const minWeight = minMealWeightGrams(meal.type);
-        if (weightGrams > MAX_MEAL_WEIGHT_GRAMS) {
-          errors.push(`Ден ${dayNum} ${meal.type}: weight ${weightGrams}g > ${MAX_MEAL_WEIGHT_GRAMS}g`);
-        } else if (weightGrams < minWeight) {
-          errors.push(`Ден ${dayNum} ${meal.type}: weight ${weightGrams}g < ${minWeight}g`);
-        }
+    const weightGrams = mealWeightGramsFromDescription(meal);
+    if (weightGrams > 0) {
+      const minWeight = minMealWeightGrams(meal.type);
+      if (weightGrams > MAX_MEAL_WEIGHT_GRAMS) {
+        errors.push(`Ден ${dayNum} ${meal.type}: weight ${weightGrams}g > ${MAX_MEAL_WEIGHT_GRAMS}g`);
+      } else if (weightGrams < minWeight) {
+        errors.push(`Ден ${dayNum} ${meal.type}: weight ${weightGrams}g < ${minWeight}g`);
       }
     }
 
@@ -8047,6 +8046,8 @@ function finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, userData = n
         continue;
       }
       syncMealCaloriesFromMacros(meal);
+      const wg = mealWeightGramsFromDescription(meal);
+      if (wg > 0) meal.weight = formatMealWeight(wg);
     }
   }
   recalculateDayCalories(weekPlan, strategy);
@@ -8803,16 +8804,15 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
       
       analysis = parseAIResponse(analysisResponse);
-      normalizeAnalysisOutput(analysis);
       
       if (!analysis || analysis.error) {
         throw new Error(`Регенерацията на анализа се провали: ${analysis?.error || 'Невалиден формат'}`);
       }
       
-      // Filter out "Normal" severity problems
       if (analysis.keyProblems && Array.isArray(analysis.keyProblems)) {
         analysis.keyProblems = analysis.keyProblems.filter(problem => problem.severity !== 'Normal');
       }
+      normalizeAnalysisOutput(analysis);
       const refActivity = calculateUnifiedActivityScore(data);
       const refBmr = calculateBMR(data);
       const refTdee = calculateTDEE(refBmr, refActivity.combinedScore);
@@ -9067,7 +9067,6 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
       console.log(`Step 1 tokens: input=${analysisInputTokens}, output=${analysisOutputTokens}, cumulative=${cumulativeTokens.total}`);
       
       analysis = parseAIResponse(analysisResponse);
-      normalizeAnalysisOutput(analysis);
       
       if (!analysis || analysis.error) {
         const errorMsg = analysis.error || 'Невалиден формат на отговор';
@@ -9076,10 +9075,10 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
         throw new Error(`Анализът не можа да бъде създаден: ${errorMsg}`);
       }
       
-      // REQUIREMENT 2: Filter out "Normal" severity problems from analysis
+      // Filter Normal severity before normalize (padding needs final keyProblems count).
       if (analysis.keyProblems && Array.isArray(analysis.keyProblems)) {
         const originalCount = analysis.keyProblems.length;
-        analysis.keyProblems = analysis.keyProblems.filter(problem => 
+        analysis.keyProblems = analysis.keyProblems.filter(problem =>
           problem.severity !== 'Normal'
         );
         const filteredCount = analysis.keyProblems.length;
@@ -9087,6 +9086,7 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
           console.log(`Filtered out ${originalCount - filteredCount} Normal severity problems from analysis`);
         }
       }
+      normalizeAnalysisOutput(analysis);
 
       // Sync + safety guardrails (AI keeps diet-specific judgment; code clamps extremes only)
       const refActivity = calculateUnifiedActivityScore(data);

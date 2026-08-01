@@ -1,0 +1,128 @@
+{
+  "timestamp": "2026-08-01T00:28:46.061Z",
+  "base": "https://aidiet.radilov-k.workers.dev",
+  "mode": "hard",
+  "provider": "google",
+  "model": "gemini-2.5-flash",
+  "pass": 4,
+  "total": 6,
+  "results": [
+    {
+      "id": "kamen_benchmark",
+      "ok": false,
+      "error": "Генерирането на план се провали: Стъпка 3 (Хранителен план - прогресивно): Генериране на дни 1-1: Ден 1 Хранене 2: weight 820g > 800g",
+      "issueCount": 1,
+      "issues": [
+        "Генерирането на план се провали: Стъпка 3 (Хранителен план - прогресивно): Генериране на дни 1-1: Ден 1 Хранене 2: weight 820g > 800g"
+      ]
+    },
+    {
+      "id": "skip_breakfast_athlete",
+      "ok": false,
+      "elapsed": 225,
+      "jobId": "bee597a3-f19f-4ce5-a215-e52afee7983d",
+      "calories": 2682,
+      "includeDessert": true,
+      "mealsPerDay": 4,
+      "h5Slots": "monday:181, tuesday:162, wednesday:189, thursday:169, friday:189, saturday:189, sunday:189",
+      "issueCount": 2,
+      "issues": [
+        "tuesday H5 slot: 162 kcal > 200",
+        "thursday H5 slot: 169 kcal > 200"
+      ],
+      "scorecard": {
+        "structure": 0,
+        "strategy": 0,
+        "nutrition": 2,
+        "foods": 0,
+        "profile": 0,
+        "other": 0
+      },
+      "warnings": 0
+    },
+    {
+      "id": "diabetes_sweets_craving",
+      "ok": true,
+      "elapsed": 137,
+      "jobId": "dc9a85ae-eb35-461d-bd72-8e99508876aa",
+      "calories": 1436,
+      "includeDessert": false,
+      "mealsPerDay": 4,
+      "h5Slots": "none",
+      "issueCount": 0,
+      "issues": [],
+      "scorecard": {
+        "structure": 0,
+        "strategy": 0,
+        "nutrition": 0,
+        "foods": 0,
+        "profile": 0,
+        "other": 0
+      },
+      "warnings": 0
+    },
+    {
+      "id": "emotional_burger_stress",
+      "ok": true,
+      "elapsed": 137,
+      "jobId": "97f96d69-c191-4a2b-bb87-88de05ec4ea6",
+      "calories": 1491,
+      "includeDessert": true,
+      "mealsPerDay": 3,
+      "h5Slots": "none",
+      "issueCount": 0,
+      "issues": [],
+      "scorecard": {
+        "structure": 0,
+        "strategy": 0,
+        "nutrition": 0,
+        "foods": 0,
+        "profile": 0,
+        "other": 0
+      },
+      "warnings": 0
+    },
+    {
+      "id": "lactation_deficit",
+      "ok": true,
+      "elapsed": 145,
+      "jobId": "0b53cd76-d553-49ef-9b99-1e0d0dbf0bad",
+      "calories": 2200,
+      "includeDessert": false,
+      "mealsPerDay": 4,
+      "h5Slots": "none",
+      "issueCount": 0,
+      "issues": [],
+      "scorecard": {
+        "structure": 0,
+        "strategy": 0,
+        "nutrition": 0,
+        "foods": 0,
+        "profile": 0,
+        "other": 0
+      },
+      "warnings": 0
+    },
+    {
+      "id": "vegan_active",
+      "ok": true,
+      "elapsed": 161,
+      "jobId": "6a88ea6c-0eaa-433f-98dd-c56d800ecd78",
+      "calories": 2038,
+      "includeDessert": false,
+      "mealsPerDay": 4,
+      "h5Slots": "none",
+      "issueCount": 0,
+      "issues": [],
+      "scorecard": {
+        "structure": 0,
+        "strategy": 0,
+        "nutrition": 0,
+        "foods": 0,
+        "profile": 0,
+        "other": 0
+      },
+      "warnings": 0
+    }
+  ]
+}

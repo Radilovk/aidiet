@@ -20,6 +20,7 @@ import {
   calorieTolerance,
   nutritionFromGrams,
   SCALE_FACTOR_MAX,
+  mealWeightGramsFromDescription,
 } from './food-nutrition.js';
 
 const results = [];
@@ -174,6 +175,19 @@ console.log('\n=== 12. Пропорционален trim при >800g (athlete l
   const weightMatch = String(meal.weight).match(/(\d+)/);
   const weightGrams = weightMatch ? parseInt(weightMatch[1], 10) : 0;
   check('тежестта е ≤800g след proportional trim', weightGrams > 0 && weightGrams <= 800, `${weightGrams}g`);
+}
+
+console.log('\n=== 13. mealWeightGramsFromDescription: description е източник на истина ===');
+{
+  const meal = {
+    type: 'Хранене 2',
+    description: '• Пилешки гърди 300g\n• Ориз 300g',
+    weight: '820г',
+    dessert: { weight: '30г' },
+  };
+  const fromDesc = mealWeightGramsFromDescription(meal);
+  check('сумира грамажи от description + dessert', fromDesc === 630, `${fromDesc}g`);
+  check('не ползва остарял meal.weight', fromDesc < 800);
 }
 
 const passed = results.filter(Boolean).length;

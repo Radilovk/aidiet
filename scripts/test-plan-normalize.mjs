@@ -134,6 +134,20 @@ check('severityLabelForValue(60)=Risky', severityLabelForValue(60) === 'Risky');
 
 {
   const analysis = {
+    keyProblems: [
+      { title: 'A', severity: 'Risky', severityValue: 70 },
+      { title: 'B', severity: 'Borderline', severityValue: 50 },
+      { title: 'C', severity: 'Normal', severityValue: 30 },
+    ],
+    hinderingFactors: [{ factor: 'D', severity: 3, description: 'factor D' }],
+  };
+  analysis.keyProblems = analysis.keyProblems.filter(p => p.severity !== 'Normal');
+  normalizeAnalysisOutput(analysis);
+  check('Analysis: after Normal filter pads to ≥3', analysis.keyProblems.length >= 3, `${analysis.keyProblems.length}`);
+}
+
+{
+  const analysis = {
     keyProblems: [{ title: 'Стрес', severity: 'Risky', severityValue: 70 }],
     currentHealthStatus: { score: 62, description: 'Много лошо здравословно състояние с критични проблеми.' },
   };
