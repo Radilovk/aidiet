@@ -6988,6 +6988,45 @@ async function handleImportExerciseCatalog(request, env) {
     index: indexInfo
   });
 }
+async function handleBulkSaveExerciseCatalog(request, env) {
+  if (!checkAdminSecret(request, env)) return errorResponse("\u041D\u0435\u043E\u0442\u043E\u0440\u0438\u0437\u0438\u0440\u0430\u043D \u0434\u043E\u0441\u0442\u044A\u043F", 401, "unauthorized");
+  if (!env.FITNESS_KV) return errorResponse("KV \u043D\u0435 \u0435 \u043A\u043E\u043D\u0444\u0438\u0433\u0443\u0440\u0438\u0440\u0430\u043D\u043E", 500, "no_kv");
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return errorResponse("\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON", 400);
+  }
+  const items = Array.isArray(body?.items) ? body.items : [];
+  if (!items.length) return errorResponse("\u041D\u044F\u043C\u0430 \u043F\u0440\u043E\u043C\u0435\u043D\u0438 \u0437\u0430 \u0437\u0430\u043F\u0438\u0441", 400, "empty");
+  const ctx = await loadExerciseCatalogContext(env);
+  let kvMeta = await loadKvExerciseMetadata(env);
+  let kvTr = await loadKvExerciseTranslations(env);
+  let updated = 0;
+  for (const item2 of items) {
+    const id = String(item2?.id ?? "");
+    const raw = ctx.rawById[id];
+    if (!id || !raw) continue;
+    const patch = normalizeCatalogPatch(item2, raw);
+    if (!patch.metadata && !patch.translation) continue;
+    const applied = applyCatalogPatchToStores(id, patch, kvMeta, kvTr);
+    kvMeta = applied.metadata;
+    kvTr = applied.translations;
+    updated += 1;
+  }
+  if (!updated) return errorResponse("\u041D\u044F\u043C\u0430 \u0432\u0430\u043B\u0438\u0434\u043D\u0438 \u043F\u0440\u043E\u043C\u0435\u043D\u0438", 400, "invalid");
+  await saveExerciseMetadata(env, kvMeta);
+  await saveExerciseTranslations(env, kvTr);
+  const mergedMeta = { ...ctx.bundledMeta, ...kvMeta };
+  const mergedTr = { ...ctx.bundledTr || {}, ...kvTr };
+  const indexInfo = await rebuildExerciseIndexInKv(env, mergedTr, mergedMeta);
+  return jsonResponse({
+    success: true,
+    updated,
+    indexRebuilt: Boolean(indexInfo),
+    index: indexInfo
+  });
+}
 var worker_default = {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -7104,6 +7143,9 @@ var worker_default = {
       }
       if (request.method === "POST" && path === "/api/admin/fitplan/exercise-catalog/import") {
         return await handleImportExerciseCatalog(request, env);
+      }
+      if (request.method === "POST" && path === "/api/admin/fitplan/exercise-catalog/save") {
+        return await handleBulkSaveExerciseCatalog(request, env);
       }
       if (request.method === "GET" && path === "/api/admin/fitplan/exercise-catalog") {
         return await handleGetExerciseCatalog(request, env, url);
@@ -20279,7 +20321,7 @@ function isFitnessRoute(pathname, method) {
   if (method === "DELETE" && /^\/api\/admin\/fitplan\/client-programs\/[A-Za-z0-9_-]+$/.test(pathname)) return true;
   if (method === "POST" && /^\/api\/admin\/fitplan\/client-programs\/[A-Za-z0-9_-]+\/delete$/.test(pathname)) return true;
   if (method === "GET" && /^\/api\/admin\/fitplan\/client-programs\/[A-Za-z0-9_-]+\/plan$/.test(pathname)) return true;
-  if (method === "POST" && (pathname === "/api/plan/generate" || pathname === "/api/fitplan/consultation" || pathname === "/api/coach" || pathname === "/api/admin/fitplan/guidelines" || pathname === "/api/admin/fitplan/translate-exercises" || pathname === "/api/admin/fitplan/classify-exercises" || pathname === "/api/admin/fitplan/exercise-catalog/import" || pathname === "/api/admin/fitplan/consult-config" || pathname === "/api/admin/fitplan/client-programs" || /^\/api\/admin\/fitplan\/consultations\/[A-Za-z0-9_-]+\/read$/.test(pathname) || /^\/api\/admin\/fitplan\/client-programs\/[A-Za-z0-9_-]+\/(generate|approve|plan)$/.test(pathname))) return true;
+  if (method === "POST" && (pathname === "/api/plan/generate" || pathname === "/api/fitplan/consultation" || pathname === "/api/coach" || pathname === "/api/admin/fitplan/guidelines" || pathname === "/api/admin/fitplan/translate-exercises" || pathname === "/api/admin/fitplan/classify-exercises" || pathname === "/api/admin/fitplan/exercise-catalog/import" || pathname === "/api/admin/fitplan/exercise-catalog/save" || pathname === "/api/admin/fitplan/consult-config" || pathname === "/api/admin/fitplan/client-programs" || /^\/api\/admin\/fitplan\/consultations\/[A-Za-z0-9_-]+\/read$/.test(pathname) || /^\/api\/admin\/fitplan\/client-programs\/[A-Za-z0-9_-]+\/(generate|approve|plan)$/.test(pathname))) return true;
   if (method === "GET" && /^\/api\/plan\/[A-Za-z0-9-]{8,64}$/.test(pathname)) return true;
   return false;
 }
