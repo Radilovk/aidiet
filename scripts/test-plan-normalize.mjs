@@ -2,6 +2,7 @@
 import {
   rebalanceMealBreakdownSlots,
   normalizeAnalysisOutput,
+  enforceKetoMacroGuardrails,
   severityLabelForValue,
   validateLightMealSlotContent,
   repairMeal3IfInvalid,
@@ -178,6 +179,34 @@ check('severityLabelForValue(60)=Risky', severityLabelForValue(60) === 'Risky');
   };
   normalizeAnalysisOutput(analysis);
   check('Analysis: neutralize negative tone when score ≥50', !/критичн|много лош/i.test(analysis.currentHealthStatus.description));
+}
+
+{
+  const analysis = {
+    keyProblems: [{ title: 'Висок енергиен разход', severity: 'Borderline', severityValue: 52, description: 'd', category: 'Health', impact: 'i' }],
+    currentHealthStatus: { score: 68, description: 'Добро общо здравословно състояние с фокус върху спортното представяне и възстановяването.' },
+  };
+  const profile = {
+    goal: 'Мускулна маса',
+    sportActivity: 'Много висока (ежедневно)',
+    dailyActivityLevel: 'Много високо',
+  };
+  normalizeAnalysisOutput(analysis, profile);
+  check('Analysis: ultra-active pads to ≥3 keyProblems', analysis.keyProblems.length >= 3, `${analysis.keyProblems.length}`);
+}
+
+{
+  const analysis = {
+    Final_Calories: 1800,
+    macroGrams: { protein: 100, carbs: 180, fats: 80 },
+    macroRatios: { protein: 22, carbs: 40, fats: 38 },
+  };
+  enforceKetoMacroGuardrails(analysis, { dietPreference: ['Кето'], weight: '70' });
+  const carbPct = Math.round((analysis.macroGrams.carbs * 4 / analysis.Final_Calories) * 100);
+  check('Keto guardrails: carbs ≤15%', carbPct <= 15, `${carbPct}%`);
+  check('Keto guardrails: macro kcal match', Math.abs(
+    analysis.macroGrams.protein * 4 + analysis.macroGrams.carbs * 4 + analysis.macroGrams.fats * 9 - 1800,
+  ) <= 25);
 }
 
 check('MAX_LATE_SNACK_CALORIES=200', MAX_LATE_SNACK_CALORIES === 200);

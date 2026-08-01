@@ -45,6 +45,7 @@ import {
 import {
   rebalanceMealBreakdownSlots,
   normalizeAnalysisOutput,
+  enforceKetoMacroGuardrails,
   minMealWeightGrams,
   validateLightMealSlotContent,
   validateLateSnackSlotContent,
@@ -5915,7 +5916,7 @@ async function reconcilePlanStructure(plan, userData = null, env = null) {
     normalizeStrategyDessertFlag(plan.strategy, userData);
     normalizeWeeklyScheme(plan.strategy, plan.summary?.dailyCalories || parseFinalCalories(plan.analysis?.Final_Calories), userData);
   }
-  if (plan.analysis) normalizeAnalysisOutput(plan.analysis);
+  if (plan.analysis) normalizeAnalysisOutput(plan.analysis, userData);
   stripDessertsWhenDisabled(plan.weekPlan, plan.strategy);
   injectFixedDesserts(plan.weekPlan);
   if (plan.strategy?.weeklyScheme) {
@@ -7608,6 +7609,8 @@ function enforceCalorieGuardrails(analysis, data, referenceTdee) {
     corrections.push(`Мазнините са повдигнати до минимум ${minFatG}г.`);
   }
 
+  enforceKetoMacroGuardrails(analysis, data);
+
   if (corrections.length > 0) {
     cm.correction = corrections.join(' ');
     console.log('Calorie guardrails applied:', corrections.join(' '));
@@ -8812,7 +8815,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       if (analysis.keyProblems && Array.isArray(analysis.keyProblems)) {
         analysis.keyProblems = analysis.keyProblems.filter(problem => problem.severity !== 'Normal');
       }
-      normalizeAnalysisOutput(analysis);
+      normalizeAnalysisOutput(analysis, data);
       const refActivity = calculateUnifiedActivityScore(data);
       const refBmr = calculateBMR(data);
       const refTdee = calculateTDEE(refBmr, refActivity.combinedScore);
@@ -9086,7 +9089,7 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
           console.log(`Filtered out ${originalCount - filteredCount} Normal severity problems from analysis`);
         }
       }
-      normalizeAnalysisOutput(analysis);
+      normalizeAnalysisOutput(analysis, data);
 
       // Sync + safety guardrails (AI keeps diet-specific judgment; code clamps extremes only)
       const refActivity = calculateUnifiedActivityScore(data);

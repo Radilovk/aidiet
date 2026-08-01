@@ -334,6 +334,118 @@ export function isVeganUser(userData) {
   return dietPreferences(userData).some(p => p.includes('Веган'));
 }
 
+export function isKetoUser(userData) {
+  return dietPreferences(userData).some(p => /кето|нисковъглехидрат/i.test(p));
+}
+
+const MIN_FAT_GRAMS_PER_KG = 0.7;
+
+/** Clamp analysis macros to keto ceiling (≤15% kcal from carbs); keeps protein, raises fats. */
+export function enforceKetoMacroGuardrails(analysis, userData) {
+  if (!analysis || !isKetoUser(userData)) return;
+
+  const fc = Number(analysis.Final_Calories) || Number(analysis.correctedMetabolism?.realTDEE) || 0;
+  if (fc <= 0) return;
+
+  const mg = analysis.macroGrams || (analysis.macroGrams = {});
+  const weight = parseFloat(userData?.weight) || 70;
+  const minFatG = Math.round(weight * MIN_FAT_GRAMS_PER_KG);
+
+  let proteinG = Math.round(Number(mg.protein) || 0);
+  let carbsG = Math.round(Number(mg.carbs) || 0);
+  let fatsG = Math.round(Number(mg.fats) || 0);
+
+  const carbPct = (carbsG * 4 / fc) * 100;
+  if (carbPct <= 15) return;
+
+  const maxCarbG = Math.round(fc * 0.15 / 4);
+  carbsG = Math.min(carbsG, maxCarbG);
+  fatsG = Math.max(minFatG, Math.round((fc - proteinG * 4 - carbsG * 4) / 9));
+
+  const macroKcal = proteinG * 4 + carbsG * 4 + fatsG * 9;
+  if (macroKcal > fc + 5) {
+    carbsG = Math.max(0, Math.round((fc - proteinG * 4 - fatsG * 9) / 4));
+  }
+
+  mg.protein = proteinG;
+  mg.carbs = Math.max(0, carbsG);
+  mg.fats = fatsG;
+
+  const ratios = analysis.macroRatios || (analysis.macroRatios = {});
+  ratios.protein = Math.round(proteinG * 4 / fc * 100);
+  ratios.carbs = Math.round(mg.carbs * 4 / fc * 100);
+  ratios.fats = Math.round(fatsG * 9 / fc * 100);
+  const ratioSum = ratios.protein + ratios.carbs + ratios.fats;
+  if (ratioSum !== 100 && ratioSum > 0) {
+    ratios.fats = Math.max(0, ratios.fats + (100 - ratioSum));
+  }
+}
+
+function profileGoalText(userData) {
+  const g = userData?.goal;
+  if (Array.isArray(g)) return g.join(' ').toLowerCase();
+  return String(g || '').toLowerCase();
+}
+
+function profileActivityText(userData) {
+  return [userData?.sportActivity, userData?.dailyActivityLevel].filter(Boolean).join(' ').toLowerCase();
+}
+
+/** Derive keyProblems from health keyIssues and profile context when AI returns too few. */
+function collectContextKeyProblemCandidates(analysis, userData) {
+  const out = [];
+  const keyIssues = analysis?.currentHealthStatus?.keyIssues;
+  if (Array.isArray(keyIssues)) {
+    for (const issue of keyIssues) {
+      if (typeof issue === 'string' && issue.trim().length > 4) {
+        out.push({ title: issue.trim(), desc: issue.trim() });
+      }
+    }
+  }
+  if (!userData) return out;
+
+  const goal = profileGoalText(userData);
+  const activity = profileActivityText(userData);
+
+  if (goal.includes('мускул')) {
+    out.push({
+      title: 'Недостатъчен протеинов прием за мускулна хипертрофия',
+      desc: 'При цел мускулна маса е необходим адекватен дневен протеин и разпределение около тренировките.',
+      severity: 'Risky',
+      sv: 68,
+    });
+    out.push({
+      title: 'Неравномерно разпределение на калориите',
+      desc: 'Концентрирането на калории в малко хранения ограничава възстановяването и синтеза на протеин.',
+      severity: 'Borderline',
+      sv: 52,
+    });
+  }
+  if (/много висок|ежедневно|интензив/i.test(activity)) {
+    out.push({
+      title: 'Риск от енергиен дефицит при висока натовареност',
+      desc: 'Интензивната физическа активност повишава нуждите от калории и въглехидрати за възстановяване.',
+      severity: 'Risky',
+      sv: 65,
+    });
+    out.push({
+      title: 'Повишена нужда от хидратация и електролити',
+      desc: 'При ежедневни тренировки загубата на течности и минерали може да повлияе на представянето.',
+      severity: 'Borderline',
+      sv: 50,
+    });
+  }
+  if (goal.includes('отслаб')) {
+    out.push({
+      title: 'Риск от загуба на мускулна маса при дефицит',
+      desc: 'Агресивният калориен дефицит без достатъчен протеин може да намали мускулната маса.',
+      severity: 'Borderline',
+      sv: 55,
+    });
+  }
+  return out;
+}
+
 export function userSkipsBreakfast(userData) {
   const habits = userData?.eatingHabits;
   return Array.isArray(habits) && habits.some(h => String(h).includes('Не закусвам'));
@@ -477,7 +589,7 @@ export function validateLightMealSlotContent(meal, dayNum = null) {
 }
 
 /** Clamp severityValue ↔ severity label; fill missing health score. */
-export function normalizeAnalysisOutput(analysis) {
+export function normalizeAnalysisOutput(analysis, userData = null) {
   if (!analysis || typeof analysis !== 'object') return analysis;
 
   if (Array.isArray(analysis.keyProblems)) {
@@ -524,6 +636,18 @@ export function normalizeAnalysisOutput(analysis) {
       if (analysis.keyProblems.length >= 3) break;
       const title = text.length > 72 ? `${text.slice(0, 69)}…` : text;
       pushDerivedKeyProblem(analysis, title, text);
+    }
+  }
+  if (analysis.keyProblems.length < 3) {
+    for (const candidate of collectContextKeyProblemCandidates(analysis, userData)) {
+      if (analysis.keyProblems.length >= 3) break;
+      pushDerivedKeyProblem(
+        analysis,
+        candidate.title,
+        candidate.desc,
+        candidate.severity || 'Borderline',
+        candidate.sv || 55,
+      );
     }
   }
 
