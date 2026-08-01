@@ -2098,21 +2098,6 @@ var STRICT_ASSEMBLY_RETRY_HINT = `
 var GENDER_FIT_RETRY_HINT = `
 
 \u041A\u041E\u0420\u0415\u041A\u0426\u0418\u042F: \u0436\u0435\u043D\u0430 \u2014 \u043F\u043E\u0432\u0435\u0447\u0435 glute, \u043F\u043E-\u043C\u0430\u043B\u043A\u043E bench/press/curl. JSON \u0441\u0430\u043C\u043E.`;
-var CONSTRAINT_RETRY_HINT = `
-
-\u041A\u041E\u0420\u0415\u041A\u0426\u0418\u042F: \u0441\u043F\u0430\u0437\u0438 <constraints> hard-veto \u2014 \u043F\u0440\u0435\u043C\u0430\u0445\u043D\u0438 \u0437\u0430\u0431\u0440\u0430\u043D\u0435\u043D\u0438\u0442\u0435 \u0434\u0432\u0438\u0436\u0435\u043D\u0438\u044F (\u0438\u043C\u043F\u043B\u0430\u043D\u0442\u0438/\u0433\u044A\u0440\u0434\u0438, avoid). JSON \u0441\u0430\u043C\u043E.`;
-var EQUIPMENT_RETRY_HINT = `
-
-\u041A\u041E\u0420\u0415\u041A\u0426\u0418\u042F: equipmentHint \u0441\u0430\u043C\u043E \u043E\u0442 <equipment>; canonicalName \u043E\u0442 <exercise_catalog> \u0441 \u043F\u043E\u0437\u0432\u043E\u043B\u0435\u043D\u043E \u043E\u0431\u043E\u0440\u0443\u0434\u0432\u0430\u043D\u0435. JSON \u0441\u0430\u043C\u043E.`;
-var SESSION_STRUCTURE_RETRY_HINT = `
-
-\u041A\u041E\u0420\u0415\u041A\u0426\u0418\u042F: warmup+cooldown \u043F\u043E 3 \u0441\u0442\u044A\u043F\u043A\u0438; mobility \u0431\u0435\u0437 \u0442\u0435\u0436\u043A\u0438 compound; \u043E\u0431\u043E\u0441\u043D\u043E\u0432\u0430\u0439 focus. JSON \u0441\u0430\u043C\u043E.`;
-var DIFF_RETRY_HINT = `
-
-\u041A\u041E\u0420\u0415\u041A\u0426\u0418\u042F: \u0441\u0430\u043C\u043E \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F \u0441 d\u2264maxDiff \u043E\u0442 program_spec; canonicalName \u043E\u0442 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430. JSON \u0441\u0430\u043C\u043E.`;
-var DSL_RETRY_HINT = `
-
-\u041A\u041E\u0420\u0415\u041A\u0426\u0418\u042F: \u0441\u043F\u0430\u0437\u0438 <dsl_spec> \u2014 week plan, day.type, session budget, squat\u22A5hinge \u0432 \u0441\u0438\u043B\u043E\u0432 \u0434\u0435\u043D. JSON \u0441\u0430\u043C\u043E.`;
 var COMPACT_PLAN_RETRY_HINT = `
 
 \u041A\u041E\u041C\u041F\u0410\u041A\u0422\u041D\u041E: \u043C\u0430\u043A\u0441. 4 \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F/\u0434\u0435\u043D; notes\u226460 \u0437\u043D\u0430\u043A\u0430. \u0421\u0430\u043C\u043E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON.`;
@@ -5091,16 +5076,6 @@ function auditPlan(plan, {
   }
   return { ok: issues.length === 0, issues };
 }
-function auditRetryHint(issues = []) {
-  const joined = issues.join(" ");
-  if (/squat|hinge|DSL|dsl_spec|week plan/i.test(joined)) return DSL_RETRY_HINT;
-  if (/d\d.*> max|maxDiff|d≤/i.test(joined)) return DIFF_RETRY_HINT;
-  if (/dayFocus|warmup|cooldown|session_principles|основен mobility/i.test(joined)) return SESSION_STRUCTURE_RETRY_HINT;
-  if (/имплант|забранено|гърди/i.test(joined)) return CONSTRAINT_RETRY_HINT;
-  if (/оборудване/i.test(joined)) return EQUIPMENT_RETRY_HINT;
-  if (/дупе|мъжки|bench|press/i.test(joined)) return GENDER_FIT_RETRY_HINT;
-  return CONSTRAINT_RETRY_HINT;
-}
 function preparePlanGeneration(source, adminConfig, helpers) {
   function buildFromAnswers(answers, extra = {}) {
     const profileText = answers?.gender ? helpers.buildProfileSummary(answers) : "";
@@ -5909,14 +5884,11 @@ ${catalogBlock}` : userPrompt;
   let rawText;
   const maxAttempts = 3;
   let lastFailure = "parse";
-  let lastAuditIssues = [];
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     let user = baseUser;
     if (attempt > 0) {
       if (strictAssembly) {
         user += STRICT_ASSEMBLY_RETRY_HINT;
-      } else if (lastFailure === "audit") {
-        user += auditRetryHint(lastAuditIssues);
       } else if (hasScheme) {
         user += COMPACT_PLAN_RETRY_HINT;
       } else if (lastFailure === "gender") {
@@ -5948,11 +5920,8 @@ ${catalogBlock}` : userPrompt;
           exerciseProfile,
           exerciseIndex: index2
         });
-        if (!planAudit.ok && attempt < maxAttempts - 1) {
-          lastFailure = "audit";
-          lastAuditIssues = planAudit.issues;
-          console.warn("Plan audit failed, retry:", planAudit.issues.join("; "));
-          continue;
+        if (!planAudit.ok) {
+          console.warn("Plan audit issues (accepted):", planAudit.issues.join("; "));
         }
       }
       break;
@@ -6001,7 +5970,7 @@ async function handleGeneratePlan(request, env, ctx) {
   const answers = body.answers;
   if (!answers || typeof answers !== "object") return errorResponse("\u041B\u0438\u043F\u0441\u0432\u0430\u0442 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438 \u043E\u0442 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430", 400);
   if (!answers.gender || !answers.age) return errorResponse("\u041D\u0435\u043F\u044A\u043B\u043D\u0438 \u043E\u0441\u043D\u043E\u0432\u043D\u0438 \u0434\u0430\u043D\u043D\u0438", 400);
-  const genLimit = Number(env.GEN_DAILY_LIMIT) || 3;
+  const genLimit = Number(env.GEN_DAILY_LIMIT) || 12;
   const rl = await checkDailyLimit(env, "gen", clientIp(request), genLimit);
   if (!rl.allowed) {
     return errorResponse(`\u0414\u043E\u0441\u0442\u0438\u0433\u043D\u0430\u0442 \u0435 \u0434\u043D\u0435\u0432\u043D\u0438\u044F\u0442 \u043B\u0438\u043C\u0438\u0442 \u043E\u0442 ${genLimit} \u0433\u0435\u043D\u0435\u0440\u0430\u0446\u0438\u0438. \u041E\u043F\u0438\u0442\u0430\u0439 \u043E\u0442\u043D\u043E\u0432\u043E \u0443\u0442\u0440\u0435.`, 429, "rate_limited");

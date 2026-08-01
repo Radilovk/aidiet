@@ -42,7 +42,7 @@
  *   OPENAI_MODEL          — по избор (default gpt-4o-mini)
  *   EXERCISE_DATASET_URL  — по избор, override на URL на базата
  *   MEDIA_BASE_URL        — по избор, override на CDN базата за медия
- *   GEN_DAILY_LIMIT       — по избор (default 3 генерации/ден/IP)
+ *   GEN_DAILY_LIMIT       — по избор (default 12 генерации/ден/IP)
  *   CHAT_DAILY_LIMIT      — по избор (default 30 съобщения/ден/план)
  */
 
@@ -987,14 +987,11 @@ async function executePlanGeneration(env, ctx, {
   let rawText;
   const maxAttempts = 3;
   let lastFailure = 'parse';
-  let lastAuditIssues = [];
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     let user = baseUser;
     if (attempt > 0) {
       if (strictAssembly) {
         user += STRICT_ASSEMBLY_RETRY_HINT;
-      } else if (lastFailure === 'audit') {
-        user += auditRetryHint(lastAuditIssues);
       } else if (hasScheme) {
         user += COMPACT_PLAN_RETRY_HINT;
       } else if (lastFailure === 'gender') {
@@ -1026,11 +1023,8 @@ async function executePlanGeneration(env, ctx, {
           exerciseProfile,
           exerciseIndex: index,
         });
-        if (!planAudit.ok && attempt < maxAttempts - 1) {
-          lastFailure = 'audit';
-          lastAuditIssues = planAudit.issues;
-          console.warn('Plan audit failed, retry:', planAudit.issues.join('; '));
-          continue;
+        if (!planAudit.ok) {
+          console.warn('Plan audit issues (accepted):', planAudit.issues.join('; '));
         }
       }
       break;
@@ -1079,7 +1073,7 @@ async function handleGeneratePlan(request, env, ctx) {
   if (!answers || typeof answers !== 'object') return errorResponse('Липсват отговори от въпросника', 400);
   if (!answers.gender || !answers.age) return errorResponse('Непълни основни данни', 400);
 
-  const genLimit = Number(env.GEN_DAILY_LIMIT) || 3;
+  const genLimit = Number(env.GEN_DAILY_LIMIT) || 12;
   const rl = await checkDailyLimit(env, 'gen', clientIp(request), genLimit);
   if (!rl.allowed) {
     return errorResponse(`Достигнат е дневният лимит от ${genLimit} генерации. Опитай отново утре.`, 429, 'rate_limited');
