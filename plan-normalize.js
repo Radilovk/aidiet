@@ -65,6 +65,7 @@ export const MEAL3_SNACK_FORBIDDEN = [
   'пилешк', 'говежд', 'свинск', 'риба', 'треска', 'сьомга', 'скумри', 'тон',
   'ориз', 'хляб', 'паста', 'картоф', 'макарон', 'омлет', 'яхни', 'хумус',
   'месо', 'филе', 'бутче', 'кайма',
+  'мед', 'захар', 'сироп', 'конфитюр', 'мелас',
 ];
 
 export function isBudgetMealSlot(type) {
@@ -339,6 +340,121 @@ export function isKetoUser(userData) {
 }
 
 const MIN_FAT_GRAMS_PER_KG = 0.7;
+export const KETO_MAX_CARB_RATIO = 0.15;
+
+/** Strict keto carb ceiling — floor grams so ratio stays below 15% after rounding. */
+export function maxKetoCarbGrams(dailyKcal) {
+  const kcal = Number(dailyKcal) || 0;
+  if (kcal <= 0) return 0;
+  return Math.floor(kcal * KETO_MAX_CARB_RATIO / 4);
+}
+
+export function isKetoCarbCompliant(dailyKcal, carbGrams) {
+  const kcal = Number(dailyKcal) || 0;
+  const carbs = Number(carbGrams) || 0;
+  return kcal <= 0 || carbs * 4 <= kcal * KETO_MAX_CARB_RATIO;
+}
+
+function clampKetoMacros(dailyKcal, proteinG, carbsG, fatsG, minFatG) {
+  const kcal = Number(dailyKcal) || 0;
+  if (kcal <= 0) {
+    return {
+      protein: Math.round(Number(proteinG) || 0),
+      carbs: Math.round(Number(carbsG) || 0),
+      fats: Math.round(Number(fatsG) || 0),
+    };
+  }
+
+  let protein = Math.round(Number(proteinG) || 0);
+  let carbs = Math.round(Number(carbsG) || 0);
+  let fats = Math.round(Number(fatsG) || 0);
+  const maxCarbs = maxKetoCarbGrams(kcal);
+
+  if (isKetoCarbCompliant(kcal, carbs) && fats >= minFatG) {
+    const macroKcal = protein * 4 + carbs * 4 + fats * 9;
+    if (Math.abs(macroKcal - kcal) <= 25) return { protein, carbs, fats };
+  }
+
+  if (carbs > maxCarbs) carbs = maxCarbs;
+  fats = Math.max(minFatG, Math.round((kcal - protein * 4 - carbs * 4) / 9));
+  if (protein * 4 + carbs * 4 + fats * 9 > kcal + 5) {
+    carbs = Math.max(0, Math.floor((kcal - protein * 4 - fats * 9) / 4));
+  }
+  return { protein, carbs: Math.max(0, carbs), fats };
+}
+
+function syncMacroRatiosFromGrams(analysis, fc, mg) {
+  const ratios = analysis.macroRatios || (analysis.macroRatios = {});
+  ratios.protein = Math.round(mg.protein * 4 / fc * 100);
+  ratios.carbs = Math.round(mg.carbs * 4 / fc * 100);
+  ratios.fats = Math.round(mg.fats * 9 / fc * 100);
+  const ratioSum = ratios.protein + ratios.carbs + ratios.fats;
+  if (ratioSum !== 100 && ratioSum > 0) {
+    ratios.fats = Math.max(0, ratios.fats + (100 - ratioSum));
+  }
+}
+
+function applyKetoClampToDayScheme(day, minFatG) {
+  const breakdown = day?.mealBreakdown;
+  if (!breakdown?.length) return false;
+
+  const daily = breakdown.reduce((s, m) => s + (Number(m.calories) || 0), 0) || Number(day.calories) || 0;
+  if (daily <= 0) return false;
+
+  const sumProtein = breakdown.reduce((s, m) => s + (Number(m.protein) || 0), 0);
+  const sumCarbs = breakdown.reduce((s, m) => s + (Number(m.carbs) || 0), 0);
+  const sumFats = breakdown.reduce((s, m) => s + (Number(m.fats) || 0), 0);
+  const target = clampKetoMacros(daily, sumProtein, sumCarbs, sumFats, minFatG);
+
+  if (target.carbs === sumCarbs && target.fats === sumFats && isKetoCarbCompliant(daily, sumCarbs)) {
+    return false;
+  }
+
+  const carbScale = sumCarbs > 0 ? target.carbs / sumCarbs : 0;
+  let allocatedCarbs = 0;
+  for (let i = 0; i < breakdown.length; i++) {
+    const slot = breakdown[i];
+    if (i === breakdown.length - 1) {
+      slot.carbs = Math.max(0, target.carbs - allocatedCarbs);
+    } else {
+      slot.carbs = Math.round((Number(slot.carbs) || 0) * carbScale);
+      allocatedCarbs += slot.carbs;
+    }
+  }
+
+  const fatDelta = target.fats - sumFats;
+  if (fatDelta !== 0) {
+    const recipients = breakdown.filter(m =>
+      m.type === 'Хранене 2' || m.type === 'Хранене 4'
+      || ((Number(m.fats) || 0) > 0 && m.type !== 'Хранене 5'),
+    );
+    const pool = recipients.length ? recipients : breakdown.filter(m => m.type !== 'Хранене 5');
+    const fatBase = pool.reduce((s, m) => s + (Number(m.fats) || 0), 0) || pool.length || 1;
+    let allocatedFat = 0;
+    for (let i = 0; i < pool.length; i++) {
+      const slot = pool[i];
+      if (i === pool.length - 1) {
+        slot.fats = Math.max(0, (Number(slot.fats) || 0) + fatDelta - allocatedFat);
+      } else {
+        const add = Math.round(fatDelta * ((Number(slot.fats) || 0) / fatBase || 1 / pool.length));
+        slot.fats = Math.round((Number(slot.fats) || 0) + add);
+        allocatedFat += add;
+      }
+    }
+  }
+
+  for (const slot of breakdown) {
+    slot.calories = Math.round(
+      (Number(slot.protein) || 0) * 4 + (Number(slot.carbs) || 0) * 4 + (Number(slot.fats) || 0) * 9,
+    );
+  }
+
+  day.calories = breakdown.reduce((s, m) => s + (Number(m.calories) || 0), 0);
+  day.protein = breakdown.reduce((s, m) => s + (Number(m.protein) || 0), 0);
+  day.carbs = breakdown.reduce((s, m) => s + (Number(m.carbs) || 0), 0);
+  day.fats = breakdown.reduce((s, m) => s + (Number(m.fats) || 0), 0);
+  return true;
+}
 
 /** Clamp analysis macros to keto ceiling (≤15% kcal from carbs); keeps protein, raises fats. */
 export function enforceKetoMacroGuardrails(analysis, userData) {
@@ -350,34 +466,21 @@ export function enforceKetoMacroGuardrails(analysis, userData) {
   const mg = analysis.macroGrams || (analysis.macroGrams = {});
   const weight = parseFloat(userData?.weight) || 70;
   const minFatG = Math.round(weight * MIN_FAT_GRAMS_PER_KG);
+  const clamped = clampKetoMacros(fc, mg.protein, mg.carbs, mg.fats, minFatG);
 
-  let proteinG = Math.round(Number(mg.protein) || 0);
-  let carbsG = Math.round(Number(mg.carbs) || 0);
-  let fatsG = Math.round(Number(mg.fats) || 0);
+  mg.protein = clamped.protein;
+  mg.carbs = clamped.carbs;
+  mg.fats = clamped.fats;
+  syncMacroRatiosFromGrams(analysis, fc, mg);
+}
 
-  const carbPct = (carbsG * 4 / fc) * 100;
-  if (carbPct <= 15) return;
-
-  const maxCarbG = Math.round(fc * 0.15 / 4);
-  carbsG = Math.min(carbsG, maxCarbG);
-  fatsG = Math.max(minFatG, Math.round((fc - proteinG * 4 - carbsG * 4) / 9));
-
-  const macroKcal = proteinG * 4 + carbsG * 4 + fatsG * 9;
-  if (macroKcal > fc + 5) {
-    carbsG = Math.max(0, Math.round((fc - proteinG * 4 - fatsG * 9) / 4));
-  }
-
-  mg.protein = proteinG;
-  mg.carbs = Math.max(0, carbsG);
-  mg.fats = fatsG;
-
-  const ratios = analysis.macroRatios || (analysis.macroRatios = {});
-  ratios.protein = Math.round(proteinG * 4 / fc * 100);
-  ratios.carbs = Math.round(mg.carbs * 4 / fc * 100);
-  ratios.fats = Math.round(fatsG * 9 / fc * 100);
-  const ratioSum = ratios.protein + ratios.carbs + ratios.fats;
-  if (ratioSum !== 100 && ratioSum > 0) {
-    ratios.fats = Math.max(0, ratios.fats + (100 - ratioSum));
+/** Align strategy weeklyScheme day macros with keto carb ceiling. */
+export function enforceKetoStrategyGuardrails(strategy, userData) {
+  if (!strategy?.weeklyScheme || !isKetoUser(userData)) return;
+  const weight = parseFloat(userData?.weight) || 70;
+  const minFatG = Math.round(weight * MIN_FAT_GRAMS_PER_KG);
+  for (const day of Object.values(strategy.weeklyScheme)) {
+    applyKetoClampToDayScheme(day, minFatG);
   }
 }
 

@@ -7960,7 +7960,12 @@ var MEAL3_SNACK_FORBIDDEN = [
   "\u043C\u0435\u0441\u043E",
   "\u0444\u0438\u043B\u0435",
   "\u0431\u0443\u0442\u0447\u0435",
-  "\u043A\u0430\u0439\u043C\u0430"
+  "\u043A\u0430\u0439\u043C\u0430",
+  "\u043C\u0435\u0434",
+  "\u0437\u0430\u0445\u0430\u0440",
+  "\u0441\u0438\u0440\u043E\u043F",
+  "\u043A\u043E\u043D\u0444\u0438\u0442\u044E\u0440",
+  "\u043C\u0435\u043B\u0430\u0441"
 ];
 function isLightMealSlot(type) {
   return LIGHT_MEAL_TYPES.has(type);
@@ -8181,6 +8186,104 @@ function isKetoUser(userData) {
   return dietPreferences(userData).some((p) => /кето|нисковъглехидрат/i.test(p));
 }
 var MIN_FAT_GRAMS_PER_KG = 0.7;
+var KETO_MAX_CARB_RATIO = 0.15;
+function maxKetoCarbGrams(dailyKcal) {
+  const kcal = Number(dailyKcal) || 0;
+  if (kcal <= 0) return 0;
+  return Math.floor(kcal * KETO_MAX_CARB_RATIO / 4);
+}
+function isKetoCarbCompliant(dailyKcal, carbGrams) {
+  const kcal = Number(dailyKcal) || 0;
+  const carbs = Number(carbGrams) || 0;
+  return kcal <= 0 || carbs * 4 <= kcal * KETO_MAX_CARB_RATIO;
+}
+function clampKetoMacros(dailyKcal, proteinG, carbsG, fatsG, minFatG) {
+  const kcal = Number(dailyKcal) || 0;
+  if (kcal <= 0) {
+    return {
+      protein: Math.round(Number(proteinG) || 0),
+      carbs: Math.round(Number(carbsG) || 0),
+      fats: Math.round(Number(fatsG) || 0)
+    };
+  }
+  let protein = Math.round(Number(proteinG) || 0);
+  let carbs = Math.round(Number(carbsG) || 0);
+  let fats = Math.round(Number(fatsG) || 0);
+  const maxCarbs = maxKetoCarbGrams(kcal);
+  if (isKetoCarbCompliant(kcal, carbs) && fats >= minFatG) {
+    const macroKcal = protein * 4 + carbs * 4 + fats * 9;
+    if (Math.abs(macroKcal - kcal) <= 25) return { protein, carbs, fats };
+  }
+  if (carbs > maxCarbs) carbs = maxCarbs;
+  fats = Math.max(minFatG, Math.round((kcal - protein * 4 - carbs * 4) / 9));
+  if (protein * 4 + carbs * 4 + fats * 9 > kcal + 5) {
+    carbs = Math.max(0, Math.floor((kcal - protein * 4 - fats * 9) / 4));
+  }
+  return { protein, carbs: Math.max(0, carbs), fats };
+}
+function syncMacroRatiosFromGrams(analysis, fc, mg) {
+  const ratios = analysis.macroRatios || (analysis.macroRatios = {});
+  ratios.protein = Math.round(mg.protein * 4 / fc * 100);
+  ratios.carbs = Math.round(mg.carbs * 4 / fc * 100);
+  ratios.fats = Math.round(mg.fats * 9 / fc * 100);
+  const ratioSum = ratios.protein + ratios.carbs + ratios.fats;
+  if (ratioSum !== 100 && ratioSum > 0) {
+    ratios.fats = Math.max(0, ratios.fats + (100 - ratioSum));
+  }
+}
+function applyKetoClampToDayScheme(day, minFatG) {
+  const breakdown = day?.mealBreakdown;
+  if (!breakdown?.length) return false;
+  const daily = breakdown.reduce((s, m) => s + (Number(m.calories) || 0), 0) || Number(day.calories) || 0;
+  if (daily <= 0) return false;
+  const sumProtein = breakdown.reduce((s, m) => s + (Number(m.protein) || 0), 0);
+  const sumCarbs = breakdown.reduce((s, m) => s + (Number(m.carbs) || 0), 0);
+  const sumFats = breakdown.reduce((s, m) => s + (Number(m.fats) || 0), 0);
+  const target = clampKetoMacros(daily, sumProtein, sumCarbs, sumFats, minFatG);
+  if (target.carbs === sumCarbs && target.fats === sumFats && isKetoCarbCompliant(daily, sumCarbs)) {
+    return false;
+  }
+  const carbScale = sumCarbs > 0 ? target.carbs / sumCarbs : 0;
+  let allocatedCarbs = 0;
+  for (let i = 0; i < breakdown.length; i++) {
+    const slot = breakdown[i];
+    if (i === breakdown.length - 1) {
+      slot.carbs = Math.max(0, target.carbs - allocatedCarbs);
+    } else {
+      slot.carbs = Math.round((Number(slot.carbs) || 0) * carbScale);
+      allocatedCarbs += slot.carbs;
+    }
+  }
+  const fatDelta = target.fats - sumFats;
+  if (fatDelta !== 0) {
+    const recipients = breakdown.filter(
+      (m) => m.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" || m.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4" || (Number(m.fats) || 0) > 0 && m.type !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5"
+    );
+    const pool = recipients.length ? recipients : breakdown.filter((m) => m.type !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5");
+    const fatBase = pool.reduce((s, m) => s + (Number(m.fats) || 0), 0) || pool.length || 1;
+    let allocatedFat = 0;
+    for (let i = 0; i < pool.length; i++) {
+      const slot = pool[i];
+      if (i === pool.length - 1) {
+        slot.fats = Math.max(0, (Number(slot.fats) || 0) + fatDelta - allocatedFat);
+      } else {
+        const add = Math.round(fatDelta * ((Number(slot.fats) || 0) / fatBase || 1 / pool.length));
+        slot.fats = Math.round((Number(slot.fats) || 0) + add);
+        allocatedFat += add;
+      }
+    }
+  }
+  for (const slot of breakdown) {
+    slot.calories = Math.round(
+      (Number(slot.protein) || 0) * 4 + (Number(slot.carbs) || 0) * 4 + (Number(slot.fats) || 0) * 9
+    );
+  }
+  day.calories = breakdown.reduce((s, m) => s + (Number(m.calories) || 0), 0);
+  day.protein = breakdown.reduce((s, m) => s + (Number(m.protein) || 0), 0);
+  day.carbs = breakdown.reduce((s, m) => s + (Number(m.carbs) || 0), 0);
+  day.fats = breakdown.reduce((s, m) => s + (Number(m.fats) || 0), 0);
+  return true;
+}
 function enforceKetoMacroGuardrails(analysis, userData) {
   if (!analysis || !isKetoUser(userData)) return;
   const fc = Number(analysis.Final_Calories) || Number(analysis.correctedMetabolism?.realTDEE) || 0;
@@ -8188,28 +8291,18 @@ function enforceKetoMacroGuardrails(analysis, userData) {
   const mg = analysis.macroGrams || (analysis.macroGrams = {});
   const weight = parseFloat(userData?.weight) || 70;
   const minFatG = Math.round(weight * MIN_FAT_GRAMS_PER_KG);
-  let proteinG = Math.round(Number(mg.protein) || 0);
-  let carbsG = Math.round(Number(mg.carbs) || 0);
-  let fatsG = Math.round(Number(mg.fats) || 0);
-  const carbPct = carbsG * 4 / fc * 100;
-  if (carbPct <= 15) return;
-  const maxCarbG = Math.round(fc * 0.15 / 4);
-  carbsG = Math.min(carbsG, maxCarbG);
-  fatsG = Math.max(minFatG, Math.round((fc - proteinG * 4 - carbsG * 4) / 9));
-  const macroKcal = proteinG * 4 + carbsG * 4 + fatsG * 9;
-  if (macroKcal > fc + 5) {
-    carbsG = Math.max(0, Math.round((fc - proteinG * 4 - fatsG * 9) / 4));
-  }
-  mg.protein = proteinG;
-  mg.carbs = Math.max(0, carbsG);
-  mg.fats = fatsG;
-  const ratios = analysis.macroRatios || (analysis.macroRatios = {});
-  ratios.protein = Math.round(proteinG * 4 / fc * 100);
-  ratios.carbs = Math.round(mg.carbs * 4 / fc * 100);
-  ratios.fats = Math.round(fatsG * 9 / fc * 100);
-  const ratioSum = ratios.protein + ratios.carbs + ratios.fats;
-  if (ratioSum !== 100 && ratioSum > 0) {
-    ratios.fats = Math.max(0, ratios.fats + (100 - ratioSum));
+  const clamped = clampKetoMacros(fc, mg.protein, mg.carbs, mg.fats, minFatG);
+  mg.protein = clamped.protein;
+  mg.carbs = clamped.carbs;
+  mg.fats = clamped.fats;
+  syncMacroRatiosFromGrams(analysis, fc, mg);
+}
+function enforceKetoStrategyGuardrails(strategy, userData) {
+  if (!strategy?.weeklyScheme || !isKetoUser(userData)) return;
+  const weight = parseFloat(userData?.weight) || 70;
+  const minFatG = Math.round(weight * MIN_FAT_GRAMS_PER_KG);
+  for (const day of Object.values(strategy.weeklyScheme)) {
+    applyKetoClampToDayScheme(day, minFatG);
   }
 }
 function profileGoalText(userData) {
@@ -14671,6 +14764,13 @@ function enforceCalorieGuardrails(analysis, data, referenceTdee) {
       corrections.push("\u0414\u0435\u0444\u0438\u0446\u0438\u0442\u044A\u0442 \u0435 \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D \u0434\u043E \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u0438 25%.");
     }
   }
+  if (isLactation && tdee > 0 && fc > 0) {
+    const lactationFloor = Math.max(minCal + 300, Math.round(tdee * 0.9));
+    if (fc < lactationFloor) {
+      fc = lactationFloor;
+      corrections.push("\u041F\u043E\u0432\u0434\u0438\u0433\u043D\u0430\u0442\u043E \u0434\u043E \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u0435\u043D \u043F\u0440\u0438\u0435\u043C \u043F\u0440\u0438 \u043B\u0430\u043A\u0442\u0430\u0446\u0438\u044F.");
+    }
+  }
   if (fc > 0 && fc < minCal) {
     fc = minCal;
     corrections.push("\u041F\u043E\u0432\u0434\u0438\u0433\u043D\u0430\u0442\u043E \u0434\u043E \u043C\u0438\u043D\u0438\u043C\u0430\u043B\u043D\u0438\u044F \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u0435\u043D \u043F\u0440\u0430\u0433.");
@@ -14801,6 +14901,7 @@ function normalizeWeeklyScheme(strategy, defaultDailyCalories, userData = null) 
     enforceFixedSlotCaps(day, targetCals);
     clampLateSnackInMealBreakdown(day);
   }
+  enforceKetoStrategyGuardrails(strategy, userData);
 }
 function getFreeMealSlotCalories(dayTarget) {
   if (!dayTarget?.mealBreakdown) return 0;

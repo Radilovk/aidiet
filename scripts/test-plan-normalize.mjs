@@ -3,6 +3,9 @@ import {
   rebalanceMealBreakdownSlots,
   normalizeAnalysisOutput,
   enforceKetoMacroGuardrails,
+  enforceKetoStrategyGuardrails,
+  isKetoCarbCompliant,
+  maxKetoCarbGrams,
   severityLabelForValue,
   validateLightMealSlotContent,
   repairMeal3IfInvalid,
@@ -204,9 +207,52 @@ check('severityLabelForValue(60)=Risky', severityLabelForValue(60) === 'Risky');
   enforceKetoMacroGuardrails(analysis, { dietPreference: ['Кето'], weight: '70' });
   const carbPct = Math.round((analysis.macroGrams.carbs * 4 / analysis.Final_Calories) * 100);
   check('Keto guardrails: carbs ≤15%', carbPct <= 15, `${carbPct}%`);
+  check('Keto guardrails: strict ratio', isKetoCarbCompliant(analysis.Final_Calories, analysis.macroGrams.carbs));
   check('Keto guardrails: macro kcal match', Math.abs(
     analysis.macroGrams.protein * 4 + analysis.macroGrams.carbs * 4 + analysis.macroGrams.fats * 9 - 1800,
   ) <= 25);
+}
+
+{
+  const fc = 2096;
+  check('Keto max carbs 2096kcal uses floor', maxKetoCarbGrams(fc) === 78, `${maxKetoCarbGrams(fc)}g`);
+  const analysis = {
+    Final_Calories: fc,
+    macroGrams: { protein: 125, carbs: 79, fats: 134 },
+    macroRatios: { protein: 24, carbs: 15, fats: 61 },
+  };
+  enforceKetoMacroGuardrails(analysis, { dietPreference: ['Кето'], weight: '92' });
+  check('Keto boundary 2096: compliant', isKetoCarbCompliant(fc, analysis.macroGrams.carbs));
+}
+
+{
+  const strategy = {
+    weeklyScheme: {
+      tuesday: {
+        calories: 2096,
+        protein: 130,
+        carbs: 82,
+        fats: 140,
+        mealBreakdown: [
+          { type: 'Хранене 2', calories: 700, protein: 45, carbs: 30, fats: 45 },
+          { type: 'Хранене 3', calories: 250, protein: 10, carbs: 12, fats: 15 },
+          { type: 'Хранене 4', calories: 800, protein: 55, carbs: 28, fats: 50 },
+          { type: 'Хранене 5', calories: 346, protein: 20, carbs: 12, fats: 30 },
+        ],
+      },
+    },
+  };
+  enforceKetoStrategyGuardrails(strategy, { dietPreference: ['Кето'], weight: '92' });
+  const day = strategy.weeklyScheme.tuesday;
+  check('Keto strategy: day carbs compliant', isKetoCarbCompliant(day.calories, day.carbs), `${day.carbs}g`);
+}
+
+{
+  const meal = { type: 'Хранене 3', name: 'Гръцки йогурт с бадеми и мед', description: '• йогурт 150g\n• бадеми 15g\n• мед 10g' };
+  check('H3 rejects honey', validateLightMealSlotContent(meal).length > 0);
+  const repaired = repairMeal3IfInvalid(meal, { dietPreference: [] });
+  check('H3 repair: honey meal replaced', repaired);
+  check('H3 repair: no honey in template', !/мед/.test(meal.description));
 }
 
 check('MAX_LATE_SNACK_CALORIES=200', MAX_LATE_SNACK_CALORIES === 200);
