@@ -47,6 +47,7 @@ import {
   normalizeAnalysisOutput,
   enforceKetoMacroGuardrails,
   enforceKetoStrategyGuardrails,
+  syncSchemeDayMetadata,
   minMealWeightGrams,
   validateLightMealSlotContent,
   validateLateSnackSlotContent,
@@ -7723,8 +7724,6 @@ function normalizeWeeklyScheme(strategy, defaultDailyCalories, userData = null) 
     let sumC = sumField('carbs');
     let sumF = sumField('fats');
 
-    if (!day.meals) day.meals = day.mealBreakdown.length;
-
     if (sumCals > 0 && targetCals > 0 && Math.abs(sumCals - targetCals) > calorieTolerance(targetCals)) {
       const fixedKcal = day.mealBreakdown
         .filter(m => m.type === 'Хранене 5')
@@ -7745,12 +7744,10 @@ function normalizeWeeklyScheme(strategy, defaultDailyCalories, userData = null) 
     }
 
     // mealBreakdown is the contract — day totals always mirror slot sums
-    day.calories = sumField('calories');
-    day.protein = sumField('protein');
-    day.carbs = sumField('carbs');
-    day.fats = sumField('fats');
+    syncSchemeDayMetadata(day);
     enforceFixedSlotCaps(day, targetCals);
     clampLateSnackInMealBreakdown(day);
+    syncSchemeDayMetadata(day);
   }
 
   enforceKetoStrategyGuardrails(strategy, userData);

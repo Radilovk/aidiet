@@ -4,6 +4,7 @@ import {
   normalizeAnalysisOutput,
   enforceKetoMacroGuardrails,
   enforceKetoStrategyGuardrails,
+  syncSchemeDayMetadata,
   isKetoCarbCompliant,
   maxKetoCarbGrams,
   severityLabelForValue,
@@ -245,6 +246,39 @@ check('severityLabelForValue(60)=Risky', severityLabelForValue(60) === 'Risky');
   enforceKetoStrategyGuardrails(strategy, { dietPreference: ['Кето'], weight: '92' });
   const day = strategy.weeklyScheme.tuesday;
   check('Keto strategy: day carbs compliant', isKetoCarbCompliant(day.calories, day.carbs), `${day.carbs}g`);
+}
+
+{
+  const day = {
+    meals: 4,
+    calories: 1650,
+    protein: 100,
+    carbs: 120,
+    fats: 80,
+    mealBreakdown: [
+      { type: 'Свободно хранене', calories: 800, protein: 30, carbs: 60, fats: 40 },
+      { type: 'Хранене 3', calories: 250, protein: 10, carbs: 20, fats: 10 },
+      { type: 'Хранене 4', calories: 600, protein: 60, carbs: 40, fats: 30 },
+    ],
+  };
+  syncSchemeDayMetadata(day);
+  check('syncSchemeDayMetadata: meals matches breakdown', day.meals === 3, `${day.meals}`);
+  check('syncSchemeDayMetadata: totals from slots', day.calories === 1650);
+}
+
+{
+  const breakdown = [
+    { type: 'Хранене 2', calories: 700, protein: 45, carbs: 30, fats: 45 },
+    { type: 'Хранене 3', calories: 250, protein: 10, carbs: 12, fats: 15 },
+    { type: 'Хранене 4', calories: 800, protein: 55, carbs: 28, fats: 50 },
+    { type: 'Хранене 5', calories: 346, protein: 20, carbs: 9, fats: 30 },
+  ];
+  const day = { calories: 2096, mealBreakdown: breakdown };
+  enforceKetoStrategyGuardrails(
+    { weeklyScheme: { monday: day } },
+    { dietPreference: ['Кето'], weight: '92' },
+  );
+  check('Keto reconcile: 79g drift fixed', isKetoCarbCompliant(2096, day.carbs), `${day.carbs}g`);
 }
 
 {
