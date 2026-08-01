@@ -108,7 +108,7 @@ import {
   translationStats,
   translateBatchResilient,
 } from './exercise-translate-batch.js';
-import { normalizeText, tokenize, tokenOverlapScore } from './normalize.js';
+import { normalizeText, tokenize, tokenOverlapScore, exerciseMatchesBodyHint } from './normalize.js';
 import { buildProfileSummary } from './profile-summary.js';
 import {
   GUIDELINE_CHUNKS,
@@ -287,7 +287,7 @@ export function matchExercise(index, {
 
   const queryTokens = tokenize(canonicalName);
   const equipNorm = normalizeText(equipmentHint);
-  const bodyNorm = normalizeText(bodyPart);
+  const bodyHint = normalizeText(bodyPart);
 
   const passesFilters = (entry) =>
     !isGenderSpecificExerciseName(entry?.name)
@@ -306,8 +306,8 @@ export function matchExercise(index, {
     if (equipNorm && entry.equipNorm && (entry.equipNorm.includes(equipNorm) || equipNorm.includes(entry.equipNorm))) {
       score += 0.15;
     }
-    if (bodyNorm) {
-      if (entry.targetNorm === bodyNorm || entry.bodyNorm === bodyNorm) score += 0.1;
+    if (bodyHint) {
+      if (exerciseMatchesBodyHint(bodyPart, entry)) score += 0.1;
       else score -= 0.25;
     }
     scored.push({ entry, score });
@@ -326,17 +326,35 @@ export function matchExercise(index, {
 
   const fallbackPool = index.filter((e) =>
     passesFilters(e)
-    && bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm)
+    && bodyHint && exerciseMatchesBodyHint(bodyPart, e)
     && (!equipNorm || e.equipNorm === equipNorm)
   );
-  const fallback = pickPreferredExercise(fallbackPool, exerciseProfile)
-    || index.find((e) =>
-      passesFilters(e)
-      && bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm)
-    );
+  const withOverlap = fallbackPool.filter((e) => tokenOverlapScore(queryTokens, e.tokens) > 0);
+  const hadStrongNameCandidate = index.some((e) => tokenOverlapScore(queryTokens, e.tokens) >= 0.5);
+  const pool = withOverlap.length
+    ? withOverlap
+    : (hadStrongNameCandidate && !scored.length ? fallbackPool : []);
+  const fallback = pickPreferredExercise(pool, exerciseProfile)
+    || pool.find(Boolean);
+  const broadPool = (hadStrongNameCandidate && !scored.length)
+    ? index.filter((e) => passesFilters(e) && bodyHint && exerciseMatchesBodyHint(bodyPart, e))
+    : [];
+  const broadFallback = pickPreferredExercise(broadPool, exerciseProfile) || broadPool.find(Boolean);
+  const resolvedFallback = fallback || broadFallback;
 
-  if (fallback) return { entry: fallback, score: 0, usedFallback: true };
-  if (bodyNorm) return null;
+  if (resolvedFallback) return { entry: resolvedFallback, score: 0, usedFallback: true };
+  if (bodyHint) {
+    if (scored.length) {
+      const top = scored[0];
+      const nameScore = tokenOverlapScore(queryTokens, top.entry.tokens);
+      const minName = queryTokens.length === 1 ? 0.3 : 0.5;
+      if (nameScore >= minName) {
+        const entry = pickPreferredExercise([top.entry], exerciseProfile) || top.entry;
+        return { entry, score: Math.min(1, Number(nameScore.toFixed(3))), usedFallback: true };
+      }
+    }
+    return null;
+  }
   const weakBest = scored[0]?.entry;
   return weakBest
     ? { entry: pickPreferredExercise([weakBest], exerciseProfile) || weakBest, score: Math.min(1, Number(scored[0].score.toFixed(3))), usedFallback: true }

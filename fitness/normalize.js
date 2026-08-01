@@ -15,6 +15,30 @@ export function tokenize(text) {
   return norm ? norm.split(' ') : [];
 }
 
+/** AI/каталог bodyPart → стойност от exercises-dataset за matchExercise. */
+const BODY_PART_MATCH_ALIASES = {
+  core: 'waist',
+  abs: 'waist',
+  abdominals: 'waist',
+  abdominal: 'waist',
+  obliques: 'waist',
+};
+
+export function normalizeBodyPartForMatch(bodyPart) {
+  const norm = normalizeText(bodyPart);
+  return BODY_PART_MATCH_ALIASES[norm] || norm;
+}
+
+/** Дали bodyPart hint-ът е съвместим с записа (body_part / target от dataset). */
+export function exerciseMatchesBodyHint(bodyPart, entry) {
+  const norm = normalizeBodyPartForMatch(bodyPart);
+  if (!norm || !entry) return false;
+  const parts = new Set([entry.bodyNorm, entry.targetNorm].filter(Boolean));
+  if (parts.has(norm)) return true;
+  if (norm === 'waist' && parts.has('abs')) return true;
+  return false;
+}
+
 /**
  * Token overlap score: брой съвпадащи думи / max(думи в заявката, думи в кандидата).
  */
