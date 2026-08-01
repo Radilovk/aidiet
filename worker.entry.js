@@ -8804,16 +8804,15 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
       
       analysis = parseAIResponse(analysisResponse);
-      normalizeAnalysisOutput(analysis);
       
       if (!analysis || analysis.error) {
         throw new Error(`Регенерацията на анализа се провали: ${analysis?.error || 'Невалиден формат'}`);
       }
       
-      // Filter out "Normal" severity problems
       if (analysis.keyProblems && Array.isArray(analysis.keyProblems)) {
         analysis.keyProblems = analysis.keyProblems.filter(problem => problem.severity !== 'Normal');
       }
+      normalizeAnalysisOutput(analysis);
       const refActivity = calculateUnifiedActivityScore(data);
       const refBmr = calculateBMR(data);
       const refTdee = calculateTDEE(refBmr, refActivity.combinedScore);
@@ -9068,7 +9067,6 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
       console.log(`Step 1 tokens: input=${analysisInputTokens}, output=${analysisOutputTokens}, cumulative=${cumulativeTokens.total}`);
       
       analysis = parseAIResponse(analysisResponse);
-      normalizeAnalysisOutput(analysis);
       
       if (!analysis || analysis.error) {
         const errorMsg = analysis.error || 'Невалиден формат на отговор';
@@ -9077,10 +9075,10 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
         throw new Error(`Анализът не можа да бъде създаден: ${errorMsg}`);
       }
       
-      // REQUIREMENT 2: Filter out "Normal" severity problems from analysis
+      // Filter Normal severity before normalize (padding needs final keyProblems count).
       if (analysis.keyProblems && Array.isArray(analysis.keyProblems)) {
         const originalCount = analysis.keyProblems.length;
-        analysis.keyProblems = analysis.keyProblems.filter(problem => 
+        analysis.keyProblems = analysis.keyProblems.filter(problem =>
           problem.severity !== 'Normal'
         );
         const filteredCount = analysis.keyProblems.length;
@@ -9088,6 +9086,7 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
           console.log(`Filtered out ${originalCount - filteredCount} Normal severity problems from analysis`);
         }
       }
+      normalizeAnalysisOutput(analysis);
 
       // Sync + safety guardrails (AI keeps diet-specific judgment; code clamps extremes only)
       const refActivity = calculateUnifiedActivityScore(data);

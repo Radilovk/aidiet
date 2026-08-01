@@ -15489,13 +15489,13 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       cumulativeTokens.output += analysisOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
       analysis = parseAIResponse(analysisResponse);
-      normalizeAnalysisOutput(analysis);
       if (!analysis || analysis.error) {
         throw new Error(`\u0420\u0435\u0433\u0435\u043D\u0435\u0440\u0430\u0446\u0438\u044F\u0442\u0430 \u043D\u0430 \u0430\u043D\u0430\u043B\u0438\u0437\u0430 \u0441\u0435 \u043F\u0440\u043E\u0432\u0430\u043B\u0438: ${analysis?.error || "\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u0435\u043D \u0444\u043E\u0440\u043C\u0430\u0442"}`);
       }
       if (analysis.keyProblems && Array.isArray(analysis.keyProblems)) {
         analysis.keyProblems = analysis.keyProblems.filter((problem) => problem.severity !== "Normal");
       }
+      normalizeAnalysisOutput(analysis);
       const refActivity = calculateUnifiedActivityScore(data);
       const refBmr = calculateBMR(data);
       const refTdee = calculateTDEE(refBmr, refActivity.combinedScore);
@@ -15696,7 +15696,6 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
       console.log(`Step 1 tokens: input=${analysisInputTokens}, output=${analysisOutputTokens}, cumulative=${cumulativeTokens.total}`);
       analysis = parseAIResponse(analysisResponse);
-      normalizeAnalysisOutput(analysis);
       if (!analysis || analysis.error) {
         const errorMsg = analysis.error || "\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u0435\u043D \u0444\u043E\u0440\u043C\u0430\u0442 \u043D\u0430 \u043E\u0442\u0433\u043E\u0432\u043E\u0440";
         console.error("Analysis parsing failed:", errorMsg);
@@ -15713,6 +15712,7 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
           console.log(`Filtered out ${originalCount - filteredCount} Normal severity problems from analysis`);
         }
       }
+      normalizeAnalysisOutput(analysis);
       const refActivity = calculateUnifiedActivityScore(data);
       const refBmr = calculateBMR(data);
       const refTdee = calculateTDEE(refBmr, refActivity.combinedScore);
