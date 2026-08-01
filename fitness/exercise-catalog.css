@@ -39,6 +39,8 @@
 .ec-table tr { cursor: pointer; }
 .ec-table tr:hover td { background: #fff7f7; }
 .ec-table tr.active td { background: #fef2f2; }
+.ec-table tr.pending td { box-shadow: inset 3px 0 0 #f59e0b; }
+.ec-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .ec-badge { display: inline-block; padding: 2px 7px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; background: #f1f5f9; color: #334155; margin: 1px 2px 1px 0; }
 .ec-badge.warn { background: #fef3c7; color: #92400e; }
 .ec-badge.off { background: #fee2e2; color: #991b1b; }

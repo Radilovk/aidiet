@@ -2235,6 +2235,49 @@ async function handleImportExerciseCatalog(request, env) {
   });
 }
 
+async function handleBulkSaveExerciseCatalog(request, env) {
+  if (!checkAdminSecret(request, env)) return errorResponse('Неоторизиран достъп', 401, 'unauthorized');
+  if (!env.FITNESS_KV) return errorResponse('KV не е конфигурирано', 500, 'no_kv');
+
+  let body;
+  try { body = await request.json(); } catch { return errorResponse('Невалиден JSON', 400); }
+
+  const items = Array.isArray(body?.items) ? body.items : [];
+  if (!items.length) return errorResponse('Няма промени за запис', 400, 'empty');
+
+  const ctx = await loadExerciseCatalogContext(env);
+  let kvMeta = await loadKvExerciseMetadata(env);
+  let kvTr = await loadKvExerciseTranslations(env);
+  let updated = 0;
+
+  for (const item of items) {
+    const id = String(item?.id ?? '');
+    const raw = ctx.rawById[id];
+    if (!id || !raw) continue;
+    const patch = normalizeCatalogPatch(item, raw);
+    if (!patch.metadata && !patch.translation) continue;
+    const applied = applyCatalogPatchToStores(id, patch, kvMeta, kvTr);
+    kvMeta = applied.metadata;
+    kvTr = applied.translations;
+    updated += 1;
+  }
+
+  if (!updated) return errorResponse('Няма валидни промени', 400, 'invalid');
+
+  await saveExerciseMetadata(env, kvMeta);
+  await saveExerciseTranslations(env, kvTr);
+  const mergedMeta = { ...ctx.bundledMeta, ...kvMeta };
+  const mergedTr = { ...(ctx.bundledTr || {}), ...kvTr };
+  const indexInfo = await rebuildExerciseIndexInKv(env, mergedTr, mergedMeta);
+
+  return jsonResponse({
+    success: true,
+    updated,
+    indexRebuilt: Boolean(indexInfo),
+    index: indexInfo,
+  });
+}
+
 // ============================================================================
 // Router
 // ============================================================================
@@ -2357,6 +2400,9 @@ export default {
       }
       if (request.method === 'POST' && path === '/api/admin/fitplan/exercise-catalog/import') {
         return await handleImportExerciseCatalog(request, env);
+      }
+      if (request.method === 'POST' && path === '/api/admin/fitplan/exercise-catalog/save') {
+        return await handleBulkSaveExerciseCatalog(request, env);
       }
       if (request.method === 'GET' && path === '/api/admin/fitplan/exercise-catalog') {
         return await handleGetExerciseCatalog(request, env, url);

@@ -15,6 +15,7 @@
         <p>Редактируема база: BG имена, класификатори (diff/gf/gm), тагове, gear, изключване от AI.</p>
       </div>
       <div class="ec-toolbar">
+        <button type="button" class="ec-btn" id="ecSaveAllBtn" disabled>Запази всички</button>
         <button type="button" class="ec-btn ghost" id="ecExportBtn">Експорт JSON</button>
         <label class="ec-btn ghost" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
           Импорт JSON
@@ -119,7 +120,7 @@
           </div>
         </div>
         <div class="ec-editor-actions">
-          <button type="button" class="ec-btn" id="ecSaveBtn">Запази</button>
+          <button type="button" class="ec-btn ghost" id="ecQueueBtn">Запомни</button>
           <button type="button" class="ec-btn ghost" id="ecCloseBtn">Затвори</button>
         </div>
         <div class="ec-status" id="ecEditorStatus"></div>
@@ -140,6 +141,7 @@
       pages: 1,
       items: [],
       selected: null,
+      pending: new Map(),
     };
 
     function headers() {
@@ -167,13 +169,15 @@
         const flags = (row.flags || []).slice(0, 4).map((f) => badge(f, f === 'excluded' ? 'off' : '')).join('');
         const more = (row.flags || []).length > 4 ? badge(`+${row.flags.length - 4}`, 'warn') : '';
         const active = state.selected?.id === row.id ? 'active' : '';
-        return `<tr class="${active}" data-id="${row.id}">
+        const pending = state.pending.has(row.id) ? ' pending' : '';
+        const pendingMark = state.pending.has(row.id) ? badge('чака запис', 'warn') : '';
+        return `<tr class="${active}${pending}" data-id="${row.id}">
           <td>${row.id}</td>
           <td>${escapeHtml(row.name)}</td>
           <td>${escapeHtml(row.displayName || row.nameBg || row.autoNameBg || '')}</td>
           <td>${row.diff ?? ''}</td>
           <td>${row.gf ?? ''}/${row.gm ?? ''}</td>
-          <td>${flags}${more}${row.excluded ? badge('изключено', 'off') : ''}</td>
+          <td>${flags}${more}${pendingMark}${row.excluded ? badge('изключено', 'off') : ''}</td>
         </tr>`;
       }).join('');
 
@@ -221,6 +225,53 @@
       $('ecMediaEmpty').hidden = true;
     }
 
+    function readEditorPayload() {
+      return {
+        nameBg: $('ecNameBg').value,
+        diff: Number($('ecDiffEdit').value),
+        gf: Number($('ecGf').value),
+        gm: Number($('ecGm').value),
+        flags: $('ecFlags').value,
+        gear: $('ecGear').value,
+        effectiveEquipNorm: $('ecEquipNorm').value,
+        excluded: $('ecExcluded').checked,
+        instructionsBg: $('ecInstructionsBg').value,
+      };
+    }
+
+    function fillEditor(row, pending) {
+      const p = pending || {};
+      $('ecEditorTitle').textContent = row.name;
+      $('ecEditorSub').textContent = `${row.equipment || ''} · ${row.target || ''} · id ${row.id}`;
+      $('ecNameBg').value = p.nameBg !== undefined ? p.nameBg : (row.nameBg || '');
+      $('ecAutoNameHint').textContent = (p.nameBg ?? row.nameBg) ? '' : `Авто: ${row.autoNameBg || row.displayName || ''}`;
+      $('ecDiffEdit').value = p.diff !== undefined ? p.diff : (row.diff ?? 2);
+      $('ecGf').value = p.gf !== undefined ? p.gf : (row.gf ?? 70);
+      $('ecGm').value = p.gm !== undefined ? p.gm : (row.gm ?? 70);
+      $('ecFlags').value = p.flags !== undefined ? p.flags : (row.flags || []).join(', ');
+      $('ecGear').value = p.gear !== undefined ? p.gear : (row.gear || []).join(', ');
+      $('ecEquipNorm').value = p.effectiveEquipNorm !== undefined ? p.effectiveEquipNorm : (row.effectiveEquipNorm || '');
+      $('ecExcluded').checked = p.excluded !== undefined ? Boolean(p.excluded) : Boolean(row.excluded);
+      $('ecInstructionsBg').value = p.instructionsBg !== undefined ? p.instructionsBg : (row.instructionsBg || '');
+      setEditorMedia(row);
+    }
+
+    function queueCurrentEditor() {
+      if (!state.selected?.id) return false;
+      state.pending.set(state.selected.id, readEditorPayload());
+      updatePendingUi();
+      renderTable();
+      setStatus($('ecEditorStatus'), 'Запомнено локално — натисни „Запази всички“ за запис в базата');
+      return true;
+    }
+
+    function updatePendingUi() {
+      const n = state.pending.size;
+      const btn = $('ecSaveAllBtn');
+      btn.textContent = n ? `Запази всички (${n})` : 'Запази всички';
+      btn.disabled = n === 0;
+    }
+
     async function loadList() {
       setStatus($('ecListStatus'), 'Зареждане…');
       const q = new URLSearchParams({
@@ -247,6 +298,7 @@
     }
 
     async function openEditor(id) {
+      if (state.selected?.id && state.selected.id !== id) queueCurrentEditor();
       setStatus($('ecEditorStatus'), 'Зареждане…');
       const res = await fetch(`${WORKER_URL}/api/admin/fitplan/exercise-catalog/${encodeURIComponent(id)}`, { headers: headers() });
       const data = await res.json();
@@ -255,53 +307,37 @@
         return;
       }
       state.selected = data.item;
-      const row = data.item;
-      $('ecEditorTitle').textContent = row.name;
-      $('ecEditorSub').textContent = `${row.equipment || ''} · ${row.target || ''} · id ${row.id}`;
-      $('ecNameBg').value = row.nameBg || '';
-      $('ecAutoNameHint').textContent = row.nameBg ? '' : `Авто: ${row.autoNameBg || row.displayName || ''}`;
-      $('ecDiffEdit').value = row.diff ?? 2;
-      $('ecGf').value = row.gf ?? 70;
-      $('ecGm').value = row.gm ?? 70;
-      $('ecFlags').value = (row.flags || []).join(', ');
-      $('ecGear').value = (row.gear || []).join(', ');
-      $('ecEquipNorm').value = row.effectiveEquipNorm || '';
-      $('ecExcluded').checked = Boolean(row.excluded);
-      $('ecInstructionsBg').value = row.instructionsBg || '';
-      setEditorMedia(row);
+      fillEditor(data.item, state.pending.get(id));
       showEditor(true);
       renderTable();
-      setStatus($('ecEditorStatus'), row.overridden?.metadata || row.overridden?.translation ? 'Има ръчни корекции в KV' : '');
+      const pending = state.pending.has(id);
+      setStatus($('ecEditorStatus'), pending
+        ? 'Има незаписани промени за това упражнение'
+        : (data.item.overridden?.metadata || data.item.overridden?.translation ? 'Има ръчни корекции в KV' : ''));
     }
 
-    async function saveEditor() {
-      if (!state.selected) return;
-      setStatus($('ecEditorStatus'), 'Запис…');
-      const payload = {
-        nameBg: $('ecNameBg').value,
-        diff: Number($('ecDiffEdit').value),
-        gf: Number($('ecGf').value),
-        gm: Number($('ecGm').value),
-        flags: $('ecFlags').value,
-        gear: $('ecGear').value,
-        effectiveEquipNorm: $('ecEquipNorm').value,
-        excluded: $('ecExcluded').checked,
-        instructionsBg: $('ecInstructionsBg').value,
-      };
-      const res = await fetch(`${WORKER_URL}/api/admin/fitplan/exercise-catalog/${encodeURIComponent(state.selected.id)}`, {
-        method: 'PUT',
+    async function saveAllPending() {
+      if (!state.pending.size) return;
+      if (state.selected?.id) queueCurrentEditor();
+      const items = [...state.pending.entries()].map(([id, patch]) => ({ id, ...patch }));
+      setStatus($('ecListStatus'), `Запис на ${items.length} упражнения…`);
+      $('ecSaveAllBtn').disabled = true;
+      const res = await fetch(`${WORKER_URL}/api/admin/fitplan/exercise-catalog/save`, {
+        method: 'POST',
         headers: headers(),
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ items }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        setStatus($('ecEditorStatus'), data.message || data.error || 'Грешка при запис', true);
-        return;
+        updatePendingUi();
+        throw new Error(data.message || data.error || 'Грешка при запис');
       }
-      state.selected = data.item;
-      setStatus($('ecEditorStatus'), 'Запазено' + (data.indexRebuilt ? ' · индексът е обновен' : ''));
+      state.pending.clear();
+      updatePendingUi();
+      setStatus($('ecListStatus'), `Записани ${data.updated || items.length} упражнения` + (data.indexRebuilt ? ' · индекс обновен' : ''));
+      setStatus($('ecEditorStatus'), '');
       await loadList();
-      renderTable();
+      if (state.selected?.id) await openEditor(state.selected.id);
     }
 
     async function exportCatalog() {
@@ -337,8 +373,9 @@
     $('ecSearch').addEventListener('keydown', (e) => { if (e.key === 'Enter') { state.page = 1; loadList().catch((err) => setStatus($('ecListStatus'), err.message, true)); } });
     $('ecPrevBtn').addEventListener('click', () => { if (state.page > 1) { state.page -= 1; loadList().catch((e) => setStatus($('ecListStatus'), e.message, true)); } });
     $('ecNextBtn').addEventListener('click', () => { if (state.page < state.pages) { state.page += 1; loadList().catch((e) => setStatus($('ecListStatus'), e.message, true)); } });
-    $('ecSaveBtn').addEventListener('click', () => saveEditor().catch((e) => setStatus($('ecEditorStatus'), e.message, true)));
-    $('ecCloseBtn').addEventListener('click', () => { state.selected = null; clearEditorMedia(); showEditor(false); renderTable(); });
+    $('ecQueueBtn').addEventListener('click', () => queueCurrentEditor());
+    $('ecSaveAllBtn').addEventListener('click', () => saveAllPending().catch((e) => setStatus($('ecListStatus'), e.message, true)));
+    $('ecCloseBtn').addEventListener('click', () => { if (state.selected?.id) queueCurrentEditor(); state.selected = null; clearEditorMedia(); showEditor(false); renderTable(); });
     $('ecExportBtn').addEventListener('click', () => exportCatalog().catch((e) => setStatus($('ecListStatus'), e.message, true)));
     $('ecImportFile').addEventListener('change', (e) => {
       const file = e.target.files?.[0];
@@ -348,6 +385,7 @@
     });
 
     loadList().catch((e) => setStatus($('ecListStatus'), e.message, true));
+    updatePendingUi();
   </script>
 </body>
 </html>
