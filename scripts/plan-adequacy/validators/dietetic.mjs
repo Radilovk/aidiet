@@ -6,6 +6,7 @@ import { parseMealDescription } from '../../../food-nutrition.js';
 import { validateProductNamesAgainstProtocol } from '../../../food-catalog.js';
 import { minCaloriesForGender, minFatGrams } from '../fixtures/profiles.mjs';
 import { userSkipsBreakfast, hasSweetCraving } from './profile-rules.mjs';
+import { isKetoCarbCompliant } from '../../../plan-normalize.js';
 
 const ANIMAL_PATTERNS = [
   /пилеш|говежд|свинск|телеш|агнеш|пуеш|риба|сьомга|скумри|треска|тон|скарид|миди/,
@@ -70,10 +71,9 @@ export function validateAnalysisDietetic(analysis, profile = {}) {
   }
 
   if (isKetoProfile(profile) && fc > 0 && mg) {
-    const carbKcal = (mg.carbs || 0) * 4;
-    const carbPct = (carbKcal / fc) * 100;
-    if (carbPct > 15) {
-      issues.push(`кето: въглехидрати ${Math.round(carbPct)}% > 15% от калориите`);
+    if (!isKetoCarbCompliant(fc, mg.carbs)) {
+      const carbPct = Math.round(((mg.carbs || 0) * 4 / fc) * 100);
+      issues.push(`кето: въглехидрати ${carbPct}% > 15% от калориите`);
     }
   }
 
@@ -163,7 +163,7 @@ export function validateWeekPlanDietetic(weekPlan, strategy, profile = {}) {
     for (const [dayKey, dayScheme] of Object.entries(strategy.weeklyScheme)) {
       const daily = num(dayScheme.calories) || 0;
       const carbs = num(dayScheme.carbs) || 0;
-      if (daily > 0 && carbs * 4 / daily > 0.15) {
+      if (daily > 0 && !isKetoCarbCompliant(daily, carbs)) {
         issues.push(`${dayKey}: схема въглехидрати ${Math.round(carbs * 4 / daily * 100)}% > 15% при кето`);
       }
     }

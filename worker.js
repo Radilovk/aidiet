@@ -8262,6 +8262,65 @@ function syncMacroRatiosFromGrams(analysis, fc, mg) {
     ratios.fats = Math.max(0, ratios.fats + (100 - ratioSum));
   }
 }
+function syncSlotCaloriesFromMacros(slot) {
+  slot.calories = Math.round(
+    (Number(slot.protein) || 0) * 4 + (Number(slot.carbs) || 0) * 4 + (Number(slot.fats) || 0) * 9
+  );
+}
+function syncSchemeDayMetadata(day) {
+  const breakdown = day?.mealBreakdown;
+  if (!breakdown?.length) return;
+  day.meals = breakdown.length;
+  day.calories = breakdown.reduce((s, m) => s + (Number(m.calories) || 0), 0);
+  day.protein = breakdown.reduce((s, m) => s + (Number(m.protein) || 0), 0);
+  day.carbs = breakdown.reduce((s, m) => s + (Number(m.carbs) || 0), 0);
+  day.fats = breakdown.reduce((s, m) => s + (Number(m.fats) || 0), 0);
+}
+function distributeGramsToSlots(slots, field, total) {
+  if (!slots.length) return;
+  const current = slots.reduce((s, m) => s + (Number(m[field]) || 0), 0);
+  if (current <= 0) {
+    slots[0][field] = total;
+    return;
+  }
+  let allocated = 0;
+  for (let i = 0; i < slots.length; i++) {
+    const slot = slots[i];
+    if (i === slots.length - 1) {
+      slot[field] = Math.max(0, total - allocated);
+    } else {
+      slot[field] = Math.round((Number(slot[field]) || 0) * (total / current));
+      allocated += slot[field];
+    }
+  }
+}
+function reconcileKetoBreakdownCarbs(breakdown, dailyKcal, minFatG) {
+  if (!breakdown?.length) return;
+  const daily = Number(dailyKcal) || breakdown.reduce((s, m) => s + (Number(m.calories) || 0), 0);
+  if (daily <= 0) return;
+  const sumCarbs = () => breakdown.reduce((s, m) => s + (Number(m.carbs) || 0), 0);
+  if (isKetoCarbCompliant(daily, sumCarbs())) return;
+  const maxCarbs = maxKetoCarbGrams(daily);
+  let excess = sumCarbs() - maxCarbs;
+  if (excess <= 0) return;
+  const byCarbs = [...breakdown].sort((a, b) => (Number(b.carbs) || 0) - (Number(a.carbs) || 0));
+  for (const slot of byCarbs) {
+    if (excess <= 0) break;
+    const take = Math.min(excess, Number(slot.carbs) || 0);
+    if (take <= 0) continue;
+    slot.carbs = (Number(slot.carbs) || 0) - take;
+    excess -= take;
+  }
+  const fatRecipients = breakdown.filter(
+    (m) => m.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" || m.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4" || (Number(m.fats) || 0) > 0
+  );
+  const pool = fatRecipients.length ? fatRecipients : breakdown.filter((m) => m.type !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5");
+  const sumProtein = breakdown.reduce((s, m) => s + (Number(m.protein) || 0), 0);
+  const sumFats = breakdown.reduce((s, m) => s + (Number(m.fats) || 0), 0);
+  const target = clampKetoMacros(daily, sumProtein, sumCarbs(), sumFats, minFatG);
+  if (pool.length) distributeGramsToSlots(pool, "fats", target.fats);
+  for (const slot of breakdown) syncSlotCaloriesFromMacros(slot);
+}
 function applyKetoClampToDayScheme(day, minFatG) {
   const breakdown = day?.mealBreakdown;
   if (!breakdown?.length) return false;
@@ -8272,6 +8331,8 @@ function applyKetoClampToDayScheme(day, minFatG) {
   const sumFats = breakdown.reduce((s, m) => s + (Number(m.fats) || 0), 0);
   const target = clampKetoMacros(daily, sumProtein, sumCarbs, sumFats, minFatG);
   if (target.carbs === sumCarbs && target.fats === sumFats && isKetoCarbCompliant(daily, sumCarbs)) {
+    reconcileKetoBreakdownCarbs(breakdown, daily, minFatG);
+    syncSchemeDayMetadata(day);
     return false;
   }
   const carbScale = sumCarbs > 0 ? target.carbs / sumCarbs : 0;
@@ -8304,15 +8365,9 @@ function applyKetoClampToDayScheme(day, minFatG) {
       }
     }
   }
-  for (const slot of breakdown) {
-    slot.calories = Math.round(
-      (Number(slot.protein) || 0) * 4 + (Number(slot.carbs) || 0) * 4 + (Number(slot.fats) || 0) * 9
-    );
-  }
-  day.calories = breakdown.reduce((s, m) => s + (Number(m.calories) || 0), 0);
-  day.protein = breakdown.reduce((s, m) => s + (Number(m.protein) || 0), 0);
-  day.carbs = breakdown.reduce((s, m) => s + (Number(m.carbs) || 0), 0);
-  day.fats = breakdown.reduce((s, m) => s + (Number(m.fats) || 0), 0);
+  for (const slot of breakdown) syncSlotCaloriesFromMacros(slot);
+  reconcileKetoBreakdownCarbs(breakdown, daily, minFatG);
+  syncSchemeDayMetadata(day);
   return true;
 }
 function enforceKetoMacroGuardrails(analysis, userData) {
@@ -8414,6 +8469,7 @@ function removeBreakfastSlotFromDay(day) {
     }
   }
   day.meals = day.mealBreakdown.length;
+  syncSchemeDayMetadata(day);
 }
 function buildMeal3PromptRule(userData) {
   if (isVeganUser(userData)) {
@@ -14908,7 +14964,6 @@ function normalizeWeeklyScheme(strategy, defaultDailyCalories, userData = null) 
     let sumP = sumField2("protein");
     let sumC = sumField2("carbs");
     let sumF = sumField2("fats");
-    if (!day.meals) day.meals = day.mealBreakdown.length;
     if (sumCals > 0 && targetCals > 0 && Math.abs(sumCals - targetCals) > calorieTolerance(targetCals)) {
       const fixedKcal = day.mealBreakdown.filter((m) => m.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5").reduce((s, m) => s + (Number(m.calories) || 0), 0);
       const scalable = day.mealBreakdown.filter((m) => m.type !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5");
@@ -14925,12 +14980,10 @@ function normalizeWeeklyScheme(strategy, defaultDailyCalories, userData = null) 
       }
       clampLateSnackInMealBreakdown(day);
     }
-    day.calories = sumField2("calories");
-    day.protein = sumField2("protein");
-    day.carbs = sumField2("carbs");
-    day.fats = sumField2("fats");
+    syncSchemeDayMetadata(day);
     enforceFixedSlotCaps(day, targetCals);
     clampLateSnackInMealBreakdown(day);
+    syncSchemeDayMetadata(day);
   }
   enforceKetoStrategyGuardrails(strategy, userData);
 }
