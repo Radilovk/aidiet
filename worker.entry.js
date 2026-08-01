@@ -39,6 +39,8 @@ import {
   parseMealDescription,
   calorieTolerance,
   MAX_MEAL_WEIGHT_GRAMS,
+  mealWeightGramsFromDescription,
+  formatMealWeight,
 } from './food-nutrition.js';
 import {
   rebalanceMealBreakdownSlots,
@@ -7914,16 +7916,13 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocol
       errors.push(`Ден ${dayNum} ${meal.type}: калории ${mealCal} ≠ цел ${targetCal} — порциите са структурно недостатъчни/прекомерни, избери по-подходящи продукти или количества`);
     }
 
-    if (meal.weight) {
-      const weightMatch = String(meal.weight).match(/(\d+(?:\.\d+)?)\s*(?:g|г)/i);
-      if (weightMatch) {
-        const weightGrams = parseFloat(weightMatch[1]);
-        const minWeight = minMealWeightGrams(meal.type);
-        if (weightGrams > MAX_MEAL_WEIGHT_GRAMS) {
-          errors.push(`Ден ${dayNum} ${meal.type}: weight ${weightGrams}g > ${MAX_MEAL_WEIGHT_GRAMS}g`);
-        } else if (weightGrams < minWeight) {
-          errors.push(`Ден ${dayNum} ${meal.type}: weight ${weightGrams}g < ${minWeight}g`);
-        }
+    const weightGrams = mealWeightGramsFromDescription(meal);
+    if (weightGrams > 0) {
+      const minWeight = minMealWeightGrams(meal.type);
+      if (weightGrams > MAX_MEAL_WEIGHT_GRAMS) {
+        errors.push(`Ден ${dayNum} ${meal.type}: weight ${weightGrams}g > ${MAX_MEAL_WEIGHT_GRAMS}g`);
+      } else if (weightGrams < minWeight) {
+        errors.push(`Ден ${dayNum} ${meal.type}: weight ${weightGrams}g < ${minWeight}g`);
       }
     }
 
@@ -8047,6 +8046,8 @@ function finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, userData = n
         continue;
       }
       syncMealCaloriesFromMacros(meal);
+      const wg = mealWeightGramsFromDescription(meal);
+      if (wg > 0) meal.weight = formatMealWeight(wg);
     }
   }
   recalculateDayCalories(weekPlan, strategy);

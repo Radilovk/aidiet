@@ -1,0 +1,116 @@
+{
+  "timestamp": "2026-07-31T22:17:23.220Z",
+  "base": "https://aidiet.radilov-k.workers.dev",
+  "mode": "hard",
+  "provider": "google",
+  "model": "gemini-2.5-flash",
+  "pass": 3,
+  "total": 6,
+  "results": [
+    {
+      "id": "kamen_benchmark",
+      "ok": false,
+      "error": "Генерирането на план се провали: Стъпка 3 (Хранителен план - прогресивно): Генериране на дни 6-6: Ден 6 Хранене 3: калории 750 ≠ цел 1074 — порциите са структурно недостатъчни/прекомерни, избери по-подходящи продукти или количества; Ден 6: дневни 2437 kcal ≠ схема 2774",
+      "issueCount": 1,
+      "issues": [
+        "Генерирането на план се провали: Стъпка 3 (Хранителен план - прогресивно): Генериране на дни 6-6: Ден 6 Хранене 3: калории 750 ≠ цел 1074 — порциите са структурно недостатъчни/прекомерни, избери по-подходящи продукти или количества; Ден 6: дневни 2437 kcal ≠ схема 2774"
+      ]
+    },
+    {
+      "id": "skip_breakfast_athlete",
+      "ok": false,
+      "error": "Генерирането на план се провали: Стъпка 3 (Хранителен план - прогресивно): Генериране на дни 6-6: Ден 6 Хранене 3: калории 750 ≠ цел 982 — порциите са структурно недостатъчни/прекомерни, избери по-подходящи продукти или количества",
+      "issueCount": 1,
+      "issues": [
+        "Генерирането на план се провали: Стъпка 3 (Хранителен план - прогресивно): Генериране на дни 6-6: Ден 6 Хранене 3: калории 750 ≠ цел 982 — порциите са структурно недостатъчни/прекомерни, избери по-подходящи продукти или количества"
+      ]
+    },
+    {
+      "id": "diabetes_sweets_craving",
+      "ok": true,
+      "elapsed": 241,
+      "jobId": "d022f9f6-05d0-40dc-ba44-6e6a6bbd2ab3",
+      "calories": 1436,
+      "includeDessert": false,
+      "mealsPerDay": 4,
+      "h5Slots": "none",
+      "issueCount": 0,
+      "issues": [],
+      "scorecard": {
+        "structure": 0,
+        "strategy": 0,
+        "nutrition": 0,
+        "foods": 0,
+        "profile": 0,
+        "other": 0
+      },
+      "warnings": 0
+    },
+    {
+      "id": "emotional_burger_stress",
+      "ok": true,
+      "elapsed": 137,
+      "jobId": "c0964ba0-23d3-4b1f-b7e7-1952bd79d1d7",
+      "calories": 1491,
+      "includeDessert": true,
+      "mealsPerDay": 3,
+      "h5Slots": "none",
+      "issueCount": 0,
+      "issues": [],
+      "scorecard": {
+        "structure": 0,
+        "strategy": 0,
+        "nutrition": 0,
+        "foods": 0,
+        "profile": 0,
+        "other": 0
+      },
+      "warnings": 0
+    },
+    {
+      "id": "lactation_deficit",
+      "ok": true,
+      "elapsed": 137,
+      "jobId": "20d7a740-10c1-42ec-9ff3-959117c948e2",
+      "calories": 2081,
+      "includeDessert": false,
+      "mealsPerDay": 4,
+      "h5Slots": "none",
+      "issueCount": 0,
+      "issues": [],
+      "scorecard": {
+        "structure": 0,
+        "strategy": 0,
+        "nutrition": 0,
+        "foods": 0,
+        "profile": 0,
+        "other": 0
+      },
+      "warnings": 0
+    },
+    {
+      "id": "vegan_active",
+      "ok": false,
+      "elapsed": 129,
+      "jobId": "2a5ebb57-ab49-4ad4-a9ea-29950098e20a",
+      "calories": 2547,
+      "includeDessert": false,
+      "mealsPerDay": 4,
+      "h5Slots": "none",
+      "issueCount": 2,
+      "issues": [
+        "currentHealthStatus.keyIssues липсват",
+        "keyProblems: очаквани 3–6, има 0"
+      ],
+      "scorecard": {
+        "structure": 1,
+        "strategy": 0,
+        "nutrition": 0,
+        "foods": 0,
+        "profile": 0,
+        "other": 1
+      },
+      "warnings": 0
+    }
+  ]
+}

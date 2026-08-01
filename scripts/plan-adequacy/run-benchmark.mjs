@@ -87,7 +87,9 @@ function validateProfileRules(plan, profile) {
   const scheme = strategy.weeklyScheme || {};
   for (const [dayKey, dayScheme] of Object.entries(scheme)) {
     for (const slot of dayScheme.mealBreakdown || []) {
-      if (slot.type === 'Хранене 5' && !isMealCaloriesAdequate(slot.calories, MAX_LATE_SNACK_CALORIES)) {
+      if (slot.type === 'Хранене 5'
+        && slot.calories > MAX_LATE_SNACK_CALORIES
+        && !isMealCaloriesAdequate(slot.calories, MAX_LATE_SNACK_CALORIES)) {
         issues.push(`${dayKey} H5 slot: ${slot.calories} kcal > ${MAX_LATE_SNACK_CALORIES}`);
       }
     }

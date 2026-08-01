@@ -1,0 +1,156 @@
+{
+  "timestamp": "2026-07-31T23:49:37.805Z",
+  "base": "https://aidiet.radilov-k.workers.dev",
+  "mode": "hard",
+  "provider": "google",
+  "model": "gemini-2.5-flash",
+  "pass": 4,
+  "total": 6,
+  "results": [
+    {
+      "id": "kamen_benchmark",
+      "ok": false,
+      "elapsed": 137,
+      "jobId": "2777b63d-ad23-46d5-bf91-ff3dac731bd2",
+      "calories": 2774,
+      "includeDessert": false,
+      "mealsPerDay": 4,
+      "h5Slots": "monday:191, tuesday:204, wednesday:204, thursday:204, friday:204, sunday:204",
+      "issueCount": 7,
+      "issues": [
+        "monday: Хранене 2 1233 kcal > 1119",
+        "saturday: Хранене 3 437 kcal > 350",
+        "tuesday H5 slot: 204 kcal > 200",
+        "wednesday H5 slot: 204 kcal > 200",
+        "thursday H5 slot: 204 kcal > 200",
+        "friday H5 slot: 204 kcal > 200",
+        "sunday H5 slot: 204 kcal > 200"
+      ],
+      "scorecard": {
+        "structure": 0,
+        "strategy": 0,
+        "nutrition": 7,
+        "foods": 0,
+        "profile": 0,
+        "other": 0
+      },
+      "warnings": 0
+    },
+    {
+      "id": "skip_breakfast_athlete",
+      "ok": false,
+      "elapsed": 137,
+      "jobId": "1284e942-c9c2-4c5f-be23-4fcd5ee21448",
+      "calories": 2682,
+      "includeDessert": true,
+      "mealsPerDay": 4,
+      "h5Slots": "monday:206, tuesday:204, wednesday:195, thursday:200, friday:206, saturday:201, sunday:204",
+      "issueCount": 10,
+      "issues": [
+        "\"Ароматно пилешко с ориз и микс от зеленчуци\": weight 820g > 800g",
+        "\"Пилешко филе с ориз и микс от свежи зеленчуци\": weight 830g > 800g",
+        "\"Ароматно пилешко с ориз и свежи зеленчуци\": weight 820g > 800g",
+        "\"Пилешко филе с ориз и микс от зеленчуци\": weight 830g > 800g",
+        "\"Ароматно пилешко с ориз и свежи зеленчуци\": weight 830g > 800g",
+        "monday H5 slot: 206 kcal > 200",
+        "tuesday H5 slot: 204 kcal > 200",
+        "friday H5 slot: 206 kcal > 200",
+        "saturday H5 slot: 201 kcal > 200",
+        "sunday H5 slot: 204 kcal > 200"
+      ],
+      "scorecard": {
+        "structure": 0,
+        "strategy": 0,
+        "nutrition": 10,
+        "foods": 0,
+        "profile": 0,
+        "other": 0
+      },
+      "warnings": 0
+    },
+    {
+      "id": "diabetes_sweets_craving",
+      "ok": true,
+      "elapsed": 129,
+      "jobId": "18ce328a-30d8-4676-b293-6ad2c6bf1610",
+      "calories": 1436,
+      "includeDessert": false,
+      "mealsPerDay": 4,
+      "h5Slots": "none",
+      "issueCount": 0,
+      "issues": [],
+      "scorecard": {
+        "structure": 0,
+        "strategy": 0,
+        "nutrition": 0,
+        "foods": 0,
+        "profile": 0,
+        "other": 0
+      },
+      "warnings": 0
+    },
+    {
+      "id": "emotional_burger_stress",
+      "ok": true,
+      "elapsed": 80,
+      "jobId": "44d7cc12-ed82-4fd0-8841-10404d73f420",
+      "calories": 1491,
+      "includeDessert": true,
+      "mealsPerDay": 3,
+      "h5Slots": "none",
+      "issueCount": 0,
+      "issues": [],
+      "scorecard": {
+        "structure": 0,
+        "strategy": 0,
+        "nutrition": 0,
+        "foods": 0,
+        "profile": 0,
+        "other": 0
+      },
+      "warnings": 0
+    },
+    {
+      "id": "lactation_deficit",
+      "ok": true,
+      "elapsed": 129,
+      "jobId": "72acc7f8-989c-4d26-89bd-7b414227b211",
+      "calories": 2200,
+      "includeDessert": false,
+      "mealsPerDay": 4,
+      "h5Slots": "none",
+      "issueCount": 0,
+      "issues": [],
+      "scorecard": {
+        "structure": 0,
+        "strategy": 0,
+        "nutrition": 0,
+        "foods": 0,
+        "profile": 0,
+        "other": 0
+      },
+      "warnings": 0
+    },
+    {
+      "id": "vegan_active",
+      "ok": true,
+      "elapsed": 129,
+      "jobId": "ef15a16c-d0c9-4d12-9bfc-54755594d41c",
+      "calories": 2038,
+      "includeDessert": false,
+      "mealsPerDay": 4,
+      "h5Slots": "none",
+      "issueCount": 0,
+      "issues": [],
+      "scorecard": {
+        "structure": 0,
+        "strategy": 0,
+        "nutrition": 0,
+        "foods": 0,
+        "profile": 0,
+        "other": 0
+      },
+      "warnings": 0
+    }
+  ]
+}

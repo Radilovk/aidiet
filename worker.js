@@ -8730,6 +8730,16 @@ function formatMealWeight(totalGrams, dessertWeightGrams = 0) {
   if (total <= 0) return "";
   return `${total}\u0433`;
 }
+function mealWeightGramsFromDescription(meal) {
+  if (!meal) return 0;
+  const items = parseMealDescription(meal.description);
+  let total = items.reduce((s, it) => s + (Number(it.grams) || 0), 0);
+  if (meal.dessert && typeof meal.dessert === "object" && meal.dessert.weight) {
+    const m = String(meal.dessert.weight).match(/(\d+(?:\.\d+)?)/);
+    if (m) total += parseFloat(m[1]);
+  }
+  return Math.round(total);
+}
 function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}) {
   if (!meal || meal.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" || meal.type === "\u041D\u0430\u043F\u0438\u0442\u043A\u0430") {
     return { ok: true, unknowns: [] };
@@ -14789,16 +14799,13 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocol
     if (targetCal > 0 && mealCal > 0 && !isMealCaloriesAdequate(mealCal, targetCal)) {
       errors.push(`\u0414\u0435\u043D ${dayNum} ${meal.type}: \u043A\u0430\u043B\u043E\u0440\u0438\u0438 ${mealCal} \u2260 \u0446\u0435\u043B ${targetCal} \u2014 \u043F\u043E\u0440\u0446\u0438\u0438\u0442\u0435 \u0441\u0430 \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u043D\u043E \u043D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u044A\u0447\u043D\u0438/\u043F\u0440\u0435\u043A\u043E\u043C\u0435\u0440\u043D\u0438, \u0438\u0437\u0431\u0435\u0440\u0438 \u043F\u043E-\u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u0438\u043B\u0438 \u043A\u043E\u043B\u0438\u0447\u0435\u0441\u0442\u0432\u0430`);
     }
-    if (meal.weight) {
-      const weightMatch = String(meal.weight).match(/(\d+(?:\.\d+)?)\s*(?:g|г)/i);
-      if (weightMatch) {
-        const weightGrams = parseFloat(weightMatch[1]);
-        const minWeight = minMealWeightGrams(meal.type);
-        if (weightGrams > MAX_MEAL_WEIGHT_GRAMS) {
-          errors.push(`\u0414\u0435\u043D ${dayNum} ${meal.type}: weight ${weightGrams}g > ${MAX_MEAL_WEIGHT_GRAMS}g`);
-        } else if (weightGrams < minWeight) {
-          errors.push(`\u0414\u0435\u043D ${dayNum} ${meal.type}: weight ${weightGrams}g < ${minWeight}g`);
-        }
+    const weightGrams = mealWeightGramsFromDescription(meal);
+    if (weightGrams > 0) {
+      const minWeight = minMealWeightGrams(meal.type);
+      if (weightGrams > MAX_MEAL_WEIGHT_GRAMS) {
+        errors.push(`\u0414\u0435\u043D ${dayNum} ${meal.type}: weight ${weightGrams}g > ${MAX_MEAL_WEIGHT_GRAMS}g`);
+      } else if (weightGrams < minWeight) {
+        errors.push(`\u0414\u0435\u043D ${dayNum} ${meal.type}: weight ${weightGrams}g < ${minWeight}g`);
       }
     }
     if (meal.description && CATALOG_STRICT_MODE) {
@@ -14911,6 +14918,8 @@ function finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, userData = n
         continue;
       }
       syncMealCaloriesFromMacros(meal);
+      const wg = mealWeightGramsFromDescription(meal);
+      if (wg > 0) meal.weight = formatMealWeight(wg);
     }
   }
   recalculateDayCalories(weekPlan, strategy);

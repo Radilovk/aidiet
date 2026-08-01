@@ -473,6 +473,18 @@ export function formatMealWeight(totalGrams, dessertWeightGrams = 0) {
   return `${total}г`;
 }
 
+/** Total plated grams from description (+ fixed dessert weight when present). */
+export function mealWeightGramsFromDescription(meal) {
+  if (!meal) return 0;
+  const items = parseMealDescription(meal.description);
+  let total = items.reduce((s, it) => s + (Number(it.grams) || 0), 0);
+  if (meal.dessert && typeof meal.dessert === 'object' && meal.dessert.weight) {
+    const m = String(meal.dessert.weight).match(/(\d+(?:\.\d+)?)/);
+    if (m) total += parseFloat(m[1]);
+  }
+  return Math.round(total);
+}
+
 /**
  * Apply database nutrition to a single meal.
  * Sets description, weight, macros, calories from calculated values.
