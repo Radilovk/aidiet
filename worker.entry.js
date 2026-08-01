@@ -46,6 +46,7 @@ import {
   rebalanceMealBreakdownSlots,
   normalizeAnalysisOutput,
   enforceKetoMacroGuardrails,
+  enforceKetoStrategyGuardrails,
   minMealWeightGrams,
   validateLightMealSlotContent,
   validateLateSnackSlotContent,
@@ -7575,6 +7576,14 @@ function enforceCalorieGuardrails(analysis, data, referenceTdee) {
     }
   }
 
+  if (isLactation && tdee > 0 && fc > 0) {
+    const lactationFloor = Math.max(minCal + 300, Math.round(tdee * 0.9));
+    if (fc < lactationFloor) {
+      fc = lactationFloor;
+      corrections.push('Повдигнато до безопасен прием при лактация.');
+    }
+  }
+
   if (fc > 0 && fc < minCal) {
     fc = minCal;
     corrections.push('Повдигнато до минималния безопасен праг.');
@@ -7743,6 +7752,8 @@ function normalizeWeeklyScheme(strategy, defaultDailyCalories, userData = null) 
     enforceFixedSlotCaps(day, targetCals);
     clampLateSnackInMealBreakdown(day);
   }
+
+  enforceKetoStrategyGuardrails(strategy, userData);
 }
 
 function getFreeMealSlotCalories(dayTarget) {
