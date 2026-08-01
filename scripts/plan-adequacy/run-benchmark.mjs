@@ -10,6 +10,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PROFILES } from './fixtures/profiles.mjs';
 import { HARD_PROFILES } from './fixtures/hard-profiles.mjs';
+import { EXTENDED_PROFILES } from './fixtures/extended-profiles.mjs';
 import { validateAnalysis } from './validators/analysis.mjs';
 import { validateStrategy, validateMealPlan } from './validators/plan.mjs';
 import { validateFrontendProjection } from './validators/frontend.mjs';
@@ -17,6 +18,7 @@ import { validateWeekPlanNutrition } from './validators/nutrition.mjs';
 import { validateWeekPlanFoods } from './validators/foods.mjs';
 import { validateWeekPlanCombinations } from './validators/combinations.mjs';
 import { validateProfileRules } from './validators/profile-rules.mjs';
+import { validateDietetic } from './validators/dietetic.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
@@ -31,11 +33,17 @@ const MAX_WAIT_MS = 28 * 60 * 1000;
 const BENCHMARK_SETS = {
   quick: HARD_PROFILES.slice(0, 2),
   hard: HARD_PROFILES,
-  all: [...HARD_PROFILES, ...PROFILES.filter(p => !HARD_PROFILES.some(h => h.id === p.id))],
+  extended: EXTENDED_PROFILES,
+  clinical: EXTENDED_PROFILES.filter(p => p.clinicalProtocol),
+  all: [...HARD_PROFILES, ...EXTENDED_PROFILES, ...PROFILES.filter(p =>
+    !HARD_PROFILES.some(h => h.id === p.id) && !EXTENDED_PROFILES.some(e => e.id === p.id)
+  )],
 };
 
 const SELECTED = ONLY_IDS?.length
-  ? [...HARD_PROFILES, ...PROFILES.filter(p => !HARD_PROFILES.some(h => h.id === p.id))]
+  ? [...HARD_PROFILES, ...EXTENDED_PROFILES, ...PROFILES.filter(p =>
+      !HARD_PROFILES.some(h => h.id === p.id) && !EXTENDED_PROFILES.some(e => e.id === p.id)
+    )]
       .filter(p => ONLY_IDS.includes(p.id))
   : (BENCHMARK_SETS[MODE] || HARD_PROFILES);
 
@@ -48,7 +56,7 @@ if (!CONFIRMED) {
   console.error(`Live benchmark изисква --confirm (реални AI заявки).
 
   node scripts/plan-adequacy/run-benchmark.mjs --confirm
-  node scripts/plan-adequacy/run-benchmark.mjs --confirm --profiles=quick|hard|all
+  node scripts/plan-adequacy/run-benchmark.mjs --confirm --profiles=quick|hard|extended|clinical|all
   node scripts/plan-adequacy/run-benchmark.mjs --confirm --only=vegan_active`);
   process.exit(2);
 }
@@ -71,6 +79,7 @@ function analyzePlan(plan, profile) {
     ...validateWeekPlanCombinations(plan.weekPlan),
     ...validateFrontendProjection(plan),
     ...validateProfileRules(plan, profile),
+    ...validateDietetic(plan, profile),
   ];
 }
 
@@ -82,7 +91,7 @@ function scorecard(issues) {
     if (/weeklyScheme|mealBreakdown|meals \(|strategy/.test(i)) cats.strategy++;
     else if (/kcal|protein|carbs|fats|грамаж|weight/.test(i)) cats.nutrition++;
     else if (/каталог|продукт|универсал/.test(i)) cats.foods++;
-    else if (/Хранене 1|dessert|H5 slot|ready_meal|Не закусвам/.test(i)) cats.profile++;
+    else if (/Хранене 1|dessert|H5 slot|ready_meal|Не закусвам|лактация|кето|AIP|веган|диабет|H3:|H5:/i.test(i)) cats.profile++;
     else if (/day\d|липсва|weekPlan/.test(i)) cats.structure++;
     else cats.other++;
   }

@@ -124,6 +124,16 @@ check('plan adequacy contract', () => {
   if (!r.ok) throw new Error(r.out.split('\n').slice(-12).join('\n'));
 });
 
+check('plan adequacy nutrition math', () => {
+  const r = run('node', ['scripts/test-plan-adequacy-nutrition.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-12).join('\n'));
+});
+
+check('plan adequacy dietetic logic', () => {
+  const r = run('node', ['scripts/test-plan-adequacy-dietetic.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-12).join('\n'));
+});
+
 check('plan normalize (scheme + analysis)', () => {
   const r = run('node', ['scripts/test-plan-normalize.mjs']);
   if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));

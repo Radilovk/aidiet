@@ -14,6 +14,7 @@ import { validateFrontendProjection } from './validators/frontend.mjs';
 import { validateWeekPlanNutrition } from './validators/nutrition.mjs';
 import { validateWeekPlanFoods } from './validators/foods.mjs';
 import { validateWeekPlanCombinations } from './validators/combinations.mjs';
+import { validateDietetic } from './validators/dietetic.mjs';
 
 const args = process.argv.slice(2);
 const CONFIRMED = args.includes('--confirm') || process.env.AIDIET_LIVE_TESTS === '1';
@@ -55,6 +56,7 @@ function analyzePlan(plan, profile) {
     ...validateWeekPlanFoods(plan.weekPlan),
     ...validateWeekPlanCombinations(plan.weekPlan),
     ...validateFrontendProjection(plan),
+    ...validateDietetic(plan, profile),
   ];
 
   const recommendations = plan.recommendations?.length

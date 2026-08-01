@@ -18,6 +18,7 @@ import {
 } from './validators/nutrition.mjs';
 import { validateMealCatalog, validateWeekPlanFoods, validateMealFoodUniversality } from './validators/foods.mjs';
 import { validateMealCombinations, validateWeekPlanCombinations } from './validators/combinations.mjs';
+import { validateDietetic } from './validators/dietetic.mjs';
 import { syncWeekPlanNutritionFromDatabase } from '../../food-nutrition.js';
 import { PLAN_SYSTEM_INSTRUCTIONS } from '../../plan-response-schemas.js';
 import { spawnSync } from 'node:child_process';
@@ -159,6 +160,7 @@ run('full plan structure + nutrition + foods + combinations', () => {
     ...validateWeekPlanFoods(weekPlan),
     ...validateWeekPlanCombinations(weekPlan),
     ...validateFrontendProjection(plan),
+    ...validateDietetic(plan, profile),
   ];
 });
 

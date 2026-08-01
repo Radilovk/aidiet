@@ -1,15 +1,37 @@
-import { minFatGrams } from './profiles.mjs';
+import { minFatGrams, minCaloriesForGender } from './profiles.mjs';
+
+function isKetoProfile(profile) {
+  const prefs = profile?.dietPreference;
+  if (Array.isArray(prefs)) return prefs.some(p => /кето|нисковъглехидрат/i.test(p));
+  return /кето|нисковъглехидрат/i.test(String(prefs || ''));
+}
 
 /** Realistic analysis fixture (based on production-like output) */
 export function buildGoldenAnalysis(profile) {
   const weight = parseFloat(profile.weight) || 70;
   const goalText = Array.isArray(profile.goal) ? profile.goal.join(', ') : String(profile.goal || '');
-  const tdee = profile.gender === 'Мъж' ? 2200 : 1900;
-  const finalCalories = goalText.includes('Мускулна') ? tdee + 300 : Math.round(tdee * 0.8);
+  let tdee = profile.gender === 'Мъж' ? 2200 : 1900;
+  if (/много висок/i.test(String(profile.sportActivity || ''))) tdee += 400;
+  else if (/висока/i.test(String(profile.sportActivity || ''))) tdee += 200;
+
+  let finalCalories;
+  if (profile.clinicalProtocol === 'postpartum_lactation') {
+    finalCalories = Math.max(minCaloriesForGender(profile.gender) + 300, Math.round(tdee * 0.95));
+  } else if (goalText.includes('Мускулна')) {
+    finalCalories = tdee + 300;
+  } else {
+    finalCalories = Math.round(tdee * 0.8);
+  }
+
   const minFat = minFatGrams(weight);
-  const ratios = goalText.includes('Мускулна')
-    ? { protein: 30, carbs: 45, fats: 25 }
-    : { protein: 30, carbs: 35, fats: 35 };
+  let ratios;
+  if (isKetoProfile(profile)) {
+    ratios = { protein: 25, carbs: 8, fats: 67 };
+  } else if (goalText.includes('Мускулна')) {
+    ratios = { protein: 30, carbs: 45, fats: 25 };
+  } else {
+    ratios = { protein: 30, carbs: 35, fats: 35 };
+  }
   const proteinG = Math.round(finalCalories * ratios.protein / 100 / 4);
   let fatsG = Math.round(finalCalories * ratios.fats / 100 / 9);
   if (fatsG < minFat) fatsG = minFat;
@@ -27,7 +49,7 @@ export function buildGoldenAnalysis(profile) {
     macroGrams: { protein: proteinG, carbs: carbsG, fats: fatsG },
     correctedMetabolism: {
       realBMR: profile.gender === 'Мъж' ? 1750 : 1450,
-      realTDEE: finalCalories,
+      realTDEE: tdee,
       clinicalAdjustmentPercent: 0,
       metabolicAdjustmentPercent: -3,
       goalAdjustmentPercent: -15,
