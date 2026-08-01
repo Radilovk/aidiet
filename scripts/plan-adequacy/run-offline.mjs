@@ -20,6 +20,11 @@ import { validateMealCatalog, validateWeekPlanFoods, validateMealFoodUniversalit
 import { validateMealCombinations, validateWeekPlanCombinations } from './validators/combinations.mjs';
 import { syncWeekPlanNutritionFromDatabase } from '../../food-nutrition.js';
 import { PLAN_SYSTEM_INSTRUCTIONS } from '../../plan-response-schemas.js';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const root = join(dirname(fileURLToPath(import.meta.url)), '../..');
 
 let passed = 0;
 let failed = 0;
@@ -155,6 +160,13 @@ run('full plan structure + nutrition + foods + combinations', () => {
     ...validateWeekPlanCombinations(weekPlan),
     ...validateFrontendProjection(plan),
   ];
+});
+
+console.log('\n-- Contract tests (adequacy regressions) --');
+run('adequacy contract', () => {
+  const r = spawnSync('node', ['scripts/test-plan-adequacy-contract.mjs'], { cwd: root, encoding: 'utf8' });
+  if (r.status !== 0) return [(r.stdout || r.stderr || 'contract tests failed').split('\n').slice(-5).join('\n')];
+  return [];
 });
 
 console.log('\n-- Bad meals (трябва да fail-нат) --');

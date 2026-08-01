@@ -16,9 +16,7 @@ import { validateFrontendProjection } from './validators/frontend.mjs';
 import { validateWeekPlanNutrition } from './validators/nutrition.mjs';
 import { validateWeekPlanFoods } from './validators/foods.mjs';
 import { validateWeekPlanCombinations } from './validators/combinations.mjs';
-import { MAX_LATE_SNACK_CALORIES } from './constants.mjs';
-import { isMealCaloriesAdequate } from '../../plan-normalize.js';
-import { parseMealDescription } from '../../food-nutrition.js';
+import { validateProfileRules } from './validators/profile-rules.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
@@ -61,60 +59,6 @@ async function api(pathname, opts = {}) {
   let json;
   try { json = JSON.parse(text); } catch { json = { raw: text }; }
   return { status: res.status, json };
-}
-
-function userSkipsBreakfast(profile) {
-  const habits = profile.eatingHabits;
-  return Array.isArray(habits) && habits.some(h => String(h).includes('Не закусвам'));
-}
-
-function hasSweetCraving(profile) {
-  const c = profile.foodCravings;
-  if (Array.isArray(c)) return c.some(x => String(x).includes('Сладко'));
-  return String(c || '').includes('Сладко');
-}
-
-function validateProfileRules(plan, profile) {
-  const issues = [];
-  const wp = plan.weekPlan;
-  const strategy = plan.strategy || {};
-
-  if (userSkipsBreakfast(profile)) {
-    for (let d = 1; d <= 7; d++) {
-      const types = (wp[`day${d}`]?.meals || []).map(m => m.type);
-      if (types.includes('Хранене 1')) issues.push(`day${d}: Хранене 1 при „Не закусвам“`);
-    }
-  }
-
-  if (!hasSweetCraving(profile) || strategy.includeDessert === false) {
-    for (let d = 1; d <= 7; d++) {
-      for (const meal of wp[`day${d}`]?.meals || []) {
-        if (meal.dessert) issues.push(`day${d} ${meal.type}: dessert без sweet craving / includeDessert false`);
-      }
-    }
-  }
-
-  const scheme = strategy.weeklyScheme || {};
-  for (const [dayKey, dayScheme] of Object.entries(scheme)) {
-    for (const slot of dayScheme.mealBreakdown || []) {
-      if (slot.type === 'Хранене 5'
-        && slot.calories > MAX_LATE_SNACK_CALORIES
-        && !isMealCaloriesAdequate(slot.calories, MAX_LATE_SNACK_CALORIES)) {
-        issues.push(`${dayKey} H5 slot: ${slot.calories} kcal > ${MAX_LATE_SNACK_CALORIES}`);
-      }
-    }
-  }
-
-  for (let d = 1; d <= 7; d++) {
-    for (const meal of wp[`day${d}`]?.meals || []) {
-      const names = parseMealDescription(meal.description || '').map(i => i.name.toLowerCase());
-      if (names.some(n => /ориз с пиле|омлет|пилешка салата|риба с картофи/.test(n))) {
-        issues.push(`day${d} ${meal.type}: ready_meal в description (${meal.name})`);
-      }
-    }
-  }
-
-  return issues;
 }
 
 function analyzePlan(plan, profile) {
