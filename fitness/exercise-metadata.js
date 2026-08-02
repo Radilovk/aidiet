@@ -10,11 +10,11 @@ import { passesApparatusFilter } from './equipment-apparatus.js';
 import {
   applyMetadataCorrections,
   inferExerciseTraits,
-  inferRequiredGear,
   passesBeginnerSafety,
   passesGearFilter,
 } from './exercise-tags.js';
 import { isGenderSpecificExerciseName } from './exercise-name-bg.js';
+import { isCuratedEfpRecord, EFP_VERSION } from './exercise-efp-rubric.js';
 
 /** @typedef {{ gender?: string, experience?: string }} AnswersInput */
 /** @typedef {{ isFemale: boolean, isMale: boolean, maxDiff: number, minGf: number, minGm: number }} ExerciseProfileFilter */
@@ -22,74 +22,62 @@ import { isGenderSpecificExerciseName } from './exercise-name-bg.js';
 
 export const EXERCISE_METADATA_KV_KEY = 'exercise:metadata:v1';
 
-/** Евристичен bootstrap преди/без AI класификация. */
+/** Bundled/KV запис е валиден само ако е AI-куриран (v2) или ръчна корекция. */
+export function isMetadataOverride(saved) {
+  if (!saved?.diff) return false;
+  if (saved.manual === true || saved.manualEdit === true) return true;
+  return isCuratedEfpRecord(saved);
+}
+
+/**
+ * Fallback само при липсваща курирана класификация — маркира unclassified.
+ * Не се ползва за production каталог (филтрира се).
+ */
+export function unclassifiedMetadata(raw) {
+  const meta = applyMetadataCorrections(raw, {
+    diff: 2,
+    gf: 65,
+    gm: 65,
+    flags: ['unclassified'],
+  });
+  meta.excluded = true;
+  meta.flags = [...new Set([...(meta.flags || []), 'excluded', 'unclassified'])];
+  return meta;
+}
+
+/** @deprecated Само за тестове — production използва curated EFP. */
 export function heuristicClassification(raw) {
-  const name = normalizeText(raw?.name || '');
-  const equip = normalizeText(raw?.equipment || '');
-  const blob = `${name} ${equip}`;
-  const traits = inferExerciseTraits(raw?.name || '', raw?.equipment || '');
-  let diff = 2;
-  let gf = 70;
-  let gm = 70;
-  const flags = [];
-
-  if (traits.stretch) {
-    diff = 1;
-    flags.push('bodyweight');
-  } else if (traits.gymnastics || traits.rings) {
-    diff = 3;
-    flags.push('gymnastics', 'advanced');
-  } else if (traits.suspended || traits.parallelBars) {
-    diff = 2;
-  } else if (traits.pullBar && !traits.assisted) {
-    diff = 2;
-  } else if (/snatch|clean and jerk|pistol squat|dragon flag|handstand|kipping|muscle up/.test(blob)) {
-    diff = 3;
-    flags.push('advanced');
-  } else if (/machine|lever|cable|band|smith|assisted|seated|lying/.test(blob) && !traits.highSkill) {
-    diff = 1;
-    if (/machine|lever|smith/.test(blob)) flags.push('machine');
-  } else if (/barbell|olympic|kettlebell swing|deadlift|good morning/.test(blob)) {
-    diff = 3;
-    flags.push('barbell');
-  } else if (/body weight|bodyweight/.test(equip) && /squat|lunge|bridge|plank|push-up|push up|wall|march|stretch/.test(blob)) {
-    diff = 1;
-    flags.push('bodyweight');
-  }
-
-  if (/hip thrust|glute|abduct|kickback|clam|frog|fire hydrant|pull through/.test(blob)) {
-    gf = 92;
-    flags.push('glute');
-  }
-  if (/bench press|skull crush|close grip|military press|barbell curl|upright row/.test(blob)) {
-    gf = 32;
-    gm = 88;
-    flags.push('press');
-  }
-  if (/squat|deadlift|row|pull up|chin up/.test(blob)) gm = Math.max(gm, 82);
-  if (/compound|press|squat|deadlift|lunge|thrust|row|pull|push/.test(blob)) flags.push('compound');
-  if (/curl|extension|fly|kickback|raise|crunch|stretch/.test(blob) && !flags.includes('compound')) flags.push('isolation');
-  if (traits.beginnerSafe) flags.push('beginner_safe');
-  if (traits.homeFriendly) flags.push('home_friendly');
-
-  return applyMetadataCorrections(raw, { diff, gf, gm, flags: [...new Set(flags)] });
+  return unclassifiedMetadata(raw);
 }
 
 export function metadataForExercise(raw, store = {}) {
   const id = String(raw?.id ?? '');
   const saved = store[id];
-  const base = saved?.diff
-    ? {
+  /** @type {{ diff?: number, gf?: number, gm?: number, flags?: string[] }} */
+  let seed;
+  let forceExcluded = false;
+  if (isMetadataOverride(saved)) {
+    seed = {
       diff: saved.diff,
       gf: saved.gf ?? 70,
       gm: saved.gm ?? 70,
       flags: saved.flags || [],
-      ...(saved.gear?.length ? { gear: saved.gear } : {}),
-      ...(saved.effectiveEquipNorm ? { effectiveEquipNorm: saved.effectiveEquipNorm } : {}),
-      ...(saved.excluded ? { excluded: true } : {}),
-    }
-    : heuristicClassification(raw);
-  return applyMetadataCorrections(raw, base);
+    };
+    forceExcluded = Boolean(saved.excluded);
+  } else {
+    seed = { diff: 2, gf: 65, gm: 65, flags: ['unclassified'] };
+    forceExcluded = true;
+  }
+  const meta = applyMetadataCorrections(raw, seed);
+  if (forceExcluded) {
+    meta.excluded = true;
+    meta.flags = [...new Set([...(meta.flags || []), 'excluded', ...(seed.flags?.includes('unclassified') ? ['unclassified'] : [])])];
+  }
+  if (isGenderSpecificExerciseName(raw?.name)) {
+    meta.excluded = true;
+    meta.flags = [...new Set([...(meta.flags || []), 'excluded', 'gender_variant'])];
+  }
+  return meta;
 }
 
 export function mergeExerciseMetadata(entry, raw, metadata = {}) {
@@ -329,6 +317,11 @@ export function alternativeClosenessScore(candidate, matchedEntry) {
   const overlap = tokenOverlapScore(matchedEntry.tokens, candidate.tokens);
   score -= Math.round(overlap * 20);
 
+  const nameM = normalizeText(matchedEntry.name || '');
+  const nameC = normalizeText(candidate.name || '');
+  if (/\b(jump|plyo)\b/.test(nameC) && !/\b(jump|plyo)\b/.test(nameM)) score += 20;
+  if (/\bsquat\b/.test(nameM) && /\b(lunge|split squat)\b/.test(nameC)) score -= 18;
+
   return score;
 }
 
@@ -413,6 +406,7 @@ export function filterExercises(index, profile, allowedEquipment = null, modalit
   return index.filter((e) =>
     !e.excluded
     && !(e.flags || []).includes('excluded')
+    && !(e.flags || []).includes('unclassified')
     && fitsExerciseProfile(e, profile)
     && passesBeginnerSafety(e, profile)
     && !isGenderSpecificExerciseName(e.name)
@@ -447,9 +441,21 @@ function groupKey(entry) {
   return 'other';
 }
 
+/** Кратък етикет за филтрирания профил — само за заглавие на каталога. */
+function catalogProfileLabel(profile) {
+  if (!profile) return '';
+  const bits = [];
+  if (profile.maxDiff === 1) bits.push('начинаещо ниво');
+  else if (profile.maxDiff === 2) bits.push('средно ниво');
+  else if (profile.maxDiff === 3) bits.push('напреднало ниво');
+  if (profile.isFemale) bits.push('жена');
+  else if (profile.isMale) bits.push('мъж');
+  return bits.join(', ');
+}
+
 /**
- * Компактен каталог за AI prompt (~2KB).
- * canonicalName = entry.name (EN от dataset).
+ * Минимален каталог за AI prompt — само canonicalName (EN).
+ * EFP (diff/gf/gm/flags) се прилага server-side в filterExercises(); не се праща на модела.
  * opts.modalities — активните dayFocus типове в седмицата (от ProgramSpec);
  * филтрира и подрежда каталога така, че mobility/cardio/hiit дните да имат
  * реални, релевантни упражнения вместо силови машини по подразбиране.
@@ -483,8 +489,13 @@ export function buildExerciseCatalogSnippet(index, profile, allowedEquipment = n
   const priorityGroups = (modalities || []).filter((m) => MODALITY_GROUPS.includes(m));
   const orderedGroups = [...new Set([...priorityGroups, ...GROUP_ORDER])];
 
-  const maxDiff = profile?.maxDiff;
-  const lines = ['<exercise_catalog>', `canonicalName САМО отдолу${maxDiff ? `; d≤${maxDiff}` : ''} (d=1 лесно|2 средно|3 трудно, gf=жена):`];
+  const profileLabel = catalogProfileLabel(profile);
+  const lines = [
+    '<exercise_catalog>',
+    profileLabel
+      ? `canonicalName САМО отдолу (${profileLabel} — филтрирано по ниво, пол и оборудване):`
+      : 'canonicalName САМО отдолу (филтрирано по профила и constraints):',
+  ];
   let total = 0;
 
   for (const g of orderedGroups) {
@@ -493,12 +504,7 @@ export function buildExerciseCatalogSnippet(index, profile, allowedEquipment = n
     const items = groups.get(g);
     if (!items?.length) continue;
     const slice = items.slice(0, Math.min(maxPerGroup, remaining));
-    const part = slice.map((e) => {
-      const flags = (e.flags || []).slice(0, 4).join(',') || '-';
-      const gf = e.gf ?? 70;
-      const gear = (e.gear || inferRequiredGear(e.name, e.equipment || e.equipNorm)).slice(0, 3).join('+') || 'floor';
-      return `${e.name}|d${e.diff ?? 2}|gf${gf}|${gear}|${flags}`;
-    }).join(', ');
+    const part = slice.map((e) => e.name).join(', ');
     lines.push(`${g}: ${part}`);
     total += slice.length;
   }

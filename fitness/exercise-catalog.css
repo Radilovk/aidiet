@@ -75,3 +75,8 @@
 .ec-editor-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
 .ec-muted { color: var(--text-gray, #64748b); font-size: 0.78rem; }
 .ec-hidden { display: none !important; }
+.ec-criteria { margin-bottom: 14px; }
+.ec-criteria summary { cursor: pointer; font-weight: 700; font-size: 0.9rem; padding: 2px 0; }
+.ec-criteria dl { margin: 10px 0 0; font-size: 0.82rem; line-height: 1.45; }
+.ec-criteria dt { font-weight: 700; margin-top: 8px; color: #334155; }
+.ec-criteria dd { margin: 4px 0 0; color: var(--text-gray, #64748b); }

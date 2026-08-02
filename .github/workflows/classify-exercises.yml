@@ -1,0 +1,33 @@
+name: Classify exercises (EFP v2)
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: Max exercises (0 = all)
+        required: false
+        default: '0'
+
+jobs:
+  classify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: AI classify exercises
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: gemini-2.5-flash
+        run: |
+          LIMIT_FLAG=""
+          if [ "${{ inputs.limit }}" != "0" ]; then LIMIT_FLAG="--limit=${{ inputs.limit }}"; fi
+          node fitness/scripts/classify-exercises.mjs --force $LIMIT_FLAG
+      - name: Commit curated metadata
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add fitness/data/exercise-metadata.json
+          git diff --staged --quiet || git commit -m "chore(fitness): update curated EFP metadata (AI v2)"
+          git push

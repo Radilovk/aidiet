@@ -1,35 +1,33 @@
 #!/usr/bin/env node
 /**
- * Offline batch класификация на упражнения (EFP).
+ * Пълна AI класификация на 1324 упражнения (EFP v2).
  * GEMINI_API_KEY=... node fitness/scripts/classify-exercises.mjs [--force] [--limit N]
+ *
+ * Без GEMINI_API_KEY: node fitness/scripts/run-production-classify-loop.mjs
  */
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   fetchExerciseDataset,
-  chunkBatches,
   classifyBatchResilient,
   classificationStats,
   listPendingClassifications,
-  CLASSIFY_BATCH_SIZE,
   classifyContentHash,
 } from '../exercise-classify-batch.js';
 import { pickInstructionsEn } from '../exercise-translations.js';
-import { heuristicClassification } from '../exercise-metadata.js';
-import { applyMetadataCorrections } from '../exercise-tags.js';
+import { EFP_VERSION } from '../exercise-efp-rubric.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const outFile = join(root, 'data', 'exercise-metadata.json');
 
 const force = process.argv.includes('--force');
-const heuristicOnly = process.argv.includes('--heuristic-only');
 const limitArg = process.argv.find((a) => a.startsWith('--limit='));
 const limit = limitArg ? Number(limitArg.split('=')[1]) : 0;
 
 const apiKey = process.env.GEMINI_API_KEY;
-if (!heuristicOnly && !apiKey) {
-  console.error('GEMINI_API_KEY липсва (или ползвай --heuristic-only)');
+if (!apiKey) {
+  console.error('GEMINI_API_KEY липсва. Ползвай: node fitness/scripts/run-production-classify-loop.mjs');
   process.exit(1);
 }
 
@@ -41,46 +39,26 @@ try {
 } catch { /* първи run */ }
 
 let pending = listPendingClassifications(all, existing, { force, limit });
-console.log(`Pending: ${pending.length} / ${all.length}${heuristicOnly ? ' (heuristic-only)' : ''}`);
+console.log(`EFP v${EFP_VERSION} — pending: ${pending.length} / ${all.length}`);
 
-if (!heuristicOnly) {
-const batches = chunkBatches(pending, CLASSIFY_BATCH_SIZE);
 const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+let done = 0;
 
-for (let i = 0; i < batches.length; i++) {
-  const batch = batches[i];
-  process.stdout.write(`Batch ${i + 1}/${batches.length} (${batch.length})… `);
-  const chunk = await classifyBatchResilient(apiKey, batch, model);
-  Object.assign(existing, chunk);
-  mkdirSync(dirname(outFile), { recursive: true });
-  writeFileSync(outFile, JSON.stringify(existing, null, 0));
-  console.log(`+${Object.keys(chunk).length} (total ${Object.keys(existing).length})`);
-}
-}
-
-// Heuristic fallback за останалите (или пълен rebuild при --heuristic-only --force)
-for (const ex of all) {
+for (const ex of pending) {
   const id = String(ex.id);
-  if (!existing[id] || (heuristicOnly && force)) {
-    const h = heuristicClassification(ex);
-    const corrected = applyMetadataCorrections(ex, h);
-    const en = pickInstructionsEn(ex.instructions);
-    existing[id] = {
-      diff: corrected.diff,
-      gf: corrected.gf,
-      gm: corrected.gm,
-      flags: corrected.flags,
-      gear: corrected.gear,
-      effectiveEquipNorm: corrected.effectiveEquipNorm,
-      sourceHash: classifyContentHash(ex.name || '', ex.equipment || '', en),
-      classifiedAt: new Date().toISOString(),
-      heuristicOnly: true,
-    };
+  process.stdout.write(`[${done + 1}/${pending.length}] ${ex.name}… `);
+  try {
+    const chunk = await classifyBatchResilient(apiKey, [ex], model);
+    Object.assign(existing, chunk);
+    mkdirSync(dirname(outFile), { recursive: true });
+    writeFileSync(outFile, JSON.stringify(existing, null, 0));
+    console.log(`d${chunk[id]?.diff} gf${chunk[id]?.gf} gm${chunk[id]?.gm}`);
+    done++;
+  } catch (e) {
+    console.log(`FAIL: ${e.message}`);
   }
+  await new Promise((r) => setTimeout(r, 200));
 }
-
-mkdirSync(dirname(outFile), { recursive: true });
-writeFileSync(outFile, JSON.stringify(existing, null, 0));
 
 const stats = classificationStats(all, existing);
 console.log('Done:', stats, '→', outFile);

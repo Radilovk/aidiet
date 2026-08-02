@@ -14,14 +14,15 @@ export const PLAN_SYSTEM_CORE = `Български S&C треньор → се�
 - <dsl_spec> = задължителна седмична архитектура (split, day types, session budget, invariants)
 - <program_spec> = допълнителни сигнали от анкетата
 - Всяко решение обосновай: summary (обща логика), weeklySplit (защо този split), focus на всеки трен. ден (защо тази сесия днес)
-- canonicalName САМО от <exercise_catalog>; equipmentHint от <equipment>; d≤maxDiff от program_spec
-- ЗАБРАНЕНО: упражнение извън каталога, с d>maxDiff или с оборудване/уред извън constraints
+- canonicalName САМО от <exercise_catalog>; equipmentHint от <equipment>
+- <exercise_catalog> е вече филтриран по ниво, пол и оборудване — не добавяй упражнения извън него
+- ЗАБРАНЕНО: упражнение извън каталога или с оборудване/уред извън constraints
 
 HARD-VETO: <constraints>; болка/забрана → 0 натоварване на зоната
 
 ЛОГИКА: нищо случайно — всяка сесия трябва да следва от цел, ограничения, оборудване и възстановяване.
-ИЗБОР УПР.: при равни кандидати в <exercise_catalog> — най-просто оборудване (СТ>дъмбел>пудовка>кабел>машина>щанга), най-нисък d, естествено движение.
-АЛТЕРНАТИВИ (системата ги генерира): същата модалност, мускулна група и d — без mobility/cardio при сила.
+ИЗБОР УПР.: при равни кандидати в <exercise_catalog> — най-просто оборудване (СТ>дъмбел>пудовка>кабел>машина>щанга), естествено движение.
+АЛТЕРНАТИВИ (системата ги генерира): същата модалност и мускулна група — без mobility/cardio при сила.
 
 ИМЕНА: displayName BG | canonicalName/equipmentHint/bodyPart EN
 Bench Press → „Избутване от лежанка“ (НЕ „лег преса“). Leg Press → „Преса за крака“. Утежни/олекоти.
@@ -58,7 +59,7 @@ export const SESSION_STRUCTURE_RETRY_HINT = `
 
 export const DIFF_RETRY_HINT = `
 
-КОРЕКЦИЯ: само упражнения с d≤maxDiff от program_spec; canonicalName от каталога. JSON само.`;
+КОРЕКЦИЯ: canonicalName само от <exercise_catalog> (вече филтриран). JSON само.`;
 
 export const DSL_RETRY_HINT = `
 

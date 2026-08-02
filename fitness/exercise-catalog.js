@@ -12,6 +12,7 @@ export const KNOWN_FLAGS = [
   'compound', 'isolation', 'barbell', 'machine', 'bodyweight', 'true_bodyweight',
   'mislabeled_bw', 'cardio', 'glute', 'press', 'olympic', 'gymnastics', 'suspension',
   'rings', 'pull_bar', 'parallel_bars', 'beginner_safe', 'home_friendly', 'advanced',
+  'gender_variant',
   'excluded',
 ];
 
@@ -215,6 +216,7 @@ export function normalizeCatalogPatch(patch = {}, raw = null) {
     metadata.sourceHash = classifyContentHash(raw.name || '', raw.equipment || '', en);
     metadata.classifiedAt = new Date().toISOString();
     metadata.manualEdit = true;
+    metadata.manual = true;
   }
   if (raw && hasTr) {
     translation.sourceHash = contentHash(raw.name || '', pickInstructionsEn(raw.instructions));
