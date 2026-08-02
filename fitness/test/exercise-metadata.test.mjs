@@ -79,14 +79,18 @@ test('exerciseProfileFromContext: админ бриф без answers.experience'
   assert.ok(p.minGf >= 65);
 });
 
-test('buildExerciseCatalogSnippet: сортира по diff и показва maxDiff', () => {
+test('buildExerciseCatalogSnippet: сортира по diff, без EFP индекси в prompt', () => {
   const index = [
     { name: 'Hard Move', diff: 3, gf: 70, gm: 70, equipNorm: 'barbell', targetNorm: 'chest' },
     { name: 'Easy Move', diff: 1, gf: 80, gm: 70, equipNorm: 'cable', targetNorm: 'chest' },
   ];
   const profile = exerciseProfileFromAnswers({ gender: 'Мъж', experience: 'Напреднал' });
   const catalog = buildExerciseCatalogSnippet(index, profile);
-  assert.ok(catalog.includes('d≤3'));
+  assert.ok(catalog.includes('филтрирано'));
+  assert.ok(catalog.includes('Easy Move'));
+  assert.ok(catalog.includes('Hard Move'));
+  assert.ok(!catalog.includes('|d'));
+  assert.ok(!catalog.includes('gf'));
   assert.ok(catalog.indexOf('Easy Move') < catalog.indexOf('Hard Move'));
 });
 
@@ -103,8 +107,11 @@ test('fitsExerciseProfile + catalog', () => {
 
   const catalog = buildExerciseCatalogSnippet(index, profile);
   assert.ok(catalog.includes('<exercise_catalog>'));
+  assert.ok(catalog.includes('начинаещо ниво'));
+  assert.ok(catalog.includes('жена'));
   assert.ok(catalog.includes('kickback'));
   assert.ok(!catalog.includes('bench press'));
+  assert.ok(!catalog.includes('|d'));
 });
 
 test('inferExerciseModality + filter по mobility', () => {

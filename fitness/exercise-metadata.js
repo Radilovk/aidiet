@@ -10,7 +10,6 @@ import { passesApparatusFilter } from './equipment-apparatus.js';
 import {
   applyMetadataCorrections,
   inferExerciseTraits,
-  inferRequiredGear,
   passesBeginnerSafety,
   passesGearFilter,
 } from './exercise-tags.js';
@@ -438,9 +437,21 @@ function groupKey(entry) {
   return 'other';
 }
 
+/** Кратък етикет за филтрирания профил — само за заглавие на каталога. */
+function catalogProfileLabel(profile) {
+  if (!profile) return '';
+  const bits = [];
+  if (profile.maxDiff === 1) bits.push('начинаещо ниво');
+  else if (profile.maxDiff === 2) bits.push('средно ниво');
+  else if (profile.maxDiff === 3) bits.push('напреднало ниво');
+  if (profile.isFemale) bits.push('жена');
+  else if (profile.isMale) bits.push('мъж');
+  return bits.join(', ');
+}
+
 /**
- * Компактен каталог за AI prompt (~2KB).
- * canonicalName = entry.name (EN от dataset).
+ * Минимален каталог за AI prompt — само canonicalName (EN).
+ * EFP (diff/gf/gm/flags) се прилага server-side в filterExercises(); не се праща на модела.
  * opts.modalities — активните dayFocus типове в седмицата (от ProgramSpec);
  * филтрира и подрежда каталога така, че mobility/cardio/hiit дните да имат
  * реални, релевантни упражнения вместо силови машини по подразбиране.
@@ -474,8 +485,13 @@ export function buildExerciseCatalogSnippet(index, profile, allowedEquipment = n
   const priorityGroups = (modalities || []).filter((m) => MODALITY_GROUPS.includes(m));
   const orderedGroups = [...new Set([...priorityGroups, ...GROUP_ORDER])];
 
-  const maxDiff = profile?.maxDiff;
-  const lines = ['<exercise_catalog>', `canonicalName САМО отдолу${maxDiff ? `; d≤${maxDiff}` : ''} (d=1 лесно|2 средно|3 трудно, gf=жена):`];
+  const profileLabel = catalogProfileLabel(profile);
+  const lines = [
+    '<exercise_catalog>',
+    profileLabel
+      ? `canonicalName САМО отдолу (${profileLabel} — филтрирано по ниво, пол и оборудване):`
+      : 'canonicalName САМО отдолу (филтрирано по профила и constraints):',
+  ];
   let total = 0;
 
   for (const g of orderedGroups) {
@@ -484,12 +500,7 @@ export function buildExerciseCatalogSnippet(index, profile, allowedEquipment = n
     const items = groups.get(g);
     if (!items?.length) continue;
     const slice = items.slice(0, Math.min(maxPerGroup, remaining));
-    const part = slice.map((e) => {
-      const flags = (e.flags || []).slice(0, 4).join(',') || '-';
-      const gf = e.gf ?? 70;
-      const gear = (e.gear || inferRequiredGear(e.name, e.equipment || e.equipNorm)).slice(0, 3).join('+') || 'floor';
-      return `${e.name}|d${e.diff ?? 2}|gf${gf}|${gear}|${flags}`;
-    }).join(', ');
+    const part = slice.map((e) => e.name).join(', ');
     lines.push(`${g}: ${part}`);
     total += slice.length;
   }
