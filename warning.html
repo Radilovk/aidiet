@@ -478,7 +478,7 @@
                 // Error tone — at least one high-severity issue, must go back
                 document.querySelector('.warning-title').textContent = 'Установени Проблеми';
                 document.querySelector('.warning-subtitle').textContent =
-                    'Нашият AI анализ установи потенциални проблеми с въведената информация. Моля, прегледайте ги и коригирайте данните си.';
+                    'Открихме проблеми с въведената информация. Моля, прегледайте ги и коригирайте данните си — отговорите ви са запазени.';
             }
 
             // Category icons mapping
@@ -600,14 +600,9 @@
         }
 
         function goBackToQuestionnaire() {
-            // Determine which questionnaire to return to
-            const source = localStorage.getItem('validationSource');
-            localStorage.removeItem('validationSource');
-            if (source === 'questionnaire2') {
-                window.location.href = 'questionnaire2.html';
-            } else {
-                window.location.href = 'questionnaire.html';
-            }
+            const source = localStorage.getItem('validationSource') || 'questionnaire2';
+            localStorage.setItem('validationSource', source);
+            window.location.href = source === 'questionnaire2' ? 'questionnaire2.html' : 'questionnaire.html';
         }
 
         function proceedDespiteWarnings() {

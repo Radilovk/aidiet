@@ -9252,6 +9252,271 @@ function profileToKvArray(profile) {
   return [profile.kcal, profile.p, profile.c, profile.f];
 }
 
+// questionnaire-validation.mjs
+var DEFAULT_DATA_VALIDATION_LIMITS = {
+  minAge: 13,
+  maxAge: 100,
+  minWeightKg: 20,
+  maxWeightKg: 300,
+  minHeightCm: 100,
+  maxHeightCm: 250,
+  minBmi: 10,
+  maxBmi: 80,
+  maxWeightLossKg: 50,
+  maxWeightLossPercent: 0.5
+};
+var DEFAULT_CONTRADICTION_RULES = {
+  underweightLoss: { enabled: true, bmiThreshold: 18.5, canProceed: true },
+  thyroidAggressiveDeficit: { enabled: true, tdeeFloor: 0.75, canProceed: true },
+  anemiaPlanBased: { enabled: true, canProceed: true }
+};
+var OFFENSIVE_PATTERNS = [
+  /(педал|курв|мръсн|идиот|глупа[кц]|дебил|тъп[аи])/i,
+  /(viagra|casino|xxx|porn)/i,
+  /^(test|тест|asdf|qwerty|12345|aaa|zzz)$/i
+];
+function parseNumber(value) {
+  if (value == null || value === "") return NaN;
+  const n = typeof value === "number" ? value : parseFloat(String(value).replace(",", "."));
+  return Number.isFinite(n) ? n : NaN;
+}
+function calculateBmiFromMetrics(weightKg, heightCm) {
+  if (!Number.isFinite(weightKg) || !Number.isFinite(heightCm) || heightCm <= 0) return null;
+  const heightM = heightCm / 100;
+  return weightKg / (heightM * heightM);
+}
+function calculateBmi(data) {
+  return calculateBmiFromMetrics(parseNumber(data.weight), parseNumber(data.height));
+}
+function resolveLimits(config) {
+  const dv = (
+    /** @type {any} */
+    config?.dataValidation || DEFAULT_DATA_VALIDATION_LIMITS
+  );
+  return {
+    minAge: dv.minAge ?? DEFAULT_DATA_VALIDATION_LIMITS.minAge,
+    maxAge: dv.maxAge ?? DEFAULT_DATA_VALIDATION_LIMITS.maxAge,
+    minWeightKg: dv.minWeightKg ?? DEFAULT_DATA_VALIDATION_LIMITS.minWeightKg,
+    maxWeightKg: dv.maxWeightKg ?? DEFAULT_DATA_VALIDATION_LIMITS.maxWeightKg,
+    minHeightCm: dv.minHeightCm ?? DEFAULT_DATA_VALIDATION_LIMITS.minHeightCm,
+    maxHeightCm: dv.maxHeightCm ?? DEFAULT_DATA_VALIDATION_LIMITS.maxHeightCm,
+    minBmi: dv.minBmi ?? DEFAULT_DATA_VALIDATION_LIMITS.minBmi,
+    maxBmi: dv.maxBmi ?? DEFAULT_DATA_VALIDATION_LIMITS.maxBmi,
+    maxWeightLossKg: dv.maxWeightLossKg ?? DEFAULT_DATA_VALIDATION_LIMITS.maxWeightLossKg,
+    maxWeightLossPercent: dv.maxWeightLossPercent ?? DEFAULT_DATA_VALIDATION_LIMITS.maxWeightLossPercent
+  };
+}
+function validateDataAdequacyIssues(data, config) {
+  const limits = resolveLimits(config);
+  const issues = [];
+  const weight = parseNumber(data.weight);
+  const height = parseNumber(data.height);
+  const age = parseInt(String(data.age ?? ""), 10);
+  if (!Number.isFinite(weight) || weight < limits.minWeightKg || weight > limits.maxWeightKg) {
+    issues.push({
+      category: "\u041D\u0415\u0412\u0410\u041B\u0418\u0414\u041D\u0418 \u0414\u0410\u041D\u041D\u0418",
+      description: `\u0422\u0435\u0433\u043B\u043E\u0442\u043E \u0442\u0440\u044F\u0431\u0432\u0430 \u0434\u0430 \u0431\u044A\u0434\u0435 \u043C\u0435\u0436\u0434\u0443 ${limits.minWeightKg} \u0438 ${limits.maxWeightKg} \u043A\u0433. \u041C\u043E\u043B\u044F, \u0432\u044A\u0432\u0435\u0434\u0435\u0442\u0435 \u0440\u0435\u0430\u043B\u0438\u0441\u0442\u0438\u0447\u043D\u0430 \u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442.`,
+      severity: "high",
+      field: "weight"
+    });
+  }
+  if (!Number.isFinite(height) || height < limits.minHeightCm || height > limits.maxHeightCm) {
+    if (Number.isFinite(height) && height > 0 && height < 50) {
+      issues.push({
+        category: "\u041D\u0415\u041B\u041E\u0413\u0418\u0427\u041D\u0410 \u0418\u041D\u0424\u041E\u0420\u041C\u0410\u0426\u0418\u042F",
+        description: `\u0420\u044A\u0441\u0442\u044A\u0442 \u0438\u0437\u0433\u043B\u0435\u0436\u0434\u0430 \u0432 \u043C\u0435\u0442\u0440\u0438 (${height}), \u0430 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u044A\u0442 \u043E\u0447\u0430\u043A\u0432\u0430 \u0441\u0430\u043D\u0442\u0438\u043C\u0435\u0442\u0440\u0438. \u041D\u0430\u043F\u0440. \u0437\u0430 1.65 \u043C \u0432\u044A\u0432\u0435\u0434\u0435\u0442\u0435 165.`,
+        severity: "high",
+        field: "height"
+      });
+    } else {
+      issues.push({
+        category: "\u041D\u0415\u0412\u0410\u041B\u0418\u0414\u041D\u0418 \u0414\u0410\u041D\u041D\u0418",
+        description: `\u0412\u0438\u0441\u043E\u0447\u0438\u043D\u0430\u0442\u0430 \u0442\u0440\u044F\u0431\u0432\u0430 \u0434\u0430 \u0431\u044A\u0434\u0435 \u043C\u0435\u0436\u0434\u0443 ${limits.minHeightCm} \u0438 ${limits.maxHeightCm} \u0441\u043C. \u041C\u043E\u043B\u044F, \u0432\u044A\u0432\u0435\u0434\u0435\u0442\u0435 \u0440\u0435\u0430\u043B\u0438\u0441\u0442\u0438\u0447\u043D\u0430 \u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442.`,
+        severity: "high",
+        field: "height"
+      });
+    }
+  }
+  if (!Number.isFinite(age) || age < limits.minAge || age > limits.maxAge) {
+    issues.push({
+      category: "\u041D\u0415\u0412\u0410\u041B\u0418\u0414\u041D\u0418 \u0414\u0410\u041D\u041D\u0418",
+      description: `\u0412\u044A\u0437\u0440\u0430\u0441\u0442\u0442\u0430 \u0442\u0440\u044F\u0431\u0432\u0430 \u0434\u0430 \u0431\u044A\u0434\u0435 \u043C\u0435\u0436\u0434\u0443 ${limits.minAge} \u0438 ${limits.maxAge} \u0433\u043E\u0434\u0438\u043D\u0438. \u041C\u043E\u043B\u044F, \u0432\u044A\u0432\u0435\u0434\u0435\u0442\u0435 \u0440\u0435\u0430\u043B\u0438\u0441\u0442\u0438\u0447\u043D\u0430 \u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442.`,
+      severity: "high",
+      field: "age"
+    });
+  }
+  if (Number.isFinite(age) && age < 13) {
+    issues.push({
+      category: "\u041D\u0415\u0412\u0410\u041B\u0418\u0414\u041D\u0418 \u0414\u0410\u041D\u041D\u0418",
+      description: "\u0423\u0441\u043B\u0443\u0433\u0430\u0442\u0430 \u0435 \u0434\u043E\u0441\u0442\u044A\u043F\u043D\u0430 \u0441\u0430\u043C\u043E \u0437\u0430 \u043B\u0438\u0446\u0430 \u043D\u0430 13 \u0438\u043B\u0438 \u043F\u043E\u0432\u0435\u0447\u0435 \u0433\u043E\u0434\u0438\u043D\u0438.",
+      severity: "high",
+      field: "age"
+    });
+  }
+  if (Number.isFinite(weight) && Number.isFinite(height) && weight >= limits.minWeightKg && weight <= limits.maxWeightKg && height >= limits.minHeightCm && height <= limits.maxHeightCm) {
+    const bmi = calculateBmiFromMetrics(weight, height);
+    if (bmi != null && bmi < limits.minBmi) {
+      issues.push({
+        category: "\u041D\u0415\u041B\u041E\u0413\u0418\u0427\u041D\u0410 \u0418\u041D\u0424\u041E\u0420\u041C\u0410\u0426\u0418\u042F",
+        description: "\u0412\u044A\u0432\u0435\u0434\u0435\u043D\u0438\u0442\u0435 \u0434\u0430\u043D\u043D\u0438 \u0432\u043E\u0434\u044F\u0442 \u0434\u043E \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0438 \u043D\u0435\u0432\u044A\u0437\u043C\u043E\u0436\u043D\u043E \u043D\u0438\u0441\u043A\u043E BMI. \u041C\u043E\u043B\u044F, \u043F\u0440\u043E\u0432\u0435\u0440\u0435\u0442\u0435 \u0442\u0435\u0433\u043B\u043E\u0442\u043E \u0438 \u0432\u0438\u0441\u043E\u0447\u0438\u043D\u0430\u0442\u0430.",
+        severity: "high",
+        field: "weight"
+      });
+    } else if (bmi != null && bmi > limits.maxBmi) {
+      issues.push({
+        category: "\u041D\u0415\u041B\u041E\u0413\u0418\u0427\u041D\u0410 \u0418\u041D\u0424\u041E\u0420\u041C\u0410\u0426\u0418\u042F",
+        description: "\u0412\u044A\u0432\u0435\u0434\u0435\u043D\u0438\u0442\u0435 \u0434\u0430\u043D\u043D\u0438 \u0432\u043E\u0434\u044F\u0442 \u0434\u043E \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0438 \u043D\u0435\u0432\u044A\u0437\u043C\u043E\u0436\u043D\u043E \u0432\u0438\u0441\u043E\u043A\u043E BMI. \u041C\u043E\u043B\u044F, \u043F\u0440\u043E\u0432\u0435\u0440\u0435\u0442\u0435 \u0442\u0435\u0433\u043B\u043E\u0442\u043E \u0438 \u0432\u0438\u0441\u043E\u0447\u0438\u043D\u0430\u0442\u0430.",
+        severity: "high",
+        field: "weight"
+      });
+    }
+  }
+  const goalStr = normalizeGoal(data.goal);
+  const lossKg = parseNumber(data.lossKg);
+  if (goalStr.includes("\u043E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435") && Number.isFinite(lossKg) && Number.isFinite(weight)) {
+    if (lossKg > weight * limits.maxWeightLossPercent) {
+      issues.push({
+        category: "\u041D\u0415\u0420\u0415\u0410\u041B\u0418\u0421\u0422\u0418\u0427\u041D\u0410 \u0426\u0415\u041B",
+        description: `\u0426\u0435\u043B\u0435\u0432\u043E\u0442\u043E \u043E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435 \u0435 \u0442\u0432\u044A\u0440\u0434\u0435 \u0433\u043E\u043B\u044F\u043C\u043E (\u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0442 ${limits.maxWeightLossPercent * 100}% \u043E\u0442 \u0442\u0435\u043B\u0435\u0441\u043D\u043E\u0442\u043E \u0442\u0435\u0433\u043B\u043E). \u041C\u043E\u043B\u044F, \u0437\u0430\u0434\u0430\u0439\u0442\u0435 \u043F\u043E-\u0440\u0435\u0430\u043B\u0438\u0441\u0442\u0438\u0447\u043D\u0430 \u0446\u0435\u043B.`,
+        severity: "high",
+        field: "lossKg"
+      });
+    }
+    if (lossKg > limits.maxWeightLossKg) {
+      issues.push({
+        category: "\u041D\u0415\u0420\u0415\u0410\u041B\u0418\u0421\u0422\u0418\u0427\u041D\u0410 \u0426\u0415\u041B",
+        description: `\u0426\u0435\u043B\u0435\u0432\u043E\u0442\u043E \u043E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435 \u043D\u0435 \u043C\u043E\u0436\u0435 \u0434\u0430 \u043D\u0430\u0434\u0432\u0438\u0448\u0430\u0432\u0430 ${limits.maxWeightLossKg} \u043A\u0433 \u0432 \u0440\u0430\u043C\u043A\u0438\u0442\u0435 \u043D\u0430 \u0435\u0434\u0438\u043D \u043F\u043B\u0430\u043D. \u041C\u043E\u043B\u044F, \u0437\u0430\u0434\u0430\u0439\u0442\u0435 \u043F\u043E-\u0443\u043C\u0435\u0440\u0435\u043D\u0430 \u043D\u0430\u0447\u0430\u043B\u043D\u0430 \u0446\u0435\u043B.`,
+        severity: "high",
+        field: "lossKg"
+      });
+    }
+    if (lossKg <= 0) {
+      issues.push({
+        category: "\u041D\u0415\u0412\u0410\u041B\u0418\u0414\u041D\u0418 \u0414\u0410\u041D\u041D\u0418",
+        description: "\u0416\u0435\u043B\u0430\u043D\u043E\u0442\u043E \u043E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435 \u0442\u0440\u044F\u0431\u0432\u0430 \u0434\u0430 \u0435 \u043F\u043E\u043B\u043E\u0436\u0438\u0442\u0435\u043B\u043D\u043E \u0447\u0438\u0441\u043B\u043E \u0432 \u043A\u0438\u043B\u043E\u0433\u0440\u0430\u043C\u0438.",
+        severity: "high",
+        field: "lossKg"
+      });
+    }
+  }
+  const textFields = [
+    { field: "name", value: data.name },
+    { field: "dietDislike", value: data.dietDislike },
+    { field: "dietLove", value: data.dietLove },
+    { field: "additionalNotes", value: data.additionalNotes },
+    { field: "medicationsDetails", value: data.medicationsDetails },
+    { field: "weightChangeDetails", value: data.weightChangeDetails }
+  ];
+  for (const { field, value } of textFields) {
+    if (value && typeof value === "string") {
+      for (const pattern of OFFENSIVE_PATTERNS) {
+        if (pattern.test(value.trim())) {
+          issues.push({
+            category: "\u041D\u0415\u0412\u0410\u041B\u0418\u0414\u041D\u0418 \u0414\u0410\u041D\u041D\u0418",
+            description: "\u0412\u044A\u0432\u0435\u0434\u0435\u043D\u0430\u0442\u0430 \u0438\u043D\u0444\u043E\u0440\u043C\u0430\u0446\u0438\u044F \u0441\u044A\u0434\u044A\u0440\u0436\u0430 \u043D\u0435\u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u043E \u0441\u044A\u0434\u044A\u0440\u0436\u0430\u043D\u0438\u0435. \u041C\u043E\u043B\u044F, \u043F\u0440\u043E\u0432\u0435\u0440\u0435\u0442\u0435 \u0432\u0441\u0438\u0447\u043A\u0438 \u043F\u043E\u043B\u0435\u0442\u0430 \u0438 \u0432\u044A\u0432\u0435\u0434\u0435\u0442\u0435 \u043A\u043E\u0440\u0435\u043A\u0442\u043D\u0430 \u0438\u043D\u0444\u043E\u0440\u043C\u0430\u0446\u0438\u044F.",
+            severity: "high",
+            field
+          });
+          break;
+        }
+      }
+      if (issues.some((i) => i.field === field)) break;
+    }
+  }
+  const errorMessage = issues.length ? "\u041C\u043E\u043B\u044F, \u043F\u0440\u043E\u0432\u0435\u0440\u0435\u0442\u0435 \u0432\u044A\u0432\u0435\u0434\u0435\u043D\u0438\u0442\u0435 \u0434\u0430\u043D\u043D\u0438:\n\n" + issues.map((i) => i.description).join("\n\n") : "";
+  return { issues, errorMessage };
+}
+function normalizeGoal(goal) {
+  if (Array.isArray(goal)) return String(goal[0] || "").toLowerCase().trim();
+  return String(goal || "").toLowerCase().trim();
+}
+function asStringArray(value) {
+  if (Array.isArray(value)) return value.map((v) => String(v));
+  if (value == null || value === "") return [];
+  return [String(value)];
+}
+function detectGoalContradictionIssues(data, config) {
+  const bmi = calculateBmi(data);
+  const goalStr = normalizeGoal(data.goal);
+  if (!bmi || !goalStr) {
+    return { hasContradiction: false, canProceed: true, warningData: {}, issues: [] };
+  }
+  const rules = (
+    /** @type {any} */
+    config?.contradictionRules || DEFAULT_CONTRADICTION_RULES
+  );
+  const uwRule = rules.underweightLoss ?? DEFAULT_CONTRADICTION_RULES.underweightLoss;
+  const anemiaRule = rules.anemiaPlanBased ?? DEFAULT_CONTRADICTION_RULES.anemiaPlanBased;
+  const issues = [];
+  let warningData = {};
+  const bmiThreshold = uwRule.bmiThreshold ?? 18.5;
+  if (uwRule.enabled !== false && bmi < bmiThreshold && goalStr.includes("\u043E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435")) {
+    const canProceed = uwRule.canProceed !== false;
+    warningData = {
+      type: "underweight_loss",
+      canProceed,
+      bmi: bmi.toFixed(1),
+      currentCategory: bmi < 16 ? "\u0417\u043D\u0430\u0447\u0438\u0442\u0435\u043B\u043D\u043E \u043F\u043E\u0434\u043D\u043E\u0440\u043C\u0435\u043D\u043E \u0442\u0435\u0433\u043B\u043E" : "\u041F\u043E\u0434\u043D\u043E\u0440\u043C\u0435\u043D\u043E \u0442\u0435\u0433\u043B\u043E",
+      goalCategory: Array.isArray(data.goal) ? data.goal[0] : data.goal,
+      risks: [
+        "\u041D\u0435\u0434\u043E\u0445\u0440\u0430\u043D\u0432\u0430\u043D\u0435 \u0438 \u0434\u0435\u0444\u0438\u0446\u0438\u0442 \u043D\u0430 \u0432\u0430\u0436\u043D\u0438 \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0438 \u0432\u0435\u0449\u0435\u0441\u0442\u0432\u0430",
+        "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435 \u043D\u0430 \u0438\u043C\u0443\u043D\u043D\u0430\u0442\u0430 \u0441\u0438\u0441\u0442\u0435\u043C\u0430",
+        "\u0417\u0430\u0433\u0443\u0431\u0430 \u043D\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430 \u0438 \u043A\u043E\u0441\u0442\u043D\u0430 \u043F\u043B\u044A\u0442\u043D\u043E\u0441\u0442",
+        "\u0425\u043E\u0440\u043C\u043E\u043D\u0430\u043B\u0435\u043D \u0434\u0438\u0441\u0431\u0430\u043B\u0430\u043D\u0441",
+        "\u041F\u043E\u0432\u0438\u0448\u0435\u043D \u0440\u0438\u0441\u043A \u043E\u0442 \u0437\u0434\u0440\u0430\u0432\u043E\u0441\u043B\u043E\u0432\u043D\u0438 \u0443\u0441\u043B\u043E\u0436\u043D\u0435\u043D\u0438\u044F"
+      ],
+      recommendation: "\u041F\u0440\u0438 \u0432\u0430\u0448\u0435\u0442\u043E \u0442\u0435\u043A\u0443\u0449\u043E \u0442\u0435\u0433\u043B\u043E \u0446\u0435\u043B\u0442\u0430 \u0437\u0430 \u043E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435 \u0435 \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0438 \u043D\u0435\u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u0430 \u0438 \u043E\u043F\u0430\u0441\u043D\u0430. \u041F\u0440\u0435\u043F\u043E\u0440\u044A\u0447\u0432\u0430\u043C\u0435 \u0434\u0430 \u043A\u043E\u043D\u0441\u0443\u043B\u0442\u0438\u0440\u0430\u0442\u0435 \u043B\u0435\u043A\u0430\u0440 \u0438 \u0434\u0430 \u0440\u0430\u0431\u043E\u0442\u0438\u0442\u0435 \u0437\u0430 \u043F\u043E\u0441\u0442\u0438\u0433\u0430\u043D\u0435 \u043D\u0430 \u0437\u0434\u0440\u0430\u0432\u043E\u0441\u043B\u043E\u0432\u043D\u043E \u0442\u0435\u0433\u043B\u043E \u0447\u0440\u0435\u0437 \u0431\u0430\u043B\u0430\u043D\u0441\u0438\u0440\u0430\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435."
+    };
+    issues.push({
+      category: "\u041E\u041F\u0410\u0421\u041D\u0410 \u0426\u0415\u041B",
+      description: warningData.recommendation,
+      severity: canProceed ? "medium" : "high",
+      field: "goal"
+    });
+    return { hasContradiction: true, canProceed, warningData, issues };
+  }
+  const medical = asStringArray(data.medicalConditions);
+  if (anemiaRule.enabled !== false && medical.includes("\u0410\u043D\u0435\u043C\u0438\u044F") && asStringArray(data.dietPreference).some((p) => p.includes("\u0412\u0435\u0433\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u0430") || p.includes("\u0412\u0435\u0433\u0430\u043D"))) {
+    const canProceed = anemiaRule.canProceed !== false;
+    warningData = {
+      type: "anemia_plant_based",
+      canProceed,
+      bmi: bmi.toFixed(1),
+      currentCategory: "\u0410\u043D\u0435\u043C\u0438\u044F",
+      goalCategory: Array.isArray(data.goal) ? data.goal[0] : data.goal,
+      risks: [
+        "\u0412\u043B\u043E\u0448\u0430\u0432\u0430\u043D\u0435 \u043D\u0430 \u0430\u043D\u0435\u043C\u0438\u044F\u0442\u0430 \u043F\u043E\u0440\u0430\u0434\u0438 \u043D\u0438\u0441\u043A\u043E \u0443\u0441\u0432\u043E\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u0436\u0435\u043B\u044F\u0437\u043E",
+        "\u0425\u0440\u043E\u043D\u0438\u0447\u043D\u0430 \u0443\u043C\u043E\u0440\u0430 \u0438 \u043E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435",
+        "\u0418\u043C\u0443\u043D\u043D\u0430 \u0434\u0438\u0441\u0444\u0443\u043D\u043A\u0446\u0438\u044F"
+      ],
+      recommendation: "\u041F\u0440\u0438 \u0430\u043D\u0435\u043C\u0438\u044F \u0438 \u0432\u0435\u0433\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u0430/\u0432\u0435\u0433\u0430\u043D \u0434\u0438\u0435\u0442\u0430 \u0435 \u043A\u0440\u0438\u0442\u0438\u0447\u043D\u043E \u0432\u0430\u0436\u043D\u043E \u0434\u0430 \u0441\u0435 \u043E\u0441\u0438\u0433\u0443\u0440\u0438 \u0434\u043E\u0441\u0442\u0430\u0442\u044A\u0447\u043D\u043E \u0436\u0435\u043B\u044F\u0437\u043E \u0447\u0440\u0435\u0437 \u0434\u043E\u0431\u0430\u0432\u043A\u0438 \u0438 \u043E\u043F\u0442\u0438\u043C\u0438\u0437\u0438\u0440\u0430\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435. \u0417\u0430\u0434\u044A\u043B\u0436\u0438\u0442\u0435\u043B\u043D\u0430 \u0435 \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0430 \u043A\u043E\u043D\u0441\u0443\u043B\u0442\u0430\u0446\u0438\u044F \u0438 \u043D\u0430\u0431\u043B\u044E\u0434\u0435\u043D\u0438\u0435 \u043D\u0430 \u043D\u0438\u0432\u0430\u0442\u0430 \u043D\u0430 \u0436\u0435\u043B\u044F\u0437\u043E."
+    };
+    issues.push({
+      category: "\u0420\u0418\u0421\u041A\u041E\u0412\u0410 \u041A\u041E\u041C\u0411\u0418\u041D\u0410\u0426\u0418\u042F",
+      description: warningData.recommendation,
+      severity: canProceed ? "medium" : "high",
+      field: "dietPreference"
+    });
+    return { hasContradiction: true, canProceed, warningData, issues };
+  }
+  return { hasContradiction: false, canProceed: true, warningData: {}, issues: [] };
+}
+function runDeterministicValidation(data, config) {
+  const adequacy = validateDataAdequacyIssues(data, config);
+  const contradiction = detectGoalContradictionIssues(data, config);
+  const issues = [...adequacy.issues, ...contradiction.issues];
+  const hasHigh = issues.some((i) => i.severity === "high");
+  const canProceed = !hasHigh && contradiction.canProceed !== false;
+  return {
+    isValid: issues.length === 0,
+    canProceed,
+    issues,
+    errorMessage: adequacy.errorMessage || (issues[0]?.description ?? ""),
+    warningData: contradiction.warningData,
+    hasContradiction: contradiction.hasContradiction
+  };
+}
+
 // worker.entry.js
 var MIN_AGE = 13;
 var MAX_AGE = 100;
@@ -9307,14 +9572,6 @@ var BASE_WATER_NEED_LITERS = 0.5;
 var ACTIVITY_WATER_BONUS_LITERS = 0.45;
 var TEMPERAMENT_CONFIDENCE_THRESHOLD = 80;
 var HEALTH_STATUS_UNDERESTIMATE_PERCENT = 10;
-var OFFENSIVE_PATTERNS = [
-  // Vulgar words (Cyrillic - no word boundaries, no 'g' flag)
-  /(педал|курв|мръсн|идиот|глупа[кц]|дебил|тъп[аи])/i,
-  // Spam patterns
-  /(viagra|casino|xxx|porn)/i,
-  // Test/spam data
-  /^(test|тест|asdf|qwerty|12345|aaa|zzz)$/i
-];
 var MAX_LOG_ENTRIES = 10;
 var AI_LOG_CACHE_TTL = 24 * 60 * 60;
 var AI_LOG_KV_TTL = 14 * 24 * 60 * 60;
@@ -10050,83 +10307,17 @@ function calculateSafeDeficit(tdee, goal) {
   };
 }
 function validateDataAdequacy(data, config) {
-  const errors = [];
-  const dv = config && config.dataValidation ? config.dataValidation : DEFAULT_VALIDATION_CONFIG.dataValidation;
-  const minAge = dv.minAge ?? MIN_AGE;
-  const maxAge = dv.maxAge ?? MAX_AGE;
-  const minWeightKg = dv.minWeightKg ?? MIN_WEIGHT_KG;
-  const maxWeightKg = dv.maxWeightKg ?? MAX_WEIGHT_KG;
-  const minHeightCm = dv.minHeightCm ?? MIN_HEIGHT_CM;
-  const maxHeightCm = dv.maxHeightCm ?? MAX_HEIGHT_CM;
-  const minBmi = dv.minBmi ?? MIN_BMI;
-  const maxBmi = dv.maxBmi ?? MAX_BMI;
-  const maxWeightLossKg = dv.maxWeightLossKg ?? MAX_WEIGHT_LOSS_KG;
-  const maxWeightLossPercent = dv.maxWeightLossPercent ?? MAX_WEIGHT_LOSS_PERCENT;
-  const weight = parseFloat(data.weight);
-  if (isNaN(weight) || weight < minWeightKg || weight > maxWeightKg) {
-    errors.push(`\u0422\u0435\u0433\u043B\u043E\u0442\u043E \u0442\u0440\u044F\u0431\u0432\u0430 \u0434\u0430 \u0431\u044A\u0434\u0435 \u043C\u0435\u0436\u0434\u0443 ${minWeightKg} \u0438 ${maxWeightKg} \u043A\u0433. \u041C\u043E\u043B\u044F, \u0432\u044A\u0432\u0435\u0434\u0435\u0442\u0435 \u0440\u0435\u0430\u043B\u0438\u0441\u0442\u0438\u0447\u043D\u0430 \u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442.`);
+  const { issues, errorMessage } = validateDataAdequacyIssues(data, config);
+  if (issues.length > 0) {
+    const age2 = parseInt(data.age, 10);
+    if (!isNaN(age2) && age2 >= 13 && age2 < 18) {
+      console.warn(`Minor user (age ${age2}) - parental consent required per Terms of Service`);
+    }
+    return { isValid: false, errorMessage };
   }
-  const height = parseFloat(data.height);
-  if (isNaN(height) || height < minHeightCm || height > maxHeightCm) {
-    errors.push(`\u0412\u0438\u0441\u043E\u0447\u0438\u043D\u0430\u0442\u0430 \u0442\u0440\u044F\u0431\u0432\u0430 \u0434\u0430 \u0431\u044A\u0434\u0435 \u043C\u0435\u0436\u0434\u0443 ${minHeightCm} \u0438 ${maxHeightCm} \u0441\u043C. \u041C\u043E\u043B\u044F, \u0432\u044A\u0432\u0435\u0434\u0435\u0442\u0435 \u0440\u0435\u0430\u043B\u0438\u0441\u0442\u0438\u0447\u043D\u0430 \u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442.`);
-  }
-  const age = parseInt(data.age);
-  if (isNaN(age) || age < minAge || age > maxAge) {
-    errors.push(`\u0412\u044A\u0437\u0440\u0430\u0441\u0442\u0442\u0430 \u0442\u0440\u044F\u0431\u0432\u0430 \u0434\u0430 \u0431\u044A\u0434\u0435 \u043C\u0435\u0436\u0434\u0443 ${minAge} \u0438 ${maxAge} \u0433\u043E\u0434\u0438\u043D\u0438. \u041C\u043E\u043B\u044F, \u0432\u044A\u0432\u0435\u0434\u0435\u0442\u0435 \u0440\u0435\u0430\u043B\u0438\u0441\u0442\u0438\u0447\u043D\u0430 \u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442.`);
-  }
-  if (!isNaN(age) && age < 13) {
-    errors.push("\u0423\u0441\u043B\u0443\u0433\u0430\u0442\u0430 \u0435 \u0434\u043E\u0441\u0442\u044A\u043F\u043D\u0430 \u0441\u0430\u043C\u043E \u0437\u0430 \u043B\u0438\u0446\u0430 \u043D\u0430 13 \u0438\u043B\u0438 \u043F\u043E\u0432\u0435\u0447\u0435 \u0433\u043E\u0434\u0438\u043D\u0438. \u041F\u043E\u0442\u0440\u0435\u0431\u0438\u0442\u0435\u043B\u0438 \u043F\u043E\u0434 13 \u0433. \u043D\u0435 \u043C\u043E\u0433\u0430\u0442 \u0434\u0430 \u043F\u043E\u043B\u0437\u0432\u0430\u0442 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435\u0442\u043E.");
-  }
+  const age = parseInt(data.age, 10);
   if (!isNaN(age) && age >= 13 && age < 18) {
     console.warn(`Minor user (age ${age}) - parental consent required per Terms of Service`);
-  }
-  if (!isNaN(weight) && !isNaN(height) && weight >= minWeightKg && weight <= maxWeightKg && height >= minHeightCm && height <= maxHeightCm) {
-    const heightM = height / 100;
-    const bmi = weight / (heightM * heightM);
-    if (bmi < minBmi) {
-      errors.push("\u0412\u044A\u0432\u0435\u0434\u0435\u043D\u0438\u0442\u0435 \u0434\u0430\u043D\u043D\u0438 \u0432\u043E\u0434\u044F\u0442 \u0434\u043E \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0438 \u043D\u0435\u0432\u044A\u0437\u043C\u043E\u0436\u043D\u043E \u043D\u0438\u0441\u043A\u043E BMI. \u041C\u043E\u043B\u044F, \u043F\u0440\u043E\u0432\u0435\u0440\u0435\u0442\u0435 \u0442\u0435\u0433\u043B\u043E\u0442\u043E \u0438 \u0432\u0438\u0441\u043E\u0447\u0438\u043D\u0430\u0442\u0430.");
-    } else if (bmi > maxBmi) {
-      errors.push("\u0412\u044A\u0432\u0435\u0434\u0435\u043D\u0438\u0442\u0435 \u0434\u0430\u043D\u043D\u0438 \u0432\u043E\u0434\u044F\u0442 \u0434\u043E \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0438 \u043D\u0435\u0432\u044A\u0437\u043C\u043E\u0436\u043D\u043E \u0432\u0438\u0441\u043E\u043A\u043E BMI. \u041C\u043E\u043B\u044F, \u043F\u0440\u043E\u0432\u0435\u0440\u0435\u0442\u0435 \u0442\u0435\u0433\u043B\u043E\u0442\u043E \u0438 \u0432\u0438\u0441\u043E\u0447\u0438\u043D\u0430\u0442\u0430.");
-    }
-  }
-  if (data.goal && data.goal.includes("\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435") && data.lossKg) {
-    const lossKg = parseFloat(data.lossKg);
-    if (!isNaN(lossKg) && !isNaN(weight)) {
-      if (lossKg > weight * maxWeightLossPercent) {
-        errors.push(`\u0426\u0435\u043B\u0435\u0432\u043E\u0442\u043E \u043E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435 \u0435 \u0442\u0432\u044A\u0440\u0434\u0435 \u0433\u043E\u043B\u044F\u043C\u043E (\u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0442 ${maxWeightLossPercent * 100}% \u043E\u0442 \u0442\u0435\u043B\u0435\u0441\u043D\u043E\u0442\u043E \u0442\u0435\u0433\u043B\u043E). \u041C\u043E\u043B\u044F, \u0437\u0430\u0434\u0430\u0439\u0442\u0435 \u043F\u043E-\u0440\u0435\u0430\u043B\u0438\u0441\u0442\u0438\u0447\u043D\u0430 \u0446\u0435\u043B.`);
-      }
-      if (lossKg > maxWeightLossKg) {
-        errors.push(`\u0426\u0435\u043B\u0435\u0432\u043E\u0442\u043E \u043E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435 \u043D\u0435 \u043C\u043E\u0436\u0435 \u0434\u0430 \u043D\u0430\u0434\u0432\u0438\u0448\u0430\u0432\u0430 ${maxWeightLossKg} \u043A\u0433 \u0432 \u0440\u0430\u043C\u043A\u0438\u0442\u0435 \u043D\u0430 \u0435\u0434\u0438\u043D \u043F\u043B\u0430\u043D. \u041C\u043E\u043B\u044F, \u0437\u0430\u0434\u0430\u0439\u0442\u0435 \u043F\u043E-\u0443\u043C\u0435\u0440\u0435\u043D\u0430 \u043D\u0430\u0447\u0430\u043B\u043D\u0430 \u0446\u0435\u043B.`);
-      }
-    }
-  }
-  const textFields = [
-    { field: "name", value: data.name },
-    { field: "dietDislike", value: data.dietDislike },
-    { field: "dietLove", value: data.dietLove },
-    { field: "additionalNotes", value: data.additionalNotes },
-    { field: "medicationsDetails", value: data.medicationsDetails },
-    { field: "weightChangeDetails", value: data.weightChangeDetails }
-  ];
-  for (const { field, value } of textFields) {
-    if (value && typeof value === "string") {
-      for (const pattern of OFFENSIVE_PATTERNS) {
-        if (pattern.test(value)) {
-          errors.push("\u0412\u044A\u0432\u0435\u0434\u0435\u043D\u0430\u0442\u0430 \u0438\u043D\u0444\u043E\u0440\u043C\u0430\u0446\u0438\u044F \u0441\u044A\u0434\u044A\u0440\u0436\u0430 \u043D\u0435\u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u043E \u0441\u044A\u0434\u044A\u0440\u0436\u0430\u043D\u0438\u0435. \u041C\u043E\u043B\u044F, \u043F\u0440\u043E\u0432\u0435\u0440\u0435\u0442\u0435 \u0432\u0441\u0438\u0447\u043A\u0438 \u043F\u043E\u043B\u0435\u0442\u0430 \u0438 \u0432\u044A\u0432\u0435\u0434\u0435\u0442\u0435 \u043A\u043E\u0440\u0435\u043A\u0442\u043D\u0430 \u0438\u043D\u0444\u043E\u0440\u043C\u0430\u0446\u0438\u044F.");
-          console.warn(`Offensive content detected in field: ${field}`);
-          break;
-        }
-      }
-      if (errors.some((e) => e.includes("\u043D\u0435\u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u043E \u0441\u044A\u0434\u044A\u0440\u0436\u0430\u043D\u0438\u0435"))) {
-        break;
-      }
-    }
-  }
-  if (errors.length > 0) {
-    return {
-      isValid: false,
-      errorMessage: "\u041C\u043E\u043B\u044F, \u043F\u0440\u043E\u0432\u0435\u0440\u0435\u0442\u0435 \u0432\u044A\u0432\u0435\u0434\u0435\u043D\u0438\u0442\u0435 \u0434\u0430\u043D\u043D\u0438:\n\n" + errors.join("\n\n")
-    };
   }
   return { isValid: true };
 }
@@ -10292,17 +10483,14 @@ async function handleValidateQuestionnaire(request, env) {
       return jsonResponse2({ error: ERROR_MESSAGES.MISSING_FIELDS }, 400);
     }
     const valConfig = await getValidationConfig(env);
-    const dataValidation = validateDataAdequacy(data, valConfig);
-    if (!dataValidation.isValid) {
+    const deterministic = runDeterministicValidation(data, valConfig);
+    if (deterministic.issues.length > 0) {
       return jsonResponse2({
         valid: false,
         hasIssues: true,
-        canProceed: false,
-        issues: [{
-          category: "\u041D\u0415\u0412\u0410\u041B\u0418\u0414\u041D\u0418 \u0414\u0410\u041D\u041D\u0418",
-          description: dataValidation.errorMessage,
-          severity: "high"
-        }]
+        canProceed: deterministic.canProceed,
+        validationSource: "deterministic",
+        issues: deterministic.issues
       });
     }
     const { hasContradiction, canProceed: contradictionCanProceed, warningData } = detectGoalContradiction(data, valConfig);
@@ -10325,6 +10513,7 @@ async function handleValidateQuestionnaire(request, env) {
         valid: false,
         hasIssues: true,
         canProceed: contradictionCanProceed,
+        validationSource: "deterministic",
         issues
       });
     }
@@ -10335,6 +10524,7 @@ async function handleValidateQuestionnaire(request, env) {
         valid: false,
         hasIssues: true,
         canProceed,
+        validationSource: "ai",
         issues: aiValidation.issues
       });
     }
@@ -12213,6 +12403,18 @@ async function handleGeneratePlanAsync(request, env, ctx) {
     const data = normalizeQuestionnaireData(rawBody);
     if (!data.name || !data.age || !data.weight || !data.height) {
       return jsonResponse2({ error: ERROR_MESSAGES.MISSING_FIELDS }, 400);
+    }
+    const valConfig = await getValidationConfig(env);
+    const dataValidation = validateDataAdequacy(data, valConfig);
+    if (!dataValidation.isValid) {
+      return jsonResponse2({ error: dataValidation.errorMessage, validationFailed: true }, 400);
+    }
+    const { hasContradiction, canProceed: contradictionCanProceed } = detectGoalContradiction(data, valConfig);
+    if (hasContradiction && !contradictionCanProceed) {
+      return jsonResponse2({
+        error: "\u0423\u0441\u0442\u0430\u043D\u043E\u0432\u0435\u043D\u0430 \u0435 \u0440\u0438\u0441\u043A\u043E\u0432\u0430 \u043A\u043E\u043C\u0431\u0438\u043D\u0430\u0446\u0438\u044F \u043C\u0435\u0436\u0434\u0443 \u0446\u0435\u043B \u0438 \u0437\u0434\u0440\u0430\u0432\u043E\u0441\u043B\u043E\u0432\u043D\u043E \u0441\u044A\u0441\u0442\u043E\u044F\u043D\u0438\u0435. \u041C\u043E\u043B\u044F, \u043A\u043E\u0440\u0438\u0433\u0438\u0440\u0430\u0439\u0442\u0435 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430.",
+        validationFailed: true
+      }, 400);
     }
     if (requireApproval) {
       if (!normalizeEmail(data.email)) {
