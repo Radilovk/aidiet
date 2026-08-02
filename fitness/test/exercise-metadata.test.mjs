@@ -14,7 +14,8 @@ import {
   compareAlternativeCloseness,
   alternativeClosenessScore,
   isMachineEquipment,
-  exerciseAlternativeFamily,
+  alternativeSlotKey,
+  exerciseKind,
   isSameAlternativeFamily,
   searchExerciseIndex,
   computeExerciseFacets,
@@ -137,17 +138,20 @@ test('compareAlternativeCloseness: предпочита същото обору�
   assert.ok(compareAlternativeCloseness(close, machine, base) < 0);
 });
 
-test('exerciseAlternativeFamily: клек и напад са knee_dominant; deadlift е hinge', () => {
-  const squat = { name: 'barbell full squat', targetNorm: 'glutes', bodyNorm: 'upper legs' };
-  const lunge = { name: 'walking lunge', targetNorm: 'glutes', bodyNorm: 'upper legs' };
-  const deadlift = { name: 'barbell romanian deadlift', targetNorm: 'glutes', bodyNorm: 'upper legs' };
-  const bench = { name: 'barbell bench press', targetNorm: 'pectorals', bodyNorm: 'chest' };
-  assert.equal(exerciseAlternativeFamily(squat), 'knee_dominant');
-  assert.equal(exerciseAlternativeFamily(lunge), 'knee_dominant');
-  assert.equal(exerciseAlternativeFamily(deadlift), 'hip_hinge');
-  assert.equal(exerciseAlternativeFamily(bench), 'horizontal_push');
+test('alternativeSlotKey: dataset target + muscle_group разделя клек от RDL', () => {
+  const squat = { name: 'barbell full squat', targetNorm: 'glutes', muscleGroupNorm: 'quadriceps', flags: ['compound'] };
+  const lunge = { name: 'walking lunge', targetNorm: 'glutes', muscleGroupNorm: 'quadriceps', flags: ['compound'] };
+  const deadlift = { name: 'barbell romanian deadlift', targetNorm: 'glutes', muscleGroupNorm: 'hamstrings', flags: ['compound'] };
+  const bench = { name: 'barbell bench press', targetNorm: 'pectorals', muscleGroupNorm: 'triceps', flags: ['compound'] };
+  const fly = { name: 'dumbbell fly', targetNorm: 'pectorals', flags: ['isolation'] };
+  assert.equal(alternativeSlotKey(squat), 'compound:glutes:quadriceps');
+  assert.equal(alternativeSlotKey(lunge), alternativeSlotKey(squat));
+  assert.notEqual(alternativeSlotKey(deadlift), alternativeSlotKey(squat));
+  assert.equal(alternativeSlotKey(bench), 'compound:pectorals:triceps');
+  assert.equal(alternativeSlotKey(fly), 'iso:pectorals');
   assert.ok(isSameAlternativeFamily(squat, lunge, 'strength'));
   assert.ok(!isSameAlternativeFamily(squat, deadlift, 'strength'));
+  assert.ok(!isSameAlternativeFamily(bench, fly, 'strength'));
 });
 
 const SEARCH_INDEX = [
