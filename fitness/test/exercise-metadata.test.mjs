@@ -14,6 +14,8 @@ import {
   compareAlternativeCloseness,
   alternativeClosenessScore,
   isMachineEquipment,
+  exerciseAlternativeFamily,
+  isSameAlternativeFamily,
   searchExerciseIndex,
   computeExerciseFacets,
 } from '../exercise-metadata.js';
@@ -133,6 +135,19 @@ test('compareAlternativeCloseness: предпочита същото обору�
   const close = { name: 'dumbbell incline bench press', equipNorm: 'dumbbell', bodyNorm: 'chest', tokens: ['dumbbell', 'incline', 'bench', 'press'], diff: 2, targetNorm: 'pectorals', flags: ['compound', 'press'] };
   const machine = { name: 'lever chest press', equipNorm: 'leverage machine', bodyNorm: 'chest', tokens: ['lever', 'chest', 'press'], diff: 2, targetNorm: 'pectorals', flags: ['compound', 'machine', 'press'] };
   assert.ok(compareAlternativeCloseness(close, machine, base) < 0);
+});
+
+test('exerciseAlternativeFamily: клек и напад са knee_dominant; deadlift е hinge', () => {
+  const squat = { name: 'barbell full squat', targetNorm: 'glutes', bodyNorm: 'upper legs' };
+  const lunge = { name: 'walking lunge', targetNorm: 'glutes', bodyNorm: 'upper legs' };
+  const deadlift = { name: 'barbell romanian deadlift', targetNorm: 'glutes', bodyNorm: 'upper legs' };
+  const bench = { name: 'barbell bench press', targetNorm: 'pectorals', bodyNorm: 'chest' };
+  assert.equal(exerciseAlternativeFamily(squat), 'knee_dominant');
+  assert.equal(exerciseAlternativeFamily(lunge), 'knee_dominant');
+  assert.equal(exerciseAlternativeFamily(deadlift), 'hip_hinge');
+  assert.equal(exerciseAlternativeFamily(bench), 'horizontal_push');
+  assert.ok(isSameAlternativeFamily(squat, lunge, 'strength'));
+  assert.ok(!isSameAlternativeFamily(squat, deadlift, 'strength'));
 });
 
 const SEARCH_INDEX = [

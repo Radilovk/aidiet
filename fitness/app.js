@@ -710,10 +710,10 @@ function renderExerciseCard(dayIdx, exIdx) {
   if (ex.rpe) {
     const effort = effortLabelFromRpe(ex.rpe);
     const rpeInfo = rpeInfoForValue(ex.rpe);
-    if (effort && rpeInfo) {
-      chips.append(renderMetricChip(effort, { title: effort, text: rpeInfo.text }, 'effort-chip'));
+    if (rpeInfo) {
+      const label = effort ? `${effort} · RPE ${ex.rpe}` : `RPE ${ex.rpe}`;
+      chips.append(renderMetricChip(label, rpeInfo));
     }
-    chips.append(renderMetricChip(`RPE ${ex.rpe}`, rpeInfo));
   }
   if (ex.tempo) chips.append(renderMetricChip(`темпо ${ex.tempo}`, 'tempo'));
   main.append(chips);
