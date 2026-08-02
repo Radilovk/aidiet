@@ -47,6 +47,7 @@ import {
 
 import { mergeAllowedEquipment, auditPlanExercises } from '../plan-generation.js';
 import { filterExercises, passesEquipment, exerciseProfileFromAnswers, isSameAlternativeFamily, alternativeSlotKey } from '../exercise-metadata.js';
+import { EFP_VERSION } from '../exercise-efp-rubric.js';
 
 import { QUESTIONS, activeQuestions, validateQuestion, buildAnswers, answersToFormState, fieldVisible } from '../questions.js';
 import { localizeExerciseDisplayName, sanitizeBgText } from '../exercise-labels-bg.js';
@@ -69,7 +70,25 @@ const RAW_DATASET = [
   { id: '0010', name: 'front plank with twist', equipment: 'body weight', target: 'abs', body_part: 'waist', secondary_muscles: [], image: 'images/0010.jpg', gif_url: 'gifs/0010.gif', instructions: {} },
 ];
 
-const INDEX = buildCompactIndex(RAW_DATASET);
+/** Curated EFP за fixture — без това buildCompactIndex маркира всички като excluded/unclassified. */
+function fixtureMetadata(rawList, perId = {}) {
+  const meta = {};
+  for (const r of rawList) {
+    const isBarbell = /barbell/i.test(r.equipment || '');
+    meta[r.id] = {
+      diff: isBarbell ? 2 : 1,
+      gf: 85,
+      gm: 70,
+      flags: ['compound'],
+      aiClassified: true,
+      efpVersion: EFP_VERSION,
+      ...perId[r.id],
+    };
+  }
+  return meta;
+}
+
+const INDEX = buildCompactIndex(RAW_DATASET, {}, fixtureMetadata(RAW_DATASET));
 
 // ----------------------------------------------------------------------------
 // Нормализация и token score
@@ -272,9 +291,10 @@ test('findAlternatives: отхвърля различна модалност и 
 });
 
 test('findAlternatives: клек → напад, не RDL (dataset target+muscle_group)', async () => {
-  const { buildCompactIndex, findAlternatives } = await import('../worker.js');
+  const { buildCompactIndex, findAlternatives, loadBundledMetadata } = await import('../worker.js');
   const { fetchExerciseDataset } = await import('../exercise-translate-batch.js');
-  const index = buildCompactIndex(await fetchExerciseDataset());
+  const metadata = await loadBundledMetadata();
+  const index = buildCompactIndex(await fetchExerciseDataset(), {}, metadata);
   const squat = index.find((e) => e.name === 'barbell full squat');
   assert.ok(squat, 'barbell full squat в dataset');
   const slot = alternativeSlotKey(squat);

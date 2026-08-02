@@ -53,27 +53,26 @@ export function heuristicClassification(raw) {
 export function metadataForExercise(raw, store = {}) {
   const id = String(raw?.id ?? '');
   const saved = store[id];
-  let base;
+  /** @type {{ diff?: number, gf?: number, gm?: number, flags?: string[] }} */
+  let seed;
+  let forceExcluded = false;
   if (isMetadataOverride(saved)) {
-    base = {
+    seed = {
       diff: saved.diff,
       gf: saved.gf ?? 70,
       gm: saved.gm ?? 70,
       flags: saved.flags || [],
-      ...(saved.gear?.length ? { gear: saved.gear } : {}),
-      ...(saved.effectiveEquipNorm ? { effectiveEquipNorm: saved.effectiveEquipNorm } : {}),
-      ...(saved.excluded ? { excluded: true } : {}),
-      ...(saved.motor != null ? { motor: saved.motor } : {}),
-      ...(saved.coordination != null ? { coordination: saved.coordination } : {}),
-      ...(saved.plyometric != null ? { plyometric: saved.plyometric } : {}),
-      efpVersion: saved.efpVersion ?? EFP_VERSION,
-      aiClassified: true,
     };
+    forceExcluded = Boolean(saved.excluded);
   } else {
-    base = unclassifiedMetadata(raw);
+    seed = { diff: 2, gf: 65, gm: 65, flags: ['unclassified'] };
+    forceExcluded = true;
   }
-  const meta = applyMetadataCorrections(raw, base);
-  if (base.excluded) meta.excluded = true;
+  const meta = applyMetadataCorrections(raw, seed);
+  if (forceExcluded) {
+    meta.excluded = true;
+    meta.flags = [...new Set([...(meta.flags || []), 'excluded', ...(seed.flags?.includes('unclassified') ? ['unclassified'] : [])])];
+  }
   if (isGenderSpecificExerciseName(raw?.name)) {
     meta.excluded = true;
     meta.flags = [...new Set([...(meta.flags || []), 'excluded', 'gender_variant'])];
@@ -317,6 +316,11 @@ export function alternativeClosenessScore(candidate, matchedEntry) {
 
   const overlap = tokenOverlapScore(matchedEntry.tokens, candidate.tokens);
   score -= Math.round(overlap * 20);
+
+  const nameM = normalizeText(matchedEntry.name || '');
+  const nameC = normalizeText(candidate.name || '');
+  if (/\b(jump|plyo)\b/.test(nameC) && !/\b(jump|plyo)\b/.test(nameM)) score += 20;
+  if (/\bsquat\b/.test(nameM) && /\b(lunge|split squat)\b/.test(nameC)) score -= 18;
 
   return score;
 }
