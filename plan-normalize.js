@@ -352,7 +352,7 @@ export function maxKetoCarbGrams(dailyKcal) {
 export function isKetoCarbCompliant(dailyKcal, carbGrams) {
   const kcal = Number(dailyKcal) || 0;
   const carbs = Number(carbGrams) || 0;
-  return kcal <= 0 || carbs * 4 <= kcal * KETO_MAX_CARB_RATIO;
+  return kcal <= 0 || carbs <= maxKetoCarbGrams(kcal);
 }
 
 function clampKetoMacros(dailyKcal, proteinG, carbsG, fatsG, minFatG) {
@@ -551,6 +551,15 @@ export function enforceKetoStrategyGuardrails(strategy, userData) {
   const minFatG = Math.round(weight * MIN_FAT_GRAMS_PER_KG);
   for (const day of Object.values(strategy.weeklyScheme)) {
     applyKetoClampToDayScheme(day, minFatG);
+  }
+}
+
+/** Run after any strategy slot mutation — diet guardrails last, then structural sync. */
+export function finalizeStrategyDietGuardrails(strategy, userData) {
+  enforceKetoStrategyGuardrails(strategy, userData);
+  if (!strategy?.weeklyScheme) return;
+  for (const day of Object.values(strategy.weeklyScheme)) {
+    syncSchemeDayMetadata(day);
   }
 }
 

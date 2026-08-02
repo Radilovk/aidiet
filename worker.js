@@ -8229,7 +8229,7 @@ function maxKetoCarbGrams(dailyKcal) {
 function isKetoCarbCompliant(dailyKcal, carbGrams) {
   const kcal = Number(dailyKcal) || 0;
   const carbs = Number(carbGrams) || 0;
-  return kcal <= 0 || carbs * 4 <= kcal * KETO_MAX_CARB_RATIO;
+  return kcal <= 0 || carbs <= maxKetoCarbGrams(kcal);
 }
 function clampKetoMacros(dailyKcal, proteinG, carbsG, fatsG, minFatG) {
   const kcal = Number(dailyKcal) || 0;
@@ -8392,6 +8392,13 @@ function enforceKetoStrategyGuardrails(strategy, userData) {
   const minFatG = Math.round(weight * MIN_FAT_GRAMS_PER_KG);
   for (const day of Object.values(strategy.weeklyScheme)) {
     applyKetoClampToDayScheme(day, minFatG);
+  }
+}
+function finalizeStrategyDietGuardrails(strategy, userData) {
+  enforceKetoStrategyGuardrails(strategy, userData);
+  if (!strategy?.weeklyScheme) return;
+  for (const day of Object.values(strategy.weeklyScheme)) {
+    syncSchemeDayMetadata(day);
   }
 }
 function profileGoalText(userData) {
@@ -13485,6 +13492,7 @@ async function reconcilePlanStructure(plan, userData = null, env = null) {
       enforceFixedSlotCaps(day, day.calories);
       clampLateSnackInMealBreakdown(day);
     }
+    finalizeStrategyDietGuardrails(plan.strategy, userData);
   } else {
     recalculateDayCalories(plan.weekPlan, plan.strategy || null);
   }
@@ -14988,7 +14996,7 @@ function normalizeWeeklyScheme(strategy, defaultDailyCalories, userData = null) 
     clampLateSnackInMealBreakdown(day);
     syncSchemeDayMetadata(day);
   }
-  enforceKetoStrategyGuardrails(strategy, userData);
+  finalizeStrategyDietGuardrails(strategy, userData);
 }
 function getFreeMealSlotCalories(dayTarget) {
   if (!dayTarget?.mealBreakdown) return 0;

@@ -47,6 +47,7 @@ import {
   normalizeAnalysisOutput,
   enforceKetoMacroGuardrails,
   enforceKetoStrategyGuardrails,
+  finalizeStrategyDietGuardrails,
   syncSchemeDayMetadata,
   minMealWeightGrams,
   validateLightMealSlotContent,
@@ -5936,6 +5937,7 @@ async function reconcilePlanStructure(plan, userData = null, env = null) {
       enforceFixedSlotCaps(day, day.calories);
       clampLateSnackInMealBreakdown(day);
     }
+    finalizeStrategyDietGuardrails(plan.strategy, userData);
   } else {
     recalculateDayCalories(plan.weekPlan, plan.strategy || null);
   }
@@ -7750,7 +7752,7 @@ function normalizeWeeklyScheme(strategy, defaultDailyCalories, userData = null) 
     syncSchemeDayMetadata(day);
   }
 
-  enforceKetoStrategyGuardrails(strategy, userData);
+  finalizeStrategyDietGuardrails(strategy, userData);
 }
 
 function getFreeMealSlotCalories(dayTarget) {
