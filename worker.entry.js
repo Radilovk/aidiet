@@ -43,6 +43,10 @@ import {
   formatMealWeight,
 } from './food-nutrition.js';
 import {
+  validateDataAdequacyIssues,
+  runDeterministicValidation,
+} from './questionnaire-validation.mjs';
+import {
   rebalanceMealBreakdownSlots,
   normalizeAnalysisOutput,
   enforceKetoMacroGuardrails,
@@ -1163,107 +1167,18 @@ function calculateSafeDeficit(tdee, goal) {
  * Returns an object with { isValid: boolean, errorMessage: string }
  */
 function validateDataAdequacy(data, config) {
-  const errors = [];
-  // Use admin-configurable thresholds, fall back to hardcoded defaults
-  const dv = (config && config.dataValidation) ? config.dataValidation : DEFAULT_VALIDATION_CONFIG.dataValidation;
-  const minAge = dv.minAge ?? MIN_AGE;
-  const maxAge = dv.maxAge ?? MAX_AGE;
-  const minWeightKg = dv.minWeightKg ?? MIN_WEIGHT_KG;
-  const maxWeightKg = dv.maxWeightKg ?? MAX_WEIGHT_KG;
-  const minHeightCm = dv.minHeightCm ?? MIN_HEIGHT_CM;
-  const maxHeightCm = dv.maxHeightCm ?? MAX_HEIGHT_CM;
-  const minBmi = dv.minBmi ?? MIN_BMI;
-  const maxBmi = dv.maxBmi ?? MAX_BMI;
-  const maxWeightLossKg = dv.maxWeightLossKg ?? MAX_WEIGHT_LOSS_KG;
-  const maxWeightLossPercent = dv.maxWeightLossPercent ?? MAX_WEIGHT_LOSS_PERCENT;
-
-  // Check weight (realistic range)
-  const weight = parseFloat(data.weight);
-  if (isNaN(weight) || weight < minWeightKg || weight > maxWeightKg) {
-    errors.push(`Теглото трябва да бъде между ${minWeightKg} и ${maxWeightKg} кг. Моля, въведете реалистична стойност.`);
+  const { issues, errorMessage } = validateDataAdequacyIssues(data, config);
+  if (issues.length > 0) {
+    const age = parseInt(data.age, 10);
+    if (!isNaN(age) && age >= 13 && age < 18) {
+      console.warn(`Minor user (age ${age}) - parental consent required per Terms of Service`);
+    }
+    return { isValid: false, errorMessage };
   }
-  
-  // Check height (realistic range)
-  const height = parseFloat(data.height);
-  if (isNaN(height) || height < minHeightCm || height > maxHeightCm) {
-    errors.push(`Височината трябва да бъде между ${minHeightCm} и ${maxHeightCm} см. Моля, въведете реалистична стойност.`);
-  }
-  
-  // Check age (realistic range)
-  const age = parseInt(data.age);
-  if (isNaN(age) || age < minAge || age > maxAge) {
-    errors.push(`Възрастта трябва да бъде между ${minAge} и ${maxAge} години. Моля, въведете реалистична стойност.`);
-  }
-
-  // Block users under 13 (GDPR Article 8 / COPPA compliance)
-  if (!isNaN(age) && age < 13) {
-    errors.push('Услугата е достъпна само за лица на 13 или повече години. Потребители под 13 г. не могат да ползват приложението.');
-  }
-
-  // Note for minors between 13-18
+  const age = parseInt(data.age, 10);
   if (!isNaN(age) && age >= 13 && age < 18) {
     console.warn(`Minor user (age ${age}) - parental consent required per Terms of Service`);
   }
-  
-  // Check BMI extremes (medically unrealistic BMI values)
-  if (!isNaN(weight) && !isNaN(height) && weight >= minWeightKg && weight <= maxWeightKg && height >= minHeightCm && height <= maxHeightCm) {
-    const heightM = height / 100;
-    const bmi = weight / (heightM * heightM);
-    if (bmi < minBmi) {
-      errors.push('Въведените данни водят до медицински невъзможно ниско BMI. Моля, проверете теглото и височината.');
-    } else if (bmi > maxBmi) {
-      errors.push('Въведените данни водят до медицински невъзможно високо BMI. Моля, проверете теглото и височината.');
-    }
-  }
-  
-  // Check weight loss goal reasonableness
-  if (data.goal && data.goal.includes('Отслабване') && data.lossKg) {
-    const lossKg = parseFloat(data.lossKg);
-    if (!isNaN(lossKg) && !isNaN(weight)) {
-      if (lossKg > weight * maxWeightLossPercent) {
-        errors.push(`Целевото отслабване е твърде голямо (повече от ${maxWeightLossPercent * 100}% от телесното тегло). Моля, задайте по-реалистична цел.`);
-      }
-      if (lossKg > maxWeightLossKg) {
-        errors.push(`Целевото отслабване не може да надвишава ${maxWeightLossKg} кг в рамките на един план. Моля, задайте по-умерена начална цел.`);
-      }
-    }
-  }
-  
-  // Check for offensive or vulgar content in text fields
-  const textFields = [
-    { field: 'name', value: data.name },
-    { field: 'dietDislike', value: data.dietDislike },
-    { field: 'dietLove', value: data.dietLove },
-    { field: 'additionalNotes', value: data.additionalNotes },
-    { field: 'medicationsDetails', value: data.medicationsDetails },
-    { field: 'weightChangeDetails', value: data.weightChangeDetails }
-  ];
-  
-  for (const { field, value } of textFields) {
-    if (value && typeof value === 'string') {
-      for (const pattern of OFFENSIVE_PATTERNS) {
-        if (pattern.test(value)) {
-          // Generic error message for security (don't reveal which field)
-          errors.push('Въведената информация съдържа неподходящо съдържание. Моля, проверете всички полета и въведете коректна информация.');
-          // Log specific field server-side for monitoring
-          console.warn(`Offensive content detected in field: ${field}`);
-          break; // Only report once per validation
-        }
-      }
-      // If we found offensive content, stop checking other fields
-      if (errors.some(e => e.includes('неподходящо съдържание'))) {
-        break;
-      }
-    }
-  }
-  
-  if (errors.length > 0) {
-    return {
-      isValid: false,
-      errorMessage: 'Моля, проверете въведените данни:\n\n' + errors.join('\n\n')
-    };
-  }
-  
   return { isValid: true };
 }
 
@@ -1534,22 +1449,19 @@ async function handleValidateQuestionnaire(request, env) {
     // Load admin-configurable validation thresholds/rules
     const valConfig = await getValidationConfig(env);
     
-    // Step 1: Run existing deterministic validations
-    const dataValidation = validateDataAdequacy(data, valConfig);
-    if (!dataValidation.isValid) {
+    // Step 1: Deterministic validation (instant, no AI)
+    const deterministic = runDeterministicValidation(data, valConfig);
+    if (deterministic.issues.length > 0) {
       return jsonResponse({
         valid: false,
         hasIssues: true,
-        canProceed: false,
-        issues: [{
-          category: 'НЕВАЛИДНИ ДАННИ',
-          description: dataValidation.errorMessage,
-          severity: 'high'
-        }]
+        canProceed: deterministic.canProceed,
+        validationSource: 'deterministic',
+        issues: deterministic.issues,
       });
     }
     
-    // Step 2: Run existing goal contradiction detection
+    // Step 2: Goal contradiction (thyroid TDEE etc. — server-only rules)
     const { hasContradiction, canProceed: contradictionCanProceed, warningData } = detectGoalContradiction(data, valConfig);
     if (hasContradiction) {
       const issues = [{
@@ -1570,9 +1482,12 @@ async function handleValidateQuestionnaire(request, env) {
         valid: false,
         hasIssues: true,
         canProceed: contradictionCanProceed,
+        validationSource: 'deterministic',
         issues: issues
       });
     }
+
+    // Step 3: AI validation for subtle contradictions only when deterministic checks pass
     const aiValidation = await performAIValidation(env, data);
     
     if (aiValidation.hasIssues) {
@@ -1581,6 +1496,7 @@ async function handleValidateQuestionnaire(request, env) {
         valid: false,
         hasIssues: true,
         canProceed,
+        validationSource: 'ai',
         issues: aiValidation.issues
       });
     }
@@ -4122,6 +4038,19 @@ async function handleGeneratePlanAsync(request, env, ctx) {
     const data = normalizeQuestionnaireData(rawBody);
     if (!data.name || !data.age || !data.weight || !data.height) {
       return jsonResponse({ error: ERROR_MESSAGES.MISSING_FIELDS }, 400);
+    }
+
+    const valConfig = await getValidationConfig(env);
+    const dataValidation = validateDataAdequacy(data, valConfig);
+    if (!dataValidation.isValid) {
+      return jsonResponse({ error: dataValidation.errorMessage, validationFailed: true }, 400);
+    }
+    const { hasContradiction, canProceed: contradictionCanProceed } = detectGoalContradiction(data, valConfig);
+    if (hasContradiction && !contradictionCanProceed) {
+      return jsonResponse({
+        error: 'Установена е рискова комбинация между цел и здравословно състояние. Моля, коригирайте въпросника.',
+        validationFailed: true,
+      }, 400);
     }
 
     if (requireApproval) {

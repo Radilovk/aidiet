@@ -1202,6 +1202,8 @@
         Напред <i class="fas fa-arrow-right"></i>
     </button>
 
+    <script type="module" src="questionnaire-validation-bridge.js"></script>
+
     <script>
         // --- Theme Management ---
         // Use system theme preference (matching index page behavior)
@@ -2328,21 +2330,25 @@
 
                 pollForPlanResult(pendingJobId, planPayload, savedClientId).catch(err => {
                     console.error('Plan polling error on resume:', err);
-                    document.body.classList.remove('diagnostic-lock');
                     localStorage.removeItem('planJobId');
                     localStorage.removeItem('planJobSource');
                     localStorage.removeItem('pendingPlanPayload');
                     localStorage.removeItem('pendingClientId');
+                    if (err.validationFailed) {
+                        const saved = localStorage.getItem('questionnaireAnswers');
+                        if (!saved && Object.keys(planPayload).length) {
+                            localStorage.setItem('questionnaireAnswers', JSON.stringify(planPayload));
+                        }
+                        redirectToValidationWarning([{
+                            category: 'НЕВАЛИДНИ ДАННИ',
+                            description: err.message || 'Моля, проверете въведените данни.',
+                            severity: 'high'
+                        }], false);
+                        return;
+                    }
                     let errorMessage = 'Възникна грешка при генерирането на плана. Моля, опитайте отново.';
                     if (err.message.includes('изтекла')) errorMessage = err.message;
-                    container.innerHTML = `
-                        <div style="text-align:center;animation:fadeIn 0.5s;">
-                            <div class="section-icon" style="background:#fee2e2;color:#ef4444;"><i class="fas fa-exclamation-circle"></i></div>
-                            <h2 class="q-text">Нещо се обърка</h2>
-                            <p style="color:#7f8c8d;margin-bottom:20px;">${errorMessage}</p>
-                            <button class="btn btn-next" onclick="location.reload()" style="margin:0 auto;">Опитай отново</button>
-                        </div>
-                    `;
+                    showQuestionnaireErrorScreen(errorMessage);
                 });
                 return;
             }
@@ -2357,6 +2363,7 @@
             }
             // Show protocol banner if protocol was selected from landing page
             showProtocolBannerIfNeeded();
+            jumpToValidationReturnField();
             // Show quick complete banner if user has saved answers and is on first question
             checkAndShowQuickCompleteBanner();
             renderStep();
@@ -3054,7 +3061,7 @@
 
         // ---- Field-level validation rules (mirrors backend constants) ----
         const FIELD_RULES = {
-            age:               { min: 10,  max: 100,  integer: true,  label: 'Възраст', unit: 'години' },
+            age:               { min: 13,  max: 100,  integer: true,  label: 'Възраст', unit: 'години' },
             weight:            { min: 20,  max: 300,  integer: false, label: 'Тегло',   unit: 'кг' },
             height:            { min: 100, max: 250,  integer: false, label: 'Ръст',    unit: 'см' },
             lossKg:            { min: 1,   max: 150,  integer: false, label: 'Желано отслабване', unit: 'кг' },
@@ -3099,8 +3106,17 @@
             }
 
             const { valid, message } = getFieldError(step.id, step.type, val, false);
-            setFieldHint(message);
-            nextBtn.disabled = !valid;
+            let liveMessage = message;
+            let liveValid = valid;
+            if (window.QuestionnaireValidation && ['age', 'weight', 'height', 'lossKg'].includes(step.id)) {
+                const live = window.QuestionnaireValidation.validateLiveField(step.id, val, answers);
+                if (!live.valid && live.message) {
+                    liveValid = false;
+                    liveMessage = live.message;
+                }
+            }
+            setFieldHint(liveMessage);
+            nextBtn.disabled = !liveValid;
         }
 
         function setFieldHint(message) {
@@ -3763,6 +3779,146 @@
             updateProgress();
         }
 
+        const HEALTH_CONDITIONS_MAP = {
+            'Диабет / Инсулинова резистентност': ['Инсулинова резистентност', 'Диабет'],
+            'Автоимунни заболявания': ['Автоимунно'],
+            'Щитовидна жлеза (Хашимото и др.)': ['Хашимото'],
+            'Храносмилателни проблеми': ['IBS', 'IBD', 'Рефлукс'],
+            'Сърдечно-съдови заболявания': ['Сърдечно-съдови'],
+            'Ендокринни заболявания': ['Ендокринни'],
+            'Метаболитни нарушения': ['Метаболитен синдром', 'Стеатоза'],
+            'Мускулно-скелетни заболявания': ['Мускулно-скелетни'],
+            'Депресия': ['Депресия'],
+            'Тревожност': ['Тревожност'],
+            'Алергии и хранителна непоносимост': ['Алергии'],
+            'Емоционално хранене': ['Емоционално хранене'],
+            'Анемия': ['Анемия'],
+            'Кожни проблеми': ['Кожни проблеми'],
+            'Проблеми със съня': ['Проблеми със съня'],
+            'Когнитивен спад': ['Когнитивен спад'],
+            'Хронично възпаление и слаб имунитет': ['Хронично възпаление', 'Слаб имунитет'],
+            'Менопауза': ['Менопауза'],
+            'След бременност': ['След бременност'],
+            'Друго': ['Друго'],
+            'Нямам': ['Нямам']
+        };
+
+        const DETAIL_FIELD_MAP = {
+            'healthConditions_Алергии и хранителна непоносимост': 'medicalConditions_Алергии',
+            'healthConditions_Автоимунни заболявания': 'medicalConditions_Автоимунно',
+            'healthConditions_Сърдечно-съдови заболявания': 'medicalConditions_Сърдечно-съдови_детайл',
+            'healthConditions_Ендокринни заболявания': 'medicalConditions_Ендокринни_детайл',
+            'healthConditions_Храносмилателни проблеми': 'medicalConditions_Храносмилателни_детайл',
+            'healthConditions_Метаболитни нарушения': 'medicalConditions_Метаболитни_детайл',
+            'healthConditions_Мускулно-скелетни заболявания': 'medicalConditions_Мускулно-скелетни_детайл'
+        };
+
+        function buildPlanPayloadFromAnswers(sourceAnswers) {
+            const planPayload = {};
+            for (const [key, val] of Object.entries(sourceAnswers)) {
+                if (key === 'medicalFiles') continue;
+                if (key === 'healthConditions') {
+                    const mapped = [];
+                    if (Array.isArray(val)) {
+                        for (const opt of val) {
+                            if (HEALTH_CONDITIONS_MAP[opt]) mapped.push(...HEALTH_CONDITIONS_MAP[opt]);
+                            else mapped.push(opt);
+                        }
+                    }
+                    planPayload.medicalConditions = mapped;
+                } else if (key === 'healthConditions_other') {
+                    planPayload.medicalConditions_other = val;
+                } else if (key.startsWith('healthConditions_')) {
+                    const mappedKey = DETAIL_FIELD_MAP[key];
+                    if (mappedKey) planPayload[mappedKey] = val;
+                    else {
+                        const suffix = key.replace('healthConditions_', '');
+                        planPayload[`medicalConditions_${suffix}`] = val;
+                    }
+                } else if (key === 'goal') {
+                    if (Array.isArray(val) && val.length > 0) {
+                        planPayload.goal = val[0];
+                        if (val.length > 1) planPayload._additionalGoals = val.slice(1);
+                    } else {
+                        planPayload.goal = val;
+                    }
+                } else {
+                    planPayload[key] = val;
+                }
+            }
+            return planPayload;
+        }
+
+        function appendDqTextMapToPayload(planPayload) {
+            const dqTextMap = {};
+            for (const step of currentQueue) {
+                if (step.id && step.id.startsWith('dq_') && step.text && planPayload[step.id] != null) {
+                    dqTextMap[step.id] = step.text;
+                }
+            }
+            for (const goalKey of Object.keys(DYNAMIC_SUB_QUESTIONS)) {
+                for (const condKey of Object.keys(DYNAMIC_SUB_QUESTIONS[goalKey])) {
+                    for (const q of DYNAMIC_SUB_QUESTIONS[goalKey][condKey]) {
+                        if (q.id && q.text && planPayload[q.id] != null) {
+                            dqTextMap[q.id] = q.text;
+                        }
+                    }
+                }
+            }
+            if (Object.keys(dqTextMap).length > 0) planPayload._dq_text_map = dqTextMap;
+            if (planPayload._additionalGoals && planPayload._additionalGoals.length > 0) {
+                const goalsText = `Допълнителни цели: ${planPayload._additionalGoals.join(', ')}`;
+                planPayload.additionalNotes = planPayload.additionalNotes
+                    ? `${planPayload.additionalNotes}\n${goalsText}`
+                    : goalsText;
+                delete planPayload._additionalGoals;
+            }
+            return planPayload;
+        }
+
+        function redirectToValidationWarning(issues, canProceed) {
+            localStorage.setItem('validationIssues', JSON.stringify(issues));
+            localStorage.setItem('validationSource', 'questionnaire2');
+            localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
+            localStorage.setItem('canProceedWithWarning', canProceed ? 'true' : 'false');
+            if (window.QuestionnaireValidation && typeof window.QuestionnaireValidation.firstIssueField === 'function') {
+                const field = window.QuestionnaireValidation.firstIssueField(issues);
+                if (field) localStorage.setItem('validationReturnField', field);
+            }
+            if (progressInterval) { clearInterval(progressInterval); progressInterval = null; }
+            if (tipsInterval) { clearInterval(tipsInterval); tipsInterval = null; }
+            document.body.classList.remove('diagnostic-lock');
+            window.location.href = 'warning.html';
+        }
+
+        function showQuestionnaireErrorScreen(message, options = {}) {
+            const preserveAnswers = options.preserveAnswers !== false;
+            if (!preserveAnswers) localStorage.removeItem('questionnaireAnswers');
+            document.body.classList.remove('diagnostic-lock');
+            const fixBtn = preserveAnswers
+                ? `<button class="btn btn-next" onclick="window.location.href='questionnaire2.html'" style="margin:0 auto 12px;background:var(--primary-red);">Коригирай отговорите</button>`
+                : '';
+            container.innerHTML = `
+                <div style="text-align:center; animation: fadeIn 0.5s;">
+                    <div class="section-icon" style="background:#fee2e2; color:#ef4444;">
+                        <i class="fas fa-exclamation-circle"></i>
+                    </div>
+                    <h2 class="q-text">Нещо се обърка</h2>
+                    <p style="color:#7f8c8d; margin-bottom:20px;">${message}</p>
+                    ${fixBtn}
+                    <button class="btn btn-next" onclick="location.reload()" style="margin:0 auto;background:#6b7280;">Опитай отново</button>
+                </div>
+            `;
+        }
+
+        function jumpToValidationReturnField() {
+            const returnField = localStorage.getItem('validationReturnField');
+            if (!returnField) return;
+            localStorage.removeItem('validationReturnField');
+            const idx = currentQueue.findIndex(q => q.id === returnField);
+            if (idx >= 0) currentIndex = idx;
+        }
+
         async function finishQuiz() {
             console.log("Final JSON:", JSON.stringify(answers, null, 2));
             
@@ -3819,128 +3975,29 @@
             }
 
             try {
-                // Build the payload for plan generation
-                // Adapt questionnaire2 data to the system's expected format
-                const planPayload = {};
+                let planPayload = buildPlanPayloadFromAnswers(answers);
+                planPayload = appendDqTextMapToPayload(planPayload);
 
-                // Map questionnaire2's descriptive healthConditions options → system's short medicalConditions values
-                const HEALTH_CONDITIONS_MAP = {
-                    'Диабет / Инсулинова резистентност': ['Инсулинова резистентност', 'Диабет'],
-                    'Автоимунни заболявания': ['Автоимунно'],
-                    'Щитовидна жлеза (Хашимото и др.)': ['Хашимото'],
-                    'Храносмилателни проблеми': ['IBS', 'IBD', 'Рефлукс'],
-                    'Сърдечно-съдови заболявания': ['Сърдечно-съдови'],
-                    'Ендокринни заболявания': ['Ендокринни'],
-                    'Метаболитни нарушения': ['Метаболитен синдром', 'Стеатоза'],
-                    'Мускулно-скелетни заболявания': ['Мускулно-скелетни'],
-                    'Депресия': ['Депресия'],
-                    'Тревожност': ['Тревожност'],
-                    'Алергии и хранителна непоносимост': ['Алергии'],
-                    'Емоционално хранене': ['Емоционално хранене'],
-                    'Анемия': ['Анемия'],
-                    'Кожни проблеми': ['Кожни проблеми'],
-                    'Проблеми със съня': ['Проблеми със съня'],
-                    'Когнитивен спад': ['Когнитивен спад'],
-                    'Хронично възпаление и слаб имунитет': ['Хронично възпаление', 'Слаб имунитет'],
-                    'Менопауза': ['Менопауза'],
-                    'След бременност': ['След бременност'],
-                    'Друго': ['Друго'],
-                    'Нямам': ['Нямам']
-                };
-
-                for (const [key, val] of Object.entries(answers)) {
-                    if (key === 'medicalFiles') continue; // skip File objects
-                    if (key === 'healthConditions') {
-                        // Convert descriptive options to system-expected short names
-                        const mapped = [];
-                        if (Array.isArray(val)) {
-                            for (const opt of val) {
-                                if (HEALTH_CONDITIONS_MAP[opt]) {
-                                    mapped.push(...HEALTH_CONDITIONS_MAP[opt]);
-                                } else {
-                                    mapped.push(opt);
-                                }
-                            }
-                        }
-                        planPayload.medicalConditions = mapped;
-                    } else if (key === 'healthConditions_other') {
-                        planPayload.medicalConditions_other = val;
-                    } else if (key.startsWith('healthConditions_')) {
-                        // Map detail fields to system-expected keys
-                        // System expects: medicalConditions_Алергии, medicalConditions_Автоимунно
-                        const DETAIL_FIELD_MAP = {
-                            'healthConditions_Алергии и хранителна непоносимост': 'medicalConditions_Алергии',
-                            'healthConditions_Автоимунни заболявания': 'medicalConditions_Автоимунно',
-                            'healthConditions_Сърдечно-съдови заболявания': 'medicalConditions_Сърдечно-съдови_детайл',
-                            'healthConditions_Ендокринни заболявания': 'medicalConditions_Ендокринни_детайл',
-                            'healthConditions_Храносмилателни проблеми': 'medicalConditions_Храносмилателни_детайл',
-                            'healthConditions_Метаболитни нарушения': 'medicalConditions_Метаболитни_детайл',
-                            'healthConditions_Мускулно-скелетни заболявания': 'medicalConditions_Мускулно-скелетни_детайл'
-                        };
-                        const mappedKey = DETAIL_FIELD_MAP[key];
-                        if (mappedKey) {
-                            planPayload[mappedKey] = val;
-                        } else {
-                            // Pass through any other detail fields
-                            const suffix = key.replace('healthConditions_', '');
-                            planPayload[`medicalConditions_${suffix}`] = val;
-                        }
-                    } else if (key === 'goal') {
-                        // System expects goal as a string, not an array
-                        // Use the primary (first) goal; store all goals in additionalNotes context
-                        if (Array.isArray(val) && val.length > 0) {
-                            planPayload.goal = val[0];
-                            if (val.length > 1) {
-                                planPayload._additionalGoals = val.slice(1);
-                            }
-                        } else {
-                            planPayload.goal = val;
-                        }
-                    } else {
-                        planPayload[key] = val;
+                // Step 0a: Instant deterministic validation (no AI, no network)
+                if (!skipNextValidation && window.QuestionnaireValidation) {
+                    const det = window.QuestionnaireValidation.runDeterministicValidation(planPayload);
+                    if (det.issues.length > 0) {
+                        console.log('Deterministic validation found issues:', det.issues);
+                        redirectToValidationWarning(det.issues, det.canProceed);
+                        return;
                     }
                 }
 
-                // Build dq_ question text map so the AI model receives the actual question text
-                const dqTextMap = {};
-                for (const step of currentQueue) {
-                    if (step.id && step.id.startsWith('dq_') && step.text && planPayload[step.id] != null) {
-                        dqTextMap[step.id] = step.text;
-                    }
-                }
-                // Also scan DYNAMIC_SUB_QUESTIONS for any answered questions not yet in steps/currentQueue
-                for (const goalKey of Object.keys(DYNAMIC_SUB_QUESTIONS)) {
-                    for (const condKey of Object.keys(DYNAMIC_SUB_QUESTIONS[goalKey])) {
-                        for (const q of DYNAMIC_SUB_QUESTIONS[goalKey][condKey]) {
-                            if (q.id && q.text && planPayload[q.id] != null) {
-                                dqTextMap[q.id] = q.text;
-                            }
-                        }
-                    }
-                }
-                if (Object.keys(dqTextMap).length > 0) {
-                    planPayload._dq_text_map = dqTextMap;
-                }
-
-                // Append additional goals to additionalNotes so the AI receives them
-                if (planPayload._additionalGoals && planPayload._additionalGoals.length > 0) {
-                    const goalsText = `Допълнителни цели: ${planPayload._additionalGoals.join(', ')}`;
-                    planPayload.additionalNotes = planPayload.additionalNotes
-                        ? `${planPayload.additionalNotes}\n${goalsText}`
-                        : goalsText;
-                    delete planPayload._additionalGoals;
-                }
-
-                // Step 0: AI Validation - check for unrealistic/dangerous/contradictory data
-                console.log('Running AI validation...');
+                // Step 0b: AI Validation - only for subtle issues after deterministic pass
+                console.log('Running questionnaire validation...');
                 if (skipNextValidation) {
                     skipNextValidation = false;
-                    console.log('AI validation bypassed by user confirmation');
+                    console.log('Validation bypassed by user confirmation');
                 } else {
                 try {
                     const valController = new AbortController();
-                    const valTimeoutId = setTimeout(() => valController.abort(), 20000); // 20s timeout for validation
-                    
+                    const valTimeoutId = setTimeout(() => valController.abort(), 20000);
+
                     const valResponse = await fetch('https://aidiet.radilov-k.workers.dev/api/validate-questionnaire', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -3948,29 +4005,18 @@
                         signal: valController.signal
                     });
                     clearTimeout(valTimeoutId);
-                    
+
                     if (valResponse.ok) {
                         const valResult = await valResponse.json();
                         if (valResult.hasIssues && valResult.issues && valResult.issues.length > 0) {
-                            console.log('AI validation found issues:', valResult.issues);
-                            // Store validation issues and redirect to warning page
-                            localStorage.setItem('validationIssues', JSON.stringify(valResult.issues));
-                            localStorage.setItem('validationSource', 'questionnaire2');
-                            localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
-                            localStorage.setItem('canProceedWithWarning', valResult.canProceed ? 'true' : 'false');
-                            
-                            // Clear intervals
-                            if (progressInterval) { clearInterval(progressInterval); progressInterval = null; }
-                            if (tipsInterval) { clearInterval(tipsInterval); tipsInterval = null; }
-                            
-                            window.location.href = 'warning.html';
+                            console.log('Validation found issues:', valResult.validationSource || 'api', valResult.issues);
+                            redirectToValidationWarning(valResult.issues, valResult.canProceed);
                             return;
                         }
                     }
-                    console.log('AI validation passed');
+                    console.log('Validation passed');
                 } catch (valError) {
-                    // If validation fails (timeout, network error), proceed with plan generation
-                    console.warn('AI validation skipped due to error:', valError.message);
+                    console.warn('Validation skipped due to error:', valError.message);
                 }
                 } // end of validation block
 
@@ -4033,10 +4079,16 @@
 
                 if (!asyncResponse.ok) {
                     let serverMsg = '';
-                    try { const errBody = await asyncResponse.json(); serverMsg = errBody.error || ''; } catch (e) {}
-                    const err = new Error(`Server error: ${asyncResponse.status}`);
+                    let validationFailed = false;
+                    try {
+                        const errBody = await asyncResponse.json();
+                        serverMsg = errBody.error || '';
+                        validationFailed = !!errBody.validationFailed;
+                    } catch (e) {}
+                    const err = new Error(serverMsg || `Server error: ${asyncResponse.status}`);
                     err.httpStatus = asyncResponse.status;
                     err.serverMsg = serverMsg;
+                    err.validationFailed = validationFailed;
                     throw err;
                 }
 
@@ -4089,20 +4141,27 @@
                     errorMessage = 'Възникна грешка при генерирането на плана. Ако проблемът продължава, опитайте да попълните въпросника отново.';
                 } else if (error.serverMsg && error.serverMsg.includes('quota')) {
                     errorMessage = 'AI моделът е достигнал дневния си лимит. Моля, опитайте отново след няколко часа.';
+                } else if (error.validationFailed) {
+                    localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
+                    redirectToValidationWarning([{
+                        category: 'НЕВАЛИДНИ ДАННИ',
+                        description: error.message || 'Моля, проверете въведените данни и опитайте отново.',
+                        severity: 'high'
+                    }], false);
+                    return;
+                } else if (error.serverMsg && error.serverMsg.includes('проверете въведените')) {
+                    localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
+                    redirectToValidationWarning([{
+                        category: 'НЕВАЛИДНИ ДАННИ',
+                        description: error.serverMsg,
+                        severity: 'high'
+                    }], false);
+                    return;
                 } else {
-                    errorMessage = 'Възникна неочаквана грешка. Моля, опитайте отново.';
+                    errorMessage = error.message || 'Възникна неочаквана грешка. Моля, опитайте отново.';
                 }
-                
-                container.innerHTML = `
-                    <div style="text-align:center; animation: fadeIn 0.5s;">
-                        <div class="section-icon" style="background:#fee2e2; color:#ef4444;">
-                            <i class="fas fa-exclamation-circle"></i>
-                        </div>
-                        <h2 class="q-text">Нещо се обърка</h2>
-                        <p style="color:#7f8c8d; margin-bottom:20px;">${errorMessage}</p>
-                        <button class="btn btn-next" onclick="location.reload()" style="margin:0 auto;">Опитай отново</button>
-                    </div>
-                `;
+
+                showQuestionnaireErrorScreen(errorMessage);
             }
         }
 
@@ -4210,7 +4269,7 @@
                 localStorage.setItem('userData', JSON.stringify(planPayload));
                 localStorage.setItem('canProceedWithWarning', 'false');
                 localStorage.setItem('validationSource', 'questionnaire2');
-                localStorage.removeItem('questionnaireAnswers');
+                localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
                 localStorage.removeItem('planJobId');
                 localStorage.removeItem('planJobSource');
                 localStorage.removeItem('pendingPlanPayload');

@@ -134,6 +134,11 @@ check('plan adequacy dietetic logic', () => {
   if (!r.ok) throw new Error(r.out.split('\n').slice(-12).join('\n'));
 });
 
+check('questionnaire deterministic validation', () => {
+  const r = run('node', ['scripts/test-questionnaire-validation.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
+});
+
 check('plan normalize (scheme + analysis)', () => {
   const r = run('node', ['scripts/test-plan-normalize.mjs']);
   if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
