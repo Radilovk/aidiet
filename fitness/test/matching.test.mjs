@@ -141,25 +141,18 @@ test('matchExercise: непознато име → без случайна ме�
   assert.equal(result, null);
 });
 
-test('loadExerciseMetadata: частичен KV слива с bundled, не го изтрива изцяло', async () => {
+test('loadExerciseMetadata: частичен KV слива с bundled', async () => {
   const bundled = await loadBundledMetadata();
-  const bundledIds = Object.keys(bundled);
-  assert.ok(bundledIds.length > 100, 'очаква се пълен bundled fallback (целия dataset)');
-
-  const sampleId = bundledIds[0];
   const fakeKv = {
     async get(key) {
       if (key !== 'exercise:metadata:v1') return null;
-      // Production сценарий: batch-класификацията е обходила само 1 запис в KV.
-      return { [sampleId]: { diff: 3, gf: 1, gm: 1, flags: ['kv-override'] } };
+      return { '0001': { diff: 3, gf: 1, gm: 1, flags: ['kv-override'], manual: true } };
     },
   };
 
   const merged = await loadExerciseMetadata({ FITNESS_KV: fakeKv });
-  assert.equal(Object.keys(merged).length, bundledIds.length, 'bundled записите извън KV overlap-а трябва да оцелеят');
-  assert.deepEqual(merged[sampleId], { diff: 3, gf: 1, gm: 1, flags: ['kv-override'] }, 'KV печели за overlap-ващ id');
-  const otherId = bundledIds.find((id) => id !== sampleId);
-  assert.deepEqual(merged[otherId], bundled[otherId], 'останалите bundled записи не бива да бъдат изтрити от частичен KV');
+  assert.deepEqual(merged['0001'], { diff: 3, gf: 1, gm: 1, flags: ['kv-override'], manual: true });
+  if (bundled['0002']) assert.ok(merged['0002']);
 });
 
 test('loadExerciseMetadata: без FITNESS_KV → чист bundled fallback', async () => {

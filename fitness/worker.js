@@ -1449,7 +1449,7 @@ async function handleRunClassifyExercises(request, env) {
   let body = {};
   try { body = await request.json(); } catch { body = {}; }
 
-  const maxBatches = Math.min(Math.max(Number(body.batches) || 1, 1), 2);
+  const maxBatches = Math.min(Math.max(Number(body.batches) || 1, 1), 20);
   const force = Boolean(body.force);
   const rebuildIndex = body.rebuildIndex !== false;
 

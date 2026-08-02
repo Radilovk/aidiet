@@ -1,34 +1,30 @@
 /**
- * Batch AI класификация на упражнения (EFP).
+ * Batch AI класификация на упражнения (EFP v2) — индивидуален преглед, без евристични hints.
  */
 import { contentHash, fetchExerciseDataset, chunkBatches } from './exercise-translate-batch.js';
 import { pickInstructionsEn } from './exercise-translations.js';
-import { heuristicClassification } from './exercise-metadata.js';
 import { applyMetadataCorrections } from './exercise-tags.js';
-import { normalizeText } from './normalize.js';
+import { isGenderSpecificExerciseName } from './exercise-name-bg.js';
+import {
+  CLASSIFY_RUBRIC,
+  CLASSIFY_RESPONSE_SCHEMA,
+  EFP_VERSION,
+  deriveDiffFromDimensions,
+  clampDiff,
+  clampScore,
+  sanitizeFlags,
+} from './exercise-efp-rubric.js';
 
 export const EXERCISE_METADATA_KV_KEY = 'exercise:metadata:v1';
 export const DEFAULT_CLASSIFY_MODEL = 'gemini-2.5-flash';
-export const CLASSIFY_BATCH_SIZE = 25;
-export const WORKER_CLASSIFY_BATCH_SIZE = 12;
+/** По 1 упражнение — пълен индивидуален преглед. */
+export const CLASSIFY_BATCH_SIZE = 1;
+export const WORKER_CLASSIFY_BATCH_SIZE = 1;
 
-export const CLASSIFY_SYSTEM_PROMPT = `Ти си S&C експерт. Класифицираш упражнения за автоматичен избор в тренировъчни планове.
-
-За всяко упражнение върни:
-- diff: 1 (машини/кабели/ластици, стречинг, базово СТ) | 2 (дъмбели/гири, лост, TRX, one-arm) | 3 (щанга compound, Olympic, гимнастика, pistol squat)
-- gf: 0–100 подходящост за ЖЕНСКИ план (не „женско упражнение“). glute/hip ↑, тежък bench/skull crusher ↓
-- gm: 0–100 подходящост за МЪЖКИ план. squat/deadlift/row/pull ↑
-- flags: compound, isolation, barbell, machine, bodyweight, true_bodyweight, mislabeled_bw, cardio, glute, press, olympic, gymnastics, suspension, rings, pull_bar, parallel_bars, beginner_safe, home_friendly, advanced
-
-Референция: open-source level beginner→1, intermediate→2, expert/advanced→3.
-barbell curl/shrug ≠ barbell squat/deadlift (curl=2, squat=3).
-true_bodyweight: само под/мат/стена/степ/пейка/стол. home_friendly: true_bodyweight без high-skill.
-(male)/(female) в името → excluded.
-
-Връщай САМО JSON без markdown.`;
+export const CLASSIFY_SYSTEM_PROMPT = CLASSIFY_RUBRIC;
 
 export function classifyContentHash(name, equipment, instructionsEn) {
-  return contentHash(`${name}\n${equipment}`, instructionsEn);
+  return contentHash(`${EFP_VERSION}\n${name}\n${equipment}`, instructionsEn);
 }
 
 export function needsClassification(ex, existing, force = false) {
@@ -36,27 +32,34 @@ export function needsClassification(ex, existing, force = false) {
   const id = String(ex.id);
   const cur = existing[id];
   if (!cur) return true;
+  if ((cur.efpVersion ?? 0) < EFP_VERSION) return true;
+  if (!cur.aiClassified || cur.heuristicOnly) return true;
   const en = pickInstructionsEn(ex.instructions);
   return cur.sourceHash !== classifyContentHash(ex.name || '', ex.equipment || '', en);
 }
 
+function exercisePayload(ex) {
+  const instructionsEn = pickInstructionsEn(ex.instructions);
+  return {
+    id: String(ex.id),
+    name: ex.name || '',
+    equipment: ex.equipment || '',
+    target: ex.target || '',
+    muscle_group: ex.muscle_group || '',
+    body_part: ex.body_part || ex.bodyPart || '',
+    secondary_muscles: Array.isArray(ex.secondary_muscles) ? ex.secondary_muscles.slice(0, 6) : [],
+    instructions: instructionsEn ? instructionsEn.slice(0, 1200) : '',
+  };
+}
+
 export function buildClassifyUserPayload(batch) {
-  const items = batch.map((ex) => {
-    const h = heuristicClassification(ex);
-    return {
-      id: String(ex.id),
-      name: ex.name || '',
-      equipment: ex.equipment || '',
-      target: ex.target || ex.muscle_group || '',
-      hint: { diff: h.diff, gf: h.gf, gm: h.gm },
-    };
-  });
-  return `Класифицирай ${items.length} упражнения. hint е евристика — коригирай при нужда.
+  const exercises = batch.map(exercisePayload);
+  return `Класифицирай ${exercises.length} упражнение(ния) по рубриката. Без шаблони — прегледай инструкциите.
 
 Формат:
-{"classifications":[{"id":"...","diff":1,"gf":85,"gm":70,"flags":["machine"]}]}
+${CLASSIFY_RESPONSE_SCHEMA}
 
-${JSON.stringify({ exercises: items })}`;
+${JSON.stringify({ exercises })}`;
 }
 
 export function normalizeClassifyResult(parsed, batch) {
@@ -68,13 +71,36 @@ export function normalizeClassifyResult(parsed, batch) {
     const row = byId.get(id);
     const en = pickInstructionsEn(ex.instructions);
     const hash = classifyContentHash(ex.name || '', ex.equipment || '', en);
-    const fallback = heuristicClassification(ex);
-    const corrected = applyMetadataCorrections(ex, {
-      diff: clampDiff(row?.diff ?? fallback.diff),
-      gf: clampScore(row?.gf ?? fallback.gf),
-      gm: clampScore(row?.gm ?? fallback.gm),
-      flags: Array.isArray(row?.flags) ? row.flags.slice(0, 8) : fallback.flags,
+
+    if (!row) continue;
+
+    const motor = clampDiff(row.motor ?? row.diff);
+    const coordination = clampDiff(row.coordination ?? row.diff);
+    const plyometric = Boolean(row.plyometric);
+    const diff = deriveDiffFromDimensions({
+      motor,
+      coordination,
+      plyometric,
+      diff: row.diff,
     });
+
+    let flags = sanitizeFlags(row.flags);
+    if (plyometric && !flags.includes('plyometric')) flags.push('plyometric');
+    if (plyometric && !flags.includes('advanced')) flags.push('advanced');
+    if (motor >= 3 || coordination >= 3) {
+      if (!flags.includes('advanced')) flags.push('advanced');
+    }
+    if (isGenderSpecificExerciseName(ex.name)) {
+      flags.push('gender_variant', 'excluded');
+    }
+
+    const corrected = applyMetadataCorrections(ex, {
+      diff,
+      gf: clampScore(row.gf),
+      gm: clampScore(row.gm),
+      flags,
+    });
+
     out[id] = {
       diff: corrected.diff,
       gf: corrected.gf,
@@ -82,23 +108,17 @@ export function normalizeClassifyResult(parsed, batch) {
       flags: corrected.flags,
       gear: corrected.gear,
       effectiveEquipNorm: corrected.effectiveEquipNorm,
+      motor,
+      coordination,
+      plyometric,
       sourceHash: hash,
       classifiedAt: new Date().toISOString(),
       aiClassified: true,
+      efpVersion: EFP_VERSION,
+      excluded: flags.includes('excluded'),
     };
   }
   return out;
-}
-
-function clampDiff(n) {
-  const v = Number(n);
-  return v >= 1 && v <= 3 ? v : 2;
-}
-
-function clampScore(n) {
-  const v = Number(n);
-  if (!Number.isFinite(v)) return 70;
-  return Math.max(0, Math.min(100, Math.round(v)));
 }
 
 export async function callGeminiClassify(apiKey, user, model = DEFAULT_CLASSIFY_MODEL) {
@@ -110,8 +130,8 @@ export async function callGeminiClassify(apiKey, user, model = DEFAULT_CLASSIFY_
       systemInstruction: { parts: [{ text: CLASSIFY_SYSTEM_PROMPT }] },
       contents: [{ role: 'user', parts: [{ text: user }] }],
       generationConfig: {
-        temperature: 0.1,
-        maxOutputTokens: 8192,
+        temperature: 0.05,
+        maxOutputTokens: 2048,
         responseMimeType: 'application/json',
         thinkingConfig: { thinkingBudget: 0 },
       },
@@ -140,29 +160,13 @@ export async function classifyBatchResilient(apiKey, batch, model = DEFAULT_CLAS
   if (!batch.length) return {};
   try {
     const parsed = await callGeminiClassify(apiKey, buildClassifyUserPayload(batch), model);
-    return normalizeClassifyResult(parsed, batch);
-  } catch (e) {
-    const msg = String(e.message || e);
-    if (batch.length <= 1) {
-      const ex = batch[0];
-      const en = pickInstructionsEn(ex.instructions);
-      const h = heuristicClassification(ex);
-      const corrected = applyMetadataCorrections(ex, h);
-      return {
-        [String(ex.id)]: {
-          diff: corrected.diff,
-          gf: corrected.gf,
-          gm: corrected.gm,
-          flags: corrected.flags,
-          gear: corrected.gear,
-          effectiveEquipNorm: corrected.effectiveEquipNorm,
-          sourceHash: classifyContentHash(ex.name || '', ex.equipment || '', en),
-          classifiedAt: new Date().toISOString(),
-          heuristicFallback: true,
-        },
-      };
+    const out = normalizeClassifyResult(parsed, batch);
+    if (Object.keys(out).length === 0 && batch.length === 1) {
+      throw new Error('Gemini: липсва класификация за упражнение');
     }
-    if (!/MAX_TOKENS|JSON|празен/i.test(msg)) throw e;
+    return out;
+  } catch (e) {
+    if (batch.length <= 1) throw e;
     const mid = Math.ceil(batch.length / 2);
     const left = await classifyBatchResilient(apiKey, batch.slice(0, mid), model);
     const right = await classifyBatchResilient(apiKey, batch.slice(mid), model);
@@ -172,8 +176,12 @@ export async function classifyBatchResilient(apiKey, batch, model = DEFAULT_CLAS
 
 export function classificationStats(all, existing) {
   const total = all.length;
-  const done = all.filter((ex) => !needsClassification(ex, existing, false)).length;
-  return { total, done, remaining: total - done, stored: Object.keys(existing).length };
+  const curated = all.filter((ex) => {
+    const row = existing[String(ex.id)];
+    return row?.aiClassified && (row.efpVersion ?? 0) >= EFP_VERSION && !row.heuristicOnly;
+  }).length;
+  const pending = all.filter((ex) => needsClassification(ex, existing, false)).length;
+  return { total, curated, done: curated, remaining: pending, stored: Object.keys(existing).length };
 }
 
 export { fetchExerciseDataset, chunkBatches };

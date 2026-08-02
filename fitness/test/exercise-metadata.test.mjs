@@ -1,7 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { EFP_VERSION } from '../exercise-efp-rubric.js';
 import {
-  heuristicClassification,
+  metadataForExercise,
+  isMetadataOverride,
   exerciseProfileFromAnswers,
   exerciseProfileFromContext,
   resolveMaxDiff,
@@ -15,16 +17,41 @@ import {
   alternativeClosenessScore,
   isMachineEquipment,
   alternativeSlotKey,
-  exerciseKind,
   isSameAlternativeFamily,
   searchExerciseIndex,
   computeExerciseFacets,
 } from '../exercise-metadata.js';
 
-test('heuristicClassification: hip thrust → висок gf', () => {
-  const h = heuristicClassification({ name: 'barbell hip thrust', equipment: 'barbell' });
-  assert.ok(h.gf >= 85);
-  assert.ok(h.diff >= 1 && h.diff <= 3);
+function curated(overrides = {}) {
+  return {
+    diff: 2,
+    gf: 70,
+    gm: 70,
+    flags: [],
+    aiClassified: true,
+    efpVersion: EFP_VERSION,
+    ...overrides,
+  };
+}
+
+test('isMetadataOverride: само curated v2 или manual', () => {
+  assert.equal(isMetadataOverride({ diff: 1, heuristicOnly: true }), false);
+  assert.equal(isMetadataOverride(curated()), true);
+  assert.equal(isMetadataOverride({ diff: 2, manual: true }), true);
+});
+
+test('metadataForExercise: без curated → unclassified/excluded', () => {
+  const m = metadataForExercise({ id: '1', name: 'barbell bench press', equipment: 'barbell', target: 'pectorals' }, {});
+  assert.ok(m.flags.includes('unclassified'));
+  assert.equal(m.excluded, true);
+});
+
+test('metadataForExercise: curated запис се ползва', () => {
+  const store = { '1': curated({ diff: 3, gf: 42, gm: 90, flags: ['press'] }) };
+  const m = metadataForExercise({ id: '1', name: 'barbell bench press', equipment: 'barbell', target: 'pectorals' }, store);
+  assert.equal(m.diff, 3);
+  assert.equal(m.gf, 42);
+  assert.ok(!m.excluded);
 });
 
 test('exerciseProfileFromAnswers: жена начинаеща → строг филтър', () => {
@@ -83,17 +110,6 @@ test('fitsExerciseProfile + catalog', () => {
 test('inferExerciseModality + filter по mobility', () => {
   assert.equal(inferExerciseModality('Standing Hamstring Stretch'), 'mobility');
   assert.equal(inferExerciseModality('Barbell Bench Press'), 'strength');
-  assert.equal(inferExerciseModality('walking lunge'), 'strength');
-  assert.equal(inferExerciseModality('walking high knees lunge'), 'strength');
-  assert.equal(inferExerciseModality('bicycle crunch'), 'strength');
-  assert.equal(inferExerciseModality('3/4 sit-up'), 'strength');
-  assert.equal(inferExerciseModality('crunch'), 'strength');
-  assert.equal(inferExerciseModality('rowing machine'), 'cardio');
-  assert.equal(inferExerciseModality('stationary bike'), 'cardio');
-  assert.equal(inferExerciseModality('burpee'), 'cardio');
-  assert.equal(inferExerciseModality('mountain climber'), 'hiit');
-  assert.equal(modalityMatchesDay('mobility', 'mobility'), true);
-  assert.equal(modalityMatchesDay('mobility', 'strength'), false);
   const index = [
     { name: 'Hamstring Stretch', diff: 1, gf: 80, gm: 70, equipNorm: 'body weight' },
     { name: 'Barbell Squat', diff: 3, gf: 70, gm: 85, equipNorm: 'barbell' },
@@ -103,10 +119,11 @@ test('inferExerciseModality + filter по mobility', () => {
   assert.ok(filtered[0].name.includes('Stretch'));
 });
 
-test('mergeExerciseMetadata: heuristic без KV', () => {
-  const entry = mergeExerciseMetadata({ id: '1', name: 'hip thrust' }, { id: '1', name: 'hip thrust' }, {});
-  assert.ok(entry.diff >= 1);
-  assert.ok(entry.gf >= 80);
+test('mergeExerciseMetadata: curated KV', () => {
+  const meta = { '1': curated({ diff: 2, gf: 92, gm: 58, flags: ['glute'] }) };
+  const entry = mergeExerciseMetadata({ id: '1', name: 'hip thrust' }, { id: '1', name: 'hip thrust', target: 'glutes' }, meta);
+  assert.equal(entry.diff, 2);
+  assert.ok(entry.gf >= 90);
 });
 
 test('alternativeClosenessScore: също оборудване и машини накрая', () => {

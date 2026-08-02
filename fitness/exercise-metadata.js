@@ -15,7 +15,7 @@ import {
   passesGearFilter,
 } from './exercise-tags.js';
 import { isGenderSpecificExerciseName } from './exercise-name-bg.js';
-import { classifyExercise } from './exercise-classification.js';
+import { isCuratedEfpRecord, EFP_VERSION } from './exercise-efp-rubric.js';
 
 /** @typedef {{ gender?: string, experience?: string }} AnswersInput */
 /** @typedef {{ isFemale: boolean, isMale: boolean, maxDiff: number, minGf: number, minGm: number }} ExerciseProfileFilter */
@@ -23,30 +23,40 @@ import { classifyExercise } from './exercise-classification.js';
 
 export const EXERCISE_METADATA_KV_KEY = 'exercise:metadata:v1';
 
-/** Bundled/KV запис е override само ако е ръчна корекция или AI класификация — не heuristicOnly кеш. */
+/** Bundled/KV запис е валиден само ако е AI-куриран (v2) или ръчна корекция. */
 export function isMetadataOverride(saved) {
   if (!saved?.diff) return false;
   if (saved.manual === true || saved.manualEdit === true) return true;
-  if (saved.aiClassified === true && !saved.heuristicOnly) return true;
-  return false;
+  return isCuratedEfpRecord(saved);
 }
 
-/** Евристичен bootstrap преди/без AI класификация. */
-export function heuristicClassification(raw) {
-  const classified = classifyExercise(raw);
-  return applyMetadataCorrections(raw, {
-    diff: classified.diff,
-    gf: classified.gf,
-    gm: classified.gm,
-    flags: classified.flags,
+/**
+ * Fallback само при липсваща курирана класификация — маркира unclassified.
+ * Не се ползва за production каталог (филтрира се).
+ */
+export function unclassifiedMetadata(raw) {
+  const meta = applyMetadataCorrections(raw, {
+    diff: 2,
+    gf: 65,
+    gm: 65,
+    flags: ['unclassified'],
   });
+  meta.excluded = true;
+  meta.flags = [...new Set([...(meta.flags || []), 'excluded', 'unclassified'])];
+  return meta;
+}
+
+/** @deprecated Само за тестове — production използва curated EFP. */
+export function heuristicClassification(raw) {
+  return unclassifiedMetadata(raw);
 }
 
 export function metadataForExercise(raw, store = {}) {
   const id = String(raw?.id ?? '');
   const saved = store[id];
-  const base = isMetadataOverride(saved)
-    ? {
+  let base;
+  if (isMetadataOverride(saved)) {
+    base = {
       diff: saved.diff,
       gf: saved.gf ?? 70,
       gm: saved.gm ?? 70,
@@ -54,9 +64,17 @@ export function metadataForExercise(raw, store = {}) {
       ...(saved.gear?.length ? { gear: saved.gear } : {}),
       ...(saved.effectiveEquipNorm ? { effectiveEquipNorm: saved.effectiveEquipNorm } : {}),
       ...(saved.excluded ? { excluded: true } : {}),
-    }
-    : heuristicClassification(raw);
+      ...(saved.motor != null ? { motor: saved.motor } : {}),
+      ...(saved.coordination != null ? { coordination: saved.coordination } : {}),
+      ...(saved.plyometric != null ? { plyometric: saved.plyometric } : {}),
+      efpVersion: saved.efpVersion ?? EFP_VERSION,
+      aiClassified: true,
+    };
+  } else {
+    base = unclassifiedMetadata(raw);
+  }
   const meta = applyMetadataCorrections(raw, base);
+  if (base.excluded) meta.excluded = true;
   if (isGenderSpecificExerciseName(raw?.name)) {
     meta.excluded = true;
     meta.flags = [...new Set([...(meta.flags || []), 'excluded', 'gender_variant'])];
@@ -385,6 +403,7 @@ export function filterExercises(index, profile, allowedEquipment = null, modalit
   return index.filter((e) =>
     !e.excluded
     && !(e.flags || []).includes('excluded')
+    && !(e.flags || []).includes('unclassified')
     && fitsExerciseProfile(e, profile)
     && passesBeginnerSafety(e, profile)
     && !isGenderSpecificExerciseName(e.name)
