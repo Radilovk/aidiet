@@ -22,6 +22,23 @@ import { isGenderSpecificExerciseName } from './exercise-name-bg.js';
 
 export const EXERCISE_METADATA_KV_KEY = 'exercise:metadata:v1';
 
+/**
+ * Критерии за EFP индексация (diff / gf / gm / flags).
+ * gf/gm НЕ са „мъжко/женско упражнение“ — оценяват подходящост за женски/мъжки план.
+ */
+export const EXERCISE_CLASSIFICATION_CRITERIA = {
+  diff: {
+    1: 'Начинаещ: машини/кабели/ластици, стречинг, базово СТ (клек, планка, push-up на стена)',
+    2: 'Среден: TRX, лост, паралели, повечето дъмбели/гири, неасистирани pull-up',
+    3: 'Напреднал: щанга/Olympic, гимнастика, халки, pistol squat, muscle-up, handstand',
+  },
+  gf: '0–100 подходящост за женски план (glute/lower-body bias ↑; тежък bench/skull crusher bias ↓)',
+  gm: '0–100 подходящост за мъжки план (squat/deadlift/row/pull bias ↑)',
+  true_bodyweight: 'Само под, мат, стена, степ, пейка, стол — без лост, халки, TRX, машини',
+  home_friendly: 'true_bodyweight + без high-skill (гимнастика, plyo, one-arm, pistol squat…)',
+  gender_variant: 'Имена с (male)/(female) — изключени от AI; полът идва от въпросника, не от името',
+};
+
 /** Евристичен bootstrap преди/без AI класификация. */
 export function heuristicClassification(raw) {
   const name = normalizeText(raw?.name || '');
@@ -61,7 +78,9 @@ export function heuristicClassification(raw) {
     gf = 92;
     flags.push('glute');
   }
-  if (/bench press|skull crush|close grip|military press|barbell curl|upright row/.test(blob)) {
+  const malePressBias = /bench press|skull crush|military press|barbell curl|upright row/.test(blob)
+    || (/close[\s-]?grip\s+(bench|barbell|press|pulldown|row)/.test(blob) && !/push[- ]?up/.test(blob));
+  if (malePressBias) {
     gf = 32;
     gm = 88;
     flags.push('press');
@@ -89,7 +108,12 @@ export function metadataForExercise(raw, store = {}) {
       ...(saved.excluded ? { excluded: true } : {}),
     }
     : heuristicClassification(raw);
-  return applyMetadataCorrections(raw, base);
+  const meta = applyMetadataCorrections(raw, base);
+  if (isGenderSpecificExerciseName(raw?.name)) {
+    meta.excluded = true;
+    meta.flags = [...new Set([...(meta.flags || []), 'excluded', 'gender_variant'])];
+  }
+  return meta;
 }
 
 export function mergeExerciseMetadata(entry, raw, metadata = {}) {

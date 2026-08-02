@@ -260,7 +260,7 @@ export function inferExerciseTraits(name = '', equipment = '') {
   const rings = /\bring\b/.test(n) || gear.includes(GEAR_RINGS);
   const parallelBars = PARALLEL_BAR_RE.test(n) || gear.includes(GEAR_PARALLEL_BARS);
   const pullBar = gear.includes(GEAR_PULL_BAR);
-  const highSkill = gymnastics || rings || /\b(pistol squat|one arm push|archer push|clapping push|clap push|drop push|depth jump|explosive|plyo|burpee|muscle)\b/i.test(n);
+  const highSkill = gymnastics || rings || /\b(pistol squat|one arm|single leg|unilateral|archer push|clapping push|clap push|drop push|depth jump|explosive|plyo|burpee|muscle)\b/i.test(n);
   const assisted = ASSISTED_RE.test(n) || eq === 'assisted' || /machine|lever|cable|band/i.test(eq);
   const stretch = STRETCH_RE.test(n);
   const beginnerSafe = trueBodyweight && !highSkill && !rings && !suspended && !parallelBars
