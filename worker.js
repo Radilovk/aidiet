@@ -2908,6 +2908,33 @@ function isMachineEquipment(equipNorm) {
   const eq = normalizeText(equipNorm || "");
   return eq.includes("machine") || eq.includes("lever") || eq.includes("smith");
 }
+function exerciseAlternativeFamily(entry) {
+  const name = normalizeText(entry?.name || "");
+  const target = entry?.targetNorm || "";
+  const body = entry?.bodyNorm || "";
+  if (/stretch|mobility|yoga|pilates|foam|pigeon|child pose|cat cow/.test(name)) return "mobility";
+  if (/\b(jump rope|burpee|mountain climber|high knees|battle rope|sprint|jog|run|walk)\b/.test(name)) return "cardio";
+  if (/\b(leg press|hack squat)\b/.test(name)) return "knee_dominant";
+  if (/\b(squat|lunge|split squat|step.?up|curtsy|wall sit|goblet squat|sissy squat)\b/.test(name) && !/deadlift|pullover|bench squat/i.test(name)) return "knee_dominant";
+  if (/\b(deadlift|rdl|romanian|hip thrust|glute bridge|pull.?through|good morning|hyperextension|back extension|kettlebell swing)\b/.test(name)) {
+    return "hip_hinge";
+  }
+  if (/\b(calf raise|calf press|seated calf|donkey calf)\b/.test(name)) return "iso_calves";
+  if (/\b(adduct|abduct)\b/.test(name) || target === "adductors" || target === "abductors") return "iso_hips";
+  if (/\b(bench press|push-up|push up|chest press|pec deck)\b/.test(name) && !/triceps|tricep/i.test(name)) return "horizontal_push";
+  if (/\b(fly|flye)\b/.test(name) && (body === "chest" || /pec/.test(target))) return "horizontal_push";
+  if (/\b(dip)\b/.test(name) && (body === "chest" || /pec/.test(target))) return "horizontal_push";
+  if (/\b(overhead press|shoulder press|military press|arnold press|push press)\b/.test(name)) return "vertical_push";
+  if (/\b(pulldown|pull-up|pull up|chin-up|chin up)\b/.test(name)) return "vertical_pull";
+  if (/\b(row|rowing)\b/.test(name) && !/upright/i.test(name)) return "horizontal_pull";
+  if (/\b(curl|preacher curl|hammer curl)\b/.test(name)) return "iso_biceps";
+  if (/\b(tricep|triceps|pushdown|skull)\b/.test(name) || /\bkickback\b/.test(name) && /tricep/.test(target)) return "iso_triceps";
+  if (/\b(lateral raise|front raise|rear delt|reverse fly)\b/.test(name)) return "iso_shoulder";
+  if (/\b(crunch|sit-up|sit up|plank|leg raise|dead bug|russian twist|rollout|hollow)\b/.test(name) || target === "abs" || body === "waist") return "core";
+  const flags = entry?.flags || [];
+  const kind = flags.includes("isolation") ? "iso" : "compound";
+  return `${kind}:${target || body || "other"}`;
+}
 function alternativeClosenessScore(candidate, matchedEntry) {
   if (!candidate || !matchedEntry) return 999;
   let score = 0;
@@ -2925,6 +2952,21 @@ function alternativeClosenessScore(candidate, matchedEntry) {
     if (candidate.bodyNorm === matchedEntry.bodyNorm) score -= 4;
     else score += 6;
   }
+  if (exerciseAlternativeFamily(matchedEntry) === exerciseAlternativeFamily(candidate)) score -= 8;
+  const fam = exerciseAlternativeFamily(candidate);
+  const baseFam = exerciseAlternativeFamily(matchedEntry);
+  const candName = normalizeText(candidate.name || "");
+  const baseName = normalizeText(matchedEntry.name || "");
+  if (fam === baseFam) {
+    if (fam === "knee_dominant") {
+      if (/\b(lunge|split squat|leg press|step.?up|goblet squat)\b/.test(candName)) score -= 14;
+      if (/\b(jump|plyo|drop)\b/.test(candName) && !/\b(jump|plyo|drop)\b/.test(baseName)) score += 12;
+    }
+    if (fam === "horizontal_push") {
+      if (/\b(push-up|push up|dumbbell bench|chest press)\b/.test(candName)) score -= 14;
+      if (/\b(archer|clap|depth jump|planche)\b/.test(candName)) score += 12;
+    }
+  }
   const overlap = tokenOverlapScore(matchedEntry.tokens, candidate.tokens);
   score -= Math.round(overlap * 20);
   return score;
@@ -2937,12 +2979,14 @@ function compareAlternativeCloseness(a, b, matchedEntry, profile = null) {
 }
 function isSameAlternativeFamily(matchedEntry, candidate, sessionType = null) {
   if (!matchedEntry || !candidate) return false;
-  if (!matchedEntry.targetNorm || candidate.targetNorm !== matchedEntry.targetNorm) return false;
   const matchedMod = inferExerciseModality(matchedEntry);
   const candMod = inferExerciseModality(candidate);
   if (matchedMod !== candMod) return false;
   if (sessionType && !modalityMatchesDay(sessionType, candMod)) return false;
-  if ((candidate.diff ?? 2) !== (matchedEntry.diff ?? 2)) return false;
+  if (exerciseAlternativeFamily(matchedEntry) !== exerciseAlternativeFamily(candidate)) return false;
+  const matchedDiff = matchedEntry.diff ?? 2;
+  const candDiff = candidate.diff ?? 2;
+  if (Math.abs(candDiff - matchedDiff) > 1) return false;
   return true;
 }
 var MOBILITY_RE = /stretch|yoga|mobility|pilates|flexibility|foam|pigeon|child pose|cat cow|downward|spinal twist/i;

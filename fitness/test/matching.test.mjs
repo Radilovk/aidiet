@@ -46,7 +46,7 @@ import {
 } from '../worker.js';
 
 import { mergeAllowedEquipment, auditPlanExercises } from '../plan-generation.js';
-import { filterExercises, passesEquipment, exerciseProfileFromAnswers, isSameAlternativeFamily } from '../exercise-metadata.js';
+import { filterExercises, passesEquipment, exerciseProfileFromAnswers, isSameAlternativeFamily, exerciseAlternativeFamily } from '../exercise-metadata.js';
 
 import { QUESTIONS, activeQuestions, validateQuestion, buildAnswers, answersToFormState, fieldVisible } from '../questions.js';
 import { localizeExerciseDisplayName, sanitizeBgText } from '../exercise-labels-bg.js';
@@ -243,16 +243,17 @@ test('findAlternatives: същата цел, трудност и позволе�
   for (const alt of alts) {
     assert.notEqual(alt.id, bench.id);
     assert.ok(allowed.has(alt.equipNorm), `непозволено оборудване: ${alt.equipment}`);
-    assert.equal(alt.targetNorm, 'pectorals');
-    assert.equal(alt.diff ?? 2, bench.diff ?? 2);
+    assert.equal(exerciseAlternativeFamily(alt), exerciseAlternativeFamily(bench));
+    assert.ok(Math.abs((alt.diff ?? 2) - (bench.diff ?? 2)) <= 1);
   }
 });
 
-test('findAlternatives: без филтър (пълна зала) връща до limit при същата трудност', () => {
+test('findAlternatives: без филтър (пълна зала) връща до limit при близка трудност', () => {
   const bench = INDEX.find((e) => e.name === 'Dumbbell Bench Press');
   const alts = findAlternatives(INDEX, bench, { allowedEquipment: null, limit: 3 });
   assert.ok(alts.length >= 1);
-  assert.ok(alts.every((a) => (a.diff ?? 2) === (bench.diff ?? 2)));
+  assert.ok(alts.every((a) => Math.abs((a.diff ?? 2) - (bench.diff ?? 2)) <= 1));
+  assert.ok(alts.every((a) => exerciseAlternativeFamily(a) === exerciseAlternativeFamily(bench)));
 });
 
 test('findAlternatives: отхвърля различна модалност и по-високо d', () => {
@@ -275,6 +276,42 @@ test('findAlternatives: отхвърля различна модалност и 
   const miniIndex = [strength, mobilityAlt, harderAlt, goodAlt];
   const alts = findAlternatives(miniIndex, strength, { allowedEquipment: null, limit: 3, sessionType: 'strength' });
   assert.deepEqual(alts.map((a) => a.id), ['g1']);
+});
+
+test('findAlternatives: клек → напад/leg press, не deadlift', async () => {
+  const { buildCompactIndex, findAlternatives } = await import('../worker.js');
+  const { fetchExerciseDataset } = await import('../exercise-translate-batch.js');
+  const index = buildCompactIndex(await fetchExerciseDataset());
+  const squat = index.find((e) => e.name === 'barbell full squat');
+  assert.ok(squat, 'barbell full squat в dataset');
+  const alts = findAlternatives(index, squat, {
+    allowedEquipment: new Set(['body weight', 'dumbbell', 'leverage machine']),
+    limit: 8,
+    sessionType: 'strength',
+  });
+  assert.ok(alts.length >= 1, 'очакват се алтернативи');
+  for (const alt of alts) {
+    assert.equal(exerciseAlternativeFamily(alt), 'knee_dominant', `${alt.name} не е knee_dominant`);
+    assert.doesNotMatch(alt.name, /deadlift|rdl|romanian/i, `${alt.name} не трябва да е hinge`);
+  }
+  assert.ok(alts.some((a) => /lunge|leg press|split squat/i.test(a.name)), 'очаква се напад или leg press');
+});
+
+test('findAlternatives: bench press → push-up/dumbbell bench, не странични варианти', async () => {
+  const { buildCompactIndex, findAlternatives } = await import('../worker.js');
+  const { fetchExerciseDataset } = await import('../exercise-translate-batch.js');
+  const index = buildCompactIndex(await fetchExerciseDataset());
+  const bench = index.find((e) => e.name === 'barbell bench press');
+  const alts = findAlternatives(index, bench, {
+    allowedEquipment: new Set(['body weight', 'dumbbell']),
+    limit: 8,
+    sessionType: 'strength',
+  });
+  assert.ok(alts.length >= 1);
+  for (const alt of alts) {
+    assert.equal(exerciseAlternativeFamily(alt), 'horizontal_push', alt.name);
+  }
+  assert.ok(alts.some((a) => /push-up|push up|dumbbell bench/i.test(a.name)));
 });
 
 test('matchExercise: при равен score предпочита по-просто оборудване', () => {
