@@ -24,6 +24,22 @@
       </div>
     </div>
 
+    <details class="ec-criteria ec-card">
+      <summary>Критерии за индексация (diff / gf / gm / тагове)</summary>
+      <dl>
+        <dt>diff (1–3)</dt>
+        <dd><strong>1</strong> — машини/кабели/ластици, стречинг, базово СТ (клек, планка, push-up на стена). <strong>2</strong> — лост, TRX, паралели, one-arm. <strong>3</strong> — щанга/Olympic, гимнастика, pistol squat, muscle-up.</dd>
+        <dt>gf / gm (0–100)</dt>
+        <dd>Подходящост за <strong>женски</strong> / <strong>мъжки план</strong> — не са „женско/мъжко упражнение“. Полът идва от въпросника. gf↑ при glute/lower-body; gf↓ при тежък bench/skull crusher. gm↑ при squat/deadlift/row/pull.</dd>
+        <dt>true_bodyweight</dt>
+        <dd>Само под, мат, стена, степ, пейка, стол — без лост, халки, TRX, машини.</dd>
+        <dt>home_friendly</dt>
+        <dd>true_bodyweight без high-skill (гимнастика, plyo, one-arm, pistol squat).</dd>
+        <dt>(male) / (female) в името</dt>
+        <dd>Автоматично <strong>изключени</strong> от AI — дублират неутрални варианти в dataset-а.</dd>
+      </dl>
+    </details>
+
     <div class="ec-layout" id="ecLayout">
       <div class="ec-card">
         <div class="ec-toolbar">
@@ -92,11 +108,11 @@
             <input type="number" id="ecDiffEdit" min="1" max="3" step="1">
           </div>
           <div class="ec-field">
-            <label for="ecGf">GF (жена)</label>
+            <label for="ecGf" title="Подходящост за женски план (не „женско упражнение“)">GF — женски план</label>
             <input type="number" id="ecGf" min="0" max="100" step="1">
           </div>
           <div class="ec-field">
-            <label for="ecGm">GM (мъж)</label>
+            <label for="ecGm" title="Подходящост за мъжки план (не „мъжко упражнение“)">GM — мъжки план</label>
             <input type="number" id="ecGm" min="0" max="100" step="1">
           </div>
           <div class="ec-field full">

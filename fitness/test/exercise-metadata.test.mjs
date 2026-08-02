@@ -9,6 +9,7 @@ import {
   filterExercises,
   buildExerciseCatalogSnippet,
   mergeExerciseMetadata,
+  metadataForExercise,
   inferExerciseModality,
   modalityMatchesDay,
   compareAlternativeCloseness,
@@ -25,6 +26,22 @@ test('heuristicClassification: hip thrust → висок gf', () => {
   const h = heuristicClassification({ name: 'barbell hip thrust', equipment: 'barbell' });
   assert.ok(h.gf >= 85);
   assert.ok(h.diff >= 1 && h.diff <= 3);
+});
+
+test('heuristicClassification: close-grip push-up не намалява gf', () => {
+  const h = heuristicClassification({ name: 'close-grip push-up', equipment: 'body weight' });
+  assert.ok(h.gf >= 60, `gf=${h.gf}`);
+});
+
+test('heuristicClassification: one-arm cable → diff≥2', () => {
+  const h = heuristicClassification({ name: 'cable one arm bent over row', equipment: 'cable' });
+  assert.ok(h.diff >= 2, `diff=${h.diff}`);
+});
+
+test('metadataForExercise: (male) вариант → excluded', () => {
+  const m = metadataForExercise({ id: 'x', name: 'kneeling push-up (male)', equipment: 'body weight' }, {});
+  assert.equal(m.excluded, true);
+  assert.ok(m.flags.includes('gender_variant'));
 });
 
 test('exerciseProfileFromAnswers: жена начинаеща → строг филтър', () => {
