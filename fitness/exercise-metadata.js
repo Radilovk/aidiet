@@ -23,6 +23,14 @@ import { classifyExercise } from './exercise-classification.js';
 
 export const EXERCISE_METADATA_KV_KEY = 'exercise:metadata:v1';
 
+/** Bundled/KV запис е override само ако е ръчна корекция или AI класификация — не heuristicOnly кеш. */
+export function isMetadataOverride(saved) {
+  if (!saved?.diff) return false;
+  if (saved.manual === true || saved.manualEdit === true) return true;
+  if (saved.aiClassified === true && !saved.heuristicOnly) return true;
+  return false;
+}
+
 /** Евристичен bootstrap преди/без AI класификация. */
 export function heuristicClassification(raw) {
   const classified = classifyExercise(raw);
@@ -37,7 +45,7 @@ export function heuristicClassification(raw) {
 export function metadataForExercise(raw, store = {}) {
   const id = String(raw?.id ?? '');
   const saved = store[id];
-  const base = saved?.diff
+  const base = isMetadataOverride(saved)
     ? {
       diff: saved.diff,
       gf: saved.gf ?? 70,

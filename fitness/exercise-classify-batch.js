@@ -84,6 +84,7 @@ export function normalizeClassifyResult(parsed, batch) {
       effectiveEquipNorm: corrected.effectiveEquipNorm,
       sourceHash: hash,
       classifiedAt: new Date().toISOString(),
+      aiClassified: true,
     };
   }
   return out;
