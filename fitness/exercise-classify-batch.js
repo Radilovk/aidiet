@@ -15,17 +15,16 @@ export const WORKER_CLASSIFY_BATCH_SIZE = 12;
 export const CLASSIFY_SYSTEM_PROMPT = `Ти си S&C експерт. Класифицираш упражнения за автоматичен избор в тренировъчни планове.
 
 За всяко упражнение върни:
-- diff: 1 (истински начинаещ) | 2 (среден) | 3 (напреднал/гимнастика/технично)
-- gf: 0–100 колко подходящо за женски план
-- gm: 0–100 колко подходящо за мъжки план
+- diff: 1 (машини/кабели/ластици, стречинг, базово СТ) | 2 (дъмбели/гири, лост, TRX, one-arm) | 3 (щанга compound, Olympic, гимнастика, pistol squat)
+- gf: 0–100 подходящост за ЖЕНСКИ план (не „женско упражнение“). glute/hip ↑, тежък bench/skull crusher ↓
+- gm: 0–100 подходящост за МЪЖКИ план. squat/deadlift/row/pull ↑
 - flags: compound, isolation, barbell, machine, bodyweight, true_bodyweight, mislabeled_bw, cardio, glute, press, olympic, gymnastics, suspension, rings, pull_bar, parallel_bars, beginner_safe, home_friendly, advanced
 
-ВАЖНО — истинско СТ (true_bodyweight):
-- САМО под, кърпа/мат, стена, степ платформа, хоризонтална пейка
-- ring dips, muscle up, suspended row, pull-up на лост, parallel bars → НЕ са СТ — diff≥2/3, needs_* уред
-- „body weight“ в equipment полето често е грешно — класифицирай по реалния уред
+Референция: open-source level beginner→1, intermediate→2, expert/advanced→3.
+barbell curl/shrug ≠ barbell squat/deadlift (curl=2, squat=3).
+true_bodyweight: само под/мат/стена/степ/пейка/стол. home_friendly: true_bodyweight без high-skill.
+(male)/(female) в името → excluded.
 
-Повечето упражнения са 50–80 и за двата пола. Крайности само при ясен акцент.
 Връщай САМО JSON без markdown.`;
 
 export function classifyContentHash(name, equipment, instructionsEn) {

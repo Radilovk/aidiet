@@ -15,6 +15,7 @@ import {
   passesGearFilter,
 } from './exercise-tags.js';
 import { isGenderSpecificExerciseName } from './exercise-name-bg.js';
+import { classifyExercise } from './exercise-classification.js';
 
 /** @typedef {{ gender?: string, experience?: string }} AnswersInput */
 /** @typedef {{ isFemale: boolean, isMale: boolean, maxDiff: number, minGf: number, minGm: number }} ExerciseProfileFilter */
@@ -24,55 +25,13 @@ export const EXERCISE_METADATA_KV_KEY = 'exercise:metadata:v1';
 
 /** Евристичен bootstrap преди/без AI класификация. */
 export function heuristicClassification(raw) {
-  const name = normalizeText(raw?.name || '');
-  const equip = normalizeText(raw?.equipment || '');
-  const blob = `${name} ${equip}`;
-  const traits = inferExerciseTraits(raw?.name || '', raw?.equipment || '');
-  let diff = 2;
-  let gf = 70;
-  let gm = 70;
-  const flags = [];
-
-  if (traits.stretch) {
-    diff = 1;
-    flags.push('bodyweight');
-  } else if (traits.gymnastics || traits.rings) {
-    diff = 3;
-    flags.push('gymnastics', 'advanced');
-  } else if (traits.suspended || traits.parallelBars) {
-    diff = 2;
-  } else if (traits.pullBar && !traits.assisted) {
-    diff = 2;
-  } else if (/snatch|clean and jerk|pistol squat|dragon flag|handstand|kipping|muscle up/.test(blob)) {
-    diff = 3;
-    flags.push('advanced');
-  } else if (/machine|lever|cable|band|smith|assisted|seated|lying/.test(blob) && !traits.highSkill) {
-    diff = 1;
-    if (/machine|lever|smith/.test(blob)) flags.push('machine');
-  } else if (/barbell|olympic|kettlebell swing|deadlift|good morning/.test(blob)) {
-    diff = 3;
-    flags.push('barbell');
-  } else if (/body weight|bodyweight/.test(equip) && /squat|lunge|bridge|plank|push-up|push up|wall|march|stretch/.test(blob)) {
-    diff = 1;
-    flags.push('bodyweight');
-  }
-
-  if (/hip thrust|glute|abduct|kickback|clam|frog|fire hydrant|pull through/.test(blob)) {
-    gf = 92;
-    flags.push('glute');
-  }
-  if (/bench press|skull crush|close grip|military press|barbell curl|upright row/.test(blob)) {
-    gf = 32;
-    gm = 88;
-    flags.push('press');
-  }
-  if (/squat|deadlift|row|pull up|chin up/.test(blob)) gm = Math.max(gm, 82);
-  if (/compound|press|squat|deadlift|lunge|thrust|row|pull|push/.test(blob)) flags.push('compound');
-  if (/curl|extension|fly|kickback|raise|crunch|stretch/.test(blob) && !flags.includes('compound')) flags.push('isolation');
-  if (traits.beginnerSafe) flags.push('beginner_safe');
-  if (traits.homeFriendly) flags.push('home_friendly');
-
-  return applyMetadataCorrections(raw, { diff, gf, gm, flags: [...new Set(flags)] });
+  const classified = classifyExercise(raw);
+  return applyMetadataCorrections(raw, {
+    diff: classified.diff,
+    gf: classified.gf,
+    gm: classified.gm,
+    flags: classified.flags,
+  });
 }
 
 export function metadataForExercise(raw, store = {}) {
@@ -89,7 +48,12 @@ export function metadataForExercise(raw, store = {}) {
       ...(saved.excluded ? { excluded: true } : {}),
     }
     : heuristicClassification(raw);
-  return applyMetadataCorrections(raw, base);
+  const meta = applyMetadataCorrections(raw, base);
+  if (isGenderSpecificExerciseName(raw?.name)) {
+    meta.excluded = true;
+    meta.flags = [...new Set([...(meta.flags || []), 'excluded', 'gender_variant'])];
+  }
+  return meta;
 }
 
 export function mergeExerciseMetadata(entry, raw, metadata = {}) {
