@@ -416,6 +416,8 @@ export function buildCompactIndex(rawList, translations = {}, metadata = {}) {
       targetNorm: normalizeText(raw.target || raw.muscle_group),
       bodyPart: raw.body_part || raw.bodyPart || '',
       bodyNorm: normalizeText(raw.body_part || raw.bodyPart),
+      muscleGroup: raw.muscle_group || '',
+      muscleGroupNorm: normalizeText(raw.muscle_group || ''),
       secondary: Array.isArray(raw.secondary_muscles) ? raw.secondary_muscles.slice(0, 4) : [],
       image: raw.image || '',
       gif: raw.gif_url || raw.gifUrl || '',
