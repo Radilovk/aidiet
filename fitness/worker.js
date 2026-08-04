@@ -205,7 +205,7 @@ export function tokenOverlapScore(queryTokens, candidateTokens) {
  * Bonus от hints разграничава близки имена (Bench Press с щанга vs с дъмбели).
  * Връща { entry, score, usedFallback } или null ако базата е празна.
  */
-export function matchExercise(index, { canonicalName, equipmentHint, bodyPart }) {
+export function matchExercise(index, { canonicalName, equipmentHint, bodyPart, allowedEquipment = null }) {
   if (!index || !index.length) return null;
 
   const queryTokens = tokenize(canonicalName);
@@ -216,6 +216,7 @@ export function matchExercise(index, { canonicalName, equipmentHint, bodyPart })
   let bestScore = 0;
 
   for (const entry of index) {
+    if (allowedEquipment && !passesEquipment(entry, allowedEquipment)) continue;
     let score = tokenOverlapScore(queryTokens, entry.tokens);
     if (score === 0) continue;
     // Bonus от hints — само върху кандидати с текстово покритие.
@@ -238,9 +239,13 @@ export function matchExercise(index, { canonicalName, equipmentHint, bodyPart })
   // Fallback по категория: първи запис със същото equipment/target,
   // за да не остане празно поле в програмата.
   const fallback = index.find((e) =>
-    (bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm)) &&
-    (!equipNorm || e.equipNorm === equipNorm)
-  ) || index.find((e) => bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm));
+    (!allowedEquipment || passesEquipment(e, allowedEquipment))
+    && (bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm))
+    && (!equipNorm || e.equipNorm === equipNorm)
+  ) || index.find((e) =>
+    (!allowedEquipment || passesEquipment(e, allowedEquipment))
+    && bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm)
+  );
 
   if (fallback) return { entry: fallback, score: 0, usedFallback: true };
   return best ? { entry: best, score: Math.min(1, Number(bestScore.toFixed(3))), usedFallback: true } : null;
@@ -264,7 +269,7 @@ export function findAlternatives(index, matchedEntry, { allowedEquipment = null,
     const sameTarget = target && entry.targetNorm === target;
     const sameBody = body && entry.bodyNorm === body;
     if (!sameTarget && !sameBody) continue;
-    if (allowedEquipment && !allowedEquipment.has(entry.equipNorm)) continue;
+    if (allowedEquipment && !passesEquipment(entry, allowedEquipment)) continue;
     candidates.push({ entry, rank: (sameTarget ? 2 : 0) + (entry.equipNorm === matchedEntry.equipNorm ? 1 : 0) });
   }
 
@@ -418,19 +423,52 @@ export const EQUIPMENT_MAP = {
   'trx / окачени ремъци': ['body weight'],
 };
 
+const EQUIPMENT_TEXT_HINTS = [
+  { keys: ['leg press', 'преса за крак', 'преса'], hints: ['leverage machine', 'sled machine', 'smith machine'] },
+  { keys: ['дъмбел', 'dumbbell'], hints: ['dumbbell'] },
+  { keys: ['гира', 'kettlebell', 'гирич'], hints: ['kettlebell'] },
+  { keys: ['ластик', 'band'], hints: ['band', 'resistance band'] },
+];
+
+/** Разделя checkbox + equipmentOther („Leg press, гирички…“) на отделни стойности. */
+export function expandEquipmentAnswers(equipmentAnswers) {
+  const items = [];
+  for (const a of equipmentAnswers || []) {
+    if (!a || a === 'Друго') continue;
+    for (const part of String(a).split(/[,;\n]/)) {
+      const t = part.trim();
+      if (t) items.push(t);
+    }
+  }
+  return items;
+}
+
+/** Дали записът е с позволено оборудване (EN equipNorm). */
+export function passesEquipment(entry, allowedEquipment) {
+  if (!allowedEquipment?.size) return true;
+  const eq = entry?.equipNorm || normalizeText(entry?.equipment || '');
+  if (!eq) return false;
+  if (allowedEquipment.has(eq)) return true;
+  return [...allowedEquipment].some((a) => eq.includes(a) || a.includes(eq));
+}
+
 /**
  * Връща Set от позволени equipment стойности (EN, нормализирани) или null,
  * ако клиентът има пълна зала (без филтър).
  */
 export function allowedEquipmentSet(equipmentAnswers) {
   const set = new Set(['body weight']); // собственото тегло е винаги налично
-  for (const answer of equipmentAnswers || []) {
+  for (const answer of expandEquipmentAnswers(equipmentAnswers)) {
     const key = normalizeText(answer);
-    if (key in EQUIPMENT_MAP || EQUIPMENT_MAP[key] === null) {
-      if (EQUIPMENT_MAP[key] === null) return null;
+    if (EQUIPMENT_MAP[key] === null || key.includes('зала') || key.includes('gym')) return null;
+    if (key in EQUIPMENT_MAP) {
       for (const eq of EQUIPMENT_MAP[key] || []) set.add(normalizeText(eq));
-    } else if (key.includes('зала') || key.includes('gym')) {
-      return null;
+      continue;
+    }
+    for (const { keys, hints } of EQUIPMENT_TEXT_HINTS) {
+      if (keys.some((k) => key.includes(normalizeText(k)))) {
+        for (const h of hints) set.add(h);
+      }
     }
   }
   return set;
@@ -778,12 +816,22 @@ export function enrichPlanWithExercises(plan, index, { allowedEquipment = null, 
   for (const day of plan.days) {
     const usedIds = [];
     for (const ex of day.exercises) {
-      const result = matchExercise(index, {
+      let result = matchExercise(index, {
         canonicalName: ex.canonicalName,
         equipmentHint: ex.equipmentHint,
         bodyPart: ex.bodyPart,
+        allowedEquipment,
       });
+      if (result?.entry && allowedEquipment && !passesEquipment(result.entry, allowedEquipment)) {
+        const swap = findAlternatives(index, result.entry, {
+          allowedEquipment, limit: 1, excludeIds: usedIds,
+        });
+        if (swap.length) result = { entry: swap[0], score: 0, usedFallback: true };
+      }
       if (result && result.entry) {
+        ex.canonicalName = result.entry.name;
+        ex.equipmentHint = result.entry.equipment || ex.equipmentHint;
+        ex.bodyPart = result.entry.bodyPart || result.entry.target || ex.bodyPart;
         ex.match = entryToClientExercise(env, result.entry);
         ex.matchScore = result.score;
         ex.matchFallback = result.usedFallback;
@@ -954,7 +1002,13 @@ async function handleGeneratePlan(request, env, ctx) {
   }
 
   const planId = crypto.randomUUID();
-  const record = { plan, coachContext, createdAt: new Date().toISOString(), clientRef: body.clientRef || null };
+  const record = {
+    plan,
+    coachContext,
+    createdAt: new Date().toISOString(),
+    clientRef: body.clientRef || null,
+    allowedEquipment: allowedEquipment ? [...allowedEquipment] : null,
+  };
 
   if (env.FITNESS_KV) {
     ctx.waitUntil(env.FITNESS_KV.put(`plan:${planId}`, JSON.stringify(record), { expirationTtl: PLAN_TTL }));
@@ -971,7 +1025,8 @@ async function handleGetPlan(planId, env, ctx) {
   let plan = record.plan;
   const index = await loadExerciseIndex(env, ctx);
   if (index && plan) {
-    plan = enrichPlanWithExercises(JSON.parse(JSON.stringify(plan)), index, { env });
+    const allowed = record.allowedEquipment ? new Set(record.allowedEquipment) : null;
+    plan = enrichPlanWithExercises(JSON.parse(JSON.stringify(plan)), index, { allowedEquipment: allowed, env });
   }
 
   return jsonResponse({
@@ -1515,6 +1570,7 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
     status: 'draft',
     clientProgramId: record.id,
     clientName: record.clientName,
+    allowedEquipment: allowedEquipment ? [...allowedEquipment] : null,
   }), { expirationTtl: PLAN_TTL });
 
   record.planId = planId;

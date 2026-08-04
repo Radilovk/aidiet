@@ -1733,6 +1733,10 @@ function buildProfileSummary(a) {
   if (a.healthMeds) health.push(`\u043C\u0435\u0434\u0438\u043A\u0430\u043C\u0435\u043D\u0442\u0438: ${a.healthMeds}`);
   if (a.healthOther) health.push(a.healthOther);
   parts.push(line("\u0417\u0434\u0440\u0430\u0432\u0435", health.join("; ") || "\u0431\u0435\u0437 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u0435\u043D\u0438 \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0438\u044F"));
+  if (a.breastImplants?.implants) {
+    const months = a.breastImplants.implantMonths ? `, ${a.breastImplants.implantMonths} \u043C\u0435\u0441. \u0441\u043B\u0435\u0434 \u043E\u043F\u0435\u0440\u0430\u0446\u0438\u044F` : "";
+    parts.push(line("\u0413\u0440\u044A\u0434\u043D\u0438 \u0438\u043C\u043F\u043B\u0430\u043D\u0442\u0438", `${a.breastImplants.implants}${months}`));
+  }
   const limits = (a.limitations || []).filter((l) => !normalizeText(l).includes("\u043D\u044F\u043C\u0430\u043C"));
   parts.push(line("\u041E\u043F\u043E\u0440\u043D\u043E-\u0434\u0432\u0438\u0433\u0430\u0442\u0435\u043B\u043D\u0438 \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438\u044F (\u0417\u0410\u0414\u042A\u041B\u0416\u0418\u0422\u0415\u041B\u041D\u041E \u0421\u042A\u041E\u0411\u0420\u0410\u0417\u0418)", limits.join("; ")));
   if (a.weightChange && a.weightChange.type && a.weightChange.type !== "stable") {
@@ -1971,6 +1975,7 @@ function parseAdminBriefConstraints(clientProfile = "", exampleScheme = "") {
   for (const pattern of [
     /гърди\s+не[^.\n]*/gi,
     /без\s+гърди[^.\n]*/gi,
+    /имплант[^.\n]*/gi,
     /без\s+страничн[иа]\s+рамен[ае][^.\n]*/gi,
     /без\s+(?:бърпи|клек|мъртв|преси|кранч|падан)[^.\n]*/gi,
     /не\s+(?:прави|правим|включвай|искам)[^.\n]*/gi,
@@ -2022,6 +2027,16 @@ function constraintsFromAnswers(answers, exampleScheme = "") {
   }
   for (const lim of answers?.limitations || []) {
     if (lim && !normalizeText(lim).includes("\u043D\u044F\u043C\u0430\u043C")) exclusions.push(`\u041E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438\u0435: ${lim}`);
+  }
+  if (answers?.breastImplants?.implants) {
+    const months = answers.breastImplants.implantMonths ? ` (${answers.breastImplants.implantMonths} \u043C\u0435\u0441. \u0441\u043B\u0435\u0434 \u043E\u043F\u0435\u0440\u0430\u0446\u0438\u044F)` : "";
+    exclusions.push(`\u0413\u0440\u044A\u0434\u043D\u0438 \u0438\u043C\u043F\u043B\u0430\u043D\u0442\u0438${months}: \u0431\u0435\u0437 \u043D\u0430\u0442\u0438\u0441\u043A \u0432\u044A\u0440\u0445\u0443 \u0433\u044A\u0440\u0434\u0438\u0442\u0435 \u2014 \u0431\u0435\u0437 \u043B\u0435\u0436\u0430\u043D\u043A\u0438, \u0444\u043B\u0430\u0439\u0441, \u043A\u0440\u044A\u0441\u0442\u043E\u0441\u0430\u043D\u0438 \u0432\u044A\u0434\u0438\u0446\u0438, \u043F\u0443\u0448-\u044A\u043F, \u043F\u0435\u043A-\u0434\u0435\u043A, \u043A\u0430\u0431\u0435\u043B \u043A\u0440\u044A\u0441\u0442\u043E\u0441\u0432\u0430\u043D\u0435; \u0441\u0430\u043C\u043E \u043B\u0435\u043A\u0438 \u0438\u0437\u043E\u043B\u0438\u0440\u0430\u043D\u0438 \u0434\u0432\u0438\u0436\u0435\u043D\u0438\u044F \u0441 \u043B\u0435\u043A\u0438 \u0442\u0435\u0436\u0435\u0441\u0442\u0438 \u0438 \u0431\u0435\u0437 \u043A\u043E\u043C\u043F\u0440\u0435\u0441\u0438\u044F`);
+  }
+  for (const h of [...answers?.health || [], ...answers?.healthFemale || []]) {
+    if (/бременн|кърм/i.test(h)) {
+      exclusions.push("\u0411\u0440\u0435\u043C\u0435\u043D\u043D\u043E\u0441\u0442/\u043A\u044A\u0440\u043C\u0435\u043D\u0435: \u0431\u0435\u0437 \u043A\u043E\u0440\u0435\u043C\u043D\u0438 \u043F\u0440\u0435\u0441\u0438, \u0431\u0435\u0437 \u043B\u0435\u0436\u0430\u043D\u043A\u0438, \u0431\u0435\u0437 \u0432\u0438\u0441\u043E\u043A \u0438\u043D\u0442\u0435\u043D\u0437\u0438\u0442\u0435\u0442");
+      break;
+    }
   }
   const priorities = [];
   if (answers?.extraInfo?.trim()) priorities.push(answers.extraInfo.trim());
@@ -2308,13 +2323,17 @@ function preparePlanGeneration(source, adminConfig, helpers) {
       constraints: constraintsFromAnswers(answers, extra.exampleScheme || ""),
       tags: tags2
     };
-    const equipmentInput = [...answers.equipment || [], answers.equipmentOther].filter(Boolean);
+    const equipmentInput = expandEquipmentInput(answers);
     return {
       userPrompt: buildAdminPlanUserPrompt(brief2, layers2, foundation),
       coachProfileText: extra.coachProfileText || profileText,
       allowedEquipment: helpers.allowedEquipmentSet(equipmentInput),
-      clientTags: tags2
+      clientTags: tags2,
+      constraints: brief2.constraints
     };
+  }
+  function expandEquipmentInput(answers) {
+    return [...answers?.equipment || [], answers?.equipmentOther].filter(Boolean);
   }
   if (source.clientAnswers) {
     const answers = source.clientAnswers;
@@ -2414,7 +2433,7 @@ function tokenOverlapScore(queryTokens, candidateTokens) {
   }
   return overlap / Math.max(new Set(queryTokens).size, candidateSet.size);
 }
-function matchExercise(index, { canonicalName, equipmentHint, bodyPart }) {
+function matchExercise(index, { canonicalName, equipmentHint, bodyPart, allowedEquipment = null }) {
   if (!index || !index.length) return null;
   const queryTokens = tokenize(canonicalName);
   const equipNorm = normalizeText(equipmentHint);
@@ -2422,6 +2441,7 @@ function matchExercise(index, { canonicalName, equipmentHint, bodyPart }) {
   let best = null;
   let bestScore = 0;
   for (const entry of index) {
+    if (allowedEquipment && !passesEquipment(entry, allowedEquipment)) continue;
     let score = tokenOverlapScore(queryTokens, entry.tokens);
     if (score === 0) continue;
     if (equipNorm && entry.equipNorm && (entry.equipNorm.includes(equipNorm) || equipNorm.includes(entry.equipNorm))) {
@@ -2439,8 +2459,10 @@ function matchExercise(index, { canonicalName, equipmentHint, bodyPart }) {
     return { entry: best, score: Math.min(1, Number(bestScore.toFixed(3))), usedFallback: false };
   }
   const fallback = index.find(
-    (e) => bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm) && (!equipNorm || e.equipNorm === equipNorm)
-  ) || index.find((e) => bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm));
+    (e) => (!allowedEquipment || passesEquipment(e, allowedEquipment)) && (bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm)) && (!equipNorm || e.equipNorm === equipNorm)
+  ) || index.find(
+    (e) => (!allowedEquipment || passesEquipment(e, allowedEquipment)) && bodyNorm && (e.targetNorm === bodyNorm || e.bodyNorm === bodyNorm)
+  );
   if (fallback) return { entry: fallback, score: 0, usedFallback: true };
   return best ? { entry: best, score: Math.min(1, Number(bestScore.toFixed(3))), usedFallback: true } : null;
 }
@@ -2456,7 +2478,7 @@ function findAlternatives(index, matchedEntry, { allowedEquipment = null, limit 
     const sameTarget = target && entry.targetNorm === target;
     const sameBody = body && entry.bodyNorm === body;
     if (!sameTarget && !sameBody) continue;
-    if (allowedEquipment && !allowedEquipment.has(entry.equipNorm)) continue;
+    if (allowedEquipment && !passesEquipment(entry, allowedEquipment)) continue;
     candidates.push({ entry, rank: (sameTarget ? 2 : 0) + (entry.equipNorm === matchedEntry.equipNorm ? 1 : 0) });
   }
   candidates.sort((a, b) => b.rank - a.rank);
@@ -2574,15 +2596,43 @@ var EQUIPMENT_MAP = {
   "\u0441\u0442\u0430\u0431\u0438\u043B\u0438\u0437\u0438\u0440\u0430\u0449\u0430 \u0442\u043E\u043F\u043A\u0430": ["stability ball"],
   "trx / \u043E\u043A\u0430\u0447\u0435\u043D\u0438 \u0440\u0435\u043C\u044A\u0446\u0438": ["body weight"]
 };
+var EQUIPMENT_TEXT_HINTS = [
+  { keys: ["leg press", "\u043F\u0440\u0435\u0441\u0430 \u0437\u0430 \u043A\u0440\u0430\u043A", "\u043F\u0440\u0435\u0441\u0430"], hints: ["leverage machine", "sled machine", "smith machine"] },
+  { keys: ["\u0434\u044A\u043C\u0431\u0435\u043B", "dumbbell"], hints: ["dumbbell"] },
+  { keys: ["\u0433\u0438\u0440\u0430", "kettlebell", "\u0433\u0438\u0440\u0438\u0447"], hints: ["kettlebell"] },
+  { keys: ["\u043B\u0430\u0441\u0442\u0438\u043A", "band"], hints: ["band", "resistance band"] }
+];
+function expandEquipmentAnswers(equipmentAnswers) {
+  const items = [];
+  for (const a of equipmentAnswers || []) {
+    if (!a || a === "\u0414\u0440\u0443\u0433\u043E") continue;
+    for (const part of String(a).split(/[,;\n]/)) {
+      const t = part.trim();
+      if (t) items.push(t);
+    }
+  }
+  return items;
+}
+function passesEquipment(entry, allowedEquipment) {
+  if (!allowedEquipment?.size) return true;
+  const eq = entry?.equipNorm || normalizeText(entry?.equipment || "");
+  if (!eq) return false;
+  if (allowedEquipment.has(eq)) return true;
+  return [...allowedEquipment].some((a) => eq.includes(a) || a.includes(eq));
+}
 function allowedEquipmentSet(equipmentAnswers) {
   const set = /* @__PURE__ */ new Set(["body weight"]);
-  for (const answer of equipmentAnswers || []) {
+  for (const answer of expandEquipmentAnswers(equipmentAnswers)) {
     const key = normalizeText(answer);
-    if (key in EQUIPMENT_MAP || EQUIPMENT_MAP[key] === null) {
-      if (EQUIPMENT_MAP[key] === null) return null;
+    if (EQUIPMENT_MAP[key] === null || key.includes("\u0437\u0430\u043B\u0430") || key.includes("gym")) return null;
+    if (key in EQUIPMENT_MAP) {
       for (const eq of EQUIPMENT_MAP[key] || []) set.add(normalizeText(eq));
-    } else if (key.includes("\u0437\u0430\u043B\u0430") || key.includes("gym")) {
-      return null;
+      continue;
+    }
+    for (const { keys, hints } of EQUIPMENT_TEXT_HINTS) {
+      if (keys.some((k) => key.includes(normalizeText(k)))) {
+        for (const h of hints) set.add(h);
+      }
     }
   }
   return set;
@@ -2906,12 +2956,24 @@ function enrichPlanWithExercises(plan, index, { allowedEquipment = null, env = {
   for (const day of plan.days) {
     const usedIds = [];
     for (const ex of day.exercises) {
-      const result = matchExercise(index, {
+      let result = matchExercise(index, {
         canonicalName: ex.canonicalName,
         equipmentHint: ex.equipmentHint,
-        bodyPart: ex.bodyPart
+        bodyPart: ex.bodyPart,
+        allowedEquipment
       });
+      if (result?.entry && allowedEquipment && !passesEquipment(result.entry, allowedEquipment)) {
+        const swap = findAlternatives(index, result.entry, {
+          allowedEquipment,
+          limit: 1,
+          excludeIds: usedIds
+        });
+        if (swap.length) result = { entry: swap[0], score: 0, usedFallback: true };
+      }
       if (result && result.entry) {
+        ex.canonicalName = result.entry.name;
+        ex.equipmentHint = result.entry.equipment || ex.equipmentHint;
+        ex.bodyPart = result.entry.bodyPart || result.entry.target || ex.bodyPart;
         ex.match = entryToClientExercise(env, result.entry);
         ex.matchScore = result.score;
         ex.matchFallback = result.usedFallback;
@@ -3059,7 +3121,13 @@ async function handleGeneratePlan(request, env, ctx) {
     return errorResponse("AI \u0443\u0441\u043B\u0443\u0433\u0430\u0442\u0430 \u0435 \u0432\u0440\u0435\u043C\u0435\u043D\u043D\u043E \u043D\u0435\u0434\u043E\u0441\u0442\u044A\u043F\u043D\u0430. \u041E\u043F\u0438\u0442\u0430\u0439 \u043E\u0442\u043D\u043E\u0432\u043E \u0441\u043B\u0435\u0434 \u043C\u0438\u043D\u0443\u0442\u0430.", 502, "ai_unavailable");
   }
   const planId = crypto.randomUUID();
-  const record = { plan, coachContext, createdAt: (/* @__PURE__ */ new Date()).toISOString(), clientRef: body.clientRef || null };
+  const record = {
+    plan,
+    coachContext,
+    createdAt: (/* @__PURE__ */ new Date()).toISOString(),
+    clientRef: body.clientRef || null,
+    allowedEquipment: allowedEquipment ? [...allowedEquipment] : null
+  };
   if (env.FITNESS_KV) {
     ctx.waitUntil(env.FITNESS_KV.put(`plan:${planId}`, JSON.stringify(record), { expirationTtl: PLAN_TTL }));
   }
@@ -3072,7 +3140,8 @@ async function handleGetPlan(planId, env, ctx) {
   let plan = record.plan;
   const index = await loadExerciseIndex(env, ctx);
   if (index && plan) {
-    plan = enrichPlanWithExercises(JSON.parse(JSON.stringify(plan)), index, { env });
+    const allowed = record.allowedEquipment ? new Set(record.allowedEquipment) : null;
+    plan = enrichPlanWithExercises(JSON.parse(JSON.stringify(plan)), index, { allowedEquipment: allowed, env });
   }
   return jsonResponse({
     success: true,
@@ -3552,7 +3621,8 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
     regeneratedAt: now,
     status: "draft",
     clientProgramId: record.id,
-    clientName: record.clientName
+    clientName: record.clientName,
+    allowedEquipment: allowedEquipment ? [...allowedEquipment] : null
   }), { expirationTtl: PLAN_TTL });
   record.planId = planId;
   record.planTitle = plan.title || null;

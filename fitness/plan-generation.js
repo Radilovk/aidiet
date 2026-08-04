@@ -685,13 +685,18 @@ export function preparePlanGeneration(source, adminConfig, helpers) {
       constraints: constraintsFromAnswers(answers, extra.exampleScheme || ''),
       tags,
     };
-    const equipmentInput = [...(answers.equipment || []), answers.equipmentOther].filter(Boolean);
+    const equipmentInput = expandEquipmentInput(answers);
     return {
       userPrompt: buildAdminPlanUserPrompt(brief, layers, foundation),
       coachProfileText: extra.coachProfileText || profileText,
       allowedEquipment: helpers.allowedEquipmentSet(equipmentInput),
       clientTags: tags,
+      constraints: brief.constraints,
     };
+  }
+
+  function expandEquipmentInput(answers) {
+    return [...(answers?.equipment || []), answers?.equipmentOther].filter(Boolean);
   }
 
   if (source.clientAnswers) {

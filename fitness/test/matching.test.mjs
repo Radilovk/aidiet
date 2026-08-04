@@ -154,9 +154,35 @@ test('allowedEquipmentSet: mapping от въпросника', () => {
   assert.ok(!set.has('barbell'));
 });
 
+test('allowedEquipmentSet: equipmentOther разделя Leg press и гири', () => {
+  const set = allowedEquipmentSet(['Дъмбели', 'Собствено тегло', 'Leg press , гирички 2, 3, 4, 5 кг']);
+  assert.ok(set.has('dumbbell'));
+  assert.ok(set.has('body weight'));
+  assert.ok(set.has('leverage machine') || set.has('sled machine'));
+  assert.ok(!set.has('cable'));
+});
+
 test('allowedEquipmentSet: пълна зала → null (без филтър)', () => {
   assert.equal(allowedEquipmentSet(['Пълно оборудване на зала']), null);
   assert.equal(allowedEquipmentSet(['Дъмбели', 'Пълно оборудване на зала']), null);
+});
+
+test('enrichPlanWithExercises: заменя cable с позволено оборудване', () => {
+  const allowed = allowedEquipmentSet(['Дъмбели', 'Собствено тегло']);
+  const plan = normalizePlan({
+    title: 'X',
+    days: [{
+      day: 'Понеделник', type: 'strength',
+      exercises: [{
+        displayName: 'Кабел', canonicalName: 'Cable Fly', equipmentHint: 'cable',
+        bodyPart: 'chest', sets: 3, reps: '12', restSeconds: 60,
+      }],
+    }],
+  });
+  enrichPlanWithExercises(plan, INDEX, { allowedEquipment: allowed, env: {} });
+  const ex = plan.days[0].exercises[0];
+  assert.ok(ex.match);
+  assert.notEqual(ex.match.equipment, 'cable');
 });
 
 // ----------------------------------------------------------------------------
