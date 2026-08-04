@@ -15,6 +15,7 @@ import {
 } from './exercise-tags.js';
 import { isGenderSpecificExerciseName } from './exercise-name-bg.js';
 import { isCuratedEfpRecord, EFP_VERSION } from './exercise-efp-rubric.js';
+import { passesConstraintExclusions } from './exercise-constraints.js';
 
 /** @typedef {{ gender?: string, experience?: string }} AnswersInput */
 /** @typedef {{ isFemale: boolean, isMale: boolean, maxDiff: number, minGf: number, minGm: number }} ExerciseProfileFilter */
@@ -400,9 +401,10 @@ export function passesEquipment(entry, allowedEquipment) {
   return allowedEquipment.has(eq);
 }
 
-/** Филтрира индекс по профил + оборудване + gear + модалност (EFP diff/gf/gm). */
-export function filterExercises(index, profile, allowedEquipment = null, modalities = null, pickedApparatus = null, allowedGear = null) {
+/** Филтрира индекс по профил + оборудване + gear + модалност + constraints (EFP diff/gf/gm). */
+export function filterExercises(index, profile, allowedEquipment = null, modalities = null, pickedApparatus = null, allowedGear = null, constraintExclusions = null) {
   if (!index?.length) return [];
+  const exclusions = constraintExclusions?.length ? constraintExclusions : null;
   return index.filter((e) =>
     !e.excluded
     && !(e.flags || []).includes('excluded')
@@ -414,6 +416,7 @@ export function filterExercises(index, profile, allowedEquipment = null, modalit
     && passesGearFilter(e, allowedGear)
     && passesApparatusFilter(e, pickedApparatus)
     && passesModality(e, modalities)
+    && (!exclusions || passesConstraintExclusions(e, exclusions))
   );
 }
 
@@ -466,7 +469,8 @@ export function buildExerciseCatalogSnippet(index, profile, allowedEquipment = n
   const modalities = opts.modalities || null;
   const pickedApparatus = opts.pickedApparatus || null;
   const allowedGear = opts.allowedGear ?? null;
-  const filtered = filterExercises(index, profile, allowedEquipment, modalities, pickedApparatus, allowedGear);
+  const constraintExclusions = opts.constraintExclusions || null;
+  const filtered = filterExercises(index, profile, allowedEquipment, modalities, pickedApparatus, allowedGear, constraintExclusions);
   if (!filtered.length) return '';
 
   const groups = new Map();

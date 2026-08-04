@@ -719,8 +719,8 @@ test('auditPlanConstraints: импланти и странични рамена'
     }],
   });
   const issues = auditPlanConstraints(plan, constraints);
-  assert.ok(issues.some((i) => /имплант|гърди/i.test(i)));
-  assert.ok(issues.some((i) => /страничн|Lateral/i.test(i)));
+  assert.ok(issues.some((i) => /bench press/i.test(i)));
+  assert.ok(issues.some((i) => /lateral raise/i.test(i)));
   const audit = auditPlan(plan, { constraints, clientTags: new Set(['gender:жена']) });
   assert.equal(audit.ok, false);
 });
@@ -1292,6 +1292,40 @@ test('enrichPlanWithExercises: materializeMatch записва canonical от ma
   const ex = plan.days[0].exercises[0];
   assert.equal(ex.canonicalName, ex.match.name);
   assert.equal(ex.equipmentHint, 'dumbbell');
+});
+
+test('passesConstraintExclusions: импланти махат bench от eligible каталог', async () => {
+  const { passesConstraintExclusions } = await import('../exercise-constraints.js');
+  const exclusions = ['Гръдни импланти: без натиск върху гърдите'];
+  assert.equal(passesConstraintExclusions({ name: 'Barbell Bench Press' }, exclusions), false);
+  assert.equal(passesConstraintExclusions({ name: 'Dumbbell Bicep Curl' }, exclusions), true);
+  const allowed = allowedEquipmentSet(['Дъмбели', 'Собствено тегло']);
+  const profile = exerciseProfileFromAnswers({ gender: 'Жена', experience: 'Никакъв / начинаещ' });
+  const filtered = filterExercises(INDEX, profile, allowed, null, null, null, exclusions);
+  assert.ok(filtered.length > 0);
+  assert.ok(!filtered.some((e) => /\bbench press\b/i.test(e.name)));
+});
+
+test('enrichPlanWithExercises: AI cable → само от eligible dumbbell пул', () => {
+  const plan = normalizePlan({
+    title: 'X',
+    days: [{
+      day: 'Понеделник', type: 'strength',
+      exercises: [{ canonicalName: 'Cable Crossover', equipmentHint: 'cable', bodyPart: 'chest', sets: 3, reps: '10', restSeconds: 60 }],
+    }],
+  });
+  const allowed = allowedEquipmentSet(['Дъмбели', 'Собствено тегло']);
+  const profile = exerciseProfileFromAnswers({ gender: 'Жена', experience: 'Никакъв / начинаещ' });
+  enrichPlanWithExercises(plan, INDEX, {
+    allowedEquipment: allowed,
+    exerciseProfile: profile,
+    env: {},
+    materializeMatch: true,
+  });
+  const ex = plan.days[0].exercises[0];
+  assert.ok(ex.match, 'трябва match от eligible пул');
+  assert.ok(!/cable/i.test(ex.match.equipment || ''));
+  assert.equal(ex.canonicalName, ex.match.name);
 });
 
 // ----------------------------------------------------------------------------

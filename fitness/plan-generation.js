@@ -10,6 +10,7 @@
  */
 
 import { normalizeText } from './normalize.js';
+import { passesConstraintExclusions } from './exercise-constraints.js';
 import { buildProfileSummary } from './profile-summary.js';
 import { exerciseProfileFromContext, fitsExerciseProfile, passesEquipment } from './exercise-metadata.js';
 import { passesGearFilter, passesBeginnerSafety, resolveAllowedGear } from './exercise-tags.js';
@@ -809,26 +810,17 @@ export function auditPlanExerciseProfile(plan, exerciseProfile, index = []) {
   return issues;
 }
 
-const CHEST_IMPLANT_RE = /bench|fly|chest press|push-?up|pec deck|crossover|dip|пек.?дек|избутване от лежанка|лъжичк/i;
-const LATERAL_RAISE_RE = /lateral raise|side raise|страничн/i;
-
-/** Hard-veto: импланти, avoid, оборудване. */
+/** Hard-veto: импланти, avoid, оборудване (диагностика; enforcement е в filterExercises). */
 export function auditPlanConstraints(plan, constraints = {}) {
   const issues = [];
   const exclusions = constraints?.exclusions || [];
-  const blob = exclusions.join(' ').toLowerCase();
-  const implantRule = /имплант|гърди не|без натиск върху гърдите/i.test(blob);
-  const avoidLateral = /страничн/i.test(blob) || exclusions.some((e) => /не желае.*страничн/i.test(e));
 
   for (const day of plan?.days || []) {
     if (day.type === 'rest') continue;
     for (const ex of day.exercises || []) {
       const name = String(ex.canonicalName || ex.displayName || '');
-      if (implantRule && CHEST_IMPLANT_RE.test(name)) {
-        issues.push(`Забранено (импланти/гърди): ${name}`);
-      }
-      if (avoidLateral && LATERAL_RAISE_RE.test(name)) {
-        issues.push(`Забранено движение: ${name}`);
+      if (!passesConstraintExclusions({ name }, exclusions)) {
+        issues.push(`Забранено от constraints: ${name}`);
       }
     }
   }
