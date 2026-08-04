@@ -1069,6 +1069,7 @@ async function executePlanGeneration(env, ctx, {
     pickedApparatus,
     env,
     exerciseProfile: strictAssembly ? null : exerciseProfile,
+    materializeMatch: !strictAssembly,
   });
   sanitizePlanBulgarian(plan);
   const coachContext = buildCoachContext(coachProfileText, plan);

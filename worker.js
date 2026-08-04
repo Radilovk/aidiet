@@ -6085,7 +6085,8 @@ ${catalogBlock}` : userPrompt;
     allowedGear,
     pickedApparatus,
     env,
-    exerciseProfile: strictAssembly ? null : exerciseProfile
+    exerciseProfile: strictAssembly ? null : exerciseProfile,
+    materializeMatch: !strictAssembly
   });
   sanitizePlanBulgarian(plan);
   const coachContext = buildCoachContext(coachProfileText, plan);
