@@ -73,7 +73,9 @@ import {
   exerciseProfileFromAnswers,
   exerciseProfileFromContext,
   fitsExerciseProfile,
+  filterExercises,
   inferExerciseModality,
+  modalityMatchesDay,
   mergeExerciseMetadata,
   passesEquipment,
   pickPreferredExercise,
@@ -857,18 +859,61 @@ export function materializeExercisesFromMatch(plan) {
   return plan;
 }
 
+/** Детерминистичен избор от eligible пул, когато AI име не match-ва или swap липсва. */
+/** @param {object[]} eligible @param {{ bodyPart?: string, sessionType?: string, usedIds?: string[], exerciseProfile?: object|null }} [opts] */
+function pickEligibleFallback(eligible, { bodyPart, sessionType, usedIds = [], exerciseProfile = null } = {}) {
+  if (!eligible?.length) return null;
+  const exclude = new Set(usedIds);
+  const candidates = eligible.filter((e) => {
+    if (exclude.has(e.id)) return false;
+    if (sessionType && sessionType !== 'rest' && !modalityMatchesDay(sessionType, inferExerciseModality(e))) return false;
+    if (bodyPart && !exerciseMatchesBodyHint(bodyPart, e)) return false;
+    return true;
+  });
+  const pool = candidates.length ? candidates : eligible.filter((e) => !exclude.has(e.id));
+  return pickPreferredExercise(pool, exerciseProfile) || pool[0] || null;
+}
+
+function buildEligiblePool(index, {
+  exerciseProfile = null,
+  allowedEquipment = null,
+  allowedGear = null,
+  pickedApparatus = null,
+  programSpec = null,
+  constraints = null,
+} = {}) {
+  if (!index?.length || !exerciseProfile) return index;
+  const filtered = filterExercises(
+    index,
+    exerciseProfile,
+    allowedEquipment,
+    programSpec?.weekModalities || null,
+    pickedApparatus,
+    allowedGear,
+    constraints?.exclusions || null,
+  );
+  return filtered.length ? filtered : index;
+}
+
 export function enrichPlanWithExercises(plan, index, {
   allowedEquipment = null, allowedGear = null, pickedApparatus = null, env = {}, exerciseProfile = null,
-  materializeMatch = false, skipEquipmentSwap = false,
+  materializeMatch = false, skipEquipmentSwap = false, eligibleIndex = null, constraints = null,
+  programSpec = null,
 } = {}) {
   if (!index) return plan; // без база: планът остава валиден, само без медия
 
   const matchEquipment = skipEquipmentSwap ? null : allowedEquipment;
+  const eligible = skipEquipmentSwap
+    ? null
+    : (eligibleIndex || buildEligiblePool(index, {
+      exerciseProfile, allowedEquipment, allowedGear, pickedApparatus, programSpec, constraints,
+    }));
+  const matchIndex = eligible?.length ? eligible : index;
 
   for (const day of plan.days) {
     const usedIds = [];
     for (const ex of day.exercises) {
-      let result = matchExercise(index, {
+      let result = matchExercise(matchIndex, {
         canonicalName: ex.canonicalName,
         equipmentHint: ex.equipmentHint,
         bodyPart: ex.bodyPart,
@@ -885,10 +930,20 @@ export function enrichPlanWithExercises(plan, index, {
         || (exerciseProfile && !passesBeginnerSafety(result.entry, exerciseProfile))
       );
       if (needsSwap) {
-        const swap = findAlternatives(index, result.entry, {
+        const swap = findAlternatives(matchIndex, result.entry, {
           allowedEquipment, pickedApparatus, exerciseProfile, limit: 1, excludeIds: usedIds, sessionType: day.type,
         });
         if (swap.length) result = { entry: swap[0], score: 0, usedFallback: true };
+        else result = null;
+      }
+      if (!skipEquipmentSwap && eligible?.length && !result?.entry) {
+        const fallback = pickEligibleFallback(eligible, {
+          bodyPart: ex.bodyPart,
+          sessionType: day.type,
+          usedIds,
+          exerciseProfile,
+        });
+        if (fallback) result = { entry: fallback, score: 0, usedFallback: true };
       }
       if (result && result.entry) {
         if (materializeMatch) {
@@ -900,7 +955,7 @@ export function enrichPlanWithExercises(plan, index, {
         ex.matchScore = result.score;
         ex.matchFallback = result.usedFallback;
         usedIds.push(result.entry.id);
-        ex.alternatives = findAlternatives(index, result.entry, {
+        ex.alternatives = findAlternatives(matchIndex, result.entry, {
           allowedEquipment,
           pickedApparatus,
           excludeIds: usedIds,
@@ -991,13 +1046,23 @@ async function executePlanGeneration(env, ctx, {
   const system = strictAssembly ? PLAN_SYSTEM_ASSEMBLY : buildPlanSystemInstruction(trainerAddon);
 
   let catalogBlock = '';
+  let eligibleIndex = null;
   if (!strictAssembly) {
     const index = await indexPromise;
     if (index?.length) {
+      eligibleIndex = buildEligiblePool(index, {
+        exerciseProfile,
+        allowedEquipment,
+        allowedGear,
+        pickedApparatus,
+        programSpec,
+        constraints,
+      });
       catalogBlock = buildExerciseCatalogSnippet(index, exerciseProfile, allowedEquipment, {
         modalities: programSpec?.weekModalities || null,
         pickedApparatus,
         allowedGear,
+        constraintExclusions: constraints?.exclusions || null,
       });
     }
   }
@@ -1070,6 +1135,9 @@ async function executePlanGeneration(env, ctx, {
     env,
     exerciseProfile: strictAssembly ? null : exerciseProfile,
     materializeMatch: !strictAssembly,
+    eligibleIndex: strictAssembly ? null : eligibleIndex,
+    constraints: strictAssembly ? null : constraints,
+    programSpec: strictAssembly ? null : programSpec,
   });
   sanitizePlanBulgarian(plan);
   const coachContext = buildCoachContext(coachProfileText, plan);

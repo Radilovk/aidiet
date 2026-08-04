@@ -2953,6 +2953,39 @@ function classificationStats(all, existing) {
   return { total, curated, done: curated, remaining: pending, stored: Object.keys(existing).length };
 }
 
+// fitness/exercise-constraints.js
+var CHEST_IMPLANT_RE = /bench|fly|chest press|push-?up|pec deck|crossover|dip|пек.?дек|избутване от лежанка|лъжичк/i;
+var LATERAL_RAISE_RE = /lateral raise|side raise|страничн/i;
+function passesConstraintExclusions(entry, exclusions = []) {
+  if (!exclusions?.length || !entry) return true;
+  const name = String(entry.name || entry.canonicalName || "");
+  const nameNorm = normalizeText(name);
+  const blob = exclusions.join(" ").toLowerCase();
+  if (/имплант|гърди не|без натиск върху гърдите/i.test(blob) && CHEST_IMPLANT_RE.test(name)) {
+    return false;
+  }
+  const avoidLateral = /страничн/i.test(blob) || exclusions.some((e) => /не желае.*страничн/i.test(e));
+  if (avoidLateral && LATERAL_RAISE_RE.test(name)) {
+    return false;
+  }
+  if (/бременност|кърмене/i.test(blob) && /\b(crunch|sit-?up|push-?up|bench|burpee|jump|plyo)\b/i.test(name)) {
+    return false;
+  }
+  for (const line2 of exclusions) {
+    const avoid = line2.match(/не желае[^:]*:\s*(.+)/i);
+    if (avoid) {
+      const tokens = tokenize(avoid[1]).filter((t) => t.length > 3);
+      if (tokens.some((t) => nameNorm.includes(t))) return false;
+    }
+    const limit = line2.match(/ограничение:\s*(.+)/i);
+    if (limit) {
+      const zoneTokens = tokenize(limit[1]).filter((t) => t.length > 3);
+      if (zoneTokens.length && zoneTokens.some((t) => nameNorm.includes(t))) return false;
+    }
+  }
+  return true;
+}
+
 // fitness/exercise-metadata.js
 var EXERCISE_METADATA_KV_KEY = "exercise:metadata:v1";
 function isMetadataOverride(saved) {
@@ -3237,10 +3270,11 @@ function passesEquipment(entry, allowedEquipment) {
   const eq = entry?.effectiveEquipNorm || entry?.equipNorm || normalizeText(entry?.equipment);
   return allowedEquipment.has(eq);
 }
-function filterExercises(index, profile, allowedEquipment = null, modalities = null, pickedApparatus = null, allowedGear = null) {
+function filterExercises(index, profile, allowedEquipment = null, modalities = null, pickedApparatus = null, allowedGear = null, constraintExclusions = null) {
   if (!index?.length) return [];
+  const exclusions = constraintExclusions?.length ? constraintExclusions : null;
   return index.filter(
-    (e) => !e.excluded && !(e.flags || []).includes("excluded") && !(e.flags || []).includes("unclassified") && fitsExerciseProfile(e, profile) && passesBeginnerSafety(e, profile) && !isGenderSpecificExerciseName(e.name) && passesEquipment(e, allowedEquipment) && passesGearFilter(e, allowedGear) && passesApparatusFilter(e, pickedApparatus) && passesModality(e, modalities)
+    (e) => !e.excluded && !(e.flags || []).includes("excluded") && !(e.flags || []).includes("unclassified") && fitsExerciseProfile(e, profile) && passesBeginnerSafety(e, profile) && !isGenderSpecificExerciseName(e.name) && passesEquipment(e, allowedEquipment) && passesGearFilter(e, allowedGear) && passesApparatusFilter(e, pickedApparatus) && passesModality(e, modalities) && (!exclusions || passesConstraintExclusions(e, exclusions))
   );
 }
 var MODALITY_GROUPS = ["mobility", "cardio", "hiit"];
@@ -3275,7 +3309,8 @@ function buildExerciseCatalogSnippet(index, profile, allowedEquipment = null, op
   const modalities = opts.modalities || null;
   const pickedApparatus = opts.pickedApparatus || null;
   const allowedGear = opts.allowedGear ?? null;
-  const filtered = filterExercises(index, profile, allowedEquipment, modalities, pickedApparatus, allowedGear);
+  const constraintExclusions = opts.constraintExclusions || null;
+  const filtered = filterExercises(index, profile, allowedEquipment, modalities, pickedApparatus, allowedGear, constraintExclusions);
   if (!filtered.length) return "";
   const groups = /* @__PURE__ */ new Map();
   for (const entry of filtered) {
@@ -5129,23 +5164,15 @@ function auditPlanExerciseProfile(plan, exerciseProfile, index = []) {
   }
   return issues;
 }
-var CHEST_IMPLANT_RE = /bench|fly|chest press|push-?up|pec deck|crossover|dip|пек.?дек|избутване от лежанка|лъжичк/i;
-var LATERAL_RAISE_RE = /lateral raise|side raise|страничн/i;
 function auditPlanConstraints(plan, constraints = {}) {
   const issues = [];
   const exclusions = constraints?.exclusions || [];
-  const blob = exclusions.join(" ").toLowerCase();
-  const implantRule = /имплант|гърди не|без натиск върху гърдите/i.test(blob);
-  const avoidLateral = /страничн/i.test(blob) || exclusions.some((e) => /не желае.*страничн/i.test(e));
   for (const day of plan?.days || []) {
     if (day.type === "rest") continue;
     for (const ex of day.exercises || []) {
       const name = String(ex.canonicalName || ex.displayName || "");
-      if (implantRule && CHEST_IMPLANT_RE.test(name)) {
-        issues.push(`\u0417\u0430\u0431\u0440\u0430\u043D\u0435\u043D\u043E (\u0438\u043C\u043F\u043B\u0430\u043D\u0442\u0438/\u0433\u044A\u0440\u0434\u0438): ${name}`);
-      }
-      if (avoidLateral && LATERAL_RAISE_RE.test(name)) {
-        issues.push(`\u0417\u0430\u0431\u0440\u0430\u043D\u0435\u043D\u043E \u0434\u0432\u0438\u0436\u0435\u043D\u0438\u0435: ${name}`);
+      if (!passesConstraintExclusions({ name }, exclusions)) {
+        issues.push(`\u0417\u0430\u0431\u0440\u0430\u043D\u0435\u043D\u043E \u043E\u0442 constraints: ${name}`);
       }
     }
   }
@@ -5886,6 +5913,38 @@ function materializeExercisesFromMatch(plan) {
   }
   return plan;
 }
+function pickEligibleFallback(eligible, { bodyPart, sessionType, usedIds = [], exerciseProfile = null } = {}) {
+  if (!eligible?.length) return null;
+  const exclude = new Set(usedIds);
+  const candidates = eligible.filter((e) => {
+    if (exclude.has(e.id)) return false;
+    if (sessionType && sessionType !== "rest" && !modalityMatchesDay(sessionType, inferExerciseModality(e))) return false;
+    if (bodyPart && !exerciseMatchesBodyHint(bodyPart, e)) return false;
+    return true;
+  });
+  const pool = candidates.length ? candidates : eligible.filter((e) => !exclude.has(e.id));
+  return pickPreferredExercise(pool, exerciseProfile) || pool[0] || null;
+}
+function buildEligiblePool(index, {
+  exerciseProfile = null,
+  allowedEquipment = null,
+  allowedGear = null,
+  pickedApparatus = null,
+  programSpec = null,
+  constraints = null
+} = {}) {
+  if (!index?.length || !exerciseProfile) return index;
+  const filtered = filterExercises(
+    index,
+    exerciseProfile,
+    allowedEquipment,
+    programSpec?.weekModalities || null,
+    pickedApparatus,
+    allowedGear,
+    constraints?.exclusions || null
+  );
+  return filtered.length ? filtered : index;
+}
 function enrichPlanWithExercises(plan, index, {
   allowedEquipment = null,
   allowedGear = null,
@@ -5893,14 +5952,26 @@ function enrichPlanWithExercises(plan, index, {
   env = {},
   exerciseProfile = null,
   materializeMatch = false,
-  skipEquipmentSwap = false
+  skipEquipmentSwap = false,
+  eligibleIndex = null,
+  constraints = null,
+  programSpec = null
 } = {}) {
   if (!index) return plan;
   const matchEquipment = skipEquipmentSwap ? null : allowedEquipment;
+  const eligible = skipEquipmentSwap ? null : eligibleIndex || buildEligiblePool(index, {
+    exerciseProfile,
+    allowedEquipment,
+    allowedGear,
+    pickedApparatus,
+    programSpec,
+    constraints
+  });
+  const matchIndex = eligible?.length ? eligible : index;
   for (const day of plan.days) {
     const usedIds = [];
     for (const ex of day.exercises) {
-      let result = matchExercise(index, {
+      let result = matchExercise(matchIndex, {
         canonicalName: ex.canonicalName,
         equipmentHint: ex.equipmentHint,
         bodyPart: ex.bodyPart,
@@ -5911,7 +5982,7 @@ function enrichPlanWithExercises(plan, index, {
       });
       const needsSwap = !skipEquipmentSwap && result?.entry && (allowedEquipment && !passesEquipment(result.entry, allowedEquipment) || allowedGear && !passesGearFilter(result.entry, allowedGear) || pickedApparatus?.length && !passesApparatusFilter(result.entry, pickedApparatus) || exerciseProfile && !fitsExerciseProfile(result.entry, exerciseProfile) || exerciseProfile && !passesBeginnerSafety(result.entry, exerciseProfile));
       if (needsSwap) {
-        const swap = findAlternatives(index, result.entry, {
+        const swap = findAlternatives(matchIndex, result.entry, {
           allowedEquipment,
           pickedApparatus,
           exerciseProfile,
@@ -5920,6 +5991,16 @@ function enrichPlanWithExercises(plan, index, {
           sessionType: day.type
         });
         if (swap.length) result = { entry: swap[0], score: 0, usedFallback: true };
+        else result = null;
+      }
+      if (!skipEquipmentSwap && eligible?.length && !result?.entry) {
+        const fallback = pickEligibleFallback(eligible, {
+          bodyPart: ex.bodyPart,
+          sessionType: day.type,
+          usedIds,
+          exerciseProfile
+        });
+        if (fallback) result = { entry: fallback, score: 0, usedFallback: true };
       }
       if (result && result.entry) {
         if (materializeMatch) {
@@ -5931,7 +6012,7 @@ function enrichPlanWithExercises(plan, index, {
         ex.matchScore = result.score;
         ex.matchFallback = result.usedFallback;
         usedIds.push(result.entry.id);
-        ex.alternatives = findAlternatives(index, result.entry, {
+        ex.alternatives = findAlternatives(matchIndex, result.entry, {
           allowedEquipment,
           pickedApparatus,
           excludeIds: usedIds,
@@ -6008,13 +6089,23 @@ async function executePlanGeneration(env, ctx, {
   const trainerAddon = strictAssembly ? "" : buildTrainerSystemAddon(adminConfig, tagSet, guidelineLayers, { schemeMode: hasScheme, strictAssembly });
   const system = strictAssembly ? PLAN_SYSTEM_ASSEMBLY : buildPlanSystemInstruction(trainerAddon);
   let catalogBlock = "";
+  let eligibleIndex = null;
   if (!strictAssembly) {
     const index2 = await indexPromise;
     if (index2?.length) {
+      eligibleIndex = buildEligiblePool(index2, {
+        exerciseProfile,
+        allowedEquipment,
+        allowedGear,
+        pickedApparatus,
+        programSpec,
+        constraints
+      });
       catalogBlock = buildExerciseCatalogSnippet(index2, exerciseProfile, allowedEquipment, {
         modalities: programSpec?.weekModalities || null,
         pickedApparatus,
-        allowedGear
+        allowedGear,
+        constraintExclusions: constraints?.exclusions || null
       });
     }
   }
@@ -6086,7 +6177,10 @@ ${catalogBlock}` : userPrompt;
     pickedApparatus,
     env,
     exerciseProfile: strictAssembly ? null : exerciseProfile,
-    materializeMatch: !strictAssembly
+    materializeMatch: !strictAssembly,
+    eligibleIndex: strictAssembly ? null : eligibleIndex,
+    constraints: strictAssembly ? null : constraints,
+    programSpec: strictAssembly ? null : programSpec
   });
   sanitizePlanBulgarian(plan);
   const coachContext = buildCoachContext(coachProfileText, plan);
