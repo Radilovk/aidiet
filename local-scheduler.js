@@ -27,6 +27,7 @@ const GameNotifier = {
     LS_LOCAL_KEY:         'gameNotifierLocalConfig',
     LS_VERSION_KEY:       'gameNotifierConfigVersion',
     LS_SCHEDULED_VERSION_KEY: 'gameNotifierScheduledVersion',
+    LS_LAST_SCHEDULE_DAY_KEY: 'gameNotifierLastScheduleDay',
     CALENDAR_URL:   'https://aidiet.radilov-k.workers.dev/api/calendar.ics',
     CHANNEL_ID:     'nutriplan_daily_checkins_v3',
     MORNING_CHANNEL_ID: 'nutriplan_morning_v3',
@@ -184,7 +185,12 @@ const GameNotifier = {
 
             const currentVersion = localStorage.getItem(this.LS_VERSION_KEY) || '0';
             const scheduledVersion = localStorage.getItem(this.LS_SCHEDULED_VERSION_KEY) || '';
-            const needsSchedule = configChanged || scheduledVersion !== String(currentVersion);
+            // Roll the SCHEDULE_WINDOW_DAYS buffer forward at most once per day —
+            // without this the APK runs out of scheduled notifications after the
+            // window passes with no config change (PWA refreshes on focus instead).
+            const needsSchedule = configChanged ||
+                scheduledVersion !== String(currentVersion) ||
+                this._scheduleWindowStale();
 
             if (needsSchedule) {
                 if (this._capacitor) await this._registerCapacitorActionTypes();
@@ -237,6 +243,22 @@ const GameNotifier = {
         } else {
             await this._scheduleViaSW(cfg);
         }
+    },
+
+    /** True when the rolling schedule window has not been (re)planned today. */
+    _scheduleWindowStale() {
+        try {
+            return localStorage.getItem(this.LS_LAST_SCHEDULE_DAY_KEY) !==
+                this._dateKeyForTimestamp(Date.now());
+        } catch (_) {
+            return true;
+        }
+    },
+
+    _markScheduleWindowFresh() {
+        try {
+            localStorage.setItem(this.LS_LAST_SCHEDULE_DAY_KEY, this._dateKeyForTimestamp(Date.now()));
+        } catch (_) {}
     },
 
     cancelTodaysNotification(notifType, recordKey) {
@@ -894,6 +916,10 @@ const GameNotifier = {
             if (!this._capacitor) return;
             this._drainNativePendingActions().catch(() => {});
             this._dedupeDeliveredGamificationNotifications().catch(() => {});
+            // Daily roll of the schedule window on app resume (no backend calls).
+            if (this._initialized && this._scheduleWindowStale()) {
+                this.scheduleNotifications().catch(() => {});
+            }
         };
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') drain();
@@ -1365,8 +1391,10 @@ const GameNotifier = {
 
         try {
             await LocalNotifications.schedule({ notifications });
+            this._markScheduleWindowFresh();
             console.log('[GameNotifier] Capacitor: scheduled', notifications.length, 'notifications');
         } catch (e) {
+            // Window day-key stays stale so the next app open/resume retries.
             console.error('[GameNotifier] Capacitor schedule error:', e);
         }
     },
@@ -1459,6 +1487,7 @@ const GameNotifier = {
             type: 'SCHEDULE_GAME_NOTIFICATIONS',
             schedule
         });
+        this._markScheduleWindowFresh();
         console.log('[GameNotifier] Sent', schedule.length, 'items to SW for scheduling');
     },
 

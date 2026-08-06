@@ -10,8 +10,13 @@
  */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
-var __esm = (fn, res) => function __init() {
-  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+var __esm = (fn, res, err) => function __init() {
+  if (err) throw err[0];
+  try {
+    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+  } catch (e) {
+    throw err = [e], e;
+  }
 };
 var __export = (target, all) => {
   for (var name in all)
@@ -7455,8 +7460,8 @@ var FOOD_NUTRITION_PER_100G = {
   "\u0447\u0435\u0440\u0435\u043D \u0431\u043E\u0431": [132, 8.9, 24, 0.5],
   "\u0431\u044F\u043B \u0431\u043E\u0431": [127, 8.7, 23, 0.5],
   "\u0431\u043E\u0431": [127, 8.7, 23, 0.5],
-  "\u0435\u043B\u0434\u0430": [343, 13, 72, 3.4],
-  "\u043F\u0440\u043E\u0441\u043E": [378, 11, 73, 4.2],
+  "\u0435\u043B\u0434\u0430": [92, 3.4, 20, 0.6],
+  "\u043F\u0440\u043E\u0441\u043E": [119, 3.5, 24, 1],
   "\u0445\u043B\u044F\u0431 \u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442": [247, 9, 41, 3.5],
   "\u0445\u043B\u044F\u0431": [265, 9, 49, 3.2],
   "\u0440\u044A\u0436\u0435\u043D \u0445\u043B\u044F\u0431": [259, 8.5, 48, 3.3],
@@ -9322,7 +9327,7 @@ function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}) {
       c = Math.round(c * ratio);
       f = Math.round(f * ratio);
       meal.macros = { protein: p, carbs: c, fats: f };
-      meal.calories = Math.min(Math.round(p * 4 + c * 4 + f * 9), cap);
+      meal.calories = Math.round(p * 4 + c * 4 + f * 9);
     }
   }
   return { ok: true, unknowns: totals.unknowns };
