@@ -182,8 +182,24 @@ function maxFreeMealKcal(dailyKcal) {
   return Math.max(350, Math.round((Number(dailyKcal) || 0) * FREE_MEAL_MAX_DAILY_RATIO));
 }
 
-/** Distribute surplus kcal to recipients; free-meal budget respects daily cap. */
-function distributeSurplusToRecipients(recipients, excessKcal, excessP, excessC, excessF, dailyKcal) {
+/** Ceiling headroom for a recipient slot (free-meal budget vs plated ceiling). */
+function slotHeadroomKcal(slot, breakdown, dailyKcal) {
+  const current = Number(slot.calories) || 0;
+  if (slot.type === 'Свободно хранене') {
+    return Math.max(0, maxFreeMealKcal(dailyKcal) - current);
+  }
+  if (!breakdown) return Infinity;
+  return Math.max(0, maxSlotKcal(slot.type, breakdown, dailyKcal) - current);
+}
+
+/**
+ * Distribute surplus kcal to recipients; every slot respects its ceiling
+ * (free-meal budget cap or plated kcal cap) while headroom remains.
+ * Only when all recipients are at their ceilings does the residual overflow
+ * into a main meal — the day-total contract must never silently drop kcal
+ * (the slot validator then flags the impossible day for an AI retry).
+ */
+function distributeSurplusToRecipients(recipients, excessKcal, excessP, excessC, excessF, dailyKcal, breakdown = null) {
   if (!recipients.length || excessKcal <= 0) return excessKcal;
 
   let remaining = excessKcal;
@@ -192,26 +208,41 @@ function distributeSurplusToRecipients(recipients, excessKcal, excessP, excessC,
   let remF = excessF;
   const sum = recipients.reduce((s, m) => s + (Number(m.calories) || 0), 0) || recipients.length;
 
-  for (const m of recipients) {
-    const share = (Number(m.calories) || 0) / sum || 1 / recipients.length;
-    let addK = Math.round(remaining * share);
-    if (m.type === 'Свободно хранене') {
-      const headroom = Math.max(0, maxFreeMealKcal(dailyKcal) - (Number(m.calories) || 0));
-      addK = Math.min(addK, headroom);
-    }
-    if (addK <= 0) continue;
+  const give = (m, addK) => {
     const ratio = addK / remaining;
     addMacrosToSlot(m, addK, Math.round(remP * ratio), Math.round(remC * ratio), Math.round(remF * ratio));
     remaining -= addK;
     remP -= Math.round(remP * ratio);
     remC -= Math.round(remC * ratio);
     remF -= Math.round(remF * ratio);
+  };
+
+  for (const m of recipients) {
+    const share = (Number(m.calories) || 0) / sum || 1 / recipients.length;
+    const addK = Math.min(Math.round(remaining * share), slotHeadroomKcal(m, breakdown, dailyKcal));
+    if (addK > 0) give(m, addK);
   }
 
+  // Second pass: spread the residual across remaining headroom before overflowing.
   if (remaining > 0) {
-    const fallback = recipients.find(m => m.type === 'Хранене 2' || m.type === 'Хранене 4') || recipients[0];
-    if (fallback && fallback.type !== 'Свободно хранене') {
-      addMacrosToSlot(fallback, remaining, remP, remC, remF);
+    for (const m of recipients) {
+      if (remaining <= 0) break;
+      const addK = Math.min(remaining, slotHeadroomKcal(m, breakdown, dailyKcal));
+      if (addK > 0) give(m, addK);
+    }
+  }
+
+  // Impossible day (all recipients at ceiling): overflow splits across plated
+  // recipients proportionally instead of landing in a single oversized meal.
+  if (remaining > 0) {
+    const fallbacks = recipients.filter(m => m.type !== 'Свободно хранене');
+    const fbSum = fallbacks.reduce((s, m) => s + (Number(m.calories) || 0), 0) || fallbacks.length;
+    for (let i = 0; i < fallbacks.length && remaining > 0; i++) {
+      const m = fallbacks[i];
+      const addK = i === fallbacks.length - 1
+        ? remaining
+        : Math.round(remaining * ((Number(m.calories) || 0) / fbSum || 1 / fallbacks.length));
+      if (addK > 0) give(m, addK);
     }
   }
   return 0;
@@ -232,7 +263,7 @@ export function rebalanceMealBreakdownSlots(day, dailyKcal) {
       const recipients = platedSlots(day.mealBreakdown).filter(m =>
         !isLightMealSlot(m.type) && (Number(m.calories) || 0) < maxSlotKcal(m.type, day.mealBreakdown, daily),
       );
-      distributeSurplusToRecipients(recipients, excess, 0, 0, 0, daily);
+      distributeSurplusToRecipients(recipients, excess, 0, 0, 0, daily, day.mealBreakdown);
     }
   }
 
@@ -279,6 +310,24 @@ export function rebalanceMealBreakdownSlots(day, dailyKcal) {
   enforceFreeDayDinnerCap(day, daily);
   reconcileDailyCalories(day, daily);
   enforceFixedSlotCaps(day, daily);
+  syncSlotMacrosToCalories(day);
+}
+
+/**
+ * Kcal-only redistributions must not leave slot macros stale — Step 3 reads both
+ * the kcal and the macro targets per slot, so they have to describe the same meal.
+ * Rescales macros proportionally to match slot calories (keeps the macro ratio).
+ */
+export function syncSlotMacrosToCalories(day) {
+  for (const slot of day?.mealBreakdown || []) {
+    const cal = Number(slot.calories) || 0;
+    const macroKcal = (Number(slot.protein) || 0) * 4 + (Number(slot.carbs) || 0) * 4 + (Number(slot.fats) || 0) * 9;
+    if (cal <= 0 || macroKcal <= 0 || Math.abs(macroKcal - cal) <= 5) continue;
+    const ratio = cal / macroKcal;
+    slot.protein = Math.round((Number(slot.protein) || 0) * ratio);
+    slot.carbs = Math.round((Number(slot.carbs) || 0) * ratio);
+    slot.fats = Math.round((Number(slot.fats) || 0) * ratio);
+  }
 }
 
 /** Hard cap H3/H5 scheme slots — reconcile must not drift above fixed ceilings. */
@@ -300,7 +349,11 @@ function reconcileDailyCalories(day, dailyKcal) {
   if (diff <= 5) return;
   const recipients = mainMealRecipients(day);
   if (!recipients.length) return;
-  distributeSurplusToRecipients(recipients, diff, 0, 0, 0, daily);
+  // Breakfast is a legitimate secondary recipient — using its ceiling headroom
+  // keeps mains under the plated cap instead of overflowing them.
+  const h1 = day.mealBreakdown.find(m => m.type === 'Хранене 1');
+  if (h1 && !recipients.includes(h1)) recipients.push(h1);
+  distributeSurplusToRecipients(recipients, diff, 0, 0, 0, daily, day.mealBreakdown);
 }
 
 /** Free-day dinner (H4) must stay light — surplus goes to other plated slots. */
@@ -322,7 +375,7 @@ function enforceFreeDayDinnerCap(day, dailyKcal) {
   );
   if (!recipients.length) return;
 
-  distributeSurplusToRecipients(recipients, excessKcal, 0, 0, 0, dailyKcal);
+  distributeSurplusToRecipients(recipients, excessKcal, 0, 0, 0, dailyKcal, day.mealBreakdown);
 }
 
 function dietPreferences(userData) {
@@ -650,6 +703,7 @@ export function removeBreakfastSlotFromDay(day) {
     }
   }
   day.meals = day.mealBreakdown.length;
+  syncSlotMacrosToCalories(day);
   syncSchemeDayMetadata(day);
 }
 

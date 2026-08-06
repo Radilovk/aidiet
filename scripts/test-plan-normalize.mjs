@@ -328,7 +328,11 @@ check('MAX_LATE_SNACK_CALORIES=200', MAX_LATE_SNACK_CALORIES === 200);
 {
   const meal = { type: 'Хранене 5', name: 'Скир с бадеми', description: '• Скир 120g\n• Бадеми 15g' };
   applyMealNutritionFromDatabase(meal, { calories: 200, protein: 20, carbs: 8, fats: 10 });
-  check('H5 meal sync clamped ≤200', meal.calories <= MAX_LATE_SNACK_CALORIES, `${meal.calories} kcal`);
+  // Cap allows a small rounding drift (validators tolerate ±30), but calories
+  // must stay arithmetically consistent with the macros (4P+4C+9F).
+  const computed = meal.macros.protein * 4 + meal.macros.carbs * 4 + meal.macros.fats * 9;
+  check('H5 meal sync near cap', isMealCaloriesAdequate(meal.calories, MAX_LATE_SNACK_CALORIES), `${meal.calories} kcal`);
+  check('H5 meal sync kcal = 4P+4C+9F', Math.abs(meal.calories - computed) <= 2, `${meal.calories} vs ${computed}`);
 }
 
 const passed = results.filter(Boolean).length;

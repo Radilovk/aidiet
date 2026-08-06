@@ -550,7 +550,9 @@ export function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}
       c = Math.round(c * ratio);
       f = Math.round(f * ratio);
       meal.macros = { protein: p, carbs: c, fats: f };
-      meal.calories = Math.min(Math.round(p * 4 + c * 4 + f * 9), cap);
+      // Calories must stay = 4P+4C+9F; rounding may land a few kcal over the
+      // cap, which the H5 validators already tolerate (±30 kcal).
+      meal.calories = Math.round(p * 4 + c * 4 + f * 9);
     }
   }
 

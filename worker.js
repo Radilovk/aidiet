@@ -10,8 +10,13 @@
  */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
-var __esm = (fn, res) => function __init() {
-  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+var __esm = (fn, res, err) => function __init() {
+  if (err) throw err[0];
+  try {
+    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+  } catch (e) {
+    throw err = [e], e;
+  }
 };
 var __export = (target, all) => {
   for (var name in all)
@@ -7455,8 +7460,8 @@ var FOOD_NUTRITION_PER_100G = {
   "\u0447\u0435\u0440\u0435\u043D \u0431\u043E\u0431": [132, 8.9, 24, 0.5],
   "\u0431\u044F\u043B \u0431\u043E\u0431": [127, 8.7, 23, 0.5],
   "\u0431\u043E\u0431": [127, 8.7, 23, 0.5],
-  "\u0435\u043B\u0434\u0430": [343, 13, 72, 3.4],
-  "\u043F\u0440\u043E\u0441\u043E": [378, 11, 73, 4.2],
+  "\u0435\u043B\u0434\u0430": [92, 3.4, 20, 0.6],
+  "\u043F\u0440\u043E\u0441\u043E": [119, 3.5, 24, 1],
   "\u0445\u043B\u044F\u0431 \u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442": [247, 9, 41, 3.5],
   "\u0445\u043B\u044F\u0431": [265, 9, 49, 3.2],
   "\u0440\u044A\u0436\u0435\u043D \u0445\u043B\u044F\u0431": [259, 8.5, 48, 3.3],
@@ -8294,32 +8299,48 @@ function addMacrosToSlot(slot, deltaKcal, deltaP, deltaC, deltaF) {
 function maxFreeMealKcal(dailyKcal) {
   return Math.max(350, Math.round((Number(dailyKcal) || 0) * FREE_MEAL_MAX_DAILY_RATIO));
 }
-function distributeSurplusToRecipients(recipients, excessKcal, excessP, excessC, excessF, dailyKcal) {
+function slotHeadroomKcal(slot, breakdown, dailyKcal) {
+  const current = Number(slot.calories) || 0;
+  if (slot.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435") {
+    return Math.max(0, maxFreeMealKcal(dailyKcal) - current);
+  }
+  if (!breakdown) return Infinity;
+  return Math.max(0, maxSlotKcal(slot.type, breakdown, dailyKcal) - current);
+}
+function distributeSurplusToRecipients(recipients, excessKcal, excessP, excessC, excessF, dailyKcal, breakdown = null) {
   if (!recipients.length || excessKcal <= 0) return excessKcal;
   let remaining = excessKcal;
   let remP = excessP;
   let remC = excessC;
   let remF = excessF;
   const sum = recipients.reduce((s, m) => s + (Number(m.calories) || 0), 0) || recipients.length;
-  for (const m of recipients) {
-    const share = (Number(m.calories) || 0) / sum || 1 / recipients.length;
-    let addK = Math.round(remaining * share);
-    if (m.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435") {
-      const headroom = Math.max(0, maxFreeMealKcal(dailyKcal) - (Number(m.calories) || 0));
-      addK = Math.min(addK, headroom);
-    }
-    if (addK <= 0) continue;
+  const give = (m, addK) => {
     const ratio = addK / remaining;
     addMacrosToSlot(m, addK, Math.round(remP * ratio), Math.round(remC * ratio), Math.round(remF * ratio));
     remaining -= addK;
     remP -= Math.round(remP * ratio);
     remC -= Math.round(remC * ratio);
     remF -= Math.round(remF * ratio);
+  };
+  for (const m of recipients) {
+    const share = (Number(m.calories) || 0) / sum || 1 / recipients.length;
+    const addK = Math.min(Math.round(remaining * share), slotHeadroomKcal(m, breakdown, dailyKcal));
+    if (addK > 0) give(m, addK);
   }
   if (remaining > 0) {
-    const fallback = recipients.find((m) => m.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" || m.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4") || recipients[0];
-    if (fallback && fallback.type !== "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435") {
-      addMacrosToSlot(fallback, remaining, remP, remC, remF);
+    for (const m of recipients) {
+      if (remaining <= 0) break;
+      const addK = Math.min(remaining, slotHeadroomKcal(m, breakdown, dailyKcal));
+      if (addK > 0) give(m, addK);
+    }
+  }
+  if (remaining > 0) {
+    const fallbacks = recipients.filter((m) => m.type !== "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435");
+    const fbSum = fallbacks.reduce((s, m) => s + (Number(m.calories) || 0), 0) || fallbacks.length;
+    for (let i = 0; i < fallbacks.length && remaining > 0; i++) {
+      const m = fallbacks[i];
+      const addK = i === fallbacks.length - 1 ? remaining : Math.round(remaining * ((Number(m.calories) || 0) / fbSum || 1 / fallbacks.length));
+      if (addK > 0) give(m, addK);
     }
   }
   return 0;
@@ -8335,7 +8356,7 @@ function rebalanceMealBreakdownSlots(day, dailyKcal) {
       const recipients = platedSlots(day.mealBreakdown).filter(
         (m) => !isLightMealSlot(m.type) && (Number(m.calories) || 0) < maxSlotKcal(m.type, day.mealBreakdown, daily)
       );
-      distributeSurplusToRecipients(recipients, excess, 0, 0, 0, daily);
+      distributeSurplusToRecipients(recipients, excess, 0, 0, 0, daily, day.mealBreakdown);
     }
   }
   for (let pass = 0; pass < 8; pass++) {
@@ -8374,6 +8395,18 @@ function rebalanceMealBreakdownSlots(day, dailyKcal) {
   enforceFreeDayDinnerCap(day, daily);
   reconcileDailyCalories(day, daily);
   enforceFixedSlotCaps(day, daily);
+  syncSlotMacrosToCalories(day);
+}
+function syncSlotMacrosToCalories(day) {
+  for (const slot of day?.mealBreakdown || []) {
+    const cal = Number(slot.calories) || 0;
+    const macroKcal = (Number(slot.protein) || 0) * 4 + (Number(slot.carbs) || 0) * 4 + (Number(slot.fats) || 0) * 9;
+    if (cal <= 0 || macroKcal <= 0 || Math.abs(macroKcal - cal) <= 5) continue;
+    const ratio = cal / macroKcal;
+    slot.protein = Math.round((Number(slot.protein) || 0) * ratio);
+    slot.carbs = Math.round((Number(slot.carbs) || 0) * ratio);
+    slot.fats = Math.round((Number(slot.fats) || 0) * ratio);
+  }
 }
 function enforceFixedSlotCaps(day, dailyKcal) {
   if (!day?.mealBreakdown?.length) return;
@@ -8391,7 +8424,9 @@ function reconcileDailyCalories(day, dailyKcal) {
   if (diff <= 5) return;
   const recipients = mainMealRecipients(day);
   if (!recipients.length) return;
-  distributeSurplusToRecipients(recipients, diff, 0, 0, 0, daily);
+  const h1 = day.mealBreakdown.find((m) => m.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1");
+  if (h1 && !recipients.includes(h1)) recipients.push(h1);
+  distributeSurplusToRecipients(recipients, diff, 0, 0, 0, daily, day.mealBreakdown);
 }
 function enforceFreeDayDinnerCap(day, dailyKcal) {
   const hasFree = day.mealBreakdown?.some((m) => m.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435");
@@ -8408,7 +8443,7 @@ function enforceFreeDayDinnerCap(day, dailyKcal) {
     (m) => m.type !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4" && (Number(m.calories) || 0) < maxSlotKcal(m.type, day.mealBreakdown, dailyKcal)
   );
   if (!recipients.length) return;
-  distributeSurplusToRecipients(recipients, excessKcal, 0, 0, 0, dailyKcal);
+  distributeSurplusToRecipients(recipients, excessKcal, 0, 0, 0, dailyKcal, day.mealBreakdown);
 }
 function dietPreferences(userData) {
   const raw = userData?.dietPreference;
@@ -8681,6 +8716,7 @@ function removeBreakfastSlotFromDay(day) {
     }
   }
   day.meals = day.mealBreakdown.length;
+  syncSlotMacrosToCalories(day);
   syncSchemeDayMetadata(day);
 }
 function buildMeal3PromptRule(userData) {
@@ -9322,7 +9358,7 @@ function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}) {
       c = Math.round(c * ratio);
       f = Math.round(f * ratio);
       meal.macros = { protein: p, carbs: c, fats: f };
-      meal.calories = Math.min(Math.round(p * 4 + c * 4 + f * 9), cap);
+      meal.calories = Math.round(p * 4 + c * 4 + f * 9);
     }
   }
   return { ok: true, unknowns: totals.unknowns };
