@@ -861,9 +861,17 @@ function dateKey(d = /* @__PURE__ */ new Date()) {
 function emptyDayScore() {
   return { score: null, engPct: 0, junkCount: 0, calorieDelta: 0, calorieBalance: "balanced" };
 }
+function getMealSlots(rec) {
+  if (rec?.mealSlots?.length) return rec.mealSlots;
+  return Object.keys(rec?.meals || {});
+}
+function getPlannedCalories(rec) {
+  if (rec?.lockedPlannedCalories > 0) return rec.lockedPlannedCalories;
+  return rec?.plannedCalories || null;
+}
 function calcDayScore(rec, todayKey) {
   if (!rec) return emptyDayScore();
-  const meals = Object.keys(rec.meals || {});
+  const meals = getMealSlots(rec);
   let mealPts = 0;
   const mealMax = meals.length * 10;
   meals.forEach((m) => {
@@ -888,7 +896,7 @@ function calcDayScore(rec, todayKey) {
     if (mealCalMap[mt]) completedPlanCals += mealCalMap[mt];
   });
   const totalConsumed = completedPlanCals + extraCalSum;
-  const planned = rec.plannedCalories || null;
+  const planned = getPlannedCalories(rec);
   let excessCalories = false;
   let calorieBalance = "balanced";
   let calorieDelta = 0;
@@ -1031,7 +1039,8 @@ function buildAnalyticsSummary(gameData = {}, gameWeeklyAI = {}) {
       if (!d.rec) return;
       const mealCalMap = d.rec.mealCalories || {};
       const dayFreeMeal = d.rec.freeMeal && d.rec.freeMeal.calories > 0 ? d.rec.freeMeal : null;
-      const consumed = Object.keys(d.rec.meals || {}).reduce((sum, mt) => {
+      const mealSlots = getMealSlots(d.rec);
+      const consumed = mealSlots.reduce((sum, mt) => {
         if (!d.rec.meals[mt]) return sum;
         if (dayFreeMeal && dayFreeMeal.mealKey === mt) return sum + dayFreeMeal.calories;
         return sum + (mealCalMap[mt] || 0);
@@ -1041,7 +1050,7 @@ function buildAnalyticsSummary(gameData = {}, gameWeeklyAI = {}) {
         return sum + (em.calories || 0);
       }, 0);
       const total = consumed + extra;
-      const plan = d.rec.plannedCalories;
+      const plan = getPlannedCalories(d.rec);
       if (total > 0 && plan) vals.push(Math.min(100, Math.round(total / plan * 100)));
     });
     return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
@@ -12359,7 +12368,13 @@ function cleanResponseFromRegenerate(aiResponse, regenerateIndex) {
 }
 var PLAN_JOB_PREFIX = "plan_job:";
 var PLAN_JOB_TTL_SEC = 86400;
-var WEEKLY_VISIBLE_DELAY_MS = 2 * 60 * 60 * 1e3;
+function computeWeeklyReleaseVisibleAt(nowMs = Date.now()) {
+  const d = new Date(nowMs);
+  const utcDay = d.getUTCDay();
+  let daysUntilMonday = (8 - utcDay) % 7;
+  if (daysUntilMonday === 0) daysUntilMonday = 7;
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + daysUntilMonday, 0, 0, 0, 0);
+}
 var JOB_ID_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 async function generatePlanCore(env, data, onAnalysisReady = null) {
   const clinicalProtocol = getClinicalProtocol(data.clinicalProtocol);
@@ -14521,7 +14536,7 @@ async function savePendingWeeklyRelease(env, userId, clientId, release) {
   const profile = await kvGetJSON(env, `user_profile:${userId}`) || { userId };
   profile.pendingWeekly = {
     ...release,
-    visibleAt: Date.now() + WEEKLY_VISIBLE_DELAY_MS,
+    visibleAt: computeWeeklyReleaseVisibleAt(),
     clientId: clientId || profile.clientId || ""
   };
   await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);

@@ -745,7 +745,6 @@
         }
 
         markWeeklyNoticeShown(notice);
-        ackWeeklyNoticeOnServer(userId, notice, options);
         try {
             global.dispatchEvent(new CustomEvent('NUTRIPLAN_PLAN_SYNCED', { detail: { weekly: true, planApplied: planApplied } }));
         } catch (_) {}
@@ -765,7 +764,7 @@
     var _weeklyNoticeCheckInFlight = null;
 
     async function maybeDailyPlanVersionCheck(userId, options) {
-        if (!userId || userId.indexOf('fb_') !== 0) {
+        if (!userId) {
             return { checked: false, reason: 'no-user' };
         }
         options = buildPlanSyncOptions(options || {});

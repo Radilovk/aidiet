@@ -5542,10 +5542,13 @@
                             var dateKey = typeof window.gameModule.getCurrentViewDayKey === 'function'
                                 ? window.gameModule.getCurrentViewDayKey() : null;
                             if (dateKey) {
-                                var r = window.gameModule.getRecord(dateKey);
-                                if (!r.plannedCalories) {
-                                    r.plannedCalories = Math.round(cal);
-                                    window.gameModule.saveRecord(dateKey, r);
+                                var gmPast = window.gameModule;
+                                if (!gmPast || typeof gmPast.isPastDayKey !== 'function' || !gmPast.isPastDayKey(dateKey)) {
+                                    var r = window.gameModule.getRecord(dateKey);
+                                    if (!r.plannedCalories) {
+                                        r.plannedCalories = Math.round(cal);
+                                        window.gameModule.saveRecord(dateKey, r);
+                                    }
                                 }
                             }
                         }, 50);
@@ -9187,8 +9190,38 @@
                      morningCheck: null, eveningCheck: null, plannedCalories: null,
                      mealCalories: {}, dailyScore: null, missing: false };
         }
+        function getLocalPlanVersion() {
+            try { return localStorage.getItem('planUpdatedAt') || ''; } catch (_) { return ''; }
+        }
+        // Past calendar days keep their meal slots and planned calories — a new plan must not rewrite them.
+        function lockPastDaySchema(rec, dayKey) {
+            if (!isPastDayKey(dayKey)) return false;
+            var changed = false;
+            if (!rec.mealSlots || !rec.mealSlots.length) {
+                rec.mealSlots = Object.keys(rec.meals || {});
+                changed = true;
+            }
+            if (!rec.planVersion) {
+                rec.planVersion = getLocalPlanVersion();
+                changed = true;
+            }
+            if (rec.plannedCalories > 0 && !rec.lockedPlannedCalories) {
+                rec.lockedPlannedCalories = rec.plannedCalories;
+                changed = true;
+            }
+            return changed;
+        }
         function getRecord(key)       { var d = getGameData(); return d[key] || emptyRecord(key); }
-        function saveRecord(key, rec) { var d = getGameData(); d[key] = rec; saveGameData(d); }
+        function saveRecord(key, rec) {
+            if (isPastDayKey(key)) lockPastDaySchema(rec, key);
+            else if (!rec.planVersion) {
+                var hasAct = Object.keys(rec.meals || {}).some(function(m) { return rec.meals[m]; })
+                    || rec.morningCheck || rec.eveningCheck
+                    || (rec.extraMeals && rec.extraMeals.length);
+                if (hasAct) rec.planVersion = getLocalPlanVersion();
+            }
+            var d = getGameData(); d[key] = rec; saveGameData(d);
+        }
         function getTodayRecord()     { return getRecord(getTodayKey()); }
         function saveTodayRecord(rec) { saveRecord(getTodayKey(), rec); }
 
@@ -9285,6 +9318,12 @@
         function recalcAndShowScore(key) {
             key = key || getCurrentViewDayKey();
             var rec = getRecord(key);
+            if (isAgeLocked(key) && rec.dailyScore) {
+                var prevLocked = (rec.dailyScore && rec.dailyScore.score) ? rec.dailyScore.score : 0;
+                if (key === getCurrentViewDayKey()) renderDailyScoreCard(key, prevLocked);
+                return;
+            }
+            if (isPastDayKey(key)) lockPastDaySchema(rec, key);
             // Capture previous score BEFORE recalculating to detect star gains
             var prevScore = (rec.dailyScore && rec.dailyScore.score) ? rec.dailyScore.score : 0;
             rec.dailyScore = calcDayScore(rec);
@@ -9566,6 +9605,8 @@
             if (!rec.freeMealRatings) rec.freeMealRatings = {}; // backward compat: preserve existing field in stored records
             if (!rec.mealCalories) rec.mealCalories = {};
             var mealsInitialized = false;
+            var schemaPast = isPastDayKey(dayKey);
+            if (schemaPast && lockPastDaySchema(rec, dayKey)) mealsInitialized = true;
 
             // Compute planned calorie total from rendered meal cards (best effort)
             // Also capture per-meal calorie data for accurate completed-meal calorie tracking
@@ -9575,7 +9616,7 @@
                 var calEl = card.querySelector('[data-meal-calories]');
                 if (calEl) { plannedCals += parseFloat(calEl.getAttribute('data-meal-calories')) || 0; }
             });
-            if (plannedCals > 0 && (!rec.plannedCalories || (rec.plannedCalories > 0 && Math.abs(rec.plannedCalories - plannedCals) > rec.plannedCalories * 0.05))) {
+            if (!schemaPast && plannedCals > 0 && (!rec.plannedCalories || (rec.plannedCalories > 0 && Math.abs(rec.plannedCalories - plannedCals) > rec.plannedCalories * 0.05))) {
                 rec.plannedCalories = Math.round(plannedCals);
                 mealsInitialized = true;
             }
@@ -9600,11 +9641,12 @@
                 seenMealTypes[mealType] = (seenMealTypes[mealType] || 0) + 1;
                 var mealKey = seenMealTypes[mealType] === 1 ? mealType : mealType + '_' + seenMealTypes[mealType];
                 card.setAttribute('data-meal-key', mealKey);
+                if (schemaPast && !(mealKey in rec.meals)) return;
 
                 // Store per-meal calories for calorie-balance calculation
                 // Update only when the value changes to reflect plan regeneration
                 var calAttr = card.getAttribute('data-meal-calories');
-                if (calAttr) {
+                if (!schemaPast && calAttr) {
                     var calVal = Math.round(parseFloat(calAttr) || 0);
                     if (calVal > 0 && rec.mealCalories[mealKey] !== calVal) {
                         rec.mealCalories[mealKey] = calVal;
@@ -9613,7 +9655,7 @@
                 }
 
                 // Ensure all planned meals are present in the record so calcDayScore knows the total
-                if (!(mealKey in rec.meals)) {
+                if (!schemaPast && !(mealKey in rec.meals)) {
                     rec.meals[mealKey] = false;
                     mealsInitialized = true;
                 }
@@ -10836,7 +10878,7 @@
                 + '<div class="game-modal-title">Благодарим!</div>';
             var msg = document.createElement('div');
             msg.className = 'game-modal-msg';
-            msg.textContent = 'Информацията е изпратена за преглед и актуализация. Обикновено до няколко часа — при следващото отваряне ще видите обновения план.';
+            msg.textContent = 'Информацията е изпратена за преглед. Новият план ще е активен от понеделник — ще го видите при следващото отваряне след това.';
             modal.appendChild(msg);
             var btn = document.createElement('button');
             btn.className = 'game-modal-btn';
@@ -11119,6 +11161,7 @@
             saveRecord:              saveRecord,
             getGameData:             getGameData,
             getCurrentViewDayKey:    getCurrentViewDayKey,
+            isPastDayKey:            isPastDayKey,
             logExtraFood:            logExtraFood,
             setFreeMeal:             setFreeMeal,
             calcDayScore:            calcDayScore,
