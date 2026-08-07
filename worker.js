@@ -10,13 +10,8 @@
  */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
-var __esm = (fn, res, err) => function __init() {
-  if (err) throw err[0];
-  try {
-    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
-  } catch (e) {
-    throw err = [e], e;
-  }
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
 };
 var __export = (target, all) => {
   for (var name in all)
@@ -18973,7 +18968,7 @@ async function handleGenerateEmoeatAnalysis(request, env) {
       return jsonResponse2({ error: "\u041C\u043E\u043B\u044F, \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0435\u0442\u0435 \u043D\u0430 \u043F\u043E\u043D\u0435 4 \u0432\u044A\u043F\u0440\u043E\u0441\u0430 \u0437\u0430 \u043F\u044A\u043B\u043D\u043E\u0446\u0435\u043D\u0435\u043D \u0430\u043D\u0430\u043B\u0438\u0437" }, 400);
     }
     const prompt = await generateEmoeatPrompt(data.answers, data.profile, env);
-    const EMOEAT_TOKEN_LIMIT = 6e3;
+    const EMOEAT_TOKEN_LIMIT = 3500;
     const aiResponse = await callAIModel(
       env,
       prompt,
