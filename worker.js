@@ -10,8 +10,13 @@
  */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
-var __esm = (fn, res) => function __init() {
-  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+var __esm = (fn, res, err) => function __init() {
+  if (err) throw err[0];
+  try {
+    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+  } catch (e) {
+    throw err = [e], e;
+  }
 };
 var __export = (target, all) => {
   for (var name in all)
@@ -871,20 +876,24 @@ function calcDayScore(rec, todayKey) {
   });
   let junkCount = 0;
   let extraCalSum = 0;
-  let freeMealCalSum = 0;
   (rec.extraMeals || []).forEach((em) => {
     const isConsumed = !em.isAddedToPlan || em.countCalories !== false;
-    if (em.isJunk && isConsumed && !em.isFreeMealReplacement) junkCount++;
-    if (em.isFreeMealReplacement) freeMealCalSum += em.calories || 0;
-    else if (!(em.isAddedToPlan && !em.countCalories)) extraCalSum += em.calories || 0;
+    if (em.isJunk && isConsumed) junkCount++;
+    if (!(em.isAddedToPlan && !em.countCalories)) extraCalSum += em.calories || 0;
   });
   const mealCalMap = rec.mealCalories || {};
+  const freeMeal = rec.freeMeal && rec.freeMeal.calories > 0 ? rec.freeMeal : null;
   let completedPlanCals = 0;
   meals.forEach((mt) => {
-    if (rec.meals[mt] === true && mealCalMap[mt]) completedPlanCals += mealCalMap[mt];
+    if (rec.meals[mt] !== true) return;
+    if (freeMeal && freeMeal.mealKey === mt) {
+      completedPlanCals += freeMeal.calories;
+      return;
+    }
+    if (mealCalMap[mt]) completedPlanCals += mealCalMap[mt];
   });
-  const totalConsumed = completedPlanCals + extraCalSum + freeMealCalSum;
-  const planned = rec.plannedCalories ? rec.plannedCalories + freeMealCalSum : null;
+  const totalConsumed = completedPlanCals + extraCalSum;
+  const planned = rec.plannedCalories || null;
   let excessCalories = false;
   let calorieBalance = "balanced";
   let calorieDelta = 0;
@@ -937,8 +946,7 @@ function calcDayScore(rec, todayKey) {
     else if (pct >= 0.3) score = 2;
     else if (pct > 0) score = 1;
     if (score === 5 && has5StarBlocker) score = 4;
-    if (score != null && score > 3 && (junkCount > 0 || excessCalories)) score = 3;
-    if (score != null && score > 2 && junkCount > 0 && excessCalories) score = 2;
+    if (score != null && score > 3 && junkCount > 1 && excessCalories) score = 3;
   }
   return { score, engPct, junkCount, calorieDelta, calorieBalance, excessCalories };
 }
@@ -1011,7 +1019,6 @@ function buildAnalyticsSummary(gameData = {}, gameWeeklyAI = {}) {
   const extraCalsByDay = days.map((d) => {
     if (!d.rec?.extraMeals) return 0;
     return d.rec.extraMeals.reduce((s, em) => {
-      if (em.isFreeMealReplacement) return s;
       if (em.isAddedToPlan && !em.countCalories) return s;
       return s + (em.calories || 0);
     }, 0);
@@ -1028,9 +1035,14 @@ function buildAnalyticsSummary(gameData = {}, gameWeeklyAI = {}) {
     days.forEach((d) => {
       if (!d.rec) return;
       const mealCalMap = d.rec.mealCalories || {};
-      const consumed = Object.keys(d.rec.meals || {}).reduce((sum, mt) => sum + (d.rec.meals[mt] && mealCalMap[mt] ? mealCalMap[mt] : 0), 0);
+      const dayFreeMeal = d.rec.freeMeal && d.rec.freeMeal.calories > 0 ? d.rec.freeMeal : null;
+      const consumed = Object.keys(d.rec.meals || {}).reduce((sum, mt) => {
+        if (!d.rec.meals[mt]) return sum;
+        if (dayFreeMeal && dayFreeMeal.mealKey === mt) return sum + dayFreeMeal.calories;
+        return sum + (mealCalMap[mt] || 0);
+      }, 0);
       const extra = (d.rec.extraMeals || []).reduce((sum, em) => {
-        if (em.isFreeMealReplacement || em.isAddedToPlan && !em.countCalories) return sum;
+        if (em.isAddedToPlan && !em.countCalories) return sum;
         return sum + (em.calories || 0);
       }, 0);
       const total = consumed + extra;
