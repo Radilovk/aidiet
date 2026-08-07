@@ -12206,7 +12206,7 @@ async function handleGenerateEmoeatAnalysis(request, env) {
 
     const prompt = await generateEmoeatPrompt(data.answers, data.profile, env);
 
-    const EMOEAT_TOKEN_LIMIT = 3500;
+    const EMOEAT_TOKEN_LIMIT = 5500;
     const aiResponse = await callAIModel(
       env,
       prompt,
