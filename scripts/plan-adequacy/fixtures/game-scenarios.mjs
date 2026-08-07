@@ -85,7 +85,7 @@ export function buildGameData(plan, scenarioId) {
       daysBack: [6, 5, 4, 3, 2, 1, 0],
       opts: { allMealsDone: true, morning: true, evening: true, sleptWell: true, junkCount: 0 },
       answerBias: 'positive',
-      expect: { maxLevel: 1, minDays: 6 },
+      expect: { maxLevel: 0, minDays: 6 },
     },
     struggling_week: {
       daysBack: [6, 5, 4, 3, 2, 1, 0],

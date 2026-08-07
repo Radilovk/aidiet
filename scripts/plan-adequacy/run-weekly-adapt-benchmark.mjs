@@ -228,14 +228,6 @@ async function main() {
           console.log(`    questions OK (${questions.length}) cycle=${qRes.json.cycleNumber}`);
 
           if (FULL) {
-            const saveRes = await api('/api/user/save-profile', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ userId, plan, userData: profile }),
-            });
-            if (saveRes.status !== 200) {
-              liveIssues.push(`save-profile: ${saveRes.status}`);
-            }
             const aRes = await api('/api/weekly/adapt-plan', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },

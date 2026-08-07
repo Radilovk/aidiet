@@ -1139,6 +1139,34 @@ function serializeAnalyticsBlock(analytics) {
   return lines.filter(Boolean).join("\n");
 }
 
+// weekly-adapt-guardrails.mjs
+function hasWeeklyStrategyRegenTriggers(strategyChanges) {
+  const sc = strategyChanges || {};
+  if (Number(sc.calorieAdjust)) return true;
+  if (sc.freeDayNumber != null && sc.freeDayNumber !== "") return true;
+  if (String(sc.weeklySchemeNotes || "").trim()) return true;
+  return false;
+}
+function clampAdaptationLevel(rawLevel, analytics, modifications, strategyChanges) {
+  let level = Math.min(3, Math.max(0, parseInt(String(rawLevel), 10) || 0));
+  if (analytics?.status === "active") {
+    const junk7 = analytics.junk7 || 0;
+    const avg = Number(analytics.avgScore) || 0;
+    const adh = Number(analytics.adherence) || 0;
+    if (junk7 <= 1 && avg >= 3.5 && adh >= 45) {
+      level = Math.min(level, 0);
+    }
+    if (junk7 >= 5) {
+      level = Math.max(level, 1);
+    }
+  }
+  const hollowLevel1 = level === 1 && !modifications?.length && !hasWeeklyStrategyRegenTriggers(strategyChanges);
+  if (hollowLevel1 && (analytics?.junk7 || 0) < 5) {
+    level = 0;
+  }
+  return level;
+}
+
 // json-patch.js
 var ALLOWED_PREFIXES = ["/answers", "/plan", "/adminNotes"];
 var MAX_PATCHES = 25;
@@ -10691,8 +10719,12 @@ var RATE_LIMIT = {
   // 10 auth attempts/min per IP
   FORGOT_PASSWORD: { maxRequests: 5, windowSec: 900 },
   // 5 reset requests per 15 min per IP
-  XBODY_APPOINTMENTS: { maxRequests: 15, windowSec: 60 }
+  XBODY_APPOINTMENTS: { maxRequests: 15, windowSec: 60 },
   // 15 lookups/min per IP
+  ANALYTICS_SYNC: { maxRequests: 40, windowSec: 60 },
+  // debounced client sync burst
+  WEEKLY_QUESTIONS: { maxRequests: 6, windowSec: 3600 },
+  WEEKLY_ADAPT: { maxRequests: 3, windowSec: 3600 }
 };
 async function checkRateLimit(env, request, endpoint) {
   if (!env.page_content) return null;
@@ -14426,15 +14458,14 @@ function normalizeWeeklyQuestions(raw) {
   return questions.length >= 3 ? questions.slice(0, 5) : null;
 }
 function normalizeAdaptationDecision(raw, analytics) {
-  let level = Math.min(3, Math.max(0, parseInt(raw?.adaptationLevel, 10) || 0));
-  if (analytics?.status === "active" && (analytics.junk7 || 0) >= 5) {
-    level = Math.max(level, 1);
-  }
+  const modifications = Array.isArray(raw?.modifications) ? raw.modifications.map(String) : [];
+  const strategyChanges = raw?.strategyChanges || {};
+  const level = clampAdaptationLevel(raw?.adaptationLevel, analytics, modifications, strategyChanges);
   return {
     adaptationLevel: level,
     reasoning: String(raw?.reasoning || "").slice(0, 500),
-    modifications: Array.isArray(raw?.modifications) ? raw.modifications.map(String) : [],
-    strategyChanges: raw?.strategyChanges || {},
+    modifications,
+    strategyChanges,
     motivationMessage: String(raw?.motivationMessage || "\u041F\u0440\u043E\u0434\u044A\u043B\u0436\u0430\u0432\u0430\u0439\u0442\u0435 \u0441\u0442\u0430\u0431\u0438\u043B\u043D\u043E \u043D\u0430\u043F\u0440\u0435\u0434!").slice(0, 600),
     changeSummary: Array.isArray(raw?.changeSummary) ? raw.changeSummary.map(String).slice(0, 6) : [],
     headline: String(raw?.headline || "").slice(0, 120)
@@ -16368,7 +16399,9 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
     if (earliestErrorStep === "step1_analysis" || earliestErrorStep === "step2_strategy" || earliestErrorStep === "step3_mealplan") {
       const stepErrorComment = earliestErrorStep === "step3_mealplan" ? errorPreventionComment : null;
       console.log(`Regenerating Step 3 (Meal Plan)${stepErrorComment ? " with error prevention" : ""}`);
-      mealPlan = await generateMealPlanProgressive(env, data, analysis, strategy, stepErrorComment, sessionId);
+      mealPlan = await generateMealPlanProgressive(env, data, analysis, strategy, stepErrorComment, sessionId, {
+        skipEnrichment: Boolean(data.weeklyAdaptationContext)
+      });
     } else if (earliestErrorStep === "step4_final") {
       console.log("Regenerating Step 4 (Summary and Recommendations) with error prevention");
       let bmr;
@@ -16934,7 +16967,7 @@ function calculateAverageMacrosFromPlan(weekPlan) {
   }
   return { protein: null, carbs: null, fats: null };
 }
-async function generateMealPlanProgressive(env, data, analysis, strategy, errorPreventionComment = null, sessionId = null) {
+async function generateMealPlanProgressive(env, data, analysis, strategy, errorPreventionComment = null, sessionId = null, progressiveOptions = {}) {
   const totalDays = 7;
   const chunks = Math.ceil(totalDays / DAYS_PER_CHUNK);
   const weekPlan = {};
@@ -17068,11 +17101,15 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       else previousDays.push(dayEntry);
     }
   }
-  try {
-    await enrichWeekPlanCopy(env, data, strategy, weekPlan, sessionId, { recommendedCalories });
-    console.log("Step 5 enrichment complete");
-  } catch (error) {
-    console.warn("Step 5 enrichment failed, plan usable with Step 3 output:", error.message);
+  if (!progressiveOptions.skipEnrichment) {
+    try {
+      await enrichWeekPlanCopy(env, data, strategy, weekPlan, sessionId, { recommendedCalories });
+      console.log("Step 5 enrichment complete");
+    } catch (error) {
+      console.warn("Step 5 enrichment failed, plan usable with Step 3 output:", error.message);
+    }
+  } else {
+    console.log("Step 5 enrichment skipped (weekly adapt regen)");
   }
   finalizeWeekPlanDays(weekPlan, strategy, 1, 7, data);
   try {
@@ -21972,10 +22009,16 @@ var worker_entry_default = {
       } else if (url.pathname === "/api/user/save-profile" && request.method === "POST") {
         return await handleSaveUserProfile(request, env);
       } else if (url.pathname === "/api/user/sync-analytics" && request.method === "POST") {
+        const rlErr = await checkRateLimit(env, request, "ANALYTICS_SYNC");
+        if (rlErr) return rlErr;
         return await handleSyncAnalytics(request, env);
       } else if (url.pathname === "/api/weekly/generate-questions" && request.method === "POST") {
+        const rlErr = await checkRateLimit(env, request, "WEEKLY_QUESTIONS");
+        if (rlErr) return rlErr;
         return await handleWeeklyGenerateQuestions(request, env);
       } else if (url.pathname === "/api/weekly/adapt-plan" && request.method === "POST") {
+        const rlErr = await checkRateLimit(env, request, "WEEKLY_ADAPT");
+        if (rlErr) return rlErr;
         return await handleWeeklyAdaptPlan(request, env, ctx);
       } else if (url.pathname === "/api/weekly/ack-notice" && request.method === "POST") {
         return await handleWeeklyAckNotice(request, env);
