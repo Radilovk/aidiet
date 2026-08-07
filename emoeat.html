@@ -1636,6 +1636,201 @@
             margin: 0 auto;
         }
 
+        .patient-letter-card {
+            background: var(--card-bg);
+            border: 1px solid var(--glass-border);
+            border-left: 4px solid var(--primary);
+            border-radius: var(--radius-sm);
+            padding: 22px 24px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .patient-letter-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        .patient-letter-text {
+            font-size: 1.02rem;
+            line-height: 1.75;
+            color: var(--text-dark);
+        }
+
+        .results-part-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 28px 0 16px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(13, 148, 136, 0.15);
+        }
+
+        .results-part-header h3 {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            margin: 0;
+        }
+
+        .results-part-header .part-share {
+            margin-left: auto;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-light);
+            background: var(--input-bg);
+            padding: 4px 10px;
+            border-radius: 999px;
+        }
+
+        .core-dynamic-card {
+            background: linear-gradient(135deg, rgba(13, 148, 136, 0.08), rgba(6, 182, 212, 0.05));
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-sm);
+            padding: 20px;
+            margin-bottom: 18px;
+        }
+
+        .core-dynamic-title {
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 12px;
+            font-size: 1rem;
+        }
+
+        .cycle-chain {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin: 12px 0;
+        }
+
+        .cycle-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 0.92rem;
+            color: var(--text-dark);
+            line-height: 1.5;
+        }
+
+        .cycle-step-num {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            font-size: 0.72rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .breaking-point {
+            margin-top: 12px;
+            padding: 12px 14px;
+            background: rgba(245, 158, 11, 0.1);
+            border-radius: 10px;
+            font-size: 0.9rem;
+            color: var(--text-dark);
+            line-height: 1.55;
+        }
+
+        .breaking-point strong {
+            color: var(--accent-warm);
+        }
+
+        .weekly-plan-card {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border-radius: var(--radius);
+            padding: 22px 24px;
+            margin-bottom: 20px;
+        }
+
+        .weekly-plan-focus {
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-bottom: 14px;
+            opacity: 0.95;
+        }
+
+        .weekly-practices {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .weekly-practices li {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 0.92rem;
+            line-height: 1.5;
+        }
+
+        .weekly-practices li::before {
+            content: '✓';
+            font-weight: 700;
+            opacity: 0.85;
+            flex-shrink: 0;
+        }
+
+        .coping-category {
+            background: var(--card-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-sm);
+            padding: 16px 18px;
+            margin-bottom: 12px;
+        }
+
+        .coping-category-title {
+            font-weight: 700;
+            font-size: 0.92rem;
+            color: var(--primary-dark);
+            margin-bottom: 10px;
+        }
+
+        .coping-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .coping-chip {
+            background: var(--input-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 999px;
+            padding: 6px 12px;
+            font-size: 0.82rem;
+            color: var(--text-dark);
+            line-height: 1.4;
+        }
+
+        .strategy-expect {
+            margin-top: 10px;
+            padding: 10px 12px;
+            background: rgba(13, 148, 136, 0.06);
+            border-radius: 10px;
+            font-size: 0.86rem;
+            color: var(--text-gray);
+            line-height: 1.5;
+        }
+
+        .strategy-expect strong {
+            color: var(--primary-dark);
+        }
+
         .section-title {
             font-size: 1.15rem;
             font-weight: 700;
@@ -3383,6 +3578,57 @@
             };
         }
 
+        function renderCoreDynamicBlock(coreDynamic) {
+            if (!coreDynamic || !coreDynamic.title) return '';
+            const cycle = Array.isArray(coreDynamic.cycle) ? coreDynamic.cycle : [];
+            return `
+                <div class="core-dynamic-card">
+                    <div class="core-dynamic-title"><i class="fas fa-arrows-spin" style="color: var(--primary); margin-right: 8px;"></i>${escapeHtml(coreDynamic.title)}</div>
+                    ${coreDynamic.trigger ? `<p style="font-size: 0.88rem; color: var(--text-gray); margin-bottom: 8px;"><strong>Тригер:</strong> ${escapeHtml(coreDynamic.trigger)}</p>` : ''}
+                    ${cycle.length ? `
+                    <div class="cycle-chain">
+                        ${cycle.map((step, i) => `
+                            <div class="cycle-step">
+                                <span class="cycle-step-num">${i + 1}</span>
+                                <span>${escapeHtml(step)}</span>
+                            </div>
+                        `).join('')}
+                    </div>` : ''}
+                    ${coreDynamic.breakingPoint ? `
+                    <div class="breaking-point"><strong>Точка на прекъсване:</strong> ${escapeHtml(coreDynamic.breakingPoint)}</div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function renderWeeklyPlanBlock(weeklyPlan) {
+            if (!weeklyPlan || (!weeklyPlan.focus && !(weeklyPlan.practices || []).length)) return '';
+            const practices = Array.isArray(weeklyPlan.practices) ? weeklyPlan.practices : [];
+            return `
+                <div class="weekly-plan-card">
+                    <div style="font-weight: 700; margin-bottom: 10px; font-size: 0.85rem; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.05em;">Фокус за тази седмица</div>
+                    ${weeklyPlan.focus ? `<div class="weekly-plan-focus">${escapeHtml(weeklyPlan.focus)}</div>` : ''}
+                    ${practices.length ? `
+                    <ul class="weekly-practices">
+                        ${practices.map(p => `<li>${escapeHtml(p)}</li>`).join('')}
+                    </ul>` : ''}
+                </div>
+            `;
+        }
+
+        function renderCopingAlternativesBlock(alternatives) {
+            const items = Array.isArray(alternatives) ? alternatives : [];
+            if (!items.length) return '';
+            return items.map(cat => `
+                <div class="coping-category">
+                    <div class="coping-category-title">${escapeHtml(cat.category || '')}</div>
+                    <div class="coping-options">
+                        ${(cat.options || []).map(opt => `<span class="coping-chip">${escapeHtml(opt)}</span>`).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
         function generateAIResults(analysis) {
             const resultsScreen = document.getElementById('resultsScreen');
             const crossPatterns = analysis.crossPatterns || [];
@@ -3390,6 +3636,10 @@
             const strategies = analysis.therapeuticStrategies || [];
             const emergency = analysis.emergencyProtocol || {};
             const hidden = analysis.hiddenMessage || '';
+            const patientLetter = analysis.patientLetter || '';
+            const coreDynamic = analysis.coreDynamic || null;
+            const weeklyPlan = analysis.weeklyPlan || null;
+            const copingAlternatives = analysis.copingAlternatives || [];
 
             const profile = analyzeAnswers(answerMeta);
             const d = mergeArchetype(profile.archetypes[0], analysis.dominantArchetype);
@@ -3401,25 +3651,34 @@
                 <div class="results-screen">
                     <div class="results-header">
                         <div class="results-icon">
-                            <i class="fas fa-fingerprint"></i>
+                            <i class="fas fa-envelope-open-text"></i>
                         </div>
-                        <h2 class="results-title">Вашият Емоционален Профил</h2>
-                        <p class="results-subtitle">Кратък персонализиран анализ, съобразен с вашия психологически профил</p>
+                        <h2 class="results-title">Вашият Персонален План</h2>
+                        <p class="results-subtitle">Разбиране на вашата динамика и конкретни стъпки напред</p>
                     </div>
 
-                    ${hidden ? `
-                    <div class="hidden-message-card">
-                        <div class="hidden-message-icon"><i class="fas fa-key"></i></div>
-                        <div class="hidden-message-text">${escapeHtml(hidden)}</div>
+                    ${patientLetter ? `
+                    <div class="patient-letter-card">
+                        <div class="patient-letter-label"><i class="fas fa-feather"></i> Лично послание</div>
+                        <div class="patient-letter-text">${escapeHtml(patientLetter)}</div>
                     </div>
-                    ` : ''}
+                    ` : (hidden ? `
+                    <div class="patient-letter-card">
+                        <div class="patient-letter-label"><i class="fas fa-feather"></i> Лично послание</div>
+                        <div class="patient-letter-text">${escapeHtml(hidden)}</div>
+                    </div>
+                    ` : '')}
 
                     ${realNeedCard}
-
                     ${factorsSection}
 
-                    <!-- Archetypes -->
-                    <div class="section-title"><i class="fas fa-masks-theater"></i> Вашите Емоционални Архетипи</div>
+                    <div class="results-part-header">
+                        <i class="fas fa-compass" style="color: var(--primary);"></i>
+                        <h3>Разбиране</h3>
+                        <span class="part-share">~25%</span>
+                    </div>
+
+                    ${renderCoreDynamicBlock(coreDynamic)}
 
                     <div class="archetype-card">
                         <div class="archetype-badge"><i class="fas fa-crown"></i> Доминантен Архетип</div>
@@ -3443,26 +3702,8 @@
                     </div>
                     ` : ''}
 
-                    <!-- Cross Patterns -->
-                    ${crossPatterns.length > 0 ? `
-                    <div class="section-title"><i class="fas fa-project-diagram"></i> Кръстосани Модели</div>
-                    ${crossPatterns.map(cp => `
-                        <div class="cross-pattern-card">
-                            <div class="cross-pattern-title">
-                                <i class="fas fa-link" style="color: var(--accent-warm);"></i>
-                                ${escapeHtml(cp.title || '')}
-                            </div>
-                            <div class="cross-pattern-questions">
-                                ${(cp.questions || []).map(q => `<span class="q-badge">В${q}</span>`).join('')}
-                            </div>
-                            <div class="cross-pattern-insight">${escapeHtml(cp.insight || '')}</div>
-                        </div>
-                    `).join('')}
-                    ` : ''}
-
-                    <!-- Personal Insights -->
                     ${insights.length > 0 ? `
-                    <div class="section-title"><i class="fas fa-lightbulb"></i> Лични Прозрения</div>
+                    <div class="section-title" style="margin-top: 12px;"><i class="fas fa-lightbulb"></i> Ключови прозрения</div>
                     ${insights.map(ins => `
                         <div class="insight-card">
                             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
@@ -3475,9 +3716,26 @@
                     `).join('')}
                     ` : ''}
 
-                    <!-- Therapeutic Strategies -->
+                    ${crossPatterns.length > 0 ? crossPatterns.map(cp => `
+                        <div class="cross-pattern-card">
+                            <div class="cross-pattern-title">
+                                <i class="fas fa-link" style="color: var(--accent-warm);"></i>
+                                ${escapeHtml(cp.title || '')}
+                            </div>
+                            <div class="cross-pattern-insight">${escapeHtml(cp.insight || '')}</div>
+                        </div>
+                    `).join('') : ''}
+
+                    <div class="results-part-header">
+                        <i class="fas fa-route" style="color: var(--primary);"></i>
+                        <h3>Вашият план напред</h3>
+                        <span class="part-share">~75%</span>
+                    </div>
+
+                    ${renderWeeklyPlanBlock(weeklyPlan)}
+
                     ${strategies.length > 0 ? `
-                    <div class="section-title"><i class="fas fa-hand-holding-heart"></i> Персонализирани Терапевтични Стратегии</div>
+                    <div class="section-title"><i class="fas fa-hand-holding-heart"></i> Техники и стратегии</div>
                     ${strategies.map(st => `
                         <div class="strategy-card">
                             <div class="strategy-header">
@@ -3490,7 +3748,7 @@
                             </div>
                             ${st.trigger ? `
                             <div class="strategy-trigger">
-                                <strong>Тригер:</strong> ${escapeHtml(st.trigger)}
+                                <strong>Кога:</strong> ${escapeHtml(st.trigger)}
                             </div>
                             ` : ''}
                             <div class="strategy-method">${escapeHtml(st.method || '')}</div>
@@ -3499,17 +3757,28 @@
                                 ${st.practicalSteps.map(step => `<li>${escapeHtml(step)}</li>`).join('')}
                             </ul>
                             ` : ''}
+                            ${(st.whatToExpect || st.successSign) ? `
+                            <div class="strategy-expect">
+                                ${st.whatToExpect ? `<div><strong>Какво да очакваш:</strong> ${escapeHtml(st.whatToExpect)}</div>` : ''}
+                                ${st.successSign ? `<div style="margin-top: 6px;"><strong>Знак за напредък:</strong> ${escapeHtml(st.successSign)}</div>` : ''}
+                            </div>
+                            ` : ''}
                         </div>
                     `).join('')}
                     ` : ''}
 
-                    <!-- Emergency Protocol -->
+                    ${copingAlternatives.length > 0 ? `
+                    <div class="section-title"><i class="fas fa-list-check"></i> Алтернативи на храненето</div>
+                    <p style="font-size: 0.86rem; color: var(--text-gray); margin: -8px 0 14px;">Избери 1–2, които ти звучат реалистично за твоя момент</p>
+                    ${renderCopingAlternativesBlock(copingAlternatives)}
+                    ` : ''}
+
                     ${emergency.steps && emergency.steps.length > 0 ? `
-                    <div class="section-title"><i class="fas fa-exclamation-triangle" style="color: #EF4444;"></i> Спешен Протокол</div>
+                    <div class="section-title"><i class="fas fa-exclamation-triangle" style="color: #EF4444;"></i> Когато импулсът е силен</div>
                     <div class="emergency-card">
                         <div class="emergency-title">
                             <i class="fas fa-bolt"></i>
-                            ${escapeHtml(emergency.title || 'Спешен Протокол за Кризисен Момент')}
+                            ${escapeHtml(emergency.title || 'Бърз протокол')}
                         </div>
                         <div class="emergency-desc">${escapeHtml(emergency.description || '')}</div>
                         ${emergency.steps.map(es => `
@@ -3524,7 +3793,13 @@
                     </div>
                     ` : ''}
 
-                    <!-- Actions -->
+                    ${(hidden && patientLetter) ? `
+                    <div class="hidden-message-card" style="margin-top: 24px;">
+                        <div class="hidden-message-icon"><i class="fas fa-heart"></i></div>
+                        <div class="hidden-message-text">${escapeHtml(hidden)}</div>
+                    </div>
+                    ` : ''}
+
                     <div class="action-buttons">
                         <button class="btn-primary" onclick="saveAndShare()">
                             <i class="fas fa-download"></i>

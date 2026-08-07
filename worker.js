@@ -18968,7 +18968,7 @@ async function handleGenerateEmoeatAnalysis(request, env) {
       return jsonResponse2({ error: "\u041C\u043E\u043B\u044F, \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0435\u0442\u0435 \u043D\u0430 \u043F\u043E\u043D\u0435 4 \u0432\u044A\u043F\u0440\u043E\u0441\u0430 \u0437\u0430 \u043F\u044A\u043B\u043D\u043E\u0446\u0435\u043D\u0435\u043D \u0430\u043D\u0430\u043B\u0438\u0437" }, 400);
     }
     const prompt = await generateEmoeatPrompt(data.answers, data.profile, env);
-    const EMOEAT_TOKEN_LIMIT = 3500;
+    const EMOEAT_TOKEN_LIMIT = 5500;
     const aiResponse = await callAIModel(
       env,
       prompt,
