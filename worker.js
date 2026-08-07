@@ -18937,7 +18937,7 @@ function serializeEmoeatProfile(profile) {
   if (halt.length) {
     lines.push("HALT: " + halt.map((h) => `${label(h.label, 20)} ${score(h.score)} (${label(h.level, 12)})`).join(" | "));
   }
-  const patterns = list(profile.patterns).map((p) => label(p, 60)).filter(Boolean);
+  const patterns = list(profile.patterns).map((p) => label(p && typeof p === "object" ? p.title || p.description || "" : p, 60)).filter(Boolean);
   if (patterns.length) {
     lines.push("\u041E\u0442\u043A\u0440\u0438\u0442\u0438 \u043C\u043E\u0434\u0435\u043B\u0438: " + patterns.join("; "));
   }

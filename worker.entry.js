@@ -12151,7 +12151,9 @@ function serializeEmoeatProfile(profile) {
     lines.push('HALT: ' + halt.map(h => `${label(h.label, 20)} ${score(h.score)} (${label(h.level, 12)})`).join(' | '));
   }
 
-  const patterns = list(profile.patterns).map(p => label(p, 60)).filter(Boolean);
+  const patterns = list(profile.patterns)
+    .map(p => label(p && typeof p === 'object' ? (p.title || p.description || '') : p, 60))
+    .filter(Boolean);
   if (patterns.length) {
     lines.push('Открити модели: ' + patterns.join('; '));
   }
