@@ -14602,9 +14602,19 @@ async function applyWeeklyReleaseIfDue(env, profile, userId) {
 }
 async function runWeeklyAdaptation(env, payload, jobId) {
   const { userId, gameWeeklyAI, answers, questions, clientId } = payload;
+  const t0 = Date.now();
+  const writeAdaptJob = async (body) => {
+    if (!env.page_content || !jobId) return;
+    await env.page_content.put(
+      PLAN_JOB_PREFIX + jobId,
+      JSON.stringify({ ...body, type: "weekly_adapt", jobId, elapsedSec: Math.round((Date.now() - t0) / 1e3) }),
+      { expirationTtl: PLAN_JOB_TTL_SEC }
+    );
+  };
   const { userData, plan, analytics, weeklyAdaptHistory } = await resolveWeeklyJobInputs(env, payload);
   if (!plan?.weekPlan) throw new Error("\u041B\u0438\u043F\u0441\u0432\u0430 \u043F\u043B\u0430\u043D \u0437\u0430 \u0430\u0434\u0430\u043F\u0442\u0430\u0446\u0438\u044F");
   const cycleNumber = gameWeeklyAI?.cycleNumber || 1;
+  const caloriesBefore = parseFinalCalories(plan.analysis?.Final_Calories);
   try {
     const decision = await getWeeklyAdaptationDecision(
       env,
@@ -14629,6 +14639,15 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       await savePendingWeeklyRelease(env, userId, clientId, {
         notice: { ...noticeBase, changed: false },
         adaptLevel: 0
+      });
+      await writeAdaptJob({
+        status: "completed",
+        adaptationLevel: 0,
+        changed: false,
+        modifications: decision.modifications,
+        strategyChanges: decision.strategyChanges,
+        changeSummary: decision.changeSummary,
+        analytics: { avgScore: analytics.avgScore, adherence: analytics.adherence, daysRecorded: analytics.daysRecorded, junk7: analytics.junk7 }
       });
       return;
     }
@@ -14674,8 +14693,21 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       userData: enrichedData,
       adaptLevel: decision.adaptationLevel
     });
+    await writeAdaptJob({
+      status: "completed",
+      adaptationLevel: decision.adaptationLevel,
+      changed: true,
+      regenStep,
+      modifications: decision.modifications,
+      strategyChanges: decision.strategyChanges,
+      changeSummary: decision.changeSummary,
+      caloriesBefore,
+      caloriesAfter: parseFinalCalories(newPlan?.analysis?.Final_Calories),
+      analytics: { avgScore: analytics.avgScore, adherence: analytics.adherence, daysRecorded: analytics.daysRecorded, junk7: analytics.junk7 }
+    });
   } catch (error) {
     console.error("[WeeklyAdapt] job failed:", error);
+    await writeAdaptJob({ status: "failed", error: String(error.message || error).slice(0, 500) });
     throw error;
   }
 }
@@ -14728,7 +14760,7 @@ async function handleWeeklyAdaptPlan(request, env, ctx) {
   try {
     if (!env.page_content) return jsonResponse2({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
     const body = await request.json();
-    const { userId, gameData, gameWeeklyAI, answers, questions, clientId, idToken } = body;
+    const { userId, gameData, gameWeeklyAI, answers, questions, clientId, idToken, userData, plan } = body;
     if (!userId || !answers?.length) {
       return jsonResponse2({ error: "Missing userId or answers" }, 400);
     }
@@ -14737,8 +14769,8 @@ async function handleWeeklyAdaptPlan(request, env, ctx) {
     } catch (e) {
       return jsonResponse2({ error: e.message }, 401);
     }
-    const { plan } = await resolveWeeklyJobInputs(env, body);
-    if (!plan?.weekPlan) {
+    const { plan: resolvedPlan } = await resolveWeeklyJobInputs(env, body);
+    if (!resolvedPlan?.weekPlan) {
       return jsonResponse2({ error: "Missing plan" }, 400);
     }
     const existingProfile = await kvGetJSON(env, `user_profile:${userId}`);
@@ -14751,11 +14783,18 @@ async function handleWeeklyAdaptPlan(request, env, ctx) {
       userId,
       clientId: clientId || "",
       gameData,
+      userData,
+      plan: resolvedPlan,
       gameWeeklyAI: { ...gameWeeklyAI || {}, cycleNumber: resolvedCycle },
       answers,
       questions
     };
     if (env.PLAN_QUEUE) {
+      await env.page_content.put(
+        PLAN_JOB_PREFIX + jobId,
+        JSON.stringify({ status: "pending", type: "weekly_adapt", startedAt: Date.now() }),
+        { expirationTtl: PLAN_JOB_TTL_SEC }
+      );
       await env.PLAN_QUEUE.send({ jobId, type: "weekly_adapt", payload }, { contentType: "json" });
     } else if (ctx) {
       ctx.waitUntil(runWeeklyAdaptation(env, payload, jobId));
