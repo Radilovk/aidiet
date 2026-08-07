@@ -19,6 +19,7 @@ import {
   buildAnalyticsSummary,
   serializeAnalyticsBlock,
 } from './analytics-compression.js';
+import { clampAdaptationLevel } from './weekly-adapt-guardrails.mjs';
 import {
   applyJsonPatches,
   buildPatchDocument,
@@ -1520,6 +1521,9 @@ const RATE_LIMIT = {
   SOCIAL_AUTH:    { maxRequests: 10, windowSec: 60 },   // 10 auth attempts/min per IP
   FORGOT_PASSWORD:{ maxRequests: 5,  windowSec: 900 },  // 5 reset requests per 15 min per IP
   XBODY_APPOINTMENTS: { maxRequests: 15, windowSec: 60 }, // 15 lookups/min per IP
+  ANALYTICS_SYNC: { maxRequests: 40, windowSec: 60 }, // debounced client sync burst
+  WEEKLY_QUESTIONS: { maxRequests: 6, windowSec: 3600 },
+  WEEKLY_ADAPT: { maxRequests: 3, windowSec: 3600 },
 };
 
 /**
@@ -6447,16 +6451,14 @@ function normalizeWeeklyQuestions(raw) {
 }
 
 function normalizeAdaptationDecision(raw, analytics) {
-  // Range-clamp + one safety floor: severe junk pattern still warrants at least a meal-plan tweak.
-  let level = Math.min(3, Math.max(0, parseInt(raw?.adaptationLevel, 10) || 0));
-  if (analytics?.status === 'active' && (analytics.junk7 || 0) >= 5) {
-    level = Math.max(level, 1);
-  }
+  const modifications = Array.isArray(raw?.modifications) ? raw.modifications.map(String) : [];
+  const strategyChanges = raw?.strategyChanges || {};
+  const level = clampAdaptationLevel(raw?.adaptationLevel, analytics, modifications, strategyChanges);
   return {
     adaptationLevel: level,
     reasoning: String(raw?.reasoning || '').slice(0, 500),
-    modifications: Array.isArray(raw?.modifications) ? raw.modifications.map(String) : [],
-    strategyChanges: raw?.strategyChanges || {},
+    modifications,
+    strategyChanges,
     motivationMessage: String(raw?.motivationMessage || 'Продължавайте стабилно напред!').slice(0, 600),
     changeSummary: Array.isArray(raw?.changeSummary) ? raw.changeSummary.map(String).slice(0, 6) : [],
     headline: String(raw?.headline || '').slice(0, 120),
@@ -8852,7 +8854,9 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
     if (earliestErrorStep === 'step1_analysis' || earliestErrorStep === 'step2_strategy' || earliestErrorStep === 'step3_mealplan') {
       const stepErrorComment = earliestErrorStep === 'step3_mealplan' ? errorPreventionComment : null;
       console.log(`Regenerating Step 3 (Meal Plan)${stepErrorComment ? ' with error prevention' : ''}`);
-      mealPlan = await generateMealPlanProgressive(env, data, analysis, strategy, stepErrorComment, sessionId);
+      mealPlan = await generateMealPlanProgressive(env, data, analysis, strategy, stepErrorComment, sessionId, {
+        skipEnrichment: Boolean(data.weeklyAdaptationContext),
+      });
     } else if (earliestErrorStep === 'step4_final') {
       // Step 4: Final validation errors (summary, recommendations, forbidden, supplements, etc.)
       // Reuse weekPlan but regenerate the summary and final fields
@@ -9568,7 +9572,7 @@ function calculateAverageMacrosFromPlan(weekPlan) {
  * Each chunk builds on previous days for variety and consistency
  * This approach reduces token usage per request and provides better error handling
  */
-async function generateMealPlanProgressive(env, data, analysis, strategy, errorPreventionComment = null, sessionId = null) {
+async function generateMealPlanProgressive(env, data, analysis, strategy, errorPreventionComment = null, sessionId = null, progressiveOptions = {}) {
   const totalDays = 7;
   const chunks = Math.ceil(totalDays / DAYS_PER_CHUNK);
   const weekPlan = {};
@@ -9727,12 +9731,16 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
     }
   }
 
-  // Step 5: name, benefits, recipe copy (products/grams unchanged from Step 3)
-  try {
-    await enrichWeekPlanCopy(env, data, strategy, weekPlan, sessionId, { recommendedCalories });
-    console.log('Step 5 enrichment complete');
-  } catch (error) {
-    console.warn('Step 5 enrichment failed, plan usable with Step 3 output:', error.message);
+  // Step 5: copy polish — skip on weekly meal-only regen (Step 3 meals are sufficient)
+  if (!progressiveOptions.skipEnrichment) {
+    try {
+      await enrichWeekPlanCopy(env, data, strategy, weekPlan, sessionId, { recommendedCalories });
+      console.log('Step 5 enrichment complete');
+    } catch (error) {
+      console.warn('Step 5 enrichment failed, plan usable with Step 3 output:', error.message);
+    }
+  } else {
+    console.log('Step 5 enrichment skipped (weekly adapt regen)');
   }
 
   finalizeWeekPlanDays(weekPlan, strategy, 1, 7, data);
@@ -16331,10 +16339,16 @@ export default {
       } else if (url.pathname === '/api/user/save-profile' && request.method === 'POST') {
         return await handleSaveUserProfile(request, env);
       } else if (url.pathname === '/api/user/sync-analytics' && request.method === 'POST') {
+        const rlErr = await checkRateLimit(env, request, 'ANALYTICS_SYNC');
+        if (rlErr) return rlErr;
         return await handleSyncAnalytics(request, env);
       } else if (url.pathname === '/api/weekly/generate-questions' && request.method === 'POST') {
+        const rlErr = await checkRateLimit(env, request, 'WEEKLY_QUESTIONS');
+        if (rlErr) return rlErr;
         return await handleWeeklyGenerateQuestions(request, env);
       } else if (url.pathname === '/api/weekly/adapt-plan' && request.method === 'POST') {
+        const rlErr = await checkRateLimit(env, request, 'WEEKLY_ADAPT');
+        if (rlErr) return rlErr;
         return await handleWeeklyAdaptPlan(request, env, ctx);
       } else if (url.pathname === '/api/weekly/ack-notice' && request.method === 'POST') {
         return await handleWeeklyAckNotice(request, env);

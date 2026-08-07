@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 /**
  * Real live E2E: production AI plan → questions → weekly adapt (struggling week).
- * Workaround for production main: save profile to KV before adapt (queue lacks plan in payload).
  */
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -108,18 +107,7 @@ async function main() {
   console.log(`2) Analytics: adh=${analytics.adherence}% junk7=${analytics.junk7} avg=${analytics.avgScore}`);
   report.analytics = analytics;
 
-  console.log('3) Saving profile to KV (production queue workaround)...');
-  const saveRes = await api('/api/user/save-profile', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userId, plan, userData: profile }),
-  });
-  if (saveRes.status !== 200) {
-    throw new Error(`save-profile failed: ${saveRes.status} ${JSON.stringify(saveRes.json).slice(0, 120)}`);
-  }
-  console.log('   Profile saved');
-
-  console.log('4) Generating weekly questions (AI)...');
+  console.log('3) Generating weekly questions (AI)...');
   const qRes = await api('/api/weekly/generate-questions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -138,7 +126,7 @@ async function main() {
   const answers = autoAnswers(questions, meta.answerBias);
   console.log(`   Questions OK (${questions.length})`);
 
-  console.log('5) Submitting adapt-plan (AI decision + optional regen)...');
+  console.log('4) Submitting adapt-plan (AI decision + optional regen)...');
   const aRes = await submitAdapt(userId, plan, gameData, questions, answers, qRes.json.cycleNumber);
   if (aRes.status !== 200 || !aRes.json.jobId) {
     throw new Error(`adapt submit failed: ${aRes.status} ${JSON.stringify(aRes.json).slice(0, 200)}`);
