@@ -2335,6 +2335,19 @@
             return flow;
         }
         const MIN_REQUIRED_ANSWERS = 4; // Must match backend validation in handleGenerateEmoeatAnalysis
+
+        // Брои само отговорите със смисъл за профила. Текстурите и уточняващите
+        // въпроси не бива да пълнят бройката — иначе три докосвания по фигури и
+        // един истински отговор изглеждат като достатъчно попълнен тест.
+        function scoredAnswerCount(map) {
+            if (!map) return 0;
+            return questions
+                .filter(q => !q.intero && !q.tieBreak)
+                .filter(q => {
+                    const v = map[q.id];
+                    return v !== undefined && v !== null && String(v).trim().length > 0;
+                }).length;
+        }
         const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
 
         // ============================================
@@ -2471,7 +2484,7 @@
                 } catch (e) { /* fall through */ }
             }
             loadSavedAnswers();
-            if (Object.keys(answers).length >= MIN_REQUIRED_ANSWERS) {
+            if (scoredAnswerCount(answers) >= MIN_REQUIRED_ANSWERS) {
                 currentScreen = 'results';
                 generateFallbackResults();
                 showScreen('resultsScreen');
@@ -2554,6 +2567,14 @@
             return q ? selectedKeys(answerMeta[q.id]).length > 0 : false;
         }
 
+        // При смяна на въпрос страницата трябва да се върне в началото. Отговорът
+        // отваря обяснителното поле и удължава екрана, а текстурите преминават
+        // сами — без това следващият въпрос се появява извън видимото поле.
+        // Извиква се само при смяна, не при преринтване след избор.
+        function scrollToQuestionTop() {
+            window.scrollTo({ top: 0, behavior: 'auto' });
+        }
+
         function renderQuestion() {
             const q = flow[currentQuestionIndex];
             const meta = answerMeta[q.id];
@@ -2576,7 +2597,9 @@
 
             const optionList = document.getElementById('optionList');
             optionList.className = isTexture ? 'texture-grid' : 'option-list';
-            optionList.setAttribute('role', isMulti || isTexture ? 'group' : 'radiogroup');
+            // Текстурите са единичен избор въпреки мрежата — децата им са role="radio",
+            // затова контейнерът трябва да е radiogroup, а не group.
+            optionList.setAttribute('role', isMulti ? 'group' : 'radiogroup');
 
             if (isTexture) {
                 optionList.innerHTML = q.options.map(opt => `
@@ -2605,12 +2628,14 @@
 
             const revealing = q.options.some(o => chosen.includes(o.key) && o.revealsText);
             const shouldRevealExtra = !!(meta && meta.extra) || revealing;
-            // При текстурите полето за свободен текст само би подсказало, че търсим
-            // разлика между усещанията — оставяме ги чисто визуални.
-            extraInput.style.display = shouldRevealExtra && !isTexture ? 'block' : 'none';
+            // Скрито при текстурите (полето би подсказало, че търсим разлика между
+            // усещанията) и при уточняващите въпроси — там изборът е между две
+            // твърдения, а не разказ.
+            const noExtra = isTexture || q.tieBreak;
+            extraInput.style.display = shouldRevealExtra && !noExtra ? 'block' : 'none';
             extraToggleIcon.className = shouldRevealExtra ? 'fas fa-minus' : 'fas fa-plus';
             extraToggleLabel.textContent = shouldRevealExtra ? 'Скрий полето за собствени думи' : 'Добави собствени думи (по избор)';
-            extraToggleBtn.style.display = isTexture ? 'none' : 'flex';
+            extraToggleBtn.style.display = noExtra ? 'none' : 'flex';
 
             // Show interpretation once an option has been selected
             const interpBox = document.getElementById('interpretationBox');
@@ -2726,6 +2751,7 @@
             if (currentScreen === 'question' && currentQuestionIndex > 0) {
                 currentQuestionIndex--;
                 renderQuestion();
+                scrollToQuestionTop();
                 updateProgress();
                 updateNavButtons();
             } else if (currentScreen === 'question' && currentQuestionIndex === 0) {
@@ -2742,13 +2768,16 @@
                 currentQuestionIndex = 0;
                 showScreen('questionScreen');
                 renderQuestion();
+                scrollToQuestionTop();
             } else if (currentScreen === 'question') {
                 if (currentQuestionIndex < flow.length - 1) {
                     currentQuestionIndex++;
                     renderQuestion();
+                    scrollToQuestionTop();
                 } else if (maybeAddTieBreak()) {
                     currentQuestionIndex++;
                     renderQuestion();
+                    scrollToQuestionTop();
                 } else {
                     // Finish questionnaire — call AI backend
                     currentScreen = 'loading';
@@ -2980,7 +3009,12 @@
             {
                 id: 'interoceptive_blur',
                 title: 'Сливане на телесните сигнали',
-                test: s => (s.interoceptive_confusion || 0) >= 50,
+                // Прагът е 100, тоест и трите прайма с една и съща фигура. При шест
+                // фигури и три въпроса чистата случайност дава две съвпадащи в 41.7%
+                // от случаите и трите съвпадащи в 2.8%. Праг 50 щеше да обявява
+                // находка при 44.4% от напълно случайните отговори — това е шум с
+                // клинично звучащо име. При 100 находката е рядка, но значи нещо.
+                test: s => (s.interoceptive_confusion || 0) >= 100,
                 description: 'Умората, тревожността и празнотата се усещат по един и същи начин отвътре. Когато тялото няма отделни сигнали, всеки от тях се разчита като глад — затова храненето изглежда като отговор на всичко. Тук се работи с назоваване на състоянието преди хранене, не с воля.'
             },
             {
@@ -3090,11 +3124,13 @@
             }).sort((a, b) => b.confidence - a.confidence);
         }
 
+        // Връща всички задействани правила. Ограничаването до три е решение на
+        // показването, не на анализа — режеше ли се тук, находка, която се пада
+        // четвърта по ред, не стигаше и до AI профила.
         function detectPatterns(scores) {
             return PATTERN_RULES
                 .filter(rule => rule.test(scores))
-                .map(rule => ({ id: rule.id, title: rule.title, description: rule.description }))
-                .slice(0, 3);
+                .map(rule => ({ id: rule.id, title: rule.title, description: rule.description }));
         }
 
         function computeReliability(meta) {
@@ -3216,7 +3252,9 @@
             // Сливането на сигналите има собствена секция по-горе — в "Открити модели"
             // би се повторило дословно. В профила към AI-то остава, там е носител на
             // информация, а не на оформление.
-            const patterns = (profile.patterns || []).filter(p => !(profile.intero && p.id === 'interoceptive_blur'));
+            const patterns = (profile.patterns || [])
+                .filter(p => !(profile.intero && p.id === 'interoceptive_blur'))
+                .slice(0, 3);
 
             if (displayFactors.length === 0) return '';
 
@@ -3274,8 +3312,11 @@
             const interoHtml = intero ? (() => {
                 const copy = intero.distinct === 1
                     ? { title: 'Три различни състояния — едно усещане', body: 'И трите пъти избра една и съща фигура. Умората, тревожността и празнотата се усещат в тялото ти по еднакъв начин. Когато сигналите не се различават, всеки от тях се разчита като глад — затова храната изглежда като отговор и на трите. Това не е липса на воля, а липса на разделителна способност, и се тренира с назоваване, не със забрани.' }
+                    // Две съвпадащи от три се случват в 41.7% от случаите и при
+                    // напълно случаен избор, затова тук не твърдим нищо — само
+                    // описваме какво е избрал човекът.
                     : intero.distinct === 2
-                    ? { title: 'Две от три състояния се припокриват', body: 'Две от трите усещания споделят една и съща фигура. Част от вътрешните ти сигнали се различават, но две от тях се сливат — и точно там храната най-често застава като универсален отговор.' }
+                    ? { title: 'Две от три състояния получиха една фигура', body: 'Две от трите усещания посочи с една и съща фигура, третото с друга. Само по себе си това не значи много — при толкова кратка проверка едно съвпадение се случва и по чиста случайност. Струва си да го наблюдаваш сам/а: когато посегнеш към храна, спри за миг и се питай кое от трите всъщност усещаш.' }
                     : { title: 'Различаваш вътрешните си състояния', body: 'И трите усещания получиха различна фигура. Тялото ти дава отделни сигнали за умора, тревожност и празнота — това е добра основа, защото решението кога наистина си гладен/на започва оттук.' };
                 return `
                     <div class="section-title" style="margin-top: 8px;"><i class="fas fa-fingerprint"></i> Телесна разчетливост</div>
@@ -3683,7 +3724,7 @@
                 }
 
                 // Completed but no valid AI analysis saved — show fallback with retry button
-                if (answers && Object.keys(answers).length >= MIN_REQUIRED_ANSWERS) {
+                if (scoredAnswerCount(answers) >= MIN_REQUIRED_ANSWERS) {
                     currentScreen = 'results';
                     generateFallbackResults();
                     showScreen('resultsScreen');
