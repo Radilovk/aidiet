@@ -198,8 +198,14 @@ export function buildAnalyticsSummary(gameData = {}, gameWeeklyAI = {}) {
     ? Math.round(validScores.reduce((a, s) => a + s.score, 0) / validScores.length * 10) / 10
     : null;
 
-  const engForAvg = days.map((d) => (d.rec ? calcDayScore(d.rec, todayKey).engPct : 0));
-  const engagementPct = Math.round(engForAvg.reduce((a, b) => a + b, 0) / days.length);
+  // Average over the days actually recorded, not over a fixed 7. Dividing by 7 made a
+  // flawless first week read as ~43% adherence, which then tripped the "< 50%" rule and
+  // forced an adaptation on every new client. How many days were recorded is reported
+  // separately as daysRecorded, so the model can weigh the sample size itself.
+  const engForAvg = days.filter((d) => d.rec).map((d) => calcDayScore(d.rec, todayKey).engPct);
+  const engagementPct = engForAvg.length
+    ? Math.round(engForAvg.reduce((a, b) => a + b, 0) / engForAvg.length)
+    : 0;
 
   const extraCalsByDay = days.map((d) => {
     if (!d.rec?.extraMeals) return 0;
@@ -329,7 +335,9 @@ export function serializeAnalyticsBlock(analytics) {
   const dim = analytics.dimensions || {};
   const lines = [
     '#AX v1 status=active',
-    `hi=${analytics.healthIndex}|avg=${analytics.avgScore ?? '—'}|str=${analytics.streak}|adh=${analytics.adherence}`,
+    // days=N/7 is the denominator behind avg and adh — without it the model cannot tell a
+    // solid week from two recorded days and has to guess at the confidence of the numbers.
+    `days=${analytics.daysRecorded}/7|hi=${analytics.healthIndex}|avg=${analytics.avgScore ?? '—'}|str=${analytics.streak}|adh=${analytics.adherence}`,
     `cal=${analytics.calAdherence ?? '—'}|junk7=${analytics.junk7}|net=${analytics.netCalBalance}|tr=${analytics.trend}`,
     `dim|eng=${dim.eng ?? '—'}|slp=${dim.slp ?? '—'}|bal=${dim.bal ?? '—'}|act=${dim.act ?? '—'}|wtr=${dim.wtr ?? '—'}`,
     `d7|${analytics.last7}`,

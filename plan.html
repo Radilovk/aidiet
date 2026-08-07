@@ -7460,6 +7460,34 @@
         let foodAnalysisInProgress = false;
         let foodAnalysisMode = 'food';     // 'food' | 'menu'
         let _lastFoodAnalysis = null;      // Stores latest analysis for "add to my menu"
+        // When set, the analysis dialog is capturing the day's free meal rather than extra
+        // food: { dayKey, mealKey }. The result then replaces the plan's estimate for that
+        // slot instead of being logged as an additional meal.
+        let _freeMealTarget = null;
+
+        // Open the existing analysis dialog aimed at the free meal slot. Reuses the whole
+        // camera + AI pipeline; only the destination of the result differs.
+        function openFreeMealCapture(dayKey, mealKey) {
+            _freeMealTarget = { dayKey: dayKey, mealKey: mealKey };
+            openFoodAnalysis();
+            const toggle = document.querySelector('.food-mode-toggle');
+            if (toggle) toggle.style.display = 'none';
+            const ctx = document.getElementById('foodMealContext');
+            if (ctx) ctx.style.display = 'none';
+            const title = document.getElementById('foodAnalysisTitle');
+            if (title) title.innerHTML = '<i class="fas fa-star"></i> Свободното хранене';
+            const hint = document.querySelector('#foodCaptureContent .food-capture-text');
+            if (hint) hint.textContent = 'Снимай свободното си хранене';
+        }
+
+        // Restore the dialog to its ordinary extra-food role.
+        function clearFreeMealCapture() {
+            _freeMealTarget = null;
+            const toggle = document.querySelector('.food-mode-toggle');
+            if (toggle) toggle.style.display = '';
+            const ctx = document.getElementById('foodMealContext');
+            if (ctx) ctx.style.display = '';
+        }
 
         function resetFoodCaptureUI(mode) {
             const hint = mode === 'menu' ? 'Натиснете за да снимате менюто' : 'Натиснете за да направите снимка';
@@ -7540,6 +7568,7 @@
             if (overlay) {
                 overlay.classList.remove('active');
             }
+            clearFreeMealCapture();
         }
 
         function resetFoodAnalysis() {
@@ -7918,9 +7947,18 @@
                 const foodNames = analysis.foods.map(function(f) { return f.name; }).join(', ');
                 const totalCals = analysis.totalCalories || 0;
                 const suitScore = analysis.dietSuitability ? analysis.dietSuitability.score : 3;
-                const mealCtxEl = document.getElementById('foodMealContext');
-                const context = mealCtxEl ? mealCtxEl.value : '';
-                window.gameModule.logExtraFood(foodNames, totalCals, suitScore, context);
+                if (_freeMealTarget) {
+                    // Captured for the free meal slot: replaces the plan's estimate rather
+                    // than adding on top of it, and never counts as a junk deviation —
+                    // this is the planned concession, not an extra.
+                    window.gameModule.setFreeMeal(
+                        _freeMealTarget.dayKey, _freeMealTarget.mealKey, foodNames, totalCals
+                    );
+                } else {
+                    const mealCtxEl = document.getElementById('foodMealContext');
+                    const context = mealCtxEl ? mealCtxEl.value : '';
+                    window.gameModule.logExtraFood(foodNames, totalCals, suitScore, context);
+                }
             }
 
             // Scroll to results
@@ -10700,38 +10738,26 @@
             calInput.style.cssText = nameInput.style.cssText;
             modal.appendChild(calInput);
 
+            var photoBtn = document.createElement('button');
+            photoBtn.className = 'game-modal-btn';
+            photoBtn.style.cssText = 'width:100%;background:transparent;color:#0D9488;' +
+                'border:1px solid #0D9488;margin-bottom:8px;';
+            photoBtn.innerHTML = '<i class="fas fa-camera"></i> Или го снимай';
+            photoBtn.onclick = function() {
+                overlay.remove();
+                openFreeMealCapture(dayKey, mealKey);
+            };
+            modal.appendChild(photoBtn);
+
             var saveBtn = document.createElement('button');
             saveBtn.className = 'game-modal-btn';
             saveBtn.style.cssText = 'width:100%;background:#0D9488;color:white;';
             saveBtn.textContent = 'Запази';
             saveBtn.onclick = function() {
-                var r = getRecord(dayKey);
                 var cal = Math.round(parseFloat(calInput.value) || 0);
                 var nm = nameInput.value.trim();
-                if (cal > 0 || nm) {
-                    r.freeMeal = {
-                        mealKey: mealKey,
-                        name: nm,
-                        calories: cal > 0 ? cal : estimateCal,
-                        ts: new Date().toISOString()
-                    };
-                    // Describing it means it was eaten — mark the slot done if it isn't already
-                    if (r.meals[mealKey] !== true) r.meals[mealKey] = true;
-                } else {
-                    delete r.freeMeal;
-                }
-                saveRecord(dayKey, r);
                 overlay.remove();
-                // enhanceMealCards() skips cards it already processed, so refresh the
-                // affected controls directly rather than relying on a re-render.
-                var freeCard = document.querySelector('.meal-card.free-day:not(.added-meal-card)');
-                if (freeCard) {
-                    var db = freeCard.querySelector('.meal-describe-btn');
-                    if (db) db.classList.toggle('filled', !!r.freeMeal);
-                    var cb = freeCard.querySelector('.meal-check-btn');
-                    if (cb) cb.classList.toggle('done', r.meals[mealKey] === true);
-                }
-                recalcAndShowScore(dayKey);
+                setFreeMeal(dayKey, mealKey, nm, cal > 0 ? cal : (nm ? estimateCal : 0));
             };
             modal.appendChild(saveBtn);
 
@@ -10743,6 +10769,33 @@
 
             overlay.appendChild(modal);
             document.body.appendChild(overlay);
+        }
+
+        // Single place where a described or photographed free meal is recorded, whichever
+        // route the client took. Empty name and zero calories clears it back to the
+        // plan's estimate.
+        function setFreeMeal(dayKey, mealKey, name, calories) {
+            var r = getRecord(dayKey);
+            var cal = Math.round(calories || 0);
+            var nm = (name || '').trim();
+            if (cal > 0 || nm) {
+                r.freeMeal = { mealKey: mealKey, name: nm, calories: cal, ts: new Date().toISOString() };
+                // Describing or photographing it means it was eaten — mark the slot done
+                if (r.meals[mealKey] !== true) r.meals[mealKey] = true;
+            } else {
+                delete r.freeMeal;
+            }
+            saveRecord(dayKey, r);
+            // enhanceMealCards() skips cards it already processed, so refresh the affected
+            // controls directly rather than relying on a re-render.
+            var freeCard = document.querySelector('.meal-card.free-day:not(.added-meal-card)');
+            if (freeCard) {
+                var db = freeCard.querySelector('.meal-describe-btn');
+                if (db) db.classList.toggle('filled', !!r.freeMeal);
+                var cb = freeCard.querySelector('.meal-check-btn');
+                if (cb) cb.classList.toggle('done', r.meals[mealKey] === true);
+            }
+            recalcAndShowScore(dayKey);
         }
 
         function showWeeklyErrorModal(message) {
@@ -11064,6 +11117,7 @@
             getGameData:             getGameData,
             getCurrentViewDayKey:    getCurrentViewDayKey,
             logExtraFood:            logExtraFood,
+            setFreeMeal:             setFreeMeal,
             calcDayScore:            calcDayScore,
             calcWeeklyScore:         calcWeeklyScore,
             recalcAndShowScore:      recalcAndShowScore,

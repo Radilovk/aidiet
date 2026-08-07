@@ -1014,8 +1014,8 @@ function buildAnalyticsSummary(gameData = {}, gameWeeklyAI = {}) {
   const weekScores = days.map((d) => d.rec ? calcDayScore(d.rec, todayKey) : null);
   const validScores = weekScores.filter((s) => s?.score != null);
   const avgScore = validScores.length ? Math.round(validScores.reduce((a, s) => a + s.score, 0) / validScores.length * 10) / 10 : null;
-  const engForAvg = days.map((d) => d.rec ? calcDayScore(d.rec, todayKey).engPct : 0);
-  const engagementPct = Math.round(engForAvg.reduce((a, b) => a + b, 0) / days.length);
+  const engForAvg = days.filter((d) => d.rec).map((d) => calcDayScore(d.rec, todayKey).engPct);
+  const engagementPct = engForAvg.length ? Math.round(engForAvg.reduce((a, b) => a + b, 0) / engForAvg.length) : 0;
   const extraCalsByDay = days.map((d) => {
     if (!d.rec?.extraMeals) return 0;
     return d.rec.extraMeals.reduce((s, em) => {
@@ -1121,7 +1121,9 @@ function serializeAnalyticsBlock(analytics) {
   const dim = analytics.dimensions || {};
   const lines = [
     "#AX v1 status=active",
-    `hi=${analytics.healthIndex}|avg=${analytics.avgScore ?? "\u2014"}|str=${analytics.streak}|adh=${analytics.adherence}`,
+    // days=N/7 is the denominator behind avg and adh — without it the model cannot tell a
+    // solid week from two recorded days and has to guess at the confidence of the numbers.
+    `days=${analytics.daysRecorded}/7|hi=${analytics.healthIndex}|avg=${analytics.avgScore ?? "\u2014"}|str=${analytics.streak}|adh=${analytics.adherence}`,
     `cal=${analytics.calAdherence ?? "\u2014"}|junk7=${analytics.junk7}|net=${analytics.netCalBalance}|tr=${analytics.trend}`,
     `dim|eng=${dim.eng ?? "\u2014"}|slp=${dim.slp ?? "\u2014"}|bal=${dim.bal ?? "\u2014"}|act=${dim.act ?? "\u2014"}|wtr=${dim.wtr ?? "\u2014"}`,
     `d7|${analytics.last7}`,
@@ -11970,6 +11972,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
       if (typeof mod === "string" && mod.startsWith("exclude_food:")) {
         return `- \u0411\u0415\u0417: ${mod.substring("exclude_food:".length)}`;
       }
+      if (typeof mod === "string" && mod.trim()) return `- ${mod.trim()}`;
       return null;
     }).filter((desc) => desc !== void 0 && desc !== null);
     if (modLines.length > 0) {
@@ -14412,16 +14415,8 @@ function normalizeWeeklyQuestions(raw) {
   }
   return questions.length >= 3 ? questions.slice(0, 5) : null;
 }
-function normalizeAdaptationDecision(raw, analytics) {
-  let level = Math.min(3, Math.max(0, parseInt(raw?.adaptationLevel, 10) || 0));
-  if (analytics?.status === "active") {
-    if (analytics.adherence >= 80 && (analytics.avgScore ?? 0) >= 4 && analytics.junk7 <= 2 && level > 1) {
-      level = 1;
-    }
-    if (analytics.adherence < 50 || analytics.junk7 >= 5) {
-      level = Math.max(level, 1);
-    }
-  }
+function normalizeAdaptationDecision(raw) {
+  const level = Math.min(3, Math.max(0, parseInt(raw?.adaptationLevel, 10) || 0));
   return {
     adaptationLevel: level,
     reasoning: String(raw?.reasoning || "").slice(0, 500),
@@ -14520,7 +14515,7 @@ async function getWeeklyAdaptationDecision(env, userData, plan, analytics, gameW
   const prompt = template.replace(/\{weeklyContext\}/g, weeklyContext).replace(/\{feedbackAnswers\}/g, feedbackAnswers);
   const response = await callAIModel(env, prompt, 1e3, "weekly_adaptation_decision", null, userData, null);
   const parsed = parseAIResponse(response);
-  return normalizeAdaptationDecision(parsed, analytics);
+  return normalizeAdaptationDecision(parsed);
 }
 async function savePendingWeeklyRelease(env, userId, clientId, release) {
   if (!userId) return;
@@ -14643,6 +14638,12 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       const calorieAdjust = Number(decision.strategyChanges?.calorieAdjust) || 0;
       if (calorieAdjust && regenStep === "step3_mealplan" && plan.strategy) {
         applyWeeklyCalorieAdjust(plan.strategy, calorieAdjust);
+      } else if (calorieAdjust && regenStep === "step2_strategy" && plan.analysis) {
+        const current = parseFinalCalories(plan.analysis.Final_Calories) || 0;
+        if (current > 0) {
+          plan.analysis.Final_Calories = current + calorieAdjust;
+          enforceCalorieGuardrails(plan.analysis, enrichedData, null);
+        }
       }
       newPlan = await regenerateFromStep(
         env,
