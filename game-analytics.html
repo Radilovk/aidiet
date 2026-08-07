@@ -814,13 +814,14 @@
 
             var engPcts = days.map(function(d){ return d.rec ? calcDayScore(d.rec).engPct : null; });
             var noDataDaysCount = days.filter(function(d){ return !d.rec; }).length;
-            var engForAvg = days.map(function(d){ return d.rec ? calcDayScore(d.rec).engPct : 0; });
-            var engagementPct = Math.round(engForAvg.reduce(function(a,b){return a+b;},0)/days.length);
+            var engForAvg = days.filter(function(d){ return d.rec; }).map(function(d){ return calcDayScore(d.rec).engPct; });
+            var engagementPct = engForAvg.length
+                ? Math.round(engForAvg.reduce(function(a,b){return a+b;},0) / engForAvg.length)
+                : 0;
 
             var extraCalsByDay = days.map(function(d){
                 if(!d.rec||!d.rec.extraMeals) return null;
                 return d.rec.extraMeals.reduce(function(s,em){
-                    if (em.isFreeMealReplacement) return s;
                     if (em.isAddedToPlan && !em.countCalories) return s;
                     return s+(em.calories||0);
                 },0);
@@ -836,12 +837,14 @@
             var calConsumedByDay = days.map(function(d){
                 if (!d.rec) return null;
                 var mealCalMap = d.rec.mealCalories || {};
+                var dayFreeMeal = (d.rec.freeMeal && d.rec.freeMeal.calories > 0) ? d.rec.freeMeal : null;
                 var completedCals = Object.keys(d.rec.meals || {}).reduce(function(sum, mt){
-                    return sum + (d.rec.meals[mt] && mealCalMap[mt] ? mealCalMap[mt] : 0);
+                    if (!d.rec.meals[mt]) return sum;
+                    if (dayFreeMeal && dayFreeMeal.mealKey === mt) return sum + dayFreeMeal.calories;
+                    return sum + (mealCalMap[mt] || 0);
                 }, 0);
                 var extraCals = (d.rec.extraMeals || []).reduce(function(sum, em){
-                    if (em.isFreeMealReplacement) return sum; // tracked via plan meals
-                    if (em.isAddedToPlan && !em.countCalories) return sum; // added to plan but unchecked
+                    if (em.isAddedToPlan && !em.countCalories) return sum;
                     return sum + (em.calories || 0);
                 }, 0);
                 var total = completedCals + extraCals;
