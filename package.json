@@ -16,6 +16,7 @@
     "test:plan-adequacy:dietetic": "node scripts/test-plan-adequacy-dietetic.mjs",
     "test:plan-adequacy:live": "node scripts/plan-adequacy/run-live.mjs",
     "test:plan-adequacy:benchmark": "node scripts/plan-adequacy/run-benchmark.mjs",
+    "test:weekly-adapt:benchmark": "node scripts/plan-adequacy/run-weekly-adapt-benchmark.mjs",
     "upload:kv": "bash KV/upload-kv-keys.sh",
     "serve": "python -m http.server 8000",
     "test": "echo \"Open test.html in browser to test the application\""
