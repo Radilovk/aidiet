@@ -31,8 +31,16 @@ jobs:
             echo "::error::No successful build-apk run found."
             exit 1
           fi
+          HEAD_SHA=$(gh run view "$RUN_ID" --json headSha --jq '.headSha')
           echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
-          echo "Using build run: $RUN_ID"
+          echo "head_sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+          echo "Using build run: $RUN_ID (commit ${HEAD_SHA:0:7})"
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.source.outputs.head_sha }}
+          fetch-depth: 1
 
       - name: Download APK artifact
         uses: actions/download-artifact@v4
@@ -47,7 +55,8 @@ jobs:
         run: |
           set -euo pipefail
           RUN_ID="${{ steps.source.outputs.run_id }}"
-          SHORT_SHA=$(gh run view "$RUN_ID" --json headSha --jq '.headSha' | cut -c1-7)
+          HEAD_SHA="${{ steps.source.outputs.head_sha }}"
+          SHORT_SHA=$(echo "$HEAD_SHA" | cut -c1-7)
           V_CODE=$(gh run view "$RUN_ID" --json number --jq '.number')
           V_NAME="1.0.${V_CODE}"
           TAG="v-build${V_CODE}-${SHORT_SHA}"
@@ -81,14 +90,16 @@ jobs:
 
           publish_release() {
             local tag="$1"
-            gh release delete "$tag" -y 2>/dev/null || true
+            gh release delete "$tag" -y --repo "${{ github.repository }}" 2>/dev/null || true
             gh release create "$tag" \
+              --repo "${{ github.repository }}" \
+              --target "$HEAD_SHA" \
               --title "NutriPlan v${V_NAME} (${tag})" \
               --notes "Публикуван от workflow — build run ${V_CODE}, commit ${SHORT_SHA}."
             for asset in "$APK_NAME" "$APK_LATEST"; do
               local uploaded=0
               for attempt in 1 2 3 4 5 6 7 8; do
-                if gh release upload "$tag" "$asset" --clobber; then
+                if gh release upload "$tag" "$asset" --clobber --repo "${{ github.repository }}"; then
                   uploaded=1
                   break
                 fi
