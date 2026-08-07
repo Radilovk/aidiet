@@ -228,6 +228,14 @@ async function main() {
           console.log(`    questions OK (${questions.length}) cycle=${qRes.json.cycleNumber}`);
 
           if (FULL) {
+            const saveRes = await api('/api/user/save-profile', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId, plan, userData: profile }),
+            });
+            if (saveRes.status !== 200) {
+              liveIssues.push(`save-profile: ${saveRes.status}`);
+            }
             const aRes = await api('/api/weekly/adapt-plan', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -252,8 +260,8 @@ async function main() {
                 }
                 liveIssues.push(...evaluateAdapt(adaptResult, meta.expect));
               } else if (adaptResult.status === 'not_found') {
-                console.log(`    adapt submitted (jobId ${aRes.json.jobId}) — poll pending deploy`);
-                liveIssues.push(...evaluateOffline(analytics, meta.expect));
+                console.log(`    adapt submitted (jobId ${aRes.json.jobId}) — job status not in KV (deploy PR #1335?)`);
+                liveIssues.push('adapt job status not_found — cannot verify adaptation on production without deploy');
               } else {
                 liveIssues.push(...evaluateAdapt(adaptResult, meta.expect));
               }
