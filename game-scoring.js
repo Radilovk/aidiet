@@ -48,13 +48,10 @@
 
         var junkCount = 0;
         var extraCalSum = 0;
-        var freeMealCalSum = 0;
         (rec.extraMeals || []).forEach(function (em) {
             var isConsumed = !em.isAddedToPlan || em.countCalories !== false;
-            if (em.isJunk && isConsumed && !em.isFreeMealReplacement) junkCount++;
-            if (em.isFreeMealReplacement) {
-                freeMealCalSum += (em.calories || 0);
-            } else if (em.isAddedToPlan && !em.countCalories) {
+            if (em.isJunk && isConsumed) junkCount++;
+            if (em.isAddedToPlan && !em.countCalories) {
                 // added to plan but unchecked — calories excluded
             } else {
                 extraCalSum += (em.calories || 0);
@@ -62,14 +59,18 @@
         });
 
         var mealCalMap = rec.mealCalories || {};
+        // A described free meal replaces the plan's estimate for its slot. The estimate stays
+        // in plannedCalories, so the difference surfaces as honest surplus instead of
+        // cancelling itself out — the free meal is bounded, not exempt.
+        var freeMeal = (rec.freeMeal && rec.freeMeal.calories > 0) ? rec.freeMeal : null;
         var completedPlanCals = 0;
         Object.keys(rec.meals || {}).forEach(function (mt) {
-            if (rec.meals[mt] === true && mealCalMap[mt]) {
-                completedPlanCals += mealCalMap[mt];
-            }
+            if (rec.meals[mt] !== true) return;
+            if (freeMeal && freeMeal.mealKey === mt) { completedPlanCals += freeMeal.calories; return; }
+            if (mealCalMap[mt]) completedPlanCals += mealCalMap[mt];
         });
-        var totalConsumed = completedPlanCals + extraCalSum + freeMealCalSum;
-        var planned = rec.plannedCalories ? (rec.plannedCalories + freeMealCalSum) : null;
+        var totalConsumed = completedPlanCals + extraCalSum;
+        var planned = rec.plannedCalories || null;
         var excessCalories = false;
         var calorieBalance = 'balanced';
         var calorieDelta = 0;
@@ -135,8 +136,10 @@
             else if (pct >= 0.30) score = 2;
             else if (pct > 0) score = 1;
             if (score === 5 && has5StarBlocker) score = 4;
-            if (score !== null && score > 3 && (junkCount > 0 || excessCalories)) score = 3;
-            if (score !== null && score > 2 && junkCount > 0 && excessCalories) score = 2;
+            // A single slip already costs the top tier via has5StarBlocker. Only a compound,
+            // repeated deviation drops further: when one biscuit scores the same as a collapsed
+            // day, there is no reason left to stop at one biscuit.
+            if (score !== null && score > 3 && junkCount > 1 && excessCalories) score = 3;
         }
 
         var starIcon = '<i class="fas fa-star" style="color:#fbbf24;font-size:0.85em"></i>';

@@ -3355,6 +3355,10 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
         if (typeof mod === 'string' && mod.startsWith('exclude_food:')) {
           return `- БЕЗ: ${mod.substring('exclude_food:'.length)}`;
         }
+        // Anything else is a clinical directive the model wrote in its own words. The known
+        // keys above are shorthands, not a closed vocabulary — silently dropping the rest
+        // meant the model believed it had changed the plan while nothing happened.
+        if (typeof mod === 'string' && mod.trim()) return `- ${mod.trim()}`;
         return null;
       })
       .filter(desc => desc !== undefined && desc !== null);
@@ -6435,16 +6439,11 @@ function normalizeWeeklyQuestions(raw) {
   return questions.length >= 3 ? questions.slice(0, 5) : null;
 }
 
-function normalizeAdaptationDecision(raw, analytics) {
-  let level = Math.min(3, Math.max(0, parseInt(raw?.adaptationLevel, 10) || 0));
-  if (analytics?.status === 'active') {
-    if (analytics.adherence >= 80 && (analytics.avgScore ?? 0) >= 4 && analytics.junk7 <= 2 && level > 1) {
-      level = 1;
-    }
-    if (analytics.adherence < 50 || analytics.junk7 >= 5) {
-      level = Math.max(level, 1);
-    }
-  }
+function normalizeAdaptationDecision(raw) {
+  // Range-clamp only. Choosing the adaptation level is a clinical judgement and belongs to
+  // the model, which sees the full picture; the thresholds that used to override it here
+  // were driven by a single compressed number and second-guessed that judgement.
+  const level = Math.min(3, Math.max(0, parseInt(raw?.adaptationLevel, 10) || 0));
   return {
     adaptationLevel: level,
     reasoning: String(raw?.reasoning || '').slice(0, 500),
@@ -6556,7 +6555,7 @@ async function getWeeklyAdaptationDecision(env, userData, plan, analytics, gameW
     .replace(/\{feedbackAnswers\}/g, feedbackAnswers);
   const response = await callAIModel(env, prompt, 1000, 'weekly_adaptation_decision', null, userData, null);
   const parsed = parseAIResponse(response);
-  return normalizeAdaptationDecision(parsed, analytics);
+  return normalizeAdaptationDecision(parsed);
 }
 
 async function savePendingWeeklyRelease(env, userId, clientId, release) {
@@ -6677,11 +6676,20 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     if (regenStep === 'step1_analysis') {
       newPlan = await generatePlanMultiStep(env, enrichedData);
     } else {
-      // Step-3-only regen reuses the existing strategy, so write any calorie change
-      // into the per-day scheme before the new meals are aligned to it.
       const calorieAdjust = Number(decision.strategyChanges?.calorieAdjust) || 0;
       if (calorieAdjust && regenStep === 'step3_mealplan' && plan.strategy) {
+        // Step-3-only regen reuses the existing strategy, so write the calorie change
+        // into the per-day scheme before the new meals are aligned to it.
         applyWeeklyCalorieAdjust(plan.strategy, calorieAdjust);
+      } else if (calorieAdjust && regenStep === 'step2_strategy' && plan.analysis) {
+        // Strategy regen is rebuilt against analysis.Final_Calories, which step 2 reuses —
+        // so an energy change has to move there or it is silently lost. Safety floors are
+        // re-applied afterwards; passing no reference TDEE falls back to analysis.tdee.
+        const current = parseFinalCalories(plan.analysis.Final_Calories) || 0;
+        if (current > 0) {
+          plan.analysis.Final_Calories = current + calorieAdjust;
+          enforceCalorieGuardrails(plan.analysis, enrichedData, null);
+        }
       }
       newPlan = await regenerateFromStep(
         env, enrichedData, plan, regenStep, { [regenStep]: ['weekly adaptation'] }, 1

@@ -41,21 +41,25 @@ export function calcDayScore(rec, todayKey) {
 
   let junkCount = 0;
   let extraCalSum = 0;
-  let freeMealCalSum = 0;
   (rec.extraMeals || []).forEach((em) => {
     const isConsumed = !em.isAddedToPlan || em.countCalories !== false;
-    if (em.isJunk && isConsumed && !em.isFreeMealReplacement) junkCount++;
-    if (em.isFreeMealReplacement) freeMealCalSum += (em.calories || 0);
-    else if (!(em.isAddedToPlan && !em.countCalories)) extraCalSum += (em.calories || 0);
+    if (em.isJunk && isConsumed) junkCount++;
+    if (!(em.isAddedToPlan && !em.countCalories)) extraCalSum += (em.calories || 0);
   });
 
   const mealCalMap = rec.mealCalories || {};
+  // A described free meal replaces the plan's estimate for its slot. The estimate stays
+  // in plannedCalories, so the difference surfaces as honest surplus instead of
+  // cancelling itself out — the free meal is bounded, not exempt.
+  const freeMeal = (rec.freeMeal && rec.freeMeal.calories > 0) ? rec.freeMeal : null;
   let completedPlanCals = 0;
   meals.forEach((mt) => {
-    if (rec.meals[mt] === true && mealCalMap[mt]) completedPlanCals += mealCalMap[mt];
+    if (rec.meals[mt] !== true) return;
+    if (freeMeal && freeMeal.mealKey === mt) { completedPlanCals += freeMeal.calories; return; }
+    if (mealCalMap[mt]) completedPlanCals += mealCalMap[mt];
   });
-  const totalConsumed = completedPlanCals + extraCalSum + freeMealCalSum;
-  const planned = rec.plannedCalories ? (rec.plannedCalories + freeMealCalSum) : null;
+  const totalConsumed = completedPlanCals + extraCalSum;
+  const planned = rec.plannedCalories || null;
   let excessCalories = false;
   let calorieBalance = 'balanced';
   let calorieDelta = 0;
@@ -116,8 +120,10 @@ export function calcDayScore(rec, todayKey) {
     else if (pct >= 0.30) score = 2;
     else if (pct > 0) score = 1;
     if (score === 5 && has5StarBlocker) score = 4;
-    if (score != null && score > 3 && (junkCount > 0 || excessCalories)) score = 3;
-    if (score != null && score > 2 && junkCount > 0 && excessCalories) score = 2;
+    // A single slip already costs the top tier via has5StarBlocker. Only a compound,
+    // repeated deviation drops further: when one biscuit scores the same as a collapsed
+    // day, there is no reason left to stop at one biscuit.
+    if (score != null && score > 3 && junkCount > 1 && excessCalories) score = 3;
   }
 
   return { score, engPct, junkCount, calorieDelta, calorieBalance, excessCalories };
@@ -192,13 +198,18 @@ export function buildAnalyticsSummary(gameData = {}, gameWeeklyAI = {}) {
     ? Math.round(validScores.reduce((a, s) => a + s.score, 0) / validScores.length * 10) / 10
     : null;
 
-  const engForAvg = days.map((d) => (d.rec ? calcDayScore(d.rec, todayKey).engPct : 0));
-  const engagementPct = Math.round(engForAvg.reduce((a, b) => a + b, 0) / days.length);
+  // Average over the days actually recorded, not over a fixed 7. Dividing by 7 made a
+  // flawless first week read as ~43% adherence, which then tripped the "< 50%" rule and
+  // forced an adaptation on every new client. How many days were recorded is reported
+  // separately as daysRecorded, so the model can weigh the sample size itself.
+  const engForAvg = days.filter((d) => d.rec).map((d) => calcDayScore(d.rec, todayKey).engPct);
+  const engagementPct = engForAvg.length
+    ? Math.round(engForAvg.reduce((a, b) => a + b, 0) / engForAvg.length)
+    : 0;
 
   const extraCalsByDay = days.map((d) => {
     if (!d.rec?.extraMeals) return 0;
     return d.rec.extraMeals.reduce((s, em) => {
-      if (em.isFreeMealReplacement) return s;
       if (em.isAddedToPlan && !em.countCalories) return s;
       return s + (em.calories || 0);
     }, 0);
@@ -228,10 +239,14 @@ export function buildAnalyticsSummary(gameData = {}, gameWeeklyAI = {}) {
     days.forEach((d) => {
       if (!d.rec) return;
       const mealCalMap = d.rec.mealCalories || {};
-      const consumed = Object.keys(d.rec.meals || {}).reduce((sum, mt) =>
-        sum + (d.rec.meals[mt] && mealCalMap[mt] ? mealCalMap[mt] : 0), 0);
+      const dayFreeMeal = (d.rec.freeMeal && d.rec.freeMeal.calories > 0) ? d.rec.freeMeal : null;
+      const consumed = Object.keys(d.rec.meals || {}).reduce((sum, mt) => {
+        if (!d.rec.meals[mt]) return sum;
+        if (dayFreeMeal && dayFreeMeal.mealKey === mt) return sum + dayFreeMeal.calories;
+        return sum + (mealCalMap[mt] || 0);
+      }, 0);
       const extra = (d.rec.extraMeals || []).reduce((sum, em) => {
-        if (em.isFreeMealReplacement || (em.isAddedToPlan && !em.countCalories)) return sum;
+        if (em.isAddedToPlan && !em.countCalories) return sum;
         return sum + (em.calories || 0);
       }, 0);
       const total = consumed + extra;
@@ -320,7 +335,9 @@ export function serializeAnalyticsBlock(analytics) {
   const dim = analytics.dimensions || {};
   const lines = [
     '#AX v1 status=active',
-    `hi=${analytics.healthIndex}|avg=${analytics.avgScore ?? '—'}|str=${analytics.streak}|adh=${analytics.adherence}`,
+    // days=N/7 is the denominator behind avg and adh — without it the model cannot tell a
+    // solid week from two recorded days and has to guess at the confidence of the numbers.
+    `days=${analytics.daysRecorded}/7|hi=${analytics.healthIndex}|avg=${analytics.avgScore ?? '—'}|str=${analytics.streak}|adh=${analytics.adherence}`,
     `cal=${analytics.calAdherence ?? '—'}|junk7=${analytics.junk7}|net=${analytics.netCalBalance}|tr=${analytics.trend}`,
     `dim|eng=${dim.eng ?? '—'}|slp=${dim.slp ?? '—'}|bal=${dim.bal ?? '—'}|act=${dim.act ?? '—'}|wtr=${dim.wtr ?? '—'}`,
     `d7|${analytics.last7}`,

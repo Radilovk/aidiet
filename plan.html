@@ -2190,6 +2190,25 @@
         }
         .meal-check-btn.done { background: var(--primary-red); color: white; transform: scale(1.12); }
         .meal-check-btn:active { transform: scale(0.88); }
+        /* Optional "describe the free meal" action — secondary to the check button */
+        .meal-describe-btn {
+            width: 30px; height: 30px;
+            border-radius: 50%;
+            border: 1px dashed var(--text-light);
+            background: transparent;
+            color: var(--text-light);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            transition: all 0.25s ease;
+            flex-shrink: 0;
+            margin-left: 6px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .meal-describe-btn.filled { border-style: solid; border-color: #0D9488; color: #0D9488; }
+        .meal-describe-btn:active { transform: scale(0.88); }
         /* Daily score card */
         #dailyScoreCard {
             display: none;
@@ -5143,10 +5162,17 @@
             });
         }
 
+        // Expected overage of a free meal over the lunch slot it replaces. The free meal is
+        // deliberately unspecified — the client is not required to describe it — so the plan
+        // budgets a realistic 130% of a normal lunch instead of pretending it costs the same.
+        // Describing the meal (see FREE_MEAL entry on the card) replaces this estimate.
+        var FREE_MEAL_OVERAGE = 1.30;
+
         // --- Calorie corrector: fixes per-meal calorie inconsistencies and sets free-meal planned calories ---
         // If a meal's declared calories differ from protein×4+carbs×4+fats×9 by more than 10%,
         // the calculated value is used. "Свободно хранене" gets its planned calories from the
-        // strategy weeklyScheme Хранене 2 mealBreakdown entry so it is counted in dailyTotals.
+        // strategy weeklyScheme Хранене 2 mealBreakdown entry, scaled by FREE_MEAL_OVERAGE,
+        // so it is counted in dailyTotals at its realistic cost.
         function correctPlanCalories(plan) {
             if (!plan || !plan.weekPlan) return;
             Object.keys(plan.weekPlan).forEach(function(dayKey) {
@@ -5173,8 +5199,11 @@
                                 if (ds2.calories && ds2.meals) freeCal = Math.round(ds2.calories / ds2.meals);
                             }
                         }
-                        if (freeCal > 0) meal._plannedCalories = freeCal;
-                        totalCal += freeCal;
+                        // Budget the free meal at its realistic cost, not at the cost of the
+                        // lunch it replaces — otherwise the free day silently understates intake.
+                        var freeBudget = freeCal > 0 ? Math.round(freeCal * FREE_MEAL_OVERAGE) : 0;
+                        if (freeBudget > 0) meal._plannedCalories = freeBudget;
+                        totalCal += freeBudget;
                         if (plan.strategy && plan.strategy.weeklyScheme && weekdayKey) {
                             var dsFree = plan.strategy.weeklyScheme[weekdayKey];
                             if (dsFree && Array.isArray(dsFree.mealBreakdown)) {
@@ -5182,9 +5211,10 @@
                                     return m.type === 'Хранене 2' || m.type === 'Свободно хранене';
                                 });
                                 if (freeEntry) {
-                                    totalProtein += parseFloat(freeEntry.protein) || 0;
-                                    totalCarbs += parseFloat(freeEntry.carbs) || 0;
-                                    totalFats += parseFloat(freeEntry.fats) || 0;
+                                    // Scale macros with the calories so daily totals stay coherent
+                                    totalProtein += (parseFloat(freeEntry.protein) || 0) * FREE_MEAL_OVERAGE;
+                                    totalCarbs += (parseFloat(freeEntry.carbs) || 0) * FREE_MEAL_OVERAGE;
+                                    totalFats += (parseFloat(freeEntry.fats) || 0) * FREE_MEAL_OVERAGE;
                                 }
                             }
                         }
@@ -7430,6 +7460,34 @@
         let foodAnalysisInProgress = false;
         let foodAnalysisMode = 'food';     // 'food' | 'menu'
         let _lastFoodAnalysis = null;      // Stores latest analysis for "add to my menu"
+        // When set, the analysis dialog is capturing the day's free meal rather than extra
+        // food: { dayKey, mealKey }. The result then replaces the plan's estimate for that
+        // slot instead of being logged as an additional meal.
+        let _freeMealTarget = null;
+
+        // Open the existing analysis dialog aimed at the free meal slot. Reuses the whole
+        // camera + AI pipeline; only the destination of the result differs.
+        function openFreeMealCapture(dayKey, mealKey) {
+            _freeMealTarget = { dayKey: dayKey, mealKey: mealKey };
+            openFoodAnalysis();
+            const toggle = document.querySelector('.food-mode-toggle');
+            if (toggle) toggle.style.display = 'none';
+            const ctx = document.getElementById('foodMealContext');
+            if (ctx) ctx.style.display = 'none';
+            const title = document.getElementById('foodAnalysisTitle');
+            if (title) title.innerHTML = '<i class="fas fa-star"></i> Свободното хранене';
+            const hint = document.querySelector('#foodCaptureContent .food-capture-text');
+            if (hint) hint.textContent = 'Снимай свободното си хранене';
+        }
+
+        // Restore the dialog to its ordinary extra-food role.
+        function clearFreeMealCapture() {
+            _freeMealTarget = null;
+            const toggle = document.querySelector('.food-mode-toggle');
+            if (toggle) toggle.style.display = '';
+            const ctx = document.getElementById('foodMealContext');
+            if (ctx) ctx.style.display = '';
+        }
 
         function resetFoodCaptureUI(mode) {
             const hint = mode === 'menu' ? 'Натиснете за да снимате менюто' : 'Натиснете за да направите снимка';
@@ -7510,6 +7568,7 @@
             if (overlay) {
                 overlay.classList.remove('active');
             }
+            clearFreeMealCapture();
         }
 
         function resetFoodAnalysis() {
@@ -7888,9 +7947,18 @@
                 const foodNames = analysis.foods.map(function(f) { return f.name; }).join(', ');
                 const totalCals = analysis.totalCalories || 0;
                 const suitScore = analysis.dietSuitability ? analysis.dietSuitability.score : 3;
-                const mealCtxEl = document.getElementById('foodMealContext');
-                const context = mealCtxEl ? mealCtxEl.value : '';
-                window.gameModule.logExtraFood(foodNames, totalCals, suitScore, context);
+                if (_freeMealTarget) {
+                    // Captured for the free meal slot: replaces the plan's estimate rather
+                    // than adding on top of it, and never counts as a junk deviation —
+                    // this is the planned concession, not an extra.
+                    window.gameModule.setFreeMeal(
+                        _freeMealTarget.dayKey, _freeMealTarget.mealKey, foodNames, totalCals
+                    );
+                } else {
+                    const mealCtxEl = document.getElementById('foodMealContext');
+                    const context = mealCtxEl ? mealCtxEl.value : '';
+                    window.gameModule.logExtraFood(foodNames, totalCals, suitScore, context);
+                }
             }
 
             // Scroll to results
@@ -9277,13 +9345,15 @@
             var showLabel = ds.score !== null && (!isViewingToday || rec.eveningCheck !== null);
             // Build warnings list
             var extraCals = (rec.extraMeals || []).reduce(function(s,em) {
-                if (em.isFreeMealReplacement) return s;
                 if (em.isAddedToPlan && !em.countCalories) return s;
                 return s + (em.calories || 0);
             }, 0);
             var mCalMap = rec.mealCalories || {};
+            var dsFreeMeal = (rec.freeMeal && rec.freeMeal.calories > 0) ? rec.freeMeal : null;
             var completedCals = Object.keys(rec.meals || {}).reduce(function(s, mt) {
-                return (rec.meals[mt] === true && mCalMap[mt]) ? s + mCalMap[mt] : s;
+                if (rec.meals[mt] !== true) return s;
+                if (dsFreeMeal && dsFreeMeal.mealKey === mt) return s + dsFreeMeal.calories;
+                return mCalMap[mt] ? s + mCalMap[mt] : s;
             }, 0);
             var planCals = rec.plannedCalories || 0;
             var totalCals = completedCals + extraCals;
@@ -9590,6 +9660,28 @@
                     recalcAndShowScore(dayKey);
                 });
                 card.appendChild(checkBtn);
+
+                // Free meal: offer an optional way to say what was actually eaten.
+                // Never required — the plan's estimate stands if the client skips it.
+                if (card.classList.contains('free-day') && !isAgeLockedDay) {
+                    var describeBtn = document.createElement('button');
+                    describeBtn.className = 'meal-describe-btn';
+                    describeBtn.innerHTML = '<i class="fas fa-pen"></i>';
+                    describeBtn.title = 'Опиши какво изяде (по избор)';
+                    describeBtn.setAttribute('aria-label', 'Опиши свободното хранене (по избор)');
+                    if (rec.freeMeal && rec.freeMeal.mealKey === mealKey) {
+                        describeBtn.classList.add('filled');
+                    }
+                    (function(mk) {
+                        describeBtn.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            if (isAgeLocked(dayKey)) return;
+                            var est = Math.round(parseFloat(card.getAttribute('data-meal-calories')) || 0);
+                            showFreeMealEntryModal(dayKey, mk, est);
+                        });
+                    }(mealKey));
+                    card.appendChild(describeBtn);
+                }
             });
             if (mealsInitialized) saveRecord(dayKey, rec);
             recalcAndShowScore(dayKey);
@@ -10605,6 +10697,107 @@
             return overlay;
         }
 
+        // ── Free meal: optional description ───────────────────────────────────
+        // The free meal is deliberately unspecified — describing it is never required.
+        // Left blank, the plan's FREE_MEAL_OVERAGE estimate stands. Filled in, the actual
+        // figure replaces it for that day, so the difference shows up as honest surplus.
+        function showFreeMealEntryModal(dayKey, mealKey, estimateCal) {
+            var old = document.getElementById('gameFreeMealModal');
+            if (old) old.remove();
+
+            var rec = getRecord(dayKey);
+            var existing = (rec.freeMeal && rec.freeMeal.mealKey === mealKey) ? rec.freeMeal : null;
+
+            var overlay = document.createElement('div');
+            overlay.id = 'gameFreeMealModal';
+            overlay.className = 'game-modal-overlay';
+            var modal = document.createElement('div');
+            modal.className = 'game-modal';
+            modal.innerHTML = '<div class="game-modal-title">Свободното хранене</div>';
+
+            var msg = document.createElement('div');
+            msg.className = 'game-modal-msg';
+            msg.textContent = 'Ако искаш, опиши какво изяде. Не е задължително — ако оставиш празно, планът смята ' +
+                estimateCal + ' kcal.';
+            modal.appendChild(msg);
+
+            var nameInput = document.createElement('input');
+            nameInput.type = 'text';
+            nameInput.placeholder = 'Какво изяде? (по избор)';
+            nameInput.value = existing ? (existing.name || '') : '';
+            nameInput.style.cssText = 'width:100%;padding:10px 14px;border:1px solid var(--text-light);' +
+                'border-radius:12px;font-size:0.9rem;background:var(--card-bg);color:var(--text-dark);' +
+                'margin-bottom:10px;outline:none;';
+            modal.appendChild(nameInput);
+
+            var calInput = document.createElement('input');
+            calInput.type = 'number';
+            calInput.min = '0';
+            calInput.placeholder = 'Приблизително kcal (по избор)';
+            calInput.value = existing ? String(existing.calories || '') : '';
+            calInput.style.cssText = nameInput.style.cssText;
+            modal.appendChild(calInput);
+
+            var photoBtn = document.createElement('button');
+            photoBtn.className = 'game-modal-btn';
+            photoBtn.style.cssText = 'width:100%;background:transparent;color:#0D9488;' +
+                'border:1px solid #0D9488;margin-bottom:8px;';
+            photoBtn.innerHTML = '<i class="fas fa-camera"></i> Или го снимай';
+            photoBtn.onclick = function() {
+                overlay.remove();
+                openFreeMealCapture(dayKey, mealKey);
+            };
+            modal.appendChild(photoBtn);
+
+            var saveBtn = document.createElement('button');
+            saveBtn.className = 'game-modal-btn';
+            saveBtn.style.cssText = 'width:100%;background:#0D9488;color:white;';
+            saveBtn.textContent = 'Запази';
+            saveBtn.onclick = function() {
+                var cal = Math.round(parseFloat(calInput.value) || 0);
+                var nm = nameInput.value.trim();
+                overlay.remove();
+                setFreeMeal(dayKey, mealKey, nm, cal > 0 ? cal : (nm ? estimateCal : 0));
+            };
+            modal.appendChild(saveBtn);
+
+            var laterBtn = document.createElement('button');
+            laterBtn.className = 'game-weekly-later';
+            laterBtn.textContent = 'Не сега';
+            laterBtn.onclick = function() { overlay.remove(); };
+            modal.appendChild(laterBtn);
+
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+        }
+
+        // Single place where a described or photographed free meal is recorded, whichever
+        // route the client took. Empty name and zero calories clears it back to the
+        // plan's estimate.
+        function setFreeMeal(dayKey, mealKey, name, calories) {
+            var r = getRecord(dayKey);
+            var cal = Math.round(calories || 0);
+            var nm = (name || '').trim();
+            if (cal > 0 || nm) {
+                r.freeMeal = { mealKey: mealKey, name: nm, calories: cal, ts: new Date().toISOString() };
+                // Describing or photographing it means it was eaten — mark the slot done
+                if (r.meals[mealKey] !== true) r.meals[mealKey] = true;
+            } else {
+                delete r.freeMeal;
+            }
+            saveRecord(dayKey, r);
+            // enhanceMealCards() skips cards it already processed, so refresh the affected
+            // controls directly rather than relying on a re-render.
+            var freeCard = document.querySelector('.meal-card.free-day:not(.added-meal-card)');
+            if (freeCard) {
+                var db = freeCard.querySelector('.meal-describe-btn');
+                if (db) db.classList.toggle('filled', !!r.freeMeal);
+                var cb = freeCard.querySelector('.meal-check-btn');
+                if (cb) cb.classList.toggle('done', r.meals[mealKey] === true);
+            }
+            recalcAndShowScore(dayKey);
+        }
+
         function showWeeklyErrorModal(message) {
             var old = document.getElementById('gameWeeklyAdaptModal');
             if (old) old.remove();
@@ -10924,6 +11117,7 @@
             getGameData:             getGameData,
             getCurrentViewDayKey:    getCurrentViewDayKey,
             logExtraFood:            logExtraFood,
+            setFreeMeal:             setFreeMeal,
             calcDayScore:            calcDayScore,
             calcWeeklyScore:         calcWeeklyScore,
             recalcAndShowScore:      recalcAndShowScore,
