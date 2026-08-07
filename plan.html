@@ -5884,9 +5884,6 @@
                         localStorage.removeItem('gameDataDirtyKey');
                     }
                 } catch (_) {}
-                if (window.NutriPlanAnalyticsSync && typeof window.NutriPlanAnalyticsSync.syncNow === 'function') {
-                    window.NutriPlanAnalyticsSync.syncNow();
-                }
                 if (window.GameNotifier && typeof window.GameNotifier.refreshConfig === 'function') {
                     // APK: WebView stays alive when app is backgrounded; refreshConfig() syncs
                     // the admin notification config (one lightweight KV version-check, throttled
@@ -9122,15 +9119,16 @@
         function saveGameData(d) {
             _gameDataCache = d;
             localStorage.setItem(GAME_DATA_KEY, JSON.stringify(d));
-            scheduleAnalyticsSync();
+            // Analytics stay local until weekly AI (syncNow in startWeeklyFeedbackFlow).
         }
 
         function scheduleAnalyticsSync() {
-            if (_analyticsSyncTimer) clearTimeout(_analyticsSyncTimer);
-            _analyticsSyncTimer = setTimeout(syncAnalyticsToServer, 45000);
+            // Reserved for explicit syncNow() — no background timer after each save.
         }
 
         async function syncAnalyticsToServer() {
+            // Push summary to server only when needed (weekly AI prep / admin copy).
+            // Daily scoring uses local gameData + game-scoring.js — no server round-trip.
             _analyticsSyncTimer = null;
             var uid = (typeof userId !== 'undefined' && userId) ? userId : localStorage.getItem('userId');
             if (!uid || _analyticsSyncInFlight) return;
@@ -10593,7 +10591,6 @@
 
         function saveWeeklyAIState(info) {
             localStorage.setItem(GAME_WEEKLY_AI_KEY, JSON.stringify(info));
-            scheduleAnalyticsSync();
         }
 
         function ensureWeeklyMeta(info) {
