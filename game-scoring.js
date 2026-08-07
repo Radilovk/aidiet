@@ -30,6 +30,17 @@
         };
     }
 
+    /** Meal slots fixed when the calendar day ends — stops a new plan from rewriting history. */
+    function getMealSlots(rec) {
+        if (rec && rec.mealSlots && rec.mealSlots.length) return rec.mealSlots;
+        return Object.keys(rec.meals || {});
+    }
+
+    function getPlannedCalories(rec) {
+        if (rec && rec.lockedPlannedCalories > 0) return rec.lockedPlannedCalories;
+        return rec.plannedCalories || null;
+    }
+
     /**
      * @param {object} rec - gameData day record
      * @param {string} [todayKey] - YYYY-MM-DD for deficit timing (defaults to today)
@@ -38,7 +49,7 @@
         if (!rec) return emptyDayScore();
         todayKey = todayKey || dateKey(new Date());
 
-        var meals = Object.keys(rec.meals || {});
+        var meals = getMealSlots(rec);
         var mealPts = 0;
         var mealMax = meals.length * 10;
 
@@ -64,13 +75,13 @@
         // cancelling itself out — the free meal is bounded, not exempt.
         var freeMeal = (rec.freeMeal && rec.freeMeal.calories > 0) ? rec.freeMeal : null;
         var completedPlanCals = 0;
-        Object.keys(rec.meals || {}).forEach(function (mt) {
+        meals.forEach(function (mt) {
             if (rec.meals[mt] !== true) return;
             if (freeMeal && freeMeal.mealKey === mt) { completedPlanCals += freeMeal.calories; return; }
             if (mealCalMap[mt]) completedPlanCals += mealCalMap[mt];
         });
         var totalConsumed = completedPlanCals + extraCalSum;
-        var planned = rec.plannedCalories || null;
+        var planned = getPlannedCalories(rec);
         var excessCalories = false;
         var calorieBalance = 'balanced';
         var calorieDelta = 0;
@@ -223,6 +234,8 @@
         JUNK_PENALTY_PER_MEAL: JUNK_PENALTY_PER_MEAL,
         HEALTH_WEIGHTS: HEALTH_WEIGHTS,
         dateKey: dateKey,
+        getMealSlots: getMealSlots,
+        getPlannedCalories: getPlannedCalories,
         calcDayScore: calcDayScore,
         computeHealthIndex: computeHealthIndex,
         buildLast7Days: buildLast7Days,

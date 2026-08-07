@@ -3805,7 +3805,14 @@ function cleanResponseFromRegenerate(aiResponse, regenerateIndex) {
 // KV key prefix and TTL for async plan generation jobs
 const PLAN_JOB_PREFIX = 'plan_job:';
 const PLAN_JOB_TTL_SEC = 86400; // 24 hours
-const WEEKLY_VISIBLE_DELAY_MS = 2 * 60 * 60 * 1000;
+// Weekly adaptation releases at the next Monday 00:00 UTC so one calendar week maps to one plan.
+function computeWeeklyReleaseVisibleAt(nowMs = Date.now()) {
+  const d = new Date(nowMs);
+  const utcDay = d.getUTCDay(); // 0 Sun .. 6 Sat
+  let daysUntilMonday = (8 - utcDay) % 7;
+  if (daysUntilMonday === 0) daysUntilMonday = 7;
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + daysUntilMonday, 0, 0, 0, 0);
+}
 // Regex for validating client-provided jobIds (UUID v4 format)
 const JOB_ID_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -6565,7 +6572,7 @@ async function savePendingWeeklyRelease(env, userId, clientId, release) {
   const profile = (await kvGetJSON(env, `user_profile:${userId}`)) || { userId };
   profile.pendingWeekly = {
     ...release,
-    visibleAt: Date.now() + WEEKLY_VISIBLE_DELAY_MS,
+    visibleAt: computeWeeklyReleaseVisibleAt(),
     clientId: clientId || profile.clientId || '',
   };
   await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);

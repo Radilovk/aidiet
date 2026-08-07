@@ -25,13 +25,23 @@ function emptyDayScore() {
   return { score: null, engPct: 0, junkCount: 0, calorieDelta: 0, calorieBalance: 'balanced' };
 }
 
+function getMealSlots(rec) {
+  if (rec?.mealSlots?.length) return rec.mealSlots;
+  return Object.keys(rec?.meals || {});
+}
+
+function getPlannedCalories(rec) {
+  if (rec?.lockedPlannedCalories > 0) return rec.lockedPlannedCalories;
+  return rec?.plannedCalories || null;
+}
+
 /**
  * @param {object|null} rec
  * @param {string} todayKey
  */
 export function calcDayScore(rec, todayKey) {
   if (!rec) return emptyDayScore();
-  const meals = Object.keys(rec.meals || {});
+  const meals = getMealSlots(rec);
   let mealPts = 0;
   const mealMax = meals.length * 10;
 
@@ -59,7 +69,7 @@ export function calcDayScore(rec, todayKey) {
     if (mealCalMap[mt]) completedPlanCals += mealCalMap[mt];
   });
   const totalConsumed = completedPlanCals + extraCalSum;
-  const planned = rec.plannedCalories || null;
+  const planned = getPlannedCalories(rec);
   let excessCalories = false;
   let calorieBalance = 'balanced';
   let calorieDelta = 0;
@@ -240,7 +250,8 @@ export function buildAnalyticsSummary(gameData = {}, gameWeeklyAI = {}) {
       if (!d.rec) return;
       const mealCalMap = d.rec.mealCalories || {};
       const dayFreeMeal = (d.rec.freeMeal && d.rec.freeMeal.calories > 0) ? d.rec.freeMeal : null;
-      const consumed = Object.keys(d.rec.meals || {}).reduce((sum, mt) => {
+      const mealSlots = getMealSlots(d.rec);
+      const consumed = mealSlots.reduce((sum, mt) => {
         if (!d.rec.meals[mt]) return sum;
         if (dayFreeMeal && dayFreeMeal.mealKey === mt) return sum + dayFreeMeal.calories;
         return sum + (mealCalMap[mt] || 0);
@@ -250,7 +261,7 @@ export function buildAnalyticsSummary(gameData = {}, gameWeeklyAI = {}) {
         return sum + (em.calories || 0);
       }, 0);
       const total = consumed + extra;
-      const plan = d.rec.plannedCalories;
+      const plan = getPlannedCalories(d.rec);
       if (total > 0 && plan) vals.push(Math.min(100, Math.round(total / plan * 100)));
     });
     return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
