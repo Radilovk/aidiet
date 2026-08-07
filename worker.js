@@ -10,13 +10,8 @@
  */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
-var __esm = (fn, res, err) => function __init() {
-  if (err) throw err[0];
-  try {
-    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
-  } catch (e) {
-    throw err = [e], e;
-  }
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
 };
 var __export = (target, all) => {
   for (var name in all)
@@ -14415,8 +14410,11 @@ function normalizeWeeklyQuestions(raw) {
   }
   return questions.length >= 3 ? questions.slice(0, 5) : null;
 }
-function normalizeAdaptationDecision(raw) {
-  const level = Math.min(3, Math.max(0, parseInt(raw?.adaptationLevel, 10) || 0));
+function normalizeAdaptationDecision(raw, analytics) {
+  let level = Math.min(3, Math.max(0, parseInt(raw?.adaptationLevel, 10) || 0));
+  if (analytics?.status === "active" && (analytics.junk7 || 0) >= 5) {
+    level = Math.max(level, 1);
+  }
   return {
     adaptationLevel: level,
     reasoning: String(raw?.reasoning || "").slice(0, 500),
@@ -14515,7 +14513,7 @@ async function getWeeklyAdaptationDecision(env, userData, plan, analytics, gameW
   const prompt = template.replace(/\{weeklyContext\}/g, weeklyContext).replace(/\{feedbackAnswers\}/g, feedbackAnswers);
   const response = await callAIModel(env, prompt, 1e3, "weekly_adaptation_decision", null, userData, null);
   const parsed = parseAIResponse(response);
-  return normalizeAdaptationDecision(parsed);
+  return normalizeAdaptationDecision(parsed, analytics);
 }
 async function savePendingWeeklyRelease(env, userId, clientId, release) {
   if (!userId) return;

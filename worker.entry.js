@@ -6439,11 +6439,12 @@ function normalizeWeeklyQuestions(raw) {
   return questions.length >= 3 ? questions.slice(0, 5) : null;
 }
 
-function normalizeAdaptationDecision(raw) {
-  // Range-clamp only. Choosing the adaptation level is a clinical judgement and belongs to
-  // the model, which sees the full picture; the thresholds that used to override it here
-  // were driven by a single compressed number and second-guessed that judgement.
-  const level = Math.min(3, Math.max(0, parseInt(raw?.adaptationLevel, 10) || 0));
+function normalizeAdaptationDecision(raw, analytics) {
+  // Range-clamp + one safety floor: severe junk pattern still warrants at least a meal-plan tweak.
+  let level = Math.min(3, Math.max(0, parseInt(raw?.adaptationLevel, 10) || 0));
+  if (analytics?.status === 'active' && (analytics.junk7 || 0) >= 5) {
+    level = Math.max(level, 1);
+  }
   return {
     adaptationLevel: level,
     reasoning: String(raw?.reasoning || '').slice(0, 500),
@@ -6555,7 +6556,7 @@ async function getWeeklyAdaptationDecision(env, userData, plan, analytics, gameW
     .replace(/\{feedbackAnswers\}/g, feedbackAnswers);
   const response = await callAIModel(env, prompt, 1000, 'weekly_adaptation_decision', null, userData, null);
   const parsed = parseAIResponse(response);
-  return normalizeAdaptationDecision(parsed);
+  return normalizeAdaptationDecision(parsed, analytics);
 }
 
 async function savePendingWeeklyRelease(env, userId, clientId, release) {

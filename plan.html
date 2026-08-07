@@ -9599,6 +9599,7 @@
                 // The first occurrence keeps the plain type name for backward-compatibility.
                 seenMealTypes[mealType] = (seenMealTypes[mealType] || 0) + 1;
                 var mealKey = seenMealTypes[mealType] === 1 ? mealType : mealType + '_' + seenMealTypes[mealType];
+                card.setAttribute('data-meal-key', mealKey);
 
                 // Store per-meal calories for calorie-balance calculation
                 // Update only when the value changes to reflect plan regeneration
@@ -10786,14 +10787,16 @@
                 delete r.freeMeal;
             }
             saveRecord(dayKey, r);
-            // enhanceMealCards() skips cards it already processed, so refresh the affected
-            // controls directly rather than relying on a re-render.
-            var freeCard = document.querySelector('.meal-card.free-day:not(.added-meal-card)');
-            if (freeCard) {
-                var db = freeCard.querySelector('.meal-describe-btn');
-                if (db) db.classList.toggle('filled', !!r.freeMeal);
-                var cb = freeCard.querySelector('.meal-check-btn');
-                if (cb) cb.classList.toggle('done', r.meals[mealKey] === true);
+            if (dayKey === getCurrentViewDayKey()) {
+                var container = document.getElementById('mealContainer');
+                var sel = '.meal-card.free-day[data-meal-key="' + mealKey.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"]';
+                var freeCard = container && container.querySelector(sel);
+                if (freeCard) {
+                    var db = freeCard.querySelector('.meal-describe-btn');
+                    if (db) db.classList.toggle('filled', !!r.freeMeal);
+                    var cb = freeCard.querySelector('.meal-check-btn');
+                    if (cb) cb.classList.toggle('done', r.meals[mealKey] === true);
+                }
             }
             recalcAndShowScore(dayKey);
         }
