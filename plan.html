@@ -432,137 +432,22 @@
             outline-offset: 2px;
         }
 
-        .breakfast-note-card {
-            margin-bottom: 20px;
+        .meal-card.free-day::before {
+            background: linear-gradient(180deg, #f59e0b 0%, #fbbf24 100%);
         }
 
-        .breakfast-note-preview {
-            font-size: 0.82rem;
-            color: var(--text-light);
-            margin-top: 6px;
-            line-height: 1.45;
-        }
-
-        .meal-card.free-day {
-            background: linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%);
-            border: 2px solid #f59e0b;
-            text-align: left;
-            flex-direction: column;
-            align-items: stretch;
-        }
-
-        [data-theme="dark"] .meal-card.free-day {
-            background: linear-gradient(135deg, #292116 0%, #2d2510 100%);
-            border-color: #d97706;
-        }
-
-        .free-day-card-head {
+        /* Groups free-day action buttons on the right (same row as meal-info) */
+        .meal-card-actions {
             display: flex;
             align-items: center;
-            gap: 8px;
-            margin-top: 4px;
+            flex-shrink: 0;
+            margin-left: 6px;
         }
 
-        .free-day-icon-inline {
-            font-size: 1.6rem;
-            line-height: 1;
-            animation: free-day-bounce 1.2s ease-in-out infinite;
+        .meal-card-actions .meal-check-btn {
+            margin-left: 0;
         }
 
-        .free-day-title-inline {
-            font-size: 1.05rem;
-            font-weight: 800;
-            color: #b45309;
-        }
-
-        [data-theme="dark"] .free-day-title-inline { color: #fbbf24; }
-
-        .free-day-subtitle-inline {
-            font-size: 0.85rem;
-            color: #92400e;
-            opacity: 0.9;
-            margin-top: 4px;
-            line-height: 1.4;
-        }
-
-        [data-theme="dark"] .free-day-subtitle-inline { color: #d97706; }
-
-        .breakfast-note {
-            background: linear-gradient(145deg, var(--card-bg) 0%, rgba(255,255,255,0.95) 100%);
-            border-radius: var(--radius);
-            padding: 24px;
-            margin-bottom: 20px;
-            box-shadow:
-                0 4px 20px rgba(0, 0, 0, 0.06),
-                0 1px 3px rgba(0, 0, 0, 0.04),
-                inset 0 1px 0 rgba(255, 255, 255, 0.8);
-            border: 1px solid rgba(13, 148, 136, 0.08);
-            color: var(--text-dark);
-            position: relative;
-            overflow: hidden;
-        }
-        [data-theme="dark"] .breakfast-note {
-            background: linear-gradient(145deg, var(--card-bg) 0%, rgba(30, 41, 59, 0.95) 100%);
-            box-shadow:
-                0 4px 20px rgba(0, 0, 0, 0.25),
-                0 1px 3px rgba(0, 0, 0, 0.15),
-                inset 0 1px 0 rgba(255, 255, 255, 0.03);
-        }
-        .breakfast-note::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 4px;
-            height: 100%;
-            background: linear-gradient(180deg, var(--primary-red) 0%, var(--primary-accent) 100%);
-            border-radius: var(--radius) 0 0 var(--radius);
-        }
-        .breakfast-note summary {
-            cursor: pointer;
-            font-weight: 600;
-            color: var(--primary-red);
-            list-style: none;
-        }
-        .breakfast-note summary::-webkit-details-marker { display: none; }
-        .breakfast-note summary::after { content: ' ▼'; font-size: 0.7em; }
-        .breakfast-note details[open] summary::after { content: ' ▲'; }
-
-        .free-day-banner {
-            background: linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%);
-            border-radius: var(--radius);
-            padding: 20px 16px;
-            margin-bottom: 16px;
-            text-align: center;
-            border: 2px solid #f59e0b;
-        }
-        [data-theme="dark"] .free-day-banner {
-            background: linear-gradient(135deg, #292116 0%, #2d2510 100%);
-            border-color: #d97706;
-        }
-        .free-day-icon {
-            font-size: 3rem;
-            display: block;
-            animation: free-day-bounce 1.2s ease-in-out infinite;
-        }
-        @keyframes free-day-bounce {
-            0%, 100% { transform: translateY(0) scale(1); }
-            40%       { transform: translateY(-10px) scale(1.12); }
-            60%       { transform: translateY(-6px) scale(1.06); }
-        }
-        .free-day-title {
-            font-size: 1.1rem;
-            font-weight: 800;
-            color: #b45309;
-            margin: 8px 0 4px;
-        }
-        [data-theme="dark"] .free-day-title { color: #fbbf24; }
-        .free-day-subtitle {
-            font-size: 0.85rem;
-            color: #92400e;
-            opacity: 0.85;
-        }
-        [data-theme="dark"] .free-day-subtitle { color: #d97706; }
         .meal-card.free-day .meal-weight {
             background: #fef3c7;
             color: #b45309;
@@ -582,8 +467,9 @@
             margin-top: 3px;
         }
 
-
+        .meal-info {
             flex: 1;
+            min-width: 0;
             position: relative;
             z-index: 1;
         }
@@ -5493,14 +5379,12 @@
             const skipsBreakfast = userData && Array.isArray(userData.eatingHabits) && userData.eatingHabits.includes('Не закусвам');
             let bsEl = null;
             if (bs) {
-                const preview = bs.length > 90 ? bs.slice(0, 87) + '…' : bs;
                 bsEl = document.createElement('div');
-                bsEl.className = 'breakfast-note breakfast-note-card meal-card meal-card--clickable';
+                bsEl.className = 'meal-card breakfast-note-card meal-card--clickable';
                 bsEl.innerHTML =
                     '<div class="meal-info">' +
                     '<div class="meal-type"><i class="fas fa-mug-hot" style="font-size:0.75em;margin-right:4px;opacity:0.75"></i>Сутрешен детокс</div>' +
-                    '<div class="meal-name">Хидратация и закуска</div>' +
-                    '<div class="breakfast-note-preview">' + escapeHtmlWithBreaks(preview) + '</div>' +
+                    '<div class="meal-name">Хидратация и детокс</div>' +
                     '</div>';
                 bsEl.setAttribute('role', 'button');
                 bsEl.setAttribute('tabindex', '0');
@@ -5537,8 +5421,7 @@
                 if (isFreeMeal) {
                     mealInfo.innerHTML =
                         '<div class="meal-type">' + escapeHtmlWithBreaks(getMealDisplayLabel(meal.type)) + '</div>' +
-                        '<div class="free-day-card-head"><span class="free-day-icon-inline">🍕</span><span class="free-day-title-inline">Свободно хранене!</span></div>' +
-                        '<div class="free-day-subtitle-inline">Насладете се на любимата си храна — заслужихте го!</div>';
+                        '<div class="meal-name">Свободно хранене</div>';
                 } else {
                     mealInfo.innerHTML = `
                     <div class="meal-type">${escapeHtmlWithBreaks(getMealDisplayLabel(meal.type))}</div>
@@ -9753,7 +9636,7 @@
             // Skip added-meal-card elements: they represent extra food already tracked
             // via extraMeals from logExtraFood. Including them as planned meal slots
             // would inflate the denominator and cause double-counting issues.
-            container.querySelectorAll('.meal-card:not([data-ge]):not(.added-meal-card)').forEach(function(card) {
+            container.querySelectorAll('.meal-card:not([data-ge]):not(.added-meal-card):not(.breakfast-note-card)').forEach(function(card) {
                 var mealType = card.getAttribute('data-meal-type') || '';
                 if (!mealType) {
                     var typeEl = card.querySelector('.meal-type');
@@ -9830,11 +9713,13 @@
                     }
                     recalcAndShowScore(dayKey);
                 });
-                card.appendChild(checkBtn);
 
-                // Free meal: offer an optional way to say what was actually eaten.
-                // Never required — the plan's estimate stands if the client skips it.
+                // Free meal: optional describe button — group both actions on the right
                 if (card.classList.contains('free-day') && !isAgeLockedDay) {
+                    var actionsWrap = document.createElement('div');
+                    actionsWrap.className = 'meal-card-actions';
+                    actionsWrap.appendChild(checkBtn);
+
                     var describeBtn = document.createElement('button');
                     describeBtn.className = 'meal-describe-btn';
                     describeBtn.innerHTML = '<i class="fas fa-pen"></i>';
@@ -9851,7 +9736,10 @@
                             showFreeMealEntryModal(dayKey, mk, est);
                         });
                     }(mealKey));
-                    card.appendChild(describeBtn);
+                    actionsWrap.appendChild(describeBtn);
+                    card.appendChild(actionsWrap);
+                } else {
+                    card.appendChild(checkBtn);
                 }
             });
             if (mealsInitialized) saveRecord(dayKey, rec);
