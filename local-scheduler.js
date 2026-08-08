@@ -303,15 +303,27 @@ const GameNotifier = {
         if (!meta) return null;
         const actions = this._actionsFromConfig(cfg, meta).filter((a) => a.id !== 'skip');
         if (!actions.length) return null;
-        const starI = '<i class="fas fa-star" style="color:#fbbf24;font-size:0.9em"></i>';
-        const isStars = type === 'evening_activity' || type === 'evening_balance';
+
+        const activityIcons = {
+            1: '<i class="fas fa-couch" style="color:#fff;font-size:1em"></i>',
+            2: '<i class="fas fa-person-walking" style="color:#fff;font-size:1em"></i>',
+            3: '<i class="fas fa-fire" style="color:#fff;font-size:1em"></i>',
+        };
+        const activityCls = { 1: 'tier-low', 2: 'tier-mid', 3: 'tier-high' };
+        const balanceIcons = {
+            1: '<i class="fas fa-cloud-rain" style="color:#fff;font-size:1em"></i>',
+            2: '<i class="fas fa-leaf" style="color:#fff;font-size:1em"></i>',
+            3: '<i class="fas fa-sun" style="color:#fff;font-size:1em"></i>',
+        };
+        const balanceCls = { 1: 'tier-calm', 2: 'tier-mid', 3: 'tier-high' };
+
         return actions.map((a) => {
-            if (isStars) {
-                const v = Number(a.value) || 1;
-                let icons = starI;
-                if (v >= 2) icons += starI;
-                if (v >= 3) icons += starI;
-                return { label: a.title, icons, value: v, stars: true };
+            const v = Number(a.value) || (a.value === false ? 0 : 1);
+            if (type === 'evening_activity') {
+                return { label: a.title, icon: activityIcons[v] || activityIcons[2], value: v, cls: activityCls[v] || 'tier-mid' };
+            }
+            if (type === 'evening_balance') {
+                return { label: a.title, icon: balanceIcons[v] || balanceIcons[2], value: v, cls: balanceCls[v] || 'tier-mid' };
             }
             const val = a.value;
             const isYes = val === true;

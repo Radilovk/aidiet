@@ -423,6 +423,70 @@
             transform: scale(0.98);
         }
 
+        .meal-card.meal-card--clickable {
+            cursor: pointer;
+        }
+
+        .meal-card.meal-card--clickable:focus-visible {
+            outline: 2px solid rgba(13, 148, 136, 0.45);
+            outline-offset: 2px;
+        }
+
+        .breakfast-note-card {
+            margin-bottom: 20px;
+        }
+
+        .breakfast-note-preview {
+            font-size: 0.82rem;
+            color: var(--text-light);
+            margin-top: 6px;
+            line-height: 1.45;
+        }
+
+        .meal-card.free-day {
+            background: linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%);
+            border: 2px solid #f59e0b;
+            text-align: left;
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        [data-theme="dark"] .meal-card.free-day {
+            background: linear-gradient(135deg, #292116 0%, #2d2510 100%);
+            border-color: #d97706;
+        }
+
+        .free-day-card-head {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .free-day-icon-inline {
+            font-size: 1.6rem;
+            line-height: 1;
+            animation: free-day-bounce 1.2s ease-in-out infinite;
+        }
+
+        .free-day-title-inline {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: #b45309;
+        }
+
+        [data-theme="dark"] .free-day-title-inline { color: #fbbf24; }
+
+        .free-day-subtitle-inline {
+            font-size: 0.85rem;
+            color: #92400e;
+            opacity: 0.9;
+            margin-top: 4px;
+            line-height: 1.4;
+        }
+
+        [data-theme="dark"] .free-day-subtitle-inline { color: #d97706; }
+
         .breakfast-note {
             background: linear-gradient(145deg, var(--card-bg) 0%, rgba(255,255,255,0.95) 100%);
             border-radius: var(--radius);
@@ -2127,7 +2191,27 @@
             color: white;
             box-shadow: 0 4px 12px rgba(239,68,68,0.3);
         }
-        /* Star rating buttons */
+        .game-answer-btn.tier-low {
+            background: linear-gradient(135deg, #94a3b8, #64748b);
+            color: white;
+            box-shadow: 0 4px 12px rgba(100,116,139,0.28);
+        }
+        .game-answer-btn.tier-mid {
+            background: linear-gradient(135deg, #0D9488, #059669);
+            color: white;
+            box-shadow: 0 4px 12px rgba(16,185,129,0.35);
+        }
+        .game-answer-btn.tier-high {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            box-shadow: 0 4px 12px rgba(245,158,11,0.32);
+        }
+        .game-answer-btn.tier-calm {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            color: white;
+            box-shadow: 0 4px 12px rgba(99,102,241,0.28);
+        }
+        /* Star rating buttons — legacy, kept for compatibility */
         .game-stars-wrap { display: flex; gap: 7px; width: 100%; }
         .game-star-btn {
             flex: 1;
@@ -5409,28 +5493,34 @@
             const skipsBreakfast = userData && Array.isArray(userData.eatingHabits) && userData.eatingHabits.includes('Не закусвам');
             let bsEl = null;
             if (bs) {
-                const BREAKFAST_STRATEGY_COLLAPSE_THRESHOLD = 80;
+                const preview = bs.length > 90 ? bs.slice(0, 87) + '…' : bs;
                 bsEl = document.createElement('div');
-                bsEl.className = 'breakfast-note';
-                if (bs.length > BREAKFAST_STRATEGY_COLLAPSE_THRESHOLD) {
-                    bsEl.innerHTML = `<details><summary>☕ Сутрешен детокс и хидратация</summary>${escapeHtmlWithBreaks(bs)}</details>`;
-                } else {
-                    bsEl.innerHTML = `☕ <strong>Сутрешен детокс и хидратация:</strong> ${escapeHtmlWithBreaks(bs)}`;
-                }
+                bsEl.className = 'breakfast-note breakfast-note-card meal-card meal-card--clickable';
+                bsEl.innerHTML =
+                    '<div class="meal-info">' +
+                    '<div class="meal-type"><i class="fas fa-mug-hot" style="font-size:0.75em;margin-right:4px;opacity:0.75"></i>Сутрешен детокс</div>' +
+                    '<div class="meal-name">Хидратация и закуска</div>' +
+                    '<div class="breakfast-note-preview">' + escapeHtmlWithBreaks(preview) + '</div>' +
+                    '</div>';
+                bsEl.setAttribute('role', 'button');
+                bsEl.setAttribute('tabindex', '0');
+                bsEl.setAttribute('aria-label', 'Детайли за сутрешен детокс и хидратация');
+                const openBreakfastNote = function() {
+                    openModal('Сутрешен детокс и хидратация', bs, '', null, null, null, null);
+                };
+                bsEl.addEventListener('click', openBreakfastNote);
+                bsEl.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        openBreakfastNote();
+                    }
+                });
             }
 
             // If client skips breakfast, show breakfast-note BEFORE meal cards
             if (bsEl && skipsBreakfast) {
                 mealContainer.appendChild(bsEl);
                 bsEl = null; // already added, don't append again later
-            }
-
-            // Show animated reward banner only when the day contains a free eating meal
-            if (effectiveHasFreeMeal) {
-                const banner = document.createElement('div');
-                banner.className = 'free-day-banner';
-                banner.innerHTML = '<span class="free-day-icon">🍕</span><div class="free-day-title">Свободно хранене!</div><div class="free-day-subtitle">Насладете се на любимата си храна — заслужихте го!</div>';
-                mealContainer.appendChild(banner);
             }
 
             effectiveMeals.forEach((meal, _mi) => {
@@ -5441,42 +5531,24 @@
                 else if (meal._plannedCalories) mealCard.setAttribute('data-meal-calories', meal._plannedCalories);
                 if (meal.type) mealCard.setAttribute('data-meal-type', meal.type);
                 mealCard.setAttribute('data-order-hour', _mealUnlockHour(meal.type));
-                
-                // Create button element separately to handle click with meal data
-                const infoBtn = document.createElement('button');
-                infoBtn.className = 'info-btn';
-                infoBtn.innerHTML = '<i class="fas fa-info"></i>';
-                infoBtn.onclick = function() {
-                    if (isFreeMeal) {
-                        openModal(
-                            'Свободно хранене',
-                            'Можеш свободно да консумираш любимата си храна.\n\nВажно: Любимата храна може да бъде консумирана след прием на зеленолистна салата, поръсена със семена или смлени ядки, поправена със зехтин и лимонов сок.',
-                            'Насладете се на любимата си храна — заслужихте го!',
-                            null, null, null, null
-                        );
-                    } else {
-                        openModal(
-                            meal.name, 
-                            meal.description || '', 
-                            meal.benefits || '',
-                            meal.macros || null,
-                            meal.dessert || null,
-                            meal.weight || null,
-                            meal.calories || null
-                        );
-                    }
-                };
-                
+
                 const mealInfo = document.createElement('div');
                 mealInfo.className = 'meal-info';
-                mealInfo.innerHTML = `
+                if (isFreeMeal) {
+                    mealInfo.innerHTML =
+                        '<div class="meal-type">' + escapeHtmlWithBreaks(getMealDisplayLabel(meal.type)) + '</div>' +
+                        '<div class="free-day-card-head"><span class="free-day-icon-inline">🍕</span><span class="free-day-title-inline">Свободно хранене!</span></div>' +
+                        '<div class="free-day-subtitle-inline">Насладете се на любимата си храна — заслужихте го!</div>';
+                } else {
+                    mealInfo.innerHTML = `
                     <div class="meal-type">${escapeHtmlWithBreaks(getMealDisplayLabel(meal.type))}</div>
-                    <div class="meal-name">${isFreeMeal ? 'Свободно хранене' : escapeHtmlWithBreaks(meal.name)}</div>
+                    <div class="meal-name">${escapeHtmlWithBreaks(meal.name)}</div>
                     ${meal.dessert && typeof meal.dessert === 'object' && meal.dessert.name ? `<div class="meal-dessert"><i class="fas fa-cookie-bite"></i> <strong>Десерт:</strong> ${escapeHtmlWithBreaks(meal.dessert.name)}${meal.dessert.weight ? ` • ${escapeHtmlWithBreaks(meal.dessert.weight)}` : ''}</div>` : ''}
                 `;
-                
+                }
+
                 mealCard.appendChild(mealInfo);
-                mealCard.appendChild(infoBtn);
+                bindMealCardDetailOpen(mealCard, meal, isFreeMeal);
                 mealCard.style.animation = `cardEnter 0.45s cubic-bezier(0.22,1,0.36,1) ${_mi * 65}ms both`;
                 mealContainer.appendChild(mealCard);
             });
@@ -5501,17 +5573,16 @@
                         '<div class="meal-name">' + escapeHtmlWithBreaks(addedMeal.name) + '</div>' +
                         (addedMeal.calories > 0 ? '<div class="added-meal-kcal">' + Math.round(addedMeal.calories) + ' kcal</div>' : '');
 
-                    var addedBtn = document.createElement('button');
-                    addedBtn.className = 'info-btn';
-                    addedBtn.innerHTML = '<i class="fas fa-info"></i>';
-                    (function(m) {
-                        addedBtn.onclick = function() {
-                            openModal(m.name, m.description || '', formatSuitabilityBenefit(m.suitability), m.macros || null, null, m.weight || null, m.calories || null);
-                        };
-                    })(addedMeal);
-
                     addedCard.appendChild(addedInfo);
-                    addedCard.appendChild(addedBtn);
+                    bindMealCardDetailOpen(addedCard, {
+                        name: addedMeal.name,
+                        description: addedMeal.description || '',
+                        benefits: formatSuitabilityBenefit(addedMeal.suitability),
+                        macros: addedMeal.macros || null,
+                        dessert: null,
+                        weight: addedMeal.weight || null,
+                        calories: addedMeal.calories || null
+                    }, false);
 
                     // Insert after the last planned meal whose order-hour is <= this meal's
                     // order-hour, so photo meals group near their time-period siblings.
@@ -6117,6 +6188,47 @@
                 <span class="macro-value">${value}г${calorieText}</span>
             `;
             return item;
+        }
+
+        function openFreeMealDetailModal() {
+            openModal(
+                'Свободно хранене',
+                'Можеш свободно да консумираш любимата си храна.\n\nВажно: Любимата храна може да бъде консумирана след прием на зеленолистна салата, поръсена със семена или смлени ядки, поправена със зехтин и лимонов сок.',
+                'Насладете се на любимата си храна — заслужихте го!',
+                null, null, null, null
+            );
+        }
+
+        function bindMealCardDetailOpen(card, meal, isFreeMeal) {
+            card.classList.add('meal-card--clickable');
+            card.setAttribute('role', 'button');
+            card.setAttribute('tabindex', '0');
+            card.setAttribute('aria-label', isFreeMeal ? 'Детайли за свободно хранене' : ('Детайли за ' + (meal.name || 'ястие')));
+            const openDetail = function() {
+                if (isFreeMeal) {
+                    openFreeMealDetailModal();
+                    return;
+                }
+                openModal(
+                    meal.name,
+                    meal.description || '',
+                    meal.benefits || '',
+                    meal.macros || null,
+                    meal.dessert || null,
+                    meal.weight || null,
+                    meal.calories || null
+                );
+            };
+            card.addEventListener('click', function(e) {
+                if (e.target.closest('.meal-check-btn, .meal-describe-btn')) return;
+                openDetail();
+            });
+            card.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    openDetail();
+                }
+            });
         }
 
         function openModal(title, description, benefit, macros, dessert, weight, calories) {
@@ -9901,17 +10013,15 @@
             { label:'Не', icon:'<i class="fas fa-xmark" style="color:#ef4444"></i>', value:false, cls:'no'  },
             { label:'Да', icon:'<i class="fas fa-check" style="color:#10b981"></i>', value:true,  cls:'yes' }
         ];
-        var starI = '<i class="fas fa-star" style="color:#fbbf24;font-size:0.9em"></i>';
-        // Context-specific answer arrays for 3-option questions
         var ACTIVITY_1_3 = [
-            { label:'Ниска',   icons:starI,               value:1, stars:true },
-            { label:'Умерена', icons:starI+starI,         value:2, stars:true },
-            { label:'Висока',  icons:starI+starI+starI,   value:3, stars:true }
+            { label:'Ниска',   icon:'<i class="fas fa-couch" style="color:#fff;font-size:1em"></i>', value:1, cls:'tier-low' },
+            { label:'Умерена', icon:'<i class="fas fa-person-walking" style="color:#fff;font-size:1em"></i>', value:2, cls:'tier-mid' },
+            { label:'Висока',  icon:'<i class="fas fa-fire" style="color:#fff;font-size:1em"></i>', value:3, cls:'tier-high' }
         ];
         var BALANCE_1_3 = [
-            { label:'Напрегнат',  icons:starI,               value:1, stars:true },
-            { label:'Спокоен',    icons:starI+starI,         value:2, stars:true },
-            { label:'Позитивен',  icons:starI+starI+starI,   value:3, stars:true }
+            { label:'Напрегнат', icon:'<i class="fas fa-cloud-rain" style="color:#fff;font-size:1em"></i>', value:1, cls:'tier-calm' },
+            { label:'Спокоен',   icon:'<i class="fas fa-leaf" style="color:#fff;font-size:1em"></i>', value:2, cls:'tier-mid' },
+            { label:'Позитивен', icon:'<i class="fas fa-sun" style="color:#fff;font-size:1em"></i>', value:3, cls:'tier-high' }
         ];
 
         var _fabLowerTimer = null;
@@ -9998,27 +10108,13 @@
             // Helper: populate answer buttons into a container
             function fillAnswers(ansWrap) {
                 ansWrap.innerHTML = '';
-                var isStars = answers.length === 3 && answers[0].stars;
-                if (isStars) {
-                    var starsRow = document.createElement('div');
-                    starsRow.className = 'game-stars-wrap';
-                    answers.forEach(function(a) {
-                        var btn = document.createElement('button');
-                        btn.className = 'game-star-btn';
-                        btn.innerHTML = '<span class="star-icons">'+a.icons+'</span><span class="star-label">'+a.label+'</span>';
-                        btn.addEventListener('click', function(){ onAnswer(a.value); removeBubble(); });
-                        starsRow.appendChild(btn);
-                    });
-                    ansWrap.appendChild(starsRow);
-                } else {
-                    answers.forEach(function(a) {
-                        var btn = document.createElement('button');
-                        btn.className = 'game-answer-btn ' + (a.cls||'yes');
-                        btn.innerHTML = (a.icon?'<span>'+a.icon+'</span>':'') + '<span>'+a.label+'</span>';
-                        btn.addEventListener('click', function(){ onAnswer(a.value); removeBubble(); });
-                        ansWrap.appendChild(btn);
-                    });
-                }
+                answers.forEach(function(a) {
+                    var btn = document.createElement('button');
+                    btn.className = 'game-answer-btn ' + (a.cls || 'yes');
+                    btn.innerHTML = (a.icon ? '<span>' + a.icon + '</span>' : '') + '<span>' + a.label + '</span>';
+                    btn.addEventListener('click', function(){ onAnswer(a.value); removeBubble(); });
+                    ansWrap.appendChild(btn);
+                });
             }
 
             // If FAB is already raised and a bubble is visible → update content in-place (no flicker)
