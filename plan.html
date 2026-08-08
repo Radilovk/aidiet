@@ -436,18 +436,15 @@
             background: linear-gradient(180deg, #f59e0b 0%, #fbbf24 100%);
         }
 
+        /* Groups free-day action buttons on the right (same row as meal-info) */
         .meal-card-actions {
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 6px;
             flex-shrink: 0;
-            margin-left: auto;
-            align-self: center;
+            margin-left: 6px;
         }
 
-        .meal-card-actions .meal-check-btn,
-        .meal-card-actions .meal-describe-btn {
+        .meal-card-actions .meal-check-btn {
             margin-left: 0;
         }
 
@@ -470,8 +467,9 @@
             margin-top: 3px;
         }
 
-
+        .meal-info {
             flex: 1;
+            min-width: 0;
             position: relative;
             z-index: 1;
         }
@@ -9715,14 +9713,13 @@
                     }
                     recalcAndShowScore(dayKey);
                 });
-                var actionsWrap = document.createElement('div');
-                actionsWrap.className = 'meal-card-actions';
-                actionsWrap.appendChild(checkBtn);
-                card.appendChild(actionsWrap);
 
-                // Free meal: offer an optional way to say what was actually eaten.
-                // Never required — the plan's estimate stands if the client skips it.
+                // Free meal: optional describe button — group both actions on the right
                 if (card.classList.contains('free-day') && !isAgeLockedDay) {
+                    var actionsWrap = document.createElement('div');
+                    actionsWrap.className = 'meal-card-actions';
+                    actionsWrap.appendChild(checkBtn);
+
                     var describeBtn = document.createElement('button');
                     describeBtn.className = 'meal-describe-btn';
                     describeBtn.innerHTML = '<i class="fas fa-pen"></i>';
@@ -9740,6 +9737,9 @@
                         });
                     }(mealKey));
                     actionsWrap.appendChild(describeBtn);
+                    card.appendChild(actionsWrap);
+                } else {
+                    card.appendChild(checkBtn);
                 }
             });
             if (mealsInitialized) saveRecord(dayKey, rec);
