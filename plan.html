@@ -432,11 +432,46 @@
             outline-offset: 2px;
         }
 
+        .meal-card.free-day {
+            background: linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%);
+            border-color: #f59e0b;
+        }
+
+        [data-theme="dark"] .meal-card.free-day {
+            background: linear-gradient(135deg, #292116 0%, #2d2510 100%);
+            border-color: #d97706;
+        }
+
         .meal-card.free-day::before {
             background: linear-gradient(180deg, #f59e0b 0%, #fbbf24 100%);
         }
 
-        /* Groups free-day action buttons on the right (same row as meal-info) */
+        .meal-card.free-day .meal-name {
+            color: #b45309;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 0;
+        }
+
+        [data-theme="dark"] .meal-card.free-day .meal-name {
+            color: #fbbf24;
+        }
+
+        .free-day-icon-inline {
+            font-size: 1.25rem;
+            line-height: 1;
+            flex-shrink: 0;
+            animation: free-day-bounce 1.2s ease-in-out infinite;
+        }
+
+        @keyframes free-day-bounce {
+            0%, 100% { transform: translateY(0) scale(1); }
+            40%       { transform: translateY(-4px) scale(1.08); }
+            60%       { transform: translateY(-2px) scale(1.04); }
+        }
+
+        /* Groups free-day action buttons on the right (pen, then check) */
         .meal-card-actions {
             display: flex;
             align-items: center;
@@ -444,8 +479,12 @@
             margin-left: 6px;
         }
 
-        .meal-card-actions .meal-check-btn {
+        .meal-card-actions .meal-describe-btn {
             margin-left: 0;
+        }
+
+        .meal-card-actions .meal-check-btn {
+            margin-left: 6px;
         }
 
         .meal-card.free-day .meal-weight {
@@ -5335,6 +5374,11 @@
             return MEAL_DISPLAY_LABELS[type] || type;
         }
 
+        /** UI slot label for free meal — always replaces Хранене 2 (Обяд) per plan logic. */
+        function getFreeMealSlotDisplayLabel() {
+            return getMealDisplayLabel('Хранене 2');
+        }
+
         // --- Render Day Meals ---
         function renderDay(dayNum, viewDateKey) {
             currentDay = dayNum;
@@ -5420,8 +5464,8 @@
                 mealInfo.className = 'meal-info';
                 if (isFreeMeal) {
                     mealInfo.innerHTML =
-                        '<div class="meal-type">' + escapeHtmlWithBreaks(getMealDisplayLabel(meal.type)) + '</div>' +
-                        '<div class="meal-name">Свободно хранене</div>';
+                        '<div class="meal-type">' + escapeHtmlWithBreaks(getFreeMealSlotDisplayLabel()) + '</div>' +
+                        '<div class="meal-name"><span class="free-day-icon-inline" aria-hidden="true">🍕</span>Свободно хранене</div>';
                 } else {
                     mealInfo.innerHTML = `
                     <div class="meal-type">${escapeHtmlWithBreaks(getMealDisplayLabel(meal.type))}</div>
@@ -9718,7 +9762,6 @@
                 if (card.classList.contains('free-day') && !isAgeLockedDay) {
                     var actionsWrap = document.createElement('div');
                     actionsWrap.className = 'meal-card-actions';
-                    actionsWrap.appendChild(checkBtn);
 
                     var describeBtn = document.createElement('button');
                     describeBtn.className = 'meal-describe-btn';
@@ -9737,6 +9780,7 @@
                         });
                     }(mealKey));
                     actionsWrap.appendChild(describeBtn);
+                    actionsWrap.appendChild(checkBtn);
                     card.appendChild(actionsWrap);
                 } else {
                     card.appendChild(checkBtn);
