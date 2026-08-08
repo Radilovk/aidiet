@@ -466,6 +466,11 @@ jobs:
       contents: write
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
       - name: Download APK artifact
         uses: actions/download-artifact@v4
         with:
@@ -513,9 +518,11 @@ jobs:
           cp "$APK_FILE" "$APK_LATEST"
 
           # Step 1: create lightweight release (no assets yet — smaller API call).
-          gh release delete "$TAG" -y 2>/dev/null || true
+          gh release delete "$TAG" -y --repo "${{ github.repository }}" 2>/dev/null || true
           for attempt in 1 2 3 4 5 6; do
             if gh release create "$TAG" \
+              --repo "${{ github.repository }}" \
+              --target "${{ github.sha }}" \
               --title "NutriPlan v${V_NAME} (${TAG})" \
               --notes "Автоматичен билд — версия ${V_NAME} (build ${V_CODE})."; then
               break
@@ -532,7 +539,7 @@ jobs:
           for asset in "$APK_NAME" "$APK_LATEST"; do
             uploaded=0
             for attempt in 1 2 3 4 5 6 7 8; do
-              if gh release upload "$TAG" "$asset" --clobber; then
+              if gh release upload "$TAG" "$asset" --clobber --repo "${{ github.repository }}"; then
                 uploaded=1
                 break
               fi
