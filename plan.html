@@ -5543,7 +5543,14 @@
                                 ? window.gameModule.getCurrentViewDayKey() : null;
                             if (dateKey) {
                                 var gmPast = window.gameModule;
-                                if (!gmPast || typeof gmPast.isPastDayKey !== 'function' || !gmPast.isPastDayKey(dateKey)) {
+                                var rawGameData = typeof gmPast.getGameData === 'function' ? gmPast.getGameData() : {};
+                                var hasStored = !!rawGameData[dateKey];
+                                var isRetroPast = typeof gmPast.isPastDayKey === 'function'
+                                    && gmPast.isPastDayKey(dateKey)
+                                    && !hasStored
+                                    && typeof gmPast.isAgeLocked === 'function'
+                                    && !gmPast.isAgeLocked(dateKey);
+                                if (!gmPast.isPastDayKey(dateKey) || isRetroPast) {
                                     var r = window.gameModule.getRecord(dateKey);
                                     if (!r.plannedCalories) {
                                         r.plannedCalories = Math.round(cal);
@@ -6598,7 +6605,10 @@
             if (!userData || !dietPlan) return base;
 
             try {
-                const chatCtx = await window.NutriPlanChatContextReady;
+                const chatCtx = await Promise.race([
+                    window.NutriPlanChatContextReady,
+                    new Promise(function(resolve) { setTimeout(function() { resolve(null); }, 3000); })
+                ]);
                 if (!chatCtx) return base;
                 const sections = chatCtx.buildChatContextSections(userData, dietPlan);
                 const selectedIds = chatCtx.selectChatSections(message, chatMode);
@@ -9353,8 +9363,9 @@
             var rawData = getGameData();
             var hasStoredRecord = !!rawData[dayKey];
 
-            // Past day with no recorded data at all — show "missing data" notice
-            if (isPastDayKey(dayKey) && !hasStoredRecord) {
+            // Only show "missing data" for days older than the 2-day retro window.
+            // Editable retro days get scored locally as the user marks meals.
+            if (isPastDayKey(dayKey) && !hasStoredRecord && isAgeLocked(dayKey)) {
                 var dayNames2 = ['\u041D\u0434','\u041F\u043D','\u0412\u0442','\u0421\u0440','\u0427\u0442','\u041F\u0442','\u0421\u0431'];
                 var dMissing = new Date(dayKey + 'T00:00:00');
                 card.style.display = 'flex';
@@ -9369,8 +9380,11 @@
             }
 
             var rec = getRecord(dayKey);
-            if (!rec || !rec.dailyScore) { card.style.display='none'; return; }
-            var ds = rec.dailyScore;
+            var ds = rec.dailyScore || calcDayScore(rec);
+            if (!rec || (ds.score === null && (ds.engPct || 0) === 0 && !(rec.meals && Object.keys(rec.meals).length))) {
+                card.style.display='none';
+                return;
+            }
             card.style.display = 'flex';
             card.style.background = '';
             card.style.boxShadow = '';
@@ -9603,8 +9617,12 @@
             if (!rec.freeMealRatings) rec.freeMealRatings = {}; // backward compat: preserve existing field in stored records
             if (!rec.mealCalories) rec.mealCalories = {};
             var mealsInitialized = false;
-            var schemaPast = isPastDayKey(dayKey);
-            if (schemaPast && lockPastDaySchema(rec, dayKey)) mealsInitialized = true;
+            var rawData = getGameData();
+            var hasStoredRecord = !!rawData[dayKey];
+            // Retro window (≤2 days): allow marking; schema freezes only after first save or when age-locked.
+            // Analytics reads gameData lazily (analytics page + weekly AI) — no per-click server sync.
+            var schemaFrozen = isAgeLocked(dayKey) || (hasStoredRecord && rec.mealSlots && rec.mealSlots.length > 0);
+            if (schemaFrozen && lockPastDaySchema(rec, dayKey)) mealsInitialized = true;
 
             // Compute planned calorie total from rendered meal cards (best effort)
             // Also capture per-meal calorie data for accurate completed-meal calorie tracking
@@ -9614,7 +9632,7 @@
                 var calEl = card.querySelector('[data-meal-calories]');
                 if (calEl) { plannedCals += parseFloat(calEl.getAttribute('data-meal-calories')) || 0; }
             });
-            if (!schemaPast && plannedCals > 0 && (!rec.plannedCalories || (rec.plannedCalories > 0 && Math.abs(rec.plannedCalories - plannedCals) > rec.plannedCalories * 0.05))) {
+            if (!schemaFrozen && plannedCals > 0 && (!rec.plannedCalories || (rec.plannedCalories > 0 && Math.abs(rec.plannedCalories - plannedCals) > rec.plannedCalories * 0.05))) {
                 rec.plannedCalories = Math.round(plannedCals);
                 mealsInitialized = true;
             }
@@ -9639,12 +9657,12 @@
                 seenMealTypes[mealType] = (seenMealTypes[mealType] || 0) + 1;
                 var mealKey = seenMealTypes[mealType] === 1 ? mealType : mealType + '_' + seenMealTypes[mealType];
                 card.setAttribute('data-meal-key', mealKey);
-                if (schemaPast && !(mealKey in rec.meals)) return;
+                if (schemaFrozen && !(mealKey in rec.meals)) return;
 
                 // Store per-meal calories for calorie-balance calculation
                 // Update only when the value changes to reflect plan regeneration
                 var calAttr = card.getAttribute('data-meal-calories');
-                if (!schemaPast && calAttr) {
+                if (!schemaFrozen && calAttr) {
                     var calVal = Math.round(parseFloat(calAttr) || 0);
                     if (calVal > 0 && rec.mealCalories[mealKey] !== calVal) {
                         rec.mealCalories[mealKey] = calVal;
@@ -9653,7 +9671,7 @@
                 }
 
                 // Ensure all planned meals are present in the record so calcDayScore knows the total
-                if (!schemaPast && !(mealKey in rec.meals)) {
+                if (!schemaFrozen && !(mealKey in rec.meals)) {
                     rec.meals[mealKey] = false;
                     mealsInitialized = true;
                 }
@@ -11159,6 +11177,7 @@
             getGameData:             getGameData,
             getCurrentViewDayKey:    getCurrentViewDayKey,
             isPastDayKey:            isPastDayKey,
+            isAgeLocked:             isAgeLocked,
             logExtraFood:            logExtraFood,
             setFreeMeal:             setFreeMeal,
             calcDayScore:            calcDayScore,
