@@ -939,10 +939,6 @@
         }
     }
 
-    function shouldSkipPlanJobRedirect() {
-        return isProfileRegenJobActive();
-    }
-
     function ensureProfileRegenModal() {
         if (document.getElementById('npProfileRegenOverlay')) return;
         var overlay = document.createElement('div');
@@ -1151,7 +1147,6 @@
         clearBlockedPlanSession: clearBlockedPlanSession,
         PROFILE_REGEN_PROCESSING_MSG: PROFILE_REGEN_PROCESSING_MSG,
         isProfileRegenJobActive: isProfileRegenJobActive,
-        shouldSkipPlanJobRedirect: shouldSkipPlanJobRedirect,
         showProfileRegenProcessingModal: showProfileRegenProcessingModal,
         startProfileRegenBackgroundPoll: startProfileRegenBackgroundPoll
     };

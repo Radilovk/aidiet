@@ -65,6 +65,7 @@
         'gameData',
         'gameWeeklyAI',
         'gameNotifierConfig',
+        'gameNotifierPendingActions',
         'chatHistory',
         'chatMode',
         'chatDemoLimitUnlocked',

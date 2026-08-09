@@ -71,7 +71,7 @@
         if (planJobId) {
             var src = localStorage.getItem('planJobSource');
             var planSync = window.NutriPlanPlanSync;
-            if (!(planSync && typeof planSync.shouldSkipPlanJobRedirect === 'function' && planSync.shouldSkipPlanJobRedirect())) {
+            if (!(planSync && typeof planSync.isProfileRegenJobActive === 'function' && planSync.isProfileRegenJobActive())) {
                 location.replace(src === 'questionnaire' ? 'questionnaire.html' : 'questionnaire2.html');
                 return;
             }
@@ -2938,7 +2938,7 @@
                 if (localStorage.getItem('planJobId')) {
                     const restoredSource = localStorage.getItem('planJobSource');
                     const planSync = window.NutriPlanPlanSync;
-                    if (!(planSync && typeof planSync.shouldSkipPlanJobRedirect === 'function' && planSync.shouldSkipPlanJobRedirect())) {
+                    if (!(planSync && typeof planSync.isProfileRegenJobActive === 'function' && planSync.isProfileRegenJobActive())) {
                         window.location.replace(restoredSource === 'questionnaire' ? 'questionnaire.html' : 'questionnaire2.html');
                         return;
                     }
@@ -2980,7 +2980,7 @@
             if (localStorage.getItem('planJobId')) {
                 const src = localStorage.getItem('planJobSource');
                 const planSync = window.NutriPlanPlanSync;
-                if (!(planSync && typeof planSync.shouldSkipPlanJobRedirect === 'function' && planSync.shouldSkipPlanJobRedirect())) {
+                if (!(planSync && typeof planSync.isProfileRegenJobActive === 'function' && planSync.isProfileRegenJobActive())) {
                     window.location.replace(src === 'questionnaire' ? 'questionnaire.html' : 'questionnaire2.html');
                     return;
                 }
@@ -4125,7 +4125,13 @@
             setLoggedOutNavigationState();
             await clearIndexSessionData();
             await signOut(auth).catch(() => {});
-            window.history.replaceState(null, '', 'index.html?stay=1');
+            window.history.replaceState(null, '', 'index.html?stay=1&login=1');
+            loginClearMessages();
+            if (typeof window.indexOpenLoginModal === 'function') {
+                window.indexOpenLoginModal();
+            } else {
+                document.getElementById('loginModal')?.classList.add('active');
+            }
         }
 
         /* ── Derive userId locally — no backend round-trip needed ───────────── */
@@ -4490,7 +4496,7 @@
                 window.parent.postMessage({ type: 'NUTRIPLAN_LOGOUT' }, window.location.origin);
                 return;
             }
-            window.location.replace('index.html?stay=1');
+            window.location.replace('index.html?stay=1&login=1');
         };
     </script>
 

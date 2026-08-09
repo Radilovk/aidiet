@@ -3919,7 +3919,7 @@
                 _clearUserPlanData();
             }
             if (requestShellAction('NUTRIPLAN_LOGOUT')) return;
-            window.location.replace('index.html?stay=1');
+            window.location.replace('index.html?stay=1&login=1');
         };
 
         onAuthStateChanged(auth, async (user) => {

@@ -2735,7 +2735,7 @@
         window.doLogout = window.doLogout || async function() {
             if (requestShellAction('NUTRIPLAN_LOGOUT')) return;
             await clearProfileSessionFallback();
-            window.location.replace('index.html?stay=1&logout=1');
+            window.location.replace('index.html?stay=1&login=1');
         };
 
         // --- Data Loading ---
@@ -4394,7 +4394,7 @@
                     _clearUserPlanData();
                 }
                 /* Navigate home after logout */
-                window.location.replace('index.html?stay=1&logout=1');
+                window.location.replace('index.html?stay=1&login=1');
             };
 
             /* Clear all plan/session data from localStorage on logout.
