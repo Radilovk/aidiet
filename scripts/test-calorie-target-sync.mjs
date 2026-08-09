@@ -16,7 +16,10 @@ function assert(cond, msg) {
 
 assert(src.includes("if (!goalIncludes(goal, 'Отслабване'))"), 'calculateSafeDeficit uses goalIncludes');
 assert(!src.includes('cm.realTDEE = fc;'), 'enforceCalorieGuardrails must not set realTDEE to Final_Calories');
-assert(src.includes('syncAchievedCaloriesToAnalysis'), 'reconcile syncs achieved calories to analysis');
+assert(!src.includes('function syncAchievedCaloriesToAnalysis'), 'must not lower Final_Calories to achieved meals');
+assert(src.includes('function enforceWeekPlanCalorieTargets'), 'reconcile enforces intake target on under-delivery');
+assert(src.includes('defaultDailyCalories > 0'), 'normalizeWeeklyScheme prefers Final_Calories contract');
+assert(src.includes('intakeTarget = parseFinalCalories'), 'reconcile uses Final_Calories not summary.dailyCalories');
 
 // Kamen-like profile sanity
 function bmr() { return 1999; }
@@ -27,6 +30,6 @@ assert(tdeeMaint > targetDeficit + 500, 'maintenance TDEE must exceed deficit ta
 
 const achieved = 2050;
 const tol = calorieTolerance(targetDeficit);
-assert(Math.abs(achieved - targetDeficit) > tol, '2050 vs 2774 should exceed tolerance — triggers sync');
+assert(Math.abs(achieved - targetDeficit) > tol, '2050 vs 2774 should exceed tolerance — triggers enforce, not target lowering');
 
 console.log('✅ test-calorie-target-sync.mjs');

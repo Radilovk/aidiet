@@ -8969,8 +8969,8 @@ function reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay) {
       let aligned = target;
       if (!isFixed && isMealCaloriesAdequate(achieved, target)) {
         aligned = achieved;
-      } else if (!isFixed && achieved < target) {
-        aligned = achieved;
+      } else if (!isFixed && achieved > target) {
+        aligned = Math.min(achieved, ceiling);
       } else if (isFixed && achieved > 0) {
         aligned = Math.min(achieved, ceiling);
       }
@@ -13990,11 +13990,39 @@ async function ensureAssistantCacheFresh(env, session, card, planUpdatedAt, anal
   session.cardFingerprint = fingerprint;
   return { session, rebuilt: true };
 }
+async function enforceWeekPlanCalorieTargets(env, weekPlan, strategy, analysis, userData, startDay, endDay) {
+  const dailyTarget = parseFinalCalories(analysis?.Final_Calories);
+  if (!(dailyTarget > 0) || !strategy?.weeklyScheme || !weekPlan) return;
+  let needsResync = false;
+  const tol = calorieTolerance(dailyTarget);
+  for (let d = startDay; d <= endDay; d++) {
+    const schemeKey = DAY_NUMBER_TO_KEY[d - 1];
+    const dayScheme = strategy.weeklyScheme[schemeKey];
+    const dayPlan = weekPlan[`day${d}`];
+    if (!dayScheme?.mealBreakdown?.length) continue;
+    const schemeTotal = dayScheme.mealBreakdown.reduce((s, m) => s + (Number(m.calories) || 0), 0) || Number(dayScheme.calories) || 0;
+    const achieved = Number(dayPlan?.dailyTotals?.calories) || 0;
+    if (Math.abs(schemeTotal - dailyTarget) > tol || achieved > 0 && achieved < dailyTarget - tol) {
+      rebalanceMealBreakdownSlots(dayScheme, dailyTarget);
+      syncSchemeDayMetadata(dayScheme);
+      enforceFixedSlotCaps(dayScheme, dailyTarget);
+      clampLateSnackInMealBreakdown(dayScheme);
+      syncSchemeDayMetadata(dayScheme);
+      needsResync = true;
+    }
+  }
+  if (!needsResync || !env) return;
+  await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, userData);
+  if (repairWeekPlanLightSlots(weekPlan, startDay, endDay, userData)) {
+    await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, userData);
+  }
+}
 async function reconcilePlanStructure(plan, userData = null, env = null) {
   if (!plan?.weekPlan) return plan;
+  const intakeTarget = parseFinalCalories(plan.analysis?.Final_Calories);
   if (plan.strategy) {
     normalizeStrategyDessertFlag(plan.strategy, userData);
-    normalizeWeeklyScheme(plan.strategy, plan.summary?.dailyCalories || parseFinalCalories(plan.analysis?.Final_Calories), userData);
+    normalizeWeeklyScheme(plan.strategy, intakeTarget, userData);
   }
   if (plan.analysis) normalizeAnalysisOutput(plan.analysis, userData);
   stripDessertsWhenDisabled(plan.weekPlan, plan.strategy);
@@ -14007,6 +14035,10 @@ async function reconcilePlanStructure(plan, userData = null, env = null) {
       }
     }
     finalizeWeekPlanDays(plan.weekPlan, plan.strategy, 1, 7, userData);
+    if (env && intakeTarget > 0) {
+      await enforceWeekPlanCalorieTargets(env, plan.weekPlan, plan.strategy, plan.analysis, userData, 1, 7);
+      finalizeWeekPlanDays(plan.weekPlan, plan.strategy, 1, 7, userData);
+    }
     reconcileAchievedSlotCalories(plan.weekPlan, plan.strategy, 1, 7);
     for (const key of DAY_NUMBER_TO_KEY) {
       const day = plan.strategy.weeklyScheme[key];
@@ -14027,20 +14059,6 @@ async function reconcilePlanStructure(plan, userData = null, env = null) {
       carbs: avgMacros.carbs,
       fats: avgMacros.fats
     };
-  }
-  let totalCals = 0;
-  let dayCount = 0;
-  for (const dayKey of Object.keys(plan.weekPlan)) {
-    const cals = Number(plan.weekPlan[dayKey]?.dailyTotals?.calories) || 0;
-    if (cals > 0) {
-      totalCals += cals;
-      dayCount++;
-    }
-  }
-  if (dayCount > 0) {
-    const achievedDaily = Math.round(totalCals / dayCount);
-    plan.summary.dailyCalories = achievedDaily;
-    syncAchievedCaloriesToAnalysis(plan, achievedDaily);
   }
   return plan;
 }
@@ -15404,17 +15422,6 @@ function syncAnalysisCalories(analysis, referenceTdee = 0) {
   const fc = parseFinalCalories(analysis.Final_Calories);
   if (fc > 0) analysis.recommendedCalories = fc;
 }
-function syncAchievedCaloriesToAnalysis(plan, achievedDaily) {
-  if (!plan?.analysis || !(achievedDaily > 0)) return;
-  const prev = parseFinalCalories(plan.analysis.Final_Calories);
-  plan.analysis.Final_Calories = achievedDaily;
-  plan.analysis.recommendedCalories = achievedDaily;
-  if (prev > 0 && Math.abs(prev - achievedDaily) > calorieTolerance(prev)) {
-    const cm = plan.analysis.correctedMetabolism || (plan.analysis.correctedMetabolism = {});
-    const hint = `\u0420\u0435\u0430\u043B\u0435\u043D \u0434\u043D\u0435\u0432\u0435\u043D \u043F\u043B\u0430\u043D: ${achievedDaily} kcal (\u043C\u0435\u0442\u0430\u0431\u043E\u043B\u0438\u0442\u043D\u0430 \u0446\u0435\u043B ${prev}).`;
-    cm.correction = cm.correction ? `${cm.correction} ${hint}` : hint;
-  }
-}
 function goalIncludes(goal, keyword) {
   if (!goal || !keyword) return false;
   const kw = String(keyword).toLowerCase();
@@ -15553,7 +15560,7 @@ function normalizeWeeklyScheme(strategy, defaultDailyCalories, userData = null) 
     if (userSkipsBreakfast(userData)) removeBreakfastSlotFromDay(day);
     clampLateSnackInMealBreakdown(day);
     const sumField2 = (field) => day.mealBreakdown.reduce((s, m) => s + (Number(m[field]) || 0), 0);
-    const targetCals = Number(day.calories) || defaultDailyCalories || sumField2("calories");
+    const targetCals = defaultDailyCalories > 0 ? defaultDailyCalories : Number(day.calories) || sumField2("calories");
     rebalanceMealBreakdownSlots(day, targetCals);
     let sumCals = sumField2("calories");
     let sumP = sumField2("protein");
@@ -15850,20 +15857,7 @@ function finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, userData = n
 }
 function syncPlanTargets(plan, analysis) {
   if (!plan || !analysis) return;
-  let fc = 0;
-  if (plan.weekPlan) {
-    let total = 0;
-    let count = 0;
-    for (const day of Object.values(plan.weekPlan)) {
-      const c = Number(day?.dailyTotals?.calories) || 0;
-      if (c > 0) {
-        total += c;
-        count++;
-      }
-    }
-    if (count > 0) fc = Math.round(total / count);
-  }
-  if (fc <= 0) fc = parseFinalCalories(analysis.Final_Calories);
+  const fc = parseFinalCalories(analysis.Final_Calories);
   const mg = analysis.macroGrams;
   if (!plan.summary) plan.summary = {};
   if (fc > 0) plan.summary.dailyCalories = fc;
