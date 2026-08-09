@@ -3919,7 +3919,7 @@
                 _clearUserPlanData();
             }
             if (requestShellAction('NUTRIPLAN_LOGOUT')) return;
-            window.location.replace('index.html?stay=1');
+            window.location.replace('index.html?stay=1&login=1');
         };
 
         onAuthStateChanged(auth, async (user) => {
@@ -5434,7 +5434,12 @@
                 bsEl.setAttribute('tabindex', '0');
                 bsEl.setAttribute('aria-label', 'Детайли за сутрешен детокс и хидратация');
                 const openBreakfastNote = function() {
-                    openModal('Сутрешен детокс и хидратация', bs, '', null, null, null, null);
+                    openModal(
+                        'Сутрешен детокс и хидратация',
+                        bs,
+                        'Активира метаболизма и подкрепя естественото пречистване на тялото.',
+                        null, null, null, null
+                    );
                 };
                 bsEl.addEventListener('click', openBreakfastNote);
                 bsEl.addEventListener('keydown', function(e) {

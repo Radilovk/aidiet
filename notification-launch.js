@@ -50,8 +50,11 @@
         var planJobId = localStorage.getItem('planJobId');
         if (planJobId) {
             var src = localStorage.getItem('planJobSource');
-            location.replace(src === 'questionnaire' ? 'questionnaire.html' : 'questionnaire2.html');
-            return;
+            var planSync = window.NutriPlanPlanSync;
+            if (!(planSync && typeof planSync.isProfileRegenJobActive === 'function' && planSync.isProfileRegenJobActive())) {
+                location.replace(src === 'questionnaire' ? 'questionnaire.html' : 'questionnaire2.html');
+                return;
+            }
         }
 
         if (!localStorage.getItem('dietPlan')) return;
@@ -82,6 +85,15 @@
         if (revealTimer) clearTimeout(revealTimer);
         revealTimer = null;
         document.documentElement.style.visibility = '';
+        var params = new URLSearchParams(location.search);
+        if (params.has('login') || params.has('logout') || (params.has('stay') && !params.has('app'))) {
+            return;
+        }
+        try {
+            if (!localStorage.getItem('dietPlan') || !localStorage.getItem('userId')) return;
+        } catch (_) {
+            return;
+        }
         whenGameNotifierReady(function () {
             var gn = window.GameNotifier;
             if (gn && typeof gn.runOpenAppCatchUpFlow === 'function') {

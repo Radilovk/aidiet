@@ -1793,6 +1793,15 @@ const GameNotifier = {
         const path = window.location.pathname || '';
         if (path.indexOf('quick-answer') !== -1) return false;
         if (/admin|notifications-test|questionnaire/i.test(path)) return false;
+        try {
+            const params = new URLSearchParams(window.location.search || '');
+            if (params.has('login') || params.has('logout')) return false;
+            if (params.has('stay') && !params.has('app')) return false;
+            if (!localStorage.getItem('dietPlan')) return false;
+            if (!localStorage.getItem('userId')) return false;
+        } catch (_) {
+            return false;
+        }
         return true;
     },
 

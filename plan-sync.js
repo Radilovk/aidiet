@@ -20,6 +20,8 @@
     var _planUpdateApplyInFlight = null;
     var _planUpdatePromptVisible = false;
     var _planUpdatePromptShownSession = false;
+    var PROFILE_REGEN_PROCESSING_MSG = 'В момента обработваме постъпилите промени. Скоро ще получите актуализация на Вашия план.';
+    var _profileRegenPollActive = false;
 
     function setLocalPlanUpdatedAt(ts) {
         if (!ts) return;
@@ -928,6 +930,154 @@
         return showPlanUpdatePrompt(userId, options);
     }
 
+    function isProfileRegenJobActive() {
+        try {
+            return localStorage.getItem('planJobSource') === 'profile-regen' &&
+                !!localStorage.getItem('planJobId');
+        } catch (_) {
+            return false;
+        }
+    }
+
+    function ensureProfileRegenModal() {
+        if (document.getElementById('npProfileRegenOverlay')) return;
+        var overlay = document.createElement('div');
+        overlay.id = 'npProfileRegenOverlay';
+        overlay.setAttribute('role', 'dialog');
+        overlay.setAttribute('aria-modal', 'true');
+        overlay.setAttribute('aria-labelledby', 'npProfileRegenTitle');
+        overlay.hidden = true;
+        overlay.style.cssText = 'position:fixed;inset:0;z-index:6000;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(15,47,46,.32);backdrop-filter:blur(4px);';
+        overlay.innerHTML = [
+            '<div style="background:var(--card-bg,#fff);border-radius:20px;padding:24px 20px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.22);text-align:center;">',
+            '<div style="width:52px;height:52px;margin:0 auto 14px;border-radius:50%;background:linear-gradient(135deg,rgba(13,148,136,.14),rgba(6,182,212,.1));display:flex;align-items:center;justify-content:center;">',
+            '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="2" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>',
+            '</div>',
+            '<h3 id="npProfileRegenTitle" style="margin:0 0 10px;font-size:1.05rem;font-weight:700;color:var(--text-dark,#0F2F2E);">Промените са приети</h3>',
+            '<p id="npProfileRegenMessage" style="margin:0 0 18px;font-size:.88rem;line-height:1.55;color:var(--text-light,#6b7280);"></p>',
+            '<button type="button" id="npProfileRegenOk" style="width:100%;padding:12px;border-radius:12px;font-weight:700;font-size:.9rem;border:none;background:linear-gradient(135deg,#0D9488,#0F766E);color:#fff;cursor:pointer;">Разбрах</button>',
+            '</div>'
+        ].join('');
+        document.body.appendChild(overlay);
+    }
+
+    function showProfileRegenProcessingModal(message) {
+        ensureProfileRegenModal();
+        return new Promise(function (resolve) {
+            var overlay = document.getElementById('npProfileRegenOverlay');
+            var msgEl = document.getElementById('npProfileRegenMessage');
+            var okBtn = document.getElementById('npProfileRegenOk');
+            if (!overlay || !okBtn) {
+                resolve();
+                return;
+            }
+            if (msgEl) msgEl.textContent = message || PROFILE_REGEN_PROCESSING_MSG;
+            overlay.hidden = false;
+            overlay.style.display = 'flex';
+            function onOk() {
+                overlay.hidden = true;
+                overlay.style.display = 'none';
+                okBtn.removeEventListener('click', onOk);
+                overlay.removeEventListener('click', onOverlay);
+                resolve();
+            }
+            function onOverlay(e) {
+                if (e.target === overlay) onOk();
+            }
+            okBtn.addEventListener('click', onOk);
+            overlay.addEventListener('click', onOverlay);
+        });
+    }
+
+    function clearProfileRegenJobKeys() {
+        try {
+            localStorage.removeItem('planJobId');
+            localStorage.removeItem('planJobSource');
+            localStorage.removeItem('pendingPlanPayload');
+        } catch (_) {}
+    }
+
+    async function submitProfileRegenPlanToServer(plan, userId, clientId) {
+        if (!clientId || !plan) return;
+        try {
+            await fetch(WORKER_URL + '/api/admin/update-client-plan', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    clientId: clientId,
+                    plan: plan,
+                    userId: userId || undefined,
+                    forcePending: true
+                })
+            });
+        } catch (e) {
+            console.warn('Profile regen plan submit failed:', e);
+        }
+    }
+
+    async function pollProfileRegenJobOnce() {
+        var jobId = '';
+        var clientId = '';
+        try {
+            jobId = localStorage.getItem('planJobId') || '';
+            clientId = localStorage.getItem('pendingClientId') || '';
+        } catch (_) {}
+        if (!jobId || localStorage.getItem('planJobSource') !== 'profile-regen') {
+            return { done: true, reason: 'inactive' };
+        }
+
+        try {
+            var resp = await fetch(WORKER_URL + '/api/plan-job-status?jobId=' + encodeURIComponent(jobId));
+            if (!resp.ok) return { done: false };
+            var data = await resp.json();
+            if (data.status === 'completed' && data.success && data.plan) {
+                clearProfileRegenJobKeys();
+                var userId = '';
+                try { userId = localStorage.getItem('userId') || data.userId || ''; } catch (_) {}
+                await submitProfileRegenPlanToServer(data.plan, userId, clientId);
+                return { done: true, success: true };
+            }
+            if (data.status === 'failed' || data.status === 'not_found') {
+                clearProfileRegenJobKeys();
+                return { done: true, failed: true };
+            }
+            return { done: false };
+        } catch (_) {
+            return { done: false };
+        }
+    }
+
+    function startProfileRegenBackgroundPoll() {
+        if (_profileRegenPollActive || !isProfileRegenJobActive()) return;
+        _profileRegenPollActive = true;
+        var polls = 0;
+        var maxPolls = 90;
+
+        function schedule(delay) {
+            setTimeout(tick, delay);
+        }
+
+        async function tick() {
+            if (!isProfileRegenJobActive()) {
+                _profileRegenPollActive = false;
+                return;
+            }
+            polls++;
+            if (polls > maxPolls) {
+                _profileRegenPollActive = false;
+                return;
+            }
+            var result = await pollProfileRegenJobOnce();
+            if (result.done) {
+                _profileRegenPollActive = false;
+                return;
+            }
+            schedule(polls < 3 ? 5000 : 10000);
+        }
+
+        tick();
+    }
+
     async function claimPlanFromToken(token) {
         if (!token) return { ok: false, reason: 'no-token' };
         try {
@@ -994,11 +1144,16 @@
         isPlanEditingAllowedLocally: isPlanEditingAllowedLocally,
         enforcePlanEditingLock: enforcePlanEditingLock,
         handlePlanEditingBlocked: handlePlanEditingBlocked,
-        clearBlockedPlanSession: clearBlockedPlanSession
+        clearBlockedPlanSession: clearBlockedPlanSession,
+        PROFILE_REGEN_PROCESSING_MSG: PROFILE_REGEN_PROCESSING_MSG,
+        isProfileRegenJobActive: isProfileRegenJobActive,
+        showProfileRegenProcessingModal: showProfileRegenProcessingModal,
+        startProfileRegenBackgroundPoll: startProfileRegenBackgroundPoll
     };
 
     bindPlanUpdatePendingBridge();
     reconcilePlanUpdatePending();
+    startProfileRegenBackgroundPoll();
 
     (function initPlanEditingLock() {
         if (!PLAN_EDITING_LOCK_ENABLED || isPlanEditingAllowedLocally()) return;

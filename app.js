@@ -879,7 +879,7 @@
             var shell = document.getElementById('spaShell');
             if (shell) shell.hidden = true;
             document.body.classList.remove('spa-mode');
-            window.location.replace('index.html?stay=1&logout=1');
+            window.location.replace('index.html?stay=1&login=1');
             return;
         }
         if (data.type === 'NUTRIPLAN_HAPTIC') {
