@@ -294,9 +294,10 @@ export function serializeAnalysisForStep(analysis, step) {
   const cm = analysis.correctedMetabolism || {};
   const mg = analysis.macroGrams || {};
   const mr = analysis.macroRatios || {};
+  const intake = analysis.Final_Calories || analysis.recommendedCalories || '';
   return [
     '#AN v1 step=2',
-    `bmi=${analysis.bmi ?? ''}|bmr=${cm.realBMR ?? analysis.bmr ?? ''}|tdee=${cm.realTDEE ?? ''}`,
+    `bmi=${analysis.bmi ?? ''}|bmr=${cm.realBMR ?? analysis.bmr ?? ''}|tdee=${cm.realTDEE ?? ''}|cal=${intake}`,
     `temp=${esc(analysis.psychoProfile?.temperament)}@${analysis.psychoProfile?.probability ?? 0}%`,
     `pct|P${mr.protein ?? ''}/C${mr.carbs ?? ''}/F${mr.fats ?? ''}`,
     `g|P${mg.protein ?? ''}/C${mg.carbs ?? ''}/F${mg.fats ?? ''}`,

@@ -19,6 +19,7 @@ assert(!mealPrompt.includes('"type": "Хранене 1"'), 'no H1 anchoring exam
 assert(mealPrompt.includes('name — dish title'), 'name vs description split');
 assert(!mealPrompt.includes('skipBreakfastRule'), 'no redundant skip-breakfast inject in KV');
 assert(strategyPrompt.includes('"Не закусвам" → no Хранене 1'), 'strategy rule 2 preserved');
+assert(strategyPrompt.includes('{finalCalories}'), 'strategy uses intake target not TDEE alone');
 assert(workerSrc.includes('function alignDaysToMealBreakdown'), 'thin backend align kept');
 assert(workerSrc.includes('SWEETS:'), 'sweets inject shortened English');
 assert(workerSrc.includes('FREE MEAL (Day'), 'free meal inject shortened English');

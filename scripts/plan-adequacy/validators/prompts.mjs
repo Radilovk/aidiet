@@ -17,6 +17,8 @@ const PROMPT_CONTRACTS = {
     'Въз основа на информацията по-горе',
   ],
   'KV/prompts/admin_strategy_prompt.txt': [
+    'finalCalories',
+    'realTDEE',
     'Хранене 3',
     'mealCountJustification',
     'weeklyScheme',

@@ -1,5 +1,5 @@
 === PROFILE ===
-{name}, {age} y.o. | Goal: {goal} | BMI: {bmi} | Calories: {realTDEE} kcal/day | Health: {medicalConditionsText}
+{name}, {age} y.o. | Goal: {goal} | BMI: {bmi} | Intake target: {finalCalories} kcal/day | Maintenance TDEE: {realTDEE} kcal/day | Health: {medicalConditionsText}
 Macros (Step 1): P≈{macroProteinG}g / C≈{macroCarbsG}g / F≈{macroFatsG}g ({macroProteinPct}%/{macroCarbsPct}%/{macroFatsPct}%)
 Temperament: {temperament} ({temperamentProbability}%) | Chronotype: {chronotype} | Stress: {stressLevel} | Sleep: {sleepHours}h
 Habits: {eatingHabits} | Overeating: {overeatingFrequency} | Cravings: {foodCravings} | Triggers: {foodTriggers}
@@ -18,15 +18,15 @@ Forbidden display names: Закуска, Обяд, Следобедна заку
 Based on the profile above:
 
 === TASK ===
-Diet strategy for {name}. Final calories: {realTDEE} kcal/day. weeklyScheme = framework (foods come in Step 3).
+Diet strategy for {name}. Daily intake target: {finalCalories} kcal/day (maintenance reference {realTDEE} kcal/day). weeklyScheme = framework (foods come in Step 3).
 
 Diet type by goal, health, overeatingFrequency, dietHistory, chronotype (if not in dietPreference):
 Weight loss: Mediterranean, DASH, 16/8 | Anti-aging: MIND, Blue Zones | Heart: DASH, Portfolio | Autoimmune: AIP | Balance: Flexitarian, Nordic | Detox: High fiber | Muscle: High-protein | Menopause: Mediterranean, LCHF/LGI | Emotional: Mindful/Intuitive
 
 RULES (priority):
-1. Average ≈{realTDEE} kcal/day; adjust macros in weeklyScheme if diet requires (e.g. Keto).
+1. Each day: mealBreakdown kcal/protein/carbs/fats MUST sum to ≈{finalCalories} (±5%). Adjust slot macros if diet requires (e.g. Keto). Do NOT use maintenance TDEE ({realTDEE}) as daily intake.
 2. "Не закусвам" → no Хранене 1; water with lemon/green tea; Хранене 3 allowed; min 3 meals.
-3. mealBreakdown.length = meals. No single meal >~800 kcal → add meal: ≤2000→3 | 2000–2800→4 (+Хранене 3) | >2800→5 (+Хранене 3 and 5). Хранене 5: max {MAX_LATE_SNACK_CALORIES} kcal, fats+protein only (carbs ≤15g); surplus kcal/macros go to Хранене 2 and 4 — never inflate H5. Exceptions: diabetes/IR, >4h dinner–sleep (H5 still max {MAX_LATE_SNACK_CALORIES} kcal).
+3. mealBreakdown.length = meals. No single meal >~800 kcal → add meal by intake target {finalCalories}: ≤2000→3 | 2000–2800→4 (+Хранене 3) | >2800→5 (+Хранене 3 and 5). Хранене 5: max {MAX_LATE_SNACK_CALORIES} kcal, fats+protein only (carbs ≤15g); surplus kcal/macros go to Хранене 2 and 4 — never inflate H5. Exceptions: diabetes/IR, >4h dinner–sleep (H5 still max {MAX_LATE_SNACK_CALORIES} kcal).
 4. FREE MEAL (Saturday freeDayNumber=6 or Sunday freeDayNumber=7 only):
    YES if food triggers, compensatory habits, emotional eating or restrictive diet history.
    NO if active large caloric deficit, diabetes, eating disorder (anorexia/bulimia) or pregnancy → freeDayNumber: null.
