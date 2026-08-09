@@ -10491,7 +10491,7 @@ function calculateMacronutrientRatios(data, activityScore, tdee = null) {
 }
 function calculateSafeDeficit(tdee, goal) {
   const MAX_DEFICIT_PERCENT = 0.25;
-  if (!goal || !goal.includes("\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435")) {
+  if (!goalIncludes(goal, "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435")) {
     return {
       targetCalories: tdee,
       deficitPercent: 0,
@@ -14037,7 +14037,11 @@ async function reconcilePlanStructure(plan, userData = null, env = null) {
       dayCount++;
     }
   }
-  if (dayCount > 0) plan.summary.dailyCalories = Math.round(totalCals / dayCount);
+  if (dayCount > 0) {
+    const achievedDaily = Math.round(totalCals / dayCount);
+    plan.summary.dailyCalories = achievedDaily;
+    syncAchievedCaloriesToAnalysis(plan, achievedDaily);
+  }
   return plan;
 }
 async function reconcilePlanAfterAssistantPatches(plan, userData = null, env = null) {
@@ -15389,11 +15393,26 @@ function parseFinalCalories(value) {
   const m = String(value).match(/\d+/);
   return m ? parseInt(m[0]) : 0;
 }
-function syncAnalysisCalories(analysis) {
+function syncAnalysisCalories(analysis, referenceTdee = 0) {
   if (!analysis) return;
+  const cm = analysis.correctedMetabolism || (analysis.correctedMetabolism = {});
+  const maintenance = referenceTdee || parseFinalCalories(analysis.tdee) || parseFinalCalories(cm.realTDEE);
+  if (maintenance > 0) {
+    analysis.tdee = maintenance;
+    cm.realTDEE = maintenance;
+  }
   const fc = parseFinalCalories(analysis.Final_Calories);
-  if (fc > 0 && analysis.correctedMetabolism) {
-    analysis.correctedMetabolism.realTDEE = fc;
+  if (fc > 0) analysis.recommendedCalories = fc;
+}
+function syncAchievedCaloriesToAnalysis(plan, achievedDaily) {
+  if (!plan?.analysis || !(achievedDaily > 0)) return;
+  const prev = parseFinalCalories(plan.analysis.Final_Calories);
+  plan.analysis.Final_Calories = achievedDaily;
+  plan.analysis.recommendedCalories = achievedDaily;
+  if (prev > 0 && Math.abs(prev - achievedDaily) > calorieTolerance(prev)) {
+    const cm = plan.analysis.correctedMetabolism || (plan.analysis.correctedMetabolism = {});
+    const hint = `\u0420\u0435\u0430\u043B\u0435\u043D \u0434\u043D\u0435\u0432\u0435\u043D \u043F\u043B\u0430\u043D: ${achievedDaily} kcal (\u043C\u0435\u0442\u0430\u0431\u043E\u043B\u0438\u0442\u043D\u0430 \u0446\u0435\u043B ${prev}).`;
+    cm.correction = cm.correction ? `${cm.correction} ${hint}` : hint;
   }
 }
 function goalIncludes(goal, keyword) {
@@ -15407,7 +15426,7 @@ function getMinRecommendedCalories(gender) {
 }
 function enforceCalorieGuardrails(analysis, data, referenceTdee) {
   if (!analysis) return;
-  syncAnalysisCalories(analysis);
+  syncAnalysisCalories(analysis, referenceTdee);
   const tdee = referenceTdee || parseFinalCalories(analysis.tdee) || 0;
   let fc = parseFinalCalories(analysis.Final_Calories);
   if (fc <= 0 && tdee > 0) fc = tdee;
@@ -15436,7 +15455,11 @@ function enforceCalorieGuardrails(analysis, data, referenceTdee) {
   }
   if (fc > 0) {
     analysis.Final_Calories = fc;
-    cm.realTDEE = fc;
+    analysis.recommendedCalories = fc;
+    if (tdee > 0) {
+      analysis.tdee = tdee;
+      cm.realTDEE = tdee;
+    }
   }
   const weight = parseFloat(data.weight) || 70;
   const minFatG = Math.round(weight * MIN_FAT_GRAMS_PER_KG2);
@@ -15827,7 +15850,20 @@ function finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, userData = n
 }
 function syncPlanTargets(plan, analysis) {
   if (!plan || !analysis) return;
-  const fc = parseFinalCalories(analysis.Final_Calories);
+  let fc = 0;
+  if (plan.weekPlan) {
+    let total = 0;
+    let count = 0;
+    for (const day of Object.values(plan.weekPlan)) {
+      const c = Number(day?.dailyTotals?.calories) || 0;
+      if (c > 0) {
+        total += c;
+        count++;
+      }
+    }
+    if (count > 0) fc = Math.round(total / count);
+  }
+  if (fc <= 0) fc = parseFinalCalories(analysis.Final_Calories);
   const mg = analysis.macroGrams;
   if (!plan.summary) plan.summary = {};
   if (fc > 0) plan.summary.dailyCalories = fc;
