@@ -8124,7 +8124,7 @@ function formatCatalogSectionForPrompt(candidatesBySlot, { minUniversality = DEF
   const lines = [
     `=== \u041A\u0410\u0422\u0410\u041B\u041E\u0413 \u0425\u0420\u0410\u041D\u0418 (\u0417\u0410\u0414\u042A\u041B\u0416\u0418\u0422\u0415\u041B\u041D\u041E \u2014 \u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430\u0439 \u0421\u0410\u041C\u041E \u0442\u0435\u0437\u0438 \u0438\u043C\u0435\u043D\u0430) ===`,
     `\u0423\u043D\u0438\u0432\u0435\u0440\u0441\u0430\u043B\u043D\u043E\u0441\u0442 \u2265${minUniversality}: \u043F\u0440\u0435\u0434\u043F\u043E\u0447\u0438\u0442\u0430\u0439 \u043F\u043E-\u043E\u0431\u0449\u0438 \u0432\u0430\u0440\u0438\u0430\u043D\u0442\u0438 (\u0420\u0438\u0431\u0430, \u041E\u0440\u0438\u0437, \u041F\u043B\u043E\u0434) \u043F\u0440\u0435\u0434 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u0438 (\u041B\u0430\u0432\u0440\u0430\u043A, \u041A\u0438\u043D\u043E\u0430, \u041C\u0430\u043D\u0433\u043E).`,
-    `\u0421\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438 \u0432 \u0441\u043A\u043E\u0431\u0438 = \u043D\u0430 100g. \u041E\u0440\u0438\u0435\u043D\u0442\u0438\u0440\u0430\u0439 \u0433\u0440\u0430\u043C\u0430\u0436\u0438\u0442\u0435 \u043A\u044A\u043C \u0446\u0435\u043B\u0438\u0442\u0435 \u043E\u0442 mealBreakdown. \u0417\u0430\u043A\u0440\u044A\u0433\u043B\u044F\u0439 \u043D\u0430 10g.`,
+    `\u0421\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438 \u0432 \u0441\u043A\u043E\u0431\u0438 = \u043D\u0430 100g. \u041E\u0440\u0438\u0435\u043D\u0442\u0438\u0440\u0430\u0439 \u0433\u0440\u0430\u043C\u0430\u0436\u0438\u0442\u0435 \u043A\u044A\u043C \u0446\u0435\u043B\u0438\u0442\u0435 \u043E\u0442 mealBreakdown. \u0417\u0430\u043A\u0440\u044A\u0433\u043B\u044F\u0439: \u226450g \u043D\u0430 10g, >50g \u043D\u0430 50g.`,
     `\u0413\u043E\u0442\u043E\u0432\u0430 \u0445\u0440\u0430\u043D\u0430 = \u0435\u0434\u0438\u043D \u0440\u0435\u0434 \u0432 description \u0418\u041B\u0418 \u0440\u0430\u0437\u0431\u0438\u0439 \u043D\u0430 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u043E\u0442 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430.`
   ];
   for (const slot of ["PRO", "ENG", "VOL", "FAT"]) {
@@ -8982,6 +8982,8 @@ function reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay) {
 
 // food-nutrition.js
 var GRAM_ROUND_STEP = 10;
+var GRAM_ROUND_STEP_LARGE = 50;
+var GRAM_LARGE_THRESHOLD = 50;
 var CALORIE_TOLERANCE_PERCENT = SLOT_CALORIE_TOLERANCE_PERCENT;
 var MACRO_TOLERANCE_PERCENT = 0.1;
 var MIN_CALORIE_TOLERANCE_KCAL = SLOT_CALORIE_TOLERANCE_MIN_KCAL;
@@ -9119,10 +9121,32 @@ function parseMealDescription(description) {
   }
   return expandReadyMealItems(items);
 }
-function roundGrams(grams, step = GRAM_ROUND_STEP) {
+function gramRoundStep(grams) {
   const g = Number(grams) || 0;
-  if (g <= 0) return step;
-  return Math.max(step, Math.round(g / step) * step);
+  return g > GRAM_LARGE_THRESHOLD ? GRAM_ROUND_STEP_LARGE : GRAM_ROUND_STEP;
+}
+function roundGrams(grams, step) {
+  const g = Number(grams) || 0;
+  const effectiveStep = step ?? gramRoundStep(g);
+  if (g <= 0) return effectiveStep;
+  return Math.max(GRAM_ROUND_STEP, Math.round(g / effectiveStep) * effectiveStep);
+}
+function roundGramsWithinRange(idealGrams, minGrams, maxGrams) {
+  const minG = Math.min(minGrams, maxGrams);
+  const maxG = Math.max(minGrams, maxGrams);
+  const step = gramRoundStep(idealGrams);
+  let best = roundGrams(idealGrams);
+  if (best >= minG && best <= maxG) return best;
+  let bestDist = Infinity;
+  for (let g = roundGrams(minG); g <= maxG + step; g += step) {
+    if (g < minG || g > maxG) continue;
+    const dist = Math.abs(g - idealGrams);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = g;
+    }
+  }
+  return best;
 }
 function getCatalogMeta(name) {
   const { entry } = resolveCatalogEntry(name);
@@ -9203,9 +9227,13 @@ function adjustProteinItemsTowardTarget(items, targetProtein) {
     1 + PROTEIN_ADJUST_MAX_PERCENT,
     Math.max(1 - PROTEIN_ADJUST_MAX_PERCENT, (driverProtein + deficit) / driverProtein)
   );
-  return items.map(
-    (it) => isProteinDriverItem(it) && !isCondimentItem(it) ? { ...it, grams: roundGrams(it.grams * factor) } : it
-  );
+  return items.map((it) => {
+    if (!isProteinDriverItem(it) || isCondimentItem(it)) return it;
+    const minG = it.grams * (1 - PROTEIN_ADJUST_MAX_PERCENT);
+    const maxG = it.grams * (1 + PROTEIN_ADJUST_MAX_PERCENT);
+    const ideal = it.grams * factor;
+    return { ...it, grams: roundGramsWithinRange(ideal, minG, maxG) };
+  });
 }
 var SCALE_FACTOR_MIN = 0.5;
 var SCALE_FACTOR_MAX = 3;
@@ -9236,12 +9264,13 @@ function nudgeItemsTowardKcal(items, goal) {
     let best = null;
     let bestAbs = Math.abs(residual);
     for (const item2 of scaled) {
-      const nextGrams = item2.grams + GRAM_ROUND_STEP * dir;
+      const step = gramRoundStep(item2.grams);
+      const nextGrams = item2.grams + step * dir;
       if (nextGrams < GRAM_ROUND_STEP) continue;
       if (isCondimentItem(item2) && nextGrams > CONDIMENT_MAX_GRAMS) continue;
       if (isBulkItem(item2) && nextGrams > BULK_ITEM_MAX_GRAMS) continue;
       if ((nudges.get(item2) || 0) >= MAX_NUDGE_STEPS_PER_ITEM) continue;
-      const stepKcal = kcalPer100(item2) / 100 * GRAM_ROUND_STEP * dir;
+      const stepKcal = kcalPer100(item2) / 100 * step * dir;
       const abs = Math.abs(residual - stepKcal);
       if (abs < bestAbs) {
         bestAbs = abs;
@@ -9249,7 +9278,7 @@ function nudgeItemsTowardKcal(items, goal) {
       }
     }
     if (!best) break;
-    best.grams += GRAM_ROUND_STEP * dir;
+    best.grams += gramRoundStep(best.grams) * dir;
     nudges.set(best, (nudges.get(best) || 0) + 1);
   }
   return scaled;
@@ -9275,7 +9304,8 @@ function trimToMaxWeight(items) {
     });
     const target = candidates[0];
     if (!target) break;
-    target.grams = Math.max(GRAM_ROUND_STEP, target.grams - GRAM_ROUND_STEP);
+    const trimStep = gramRoundStep(target.grams);
+    target.grams = Math.max(GRAM_ROUND_STEP, target.grams - trimStep);
   }
   return working;
 }
