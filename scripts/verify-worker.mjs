@@ -149,6 +149,11 @@ check('plan normalize (scheme + analysis)', () => {
   if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
 });
 
+check('calorie target vs achieved sync', () => {
+  const r = run('node', ['scripts/test-calorie-target-sync.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
+});
+
 check('meal scaling pipeline', () => {
   const r = run('node', ['test-meal-scaling.mjs']);
   if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));

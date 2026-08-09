@@ -1142,7 +1142,7 @@ function calculateMacronutrientRatios(data, activityScore, tdee = null) {
 function calculateSafeDeficit(tdee, goal) {
   const MAX_DEFICIT_PERCENT = 0.25; // 25% maximum
   
-  if (!goal || !goal.includes('Отслабване')) {
+  if (!goalIncludes(goal, 'Отслабване')) {
     return {
       targetCalories: tdee,
       deficitPercent: 0,
@@ -5855,13 +5855,53 @@ async function ensureAssistantCacheFresh(env, session, card, planUpdatedAt, anal
 }
 
 /**
+ * When scheme or achieved dailies drift below Final_Calories, rebalance slots and re-sync meals.
+ */
+async function enforceWeekPlanCalorieTargets(env, weekPlan, strategy, analysis, userData, startDay, endDay) {
+  const dailyTarget = parseFinalCalories(analysis?.Final_Calories);
+  if (!(dailyTarget > 0) || !strategy?.weeklyScheme || !weekPlan) return;
+
+  let needsResync = false;
+  const tol = calorieTolerance(dailyTarget);
+
+  for (let d = startDay; d <= endDay; d++) {
+    const schemeKey = DAY_NUMBER_TO_KEY[d - 1];
+    const dayScheme = strategy.weeklyScheme[schemeKey];
+    const dayPlan = weekPlan[`day${d}`];
+    if (!dayScheme?.mealBreakdown?.length) continue;
+
+    const schemeTotal = dayScheme.mealBreakdown.reduce((s, m) => s + (Number(m.calories) || 0), 0)
+      || Number(dayScheme.calories) || 0;
+    const achieved = Number(dayPlan?.dailyTotals?.calories) || 0;
+
+    if (Math.abs(schemeTotal - dailyTarget) > tol
+      || (achieved > 0 && achieved < dailyTarget - tol)) {
+      rebalanceMealBreakdownSlots(dayScheme, dailyTarget);
+      syncSchemeDayMetadata(dayScheme);
+      enforceFixedSlotCaps(dayScheme, dailyTarget);
+      clampLateSnackInMealBreakdown(dayScheme);
+      syncSchemeDayMetadata(dayScheme);
+      needsResync = true;
+    }
+  }
+
+  if (!needsResync || !env) return;
+
+  await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, userData);
+  if (repairWeekPlanLightSlots(weekPlan, startDay, endDay, userData)) {
+    await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, userData);
+  }
+}
+
+/**
  * Normalize plan structure + nutrition on every write path (admin, assistant, activate).
  */
 async function reconcilePlanStructure(plan, userData = null, env = null) {
   if (!plan?.weekPlan) return plan;
+  const intakeTarget = parseFinalCalories(plan.analysis?.Final_Calories);
   if (plan.strategy) {
     normalizeStrategyDessertFlag(plan.strategy, userData);
-    normalizeWeeklyScheme(plan.strategy, plan.summary?.dailyCalories || parseFinalCalories(plan.analysis?.Final_Calories), userData);
+    normalizeWeeklyScheme(plan.strategy, intakeTarget, userData);
   }
   if (plan.analysis) normalizeAnalysisOutput(plan.analysis, userData);
   stripDessertsWhenDisabled(plan.weekPlan, plan.strategy);
@@ -5874,6 +5914,10 @@ async function reconcilePlanStructure(plan, userData = null, env = null) {
       }
     }
     finalizeWeekPlanDays(plan.weekPlan, plan.strategy, 1, 7, userData);
+    if (env && intakeTarget > 0) {
+      await enforceWeekPlanCalorieTargets(env, plan.weekPlan, plan.strategy, plan.analysis, userData, 1, 7);
+      finalizeWeekPlanDays(plan.weekPlan, plan.strategy, 1, 7, userData);
+    }
     reconcileAchievedSlotCalories(plan.weekPlan, plan.strategy, 1, 7);
     for (const key of DAY_NUMBER_TO_KEY) {
       const day = plan.strategy.weeklyScheme[key];
@@ -5896,16 +5940,6 @@ async function reconcilePlanStructure(plan, userData = null, env = null) {
       fats: avgMacros.fats,
     };
   }
-  let totalCals = 0;
-  let dayCount = 0;
-  for (const dayKey of Object.keys(plan.weekPlan)) {
-    const cals = Number(plan.weekPlan[dayKey]?.dailyTotals?.calories) || 0;
-    if (cals > 0) {
-      totalCals += cals;
-      dayCount++;
-    }
-  }
-  if (dayCount > 0) plan.summary.dailyCalories = Math.round(totalCals / dayCount);
   return plan;
 }
 
@@ -7510,18 +7544,21 @@ function parseFinalCalories(value) {
 }
 
 /**
- * Sync analysis.correctedMetabolism.realTDEE to Final_Calories.
- * The prompt instructs the AI to set both to the same value, but models
- * occasionally place different numbers in each field. Using Final_Calories
- * as the single source of truth prevents Steps 2 and 3 from working with
- * diverging calorie targets.
+ * Keep maintenance TDEE separate from intake target (Final_Calories).
+ * Steps 2–3 use Final_Calories; realTDEE/tdee stay at maintenance reference.
  */
-function syncAnalysisCalories(analysis) {
+function syncAnalysisCalories(analysis, referenceTdee = 0) {
   if (!analysis) return;
-  const fc = parseFinalCalories(analysis.Final_Calories);
-  if (fc > 0 && analysis.correctedMetabolism) {
-    analysis.correctedMetabolism.realTDEE = fc;
+  const cm = analysis.correctedMetabolism || (analysis.correctedMetabolism = {});
+  const maintenance = referenceTdee
+    || parseFinalCalories(analysis.tdee)
+    || parseFinalCalories(cm.realTDEE);
+  if (maintenance > 0) {
+    analysis.tdee = maintenance;
+    cm.realTDEE = maintenance;
   }
+  const fc = parseFinalCalories(analysis.Final_Calories);
+  if (fc > 0) analysis.recommendedCalories = fc;
 }
 
 /**
@@ -7545,7 +7582,7 @@ function getMinRecommendedCalories(gender) {
 function enforceCalorieGuardrails(analysis, data, referenceTdee) {
   if (!analysis) return;
 
-  syncAnalysisCalories(analysis);
+  syncAnalysisCalories(analysis, referenceTdee);
 
   const tdee = referenceTdee || parseFinalCalories(analysis.tdee) || 0;
   let fc = parseFinalCalories(analysis.Final_Calories);
@@ -7580,7 +7617,11 @@ function enforceCalorieGuardrails(analysis, data, referenceTdee) {
 
   if (fc > 0) {
     analysis.Final_Calories = fc;
-    cm.realTDEE = fc;
+    analysis.recommendedCalories = fc;
+    if (tdee > 0) {
+      analysis.tdee = tdee;
+      cm.realTDEE = tdee;
+    }
   }
 
   const weight = parseFloat(data.weight) || 70;
@@ -7704,7 +7745,10 @@ function normalizeWeeklyScheme(strategy, defaultDailyCalories, userData = null) 
     clampLateSnackInMealBreakdown(day);
 
     const sumField = (field) => day.mealBreakdown.reduce((s, m) => s + (Number(m[field]) || 0), 0);
-    const targetCals = Number(day.calories) || defaultDailyCalories || sumField('calories');
+    // Final_Calories is the intake contract — never prefer stale day.calories from AI drift.
+    const targetCals = defaultDailyCalories > 0
+      ? defaultDailyCalories
+      : (Number(day.calories) || sumField('calories'));
     rebalanceMealBreakdownSlots(day, targetCals);
 
     let sumCals = sumField('calories');
@@ -8052,9 +8096,7 @@ function finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, userData = n
   recalculateDayCalories(weekPlan, strategy);
 }
 
-/**
- * Summary display targets = Step 1 analysis (same as macrosVizContainer / diet recommendations).
- */
+/** Summary targets mirror Step 1 intake contract (Final_Calories), not under-delivered meals. */
 function syncPlanTargets(plan, analysis) {
   if (!plan || !analysis) return;
   const fc = parseFinalCalories(analysis.Final_Calories);

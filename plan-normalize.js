@@ -949,11 +949,12 @@ export function reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endD
       let aligned = target;
       if (!isFixed && isMealCaloriesAdequate(achieved, target)) {
         aligned = achieved;
-      } else if (!isFixed && achieved < target) {
-        aligned = achieved;
+      } else if (!isFixed && achieved > target) {
+        aligned = Math.min(achieved, ceiling);
       } else if (isFixed && achieved > 0) {
         aligned = Math.min(achieved, ceiling);
       }
+      // achieved < target and not adequate → keep target (never lower the contract)
       slot.calories = Math.min(aligned, ceiling);
     }
 
