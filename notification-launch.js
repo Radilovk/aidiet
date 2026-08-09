@@ -50,8 +50,11 @@
         var planJobId = localStorage.getItem('planJobId');
         if (planJobId) {
             var src = localStorage.getItem('planJobSource');
-            location.replace(src === 'questionnaire' ? 'questionnaire.html' : 'questionnaire2.html');
-            return;
+            var planSync = window.NutriPlanPlanSync;
+            if (!(planSync && typeof planSync.shouldSkipPlanJobRedirect === 'function' && planSync.shouldSkipPlanJobRedirect())) {
+                location.replace(src === 'questionnaire' ? 'questionnaire.html' : 'questionnaire2.html');
+                return;
+            }
         }
 
         if (!localStorage.getItem('dietPlan')) return;

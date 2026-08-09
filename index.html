@@ -70,8 +70,11 @@
         var planJobId = localStorage.getItem('planJobId');
         if (planJobId) {
             var src = localStorage.getItem('planJobSource');
-            window.location.replace(src === 'questionnaire' ? 'questionnaire.html' : 'questionnaire2.html');
-            return;
+            var planSync = window.NutriPlanPlanSync;
+            if (!(planSync && typeof planSync.shouldSkipPlanJobRedirect === 'function' && planSync.shouldSkipPlanJobRedirect())) {
+                location.replace(src === 'questionnaire' ? 'questionnaire.html' : 'questionnaire2.html');
+                return;
+            }
         }
         
         // Check if user has a plan
@@ -2934,8 +2937,11 @@
             if (!params.has('stay') && !params.has('app') && !params.has('login')) {
                 if (localStorage.getItem('planJobId')) {
                     const restoredSource = localStorage.getItem('planJobSource');
-                    window.location.replace(restoredSource === 'questionnaire' ? 'questionnaire.html' : 'questionnaire2.html');
-                    return;
+                    const planSync = window.NutriPlanPlanSync;
+                    if (!(planSync && typeof planSync.shouldSkipPlanJobRedirect === 'function' && planSync.shouldSkipPlanJobRedirect())) {
+                        window.location.replace(restoredSource === 'questionnaire' ? 'questionnaire.html' : 'questionnaire2.html');
+                        return;
+                    }
                 }
 
                 const restoredTarget = getPlanTargetFromState();
@@ -2973,8 +2979,11 @@
             // so the plan will be waiting in KV — we just need to resume polling.
             if (localStorage.getItem('planJobId')) {
                 const src = localStorage.getItem('planJobSource');
-                window.location.replace(src === 'questionnaire' ? 'questionnaire.html' : 'questionnaire2.html');
-                return;
+                const planSync = window.NutriPlanPlanSync;
+                if (!(planSync && typeof planSync.shouldSkipPlanJobRedirect === 'function' && planSync.shouldSkipPlanJobRedirect())) {
+                    window.location.replace(src === 'questionnaire' ? 'questionnaire.html' : 'questionnaire2.html');
+                    return;
+                }
             }
 
             // Restore profile when localStorage is empty (iOS PWA isolated-storage scenario).

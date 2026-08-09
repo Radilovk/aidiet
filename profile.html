@@ -3072,9 +3072,12 @@
                 }
             }
 
-            if (replacingExistingPlan) {
-                showAlert(PLAN_REVIEW_SYSTEM_MSG, 'info');
-            }
+            const resetRegenerateButton = function() {
+                const btn = document.getElementById('saveAndRegenerateBtn');
+                if (!btn) return;
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sync-alt"></i> Запази и регенерирай план';
+            };
 
             try {
                 localStorage.setItem('userData', JSON.stringify(updatedData));
@@ -3086,14 +3089,15 @@
                 btn.disabled = true;
                 btn.innerHTML = '<div class="spinner"></div> Регенериране на план...';
 
-                showAlert('Генерирам нов план на базата на актуализираните данни...', 'info');
-
                 const jobId = crypto.randomUUID();
                 const requireApproval = replacingExistingPlan;
                 localStorage.setItem('planJobId', jobId);
                 localStorage.setItem('planJobSource', requireApproval ? 'profile-regen' : 'questionnaire');
                 localStorage.setItem('pendingPlanPayload', JSON.stringify(updatedData));
-                if (requireApproval) localStorage.setItem('planReplacePending', '1');
+                if (requireApproval) {
+                    localStorage.setItem('planReplacePending', '1');
+                    localStorage.setItem('npPlanReviewSource', 'profile-regen');
+                }
 
                 const fbUserId = authContext?.userId || (function() {
                     const uid = localStorage.getItem('userId');
@@ -3142,6 +3146,32 @@
                     throw new Error(asyncResult.error || 'Неизвестна грешка при стартиране на генерирането');
                 }
 
+                localStorage.setItem('planJobId', asyncResult.jobId);
+                if (savedClientId) localStorage.setItem('pendingClientId', savedClientId);
+
+                if (requireApproval) {
+                    resetRegenerateButton();
+                    originalData = JSON.parse(JSON.stringify(updatedData));
+                    cancelEditing();
+                    clearAlert();
+
+                    const processingMsg = (sync && sync.PROFILE_REGEN_PROCESSING_MSG) ||
+                        'В момента обработваме постъпилите промени. Скоро ще получите актуализация на Вашия план.';
+                    if (sync && typeof sync.startProfileRegenBackgroundPoll === 'function') {
+                        sync.startProfileRegenBackgroundPoll();
+                    }
+                    if (sync && typeof sync.showProfileRegenProcessingModal === 'function') {
+                        await sync.showProfileRegenProcessingModal(processingMsg);
+                    } else {
+                        showAlert(processingMsg, 'info');
+                    }
+
+                    const prevCount = parseInt(localStorage.getItem('demoProfileRegenCount') || '0', 10);
+                    localStorage.setItem('demoProfileRegenCount', String(prevCount + 1));
+                    return;
+                }
+
+                showAlert('Генерирам нов план на базата на актуализираните данни...', 'info');
                 const MAX_POLLS = 72;
                 const POLL_BASE_DELAY = 5000;
                 const POLL_MAX_DELAY = 30000;
@@ -3197,46 +3227,23 @@
                 }
                 localStorage.removeItem('hasSeenPlanJustification');
 
-                if (requireApproval) {
-                    localStorage.setItem('planSource', 'questionnaire2');
-                    localStorage.setItem('npPlanReviewSource', 'profile-regen');
-                    if (savedClientId) localStorage.setItem('pendingClientId', savedClientId);
-                    await sync.saveUserProfile(
-                        resolvedUserId,
-                        result.plan,
-                        updatedData,
-                        'questionnaire2',
-                        idToken,
-                        savedClientId
-                    );
-                    const prevCount = parseInt(localStorage.getItem('demoProfileRegenCount') || '0', 10);
-                    localStorage.setItem('demoProfileRegenCount', String(prevCount + 1));
-                    localStorage.removeItem('planReplacePending');
-                    showAlert('✓ ' + PLAN_REVIEW_SYSTEM_MSG, 'info');
-                    setTimeout(() => {
-                        if (!requestShellAction('NUTRIPLAN_NAVIGATE', { url: 'plan-pending.html', replace: false, forceTopLevel: true })) {
-                            window.location.href = 'plan-pending.html';
-                        }
-                    }, 2000);
-                } else {
-                    localStorage.removeItem('planSource');
-                    await sync.saveUserProfile(
-                        resolvedUserId,
-                        result.plan,
-                        updatedData,
-                        '',
-                        idToken,
-                        savedClientId
-                    );
-                    const prevCount = parseInt(localStorage.getItem('demoProfileRegenCount') || '0', 10);
-                    localStorage.setItem('demoProfileRegenCount', String(prevCount + 1));
-                    showAlert('✓ Планът е регенериран успешно! Пренасочване...', 'info');
-                    setTimeout(() => {
-                        if (!requestShellAction('NUTRIPLAN_SWITCH_TAB', { tab: 'plan' })) {
-                            window.location.href = 'index.html?app=1&tab=plan';
-                        }
-                    }, 2000);
-                }
+                localStorage.removeItem('planSource');
+                await sync.saveUserProfile(
+                    resolvedUserId,
+                    result.plan,
+                    updatedData,
+                    '',
+                    idToken,
+                    savedClientId
+                );
+                const prevCount = parseInt(localStorage.getItem('demoProfileRegenCount') || '0', 10);
+                localStorage.setItem('demoProfileRegenCount', String(prevCount + 1));
+                showAlert('✓ Планът е регенериран успешно! Пренасочване...', 'info');
+                setTimeout(() => {
+                    if (!requestShellAction('NUTRIPLAN_SWITCH_TAB', { tab: 'plan' })) {
+                        window.location.href = 'index.html?app=1&tab=plan';
+                    }
+                }, 2000);
 
                 originalData = JSON.parse(JSON.stringify(updatedData));
                 cancelEditing();
@@ -3252,9 +3259,7 @@
                     localStorage.removeItem('planJobSource');
                     localStorage.removeItem('pendingPlanPayload');
                 }
-                const btn = document.getElementById('saveAndRegenerateBtn');
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-sync-alt"></i> Запази и регенерирай план';
+                resetRegenerateButton();
                 const errorMsg = isNetworkError
                     ? 'Връзката беше прекъсната, но заявката може да продължава на сървъра. Отворете страницата отново, за да се възстанови проверката.'
                     : (error.message || 'Неизвестна грешка');
