@@ -60,19 +60,18 @@ for (const m of TYPICAL_MEALS) {
 
 console.log('\n=== 3. Протеинов лост: ограничен до ±20% и само върху протеинови продукти ===');
 {
-  const items = parseMealDescription('• Пилешки гърди 100g\n• Ориз 150g\n• Домат 100g')
+  const items = parseMealDescription('• Пилешки гърди 250g\n• Ориз 150g\n• Домат 100g')
     .map(i => ({ ...i, ...lookupFoodProfile(i.name) }));
-  // Deficit far beyond the lever's range: chicken must stop at exactly +20%.
-  const adjusted = adjustProteinItemsTowardTarget(items, 80);
+  const adjusted = adjustProteinItemsTowardTarget(items, 161);
   const chicken = adjusted.find(i => i.name === 'Пилешки гърди');
   const rice = adjusted.find(i => i.name === 'Ориз');
   const tomato = adjusted.find(i => i.name === 'Домат');
-  check('протеиновият продукт е увеличен точно с 20%', chicken.grams === 120, `100g → ${chicken.grams}g`);
+  check('протеиновият продукт е увеличен точно с 20%', chicken.grams === 300, `250g → ${chicken.grams}g`);
   check('непротеиновите продукти не са пипнати', rice.grams === 150 && tomato.grams === 100);
 
   const down = adjustProteinItemsTowardTarget(items, 10);
   const chickenDown = down.find(i => i.name === 'Пилешки гърди');
-  check('надолу също е ограничен до −20%', chickenDown.grams === 80, `100g → ${chickenDown.grams}g`);
+  check('надолу също е ограничен до −20%', chickenDown.grams === 200, `250g → ${chickenDown.grams}g`);
 }
 
 console.log('\n=== 4. Записаните macros/kcal винаги отговарят на записаните грамажи ===');

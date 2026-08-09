@@ -26,6 +26,8 @@ import { MAX_LATE_SNACK_CALORIES, SLOT_CALORIE_TOLERANCE_PERCENT, SLOT_CALORIE_T
 export { normalizeFoodKey } from './food-utils.js';
 
 export const GRAM_ROUND_STEP = 10;
+export const GRAM_ROUND_STEP_LARGE = 50;
+export const GRAM_LARGE_THRESHOLD = 50;
 
 // Adequacy contract — see plan-normalize.js SLOT_CALORIE_TOLERANCE_* (single source).
 export const CALORIE_TOLERANCE_PERCENT = SLOT_CALORIE_TOLERANCE_PERCENT;
@@ -193,10 +195,37 @@ export function parseMealDescription(description) {
   return expandReadyMealItems(items);
 }
 
-export function roundGrams(grams, step = GRAM_ROUND_STEP) {
+/** ≤50g → 10g steps; >50g → 50g steps (main foods). */
+export function gramRoundStep(grams) {
   const g = Number(grams) || 0;
-  if (g <= 0) return step;
-  return Math.max(step, Math.round(g / step) * step);
+  return g > GRAM_LARGE_THRESHOLD ? GRAM_ROUND_STEP_LARGE : GRAM_ROUND_STEP;
+}
+
+export function roundGrams(grams, step) {
+  const g = Number(grams) || 0;
+  const effectiveStep = step ?? gramRoundStep(g);
+  if (g <= 0) return effectiveStep;
+  return Math.max(GRAM_ROUND_STEP, Math.round(g / effectiveStep) * effectiveStep);
+}
+
+/** Nearest valid gram step within [minG, maxG] (for bounded protein nudges). */
+function roundGramsWithinRange(idealGrams, minGrams, maxGrams) {
+  const minG = Math.min(minGrams, maxGrams);
+  const maxG = Math.max(minGrams, maxGrams);
+  const step = gramRoundStep(idealGrams);
+  let best = roundGrams(idealGrams);
+  if (best >= minG && best <= maxG) return best;
+
+  let bestDist = Infinity;
+  for (let g = roundGrams(minG); g <= maxG + step; g += step) {
+    if (g < minG || g > maxG) continue;
+    const dist = Math.abs(g - idealGrams);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = g;
+    }
+  }
+  return best;
 }
 
 function getCatalogMeta(name) {
@@ -295,11 +324,13 @@ export function adjustProteinItemsTowardTarget(items, targetProtein) {
     1 + PROTEIN_ADJUST_MAX_PERCENT,
     Math.max(1 - PROTEIN_ADJUST_MAX_PERCENT, (driverProtein + deficit) / driverProtein)
   );
-  return items.map(it =>
-    isProteinDriverItem(it) && !isCondimentItem(it)
-      ? { ...it, grams: roundGrams(it.grams * factor) }
-      : it
-  );
+  return items.map(it => {
+    if (!isProteinDriverItem(it) || isCondimentItem(it)) return it;
+    const minG = it.grams * (1 - PROTEIN_ADJUST_MAX_PERCENT);
+    const maxG = it.grams * (1 + PROTEIN_ADJUST_MAX_PERCENT);
+    const ideal = it.grams * factor;
+    return { ...it, grams: roundGramsWithinRange(ideal, minG, maxG) };
+  });
 }
 
 // Stability guards for calorie scaling: a wildly under/over-portioned AI pick gets
@@ -340,12 +371,13 @@ function nudgeItemsTowardKcal(items, goal) {
     let best = null;
     let bestAbs = Math.abs(residual);
     for (const item of scaled) {
-      const nextGrams = item.grams + GRAM_ROUND_STEP * dir;
+      const step = gramRoundStep(item.grams);
+      const nextGrams = item.grams + step * dir;
       if (nextGrams < GRAM_ROUND_STEP) continue;
       if (isCondimentItem(item) && nextGrams > CONDIMENT_MAX_GRAMS) continue;
       if (isBulkItem(item) && nextGrams > BULK_ITEM_MAX_GRAMS) continue;
       if ((nudges.get(item) || 0) >= MAX_NUDGE_STEPS_PER_ITEM) continue;
-      const stepKcal = (kcalPer100(item) / 100) * GRAM_ROUND_STEP * dir;
+      const stepKcal = (kcalPer100(item) / 100) * step * dir;
       const abs = Math.abs(residual - stepKcal);
       if (abs < bestAbs) {
         bestAbs = abs;
@@ -354,7 +386,7 @@ function nudgeItemsTowardKcal(items, goal) {
     }
 
     if (!best) break;
-    best.grams += GRAM_ROUND_STEP * dir;
+    best.grams += gramRoundStep(best.grams) * dir;
     nudges.set(best, (nudges.get(best) || 0) + 1);
   }
   return scaled;
@@ -384,7 +416,8 @@ function trimToMaxWeight(items) {
     });
     const target = candidates[0];
     if (!target) break;
-    target.grams = Math.max(GRAM_ROUND_STEP, target.grams - GRAM_ROUND_STEP);
+    const trimStep = gramRoundStep(target.grams);
+    target.grams = Math.max(GRAM_ROUND_STEP, target.grams - trimStep);
   }
   return working;
 }

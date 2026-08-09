@@ -18,14 +18,14 @@ Favorites: {dietLove} | Dislikes: {dietDislike}
 {catalogSection}
 
 === FORMAT (slot types = mealBreakdown / #WK above, not this line) ===
-{"type": "Хранене 2", "name": "Пилешко с ориз", "description": "• пилешки гърди 150g\n• ориз 80g\n• домати 100g"}
+{"type": "Хранене 2", "name": "Пилешко с ориз", "description": "• пилешки гърди 150g\n• ориз 100g\n• домати 100g"}
 
 === TASK (Day {startDay}) ===
 Fill day {startDay} for {userData.name}. meals[].type MUST match this day's mealBreakdown exactly — no extra slots, no missing slots.
 • type — from mealBreakdown
 • name — dish title (Bulgarian)
 • description — catalog raw ingredients only, one per line: "• {product} {N}g" (eggs not omelet; chicken not "rice with chicken")
-Catalog products only; exact catalog names. Grams from kcal/P/C/F in mealBreakdown, round to 10g — grams are COOKED/ready-to-eat weight. No calories, macros, weight, benefits.
+Catalog products only; exact catalog names. Grams from kcal/P/C/F in mealBreakdown — round ≤50g to 10g, >50g to 50g (e.g. 150g, 200g; oil/spices ≤50g). COOKED/ready-to-eat weight. No calories, macros, weight, benefits.
 
 Macros: protein ≥20g → concentrated source; fats ≥10g → oil/nuts; carbs ≥25g → rice/potato/bread; high protein + low fat → lean sources.
 Energy density: Хранене 2/4 with target ≥450 kcal MUST include a dense carb (rice/potato/bread/quinoa) or fat (oil/nuts/avocado) — lean protein + vegetables alone cannot reach the target.
