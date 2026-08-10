@@ -37,7 +37,6 @@ RULES (priority):
    includeDessert: true ONLY if "Сладко" in {foodCravings}; otherwise false. Dessert is part of Хранене 2 slot (NOT a separate meal).
    false for diabetes, insulin resistance, strict low-calorie target or diet incompatible with added sugars.
 6. mealBreakdown sums = daily calories/protein/carbs/fats. "Свободно хранене" summed only in mealBreakdown.
-7. weeklyMealPattern + preferredFoodCategories: food groups only (риба, червено месо, птица/яйца, зеленчук, плод, ядки) — never dish names. State rotation: fish ≥2×/week, red meat ≥2×/week; diversify poultry, legumes, seasonal produce ({dietPreference}).
 
 === OUTPUT ===
 weeklyScheme: monday–sunday — each day meals/calories/protein/carbs/fats/description/mealBreakdown.

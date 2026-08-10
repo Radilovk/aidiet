@@ -29,15 +29,7 @@ Catalog products only; exact catalog names. Grams from kcal/P/C/F in mealBreakdo
 
 Macros: protein ≥20g → concentrated source; fats ≥10g → oil/nuts; carbs ≥25g → rice/potato/bread; high protein + low fat → lean sources.
 Energy density: H2/H4 ≥450 kcal → add dense carb OR fat/oil; lean PRO+veg alone cannot reach target.
-Combinations: 2–6 catalog items; PRO + vegetables (зеленчук or named) in every H2/H4 — plate/side, not starch-only meals.
-
-=== DIVERSITY (week / micronutrients) ===
-Rotate sources — do not default every main to chicken+rice. Use catalog generics (зеленчук, плод, риба, ядки) unless a specific item adds variety.
-• H2/H4: PRO 150–300g + veg — e.g. говеждо+зеленчук | риба+зеленчук | пилешко+зеленчук; rice/potato only when kcal requires it.
-• H3: кисело мляко/скир + плод OR ядки — alternate daily (not the same combo 7×).
-• H5: dairy + ядки; vary nuts when possible.
-Weekly: fish ≥2 days | red meat (говеждо/телешко) ≥2 days | veg every H2/H4 | max 2 identical PRO-side patterns/week.
-#PD: max 5 identical dish names/week — change PRO and sides, not only the title{sweetsCravingRule}{freeMealInstruction}
+Combinations: 2–6 catalog items; meet slot macros. In description prefer catalog group names (зеленчук, плод, риба, ядки, червено месо) over specific products when precision is not required. Variety vs previous days and strategy{sweetsCravingRule}{freeMealInstruction}
 
 === MEAL TYPES ===
 • Хранене 2/4 — main meals (meat, fish, eggs, cooked combinations)
