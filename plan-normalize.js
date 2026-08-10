@@ -955,7 +955,10 @@ export function reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endD
         aligned = Math.min(achieved, ceiling);
       }
       // achieved < target and not adequate → keep target (never lower the contract)
-      slot.calories = Math.min(aligned, ceiling);
+      // Adequate achieved: keep meal kcal — do not clamp to soft ceiling (breaks high-intake days).
+      slot.calories = isMealCaloriesAdequate(achieved, target)
+        ? achieved
+        : Math.min(aligned, ceiling);
     }
 
     dayScheme.calories = dayScheme.mealBreakdown.reduce((s, m) => s + (Number(m.calories) || 0), 0);

@@ -8975,7 +8975,7 @@ function reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay) {
       } else if (isFixed && achieved > 0) {
         aligned = Math.min(achieved, ceiling);
       }
-      slot.calories = Math.min(aligned, ceiling);
+      slot.calories = isMealCaloriesAdequate(achieved, target) ? achieved : Math.min(aligned, ceiling);
     }
     dayScheme.calories = dayScheme.mealBreakdown.reduce((s, m) => s + (Number(m.calories) || 0), 0);
   }
