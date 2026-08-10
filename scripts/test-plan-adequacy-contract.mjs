@@ -218,6 +218,36 @@ console.log('\n-- 11b. Reconcile slot calories (under-target stays at contract) 
   check('reconcile under-target H4 keeps contract', h4b.calories === 800, `${h4b.calories}`);
 }
 
+console.log('\n-- 11c. Reconcile adequate achieved above soft cap (high intake) --');
+{
+  const weekPlan = {
+    day1: {
+      meals: [
+        { type: 'Хранене 2', calories: 1128, macros: { protein: 75, carbs: 90, fats: 35 } },
+        { type: 'Хранене 4', calories: 1119, macros: { protein: 72, carbs: 88, fats: 34 } },
+      ],
+    },
+  };
+  const strategy = {
+    weeklyScheme: {
+      monday: {
+        calories: 2774,
+        mealBreakdown: [
+          { type: 'Хранене 2', calories: 1113 },
+          { type: 'Хранене 3', calories: 348 },
+          { type: 'Хранене 4', calories: 1113 },
+          { type: 'Хранене 5', calories: 200 },
+        ],
+      },
+    },
+  };
+  reconcileAchievedSlotCalories(weekPlan, strategy, 1, 1);
+  const h2c = strategy.weeklyScheme.monday.mealBreakdown.find(m => m.type === 'Хранене 2');
+  const h4c = strategy.weeklyScheme.monday.mealBreakdown.find(m => m.type === 'Хранене 4');
+  check('reconcile adequate H2 not clamped to 900', h2c.calories === 1128, `${h2c.calories}`);
+  check('reconcile adequate H4 not clamped to 900', h4c.calories === 1119, `${h4c.calories}`);
+}
+
 console.log('\n-- 12. Hard profiles golden analysis (offline) --');
 for (const profile of HARD_PROFILES) {
   const analysis = buildGoldenAnalysis(profile);
