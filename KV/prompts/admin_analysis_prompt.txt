@@ -20,7 +20,7 @@
 • goal [-20..+15] — goal, lossKg, bmi, dietHistory, психопрофил. ЛАКТАЦИЯ+ОТСЛАБВАНЕ: max -5%.
 • Сбор < -25% → ограничи goal до total = -25%.
 
-4. Final_Calories = round(tdee × (1 + total%/100)); мин. {MIN_RECOMMENDED_CALORIES} → correction описва повдигането. realBMR=bmr; realTDEE=Final_Calories.
+4. Final_Calories = round(tdee × (1 + total%/100)); мин. {MIN_RECOMMENDED_CALORIES} → correction описва повдигането. realBMR=bmr. Final_Calories = дневен ПРИЕМ (цел); backend tdee = maintenance — не ги смесвай.
 
 5. МАКРОСИ — изчисли САМО от Final_Calories:
 macroRatios (%) по goal, lossKg, темперамент, eatingHabits, foodCravings, medicalConditions, medications. protein+carbs+fats = 100 (само числа).

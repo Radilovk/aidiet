@@ -5855,45 +5855,6 @@ async function ensureAssistantCacheFresh(env, session, card, planUpdatedAt, anal
 }
 
 /**
- * When scheme or achieved dailies drift below Final_Calories, rebalance slots and re-sync meals.
- */
-async function enforceWeekPlanCalorieTargets(env, weekPlan, strategy, analysis, userData, startDay, endDay) {
-  const dailyTarget = parseFinalCalories(analysis?.Final_Calories);
-  if (!(dailyTarget > 0) || !strategy?.weeklyScheme || !weekPlan) return;
-
-  let needsResync = false;
-  const tol = calorieTolerance(dailyTarget);
-
-  for (let d = startDay; d <= endDay; d++) {
-    const schemeKey = DAY_NUMBER_TO_KEY[d - 1];
-    const dayScheme = strategy.weeklyScheme[schemeKey];
-    const dayPlan = weekPlan[`day${d}`];
-    if (!dayScheme?.mealBreakdown?.length) continue;
-
-    const schemeTotal = dayScheme.mealBreakdown.reduce((s, m) => s + (Number(m.calories) || 0), 0)
-      || Number(dayScheme.calories) || 0;
-    const achieved = Number(dayPlan?.dailyTotals?.calories) || 0;
-
-    if (Math.abs(schemeTotal - dailyTarget) > tol
-      || (achieved > 0 && achieved < dailyTarget - tol)) {
-      rebalanceMealBreakdownSlots(dayScheme, dailyTarget);
-      syncSchemeDayMetadata(dayScheme);
-      enforceFixedSlotCaps(dayScheme, dailyTarget);
-      clampLateSnackInMealBreakdown(dayScheme);
-      syncSchemeDayMetadata(dayScheme);
-      needsResync = true;
-    }
-  }
-
-  if (!needsResync || !env) return;
-
-  await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, userData);
-  if (repairWeekPlanLightSlots(weekPlan, startDay, endDay, userData)) {
-    await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, userData);
-  }
-}
-
-/**
  * Normalize plan structure + nutrition on every write path (admin, assistant, activate).
  */
 async function reconcilePlanStructure(plan, userData = null, env = null) {
@@ -5914,10 +5875,6 @@ async function reconcilePlanStructure(plan, userData = null, env = null) {
       }
     }
     finalizeWeekPlanDays(plan.weekPlan, plan.strategy, 1, 7, userData);
-    if (env && intakeTarget > 0) {
-      await enforceWeekPlanCalorieTargets(env, plan.weekPlan, plan.strategy, plan.analysis, userData, 1, 7);
-      finalizeWeekPlanDays(plan.weekPlan, plan.strategy, 1, 7, userData);
-    }
     reconcileAchievedSlotCalories(plan.weekPlan, plan.strategy, 1, 7);
     for (const key of DAY_NUMBER_TO_KEY) {
       const day = plan.strategy.weeklyScheme[key];
@@ -9456,21 +9413,21 @@ function buildCompactAnalysisForStep4(analysis) {
 }
 
 /**
- * Build compact analysis object with only the required fields for step 2.
- * Only these fields from step 1 AI response are passed to step 2: bmi, realBMR, realTDEE, psychoProfile, temperament, macroGrams, macroRatios.
+ * Build compact analysis object for step 2 (strategy).
+ * Intake target (Final_Calories) + maintenance TDEE must both reach the model.
  */
 function buildCompactAnalysis(analysis) {
+  const intake = parseFinalCalories(analysis?.Final_Calories || analysis?.recommendedCalories);
   return {
     bmi: analysis.bmi || null,
     realBMR: analysis.correctedMetabolism?.realBMR || null,
     realTDEE: analysis.correctedMetabolism?.realTDEE || null,
+    Final_Calories: intake || null,
+    recommendedCalories: intake || null,
     psychoProfile: analysis.psychoProfile || null,
     temperament: analysis.psychoProfile?.temperament || '',
     macroGrams: analysis.macroGrams || null,
     macroRatios: analysis.macroRatios || null,
-    // add1: допълнителна специфична информация по преценка на администратора.
-    // Пример как трябва да изглежда попълненото поле:
-    // add1: 'Клиентът е преминал медицинска консултация на 20.02.2026 – препоръчан е нисък прием на натрий. Алергия към ядки потвърдена от лекар.'
     add1: ''
   };
 }
@@ -9478,6 +9435,7 @@ function buildCompactAnalysis(analysis) {
 async function generateStrategyPrompt(data, analysis, env, errorPreventionComment = null) {
   const customPrompt = await requireKvPrompt(env, 'admin_strategy_prompt');
   const analysisCompact = buildCompactAnalysis(analysis);
+  const finalCalories = analysisCompact.recommendedCalories;
   const analysisBlock = serializeAnalysisForStep(analysis, 2);
   const userProfileBlock = serializeUserProfile(data, 'strategy');
   const _combinedNotes = buildCombinedAdditionalNotes(data);
@@ -9496,6 +9454,8 @@ async function generateStrategyPrompt(data, analysis, env, errorPreventionCommen
       bmi: analysisCompact.bmi,
       realBMR: analysisCompact.realBMR,
       realTDEE: analysisCompact.realTDEE,
+      finalCalories,
+      recommendedCalories: finalCalories,
       macroProteinG: analysisCompact.macroGrams?.protein ?? null,
       macroCarbsG: analysisCompact.macroGrams?.carbs ?? null,
       macroFatsG: analysisCompact.macroGrams?.fats ?? null,
