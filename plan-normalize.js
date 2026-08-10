@@ -708,11 +708,8 @@ export function removeBreakfastSlotFromDay(day) {
 }
 
 /** Step 3 prompt — one rule derived from dietary context, not per-profile branches. */
-export function buildMeal3PromptRule(userData) {
-  if (isVeganUser(userData)) {
-    return 'лека закуска: плод + ядки (банан/ябълка + бадеми/орехи). БЕЗ хумус, хляб, млечни, готвени ястия, месо, боб';
-  }
-  return 'лека закуска: плод и/или ядки и/или скир/кисело мляко. НЕ е мини-обяд — без месо, риба, боб, ориз, хляб, салата';
+export function buildMeal3PromptRule(_userData) {
+  return 'light snack slot only — not a main meal';
 }
 
 const MEAL3_REPAIR_VEGAN = {

@@ -2716,7 +2716,7 @@ function buildFreeMealInstruction(strategy, startDay, endDay, userData = null) {
   const skipBreakfastNote = userSkipsBreakfast(userData)
     ? ' No Хранене 1 — client skips breakfast.'
     : ' Generate Хранене 1 and Хранене 4 normally for this day.';
-  return `\nFREE MEAL (Day ${dayNum}): Replace Хранене 2 with {"type":"Свободно хранене","name":"Свободно хранене"} — no description/calories/macros/weight/benefits/dessert.${skipBreakfastNote} Light Хранене 4 dinner — no rice/potato/bread/pasta. Free-slot kcal from mealBreakdown; backend adds to dailyTotals.`;
+  return `\nFREE MEAL (Day ${dayNum}): Replace Хранене 2 with {"type":"Свободно хранене","name":"Свободно хранене"} — no description/calories/macros/weight/benefits/dessert.${skipBreakfastNote} Free-slot kcal from mealBreakdown; backend adds to dailyTotals.`;
 }
 
 /**
@@ -7401,7 +7401,7 @@ const FIXED_DESSERT_WEIGHT_GRAMS = (() => {
 function buildSweetsCravingRule(foodCravings, strategy) {
   if (!userHasSweetsCraving(foodCravings) || strategy?.includeDessert === false) return '';
   const d = FIXED_DESSERT.macros;
-  return `\nSWEETS: "dessert": true on every Хранене 2 only (not in name; dessert kcal in lunch slot: ${FIXED_DESSERT.calories} kcal, P${d.protein}/C${d.carbs}/F${d.fats}g). No potato/rice/bread at lunch with dessert. Хранене 3 same day: no fruit — yogurt, nuts, skyr or protein shake only.`;
+  return `\nSWEETS: "dessert": true on Хранене 2 (not in name; ${FIXED_DESSERT.calories} kcal counted in slot: P${d.protein}/C${d.carbs}/F${d.fats}g). Backend injects fixed dessert.`;
 }
 
 /** Calories from macro grams: protein×4 + carbs×4 + fats×9 */

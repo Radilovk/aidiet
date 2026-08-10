@@ -21,22 +21,17 @@ Favorites: {dietLove} | Dislikes: {dietDislike}
 {"type": "Хранене 2", "name": "Пилешко с ориз", "description": "• пилешки гърди 150g\n• ориз 100g\n• домати 100g"}
 
 === TASK (Day {startDay}) ===
-Fill day {startDay} for {userData.name}. meals[].type MUST match this day's mealBreakdown exactly — no extra slots, no missing slots.
-• type — from mealBreakdown
+Fill day {startDay} for {userData.name}.
+• meals[].type MUST match this day's mealBreakdown exactly — no extra slots, no missing slots.
 • name — dish title (Bulgarian)
 • description — catalog raw ingredients only, one per line: "• {product} {N}g" (eggs not omelet; chicken not "rice with chicken")
-Catalog products only; exact catalog names. Grams from kcal/P/C/F in mealBreakdown — round ≤50g to 10g, >50g to 50g (e.g. 150g, 200g; oil/spices ≤50g). COOKED/ready-to-eat weight. No calories, macros, weight, benefits.
+• Catalog products only; exact catalog names. Grams from kcal/P/C/F in mealBreakdown — round ≤50g to 10g, >50g to 50g (oil/spices ≤50g). Cooked/ready-to-eat weight. No calories, macros, weight, benefits in JSON.
+• Prefer catalog group names (зеленчук, плод, риба, ядки, червено месо) when a specific product is not required.
 
-Macros: protein ≥20g → concentrated source; fats ≥10g → oil/nuts; carbs ≥25g → rice/potato/bread; high protein + low fat → lean sources.
-Energy density: H2/H4 ≥450 kcal → add dense carb OR fat/oil; lean PRO+veg alone cannot reach target.
-Combinations: 2–6 catalog items; meet slot macros. In description prefer catalog group names (зеленчук, плод, риба, ядки, червено месо) over specific products when precision is not required. Variety vs previous days and strategy{sweetsCravingRule}{freeMealInstruction}
-
-=== MEAL TYPES ===
-• Хранене 2/4 — main meals (meat, fish, eggs, cooked combinations)
+=== SLOT CONTRACTS ===
 • Хранене 3 — {meal3Rule}
-• Хранене 5 — fats+protein only (skyr, nuts, yogurt), max {MAX_LATE_SNACK_CALORIES} kcal
-• Свободно хранене — only if strategy plans it this day: {"type":"Свободно хранене","name":"Свободно хранене"} NO description/calories/macros/weight/dessert. Do not generate Хранене 2 that day.
-• "dessert": true — only on Хранене 2 when sweets needed; part of lunch, not a separate meal, not in name:
-  {"type": "Хранене 2", "name": "Пилешко със салата", "description": "• ...", "dessert": true}
+• Хранене 5 — max {MAX_LATE_SNACK_CALORIES} kcal; fats+protein only
+• Свободно хранене — if in mealBreakdown: {"type":"Свободно хранене","name":"Свободно хранене"} only; no description/macros; no Хранене 2 that day
+• dessert: true — on Хранене 2 when strategy requires; part of slot, not in name{sweetsCravingRule}{freeMealInstruction}
 
 Return ONLY JSON for day {startDay}.

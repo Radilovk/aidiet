@@ -11,32 +11,21 @@ Diet history: {dietHistory} ({dietHistoryType}, {dietHistoryResult}) | Meds: {me
 
 === MEAL TYPES ===
 "Хранене 1" = breakfast | "Хранене 2" = lunch | "Хранене 3" = afternoon snack ({meal3Rule})
-"Хранене 4" = dinner | "Хранене 5" = late snack (fats+protein only: skyr, nuts, yogurt — vegan: nuts only)
+"Хранене 4" = dinner | "Хранене 5" = late snack (max {MAX_LATE_SNACK_CALORIES} kcal, fats+protein only)
 "Свободно хранене" = replaces Хранене 2 on free day (calories/macros in mealBreakdown; Step 3 meal has NO calories/macros/product description)
 Forbidden display names: Закуска, Обяд, Следобедна закуска, Вечеря, Късна закуска. 3–5 meals/day.
 
 Based on the profile above:
 
 === TASK ===
-Diet strategy for {name}. Daily intake target: {finalCalories} kcal/day (maintenance reference {realTDEE} kcal/day). weeklyScheme = framework (foods come in Step 3).
+Diet strategy for {name}. Daily intake target: {finalCalories} kcal/day (maintenance reference {realTDEE} kcal/day — do NOT use as intake). weeklyScheme = slot framework only (foods come in Step 3).
 
-Diet type by goal, health, overeatingFrequency, dietHistory, chronotype (if not in dietPreference):
-Weight loss: Mediterranean, DASH, 16/8 | Anti-aging: MIND, Blue Zones | Heart: DASH, Portfolio | Autoimmune: AIP | Balance: Flexitarian, Nordic | Detox: High fiber | Muscle: High-protein | Menopause: Mediterranean, LCHF/LGI | Emotional: Mindful/Intuitive
-
-RULES (priority):
-1. Each day: mealBreakdown kcal/protein/carbs/fats MUST sum to ≈{finalCalories} (±5%). Adjust slot macros if diet requires (e.g. Keto). Do NOT use maintenance TDEE ({realTDEE}) as daily intake.
-2. "Не закусвам" → no Хранене 1; water with lemon/green tea; Хранене 3 allowed; min 3 meals. If {finalCalories} ≥2400 → H2+H3+H4+H5 (split intake across 4 slots — never only H2+H3+H4).
-3. mealBreakdown.length = meals. No single meal >~800 kcal → add meal by intake target {finalCalories}: ≤2000→3 | 2000–2800→4 (+Хранене 3) | >2800→5 (+Хранене 3 and 5). Хранене 5: max {MAX_LATE_SNACK_CALORIES} kcal, fats+protein only (carbs ≤15g); surplus kcal/macros go to Хранене 2 and 4 — never inflate H5. Exceptions: diabetes/IR, >4h dinner–sleep (H5 still max {MAX_LATE_SNACK_CALORIES} kcal).
-4. FREE MEAL (Saturday freeDayNumber=6 or Sunday freeDayNumber=7 only):
-   YES if food triggers, compensatory habits, emotional eating or restrictive diet history.
-   NO if active large caloric deficit, diabetes, eating disorder (anorexia/bulimia) or pregnancy → freeDayNumber: null.
-   On free day REPLACE lunch in mealBreakdown with: {"type":"Свободно хранене","calories":N,"protein":N,"carbs":N,"fats":N}.
-   Step 3 meal has no calories/macros and no product description.
-   After free meal — light dinner (Хранене 4) NO rice/potato/bread/pasta.
-5. DESSERT WITH LUNCH:
-   includeDessert: true ONLY if "Сладко" in {foodCravings}; otherwise false. Dessert is part of Хранене 2 slot (NOT a separate meal).
-   false for diabetes, insulin resistance, strict low-calorie target or diet incompatible with added sugars.
-6. mealBreakdown sums = daily calories/protein/carbs/fats. "Свободно хранене" summed only in mealBreakdown.
+RULES:
+1. Each day: mealBreakdown kcal/protein/carbs/fats sum ≈{finalCalories} (±5%).
+2. "Не закусвам" → no Хранене 1. If {finalCalories} ≥2400 → H2+H3+H4+H5 (not H2+H3+H4 only).
+3. Meal count by {finalCalories}: ≤2000→3 | 2000–2800→4 (+Хранене 3) | >2800→5 (+Хранене 3 and 5). No single slot >~800 kcal. H5 max {MAX_LATE_SNACK_CALORIES} kcal; surplus kcal/macros to H2 and H4 — never inflate H5.
+4. freeDayNumber: 6 | 7 | null — REQUIRED. Free day: replace H2 in mealBreakdown with {"type":"Свободно хранене","calories":N,"protein":N,"carbs":N,"fats":N}; Step 3 meal = name only.
+5. includeDessert: true | false — REQUIRED.
 
 === OUTPUT ===
 weeklyScheme: monday–sunday — each day meals/calories/protein/carbs/fats/description/mealBreakdown.
