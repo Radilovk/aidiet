@@ -11,14 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { PROFILES } from './fixtures/profiles.mjs';
 import { HARD_PROFILES } from './fixtures/hard-profiles.mjs';
 import { EXTENDED_PROFILES } from './fixtures/extended-profiles.mjs';
-import { validateAnalysis } from './validators/analysis.mjs';
-import { validateStrategy, validateMealPlan } from './validators/plan.mjs';
-import { validateFrontendProjection } from './validators/frontend.mjs';
-import { validateWeekPlanNutrition } from './validators/nutrition.mjs';
-import { validateWeekPlanFoods } from './validators/foods.mjs';
-import { validateWeekPlanCombinations } from './validators/combinations.mjs';
-import { validateProfileRules } from './validators/profile-rules.mjs';
-import { validateDietetic } from './validators/dietetic.mjs';
+import { analyzePlanFull, ADEQUACY_CATEGORIES } from './analyze-plan.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
@@ -70,32 +63,15 @@ async function api(pathname, opts = {}) {
 }
 
 function analyzePlan(plan, profile) {
-  return [
-    ...validateAnalysis(plan.analysis, profile),
-    ...validateStrategy(plan.strategy),
-    ...validateMealPlan(plan.weekPlan, plan.strategy),
-    ...validateWeekPlanNutrition(plan.weekPlan, plan.strategy),
-    ...validateWeekPlanFoods(plan.weekPlan),
-    ...validateWeekPlanCombinations(plan.weekPlan),
-    ...validateFrontendProjection(plan),
-    ...validateProfileRules(plan, profile),
-    ...validateDietetic(plan, profile),
-  ];
+  return analyzePlanFull(plan, profile);
 }
 
-function scorecard(issues) {
-  const cats = {
-    structure: 0, strategy: 0, nutrition: 0, foods: 0, profile: 0, other: 0,
-  };
-  for (const i of issues) {
-    if (/weeklyScheme|mealBreakdown|meals \(|strategy/.test(i)) cats.strategy++;
-    else if (/kcal|protein|carbs|fats|грамаж|weight/.test(i)) cats.nutrition++;
-    else if (/каталог|продукт|универсал/.test(i)) cats.foods++;
-    else if (/Хранене 1|dessert|H5 slot|ready_meal|Не закусвам|лактация|кето|AIP|веган|диабет|H3:|H5:/i.test(i)) cats.profile++;
-    else if (/day\d|липсва|weekPlan/.test(i)) cats.structure++;
-    else cats.other++;
+function categoryScorecard(byCategory) {
+  const out = {};
+  for (const cat of ADEQUACY_CATEGORIES) {
+    out[cat] = byCategory[cat]?.length || 0;
   }
-  return cats;
+  return out;
 }
 
 async function generateForProfile(profile) {
@@ -150,8 +126,7 @@ async function main() {
     console.log(`  ${profile.gender}, ${profile.age}г, ${profile.weight}кг | ${JSON.stringify(profile.goal)}`);
     try {
       const { plan, jobId, elapsed } = await generateForProfile(profile);
-      const issues = [...new Set(analyzePlan(plan, profile))];
-      const ok = issues.length === 0;
+      const { issues, byCategory, metrics, pass: ok } = analyzePlan(plan, profile);
       if (ok) pass++;
 
       const h5Slots = [];
@@ -165,14 +140,23 @@ async function main() {
         ok,
         elapsed,
         jobId,
-        calories: plan.analysis?.Final_Calories,
-        includeDessert: plan.strategy?.includeDessert,
-        mealsPerDay: plan.strategy?.weeklyScheme?.monday?.mealBreakdown?.length,
+        calories: metrics.finalCalories,
+        includeDessert: metrics.includeDessert,
+        freeDayNumber: metrics.freeDayNumber,
+        mealsPerDay: metrics.mealsPerDay,
         h5Slots: h5Slots.join(', ') || 'none',
         issueCount: issues.length,
-        issues: issues.slice(0, 20),
-        scorecard: scorecard(issues),
-        warnings: plan.generationWarnings?.length || 0,
+        issues: issues.slice(0, 30),
+        scorecard: categoryScorecard(byCategory),
+        metrics: {
+          diversity: metrics.diversity,
+          generics: metrics.generics,
+          intakeDays: metrics.intake,
+          generationWarnings: metrics.generationWarnings,
+        },
+        byCategory: Object.fromEntries(
+          Object.entries(byCategory).map(([k, v]) => [k, v.slice(0, 10)])
+        ),
       };
       results.push(summary);
       if (ok) {
@@ -186,7 +170,10 @@ async function main() {
       }
 
       console.log(ok ? `  ✓ PASS (${elapsed}s)` : `  ✗ FAIL (${elapsed}s) — ${issues.length} issues`);
-      console.log(`  kcal=${summary.calories} meals=${summary.mealsPerDay} dessert=${summary.includeDessert} H5=[${summary.h5Slots}]`);
+      console.log(`  kcal=${summary.calories} meals=${summary.mealsPerDay} dessert=${summary.includeDessert} freeDay=${summary.freeDayNumber} H5=[${summary.h5Slots}]`);
+      console.log(`  diversity: ${metrics.diversity.uniqueDishes} unique, generics ${metrics.generics.genericPct}% (${metrics.generics.genericItems}/${metrics.generics.totalItems})`);
+      const failedCats = Object.entries(summary.scorecard).filter(([, n]) => n > 0).map(([k, n]) => `${k}:${n}`);
+      if (failedCats.length) console.log(`  categories: ${failedCats.join(' | ')}`);
       for (const i of issues.slice(0, 8)) console.log(`    • ${i}`);
       if (issues.length > 8) console.log(`    ... +${issues.length - 8} more`);
     } catch (e) {
