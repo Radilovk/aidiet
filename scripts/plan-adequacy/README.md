@@ -87,7 +87,29 @@ npm run test:plan-adequacy:live -- --confirm --profiles=quick
 | `test-plan-adequacy-contract.mjs` | Tolerance, caps, weight, normalize, profile rules |
 | `test-meal-scaling.mjs` | Backend scaling/trim pipeline |
 | `test-plan-normalize.mjs` | Scheme rebalance, enforceFixedSlotCaps |
-| `run-benchmark.mjs` | hard / extended / clinical live vs production |
+| `run-benchmark.mjs` | hard / extended / clinical live vs production + **full scorecard** |
+
+### Live benchmark scorecard (13 категории)
+
+`analyze-plan.mjs` пуска всички validators и review metrics:
+
+| Категория | Какво проверява |
+|-----------|-----------------|
+| `analysis` | Final_Calories, macros, health score, keyProblems |
+| `strategy` | weeklyScheme, slot caps, mealCountJustification |
+| `structure` | H3/H5 slot content, грамажи в description |
+| `slotAlignment` | weekPlan slots = strategy mealBreakdown |
+| `nutrition` | kcal/грамажи/macros per meal + pipeline |
+| `foods` | каталог, universality |
+| `combinations` | carb stacking, weird pairs |
+| `frontend` | macrosViz, health projection |
+| `profile` | skip breakfast, dessert, H5, ready_meals |
+| `dietetic` | лактация, кето, диабет, веган, AIP, H3/H5 |
+| `summary` | recommendations, supplements, psychology |
+| `diversity` | >5 повторения на ястие (app limit) |
+| `intake` | дневни kcal vs Final_Calories |
+
+Review metrics (не fail): `generics.genericPct`, `diversity.uniqueDishes`, `intakeDays[]`.
 | `run-live.mjs` | 3–10 стандартни профила live |
 
 ### Детайлни прагове (P3)
