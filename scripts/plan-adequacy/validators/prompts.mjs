@@ -19,6 +19,7 @@ const PROMPT_CONTRACTS = {
   'KV/prompts/admin_strategy_prompt.txt': [
     'finalCalories',
     'realTDEE',
+    '≥2400',
     'Хранене 3',
     'mealCountJustification',
     'weeklyScheme',

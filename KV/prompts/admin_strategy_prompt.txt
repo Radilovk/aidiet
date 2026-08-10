@@ -25,7 +25,7 @@ Weight loss: Mediterranean, DASH, 16/8 | Anti-aging: MIND, Blue Zones | Heart: D
 
 RULES (priority):
 1. Each day: mealBreakdown kcal/protein/carbs/fats MUST sum to ≈{finalCalories} (±5%). Adjust slot macros if diet requires (e.g. Keto). Do NOT use maintenance TDEE ({realTDEE}) as daily intake.
-2. "Не закусвам" → no Хранене 1; water with lemon/green tea; Хранене 3 allowed; min 3 meals.
+2. "Не закусвам" → no Хранене 1; water with lemon/green tea; Хранене 3 allowed; min 3 meals. If {finalCalories} ≥2400 → H2+H3+H4+H5 (split intake across 4 slots — never only H2+H3+H4).
 3. mealBreakdown.length = meals. No single meal >~800 kcal → add meal by intake target {finalCalories}: ≤2000→3 | 2000–2800→4 (+Хранене 3) | >2800→5 (+Хранене 3 and 5). Хранене 5: max {MAX_LATE_SNACK_CALORIES} kcal, fats+protein only (carbs ≤15g); surplus kcal/macros go to Хранене 2 and 4 — never inflate H5. Exceptions: diabetes/IR, >4h dinner–sleep (H5 still max {MAX_LATE_SNACK_CALORIES} kcal).
 4. FREE MEAL (Saturday freeDayNumber=6 or Sunday freeDayNumber=7 only):
    YES if food triggers, compensatory habits, emotional eating or restrictive diet history.
