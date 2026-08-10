@@ -8761,11 +8761,8 @@ function removeBreakfastSlotFromDay(day) {
   syncSlotMacrosToCalories(day);
   syncSchemeDayMetadata(day);
 }
-function buildMeal3PromptRule(userData) {
-  if (isVeganUser(userData)) {
-    return "\u043B\u0435\u043A\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430: \u043F\u043B\u043E\u0434 + \u044F\u0434\u043A\u0438 (\u0431\u0430\u043D\u0430\u043D/\u044F\u0431\u044A\u043B\u043A\u0430 + \u0431\u0430\u0434\u0435\u043C\u0438/\u043E\u0440\u0435\u0445\u0438). \u0411\u0415\u0417 \u0445\u0443\u043C\u0443\u0441, \u0445\u043B\u044F\u0431, \u043C\u043B\u0435\u0447\u043D\u0438, \u0433\u043E\u0442\u0432\u0435\u043D\u0438 \u044F\u0441\u0442\u0438\u044F, \u043C\u0435\u0441\u043E, \u0431\u043E\u0431";
-  }
-  return "\u043B\u0435\u043A\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430: \u043F\u043B\u043E\u0434 \u0438/\u0438\u043B\u0438 \u044F\u0434\u043A\u0438 \u0438/\u0438\u043B\u0438 \u0441\u043A\u0438\u0440/\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E. \u041D\u0415 \u0435 \u043C\u0438\u043D\u0438-\u043E\u0431\u044F\u0434 \u2014 \u0431\u0435\u0437 \u043C\u0435\u0441\u043E, \u0440\u0438\u0431\u0430, \u0431\u043E\u0431, \u043E\u0440\u0438\u0437, \u0445\u043B\u044F\u0431, \u0441\u0430\u043B\u0430\u0442\u0430";
+function buildMeal3PromptRule(_userData) {
+  return "light snack slot only \u2014 not a main meal";
 }
 var MEAL3_REPAIR_VEGAN = {
   name: "\u0411\u0430\u043D\u0430\u043D \u0441 \u0431\u0430\u0434\u0435\u043C\u0438",
@@ -11665,7 +11662,7 @@ function buildFreeMealInstruction(strategy, startDay, endDay, userData = null) {
   if (isNaN(dayNum) || dayNum < startDay || dayNum > endDay) return "";
   const skipBreakfastNote = userSkipsBreakfast(userData) ? " No \u0425\u0440\u0430\u043D\u0435\u043D\u0435 1 \u2014 client skips breakfast." : " Generate \u0425\u0440\u0430\u043D\u0435\u043D\u0435 1 and \u0425\u0440\u0430\u043D\u0435\u043D\u0435 4 normally for this day.";
   return `
-FREE MEAL (Day ${dayNum}): Replace \u0425\u0440\u0430\u043D\u0435\u043D\u0435 2 with {"type":"\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435","name":"\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435"} \u2014 no description/calories/macros/weight/benefits/dessert.${skipBreakfastNote} Light \u0425\u0440\u0430\u043D\u0435\u043D\u0435 4 dinner \u2014 no rice/potato/bread/pasta. Free-slot kcal from mealBreakdown; backend adds to dailyTotals.`;
+FREE MEAL (Day ${dayNum}): Replace \u0425\u0440\u0430\u043D\u0435\u043D\u0435 2 with {"type":"\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435","name":"\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435"} \u2014 no description/calories/macros/weight/benefits/dessert.${skipBreakfastNote} Free-slot kcal from mealBreakdown; backend adds to dailyTotals.`;
 }
 function enforceWeekendFreeDay(strategy) {
   if (!strategy || strategy.freeDayNumber == null) return;
@@ -15304,7 +15301,7 @@ function buildSweetsCravingRule(foodCravings, strategy) {
   if (!userHasSweetsCraving(foodCravings) || strategy?.includeDessert === false) return "";
   const d = FIXED_DESSERT.macros;
   return `
-SWEETS: "dessert": true on every \u0425\u0440\u0430\u043D\u0435\u043D\u0435 2 only (not in name; dessert kcal in lunch slot: ${FIXED_DESSERT.calories} kcal, P${d.protein}/C${d.carbs}/F${d.fats}g). No potato/rice/bread at lunch with dessert. \u0425\u0440\u0430\u043D\u0435\u043D\u0435 3 same day: no fruit \u2014 yogurt, nuts, skyr or protein shake only.`;
+SWEETS: "dessert": true on \u0425\u0440\u0430\u043D\u0435\u043D\u0435 2 (not in name; ${FIXED_DESSERT.calories} kcal counted in slot: P${d.protein}/C${d.carbs}/F${d.fats}g). Backend injects fixed dessert.`;
 }
 function macrosToCalories(macros) {
   if (!macros) return 0;
