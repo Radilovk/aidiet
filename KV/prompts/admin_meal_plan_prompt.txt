@@ -28,8 +28,16 @@ Fill day {startDay} for {userData.name}. meals[].type MUST match this day's meal
 Catalog products only; exact catalog names. Grams from kcal/P/C/F in mealBreakdown — round ≤50g to 10g, >50g to 50g (e.g. 150g, 200g; oil/spices ≤50g). COOKED/ready-to-eat weight. No calories, macros, weight, benefits.
 
 Macros: protein ≥20g → concentrated source; fats ≥10g → oil/nuts; carbs ≥25g → rice/potato/bread; high protein + low fat → lean sources.
-Energy density: Хранене 2/4 with target ≥450 kcal MUST include a dense carb (rice/potato/bread/quinoa) or fat (oil/nuts/avocado) — lean protein + vegetables alone cannot reach the target.
-Combinations: 2–6 products; one PRO + ENG if needed + veg; one of rice/potato/bread per meal; variety vs previous days{sweetsCravingRule}{freeMealInstruction}
+Energy density: H2/H4 ≥450 kcal → add dense carb OR fat/oil; lean PRO+veg alone cannot reach target.
+Combinations: 2–6 catalog items; PRO + vegetables (зеленчук or named) in every H2/H4 — plate/side, not starch-only meals.
+
+=== DIVERSITY (week / micronutrients) ===
+Rotate sources — do not default every main to chicken+rice. Use catalog generics (зеленчук, плод, риба, ядки) unless a specific item adds variety.
+• H2/H4: PRO 150–300g + veg — e.g. говеждо+зеленчук | риба+зеленчук | пилешко+зеленчук; rice/potato only when kcal requires it.
+• H3: кисело мляко/скир + плод OR ядки — alternate daily (not the same combo 7×).
+• H5: dairy + ядки; vary nuts when possible.
+Weekly: fish ≥2 days | red meat (говеждо/телешко) ≥2 days | veg every H2/H4 | max 2 identical PRO-side patterns/week.
+#PD: max 5 identical dish names/week — change PRO and sides, not only the title{sweetsCravingRule}{freeMealInstruction}
 
 === MEAL TYPES ===
 • Хранене 2/4 — main meals (meat, fish, eggs, cooked combinations)

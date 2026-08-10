@@ -30,8 +30,12 @@ const PROMPT_CONTRACTS = {
     'DESSERT WITH LUNCH',
     'Based on the profile above',
     '=== TASK ===',
+    'weeklyMealPattern',
+    'fish ≥2',
   ],
   'KV/prompts/admin_meal_plan_prompt.txt': [
+    'DIVERSITY',
+    'fish ≥2',
     'Хранене 3',
     'ONLY',
     'FORMAT',

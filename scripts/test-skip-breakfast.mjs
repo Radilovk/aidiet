@@ -20,6 +20,8 @@ assert(mealPrompt.includes('name — dish title'), 'name vs description split');
 assert(!mealPrompt.includes('skipBreakfastRule'), 'no redundant skip-breakfast inject in KV');
 assert(strategyPrompt.includes('"Не закусвам" → no Хранене 1'), 'strategy rule 2 preserved');
 assert(strategyPrompt.includes('{finalCalories} ≥2400'), 'skip breakfast high intake → H5 split rule');
+assert(mealPrompt.includes('=== DIVERSITY'), 'meal plan weekly diversity section');
+assert(mealPrompt.includes('fish ≥2'), 'meal plan fish rotation rule');
 assert(workerSrc.includes('function alignDaysToMealBreakdown'), 'thin backend align kept');
 assert(workerSrc.includes('SWEETS:'), 'sweets inject shortened English');
 assert(workerSrc.includes('FREE MEAL (Day'), 'free meal inject shortened English');
