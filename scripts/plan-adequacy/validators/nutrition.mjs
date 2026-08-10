@@ -5,6 +5,7 @@ import {
   applyMealNutritionFromDatabase,
   calorieTolerance,
   macroTolerance,
+  MAX_MEAL_WEIGHT_GRAMS,
 } from '../../../food-nutrition.js';
 import {
   minMealWeightGrams,
@@ -59,7 +60,7 @@ export function validateMealGramsAndWeight(meal) {
       const wg = parseFloat(m[1]);
       const minW = minMealWeightGrams(meal.type);
       if (wg < minW) issues.push(`"${meal.name}": weight ${wg}g < ${minW}g`);
-      if (wg > 800) issues.push(`"${meal.name}": weight ${wg}g > 800g`);
+      if (wg > MAX_MEAL_WEIGHT_GRAMS) issues.push(`"${meal.name}": weight ${wg}g > ${MAX_MEAL_WEIGHT_GRAMS}g`);
     }
   }
 

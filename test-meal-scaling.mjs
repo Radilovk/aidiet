@@ -133,7 +133,7 @@ console.log('\n=== 8. Непознат продукт се докладва (з�
   check('unknown продуктът е върнат нагоре', res.unknowns.includes('Мистериозен специалитет'));
 }
 
-console.log('\n=== 9. Висококалорично хранене с много зеленчуци: под 800g, калориите в толеранс ===');
+console.log('\n=== 9. Висококалорично хранене с много зеленчуци: под 900g, калориите в толеранс ===');
 {
   const target = { calories: 900, protein: 55, carbs: 80, fats: 25 };
   const meal = {
@@ -144,7 +144,7 @@ console.log('\n=== 9. Висококалорично хранене с мног�
   const weightMatch = String(meal.weight).match(/(\d+)/);
   const weightGrams = weightMatch ? parseInt(weightMatch[1], 10) : 0;
   const kcalOk = Math.abs(meal.calories - target.calories) <= calorieTolerance(target.calories);
-  check('тежестта е ≤800g', weightGrams > 0 && weightGrams <= 800, `${weightGrams}g`);
+  check('тежестта е ≤900g', weightGrams > 0 && weightGrams <= 900, `${weightGrams}g`);
   check('калориите са в толеранс при capped bulk scaling', kcalOk, `${meal.calories}kcal (цел ${target.calories})`);
 }
 
@@ -164,7 +164,7 @@ console.log('\n=== 11. Протеин (тофу): cap на грамаж ===');
   check('тофу ≤300g', tofu && tofu.grams <= 300, `${tofu?.grams}g`);
 }
 
-console.log('\n=== 12. Пропорционален trim при >800g (athlete lunch) ===');
+console.log('\n=== 12. Пропорционален trim при >900g (athlete lunch) ===');
 {
   const meal = {
     type: 'Хранене 2',
@@ -173,7 +173,7 @@ console.log('\n=== 12. Пропорционален trim при >800g (athlete l
   applyMealNutritionFromDatabase(meal, { calories: 1100, protein: 70, carbs: 100, fats: 30 });
   const weightMatch = String(meal.weight).match(/(\d+)/);
   const weightGrams = weightMatch ? parseInt(weightMatch[1], 10) : 0;
-  check('тежестта е ≤800g след proportional trim', weightGrams > 0 && weightGrams <= 800, `${weightGrams}g`);
+  check('тежестта е ≤900g след proportional trim', weightGrams > 0 && weightGrams <= 900, `${weightGrams}g`);
 }
 
 console.log('\n=== 13. mealWeightGramsFromDescription: description е източник на истина ===');
