@@ -46,8 +46,8 @@ export function macroTolerance(targetGrams) {
 const CONDIMENT_MAX_GRAMS = 15;
 const DAIRY_MAX_GRAMS = 300;
 
-/** Max realistic single-meal plate weight — athlete mains with veg-heavy AI picks must stay under this. */
-export const MAX_MEAL_WEIGHT_GRAMS = 800;
+/** Max realistic single-meal plate weight — aligns with max plated slot (~900 kcal). */
+export const MAX_MEAL_WEIGHT_GRAMS = 900;
 const BULK_ITEM_MAX_GRAMS = 150;
 const BULK_KCAL_PER_100G_MAX = 50;
 
