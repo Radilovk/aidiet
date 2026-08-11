@@ -73,6 +73,16 @@ import {
 import { validateMealCombinations } from './meal-combinations.js';
 import { setCatalogOverlay } from './food-registry.js';
 import { ensurePlanSourceMeta } from './plan-source-meta.js';
+import {
+  extractCompositionRepairTargets,
+  isCompositionRepairableError,
+  buildCompositionRepairPrompt,
+  applyCompositionRepairPatch,
+} from './composition-repair.js';
+import {
+  serializePreviousDaysProducts,
+  validateWeeklyVariety,
+} from './weekly-variety.js';
 
 
 /**
@@ -1644,6 +1654,7 @@ const pendingSessionLogs = new Map(); // sessionId → [logId, ...]
 // catalog products, protocol safety) plus a calorie sanity check for compositions
 // the bounded scaling could not fix.
 const MEAL_PLAN_CHUNK_MAX_RETRIES = 2; // Up to 2 retries per day when structural validation fails
+const COMPOSITION_REPAIR_MAX_PER_CHUNK = 2; // Stage 1.7 — targeted slot repair before full chunk regen
 const CATALOG_STRICT_MODE = true; // Step 3: only catalog products; no AI nutrition lookup
 
 /**
@@ -3376,10 +3387,14 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
   const sweetsCravingRule = buildSweetsCravingRule(data.foodCravings, strategy);
   const meal3Rule = buildMeal3PromptRule(data);
 
-  // Build previous days context for variety (NPCF compact — meal names only)
+  // Previous days context — product-based #PD v2 (Stage 2); fallback to dish names if no descriptions yet
   let previousDaysContext = '';
   if (previousDays.length > 0) {
-    previousDaysContext = `\n\n${serializePreviousDays(previousDays)}\nПОВТОРЕНИЕ: max 5 ястия/седмица — избягвай горните, освен ако е необходимо.`;
+    const hasProducts = previousDays.some(d => (d.meals || []).some(m => m.description?.includes('•')));
+    const pdBlock = hasProducts
+      ? serializePreviousDaysProducts(previousDays)
+      : serializePreviousDays(previousDays);
+    previousDaysContext = `\n\n${pdBlock}\nПОВТОРЕНИЕ: max 5 ястия/седмица; ротация на продукти — избягвай горните.`;
   }
   
   const useCompactStep3Context = (endDay - startDay + 1) <= 1;
@@ -8039,6 +8054,51 @@ ${errors.map((e, i) => `${i + 1}. ${e}`).join('\n')}
 Rules: meals[].type = mealBreakdown only; description = catalog products only (no grams); choose products that match slot P/C/F profile.`;
 }
 
+/** Stage 1.7 — one AI call to repair infeasible slot compositions only. */
+async function tryCompositionRepair(env, {
+  weekPlan,
+  strategy,
+  targets,
+  data,
+  analysis,
+  startDay,
+  endDay,
+  sessionId,
+}) {
+  if (!targets?.length) return false;
+
+  const catalogSection = buildCatalogPromptSection({
+    strategy,
+    startDay,
+    endDay,
+    dietaryModifier: strategy.dietaryModifier || 'Балансирано',
+    blockedTerms: collectUserBlockedFoodTerms(data),
+    preferLove: String(data.dietLove || '').split(/[,;]/).map(s => s.trim()).filter(Boolean),
+    clinicalProtocolId: data.clinicalProtocol || null,
+  });
+
+  const prompt = buildCompositionRepairPrompt({
+    targets,
+    weekPlan,
+    strategy,
+    catalogSection,
+    dietaryModifier: strategy.dietaryModifier || 'Балансирано',
+    dayNumberToKey: DAY_NUMBER_TO_KEY,
+  });
+
+  try {
+    const response = await callAIModel(
+      env, prompt, 2048, 'step3_composition_repair', sessionId, data, buildCompactAnalysisForStep3(analysis),
+    );
+    const patch = parseAIResponse(response);
+    const applied = applyCompositionRepairPatch(weekPlan, patch, targets);
+    return applied > 0;
+  } catch (e) {
+    console.warn('[composition-repair] failed:', e.message);
+    return false;
+  }
+}
+
 function getAllowedMealTypes(dayTarget, userData = null) {
   const allowed = new Set((dayTarget?.mealBreakdown || []).map(m => m.type));
   if (allowed.has('Свободно хранене')) allowed.delete('Хранене 2');
@@ -8274,7 +8334,7 @@ function applyFoodSubstitutions(meal, fixes) {
   return applied;
 }
 
-const DAYS_PER_CHUNK = 1; // One day per AI call (7 chunks) — max focus per mealBreakdown
+const DAYS_PER_CHUNK = 1; // Stage 2 target: 7 (week-at-once) — keep 1 until prompt/token budget validated
 
 const PLAN_VALIDATION_BLOCKING = [
   /под безопасния минимум/i,
@@ -9712,12 +9772,14 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
 
     let chunkComment = errorPreventionComment;
     let attempt = 0;
+    let compositionRepairAttempt = 0;
     let bestSnapshot = null;
     let bestErrors = null;
     let lastAiFailure = null;
 
     while (true) {
       let validationErrors;
+      let syncMeta = null;
       try {
         const chunkPrompt = await generateMealPlanChunkPrompt(
           data, analysis, strategy, bmr, recommendedCalories,
@@ -9749,9 +9811,9 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         }
 
         injectFixedDesserts(weekPlan);
-        const syncMeta = await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
+        syncMeta = await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
         if (repairWeekPlanLightSlots(weekPlan, startDay, endDay, data)) {
-          await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
+          syncMeta = await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
         }
         finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, data);
 
@@ -9780,6 +9842,41 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         if (!bestSnapshot || validationErrors.length < bestErrors.length) {
           bestSnapshot = daysSnapshot;
           bestErrors = validationErrors;
+        }
+
+        // Stage 1.7 — targeted repair when all errors are composition/solver issues
+        if (validationErrors.every(isCompositionRepairableError)) {
+          const repairTargets = extractCompositionRepairTargets(validationErrors, syncMeta?.infeasible);
+          if (repairTargets.length && compositionRepairAttempt < COMPOSITION_REPAIR_MAX_PER_CHUNK) {
+            compositionRepairAttempt++;
+            const repaired = await tryCompositionRepair(env, {
+              weekPlan, strategy, targets: repairTargets, data, analysis, startDay, endDay, sessionId,
+            });
+            if (repaired) {
+              syncMeta = await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
+              finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, data);
+              validationErrors = validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay, data.clinicalProtocol || null, data);
+              for (const slot of syncMeta?.infeasible || []) {
+                validationErrors.push(`Ден ${slot.day} ${slot.type}: ${slot.reason} — смени продуктите`);
+              }
+              if (!validationErrors.length) {
+                bestSnapshot = {};
+                for (let day = startDay; day <= endDay; day++) {
+                  bestSnapshot[`day${day}`] = JSON.parse(JSON.stringify(weekPlan[`day${day}`]));
+                }
+                bestErrors = [];
+                break;
+              }
+              if (validationErrors.length < bestErrors.length) {
+                bestErrors = validationErrors;
+                bestSnapshot = {};
+                for (let day = startDay; day <= endDay; day++) {
+                  bestSnapshot[`day${day}`] = JSON.parse(JSON.stringify(weekPlan[`day${day}`]));
+                }
+              }
+              continue;
+            }
+          }
         }
       }
 
@@ -9830,6 +9927,12 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
   }
 
   finalizeWeekPlanDays(weekPlan, strategy, 1, 7, data);
+
+  const varietyResult = validateWeeklyVariety(weekPlan);
+  if (varietyResult.warnings.length) {
+    generationWarnings.push(...varietyResult.warnings);
+  }
+
   try {
     const summaryPrompt = await generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan, env);
     const summaryResponse = await callAIModel(env, summaryPrompt, SUMMARY_TOKEN_LIMIT, 'step4_summary', sessionId, data, buildCompactAnalysisForStep4(analysis));

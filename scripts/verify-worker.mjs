@@ -159,6 +159,11 @@ check('registry architecture', () => {
   if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
 });
 
+check('rebuild stage 1.7+2', () => {
+  const r = run('node', ['scripts/test-rebuild-stage17-2.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
+});
+
 check('meal solver pipeline', () => {
   const r = run('node', ['scripts/test-solver.mjs']);
   if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
