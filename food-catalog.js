@@ -3,7 +3,6 @@
  */
 
 import {
-  FOOD_CATALOG,
   MEAL_TYPE_TIMING,
   DEFAULT_MIN_UNIVERSALITY,
   CATALOG_PROMPT_LIMIT_PER_SLOT,
@@ -11,6 +10,9 @@ import {
 } from './food-catalog-data.js';
 import { FOOD_NUTRITION_PER_100G } from './food-nutrition-data.js';
 import { normalizeFoodKey } from './food-utils.js';
+import { buildRegistryIndex, getCatalogEntries } from './food-registry.js';
+import { passesDietRegistry } from './diet-registry.js';
+import { rankCatalogCandidates } from './candidate-ranking.js';
 
 const SLOT_LABELS = {
   PRO: 'белтъчини [PRO]',
@@ -56,36 +58,19 @@ export function getCatalogEntryNutrition(entry) {
   return nutritionArrayToProfile(raw);
 }
 
-/** Compact label for Step 3: "Име (165kcal P31/C0/F4 на 100g)" */
+/** Compact label for Step 3 prompt. */
 export function formatCatalogEntryLabel(entry) {
+  if (entry.fixedNutrition?.kcal) {
+    const f = entry.fixedNutrition;
+    return `${entry.name} (фиксирана порция ${Math.round(f.kcal)}kcal P${Math.round(f.p)}/C${Math.round(f.c)}/F${Math.round(f.f)})`;
+  }
   const n = getCatalogEntryNutrition(entry);
   if (!n) return entry.name;
   return `${entry.name} (${Math.round(n.kcal)}kcal P${Math.round(n.p)}/C${Math.round(n.c)}/F${Math.round(n.f)} на 100g)`;
 }
 
-let catalogIndexCache = null;
-
 function buildCatalogIndex() {
-  if (catalogIndexCache) return catalogIndexCache;
-
-  const byId = new Map();
-  const byKey = new Map();
-
-  for (const entry of FOOD_CATALOG) {
-    byId.set(entry.id, entry);
-    const keys = new Set([
-      normalizeFoodKey(entry.name),
-      normalizeFoodKey(entry.nutritionKey),
-      ...entry.aliases.map(normalizeFoodKey),
-    ]);
-    for (const key of keys) {
-      if (!key) continue;
-      if (!byKey.has(key)) byKey.set(key, entry);
-    }
-  }
-
-  catalogIndexCache = { byId, byKey, all: FOOD_CATALOG };
-  return catalogIndexCache;
+  return buildRegistryIndex();
 }
 
 /** @returns {{ entry: object|null, unknown: boolean }} */
@@ -112,6 +97,8 @@ export function resolveCatalogEntry(name) {
   if (best) return { entry: best, unknown: false };
   return { entry: null, unknown: true };
 }
+
+export { getCatalogEntries };
 
 function normalizeDietModifier(modifier = '') {
   const m = String(modifier).toLowerCase();
@@ -242,6 +229,7 @@ export function getCatalogCandidatesForChunk({
   minUniversality = DEFAULT_MIN_UNIVERSALITY,
   preferLove = [],
   clinicalProtocolId = null,
+  adherenceRatio = null,
 }) {
   const index = buildCatalogIndex();
   const diet = normalizeDietModifier(dietaryModifier);
@@ -251,9 +239,13 @@ export function getCatalogCandidatesForChunk({
   let hasLateSnack = false;
   let minFatShare = 1;
   let minCarbShare = 1;
-  const isKeto = /кето|keto/i.test(String(dietaryModifier || ''));
-
   const dayKeys = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+  const adherenceMap = adherenceRatio instanceof Map
+    ? adherenceRatio
+    : new Map(Object.entries(adherenceRatio || {}));
+  const representativeSlot = strategy?.weeklyScheme?.[dayKeys[startDay - 1]]?.mealBreakdown
+    ?.find(m => m.type === 'Хранене 2') || strategy?.weeklyScheme?.monday?.mealBreakdown?.[0];
+  const isKeto = /кето|keto/i.test(String(dietaryModifier || ''));
   for (let d = startDay; d <= endDay; d++) {
     const dayTarget = strategy?.weeklyScheme?.[dayKeys[d - 1]];
     if (!dayTarget?.mealBreakdown) continue;
@@ -285,6 +277,7 @@ export function getCatalogCandidatesForChunk({
   for (const entry of index.all) {
     if (entry.universality < minUniversality) continue;
     if (!isDietCompatible(entry, diet)) continue;
+    if (!passesDietRegistry(entry, dietaryModifier)) continue;
     if (isBlockedByTerms(entry, blockedTerms)) continue;
     if (isExcludedByProtocol(entry, clinicalProtocolId)) continue;
 
@@ -301,22 +294,13 @@ export function getCatalogCandidatesForChunk({
   }
 
   for (const [slot, list] of bySlot) {
-    list.sort((a, b) => {
-      const aLove = loveSet.has(normalizeFoodKey(a.name)) ? 1 : 0;
-      const bLove = loveSet.has(normalizeFoodKey(b.name)) ? 1 : 0;
-      if (bLove !== aLove) return bLove - aLove;
-      if (b.universality !== a.universality) return b.universality - a.universality;
-      return a.name.localeCompare(b.name, 'bg');
+    const ranked = rankCatalogCandidates(list, {
+      loveSet,
+      adherenceRatio: adherenceMap,
+      slotTarget: representativeSlot,
+      limit: CATALOG_PROMPT_LIMIT_PER_SLOT * 3,
     });
-    const seen = new Set();
-    const deduped = [];
-    for (const e of list) {
-      if (seen.has(e.name)) continue;
-      seen.add(e.name);
-      deduped.push(e);
-      if (deduped.length >= CATALOG_PROMPT_LIMIT_PER_SLOT) break;
-    }
-    bySlot.set(slot, deduped);
+    bySlot.set(slot, ranked.slice(0, CATALOG_PROMPT_LIMIT_PER_SLOT));
   }
 
   const maxFatShare = minFatShare + MACRO_FILTER_FAT_MARGIN;
@@ -333,15 +317,17 @@ export function getCatalogCandidatesForChunk({
     bySlot.set(slot, list);
   }
 
-  const ready = index.all
-    .filter(e => e.group === 'ready_meal')
-    .filter(e => e.universality >= minUniversality)
-    .filter(e => isDietCompatible(e, diet))
-    .filter(e => !isBlockedByTerms(e, blockedTerms))
-    .filter(e => !isExcludedByProtocol(e, clinicalProtocolId))
-    .filter(e => e.timing.some(t => timings.has(t)))
-    .sort((a, b) => b.universality - a.universality || a.name.localeCompare(b.name, 'bg'))
-    .slice(0, 12);
+  const ready = rankCatalogCandidates(
+    index.all
+      .filter(e => e.group === 'ready_meal')
+      .filter(e => e.universality >= minUniversality)
+      .filter(e => isDietCompatible(e, diet))
+      .filter(e => passesDietRegistry(e, dietaryModifier))
+      .filter(e => !isBlockedByTerms(e, blockedTerms))
+      .filter(e => !isExcludedByProtocol(e, clinicalProtocolId))
+      .filter(e => e.timing.some(t => timings.has(t))),
+    { loveSet, adherenceRatio: adherenceMap, slotTarget: representativeSlot, limit: 12 },
+  );
 
   bySlot.set('READY', ready);
   return bySlot;
@@ -352,7 +338,7 @@ export function formatCatalogSectionForPrompt(candidatesBySlot, { minUniversalit
     `=== КАТАЛОГ ХРАНИ (ЗАДЪЛЖИТЕЛНО — използвай САМО тези имена) ===`,
     `Универсалност ≥${minUniversality}: предпочитай по-общи варианти (Риба, Ориз, Плод) пред конкретни (Лаврак, Киноа, Манго).`,
     `Стойности в скоби = на 100g. Бекендът изчислява грамажите — не пиши числа в description.`,
-    `Готова храна = един ред в description ИЛИ разбий на продукти от каталога.`,
+    `Готова храна: един ред = ястие; backend разбива (decompose) или фиксира порция (atomic) според каталога.`,
   ];
 
   for (const slot of ['PRO', 'ENG', 'VOL', 'FAT']) {

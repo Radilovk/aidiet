@@ -14,7 +14,8 @@ import {
 } from './food-nutrition-data.js';
 import { normalizeFoodKey } from './food-utils.js';
 import { resolveCatalogEntry } from './food-catalog.js';
-import { FOOD_CATALOG } from './food-catalog-data.js';
+import { buildRegistryIndex } from './food-registry.js';
+import { READY_MEAL_PARTS, getEntryScalingMode, SCALING_ATOMIC } from './ready-meal-parts.js';
 import { MAX_LATE_SNACK_CALORIES, SLOT_CALORIE_TOLERANCE_PERCENT, SLOT_CALORIE_TOLERANCE_MIN_KCAL } from './plan-normalize.js';
 import { solveMealGrams } from './meal-solver.js';
 
@@ -44,35 +45,25 @@ const DAIRY_MAX_GRAMS = 300;
 /** Max realistic single-meal plate weight — aligns with max plated slot (~900 kcal). */
 export const MAX_MEAL_WEIGHT_GRAMS = 900;
 
-/** Catalog ready_meal → raw product lines (weight shares, sum ≈ 1). */
-const READY_MEAL_PARTS = {
-  meal_rice_chicken: [{ name: 'ориз', share: 0.42 }, { name: 'пилешко месо', share: 0.58 }],
-  meal_fish_potato: [{ name: 'картофи', share: 0.55 }, { name: 'риба', share: 0.45 }],
-  meal_omelet: [{ name: 'яйца', share: 1 }],
-  meal_boiled_egg: [{ name: 'яйца', share: 1 }],
-  meal_chicken_salad: [{ name: 'пилешко месо', share: 0.55 }, { name: 'зеленчук', share: 0.45 }],
-  meal_green_salad: [{ name: 'зеленчук', share: 1 }],
-  meal_oatmeal: [{ name: 'овесени ядки', share: 1 }],
-  meal_yogurt_oats: [{ name: 'кисело мляко', share: 0.6 }, { name: 'овесени ядки', share: 0.4 }],
-  meal_chicken_soup: [{ name: 'пилешко месо', share: 0.35 }, { name: 'зеленчук', share: 0.65 }],
-  meal_veg_soup: [{ name: 'зеленчук', share: 1 }],
-  meal_lentil_stew: [{ name: 'леща', share: 0.7 }, { name: 'зеленчук', share: 0.3 }],
-  meal_bean_stew: [{ name: 'боб', share: 0.7 }, { name: 'зеленчук', share: 0.3 }],
-  meal_chicken_sandwich: [{ name: 'пилешко месо', share: 0.4 }, { name: 'хляб', share: 0.6 }],
-  meal_cottage_bowl: [{ name: 'извара', share: 1 }],
-  meal_skry_bowl: [{ name: 'скир', share: 1 }],
-};
+export { READY_MEAL_PARTS } from './ready-meal-parts.js';
+
+/** Re-export; canonical map in ready-meal-parts.js */
 
 export function expandReadyMealItems(items, extraDb = {}) {
   const out = [];
+  const index = buildRegistryIndex();
   for (const item of items) {
     const { entry } = resolveCatalogEntry(item.name);
     if (!entry || entry.group !== 'ready_meal') {
       out.push(item);
       continue;
     }
+    if (getEntryScalingMode(entry) === SCALING_ATOMIC) {
+      out.push(item);
+      continue;
+    }
     if (entry.genericOf) {
-      const parent = FOOD_CATALOG.find(e => e.id === entry.genericOf);
+      const parent = index.byId.get(entry.genericOf);
       if (parent) {
         const { profile, key, unknown } = lookupFoodProfile(parent.name, extraDb);
         out.push({ ...item, name: parent.name, profile, key, unknown: !!unknown });
@@ -388,29 +379,8 @@ export function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}
   };
 }
 
-/** Sync nutrition for all meals in a weekPlan chunk. Returns unknown product names and infeasible slots. */
-export function syncWeekPlanNutritionFromDatabase(weekPlan, strategy, startDay, endDay, extraDb = {}) {
-  const unknowns = [];
-  const infeasible = [];
-  if (!weekPlan || !strategy?.weeklyScheme) return { unknowns, infeasible };
-
-  const dayKeys = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-  for (let d = startDay; d <= endDay; d++) {
-    const day = weekPlan[`day${d}`];
-    const dayTarget = strategy.weeklyScheme[dayKeys[d - 1]];
-    if (!day?.meals?.length) continue;
-
-    for (const meal of day.meals) {
-      const target = dayTarget?.mealBreakdown?.find(m => m.type === meal.type) || null;
-      const result = applyMealNutritionFromDatabase(meal, target, extraDb);
-      if (result.unknowns?.length) unknowns.push(...result.unknowns);
-      if (result.feasible === false) {
-        infeasible.push({ day: d, type: meal.type, reason: result.reason || 'неосъществим слот' });
-      }
-    }
-  }
-  return { unknowns: [...new Set(unknowns)], infeasible };
-}
+/** Sync nutrition for all meals in a weekPlan chunk (atomic-first day budget). */
+export { syncWeekPlanNutritionFromDatabase } from './meal-day-sync.js';
 
 export function profileToKvArray(profile) {
   return [profile.kcal, profile.p, profile.c, profile.f];

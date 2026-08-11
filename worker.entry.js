@@ -71,6 +71,8 @@ import {
   validateProductNamesAgainstProtocol,
 } from './food-catalog.js';
 import { validateMealCombinations } from './meal-combinations.js';
+import { setCatalogOverlay } from './food-registry.js';
+import { ensurePlanSourceMeta } from './plan-source-meta.js';
 
 
 /**
@@ -3825,7 +3827,22 @@ const JOB_ID_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f
  * Returns the ready-to-send result object (same shape as the synchronous endpoint)
  * or throws on unrecoverable error.
  */
+async function loadCatalogRegistryOverlay(env) {
+  if (!env?.page_content) return;
+  try {
+    const raw = await env.page_content.get('food_catalog_overlay');
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    const entries = Array.isArray(parsed) ? parsed : parsed?.entries;
+    const label = Array.isArray(parsed) ? '' : (parsed?.version || parsed?.label || '');
+    if (entries?.length) setCatalogOverlay(entries, label);
+  } catch (e) {
+    console.warn('[food-registry] overlay load failed:', e.message);
+  }
+}
+
 async function generatePlanCore(env, data, onAnalysisReady = null) {
+  await loadCatalogRegistryOverlay(env);
   // Resolve clinical protocol
   const clinicalProtocol = getClinicalProtocol(data.clinicalProtocol);
   if (clinicalProtocol) {
@@ -5904,6 +5921,7 @@ async function reconcilePlanStructure(plan, userData = null, env = null) {
       fats: avgMacros.fats,
     };
   }
+  ensurePlanSourceMeta(plan);
   return plan;
 }
 

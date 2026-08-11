@@ -7654,7 +7654,9 @@ function item(id, name, nutritionKey, group, slots, timing, universality, opts =
     vegan: !!opts.vegan,
     vegetarian: opts.vegetarian !== void 0 ? !!opts.vegetarian : defaultVeg,
     genericOf: opts.genericOf || null,
-    aliases: opts.aliases || []
+    aliases: opts.aliases || [],
+    scalingMode: opts.scalingMode || null,
+    fixedNutrition: opts.fixedNutrition || null
   };
 }
 var FOOD_CATALOG = [
@@ -7896,6 +7898,232 @@ var MEAL_TYPE_TIMING = {
 var DEFAULT_MIN_UNIVERSALITY = 3;
 var CATALOG_PROMPT_LIMIT_PER_SLOT = 14;
 
+// ready-meal-parts.js
+var READY_MEAL_PARTS = {
+  meal_rice_chicken: [{ name: "\u043E\u0440\u0438\u0437", share: 0.42 }, { name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.58 }],
+  meal_fish_potato: [{ name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438", share: 0.55 }, { name: "\u0440\u0438\u0431\u0430", share: 0.45 }],
+  meal_omelet: [{ name: "\u044F\u0439\u0446\u0430", share: 1 }],
+  meal_boiled_egg: [{ name: "\u044F\u0439\u0446\u0430", share: 1 }],
+  meal_chicken_salad: [{ name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.55 }, { name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 0.45 }],
+  meal_green_salad: [{ name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 1 }],
+  meal_oatmeal: [{ name: "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438", share: 1 }],
+  meal_yogurt_oats: [{ name: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", share: 0.6 }, { name: "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438", share: 0.4 }],
+  meal_chicken_soup: [{ name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.35 }, { name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 0.65 }],
+  meal_veg_soup: [{ name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 1 }],
+  meal_lentil_stew: [{ name: "\u043B\u0435\u0449\u0430", share: 0.7 }, { name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 0.3 }],
+  meal_bean_stew: [{ name: "\u0431\u043E\u0431", share: 0.7 }, { name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 0.3 }],
+  meal_chicken_sandwich: [{ name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.4 }, { name: "\u0445\u043B\u044F\u0431", share: 0.6 }],
+  meal_cottage_bowl: [{ name: "\u0438\u0437\u0432\u0430\u0440\u0430", share: 1 }],
+  meal_skry_bowl: [{ name: "\u0441\u043A\u0438\u0440", share: 1 }]
+};
+var SCALING_DECOMPOSE = "decompose";
+var SCALING_ATOMIC = "atomic_fixed";
+function getEntryScalingMode(entry) {
+  if (!entry) return null;
+  if (entry.scalingMode === SCALING_ATOMIC || entry.scalingMode === SCALING_DECOMPOSE) {
+    return entry.scalingMode;
+  }
+  if (entry.group !== "ready_meal") return null;
+  if (entry.fixedNutrition && Number(entry.fixedNutrition.kcal) > 0) return SCALING_ATOMIC;
+  if (READY_MEAL_PARTS[entry.id]) return SCALING_DECOMPOSE;
+  return SCALING_DECOMPOSE;
+}
+
+// food-registry.js
+var overlayEntries = [];
+var overlayLabel = "";
+var indexCache = null;
+var versionCache = null;
+function setCatalogOverlay(entries = [], label = "") {
+  overlayEntries = Array.isArray(entries) ? entries.filter(Boolean) : [];
+  overlayLabel = String(label || "");
+  indexCache = null;
+  versionCache = null;
+}
+function getCatalogEntries() {
+  if (!overlayEntries.length) return FOOD_CATALOG;
+  const byId = new Map(FOOD_CATALOG.map((e) => [e.id, e]));
+  for (const e of overlayEntries) {
+    if (e?.id) byId.set(e.id, e);
+    else byId.set(`overlay_${normalizeFoodKey(e.name)}`, e);
+  }
+  return [...byId.values()];
+}
+function buildRegistryIndex() {
+  if (indexCache) return indexCache;
+  const byId = /* @__PURE__ */ new Map();
+  const byKey = /* @__PURE__ */ new Map();
+  const all = getCatalogEntries();
+  for (const entry of all) {
+    byId.set(entry.id, entry);
+    const keys = /* @__PURE__ */ new Set([
+      normalizeFoodKey(entry.name),
+      normalizeFoodKey(entry.nutritionKey),
+      ...(entry.aliases || []).map(normalizeFoodKey)
+    ]);
+    for (const key of keys) {
+      if (!key) continue;
+      if (!byKey.has(key)) byKey.set(key, entry);
+    }
+  }
+  indexCache = { byId, byKey, all };
+  return indexCache;
+}
+function resolveRegistryEntry(name) {
+  const index = buildRegistryIndex();
+  const normalized = normalizeFoodKey(name);
+  if (!normalized) return { entry: null, unknown: true };
+  if (index.byKey.has(normalized)) {
+    return { entry: index.byKey.get(normalized), unknown: false };
+  }
+  let best = null;
+  let bestLen = 0;
+  for (const [key, entry] of index.byKey) {
+    if (key.length < 4) continue;
+    if (normalized.includes(key) || key.includes(normalized)) {
+      if (key.length > bestLen) {
+        bestLen = key.length;
+        best = entry;
+      }
+    }
+  }
+  if (best) return { entry: best, unknown: false };
+  return { entry: null, unknown: true };
+}
+function getCatalogVersion() {
+  if (versionCache) return versionCache;
+  const all = getCatalogEntries();
+  let h = 2166136261;
+  const fold = (s) => {
+    for (let i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+  };
+  fold(`base:${FOOD_CATALOG.length}`);
+  fold(`overlay:${overlayLabel}:${overlayEntries.length}`);
+  for (const e of all) {
+    fold(`${e.id}|${e.name}|${e.nutritionKey}|${e.scalingMode || ""}|${e.fixedNutrition?.kcal || ""}`);
+  }
+  versionCache = `cat_${(h >>> 0).toString(16)}_${all.length}`;
+  return versionCache;
+}
+function resolveAtomicEntryFromDescription(description) {
+  const lines = String(description || "").split(/\n/).map((l) => l.replace(/^[•\-\*]\s*/, "").trim()).filter(Boolean);
+  if (lines.length !== 1) return null;
+  const name = lines[0].replace(/\s+\d+(?:[.,]\d+)?\s*(g|г)\b/i, "").trim();
+  const { entry } = resolveRegistryEntry(name);
+  if (!entry || getEntryScalingMode(entry) !== SCALING_ATOMIC) return null;
+  return entry;
+}
+
+// diet-registry.js
+var REGISTRY_VERSION = "diet_v1";
+function shareOfKcal(nutritionKey, macroIdx) {
+  const a = FOOD_NUTRITION_PER_100G[nutritionKey];
+  if (!a) return 0;
+  const kcal = a[1] * 4 + a[2] * 4 + a[3] * 9;
+  if (kcal <= 0) return 0;
+  const macroKcal = macroIdx === 3 ? a[3] * 9 : a[macroIdx] * 4;
+  return macroKcal / kcal;
+}
+var DIET_NARROWING_RULES = {
+  \u043A\u0435\u0442\u043E\u0433\u0435\u043D\u043D\u0430: { maxCarbShare: 0.12 },
+  keto: { maxCarbShare: 0.12 },
+  \u043D\u0438\u0441\u043A\u043E\u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442: { maxCarbShare: 0.22 },
+  "\u0431\u0435\u0437 \u043C\u043B\u0435\u0447\u043D\u0438": {
+    blockedTerms: ["\u043C\u043B\u044F\u043A\u043E", "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", "\u0441\u0438\u0440\u0435\u043D\u0435", "\u043A\u0430\u0448\u043A\u0430\u0432\u0430\u043B", "\u0438\u0437\u0432\u0430\u0440\u0430", "\u0441\u043A\u0438\u0440", "\u043A\u0435\u0444\u0438\u0440", "\u0441\u043C\u0435\u0442\u0430\u043D\u0430"]
+  }
+};
+function normalizeDietKey(modifier = "") {
+  return normalizeFoodKey(String(modifier).replace(/\([^)]*\)/g, ""));
+}
+function getDietRegistryVersion() {
+  return REGISTRY_VERSION;
+}
+function matchRule(dietaryModifier = "") {
+  const key = normalizeDietKey(dietaryModifier);
+  for (const [k, rule] of Object.entries(DIET_NARROWING_RULES)) {
+    if (key.includes(normalizeFoodKey(k))) return rule;
+  }
+  return null;
+}
+function isCarbDominantEntry(entry) {
+  const slots = entry.slots || [];
+  const group = entry.group || "";
+  return slots.includes("ENG") || group === "carb" || group === "fruit" || group === "ready_meal" && !entry.fixedNutrition;
+}
+function isFatDominantEntry(entry) {
+  const slots = entry.slots || [];
+  const group = entry.group || "";
+  return slots.includes("FAT") || group === "fat";
+}
+function passesDietRegistry(entry, dietaryModifier = "") {
+  const rule = matchRule(dietaryModifier);
+  if (!rule) return true;
+  const nKey = entry.nutritionKey || entry.name;
+  if (rule.maxFatShare != null && isFatDominantEntry(entry) && shareOfKcal(nKey, 3) > rule.maxFatShare) {
+    return false;
+  }
+  if (rule.maxCarbShare != null && isCarbDominantEntry(entry) && shareOfKcal(nKey, 2) > rule.maxCarbShare) {
+    return false;
+  }
+  if (rule.blockedTerms?.length) {
+    const nameLower = entry.name.toLowerCase();
+    const keyLower = String(nKey).toLowerCase();
+    for (const term of rule.blockedTerms) {
+      const t = String(term).toLowerCase();
+      if (t.length < 3) continue;
+      if (nameLower.includes(t) || keyLower.includes(t)) return false;
+    }
+  }
+  return true;
+}
+
+// candidate-ranking.js
+function fatShareOfKcal(nutritionKey) {
+  const a = FOOD_NUTRITION_PER_100G[nutritionKey];
+  if (!a) return 0;
+  const kcal = a[1] * 4 + a[2] * 4 + a[3] * 9;
+  return kcal > 0 ? a[3] * 9 / kcal : 0;
+}
+function slotFatShare(target = {}) {
+  const kcal = Number(target.calories) || 0;
+  const f = Number(target.fats) || 0;
+  return kcal > 0 ? f * 9 / kcal : 0.3;
+}
+function rankCatalogCandidates(list, ctx = {}) {
+  const loveSet = ctx.loveSet || /* @__PURE__ */ new Set();
+  const adherence = ctx.adherenceRatio || /* @__PURE__ */ new Map();
+  const targetFat = slotFatShare(ctx.slotTarget);
+  const limit = ctx.limit ?? list.length;
+  const scored = list.map((entry) => {
+    let score = (entry.universality || 3) / 5;
+    const nKey = entry.nutritionKey || entry.name;
+    if (loveSet.has(normalizeFoodKey(entry.name))) score += 0.45;
+    const ratio = adherence.get(nKey);
+    if (typeof ratio === "number") {
+      if (ratio >= 0.65) score += 0.15;
+      if (ratio <= 0.35) score -= 0.25;
+    }
+    if (ctx.slotTarget) {
+      score -= Math.abs(fatShareOfKcal(nKey) - targetFat) * 0.35;
+    }
+    if (entry.group === "condiment") score -= 0.2;
+    return { entry, score };
+  });
+  scored.sort((a, b) => b.score - a.score || b.entry.universality - a.entry.universality || a.entry.name.localeCompare(b.entry.name, "bg"));
+  const seen = /* @__PURE__ */ new Set();
+  const out = [];
+  for (const { entry } of scored) {
+    if (seen.has(entry.name)) continue;
+    seen.add(entry.name);
+    out.push(entry);
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
 // food-catalog.js
 var SLOT_LABELS = {
   PRO: "\u0431\u0435\u043B\u0442\u044A\u0447\u0438\u043D\u0438 [PRO]",
@@ -7921,7 +8149,7 @@ var LATE_SNACK_NUTRITION_KEYS = /* @__PURE__ */ new Set([
   "\u043F\u0435\u043A\u0430\u043D\u0438",
   "\u043C\u0430\u043A\u0430\u0434\u0430\u043C\u0438\u044F"
 ]);
-function fatShareOfKcal(nutritionKey) {
+function fatShareOfKcal2(nutritionKey) {
   const a = FOOD_NUTRITION_PER_100G[nutritionKey];
   if (!a) return 0;
   const kcal = a[1] * 4 + a[2] * 4 + a[3] * 9;
@@ -7944,29 +8172,16 @@ function getCatalogEntryNutrition(entry) {
   return nutritionArrayToProfile(raw);
 }
 function formatCatalogEntryLabel(entry) {
+  if (entry.fixedNutrition?.kcal) {
+    const f = entry.fixedNutrition;
+    return `${entry.name} (\u0444\u0438\u043A\u0441\u0438\u0440\u0430\u043D\u0430 \u043F\u043E\u0440\u0446\u0438\u044F ${Math.round(f.kcal)}kcal P${Math.round(f.p)}/C${Math.round(f.c)}/F${Math.round(f.f)})`;
+  }
   const n = getCatalogEntryNutrition(entry);
   if (!n) return entry.name;
   return `${entry.name} (${Math.round(n.kcal)}kcal P${Math.round(n.p)}/C${Math.round(n.c)}/F${Math.round(n.f)} \u043D\u0430 100g)`;
 }
-var catalogIndexCache = null;
 function buildCatalogIndex() {
-  if (catalogIndexCache) return catalogIndexCache;
-  const byId = /* @__PURE__ */ new Map();
-  const byKey = /* @__PURE__ */ new Map();
-  for (const entry of FOOD_CATALOG) {
-    byId.set(entry.id, entry);
-    const keys = /* @__PURE__ */ new Set([
-      normalizeFoodKey(entry.name),
-      normalizeFoodKey(entry.nutritionKey),
-      ...entry.aliases.map(normalizeFoodKey)
-    ]);
-    for (const key of keys) {
-      if (!key) continue;
-      if (!byKey.has(key)) byKey.set(key, entry);
-    }
-  }
-  catalogIndexCache = { byId, byKey, all: FOOD_CATALOG };
-  return catalogIndexCache;
+  return buildRegistryIndex();
 }
 function resolveCatalogEntry(name) {
   const index = buildCatalogIndex();
@@ -8094,7 +8309,7 @@ function applyMacroRoleFilter(list, { maxFatShare, maxCarbShare, isKeto }) {
   const filtered = list.filter((entry) => {
     if (entry.group === "condiment") return true;
     const key = entry.nutritionKey || entry.name;
-    if (fatShareOfKcal(key) > maxFatShare) return false;
+    if (fatShareOfKcal2(key) > maxFatShare) return false;
     if (isKeto && carbShareOfKcal(key) > maxCarbShare) return false;
     return true;
   });
@@ -8121,7 +8336,8 @@ function getCatalogCandidatesForChunk({
   blockedTerms = [],
   minUniversality = DEFAULT_MIN_UNIVERSALITY,
   preferLove = [],
-  clinicalProtocolId = null
+  clinicalProtocolId = null,
+  adherenceRatio = null
 }) {
   const index = buildCatalogIndex();
   const diet = normalizeDietModifier(dietaryModifier);
@@ -8131,8 +8347,10 @@ function getCatalogCandidatesForChunk({
   let hasLateSnack = false;
   let minFatShare = 1;
   let minCarbShare = 1;
-  const isKeto = /кето|keto/i.test(String(dietaryModifier || ""));
   const dayKeys = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+  const adherenceMap = adherenceRatio instanceof Map ? adherenceRatio : new Map(Object.entries(adherenceRatio || {}));
+  const representativeSlot = strategy?.weeklyScheme?.[dayKeys[startDay - 1]]?.mealBreakdown?.find((m) => m.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2") || strategy?.weeklyScheme?.monday?.mealBreakdown?.[0];
+  const isKeto = /кето|keto/i.test(String(dietaryModifier || ""));
   for (let d = startDay; d <= endDay; d++) {
     const dayTarget = strategy?.weeklyScheme?.[dayKeys[d - 1]];
     if (!dayTarget?.mealBreakdown) continue;
@@ -8161,6 +8379,7 @@ function getCatalogCandidatesForChunk({
   for (const entry of index.all) {
     if (entry.universality < minUniversality) continue;
     if (!isDietCompatible(entry, diet)) continue;
+    if (!passesDietRegistry(entry, dietaryModifier)) continue;
     if (isBlockedByTerms(entry, blockedTerms)) continue;
     if (isExcludedByProtocol(entry, clinicalProtocolId)) continue;
     const entryTimings = entry.timing;
@@ -8174,22 +8393,13 @@ function getCatalogCandidatesForChunk({
     }
   }
   for (const [slot, list] of bySlot) {
-    list.sort((a, b) => {
-      const aLove = loveSet.has(normalizeFoodKey(a.name)) ? 1 : 0;
-      const bLove = loveSet.has(normalizeFoodKey(b.name)) ? 1 : 0;
-      if (bLove !== aLove) return bLove - aLove;
-      if (b.universality !== a.universality) return b.universality - a.universality;
-      return a.name.localeCompare(b.name, "bg");
+    const ranked = rankCatalogCandidates(list, {
+      loveSet,
+      adherenceRatio: adherenceMap,
+      slotTarget: representativeSlot,
+      limit: CATALOG_PROMPT_LIMIT_PER_SLOT * 3
     });
-    const seen = /* @__PURE__ */ new Set();
-    const deduped = [];
-    for (const e of list) {
-      if (seen.has(e.name)) continue;
-      seen.add(e.name);
-      deduped.push(e);
-      if (deduped.length >= CATALOG_PROMPT_LIMIT_PER_SLOT) break;
-    }
-    bySlot.set(slot, deduped);
+    bySlot.set(slot, ranked.slice(0, CATALOG_PROMPT_LIMIT_PER_SLOT));
   }
   const maxFatShare = minFatShare + MACRO_FILTER_FAT_MARGIN;
   const maxCarbShare = minCarbShare + MACRO_FILTER_CARB_MARGIN;
@@ -8204,7 +8414,10 @@ function getCatalogCandidatesForChunk({
     }
     bySlot.set(slot, list);
   }
-  const ready = index.all.filter((e) => e.group === "ready_meal").filter((e) => e.universality >= minUniversality).filter((e) => isDietCompatible(e, diet)).filter((e) => !isBlockedByTerms(e, blockedTerms)).filter((e) => !isExcludedByProtocol(e, clinicalProtocolId)).filter((e) => e.timing.some((t) => timings.has(t))).sort((a, b) => b.universality - a.universality || a.name.localeCompare(b.name, "bg")).slice(0, 12);
+  const ready = rankCatalogCandidates(
+    index.all.filter((e) => e.group === "ready_meal").filter((e) => e.universality >= minUniversality).filter((e) => isDietCompatible(e, diet)).filter((e) => passesDietRegistry(e, dietaryModifier)).filter((e) => !isBlockedByTerms(e, blockedTerms)).filter((e) => !isExcludedByProtocol(e, clinicalProtocolId)).filter((e) => e.timing.some((t) => timings.has(t))),
+    { loveSet, adherenceRatio: adherenceMap, slotTarget: representativeSlot, limit: 12 }
+  );
   bySlot.set("READY", ready);
   return bySlot;
 }
@@ -8213,7 +8426,7 @@ function formatCatalogSectionForPrompt(candidatesBySlot, { minUniversality = DEF
     `=== \u041A\u0410\u0422\u0410\u041B\u041E\u0413 \u0425\u0420\u0410\u041D\u0418 (\u0417\u0410\u0414\u042A\u041B\u0416\u0418\u0422\u0415\u041B\u041D\u041E \u2014 \u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430\u0439 \u0421\u0410\u041C\u041E \u0442\u0435\u0437\u0438 \u0438\u043C\u0435\u043D\u0430) ===`,
     `\u0423\u043D\u0438\u0432\u0435\u0440\u0441\u0430\u043B\u043D\u043E\u0441\u0442 \u2265${minUniversality}: \u043F\u0440\u0435\u0434\u043F\u043E\u0447\u0438\u0442\u0430\u0439 \u043F\u043E-\u043E\u0431\u0449\u0438 \u0432\u0430\u0440\u0438\u0430\u043D\u0442\u0438 (\u0420\u0438\u0431\u0430, \u041E\u0440\u0438\u0437, \u041F\u043B\u043E\u0434) \u043F\u0440\u0435\u0434 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u0438 (\u041B\u0430\u0432\u0440\u0430\u043A, \u041A\u0438\u043D\u043E\u0430, \u041C\u0430\u043D\u0433\u043E).`,
     `\u0421\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438 \u0432 \u0441\u043A\u043E\u0431\u0438 = \u043D\u0430 100g. \u0411\u0435\u043A\u0435\u043D\u0434\u044A\u0442 \u0438\u0437\u0447\u0438\u0441\u043B\u044F\u0432\u0430 \u0433\u0440\u0430\u043C\u0430\u0436\u0438\u0442\u0435 \u2014 \u043D\u0435 \u043F\u0438\u0448\u0438 \u0447\u0438\u0441\u043B\u0430 \u0432 description.`,
-    `\u0413\u043E\u0442\u043E\u0432\u0430 \u0445\u0440\u0430\u043D\u0430 = \u0435\u0434\u0438\u043D \u0440\u0435\u0434 \u0432 description \u0418\u041B\u0418 \u0440\u0430\u0437\u0431\u0438\u0439 \u043D\u0430 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u043E\u0442 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430.`
+    `\u0413\u043E\u0442\u043E\u0432\u0430 \u0445\u0440\u0430\u043D\u0430: \u0435\u0434\u0438\u043D \u0440\u0435\u0434 = \u044F\u0441\u0442\u0438\u0435; backend \u0440\u0430\u0437\u0431\u0438\u0432\u0430 (decompose) \u0438\u043B\u0438 \u0444\u0438\u043A\u0441\u0438\u0440\u0430 \u043F\u043E\u0440\u0446\u0438\u044F (atomic) \u0441\u043F\u043E\u0440\u0435\u0434 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430.`
   ];
   for (const slot of ["PRO", "ENG", "VOL", "FAT"]) {
     const items = candidatesBySlot.get(slot) || [];
@@ -9147,6 +9360,120 @@ function solveMealGrams(items, target, bounds, maxTotalGrams = 900) {
   };
 }
 
+// meal-day-sync.js
+var SKIP_TYPES = /* @__PURE__ */ new Set(["\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435", "\u041D\u0430\u043F\u0438\u0442\u043A\u0430"]);
+function cloneTarget(target) {
+  if (!target) return null;
+  return {
+    calories: Number(target.calories) || 0,
+    protein: Number(target.protein) || 0,
+    carbs: Number(target.carbs) || 0,
+    fats: Number(target.fats) || 0
+  };
+}
+function applyAtomicMealNutrition(meal, schemeTarget) {
+  const entry = resolveAtomicEntryFromDescription(meal.description);
+  if (!entry?.fixedNutrition) {
+    return { ok: false, feasible: false, reason: "\u043B\u0438\u043F\u0441\u0432\u0430 fixedNutrition \u0437\u0430 \u0430\u0442\u043E\u043C\u0430\u0440\u043D\u043E \u044F\u0441\u0442\u0438\u0435", unknowns: [] };
+  }
+  const fixed = entry.fixedNutrition;
+  const weight = Number(fixed.weightGrams) || 0;
+  meal.description = `\u2022 ${entry.name}`;
+  meal.weight = weight > 0 ? `${Math.round(weight)}\u0433` : "";
+  meal.macros = {
+    protein: Math.round(Number(fixed.p) || 0),
+    carbs: Math.round(Number(fixed.c) || 0),
+    fats: Math.round(Number(fixed.f) || 0)
+  };
+  meal.calories = Math.round(Number(fixed.kcal) || 0);
+  meal.scalingMode = SCALING_ATOMIC;
+  const targetKcal = Number(schemeTarget?.calories) || 0;
+  const feasible = targetKcal <= 0 || isMealCaloriesAdequate(meal.calories, targetKcal);
+  return {
+    ok: true,
+    feasible,
+    reason: feasible ? "" : "\u0430\u0442\u043E\u043C\u0430\u0440\u043D\u0430\u0442\u0430 \u043F\u043E\u0440\u0446\u0438\u044F \u043D\u0435 \u043F\u0430\u0441\u0432\u0430 \u0432 \u0441\u043B\u043E\u0442\u0430 \u2014 \u0438\u0437\u0431\u0435\u0440\u0438 \u0434\u0440\u0443\u0433\u043E \u044F\u0441\u0442\u0438\u0435",
+    unknowns: [],
+    kcalDelta: meal.calories - targetKcal
+  };
+}
+function isAtomicMeal(meal) {
+  return resolveAtomicEntryFromDescription(meal.description) != null;
+}
+function adjustDecomposableTargets(decomposable, kcalDrift) {
+  if (!decomposable.length || !kcalDrift) return;
+  const totalScheme = decomposable.reduce((s, x) => s + (Number(x.schemeTarget?.calories) || 0), 0);
+  if (totalScheme <= 0) return;
+  let remaining = kcalDrift;
+  for (const item2 of decomposable) {
+    const share = (Number(item2.schemeTarget?.calories) || 0) / totalScheme;
+    const adjust = Math.round(kcalDrift * share);
+    item2.solveTarget.calories = Math.max(50, (Number(item2.solveTarget.calories) || 0) - adjust);
+    remaining -= adjust;
+  }
+  if (remaining !== 0 && decomposable.length) {
+    const last = decomposable[decomposable.length - 1];
+    last.solveTarget.calories = Math.max(50, (Number(last.solveTarget.calories) || 0) - remaining);
+  }
+}
+function syncDayMealsNutrition(day, dayScheme, extraDb = {}) {
+  const unknowns = [];
+  const infeasible = [];
+  if (!day?.meals?.length) return { unknowns, infeasible };
+  const breakdown = dayScheme?.mealBreakdown || [];
+  const atomic = [];
+  const decomposable = [];
+  for (const meal of day.meals) {
+    if (SKIP_TYPES.has(meal.type)) continue;
+    const schemeTarget = breakdown.find((m) => m.type === meal.type);
+    if (!schemeTarget) continue;
+    if (isAtomicMeal(meal)) {
+      atomic.push({ meal, schemeTarget });
+    } else {
+      decomposable.push({
+        meal,
+        schemeTarget,
+        solveTarget: cloneTarget(schemeTarget)
+      });
+    }
+  }
+  let kcalDrift = 0;
+  for (const { meal, schemeTarget } of atomic) {
+    const result = applyAtomicMealNutrition(meal, schemeTarget);
+    if (result.unknowns?.length) unknowns.push(...result.unknowns);
+    if (!result.feasible) {
+      infeasible.push({ type: meal.type, reason: result.reason || "\u0430\u0442\u043E\u043C\u0430\u0440\u0435\u043D \u0441\u043B\u043E\u0442" });
+    }
+    kcalDrift += Number(result.kcalDelta) || 0;
+  }
+  adjustDecomposableTargets(decomposable, kcalDrift);
+  for (const { meal, solveTarget } of decomposable) {
+    const result = applyMealNutritionFromDatabase(meal, solveTarget, extraDb);
+    if (result.unknowns?.length) unknowns.push(...result.unknowns);
+    if (result.feasible === false) {
+      infeasible.push({ type: meal.type, reason: result.reason || "\u043D\u0435\u043E\u0441\u044A\u0449\u0435\u0441\u0442\u0432\u0438\u043C \u0441\u043B\u043E\u0442" });
+    }
+  }
+  return { unknowns: [...new Set(unknowns)], infeasible };
+}
+function syncWeekPlanNutritionWithDayBudget(weekPlan, strategy, startDay, endDay, extraDb = {}) {
+  const unknowns = [];
+  const infeasible = [];
+  if (!weekPlan || !strategy?.weeklyScheme) return { unknowns, infeasible };
+  const dayKeys = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+  for (let d = startDay; d <= endDay; d++) {
+    const day = weekPlan[`day${d}`];
+    const dayScheme = strategy.weeklyScheme[dayKeys[d - 1]];
+    const result = syncDayMealsNutrition(day, dayScheme, extraDb);
+    unknowns.push(...result.unknowns);
+    for (const slot of result.infeasible) {
+      infeasible.push({ day: d, type: slot.type, reason: slot.reason });
+    }
+  }
+  return { unknowns: [...new Set(unknowns)], infeasible };
+}
+var syncWeekPlanNutritionFromDatabase = syncWeekPlanNutritionWithDayBudget;
+
 // food-nutrition.js
 var GRAM_ROUND_STEP = 10;
 var GRAM_ROUND_STEP_LARGE = 50;
@@ -9159,33 +9486,21 @@ function calorieTolerance(targetKcal) {
 var CONDIMENT_MAX_GRAMS = 15;
 var DAIRY_MAX_GRAMS = 300;
 var MAX_MEAL_WEIGHT_GRAMS = 900;
-var READY_MEAL_PARTS = {
-  meal_rice_chicken: [{ name: "\u043E\u0440\u0438\u0437", share: 0.42 }, { name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.58 }],
-  meal_fish_potato: [{ name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438", share: 0.55 }, { name: "\u0440\u0438\u0431\u0430", share: 0.45 }],
-  meal_omelet: [{ name: "\u044F\u0439\u0446\u0430", share: 1 }],
-  meal_boiled_egg: [{ name: "\u044F\u0439\u0446\u0430", share: 1 }],
-  meal_chicken_salad: [{ name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.55 }, { name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 0.45 }],
-  meal_green_salad: [{ name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 1 }],
-  meal_oatmeal: [{ name: "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438", share: 1 }],
-  meal_yogurt_oats: [{ name: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", share: 0.6 }, { name: "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438", share: 0.4 }],
-  meal_chicken_soup: [{ name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.35 }, { name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 0.65 }],
-  meal_veg_soup: [{ name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 1 }],
-  meal_lentil_stew: [{ name: "\u043B\u0435\u0449\u0430", share: 0.7 }, { name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 0.3 }],
-  meal_bean_stew: [{ name: "\u0431\u043E\u0431", share: 0.7 }, { name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 0.3 }],
-  meal_chicken_sandwich: [{ name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.4 }, { name: "\u0445\u043B\u044F\u0431", share: 0.6 }],
-  meal_cottage_bowl: [{ name: "\u0438\u0437\u0432\u0430\u0440\u0430", share: 1 }],
-  meal_skry_bowl: [{ name: "\u0441\u043A\u0438\u0440", share: 1 }]
-};
 function expandReadyMealItems(items, extraDb = {}) {
   const out = [];
+  const index = buildRegistryIndex();
   for (const item2 of items) {
     const { entry } = resolveCatalogEntry(item2.name);
     if (!entry || entry.group !== "ready_meal") {
       out.push(item2);
       continue;
     }
+    if (getEntryScalingMode(entry) === SCALING_ATOMIC) {
+      out.push(item2);
+      continue;
+    }
     if (entry.genericOf) {
-      const parent = FOOD_CATALOG.find((e) => e.id === entry.genericOf);
+      const parent = index.byId.get(entry.genericOf);
       if (parent) {
         const { profile, key, unknown } = lookupFoodProfile(parent.name, extraDb);
         out.push({ ...item2, name: parent.name, profile, key, unknown: !!unknown });
@@ -9448,26 +9763,6 @@ function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}) {
     feasible: solved.feasible,
     reason: solved.reason || ""
   };
-}
-function syncWeekPlanNutritionFromDatabase(weekPlan, strategy, startDay, endDay, extraDb = {}) {
-  const unknowns = [];
-  const infeasible = [];
-  if (!weekPlan || !strategy?.weeklyScheme) return { unknowns, infeasible };
-  const dayKeys = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
-  for (let d = startDay; d <= endDay; d++) {
-    const day = weekPlan[`day${d}`];
-    const dayTarget = strategy.weeklyScheme[dayKeys[d - 1]];
-    if (!day?.meals?.length) continue;
-    for (const meal of day.meals) {
-      const target = dayTarget?.mealBreakdown?.find((m) => m.type === meal.type) || null;
-      const result = applyMealNutritionFromDatabase(meal, target, extraDb);
-      if (result.unknowns?.length) unknowns.push(...result.unknowns);
-      if (result.feasible === false) {
-        infeasible.push({ day: d, type: meal.type, reason: result.reason || "\u043D\u0435\u043E\u0441\u044A\u0449\u0435\u0441\u0442\u0432\u0438\u043C \u0441\u043B\u043E\u0442" });
-      }
-    }
-  }
-  return { unknowns: [...new Set(unknowns)], infeasible };
 }
 function profileToKvArray(profile) {
   return [profile.kcal, profile.p, profile.c, profile.f];
@@ -9796,6 +10091,23 @@ function validateMealCombinations(meal) {
     }
   }
   return issues;
+}
+
+// plan-source-meta.js
+function buildPlanSourceMeta(extra = {}) {
+  return {
+    catalogVersion: getCatalogVersion(),
+    dietRegistryVersion: getDietRegistryVersion(),
+    generatedAt: (/* @__PURE__ */ new Date()).toISOString(),
+    ...extra
+  };
+}
+function ensurePlanSourceMeta(plan, extra = {}) {
+  if (!plan || typeof plan !== "object") return plan;
+  if (!plan.sourceMeta || typeof plan.sourceMeta !== "object") {
+    plan.sourceMeta = buildPlanSourceMeta(extra);
+  }
+  return plan;
 }
 
 // worker.entry.js
@@ -12517,7 +12829,21 @@ function computeWeeklyReleaseVisibleAt(nowMs = Date.now()) {
   return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + daysUntilMonday, 0, 0, 0, 0);
 }
 var JOB_ID_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+async function loadCatalogRegistryOverlay(env) {
+  if (!env?.page_content) return;
+  try {
+    const raw = await env.page_content.get("food_catalog_overlay");
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    const entries = Array.isArray(parsed) ? parsed : parsed?.entries;
+    const label = Array.isArray(parsed) ? "" : parsed?.version || parsed?.label || "";
+    if (entries?.length) setCatalogOverlay(entries, label);
+  } catch (e) {
+    console.warn("[food-registry] overlay load failed:", e.message);
+  }
+}
 async function generatePlanCore(env, data, onAnalysisReady = null) {
+  await loadCatalogRegistryOverlay(env);
   const clinicalProtocol = getClinicalProtocol(data.clinicalProtocol);
   if (clinicalProtocol) {
     if (data.clinicalProtocol === "postpartum_lactation" && data.postpartumGoal) {
@@ -14115,6 +14441,7 @@ async function reconcilePlanStructure(plan, userData = null, env = null) {
       fats: avgMacros.fats
     };
   }
+  ensurePlanSourceMeta(plan);
   return plan;
 }
 async function reconcilePlanAfterAssistantPatches(plan, userData = null, env = null) {
