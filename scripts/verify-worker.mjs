@@ -164,6 +164,11 @@ check('rebuild stage 1.7+2', () => {
   if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
 });
 
+check('rebuild stage2 week-at-once', () => {
+  const r = run('node', ['scripts/test-rebuild-stage2-week.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
+});
+
 check('meal solver pipeline', () => {
   const r = run('node', ['scripts/test-solver.mjs']);
   if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));

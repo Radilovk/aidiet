@@ -18,7 +18,7 @@ ok(!nutrition.includes('scaleItemsToTargetCalories'), 'scaling chain removed');
 ok(!worker.includes('reconcileAchievedSlotCalories'), 'reconcile removed from worker');
 ok(worker.includes('DAY_MACRO_TOLERANCE_PERCENT'), 'daily macro validation');
 ok(!worker.includes('липсват грамажи'), 'gram-required validation removed');
-ok(prompt.includes('Do NOT write grams'), 'prompt: composition only');
+ok(prompt.includes('Do NOT write grams') || readFileSync('step3-chunk.js', 'utf8').includes('Do NOT write grams'), 'prompt: composition only');
 ok(!prompt.includes('{N}g'), 'prompt: no gram template');
 ok(readFileSync('meal-solver.js', 'utf8').includes('export function solveMealGrams'), 'meal-solver module');
 
