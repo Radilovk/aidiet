@@ -110,7 +110,11 @@ export function solveMealGrams(items, target, bounds, maxTotalGrams = 900) {
   let t = totalsFor(items, grams);
   let kcalOk = Math.abs(t.kcal - target.kcal) <= Math.max(30, target.kcal * 0.10);
   if (!kcalOk) {
-    ({ grams } = refineGrams(items, grams, bounds, target, maxTotalGrams, kcalOnlyCost));
+    const expanded = bounds.map(b => ({
+      min: b.min,
+      max: Math.min(650, Math.round(b.max * 1.2)),
+    }));
+    ({ grams } = refineGrams(items, grams, expanded, target, maxTotalGrams, kcalOnlyCost));
     t = totalsFor(items, grams);
     kcalOk = Math.abs(t.kcal - target.kcal) <= Math.max(30, target.kcal * 0.10);
   }

@@ -45,7 +45,7 @@ const decomp = [{
   solveTarget: { calories: 500, protein: 30, carbs: 40, fats: 12 },
 }];
 adjustDecomposableTargets(decomp, 70);
-ok(decomp[0].solveTarget.calories === 430, 'budget drift redistributed to decomposable');
+ok(decomp[0].solveTarget.calories === 430, 'legacy drift helper still works in isolation');
 
 const day = {
   meals: [
