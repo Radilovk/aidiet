@@ -12,6 +12,8 @@ import {
   buildAdherenceRatio,
   serializeFoodLedger,
   planDayIndex,
+  planSliceForLedgerSync,
+  analyticsSyncSignature,
   LEDGER_VERSION,
 } from '../food-ledger.js';
 import { rankCatalogCandidates } from '../candidate-ranking.js';
@@ -72,6 +74,10 @@ ok(worker.includes('loadAdherenceRatioForGeneration'), 'worker loads adherence')
 ok(worker.includes('handleGetFoodCatalogOverlay'), 'worker admin food catalog');
 ok(worker.includes('adherenceRatio: data._adherenceRatio'), 'catalog uses adherence');
 ok(readFileSync('plan-source-meta.js', 'utf8').includes('ledgerVersion'), 'source meta ledger');
+
+const slice = planSliceForLedgerSync({ weekPlan: { day1: {} }, sourceMeta: { catalogVersion: 'cat_x' } });
+ok(slice?.weekPlan?.day1 && slice.sourceMeta.catalogVersion === 'cat_x', 'plan slice for sync');
+ok(analyticsSyncSignature('u1', { '2026-01-01': { dailyScore: 80 } }, slice).includes('cat_x'), 'sync signature includes catalog');
 
 console.log(`\n=== stage3 food ledger+admin: ${pass} pass, ${fail} fail ===`);
 process.exit(fail ? 1 : 0);
