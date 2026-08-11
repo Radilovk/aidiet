@@ -7965,10 +7965,23 @@ async function fetchFoodNutritionViaAI(env, productName) {
   return null;
 }
 
+/** Slot kcal, infeasible composition, weight caps, daily kcal drift — not day-level macro grams. */
+const CHUNK_NUTRITION_BLOCKING_PATTERNS = [
+  /калории \d+ ≠ цел/i,
+  /дневни \d+ kcal ≠ схема/i,
+  /неосъществим|не се постигат/i,
+  /weight \d+g >|weight \d+g </i,
+  /смени продуктите/i,
+];
+
 function hasBlockingNutritionErrors(errors = []) {
   return (errors || []).some(e =>
-    /калории \d+|≠ схема|≠ цел|композицията|неосъществим|не се постигат|weight \d+g >|weight \d+g </i.test(String(e))
+    CHUNK_NUTRITION_BLOCKING_PATTERNS.some(p => p.test(String(e)))
   );
+}
+
+function isDailyMacroSoftWarning(message = '') {
+  return /Ден \d+: (протеин|въглехидрати|мазнини) \d+g ≠ цел/i.test(String(message));
 }
 
 async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data = null) {
@@ -8095,27 +8108,30 @@ const DAY_MACRO_TOLERANCE_PERCENT = 0.15;
 const DAY_MACRO_MIN_TOLERANCE_G = 10;
 
 function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay, clinicalProtocolId = null, userData = null) {
-  const errors = [];
-  if (!weekPlan || !strategy?.weeklyScheme) return errors;
+  const blocking = [];
+  const warnings = [];
+  if (!weekPlan || !strategy?.weeklyScheme) return { blocking, warnings };
   normalizeMealBreakdownTypes(strategy);
   for (let d = startDay; d <= endDay; d++) {
     const dayPlan = weekPlan[`day${d}`];
     const schemeKey = DAY_NUMBER_TO_KEY[d - 1];
     const dayTarget = strategy.weeklyScheme[schemeKey];
     if (dayPlan && dayTarget) {
-      errors.push(...validateMealTypesAgainstBreakdown(dayPlan, dayTarget, d, userData));
-      errors.push(...validateMealsAgainstScheme(dayPlan, dayTarget, d, clinicalProtocolId));
+      blocking.push(...validateMealTypesAgainstBreakdown(dayPlan, dayTarget, d, userData));
+      blocking.push(...validateMealsAgainstScheme(dayPlan, dayTarget, d, clinicalProtocolId));
       for (const meal of dayPlan.meals || []) {
-        errors.push(...validateLightMealSlotContent(meal, d));
-        errors.push(...validateLateSnackSlotContent(meal, d));
+        blocking.push(...validateLightMealSlotContent(meal, d));
+        blocking.push(...validateLateSnackSlotContent(meal, d));
       }
       const dayKcal = Number(dayPlan.dailyTotals?.calories) || 0;
       const schemeKcal = (dayTarget.mealBreakdown || [])
         .reduce((s, m) => s + (Number(m.calories) || 0), 0) || Number(dayTarget.calories) || 0;
+      let dayKcalOk = false;
       if (dayKcal > 0 && schemeKcal > 0) {
         const tol = calorieTolerance(schemeKcal);
-        if (Math.abs(dayKcal - schemeKcal) > tol * 2) {
-          errors.push(`Ден ${d}: дневни ${dayKcal} kcal ≠ схема ${schemeKcal}`);
+        dayKcalOk = Math.abs(dayKcal - schemeKcal) <= tol * 2;
+        if (!dayKcalOk) {
+          blocking.push(`Ден ${d}: дневни ${dayKcal} kcal ≠ схема ${schemeKcal}`);
         }
       }
 
@@ -8132,15 +8148,17 @@ function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay
         if (goal <= 0 || got <= 0) continue;
         const tol = Math.max(DAY_MACRO_MIN_TOLERANCE_G, goal * DAY_MACRO_TOLERANCE_PERCENT);
         if (Math.abs(got - goal) > tol) {
-          errors.push(
+          const msg =
             `Ден ${d}: ${label} ${Math.round(got)}g ≠ цел ${Math.round(goal)}g — ` +
-            'композицията не носи този макро профил, смени продукти'
-          );
+            'композицията не носи този макро профил, смени продукти';
+          // kcal-first solver: daily macro grams are soft when daily kcal matches scheme.
+          if (dayKcalOk) warnings.push(msg);
+          else blocking.push(msg);
         }
       }
     }
   }
-  return errors;
+  return { blocking, warnings };
 }
 
 function buildChunkValidationRetryComment(errors) {
@@ -9873,11 +9891,21 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
     let attempt = 0;
     let compositionRepairAttempt = 0;
     let bestSnapshot = null;
-    let bestErrors = null;
+    let bestBlocking = null;
+    let bestWarnings = null;
     let lastAiFailure = null;
 
+    const appendInfeasibleSlots = (blocking, infeasible = []) => {
+      const out = [...blocking];
+      for (const slot of infeasible) {
+        out.push(`Ден ${slot.day} ${slot.type}: ${slot.reason} — смени продуктите`);
+      }
+      return out;
+    };
+
     while (true) {
-      let validationErrors;
+      let blockingErrors = null;
+      let chunkWarnings = [];
       let syncMeta = null;
       try {
         const chunkPrompt = await generateMealPlanChunkPrompt(
@@ -9918,36 +9946,42 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         }
         finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, data);
 
-        validationErrors = validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay, data.clinicalProtocol || null, data);
-        for (const slot of syncMeta?.infeasible || []) {
-          validationErrors.push(`Ден ${slot.day} ${slot.type}: ${slot.reason} — смени продуктите`);
-        }
+        const validation = validateWeekPlanChunkAgainstScheme(
+          weekPlan, strategy, startDay, endDay, data.clinicalProtocol || null, data,
+        );
+        blockingErrors = appendInfeasibleSlots(validation.blocking, syncMeta?.infeasible);
+        chunkWarnings = validation.warnings;
         lastAiFailure = null;
       } catch (aiError) {
         // AI call/parse failure — no plan data to score; retry with the same slot empty.
         lastAiFailure = aiError.message;
-        validationErrors = null;
+        blockingErrors = null;
       }
 
-      if (validationErrors !== null) {
+      if (blockingErrors !== null) {
         const daysSnapshot = {};
         for (let day = startDay; day <= endDay; day++) {
           daysSnapshot[`day${day}`] = JSON.parse(JSON.stringify(weekPlan[`day${day}`]));
         }
 
-        if (!validationErrors.length) {
+        if (!blockingErrors.length) {
           bestSnapshot = daysSnapshot;
-          bestErrors = [];
+          bestBlocking = [];
+          bestWarnings = chunkWarnings;
+          if (chunkWarnings.length) {
+            generationWarnings.push(`Дни ${startDay}-${endDay}: ${chunkWarnings.join('; ')}`);
+          }
           break;
         }
-        if (!bestSnapshot || validationErrors.length < bestErrors.length) {
+        if (!bestBlocking || blockingErrors.length < bestBlocking.length) {
           bestSnapshot = daysSnapshot;
-          bestErrors = validationErrors;
+          bestBlocking = blockingErrors;
+          bestWarnings = chunkWarnings;
         }
 
-        // Stage 1.7 — targeted repair when all errors are composition/solver issues
-        if (validationErrors.every(isCompositionRepairableError)) {
-          const repairTargets = extractCompositionRepairTargets(validationErrors, syncMeta?.infeasible);
+        // Stage 1.7 — targeted repair when all blocking errors are composition/solver issues
+        if (blockingErrors.every(isCompositionRepairableError)) {
+          const repairTargets = extractCompositionRepairTargets(blockingErrors, syncMeta?.infeasible);
           if (repairTargets.length && compositionRepairAttempt < COMPOSITION_REPAIR_MAX_PER_CHUNK) {
             compositionRepairAttempt++;
             const repaired = await tryCompositionRepair(env, {
@@ -9956,20 +9990,26 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
             if (repaired) {
               syncMeta = await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
               finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, data);
-              validationErrors = validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay, data.clinicalProtocol || null, data);
-              for (const slot of syncMeta?.infeasible || []) {
-                validationErrors.push(`Ден ${slot.day} ${slot.type}: ${slot.reason} — смени продуктите`);
-              }
-              if (!validationErrors.length) {
+              const repairedValidation = validateWeekPlanChunkAgainstScheme(
+                weekPlan, strategy, startDay, endDay, data.clinicalProtocol || null, data,
+              );
+              blockingErrors = appendInfeasibleSlots(repairedValidation.blocking, syncMeta?.infeasible);
+              chunkWarnings = repairedValidation.warnings;
+              if (!blockingErrors.length) {
                 bestSnapshot = {};
                 for (let day = startDay; day <= endDay; day++) {
                   bestSnapshot[`day${day}`] = JSON.parse(JSON.stringify(weekPlan[`day${day}`]));
                 }
-                bestErrors = [];
+                bestBlocking = [];
+                bestWarnings = chunkWarnings;
+                if (chunkWarnings.length) {
+                  generationWarnings.push(`Дни ${startDay}-${endDay}: ${chunkWarnings.join('; ')}`);
+                }
                 break;
               }
-              if (validationErrors.length < bestErrors.length) {
-                bestErrors = validationErrors;
+              if (blockingErrors.length < bestBlocking.length) {
+                bestBlocking = blockingErrors;
+                bestWarnings = chunkWarnings;
                 bestSnapshot = {};
                 for (let day = startDay; day <= endDay; day++) {
                   bestSnapshot[`day${day}`] = JSON.parse(JSON.stringify(weekPlan[`day${day}`]));
@@ -9982,18 +10022,19 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       }
 
       if (attempt >= MEAL_PLAN_CHUNK_MAX_RETRIES) {
-        if (bestSnapshot && !hasBlockingNutritionErrors(bestErrors)) {
+        if (bestSnapshot && !hasBlockingNutritionErrors(bestBlocking)) {
           for (const [dayKey, dayData] of Object.entries(bestSnapshot)) {
             weekPlan[dayKey] = dayData;
           }
-          if (bestErrors?.length) {
-            generationWarnings.push(`Дни ${startDay}-${endDay}: ${bestErrors.join('; ')}`);
-            console.warn(`Chunk ${chunkIndex + 1} приет с ${bestErrors.length} остатъчни проблема`);
+          const residual = [...(bestBlocking || []), ...(bestWarnings || [])];
+          if (residual.length) {
+            generationWarnings.push(`Дни ${startDay}-${endDay}: ${residual.join('; ')}`);
+            console.warn(`Chunk ${chunkIndex + 1} приет с ${residual.length} остатъчни проблема`);
           }
           break;
         }
-        const detail = bestErrors?.length
-          ? bestErrors.join('; ')
+        const detail = bestBlocking?.length
+          ? [...bestBlocking, ...(bestWarnings || [])].join('; ')
           : (lastAiFailure || 'няма валиден отговор след всички опити');
         throw new Error(`Генериране на дни ${startDay}-${endDay}: ${detail}`);
       }
@@ -10001,10 +10042,12 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       for (let day = startDay; day <= endDay; day++) {
         delete weekPlan[`day${day}`];
       }
-      chunkComment = [errorPreventionComment, validationErrors?.length ? buildChunkValidationRetryComment(validationErrors) : null]
-        .filter(Boolean).join('\n\n');
+      chunkComment = [
+        errorPreventionComment,
+        blockingErrors?.length ? buildChunkValidationRetryComment(blockingErrors) : null,
+      ].filter(Boolean).join('\n\n');
       attempt++;
-      console.warn(`Chunk ${chunkIndex + 1} attempt ${attempt} failed, retrying:`, validationErrors || lastAiFailure);
+      console.warn(`Chunk ${chunkIndex + 1} attempt ${attempt} failed, retrying:`, blockingErrors || lastAiFailure);
     }
 
     for (let day = startDay; day <= endDay; day++) {
