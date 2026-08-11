@@ -1677,8 +1677,8 @@ const pendingSessionLogs = new Map(); // sessionId → [logId, ...]
 // and scaled to the calorie target — validation is structural (grams present,
 // catalog products, protocol safety) plus a calorie sanity check for compositions
 // the bounded scaling could not fix.
-const MEAL_PLAN_CHUNK_MAX_RETRIES = 2; // Up to 2 retries per day when structural validation fails
-const COMPOSITION_REPAIR_MAX_PER_CHUNK = 2; // Stage 1.7 — targeted slot repair before full chunk regen
+const MEAL_PLAN_CHUNK_MAX_RETRIES = 4; // Week-at-once chunk — allow repair + regen for nutrition/composition
+const COMPOSITION_REPAIR_MAX_PER_CHUNK = 3; // Stage 1.7 — targeted slot repair before full chunk regen
 const CATALOG_STRICT_MODE = true; // Step 3: only catalog products; no AI nutrition lookup
 
 /**
@@ -7965,6 +7965,12 @@ async function fetchFoodNutritionViaAI(env, productName) {
   return null;
 }
 
+function hasBlockingNutritionErrors(errors = []) {
+  return (errors || []).some(e =>
+    /калории \d+|≠ схема|≠ цел|композицията|неосъществим|не се постигат|weight \d+g >|weight \d+g </i.test(String(e))
+  );
+}
+
 async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data = null) {
   const extraDb = CATALOG_STRICT_MODE ? {} : await loadFoodNutritionExtraDb(env);
   let syncResult = syncWeekPlanNutritionFromDatabase(weekPlan, strategy, startDay, endDay, extraDb);
@@ -9976,7 +9982,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       }
 
       if (attempt >= MEAL_PLAN_CHUNK_MAX_RETRIES) {
-        if (bestSnapshot) {
+        if (bestSnapshot && !hasBlockingNutritionErrors(bestErrors)) {
           for (const [dayKey, dayData] of Object.entries(bestSnapshot)) {
             weekPlan[dayKey] = dayData;
           }

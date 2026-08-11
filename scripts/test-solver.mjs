@@ -68,5 +68,39 @@ ok(Math.abs(fatShareOfKcal('скир') - 0.03) < 0.02, 'скир fat share ~3%')
   ok(!result.feasible, 'veg-only high-kcal infeasible', result.reason);
 }
 
+// Live failure pattern: low-density composition cannot reach slot (→ composition repair)
+{
+  const meal = {
+    type: 'Хранене 4',
+    description: '• риба\n• картофи\n• зелена салата',
+  };
+  const target = { calories: 1112, protein: 80, carbs: 100, fats: 35 };
+  const result = applyMealNutritionFromDatabase(meal, target);
+  ok(!result.feasible, 'fish+potato+salad infeasible at 1112 — triggers repair', result.reason);
+}
+
+// High-kcal feasible composition
+{
+  const meal = {
+    type: 'Хранене 4',
+    description: '• пилешко месо\n• ориз\n• броколи\n• зехтин',
+  };
+  const target = { calories: 1112, protein: 80, carbs: 100, fats: 35 };
+  const result = applyMealNutritionFromDatabase(meal, target);
+  ok(result.feasible, 'chicken+rice+oil feasible at 1112', `cal=${meal.calories}`);
+  ok(Math.abs(meal.calories - target.calories) <= calorieTolerance(target.calories),
+    'chicken+rice+oil hits slot', `${meal.calories} vs ${target.calories}`);
+}
+
+// H3 snack slot
+{
+  const meal = { type: 'Хранене 3', description: '• ябълка\n• ядки' };
+  const target = { calories: 350, protein: 15, carbs: 40, fats: 12 };
+  const result = applyMealNutritionFromDatabase(meal, target);
+  ok(result.feasible, 'H3 snack feasible', `cal=${meal.calories}`);
+  ok(Math.abs(meal.calories - target.calories) <= calorieTolerance(target.calories),
+    'H3 snack within tolerance', `${meal.calories} vs ${target.calories}`);
+}
+
 console.log(`\n=== meal-solver: ${pass} pass, ${fail} fail ===`);
 process.exit(fail ? 1 : 0);

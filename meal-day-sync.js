@@ -15,16 +15,6 @@ import { isMealCaloriesAdequate } from './plan-normalize.js';
 
 const SKIP_TYPES = new Set(['Свободно хранене', 'Напитка']);
 
-function cloneTarget(target) {
-  if (!target) return null;
-  return {
-    calories: Number(target.calories) || 0,
-    protein: Number(target.protein) || 0,
-    carbs: Number(target.carbs) || 0,
-    fats: Number(target.fats) || 0,
-  };
-}
-
 function dessertNutrition(meal) {
   if (!meal?.dessert || typeof meal.dessert !== 'object') return null;
   return macrosToNutritionProfile(meal.dessert.macros);
@@ -65,8 +55,8 @@ function isAtomicMeal(meal) {
 }
 
 /**
- * Redistribute kcal drift from atomic slots onto decomposable solver targets.
- * Positive drift = atomics delivered more than scheme → decomposable targets shrink.
+ * @deprecated Per-slot scheme targets are frozen — do not shift solver targets across meals.
+ * Kept for tests documenting the old behaviour.
  */
 export function adjustDecomposableTargets(decomposable, kcalDrift) {
   if (!decomposable.length || !kcalDrift) return;
@@ -107,28 +97,22 @@ export function syncDayMealsNutrition(day, dayScheme, extraDb = {}) {
     if (isAtomicMeal(meal)) {
       atomic.push({ meal, schemeTarget });
     } else {
-      decomposable.push({
-        meal,
-        schemeTarget,
-        solveTarget: cloneTarget(schemeTarget),
-      });
+      decomposable.push({ meal, schemeTarget });
     }
   }
 
-  let kcalDrift = 0;
   for (const { meal, schemeTarget } of atomic) {
     const result = applyAtomicMealNutrition(meal, schemeTarget);
     if (result.unknowns?.length) unknowns.push(...result.unknowns);
     if (!result.feasible) {
       infeasible.push({ type: meal.type, reason: result.reason || 'атомарен слот' });
     }
-    kcalDrift += Number(result.kcalDelta) || 0;
   }
 
-  adjustDecomposableTargets(decomposable, kcalDrift);
+  // Each decomposable slot solves to its own frozen schemeTarget — no cross-slot target shift.
 
-  for (const { meal, solveTarget } of decomposable) {
-    const result = applyMealNutritionFromDatabase(meal, solveTarget, extraDb);
+  for (const { meal, schemeTarget } of decomposable) {
+    const result = applyMealNutritionFromDatabase(meal, schemeTarget, extraDb);
     if (result.unknowns?.length) unknowns.push(...result.unknowns);
     if (result.feasible === false) {
       infeasible.push({ type: meal.type, reason: result.reason || 'неосъществим слот' });

@@ -17,7 +17,7 @@ import { resolveCatalogEntry } from './food-catalog.js';
 import { buildRegistryIndex } from './food-registry.js';
 import { READY_MEAL_PARTS, getEntryScalingMode, SCALING_ATOMIC } from './ready-meal-parts.js';
 import { MAX_LATE_SNACK_CALORIES, SLOT_CALORIE_TOLERANCE_PERCENT, SLOT_CALORIE_TOLERANCE_MIN_KCAL } from './plan-normalize.js';
-import { solveMealGrams } from './meal-solver.js';
+import { solveMealGrams, totalsFor } from './meal-solver.js';
 
 export { normalizeFoodKey } from './food-utils.js';
 
@@ -212,20 +212,101 @@ function isDairyItem(item) {
   return getCatalogMeta(item.name).group === 'dairy';
 }
 
-function boundsForItem(item) {
-  const { group } = getCatalogMeta(item.name);
+function kcalPer100(profile) {
+  const p = Number(profile?.p) || 0;
+  const c = Number(profile?.c) || 0;
+  const f = Number(profile?.f) || 0;
+  return Math.max(15, p * 4 + c * 4 + f * 9);
+}
+
+function baseBoundsForGroup(group) {
   switch (group) {
     case 'condiment': return { min: 5, max: CONDIMENT_MAX_GRAMS };
     case 'vegetable':
-    case 'fruit': return { min: 30, max: 150 };
+    case 'fruit': return { min: 30, max: 200 };
     case 'dairy':
     case 'protein': return { min: 30, max: DAIRY_MAX_GRAMS };
-    default: return { min: 20, max: 400 };
+    case 'fat': return { min: 5, max: 80 };
+    case 'carb':
+    case 'legume': return { min: 30, max: 550 };
+    default: return { min: 20, max: 450 };
   }
 }
 
-function seedGramsForItem(item, bounds) {
+function macroShareForItem(group, slots = []) {
+  if (group === 'protein' || group === 'dairy' || slots.includes('PRO')) return 0.38;
+  if (group === 'carb' || group === 'legume' || slots.includes('ENG')) return 0.42;
+  if (group === 'fat' || slots.includes('FAT')) return 0.14;
+  if (group === 'vegetable' || group === 'fruit' || slots.includes('VOL')) return 0.06;
+  return 0.1;
+}
+
+/**
+ * Slot-target-aware gram bounds — static group caps cannot reach high-kcal slots (e.g. H4 ~1100 kcal).
+ * Each slot solves to frozen schemeTarget independently; bounds must allow the target within max plate weight.
+ */
+export function computeMealItemBounds(items, slotTarget, maxTotalGrams = MAX_MEAL_WEIGHT_GRAMS) {
+  const slotKcal = Number(slotTarget?.kcal ?? slotTarget?.calories) || 0;
+  const scale = slotKcal > 0 ? Math.min(2.5, Math.max(1, slotKcal / 500)) : 1;
+
+  let bounds = items.map(item => {
+    const { group, slots } = getCatalogMeta(item.name);
+    let { min, max } = baseBoundsForGroup(group);
+    max = Math.round(max * scale);
+    if (slotKcal > 0) {
+      const k100 = kcalPer100(item.profile);
+      const share = macroShareForItem(group, slots);
+      const needG = ((slotKcal * share) / k100) * 100 * 1.15;
+      max = Math.max(max, Math.round(needG / 10) * 10);
+    }
+    max = Math.min(max, 650);
+    return { min, max: Math.max(min, max) };
+  });
+
+  for (let pass = 0; pass < 6 && slotKcal > 0; pass++) {
+    const maxKcal = totalsFor(
+      items.map(it => ({ profile: it.profile })),
+      bounds.map(b => b.max),
+    ).kcal;
+    if (maxKcal >= slotKcal * 0.92) break;
+    bounds = bounds.map((b, i) => {
+      const k100 = kcalPer100(items[i].profile);
+      const boost = k100 < 90 ? 1.22 : 1.12;
+      return { min: b.min, max: Math.min(650, Math.round(b.max * boost)) };
+    });
+  }
+
+  const sumMax = bounds.reduce((s, b) => s + b.max, 0);
+  if (sumMax > maxTotalGrams) {
+    const sumMin = bounds.reduce((s, b) => s + b.min, 0);
+    const slack = Math.max(0, maxTotalGrams - sumMin);
+    const flex = bounds.map(b => b.max - b.min);
+    const flexSum = flex.reduce((a, b) => a + b, 0);
+    if (flexSum > 0) {
+      bounds = bounds.map((b, i) => ({
+        min: b.min,
+        max: Math.max(b.min, Math.round(b.min + flex[i] * (slack / flexSum))),
+      }));
+    }
+  }
+
+  return bounds;
+}
+
+function boundsForItem(item) {
+  return baseBoundsForGroup(getCatalogMeta(item.name).group);
+}
+
+function seedGramsForItem(item, bounds, slotTarget, itemCount = 1) {
   if (item.grams > 0) return item.grams;
+  const slotKcal = Number(slotTarget?.kcal ?? slotTarget?.calories) || 0;
+  if (slotKcal > 0 && item.profile) {
+    const { group, slots } = getCatalogMeta(item.name);
+    const k100 = kcalPer100(item.profile);
+    const share = macroShareForItem(group, slots);
+    const grams = (slotKcal * share / k100) * 100;
+    return roundGrams(Math.min(bounds.max, Math.max(bounds.min, grams)));
+  }
   const mid = Math.round((bounds.min + bounds.max) / 2);
   return roundGrams(mid);
 }
@@ -317,9 +398,7 @@ export function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}
 
   items = items.map(item => {
     const { profile, key, unknown } = lookupFoodProfile(item.name, extraDb);
-    const bounds = boundsForItem({ ...item, name: item.name });
-    const grams = seedGramsForItem({ ...item, profile }, bounds);
-    return { ...item, profile, key, unknown: !!unknown, grams: capItemGrams({ ...item, name: item.name }, grams) };
+    return { ...item, profile, key, unknown: !!unknown };
   });
 
   const dessertNutrition = (meal.dessert && typeof meal.dessert === 'object')
@@ -339,8 +418,28 @@ export function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}
     slotTarget.kcal = Math.max(50, slotTarget.kcal - dessertNutrition.kcal);
   }
 
-  const bounds = items.map(it => boundsForItem(it));
-  const solved = solveMealGrams(items, slotTarget, bounds, MAX_MEAL_WEIGHT_GRAMS);
+  const plateBudget = Math.max(200, MAX_MEAL_WEIGHT_GRAMS - dessertWeight);
+  const bounds = computeMealItemBounds(items, slotTarget, plateBudget);
+
+  const maxAchievable = totalsFor(
+    items.map(it => ({ profile: it.profile })),
+    bounds.map(b => b.max),
+  );
+  if (slotTarget.kcal > 0 && maxAchievable.kcal < slotTarget.kcal * 0.88) {
+    return {
+      ok: true,
+      unknowns: items.filter(i => i.unknown).map(i => i.name),
+      feasible: false,
+      reason: 'композицията не носи slot kcal — добави по-калоричен PRO/ENG източник',
+    };
+  }
+
+  items = items.map((item, i) => ({
+    ...item,
+    grams: capItemGrams(item, seedGramsForItem(item, bounds[i], slotTarget, items.length)),
+  }));
+
+  const solved = solveMealGrams(items, slotTarget, bounds, plateBudget);
   items = items.map((it, i) => ({ ...it, grams: capItemGrams(it, solved.grams[i]) }));
 
   const totals = sumItemNutrition(items);
