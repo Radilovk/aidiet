@@ -42,6 +42,55 @@ var init_exercise_translations_bg = __esm({
   }
 });
 
+// step3-chunk.js
+var DAYS_PER_CHUNK = 7;
+function mealPlanTokenLimitForChunk(daysInChunk) {
+  const n = Number(daysInChunk) || 1;
+  if (n <= 1) return 8e3;
+  if (n <= 3) return 12e3;
+  return 16e3;
+}
+function enrichmentTokenLimitForChunk(daysInChunk) {
+  const n = Number(daysInChunk) || 1;
+  if (n <= 1) return 4e3;
+  if (n <= 3) return 8e3;
+  return 12e3;
+}
+function buildStep3DaysRangeHeader(startDay, endDay) {
+  const s = Number(startDay) || 1;
+  const e = Number(endDay) || s;
+  return s === e ? `DAY ${s}` : `DAYS ${s}\u2013${e}`;
+}
+function buildStep3ChunkTaskSection({ startDay, endDay, userName = "\u043A\u043B\u0438\u0435\u043D\u0442\u0430" }) {
+  const s = Number(startDay) || 1;
+  const e = Number(endDay) || s;
+  const daysInChunk = e - s + 1;
+  const name = String(userName || "\u043A\u043B\u0438\u0435\u043D\u0442\u0430").trim() || "\u043A\u043B\u0438\u0435\u043D\u0442\u0430";
+  const sharedRules = [
+    "\u2022 meals[].type MUST match that day's mealBreakdown in #WK \u2014 no extra/missing slots",
+    "\u2022 name \u2014 dish title (Bulgarian)",
+    '\u2022 description \u2014 catalog raw ingredients only, one per line: "\u2022 {product}"',
+    "\u2022 Catalog products only; exact catalog names. Do NOT write grams, calories, macros, weight, or benefits",
+    "\u2022 Choose products whose macro profile can carry slot P/C/F from mealBreakdown",
+    "\u2022 Prefer catalog group names (\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A, \u043F\u043B\u043E\u0434, \u0440\u0438\u0431\u0430, \u044F\u0434\u043A\u0438) when a specific product is not required"
+  ].join("\n");
+  if (daysInChunk <= 1) {
+    return `=== TASK (Day ${s}) ===
+Fill day ${s} for ${name}.
+${sharedRules}
+
+Return ONLY JSON: {"day${s}":{"meals":[...]}}.`;
+  }
+  const dayKeys = Array.from({ length: daysInChunk }, (_, i) => `day${s + i}`).join(", ");
+  return `=== TASK (Days ${s}\u2013${e}) ===
+Fill days ${s} through ${e} for ${name} in ONE response.
+${sharedRules}
+\u2022 Rotate proteins and sides across the week \u2014 max 5 repeated dish names; vary catalog products day to day.
+
+Return ONLY JSON with keys ${dayKeys}. Each value: {"meals":[...]}.
+Example: {"day${s}":{"meals":[...]},"day${s + 1}":{"meals":[...]},...}`;
+}
+
 // plan-response-schemas.js
 var CANONICAL_MEAL_TYPES = [
   "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1",
@@ -354,24 +403,29 @@ var SUMMARY_RESPONSE_SCHEMA = {
   },
   required: ["summary", "recommendations", "forbidden", "psychology", "waterIntake", "supplements"]
 };
+function buildMealPlanChunkSchema(startDay, endDay) {
+  const s = Number(startDay) || 1;
+  const e = Number(endDay) || s;
+  const properties = {};
+  const required = [];
+  for (let d = s; d <= e; d++) {
+    const dayKey = `day${d}`;
+    properties[dayKey] = {
+      type: "object",
+      properties: {
+        meals: {
+          type: "array",
+          items: MEAL_PLAN_MEAL_SCHEMA
+        }
+      },
+      required: ["meals"]
+    };
+    required.push(dayKey);
+  }
+  return { type: "object", properties, required };
+}
 function buildMealPlanDaySchema(dayNum) {
-  const dayKey = `day${dayNum}`;
-  return {
-    type: "object",
-    properties: {
-      [dayKey]: {
-        type: "object",
-        properties: {
-          meals: {
-            type: "array",
-            items: MEAL_PLAN_MEAL_SCHEMA
-          }
-        },
-        required: ["meals"]
-      }
-    },
-    required: [dayKey]
-  };
+  return buildMealPlanChunkSchema(dayNum, dayNum);
 }
 function getPlanStepResponseSchema(stepName) {
   if (!stepName) return null;
@@ -379,7 +433,10 @@ function getPlanStepResponseSchema(stepName) {
   if (stepName.startsWith("step2")) return STRATEGY_RESPONSE_SCHEMA;
   const chunkMatch = stepName.match(/^step3_meal_plan_chunk_(\d+)/);
   if (chunkMatch) {
-    return buildMealPlanDaySchema(parseInt(chunkMatch[1], 10));
+    const chunkIndex = parseInt(chunkMatch[1], 10) - 1;
+    const startDay = chunkIndex * DAYS_PER_CHUNK + 1;
+    const endDay = Math.min(startDay + DAYS_PER_CHUNK - 1, 7);
+    return buildMealPlanChunkSchema(startDay, endDay);
   }
   if (stepName.startsWith("step3") || stepName === "fallback_plan") {
     return buildMealPlanDaySchema(1);
@@ -10384,55 +10441,6 @@ function validateWeeklyVariety(weekPlan, options = {}) {
       topProducts: [...productCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8)
     }
   };
-}
-
-// step3-chunk.js
-var DAYS_PER_CHUNK = 7;
-function mealPlanTokenLimitForChunk(daysInChunk) {
-  const n = Number(daysInChunk) || 1;
-  if (n <= 1) return 8e3;
-  if (n <= 3) return 12e3;
-  return 16e3;
-}
-function enrichmentTokenLimitForChunk(daysInChunk) {
-  const n = Number(daysInChunk) || 1;
-  if (n <= 1) return 4e3;
-  if (n <= 3) return 8e3;
-  return 12e3;
-}
-function buildStep3DaysRangeHeader(startDay, endDay) {
-  const s = Number(startDay) || 1;
-  const e = Number(endDay) || s;
-  return s === e ? `DAY ${s}` : `DAYS ${s}\u2013${e}`;
-}
-function buildStep3ChunkTaskSection({ startDay, endDay, userName = "\u043A\u043B\u0438\u0435\u043D\u0442\u0430" }) {
-  const s = Number(startDay) || 1;
-  const e = Number(endDay) || s;
-  const daysInChunk = e - s + 1;
-  const name = String(userName || "\u043A\u043B\u0438\u0435\u043D\u0442\u0430").trim() || "\u043A\u043B\u0438\u0435\u043D\u0442\u0430";
-  const sharedRules = [
-    "\u2022 meals[].type MUST match that day's mealBreakdown in #WK \u2014 no extra/missing slots",
-    "\u2022 name \u2014 dish title (Bulgarian)",
-    '\u2022 description \u2014 catalog raw ingredients only, one per line: "\u2022 {product}"',
-    "\u2022 Catalog products only; exact catalog names. Do NOT write grams, calories, macros, weight, or benefits",
-    "\u2022 Choose products whose macro profile can carry slot P/C/F from mealBreakdown",
-    "\u2022 Prefer catalog group names (\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A, \u043F\u043B\u043E\u0434, \u0440\u0438\u0431\u0430, \u044F\u0434\u043A\u0438) when a specific product is not required"
-  ].join("\n");
-  if (daysInChunk <= 1) {
-    return `=== TASK (Day ${s}) ===
-Fill day ${s} for ${name}.
-${sharedRules}
-
-Return ONLY JSON: {"day${s}":{"meals":[...]}}.`;
-  }
-  const dayKeys = Array.from({ length: daysInChunk }, (_, i) => `day${s + i}`).join(", ");
-  return `=== TASK (Days ${s}\u2013${e}) ===
-Fill days ${s} through ${e} for ${name} in ONE response.
-${sharedRules}
-\u2022 Rotate proteins and sides across the week \u2014 max 5 repeated dish names; vary catalog products day to day.
-
-Return ONLY JSON with keys ${dayKeys}. Each value: {"meals":[...]}.
-Example: {"day${s}":{"meals":[...]},"day${s + 1}":{"meals":[...]},...}`;
 }
 
 // admin-food-catalog.js
