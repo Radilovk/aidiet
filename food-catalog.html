@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NutriPlan — Каталог храни (overlay)</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --bg: #0f1419;
+      --card: #1a2332;
+      --border: rgba(255,255,255,0.08);
+      --text: #e8edf4;
+      --muted: #8b9cb3;
+      --accent: #4ade80;
+      --accent-dim: rgba(74, 222, 128, 0.15);
+      --danger: #f87171;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+    .shell { max-width: 1100px; margin: 0 auto; padding: 24px 20px 48px; }
+    .back { color: var(--muted); text-decoration: none; font-size: 0.9rem; }
+    .back:hover { color: var(--accent); }
+    h1 { font-size: 1.5rem; font-weight: 600; margin: 8px 0 4px; }
+    .sub { color: var(--muted); font-size: 0.9rem; margin: 0 0 20px; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; align-items: center; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+    input, select, textarea {
+      width: 100%;
+      background: rgba(0,0,0,0.25);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 10px 12px;
+      font-size: 0.95rem;
+    }
+    label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 4px; }
+    .field { margin-bottom: 12px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+    .btn {
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-weight: 600;
+      cursor: pointer;
+      background: var(--accent);
+      color: #0a0f14;
+      font-size: 0.9rem;
+    }
+    .btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    .btn.danger { background: var(--danger); color: #fff; }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 500; }
+    tr:hover td { background: rgba(255,255,255,0.03); }
+    tr.selected td { background: var(--accent-dim); }
+    .status { font-size: 0.85rem; color: var(--muted); min-height: 1.2em; margin-top: 8px; }
+    .status.ok { color: var(--accent); }
+    .status.err { color: var(--danger); }
+    .badge { font-size: 0.75rem; padding: 2px 8px; border-radius: 999px; background: var(--accent-dim); color: var(--accent); }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <a class="back" href="./admin.html">← Админ панел</a>
+    <h1><i class="fas fa-utensils"></i> Каталог храни — overlay</h1>
+    <p class="sub">Admin-added продукти и ресторантски ястия. Записват се в KV (<code>food_catalog_overlay</code>) и се merge-ват при генериране.</p>
+
+    <div class="toolbar">
+      <input type="search" id="fcSearch" placeholder="Търсене…" style="max-width:240px">
+      <button type="button" class="btn ghost" id="fcReload">Обнови</button>
+      <button type="button" class="btn" id="fcSaveAll">Запази overlay</button>
+      <button type="button" class="btn ghost" id="fcNew">+ Нов запис</button>
+      <span class="badge" id="fcMeta">—</span>
+    </div>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr><th>ID</th><th>Име</th><th>Група</th><th>Slots</th><th>univ</th><th>Scaling</th></tr>
+        </thead>
+        <tbody id="fcTable"></tbody>
+      </table>
+      <div class="status" id="fcListStatus"></div>
+    </div>
+
+    <div class="card hidden" id="fcEditor">
+      <h2 style="margin:0 0 12px;font-size:1.1rem" id="fcEditorTitle">Запис</h2>
+      <div class="grid">
+        <div class="field"><label for="fcId">ID</label><input id="fcId" placeholder="menu_restaurant_plate"></div>
+        <div class="field"><label for="fcName">Име (AI label)</label><input id="fcName"></div>
+        <div class="field"><label for="fcNutritionKey">nutritionKey</label><input id="fcNutritionKey"></div>
+        <div class="field"><label for="fcGroup">group</label>
+          <select id="fcGroup">
+            <option value="ready_meal">ready_meal</option>
+            <option value="protein">protein</option>
+            <option value="carb">carb</option>
+            <option value="vegetable">vegetable</option>
+            <option value="fat">fat</option>
+            <option value="dairy">dairy</option>
+          </select>
+        </div>
+        <div class="field"><label for="fcSlots">slots (CSV)</label><input id="fcSlots" value="PRO,ENG"></div>
+        <div class="field"><label for="fcTiming">timing (CSV)</label><input id="fcTiming" value="main"></div>
+        <div class="field"><label for="fcUniv">universality 1–5</label><input id="fcUniv" type="number" min="1" max="5" value="3"></div>
+        <div class="field"><label for="fcScaling">scalingMode</label>
+          <select id="fcScaling">
+            <option value="">— decompose default —</option>
+            <option value="atomic_fixed">atomic_fixed</option>
+            <option value="decompose">decompose</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid" id="fcFixedBlock">
+        <div class="field"><label for="fcKcal">fixedNutrition kcal</label><input id="fcKcal" type="number"></div>
+        <div class="field"><label for="fcP">P</label><input id="fcP" type="number"></div>
+        <div class="field"><label for="fcC">C</label><input id="fcC" type="number"></div>
+        <div class="field"><label for="fcF">F</label><input id="fcF" type="number"></div>
+        <div class="field"><label for="fcWeight">weightGrams</label><input id="fcWeight" type="number"></div>
+      </div>
+      <div class="toolbar" style="margin-top:8px">
+        <button type="button" class="btn" id="fcApply">Приложи локално</button>
+        <button type="button" class="btn danger ghost" id="fcDelete">Изтрий</button>
+      </div>
+      <div class="status" id="fcEditStatus"></div>
+    </div>
+  </div>
+  <script>
+    const WORKER_URL = window.WORKER_URL || 'https://aidiet.radilov-k.workers.dev';
+    const ADMIN_PASSWORD = 'nutriplan2024';
+    let entries = [];
+    let selectedId = null;
+    let label = '';
+
+    function headers() {
+      return { 'Content-Type': 'application/json', 'X-Admin-Secret': ADMIN_PASSWORD };
+    }
+
+    function parseCsv(s) {
+      return String(s || '').split(/[,;]+/).map(x => x.trim()).filter(Boolean);
+    }
+
+    function readForm() {
+      const scaling = document.getElementById('fcScaling').value;
+      const entry = {
+        id: document.getElementById('fcId').value.trim(),
+        name: document.getElementById('fcName').value.trim(),
+        nutritionKey: document.getElementById('fcNutritionKey').value.trim() || document.getElementById('fcName').value.trim(),
+        group: document.getElementById('fcGroup').value,
+        slots: parseCsv(document.getElementById('fcSlots').value),
+        timing: parseCsv(document.getElementById('fcTiming').value),
+        universality: Number(document.getElementById('fcUniv').value) || 3,
+        scalingMode: scaling || null,
+        vegetarian: true,
+      };
+      if (scaling === 'atomic_fixed') {
+        entry.fixedNutrition = {
+          kcal: Number(document.getElementById('fcKcal').value) || 0,
+          p: Number(document.getElementById('fcP').value) || 0,
+          c: Number(document.getElementById('fcC').value) || 0,
+          f: Number(document.getElementById('fcF').value) || 0,
+          weightGrams: Number(document.getElementById('fcWeight').value) || 0,
+        };
+      }
+      return entry;
+    }
+
+    function fillForm(entry) {
+      document.getElementById('fcId').value = entry?.id || '';
+      document.getElementById('fcName').value = entry?.name || '';
+      document.getElementById('fcNutritionKey').value = entry?.nutritionKey || '';
+      document.getElementById('fcGroup').value = entry?.group || 'ready_meal';
+      document.getElementById('fcSlots').value = (entry?.slots || ['PRO','ENG']).join(',');
+      document.getElementById('fcTiming').value = (entry?.timing || ['main']).join(',');
+      document.getElementById('fcUniv').value = entry?.universality ?? 3;
+      document.getElementById('fcScaling').value = entry?.scalingMode || '';
+      const f = entry?.fixedNutrition || {};
+      document.getElementById('fcKcal').value = f.kcal || '';
+      document.getElementById('fcP').value = f.p || '';
+      document.getElementById('fcC').value = f.c || '';
+      document.getElementById('fcF').value = f.f || '';
+      document.getElementById('fcWeight').value = f.weightGrams || '';
+    }
+
+    function renderTable() {
+      const q = document.getElementById('fcSearch').value.trim().toLowerCase();
+      const tbody = document.getElementById('fcTable');
+      tbody.innerHTML = '';
+      entries.filter(e => !q || JSON.stringify(e).toLowerCase().includes(q)).forEach(e => {
+        const tr = document.createElement('tr');
+        if (e.id === selectedId) tr.classList.add('selected');
+        tr.innerHTML = `<td>${e.id}</td><td>${e.name}</td><td>${e.group}</td><td>${(e.slots||[]).join('/')}</td><td>${e.universality}</td><td>${e.scalingMode||'—'}</td>`;
+        tr.onclick = () => { selectedId = e.id; fillForm(e); document.getElementById('fcEditor').classList.remove('hidden'); renderTable(); };
+        tbody.appendChild(tr);
+      });
+      document.getElementById('fcMeta').textContent = `${entries.length} overlay · base ${window._baseCount||'?'}`;
+    }
+
+    async function load() {
+      const st = document.getElementById('fcListStatus');
+      st.textContent = 'Зареждане…';
+      st.className = 'status';
+      try {
+        const q = document.getElementById('fcSearch').value.trim();
+        const url = `${WORKER_URL}/api/admin/food-catalog${q ? '?q='+encodeURIComponent(q) : ''}`;
+        const r = await fetch(url, { headers: headers() });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || r.statusText);
+        entries = data.entries || [];
+        label = data.label || '';
+        window._baseCount = data.baseCount;
+        renderTable();
+        st.textContent = `Заредено · label ${label || '—'}`;
+        st.className = 'status ok';
+      } catch (e) {
+        st.textContent = e.message;
+        st.className = 'status err';
+      }
+    }
+
+    async function saveAll() {
+      const st = document.getElementById('fcListStatus');
+      st.textContent = 'Запис…';
+      try {
+        const r = await fetch(`${WORKER_URL}/api/admin/food-catalog/save`, {
+          method: 'POST', headers: headers(),
+          body: JSON.stringify({ entries, label: label || new Date().toISOString().slice(0,10) }),
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || r.statusText);
+        entries = data.entries || entries;
+        label = data.label || label;
+        st.textContent = 'Запазено в KV';
+        st.className = 'status ok';
+      } catch (e) {
+        st.textContent = e.message;
+        st.className = 'status err';
+      }
+    }
+
+    document.getElementById('fcReload').onclick = load;
+    document.getElementById('fcSaveAll').onclick = saveAll;
+    document.getElementById('fcNew').onclick = () => {
+      selectedId = null;
+      fillForm({ id: 'menu_', group: 'ready_meal', slots: ['PRO','ENG'], timing: ['main'], universality: 3 });
+      document.getElementById('fcEditor').classList.remove('hidden');
+    };
+    document.getElementById('fcApply').onclick = () => {
+      const entry = readForm();
+      if (!entry.id) { document.getElementById('fcEditStatus').textContent = 'ID required'; return; }
+      const idx = entries.findIndex(e => e.id === entry.id);
+      if (idx >= 0) entries[idx] = entry; else entries.push(entry);
+      selectedId = entry.id;
+      renderTable();
+      document.getElementById('fcEditStatus').textContent = 'Приложено локално — натисни Запази overlay';
+      document.getElementById('fcEditStatus').className = 'status ok';
+    };
+    document.getElementById('fcDelete').onclick = () => {
+      if (!selectedId) return;
+      entries = entries.filter(e => e.id !== selectedId);
+      selectedId = null;
+      document.getElementById('fcEditor').classList.add('hidden');
+      renderTable();
+    };
+    document.getElementById('fcSearch').oninput = renderTable;
+    load();
+  </script>
+</body>
+</html>

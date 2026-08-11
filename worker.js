@@ -7969,6 +7969,10 @@ function buildRegistryIndex() {
   indexCache = { byId, byKey, all };
   return indexCache;
 }
+function invalidateRegistryIndex() {
+  indexCache = null;
+  versionCache = null;
+}
 function resolveRegistryEntry(name) {
   const index = buildRegistryIndex();
   const normalized = normalizeFoodKey(name);
@@ -10093,11 +10097,98 @@ function validateMealCombinations(meal) {
   return issues;
 }
 
+// food-ledger.js
+var LEDGER_VERSION = "ledger_v1";
+function productsFromMeal(meal) {
+  const keys = [];
+  for (const item2 of parseMealDescription(meal?.description)) {
+    const { entry } = resolveRegistryEntry(item2.name);
+    const key = normalizeFoodKey(entry?.nutritionKey || entry?.name || item2.name);
+    if (key) keys.push(key);
+  }
+  return keys;
+}
+function planDayIndex(dateKey2, dietStartDate) {
+  if (!dateKey2 || !dietStartDate) return null;
+  const start = /* @__PURE__ */ new Date(`${dietStartDate}T00:00:00Z`);
+  const d = /* @__PURE__ */ new Date(`${dateKey2}T00:00:00Z`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(d.getTime())) return null;
+  const diff = Math.floor((d.getTime() - start.getTime()) / 864e5);
+  if (diff < 0 || diff > 6) return null;
+  return diff + 1;
+}
+function buildFoodLedger(weekPlan, gameData = {}, gameWeeklyAI = {}) {
+  const prescribed = /* @__PURE__ */ new Map();
+  const eaten = /* @__PURE__ */ new Map();
+  if (!weekPlan || typeof weekPlan !== "object") {
+    return { prescribed, eaten, version: LEDGER_VERSION };
+  }
+  for (const day of Object.values(weekPlan)) {
+    if (!day?.meals?.length) continue;
+    for (const meal of day.meals) {
+      if (meal.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" || meal.type === "\u041D\u0430\u043F\u0438\u0442\u043A\u0430") continue;
+      for (const key of productsFromMeal(meal)) {
+        prescribed.set(key, (prescribed.get(key) || 0) + 1);
+      }
+    }
+  }
+  const dietStart = gameWeeklyAI?.dietStartDate || gameWeeklyAI?.startDate || "";
+  for (const [dateKey2, rec] of Object.entries(gameData || {})) {
+    const dayNum = planDayIndex(dateKey2, dietStart);
+    if (!dayNum) continue;
+    const dayPlan = weekPlan[`day${dayNum}`];
+    if (!dayPlan?.meals?.length) continue;
+    for (const meal of dayPlan.meals) {
+      if (meal.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" || meal.type === "\u041D\u0430\u043F\u0438\u0442\u043A\u0430") continue;
+      if (rec?.meals?.[meal.type] !== true) continue;
+      for (const key of productsFromMeal(meal)) {
+        eaten.set(key, (eaten.get(key) || 0) + 1);
+      }
+    }
+  }
+  return { prescribed, eaten, version: LEDGER_VERSION };
+}
+function serializeFoodLedger(ledger) {
+  const toObj = (m) => Object.fromEntries(m instanceof Map ? m.entries() : []);
+  return {
+    version: ledger?.version || LEDGER_VERSION,
+    prescribed: toObj(ledger?.prescribed),
+    eaten: toObj(ledger?.eaten),
+    updatedAt: (/* @__PURE__ */ new Date()).toISOString()
+  };
+}
+function deserializeFoodLedger(raw) {
+  if (!raw) return null;
+  const prescribed = new Map(Object.entries(raw.prescribed || {}));
+  const eaten = new Map(Object.entries(raw.eaten || {}));
+  return { prescribed, eaten, version: raw.version || LEDGER_VERSION };
+}
+function buildAdherenceRatio(ledger) {
+  const ratio = /* @__PURE__ */ new Map();
+  if (!ledger?.prescribed) return ratio;
+  const prescribed = ledger.prescribed instanceof Map ? ledger.prescribed : new Map(Object.entries(ledger.prescribed || {}));
+  const eaten = ledger.eaten instanceof Map ? ledger.eaten : new Map(Object.entries(ledger.eaten || {}));
+  for (const [key, pres] of prescribed) {
+    const p = Number(pres) || 0;
+    if (p <= 0) continue;
+    const eat = Number(eaten.get(key)) || 0;
+    ratio.set(key, eat / p);
+  }
+  return ratio;
+}
+function getLedgerVersion(ledger) {
+  if (!ledger) return `${LEDGER_VERSION}_empty`;
+  const p = ledger.prescribed instanceof Map ? ledger.prescribed.size : Object.keys(ledger.prescribed || {}).length;
+  const e = ledger.eaten instanceof Map ? ledger.eaten.size : Object.keys(ledger.eaten || {}).length;
+  return `${ledger.version || LEDGER_VERSION}_${p}_${e}`;
+}
+
 // plan-source-meta.js
 function buildPlanSourceMeta(extra = {}) {
   return {
     catalogVersion: getCatalogVersion(),
     dietRegistryVersion: getDietRegistryVersion(),
+    ledgerVersion: extra.ledgerVersion || null,
     generatedAt: (/* @__PURE__ */ new Date()).toISOString(),
     ...extra
   };
@@ -10106,6 +10197,8 @@ function ensurePlanSourceMeta(plan, extra = {}) {
   if (!plan || typeof plan !== "object") return plan;
   if (!plan.sourceMeta || typeof plan.sourceMeta !== "object") {
     plan.sourceMeta = buildPlanSourceMeta(extra);
+  } else if (extra.ledgerVersion && !plan.sourceMeta.ledgerVersion) {
+    plan.sourceMeta.ledgerVersion = extra.ledgerVersion;
   }
   return plan;
 }
@@ -10340,6 +10433,115 @@ ${sharedRules}
 
 Return ONLY JSON with keys ${dayKeys}. Each value: {"meals":[...]}.
 Example: {"day${s}":{"meals":[...]},"day${s + 1}":{"meals":[...]},...}`;
+}
+
+// admin-food-catalog.js
+var FOOD_CATALOG_OVERLAY_KV_KEY = "food_catalog_overlay";
+var BASE_IDS = new Set(FOOD_CATALOG.map((e) => e.id));
+var GROUPS = /* @__PURE__ */ new Set(["protein", "dairy", "vegetable", "carb", "fat", "fruit", "legume", "condiment", "beverage", "ready_meal"]);
+var SLOTS = /* @__PURE__ */ new Set(["PRO", "ENG", "VOL", "FAT"]);
+var TIMINGS = /* @__PURE__ */ new Set(["breakfast", "snack", "main", "late_snack"]);
+function isBaseCatalogId(id) {
+  return BASE_IDS.has(String(id || ""));
+}
+function parseOverlayDocument(raw) {
+  if (!raw) return { label: "", entries: [] };
+  const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+  if (Array.isArray(parsed)) return { label: "", entries: parsed.filter(Boolean) };
+  return {
+    label: String(parsed?.label || parsed?.version || ""),
+    entries: Array.isArray(parsed?.entries) ? parsed.entries.filter(Boolean) : [],
+    updatedAt: parsed?.updatedAt || null
+  };
+}
+function serializeOverlayDocument(entries, label = "") {
+  return {
+    label: label || (/* @__PURE__ */ new Date()).toISOString().slice(0, 10),
+    updatedAt: (/* @__PURE__ */ new Date()).toISOString(),
+    entries: entries.filter(Boolean)
+  };
+}
+function validateOverlayEntry(entry) {
+  const errors = [];
+  if (!entry || typeof entry !== "object") return ["invalid entry"];
+  const id = String(entry.id || "").trim();
+  if (!id) errors.push("id required");
+  if (!entry.name?.trim()) errors.push("name required");
+  if (!entry.nutritionKey?.trim()) errors.push("nutritionKey required");
+  if (!GROUPS.has(entry.group)) errors.push(`group must be one of ${[...GROUPS].join(", ")}`);
+  if (!Array.isArray(entry.slots) || !entry.slots.length || entry.slots.some((s) => !SLOTS.has(s))) {
+    errors.push("slots must include PRO|ENG|VOL|FAT");
+  }
+  if (!Array.isArray(entry.timing) || !entry.timing.length || entry.timing.some((t) => !TIMINGS.has(t))) {
+    errors.push("timing must include breakfast|snack|main|late_snack");
+  }
+  const u = Number(entry.universality);
+  if (!Number.isFinite(u) || u < 1 || u > 5) errors.push("universality 1\u20135");
+  if (entry.scalingMode === "atomic_fixed" && !entry.fixedNutrition?.kcal) {
+    errors.push("atomic_fixed requires fixedNutrition.kcal");
+  }
+  return errors;
+}
+function normalizeOverlayEntry(entry) {
+  const id = String(entry.id || "").trim();
+  return {
+    id,
+    name: String(entry.name || "").trim(),
+    nutritionKey: String(entry.nutritionKey || entry.name || "").trim(),
+    group: entry.group || "ready_meal",
+    slots: [...new Set((entry.slots || ["PRO", "ENG"]).map(String))],
+    timing: [...new Set((entry.timing || ["main"]).map(String))],
+    universality: Math.max(1, Math.min(5, Number(entry.universality) || 3)),
+    vegan: !!entry.vegan,
+    vegetarian: entry.vegetarian !== void 0 ? !!entry.vegetarian : true,
+    genericOf: entry.genericOf || null,
+    aliases: Array.isArray(entry.aliases) ? entry.aliases.map(String) : [],
+    scalingMode: entry.scalingMode || null,
+    fixedNutrition: entry.fixedNutrition || null
+  };
+}
+function filterOverlayEntries(entries, q = "") {
+  const needle = normalizeFoodKey(q);
+  if (!needle) return entries;
+  return entries.filter((e) => {
+    const hay = normalizeFoodKey(`${e.id} ${e.name} ${e.nutritionKey} ${(e.aliases || []).join(" ")}`);
+    return hay.includes(needle);
+  });
+}
+async function readOverlayFromKv(env) {
+  if (!env?.page_content) return { label: "", entries: [], baseCount: FOOD_CATALOG.length };
+  const raw = await env.page_content.get(FOOD_CATALOG_OVERLAY_KV_KEY);
+  const doc = parseOverlayDocument(raw);
+  return { ...doc, baseCount: FOOD_CATALOG.length };
+}
+async function writeOverlayToKv(env, entries, label = "") {
+  if (!env?.page_content) throw new Error("KV not configured");
+  const normalized = entries.map(normalizeOverlayEntry);
+  for (const e of normalized) {
+    const errs = validateOverlayEntry(e);
+    if (errs.length) throw new Error(`${e.id || e.name}: ${errs.join("; ")}`);
+  }
+  const doc = serializeOverlayDocument(normalized, label);
+  await env.page_content.put(FOOD_CATALOG_OVERLAY_KV_KEY, JSON.stringify(doc));
+  invalidateRegistryIndex();
+  return doc;
+}
+async function upsertOverlayEntry(env, entry) {
+  const doc = await readOverlayFromKv(env);
+  const normalized = normalizeOverlayEntry(entry);
+  const errs = validateOverlayEntry(normalized);
+  if (errs.length) throw new Error(errs.join("; "));
+  const idx = doc.entries.findIndex((e) => e.id === normalized.id);
+  if (idx >= 0) doc.entries[idx] = normalized;
+  else doc.entries.push(normalized);
+  return writeOverlayToKv(env, doc.entries, doc.label);
+}
+async function deleteOverlayEntry(env, id) {
+  if (isBaseCatalogId(id)) throw new Error("Cannot delete base catalog entry");
+  const doc = await readOverlayFromKv(env);
+  const next = doc.entries.filter((e) => e.id !== id);
+  if (next.length === doc.entries.length) throw new Error("Overlay entry not found");
+  return writeOverlayToKv(env, next, doc.label);
 }
 
 // worker.entry.js
@@ -12734,7 +12936,8 @@ ${pdBlock}
     dietaryModifier,
     blockedTerms: blockedFoodTerms,
     preferLove: String(data.dietLove || "").split(/[,;]/).map((s) => s.trim()).filter(Boolean),
-    clinicalProtocolId: data.clinicalProtocol || null
+    clinicalProtocolId: data.clinicalProtocol || null,
+    adherenceRatio: data._adherenceRatio || null
   });
   const daysRangeHeader = buildStep3DaysRangeHeader(startDay, endDay);
   const chunkTaskSection = buildStep3ChunkTaskSection({
@@ -13086,8 +13289,52 @@ async function loadCatalogRegistryOverlay(env) {
     console.warn("[food-registry] overlay load failed:", e.message);
   }
 }
+async function loadAdherenceRatioForGeneration(env, data, userIdHint = "") {
+  if (!env?.page_content) return null;
+  const ids = [data?.userId, data?.firebaseUid, userIdHint, data?.email && generateUserId(data)].filter(Boolean);
+  for (const uid of [...new Set(ids)]) {
+    try {
+      const profile = await kvGetJSON(env, `user_profile:${uid}`);
+      if (!profile?.foodLedger) continue;
+      const ledger = deserializeFoodLedger(profile.foodLedger);
+      data._ledgerVersion = getLedgerVersion(profile.foodLedger);
+      return buildAdherenceRatio(ledger);
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+async function persistFoodLedger(env, userId, ledgerSerialized, clientIdHint = "") {
+  if (!userId || !env?.page_content) return;
+  const ttl = userId.startsWith("fb_") ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
+  const existing = await kvGetJSON(env, `user_profile:${userId}`) || {};
+  existing.foodLedger = ledgerSerialized;
+  existing.foodLedgerSyncedAt = ledgerSerialized.updatedAt;
+  await kvPutJSON(env, `user_profile:${userId}`, existing, ttl);
+  let clientId = clientIdHint || existing.clientId || "";
+  if (!clientId) {
+    const email = normalizeEmail(existing.userData?.email || userId);
+    if (email.includes("@")) clientId = (await findClientByEmail(env, email))?.clientId || "";
+  }
+  if (clientId) {
+    try {
+      const clientData = await kvGetJSON(env, `client:${clientId}`);
+      if (clientData) {
+        clientData.foodLedger = ledgerSerialized;
+        clientData.foodLedgerSyncedAt = ledgerSerialized.updatedAt;
+        await kvPutJSON(env, `client:${clientId}`, clientData, null);
+      }
+    } catch (e) {
+      console.warn(`[FoodLedger] client sync failed ${clientId}:`, e.message);
+    }
+  }
+}
 async function generatePlanCore(env, data, onAnalysisReady = null) {
   await loadCatalogRegistryOverlay(env);
+  const userId = data.email || generateUserId(data);
+  const adherenceRatio = await loadAdherenceRatioForGeneration(env, data, userId);
+  if (adherenceRatio?.size) data._adherenceRatio = adherenceRatio;
   const clinicalProtocol = getClinicalProtocol(data.clinicalProtocol);
   if (clinicalProtocol) {
     if (data.clinicalProtocol === "postpartum_lactation" && data.postpartumGoal) {
@@ -13108,7 +13355,6 @@ async function generatePlanCore(env, data, onAnalysisReady = null) {
     err.validationFailed = true;
     throw err;
   }
-  const userId = data.email || generateUserId(data);
   const { hasContradiction, canProceed: contradictionCanProceed, warningData } = detectGoalContradiction(data, valConfig);
   if (hasContradiction && !contradictionCanProceed) {
     return { success: true, hasContradiction: true, warningData, userId };
@@ -14685,7 +14931,7 @@ async function reconcilePlanStructure(plan, userData = null, env = null) {
       fats: avgMacros.fats
     };
   }
-  ensurePlanSourceMeta(plan);
+  ensurePlanSourceMeta(plan, { ledgerVersion: userData?._ledgerVersion || null });
   return plan;
 }
 async function reconcilePlanAfterAssistantPatches(plan, userData = null, env = null) {
@@ -15556,7 +15802,7 @@ async function handleSyncAnalytics(request, env) {
     if (!env.page_content) {
       return jsonResponse2({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
     }
-    const { userId, gameData, gameWeeklyAI, clientId, idToken } = await request.json();
+    const { userId, gameData, gameWeeklyAI, clientId, idToken, plan } = await request.json();
     if (!userId) return jsonResponse2({ error: "Missing userId" }, 400);
     if (userId.startsWith("fb_") && idToken && env.FIREBASE_PROJECT_ID) {
       try {
@@ -15570,6 +15816,10 @@ async function handleSyncAnalytics(request, env) {
     }
     const summary = buildAnalyticsSummary(gameData || {}, gameWeeklyAI || {});
     await persistAnalyticsSummary(env, userId, summary, clientId || "");
+    if (plan?.weekPlan && gameData) {
+      const ledger = buildFoodLedger(plan.weekPlan, gameData, gameWeeklyAI || {});
+      await persistFoodLedger(env, userId, serializeFoodLedger(ledger), clientId || "");
+    }
     return jsonResponse2({
       success: true,
       analytics: summary,
@@ -16460,7 +16710,8 @@ async function tryCompositionRepair(env, {
     dietaryModifier: strategy.dietaryModifier || "\u0411\u0430\u043B\u0430\u043D\u0441\u0438\u0440\u0430\u043D\u043E",
     blockedTerms: collectUserBlockedFoodTerms(data),
     preferLove: String(data.dietLove || "").split(/[,;]/).map((s) => s.trim()).filter(Boolean),
-    clinicalProtocolId: data.clinicalProtocol || null
+    clinicalProtocolId: data.clinicalProtocol || null,
+    adherenceRatio: data._adherenceRatio || null
   });
   const prompt = buildCompositionRepairPrompt({
     targets,
@@ -20620,6 +20871,65 @@ async function handleRemoveFromWhitelist(request, env) {
     return jsonResponse2({ error: `Failed to remove from whitelist: ${error.message}` }, 500);
   }
 }
+async function handleGetFoodCatalogOverlay(request, env) {
+  if (!checkAdminSecret2(request, env)) {
+    return jsonResponse2({ error: "\u041D\u0435\u043E\u0442\u043E\u0440\u0438\u0437\u0438\u0440\u0430\u043D \u0434\u043E\u0441\u0442\u044A\u043F" }, 401);
+  }
+  try {
+    const url = new URL(request.url);
+    const q = url.searchParams.get("q") || "";
+    const doc = await readOverlayFromKv(env);
+    const entries = filterOverlayEntries(doc.entries, q);
+    return jsonResponse2({
+      success: true,
+      label: doc.label,
+      updatedAt: doc.updatedAt,
+      baseCount: doc.baseCount,
+      entries,
+      count: entries.length
+    });
+  } catch (error) {
+    console.error("[FoodCatalog] get overlay:", error);
+    return jsonResponse2({ error: error.message }, 500);
+  }
+}
+async function handleSaveFoodCatalogOverlay(request, env) {
+  if (!checkAdminSecret2(request, env)) {
+    return jsonResponse2({ error: "\u041D\u0435\u043E\u0442\u043E\u0440\u0438\u0437\u0438\u0440\u0430\u043D \u0434\u043E\u0441\u0442\u044A\u043F" }, 401);
+  }
+  try {
+    const body = await request.json();
+    const entries = body.entries || [];
+    const label = body.label || "";
+    const doc = await writeOverlayToKv(env, entries, label);
+    return jsonResponse2({ success: true, ...doc, count: doc.entries.length });
+  } catch (error) {
+    return jsonResponse2({ error: error.message }, 500);
+  }
+}
+async function handlePutFoodCatalogOverlayEntry(request, env, entryId) {
+  if (!checkAdminSecret2(request, env)) {
+    return jsonResponse2({ error: "\u041D\u0435\u043E\u0442\u043E\u0440\u0438\u0437\u0438\u0440\u0430\u043D \u0434\u043E\u0441\u0442\u044A\u043F" }, 401);
+  }
+  try {
+    const body = await request.json();
+    const doc = await upsertOverlayEntry(env, { ...body, id: entryId });
+    return jsonResponse2({ success: true, ...doc });
+  } catch (error) {
+    return jsonResponse2({ error: error.message }, 500);
+  }
+}
+async function handleDeleteFoodCatalogOverlayEntry(request, env, entryId) {
+  if (!checkAdminSecret2(request, env)) {
+    return jsonResponse2({ error: "\u041D\u0435\u043E\u0442\u043E\u0440\u0438\u0437\u0438\u0440\u0430\u043D \u0434\u043E\u0441\u0442\u044A\u043F" }, 401);
+  }
+  try {
+    const doc = await deleteOverlayEntry(env, entryId);
+    return jsonResponse2({ success: true, ...doc });
+  } catch (error) {
+    return jsonResponse2({ error: error.message }, 400);
+  }
+}
 async function handleGetMainlist(request, env) {
   try {
     if (!env.page_content) {
@@ -22797,6 +23107,16 @@ var worker_entry_default = {
         return await handleLoadMainlistPreset(request, env);
       } else if (url.pathname === "/api/admin/delete-mainlist-preset" && request.method === "POST") {
         return await handleDeleteMainlistPreset(request, env);
+      } else if (url.pathname === "/api/admin/food-catalog" && request.method === "GET") {
+        return await handleGetFoodCatalogOverlay(request, env);
+      } else if (url.pathname === "/api/admin/food-catalog/save" && request.method === "POST") {
+        return await handleSaveFoodCatalogOverlay(request, env);
+      } else if (/^\/api\/admin\/food-catalog\/[^/]+$/.test(url.pathname) && request.method === "PUT") {
+        const entryId = decodeURIComponent(url.pathname.split("/").pop());
+        return await handlePutFoodCatalogOverlayEntry(request, env, entryId);
+      } else if (/^\/api\/admin\/food-catalog\/[^/]+$/.test(url.pathname) && request.method === "DELETE") {
+        const entryId = decodeURIComponent(url.pathname.split("/").pop());
+        return await handleDeleteFoodCatalogOverlayEntry(request, env, entryId);
       } else if (url.pathname === "/api/admin/get-goal-hacks" && request.method === "GET") {
         return await handleGetGoalHacks(request, env);
       } else if (url.pathname === "/api/admin/set-goal-hacks" && request.method === "POST") {

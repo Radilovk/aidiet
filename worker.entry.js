@@ -90,6 +90,23 @@ import {
   buildStep3DaysRangeHeader,
   buildStep3ChunkTaskSection,
 } from './step3-chunk.js';
+import {
+  readOverlayFromKv,
+  writeOverlayToKv,
+  upsertOverlayEntry,
+  deleteOverlayEntry,
+  filterOverlayEntries,
+  validateOverlayEntry,
+  normalizeOverlayEntry,
+  isBaseCatalogId,
+} from './admin-food-catalog.js';
+import {
+  buildFoodLedger,
+  serializeFoodLedger,
+  deserializeFoodLedger,
+  buildAdherenceRatio,
+  getLedgerVersion,
+} from './food-ledger.js';
 
 
 /**
@@ -3475,6 +3492,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
     blockedTerms: blockedFoodTerms,
     preferLove: String(data.dietLove || '').split(/[,;]/).map(s => s.trim()).filter(Boolean),
     clinicalProtocolId: data.clinicalProtocol || null,
+    adherenceRatio: data._adherenceRatio || null,
   });
 
   const daysRangeHeader = buildStep3DaysRangeHeader(startDay, endDay);
@@ -3873,8 +3891,57 @@ async function loadCatalogRegistryOverlay(env) {
   }
 }
 
+async function loadAdherenceRatioForGeneration(env, data, userIdHint = '') {
+  if (!env?.page_content) return null;
+  const ids = [data?.userId, data?.firebaseUid, userIdHint, data?.email && generateUserId(data)].filter(Boolean);
+  for (const uid of [...new Set(ids)]) {
+    try {
+      const profile = await kvGetJSON(env, `user_profile:${uid}`);
+      if (!profile?.foodLedger) continue;
+      const ledger = deserializeFoodLedger(profile.foodLedger);
+      data._ledgerVersion = getLedgerVersion(profile.foodLedger);
+      return buildAdherenceRatio(ledger);
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
+async function persistFoodLedger(env, userId, ledgerSerialized, clientIdHint = '') {
+  if (!userId || !env?.page_content) return;
+  const ttl = userId.startsWith('fb_') ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
+  const existing = (await kvGetJSON(env, `user_profile:${userId}`)) || {};
+  existing.foodLedger = ledgerSerialized;
+  existing.foodLedgerSyncedAt = ledgerSerialized.updatedAt;
+  await kvPutJSON(env, `user_profile:${userId}`, existing, ttl);
+
+  let clientId = clientIdHint || existing.clientId || '';
+  if (!clientId) {
+    const email = normalizeEmail(existing.userData?.email || userId);
+    if (email.includes('@')) clientId = (await findClientByEmail(env, email))?.clientId || '';
+  }
+  if (clientId) {
+    try {
+      const clientData = await kvGetJSON(env, `client:${clientId}`);
+      if (clientData) {
+        clientData.foodLedger = ledgerSerialized;
+        clientData.foodLedgerSyncedAt = ledgerSerialized.updatedAt;
+        await kvPutJSON(env, `client:${clientId}`, clientData, null);
+      }
+    } catch (e) {
+      console.warn(`[FoodLedger] client sync failed ${clientId}:`, e.message);
+    }
+  }
+}
+
 async function generatePlanCore(env, data, onAnalysisReady = null) {
   await loadCatalogRegistryOverlay(env);
+
+  const userId = data.email || generateUserId(data);
+  const adherenceRatio = await loadAdherenceRatioForGeneration(env, data, userId);
+  if (adherenceRatio?.size) data._adherenceRatio = adherenceRatio;
+
   // Resolve clinical protocol
   const clinicalProtocol = getClinicalProtocol(data.clinicalProtocol);
   if (clinicalProtocol) {
@@ -3897,8 +3964,6 @@ async function generatePlanCore(env, data, onAnalysisReady = null) {
     err.validationFailed = true;
     throw err;
   }
-
-  const userId = data.email || generateUserId(data);
 
   // Check for goal contradictions
   const { hasContradiction, canProceed: contradictionCanProceed, warningData } = detectGoalContradiction(data, valConfig);
@@ -5953,7 +6018,7 @@ async function reconcilePlanStructure(plan, userData = null, env = null) {
       fats: avgMacros.fats,
     };
   }
-  ensurePlanSourceMeta(plan);
+  ensurePlanSourceMeta(plan, { ledgerVersion: userData?._ledgerVersion || null });
   return plan;
 }
 
@@ -6956,7 +7021,7 @@ async function handleSyncAnalytics(request, env) {
       return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
     }
 
-    const { userId, gameData, gameWeeklyAI, clientId, idToken } = await request.json();
+    const { userId, gameData, gameWeeklyAI, clientId, idToken, plan } = await request.json();
     if (!userId) return jsonResponse({ error: 'Missing userId' }, 400);
 
     if (userId.startsWith('fb_') && idToken && env.FIREBASE_PROJECT_ID) {
@@ -6972,6 +7037,11 @@ async function handleSyncAnalytics(request, env) {
 
     const summary = buildAnalyticsSummary(gameData || {}, gameWeeklyAI || {});
     await persistAnalyticsSummary(env, userId, summary, clientId || '');
+
+    if (plan?.weekPlan && gameData) {
+      const ledger = buildFoodLedger(plan.weekPlan, gameData, gameWeeklyAI || {});
+      await persistFoodLedger(env, userId, serializeFoodLedger(ledger), clientId || '');
+    }
 
     return jsonResponse({
       success: true,
@@ -8092,6 +8162,7 @@ async function tryCompositionRepair(env, {
     blockedTerms: collectUserBlockedFoodTerms(data),
     preferLove: String(data.dietLove || '').split(/[,;]/).map(s => s.trim()).filter(Boolean),
     clinicalProtocolId: data.clinicalProtocol || null,
+    adherenceRatio: data._adherenceRatio || null,
   });
 
   const prompt = buildCompositionRepairPrompt({
@@ -13360,6 +13431,72 @@ async function handleRemoveFromWhitelist(request, env) {
 }
 
 /**
+ * Food catalog overlay (admin CRUD) — KV-backed entries merged at generation time.
+ */
+async function handleGetFoodCatalogOverlay(request, env) {
+  if (!checkAdminSecret(request, env)) {
+    return jsonResponse({ error: 'Неоторизиран достъп' }, 401);
+  }
+  try {
+    const url = new URL(request.url);
+    const q = url.searchParams.get('q') || '';
+    const doc = await readOverlayFromKv(env);
+    const entries = filterOverlayEntries(doc.entries, q);
+    return jsonResponse({
+      success: true,
+      label: doc.label,
+      updatedAt: doc.updatedAt,
+      baseCount: doc.baseCount,
+      entries,
+      count: entries.length,
+    });
+  } catch (error) {
+    console.error('[FoodCatalog] get overlay:', error);
+    return jsonResponse({ error: error.message }, 500);
+  }
+}
+
+async function handleSaveFoodCatalogOverlay(request, env) {
+  if (!checkAdminSecret(request, env)) {
+    return jsonResponse({ error: 'Неоторизиран достъп' }, 401);
+  }
+  try {
+    const body = await request.json();
+    const entries = body.entries || [];
+    const label = body.label || '';
+    const doc = await writeOverlayToKv(env, entries, label);
+    return jsonResponse({ success: true, ...doc, count: doc.entries.length });
+  } catch (error) {
+    return jsonResponse({ error: error.message }, 500);
+  }
+}
+
+async function handlePutFoodCatalogOverlayEntry(request, env, entryId) {
+  if (!checkAdminSecret(request, env)) {
+    return jsonResponse({ error: 'Неоторизиран достъп' }, 401);
+  }
+  try {
+    const body = await request.json();
+    const doc = await upsertOverlayEntry(env, { ...body, id: entryId });
+    return jsonResponse({ success: true, ...doc });
+  } catch (error) {
+    return jsonResponse({ error: error.message }, 500);
+  }
+}
+
+async function handleDeleteFoodCatalogOverlayEntry(request, env, entryId) {
+  if (!checkAdminSecret(request, env)) {
+    return jsonResponse({ error: 'Неоторизиран достъп' }, 401);
+  }
+  try {
+    const doc = await deleteOverlayEntry(env, entryId);
+    return jsonResponse({ success: true, ...doc });
+  } catch (error) {
+    return jsonResponse({ error: error.message }, 400);
+  }
+}
+
+/**
  * Mainlist Management: Get mainlist from KV storage.
  * Returns a flat string array of approved food products.
  */
@@ -16495,6 +16632,16 @@ export default {
         return await handleLoadMainlistPreset(request, env);
       } else if (url.pathname === '/api/admin/delete-mainlist-preset' && request.method === 'POST') {
         return await handleDeleteMainlistPreset(request, env);
+      } else if (url.pathname === '/api/admin/food-catalog' && request.method === 'GET') {
+        return await handleGetFoodCatalogOverlay(request, env);
+      } else if (url.pathname === '/api/admin/food-catalog/save' && request.method === 'POST') {
+        return await handleSaveFoodCatalogOverlay(request, env);
+      } else if (/^\/api\/admin\/food-catalog\/[^/]+$/.test(url.pathname) && request.method === 'PUT') {
+        const entryId = decodeURIComponent(url.pathname.split('/').pop());
+        return await handlePutFoodCatalogOverlayEntry(request, env, entryId);
+      } else if (/^\/api\/admin\/food-catalog\/[^/]+$/.test(url.pathname) && request.method === 'DELETE') {
+        const entryId = decodeURIComponent(url.pathname.split('/').pop());
+        return await handleDeleteFoodCatalogOverlayEntry(request, env, entryId);
       } else if (url.pathname === '/api/admin/get-goal-hacks' && request.method === 'GET') {
         return await handleGetGoalHacks(request, env);
       } else if (url.pathname === '/api/admin/set-goal-hacks' && request.method === 'POST') {
