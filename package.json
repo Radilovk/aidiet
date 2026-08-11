@@ -19,6 +19,7 @@
     "test:solver": "node scripts/test-solver.mjs",
     "test:rebuild-stage1": "node scripts/test-rebuild-stage1.mjs",
     "test:registry-arch": "node scripts/test-registry-arch.mjs",
+    "test:rebuild-stage17-2": "node scripts/test-rebuild-stage17-2.mjs",
     "test:weekly-adapt:benchmark": "node scripts/plan-adequacy/run-weekly-adapt-benchmark.mjs",
     "upload:kv": "bash KV/upload-kv-keys.sh",
     "serve": "python -m http.server 8000",

@@ -10110,6 +10110,189 @@ function ensurePlanSourceMeta(plan, extra = {}) {
   return plan;
 }
 
+// composition-repair.js
+var COMPOSITION_ERROR_PATTERNS = [
+  /калории \d+ ≠ цел/i,
+  /композицията не носи/i,
+  /смени продуктите/i,
+  /неосъществим слот/i,
+  /липсват продукти/i,
+  /атомарната порция/i,
+  /weight \d+g > /i,
+  /weight \d+g < /i,
+  /протеин \d+g ≠/i,
+  /въглехидрати \d+g ≠/i,
+  /мазнини \d+g ≠/i
+];
+var STRUCTURAL_ERROR_PATTERNS = [
+  /не е в mealBreakdown/i,
+  /извън каталога/i,
+  /забранени при клиничния протокол/i,
+  /НЕ ЗАКУСВА/i,
+  /липсва .*day/i,
+  /Invalid response/i
+];
+function isCompositionRepairableError(message = "") {
+  const msg = String(message);
+  if (STRUCTURAL_ERROR_PATTERNS.some((p) => p.test(msg))) return false;
+  return COMPOSITION_ERROR_PATTERNS.some((p) => p.test(msg));
+}
+function extractCompositionRepairTargets(validationErrors = [], infeasibleSlots = []) {
+  const byKey = /* @__PURE__ */ new Map();
+  for (const err of validationErrors) {
+    if (!isCompositionRepairableError(err)) continue;
+    const m = String(err).match(/Ден (\d+) ([^:]+):\s*(.+)/);
+    if (!m) continue;
+    const day = Number(m[1]);
+    const type = m[2].trim();
+    const reason = m[3].trim();
+    byKey.set(`${day}|${type}`, { day, type, reason });
+  }
+  for (const slot of infeasibleSlots || []) {
+    const day = Number(slot.day);
+    const type = slot.type;
+    if (!day || !type) continue;
+    const reason = slot.reason || "\u043D\u0435\u043E\u0441\u044A\u0449\u0435\u0441\u0442\u0432\u0438\u043C \u0441\u043B\u043E\u0442";
+    const key = `${day}|${type}`;
+    if (!byKey.has(key)) byKey.set(key, { day, type, reason });
+  }
+  return [...byKey.values()];
+}
+function slotTargetFromScheme(strategy, day, mealType, dayNumberToKey) {
+  const schemeKey = dayNumberToKey[day - 1];
+  const breakdown = strategy?.weeklyScheme?.[schemeKey]?.mealBreakdown || [];
+  return breakdown.find((m) => m.type === mealType) || null;
+}
+function currentMealFromPlan(weekPlan, day, mealType) {
+  const dayPlan = weekPlan?.[`day${day}`];
+  return dayPlan?.meals?.find((m) => m.type === mealType) || null;
+}
+function buildCompositionRepairPrompt({
+  targets,
+  weekPlan,
+  strategy,
+  catalogSection = "",
+  dietaryModifier = "\u0411\u0430\u043B\u0430\u043D\u0441\u0438\u0440\u0430\u043D\u043E",
+  dayNumberToKey
+}) {
+  const lines = [
+    "\u2550\u2550\u2550 COMPOSITION REPAIR (\u0441\u0430\u043C\u043E \u043F\u043E\u0441\u043E\u0447\u0435\u043D\u0438\u0442\u0435 \u0441\u043B\u043E\u0442\u043E\u0432\u0435) \u2550\u2550\u2550",
+    `\u0414\u0438\u0435\u0442\u0430: ${dietaryModifier}`,
+    "\u041F\u0440\u043E\u043C\u0435\u043D\u0438 \u0421\u0410\u041C\u041E description (+ name \u0430\u043A\u043E \u0435 \u043D\u0443\u0436\u043D\u043E). \u0411\u0435\u0437 grams/kcal/macros/weight.",
+    '\u041F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u0421\u0410\u041C\u041E \u043E\u0442 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430 \u2014 \u0435\u0434\u0438\u043D \u043F\u0440\u043E\u0434\u0443\u043A\u0442 \u043D\u0430 \u0440\u0435\u0434: "\u2022 {\u0438\u043C\u0435}"',
+    "",
+    "\u0421\u041B\u041E\u0422\u041E\u0412\u0415 \u0417\u0410 \u041F\u041E\u041F\u0420\u0410\u0412\u041A\u0410:"
+  ];
+  for (const t of targets) {
+    const target = slotTargetFromScheme(strategy, t.day, t.type, dayNumberToKey);
+    const meal = currentMealFromPlan(weekPlan, t.day, t.type);
+    const products = parseMealDescription(meal?.description || "").map((i) => i.name).join(", ") || "(\u043F\u0440\u0430\u0437\u043D\u043E)";
+    lines.push(
+      `- \u0414\u0435\u043D ${t.day} ${t.type}: \u0446\u0435\u043B ${target?.calories || "?"}kcal P${target?.protein || "?"}/C${target?.carbs || "?"}/F${target?.fats || "?"}`,
+      `  \u041F\u0440\u043E\u0431\u043B\u0435\u043C: ${t.reason}`,
+      `  \u0421\u0435\u0433\u0430: name="${meal?.name || ""}" | products: ${products}`
+    );
+  }
+  if (catalogSection) {
+    lines.push("", "=== \u041A\u0410\u0422\u0410\u041B\u041E\u0413 (\u0440\u0435\u043B\u0435\u0432\u0430\u043D\u0442\u0435\u043D) ===", catalogSection.slice(0, 3500));
+  }
+  lines.push(
+    "",
+    "=== \u041E\u0422\u0413\u041E\u0412\u041E\u0420 (JSON) ===",
+    '{"repairs":[{"day":1,"type":"\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2","name":"...","description":"\u2022 \u043F\u0440\u043E\u0434\u0443\u043A\u04421\\n\u2022 \u043F\u0440\u043E\u0434\u0443\u043A\u04422"}]}',
+    "\u0412\u044A\u0440\u043D\u0438 repairs[] \u0441\u0430\u043C\u043E \u0437\u0430 \u0441\u043B\u043E\u0442\u043E\u0432\u0435\u0442\u0435 \u043F\u043E-\u0433\u043E\u0440\u0435."
+  );
+  return lines.join("\n");
+}
+function applyCompositionRepairPatch(weekPlan, patch, targets) {
+  const repairs = patch?.repairs;
+  if (!Array.isArray(repairs) || !repairs.length) return 0;
+  const allowed = new Set(targets.map((t) => `${t.day}|${t.type}`));
+  let applied = 0;
+  for (const fix of repairs) {
+    const day = Number(fix.day);
+    const type = fix.type;
+    if (!day || !type || !allowed.has(`${day}|${type}`)) continue;
+    const meal = currentMealFromPlan(weekPlan, day, type);
+    if (!meal) continue;
+    if (typeof fix.description === "string" && fix.description.trim()) {
+      meal.description = fix.description.trim();
+      applied++;
+    }
+    if (typeof fix.name === "string" && fix.name.trim()) {
+      meal.name = fix.name.trim();
+    }
+  }
+  return applied;
+}
+
+// weekly-variety.js
+var MAX_REPEATED_DISH_NAMES = 5;
+var MAX_PRODUCT_USES_PER_WEEK = 9;
+function esc3(s) {
+  return String(s || "").replace(/\|/g, "/").trim();
+}
+function serializePreviousDaysProducts(previousDays) {
+  if (!previousDays?.length) return "";
+  const parts = previousDays.map((d) => {
+    const keys = /* @__PURE__ */ new Set();
+    for (const meal of d.meals || []) {
+      for (const item2 of parseMealDescription(meal.description)) {
+        const k = normalizeFoodKey(item2.name);
+        if (k) keys.add(k);
+      }
+    }
+    const list = [...keys].slice(0, 14).map(esc3).join("+");
+    return `D${d.day}:${list || "-"}`;
+  });
+  return `#PD v2 ${parts.join("|")}`;
+}
+function validateWeeklyVariety(weekPlan, options = {}) {
+  const warnings = [];
+  const errors = [];
+  if (!weekPlan || typeof weekPlan !== "object") {
+    return { warnings, errors, stats: {} };
+  }
+  const seenDishes = /* @__PURE__ */ new Set();
+  const repeatedDishes = /* @__PURE__ */ new Set();
+  const productCounts = /* @__PURE__ */ new Map();
+  for (const day of Object.values(weekPlan)) {
+    if (!day?.meals?.length) continue;
+    for (const meal of day.meals) {
+      if (meal.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" || meal.type === "\u041D\u0430\u043F\u0438\u0442\u043A\u0430") continue;
+      if (meal.name) {
+        const n = meal.name.toLowerCase().trim().replace(/\s+/g, " ");
+        if (n && seenDishes.has(n)) repeatedDishes.add(n);
+        if (n) seenDishes.add(n);
+      }
+      for (const item2 of parseMealDescription(meal.description)) {
+        const key = normalizeFoodKey(item2.name);
+        if (!key) continue;
+        productCounts.set(key, (productCounts.get(key) || 0) + 1);
+      }
+    }
+  }
+  if (repeatedDishes.size > MAX_REPEATED_DISH_NAMES) {
+    const msg = `\u041F\u043E\u0432\u0442\u0430\u0440\u044F\u0449\u0438 \u0441\u0435 \u044F\u0441\u0442\u0438\u044F (${repeatedDishes.size} > ${MAX_REPEATED_DISH_NAMES}): ${[...repeatedDishes].slice(0, 5).join(", ")}`;
+    if (options.blocking) errors.push(msg);
+    else warnings.push(msg);
+  }
+  const overused = [...productCounts.entries()].filter(([, count]) => count > MAX_PRODUCT_USES_PER_WEEK).sort((a, b) => b[1] - a[1]);
+  if (overused.length) {
+    const msg = `\u0427\u0435\u0441\u0442\u043E \u043F\u043E\u0432\u0442\u0430\u0440\u044F\u0449\u0438 \u0441\u0435 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438: ${overused.slice(0, 4).map(([k, c]) => `${k}\xD7${c}`).join(", ")}`;
+    warnings.push(msg);
+  }
+  return {
+    warnings,
+    errors,
+    stats: {
+      repeatedDishCount: repeatedDishes.size,
+      uniqueProducts: productCounts.size,
+      topProducts: [...productCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8)
+    }
+  };
+}
+
 // worker.entry.js
 var MIN_AGE = 13;
 var MAX_AGE = 100;
@@ -11207,6 +11390,7 @@ var loggingStatusCacheTime = 0;
 var LOGGING_STATUS_CACHE_TTL = 60 * 1e3;
 var pendingSessionLogs = /* @__PURE__ */ new Map();
 var MEAL_PLAN_CHUNK_MAX_RETRIES = 2;
+var COMPOSITION_REPAIR_MAX_PER_CHUNK = 2;
 var CATALOG_STRICT_MODE = true;
 async function cacheSet(key, data, ttl = AI_LOG_CACHE_TTL) {
   try {
@@ -12441,10 +12625,12 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
   const meal3Rule = buildMeal3PromptRule(data);
   let previousDaysContext = "";
   if (previousDays.length > 0) {
+    const hasProducts = previousDays.some((d) => (d.meals || []).some((m) => m.description?.includes("\u2022")));
+    const pdBlock = hasProducts ? serializePreviousDaysProducts(previousDays) : serializePreviousDays(previousDays);
     previousDaysContext = `
 
-${serializePreviousDays(previousDays)}
-\u041F\u041E\u0412\u0422\u041E\u0420\u0415\u041D\u0418\u0415: max 5 \u044F\u0441\u0442\u0438\u044F/\u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u2014 \u0438\u0437\u0431\u044F\u0433\u0432\u0430\u0439 \u0433\u043E\u0440\u043D\u0438\u0442\u0435, \u043E\u0441\u0432\u0435\u043D \u0430\u043A\u043E \u0435 \u043D\u0435\u043E\u0431\u0445\u043E\u0434\u0438\u043C\u043E.`;
+${pdBlock}
+\u041F\u041E\u0412\u0422\u041E\u0420\u0415\u041D\u0418\u0415: max 5 \u044F\u0441\u0442\u0438\u044F/\u0441\u0435\u0434\u043C\u0438\u0446\u0430; \u0440\u043E\u0442\u0430\u0446\u0438\u044F \u043D\u0430 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u2014 \u0438\u0437\u0431\u044F\u0433\u0432\u0430\u0439 \u0433\u043E\u0440\u043D\u0438\u0442\u0435.`;
   }
   const useCompactStep3Context = endDay - startDay + 1 <= 1;
   const compactCtx = useCompactStep3Context ? buildStep3CompactContext(analysis, strategy, dietaryModifier) : null;
@@ -16200,6 +16386,52 @@ ${errors.map((e, i) => `${i + 1}. ${e}`).join("\n")}
 
 Rules: meals[].type = mealBreakdown only; description = catalog products only (no grams); choose products that match slot P/C/F profile.`;
 }
+async function tryCompositionRepair(env, {
+  weekPlan,
+  strategy,
+  targets,
+  data,
+  analysis,
+  startDay,
+  endDay,
+  sessionId
+}) {
+  if (!targets?.length) return false;
+  const catalogSection = buildCatalogPromptSection({
+    strategy,
+    startDay,
+    endDay,
+    dietaryModifier: strategy.dietaryModifier || "\u0411\u0430\u043B\u0430\u043D\u0441\u0438\u0440\u0430\u043D\u043E",
+    blockedTerms: collectUserBlockedFoodTerms(data),
+    preferLove: String(data.dietLove || "").split(/[,;]/).map((s) => s.trim()).filter(Boolean),
+    clinicalProtocolId: data.clinicalProtocol || null
+  });
+  const prompt = buildCompositionRepairPrompt({
+    targets,
+    weekPlan,
+    strategy,
+    catalogSection,
+    dietaryModifier: strategy.dietaryModifier || "\u0411\u0430\u043B\u0430\u043D\u0441\u0438\u0440\u0430\u043D\u043E",
+    dayNumberToKey: DAY_NUMBER_TO_KEY
+  });
+  try {
+    const response = await callAIModel(
+      env,
+      prompt,
+      2048,
+      "step3_composition_repair",
+      sessionId,
+      data,
+      buildCompactAnalysisForStep3(analysis)
+    );
+    const patch = parseAIResponse(response);
+    const applied = applyCompositionRepairPatch(weekPlan, patch, targets);
+    return applied > 0;
+  } catch (e) {
+    console.warn("[composition-repair] failed:", e.message);
+    return false;
+  }
+}
 function getAllowedMealTypes(dayTarget, userData = null) {
   const allowed = new Set((dayTarget?.mealBreakdown || []).map((m) => m.type));
   if (allowed.has("\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435")) allowed.delete("\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2");
@@ -17505,11 +17737,13 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
     const daysInChunk = endDay - startDay + 1;
     let chunkComment = errorPreventionComment;
     let attempt = 0;
+    let compositionRepairAttempt = 0;
     let bestSnapshot = null;
     let bestErrors = null;
     let lastAiFailure = null;
     while (true) {
       let validationErrors;
+      let syncMeta = null;
       try {
         const chunkPrompt = await generateMealPlanChunkPrompt(
           data,
@@ -17542,9 +17776,9 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
           weekPlan[dayKey] = chunkData[dayKey];
         }
         injectFixedDesserts(weekPlan);
-        const syncMeta = await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
+        syncMeta = await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
         if (repairWeekPlanLightSlots(weekPlan, startDay, endDay, data)) {
-          await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
+          syncMeta = await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
         }
         finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, data);
         validationErrors = validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay, data.clinicalProtocol || null, data);
@@ -17569,6 +17803,46 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         if (!bestSnapshot || validationErrors.length < bestErrors.length) {
           bestSnapshot = daysSnapshot;
           bestErrors = validationErrors;
+        }
+        if (validationErrors.every(isCompositionRepairableError)) {
+          const repairTargets = extractCompositionRepairTargets(validationErrors, syncMeta?.infeasible);
+          if (repairTargets.length && compositionRepairAttempt < COMPOSITION_REPAIR_MAX_PER_CHUNK) {
+            compositionRepairAttempt++;
+            const repaired = await tryCompositionRepair(env, {
+              weekPlan,
+              strategy,
+              targets: repairTargets,
+              data,
+              analysis,
+              startDay,
+              endDay,
+              sessionId
+            });
+            if (repaired) {
+              syncMeta = await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
+              finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, data);
+              validationErrors = validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay, data.clinicalProtocol || null, data);
+              for (const slot of syncMeta?.infeasible || []) {
+                validationErrors.push(`\u0414\u0435\u043D ${slot.day} ${slot.type}: ${slot.reason} \u2014 \u0441\u043C\u0435\u043D\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438\u0442\u0435`);
+              }
+              if (!validationErrors.length) {
+                bestSnapshot = {};
+                for (let day = startDay; day <= endDay; day++) {
+                  bestSnapshot[`day${day}`] = JSON.parse(JSON.stringify(weekPlan[`day${day}`]));
+                }
+                bestErrors = [];
+                break;
+              }
+              if (validationErrors.length < bestErrors.length) {
+                bestErrors = validationErrors;
+                bestSnapshot = {};
+                for (let day = startDay; day <= endDay; day++) {
+                  bestSnapshot[`day${day}`] = JSON.parse(JSON.stringify(weekPlan[`day${day}`]));
+                }
+              }
+              continue;
+            }
+          }
         }
       }
       if (attempt >= MEAL_PLAN_CHUNK_MAX_RETRIES) {
@@ -17610,6 +17884,10 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
     console.log("Step 5 enrichment skipped (weekly adapt regen)");
   }
   finalizeWeekPlanDays(weekPlan, strategy, 1, 7, data);
+  const varietyResult = validateWeeklyVariety(weekPlan);
+  if (varietyResult.warnings.length) {
+    generationWarnings.push(...varietyResult.warnings);
+  }
   try {
     const summaryPrompt = await generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan, env);
     const summaryResponse = await callAIModel(env, summaryPrompt, SUMMARY_TOKEN_LIMIT, "step4_summary", sessionId, data, buildCompactAnalysisForStep4(analysis));
@@ -21145,7 +21423,7 @@ async function handleGetCalendarIcs(request, env) {
   function fmtDt(d) {
     return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
   }
-  function esc3(s) {
+  function esc4(s) {
     return String(s).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r\n?|\n/g, "\\n");
   }
   const dtstamp = fmtDt(/* @__PURE__ */ new Date());
@@ -21161,13 +21439,13 @@ async function handleGetCalendarIcs(request, env) {
       `DTSTAMP:${dtstamp}`,
       `DTSTART:${fmtDt(d)}`,
       `DTEND:${fmtDt(dEnd)}`,
-      `SUMMARY:${esc3(title)}`,
-      `DESCRIPTION:${esc3(body)}`,
+      `SUMMARY:${esc4(title)}`,
+      `DESCRIPTION:${esc4(body)}`,
       `URL:${WORKER_BASE}/plan.html`,
       "BEGIN:VALARM",
       "TRIGGER:-PT0M",
       "ACTION:DISPLAY",
-      `DESCRIPTION:${esc3(title)}`,
+      `DESCRIPTION:${esc4(title)}`,
       "END:VALARM",
       "END:VEVENT"
     ].join("\r\n");
