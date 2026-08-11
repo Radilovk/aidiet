@@ -7,7 +7,7 @@ Stress: {userData.stressLevel} | Sleep: {userData.sleepHours}h | Chronotype: {us
 {strategyBlock}
 Favorites: {dietLove} | Dislikes: {dietDislike}
 
-=== DAY {startDay} (mealBreakdown) ===
+=== {daysRangeHeader} (mealBreakdown) ===
 {weeklySchemeByDayText}
 
 {additionalNotes}
@@ -20,19 +20,10 @@ Favorites: {dietLove} | Dislikes: {dietDislike}
 === FORMAT (slot types = mealBreakdown / #WK above, not this line) ===
 {"type": "Хранене 2", "name": "Пилешко с ориз", "description": "• пилешко месо\n• ориз\n• домати"}
 
-=== TASK (Day {startDay}) ===
-Fill day {startDay} for {userData.name}.
-• meals[].type MUST match this day's mealBreakdown exactly — no extra slots, no missing slots.
-• name — dish title (Bulgarian)
-• description — catalog raw ingredients only, one per line: "• {product}" (eggs not omelet; chicken not "rice with chicken")
-• Catalog products only; exact catalog names. Do NOT write grams, calories, macros, weight, or benefits in JSON.
-• Choose products whose macro profile can carry the slot P/C/F from mealBreakdown. For low-fat slots do not use nuts or seeds.
-• Prefer catalog group names (зеленчук, плод, риба, ядки, червено месо) when a specific product is not required.
+{chunkTaskSection}
 
 === SLOT CONTRACTS ===
 • Хранене 3 — {meal3Rule}
 • Хранене 5 — max {MAX_LATE_SNACK_CALORIES} kcal; fats+protein only
 • Свободно хранене — if in mealBreakdown: {"type":"Свободно хранене","name":"Свободно хранене"} only; no description/macros; no Хранене 2 that day
 • dessert: true — on Хранене 2 when strategy requires; part of slot, not in name{sweetsCravingRule}{freeMealInstruction}
-
-Return ONLY JSON for day {startDay}.

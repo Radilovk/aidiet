@@ -83,6 +83,13 @@ import {
   serializePreviousDaysProducts,
   validateWeeklyVariety,
 } from './weekly-variety.js';
+import {
+  DAYS_PER_CHUNK,
+  mealPlanTokenLimitForChunk,
+  enrichmentTokenLimitForChunk,
+  buildStep3DaysRangeHeader,
+  buildStep3ChunkTaskSection,
+} from './step3-chunk.js';
 
 
 /**
@@ -100,11 +107,11 @@ import {
  * - NutriPlan Context Format (context-compression.js) for plan generation steps
  * - Step 1: lossless pipe-serialized profile + backend calcs (deduped vs notes sections)
  * - Steps 2–4: tiered profile + compact analysis/strategy/weekly-scheme blocks
- * - Step 3 ×7 chunks (1 day each): compact targets + catalog + previous-day names
+ * - Step 3: one week-at-once call (7 days) — compact targets + catalog + variety rules
  * - replacePromptVariables uses compact JSON (no pretty-print)
  * 
  * ARCHITECTURE - Plan Generation (Reorganized for efficiency):
- * Структура: 4 основни стъпки, стъпка 3 с 4 подстъпки = 7 заявки
+ * Структура: 4 основни стъпки; Step 3 = 1 week-at-once заявка (7 дни)
  * 
  *   1. Analysis Request (4k token limit)
  *      - Input: Full user data (profile, habits, medical, preferences)
@@ -3397,7 +3404,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
     previousDaysContext = `\n\n${pdBlock}\nПОВТОРЕНИЕ: max 5 ястия/седмица; ротация на продукти — избягвай горните.`;
   }
   
-  const useCompactStep3Context = (endDay - startDay + 1) <= 1;
+  const useCompactStep3Context = true; // Always compact in Step 3 — week-at-once token budget
   const compactCtx = useCompactStep3Context
     ? buildStep3CompactContext(analysis, strategy, dietaryModifier)
     : null;
@@ -3470,6 +3477,13 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
     clinicalProtocolId: data.clinicalProtocol || null,
   });
 
+  const daysRangeHeader = buildStep3DaysRangeHeader(startDay, endDay);
+  const chunkTaskSection = buildStep3ChunkTaskSection({
+    startDay,
+    endDay,
+    userName: data.name || data.firstName || 'клиента',
+  });
+
   const customPrompt = await requireKvPrompt(env, 'admin_meal_plan_prompt');
 
   // All necessary values are already computed above (analysisCompact, strategyCompact,
@@ -3513,7 +3527,10 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
       sweetsCravingRule,
       additionalNotes: buildCombinedAdditionalNotes(data),
       clinicalProtocolSection: (() => { const p = getClinicalProtocol(data.clinicalProtocol); return p ? buildClinicalProtocolPromptSection(p) : ''; })(),
-      weeklyAdaptationSection: buildWeeklyAdaptationContextSection(data)
+      weeklyAdaptationSection: buildWeeklyAdaptationContextSection(data),
+      daysRangeHeader,
+      chunkTaskSection,
+      daysInChunk,
     });
     
     const weeklySection = buildWeeklyAdaptationContextSection(data);
@@ -3625,7 +3642,7 @@ async function enrichWeekPlanCopy(env, data, strategy, weekPlan, sessionId = nul
         data, strategy, weekPlan, startDay, endDay, env, options
       );
       const enrichmentResponse = await callAIModel(
-        env, enrichmentPrompt, MEAL_ENRICHMENT_TOKEN_LIMIT,
+        env, enrichmentPrompt, enrichmentTokenLimitForChunk(endDay - startDay + 1),
         `step5_enrichment_chunk_${chunkIndex + 1}`, sessionId, data
       );
       let enrichmentData = parseAIResponse(enrichmentResponse);
@@ -8334,7 +8351,8 @@ function applyFoodSubstitutions(meal, fixes) {
   return applied;
 }
 
-const DAYS_PER_CHUNK = 1; // Stage 2 target: 7 (week-at-once) — keep 1 until prompt/token budget validated
+
+// Step 3 chunk size — see step3-chunk.js (DAYS_PER_CHUNK = 7, week-at-once)
 
 const PLAN_VALIDATION_BLOCKING = [
   /под безопасния минимум/i,
@@ -9789,7 +9807,9 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         const stepLabel = attempt > 0
           ? `step3_meal_plan_chunk_${chunkIndex + 1}_retry`
           : `step3_meal_plan_chunk_${chunkIndex + 1}`;
-        const chunkResponse = await callAIModel(env, chunkPrompt, MEAL_PLAN_TOKEN_LIMIT, stepLabel, sessionId, data, buildCompactAnalysisForStep3(analysis));
+        const chunkResponse = await callAIModel(
+          env, chunkPrompt, mealPlanTokenLimitForChunk(daysInChunk), stepLabel, sessionId, data, buildCompactAnalysisForStep3(analysis),
+        );
         let chunkData = parseAIResponse(chunkResponse);
 
         if (!chunkData || chunkData.error) {

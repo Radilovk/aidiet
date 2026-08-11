@@ -32,16 +32,22 @@ const PROMPT_CONTRACTS = {
     'weeklyMealPattern',
   ],
   'KV/prompts/admin_meal_plan_prompt.txt': [
-    'catalog group names',
+    '{chunkTaskSection}',
+    '{daysRangeHeader}',
     'SLOT CONTRACTS',
     'Хранене 3',
-    'ONLY',
     'FORMAT',
     'catalog',
     'Свободно хранене',
     'dessert',
     'mealBreakdown',
+  ],
+  'step3-chunk.js': [
+    'catalog group names',
+    'meals[].type MUST match',
+    'name — dish title',
     '=== TASK',
+    'Do NOT write grams',
   ],
   'KV/prompts/admin_summary_prompt.txt': [
     'recommendations',
@@ -66,8 +72,12 @@ export function validatePromptContracts() {
         issues.push(`${rel}: липсва "${needle}"`);
       }
     }
-    if (!text.includes('=== ЗАДАЧА') && !text.includes('=== TASK')) {
-      issues.push(`${rel}: липсва секция === TASK (Gemini task-at-end)`);
+    if (rel.includes('admin_meal_plan_prompt')) {
+      if (!text.includes('{chunkTaskSection}')) {
+        issues.push(`${rel}: липсва {chunkTaskSection} (task injected from step3-chunk.js)`);
+      }
+    } else if (!text.includes('=== ЗАДАЧА') && !text.includes('=== TASK')) {
+        issues.push(`${rel}: липсва секция === TASK (Gemini task-at-end)`);
     }
   }
   return issues;

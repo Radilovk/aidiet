@@ -10293,6 +10293,55 @@ function validateWeeklyVariety(weekPlan, options = {}) {
   };
 }
 
+// step3-chunk.js
+var DAYS_PER_CHUNK = 7;
+function mealPlanTokenLimitForChunk(daysInChunk) {
+  const n = Number(daysInChunk) || 1;
+  if (n <= 1) return 8e3;
+  if (n <= 3) return 12e3;
+  return 16e3;
+}
+function enrichmentTokenLimitForChunk(daysInChunk) {
+  const n = Number(daysInChunk) || 1;
+  if (n <= 1) return 4e3;
+  if (n <= 3) return 8e3;
+  return 12e3;
+}
+function buildStep3DaysRangeHeader(startDay, endDay) {
+  const s = Number(startDay) || 1;
+  const e = Number(endDay) || s;
+  return s === e ? `DAY ${s}` : `DAYS ${s}\u2013${e}`;
+}
+function buildStep3ChunkTaskSection({ startDay, endDay, userName = "\u043A\u043B\u0438\u0435\u043D\u0442\u0430" }) {
+  const s = Number(startDay) || 1;
+  const e = Number(endDay) || s;
+  const daysInChunk = e - s + 1;
+  const name = String(userName || "\u043A\u043B\u0438\u0435\u043D\u0442\u0430").trim() || "\u043A\u043B\u0438\u0435\u043D\u0442\u0430";
+  const sharedRules = [
+    "\u2022 meals[].type MUST match that day's mealBreakdown in #WK \u2014 no extra/missing slots",
+    "\u2022 name \u2014 dish title (Bulgarian)",
+    '\u2022 description \u2014 catalog raw ingredients only, one per line: "\u2022 {product}"',
+    "\u2022 Catalog products only; exact catalog names. Do NOT write grams, calories, macros, weight, or benefits",
+    "\u2022 Choose products whose macro profile can carry slot P/C/F from mealBreakdown",
+    "\u2022 Prefer catalog group names (\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A, \u043F\u043B\u043E\u0434, \u0440\u0438\u0431\u0430, \u044F\u0434\u043A\u0438) when a specific product is not required"
+  ].join("\n");
+  if (daysInChunk <= 1) {
+    return `=== TASK (Day ${s}) ===
+Fill day ${s} for ${name}.
+${sharedRules}
+
+Return ONLY JSON: {"day${s}":{"meals":[...]}}.`;
+  }
+  const dayKeys = Array.from({ length: daysInChunk }, (_, i) => `day${s + i}`).join(", ");
+  return `=== TASK (Days ${s}\u2013${e}) ===
+Fill days ${s} through ${e} for ${name} in ONE response.
+${sharedRules}
+\u2022 Rotate proteins and sides across the week \u2014 max 5 repeated dish names; vary catalog products day to day.
+
+Return ONLY JSON with keys ${dayKeys}. Each value: {"meals":[...]}.
+Example: {"day${s}":{"meals":[...]},"day${s + 1}":{"meals":[...]},...}`;
+}
+
 // worker.entry.js
 var MIN_AGE = 13;
 var MAX_AGE = 100;
@@ -12632,7 +12681,7 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
 ${pdBlock}
 \u041F\u041E\u0412\u0422\u041E\u0420\u0415\u041D\u0418\u0415: max 5 \u044F\u0441\u0442\u0438\u044F/\u0441\u0435\u0434\u043C\u0438\u0446\u0430; \u0440\u043E\u0442\u0430\u0446\u0438\u044F \u043D\u0430 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u2014 \u0438\u0437\u0431\u044F\u0433\u0432\u0430\u0439 \u0433\u043E\u0440\u043D\u0438\u0442\u0435.`;
   }
-  const useCompactStep3Context = endDay - startDay + 1 <= 1;
+  const useCompactStep3Context = true;
   const compactCtx = useCompactStep3Context ? buildStep3CompactContext(analysis, strategy, dietaryModifier) : null;
   const analysisBlock = compactCtx ? compactCtx.analysisBlock : serializeAnalysisForStep(analysis, 3);
   const strategyBlock = compactCtx ? compactCtx.strategyBlock : serializeStrategyForMealPlan(strategy);
@@ -12687,6 +12736,12 @@ ${pdBlock}
     preferLove: String(data.dietLove || "").split(/[,;]/).map((s) => s.trim()).filter(Boolean),
     clinicalProtocolId: data.clinicalProtocol || null
   });
+  const daysRangeHeader = buildStep3DaysRangeHeader(startDay, endDay);
+  const chunkTaskSection = buildStep3ChunkTaskSection({
+    startDay,
+    endDay,
+    userName: data.name || data.firstName || "\u043A\u043B\u0438\u0435\u043D\u0442\u0430"
+  });
   const customPrompt = await requireKvPrompt(env, "admin_meal_plan_prompt");
   let prompt = replacePromptVariables(customPrompt, {
     userData: data,
@@ -12729,7 +12784,10 @@ ${pdBlock}
       const p = getClinicalProtocol(data.clinicalProtocol);
       return p ? buildClinicalProtocolPromptSection(p) : "";
     })(),
-    weeklyAdaptationSection: buildWeeklyAdaptationContextSection(data)
+    weeklyAdaptationSection: buildWeeklyAdaptationContextSection(data),
+    daysRangeHeader,
+    chunkTaskSection,
+    daysInChunk
   });
   const weeklySection = buildWeeklyAdaptationContextSection(data);
   if (weeklySection && !prompt.includes("\u0421\u0415\u0414\u041C\u0418\u0427\u041D\u0410 \u0410\u0414\u0410\u041F\u0422\u0410\u0426\u0418\u042F")) prompt += weeklySection;
@@ -12844,7 +12902,7 @@ async function enrichWeekPlanCopy(env, data, strategy, weekPlan, sessionId = nul
       const enrichmentResponse = await callAIModel(
         env,
         enrichmentPrompt,
-        MEAL_ENRICHMENT_TOKEN_LIMIT,
+        enrichmentTokenLimitForChunk(endDay - startDay + 1),
         `step5_enrichment_chunk_${chunkIndex + 1}`,
         sessionId,
         data
@@ -15880,8 +15938,6 @@ async function handleGetClientPlanStatus(request, env) {
     return jsonResponse2({ error: `Failed to check plan status: ${error.message}` }, 500);
   }
 }
-var MEAL_PLAN_TOKEN_LIMIT = 8e3;
-var MEAL_ENRICHMENT_TOKEN_LIMIT = 4e3;
 var SUMMARY_TOKEN_LIMIT = 3500;
 var MIN_MEALS_PER_DAY = 1;
 var MAX_MEALS_PER_DAY = 5;
@@ -16619,7 +16675,6 @@ function applyFoodSubstitutions(meal, fixes) {
   }
   return applied;
 }
-var DAYS_PER_CHUNK = 1;
 var PLAN_VALIDATION_BLOCKING = [
   /под безопасния минимум/i,
   /под минималната нужда.*мазнини/i,
@@ -17759,7 +17814,15 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
           cachedFoodLists
         );
         const stepLabel = attempt > 0 ? `step3_meal_plan_chunk_${chunkIndex + 1}_retry` : `step3_meal_plan_chunk_${chunkIndex + 1}`;
-        const chunkResponse = await callAIModel(env, chunkPrompt, MEAL_PLAN_TOKEN_LIMIT, stepLabel, sessionId, data, buildCompactAnalysisForStep3(analysis));
+        const chunkResponse = await callAIModel(
+          env,
+          chunkPrompt,
+          mealPlanTokenLimitForChunk(daysInChunk),
+          stepLabel,
+          sessionId,
+          data,
+          buildCompactAnalysisForStep3(analysis)
+        );
         let chunkData = parseAIResponse(chunkResponse);
         if (!chunkData || chunkData.error) {
           throw new Error(chunkData?.error || "Invalid response");
