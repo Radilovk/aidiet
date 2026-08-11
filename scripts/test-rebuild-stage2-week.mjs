@@ -8,6 +8,7 @@ import {
   buildStep3DaysRangeHeader,
   buildStep3ChunkTaskSection,
 } from '../step3-chunk.js';
+import { getPlanStepResponseSchema } from '../plan-response-schemas.js';
 
 const worker = readFileSync('worker.entry.js', 'utf8');
 const prompt = readFileSync('KV/prompts/admin_meal_plan_prompt.txt', 'utf8');
@@ -36,6 +37,10 @@ ok(worker.includes("from './step3-chunk.js'"), 'worker imports step3-chunk');
 ok(worker.includes('mealPlanTokenLimitForChunk'), 'worker dynamic token limit');
 ok(worker.includes('buildStep3ChunkTaskSection'), 'worker injects chunk task');
 ok(!worker.includes('const DAYS_PER_CHUNK = 1'), 'DAYS_PER_CHUNK=1 removed');
+
+const step3Schema = getPlanStepResponseSchema('step3_meal_plan_chunk_1');
+ok(step3Schema?.required?.length === 7, 'chunk_1 schema requires day1–day7');
+ok(step3Schema?.required?.includes('day7'), 'chunk_1 schema includes day7');
 
 console.log(`\n=== rebuild stage2 week-at-once: ${pass} pass, ${fail} fail ===`);
 process.exit(fail ? 1 : 0);

@@ -3,6 +3,8 @@
  * Keeps JSON structure reliable in non-thinking mode without verbose prompt schemas.
  */
 
+import { DAYS_PER_CHUNK } from './step3-chunk.js';
+
 const CANONICAL_MEAL_TYPES = [
   'Хранене 1',
   'Хранене 2',
@@ -310,26 +312,36 @@ export const SUMMARY_RESPONSE_SCHEMA = {
 };
 
 /**
+ * @param {number} startDay
+ * @param {number} endDay
+ */
+export function buildMealPlanChunkSchema(startDay, endDay) {
+  const s = Number(startDay) || 1;
+  const e = Number(endDay) || s;
+  const properties = {};
+  const required = [];
+  for (let d = s; d <= e; d++) {
+    const dayKey = `day${d}`;
+    properties[dayKey] = {
+      type: 'object',
+      properties: {
+        meals: {
+          type: 'array',
+          items: MEAL_PLAN_MEAL_SCHEMA,
+        },
+      },
+      required: ['meals'],
+    };
+    required.push(dayKey);
+  }
+  return { type: 'object', properties, required };
+}
+
+/**
  * @param {number} dayNum
  */
 export function buildMealPlanDaySchema(dayNum) {
-  const dayKey = `day${dayNum}`;
-  return {
-    type: 'object',
-    properties: {
-      [dayKey]: {
-        type: 'object',
-        properties: {
-          meals: {
-            type: 'array',
-            items: MEAL_PLAN_MEAL_SCHEMA,
-          },
-        },
-        required: ['meals'],
-      },
-    },
-    required: [dayKey],
-  };
+  return buildMealPlanChunkSchema(dayNum, dayNum);
 }
 
 /**
@@ -343,7 +355,10 @@ export function getPlanStepResponseSchema(stepName) {
 
   const chunkMatch = stepName.match(/^step3_meal_plan_chunk_(\d+)/);
   if (chunkMatch) {
-    return buildMealPlanDaySchema(parseInt(chunkMatch[1], 10));
+    const chunkIndex = parseInt(chunkMatch[1], 10) - 1;
+    const startDay = chunkIndex * DAYS_PER_CHUNK + 1;
+    const endDay = Math.min(startDay + DAYS_PER_CHUNK - 1, 7);
+    return buildMealPlanChunkSchema(startDay, endDay);
   }
   if (stepName.startsWith('step3') || stepName === 'fallback_plan') {
     return buildMealPlanDaySchema(1);
