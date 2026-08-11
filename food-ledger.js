@@ -115,3 +115,22 @@ export function getLedgerVersion(ledger) {
   const e = ledger.eaten instanceof Map ? ledger.eaten.size : Object.keys(ledger.eaten || {}).length;
   return `${ledger.version || LEDGER_VERSION}_${p}_${e}`;
 }
+
+/** Minimal plan payload for analytics/ledger sync (avoids shipping full plan blob). */
+export function planSliceForLedgerSync(plan) {
+  if (!plan?.weekPlan || typeof plan.weekPlan !== 'object') return null;
+  return {
+    weekPlan: plan.weekPlan,
+    sourceMeta: plan.sourceMeta ?? null,
+  };
+}
+
+/** Idempotency signature for client analytics sync. */
+export function analyticsSyncSignature(uid, gameData, planSlice = null) {
+  const keys = Object.keys(gameData || {});
+  const latestKey = keys.sort().pop() || '';
+  const dayScore = latestKey ? (gameData[latestKey]?.dailyScore ?? '') : '';
+  const catalogV = planSlice?.sourceMeta?.catalogVersion || '';
+  const dayCount = planSlice?.weekPlan ? Object.keys(planSlice.weekPlan).length : 0;
+  return `${uid}:${keys.length}:${latestKey}:${dayScore}:${catalogV}:${dayCount}`;
+}

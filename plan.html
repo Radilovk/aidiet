@@ -9173,44 +9173,61 @@
         function saveGameData(d) {
             _gameDataCache = d;
             localStorage.setItem(GAME_DATA_KEY, JSON.stringify(d));
-            // Analytics stay local until weekly AI (syncNow in startWeeklyFeedbackFlow).
+            scheduleAnalyticsSync();
+        }
+
+        function getPlanForAnalyticsSync() {
+            var p = null;
+            try {
+                if (typeof dietPlan !== 'undefined' && dietPlan && dietPlan.weekPlan) p = dietPlan;
+                else p = JSON.parse(localStorage.getItem('dietPlan') || 'null');
+            } catch (e) { return null; }
+            if (!p || !p.weekPlan) return null;
+            return { weekPlan: p.weekPlan, sourceMeta: p.sourceMeta || null };
         }
 
         function scheduleAnalyticsSync() {
-            // Reserved for explicit syncNow() — no background timer after each save.
+            if (_analyticsSyncTimer) clearTimeout(_analyticsSyncTimer);
+            _analyticsSyncTimer = setTimeout(function() { syncAnalyticsToServer(); }, 45000);
         }
 
         async function syncAnalyticsToServer() {
-            // Push summary to server only when needed (weekly AI prep / admin copy).
-            // Daily scoring uses local gameData + game-scoring.js — no server round-trip.
             _analyticsSyncTimer = null;
             var uid = (typeof userId !== 'undefined' && userId) ? userId : localStorage.getItem('userId');
             if (!uid || _analyticsSyncInFlight) return;
             var gameData = getGameData();
             var keys = Object.keys(gameData || {});
             if (!keys.length) return;
+
+            var planSlice = getPlanForAnalyticsSync();
+            var weeklyAI = ensureWeeklyMeta(getWeeklyAIState());
+            saveWeeklyAIState(weeklyAI);
+
             var latestKey = keys.sort().pop();
-            var sig = uid + ':' + keys.length + ':' + latestKey + ':' + (gameData[latestKey]?.dailyScore || '');
+            var sig = uid + ':' + keys.length + ':' + latestKey + ':' + (gameData[latestKey]?.dailyScore || '')
+                + ':' + (planSlice?.sourceMeta?.catalogVersion || '')
+                + ':' + (planSlice?.weekPlan ? Object.keys(planSlice.weekPlan).length : 0);
             if (localStorage.getItem('np_analytics_sig') === sig) return;
+
             _analyticsSyncInFlight = true;
             try {
-                var weeklyAI = {};
-                try { weeklyAI = JSON.parse(localStorage.getItem(GAME_WEEKLY_AI_KEY) || '{}'); } catch(e) {}
                 var idToken = null;
                 if (uid.indexOf('fb_') === 0 && typeof auth !== 'undefined' && auth.currentUser) {
                     idToken = await auth.currentUser.getIdToken().catch(function() { return null; });
                 }
                 var clientId = localStorage.getItem('pendingClientId') || localStorage.getItem('clientId') || '';
+                var body = {
+                    userId: uid,
+                    gameData: gameData,
+                    gameWeeklyAI: weeklyAI,
+                    ...(planSlice ? { plan: planSlice } : {}),
+                    ...(clientId ? { clientId: clientId } : {}),
+                    ...(idToken ? { idToken: idToken } : {})
+                };
                 var resp = await fetch(ANALYTICS_WORKER + '/api/user/sync-analytics', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId: uid,
-                        gameData: gameData,
-                        gameWeeklyAI: weeklyAI,
-                        ...(clientId ? { clientId: clientId } : {}),
-                        ...(idToken ? { idToken: idToken } : {})
-                    })
+                    body: JSON.stringify(body)
                 });
                 if (resp.ok) localStorage.setItem('np_analytics_sig', sig);
             } catch (_) { /* non-blocking */ }
@@ -10674,9 +10691,10 @@
                 gameData: getGameData(),
                 gameWeeklyAI: ensureWeeklyMeta(getWeeklyAIState())
             };
+            var planSlice = getPlanForAnalyticsSync();
+            if (planSlice) payload.plan = planSlice;
             var uid = localStorage.getItem('userId') || '';
             if (!uid.startsWith('fb_')) {
-                try { payload.plan = JSON.parse(localStorage.getItem('dietPlan') || 'null'); } catch(e) {}
                 try { payload.userData = JSON.parse(localStorage.getItem('userData') || '{}'); } catch(e) {}
             }
             return payload;

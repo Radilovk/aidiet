@@ -174,6 +174,11 @@ check('stage3 food ledger and admin catalog', () => {
   if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
 });
 
+check('plan analytics sync contract', () => {
+  const r = run('node', ['scripts/test-plan-analytics-sync.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
+});
+
 check('meal solver pipeline', () => {
   const r = run('node', ['scripts/test-solver.mjs']);
   if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
