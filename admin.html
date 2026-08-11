@@ -2016,7 +2016,7 @@
             <div class="card">
                 <h2><i class="fas fa-utensils"></i> AI Промпт за Генериране на Хранителен План (Стъпка 3)</h2>
                 <div class="info-box" style="background: #d4edda; border-left: 4px solid #28a745;">
-                    <strong>Skeleton:</strong> ADLE избор на продукти + грамаж + макроси в рамката от Стъпка 2. Без name-format, benefits и cooking — те се добавят в Стъпка 5.
+                    <strong>Composition (Стъпка 3):</strong> ADLE избира само <strong>продукти</strong> от каталога в замразената схема (Стъпка 2). AI <em>не</em> задава грамаж, калории или макроси — solver (<code>solveMealGrams</code>) ги изчислява след отговора. Генерира се <strong>целата седмица наведнъж</strong> (1 chunk). Без name/benefits/recipe — добавят се в Стъпка 5.
                 </div>
                 <div class="warning-box">
                     <strong>Внимание:</strong> Този промпт е критичен - използва се за генериране на конкретните ястия и хранения за всеки ден.
@@ -2029,7 +2029,7 @@
                     <textarea id="mealPlanPrompt" placeholder="Въведете промпт за хранителен план..."></textarea>
                 </div>
                 <div class="info-box">
-                    <strong>Променливи:</strong> {userData}, {analysisData}, {strategyData}, {bmr}, {recommendedCalories}, {startDay}, {endDay}, {previousDays}
+                    <strong>Променливи:</strong> {userData}, {analysisData}, {strategyData}, {bmr}, {recommendedCalories}, {startDay}, {endDay}, {previousDays}, {daysRangeHeader}, {chunkTaskSection}, {daysInChunk}, {catalogSection}, {weeklySchemeByDayText}, {dynamicBlacklistSection}
                 </div>
                 <div class="info-box-warning">
                     <strong>⚠️ ВАЖНО - JSON Формат:</strong> Ако създавате персонализиран промпт, <strong>задължително</strong> добавете в края инструкции за JSON формат. Ако промптът не съдържа JSON инструкции, системата автоматично ще добави базови такива. За пример, вижте стандартния промпт като референция.
@@ -2049,7 +2049,7 @@
             <div class="card">
                 <h2><i class="fas fa-pen-fancy"></i> AI Промпт за Обогатяване на Хранения (Стъпка 5)</h2>
                 <div class="info-box" style="background: #e8f4fd; border-left: 4px solid #3498db;">
-                    <strong>Enrichment:</strong> След Стъпка 3 и числовото подравняване — обогатява <code>name</code>, <code>description</code> (готвене) и <code>benefits</code>. Не променя калории, макроси или грамаж.
+                    <strong>Enrichment (Стъпка 5):</strong> След solver + валидация — обогатява само <code>name</code>, <code>benefits</code> и <code>recipe</code>. Полето <code>description</code> (продукти + грамаж) е финално от Стъпка 3 и <em>не се променя</em>. Без калории, макроси или weight.
                 </div>
                 <div class="info-box" style="background: #d1f2eb; border-left: 4px solid #1abc9c;">
                     <strong>🔄 Синхронизация:</strong> Промените се запазват <strong>веднага</strong> в бекенда и се използват при <strong>следващото генериране</strong> на план.
@@ -2062,7 +2062,7 @@
                     <strong>Променливи:</strong> {userData}, {strategyData}, {dietaryModifier}, {dietLove}, {dietDislike}, {additionalNotes}, {mealsSkeletonJSON}, {startDay}, {endDay}
                 </div>
                 <div class="info-box-warning">
-                    <strong>⚠️ ВАЖНО - JSON Формат:</strong> Промптът трябва да инструктира AI да върне JSON с обогатени name/description/benefits, запазвайки type/weight/calories/macros.
+                    <strong>⚠️ ВАЖНО - JSON Формат:</strong> Промптът трябва да върне JSON с <code>name</code>, <code>benefits</code> и <code>recipe</code> — без промяна на <code>description</code>, <code>type</code>, <code>dessert</code>, calories, macros или weight.
                 </div>
                 <button class="btn" onclick="saveMealEnrichmentPrompt()">
                     <i class="fas fa-save"></i> Запази Промпт за Обогатяване
@@ -2485,11 +2485,14 @@
                 <div id="fitplanGuidelinesStatus" style="margin-top:12px;color:var(--text-gray);font-size:0.9rem;"></div>
             </div>
 
-            <div class="card" style="margin-top:20px;">
+            <div class="card" style="margin-top:20px;" id="foodCatalogCard">
                 <h2><i class="fas fa-utensils"></i> Каталог храни (overlay)</h2>
                 <p style="color:var(--text-gray);font-size:0.9rem;margin:0 0 12px;">
-                    Ресторантски ястия и admin продукти — merge в каталога при генериране. Отделно от mainlist/blacklist prompt strings.
+                    Ресторантски ястия и admin продукти — merge в registry при генериране. Отделно от mainlist/blacklist prompt strings.
                 </p>
+                <div id="foodCatalogOverlayStatus" style="color:var(--text-gray);font-size:0.85rem;margin-bottom:12px;">
+                    <i class="fas fa-spinner fa-spin"></i> Зареждане на overlay статус…
+                </div>
                 <a class="btn" href="./food-catalog.html" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;margin-right:8px;">
                     <i class="fas fa-external-link-alt"></i> Отвори food overlay
                 </a>
@@ -4143,6 +4146,7 @@
                 if (typeof loadFitplanConsultConfig === 'function') loadFitplanConsultConfig();
                 if (typeof loadFitplanConsultations === 'function') loadFitplanConsultations();
                 if (typeof loadFitplanClientPrograms === 'function') loadFitplanClientPrograms();
+                if (typeof loadFoodCatalogOverlayStatus === 'function') loadFoodCatalogOverlayStatus();
             }
 
             // Scroll to top of content on mobile
@@ -4341,6 +4345,28 @@
                 console.error('FitPlan guidelines load error:', error);
                 if (status) status.textContent = 'Грешка при зареждане. Увери се, че fitness worker-ът е деплойнат с новите endpoints.';
                 showError('Неуспешно зареждане на KA-TRAINER насоки: ' + error.message);
+            }
+        }
+
+        async function loadFoodCatalogOverlayStatus() {
+            const el = document.getElementById('foodCatalogOverlayStatus');
+            if (!el) return;
+            try {
+                const response = await fetch(`${WORKER_URL}/api/admin/food-catalog`, {
+                    headers: fitplanAdminHeaders(),
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                const overlayCount = data.count ?? (data.entries?.length ?? 0);
+                const baseCount = data.baseCount ?? '—';
+                const label = data.label ? ` · версия ${data.label}` : '';
+                const updated = data.updatedAt
+                    ? ` · обновено ${new Date(data.updatedAt).toLocaleString('bg-BG')}`
+                    : '';
+                el.innerHTML = `<i class="fas fa-layer-group" style="color:#28a745;"></i> База: <strong>${baseCount}</strong> продукта · overlay: <strong>${overlayCount}</strong>${label}${updated}`;
+            } catch (error) {
+                console.warn('Food catalog overlay status:', error);
+                el.innerHTML = '<i class="fas fa-exclamation-circle" style="color:#e67e22;"></i> Overlay статус недостъпен (деploy worker или auth)';
             }
         }
 
@@ -10564,14 +10590,14 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                             'step1_analysis': 'Стъпка 1: Анализ',
                             'step2_strategy': 'Стъпка 2: Стратегия',
                             'step3_meal_plan_full': 'Стъпка 3: Пълен План',
-                            'step3_meal_plan_chunk_1': 'Стъпка 3: Блок 1',
+                            'step3_meal_plan_chunk_1': 'Стъпка 3: Седмица (7 дни)',
                             'step3_meal_plan_chunk_2': 'Стъпка 3: Блок 2',
                             'step3_meal_plan_chunk_3': 'Стъпка 3: Блок 3',
-                            'step3_meal_plan_chunk_4': 'Стъпка 3: Блок 4',
-                            'step5_enrichment_chunk_1': 'Стъпка 5: Преглед 1',
-                            'step5_enrichment_chunk_2': 'Стъпка 5: Преглед 2',
-                            'step5_enrichment_chunk_3': 'Стъпка 5: Преглед 3',
-                            'step5_enrichment_chunk_4': 'Стъпка 5: Преглед 4',
+                            'step3_meal_plan_chunk_4': 'Стъпка 3: Блок 4 (legacy)',
+                            'step5_enrichment_chunk_1': 'Стъпка 5: Обогатяване (7 дни)',
+                            'step5_enrichment_chunk_2': 'Стъпка 5: Обогатяване блок 2',
+                            'step5_enrichment_chunk_3': 'Стъпка 5: Обогатяване блок 3',
+                            'step5_enrichment_chunk_4': 'Стъпка 5: Обогатяване блок 4 (legacy)',
                             'step4_summary': 'Стъпка 4: Обобщение',
                             'chat_consultation': 'Чат: Консултация',
                             'plan_correction': 'Корекция на План',
