@@ -16,6 +16,7 @@
     "test:plan-adequacy:dietetic": "node scripts/test-plan-adequacy-dietetic.mjs",
     "test:plan-adequacy:live": "node scripts/plan-adequacy/run-live.mjs",
     "test:plan-adequacy:benchmark": "node scripts/plan-adequacy/run-benchmark.mjs",
+    "test:plan-adequacy:matrix": "node scripts/plan-adequacy/run-matrix-live.mjs",
     "test:solver": "node scripts/test-solver.mjs",
     "test:rebuild-stage1": "node scripts/test-rebuild-stage1.mjs",
     "test:registry-arch": "node scripts/test-registry-arch.mjs",
