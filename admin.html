@@ -6920,7 +6920,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 const response = await fetch(WORKER_URL + '/api/admin/save-prompt', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type: 'plan', prompt })
+                    body: JSON.stringify({ type: 'meal_plan', prompt })
                 });
                 
                 if (!response.ok) {
