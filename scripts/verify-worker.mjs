@@ -189,6 +189,11 @@ check('chunk validation kcal-first split', () => {
   if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
 });
 
+check('matrix profile fixtures', () => {
+  const r = run('node', ['scripts/test-matrix-profiles.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
+});
+
 check('catalog universality stress', () => {
   const r = run('node', ['test-universality-stress.mjs']);
   if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
