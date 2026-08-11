@@ -21,7 +21,7 @@
  * @param {AdleSlot[]} slots
  * @param {MealTiming[]} timing
  * @param {1|2|3|4|5} universality
- * @param {{ vegan?: boolean, vegetarian?: boolean, meat?: boolean, genericOf?: string, aliases?: string[] }} [opts]
+ * @param {{ vegan?: boolean, vegetarian?: boolean, meat?: boolean, genericOf?: string, aliases?: string[], scalingMode?: string, fixedNutrition?: object }} [opts]
  */
 function item(id, name, nutritionKey, group, slots, timing, universality, opts = {}) {
   const defaultVeg = ['vegetable', 'carb', 'fat', 'fruit', 'legume', 'condiment', 'beverage'].includes(group)
@@ -39,6 +39,8 @@ function item(id, name, nutritionKey, group, slots, timing, universality, opts =
     vegetarian: opts.vegetarian !== undefined ? !!opts.vegetarian : defaultVeg,
     genericOf: opts.genericOf || null,
     aliases: opts.aliases || [],
+    scalingMode: opts.scalingMode || null,
+    fixedNutrition: opts.fixedNutrition || null,
   };
 }
 
