@@ -12552,8 +12552,9 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = "unknown", 
   }
   const config = await getAdminConfig(env);
   const stepKey = getStepKey(stepName);
-  if (stepKey && config.stepTokenLimits && config.stepTokenLimits[stepKey]) {
-    maxTokens = config.stepTokenLimits[stepKey];
+  if (stepKey && config.stepTokenLimits?.[stepKey]) {
+    const adminLimit = config.stepTokenLimits[stepKey];
+    maxTokens = maxTokens != null ? Math.max(maxTokens, adminLimit) : adminLimit;
   }
   const isChatStep = stepKey === "chat";
   const preferredProvider = isChatStep && config.chatProvider ? config.chatProvider : config.provider;

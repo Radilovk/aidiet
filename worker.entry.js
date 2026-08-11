@@ -2848,10 +2848,11 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
   // Get admin config with caching (reduces KV reads from 2 to 0 when cached)
   const config = await getAdminConfig(env);
 
-  // Apply per-step token limit override if configured by admin
+  // Per-step admin limit — never cap below an explicit caller budget (week-at-once Step 3 needs 16k)
   const stepKey = getStepKey(stepName);
-  if (stepKey && config.stepTokenLimits && config.stepTokenLimits[stepKey]) {
-    maxTokens = config.stepTokenLimits[stepKey];
+  if (stepKey && config.stepTokenLimits?.[stepKey]) {
+    const adminLimit = config.stepTokenLimits[stepKey];
+    maxTokens = maxTokens != null ? Math.max(maxTokens, adminLimit) : adminLimit;
   }
 
   // Chat steps use chat-specific model settings when configured; otherwise fall back to plan settings.
