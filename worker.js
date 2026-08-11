@@ -12481,7 +12481,10 @@ function generateUniqueId(prefix = "id") {
 }
 function generateUserId(data) {
   const str = `${data.name}_${data.age}_${data.email || Date.now()}`;
-  return btoa(str).replace(/[^a-zA-Z0-9]/g, "").substring(0, 32);
+  const bytes = new TextEncoder().encode(str);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary).replace(/[^a-zA-Z0-9]/g, "").substring(0, 32);
 }
 function buildFreeMealInstruction(strategy, startDay, endDay, userData = null) {
   const freeDayNumber = strategy && strategy.freeDayNumber;
@@ -13291,7 +13294,7 @@ async function loadCatalogRegistryOverlay(env) {
 }
 async function loadAdherenceRatioForGeneration(env, data, userIdHint = "") {
   if (!env?.page_content) return null;
-  const ids = [data?.userId, data?.firebaseUid, userIdHint, data?.email && generateUserId(data)].filter(Boolean);
+  const ids = [data?.userId, data?.firebaseUid, userIdHint, data?.email, !data?.email ? generateUserId(data) : null].filter(Boolean);
   for (const uid of [...new Set(ids)]) {
     try {
       const profile = await kvGetJSON(env, `user_profile:${uid}`);
