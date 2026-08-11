@@ -71,6 +71,7 @@ import {
   validateProductNamesInCatalog,
   validateProductNamesAgainstProtocol,
 } from './food-catalog.js';
+import { validateMealCombinations } from './meal-combinations.js';
 
 
 /**
@@ -3865,13 +3866,21 @@ async function generatePlanCore(env, data, onAnalysisReady = null) {
   try {
     const foodLists = await getDynamicFoodListsSections(env);
     const validation = validatePlan(structuredPlan, data, foodLists.dynamicSubstitutions || []);
+    if (!structuredPlan.generationWarnings) structuredPlan.generationWarnings = [];
     if (validation.warnings?.length) {
-      console.log(`Plan post-validation: ${validation.warnings.length} warning(s)`);
+      structuredPlan.generationWarnings.push(...validation.warnings);
     }
-    if (!validation.isValid) {
-      console.warn('Plan post-validation issues (non-blocking):', validation.errors.slice(0, 8).join('; '));
+    if (validation.errors?.length) {
+      structuredPlan.generationWarnings.push(...validation.errors);
+    }
+    if (validation.blockingErrors?.length) {
+      throw new Error(`Планът не минава медицински прагове: ${validation.blockingErrors.join('; ')}`);
+    }
+    if (structuredPlan.generationWarnings.length) {
+      console.log(`Plan post-validation: ${structuredPlan.generationWarnings.length} warning(s)`);
     }
   } catch (validationErr) {
+    if (validationErr.message?.includes('медицински прагове')) throw validationErr;
     console.warn('Plan post-validation skipped:', validationErr.message);
   }
 
@@ -7941,6 +7950,11 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocol
         }
       }
     }
+
+    const comboIssues = validateMealCombinations({ ...meal, dessert: undefined });
+    if (comboIssues.length) {
+      errors.push(...comboIssues.map(i => `Ден ${dayNum} ${meal.type}: ${i}`));
+    }
   }
   return errors;
 }
@@ -8218,6 +8232,24 @@ function applyFoodSubstitutions(meal, fixes) {
 }
 
 const DAYS_PER_CHUNK = 1; // One day per AI call (7 chunks) — max focus per mealBreakdown
+
+const PLAN_VALIDATION_BLOCKING = [
+  /под безопасния минимум/i,
+  /под минималната нужда.*мазнини/i,
+  /твърде малко \(минимум/i,
+  /^План липсва или е в невалиден формат$/,
+  /^Липсва седмичен план$/,
+];
+
+function splitPlanValidationErrors(allErrors) {
+  const blockingErrors = [];
+  const errors = [];
+  for (const err of allErrors) {
+    if (PLAN_VALIDATION_BLOCKING.some(p => p.test(err))) blockingErrors.push(err);
+    else errors.push(err);
+  }
+  return { blockingErrors, errors };
+}
 
 /**
  * REQUIREMENT 4: Validate plan against all parameters and check for contradictions
@@ -8730,9 +8762,12 @@ function validatePlan(plan, userData, substitutions = []) {
     earliestErrorStep = 'step4_final';
   }
   
+  const { blockingErrors, errors: softErrors } = splitPlanValidationErrors(errors);
+
   return {
-    isValid: errors.length === 0,
-    errors,
+    isValid: blockingErrors.length === 0,
+    blockingErrors,
+    errors: softErrors,
     warnings,
     stepErrors,
     earliestErrorStep
@@ -9704,9 +9739,13 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       }
 
       if (attempt >= MEAL_PLAN_CHUNK_MAX_RETRIES) {
-        if (bestSnapshot && !bestErrors?.length) {
+        if (bestSnapshot) {
           for (const [dayKey, dayData] of Object.entries(bestSnapshot)) {
             weekPlan[dayKey] = dayData;
+          }
+          if (bestErrors?.length) {
+            generationWarnings.push(`Дни ${startDay}-${endDay}: ${bestErrors.join('; ')}`);
+            console.warn(`Chunk ${chunkIndex + 1} приет с ${bestErrors.length} остатъчни проблема`);
           }
           break;
         }
@@ -11754,7 +11793,6 @@ function getPromptKVKey(type) {
     'meal_plan': 'admin_meal_plan_prompt',
     'meal_enrichment': 'admin_meal_enrichment_prompt',
     'summary': 'admin_summary_prompt',
-    'plan': 'admin_plan_prompt',
     'emoeat': 'admin_emoeat_prompt',
     'food_analysis': 'admin_food_analysis_prompt',
     'menu_analysis': 'admin_menu_analysis_prompt',
@@ -11763,7 +11801,7 @@ function getPromptKVKey(type) {
     'weekly_adaptation': 'admin_weekly_adaptation_prompt'
   };
   
-  return keyMap[type] || 'admin_plan_prompt';
+  return keyMap[type] || null;
 }
 
 /**
@@ -11783,6 +11821,9 @@ async function handleSavePrompt(request, env) {
     }
 
     const key = getPromptKVKey(type);
+    if (!key) {
+      return jsonResponse({ error: `Unknown prompt type: ${type}` }, 400);
+    }
     
     // Save the prompt, even if empty (empty = use default)
     await env.page_content.put(key, prompt || '');
@@ -12422,10 +12463,9 @@ async function handleGetConfig(request, env) {
 
     // Use Promise.all to fetch all config values in parallel (reduces sequential KV reads)
     const [
-      provider, 
-      modelName, 
-      planPrompt, 
-      chatPrompt, 
+      provider,
+      modelName,
+      chatPrompt,
       consultationPrompt, 
       modificationPrompt,
       analysisPrompt,
@@ -12459,7 +12499,6 @@ async function handleGetConfig(request, env) {
     ] = await Promise.all([
       env.page_content.get('admin_ai_provider'),
       env.page_content.get('admin_ai_model_name'),
-      env.page_content.get('admin_plan_prompt'),
       env.page_content.get('admin_chat_prompt'),
       env.page_content.get('admin_consultation_prompt'),
       env.page_content.get('admin_modification_prompt'),
@@ -12501,7 +12540,7 @@ async function handleGetConfig(request, env) {
       success: true, 
       provider: provider || 'openai',
       modelName: modelName || 'gpt-4o-mini',
-      planPrompt,
+      planPrompt: null,
       chatPrompt,
       consultationPrompt,
       modificationPrompt,

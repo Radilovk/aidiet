@@ -9717,6 +9717,66 @@ function runDeterministicValidation(data, config) {
   };
 }
 
+// meal-combinations.js
+var ENERGY = [
+  "\u043E\u0440\u0438\u0437",
+  "\u043A\u0430\u0440\u0442\u043E\u0444",
+  "\u043F\u0430\u0441\u0442\u0430",
+  "\u043E\u0432\u0435\u0441",
+  "\u0431\u0443\u043B\u0433\u0443\u0440",
+  "\u0445\u043B\u044F\u0431",
+  "\u043A\u0438\u043D\u043E\u0430",
+  "rice",
+  "potato",
+  "pasta",
+  "bread",
+  "oats",
+  "bulgur",
+  "quinoa"
+];
+var LEGUMES = ["\u0431\u043E\u0431", "\u043B\u0435\u0449\u0430", "\u043D\u0430\u0445\u0443\u0442", "\u0433\u0440\u0430\u0445", "beans", "lentils", "chickpeas", "peas"];
+var HARD_BANS = ["\u043C\u0435\u0434", "\u0437\u0430\u0445\u0430\u0440", "\u0441\u0438\u0440\u043E\u043F", "\u043A\u043E\u043D\u0444\u0438\u0442\u044E\u0440", "\u043A\u0435\u0442\u0447\u0443\u043F", "\u043C\u0430\u0439\u043E\u043D\u0435\u0437\u0430"];
+var WEIRD_PAIRS = [
+  [/риба|fish|тон|сьомга|скумри/, /банан|портокал|ягод/],
+  [/скир|кисело мляко|кефир/, /риба|fish|тон/],
+  [/пилешк|говежд|свинск/, /йогурт.*риба|риба.*йогурт/]
+];
+function countHits(text, terms) {
+  return terms.filter((t) => text.includes(t));
+}
+function validateMealCombinations(meal) {
+  const issues = [];
+  if (meal.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" || meal.type === "\u041D\u0430\u043F\u0438\u0442\u043A\u0430") return issues;
+  const text = `${meal.name || ""} ${meal.description || ""}`.toLowerCase();
+  const energyHits = countHits(text, ENERGY);
+  if (energyHits.length > 1) {
+    issues.push(`"${meal.name}": \u043C\u043D\u043E\u0436\u0435\u0441\u0442\u0432\u043E \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u043D\u0438 \u0438\u0437\u0442\u043E\u0447\u043D\u0438\u0446\u0438 (${energyHits.join(", ")})`);
+  }
+  const hasLegumes = LEGUMES.some((l) => text.includes(l));
+  if (hasLegumes && energyHits.length > 1) {
+    issues.push(`"${meal.name}": \u0431\u043E\u0431\u043E\u0432\u0438 + \u043C\u043D\u043E\u0436\u0435\u0441\u0442\u0432\u043E \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u043D\u0438 \u0438\u0437\u0442\u043E\u0447\u043D\u0438\u0446\u0438 (${energyHits.join(", ")})`);
+  }
+  if (/грах|peas/.test(text) && /риба|fish|тон|сьомга|скумри|треска/.test(text)) {
+    issues.push(`"${meal.name}": \u0437\u0430\u0431\u0440\u0430\u043D\u0435\u043D\u0430 \u043A\u043E\u043C\u0431\u0438\u043D\u0430\u0446\u0438\u044F \u0433\u0440\u0430\u0445 + \u0440\u0438\u0431\u0430`);
+  }
+  const hasSalad = /\b(салата|салатка)\b/.test(text);
+  const hasFresh = /\b(пресн|нарязан)\b/.test(text) && /\b(домат|краставиц|чушк)\b/.test(text);
+  if (hasSalad && hasFresh) {
+    issues.push(`"${meal.name}": \u0441\u0430\u043B\u0430\u0442\u0430 \u0418 \u043F\u0440\u0435\u0441\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0435\u0434\u043D\u043E\u0432\u0440\u0435\u043C\u0435\u043D\u043D\u043E`);
+  }
+  for (const ban of HARD_BANS) {
+    if (new RegExp(`\\b${ban}\\b`).test(text) && !/медицин|междин/.test(text)) {
+      issues.push(`"${meal.name}": \u0441\u044A\u0434\u044A\u0440\u0436\u0430 \u0437\u0430\u0431\u0440\u0430\u043D\u0435\u043D ${ban}`);
+    }
+  }
+  for (const [a, b] of WEIRD_PAIRS) {
+    if (a.test(text) && b.test(text)) {
+      issues.push(`"${meal.name}": \u043D\u0435\u043B\u043E\u0433\u0438\u0447\u043D\u0430/\u043D\u0435\u0441\u044A\u0432\u043C\u0435\u0441\u0442\u0438\u043C\u0430 \u043A\u043E\u043C\u0431\u0438\u043D\u0430\u0446\u0438\u044F \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438`);
+    }
+  }
+  return issues;
+}
+
 // worker.entry.js
 var MIN_AGE = 13;
 var MAX_AGE = 100;
@@ -12467,13 +12527,21 @@ async function generatePlanCore(env, data, onAnalysisReady = null) {
   try {
     const foodLists = await getDynamicFoodListsSections(env);
     const validation = validatePlan(structuredPlan, data, foodLists.dynamicSubstitutions || []);
+    if (!structuredPlan.generationWarnings) structuredPlan.generationWarnings = [];
     if (validation.warnings?.length) {
-      console.log(`Plan post-validation: ${validation.warnings.length} warning(s)`);
+      structuredPlan.generationWarnings.push(...validation.warnings);
     }
-    if (!validation.isValid) {
-      console.warn("Plan post-validation issues (non-blocking):", validation.errors.slice(0, 8).join("; "));
+    if (validation.errors?.length) {
+      structuredPlan.generationWarnings.push(...validation.errors);
+    }
+    if (validation.blockingErrors?.length) {
+      throw new Error(`\u041F\u043B\u0430\u043D\u044A\u0442 \u043D\u0435 \u043C\u0438\u043D\u0430\u0432\u0430 \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0438 \u043F\u0440\u0430\u0433\u043E\u0432\u0435: ${validation.blockingErrors.join("; ")}`);
+    }
+    if (structuredPlan.generationWarnings.length) {
+      console.log(`Plan post-validation: ${structuredPlan.generationWarnings.length} warning(s)`);
     }
   } catch (validationErr) {
+    if (validationErr.message?.includes("\u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0438 \u043F\u0440\u0430\u0433\u043E\u0432\u0435")) throw validationErr;
     console.warn("Plan post-validation skipped:", validationErr.message);
   }
   const correctionAttempts = 0;
@@ -15719,6 +15787,10 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocol
         }
       }
     }
+    const comboIssues = validateMealCombinations({ ...meal, dessert: void 0 });
+    if (comboIssues.length) {
+      errors.push(...comboIssues.map((i) => `\u0414\u0435\u043D ${dayNum} ${meal.type}: ${i}`));
+    }
   }
   return errors;
 }
@@ -15944,6 +16016,22 @@ function applyFoodSubstitutions(meal, fixes) {
   return applied;
 }
 var DAYS_PER_CHUNK = 1;
+var PLAN_VALIDATION_BLOCKING = [
+  /под безопасния минимум/i,
+  /под минималната нужда.*мазнини/i,
+  /твърде малко \(минимум/i,
+  /^План липсва или е в невалиден формат$/,
+  /^Липсва седмичен план$/
+];
+function splitPlanValidationErrors(allErrors) {
+  const blockingErrors = [];
+  const errors = [];
+  for (const err of allErrors) {
+    if (PLAN_VALIDATION_BLOCKING.some((p) => p.test(err))) blockingErrors.push(err);
+    else errors.push(err);
+  }
+  return { blockingErrors, errors };
+}
 function validatePlan(plan, userData, substitutions = []) {
   const errors = [];
   const warnings = [];
@@ -16357,9 +16445,11 @@ function validatePlan(plan, userData, substitutions = []) {
   } else if (stepErrors.step4_final.length > 0) {
     earliestErrorStep = "step4_final";
   }
+  const { blockingErrors, errors: softErrors } = splitPlanValidationErrors(errors);
   return {
-    isValid: errors.length === 0,
-    errors,
+    isValid: blockingErrors.length === 0,
+    blockingErrors,
+    errors: softErrors,
     warnings,
     stepErrors,
     earliestErrorStep
@@ -17108,9 +17198,13 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         }
       }
       if (attempt >= MEAL_PLAN_CHUNK_MAX_RETRIES) {
-        if (bestSnapshot && !bestErrors?.length) {
+        if (bestSnapshot) {
           for (const [dayKey, dayData] of Object.entries(bestSnapshot)) {
             weekPlan[dayKey] = dayData;
+          }
+          if (bestErrors?.length) {
+            generationWarnings.push(`\u0414\u043D\u0438 ${startDay}-${endDay}: ${bestErrors.join("; ")}`);
+            console.warn(`Chunk ${chunkIndex + 1} \u043F\u0440\u0438\u0435\u0442 \u0441 ${bestErrors.length} \u043E\u0441\u0442\u0430\u0442\u044A\u0447\u043D\u0438 \u043F\u0440\u043E\u0431\u043B\u0435\u043C\u0430`);
           }
           break;
         }
@@ -18716,7 +18810,6 @@ function getPromptKVKey(type) {
     "meal_plan": "admin_meal_plan_prompt",
     "meal_enrichment": "admin_meal_enrichment_prompt",
     "summary": "admin_summary_prompt",
-    "plan": "admin_plan_prompt",
     "emoeat": "admin_emoeat_prompt",
     "food_analysis": "admin_food_analysis_prompt",
     "menu_analysis": "admin_menu_analysis_prompt",
@@ -18724,7 +18817,7 @@ function getPromptKVKey(type) {
     "weekly_questions": "admin_weekly_questions_prompt",
     "weekly_adaptation": "admin_weekly_adaptation_prompt"
   };
-  return keyMap[type] || "admin_plan_prompt";
+  return keyMap[type] || null;
 }
 async function handleSavePrompt(request, env) {
   try {
@@ -18736,6 +18829,9 @@ async function handleSavePrompt(request, env) {
       return jsonResponse2({ error: "KV storage not configured" }, 500);
     }
     const key = getPromptKVKey(type);
+    if (!key) {
+      return jsonResponse2({ error: `Unknown prompt type: ${type}` }, 400);
+    }
     await env.page_content.put(key, prompt || "");
     if (type === "consultation" || type === "modification") {
       chatPromptsCache = null;
@@ -19227,7 +19323,6 @@ async function handleGetConfig(request, env) {
     const [
       provider,
       modelName,
-      planPrompt,
       chatPrompt,
       consultationPrompt,
       modificationPrompt,
@@ -19262,7 +19357,6 @@ async function handleGetConfig(request, env) {
     ] = await Promise.all([
       env.page_content.get("admin_ai_provider"),
       env.page_content.get("admin_ai_model_name"),
-      env.page_content.get("admin_plan_prompt"),
       env.page_content.get("admin_chat_prompt"),
       env.page_content.get("admin_consultation_prompt"),
       env.page_content.get("admin_modification_prompt"),
@@ -19307,7 +19401,7 @@ async function handleGetConfig(request, env) {
       success: true,
       provider: provider || "openai",
       modelName: modelName || "gpt-4o-mini",
-      planPrompt,
+      planPrompt: null,
       chatPrompt,
       consultationPrompt,
       modificationPrompt,
