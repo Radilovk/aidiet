@@ -918,50 +918,6 @@ export function normalizeAnalysisOutput(analysis, userData = null) {
   return analysis;
 }
 
-const SCHEME_DAY_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-
-/**
- * After nutrition sync: align scheme slot targets with achieved kcal when within
- * adequacy tolerance (portion caps make exact targets unreachable).
- */
-export function reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay) {
-  if (!weekPlan || !strategy?.weeklyScheme) return;
-
-  for (let d = startDay; d <= endDay; d++) {
-    const dayPlan = weekPlan[`day${d}`];
-    const dayScheme = strategy.weeklyScheme[SCHEME_DAY_KEYS[d - 1]];
-    if (!dayPlan?.meals?.length || !dayScheme?.mealBreakdown?.length) continue;
-
-    for (const meal of dayPlan.meals) {
-      if (meal.type === 'Свободно хранене' || meal.type === 'Напитка') continue;
-      const slot = dayScheme.mealBreakdown.find(m => m.type === meal.type);
-      if (!slot) continue;
-
-      const target = Number(slot.calories) || 0;
-      const achieved = Number(meal.calories) || 0;
-      if (target <= 0 || achieved <= 0) continue;
-
-      const ceiling = maxSlotKcal(meal.type, dayScheme.mealBreakdown, dayScheme.calories);
-      const isFixed = meal.type === 'Хранене 3' || meal.type === 'Хранене 5';
-      let aligned = target;
-      if (!isFixed && isMealCaloriesAdequate(achieved, target)) {
-        aligned = achieved;
-      } else if (!isFixed && achieved > target) {
-        aligned = Math.min(achieved, ceiling);
-      } else if (isFixed && achieved > 0) {
-        aligned = Math.min(achieved, ceiling);
-      }
-      // achieved < target and not adequate → keep target (never lower the contract)
-      // Adequate achieved: keep meal kcal — do not clamp to soft ceiling (breaks high-intake days).
-      slot.calories = isMealCaloriesAdequate(achieved, target)
-        ? achieved
-        : Math.min(aligned, ceiling);
-    }
-
-    dayScheme.calories = dayScheme.mealBreakdown.reduce((s, m) => s + (Number(m.calories) || 0), 0);
-  }
-}
-
 /** Strategy validator helper — budget slots exempt from plated kcal cap. */
 export function validateSlotCalories(entry, dayScheme) {
   if (!entry || isBudgetMealSlot(entry.type)) return null;

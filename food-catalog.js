@@ -19,6 +19,30 @@ const SLOT_LABELS = {
   FAT: 'мазнини/ядки [FAT]',
 };
 
+const MIN_CANDIDATES_PER_ROLE = 4;
+const MACRO_FILTER_FAT_MARGIN = 0.25;
+const MACRO_FILTER_CARB_MARGIN = 0.25;
+
+/** High-fat H5 staples — must survive macro filter when Хранене 5 is in the chunk. */
+const LATE_SNACK_NUTRITION_KEYS = new Set([
+  'кисело мляко', 'скир', 'кефир', 'извара', 'кашкавал',
+  'ядки', 'бадеми', 'орехи', 'кашу', 'лешници', 'шамфъстък', 'пекани', 'макадамия',
+]);
+
+export function fatShareOfKcal(nutritionKey) {
+  const a = FOOD_NUTRITION_PER_100G[nutritionKey];
+  if (!a) return 0;
+  const kcal = a[1] * 4 + a[2] * 4 + a[3] * 9;
+  return kcal > 0 ? (a[3] * 9) / kcal : 0;
+}
+
+export function carbShareOfKcal(nutritionKey) {
+  const a = FOOD_NUTRITION_PER_100G[nutritionKey];
+  if (!a) return 0;
+  const kcal = a[1] * 4 + a[2] * 4 + a[3] * 9;
+  return kcal > 0 ? (a[2] * 4) / kcal : 0;
+}
+
 function nutritionArrayToProfile(arr) {
   if (!arr || arr.length < 4) return null;
   return { kcal: arr[0], p: arr[1], c: arr[2], f: arr[3] };
@@ -165,6 +189,46 @@ function inferSlotsFromTarget(target = {}) {
   return [...slots];
 }
 
+function mealTargetFatShare(meal) {
+  const kcal = Number(meal.calories) || 0;
+  const f = Number(meal.fats) || 0;
+  if (kcal <= 0) return 1;
+  return (f * 9) / kcal;
+}
+
+function mealTargetCarbShare(meal) {
+  const kcal = Number(meal.calories) || 0;
+  const c = Number(meal.carbs) || 0;
+  if (kcal <= 0) return 1;
+  return (c * 4) / kcal;
+}
+
+function applyMacroRoleFilter(list, { maxFatShare, maxCarbShare, isKeto }) {
+  if (!list.length) return list;
+  const filtered = list.filter(entry => {
+    if (entry.group === 'condiment') return true;
+    const key = entry.nutritionKey || entry.name;
+    if (fatShareOfKcal(key) > maxFatShare) return false;
+    if (isKeto && carbShareOfKcal(key) > maxCarbShare) return false;
+    return true;
+  });
+  return filtered.length >= MIN_CANDIDATES_PER_ROLE ? filtered : list;
+}
+
+function injectLateSnackCandidates(list, index, blockedTerms = []) {
+  const present = new Set(list.map(e => e.nutritionKey || e.name));
+  const extras = [];
+  for (const entry of index.all) {
+    const key = entry.nutritionKey || entry.name;
+    if (!LATE_SNACK_NUTRITION_KEYS.has(key) || present.has(key)) continue;
+    if (isBlockedByTerms(entry, blockedTerms)) continue;
+    extras.push(entry);
+    present.add(key);
+  }
+  if (!extras.length) return list;
+  return [...list, ...extras].slice(0, CATALOG_PROMPT_LIMIT_PER_SLOT);
+}
+
 /**
  * Collect catalog candidates for a chunk of days.
  * @returns {Map<string, object[]>} slot → entries
@@ -184,6 +248,10 @@ export function getCatalogCandidatesForChunk({
   const loveSet = new Set((preferLove || []).map(s => normalizeFoodKey(s)));
   const timings = new Set();
   const neededSlots = new Set(['VOL']);
+  let hasLateSnack = false;
+  let minFatShare = 1;
+  let minCarbShare = 1;
+  const isKeto = /кето|keto/i.test(String(dietaryModifier || ''));
 
   const dayKeys = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
   for (let d = startDay; d <= endDay; d++) {
@@ -194,9 +262,13 @@ export function getCatalogCandidatesForChunk({
       timings.add(mealTypeToTiming(meal.type));
       for (const s of inferSlotsFromTarget(meal)) neededSlots.add(s);
       if (meal.type === 'Хранене 5') {
+        hasLateSnack = true;
         neededSlots.add('PRO');
         neededSlots.add('FAT');
         neededSlots.delete('ENG');
+      } else {
+        minFatShare = Math.min(minFatShare, mealTargetFatShare(meal));
+        minCarbShare = Math.min(minCarbShare, mealTargetCarbShare(meal));
       }
     }
   }
@@ -247,6 +319,20 @@ export function getCatalogCandidatesForChunk({
     bySlot.set(slot, deduped);
   }
 
+  const maxFatShare = minFatShare + MACRO_FILTER_FAT_MARGIN;
+  const maxCarbShare = minCarbShare + MACRO_FILTER_CARB_MARGIN;
+  for (const slot of ['PRO', 'ENG', 'VOL', 'FAT']) {
+    if (!bySlot.has(slot)) continue;
+    let list = bySlot.get(slot) || [];
+    if (slot !== 'VOL') {
+      list = applyMacroRoleFilter(list, { maxFatShare, maxCarbShare, isKeto });
+    }
+    if (hasLateSnack && (slot === 'PRO' || slot === 'FAT')) {
+      list = injectLateSnackCandidates(list, index, blockedTerms);
+    }
+    bySlot.set(slot, list);
+  }
+
   const ready = index.all
     .filter(e => e.group === 'ready_meal')
     .filter(e => e.universality >= minUniversality)
@@ -265,7 +351,7 @@ export function formatCatalogSectionForPrompt(candidatesBySlot, { minUniversalit
   const lines = [
     `=== КАТАЛОГ ХРАНИ (ЗАДЪЛЖИТЕЛНО — използвай САМО тези имена) ===`,
     `Универсалност ≥${minUniversality}: предпочитай по-общи варианти (Риба, Ориз, Плод) пред конкретни (Лаврак, Киноа, Манго).`,
-    `Стойности в скоби = на 100g. Ориентирай грамажите към целите от mealBreakdown. Закръгляй: ≤50g на 10g, >50g на 50g.`,
+    `Стойности в скоби = на 100g. Бекендът изчислява грамажите — не пиши числа в description.`,
     `Готова храна = един ред в description ИЛИ разбий на продукти от каталога.`,
   ];
 

@@ -11,7 +11,6 @@ import {
   validateSlotCalories,
   enforceFixedSlotCaps,
   normalizeAnalysisOutput,
-  reconcileAchievedSlotCalories,
   MAX_LATE_SNACK_CALORIES,
   MAX_AFTERNOON_SNACK_CALORIES,
 } from '../plan-normalize.js';
@@ -162,16 +161,8 @@ console.log('\n-- 10. Profile rules (benchmark contract) --');
   check('ready_meal in description fails', validateProfileRules(READY_MEAL_PLAN, {}).some(i => i.includes('ready_meal')));
 }
 
-console.log('\n-- 11. Reconcile slot calories (achieved within tolerance) --');
+console.log('\n-- 11. Frozen calorie contract (scheme not mutated by meals) --');
 {
-  const weekPlan = {
-    day1: {
-      meals: [
-        { type: 'Хранене 2', calories: 836, macros: { protein: 55, carbs: 80, fats: 25 } },
-        { type: 'Хранене 4', calories: 562, macros: { protein: 45, carbs: 50, fats: 18 } },
-      ],
-    },
-  };
   const strategy = {
     weeklyScheme: {
       monday: {
@@ -183,51 +174,15 @@ console.log('\n-- 11. Reconcile slot calories (achieved within tolerance) --');
       },
     },
   };
-  reconcileAchievedSlotCalories(weekPlan, strategy, 1, 1);
-  const h2 = strategy.weeklyScheme.monday.mealBreakdown.find(m => m.type === 'Хранене 2');
-  const h4 = strategy.weeklyScheme.monday.mealBreakdown.find(m => m.type === 'Хранене 4');
-  check('reconcile H2 aligned to achieved', h2.calories === 836, `${h2.calories}`);
-  check('reconcile H4 aligned to achieved', h4.calories === 562, `${h4.calories}`);
+  const h2Before = strategy.weeklyScheme.monday.mealBreakdown.find(m => m.type === 'Хранене 2').calories;
+  const h4Before = strategy.weeklyScheme.monday.mealBreakdown.find(m => m.type === 'Хранене 4').calories;
+  // No reconcile step — contract must stay frozen regardless of achieved meal kcal.
+  check('scheme H2 stays at contract', h2Before === 900);
+  check('scheme H4 stays at contract', h4Before === 611);
 }
 
-console.log('\n-- 11b. Reconcile slot calories (under-target stays at contract) --');
+console.log('\n-- 11b. High-intake contract (Kamen-style slots stay frozen) --');
 {
-  const weekPlan = {
-    day1: {
-      meals: [
-        { type: 'Хранене 2', calories: 600, macros: { protein: 40, carbs: 60, fats: 18 } },
-        { type: 'Хранене 4', calories: 450, macros: { protein: 35, carbs: 40, fats: 15 } },
-      ],
-    },
-  };
-  const strategy = {
-    weeklyScheme: {
-      monday: {
-        calories: 1700,
-        mealBreakdown: [
-          { type: 'Хранене 2', calories: 900 },
-          { type: 'Хранене 4', calories: 800 },
-        ],
-      },
-    },
-  };
-  reconcileAchievedSlotCalories(weekPlan, strategy, 1, 1);
-  const h2b = strategy.weeklyScheme.monday.mealBreakdown.find(m => m.type === 'Хранене 2');
-  const h4b = strategy.weeklyScheme.monday.mealBreakdown.find(m => m.type === 'Хранене 4');
-  check('reconcile under-target H2 keeps contract', h2b.calories === 900, `${h2b.calories}`);
-  check('reconcile under-target H4 keeps contract', h4b.calories === 800, `${h4b.calories}`);
-}
-
-console.log('\n-- 11c. Reconcile adequate achieved above soft cap (high intake) --');
-{
-  const weekPlan = {
-    day1: {
-      meals: [
-        { type: 'Хранене 2', calories: 1128, macros: { protein: 75, carbs: 90, fats: 35 } },
-        { type: 'Хранене 4', calories: 1119, macros: { protein: 72, carbs: 88, fats: 34 } },
-      ],
-    },
-  };
   const strategy = {
     weeklyScheme: {
       monday: {
@@ -241,11 +196,10 @@ console.log('\n-- 11c. Reconcile adequate achieved above soft cap (high intake) 
       },
     },
   };
-  reconcileAchievedSlotCalories(weekPlan, strategy, 1, 1);
-  const h2c = strategy.weeklyScheme.monday.mealBreakdown.find(m => m.type === 'Хранене 2');
-  const h4c = strategy.weeklyScheme.monday.mealBreakdown.find(m => m.type === 'Хранене 4');
-  check('reconcile adequate H2 not clamped to 900', h2c.calories === 1128, `${h2c.calories}`);
-  check('reconcile adequate H4 not clamped to 900', h4c.calories === 1119, `${h4c.calories}`);
+  const h2 = strategy.weeklyScheme.monday.mealBreakdown.find(m => m.type === 'Хранене 2');
+  const h4 = strategy.weeklyScheme.monday.mealBreakdown.find(m => m.type === 'Хранене 4');
+  check('high intake H2 contract frozen', h2.calories === 1113);
+  check('high intake H4 contract frozen', h4.calories === 1113);
 }
 
 console.log('\n-- 12. Hard profiles golden analysis (offline) --');
