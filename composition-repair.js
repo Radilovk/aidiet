@@ -7,16 +7,12 @@ import { parseMealDescription } from './food-nutrition.js';
 
 const COMPOSITION_ERROR_PATTERNS = [
   /калории \d+ ≠ цел/i,
-  /композицията не носи/i,
   /смени продуктите/i,
   /неосъществим слот/i,
   /липсват продукти/i,
   /атомарната порция/i,
   /weight \d+g > /i,
   /weight \d+g < /i,
-  /протеин \d+g ≠/i,
-  /въглехидрати \d+g ≠/i,
-  /мазнини \d+g ≠/i,
 ];
 
 const STRUCTURAL_ERROR_PATTERNS = [

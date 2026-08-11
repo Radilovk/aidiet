@@ -184,6 +184,11 @@ check('meal solver pipeline', () => {
   if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
 });
 
+check('chunk validation kcal-first split', () => {
+  const r = run('node', ['scripts/test-chunk-validation.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
+});
+
 check('catalog universality stress', () => {
   const r = run('node', ['test-universality-stress.mjs']);
   if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
