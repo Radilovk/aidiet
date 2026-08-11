@@ -154,8 +154,8 @@ check('calorie target vs achieved sync', () => {
   if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
 });
 
-check('meal scaling pipeline', () => {
-  const r = run('node', ['test-meal-scaling.mjs']);
+check('meal solver pipeline', () => {
+  const r = run('node', ['scripts/test-solver.mjs']);
   if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
 });
 

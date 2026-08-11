@@ -1,16 +1,10 @@
 /**
  * Food nutrition engine — parse meal descriptions, lookup per-100g values, calculate macros.
  *
- * Division of labor (deliberately simple):
- *   - The AI composes each meal: products + grams. Culinary sense is its job.
- *   - The backend owns the arithmetic: macros/kcal are always computed FROM the grams
- *     via this database, then all grams are scaled by ONE shared factor to the meal's
- *     calorie target (composition and ratios stay exactly as the AI wrote them).
- *   - One bounded exception: protein drivers may be pre-adjusted ±20% toward the
- *     protein target before scaling (protein is the macro clients actually track).
- * There is NO per-item macro solver and NO product add/remove "repair" here — those
- * produced distorted portions and absurd combinations; structural product problems
- * are the AI-retry path's job, with precise validation errors.
+ * Division of labor:
+ *   - The AI composes each meal: catalog products only (no grams/kcal/macros).
+ *   - The backend solves grams deterministically (meal-solver.js) toward slot targets.
+ *   - Structural infeasibility (wrong products for the macro profile) → AI retry/repair.
  */
 
 import {
@@ -22,6 +16,7 @@ import { normalizeFoodKey } from './food-utils.js';
 import { resolveCatalogEntry } from './food-catalog.js';
 import { FOOD_CATALOG } from './food-catalog-data.js';
 import { MAX_LATE_SNACK_CALORIES, SLOT_CALORIE_TOLERANCE_PERCENT, SLOT_CALORIE_TOLERANCE_MIN_KCAL } from './plan-normalize.js';
+import { solveMealGrams } from './meal-solver.js';
 
 export { normalizeFoodKey } from './food-utils.js';
 
@@ -48,8 +43,6 @@ const DAIRY_MAX_GRAMS = 300;
 
 /** Max realistic single-meal plate weight — aligns with max plated slot (~900 kcal). */
 export const MAX_MEAL_WEIGHT_GRAMS = 900;
-const BULK_ITEM_MAX_GRAMS = 150;
-const BULK_KCAL_PER_100G_MAX = 50;
 
 /** Catalog ready_meal → raw product lines (weight shares, sum ≈ 1). */
 const READY_MEAL_PARTS = {
@@ -185,11 +178,17 @@ export function parseMealDescription(description) {
     const chunks = line.split(';').map(s => s.replace(/^[•\-\*]\s*/, '').trim()).filter(Boolean);
     for (const chunk of chunks) {
       const m = chunk.match(GRAM_LINE_RE);
-      if (!m) continue;
-      const name = m[1].trim();
-      const grams = Math.max(1, Math.round(parseFloat(String(m[2]).replace(',', '.'))));
+      if (m) {
+        const name = m[1].trim();
+        const grams = Math.max(1, Math.round(parseFloat(String(m[2]).replace(',', '.'))));
+        const { profile, key, unknown } = lookupFoodProfile(name);
+        items.push({ name, grams, key, profile, unknown: !!unknown });
+        continue;
+      }
+      const name = chunk.trim();
+      if (!name) continue;
       const { profile, key, unknown } = lookupFoodProfile(name);
-      items.push({ name, grams, key, profile, unknown: !!unknown });
+      items.push({ name, grams: 0, key, profile, unknown: !!unknown });
     }
   }
   return expandReadyMealItems(items);
@@ -208,26 +207,6 @@ export function roundGrams(grams, step) {
   return Math.max(GRAM_ROUND_STEP, Math.round(g / effectiveStep) * effectiveStep);
 }
 
-/** Nearest valid gram step within [minG, maxG] (for bounded protein nudges). */
-function roundGramsWithinRange(idealGrams, minGrams, maxGrams) {
-  const minG = Math.min(minGrams, maxGrams);
-  const maxG = Math.max(minGrams, maxGrams);
-  const step = gramRoundStep(idealGrams);
-  let best = roundGrams(idealGrams);
-  if (best >= minG && best <= maxG) return best;
-
-  let bestDist = Infinity;
-  for (let g = roundGrams(minG); g <= maxG + step; g += step) {
-    if (g < minG || g > maxG) continue;
-    const dist = Math.abs(g - idealGrams);
-    if (dist < bestDist) {
-      bestDist = dist;
-      best = g;
-    }
-  }
-  return best;
-}
-
 function getCatalogMeta(name) {
   const { entry } = resolveCatalogEntry(name);
   if (!entry) return { slots: [], group: null };
@@ -242,11 +221,22 @@ function isDairyItem(item) {
   return getCatalogMeta(item.name).group === 'dairy';
 }
 
-function isPortionCappedProtein(item) {
-  if (isBulkItem(item)) return false;
-  const { group, slots } = getCatalogMeta(item.name);
-  if (group === 'dairy') return false;
-  return group === 'protein' || slots?.includes('PRO');
+function boundsForItem(item) {
+  const { group } = getCatalogMeta(item.name);
+  switch (group) {
+    case 'condiment': return { min: 5, max: CONDIMENT_MAX_GRAMS };
+    case 'vegetable':
+    case 'fruit': return { min: 30, max: 150 };
+    case 'dairy':
+    case 'protein': return { min: 30, max: DAIRY_MAX_GRAMS };
+    default: return { min: 20, max: 400 };
+  }
+}
+
+function seedGramsForItem(item, bounds) {
+  if (item.grams > 0) return item.grams;
+  const mid = Math.round((bounds.min + bounds.max) / 2);
+  return roundGrams(mid);
 }
 
 function capCondimentGrams(item, grams) {
@@ -255,7 +245,9 @@ function capCondimentGrams(item, grams) {
 
 function capItemGrams(item, grams) {
   let g = capCondimentGrams(item, grams);
-  if (isDairyItem(item) || isPortionCappedProtein(item)) g = Math.min(g, DAIRY_MAX_GRAMS);
+  if (isDairyItem(item)) g = Math.min(g, DAIRY_MAX_GRAMS);
+  const { group } = getCatalogMeta(item.name);
+  if (group === 'protein') g = Math.min(g, DAIRY_MAX_GRAMS);
   return g;
 }
 
@@ -296,206 +288,6 @@ export function macrosToNutritionProfile(macros) {
   return { p, c, f, kcal: Math.round(p * 4 + c * 4 + f * 9) };
 }
 
-// The single bounded macro lever: protein drivers may move ±20% toward the protein
-// target before calorie scaling. One factor across all drivers, so a chicken+rice
-// dish stays the same dish with a slightly bigger/smaller chicken portion.
-export const PROTEIN_ADJUST_MAX_PERCENT = 0.2;
-
-function isProteinDriverItem(item) {
-  if (getCatalogMeta(item.name).slots.includes('PRO')) return true;
-  return (Number(item.profile?.p) || 0) >= 15; // fallback for non-catalog items
-}
-
-export function adjustProteinItemsTowardTarget(items, targetProtein) {
-  const goal = Number(targetProtein) || 0;
-  if (goal <= 0 || !items.length) return items;
-
-  const totals = sumItemNutrition(items);
-  const deficit = goal - totals.p;
-  if (Math.abs(deficit) <= macroTolerance(goal)) return items;
-
-  const driverProtein = items.reduce(
-    (sum, it) => sum + (isProteinDriverItem(it) && !isCondimentItem(it) ? (it.profile.p / 100) * it.grams : 0),
-    0
-  );
-  if (driverProtein <= 0) return items;
-
-  const factor = Math.min(
-    1 + PROTEIN_ADJUST_MAX_PERCENT,
-    Math.max(1 - PROTEIN_ADJUST_MAX_PERCENT, (driverProtein + deficit) / driverProtein)
-  );
-  return items.map(it => {
-    if (!isProteinDriverItem(it) || isCondimentItem(it)) return it;
-    const minG = it.grams * (1 - PROTEIN_ADJUST_MAX_PERCENT);
-    const maxG = it.grams * (1 + PROTEIN_ADJUST_MAX_PERCENT);
-    const ideal = it.grams * factor;
-    return { ...it, grams: roundGramsWithinRange(ideal, minG, maxG) };
-  });
-}
-
-// Stability guards for calorie scaling: a wildly under/over-portioned AI pick gets
-// capped instead of blown up into an implausible plate (validation then reports the
-// residual gap and the AI retries); rounding nudges keep the composition recognizable.
-export const SCALE_FACTOR_MIN = 0.5;
-export const SCALE_FACTOR_MAX = 3;
-const RESIDUAL_STOP_KCAL = 20;
-const MAX_NUDGE_STEPS_PER_ITEM = 3;
-
-function kcalPer100(item) {
-  const p = item.profile;
-  if (!p) return 0;
-  return p.kcal || (p.p * 4 + p.c * 4 + p.f * 9);
-}
-
-/** Volume fillers — cap portions; calorie-dense items carry the target. */
-function isBulkItem(item) {
-  const { group, slots } = getCatalogMeta(item.name);
-  if (group === 'vegetable' || group === 'fruit') return true;
-  if (slots?.includes('VOL')) return true;
-  const k = kcalPer100(item);
-  return k > 0 && k < BULK_KCAL_PER_100G_MAX;
-}
-
-function sumGrams(items) {
-  return items.reduce((s, it) => s + (Number(it.grams) || 0), 0);
-}
-
-function nudgeItemsTowardKcal(items, goal) {
-  const scaled = items.map(item => ({ ...item }));
-  const nudges = new Map();
-  for (let guard = 0; guard < 12; guard++) {
-    const residual = goal - sumItemNutrition(scaled).kcal;
-    if (Math.abs(residual) <= RESIDUAL_STOP_KCAL) break;
-    const dir = Math.sign(residual);
-
-    let best = null;
-    let bestAbs = Math.abs(residual);
-    for (const item of scaled) {
-      const step = gramRoundStep(item.grams);
-      const nextGrams = item.grams + step * dir;
-      if (nextGrams < GRAM_ROUND_STEP) continue;
-      if (isCondimentItem(item) && nextGrams > CONDIMENT_MAX_GRAMS) continue;
-      if (isBulkItem(item) && nextGrams > BULK_ITEM_MAX_GRAMS) continue;
-      if ((nudges.get(item) || 0) >= MAX_NUDGE_STEPS_PER_ITEM) continue;
-      const stepKcal = (kcalPer100(item) / 100) * step * dir;
-      const abs = Math.abs(residual - stepKcal);
-      if (abs < bestAbs) {
-        bestAbs = abs;
-        best = item;
-      }
-    }
-
-    if (!best) break;
-    best.grams += gramRoundStep(best.grams) * dir;
-    nudges.set(best, (nudges.get(best) || 0) + 1);
-  }
-  return scaled;
-}
-
-function trimToMaxWeight(items) {
-  const working = items.map(i => ({ ...i }));
-  let total = sumGrams(working);
-  if (total <= MAX_MEAL_WEIGHT_GRAMS) return working;
-
-  // Large overshoot: proportional trim (step-trim alone caps at ~24×10g reduction).
-  if (total > MAX_MEAL_WEIGHT_GRAMS) {
-    const ratio = MAX_MEAL_WEIGHT_GRAMS / total;
-    const proportional = working.map(item => ({
-      ...item,
-      grams: capItemGrams(item, Math.max(GRAM_ROUND_STEP, roundGrams(item.grams * ratio))),
-    }));
-    if (sumGrams(proportional) <= MAX_MEAL_WEIGHT_GRAMS) return proportional;
-    working.splice(0, working.length, ...proportional);
-  }
-
-  for (let guard = 0; guard < 24 && sumGrams(working) > MAX_MEAL_WEIGHT_GRAMS; guard++) {
-    const candidates = [...working].filter(i => i.grams > GRAM_ROUND_STEP);
-    candidates.sort((a, b) => {
-      const bulkDiff = (isBulkItem(b) ? 1 : 0) - (isBulkItem(a) ? 1 : 0);
-      return bulkDiff || b.grams - a.grams;
-    });
-    const target = candidates[0];
-    if (!target) break;
-    const trimStep = gramRoundStep(target.grams);
-    target.grams = Math.max(GRAM_ROUND_STEP, target.grams - trimStep);
-  }
-  return working;
-}
-
-function scaleUniform(items, goal) {
-  const base = sumItemNutrition(items);
-  if (base.kcal <= 0) return items;
-  const factor = Math.min(SCALE_FACTOR_MAX, Math.max(SCALE_FACTOR_MIN, goal / base.kcal));
-  const scaled = items.map(item => ({
-    ...item,
-    grams: capItemGrams(item, roundGrams(item.grams * factor)),
-  }));
-  return nudgeItemsTowardKcal(scaled, goal);
-}
-
-/**
- * Cap bulk (veg/fruit) portions, scale calorie-dense items to the remaining kcal budget.
- * Prevents uniform upscaling from turning 700kcal targets into 1kg plates.
- */
-function scaleWithBulkCap(items, goal) {
-  const bulk = items.filter(isBulkItem);
-  const dense = items.filter(it => !isBulkItem(it));
-  if (!dense.length) return scaleUniform(items, goal);
-
-  const bulkCapped = bulk.map(item => ({
-    ...item,
-    grams: capItemGrams(item, Math.min(roundGrams(item.grams), BULK_ITEM_MAX_GRAMS)),
-  }));
-  const bulkKcal = sumItemNutrition(bulkCapped).kcal;
-  let denseScaled = scaleUniform(dense, Math.max(50, goal - bulkKcal));
-  let trimmedBulk = bulkCapped;
-
-  const denseGrams = sumGrams(denseScaled);
-  const allowedBulk = Math.max(0, MAX_MEAL_WEIGHT_GRAMS - denseGrams);
-  const bulkGrams = sumGrams(trimmedBulk);
-  if (bulkGrams > allowedBulk && allowedBulk >= 0 && bulkGrams > 0) {
-    const ratio = allowedBulk / bulkGrams;
-    trimmedBulk = bulkCapped.map(item => ({
-      ...item,
-      grams: capItemGrams(item, Math.max(GRAM_ROUND_STEP, roundGrams(item.grams * ratio))),
-    }));
-    const trimmedBulkKcal = sumItemNutrition(trimmedBulk).kcal;
-    denseScaled = scaleUniform(dense, Math.max(50, goal - trimmedBulkKcal));
-  }
-
-  let result = [...trimmedBulk, ...denseScaled];
-  return nudgeItemsTowardKcal(result, goal);
-}
-
-/**
- * Scale item grams so total kcal approaches target.
- * Bulk items (veg/fruit) stay capped; dense items absorb the calorie budget.
- */
-export function scaleItemsToTargetCalories(items, targetKcal, dessertNutrition = null) {
-  if (!items.length || !targetKcal || targetKcal <= 0) return items;
-
-  let goal = targetKcal;
-  if (dessertNutrition?.kcal > 0) {
-    goal = Math.max(50, targetKcal - dessertNutrition.kcal);
-  }
-
-  const base = sumItemNutrition(items);
-  if (base.kcal <= 0) return items;
-
-  const hasBulk = items.some(isBulkItem);
-  const uniformFactor = Math.min(SCALE_FACTOR_MAX, Math.max(SCALE_FACTOR_MIN, goal / base.kcal));
-  const projectedWeight = sumGrams(items.map(item => ({
-    ...item,
-    grams: roundGrams(item.grams * uniformFactor),
-  })));
-
-  if (!hasBulk || projectedWeight <= MAX_MEAL_WEIGHT_GRAMS) {
-    return scaleUniform(items, goal);
-  }
-
-  return scaleWithBulkCap(items, goal);
-}
-
 export function formatMealDescription(items) {
   return items.map(item => `• ${item.name} ${item.grams}g`).join('\n');
 }
@@ -524,17 +316,19 @@ export function mealWeightGramsFromDescription(meal) {
  */
 export function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}) {
   if (!meal || meal.type === 'Свободно хранене' || meal.type === 'Напитка') {
-    return { ok: true, unknowns: [] };
+    return { ok: true, unknowns: [], feasible: true, reason: '' };
   }
 
   let items = parseMealDescription(meal.description);
   if (!items.length) {
-    return { ok: false, unknowns: ['no-parsed-items'] };
+    return { ok: false, unknowns: ['no-parsed-items'], feasible: false, reason: 'липсват продукти' };
   }
 
   items = items.map(item => {
     const { profile, key, unknown } = lookupFoodProfile(item.name, extraDb);
-    return { ...item, profile, key, unknown: !!unknown, grams: capItemGrams(item, item.grams) };
+    const bounds = boundsForItem({ ...item, name: item.name });
+    const grams = seedGramsForItem({ ...item, profile }, bounds);
+    return { ...item, profile, key, unknown: !!unknown, grams: capItemGrams({ ...item, name: item.name }, grams) };
   });
 
   const dessertNutrition = (meal.dessert && typeof meal.dessert === 'object')
@@ -544,20 +338,19 @@ export function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}
     ? parseFloat(String(meal.dessert.weight).match(/(\d+(?:\.\d+)?)/)?.[1] || '0')
     : 0;
 
-  const targetKcal = Number(target?.calories) || Number(meal.calories) || 0;
-  const proteinGoal = Math.max(0, (Number(target?.protein) || 0) - (dessertNutrition?.p || 0));
-
-  if (proteinGoal > 0) {
-    items = adjustProteinItemsTowardTarget(items, proteinGoal);
-  }
-  if (targetKcal > 0) {
-    items = scaleItemsToTargetCalories(items, targetKcal, dessertNutrition);
-    if (sumGrams(items) > MAX_MEAL_WEIGHT_GRAMS) {
-      items = trimToMaxWeight(items);
-    }
+  const slotTarget = {
+    kcal: Number(target?.calories) || Number(meal.calories) || 0,
+    p: Math.max(0, (Number(target?.protein) || 0) - (dessertNutrition?.p || 0)),
+    c: Math.max(0, (Number(target?.carbs) || 0) - (dessertNutrition?.c || 0)),
+    f: Math.max(0, (Number(target?.fats) || 0) - (dessertNutrition?.f || 0)),
+  };
+  if (dessertNutrition?.kcal > 0) {
+    slotTarget.kcal = Math.max(50, slotTarget.kcal - dessertNutrition.kcal);
   }
 
-  items = items.map(item => ({ ...item, grams: capItemGrams(item, item.grams) }));
+  const bounds = items.map(it => boundsForItem(it));
+  const solved = solveMealGrams(items, slotTarget, bounds, MAX_MEAL_WEIGHT_GRAMS);
+  items = items.map((it, i) => ({ ...it, grams: capItemGrams(it, solved.grams[i]) }));
 
   const totals = sumItemNutrition(items);
   let p = Math.round(totals.p);
@@ -583,19 +376,23 @@ export function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}
       c = Math.round(c * ratio);
       f = Math.round(f * ratio);
       meal.macros = { protein: p, carbs: c, fats: f };
-      // Calories must stay = 4P+4C+9F; rounding may land a few kcal over the
-      // cap, which the H5 validators already tolerate (±30 kcal).
       meal.calories = Math.round(p * 4 + c * 4 + f * 9);
     }
   }
 
-  return { ok: true, unknowns: totals.unknowns };
+  return {
+    ok: true,
+    unknowns: totals.unknowns,
+    feasible: solved.feasible,
+    reason: solved.reason || '',
+  };
 }
 
-/** Sync nutrition for all meals in a weekPlan chunk. Returns unknown product names. */
+/** Sync nutrition for all meals in a weekPlan chunk. Returns unknown product names and infeasible slots. */
 export function syncWeekPlanNutritionFromDatabase(weekPlan, strategy, startDay, endDay, extraDb = {}) {
   const unknowns = [];
-  if (!weekPlan || !strategy?.weeklyScheme) return unknowns;
+  const infeasible = [];
+  if (!weekPlan || !strategy?.weeklyScheme) return { unknowns, infeasible };
 
   const dayKeys = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
   for (let d = startDay; d <= endDay; d++) {
@@ -607,9 +404,12 @@ export function syncWeekPlanNutritionFromDatabase(weekPlan, strategy, startDay, 
       const target = dayTarget?.mealBreakdown?.find(m => m.type === meal.type) || null;
       const result = applyMealNutritionFromDatabase(meal, target, extraDb);
       if (result.unknowns?.length) unknowns.push(...result.unknowns);
+      if (result.feasible === false) {
+        infeasible.push({ day: d, type: meal.type, reason: result.reason || 'неосъществим слот' });
+      }
     }
   }
-  return [...new Set(unknowns)];
+  return { unknowns: [...new Set(unknowns)], infeasible };
 }
 
 export function profileToKvArray(profile) {

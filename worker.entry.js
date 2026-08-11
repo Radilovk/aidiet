@@ -61,7 +61,6 @@ import {
   buildMeal3PromptRule,
   removeBreakfastSlotFromDay,
   userSkipsBreakfast,
-  reconcileAchievedSlotCalories,
   isMealCaloriesAdequate,
   enforceFixedSlotCaps,
   MAX_LATE_SNACK_CALORIES,
@@ -5884,7 +5883,6 @@ async function reconcilePlanStructure(plan, userData = null, env = null) {
       }
     }
     finalizeWeekPlanDays(plan.weekPlan, plan.strategy, 1, 7, userData);
-    reconcileAchievedSlotCalories(plan.weekPlan, plan.strategy, 1, 7);
     for (const key of DAY_NUMBER_TO_KEY) {
       const day = plan.strategy.weeklyScheme[key];
       if (!day) continue;
@@ -7845,13 +7843,15 @@ async function fetchFoodNutritionViaAI(env, productName) {
 
 async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data = null) {
   const extraDb = CATALOG_STRICT_MODE ? {} : await loadFoodNutritionExtraDb(env);
-  let unknowns = syncWeekPlanNutritionFromDatabase(weekPlan, strategy, startDay, endDay, extraDb);
+  let syncResult = syncWeekPlanNutritionFromDatabase(weekPlan, strategy, startDay, endDay, extraDb);
+  let unknowns = syncResult.unknowns || [];
+  let infeasible = syncResult.infeasible || [];
 
   if (CATALOG_STRICT_MODE) {
     if (unknowns.length) {
       console.warn('[food-catalog] Unknown products (strict):', unknowns.slice(0, 10).join(', '));
     }
-    return unknowns;
+    return { unknowns, infeasible };
   }
 
   const namesToResolve = unknowns
@@ -7860,7 +7860,7 @@ async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay
     .slice(0, 6);
 
   if (!namesToResolve.length) {
-    return unknowns;
+    return { unknowns, infeasible };
   }
 
   let updated = false;
@@ -7873,12 +7873,14 @@ async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay
   }
   if (updated) {
     await saveFoodNutritionExtraDb(env, extraDb);
-    unknowns = syncWeekPlanNutritionFromDatabase(weekPlan, strategy, startDay, endDay, extraDb);
+    syncResult = syncWeekPlanNutritionFromDatabase(weekPlan, strategy, startDay, endDay, extraDb);
+    unknowns = syncResult.unknowns || [];
+    infeasible = syncResult.infeasible || [];
   }
   if (unknowns.length) {
     console.warn('[food-nutrition] Unknown products after sync:', unknowns.slice(0, 10).join(', '));
   }
-  return unknowns;
+  return { unknowns, infeasible };
 }
 
 function validateMealTypesAgainstBreakdown(dayPlan, dayTarget, dayNum, userData = null) {
@@ -7901,10 +7903,9 @@ function validateMealTypesAgainstBreakdown(dayPlan, dayTarget, dayNum, userData 
 }
 
 /**
- * grams and scaled to the calorie target, so numeric precision is guaranteed by
- * construction — the AI is retried only for problems it can actually fix: missing
- * grams, unknown products, forbidden foods, or a composition so under/over-portioned
- * that the bounded calorie scaling (×0.5–×3) could not reach the target.
+ * Backend solves grams from composition — retry only for fixable AI issues:
+ * missing products, unknown catalog entries, forbidden foods, bad combinations,
+ * or composition that cannot reach slot/daily macro targets.
  */
 function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocolId = null) {
   const errors = [];
@@ -7915,14 +7916,15 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocol
     const target = dayTarget.mealBreakdown.find(m => m.type === meal.type);
     if (!target) continue;
 
-    if (!meal.description || !/\d+\s*(g|г)\b/i.test(meal.description)) {
-      errors.push(`Ден ${dayNum} ${meal.type}: липсват грамажи (числоg) в description`);
+    const parsedItems = parseMealDescription(meal.description);
+    if (!parsedItems.length) {
+      errors.push(`Ден ${dayNum} ${meal.type}: липсват продукти в description`);
     }
 
     const targetCal = Number(target.calories) || 0;
     const mealCal = Number(meal.calories) || macrosToCalories(meal.macros);
     if (targetCal > 0 && mealCal > 0 && !isMealCaloriesAdequate(mealCal, targetCal)) {
-      errors.push(`Ден ${dayNum} ${meal.type}: калории ${mealCal} ≠ цел ${targetCal} — порциите са структурно недостатъчни/прекомерни, избери по-подходящи продукти или количества`);
+      errors.push(`Ден ${dayNum} ${meal.type}: калории ${mealCal} ≠ цел ${targetCal} — смени продуктите или състава`);
     }
 
     const weightGrams = mealWeightGramsFromDescription(meal);
@@ -7936,7 +7938,7 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocol
     }
 
     if (meal.description && CATALOG_STRICT_MODE) {
-      const productNames = parseMealDescription(meal.description).map(i => i.name);
+      const productNames = parsedItems.map(i => i.name);
       const notInCatalog = validateProductNamesInCatalog(productNames);
       if (notInCatalog.length) {
         errors.push(`Ден ${dayNum} ${meal.type}: продукти извън каталога: ${notInCatalog.join(', ')}`);
@@ -7958,6 +7960,9 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocol
   }
   return errors;
 }
+
+const DAY_MACRO_TOLERANCE_PERCENT = 0.15;
+const DAY_MACRO_MIN_TOLERANCE_G = 10;
 
 function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay, clinicalProtocolId = null, userData = null) {
   const errors = [];
@@ -7983,6 +7988,26 @@ function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay
           errors.push(`Ден ${d}: дневни ${dayKcal} kcal ≠ схема ${schemeKcal}`);
         }
       }
+
+      const dayTotals = dayPlan.dailyTotals || {};
+      const schemeMacros = (dayTarget.mealBreakdown || []).reduce((a, m) => ({
+        p: a.p + (Number(m.protein) || 0),
+        c: a.c + (Number(m.carbs) || 0),
+        f: a.f + (Number(m.fats) || 0),
+      }), { p: 0, c: 0, f: 0 });
+      const macroKeyMap = { p: 'protein', c: 'carbs', f: 'fats' };
+      for (const [key, label] of [['p', 'протеин'], ['c', 'въглехидрати'], ['f', 'мазнини']]) {
+        const goal = schemeMacros[key];
+        const got = Number(dayTotals[macroKeyMap[key]]) || 0;
+        if (goal <= 0 || got <= 0) continue;
+        const tol = Math.max(DAY_MACRO_MIN_TOLERANCE_G, goal * DAY_MACRO_TOLERANCE_PERCENT);
+        if (Math.abs(got - goal) > tol) {
+          errors.push(
+            `Ден ${d}: ${label} ${Math.round(got)}g ≠ цел ${Math.round(goal)}g — ` +
+            'композицията не носи този макро профил, смени продукти'
+          );
+        }
+      }
     }
   }
   return errors;
@@ -7993,7 +8018,7 @@ function buildChunkValidationRetryComment(errors) {
   return `═══ FIX LIST ═══
 ${errors.map((e, i) => `${i + 1}. ${e}`).join('\n')}
 
-Rules: meals[].type = mealBreakdown only; description = catalog raw products + grams; backend computes macros/kcal.`;
+Rules: meals[].type = mealBreakdown only; description = catalog products only (no grams); choose products that match slot P/C/F profile.`;
 }
 
 function getAllowedMealTypes(dayTarget, userData = null) {
@@ -9706,14 +9731,16 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         }
 
         injectFixedDesserts(weekPlan);
-        await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
+        const syncMeta = await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
         if (repairWeekPlanLightSlots(weekPlan, startDay, endDay, data)) {
           await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
         }
         finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, data);
-        reconcileAchievedSlotCalories(weekPlan, strategy, startDay, endDay);
 
         validationErrors = validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay, data.clinicalProtocol || null, data);
+        for (const slot of syncMeta?.infeasible || []) {
+          validationErrors.push(`Ден ${slot.day} ${slot.type}: ${slot.reason} — смени продуктите`);
+        }
         lastAiFailure = null;
       } catch (aiError) {
         // AI call/parse failure — no plan data to score; retry with the same slot empty.
