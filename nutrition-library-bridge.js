@@ -12,6 +12,7 @@ import {
   LIBRARY_PROTOCOL_RULES,
   LIBRARY_FOOD_GROUPS,
   NUTRITION_LIBRARY_VERSION,
+  LIBRARY_ORCHESTRATOR,
 } from './nutrition-library-data.js';
 
 export {
@@ -21,6 +22,7 @@ export {
   LIBRARY_PROTOCOL_RULES,
   LIBRARY_FOOD_GROUPS,
   NUTRITION_LIBRARY_VERSION,
+  LIBRARY_ORCHESTRATOR,
 };
 
 /** library group_id → NutriPlan catalog group */
@@ -101,7 +103,7 @@ export const SLOT_TO_TEMPLATE_ID = {
   'Хранене 2': 'tpl_lunch',
   'Хранене 3': 'tpl_snack',
   'Хранене 4': 'tpl_dinner',
-  'Хранене 5': 'tpl_snack',
+  'Хранене 5': 'tpl_late_snack',
 };
 
 const FOOD_ID_TO_NUTRITION_KEY = {
@@ -208,29 +210,9 @@ export function libraryFoodToCatalogEntry(food) {
   };
 }
 
-const baseCatalogKeys = new Set(
-  FOOD_CATALOG.flatMap(e => [
-    normalizeFoodKey(e.name),
-    normalizeFoodKey(e.nutritionKey),
-    ...(e.aliases || []).map(normalizeFoodKey),
-  ]).filter(Boolean),
-);
-
-/** Library foods not already covered by base catalog (by normalized name/key). */
+/** Library foods as catalog overlay — all entries with lib_ prefix for assembler. */
 export function getLibraryCatalogOverlay() {
-  const overlay = [];
-  const seenKeys = new Set();
-  for (const food of LIBRARY_FOODS) {
-    const entry = libraryFoodToCatalogEntry(food);
-    const keys = [
-      normalizeFoodKey(entry.name),
-      normalizeFoodKey(entry.nutritionKey),
-    ].filter(Boolean);
-    if (keys.some(k => baseCatalogKeys.has(k) || seenKeys.has(k))) continue;
-    keys.forEach(k => seenKeys.add(k));
-    overlay.push(entry);
-  }
-  return overlay;
+  return LIBRARY_FOODS.map(food => libraryFoodToCatalogEntry(food));
 }
 
 /** Ready meals from library as catalog ready_meal entries. */

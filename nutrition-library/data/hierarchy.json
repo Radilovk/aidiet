@@ -2,10 +2,12 @@
   "architecture": [
     "input",
     "profile",
+    "safety",
     "rules",
     "library",
     "templates",
     "orchestrator",
+    "validation",
     "output"
   ],
   "food_ontology": [
@@ -13,7 +15,8 @@
     "food",
     "portion",
     "equivalent",
-    "meal",
+    "meal_template",
+    "ready_meal",
     "menu"
   ],
   "layers": [
@@ -23,6 +26,7 @@
     "score",
     "compose",
     "calculate",
+    "validate_adequacy",
     "export"
   ]
 }

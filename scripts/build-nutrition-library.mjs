@@ -1,40 +1,31 @@
 #!/usr/bin/env node
 /**
  * Build canonical nutrition-library-data.js from JSON sources.
- * Filters placeholder rows, merges enrichment, maps ready-meals.
+ * Run generate-full-nutrition-library.mjs first for full catalog.
  *
  * npm run build:nutrition-library
  */
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const dataDir = join(root, 'nutrition-library', 'data');
 const outFile = join(root, 'nutrition-library-data.js');
 
+// Regenerate full library from catalog + expansion
+const gen = spawnSync('node', ['scripts/generate-full-nutrition-library.mjs'], { cwd: root, encoding: 'utf8' });
+if (gen.status !== 0) {
+  console.error(gen.stderr || gen.stdout);
+  process.exit(gen.status ?? 1);
+}
+
 function readJson(name) {
   return JSON.parse(readFileSync(join(dataDir, name), 'utf8'));
 }
 
-function isPlaceholder(name = '') {
-  return /експандирана храна/i.test(name);
-}
-
-function dedupeById(items) {
-  const byId = new Map();
-  for (const item of items) {
-    if (!item?.id || isPlaceholder(item.name_bg || item.name)) continue;
-    byId.set(item.id, item);
-  }
-  return [...byId.values()];
-}
-
-const sourceFoods = readJson('foods-source.json');
-const enrichment = readJson('enrichment.json');
-const foods = dedupeById([...sourceFoods, ...enrichment]);
-
-writeFileSync(join(dataDir, 'foods.json'), `${JSON.stringify(foods, null, 2)}\n`, 'utf8');
+const foods = readJson('foods.json');
 
 const readyMeals = readJson('ready-meals.json');
 const mealTemplates = readJson('meal-templates.json');
@@ -50,7 +41,7 @@ const summary = {
   templates: mealTemplates.length,
   rulesets: Object.keys(protocolRules.diet_profiles || {}).length,
   orchestrator_steps: orchestrator.pipeline?.length || 0,
-  filtered_placeholders: sourceFoods.length - foods.length + enrichment.length,
+  filtered_placeholders: 0,
 };
 
 writeFileSync(join(dataDir, 'summary.json'), `${JSON.stringify(summary, null, 2)}\n`, 'utf8');

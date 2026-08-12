@@ -3,66 +3,149 @@
     "id": "tpl_breakfast",
     "name_bg": "Закуска",
     "meal_type": "breakfast",
+    "slot": "Хранене 1",
     "allowed_groups": [
       "eggs",
       "dairy",
       "fruits",
       "whole_grains",
-      "nuts_seeds"
+      "nuts_seeds",
+      "plant_protein"
     ],
     "kcal_target": 350,
     "protein_target_g": 20,
     "carb_target_g": 35,
-    "fat_target_g": 15
+    "fat_target_g": 15,
+    "components": {
+      "protein": 1,
+      "carb": {
+        "min": 0,
+        "max": 1
+      },
+      "fruit": {
+        "min": 0,
+        "max": 1
+      },
+      "fat": {
+        "min": 0,
+        "max": 1
+      }
+    }
   },
   {
     "id": "tpl_lunch",
     "name_bg": "Обяд",
     "meal_type": "lunch",
+    "slot": "Хранене 2",
     "allowed_groups": [
       "fish",
       "meat",
+      "seafood",
       "eggs",
       "vegetables",
       "whole_grains",
       "legumes",
-      "fats"
+      "fats",
+      "plant_protein"
     ],
     "kcal_target": 550,
     "protein_target_g": 35,
     "carb_target_g": 45,
-    "fat_target_g": 20
-  },
-  {
-    "id": "tpl_dinner",
-    "name_bg": "Вечеря",
-    "meal_type": "dinner",
-    "allowed_groups": [
-      "fish",
-      "meat",
-      "eggs",
-      "vegetables",
-      "fats",
-      "plant_protein"
-    ],
-    "kcal_target": 450,
-    "protein_target_g": 35,
-    "carb_target_g": 20,
-    "fat_target_g": 25
+    "fat_target_g": 20,
+    "components": {
+      "protein": 1,
+      "vegetables": 2,
+      "carb": {
+        "min": 0,
+        "max": 1
+      },
+      "fat": 1
+    }
   },
   {
     "id": "tpl_snack",
     "name_bg": "Междинно",
     "meal_type": "snack",
+    "slot": "Хранене 3",
     "allowed_groups": [
       "fruits",
       "dairy",
       "nuts_seeds",
+      "vegetables",
       "beverages"
     ],
     "kcal_target": 200,
     "protein_target_g": 10,
     "carb_target_g": 15,
-    "fat_target_g": 10
+    "fat_target_g": 10,
+    "components": {
+      "protein": {
+        "min": 0,
+        "max": 1
+      },
+      "fruit": {
+        "min": 0,
+        "max": 1
+      },
+      "fat": {
+        "min": 0,
+        "max": 1
+      }
+    }
+  },
+  {
+    "id": "tpl_dinner",
+    "name_bg": "Вечеря",
+    "meal_type": "dinner",
+    "slot": "Хранене 4",
+    "allowed_groups": [
+      "fish",
+      "meat",
+      "seafood",
+      "eggs",
+      "vegetables",
+      "fats",
+      "plant_protein",
+      "legumes"
+    ],
+    "kcal_target": 450,
+    "protein_target_g": 35,
+    "carb_target_g": 20,
+    "fat_target_g": 25,
+    "components": {
+      "protein": 1,
+      "vegetables": 2,
+      "carb": {
+        "min": 0,
+        "max": 1
+      },
+      "fat": 1
+    }
+  },
+  {
+    "id": "tpl_late_snack",
+    "name_bg": "Късен snack",
+    "meal_type": "snack",
+    "slot": "Хранене 5",
+    "allowed_groups": [
+      "dairy",
+      "nuts_seeds",
+      "fruits",
+      "beverages"
+    ],
+    "kcal_target": 200,
+    "protein_target_g": 10,
+    "carb_target_g": 12,
+    "fat_target_g": 12,
+    "components": {
+      "protein": {
+        "min": 0,
+        "max": 1
+      },
+      "fat": {
+        "min": 0,
+        "max": 1
+      }
+    }
   }
 ]

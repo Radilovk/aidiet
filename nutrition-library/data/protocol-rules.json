@@ -8,6 +8,24 @@
         "fish",
         "eggs",
         "fats"
+      ],
+      "prefer_tags": [
+        "fiber"
+      ]
+    },
+    "mediterranean": {
+      "prefer_groups": [
+        "vegetables",
+        "fruits",
+        "whole_grains",
+        "fish",
+        "fats",
+        "legumes"
+      ],
+      "prefer_tags": [
+        "fiber",
+        "omega3",
+        "antioxidant"
       ]
     },
     "keto": {
@@ -15,13 +33,30 @@
       "exclude_groups": [
         "whole_grains",
         "fruits",
-        "legumes"
+        "legumes",
+        "refined_grains",
+        "sweets"
       ],
       "prefer_groups": [
         "eggs",
         "fish",
         "meat",
         "vegetables",
+        "fats",
+        "dairy"
+      ]
+    },
+    "low_carb": {
+      "max_carbs_g_day": 80,
+      "exclude_groups": [
+        "refined_grains",
+        "sweets"
+      ],
+      "prefer_groups": [
+        "vegetables",
+        "fish",
+        "meat",
+        "eggs",
         "fats"
       ]
     },
@@ -29,16 +64,56 @@
       "exclude_groups": [
         "meat",
         "fish",
+        "seafood",
         "eggs",
         "dairy"
       ],
       "prefer_groups": [
         "vegetables",
-        "fruits",
-        "whole_grains",
         "legumes",
-        "nuts_seeds",
+        "plant_protein",
+        "whole_grains",
+        "nuts_seeds"
+      ]
+    },
+    "vegetarian": {
+      "exclude_groups": [
+        "meat",
+        "fish",
+        "seafood"
+      ],
+      "prefer_groups": [
+        "eggs",
+        "dairy",
+        "legumes",
+        "vegetables",
+        "whole_grains"
+      ]
+    },
+    "pescatarian": {
+      "exclude_groups": [
+        "meat"
+      ],
+      "prefer_groups": [
+        "fish",
+        "seafood",
+        "eggs",
+        "dairy",
+        "vegetables",
+        "whole_grains"
+      ]
+    },
+    "high_protein": {
+      "min_protein_g_kg": 1.6,
+      "prefer_groups": [
+        "meat",
+        "fish",
+        "eggs",
+        "dairy",
         "plant_protein"
+      ],
+      "prefer_tags": [
+        "protein"
       ]
     },
     "low_fodmap": {
@@ -49,21 +124,81 @@
         "vegetables",
         "fish",
         "eggs",
-        "dairy"
+        "dairy",
+        "whole_grains"
       ]
     },
-    "mediterranean": {
+    "dash": {
+      "max_sodium_mg_day": 2300,
       "prefer_groups": [
         "vegetables",
         "fruits",
         "whole_grains",
-        "fish",
-        "fats"
+        "legumes",
+        "dairy",
+        "fish"
       ],
+      "limit_tags": [
+        "high_sodium"
+      ]
+    },
+    "paleo": {
+      "exclude_groups": [
+        "whole_grains",
+        "refined_grains",
+        "legumes",
+        "dairy",
+        "sweets"
+      ],
+      "prefer_groups": [
+        "meat",
+        "fish",
+        "eggs",
+        "vegetables",
+        "fruits",
+        "nuts_seeds"
+      ]
+    },
+    "gluten_free": {
+      "exclude_tags": [
+        "gluten"
+      ],
+      "prefer_groups": [
+        "vegetables",
+        "fruits",
+        "rice",
+        "potatoes",
+        "meat",
+        "fish",
+        "dairy"
+      ]
+    },
+    "dairy_free": {
+      "exclude_groups": [
+        "dairy"
+      ],
+      "prefer_groups": [
+        "meat",
+        "fish",
+        "legumes",
+        "plant_protein",
+        "vegetables"
+      ]
+    },
+    "anti_inflammatory": {
       "prefer_tags": [
-        "fiber",
         "omega3",
-        "antioxidant"
+        "antioxidant",
+        "fiber"
+      ],
+      "limit_tags": [
+        "processed"
+      ],
+      "prefer_groups": [
+        "fish",
+        "vegetables",
+        "fruits",
+        "nuts_seeds"
       ]
     }
   },
@@ -94,5 +229,16 @@
   },
   "calculation": {
     "kcal_formula": "protein_g*4 + carbs_g*4 + fat_g*9"
-  }
+  },
+  "priority": [
+    "safety",
+    "allergies",
+    "medical",
+    "goal",
+    "energy",
+    "macros",
+    "base_diet",
+    "timing",
+    "behavior"
+  ]
 }
