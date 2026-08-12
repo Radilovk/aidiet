@@ -105,6 +105,7 @@ import {
 import {
   enrichUserDataEngineContext,
   extractQuestionnaireBlockedTerms,
+  buildAdaptPhaseContext,
 } from './questionnaire-engine-map.js';
 import {
   finalDirectorEnabled,
@@ -4075,6 +4076,34 @@ async function runFinalDirectorReview(env, plan, userData, codeValidation = null
   return director;
 }
 
+/** Post-generation validation + optional Step 6 Director (shared by plan gen + weekly adapt). */
+async function finalizeValidatedPlan(env, structuredPlan, data) {
+  await reconcilePlanStructure(structuredPlan, data, env);
+  const foodLists = await getDynamicFoodListsSections(env);
+  const validation = validatePlan(structuredPlan, data, foodLists.dynamicSubstitutions || []);
+  if (!structuredPlan.generationWarnings) structuredPlan.generationWarnings = [];
+  if (validation.warnings?.length) {
+    structuredPlan.generationWarnings.push(...validation.warnings);
+  }
+  if (validation.errors?.length) {
+    structuredPlan.generationWarnings.push(...validation.errors);
+  }
+  if (validation.blockingErrors?.length) {
+    throw new Error(`Планът не минава медицински прагове: ${validation.blockingErrors.join('; ')}`);
+  }
+  if (structuredPlan.generationWarnings.length) {
+    console.log(`Plan post-validation: ${structuredPlan.generationWarnings.length} warning(s)`);
+  }
+  if (finalDirectorEnabled(env)) {
+    try {
+      await runFinalDirectorReview(env, structuredPlan, data, validation);
+    } catch (directorErr) {
+      console.warn('Step 6 Final Director skipped:', directorErr.message);
+    }
+  }
+  return validation;
+}
+
 async function generatePlanCore(env, data, onAnalysisReady = null) {
   await loadCatalogRegistryOverlay(env);
 
@@ -4115,33 +4144,9 @@ async function generatePlanCore(env, data, onAnalysisReady = null) {
 
   // Generate plan (multi-step AI)
   let structuredPlan = await generatePlanMultiStep(env, data, onAnalysisReady);
-  await reconcilePlanStructure(structuredPlan, data, env);
 
-  // In-place structural fixes: food substitutions + warnings (no AI regen — stable path)
   try {
-    const foodLists = await getDynamicFoodListsSections(env);
-    const validation = validatePlan(structuredPlan, data, foodLists.dynamicSubstitutions || []);
-    if (!structuredPlan.generationWarnings) structuredPlan.generationWarnings = [];
-    if (validation.warnings?.length) {
-      structuredPlan.generationWarnings.push(...validation.warnings);
-    }
-    if (validation.errors?.length) {
-      structuredPlan.generationWarnings.push(...validation.errors);
-    }
-    if (validation.blockingErrors?.length) {
-      throw new Error(`Планът не минава медицински прагове: ${validation.blockingErrors.join('; ')}`);
-    }
-    if (structuredPlan.generationWarnings.length) {
-      console.log(`Plan post-validation: ${structuredPlan.generationWarnings.length} warning(s)`);
-    }
-
-    if (finalDirectorEnabled(env)) {
-      try {
-        await runFinalDirectorReview(env, structuredPlan, data, validation);
-      } catch (directorErr) {
-        console.warn('Step 6 Final Director skipped:', directorErr.message);
-      }
-    }
+    await finalizeValidatedPlan(env, structuredPlan, data);
   } catch (validationErr) {
     if (validationErr.message?.includes('медицински прагове')) throw validationErr;
     console.warn('Plan post-validation skipped:', validationErr.message);
@@ -6955,11 +6960,15 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     }
 
     const enrichedData = normalizeQuestionnaireData(userData);
-    enrichUserDataEngineContext(enrichedData);
     enrichedData.planModifications = mergeWeeklyModifications(
       userData.planModifications || enrichedData.planModifications,
       decision.modifications
     );
+    enrichedData._adaptPhase = buildAdaptPhaseContext({
+      cycleNumber,
+      dietStartDate: gameWeeklyAI?.dietStartDate || '',
+    });
+    enrichUserDataEngineContext(enrichedData);
     enrichedData.weeklyAdaptationContext = buildWeeklyAdaptationContextText(
       decision, analytics, answers, cycleNumber
     );
@@ -6987,6 +6996,13 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       newPlan = await regenerateFromStep(
         env, enrichedData, plan, regenStep, { [regenStep]: ['weekly adaptation'] }, 1
       );
+    }
+
+    try {
+      await finalizeValidatedPlan(env, newPlan, enrichedData);
+    } catch (validationErr) {
+      if (validationErr.message?.includes('медицински прагове')) throw validationErr;
+      console.warn('[WeeklyAdapt] post-validation skipped:', validationErr.message);
     }
 
     const notice = { ...noticeBase, changed: true };

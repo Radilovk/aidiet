@@ -27,6 +27,12 @@ export const CONDITION_DETAIL_FIELD_IDS = [
   'medicalConditions_other',
 ];
 
+const LONG_TERM_PHASE_HINTS = {
+  1: 'начална адаптация стабилност прости ястия',
+  2: 'прогресия разнообразие ротация',
+  3: 'дългосрочна поддръжка maintenance',
+};
+
 /** Clinical protocol → extra diet hint text for resolveLibraryDietProfile. */
 const CLINICAL_PROTOCOL_DIET_HINTS = {
   gi_issues: 'fodmap ibs храносмилателни',
@@ -92,6 +98,44 @@ export function extractQuestionnaireBlockedTerms(userData = {}) {
 }
 
 /**
+ * Resolve long-term adaptation phase from weekly cycle and/or days on plan.
+ * @param {{ cycleNumber?: number, daysSinceStart?: number|null }} [ctx]
+ */
+export function resolveLongTermPhase({ cycleNumber = 1, daysSinceStart = null } = {}) {
+  const cycle = Math.max(1, Number(cycleNumber) || 1);
+  let days = daysSinceStart != null && !Number.isNaN(Number(daysSinceStart))
+    ? Number(daysSinceStart)
+    : null;
+  if (days == null) days = (cycle - 1) * 7;
+
+  let phaseNumber = 1;
+  if (days >= 84 || cycle >= 13) phaseNumber = 3;
+  else if (days >= 28 || cycle >= 5) phaseNumber = 2;
+
+  return {
+    phaseNumber,
+    phaseHint: LONG_TERM_PHASE_HINTS[phaseNumber] || LONG_TERM_PHASE_HINTS[1],
+    cycleNumber: cycle,
+    daysSinceStart: days,
+  };
+}
+
+/**
+ * Build adapt-phase context for weekly regen (cycle + diet start date).
+ * @param {{ cycleNumber?: number, dietStartDate?: string }} [ctx]
+ */
+export function buildAdaptPhaseContext({ cycleNumber = 1, dietStartDate = '' } = {}) {
+  let daysSinceStart = null;
+  if (dietStartDate) {
+    const startMs = new Date(dietStartDate).getTime();
+    if (!Number.isNaN(startMs)) {
+      daysSinceStart = Math.floor((Date.now() - startMs) / 86400000);
+    }
+  }
+  return resolveLongTermPhase({ cycleNumber, daysSinceStart });
+}
+
+/**
  * Build supplemental diet hint string from conditions / clinical protocol.
  * Appended to resolveLibraryDietProfile text — explicit dietPreference flags still win.
  * @param {object} userData
@@ -99,6 +143,9 @@ export function extractQuestionnaireBlockedTerms(userData = {}) {
  */
 export function buildQuestionnaireDietHints(userData = {}) {
   const parts = [];
+
+  const phase = userData._adaptPhase;
+  if (phase?.phaseHint) parts.push(phase.phaseHint);
 
   const cp = userData.clinicalProtocol;
   if (cp && CLINICAL_PROTOCOL_DIET_HINTS[cp]) {
@@ -169,7 +216,7 @@ export function buildFinalAuditPacket({ plan = null, userData = null, codeValida
 
   const sections = [
     '=== ENGINE AUDIT ===',
-    `profile: goal=${JSON.stringify(userData?.goal || '')} clinical=${userData?.clinicalProtocol || 'none'}`,
+    `profile: goal=${JSON.stringify(userData?.goal || '')} clinical=${userData?.clinicalProtocol || 'none'} phase=${userData?._adaptPhase?.phaseNumber ?? '—'}`,
     `engine: dietHints="${userData?._engineDietHints || buildQuestionnaireDietHints(userData)}" blocked=${(userData?._engineBlockedTerms || extractQuestionnaireBlockedTerms(userData)).slice(0, 12).join('; ')}`,
     `step1: intake=${analysis.Final_Calories || '?'}kcal P${mg.protein || '?'}/C${mg.carbs || '?'}/F${mg.fats || '?'} deterministic=${analysis._deterministicEnergy ? 'yes' : 'no'}`,
     `step2: profile=${strategy.libraryDietProfile || '?'} modifier=${strategy.dietaryModifier || '?'} ${summarizeWeeklyScheme(strategy)}`,

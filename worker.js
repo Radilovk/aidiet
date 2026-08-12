@@ -1231,6 +1231,7 @@ function serializeAnalyticsBlock(analytics) {
 }
 
 // weekly-adapt-guardrails.mjs
+var MIN_DAYS_FOR_GAMING_FLOOR = 4;
 function hasWeeklyStrategyRegenTriggers(strategyChanges) {
   const sc = strategyChanges || {};
   if (Number(sc.calorieAdjust)) return true;
@@ -1244,15 +1245,24 @@ function clampAdaptationLevel(rawLevel, analytics, modifications, strategyChange
     const junk7 = analytics.junk7 || 0;
     const avg = Number(analytics.avgScore) || 0;
     const adh = Number(analytics.adherence) || 0;
+    const days = Number(analytics.daysRecorded) || 0;
+    const sampleOk = days >= MIN_DAYS_FOR_GAMING_FLOOR;
     if (junk7 <= 1 && avg >= 3.5 && adh >= 45) {
       level = Math.min(level, 0);
     }
     if (junk7 >= 5) {
       level = Math.max(level, 1);
     }
+    if (sampleOk && adh < 35) {
+      level = Math.max(level, 1);
+    }
+    if (sampleOk && avg > 0 && avg < 2.5) {
+      level = Math.max(level, 1);
+    }
   }
   const hollowLevel1 = level === 1 && !modifications?.length && !hasWeeklyStrategyRegenTriggers(strategyChanges);
-  if (hollowLevel1 && (analytics?.junk7 || 0) < 5) {
+  const gamingStruggle = analytics?.status === "active" && ((analytics.junk7 || 0) >= 5 || (Number(analytics.daysRecorded) || 0) >= MIN_DAYS_FOR_GAMING_FLOOR && ((Number(analytics.adherence) || 0) < 35 || (Number(analytics.avgScore) || 0) > 0 && (Number(analytics.avgScore) || 0) < 2.5));
+  if (hollowLevel1 && !gamingStruggle) {
     level = 0;
   }
   return level;
@@ -18253,6 +18263,11 @@ var CONDITION_DETAIL_FIELD_IDS = [
   "medicalConditions_\u0410\u0432\u0442\u043E\u0438\u043C\u0443\u043D\u043D\u043E",
   "medicalConditions_other"
 ];
+var LONG_TERM_PHASE_HINTS = {
+  1: "\u043D\u0430\u0447\u0430\u043B\u043D\u0430 \u0430\u0434\u0430\u043F\u0442\u0430\u0446\u0438\u044F \u0441\u0442\u0430\u0431\u0438\u043B\u043D\u043E\u0441\u0442 \u043F\u0440\u043E\u0441\u0442\u0438 \u044F\u0441\u0442\u0438\u044F",
+  2: "\u043F\u0440\u043E\u0433\u0440\u0435\u0441\u0438\u044F \u0440\u0430\u0437\u043D\u043E\u043E\u0431\u0440\u0430\u0437\u0438\u0435 \u0440\u043E\u0442\u0430\u0446\u0438\u044F",
+  3: "\u0434\u044A\u043B\u0433\u043E\u0441\u0440\u043E\u0447\u043D\u0430 \u043F\u043E\u0434\u0434\u0440\u044A\u0436\u043A\u0430 maintenance"
+};
 var CLINICAL_PROTOCOL_DIET_HINTS = {
   gi_issues: "fodmap ibs \u0445\u0440\u0430\u043D\u043E\u0441\u043C\u0438\u043B\u0430\u0442\u0435\u043B\u043D\u0438",
   autoimmune_aip: "\u043F\u0440\u043E\u0442\u0438\u0432\u043E\u0432\u044A\u0437\u043F\u0430\u043B\u0438\u0442\u0435\u043B\u043D\u0430 aip autoimun",
@@ -18302,8 +18317,34 @@ function extractQuestionnaireBlockedTerms(userData = {}) {
   }
   return terms;
 }
+function resolveLongTermPhase({ cycleNumber = 1, daysSinceStart = null } = {}) {
+  const cycle = Math.max(1, Number(cycleNumber) || 1);
+  let days = daysSinceStart != null && !Number.isNaN(Number(daysSinceStart)) ? Number(daysSinceStart) : null;
+  if (days == null) days = (cycle - 1) * 7;
+  let phaseNumber = 1;
+  if (days >= 84 || cycle >= 13) phaseNumber = 3;
+  else if (days >= 28 || cycle >= 5) phaseNumber = 2;
+  return {
+    phaseNumber,
+    phaseHint: LONG_TERM_PHASE_HINTS[phaseNumber] || LONG_TERM_PHASE_HINTS[1],
+    cycleNumber: cycle,
+    daysSinceStart: days
+  };
+}
+function buildAdaptPhaseContext({ cycleNumber = 1, dietStartDate = "" } = {}) {
+  let daysSinceStart = null;
+  if (dietStartDate) {
+    const startMs = new Date(dietStartDate).getTime();
+    if (!Number.isNaN(startMs)) {
+      daysSinceStart = Math.floor((Date.now() - startMs) / 864e5);
+    }
+  }
+  return resolveLongTermPhase({ cycleNumber, daysSinceStart });
+}
 function buildQuestionnaireDietHints(userData = {}) {
   const parts = [];
+  const phase = userData._adaptPhase;
+  if (phase?.phaseHint) parts.push(phase.phaseHint);
   const cp = userData.clinicalProtocol;
   if (cp && CLINICAL_PROTOCOL_DIET_HINTS[cp]) {
     parts.push(CLINICAL_PROTOCOL_DIET_HINTS[cp]);
@@ -18358,7 +18399,7 @@ function buildFinalAuditPacket({ plan = null, userData = null, codeValidation = 
   const mg = analysis.macroGrams || {};
   const sections = [
     "=== ENGINE AUDIT ===",
-    `profile: goal=${JSON.stringify(userData?.goal || "")} clinical=${userData?.clinicalProtocol || "none"}`,
+    `profile: goal=${JSON.stringify(userData?.goal || "")} clinical=${userData?.clinicalProtocol || "none"} phase=${userData?._adaptPhase?.phaseNumber ?? "\u2014"}`,
     `engine: dietHints="${userData?._engineDietHints || buildQuestionnaireDietHints(userData)}" blocked=${(userData?._engineBlockedTerms || extractQuestionnaireBlockedTerms(userData)).slice(0, 12).join("; ")}`,
     `step1: intake=${analysis.Final_Calories || "?"}kcal P${mg.protein || "?"}/C${mg.carbs || "?"}/F${mg.fats || "?"} deterministic=${analysis._deterministicEnergy ? "yes" : "no"}`,
     `step2: profile=${strategy.libraryDietProfile || "?"} modifier=${strategy.dietaryModifier || "?"} ${summarizeWeeklyScheme(strategy)}`,
@@ -21740,6 +21781,32 @@ async function runFinalDirectorReview(env, plan, userData, codeValidation = null
   });
   return director;
 }
+async function finalizeValidatedPlan(env, structuredPlan, data) {
+  await reconcilePlanStructure(structuredPlan, data, env);
+  const foodLists = await getDynamicFoodListsSections(env);
+  const validation = validatePlan(structuredPlan, data, foodLists.dynamicSubstitutions || []);
+  if (!structuredPlan.generationWarnings) structuredPlan.generationWarnings = [];
+  if (validation.warnings?.length) {
+    structuredPlan.generationWarnings.push(...validation.warnings);
+  }
+  if (validation.errors?.length) {
+    structuredPlan.generationWarnings.push(...validation.errors);
+  }
+  if (validation.blockingErrors?.length) {
+    throw new Error(`\u041F\u043B\u0430\u043D\u044A\u0442 \u043D\u0435 \u043C\u0438\u043D\u0430\u0432\u0430 \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0438 \u043F\u0440\u0430\u0433\u043E\u0432\u0435: ${validation.blockingErrors.join("; ")}`);
+  }
+  if (structuredPlan.generationWarnings.length) {
+    console.log(`Plan post-validation: ${structuredPlan.generationWarnings.length} warning(s)`);
+  }
+  if (finalDirectorEnabled(env)) {
+    try {
+      await runFinalDirectorReview(env, structuredPlan, data, validation);
+    } catch (directorErr) {
+      console.warn("Step 6 Final Director skipped:", directorErr.message);
+    }
+  }
+  return validation;
+}
 async function generatePlanCore(env, data, onAnalysisReady = null) {
   await loadCatalogRegistryOverlay(env);
   const userId = data.email || generateUserId(data);
@@ -21771,30 +21838,8 @@ async function generatePlanCore(env, data, onAnalysisReady = null) {
   }
   enrichUserDataEngineContext(data);
   let structuredPlan = await generatePlanMultiStep(env, data, onAnalysisReady);
-  await reconcilePlanStructure(structuredPlan, data, env);
   try {
-    const foodLists = await getDynamicFoodListsSections(env);
-    const validation = validatePlan(structuredPlan, data, foodLists.dynamicSubstitutions || []);
-    if (!structuredPlan.generationWarnings) structuredPlan.generationWarnings = [];
-    if (validation.warnings?.length) {
-      structuredPlan.generationWarnings.push(...validation.warnings);
-    }
-    if (validation.errors?.length) {
-      structuredPlan.generationWarnings.push(...validation.errors);
-    }
-    if (validation.blockingErrors?.length) {
-      throw new Error(`\u041F\u043B\u0430\u043D\u044A\u0442 \u043D\u0435 \u043C\u0438\u043D\u0430\u0432\u0430 \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0438 \u043F\u0440\u0430\u0433\u043E\u0432\u0435: ${validation.blockingErrors.join("; ")}`);
-    }
-    if (structuredPlan.generationWarnings.length) {
-      console.log(`Plan post-validation: ${structuredPlan.generationWarnings.length} warning(s)`);
-    }
-    if (finalDirectorEnabled(env)) {
-      try {
-        await runFinalDirectorReview(env, structuredPlan, data, validation);
-      } catch (directorErr) {
-        console.warn("Step 6 Final Director skipped:", directorErr.message);
-      }
-    }
+    await finalizeValidatedPlan(env, structuredPlan, data);
   } catch (validationErr) {
     if (validationErr.message?.includes("\u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0438 \u043F\u0440\u0430\u0433\u043E\u0432\u0435")) throw validationErr;
     console.warn("Plan post-validation skipped:", validationErr.message);
@@ -24025,11 +24070,15 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       return;
     }
     const enrichedData = normalizeQuestionnaireData(userData);
-    enrichUserDataEngineContext(enrichedData);
     enrichedData.planModifications = mergeWeeklyModifications(
       userData.planModifications || enrichedData.planModifications,
       decision.modifications
     );
+    enrichedData._adaptPhase = buildAdaptPhaseContext({
+      cycleNumber,
+      dietStartDate: gameWeeklyAI?.dietStartDate || ""
+    });
+    enrichUserDataEngineContext(enrichedData);
     enrichedData.weeklyAdaptationContext = buildWeeklyAdaptationContextText(
       decision,
       analytics,
@@ -24059,6 +24108,12 @@ async function runWeeklyAdaptation(env, payload, jobId) {
         { [regenStep]: ["weekly adaptation"] },
         1
       );
+    }
+    try {
+      await finalizeValidatedPlan(env, newPlan, enrichedData);
+    } catch (validationErr) {
+      if (validationErr.message?.includes("\u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0438 \u043F\u0440\u0430\u0433\u043E\u0432\u0435")) throw validationErr;
+      console.warn("[WeeklyAdapt] post-validation skipped:", validationErr.message);
     }
     const notice = { ...noticeBase, changed: true };
     await savePendingWeeklyRelease(env, userId, clientId, {
