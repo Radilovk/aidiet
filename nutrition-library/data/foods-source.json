@@ -1,0 +1,6116 @@
+[
+  {
+    "id": "food_water",
+    "name_bg": "Вода",
+    "group_id": "beverages",
+    "portion_g": 250,
+    "kcal": 0,
+    "protein_g": 0,
+    "carbs_g": 0,
+    "fat_g": 0,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "hydration"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_black_coffee",
+    "name_bg": "Черно кафе",
+    "group_id": "beverages",
+    "portion_g": 240,
+    "kcal": 2,
+    "protein_g": 0,
+    "carbs_g": 0,
+    "fat_g": 0,
+    "fiber_g": 0,
+    "sodium_mg": 5,
+    "tags": [
+      "caffeine"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_tea",
+    "name_bg": "Чай",
+    "group_id": "beverages",
+    "portion_g": 250,
+    "kcal": 2,
+    "protein_g": 0,
+    "carbs_g": 0,
+    "fat_g": 0,
+    "fiber_g": 0,
+    "sodium_mg": 5,
+    "tags": [
+      "caffeine"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_oats",
+    "name_bg": "Овесени ядки",
+    "group_id": "whole_grains",
+    "portion_g": 40,
+    "kcal": 150,
+    "protein_g": 5,
+    "carbs_g": 27,
+    "fat_g": 3,
+    "fiber_g": 4,
+    "sodium_mg": 2,
+    "tags": [
+      "carb",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_rice",
+    "name_bg": "Ориз сварен",
+    "group_id": "whole_grains",
+    "portion_g": 150,
+    "kcal": 195,
+    "protein_g": 4,
+    "carbs_g": 42,
+    "fat_g": 1,
+    "fiber_g": 1,
+    "sodium_mg": 2,
+    "tags": [
+      "carb"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_brown_rice",
+    "name_bg": "Кафяв ориз",
+    "group_id": "whole_grains",
+    "portion_g": 150,
+    "kcal": 165,
+    "protein_g": 4,
+    "carbs_g": 34,
+    "fat_g": 1,
+    "fiber_g": 3,
+    "sodium_mg": 5,
+    "tags": [
+      "carb",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_quinoa",
+    "name_bg": "Киноа",
+    "group_id": "whole_grains",
+    "portion_g": 150,
+    "kcal": 180,
+    "protein_g": 6,
+    "carbs_g": 32,
+    "fat_g": 3,
+    "fiber_g": 4,
+    "sodium_mg": 7,
+    "tags": [
+      "carb",
+      "gluten_free"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_buckwheat",
+    "name_bg": "Елда",
+    "group_id": "whole_grains",
+    "portion_g": 150,
+    "kcal": 155,
+    "protein_g": 6,
+    "carbs_g": 33,
+    "fat_g": 1,
+    "fiber_g": 4,
+    "sodium_mg": 4,
+    "tags": [
+      "carb",
+      "gluten_free"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_bread_whole",
+    "name_bg": "Пълнозърнест хляб",
+    "group_id": "whole_grains",
+    "portion_g": 35,
+    "kcal": 90,
+    "protein_g": 4,
+    "carbs_g": 16,
+    "fat_g": 1,
+    "fiber_g": 3,
+    "sodium_mg": 160,
+    "tags": [
+      "carb",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_pasta_whole",
+    "name_bg": "Пълнозърнеста паста",
+    "group_id": "whole_grains",
+    "portion_g": 180,
+    "kcal": 220,
+    "protein_g": 8,
+    "carbs_g": 42,
+    "fat_g": 2,
+    "fiber_g": 6,
+    "sodium_mg": 5,
+    "tags": [
+      "carb",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_white_rice",
+    "name_bg": "Бял ориз",
+    "group_id": "refined_grains",
+    "portion_g": 150,
+    "kcal": 205,
+    "protein_g": 4,
+    "carbs_g": 45,
+    "fat_g": 0,
+    "fiber_g": 0,
+    "sodium_mg": 1,
+    "tags": [
+      "carb"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_white_bread",
+    "name_bg": "Бял хляб",
+    "group_id": "refined_grains",
+    "portion_g": 35,
+    "kcal": 95,
+    "protein_g": 3,
+    "carbs_g": 18,
+    "fat_g": 1,
+    "fiber_g": 1,
+    "sodium_mg": 170,
+    "tags": [
+      "carb"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_potato",
+    "name_bg": "Картофи",
+    "group_id": "vegetables",
+    "portion_g": 200,
+    "kcal": 154,
+    "protein_g": 4,
+    "carbs_g": 35,
+    "fat_g": 0,
+    "fiber_g": 3,
+    "sodium_mg": 12,
+    "tags": [
+      "carb",
+      "starch"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_sweet_potato",
+    "name_bg": "Сладък картоф",
+    "group_id": "vegetables",
+    "portion_g": 180,
+    "kcal": 162,
+    "protein_g": 3,
+    "carbs_g": 37,
+    "fat_g": 0,
+    "fiber_g": 6,
+    "sodium_mg": 70,
+    "tags": [
+      "carb",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_tomato",
+    "name_bg": "Домати",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 27,
+    "protein_g": 1,
+    "carbs_g": 6,
+    "fat_g": 0,
+    "fiber_g": 2,
+    "sodium_mg": 7,
+    "tags": [
+      "low_carb"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_cucumber",
+    "name_bg": "Краставици",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 22,
+    "protein_g": 1,
+    "carbs_g": 5,
+    "fat_g": 0,
+    "fiber_g": 1,
+    "sodium_mg": 2,
+    "tags": [
+      "low_carb"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_zucchini",
+    "name_bg": "Тиквички",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 25,
+    "protein_g": 2,
+    "carbs_g": 4,
+    "fat_g": 0,
+    "fiber_g": 1,
+    "sodium_mg": 8,
+    "tags": [
+      "low_carb",
+      "fodmap_low"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_broccoli",
+    "name_bg": "Броколи",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 52,
+    "protein_g": 4,
+    "carbs_g": 10,
+    "fat_g": 1,
+    "fiber_g": 5,
+    "sodium_mg": 33,
+    "tags": [
+      "fiber"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_spinach",
+    "name_bg": "Спанак",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 23,
+    "protein_g": 3,
+    "carbs_g": 4,
+    "fat_g": 0,
+    "fiber_g": 2,
+    "sodium_mg": 79,
+    "tags": [
+      "fiber"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_carrot",
+    "name_bg": "Моркови",
+    "group_id": "vegetables",
+    "portion_g": 120,
+    "kcal": 49,
+    "protein_g": 1,
+    "carbs_g": 12,
+    "fat_g": 0,
+    "fiber_g": 4,
+    "sodium_mg": 69,
+    "tags": [
+      "fiber"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_lettuce_mix",
+    "name_bg": "Салат микс",
+    "group_id": "vegetables",
+    "portion_g": 80,
+    "kcal": 15,
+    "protein_g": 1,
+    "carbs_g": 3,
+    "fat_g": 0,
+    "fiber_g": 2,
+    "sodium_mg": 10,
+    "tags": [
+      "low_carb"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_bell_pepper",
+    "name_bg": "Чушки",
+    "group_id": "vegetables",
+    "portion_g": 120,
+    "kcal": 37,
+    "protein_g": 1,
+    "carbs_g": 9,
+    "fat_g": 0,
+    "fiber_g": 3,
+    "sodium_mg": 3,
+    "tags": [
+      "vitamin_c"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_mushroom",
+    "name_bg": "Гъби",
+    "group_id": "vegetables",
+    "portion_g": 120,
+    "kcal": 26,
+    "protein_g": 4,
+    "carbs_g": 4,
+    "fat_g": 0,
+    "fiber_g": 1,
+    "sodium_mg": 5,
+    "tags": [
+      "low_carb"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_onion",
+    "name_bg": "Лук",
+    "group_id": "vegetables",
+    "portion_g": 60,
+    "kcal": 24,
+    "protein_g": 1,
+    "carbs_g": 6,
+    "fat_g": 0,
+    "fiber_g": 1,
+    "sodium_mg": 2,
+    "tags": [
+      "allium"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_apple",
+    "name_bg": "Ябълка",
+    "group_id": "fruits",
+    "portion_g": 180,
+    "kcal": 95,
+    "protein_g": 0,
+    "carbs_g": 25,
+    "fat_g": 0,
+    "fiber_g": 4,
+    "sodium_mg": 2,
+    "tags": [
+      "carb",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_banana",
+    "name_bg": "Банан",
+    "group_id": "fruits",
+    "portion_g": 120,
+    "kcal": 105,
+    "protein_g": 1,
+    "carbs_g": 27,
+    "fat_g": 0,
+    "fiber_g": 3,
+    "sodium_mg": 1,
+    "tags": [
+      "carb"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_orange",
+    "name_bg": "Портокал",
+    "group_id": "fruits",
+    "portion_g": 160,
+    "kcal": 75,
+    "protein_g": 1,
+    "carbs_g": 19,
+    "fat_g": 0,
+    "fiber_g": 3,
+    "sodium_mg": 0,
+    "tags": [
+      "carb",
+      "vitamin_c"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_blueberries",
+    "name_bg": "Боровинки",
+    "group_id": "fruits",
+    "portion_g": 80,
+    "kcal": 46,
+    "protein_g": 1,
+    "carbs_g": 11,
+    "fat_g": 0,
+    "fiber_g": 2,
+    "sodium_mg": 1,
+    "tags": [
+      "antioxidant"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_strawberries",
+    "name_bg": "Ягоди",
+    "group_id": "fruits",
+    "portion_g": 150,
+    "kcal": 48,
+    "protein_g": 1,
+    "carbs_g": 12,
+    "fat_g": 0,
+    "fiber_g": 3,
+    "sodium_mg": 1,
+    "tags": [
+      "antioxidant"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_grapes",
+    "name_bg": "Грозде",
+    "group_id": "fruits",
+    "portion_g": 150,
+    "kcal": 104,
+    "protein_g": 1,
+    "carbs_g": 27,
+    "fat_g": 0,
+    "fiber_g": 1,
+    "sodium_mg": 3,
+    "tags": [
+      "carb"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_pear",
+    "name_bg": "Круша",
+    "group_id": "fruits",
+    "portion_g": 170,
+    "kcal": 96,
+    "protein_g": 1,
+    "carbs_g": 26,
+    "fat_g": 0,
+    "fiber_g": 6,
+    "sodium_mg": 1,
+    "tags": [
+      "carb"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_kiwi",
+    "name_bg": "Киви",
+    "group_id": "fruits",
+    "portion_g": 90,
+    "kcal": 55,
+    "protein_g": 1,
+    "carbs_g": 13,
+    "fat_g": 0,
+    "fiber_g": 3,
+    "sodium_mg": 3,
+    "tags": [
+      "vitamin_c"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_egg",
+    "name_bg": "Яйце",
+    "group_id": "eggs",
+    "portion_g": 50,
+    "kcal": 72,
+    "protein_g": 6,
+    "carbs_g": 0,
+    "fat_g": 5,
+    "fiber_g": 0,
+    "sodium_mg": 70,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan"
+    ]
+  },
+  {
+    "id": "food_egg_whites",
+    "name_bg": "Белтъци",
+    "group_id": "eggs",
+    "portion_g": 100,
+    "kcal": 52,
+    "protein_g": 11,
+    "carbs_g": 1,
+    "fat_g": 0,
+    "fiber_g": 0,
+    "sodium_mg": 166,
+    "tags": [
+      "protein",
+      "lean"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan"
+    ]
+  },
+  {
+    "id": "food_yogurt",
+    "name_bg": "Кисело мляко",
+    "group_id": "dairy",
+    "portion_g": 200,
+    "kcal": 120,
+    "protein_g": 10,
+    "carbs_g": 12,
+    "fat_g": 3,
+    "fiber_g": 0,
+    "sodium_mg": 90,
+    "tags": [
+      "protein",
+      "dairy"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan"
+    ]
+  },
+  {
+    "id": "food_milk",
+    "name_bg": "Прясно мляко",
+    "group_id": "dairy",
+    "portion_g": 250,
+    "kcal": 128,
+    "protein_g": 8,
+    "carbs_g": 12,
+    "fat_g": 5,
+    "fiber_g": 0,
+    "sodium_mg": 105,
+    "tags": [
+      "protein",
+      "dairy"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan"
+    ]
+  },
+  {
+    "id": "food_kefir",
+    "name_bg": "Кефир",
+    "group_id": "dairy",
+    "portion_g": 250,
+    "kcal": 110,
+    "protein_g": 9,
+    "carbs_g": 12,
+    "fat_g": 2,
+    "fiber_g": 0,
+    "sodium_mg": 95,
+    "tags": [
+      "protein",
+      "dairy"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan"
+    ]
+  },
+  {
+    "id": "food_cheese",
+    "name_bg": "Сирене",
+    "group_id": "dairy",
+    "portion_g": 40,
+    "kcal": 104,
+    "protein_g": 7,
+    "carbs_g": 1,
+    "fat_g": 8,
+    "fiber_g": 0,
+    "sodium_mg": 340,
+    "tags": [
+      "protein",
+      "dairy",
+      "salty"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan"
+    ]
+  },
+  {
+    "id": "food_chicken",
+    "name_bg": "Пилешко филе",
+    "group_id": "meat",
+    "portion_g": 120,
+    "kcal": 198,
+    "protein_g": 37,
+    "carbs_g": 0,
+    "fat_g": 4,
+    "fiber_g": 0,
+    "sodium_mg": 74,
+    "tags": [
+      "protein",
+      "lean"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_turkey",
+    "name_bg": "Пуешко филе",
+    "group_id": "meat",
+    "portion_g": 120,
+    "kcal": 170,
+    "protein_g": 34,
+    "carbs_g": 0,
+    "fat_g": 2,
+    "fiber_g": 0,
+    "sodium_mg": 65,
+    "tags": [
+      "protein",
+      "lean"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_beef",
+    "name_bg": "Телешко",
+    "group_id": "meat",
+    "portion_g": 120,
+    "kcal": 250,
+    "protein_g": 30,
+    "carbs_g": 0,
+    "fat_g": 14,
+    "fiber_g": 0,
+    "sodium_mg": 60,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_pork",
+    "name_bg": "Свинско филе",
+    "group_id": "meat",
+    "portion_g": 120,
+    "kcal": 225,
+    "protein_g": 29,
+    "carbs_g": 0,
+    "fat_g": 11,
+    "fiber_g": 0,
+    "sodium_mg": 70,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_salmon",
+    "name_bg": "Сьомга",
+    "group_id": "fish",
+    "portion_g": 120,
+    "kcal": 233,
+    "protein_g": 25,
+    "carbs_g": 0,
+    "fat_g": 14,
+    "fiber_g": 0,
+    "sodium_mg": 59,
+    "tags": [
+      "protein",
+      "omega3"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_tuna",
+    "name_bg": "Риба тон",
+    "group_id": "fish",
+    "portion_g": 120,
+    "kcal": 132,
+    "protein_g": 29,
+    "carbs_g": 0,
+    "fat_g": 1,
+    "fiber_g": 0,
+    "sodium_mg": 44,
+    "tags": [
+      "protein",
+      "lean"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_cod",
+    "name_bg": "Треска",
+    "group_id": "fish",
+    "portion_g": 150,
+    "kcal": 120,
+    "protein_g": 27,
+    "carbs_g": 0,
+    "fat_g": 1,
+    "fiber_g": 0,
+    "sodium_mg": 70,
+    "tags": [
+      "protein",
+      "lean"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_shrimp",
+    "name_bg": "Скариди",
+    "group_id": "seafood",
+    "portion_g": 120,
+    "kcal": 119,
+    "protein_g": 24,
+    "carbs_g": 0,
+    "fat_g": 1,
+    "fiber_g": 0,
+    "sodium_mg": 111,
+    "tags": [
+      "protein",
+      "lean"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_tofu",
+    "name_bg": "Тофу",
+    "group_id": "plant_protein",
+    "portion_g": 150,
+    "kcal": 144,
+    "protein_g": 15,
+    "carbs_g": 4,
+    "fat_g": 9,
+    "fiber_g": 2,
+    "sodium_mg": 14,
+    "tags": [
+      "protein",
+      "vegan"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_tempeh",
+    "name_bg": "Темпе",
+    "group_id": "plant_protein",
+    "portion_g": 100,
+    "kcal": 190,
+    "protein_g": 20,
+    "carbs_g": 9,
+    "fat_g": 11,
+    "fiber_g": 6,
+    "sodium_mg": 9,
+    "tags": [
+      "protein",
+      "vegan"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_lentils",
+    "name_bg": "Леща",
+    "group_id": "legumes",
+    "portion_g": 150,
+    "kcal": 174,
+    "protein_g": 13,
+    "carbs_g": 30,
+    "fat_g": 1,
+    "fiber_g": 12,
+    "sodium_mg": 4,
+    "tags": [
+      "protein",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_chickpeas",
+    "name_bg": "Нахут",
+    "group_id": "legumes",
+    "portion_g": 150,
+    "kcal": 240,
+    "protein_g": 12,
+    "carbs_g": 40,
+    "fat_g": 4,
+    "fiber_g": 11,
+    "sodium_mg": 20,
+    "tags": [
+      "protein",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_beans",
+    "name_bg": "Боб",
+    "group_id": "legumes",
+    "portion_g": 150,
+    "kcal": 210,
+    "protein_g": 14,
+    "carbs_g": 38,
+    "fat_g": 1,
+    "fiber_g": 12,
+    "sodium_mg": 15,
+    "tags": [
+      "protein",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_avocado",
+    "name_bg": "Авокадо",
+    "group_id": "fats",
+    "portion_g": 80,
+    "kcal": 128,
+    "protein_g": 2,
+    "carbs_g": 7,
+    "fat_g": 12,
+    "fiber_g": 6,
+    "sodium_mg": 7,
+    "tags": [
+      "fat",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_olive_oil",
+    "name_bg": "Зехтин",
+    "group_id": "fats",
+    "portion_g": 10,
+    "kcal": 90,
+    "protein_g": 0,
+    "carbs_g": 0,
+    "fat_g": 10,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "fat"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_butter",
+    "name_bg": "Масло",
+    "group_id": "fats",
+    "portion_g": 10,
+    "kcal": 72,
+    "protein_g": 0,
+    "carbs_g": 0,
+    "fat_g": 8,
+    "fiber_g": 0,
+    "sodium_mg": 65,
+    "tags": [
+      "fat"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_almonds",
+    "name_bg": "Бадеми",
+    "group_id": "nuts_seeds",
+    "portion_g": 30,
+    "kcal": 174,
+    "protein_g": 6,
+    "carbs_g": 6,
+    "fat_g": 15,
+    "fiber_g": 3,
+    "sodium_mg": 0,
+    "tags": [
+      "fat",
+      "protein"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_walnuts",
+    "name_bg": "Орехи",
+    "group_id": "nuts_seeds",
+    "portion_g": 30,
+    "kcal": 196,
+    "protein_g": 5,
+    "carbs_g": 4,
+    "fat_g": 20,
+    "fiber_g": 2,
+    "sodium_mg": 0,
+    "tags": [
+      "fat"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_chia",
+    "name_bg": "Чиа",
+    "group_id": "nuts_seeds",
+    "portion_g": 20,
+    "kcal": 97,
+    "protein_g": 3,
+    "carbs_g": 8,
+    "fat_g": 6,
+    "fiber_g": 7,
+    "sodium_mg": 2,
+    "tags": [
+      "fiber",
+      "fat"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_flax",
+    "name_bg": "Ленено семе",
+    "group_id": "nuts_seeds",
+    "portion_g": 20,
+    "kcal": 108,
+    "protein_g": 4,
+    "carbs_g": 6,
+    "fat_g": 8,
+    "fiber_g": 6,
+    "sodium_mg": 4,
+    "tags": [
+      "fiber",
+      "fat"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_hummus",
+    "name_bg": "Хумус",
+    "group_id": "condiments",
+    "portion_g": 50,
+    "kcal": 166,
+    "protein_g": 5,
+    "carbs_g": 14,
+    "fat_g": 10,
+    "fiber_g": 4,
+    "sodium_mg": 240,
+    "tags": [
+      "spread"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_tahini",
+    "name_bg": "Тахан",
+    "group_id": "condiments",
+    "portion_g": 15,
+    "kcal": 89,
+    "protein_g": 3,
+    "carbs_g": 3,
+    "fat_g": 8,
+    "fiber_g": 1,
+    "sodium_mg": 3,
+    "tags": [
+      "spread"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_mustard",
+    "name_bg": "Синап",
+    "group_id": "condiments",
+    "portion_g": 10,
+    "kcal": 6,
+    "protein_g": 0,
+    "carbs_g": 1,
+    "fat_g": 0,
+    "fiber_g": 0,
+    "sodium_mg": 120,
+    "tags": [
+      "condiment"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_tomato_sauce",
+    "name_bg": "Доматен сос",
+    "group_id": "condiments",
+    "portion_g": 60,
+    "kcal": 35,
+    "protein_g": 1,
+    "carbs_g": 8,
+    "fat_g": 0,
+    "fiber_g": 2,
+    "sodium_mg": 200,
+    "tags": [
+      "sauce"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_dark_chocolate",
+    "name_bg": "Тъмен шоколад",
+    "group_id": "sweets",
+    "portion_g": 20,
+    "kcal": 110,
+    "protein_g": 2,
+    "carbs_g": 8,
+    "fat_g": 8,
+    "fiber_g": 2,
+    "sodium_mg": 0,
+    "tags": [
+      "sweet"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_honey",
+    "name_bg": "Мед",
+    "group_id": "sweets",
+    "portion_g": 20,
+    "kcal": 61,
+    "protein_g": 0,
+    "carbs_g": 17,
+    "fat_g": 0,
+    "fiber_g": 0,
+    "sodium_mg": 1,
+    "tags": [
+      "sweet"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_basil",
+    "name_bg": "Босилек",
+    "group_id": "herbs_spices",
+    "portion_g": 5,
+    "kcal": 1,
+    "protein_g": 0,
+    "carbs_g": 0,
+    "fat_g": 0,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "herb"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_oregano",
+    "name_bg": "Риган",
+    "group_id": "herbs_spices",
+    "portion_g": 5,
+    "kcal": 1,
+    "protein_g": 0,
+    "carbs_g": 0,
+    "fat_g": 0,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "herb"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_1",
+    "name_bg": "Експандирана храна 1",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 23,
+    "protein_g": 2,
+    "carbs_g": 3,
+    "fat_g": 1,
+    "fiber_g": 2,
+    "sodium_mg": 6,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_2",
+    "name_bg": "Експандирана храна 2",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 26,
+    "protein_g": 3,
+    "carbs_g": 4,
+    "fat_g": 2,
+    "fiber_g": 3,
+    "sodium_mg": 7,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_3",
+    "name_bg": "Експандирана храна 3",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 29,
+    "protein_g": 4,
+    "carbs_g": 5,
+    "fat_g": 3,
+    "fiber_g": 4,
+    "sodium_mg": 8,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_4",
+    "name_bg": "Експандирана храна 4",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 32,
+    "protein_g": 5,
+    "carbs_g": 6,
+    "fat_g": 4,
+    "fiber_g": 5,
+    "sodium_mg": 9,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_5",
+    "name_bg": "Експандирана храна 5",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 35,
+    "protein_g": 6,
+    "carbs_g": 7,
+    "fat_g": 5,
+    "fiber_g": 6,
+    "sodium_mg": 10,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_6",
+    "name_bg": "Експандирана храна 6",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 38,
+    "protein_g": 7,
+    "carbs_g": 8,
+    "fat_g": 6,
+    "fiber_g": 7,
+    "sodium_mg": 11,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_7",
+    "name_bg": "Експандирана храна 7",
+    "group_id": "whole_grains",
+    "portion_g": 100,
+    "kcal": 41,
+    "protein_g": 8,
+    "carbs_g": 9,
+    "fat_g": 7,
+    "fiber_g": 8,
+    "sodium_mg": 12,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_8",
+    "name_bg": "Експандирана храна 8",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 44,
+    "protein_g": 9,
+    "carbs_g": 10,
+    "fat_g": 8,
+    "fiber_g": 1,
+    "sodium_mg": 13,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_9",
+    "name_bg": "Експандирана храна 9",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 47,
+    "protein_g": 10,
+    "carbs_g": 11,
+    "fat_g": 9,
+    "fiber_g": 2,
+    "sodium_mg": 14,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_10",
+    "name_bg": "Експандирана храна 10",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 50,
+    "protein_g": 11,
+    "carbs_g": 12,
+    "fat_g": 10,
+    "fiber_g": 3,
+    "sodium_mg": 15,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_11",
+    "name_bg": "Експандирана храна 11",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 53,
+    "protein_g": 12,
+    "carbs_g": 13,
+    "fat_g": 11,
+    "fiber_g": 4,
+    "sodium_mg": 16,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_12",
+    "name_bg": "Експандирана храна 12",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 56,
+    "protein_g": 13,
+    "carbs_g": 14,
+    "fat_g": 12,
+    "fiber_g": 5,
+    "sodium_mg": 17,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_13",
+    "name_bg": "Експандирана храна 13",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 59,
+    "protein_g": 14,
+    "carbs_g": 15,
+    "fat_g": 13,
+    "fiber_g": 6,
+    "sodium_mg": 18,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_14",
+    "name_bg": "Експандирана храна 14",
+    "group_id": "whole_grains",
+    "portion_g": 100,
+    "kcal": 62,
+    "protein_g": 15,
+    "carbs_g": 16,
+    "fat_g": 14,
+    "fiber_g": 7,
+    "sodium_mg": 19,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_15",
+    "name_bg": "Експандирана храна 15",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 65,
+    "protein_g": 16,
+    "carbs_g": 17,
+    "fat_g": 15,
+    "fiber_g": 8,
+    "sodium_mg": 20,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_16",
+    "name_bg": "Експандирана храна 16",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 68,
+    "protein_g": 17,
+    "carbs_g": 18,
+    "fat_g": 16,
+    "fiber_g": 1,
+    "sodium_mg": 21,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_17",
+    "name_bg": "Експандирана храна 17",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 71,
+    "protein_g": 18,
+    "carbs_g": 19,
+    "fat_g": 17,
+    "fiber_g": 2,
+    "sodium_mg": 22,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_18",
+    "name_bg": "Експандирана храна 18",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 74,
+    "protein_g": 19,
+    "carbs_g": 20,
+    "fat_g": 0,
+    "fiber_g": 3,
+    "sodium_mg": 23,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_19",
+    "name_bg": "Експандирана храна 19",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 77,
+    "protein_g": 20,
+    "carbs_g": 21,
+    "fat_g": 1,
+    "fiber_g": 4,
+    "sodium_mg": 24,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_20",
+    "name_bg": "Експандирана храна 20",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 80,
+    "protein_g": 1,
+    "carbs_g": 22,
+    "fat_g": 2,
+    "fiber_g": 5,
+    "sodium_mg": 25,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_21",
+    "name_bg": "Експандирана храна 21",
+    "group_id": "whole_grains",
+    "portion_g": 100,
+    "kcal": 83,
+    "protein_g": 2,
+    "carbs_g": 23,
+    "fat_g": 3,
+    "fiber_g": 6,
+    "sodium_mg": 26,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_22",
+    "name_bg": "Експандирана храна 22",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 86,
+    "protein_g": 3,
+    "carbs_g": 24,
+    "fat_g": 4,
+    "fiber_g": 7,
+    "sodium_mg": 27,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_23",
+    "name_bg": "Експандирана храна 23",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 89,
+    "protein_g": 4,
+    "carbs_g": 25,
+    "fat_g": 5,
+    "fiber_g": 8,
+    "sodium_mg": 28,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_24",
+    "name_bg": "Експандирана храна 24",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 92,
+    "protein_g": 5,
+    "carbs_g": 26,
+    "fat_g": 6,
+    "fiber_g": 1,
+    "sodium_mg": 29,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_25",
+    "name_bg": "Експандирана храна 25",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 95,
+    "protein_g": 6,
+    "carbs_g": 27,
+    "fat_g": 7,
+    "fiber_g": 2,
+    "sodium_mg": 30,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_26",
+    "name_bg": "Експандирана храна 26",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 98,
+    "protein_g": 7,
+    "carbs_g": 28,
+    "fat_g": 8,
+    "fiber_g": 3,
+    "sodium_mg": 31,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_27",
+    "name_bg": "Експандирана храна 27",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 101,
+    "protein_g": 8,
+    "carbs_g": 29,
+    "fat_g": 9,
+    "fiber_g": 4,
+    "sodium_mg": 32,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_28",
+    "name_bg": "Експандирана храна 28",
+    "group_id": "whole_grains",
+    "portion_g": 100,
+    "kcal": 104,
+    "protein_g": 9,
+    "carbs_g": 30,
+    "fat_g": 10,
+    "fiber_g": 5,
+    "sodium_mg": 33,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_29",
+    "name_bg": "Експандирана храна 29",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 107,
+    "protein_g": 10,
+    "carbs_g": 31,
+    "fat_g": 11,
+    "fiber_g": 6,
+    "sodium_mg": 34,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_30",
+    "name_bg": "Експандирана храна 30",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 110,
+    "protein_g": 11,
+    "carbs_g": 32,
+    "fat_g": 12,
+    "fiber_g": 7,
+    "sodium_mg": 35,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_31",
+    "name_bg": "Експандирана храна 31",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 113,
+    "protein_g": 12,
+    "carbs_g": 33,
+    "fat_g": 13,
+    "fiber_g": 8,
+    "sodium_mg": 36,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_32",
+    "name_bg": "Експандирана храна 32",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 116,
+    "protein_g": 13,
+    "carbs_g": 34,
+    "fat_g": 14,
+    "fiber_g": 1,
+    "sodium_mg": 37,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_33",
+    "name_bg": "Експандирана храна 33",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 119,
+    "protein_g": 14,
+    "carbs_g": 35,
+    "fat_g": 15,
+    "fiber_g": 2,
+    "sodium_mg": 38,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_34",
+    "name_bg": "Експандирана храна 34",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 122,
+    "protein_g": 15,
+    "carbs_g": 36,
+    "fat_g": 16,
+    "fiber_g": 3,
+    "sodium_mg": 39,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_35",
+    "name_bg": "Експандирана храна 35",
+    "group_id": "whole_grains",
+    "portion_g": 100,
+    "kcal": 125,
+    "protein_g": 16,
+    "carbs_g": 2,
+    "fat_g": 17,
+    "fiber_g": 4,
+    "sodium_mg": 40,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_36",
+    "name_bg": "Експандирана храна 36",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 128,
+    "protein_g": 17,
+    "carbs_g": 3,
+    "fat_g": 0,
+    "fiber_g": 5,
+    "sodium_mg": 41,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_37",
+    "name_bg": "Експандирана храна 37",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 131,
+    "protein_g": 18,
+    "carbs_g": 4,
+    "fat_g": 1,
+    "fiber_g": 6,
+    "sodium_mg": 42,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_38",
+    "name_bg": "Експандирана храна 38",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 134,
+    "protein_g": 19,
+    "carbs_g": 5,
+    "fat_g": 2,
+    "fiber_g": 7,
+    "sodium_mg": 43,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_39",
+    "name_bg": "Експандирана храна 39",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 137,
+    "protein_g": 20,
+    "carbs_g": 6,
+    "fat_g": 3,
+    "fiber_g": 8,
+    "sodium_mg": 44,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_40",
+    "name_bg": "Експандирана храна 40",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 140,
+    "protein_g": 1,
+    "carbs_g": 7,
+    "fat_g": 4,
+    "fiber_g": 1,
+    "sodium_mg": 45,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_41",
+    "name_bg": "Експандирана храна 41",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 143,
+    "protein_g": 2,
+    "carbs_g": 8,
+    "fat_g": 5,
+    "fiber_g": 2,
+    "sodium_mg": 46,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_42",
+    "name_bg": "Експандирана храна 42",
+    "group_id": "whole_grains",
+    "portion_g": 100,
+    "kcal": 146,
+    "protein_g": 3,
+    "carbs_g": 9,
+    "fat_g": 6,
+    "fiber_g": 3,
+    "sodium_mg": 47,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_43",
+    "name_bg": "Експандирана храна 43",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 149,
+    "protein_g": 4,
+    "carbs_g": 10,
+    "fat_g": 7,
+    "fiber_g": 4,
+    "sodium_mg": 48,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_44",
+    "name_bg": "Експандирана храна 44",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 152,
+    "protein_g": 5,
+    "carbs_g": 11,
+    "fat_g": 8,
+    "fiber_g": 5,
+    "sodium_mg": 49,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_45",
+    "name_bg": "Експандирана храна 45",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 155,
+    "protein_g": 6,
+    "carbs_g": 12,
+    "fat_g": 9,
+    "fiber_g": 6,
+    "sodium_mg": 50,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_46",
+    "name_bg": "Експандирана храна 46",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 158,
+    "protein_g": 7,
+    "carbs_g": 13,
+    "fat_g": 10,
+    "fiber_g": 7,
+    "sodium_mg": 51,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_47",
+    "name_bg": "Експандирана храна 47",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 161,
+    "protein_g": 8,
+    "carbs_g": 14,
+    "fat_g": 11,
+    "fiber_g": 8,
+    "sodium_mg": 52,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_48",
+    "name_bg": "Експандирана храна 48",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 164,
+    "protein_g": 9,
+    "carbs_g": 15,
+    "fat_g": 12,
+    "fiber_g": 1,
+    "sodium_mg": 53,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_49",
+    "name_bg": "Експандирана храна 49",
+    "group_id": "whole_grains",
+    "portion_g": 100,
+    "kcal": 167,
+    "protein_g": 10,
+    "carbs_g": 16,
+    "fat_g": 13,
+    "fiber_g": 2,
+    "sodium_mg": 54,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_50",
+    "name_bg": "Експандирана храна 50",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 170,
+    "protein_g": 11,
+    "carbs_g": 17,
+    "fat_g": 14,
+    "fiber_g": 3,
+    "sodium_mg": 55,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_51",
+    "name_bg": "Експандирана храна 51",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 173,
+    "protein_g": 12,
+    "carbs_g": 18,
+    "fat_g": 15,
+    "fiber_g": 4,
+    "sodium_mg": 56,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_52",
+    "name_bg": "Експандирана храна 52",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 176,
+    "protein_g": 13,
+    "carbs_g": 19,
+    "fat_g": 16,
+    "fiber_g": 5,
+    "sodium_mg": 57,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_53",
+    "name_bg": "Експандирана храна 53",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 179,
+    "protein_g": 14,
+    "carbs_g": 20,
+    "fat_g": 17,
+    "fiber_g": 6,
+    "sodium_mg": 58,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_54",
+    "name_bg": "Експандирана храна 54",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 182,
+    "protein_g": 15,
+    "carbs_g": 21,
+    "fat_g": 0,
+    "fiber_g": 7,
+    "sodium_mg": 59,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_55",
+    "name_bg": "Експандирана храна 55",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 185,
+    "protein_g": 16,
+    "carbs_g": 22,
+    "fat_g": 1,
+    "fiber_g": 8,
+    "sodium_mg": 60,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_56",
+    "name_bg": "Експандирана храна 56",
+    "group_id": "whole_grains",
+    "portion_g": 100,
+    "kcal": 188,
+    "protein_g": 17,
+    "carbs_g": 23,
+    "fat_g": 2,
+    "fiber_g": 1,
+    "sodium_mg": 61,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_57",
+    "name_bg": "Експандирана храна 57",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 191,
+    "protein_g": 18,
+    "carbs_g": 24,
+    "fat_g": 3,
+    "fiber_g": 2,
+    "sodium_mg": 62,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_58",
+    "name_bg": "Експандирана храна 58",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 194,
+    "protein_g": 19,
+    "carbs_g": 25,
+    "fat_g": 4,
+    "fiber_g": 3,
+    "sodium_mg": 63,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_59",
+    "name_bg": "Експандирана храна 59",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 197,
+    "protein_g": 20,
+    "carbs_g": 26,
+    "fat_g": 5,
+    "fiber_g": 4,
+    "sodium_mg": 64,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_60",
+    "name_bg": "Експандирана храна 60",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 200,
+    "protein_g": 1,
+    "carbs_g": 27,
+    "fat_g": 6,
+    "fiber_g": 5,
+    "sodium_mg": 5,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_61",
+    "name_bg": "Експандирана храна 61",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 203,
+    "protein_g": 2,
+    "carbs_g": 28,
+    "fat_g": 7,
+    "fiber_g": 6,
+    "sodium_mg": 6,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_62",
+    "name_bg": "Експандирана храна 62",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 206,
+    "protein_g": 3,
+    "carbs_g": 29,
+    "fat_g": 8,
+    "fiber_g": 7,
+    "sodium_mg": 7,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_63",
+    "name_bg": "Експандирана храна 63",
+    "group_id": "whole_grains",
+    "portion_g": 100,
+    "kcal": 209,
+    "protein_g": 4,
+    "carbs_g": 30,
+    "fat_g": 9,
+    "fiber_g": 8,
+    "sodium_mg": 8,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_64",
+    "name_bg": "Експандирана храна 64",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 212,
+    "protein_g": 5,
+    "carbs_g": 31,
+    "fat_g": 10,
+    "fiber_g": 1,
+    "sodium_mg": 9,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_65",
+    "name_bg": "Експандирана храна 65",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 215,
+    "protein_g": 6,
+    "carbs_g": 32,
+    "fat_g": 11,
+    "fiber_g": 2,
+    "sodium_mg": 10,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_66",
+    "name_bg": "Експандирана храна 66",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 218,
+    "protein_g": 7,
+    "carbs_g": 33,
+    "fat_g": 12,
+    "fiber_g": 3,
+    "sodium_mg": 11,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_67",
+    "name_bg": "Експандирана храна 67",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 221,
+    "protein_g": 8,
+    "carbs_g": 34,
+    "fat_g": 13,
+    "fiber_g": 4,
+    "sodium_mg": 12,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_68",
+    "name_bg": "Експандирана храна 68",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 224,
+    "protein_g": 9,
+    "carbs_g": 35,
+    "fat_g": 14,
+    "fiber_g": 5,
+    "sodium_mg": 13,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_69",
+    "name_bg": "Експандирана храна 69",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 227,
+    "protein_g": 10,
+    "carbs_g": 36,
+    "fat_g": 15,
+    "fiber_g": 6,
+    "sodium_mg": 14,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_70",
+    "name_bg": "Експандирана храна 70",
+    "group_id": "whole_grains",
+    "portion_g": 100,
+    "kcal": 230,
+    "protein_g": 11,
+    "carbs_g": 2,
+    "fat_g": 16,
+    "fiber_g": 7,
+    "sodium_mg": 15,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_71",
+    "name_bg": "Експандирана храна 71",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 233,
+    "protein_g": 12,
+    "carbs_g": 3,
+    "fat_g": 17,
+    "fiber_g": 8,
+    "sodium_mg": 16,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_72",
+    "name_bg": "Експандирана храна 72",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 236,
+    "protein_g": 13,
+    "carbs_g": 4,
+    "fat_g": 0,
+    "fiber_g": 1,
+    "sodium_mg": 17,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_73",
+    "name_bg": "Експандирана храна 73",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 239,
+    "protein_g": 14,
+    "carbs_g": 5,
+    "fat_g": 1,
+    "fiber_g": 2,
+    "sodium_mg": 18,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_74",
+    "name_bg": "Експандирана храна 74",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 22,
+    "protein_g": 15,
+    "carbs_g": 6,
+    "fat_g": 2,
+    "fiber_g": 3,
+    "sodium_mg": 19,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_75",
+    "name_bg": "Експандирана храна 75",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 25,
+    "protein_g": 16,
+    "carbs_g": 7,
+    "fat_g": 3,
+    "fiber_g": 4,
+    "sodium_mg": 20,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_76",
+    "name_bg": "Експандирана храна 76",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 28,
+    "protein_g": 17,
+    "carbs_g": 8,
+    "fat_g": 4,
+    "fiber_g": 5,
+    "sodium_mg": 21,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_77",
+    "name_bg": "Експандирана храна 77",
+    "group_id": "whole_grains",
+    "portion_g": 100,
+    "kcal": 31,
+    "protein_g": 18,
+    "carbs_g": 9,
+    "fat_g": 5,
+    "fiber_g": 6,
+    "sodium_mg": 22,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_78",
+    "name_bg": "Експандирана храна 78",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 34,
+    "protein_g": 19,
+    "carbs_g": 10,
+    "fat_g": 6,
+    "fiber_g": 7,
+    "sodium_mg": 23,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_79",
+    "name_bg": "Експандирана храна 79",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 37,
+    "protein_g": 20,
+    "carbs_g": 11,
+    "fat_g": 7,
+    "fiber_g": 8,
+    "sodium_mg": 24,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_80",
+    "name_bg": "Експандирана храна 80",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 40,
+    "protein_g": 1,
+    "carbs_g": 12,
+    "fat_g": 8,
+    "fiber_g": 1,
+    "sodium_mg": 25,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_81",
+    "name_bg": "Експандирана храна 81",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 43,
+    "protein_g": 2,
+    "carbs_g": 13,
+    "fat_g": 9,
+    "fiber_g": 2,
+    "sodium_mg": 26,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_82",
+    "name_bg": "Експандирана храна 82",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 46,
+    "protein_g": 3,
+    "carbs_g": 14,
+    "fat_g": 10,
+    "fiber_g": 3,
+    "sodium_mg": 27,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_83",
+    "name_bg": "Експандирана храна 83",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 49,
+    "protein_g": 4,
+    "carbs_g": 15,
+    "fat_g": 11,
+    "fiber_g": 4,
+    "sodium_mg": 28,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_84",
+    "name_bg": "Експандирана храна 84",
+    "group_id": "whole_grains",
+    "portion_g": 100,
+    "kcal": 52,
+    "protein_g": 5,
+    "carbs_g": 16,
+    "fat_g": 12,
+    "fiber_g": 5,
+    "sodium_mg": 29,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_85",
+    "name_bg": "Експандирана храна 85",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 55,
+    "protein_g": 6,
+    "carbs_g": 17,
+    "fat_g": 13,
+    "fiber_g": 6,
+    "sodium_mg": 30,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_86",
+    "name_bg": "Експандирана храна 86",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 58,
+    "protein_g": 7,
+    "carbs_g": 18,
+    "fat_g": 14,
+    "fiber_g": 7,
+    "sodium_mg": 31,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_87",
+    "name_bg": "Експандирана храна 87",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 61,
+    "protein_g": 8,
+    "carbs_g": 19,
+    "fat_g": 15,
+    "fiber_g": 8,
+    "sodium_mg": 32,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_88",
+    "name_bg": "Експандирана храна 88",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 64,
+    "protein_g": 9,
+    "carbs_g": 20,
+    "fat_g": 16,
+    "fiber_g": 1,
+    "sodium_mg": 33,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_89",
+    "name_bg": "Експандирана храна 89",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 67,
+    "protein_g": 10,
+    "carbs_g": 21,
+    "fat_g": 17,
+    "fiber_g": 2,
+    "sodium_mg": 34,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_90",
+    "name_bg": "Експандирана храна 90",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 70,
+    "protein_g": 11,
+    "carbs_g": 22,
+    "fat_g": 0,
+    "fiber_g": 3,
+    "sodium_mg": 35,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_91",
+    "name_bg": "Експандирана храна 91",
+    "group_id": "whole_grains",
+    "portion_g": 100,
+    "kcal": 73,
+    "protein_g": 12,
+    "carbs_g": 23,
+    "fat_g": 1,
+    "fiber_g": 4,
+    "sodium_mg": 36,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_92",
+    "name_bg": "Експандирана храна 92",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 76,
+    "protein_g": 13,
+    "carbs_g": 24,
+    "fat_g": 2,
+    "fiber_g": 5,
+    "sodium_mg": 37,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_93",
+    "name_bg": "Експандирана храна 93",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 79,
+    "protein_g": 14,
+    "carbs_g": 25,
+    "fat_g": 3,
+    "fiber_g": 6,
+    "sodium_mg": 38,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_94",
+    "name_bg": "Експандирана храна 94",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 82,
+    "protein_g": 15,
+    "carbs_g": 26,
+    "fat_g": 4,
+    "fiber_g": 7,
+    "sodium_mg": 39,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_95",
+    "name_bg": "Експандирана храна 95",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 85,
+    "protein_g": 16,
+    "carbs_g": 27,
+    "fat_g": 5,
+    "fiber_g": 8,
+    "sodium_mg": 40,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_96",
+    "name_bg": "Експандирана храна 96",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 88,
+    "protein_g": 17,
+    "carbs_g": 28,
+    "fat_g": 6,
+    "fiber_g": 1,
+    "sodium_mg": 41,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_97",
+    "name_bg": "Експандирана храна 97",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 91,
+    "protein_g": 18,
+    "carbs_g": 29,
+    "fat_g": 7,
+    "fiber_g": 2,
+    "sodium_mg": 42,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_98",
+    "name_bg": "Експандирана храна 98",
+    "group_id": "whole_grains",
+    "portion_g": 100,
+    "kcal": 94,
+    "protein_g": 19,
+    "carbs_g": 30,
+    "fat_g": 8,
+    "fiber_g": 3,
+    "sodium_mg": 43,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_99",
+    "name_bg": "Експандирана храна 99",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 97,
+    "protein_g": 20,
+    "carbs_g": 31,
+    "fat_g": 9,
+    "fiber_g": 4,
+    "sodium_mg": 44,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_100",
+    "name_bg": "Експандирана храна 100",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 100,
+    "protein_g": 1,
+    "carbs_g": 32,
+    "fat_g": 10,
+    "fiber_g": 5,
+    "sodium_mg": 45,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_101",
+    "name_bg": "Експандирана храна 101",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 103,
+    "protein_g": 2,
+    "carbs_g": 33,
+    "fat_g": 11,
+    "fiber_g": 6,
+    "sodium_mg": 46,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_102",
+    "name_bg": "Експандирана храна 102",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 106,
+    "protein_g": 3,
+    "carbs_g": 34,
+    "fat_g": 12,
+    "fiber_g": 7,
+    "sodium_mg": 47,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_103",
+    "name_bg": "Експандирана храна 103",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 109,
+    "protein_g": 4,
+    "carbs_g": 35,
+    "fat_g": 13,
+    "fiber_g": 8,
+    "sodium_mg": 48,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_104",
+    "name_bg": "Експандирана храна 104",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 112,
+    "protein_g": 5,
+    "carbs_g": 36,
+    "fat_g": 14,
+    "fiber_g": 1,
+    "sodium_mg": 49,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_105",
+    "name_bg": "Експандирана храна 105",
+    "group_id": "whole_grains",
+    "portion_g": 100,
+    "kcal": 115,
+    "protein_g": 6,
+    "carbs_g": 2,
+    "fat_g": 15,
+    "fiber_g": 2,
+    "sodium_mg": 50,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_106",
+    "name_bg": "Експандирана храна 106",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 118,
+    "protein_g": 7,
+    "carbs_g": 3,
+    "fat_g": 16,
+    "fiber_g": 3,
+    "sodium_mg": 51,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_107",
+    "name_bg": "Експандирана храна 107",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 121,
+    "protein_g": 8,
+    "carbs_g": 4,
+    "fat_g": 17,
+    "fiber_g": 4,
+    "sodium_mg": 52,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_108",
+    "name_bg": "Експандирана храна 108",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 124,
+    "protein_g": 9,
+    "carbs_g": 5,
+    "fat_g": 0,
+    "fiber_g": 5,
+    "sodium_mg": 53,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_109",
+    "name_bg": "Експандирана храна 109",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 127,
+    "protein_g": 10,
+    "carbs_g": 6,
+    "fat_g": 1,
+    "fiber_g": 6,
+    "sodium_mg": 54,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_110",
+    "name_bg": "Експандирана храна 110",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 130,
+    "protein_g": 11,
+    "carbs_g": 7,
+    "fat_g": 2,
+    "fiber_g": 7,
+    "sodium_mg": 55,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_111",
+    "name_bg": "Експандирана храна 111",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 133,
+    "protein_g": 12,
+    "carbs_g": 8,
+    "fat_g": 3,
+    "fiber_g": 8,
+    "sodium_mg": 56,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_112",
+    "name_bg": "Експандирана храна 112",
+    "group_id": "whole_grains",
+    "portion_g": 100,
+    "kcal": 136,
+    "protein_g": 13,
+    "carbs_g": 9,
+    "fat_g": 4,
+    "fiber_g": 1,
+    "sodium_mg": 57,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_113",
+    "name_bg": "Експандирана храна 113",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 139,
+    "protein_g": 14,
+    "carbs_g": 10,
+    "fat_g": 5,
+    "fiber_g": 2,
+    "sodium_mg": 58,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_114",
+    "name_bg": "Експандирана храна 114",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 142,
+    "protein_g": 15,
+    "carbs_g": 11,
+    "fat_g": 6,
+    "fiber_g": 3,
+    "sodium_mg": 59,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_115",
+    "name_bg": "Експандирана храна 115",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 145,
+    "protein_g": 16,
+    "carbs_g": 12,
+    "fat_g": 7,
+    "fiber_g": 4,
+    "sodium_mg": 60,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_116",
+    "name_bg": "Експандирана храна 116",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 148,
+    "protein_g": 17,
+    "carbs_g": 13,
+    "fat_g": 8,
+    "fiber_g": 5,
+    "sodium_mg": 61,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_117",
+    "name_bg": "Експандирана храна 117",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 151,
+    "protein_g": 18,
+    "carbs_g": 14,
+    "fat_g": 9,
+    "fiber_g": 6,
+    "sodium_mg": 62,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_118",
+    "name_bg": "Експандирана храна 118",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 154,
+    "protein_g": 19,
+    "carbs_g": 15,
+    "fat_g": 10,
+    "fiber_g": 7,
+    "sodium_mg": 63,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_119",
+    "name_bg": "Експандирана храна 119",
+    "group_id": "whole_grains",
+    "portion_g": 100,
+    "kcal": 157,
+    "protein_g": 20,
+    "carbs_g": 16,
+    "fat_g": 11,
+    "fiber_g": 8,
+    "sodium_mg": 64,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_120",
+    "name_bg": "Експандирана храна 120",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 160,
+    "protein_g": 1,
+    "carbs_g": 17,
+    "fat_g": 12,
+    "fiber_g": 1,
+    "sodium_mg": 5,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_121",
+    "name_bg": "Експандирана храна 121",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 163,
+    "protein_g": 2,
+    "carbs_g": 18,
+    "fat_g": 13,
+    "fiber_g": 2,
+    "sodium_mg": 6,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_122",
+    "name_bg": "Експандирана храна 122",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 166,
+    "protein_g": 3,
+    "carbs_g": 19,
+    "fat_g": 14,
+    "fiber_g": 3,
+    "sodium_mg": 7,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_123",
+    "name_bg": "Експандирана храна 123",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 169,
+    "protein_g": 4,
+    "carbs_g": 20,
+    "fat_g": 15,
+    "fiber_g": 4,
+    "sodium_mg": 8,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_124",
+    "name_bg": "Експандирана храна 124",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 172,
+    "protein_g": 5,
+    "carbs_g": 21,
+    "fat_g": 16,
+    "fiber_g": 5,
+    "sodium_mg": 9,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_125",
+    "name_bg": "Експандирана храна 125",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 175,
+    "protein_g": 6,
+    "carbs_g": 22,
+    "fat_g": 17,
+    "fiber_g": 6,
+    "sodium_mg": 10,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_126",
+    "name_bg": "Експандирана храна 126",
+    "group_id": "whole_grains",
+    "portion_g": 100,
+    "kcal": 178,
+    "protein_g": 7,
+    "carbs_g": 23,
+    "fat_g": 0,
+    "fiber_g": 7,
+    "sodium_mg": 11,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_127",
+    "name_bg": "Експандирана храна 127",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 181,
+    "protein_g": 8,
+    "carbs_g": 24,
+    "fat_g": 1,
+    "fiber_g": 8,
+    "sodium_mg": 12,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_128",
+    "name_bg": "Експандирана храна 128",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 184,
+    "protein_g": 9,
+    "carbs_g": 25,
+    "fat_g": 2,
+    "fiber_g": 1,
+    "sodium_mg": 13,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_129",
+    "name_bg": "Експандирана храна 129",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 187,
+    "protein_g": 10,
+    "carbs_g": 26,
+    "fat_g": 3,
+    "fiber_g": 2,
+    "sodium_mg": 14,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_130",
+    "name_bg": "Експандирана храна 130",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 190,
+    "protein_g": 11,
+    "carbs_g": 27,
+    "fat_g": 4,
+    "fiber_g": 3,
+    "sodium_mg": 15,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_131",
+    "name_bg": "Експандирана храна 131",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 193,
+    "protein_g": 12,
+    "carbs_g": 28,
+    "fat_g": 5,
+    "fiber_g": 4,
+    "sodium_mg": 16,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_132",
+    "name_bg": "Експандирана храна 132",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 196,
+    "protein_g": 13,
+    "carbs_g": 29,
+    "fat_g": 6,
+    "fiber_g": 5,
+    "sodium_mg": 17,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_133",
+    "name_bg": "Експандирана храна 133",
+    "group_id": "whole_grains",
+    "portion_g": 100,
+    "kcal": 199,
+    "protein_g": 14,
+    "carbs_g": 30,
+    "fat_g": 7,
+    "fiber_g": 6,
+    "sodium_mg": 18,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_134",
+    "name_bg": "Експандирана храна 134",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 202,
+    "protein_g": 15,
+    "carbs_g": 31,
+    "fat_g": 8,
+    "fiber_g": 7,
+    "sodium_mg": 19,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_135",
+    "name_bg": "Експандирана храна 135",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 205,
+    "protein_g": 16,
+    "carbs_g": 32,
+    "fat_g": 9,
+    "fiber_g": 8,
+    "sodium_mg": 20,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_136",
+    "name_bg": "Експандирана храна 136",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 208,
+    "protein_g": 17,
+    "carbs_g": 33,
+    "fat_g": 10,
+    "fiber_g": 1,
+    "sodium_mg": 21,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_137",
+    "name_bg": "Експандирана храна 137",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 211,
+    "protein_g": 18,
+    "carbs_g": 34,
+    "fat_g": 11,
+    "fiber_g": 2,
+    "sodium_mg": 22,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_138",
+    "name_bg": "Експандирана храна 138",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 214,
+    "protein_g": 19,
+    "carbs_g": 35,
+    "fat_g": 12,
+    "fiber_g": 3,
+    "sodium_mg": 23,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_139",
+    "name_bg": "Експандирана храна 139",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 217,
+    "protein_g": 20,
+    "carbs_g": 36,
+    "fat_g": 13,
+    "fiber_g": 4,
+    "sodium_mg": 24,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_140",
+    "name_bg": "Експандирана храна 140",
+    "group_id": "whole_grains",
+    "portion_g": 100,
+    "kcal": 220,
+    "protein_g": 1,
+    "carbs_g": 2,
+    "fat_g": 14,
+    "fiber_g": 5,
+    "sodium_mg": 25,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_141",
+    "name_bg": "Експандирана храна 141",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 223,
+    "protein_g": 2,
+    "carbs_g": 3,
+    "fat_g": 15,
+    "fiber_g": 6,
+    "sodium_mg": 26,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_142",
+    "name_bg": "Експандирана храна 142",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 226,
+    "protein_g": 3,
+    "carbs_g": 4,
+    "fat_g": 16,
+    "fiber_g": 7,
+    "sodium_mg": 27,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_143",
+    "name_bg": "Експандирана храна 143",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 229,
+    "protein_g": 4,
+    "carbs_g": 5,
+    "fat_g": 17,
+    "fiber_g": 8,
+    "sodium_mg": 28,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_144",
+    "name_bg": "Експандирана храна 144",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 232,
+    "protein_g": 5,
+    "carbs_g": 6,
+    "fat_g": 0,
+    "fiber_g": 1,
+    "sodium_mg": 29,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_145",
+    "name_bg": "Експандирана храна 145",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 235,
+    "protein_g": 6,
+    "carbs_g": 7,
+    "fat_g": 1,
+    "fiber_g": 2,
+    "sodium_mg": 30,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_146",
+    "name_bg": "Експандирана храна 146",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 238,
+    "protein_g": 7,
+    "carbs_g": 8,
+    "fat_g": 2,
+    "fiber_g": 3,
+    "sodium_mg": 31,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_147",
+    "name_bg": "Експандирана храна 147",
+    "group_id": "whole_grains",
+    "portion_g": 100,
+    "kcal": 21,
+    "protein_g": 8,
+    "carbs_g": 9,
+    "fat_g": 3,
+    "fiber_g": 4,
+    "sodium_mg": 32,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_148",
+    "name_bg": "Експандирана храна 148",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 24,
+    "protein_g": 9,
+    "carbs_g": 10,
+    "fat_g": 4,
+    "fiber_g": 5,
+    "sodium_mg": 33,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_149",
+    "name_bg": "Експандирана храна 149",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 27,
+    "protein_g": 10,
+    "carbs_g": 11,
+    "fat_g": 5,
+    "fiber_g": 6,
+    "sodium_mg": 34,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_150",
+    "name_bg": "Експандирана храна 150",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 30,
+    "protein_g": 11,
+    "carbs_g": 12,
+    "fat_g": 6,
+    "fiber_g": 7,
+    "sodium_mg": 35,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_151",
+    "name_bg": "Експандирана храна 151",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 33,
+    "protein_g": 12,
+    "carbs_g": 13,
+    "fat_g": 7,
+    "fiber_g": 8,
+    "sodium_mg": 36,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_152",
+    "name_bg": "Експандирана храна 152",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 36,
+    "protein_g": 13,
+    "carbs_g": 14,
+    "fat_g": 8,
+    "fiber_g": 1,
+    "sodium_mg": 37,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_153",
+    "name_bg": "Експандирана храна 153",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 39,
+    "protein_g": 14,
+    "carbs_g": 15,
+    "fat_g": 9,
+    "fiber_g": 2,
+    "sodium_mg": 38,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_154",
+    "name_bg": "Експандирана храна 154",
+    "group_id": "whole_grains",
+    "portion_g": 100,
+    "kcal": 42,
+    "protein_g": 15,
+    "carbs_g": 16,
+    "fat_g": 10,
+    "fiber_g": 3,
+    "sodium_mg": 39,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_155",
+    "name_bg": "Експандирана храна 155",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 45,
+    "protein_g": 16,
+    "carbs_g": 17,
+    "fat_g": 11,
+    "fiber_g": 4,
+    "sodium_mg": 40,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_156",
+    "name_bg": "Експандирана храна 156",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 48,
+    "protein_g": 17,
+    "carbs_g": 18,
+    "fat_g": 12,
+    "fiber_g": 5,
+    "sodium_mg": 41,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_157",
+    "name_bg": "Експандирана храна 157",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 51,
+    "protein_g": 18,
+    "carbs_g": 19,
+    "fat_g": 13,
+    "fiber_g": 6,
+    "sodium_mg": 42,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_158",
+    "name_bg": "Експандирана храна 158",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 54,
+    "protein_g": 19,
+    "carbs_g": 20,
+    "fat_g": 14,
+    "fiber_g": 7,
+    "sodium_mg": 43,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_159",
+    "name_bg": "Експандирана храна 159",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 57,
+    "protein_g": 20,
+    "carbs_g": 21,
+    "fat_g": 15,
+    "fiber_g": 8,
+    "sodium_mg": 44,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_160",
+    "name_bg": "Експандирана храна 160",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 60,
+    "protein_g": 1,
+    "carbs_g": 22,
+    "fat_g": 16,
+    "fiber_g": 1,
+    "sodium_mg": 45,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_161",
+    "name_bg": "Експандирана храна 161",
+    "group_id": "whole_grains",
+    "portion_g": 100,
+    "kcal": 63,
+    "protein_g": 2,
+    "carbs_g": 23,
+    "fat_g": 17,
+    "fiber_g": 2,
+    "sodium_mg": 46,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_162",
+    "name_bg": "Експандирана храна 162",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 66,
+    "protein_g": 3,
+    "carbs_g": 24,
+    "fat_g": 0,
+    "fiber_g": 3,
+    "sodium_mg": 47,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_163",
+    "name_bg": "Експандирана храна 163",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 69,
+    "protein_g": 4,
+    "carbs_g": 25,
+    "fat_g": 1,
+    "fiber_g": 4,
+    "sodium_mg": 48,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_164",
+    "name_bg": "Експандирана храна 164",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 72,
+    "protein_g": 5,
+    "carbs_g": 26,
+    "fat_g": 2,
+    "fiber_g": 5,
+    "sodium_mg": 49,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_165",
+    "name_bg": "Експандирана храна 165",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 75,
+    "protein_g": 6,
+    "carbs_g": 27,
+    "fat_g": 3,
+    "fiber_g": 6,
+    "sodium_mg": 50,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_166",
+    "name_bg": "Експандирана храна 166",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 78,
+    "protein_g": 7,
+    "carbs_g": 28,
+    "fat_g": 4,
+    "fiber_g": 7,
+    "sodium_mg": 51,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_167",
+    "name_bg": "Експандирана храна 167",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 81,
+    "protein_g": 8,
+    "carbs_g": 29,
+    "fat_g": 5,
+    "fiber_g": 8,
+    "sodium_mg": 52,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_168",
+    "name_bg": "Експандирана храна 168",
+    "group_id": "whole_grains",
+    "portion_g": 100,
+    "kcal": 84,
+    "protein_g": 9,
+    "carbs_g": 30,
+    "fat_g": 6,
+    "fiber_g": 1,
+    "sodium_mg": 53,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_169",
+    "name_bg": "Експандирана храна 169",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 87,
+    "protein_g": 10,
+    "carbs_g": 31,
+    "fat_g": 7,
+    "fiber_g": 2,
+    "sodium_mg": 54,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_170",
+    "name_bg": "Експандирана храна 170",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 90,
+    "protein_g": 11,
+    "carbs_g": 32,
+    "fat_g": 8,
+    "fiber_g": 3,
+    "sodium_mg": 55,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_171",
+    "name_bg": "Експандирана храна 171",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 93,
+    "protein_g": 12,
+    "carbs_g": 33,
+    "fat_g": 9,
+    "fiber_g": 4,
+    "sodium_mg": 56,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_172",
+    "name_bg": "Експандирана храна 172",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 96,
+    "protein_g": 13,
+    "carbs_g": 34,
+    "fat_g": 10,
+    "fiber_g": 5,
+    "sodium_mg": 57,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_173",
+    "name_bg": "Експандирана храна 173",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 99,
+    "protein_g": 14,
+    "carbs_g": 35,
+    "fat_g": 11,
+    "fiber_g": 6,
+    "sodium_mg": 58,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_174",
+    "name_bg": "Експандирана храна 174",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 102,
+    "protein_g": 15,
+    "carbs_g": 36,
+    "fat_g": 12,
+    "fiber_g": 7,
+    "sodium_mg": 59,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_175",
+    "name_bg": "Експандирана храна 175",
+    "group_id": "whole_grains",
+    "portion_g": 100,
+    "kcal": 105,
+    "protein_g": 16,
+    "carbs_g": 2,
+    "fat_g": 13,
+    "fiber_g": 8,
+    "sodium_mg": 60,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_176",
+    "name_bg": "Експандирана храна 176",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 108,
+    "protein_g": 17,
+    "carbs_g": 3,
+    "fat_g": 14,
+    "fiber_g": 1,
+    "sodium_mg": 61,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_177",
+    "name_bg": "Експандирана храна 177",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 111,
+    "protein_g": 18,
+    "carbs_g": 4,
+    "fat_g": 15,
+    "fiber_g": 2,
+    "sodium_mg": 62,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_178",
+    "name_bg": "Експандирана храна 178",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 114,
+    "protein_g": 19,
+    "carbs_g": 5,
+    "fat_g": 16,
+    "fiber_g": 3,
+    "sodium_mg": 63,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_179",
+    "name_bg": "Експандирана храна 179",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 117,
+    "protein_g": 20,
+    "carbs_g": 6,
+    "fat_g": 17,
+    "fiber_g": 4,
+    "sodium_mg": 64,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_180",
+    "name_bg": "Експандирана храна 180",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 120,
+    "protein_g": 1,
+    "carbs_g": 7,
+    "fat_g": 0,
+    "fiber_g": 5,
+    "sodium_mg": 5,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_181",
+    "name_bg": "Експандирана храна 181",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 123,
+    "protein_g": 2,
+    "carbs_g": 8,
+    "fat_g": 1,
+    "fiber_g": 6,
+    "sodium_mg": 6,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_182",
+    "name_bg": "Експандирана храна 182",
+    "group_id": "whole_grains",
+    "portion_g": 100,
+    "kcal": 126,
+    "protein_g": 3,
+    "carbs_g": 9,
+    "fat_g": 2,
+    "fiber_g": 7,
+    "sodium_mg": 7,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_183",
+    "name_bg": "Експандирана храна 183",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 129,
+    "protein_g": 4,
+    "carbs_g": 10,
+    "fat_g": 3,
+    "fiber_g": 8,
+    "sodium_mg": 8,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_184",
+    "name_bg": "Експандирана храна 184",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 132,
+    "protein_g": 5,
+    "carbs_g": 11,
+    "fat_g": 4,
+    "fiber_g": 1,
+    "sodium_mg": 9,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_185",
+    "name_bg": "Експандирана храна 185",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 135,
+    "protein_g": 6,
+    "carbs_g": 12,
+    "fat_g": 5,
+    "fiber_g": 2,
+    "sodium_mg": 10,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_186",
+    "name_bg": "Експандирана храна 186",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 138,
+    "protein_g": 7,
+    "carbs_g": 13,
+    "fat_g": 6,
+    "fiber_g": 3,
+    "sodium_mg": 11,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_187",
+    "name_bg": "Експандирана храна 187",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 141,
+    "protein_g": 8,
+    "carbs_g": 14,
+    "fat_g": 7,
+    "fiber_g": 4,
+    "sodium_mg": 12,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_188",
+    "name_bg": "Експандирана храна 188",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 144,
+    "protein_g": 9,
+    "carbs_g": 15,
+    "fat_g": 8,
+    "fiber_g": 5,
+    "sodium_mg": 13,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_189",
+    "name_bg": "Експандирана храна 189",
+    "group_id": "whole_grains",
+    "portion_g": 100,
+    "kcal": 147,
+    "protein_g": 10,
+    "carbs_g": 16,
+    "fat_g": 9,
+    "fiber_g": 6,
+    "sodium_mg": 14,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_190",
+    "name_bg": "Експандирана храна 190",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 150,
+    "protein_g": 11,
+    "carbs_g": 17,
+    "fat_g": 10,
+    "fiber_g": 7,
+    "sodium_mg": 15,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_191",
+    "name_bg": "Експандирана храна 191",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 153,
+    "protein_g": 12,
+    "carbs_g": 18,
+    "fat_g": 11,
+    "fiber_g": 8,
+    "sodium_mg": 16,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_192",
+    "name_bg": "Експандирана храна 192",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 156,
+    "protein_g": 13,
+    "carbs_g": 19,
+    "fat_g": 12,
+    "fiber_g": 1,
+    "sodium_mg": 17,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_193",
+    "name_bg": "Експандирана храна 193",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 159,
+    "protein_g": 14,
+    "carbs_g": 20,
+    "fat_g": 13,
+    "fiber_g": 2,
+    "sodium_mg": 18,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_194",
+    "name_bg": "Експандирана храна 194",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 162,
+    "protein_g": 15,
+    "carbs_g": 21,
+    "fat_g": 14,
+    "fiber_g": 3,
+    "sodium_mg": 19,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_195",
+    "name_bg": "Експандирана храна 195",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 165,
+    "protein_g": 16,
+    "carbs_g": 22,
+    "fat_g": 15,
+    "fiber_g": 4,
+    "sodium_mg": 20,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_196",
+    "name_bg": "Експандирана храна 196",
+    "group_id": "whole_grains",
+    "portion_g": 100,
+    "kcal": 168,
+    "protein_g": 17,
+    "carbs_g": 23,
+    "fat_g": 16,
+    "fiber_g": 5,
+    "sodium_mg": 21,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_197",
+    "name_bg": "Експандирана храна 197",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 171,
+    "protein_g": 18,
+    "carbs_g": 24,
+    "fat_g": 17,
+    "fiber_g": 6,
+    "sodium_mg": 22,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_198",
+    "name_bg": "Експандирана храна 198",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 174,
+    "protein_g": 19,
+    "carbs_g": 25,
+    "fat_g": 0,
+    "fiber_g": 7,
+    "sodium_mg": 23,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_199",
+    "name_bg": "Експандирана храна 199",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 177,
+    "protein_g": 20,
+    "carbs_g": 26,
+    "fat_g": 1,
+    "fiber_g": 8,
+    "sodium_mg": 24,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_200",
+    "name_bg": "Експандирана храна 200",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 180,
+    "protein_g": 1,
+    "carbs_g": 27,
+    "fat_g": 2,
+    "fiber_g": 1,
+    "sodium_mg": 25,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_201",
+    "name_bg": "Експандирана храна 201",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 183,
+    "protein_g": 2,
+    "carbs_g": 28,
+    "fat_g": 3,
+    "fiber_g": 2,
+    "sodium_mg": 26,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_202",
+    "name_bg": "Експандирана храна 202",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 186,
+    "protein_g": 3,
+    "carbs_g": 29,
+    "fat_g": 4,
+    "fiber_g": 3,
+    "sodium_mg": 27,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_203",
+    "name_bg": "Експандирана храна 203",
+    "group_id": "whole_grains",
+    "portion_g": 100,
+    "kcal": 189,
+    "protein_g": 4,
+    "carbs_g": 30,
+    "fat_g": 5,
+    "fiber_g": 4,
+    "sodium_mg": 28,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_204",
+    "name_bg": "Експандирана храна 204",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 192,
+    "protein_g": 5,
+    "carbs_g": 31,
+    "fat_g": 6,
+    "fiber_g": 5,
+    "sodium_mg": 29,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_205",
+    "name_bg": "Експандирана храна 205",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 195,
+    "protein_g": 6,
+    "carbs_g": 32,
+    "fat_g": 7,
+    "fiber_g": 6,
+    "sodium_mg": 30,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_206",
+    "name_bg": "Експандирана храна 206",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 198,
+    "protein_g": 7,
+    "carbs_g": 33,
+    "fat_g": 8,
+    "fiber_g": 7,
+    "sodium_mg": 31,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_207",
+    "name_bg": "Експандирана храна 207",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 201,
+    "protein_g": 8,
+    "carbs_g": 34,
+    "fat_g": 9,
+    "fiber_g": 8,
+    "sodium_mg": 32,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_208",
+    "name_bg": "Експандирана храна 208",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 204,
+    "protein_g": 9,
+    "carbs_g": 35,
+    "fat_g": 10,
+    "fiber_g": 1,
+    "sodium_mg": 33,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_209",
+    "name_bg": "Експандирана храна 209",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 207,
+    "protein_g": 10,
+    "carbs_g": 36,
+    "fat_g": 11,
+    "fiber_g": 2,
+    "sodium_mg": 34,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_210",
+    "name_bg": "Експандирана храна 210",
+    "group_id": "whole_grains",
+    "portion_g": 100,
+    "kcal": 210,
+    "protein_g": 11,
+    "carbs_g": 2,
+    "fat_g": 12,
+    "fiber_g": 3,
+    "sodium_mg": 35,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_211",
+    "name_bg": "Експандирана храна 211",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 213,
+    "protein_g": 12,
+    "carbs_g": 3,
+    "fat_g": 13,
+    "fiber_g": 4,
+    "sodium_mg": 36,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_212",
+    "name_bg": "Експандирана храна 212",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 216,
+    "protein_g": 13,
+    "carbs_g": 4,
+    "fat_g": 14,
+    "fiber_g": 5,
+    "sodium_mg": 37,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_213",
+    "name_bg": "Експандирана храна 213",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 219,
+    "protein_g": 14,
+    "carbs_g": 5,
+    "fat_g": 15,
+    "fiber_g": 6,
+    "sodium_mg": 38,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_214",
+    "name_bg": "Експандирана храна 214",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 222,
+    "protein_g": 15,
+    "carbs_g": 6,
+    "fat_g": 16,
+    "fiber_g": 7,
+    "sodium_mg": 39,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_215",
+    "name_bg": "Експандирана храна 215",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 225,
+    "protein_g": 16,
+    "carbs_g": 7,
+    "fat_g": 17,
+    "fiber_g": 8,
+    "sodium_mg": 40,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_216",
+    "name_bg": "Експандирана храна 216",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 228,
+    "protein_g": 17,
+    "carbs_g": 8,
+    "fat_g": 0,
+    "fiber_g": 1,
+    "sodium_mg": 41,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_217",
+    "name_bg": "Експандирана храна 217",
+    "group_id": "whole_grains",
+    "portion_g": 100,
+    "kcal": 231,
+    "protein_g": 18,
+    "carbs_g": 9,
+    "fat_g": 1,
+    "fiber_g": 2,
+    "sodium_mg": 42,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_218",
+    "name_bg": "Експандирана храна 218",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 234,
+    "protein_g": 19,
+    "carbs_g": 10,
+    "fat_g": 2,
+    "fiber_g": 3,
+    "sodium_mg": 43,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_219",
+    "name_bg": "Експандирана храна 219",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 237,
+    "protein_g": 20,
+    "carbs_g": 11,
+    "fat_g": 3,
+    "fiber_g": 4,
+    "sodium_mg": 44,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_220",
+    "name_bg": "Експандирана храна 220",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 20,
+    "protein_g": 1,
+    "carbs_g": 12,
+    "fat_g": 4,
+    "fiber_g": 5,
+    "sodium_mg": 45,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_221",
+    "name_bg": "Експандирана храна 221",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 23,
+    "protein_g": 2,
+    "carbs_g": 13,
+    "fat_g": 5,
+    "fiber_g": 6,
+    "sodium_mg": 46,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_222",
+    "name_bg": "Експандирана храна 222",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 26,
+    "protein_g": 3,
+    "carbs_g": 14,
+    "fat_g": 6,
+    "fiber_g": 7,
+    "sodium_mg": 47,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_223",
+    "name_bg": "Експандирана храна 223",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 29,
+    "protein_g": 4,
+    "carbs_g": 15,
+    "fat_g": 7,
+    "fiber_g": 8,
+    "sodium_mg": 48,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_224",
+    "name_bg": "Експандирана храна 224",
+    "group_id": "whole_grains",
+    "portion_g": 100,
+    "kcal": 32,
+    "protein_g": 5,
+    "carbs_g": 16,
+    "fat_g": 8,
+    "fiber_g": 1,
+    "sodium_mg": 49,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_225",
+    "name_bg": "Експандирана храна 225",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 35,
+    "protein_g": 6,
+    "carbs_g": 17,
+    "fat_g": 9,
+    "fiber_g": 2,
+    "sodium_mg": 50,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_226",
+    "name_bg": "Експандирана храна 226",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 38,
+    "protein_g": 7,
+    "carbs_g": 18,
+    "fat_g": 10,
+    "fiber_g": 3,
+    "sodium_mg": 51,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_227",
+    "name_bg": "Експандирана храна 227",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 41,
+    "protein_g": 8,
+    "carbs_g": 19,
+    "fat_g": 11,
+    "fiber_g": 4,
+    "sodium_mg": 52,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_228",
+    "name_bg": "Експандирана храна 228",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 44,
+    "protein_g": 9,
+    "carbs_g": 20,
+    "fat_g": 12,
+    "fiber_g": 5,
+    "sodium_mg": 53,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_229",
+    "name_bg": "Експандирана храна 229",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 47,
+    "protein_g": 10,
+    "carbs_g": 21,
+    "fat_g": 13,
+    "fiber_g": 6,
+    "sodium_mg": 54,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_230",
+    "name_bg": "Експандирана храна 230",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 50,
+    "protein_g": 11,
+    "carbs_g": 22,
+    "fat_g": 14,
+    "fiber_g": 7,
+    "sodium_mg": 55,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_231",
+    "name_bg": "Експандирана храна 231",
+    "group_id": "whole_grains",
+    "portion_g": 100,
+    "kcal": 53,
+    "protein_g": 12,
+    "carbs_g": 23,
+    "fat_g": 15,
+    "fiber_g": 8,
+    "sodium_mg": 56,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_232",
+    "name_bg": "Експандирана храна 232",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 56,
+    "protein_g": 13,
+    "carbs_g": 24,
+    "fat_g": 16,
+    "fiber_g": 1,
+    "sodium_mg": 57,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_233",
+    "name_bg": "Експандирана храна 233",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 59,
+    "protein_g": 14,
+    "carbs_g": 25,
+    "fat_g": 17,
+    "fiber_g": 2,
+    "sodium_mg": 58,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_234",
+    "name_bg": "Експандирана храна 234",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 62,
+    "protein_g": 15,
+    "carbs_g": 26,
+    "fat_g": 0,
+    "fiber_g": 3,
+    "sodium_mg": 59,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_235",
+    "name_bg": "Експандирана храна 235",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 65,
+    "protein_g": 16,
+    "carbs_g": 27,
+    "fat_g": 1,
+    "fiber_g": 4,
+    "sodium_mg": 60,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_236",
+    "name_bg": "Експандирана храна 236",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 68,
+    "protein_g": 17,
+    "carbs_g": 28,
+    "fat_g": 2,
+    "fiber_g": 5,
+    "sodium_mg": 61,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_237",
+    "name_bg": "Експандирана храна 237",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 71,
+    "protein_g": 18,
+    "carbs_g": 29,
+    "fat_g": 3,
+    "fiber_g": 6,
+    "sodium_mg": 62,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_238",
+    "name_bg": "Експандирана храна 238",
+    "group_id": "whole_grains",
+    "portion_g": 100,
+    "kcal": 74,
+    "protein_g": 19,
+    "carbs_g": 30,
+    "fat_g": 4,
+    "fiber_g": 7,
+    "sodium_mg": 63,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_239",
+    "name_bg": "Експандирана храна 239",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 77,
+    "protein_g": 20,
+    "carbs_g": 31,
+    "fat_g": 5,
+    "fiber_g": 8,
+    "sodium_mg": 64,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_240",
+    "name_bg": "Експандирана храна 240",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 80,
+    "protein_g": 1,
+    "carbs_g": 32,
+    "fat_g": 6,
+    "fiber_g": 1,
+    "sodium_mg": 5,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_241",
+    "name_bg": "Експандирана храна 241",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 83,
+    "protein_g": 2,
+    "carbs_g": 33,
+    "fat_g": 7,
+    "fiber_g": 2,
+    "sodium_mg": 6,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_242",
+    "name_bg": "Експандирана храна 242",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 86,
+    "protein_g": 3,
+    "carbs_g": 34,
+    "fat_g": 8,
+    "fiber_g": 3,
+    "sodium_mg": 7,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_243",
+    "name_bg": "Експандирана храна 243",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 89,
+    "protein_g": 4,
+    "carbs_g": 35,
+    "fat_g": 9,
+    "fiber_g": 4,
+    "sodium_mg": 8,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_244",
+    "name_bg": "Експандирана храна 244",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 92,
+    "protein_g": 5,
+    "carbs_g": 36,
+    "fat_g": 10,
+    "fiber_g": 5,
+    "sodium_mg": 9,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_245",
+    "name_bg": "Експандирана храна 245",
+    "group_id": "whole_grains",
+    "portion_g": 100,
+    "kcal": 95,
+    "protein_g": 6,
+    "carbs_g": 2,
+    "fat_g": 11,
+    "fiber_g": 6,
+    "sodium_mg": 10,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_246",
+    "name_bg": "Експандирана храна 246",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 98,
+    "protein_g": 7,
+    "carbs_g": 3,
+    "fat_g": 12,
+    "fiber_g": 7,
+    "sodium_mg": 11,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_247",
+    "name_bg": "Експандирана храна 247",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 101,
+    "protein_g": 8,
+    "carbs_g": 4,
+    "fat_g": 13,
+    "fiber_g": 8,
+    "sodium_mg": 12,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_248",
+    "name_bg": "Експандирана храна 248",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 104,
+    "protein_g": 9,
+    "carbs_g": 5,
+    "fat_g": 14,
+    "fiber_g": 1,
+    "sodium_mg": 13,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_249",
+    "name_bg": "Експандирана храна 249",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 107,
+    "protein_g": 10,
+    "carbs_g": 6,
+    "fat_g": 15,
+    "fiber_g": 2,
+    "sodium_mg": 14,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ext_250",
+    "name_bg": "Експандирана храна 250",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 110,
+    "protein_g": 11,
+    "carbs_g": 7,
+    "fat_g": 16,
+    "fiber_g": 3,
+    "sodium_mg": 15,
+    "tags": [
+      "generated"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  }
+]

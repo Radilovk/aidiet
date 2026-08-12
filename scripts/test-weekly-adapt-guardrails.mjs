@@ -1,7 +1,11 @@
 #!/usr/bin/env node
 import { buildAnalyticsSummary } from '../analytics-compression.js';
 import { buildGameData } from './plan-adequacy/fixtures/game-scenarios.mjs';
-import { clampAdaptationLevel, hasWeeklyStrategyRegenTriggers } from '../weekly-adapt-guardrails.mjs';
+import {
+  clampAdaptationLevel,
+  hasWeeklyStrategyRegenTriggers,
+  MIN_DAYS_FOR_GAMING_FLOOR,
+} from '../weekly-adapt-guardrails.mjs';
 
 const plan = {
   analysis: { Final_Calories: '2000 kcal/ден' },
@@ -27,5 +31,24 @@ check('hollow L1 mild week → 0', clampAdaptationLevel(1, { status: 'active', j
 check('hollow L1 junk week stays 1', clampAdaptationLevel(1, struggling, [], {}) === 1);
 check('L1 + calorieAdjust', clampAdaptationLevel(1, struggling, [], { calorieAdjust: 200 }) === 1);
 check('strategy trigger', hasWeeklyStrategyRegenTriggers({ weeklySchemeNotes: 'more protein' }));
+
+const lowAdh = {
+  status: 'active',
+  junk7: 2,
+  avgScore: 3,
+  adherence: 30,
+  daysRecorded: MIN_DAYS_FOR_GAMING_FLOOR,
+};
+check('low adherence floor ≥1', clampAdaptationLevel(0, lowAdh, [], {}) >= 1);
+check('low adherence ignored with thin sample', clampAdaptationLevel(0, { ...lowAdh, daysRecorded: 2 }, [], {}) === 0);
+
+const lowScore = {
+  status: 'active',
+  junk7: 1,
+  avgScore: 2,
+  adherence: 50,
+  daysRecorded: MIN_DAYS_FOR_GAMING_FLOOR,
+};
+check('low avgScore floor ≥1', clampAdaptationLevel(0, lowScore, [], {}) >= 1);
 
 console.log('weekly-adapt-guardrails: all passed');

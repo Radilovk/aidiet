@@ -153,10 +153,11 @@ var WEEKLY_SCHEME_SCHEMA = {
   required: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 };
 var PLAN_SYSTEM_INSTRUCTIONS = {
-  step1: "\u041A\u043B\u0438\u043D\u0438\u0447\u0435\u043D \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433, \u0435\u043D\u0434\u043E\u043A\u0440\u0438\u043D\u043E\u043B\u043E\u0433 \u0438 \u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. bmr \u0438 tdee \u0441\u0430 \u043E\u0442 \u0431\u0435\u043A\u0435\u043D\u0434\u0430 \u2014 \u043D\u0435 \u0433\u0438 \u043F\u0440\u0435\u0438\u0437\u0447\u0438\u0441\u043B\u044F\u0432\u0430\u0439. \u0418\u0433\u043D\u043E\u0440\u0438\u0440\u0430\u0439 recommendedCalories/macroRatios/macroGrams \u043E\u0442 backendCalculations. macroRatios \u0438 macroGrams \u2014 \u0441\u0430\u043C\u043E \u0447\u0438\u0441\u043B\u0430.",
+  step1: "\u041A\u043B\u0438\u043D\u0438\u0447\u0435\u043D \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433, \u0435\u043D\u0434\u043E\u043A\u0440\u0438\u043D\u043E\u043B\u043E\u0433 \u0438 \u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. bmr, tdee, Final_Calories, macroRatios \u0438 macroGrams \u0441\u0435 \u0437\u0430\u0434\u0430\u0432\u0430\u0442 \u043E\u0442 \u0431\u0435\u043A\u0435\u043D\u0434\u0430 \u2014 \u043D\u0435 \u0433\u0438 \u043F\u0440\u0435\u0438\u0437\u0447\u0438\u0441\u043B\u044F\u0432\u0430\u0439 \u0438 \u043D\u0435 \u0433\u0438 \u043F\u0440\u043E\u043C\u0435\u043D\u044F\u0439. \u0424\u043E\u043A\u0443\u0441: keyProblems, currentHealthStatus, psychology, correlations, narrative.",
   step2: '\u0415\u043A\u0441\u043F\u0435\u0440\u0442\u0435\u043D \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. \u041A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u043E\u0442 \u0430\u043D\u0430\u043B\u0438\u0437\u0430 \u0441\u0430 \u0444\u0438\u043D\u0430\u043B\u043D\u0438 \u2014 \u043D\u0435 \u0433\u0438 \u043F\u0440\u0435\u0438\u0437\u0447\u0438\u0441\u043B\u044F\u0432\u0430\u0439. \u0422\u0438\u043F\u043E\u0432\u0435 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F: \u0441\u0430\u043C\u043E "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1"\u2013"\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5" \u0438 "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435". \u0417\u0430\u0431\u0440\u0430\u043D\u0435\u043D\u0438 display \u0438\u043C\u0435\u043D\u0430: \u0417\u0430\u043A\u0443\u0441\u043A\u0430, \u041E\u0431\u044F\u0434, \u0421\u043B\u0435\u0434\u043E\u0431\u0435\u0434\u043D\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430, \u0412\u0435\u0447\u0435\u0440\u044F, \u041A\u044A\u0441\u043D\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430. \u0417\u0430\u0434\u044A\u043B\u0436\u0438\u0442\u0435\u043B\u043D\u0438 \u043F\u043E\u043B\u0435\u0442\u0430: freeDayNumber (6|7|null), includeDessert (true|false). \u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0437\u0430\u043C\u0435\u0441\u0442\u0432\u0430 \u043E\u0431\u044F\u0434 \u0432 mealBreakdown \u043D\u0430 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u0438\u044F \u0434\u0435\u043D.',
   step3: "\u0414\u0438\u0435\u0442\u043E\u043B\u043E\u0433 \u0437\u0430 \u0431\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438 \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u043B\u0430\u043D. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. \u041F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u0421\u0410\u041C\u041E \u043E\u0442 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430; \u0438\u043C\u0435\u043D\u0430\u0442\u0430 \u0442\u043E\u0447\u043D\u043E \u043A\u0430\u043A\u0442\u043E \u0432 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430. dessert:true \u0441\u0430\u043C\u043E \u043D\u0430 \u0425\u0440\u0430\u043D\u0435\u043D\u0435 2. \u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435: \u0441\u0430\u043C\u043E type+name, \u0431\u0435\u0437 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u0438 \u0431\u0435\u0437 macros.",
-  step4: "\u041A\u043B\u0438\u043D\u0438\u0447\u0435\u043D \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433 \u0438 \u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. \u041F\u0440\u0435\u043F\u043E\u0440\u044A\u043A\u0438\u0442\u0435 \u0441\u0430 \u043F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u0438\u0437\u0438\u0440\u0430\u043D\u0438 \u043F\u043E \u043F\u0440\u043E\u0444\u0438\u043B\u0430 \u2014 \u043D\u0435 \u0443\u043D\u0438\u0432\u0435\u0440\u0441\u0430\u043B\u043D\u0438."
+  step4: "\u041A\u043B\u0438\u043D\u0438\u0447\u0435\u043D \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433 \u0438 \u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. \u041F\u0440\u0435\u043F\u043E\u0440\u044A\u043A\u0438\u0442\u0435 \u0441\u0430 \u043F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u0438\u0437\u0438\u0440\u0430\u043D\u0438 \u043F\u043E \u043F\u0440\u043E\u0444\u0438\u043B\u0430 \u2014 \u043D\u0435 \u0443\u043D\u0438\u0432\u0435\u0440\u0441\u0430\u043B\u043D\u0438.",
+  step6_director: "\u0421\u0442\u0430\u0440\u0448\u0438 \u0434\u0438\u0435\u0442\u0438\u0447\u0435\u043D \u043C\u0435\u043D\u0438\u0434\u0436\u044A\u0440. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. \u041E\u0446\u0435\u043D\u044F\u0432\u0430 \u0433\u043E\u0442\u043E\u0432 deterministic \u043F\u043B\u0430\u043D \u2014 \u043D\u0435 \u043F\u0440\u043E\u043C\u0435\u043D\u044F \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438, \u0433\u0440\u0430\u043C\u043E\u0432\u0435, \u043A\u0430\u043B\u043E\u0440\u0438\u0438 \u0438\u043B\u0438 scheme."
 };
 var ANALYSIS_RESPONSE_SCHEMA = {
   type: "object",
@@ -403,6 +404,35 @@ var SUMMARY_RESPONSE_SCHEMA = {
   },
   required: ["summary", "recommendations", "forbidden", "psychology", "waterIntake", "supplements"]
 };
+var FINAL_DIRECTOR_RESPONSE_SCHEMA = {
+  type: "object",
+  properties: {
+    verdict: { type: "string", enum: ["APPROVE", "ADJUST", "REJECT"] },
+    qualityScore: { type: "number" },
+    headline: { type: "string" },
+    clientMessage: { type: "string" },
+    coherenceNotes: { type: "array", items: { type: "string" } },
+    recommendations: { type: "array", items: { type: "string" } },
+    forbidden: { type: "array", items: { type: "string" } },
+    psychology: { type: "array", items: { type: "string" } },
+    waterIntake: { type: "string" },
+    supplements: { type: "array" },
+    mealCopyPatches: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          day: { type: "number" },
+          mealIndex: { type: "number" },
+          name: { type: "string" },
+          benefits: { type: "string" },
+          recipe: { type: "string" }
+        }
+      }
+    }
+  },
+  required: ["verdict", "qualityScore", "headline", "clientMessage"]
+};
 function buildMealPlanChunkSchema(startDay, endDay) {
   const s = Number(startDay) || 1;
   const e = Number(endDay) || s;
@@ -443,6 +473,9 @@ function getPlanStepResponseSchema(stepName) {
   }
   if (stepName.startsWith("step4") || stepName === "fallback_summary") {
     return SUMMARY_RESPONSE_SCHEMA;
+  }
+  if (stepName.startsWith("step6") || stepName === "final_director") {
+    return FINAL_DIRECTOR_RESPONSE_SCHEMA;
   }
   return null;
 }
@@ -1198,6 +1231,7 @@ function serializeAnalyticsBlock(analytics) {
 }
 
 // weekly-adapt-guardrails.mjs
+var MIN_DAYS_FOR_GAMING_FLOOR = 4;
 function hasWeeklyStrategyRegenTriggers(strategyChanges) {
   const sc = strategyChanges || {};
   if (Number(sc.calorieAdjust)) return true;
@@ -1211,15 +1245,24 @@ function clampAdaptationLevel(rawLevel, analytics, modifications, strategyChange
     const junk7 = analytics.junk7 || 0;
     const avg = Number(analytics.avgScore) || 0;
     const adh = Number(analytics.adherence) || 0;
+    const days = Number(analytics.daysRecorded) || 0;
+    const sampleOk = days >= MIN_DAYS_FOR_GAMING_FLOOR;
     if (junk7 <= 1 && avg >= 3.5 && adh >= 45) {
       level = Math.min(level, 0);
     }
     if (junk7 >= 5) {
       level = Math.max(level, 1);
     }
+    if (sampleOk && adh < 35) {
+      level = Math.max(level, 1);
+    }
+    if (sampleOk && avg > 0 && avg < 2.5) {
+      level = Math.max(level, 1);
+    }
   }
   const hollowLevel1 = level === 1 && !modifications?.length && !hasWeeklyStrategyRegenTriggers(strategyChanges);
-  if (hollowLevel1 && (analytics?.junk7 || 0) < 5) {
+  const gamingStruggle = analytics?.status === "active" && ((analytics.junk7 || 0) >= 5 || (Number(analytics.daysRecorded) || 0) >= MIN_DAYS_FOR_GAMING_FLOOR && ((Number(analytics.adherence) || 0) < 35 || (Number(analytics.avgScore) || 0) > 0 && (Number(analytics.avgScore) || 0) < 2.5));
+  if (hollowLevel1 && !gamingStruggle) {
     level = 0;
   }
   return level;
@@ -7634,6 +7677,19 @@ var FOOD_NUTRITION_PER_100G = {
   "\u0432\u043E\u0434\u0430": [0, 0, 0, 0],
   "\u0447\u0430\u0439": [1, 0, 0.2, 0],
   "\u043A\u0430\u0444\u0435": [2, 0.3, 0, 0],
+  "\u0447\u0435\u0440\u043D\u043E \u043A\u0430\u0444\u0435": [2, 0.3, 0, 0],
+  "\u0431\u044F\u043B \u043E\u0440\u0438\u0437": [130, 2.7, 28, 0.3],
+  "\u0431\u044F\u043B \u0445\u043B\u044F\u0431": [265, 9, 49, 3.2],
+  "\u0441\u043B\u0430\u0434\u044A\u043A \u043A\u0430\u0440\u0442\u043E\u0444": [86, 1.6, 20, 0.1],
+  "\u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438": [15, 0.7, 3.6, 0.1],
+  "\u0441\u0438\u043D\u0430\u043F": [66, 4, 5, 4],
+  "\u0442\u044A\u043C\u0435\u043D \u0448\u043E\u043A\u043E\u043B\u0430\u0434": [546, 5, 60, 31],
+  "\u0431\u043E\u0441\u0438\u043B\u0435\u043A": [23, 3.2, 2.7, 0.6],
+  "\u0440\u0438\u0433\u0430\u043D": [265, 9, 69, 4.3],
+  "\u0441\u0438\u0440\u0435\u043D\u0435 \u0431\u044F\u043B\u043E": [264, 14, 2, 21],
+  "\u0435\u0434\u0430\u043C\u0430\u043C\u0435": [121, 11, 10, 5],
+  "\u043E\u0440\u0438\u0437\u043E\u0432\u0438 \u043A\u0440\u0435\u043A\u0435\u0440\u0438": [387, 8, 81, 3],
+  "\u0430\u0433\u043D\u0435\u0448\u043A\u043E": [294, 25, 0, 21],
   "\u0448\u043E\u043A\u043E\u043B\u0430\u0434": [560, 6, 50, 35],
   "\u043A\u0440\u0435\u043A\u0435\u0440\u0438": [418, 9, 68, 12],
   "\u0432\u0430\u0440\u0435\u043D\u043E \u044F\u0439\u0446\u0435": [155, 13, 1.1, 11],
@@ -7688,6 +7744,13 @@ var FOOD_ALIASES = {
   "\u0434\u043E\u043C\u0430\u0442\u0438": "\u0434\u043E\u043C\u0430\u0442",
   "\u0447\u0443\u0448\u043A\u0438": "\u0447\u0443\u0448\u043A\u0430",
   "\u043C\u043E\u0440\u043A\u043E\u0432\u0438": "\u043C\u043E\u0440\u043A\u043E\u0432",
+  "\u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438": "\u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0430",
+  "\u0441\u043B\u0430\u0434\u044A\u043A \u043A\u0430\u0440\u0442\u043E\u0444": "\u0431\u0430\u0442\u0430\u0442",
+  "\u0442\u044A\u043C\u0435\u043D \u0448\u043E\u043A\u043E\u043B\u0430\u0434": "\u0448\u043E\u043A\u043E\u043B\u0430\u0434",
+  "\u043E\u0440\u0438\u0437\u043E\u0432\u0438 \u043A\u0440\u0435\u043A\u0435\u0440\u0438": "\u043A\u0440\u0435\u043A\u0435\u0440\u0438",
+  "\u0447\u0435\u0440\u043D\u043E \u043A\u0430\u0444\u0435": "\u043A\u0430\u0444\u0435",
+  "\u0431\u044F\u043B \u043E\u0440\u0438\u0437": "\u043E\u0440\u0438\u0437 \u0431\u044F\u043B",
+  "\u0431\u044F\u043B \u0445\u043B\u044F\u0431": "\u0445\u043B\u044F\u0431",
   "\u0448\u0430\u043C\u0444\u044A\u0441\u0442\u044A\u0446\u0438": "\u0448\u0430\u043C\u0444\u044A\u0441\u0442\u044A\u043A"
 };
 var GENERIC_FOOD_PROFILE = [120, 8, 12, 5];
@@ -7955,8 +8018,7197 @@ var MEAL_TYPE_TIMING = {
 var DEFAULT_MIN_UNIVERSALITY = 3;
 var CATALOG_PROMPT_LIMIT_PER_SLOT = 14;
 
+// nutrition-library-data.js
+var NUTRITION_LIBRARY_VERSION = "lib_v1_274_35";
+var LIBRARY_FOODS = [
+  {
+    "id": "food_herbal_tea",
+    "name_bg": "\u0411\u0438\u043B\u043A\u043E\u0432 \u0447\u0430\u0439",
+    "group_id": "beverages",
+    "portion_g": 250,
+    "kcal": 3,
+    "protein_g": 0,
+    "carbs_g": 0.5,
+    "fat_g": 0,
+    "fiber_g": 0.1,
+    "sodium_mg": 0,
+    "tags": [
+      "hydration"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_nut_\u043A\u0430\u0444\u0435",
+    "name_bg": "\u041A\u0430\u0444\u0435",
+    "group_id": "beverages",
+    "portion_g": 250,
+    "kcal": 5,
+    "protein_g": 0.8,
+    "carbs_g": 0,
+    "fat_g": 0,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_sparkling_water",
+    "name_bg": "\u041Cineralna voda",
+    "group_id": "beverages",
+    "portion_g": 250,
+    "kcal": 0,
+    "protein_g": 0,
+    "carbs_g": 0,
+    "fat_g": 0,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "hydration"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_nut_\u0447\u0435\u0440\u043D\u043E_\u043A\u0430\u0444\u0435",
+    "name_bg": "\u0427\u0435\u0440\u043D\u043E \u043A\u0430\u0444\u0435",
+    "group_id": "beverages",
+    "portion_g": 250,
+    "kcal": 5,
+    "protein_g": 0.8,
+    "carbs_g": 0,
+    "fat_g": 0,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_mustard",
+    "name_bg": "\u0413\u043E\u0440\u0447\u0438\u0446\u0430",
+    "group_id": "condiments",
+    "portion_g": 30,
+    "kcal": 20,
+    "protein_g": 1.2,
+    "carbs_g": 1.5,
+    "fat_g": 1.2,
+    "fiber_g": 0.2,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ginger",
+    "name_bg": "\u0414\u0436\u0438\u043D\u0434\u0436\u0438\u0444\u0438\u043B",
+    "group_id": "condiments",
+    "portion_g": 30,
+    "kcal": 24,
+    "protein_g": 0.5,
+    "carbs_g": 5.4,
+    "fat_g": 0.2,
+    "fiber_g": 0.5,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_tomato_sauce",
+    "name_bg": "\u0414\u043E\u043C\u0430\u0442\u0435\u043D \u0441\u043E\u0441",
+    "group_id": "condiments",
+    "portion_g": 30,
+    "kcal": 25,
+    "protein_g": 1.3,
+    "carbs_g": 5.7,
+    "fat_g": 0.1,
+    "fiber_g": 0.6,
+    "sodium_mg": 0,
+    "tags": [
+      "carb"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_tomato_paste",
+    "name_bg": "\u0414\u043E\u043C\u0430\u0442\u0435\u043D\u043E \u043F\u044E\u0440\u0435",
+    "group_id": "condiments",
+    "portion_g": 30,
+    "kcal": 25,
+    "protein_g": 1.3,
+    "carbs_g": 5.7,
+    "fat_g": 0.1,
+    "fiber_g": 0.6,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_cinnamon",
+    "name_bg": "\u041A\u0430\u043D\u0435\u043B\u0430",
+    "group_id": "condiments",
+    "portion_g": 30,
+    "kcal": 74,
+    "protein_g": 1.2,
+    "carbs_g": 24.3,
+    "fat_g": 0.4,
+    "fiber_g": 2.4,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_capers",
+    "name_bg": "\u041A\u0430\u043F\u0435\u0440\u0441\u0438",
+    "group_id": "condiments",
+    "portion_g": 30,
+    "kcal": 35,
+    "protein_g": 0.2,
+    "carbs_g": 1.8,
+    "fat_g": 3.3,
+    "fiber_g": 0.2,
+    "sodium_mg": 0,
+    "tags": [
+      "low_carb"
+    ],
+    "allowed_in": [
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_coconut_milk",
+    "name_bg": "\u041A\u043E\u043A\u043E\u0441\u043E\u0432\u043E \u043C\u043B\u044F\u043A\u043E",
+    "group_id": "condiments",
+    "portion_g": 30,
+    "kcal": 59,
+    "protein_g": 0.7,
+    "carbs_g": 0.9,
+    "fat_g": 6.3,
+    "fiber_g": 0.1,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fat"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_turmeric",
+    "name_bg": "\u041A\u0443\u0440\u043A\u0443\u043C\u0430",
+    "group_id": "condiments",
+    "portion_g": 30,
+    "kcal": 106,
+    "protein_g": 2.4,
+    "carbs_g": 19.5,
+    "fat_g": 3,
+    "fiber_g": 2,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_lemon_juice",
+    "name_bg": "\u041B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A",
+    "group_id": "condiments",
+    "portion_g": 30,
+    "kcal": 7,
+    "protein_g": 0.1,
+    "carbs_g": 2.1,
+    "fat_g": 0.1,
+    "fiber_g": 0.2,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ajvar",
+    "name_bg": "\u041B\u044E\u0442\u0435\u043D\u0438\u0446\u0430",
+    "group_id": "condiments",
+    "portion_g": 30,
+    "kcal": 25,
+    "protein_g": 1.3,
+    "carbs_g": 5.7,
+    "fat_g": 0.1,
+    "fiber_g": 0.6,
+    "sodium_mg": 0,
+    "tags": [
+      "carb"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_honey",
+    "name_bg": "\u041C\u0435\u0434",
+    "group_id": "condiments",
+    "portion_g": 30,
+    "kcal": 91,
+    "protein_g": 0.1,
+    "carbs_g": 24.6,
+    "fat_g": 0,
+    "fiber_g": 2.5,
+    "sodium_mg": 0,
+    "tags": [
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_vinegar",
+    "name_bg": "\u041E\u0446\u0435\u0442",
+    "group_id": "condiments",
+    "portion_g": 30,
+    "kcal": 5,
+    "protein_g": 0,
+    "carbs_g": 0.3,
+    "fat_g": 0,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_pesto",
+    "name_bg": "\u041F\u0435\u0441\u0442\u043E",
+    "group_id": "condiments",
+    "portion_g": 30,
+    "kcal": 265,
+    "protein_g": 0,
+    "carbs_g": 0,
+    "fat_g": 30,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "fat"
+    ],
+    "allowed_in": [
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_soy",
+    "name_bg": "\u0421\u043E\u0435\u0432 \u0441\u043E\u0441",
+    "group_id": "condiments",
+    "portion_g": 30,
+    "kcal": 16,
+    "protein_g": 2.4,
+    "carbs_g": 1.5,
+    "fat_g": 0,
+    "fiber_g": 0.2,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_salsa",
+    "name_bg": "\u0421alsa",
+    "group_id": "condiments",
+    "portion_g": 30,
+    "kcal": 5,
+    "protein_g": 0.3,
+    "carbs_g": 1.2,
+    "fat_g": 0.1,
+    "fiber_g": 0.1,
+    "sodium_mg": 0,
+    "tags": [
+      "low_carb"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_hummus",
+    "name_bg": "\u0425\u0443\u043C\u0443\u0441",
+    "group_id": "condiments",
+    "portion_g": 30,
+    "kcal": 50,
+    "protein_g": 2.4,
+    "carbs_g": 4.2,
+    "fat_g": 3,
+    "fiber_g": 0.4,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "protein",
+      "fat"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_yogurt_drink",
+    "name_bg": "\u0410\u0438\u0440\u0430\u043D",
+    "group_id": "dairy",
+    "portion_g": 250,
+    "kcal": 150,
+    "protein_g": 10,
+    "carbs_g": 12.5,
+    "fat_g": 7.5,
+    "fiber_g": 1.3,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan"
+    ]
+  },
+  {
+    "id": "food_greek",
+    "name_bg": "\u0413\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+    "group_id": "dairy",
+    "portion_g": 150,
+    "kcal": 146,
+    "protein_g": 13.5,
+    "carbs_g": 6,
+    "fat_g": 7.5,
+    "fiber_g": 0.6,
+    "sodium_mg": 0,
+    "tags": [
+      "protein",
+      "fat"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan"
+    ]
+  },
+  {
+    "id": "food_cottage",
+    "name_bg": "\u0418\u0437\u0432\u0430\u0440\u0430",
+    "group_id": "dairy",
+    "portion_g": 150,
+    "kcal": 147,
+    "protein_g": 16.5,
+    "carbs_g": 5.1,
+    "fat_g": 6.5,
+    "fiber_g": 0.5,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan"
+    ]
+  },
+  {
+    "id": "food_cottage_low",
+    "name_bg": "\u0418\u0437\u0432\u0430\u0440\u0430 (\u043D\u0438\u0441\u043A\u043E\u043C\u0430\u0441\u043B\u0435\u043D\u0430)",
+    "group_id": "dairy",
+    "portion_g": 150,
+    "kcal": 108,
+    "protein_g": 18,
+    "carbs_g": 4.1,
+    "fat_g": 1.5,
+    "fiber_g": 0.4,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan"
+    ]
+  },
+  {
+    "id": "food_kashkaval",
+    "name_bg": "\u041A\u0430\u0448\u043A\u0430\u0432\u0430\u043B",
+    "group_id": "dairy",
+    "portion_g": 150,
+    "kcal": 525,
+    "protein_g": 37.5,
+    "carbs_g": 3,
+    "fat_g": 40.5,
+    "fiber_g": 0.3,
+    "sodium_mg": 0,
+    "tags": [
+      "protein",
+      "fat"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan"
+    ]
+  },
+  {
+    "id": "food_kefir",
+    "name_bg": "\u041A\u0435\u0444\u0438\u0440",
+    "group_id": "dairy",
+    "portion_g": 150,
+    "kcal": 78,
+    "protein_g": 5.3,
+    "carbs_g": 6.8,
+    "fat_g": 3,
+    "fiber_g": 0.7,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan"
+    ]
+  },
+  {
+    "id": "food_yogurt",
+    "name_bg": "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+    "group_id": "dairy",
+    "portion_g": 150,
+    "kcal": 90,
+    "protein_g": 6,
+    "carbs_g": 7.5,
+    "fat_g": 4.5,
+    "fiber_g": 0.8,
+    "sodium_mg": 0,
+    "tags": [
+      "protein",
+      "fat"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan"
+    ]
+  },
+  {
+    "id": "food_yogurt_0",
+    "name_bg": "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E (0%)",
+    "group_id": "dairy",
+    "portion_g": 150,
+    "kcal": 83,
+    "protein_g": 7.5,
+    "carbs_g": 10.5,
+    "fat_g": 0.3,
+    "fiber_g": 1.1,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan"
+    ]
+  },
+  {
+    "id": "food_yogurt_2",
+    "name_bg": "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E (2%)",
+    "group_id": "dairy",
+    "portion_g": 150,
+    "kcal": 90,
+    "protein_g": 6,
+    "carbs_g": 7.5,
+    "fat_g": 4.5,
+    "fiber_g": 0.8,
+    "sodium_mg": 0,
+    "tags": [
+      "protein",
+      "fat"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan"
+    ]
+  },
+  {
+    "id": "food_nut_\u043A\u0438\u0441\u0435\u043B\u043E_\u043C\u043B\u044F\u043A\u043E_\u0441_\u043E\u0432\u0435\u0441",
+    "name_bg": "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043E\u0432\u0435\u0441",
+    "group_id": "dairy",
+    "portion_g": 150,
+    "kcal": 165,
+    "protein_g": 9,
+    "carbs_g": 21,
+    "fat_g": 4.5,
+    "fiber_g": 2.1,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan"
+    ]
+  },
+  {
+    "id": "food_cheese_goat",
+    "name_bg": "\u041A\u043E\u0437\u0435 \u0441\u0438\u0440\u0435\u043D\u0435",
+    "group_id": "dairy",
+    "portion_g": 40,
+    "kcal": 106,
+    "protein_g": 5.6,
+    "carbs_g": 0.8,
+    "fat_g": 8.4,
+    "fiber_g": 0.1,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan"
+    ]
+  },
+  {
+    "id": "food_nut_\u043A\u0443\u043F\u0430_\u0438\u0437\u0432\u0430\u0440\u0430",
+    "name_bg": "\u041A\u0443\u043F\u0430 \u0438\u0437\u0432\u0430\u0440\u0430",
+    "group_id": "dairy",
+    "portion_g": 150,
+    "kcal": 143,
+    "protein_g": 18,
+    "carbs_g": 12,
+    "fat_g": 3,
+    "fiber_g": 1.2,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan"
+    ]
+  },
+  {
+    "id": "food_nut_\u043A\u0443\u043F\u0430_\u0441\u043A\u0438\u0440",
+    "name_bg": "\u041A\u0443\u043F\u0430 \u0441\u043A\u0438\u0440",
+    "group_id": "dairy",
+    "portion_g": 150,
+    "kcal": 113,
+    "protein_g": 16.5,
+    "carbs_g": 9,
+    "fat_g": 0.8,
+    "fiber_g": 0.9,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan"
+    ]
+  },
+  {
+    "id": "food_milk",
+    "name_bg": "\u041C\u043B\u044F\u043A\u043E",
+    "group_id": "dairy",
+    "portion_g": 150,
+    "kcal": 75,
+    "protein_g": 4.9,
+    "carbs_g": 7.5,
+    "fat_g": 3,
+    "fiber_g": 0.8,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan"
+    ]
+  },
+  {
+    "id": "food_milk_2",
+    "name_bg": "\u041C\u043B\u044F\u043A\u043E (2%)",
+    "group_id": "dairy",
+    "portion_g": 150,
+    "kcal": 75,
+    "protein_g": 4.9,
+    "carbs_g": 7.5,
+    "fat_g": 3,
+    "fiber_g": 0.8,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan"
+    ]
+  },
+  {
+    "id": "food_lactose_free_milk",
+    "name_bg": "\u041C\u043B\u044F\u043A\u043E \u0431\u0435\u0437 \u043B\u0430\u043A\u0442\u043E\u0437\u0430",
+    "group_id": "dairy",
+    "portion_g": 150,
+    "kcal": 75,
+    "protein_g": 4.9,
+    "carbs_g": 7.5,
+    "fat_g": 3,
+    "fiber_g": 0.8,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan"
+    ]
+  },
+  {
+    "id": "food_mozzarella",
+    "name_bg": "\u041C\u043E\u0446\u0430\u0440\u0435\u043B\u0430",
+    "group_id": "dairy",
+    "portion_g": 150,
+    "kcal": 396,
+    "protein_g": 21,
+    "carbs_g": 3,
+    "fat_g": 31.5,
+    "fiber_g": 0.3,
+    "sodium_mg": 0,
+    "tags": [
+      "protein",
+      "fat"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan"
+    ]
+  },
+  {
+    "id": "food_parmesan",
+    "name_bg": "\u041F\u0430\u0440\u043C\u0435\u0437\u0430\u043D",
+    "group_id": "dairy",
+    "portion_g": 150,
+    "kcal": 525,
+    "protein_g": 37.5,
+    "carbs_g": 3,
+    "fat_g": 40.5,
+    "fiber_g": 0.3,
+    "sodium_mg": 0,
+    "tags": [
+      "protein",
+      "fat"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan"
+    ]
+  },
+  {
+    "id": "food_probiotic_yogurt",
+    "name_bg": "\u041F\u0440\u043E\u0431\u0438\u043E\u0442\u0438\u0447\u043D\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+    "group_id": "dairy",
+    "portion_g": 150,
+    "kcal": 90,
+    "protein_g": 6,
+    "carbs_g": 7.5,
+    "fat_g": 4.5,
+    "fiber_g": 0.8,
+    "sodium_mg": 0,
+    "tags": [
+      "protein",
+      "probiotic"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan"
+    ]
+  },
+  {
+    "id": "food_plant_milk",
+    "name_bg": "\u0420\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E",
+    "group_id": "dairy",
+    "portion_g": 150,
+    "kcal": 68,
+    "protein_g": 1.5,
+    "carbs_g": 10.5,
+    "fat_g": 2.3,
+    "fiber_g": 1.1,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan"
+    ]
+  },
+  {
+    "id": "food_ricotta",
+    "name_bg": "\u0420\u0438\u043A\u043E\u0442\u0430",
+    "group_id": "dairy",
+    "portion_g": 150,
+    "kcal": 261,
+    "protein_g": 16.5,
+    "carbs_g": 4.5,
+    "fat_g": 19.5,
+    "fiber_g": 0.5,
+    "sodium_mg": 0,
+    "tags": [
+      "protein",
+      "fat"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan"
+    ]
+  },
+  {
+    "id": "food_cheese",
+    "name_bg": "\u0421\u0438\u0440\u0435\u043D\u0435",
+    "group_id": "dairy",
+    "portion_g": 150,
+    "kcal": 396,
+    "protein_g": 21,
+    "carbs_g": 3,
+    "fat_g": 31.5,
+    "fiber_g": 0.3,
+    "sodium_mg": 0,
+    "tags": [
+      "protein",
+      "fat"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan"
+    ]
+  },
+  {
+    "id": "food_nut_\u0441\u0438\u0440\u0435\u043D\u0435_\u0431\u044F\u043B\u043E",
+    "name_bg": "\u0421\u0438\u0440\u0435\u043D\u0435 \u0431\u044F\u043B\u043E",
+    "group_id": "dairy",
+    "portion_g": 150,
+    "kcal": 396,
+    "protein_g": 21,
+    "carbs_g": 3,
+    "fat_g": 31.5,
+    "fiber_g": 0.3,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan"
+    ]
+  },
+  {
+    "id": "food_skyr",
+    "name_bg": "\u0421\u043A\u0438\u0440",
+    "group_id": "dairy",
+    "portion_g": 150,
+    "kcal": 93,
+    "protein_g": 16.5,
+    "carbs_g": 6,
+    "fat_g": 0.3,
+    "fiber_g": 0.6,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan"
+    ]
+  },
+  {
+    "id": "food_tarator",
+    "name_bg": "\u0422arator",
+    "group_id": "dairy",
+    "portion_g": 250,
+    "kcal": 150,
+    "protein_g": 10,
+    "carbs_g": 12.5,
+    "fat_g": 7.5,
+    "fiber_g": 1.3,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan"
+    ]
+  },
+  {
+    "id": "food_feta",
+    "name_bg": "\u0424\u0435\u0442\u0430",
+    "group_id": "dairy",
+    "portion_g": 150,
+    "kcal": 396,
+    "protein_g": 21,
+    "carbs_g": 3,
+    "fat_g": 31.5,
+    "fiber_g": 0.3,
+    "sodium_mg": 0,
+    "tags": [
+      "protein",
+      "fat"
+    ],
+    "allowed_in": [
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan"
+    ]
+  },
+  {
+    "id": "food_eggs_scrambled",
+    "name_bg": "\u0411\u044A\u0440\u043A\u0430\u043D\u0438 \u044F\u0439\u0446\u0430",
+    "group_id": "eggs",
+    "portion_g": 120,
+    "kcal": 185,
+    "protein_g": 13.2,
+    "carbs_g": 2.4,
+    "fat_g": 13.2,
+    "fiber_g": 0.2,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_nut_\u0432\u0430\u0440\u0435\u043D\u043E_\u044F\u0439\u0446\u0435",
+    "name_bg": "\u0412\u0430\u0440\u0435\u043D\u043E \u044F\u0439\u0446\u0435",
+    "group_id": "eggs",
+    "portion_g": 100,
+    "kcal": 155,
+    "protein_g": 13,
+    "carbs_g": 1.1,
+    "fat_g": 11,
+    "fiber_g": 0.1,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_avocado",
+    "name_bg": "\u0410\u0432\u043E\u043A\u0430\u0434\u043E",
+    "group_id": "fats",
+    "portion_g": 15,
+    "kcal": 24,
+    "protein_g": 0.3,
+    "carbs_g": 1.3,
+    "fat_g": 2.3,
+    "fiber_g": 0.1,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fat"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_almond_butter",
+    "name_bg": "\u0411\u0430\u0434\u0435\u043C\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E",
+    "group_id": "fats",
+    "portion_g": 15,
+    "kcal": 92,
+    "protein_g": 3.2,
+    "carbs_g": 2.9,
+    "fat_g": 8.4,
+    "fiber_g": 0.3,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fat"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_ghee",
+    "name_bg": "\u0413hee",
+    "group_id": "fats",
+    "portion_g": 15,
+    "kcal": 108,
+    "protein_g": 0.1,
+    "carbs_g": 0,
+    "fat_g": 12.2,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "fat"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan"
+    ]
+  },
+  {
+    "id": "food_oil",
+    "name_bg": "\u0417\u0435\u0445\u0442\u0438\u043D",
+    "group_id": "fats",
+    "portion_g": 15,
+    "kcal": 133,
+    "protein_g": 0,
+    "carbs_g": 0,
+    "fat_g": 15,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fat"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_olive_oil_extra",
+    "name_bg": "\u0417\u0435\u0445\u0442\u0438\u043D extra virgin",
+    "group_id": "fats",
+    "portion_g": 10,
+    "kcal": 88,
+    "protein_g": 0,
+    "carbs_g": 0,
+    "fat_g": 10,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_coconut_oil",
+    "name_bg": "\u041A\u043E\u043A\u043E\u0441\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E",
+    "group_id": "fats",
+    "portion_g": 15,
+    "kcal": 129,
+    "protein_g": 0,
+    "carbs_g": 0,
+    "fat_g": 15,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fat"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_coconut_flakes",
+    "name_bg": "\u041A\u043E\u043A\u043E\u0441ovi people",
+    "group_id": "fats",
+    "portion_g": 15,
+    "kcal": 129,
+    "protein_g": 0,
+    "carbs_g": 0,
+    "fat_g": 15,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_flax_oil",
+    "name_bg": "\u041B\u0435\u043D\u0435\u043D\u043E \u043C\u0430\u0441\u043B\u043E",
+    "group_id": "fats",
+    "portion_g": 15,
+    "kcal": 80,
+    "protein_g": 2.7,
+    "carbs_g": 4.4,
+    "fat_g": 6.3,
+    "fiber_g": 0.4,
+    "sodium_mg": 0,
+    "tags": [
+      "fat",
+      "omega3"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_hazelnuts",
+    "name_bg": "\u041B\u0435\u0448\u043D\u0438\u0446\u0438",
+    "group_id": "fats",
+    "portion_g": 15,
+    "kcal": 94,
+    "protein_g": 2.3,
+    "carbs_g": 2.6,
+    "fat_g": 9.2,
+    "fiber_g": 0.3,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fat"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_olives",
+    "name_bg": "\u041C\u0430\u0441\u043B\u0438\u043D\u0438",
+    "group_id": "fats",
+    "portion_g": 15,
+    "kcal": 17,
+    "protein_g": 0.1,
+    "carbs_g": 0.9,
+    "fat_g": 1.7,
+    "fiber_g": 0.1,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fat"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_butter",
+    "name_bg": "\u041C\u0430\u0441\u043B\u043E",
+    "group_id": "fats",
+    "portion_g": 15,
+    "kcal": 108,
+    "protein_g": 0.1,
+    "carbs_g": 0,
+    "fat_g": 12.2,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "fat"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_nut_\u043E\u043B\u0438\u043E",
+    "name_bg": "\u041E\u043B\u0438\u043E",
+    "group_id": "fats",
+    "portion_g": 15,
+    "kcal": 133,
+    "protein_g": 0,
+    "carbs_g": 0,
+    "fat_g": 15,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_nut_\u043F\u0435\u043A\u0430\u043D\u0438",
+    "name_bg": "\u041F\u0435\u043A\u0430\u043D\u0438",
+    "group_id": "fats",
+    "portion_g": 15,
+    "kcal": 104,
+    "protein_g": 1.3,
+    "carbs_g": 2.1,
+    "fat_g": 10.8,
+    "fiber_g": 0.2,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_sunflower_seeds",
+    "name_bg": "\u0421\u043B\u044A\u043D\u0447\u043E\u0433\u043B\u0435\u0434\u043E\u0432\u0438 \u0441\u0435\u043C\u043A\u0438",
+    "group_id": "fats",
+    "portion_g": 15,
+    "kcal": 88,
+    "protein_g": 3.2,
+    "carbs_g": 3,
+    "fat_g": 7.7,
+    "fiber_g": 0.3,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fat"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_sunflower_oil",
+    "name_bg": "\u0421\u043B\u044A\u043D\u0447\u043E\u0433\u043B\u0435\u0434\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E",
+    "group_id": "fats",
+    "portion_g": 15,
+    "kcal": 133,
+    "protein_g": 0,
+    "carbs_g": 0,
+    "fat_g": 15,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fat"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_tahini",
+    "name_bg": "\u0422\u0430\u0445\u0430\u043D",
+    "group_id": "fats",
+    "portion_g": 15,
+    "kcal": 89,
+    "protein_g": 2.6,
+    "carbs_g": 3.2,
+    "fat_g": 8.1,
+    "fiber_g": 0.3,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "protein",
+      "fat"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_nut_\u0442\u0430han",
+    "name_bg": "\u0422\u0430han",
+    "group_id": "fats",
+    "portion_g": 15,
+    "kcal": 89,
+    "protein_g": 2.6,
+    "carbs_g": 3.2,
+    "fat_g": 8.1,
+    "fiber_g": 0.3,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_pumpkin_seeds",
+    "name_bg": "\u0422\u0438\u043A\u0432\u0435\u043D\u0438 \u0441\u0435\u043C\u043A\u0438",
+    "group_id": "fats",
+    "portion_g": 15,
+    "kcal": 84,
+    "protein_g": 4.5,
+    "carbs_g": 1.7,
+    "fat_g": 7.4,
+    "fiber_g": 0.2,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "protein",
+      "fat"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_peanuts",
+    "name_bg": "\u0424\u044A\u0441\u0442\u044A\u0446\u0438",
+    "group_id": "fats",
+    "portion_g": 15,
+    "kcal": 85,
+    "protein_g": 3.9,
+    "carbs_g": 2.4,
+    "fat_g": 7.4,
+    "fiber_g": 0.2,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "protein",
+      "fat"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_peanut_butter",
+    "name_bg": "\u0424\u044A\u0441\u0442\u044A\u0447\u0435\u043D\u043E \u043C\u0430\u0441\u043B\u043E",
+    "group_id": "fats",
+    "portion_g": 15,
+    "kcal": 88,
+    "protein_g": 3.8,
+    "carbs_g": 3,
+    "fat_g": 7.5,
+    "fiber_g": 0.3,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "protein",
+      "fat"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_sea_bass",
+    "name_bg": "\u041B\u0430\u0432\u0440\u0430\u043A",
+    "group_id": "fish",
+    "portion_g": 120,
+    "kcal": 144,
+    "protein_g": 26.4,
+    "carbs_g": 0,
+    "fat_g": 3.6,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_salmon_smoked",
+    "name_bg": "\u041F\u0443\u0448\u0435\u043D\u0430 \u0441\u044C\u043E\u043C\u0433\u0430",
+    "group_id": "fish",
+    "portion_g": 80,
+    "kcal": 166,
+    "protein_g": 16,
+    "carbs_g": 0,
+    "fat_g": 10.4,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_trout",
+    "name_bg": "\u041F\u044A\u0441\u0442\u044A\u0440\u0432\u0430",
+    "group_id": "fish",
+    "portion_g": 120,
+    "kcal": 144,
+    "protein_g": 26.4,
+    "carbs_g": 0,
+    "fat_g": 3.6,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "protein",
+      "omega3"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_fish",
+    "name_bg": "\u0420\u0438\u0431\u0430",
+    "group_id": "fish",
+    "portion_g": 120,
+    "kcal": 144,
+    "protein_g": 26.4,
+    "carbs_g": 0,
+    "fat_g": 3.6,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_nut_\u0440\u0438\u0431\u0430_\u043D\u0430_\u0444\u0443\u0440\u043D\u0430",
+    "name_bg": "\u0420\u0438\u0431\u0430 \u043D\u0430 \u0444\u0443\u0440\u043D\u0430",
+    "group_id": "fish",
+    "portion_g": 120,
+    "kcal": 156,
+    "protein_g": 24,
+    "carbs_g": 0,
+    "fat_g": 6,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_nut_\u0440\u0438\u0431\u0430_\u0441_\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+    "name_bg": "\u0420\u0438\u0431\u0430 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+    "group_id": "fish",
+    "portion_g": 120,
+    "kcal": 156,
+    "protein_g": 16.8,
+    "carbs_g": 14.4,
+    "fat_g": 4.8,
+    "fiber_g": 1.4,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_tuna",
+    "name_bg": "\u0420\u0438\u0431\u0430 \u0442\u043E\u043D",
+    "group_id": "fish",
+    "portion_g": 120,
+    "kcal": 139,
+    "protein_g": 31.2,
+    "carbs_g": 0,
+    "fat_g": 1,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_sardines",
+    "name_bg": "\u0421\u0430\u0440\u0434\u0438\u043D\u0438",
+    "group_id": "fish",
+    "portion_g": 120,
+    "kcal": 246,
+    "protein_g": 22.8,
+    "carbs_g": 0,
+    "fat_g": 16.8,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "protein",
+      "omega3"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_salmon",
+    "name_bg": "\u0421\u044C\u043E\u043C\u0433\u0430",
+    "group_id": "fish",
+    "portion_g": 120,
+    "kcal": 250,
+    "protein_g": 24,
+    "carbs_g": 0,
+    "fat_g": 15.6,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_hake",
+    "name_bg": "\u0425\u0435\u043A",
+    "group_id": "fish",
+    "portion_g": 120,
+    "kcal": 98,
+    "protein_g": 21.6,
+    "carbs_g": 0,
+    "fat_g": 0.8,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "protein",
+      "lean"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_carp",
+    "name_bg": "\u0428\u0430\u0440\u0430\u043D",
+    "group_id": "fish",
+    "portion_g": 150,
+    "kcal": 180,
+    "protein_g": 33,
+    "carbs_g": 0,
+    "fat_g": 4.5,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_pineapple",
+    "name_bg": "\u0410\u043D\u0430\u043D\u0430\u0441",
+    "group_id": "fruits",
+    "portion_g": 120,
+    "kcal": 60,
+    "protein_g": 0.6,
+    "carbs_g": 15.6,
+    "fat_g": 0.1,
+    "fiber_g": 1.6,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_banana",
+    "name_bg": "\u0411\u0430\u043D\u0430\u043D",
+    "group_id": "fruits",
+    "portion_g": 120,
+    "kcal": 107,
+    "protein_g": 1.3,
+    "carbs_g": 27.6,
+    "fat_g": 0.4,
+    "fiber_g": 2.8,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_blueberry",
+    "name_bg": "\u0411\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438",
+    "group_id": "fruits",
+    "portion_g": 120,
+    "kcal": 68,
+    "protein_g": 0.8,
+    "carbs_g": 16.8,
+    "fat_g": 0.4,
+    "fiber_g": 1.7,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_grapefruit",
+    "name_bg": "\u0413\u0440\u0435\u0439\u043F\u0444\u0440\u0443\u0442",
+    "group_id": "fruits",
+    "portion_g": 120,
+    "kcal": 50,
+    "protein_g": 1,
+    "carbs_g": 13.2,
+    "fat_g": 0.1,
+    "fiber_g": 1.3,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_grapes",
+    "name_bg": "\u0413\u0440\u043E\u0437\u0434\u0435",
+    "group_id": "fruits",
+    "portion_g": 120,
+    "kcal": 83,
+    "protein_g": 0.8,
+    "carbs_g": 21.6,
+    "fat_g": 0.2,
+    "fiber_g": 2.2,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_watermelon",
+    "name_bg": "\u0414\u0438\u043D\u044F",
+    "group_id": "fruits",
+    "portion_g": 120,
+    "kcal": 36,
+    "protein_g": 0.7,
+    "carbs_g": 9.6,
+    "fat_g": 0.2,
+    "fiber_g": 1,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_apple_green",
+    "name_bg": "\u0417\u0435\u043B\u0435\u043D\u0430 \u044F\u0431\u044A\u043B\u043A\u0430",
+    "group_id": "fruits",
+    "portion_g": 150,
+    "kcal": 78,
+    "protein_g": 0.5,
+    "carbs_g": 21,
+    "fat_g": 0.3,
+    "fiber_g": 2.1,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_apricot",
+    "name_bg": "\u041A\u0430\u0439\u0441\u0438\u044F",
+    "group_id": "fruits",
+    "portion_g": 120,
+    "kcal": 47,
+    "protein_g": 1.1,
+    "carbs_g": 12,
+    "fat_g": 0.4,
+    "fiber_g": 1.2,
+    "sodium_mg": 0,
+    "tags": [
+      "carb"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_kiwi",
+    "name_bg": "\u041A\u0438\u0432\u0438",
+    "group_id": "fruits",
+    "portion_g": 120,
+    "kcal": 73,
+    "protein_g": 1.3,
+    "carbs_g": 18,
+    "fat_g": 0.6,
+    "fiber_g": 1.8,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_pear",
+    "name_bg": "\u041A\u0440\u0443\u0448\u0430",
+    "group_id": "fruits",
+    "portion_g": 120,
+    "kcal": 68,
+    "protein_g": 0.5,
+    "carbs_g": 18,
+    "fat_g": 0.1,
+    "fiber_g": 1.8,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_lemon",
+    "name_bg": "\u041B\u0438\u043C\u043E\u043D",
+    "group_id": "fruits",
+    "portion_g": 120,
+    "kcal": 35,
+    "protein_g": 1.3,
+    "carbs_g": 10.8,
+    "fat_g": 0.4,
+    "fiber_g": 1.1,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_nut_\u043B\u0438\u043C\u043E\u043D\u0438",
+    "name_bg": "\u041B\u0438\u043C\u043E\u043D\u0438",
+    "group_id": "fruits",
+    "portion_g": 120,
+    "kcal": 35,
+    "protein_g": 1.3,
+    "carbs_g": 10.8,
+    "fat_g": 0.4,
+    "fiber_g": 1.1,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_raspberry",
+    "name_bg": "\u041C\u0430\u043B\u0438\u043D\u0438",
+    "group_id": "fruits",
+    "portion_g": 120,
+    "kcal": 62,
+    "protein_g": 1.4,
+    "carbs_g": 14.4,
+    "fat_g": 0.8,
+    "fiber_g": 1.4,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_mango",
+    "name_bg": "\u041C\u0430\u043D\u0433\u043E",
+    "group_id": "fruits",
+    "portion_g": 120,
+    "kcal": 72,
+    "protein_g": 1,
+    "carbs_g": 18,
+    "fat_g": 0.5,
+    "fiber_g": 1.8,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_mandarin",
+    "name_bg": "\u041C\u0430\u043D\u0434\u0430\u0440\u0438\u043D\u0430",
+    "group_id": "fruits",
+    "portion_g": 120,
+    "kcal": 64,
+    "protein_g": 1,
+    "carbs_g": 15.6,
+    "fat_g": 0.4,
+    "fiber_g": 1.6,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_generic",
+    "name_bg": "\u041F\u043B\u043E\u0434",
+    "group_id": "fruits",
+    "portion_g": 120,
+    "kcal": 72,
+    "protein_g": 1,
+    "carbs_g": 18,
+    "fat_g": 0.4,
+    "fiber_g": 1.8,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_orange",
+    "name_bg": "\u041F\u043E\u0440\u0442\u043E\u043A\u0430\u043B",
+    "group_id": "fruits",
+    "portion_g": 120,
+    "kcal": 56,
+    "protein_g": 1.1,
+    "carbs_g": 14.4,
+    "fat_g": 0.1,
+    "fiber_g": 1.4,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_peach",
+    "name_bg": "\u041F\u0440\u0430\u0441\u043A\u043E\u0432\u0430",
+    "group_id": "fruits",
+    "portion_g": 120,
+    "kcal": 47,
+    "protein_g": 1.1,
+    "carbs_g": 12,
+    "fat_g": 0.4,
+    "fiber_g": 1.2,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_melon",
+    "name_bg": "\u041F\u044A\u043F\u0435\u0448",
+    "group_id": "fruits",
+    "portion_g": 120,
+    "kcal": 41,
+    "protein_g": 1,
+    "carbs_g": 9.6,
+    "fat_g": 0.2,
+    "fiber_g": 1,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_plum",
+    "name_bg": "\u0421\u043B\u0438\u0432\u0430",
+    "group_id": "fruits",
+    "portion_g": 120,
+    "kcal": 47,
+    "protein_g": 1.1,
+    "carbs_g": 12,
+    "fat_g": 0.4,
+    "fiber_g": 1.2,
+    "sodium_mg": 0,
+    "tags": [
+      "carb",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_fig",
+    "name_bg": "\u0421\u043C\u043E\u043A\u0438\u043D\u044F",
+    "group_id": "fruits",
+    "portion_g": 120,
+    "kcal": 83,
+    "protein_g": 0.8,
+    "carbs_g": 21.6,
+    "fat_g": 0.2,
+    "fiber_g": 2.2,
+    "sodium_mg": 0,
+    "tags": [
+      "carb",
+      "fiber"
+    ],
+    "allowed_in": [
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_dried_apricot",
+    "name_bg": "\u0421\u0443\u0448\u0435\u043D\u0438 \u043A\u0430\u0439\u0441\u0438\u0438",
+    "group_id": "fruits",
+    "portion_g": 120,
+    "kcal": 47,
+    "protein_g": 1.1,
+    "carbs_g": 12,
+    "fat_g": 0.4,
+    "fiber_g": 1.2,
+    "sodium_mg": 0,
+    "tags": [
+      "carb",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_dates",
+    "name_bg": "\u0424\u0438\u043D\u0438\u043A\u0438",
+    "group_id": "fruits",
+    "portion_g": 120,
+    "kcal": 365,
+    "protein_g": 0.4,
+    "carbs_g": 98.4,
+    "fat_g": 0,
+    "fiber_g": 9.8,
+    "sodium_mg": 0,
+    "tags": [
+      "carb"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_cherries",
+    "name_bg": "\u0427\u0435\u0440\u0435\u0448\u0438",
+    "group_id": "fruits",
+    "portion_g": 120,
+    "kcal": 83,
+    "protein_g": 0.8,
+    "carbs_g": 21.6,
+    "fat_g": 0.2,
+    "fiber_g": 2.2,
+    "sodium_mg": 0,
+    "tags": [
+      "carb",
+      "antioxidant"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_apple",
+    "name_bg": "\u042F\u0431\u044A\u043B\u043A\u0430",
+    "group_id": "fruits",
+    "portion_g": 120,
+    "kcal": 62,
+    "protein_g": 0.4,
+    "carbs_g": 16.8,
+    "fat_g": 0.2,
+    "fiber_g": 1.7,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_strawberry",
+    "name_bg": "\u042F\u0433\u043E\u0434\u0438",
+    "group_id": "fruits",
+    "portion_g": 120,
+    "kcal": 38,
+    "protein_g": 0.8,
+    "carbs_g": 9.6,
+    "fat_g": 0.4,
+    "fiber_g": 1,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_smoothie_base",
+    "name_bg": "Smoothie base",
+    "group_id": "fruits",
+    "portion_g": 250,
+    "kcal": 150,
+    "protein_g": 2,
+    "carbs_g": 37.5,
+    "fat_g": 0.8,
+    "fiber_g": 3.8,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_cumin",
+    "name_bg": "\u041A\u0438\u043C",
+    "group_id": "herbs_spices",
+    "portion_g": 5,
+    "kcal": 13,
+    "protein_g": 0.5,
+    "carbs_g": 2.5,
+    "fat_g": 0.3,
+    "fiber_g": 0.3,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_dill",
+    "name_bg": "\u041A\u043E\u043F\u044A\u0440",
+    "group_id": "herbs_spices",
+    "portion_g": 5,
+    "kcal": 13,
+    "protein_g": 0.5,
+    "carbs_g": 2.5,
+    "fat_g": 0.3,
+    "fiber_g": 0.3,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_parsley",
+    "name_bg": "\u041C\u0430\u0433\u0434\u0430\u043Doz",
+    "group_id": "herbs_spices",
+    "portion_g": 5,
+    "kcal": 13,
+    "protein_g": 0.5,
+    "carbs_g": 2.5,
+    "fat_g": 0.3,
+    "fiber_g": 0.3,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_mint",
+    "name_bg": "\u041Centa",
+    "group_id": "herbs_spices",
+    "portion_g": 5,
+    "kcal": 13,
+    "protein_g": 0.5,
+    "carbs_g": 2.5,
+    "fat_g": 0.3,
+    "fiber_g": 0.3,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_paprika",
+    "name_bg": "\u0427\u0435\u0440\u0432\u0435\u043D \u043F\u0438\u043F\u0435\u0440 (\u043D\u0430 \u043F\u0440\u0430\u0445)",
+    "group_id": "herbs_spices",
+    "portion_g": 5,
+    "kcal": 13,
+    "protein_g": 0.5,
+    "carbs_g": 2.5,
+    "fat_g": 0.3,
+    "fiber_g": 0.3,
+    "sodium_mg": 0,
+    "tags": [
+      "antioxidant"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_white_beans",
+    "name_bg": "\u0411\u044F\u043B \u0431\u043E\u0431",
+    "group_id": "legumes",
+    "portion_g": 150,
+    "kcal": 191,
+    "protein_g": 13.1,
+    "carbs_g": 34.5,
+    "fat_g": 0.8,
+    "fiber_g": 3.5,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "protein",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_peas",
+    "name_bg": "\u0413\u0440\u0430\u0445",
+    "group_id": "legumes",
+    "portion_g": 150,
+    "kcal": 122,
+    "protein_g": 8.1,
+    "carbs_g": 21,
+    "fat_g": 0.6,
+    "fiber_g": 2.1,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "protein",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_green_lentils",
+    "name_bg": "\u0417\u0435\u043B\u0435\u043D\u0430 \u043B\u0435\u0449\u0430",
+    "group_id": "legumes",
+    "portion_g": 150,
+    "kcal": 174,
+    "protein_g": 13.5,
+    "carbs_g": 30,
+    "fat_g": 0.6,
+    "fiber_g": 3,
+    "sodium_mg": 0,
+    "tags": [
+      "protein",
+      "carb",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_lentils",
+    "name_bg": "\u041B\u0435\u0449\u0430",
+    "group_id": "legumes",
+    "portion_g": 150,
+    "kcal": 174,
+    "protein_g": 13.5,
+    "carbs_g": 30,
+    "fat_g": 0.6,
+    "fiber_g": 3,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "protein",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_mung_beans",
+    "name_bg": "\u041C\u0443\u043D\u0433 \u0431\u043E\u0431",
+    "group_id": "legumes",
+    "portion_g": 150,
+    "kcal": 191,
+    "protein_g": 13.1,
+    "carbs_g": 34.5,
+    "fat_g": 0.8,
+    "fiber_g": 3.5,
+    "sodium_mg": 0,
+    "tags": [
+      "protein",
+      "carb"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_chickpeas",
+    "name_bg": "\u041D\u0430\u0445\u0443\u0442",
+    "group_id": "legumes",
+    "portion_g": 150,
+    "kcal": 246,
+    "protein_g": 13.4,
+    "carbs_g": 40.5,
+    "fat_g": 3.9,
+    "fiber_g": 4.1,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "protein",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_soy_beans",
+    "name_bg": "\u0421\u043E\u0435\u0432\u0438 \u0437\u044A\u0440\u043D\u0430",
+    "group_id": "legumes",
+    "portion_g": 150,
+    "kcal": 114,
+    "protein_g": 12,
+    "carbs_g": 2.8,
+    "fat_g": 7.2,
+    "fiber_g": 0.3,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_kidney_beans",
+    "name_bg": "\u0427\u0435\u0440\u0432\u0435\u043D \u0431\u043E\u0431",
+    "group_id": "legumes",
+    "portion_g": 150,
+    "kcal": 191,
+    "protein_g": 13.1,
+    "carbs_g": 34.5,
+    "fat_g": 0.8,
+    "fiber_g": 3.5,
+    "sodium_mg": 0,
+    "tags": [
+      "protein",
+      "carb"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_red_lentils",
+    "name_bg": "\u0427\u0435\u0440\u0432\u0435\u043D\u0430 \u043B\u0435\u0449\u0430",
+    "group_id": "legumes",
+    "portion_g": 150,
+    "kcal": 174,
+    "protein_g": 13.5,
+    "carbs_g": 30,
+    "fat_g": 0.6,
+    "fiber_g": 3,
+    "sodium_mg": 0,
+    "tags": [
+      "protein",
+      "carb",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_black_beans",
+    "name_bg": "\u0427\u0435\u0440\u0435\u043D \u0431\u043E\u0431",
+    "group_id": "legumes",
+    "portion_g": 150,
+    "kcal": 198,
+    "protein_g": 13.4,
+    "carbs_g": 36,
+    "fat_g": 0.8,
+    "fiber_g": 3.6,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "protein",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_nut_\u044F\u0445\u043D\u0438\u044F_\u043B\u0435\u0449\u0430",
+    "name_bg": "\u042F\u0445\u043D\u0438\u044F \u043B\u0435\u0449\u0430",
+    "group_id": "legumes",
+    "portion_g": 150,
+    "kcal": 135,
+    "protein_g": 9,
+    "carbs_g": 19.5,
+    "fat_g": 3,
+    "fiber_g": 2,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_lamb",
+    "name_bg": "\u0410\u0433\u043D\u0435\u0448\u043A\u043E",
+    "group_id": "meat",
+    "portion_g": 120,
+    "kcal": 353,
+    "protein_g": 30,
+    "carbs_g": 0,
+    "fat_g": 25.2,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_beef_lean",
+    "name_bg": "\u0413\u043E\u0432\u0435\u0436\u0434\u043E (\u043F\u043E\u0441\u0442\u043D\u043E)",
+    "group_id": "meat",
+    "portion_g": 120,
+    "kcal": 300,
+    "protein_g": 31.2,
+    "carbs_g": 0,
+    "fat_g": 20.4,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_beef",
+    "name_bg": "\u0413\u043E\u0432\u0435\u0436\u0434\u043E \u043C\u0435\u0441\u043E",
+    "group_id": "meat",
+    "portion_g": 120,
+    "kcal": 300,
+    "protein_g": 31.2,
+    "carbs_g": 0,
+    "fat_g": 20.4,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_rabbit",
+    "name_bg": "\u0417\u0430\u0435\u043A",
+    "group_id": "meat",
+    "portion_g": 120,
+    "kcal": 300,
+    "protein_g": 20.4,
+    "carbs_g": 0,
+    "fat_g": 24,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_ground_meat",
+    "name_bg": "\u041A\u0430\u0439\u043C\u0430",
+    "group_id": "meat",
+    "portion_g": 120,
+    "kcal": 300,
+    "protein_g": 20.4,
+    "carbs_g": 0,
+    "fat_g": 24,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_nut_\u043E\u043C\u043B\u0435\u0442",
+    "name_bg": "\u041E\u043C\u043B\u0435\u0442",
+    "group_id": "meat",
+    "portion_g": 120,
+    "kcal": 185,
+    "protein_g": 13.2,
+    "carbs_g": 2.4,
+    "fat_g": 13.2,
+    "fiber_g": 0.2,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_nut_\u043E\u0440\u0438\u0437_\u0441_\u043F\u0438\u043B\u0435",
+    "name_bg": "\u041E\u0440\u0438\u0437 \u0441 \u043F\u0438\u043B\u0435",
+    "group_id": "meat",
+    "portion_g": 120,
+    "kcal": 168,
+    "protein_g": 13.2,
+    "carbs_g": 21.6,
+    "fat_g": 3.6,
+    "fiber_g": 2.2,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_nut_\u043F\u0438\u043B\u0435",
+    "name_bg": "\u041F\u0438\u043B\u0435",
+    "group_id": "meat",
+    "portion_g": 120,
+    "kcal": 198,
+    "protein_g": 37.2,
+    "carbs_g": 0,
+    "fat_g": 4.3,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_nut_\u043F\u0438\u043B\u0435_\u043D\u0430_\u0441\u043A\u0430\u0440\u0430",
+    "name_bg": "\u041F\u0438\u043B\u0435 \u043D\u0430 \u0441\u043A\u0430\u0440\u0430",
+    "group_id": "meat",
+    "portion_g": 120,
+    "kcal": 198,
+    "protein_g": 37.2,
+    "carbs_g": 0,
+    "fat_g": 4.3,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_nut_\u043F\u0438\u043B\u0435\u0448\u043A\u0430_\u0441\u0430\u043B\u0430\u0442\u0430",
+    "name_bg": "\u041F\u0438\u043B\u0435\u0448\u043A\u0430 \u0441\u0430\u043B\u0430\u0442\u0430",
+    "group_id": "meat",
+    "portion_g": 120,
+    "kcal": 144,
+    "protein_g": 14.4,
+    "carbs_g": 6,
+    "fat_g": 7.2,
+    "fiber_g": 0.6,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_nut_\u043F\u0438\u043B\u0435\u0448\u043A\u0430_\u0441\u0443\u043F\u0430",
+    "name_bg": "\u041F\u0438\u043B\u0435\u0448\u043A\u0430 \u0441\u0443\u043F\u0430",
+    "group_id": "meat",
+    "portion_g": 120,
+    "kcal": 66,
+    "protein_g": 6,
+    "carbs_g": 7.2,
+    "fat_g": 1.8,
+    "fiber_g": 0.7,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_chicken_breast",
+    "name_bg": "\u041F\u0438\u043B\u0435\u0448\u043A\u0438 \u0433\u044A\u0440\u0434\u0438",
+    "group_id": "meat",
+    "portion_g": 120,
+    "kcal": 198,
+    "protein_g": 37.2,
+    "carbs_g": 0,
+    "fat_g": 4.3,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_chicken_liver",
+    "name_bg": "\u041F\u0438\u043B\u0435\u0448\u043A\u0438 \u0434\u0440\u0435\u0431\u043E\u043B\u0438\u0438",
+    "group_id": "meat",
+    "portion_g": 120,
+    "kcal": 198,
+    "protein_g": 37.2,
+    "carbs_g": 0,
+    "fat_g": 4.3,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "protein",
+      "iron"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_chicken_wings",
+    "name_bg": "\u041F\u0438\u043B\u0435\u0448\u043A\u0438 \u043A\u0440\u0438\u043B\u0446\u0430",
+    "group_id": "meat",
+    "portion_g": 120,
+    "kcal": 212,
+    "protein_g": 28.8,
+    "carbs_g": 0,
+    "fat_g": 10.8,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_chicken_drumstick",
+    "name_bg": "\u041F\u0438\u043B\u0435\u0448\u043A\u043E \u0431\u0435\u0434\u0440\u043E",
+    "group_id": "meat",
+    "portion_g": 130,
+    "kcal": 230,
+    "protein_g": 31.2,
+    "carbs_g": 0,
+    "fat_g": 11.7,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_chicken_thigh",
+    "name_bg": "\u041F\u0438\u043B\u0435\u0448\u043A\u043E \u0431\u0443\u0442\u0447\u0435",
+    "group_id": "meat",
+    "portion_g": 120,
+    "kcal": 212,
+    "protein_g": 28.8,
+    "carbs_g": 0,
+    "fat_g": 10.8,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_chicken",
+    "name_bg": "\u041F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+    "group_id": "meat",
+    "portion_g": 120,
+    "kcal": 198,
+    "protein_g": 37.2,
+    "carbs_g": 0,
+    "fat_g": 4.3,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_nut_\u043F\u0438\u043B\u0435\u0448\u043A\u043E_\u0444\u0438\u043B\u0435",
+    "name_bg": "\u041F\u0438\u043B\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435",
+    "group_id": "meat",
+    "portion_g": 120,
+    "kcal": 198,
+    "protein_g": 37.2,
+    "carbs_g": 0,
+    "fat_g": 4.3,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_soup_chicken",
+    "name_bg": "\u041F\u0438\u043B\u0435\u0448ka supa",
+    "group_id": "meat",
+    "portion_g": 300,
+    "kcal": 495,
+    "protein_g": 93,
+    "carbs_g": 0,
+    "fat_g": 10.8,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_kebab_chicken",
+    "name_bg": "\u041F\u0438\u043B\u0435\u0448ki kebab",
+    "group_id": "meat",
+    "portion_g": 150,
+    "kcal": 248,
+    "protein_g": 46.5,
+    "carbs_g": 0,
+    "fat_g": 5.4,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_whey",
+    "name_bg": "\u041F\u0440\u043E\u0442\u0435\u0438\u043D (\u0441\u0443\u0440\u043E\u0432\u0430\u0442\u043A\u0430)",
+    "group_id": "meat",
+    "portion_g": 120,
+    "kcal": 480,
+    "protein_g": 96,
+    "carbs_g": 9.6,
+    "fat_g": 6,
+    "fiber_g": 1,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_turkey_minced",
+    "name_bg": "\u041F\u0443\u0435\u0448\u043A\u0430 \u043A\u0430\u0439\u043C\u0430",
+    "group_id": "meat",
+    "portion_g": 120,
+    "kcal": 162,
+    "protein_g": 36,
+    "carbs_g": 0,
+    "fat_g": 1.2,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "protein",
+      "lean"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_turkey",
+    "name_bg": "\u041F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435",
+    "group_id": "meat",
+    "portion_g": 120,
+    "kcal": 162,
+    "protein_g": 36,
+    "carbs_g": 0,
+    "fat_g": 1.2,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_nut_\u0441\u0430\u043D\u0434\u0432\u0438\u0447_\u043F\u0438\u043B\u0435",
+    "name_bg": "\u0421\u0430\u043D\u0434\u0432\u0438\u0447 \u043F\u0438\u043B\u0435",
+    "group_id": "meat",
+    "portion_g": 120,
+    "kcal": 216,
+    "protein_g": 16.8,
+    "carbs_g": 26.4,
+    "fat_g": 6,
+    "fiber_g": 2.6,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_pork_chop",
+    "name_bg": "\u0421\u0432\u0438\u043D\u0441\u043A\u0430 \u043A\u043E\u0442let",
+    "group_id": "meat",
+    "portion_g": 120,
+    "kcal": 290,
+    "protein_g": 32.4,
+    "carbs_g": 0,
+    "fat_g": 16.8,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_pork_neck",
+    "name_bg": "\u0421\u0432\u0438\u043D\u0441\u043A\u0430 \u043F\u043B\u0435\u0448\u043A\u0430",
+    "group_id": "meat",
+    "portion_g": 120,
+    "kcal": 290,
+    "protein_g": 32.4,
+    "carbs_g": 0,
+    "fat_g": 16.8,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_pork_lean",
+    "name_bg": "\u0421\u0432\u0438\u043D\u0441\u043A\u043E (\u043F\u043E\u0441\u0442\u043D\u043E)",
+    "group_id": "meat",
+    "portion_g": 120,
+    "kcal": 290,
+    "protein_g": 32.4,
+    "carbs_g": 0,
+    "fat_g": 16.8,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_pork",
+    "name_bg": "\u0421\u0432\u0438\u043D\u0441\u043A\u043E \u043C\u0435\u0441\u043E",
+    "group_id": "meat",
+    "portion_g": 120,
+    "kcal": 290,
+    "protein_g": 32.4,
+    "carbs_g": 0,
+    "fat_g": 16.8,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_shrimp",
+    "name_bg": "\u0421\u043A\u0430\u0440\u0438\u0434\u0438",
+    "group_id": "meat",
+    "portion_g": 120,
+    "kcal": 119,
+    "protein_g": 28.8,
+    "carbs_g": 0.2,
+    "fat_g": 0.4,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_mackerel",
+    "name_bg": "\u0421\u043A\u0443\u043C\u0440\u0438\u044F",
+    "group_id": "meat",
+    "portion_g": 120,
+    "kcal": 246,
+    "protein_g": 22.8,
+    "carbs_g": 0,
+    "fat_g": 16.8,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_beef_steak",
+    "name_bg": "\u0422\u0435\u043B\u0435\u0448\u043A\u0438 \u0441\u0442\u0435\u043A",
+    "group_id": "meat",
+    "portion_g": 150,
+    "kcal": 375,
+    "protein_g": 39,
+    "carbs_g": 0,
+    "fat_g": 25.5,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_veal",
+    "name_bg": "\u0422\u0435\u043B\u0435\u0448\u043A\u043E (\u043D\u0435\u0436\u043D\u043E)",
+    "group_id": "meat",
+    "portion_g": 120,
+    "kcal": 300,
+    "protein_g": 31.2,
+    "carbs_g": 0,
+    "fat_g": 20.4,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "protein",
+      "lean"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_tilapia",
+    "name_bg": "\u0422\u0438\u043B\u0430\u043F\u0438\u044F",
+    "group_id": "meat",
+    "portion_g": 120,
+    "kcal": 115,
+    "protein_g": 24,
+    "carbs_g": 0,
+    "fat_g": 2,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_cod",
+    "name_bg": "\u0422\u0440\u0435\u0441\u043A\u0430",
+    "group_id": "meat",
+    "portion_g": 120,
+    "kcal": 98,
+    "protein_g": 21.6,
+    "carbs_g": 0,
+    "fat_g": 0.8,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_eggs",
+    "name_bg": "\u042F\u0439\u0446\u0430",
+    "group_id": "meat",
+    "portion_g": 120,
+    "kcal": 186,
+    "protein_g": 15.6,
+    "carbs_g": 1.3,
+    "fat_g": 13.2,
+    "fiber_g": 0.1,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_egg_whites",
+    "name_bg": "\u042F\u0439\u0447\u043D\u0438 \u0431\u0435\u043B\u0442\u044A\u0446\u0438",
+    "group_id": "meat",
+    "portion_g": 120,
+    "kcal": 62,
+    "protein_g": 13.2,
+    "carbs_g": 0.8,
+    "fat_g": 0.2,
+    "fiber_g": 0.1,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_almonds",
+    "name_bg": "\u0411\u0430\u0434\u0435\u043C\u0438",
+    "group_id": "nuts_seeds",
+    "portion_g": 25,
+    "kcal": 145,
+    "protein_g": 5.3,
+    "carbs_g": 5.5,
+    "fat_g": 12.5,
+    "fiber_g": 0.6,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "protein",
+      "fat"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_brazil_nuts",
+    "name_bg": "\u0411razilski o\u0440\u0435\u0445",
+    "group_id": "nuts_seeds",
+    "portion_g": 25,
+    "kcal": 164,
+    "protein_g": 3.8,
+    "carbs_g": 3.5,
+    "fat_g": 16.3,
+    "fiber_g": 0.4,
+    "sodium_mg": 0,
+    "tags": [
+      "fat"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_cashew",
+    "name_bg": "\u041A\u0430\u0448\u0443",
+    "group_id": "nuts_seeds",
+    "portion_g": 25,
+    "kcal": 138,
+    "protein_g": 4.5,
+    "carbs_g": 7.5,
+    "fat_g": 11,
+    "fiber_g": 0.8,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "protein",
+      "fat"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_flax",
+    "name_bg": "\u041B\u0435\u043D\u0435\u043D\u043E \u0441\u0435\u043C\u0435",
+    "group_id": "nuts_seeds",
+    "portion_g": 25,
+    "kcal": 134,
+    "protein_g": 4.5,
+    "carbs_g": 7.3,
+    "fat_g": 10.5,
+    "fiber_g": 0.7,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fat"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_hazelnut_butter",
+    "name_bg": "\u041B\u0435\u0448\u043D\u0438\u043A\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E",
+    "group_id": "nuts_seeds",
+    "portion_g": 25,
+    "kcal": 154,
+    "protein_g": 5.3,
+    "carbs_g": 4.8,
+    "fat_g": 14,
+    "fiber_g": 0.5,
+    "sodium_mg": 0,
+    "tags": [
+      "fat"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_macadamia",
+    "name_bg": "\u041C\u0430\u043Aadamia",
+    "group_id": "nuts_seeds",
+    "portion_g": 25,
+    "kcal": 138,
+    "protein_g": 4.5,
+    "carbs_g": 7.5,
+    "fat_g": 11,
+    "fiber_g": 0.8,
+    "sodium_mg": 0,
+    "tags": [
+      "fat"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_oats",
+    "name_bg": "\u041E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438",
+    "group_id": "nuts_seeds",
+    "portion_g": 25,
+    "kcal": 97,
+    "protein_g": 4.3,
+    "carbs_g": 16.5,
+    "fat_g": 1.8,
+    "fiber_g": 1.7,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_walnuts",
+    "name_bg": "\u041E\u0440\u0435\u0445\u0438",
+    "group_id": "nuts_seeds",
+    "portion_g": 25,
+    "kcal": 164,
+    "protein_g": 3.8,
+    "carbs_g": 3.5,
+    "fat_g": 16.3,
+    "fiber_g": 0.4,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "protein",
+      "fat"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_pecans",
+    "name_bg": "\u041F\u0435\u043Aan",
+    "group_id": "nuts_seeds",
+    "portion_g": 25,
+    "kcal": 164,
+    "protein_g": 3.8,
+    "carbs_g": 3.5,
+    "fat_g": 16.3,
+    "fiber_g": 0.4,
+    "sodium_mg": 0,
+    "tags": [
+      "fat"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_chia",
+    "name_bg": "\u0421\u0435\u043C\u0435\u043D\u0430 \u0447\u0438\u0430",
+    "group_id": "nuts_seeds",
+    "portion_g": 25,
+    "kcal": 122,
+    "protein_g": 4.3,
+    "carbs_g": 10.5,
+    "fat_g": 7.8,
+    "fiber_g": 1.1,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fat"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_almonds_raw",
+    "name_bg": "\u0421\u0443\u0440\u043E\u0432\u0438 \u0431\u0430\u0434\u0435\u043C\u0438",
+    "group_id": "nuts_seeds",
+    "portion_g": 25,
+    "kcal": 145,
+    "protein_g": 5.3,
+    "carbs_g": 5.5,
+    "fat_g": 12.5,
+    "fiber_g": 0.6,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_walnuts_raw",
+    "name_bg": "\u0421\u0443\u0440\u043E\u0432\u0438 o\u0440\u0435\u0445\u0438",
+    "group_id": "nuts_seeds",
+    "portion_g": 25,
+    "kcal": 164,
+    "protein_g": 3.8,
+    "carbs_g": 3.5,
+    "fat_g": 16.3,
+    "fiber_g": 0.4,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_peanuts_pistachio",
+    "name_bg": "\u0428\u0430\u043C\u0444\u044A\u0441\u0442\u044A\u043A",
+    "group_id": "nuts_seeds",
+    "portion_g": 25,
+    "kcal": 142,
+    "protein_g": 6.5,
+    "carbs_g": 4,
+    "fat_g": 12.3,
+    "fiber_g": 0.4,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "protein",
+      "fat"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_nuts",
+    "name_bg": "\u042F\u0434\u043A\u0438",
+    "group_id": "nuts_seeds",
+    "portion_g": 25,
+    "kcal": 150,
+    "protein_g": 3.8,
+    "carbs_g": 4.5,
+    "fat_g": 13.8,
+    "fiber_g": 0.5,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "protein",
+      "fat"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_pea_protein",
+    "name_bg": "\u0413\u0440\u0430\u043E\u0445\u043E\u0432 \u043F\u0440\u043E\u0442\u0435\u0438\u043D",
+    "group_id": "plant_protein",
+    "portion_g": 120,
+    "kcal": 444,
+    "protein_g": 90,
+    "carbs_g": 12,
+    "fat_g": 4.8,
+    "fiber_g": 1.2,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "vegan"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_edamame",
+    "name_bg": "\u0415\u0434\u0430\u043C\u0430\u043C\u0435",
+    "group_id": "plant_protein",
+    "portion_g": 120,
+    "kcal": 145,
+    "protein_g": 13.2,
+    "carbs_g": 12,
+    "fat_g": 6,
+    "fiber_g": 1.2,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_plant_protein",
+    "name_bg": "\u041F\u0440\u043E\u0442\u0435\u0438\u043D (\u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u0435\u043D)",
+    "group_id": "plant_protein",
+    "portion_g": 120,
+    "kcal": 444,
+    "protein_g": 90,
+    "carbs_g": 12,
+    "fat_g": 4.8,
+    "fiber_g": 1.2,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "protein"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_protein_bar",
+    "name_bg": "\u041F\u0440\u043E\u0442\u0435\u0438\u043D bar",
+    "group_id": "plant_protein",
+    "portion_g": 60,
+    "kcal": 240,
+    "protein_g": 48,
+    "carbs_g": 4.8,
+    "fat_g": 3,
+    "fiber_g": 0.5,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_seitan",
+    "name_bg": "\u0421\u0435\u0439\u0442\u0430\u043D",
+    "group_id": "plant_protein",
+    "portion_g": 120,
+    "kcal": 91,
+    "protein_g": 9.6,
+    "carbs_g": 2.3,
+    "fat_g": 5.8,
+    "fiber_g": 0.2,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "vegan",
+      "vegetarian"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_tempeh",
+    "name_bg": "\u0422\u0435\u043C\u043F\u0435",
+    "group_id": "plant_protein",
+    "portion_g": 120,
+    "kcal": 232,
+    "protein_g": 22.8,
+    "carbs_g": 10.8,
+    "fat_g": 13.2,
+    "fiber_g": 1.1,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "protein"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_tofu",
+    "name_bg": "\u0422\u043E\u0444\u0443",
+    "group_id": "plant_protein",
+    "portion_g": 120,
+    "kcal": 91,
+    "protein_g": 9.6,
+    "carbs_g": 2.3,
+    "fat_g": 5.8,
+    "fiber_g": 0.2,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "protein"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_nut_\u0431\u044F\u043B_\u0445\u043B\u044F\u0431",
+    "name_bg": "\u0411\u044F\u043B \u0445\u043B\u044F\u0431",
+    "group_id": "refined_grains",
+    "portion_g": 80,
+    "kcal": 212,
+    "protein_g": 7.2,
+    "carbs_g": 39.2,
+    "fat_g": 2.6,
+    "fiber_g": 3.9,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_rice_cakes",
+    "name_bg": "\u041E\u0440\u0438\u0437\u043E\u0432\u0438 \u043A\u0440\u0435\u043A\u0435\u0440\u0438",
+    "group_id": "refined_grains",
+    "portion_g": 80,
+    "kcal": 334,
+    "protein_g": 7.2,
+    "carbs_g": 54.4,
+    "fat_g": 9.6,
+    "fiber_g": 5.4,
+    "sodium_mg": 0,
+    "tags": [
+      "carb"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_crispbread",
+    "name_bg": "\u0421\u0443\u0445\u0430\u0440\u0438",
+    "group_id": "refined_grains",
+    "portion_g": 80,
+    "kcal": 212,
+    "protein_g": 7.2,
+    "carbs_g": 39.2,
+    "fat_g": 2.6,
+    "fiber_g": 3.9,
+    "sodium_mg": 0,
+    "tags": [
+      "carb",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_banitsa",
+    "name_bg": "Banitsa (\u043F\u043E\u0440\u0446\u0438\u044F)",
+    "group_id": "refined_grains",
+    "portion_g": 120,
+    "kcal": 318,
+    "protein_g": 10.8,
+    "carbs_g": 58.8,
+    "fat_g": 3.8,
+    "fiber_g": 5.9,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_calamari",
+    "name_bg": "\u041Aalmari",
+    "group_id": "seafood",
+    "portion_g": 120,
+    "kcal": 119,
+    "protein_g": 28.8,
+    "carbs_g": 0.2,
+    "fat_g": 0.4,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_mussels",
+    "name_bg": "\u041C\u0438\u0434\u0438",
+    "group_id": "seafood",
+    "portion_g": 120,
+    "kcal": 119,
+    "protein_g": 28.8,
+    "carbs_g": 0.2,
+    "fat_g": 0.4,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [
+      "protein"
+    ],
+    "allowed_in": [
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "vegan",
+      "vegetarian"
+    ]
+  },
+  {
+    "id": "food_dark_chocolate",
+    "name_bg": "\u0422\u044A\u043C\u0435\u043D \u0448\u043E\u043A\u043E\u043B\u0430\u0434",
+    "group_id": "sweets",
+    "portion_g": 30,
+    "kcal": 168,
+    "protein_g": 1.8,
+    "carbs_g": 15,
+    "fat_g": 10.5,
+    "fiber_g": 1.5,
+    "sodium_mg": 0,
+    "tags": [
+      "carb"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_iceberg",
+    "name_bg": "\u0410\u0439\u0441\u0431\u0435\u0440\u0433",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 23,
+    "protein_g": 2.1,
+    "carbs_g": 4.4,
+    "fat_g": 0.3,
+    "fiber_g": 0.4,
+    "sodium_mg": 0,
+    "tags": [
+      "low_carb"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_artichoke",
+    "name_bg": "\u0410\u0440\u0442\u0438\u0448\u043E\u043A",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 38,
+    "protein_g": 2.8,
+    "carbs_g": 7.5,
+    "fat_g": 0.5,
+    "fiber_g": 0.8,
+    "sodium_mg": 0,
+    "tags": [
+      "fiber"
+    ],
+    "allowed_in": [
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_asparagus",
+    "name_bg": "\u0410\u0441\u043F\u0435\u0440\u0436\u0438",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 30,
+    "protein_g": 3.3,
+    "carbs_g": 5.9,
+    "fat_g": 0.2,
+    "fiber_g": 0.6,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_okra",
+    "name_bg": "\u0411\u0430\u043C\u044F",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 47,
+    "protein_g": 2.7,
+    "carbs_g": 10.5,
+    "fat_g": 0.3,
+    "fiber_g": 1.1,
+    "sodium_mg": 0,
+    "tags": [
+      "fiber"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_nut_\u0431\u043E\u0431_\u044F\u0445\u043D\u0438\u044F",
+    "name_bg": "\u0411\u043E\u0431 \u044F\u0445\u043D\u0438\u044F",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 143,
+    "protein_g": 9,
+    "carbs_g": 21,
+    "fat_g": 3,
+    "fiber_g": 2.1,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_nut_\u0431\u043E\u0441\u0438\u043B\u0435\u043A",
+    "name_bg": "\u0411\u043E\u0441\u0438\u043B\u0435\u043A",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 35,
+    "protein_g": 4.8,
+    "carbs_g": 4.1,
+    "fat_g": 0.9,
+    "fiber_g": 0.4,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_broccoli",
+    "name_bg": "\u0411\u0440\u043E\u043A\u043E\u043B\u0438",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 51,
+    "protein_g": 4.2,
+    "carbs_g": 10.5,
+    "fat_g": 0.6,
+    "fiber_g": 1.1,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_mushrooms",
+    "name_bg": "\u0413\u044A\u0431\u0438",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 33,
+    "protein_g": 4.7,
+    "carbs_g": 4.9,
+    "fat_g": 0.5,
+    "fiber_g": 0.5,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "protein",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_tomato",
+    "name_bg": "\u0414\u043E\u043C\u0430\u0442",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 27,
+    "protein_g": 1.4,
+    "carbs_g": 5.9,
+    "fat_g": 0.3,
+    "fiber_g": 0.6,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_oyster_mushroom",
+    "name_bg": "\u0415\u0440\u0438\u043D\u0433\u0438",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 53,
+    "protein_g": 3.6,
+    "carbs_g": 10.2,
+    "fat_g": 0.6,
+    "fiber_g": 1,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_cabbage",
+    "name_bg": "\u0417\u0435\u043B\u0435",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 38,
+    "protein_g": 2,
+    "carbs_g": 9,
+    "fat_g": 0.2,
+    "fiber_g": 0.9,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_green_beans",
+    "name_bg": "\u0417\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 47,
+    "protein_g": 2.7,
+    "carbs_g": 10.5,
+    "fat_g": 0.3,
+    "fiber_g": 1.1,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_pepper_green",
+    "name_bg": "\u0417\u0435\u043B\u0435\u043D\u0430 \u0447\u0443\u0448\u043A\u0430",
+    "group_id": "vegetables",
+    "portion_g": 120,
+    "kcal": 37,
+    "protein_g": 1.2,
+    "carbs_g": 7.2,
+    "fat_g": 0.4,
+    "fiber_g": 0.7,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_generic",
+    "name_bg": "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u043A",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 38,
+    "protein_g": 2.3,
+    "carbs_g": 7.5,
+    "fat_g": 0.3,
+    "fiber_g": 0.8,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_soup_veg",
+    "name_bg": "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u043A\u043E\u0432\u0430 \u0441\u0443\u043F\u0430",
+    "group_id": "vegetables",
+    "portion_g": 300,
+    "kcal": 135,
+    "protein_g": 9,
+    "carbs_g": 15,
+    "fat_g": 4.5,
+    "fiber_g": 1.5,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_cauliflower",
+    "name_bg": "\u041A\u0430\u0440\u0444\u0438\u043E\u043B",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 38,
+    "protein_g": 2.8,
+    "carbs_g": 7.5,
+    "fat_g": 0.5,
+    "fiber_g": 0.8,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_kale",
+    "name_bg": "\u041A\u0435\u0439\u043B",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 35,
+    "protein_g": 4.4,
+    "carbs_g": 5.4,
+    "fat_g": 0.6,
+    "fiber_g": 0.5,
+    "sodium_mg": 0,
+    "tags": [
+      "fiber",
+      "low_carb"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_pickles",
+    "name_bg": "\u041A\u0438\u0441\u0435\u043B\u0438 \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0447\u043A\u0438",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 23,
+    "protein_g": 1,
+    "carbs_g": 5.4,
+    "fat_g": 0.2,
+    "fiber_g": 0.5,
+    "sodium_mg": 0,
+    "tags": [
+      "low_carb"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_sauerkraut",
+    "name_bg": "\u041A\u0438\u0441\u0435\u043B\u043E \u0437\u0435\u043B\u0435",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 38,
+    "protein_g": 2,
+    "carbs_g": 9,
+    "fat_g": 0.2,
+    "fiber_g": 0.9,
+    "sodium_mg": 0,
+    "tags": [
+      "fiber",
+      "probiotic"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_cucumber",
+    "name_bg": "\u041A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0430",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 23,
+    "protein_g": 1,
+    "carbs_g": 5.4,
+    "fat_g": 0.2,
+    "fiber_g": 0.5,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_nut_\u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+    "name_bg": "\u041A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 23,
+    "protein_g": 1,
+    "carbs_g": 5.4,
+    "fat_g": 0.2,
+    "fiber_g": 0.5,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_cucumber_mini",
+    "name_bg": "\u041Aornishon",
+    "group_id": "vegetables",
+    "portion_g": 80,
+    "kcal": 12,
+    "protein_g": 0.6,
+    "carbs_g": 2.9,
+    "fat_g": 0.1,
+    "fiber_g": 0.3,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_onion",
+    "name_bg": "\u041B\u0443\u043A",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 60,
+    "protein_g": 1.7,
+    "carbs_g": 13.5,
+    "fat_g": 0.2,
+    "fiber_g": 1.4,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_nut_\u043C\u0430\u043A\u0430\u0440\u043E\u043D\u0438",
+    "name_bg": "\u041C\u0430\u043A\u0430\u0440\u043E\u043D\u0438",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 197,
+    "protein_g": 7.5,
+    "carbs_g": 37.5,
+    "fat_g": 1.7,
+    "fiber_g": 3.8,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_lettuce",
+    "name_bg": "\u041C\u0430\u0440\u0443\u043B\u044F",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 23,
+    "protein_g": 2.1,
+    "carbs_g": 4.4,
+    "fat_g": 0.3,
+    "fiber_g": 0.4,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_carrot",
+    "name_bg": "\u041C\u043E\u0440\u043A\u043E\u0432",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 62,
+    "protein_g": 1.4,
+    "carbs_g": 15,
+    "fat_g": 0.3,
+    "fiber_g": 1.5,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_nut_\u043E\u0446\u0435\u0442_\u044F\u0431\u044A\u043B\u043A\u043E\u0432",
+    "name_bg": "\u041E\u0446\u0435\u0442 \u044F\u0431\u044A\u043B\u043A\u043E\u0432",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 33,
+    "protein_g": 0,
+    "carbs_g": 1.4,
+    "fat_g": 0,
+    "fiber_g": 0.1,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_eggplant",
+    "name_bg": "\u041F\u0430\u0442\u043B\u0430\u0434\u0436\u0430\u043D",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 38,
+    "protein_g": 1.5,
+    "carbs_g": 9,
+    "fat_g": 0.3,
+    "fiber_g": 0.9,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_garlic_roasted",
+    "name_bg": "\u041F\u0435\u0447\u0435\u043D \u0447\u0435\u0441\u044A\u043D",
+    "group_id": "vegetables",
+    "portion_g": 20,
+    "kcal": 30,
+    "protein_g": 1.3,
+    "carbs_g": 6.6,
+    "fat_g": 0.1,
+    "fiber_g": 0.7,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_sweet_potato_baked",
+    "name_bg": "\u041F\u0435\u0447\u0435\u043D batat",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 129,
+    "protein_g": 2.4,
+    "carbs_g": 30,
+    "fat_g": 0.2,
+    "fiber_g": 3,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_mushroom_portobello",
+    "name_bg": "\u041F\u043E\u0440\u0442obello",
+    "group_id": "vegetables",
+    "portion_g": 100,
+    "kcal": 22,
+    "protein_g": 3.1,
+    "carbs_g": 3.3,
+    "fat_g": 0.3,
+    "fiber_g": 0.3,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_leek",
+    "name_bg": "\u041F\u0440\u0430\u0437",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 92,
+    "protein_g": 2.3,
+    "carbs_g": 21,
+    "fat_g": 0.3,
+    "fiber_g": 2.1,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_fennel",
+    "name_bg": "\u0420\u0435\u0437\u0435\u043D\u0435",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 24,
+    "protein_g": 1,
+    "carbs_g": 4.5,
+    "fat_g": 0.3,
+    "fiber_g": 0.5,
+    "sodium_mg": 0,
+    "tags": [
+      "fiber",
+      "fodmap_low"
+    ],
+    "allowed_in": [
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_radish",
+    "name_bg": "\u0420\u0435\u043F\u0438\u0447\u043A\u0438",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 62,
+    "protein_g": 1.4,
+    "carbs_g": 15,
+    "fat_g": 0.3,
+    "fiber_g": 1.5,
+    "sodium_mg": 0,
+    "tags": [
+      "low_carb"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_nut_\u0440\u0438\u0433\u0430\u043D",
+    "name_bg": "\u0420\u0438\u0433\u0430\u043D",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 398,
+    "protein_g": 13.5,
+    "carbs_g": 103.5,
+    "fat_g": 6.5,
+    "fiber_g": 10.4,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_arugula",
+    "name_bg": "\u0420\u0443\u043A\u043E\u043B\u0430",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 38,
+    "protein_g": 3.9,
+    "carbs_g": 5.6,
+    "fat_g": 1,
+    "fiber_g": 0.6,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_turnip",
+    "name_bg": "\u0420\u044F\u043F\u0430",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 62,
+    "protein_g": 1.4,
+    "carbs_g": 15,
+    "fat_g": 0.3,
+    "fiber_g": 1.5,
+    "sodium_mg": 0,
+    "tags": [
+      "low_carb"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_romaine",
+    "name_bg": "\u0420omaine \u0441\u0430\u043B\u0430\u0442\u0430",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 23,
+    "protein_g": 2.1,
+    "carbs_g": 4.4,
+    "fat_g": 0.3,
+    "fiber_g": 0.4,
+    "sodium_mg": 0,
+    "tags": [
+      "fiber"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_nut_\u0441\u0430\u043B\u0430\u0442\u0430_\u0437\u0435\u043B\u0435\u043D\u0430",
+    "name_bg": "\u0421\u0430\u043B\u0430\u0442\u0430 \u0437\u0435\u043B\u0435\u043D\u0430",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 30,
+    "protein_g": 2.3,
+    "carbs_g": 4.5,
+    "fat_g": 0.5,
+    "fiber_g": 0.5,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_mixed_salad",
+    "name_bg": "\u0421\u0430\u043B\u0430\u0442\u0435\u043D \u043C\u0438\u043A\u0441",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 23,
+    "protein_g": 2.1,
+    "carbs_g": 4.4,
+    "fat_g": 0.3,
+    "fiber_g": 0.4,
+    "sodium_mg": 0,
+    "tags": [
+      "fiber",
+      "low_carb"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_nut_\u0441\u0438\u043D\u0430\u043F",
+    "name_bg": "\u0421\u0438\u043D\u0430\u043F",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 99,
+    "protein_g": 6,
+    "carbs_g": 7.5,
+    "fat_g": 6,
+    "fiber_g": 0.8,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_spinach",
+    "name_bg": "\u0421\u043F\u0430\u043D\u0430\u043A",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 35,
+    "protein_g": 4.4,
+    "carbs_g": 5.4,
+    "fat_g": 0.6,
+    "fiber_g": 0.5,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_nut_\u0441\u0442\u0435\u0432\u0438\u044F",
+    "name_bg": "\u0421\u0442\u0435\u0432\u0438\u044F",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 0,
+    "protein_g": 0,
+    "carbs_g": 0,
+    "fat_g": 0,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_nut_\u0441\u0443\u043F\u0430",
+    "name_bg": "\u0421\u0443\u043F\u0430",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 68,
+    "protein_g": 4.5,
+    "carbs_g": 7.5,
+    "fat_g": 2.3,
+    "fiber_g": 0.8,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_pumpkin",
+    "name_bg": "\u0422\u0438\u043A\u0432\u0430",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 39,
+    "protein_g": 1.5,
+    "carbs_g": 9.8,
+    "fat_g": 0.2,
+    "fiber_g": 1,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_zucchini",
+    "name_bg": "\u0422\u0438\u043A\u0432\u0438\u0447\u043A\u0430",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 26,
+    "protein_g": 1.8,
+    "carbs_g": 4.7,
+    "fat_g": 0.5,
+    "fiber_g": 0.5,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_watercress",
+    "name_bg": "\u0425\u0440\u044F\u043D (\u043B\u0438sta)",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 38,
+    "protein_g": 3.9,
+    "carbs_g": 5.6,
+    "fat_g": 1,
+    "fiber_g": 0.6,
+    "sodium_mg": 0,
+    "tags": [
+      "low_carb"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_beetroot",
+    "name_bg": "\u0426\u0432\u0435\u043A\u043B\u043E",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 62,
+    "protein_g": 1.4,
+    "carbs_g": 15,
+    "fat_g": 0.3,
+    "fiber_g": 1.5,
+    "sodium_mg": 0,
+    "tags": [
+      "fiber",
+      "carb"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_celery",
+    "name_bg": "\u0426\u0435\u043B\u0438\u043D\u0430",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 24,
+    "protein_g": 1,
+    "carbs_g": 4.5,
+    "fat_g": 0.3,
+    "fiber_g": 0.5,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_onion_red",
+    "name_bg": "\u0427\u0435\u0440\u0432\u0435\u043D \u043B\u0443\u043A",
+    "group_id": "vegetables",
+    "portion_g": 50,
+    "kcal": 20,
+    "protein_g": 0.6,
+    "carbs_g": 4.5,
+    "fat_g": 0.1,
+    "fiber_g": 0.5,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_sweet_pepper",
+    "name_bg": "\u0427\u0435\u0440\u0432\u0435\u043D\u0430 \u0447\u0443\u0448\u043A\u0430",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 47,
+    "protein_g": 1.5,
+    "carbs_g": 9,
+    "fat_g": 0.5,
+    "fiber_g": 0.9,
+    "sodium_mg": 0,
+    "tags": [
+      "fiber"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_nut_\u0447\u0435\u0440\u0435\u043D_\u043F\u0438\u043F\u0435\u0440",
+    "name_bg": "\u0427\u0435\u0440\u0435\u043D \u043F\u0438\u043F\u0435\u0440",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 377,
+    "protein_g": 15,
+    "carbs_g": 96,
+    "fat_g": 4.9,
+    "fiber_g": 9.6,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_cherry_tomato",
+    "name_bg": "\u0427\u0435\u0440\u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 27,
+    "protein_g": 1.4,
+    "carbs_g": 5.9,
+    "fat_g": 0.3,
+    "fiber_g": 0.6,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_garlic",
+    "name_bg": "\u0427\u0435\u0441\u044A\u043D",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 224,
+    "protein_g": 9.6,
+    "carbs_g": 49.5,
+    "fat_g": 0.8,
+    "fiber_g": 5,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_nut_\u0447\u0438\u043B\u0438",
+    "name_bg": "\u0427\u0438\u043B\u0438",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 60,
+    "protein_g": 3,
+    "carbs_g": 13.5,
+    "fat_g": 0.6,
+    "fiber_g": 1.4,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_pepper",
+    "name_bg": "\u0427\u0443\u0448\u043A\u0430",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 47,
+    "protein_g": 1.5,
+    "carbs_g": 9,
+    "fat_g": 0.5,
+    "fiber_g": 0.9,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_brussels",
+    "name_bg": "Brussels sprouts",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 51,
+    "protein_g": 4.2,
+    "carbs_g": 10.5,
+    "fat_g": 0.6,
+    "fiber_g": 1.1,
+    "sodium_mg": 0,
+    "tags": [
+      "fiber"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_grill_veg",
+    "name_bg": "Grill \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+    "group_id": "vegetables",
+    "portion_g": 200,
+    "kcal": 50,
+    "protein_g": 3,
+    "carbs_g": 10,
+    "fat_g": 0.4,
+    "fiber_g": 1,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_carrot_fodmap",
+    "name_bg": "Morkov (FODMAP low)",
+    "group_id": "vegetables",
+    "portion_g": 150,
+    "kcal": 62,
+    "protein_g": 1.4,
+    "carbs_g": 15,
+    "fat_g": 0.3,
+    "fiber_g": 1.5,
+    "sodium_mg": 0,
+    "tags": [
+      "fodmap_low"
+    ],
+    "allowed_in": [
+      "low_fodmap"
+    ],
+    "excluded_in": []
+  },
+  {
+    "id": "food_nut_\u0431\u0430\u0442\u0430\u0442",
+    "name_bg": "\u0411\u0430\u0442\u0430\u0442",
+    "group_id": "whole_grains",
+    "portion_g": 80,
+    "kcal": 69,
+    "protein_g": 1.3,
+    "carbs_g": 16,
+    "fat_g": 0.1,
+    "fiber_g": 1.6,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_bulgur",
+    "name_bg": "\u0411\u0443\u043B\u0433\u0443\u0440",
+    "group_id": "whole_grains",
+    "portion_g": 80,
+    "kcal": 66,
+    "protein_g": 2.5,
+    "carbs_g": 15.2,
+    "fat_g": 0.2,
+    "fiber_g": 1.5,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_nut_\u0431\u044F\u043B_\u043E\u0440\u0438\u0437",
+    "name_bg": "\u0411\u044F\u043B \u043E\u0440\u0438\u0437",
+    "group_id": "whole_grains",
+    "portion_g": 80,
+    "kcal": 104,
+    "protein_g": 2.2,
+    "carbs_g": 22.4,
+    "fat_g": 0.2,
+    "fiber_g": 2.2,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_buckwheat",
+    "name_bg": "\u0415\u043B\u0434\u0430",
+    "group_id": "whole_grains",
+    "portion_g": 80,
+    "kcal": 74,
+    "protein_g": 2.7,
+    "carbs_g": 16,
+    "fat_g": 0.5,
+    "fiber_g": 1.6,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_nut_\u043A\u0430\u0440\u0442\u043E\u0444",
+    "name_bg": "\u041A\u0430\u0440\u0442\u043E\u0444",
+    "group_id": "whole_grains",
+    "portion_g": 80,
+    "kcal": 62,
+    "protein_g": 1.6,
+    "carbs_g": 13.6,
+    "fat_g": 0.1,
+    "fiber_g": 1.4,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_potato",
+    "name_bg": "\u041A\u0430\u0440\u0442\u043E\u0444\u0438",
+    "group_id": "whole_grains",
+    "portion_g": 80,
+    "kcal": 62,
+    "protein_g": 1.6,
+    "carbs_g": 13.6,
+    "fat_g": 0.1,
+    "fiber_g": 1.4,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_porridge",
+    "name_bg": "\u041A\u0430\u0448\u0430",
+    "group_id": "whole_grains",
+    "portion_g": 80,
+    "kcal": 64,
+    "protein_g": 2.4,
+    "carbs_g": 11.2,
+    "fat_g": 1.2,
+    "fiber_g": 1.1,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_quinoa",
+    "name_bg": "\u041A\u0438\u043D\u043E\u0430",
+    "group_id": "whole_grains",
+    "portion_g": 80,
+    "kcal": 96,
+    "protein_g": 3.5,
+    "carbs_g": 16.8,
+    "fat_g": 1.5,
+    "fiber_g": 1.7,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_sourdough",
+    "name_bg": "\u041A\u0438\u0441\u0435\u043B\u043E \u0442\u0435\u0441\u0442\u043E \u0445\u043B\u044F\u0431",
+    "group_id": "whole_grains",
+    "portion_g": 80,
+    "kcal": 198,
+    "protein_g": 7.2,
+    "carbs_g": 32.8,
+    "fat_g": 2.8,
+    "fiber_g": 3.3,
+    "sodium_mg": 0,
+    "tags": [
+      "carb",
+      "fiber"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_couscous",
+    "name_bg": "\u041A\u0443\u0441-\u043A\u0443\u0441",
+    "group_id": "whole_grains",
+    "portion_g": 80,
+    "kcal": 66,
+    "protein_g": 2.5,
+    "carbs_g": 15.2,
+    "fat_g": 0.2,
+    "fiber_g": 1.5,
+    "sodium_mg": 0,
+    "tags": [
+      "carb"
+    ],
+    "allowed_in": [
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto",
+      "gluten_free"
+    ]
+  },
+  {
+    "id": "food_nut_\u043E\u0432\u0435\u0441",
+    "name_bg": "\u041E\u0432\u0435\u0441",
+    "group_id": "whole_grains",
+    "portion_g": 80,
+    "kcal": 311,
+    "protein_g": 13.6,
+    "carbs_g": 52.8,
+    "fat_g": 5.6,
+    "fiber_g": 5.3,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_nut_\u043E\u0432\u0435\u0441\u0435\u043D\u0430_\u043A\u0430\u0448\u0430",
+    "name_bg": "\u041E\u0432\u0435\u0441\u0435\u043D\u0430 \u043A\u0430\u0448\u0430",
+    "group_id": "whole_grains",
+    "portion_g": 80,
+    "kcal": 76,
+    "protein_g": 3.2,
+    "carbs_g": 11.2,
+    "fat_g": 2.4,
+    "fiber_g": 1.1,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_rice",
+    "name_bg": "\u041E\u0440\u0438\u0437",
+    "group_id": "whole_grains",
+    "portion_g": 80,
+    "kcal": 104,
+    "protein_g": 2.2,
+    "carbs_g": 22.4,
+    "fat_g": 0.2,
+    "fiber_g": 2.2,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_rice_white",
+    "name_bg": "\u041E\u0440\u0438\u0437 (\u0431\u044F\u043B)",
+    "group_id": "whole_grains",
+    "portion_g": 80,
+    "kcal": 104,
+    "protein_g": 2.2,
+    "carbs_g": 22.4,
+    "fat_g": 0.2,
+    "fiber_g": 2.2,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_rice_brown",
+    "name_bg": "\u041E\u0440\u0438\u0437 (\u043A\u0430\u0444\u044F\u0432)",
+    "group_id": "whole_grains",
+    "portion_g": 80,
+    "kcal": 89,
+    "protein_g": 2.1,
+    "carbs_g": 18.4,
+    "fat_g": 0.7,
+    "fiber_g": 1.8,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_rice_basmati",
+    "name_bg": "\u041E\u0440\u0438\u0437 \u0431\u0430\u0441\u043C\u0430\u0442\u0438",
+    "group_id": "whole_grains",
+    "portion_g": 80,
+    "kcal": 104,
+    "protein_g": 2.2,
+    "carbs_g": 22.4,
+    "fat_g": 0.2,
+    "fiber_g": 2.2,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_rice_jasmine",
+    "name_bg": "\u041E\u0440\u0438\u0437 \u0436\u0430\u0441\u043C\u0438\u043D",
+    "group_id": "whole_grains",
+    "portion_g": 80,
+    "kcal": 104,
+    "protein_g": 2.2,
+    "carbs_g": 22.4,
+    "fat_g": 0.2,
+    "fiber_g": 2.2,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_pasta",
+    "name_bg": "\u041F\u0430\u0441\u0442\u0430",
+    "group_id": "whole_grains",
+    "portion_g": 80,
+    "kcal": 105,
+    "protein_g": 4,
+    "carbs_g": 20,
+    "fat_g": 0.9,
+    "fiber_g": 2,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_millet",
+    "name_bg": "\u041F\u0440\u043E\u0441\u043E",
+    "group_id": "whole_grains",
+    "portion_g": 80,
+    "kcal": 95,
+    "protein_g": 2.8,
+    "carbs_g": 19.2,
+    "fat_g": 0.8,
+    "fiber_g": 1.9,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_bread_whole",
+    "name_bg": "\u041F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431",
+    "group_id": "whole_grains",
+    "portion_g": 80,
+    "kcal": 198,
+    "protein_g": 7.2,
+    "carbs_g": 32.8,
+    "fat_g": 2.8,
+    "fiber_g": 3.3,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_pasta_whole",
+    "name_bg": "\u041F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442\u0430 \u043F\u0430\u0441\u0442\u0430",
+    "group_id": "whole_grains",
+    "portion_g": 80,
+    "kcal": 105,
+    "protein_g": 4,
+    "carbs_g": 20,
+    "fat_g": 0.9,
+    "fiber_g": 2,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_rye_bread",
+    "name_bg": "\u0420\u044A\u0436\u0435\u043D \u0445\u043B\u044F\u0431",
+    "group_id": "whole_grains",
+    "portion_g": 80,
+    "kcal": 207,
+    "protein_g": 6.8,
+    "carbs_g": 38.4,
+    "fat_g": 2.6,
+    "fiber_g": 3.8,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_sweet_potato",
+    "name_bg": "\u0421\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+    "group_id": "whole_grains",
+    "portion_g": 80,
+    "kcal": 69,
+    "protein_g": 1.3,
+    "carbs_g": 16,
+    "fat_g": 0.1,
+    "fiber_g": 1.6,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_nut_\u0441\u043B\u0430\u0434\u044A\u043A_\u043A\u0430\u0440\u0442\u043E\u0444",
+    "name_bg": "\u0421\u043B\u0430\u0434\u044A\u043A \u043A\u0430\u0440\u0442\u043E\u0444",
+    "group_id": "whole_grains",
+    "portion_g": 80,
+    "kcal": 69,
+    "protein_g": 1.3,
+    "carbs_g": 16,
+    "fat_g": 0.1,
+    "fiber_g": 1.6,
+    "sodium_mg": 0,
+    "tags": [],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_tortilla",
+    "name_bg": "\u0422\u043E\u0440\u0442\u0438\u043B\u0430",
+    "group_id": "whole_grains",
+    "portion_g": 80,
+    "kcal": 174,
+    "protein_g": 4.8,
+    "carbs_g": 28.8,
+    "fat_g": 4,
+    "fiber_g": 2.9,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_bread",
+    "name_bg": "\u0425\u043B\u044F\u0431",
+    "group_id": "whole_grains",
+    "portion_g": 80,
+    "kcal": 212,
+    "protein_g": 7.2,
+    "carbs_g": 39.2,
+    "fat_g": 2.6,
+    "fiber_g": 3.9,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_corn",
+    "name_bg": "\u0426\u0430\u0440\u0435\u0432\u0438\u0446\u0430",
+    "group_id": "whole_grains",
+    "portion_g": 80,
+    "kcal": 69,
+    "protein_g": 2.6,
+    "carbs_g": 15.2,
+    "fat_g": 1,
+    "fiber_g": 1.5,
+    "sodium_mg": 0,
+    "tags": [
+      "vegan",
+      "carb"
+    ],
+    "allowed_in": [
+      "all",
+      "balanced",
+      "mediterranean"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_polenta",
+    "name_bg": "\u0426\u0430\u0440\u0435\u0432\u0438\u0447\u0435\u043D \u0433\u0440\u0438\u0441",
+    "group_id": "whole_grains",
+    "portion_g": 80,
+    "kcal": 69,
+    "protein_g": 2.6,
+    "carbs_g": 15.2,
+    "fat_g": 1,
+    "fiber_g": 1.5,
+    "sodium_mg": 0,
+    "tags": [
+      "carb"
+    ],
+    "allowed_in": [
+      "all"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  },
+  {
+    "id": "food_rice_fodmap",
+    "name_bg": "Oriz (FODMAP low)",
+    "group_id": "whole_grains",
+    "portion_g": 80,
+    "kcal": 104,
+    "protein_g": 2.2,
+    "carbs_g": 22.4,
+    "fat_g": 0.2,
+    "fiber_g": 2.2,
+    "sodium_mg": 0,
+    "tags": [
+      "fodmap_low"
+    ],
+    "allowed_in": [
+      "low_fodmap"
+    ],
+    "excluded_in": [
+      "keto"
+    ]
+  }
+];
+var LIBRARY_READY_MEALS = [
+  {
+    "id": "meal_oats_egg_berries",
+    "name_bg": "\u041E\u0432\u0435\u0441 \u0441 \u044F\u0439\u0446\u0430 \u0438 \u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438",
+    "meal_type": "breakfast",
+    "diet_profiles": [
+      "balanced",
+      "mediterranean"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_herbal_tea",
+        "grams": 40
+      },
+      {
+        "food_id": "food_eggs",
+        "grams": 100
+      },
+      {
+        "food_id": "food_blueberry",
+        "grams": 80
+      }
+    ],
+    "kcal": 200,
+    "protein_g": 13.5,
+    "carbs_g": 12.4,
+    "fat_g": 11.3
+  },
+  {
+    "id": "meal_yogurt_oats_banana",
+    "name_bg": "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043E\u0432\u0435\u0441 \u0438 \u0431\u0430\u043D\u0430\u043D",
+    "meal_type": "breakfast",
+    "diet_profiles": [
+      "balanced"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_yogurt_2",
+        "grams": 200
+      },
+      {
+        "food_id": "food_oats",
+        "grams": 30
+      },
+      {
+        "food_id": "food_banana",
+        "grams": 80
+      }
+    ],
+    "kcal": 307,
+    "protein_g": 14,
+    "carbs_g": 48.2,
+    "fat_g": 8.4
+  },
+  {
+    "id": "meal_skry_fruit",
+    "name_bg": "\u0421\u043A\u0438\u0440 \u0441 \u043F\u043B\u043E\u0434",
+    "meal_type": "breakfast",
+    "diet_profiles": [
+      "balanced",
+      "high_protein"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_skyr",
+        "grams": 200
+      },
+      {
+        "food_id": "food_apple",
+        "grams": 120
+      }
+    ],
+    "kcal": 186,
+    "protein_g": 22.4,
+    "carbs_g": 24.8,
+    "fat_g": 0.6
+  },
+  {
+    "id": "meal_omelet_veg",
+    "name_bg": "\u041E\u043C\u043B\u0435\u0442 \u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+    "meal_type": "breakfast",
+    "diet_profiles": [
+      "balanced",
+      "keto",
+      "low_carb"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_eggs",
+        "grams": 150
+      },
+      {
+        "food_id": "food_spinach",
+        "grams": 80
+      },
+      {
+        "food_id": "food_tomato",
+        "grams": 80
+      }
+    ],
+    "kcal": 266,
+    "protein_g": 22.6,
+    "carbs_g": 7.7,
+    "fat_g": 17
+  },
+  {
+    "id": "meal_cottage_honey",
+    "name_bg": "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u043C\u0435\u0434 \u0438 \u043E\u0440\u0435\u0445\u0438",
+    "meal_type": "breakfast",
+    "diet_profiles": [
+      "balanced",
+      "high_protein"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_cottage_low",
+        "grams": 150
+      },
+      {
+        "food_id": "food_honey",
+        "grams": 15
+      },
+      {
+        "food_id": "food_walnuts",
+        "grams": 15
+      }
+    ],
+    "kcal": 252,
+    "protein_g": 20.3,
+    "carbs_g": 18.5,
+    "fat_g": 11.3
+  },
+  {
+    "id": "meal_tofu_scramble",
+    "name_bg": "\u0422\u043E\u0444\u0443 \u0441\u043A\u0440\u0430\u043C\u0431\u044A\u043B",
+    "meal_type": "breakfast",
+    "diet_profiles": [
+      "vegan",
+      "balanced"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_tofu",
+        "grams": 150
+      },
+      {
+        "food_id": "food_pepper",
+        "grams": 100
+      },
+      {
+        "food_id": "food_oil",
+        "grams": 10
+      }
+    ],
+    "kcal": 234,
+    "protein_g": 13,
+    "carbs_g": 8.9,
+    "fat_g": 17.6
+  },
+  {
+    "id": "meal_porridge_berries",
+    "name_bg": "\u041E\u0432\u0435\u0441\u0435\u043D\u0430 \u043A\u0430\u0448\u0430 \u0441 \u043F\u043B\u043E\u0434\u043E\u0432\u0435",
+    "meal_type": "breakfast",
+    "diet_profiles": [
+      "balanced",
+      "vegetarian"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_oats",
+        "grams": 50
+      },
+      {
+        "food_id": "food_raspberry",
+        "grams": 80
+      },
+      {
+        "food_id": "food_yogurt_2",
+        "grams": 100
+      }
+    ],
+    "kcal": 295,
+    "protein_g": 13.5,
+    "carbs_g": 47.6,
+    "fat_g": 7.1
+  },
+  {
+    "id": "meal_bread_egg_avocado",
+    "name_bg": "\u042F\u0439\u0446\u0430 \u0441 \u0430\u0432\u043E\u043A\u0430\u0434\u043E \u0438 \u0445\u043B\u044F\u0431",
+    "meal_type": "breakfast",
+    "diet_profiles": [
+      "balanced",
+      "mediterranean"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_eggs",
+        "grams": 120
+      },
+      {
+        "food_id": "food_avocado",
+        "grams": 60
+      },
+      {
+        "food_id": "food_herbal_tea",
+        "grams": 40
+      }
+    ],
+    "kcal": 282,
+    "protein_g": 16.8,
+    "carbs_g": 6.6,
+    "fat_g": 22.4
+  },
+  {
+    "id": "meal_salmon_quinoa",
+    "name_bg": "\u0421\u044C\u043E\u043C\u0433\u0430 \u0441 \u043A\u0438\u043D\u043E\u0430 \u0438 \u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+    "meal_type": "lunch",
+    "diet_profiles": [
+      "balanced",
+      "mediterranean"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_salmon",
+        "grams": 140
+      },
+      {
+        "food_id": "food_quinoa",
+        "grams": 150
+      },
+      {
+        "food_id": "food_zucchini",
+        "grams": 150
+      },
+      {
+        "food_id": "food_oil",
+        "grams": 10
+      }
+    ],
+    "kcal": 587,
+    "protein_g": 36.4,
+    "carbs_g": 36.2,
+    "fat_g": 31.5
+  },
+  {
+    "id": "meal_chicken_rice_broccoli",
+    "name_bg": "\u041F\u0438\u043B\u0435 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+    "meal_type": "lunch",
+    "diet_profiles": [
+      "balanced"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_chicken_breast",
+        "grams": 120
+      },
+      {
+        "food_id": "food_rice_brown",
+        "grams": 150
+      },
+      {
+        "food_id": "food_broccoli",
+        "grams": 150
+      }
+    ],
+    "kcal": 416,
+    "protein_g": 45.3,
+    "carbs_g": 45,
+    "fat_g": 6.2
+  },
+  {
+    "id": "meal_turkey_potato_salad",
+    "name_bg": "\u041F\u0443\u0435\u0448\u043A\u043E \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u0441\u0430\u043B\u0430\u0442\u0430",
+    "meal_type": "lunch",
+    "diet_profiles": [
+      "balanced"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_turkey",
+        "grams": 120
+      },
+      {
+        "food_id": "food_potato",
+        "grams": 200
+      },
+      {
+        "food_id": "food_herbal_tea",
+        "grams": 100
+      }
+    ],
+    "kcal": 318,
+    "protein_g": 40,
+    "carbs_g": 34.2,
+    "fat_g": 1.5
+  },
+  {
+    "id": "meal_beef_broccoli",
+    "name_bg": "\u0422\u0435\u043B\u0435\u0448\u043A\u043E \u0441 \u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+    "meal_type": "lunch",
+    "diet_profiles": [
+      "balanced",
+      "low_carb"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_beef_lean",
+        "grams": 120
+      },
+      {
+        "food_id": "food_broccoli",
+        "grams": 200
+      },
+      {
+        "food_id": "food_oil",
+        "grams": 10
+      }
+    ],
+    "kcal": 457,
+    "protein_g": 36.8,
+    "carbs_g": 14,
+    "fat_g": 31.2
+  },
+  {
+    "id": "meal_vegan_bowl",
+    "name_bg": "\u0412\u0435\u0433\u0430\u043D \u0431\u043E\u0443\u043B",
+    "meal_type": "lunch",
+    "diet_profiles": [
+      "vegan",
+      "balanced"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_tofu",
+        "grams": 150
+      },
+      {
+        "food_id": "food_quinoa",
+        "grams": 150
+      },
+      {
+        "food_id": "food_spinach",
+        "grams": 100
+      }
+    ],
+    "kcal": 317,
+    "protein_g": 21.5,
+    "carbs_g": 38,
+    "fat_g": 10.5
+  },
+  {
+    "id": "meal_lentil_rice",
+    "name_bg": "\u041B\u0435\u0449\u0430 \u0441 \u043E\u0440\u0438\u0437",
+    "meal_type": "lunch",
+    "diet_profiles": [
+      "vegan",
+      "vegetarian",
+      "balanced"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_lentils",
+        "grams": 150
+      },
+      {
+        "food_id": "food_rice_brown",
+        "grams": 120
+      },
+      {
+        "food_id": "food_carrot",
+        "grams": 80
+      }
+    ],
+    "kcal": 341,
+    "protein_g": 17.4,
+    "carbs_g": 65.6,
+    "fat_g": 1.8
+  },
+  {
+    "id": "meal_fish_potato_salad",
+    "name_bg": "\u0420\u0438\u0431\u0430 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u0441\u0430\u043B\u0430\u0442\u0430",
+    "meal_type": "lunch",
+    "diet_profiles": [
+      "balanced",
+      "pescatarian"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_cod",
+        "grams": 150
+      },
+      {
+        "food_id": "food_potato",
+        "grams": 180
+      },
+      {
+        "food_id": "food_herbal_tea",
+        "grams": 80
+      }
+    ],
+    "kcal": 264,
+    "protein_g": 30.6,
+    "carbs_g": 30.8,
+    "fat_g": 1.2
+  },
+  {
+    "id": "meal_shrimp_pasta",
+    "name_bg": "\u0421\u043A\u0430\u0440\u0438\u0434\u0438 \u0441 \u043F\u0430\u0441\u0442\u0430",
+    "meal_type": "lunch",
+    "diet_profiles": [
+      "mediterranean",
+      "pescatarian"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_shrimp",
+        "grams": 120
+      },
+      {
+        "food_id": "food_herbal_tea",
+        "grams": 80
+      },
+      {
+        "food_id": "food_tomato_paste",
+        "grams": 60
+      }
+    ],
+    "kcal": 170,
+    "protein_g": 31.4,
+    "carbs_g": 11.8,
+    "fat_g": 0.6
+  },
+  {
+    "id": "meal_chicken_bulgur",
+    "name_bg": "\u041F\u0438\u043B\u0435 \u0441 \u0431\u0443\u043B\u0433\u0443\u0440 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+    "meal_type": "lunch",
+    "diet_profiles": [
+      "balanced"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_chicken",
+        "grams": 120
+      },
+      {
+        "food_id": "food_bulgur",
+        "grams": 80
+      },
+      {
+        "food_id": "food_pepper",
+        "grams": 120
+      }
+    ],
+    "kcal": 302,
+    "protein_g": 40.9,
+    "carbs_g": 22.4,
+    "fat_g": 4.9
+  },
+  {
+    "id": "meal_pork_beans",
+    "name_bg": "\u0421\u0432\u0438\u043D\u0441\u043A\u043E \u0441 \u0431\u043E\u0431",
+    "meal_type": "lunch",
+    "diet_profiles": [
+      "balanced"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_pork_lean",
+        "grams": 100
+      },
+      {
+        "food_id": "food_herbal_tea",
+        "grams": 150
+      },
+      {
+        "food_id": "food_onion",
+        "grams": 40
+      }
+    ],
+    "kcal": 260,
+    "protein_g": 27.5,
+    "carbs_g": 3.9,
+    "fat_g": 14.1
+  },
+  {
+    "id": "meal_tuna_salad",
+    "name_bg": "\u0421\u0430\u043B\u0430\u0442\u0430 \u0441 \u0440\u0438\u0431\u0430 \u0442\u043E\u043D",
+    "meal_type": "lunch",
+    "diet_profiles": [
+      "balanced",
+      "pescatarian",
+      "low_carb"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_herbal_tea",
+        "grams": 120
+      },
+      {
+        "food_id": "food_herbal_tea",
+        "grams": 120
+      },
+      {
+        "food_id": "food_oil",
+        "grams": 10
+      }
+    ],
+    "kcal": 91,
+    "protein_g": 0,
+    "carbs_g": 0.5,
+    "fat_g": 10
+  },
+  {
+    "id": "meal_chickpea_bowl",
+    "name_bg": "\u041D\u0430\u0445\u0443\u0442 \u0431\u043E\u0443\u043B",
+    "meal_type": "lunch",
+    "diet_profiles": [
+      "vegan",
+      "mediterranean"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_chickpeas",
+        "grams": 150
+      },
+      {
+        "food_id": "food_carrot",
+        "grams": 80
+      },
+      {
+        "food_id": "food_oil",
+        "grams": 10
+      }
+    ],
+    "kcal": 368,
+    "protein_g": 14.1,
+    "carbs_g": 48.5,
+    "fat_g": 14.1
+  },
+  {
+    "id": "meal_keto_eggs_zucchini",
+    "name_bg": "\u042F\u0439\u0446\u0430 \u0441 \u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+    "meal_type": "dinner",
+    "diet_profiles": [
+      "keto",
+      "low_carb"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_eggs",
+        "grams": 150
+      },
+      {
+        "food_id": "food_zucchini",
+        "grams": 200
+      },
+      {
+        "food_id": "food_oil",
+        "grams": 10
+      }
+    ],
+    "kcal": 357,
+    "protein_g": 21.9,
+    "carbs_g": 7.9,
+    "fat_g": 27.2
+  },
+  {
+    "id": "meal_grilled_fish_veg",
+    "name_bg": "\u0420\u0438\u0431\u0430 \u043D\u0430 \u0441\u043A\u0430\u0440\u0430 \u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+    "meal_type": "dinner",
+    "diet_profiles": [
+      "mediterranean",
+      "pescatarian"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_fish",
+        "grams": 150
+      },
+      {
+        "food_id": "food_broccoli",
+        "grams": 150
+      },
+      {
+        "food_id": "food_oil",
+        "grams": 10
+      }
+    ],
+    "kcal": 320,
+    "protein_g": 37.2,
+    "carbs_g": 10.5,
+    "fat_g": 15.1
+  },
+  {
+    "id": "meal_chicken_salad_dinner",
+    "name_bg": "\u041F\u0438\u043B\u0435\u0448\u043A\u0430 \u0441\u0430\u043B\u0430\u0442\u0430",
+    "meal_type": "dinner",
+    "diet_profiles": [
+      "balanced",
+      "low_carb"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_chicken",
+        "grams": 120
+      },
+      {
+        "food_id": "food_herbal_tea",
+        "grams": 150
+      },
+      {
+        "food_id": "food_tomato",
+        "grams": 100
+      }
+    ],
+    "kcal": 218,
+    "protein_g": 38.1,
+    "carbs_g": 4.2,
+    "fat_g": 4.5
+  },
+  {
+    "id": "meal_tempeh_stirfry",
+    "name_bg": "\u0422\u0435\u043C\u043F\u0435 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+    "meal_type": "dinner",
+    "diet_profiles": [
+      "vegan"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_tempeh",
+        "grams": 120
+      },
+      {
+        "food_id": "food_carrot",
+        "grams": 80
+      },
+      {
+        "food_id": "food_broccoli",
+        "grams": 100
+      }
+    ],
+    "kcal": 299,
+    "protein_g": 26.3,
+    "carbs_g": 25.8,
+    "fat_g": 13.8
+  },
+  {
+    "id": "meal_mackerel_salad",
+    "name_bg": "\u0421\u043A\u0443\u043C\u0440\u0438\u044F \u0441\u044A\u0441 \u0441\u0430\u043B\u0430\u0442\u0430",
+    "meal_type": "dinner",
+    "diet_profiles": [
+      "mediterranean",
+      "pescatarian"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_mackerel",
+        "grams": 120
+      },
+      {
+        "food_id": "food_herbal_tea",
+        "grams": 120
+      },
+      {
+        "food_id": "food_lemon",
+        "grams": 30
+      }
+    ],
+    "kcal": 256,
+    "protein_g": 23.1,
+    "carbs_g": 2.9,
+    "fat_g": 16.9
+  },
+  {
+    "id": "meal_eggplant_turkey",
+    "name_bg": "\u041F\u0430\u0442\u043B\u0430\u0434\u0436\u0430\u043D \u0441 \u043F\u0443\u0435\u0448\u043A\u043E",
+    "meal_type": "dinner",
+    "diet_profiles": [
+      "balanced"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_turkey",
+        "grams": 120
+      },
+      {
+        "food_id": "food_herbal_tea",
+        "grams": 200
+      },
+      {
+        "food_id": "food_oil",
+        "grams": 8
+      }
+    ],
+    "kcal": 235,
+    "protein_g": 36,
+    "carbs_g": 0.4,
+    "fat_g": 9.2
+  },
+  {
+    "id": "meal_cottage_veg",
+    "name_bg": "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+    "meal_type": "dinner",
+    "diet_profiles": [
+      "balanced",
+      "high_protein"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_cottage_low",
+        "grams": 180
+      },
+      {
+        "food_id": "food_cucumber",
+        "grams": 150
+      },
+      {
+        "food_id": "food_tomato",
+        "grams": 100
+      }
+    ],
+    "kcal": 171,
+    "protein_g": 23.5,
+    "carbs_g": 14.3,
+    "fat_g": 2.2
+  },
+  {
+    "id": "meal_yogurt_apple",
+    "name_bg": "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u044F\u0431\u044A\u043B\u043A\u0430",
+    "meal_type": "snack",
+    "diet_profiles": [
+      "balanced"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_yogurt_2",
+        "grams": 200
+      },
+      {
+        "food_id": "food_apple",
+        "grams": 150
+      }
+    ],
+    "kcal": 198,
+    "protein_g": 8.5,
+    "carbs_g": 31,
+    "fat_g": 6.3
+  },
+  {
+    "id": "meal_nuts_berries",
+    "name_bg": "\u042F\u0434\u043A\u0438 \u0438 \u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438",
+    "meal_type": "snack",
+    "diet_profiles": [
+      "balanced",
+      "keto"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_almonds",
+        "grams": 25
+      },
+      {
+        "food_id": "food_blueberry",
+        "grams": 80
+      }
+    ],
+    "kcal": 190,
+    "protein_g": 5.8,
+    "carbs_g": 16.7,
+    "fat_g": 12.8
+  },
+  {
+    "id": "meal_hummus_veg",
+    "name_bg": "\u0425\u0443\u043C\u0443\u0441 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+    "meal_type": "snack",
+    "diet_profiles": [
+      "vegan",
+      "mediterranean"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_hummus",
+        "grams": 60
+      },
+      {
+        "food_id": "food_carrot",
+        "grams": 80
+      },
+      {
+        "food_id": "food_cucumber",
+        "grams": 80
+      }
+    ],
+    "kcal": 145,
+    "protein_g": 6.1,
+    "carbs_g": 19.3,
+    "fat_g": 6.3
+  },
+  {
+    "id": "meal_protein_shake",
+    "name_bg": "\u041F\u0440\u043E\u0442\u0435\u0438\u043D \u0448\u0435\u0439\u043A",
+    "meal_type": "snack",
+    "diet_profiles": [
+      "high_protein"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_herbal_tea",
+        "grams": 30
+      },
+      {
+        "food_id": "food_banana",
+        "grams": 80
+      }
+    ],
+    "kcal": 71,
+    "protein_g": 0.9,
+    "carbs_g": 18.5,
+    "fat_g": 0.3
+  },
+  {
+    "id": "meal_cheese_crackers",
+    "name_bg": "\u0421\u0438\u0440\u0435\u043D\u0435 \u0441 \u043A\u0440\u0435\u043A\u0435\u0440\u0438",
+    "meal_type": "snack",
+    "diet_profiles": [
+      "balanced"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_cheese",
+        "grams": 50
+      },
+      {
+        "food_id": "food_herbal_tea",
+        "grams": 30
+      }
+    ],
+    "kcal": 132,
+    "protein_g": 7,
+    "carbs_g": 1.1,
+    "fat_g": 10.5
+  },
+  {
+    "id": "meal_fruit_yogurt",
+    "name_bg": "\u041F\u043B\u043E\u0434 \u0441 \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+    "meal_type": "snack",
+    "diet_profiles": [
+      "balanced"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_kiwi",
+        "grams": 100
+      },
+      {
+        "food_id": "food_yogurt_2",
+        "grams": 150
+      }
+    ],
+    "kcal": 151,
+    "protein_g": 7.1,
+    "carbs_g": 22.5,
+    "fat_g": 5
+  },
+  {
+    "id": "meal_late_skry",
+    "name_bg": "\u0421\u043A\u0438\u0440 \u043A\u044A\u0441\u0435\u043D snack",
+    "meal_type": "snack",
+    "diet_profiles": [
+      "balanced",
+      "high_protein"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_skyr",
+        "grams": 150
+      }
+    ],
+    "kcal": 93,
+    "protein_g": 16.5,
+    "carbs_g": 6,
+    "fat_g": 0.3
+  },
+  {
+    "id": "meal_late_nuts",
+    "name_bg": "\u042F\u0434\u043A\u0438 (\u043A\u044A\u0441 snack)",
+    "meal_type": "snack",
+    "diet_profiles": [
+      "keto",
+      "low_carb"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_cashew",
+        "grams": 25
+      }
+    ],
+    "kcal": 138,
+    "protein_g": 4.5,
+    "carbs_g": 7.5,
+    "fat_g": 11
+  }
+];
+var LIBRARY_PROTOCOL_RULES = {
+  "diet_profiles": {
+    "balanced": {
+      "prefer_groups": [
+        "vegetables",
+        "fruits",
+        "whole_grains",
+        "fish",
+        "eggs",
+        "fats"
+      ],
+      "prefer_tags": [
+        "fiber"
+      ]
+    },
+    "mediterranean": {
+      "prefer_groups": [
+        "vegetables",
+        "fruits",
+        "whole_grains",
+        "fish",
+        "fats",
+        "legumes"
+      ],
+      "prefer_tags": [
+        "fiber",
+        "omega3",
+        "antioxidant"
+      ]
+    },
+    "keto": {
+      "max_carbs_g_day": 30,
+      "exclude_groups": [
+        "whole_grains",
+        "fruits",
+        "legumes",
+        "refined_grains",
+        "sweets"
+      ],
+      "prefer_groups": [
+        "eggs",
+        "fish",
+        "meat",
+        "vegetables",
+        "fats",
+        "dairy"
+      ]
+    },
+    "low_carb": {
+      "max_carbs_g_day": 80,
+      "exclude_groups": [
+        "refined_grains",
+        "sweets"
+      ],
+      "prefer_groups": [
+        "vegetables",
+        "fish",
+        "meat",
+        "eggs",
+        "fats"
+      ]
+    },
+    "vegan": {
+      "exclude_groups": [
+        "meat",
+        "fish",
+        "seafood",
+        "eggs",
+        "dairy"
+      ],
+      "prefer_groups": [
+        "vegetables",
+        "legumes",
+        "plant_protein",
+        "whole_grains",
+        "nuts_seeds"
+      ]
+    },
+    "vegetarian": {
+      "exclude_groups": [
+        "meat",
+        "fish",
+        "seafood"
+      ],
+      "prefer_groups": [
+        "eggs",
+        "dairy",
+        "legumes",
+        "vegetables",
+        "whole_grains"
+      ]
+    },
+    "pescatarian": {
+      "exclude_groups": [
+        "meat"
+      ],
+      "prefer_groups": [
+        "fish",
+        "seafood",
+        "eggs",
+        "dairy",
+        "vegetables",
+        "whole_grains"
+      ]
+    },
+    "high_protein": {
+      "min_protein_g_kg": 1.6,
+      "prefer_groups": [
+        "meat",
+        "fish",
+        "eggs",
+        "dairy",
+        "plant_protein"
+      ],
+      "prefer_tags": [
+        "protein"
+      ]
+    },
+    "low_fodmap": {
+      "exclude_tags": [
+        "fodmap_high"
+      ],
+      "prefer_groups": [
+        "vegetables",
+        "fish",
+        "eggs",
+        "dairy",
+        "whole_grains"
+      ]
+    },
+    "dash": {
+      "max_sodium_mg_day": 2300,
+      "prefer_groups": [
+        "vegetables",
+        "fruits",
+        "whole_grains",
+        "legumes",
+        "dairy",
+        "fish"
+      ],
+      "limit_tags": [
+        "high_sodium"
+      ]
+    },
+    "paleo": {
+      "exclude_groups": [
+        "whole_grains",
+        "refined_grains",
+        "legumes",
+        "dairy",
+        "sweets"
+      ],
+      "prefer_groups": [
+        "meat",
+        "fish",
+        "eggs",
+        "vegetables",
+        "fruits",
+        "nuts_seeds"
+      ]
+    },
+    "gluten_free": {
+      "exclude_tags": [
+        "gluten"
+      ],
+      "prefer_groups": [
+        "vegetables",
+        "fruits",
+        "rice",
+        "potatoes",
+        "meat",
+        "fish",
+        "dairy"
+      ]
+    },
+    "dairy_free": {
+      "exclude_groups": [
+        "dairy"
+      ],
+      "prefer_groups": [
+        "meat",
+        "fish",
+        "legumes",
+        "plant_protein",
+        "vegetables"
+      ]
+    },
+    "anti_inflammatory": {
+      "prefer_tags": [
+        "omega3",
+        "antioxidant",
+        "fiber"
+      ],
+      "limit_tags": [
+        "processed"
+      ],
+      "prefer_groups": [
+        "fish",
+        "vegetables",
+        "fruits",
+        "nuts_seeds"
+      ]
+    }
+  },
+  "exchange_map": {
+    "carb_exchange_g": 15,
+    "protein_exchange_g": 7,
+    "fat_exchange_g": 5
+  },
+  "meal_distribution_templates": {
+    "3_meals": [
+      0.3,
+      0.4,
+      0.3
+    ],
+    "4_meals": [
+      0.25,
+      0.35,
+      0.15,
+      0.25
+    ],
+    "5_meals": [
+      0.2,
+      0.25,
+      0.2,
+      0.15,
+      0.2
+    ]
+  },
+  "calculation": {
+    "kcal_formula": "protein_g*4 + carbs_g*4 + fat_g*9"
+  },
+  "priority": [
+    "safety",
+    "allergies",
+    "medical",
+    "goal",
+    "energy",
+    "macros",
+    "base_diet",
+    "timing",
+    "behavior"
+  ]
+};
+
+// nutrition-library-bridge.js
+var GROUP_TO_CATALOG = {
+  vegetables: "vegetable",
+  fruits: "fruit",
+  whole_grains: "carb",
+  refined_grains: "carb",
+  legumes: "legume",
+  fish: "protein",
+  meat: "protein",
+  eggs: "protein",
+  dairy: "dairy",
+  nuts_seeds: "fat",
+  fats: "fat",
+  herbs_spices: "condiment",
+  beverages: "beverage",
+  sweets: "condiment",
+  plant_protein: "protein",
+  seafood: "protein",
+  condiments: "condiment"
+};
+var GROUP_TO_SLOTS = {
+  vegetables: ["VOL"],
+  fruits: ["ENG"],
+  whole_grains: ["ENG"],
+  refined_grains: ["ENG"],
+  legumes: ["PRO", "ENG"],
+  fish: ["PRO"],
+  meat: ["PRO"],
+  eggs: ["PRO", "FAT"],
+  dairy: ["PRO", "FAT"],
+  nuts_seeds: ["FAT", "PRO"],
+  fats: ["FAT"],
+  herbs_spices: ["VOL"],
+  beverages: ["VOL"],
+  sweets: ["ENG"],
+  plant_protein: ["PRO"],
+  seafood: ["PRO"],
+  condiments: ["VOL", "FAT"]
+};
+var GROUP_TO_TIMING = {
+  vegetables: ["main", "snack"],
+  fruits: ["breakfast", "snack", "late_snack"],
+  whole_grains: ["breakfast", "main"],
+  refined_grains: ["breakfast", "main", "snack"],
+  legumes: ["main"],
+  fish: ["main", "snack"],
+  meat: ["main"],
+  eggs: ["breakfast", "main", "snack", "late_snack"],
+  dairy: ["breakfast", "snack", "main", "late_snack"],
+  nuts_seeds: ["snack", "late_snack", "breakfast"],
+  fats: ["main", "snack", "late_snack"],
+  herbs_spices: ["main"],
+  beverages: ["breakfast", "snack", "late_snack"],
+  sweets: ["snack", "late_snack"],
+  plant_protein: ["main", "snack"],
+  seafood: ["main"],
+  condiments: ["main", "snack"]
+};
+var LIBRARY_MEAL_TYPE_MAP = {
+  breakfast: { timing: "breakfast", slotLabel: "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1" },
+  lunch: { timing: "main", slotLabel: "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" },
+  snack: { timing: "snack", slotLabel: "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3" },
+  dinner: { timing: "main", slotLabel: "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4" },
+  late_snack: { timing: "late_snack", slotLabel: "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5" }
+};
+var FOOD_ID_TO_NUTRITION_KEY = {
+  food_oats: "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438",
+  food_rice: "\u043E\u0440\u0438\u0437",
+  food_brown_rice: "\u043E\u0440\u0438\u0437 \u043A\u0430\u0444\u044F\u0432",
+  food_quinoa: "\u043A\u0438\u043D\u043E\u0430",
+  food_buckwheat: "\u0435\u043B\u0434\u0430",
+  food_bread_whole: "\u0445\u043B\u044F\u0431 \u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442",
+  food_pasta_whole: "\u043F\u0430\u0441\u0442\u0430",
+  food_egg: "\u044F\u0439\u0446\u0430",
+  food_egg_whites: "\u044F\u0439\u0447\u043D\u0438 \u0431\u0435\u043B\u0442\u044A\u0446\u0438",
+  food_yogurt: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+  food_milk: "\u043C\u043B\u044F\u043A\u043E",
+  food_kefir: "\u043A\u0435\u0444\u0438\u0440",
+  food_cheese: "\u0441\u0438\u0440\u0435\u043D\u0435",
+  food_chicken: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+  food_turkey: "\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435",
+  food_beef: "\u0433\u043E\u0432\u0435\u0436\u0434\u043E",
+  food_pork: "\u0441\u0432\u0438\u043D\u0441\u043A\u043E",
+  food_salmon: "\u0441\u044C\u043E\u043C\u0433\u0430",
+  food_tuna: "\u0440\u0438\u0431\u0430 \u0442\u043E\u043D",
+  food_cod: "\u0442\u0440\u0435\u0441\u043A\u0430",
+  food_shrimp: "\u0441\u043A\u0430\u0440\u0438\u0434\u0438",
+  food_tofu: "\u0442\u043E\u0444\u0443",
+  food_tempeh: "\u0442\u0435\u043C\u043F\u0435",
+  food_lentils: "\u043B\u0435\u0449\u0430",
+  food_chickpeas: "\u043D\u0430\u0445\u0443\u0442",
+  food_beans: "\u0431\u043E\u0431",
+  food_olive_oil: "\u0437\u0435\u0445\u0442\u0438\u043D",
+  food_avocado: "\u0430\u0432\u043E\u043A\u0430\u0434\u043E",
+  food_butter: "\u043C\u0430\u0441\u043B\u043E",
+  food_almonds: "\u0431\u0430\u0434\u0435\u043C\u0438",
+  food_walnuts: "\u043E\u0440\u0435\u0445\u0438",
+  food_chia: "\u0441\u0435\u043C\u0435\u043D\u0430 \u0447\u0438\u0430",
+  food_flax: "\u043B\u0435\u043D\u0435\u043D\u043E \u0441\u0435\u043C\u0435",
+  food_blueberries: "\u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438",
+  food_banana: "\u0431\u0430\u043D\u0430\u043D",
+  food_apple: "\u044F\u0431\u044A\u043B\u043A\u0430",
+  food_zucchini: "\u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0430",
+  food_broccoli: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+  food_spinach: "\u0441\u043F\u0430\u043D\u0430\u043A",
+  food_potato: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+  food_tomato: "\u0434\u043E\u043C\u0430\u0442",
+  food_lettuce_mix: "\u0441\u0430\u043B\u0430\u0442\u0430",
+  food_carrot: "\u043C\u043E\u0440\u043A\u043E\u0432",
+  food_tomato_sauce: "\u0434\u043E\u043C\u0430\u0442\u0435\u043D\u043E \u043F\u044E\u0440\u0435",
+  food_hummus: "\u0445\u0443\u043C\u0443\u0441",
+  food_skyr: "\u0441\u043A\u0438\u0440",
+  food_cottage: "\u0438\u0437\u0432\u0430\u0440\u0430",
+  food_chicken_breast: "\u043F\u0438\u043B\u0435\u0448\u043A\u0438 \u0433\u044A\u0440\u0434\u0438"
+};
+function fixNutritionKeyFromFoodId(foodId, nameBg) {
+  if (FOOD_ID_TO_NUTRITION_KEY[foodId]) return FOOD_ID_TO_NUTRITION_KEY[foodId];
+  return normalizeFoodKey(nameBg);
+}
+function dietFlagsFromLibrary(food) {
+  const excluded = new Set((food.excluded_in || []).map(String));
+  const vegan = excluded.has("vegan");
+  const vegetarian = vegan || excluded.has("vegetarian");
+  const tags = food.tags || [];
+  const fodmapHigh = tags.includes("fodmap_high");
+  return { vegan, vegetarian, fodmapHigh, excludedIn: [...excluded], allowedIn: food.allowed_in || [] };
+}
+function universalityForGroup(groupId) {
+  if (["meat", "fish", "seafood", "eggs", "dairy"].includes(groupId)) return 4;
+  if (["vegetables", "fruits", "whole_grains", "fats", "nuts_seeds"].includes(groupId)) return 4;
+  if (["herbs_spices", "beverages", "condiments"].includes(groupId)) return 3;
+  return 3;
+}
+function libraryFoodToCatalogEntry(food) {
+  const groupId = food.group_id || "vegetables";
+  const name = food.name_bg || food.name;
+  const nutritionKey = fixNutritionKeyFromFoodId(food.id, name);
+  const flags = dietFlagsFromLibrary(food);
+  return {
+    id: food.id.startsWith("food_") ? `lib_${food.id}` : `lib_${food.id}`,
+    name,
+    nutritionKey,
+    group: GROUP_TO_CATALOG[groupId] || "vegetable",
+    slots: GROUP_TO_SLOTS[groupId] || ["VOL"],
+    timing: GROUP_TO_TIMING[groupId] || ["main"],
+    universality: universalityForGroup(groupId),
+    vegan: flags.vegan,
+    vegetarian: flags.vegetarian,
+    libraryGroupId: groupId,
+    portionG: food.portion_g || null,
+    libraryTags: food.tags || [],
+    allowedIn: flags.allowedIn,
+    excludedIn: flags.excludedIn,
+    fixedNutrition: food.portion_g ? {
+      kcal: food.kcal,
+      p: food.protein_g,
+      c: food.carbs_g,
+      f: food.fat_g,
+      weightGrams: food.portion_g
+    } : null,
+    source: "nutrition_library"
+  };
+}
+function getLibraryCatalogOverlay() {
+  return LIBRARY_FOODS.map((food) => libraryFoodToCatalogEntry(food));
+}
+function getLibraryReadyMealCatalogEntries() {
+  return LIBRARY_READY_MEALS.map((meal) => {
+    const mealType = LIBRARY_MEAL_TYPE_MAP[meal.meal_type] || LIBRARY_MEAL_TYPE_MAP.lunch;
+    return {
+      id: meal.id,
+      name: meal.name_bg,
+      nutritionKey: normalizeFoodKey(meal.name_bg),
+      group: "ready_meal",
+      slots: ["PRO", "ENG", "VOL", "FAT"],
+      timing: [mealType.timing],
+      universality: 4,
+      vegan: (meal.diet_profiles || []).includes("vegan"),
+      vegetarian: true,
+      libraryMealType: meal.meal_type,
+      libraryIngredients: meal.ingredients,
+      fixedNutrition: {
+        kcal: meal.kcal,
+        p: meal.protein_g,
+        c: meal.carbs_g,
+        f: meal.fat_g
+      },
+      source: "nutrition_library"
+    };
+  });
+}
+function buildLibraryReadyMealParts() {
+  const foodById = new Map(LIBRARY_FOODS.map((f) => [f.id, f]));
+  const parts = {};
+  for (const meal of LIBRARY_READY_MEALS) {
+    const totalG = (meal.ingredients || []).reduce((s, i) => s + (i.grams || 0), 0);
+    if (!totalG) continue;
+    parts[meal.id] = meal.ingredients.map((ing) => {
+      const food = foodById.get(ing.food_id);
+      const name = food?.name_bg || ing.food_id;
+      const nutritionKey = fixNutritionKeyFromFoodId(ing.food_id, name);
+      return { name: nutritionKey, share: ing.grams / totalG };
+    });
+  }
+  return parts;
+}
+
 // ready-meal-parts.js
-var READY_MEAL_PARTS = {
+var BASE_READY_MEAL_PARTS = {
   meal_rice_chicken: [{ name: "\u043E\u0440\u0438\u0437", share: 0.42 }, { name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.58 }],
   meal_fish_potato: [{ name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438", share: 0.55 }, { name: "\u0440\u0438\u0431\u0430", share: 0.45 }],
   meal_omelet: [{ name: "\u044F\u0439\u0446\u0430", share: 1 }],
@@ -7972,6 +15224,10 @@ var READY_MEAL_PARTS = {
   meal_chicken_sandwich: [{ name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.4 }, { name: "\u0445\u043B\u044F\u0431", share: 0.6 }],
   meal_cottage_bowl: [{ name: "\u0438\u0437\u0432\u0430\u0440\u0430", share: 1 }],
   meal_skry_bowl: [{ name: "\u0441\u043A\u0438\u0440", share: 1 }]
+};
+var READY_MEAL_PARTS = {
+  ...BASE_READY_MEAL_PARTS,
+  ...buildLibraryReadyMealParts()
 };
 var SCALING_DECOMPOSE = "decompose";
 var SCALING_ATOMIC = "atomic_fixed";
@@ -7997,14 +15253,28 @@ function setCatalogOverlay(entries = [], label = "") {
   indexCache = null;
   versionCache = null;
 }
+var LIBRARY_CATALOG_OVERLAY = [
+  ...getLibraryCatalogOverlay(),
+  ...getLibraryReadyMealCatalogEntries()
+];
 function getCatalogEntries() {
-  if (!overlayEntries.length) return FOOD_CATALOG;
   const byId = new Map(FOOD_CATALOG.map((e) => [e.id, e]));
+  for (const e of LIBRARY_CATALOG_OVERLAY) {
+    if (e?.id) byId.set(
+      e.id,
+      /** @type {(typeof FOOD_CATALOG)[number]} */
+      /** @type {unknown} */
+      e
+    );
+  }
   for (const e of overlayEntries) {
     if (e?.id) byId.set(e.id, e);
     else byId.set(`overlay_${normalizeFoodKey(e.name)}`, e);
   }
   return [...byId.values()];
+}
+function getNutritionLibraryVersion() {
+  return NUTRITION_LIBRARY_VERSION;
 }
 function buildRegistryIndex() {
   if (indexCache) return indexCache;
@@ -8062,6 +15332,7 @@ function getCatalogVersion() {
     }
   };
   fold(`base:${FOOD_CATALOG.length}`);
+  fold(`library:${NUTRITION_LIBRARY_VERSION}:${LIBRARY_CATALOG_OVERLAY.length}`);
   fold(`overlay:${overlayLabel}:${overlayEntries.length}`);
   for (const e of all) {
     fold(`${e.id}|${e.name}|${e.nutritionKey}|${e.scalingMode || ""}|${e.fixedNutrition?.kcal || ""}`);
@@ -8485,6 +15756,42 @@ function isExcludedByProtocol(entry, clinicalProtocolId) {
   if (!rule) return false;
   if (rule.excludeGroups?.includes(entry.group)) return true;
   if (rule.excludeNutritionKeys?.includes(entry.nutritionKey)) return true;
+  const nameLower = String(entry.name || "").toLowerCase();
+  const keyLower = String(entry.nutritionKey || "").toLowerCase();
+  for (const key of rule.excludeNutritionKeys || []) {
+    const k = String(key).toLowerCase();
+    if (k.length < 3) continue;
+    const nk = normalizeFoodKey(k);
+    if (nameLower.includes(k) || keyLower.includes(k) || normalizeFoodKey(nameLower).includes(nk) || normalizeFoodKey(keyLower).includes(nk)) {
+      return true;
+    }
+  }
+  return false;
+}
+function readyMealViolatesProtocol(entry, clinicalProtocolId) {
+  if (!clinicalProtocolId || !entry || entry.group !== "ready_meal") return false;
+  if (isExcludedByProtocol(entry, clinicalProtocolId)) return true;
+  const rule = CLINICAL_PROTOCOL_EXCLUSIONS[clinicalProtocolId];
+  if (!rule) return false;
+  const nameLower = String(entry.name || "").toLowerCase();
+  const keys = rule.excludeNutritionKeys || [];
+  for (const key of keys) {
+    const k = String(key).toLowerCase();
+    if (k.length >= 3 && (nameLower.includes(k) || normalizeFoodKey(nameLower).includes(normalizeFoodKey(k)))) {
+      return true;
+    }
+  }
+  const parts = READY_MEAL_PARTS[entry.id];
+  if (parts?.length) {
+    for (const part of parts) {
+      const pk = normalizeFoodKey(part.name);
+      if (keys.some((k) => pk.includes(normalizeFoodKey(k)) || normalizeFoodKey(k).includes(pk))) return true;
+      if (rule.excludeGroups?.length) {
+        const { entry: partEntry } = resolveCatalogEntry(part.name);
+        if (partEntry && rule.excludeGroups.includes(partEntry.group)) return true;
+      }
+    }
+  }
   return false;
 }
 function isBlockedByTerms(entry, blockedTerms = []) {
@@ -8606,6 +15913,7 @@ function getCatalogCandidatesForChunk({
   const bySlot = /* @__PURE__ */ new Map();
   for (const slot of neededSlots) bySlot.set(slot, []);
   for (const entry of index.all) {
+    if (entry.group === "ready_meal") continue;
     if (entry.universality < minUniversality) continue;
     if (!isDietCompatible(entry, diet)) continue;
     if (!passesDietRegistry(entry, registryCtx)) continue;
@@ -8645,7 +15953,7 @@ function getCatalogCandidatesForChunk({
     bySlot.set(slot, list);
   }
   const ready = rankCatalogCandidates(
-    index.all.filter((e) => e.group === "ready_meal").filter((e) => e.universality >= minUniversality).filter((e) => isDietCompatible(e, diet)).filter((e) => passesDietRegistry(e, registryCtx)).filter((e) => !isBlockedByTerms(e, blockedTerms)).filter((e) => !isExcludedByProtocol(e, clinicalProtocolId)).filter((e) => e.timing.some((t) => timings.has(t))),
+    index.all.filter((e) => e.group === "ready_meal").filter((e) => e.universality >= minUniversality).filter((e) => isDietCompatible(e, diet)).filter((e) => passesDietRegistry(e, registryCtx)).filter((e) => !isBlockedByTerms(e, blockedTerms)).filter((e) => !isExcludedByProtocol(e, clinicalProtocolId)).filter((e) => !readyMealViolatesProtocol(e, clinicalProtocolId)).filter((e) => e.timing.some((t) => timings.has(t))),
     { loveSet, adherenceRatio: adherenceMap, slotTarget: representativeSlot, maxSlotKcal: maxSlotKcal2, limit: 8 }
   );
   bySlot.set("READY", ready);
@@ -10482,6 +17790,7 @@ function getLedgerVersion(ledger) {
 function buildPlanSourceMeta(extra = {}) {
   return {
     catalogVersion: getCatalogVersion(),
+    nutritionLibraryVersion: getNutritionLibraryVersion(),
     dietRegistryVersion: getDietRegistryVersion(),
     ledgerVersion: extra.ledgerVersion || null,
     generatedAt: (/* @__PURE__ */ new Date()).toISOString(),
@@ -10563,6 +17872,938 @@ function validateWeeklyVariety(weekPlan, options = {}) {
       topProducts: [...productCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8)
     }
   };
+}
+
+// step3-deterministic.js
+var DAY_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+var MEAL3_PRESETS = [
+  { name: "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u0431\u0430\u0434\u0435\u043C\u0438", description: "\u2022 \u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E\n\u2022 \u0411\u0430\u0434\u0435\u043C\u0438" },
+  { name: "\u042F\u0431\u044A\u043B\u043A\u0430 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438", description: "\u2022 \u042F\u0431\u044A\u043B\u043A\u0430\n\u2022 \u0411\u0430\u0434\u0435\u043C\u0438" },
+  { name: "\u0411\u0430\u043D\u0430\u043D \u0441 \u043E\u0440\u0435\u0445\u0438", description: "\u2022 \u0411\u0430\u043D\u0430\u043D\n\u2022 \u041E\u0440\u0435\u0445\u0438" }
+];
+var MEAL3_VEGAN_PRESETS = [
+  { name: "\u0411\u0430\u043D\u0430\u043D \u0441 \u0431\u0430\u0434\u0435\u043C\u0438", description: "\u2022 \u0411\u0430\u043D\u0430\u043D\n\u2022 \u0411\u0430\u0434\u0435\u043C\u0438" },
+  { name: "\u042F\u0431\u044A\u043B\u043A\u0430 \u0441 \u043E\u0440\u0435\u0445\u0438", description: "\u2022 \u042F\u0431\u044A\u043B\u043A\u0430\n\u2022 \u041E\u0440\u0435\u0445\u0438" }
+];
+var MEAL5_PRESETS = [
+  { name: "\u0421\u043A\u0438\u0440 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438", description: "\u2022 \u0421\u043A\u0438\u0440\n\u2022 \u0411\u0430\u0434\u0435\u043C\u0438" },
+  { name: "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043E\u0440\u0435\u0445\u0438", description: "\u2022 \u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E\n\u2022 \u041E\u0440\u0435\u0445\u0438" },
+  { name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438", description: "\u2022 \u0418\u0437\u0432\u0430\u0440\u0430\n\u2022 \u0411\u0430\u0434\u0435\u043C\u0438" }
+];
+var MEAL5_VEGAN_PRESETS = [
+  { name: "\u0411\u0430\u0434\u0435\u043C\u0438 \u0438 \u043E\u0440\u0435\u0445\u0438", description: "\u2022 \u0411\u0430\u0434\u0435\u043C\u0438\n\u2022 \u041E\u0440\u0435\u0445\u0438" },
+  { name: "\u041A\u0430\u0448\u0443 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438", description: "\u2022 \u041A\u0430\u0448\u0443\n\u2022 \u0411\u0430\u0434\u0435\u043C\u0438" }
+];
+function deterministicStep3Enabled(env = {}) {
+  const v = env?.DETERMINISTIC_STEP3;
+  if (v === "0" || v === "false" || v === false) return false;
+  return true;
+}
+function inferRolesFromTarget(target = {}) {
+  if (target.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3" || target.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5") {
+    return ["PRO", "FAT"];
+  }
+  const p = Number(target.protein) || 0;
+  const c = Number(target.carbs) || 0;
+  const f = Number(target.fats) || 0;
+  const roles = ["VOL"];
+  if (p >= 12) roles.push("PRO");
+  if (c >= 15) roles.push("ENG");
+  if (f >= 8) roles.push("FAT");
+  if (!roles.includes("PRO") && !roles.includes("ENG")) {
+    roles.push("PRO", "ENG");
+  }
+  return [...new Set(roles)];
+}
+function catalogName(name) {
+  const { entry, unknown } = resolveCatalogEntry(name);
+  return unknown ? null : entry.name;
+}
+function dietContext(strategy, userData) {
+  return {
+    dietaryModifier: strategy?.dietaryModifier || "\u0411\u0430\u043B\u0430\u043D\u0441\u0438\u0440\u0430\u043D\u043E",
+    dietPreference: userData?.dietPreference ?? null,
+    dietDislike: userData?.dietDislike || ""
+  };
+}
+function filterDiet(pool, dietCtx) {
+  if (!pool.length) return pool;
+  return pool.filter((e) => passesDietRegistry(e, dietCtx));
+}
+function isBlockedByTerms2(name, blockedTerms = []) {
+  const nameLower = String(name || "").toLowerCase();
+  for (const term of blockedTerms) {
+    const t = String(term || "").toLowerCase().trim();
+    if (t.length < 3) continue;
+    if (nameLower.includes(t) || t.includes(nameLower)) return true;
+  }
+  return false;
+}
+function collectUsedProducts(previousDays = []) {
+  const counts = /* @__PURE__ */ new Map();
+  for (const day of previousDays) {
+    for (const meal of day.meals || []) {
+      for (const item2 of parseMealDescription(meal.description)) {
+        const k = normalizeFoodKey(item2.name);
+        if (k) counts.set(k, (counts.get(k) || 0) + 1);
+      }
+    }
+  }
+  return counts;
+}
+function filterByTiming(entries, mealType) {
+  const timing = MEAL_TYPE_TIMING[mealType] || "main";
+  return entries.filter(
+    (e) => e.timing?.includes(timing) || e.group === "condiment" || e.group === "vegetable" || e.group === "fruit"
+  );
+}
+function pickFromPool(pool, ctx, roleKey) {
+  let filtered = filterDiet(pool, ctx.dietCtx);
+  if (!filtered.length) return null;
+  const { usedProducts, seed, dayNum, slotIndex } = ctx;
+  const ranked = rankCatalogCandidates(filtered, {
+    slotTarget: ctx.slotTarget,
+    maxSlotKcal: Number(ctx.slotTarget?.calories) || 0,
+    limit: Math.min(filtered.length, 32)
+  });
+  if (!ranked.length) return null;
+  const rotated = [];
+  const start = (seed + dayNum * 13 + slotIndex * 7 + roleKey.charCodeAt(0)) % ranked.length;
+  for (let i = 0; i < ranked.length; i++) {
+    rotated.push(ranked[(start + i) % ranked.length]);
+  }
+  for (const entry of rotated) {
+    const k = normalizeFoodKey(entry.name);
+    const uses = usedProducts.get(k) || 0;
+    if (uses < 3) return entry;
+  }
+  return rotated[0];
+}
+function pickComposition(slotType, slotTarget, candidatesBySlot, ctx) {
+  const roles = inferRolesFromTarget({ ...slotTarget, type: slotType });
+  const slotKcal = Number(slotTarget.calories) || 0;
+  if (slotKcal >= 700 && !roles.includes("FAT")) roles.push("FAT");
+  if (slotKcal >= 900 && roles.filter((r) => r === "PRO" || r === "ENG").length < 2) {
+    if (!roles.includes("ENG")) roles.push("ENG");
+  }
+  const picked = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (const role of roles) {
+    let pool = filterByTiming(candidatesBySlot.get(role) || [], slotType);
+    if (!pool.length) pool = candidatesBySlot.get(role) || [];
+    pool = filterDiet(pool, ctx.dietCtx);
+    const entry = pickFromPool(pool, { ...ctx, slotTarget }, role);
+    if (!entry) continue;
+    const k = normalizeFoodKey(entry.name);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    picked.push(entry);
+  }
+  return picked;
+}
+function mealNameFromEntries(entries, slotType) {
+  if (!entries.length) return `\u042F\u0441\u0442\u0438\u0435 ${slotType}`;
+  if (entries.length === 1) return entries[0].name;
+  const main = entries.find((e) => e.slots?.includes("PRO")) || entries[0];
+  const side = entries.find((e) => e !== main && (e.slots?.includes("ENG") || e.group === "vegetable" || e.group === "carb"));
+  if (main && side) return `${main.name} \u0441 ${side.name.charAt(0).toLowerCase()}${side.name.slice(1)}`;
+  return `${main.name} \u2014 ${slotType.replace("\u0425\u0440\u0430\u043D\u0435\u043D\u0435 ", "H")}`;
+}
+function formatDescription(entries) {
+  const lines = [];
+  for (const e of entries) {
+    const name = catalogName(e.name);
+    if (name) lines.push(`\u2022 ${name}`);
+  }
+  return lines.join("\n");
+}
+function buildLightSnack(slotType, userData, ctx) {
+  let presets = slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5" ? isVeganUser(userData) ? MEAL5_VEGAN_PRESETS : MEAL5_PRESETS : isVeganUser(userData) ? MEAL3_VEGAN_PRESETS : MEAL3_PRESETS;
+  if (ctx.blockedTerms?.length) {
+    const allowed = presets.filter((preset2) => {
+      const items = parseMealDescription(preset2.description);
+      return !items.some((item2) => isBlockedByTerms2(item2.name, ctx.blockedTerms));
+    });
+    if (allowed.length) presets = allowed;
+  }
+  const idx = (ctx.seed + ctx.dayNum * 3 + ctx.slotIndex) % presets.length;
+  const preset = presets[idx];
+  const desc = preset.description.split("\n").map((line2) => {
+    const raw = line2.replace(/^•\s*/, "").trim();
+    const resolved = catalogName(raw);
+    return resolved ? `\u2022 ${resolved}` : line2;
+  }).join("\n");
+  return { name: preset.name, description: desc };
+}
+function buildMealForSchemeSlot({
+  slotType,
+  slotTarget,
+  candidatesBySlot,
+  userData,
+  ctx,
+  includeDessert = false
+}) {
+  if (slotType === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435") {
+    return { type: slotType, name: "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" };
+  }
+  if (slotType === "\u041D\u0430\u043F\u0438\u0442\u043A\u0430") {
+    const drink = catalogName("\u0417\u0435\u043B\u0435\u043D \u0447\u0430\u0439") || "\u0417\u0435\u043B\u0435\u043D \u0447\u0430\u0439";
+    return { type: slotType, name: drink, description: `\u2022 ${drink}` };
+  }
+  if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3" || slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5") {
+    const light = buildLightSnack(slotType, userData, ctx);
+    return { type: slotType, name: light.name, description: light.description };
+  }
+  const entries = pickComposition(slotType, slotTarget, candidatesBySlot, ctx);
+  if (!entries.length) {
+    throw new Error(`No catalog candidates for ${slotType}`);
+  }
+  for (const e of entries) {
+    const k = normalizeFoodKey(e.name);
+    ctx.usedProducts.set(k, (ctx.usedProducts.get(k) || 0) + 1);
+  }
+  const meal = {
+    type: slotType,
+    name: mealNameFromEntries(entries, slotType),
+    description: formatDescription(entries)
+  };
+  if (includeDessert && slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2") meal.dessert = true;
+  return meal;
+}
+function buildDeterministicWeekPlanChunk({
+  strategy,
+  userData = null,
+  startDay = 1,
+  endDay = 7,
+  previousDays = [],
+  seed = 0,
+  includeDessert = false,
+  clinicalProtocolId = null,
+  blockedTerms = []
+}) {
+  if (!strategy?.weeklyScheme) {
+    throw new Error("Missing strategy.weeklyScheme");
+  }
+  const dietCtx = dietContext(strategy, userData);
+  const candidatesBySlot = getCatalogCandidatesForChunk({
+    strategy,
+    startDay,
+    endDay,
+    dietaryModifier: strategy?.dietaryModifier || "\u0411\u0430\u043B\u0430\u043D\u0441\u0438\u0440\u0430\u043D\u043E",
+    dietPreference: userData?.dietPreference ?? null,
+    dietDislike: userData?.dietDislike || "",
+    blockedTerms,
+    clinicalProtocolId
+  });
+  const usedProducts = collectUsedProducts(previousDays);
+  const out = {};
+  for (let dayNum = startDay; dayNum <= endDay; dayNum++) {
+    const schemeKey = DAY_KEYS[dayNum - 1];
+    const dayScheme = strategy.weeklyScheme[schemeKey];
+    if (!dayScheme?.mealBreakdown?.length) {
+      throw new Error(`Missing mealBreakdown for ${schemeKey}`);
+    }
+    const meals = [];
+    let slotIndex = 0;
+    for (const slot of dayScheme.mealBreakdown) {
+      if (slot.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1" && userSkipsBreakfast(userData)) continue;
+      if (slot.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" && dayScheme.mealBreakdown.some((m) => m.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435")) continue;
+      const ctx = {
+        seed: Number(seed) || 0,
+        dayNum,
+        slotIndex,
+        slotTarget: slot,
+        usedProducts,
+        dietCtx,
+        blockedTerms
+      };
+      meals.push(buildMealForSchemeSlot({
+        slotType: slot.type,
+        slotTarget: slot,
+        candidatesBySlot,
+        userData,
+        ctx,
+        includeDessert
+      }));
+      slotIndex++;
+    }
+    meals.sort((a, b) => {
+      const order = { "\u041D\u0430\u043F\u0438\u0442\u043A\u0430": 0, "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1": 0, "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2": 1, "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435": 1, "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3": 2, "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4": 3, "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5": 4 };
+      return (order[a.type] ?? 9) - (order[b.type] ?? 9);
+    });
+    out[`day${dayNum}`] = { meals };
+  }
+  return out;
+}
+
+// meal-template-engine.js
+function getMealDistribution(mealsPerDay = 5) {
+  const templates = LIBRARY_PROTOCOL_RULES.meal_distribution_templates || {};
+  if (mealsPerDay <= 3) return templates["3_meals"] || [0.3, 0.4, 0.3];
+  if (mealsPerDay === 4) return templates["4_meals"] || [0.25, 0.35, 0.15, 0.25];
+  return templates["5_meals"] || [0.2, 0.25, 0.2, 0.15, 0.2];
+}
+
+// protocol-engine.js
+function resolveLibraryDietProfile(ctx = {}) {
+  const text = [
+    ctx.dietaryModifier,
+    ...Array.isArray(ctx.dietPreference) ? ctx.dietPreference : ctx.dietPreference ? [ctx.dietPreference] : [],
+    ctx.dietDislike,
+    ctx.questionnaireHints
+  ].filter(Boolean).join(" ").toLowerCase();
+  const flags = resolveCatalogDietProfile(ctx);
+  if (flags.vegan) return "vegan";
+  if (flags.vegetarian) return "vegetarian";
+  if (flags.pescatarian) return "pescatarian";
+  if (flags.keto) return "keto";
+  if (/dash|хипертон|кръвно/i.test(text)) return "dash";
+  if (/paleo|палео/i.test(text)) return "paleo";
+  if (/fodmap|ibs|подуване/i.test(text)) return "low_fodmap";
+  if (/висок\s*протеин|high protein/i.test(text)) return "high_protein";
+  if (/без\s*глутен|gluten/i.test(text)) return "gluten_free";
+  if (/без\s*млеч|dairy.?free|лактоз/i.test(text)) return "dairy_free";
+  if (/средиземномор|mediterr/i.test(text)) return "mediterranean";
+  if (/нисковъглехидрат|low carb/i.test(text)) return "low_carb";
+  if (/противовъзпалител|anti.?inflam/i.test(text)) return "anti_inflammatory";
+  return "balanced";
+}
+
+// protocol-validate.js
+var DAY_KEYS2 = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+var CANONICAL_MEAL_TYPES2 = [
+  "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1",
+  "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2",
+  "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3",
+  "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4",
+  "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5",
+  "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435",
+  "\u041D\u0430\u043F\u0438\u0442\u043A\u0430"
+];
+function sumField2(breakdown, field) {
+  return (breakdown || []).reduce((s, m) => s + (Number(m[field]) || 0), 0);
+}
+function parseDailyKcal(analysis) {
+  const raw = analysis?.Final_Calories ?? analysis?.recommendedCalories;
+  if (typeof raw === "number" && raw > 0) return Math.round(raw);
+  const m = String(raw || "").match(/\d+/);
+  return m ? parseInt(m[0], 10) : 0;
+}
+function validateProtocolStrategy(strategy, analysis = null, userData = null) {
+  const blocking = [];
+  const warnings = [];
+  if (!strategy?.weeklyScheme) {
+    return { status: "REJECT", blocking: ["\u043B\u0438\u043F\u0441\u0432\u0430 weeklyScheme"], warnings, dietProfile: "balanced" };
+  }
+  const dietProfile = strategy.libraryDietProfile || resolveLibraryDietProfile({
+    dietaryModifier: strategy?.dietaryModifier,
+    dietPreference: userData?.dietPreference,
+    dietDislike: userData?.dietDislike || ""
+  });
+  const rules = LIBRARY_PROTOCOL_RULES.diet_profiles?.[dietProfile] || {};
+  const targetKcal = parseDailyKcal(analysis);
+  if (!strategy.dietaryModifier && !strategy.dietType) {
+    blocking.push("\u043B\u0438\u043F\u0441\u0432\u0430 dietaryModifier/dietType");
+  }
+  if (!strategy.mealTiming?.pattern) {
+    blocking.push("\u043B\u0438\u043F\u0441\u0432\u0430 mealTiming.pattern");
+  }
+  if (strategy.mealCountJustification && strategy.mealCountJustification.length < 20) {
+    blocking.push("mealCountJustification \u0442\u0432\u044A\u0440\u0434\u0435 \u043A\u0440\u0430\u0442\u043A\u043E");
+  }
+  for (const dayKey of DAY_KEYS2) {
+    const day = strategy.weeklyScheme[dayKey];
+    if (!day) {
+      blocking.push(`weeklyScheme.${dayKey} \u043B\u0438\u043F\u0441\u0432\u0430`);
+      continue;
+    }
+    if (!day.mealBreakdown?.length) {
+      blocking.push(`${dayKey}: \u043F\u0440\u0430\u0437\u0435\u043D mealBreakdown`);
+      continue;
+    }
+    if (day.meals !== day.mealBreakdown.length) {
+      blocking.push(`${dayKey}: meals != mealBreakdown.length`);
+    }
+    for (const slot of day.mealBreakdown) {
+      if (!CANONICAL_MEAL_TYPES2.includes(slot.type)) {
+        blocking.push(`${dayKey}: \u043D\u0435\u0432\u0430\u043B\u0438\u0434\u0435\u043D slot "${slot.type}"`);
+      }
+    }
+    if (userSkipsBreakfast(userData) && day.mealBreakdown.some((m) => m.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1")) {
+      blocking.push(`${dayKey}: \u0425\u0440\u0430\u043D\u0435\u043D\u0435 1 \u043F\u0440\u0438 \u043A\u043B\u0438\u0435\u043D\u0442 \u0431\u0435\u0437 \u0437\u0430\u043A\u0443\u0441\u043A\u0430`);
+    }
+    const dayKcal = sumField2(day.mealBreakdown, "calories");
+    if (targetKcal > 0 && dayKcal > 0) {
+      const tol = calorieTolerance(targetKcal);
+      if (Math.abs(dayKcal - targetKcal) > tol * 2) {
+        blocking.push(`${dayKey}: ${dayKcal} kcal \u2260 \u0446\u0435\u043B ${targetKcal}`);
+      }
+    }
+    const dayCarbs = sumField2(day.mealBreakdown, "carbs");
+    if (rules.max_carbs_g_day && dayCarbs > rules.max_carbs_g_day + 5) {
+      if (isKetoUser(userData) || dietProfile === "keto" || dietProfile === "low_carb") {
+        blocking.push(`${dayKey}: \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438 ${dayCarbs}g > \u043B\u0438\u043C\u0438\u0442 ${rules.max_carbs_g_day}g (${dietProfile})`);
+      } else {
+        warnings.push(`${dayKey}: \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438 ${dayCarbs}g \u043D\u0430\u0434 \u043F\u0440\u043E\u0444\u0438\u043B\u0435\u043D \u043B\u0438\u043C\u0438\u0442 ${rules.max_carbs_g_day}g`);
+      }
+    }
+  }
+  const freeDay = Number(strategy.freeDayNumber);
+  if (freeDay >= 1 && freeDay <= 7) {
+    const freeScheme = strategy.weeklyScheme[DAY_KEYS2[freeDay - 1]];
+    const hasFree = freeScheme?.mealBreakdown?.some((m) => m.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435");
+    if (!hasFree) {
+      warnings.push(`freeDayNumber=${freeDay} \u043D\u043E \u043B\u0438\u043F\u0441\u0432\u0430 \u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0432 mealBreakdown`);
+    }
+  }
+  const status = blocking.length ? "REJECT" : warnings.length ? "REVIEW" : "VALID";
+  return { status, blocking, warnings, dietProfile };
+}
+
+// questionnaire-engine-map.js
+var QUESTIONNAIRE_FOOD_BLOCK_FIELD_IDS = [
+  "dietDislike",
+  "medicalConditions_\u0410\u043B\u0435\u0440\u0433\u0438\u0438",
+  "foodTriggers",
+  "triggerFoods",
+  "giTriggers",
+  "foodSensitivities"
+];
+var DQ_FOOD_KEY_PATTERN = /food|trigger|allerg|intoler|хран|избяг|алерг|не\s*тoler/i;
+var CONDITION_DETAIL_FIELD_IDS = [
+  "medicalConditions_\u0421\u044A\u0440\u0434\u0435\u0447\u043D\u043E-\u0441\u044A\u0434\u043E\u0432\u0438_\u0434\u0435\u0442\u0430\u0439\u043B",
+  "medicalConditions_\u0415\u043D\u0434\u043E\u043A\u0440\u0438\u043D\u043D\u0438_\u0434\u0435\u0442\u0430\u0439\u043B",
+  "medicalConditions_\u0425\u0440\u0430\u043D\u043E\u0441\u043C\u0438\u043B\u0430\u0442\u0435\u043B\u043D\u0438_\u0434\u0435\u0442\u0430\u0439\u043B",
+  "medicalConditions_\u041C\u0435\u0442\u0430\u0431\u043E\u043B\u0438\u0442\u043D\u0438_\u0434\u0435\u0442\u0430\u0439\u043B",
+  "medicalConditions_\u041C\u0443\u0441\u043A\u0443\u043B\u043D\u043E-\u0441\u043A\u0435\u043B\u0435\u0442\u043D\u0438_\u0434\u0435\u0442\u0430\u0439\u043B",
+  "medicalConditions_\u0410\u0432\u0442\u043E\u0438\u043C\u0443\u043D\u043D\u043E",
+  "medicalConditions_other"
+];
+var LONG_TERM_PHASE_HINTS = {
+  1: "\u043D\u0430\u0447\u0430\u043B\u043D\u0430 \u0430\u0434\u0430\u043F\u0442\u0430\u0446\u0438\u044F \u0441\u0442\u0430\u0431\u0438\u043B\u043D\u043E\u0441\u0442 \u043F\u0440\u043E\u0441\u0442\u0438 \u044F\u0441\u0442\u0438\u044F",
+  2: "\u043F\u0440\u043E\u0433\u0440\u0435\u0441\u0438\u044F \u0440\u0430\u0437\u043D\u043E\u043E\u0431\u0440\u0430\u0437\u0438\u0435 \u0440\u043E\u0442\u0430\u0446\u0438\u044F",
+  3: "\u0434\u044A\u043B\u0433\u043E\u0441\u0440\u043E\u0447\u043D\u0430 \u043F\u043E\u0434\u0434\u0440\u044A\u0436\u043A\u0430 maintenance"
+};
+var CLINICAL_PROTOCOL_DIET_HINTS = {
+  gi_issues: "fodmap ibs \u0445\u0440\u0430\u043D\u043E\u0441\u043C\u0438\u043B\u0430\u0442\u0435\u043B\u043D\u0438",
+  autoimmune_aip: "\u043F\u0440\u043E\u0442\u0438\u0432\u043E\u0432\u044A\u0437\u043F\u0430\u043B\u0438\u0442\u0435\u043B\u043D\u0430 aip autoimun",
+  insulin_resistance: "\u0438\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430 \u0440\u0435\u0437\u0438\u0441\u0442\u0435\u043D\u0442\u043D\u043E\u0441\u0442 \u043D\u0438\u0441\u043A\u043E\u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u043D\u0430"
+};
+function pushTermsFromValue(terms, seen, val) {
+  if (val == null || val === "") return;
+  const parts = Array.isArray(val) ? val : String(val).split(/[,;|\n]/);
+  for (const part of parts) {
+    const t = String(part).trim();
+    if (t.length < 2) continue;
+    const key = t.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    terms.push(t);
+  }
+}
+function extractQuestionnaireBlockedTerms(userData = {}) {
+  const terms = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (const fieldId of QUESTIONNAIRE_FOOD_BLOCK_FIELD_IDS) {
+    pushTermsFromValue(terms, seen, userData[fieldId]);
+  }
+  if (Array.isArray(userData.planModifications)) {
+    for (const mod of userData.planModifications) {
+      if (typeof mod === "string" && mod.startsWith("exclude_food:")) {
+        pushTermsFromValue(terms, seen, mod.slice("exclude_food:".length));
+      }
+    }
+  }
+  if (Array.isArray(userData.userFoodExclude)) {
+    for (const entry of userData.userFoodExclude) {
+      pushTermsFromValue(terms, seen, entry);
+    }
+  }
+  if (Array.isArray(userData.forbidden)) {
+    for (const entry of userData.forbidden) {
+      pushTermsFromValue(terms, seen, entry);
+    }
+  }
+  const textMap = userData._dq_text_map || {};
+  for (const key of Object.keys(userData)) {
+    if (!key.startsWith("dq_")) continue;
+    const label = String(textMap[key] || "");
+    if (!DQ_FOOD_KEY_PATTERN.test(key) && !DQ_FOOD_KEY_PATTERN.test(label)) continue;
+    pushTermsFromValue(terms, seen, userData[key]);
+  }
+  return terms;
+}
+function resolveLongTermPhase({ cycleNumber = 1, daysSinceStart = null } = {}) {
+  const cycle = Math.max(1, Number(cycleNumber) || 1);
+  let days = daysSinceStart != null && !Number.isNaN(Number(daysSinceStart)) ? Number(daysSinceStart) : null;
+  if (days == null) days = (cycle - 1) * 7;
+  let phaseNumber = 1;
+  if (days >= 84 || cycle >= 13) phaseNumber = 3;
+  else if (days >= 28 || cycle >= 5) phaseNumber = 2;
+  return {
+    phaseNumber,
+    phaseHint: LONG_TERM_PHASE_HINTS[phaseNumber] || LONG_TERM_PHASE_HINTS[1],
+    cycleNumber: cycle,
+    daysSinceStart: days
+  };
+}
+function buildAdaptPhaseContext({ cycleNumber = 1, dietStartDate = "" } = {}) {
+  let daysSinceStart = null;
+  if (dietStartDate) {
+    const startMs = new Date(dietStartDate).getTime();
+    if (!Number.isNaN(startMs)) {
+      daysSinceStart = Math.floor((Date.now() - startMs) / 864e5);
+    }
+  }
+  return resolveLongTermPhase({ cycleNumber, daysSinceStart });
+}
+function buildQuestionnaireDietHints(userData = {}) {
+  const parts = [];
+  const phase = userData._adaptPhase;
+  if (phase?.phaseHint) parts.push(phase.phaseHint);
+  const cp = userData.clinicalProtocol;
+  if (cp && CLINICAL_PROTOCOL_DIET_HINTS[cp]) {
+    parts.push(CLINICAL_PROTOCOL_DIET_HINTS[cp]);
+  }
+  const textChunks = [];
+  if (Array.isArray(userData.medicalConditions)) {
+    textChunks.push(userData.medicalConditions.join(" "));
+  }
+  for (const key of CONDITION_DETAIL_FIELD_IDS) {
+    if (userData[key]) textChunks.push(String(userData[key]));
+  }
+  const blob = textChunks.join(" ").toLowerCase();
+  if (/fodmap|ibs|подуване|сърбеж|храносмилател/i.test(blob)) parts.push("fodmap ibs");
+  if (/целиак|глутен|gluten/i.test(blob)) parts.push("\u0431\u0435\u0437 \u0433\u043B\u0443\u0442\u0435\u043D gluten");
+  if (/лактоз|млеч|dairy/i.test(blob)) parts.push("\u0431\u0435\u0437 \u043C\u043B\u0435\u0447\u043D\u0438 dairy");
+  if (/хипертон|кръвно/i.test(blob)) parts.push("dash \u0445\u0438\u043F\u0435\u0440\u0442\u043E\u043D\u0438\u044F");
+  if (/пaleo|палео/i.test(blob)) parts.push("paleo");
+  return [...new Set(parts.join(" ").split(/\s+/).filter(Boolean))].join(" ");
+}
+function enrichUserDataEngineContext(userData) {
+  if (!userData || typeof userData !== "object") return userData;
+  const blockedTerms = extractQuestionnaireBlockedTerms(userData);
+  userData._engineBlockedTerms = blockedTerms;
+  userData._engineDietHints = buildQuestionnaireDietHints(userData);
+  return userData;
+}
+function summarizeWeekPlanSkeleton(weekPlan) {
+  if (!weekPlan) return "";
+  const lines = [];
+  for (let d = 1; d <= 7; d++) {
+    const day = weekPlan[`day${d}`];
+    if (!day?.meals?.length) continue;
+    const slots = day.meals.map((m) => {
+      const kcal = m.calories != null ? `${m.calories}kcal` : "";
+      return `${m.type}:${m.name || "?"}${kcal ? `(${kcal})` : ""}`;
+    }).join(" | ");
+    lines.push(`D${d}: ${slots}`);
+  }
+  return lines.join("\n");
+}
+function summarizeWeeklyScheme(strategy) {
+  const scheme = strategy?.weeklyScheme;
+  if (!scheme) return "";
+  const mon = scheme.monday;
+  if (!mon?.mealBreakdown?.length) return "";
+  const slots = mon.mealBreakdown.map((s) => `${s.type}=${s.calories}kcal`).join(", ");
+  return `slots(${slots}) freeDay=${strategy.freeDayNumber ?? "?"} dessert=${strategy.includeDessert}`;
+}
+function buildFinalAuditPacket({ plan = null, userData = null, codeValidation = null } = {}) {
+  const analysis = plan?.analysis || {};
+  const strategy = plan?.strategy || {};
+  const mg = analysis.macroGrams || {};
+  const sections = [
+    "=== ENGINE AUDIT ===",
+    `profile: goal=${JSON.stringify(userData?.goal || "")} clinical=${userData?.clinicalProtocol || "none"} phase=${userData?._adaptPhase?.phaseNumber ?? "\u2014"}`,
+    `engine: dietHints="${userData?._engineDietHints || buildQuestionnaireDietHints(userData)}" blocked=${(userData?._engineBlockedTerms || extractQuestionnaireBlockedTerms(userData)).slice(0, 12).join("; ")}`,
+    `step1: intake=${analysis.Final_Calories || "?"}kcal P${mg.protein || "?"}/C${mg.carbs || "?"}/F${mg.fats || "?"} deterministic=${analysis._deterministicEnergy ? "yes" : "no"}`,
+    `step2: profile=${strategy.libraryDietProfile || "?"} modifier=${strategy.dietaryModifier || "?"} ${summarizeWeeklyScheme(strategy)}`,
+    `step3 skeleton:
+${summarizeWeekPlanSkeleton(plan?.weekPlan)}`
+  ];
+  const warnings = [
+    ...plan?.generationWarnings || [],
+    ...codeValidation?.warnings || [],
+    ...codeValidation?.errors || []
+  ].filter(Boolean);
+  if (warnings.length) {
+    sections.push(`code_warnings (${warnings.length}): ${warnings.slice(0, 8).join(" | ")}`);
+  }
+  const problems = (analysis.keyProblems || []).slice(0, 4).map((p) => p.title).filter(Boolean);
+  if (problems.length) sections.push(`keyProblems: ${problems.join("; ")}`);
+  const notes = userData?.additionalNotes ? String(userData.additionalNotes).slice(0, 400) : "";
+  if (notes) sections.push(`notes: ${notes}`);
+  return sections.join("\n");
+}
+
+// step2-deterministic.js
+var DAY_KEYS3 = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+var DIET_PROFILE_LABELS = {
+  balanced: "\u0411\u0430\u043B\u0430\u043D\u0441\u0438\u0440\u0430\u043D\u043E",
+  mediterranean: "\u0421\u0440\u0435\u0434\u0438\u0437\u0435\u043C\u043D\u043E\u043C\u043E\u0440\u0441\u043A\u0430",
+  keto: "\u041A\u0435\u0442\u043E\u0433\u0435\u043D\u043D\u0430 \u0434\u0438\u0435\u0442\u0430",
+  low_carb: "\u041D\u0438\u0441\u043A\u043E\u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u043D\u0430",
+  vegan: "\u0412\u0435\u0433\u0430\u043D",
+  vegetarian: "\u0412\u0435\u0433\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u0430",
+  pescatarian: "\u041F\u0435\u0441\u043A\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u0430",
+  high_protein: "\u0412\u0438\u0441\u043E\u043A\u043E\u043F\u0440\u043E\u0442\u0435\u0438\u043D\u043E\u0432\u0430",
+  low_fodmap: "Low-FODMAP",
+  dash: "DASH",
+  paleo: "\u041Faleo",
+  gluten_free: "\u0411\u0435\u0437 \u0433\u043B\u0443\u0442\u0435\u043D",
+  dairy_free: "\u0411\u0435\u0437 \u043C\u043B\u0435\u0447\u043D\u0438",
+  anti_inflammatory: "\u041F\u0440\u043E\u0442\u0438\u0432\u043E\u0432\u044A\u0437\u043F\u0430\u043B\u0438\u0442\u0435\u043B\u043D\u0430"
+};
+function deterministicStep2Enabled(env = {}) {
+  const v = env?.DETERMINISTIC_STEP2;
+  if (v === "0" || v === "false" || v === false) return false;
+  return true;
+}
+function parseDailyKcal2(analysis) {
+  const raw = analysis?.Final_Calories ?? analysis?.recommendedCalories;
+  if (typeof raw === "number" && raw > 0) return Math.round(raw);
+  const m = String(raw || "").match(/\d+/);
+  return m ? parseInt(m[0], 10) : 2e3;
+}
+function parseMacroGrams(analysis) {
+  const mg = analysis?.macroGrams || {};
+  return {
+    protein: Math.round(Number(mg.protein) || 0),
+    carbs: Math.round(Number(mg.carbs) || 0),
+    fats: Math.round(Number(mg.fats) || 0)
+  };
+}
+function userHasSweetsCraving(foodCravings) {
+  const list = Array.isArray(foodCravings) ? foodCravings : foodCravings ? [foodCravings] : [];
+  return list.some((c) => /слад|шоколад|dessert|sweet/i.test(String(c)));
+}
+function resolveIncludeDessert(userData) {
+  if (!userHasSweetsCraving(userData?.foodCravings)) return false;
+  const conditions = userData?.medicalConditions;
+  const blocked = Array.isArray(conditions) && conditions.some((c) => {
+    const s = String(c);
+    return s.includes("\u0414\u0438\u0430\u0431\u0435\u0442") || s.includes("\u0418\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430 \u0440\u0435\u0437\u0438\u0441\u0442\u0435\u043D\u0442\u043D\u043E\u0441\u0442");
+  });
+  return !blocked;
+}
+function resolveMealsPerDay(userData) {
+  const text = (userData?.eatingHabits || []).join(" ").toLowerCase();
+  if (/5\s*хран|пет\s*хран|5\s*meal/i.test(text)) return 5;
+  if (/4\s*хран|четири\s*хран|4\s*meal/i.test(text)) return 4;
+  if (/3\s*хран|три\s*хран|3\s*meal|без\s*междин/i.test(text)) return 3;
+  if (/2\s*хран|две\s*хран/i.test(text)) return 3;
+  return 5;
+}
+function resolveActiveSlots(mealsPerDay, userData) {
+  const skipBreakfast = userSkipsBreakfast(userData);
+  if (mealsPerDay <= 3) {
+    return skipBreakfast ? ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"] : ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"];
+  }
+  if (mealsPerDay === 4) {
+    return skipBreakfast ? ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"] : ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"];
+  }
+  return skipBreakfast ? ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5"] : ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5"];
+}
+function applyDietMacroCaps(macros, dietProfile, dailyKcal, weightKg = 70) {
+  const rules = LIBRARY_PROTOCOL_RULES.diet_profiles?.[dietProfile] || {};
+  let { protein, carbs, fats } = macros;
+  if (rules.max_carbs_g_day && carbs > rules.max_carbs_g_day) {
+    carbs = rules.max_carbs_g_day;
+    const remaining = Math.max(0, dailyKcal - protein * 4 - carbs * 4);
+    fats = Math.round(remaining / 9);
+  }
+  if (rules.min_protein_g_kg && weightKg > 0) {
+    const minP = Math.round(weightKg * rules.min_protein_g_kg);
+    if (protein < minP) protein = minP;
+  }
+  return { protein, carbs, fats };
+}
+function buildSlotBreakdown(slotTypes, dailyKcal, macros) {
+  const distribution = getMealDistribution(Math.min(5, Math.max(3, slotTypes.length)));
+  const weights = slotTypes.map((_, i) => distribution[i] ?? 1 / slotTypes.length);
+  const weightSum = weights.reduce((a, b) => a + b, 0);
+  return slotTypes.map((type, i) => {
+    const share = weights[i] / weightSum;
+    return {
+      type,
+      calories: Math.round(dailyKcal * share),
+      protein: Math.round(macros.protein * share),
+      carbs: Math.round(macros.carbs * share),
+      fats: Math.round(macros.fats * share)
+    };
+  });
+}
+function buildDayScheme(slotTypes, dailyKcal, macros, isFreeDay) {
+  let types = [...slotTypes];
+  if (isFreeDay) {
+    types = types.map((t) => t === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" ? "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" : t);
+  }
+  const mealBreakdown = buildSlotBreakdown(types, dailyKcal, macros);
+  return {
+    meals: mealBreakdown.length,
+    calories: dailyKcal,
+    protein: macros.protein,
+    carbs: macros.carbs,
+    fats: macros.fats,
+    description: isFreeDay ? "\u0421\u0432\u043E\u0431\u043E\u0434\u0435\u043D \u0434\u0435\u043D \u0441 \u043A\u043E\u043D\u0442\u0440\u043E\u043B\u0438\u0440\u0430\u043D \u0431\u044E\u0434\u0436\u0435\u0442" : "\u0421\u0442\u0430\u043D\u0434\u0430\u0440\u0442\u0435\u043D \u0434\u0435\u043D \u043F\u043E \u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B",
+    mealBreakdown
+  };
+}
+function buildCopyFields(dietProfile, mealsPerDay, slotTypes, userData) {
+  const label = DIET_PROFILE_LABELS[dietProfile] || DIET_PROFILE_LABELS.balanced;
+  const mealList = slotTypes.join(", ");
+  const name = userData?.name || "\u043A\u043B\u0438\u0435\u043D\u0442\u0430";
+  return {
+    dietaryModifier: label,
+    dietType: label,
+    modifierReasoning: `\u041F\u0440\u043E\u0444\u0438\u043B "${dietProfile}" \u2014 \u0438\u0437\u0431\u0440\u0430\u043D \u0434\u0435\u0442\u0435\u0440\u043C\u0438\u043D\u0438\u0441\u0442\u0438\u0447\u043D\u043E \u043E\u0442 \u043F\u0440\u0435\u0434\u043F\u043E\u0447\u0438\u0442\u0430\u043D\u0438\u044F, \u0446\u0435\u043B\u0438 \u0438 \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0438 \u0441\u0438\u0433\u043D\u0430\u043B\u0438.`,
+    welcomeMessage: `${name}, \u043F\u043B\u0430\u043D\u044A\u0442 \u0441\u043B\u0435\u0434\u0432\u0430 ${label.toLowerCase()} \u043C\u043E\u0434\u0435\u043B \u0441 ${mealsPerDay} \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F \u043D\u0430 \u0434\u0435\u043D.`,
+    planJustification: `\u0421\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0430\u0442\u0430 (${mealList}) \u0438 \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u0438\u0434\u0432\u0430\u0442 \u043E\u0442 \u0430\u043D\u0430\u043B\u0438\u0437\u0430 \u0438 \u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B\u043D\u0438 \u043F\u0440\u0430\u0432\u0438\u043B\u0430 \u2014 \u0441\u0442\u0430\u0431\u0438\u043B\u043D\u0430 \u0431\u0430\u0437\u0430 \u0437\u0430 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E\u0442\u043E \u043C\u0435\u043D\u044E.`,
+    longTermStrategy: "\u041F\u043E\u0441\u0442\u0435\u043F\u0435\u043D\u043D\u0430 \u0430\u0434\u0430\u043F\u0442\u0430\u0446\u0438\u044F \u0447\u0440\u0435\u0437 \u0441\u0435\u0434\u043C\u0438\u0447\u0435\u043D \u043C\u043E\u043D\u0438\u0442\u043E\u0440\u0438\u043D\u0433 \u043D\u0430 \u0442\u0435\u0433\u043B\u043E, \u0435\u043D\u0435\u0440\u0433\u0438\u044F \u0438 \u043F\u0440\u0438\u0434\u044A\u0440\u0436\u0430\u043D\u0435.",
+    mealCountJustification: `${mealsPerDay} \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F (${mealList}) \u043E\u0441\u0438\u0433\u0443\u0440\u044F\u0432\u0430\u0442 \u0441\u0442\u0430\u0431\u0438\u043B\u043D\u0430 \u0435\u043D\u0435\u0440\u0433\u0438\u044F \u0438 \u043F\u043E-\u043B\u0435\u0441\u043D\u043E \u0440\u0430\u0437\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0438\u0435 \u043D\u0430 \u043C\u0430\u043A\u0440\u043E\u0441\u0438\u0442\u0435 \u043F\u0440\u0435\u0437 \u0434\u0435\u043D\u044F.`,
+    afterDinnerMealJustification: slotTypes.includes("\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5") ? "\u041A\u044A\u0441\u043D\u0430\u0442\u0430 \u043B\u0435\u043A\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u043F\u043E\u0434\u0434\u044A\u0440\u0436\u0430 \u043F\u0440\u043E\u0442\u0435\u0438\u043D\u0430 \u0432\u0435\u0447\u0435\u0440 \u0431\u0435\u0437 \u043D\u0430\u0442\u043E\u0432\u0430\u0440\u0432\u0430\u043D\u0435 \u043D\u0430 \u0445\u0440\u0430\u043D\u043E\u0441\u043C\u0438\u043B\u0430\u043D\u0435\u0442\u043E." : "",
+    weeklyMealPattern: `\u0415\u0434\u0438\u043D\u043D\u0430 \u0441\u0445\u0435\u043C\u0430 \u0441${slotTypes.includes("\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5") ? " \u043B\u0435\u043A\u0430 \u0432\u0435\u0447\u0435\u0440\u043D\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u0438" : ""} \u0440\u043E\u0442\u0430\u0446\u0438\u044F \u043D\u0430 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u043F\u0440\u0435\u0437 \u0441\u0435\u0434\u043C\u0438\u0446\u0430\u0442\u0430.`,
+    calorieDistribution: "\u0420\u0430\u0437\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0438\u0435 \u043F\u043E \u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B\u043D\u0438 \u0442\u0435\u0433\u043B\u0430 \u2014 \u043E\u0441\u043D\u043E\u0432\u043D\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F \u043D\u043E\u0441\u044F\u0442 \u043F\u043E-\u0433\u043E\u043B\u044F\u043C \u043A\u0430\u043B\u043E\u0440\u0438\u0435\u043D \u0434\u044F\u043B.",
+    macroDistribution: "\u041C\u0430\u043A\u0440\u043E\u0441\u0438\u0442\u0435 \u0441\u043B\u0435\u0434\u0432\u0430\u0442 Step 1 \u0430\u043D\u0430\u043B\u0438\u0437\u0430 \u0438 diet profile \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438\u044F\u0442\u0430.",
+    breakfastStrategy: userSkipsBreakfast(userData) ? "\u0411\u0435\u0437 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u2014 \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u0441\u0430 \u0432 \u043E\u0441\u043D\u043E\u0432\u043D\u0438\u0442\u0435 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F." : "\u0417\u0430\u043A\u0443\u0441\u043A\u0430\u0442\u0430 \u0441\u0442\u0430\u0440\u0442\u0438\u0440\u0430 \u0434\u0435\u043D\u044F \u0441 \u0431\u0430\u043B\u0430\u043D\u0441\u0438\u0440\u0430\u043D PRO/ENG \u043F\u0440\u043E\u0444\u0438\u043B.",
+    mealTiming: {
+      pattern: `${mealsPerDay} structured meals`,
+      fastingWindows: "\u0411\u0435\u0437 \u0444\u043E\u0440\u0441\u0438\u0440\u0430\u043D \u0444\u0430\u0441\u0442\u0438\u043D\u0433 \u2014 \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u043F\u043E \u0441\u0445\u0435\u043C\u0430\u0442\u0430 \u043D\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430.",
+      flexibility: "\xB130\u201345 \u043C\u0438\u043D \u043E\u043A\u043E\u043B\u043E \u043F\u043B\u0430\u043D\u0438\u0440\u0430\u043D\u0438\u0442\u0435 \u0447\u0430\u0441\u043E\u0432\u0435.",
+      chronotypeGuidance: userData?.chronotype ? `\u0421\u044A\u043E\u0431\u0440\u0430\u0437\u0435\u043D\u043E \u0441 \u0445\u0440\u043E\u043D\u043E\u0442\u0438\u043F: ${userData.chronotype}.` : "\u0421\u044A\u043E\u0431\u0440\u0430\u0437\u0435\u043D\u043E \u0441\u044A\u0441 \u0441\u0442\u0430\u043D\u0434\u0430\u0440\u0442\u0435\u043D \u0434\u043D\u0435\u0432\u0435\u043D \u0440\u0438\u0442\u044A\u043C."
+    },
+    keyPrinciples: [
+      "\u041F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u0441\u0430\u043C\u043E \u043E\u0442 \u043E\u0434\u043E\u0431\u0440\u0435\u043D\u0438\u044F \u043A\u0430\u0442\u0430\u043B\u043E\u0433",
+      "\u0417\u0430\u043C\u0440\u0430\u0437\u0435\u043D\u0430 \u0441\u0445\u0435\u043C\u0430 \u2014 \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u043D\u0430 \u0441\u043B\u043E\u0442 \u043D\u0435 \u0441\u0435 \u043C\u0435\u0441\u0442\u044F\u0442",
+      label
+    ],
+    preferredFoodCategories: [],
+    avoidFoodCategories: [],
+    hydrationStrategy: "2\u20132.5 L \u0432\u043E\u0434\u0430 \u0434\u043D\u0435\u0432\u043D\u043E, \u0440\u0430\u0437\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0430 \u043C\u0435\u0436\u0434\u0443 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F\u0442\u0430."
+  };
+}
+function buildDeterministicStrategy({ userData = null, analysis = null, options = {} } = {}) {
+  const weightKg = Number(userData?.weight) || 70;
+  const dietProfile = resolveLibraryDietProfile({
+    dietaryModifier: options.dietaryModifier,
+    dietPreference: userData?.dietPreference,
+    dietDislike: userData?.dietDislike || "",
+    questionnaireHints: userData?._engineDietHints || buildQuestionnaireDietHints(userData)
+  });
+  const dailyKcal = parseDailyKcal2(analysis);
+  let macros = parseMacroGrams(analysis);
+  if (!macros.protein && !macros.carbs && !macros.fats) {
+    macros = {
+      protein: Math.round(weightKg * 1.4),
+      carbs: Math.round(dailyKcal * 0.4 / 4),
+      fats: Math.round(dailyKcal * 0.28 / 9)
+    };
+  }
+  macros = applyDietMacroCaps(macros, dietProfile, dailyKcal, weightKg);
+  const mealsPerDay = options.mealsPerDay || resolveMealsPerDay(userData);
+  const slotTypes = resolveActiveSlots(mealsPerDay, userData);
+  const freeDayNumber = options.freeDayNumber ?? 7;
+  const weeklyScheme = {};
+  for (let i = 0; i < 7; i++) {
+    const isFreeDay = i + 1 === freeDayNumber;
+    weeklyScheme[DAY_KEYS3[i]] = buildDayScheme(slotTypes, dailyKcal, macros, isFreeDay);
+  }
+  const copy = buildCopyFields(dietProfile, mealsPerDay, slotTypes, userData);
+  return {
+    ...copy,
+    weeklyScheme,
+    freeDayNumber,
+    includeDessert: resolveIncludeDessert(userData),
+    libraryDietProfile: dietProfile,
+    _deterministicCore: true
+  };
+}
+
+// step1-deterministic.js
+function deterministicStep1Enabled(env = {}) {
+  const v = env?.DETERMINISTIC_STEP1;
+  if (v === "0" || v === "false" || v === false) return false;
+  return true;
+}
+function goalIncludes(goal, keyword) {
+  if (!goal || !keyword) return false;
+  const kw = String(keyword).toLowerCase();
+  if (Array.isArray(goal)) return goal.some((g) => String(g).toLowerCase().includes(kw));
+  return String(goal).toLowerCase().includes(kw);
+}
+function computeIntakeTarget(tdee, goal, deficitData = {}) {
+  const maintenance = Math.round(Number(tdee) || 0);
+  if (!maintenance) return 0;
+  if (goalIncludes(goal, "\u041C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430")) {
+    return Math.round(maintenance * 1.1);
+  }
+  if (goalIncludes(goal, "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435")) {
+    const target = Number(deficitData.targetCalories);
+    return target > 0 ? Math.round(target) : Math.round(maintenance * 0.82);
+  }
+  return maintenance;
+}
+function macroGramsFromIntake(intake, ratios, minFatG = 0) {
+  const fc = Math.round(Number(intake) || 0);
+  const r = ratios || {};
+  if (fc <= 0) return { protein: 0, carbs: 0, fats: 0 };
+  let proteinG = Math.round(fc * (Number(r.protein) || 0) / 100 / 4);
+  let fatsG = Math.round(fc * (Number(r.fats) || 0) / 100 / 9);
+  let carbsG = Math.max(0, Math.round((fc - proteinG * 4 - fatsG * 9) / 4));
+  if (minFatG > 0 && fatsG < minFatG) {
+    fatsG = minFatG;
+    carbsG = Math.max(0, Math.round((fc - proteinG * 4 - fatsG * 9) / 4));
+  }
+  return { protein: proteinG, carbs: carbsG, fats: fatsG };
+}
+function buildEnergyContract(inputs = {}) {
+  const bmr = Math.round(Number(inputs.bmr) || 0);
+  const tdee = Math.round(Number(inputs.tdee) || 0);
+  const macros = inputs.macros || {};
+  const intake = computeIntakeTarget(tdee, inputs.goal, inputs.deficitData);
+  const macroRatios = {
+    protein: Number(macros.protein) || 0,
+    carbs: Number(macros.carbs) || 0,
+    fats: Number(macros.fats) || 0
+  };
+  const macroGrams = macroGramsFromIntake(intake, macroRatios, inputs.minFatG || 0);
+  return {
+    bmr,
+    tdee,
+    Final_Calories: intake,
+    recommendedCalories: intake,
+    macroRatios,
+    macroGrams,
+    activityLevel: inputs.activityData?.activityLevel || "",
+    correctedMetabolism: {
+      realBMR: bmr,
+      realTDEE: tdee
+    }
+  };
+}
+function applyDeterministicEnergyContract(analysis, contract) {
+  if (!analysis || !contract) return analysis;
+  analysis.bmr = contract.bmr;
+  analysis.tdee = contract.tdee;
+  analysis.Final_Calories = contract.Final_Calories;
+  analysis.recommendedCalories = contract.recommendedCalories;
+  analysis.macroRatios = { ...contract.macroRatios };
+  analysis.macroGrams = { ...contract.macroGrams };
+  if (contract.activityLevel) {
+    analysis.activityLevel = contract.activityLevel;
+  }
+  const cm = analysis.correctedMetabolism || (analysis.correctedMetabolism = {});
+  if (contract.correctedMetabolism?.realBMR) cm.realBMR = contract.correctedMetabolism.realBMR;
+  if (contract.correctedMetabolism?.realTDEE) cm.realTDEE = contract.correctedMetabolism.realTDEE;
+  analysis._deterministicEnergy = true;
+  return analysis;
+}
+
+// step6-final-director.js
+function finalDirectorEnabled(env = {}) {
+  const v = env?.FINAL_DIRECTOR;
+  if (v === "0" || v === "false" || v === false) return false;
+  return true;
+}
+var DEFAULT_FINAL_DIRECTOR_PROMPT = `\u0422\u0438 \u0441\u0438 \u0441\u0442\u0430\u0440\u0448\u0438 \u0434\u0438\u0435\u0442\u0438\u0447\u0435\u043D \u043C\u0435\u043D\u0438\u0434\u0436\u044A\u0440. \u041F\u043E\u043B\u0443\u0447\u0430\u0432\u0430\u0448 \u0413\u041E\u0422\u041E\u0412 \u043F\u043B\u0430\u043D, \u0438\u0437\u0433\u0440\u0430\u0434\u0435\u043D \u043E\u0442 deterministic engine.
+
+\u2550\u2550\u2550 AUDIT \u2550\u2550\u2550
+{auditPacket}
+
+\u2550\u2550\u2550 \u0417\u0410\u0414\u0410\u0427\u0410 \u2550\u2550\u2550
+\u041E\u0446\u0435\u043D\u0438 \u0434\u0430\u043B\u0438 \u043F\u043B\u0430\u043D\u044A\u0442 \u043E\u0442\u0433\u043E\u0432\u0430\u0440\u044F \u043D\u0430 \u043F\u0440\u043E\u0444\u0438\u043B\u0430 \u0438 \u043E\u0447\u0430\u043A\u0432\u0430\u043D\u0438\u044F\u0442\u0430. \u041D\u0415 \u043F\u0440\u043E\u043C\u0435\u043D\u044F\u0439 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438, \u0433\u0440\u0430\u043C\u043E\u0432\u0435, \u043A\u0430\u043B\u043E\u0440\u0438\u0438 \u0438\u043B\u0438 slot scheme.
+
+\u0412\u044A\u0440\u043D\u0438 \u0421\u0410\u041C\u041E JSON:
+{
+  "verdict": "APPROVE" | "ADJUST" | "REJECT",
+  "qualityScore": 0-100,
+  "headline": "\u043A\u0440\u0430\u0442\u043A\u043E \u0437\u0430\u0433\u043B\u0430\u0432\u0438\u0435 \u0437\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430",
+  "clientMessage": "2-4 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F \u2014 \u0444\u0438\u043D\u0430\u043B\u043D\u043E \u043F\u043E\u0441\u043B\u0430\u043D\u0438\u0435",
+  "coherenceNotes": ["\u0431\u0435\u043B\u0435\u0436\u043A\u0438 \u0437\u0430 coherence, max 3"],
+  "recommendations": ["10 \u0442\u0438\u043F\u0430 \u0445\u0440\u0430\u043D\u0438"],
+  "forbidden": ["10 \u0442\u0438\u043F\u0430 \u0445\u0440\u0430\u043D\u0438"],
+  "psychology": ["\u043C\u0438\u043D. 3 \u0441\u044A\u0432\u0435\u0442\u0430"],
+  "supplements": [{"name":"...","dosage":"...","reason":"..."}],
+  "waterIntake": "string",
+  "mealCopyPatches": [{"day":1,"mealIndex":0,"name":"...","benefits":"...","recipe":"..."}]
+}
+
+\u041F\u0440\u0430\u0432\u0438\u043B\u0430:
+- APPROVE: \u043F\u043B\u0430\u043D\u044A\u0442 \u0435 coherent; patch arrays \u043C\u043E\u0433\u0430\u0442 \u0434\u0430 \u0441\u0430 \u043F\u0440\u0430\u0437\u043D\u0438
+- ADJUST: minor copy/coherence fixes \u2014 \u043F\u043E\u043F\u044A\u043B\u043D\u0438 recommendations/forbidden/psychology/mealCopyPatches
+- REJECT: \u0441\u0435\u0440\u0438\u043E\u0437\u043D\u0430 \u043D\u0435\u043Aoh\u0435\u0440\u0435\u043D\u0442\u043D\u043E\u0441\u0442 (\u0441\u0430\u043C\u043E \u0432 coherenceNotes \u2014 engine data \u043D\u0435 \u0441\u0435 \u043F\u0438\u043F\u0430)
+- mealCopyPatches: \u0421\u0410\u041C\u041E name, benefits, recipe \u2014 \u0431\u0435\u0437 description/products/grams/calories
+- forbidden/recommendations: \u0442\u0438\u043F\u043E\u0432\u0435 \u0445\u0440\u0430\u043D\u0438, \u043D\u0435 \u044F\u0441\u0442\u0438\u044F`;
+function parseDirectorResponse(raw) {
+  const base = {
+    verdict: "APPROVE",
+    qualityScore: 80,
+    headline: "",
+    clientMessage: "",
+    coherenceNotes: [],
+    recommendations: [],
+    forbidden: [],
+    psychology: [],
+    supplements: [],
+    waterIntake: "",
+    mealCopyPatches: []
+  };
+  if (!raw || typeof raw !== "object" || raw.error) return { ...base, verdict: "APPROVE" };
+  const verdict = ["APPROVE", "ADJUST", "REJECT"].includes(raw.verdict) ? raw.verdict : "APPROVE";
+  return {
+    verdict,
+    qualityScore: Math.max(0, Math.min(100, Number(raw.qualityScore) || 80)),
+    headline: String(raw.headline || "").slice(0, 160),
+    clientMessage: String(raw.clientMessage || "").slice(0, 1200),
+    coherenceNotes: Array.isArray(raw.coherenceNotes) ? raw.coherenceNotes.map(String).slice(0, 5) : [],
+    recommendations: Array.isArray(raw.recommendations) ? raw.recommendations.map(String).slice(0, 12) : [],
+    forbidden: Array.isArray(raw.forbidden) ? raw.forbidden.map(String).slice(0, 12) : [],
+    psychology: Array.isArray(raw.psychology) ? raw.psychology.map(String).slice(0, 6) : [],
+    supplements: Array.isArray(raw.supplements) ? raw.supplements.slice(0, 8) : [],
+    waterIntake: String(raw.waterIntake || "").slice(0, 200),
+    mealCopyPatches: Array.isArray(raw.mealCopyPatches) ? raw.mealCopyPatches.slice(0, 21) : []
+  };
+}
+function applyDirectorAdjustments(plan, director) {
+  if (!plan || !director) return plan;
+  if (director.headline) plan.directorHeadline = director.headline;
+  if (director.clientMessage) plan.directorMessage = director.clientMessage;
+  if (director.qualityScore != null) plan.directorQualityScore = director.qualityScore;
+  if (director.recommendations?.length) plan.recommendations = director.recommendations;
+  if (director.forbidden?.length) plan.forbidden = director.forbidden;
+  if (director.psychology?.length) plan.psychology = director.psychology;
+  if (director.supplements?.length) plan.supplements = director.supplements;
+  if (director.waterIntake) plan.waterIntake = director.waterIntake;
+  if (plan.summary && typeof plan.summary === "object" && director.clientMessage) {
+    plan.summary.directorNote = director.clientMessage;
+  }
+  for (const patch of director.mealCopyPatches || []) {
+    const dayNum = Number(patch.day);
+    const mealIdx = Number(patch.mealIndex);
+    if (!dayNum || dayNum < 1 || dayNum > 7 || mealIdx < 0) continue;
+    const meal = plan.weekPlan?.[`day${dayNum}`]?.meals?.[mealIdx];
+    if (!meal) continue;
+    if (patch.name) meal.name = String(patch.name).slice(0, 120);
+    if (patch.benefits) meal.benefits = String(patch.benefits).slice(0, 600);
+    if (patch.recipe) meal.recipe = String(patch.recipe).slice(0, 1200);
+  }
+  if (!plan.generationWarnings) plan.generationWarnings = [];
+  if (director.verdict === "REJECT" && director.coherenceNotes?.length) {
+    plan.generationWarnings.push(`Director REJECT: ${director.coherenceNotes.join("; ")}`);
+  } else if (director.coherenceNotes?.length) {
+    plan.generationWarnings.push(...director.coherenceNotes.slice(0, 3));
+  }
+  plan._finalDirector = {
+    verdict: director.verdict,
+    qualityScore: director.qualityScore,
+    at: (/* @__PURE__ */ new Date()).toISOString()
+  };
+  return plan;
+}
+function buildFinalDirectorPrompt(auditPacket, customTemplate = null) {
+  const tpl = customTemplate || DEFAULT_FINAL_DIRECTOR_PROMPT;
+  return tpl.replace(/\{auditPacket\}/g, auditPacket || "");
 }
 
 // admin-food-catalog.js
@@ -11446,7 +19687,7 @@ function calculateMacronutrientRatios(data, activityScore, tdee = null) {
 }
 function calculateSafeDeficit(tdee, goal) {
   const MAX_DEFICIT_PERCENT = 0.25;
-  if (!goalIncludes(goal, "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435")) {
+  if (!goalIncludes2(goal, "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435")) {
     return {
       targetCalories: tdee,
       deficitPercent: 0,
@@ -12633,7 +20874,7 @@ function enforceWeekendFreeDay(strategy) {
 }
 function normalizeStrategyDessertFlag(strategy, userData) {
   if (!strategy) return;
-  if (!userHasSweetsCraving(userData?.foodCravings)) {
+  if (!userHasSweetsCraving2(userData?.foodCravings)) {
     strategy.includeDessert = false;
     return;
   }
@@ -12643,6 +20884,92 @@ function normalizeStrategyDessertFlag(strategy, userData) {
     return s.includes("\u0414\u0438\u0430\u0431\u0435\u0442") || s.includes("\u0418\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430 \u0440\u0435\u0437\u0438\u0441\u0442\u0435\u043D\u0442\u043D\u043E\u0441\u0442");
   });
   strategy.includeDessert = !blocked;
+}
+function computeBackendEnergyInputs(data) {
+  const activityData = calculateUnifiedActivityScore(data);
+  const bmr = calculateBMR(data);
+  const tdee = calculateTDEE(bmr, activityData.combinedScore);
+  const deficitData = calculateSafeDeficit(tdee, data.goal);
+  const macros = calculateMacronutrientRatios(data, activityData.combinedScore, tdee);
+  return { activityData, bmr, tdee, deficitData, macros };
+}
+function finalizeStep1Analysis(env, data, analysis) {
+  normalizeAnalysisOutput(analysis, data);
+  const { activityData, bmr, tdee, deficitData, macros } = computeBackendEnergyInputs(data);
+  if (deterministicStep1Enabled(env)) {
+    const minFatG = Math.round((parseFloat(data.weight) || 70) * MIN_FAT_GRAMS_PER_KG2);
+    const contract = buildEnergyContract({
+      bmr,
+      tdee,
+      deficitData,
+      macros,
+      activityData,
+      goal: data.goal,
+      minFatG
+    });
+    applyDeterministicEnergyContract(analysis, contract);
+    console.log("Step 1: deterministic energy contract applied");
+  }
+  enforceCalorieGuardrails(analysis, data, tdee);
+  return { bmr, tdee, activityData };
+}
+function finalizeStrategyObject(strategy, analysis, userData) {
+  if (!strategy) return strategy;
+  enforceWeekendFreeDay(strategy);
+  normalizeStrategyDessertFlag(strategy, userData);
+  normalizeWeeklyScheme(strategy, parseFinalCalories(analysis?.Final_Calories), userData);
+  return strategy;
+}
+async function resolveStep2Strategy(env, data, analysis, sessionId, options = {}) {
+  const {
+    errorPreventionComment = null,
+    stepLabel = "step2_strategy",
+    compactAnalysis = null
+  } = options;
+  if (deterministicStep2Enabled(env)) {
+    try {
+      let detStrategy = buildDeterministicStrategy({ userData: data, analysis });
+      detStrategy = finalizeStrategyObject(detStrategy, analysis, data);
+      const validation = validateProtocolStrategy(detStrategy, analysis, data);
+      if (validation.status === "VALID" || validation.status === "REVIEW") {
+        if (validation.warnings?.length) {
+          console.warn(`Step 2 deterministic ${validation.status}:`, validation.warnings.join("; "));
+        }
+        console.log(`Step 2: deterministic build (${validation.status})`);
+        return { strategy: detStrategy, usedDeterministic: true, validation };
+      }
+      console.warn(
+        "Step 2 deterministic REJECT:",
+        validation.blocking.join("; "),
+        "- AI fallback"
+      );
+    } catch (detErr) {
+      console.warn("Step 2 deterministic error, AI fallback:", detErr.message);
+    }
+  }
+  const strategyPrompt = await generateStrategyPrompt(data, analysis, env, errorPreventionComment);
+  const strategyInputTokens = estimateTokenCount(strategyPrompt);
+  const strategyResponse = await callAIModel(
+    env,
+    strategyPrompt,
+    4e3,
+    stepLabel,
+    sessionId,
+    data,
+    compactAnalysis ?? buildCompactAnalysis(analysis)
+  );
+  const strategyOutputTokens = estimateTokenCount(strategyResponse);
+  let strategy = parseAIResponse(strategyResponse);
+  strategy = finalizeStrategyObject(strategy, analysis, data);
+  if (!strategy || strategy.error) {
+    const errorMsg = strategy?.error || "\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u0435\u043D \u0444\u043E\u0440\u043C\u0430\u0442 \u043D\u0430 \u043E\u0442\u0433\u043E\u0432\u043E\u0440";
+    throw new Error(errorMsg);
+  }
+  return {
+    strategy,
+    usedDeterministic: false,
+    tokenUsage: { input: strategyInputTokens, output: strategyOutputTokens }
+  };
 }
 function stripDessertsWhenDisabled(weekPlan, strategy) {
   if (!weekPlan || strategy?.includeDessert !== false) return;
@@ -12688,7 +21015,7 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = "unknown", 
   const isChatStep = stepKey === "chat";
   const preferredProvider = isChatStep && config.chatProvider ? config.chatProvider : config.provider;
   const modelName = isChatStep && config.chatModelName ? config.chatModelName : config.modelName;
-  const isPlanStep = stepKey && ["step1", "step2", "step3", "step4"].includes(stepKey);
+  const isPlanStep = stepKey && ["step1", "step2", "step3", "step4", "step6"].includes(stepKey);
   const effectiveThinkingBudget = isPlanStep ? 0 : isChatStep ? config.chatThinkingBudget !== void 0 ? config.chatThinkingBudget : config.thinkingBudget : config.thinkingBudget;
   const cfgTemp = isChatStep ? config.chatTemperature !== void 0 ? config.chatTemperature : config.temperature : config.temperature;
   const cfgTopP = isChatStep ? config.chatTopP !== void 0 ? config.chatTopP : config.topP : config.topP;
@@ -12895,30 +21222,7 @@ function invalidateFoodListsCache() {
   foodListsCacheTime = 0;
 }
 function collectUserBlockedFoodTerms(data) {
-  const terms = [];
-  const pushSplit = (val) => {
-    if (!val) return;
-    String(val).split(/[,;|\n]/).forEach((s) => {
-      const t = s.trim();
-      if (t.length >= 2) terms.push(t);
-    });
-  };
-  pushSplit(data.dietDislike);
-  pushSplit(data["medicalConditions_\u0410\u043B\u0435\u0440\u0433\u0438\u0438"]);
-  if (Array.isArray(data.planModifications)) {
-    for (const mod of data.planModifications) {
-      if (typeof mod === "string" && mod.startsWith("exclude_food:")) {
-        terms.push(mod.slice("exclude_food:".length).trim());
-      }
-    }
-  }
-  if (Array.isArray(data.forbidden)) {
-    data.forbidden.forEach((f) => pushSplit(f));
-  }
-  if (Array.isArray(data.userFoodExclude)) {
-    data.userFoodExclude.forEach((f) => pushSplit(f));
-  }
-  return terms;
+  return extractQuestionnaireBlockedTerms(data);
 }
 function buildUserFoodPickerSection(data) {
   const list = Array.isArray(data.userFoodList) ? data.userFoodList.map((s) => String(s).trim()).filter(Boolean) : [];
@@ -13465,6 +21769,60 @@ async function persistFoodLedger(env, userId, ledgerSerialized, clientIdHint = "
     }
   }
 }
+var FINAL_DIRECTOR_TOKEN_LIMIT = 3500;
+async function runFinalDirectorReview(env, plan, userData, codeValidation = null) {
+  const auditPacket = buildFinalAuditPacket({ plan, userData, codeValidation });
+  let customPrompt = null;
+  try {
+    customPrompt = await getCustomPrompt(env, "admin_final_director_prompt");
+  } catch (_) {
+    customPrompt = null;
+  }
+  const prompt = buildFinalDirectorPrompt(auditPacket, customPrompt || DEFAULT_FINAL_DIRECTOR_PROMPT);
+  const sessionId = generateUniqueId("director");
+  const response = await callAIModel(
+    env,
+    prompt,
+    FINAL_DIRECTOR_TOKEN_LIMIT,
+    "step6_final_director",
+    sessionId,
+    userData,
+    null
+  );
+  const parsed = parseAIResponse(response);
+  const director = parseDirectorResponse(parsed);
+  applyDirectorAdjustments(plan, director);
+  console.log(`Step 6 Final Director: ${director.verdict} (score ${director.qualityScore})`);
+  await finalizeAISessionLogs(env, sessionId).catch(() => {
+  });
+  return director;
+}
+async function finalizeValidatedPlan(env, structuredPlan, data) {
+  await reconcilePlanStructure(structuredPlan, data, env);
+  const foodLists = await getDynamicFoodListsSections(env);
+  const validation = validatePlan(structuredPlan, data, foodLists.dynamicSubstitutions || []);
+  if (!structuredPlan.generationWarnings) structuredPlan.generationWarnings = [];
+  if (validation.warnings?.length) {
+    structuredPlan.generationWarnings.push(...validation.warnings);
+  }
+  if (validation.errors?.length) {
+    structuredPlan.generationWarnings.push(...validation.errors);
+  }
+  if (validation.blockingErrors?.length) {
+    throw new Error(`\u041F\u043B\u0430\u043D\u044A\u0442 \u043D\u0435 \u043C\u0438\u043D\u0430\u0432\u0430 \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0438 \u043F\u0440\u0430\u0433\u043E\u0432\u0435: ${validation.blockingErrors.join("; ")}`);
+  }
+  if (structuredPlan.generationWarnings.length) {
+    console.log(`Plan post-validation: ${structuredPlan.generationWarnings.length} warning(s)`);
+  }
+  if (finalDirectorEnabled(env)) {
+    try {
+      await runFinalDirectorReview(env, structuredPlan, data, validation);
+    } catch (directorErr) {
+      console.warn("Step 6 Final Director skipped:", directorErr.message);
+    }
+  }
+  return validation;
+}
 async function generatePlanCore(env, data, onAnalysisReady = null) {
   await loadCatalogRegistryOverlay(env);
   const userId = data.email || generateUserId(data);
@@ -13494,24 +21852,10 @@ async function generatePlanCore(env, data, onAnalysisReady = null) {
   if (hasContradiction && !contradictionCanProceed) {
     return { success: true, hasContradiction: true, warningData, userId };
   }
+  enrichUserDataEngineContext(data);
   let structuredPlan = await generatePlanMultiStep(env, data, onAnalysisReady);
-  await reconcilePlanStructure(structuredPlan, data, env);
   try {
-    const foodLists = await getDynamicFoodListsSections(env);
-    const validation = validatePlan(structuredPlan, data, foodLists.dynamicSubstitutions || []);
-    if (!structuredPlan.generationWarnings) structuredPlan.generationWarnings = [];
-    if (validation.warnings?.length) {
-      structuredPlan.generationWarnings.push(...validation.warnings);
-    }
-    if (validation.errors?.length) {
-      structuredPlan.generationWarnings.push(...validation.errors);
-    }
-    if (validation.blockingErrors?.length) {
-      throw new Error(`\u041F\u043B\u0430\u043D\u044A\u0442 \u043D\u0435 \u043C\u0438\u043D\u0430\u0432\u0430 \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0438 \u043F\u0440\u0430\u0433\u043E\u0432\u0435: ${validation.blockingErrors.join("; ")}`);
-    }
-    if (structuredPlan.generationWarnings.length) {
-      console.log(`Plan post-validation: ${structuredPlan.generationWarnings.length} warning(s)`);
-    }
+    await finalizeValidatedPlan(env, structuredPlan, data);
   } catch (validationErr) {
     if (validationErr.message?.includes("\u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0438 \u043F\u0440\u0430\u0433\u043E\u0432\u0435")) throw validationErr;
     console.warn("Plan post-validation skipped:", validationErr.message);
@@ -15746,6 +24090,11 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       userData.planModifications || enrichedData.planModifications,
       decision.modifications
     );
+    enrichedData._adaptPhase = buildAdaptPhaseContext({
+      cycleNumber,
+      dietStartDate: gameWeeklyAI?.dietStartDate || ""
+    });
+    enrichUserDataEngineContext(enrichedData);
     enrichedData.weeklyAdaptationContext = buildWeeklyAdaptationContextText(
       decision,
       analytics,
@@ -15775,6 +24124,12 @@ async function runWeeklyAdaptation(env, payload, jobId) {
         { [regenStep]: ["weekly adaptation"] },
         1
       );
+    }
+    try {
+      await finalizeValidatedPlan(env, newPlan, enrichedData);
+    } catch (validationErr) {
+      if (validationErr.message?.includes("\u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0438 \u043F\u0440\u0430\u0433\u043E\u0432\u0435")) throw validationErr;
+      console.warn("[WeeklyAdapt] post-validation skipped:", validationErr.message);
     }
     const notice = { ...noticeBase, changed: true };
     await savePendingWeeklyRelease(env, userId, clientId, {
@@ -16340,7 +24695,7 @@ var FIXED_DESSERT_WEIGHT_GRAMS = (() => {
   return m ? parseFloat(m[1]) : 0;
 })();
 function buildSweetsCravingRule(foodCravings, strategy) {
-  if (!userHasSweetsCraving(foodCravings) || strategy?.includeDessert === false) return "";
+  if (!userHasSweetsCraving2(foodCravings) || strategy?.includeDessert === false) return "";
   const d = FIXED_DESSERT.macros;
   return `
 SWEETS: "dessert": true on \u0425\u0440\u0430\u043D\u0435\u043D\u0435 2 (not in name; ${FIXED_DESSERT.calories} kcal counted in slot: P${d.protein}/C${d.carbs}/F${d.fats}g). Backend injects fixed dessert.`;
@@ -16431,7 +24786,7 @@ function syncAnalysisCalories(analysis, referenceTdee = 0) {
   const fc = parseFinalCalories(analysis.Final_Calories);
   if (fc > 0) analysis.recommendedCalories = fc;
 }
-function goalIncludes(goal, keyword) {
+function goalIncludes2(goal, keyword) {
   if (!goal || !keyword) return false;
   const kw = String(keyword).toLowerCase();
   if (Array.isArray(goal)) return goal.some((g) => String(g).toLowerCase().includes(kw));
@@ -16451,7 +24806,7 @@ function enforceCalorieGuardrails(analysis, data, referenceTdee) {
   const isLactation = data.clinicalProtocol === "postpartum_lactation";
   const maxDeficitRatio = 0.25;
   const corrections = [];
-  if (tdee > 0 && fc > 0 && goalIncludes(data.goal, "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435") && !isLactation) {
+  if (tdee > 0 && fc > 0 && goalIncludes2(data.goal, "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435") && !isLactation) {
     const minAllowed = Math.round(tdee * (1 - maxDeficitRatio));
     if (fc < minAllowed) {
       fc = minAllowed;
@@ -16568,13 +24923,13 @@ function normalizeWeeklyScheme(strategy, defaultDailyCalories, userData = null) 
     if (!day || !Array.isArray(day.mealBreakdown) || day.mealBreakdown.length === 0) continue;
     if (userSkipsBreakfast(userData)) removeBreakfastSlotFromDay(day);
     clampLateSnackInMealBreakdown(day);
-    const sumField2 = (field) => day.mealBreakdown.reduce((s, m) => s + (Number(m[field]) || 0), 0);
-    const targetCals = defaultDailyCalories > 0 ? defaultDailyCalories : Number(day.calories) || sumField2("calories");
+    const sumField3 = (field) => day.mealBreakdown.reduce((s, m) => s + (Number(m[field]) || 0), 0);
+    const targetCals = defaultDailyCalories > 0 ? defaultDailyCalories : Number(day.calories) || sumField3("calories");
     rebalanceMealBreakdownSlots(day, targetCals);
-    let sumCals = sumField2("calories");
-    let sumP = sumField2("protein");
-    let sumC = sumField2("carbs");
-    let sumF = sumField2("fats");
+    let sumCals = sumField3("calories");
+    let sumP = sumField3("protein");
+    let sumC = sumField3("carbs");
+    let sumF = sumField3("fats");
     if (sumCals > 0 && targetCals > 0 && Math.abs(sumCals - targetCals) > calorieTolerance(targetCals)) {
       const fixedKcal = day.mealBreakdown.filter((m) => m.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5").reduce((s, m) => s + (Number(m.calories) || 0), 0);
       const scalable = day.mealBreakdown.filter((m) => m.type !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5");
@@ -16931,7 +25286,7 @@ function syncPlanTargets(plan, analysis) {
     };
   }
 }
-function userHasSweetsCraving(foodCravings) {
+function userHasSweetsCraving2(foodCravings) {
   if (Array.isArray(foodCravings)) return foodCravings.includes("\u0421\u043B\u0430\u0434\u043A\u043E");
   return typeof foodCravings === "string" && foodCravings.includes("\u0421\u043B\u0430\u0434\u043A\u043E");
 }
@@ -17308,7 +25663,7 @@ function validatePlan(plan, userData, substitutions = []) {
       stepErrors.step1_analysis.push(error);
     }
   }
-  if (goalIncludes(userData.goal, "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435") && plan.summary && plan.summary.dailyCalories) {
+  if (goalIncludes2(userData.goal, "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435") && plan.summary && plan.summary.dailyCalories) {
     const caloriesMatch = String(plan.summary.dailyCalories).match(/\d+/);
     if (caloriesMatch) {
       const calories = parseInt(caloriesMatch[0]);
@@ -17502,11 +25857,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       if (analysis.keyProblems && Array.isArray(analysis.keyProblems)) {
         analysis.keyProblems = analysis.keyProblems.filter((problem) => problem.severity !== "Normal");
       }
-      normalizeAnalysisOutput(analysis, data);
-      const refActivity = calculateUnifiedActivityScore(data);
-      const refBmr = calculateBMR(data);
-      const refTdee = calculateTDEE(refBmr, refActivity.combinedScore);
-      enforceCalorieGuardrails(analysis, data, refTdee);
+      finalizeStep1Analysis(env, data, analysis);
     } else {
       analysis = existingPlan.analysis;
       console.log("Reusing existing analysis");
@@ -17514,19 +25865,19 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
     if (earliestErrorStep === "step1_analysis" || earliestErrorStep === "step2_strategy") {
       const stepErrorComment = earliestErrorStep === "step2_strategy" ? errorPreventionComment : null;
       console.log(`Regenerating Step 2 (Strategy)${stepErrorComment ? " with error prevention" : ""}`);
-      const strategyPrompt = await generateStrategyPrompt(data, analysis, env, stepErrorComment);
-      const strategyInputTokens = estimateTokenCount(strategyPrompt);
-      cumulativeTokens.input += strategyInputTokens;
-      const strategyResponse = await callAIModel(env, strategyPrompt, 4e3, "step2_strategy_regen", sessionId, data, buildCompactAnalysis(analysis));
-      const strategyOutputTokens = estimateTokenCount(strategyResponse);
-      cumulativeTokens.output += strategyOutputTokens;
-      cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
-      strategy = parseAIResponse(strategyResponse);
-      enforceWeekendFreeDay(strategy);
-      normalizeStrategyDessertFlag(strategy, data);
-      normalizeWeeklyScheme(strategy, parseFinalCalories(analysis.Final_Calories), data);
-      if (!strategy || strategy.error) {
-        throw new Error(`\u0420\u0435\u0433\u0435\u043D\u0435\u0440\u0430\u0446\u0438\u044F\u0442\u0430 \u043D\u0430 \u0441\u0442\u0440\u0430\u0442\u0435\u0433\u0438\u044F\u0442\u0430 \u0441\u0435 \u043F\u0440\u043E\u0432\u0430\u043B\u0438: ${strategy?.error || "\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u0435\u043D \u0444\u043E\u0440\u043C\u0430\u0442"}`);
+      const step2Result = await resolveStep2Strategy(env, data, analysis, sessionId, {
+        errorPreventionComment: stepErrorComment,
+        stepLabel: "step2_strategy_regen",
+        compactAnalysis: buildCompactAnalysis(analysis)
+      });
+      strategy = step2Result.strategy;
+      if (step2Result.tokenUsage) {
+        cumulativeTokens.input += step2Result.tokenUsage.input;
+        cumulativeTokens.output += step2Result.tokenUsage.output;
+        cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
+      }
+      if (step2Result.usedDeterministic) {
+        console.log("Step 2 regen: deterministic strategy (no AI call)");
       }
     } else {
       strategy = existingPlan.strategy;
@@ -17565,9 +25916,9 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       if (!recommendedCalories) {
         const fallbackActivityData = calculateUnifiedActivityScore(data);
         const tdee = calculateTDEE(bmr, fallbackActivityData.combinedScore);
-        if (goalIncludes(data.goal, "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435")) {
+        if (goalIncludes2(data.goal, "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435")) {
           recommendedCalories = Math.round(tdee * 0.85);
-        } else if (goalIncludes(data.goal, "\u041C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430")) {
+        } else if (goalIncludes2(data.goal, "\u041C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430")) {
           recommendedCalories = Math.round(tdee * 1.1);
         } else {
           recommendedCalories = tdee;
@@ -17686,6 +26037,7 @@ ${errors.map((error, idx) => `${idx + 1}. ${error}`).join("\n")}
 }
 async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
   console.log("Multi-step generation: Starting (3+ AI requests for precision)");
+  enrichUserDataEngineContext(data);
   const sessionId = generateUniqueId("session");
   console.log(`Plan generation session ID: ${sessionId}`);
   let cumulativeTokens = {
@@ -17721,11 +26073,7 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
           console.log(`Filtered out ${originalCount - filteredCount} Normal severity problems from analysis`);
         }
       }
-      normalizeAnalysisOutput(analysis, data);
-      const refActivity = calculateUnifiedActivityScore(data);
-      const refBmr = calculateBMR(data);
-      const refTdee = calculateTDEE(refBmr, refActivity.combinedScore);
-      enforceCalorieGuardrails(analysis, data, refTdee);
+      finalizeStep1Analysis(env, data, analysis);
     } catch (error) {
       console.error("Analysis step failed:", error);
       throw new Error(`\u0421\u0442\u044A\u043F\u043A\u0430 1 (\u0410\u043D\u0430\u043B\u0438\u0437): ${error.message}`);
@@ -17738,25 +26086,22 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
         console.warn("Could not persist partial analysis status:", progressError);
       }
     }
-    const strategyPrompt = await generateStrategyPrompt(data, analysis, env);
-    const strategyInputTokens = estimateTokenCount(strategyPrompt);
-    cumulativeTokens.input += strategyInputTokens;
-    let strategyResponse, strategy;
+    let strategy;
     try {
-      strategyResponse = await callAIModel(env, strategyPrompt, 4e3, "step2_strategy", sessionId, data, buildCompactAnalysis(analysis));
-      const strategyOutputTokens = estimateTokenCount(strategyResponse);
-      cumulativeTokens.output += strategyOutputTokens;
-      cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
-      console.log(`Step 2 tokens: input=${strategyInputTokens}, output=${strategyOutputTokens}, cumulative=${cumulativeTokens.total}`);
-      strategy = parseAIResponse(strategyResponse);
-      enforceWeekendFreeDay(strategy);
-      normalizeStrategyDessertFlag(strategy, data);
-      normalizeWeeklyScheme(strategy, parseFinalCalories(analysis.Final_Calories), data);
-      if (!strategy || strategy.error) {
-        const errorMsg = strategy.error || "\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u0435\u043D \u0444\u043E\u0440\u043C\u0430\u0442 \u043D\u0430 \u043E\u0442\u0433\u043E\u0432\u043E\u0440";
-        console.error("Strategy parsing failed:", errorMsg);
-        console.error("AI Response preview (first 1000 chars):", strategyResponse?.substring(0, 1e3));
-        throw new Error(`\u0421\u0442\u0440\u0430\u0442\u0435\u0433\u0438\u044F\u0442\u0430 \u043D\u0435 \u043C\u043E\u0436\u0430 \u0434\u0430 \u0431\u044A\u0434\u0435 \u0441\u044A\u0437\u0434\u0430\u0434\u0435\u043D\u0430: ${errorMsg}`);
+      const step2Result = await resolveStep2Strategy(env, data, analysis, sessionId, {
+        stepLabel: "step2_strategy",
+        compactAnalysis: buildCompactAnalysis(analysis)
+      });
+      strategy = step2Result.strategy;
+      if (step2Result.tokenUsage) {
+        cumulativeTokens.input += step2Result.tokenUsage.input;
+        cumulativeTokens.output += step2Result.tokenUsage.output;
+        cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
+        console.log(
+          `Step 2 tokens: input=${step2Result.tokenUsage.input}, output=${step2Result.tokenUsage.output}, cumulative=${cumulativeTokens.total}`
+        );
+      } else if (step2Result.usedDeterministic) {
+        console.log("Step 2: deterministic strategy (no AI call)");
       }
     } catch (error) {
       console.error("Strategy step failed:", error);
@@ -18137,9 +26482,9 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
   if (!recommendedCalories) {
     const fallbackActivityData = calculateUnifiedActivityScore(data);
     const tdee = calculateTDEE(bmr, fallbackActivityData.combinedScore);
-    if (goalIncludes(data.goal, "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435")) {
+    if (goalIncludes2(data.goal, "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435")) {
       recommendedCalories = Math.round(tdee * 0.85);
-    } else if (goalIncludes(data.goal, "\u041C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430")) {
+    } else if (goalIncludes2(data.goal, "\u041C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430")) {
       recommendedCalories = Math.round(tdee * 1.1);
     } else {
       recommendedCalories = tdee;
@@ -18165,38 +26510,8 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       let blockingErrors = null;
       let chunkWarnings = [];
       let syncMeta = null;
-      try {
-        const chunkPrompt = await generateMealPlanChunkPrompt(
-          data,
-          analysis,
-          strategy,
-          bmr,
-          recommendedCalories,
-          startDay,
-          endDay,
-          previousDays,
-          env,
-          chunkComment,
-          cachedFoodLists
-        );
-        const stepLabel = attempt > 0 ? `step3_meal_plan_chunk_${chunkIndex + 1}_retry` : `step3_meal_plan_chunk_${chunkIndex + 1}`;
-        const chunkResponse = await callAIModel(
-          env,
-          chunkPrompt,
-          mealPlanTokenLimitForChunk(daysInChunk),
-          stepLabel,
-          sessionId,
-          data,
-          buildCompactAnalysisForStep3(analysis)
-        );
-        let chunkData = parseAIResponse(chunkResponse);
-        if (!chunkData || chunkData.error) {
-          throw new Error(chunkData?.error || "Invalid response");
-        }
-        if (Array.isArray(chunkData)) {
-          chunkData = Object.fromEntries(chunkData.map((item2, i) => [`day${startDay + i}`, item2]));
-        }
-        console.log(`Chunk ${chunkIndex + 1} data keys (attempt ${attempt + 1}):`, Object.keys(chunkData));
+      let chunkBuilt = false;
+      const applyChunkData = (chunkData) => {
         for (let day = startDay; day <= endDay; day++) {
           const dayKey = `day${day}`;
           if (!chunkData[dayKey]) {
@@ -18204,6 +26519,13 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
           }
           weekPlan[dayKey] = chunkData[dayKey];
         }
+      };
+      const clearChunkDays = () => {
+        for (let day = startDay; day <= endDay; day++) {
+          delete weekPlan[`day${day}`];
+        }
+      };
+      const finalizeChunkNutrition = async () => {
         injectFixedDesserts(weekPlan);
         syncMeta = await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
         if (repairWeekPlanLightSlots(weekPlan, startDay, endDay, data)) {
@@ -18221,19 +26543,92 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         blockingErrors = appendInfeasibleSlots(validation.blocking, syncMeta?.infeasible);
         chunkWarnings = validation.warnings;
         lastInfeasible = syncMeta?.infeasible || [];
-        lastAiFailure = null;
+      };
+      try {
+        if (deterministicStep3Enabled(env) && attempt === 0) {
+          try {
+            const detSeed = Number(data?.id || data?.userId || 0) + (sessionId ? sessionId.length * 17 : 0) + chunkIndex * 31;
+            const chunkData = buildDeterministicWeekPlanChunk({
+              strategy,
+              userData: data,
+              startDay,
+              endDay,
+              previousDays,
+              seed: detSeed,
+              includeDessert: userHasSweetsCraving2(data?.foodCravings) && strategy?.includeDessert !== false,
+              clinicalProtocolId: data.clinicalProtocol || null,
+              blockedTerms: collectUserBlockedFoodTerms(data)
+            });
+            applyChunkData(chunkData);
+            chunkBuilt = true;
+            console.log(`Chunk ${chunkIndex + 1}: deterministic Step 3 build`);
+            await finalizeChunkNutrition();
+            lastAiFailure = null;
+            const detBlocking = Array.isArray(blockingErrors) ? blockingErrors : [];
+            if (detBlocking.length) {
+              console.warn(
+                `Chunk ${chunkIndex + 1}: deterministic validation failed (${detBlocking.length}), AI fallback`
+              );
+              clearChunkDays();
+              chunkBuilt = false;
+              blockingErrors = null;
+            }
+          } catch (detErr) {
+            console.warn(`Chunk ${chunkIndex + 1}: deterministic error, AI fallback:`, detErr.message);
+            clearChunkDays();
+            chunkBuilt = false;
+            blockingErrors = null;
+          }
+        }
+        if (!chunkBuilt) {
+          const chunkPrompt = await generateMealPlanChunkPrompt(
+            data,
+            analysis,
+            strategy,
+            bmr,
+            recommendedCalories,
+            startDay,
+            endDay,
+            previousDays,
+            env,
+            chunkComment,
+            cachedFoodLists
+          );
+          const stepLabel = attempt > 0 ? `step3_meal_plan_chunk_${chunkIndex + 1}_retry` : `step3_meal_plan_chunk_${chunkIndex + 1}`;
+          const chunkResponse = await callAIModel(
+            env,
+            chunkPrompt,
+            mealPlanTokenLimitForChunk(daysInChunk),
+            stepLabel,
+            sessionId,
+            data,
+            buildCompactAnalysisForStep3(analysis)
+          );
+          let chunkData = parseAIResponse(chunkResponse);
+          if (!chunkData || chunkData.error) {
+            throw new Error(chunkData?.error || "Invalid response");
+          }
+          if (Array.isArray(chunkData)) {
+            chunkData = Object.fromEntries(chunkData.map((item2, i) => [`day${startDay + i}`, item2]));
+          }
+          console.log(`Chunk ${chunkIndex + 1} data keys (attempt ${attempt + 1}):`, Object.keys(chunkData));
+          applyChunkData(chunkData);
+          await finalizeChunkNutrition();
+          lastAiFailure = null;
+        }
       } catch (aiError) {
         lastAiFailure = aiError.message;
         blockingErrors = null;
       }
-      if (blockingErrors !== null && !blockingErrors.length) {
+      const blockingList = Array.isArray(blockingErrors) ? blockingErrors : null;
+      if (blockingList !== null && blockingList.length === 0) {
         if (chunkWarnings.length) {
           generationWarnings.push(`\u0414\u043D\u0438 ${startDay}-${endDay}: ${chunkWarnings.join("; ")}`);
         }
         break;
       }
       if (attempt >= MEAL_PLAN_CHUNK_MAX_RETRIES) {
-        const detail = blockingErrors?.length ? [...blockingErrors, ...chunkWarnings || []].join("; ") : lastAiFailure || "\u043D\u044F\u043C\u0430 \u0432\u0430\u043B\u0438\u0434\u0435\u043D \u043E\u0442\u0433\u043E\u0432\u043E\u0440 \u0441\u043B\u0435\u0434 \u0432\u0441\u0438\u0447\u043A\u0438 \u043E\u043F\u0438\u0442\u0438";
+        const detail = blockingList?.length ? [...blockingList, ...chunkWarnings || []].join("; ") : lastAiFailure || "\u043D\u044F\u043C\u0430 \u0432\u0430\u043B\u0438\u0434\u0435\u043D \u043E\u0442\u0433\u043E\u0432\u043E\u0440 \u0441\u043B\u0435\u0434 \u0432\u0441\u0438\u0447\u043A\u0438 \u043E\u043F\u0438\u0442\u0438";
         throw new Error(`\u0413\u0435\u043D\u0435\u0440\u0438\u0440\u0430\u043D\u0435 \u043D\u0430 \u0434\u043D\u0438 ${startDay}-${endDay}: ${detail}`);
       }
       for (let day = startDay; day <= endDay; day++) {
@@ -18241,10 +26636,10 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       }
       chunkComment = [
         errorPreventionComment,
-        buildChunkValidationRetryComment(blockingErrors || [], lastInfeasible)
+        buildChunkValidationRetryComment(blockingList || [], lastInfeasible)
       ].filter(Boolean).join("\n\n");
       attempt++;
-      console.warn(`Chunk ${chunkIndex + 1} attempt ${attempt} failed, retrying:`, blockingErrors || lastAiFailure);
+      console.warn(`Chunk ${chunkIndex + 1} attempt ${attempt} failed, retrying:`, blockingList || lastAiFailure);
     }
     for (let day = startDay; day <= endDay; day++) {
       const dayEntry = { day, meals: weekPlan[`day${day}`]?.meals || [] };
@@ -18480,6 +26875,7 @@ function getStepKey(stepName) {
   if (stepName.startsWith("step2")) return "step2";
   if (stepName.startsWith("step3") || stepName === "fallback_plan") return "step3";
   if (stepName.startsWith("step4") || stepName === "fallback_summary") return "step4";
+  if (stepName.startsWith("step6") || stepName === "final_director") return "step6";
   if (stepName.startsWith("chat")) return "chat";
   return null;
 }
@@ -18958,7 +27354,7 @@ async function handleAnalyzeFoodImage(request, env) {
     if (estimatedSizeBytes > MAX_IMAGE_SIZE_BYTES) {
       return jsonResponse2({ error: "\u0418\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0435\u0442\u043E \u0435 \u0442\u0432\u044A\u0440\u0434\u0435 \u0433\u043E\u043B\u044F\u043C\u043E. \u041C\u043E\u043B\u044F, \u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430\u0439\u0442\u0435 \u043F\u043E-\u043C\u0430\u043B\u043A\u043E \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0435." }, 400);
     }
-    let dietContext = "";
+    let dietContext2 = "";
     if (userData) {
       const parts = [];
       if (userData.goal) parts.push(`\u0426\u0435\u043B: ${userData.goal}`);
@@ -18967,7 +27363,7 @@ async function handleAnalyzeFoodImage(request, env) {
       if (userData.dietPreference) parts.push(`\u0414\u0438\u0435\u0442\u0438\u0447\u0435\u043D \u043F\u0440\u0435\u0434\u043F\u043E\u0447\u0438\u0442\u0430\u043D\u0438\u0435: ${userData.dietPreference}`);
       if (userData.medicalConditions) parts.push(`\u0417\u0434\u0440\u0430\u0432\u043E\u0441\u043B\u043E\u0432\u043D\u0438 \u043F\u0440\u043E\u0431\u043B\u0435\u043C\u0438: ${userData.medicalConditions}`);
       if (userData.dietDislike) parts.push(`\u041D\u0435\u0436\u0435\u043B\u0430\u043D\u0438 \u0445\u0440\u0430\u043D\u0438: ${userData.dietDislike}`);
-      dietContext = parts.join(". ");
+      dietContext2 = parts.join(". ");
     }
     let planContext = "";
     if (dietPlan && dietPlan.summary) {
@@ -18977,13 +27373,13 @@ async function handleAnalyzeFoodImage(request, env) {
     const customPrompt = await getCustomPrompt(env, "admin_food_analysis_prompt");
     let analysisPrompt;
     if (customPrompt && customPrompt.trim()) {
-      analysisPrompt = customPrompt.replace(/\{dietContext\}/g, dietContext || "\u041D\u0435 \u0435 \u043F\u0440\u0435\u0434\u043E\u0441\u0442\u0430\u0432\u0435\u043D").replace(/\{planContext\}/g, planContext || "\u041D\u0435 \u0435 \u043F\u0440\u0435\u0434\u043E\u0441\u0442\u0430\u0432\u0435\u043D").replace(/\{mealTime\}/g, mealTime);
+      analysisPrompt = customPrompt.replace(/\{dietContext\}/g, dietContext2 || "\u041D\u0435 \u0435 \u043F\u0440\u0435\u0434\u043E\u0441\u0442\u0430\u0432\u0435\u043D").replace(/\{planContext\}/g, planContext || "\u041D\u0435 \u0435 \u043F\u0440\u0435\u0434\u043E\u0441\u0442\u0430\u0432\u0435\u043D").replace(/\{mealTime\}/g, mealTime);
     } else {
       analysisPrompt = `\u0422\u0438 \u0441\u0438 \u0435\u043A\u0441\u043F\u0435\u0440\u0442 \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433 \u0441 \u043A\u043E\u043C\u043F\u044E\u0442\u044A\u0440\u043D\u043E \u0437\u0440\u0435\u043D\u0438\u0435. \u0410\u043D\u0430\u043B\u0438\u0437\u0438\u0440\u0430\u0439 \u0442\u043E\u0432\u0430 \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0435 \u043D\u0430 \u0445\u0440\u0430\u043D\u0430 \u0438 \u0432\u044A\u0440\u043D\u0438 \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON \u043E\u0431\u0435\u043A\u0442 (\u0431\u0435\u0437 markdown, \u0431\u0435\u0437 \`\`\`).
 
 \u0417\u0410\u0414\u0410\u0427\u0410: \u0410\u043D\u0430\u043B\u0438\u0437\u0438\u0440\u0430\u0439 \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u043D\u0430 \u0441\u043D\u0438\u043C\u043A\u0430\u0442\u0430 \u0438 \u0434\u0430\u0439 \u043A\u043E\u043B\u0438\u0447\u0435\u0441\u0442\u0432\u0435\u043D\u0430 \u0438 \u043A\u0430\u0447\u0435\u0441\u0442\u0432\u0435\u043D\u0430 \u043E\u0446\u0435\u043D\u043A\u0430.
 
-${dietContext ? `\u041A\u041E\u041D\u0422\u0415\u041A\u0421\u0422 \u041D\u0410 \u041A\u041B\u0418\u0415\u041D\u0422\u0410: ${dietContext}` : ""}
+${dietContext2 ? `\u041A\u041E\u041D\u0422\u0415\u041A\u0421\u0422 \u041D\u0410 \u041A\u041B\u0418\u0415\u041D\u0422\u0410: ${dietContext2}` : ""}
 ${planContext ? `\u0422\u0415\u041A\u0423\u0429 \u0414\u0418\u0415\u0422\u0418\u0427\u0415\u041D \u041F\u041B\u0410\u041D (\u0440\u0435\u0437\u044E\u043C\u0435): ${planContext}` : ""}
 \u041C\u041E\u041C\u0415\u041D\u0422 \u041D\u0410 \u0425\u0420\u0410\u041D\u0415\u041D\u0415: ${mealTime}
 
@@ -19096,7 +27492,7 @@ async function handleAnalyzeMenuImage(request, env) {
     if (estimatedSizeBytes > MAX_IMAGE_SIZE_BYTES) {
       return jsonResponse2({ error: "\u0418\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0435\u0442\u043E \u0435 \u0442\u0432\u044A\u0440\u0434\u0435 \u0433\u043E\u043B\u044F\u043C\u043E. \u041C\u043E\u043B\u044F, \u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430\u0439\u0442\u0435 \u043F\u043E-\u043C\u0430\u043B\u043A\u043E \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0435." }, 400);
     }
-    let dietContext = "";
+    let dietContext2 = "";
     if (userData) {
       const parts = [];
       if (userData.goal) parts.push(`\u0426\u0435\u043B: ${userData.goal}`);
@@ -19106,7 +27502,7 @@ async function handleAnalyzeMenuImage(request, env) {
       if (userData.dietPreference) parts.push(`\u0414\u0438\u0435\u0442\u0438\u0447\u0435\u043D \u0440\u0435\u0436\u0438\u043C: ${userData.dietPreference}`);
       if (userData.medicalConditions) parts.push(`\u0417\u0434\u0440\u0430\u0432\u043E\u0441\u043B\u043E\u0432\u043D\u0438 \u043F\u0440\u043E\u0431\u043B\u0435\u043C\u0438: ${userData.medicalConditions}`);
       if (userData.dietDislike) parts.push(`\u041D\u0435\u0436\u0435\u043B\u0430\u043D\u0438 \u0445\u0440\u0430\u043D\u0438: ${userData.dietDislike}`);
-      dietContext = parts.join(". ");
+      dietContext2 = parts.join(". ");
     }
     let planContext = "";
     if (dietPlan && dietPlan.summary) {
@@ -19116,11 +27512,11 @@ async function handleAnalyzeMenuImage(request, env) {
     const customMenuPrompt = await getCustomPrompt(env, "admin_menu_analysis_prompt");
     let menuPrompt;
     if (customMenuPrompt && customMenuPrompt.trim()) {
-      menuPrompt = customMenuPrompt.replace(/\{dietContext\}/g, dietContext || "\u041D\u0435 \u0435 \u043F\u0440\u0435\u0434\u043E\u0441\u0442\u0430\u0432\u0435\u043D").replace(/\{planContext\}/g, planContext || "\u041D\u0435 \u0435 \u043F\u0440\u0435\u0434\u043E\u0441\u0442\u0430\u0432\u0435\u043D").replace(/\{mealTime\}/g, mealTime);
+      menuPrompt = customMenuPrompt.replace(/\{dietContext\}/g, dietContext2 || "\u041D\u0435 \u0435 \u043F\u0440\u0435\u0434\u043E\u0441\u0442\u0430\u0432\u0435\u043D").replace(/\{planContext\}/g, planContext || "\u041D\u0435 \u0435 \u043F\u0440\u0435\u0434\u043E\u0441\u0442\u0430\u0432\u0435\u043D").replace(/\{mealTime\}/g, mealTime);
     } else {
       menuPrompt = `\u0422\u0438 \u0441\u0438 \u0435\u043A\u0441\u043F\u0435\u0440\u0442 \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433. \u041D\u0430 \u0441\u043D\u0438\u043C\u043A\u0430\u0442\u0430 \u0438\u043C\u0430 \u043C\u0435\u043D\u044E \u043E\u0442 \u0440\u0435\u0441\u0442\u043E\u0440\u0430\u043D\u0442. \u041F\u0440\u043E\u0447\u0435\u0442\u0438 \u0432\u0441\u0438\u0447\u043A\u0438 \u044F\u0441\u0442\u0438\u044F \u0438 \u043F\u0440\u0435\u043F\u043E\u0440\u044A\u0447\u0430\u0439 \u041D\u0410\u0419-\u041F\u041E\u0414\u0425\u041E\u0414\u042F\u0429\u041E\u0422\u041E \u0437\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430. \u0412\u044A\u0440\u043D\u0438 \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON (\u0431\u0435\u0437 markdown, \u0431\u0435\u0437 backtick \u0431\u043B\u043E\u043A\u043E\u0432\u0435).
 
-${dietContext ? `\u041F\u0420\u041E\u0424\u0418\u041B \u041D\u0410 \u041A\u041B\u0418\u0415\u041D\u0422\u0410: ${dietContext}` : ""}
+${dietContext2 ? `\u041F\u0420\u041E\u0424\u0418\u041B \u041D\u0410 \u041A\u041B\u0418\u0415\u041D\u0422\u0410: ${dietContext2}` : ""}
 ${planContext ? `\u0414\u0418\u0415\u0422\u0418\u0427\u0415\u041D \u041F\u041B\u0410\u041D (\u0440\u0435\u0437\u044E\u043C\u0435): ${planContext}` : ""}
 \u041C\u041E\u041C\u0415\u041D\u0422 \u041D\u0410 \u0425\u0420\u0410\u041D\u0415\u041D\u0415: ${mealTime}
 

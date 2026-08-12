@@ -3,8 +3,10 @@
  * Shares sum ≈ 1 per meal; solver scales the resulting raw lines.
  */
 
+import { buildLibraryReadyMealParts } from './nutrition-library-bridge.js';
+
 /** @type {Record<string, Array<{ name: string, share: number }>>} */
-export const READY_MEAL_PARTS = {
+const BASE_READY_MEAL_PARTS = {
   meal_rice_chicken: [{ name: 'ориз', share: 0.42 }, { name: 'пилешко месо', share: 0.58 }],
   meal_fish_potato: [{ name: 'картофи', share: 0.55 }, { name: 'риба', share: 0.45 }],
   meal_omelet: [{ name: 'яйца', share: 1 }],
@@ -20,6 +22,12 @@ export const READY_MEAL_PARTS = {
   meal_chicken_sandwich: [{ name: 'пилешко месо', share: 0.4 }, { name: 'хляб', share: 0.6 }],
   meal_cottage_bowl: [{ name: 'извара', share: 1 }],
   meal_skry_bowl: [{ name: 'скир', share: 1 }],
+};
+
+/** Base catalog + nutrition-library ready meals. */
+export const READY_MEAL_PARTS = {
+  ...BASE_READY_MEAL_PARTS,
+  ...buildLibraryReadyMealParts(),
 };
 
 export const SCALING_DECOMPOSE = 'decompose';

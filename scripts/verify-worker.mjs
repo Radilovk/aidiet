@@ -209,6 +209,41 @@ check('catalog universality stress', () => {
   if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
 });
 
+check('protocol engine', () => {
+  const r = run('node', ['scripts/test-protocol-engine.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-15).join('\n'));
+});
+
+check('step3 deterministic builder', () => {
+  const r = run('node', ['scripts/test-step3-deterministic.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-20).join('\n'));
+});
+
+check('step2 deterministic builder', () => {
+  const r = run('node', ['scripts/test-step2-deterministic.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-20).join('\n'));
+});
+
+check('step1 deterministic energy contract', () => {
+  const r = run('node', ['scripts/test-step1-deterministic.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-20).join('\n'));
+});
+
+check('questionnaire engine map', () => {
+  const r = run('node', ['scripts/test-questionnaire-engine-map.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-20).join('\n'));
+});
+
+check('step6 final director', () => {
+  const r = run('node', ['scripts/test-step6-final-director.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-20).join('\n'));
+});
+
+check('nutrition library merge', () => {
+  const r = run('node', ['scripts/test-nutrition-library.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-12).join('\n'));
+});
+
 check('fitness тестове', () => {
   const r = run('npm', ['test'], { cwd: join(root, 'fitness') });
   if (!r.ok) throw new Error(r.out.split('\n').slice(-8).join('\n'));

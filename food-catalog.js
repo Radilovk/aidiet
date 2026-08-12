@@ -14,6 +14,7 @@ import { buildRegistryIndex, getCatalogEntries } from './food-registry.js';
 import { passesDietRegistry, resolveCatalogDietProfile } from './diet-registry.js';
 import { rankCatalogCandidates } from './candidate-ranking.js';
 import { maxSlotKcalInChunk, buildHighKcalCreationHint } from './step3-creation-hints.js';
+import { READY_MEAL_PARTS } from './ready-meal-parts.js';
 
 const SLOT_LABELS = {
   PRO: 'белтъчини [PRO]',
@@ -143,6 +144,47 @@ function isExcludedByProtocol(entry, clinicalProtocolId) {
   if (!rule) return false;
   if (rule.excludeGroups?.includes(entry.group)) return true;
   if (rule.excludeNutritionKeys?.includes(entry.nutritionKey)) return true;
+  const nameLower = String(entry.name || '').toLowerCase();
+  const keyLower = String(entry.nutritionKey || '').toLowerCase();
+  for (const key of rule.excludeNutritionKeys || []) {
+    const k = String(key).toLowerCase();
+    if (k.length < 3) continue;
+    const nk = normalizeFoodKey(k);
+    if (nameLower.includes(k) || keyLower.includes(k)
+      || normalizeFoodKey(nameLower).includes(nk) || normalizeFoodKey(keyLower).includes(nk)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** Ready meals: exclude when name or decomposed parts hit clinical protocol keys/groups. */
+function readyMealViolatesProtocol(entry, clinicalProtocolId) {
+  if (!clinicalProtocolId || !entry || entry.group !== 'ready_meal') return false;
+  if (isExcludedByProtocol(entry, clinicalProtocolId)) return true;
+  const rule = CLINICAL_PROTOCOL_EXCLUSIONS[clinicalProtocolId];
+  if (!rule) return false;
+
+  const nameLower = String(entry.name || '').toLowerCase();
+  const keys = rule.excludeNutritionKeys || [];
+  for (const key of keys) {
+    const k = String(key).toLowerCase();
+    if (k.length >= 3 && (nameLower.includes(k) || normalizeFoodKey(nameLower).includes(normalizeFoodKey(k)))) {
+      return true;
+    }
+  }
+
+  const parts = READY_MEAL_PARTS[entry.id];
+  if (parts?.length) {
+    for (const part of parts) {
+      const pk = normalizeFoodKey(part.name);
+      if (keys.some(k => pk.includes(normalizeFoodKey(k)) || normalizeFoodKey(k).includes(pk))) return true;
+      if (rule.excludeGroups?.length) {
+        const { entry: partEntry } = resolveCatalogEntry(part.name);
+        if (partEntry && rule.excludeGroups.includes(partEntry.group)) return true;
+      }
+    }
+  }
   return false;
 }
 
@@ -282,6 +324,7 @@ export function getCatalogCandidatesForChunk({
   for (const slot of neededSlots) bySlot.set(slot, []);
 
   for (const entry of index.all) {
+    if (entry.group === 'ready_meal') continue;
     if (entry.universality < minUniversality) continue;
     if (!isDietCompatible(entry, diet)) continue;
     if (!passesDietRegistry(entry, registryCtx)) continue;
@@ -333,6 +376,7 @@ export function getCatalogCandidatesForChunk({
       .filter(e => passesDietRegistry(e, registryCtx))
       .filter(e => !isBlockedByTerms(e, blockedTerms))
       .filter(e => !isExcludedByProtocol(e, clinicalProtocolId))
+      .filter(e => !readyMealViolatesProtocol(e, clinicalProtocolId))
       .filter(e => e.timing.some(t => timings.has(t))),
     { loveSet, adherenceRatio: adherenceMap, slotTarget: representativeSlot, maxSlotKcal, limit: 8 },
   );

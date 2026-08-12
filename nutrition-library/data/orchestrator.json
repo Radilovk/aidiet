@@ -1,0 +1,31 @@
+{
+  "pipeline": [
+    "load_user",
+    "evaluate_safety",
+    "derive_targets",
+    "select_diet_profile",
+    "filter_foods",
+    "score_foods",
+    "match_templates",
+    "build_meals",
+    "compute_macros",
+    "validate_protocol",
+    "generate_menu",
+    "generate_shopping_list",
+    "export"
+  ],
+  "rules": [
+    "remove_disallowed",
+    "prefer_matching_groups",
+    "balance_macros",
+    "avoid_duplicates",
+    "respect_portion_caps"
+  ],
+  "output": [
+    "macro_plan",
+    "daily_menu",
+    "weekly_menu",
+    "shopping_list",
+    "monitoring_plan"
+  ]
+}

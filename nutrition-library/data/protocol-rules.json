@@ -1,0 +1,244 @@
+{
+  "diet_profiles": {
+    "balanced": {
+      "prefer_groups": [
+        "vegetables",
+        "fruits",
+        "whole_grains",
+        "fish",
+        "eggs",
+        "fats"
+      ],
+      "prefer_tags": [
+        "fiber"
+      ]
+    },
+    "mediterranean": {
+      "prefer_groups": [
+        "vegetables",
+        "fruits",
+        "whole_grains",
+        "fish",
+        "fats",
+        "legumes"
+      ],
+      "prefer_tags": [
+        "fiber",
+        "omega3",
+        "antioxidant"
+      ]
+    },
+    "keto": {
+      "max_carbs_g_day": 30,
+      "exclude_groups": [
+        "whole_grains",
+        "fruits",
+        "legumes",
+        "refined_grains",
+        "sweets"
+      ],
+      "prefer_groups": [
+        "eggs",
+        "fish",
+        "meat",
+        "vegetables",
+        "fats",
+        "dairy"
+      ]
+    },
+    "low_carb": {
+      "max_carbs_g_day": 80,
+      "exclude_groups": [
+        "refined_grains",
+        "sweets"
+      ],
+      "prefer_groups": [
+        "vegetables",
+        "fish",
+        "meat",
+        "eggs",
+        "fats"
+      ]
+    },
+    "vegan": {
+      "exclude_groups": [
+        "meat",
+        "fish",
+        "seafood",
+        "eggs",
+        "dairy"
+      ],
+      "prefer_groups": [
+        "vegetables",
+        "legumes",
+        "plant_protein",
+        "whole_grains",
+        "nuts_seeds"
+      ]
+    },
+    "vegetarian": {
+      "exclude_groups": [
+        "meat",
+        "fish",
+        "seafood"
+      ],
+      "prefer_groups": [
+        "eggs",
+        "dairy",
+        "legumes",
+        "vegetables",
+        "whole_grains"
+      ]
+    },
+    "pescatarian": {
+      "exclude_groups": [
+        "meat"
+      ],
+      "prefer_groups": [
+        "fish",
+        "seafood",
+        "eggs",
+        "dairy",
+        "vegetables",
+        "whole_grains"
+      ]
+    },
+    "high_protein": {
+      "min_protein_g_kg": 1.6,
+      "prefer_groups": [
+        "meat",
+        "fish",
+        "eggs",
+        "dairy",
+        "plant_protein"
+      ],
+      "prefer_tags": [
+        "protein"
+      ]
+    },
+    "low_fodmap": {
+      "exclude_tags": [
+        "fodmap_high"
+      ],
+      "prefer_groups": [
+        "vegetables",
+        "fish",
+        "eggs",
+        "dairy",
+        "whole_grains"
+      ]
+    },
+    "dash": {
+      "max_sodium_mg_day": 2300,
+      "prefer_groups": [
+        "vegetables",
+        "fruits",
+        "whole_grains",
+        "legumes",
+        "dairy",
+        "fish"
+      ],
+      "limit_tags": [
+        "high_sodium"
+      ]
+    },
+    "paleo": {
+      "exclude_groups": [
+        "whole_grains",
+        "refined_grains",
+        "legumes",
+        "dairy",
+        "sweets"
+      ],
+      "prefer_groups": [
+        "meat",
+        "fish",
+        "eggs",
+        "vegetables",
+        "fruits",
+        "nuts_seeds"
+      ]
+    },
+    "gluten_free": {
+      "exclude_tags": [
+        "gluten"
+      ],
+      "prefer_groups": [
+        "vegetables",
+        "fruits",
+        "rice",
+        "potatoes",
+        "meat",
+        "fish",
+        "dairy"
+      ]
+    },
+    "dairy_free": {
+      "exclude_groups": [
+        "dairy"
+      ],
+      "prefer_groups": [
+        "meat",
+        "fish",
+        "legumes",
+        "plant_protein",
+        "vegetables"
+      ]
+    },
+    "anti_inflammatory": {
+      "prefer_tags": [
+        "omega3",
+        "antioxidant",
+        "fiber"
+      ],
+      "limit_tags": [
+        "processed"
+      ],
+      "prefer_groups": [
+        "fish",
+        "vegetables",
+        "fruits",
+        "nuts_seeds"
+      ]
+    }
+  },
+  "exchange_map": {
+    "carb_exchange_g": 15,
+    "protein_exchange_g": 7,
+    "fat_exchange_g": 5
+  },
+  "meal_distribution_templates": {
+    "3_meals": [
+      0.3,
+      0.4,
+      0.3
+    ],
+    "4_meals": [
+      0.25,
+      0.35,
+      0.15,
+      0.25
+    ],
+    "5_meals": [
+      0.2,
+      0.25,
+      0.2,
+      0.15,
+      0.2
+    ]
+  },
+  "calculation": {
+    "kcal_formula": "protein_g*4 + carbs_g*4 + fat_g*9"
+  },
+  "priority": [
+    "safety",
+    "allergies",
+    "medical",
+    "goal",
+    "energy",
+    "macros",
+    "base_diet",
+    "timing",
+    "behavior"
+  ]
+}

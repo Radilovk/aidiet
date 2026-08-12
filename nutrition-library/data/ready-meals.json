@@ -1,0 +1,903 @@
+[
+  {
+    "id": "meal_oats_egg_berries",
+    "name_bg": "Овес с яйца и боровинки",
+    "meal_type": "breakfast",
+    "diet_profiles": [
+      "balanced",
+      "mediterranean"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_herbal_tea",
+        "grams": 40
+      },
+      {
+        "food_id": "food_eggs",
+        "grams": 100
+      },
+      {
+        "food_id": "food_blueberry",
+        "grams": 80
+      }
+    ],
+    "kcal": 200,
+    "protein_g": 13.5,
+    "carbs_g": 12.4,
+    "fat_g": 11.3
+  },
+  {
+    "id": "meal_yogurt_oats_banana",
+    "name_bg": "Кисело мляко с овес и банан",
+    "meal_type": "breakfast",
+    "diet_profiles": [
+      "balanced"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_yogurt_2",
+        "grams": 200
+      },
+      {
+        "food_id": "food_oats",
+        "grams": 30
+      },
+      {
+        "food_id": "food_banana",
+        "grams": 80
+      }
+    ],
+    "kcal": 307,
+    "protein_g": 14,
+    "carbs_g": 48.2,
+    "fat_g": 8.4
+  },
+  {
+    "id": "meal_skry_fruit",
+    "name_bg": "Скир с плод",
+    "meal_type": "breakfast",
+    "diet_profiles": [
+      "balanced",
+      "high_protein"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_skyr",
+        "grams": 200
+      },
+      {
+        "food_id": "food_apple",
+        "grams": 120
+      }
+    ],
+    "kcal": 186,
+    "protein_g": 22.4,
+    "carbs_g": 24.8,
+    "fat_g": 0.6
+  },
+  {
+    "id": "meal_omelet_veg",
+    "name_bg": "Омлет с зеленчуци",
+    "meal_type": "breakfast",
+    "diet_profiles": [
+      "balanced",
+      "keto",
+      "low_carb"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_eggs",
+        "grams": 150
+      },
+      {
+        "food_id": "food_spinach",
+        "grams": 80
+      },
+      {
+        "food_id": "food_tomato",
+        "grams": 80
+      }
+    ],
+    "kcal": 266,
+    "protein_g": 22.6,
+    "carbs_g": 7.7,
+    "fat_g": 17
+  },
+  {
+    "id": "meal_cottage_honey",
+    "name_bg": "Извара с мед и орехи",
+    "meal_type": "breakfast",
+    "diet_profiles": [
+      "balanced",
+      "high_protein"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_cottage_low",
+        "grams": 150
+      },
+      {
+        "food_id": "food_honey",
+        "grams": 15
+      },
+      {
+        "food_id": "food_walnuts",
+        "grams": 15
+      }
+    ],
+    "kcal": 252,
+    "protein_g": 20.3,
+    "carbs_g": 18.5,
+    "fat_g": 11.3
+  },
+  {
+    "id": "meal_tofu_scramble",
+    "name_bg": "Тофу скрамбъл",
+    "meal_type": "breakfast",
+    "diet_profiles": [
+      "vegan",
+      "balanced"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_tofu",
+        "grams": 150
+      },
+      {
+        "food_id": "food_pepper",
+        "grams": 100
+      },
+      {
+        "food_id": "food_oil",
+        "grams": 10
+      }
+    ],
+    "kcal": 234,
+    "protein_g": 13,
+    "carbs_g": 8.9,
+    "fat_g": 17.6
+  },
+  {
+    "id": "meal_porridge_berries",
+    "name_bg": "Овесена каша с плодове",
+    "meal_type": "breakfast",
+    "diet_profiles": [
+      "balanced",
+      "vegetarian"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_oats",
+        "grams": 50
+      },
+      {
+        "food_id": "food_raspberry",
+        "grams": 80
+      },
+      {
+        "food_id": "food_yogurt_2",
+        "grams": 100
+      }
+    ],
+    "kcal": 295,
+    "protein_g": 13.5,
+    "carbs_g": 47.6,
+    "fat_g": 7.1
+  },
+  {
+    "id": "meal_bread_egg_avocado",
+    "name_bg": "Яйца с авокадо и хляб",
+    "meal_type": "breakfast",
+    "diet_profiles": [
+      "balanced",
+      "mediterranean"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_eggs",
+        "grams": 120
+      },
+      {
+        "food_id": "food_avocado",
+        "grams": 60
+      },
+      {
+        "food_id": "food_herbal_tea",
+        "grams": 40
+      }
+    ],
+    "kcal": 282,
+    "protein_g": 16.8,
+    "carbs_g": 6.6,
+    "fat_g": 22.4
+  },
+  {
+    "id": "meal_salmon_quinoa",
+    "name_bg": "Сьомга с киноа и тиквички",
+    "meal_type": "lunch",
+    "diet_profiles": [
+      "balanced",
+      "mediterranean"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_salmon",
+        "grams": 140
+      },
+      {
+        "food_id": "food_quinoa",
+        "grams": 150
+      },
+      {
+        "food_id": "food_zucchini",
+        "grams": 150
+      },
+      {
+        "food_id": "food_oil",
+        "grams": 10
+      }
+    ],
+    "kcal": 587,
+    "protein_g": 36.4,
+    "carbs_g": 36.2,
+    "fat_g": 31.5
+  },
+  {
+    "id": "meal_chicken_rice_broccoli",
+    "name_bg": "Пиле с ориз и броколи",
+    "meal_type": "lunch",
+    "diet_profiles": [
+      "balanced"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_chicken_breast",
+        "grams": 120
+      },
+      {
+        "food_id": "food_rice_brown",
+        "grams": 150
+      },
+      {
+        "food_id": "food_broccoli",
+        "grams": 150
+      }
+    ],
+    "kcal": 416,
+    "protein_g": 45.3,
+    "carbs_g": 45,
+    "fat_g": 6.2
+  },
+  {
+    "id": "meal_turkey_potato_salad",
+    "name_bg": "Пуешко с картофи и салата",
+    "meal_type": "lunch",
+    "diet_profiles": [
+      "balanced"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_turkey",
+        "grams": 120
+      },
+      {
+        "food_id": "food_potato",
+        "grams": 200
+      },
+      {
+        "food_id": "food_herbal_tea",
+        "grams": 100
+      }
+    ],
+    "kcal": 318,
+    "protein_g": 40,
+    "carbs_g": 34.2,
+    "fat_g": 1.5
+  },
+  {
+    "id": "meal_beef_broccoli",
+    "name_bg": "Телешко с броколи",
+    "meal_type": "lunch",
+    "diet_profiles": [
+      "balanced",
+      "low_carb"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_beef_lean",
+        "grams": 120
+      },
+      {
+        "food_id": "food_broccoli",
+        "grams": 200
+      },
+      {
+        "food_id": "food_oil",
+        "grams": 10
+      }
+    ],
+    "kcal": 457,
+    "protein_g": 36.8,
+    "carbs_g": 14,
+    "fat_g": 31.2
+  },
+  {
+    "id": "meal_vegan_bowl",
+    "name_bg": "Веган боул",
+    "meal_type": "lunch",
+    "diet_profiles": [
+      "vegan",
+      "balanced"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_tofu",
+        "grams": 150
+      },
+      {
+        "food_id": "food_quinoa",
+        "grams": 150
+      },
+      {
+        "food_id": "food_spinach",
+        "grams": 100
+      }
+    ],
+    "kcal": 317,
+    "protein_g": 21.5,
+    "carbs_g": 38,
+    "fat_g": 10.5
+  },
+  {
+    "id": "meal_lentil_rice",
+    "name_bg": "Леща с ориз",
+    "meal_type": "lunch",
+    "diet_profiles": [
+      "vegan",
+      "vegetarian",
+      "balanced"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_lentils",
+        "grams": 150
+      },
+      {
+        "food_id": "food_rice_brown",
+        "grams": 120
+      },
+      {
+        "food_id": "food_carrot",
+        "grams": 80
+      }
+    ],
+    "kcal": 341,
+    "protein_g": 17.4,
+    "carbs_g": 65.6,
+    "fat_g": 1.8
+  },
+  {
+    "id": "meal_fish_potato_salad",
+    "name_bg": "Риба с картофи и салата",
+    "meal_type": "lunch",
+    "diet_profiles": [
+      "balanced",
+      "pescatarian"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_cod",
+        "grams": 150
+      },
+      {
+        "food_id": "food_potato",
+        "grams": 180
+      },
+      {
+        "food_id": "food_herbal_tea",
+        "grams": 80
+      }
+    ],
+    "kcal": 264,
+    "protein_g": 30.6,
+    "carbs_g": 30.8,
+    "fat_g": 1.2
+  },
+  {
+    "id": "meal_shrimp_pasta",
+    "name_bg": "Скариди с паста",
+    "meal_type": "lunch",
+    "diet_profiles": [
+      "mediterranean",
+      "pescatarian"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_shrimp",
+        "grams": 120
+      },
+      {
+        "food_id": "food_herbal_tea",
+        "grams": 80
+      },
+      {
+        "food_id": "food_tomato_paste",
+        "grams": 60
+      }
+    ],
+    "kcal": 170,
+    "protein_g": 31.4,
+    "carbs_g": 11.8,
+    "fat_g": 0.6
+  },
+  {
+    "id": "meal_chicken_bulgur",
+    "name_bg": "Пиле с булгур и зеленчуци",
+    "meal_type": "lunch",
+    "diet_profiles": [
+      "balanced"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_chicken",
+        "grams": 120
+      },
+      {
+        "food_id": "food_bulgur",
+        "grams": 80
+      },
+      {
+        "food_id": "food_pepper",
+        "grams": 120
+      }
+    ],
+    "kcal": 302,
+    "protein_g": 40.9,
+    "carbs_g": 22.4,
+    "fat_g": 4.9
+  },
+  {
+    "id": "meal_pork_beans",
+    "name_bg": "Свинско с боб",
+    "meal_type": "lunch",
+    "diet_profiles": [
+      "balanced"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_pork_lean",
+        "grams": 100
+      },
+      {
+        "food_id": "food_herbal_tea",
+        "grams": 150
+      },
+      {
+        "food_id": "food_onion",
+        "grams": 40
+      }
+    ],
+    "kcal": 260,
+    "protein_g": 27.5,
+    "carbs_g": 3.9,
+    "fat_g": 14.1
+  },
+  {
+    "id": "meal_tuna_salad",
+    "name_bg": "Салата с риба тон",
+    "meal_type": "lunch",
+    "diet_profiles": [
+      "balanced",
+      "pescatarian",
+      "low_carb"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_herbal_tea",
+        "grams": 120
+      },
+      {
+        "food_id": "food_herbal_tea",
+        "grams": 120
+      },
+      {
+        "food_id": "food_oil",
+        "grams": 10
+      }
+    ],
+    "kcal": 91,
+    "protein_g": 0,
+    "carbs_g": 0.5,
+    "fat_g": 10
+  },
+  {
+    "id": "meal_chickpea_bowl",
+    "name_bg": "Нахут боул",
+    "meal_type": "lunch",
+    "diet_profiles": [
+      "vegan",
+      "mediterranean"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_chickpeas",
+        "grams": 150
+      },
+      {
+        "food_id": "food_carrot",
+        "grams": 80
+      },
+      {
+        "food_id": "food_oil",
+        "grams": 10
+      }
+    ],
+    "kcal": 368,
+    "protein_g": 14.1,
+    "carbs_g": 48.5,
+    "fat_g": 14.1
+  },
+  {
+    "id": "meal_keto_eggs_zucchini",
+    "name_bg": "Яйца с тиквички",
+    "meal_type": "dinner",
+    "diet_profiles": [
+      "keto",
+      "low_carb"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_eggs",
+        "grams": 150
+      },
+      {
+        "food_id": "food_zucchini",
+        "grams": 200
+      },
+      {
+        "food_id": "food_oil",
+        "grams": 10
+      }
+    ],
+    "kcal": 357,
+    "protein_g": 21.9,
+    "carbs_g": 7.9,
+    "fat_g": 27.2
+  },
+  {
+    "id": "meal_grilled_fish_veg",
+    "name_bg": "Риба на скара с зеленчуци",
+    "meal_type": "dinner",
+    "diet_profiles": [
+      "mediterranean",
+      "pescatarian"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_fish",
+        "grams": 150
+      },
+      {
+        "food_id": "food_broccoli",
+        "grams": 150
+      },
+      {
+        "food_id": "food_oil",
+        "grams": 10
+      }
+    ],
+    "kcal": 320,
+    "protein_g": 37.2,
+    "carbs_g": 10.5,
+    "fat_g": 15.1
+  },
+  {
+    "id": "meal_chicken_salad_dinner",
+    "name_bg": "Пилешка салата",
+    "meal_type": "dinner",
+    "diet_profiles": [
+      "balanced",
+      "low_carb"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_chicken",
+        "grams": 120
+      },
+      {
+        "food_id": "food_herbal_tea",
+        "grams": 150
+      },
+      {
+        "food_id": "food_tomato",
+        "grams": 100
+      }
+    ],
+    "kcal": 218,
+    "protein_g": 38.1,
+    "carbs_g": 4.2,
+    "fat_g": 4.5
+  },
+  {
+    "id": "meal_tempeh_stirfry",
+    "name_bg": "Темпе със зеленчуци",
+    "meal_type": "dinner",
+    "diet_profiles": [
+      "vegan"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_tempeh",
+        "grams": 120
+      },
+      {
+        "food_id": "food_carrot",
+        "grams": 80
+      },
+      {
+        "food_id": "food_broccoli",
+        "grams": 100
+      }
+    ],
+    "kcal": 299,
+    "protein_g": 26.3,
+    "carbs_g": 25.8,
+    "fat_g": 13.8
+  },
+  {
+    "id": "meal_mackerel_salad",
+    "name_bg": "Скумрия със салата",
+    "meal_type": "dinner",
+    "diet_profiles": [
+      "mediterranean",
+      "pescatarian"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_mackerel",
+        "grams": 120
+      },
+      {
+        "food_id": "food_herbal_tea",
+        "grams": 120
+      },
+      {
+        "food_id": "food_lemon",
+        "grams": 30
+      }
+    ],
+    "kcal": 256,
+    "protein_g": 23.1,
+    "carbs_g": 2.9,
+    "fat_g": 16.9
+  },
+  {
+    "id": "meal_eggplant_turkey",
+    "name_bg": "Патладжан с пуешко",
+    "meal_type": "dinner",
+    "diet_profiles": [
+      "balanced"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_turkey",
+        "grams": 120
+      },
+      {
+        "food_id": "food_herbal_tea",
+        "grams": 200
+      },
+      {
+        "food_id": "food_oil",
+        "grams": 8
+      }
+    ],
+    "kcal": 235,
+    "protein_g": 36,
+    "carbs_g": 0.4,
+    "fat_g": 9.2
+  },
+  {
+    "id": "meal_cottage_veg",
+    "name_bg": "Извара с зеленчуци",
+    "meal_type": "dinner",
+    "diet_profiles": [
+      "balanced",
+      "high_protein"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_cottage_low",
+        "grams": 180
+      },
+      {
+        "food_id": "food_cucumber",
+        "grams": 150
+      },
+      {
+        "food_id": "food_tomato",
+        "grams": 100
+      }
+    ],
+    "kcal": 171,
+    "protein_g": 23.5,
+    "carbs_g": 14.3,
+    "fat_g": 2.2
+  },
+  {
+    "id": "meal_yogurt_apple",
+    "name_bg": "Кисело мляко с ябълка",
+    "meal_type": "snack",
+    "diet_profiles": [
+      "balanced"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_yogurt_2",
+        "grams": 200
+      },
+      {
+        "food_id": "food_apple",
+        "grams": 150
+      }
+    ],
+    "kcal": 198,
+    "protein_g": 8.5,
+    "carbs_g": 31,
+    "fat_g": 6.3
+  },
+  {
+    "id": "meal_nuts_berries",
+    "name_bg": "Ядки и боровинки",
+    "meal_type": "snack",
+    "diet_profiles": [
+      "balanced",
+      "keto"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_almonds",
+        "grams": 25
+      },
+      {
+        "food_id": "food_blueberry",
+        "grams": 80
+      }
+    ],
+    "kcal": 190,
+    "protein_g": 5.8,
+    "carbs_g": 16.7,
+    "fat_g": 12.8
+  },
+  {
+    "id": "meal_hummus_veg",
+    "name_bg": "Хумус със зеленчуци",
+    "meal_type": "snack",
+    "diet_profiles": [
+      "vegan",
+      "mediterranean"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_hummus",
+        "grams": 60
+      },
+      {
+        "food_id": "food_carrot",
+        "grams": 80
+      },
+      {
+        "food_id": "food_cucumber",
+        "grams": 80
+      }
+    ],
+    "kcal": 145,
+    "protein_g": 6.1,
+    "carbs_g": 19.3,
+    "fat_g": 6.3
+  },
+  {
+    "id": "meal_protein_shake",
+    "name_bg": "Протеин шейк",
+    "meal_type": "snack",
+    "diet_profiles": [
+      "high_protein"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_herbal_tea",
+        "grams": 30
+      },
+      {
+        "food_id": "food_banana",
+        "grams": 80
+      }
+    ],
+    "kcal": 71,
+    "protein_g": 0.9,
+    "carbs_g": 18.5,
+    "fat_g": 0.3
+  },
+  {
+    "id": "meal_cheese_crackers",
+    "name_bg": "Сирене с крекери",
+    "meal_type": "snack",
+    "diet_profiles": [
+      "balanced"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_cheese",
+        "grams": 50
+      },
+      {
+        "food_id": "food_herbal_tea",
+        "grams": 30
+      }
+    ],
+    "kcal": 132,
+    "protein_g": 7,
+    "carbs_g": 1.1,
+    "fat_g": 10.5
+  },
+  {
+    "id": "meal_fruit_yogurt",
+    "name_bg": "Плод с кисело мляко",
+    "meal_type": "snack",
+    "diet_profiles": [
+      "balanced"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_kiwi",
+        "grams": 100
+      },
+      {
+        "food_id": "food_yogurt_2",
+        "grams": 150
+      }
+    ],
+    "kcal": 151,
+    "protein_g": 7.1,
+    "carbs_g": 22.5,
+    "fat_g": 5
+  },
+  {
+    "id": "meal_late_skry",
+    "name_bg": "Скир късен snack",
+    "meal_type": "snack",
+    "diet_profiles": [
+      "balanced",
+      "high_protein"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_skyr",
+        "grams": 150
+      }
+    ],
+    "kcal": 93,
+    "protein_g": 16.5,
+    "carbs_g": 6,
+    "fat_g": 0.3
+  },
+  {
+    "id": "meal_late_nuts",
+    "name_bg": "Ядки (къс snack)",
+    "meal_type": "snack",
+    "diet_profiles": [
+      "keto",
+      "low_carb"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_cashew",
+        "grams": 25
+      }
+    ],
+    "kcal": 138,
+    "protein_g": 4.5,
+    "carbs_g": 7.5,
+    "fat_g": 11
+  }
+]

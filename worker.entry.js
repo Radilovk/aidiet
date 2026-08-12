@@ -87,6 +87,35 @@ import {
 } from './step3-chunk.js';
 import { buildInfeasibilityRetryHints } from './step3-creation-hints.js';
 import {
+  buildDeterministicWeekPlanChunk,
+  deterministicStep3Enabled,
+} from './step3-deterministic.js';
+import {
+  buildDeterministicStrategy,
+  deterministicStep2Enabled,
+} from './step2-deterministic.js';
+import {
+  buildEnergyContract,
+  applyDeterministicEnergyContract,
+  deterministicStep1Enabled,
+} from './step1-deterministic.js';
+import {
+  validateProtocolStrategy,
+} from './protocol-validate.js';
+import {
+  enrichUserDataEngineContext,
+  extractQuestionnaireBlockedTerms,
+  buildAdaptPhaseContext,
+} from './questionnaire-engine-map.js';
+import {
+  finalDirectorEnabled,
+  buildFinalAuditPacket,
+  buildFinalDirectorPrompt,
+  parseDirectorResponse,
+  applyDirectorAdjustments,
+  DEFAULT_FINAL_DIRECTOR_PROMPT,
+} from './step6-final-director.js';
+import {
   readOverlayFromKv,
   writeOverlayToKv,
   upsertOverlayEntry,
@@ -2782,6 +2811,109 @@ function normalizeStrategyDessertFlag(strategy, userData) {
   strategy.includeDessert = !blocked;
 }
 
+function computeBackendEnergyInputs(data) {
+  const activityData = calculateUnifiedActivityScore(data);
+  const bmr = calculateBMR(data);
+  const tdee = calculateTDEE(bmr, activityData.combinedScore);
+  const deficitData = calculateSafeDeficit(tdee, data.goal);
+  const macros = calculateMacronutrientRatios(data, activityData.combinedScore, tdee);
+  return { activityData, bmr, tdee, deficitData, macros };
+}
+
+/** Step 1 post-process: narrative normalize + deterministic energy overlay + guardrails. */
+function finalizeStep1Analysis(env, data, analysis) {
+  normalizeAnalysisOutput(analysis, data);
+  const { activityData, bmr, tdee, deficitData, macros } = computeBackendEnergyInputs(data);
+
+  if (deterministicStep1Enabled(env)) {
+    const minFatG = Math.round((parseFloat(data.weight) || 70) * MIN_FAT_GRAMS_PER_KG);
+    const contract = buildEnergyContract({
+      bmr,
+      tdee,
+      deficitData,
+      macros,
+      activityData,
+      goal: data.goal,
+      minFatG,
+    });
+    applyDeterministicEnergyContract(analysis, contract);
+    console.log('Step 1: deterministic energy contract applied');
+  }
+
+  enforceCalorieGuardrails(analysis, data, tdee);
+  return { bmr, tdee, activityData };
+}
+
+/** Post-process raw strategy (deterministic or AI) before validation / Step 3. */
+function finalizeStrategyObject(strategy, analysis, userData) {
+  if (!strategy) return strategy;
+  enforceWeekendFreeDay(strategy);
+  normalizeStrategyDessertFlag(strategy, userData);
+  normalizeWeeklyScheme(strategy, parseFinalCalories(analysis?.Final_Calories), userData);
+  return strategy;
+}
+
+/**
+ * Step 2 resolver — deterministic-first; AI fallback on REJECT or build error.
+ * REVIEW keeps engine authority; optional AI overlay enriches copy only.
+ */
+async function resolveStep2Strategy(env, data, analysis, sessionId, options = {}) {
+  const {
+    errorPreventionComment = null,
+    stepLabel = 'step2_strategy',
+    compactAnalysis = null,
+  } = options;
+
+  if (deterministicStep2Enabled(env)) {
+    try {
+      let detStrategy = buildDeterministicStrategy({ userData: data, analysis });
+      detStrategy = finalizeStrategyObject(detStrategy, analysis, data);
+      const validation = validateProtocolStrategy(detStrategy, analysis, data);
+
+      if (validation.status === 'VALID' || validation.status === 'REVIEW') {
+        if (validation.warnings?.length) {
+          console.warn(`Step 2 deterministic ${validation.status}:`, validation.warnings.join('; '));
+        }
+        console.log(`Step 2: deterministic build (${validation.status})`);
+        return { strategy: detStrategy, usedDeterministic: true, validation };
+      }
+      console.warn(
+        'Step 2 deterministic REJECT:',
+        validation.blocking.join('; '),
+        '- AI fallback',
+      );
+    } catch (detErr) {
+      console.warn('Step 2 deterministic error, AI fallback:', detErr.message);
+    }
+  }
+
+  const strategyPrompt = await generateStrategyPrompt(data, analysis, env, errorPreventionComment);
+  const strategyInputTokens = estimateTokenCount(strategyPrompt);
+  const strategyResponse = await callAIModel(
+    env,
+    strategyPrompt,
+    4000,
+    stepLabel,
+    sessionId,
+    data,
+    compactAnalysis ?? buildCompactAnalysis(analysis),
+  );
+  const strategyOutputTokens = estimateTokenCount(strategyResponse);
+  let strategy = parseAIResponse(strategyResponse);
+  strategy = finalizeStrategyObject(strategy, analysis, data);
+
+  if (!strategy || strategy.error) {
+    const errorMsg = strategy?.error || 'Невалиден формат на отговор';
+    throw new Error(errorMsg);
+  }
+
+  return {
+    strategy,
+    usedDeterministic: false,
+    tokenUsage: { input: strategyInputTokens, output: strategyOutputTokens },
+  };
+}
+
 function stripDessertsWhenDisabled(weekPlan, strategy) {
   if (!weekPlan || strategy?.includeDessert !== false) return;
   for (const day of Object.values(weekPlan)) {
@@ -2859,7 +2991,7 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
   // Plan generation steps (step1–4 and their fallbacks) must always run on the same
   // configured model without thinking to ensure consistency and prevent MAX_TOKENS
   // errors caused by internal reasoning consuming the token budget.
-  const isPlanStep = stepKey && ['step1', 'step2', 'step3', 'step4'].includes(stepKey);
+  const isPlanStep = stepKey && ['step1', 'step2', 'step3', 'step4', 'step6'].includes(stepKey);
   // For chat steps, use chat-specific thinking budget if set.
   // For plan steps, always disable thinking. For other steps, use plan config.
   const effectiveThinkingBudget = isPlanStep ? 0
@@ -3247,32 +3379,9 @@ function invalidateFoodListsCache() {
   foodListsCacheTime = 0;
 }
 
-/** Collect blocked food terms from user profile for catalog filtering */
+/** Collect blocked food terms from user profile (dietDislike, allergies, triggers, userFoodExclude). */
 function collectUserBlockedFoodTerms(data) {
-  const terms = [];
-  const pushSplit = (val) => {
-    if (!val) return;
-    String(val).split(/[,;|\n]/).forEach(s => {
-      const t = s.trim();
-      if (t.length >= 2) terms.push(t);
-    });
-  };
-  pushSplit(data.dietDislike);
-  pushSplit(data['medicalConditions_Алергии']);
-  if (Array.isArray(data.planModifications)) {
-    for (const mod of data.planModifications) {
-      if (typeof mod === 'string' && mod.startsWith('exclude_food:')) {
-        terms.push(mod.slice('exclude_food:'.length).trim());
-      }
-    }
-  }
-  if (Array.isArray(data.forbidden)) {
-    data.forbidden.forEach(f => pushSplit(f));
-  }
-  if (Array.isArray(data.userFoodExclude)) {
-    data.userFoodExclude.forEach(f => pushSplit(f));
-  }
-  return terms;
+  return extractQuestionnaireBlockedTerms(data);
 }
 
 /** Per-user food-picker inclusion list (overrides global KV mainlist for this request). */
@@ -3937,6 +4046,64 @@ async function persistFoodLedger(env, userId, ledgerSerialized, clientIdHint = '
   }
 }
 
+const FINAL_DIRECTOR_TOKEN_LIMIT = 3500;
+
+/** Step 6 — AI Final Director: holistic QA + bounded presentation overlay. */
+async function runFinalDirectorReview(env, plan, userData, codeValidation = null) {
+  const auditPacket = buildFinalAuditPacket({ plan, userData, codeValidation });
+  let customPrompt = null;
+  try {
+    customPrompt = await getCustomPrompt(env, 'admin_final_director_prompt');
+  } catch (_) {
+    customPrompt = null;
+  }
+  const prompt = buildFinalDirectorPrompt(auditPacket, customPrompt || DEFAULT_FINAL_DIRECTOR_PROMPT);
+  const sessionId = generateUniqueId('director');
+  const response = await callAIModel(
+    env,
+    prompt,
+    FINAL_DIRECTOR_TOKEN_LIMIT,
+    'step6_final_director',
+    sessionId,
+    userData,
+    null,
+  );
+  const parsed = parseAIResponse(response);
+  const director = parseDirectorResponse(parsed);
+  applyDirectorAdjustments(plan, director);
+  console.log(`Step 6 Final Director: ${director.verdict} (score ${director.qualityScore})`);
+  await finalizeAISessionLogs(env, sessionId).catch(() => {});
+  return director;
+}
+
+/** Post-generation validation + optional Step 6 Director (shared by plan gen + weekly adapt). */
+async function finalizeValidatedPlan(env, structuredPlan, data) {
+  await reconcilePlanStructure(structuredPlan, data, env);
+  const foodLists = await getDynamicFoodListsSections(env);
+  const validation = validatePlan(structuredPlan, data, foodLists.dynamicSubstitutions || []);
+  if (!structuredPlan.generationWarnings) structuredPlan.generationWarnings = [];
+  if (validation.warnings?.length) {
+    structuredPlan.generationWarnings.push(...validation.warnings);
+  }
+  if (validation.errors?.length) {
+    structuredPlan.generationWarnings.push(...validation.errors);
+  }
+  if (validation.blockingErrors?.length) {
+    throw new Error(`Планът не минава медицински прагове: ${validation.blockingErrors.join('; ')}`);
+  }
+  if (structuredPlan.generationWarnings.length) {
+    console.log(`Plan post-validation: ${structuredPlan.generationWarnings.length} warning(s)`);
+  }
+  if (finalDirectorEnabled(env)) {
+    try {
+      await runFinalDirectorReview(env, structuredPlan, data, validation);
+    } catch (directorErr) {
+      console.warn('Step 6 Final Director skipped:', directorErr.message);
+    }
+  }
+  return validation;
+}
+
 async function generatePlanCore(env, data, onAnalysisReady = null) {
   await loadCatalogRegistryOverlay(env);
 
@@ -3973,27 +4140,13 @@ async function generatePlanCore(env, data, onAnalysisReady = null) {
     return { success: true, hasContradiction: true, warningData, userId };
   }
 
+  enrichUserDataEngineContext(data);
+
   // Generate plan (multi-step AI)
   let structuredPlan = await generatePlanMultiStep(env, data, onAnalysisReady);
-  await reconcilePlanStructure(structuredPlan, data, env);
 
-  // In-place structural fixes: food substitutions + warnings (no AI regen — stable path)
   try {
-    const foodLists = await getDynamicFoodListsSections(env);
-    const validation = validatePlan(structuredPlan, data, foodLists.dynamicSubstitutions || []);
-    if (!structuredPlan.generationWarnings) structuredPlan.generationWarnings = [];
-    if (validation.warnings?.length) {
-      structuredPlan.generationWarnings.push(...validation.warnings);
-    }
-    if (validation.errors?.length) {
-      structuredPlan.generationWarnings.push(...validation.errors);
-    }
-    if (validation.blockingErrors?.length) {
-      throw new Error(`Планът не минава медицински прагове: ${validation.blockingErrors.join('; ')}`);
-    }
-    if (structuredPlan.generationWarnings.length) {
-      console.log(`Plan post-validation: ${structuredPlan.generationWarnings.length} warning(s)`);
-    }
+    await finalizeValidatedPlan(env, structuredPlan, data);
   } catch (validationErr) {
     if (validationErr.message?.includes('медицински прагове')) throw validationErr;
     console.warn('Plan post-validation skipped:', validationErr.message);
@@ -6811,6 +6964,11 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       userData.planModifications || enrichedData.planModifications,
       decision.modifications
     );
+    enrichedData._adaptPhase = buildAdaptPhaseContext({
+      cycleNumber,
+      dietStartDate: gameWeeklyAI?.dietStartDate || '',
+    });
+    enrichUserDataEngineContext(enrichedData);
     enrichedData.weeklyAdaptationContext = buildWeeklyAdaptationContextText(
       decision, analytics, answers, cycleNumber
     );
@@ -6838,6 +6996,13 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       newPlan = await regenerateFromStep(
         env, enrichedData, plan, regenStep, { [regenStep]: ['weekly adaptation'] }, 1
       );
+    }
+
+    try {
+      await finalizeValidatedPlan(env, newPlan, enrichedData);
+    } catch (validationErr) {
+      if (validationErr.message?.includes('медицински прагове')) throw validationErr;
+      console.warn('[WeeklyAdapt] post-validation skipped:', validationErr.message);
     }
 
     const notice = { ...noticeBase, changed: true };
@@ -9024,11 +9189,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       if (analysis.keyProblems && Array.isArray(analysis.keyProblems)) {
         analysis.keyProblems = analysis.keyProblems.filter(problem => problem.severity !== 'Normal');
       }
-      normalizeAnalysisOutput(analysis, data);
-      const refActivity = calculateUnifiedActivityScore(data);
-      const refBmr = calculateBMR(data);
-      const refTdee = calculateTDEE(refBmr, refActivity.combinedScore);
-      enforceCalorieGuardrails(analysis, data, refTdee);
+      finalizeStep1Analysis(env, data, analysis);
     } else {
       // Reuse existing analysis
       analysis = existingPlan.analysis;
@@ -9039,23 +9200,20 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
     if (earliestErrorStep === 'step1_analysis' || earliestErrorStep === 'step2_strategy') {
       const stepErrorComment = earliestErrorStep === 'step2_strategy' ? errorPreventionComment : null;
       console.log(`Regenerating Step 2 (Strategy)${stepErrorComment ? ' with error prevention' : ''}`);
-      
-      const strategyPrompt = await generateStrategyPrompt(data, analysis, env, stepErrorComment);
-      const strategyInputTokens = estimateTokenCount(strategyPrompt);
-      cumulativeTokens.input += strategyInputTokens;
-      
-      const strategyResponse = await callAIModel(env, strategyPrompt, 4000, 'step2_strategy_regen', sessionId, data, buildCompactAnalysis(analysis));
-      const strategyOutputTokens = estimateTokenCount(strategyResponse);
-      cumulativeTokens.output += strategyOutputTokens;
-      cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
-      
-      strategy = parseAIResponse(strategyResponse);
-      enforceWeekendFreeDay(strategy);
-      normalizeStrategyDessertFlag(strategy, data);
-      normalizeWeeklyScheme(strategy, parseFinalCalories(analysis.Final_Calories), data);
-      
-      if (!strategy || strategy.error) {
-        throw new Error(`Регенерацията на стратегията се провали: ${strategy?.error || 'Невалиден формат'}`);
+
+      const step2Result = await resolveStep2Strategy(env, data, analysis, sessionId, {
+        errorPreventionComment: stepErrorComment,
+        stepLabel: 'step2_strategy_regen',
+        compactAnalysis: buildCompactAnalysis(analysis),
+      });
+      strategy = step2Result.strategy;
+      if (step2Result.tokenUsage) {
+        cumulativeTokens.input += step2Result.tokenUsage.input;
+        cumulativeTokens.output += step2Result.tokenUsage.output;
+        cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
+      }
+      if (step2Result.usedDeterministic) {
+        console.log('Step 2 regen: deterministic strategy (no AI call)');
       }
     } else {
       // Reuse existing strategy
@@ -9251,6 +9409,7 @@ ${errors.map((error, idx) => `${idx + 1}. ${error}`).join('\n')}
 
 async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
   console.log('Multi-step generation: Starting (3+ AI requests for precision)');
+  enrichUserDataEngineContext(data);
   
   // Generate a unique session ID for this plan generation
   const sessionId = generateUniqueId('session');
@@ -9300,13 +9459,7 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
           console.log(`Filtered out ${originalCount - filteredCount} Normal severity problems from analysis`);
         }
       }
-      normalizeAnalysisOutput(analysis, data);
-
-      // Sync + safety guardrails (AI keeps diet-specific judgment; code clamps extremes only)
-      const refActivity = calculateUnifiedActivityScore(data);
-      const refBmr = calculateBMR(data);
-      const refTdee = calculateTDEE(refBmr, refActivity.combinedScore);
-      enforceCalorieGuardrails(analysis, data, refTdee);
+      finalizeStep1Analysis(env, data, analysis);
     } catch (error) {
       console.error('Analysis step failed:', error);
       throw new Error(`Стъпка 1 (Анализ): ${error.message}`);
@@ -9321,32 +9474,24 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
       }
     }
     
-    // Step 2: Generate dietary strategy based on analysis (2nd AI request)
-    // Focus: Personalized approach, timing, principles, restrictions
-    const strategyPrompt = await generateStrategyPrompt(data, analysis, env);
-    const strategyInputTokens = estimateTokenCount(strategyPrompt);
-    cumulativeTokens.input += strategyInputTokens;
-    
-    let strategyResponse, strategy;
+    // Step 2: Generate dietary strategy based on analysis (deterministic-first)
+    let strategy;
     
     try {
-      strategyResponse = await callAIModel(env, strategyPrompt, 4000, 'step2_strategy', sessionId, data, buildCompactAnalysis(analysis));
-      const strategyOutputTokens = estimateTokenCount(strategyResponse);
-      cumulativeTokens.output += strategyOutputTokens;
-      cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
-      
-      console.log(`Step 2 tokens: input=${strategyInputTokens}, output=${strategyOutputTokens}, cumulative=${cumulativeTokens.total}`);
-      
-      strategy = parseAIResponse(strategyResponse);
-      enforceWeekendFreeDay(strategy);
-      normalizeStrategyDessertFlag(strategy, data);
-      normalizeWeeklyScheme(strategy, parseFinalCalories(analysis.Final_Calories), data);
-      
-      if (!strategy || strategy.error) {
-        const errorMsg = strategy.error || 'Невалиден формат на отговор';
-        console.error('Strategy parsing failed:', errorMsg);
-        console.error('AI Response preview (first 1000 chars):', strategyResponse?.substring(0, 1000));
-        throw new Error(`Стратегията не можа да бъде създадена: ${errorMsg}`);
+      const step2Result = await resolveStep2Strategy(env, data, analysis, sessionId, {
+        stepLabel: 'step2_strategy',
+        compactAnalysis: buildCompactAnalysis(analysis),
+      });
+      strategy = step2Result.strategy;
+      if (step2Result.tokenUsage) {
+        cumulativeTokens.input += step2Result.tokenUsage.input;
+        cumulativeTokens.output += step2Result.tokenUsage.output;
+        cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
+        console.log(
+          `Step 2 tokens: input=${step2Result.tokenUsage.input}, output=${step2Result.tokenUsage.output}, cumulative=${cumulativeTokens.total}`,
+        );
+      } else if (step2Result.usedDeterministic) {
+        console.log('Step 2: deterministic strategy (no AI call)');
       }
     } catch (error) {
       console.error('Strategy step failed:', error);
@@ -9861,30 +10006,9 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       let blockingErrors = null;
       let chunkWarnings = [];
       let syncMeta = null;
-      try {
-        const chunkPrompt = await generateMealPlanChunkPrompt(
-          data, analysis, strategy, bmr, recommendedCalories,
-          startDay, endDay, previousDays, env, chunkComment, cachedFoodLists
-        );
+      let chunkBuilt = false;
 
-        const stepLabel = attempt > 0
-          ? `step3_meal_plan_chunk_${chunkIndex + 1}_retry`
-          : `step3_meal_plan_chunk_${chunkIndex + 1}`;
-        const chunkResponse = await callAIModel(
-          env, chunkPrompt, mealPlanTokenLimitForChunk(daysInChunk), stepLabel, sessionId, data, buildCompactAnalysisForStep3(analysis),
-        );
-        let chunkData = parseAIResponse(chunkResponse);
-
-        if (!chunkData || chunkData.error) {
-          throw new Error(chunkData?.error || 'Invalid response');
-        }
-
-        if (Array.isArray(chunkData)) {
-          chunkData = Object.fromEntries(chunkData.map((item, i) => [`day${startDay + i}`, item]));
-        }
-
-        console.log(`Chunk ${chunkIndex + 1} data keys (attempt ${attempt + 1}):`, Object.keys(chunkData));
-
+      const applyChunkData = (chunkData) => {
         for (let day = startDay; day <= endDay; day++) {
           const dayKey = `day${day}`;
           if (!chunkData[dayKey]) {
@@ -9892,27 +10016,103 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
           }
           weekPlan[dayKey] = chunkData[dayKey];
         }
+      };
 
+      const clearChunkDays = () => {
+        for (let day = startDay; day <= endDay; day++) {
+          delete weekPlan[`day${day}`];
+        }
+      };
+
+      const finalizeChunkNutrition = async () => {
         injectFixedDesserts(weekPlan);
         syncMeta = await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
         if (repairWeekPlanLightSlots(weekPlan, startDay, endDay, data)) {
           syncMeta = await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
         }
         finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, data);
-
         const validation = validateWeekPlanChunkAgainstScheme(
           weekPlan, strategy, startDay, endDay, data.clinicalProtocol || null, data,
         );
         blockingErrors = appendInfeasibleSlots(validation.blocking, syncMeta?.infeasible);
         chunkWarnings = validation.warnings;
         lastInfeasible = syncMeta?.infeasible || [];
-        lastAiFailure = null;
+      };
+
+      try {
+        // Deterministic-first: protocol-engine + catalog/solver; AI only on failure.
+        if (deterministicStep3Enabled(env) && attempt === 0) {
+          try {
+            const detSeed = Number(data?.id || data?.userId || 0)
+              + (sessionId ? sessionId.length * 17 : 0)
+              + chunkIndex * 31;
+            const chunkData = buildDeterministicWeekPlanChunk({
+              strategy,
+              userData: data,
+              startDay,
+              endDay,
+              previousDays,
+              seed: detSeed,
+              includeDessert: userHasSweetsCraving(data?.foodCravings) && strategy?.includeDessert !== false,
+              clinicalProtocolId: data.clinicalProtocol || null,
+              blockedTerms: collectUserBlockedFoodTerms(data),
+            });
+            applyChunkData(chunkData);
+            chunkBuilt = true;
+            console.log(`Chunk ${chunkIndex + 1}: deterministic Step 3 build`);
+            await finalizeChunkNutrition();
+            lastAiFailure = null;
+            const detBlocking = Array.isArray(blockingErrors) ? blockingErrors : [];
+            if (detBlocking.length) {
+              console.warn(
+                `Chunk ${chunkIndex + 1}: deterministic validation failed (${detBlocking.length}), AI fallback`,
+              );
+              clearChunkDays();
+              chunkBuilt = false;
+              blockingErrors = null;
+            }
+          } catch (detErr) {
+            console.warn(`Chunk ${chunkIndex + 1}: deterministic error, AI fallback:`, detErr.message);
+            clearChunkDays();
+            chunkBuilt = false;
+            blockingErrors = null;
+          }
+        }
+
+        if (!chunkBuilt) {
+          const chunkPrompt = await generateMealPlanChunkPrompt(
+            data, analysis, strategy, bmr, recommendedCalories,
+            startDay, endDay, previousDays, env, chunkComment, cachedFoodLists
+          );
+
+          const stepLabel = attempt > 0
+            ? `step3_meal_plan_chunk_${chunkIndex + 1}_retry`
+            : `step3_meal_plan_chunk_${chunkIndex + 1}`;
+          const chunkResponse = await callAIModel(
+            env, chunkPrompt, mealPlanTokenLimitForChunk(daysInChunk), stepLabel, sessionId, data, buildCompactAnalysisForStep3(analysis),
+          );
+          let chunkData = parseAIResponse(chunkResponse);
+
+          if (!chunkData || chunkData.error) {
+            throw new Error(chunkData?.error || 'Invalid response');
+          }
+
+          if (Array.isArray(chunkData)) {
+            chunkData = Object.fromEntries(chunkData.map((item, i) => [`day${startDay + i}`, item]));
+          }
+
+          console.log(`Chunk ${chunkIndex + 1} data keys (attempt ${attempt + 1}):`, Object.keys(chunkData));
+          applyChunkData(chunkData);
+          await finalizeChunkNutrition();
+          lastAiFailure = null;
+        }
       } catch (aiError) {
         lastAiFailure = aiError.message;
         blockingErrors = null;
       }
 
-      if (blockingErrors !== null && !blockingErrors.length) {
+      const blockingList = Array.isArray(blockingErrors) ? blockingErrors : null;
+      if (blockingList !== null && blockingList.length === 0) {
         if (chunkWarnings.length) {
           generationWarnings.push(`Дни ${startDay}-${endDay}: ${chunkWarnings.join('; ')}`);
         }
@@ -9920,8 +10120,8 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       }
 
       if (attempt >= MEAL_PLAN_CHUNK_MAX_RETRIES) {
-        const detail = blockingErrors?.length
-          ? [...blockingErrors, ...(chunkWarnings || [])].join('; ')
+        const detail = blockingList?.length
+          ? [...blockingList, ...(chunkWarnings || [])].join('; ')
           : (lastAiFailure || 'няма валиден отговор след всички опити');
         throw new Error(`Генериране на дни ${startDay}-${endDay}: ${detail}`);
       }
@@ -9931,10 +10131,10 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       }
       chunkComment = [
         errorPreventionComment,
-        buildChunkValidationRetryComment(blockingErrors || [], lastInfeasible),
+        buildChunkValidationRetryComment(blockingList || [], lastInfeasible),
       ].filter(Boolean).join('\n\n');
       attempt++;
-      console.warn(`Chunk ${chunkIndex + 1} attempt ${attempt} failed, retrying:`, blockingErrors || lastAiFailure);
+      console.warn(`Chunk ${chunkIndex + 1} attempt ${attempt} failed, retrying:`, blockingList || lastAiFailure);
     }
 
     for (let day = startDay; day <= endDay; day++) {
@@ -10216,6 +10416,7 @@ function getStepKey(stepName) {
   if (stepName.startsWith('step2')) return 'step2';
   if (stepName.startsWith('step3') || stepName === 'fallback_plan') return 'step3';
   if (stepName.startsWith('step4') || stepName === 'fallback_summary') return 'step4';
+  if (stepName.startsWith('step6') || stepName === 'final_director') return 'step6';
   if (stepName.startsWith('chat')) return 'chat';
   return null;
 }
