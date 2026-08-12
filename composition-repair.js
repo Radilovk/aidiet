@@ -19,6 +19,7 @@ const STRUCTURAL_ERROR_PATTERNS = [
   /не е в mealBreakdown/i,
   /извън каталога/i,
   /забранени при клиничния протокол/i,
+  /несъвместими с диетата/i,
   /НЕ ЗАКУСВА/i,
   /липсва .*day/i,
   /Invalid response/i,

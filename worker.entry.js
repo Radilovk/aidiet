@@ -69,6 +69,7 @@ import {
   buildCatalogPromptSection,
   validateProductNamesInCatalog,
   validateProductNamesAgainstProtocol,
+  validateProductNamesAgainstDiet,
 } from './food-catalog.js';
 import { validateMealCombinations } from './meal-combinations.js';
 import { setCatalogOverlay } from './food-registry.js';
@@ -3493,6 +3494,8 @@ async function generateMealPlanChunkPrompt(data, analysis, strategy, bmr, recomm
     startDay,
     endDay,
     dietaryModifier,
+    dietPreference: data.dietPreference ?? null,
+    dietDislike: data.dietDislike || '',
     blockedTerms: blockedFoodTerms,
     preferLove: String(data.dietLove || '').split(/[,;]/).map(s => s.trim()).filter(Boolean),
     clinicalProtocolId: data.clinicalProtocol || null,
@@ -8026,6 +8029,14 @@ async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay
   return { unknowns, infeasible };
 }
 
+function buildCatalogDietContext(strategy, userData = null) {
+  return {
+    dietaryModifier: strategy?.dietaryModifier || 'Балансирано',
+    dietPreference: userData?.dietPreference ?? null,
+    dietDislike: userData?.dietDislike || '',
+  };
+}
+
 function validateMealTypesAgainstBreakdown(dayPlan, dayTarget, dayNum, userData = null) {
   const errors = [];
   if (!dayPlan?.meals?.length || !dayTarget?.mealBreakdown?.length) return errors;
@@ -8050,9 +8061,10 @@ function validateMealTypesAgainstBreakdown(dayPlan, dayTarget, dayNum, userData 
  * missing products, unknown catalog entries, forbidden foods, bad combinations,
  * or composition that cannot reach slot/daily macro targets.
  */
-function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocolId = null) {
+function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocolId = null, userData = null, strategy = null) {
   const errors = [];
   if (!dayPlan?.meals?.length || !dayTarget?.mealBreakdown?.length) return errors;
+  const dietCtx = buildCatalogDietContext(strategy, userData);
 
   for (const meal of dayPlan.meals) {
     if (meal.type === 'Свободно хранене' || meal.type === 'Напитка') continue;
@@ -8094,6 +8106,10 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocol
           errors.push(`Ден ${dayNum} ${meal.type}: забранени при клиничния протокол: ${forbidden.join(', ')}`);
         }
       }
+      const dietForbidden = validateProductNamesAgainstDiet(productNames, dietCtx);
+      if (dietForbidden.length) {
+        errors.push(`Ден ${dayNum} ${meal.type}: несъвместими с диетата: ${dietForbidden.join(', ')}`);
+      }
     }
 
     const comboIssues = validateMealCombinations({ ...meal, dessert: undefined });
@@ -8118,7 +8134,7 @@ function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay
     const dayTarget = strategy.weeklyScheme[schemeKey];
     if (dayPlan && dayTarget) {
       blocking.push(...validateMealTypesAgainstBreakdown(dayPlan, dayTarget, d, userData));
-      blocking.push(...validateMealsAgainstScheme(dayPlan, dayTarget, d, clinicalProtocolId));
+      blocking.push(...validateMealsAgainstScheme(dayPlan, dayTarget, d, clinicalProtocolId, userData, strategy));
       for (const meal of dayPlan.meals || []) {
         blocking.push(...validateLightMealSlotContent(meal, d));
         blocking.push(...validateLateSnackSlotContent(meal, d));
@@ -8163,10 +8179,15 @@ function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay
 
 function buildChunkValidationRetryComment(errors) {
   if (!errors?.length) return '';
+  const MAX = 8;
+  const head = errors.slice(0, MAX);
+  const tail = errors.length > MAX
+    ? `\n(+ ${errors.length - MAX} още — оправи slot kcal/композиция първо)`
+    : '';
   return `═══ FIX LIST ═══
-${errors.map((e, i) => `${i + 1}. ${e}`).join('\n')}
+${head.map((e, i) => `${i + 1}. ${e}`).join('\n')}${tail}
 
-Rules: meals[].type = mealBreakdown only; description = catalog products only (no grams); choose products that match slot P/C/F profile.`;
+Rules: meals[].type = mealBreakdown only; description = catalog products only (no grams); pick calorie-dense PRO/ENG when slot kcal is high.`;
 }
 
 /** Stage 1.7 — one AI call to repair infeasible slot compositions only. */
@@ -8187,6 +8208,8 @@ async function tryCompositionRepair(env, {
     startDay,
     endDay,
     dietaryModifier: strategy.dietaryModifier || 'Балансирано',
+    dietPreference: data.dietPreference ?? null,
+    dietDislike: data.dietDislike || '',
     blockedTerms: collectUserBlockedFoodTerms(data),
     preferLove: String(data.dietLove || '').split(/[,;]/).map(s => s.trim()).filter(Boolean),
     clinicalProtocolId: data.clinicalProtocol || null,
