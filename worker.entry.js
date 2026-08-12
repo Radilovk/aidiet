@@ -2924,6 +2924,36 @@ function stripDessertsWhenDisabled(weekPlan, strategy) {
   }
 }
 
+/** When Step 2 is deterministic, engine-owned lists win over Step 4 AI generic copy. */
+function overlayDeterministicPresentation(mealPlan, strategy) {
+  if (!strategy?._deterministicCore || !mealPlan) return mealPlan;
+  const loves = strategy.foodsToInclude || strategy.preferredFoodCategories || [];
+  const blocked = strategy.foodsToAvoid || strategy.avoidFoodCategories || [];
+  if (loves.length) mealPlan.recommendations = [...loves];
+  if (blocked.length) {
+    mealPlan.forbidden = blocked.map((t) => {
+      const s = String(t);
+      return s.startsWith('Без ') ? s : `Без ${s}`;
+    });
+  }
+  if (strategy.psychologicalSupport?.length) {
+    mealPlan.psychology = [...strategy.psychologicalSupport];
+  }
+  if (strategy.hydrationStrategy) mealPlan.waterIntake = strategy.hydrationStrategy;
+  return mealPlan;
+}
+
+function buildEngineMeta(analysis, strategy, mealPlan) {
+  const step3 = mealPlan?.step3Engine || 'unknown';
+  return {
+    step1Deterministic: Boolean(analysis?._deterministicEnergy),
+    step2Deterministic: Boolean(strategy?._deterministicCore),
+    step3Engine: step3,
+    pipelineVersion: 1,
+    generatedAt: new Date().toISOString(),
+  };
+}
+
 
 /**
  * Check whether AI logging is currently enabled.
@@ -9532,7 +9562,8 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
       strategy: strategy,
       _meta: {
         tokenUsage: cumulativeTokens,
-        generatedAt: new Date().toISOString()
+        generatedAt: new Date().toISOString(),
+        engine: buildEngineMeta(analysis, strategy, mealPlan),
       }
     };
     syncPlanTargets(result, analysis);
@@ -9984,6 +10015,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
   
   // Precision-first: each chunk must pass validation cleanly — no partial accept, no AI slot repair.
   const generationWarnings = [];
+  let step3Engine = 'deterministic';
   for (let chunkIndex = 0; chunkIndex < chunks; chunkIndex++) {
     const startDay = chunkIndex * DAYS_PER_CHUNK + 1;
     const endDay = Math.min(startDay + DAYS_PER_CHUNK - 1, totalDays);
@@ -10067,12 +10099,18 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
               console.warn(
                 `Chunk ${chunkIndex + 1}: deterministic validation failed (${detBlocking.length}), AI fallback`,
               );
+              step3Engine = 'ai_fallback';
+              generationWarnings.push(
+                'Step 3: deterministic build не мина валидация — използван AI fallback за седмицата',
+              );
               clearChunkDays();
               chunkBuilt = false;
               blockingErrors = null;
             }
           } catch (detErr) {
             console.warn(`Chunk ${chunkIndex + 1}: deterministic error, AI fallback:`, detErr.message);
+            step3Engine = 'ai_fallback';
+            generationWarnings.push(`Step 3: deterministic error — AI fallback (${detErr.message.slice(0, 80)})`);
             clearChunkDays();
             chunkBuilt = false;
             blockingErrors = null;
@@ -10174,7 +10212,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       console.warn('Summary generation failed, calculating from weekPlan');
       const calculatedMacros = calculateAverageMacrosFromPlan(weekPlan);
       
-      return {
+      const fallbackPlan = overlayDeterministicPresentation({
         summary: {
           bmr: bmr,
           dailyCalories: recommendedCalories,
@@ -10190,11 +10228,13 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         psychology: strategy.psychologicalSupport || [],
         waterIntake: strategy.hydrationStrategy || "2-2.5л дневно",
         supplements: strategy.supplementRecommendations || [],
-        generationWarnings
-      };
+        generationWarnings,
+        step3Engine,
+      }, strategy);
+      return fallbackPlan;
     }
     
-    return {
+    return overlayDeterministicPresentation({
       summary: summaryData.summary || {
         bmr: bmr,
         dailyCalories: recommendedCalories,
@@ -10206,14 +10246,15 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       psychology: summaryData.psychology || strategy.psychologicalSupport || [],
       waterIntake: summaryData.waterIntake || strategy.hydrationStrategy || "2-2.5л дневно",
       supplements: summaryData.supplements || strategy.supplementRecommendations || [],
-      generationWarnings
-    };
+      generationWarnings,
+      step3Engine,
+    }, strategy);
   } catch (error) {
     console.error('Summary generation failed:', error);
     // Calculate actual macros from generated weekPlan instead of using generic text
     const calculatedMacros = calculateAverageMacrosFromPlan(weekPlan);
     
-    return {
+    return overlayDeterministicPresentation({
       summary: {
         bmr: bmr,
         dailyCalories: recommendedCalories,
@@ -10229,8 +10270,9 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       psychology: strategy.psychologicalSupport || [],
       waterIntake: strategy.hydrationStrategy || "2-2.5л дневно",
       supplements: strategy.supplementRecommendations || [],
-      generationWarnings
-    };
+      generationWarnings,
+      step3Engine,
+    }, strategy);
   }
 }
 

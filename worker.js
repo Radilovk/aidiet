@@ -17957,13 +17957,20 @@ function filterByTiming(entries, mealType) {
     (e) => e.timing?.includes(timing) || e.group === "condiment" || e.group === "vegetable" || e.group === "fruit"
   );
 }
+function parsePreferLove(userData) {
+  return new Set(
+    String(userData?.dietLove || "").split(/[,;]/).map((s) => normalizeFoodKey(s.trim())).filter(Boolean)
+  );
+}
 function pickFromPool(pool, ctx, roleKey) {
   let filtered = filterDiet(pool, ctx.dietCtx);
   if (!filtered.length) return null;
-  const { usedProducts, seed, dayNum, slotIndex } = ctx;
+  const { usedProducts, seed, dayNum, slotIndex, loveSet } = ctx;
   const ranked = rankCatalogCandidates(filtered, {
     slotTarget: ctx.slotTarget,
     maxSlotKcal: Number(ctx.slotTarget?.calories) || 0,
+    loveSet,
+    adherenceRatio: ctx.adherenceRatio,
     limit: Math.min(filtered.length, 32)
   });
   if (!ranked.length) return null;
@@ -17975,7 +17982,9 @@ function pickFromPool(pool, ctx, roleKey) {
   for (const entry of rotated) {
     const k = normalizeFoodKey(entry.name);
     const uses = usedProducts.get(k) || 0;
-    if (uses < 3) return entry;
+    const isLove = loveSet?.has(k);
+    const maxUses = isLove ? 4 : 3;
+    if (uses < maxUses) return entry;
   }
   return rotated[0];
 }
@@ -18085,6 +18094,8 @@ function buildDeterministicWeekPlanChunk({
     throw new Error("Missing strategy.weeklyScheme");
   }
   const dietCtx = dietContext(strategy, userData);
+  const loveSet = parsePreferLove(userData);
+  const adherenceRatio = userData?._adherenceRatio instanceof Map ? userData._adherenceRatio : new Map(Object.entries(userData?._adherenceRatio || {}));
   const candidatesBySlot = getCatalogCandidatesForChunk({
     strategy,
     startDay,
@@ -18093,7 +18104,9 @@ function buildDeterministicWeekPlanChunk({
     dietPreference: userData?.dietPreference ?? null,
     dietDislike: userData?.dietDislike || "",
     blockedTerms,
-    clinicalProtocolId
+    clinicalProtocolId,
+    preferLove: [...loveSet],
+    adherenceRatio
   });
   const usedProducts = collectUsedProducts(previousDays);
   const out = {};
@@ -18115,7 +18128,9 @@ function buildDeterministicWeekPlanChunk({
         slotTarget: slot,
         usedProducts,
         dietCtx,
-        blockedTerms
+        blockedTerms,
+        loveSet,
+        adherenceRatio
       };
       meals.push(buildMealForSchemeSlot({
         slotType: slot.type,
@@ -18554,6 +18569,8 @@ function buildCopyFields(dietProfile, mealsPerDay, slotTypes, userData) {
   const label = DIET_PROFILE_LABELS[dietProfile] || DIET_PROFILE_LABELS.balanced;
   const mealList = slotTypes.join(", ");
   const name = userData?.name || "\u043A\u043B\u0438\u0435\u043D\u0442\u0430";
+  const loves = String(userData?.dietLove || "").split(/[,;]/).map((s) => s.trim()).filter(Boolean);
+  const blocked = extractQuestionnaireBlockedTerms(userData).slice(0, 12);
   return {
     dietaryModifier: label,
     dietType: label,
@@ -18578,8 +18595,14 @@ function buildCopyFields(dietProfile, mealsPerDay, slotTypes, userData) {
       "\u0417\u0430\u043C\u0440\u0430\u0437\u0435\u043D\u0430 \u0441\u0445\u0435\u043C\u0430 \u2014 \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u043D\u0430 \u0441\u043B\u043E\u0442 \u043D\u0435 \u0441\u0435 \u043C\u0435\u0441\u0442\u044F\u0442",
       label
     ],
-    preferredFoodCategories: [],
-    avoidFoodCategories: [],
+    preferredFoodCategories: loves,
+    avoidFoodCategories: blocked,
+    foodsToInclude: loves,
+    foodsToAvoid: blocked,
+    psychologicalSupport: [
+      userSkipsBreakfast(userData) ? "\u0411\u0435\u0437 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u2014 \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u0441\u0430 \u0432 \u043E\u0441\u043D\u043E\u0432\u043D\u0438\u0442\u0435 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F." : null,
+      Array.isArray(userData?.foodCravings) && userData.foodCravings.length ? `\u041E\u0441\u044A\u0437\u043D\u0430\u0442\u043E\u0441\u0442 \u0437\u0430 craving: ${userData.foodCravings.join(", ")}` : null
+    ].filter(Boolean),
     hydrationStrategy: "2\u20132.5 L \u0432\u043E\u0434\u0430 \u0434\u043D\u0435\u0432\u043D\u043E, \u0440\u0430\u0437\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0430 \u043C\u0435\u0436\u0434\u0443 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F\u0442\u0430."
   };
 }
@@ -20979,6 +21002,33 @@ function stripDessertsWhenDisabled(weekPlan, strategy) {
       if (meal.dessert) delete meal.dessert;
     }
   }
+}
+function overlayDeterministicPresentation(mealPlan, strategy) {
+  if (!strategy?._deterministicCore || !mealPlan) return mealPlan;
+  const loves = strategy.foodsToInclude || strategy.preferredFoodCategories || [];
+  const blocked = strategy.foodsToAvoid || strategy.avoidFoodCategories || [];
+  if (loves.length) mealPlan.recommendations = [...loves];
+  if (blocked.length) {
+    mealPlan.forbidden = blocked.map((t) => {
+      const s = String(t);
+      return s.startsWith("\u0411\u0435\u0437 ") ? s : `\u0411\u0435\u0437 ${s}`;
+    });
+  }
+  if (strategy.psychologicalSupport?.length) {
+    mealPlan.psychology = [...strategy.psychologicalSupport];
+  }
+  if (strategy.hydrationStrategy) mealPlan.waterIntake = strategy.hydrationStrategy;
+  return mealPlan;
+}
+function buildEngineMeta(analysis, strategy, mealPlan) {
+  const step3 = mealPlan?.step3Engine || "unknown";
+  return {
+    step1Deterministic: Boolean(analysis?._deterministicEnergy),
+    step2Deterministic: Boolean(strategy?._deterministicCore),
+    step3Engine: step3,
+    pipelineVersion: 1,
+    generatedAt: (/* @__PURE__ */ new Date()).toISOString()
+  };
 }
 async function isAILoggingEnabled(env) {
   const now = Date.now();
@@ -26130,7 +26180,8 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
       strategy,
       _meta: {
         tokenUsage: cumulativeTokens,
-        generatedAt: (/* @__PURE__ */ new Date()).toISOString()
+        generatedAt: (/* @__PURE__ */ new Date()).toISOString(),
+        engine: buildEngineMeta(analysis, strategy, mealPlan)
       }
     };
     syncPlanTargets(result, analysis);
@@ -26491,6 +26542,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
     }
   }
   const generationWarnings = [];
+  let step3Engine = "deterministic";
   for (let chunkIndex = 0; chunkIndex < chunks; chunkIndex++) {
     const startDay = chunkIndex * DAYS_PER_CHUNK + 1;
     const endDay = Math.min(startDay + DAYS_PER_CHUNK - 1, totalDays);
@@ -26569,12 +26621,18 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
               console.warn(
                 `Chunk ${chunkIndex + 1}: deterministic validation failed (${detBlocking.length}), AI fallback`
               );
+              step3Engine = "ai_fallback";
+              generationWarnings.push(
+                "Step 3: deterministic build \u043D\u0435 \u043C\u0438\u043D\u0430 \u0432\u0430\u043B\u0438\u0434\u0430\u0446\u0438\u044F \u2014 \u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430\u043D AI fallback \u0437\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430\u0442\u0430"
+              );
               clearChunkDays();
               chunkBuilt = false;
               blockingErrors = null;
             }
           } catch (detErr) {
             console.warn(`Chunk ${chunkIndex + 1}: deterministic error, AI fallback:`, detErr.message);
+            step3Engine = "ai_fallback";
+            generationWarnings.push(`Step 3: deterministic error \u2014 AI fallback (${detErr.message.slice(0, 80)})`);
             clearChunkDays();
             chunkBuilt = false;
             blockingErrors = null;
@@ -26670,7 +26728,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
     if (!summaryData || summaryData.error) {
       console.warn("Summary generation failed, calculating from weekPlan");
       const calculatedMacros = calculateAverageMacrosFromPlan(weekPlan);
-      return {
+      const fallbackPlan = overlayDeterministicPresentation({
         summary: {
           bmr,
           dailyCalories: recommendedCalories,
@@ -26686,10 +26744,12 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         psychology: strategy.psychologicalSupport || [],
         waterIntake: strategy.hydrationStrategy || "2-2.5\u043B \u0434\u043D\u0435\u0432\u043D\u043E",
         supplements: strategy.supplementRecommendations || [],
-        generationWarnings
-      };
+        generationWarnings,
+        step3Engine
+      }, strategy);
+      return fallbackPlan;
     }
-    return {
+    return overlayDeterministicPresentation({
       summary: summaryData.summary || {
         bmr,
         dailyCalories: recommendedCalories,
@@ -26701,12 +26761,13 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       psychology: summaryData.psychology || strategy.psychologicalSupport || [],
       waterIntake: summaryData.waterIntake || strategy.hydrationStrategy || "2-2.5\u043B \u0434\u043D\u0435\u0432\u043D\u043E",
       supplements: summaryData.supplements || strategy.supplementRecommendations || [],
-      generationWarnings
-    };
+      generationWarnings,
+      step3Engine
+    }, strategy);
   } catch (error) {
     console.error("Summary generation failed:", error);
     const calculatedMacros = calculateAverageMacrosFromPlan(weekPlan);
-    return {
+    return overlayDeterministicPresentation({
       summary: {
         bmr,
         dailyCalories: recommendedCalories,
@@ -26722,8 +26783,9 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       psychology: strategy.psychologicalSupport || [],
       waterIntake: strategy.hydrationStrategy || "2-2.5\u043B \u0434\u043D\u0435\u0432\u043D\u043E",
       supplements: strategy.supplementRecommendations || [],
-      generationWarnings
-    };
+      generationWarnings,
+      step3Engine
+    }, strategy);
   }
 }
 function parseThinkingBudget(raw) {
