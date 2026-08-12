@@ -41,7 +41,7 @@ const LIBRARY_CATALOG_OVERLAY = [
 export function getCatalogEntries() {
   const byId = new Map(FOOD_CATALOG.map(e => [e.id, e]));
   for (const e of LIBRARY_CATALOG_OVERLAY) {
-    if (e?.id) byId.set(e.id, e);
+    if (e?.id) byId.set(e.id, /** @type {(typeof FOOD_CATALOG)[number]} */ (/** @type {unknown} */ (e)));
   }
   for (const e of overlayEntries) {
     if (e?.id) byId.set(e.id, e);

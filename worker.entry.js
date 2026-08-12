@@ -87,6 +87,10 @@ import {
 } from './step3-chunk.js';
 import { buildInfeasibilityRetryHints } from './step3-creation-hints.js';
 import {
+  buildDeterministicWeekPlanChunk,
+  deterministicStep3Enabled,
+} from './step3-deterministic.js';
+import {
   readOverlayFromKv,
   writeOverlayToKv,
   upsertOverlayEntry,
@@ -9861,30 +9865,9 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       let blockingErrors = null;
       let chunkWarnings = [];
       let syncMeta = null;
-      try {
-        const chunkPrompt = await generateMealPlanChunkPrompt(
-          data, analysis, strategy, bmr, recommendedCalories,
-          startDay, endDay, previousDays, env, chunkComment, cachedFoodLists
-        );
+      let chunkBuilt = false;
 
-        const stepLabel = attempt > 0
-          ? `step3_meal_plan_chunk_${chunkIndex + 1}_retry`
-          : `step3_meal_plan_chunk_${chunkIndex + 1}`;
-        const chunkResponse = await callAIModel(
-          env, chunkPrompt, mealPlanTokenLimitForChunk(daysInChunk), stepLabel, sessionId, data, buildCompactAnalysisForStep3(analysis),
-        );
-        let chunkData = parseAIResponse(chunkResponse);
-
-        if (!chunkData || chunkData.error) {
-          throw new Error(chunkData?.error || 'Invalid response');
-        }
-
-        if (Array.isArray(chunkData)) {
-          chunkData = Object.fromEntries(chunkData.map((item, i) => [`day${startDay + i}`, item]));
-        }
-
-        console.log(`Chunk ${chunkIndex + 1} data keys (attempt ${attempt + 1}):`, Object.keys(chunkData));
-
+      const applyChunkData = (chunkData) => {
         for (let day = startDay; day <= endDay; day++) {
           const dayKey = `day${day}`;
           if (!chunkData[dayKey]) {
@@ -9892,27 +9875,103 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
           }
           weekPlan[dayKey] = chunkData[dayKey];
         }
+      };
 
+      const clearChunkDays = () => {
+        for (let day = startDay; day <= endDay; day++) {
+          delete weekPlan[`day${day}`];
+        }
+      };
+
+      const finalizeChunkNutrition = async () => {
         injectFixedDesserts(weekPlan);
         syncMeta = await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
         if (repairWeekPlanLightSlots(weekPlan, startDay, endDay, data)) {
           syncMeta = await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
         }
         finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, data);
-
         const validation = validateWeekPlanChunkAgainstScheme(
           weekPlan, strategy, startDay, endDay, data.clinicalProtocol || null, data,
         );
         blockingErrors = appendInfeasibleSlots(validation.blocking, syncMeta?.infeasible);
         chunkWarnings = validation.warnings;
         lastInfeasible = syncMeta?.infeasible || [];
-        lastAiFailure = null;
+      };
+
+      try {
+        // Deterministic-first: protocol-engine + catalog/solver; AI only on failure.
+        if (deterministicStep3Enabled(env) && attempt === 0) {
+          try {
+            const detSeed = Number(data?.id || data?.userId || 0)
+              + (sessionId ? sessionId.length * 17 : 0)
+              + chunkIndex * 31;
+            const chunkData = buildDeterministicWeekPlanChunk({
+              strategy,
+              userData: data,
+              startDay,
+              endDay,
+              previousDays,
+              seed: detSeed,
+              includeDessert: userHasSweetsCraving(data?.foodCravings) && strategy?.includeDessert !== false,
+              clinicalProtocolId: data.clinicalProtocol || null,
+              blockedTerms: data.blockedFoods || [],
+            });
+            applyChunkData(chunkData);
+            chunkBuilt = true;
+            console.log(`Chunk ${chunkIndex + 1}: deterministic Step 3 build`);
+            await finalizeChunkNutrition();
+            lastAiFailure = null;
+            const detBlocking = Array.isArray(blockingErrors) ? blockingErrors : [];
+            if (detBlocking.length) {
+              console.warn(
+                `Chunk ${chunkIndex + 1}: deterministic validation failed (${detBlocking.length}), AI fallback`,
+              );
+              clearChunkDays();
+              chunkBuilt = false;
+              blockingErrors = null;
+            }
+          } catch (detErr) {
+            console.warn(`Chunk ${chunkIndex + 1}: deterministic error, AI fallback:`, detErr.message);
+            clearChunkDays();
+            chunkBuilt = false;
+            blockingErrors = null;
+          }
+        }
+
+        if (!chunkBuilt) {
+          const chunkPrompt = await generateMealPlanChunkPrompt(
+            data, analysis, strategy, bmr, recommendedCalories,
+            startDay, endDay, previousDays, env, chunkComment, cachedFoodLists
+          );
+
+          const stepLabel = attempt > 0
+            ? `step3_meal_plan_chunk_${chunkIndex + 1}_retry`
+            : `step3_meal_plan_chunk_${chunkIndex + 1}`;
+          const chunkResponse = await callAIModel(
+            env, chunkPrompt, mealPlanTokenLimitForChunk(daysInChunk), stepLabel, sessionId, data, buildCompactAnalysisForStep3(analysis),
+          );
+          let chunkData = parseAIResponse(chunkResponse);
+
+          if (!chunkData || chunkData.error) {
+            throw new Error(chunkData?.error || 'Invalid response');
+          }
+
+          if (Array.isArray(chunkData)) {
+            chunkData = Object.fromEntries(chunkData.map((item, i) => [`day${startDay + i}`, item]));
+          }
+
+          console.log(`Chunk ${chunkIndex + 1} data keys (attempt ${attempt + 1}):`, Object.keys(chunkData));
+          applyChunkData(chunkData);
+          await finalizeChunkNutrition();
+          lastAiFailure = null;
+        }
       } catch (aiError) {
         lastAiFailure = aiError.message;
         blockingErrors = null;
       }
 
-      if (blockingErrors !== null && !blockingErrors.length) {
+      const blockingList = Array.isArray(blockingErrors) ? blockingErrors : null;
+      if (blockingList !== null && blockingList.length === 0) {
         if (chunkWarnings.length) {
           generationWarnings.push(`Дни ${startDay}-${endDay}: ${chunkWarnings.join('; ')}`);
         }
@@ -9920,8 +9979,8 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       }
 
       if (attempt >= MEAL_PLAN_CHUNK_MAX_RETRIES) {
-        const detail = blockingErrors?.length
-          ? [...blockingErrors, ...(chunkWarnings || [])].join('; ')
+        const detail = blockingList?.length
+          ? [...blockingList, ...(chunkWarnings || [])].join('; ')
           : (lastAiFailure || 'няма валиден отговор след всички опити');
         throw new Error(`Генериране на дни ${startDay}-${endDay}: ${detail}`);
       }
@@ -9931,10 +9990,10 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       }
       chunkComment = [
         errorPreventionComment,
-        buildChunkValidationRetryComment(blockingErrors || [], lastInfeasible),
+        buildChunkValidationRetryComment(blockingList || [], lastInfeasible),
       ].filter(Boolean).join('\n\n');
       attempt++;
-      console.warn(`Chunk ${chunkIndex + 1} attempt ${attempt} failed, retrying:`, blockingErrors || lastAiFailure);
+      console.warn(`Chunk ${chunkIndex + 1} attempt ${attempt} failed, retrying:`, blockingList || lastAiFailure);
     }
 
     for (let day = startDay; day <= endDay; day++) {

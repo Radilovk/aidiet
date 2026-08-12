@@ -14973,7 +14973,12 @@ var LIBRARY_CATALOG_OVERLAY = [
 function getCatalogEntries() {
   const byId = new Map(FOOD_CATALOG.map((e) => [e.id, e]));
   for (const e of LIBRARY_CATALOG_OVERLAY) {
-    if (e?.id) byId.set(e.id, e);
+    if (e?.id) byId.set(
+      e.id,
+      /** @type {(typeof FOOD_CATALOG)[number]} */
+      /** @type {unknown} */
+      e
+    );
   }
   for (const e of overlayEntries) {
     if (e?.id) byId.set(e.id, e);
@@ -15464,6 +15469,42 @@ function isExcludedByProtocol(entry, clinicalProtocolId) {
   if (!rule) return false;
   if (rule.excludeGroups?.includes(entry.group)) return true;
   if (rule.excludeNutritionKeys?.includes(entry.nutritionKey)) return true;
+  const nameLower = String(entry.name || "").toLowerCase();
+  const keyLower = String(entry.nutritionKey || "").toLowerCase();
+  for (const key of rule.excludeNutritionKeys || []) {
+    const k = String(key).toLowerCase();
+    if (k.length < 3) continue;
+    const nk = normalizeFoodKey(k);
+    if (nameLower.includes(k) || keyLower.includes(k) || normalizeFoodKey(nameLower).includes(nk) || normalizeFoodKey(keyLower).includes(nk)) {
+      return true;
+    }
+  }
+  return false;
+}
+function readyMealViolatesProtocol(entry, clinicalProtocolId) {
+  if (!clinicalProtocolId || !entry || entry.group !== "ready_meal") return false;
+  if (isExcludedByProtocol(entry, clinicalProtocolId)) return true;
+  const rule = CLINICAL_PROTOCOL_EXCLUSIONS[clinicalProtocolId];
+  if (!rule) return false;
+  const nameLower = String(entry.name || "").toLowerCase();
+  const keys = rule.excludeNutritionKeys || [];
+  for (const key of keys) {
+    const k = String(key).toLowerCase();
+    if (k.length >= 3 && (nameLower.includes(k) || normalizeFoodKey(nameLower).includes(normalizeFoodKey(k)))) {
+      return true;
+    }
+  }
+  const parts = READY_MEAL_PARTS[entry.id];
+  if (parts?.length) {
+    for (const part of parts) {
+      const pk = normalizeFoodKey(part.name);
+      if (keys.some((k) => pk.includes(normalizeFoodKey(k)) || normalizeFoodKey(k).includes(pk))) return true;
+      if (rule.excludeGroups?.length) {
+        const { entry: partEntry } = resolveCatalogEntry(part.name);
+        if (partEntry && rule.excludeGroups.includes(partEntry.group)) return true;
+      }
+    }
+  }
   return false;
 }
 function isBlockedByTerms(entry, blockedTerms = []) {
@@ -15585,6 +15626,7 @@ function getCatalogCandidatesForChunk({
   const bySlot = /* @__PURE__ */ new Map();
   for (const slot of neededSlots) bySlot.set(slot, []);
   for (const entry of index.all) {
+    if (entry.group === "ready_meal") continue;
     if (entry.universality < minUniversality) continue;
     if (!isDietCompatible(entry, diet)) continue;
     if (!passesDietRegistry(entry, registryCtx)) continue;
@@ -15624,7 +15666,7 @@ function getCatalogCandidatesForChunk({
     bySlot.set(slot, list);
   }
   const ready = rankCatalogCandidates(
-    index.all.filter((e) => e.group === "ready_meal").filter((e) => e.universality >= minUniversality).filter((e) => isDietCompatible(e, diet)).filter((e) => passesDietRegistry(e, registryCtx)).filter((e) => !isBlockedByTerms(e, blockedTerms)).filter((e) => !isExcludedByProtocol(e, clinicalProtocolId)).filter((e) => e.timing.some((t) => timings.has(t))),
+    index.all.filter((e) => e.group === "ready_meal").filter((e) => e.universality >= minUniversality).filter((e) => isDietCompatible(e, diet)).filter((e) => passesDietRegistry(e, registryCtx)).filter((e) => !isBlockedByTerms(e, blockedTerms)).filter((e) => !isExcludedByProtocol(e, clinicalProtocolId)).filter((e) => !readyMealViolatesProtocol(e, clinicalProtocolId)).filter((e) => e.timing.some((t) => timings.has(t))),
     { loveSet, adherenceRatio: adherenceMap, slotTarget: representativeSlot, maxSlotKcal: maxSlotKcal2, limit: 8 }
   );
   bySlot.set("READY", ready);
@@ -17543,6 +17585,252 @@ function validateWeeklyVariety(weekPlan, options = {}) {
       topProducts: [...productCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8)
     }
   };
+}
+
+// step3-deterministic.js
+var DAY_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+var MEAL3_PRESETS = [
+  { name: "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u0431\u0430\u0434\u0435\u043C\u0438", description: "\u2022 \u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E\n\u2022 \u0411\u0430\u0434\u0435\u043C\u0438" },
+  { name: "\u042F\u0431\u044A\u043B\u043A\u0430 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438", description: "\u2022 \u042F\u0431\u044A\u043B\u043A\u0430\n\u2022 \u0411\u0430\u0434\u0435\u043C\u0438" },
+  { name: "\u0411\u0430\u043D\u0430\u043D \u0441 \u043E\u0440\u0435\u0445\u0438", description: "\u2022 \u0411\u0430\u043D\u0430\u043D\n\u2022 \u041E\u0440\u0435\u0445\u0438" }
+];
+var MEAL3_VEGAN_PRESETS = [
+  { name: "\u0411\u0430\u043D\u0430\u043D \u0441 \u0431\u0430\u0434\u0435\u043C\u0438", description: "\u2022 \u0411\u0430\u043D\u0430\u043D\n\u2022 \u0411\u0430\u0434\u0435\u043C\u0438" },
+  { name: "\u042F\u0431\u044A\u043B\u043A\u0430 \u0441 \u043E\u0440\u0435\u0445\u0438", description: "\u2022 \u042F\u0431\u044A\u043B\u043A\u0430\n\u2022 \u041E\u0440\u0435\u0445\u0438" }
+];
+var MEAL5_PRESETS = [
+  { name: "\u0421\u043A\u0438\u0440 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438", description: "\u2022 \u0421\u043A\u0438\u0440\n\u2022 \u0411\u0430\u0434\u0435\u043C\u0438" },
+  { name: "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043E\u0440\u0435\u0445\u0438", description: "\u2022 \u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E\n\u2022 \u041E\u0440\u0435\u0445\u0438" },
+  { name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438", description: "\u2022 \u0418\u0437\u0432\u0430\u0440\u0430\n\u2022 \u0411\u0430\u0434\u0435\u043C\u0438" }
+];
+var MEAL5_VEGAN_PRESETS = [
+  { name: "\u0411\u0430\u0434\u0435\u043C\u0438 \u0438 \u043E\u0440\u0435\u0445\u0438", description: "\u2022 \u0411\u0430\u0434\u0435\u043C\u0438\n\u2022 \u041E\u0440\u0435\u0445\u0438" },
+  { name: "\u041A\u0430\u0448\u0443 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438", description: "\u2022 \u041A\u0430\u0448\u0443\n\u2022 \u0411\u0430\u0434\u0435\u043C\u0438" }
+];
+function deterministicStep3Enabled(env = {}) {
+  const v = env?.DETERMINISTIC_STEP3;
+  if (v === "0" || v === "false" || v === false) return false;
+  return true;
+}
+function inferRolesFromTarget(target = {}) {
+  if (target.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3" || target.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5") {
+    return ["PRO", "FAT"];
+  }
+  const p = Number(target.protein) || 0;
+  const c = Number(target.carbs) || 0;
+  const f = Number(target.fats) || 0;
+  const roles = ["VOL"];
+  if (p >= 12) roles.push("PRO");
+  if (c >= 15) roles.push("ENG");
+  if (f >= 8) roles.push("FAT");
+  if (!roles.includes("PRO") && !roles.includes("ENG")) {
+    roles.push("PRO", "ENG");
+  }
+  return [...new Set(roles)];
+}
+function catalogName(name) {
+  const { entry, unknown } = resolveCatalogEntry(name);
+  return unknown ? null : entry.name;
+}
+function dietContext(strategy, userData) {
+  return {
+    dietaryModifier: strategy?.dietaryModifier || "\u0411\u0430\u043B\u0430\u043D\u0441\u0438\u0440\u0430\u043D\u043E",
+    dietPreference: userData?.dietPreference ?? null,
+    dietDislike: userData?.dietDislike || ""
+  };
+}
+function filterDiet(pool, dietCtx) {
+  if (!pool.length) return pool;
+  const filtered = pool.filter((e) => passesDietRegistry(e, dietCtx));
+  return filtered.length ? filtered : pool;
+}
+function collectUsedProducts(previousDays = []) {
+  const counts = /* @__PURE__ */ new Map();
+  for (const day of previousDays) {
+    for (const meal of day.meals || []) {
+      for (const item2 of parseMealDescription(meal.description)) {
+        const k = normalizeFoodKey(item2.name);
+        if (k) counts.set(k, (counts.get(k) || 0) + 1);
+      }
+    }
+  }
+  return counts;
+}
+function filterByTiming(entries, mealType) {
+  const timing = MEAL_TYPE_TIMING[mealType] || "main";
+  return entries.filter(
+    (e) => e.timing?.includes(timing) || e.group === "condiment" || e.group === "vegetable" || e.group === "fruit"
+  );
+}
+function pickFromPool(pool, ctx, roleKey) {
+  let filtered = filterDiet(pool, ctx.dietCtx);
+  if (!filtered.length) return null;
+  const { usedProducts, seed, dayNum, slotIndex } = ctx;
+  const ranked = rankCatalogCandidates(filtered, {
+    slotTarget: ctx.slotTarget,
+    maxSlotKcal: Number(ctx.slotTarget?.calories) || 0,
+    limit: Math.min(filtered.length, 32)
+  });
+  if (!ranked.length) return null;
+  const rotated = [];
+  const start = (seed + dayNum * 13 + slotIndex * 7 + roleKey.charCodeAt(0)) % ranked.length;
+  for (let i = 0; i < ranked.length; i++) {
+    rotated.push(ranked[(start + i) % ranked.length]);
+  }
+  for (const entry of rotated) {
+    const k = normalizeFoodKey(entry.name);
+    const uses = usedProducts.get(k) || 0;
+    if (uses < 3) return entry;
+  }
+  return rotated[0];
+}
+function pickComposition(slotType, slotTarget, candidatesBySlot, ctx) {
+  const roles = inferRolesFromTarget({ ...slotTarget, type: slotType });
+  const slotKcal = Number(slotTarget.calories) || 0;
+  if (slotKcal >= 700 && !roles.includes("FAT")) roles.push("FAT");
+  if (slotKcal >= 900 && roles.filter((r) => r === "PRO" || r === "ENG").length < 2) {
+    if (!roles.includes("ENG")) roles.push("ENG");
+  }
+  const picked = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (const role of roles) {
+    let pool = filterByTiming(candidatesBySlot.get(role) || [], slotType);
+    if (!pool.length) pool = candidatesBySlot.get(role) || [];
+    pool = filterDiet(pool, ctx.dietCtx);
+    const entry = pickFromPool(pool, { ...ctx, slotTarget }, role);
+    if (!entry) continue;
+    const k = normalizeFoodKey(entry.name);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    picked.push(entry);
+  }
+  return picked;
+}
+function mealNameFromEntries(entries, slotType) {
+  if (!entries.length) return `\u042F\u0441\u0442\u0438\u0435 ${slotType}`;
+  if (entries.length === 1) return entries[0].name;
+  const main = entries.find((e) => e.slots?.includes("PRO")) || entries[0];
+  const side = entries.find((e) => e !== main && (e.slots?.includes("ENG") || e.group === "vegetable" || e.group === "carb"));
+  if (main && side) return `${main.name} \u0441 ${side.name.charAt(0).toLowerCase()}${side.name.slice(1)}`;
+  return `${main.name} \u2014 ${slotType.replace("\u0425\u0440\u0430\u043D\u0435\u043D\u0435 ", "H")}`;
+}
+function formatDescription(entries) {
+  const lines = [];
+  for (const e of entries) {
+    const name = catalogName(e.name);
+    if (name) lines.push(`\u2022 ${name}`);
+  }
+  return lines.join("\n");
+}
+function buildLightSnack(slotType, userData, ctx) {
+  const presets = slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5" ? isVeganUser(userData) ? MEAL5_VEGAN_PRESETS : MEAL5_PRESETS : isVeganUser(userData) ? MEAL3_VEGAN_PRESETS : MEAL3_PRESETS;
+  const idx = (ctx.seed + ctx.dayNum * 3 + ctx.slotIndex) % presets.length;
+  const preset = presets[idx];
+  const desc = preset.description.split("\n").map((line2) => {
+    const raw = line2.replace(/^•\s*/, "").trim();
+    const resolved = catalogName(raw);
+    return resolved ? `\u2022 ${resolved}` : line2;
+  }).join("\n");
+  return { name: preset.name, description: desc };
+}
+function buildMealForSchemeSlot({
+  slotType,
+  slotTarget,
+  candidatesBySlot,
+  userData,
+  ctx,
+  includeDessert = false
+}) {
+  if (slotType === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435") {
+    return { type: slotType, name: "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" };
+  }
+  if (slotType === "\u041D\u0430\u043F\u0438\u0442\u043A\u0430") {
+    const drink = catalogName("\u0417\u0435\u043B\u0435\u043D \u0447\u0430\u0439") || "\u0417\u0435\u043B\u0435\u043D \u0447\u0430\u0439";
+    return { type: slotType, name: drink, description: `\u2022 ${drink}` };
+  }
+  if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3" || slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5") {
+    const light = buildLightSnack(slotType, userData, ctx);
+    return { type: slotType, name: light.name, description: light.description };
+  }
+  const entries = pickComposition(slotType, slotTarget, candidatesBySlot, ctx);
+  if (!entries.length) {
+    throw new Error(`No catalog candidates for ${slotType}`);
+  }
+  for (const e of entries) {
+    const k = normalizeFoodKey(e.name);
+    ctx.usedProducts.set(k, (ctx.usedProducts.get(k) || 0) + 1);
+  }
+  const meal = {
+    type: slotType,
+    name: mealNameFromEntries(entries, slotType),
+    description: formatDescription(entries)
+  };
+  if (includeDessert && slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2") meal.dessert = true;
+  return meal;
+}
+function buildDeterministicWeekPlanChunk({
+  strategy,
+  userData = null,
+  startDay = 1,
+  endDay = 7,
+  previousDays = [],
+  seed = 0,
+  includeDessert = false,
+  clinicalProtocolId = null,
+  blockedTerms = []
+}) {
+  if (!strategy?.weeklyScheme) {
+    throw new Error("Missing strategy.weeklyScheme");
+  }
+  const dietCtx = dietContext(strategy, userData);
+  const candidatesBySlot = getCatalogCandidatesForChunk({
+    strategy,
+    startDay,
+    endDay,
+    dietaryModifier: strategy?.dietaryModifier || "\u0411\u0430\u043B\u0430\u043D\u0441\u0438\u0440\u0430\u043D\u043E",
+    dietPreference: userData?.dietPreference ?? null,
+    dietDislike: userData?.dietDislike || "",
+    blockedTerms,
+    clinicalProtocolId
+  });
+  const usedProducts = collectUsedProducts(previousDays);
+  const out = {};
+  for (let dayNum = startDay; dayNum <= endDay; dayNum++) {
+    const schemeKey = DAY_KEYS[dayNum - 1];
+    const dayScheme = strategy.weeklyScheme[schemeKey];
+    if (!dayScheme?.mealBreakdown?.length) {
+      throw new Error(`Missing mealBreakdown for ${schemeKey}`);
+    }
+    const meals = [];
+    let slotIndex = 0;
+    for (const slot of dayScheme.mealBreakdown) {
+      if (slot.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1" && userSkipsBreakfast(userData)) continue;
+      if (slot.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" && dayScheme.mealBreakdown.some((m) => m.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435")) continue;
+      const ctx = {
+        seed: Number(seed) || 0,
+        dayNum,
+        slotIndex,
+        slotTarget: slot,
+        usedProducts,
+        dietCtx
+      };
+      meals.push(buildMealForSchemeSlot({
+        slotType: slot.type,
+        slotTarget: slot,
+        candidatesBySlot,
+        userData,
+        ctx,
+        includeDessert
+      }));
+      slotIndex++;
+    }
+    meals.sort((a, b) => {
+      const order = { "\u041D\u0430\u043F\u0438\u0442\u043A\u0430": 0, "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1": 0, "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2": 1, "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435": 1, "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3": 2, "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4": 3, "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5": 4 };
+      return (order[a.type] ?? 9) - (order[b.type] ?? 9);
+    });
+    out[`day${dayNum}`] = { meals };
+  }
+  return out;
 }
 
 // admin-food-catalog.js
@@ -25145,38 +25433,8 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       let blockingErrors = null;
       let chunkWarnings = [];
       let syncMeta = null;
-      try {
-        const chunkPrompt = await generateMealPlanChunkPrompt(
-          data,
-          analysis,
-          strategy,
-          bmr,
-          recommendedCalories,
-          startDay,
-          endDay,
-          previousDays,
-          env,
-          chunkComment,
-          cachedFoodLists
-        );
-        const stepLabel = attempt > 0 ? `step3_meal_plan_chunk_${chunkIndex + 1}_retry` : `step3_meal_plan_chunk_${chunkIndex + 1}`;
-        const chunkResponse = await callAIModel(
-          env,
-          chunkPrompt,
-          mealPlanTokenLimitForChunk(daysInChunk),
-          stepLabel,
-          sessionId,
-          data,
-          buildCompactAnalysisForStep3(analysis)
-        );
-        let chunkData = parseAIResponse(chunkResponse);
-        if (!chunkData || chunkData.error) {
-          throw new Error(chunkData?.error || "Invalid response");
-        }
-        if (Array.isArray(chunkData)) {
-          chunkData = Object.fromEntries(chunkData.map((item2, i) => [`day${startDay + i}`, item2]));
-        }
-        console.log(`Chunk ${chunkIndex + 1} data keys (attempt ${attempt + 1}):`, Object.keys(chunkData));
+      let chunkBuilt = false;
+      const applyChunkData = (chunkData) => {
         for (let day = startDay; day <= endDay; day++) {
           const dayKey = `day${day}`;
           if (!chunkData[dayKey]) {
@@ -25184,6 +25442,13 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
           }
           weekPlan[dayKey] = chunkData[dayKey];
         }
+      };
+      const clearChunkDays = () => {
+        for (let day = startDay; day <= endDay; day++) {
+          delete weekPlan[`day${day}`];
+        }
+      };
+      const finalizeChunkNutrition = async () => {
         injectFixedDesserts(weekPlan);
         syncMeta = await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
         if (repairWeekPlanLightSlots(weekPlan, startDay, endDay, data)) {
@@ -25201,19 +25466,92 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         blockingErrors = appendInfeasibleSlots(validation.blocking, syncMeta?.infeasible);
         chunkWarnings = validation.warnings;
         lastInfeasible = syncMeta?.infeasible || [];
-        lastAiFailure = null;
+      };
+      try {
+        if (deterministicStep3Enabled(env) && attempt === 0) {
+          try {
+            const detSeed = Number(data?.id || data?.userId || 0) + (sessionId ? sessionId.length * 17 : 0) + chunkIndex * 31;
+            const chunkData = buildDeterministicWeekPlanChunk({
+              strategy,
+              userData: data,
+              startDay,
+              endDay,
+              previousDays,
+              seed: detSeed,
+              includeDessert: userHasSweetsCraving(data?.foodCravings) && strategy?.includeDessert !== false,
+              clinicalProtocolId: data.clinicalProtocol || null,
+              blockedTerms: data.blockedFoods || []
+            });
+            applyChunkData(chunkData);
+            chunkBuilt = true;
+            console.log(`Chunk ${chunkIndex + 1}: deterministic Step 3 build`);
+            await finalizeChunkNutrition();
+            lastAiFailure = null;
+            const detBlocking = Array.isArray(blockingErrors) ? blockingErrors : [];
+            if (detBlocking.length) {
+              console.warn(
+                `Chunk ${chunkIndex + 1}: deterministic validation failed (${detBlocking.length}), AI fallback`
+              );
+              clearChunkDays();
+              chunkBuilt = false;
+              blockingErrors = null;
+            }
+          } catch (detErr) {
+            console.warn(`Chunk ${chunkIndex + 1}: deterministic error, AI fallback:`, detErr.message);
+            clearChunkDays();
+            chunkBuilt = false;
+            blockingErrors = null;
+          }
+        }
+        if (!chunkBuilt) {
+          const chunkPrompt = await generateMealPlanChunkPrompt(
+            data,
+            analysis,
+            strategy,
+            bmr,
+            recommendedCalories,
+            startDay,
+            endDay,
+            previousDays,
+            env,
+            chunkComment,
+            cachedFoodLists
+          );
+          const stepLabel = attempt > 0 ? `step3_meal_plan_chunk_${chunkIndex + 1}_retry` : `step3_meal_plan_chunk_${chunkIndex + 1}`;
+          const chunkResponse = await callAIModel(
+            env,
+            chunkPrompt,
+            mealPlanTokenLimitForChunk(daysInChunk),
+            stepLabel,
+            sessionId,
+            data,
+            buildCompactAnalysisForStep3(analysis)
+          );
+          let chunkData = parseAIResponse(chunkResponse);
+          if (!chunkData || chunkData.error) {
+            throw new Error(chunkData?.error || "Invalid response");
+          }
+          if (Array.isArray(chunkData)) {
+            chunkData = Object.fromEntries(chunkData.map((item2, i) => [`day${startDay + i}`, item2]));
+          }
+          console.log(`Chunk ${chunkIndex + 1} data keys (attempt ${attempt + 1}):`, Object.keys(chunkData));
+          applyChunkData(chunkData);
+          await finalizeChunkNutrition();
+          lastAiFailure = null;
+        }
       } catch (aiError) {
         lastAiFailure = aiError.message;
         blockingErrors = null;
       }
-      if (blockingErrors !== null && !blockingErrors.length) {
+      const blockingList = Array.isArray(blockingErrors) ? blockingErrors : null;
+      if (blockingList !== null && blockingList.length === 0) {
         if (chunkWarnings.length) {
           generationWarnings.push(`\u0414\u043D\u0438 ${startDay}-${endDay}: ${chunkWarnings.join("; ")}`);
         }
         break;
       }
       if (attempt >= MEAL_PLAN_CHUNK_MAX_RETRIES) {
-        const detail = blockingErrors?.length ? [...blockingErrors, ...chunkWarnings || []].join("; ") : lastAiFailure || "\u043D\u044F\u043C\u0430 \u0432\u0430\u043B\u0438\u0434\u0435\u043D \u043E\u0442\u0433\u043E\u0432\u043E\u0440 \u0441\u043B\u0435\u0434 \u0432\u0441\u0438\u0447\u043A\u0438 \u043E\u043F\u0438\u0442\u0438";
+        const detail = blockingList?.length ? [...blockingList, ...chunkWarnings || []].join("; ") : lastAiFailure || "\u043D\u044F\u043C\u0430 \u0432\u0430\u043B\u0438\u0434\u0435\u043D \u043E\u0442\u0433\u043E\u0432\u043E\u0440 \u0441\u043B\u0435\u0434 \u0432\u0441\u0438\u0447\u043A\u0438 \u043E\u043F\u0438\u0442\u0438";
         throw new Error(`\u0413\u0435\u043D\u0435\u0440\u0438\u0440\u0430\u043D\u0435 \u043D\u0430 \u0434\u043D\u0438 ${startDay}-${endDay}: ${detail}`);
       }
       for (let day = startDay; day <= endDay; day++) {
@@ -25221,10 +25559,10 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       }
       chunkComment = [
         errorPreventionComment,
-        buildChunkValidationRetryComment(blockingErrors || [], lastInfeasible)
+        buildChunkValidationRetryComment(blockingList || [], lastInfeasible)
       ].filter(Boolean).join("\n\n");
       attempt++;
-      console.warn(`Chunk ${chunkIndex + 1} attempt ${attempt} failed, retrying:`, blockingErrors || lastAiFailure);
+      console.warn(`Chunk ${chunkIndex + 1} attempt ${attempt} failed, retrying:`, blockingList || lastAiFailure);
     }
     for (let day = startDay; day <= endDay; day++) {
       const dayEntry = { day, meals: weekPlan[`day${day}`]?.meals || [] };
@@ -25938,7 +26276,7 @@ async function handleAnalyzeFoodImage(request, env) {
     if (estimatedSizeBytes > MAX_IMAGE_SIZE_BYTES) {
       return jsonResponse2({ error: "\u0418\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0435\u0442\u043E \u0435 \u0442\u0432\u044A\u0440\u0434\u0435 \u0433\u043E\u043B\u044F\u043C\u043E. \u041C\u043E\u043B\u044F, \u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430\u0439\u0442\u0435 \u043F\u043E-\u043C\u0430\u043B\u043A\u043E \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0435." }, 400);
     }
-    let dietContext = "";
+    let dietContext2 = "";
     if (userData) {
       const parts = [];
       if (userData.goal) parts.push(`\u0426\u0435\u043B: ${userData.goal}`);
@@ -25947,7 +26285,7 @@ async function handleAnalyzeFoodImage(request, env) {
       if (userData.dietPreference) parts.push(`\u0414\u0438\u0435\u0442\u0438\u0447\u0435\u043D \u043F\u0440\u0435\u0434\u043F\u043E\u0447\u0438\u0442\u0430\u043D\u0438\u0435: ${userData.dietPreference}`);
       if (userData.medicalConditions) parts.push(`\u0417\u0434\u0440\u0430\u0432\u043E\u0441\u043B\u043E\u0432\u043D\u0438 \u043F\u0440\u043E\u0431\u043B\u0435\u043C\u0438: ${userData.medicalConditions}`);
       if (userData.dietDislike) parts.push(`\u041D\u0435\u0436\u0435\u043B\u0430\u043D\u0438 \u0445\u0440\u0430\u043D\u0438: ${userData.dietDislike}`);
-      dietContext = parts.join(". ");
+      dietContext2 = parts.join(". ");
     }
     let planContext = "";
     if (dietPlan && dietPlan.summary) {
@@ -25957,13 +26295,13 @@ async function handleAnalyzeFoodImage(request, env) {
     const customPrompt = await getCustomPrompt(env, "admin_food_analysis_prompt");
     let analysisPrompt;
     if (customPrompt && customPrompt.trim()) {
-      analysisPrompt = customPrompt.replace(/\{dietContext\}/g, dietContext || "\u041D\u0435 \u0435 \u043F\u0440\u0435\u0434\u043E\u0441\u0442\u0430\u0432\u0435\u043D").replace(/\{planContext\}/g, planContext || "\u041D\u0435 \u0435 \u043F\u0440\u0435\u0434\u043E\u0441\u0442\u0430\u0432\u0435\u043D").replace(/\{mealTime\}/g, mealTime);
+      analysisPrompt = customPrompt.replace(/\{dietContext\}/g, dietContext2 || "\u041D\u0435 \u0435 \u043F\u0440\u0435\u0434\u043E\u0441\u0442\u0430\u0432\u0435\u043D").replace(/\{planContext\}/g, planContext || "\u041D\u0435 \u0435 \u043F\u0440\u0435\u0434\u043E\u0441\u0442\u0430\u0432\u0435\u043D").replace(/\{mealTime\}/g, mealTime);
     } else {
       analysisPrompt = `\u0422\u0438 \u0441\u0438 \u0435\u043A\u0441\u043F\u0435\u0440\u0442 \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433 \u0441 \u043A\u043E\u043C\u043F\u044E\u0442\u044A\u0440\u043D\u043E \u0437\u0440\u0435\u043D\u0438\u0435. \u0410\u043D\u0430\u043B\u0438\u0437\u0438\u0440\u0430\u0439 \u0442\u043E\u0432\u0430 \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0435 \u043D\u0430 \u0445\u0440\u0430\u043D\u0430 \u0438 \u0432\u044A\u0440\u043D\u0438 \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON \u043E\u0431\u0435\u043A\u0442 (\u0431\u0435\u0437 markdown, \u0431\u0435\u0437 \`\`\`).
 
 \u0417\u0410\u0414\u0410\u0427\u0410: \u0410\u043D\u0430\u043B\u0438\u0437\u0438\u0440\u0430\u0439 \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u043D\u0430 \u0441\u043D\u0438\u043C\u043A\u0430\u0442\u0430 \u0438 \u0434\u0430\u0439 \u043A\u043E\u043B\u0438\u0447\u0435\u0441\u0442\u0432\u0435\u043D\u0430 \u0438 \u043A\u0430\u0447\u0435\u0441\u0442\u0432\u0435\u043D\u0430 \u043E\u0446\u0435\u043D\u043A\u0430.
 
-${dietContext ? `\u041A\u041E\u041D\u0422\u0415\u041A\u0421\u0422 \u041D\u0410 \u041A\u041B\u0418\u0415\u041D\u0422\u0410: ${dietContext}` : ""}
+${dietContext2 ? `\u041A\u041E\u041D\u0422\u0415\u041A\u0421\u0422 \u041D\u0410 \u041A\u041B\u0418\u0415\u041D\u0422\u0410: ${dietContext2}` : ""}
 ${planContext ? `\u0422\u0415\u041A\u0423\u0429 \u0414\u0418\u0415\u0422\u0418\u0427\u0415\u041D \u041F\u041B\u0410\u041D (\u0440\u0435\u0437\u044E\u043C\u0435): ${planContext}` : ""}
 \u041C\u041E\u041C\u0415\u041D\u0422 \u041D\u0410 \u0425\u0420\u0410\u041D\u0415\u041D\u0415: ${mealTime}
 
@@ -26076,7 +26414,7 @@ async function handleAnalyzeMenuImage(request, env) {
     if (estimatedSizeBytes > MAX_IMAGE_SIZE_BYTES) {
       return jsonResponse2({ error: "\u0418\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0435\u0442\u043E \u0435 \u0442\u0432\u044A\u0440\u0434\u0435 \u0433\u043E\u043B\u044F\u043C\u043E. \u041C\u043E\u043B\u044F, \u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430\u0439\u0442\u0435 \u043F\u043E-\u043C\u0430\u043B\u043A\u043E \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0435." }, 400);
     }
-    let dietContext = "";
+    let dietContext2 = "";
     if (userData) {
       const parts = [];
       if (userData.goal) parts.push(`\u0426\u0435\u043B: ${userData.goal}`);
@@ -26086,7 +26424,7 @@ async function handleAnalyzeMenuImage(request, env) {
       if (userData.dietPreference) parts.push(`\u0414\u0438\u0435\u0442\u0438\u0447\u0435\u043D \u0440\u0435\u0436\u0438\u043C: ${userData.dietPreference}`);
       if (userData.medicalConditions) parts.push(`\u0417\u0434\u0440\u0430\u0432\u043E\u0441\u043B\u043E\u0432\u043D\u0438 \u043F\u0440\u043E\u0431\u043B\u0435\u043C\u0438: ${userData.medicalConditions}`);
       if (userData.dietDislike) parts.push(`\u041D\u0435\u0436\u0435\u043B\u0430\u043D\u0438 \u0445\u0440\u0430\u043D\u0438: ${userData.dietDislike}`);
-      dietContext = parts.join(". ");
+      dietContext2 = parts.join(". ");
     }
     let planContext = "";
     if (dietPlan && dietPlan.summary) {
@@ -26096,11 +26434,11 @@ async function handleAnalyzeMenuImage(request, env) {
     const customMenuPrompt = await getCustomPrompt(env, "admin_menu_analysis_prompt");
     let menuPrompt;
     if (customMenuPrompt && customMenuPrompt.trim()) {
-      menuPrompt = customMenuPrompt.replace(/\{dietContext\}/g, dietContext || "\u041D\u0435 \u0435 \u043F\u0440\u0435\u0434\u043E\u0441\u0442\u0430\u0432\u0435\u043D").replace(/\{planContext\}/g, planContext || "\u041D\u0435 \u0435 \u043F\u0440\u0435\u0434\u043E\u0441\u0442\u0430\u0432\u0435\u043D").replace(/\{mealTime\}/g, mealTime);
+      menuPrompt = customMenuPrompt.replace(/\{dietContext\}/g, dietContext2 || "\u041D\u0435 \u0435 \u043F\u0440\u0435\u0434\u043E\u0441\u0442\u0430\u0432\u0435\u043D").replace(/\{planContext\}/g, planContext || "\u041D\u0435 \u0435 \u043F\u0440\u0435\u0434\u043E\u0441\u0442\u0430\u0432\u0435\u043D").replace(/\{mealTime\}/g, mealTime);
     } else {
       menuPrompt = `\u0422\u0438 \u0441\u0438 \u0435\u043A\u0441\u043F\u0435\u0440\u0442 \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433. \u041D\u0430 \u0441\u043D\u0438\u043C\u043A\u0430\u0442\u0430 \u0438\u043C\u0430 \u043C\u0435\u043D\u044E \u043E\u0442 \u0440\u0435\u0441\u0442\u043E\u0440\u0430\u043D\u0442. \u041F\u0440\u043E\u0447\u0435\u0442\u0438 \u0432\u0441\u0438\u0447\u043A\u0438 \u044F\u0441\u0442\u0438\u044F \u0438 \u043F\u0440\u0435\u043F\u043E\u0440\u044A\u0447\u0430\u0439 \u041D\u0410\u0419-\u041F\u041E\u0414\u0425\u041E\u0414\u042F\u0429\u041E\u0422\u041E \u0437\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430. \u0412\u044A\u0440\u043D\u0438 \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON (\u0431\u0435\u0437 markdown, \u0431\u0435\u0437 backtick \u0431\u043B\u043E\u043A\u043E\u0432\u0435).
 
-${dietContext ? `\u041F\u0420\u041E\u0424\u0418\u041B \u041D\u0410 \u041A\u041B\u0418\u0415\u041D\u0422\u0410: ${dietContext}` : ""}
+${dietContext2 ? `\u041F\u0420\u041E\u0424\u0418\u041B \u041D\u0410 \u041A\u041B\u0418\u0415\u041D\u0422\u0410: ${dietContext2}` : ""}
 ${planContext ? `\u0414\u0418\u0415\u0422\u0418\u0427\u0415\u041D \u041F\u041B\u0410\u041D (\u0440\u0435\u0437\u044E\u043C\u0435): ${planContext}` : ""}
 \u041C\u041E\u041C\u0415\u041D\u0422 \u041D\u0410 \u0425\u0420\u0410\u041D\u0415\u041D\u0415: ${mealTime}
 
