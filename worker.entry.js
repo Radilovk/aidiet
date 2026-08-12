@@ -91,6 +91,13 @@ import {
   deterministicStep3Enabled,
 } from './step3-deterministic.js';
 import {
+  buildDeterministicStrategy,
+  deterministicStep2Enabled,
+} from './step2-deterministic.js';
+import {
+  validateProtocolStrategy,
+} from './protocol-validate.js';
+import {
   readOverlayFromKv,
   writeOverlayToKv,
   upsertOverlayEntry,
@@ -2784,6 +2791,76 @@ function normalizeStrategyDessertFlag(strategy, userData) {
     return s.includes('Диабет') || s.includes('Инсулинова резистентност');
   });
   strategy.includeDessert = !blocked;
+}
+
+/** Post-process raw strategy (deterministic or AI) before validation / Step 3. */
+function finalizeStrategyObject(strategy, analysis, userData) {
+  if (!strategy) return strategy;
+  enforceWeekendFreeDay(strategy);
+  normalizeStrategyDessertFlag(strategy, userData);
+  normalizeWeeklyScheme(strategy, parseFinalCalories(analysis?.Final_Calories), userData);
+  return strategy;
+}
+
+/**
+ * Step 2 resolver — deterministic-first; AI fallback on REJECT or build error.
+ * REVIEW keeps engine authority; optional AI overlay enriches copy only.
+ */
+async function resolveStep2Strategy(env, data, analysis, sessionId, options = {}) {
+  const {
+    errorPreventionComment = null,
+    stepLabel = 'step2_strategy',
+    compactAnalysis = null,
+  } = options;
+
+  if (deterministicStep2Enabled(env)) {
+    try {
+      let detStrategy = buildDeterministicStrategy({ userData: data, analysis });
+      detStrategy = finalizeStrategyObject(detStrategy, analysis, data);
+      const validation = validateProtocolStrategy(detStrategy, analysis, data);
+
+      if (validation.status === 'VALID' || validation.status === 'REVIEW') {
+        if (validation.warnings?.length) {
+          console.warn(`Step 2 deterministic ${validation.status}:`, validation.warnings.join('; '));
+        }
+        console.log(`Step 2: deterministic build (${validation.status})`);
+        return { strategy: detStrategy, usedDeterministic: true, validation };
+      }
+      console.warn(
+        'Step 2 deterministic REJECT:',
+        validation.blocking.join('; '),
+        '- AI fallback',
+      );
+    } catch (detErr) {
+      console.warn('Step 2 deterministic error, AI fallback:', detErr.message);
+    }
+  }
+
+  const strategyPrompt = await generateStrategyPrompt(data, analysis, env, errorPreventionComment);
+  const strategyInputTokens = estimateTokenCount(strategyPrompt);
+  const strategyResponse = await callAIModel(
+    env,
+    strategyPrompt,
+    4000,
+    stepLabel,
+    sessionId,
+    data,
+    compactAnalysis ?? buildCompactAnalysis(analysis),
+  );
+  const strategyOutputTokens = estimateTokenCount(strategyResponse);
+  let strategy = parseAIResponse(strategyResponse);
+  strategy = finalizeStrategyObject(strategy, analysis, data);
+
+  if (!strategy || strategy.error) {
+    const errorMsg = strategy?.error || 'Невалиден формат на отговор';
+    throw new Error(errorMsg);
+  }
+
+  return {
+    strategy,
+    usedDeterministic: false,
+    tokenUsage: { input: strategyInputTokens, output: strategyOutputTokens },
+  };
 }
 
 function stripDessertsWhenDisabled(weekPlan, strategy) {
@@ -9043,23 +9120,20 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
     if (earliestErrorStep === 'step1_analysis' || earliestErrorStep === 'step2_strategy') {
       const stepErrorComment = earliestErrorStep === 'step2_strategy' ? errorPreventionComment : null;
       console.log(`Regenerating Step 2 (Strategy)${stepErrorComment ? ' with error prevention' : ''}`);
-      
-      const strategyPrompt = await generateStrategyPrompt(data, analysis, env, stepErrorComment);
-      const strategyInputTokens = estimateTokenCount(strategyPrompt);
-      cumulativeTokens.input += strategyInputTokens;
-      
-      const strategyResponse = await callAIModel(env, strategyPrompt, 4000, 'step2_strategy_regen', sessionId, data, buildCompactAnalysis(analysis));
-      const strategyOutputTokens = estimateTokenCount(strategyResponse);
-      cumulativeTokens.output += strategyOutputTokens;
-      cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
-      
-      strategy = parseAIResponse(strategyResponse);
-      enforceWeekendFreeDay(strategy);
-      normalizeStrategyDessertFlag(strategy, data);
-      normalizeWeeklyScheme(strategy, parseFinalCalories(analysis.Final_Calories), data);
-      
-      if (!strategy || strategy.error) {
-        throw new Error(`Регенерацията на стратегията се провали: ${strategy?.error || 'Невалиден формат'}`);
+
+      const step2Result = await resolveStep2Strategy(env, data, analysis, sessionId, {
+        errorPreventionComment: stepErrorComment,
+        stepLabel: 'step2_strategy_regen',
+        compactAnalysis: buildCompactAnalysis(analysis),
+      });
+      strategy = step2Result.strategy;
+      if (step2Result.tokenUsage) {
+        cumulativeTokens.input += step2Result.tokenUsage.input;
+        cumulativeTokens.output += step2Result.tokenUsage.output;
+        cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
+      }
+      if (step2Result.usedDeterministic) {
+        console.log('Step 2 regen: deterministic strategy (no AI call)');
       }
     } else {
       // Reuse existing strategy
@@ -9325,32 +9399,24 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
       }
     }
     
-    // Step 2: Generate dietary strategy based on analysis (2nd AI request)
-    // Focus: Personalized approach, timing, principles, restrictions
-    const strategyPrompt = await generateStrategyPrompt(data, analysis, env);
-    const strategyInputTokens = estimateTokenCount(strategyPrompt);
-    cumulativeTokens.input += strategyInputTokens;
-    
-    let strategyResponse, strategy;
+    // Step 2: Generate dietary strategy based on analysis (deterministic-first)
+    let strategy;
     
     try {
-      strategyResponse = await callAIModel(env, strategyPrompt, 4000, 'step2_strategy', sessionId, data, buildCompactAnalysis(analysis));
-      const strategyOutputTokens = estimateTokenCount(strategyResponse);
-      cumulativeTokens.output += strategyOutputTokens;
-      cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
-      
-      console.log(`Step 2 tokens: input=${strategyInputTokens}, output=${strategyOutputTokens}, cumulative=${cumulativeTokens.total}`);
-      
-      strategy = parseAIResponse(strategyResponse);
-      enforceWeekendFreeDay(strategy);
-      normalizeStrategyDessertFlag(strategy, data);
-      normalizeWeeklyScheme(strategy, parseFinalCalories(analysis.Final_Calories), data);
-      
-      if (!strategy || strategy.error) {
-        const errorMsg = strategy.error || 'Невалиден формат на отговор';
-        console.error('Strategy parsing failed:', errorMsg);
-        console.error('AI Response preview (first 1000 chars):', strategyResponse?.substring(0, 1000));
-        throw new Error(`Стратегията не можа да бъде създадена: ${errorMsg}`);
+      const step2Result = await resolveStep2Strategy(env, data, analysis, sessionId, {
+        stepLabel: 'step2_strategy',
+        compactAnalysis: buildCompactAnalysis(analysis),
+      });
+      strategy = step2Result.strategy;
+      if (step2Result.tokenUsage) {
+        cumulativeTokens.input += step2Result.tokenUsage.input;
+        cumulativeTokens.output += step2Result.tokenUsage.output;
+        cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
+        console.log(
+          `Step 2 tokens: input=${step2Result.tokenUsage.input}, output=${step2Result.tokenUsage.output}, cumulative=${cumulativeTokens.total}`,
+        );
+      } else if (step2Result.usedDeterministic) {
+        console.log('Step 2: deterministic strategy (no AI call)');
       }
     } catch (error) {
       console.error('Strategy step failed:', error);

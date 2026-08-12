@@ -14712,6 +14712,250 @@ var LIBRARY_READY_MEALS = [
     "fat_g": 11
   }
 ];
+var LIBRARY_PROTOCOL_RULES = {
+  "diet_profiles": {
+    "balanced": {
+      "prefer_groups": [
+        "vegetables",
+        "fruits",
+        "whole_grains",
+        "fish",
+        "eggs",
+        "fats"
+      ],
+      "prefer_tags": [
+        "fiber"
+      ]
+    },
+    "mediterranean": {
+      "prefer_groups": [
+        "vegetables",
+        "fruits",
+        "whole_grains",
+        "fish",
+        "fats",
+        "legumes"
+      ],
+      "prefer_tags": [
+        "fiber",
+        "omega3",
+        "antioxidant"
+      ]
+    },
+    "keto": {
+      "max_carbs_g_day": 30,
+      "exclude_groups": [
+        "whole_grains",
+        "fruits",
+        "legumes",
+        "refined_grains",
+        "sweets"
+      ],
+      "prefer_groups": [
+        "eggs",
+        "fish",
+        "meat",
+        "vegetables",
+        "fats",
+        "dairy"
+      ]
+    },
+    "low_carb": {
+      "max_carbs_g_day": 80,
+      "exclude_groups": [
+        "refined_grains",
+        "sweets"
+      ],
+      "prefer_groups": [
+        "vegetables",
+        "fish",
+        "meat",
+        "eggs",
+        "fats"
+      ]
+    },
+    "vegan": {
+      "exclude_groups": [
+        "meat",
+        "fish",
+        "seafood",
+        "eggs",
+        "dairy"
+      ],
+      "prefer_groups": [
+        "vegetables",
+        "legumes",
+        "plant_protein",
+        "whole_grains",
+        "nuts_seeds"
+      ]
+    },
+    "vegetarian": {
+      "exclude_groups": [
+        "meat",
+        "fish",
+        "seafood"
+      ],
+      "prefer_groups": [
+        "eggs",
+        "dairy",
+        "legumes",
+        "vegetables",
+        "whole_grains"
+      ]
+    },
+    "pescatarian": {
+      "exclude_groups": [
+        "meat"
+      ],
+      "prefer_groups": [
+        "fish",
+        "seafood",
+        "eggs",
+        "dairy",
+        "vegetables",
+        "whole_grains"
+      ]
+    },
+    "high_protein": {
+      "min_protein_g_kg": 1.6,
+      "prefer_groups": [
+        "meat",
+        "fish",
+        "eggs",
+        "dairy",
+        "plant_protein"
+      ],
+      "prefer_tags": [
+        "protein"
+      ]
+    },
+    "low_fodmap": {
+      "exclude_tags": [
+        "fodmap_high"
+      ],
+      "prefer_groups": [
+        "vegetables",
+        "fish",
+        "eggs",
+        "dairy",
+        "whole_grains"
+      ]
+    },
+    "dash": {
+      "max_sodium_mg_day": 2300,
+      "prefer_groups": [
+        "vegetables",
+        "fruits",
+        "whole_grains",
+        "legumes",
+        "dairy",
+        "fish"
+      ],
+      "limit_tags": [
+        "high_sodium"
+      ]
+    },
+    "paleo": {
+      "exclude_groups": [
+        "whole_grains",
+        "refined_grains",
+        "legumes",
+        "dairy",
+        "sweets"
+      ],
+      "prefer_groups": [
+        "meat",
+        "fish",
+        "eggs",
+        "vegetables",
+        "fruits",
+        "nuts_seeds"
+      ]
+    },
+    "gluten_free": {
+      "exclude_tags": [
+        "gluten"
+      ],
+      "prefer_groups": [
+        "vegetables",
+        "fruits",
+        "rice",
+        "potatoes",
+        "meat",
+        "fish",
+        "dairy"
+      ]
+    },
+    "dairy_free": {
+      "exclude_groups": [
+        "dairy"
+      ],
+      "prefer_groups": [
+        "meat",
+        "fish",
+        "legumes",
+        "plant_protein",
+        "vegetables"
+      ]
+    },
+    "anti_inflammatory": {
+      "prefer_tags": [
+        "omega3",
+        "antioxidant",
+        "fiber"
+      ],
+      "limit_tags": [
+        "processed"
+      ],
+      "prefer_groups": [
+        "fish",
+        "vegetables",
+        "fruits",
+        "nuts_seeds"
+      ]
+    }
+  },
+  "exchange_map": {
+    "carb_exchange_g": 15,
+    "protein_exchange_g": 7,
+    "fat_exchange_g": 5
+  },
+  "meal_distribution_templates": {
+    "3_meals": [
+      0.3,
+      0.4,
+      0.3
+    ],
+    "4_meals": [
+      0.25,
+      0.35,
+      0.15,
+      0.25
+    ],
+    "5_meals": [
+      0.2,
+      0.25,
+      0.2,
+      0.15,
+      0.2
+    ]
+  },
+  "calculation": {
+    "kcal_formula": "protein_g*4 + carbs_g*4 + fat_g*9"
+  },
+  "priority": [
+    "safety",
+    "allergies",
+    "medical",
+    "goal",
+    "energy",
+    "macros",
+    "base_diet",
+    "timing",
+    "behavior"
+  ]
+};
 
 // nutrition-library-bridge.js
 var GROUP_TO_CATALOG = {
@@ -17833,6 +18077,311 @@ function buildDeterministicWeekPlanChunk({
   return out;
 }
 
+// meal-template-engine.js
+function getMealDistribution(mealsPerDay = 5) {
+  const templates = LIBRARY_PROTOCOL_RULES.meal_distribution_templates || {};
+  if (mealsPerDay <= 3) return templates["3_meals"] || [0.3, 0.4, 0.3];
+  if (mealsPerDay === 4) return templates["4_meals"] || [0.25, 0.35, 0.15, 0.25];
+  return templates["5_meals"] || [0.2, 0.25, 0.2, 0.15, 0.2];
+}
+
+// protocol-engine.js
+function resolveLibraryDietProfile(ctx = {}) {
+  const text = [
+    ctx.dietaryModifier,
+    ...Array.isArray(ctx.dietPreference) ? ctx.dietPreference : ctx.dietPreference ? [ctx.dietPreference] : [],
+    ctx.dietDislike
+  ].filter(Boolean).join(" ").toLowerCase();
+  const flags = resolveCatalogDietProfile(ctx);
+  if (flags.vegan) return "vegan";
+  if (flags.vegetarian) return "vegetarian";
+  if (flags.pescatarian) return "pescatarian";
+  if (flags.keto) return "keto";
+  if (/dash|хипертон|кръвно/i.test(text)) return "dash";
+  if (/paleo|палео/i.test(text)) return "paleo";
+  if (/fodmap|ibs|подуване/i.test(text)) return "low_fodmap";
+  if (/висок\s*протеин|high protein/i.test(text)) return "high_protein";
+  if (/без\s*глутен|gluten/i.test(text)) return "gluten_free";
+  if (/без\s*млеч|dairy.?free|лактоз/i.test(text)) return "dairy_free";
+  if (/средиземномор|mediterr/i.test(text)) return "mediterranean";
+  if (/нисковъглехидрат|low carb/i.test(text)) return "low_carb";
+  if (/противовъзпалител|anti.?inflam/i.test(text)) return "anti_inflammatory";
+  return "balanced";
+}
+
+// protocol-validate.js
+var DAY_KEYS2 = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+var CANONICAL_MEAL_TYPES2 = [
+  "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1",
+  "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2",
+  "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3",
+  "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4",
+  "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5",
+  "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435",
+  "\u041D\u0430\u043F\u0438\u0442\u043A\u0430"
+];
+function sumField2(breakdown, field) {
+  return (breakdown || []).reduce((s, m) => s + (Number(m[field]) || 0), 0);
+}
+function parseDailyKcal(analysis) {
+  const raw = analysis?.Final_Calories ?? analysis?.recommendedCalories;
+  if (typeof raw === "number" && raw > 0) return Math.round(raw);
+  const m = String(raw || "").match(/\d+/);
+  return m ? parseInt(m[0], 10) : 0;
+}
+function validateProtocolStrategy(strategy, analysis = null, userData = null) {
+  const blocking = [];
+  const warnings = [];
+  if (!strategy?.weeklyScheme) {
+    return { status: "REJECT", blocking: ["\u043B\u0438\u043F\u0441\u0432\u0430 weeklyScheme"], warnings, dietProfile: "balanced" };
+  }
+  const dietProfile = strategy.libraryDietProfile || resolveLibraryDietProfile({
+    dietaryModifier: strategy?.dietaryModifier,
+    dietPreference: userData?.dietPreference,
+    dietDislike: userData?.dietDislike || ""
+  });
+  const rules = LIBRARY_PROTOCOL_RULES.diet_profiles?.[dietProfile] || {};
+  const targetKcal = parseDailyKcal(analysis);
+  if (!strategy.dietaryModifier && !strategy.dietType) {
+    blocking.push("\u043B\u0438\u043F\u0441\u0432\u0430 dietaryModifier/dietType");
+  }
+  if (!strategy.mealTiming?.pattern) {
+    blocking.push("\u043B\u0438\u043F\u0441\u0432\u0430 mealTiming.pattern");
+  }
+  if (strategy.mealCountJustification && strategy.mealCountJustification.length < 20) {
+    blocking.push("mealCountJustification \u0442\u0432\u044A\u0440\u0434\u0435 \u043A\u0440\u0430\u0442\u043A\u043E");
+  }
+  for (const dayKey of DAY_KEYS2) {
+    const day = strategy.weeklyScheme[dayKey];
+    if (!day) {
+      blocking.push(`weeklyScheme.${dayKey} \u043B\u0438\u043F\u0441\u0432\u0430`);
+      continue;
+    }
+    if (!day.mealBreakdown?.length) {
+      blocking.push(`${dayKey}: \u043F\u0440\u0430\u0437\u0435\u043D mealBreakdown`);
+      continue;
+    }
+    if (day.meals !== day.mealBreakdown.length) {
+      blocking.push(`${dayKey}: meals != mealBreakdown.length`);
+    }
+    for (const slot of day.mealBreakdown) {
+      if (!CANONICAL_MEAL_TYPES2.includes(slot.type)) {
+        blocking.push(`${dayKey}: \u043D\u0435\u0432\u0430\u043B\u0438\u0434\u0435\u043D slot "${slot.type}"`);
+      }
+    }
+    if (userSkipsBreakfast(userData) && day.mealBreakdown.some((m) => m.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1")) {
+      blocking.push(`${dayKey}: \u0425\u0440\u0430\u043D\u0435\u043D\u0435 1 \u043F\u0440\u0438 \u043A\u043B\u0438\u0435\u043D\u0442 \u0431\u0435\u0437 \u0437\u0430\u043A\u0443\u0441\u043A\u0430`);
+    }
+    const dayKcal = sumField2(day.mealBreakdown, "calories");
+    if (targetKcal > 0 && dayKcal > 0) {
+      const tol = calorieTolerance(targetKcal);
+      if (Math.abs(dayKcal - targetKcal) > tol * 2) {
+        blocking.push(`${dayKey}: ${dayKcal} kcal \u2260 \u0446\u0435\u043B ${targetKcal}`);
+      }
+    }
+    const dayCarbs = sumField2(day.mealBreakdown, "carbs");
+    if (rules.max_carbs_g_day && dayCarbs > rules.max_carbs_g_day + 5) {
+      if (isKetoUser(userData) || dietProfile === "keto" || dietProfile === "low_carb") {
+        blocking.push(`${dayKey}: \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438 ${dayCarbs}g > \u043B\u0438\u043C\u0438\u0442 ${rules.max_carbs_g_day}g (${dietProfile})`);
+      } else {
+        warnings.push(`${dayKey}: \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438 ${dayCarbs}g \u043D\u0430\u0434 \u043F\u0440\u043E\u0444\u0438\u043B\u0435\u043D \u043B\u0438\u043C\u0438\u0442 ${rules.max_carbs_g_day}g`);
+      }
+    }
+  }
+  const freeDay = Number(strategy.freeDayNumber);
+  if (freeDay >= 1 && freeDay <= 7) {
+    const freeScheme = strategy.weeklyScheme[DAY_KEYS2[freeDay - 1]];
+    const hasFree = freeScheme?.mealBreakdown?.some((m) => m.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435");
+    if (!hasFree) {
+      warnings.push(`freeDayNumber=${freeDay} \u043D\u043E \u043B\u0438\u043F\u0441\u0432\u0430 \u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0432 mealBreakdown`);
+    }
+  }
+  const status = blocking.length ? "REJECT" : warnings.length ? "REVIEW" : "VALID";
+  return { status, blocking, warnings, dietProfile };
+}
+
+// step2-deterministic.js
+var DAY_KEYS3 = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+var DIET_PROFILE_LABELS = {
+  balanced: "\u0411\u0430\u043B\u0430\u043D\u0441\u0438\u0440\u0430\u043D\u043E",
+  mediterranean: "\u0421\u0440\u0435\u0434\u0438\u0437\u0435\u043C\u043D\u043E\u043C\u043E\u0440\u0441\u043A\u0430",
+  keto: "\u041A\u0435\u0442\u043E\u0433\u0435\u043D\u043D\u0430 \u0434\u0438\u0435\u0442\u0430",
+  low_carb: "\u041D\u0438\u0441\u043A\u043E\u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u043D\u0430",
+  vegan: "\u0412\u0435\u0433\u0430\u043D",
+  vegetarian: "\u0412\u0435\u0433\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u0430",
+  pescatarian: "\u041F\u0435\u0441\u043A\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u0430",
+  high_protein: "\u0412\u0438\u0441\u043E\u043A\u043E\u043F\u0440\u043E\u0442\u0435\u0438\u043D\u043E\u0432\u0430",
+  low_fodmap: "Low-FODMAP",
+  dash: "DASH",
+  paleo: "\u041Faleo",
+  gluten_free: "\u0411\u0435\u0437 \u0433\u043B\u0443\u0442\u0435\u043D",
+  dairy_free: "\u0411\u0435\u0437 \u043C\u043B\u0435\u0447\u043D\u0438",
+  anti_inflammatory: "\u041F\u0440\u043E\u0442\u0438\u0432\u043E\u0432\u044A\u0437\u043F\u0430\u043B\u0438\u0442\u0435\u043B\u043D\u0430"
+};
+function deterministicStep2Enabled(env = {}) {
+  const v = env?.DETERMINISTIC_STEP2;
+  if (v === "0" || v === "false" || v === false) return false;
+  return true;
+}
+function parseDailyKcal2(analysis) {
+  const raw = analysis?.Final_Calories ?? analysis?.recommendedCalories;
+  if (typeof raw === "number" && raw > 0) return Math.round(raw);
+  const m = String(raw || "").match(/\d+/);
+  return m ? parseInt(m[0], 10) : 2e3;
+}
+function parseMacroGrams(analysis) {
+  const mg = analysis?.macroGrams || {};
+  return {
+    protein: Math.round(Number(mg.protein) || 0),
+    carbs: Math.round(Number(mg.carbs) || 0),
+    fats: Math.round(Number(mg.fats) || 0)
+  };
+}
+function userHasSweetsCraving(foodCravings) {
+  const list = Array.isArray(foodCravings) ? foodCravings : foodCravings ? [foodCravings] : [];
+  return list.some((c) => /слад|шоколад|dessert|sweet/i.test(String(c)));
+}
+function resolveIncludeDessert(userData) {
+  if (!userHasSweetsCraving(userData?.foodCravings)) return false;
+  const conditions = userData?.medicalConditions;
+  const blocked = Array.isArray(conditions) && conditions.some((c) => {
+    const s = String(c);
+    return s.includes("\u0414\u0438\u0430\u0431\u0435\u0442") || s.includes("\u0418\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430 \u0440\u0435\u0437\u0438\u0441\u0442\u0435\u043D\u0442\u043D\u043E\u0441\u0442");
+  });
+  return !blocked;
+}
+function resolveMealsPerDay(userData) {
+  const text = (userData?.eatingHabits || []).join(" ").toLowerCase();
+  if (/5\s*хран|пет\s*хран|5\s*meal/i.test(text)) return 5;
+  if (/4\s*хран|четири\s*хран|4\s*meal/i.test(text)) return 4;
+  if (/3\s*хран|три\s*хран|3\s*meal|без\s*междин/i.test(text)) return 3;
+  if (/2\s*хран|две\s*хран/i.test(text)) return 3;
+  return 5;
+}
+function resolveActiveSlots(mealsPerDay, userData) {
+  const skipBreakfast = userSkipsBreakfast(userData);
+  if (mealsPerDay <= 3) {
+    return skipBreakfast ? ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"] : ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"];
+  }
+  if (mealsPerDay === 4) {
+    return skipBreakfast ? ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"] : ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"];
+  }
+  return skipBreakfast ? ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5"] : ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5"];
+}
+function applyDietMacroCaps(macros, dietProfile, dailyKcal, weightKg = 70) {
+  const rules = LIBRARY_PROTOCOL_RULES.diet_profiles?.[dietProfile] || {};
+  let { protein, carbs, fats } = macros;
+  if (rules.max_carbs_g_day && carbs > rules.max_carbs_g_day) {
+    carbs = rules.max_carbs_g_day;
+    const remaining = Math.max(0, dailyKcal - protein * 4 - carbs * 4);
+    fats = Math.round(remaining / 9);
+  }
+  if (rules.min_protein_g_kg && weightKg > 0) {
+    const minP = Math.round(weightKg * rules.min_protein_g_kg);
+    if (protein < minP) protein = minP;
+  }
+  return { protein, carbs, fats };
+}
+function buildSlotBreakdown(slotTypes, dailyKcal, macros) {
+  const distribution = getMealDistribution(Math.min(5, Math.max(3, slotTypes.length)));
+  const weights = slotTypes.map((_, i) => distribution[i] ?? 1 / slotTypes.length);
+  const weightSum = weights.reduce((a, b) => a + b, 0);
+  return slotTypes.map((type, i) => {
+    const share = weights[i] / weightSum;
+    return {
+      type,
+      calories: Math.round(dailyKcal * share),
+      protein: Math.round(macros.protein * share),
+      carbs: Math.round(macros.carbs * share),
+      fats: Math.round(macros.fats * share)
+    };
+  });
+}
+function buildDayScheme(slotTypes, dailyKcal, macros, isFreeDay) {
+  let types = [...slotTypes];
+  if (isFreeDay) {
+    types = types.map((t) => t === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" ? "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" : t);
+  }
+  const mealBreakdown = buildSlotBreakdown(types, dailyKcal, macros);
+  return {
+    meals: mealBreakdown.length,
+    calories: dailyKcal,
+    protein: macros.protein,
+    carbs: macros.carbs,
+    fats: macros.fats,
+    description: isFreeDay ? "\u0421\u0432\u043E\u0431\u043E\u0434\u0435\u043D \u0434\u0435\u043D \u0441 \u043A\u043E\u043D\u0442\u0440\u043E\u043B\u0438\u0440\u0430\u043D \u0431\u044E\u0434\u0436\u0435\u0442" : "\u0421\u0442\u0430\u043D\u0434\u0430\u0440\u0442\u0435\u043D \u0434\u0435\u043D \u043F\u043E \u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B",
+    mealBreakdown
+  };
+}
+function buildCopyFields(dietProfile, mealsPerDay, slotTypes, userData) {
+  const label = DIET_PROFILE_LABELS[dietProfile] || DIET_PROFILE_LABELS.balanced;
+  const mealList = slotTypes.join(", ");
+  const name = userData?.name || "\u043A\u043B\u0438\u0435\u043D\u0442\u0430";
+  return {
+    dietaryModifier: label,
+    dietType: label,
+    modifierReasoning: `\u041F\u0440\u043E\u0444\u0438\u043B "${dietProfile}" \u2014 \u0438\u0437\u0431\u0440\u0430\u043D \u0434\u0435\u0442\u0435\u0440\u043C\u0438\u043D\u0438\u0441\u0442\u0438\u0447\u043D\u043E \u043E\u0442 \u043F\u0440\u0435\u0434\u043F\u043E\u0447\u0438\u0442\u0430\u043D\u0438\u044F, \u0446\u0435\u043B\u0438 \u0438 \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0438 \u0441\u0438\u0433\u043D\u0430\u043B\u0438.`,
+    welcomeMessage: `${name}, \u043F\u043B\u0430\u043D\u044A\u0442 \u0441\u043B\u0435\u0434\u0432\u0430 ${label.toLowerCase()} \u043C\u043E\u0434\u0435\u043B \u0441 ${mealsPerDay} \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F \u043D\u0430 \u0434\u0435\u043D.`,
+    planJustification: `\u0421\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0430\u0442\u0430 (${mealList}) \u0438 \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u0438\u0434\u0432\u0430\u0442 \u043E\u0442 \u0430\u043D\u0430\u043B\u0438\u0437\u0430 \u0438 \u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B\u043D\u0438 \u043F\u0440\u0430\u0432\u0438\u043B\u0430 \u2014 \u0441\u0442\u0430\u0431\u0438\u043B\u043D\u0430 \u0431\u0430\u0437\u0430 \u0437\u0430 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E\u0442\u043E \u043C\u0435\u043D\u044E.`,
+    longTermStrategy: "\u041F\u043E\u0441\u0442\u0435\u043F\u0435\u043D\u043D\u0430 \u0430\u0434\u0430\u043F\u0442\u0430\u0446\u0438\u044F \u0447\u0440\u0435\u0437 \u0441\u0435\u0434\u043C\u0438\u0447\u0435\u043D \u043C\u043E\u043D\u0438\u0442\u043E\u0440\u0438\u043D\u0433 \u043D\u0430 \u0442\u0435\u0433\u043B\u043E, \u0435\u043D\u0435\u0440\u0433\u0438\u044F \u0438 \u043F\u0440\u0438\u0434\u044A\u0440\u0436\u0430\u043D\u0435.",
+    mealCountJustification: `${mealsPerDay} \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F (${mealList}) \u043E\u0441\u0438\u0433\u0443\u0440\u044F\u0432\u0430\u0442 \u0441\u0442\u0430\u0431\u0438\u043B\u043D\u0430 \u0435\u043D\u0435\u0440\u0433\u0438\u044F \u0438 \u043F\u043E-\u043B\u0435\u0441\u043D\u043E \u0440\u0430\u0437\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0438\u0435 \u043D\u0430 \u043C\u0430\u043A\u0440\u043E\u0441\u0438\u0442\u0435 \u043F\u0440\u0435\u0437 \u0434\u0435\u043D\u044F.`,
+    afterDinnerMealJustification: slotTypes.includes("\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5") ? "\u041A\u044A\u0441\u043D\u0430\u0442\u0430 \u043B\u0435\u043A\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u043F\u043E\u0434\u0434\u044A\u0440\u0436\u0430 \u043F\u0440\u043E\u0442\u0435\u0438\u043D\u0430 \u0432\u0435\u0447\u0435\u0440 \u0431\u0435\u0437 \u043D\u0430\u0442\u043E\u0432\u0430\u0440\u0432\u0430\u043D\u0435 \u043D\u0430 \u0445\u0440\u0430\u043D\u043E\u0441\u043C\u0438\u043B\u0430\u043D\u0435\u0442\u043E." : "",
+    weeklyMealPattern: `\u0415\u0434\u0438\u043D\u043D\u0430 \u0441\u0445\u0435\u043C\u0430 \u0441${slotTypes.includes("\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5") ? " \u043B\u0435\u043A\u0430 \u0432\u0435\u0447\u0435\u0440\u043D\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u0438" : ""} \u0440\u043E\u0442\u0430\u0446\u0438\u044F \u043D\u0430 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u043F\u0440\u0435\u0437 \u0441\u0435\u0434\u043C\u0438\u0446\u0430\u0442\u0430.`,
+    calorieDistribution: "\u0420\u0430\u0437\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0438\u0435 \u043F\u043E \u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B\u043D\u0438 \u0442\u0435\u0433\u043B\u0430 \u2014 \u043E\u0441\u043D\u043E\u0432\u043D\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F \u043D\u043E\u0441\u044F\u0442 \u043F\u043E-\u0433\u043E\u043B\u044F\u043C \u043A\u0430\u043B\u043E\u0440\u0438\u0435\u043D \u0434\u044F\u043B.",
+    macroDistribution: "\u041C\u0430\u043A\u0440\u043E\u0441\u0438\u0442\u0435 \u0441\u043B\u0435\u0434\u0432\u0430\u0442 Step 1 \u0430\u043D\u0430\u043B\u0438\u0437\u0430 \u0438 diet profile \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438\u044F\u0442\u0430.",
+    breakfastStrategy: userSkipsBreakfast(userData) ? "\u0411\u0435\u0437 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u2014 \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u0441\u0430 \u0432 \u043E\u0441\u043D\u043E\u0432\u043D\u0438\u0442\u0435 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F." : "\u0417\u0430\u043A\u0443\u0441\u043A\u0430\u0442\u0430 \u0441\u0442\u0430\u0440\u0442\u0438\u0440\u0430 \u0434\u0435\u043D\u044F \u0441 \u0431\u0430\u043B\u0430\u043D\u0441\u0438\u0440\u0430\u043D PRO/ENG \u043F\u0440\u043E\u0444\u0438\u043B.",
+    mealTiming: {
+      pattern: `${mealsPerDay} structured meals`,
+      fastingWindows: "\u0411\u0435\u0437 \u0444\u043E\u0440\u0441\u0438\u0440\u0430\u043D \u0444\u0430\u0441\u0442\u0438\u043D\u0433 \u2014 \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u043F\u043E \u0441\u0445\u0435\u043C\u0430\u0442\u0430 \u043D\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430.",
+      flexibility: "\xB130\u201345 \u043C\u0438\u043D \u043E\u043A\u043E\u043B\u043E \u043F\u043B\u0430\u043D\u0438\u0440\u0430\u043D\u0438\u0442\u0435 \u0447\u0430\u0441\u043E\u0432\u0435.",
+      chronotypeGuidance: userData?.chronotype ? `\u0421\u044A\u043E\u0431\u0440\u0430\u0437\u0435\u043D\u043E \u0441 \u0445\u0440\u043E\u043D\u043E\u0442\u0438\u043F: ${userData.chronotype}.` : "\u0421\u044A\u043E\u0431\u0440\u0430\u0437\u0435\u043D\u043E \u0441\u044A\u0441 \u0441\u0442\u0430\u043D\u0434\u0430\u0440\u0442\u0435\u043D \u0434\u043D\u0435\u0432\u0435\u043D \u0440\u0438\u0442\u044A\u043C."
+    },
+    keyPrinciples: [
+      "\u041F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u0441\u0430\u043C\u043E \u043E\u0442 \u043E\u0434\u043E\u0431\u0440\u0435\u043D\u0438\u044F \u043A\u0430\u0442\u0430\u043B\u043E\u0433",
+      "\u0417\u0430\u043C\u0440\u0430\u0437\u0435\u043D\u0430 \u0441\u0445\u0435\u043C\u0430 \u2014 \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u043D\u0430 \u0441\u043B\u043E\u0442 \u043D\u0435 \u0441\u0435 \u043C\u0435\u0441\u0442\u044F\u0442",
+      label
+    ],
+    preferredFoodCategories: [],
+    avoidFoodCategories: [],
+    hydrationStrategy: "2\u20132.5 L \u0432\u043E\u0434\u0430 \u0434\u043D\u0435\u0432\u043D\u043E, \u0440\u0430\u0437\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0430 \u043C\u0435\u0436\u0434\u0443 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F\u0442\u0430."
+  };
+}
+function buildDeterministicStrategy({ userData = null, analysis = null, options = {} } = {}) {
+  const weightKg = Number(userData?.weight) || 70;
+  const dietProfile = resolveLibraryDietProfile({
+    dietaryModifier: options.dietaryModifier,
+    dietPreference: userData?.dietPreference,
+    dietDislike: userData?.dietDislike || ""
+  });
+  const dailyKcal = parseDailyKcal2(analysis);
+  let macros = parseMacroGrams(analysis);
+  if (!macros.protein && !macros.carbs && !macros.fats) {
+    macros = {
+      protein: Math.round(weightKg * 1.4),
+      carbs: Math.round(dailyKcal * 0.4 / 4),
+      fats: Math.round(dailyKcal * 0.28 / 9)
+    };
+  }
+  macros = applyDietMacroCaps(macros, dietProfile, dailyKcal, weightKg);
+  const mealsPerDay = options.mealsPerDay || resolveMealsPerDay(userData);
+  const slotTypes = resolveActiveSlots(mealsPerDay, userData);
+  const freeDayNumber = options.freeDayNumber ?? 7;
+  const weeklyScheme = {};
+  for (let i = 0; i < 7; i++) {
+    const isFreeDay = i + 1 === freeDayNumber;
+    weeklyScheme[DAY_KEYS3[i]] = buildDayScheme(slotTypes, dailyKcal, macros, isFreeDay);
+  }
+  const copy = buildCopyFields(dietProfile, mealsPerDay, slotTypes, userData);
+  return {
+    ...copy,
+    weeklyScheme,
+    freeDayNumber,
+    includeDessert: resolveIncludeDessert(userData),
+    libraryDietProfile: dietProfile,
+    _deterministicCore: true
+  };
+}
+
 // admin-food-catalog.js
 var FOOD_CATALOG_OVERLAY_KV_KEY = "food_catalog_overlay";
 var BASE_IDS = new Set(FOOD_CATALOG.map((e) => e.id));
@@ -19901,7 +20450,7 @@ function enforceWeekendFreeDay(strategy) {
 }
 function normalizeStrategyDessertFlag(strategy, userData) {
   if (!strategy) return;
-  if (!userHasSweetsCraving(userData?.foodCravings)) {
+  if (!userHasSweetsCraving2(userData?.foodCravings)) {
     strategy.includeDessert = false;
     return;
   }
@@ -19911,6 +20460,64 @@ function normalizeStrategyDessertFlag(strategy, userData) {
     return s.includes("\u0414\u0438\u0430\u0431\u0435\u0442") || s.includes("\u0418\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430 \u0440\u0435\u0437\u0438\u0441\u0442\u0435\u043D\u0442\u043D\u043E\u0441\u0442");
   });
   strategy.includeDessert = !blocked;
+}
+function finalizeStrategyObject(strategy, analysis, userData) {
+  if (!strategy) return strategy;
+  enforceWeekendFreeDay(strategy);
+  normalizeStrategyDessertFlag(strategy, userData);
+  normalizeWeeklyScheme(strategy, parseFinalCalories(analysis?.Final_Calories), userData);
+  return strategy;
+}
+async function resolveStep2Strategy(env, data, analysis, sessionId, options = {}) {
+  const {
+    errorPreventionComment = null,
+    stepLabel = "step2_strategy",
+    compactAnalysis = null
+  } = options;
+  if (deterministicStep2Enabled(env)) {
+    try {
+      let detStrategy = buildDeterministicStrategy({ userData: data, analysis });
+      detStrategy = finalizeStrategyObject(detStrategy, analysis, data);
+      const validation = validateProtocolStrategy(detStrategy, analysis, data);
+      if (validation.status === "VALID" || validation.status === "REVIEW") {
+        if (validation.warnings?.length) {
+          console.warn(`Step 2 deterministic ${validation.status}:`, validation.warnings.join("; "));
+        }
+        console.log(`Step 2: deterministic build (${validation.status})`);
+        return { strategy: detStrategy, usedDeterministic: true, validation };
+      }
+      console.warn(
+        "Step 2 deterministic REJECT:",
+        validation.blocking.join("; "),
+        "- AI fallback"
+      );
+    } catch (detErr) {
+      console.warn("Step 2 deterministic error, AI fallback:", detErr.message);
+    }
+  }
+  const strategyPrompt = await generateStrategyPrompt(data, analysis, env, errorPreventionComment);
+  const strategyInputTokens = estimateTokenCount(strategyPrompt);
+  const strategyResponse = await callAIModel(
+    env,
+    strategyPrompt,
+    4e3,
+    stepLabel,
+    sessionId,
+    data,
+    compactAnalysis ?? buildCompactAnalysis(analysis)
+  );
+  const strategyOutputTokens = estimateTokenCount(strategyResponse);
+  let strategy = parseAIResponse(strategyResponse);
+  strategy = finalizeStrategyObject(strategy, analysis, data);
+  if (!strategy || strategy.error) {
+    const errorMsg = strategy?.error || "\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u0435\u043D \u0444\u043E\u0440\u043C\u0430\u0442 \u043D\u0430 \u043E\u0442\u0433\u043E\u0432\u043E\u0440";
+    throw new Error(errorMsg);
+  }
+  return {
+    strategy,
+    usedDeterministic: false,
+    tokenUsage: { input: strategyInputTokens, output: strategyOutputTokens }
+  };
 }
 function stripDessertsWhenDisabled(weekPlan, strategy) {
   if (!weekPlan || strategy?.includeDessert !== false) return;
@@ -23608,7 +24215,7 @@ var FIXED_DESSERT_WEIGHT_GRAMS = (() => {
   return m ? parseFloat(m[1]) : 0;
 })();
 function buildSweetsCravingRule(foodCravings, strategy) {
-  if (!userHasSweetsCraving(foodCravings) || strategy?.includeDessert === false) return "";
+  if (!userHasSweetsCraving2(foodCravings) || strategy?.includeDessert === false) return "";
   const d = FIXED_DESSERT.macros;
   return `
 SWEETS: "dessert": true on \u0425\u0440\u0430\u043D\u0435\u043D\u0435 2 (not in name; ${FIXED_DESSERT.calories} kcal counted in slot: P${d.protein}/C${d.carbs}/F${d.fats}g). Backend injects fixed dessert.`;
@@ -23836,13 +24443,13 @@ function normalizeWeeklyScheme(strategy, defaultDailyCalories, userData = null) 
     if (!day || !Array.isArray(day.mealBreakdown) || day.mealBreakdown.length === 0) continue;
     if (userSkipsBreakfast(userData)) removeBreakfastSlotFromDay(day);
     clampLateSnackInMealBreakdown(day);
-    const sumField2 = (field) => day.mealBreakdown.reduce((s, m) => s + (Number(m[field]) || 0), 0);
-    const targetCals = defaultDailyCalories > 0 ? defaultDailyCalories : Number(day.calories) || sumField2("calories");
+    const sumField3 = (field) => day.mealBreakdown.reduce((s, m) => s + (Number(m[field]) || 0), 0);
+    const targetCals = defaultDailyCalories > 0 ? defaultDailyCalories : Number(day.calories) || sumField3("calories");
     rebalanceMealBreakdownSlots(day, targetCals);
-    let sumCals = sumField2("calories");
-    let sumP = sumField2("protein");
-    let sumC = sumField2("carbs");
-    let sumF = sumField2("fats");
+    let sumCals = sumField3("calories");
+    let sumP = sumField3("protein");
+    let sumC = sumField3("carbs");
+    let sumF = sumField3("fats");
     if (sumCals > 0 && targetCals > 0 && Math.abs(sumCals - targetCals) > calorieTolerance(targetCals)) {
       const fixedKcal = day.mealBreakdown.filter((m) => m.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5").reduce((s, m) => s + (Number(m.calories) || 0), 0);
       const scalable = day.mealBreakdown.filter((m) => m.type !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5");
@@ -24199,7 +24806,7 @@ function syncPlanTargets(plan, analysis) {
     };
   }
 }
-function userHasSweetsCraving(foodCravings) {
+function userHasSweetsCraving2(foodCravings) {
   if (Array.isArray(foodCravings)) return foodCravings.includes("\u0421\u043B\u0430\u0434\u043A\u043E");
   return typeof foodCravings === "string" && foodCravings.includes("\u0421\u043B\u0430\u0434\u043A\u043E");
 }
@@ -24782,19 +25389,19 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
     if (earliestErrorStep === "step1_analysis" || earliestErrorStep === "step2_strategy") {
       const stepErrorComment = earliestErrorStep === "step2_strategy" ? errorPreventionComment : null;
       console.log(`Regenerating Step 2 (Strategy)${stepErrorComment ? " with error prevention" : ""}`);
-      const strategyPrompt = await generateStrategyPrompt(data, analysis, env, stepErrorComment);
-      const strategyInputTokens = estimateTokenCount(strategyPrompt);
-      cumulativeTokens.input += strategyInputTokens;
-      const strategyResponse = await callAIModel(env, strategyPrompt, 4e3, "step2_strategy_regen", sessionId, data, buildCompactAnalysis(analysis));
-      const strategyOutputTokens = estimateTokenCount(strategyResponse);
-      cumulativeTokens.output += strategyOutputTokens;
-      cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
-      strategy = parseAIResponse(strategyResponse);
-      enforceWeekendFreeDay(strategy);
-      normalizeStrategyDessertFlag(strategy, data);
-      normalizeWeeklyScheme(strategy, parseFinalCalories(analysis.Final_Calories), data);
-      if (!strategy || strategy.error) {
-        throw new Error(`\u0420\u0435\u0433\u0435\u043D\u0435\u0440\u0430\u0446\u0438\u044F\u0442\u0430 \u043D\u0430 \u0441\u0442\u0440\u0430\u0442\u0435\u0433\u0438\u044F\u0442\u0430 \u0441\u0435 \u043F\u0440\u043E\u0432\u0430\u043B\u0438: ${strategy?.error || "\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u0435\u043D \u0444\u043E\u0440\u043C\u0430\u0442"}`);
+      const step2Result = await resolveStep2Strategy(env, data, analysis, sessionId, {
+        errorPreventionComment: stepErrorComment,
+        stepLabel: "step2_strategy_regen",
+        compactAnalysis: buildCompactAnalysis(analysis)
+      });
+      strategy = step2Result.strategy;
+      if (step2Result.tokenUsage) {
+        cumulativeTokens.input += step2Result.tokenUsage.input;
+        cumulativeTokens.output += step2Result.tokenUsage.output;
+        cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
+      }
+      if (step2Result.usedDeterministic) {
+        console.log("Step 2 regen: deterministic strategy (no AI call)");
       }
     } else {
       strategy = existingPlan.strategy;
@@ -25006,25 +25613,22 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
         console.warn("Could not persist partial analysis status:", progressError);
       }
     }
-    const strategyPrompt = await generateStrategyPrompt(data, analysis, env);
-    const strategyInputTokens = estimateTokenCount(strategyPrompt);
-    cumulativeTokens.input += strategyInputTokens;
-    let strategyResponse, strategy;
+    let strategy;
     try {
-      strategyResponse = await callAIModel(env, strategyPrompt, 4e3, "step2_strategy", sessionId, data, buildCompactAnalysis(analysis));
-      const strategyOutputTokens = estimateTokenCount(strategyResponse);
-      cumulativeTokens.output += strategyOutputTokens;
-      cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
-      console.log(`Step 2 tokens: input=${strategyInputTokens}, output=${strategyOutputTokens}, cumulative=${cumulativeTokens.total}`);
-      strategy = parseAIResponse(strategyResponse);
-      enforceWeekendFreeDay(strategy);
-      normalizeStrategyDessertFlag(strategy, data);
-      normalizeWeeklyScheme(strategy, parseFinalCalories(analysis.Final_Calories), data);
-      if (!strategy || strategy.error) {
-        const errorMsg = strategy.error || "\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u0435\u043D \u0444\u043E\u0440\u043C\u0430\u0442 \u043D\u0430 \u043E\u0442\u0433\u043E\u0432\u043E\u0440";
-        console.error("Strategy parsing failed:", errorMsg);
-        console.error("AI Response preview (first 1000 chars):", strategyResponse?.substring(0, 1e3));
-        throw new Error(`\u0421\u0442\u0440\u0430\u0442\u0435\u0433\u0438\u044F\u0442\u0430 \u043D\u0435 \u043C\u043E\u0436\u0430 \u0434\u0430 \u0431\u044A\u0434\u0435 \u0441\u044A\u0437\u0434\u0430\u0434\u0435\u043D\u0430: ${errorMsg}`);
+      const step2Result = await resolveStep2Strategy(env, data, analysis, sessionId, {
+        stepLabel: "step2_strategy",
+        compactAnalysis: buildCompactAnalysis(analysis)
+      });
+      strategy = step2Result.strategy;
+      if (step2Result.tokenUsage) {
+        cumulativeTokens.input += step2Result.tokenUsage.input;
+        cumulativeTokens.output += step2Result.tokenUsage.output;
+        cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
+        console.log(
+          `Step 2 tokens: input=${step2Result.tokenUsage.input}, output=${step2Result.tokenUsage.output}, cumulative=${cumulativeTokens.total}`
+        );
+      } else if (step2Result.usedDeterministic) {
+        console.log("Step 2: deterministic strategy (no AI call)");
       }
     } catch (error) {
       console.error("Strategy step failed:", error);
@@ -25478,7 +26082,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
               endDay,
               previousDays,
               seed: detSeed,
-              includeDessert: userHasSweetsCraving(data?.foodCravings) && strategy?.includeDessert !== false,
+              includeDessert: userHasSweetsCraving2(data?.foodCravings) && strategy?.includeDessert !== false,
               clinicalProtocolId: data.clinicalProtocol || null,
               blockedTerms: data.blockedFoods || []
             });
