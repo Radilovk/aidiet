@@ -371,6 +371,7 @@ var STRATEGY_RESPONSE_SCHEMA = {
     "weeklyScheme",
     "welcomeMessage",
     "planJustification",
+    "longTermStrategy",
     "mealTiming",
     "includeDessert"
   ]
@@ -8724,19 +8725,27 @@ var MIN_MAIN_MEAL_WEIGHT_GRAMS = 50;
 var MIN_LIGHT_MEAL_WEIGHT_GRAMS = 20;
 var MAX_LATE_SNACK_CALORIES = 200;
 var MAX_AFTERNOON_SNACK_CALORIES = 350;
+var LIGHT_MEAL_PLATE_MAX_GRAMS = {
+  "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3": 220,
+  "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5": 120
+};
+var LIGHT_DAIRY_MAX_GRAMS = 150;
+var LIGHT_NUTS_MAX_GRAMS = 30;
+var LIGHT_FRUIT_MAX_GRAMS = 150;
+var LIGHT_CHEESE_MAX_GRAMS = 40;
 var SLOT_CALORIE_TOLERANCE_PERCENT = 0.1;
 var SLOT_CALORIE_TOLERANCE_MIN_KCAL = 30;
-function slotCalorieTolerance(targetKcal) {
-  return Math.max(
-    SLOT_CALORIE_TOLERANCE_MIN_KCAL,
-    Math.round((Number(targetKcal) || 0) * SLOT_CALORIE_TOLERANCE_PERCENT)
-  );
+function slotCalorieTolerance(targetKcal, mealType = null) {
+  const target = Number(targetKcal) || 0;
+  const pct = isLightMealSlot(mealType) ? 0.22 : SLOT_CALORIE_TOLERANCE_PERCENT;
+  const min = isLightMealSlot(mealType) ? 50 : SLOT_CALORIE_TOLERANCE_MIN_KCAL;
+  return Math.max(min, Math.round(target * pct));
 }
-function isMealCaloriesAdequate(achievedKcal, targetKcal) {
+function isMealCaloriesAdequate(achievedKcal, targetKcal, mealType = null) {
   const achieved = Number(achievedKcal) || 0;
   const target = Number(targetKcal) || 0;
   if (target <= 0 || achieved <= 0) return true;
-  return Math.abs(achieved - target) <= slotCalorieTolerance(target);
+  return Math.abs(achieved - target) <= slotCalorieTolerance(target, mealType);
 }
 var NEGATIVE_HEALTH_TONE = /влошен|критичн|много лош/i;
 var KEY_PROBLEM_SEVERITY_RANGES = {
@@ -9577,10 +9586,10 @@ function solveMealGrams(items, target, bounds, maxTotalGrams = 900) {
   let grams = items.map((it, i) => Math.min(bounds[i].max, Math.max(bounds[i].min, Math.round(it.grams / 10) * 10)));
   ({ grams } = refineGrams(items, grams, bounds, target, maxTotalGrams, cost));
   let best = cost(items, grams, target, maxTotalGrams);
-  const snapped = grams.map((g) => g > GRAM_LARGE_THRESHOLD ? Math.round(g / 50) * 50 : Math.round(g / 10) * 10);
-  if (snapped.every((g, i) => g >= bounds[i].min && g <= bounds[i].max) && cost(items, snapped, target, maxTotalGrams) <= best + 0.02) {
-    grams = snapped;
-  }
+  grams = grams.map((g, i) => {
+    const snapped = g > GRAM_LARGE_THRESHOLD ? Math.round(g / 50) * 50 : Math.round(g / 10) * 10;
+    return Math.min(bounds[i].max, Math.max(bounds[i].min, snapped));
+  });
   let t = totalsFor(items, grams);
   let kcalOk = Math.abs(t.kcal - target.kcal) <= Math.max(30, target.kcal * 0.1);
   if (!kcalOk) {
@@ -9871,38 +9880,54 @@ function macroShareForItem(group, slots = []) {
   if (group === "vegetable" || group === "fruit" || slots.includes("VOL")) return 0.06;
   return 0.1;
 }
-function computeMealItemBounds(items, slotTarget, maxTotalGrams = MAX_MEAL_WEIGHT_GRAMS) {
+function computeMealItemBounds(items, slotTarget, maxTotalGrams = MAX_MEAL_WEIGHT_GRAMS, mealType = null) {
   const slotKcal = Number(slotTarget?.kcal ?? slotTarget?.calories) || 0;
-  const scale = slotKcal > 0 ? Math.min(2.5, Math.max(1, slotKcal / 500)) : 1;
+  const light = isLightMealSlot(mealType);
+  const lightPlateMax = light ? LIGHT_MEAL_PLATE_MAX_GRAMS[mealType] || maxTotalGrams : maxTotalGrams;
+  const effectiveMaxTotal = Math.min(maxTotalGrams, lightPlateMax);
+  const boundKcal = light ? Math.min(slotKcal, mealType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5" ? MAX_LATE_SNACK_CALORIES : MAX_AFTERNOON_SNACK_CALORIES) : slotKcal;
+  const scale = !light && boundKcal > 0 ? Math.min(2.5, Math.max(1, boundKcal / 500)) : 1;
   let bounds = items.map((item2) => {
     const { group, slots } = getCatalogMeta(item2.name);
     let { min, max } = baseBoundsForGroup(group);
-    max = Math.round(max * scale);
-    if (slotKcal > 0) {
-      const k100 = kcalPer100(item2.profile);
-      const share = macroShareForItem(group, slots);
-      const needG = slotKcal * share / k100 * 100 * 1.15;
-      max = Math.max(max, Math.round(needG / 10) * 10);
+    if (light) {
+      if (group === "dairy") max = Math.min(max, LIGHT_DAIRY_MAX_GRAMS);
+      else if (group === "fat" || slots.includes("FAT")) max = Math.min(max, LIGHT_NUTS_MAX_GRAMS);
+      else if (group === "fruit") max = Math.min(max, LIGHT_FRUIT_MAX_GRAMS);
+      else if (group === "protein" && /кашкавал|сирене/i.test(item2.name)) {
+        max = Math.min(max, LIGHT_CHEESE_MAX_GRAMS);
+      } else if (group === "vegetable") max = Math.min(max, 80);
+      min = Math.min(min, max);
+    } else {
+      max = Math.round(max * scale);
+      if (boundKcal > 0) {
+        const k100 = kcalPer100(item2.profile);
+        const share = macroShareForItem(group, slots);
+        const needG = boundKcal * share / k100 * 100 * 1.15;
+        max = Math.max(max, roundGrams(needG));
+      }
+      max = Math.min(max, 650);
     }
-    max = Math.min(max, 650);
     return { min, max: Math.max(min, max) };
   });
-  for (let pass = 0; pass < 6 && slotKcal > 0; pass++) {
-    const maxKcal = totalsFor(
-      items.map((it) => ({ profile: it.profile })),
-      bounds.map((b) => b.max)
-    ).kcal;
-    if (maxKcal >= slotKcal * 0.92) break;
-    bounds = bounds.map((b, i) => {
-      const k100 = kcalPer100(items[i].profile);
-      const boost = k100 < 90 ? 1.22 : 1.12;
-      return { min: b.min, max: Math.min(650, Math.round(b.max * boost)) };
-    });
+  if (!light) {
+    for (let pass = 0; pass < 6 && boundKcal > 0; pass++) {
+      const maxKcal = totalsFor(
+        items.map((it) => ({ profile: it.profile })),
+        bounds.map((b) => b.max)
+      ).kcal;
+      if (maxKcal >= boundKcal * 0.92) break;
+      bounds = bounds.map((b, i) => {
+        const k100 = kcalPer100(items[i].profile);
+        const boost = k100 < 90 ? 1.22 : 1.12;
+        return { min: b.min, max: Math.min(650, Math.round(b.max * boost)) };
+      });
+    }
   }
   const sumMax = bounds.reduce((s, b) => s + b.max, 0);
-  if (sumMax > maxTotalGrams) {
+  if (sumMax > effectiveMaxTotal) {
     const sumMin = bounds.reduce((s, b) => s + b.min, 0);
-    const slack = Math.max(0, maxTotalGrams - sumMin);
+    const slack = Math.max(0, effectiveMaxTotal - sumMin);
     const flex = bounds.map((b) => b.max - b.min);
     const flexSum = flex.reduce((a, b) => a + b, 0);
     if (flexSum > 0) {
@@ -9915,7 +9940,6 @@ function computeMealItemBounds(items, slotTarget, maxTotalGrams = MAX_MEAL_WEIGH
   return bounds;
 }
 function seedGramsForItem(item2, bounds, slotTarget, itemCount = 1) {
-  if (item2.grams > 0) return item2.grams;
   const slotKcal = Number(slotTarget?.kcal ?? slotTarget?.calories) || 0;
   if (slotKcal > 0 && item2.profile) {
     const { group, slots } = getCatalogMeta(item2.name);
@@ -9930,12 +9954,22 @@ function seedGramsForItem(item2, bounds, slotTarget, itemCount = 1) {
 function capCondimentGrams(item2, grams) {
   return isCondimentItem(item2) ? Math.min(grams, CONDIMENT_MAX_GRAMS) : grams;
 }
-function capItemGrams(item2, grams) {
+function capItemGrams(item2, grams, mealType = null) {
   let g = capCondimentGrams(item2, grams);
-  if (isDairyItem(item2)) g = Math.min(g, DAIRY_MAX_GRAMS);
   const { group } = getCatalogMeta(item2.name);
-  if (group === "protein") g = Math.min(g, DAIRY_MAX_GRAMS);
-  return g;
+  const name = String(item2.name || "").toLowerCase();
+  if (isLightMealSlot(mealType)) {
+    if (isDairyItem(item2) || group === "dairy") g = Math.min(g, LIGHT_DAIRY_MAX_GRAMS);
+    if (/ядки|бадем|орех|кашу|лешник|шамфъстък/.test(name) || group === "fat") {
+      g = Math.min(g, LIGHT_NUTS_MAX_GRAMS);
+    }
+    if (group === "fruit") g = Math.min(g, LIGHT_FRUIT_MAX_GRAMS);
+    if (/кашкавал|сирене/.test(name)) g = Math.min(g, LIGHT_CHEESE_MAX_GRAMS);
+  } else {
+    if (isDairyItem(item2)) g = Math.min(g, DAIRY_MAX_GRAMS);
+    if (group === "protein") g = Math.min(g, DAIRY_MAX_GRAMS);
+  }
+  return roundGrams(g);
 }
 function nutritionFromGrams(profile, grams) {
   const factor = (Number(grams) || 0) / 100;
@@ -10012,13 +10046,13 @@ function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}) {
   if (dessertNutrition?.kcal > 0) {
     slotTarget.kcal = Math.max(50, slotTarget.kcal - dessertNutrition.kcal);
   }
-  const plateBudget = Math.max(200, MAX_MEAL_WEIGHT_GRAMS - dessertWeight);
-  const bounds = computeMealItemBounds(items, slotTarget, plateBudget);
+  const plateBudget = Math.max(120, (isLightMealSlot(meal.type) ? LIGHT_MEAL_PLATE_MAX_GRAMS[meal.type] || 220 : MAX_MEAL_WEIGHT_GRAMS) - dessertWeight);
+  const bounds = computeMealItemBounds(items, slotTarget, plateBudget, meal.type);
   const maxAchievable = totalsFor(
     items.map((it) => ({ profile: it.profile })),
     bounds.map((b) => b.max)
   );
-  if (slotTarget.kcal > 0 && maxAchievable.kcal < slotTarget.kcal * 0.88) {
+  if (slotTarget.kcal > 0 && maxAchievable.kcal < slotTarget.kcal * 0.88 && !isLightMealSlot(meal.type)) {
     return {
       ok: true,
       unknowns: items.filter((i) => i.unknown).map((i) => i.name),
@@ -10028,10 +10062,10 @@ function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}) {
   }
   items = items.map((item2, i) => ({
     ...item2,
-    grams: capItemGrams(item2, seedGramsForItem(item2, bounds[i], slotTarget, items.length))
+    grams: capItemGrams(item2, seedGramsForItem(item2, bounds[i], slotTarget, items.length), meal.type)
   }));
   const solved = solveMealGrams(items, slotTarget, bounds, plateBudget);
-  items = items.map((it, i) => ({ ...it, grams: capItemGrams(it, solved.grams[i]) }));
+  items = items.map((it, i) => ({ ...it, grams: capItemGrams(it, solved.grams[i], meal.type) }));
   const totals = sumItemNutrition(items);
   let p = Math.round(totals.p);
   let c = Math.round(totals.c);
@@ -10049,9 +10083,16 @@ function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}) {
     const cap = Math.min(MAX_LATE_SNACK_CALORIES, Number(target?.calories) || MAX_LATE_SNACK_CALORIES);
     if (meal.calories > cap) {
       const ratio = cap / meal.calories;
-      p = Math.round(p * ratio);
-      c = Math.round(c * ratio);
-      f = Math.round(f * ratio);
+      items = items.map((it) => ({
+        ...it,
+        grams: capItemGrams(it, roundGrams(it.grams * ratio), meal.type)
+      }));
+      const capped = sumItemNutrition(items);
+      p = Math.round(capped.p);
+      c = Math.round(capped.c);
+      f = Math.round(capped.f);
+      meal.description = formatMealDescription(items);
+      meal.weight = formatMealWeight(capped.grams, dessertWeight);
       meal.macros = { protein: p, carbs: c, fats: f };
       meal.calories = Math.round(p * 4 + c * 4 + f * 9);
     }
@@ -10563,6 +10604,29 @@ function validateWeeklyVariety(weekPlan, options = {}) {
       topProducts: [...productCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8)
     }
   };
+}
+
+// text-sanitize.js
+function sanitizePlainTextField(text) {
+  if (!text || typeof text !== "string") return "";
+  return text.replace(/\*\*([^*]+)\*\*/g, "$1").replace(/\*([^*]+)\*/g, "$1").replace(/_{1,2}([^_]+)_{1,2}/g, "$1").replace(/\s+/g, " ").trim();
+}
+function sanitizeStrategyFields(strategy) {
+  if (!strategy || typeof strategy !== "object") return strategy;
+  for (const key of [
+    "welcomeMessage",
+    "planJustification",
+    "longTermStrategy",
+    "mealCountJustification",
+    "afterDinnerMealJustification",
+    "modifierReasoning",
+    "hydrationStrategy"
+  ]) {
+    if (typeof strategy[key] === "string") {
+      strategy[key] = sanitizePlainTextField(strategy[key]);
+    }
+  }
+  return strategy;
 }
 
 // admin-food-catalog.js
@@ -16749,7 +16813,7 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocol
     }
     const targetCal = Number(target.calories) || 0;
     const mealCal = Number(meal.calories) || macrosToCalories(meal.macros);
-    if (targetCal > 0 && mealCal > 0 && !isMealCaloriesAdequate(mealCal, targetCal)) {
+    if (targetCal > 0 && mealCal > 0 && !isMealCaloriesAdequate(mealCal, targetCal, meal.type)) {
       errors.push(`\u0414\u0435\u043D ${dayNum} ${meal.type}: \u043A\u0430\u043B\u043E\u0440\u0438\u0438 ${mealCal} \u2260 \u0446\u0435\u043B ${targetCal} \u2014 \u0441\u043C\u0435\u043D\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438\u0442\u0435 \u0438\u043B\u0438 \u0441\u044A\u0441\u0442\u0430\u0432\u0430`);
     }
     const weightGrams = mealWeightGramsFromDescription(meal);
@@ -17419,6 +17483,11 @@ function validatePlan(plan, userData, substitutions = []) {
     errors.push(error);
     stepErrors.step2_strategy.push(error);
   }
+  if (!plan.strategy?.longTermStrategy || plan.strategy.longTermStrategy.length < 80) {
+    const error = "\u041B\u0438\u043F\u0441\u0432\u0430 \u043E\u0431\u0449, \u0434\u044A\u043B\u0433\u043E\u0441\u0440\u043E\u0447\u0435\u043D \u043F\u043B\u0430\u043D (strategy.longTermStrategy, \u043C\u0438\u043D\u0438\u043C\u0443\u043C 80 \u0441\u0438\u043C\u0432\u043E\u043B\u0430)";
+    errors.push(error);
+    stepErrors.step2_strategy.push(error);
+  }
   if (plan.analysis && plan.analysis.keyProblems && Array.isArray(plan.analysis.keyProblems)) {
     const normalProblems = plan.analysis.keyProblems.filter((p) => p.severity === "Normal");
     if (normalProblems.length > 0) {
@@ -17522,11 +17591,15 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       cumulativeTokens.output += strategyOutputTokens;
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
       strategy = parseAIResponse(strategyResponse);
+      sanitizeStrategyFields(strategy);
       enforceWeekendFreeDay(strategy);
       normalizeStrategyDessertFlag(strategy, data);
       normalizeWeeklyScheme(strategy, parseFinalCalories(analysis.Final_Calories), data);
       if (!strategy || strategy.error) {
         throw new Error(`\u0420\u0435\u0433\u0435\u043D\u0435\u0440\u0430\u0446\u0438\u044F\u0442\u0430 \u043D\u0430 \u0441\u0442\u0440\u0430\u0442\u0435\u0433\u0438\u044F\u0442\u0430 \u0441\u0435 \u043F\u0440\u043E\u0432\u0430\u043B\u0438: ${strategy?.error || "\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u0435\u043D \u0444\u043E\u0440\u043C\u0430\u0442"}`);
+      }
+      if (!strategy.longTermStrategy || strategy.longTermStrategy.length < 80) {
+        throw new Error("\u041B\u0438\u043F\u0441\u0432\u0430 \u043E\u0431\u0449, \u0434\u044A\u043B\u0433\u043E\u0441\u0440\u043E\u0447\u0435\u043D \u043F\u043B\u0430\u043D (strategy.longTermStrategy, \u043C\u0438\u043D\u0438\u043C\u0443\u043C 80 \u0441\u0438\u043C\u0432\u043E\u043B\u0430)");
       }
     } else {
       strategy = existingPlan.strategy;
@@ -17749,6 +17822,7 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
       console.log(`Step 2 tokens: input=${strategyInputTokens}, output=${strategyOutputTokens}, cumulative=${cumulativeTokens.total}`);
       strategy = parseAIResponse(strategyResponse);
+      sanitizeStrategyFields(strategy);
       enforceWeekendFreeDay(strategy);
       normalizeStrategyDessertFlag(strategy, data);
       normalizeWeeklyScheme(strategy, parseFinalCalories(analysis.Final_Calories), data);
@@ -17757,6 +17831,9 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
         console.error("Strategy parsing failed:", errorMsg);
         console.error("AI Response preview (first 1000 chars):", strategyResponse?.substring(0, 1e3));
         throw new Error(`\u0421\u0442\u0440\u0430\u0442\u0435\u0433\u0438\u044F\u0442\u0430 \u043D\u0435 \u043C\u043E\u0436\u0430 \u0434\u0430 \u0431\u044A\u0434\u0435 \u0441\u044A\u0437\u0434\u0430\u0434\u0435\u043D\u0430: ${errorMsg}`);
+      }
+      if (!strategy.longTermStrategy || strategy.longTermStrategy.length < 80) {
+        throw new Error("\u041B\u0438\u043F\u0441\u0432\u0430 \u043E\u0431\u0449, \u0434\u044A\u043B\u0433\u043E\u0441\u0440\u043E\u0447\u0435\u043D \u043F\u043B\u0430\u043D (strategy.longTermStrategy, \u043C\u0438\u043D\u0438\u043C\u0443\u043C 80 \u0441\u0438\u043C\u0432\u043E\u043B\u0430)");
       }
     } catch (error) {
       console.error("Strategy step failed:", error);

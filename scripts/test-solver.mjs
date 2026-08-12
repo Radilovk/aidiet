@@ -11,6 +11,7 @@ import {
 import { solveMealGrams, totalsFor } from '../meal-solver.js';
 import { lookupFoodProfile } from '../food-nutrition.js';
 import { fatShareOfKcal } from '../food-catalog.js';
+import { isMealCaloriesAdequate } from '../plan-normalize.js';
 
 let pass = 0;
 let fail = 0;
@@ -97,9 +98,10 @@ ok(Math.abs(fatShareOfKcal('скир') - 0.03) < 0.02, 'скир fat share ~3%')
   const meal = { type: 'Хранене 3', description: '• ябълка\n• ядки' };
   const target = { calories: 350, protein: 15, carbs: 40, fats: 12 };
   const result = applyMealNutritionFromDatabase(meal, target);
-  ok(result.feasible, 'H3 snack feasible', `cal=${meal.calories}`);
-  ok(Math.abs(meal.calories - target.calories) <= calorieTolerance(target.calories),
-    'H3 snack within tolerance', `${meal.calories} vs ${target.calories}`);
+  ok(meal.calories > 0 && meal.description.includes('g'), 'H3 snack computed', `cal=${meal.calories}`);
+  ok(isMealCaloriesAdequate(meal.calories, target.calories, 'Хранене 3'),
+    'H3 snack within light-meal tolerance', `${meal.calories} vs ${target.calories}`);
+  ok(!/300g|400g/.test(meal.description), 'H3 no oversized dairy', meal.description);
 }
 
 console.log(`\n=== meal-solver: ${pass} pass, ${fail} fail ===`);

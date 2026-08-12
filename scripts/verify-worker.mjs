@@ -164,6 +164,11 @@ check('registry architecture', () => {
   if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
 });
 
+check('light meal grams + strategy sanitize', () => {
+  const r = run('node', ['scripts/test-light-meal-grams.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
+});
+
 check('precision-first Step 3', () => {
   const r = run('node', ['scripts/test-precision-first.mjs']);
   if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));

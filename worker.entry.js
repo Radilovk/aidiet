@@ -86,6 +86,7 @@ import {
   buildStep3ChunkTaskSection,
 } from './step3-chunk.js';
 import { buildInfeasibilityRetryHints } from './step3-creation-hints.js';
+import { sanitizeStrategyFields } from './text-sanitize.js';
 import {
   readOverlayFromKv,
   writeOverlayToKv,
@@ -8058,7 +8059,7 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocol
 
     const targetCal = Number(target.calories) || 0;
     const mealCal = Number(meal.calories) || macrosToCalories(meal.macros);
-    if (targetCal > 0 && mealCal > 0 && !isMealCaloriesAdequate(mealCal, targetCal)) {
+    if (targetCal > 0 && mealCal > 0 && !isMealCaloriesAdequate(mealCal, targetCal, meal.type)) {
       errors.push(`Ден ${dayNum} ${meal.type}: калории ${mealCal} ≠ цел ${targetCal} — смени продуктите или състава`);
     }
 
@@ -8881,6 +8882,12 @@ function validatePlan(plan, userData, substitutions = []) {
     errors.push(error);
     stepErrors.step2_strategy.push(error);
   }
+
+  if (!plan.strategy?.longTermStrategy || plan.strategy.longTermStrategy.length < 80) {
+    const error = 'Липсва общ, дългосрочен план (strategy.longTermStrategy, минимум 80 символа)';
+    errors.push(error);
+    stepErrors.step2_strategy.push(error);
+  }
   
   // 11. Check that analysis doesn't contain "Normal" severity problems (Step 1 - Analysis issue)
   if (plan.analysis && plan.analysis.keyProblems && Array.isArray(plan.analysis.keyProblems)) {
@@ -9050,12 +9057,16 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       cumulativeTokens.total = cumulativeTokens.input + cumulativeTokens.output;
       
       strategy = parseAIResponse(strategyResponse);
+      sanitizeStrategyFields(strategy);
       enforceWeekendFreeDay(strategy);
       normalizeStrategyDessertFlag(strategy, data);
       normalizeWeeklyScheme(strategy, parseFinalCalories(analysis.Final_Calories), data);
       
       if (!strategy || strategy.error) {
         throw new Error(`Регенерацията на стратегията се провали: ${strategy?.error || 'Невалиден формат'}`);
+      }
+      if (!strategy.longTermStrategy || strategy.longTermStrategy.length < 80) {
+        throw new Error('Липсва общ, дългосрочен план (strategy.longTermStrategy, минимум 80 символа)');
       }
     } else {
       // Reuse existing strategy
@@ -9338,6 +9349,7 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
       console.log(`Step 2 tokens: input=${strategyInputTokens}, output=${strategyOutputTokens}, cumulative=${cumulativeTokens.total}`);
       
       strategy = parseAIResponse(strategyResponse);
+      sanitizeStrategyFields(strategy);
       enforceWeekendFreeDay(strategy);
       normalizeStrategyDessertFlag(strategy, data);
       normalizeWeeklyScheme(strategy, parseFinalCalories(analysis.Final_Calories), data);
@@ -9347,6 +9359,9 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
         console.error('Strategy parsing failed:', errorMsg);
         console.error('AI Response preview (first 1000 chars):', strategyResponse?.substring(0, 1000));
         throw new Error(`Стратегията не можа да бъде създадена: ${errorMsg}`);
+      }
+      if (!strategy.longTermStrategy || strategy.longTermStrategy.length < 80) {
+        throw new Error('Липсва общ, дългосрочен план (strategy.longTermStrategy, минимум 80 символа)');
       }
     } catch (error) {
       console.error('Strategy step failed:', error);

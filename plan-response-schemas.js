@@ -277,7 +277,7 @@ export const STRATEGY_RESPONSE_SCHEMA = {
   },
   required: [
     'dietaryModifier', 'dietType', 'weeklyScheme',
-    'welcomeMessage', 'planJustification', 'mealTiming',
+    'welcomeMessage', 'planJustification', 'longTermStrategy', 'mealTiming',
     'includeDessert',
   ],
 };
