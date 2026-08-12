@@ -209,6 +209,11 @@ check('catalog universality stress', () => {
   if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
 });
 
+check('nutrition library merge', () => {
+  const r = run('node', ['scripts/test-nutrition-library.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-12).join('\n'));
+});
+
 check('fitness тестове', () => {
   const r = run('npm', ['test'], { cwd: join(root, 'fitness') });
   if (!r.ok) throw new Error(r.out.split('\n').slice(-8).join('\n'));

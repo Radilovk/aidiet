@@ -1,0 +1,25 @@
+{
+  "pipeline": [
+    "load_user",
+    "derive_targets",
+    "filter_foods",
+    "score_foods",
+    "match_templates",
+    "build_meals",
+    "compute_macros",
+    "generate_menu",
+    "generate_shopping_list",
+    "export"
+  ],
+  "rules": [
+    "remove_disallowed",
+    "prefer_matching_groups",
+    "balance_macros",
+    "avoid_duplicates"
+  ],
+  "output": [
+    "daily_menu",
+    "weekly_menu",
+    "shopping_list"
+  ]
+}

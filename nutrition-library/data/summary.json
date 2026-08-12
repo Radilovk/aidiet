@@ -1,0 +1,9 @@
+{
+  "food_groups": 17,
+  "foods": 98,
+  "ready_meals": 13,
+  "templates": 4,
+  "rulesets": 5,
+  "orchestrator_steps": 10,
+  "filtered_placeholders": 254
+}

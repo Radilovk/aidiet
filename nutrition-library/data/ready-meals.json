@@ -1,0 +1,365 @@
+[
+  {
+    "id": "meal_egg_oats_berries",
+    "name_bg": "Овес с яйца и боровинки",
+    "meal_type": "breakfast",
+    "diet_profiles": [
+      "balanced",
+      "mediterranean"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_oats",
+        "grams": 40
+      },
+      {
+        "food_id": "food_egg",
+        "grams": 100
+      },
+      {
+        "food_id": "food_blueberries",
+        "grams": 80
+      }
+    ],
+    "kcal": 340,
+    "protein_g": 18.0,
+    "carbs_g": 38.0,
+    "fat_g": 13.0
+  },
+  {
+    "id": "meal_yogurt_oats_fruit",
+    "name_bg": "Кисело мляко с овес и плод",
+    "meal_type": "breakfast",
+    "diet_profiles": [
+      "balanced",
+      "mediterranean"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_yogurt",
+        "grams": 200
+      },
+      {
+        "food_id": "food_oats",
+        "grams": 30
+      },
+      {
+        "food_id": "food_banana",
+        "grams": 80
+      }
+    ],
+    "kcal": 302,
+    "protein_g": 14.4,
+    "carbs_g": 50.2,
+    "fat_g": 5.2
+  },
+  {
+    "id": "meal_salmon_plate",
+    "name_bg": "Сьомга с киноа и тиквички",
+    "meal_type": "lunch",
+    "diet_profiles": [
+      "balanced",
+      "mediterranean"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_salmon",
+        "grams": 140
+      },
+      {
+        "food_id": "food_quinoa",
+        "grams": 150
+      },
+      {
+        "food_id": "food_zucchini",
+        "grams": 150
+      },
+      {
+        "food_id": "food_olive_oil",
+        "grams": 10
+      }
+    ],
+    "kcal": 567,
+    "protein_g": 37.2,
+    "carbs_g": 36.0,
+    "fat_g": 29.3
+  },
+  {
+    "id": "meal_chicken_rice_veg",
+    "name_bg": "Пиле с ориз и зеленчуци",
+    "meal_type": "lunch",
+    "diet_profiles": [
+      "balanced",
+      "mediterranean"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_chicken",
+        "grams": 120
+      },
+      {
+        "food_id": "food_rice",
+        "grams": 150
+      },
+      {
+        "food_id": "food_broccoli",
+        "grams": 150
+      },
+      {
+        "food_id": "food_olive_oil",
+        "grams": 5
+      }
+    ],
+    "kcal": 490,
+    "protein_g": 45.0,
+    "carbs_g": 52.0,
+    "fat_g": 11.0
+  },
+  {
+    "id": "meal_vegan_bowl",
+    "name_bg": "Веган боул",
+    "meal_type": "lunch",
+    "diet_profiles": [
+      "balanced",
+      "mediterranean"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_tofu",
+        "grams": 150
+      },
+      {
+        "food_id": "food_quinoa",
+        "grams": 150
+      },
+      {
+        "food_id": "food_spinach",
+        "grams": 100
+      },
+      {
+        "food_id": "food_olive_oil",
+        "grams": 10
+      }
+    ],
+    "kcal": 437,
+    "protein_g": 24.0,
+    "carbs_g": 40.0,
+    "fat_g": 22.0
+  },
+  {
+    "id": "meal_keto_eggs_zucchini",
+    "name_bg": "Яйца с тиквички и зехтин",
+    "meal_type": "dinner",
+    "diet_profiles": [
+      "balanced",
+      "mediterranean"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_egg",
+        "grams": 150
+      },
+      {
+        "food_id": "food_zucchini",
+        "grams": 200
+      },
+      {
+        "food_id": "food_olive_oil",
+        "grams": 10
+      }
+    ],
+    "kcal": 339,
+    "protein_g": 20.7,
+    "carbs_g": 5.3,
+    "fat_g": 25.0
+  },
+  {
+    "id": "meal_beef_broccoli",
+    "name_bg": "Телешко с броколи",
+    "meal_type": "dinner",
+    "diet_profiles": [
+      "balanced",
+      "mediterranean"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_beef",
+        "grams": 120
+      },
+      {
+        "food_id": "food_broccoli",
+        "grams": 200
+      },
+      {
+        "food_id": "food_olive_oil",
+        "grams": 5
+      }
+    ],
+    "kcal": 364,
+    "protein_g": 35.3,
+    "carbs_g": 13.3,
+    "fat_g": 20.3
+  },
+  {
+    "id": "meal_fish_potato_salad",
+    "name_bg": "Риба с картофи и салата",
+    "meal_type": "dinner",
+    "diet_profiles": [
+      "balanced",
+      "mediterranean"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_cod",
+        "grams": 150
+      },
+      {
+        "food_id": "food_potato",
+        "grams": 200
+      },
+      {
+        "food_id": "food_lettuce_mix",
+        "grams": 80
+      },
+      {
+        "food_id": "food_tomato",
+        "grams": 100
+      }
+    ],
+    "kcal": 307,
+    "protein_g": 32.7,
+    "carbs_g": 42.0,
+    "fat_g": 1.0
+  },
+  {
+    "id": "meal_snack_yogurt_apple",
+    "name_bg": "Кисело мляко с ябълка",
+    "meal_type": "snack",
+    "diet_profiles": [
+      "balanced",
+      "mediterranean"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_yogurt",
+        "grams": 200
+      },
+      {
+        "food_id": "food_apple",
+        "grams": 180
+      }
+    ],
+    "kcal": 215,
+    "protein_g": 10.0,
+    "carbs_g": 37.0,
+    "fat_g": 3.0
+  },
+  {
+    "id": "meal_snack_nuts_berries",
+    "name_bg": "Ядки и боровинки",
+    "meal_type": "snack",
+    "diet_profiles": [
+      "balanced",
+      "mediterranean"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_almonds",
+        "grams": 30
+      },
+      {
+        "food_id": "food_blueberries",
+        "grams": 80
+      }
+    ],
+    "kcal": 220,
+    "protein_g": 7.0,
+    "carbs_g": 17.0,
+    "fat_g": 15.0
+  },
+  {
+    "id": "meal_shrimp_pasta",
+    "name_bg": "Скариди с паста и сос",
+    "meal_type": "lunch",
+    "diet_profiles": [
+      "balanced",
+      "mediterranean"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_shrimp",
+        "grams": 120
+      },
+      {
+        "food_id": "food_pasta_whole",
+        "grams": 180
+      },
+      {
+        "food_id": "food_tomato_sauce",
+        "grams": 60
+      }
+    ],
+    "kcal": 374,
+    "protein_g": 33.0,
+    "carbs_g": 50.0,
+    "fat_g": 3.0
+  },
+  {
+    "id": "meal_lentils_rice",
+    "name_bg": "Леща с ориз",
+    "meal_type": "lunch",
+    "diet_profiles": [
+      "balanced",
+      "mediterranean"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_lentils",
+        "grams": 150
+      },
+      {
+        "food_id": "food_rice",
+        "grams": 150
+      },
+      {
+        "food_id": "food_carrot",
+        "grams": 120
+      }
+    ],
+    "kcal": 418,
+    "protein_g": 18.0,
+    "carbs_g": 84.0,
+    "fat_g": 2.0
+  },
+  {
+    "id": "meal_turkey_potato_salad",
+    "name_bg": "Пуешко с картофи и салата",
+    "meal_type": "lunch",
+    "diet_profiles": [
+      "balanced",
+      "mediterranean"
+    ],
+    "ingredients": [
+      {
+        "food_id": "food_turkey",
+        "grams": 120
+      },
+      {
+        "food_id": "food_potato",
+        "grams": 200
+      },
+      {
+        "food_id": "food_lettuce_mix",
+        "grams": 80
+      },
+      {
+        "food_id": "food_tomato",
+        "grams": 100
+      }
+    ],
+    "kcal": 357,
+    "protein_g": 39.7,
+    "carbs_g": 42.0,
+    "fat_g": 2.0
+  }
+]

@@ -1,0 +1,28 @@
+{
+  "architecture": [
+    "input",
+    "profile",
+    "rules",
+    "library",
+    "templates",
+    "orchestrator",
+    "output"
+  ],
+  "food_ontology": [
+    "group",
+    "food",
+    "portion",
+    "equivalent",
+    "meal",
+    "menu"
+  ],
+  "layers": [
+    "ingest",
+    "validate",
+    "filter",
+    "score",
+    "compose",
+    "calculate",
+    "export"
+  ]
+}

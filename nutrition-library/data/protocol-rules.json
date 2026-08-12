@@ -1,0 +1,98 @@
+{
+  "diet_profiles": {
+    "balanced": {
+      "prefer_groups": [
+        "vegetables",
+        "fruits",
+        "whole_grains",
+        "fish",
+        "eggs",
+        "fats"
+      ]
+    },
+    "keto": {
+      "max_carbs_g_day": 30,
+      "exclude_groups": [
+        "whole_grains",
+        "fruits",
+        "legumes"
+      ],
+      "prefer_groups": [
+        "eggs",
+        "fish",
+        "meat",
+        "vegetables",
+        "fats"
+      ]
+    },
+    "vegan": {
+      "exclude_groups": [
+        "meat",
+        "fish",
+        "eggs",
+        "dairy"
+      ],
+      "prefer_groups": [
+        "vegetables",
+        "fruits",
+        "whole_grains",
+        "legumes",
+        "nuts_seeds",
+        "plant_protein"
+      ]
+    },
+    "low_fodmap": {
+      "exclude_tags": [
+        "fodmap_high"
+      ],
+      "prefer_groups": [
+        "vegetables",
+        "fish",
+        "eggs",
+        "dairy"
+      ]
+    },
+    "mediterranean": {
+      "prefer_groups": [
+        "vegetables",
+        "fruits",
+        "whole_grains",
+        "fish",
+        "fats"
+      ],
+      "prefer_tags": [
+        "fiber",
+        "omega3",
+        "antioxidant"
+      ]
+    }
+  },
+  "exchange_map": {
+    "carb_exchange_g": 15,
+    "protein_exchange_g": 7,
+    "fat_exchange_g": 5
+  },
+  "meal_distribution_templates": {
+    "3_meals": [
+      0.3,
+      0.4,
+      0.3
+    ],
+    "4_meals": [
+      0.25,
+      0.35,
+      0.15,
+      0.25
+    ],
+    "5_meals": [
+      0.2,
+      0.25,
+      0.2,
+      0.15,
+      0.2
+    ]
+  },
+  "calculation": {
+    "kcal_formula": "protein_g*4 + carbs_g*4 + fat_g*9"
+  }
+}

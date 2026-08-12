@@ -6,6 +6,11 @@
 import { FOOD_CATALOG } from './food-catalog-data.js';
 import { normalizeFoodKey } from './food-utils.js';
 import { getEntryScalingMode, SCALING_ATOMIC } from './ready-meal-parts.js';
+import {
+  getLibraryCatalogOverlay,
+  getLibraryReadyMealCatalogEntries,
+  NUTRITION_LIBRARY_VERSION,
+} from './nutrition-library-bridge.js';
 
 /** @type {object[]} */
 let overlayEntries = [];
@@ -26,15 +31,27 @@ export function getCatalogOverlay() {
   return { entries: [...overlayEntries], label: overlayLabel };
 }
 
-/** Merged catalog: base + overlay (overlay ids win on collision). */
+/** Static library overlay (nutrition-library merge). */
+const LIBRARY_CATALOG_OVERLAY = [
+  ...getLibraryCatalogOverlay(),
+  ...getLibraryReadyMealCatalogEntries(),
+];
+
+/** Merged catalog: base + library + runtime overlay (later ids win on collision). */
 export function getCatalogEntries() {
-  if (!overlayEntries.length) return FOOD_CATALOG;
   const byId = new Map(FOOD_CATALOG.map(e => [e.id, e]));
+  for (const e of LIBRARY_CATALOG_OVERLAY) {
+    if (e?.id) byId.set(e.id, e);
+  }
   for (const e of overlayEntries) {
     if (e?.id) byId.set(e.id, e);
     else byId.set(`overlay_${normalizeFoodKey(e.name)}`, e);
   }
   return [...byId.values()];
+}
+
+export function getNutritionLibraryVersion() {
+  return NUTRITION_LIBRARY_VERSION;
 }
 
 export function buildRegistryIndex() {
@@ -103,6 +120,7 @@ export function getCatalogVersion() {
     }
   };
   fold(`base:${FOOD_CATALOG.length}`);
+  fold(`library:${NUTRITION_LIBRARY_VERSION}:${LIBRARY_CATALOG_OVERLAY.length}`);
   fold(`overlay:${overlayLabel}:${overlayEntries.length}`);
   for (const e of all) {
     fold(`${e.id}|${e.name}|${e.nutritionKey}|${e.scalingMode || ''}|${e.fixedNutrition?.kcal || ''}`);

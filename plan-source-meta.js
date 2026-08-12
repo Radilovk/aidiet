@@ -2,13 +2,14 @@
  * Plan source metadata — reproducibility when registries are admin-editable.
  */
 
-import { getCatalogVersion } from './food-registry.js';
+import { getCatalogVersion, getNutritionLibraryVersion } from './food-registry.js';
 import { getDietRegistryVersion } from './diet-registry.js';
 import { getLedgerVersion } from './food-ledger.js';
 
 export function buildPlanSourceMeta(extra = {}) {
   return {
     catalogVersion: getCatalogVersion(),
+    nutritionLibraryVersion: getNutritionLibraryVersion(),
     dietRegistryVersion: getDietRegistryVersion(),
     ledgerVersion: extra.ledgerVersion || null,
     generatedAt: new Date().toISOString(),

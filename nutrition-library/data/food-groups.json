@@ -1,0 +1,70 @@
+[
+  {
+    "id": "vegetables",
+    "name_bg": "Зеленчуци"
+  },
+  {
+    "id": "fruits",
+    "name_bg": "Плодове"
+  },
+  {
+    "id": "whole_grains",
+    "name_bg": "Пълнозърнести"
+  },
+  {
+    "id": "refined_grains",
+    "name_bg": "Рафинирани зърнени"
+  },
+  {
+    "id": "legumes",
+    "name_bg": "Бобови"
+  },
+  {
+    "id": "fish",
+    "name_bg": "Риба"
+  },
+  {
+    "id": "meat",
+    "name_bg": "Месо"
+  },
+  {
+    "id": "eggs",
+    "name_bg": "Яйца"
+  },
+  {
+    "id": "dairy",
+    "name_bg": "Млечни"
+  },
+  {
+    "id": "nuts_seeds",
+    "name_bg": "Ядки и семена"
+  },
+  {
+    "id": "fats",
+    "name_bg": "Мазнини"
+  },
+  {
+    "id": "herbs_spices",
+    "name_bg": "Билки и подправки"
+  },
+  {
+    "id": "beverages",
+    "name_bg": "Напитки"
+  },
+  {
+    "id": "sweets",
+    "name_bg": "Сладки"
+  },
+  {
+    "id": "plant_protein",
+    "name_bg": "Растителни протеини"
+  },
+  {
+    "id": "seafood",
+    "name_bg": "Морски дарове"
+  },
+  {
+    "id": "condiments",
+    "name_bg": "Сосове и добавки"
+  }
+]
