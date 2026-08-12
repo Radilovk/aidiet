@@ -17,7 +17,21 @@
 | **3. Solver + validation** | `solveMealGrams` kcal hard, macros soft | `test-solver`, `test-chunk-validation` | kamen_benchmark |
 | | Slot kcal ±10% blocking | contract §1, nutrition validators | all matrix |
 | | Daily macro grams soft when kcal OK | `test-chunk-validation` | generationWarnings in matrix report |
-| | Composition repair (slot-level) | `test-rebuild-stage17-2` | — (runtime only) |
+| | Composition repair (slot-level) | `test-rebuild-stage17-2` (module only) | disabled — precision-first regen |
+
+---
+
+## Precision-first (без fallback/repair)
+
+| Принцип | Как се прилага | Offline тест |
+|---------|----------------|--------------|
+| Каталогът предварително ранкира калорични PRO/ENG при slot ≥600/≥900 kcal | `candidate-ranking.js` + `step3-creation-hints.js` | `test-precision-first` |
+| Първият AI prompt включва compact creation hint от frozen scheme | `buildCatalogPromptSection()` | `test-precision-first` |
+| При infeasible slot → пълна regen с deterministic FIX LIST, не partial AI repair | `COMPOSITION_REPAIR_MAX_PER_CHUNK = 0` | `test-precision-first`, `test-rebuild-stage0` |
+| Chunk без blocking грешки или ERROR — без „best effort“ accept | worker chunk loop | `test-precision-first` |
+| H3/H5 protocol repair остава deterministic (не AI) | `repairWeekPlanLightSlots` | `test-plan-reconcile` |
+
+**Цел:** усилията са в прецизното първо създаване; repair/fallback са изключение, не стратегия.
 
 ---
 
@@ -116,8 +130,11 @@ npm run test:plan-adequacy:benchmark -- --confirm --profiles=hard
 | End-to-end AI adequacy на всички hard profiles | live matrix / benchmark |
 | Materials RAG | ❌ няма тест |
 | Admin UI (ledger overlay) | contract wiring only |
-| Token cap / btoa / Gemini schema hotfixes | production health; няма dedicated regression |
-| Chunk validation #1361 на production | изисква merge + deploy преди live PASS |
+
+### Diet narrowing (универсално)
+
+`dietPreference` + `dietaryModifier` → `resolveCatalogDietProfile()` + `passesDietRegistry()` (v2).  
+Не profile-id hooks. Offline: `scripts/test-diet-registry.mjs`, universality stress „dietPreference only“.
 
 ---
 

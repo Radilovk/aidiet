@@ -13,6 +13,7 @@ import { normalizeFoodKey } from './food-utils.js';
 import { buildRegistryIndex, getCatalogEntries } from './food-registry.js';
 import { passesDietRegistry, resolveCatalogDietProfile } from './diet-registry.js';
 import { rankCatalogCandidates } from './candidate-ranking.js';
+import { maxSlotKcalInChunk, buildHighKcalCreationHint } from './step3-creation-hints.js';
 
 const SLOT_LABELS = {
   PRO: 'белтъчини [PRO]',
@@ -250,6 +251,7 @@ export function getCatalogCandidatesForChunk({
     : new Map(Object.entries(adherenceRatio || {}));
   const representativeSlot = strategy?.weeklyScheme?.[dayKeys[startDay - 1]]?.mealBreakdown
     ?.find(m => m.type === 'Хранене 2') || strategy?.weeklyScheme?.monday?.mealBreakdown?.[0];
+  const maxSlotKcal = maxSlotKcalInChunk(strategy, startDay, endDay, dayKeys);
   const isKeto = /кето|keto/i.test(String(dietaryModifier || ''));
   for (let d = startDay; d <= endDay; d++) {
     const dayTarget = strategy?.weeklyScheme?.[dayKeys[d - 1]];
@@ -303,6 +305,7 @@ export function getCatalogCandidatesForChunk({
       loveSet,
       adherenceRatio: adherenceMap,
       slotTarget: representativeSlot,
+      maxSlotKcal,
       limit: CATALOG_PROMPT_LIMIT_PER_SLOT * 3,
     });
     bySlot.set(slot, ranked.slice(0, CATALOG_PROMPT_LIMIT_PER_SLOT));
@@ -331,18 +334,19 @@ export function getCatalogCandidatesForChunk({
       .filter(e => !isBlockedByTerms(e, blockedTerms))
       .filter(e => !isExcludedByProtocol(e, clinicalProtocolId))
       .filter(e => e.timing.some(t => timings.has(t))),
-    { loveSet, adherenceRatio: adherenceMap, slotTarget: representativeSlot, limit: 8 },
+    { loveSet, adherenceRatio: adherenceMap, slotTarget: representativeSlot, maxSlotKcal, limit: 8 },
   );
 
   bySlot.set('READY', ready);
   return bySlot;
 }
 
-export function formatCatalogSectionForPrompt(candidatesBySlot, { minUniversality = DEFAULT_MIN_UNIVERSALITY } = {}) {
+export function formatCatalogSectionForPrompt(candidatesBySlot, { minUniversality = DEFAULT_MIN_UNIVERSALITY, creationHint = '' } = {}) {
   const lines = [
     `=== КАТАЛОГ (само тези имена; без грамове в description) ===`,
     `Универсалност ≥${minUniversality} — предпочитай общи имена (Риба, Ориз) пред конкретни.`,
   ];
+  if (creationHint) lines.push(creationHint);
 
   for (const slot of ['PRO', 'ENG', 'VOL', 'FAT']) {
     const items = candidatesBySlot.get(slot) || [];
@@ -380,9 +384,12 @@ export function validateProductNamesAgainstDiet(names, dietCtx = {}) {
 }
 
 export function buildCatalogPromptSection(options) {
+  const dayKeys = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+  const maxSlotKcal = maxSlotKcalInChunk(options.strategy, options.startDay, options.endDay, dayKeys);
   const candidates = getCatalogCandidatesForChunk(options);
   return formatCatalogSectionForPrompt(candidates, {
     minUniversality: options.minUniversality ?? DEFAULT_MIN_UNIVERSALITY,
+    creationHint: buildHighKcalCreationHint(maxSlotKcal),
   });
 }
 

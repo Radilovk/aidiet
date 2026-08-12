@@ -91,8 +91,8 @@ const monotonous = validateWeeklyVariety({
 });
 ok(monotonous.warnings.some(w => w.includes('Повтарящи се ястия')), 'variety warns on dish repetition');
 
-ok(worker.includes('tryCompositionRepair'), 'worker wires composition repair');
-ok(worker.includes('COMPOSITION_REPAIR_MAX_PER_CHUNK'), 'worker repair limit');
+ok(worker.includes('COMPOSITION_REPAIR_MAX_PER_CHUNK = 0'), 'worker disables AI composition repair');
+ok(worker.includes('buildInfeasibilityRetryHints'), 'worker uses deterministic infeasibility hints');
 ok(worker.includes('serializePreviousDaysProducts'), 'worker product #PD');
 ok(worker.includes('validateWeeklyVariety'), 'worker weekly variety');
 
