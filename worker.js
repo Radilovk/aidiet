@@ -17928,8 +17928,16 @@ function dietContext(strategy, userData) {
 }
 function filterDiet(pool, dietCtx) {
   if (!pool.length) return pool;
-  const filtered = pool.filter((e) => passesDietRegistry(e, dietCtx));
-  return filtered.length ? filtered : pool;
+  return pool.filter((e) => passesDietRegistry(e, dietCtx));
+}
+function isBlockedByTerms2(name, blockedTerms = []) {
+  const nameLower = String(name || "").toLowerCase();
+  for (const term of blockedTerms) {
+    const t = String(term || "").toLowerCase().trim();
+    if (t.length < 3) continue;
+    if (nameLower.includes(t) || t.includes(nameLower)) return true;
+  }
+  return false;
 }
 function collectUsedProducts(previousDays = []) {
   const counts = /* @__PURE__ */ new Map();
@@ -18010,7 +18018,14 @@ function formatDescription(entries) {
   return lines.join("\n");
 }
 function buildLightSnack(slotType, userData, ctx) {
-  const presets = slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5" ? isVeganUser(userData) ? MEAL5_VEGAN_PRESETS : MEAL5_PRESETS : isVeganUser(userData) ? MEAL3_VEGAN_PRESETS : MEAL3_PRESETS;
+  let presets = slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5" ? isVeganUser(userData) ? MEAL5_VEGAN_PRESETS : MEAL5_PRESETS : isVeganUser(userData) ? MEAL3_VEGAN_PRESETS : MEAL3_PRESETS;
+  if (ctx.blockedTerms?.length) {
+    const allowed = presets.filter((preset2) => {
+      const items = parseMealDescription(preset2.description);
+      return !items.some((item2) => isBlockedByTerms2(item2.name, ctx.blockedTerms));
+    });
+    if (allowed.length) presets = allowed;
+  }
   const idx = (ctx.seed + ctx.dayNum * 3 + ctx.slotIndex) % presets.length;
   const preset = presets[idx];
   const desc = preset.description.split("\n").map((line2) => {
@@ -18099,7 +18114,8 @@ function buildDeterministicWeekPlanChunk({
         slotIndex,
         slotTarget: slot,
         usedProducts,
-        dietCtx
+        dietCtx,
+        blockedTerms
       };
       meals.push(buildMealForSchemeSlot({
         slotType: slot.type,
@@ -26021,6 +26037,7 @@ ${errors.map((error, idx) => `${idx + 1}. ${error}`).join("\n")}
 }
 async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
   console.log("Multi-step generation: Starting (3+ AI requests for precision)");
+  enrichUserDataEngineContext(data);
   const sessionId = generateUniqueId("session");
   console.log(`Plan generation session ID: ${sessionId}`);
   let cumulativeTokens = {

@@ -9409,6 +9409,7 @@ ${errors.map((error, idx) => `${idx + 1}. ${error}`).join('\n')}
 
 async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
   console.log('Multi-step generation: Starting (3+ AI requests for precision)');
+  enrichUserDataEngineContext(data);
   
   // Generate a unique session ID for this plan generation
   const sessionId = generateUniqueId('session');
