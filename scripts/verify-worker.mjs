@@ -154,6 +154,11 @@ check('calorie target vs achieved sync', () => {
   if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
 });
 
+check('diet registry universal', () => {
+  const r = run('node', ['scripts/test-diet-registry.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
+});
+
 check('registry architecture', () => {
   const r = run('node', ['scripts/test-registry-arch.mjs']);
   if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));

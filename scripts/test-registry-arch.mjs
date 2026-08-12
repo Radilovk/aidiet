@@ -76,8 +76,11 @@ ok(ranked[0]?.name === 'Ориз', 'ranking prefers macro-fit candidate');
 ok(passesDietRegistry({ name: 'Ориз', nutritionKey: 'ориз', group: 'carb', slots: ['ENG'] }, 'Кетогенна диета') === false, 'diet registry narrows keto carbs');
 ok(passesDietRegistry({ name: 'Маруля', nutritionKey: 'маруля', group: 'vegetable', slots: ['VOL'] }, 'Кетогенна диета') === true, 'diet registry keeps VOL on keto');
 
+const veganPref = { dietaryModifier: 'Балансирано', dietPreference: ['Веган'] };
+ok(!passesDietRegistry({ name: 'Скир', nutritionKey: 'скир', group: 'dairy', slots: ['PRO'] }, veganPref), 'dietPreference vegan narrows catalog');
+
 const meta = buildPlanSourceMeta({ pipeline: 'test' });
-ok(meta.catalogVersion && meta.dietRegistryVersion, 'plan source meta');
+ok(meta.catalogVersion && meta.dietRegistryVersion === 'diet_v2', 'plan source meta diet_v2');
 
 setCatalogOverlay([]);
 console.log(`\n=== registry arch: ${pass} pass, ${fail} fail ===`);

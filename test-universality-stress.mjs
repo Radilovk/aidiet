@@ -17,12 +17,13 @@ function strategyFor(target, mealType = 'Хранене 2') {
   };
 }
 
-function runScenario(name, { mealType = 'Хранене 2', dietaryModifier = 'Балансирано', target, blockedTerms = [], clinicalProtocolId = null, forbiddenNames = [] }) {
+function runScenario(name, { mealType = 'Хранене 2', dietaryModifier = 'Балансирано', dietPreference = null, target, blockedTerms = [], clinicalProtocolId = null, forbiddenNames = [] }) {
   const bySlot = getCatalogCandidatesForChunk({
     strategy: strategyFor(target, mealType),
     startDay: 1,
     endDay: 1,
     dietaryModifier,
+    dietPreference,
     blockedTerms,
     clinicalProtocolId,
   });
@@ -88,6 +89,14 @@ runScenario('Много висока калорийна цел — вечеря 
 runScenario('Много ниска калорийна цел — закуска', {
   mealType: 'Хранене 1',
   target: { calories: 220, protein: 18, carbs: 20, fats: 7 },
+});
+
+runScenario('Веган — dietPreference only (modifier Балансирано)', {
+  mealType: 'Хранене 2',
+  dietaryModifier: 'Балансирано',
+  dietPreference: ['Веган'],
+  target: { calories: 550, protein: 30, carbs: 60, fats: 18 },
+  forbiddenNames: ['Пилешко', 'Говеждо', 'Риба', 'Яйца', 'Сирене', 'Кисело мляко', 'Скир'],
 });
 
 const passed = results.filter(Boolean).length;

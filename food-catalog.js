@@ -11,7 +11,7 @@ import {
 import { FOOD_NUTRITION_PER_100G } from './food-nutrition-data.js';
 import { normalizeFoodKey } from './food-utils.js';
 import { buildRegistryIndex, getCatalogEntries } from './food-registry.js';
-import { passesDietRegistry } from './diet-registry.js';
+import { passesDietRegistry, resolveCatalogDietProfile } from './diet-registry.js';
 import { rankCatalogCandidates } from './candidate-ranking.js';
 
 const SLOT_LABELS = {
@@ -101,13 +101,14 @@ export function resolveCatalogEntry(name) {
 export { getCatalogEntries };
 
 function normalizeDietModifier(modifier = '') {
-  const m = String(modifier).toLowerCase();
+  return resolveCatalogDietProfile({ dietaryModifier: modifier });
+}
+
+function buildDietContext(options = {}) {
   return {
-    vegan: m.includes('веган'),
-    vegetarian: m.includes('вегетариан'),
-    pescatarian: m.includes('пескетариан'),
-    keto: m.includes('кето') || m.includes('нисковъглехидрат'),
-    glutenFree: m.includes('без глутен') || m.includes('глутен'),
+    dietaryModifier: options.dietaryModifier || 'Балансирано',
+    dietPreference: options.dietPreference ?? null,
+    dietDislike: options.dietDislike || '',
   };
 }
 
@@ -225,6 +226,8 @@ export function getCatalogCandidatesForChunk({
   startDay,
   endDay,
   dietaryModifier = 'Балансирано',
+  dietPreference = null,
+  dietDislike = '',
   blockedTerms = [],
   minUniversality = DEFAULT_MIN_UNIVERSALITY,
   preferLove = [],
@@ -232,7 +235,9 @@ export function getCatalogCandidatesForChunk({
   adherenceRatio = null,
 }) {
   const index = buildCatalogIndex();
-  const diet = normalizeDietModifier(dietaryModifier);
+  const dietCtx = buildDietContext({ dietaryModifier, dietPreference, dietDislike });
+  const diet = resolveCatalogDietProfile(dietCtx);
+  const registryCtx = dietCtx;
   const loveSet = new Set((preferLove || []).map(s => normalizeFoodKey(s)));
   const timings = new Set();
   const neededSlots = new Set(['VOL']);
@@ -277,7 +282,7 @@ export function getCatalogCandidatesForChunk({
   for (const entry of index.all) {
     if (entry.universality < minUniversality) continue;
     if (!isDietCompatible(entry, diet)) continue;
-    if (!passesDietRegistry(entry, dietaryModifier)) continue;
+    if (!passesDietRegistry(entry, registryCtx)) continue;
     if (isBlockedByTerms(entry, blockedTerms)) continue;
     if (isExcludedByProtocol(entry, clinicalProtocolId)) continue;
 
@@ -322,11 +327,11 @@ export function getCatalogCandidatesForChunk({
       .filter(e => e.group === 'ready_meal')
       .filter(e => e.universality >= minUniversality)
       .filter(e => isDietCompatible(e, diet))
-      .filter(e => passesDietRegistry(e, dietaryModifier))
+      .filter(e => passesDietRegistry(e, registryCtx))
       .filter(e => !isBlockedByTerms(e, blockedTerms))
       .filter(e => !isExcludedByProtocol(e, clinicalProtocolId))
       .filter(e => e.timing.some(t => timings.has(t))),
-    { loveSet, adherenceRatio: adherenceMap, slotTarget: representativeSlot, limit: 12 },
+    { loveSet, adherenceRatio: adherenceMap, slotTarget: representativeSlot, limit: 8 },
   );
 
   bySlot.set('READY', ready);
@@ -335,10 +340,8 @@ export function getCatalogCandidatesForChunk({
 
 export function formatCatalogSectionForPrompt(candidatesBySlot, { minUniversality = DEFAULT_MIN_UNIVERSALITY } = {}) {
   const lines = [
-    `=== КАТАЛОГ ХРАНИ (ЗАДЪЛЖИТЕЛНО — използвай САМО тези имена) ===`,
-    `Универсалност ≥${minUniversality}: предпочитай по-общи варианти (Риба, Ориз, Плод) пред конкретни (Лаврак, Киноа, Манго).`,
-    `Стойности в скоби = на 100g. Бекендът изчислява грамажите — не пиши числа в description.`,
-    `Готова храна: един ред = ястие; backend разбива (decompose) или фиксира порция (atomic) според каталога.`,
+    `=== КАТАЛОГ (само тези имена; без грамове в description) ===`,
+    `Универсалност ≥${minUniversality} — предпочитай общи имена (Риба, Ориз) пред конкретни.`,
   ];
 
   for (const slot of ['PRO', 'ENG', 'VOL', 'FAT']) {
@@ -358,8 +361,22 @@ export function formatCatalogSectionForPrompt(candidatesBySlot, { minUniversalit
     }
   }
 
-  lines.push(`НЕ използвай продукти извън каталога. Подправки — макс 10–15g, не като основен макроизточник.`);
+  lines.push(`Без продукти извън каталога.`);
   return lines.join('\n');
+}
+
+/** Defense-in-depth: catalog entry flags + registry narrowing for parsed meal products. */
+export function validateProductNamesAgainstDiet(names, dietCtx = {}) {
+  const diet = resolveCatalogDietProfile(dietCtx);
+  const registryCtx = buildDietContext(dietCtx);
+  const violations = [];
+  for (const name of names) {
+    const { entry } = resolveCatalogEntry(name);
+    if (!entry) continue;
+    if (!isDietCompatible(entry, diet)) violations.push(name);
+    else if (!passesDietRegistry(entry, registryCtx)) violations.push(name);
+  }
+  return [...new Set(violations)];
 }
 
 export function buildCatalogPromptSection(options) {
