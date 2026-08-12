@@ -17,7 +17,7 @@ ok(nutrition.includes("from './meal-solver.js'"), 'food-nutrition imports solver
 ok(!nutrition.includes('scaleItemsToTargetCalories'), 'scaling chain removed');
 ok(!worker.includes('reconcileAchievedSlotCalories'), 'reconcile removed from worker');
 ok(worker.includes('DAY_MACRO_TOLERANCE_PERCENT'), 'daily macro validation (soft when kcal ok)');
-ok(worker.includes('CHUNK_NUTRITION_BLOCKING_PATTERNS'), 'chunk blocking vs soft split');
+ok(worker.includes('buildInfeasibilityRetryHints'), 'precision-first infeasibility hints');
 ok(!worker.includes('липсват грамажи'), 'gram-required validation removed');
 ok(prompt.includes('Do NOT write grams') || readFileSync('step3-chunk.js', 'utf8').includes('Do NOT write grams'), 'prompt: composition only');
 ok(!prompt.includes('{N}g'), 'prompt: no gram template');

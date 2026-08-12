@@ -22,6 +22,16 @@ export const MAX_LATE_SNACK_CALORIES = 200;
 /** Afternoon snack (H3) kcal ceiling — fruit/nuts/yogurt cannot reach main-meal targets. */
 export const MAX_AFTERNOON_SNACK_CALORIES = 350;
 
+/** Snack portions — human-scale caps independent of scheme kcal (solver fits within these). */
+export const LIGHT_MEAL_PLATE_MAX_GRAMS = {
+  'Хранене 3': 220,
+  'Хранене 5': 120,
+};
+export const LIGHT_DAIRY_MAX_GRAMS = 150;
+export const LIGHT_NUTS_MAX_GRAMS = 30;
+export const LIGHT_FRUIT_MAX_GRAMS = 150;
+export const LIGHT_CHEESE_MAX_GRAMS = 40;
+
 /**
  * Adequacy contract: per-slot kcal deviation after nutrition sync.
  * 10% is standard for meal plans; floor keeps small snacks (H3) practical.
@@ -29,18 +39,18 @@ export const MAX_AFTERNOON_SNACK_CALORIES = 350;
 export const SLOT_CALORIE_TOLERANCE_PERCENT = 0.10;
 export const SLOT_CALORIE_TOLERANCE_MIN_KCAL = 30;
 
-export function slotCalorieTolerance(targetKcal) {
-  return Math.max(
-    SLOT_CALORIE_TOLERANCE_MIN_KCAL,
-    Math.round((Number(targetKcal) || 0) * SLOT_CALORIE_TOLERANCE_PERCENT),
-  );
+export function slotCalorieTolerance(targetKcal, mealType = null) {
+  const target = Number(targetKcal) || 0;
+  const pct = isLightMealSlot(mealType) ? 0.22 : SLOT_CALORIE_TOLERANCE_PERCENT;
+  const min = isLightMealSlot(mealType) ? 50 : SLOT_CALORIE_TOLERANCE_MIN_KCAL;
+  return Math.max(min, Math.round(target * pct));
 }
 
-export function isMealCaloriesAdequate(achievedKcal, targetKcal) {
+export function isMealCaloriesAdequate(achievedKcal, targetKcal, mealType = null) {
   const achieved = Number(achievedKcal) || 0;
   const target = Number(targetKcal) || 0;
   if (target <= 0 || achieved <= 0) return true;
-  return Math.abs(achieved - target) <= slotCalorieTolerance(target);
+  return Math.abs(achieved - target) <= slotCalorieTolerance(target, mealType);
 }
 
 const NEGATIVE_HEALTH_TONE = /влошен|критичн|много лош/i;

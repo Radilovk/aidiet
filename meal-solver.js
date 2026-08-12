@@ -100,12 +100,10 @@ export function solveMealGrams(items, target, bounds, maxTotalGrams = 900) {
   ({ grams } = refineGrams(items, grams, bounds, target, maxTotalGrams, cost));
   let best = cost(items, grams, target, maxTotalGrams);
 
-  const snapped = grams.map(g =>
-    g > GRAM_LARGE_THRESHOLD ? Math.round(g / 50) * 50 : Math.round(g / 10) * 10);
-  if (snapped.every((g, i) => g >= bounds[i].min && g <= bounds[i].max)
-      && cost(items, snapped, target, maxTotalGrams) <= best + 0.02) {
-    grams = snapped;
-  }
+  grams = grams.map((g, i) => {
+    const snapped = g > GRAM_LARGE_THRESHOLD ? Math.round(g / 50) * 50 : Math.round(g / 10) * 10;
+    return Math.min(bounds[i].max, Math.max(bounds[i].min, snapped));
+  });
 
   let t = totalsFor(items, grams);
   let kcalOk = Math.abs(t.kcal - target.kcal) <= Math.max(30, target.kcal * 0.10);
