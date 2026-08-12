@@ -1,0 +1,35 @@
+{
+  "includes": [
+    "architecture",
+    "templates",
+    "hierarchy",
+    "orchestrator",
+    "foods_with_macros",
+    "grams_calories"
+  ],
+  "files": [
+    "nutrition-protocol-system/data/conditions.json",
+    "nutrition-protocol-system/data/exchange-units.json",
+    "nutrition-protocol-system/data/food-groups.json",
+    "nutrition-protocol-system/data/foods.json",
+    "nutrition-protocol-system/data/goals.json",
+    "nutrition-protocol-system/data/meal-templates.json",
+    "nutrition-protocol-system/data/protocol-rules.json",
+    "nutrition-protocol-system/data/ready-meals.json",
+    "nutrition-protocol-system/data/users.json",
+    "nutrition-protocol-system/data_library/food-groups.csv",
+    "nutrition-protocol-system/data_library/food-groups.json",
+    "nutrition-protocol-system/data_library/foods.csv",
+    "nutrition-protocol-system/data_library/foods.json",
+    "nutrition-protocol-system/data_library/library_summary.csv",
+    "nutrition-protocol-system/data_library/library_summary.png",
+    "nutrition-protocol-system/data_library/library_summary.png.meta.json",
+    "nutrition-protocol-system/data_library/meal-templates.csv",
+    "nutrition-protocol-system/data_library/meal-templates.json",
+    "nutrition-protocol-system/data_library/nutrition-library.html",
+    "nutrition-protocol-system/data_library/protocol-rules.json",
+    "nutrition-protocol-system/data_library/ready-meals.csv",
+    "nutrition-protocol-system/data_library/ready-meals.json",
+    "nutrition-protocol-system/nutrition-protocol-engine.html"
+  ]
+}
