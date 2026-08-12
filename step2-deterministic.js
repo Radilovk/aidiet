@@ -8,7 +8,7 @@ import { resolveLibraryDietProfile } from './protocol-engine.js';
 import { getMealDistribution } from './meal-template-engine.js';
 import { validateProtocolStrategy } from './protocol-validate.js';
 import { isKetoUser, userSkipsBreakfast } from './plan-normalize.js';
-import { buildQuestionnaireDietHints } from './questionnaire-engine-map.js';
+import { buildQuestionnaireDietHints, extractQuestionnaireBlockedTerms } from './questionnaire-engine-map.js';
 
 const DAY_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
@@ -147,6 +147,11 @@ function buildCopyFields(dietProfile, mealsPerDay, slotTypes, userData) {
   const label = DIET_PROFILE_LABELS[dietProfile] || DIET_PROFILE_LABELS.balanced;
   const mealList = slotTypes.join(', ');
   const name = userData?.name || 'клиента';
+  const loves = String(userData?.dietLove || '')
+    .split(/[,;]/)
+    .map(s => s.trim())
+    .filter(Boolean);
+  const blocked = extractQuestionnaireBlockedTerms(userData).slice(0, 12);
 
   return {
     dietaryModifier: label,
@@ -178,8 +183,16 @@ function buildCopyFields(dietProfile, mealsPerDay, slotTypes, userData) {
       'Замразена схема — калориите на слот не се местят',
       label,
     ],
-    preferredFoodCategories: [],
-    avoidFoodCategories: [],
+    preferredFoodCategories: loves,
+    avoidFoodCategories: blocked,
+    foodsToInclude: loves,
+    foodsToAvoid: blocked,
+    psychologicalSupport: [
+      userSkipsBreakfast(userData) ? 'Без закуска — калориите са в основните хранения.' : null,
+      Array.isArray(userData?.foodCravings) && userData.foodCravings.length
+        ? `Осъзнатост за craving: ${userData.foodCravings.join(', ')}`
+        : null,
+    ].filter(Boolean),
     hydrationStrategy: '2–2.5 L вода дневно, разпределена между храненията.',
   };
 }

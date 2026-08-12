@@ -108,13 +108,24 @@ function filterByTiming(entries, mealType) {
   );
 }
 
+function parsePreferLove(userData) {
+  return new Set(
+    String(userData?.dietLove || '')
+      .split(/[,;]/)
+      .map(s => normalizeFoodKey(s.trim()))
+      .filter(Boolean),
+  );
+}
+
 function pickFromPool(pool, ctx, roleKey) {
   let filtered = filterDiet(pool, ctx.dietCtx);
   if (!filtered.length) return null;
-  const { usedProducts, seed, dayNum, slotIndex } = ctx;
+  const { usedProducts, seed, dayNum, slotIndex, loveSet } = ctx;
   const ranked = rankCatalogCandidates(filtered, {
     slotTarget: ctx.slotTarget,
     maxSlotKcal: Number(ctx.slotTarget?.calories) || 0,
+    loveSet,
+    adherenceRatio: ctx.adherenceRatio,
     limit: Math.min(filtered.length, 32),
   });
   if (!ranked.length) return null;
@@ -126,7 +137,9 @@ function pickFromPool(pool, ctx, roleKey) {
   for (const entry of rotated) {
     const k = normalizeFoodKey(entry.name);
     const uses = usedProducts.get(k) || 0;
-    if (uses < 3) return entry;
+    const isLove = loveSet?.has(k);
+    const maxUses = isLove ? 4 : 3;
+    if (uses < maxUses) return entry;
   }
   return rotated[0];
 }
@@ -254,6 +267,10 @@ export function buildDeterministicWeekPlanChunk({
   }
 
   const dietCtx = dietContext(strategy, userData);
+  const loveSet = parsePreferLove(userData);
+  const adherenceRatio = userData?._adherenceRatio instanceof Map
+    ? userData._adherenceRatio
+    : new Map(Object.entries(userData?._adherenceRatio || {}));
 
   const candidatesBySlot = getCatalogCandidatesForChunk({
     strategy,
@@ -264,6 +281,8 @@ export function buildDeterministicWeekPlanChunk({
     dietDislike: userData?.dietDislike || '',
     blockedTerms,
     clinicalProtocolId,
+    preferLove: [...loveSet],
+    adherenceRatio,
   });
 
   const usedProducts = collectUsedProducts(previousDays);
@@ -291,6 +310,8 @@ export function buildDeterministicWeekPlanChunk({
         usedProducts,
         dietCtx,
         blockedTerms,
+        loveSet,
+        adherenceRatio,
       };
 
       meals.push(buildMealForSchemeSlot({

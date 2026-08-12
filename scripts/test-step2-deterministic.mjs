@@ -76,6 +76,12 @@ ok(skipStrategy.freeDayNumber === 7, 'free day defaults to Sunday');
 const sundaySlots = skipStrategy.weeklyScheme.sunday.mealBreakdown.map(m => m.type);
 ok(sundaySlots.includes('Свободно хранене'), 'Sunday has free meal slot');
 
+const loveStrategy = buildDeterministicStrategy({
+  userData: { ...userData, dietLove: 'кашкавал', eatingHabits: ['Не закусвам'] },
+  analysis,
+});
+ok(loveStrategy.foodsToInclude?.includes('кашкавал'), 'dietLove flows to foodsToInclude');
+
 console.log('');
 if (fail) {
   console.error(`FAILED: ${fail} test(s)`);
