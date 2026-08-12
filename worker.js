@@ -153,7 +153,7 @@ var WEEKLY_SCHEME_SCHEMA = {
   required: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 };
 var PLAN_SYSTEM_INSTRUCTIONS = {
-  step1: "\u041A\u043B\u0438\u043D\u0438\u0447\u0435\u043D \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433, \u0435\u043D\u0434\u043E\u043A\u0440\u0438\u043D\u043E\u043B\u043E\u0433 \u0438 \u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. bmr \u0438 tdee \u0441\u0430 \u043E\u0442 \u0431\u0435\u043A\u0435\u043D\u0434\u0430 \u2014 \u043D\u0435 \u0433\u0438 \u043F\u0440\u0435\u0438\u0437\u0447\u0438\u0441\u043B\u044F\u0432\u0430\u0439. \u0418\u0433\u043D\u043E\u0440\u0438\u0440\u0430\u0439 recommendedCalories/macroRatios/macroGrams \u043E\u0442 backendCalculations. macroRatios \u0438 macroGrams \u2014 \u0441\u0430\u043C\u043E \u0447\u0438\u0441\u043B\u0430.",
+  step1: "\u041A\u043B\u0438\u043D\u0438\u0447\u0435\u043D \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433, \u0435\u043D\u0434\u043E\u043A\u0440\u0438\u043D\u043E\u043B\u043E\u0433 \u0438 \u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. bmr, tdee, Final_Calories, macroRatios \u0438 macroGrams \u0441\u0435 \u0437\u0430\u0434\u0430\u0432\u0430\u0442 \u043E\u0442 \u0431\u0435\u043A\u0435\u043D\u0434\u0430 \u2014 \u043D\u0435 \u0433\u0438 \u043F\u0440\u0435\u0438\u0437\u0447\u0438\u0441\u043B\u044F\u0432\u0430\u0439 \u0438 \u043D\u0435 \u0433\u0438 \u043F\u0440\u043E\u043C\u0435\u043D\u044F\u0439. \u0424\u043E\u043A\u0443\u0441: keyProblems, currentHealthStatus, psychology, correlations, narrative.",
   step2: '\u0415\u043A\u0441\u043F\u0435\u0440\u0442\u0435\u043D \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. \u041A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u043E\u0442 \u0430\u043D\u0430\u043B\u0438\u0437\u0430 \u0441\u0430 \u0444\u0438\u043D\u0430\u043B\u043D\u0438 \u2014 \u043D\u0435 \u0433\u0438 \u043F\u0440\u0435\u0438\u0437\u0447\u0438\u0441\u043B\u044F\u0432\u0430\u0439. \u0422\u0438\u043F\u043E\u0432\u0435 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F: \u0441\u0430\u043C\u043E "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1"\u2013"\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5" \u0438 "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435". \u0417\u0430\u0431\u0440\u0430\u043D\u0435\u043D\u0438 display \u0438\u043C\u0435\u043D\u0430: \u0417\u0430\u043A\u0443\u0441\u043A\u0430, \u041E\u0431\u044F\u0434, \u0421\u043B\u0435\u0434\u043E\u0431\u0435\u0434\u043D\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430, \u0412\u0435\u0447\u0435\u0440\u044F, \u041A\u044A\u0441\u043D\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430. \u0417\u0430\u0434\u044A\u043B\u0436\u0438\u0442\u0435\u043B\u043D\u0438 \u043F\u043E\u043B\u0435\u0442\u0430: freeDayNumber (6|7|null), includeDessert (true|false). \u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0437\u0430\u043C\u0435\u0441\u0442\u0432\u0430 \u043E\u0431\u044F\u0434 \u0432 mealBreakdown \u043D\u0430 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u0438\u044F \u0434\u0435\u043D.',
   step3: "\u0414\u0438\u0435\u0442\u043E\u043B\u043E\u0433 \u0437\u0430 \u0431\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438 \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u043B\u0430\u043D. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. \u041F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u0421\u0410\u041C\u041E \u043E\u0442 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430; \u0438\u043C\u0435\u043D\u0430\u0442\u0430 \u0442\u043E\u0447\u043D\u043E \u043A\u0430\u043A\u0442\u043E \u0432 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430. dessert:true \u0441\u0430\u043C\u043E \u043D\u0430 \u0425\u0440\u0430\u043D\u0435\u043D\u0435 2. \u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435: \u0441\u0430\u043C\u043E type+name, \u0431\u0435\u0437 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u0438 \u0431\u0435\u0437 macros.",
   step4: "\u041A\u043B\u0438\u043D\u0438\u0447\u0435\u043D \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433 \u0438 \u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. \u041F\u0440\u0435\u043F\u043E\u0440\u044A\u043A\u0438\u0442\u0435 \u0441\u0430 \u043F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u0438\u0437\u0438\u0440\u0430\u043D\u0438 \u043F\u043E \u043F\u0440\u043E\u0444\u0438\u043B\u0430 \u2014 \u043D\u0435 \u0443\u043D\u0438\u0432\u0435\u0440\u0441\u0430\u043B\u043D\u0438."
@@ -18382,6 +18382,86 @@ function buildDeterministicStrategy({ userData = null, analysis = null, options 
   };
 }
 
+// step1-deterministic.js
+function deterministicStep1Enabled(env = {}) {
+  const v = env?.DETERMINISTIC_STEP1;
+  if (v === "0" || v === "false" || v === false) return false;
+  return true;
+}
+function goalIncludes(goal, keyword) {
+  if (!goal || !keyword) return false;
+  const kw = String(keyword).toLowerCase();
+  if (Array.isArray(goal)) return goal.some((g) => String(g).toLowerCase().includes(kw));
+  return String(goal).toLowerCase().includes(kw);
+}
+function computeIntakeTarget(tdee, goal, deficitData = {}) {
+  const maintenance = Math.round(Number(tdee) || 0);
+  if (!maintenance) return 0;
+  if (goalIncludes(goal, "\u041C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430")) {
+    return Math.round(maintenance * 1.1);
+  }
+  if (goalIncludes(goal, "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435")) {
+    const target = Number(deficitData.targetCalories);
+    return target > 0 ? Math.round(target) : Math.round(maintenance * 0.82);
+  }
+  return maintenance;
+}
+function macroGramsFromIntake(intake, ratios, minFatG = 0) {
+  const fc = Math.round(Number(intake) || 0);
+  const r = ratios || {};
+  if (fc <= 0) return { protein: 0, carbs: 0, fats: 0 };
+  let proteinG = Math.round(fc * (Number(r.protein) || 0) / 100 / 4);
+  let fatsG = Math.round(fc * (Number(r.fats) || 0) / 100 / 9);
+  let carbsG = Math.max(0, Math.round((fc - proteinG * 4 - fatsG * 9) / 4));
+  if (minFatG > 0 && fatsG < minFatG) {
+    fatsG = minFatG;
+    carbsG = Math.max(0, Math.round((fc - proteinG * 4 - fatsG * 9) / 4));
+  }
+  return { protein: proteinG, carbs: carbsG, fats: fatsG };
+}
+function buildEnergyContract(inputs = {}) {
+  const bmr = Math.round(Number(inputs.bmr) || 0);
+  const tdee = Math.round(Number(inputs.tdee) || 0);
+  const macros = inputs.macros || {};
+  const intake = computeIntakeTarget(tdee, inputs.goal, inputs.deficitData);
+  const macroRatios = {
+    protein: Number(macros.protein) || 0,
+    carbs: Number(macros.carbs) || 0,
+    fats: Number(macros.fats) || 0
+  };
+  const macroGrams = macroGramsFromIntake(intake, macroRatios, inputs.minFatG || 0);
+  return {
+    bmr,
+    tdee,
+    Final_Calories: intake,
+    recommendedCalories: intake,
+    macroRatios,
+    macroGrams,
+    activityLevel: inputs.activityData?.activityLevel || "",
+    correctedMetabolism: {
+      realBMR: bmr,
+      realTDEE: tdee
+    }
+  };
+}
+function applyDeterministicEnergyContract(analysis, contract) {
+  if (!analysis || !contract) return analysis;
+  analysis.bmr = contract.bmr;
+  analysis.tdee = contract.tdee;
+  analysis.Final_Calories = contract.Final_Calories;
+  analysis.recommendedCalories = contract.recommendedCalories;
+  analysis.macroRatios = { ...contract.macroRatios };
+  analysis.macroGrams = { ...contract.macroGrams };
+  if (contract.activityLevel) {
+    analysis.activityLevel = contract.activityLevel;
+  }
+  const cm = analysis.correctedMetabolism || (analysis.correctedMetabolism = {});
+  if (contract.correctedMetabolism?.realBMR) cm.realBMR = contract.correctedMetabolism.realBMR;
+  if (contract.correctedMetabolism?.realTDEE) cm.realTDEE = contract.correctedMetabolism.realTDEE;
+  analysis._deterministicEnergy = true;
+  return analysis;
+}
+
 // admin-food-catalog.js
 var FOOD_CATALOG_OVERLAY_KV_KEY = "food_catalog_overlay";
 var BASE_IDS = new Set(FOOD_CATALOG.map((e) => e.id));
@@ -19263,7 +19343,7 @@ function calculateMacronutrientRatios(data, activityScore, tdee = null) {
 }
 function calculateSafeDeficit(tdee, goal) {
   const MAX_DEFICIT_PERCENT = 0.25;
-  if (!goalIncludes(goal, "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435")) {
+  if (!goalIncludes2(goal, "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435")) {
     return {
       targetCalories: tdee,
       deficitPercent: 0,
@@ -20460,6 +20540,34 @@ function normalizeStrategyDessertFlag(strategy, userData) {
     return s.includes("\u0414\u0438\u0430\u0431\u0435\u0442") || s.includes("\u0418\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430 \u0440\u0435\u0437\u0438\u0441\u0442\u0435\u043D\u0442\u043D\u043E\u0441\u0442");
   });
   strategy.includeDessert = !blocked;
+}
+function computeBackendEnergyInputs(data) {
+  const activityData = calculateUnifiedActivityScore(data);
+  const bmr = calculateBMR(data);
+  const tdee = calculateTDEE(bmr, activityData.combinedScore);
+  const deficitData = calculateSafeDeficit(tdee, data.goal);
+  const macros = calculateMacronutrientRatios(data, activityData.combinedScore, tdee);
+  return { activityData, bmr, tdee, deficitData, macros };
+}
+function finalizeStep1Analysis(env, data, analysis) {
+  normalizeAnalysisOutput(analysis, data);
+  const { activityData, bmr, tdee, deficitData, macros } = computeBackendEnergyInputs(data);
+  if (deterministicStep1Enabled(env)) {
+    const minFatG = Math.round((parseFloat(data.weight) || 70) * MIN_FAT_GRAMS_PER_KG2);
+    const contract = buildEnergyContract({
+      bmr,
+      tdee,
+      deficitData,
+      macros,
+      activityData,
+      goal: data.goal,
+      minFatG
+    });
+    applyDeterministicEnergyContract(analysis, contract);
+    console.log("Step 1: deterministic energy contract applied");
+  }
+  enforceCalorieGuardrails(analysis, data, tdee);
+  return { bmr, tdee, activityData };
 }
 function finalizeStrategyObject(strategy, analysis, userData) {
   if (!strategy) return strategy;
@@ -24306,7 +24414,7 @@ function syncAnalysisCalories(analysis, referenceTdee = 0) {
   const fc = parseFinalCalories(analysis.Final_Calories);
   if (fc > 0) analysis.recommendedCalories = fc;
 }
-function goalIncludes(goal, keyword) {
+function goalIncludes2(goal, keyword) {
   if (!goal || !keyword) return false;
   const kw = String(keyword).toLowerCase();
   if (Array.isArray(goal)) return goal.some((g) => String(g).toLowerCase().includes(kw));
@@ -24326,7 +24434,7 @@ function enforceCalorieGuardrails(analysis, data, referenceTdee) {
   const isLactation = data.clinicalProtocol === "postpartum_lactation";
   const maxDeficitRatio = 0.25;
   const corrections = [];
-  if (tdee > 0 && fc > 0 && goalIncludes(data.goal, "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435") && !isLactation) {
+  if (tdee > 0 && fc > 0 && goalIncludes2(data.goal, "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435") && !isLactation) {
     const minAllowed = Math.round(tdee * (1 - maxDeficitRatio));
     if (fc < minAllowed) {
       fc = minAllowed;
@@ -25183,7 +25291,7 @@ function validatePlan(plan, userData, substitutions = []) {
       stepErrors.step1_analysis.push(error);
     }
   }
-  if (goalIncludes(userData.goal, "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435") && plan.summary && plan.summary.dailyCalories) {
+  if (goalIncludes2(userData.goal, "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435") && plan.summary && plan.summary.dailyCalories) {
     const caloriesMatch = String(plan.summary.dailyCalories).match(/\d+/);
     if (caloriesMatch) {
       const calories = parseInt(caloriesMatch[0]);
@@ -25377,11 +25485,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       if (analysis.keyProblems && Array.isArray(analysis.keyProblems)) {
         analysis.keyProblems = analysis.keyProblems.filter((problem) => problem.severity !== "Normal");
       }
-      normalizeAnalysisOutput(analysis, data);
-      const refActivity = calculateUnifiedActivityScore(data);
-      const refBmr = calculateBMR(data);
-      const refTdee = calculateTDEE(refBmr, refActivity.combinedScore);
-      enforceCalorieGuardrails(analysis, data, refTdee);
+      finalizeStep1Analysis(env, data, analysis);
     } else {
       analysis = existingPlan.analysis;
       console.log("Reusing existing analysis");
@@ -25440,9 +25544,9 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       if (!recommendedCalories) {
         const fallbackActivityData = calculateUnifiedActivityScore(data);
         const tdee = calculateTDEE(bmr, fallbackActivityData.combinedScore);
-        if (goalIncludes(data.goal, "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435")) {
+        if (goalIncludes2(data.goal, "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435")) {
           recommendedCalories = Math.round(tdee * 0.85);
-        } else if (goalIncludes(data.goal, "\u041C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430")) {
+        } else if (goalIncludes2(data.goal, "\u041C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430")) {
           recommendedCalories = Math.round(tdee * 1.1);
         } else {
           recommendedCalories = tdee;
@@ -25596,11 +25700,7 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
           console.log(`Filtered out ${originalCount - filteredCount} Normal severity problems from analysis`);
         }
       }
-      normalizeAnalysisOutput(analysis, data);
-      const refActivity = calculateUnifiedActivityScore(data);
-      const refBmr = calculateBMR(data);
-      const refTdee = calculateTDEE(refBmr, refActivity.combinedScore);
-      enforceCalorieGuardrails(analysis, data, refTdee);
+      finalizeStep1Analysis(env, data, analysis);
     } catch (error) {
       console.error("Analysis step failed:", error);
       throw new Error(`\u0421\u0442\u044A\u043F\u043A\u0430 1 (\u0410\u043D\u0430\u043B\u0438\u0437): ${error.message}`);
@@ -26009,9 +26109,9 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
   if (!recommendedCalories) {
     const fallbackActivityData = calculateUnifiedActivityScore(data);
     const tdee = calculateTDEE(bmr, fallbackActivityData.combinedScore);
-    if (goalIncludes(data.goal, "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435")) {
+    if (goalIncludes2(data.goal, "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435")) {
       recommendedCalories = Math.round(tdee * 0.85);
-    } else if (goalIncludes(data.goal, "\u041C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430")) {
+    } else if (goalIncludes2(data.goal, "\u041C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430")) {
       recommendedCalories = Math.round(tdee * 1.1);
     } else {
       recommendedCalories = tdee;

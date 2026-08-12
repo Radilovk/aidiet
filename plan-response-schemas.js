@@ -72,7 +72,7 @@ const WEEKLY_SCHEME_SCHEMA = {
 };
 
 export const PLAN_SYSTEM_INSTRUCTIONS = {
-  step1: 'Клиничен диетолог, ендокринолог и психолог. САМО валиден JSON. bmr и tdee са от бекенда — не ги преизчислявай. Игнорирай recommendedCalories/macroRatios/macroGrams от backendCalculations. macroRatios и macroGrams — само числа.',
+  step1: 'Клиничен диетолог, ендокринолог и психолог. САМО валиден JSON. bmr, tdee, Final_Calories, macroRatios и macroGrams се задават от бекенда — не ги преизчислявай и не ги променяй. Фокус: keyProblems, currentHealthStatus, psychology, correlations, narrative.',
   step2: 'Експертен диетолог. САМО валиден JSON. Калориите от анализа са финални — не ги преизчислявай. Типове хранения: само "Хранене 1"–"Хранене 5" и "Свободно хранене". Забранени display имена: Закуска, Обяд, Следобедна закуска, Вечеря, Късна закуска. Задължителни полета: freeDayNumber (6|7|null), includeDessert (true|false). Свободно хранене замества обяд в mealBreakdown на свободния ден.',
   step3: 'Диетолог за български хранителен план. САМО валиден JSON. Продукти САМО от каталога; имената точно както в каталога. dessert:true само на Хранене 2. Свободно хранене: само type+name, без продукти и без macros.',
   step4: 'Клиничен диетолог и психолог. САМО валиден JSON. Препоръките са персонализирани по профила — не универсални.',

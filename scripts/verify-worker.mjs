@@ -224,6 +224,11 @@ check('step2 deterministic builder', () => {
   if (!r.ok) throw new Error(r.out.split('\n').slice(-20).join('\n'));
 });
 
+check('step1 deterministic energy contract', () => {
+  const r = run('node', ['scripts/test-step1-deterministic.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-20).join('\n'));
+});
+
 check('nutrition library merge', () => {
   const r = run('node', ['scripts/test-nutrition-library.mjs']);
   if (!r.ok) throw new Error(r.out.split('\n').slice(-12).join('\n'));

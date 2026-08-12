@@ -23,6 +23,8 @@ assert(!analysisPrompt.includes('realTDEE=Final_Calories'), 'step1 must not conf
 assert(workerSrc.includes('finalCalories,'), 'generateStrategyPrompt passes finalCalories');
 assert(!workerSrc.includes('function enforceWeekPlanCalorieTargets'), 'no post-hoc calorie enforce patch');
 assert(workerSrc.includes('Final_Calories: intake'), 'buildCompactAnalysis includes intake for step2 cache');
+assert(workerSrc.includes('finalizeStep1Analysis'), 'step1 uses deterministic energy finalizer');
+assert(workerSrc.includes('applyDeterministicEnergyContract'), 'step1 overlays backend energy contract');
 
 const step2Block = serializeAnalysisForStep({
   bmi: 32,

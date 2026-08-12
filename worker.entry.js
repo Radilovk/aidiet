@@ -95,6 +95,11 @@ import {
   deterministicStep2Enabled,
 } from './step2-deterministic.js';
 import {
+  buildEnergyContract,
+  applyDeterministicEnergyContract,
+  deterministicStep1Enabled,
+} from './step1-deterministic.js';
+import {
   validateProtocolStrategy,
 } from './protocol-validate.js';
 import {
@@ -2791,6 +2796,39 @@ function normalizeStrategyDessertFlag(strategy, userData) {
     return s.includes('Диабет') || s.includes('Инсулинова резистентност');
   });
   strategy.includeDessert = !blocked;
+}
+
+function computeBackendEnergyInputs(data) {
+  const activityData = calculateUnifiedActivityScore(data);
+  const bmr = calculateBMR(data);
+  const tdee = calculateTDEE(bmr, activityData.combinedScore);
+  const deficitData = calculateSafeDeficit(tdee, data.goal);
+  const macros = calculateMacronutrientRatios(data, activityData.combinedScore, tdee);
+  return { activityData, bmr, tdee, deficitData, macros };
+}
+
+/** Step 1 post-process: narrative normalize + deterministic energy overlay + guardrails. */
+function finalizeStep1Analysis(env, data, analysis) {
+  normalizeAnalysisOutput(analysis, data);
+  const { activityData, bmr, tdee, deficitData, macros } = computeBackendEnergyInputs(data);
+
+  if (deterministicStep1Enabled(env)) {
+    const minFatG = Math.round((parseFloat(data.weight) || 70) * MIN_FAT_GRAMS_PER_KG);
+    const contract = buildEnergyContract({
+      bmr,
+      tdee,
+      deficitData,
+      macros,
+      activityData,
+      goal: data.goal,
+      minFatG,
+    });
+    applyDeterministicEnergyContract(analysis, contract);
+    console.log('Step 1: deterministic energy contract applied');
+  }
+
+  enforceCalorieGuardrails(analysis, data, tdee);
+  return { bmr, tdee, activityData };
 }
 
 /** Post-process raw strategy (deterministic or AI) before validation / Step 3. */
@@ -9105,11 +9143,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       if (analysis.keyProblems && Array.isArray(analysis.keyProblems)) {
         analysis.keyProblems = analysis.keyProblems.filter(problem => problem.severity !== 'Normal');
       }
-      normalizeAnalysisOutput(analysis, data);
-      const refActivity = calculateUnifiedActivityScore(data);
-      const refBmr = calculateBMR(data);
-      const refTdee = calculateTDEE(refBmr, refActivity.combinedScore);
-      enforceCalorieGuardrails(analysis, data, refTdee);
+      finalizeStep1Analysis(env, data, analysis);
     } else {
       // Reuse existing analysis
       analysis = existingPlan.analysis;
@@ -9378,13 +9412,7 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
           console.log(`Filtered out ${originalCount - filteredCount} Normal severity problems from analysis`);
         }
       }
-      normalizeAnalysisOutput(analysis, data);
-
-      // Sync + safety guardrails (AI keeps diet-specific judgment; code clamps extremes only)
-      const refActivity = calculateUnifiedActivityScore(data);
-      const refBmr = calculateBMR(data);
-      const refTdee = calculateTDEE(refBmr, refActivity.combinedScore);
-      enforceCalorieGuardrails(analysis, data, refTdee);
+      finalizeStep1Analysis(env, data, analysis);
     } catch (error) {
       console.error('Analysis step failed:', error);
       throw new Error(`Стъпка 1 (Анализ): ${error.message}`);
