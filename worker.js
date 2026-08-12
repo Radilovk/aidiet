@@ -8270,14 +8270,22 @@ function slotFatShare(target = {}) {
   const f = Number(target.fats) || 0;
   return kcal > 0 ? f * 9 / kcal : 0.3;
 }
+function kcalPerGram(nutritionKey) {
+  const a = FOOD_NUTRITION_PER_100G[nutritionKey];
+  if (!a) return 0;
+  const kcal = a[1] * 4 + a[2] * 4 + a[3] * 9;
+  return kcal > 0 ? kcal / 100 : 0;
+}
 function rankCatalogCandidates(list, ctx = {}) {
   const loveSet = ctx.loveSet || /* @__PURE__ */ new Set();
   const adherence = ctx.adherenceRatio || /* @__PURE__ */ new Map();
   const targetFat = slotFatShare(ctx.slotTarget);
+  const maxSlotKcal2 = Number(ctx.maxSlotKcal) || Number(ctx.slotTarget?.calories) || 0;
   const limit = ctx.limit ?? list.length;
   const scored = list.map((entry) => {
     let score = (entry.universality || 3) / 5;
     const nKey = entry.nutritionKey || entry.name;
+    const density = kcalPerGram(nKey);
     if (loveSet.has(normalizeFoodKey(entry.name))) score += 0.45;
     const ratio = adherence.get(nKey);
     if (typeof ratio === "number") {
@@ -8286,6 +8294,14 @@ function rankCatalogCandidates(list, ctx = {}) {
     }
     if (ctx.slotTarget) {
       score -= Math.abs(fatShareOfKcal(nKey) - targetFat) * 0.35;
+    }
+    if (maxSlotKcal2 >= 900 && (entry.slots?.includes("PRO") || entry.slots?.includes("ENG"))) {
+      score += Math.min(0.55, density * 0.35);
+    } else if (maxSlotKcal2 >= 600 && (entry.slots?.includes("PRO") || entry.slots?.includes("ENG"))) {
+      score += Math.min(0.35, density * 0.25);
+    }
+    if (maxSlotKcal2 >= 600 && entry.group === "vegetable" && !entry.slots?.includes("PRO")) {
+      score -= 0.15;
     }
     if (entry.group === "condiment") score -= 0.2;
     return { entry, score };
@@ -8300,6 +8316,39 @@ function rankCatalogCandidates(list, ctx = {}) {
     if (out.length >= limit) break;
   }
   return out;
+}
+
+// step3-creation-hints.js
+var HIGH_KCAL_THRESHOLD = 600;
+var VERY_HIGH_KCAL_THRESHOLD = 900;
+function maxSlotKcalInChunk(strategy, startDay, endDay, dayNumberToKey) {
+  let max = 0;
+  for (let d = startDay; d <= endDay; d++) {
+    const schemeKey = dayNumberToKey[d - 1];
+    const breakdown = strategy?.weeklyScheme?.[schemeKey]?.mealBreakdown || [];
+    for (const slot of breakdown) {
+      if (slot.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" || slot.type === "\u041D\u0430\u043F\u0438\u0442\u043A\u0430") continue;
+      max = Math.max(max, Number(slot.calories) || 0);
+    }
+  }
+  return max;
+}
+function buildHighKcalCreationHint(maxSlotKcal2) {
+  if (maxSlotKcal2 < HIGH_KCAL_THRESHOLD) return "";
+  if (maxSlotKcal2 >= VERY_HIGH_KCAL_THRESHOLD) {
+    return `Slot \u2265${VERY_HIGH_KCAL_THRESHOLD} kcal: \u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430\u0439 \u043A\u0430\u043B\u043E\u0440\u0438\u0447\u0435\u043D PRO (\u043C\u0435\u0441\u043E/\u0440\u0438\u0431\u0430/\u0442\u043E\u0444\u0443) + ENG (\u043E\u0440\u0438\u0437/\u043A\u0430\u0440\u0442\u043E\u0444/\u043C\u0430\u0441\u043B\u043E/\u044F\u0434\u043A\u0438) \u2014 \u0441\u0430\u043B\u0430\u0442\u0430/\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A \u0441\u0430\u043C\u043E VOL, \u043D\u0435 \u043A\u0430\u0442\u043E \u043E\u0441\u043D\u043E\u0432\u0435\u043D \u0438\u0437\u0442\u043E\u0447\u043D\u0438\u043A.`;
+  }
+  return `Slot \u2265${HIGH_KCAL_THRESHOLD} kcal: \u0432\u043A\u043B\u044E\u0447\u0438 PRO + ENG \u0441 \u0434\u043E\u0441\u0442\u0430\u0442\u044A\u0447\u043D\u0430 kcal/g; \u043D\u0435 \u0440\u0430\u0437\u0447\u0438\u0442\u0430\u0439 \u0441\u0430\u043C\u043E \u043D\u0430 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A.`;
+}
+function buildInfeasibilityRetryHints(infeasibleSlots = []) {
+  if (!infeasibleSlots?.length) return "";
+  const lines = infeasibleSlots.slice(0, 6).map(
+    (s) => `- \u0414\u0435\u043D ${s.day} ${s.type}: ${s.reason || "\u043D\u0435\u043E\u0441\u044A\u0449\u0435\u0441\u0442\u0432\u0438\u043C"} \u2192 \u0441\u043C\u0435\u043D\u0438 PRO/ENG \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438\u0442\u0435 \u043E\u0442 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430`
+  );
+  const tail = infeasibleSlots.length > 6 ? `
+(+ ${infeasibleSlots.length - 6} \u043E\u0449\u0435 \u0441\u043B\u043E\u0442\u0430)` : "";
+  return `INFEASIBLE (\u043F\u044A\u043B\u043D\u0430 regen \u2014 \u0431\u0435\u0437 partial plate):
+${lines.join("\n")}${tail}`;
 }
 
 // food-catalog.js
@@ -8529,6 +8578,7 @@ function getCatalogCandidatesForChunk({
   const dayKeys = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
   const adherenceMap = adherenceRatio instanceof Map ? adherenceRatio : new Map(Object.entries(adherenceRatio || {}));
   const representativeSlot = strategy?.weeklyScheme?.[dayKeys[startDay - 1]]?.mealBreakdown?.find((m) => m.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2") || strategy?.weeklyScheme?.monday?.mealBreakdown?.[0];
+  const maxSlotKcal2 = maxSlotKcalInChunk(strategy, startDay, endDay, dayKeys);
   const isKeto = /кето|keto/i.test(String(dietaryModifier || ""));
   for (let d = startDay; d <= endDay; d++) {
     const dayTarget = strategy?.weeklyScheme?.[dayKeys[d - 1]];
@@ -8576,6 +8626,7 @@ function getCatalogCandidatesForChunk({
       loveSet,
       adherenceRatio: adherenceMap,
       slotTarget: representativeSlot,
+      maxSlotKcal: maxSlotKcal2,
       limit: CATALOG_PROMPT_LIMIT_PER_SLOT * 3
     });
     bySlot.set(slot, ranked.slice(0, CATALOG_PROMPT_LIMIT_PER_SLOT));
@@ -8595,16 +8646,17 @@ function getCatalogCandidatesForChunk({
   }
   const ready = rankCatalogCandidates(
     index.all.filter((e) => e.group === "ready_meal").filter((e) => e.universality >= minUniversality).filter((e) => isDietCompatible(e, diet)).filter((e) => passesDietRegistry(e, registryCtx)).filter((e) => !isBlockedByTerms(e, blockedTerms)).filter((e) => !isExcludedByProtocol(e, clinicalProtocolId)).filter((e) => e.timing.some((t) => timings.has(t))),
-    { loveSet, adherenceRatio: adherenceMap, slotTarget: representativeSlot, limit: 8 }
+    { loveSet, adherenceRatio: adherenceMap, slotTarget: representativeSlot, maxSlotKcal: maxSlotKcal2, limit: 8 }
   );
   bySlot.set("READY", ready);
   return bySlot;
 }
-function formatCatalogSectionForPrompt(candidatesBySlot, { minUniversality = DEFAULT_MIN_UNIVERSALITY } = {}) {
+function formatCatalogSectionForPrompt(candidatesBySlot, { minUniversality = DEFAULT_MIN_UNIVERSALITY, creationHint = "" } = {}) {
   const lines = [
     `=== \u041A\u0410\u0422\u0410\u041B\u041E\u0413 (\u0441\u0430\u043C\u043E \u0442\u0435\u0437\u0438 \u0438\u043C\u0435\u043D\u0430; \u0431\u0435\u0437 \u0433\u0440\u0430\u043C\u043E\u0432\u0435 \u0432 description) ===`,
     `\u0423\u043D\u0438\u0432\u0435\u0440\u0441\u0430\u043B\u043D\u043E\u0441\u0442 \u2265${minUniversality} \u2014 \u043F\u0440\u0435\u0434\u043F\u043E\u0447\u0438\u0442\u0430\u0439 \u043E\u0431\u0449\u0438 \u0438\u043C\u0435\u043D\u0430 (\u0420\u0438\u0431\u0430, \u041E\u0440\u0438\u0437) \u043F\u0440\u0435\u0434 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u0438.`
   ];
+  if (creationHint) lines.push(creationHint);
   for (const slot of ["PRO", "ENG", "VOL", "FAT"]) {
     const items = candidatesBySlot.get(slot) || [];
     if (!items.length) continue;
@@ -8636,9 +8688,12 @@ function validateProductNamesAgainstDiet(names, dietCtx = {}) {
   return [...new Set(violations)];
 }
 function buildCatalogPromptSection(options) {
+  const dayKeys = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+  const maxSlotKcal2 = maxSlotKcalInChunk(options.strategy, options.startDay, options.endDay, dayKeys);
   const candidates = getCatalogCandidatesForChunk(options);
   return formatCatalogSectionForPrompt(candidates, {
-    minUniversality: options.minUniversality ?? DEFAULT_MIN_UNIVERSALITY
+    minUniversality: options.minUniversality ?? DEFAULT_MIN_UNIVERSALITY,
+    creationHint: buildHighKcalCreationHint(maxSlotKcal2)
   });
 }
 function validateProductNamesInCatalog(names) {
@@ -10443,119 +10498,6 @@ function ensurePlanSourceMeta(plan, extra = {}) {
   return plan;
 }
 
-// composition-repair.js
-var COMPOSITION_ERROR_PATTERNS = [
-  /калории \d+ ≠ цел/i,
-  /смени продуктите/i,
-  /неосъществим слот/i,
-  /липсват продукти/i,
-  /атомарната порция/i,
-  /weight \d+g > /i,
-  /weight \d+g < /i
-];
-var STRUCTURAL_ERROR_PATTERNS = [
-  /не е в mealBreakdown/i,
-  /извън каталога/i,
-  /забранени при клиничния протокол/i,
-  /несъвместими с диетата/i,
-  /НЕ ЗАКУСВА/i,
-  /липсва .*day/i,
-  /Invalid response/i
-];
-function isCompositionRepairableError(message = "") {
-  const msg = String(message);
-  if (STRUCTURAL_ERROR_PATTERNS.some((p) => p.test(msg))) return false;
-  return COMPOSITION_ERROR_PATTERNS.some((p) => p.test(msg));
-}
-function extractCompositionRepairTargets(validationErrors = [], infeasibleSlots = []) {
-  const byKey = /* @__PURE__ */ new Map();
-  for (const err of validationErrors) {
-    if (!isCompositionRepairableError(err)) continue;
-    const m = String(err).match(/Ден (\d+) ([^:]+):\s*(.+)/);
-    if (!m) continue;
-    const day = Number(m[1]);
-    const type = m[2].trim();
-    const reason = m[3].trim();
-    byKey.set(`${day}|${type}`, { day, type, reason });
-  }
-  for (const slot of infeasibleSlots || []) {
-    const day = Number(slot.day);
-    const type = slot.type;
-    if (!day || !type) continue;
-    const reason = slot.reason || "\u043D\u0435\u043E\u0441\u044A\u0449\u0435\u0441\u0442\u0432\u0438\u043C \u0441\u043B\u043E\u0442";
-    const key = `${day}|${type}`;
-    if (!byKey.has(key)) byKey.set(key, { day, type, reason });
-  }
-  return [...byKey.values()];
-}
-function slotTargetFromScheme(strategy, day, mealType, dayNumberToKey) {
-  const schemeKey = dayNumberToKey[day - 1];
-  const breakdown = strategy?.weeklyScheme?.[schemeKey]?.mealBreakdown || [];
-  return breakdown.find((m) => m.type === mealType) || null;
-}
-function currentMealFromPlan(weekPlan, day, mealType) {
-  const dayPlan = weekPlan?.[`day${day}`];
-  return dayPlan?.meals?.find((m) => m.type === mealType) || null;
-}
-function buildCompositionRepairPrompt({
-  targets,
-  weekPlan,
-  strategy,
-  catalogSection = "",
-  dietaryModifier = "\u0411\u0430\u043B\u0430\u043D\u0441\u0438\u0440\u0430\u043D\u043E",
-  dayNumberToKey
-}) {
-  const lines = [
-    "\u2550\u2550\u2550 COMPOSITION REPAIR (\u0441\u0430\u043C\u043E \u043F\u043E\u0441\u043E\u0447\u0435\u043D\u0438\u0442\u0435 \u0441\u043B\u043E\u0442\u043E\u0432\u0435) \u2550\u2550\u2550",
-    `\u0414\u0438\u0435\u0442\u0430: ${dietaryModifier}`,
-    "\u041F\u0440\u043E\u043C\u0435\u043D\u0438 \u0421\u0410\u041C\u041E description (+ name \u0430\u043A\u043E \u0435 \u043D\u0443\u0436\u043D\u043E). \u0411\u0435\u0437 grams/kcal/macros/weight.",
-    '\u041F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u0421\u0410\u041C\u041E \u043E\u0442 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430 \u2014 \u0435\u0434\u0438\u043D \u043F\u0440\u043E\u0434\u0443\u043A\u0442 \u043D\u0430 \u0440\u0435\u0434: "\u2022 {\u0438\u043C\u0435}"',
-    "",
-    "\u0421\u041B\u041E\u0422\u041E\u0412\u0415 \u0417\u0410 \u041F\u041E\u041F\u0420\u0410\u0412\u041A\u0410:"
-  ];
-  for (const t of targets) {
-    const target = slotTargetFromScheme(strategy, t.day, t.type, dayNumberToKey);
-    const meal = currentMealFromPlan(weekPlan, t.day, t.type);
-    const products = parseMealDescription(meal?.description || "").map((i) => i.name).join(", ") || "(\u043F\u0440\u0430\u0437\u043D\u043E)";
-    lines.push(
-      `- \u0414\u0435\u043D ${t.day} ${t.type}: \u0446\u0435\u043B ${target?.calories || "?"}kcal P${target?.protein || "?"}/C${target?.carbs || "?"}/F${target?.fats || "?"}`,
-      `  \u041F\u0440\u043E\u0431\u043B\u0435\u043C: ${t.reason}`,
-      `  \u0421\u0435\u0433\u0430: name="${meal?.name || ""}" | products: ${products}`
-    );
-  }
-  if (catalogSection) {
-    lines.push("", "=== \u041A\u0410\u0422\u0410\u041B\u041E\u0413 (\u0440\u0435\u043B\u0435\u0432\u0430\u043D\u0442\u0435\u043D) ===", catalogSection.slice(0, 3500));
-  }
-  lines.push(
-    "",
-    "=== \u041E\u0422\u0413\u041E\u0412\u041E\u0420 (JSON) ===",
-    '{"repairs":[{"day":1,"type":"\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2","name":"...","description":"\u2022 \u043F\u0440\u043E\u0434\u0443\u043A\u04421\\n\u2022 \u043F\u0440\u043E\u0434\u0443\u043A\u04422"}]}',
-    "\u0412\u044A\u0440\u043D\u0438 repairs[] \u0441\u0430\u043C\u043E \u0437\u0430 \u0441\u043B\u043E\u0442\u043E\u0432\u0435\u0442\u0435 \u043F\u043E-\u0433\u043E\u0440\u0435."
-  );
-  return lines.join("\n");
-}
-function applyCompositionRepairPatch(weekPlan, patch, targets) {
-  const repairs = patch?.repairs;
-  if (!Array.isArray(repairs) || !repairs.length) return 0;
-  const allowed = new Set(targets.map((t) => `${t.day}|${t.type}`));
-  let applied = 0;
-  for (const fix of repairs) {
-    const day = Number(fix.day);
-    const type = fix.type;
-    if (!day || !type || !allowed.has(`${day}|${type}`)) continue;
-    const meal = currentMealFromPlan(weekPlan, day, type);
-    if (!meal) continue;
-    if (typeof fix.description === "string" && fix.description.trim()) {
-      meal.description = fix.description.trim();
-      applied++;
-    }
-    if (typeof fix.name === "string" && fix.name.trim()) {
-      meal.name = fix.name.trim();
-    }
-  }
-  return applied;
-}
-
 // weekly-variety.js
 var MAX_REPEATED_DISH_NAMES = 5;
 var MAX_PRODUCT_USES_PER_WEEK = 9;
@@ -11829,7 +11771,6 @@ var loggingStatusCacheTime = 0;
 var LOGGING_STATUS_CACHE_TTL = 60 * 1e3;
 var pendingSessionLogs = /* @__PURE__ */ new Map();
 var MEAL_PLAN_CHUNK_MAX_RETRIES = 4;
-var COMPOSITION_REPAIR_MAX_PER_CHUNK = 3;
 var CATALOG_STRICT_MODE = true;
 async function cacheSet(key, data, ttl = AI_LOG_CACHE_TTL) {
   try {
@@ -16737,18 +16678,6 @@ async function fetchFoodNutritionViaAI(env, productName) {
   }
   return null;
 }
-var CHUNK_NUTRITION_BLOCKING_PATTERNS = [
-  /калории \d+ ≠ цел/i,
-  /дневни \d+ kcal ≠ схема/i,
-  /неосъществим|не се постигат/i,
-  /weight \d+g >|weight \d+g </i,
-  /смени продуктите/i
-];
-function hasBlockingNutritionErrors(errors = []) {
-  return (errors || []).some(
-    (e) => CHUNK_NUTRITION_BLOCKING_PATTERNS.some((p) => p.test(String(e)))
-  );
-}
 async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data = null) {
   const extraDb = CATALOG_STRICT_MODE ? {} : await loadFoodNutritionExtraDb(env);
   let syncResult = syncWeekPlanNutritionFromDatabase(weekPlan, strategy, startDay, endDay, extraDb);
@@ -16906,65 +16835,18 @@ function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay
   }
   return { blocking, warnings };
 }
-function buildChunkValidationRetryComment(errors) {
-  if (!errors?.length) return "";
+function buildChunkValidationRetryComment(errors, infeasibleSlots = []) {
+  if (!errors?.length && !infeasibleSlots?.length) return "";
   const MAX = 8;
-  const head = errors.slice(0, MAX);
-  const tail = errors.length > MAX ? `
+  const head = (errors || []).slice(0, MAX);
+  const tail = (errors || []).length > MAX ? `
 (+ ${errors.length - MAX} \u043E\u0449\u0435 \u2014 \u043E\u043F\u0440\u0430\u0432\u0438 slot kcal/\u043A\u043E\u043C\u043F\u043E\u0437\u0438\u0446\u0438\u044F \u043F\u044A\u0440\u0432\u043E)` : "";
-  return `\u2550\u2550\u2550 FIX LIST \u2550\u2550\u2550
+  const fixList = head.length ? `\u2550\u2550\u2550 FIX LIST \u2550\u2550\u2550
 ${head.map((e, i) => `${i + 1}. ${e}`).join("\n")}${tail}
 
-Rules: meals[].type = mealBreakdown only; description = catalog products only (no grams); pick calorie-dense PRO/ENG when slot kcal is high.`;
-}
-async function tryCompositionRepair(env, {
-  weekPlan,
-  strategy,
-  targets,
-  data,
-  analysis,
-  startDay,
-  endDay,
-  sessionId
-}) {
-  if (!targets?.length) return false;
-  const catalogSection = buildCatalogPromptSection({
-    strategy,
-    startDay,
-    endDay,
-    dietaryModifier: strategy.dietaryModifier || "\u0411\u0430\u043B\u0430\u043D\u0441\u0438\u0440\u0430\u043D\u043E",
-    dietPreference: data.dietPreference ?? null,
-    dietDislike: data.dietDislike || "",
-    blockedTerms: collectUserBlockedFoodTerms(data),
-    preferLove: String(data.dietLove || "").split(/[,;]/).map((s) => s.trim()).filter(Boolean),
-    clinicalProtocolId: data.clinicalProtocol || null,
-    adherenceRatio: data._adherenceRatio || null
-  });
-  const prompt = buildCompositionRepairPrompt({
-    targets,
-    weekPlan,
-    strategy,
-    catalogSection,
-    dietaryModifier: strategy.dietaryModifier || "\u0411\u0430\u043B\u0430\u043D\u0441\u0438\u0440\u0430\u043D\u043E",
-    dayNumberToKey: DAY_NUMBER_TO_KEY
-  });
-  try {
-    const response = await callAIModel(
-      env,
-      prompt,
-      2048,
-      "step3_composition_repair",
-      sessionId,
-      data,
-      buildCompactAnalysisForStep3(analysis)
-    );
-    const patch = parseAIResponse(response);
-    const applied = applyCompositionRepairPatch(weekPlan, patch, targets);
-    return applied > 0;
-  } catch (e) {
-    console.warn("[composition-repair] failed:", e.message);
-    return false;
-  }
+Rules: meals[].type = mealBreakdown only; description = catalog products only (no grams); pick calorie-dense PRO/ENG when slot kcal is high.` : "";
+  const infeasibleHint = buildInfeasibilityRetryHints(infeasibleSlots);
+  return [fixList, infeasibleHint].filter(Boolean).join("\n\n");
 }
 function getAllowedMealTypes(dayTarget, userData = null) {
   const allowed = new Set((dayTarget?.mealBreakdown || []).map((m) => m.type));
@@ -18270,11 +18152,8 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
     const daysInChunk = endDay - startDay + 1;
     let chunkComment = errorPreventionComment;
     let attempt = 0;
-    let compositionRepairAttempt = 0;
-    let bestSnapshot = null;
-    let bestBlocking = null;
-    let bestWarnings = null;
     let lastAiFailure = null;
+    let lastInfeasible = [];
     const appendInfeasibleSlots = (blocking, infeasible = []) => {
       const out = [...blocking];
       for (const slot of infeasible) {
@@ -18341,95 +18220,20 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         );
         blockingErrors = appendInfeasibleSlots(validation.blocking, syncMeta?.infeasible);
         chunkWarnings = validation.warnings;
+        lastInfeasible = syncMeta?.infeasible || [];
         lastAiFailure = null;
       } catch (aiError) {
         lastAiFailure = aiError.message;
         blockingErrors = null;
       }
-      if (blockingErrors !== null) {
-        const daysSnapshot = {};
-        for (let day = startDay; day <= endDay; day++) {
-          daysSnapshot[`day${day}`] = JSON.parse(JSON.stringify(weekPlan[`day${day}`]));
+      if (blockingErrors !== null && !blockingErrors.length) {
+        if (chunkWarnings.length) {
+          generationWarnings.push(`\u0414\u043D\u0438 ${startDay}-${endDay}: ${chunkWarnings.join("; ")}`);
         }
-        if (!blockingErrors.length) {
-          bestSnapshot = daysSnapshot;
-          bestBlocking = [];
-          bestWarnings = chunkWarnings;
-          if (chunkWarnings.length) {
-            generationWarnings.push(`\u0414\u043D\u0438 ${startDay}-${endDay}: ${chunkWarnings.join("; ")}`);
-          }
-          break;
-        }
-        if (!bestBlocking || blockingErrors.length < bestBlocking.length) {
-          bestSnapshot = daysSnapshot;
-          bestBlocking = blockingErrors;
-          bestWarnings = chunkWarnings;
-        }
-        if (blockingErrors.every(isCompositionRepairableError)) {
-          const repairTargets = extractCompositionRepairTargets(blockingErrors, syncMeta?.infeasible);
-          if (repairTargets.length && compositionRepairAttempt < COMPOSITION_REPAIR_MAX_PER_CHUNK) {
-            compositionRepairAttempt++;
-            const repaired = await tryCompositionRepair(env, {
-              weekPlan,
-              strategy,
-              targets: repairTargets,
-              data,
-              analysis,
-              startDay,
-              endDay,
-              sessionId
-            });
-            if (repaired) {
-              syncMeta = await resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data);
-              finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, data);
-              const repairedValidation = validateWeekPlanChunkAgainstScheme(
-                weekPlan,
-                strategy,
-                startDay,
-                endDay,
-                data.clinicalProtocol || null,
-                data
-              );
-              blockingErrors = appendInfeasibleSlots(repairedValidation.blocking, syncMeta?.infeasible);
-              chunkWarnings = repairedValidation.warnings;
-              if (!blockingErrors.length) {
-                bestSnapshot = {};
-                for (let day = startDay; day <= endDay; day++) {
-                  bestSnapshot[`day${day}`] = JSON.parse(JSON.stringify(weekPlan[`day${day}`]));
-                }
-                bestBlocking = [];
-                bestWarnings = chunkWarnings;
-                if (chunkWarnings.length) {
-                  generationWarnings.push(`\u0414\u043D\u0438 ${startDay}-${endDay}: ${chunkWarnings.join("; ")}`);
-                }
-                break;
-              }
-              if (blockingErrors.length < bestBlocking.length) {
-                bestBlocking = blockingErrors;
-                bestWarnings = chunkWarnings;
-                bestSnapshot = {};
-                for (let day = startDay; day <= endDay; day++) {
-                  bestSnapshot[`day${day}`] = JSON.parse(JSON.stringify(weekPlan[`day${day}`]));
-                }
-              }
-              continue;
-            }
-          }
-        }
+        break;
       }
       if (attempt >= MEAL_PLAN_CHUNK_MAX_RETRIES) {
-        if (bestSnapshot && !hasBlockingNutritionErrors(bestBlocking)) {
-          for (const [dayKey, dayData] of Object.entries(bestSnapshot)) {
-            weekPlan[dayKey] = dayData;
-          }
-          const residual = [...bestBlocking || [], ...bestWarnings || []];
-          if (residual.length) {
-            generationWarnings.push(`\u0414\u043D\u0438 ${startDay}-${endDay}: ${residual.join("; ")}`);
-            console.warn(`Chunk ${chunkIndex + 1} \u043F\u0440\u0438\u0435\u0442 \u0441 ${residual.length} \u043E\u0441\u0442\u0430\u0442\u044A\u0447\u043D\u0438 \u043F\u0440\u043E\u0431\u043B\u0435\u043C\u0430`);
-          }
-          break;
-        }
-        const detail = bestBlocking?.length ? [...bestBlocking, ...bestWarnings || []].join("; ") : lastAiFailure || "\u043D\u044F\u043C\u0430 \u0432\u0430\u043B\u0438\u0434\u0435\u043D \u043E\u0442\u0433\u043E\u0432\u043E\u0440 \u0441\u043B\u0435\u0434 \u0432\u0441\u0438\u0447\u043A\u0438 \u043E\u043F\u0438\u0442\u0438";
+        const detail = blockingErrors?.length ? [...blockingErrors, ...chunkWarnings || []].join("; ") : lastAiFailure || "\u043D\u044F\u043C\u0430 \u0432\u0430\u043B\u0438\u0434\u0435\u043D \u043E\u0442\u0433\u043E\u0432\u043E\u0440 \u0441\u043B\u0435\u0434 \u0432\u0441\u0438\u0447\u043A\u0438 \u043E\u043F\u0438\u0442\u0438";
         throw new Error(`\u0413\u0435\u043D\u0435\u0440\u0438\u0440\u0430\u043D\u0435 \u043D\u0430 \u0434\u043D\u0438 ${startDay}-${endDay}: ${detail}`);
       }
       for (let day = startDay; day <= endDay; day++) {
@@ -18437,7 +18241,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       }
       chunkComment = [
         errorPreventionComment,
-        blockingErrors?.length ? buildChunkValidationRetryComment(blockingErrors) : null
+        buildChunkValidationRetryComment(blockingErrors || [], lastInfeasible)
       ].filter(Boolean).join("\n\n");
       attempt++;
       console.warn(`Chunk ${chunkIndex + 1} attempt ${attempt} failed, retrying:`, blockingErrors || lastAiFailure);

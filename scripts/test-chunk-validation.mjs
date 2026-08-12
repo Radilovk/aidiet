@@ -12,10 +12,11 @@ function ok(cond, msg) {
   else { fail++; console.error(`✗ ${msg}`); }
 }
 
-ok(worker.includes('CHUNK_NUTRITION_BLOCKING_PATTERNS'), 'blocking nutrition patterns defined');
 ok(worker.includes('return { blocking, warnings }'), 'validateWeekPlanChunkAgainstScheme returns split');
 ok(worker.includes('if (dayKcalOk) warnings.push(msg)'), 'daily macro soft when kcal ok');
-ok(!worker.includes('композицията не носи/i,'), 'broad composition regex removed from hasBlockingNutritionErrors');
+ok(worker.includes('COMPOSITION_REPAIR_MAX_PER_CHUNK = 0'), 'no AI composition repair at runtime');
+ok(worker.includes('buildInfeasibilityRetryHints'), 'infeasibility hints on regen');
+ok(!worker.includes('hasBlockingNutritionErrors'), 'partial chunk fallback helper removed');
 
 const dailyMacroSoft =
   'Ден 2: протеин 150g ≠ цел 180g — композицията не носи този макро профил, смени продукти';

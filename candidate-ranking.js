@@ -18,23 +18,33 @@ function slotFatShare(target = {}) {
   return kcal > 0 ? (f * 9) / kcal : 0.3;
 }
 
+function kcalPerGram(nutritionKey) {
+  const a = FOOD_NUTRITION_PER_100G[nutritionKey];
+  if (!a) return 0;
+  const kcal = a[1] * 4 + a[2] * 4 + a[3] * 9;
+  return kcal > 0 ? kcal / 100 : 0;
+}
+
 /**
  * @param {object[]} list
  * @param {object} ctx
  * @param {Set<string>} [ctx.loveSet]
  * @param {Map<string, number>} [ctx.adherenceRatio] nutritionKey → eaten/prescribed
  * @param {object} [ctx.slotTarget] representative slot target for macro fit
+ * @param {number} [ctx.maxSlotKcal] highest slot kcal in chunk — boosts calorie-dense catalog picks
  * @param {number} [ctx.limit]
  */
 export function rankCatalogCandidates(list, ctx = {}) {
   const loveSet = ctx.loveSet || new Set();
   const adherence = ctx.adherenceRatio || new Map();
   const targetFat = slotFatShare(ctx.slotTarget);
+  const maxSlotKcal = Number(ctx.maxSlotKcal) || Number(ctx.slotTarget?.calories) || 0;
   const limit = ctx.limit ?? list.length;
 
   const scored = list.map(entry => {
     let score = (entry.universality || 3) / 5;
     const nKey = entry.nutritionKey || entry.name;
+    const density = kcalPerGram(nKey);
 
     if (loveSet.has(normalizeFoodKey(entry.name))) score += 0.45;
 
@@ -46,6 +56,16 @@ export function rankCatalogCandidates(list, ctx = {}) {
 
     if (ctx.slotTarget) {
       score -= Math.abs(fatShareOfKcal(nKey) - targetFat) * 0.35;
+    }
+
+    // Precision-first: high-kcal slots need calorie-dense PRO/ENG in the first AI pick.
+    if (maxSlotKcal >= 900 && (entry.slots?.includes('PRO') || entry.slots?.includes('ENG'))) {
+      score += Math.min(0.55, density * 0.35);
+    } else if (maxSlotKcal >= 600 && (entry.slots?.includes('PRO') || entry.slots?.includes('ENG'))) {
+      score += Math.min(0.35, density * 0.25);
+    }
+    if (maxSlotKcal >= 600 && entry.group === 'vegetable' && !entry.slots?.includes('PRO')) {
+      score -= 0.15;
     }
 
     if (entry.group === 'condiment') score -= 0.2;
