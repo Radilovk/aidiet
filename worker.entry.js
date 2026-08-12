@@ -103,6 +103,18 @@ import {
   validateProtocolStrategy,
 } from './protocol-validate.js';
 import {
+  enrichUserDataEngineContext,
+  extractQuestionnaireBlockedTerms,
+} from './questionnaire-engine-map.js';
+import {
+  finalDirectorEnabled,
+  buildFinalAuditPacket,
+  buildFinalDirectorPrompt,
+  parseDirectorResponse,
+  applyDirectorAdjustments,
+  DEFAULT_FINAL_DIRECTOR_PROMPT,
+} from './step6-final-director.js';
+import {
   readOverlayFromKv,
   writeOverlayToKv,
   upsertOverlayEntry,
@@ -2978,7 +2990,7 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
   // Plan generation steps (step1–4 and their fallbacks) must always run on the same
   // configured model without thinking to ensure consistency and prevent MAX_TOKENS
   // errors caused by internal reasoning consuming the token budget.
-  const isPlanStep = stepKey && ['step1', 'step2', 'step3', 'step4'].includes(stepKey);
+  const isPlanStep = stepKey && ['step1', 'step2', 'step3', 'step4', 'step6'].includes(stepKey);
   // For chat steps, use chat-specific thinking budget if set.
   // For plan steps, always disable thinking. For other steps, use plan config.
   const effectiveThinkingBudget = isPlanStep ? 0
@@ -3366,32 +3378,9 @@ function invalidateFoodListsCache() {
   foodListsCacheTime = 0;
 }
 
-/** Collect blocked food terms from user profile for catalog filtering */
+/** Collect blocked food terms from user profile (dietDislike, allergies, triggers, userFoodExclude). */
 function collectUserBlockedFoodTerms(data) {
-  const terms = [];
-  const pushSplit = (val) => {
-    if (!val) return;
-    String(val).split(/[,;|\n]/).forEach(s => {
-      const t = s.trim();
-      if (t.length >= 2) terms.push(t);
-    });
-  };
-  pushSplit(data.dietDislike);
-  pushSplit(data['medicalConditions_Алергии']);
-  if (Array.isArray(data.planModifications)) {
-    for (const mod of data.planModifications) {
-      if (typeof mod === 'string' && mod.startsWith('exclude_food:')) {
-        terms.push(mod.slice('exclude_food:'.length).trim());
-      }
-    }
-  }
-  if (Array.isArray(data.forbidden)) {
-    data.forbidden.forEach(f => pushSplit(f));
-  }
-  if (Array.isArray(data.userFoodExclude)) {
-    data.userFoodExclude.forEach(f => pushSplit(f));
-  }
-  return terms;
+  return extractQuestionnaireBlockedTerms(data);
 }
 
 /** Per-user food-picker inclusion list (overrides global KV mainlist for this request). */
@@ -4056,6 +4045,36 @@ async function persistFoodLedger(env, userId, ledgerSerialized, clientIdHint = '
   }
 }
 
+const FINAL_DIRECTOR_TOKEN_LIMIT = 3500;
+
+/** Step 6 — AI Final Director: holistic QA + bounded presentation overlay. */
+async function runFinalDirectorReview(env, plan, userData, codeValidation = null) {
+  const auditPacket = buildFinalAuditPacket({ plan, userData, codeValidation });
+  let customPrompt = null;
+  try {
+    customPrompt = await getCustomPrompt(env, 'admin_final_director_prompt');
+  } catch (_) {
+    customPrompt = null;
+  }
+  const prompt = buildFinalDirectorPrompt(auditPacket, customPrompt || DEFAULT_FINAL_DIRECTOR_PROMPT);
+  const sessionId = generateUniqueId('director');
+  const response = await callAIModel(
+    env,
+    prompt,
+    FINAL_DIRECTOR_TOKEN_LIMIT,
+    'step6_final_director',
+    sessionId,
+    userData,
+    null,
+  );
+  const parsed = parseAIResponse(response);
+  const director = parseDirectorResponse(parsed);
+  applyDirectorAdjustments(plan, director);
+  console.log(`Step 6 Final Director: ${director.verdict} (score ${director.qualityScore})`);
+  await finalizeAISessionLogs(env, sessionId).catch(() => {});
+  return director;
+}
+
 async function generatePlanCore(env, data, onAnalysisReady = null) {
   await loadCatalogRegistryOverlay(env);
 
@@ -4092,6 +4111,8 @@ async function generatePlanCore(env, data, onAnalysisReady = null) {
     return { success: true, hasContradiction: true, warningData, userId };
   }
 
+  enrichUserDataEngineContext(data);
+
   // Generate plan (multi-step AI)
   let structuredPlan = await generatePlanMultiStep(env, data, onAnalysisReady);
   await reconcilePlanStructure(structuredPlan, data, env);
@@ -4112,6 +4133,14 @@ async function generatePlanCore(env, data, onAnalysisReady = null) {
     }
     if (structuredPlan.generationWarnings.length) {
       console.log(`Plan post-validation: ${structuredPlan.generationWarnings.length} warning(s)`);
+    }
+
+    if (finalDirectorEnabled(env)) {
+      try {
+        await runFinalDirectorReview(env, structuredPlan, data, validation);
+      } catch (directorErr) {
+        console.warn('Step 6 Final Director skipped:', directorErr.message);
+      }
     }
   } catch (validationErr) {
     if (validationErr.message?.includes('медицински прагове')) throw validationErr;
@@ -6926,6 +6955,7 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     }
 
     const enrichedData = normalizeQuestionnaireData(userData);
+    enrichUserDataEngineContext(enrichedData);
     enrichedData.planModifications = mergeWeeklyModifications(
       userData.planModifications || enrichedData.planModifications,
       decision.modifications
@@ -10008,7 +10038,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
               seed: detSeed,
               includeDessert: userHasSweetsCraving(data?.foodCravings) && strategy?.includeDessert !== false,
               clinicalProtocolId: data.clinicalProtocol || null,
-              blockedTerms: data.blockedFoods || [],
+              blockedTerms: collectUserBlockedFoodTerms(data),
             });
             applyChunkData(chunkData);
             chunkBuilt = true;
@@ -10369,6 +10399,7 @@ function getStepKey(stepName) {
   if (stepName.startsWith('step2')) return 'step2';
   if (stepName.startsWith('step3') || stepName === 'fallback_plan') return 'step3';
   if (stepName.startsWith('step4') || stepName === 'fallback_summary') return 'step4';
+  if (stepName.startsWith('step6') || stepName === 'final_director') return 'step6';
   if (stepName.startsWith('chat')) return 'chat';
   return null;
 }

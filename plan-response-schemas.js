@@ -76,6 +76,7 @@ export const PLAN_SYSTEM_INSTRUCTIONS = {
   step2: 'Експертен диетолог. САМО валиден JSON. Калориите от анализа са финални — не ги преизчислявай. Типове хранения: само "Хранене 1"–"Хранене 5" и "Свободно хранене". Забранени display имена: Закуска, Обяд, Следобедна закуска, Вечеря, Късна закуска. Задължителни полета: freeDayNumber (6|7|null), includeDessert (true|false). Свободно хранене замества обяд в mealBreakdown на свободния ден.',
   step3: 'Диетолог за български хранителен план. САМО валиден JSON. Продукти САМО от каталога; имената точно както в каталога. dessert:true само на Хранене 2. Свободно хранене: само type+name, без продукти и без macros.',
   step4: 'Клиничен диетолог и психолог. САМО валиден JSON. Препоръките са персонализирани по профила — не универсални.',
+  step6_director: 'Старши диетичен мениджър. САМО валиден JSON. Оценява готов deterministic план — не променя продукти, грамове, калории или scheme.',
 };
 
 export const ANALYSIS_RESPONSE_SCHEMA = {
@@ -311,6 +312,36 @@ export const SUMMARY_RESPONSE_SCHEMA = {
   required: ['summary', 'recommendations', 'forbidden', 'psychology', 'waterIntake', 'supplements'],
 };
 
+export const FINAL_DIRECTOR_RESPONSE_SCHEMA = {
+  type: 'object',
+  properties: {
+    verdict: { type: 'string', enum: ['APPROVE', 'ADJUST', 'REJECT'] },
+    qualityScore: { type: 'number' },
+    headline: { type: 'string' },
+    clientMessage: { type: 'string' },
+    coherenceNotes: { type: 'array', items: { type: 'string' } },
+    recommendations: { type: 'array', items: { type: 'string' } },
+    forbidden: { type: 'array', items: { type: 'string' } },
+    psychology: { type: 'array', items: { type: 'string' } },
+    waterIntake: { type: 'string' },
+    supplements: { type: 'array' },
+    mealCopyPatches: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          day: { type: 'number' },
+          mealIndex: { type: 'number' },
+          name: { type: 'string' },
+          benefits: { type: 'string' },
+          recipe: { type: 'string' },
+        },
+      },
+    },
+  },
+  required: ['verdict', 'qualityScore', 'headline', 'clientMessage'],
+};
+
 /**
  * @param {number} startDay
  * @param {number} endDay
@@ -365,6 +396,9 @@ export function getPlanStepResponseSchema(stepName) {
   }
   if (stepName.startsWith('step4') || stepName === 'fallback_summary') {
     return SUMMARY_RESPONSE_SCHEMA;
+  }
+  if (stepName.startsWith('step6') || stepName === 'final_director') {
+    return FINAL_DIRECTOR_RESPONSE_SCHEMA;
   }
   return null;
 }

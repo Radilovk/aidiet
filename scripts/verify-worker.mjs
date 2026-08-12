@@ -229,6 +229,16 @@ check('step1 deterministic energy contract', () => {
   if (!r.ok) throw new Error(r.out.split('\n').slice(-20).join('\n'));
 });
 
+check('questionnaire engine map', () => {
+  const r = run('node', ['scripts/test-questionnaire-engine-map.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-20).join('\n'));
+});
+
+check('step6 final director', () => {
+  const r = run('node', ['scripts/test-step6-final-director.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-20).join('\n'));
+});
+
 check('nutrition library merge', () => {
   const r = run('node', ['scripts/test-nutrition-library.mjs']);
   if (!r.ok) throw new Error(r.out.split('\n').slice(-12).join('\n'));

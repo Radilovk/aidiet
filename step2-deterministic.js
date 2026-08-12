@@ -8,6 +8,7 @@ import { resolveLibraryDietProfile } from './protocol-engine.js';
 import { getMealDistribution } from './meal-template-engine.js';
 import { validateProtocolStrategy } from './protocol-validate.js';
 import { isKetoUser, userSkipsBreakfast } from './plan-normalize.js';
+import { buildQuestionnaireDietHints } from './questionnaire-engine-map.js';
 
 const DAY_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
@@ -195,6 +196,7 @@ export function buildDeterministicStrategy({ userData = null, analysis = null, o
     dietaryModifier: options.dietaryModifier,
     dietPreference: userData?.dietPreference,
     dietDislike: userData?.dietDislike || '',
+    questionnaireHints: userData?._engineDietHints || buildQuestionnaireDietHints(userData),
   });
 
   const dailyKcal = parseDailyKcal(analysis);

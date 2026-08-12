@@ -156,7 +156,8 @@ var PLAN_SYSTEM_INSTRUCTIONS = {
   step1: "\u041A\u043B\u0438\u043D\u0438\u0447\u0435\u043D \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433, \u0435\u043D\u0434\u043E\u043A\u0440\u0438\u043D\u043E\u043B\u043E\u0433 \u0438 \u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. bmr, tdee, Final_Calories, macroRatios \u0438 macroGrams \u0441\u0435 \u0437\u0430\u0434\u0430\u0432\u0430\u0442 \u043E\u0442 \u0431\u0435\u043A\u0435\u043D\u0434\u0430 \u2014 \u043D\u0435 \u0433\u0438 \u043F\u0440\u0435\u0438\u0437\u0447\u0438\u0441\u043B\u044F\u0432\u0430\u0439 \u0438 \u043D\u0435 \u0433\u0438 \u043F\u0440\u043E\u043C\u0435\u043D\u044F\u0439. \u0424\u043E\u043A\u0443\u0441: keyProblems, currentHealthStatus, psychology, correlations, narrative.",
   step2: '\u0415\u043A\u0441\u043F\u0435\u0440\u0442\u0435\u043D \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. \u041A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u043E\u0442 \u0430\u043D\u0430\u043B\u0438\u0437\u0430 \u0441\u0430 \u0444\u0438\u043D\u0430\u043B\u043D\u0438 \u2014 \u043D\u0435 \u0433\u0438 \u043F\u0440\u0435\u0438\u0437\u0447\u0438\u0441\u043B\u044F\u0432\u0430\u0439. \u0422\u0438\u043F\u043E\u0432\u0435 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F: \u0441\u0430\u043C\u043E "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1"\u2013"\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5" \u0438 "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435". \u0417\u0430\u0431\u0440\u0430\u043D\u0435\u043D\u0438 display \u0438\u043C\u0435\u043D\u0430: \u0417\u0430\u043A\u0443\u0441\u043A\u0430, \u041E\u0431\u044F\u0434, \u0421\u043B\u0435\u0434\u043E\u0431\u0435\u0434\u043D\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430, \u0412\u0435\u0447\u0435\u0440\u044F, \u041A\u044A\u0441\u043D\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430. \u0417\u0430\u0434\u044A\u043B\u0436\u0438\u0442\u0435\u043B\u043D\u0438 \u043F\u043E\u043B\u0435\u0442\u0430: freeDayNumber (6|7|null), includeDessert (true|false). \u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0437\u0430\u043C\u0435\u0441\u0442\u0432\u0430 \u043E\u0431\u044F\u0434 \u0432 mealBreakdown \u043D\u0430 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u0438\u044F \u0434\u0435\u043D.',
   step3: "\u0414\u0438\u0435\u0442\u043E\u043B\u043E\u0433 \u0437\u0430 \u0431\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438 \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u043B\u0430\u043D. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. \u041F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u0421\u0410\u041C\u041E \u043E\u0442 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430; \u0438\u043C\u0435\u043D\u0430\u0442\u0430 \u0442\u043E\u0447\u043D\u043E \u043A\u0430\u043A\u0442\u043E \u0432 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430. dessert:true \u0441\u0430\u043C\u043E \u043D\u0430 \u0425\u0440\u0430\u043D\u0435\u043D\u0435 2. \u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435: \u0441\u0430\u043C\u043E type+name, \u0431\u0435\u0437 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u0438 \u0431\u0435\u0437 macros.",
-  step4: "\u041A\u043B\u0438\u043D\u0438\u0447\u0435\u043D \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433 \u0438 \u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. \u041F\u0440\u0435\u043F\u043E\u0440\u044A\u043A\u0438\u0442\u0435 \u0441\u0430 \u043F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u0438\u0437\u0438\u0440\u0430\u043D\u0438 \u043F\u043E \u043F\u0440\u043E\u0444\u0438\u043B\u0430 \u2014 \u043D\u0435 \u0443\u043D\u0438\u0432\u0435\u0440\u0441\u0430\u043B\u043D\u0438."
+  step4: "\u041A\u043B\u0438\u043D\u0438\u0447\u0435\u043D \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433 \u0438 \u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. \u041F\u0440\u0435\u043F\u043E\u0440\u044A\u043A\u0438\u0442\u0435 \u0441\u0430 \u043F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u0438\u0437\u0438\u0440\u0430\u043D\u0438 \u043F\u043E \u043F\u0440\u043E\u0444\u0438\u043B\u0430 \u2014 \u043D\u0435 \u0443\u043D\u0438\u0432\u0435\u0440\u0441\u0430\u043B\u043D\u0438.",
+  step6_director: "\u0421\u0442\u0430\u0440\u0448\u0438 \u0434\u0438\u0435\u0442\u0438\u0447\u0435\u043D \u043C\u0435\u043D\u0438\u0434\u0436\u044A\u0440. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. \u041E\u0446\u0435\u043D\u044F\u0432\u0430 \u0433\u043E\u0442\u043E\u0432 deterministic \u043F\u043B\u0430\u043D \u2014 \u043D\u0435 \u043F\u0440\u043E\u043C\u0435\u043D\u044F \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438, \u0433\u0440\u0430\u043C\u043E\u0432\u0435, \u043A\u0430\u043B\u043E\u0440\u0438\u0438 \u0438\u043B\u0438 scheme."
 };
 var ANALYSIS_RESPONSE_SCHEMA = {
   type: "object",
@@ -403,6 +404,35 @@ var SUMMARY_RESPONSE_SCHEMA = {
   },
   required: ["summary", "recommendations", "forbidden", "psychology", "waterIntake", "supplements"]
 };
+var FINAL_DIRECTOR_RESPONSE_SCHEMA = {
+  type: "object",
+  properties: {
+    verdict: { type: "string", enum: ["APPROVE", "ADJUST", "REJECT"] },
+    qualityScore: { type: "number" },
+    headline: { type: "string" },
+    clientMessage: { type: "string" },
+    coherenceNotes: { type: "array", items: { type: "string" } },
+    recommendations: { type: "array", items: { type: "string" } },
+    forbidden: { type: "array", items: { type: "string" } },
+    psychology: { type: "array", items: { type: "string" } },
+    waterIntake: { type: "string" },
+    supplements: { type: "array" },
+    mealCopyPatches: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          day: { type: "number" },
+          mealIndex: { type: "number" },
+          name: { type: "string" },
+          benefits: { type: "string" },
+          recipe: { type: "string" }
+        }
+      }
+    }
+  },
+  required: ["verdict", "qualityScore", "headline", "clientMessage"]
+};
 function buildMealPlanChunkSchema(startDay, endDay) {
   const s = Number(startDay) || 1;
   const e = Number(endDay) || s;
@@ -443,6 +473,9 @@ function getPlanStepResponseSchema(stepName) {
   }
   if (stepName.startsWith("step4") || stepName === "fallback_summary") {
     return SUMMARY_RESPONSE_SCHEMA;
+  }
+  if (stepName.startsWith("step6") || stepName === "final_director") {
+    return FINAL_DIRECTOR_RESPONSE_SCHEMA;
   }
   return null;
 }
@@ -18090,7 +18123,8 @@ function resolveLibraryDietProfile(ctx = {}) {
   const text = [
     ctx.dietaryModifier,
     ...Array.isArray(ctx.dietPreference) ? ctx.dietPreference : ctx.dietPreference ? [ctx.dietPreference] : [],
-    ctx.dietDislike
+    ctx.dietDislike,
+    ctx.questionnaireHints
   ].filter(Boolean).join(" ").toLowerCase();
   const flags = resolveCatalogDietProfile(ctx);
   if (flags.vegan) return "vegan";
@@ -18198,6 +18232,152 @@ function validateProtocolStrategy(strategy, analysis = null, userData = null) {
   }
   const status = blocking.length ? "REJECT" : warnings.length ? "REVIEW" : "VALID";
   return { status, blocking, warnings, dietProfile };
+}
+
+// questionnaire-engine-map.js
+var QUESTIONNAIRE_FOOD_BLOCK_FIELD_IDS = [
+  "dietDislike",
+  "medicalConditions_\u0410\u043B\u0435\u0440\u0433\u0438\u0438",
+  "foodTriggers",
+  "triggerFoods",
+  "giTriggers",
+  "foodSensitivities"
+];
+var DQ_FOOD_KEY_PATTERN = /food|trigger|allerg|intoler|хран|избяг|алерг|не\s*тoler/i;
+var CONDITION_DETAIL_FIELD_IDS = [
+  "medicalConditions_\u0421\u044A\u0440\u0434\u0435\u0447\u043D\u043E-\u0441\u044A\u0434\u043E\u0432\u0438_\u0434\u0435\u0442\u0430\u0439\u043B",
+  "medicalConditions_\u0415\u043D\u0434\u043E\u043A\u0440\u0438\u043D\u043D\u0438_\u0434\u0435\u0442\u0430\u0439\u043B",
+  "medicalConditions_\u0425\u0440\u0430\u043D\u043E\u0441\u043C\u0438\u043B\u0430\u0442\u0435\u043B\u043D\u0438_\u0434\u0435\u0442\u0430\u0439\u043B",
+  "medicalConditions_\u041C\u0435\u0442\u0430\u0431\u043E\u043B\u0438\u0442\u043D\u0438_\u0434\u0435\u0442\u0430\u0439\u043B",
+  "medicalConditions_\u041C\u0443\u0441\u043A\u0443\u043B\u043D\u043E-\u0441\u043A\u0435\u043B\u0435\u0442\u043D\u0438_\u0434\u0435\u0442\u0430\u0439\u043B",
+  "medicalConditions_\u0410\u0432\u0442\u043E\u0438\u043C\u0443\u043D\u043D\u043E",
+  "medicalConditions_other"
+];
+var CLINICAL_PROTOCOL_DIET_HINTS = {
+  gi_issues: "fodmap ibs \u0445\u0440\u0430\u043D\u043E\u0441\u043C\u0438\u043B\u0430\u0442\u0435\u043B\u043D\u0438",
+  autoimmune_aip: "\u043F\u0440\u043E\u0442\u0438\u0432\u043E\u0432\u044A\u0437\u043F\u0430\u043B\u0438\u0442\u0435\u043B\u043D\u0430 aip autoimun",
+  insulin_resistance: "\u0438\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430 \u0440\u0435\u0437\u0438\u0441\u0442\u0435\u043D\u0442\u043D\u043E\u0441\u0442 \u043D\u0438\u0441\u043A\u043E\u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u043D\u0430"
+};
+function pushTermsFromValue(terms, seen, val) {
+  if (val == null || val === "") return;
+  const parts = Array.isArray(val) ? val : String(val).split(/[,;|\n]/);
+  for (const part of parts) {
+    const t = String(part).trim();
+    if (t.length < 2) continue;
+    const key = t.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    terms.push(t);
+  }
+}
+function extractQuestionnaireBlockedTerms(userData = {}) {
+  const terms = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (const fieldId of QUESTIONNAIRE_FOOD_BLOCK_FIELD_IDS) {
+    pushTermsFromValue(terms, seen, userData[fieldId]);
+  }
+  if (Array.isArray(userData.planModifications)) {
+    for (const mod of userData.planModifications) {
+      if (typeof mod === "string" && mod.startsWith("exclude_food:")) {
+        pushTermsFromValue(terms, seen, mod.slice("exclude_food:".length));
+      }
+    }
+  }
+  if (Array.isArray(userData.userFoodExclude)) {
+    for (const entry of userData.userFoodExclude) {
+      pushTermsFromValue(terms, seen, entry);
+    }
+  }
+  if (Array.isArray(userData.forbidden)) {
+    for (const entry of userData.forbidden) {
+      pushTermsFromValue(terms, seen, entry);
+    }
+  }
+  const textMap = userData._dq_text_map || {};
+  for (const key of Object.keys(userData)) {
+    if (!key.startsWith("dq_")) continue;
+    const label = String(textMap[key] || "");
+    if (!DQ_FOOD_KEY_PATTERN.test(key) && !DQ_FOOD_KEY_PATTERN.test(label)) continue;
+    pushTermsFromValue(terms, seen, userData[key]);
+  }
+  return terms;
+}
+function buildQuestionnaireDietHints(userData = {}) {
+  const parts = [];
+  const cp = userData.clinicalProtocol;
+  if (cp && CLINICAL_PROTOCOL_DIET_HINTS[cp]) {
+    parts.push(CLINICAL_PROTOCOL_DIET_HINTS[cp]);
+  }
+  const textChunks = [];
+  if (Array.isArray(userData.medicalConditions)) {
+    textChunks.push(userData.medicalConditions.join(" "));
+  }
+  for (const key of CONDITION_DETAIL_FIELD_IDS) {
+    if (userData[key]) textChunks.push(String(userData[key]));
+  }
+  const blob = textChunks.join(" ").toLowerCase();
+  if (/fodmap|ibs|подуване|сърбеж|храносмилател/i.test(blob)) parts.push("fodmap ibs");
+  if (/целиак|глутен|gluten/i.test(blob)) parts.push("\u0431\u0435\u0437 \u0433\u043B\u0443\u0442\u0435\u043D gluten");
+  if (/лактоз|млеч|dairy/i.test(blob)) parts.push("\u0431\u0435\u0437 \u043C\u043B\u0435\u0447\u043D\u0438 dairy");
+  if (/хипертон|кръвно/i.test(blob)) parts.push("dash \u0445\u0438\u043F\u0435\u0440\u0442\u043E\u043D\u0438\u044F");
+  if (/пaleo|палео/i.test(blob)) parts.push("paleo");
+  return [...new Set(parts.join(" ").split(/\s+/).filter(Boolean))].join(" ");
+}
+function enrichUserDataEngineContext(userData) {
+  if (!userData || typeof userData !== "object") return userData;
+  const blockedTerms = extractQuestionnaireBlockedTerms(userData);
+  userData._engineBlockedTerms = blockedTerms;
+  userData._engineDietHints = buildQuestionnaireDietHints(userData);
+  return userData;
+}
+function summarizeWeekPlanSkeleton(weekPlan) {
+  if (!weekPlan) return "";
+  const lines = [];
+  for (let d = 1; d <= 7; d++) {
+    const day = weekPlan[`day${d}`];
+    if (!day?.meals?.length) continue;
+    const slots = day.meals.map((m) => {
+      const kcal = m.calories != null ? `${m.calories}kcal` : "";
+      return `${m.type}:${m.name || "?"}${kcal ? `(${kcal})` : ""}`;
+    }).join(" | ");
+    lines.push(`D${d}: ${slots}`);
+  }
+  return lines.join("\n");
+}
+function summarizeWeeklyScheme(strategy) {
+  const scheme = strategy?.weeklyScheme;
+  if (!scheme) return "";
+  const mon = scheme.monday;
+  if (!mon?.mealBreakdown?.length) return "";
+  const slots = mon.mealBreakdown.map((s) => `${s.type}=${s.calories}kcal`).join(", ");
+  return `slots(${slots}) freeDay=${strategy.freeDayNumber ?? "?"} dessert=${strategy.includeDessert}`;
+}
+function buildFinalAuditPacket({ plan = null, userData = null, codeValidation = null } = {}) {
+  const analysis = plan?.analysis || {};
+  const strategy = plan?.strategy || {};
+  const mg = analysis.macroGrams || {};
+  const sections = [
+    "=== ENGINE AUDIT ===",
+    `profile: goal=${JSON.stringify(userData?.goal || "")} clinical=${userData?.clinicalProtocol || "none"}`,
+    `engine: dietHints="${userData?._engineDietHints || buildQuestionnaireDietHints(userData)}" blocked=${(userData?._engineBlockedTerms || extractQuestionnaireBlockedTerms(userData)).slice(0, 12).join("; ")}`,
+    `step1: intake=${analysis.Final_Calories || "?"}kcal P${mg.protein || "?"}/C${mg.carbs || "?"}/F${mg.fats || "?"} deterministic=${analysis._deterministicEnergy ? "yes" : "no"}`,
+    `step2: profile=${strategy.libraryDietProfile || "?"} modifier=${strategy.dietaryModifier || "?"} ${summarizeWeeklyScheme(strategy)}`,
+    `step3 skeleton:
+${summarizeWeekPlanSkeleton(plan?.weekPlan)}`
+  ];
+  const warnings = [
+    ...plan?.generationWarnings || [],
+    ...codeValidation?.warnings || [],
+    ...codeValidation?.errors || []
+  ].filter(Boolean);
+  if (warnings.length) {
+    sections.push(`code_warnings (${warnings.length}): ${warnings.slice(0, 8).join(" | ")}`);
+  }
+  const problems = (analysis.keyProblems || []).slice(0, 4).map((p) => p.title).filter(Boolean);
+  if (problems.length) sections.push(`keyProblems: ${problems.join("; ")}`);
+  const notes = userData?.additionalNotes ? String(userData.additionalNotes).slice(0, 400) : "";
+  if (notes) sections.push(`notes: ${notes}`);
+  return sections.join("\n");
 }
 
 // step2-deterministic.js
@@ -18351,7 +18531,8 @@ function buildDeterministicStrategy({ userData = null, analysis = null, options 
   const dietProfile = resolveLibraryDietProfile({
     dietaryModifier: options.dietaryModifier,
     dietPreference: userData?.dietPreference,
-    dietDislike: userData?.dietDislike || ""
+    dietDislike: userData?.dietDislike || "",
+    questionnaireHints: userData?._engineDietHints || buildQuestionnaireDietHints(userData)
   });
   const dailyKcal = parseDailyKcal2(analysis);
   let macros = parseMacroGrams(analysis);
@@ -18460,6 +18641,112 @@ function applyDeterministicEnergyContract(analysis, contract) {
   if (contract.correctedMetabolism?.realTDEE) cm.realTDEE = contract.correctedMetabolism.realTDEE;
   analysis._deterministicEnergy = true;
   return analysis;
+}
+
+// step6-final-director.js
+function finalDirectorEnabled(env = {}) {
+  const v = env?.FINAL_DIRECTOR;
+  if (v === "0" || v === "false" || v === false) return false;
+  return true;
+}
+var DEFAULT_FINAL_DIRECTOR_PROMPT = `\u0422\u0438 \u0441\u0438 \u0441\u0442\u0430\u0440\u0448\u0438 \u0434\u0438\u0435\u0442\u0438\u0447\u0435\u043D \u043C\u0435\u043D\u0438\u0434\u0436\u044A\u0440. \u041F\u043E\u043B\u0443\u0447\u0430\u0432\u0430\u0448 \u0413\u041E\u0422\u041E\u0412 \u043F\u043B\u0430\u043D, \u0438\u0437\u0433\u0440\u0430\u0434\u0435\u043D \u043E\u0442 deterministic engine.
+
+\u2550\u2550\u2550 AUDIT \u2550\u2550\u2550
+{auditPacket}
+
+\u2550\u2550\u2550 \u0417\u0410\u0414\u0410\u0427\u0410 \u2550\u2550\u2550
+\u041E\u0446\u0435\u043D\u0438 \u0434\u0430\u043B\u0438 \u043F\u043B\u0430\u043D\u044A\u0442 \u043E\u0442\u0433\u043E\u0432\u0430\u0440\u044F \u043D\u0430 \u043F\u0440\u043E\u0444\u0438\u043B\u0430 \u0438 \u043E\u0447\u0430\u043A\u0432\u0430\u043D\u0438\u044F\u0442\u0430. \u041D\u0415 \u043F\u0440\u043E\u043C\u0435\u043D\u044F\u0439 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438, \u0433\u0440\u0430\u043C\u043E\u0432\u0435, \u043A\u0430\u043B\u043E\u0440\u0438\u0438 \u0438\u043B\u0438 slot scheme.
+
+\u0412\u044A\u0440\u043D\u0438 \u0421\u0410\u041C\u041E JSON:
+{
+  "verdict": "APPROVE" | "ADJUST" | "REJECT",
+  "qualityScore": 0-100,
+  "headline": "\u043A\u0440\u0430\u0442\u043A\u043E \u0437\u0430\u0433\u043B\u0430\u0432\u0438\u0435 \u0437\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430",
+  "clientMessage": "2-4 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F \u2014 \u0444\u0438\u043D\u0430\u043B\u043D\u043E \u043F\u043E\u0441\u043B\u0430\u043D\u0438\u0435",
+  "coherenceNotes": ["\u0431\u0435\u043B\u0435\u0436\u043A\u0438 \u0437\u0430 coherence, max 3"],
+  "recommendations": ["10 \u0442\u0438\u043F\u0430 \u0445\u0440\u0430\u043D\u0438"],
+  "forbidden": ["10 \u0442\u0438\u043F\u0430 \u0445\u0440\u0430\u043D\u0438"],
+  "psychology": ["\u043C\u0438\u043D. 3 \u0441\u044A\u0432\u0435\u0442\u0430"],
+  "supplements": [{"name":"...","dosage":"...","reason":"..."}],
+  "waterIntake": "string",
+  "mealCopyPatches": [{"day":1,"mealIndex":0,"name":"...","benefits":"...","recipe":"..."}]
+}
+
+\u041F\u0440\u0430\u0432\u0438\u043B\u0430:
+- APPROVE: \u043F\u043B\u0430\u043D\u044A\u0442 \u0435 coherent; patch arrays \u043C\u043E\u0433\u0430\u0442 \u0434\u0430 \u0441\u0430 \u043F\u0440\u0430\u0437\u043D\u0438
+- ADJUST: minor copy/coherence fixes \u2014 \u043F\u043E\u043F\u044A\u043B\u043D\u0438 recommendations/forbidden/psychology/mealCopyPatches
+- REJECT: \u0441\u0435\u0440\u0438\u043E\u0437\u043D\u0430 \u043D\u0435\u043Aoh\u0435\u0440\u0435\u043D\u0442\u043D\u043E\u0441\u0442 (\u0441\u0430\u043C\u043E \u0432 coherenceNotes \u2014 engine data \u043D\u0435 \u0441\u0435 \u043F\u0438\u043F\u0430)
+- mealCopyPatches: \u0421\u0410\u041C\u041E name, benefits, recipe \u2014 \u0431\u0435\u0437 description/products/grams/calories
+- forbidden/recommendations: \u0442\u0438\u043F\u043E\u0432\u0435 \u0445\u0440\u0430\u043D\u0438, \u043D\u0435 \u044F\u0441\u0442\u0438\u044F`;
+function parseDirectorResponse(raw) {
+  const base = {
+    verdict: "APPROVE",
+    qualityScore: 80,
+    headline: "",
+    clientMessage: "",
+    coherenceNotes: [],
+    recommendations: [],
+    forbidden: [],
+    psychology: [],
+    supplements: [],
+    waterIntake: "",
+    mealCopyPatches: []
+  };
+  if (!raw || typeof raw !== "object" || raw.error) return { ...base, verdict: "APPROVE" };
+  const verdict = ["APPROVE", "ADJUST", "REJECT"].includes(raw.verdict) ? raw.verdict : "APPROVE";
+  return {
+    verdict,
+    qualityScore: Math.max(0, Math.min(100, Number(raw.qualityScore) || 80)),
+    headline: String(raw.headline || "").slice(0, 160),
+    clientMessage: String(raw.clientMessage || "").slice(0, 1200),
+    coherenceNotes: Array.isArray(raw.coherenceNotes) ? raw.coherenceNotes.map(String).slice(0, 5) : [],
+    recommendations: Array.isArray(raw.recommendations) ? raw.recommendations.map(String).slice(0, 12) : [],
+    forbidden: Array.isArray(raw.forbidden) ? raw.forbidden.map(String).slice(0, 12) : [],
+    psychology: Array.isArray(raw.psychology) ? raw.psychology.map(String).slice(0, 6) : [],
+    supplements: Array.isArray(raw.supplements) ? raw.supplements.slice(0, 8) : [],
+    waterIntake: String(raw.waterIntake || "").slice(0, 200),
+    mealCopyPatches: Array.isArray(raw.mealCopyPatches) ? raw.mealCopyPatches.slice(0, 21) : []
+  };
+}
+function applyDirectorAdjustments(plan, director) {
+  if (!plan || !director) return plan;
+  if (director.headline) plan.directorHeadline = director.headline;
+  if (director.clientMessage) plan.directorMessage = director.clientMessage;
+  if (director.qualityScore != null) plan.directorQualityScore = director.qualityScore;
+  if (director.recommendations?.length) plan.recommendations = director.recommendations;
+  if (director.forbidden?.length) plan.forbidden = director.forbidden;
+  if (director.psychology?.length) plan.psychology = director.psychology;
+  if (director.supplements?.length) plan.supplements = director.supplements;
+  if (director.waterIntake) plan.waterIntake = director.waterIntake;
+  if (plan.summary && typeof plan.summary === "object" && director.clientMessage) {
+    plan.summary.directorNote = director.clientMessage;
+  }
+  for (const patch of director.mealCopyPatches || []) {
+    const dayNum = Number(patch.day);
+    const mealIdx = Number(patch.mealIndex);
+    if (!dayNum || dayNum < 1 || dayNum > 7 || mealIdx < 0) continue;
+    const meal = plan.weekPlan?.[`day${dayNum}`]?.meals?.[mealIdx];
+    if (!meal) continue;
+    if (patch.name) meal.name = String(patch.name).slice(0, 120);
+    if (patch.benefits) meal.benefits = String(patch.benefits).slice(0, 600);
+    if (patch.recipe) meal.recipe = String(patch.recipe).slice(0, 1200);
+  }
+  if (!plan.generationWarnings) plan.generationWarnings = [];
+  if (director.verdict === "REJECT" && director.coherenceNotes?.length) {
+    plan.generationWarnings.push(`Director REJECT: ${director.coherenceNotes.join("; ")}`);
+  } else if (director.coherenceNotes?.length) {
+    plan.generationWarnings.push(...director.coherenceNotes.slice(0, 3));
+  }
+  plan._finalDirector = {
+    verdict: director.verdict,
+    qualityScore: director.qualityScore,
+    at: (/* @__PURE__ */ new Date()).toISOString()
+  };
+  return plan;
+}
+function buildFinalDirectorPrompt(auditPacket, customTemplate = null) {
+  const tpl = customTemplate || DEFAULT_FINAL_DIRECTOR_PROMPT;
+  return tpl.replace(/\{auditPacket\}/g, auditPacket || "");
 }
 
 // admin-food-catalog.js
@@ -20671,7 +20958,7 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = "unknown", 
   const isChatStep = stepKey === "chat";
   const preferredProvider = isChatStep && config.chatProvider ? config.chatProvider : config.provider;
   const modelName = isChatStep && config.chatModelName ? config.chatModelName : config.modelName;
-  const isPlanStep = stepKey && ["step1", "step2", "step3", "step4"].includes(stepKey);
+  const isPlanStep = stepKey && ["step1", "step2", "step3", "step4", "step6"].includes(stepKey);
   const effectiveThinkingBudget = isPlanStep ? 0 : isChatStep ? config.chatThinkingBudget !== void 0 ? config.chatThinkingBudget : config.thinkingBudget : config.thinkingBudget;
   const cfgTemp = isChatStep ? config.chatTemperature !== void 0 ? config.chatTemperature : config.temperature : config.temperature;
   const cfgTopP = isChatStep ? config.chatTopP !== void 0 ? config.chatTopP : config.topP : config.topP;
@@ -20878,30 +21165,7 @@ function invalidateFoodListsCache() {
   foodListsCacheTime = 0;
 }
 function collectUserBlockedFoodTerms(data) {
-  const terms = [];
-  const pushSplit = (val) => {
-    if (!val) return;
-    String(val).split(/[,;|\n]/).forEach((s) => {
-      const t = s.trim();
-      if (t.length >= 2) terms.push(t);
-    });
-  };
-  pushSplit(data.dietDislike);
-  pushSplit(data["medicalConditions_\u0410\u043B\u0435\u0440\u0433\u0438\u0438"]);
-  if (Array.isArray(data.planModifications)) {
-    for (const mod of data.planModifications) {
-      if (typeof mod === "string" && mod.startsWith("exclude_food:")) {
-        terms.push(mod.slice("exclude_food:".length).trim());
-      }
-    }
-  }
-  if (Array.isArray(data.forbidden)) {
-    data.forbidden.forEach((f) => pushSplit(f));
-  }
-  if (Array.isArray(data.userFoodExclude)) {
-    data.userFoodExclude.forEach((f) => pushSplit(f));
-  }
-  return terms;
+  return extractQuestionnaireBlockedTerms(data);
 }
 function buildUserFoodPickerSection(data) {
   const list = Array.isArray(data.userFoodList) ? data.userFoodList.map((s) => String(s).trim()).filter(Boolean) : [];
@@ -21448,6 +21712,34 @@ async function persistFoodLedger(env, userId, ledgerSerialized, clientIdHint = "
     }
   }
 }
+var FINAL_DIRECTOR_TOKEN_LIMIT = 3500;
+async function runFinalDirectorReview(env, plan, userData, codeValidation = null) {
+  const auditPacket = buildFinalAuditPacket({ plan, userData, codeValidation });
+  let customPrompt = null;
+  try {
+    customPrompt = await getCustomPrompt(env, "admin_final_director_prompt");
+  } catch (_) {
+    customPrompt = null;
+  }
+  const prompt = buildFinalDirectorPrompt(auditPacket, customPrompt || DEFAULT_FINAL_DIRECTOR_PROMPT);
+  const sessionId = generateUniqueId("director");
+  const response = await callAIModel(
+    env,
+    prompt,
+    FINAL_DIRECTOR_TOKEN_LIMIT,
+    "step6_final_director",
+    sessionId,
+    userData,
+    null
+  );
+  const parsed = parseAIResponse(response);
+  const director = parseDirectorResponse(parsed);
+  applyDirectorAdjustments(plan, director);
+  console.log(`Step 6 Final Director: ${director.verdict} (score ${director.qualityScore})`);
+  await finalizeAISessionLogs(env, sessionId).catch(() => {
+  });
+  return director;
+}
 async function generatePlanCore(env, data, onAnalysisReady = null) {
   await loadCatalogRegistryOverlay(env);
   const userId = data.email || generateUserId(data);
@@ -21477,6 +21769,7 @@ async function generatePlanCore(env, data, onAnalysisReady = null) {
   if (hasContradiction && !contradictionCanProceed) {
     return { success: true, hasContradiction: true, warningData, userId };
   }
+  enrichUserDataEngineContext(data);
   let structuredPlan = await generatePlanMultiStep(env, data, onAnalysisReady);
   await reconcilePlanStructure(structuredPlan, data, env);
   try {
@@ -21494,6 +21787,13 @@ async function generatePlanCore(env, data, onAnalysisReady = null) {
     }
     if (structuredPlan.generationWarnings.length) {
       console.log(`Plan post-validation: ${structuredPlan.generationWarnings.length} warning(s)`);
+    }
+    if (finalDirectorEnabled(env)) {
+      try {
+        await runFinalDirectorReview(env, structuredPlan, data, validation);
+      } catch (directorErr) {
+        console.warn("Step 6 Final Director skipped:", directorErr.message);
+      }
     }
   } catch (validationErr) {
     if (validationErr.message?.includes("\u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0438 \u043F\u0440\u0430\u0433\u043E\u0432\u0435")) throw validationErr;
@@ -23725,6 +24025,7 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       return;
     }
     const enrichedData = normalizeQuestionnaireData(userData);
+    enrichUserDataEngineContext(enrichedData);
     enrichedData.planModifications = mergeWeeklyModifications(
       userData.planModifications || enrichedData.planModifications,
       decision.modifications
@@ -26184,7 +26485,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
               seed: detSeed,
               includeDessert: userHasSweetsCraving2(data?.foodCravings) && strategy?.includeDessert !== false,
               clinicalProtocolId: data.clinicalProtocol || null,
-              blockedTerms: data.blockedFoods || []
+              blockedTerms: collectUserBlockedFoodTerms(data)
             });
             applyChunkData(chunkData);
             chunkBuilt = true;
@@ -26502,6 +26803,7 @@ function getStepKey(stepName) {
   if (stepName.startsWith("step2")) return "step2";
   if (stepName.startsWith("step3") || stepName === "fallback_plan") return "step3";
   if (stepName.startsWith("step4") || stepName === "fallback_summary") return "step4";
+  if (stepName.startsWith("step6") || stepName === "final_director") return "step6";
   if (stepName.startsWith("chat")) return "chat";
   return null;
 }

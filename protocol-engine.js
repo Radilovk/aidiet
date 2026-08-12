@@ -27,6 +27,7 @@ export function resolveLibraryDietProfile(ctx = {}) {
     ctx.dietaryModifier,
     ...(Array.isArray(ctx.dietPreference) ? ctx.dietPreference : ctx.dietPreference ? [ctx.dietPreference] : []),
     ctx.dietDislike,
+    ctx.questionnaireHints,
   ].filter(Boolean).join(' ').toLowerCase();
 
   const flags = resolveCatalogDietProfile(ctx);
