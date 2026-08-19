@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>KA-TRAINER — Swipe AI каталог</title>
+  <link rel="stylesheet" href="./exercise-catalog-swipe.css">
+</head>
+<body class="ecs-page">
+  <div class="ecs-shell">
+    <div class="ecs-head">
+      <div>
+        <a class="ecs-back" href="./exercise-catalog.html" id="ecsBackLink">← Каталог</a>
+        <h1>Swipe AI каталог</h1>
+        <p>Надясно = остави в AI списъка · Наляво = премахни от AI списъка</p>
+      </div>
+      <button type="button" class="ecs-btn" id="ecsSaveBtn" disabled>Запази</button>
+    </div>
+
+    <div class="ecs-toolbar">
+      <div class="ecs-field">
+        <label for="ecsSearch">Търсене</label>
+        <input type="search" id="ecsSearch" placeholder="име, id, оборудване…">
+      </div>
+      <div class="ecs-field" style="flex:0 0 130px;">
+        <label for="ecsFilter">Покажи</label>
+        <select id="ecsFilter">
+          <option value="all">Всички</option>
+          <option value="active">Само активни</option>
+          <option value="excluded">Само изключени</option>
+        </select>
+      </div>
+      <button type="button" class="ecs-btn ghost" id="ecsReloadBtn">Обнови</button>
+    </div>
+
+    <div class="ecs-stats">
+      <div class="ecs-stat"><strong id="ecsStatRemaining">0</strong><span>остават</span></div>
+      <div class="ecs-stat keep"><strong id="ecsStatKeep">0</strong><span>в AI</span></div>
+      <div class="ecs-stat skip"><strong id="ecsStatSkip">0</strong><span>извън AI</span></div>
+      <div class="ecs-stat pending"><strong id="ecsStatPending">0</strong><span>чакат</span></div>
+    </div>
+
+    <div class="ecs-deck-wrap" id="ecsDeck">
+      <div class="ecs-empty" id="ecsEmpty">Зареждане…</div>
+    </div>
+
+    <div class="ecs-actions">
+      <button type="button" class="ecs-action skip" id="ecsSkipBtn" title="Премахни от AI" aria-label="Премахни от AI">✕</button>
+      <button type="button" class="ecs-action undo" id="ecsUndoBtn" disabled>Отмени</button>
+      <button type="button" class="ecs-action keep" id="ecsKeepBtn" title="Остави в AI" aria-label="Остави в AI">♥</button>
+    </div>
+    <p class="ecs-hint">Плъзни картата или ползвай ✕ / ♥ · Промените се записват с „Запази“</p>
+    <div class="ecs-status" id="ecsStatus"></div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const WORKER_URL = params.get('worker') || 'https://aidiet.radilov-k.workers.dev';
+    const ADMIN_PASSWORD = params.get('secret') || 'nutriplan2024';
+    const MEDIA_BASE = 'https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@main/';
+
+    const state = {
+      allItems: [],
+      deck: [],
+      index: 0,
+      pending: new Map(),
+      history: [],
+      dragging: null,
+    };
+
+    function headers() {
+      return {
+        'Content-Type': 'application/json',
+        'X-Admin-Secret': ADMIN_PASSWORD,
+      };
+    }
+
+    function $(id) { return document.getElementById(id); }
+
+    function setStatus(text, isError) {
+      const el = $('ecsStatus');
+      el.textContent = text || '';
+      el.style.color = isError ? '#b91c1c' : '';
+    }
+
+    function mediaUrl(path) {
+      if (!path) return '';
+      if (/^https?:\/\//i.test(path)) return path;
+      return MEDIA_BASE.replace(/\/+$/, '/') + String(path).replace(/^\/+/, '');
+    }
+
+    function escapeHtml(s) {
+      return String(s || '').replace(/[&<>"']/g, (c) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+      }[c]));
+    }
+
+    function currentExcluded(item) {
+      const pending = state.pending.get(item.id);
+      if (pending && 'excluded' in pending) return Boolean(pending.excluded);
+      return Boolean(item.excluded);
+    }
+
+    function applyFilters() {
+      const q = $('ecsSearch').value.trim().toLowerCase();
+      const filter = $('ecsFilter').value;
+      state.deck = state.allItems.filter((item) => {
+        const excluded = currentExcluded(item);
+        if (filter === 'active' && excluded) return false;
+        if (filter === 'excluded' && !excluded) return false;
+        if (!q) return true;
+        const hay = [
+          item.id,
+          item.name,
+          item.nameBg,
+          item.displayName,
+          item.equipment,
+          item.target,
+        ].join(' ').toLowerCase();
+        return hay.includes(q);
+      });
+      state.index = 0;
+    }
+
+    function updateStats() {
+      const remaining = Math.max(0, state.deck.length - state.index);
+      let keep = 0;
+      let skip = 0;
+      for (const item of state.allItems) {
+        if (currentExcluded(item)) skip += 1;
+        else keep += 1;
+      }
+      $('ecsStatRemaining').textContent = String(remaining);
+      $('ecsStatKeep').textContent = String(keep);
+      $('ecsStatSkip').textContent = String(skip);
+      $('ecsStatPending').textContent = String(state.pending.size);
+      const saveBtn = $('ecsSaveBtn');
+      saveBtn.textContent = state.pending.size ? `Запази (${state.pending.size})` : 'Запази';
+      saveBtn.disabled = state.pending.size === 0;
+      $('ecsUndoBtn').disabled = state.history.length === 0;
+      $('ecsSkipBtn').disabled = remaining === 0;
+      $('ecsKeepBtn').disabled = remaining === 0;
+    }
+
+    function renderDeck() {
+      const deckEl = $('ecsDeck');
+      deckEl.innerHTML = '';
+      const current = state.deck[state.index];
+      const next = state.deck[state.index + 1];
+
+      if (!current) {
+        deckEl.innerHTML = '<div class="ecs-empty" id="ecsEmpty">Няма повече упражнения за преглед.<br>Промените се записват с „Запази“.</div>';
+        updateStats();
+        return;
+      }
+
+      const cards = [next, current].filter(Boolean);
+      for (const item of cards) {
+        const card = document.createElement('article');
+        card.className = 'ecs-card';
+        card.dataset.id = item.id;
+        if (item !== current) card.style.transform = 'scale(0.96) translateY(8px)';
+        if (item !== current) card.style.zIndex = '1';
+        else card.style.zIndex = '2';
+
+        const url = mediaUrl(item.gif || item.image);
+        const title = item.displayName || item.nameBg || item.name || item.id;
+        const sub = [item.name !== title ? item.name : '', item.equipment, item.target].filter(Boolean).join(' · ');
+        const excludedNow = currentExcluded(item);
+
+        card.innerHTML = `
+          <div class="ecs-card-badge left" data-badge="left">ИЗВЪН AI</div>
+          <div class="ecs-card-badge right" data-badge="right">В AI</div>
+          <div class="ecs-card-media">
+            ${url
+              ? `<img src="${escapeHtml(url)}" alt="${escapeHtml(title)}" loading="lazy">`
+              : '<p class="ecs-no-media">Няма анимация</p>'}
+          </div>
+          <div class="ecs-card-body">
+            <h2 class="ecs-card-title">${escapeHtml(title)}</h2>
+            <p class="ecs-card-sub">${escapeHtml(sub)}${excludedNow ? ' · текущо изключено' : ''}</p>
+          </div>
+        `;
+        deckEl.appendChild(card);
+        if (item === current) bindCard(card, item);
+      }
+      updateStats();
+    }
+
+    function bindCard(card, item) {
+      let startX = 0;
+      let startY = 0;
+      let deltaX = 0;
+      let active = false;
+
+      const badgeLeft = card.querySelector('[data-badge="left"]');
+      const badgeRight = card.querySelector('[data-badge="right"]');
+
+      function setTransform(x) {
+        const rot = x * 0.06;
+        card.style.transform = `translateX(${x}px) rotate(${rot}deg)`;
+        badgeLeft.classList.toggle('visible', x < -40);
+        badgeRight.classList.toggle('visible', x > 40);
+      }
+
+      function onStart(clientX, clientY) {
+        active = true;
+        startX = clientX;
+        startY = clientY;
+        deltaX = 0;
+        card.classList.add('is-dragging');
+        state.dragging = { item, card };
+      }
+
+      function onMove(clientX, clientY) {
+        if (!active) return;
+        const dx = clientX - startX;
+        const dy = clientY - startY;
+        if (Math.abs(dy) > Math.abs(dx) && Math.abs(dx) < 12) return;
+        deltaX = dx;
+        setTransform(dx);
+      }
+
+      function onEnd() {
+        if (!active) return;
+        active = false;
+        card.classList.remove('is-dragging');
+        state.dragging = null;
+        const threshold = Math.min(120, card.offsetWidth * 0.28);
+        if (deltaX <= -threshold) {
+          commitSwipe(item, true, card);
+        } else if (deltaX >= threshold) {
+          commitSwipe(item, false, card);
+        } else {
+          setTransform(0);
+          badgeLeft.classList.remove('visible');
+          badgeRight.classList.remove('visible');
+        }
+      }
+
+      card.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return;
+        card.setPointerCapture(e.pointerId);
+        onStart(e.clientX, e.clientY);
+      });
+      card.addEventListener('pointermove', (e) => onMove(e.clientX, e.clientY));
+      card.addEventListener('pointerup', onEnd);
+      card.addEventListener('pointercancel', onEnd);
+    }
+
+    function queueDecision(item, excluded) {
+      const prevPending = state.pending.has(item.id) ? { ...state.pending.get(item.id) } : null;
+      state.pending.set(item.id, { excluded: Boolean(excluded) });
+      state.history.push({ id: item.id, prevPending, index: state.index });
+      state.index += 1;
+      renderDeck();
+      setStatus(excluded ? 'Маркирано извън AI — запиши промените' : 'Маркирано за AI — запиши промените');
+    }
+
+    function commitSwipe(item, excluded, card) {
+      card.classList.add(excluded ? 'is-leaving-left' : 'is-leaving-right');
+      setTimeout(() => queueDecision(item, excluded), 160);
+    }
+
+    function undoLast() {
+      const last = state.history.pop();
+      if (!last) return;
+      if (last.prevPending) state.pending.set(last.id, last.prevPending);
+      else state.pending.delete(last.id);
+      state.index = last.index;
+      renderDeck();
+      setStatus('Последното действие е отменено');
+    }
+
+    async function fetchAllItems() {
+      const items = [];
+      let page = 1;
+      let pages = 1;
+      while (page <= pages) {
+        const q = new URLSearchParams({ page: String(page), limit: '200' });
+        const res = await fetch(`${WORKER_URL}/api/admin/fitplan/exercise-catalog?${q}`, { headers: headers() });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.message || data.error || `HTTP ${res.status}`);
+        items.push(...(data.items || []));
+        pages = data.pages || 1;
+        page += 1;
+      }
+      return items;
+    }
+
+    async function loadItems() {
+      setStatus('Зареждане на упражнения…');
+      $('ecsReloadBtn').disabled = true;
+      try {
+        state.allItems = await fetchAllItems();
+        applyFilters();
+        renderDeck();
+        setStatus(`Заредени ${state.allItems.length} упражнения`);
+      } catch (e) {
+        setStatus(e.message, true);
+        $('ecsDeck').innerHTML = `<div class="ecs-empty">${escapeHtml(e.message)}</div>`;
+      } finally {
+        $('ecsReloadBtn').disabled = false;
+      }
+    }
+
+    async function savePending() {
+      if (!state.pending.size) return;
+      const items = [...state.pending.entries()].map(([id, patch]) => {
+        const row = state.allItems.find((x) => x.id === id) || {};
+        return {
+          id,
+          excluded: patch.excluded,
+          diff: row.diff ?? 2,
+          gf: row.gf ?? 70,
+          gm: row.gm ?? 70,
+        };
+      });
+      setStatus(`Запис на ${items.length} упражнения…`);
+      $('ecsSaveBtn').disabled = true;
+      try {
+        const res = await fetch(`${WORKER_URL}/api/admin/fitplan/exercise-catalog/save`, {
+          method: 'POST',
+          headers: headers(),
+          body: JSON.stringify({ items }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.message || data.error || 'Грешка при запис');
+        for (const row of items) {
+          const item = state.allItems.find((x) => x.id === row.id);
+          if (item) item.excluded = row.excluded;
+        }
+        state.pending.clear();
+        state.history = [];
+        applyFilters();
+        renderDeck();
+        setStatus(`Записани ${data.updated || items.length} упражнения` + (data.indexRebuilt ? ' · AI индекс обновен' : ''));
+      } catch (e) {
+        setStatus(e.message, true);
+      } finally {
+        updateStats();
+      }
+    }
+
+    function actOnCurrent(excluded) {
+      const item = state.deck[state.index];
+      if (!item) return;
+      const card = $('ecsDeck').querySelector('.ecs-card[data-id="' + item.id + '"]');
+      if (card) commitSwipe(item, excluded, card);
+      else queueDecision(item, excluded);
+    }
+
+    const backParams = new URLSearchParams(location.search);
+    backParams.delete('mode');
+    $('ecsBackLink').href = './exercise-catalog.html' + (backParams.toString() ? '?' + backParams.toString() : '');
+
+    $('ecsSaveBtn').addEventListener('click', () => savePending());
+    $('ecsReloadBtn').addEventListener('click', () => loadItems());
+    $('ecsSearch').addEventListener('input', () => { applyFilters(); renderDeck(); });
+    $('ecsFilter').addEventListener('change', () => { applyFilters(); renderDeck(); });
+    $('ecsSkipBtn').addEventListener('click', () => actOnCurrent(true));
+    $('ecsKeepBtn').addEventListener('click', () => actOnCurrent(false));
+    $('ecsUndoBtn').addEventListener('click', () => undoLast());
+
+    loadItems();
+  </script>
+</body>
+</html>

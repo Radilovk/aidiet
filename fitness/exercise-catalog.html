@@ -15,6 +15,7 @@
         <p>Редактируема база: BG имена, класификатори (diff/gf/gm), тагове, gear, изключване от AI.</p>
       </div>
       <div class="ec-toolbar">
+        <button type="button" class="ec-btn ghost" id="ecSwipeBtn">Swipe AI</button>
         <button type="button" class="ec-btn" id="ecSaveAllBtn" disabled>Запази всички</button>
         <button type="button" class="ec-btn ghost" id="ecExportBtn">Експорт JSON</button>
         <label class="ec-btn ghost" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
@@ -389,6 +390,10 @@
     $('ecSaveAllBtn').addEventListener('click', () => saveAllPending().catch((e) => setStatus($('ecListStatus'), e.message, true)));
     $('ecCloseBtn').addEventListener('click', () => { if (state.selected?.id) queueCurrentEditor(); state.selected = null; clearEditorMedia(); showEditor(false); renderTable(); });
     $('ecExportBtn').addEventListener('click', () => exportCatalog().catch((e) => setStatus($('ecListStatus'), e.message, true)));
+    $('ecSwipeBtn').addEventListener('click', () => {
+      const q = new URLSearchParams(location.search);
+      location.href = './exercise-catalog-swipe.html' + (q.toString() ? '?' + q.toString() : '');
+    });
     $('ecImportFile').addEventListener('change', (e) => {
       const file = e.target.files?.[0];
       if (!file) return;
