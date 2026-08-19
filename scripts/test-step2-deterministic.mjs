@@ -6,7 +6,7 @@ import {
   deterministicStep2Enabled,
 } from '../step2-deterministic.js';
 import { validateProtocolStrategy } from '../protocol-validate.js';
-import { userSkipsBreakfast } from '../plan-normalize.js';
+import { userSkipsBreakfast, MAX_AFTERNOON_SNACK_CALORIES } from '../plan-normalize.js';
 
 let pass = 0;
 let fail = 0;
@@ -81,6 +81,16 @@ const loveStrategy = buildDeterministicStrategy({
   analysis,
 });
 ok(loveStrategy.foodsToInclude?.includes('кашкавал'), 'dietLove flows to foodsToInclude');
+
+const kamenAnalysis = { Final_Calories: 2774, macroGrams: { protein: 200, carbs: 250, fats: 90 } };
+const kamenStrategy = buildDeterministicStrategy({
+  userData: { ...userData, name: 'Kamen', weight: 110, eatingHabits: ['Не закусвам'] },
+  analysis: kamenAnalysis,
+});
+const kamenH3 = kamenStrategy.weeklyScheme.monday.mealBreakdown.find(m => m.type === 'Хранене 3');
+ok(kamenH3 && kamenH3.calories <= MAX_AFTERNOON_SNACK_CALORIES + 20,
+  `Kamen H3 snack cap (${kamenH3?.calories} <= ${MAX_AFTERNOON_SNACK_CALORIES})`);
+ok(!kamenStrategy.weeklyScheme.monday.mealBreakdown.some(m => m.type === 'Хранене 1'), 'Kamen has no H1');
 
 console.log('');
 if (fail) {

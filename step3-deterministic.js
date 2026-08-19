@@ -137,9 +137,7 @@ function pickFromPool(pool, ctx, roleKey) {
   for (const entry of rotated) {
     const k = normalizeFoodKey(entry.name);
     const uses = usedProducts.get(k) || 0;
-    const isLove = loveSet?.has(k);
-    const maxUses = isLove ? 4 : 3;
-    if (uses < maxUses) return entry;
+    if (uses < 3) return entry;
   }
   return rotated[0];
 }
