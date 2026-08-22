@@ -302,6 +302,13 @@
   color: var(--text-gray, #64748b);
 }
 
-.ecs-hidden {
-  display: none !important;
+.ecs-dup-warn {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+  font-size: 0.72rem;
+  line-height: 1.35;
 }
