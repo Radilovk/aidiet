@@ -28,6 +28,7 @@
           <option value="all">Всички</option>
           <option value="active">Само активни</option>
           <option value="excluded">Само изключени</option>
+          <option value="duplicates">Само дубликати</option>
         </select>
       </div>
       <button type="button" class="ecs-btn ghost" id="ecsReloadBtn">Обнови</button>
@@ -66,7 +67,95 @@
       pending: new Map(),
       history: [],
       dragging: null,
+      dupById: new Map(),
     };
+
+    function normText(text) {
+      return String(text || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9а-я\s-]/g, ' ')
+        .replace(/-/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function baseEnName(name) {
+      return normText(name)
+        .replace(/\bv\s*\d+\b/g, '')
+        .replace(/\bback pov\b|\bside pov\b/g, '')
+        .replace(/\bwith arm blaster\b/g, '')
+        .replace(/\bon knees\b/g, '')
+        .replace(/\bmale\b|\bfemale\b/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function instrKey(item) {
+      const en = item.instructionsEn || item.instructions || '';
+      return normText(String(en).slice(0, 400));
+    }
+
+    function groupBy(items, keyFn) {
+      const map = new Map();
+      for (const item of items) {
+        const key = keyFn(item);
+        if (!key) continue;
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push(item);
+      }
+      return map;
+    }
+
+    /** Индексира дубликати: еднакво BG име, еднакви инструкции, варианти v.2/POV. */
+    function buildDuplicateIndex(items) {
+      const byDisplay = groupBy(items, (x) => normText(x.displayName || x.nameBg || x.name));
+      const byInstr = groupBy(items, instrKey);
+      const byVariant = groupBy(items, (x) => baseEnName(x.name));
+
+      const dupById = new Map();
+      function attach(item, type, group) {
+        if (group.length < 2) return;
+        const siblings = group.filter((x) => x.id !== item.id);
+        if (!siblings.length) return;
+        const entry = dupById.get(item.id) || { types: [], siblings: [] };
+        if (!entry.types.includes(type)) entry.types.push(type);
+        for (const s of siblings) {
+          if (!entry.siblings.some((x) => x.id === s.id)) {
+            entry.siblings.push({
+              id: s.id,
+              displayName: s.displayName || s.nameBg || s.name,
+              name: s.name,
+              excluded: s.excluded,
+            });
+          }
+        }
+        dupById.set(item.id, entry);
+      }
+
+      for (const item of items) {
+        attach(item, 'display', byDisplay.get(normText(item.displayName || item.nameBg || item.name)) || []);
+        attach(item, 'instructions', byInstr.get(instrKey(item)) || []);
+        attach(item, 'variant', byVariant.get(baseEnName(item.name)) || []);
+      }
+      return dupById;
+    }
+
+    function duplicateHint(item) {
+      const info = state.dupById.get(item.id);
+      if (!info?.siblings?.length) return '';
+      const labels = [];
+      if (info.types.includes('instructions')) labels.push('еднакви инструкции');
+      if (info.types.includes('display')) labels.push('еднакво BG име');
+      if (info.types.includes('variant')) labels.push('вариант v.2/POV');
+      const preview = info.siblings.slice(0, 3).map((s) => {
+        const mark = currentExcluded({ id: s.id, excluded: s.excluded }) ? 'извън AI' : 'в AI';
+        return `${s.displayName} (${mark})`;
+      }).join(' · ');
+      const more = info.siblings.length > 3 ? ` · +${info.siblings.length - 3}` : '';
+      return `<p class="ecs-dup-warn">⚠ ${info.siblings.length + 1} подобни (${labels.join(', ')}): ${escapeHtml(preview + more)}</p>`;
+    }
 
     function headers() {
       return {
@@ -108,6 +197,7 @@
         const excluded = currentExcluded(item);
         if (filter === 'active' && excluded) return false;
         if (filter === 'excluded' && !excluded) return false;
+        if (filter === 'duplicates' && !state.dupById.has(item.id)) return false;
         if (!q) return true;
         const hay = [
           item.id,
@@ -168,6 +258,8 @@
         const sub = [item.name !== title ? item.name : '', item.equipment, item.target].filter(Boolean).join(' · ');
         const excludedNow = currentExcluded(item);
 
+        const dupHtml = item === current ? duplicateHint(item) : '';
+
         card.innerHTML = `
           <div class="ecs-card-badge left" data-badge="left">ИЗВЪН AI</div>
           <div class="ecs-card-badge right" data-badge="right">В AI</div>
@@ -179,6 +271,7 @@
           <div class="ecs-card-body">
             <h2 class="ecs-card-title">${escapeHtml(title)}</h2>
             <p class="ecs-card-sub">${escapeHtml(sub)}${excludedNow ? ' · текущо изключено' : ''}</p>
+            ${dupHtml}
           </div>
         `;
         deckEl.appendChild(card);
@@ -293,9 +386,11 @@
       $('ecsReloadBtn').disabled = true;
       try {
         state.allItems = await fetchAllItems();
+        state.dupById = buildDuplicateIndex(state.allItems);
+        const dupCount = state.dupById.size;
         applyFilters();
         renderDeck();
-        setStatus(`Заредени ${state.allItems.length} упражнения`);
+        setStatus(`Заредени ${state.allItems.length} упражнения · ${dupCount} с дубликати/варианти`);
       } catch (e) {
         setStatus(e.message, true);
         $('ecsDeck').innerHTML = `<div class="ecs-empty">${escapeHtml(e.message)}</div>`;
