@@ -32,6 +32,7 @@
         </select>
       </div>
       <button type="button" class="ecs-btn ghost" id="ecsReloadBtn">Обнови</button>
+      <button type="button" class="ecs-btn ghost" id="ecsCanonicalBtn" title="Маркира само 1 универсален запис на група дубликати">1/GROUP</button>
     </div>
 
     <div class="ecs-stats">
@@ -50,7 +51,7 @@
       <button type="button" class="ecs-action undo" id="ecsUndoBtn" disabled>Отмени</button>
       <button type="button" class="ecs-action keep" id="ecsKeepBtn" title="Остави в AI" aria-label="Остави в AI">♥</button>
     </div>
-    <p class="ecs-hint">Плъзни картата или ползвай ✕ / ♥ · Промените се записват с „Запази“</p>
+    <p class="ecs-hint">Плъзни картата или ползвай ✕ / ♥ · „1/GROUP“ = само 1 универсален на група · Запази за запис</p>
     <div class="ecs-status" id="ecsStatus"></div>
   </div>
 
@@ -140,6 +141,83 @@
         attach(item, 'variant', byVariant.get(baseEnName(item.name)) || []);
       }
       return dupById;
+    }
+
+    function canonicalScore(item) {
+      const name = String(item.name || '');
+      let score = 0;
+      if (/\((male|female)\)/i.test(name)) score -= 120;
+      if (/\bpov\b/i.test(name)) score -= 90;
+      if (/\bv\.?\s*\d+\b/i.test(name)) score -= 70;
+      if (/arm blaster/i.test(name)) score -= 55;
+      if (/on knees/i.test(name)) score -= 45;
+      if (/\(with /i.test(name)) score -= 35;
+      score -= name.length * 0.15;
+      if (!currentExcluded(item)) score += 25;
+      const display = item.displayName || item.nameBg || '';
+      if (display && display !== 'Упражнение' && display.length >= 4) score += 10;
+      const idNum = Number.parseInt(item.id, 10);
+      if (Number.isFinite(idNum)) score -= idNum * 0.002;
+      return score;
+    }
+
+    function buildCanonicalClusters(items) {
+      const byId = new Map(items.map((x) => [String(x.id), x]));
+      const parent = new Map(items.map((x) => [String(x.id), String(x.id)]));
+      function find(id) {
+        let r = id;
+        while (parent.get(r) !== r) r = parent.get(r);
+        let c = id;
+        while (parent.get(c) !== r) { const n = parent.get(c); parent.set(c, r); c = n; }
+        return r;
+      }
+      function union(a, b) {
+        const ra = find(a); const rb = find(b);
+        if (ra !== rb) parent.set(rb, ra);
+      }
+      function linkGroups(map) {
+        for (const group of map.values()) {
+          if (group.length < 2) continue;
+          const first = String(group[0].id);
+          for (let i = 1; i < group.length; i++) union(first, String(group[i].id));
+        }
+      }
+      linkGroups(groupBy(items, instrKey));
+      linkGroups(groupBy(items, (x) => normText(x.displayName || x.nameBg || x.name)));
+      linkGroups(groupBy(items, (x) => baseEnName(x.name)));
+
+      const clusters = new Map();
+      for (const id of parent.keys()) {
+        const root = find(id);
+        if (!clusters.has(root)) clusters.set(root, []);
+        clusters.get(root).push(byId.get(id));
+      }
+      const out = [];
+      for (const members of clusters.values()) {
+        if (members.length < 2) continue;
+        members.sort((a, b) => canonicalScore(b) - canonicalScore(a));
+        out.push({ winner: members[0], drop: members.slice(1) });
+      }
+      return out;
+    }
+
+    function queueCanonicalPlan() {
+      const clusters = buildCanonicalClusters(state.allItems);
+      if (!clusters.length) {
+        setStatus('Няма открити групи дубликати');
+        return;
+      }
+      let excluded = 0;
+      for (const c of clusters) {
+        for (const item of c.drop) {
+          if (currentExcluded(item)) continue;
+          state.pending.set(item.id, { excluded: true });
+          excluded += 1;
+        }
+      }
+      renderDeck();
+      updateStats();
+      setStatus(`Каноничен план: ${clusters.length} групи · ${excluded} варианта маркирани за изключване · Запази`);
     }
 
     function duplicateHint(item) {
@@ -451,6 +529,7 @@
 
     $('ecsSaveBtn').addEventListener('click', () => savePending());
     $('ecsReloadBtn').addEventListener('click', () => loadItems());
+    $('ecsCanonicalBtn').addEventListener('click', () => queueCanonicalPlan());
     $('ecsSearch').addEventListener('input', () => { applyFilters(); renderDeck(); });
     $('ecsFilter').addEventListener('change', () => { applyFilters(); renderDeck(); });
     $('ecsSkipBtn').addEventListener('click', () => actOnCurrent(true));
