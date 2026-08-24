@@ -13,9 +13,19 @@
     "classify:exercises": "node scripts/classify-exercises.mjs",
     "build:index": "node scripts/build-exercise-index.mjs",
     "build:apparatus": "node scripts/build-apparatus-catalog.mjs",
+    "build:visual-hashes": "node scripts/build-visual-hash-index.mjs",
     "test": "node --test"
   },
-  "keywords": ["ai", "fitness", "workout", "cloudflare-workers", "gemini"],
+  "keywords": [
+    "ai",
+    "fitness",
+    "workout",
+    "cloudflare-workers",
+    "gemini"
+  ],
   "author": "Radilov-K",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "sharp": "^0.35.3"
+  }
 }

@@ -28,9 +28,12 @@
           <option value="all">Всички</option>
           <option value="active">Само активни</option>
           <option value="excluded">Само изключени</option>
+          <option value="duplicates">Текстови дубликати</option>
+          <option value="visual">Визуални дубликати</option>
         </select>
       </div>
       <button type="button" class="ecs-btn ghost" id="ecsReloadBtn">Обнови</button>
+      <button type="button" class="ecs-btn ghost" id="ecsCanonicalBtn" title="Маркира само 1 универсален запис на група дубликати">1/GROUP</button>
     </div>
 
     <div class="ecs-stats">
@@ -44,12 +47,20 @@
       <div class="ecs-empty" id="ecsEmpty">Зареждане…</div>
     </div>
 
+    <section class="ecs-visual-panel ecs-hidden" id="ecsVisualPanel" aria-label="Визуално подобни упражнения">
+      <div class="ecs-visual-head">
+        <h3>Визуално подобни</h3>
+        <span class="ecs-visual-meta" id="ecsVisualMeta"></span>
+      </div>
+      <div class="ecs-visual-strip" id="ecsVisualStrip"></div>
+    </section>
+
     <div class="ecs-actions">
       <button type="button" class="ecs-action skip" id="ecsSkipBtn" title="Премахни от AI" aria-label="Премахни от AI">✕</button>
       <button type="button" class="ecs-action undo" id="ecsUndoBtn" disabled>Отмени</button>
       <button type="button" class="ecs-action keep" id="ecsKeepBtn" title="Остави в AI" aria-label="Остави в AI">♥</button>
     </div>
-    <p class="ecs-hint">Плъзни картата или ползвай ✕ / ♥ · Промените се записват с „Запази“</p>
+    <p class="ecs-hint">Плъзни картата или ползвай ✕ / ♥ · „1/GROUP“ = само 1 универсален на група · Запази за запис</p>
     <div class="ecs-status" id="ecsStatus"></div>
   </div>
 
@@ -66,7 +77,266 @@
       pending: new Map(),
       history: [],
       dragging: null,
+      dupById: new Map(),
+      visualIndex: null,
+      visualClusterIds: new Set(),
     };
+
+    function normText(text) {
+      return String(text || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9а-я\s-]/g, ' ')
+        .replace(/-/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function baseEnName(name) {
+      return normText(name)
+        .replace(/\bv\s*\d+\b/g, '')
+        .replace(/\bback pov\b|\bside pov\b/g, '')
+        .replace(/\bwith arm blaster\b/g, '')
+        .replace(/\bon knees\b/g, '')
+        .replace(/\bmale\b|\bfemale\b/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function instrKey(item) {
+      const en = item.instructionsEn || item.instructions || '';
+      return normText(String(en).slice(0, 400));
+    }
+
+    function groupBy(items, keyFn) {
+      const map = new Map();
+      for (const item of items) {
+        const key = keyFn(item);
+        if (!key) continue;
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push(item);
+      }
+      return map;
+    }
+
+    /** Индексира дубликати: еднакво BG име, еднакви инструкции, варианти v.2/POV. */
+    function buildDuplicateIndex(items) {
+      const byDisplay = groupBy(items, (x) => normText(x.displayName || x.nameBg || x.name));
+      const byInstr = groupBy(items, instrKey);
+      const byVariant = groupBy(items, (x) => baseEnName(x.name));
+
+      const dupById = new Map();
+      function attach(item, type, group) {
+        if (group.length < 2) return;
+        const siblings = group.filter((x) => x.id !== item.id);
+        if (!siblings.length) return;
+        const entry = dupById.get(item.id) || { types: [], siblings: [] };
+        if (!entry.types.includes(type)) entry.types.push(type);
+        for (const s of siblings) {
+          if (!entry.siblings.some((x) => x.id === s.id)) {
+            entry.siblings.push({
+              id: s.id,
+              displayName: s.displayName || s.nameBg || s.name,
+              name: s.name,
+              excluded: s.excluded,
+            });
+          }
+        }
+        dupById.set(item.id, entry);
+      }
+
+      for (const item of items) {
+        attach(item, 'display', byDisplay.get(normText(item.displayName || item.nameBg || item.name)) || []);
+        attach(item, 'instructions', byInstr.get(instrKey(item)) || []);
+        attach(item, 'variant', byVariant.get(baseEnName(item.name)) || []);
+      }
+      return dupById;
+    }
+
+    function canonicalScore(item) {
+      const name = String(item.name || '');
+      let score = 0;
+      if (/\((male|female)\)/i.test(name)) score -= 120;
+      if (/\bpov\b/i.test(name)) score -= 90;
+      if (/\bv\.?\s*\d+\b/i.test(name)) score -= 70;
+      if (/arm blaster/i.test(name)) score -= 55;
+      if (/on knees/i.test(name)) score -= 45;
+      if (/\(with /i.test(name)) score -= 35;
+      score -= name.length * 0.15;
+      if (!currentExcluded(item)) score += 25;
+      const display = item.displayName || item.nameBg || '';
+      if (display && display !== 'Упражнение' && display.length >= 4) score += 10;
+      const idNum = Number.parseInt(item.id, 10);
+      if (Number.isFinite(idNum)) score -= idNum * 0.002;
+      return score;
+    }
+
+    function buildCanonicalClusters(items) {
+      const byId = new Map(items.map((x) => [String(x.id), x]));
+      const parent = new Map(items.map((x) => [String(x.id), String(x.id)]));
+      function find(id) {
+        let r = id;
+        while (parent.get(r) !== r) r = parent.get(r);
+        let c = id;
+        while (parent.get(c) !== r) { const n = parent.get(c); parent.set(c, r); c = n; }
+        return r;
+      }
+      function union(a, b) {
+        const ra = find(a); const rb = find(b);
+        if (ra !== rb) parent.set(rb, ra);
+      }
+      function linkGroups(map) {
+        for (const group of map.values()) {
+          if (group.length < 2) continue;
+          const first = String(group[0].id);
+          for (let i = 1; i < group.length; i++) union(first, String(group[i].id));
+        }
+      }
+      linkGroups(groupBy(items, instrKey));
+      linkGroups(groupBy(items, (x) => normText(x.displayName || x.nameBg || x.name)));
+      linkGroups(groupBy(items, (x) => baseEnName(x.name)));
+
+      const clusters = new Map();
+      for (const id of parent.keys()) {
+        const root = find(id);
+        if (!clusters.has(root)) clusters.set(root, []);
+        clusters.get(root).push(byId.get(id));
+      }
+      const out = [];
+      for (const members of clusters.values()) {
+        if (members.length < 2) continue;
+        members.sort((a, b) => canonicalScore(b) - canonicalScore(a));
+        out.push({ winner: members[0], drop: members.slice(1) });
+      }
+      return out;
+    }
+
+    function queueCanonicalPlan() {
+      const clusters = buildCanonicalClusters(state.allItems);
+      if (!clusters.length) {
+        setStatus('Няма открити групи дубликати');
+        return;
+      }
+      let excluded = 0;
+      for (const c of clusters) {
+        for (const item of c.drop) {
+          if (currentExcluded(item)) continue;
+          state.pending.set(item.id, { excluded: true });
+          excluded += 1;
+        }
+      }
+      renderDeck();
+      updateStats();
+      setStatus(`Каноничен план: ${clusters.length} групи · ${excluded} варианта маркирани за изключване · Запази`);
+    }
+
+    function loadVisualIndex() {
+      return fetch('./data/exercise-visual-hashes.json')
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null);
+    }
+
+    function ingestVisualIndex(data) {
+      if (!data?.neighbors) return;
+      state.visualIndex = data;
+      state.visualClusterIds = new Set();
+      for (const c of data.clusters || []) {
+        if ((c.ids || []).length < 2) continue;
+        for (const id of c.ids) state.visualClusterIds.add(String(id));
+      }
+    }
+
+    function visualNeighbors(item, limit = 5) {
+      if (!state.visualIndex?.neighbors) return [];
+      const list = state.visualIndex.neighbors[String(item.id)] || [];
+      return list
+        .filter((n) => n.distance <= (state.visualIndex.neighborThreshold || 10))
+        .slice(0, limit)
+        .map((n) => {
+          const row = state.allItems.find((x) => String(x.id) === String(n.id));
+          return row ? { ...n, item: row } : null;
+        })
+        .filter(Boolean);
+    }
+
+    function renderVisualPanel(item) {
+      const panel = $('ecsVisualPanel');
+      const strip = $('ecsVisualStrip');
+      const meta = $('ecsVisualMeta');
+      if (!item || !state.visualIndex) {
+        panel.classList.add('ecs-hidden');
+        return;
+      }
+      const neighbors = visualNeighbors(item, 6);
+      if (!neighbors.length) {
+        panel.classList.add('ecs-hidden');
+        return;
+      }
+      panel.classList.remove('ecs-hidden');
+      const inCluster = state.visualClusterIds.has(String(item.id));
+      meta.textContent = inCluster
+        ? `кластер · ${neighbors.length} близки анимации`
+        : `${neighbors.length} визуално близки`;
+      strip.innerHTML = neighbors.map(({ item: row, distance }) => {
+        const url = mediaUrl(row.gif || row.image);
+        const title = row.displayName || row.nameBg || row.name;
+        const excl = currentExcluded(row);
+        const distClass = distance <= 3 ? 'ecs-vis-strong' : distance <= 6 ? 'ecs-vis-mid' : '';
+        return `<button type="button" class="ecs-vis-card ${distClass}" data-jump-id="${escapeHtml(row.id)}" title="${escapeHtml(title)}">
+          <div class="ecs-vis-thumb">${url ? `<img src="${escapeHtml(url)}" alt="">` : '<span>—</span>'}</div>
+          <span class="ecs-vis-name">${escapeHtml(title)}</span>
+          <span class="ecs-vis-dist">Δ${distance}</span>
+          ${excl ? '<span class="ecs-vis-tag off">извън</span>' : '<span class="ecs-vis-tag on">AI</span>'}
+        </button>`;
+      }).join('');
+      strip.querySelectorAll('[data-jump-id]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.jumpId;
+          const idx = state.deck.findIndex((x) => String(x.id) === String(id));
+          if (idx >= 0) {
+            state.index = idx;
+            renderDeck();
+          } else {
+            $('ecsSearch').value = id;
+            applyFilters();
+            const j = state.deck.findIndex((x) => String(x.id) === String(id));
+            state.index = j >= 0 ? j : 0;
+            renderDeck();
+          }
+        });
+      });
+    }
+
+    function visualHint(item) {
+      const neighbors = visualNeighbors(item, 3);
+      const strong = neighbors.filter((n) => n.distance <= 4);
+      if (!strong.length) return '';
+      const preview = strong.map((n) => {
+        const t = n.item.displayName || n.item.name;
+        return `${t} (Δ${n.distance})`;
+      }).join(' · ');
+      return `<p class="ecs-dup-warn ecs-vis-warn">👁 Визуално близки GIF: ${escapeHtml(preview)}</p>`;
+    }
+
+    function textDuplicateHint(item) {
+      const info = state.dupById.get(item.id);
+      if (!info?.siblings?.length) return '';
+      const labels = [];
+      if (info.types.includes('instructions')) labels.push('еднакви инструкции');
+      if (info.types.includes('display')) labels.push('еднакво BG име');
+      if (info.types.includes('variant')) labels.push('вариант v.2/POV');
+      const preview = info.siblings.slice(0, 3).map((s) => {
+        const mark = currentExcluded({ id: s.id, excluded: s.excluded }) ? 'извън AI' : 'в AI';
+        return `${s.displayName} (${mark})`;
+      }).join(' · ');
+      const more = info.siblings.length > 3 ? ` · +${info.siblings.length - 3}` : '';
+      return `<p class="ecs-dup-warn">⚠ ${info.siblings.length + 1} подобни (${labels.join(', ')}): ${escapeHtml(preview + more)}</p>`;
+    }
+
+    function duplicateHint(item) {
+      return visualHint(item) + textDuplicateHint(item);
+    }
 
     function headers() {
       return {
@@ -108,6 +378,8 @@
         const excluded = currentExcluded(item);
         if (filter === 'active' && excluded) return false;
         if (filter === 'excluded' && !excluded) return false;
+        if (filter === 'duplicates' && !state.dupById.has(item.id)) return false;
+        if (filter === 'visual' && !state.visualClusterIds.has(String(item.id))) return false;
         if (!q) return true;
         const hay = [
           item.id,
@@ -168,6 +440,8 @@
         const sub = [item.name !== title ? item.name : '', item.equipment, item.target].filter(Boolean).join(' · ');
         const excludedNow = currentExcluded(item);
 
+        const dupHtml = item === current ? duplicateHint(item) : '';
+
         card.innerHTML = `
           <div class="ecs-card-badge left" data-badge="left">ИЗВЪН AI</div>
           <div class="ecs-card-badge right" data-badge="right">В AI</div>
@@ -179,11 +453,14 @@
           <div class="ecs-card-body">
             <h2 class="ecs-card-title">${escapeHtml(title)}</h2>
             <p class="ecs-card-sub">${escapeHtml(sub)}${excludedNow ? ' · текущо изключено' : ''}</p>
+            ${dupHtml}
           </div>
         `;
         deckEl.appendChild(card);
         if (item === current) bindCard(card, item);
       }
+      if (current) renderVisualPanel(current);
+      else $('ecsVisualPanel').classList.add('ecs-hidden');
       updateStats();
     }
 
@@ -293,9 +570,14 @@
       $('ecsReloadBtn').disabled = true;
       try {
         state.allItems = await fetchAllItems();
+        const visual = await loadVisualIndex();
+        ingestVisualIndex(visual);
+        state.dupById = buildDuplicateIndex(state.allItems);
+        const dupCount = state.dupById.size;
+        const visCount = state.visualClusterIds.size;
         applyFilters();
         renderDeck();
-        setStatus(`Заредени ${state.allItems.length} упражнения`);
+        setStatus(`Заредени ${state.allItems.length} · текстови дубликати: ${dupCount} · визуални: ${visCount}${visual ? '' : ' (липсва visual index)'}`);
       } catch (e) {
         setStatus(e.message, true);
         $('ecsDeck').innerHTML = `<div class="ecs-empty">${escapeHtml(e.message)}</div>`;
@@ -356,6 +638,7 @@
 
     $('ecsSaveBtn').addEventListener('click', () => savePending());
     $('ecsReloadBtn').addEventListener('click', () => loadItems());
+    $('ecsCanonicalBtn').addEventListener('click', () => queueCanonicalPlan());
     $('ecsSearch').addEventListener('input', () => { applyFilters(); renderDeck(); });
     $('ecsFilter').addEventListener('change', () => { applyFilters(); renderDeck(); });
     $('ecsSkipBtn').addEventListener('click', () => actOnCurrent(true));
