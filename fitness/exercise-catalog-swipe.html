@@ -28,7 +28,8 @@
           <option value="all">Всички</option>
           <option value="active">Само активни</option>
           <option value="excluded">Само изключени</option>
-          <option value="duplicates">Само дубликати</option>
+          <option value="duplicates">Текстови дубликати</option>
+          <option value="visual">Визуални дубликати</option>
         </select>
       </div>
       <button type="button" class="ecs-btn ghost" id="ecsReloadBtn">Обнови</button>
@@ -45,6 +46,14 @@
     <div class="ecs-deck-wrap" id="ecsDeck">
       <div class="ecs-empty" id="ecsEmpty">Зареждане…</div>
     </div>
+
+    <section class="ecs-visual-panel ecs-hidden" id="ecsVisualPanel" aria-label="Визуално подобни упражнения">
+      <div class="ecs-visual-head">
+        <h3>Визуално подобни</h3>
+        <span class="ecs-visual-meta" id="ecsVisualMeta"></span>
+      </div>
+      <div class="ecs-visual-strip" id="ecsVisualStrip"></div>
+    </section>
 
     <div class="ecs-actions">
       <button type="button" class="ecs-action skip" id="ecsSkipBtn" title="Премахни от AI" aria-label="Премахни от AI">✕</button>
@@ -69,6 +78,8 @@
       history: [],
       dragging: null,
       dupById: new Map(),
+      visualIndex: null,
+      visualClusterIds: new Set(),
     };
 
     function normText(text) {
@@ -220,7 +231,95 @@
       setStatus(`Каноничен план: ${clusters.length} групи · ${excluded} варианта маркирани за изключване · Запази`);
     }
 
-    function duplicateHint(item) {
+    function loadVisualIndex() {
+      return fetch('./data/exercise-visual-hashes.json')
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null);
+    }
+
+    function ingestVisualIndex(data) {
+      if (!data?.neighbors) return;
+      state.visualIndex = data;
+      state.visualClusterIds = new Set();
+      for (const c of data.clusters || []) {
+        if ((c.ids || []).length < 2) continue;
+        for (const id of c.ids) state.visualClusterIds.add(String(id));
+      }
+    }
+
+    function visualNeighbors(item, limit = 5) {
+      if (!state.visualIndex?.neighbors) return [];
+      const list = state.visualIndex.neighbors[String(item.id)] || [];
+      return list
+        .filter((n) => n.distance <= (state.visualIndex.neighborThreshold || 10))
+        .slice(0, limit)
+        .map((n) => {
+          const row = state.allItems.find((x) => String(x.id) === String(n.id));
+          return row ? { ...n, item: row } : null;
+        })
+        .filter(Boolean);
+    }
+
+    function renderVisualPanel(item) {
+      const panel = $('ecsVisualPanel');
+      const strip = $('ecsVisualStrip');
+      const meta = $('ecsVisualMeta');
+      if (!item || !state.visualIndex) {
+        panel.classList.add('ecs-hidden');
+        return;
+      }
+      const neighbors = visualNeighbors(item, 6);
+      if (!neighbors.length) {
+        panel.classList.add('ecs-hidden');
+        return;
+      }
+      panel.classList.remove('ecs-hidden');
+      const inCluster = state.visualClusterIds.has(String(item.id));
+      meta.textContent = inCluster
+        ? `кластер · ${neighbors.length} близки анимации`
+        : `${neighbors.length} визуално близки`;
+      strip.innerHTML = neighbors.map(({ item: row, distance }) => {
+        const url = mediaUrl(row.gif || row.image);
+        const title = row.displayName || row.nameBg || row.name;
+        const excl = currentExcluded(row);
+        const distClass = distance <= 3 ? 'ecs-vis-strong' : distance <= 6 ? 'ecs-vis-mid' : '';
+        return `<button type="button" class="ecs-vis-card ${distClass}" data-jump-id="${escapeHtml(row.id)}" title="${escapeHtml(title)}">
+          <div class="ecs-vis-thumb">${url ? `<img src="${escapeHtml(url)}" alt="">` : '<span>—</span>'}</div>
+          <span class="ecs-vis-name">${escapeHtml(title)}</span>
+          <span class="ecs-vis-dist">Δ${distance}</span>
+          ${excl ? '<span class="ecs-vis-tag off">извън</span>' : '<span class="ecs-vis-tag on">AI</span>'}
+        </button>`;
+      }).join('');
+      strip.querySelectorAll('[data-jump-id]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.jumpId;
+          const idx = state.deck.findIndex((x) => String(x.id) === String(id));
+          if (idx >= 0) {
+            state.index = idx;
+            renderDeck();
+          } else {
+            $('ecsSearch').value = id;
+            applyFilters();
+            const j = state.deck.findIndex((x) => String(x.id) === String(id));
+            state.index = j >= 0 ? j : 0;
+            renderDeck();
+          }
+        });
+      });
+    }
+
+    function visualHint(item) {
+      const neighbors = visualNeighbors(item, 3);
+      const strong = neighbors.filter((n) => n.distance <= 4);
+      if (!strong.length) return '';
+      const preview = strong.map((n) => {
+        const t = n.item.displayName || n.item.name;
+        return `${t} (Δ${n.distance})`;
+      }).join(' · ');
+      return `<p class="ecs-dup-warn ecs-vis-warn">👁 Визуално близки GIF: ${escapeHtml(preview)}</p>`;
+    }
+
+    function textDuplicateHint(item) {
       const info = state.dupById.get(item.id);
       if (!info?.siblings?.length) return '';
       const labels = [];
@@ -233,6 +332,10 @@
       }).join(' · ');
       const more = info.siblings.length > 3 ? ` · +${info.siblings.length - 3}` : '';
       return `<p class="ecs-dup-warn">⚠ ${info.siblings.length + 1} подобни (${labels.join(', ')}): ${escapeHtml(preview + more)}</p>`;
+    }
+
+    function duplicateHint(item) {
+      return visualHint(item) + textDuplicateHint(item);
     }
 
     function headers() {
@@ -276,6 +379,7 @@
         if (filter === 'active' && excluded) return false;
         if (filter === 'excluded' && !excluded) return false;
         if (filter === 'duplicates' && !state.dupById.has(item.id)) return false;
+        if (filter === 'visual' && !state.visualClusterIds.has(String(item.id))) return false;
         if (!q) return true;
         const hay = [
           item.id,
@@ -355,6 +459,8 @@
         deckEl.appendChild(card);
         if (item === current) bindCard(card, item);
       }
+      if (current) renderVisualPanel(current);
+      else $('ecsVisualPanel').classList.add('ecs-hidden');
       updateStats();
     }
 
@@ -464,11 +570,14 @@
       $('ecsReloadBtn').disabled = true;
       try {
         state.allItems = await fetchAllItems();
+        const visual = await loadVisualIndex();
+        ingestVisualIndex(visual);
         state.dupById = buildDuplicateIndex(state.allItems);
         const dupCount = state.dupById.size;
+        const visCount = state.visualClusterIds.size;
         applyFilters();
         renderDeck();
-        setStatus(`Заредени ${state.allItems.length} упражнения · ${dupCount} с дубликати/варианти`);
+        setStatus(`Заредени ${state.allItems.length} · текстови дубликати: ${dupCount} · визуални: ${visCount}${visual ? '' : ' (липсва visual index)'}`);
       } catch (e) {
         setStatus(e.message, true);
         $('ecsDeck').innerHTML = `<div class="ecs-empty">${escapeHtml(e.message)}</div>`;
