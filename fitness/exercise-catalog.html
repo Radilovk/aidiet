@@ -144,7 +144,18 @@
   <script>
     const params = new URLSearchParams(location.search);
     const WORKER_URL = params.get('worker') || 'https://aidiet.radilov-k.workers.dev';
-    const ADMIN_PASSWORD = params.get('secret') || 'nutriplan2024';
+    // Тайната идва от ?secret=, от админ сесията, или се пита еднократно.
+    // Няма стойност по подразбиране в кода.
+    const ADMIN_PASSWORD = (function () {
+      try {
+        let secret = params.get('secret') || sessionStorage.getItem('adminSecret') || '';
+        if (!secret) secret = prompt('Админ парола:') || '';
+        if (secret) sessionStorage.setItem('adminSecret', secret);
+        return secret;
+      } catch (_) {
+        return params.get('secret') || '';
+      }
+    })();
     const MEDIA_BASE = 'https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@main/';
 
     const state = {

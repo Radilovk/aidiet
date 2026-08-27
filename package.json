@@ -12,6 +12,7 @@
     "generate:nutrition-library": "node scripts/generate-full-nutrition-library.mjs",
     "typecheck:worker": "node scripts/typecheck-worker.mjs",
     "test:worker": "node scripts/verify-worker.mjs",
+    "test:admin-auth": "node scripts/test-admin-auth.mjs",
     "test:plan-adequacy": "node scripts/plan-adequacy/run-offline.mjs",
     "test:plan-adequacy:contract": "node scripts/test-plan-adequacy-contract.mjs",
     "test:plan-adequacy:nutrition": "node scripts/test-plan-adequacy-nutrition.mjs",
