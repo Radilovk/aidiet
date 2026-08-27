@@ -4230,21 +4230,76 @@
             });
         }
 
-        // WARNING: This is a basic client-side authentication for demonstration purposes.
-        // For production use, implement proper server-side authentication with the worker.
-        // This password is visible in the browser source code and should not be used for security.
-        const ADMIN_PASSWORD = 'nutriplan2024'; // TODO: Move to server-side auth
+        // Админ тайната НЕ се записва в кода. Въвежда се при вход, проверява се
+        // от worker-а (/api/admin/verify) и живее само в sessionStorage за
+        // текущия таб. Всяка заявка към /api/admin/* я носи в X-Admin-Secret.
+        const ADMIN_SECRET_KEY = 'adminSecret';
+
+        function getAdminSecret() {
+            try {
+                return sessionStorage.getItem(ADMIN_SECRET_KEY) || '';
+            } catch (_) {
+                return '';
+            }
+        }
+
+        function setAdminSecret(secret) {
+            try {
+                sessionStorage.setItem(ADMIN_SECRET_KEY, secret);
+            } catch (_) { /* private mode — работим в паметта за тази сесия */ }
+        }
+
+        function clearAdminSecret() {
+            try {
+                sessionStorage.removeItem(ADMIN_SECRET_KEY);
+            } catch (_) { /* няма какво да чистим */ }
+        }
+
         const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
         const FITPLAN_WORKER_URL = WORKER_URL;
         window.WORKER_URL = WORKER_URL;
         window.FITPLAN_WORKER_URL = FITPLAN_WORKER_URL;
+
+        // Глобален интерсептор: закача X-Admin-Secret към всяка заявка към
+        // /api/admin/*, за да не зависи сигурността от това дали всяко от
+        // 70+ fetch извиквания в този файл помни да го добави.
+        (function installAdminFetchInterceptor() {
+            const nativeFetch = window.fetch.bind(window);
+            window.fetch = function (input, init) {
+                let urlStr = '';
+                try {
+                    urlStr = typeof input === 'string' ? input
+                        : (input instanceof Request ? input.url : String(input?.url ?? input ?? ''));
+                } catch (_) { urlStr = ''; }
+
+                if (!urlStr.includes('/api/admin/')) {
+                    return nativeFetch(input, init);
+                }
+
+                const secret = getAdminSecret();
+                if (!secret) return nativeFetch(input, init);
+
+                // Request обект: пресъздаваме го с добавен header.
+                if (input instanceof Request && !init) {
+                    const headers = new Headers(input.headers);
+                    headers.set('X-Admin-Secret', secret);
+                    return nativeFetch(new Request(input, { headers }));
+                }
+
+                const nextInit = { ...(init || {}) };
+                const headers = new Headers(nextInit.headers || (input instanceof Request ? input.headers : undefined));
+                headers.set('X-Admin-Secret', secret);
+                nextInit.headers = headers;
+                return nativeFetch(input, nextInit);
+            };
+        })();
 
         let fitplanGuidelinesLoaded = false;
 
         function fitplanAdminHeaders() {
             return {
                 'Content-Type': 'application/json',
-                'X-Admin-Secret': ADMIN_PASSWORD,
+                'X-Admin-Secret': getAdminSecret(),
             };
         }
         window.fitplanAdminHeaders = fitplanAdminHeaders;
@@ -6429,30 +6484,55 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
 - АКО клиентът вече потвърди, НЕ питай отново - ПРИЛОЖИ ВЕДНАГА!`;
 
         // Check if logged in
+        // Сесията важи само докато табът е отворен и тайната е в sessionStorage.
+        // Няма "adminLoggedIn" флаг — той не доказваше нищо пред сървъра.
         function checkAuth() {
-            const isLoggedIn = localStorage.getItem('adminLoggedIn');
-            if (isLoggedIn === 'true') {
+            if (getAdminSecret()) {
                 showDashboard();
             }
         }
 
-        // Login
-        function login() {
+        // Login — тайната се проверява от worker-а, не в браузъра.
+        async function login() {
             const password = document.getElementById('adminPassword').value;
             const errorDiv = document.getElementById('loginError');
 
-            if (password === ADMIN_PASSWORD) {
-                localStorage.setItem('adminLoggedIn', 'true');
-                showDashboard();
-            } else {
-                errorDiv.textContent = 'Грешна парола!';
+            if (!password) {
+                errorDiv.textContent = 'Въведете парола!';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            try {
+                const response = await fetch(WORKER_URL + '/api/admin/verify', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Admin-Secret': password,
+                    },
+                });
+
+                if (response.ok) {
+                    setAdminSecret(password);
+                    errorDiv.style.display = 'none';
+                    showDashboard();
+                    return;
+                }
+
+                errorDiv.textContent = response.status === 503
+                    ? 'Admin API не е конфигуриран на сървъра.'
+                    : 'Грешна парола!';
+                errorDiv.style.display = 'block';
+            } catch (error) {
+                errorDiv.textContent = 'Няма връзка със сървъра.';
                 errorDiv.style.display = 'block';
             }
         }
 
         // Logout
         function logout() {
-            localStorage.removeItem('adminLoggedIn');
+            clearAdminSecret();
+            localStorage.removeItem('adminLoggedIn'); // чистим наследения флаг
             document.getElementById('loginScreen').style.display = 'block';
             document.getElementById('adminDashboard').style.display = 'none';
         }

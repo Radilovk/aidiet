@@ -142,13 +142,28 @@
   </div>
   <script>
     const WORKER_URL = window.WORKER_URL || 'https://aidiet.radilov-k.workers.dev';
-    const ADMIN_PASSWORD = 'nutriplan2024';
+
+    // Тайната не се записва в кода — идва от админ сесията (същия таб/произход)
+    // или се пита еднократно и се пази само за сесията.
+    function adminSecret() {
+      try {
+        let secret = sessionStorage.getItem('adminSecret');
+        if (!secret) {
+          secret = prompt('Админ парола:') || '';
+          if (secret) sessionStorage.setItem('adminSecret', secret);
+        }
+        return secret;
+      } catch (_) {
+        return '';
+      }
+    }
+
     let entries = [];
     let selectedId = null;
     let label = '';
 
     function headers() {
-      return { 'Content-Type': 'application/json', 'X-Admin-Secret': ADMIN_PASSWORD };
+      return { 'Content-Type': 'application/json', 'X-Admin-Secret': adminSecret() };
     }
 
     function parseCsv(s) {

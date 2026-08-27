@@ -13492,10 +13492,47 @@ async function handleRemoveFromBlacklist(request, env) {
  * Accepts { items: string[] } — all items are stored with mode='ban'.
  * Passing an empty array clears the blacklist completely.
  */
+/**
+ * Сравнение в постоянно време — не издава дължина/префикс на тайната.
+ */
+function timingSafeEqualStr(a, b) {
+  const aBytes = new TextEncoder().encode(a);
+  const bBytes = new TextEncoder().encode(b);
+  // Дължината сама по себе си не е тайна, но сравнението не спира на първа разлика.
+  let diff = aBytes.length ^ bBytes.length;
+  const max = Math.max(aBytes.length, bBytes.length);
+  for (let i = 0; i < max; i++) {
+    diff |= (aBytes[i] ?? 0) ^ (bBytes[i] ?? 0);
+  }
+  return diff === 0;
+}
+
+/**
+ * Проверка на admin тайната.
+ *
+ * ВАЖНО: fail-closed. Ако ADMIN_SECRET липсва в средата, достъпът се отказва.
+ * (Преди тук стоеше `if (!secret) return true;`, което правеше всички admin
+ * endpoint-и публични при незададена тайна.)
+ */
 function checkAdminSecret(request, env) {
   const secret = env.ADMIN_SECRET;
-  if (!secret) return true;
-  return (request.headers.get('X-Admin-Secret') || '') === secret;
+  if (!secret) return false;
+  return timingSafeEqualStr(request.headers.get('X-Admin-Secret') || '', secret);
+}
+
+/**
+ * Централен guard за /api/admin/* — deny by default.
+ * Връща Response при отказ, или null когато заявката е оторизирана.
+ */
+function requireAdminAuth(request, env) {
+  if (!env.ADMIN_SECRET) {
+    console.error('[auth] ADMIN_SECRET не е конфигуриран — admin API е заключен');
+    return jsonResponse({ error: 'Admin API не е конфигуриран' }, 503);
+  }
+  if (!checkAdminSecret(request, env)) {
+    return jsonResponse({ error: 'Неоторизиран достъп' }, 401);
+  }
+  return null;
 }
 
 async function handleSetBlacklist(request, env) {
@@ -16684,6 +16721,30 @@ function fitnessEnv(env) {
   return { ...env, FITNESS_KV: env.FITNESS_KV || env.page_content };
 }
 
+/**
+ * Endpoint-и под /api/admin/*, които се викат от КЛИЕНТСКИ страници и затова
+ * не могат да искат admin тайна. Наследено именуване — тези маршрути логически
+ * не са админски.
+ *
+ *   /api/admin/update-client-plan     → analysis.html, plan-pending.html,
+ *                                        questionnaire2.html, plan-sync.js
+ *   /api/admin/get-blacklist          → food-picker.html (само четене)
+ *   /api/admin/get-all-protocol-images→ protocol-landing.html (само четене)
+ *
+ * TODO(сигурност): да се преместят под /api/client/* и /api/public/*, а
+ * update-client-plan да получи авторизация по клиентска идентичност — днес
+ * приема произволен clientId без проверка на собственост.
+ */
+const CLIENT_REACHABLE_ADMIN_ROUTES = new Set([
+  '/api/admin/update-client-plan',
+  '/api/admin/get-blacklist',
+  '/api/admin/get-all-protocol-images',
+]);
+
+function isClientReachableAdminRoute(pathname) {
+  return CLIENT_REACHABLE_ADMIN_ROUTES.has(pathname);
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -16699,7 +16760,22 @@ export default {
       });
     }
 
+    // ── Централен admin guard (deny by default) ───────────────────────────
+    // Всеки /api/admin/* маршрут изисква валиден X-Admin-Secret, независимо
+    // дали конкретният handler проверява сам. Нови admin endpoint-и са
+    // защитени автоматично, без да се разчита на човешка дисциплина.
+    if (url.pathname.startsWith('/api/admin/') && !isClientReachableAdminRoute(url.pathname)) {
+      const authErr = requireAdminAuth(request, env);
+      if (authErr) return authErr;
+    }
+
     try {
+      // Лек endpoint за проверка на тайната при вход в админ панела.
+      // Стига дотук само ако guard-ът по-горе е пропуснал заявката.
+      if (url.pathname === '/api/admin/verify' && request.method === 'POST') {
+        return jsonResponse({ success: true });
+      }
+
       // Route handling
       if (url.pathname === '/api/validate-questionnaire' && request.method === 'POST') {
         const rlErr = await checkRateLimit(env, request, 'VALIDATE_QUESTIONNAIRE');

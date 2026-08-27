@@ -630,11 +630,25 @@ export async function loadAdminGuidelines(env) {
   }
 }
 
+/**
+ * Проверка на admin тайната — fail-closed.
+ * Ако ADMIN_SECRET липсва, достъпът се отказва (преди тук стоеше
+ * `if (!secret) return true;`, което отваряше всички admin маршрути).
+ * Този worker се деплойва и самостоятелно, затова проверката трябва да е
+ * пълна тук, а не само в централния guard на основния worker.
+ */
 function checkAdminSecret(request, env) {
   const secret = env.ADMIN_SECRET;
-  if (!secret) return true;
+  if (!secret) return false;
   const provided = request.headers.get('X-Admin-Secret') || '';
-  return provided === secret;
+  // Сравнение в постоянно време — не издава префикс на тайната.
+  const a = new TextEncoder().encode(provided);
+  const b = new TextEncoder().encode(secret);
+  let diff = a.length ^ b.length;
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    diff |= (a[i] ?? 0) ^ (b[i] ?? 0);
+  }
+  return diff === 0;
 }
 
 // ============================================================================

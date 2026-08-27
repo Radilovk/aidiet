@@ -10,8 +10,13 @@
  */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
-var __esm = (fn, res) => function __init() {
-  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+var __esm = (fn, res, err) => function __init() {
+  if (err) throw err[0];
+  try {
+    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+  } catch (e) {
+    throw err = [e], e;
+  }
 };
 var __export = (target, all) => {
   for (var name in all)
@@ -5840,9 +5845,15 @@ async function loadAdminGuidelines(env) {
 }
 function checkAdminSecret(request, env) {
   const secret = env.ADMIN_SECRET;
-  if (!secret) return true;
+  if (!secret) return false;
   const provided = request.headers.get("X-Admin-Secret") || "";
-  return provided === secret;
+  const a = new TextEncoder().encode(provided);
+  const b = new TextEncoder().encode(secret);
+  let diff = a.length ^ b.length;
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    diff |= (a[i] ?? 0) ^ (b[i] ?? 0);
+  }
+  return diff === 0;
 }
 async function callGemini(env, { system, user, temperature = 0.4, maxOutputTokens = 8192, jsonMode = true }) {
   const model = env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
@@ -29310,10 +29321,30 @@ async function handleRemoveFromBlacklist(request, env) {
     return jsonResponse2({ error: `Failed to remove from blacklist: ${error.message}` }, 500);
   }
 }
+function timingSafeEqualStr(a, b) {
+  const aBytes = new TextEncoder().encode(a);
+  const bBytes = new TextEncoder().encode(b);
+  let diff = aBytes.length ^ bBytes.length;
+  const max = Math.max(aBytes.length, bBytes.length);
+  for (let i = 0; i < max; i++) {
+    diff |= (aBytes[i] ?? 0) ^ (bBytes[i] ?? 0);
+  }
+  return diff === 0;
+}
 function checkAdminSecret2(request, env) {
   const secret = env.ADMIN_SECRET;
-  if (!secret) return true;
-  return (request.headers.get("X-Admin-Secret") || "") === secret;
+  if (!secret) return false;
+  return timingSafeEqualStr(request.headers.get("X-Admin-Secret") || "", secret);
+}
+function requireAdminAuth(request, env) {
+  if (!env.ADMIN_SECRET) {
+    console.error("[auth] ADMIN_SECRET \u043D\u0435 \u0435 \u043A\u043E\u043D\u0444\u0438\u0433\u0443\u0440\u0438\u0440\u0430\u043D \u2014 admin API \u0435 \u0437\u0430\u043A\u043B\u044E\u0447\u0435\u043D");
+    return jsonResponse2({ error: "Admin API \u043D\u0435 \u0435 \u043A\u043E\u043D\u0444\u0438\u0433\u0443\u0440\u0438\u0440\u0430\u043D" }, 503);
+  }
+  if (!checkAdminSecret2(request, env)) {
+    return jsonResponse2({ error: "\u041D\u0435\u043E\u0442\u043E\u0440\u0438\u0437\u0438\u0440\u0430\u043D \u0434\u043E\u0441\u0442\u044A\u043F" }, 401);
+  }
+  return null;
 }
 async function handleSetBlacklist(request, env) {
   if (!checkAdminSecret2(request, env)) {
@@ -31505,6 +31536,14 @@ function isFitnessRoute(pathname, method) {
 function fitnessEnv(env) {
   return { ...env, FITNESS_KV: env.FITNESS_KV || env.page_content };
 }
+var CLIENT_REACHABLE_ADMIN_ROUTES = /* @__PURE__ */ new Set([
+  "/api/admin/update-client-plan",
+  "/api/admin/get-blacklist",
+  "/api/admin/get-all-protocol-images"
+]);
+function isClientReachableAdminRoute(pathname) {
+  return CLIENT_REACHABLE_ADMIN_ROUTES.has(pathname);
+}
 var worker_entry_default = {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -31516,7 +31555,14 @@ var worker_entry_default = {
         headers: CORS_HEADERS2
       });
     }
+    if (url.pathname.startsWith("/api/admin/") && !isClientReachableAdminRoute(url.pathname)) {
+      const authErr = requireAdminAuth(request, env);
+      if (authErr) return authErr;
+    }
     try {
+      if (url.pathname === "/api/admin/verify" && request.method === "POST") {
+        return jsonResponse2({ success: true });
+      }
       if (url.pathname === "/api/validate-questionnaire" && request.method === "POST") {
         const rlErr = await checkRateLimit(env, request, "VALIDATE_QUESTIONNAIRE");
         if (rlErr) return rlErr;

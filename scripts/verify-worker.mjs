@@ -249,6 +249,11 @@ check('fitness тестове', () => {
   if (!r.ok) throw new Error(r.out.split('\n').slice(-8).join('\n'));
 });
 
+check('admin auth контракт', () => {
+  const r = run('node', ['scripts/test-admin-auth.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-12).join('\n'));
+});
+
 console.log('');
 if (failures.length) {
   console.error(`❌ ${failures.length} проверки се провалиха: ${failures.join(', ')}`);
