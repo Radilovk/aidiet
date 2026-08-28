@@ -18089,9 +18089,7 @@ function pickFromPool(pool, ctx, roleKey) {
   for (const entry of rotated) {
     const k = normalizeFoodKey(entry.name);
     const uses = usedProducts.get(k) || 0;
-    const isLove = loveSet?.has(k);
-    const maxUses = isLove ? 4 : 3;
-    if (uses < maxUses) return entry;
+    if (uses < 3) return entry;
   }
   return rotated[0];
 }
@@ -18729,6 +18727,15 @@ function buildSlotBreakdown(slotTypes, dailyKcal, macros) {
     };
   });
 }
+function normalizeSchemeDays(weeklyScheme, dailyKcal, userData) {
+  for (const key of DAY_KEYS3) {
+    const day = weeklyScheme[key];
+    if (!day?.mealBreakdown?.length) continue;
+    if (userSkipsBreakfast(userData)) removeBreakfastSlotFromDay(day);
+    rebalanceMealBreakdownSlots(day, dailyKcal);
+    enforceFixedSlotCaps(day, dailyKcal);
+  }
+}
 function buildDayScheme(slotTypes, dailyKcal, macros, isFreeDay) {
   let types = [...slotTypes];
   if (isFreeDay) {
@@ -18812,6 +18819,7 @@ function buildDeterministicStrategy({ userData = null, analysis = null, options 
     const isFreeDay = i + 1 === freeDayNumber;
     weeklyScheme[DAY_KEYS3[i]] = buildDayScheme(slotTypes, dailyKcal, macros, isFreeDay);
   }
+  normalizeSchemeDays(weeklyScheme, dailyKcal, userData);
   const copy = buildCopyFields(dietProfile, mealsPerDay, slotTypes, userData);
   return {
     ...copy,
@@ -26683,6 +26691,9 @@ function calculateAverageMacrosFromPlan(weekPlan) {
   return { protein: null, carbs: null, fats: null };
 }
 async function generateMealPlanProgressive(env, data, analysis, strategy, errorPreventionComment = null, sessionId = null, progressiveOptions = {}) {
+  if (strategy?.weeklyScheme) {
+    finalizeStrategyObject(strategy, analysis, data);
+  }
   const totalDays = 7;
   const chunks = Math.ceil(totalDays / DAYS_PER_CHUNK);
   const weekPlan = {};

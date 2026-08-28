@@ -7,7 +7,13 @@ import { LIBRARY_PROTOCOL_RULES } from './nutrition-library-bridge.js';
 import { resolveLibraryDietProfile } from './protocol-engine.js';
 import { getMealDistribution } from './meal-template-engine.js';
 import { validateProtocolStrategy } from './protocol-validate.js';
-import { isKetoUser, userSkipsBreakfast } from './plan-normalize.js';
+import {
+  isKetoUser,
+  userSkipsBreakfast,
+  rebalanceMealBreakdownSlots,
+  enforceFixedSlotCaps,
+  removeBreakfastSlotFromDay,
+} from './plan-normalize.js';
 import { buildQuestionnaireDietHints, extractQuestionnaireBlockedTerms } from './questionnaire-engine-map.js';
 
 const DAY_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
@@ -126,6 +132,17 @@ function buildSlotBreakdown(slotTypes, dailyKcal, macros) {
   });
 }
 
+/** Apply slot caps (H3/H5) and redistribute surplus to main meals — same rules as worker normalizeWeeklyScheme. */
+function normalizeSchemeDays(weeklyScheme, dailyKcal, userData) {
+  for (const key of DAY_KEYS) {
+    const day = weeklyScheme[key];
+    if (!day?.mealBreakdown?.length) continue;
+    if (userSkipsBreakfast(userData)) removeBreakfastSlotFromDay(day);
+    rebalanceMealBreakdownSlots(day, dailyKcal);
+    enforceFixedSlotCaps(day, dailyKcal);
+  }
+}
+
 function buildDayScheme(slotTypes, dailyKcal, macros, isFreeDay) {
   let types = [...slotTypes];
   if (isFreeDay) {
@@ -232,6 +249,7 @@ export function buildDeterministicStrategy({ userData = null, analysis = null, o
     const isFreeDay = i + 1 === freeDayNumber;
     weeklyScheme[DAY_KEYS[i]] = buildDayScheme(slotTypes, dailyKcal, macros, isFreeDay);
   }
+  normalizeSchemeDays(weeklyScheme, dailyKcal, userData);
 
   const copy = buildCopyFields(dietProfile, mealsPerDay, slotTypes, userData);
 

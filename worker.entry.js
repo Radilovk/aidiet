@@ -9965,6 +9965,11 @@ function calculateAverageMacrosFromPlan(weekPlan) {
  * This approach reduces token usage per request and provides better error handling
  */
 async function generateMealPlanProgressive(env, data, analysis, strategy, errorPreventionComment = null, sessionId = null, progressiveOptions = {}) {
+  // Re-normalize scheme before Step 3 (regen/reuse paths may carry stale slot kcal).
+  if (strategy?.weeklyScheme) {
+    finalizeStrategyObject(strategy, analysis, data);
+  }
+
   const totalDays = 7;
   const chunks = Math.ceil(totalDays / DAYS_PER_CHUNK);
   const weekPlan = {};
