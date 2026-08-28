@@ -125,6 +125,24 @@ for (let d = 1; d <= 3; d++) {
 }
 ok(dessertDays >= 1, 'H2 dessert flag set when includeDessert=true');
 
+// Main meals must be coherent dishes, not random macro piles
+const READY_DISH = /ориз с пиле|риба с картофи|пилешка салата|пилешка супа|яхния|омлет|овесена каша|сандвич|на скара|на фурна|купа|извара|скир/i;
+let incoherent = [];
+for (let d = 1; d <= 7; d++) {
+  for (const slotType of ['Хранене 1', 'Хранене 2', 'Хранене 4']) {
+    const meal = weekPlan[`day${d}`]?.meals?.find(m => m.type === slotType);
+    if (!meal) continue;
+    const text = `${meal.name} ${meal.description || ''}`.toLowerCase();
+    if (/пилешк.*боб|боб.*пилешк|ябълка.*пилешк|пилешк.*ябълка|мляко.*дomat|дomat.*мляко.*кефир.*мляко/i.test(text)) {
+      incoherent.push(`day${d} ${slotType}: ${meal.name}`);
+    }
+    if (!READY_DISH.test(meal.name) && parseMealDescription(meal.description).length > 4) {
+      incoherent.push(`day${d} ${slotType}: too many items (${meal.name})`);
+    }
+  }
+}
+ok(incoherent.length === 0, `main meals are coherent dishes (${incoherent.slice(0, 3).join('; ') || 'ok'})`);
+
 // Saturday free day option
 const satStrategy = buildDeterministicStrategy({
   userData: baseUser,

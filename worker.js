@@ -15139,8 +15139,18 @@ function universalityForGroup(groupId) {
   if (["herbs_spices", "beverages", "condiments"].includes(groupId)) return 3;
   return 3;
 }
+var COMPOSITE_DISH_NAME = /яхния|супа|с картофи|с пиле|ориз с|риба с|каша|омлет|сандвич|на скара|на фурна|купа с|плескавиц|мусака/i;
+var HERB_SPICE_NAME = /^(босилек|риган|мащерка|синап|горчица|чили|черен пипер|бял пипер|кимион|копър|магданоз|хрян|стевия|оцет|куркума|канела|сумак|салвия)/i;
+function resolveLibraryGroupId(food) {
+  const name = food.name_bg || food.name || "";
+  if (COMPOSITE_DISH_NAME.test(name)) return null;
+  if (HERB_SPICE_NAME.test(name.trim())) return "herbs_spices";
+  if (/макарон|паста|спагет/i.test(name)) return "refined_grains";
+  return food.group_id || "vegetables";
+}
 function libraryFoodToCatalogEntry(food) {
-  const groupId = food.group_id || "vegetables";
+  const groupId = resolveLibraryGroupId(food);
+  if (!groupId) return null;
   const name = food.name_bg || food.name;
   const nutritionKey = fixNutritionKeyFromFoodId(food.id, name);
   const flags = dietFlagsFromLibrary(food);
@@ -15170,7 +15180,7 @@ function libraryFoodToCatalogEntry(food) {
   };
 }
 function getLibraryCatalogOverlay() {
-  return LIBRARY_FOODS.map((food) => libraryFoodToCatalogEntry(food));
+  return LIBRARY_FOODS.map((food) => libraryFoodToCatalogEntry(food)).filter(Boolean);
 }
 function getLibraryReadyMealCatalogEntries() {
   return LIBRARY_READY_MEALS.map((meal) => {
@@ -17898,6 +17908,7 @@ function validateWeeklyVariety(weekPlan, options = {}) {
 
 // step3-deterministic.js
 var DAY_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+var MAIN_MEAL_SLOTS = /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"]);
 var MEAL3_PRESETS = [
   { name: "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u0431\u0430\u0434\u0435\u043C\u0438", description: "\u2022 \u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E\n\u2022 \u0411\u0430\u0434\u0435\u043C\u0438" },
   { name: "\u042F\u0431\u044A\u043B\u043A\u0430 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438", description: "\u2022 \u042F\u0431\u044A\u043B\u043A\u0430\n\u2022 \u0411\u0430\u0434\u0435\u043C\u0438" },
@@ -18010,6 +18021,63 @@ function pickFromPool(pool, ctx, roleKey) {
   }
   return rotated[0];
 }
+function descriptionFromReadyMeal(entry) {
+  const parts = READY_MEAL_PARTS[entry.id];
+  if (parts?.length) {
+    const lines = parts.map((p) => {
+      const n = catalogName(p.name);
+      return n ? `\u2022 ${n}` : null;
+    }).filter(Boolean);
+    if (lines.length) return lines.join("\n");
+  }
+  const single = catalogName(entry.name);
+  return single ? `\u2022 ${single}` : `\u2022 ${entry.name}`;
+}
+function readyMealFitsSlot(entry, slotType) {
+  const slots = entry.slots || [];
+  if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" || slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4") {
+    return slots.includes("PRO") || slots.includes("ENG");
+  }
+  if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1") {
+    return entry.timing?.includes("breakfast") || entry.timing?.includes("main");
+  }
+  return true;
+}
+function pickReadyMeal(slotType, candidatesBySlot, ctx) {
+  let pool = (candidatesBySlot.get("READY") || []).filter((e) => readyMealFitsSlot(e, slotType));
+  pool = filterByTiming(pool, slotType);
+  pool = filterDiet(pool, ctx.dietCtx);
+  if (!pool.length) return null;
+  return pickFromPool(pool, ctx, "READY");
+}
+function filterEngPoolForSlot(pool, slotType) {
+  if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" || slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4") {
+    return pool.filter((e) => e.group !== "fruit");
+  }
+  return pool;
+}
+function consolidateComposition(entries) {
+  if (entries.length <= 1) return entries;
+  const out = [];
+  let hasPro = false;
+  let hasEng = false;
+  for (const e of entries) {
+    const isPro = e.slots?.includes("PRO") || ["protein", "dairy", "legume"].includes(e.group);
+    const isEng = e.slots?.includes("ENG") || e.group === "carb";
+    if (isPro) {
+      if (hasPro) continue;
+      hasPro = true;
+    }
+    if (isEng) {
+      if (hasEng) continue;
+      hasEng = true;
+    }
+    out.push(e);
+  }
+  const vol = entries.find((e) => e.slots?.includes("VOL") || e.group === "vegetable");
+  if (vol && !out.some((x) => x === vol)) out.unshift(vol);
+  return out.length ? out.slice(0, 4) : entries.slice(0, 3);
+}
 function pickComposition(slotType, slotTarget, candidatesBySlot, ctx) {
   const roles = inferRolesFromTarget({ ...slotTarget, type: slotType });
   const slotKcal = Number(slotTarget.calories) || 0;
@@ -18021,7 +18089,9 @@ function pickComposition(slotType, slotTarget, candidatesBySlot, ctx) {
   const seen = /* @__PURE__ */ new Set();
   for (const role of roles) {
     let pool = filterByTiming(candidatesBySlot.get(role) || [], slotType);
+    if (role === "ENG") pool = filterEngPoolForSlot(pool, slotType);
     if (!pool.length) pool = candidatesBySlot.get(role) || [];
+    if (role === "ENG") pool = filterEngPoolForSlot(pool, slotType);
     pool = filterDiet(pool, ctx.dietCtx);
     const entry = pickFromPool(pool, { ...ctx, slotTarget }, role);
     if (!entry) continue;
@@ -18030,7 +18100,7 @@ function pickComposition(slotType, slotTarget, candidatesBySlot, ctx) {
     seen.add(k);
     picked.push(entry);
   }
-  return picked;
+  return consolidateComposition(picked);
 }
 function mealNameFromEntries(entries, slotType) {
   if (!entries.length) return `\u042F\u0441\u0442\u0438\u0435 ${slotType}`;
@@ -18084,6 +18154,20 @@ function buildMealForSchemeSlot({
   if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3" || slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5") {
     const light = buildLightSnack(slotType, userData, ctx);
     return { type: slotType, name: light.name, description: light.description };
+  }
+  if (MAIN_MEAL_SLOTS.has(slotType)) {
+    const ready = pickReadyMeal(slotType, candidatesBySlot, ctx);
+    if (ready) {
+      const k = normalizeFoodKey(ready.name);
+      ctx.usedProducts.set(k, (ctx.usedProducts.get(k) || 0) + 1);
+      const meal2 = {
+        type: slotType,
+        name: ready.name,
+        description: descriptionFromReadyMeal(ready)
+      };
+      if (includeDessert && slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2") meal2.dessert = true;
+      return meal2;
+    }
   }
   const entries = pickComposition(slotType, slotTarget, candidatesBySlot, ctx);
   if (!entries.length) {

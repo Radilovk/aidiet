@@ -178,9 +178,24 @@ function universalityForGroup(groupId) {
   return 3;
 }
 
+/** Composite dishes belong in ready_meal pool only — not as atomic VOL/PRO picks. */
+const COMPOSITE_DISH_NAME = /яхния|супа|с картофи|с пиле|ориз с|риба с|каша|омлет|сандвич|на скара|на фурна|купа с|плескавиц|мусака/i;
+
+/** Herbs/spices sometimes stored as vegetables in library imports. */
+const HERB_SPICE_NAME = /^(босилек|риган|мащерка|синап|горчица|чили|черен пипер|бял пипер|кимион|копър|магданоз|хрян|стевия|оцет|куркума|канела|сумак|салвия)/i;
+
+function resolveLibraryGroupId(food) {
+  const name = food.name_bg || food.name || '';
+  if (COMPOSITE_DISH_NAME.test(name)) return null;
+  if (HERB_SPICE_NAME.test(name.trim())) return 'herbs_spices';
+  if (/макарон|паста|спагет/i.test(name)) return 'refined_grains';
+  return food.group_id || 'vegetables';
+}
+
 /** Convert one library food row → catalog entry (for overlay). */
 export function libraryFoodToCatalogEntry(food) {
-  const groupId = food.group_id || 'vegetables';
+  const groupId = resolveLibraryGroupId(food);
+  if (!groupId) return null;
   const name = food.name_bg || food.name;
   const nutritionKey = fixNutritionKeyFromFoodId(food.id, name);
   const flags = dietFlagsFromLibrary(food);
@@ -212,7 +227,7 @@ export function libraryFoodToCatalogEntry(food) {
 
 /** Library foods as catalog overlay — all entries with lib_ prefix for assembler. */
 export function getLibraryCatalogOverlay() {
-  return LIBRARY_FOODS.map(food => libraryFoodToCatalogEntry(food));
+  return LIBRARY_FOODS.map(food => libraryFoodToCatalogEntry(food)).filter(Boolean);
 }
 
 /** Ready meals from library as catalog ready_meal entries. */
