@@ -36,7 +36,7 @@ export const NUTRITION_MATH_MEALS = [
       dessert: { weight: '30г', macros: { protein: 2, carbs: 14, fats: 12 } },
     },
     target: { calories: 650, protein: 42, carbs: 50, fats: 22 },
-    maxWeight: 450,
+    maxWeight: 500,
   },
 ];
 

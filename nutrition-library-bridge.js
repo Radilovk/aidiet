@@ -303,13 +303,16 @@ export function filterLibraryFoodsByDiet(profileId, extraExcludedGroups = []) {
 export function getLibraryMergeStats() {
   const overlay = getLibraryCatalogOverlay();
   const readyCatalog = getLibraryReadyMealCatalogEntries();
-  const mergedTotal = FOOD_CATALOG.length + overlay.length + readyCatalog.length;
+  const byId = new Map(FOOD_CATALOG.map(e => [e.id, e]));
+  for (const e of [...overlay, ...readyCatalog]) {
+    if (e?.id) byId.set(e.id, /** @type {(typeof FOOD_CATALOG)[number]} */ (/** @type {unknown} */ (e)));
+  }
   return {
     version: NUTRITION_LIBRARY_VERSION,
     libraryFoods: LIBRARY_FOODS.length,
     catalogOverlay: overlay.length,
     baseCatalog: FOOD_CATALOG.length,
-    mergedTotal,
+    mergedTotal: byId.size,
     readyMeals: LIBRARY_READY_MEALS.length,
     readyMealCatalog: readyCatalog.length,
     mealTemplates: LIBRARY_MEAL_TEMPLATES.length,

@@ -143,6 +143,19 @@ for (let d = 1; d <= 7; d++) {
 }
 ok(incoherent.length === 0, `main meals are coherent dishes (${incoherent.slice(0, 3).join('; ') || 'ok'})`);
 
+let badGramSteps = [];
+for (let d = 1; d <= 7; d++) {
+  for (const meal of weekPlan[`day${d}`]?.meals || []) {
+    for (const item of parseMealDescription(meal.description || '')) {
+      const g = item.grams || 0;
+      if (g <= 0) continue;
+      const okStep = g >= 50 ? g % 50 === 0 : g % 5 === 0;
+      if (!okStep) badGramSteps.push(`${item.name} ${g}g`);
+    }
+  }
+}
+ok(badGramSteps.length === 0, `grams on 5g/50g grid (${badGramSteps.slice(0, 3).join(', ') || 'ok'})`);
+
 // Saturday free day option
 const satStrategy = buildDeterministicStrategy({
   userData: baseUser,

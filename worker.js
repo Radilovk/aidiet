@@ -7943,7 +7943,28 @@ var FOOD_CATALOG = [
   item("meal_grilled_chicken", "\u041F\u0438\u043B\u0435 \u043D\u0430 \u0441\u043A\u0430\u0440\u0430", "\u043F\u0438\u043B\u0435 \u043D\u0430 \u0441\u043A\u0430\u0440\u0430", "ready_meal", ["PRO"], ["main"], 4, { genericOf: "pro_chicken" }),
   item("meal_baked_fish", "\u0420\u0438\u0431\u0430 \u043D\u0430 \u0444\u0443\u0440\u043D\u0430", "\u0440\u0438\u0431\u0430 \u043D\u0430 \u0444\u0443\u0440\u043D\u0430", "ready_meal", ["PRO"], ["main"], 4, { genericOf: "pro_fish" }),
   item("meal_cottage_bowl", "\u041A\u0443\u043F\u0430 \u0441 \u0438\u0437\u0432\u0430\u0440\u0430", "\u043A\u0443\u043F\u0430 \u0438\u0437\u0432\u0430\u0440\u0430", "ready_meal", ["PRO"], ["breakfast", "snack"], 4, { vegetarian: true }),
-  item("meal_skry_bowl", "\u041A\u0443\u043F\u0430 \u0441\u044A\u0441 \u0441\u043A\u0438\u0440", "\u043A\u0443\u043F\u0430 \u0441\u043A\u0438\u0440", "ready_meal", ["PRO"], ["breakfast", "snack", "late_snack"], 4, { vegetarian: true })
+  item("meal_skry_bowl", "\u041A\u0443\u043F\u0430 \u0441\u044A\u0441 \u0441\u043A\u0438\u0440", "\u043A\u0443\u043F\u0430 \u0441\u043A\u0438\u0440", "ready_meal", ["PRO"], ["breakfast", "snack", "late_snack"], 4, { vegetarian: true }),
+  item("meal_pasta_chicken", "\u041F\u0430\u0441\u0442\u0430 \u0441 \u043F\u0438\u043B\u0435", "\u043F\u0430\u0441\u0442\u0430 \u0441 \u043F\u0438\u043B\u0435", "ready_meal", ["PRO", "ENG"], ["main"], 4),
+  item("meal_bulgur_chicken", "\u0411\u0443\u043B\u0433\u0443\u0440 \u0441 \u043F\u0438\u043B\u0435", "\u0431\u0443\u043B\u0433\u0443\u0440 \u0441 \u043F\u0438\u043B\u0435", "ready_meal", ["PRO", "ENG"], ["main"], 4),
+  item("meal_quinoa_chicken", "\u041A\u0438\u043D\u043E\u0430 \u0441 \u043F\u0438\u043B\u0435", "\u043A\u0438\u043D\u043E\u0430 \u0441 \u043F\u0438\u043B\u0435", "ready_meal", ["PRO", "ENG"], ["main"], 3),
+  item("meal_buckwheat_chicken", "\u0415\u043B\u0434\u0430 \u0441 \u043F\u0438\u043B\u0435", "\u0435\u043B\u0434\u0430 \u0441 \u043F\u0438\u043B\u0435", "ready_meal", ["PRO", "ENG"], ["main"], 3),
+  item("meal_beef_potato", "\u0413\u043E\u0432\u0435\u0436\u0434\u043E \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438", "\u0433\u043E\u0432\u0435\u0436\u0434\u043E \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438", "ready_meal", ["PRO", "ENG"], ["main"], 4),
+  item("meal_pork_potato", "\u0421\u0432\u0438\u043D\u0441\u043A\u043E \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438", "\u0441\u0432\u0438\u043D\u0441\u043A\u043E \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438", "ready_meal", ["PRO", "ENG"], ["main"], 3),
+  item("meal_chicken_broccoli", "\u041F\u0438\u043B\u0435\u0448\u043A\u043E \u0441 \u0431\u0440\u043E\u043A\u043E\u043B\u0438", "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u0441 \u0431\u0440\u043E\u043A\u043E\u043B\u0438", "ready_meal", ["PRO", "VOL"], ["main"], 4),
+  item("meal_chicken_breast_rice", "\u041F\u0438\u043B\u0435\u0448\u043A\u0438 \u0433\u044A\u0440\u0434\u0438 \u0441 \u043E\u0440\u0438\u0437", "\u043F\u0438\u043B\u0435\u0448\u043A\u0438 \u0433\u044A\u0440\u0434\u0438 \u0441 \u043E\u0440\u0438\u0437", "ready_meal", ["PRO", "ENG"], ["main"], 4),
+  item("meal_turkey_rice", "\u041F\u0443\u0439\u043A\u0430 \u0441 \u043E\u0440\u0438\u0437", "\u043F\u0443\u0439\u043A\u0430 \u0441 \u043E\u0440\u0438\u0437", "ready_meal", ["PRO", "ENG"], ["main"], 3),
+  item("meal_salmon_salad", "\u0421\u044C\u043E\u043C\u0433\u0430 \u0441\u044A\u0441 \u0441\u0430\u043B\u0430\u0442\u0430", "\u0441\u044C\u043E\u043C\u0433\u0430 \u0441\u044A\u0441 \u0441\u0430\u043B\u0430\u0442\u0430", "ready_meal", ["PRO", "VOL"], ["main"], 3),
+  item("meal_tuna_salad", "\u0420\u0438\u0431\u0430 \u0442\u043E\u043D \u0441\u044A\u0441 \u0441\u0430\u043B\u0430\u0442\u0430", "\u0440\u0438\u0431\u0430 \u0442\u043E\u043D \u0441\u044A\u0441 \u0441\u0430\u043B\u0430\u0442\u0430", "ready_meal", ["PRO", "VOL"], ["main", "snack"], 4),
+  item("meal_mackerel_potato", "\u0421\u043A\u0443\u043C\u0440\u0438\u044F \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438", "\u0441\u043A\u0443\u043C\u0440\u0438\u044F \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438", "ready_meal", ["PRO", "ENG"], ["main"], 3),
+  item("meal_tofu_rice", "\u0422\u043E\u0444\u0443 \u0441 \u043E\u0440\u0438\u0437", "\u0442\u043E\u0444\u0443 \u0441 \u043E\u0440\u0438\u0437", "ready_meal", ["PRO", "ENG"], ["main"], 3, { vegan: true, vegetarian: true }),
+  item("meal_lentil_rice", "\u041B\u0435\u0449\u0430 \u0441 \u043E\u0440\u0438\u0437", "\u043B\u0435\u0449\u0430 \u0441 \u043E\u0440\u0438\u0437", "ready_meal", ["PRO", "ENG"], ["main"], 4, { vegan: true, vegetarian: true }),
+  item("meal_chickpea_salad", "\u041D\u0430\u0445\u0443\u0442 \u0441\u044A\u0441 \u0441\u0430\u043B\u0430\u0442\u0430", "\u043D\u0430\u0445\u0443\u0442 \u0441\u044A\u0441 \u0441\u0430\u043B\u0430\u0442\u0430", "ready_meal", ["PRO", "VOL"], ["main", "snack"], 4, { vegan: true, vegetarian: true }),
+  item("meal_egg_potato", "\u042F\u0439\u0446\u0430 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438", "\u044F\u0439\u0446\u0430 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438", "ready_meal", ["PRO", "ENG"], ["breakfast", "main"], 4, { vegetarian: true }),
+  item("meal_avocado_egg", "\u042F\u0439\u0446\u0430 \u0441 \u0430\u0432\u043E\u043A\u0430\u0434\u043E", "\u044F\u0439\u0446\u0430 \u0441 \u0430\u0432\u043E\u043A\u0430\u0434\u043E", "ready_meal", ["PRO", "FAT"], ["breakfast"], 4, { vegetarian: true }),
+  item("meal_cheese_sandwich", "\u0421\u0430\u043D\u0434\u0432\u0438\u0447 \u0441\u044A\u0441 \u0441\u0438\u0440\u0435\u043D\u0435", "\u0441\u0430\u043D\u0434\u0432\u0438\u0447 \u0441\u044A\u0441 \u0441\u0438\u0440\u0435\u043D\u0435", "ready_meal", ["PRO", "ENG"], ["breakfast", "snack"], 4, { vegetarian: true }),
+  item("meal_hummus_bread", "\u0425\u0443\u043C\u0443\u0441 \u0441 \u0445\u043B\u044F\u0431", "\u0445\u0443\u043C\u0443\u0441 \u0441 \u0445\u043B\u044F\u0431", "ready_meal", ["PRO", "ENG"], ["main", "snack"], 4, { vegan: true, vegetarian: true }),
+  item("meal_chicken_spinach", "\u041F\u0438\u043B\u0435\u0448\u043A\u043E \u0441\u044A\u0441 \u0441\u043F\u0430\u043D\u0430\u043A", "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u0441\u044A\u0441 \u0441\u043F\u0430\u043D\u0430\u043A", "ready_meal", ["PRO", "VOL"], ["main"], 4),
+  item("meal_fish_veg", "\u0420\u0438\u0431\u0430 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", "\u0440\u0438\u0431\u0430 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", "ready_meal", ["PRO", "VOL"], ["main"], 4)
 ];
 var CLINICAL_PROTOCOL_EXCLUSIONS = {
   autoimmune_aip: {
@@ -15239,7 +15260,30 @@ var BASE_READY_MEAL_PARTS = {
   meal_bean_stew: [{ name: "\u0431\u043E\u0431", share: 0.7 }, { name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 0.3 }],
   meal_chicken_sandwich: [{ name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.4 }, { name: "\u0445\u043B\u044F\u0431", share: 0.6 }],
   meal_cottage_bowl: [{ name: "\u0438\u0437\u0432\u0430\u0440\u0430", share: 1 }],
-  meal_skry_bowl: [{ name: "\u0441\u043A\u0438\u0440", share: 1 }]
+  meal_skry_bowl: [{ name: "\u0441\u043A\u0438\u0440", share: 1 }],
+  meal_grilled_chicken: [{ name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.65 }, { name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 0.35 }],
+  meal_baked_fish: [{ name: "\u0440\u0438\u0431\u0430", share: 0.55 }, { name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 0.45 }],
+  meal_pasta_chicken: [{ name: "\u043F\u0430\u0441\u0442\u0430", share: 0.45 }, { name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.55 }],
+  meal_bulgur_chicken: [{ name: "\u0431\u0443\u043B\u0433\u0443\u0440", share: 0.42 }, { name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.58 }],
+  meal_quinoa_chicken: [{ name: "\u043A\u0438\u043D\u043E\u0430", share: 0.42 }, { name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.58 }],
+  meal_buckwheat_chicken: [{ name: "\u0435\u043B\u0434\u0430", share: 0.42 }, { name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.58 }],
+  meal_beef_potato: [{ name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438", share: 0.5 }, { name: "\u0433\u043E\u0432\u0435\u0436\u0434\u043E", share: 0.5 }],
+  meal_pork_potato: [{ name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438", share: 0.5 }, { name: "\u0441\u0432\u0438\u043D\u0441\u043A\u043E", share: 0.5 }],
+  meal_chicken_broccoli: [{ name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.55 }, { name: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438", share: 0.45 }],
+  meal_chicken_breast_rice: [{ name: "\u043E\u0440\u0438\u0437", share: 0.4 }, { name: "\u043F\u0438\u043B\u0435\u0448\u043A\u0438 \u0433\u044A\u0440\u0434\u0438", share: 0.6 }],
+  meal_turkey_rice: [{ name: "\u043E\u0440\u0438\u0437", share: 0.42 }, { name: "\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435", share: 0.58 }],
+  meal_salmon_salad: [{ name: "\u0441\u044C\u043E\u043C\u0433\u0430", share: 0.55 }, { name: "\u043C\u0430\u0440\u0443\u043B\u044F", share: 0.45 }],
+  meal_tuna_salad: [{ name: "\u0440\u0438\u0431\u0430 \u0442\u043E\u043D", share: 0.5 }, { name: "\u043C\u0430\u0440\u0443\u043B\u044F", share: 0.5 }],
+  meal_mackerel_potato: [{ name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438", share: 0.5 }, { name: "\u0441\u043A\u0443\u043C\u0440\u0438\u044F", share: 0.5 }],
+  meal_tofu_rice: [{ name: "\u043E\u0440\u0438\u0437", share: 0.45 }, { name: "\u0442\u043E\u0444\u0443", share: 0.55 }],
+  meal_lentil_rice: [{ name: "\u043E\u0440\u0438\u0437", share: 0.4 }, { name: "\u043B\u0435\u0449\u0430", share: 0.6 }],
+  meal_chickpea_salad: [{ name: "\u043D\u0430\u0445\u0443\u0442", share: 0.55 }, { name: "\u043C\u0430\u0440\u0443\u043B\u044F", share: 0.45 }],
+  meal_egg_potato: [{ name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438", share: 0.55 }, { name: "\u044F\u0439\u0446\u0430", share: 0.45 }],
+  meal_avocado_egg: [{ name: "\u044F\u0439\u0446\u0430", share: 0.6 }, { name: "\u0430\u0432\u043E\u043A\u0430\u0434\u043E", share: 0.4 }],
+  meal_cheese_sandwich: [{ name: "\u0445\u043B\u044F\u0431", share: 0.55 }, { name: "\u0441\u0438\u0440\u0435\u043D\u0435", share: 0.45 }],
+  meal_hummus_bread: [{ name: "\u0445\u043B\u044F\u0431", share: 0.55 }, { name: "\u0445\u0443\u043C\u0443\u0441", share: 0.45 }],
+  meal_chicken_spinach: [{ name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.55 }, { name: "\u0441\u043F\u0430\u043D\u0430\u043A", share: 0.45 }],
+  meal_fish_veg: [{ name: "\u0440\u0438\u0431\u0430", share: 0.55 }, { name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 0.45 }]
 };
 var READY_MEAL_PARTS = {
   ...BASE_READY_MEAL_PARTS,
@@ -16816,10 +16860,35 @@ function normalizeAnalysisOutput(analysis, userData = null) {
   return analysis;
 }
 
-// meal-solver.js
-var GRAM_STEP_SMALL = 10;
+// gram-rounding.js
+var GRAM_STEP_SMALL = 5;
 var GRAM_STEP_LARGE = 50;
-var GRAM_LARGE_THRESHOLD = 50;
+var GRAM_LARGE_MIN = 50;
+function gramRoundStep(grams) {
+  return (Number(grams) || 0) >= GRAM_LARGE_MIN ? GRAM_STEP_LARGE : GRAM_STEP_SMALL;
+}
+function snapGrams(grams) {
+  const g = Number(grams) || 0;
+  if (g <= 0) return 0;
+  const step = gramRoundStep(g);
+  return Math.max(step, Math.round(g / step) * step);
+}
+function snapGramsWithinBounds(grams, min, max) {
+  const lo = Number(min) || 0;
+  const hi = Number(max) || grams;
+  let snapped = snapGrams(grams);
+  snapped = Math.max(lo, Math.min(hi, snapped));
+  const step = gramRoundStep(snapped);
+  if (snapped % step !== 0) {
+    const down = Math.floor(snapped / step) * step;
+    const up = Math.ceil(snapped / step) * step;
+    if (down >= lo && down <= hi) snapped = down;
+    else if (up >= lo && up <= hi) snapped = up;
+  }
+  return Math.max(lo, Math.min(hi, snapped));
+}
+
+// meal-solver.js
 var W_KCAL = 3;
 var W_PROTEIN = 1.5;
 var W_CARBS = 1;
@@ -16859,7 +16928,8 @@ function refineGrams(items, grams, bounds, target, maxTotalGrams, costFn) {
   for (let iter = 0; iter < MAX_ITERATIONS; iter++) {
     let move = null;
     for (let i = 0; i < items.length; i++) {
-      for (const st of [GRAM_STEP_SMALL, GRAM_STEP_LARGE]) {
+      const steps = /* @__PURE__ */ new Set([gramRoundStep(grams[i]), GRAM_STEP_SMALL, GRAM_STEP_LARGE]);
+      for (const st of steps) {
         for (const dir of [1, -1]) {
           const cand = grams.slice();
           cand[i] += st * dir;
@@ -16893,25 +16963,31 @@ function refineGrams(items, grams, bounds, target, maxTotalGrams, costFn) {
   }
   return { grams, best };
 }
+function snapGramsInBounds(grams, bounds) {
+  return grams.map((g, i) => snapGramsWithinBounds(g, bounds[i].min, bounds[i].max));
+}
 function solveMealGrams(items, target, bounds, maxTotalGrams = 900) {
   if (!items.length || !(target.kcal > 0)) {
     return { grams: items.map((i) => i.grams), feasible: false, reason: "\u043B\u0438\u043F\u0441\u0432\u0430 \u0446\u0435\u043B \u0438\u043B\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438" };
   }
-  let grams = items.map((it, i) => Math.min(bounds[i].max, Math.max(bounds[i].min, Math.round(it.grams / 10) * 10)));
+  let grams = items.map((it, i) => snapGrams(Math.min(bounds[i].max, Math.max(bounds[i].min, it.grams))));
   ({ grams } = refineGrams(items, grams, bounds, target, maxTotalGrams, cost));
   let best = cost(items, grams, target, maxTotalGrams);
-  const snapped = grams.map((g) => g > GRAM_LARGE_THRESHOLD ? Math.round(g / 50) * 50 : Math.round(g / 10) * 10);
-  if (snapped.every((g, i) => g >= bounds[i].min && g <= bounds[i].max) && cost(items, snapped, target, maxTotalGrams) <= best + 0.02) {
+  const snapped = snapGramsInBounds(grams, bounds);
+  if (cost(items, snapped, target, maxTotalGrams) <= best + 0.02) {
     grams = snapped;
   }
   let t = totalsFor(items, grams);
   let kcalOk = Math.abs(t.kcal - target.kcal) <= Math.max(30, target.kcal * 0.1);
+  let activeBounds = bounds;
   if (!kcalOk) {
     const expanded = bounds.map((b) => ({
       min: b.min,
       max: Math.min(650, Math.round(b.max * 1.2))
     }));
+    activeBounds = expanded;
     ({ grams } = refineGrams(items, grams, expanded, target, maxTotalGrams, kcalOnlyCost));
+    grams = snapGramsInBounds(grams, expanded);
     t = totalsFor(items, grams);
     kcalOk = Math.abs(t.kcal - target.kcal) <= Math.max(30, target.kcal * 0.1);
   }
@@ -16922,6 +16998,9 @@ function solveMealGrams(items, target, bounds, maxTotalGrams = 900) {
     f: t.f - target.f
   };
   const weightOk = t.grams <= maxTotalGrams;
+  grams = snapGramsInBounds(grams, activeBounds);
+  t = totalsFor(items, grams);
+  kcalOk = Math.abs(t.kcal - target.kcal) <= Math.max(30, target.kcal * 0.1);
   return {
     grams,
     totals: t,
@@ -17014,9 +17093,6 @@ function syncWeekPlanNutritionWithDayBudget(weekPlan, strategy, startDay, endDay
 var syncWeekPlanNutritionFromDatabase = syncWeekPlanNutritionWithDayBudget;
 
 // food-nutrition.js
-var GRAM_ROUND_STEP = 10;
-var GRAM_ROUND_STEP_LARGE = 50;
-var GRAM_LARGE_THRESHOLD2 = 50;
 var CALORIE_TOLERANCE_PERCENT = SLOT_CALORIE_TOLERANCE_PERCENT;
 var MIN_CALORIE_TOLERANCE_KCAL = SLOT_CALORIE_TOLERANCE_MIN_KCAL;
 function calorieTolerance(targetKcal) {
@@ -17141,15 +17217,13 @@ function parseMealDescription(description) {
   }
   return expandReadyMealItems(items);
 }
-function gramRoundStep(grams) {
-  const g = Number(grams) || 0;
-  return g > GRAM_LARGE_THRESHOLD2 ? GRAM_ROUND_STEP_LARGE : GRAM_ROUND_STEP;
-}
 function roundGrams(grams, step) {
-  const g = Number(grams) || 0;
-  const effectiveStep = step ?? gramRoundStep(g);
-  if (g <= 0) return effectiveStep;
-  return Math.max(GRAM_ROUND_STEP, Math.round(g / effectiveStep) * effectiveStep);
+  if (step != null) {
+    const g = Number(grams) || 0;
+    if (g <= 0) return step;
+    return Math.max(step, Math.round(g / step) * step);
+  }
+  return snapGrams(grams);
 }
 function getCatalogMeta(name) {
   const { entry } = resolveCatalogEntry(name);
@@ -17219,7 +17293,7 @@ function computeMealItemBounds(items, slotTarget, maxTotalGrams = MAX_MEAL_WEIGH
       const k100 = kcalPer100(item2.profile);
       const share = macroShareForItem(group, slots);
       const needG = slotKcal * share / k100 * 100 * 1.15;
-      max = Math.max(max, Math.round(needG / 10) * 10);
+      max = Math.max(max, snapGrams(needG));
     }
     max = isSeasoningItem(item2) ? Math.min(max, CONDIMENT_MAX_GRAMS) : Math.min(max, 650);
     return { min, max: Math.max(min, max) };

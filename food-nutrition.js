@@ -18,12 +18,10 @@ import { buildRegistryIndex } from './food-registry.js';
 import { READY_MEAL_PARTS, getEntryScalingMode, SCALING_ATOMIC } from './ready-meal-parts.js';
 import { MAX_LATE_SNACK_CALORIES, SLOT_CALORIE_TOLERANCE_PERCENT, SLOT_CALORIE_TOLERANCE_MIN_KCAL } from './plan-normalize.js';
 import { solveMealGrams, totalsFor } from './meal-solver.js';
+import { GRAM_STEP_SMALL, GRAM_STEP_LARGE, GRAM_LARGE_MIN, gramRoundStep, snapGrams } from './gram-rounding.js';
 
 export { normalizeFoodKey } from './food-utils.js';
-
-export const GRAM_ROUND_STEP = 10;
-export const GRAM_ROUND_STEP_LARGE = 50;
-export const GRAM_LARGE_THRESHOLD = 50;
+export { snapGrams, gramRoundStep, GRAM_STEP_SMALL as GRAM_ROUND_STEP, GRAM_STEP_LARGE as GRAM_ROUND_STEP_LARGE, GRAM_LARGE_MIN as GRAM_LARGE_THRESHOLD } from './gram-rounding.js';
 
 // Adequacy contract — see plan-normalize.js SLOT_CALORIE_TOLERANCE_* (single source).
 export const CALORIE_TOLERANCE_PERCENT = SLOT_CALORIE_TOLERANCE_PERCENT;
@@ -185,17 +183,14 @@ export function parseMealDescription(description) {
   return expandReadyMealItems(items);
 }
 
-/** ≤50g → 10g steps; >50g → 50g steps (main foods). */
-export function gramRoundStep(grams) {
-  const g = Number(grams) || 0;
-  return g > GRAM_LARGE_THRESHOLD ? GRAM_ROUND_STEP_LARGE : GRAM_ROUND_STEP;
-}
-
+/** <50g → 5g steps; ≥50g → 50g steps. */
 export function roundGrams(grams, step) {
-  const g = Number(grams) || 0;
-  const effectiveStep = step ?? gramRoundStep(g);
-  if (g <= 0) return effectiveStep;
-  return Math.max(GRAM_ROUND_STEP, Math.round(g / effectiveStep) * effectiveStep);
+  if (step != null) {
+    const g = Number(grams) || 0;
+    if (g <= 0) return step;
+    return Math.max(step, Math.round(g / step) * step);
+  }
+  return snapGrams(grams);
 }
 
 function getCatalogMeta(name) {
@@ -275,7 +270,7 @@ export function computeMealItemBounds(items, slotTarget, maxTotalGrams = MAX_MEA
       const k100 = kcalPer100(item.profile);
       const share = macroShareForItem(group, slots);
       const needG = ((slotKcal * share) / k100) * 100 * 1.15;
-      max = Math.max(max, Math.round(needG / 10) * 10);
+      max = Math.max(max, snapGrams(needG));
     }
     max = isSeasoningItem(item) ? Math.min(max, CONDIMENT_MAX_GRAMS) : Math.min(max, 650);
     return { min, max: Math.max(min, max) };
