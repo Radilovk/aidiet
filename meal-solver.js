@@ -3,8 +3,12 @@
  * Replaces uniform scaling, bulk caps, protein nudges, and weight trim chain.
  */
 
-export const GRAM_STEP_SMALL = 10;
-export const GRAM_STEP_LARGE = 50;
+import { GRAM_STEP_SMALL, GRAM_STEP_LARGE, gramRoundStep, snapGrams, snapGramsWithinBounds } from './gram-rounding.js';
+
+export { GRAM_STEP_SMALL, GRAM_STEP_LARGE, GRAM_LARGE_MIN } from './gram-rounding.js';
+export { snapGrams, gramRoundStep } from './gram-rounding.js';
+
+/** @deprecated use GRAM_STEP_SMALL */
 export const GRAM_LARGE_THRESHOLD = 50;
 
 /** kcal is the hard constraint; macros are soft. */
@@ -53,7 +57,8 @@ function refineGrams(items, grams, bounds, target, maxTotalGrams, costFn) {
     let move = null;
 
     for (let i = 0; i < items.length; i++) {
-      for (const st of [GRAM_STEP_SMALL, GRAM_STEP_LARGE]) {
+      const steps = new Set([gramRoundStep(grams[i]), GRAM_STEP_SMALL, GRAM_STEP_LARGE]);
+      for (const st of steps) {
         for (const dir of [1, -1]) {
           const cand = grams.slice();
           cand[i] += st * dir;
@@ -84,6 +89,10 @@ function refineGrams(items, grams, bounds, target, maxTotalGrams, costFn) {
   return { grams, best };
 }
 
+function snapGramsInBounds(grams, bounds) {
+  return grams.map((g, i) => snapGramsWithinBounds(g, bounds[i].min, bounds[i].max));
+}
+
 /**
  * @param {Array<{name:string, profile:{p:number,c:number,f:number}, grams:number}>} items
  * @param {{kcal:number,p:number,c:number,f:number}} target
@@ -96,25 +105,26 @@ export function solveMealGrams(items, target, bounds, maxTotalGrams = 900) {
   }
 
   let grams = items.map((it, i) =>
-    Math.min(bounds[i].max, Math.max(bounds[i].min, Math.round(it.grams / 10) * 10)));
+    snapGrams(Math.min(bounds[i].max, Math.max(bounds[i].min, it.grams))));
   ({ grams } = refineGrams(items, grams, bounds, target, maxTotalGrams, cost));
   let best = cost(items, grams, target, maxTotalGrams);
 
-  const snapped = grams.map(g =>
-    g > GRAM_LARGE_THRESHOLD ? Math.round(g / 50) * 50 : Math.round(g / 10) * 10);
-  if (snapped.every((g, i) => g >= bounds[i].min && g <= bounds[i].max)
-      && cost(items, snapped, target, maxTotalGrams) <= best + 0.02) {
+  const snapped = snapGramsInBounds(grams, bounds);
+  if (cost(items, snapped, target, maxTotalGrams) <= best + 0.02) {
     grams = snapped;
   }
 
   let t = totalsFor(items, grams);
   let kcalOk = Math.abs(t.kcal - target.kcal) <= Math.max(30, target.kcal * 0.10);
+  let activeBounds = bounds;
   if (!kcalOk) {
     const expanded = bounds.map(b => ({
       min: b.min,
       max: Math.min(650, Math.round(b.max * 1.2)),
     }));
+    activeBounds = expanded;
     ({ grams } = refineGrams(items, grams, expanded, target, maxTotalGrams, kcalOnlyCost));
+    grams = snapGramsInBounds(grams, expanded);
     t = totalsFor(items, grams);
     kcalOk = Math.abs(t.kcal - target.kcal) <= Math.max(30, target.kcal * 0.10);
   }
@@ -126,6 +136,10 @@ export function solveMealGrams(items, target, bounds, maxTotalGrams = 900) {
     f: t.f - target.f,
   };
   const weightOk = t.grams <= maxTotalGrams;
+
+  grams = snapGramsInBounds(grams, activeBounds);
+  t = totalsFor(items, grams);
+  kcalOk = Math.abs(t.kcal - target.kcal) <= Math.max(30, target.kcal * 0.10);
 
   return {
     grams,

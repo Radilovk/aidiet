@@ -306,7 +306,8 @@ export function getCatalogCandidatesForChunk({
         hasLateSnack = true;
         neededSlots.add('PRO');
         neededSlots.add('FAT');
-        neededSlots.delete('ENG');
+        // H5 uses light-snack presets (no ENG) — do NOT remove ENG from the chunk pool;
+        // that silently stripped carbs from every main meal in the plan.
       } else {
         minFatShare = Math.min(minFatShare, mealTargetFatShare(meal));
         minCarbShare = Math.min(minCarbShare, mealTargetCarbShare(meal));
@@ -359,7 +360,8 @@ export function getCatalogCandidatesForChunk({
   for (const slot of ['PRO', 'ENG', 'VOL', 'FAT']) {
     if (!bySlot.has(slot)) continue;
     let list = bySlot.get(slot) || [];
-    if (slot !== 'VOL') {
+    // Macro share filter on FAT would drop nuts/oil/zehin — keep FAT pool intact.
+    if (slot === 'PRO' || slot === 'ENG') {
       list = applyMacroRoleFilter(list, { maxFatShare, maxCarbShare, isKeto });
     }
     if (hasLateSnack && (slot === 'PRO' || slot === 'FAT')) {

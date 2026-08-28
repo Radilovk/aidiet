@@ -18,12 +18,10 @@ import { buildRegistryIndex } from './food-registry.js';
 import { READY_MEAL_PARTS, getEntryScalingMode, SCALING_ATOMIC } from './ready-meal-parts.js';
 import { MAX_LATE_SNACK_CALORIES, SLOT_CALORIE_TOLERANCE_PERCENT, SLOT_CALORIE_TOLERANCE_MIN_KCAL } from './plan-normalize.js';
 import { solveMealGrams, totalsFor } from './meal-solver.js';
+import { GRAM_STEP_SMALL, GRAM_STEP_LARGE, GRAM_LARGE_MIN, gramRoundStep, snapGrams } from './gram-rounding.js';
 
 export { normalizeFoodKey } from './food-utils.js';
-
-export const GRAM_ROUND_STEP = 10;
-export const GRAM_ROUND_STEP_LARGE = 50;
-export const GRAM_LARGE_THRESHOLD = 50;
+export { snapGrams, gramRoundStep, GRAM_STEP_SMALL as GRAM_ROUND_STEP, GRAM_STEP_LARGE as GRAM_ROUND_STEP_LARGE, GRAM_LARGE_MIN as GRAM_LARGE_THRESHOLD } from './gram-rounding.js';
 
 // Adequacy contract — see plan-normalize.js SLOT_CALORIE_TOLERANCE_* (single source).
 export const CALORIE_TOLERANCE_PERCENT = SLOT_CALORIE_TOLERANCE_PERCENT;
@@ -185,17 +183,14 @@ export function parseMealDescription(description) {
   return expandReadyMealItems(items);
 }
 
-/** ≤50g → 10g steps; >50g → 50g steps (main foods). */
-export function gramRoundStep(grams) {
-  const g = Number(grams) || 0;
-  return g > GRAM_LARGE_THRESHOLD ? GRAM_ROUND_STEP_LARGE : GRAM_ROUND_STEP;
-}
-
+/** <50g → 5g steps; ≥50g → 50g steps. */
 export function roundGrams(grams, step) {
-  const g = Number(grams) || 0;
-  const effectiveStep = step ?? gramRoundStep(g);
-  if (g <= 0) return effectiveStep;
-  return Math.max(GRAM_ROUND_STEP, Math.round(g / effectiveStep) * effectiveStep);
+  if (step != null) {
+    const g = Number(grams) || 0;
+    if (g <= 0) return step;
+    return Math.max(step, Math.round(g / step) * step);
+  }
+  return snapGrams(grams);
 }
 
 function getCatalogMeta(name) {
@@ -206,6 +201,24 @@ function getCatalogMeta(name) {
 
 function isCondimentItem(item) {
   return getCatalogMeta(item.name).group === 'condiment';
+}
+
+/** Herbs/spices misclassified as vegetables — same gram cap as condiments. */
+const SEASONING_NAME = /^(босилек|риган|мащерка|синап|горчица|чили|черен пипер|бял пипер|кимион|копър|магданоз|хрян|стевия|оцет|куркума|канела|джинджифил|сумак|салвия)/i;
+
+function isSeasoningItem(item) {
+  if (isCondimentItem(item)) return true;
+  return SEASONING_NAME.test(String(item.name || '').trim());
+}
+
+function clampCondimentBounds(items, bounds) {
+  return bounds.map((b, i) => {
+    if (!isSeasoningItem(items[i])) return b;
+    return {
+      min: Math.min(b.min, CONDIMENT_MAX_GRAMS),
+      max: Math.min(b.max, CONDIMENT_MAX_GRAMS),
+    };
+  });
 }
 
 function isDairyItem(item) {
@@ -257,11 +270,12 @@ export function computeMealItemBounds(items, slotTarget, maxTotalGrams = MAX_MEA
       const k100 = kcalPer100(item.profile);
       const share = macroShareForItem(group, slots);
       const needG = ((slotKcal * share) / k100) * 100 * 1.15;
-      max = Math.max(max, Math.round(needG / 10) * 10);
+      max = Math.max(max, snapGrams(needG));
     }
-    max = Math.min(max, 650);
+    max = isSeasoningItem(item) ? Math.min(max, CONDIMENT_MAX_GRAMS) : Math.min(max, 650);
     return { min, max: Math.max(min, max) };
   });
+  bounds = clampCondimentBounds(items, bounds);
 
   for (let pass = 0; pass < 6 && slotKcal > 0; pass++) {
     const maxKcal = totalsFor(
@@ -272,8 +286,10 @@ export function computeMealItemBounds(items, slotTarget, maxTotalGrams = MAX_MEA
     bounds = bounds.map((b, i) => {
       const k100 = kcalPer100(items[i].profile);
       const boost = k100 < 90 ? 1.22 : 1.12;
-      return { min: b.min, max: Math.min(650, Math.round(b.max * boost)) };
+      const cap = isSeasoningItem(items[i]) ? CONDIMENT_MAX_GRAMS : 650;
+      return { min: b.min, max: Math.min(cap, Math.round(b.max * boost)) };
     });
+    bounds = clampCondimentBounds(items, bounds);
   }
 
   const sumMax = bounds.reduce((s, b) => s + b.max, 0);
@@ -290,7 +306,7 @@ export function computeMealItemBounds(items, slotTarget, maxTotalGrams = MAX_MEA
     }
   }
 
-  return bounds;
+  return clampCondimentBounds(items, bounds);
 }
 
 function boundsForItem(item) {
@@ -312,7 +328,7 @@ function seedGramsForItem(item, bounds, slotTarget, itemCount = 1) {
 }
 
 function capCondimentGrams(item, grams) {
-  return isCondimentItem(item) ? Math.min(grams, CONDIMENT_MAX_GRAMS) : grams;
+  return isSeasoningItem(item) ? Math.min(grams, CONDIMENT_MAX_GRAMS) : grams;
 }
 
 function capItemGrams(item, grams) {

@@ -219,6 +219,11 @@ check('step3 deterministic builder', () => {
   if (!r.ok) throw new Error(r.out.split('\n').slice(-20).join('\n'));
 });
 
+check('step3 engine quality', () => {
+  const r = run('node', ['scripts/test-step3-engine-quality.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-20).join('\n'));
+});
+
 check('step2 deterministic builder', () => {
   const r = run('node', ['scripts/test-step2-deterministic.mjs']);
   if (!r.ok) throw new Error(r.out.split('\n').slice(-20).join('\n'));
