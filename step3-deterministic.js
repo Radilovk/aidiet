@@ -119,7 +119,7 @@ function parsePreferLove(userData) {
   );
 }
 
-function pickFromPool(pool, ctx, roleKey) {
+function pickFromPool(pool, ctx, roleKey, { maxUses = null, excludeToday = null } = {}) {
   let filtered = filterDiet(pool, ctx.dietCtx);
   if (!filtered.length) return null;
   const { usedProducts, seed, dayNum, slotIndex, loveSet } = ctx;
@@ -136,13 +136,28 @@ function pickFromPool(pool, ctx, roleKey) {
   for (let i = 0; i < ranked.length; i++) {
     rotated.push(ranked[(start + i) % ranked.length]);
   }
+  const useLimit = maxUses ?? 3;
   for (const entry of rotated) {
     const k = normalizeFoodKey(entry.name);
+    if (excludeToday?.has(k)) continue;
     const uses = usedProducts.get(k) || 0;
     const isLove = loveSet?.has(k);
-    const maxUses = isLove ? 4 : 3;
-    if (uses < maxUses) return entry;
+    const cap = isLove ? Math.max(useLimit, 4) : useLimit;
+    if (uses < cap) return entry;
   }
+  // Prefer least-used; skip same-day repeats when alternatives exist
+  let best = null;
+  let bestUses = Infinity;
+  for (const entry of rotated) {
+    const k = normalizeFoodKey(entry.name);
+    if (excludeToday?.has(k)) continue;
+    const uses = usedProducts.get(k) || 0;
+    if (uses < bestUses) {
+      best = entry;
+      bestUses = uses;
+    }
+  }
+  if (best) return best;
   return rotated[0];
 }
 
@@ -177,7 +192,10 @@ function pickReadyMeal(slotType, candidatesBySlot, ctx) {
   pool = filterByTiming(pool, slotType);
   pool = filterDiet(pool, ctx.dietCtx);
   if (!pool.length) return null;
-  return pickFromPool(pool, ctx, 'READY');
+  return pickFromPool(pool, ctx, 'READY', {
+    maxUses: pool.length >= 8 ? 1 : 2,
+    excludeToday: ctx.usedReadyMealsToday,
+  });
 }
 
 function filterEngPoolForSlot(pool, slotType) {
@@ -305,6 +323,7 @@ function buildMealForSchemeSlot({
     if (ready) {
       const k = normalizeFoodKey(ready.name);
       ctx.usedProducts.set(k, (ctx.usedProducts.get(k) || 0) + 1);
+      ctx.usedReadyMealsToday?.add(k);
       const meal = {
         type: slotType,
         name: ready.name,
@@ -381,6 +400,7 @@ export function buildDeterministicWeekPlanChunk({
       throw new Error(`Missing mealBreakdown for ${schemeKey}`);
     }
 
+    const usedReadyMealsToday = new Set();
     const meals = [];
     let slotIndex = 0;
     for (const slot of dayScheme.mealBreakdown) {
@@ -393,6 +413,7 @@ export function buildDeterministicWeekPlanChunk({
         slotIndex,
         slotTarget: slot,
         usedProducts,
+        usedReadyMealsToday,
         dietCtx,
         blockedTerms,
         loveSet,

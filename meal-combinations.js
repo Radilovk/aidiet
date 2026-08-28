@@ -9,6 +9,12 @@ const ENERGY = [
 const LEGUMES = ['боб', 'леща', 'нахут', 'грах', 'beans', 'lentils', 'chickpeas', 'peas'];
 const HARD_BANS = ['мед', 'захар', 'сироп', 'конфитюр', 'кетчуп', 'майонеза'];
 
+/** JS \\b ignores Cyrillic — use Unicode letter boundaries. */
+function hasBannedTerm(text, term) {
+  const escaped = String(term).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(^|[^\\p{L}])${escaped}([^\\p{L}]|$)`, 'iu').test(text);
+}
+
 const WEIRD_PAIRS = [
   [/риба|fish|тон|сьомга|скумри/, /банан|портокал|ягод/],
   [/скир|кисело мляко|кефир/, /риба|fish|тон/],
@@ -46,7 +52,7 @@ export function validateMealCombinations(meal) {
   }
 
   for (const ban of HARD_BANS) {
-    if (new RegExp(`\\b${ban}\\b`).test(text) && !/медицин|междин/.test(text)) {
+    if (hasBannedTerm(text, ban) && !/медицин|междин/.test(text)) {
       issues.push(`"${meal.name}": съдържа забранен ${ban}`);
     }
   }
