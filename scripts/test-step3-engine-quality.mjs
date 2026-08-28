@@ -5,10 +5,11 @@
  * dessert on lunch, free meal on weekend, skip breakfast.
  */
 import { getCatalogCandidatesForChunk } from '../food-catalog.js';
+import { getCatalogEntries } from '../food-registry.js';
 import { buildDeterministicStrategy } from '../step2-deterministic.js';
 import { buildDeterministicWeekPlanChunk } from '../step3-deterministic.js';
 import { syncWeekPlanNutritionFromDatabase } from '../meal-day-sync.js';
-import { parseMealDescription } from '../food-nutrition.js';
+import { computeMealItemBounds, parseMealDescription, lookupFoodProfile } from '../food-nutrition.js';
 import { userSkipsBreakfast } from '../plan-normalize.js';
 
 let pass = 0;
@@ -21,8 +22,8 @@ function ok(cond, msg) {
 }
 
 const analysis = {
-  dailyCalories: 1760,
-  macros: { protein: 120, carbs: 180, fats: 55 },
+  Final_Calories: 1760,
+  macroGrams: { protein: 120, carbs: 180, fats: 55 },
 };
 
 const baseUser = {
@@ -31,12 +32,43 @@ const baseUser = {
 };
 
 const strategy = buildDeterministicStrategy({ userData: baseUser, analysis });
+const veganUser = { ...baseUser, dietPreference: ['Веган'] };
+const veganStrategy = buildDeterministicStrategy({ userData: veganUser, analysis });
 const candidates = getCatalogCandidatesForChunk({
   strategy,
   startDay: 1,
   endDay: 7,
   dietaryModifier: strategy.dietaryModifier,
 });
+
+ok(strategy.weeklyScheme.monday?.calories === 1760, `strategy uses fixture kcal (${strategy.weeklyScheme.monday?.calories})`);
+
+const eggBounds = computeMealItemBounds(
+  [{ name: 'яйца', profile: lookupFoodProfile('яйца').profile }],
+  { kcal: 500 },
+);
+ok(eggBounds[0].max <= 300, `protein bounds capped at 300g (${eggBounds[0].max})`);
+
+const yogurtBounds = computeMealItemBounds(
+  [{ name: 'кисело мляко', profile: lookupFoodProfile('кисело мляко').profile }],
+  { kcal: 600 },
+);
+ok(yogurtBounds[0].max <= 300, `dairy bounds capped at 300g (${yogurtBounds[0].max})`);
+
+// Vegan flags from library + week output (chunk PRO pool includes late-snack inject bypass)
+const moz = getCatalogEntries().find(e => /моцарела/i.test(e.name));
+const avocado = getCatalogEntries().find(e => e.nutritionKey === 'авокадо');
+ok(moz && !moz.vegan, 'mozzarella flagged non-vegan in catalog');
+ok(avocado?.vegan, 'avocado flagged vegan in catalog');
+const veganChunk = buildDeterministicWeekPlanChunk({
+  strategy: veganStrategy,
+  userData: veganUser,
+  startDay: 1,
+  endDay: 3,
+  seed: 9,
+});
+const veganText = JSON.stringify(veganChunk).toLowerCase();
+ok(!/моцарела|кисело мляко|скир|айран|кашкавал|пилешк|сьомга/.test(veganText), 'vegan plan excludes animal products');
 
 const engPool = candidates.get('ENG') || [];
 const fatPool = candidates.get('FAT') || [];
@@ -142,6 +174,20 @@ for (let d = 1; d <= 7; d++) {
   }
 }
 ok(incoherent.length === 0, `main meals are coherent dishes (${incoherent.slice(0, 3).join('; ') || 'ok'})`);
+
+const readyNamesByDay = [];
+for (let d = 1; d <= 7; d++) {
+  const dayNames = [];
+  for (const slotType of ['Хранене 1', 'Хранене 2', 'Хранене 4']) {
+    const meal = weekPlan[`day${d}`]?.meals?.find(m => m.type === slotType);
+    if (meal?.name) dayNames.push(meal.name);
+  }
+  readyNamesByDay.push(dayNames);
+  const uniqueDay = new Set(dayNames);
+  ok(uniqueDay.size === dayNames.length, `day${d} main meals all unique (${dayNames.join(', ')})`);
+}
+const uniqueWeek = new Set(readyNamesByDay.flat());
+ok(uniqueWeek.size >= 6, `main meal variety across week (${uniqueWeek.size} unique, pool-limited)`);
 
 let badGramSteps = [];
 for (let d = 1; d <= 7; d++) {

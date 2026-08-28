@@ -28,5 +28,23 @@ ok(
   'dessert object does not trigger combo retry alone'
 );
 
+ok(
+  validateMealCombinations({
+    type: 'Хранене 2',
+    name: 'Извара с мед и орехи',
+    description: '• извара 150g\n• мед 10g',
+  }).length > 0,
+  'cyrillic honey (мед) flagged'
+);
+
+ok(
+  validateMealCombinations({
+    type: 'Хранене 2',
+    name: 'Кафе със захар',
+    description: '• кафе 200ml\n• захар 5g',
+  }).length > 0,
+  'cyrillic sugar (захар) flagged'
+);
+
 console.log(`\n=== meal-combinations prod: ${pass} pass, ${fail} fail ===`);
 process.exit(fail ? 1 : 0);

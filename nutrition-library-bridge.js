@@ -164,8 +164,9 @@ function fixNutritionKeyFromFoodId(foodId, nameBg) {
 
 function dietFlagsFromLibrary(food) {
   const excluded = new Set((food.excluded_in || []).map(String));
-  const vegan = excluded.has('vegan');
-  const vegetarian = vegan || excluded.has('vegetarian');
+  // excluded_in: ['vegan'] = forbidden on vegan diet → food is vegan when NOT excluded
+  const vegan = !excluded.has('vegan');
+  const vegetarian = vegan || !excluded.has('vegetarian');
   const tags = food.tags || [];
   const fodmapHigh = tags.includes('fodmap_high');
   return { vegan, vegetarian, fodmapHigh, excludedIn: [...excluded], allowedIn: food.allowed_in || [] };
