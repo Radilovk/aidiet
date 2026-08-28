@@ -10,13 +10,8 @@
  */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
-var __esm = (fn, res, err) => function __init() {
-  if (err) throw err[0];
-  try {
-    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
-  } catch (e) {
-    throw err = [e], e;
-  }
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
 };
 var __export = (target, all) => {
   for (var name in all)
@@ -15909,7 +15904,6 @@ function getCatalogCandidatesForChunk({
         hasLateSnack = true;
         neededSlots.add("PRO");
         neededSlots.add("FAT");
-        neededSlots.delete("ENG");
       } else {
         minFatShare = Math.min(minFatShare, mealTargetFatShare(meal));
         minCarbShare = Math.min(minCarbShare, mealTargetCarbShare(meal));
@@ -15955,7 +15949,7 @@ function getCatalogCandidatesForChunk({
   for (const slot of ["PRO", "ENG", "VOL", "FAT"]) {
     if (!bySlot.has(slot)) continue;
     let list = bySlot.get(slot) || [];
-    if (slot !== "VOL") {
+    if (slot === "PRO" || slot === "ENG") {
       list = applyMacroRoleFilter(list, { maxFatShare, maxCarbShare, isKeto });
     }
     if (hasLateSnack && (slot === "PRO" || slot === "FAT")) {
@@ -17155,6 +17149,20 @@ function getCatalogMeta(name) {
 function isCondimentItem(item2) {
   return getCatalogMeta(item2.name).group === "condiment";
 }
+var SEASONING_NAME = /^(босилек|риган|мащерка|синап|горчица|чили|черен пипер|бял пипер|кимион|копър|магданоз|хрян|стевия|оцет|куркума|канела|джинджифил|сумак|салвия)/i;
+function isSeasoningItem(item2) {
+  if (isCondimentItem(item2)) return true;
+  return SEASONING_NAME.test(String(item2.name || "").trim());
+}
+function clampCondimentBounds(items, bounds) {
+  return bounds.map((b, i) => {
+    if (!isSeasoningItem(items[i])) return b;
+    return {
+      min: Math.min(b.min, CONDIMENT_MAX_GRAMS),
+      max: Math.min(b.max, CONDIMENT_MAX_GRAMS)
+    };
+  });
+}
 function isDairyItem(item2) {
   return getCatalogMeta(item2.name).group === "dairy";
 }
@@ -17203,9 +17211,10 @@ function computeMealItemBounds(items, slotTarget, maxTotalGrams = MAX_MEAL_WEIGH
       const needG = slotKcal * share / k100 * 100 * 1.15;
       max = Math.max(max, Math.round(needG / 10) * 10);
     }
-    max = Math.min(max, 650);
+    max = isSeasoningItem(item2) ? Math.min(max, CONDIMENT_MAX_GRAMS) : Math.min(max, 650);
     return { min, max: Math.max(min, max) };
   });
+  bounds = clampCondimentBounds(items, bounds);
   for (let pass = 0; pass < 6 && slotKcal > 0; pass++) {
     const maxKcal = totalsFor(
       items.map((it) => ({ profile: it.profile })),
@@ -17215,8 +17224,10 @@ function computeMealItemBounds(items, slotTarget, maxTotalGrams = MAX_MEAL_WEIGH
     bounds = bounds.map((b, i) => {
       const k100 = kcalPer100(items[i].profile);
       const boost = k100 < 90 ? 1.22 : 1.12;
-      return { min: b.min, max: Math.min(650, Math.round(b.max * boost)) };
+      const cap = isSeasoningItem(items[i]) ? CONDIMENT_MAX_GRAMS : 650;
+      return { min: b.min, max: Math.min(cap, Math.round(b.max * boost)) };
     });
+    bounds = clampCondimentBounds(items, bounds);
   }
   const sumMax = bounds.reduce((s, b) => s + b.max, 0);
   if (sumMax > maxTotalGrams) {
@@ -17231,7 +17242,7 @@ function computeMealItemBounds(items, slotTarget, maxTotalGrams = MAX_MEAL_WEIGH
       }));
     }
   }
-  return bounds;
+  return clampCondimentBounds(items, bounds);
 }
 function seedGramsForItem(item2, bounds, slotTarget, itemCount = 1) {
   if (item2.grams > 0) return item2.grams;
@@ -17247,7 +17258,7 @@ function seedGramsForItem(item2, bounds, slotTarget, itemCount = 1) {
   return roundGrams(mid);
 }
 function capCondimentGrams(item2, grams) {
-  return isCondimentItem(item2) ? Math.min(grams, CONDIMENT_MAX_GRAMS) : grams;
+  return isSeasoningItem(item2) ? Math.min(grams, CONDIMENT_MAX_GRAMS) : grams;
 }
 function capItemGrams(item2, grams) {
   let g = capCondimentGrams(item2, grams);
@@ -18046,7 +18057,7 @@ function buildLightSnack(slotType, userData, ctx) {
     });
     if (allowed.length) presets = allowed;
   }
-  const idx = (ctx.seed + ctx.dayNum * 3 + ctx.slotIndex) % presets.length;
+  const idx = (ctx.seed + ctx.dayNum * 7 + ctx.slotIndex * 11) % presets.length;
   const preset = presets[idx];
   const desc = preset.description.split("\n").map((line2) => {
     const raw = line2.replace(/^•\s*/, "").trim();

@@ -198,7 +198,8 @@ function buildLightSnack(slotType, userData, ctx) {
     });
     if (allowed.length) presets = allowed;
   }
-  const idx = (ctx.seed + ctx.dayNum * 3 + ctx.slotIndex) % presets.length;
+  // dayNum*3 % 3 === 0 always rotated to the same preset — use coprime multipliers.
+  const idx = (ctx.seed + ctx.dayNum * 7 + ctx.slotIndex * 11) % presets.length;
   const preset = presets[idx];
   const desc = preset.description.split('\n')
     .map(line => {
