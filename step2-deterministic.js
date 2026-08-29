@@ -109,21 +109,76 @@ function applyDietMacroCaps(macros, dietProfile, dailyKcal, weightKg = 70) {
   return { protein, carbs, fats };
 }
 
-function buildSlotBreakdown(slotTypes, dailyKcal, macros) {
-  const distribution = getMealDistribution(Math.min(5, Math.max(3, slotTypes.length)));
-  const weights = slotTypes.map((_, i) => distribution[i] ?? (1 / slotTypes.length));
-  const weightSum = weights.reduce((a, b) => a + b, 0);
+/**
+ * Energy share per meal type. Keyed by type, not by position: indexing a flat
+ * distribution array meant a skip-breakfast client gave lunch the breakfast
+ * weight, and the afternoon snack ended up larger than dinner.
+ * Shares are renormalised over whichever slots the day actually has.
+ */
+const SLOT_ENERGY_SHARE = {
+  'Хранене 1': 0.25,
+  'Хранене 2': 0.32,
+  'Свободно хранене': 0.32,
+  'Хранене 3': 0.10,
+  'Хранене 4': 0.26,
+  'Хранене 5': 0.07,
+};
 
-  return slotTypes.map((type, i) => {
-    const share = weights[i] / weightSum;
-    return {
-      type,
-      calories: Math.round(dailyKcal * share),
-      protein: Math.round(macros.protein * share),
-      carbs: Math.round(macros.carbs * share),
-      fats: Math.round(macros.fats * share),
-    };
-  });
+/**
+ * Macro emphasis per meal type, relative to that slot's energy share.
+ * Mornings carry the carbohydrates, evenings the protein and fat, the late
+ * snack is protein and fat only — the slot contract Step 3 already enforces.
+ * Weights are renormalised so the day still sums to the prescribed grams.
+ */
+const SLOT_MACRO_BIAS = {
+  'Хранене 1': { protein: 0.90, carbs: 1.25, fats: 0.85 },
+  'Хранене 2': { protein: 1.05, carbs: 1.10, fats: 0.95 },
+  'Свободно хранене': { protein: 1.0, carbs: 1.0, fats: 1.0 },
+  'Хранене 3': { protein: 1.00, carbs: 1.05, fats: 0.95 },
+  'Хранене 4': { protein: 1.25, carbs: 0.60, fats: 1.15 },
+  'Хранене 5': { protein: 1.50, carbs: 0.10, fats: 1.30 },
+};
+
+const DEFAULT_MACRO_BIAS = { protein: 1, carbs: 1, fats: 1 };
+
+/** Distribute a daily gram total across slots by biased weight, exactly. */
+function splitMacroAcrossSlots(slotTypes, shares, totalGrams, macroKey) {
+  const weights = slotTypes.map((type, i) =>
+    shares[i] * ((SLOT_MACRO_BIAS[type] || DEFAULT_MACRO_BIAS)[macroKey] ?? 1));
+  const weightSum = weights.reduce((a, b) => a + b, 0);
+  if (weightSum <= 0 || totalGrams <= 0) return slotTypes.map(() => 0);
+
+  const raw = weights.map(w => (w / weightSum) * totalGrams);
+  const grams = raw.map(g => Math.round(g));
+  // Rounding drift goes to the largest slot so the day total stays exact.
+  const drift = Math.round(totalGrams) - grams.reduce((a, b) => a + b, 0);
+  if (drift !== 0) {
+    let biggest = 0;
+    for (let i = 1; i < grams.length; i++) if (raw[i] > raw[biggest]) biggest = i;
+    grams[biggest] = Math.max(0, grams[biggest] + drift);
+  }
+  return grams;
+}
+
+function buildSlotBreakdown(slotTypes, dailyKcal, macros) {
+  const fallback = getMealDistribution(Math.min(5, Math.max(3, slotTypes.length)));
+  const rawShares = slotTypes.map((type, i) =>
+    SLOT_ENERGY_SHARE[type] ?? fallback[i] ?? (1 / slotTypes.length));
+  const shareSum = rawShares.reduce((a, b) => a + b, 0) || 1;
+  const shares = rawShares.map(w => w / shareSum);
+
+  const protein = splitMacroAcrossSlots(slotTypes, shares, macros.protein, 'protein');
+  const carbs = splitMacroAcrossSlots(slotTypes, shares, macros.carbs, 'carbs');
+  const fats = splitMacroAcrossSlots(slotTypes, shares, macros.fats, 'fats');
+
+  return slotTypes.map((type, i) => ({
+    type,
+    // kcal derives from this slot's own macros, so the two can never disagree.
+    calories: Math.round(protein[i] * 4 + carbs[i] * 4 + fats[i] * 9),
+    protein: protein[i],
+    carbs: carbs[i],
+    fats: fats[i],
+  }));
 }
 
 function buildDayScheme(slotTypes, dailyKcal, macros, isFreeDay) {

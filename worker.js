@@ -155,7 +155,7 @@ var WEEKLY_SCHEME_SCHEMA = {
 var PLAN_SYSTEM_INSTRUCTIONS = {
   step1: "\u041A\u043B\u0438\u043D\u0438\u0447\u0435\u043D \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433, \u0435\u043D\u0434\u043E\u043A\u0440\u0438\u043D\u043E\u043B\u043E\u0433 \u0438 \u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. bmr, tdee, Final_Calories, macroRatios \u0438 macroGrams \u0441\u0435 \u0437\u0430\u0434\u0430\u0432\u0430\u0442 \u043E\u0442 \u0431\u0435\u043A\u0435\u043D\u0434\u0430 \u2014 \u043D\u0435 \u0433\u0438 \u043F\u0440\u0435\u0438\u0437\u0447\u0438\u0441\u043B\u044F\u0432\u0430\u0439 \u0438 \u043D\u0435 \u0433\u0438 \u043F\u0440\u043E\u043C\u0435\u043D\u044F\u0439. \u0424\u043E\u043A\u0443\u0441: keyProblems, currentHealthStatus, psychology, correlations, narrative.",
   step2: '\u0415\u043A\u0441\u043F\u0435\u0440\u0442\u0435\u043D \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. \u041A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u043E\u0442 \u0430\u043D\u0430\u043B\u0438\u0437\u0430 \u0441\u0430 \u0444\u0438\u043D\u0430\u043B\u043D\u0438 \u2014 \u043D\u0435 \u0433\u0438 \u043F\u0440\u0435\u0438\u0437\u0447\u0438\u0441\u043B\u044F\u0432\u0430\u0439. \u0422\u0438\u043F\u043E\u0432\u0435 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F: \u0441\u0430\u043C\u043E "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1"\u2013"\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5" \u0438 "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435". \u0417\u0430\u0431\u0440\u0430\u043D\u0435\u043D\u0438 display \u0438\u043C\u0435\u043D\u0430: \u0417\u0430\u043A\u0443\u0441\u043A\u0430, \u041E\u0431\u044F\u0434, \u0421\u043B\u0435\u0434\u043E\u0431\u0435\u0434\u043D\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430, \u0412\u0435\u0447\u0435\u0440\u044F, \u041A\u044A\u0441\u043D\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430. \u0417\u0430\u0434\u044A\u043B\u0436\u0438\u0442\u0435\u043B\u043D\u0438 \u043F\u043E\u043B\u0435\u0442\u0430: freeDayNumber (6|7|null), includeDessert (true|false). \u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0437\u0430\u043C\u0435\u0441\u0442\u0432\u0430 \u043E\u0431\u044F\u0434 \u0432 mealBreakdown \u043D\u0430 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u0438\u044F \u0434\u0435\u043D.',
-  step3: "\u0414\u0438\u0435\u0442\u043E\u043B\u043E\u0433 \u0437\u0430 \u0431\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438 \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u043B\u0430\u043D. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. \u041F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u0421\u0410\u041C\u041E \u043E\u0442 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430; \u0438\u043C\u0435\u043D\u0430\u0442\u0430 \u0442\u043E\u0447\u043D\u043E \u043A\u0430\u043A\u0442\u043E \u0432 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430. dessert:true \u0441\u0430\u043C\u043E \u043D\u0430 \u0425\u0440\u0430\u043D\u0435\u043D\u0435 2. \u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435: \u0441\u0430\u043C\u043E type+name, \u0431\u0435\u0437 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u0438 \u0431\u0435\u0437 macros.",
+  step3: "\u0414\u0438\u0435\u0442\u043E\u043B\u043E\u0433 \u0437\u0430 \u0431\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438 \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u043B\u0430\u043D. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. \u041F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u0421\u0410\u041C\u041E \u043E\u0442 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430; \u0438\u043C\u0435\u043D\u0430\u0442\u0430 \u0442\u043E\u0447\u043D\u043E \u043A\u0430\u043A\u0442\u043E \u0432 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430. \u0412\u0441\u044F\u043A\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0435 \u0420\u0415\u0410\u041B\u041D\u041E \u042F\u0421\u0422\u0418\u0415: 2\u20134 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0430, \u0435\u0434\u0438\u043D \u0438\u0437\u0442\u043E\u0447\u043D\u0438\u043A \u043D\u0430 \u043F\u0440\u043E\u0442\u0435\u0438\u043D \u0438 \u043D\u0430\u0439-\u043C\u043D\u043E\u0433\u043E \u0435\u0434\u0438\u043D \u043D\u0430 \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438. \u041E\u0431\u044F\u0434 \u0438 \u0432\u0435\u0447\u0435\u0440\u044F \u0437\u0430\u0434\u044A\u043B\u0436\u0438\u0442\u0435\u043B\u043D\u043E \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A. \u0417\u0430\u0431\u0440\u0430\u043D\u0435\u043D\u0438: \u043F\u043E\u0434\u0441\u043B\u0430\u0434\u0438\u0442\u0435\u043B \u0438\u043B\u0438 \u0433\u043E\u0442\u043E\u0432 \u0441\u043E\u0441 \u043A\u0430\u0442\u043E \u0441\u044A\u0441\u0442\u0430\u0432\u043A\u0430; \u0440\u0438\u0431\u0430 \u0441 \u043C\u043B\u0435\u0447\u0435\u043D \u043F\u0440\u043E\u0434\u0443\u043A\u0442; \u043C\u0435\u0441\u043E \u0438\u043B\u0438 \u0440\u0438\u0431\u0430 \u0441\u044A\u0441 \u0441\u043B\u0430\u0434\u044A\u043A \u043F\u043B\u043E\u0434; \u0431\u043E\u0431\u043E\u0432\u0438 \u0437\u0430\u0435\u0434\u043D\u043E \u0441 \u043D\u0438\u0448\u0435\u0441\u0442\u0435; \u0441\u043B\u0430\u0434\u044A\u043A \u043F\u043B\u043E\u0434 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A; \u0435\u0434\u043D\u043E \u0438 \u0441\u044A\u0449\u043E \u044F\u0441\u0442\u0438\u0435 \u0434\u0432\u0430 \u043F\u044A\u0442\u0438 \u0432 \u0434\u0435\u043D. dessert:true \u0441\u0430\u043C\u043E \u043D\u0430 \u0425\u0440\u0430\u043D\u0435\u043D\u0435 2. \u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435: \u0441\u0430\u043C\u043E type+name, \u0431\u0435\u0437 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u0438 \u0431\u0435\u0437 macros.",
   step4: "\u041A\u043B\u0438\u043D\u0438\u0447\u0435\u043D \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433 \u0438 \u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. \u041F\u0440\u0435\u043F\u043E\u0440\u044A\u043A\u0438\u0442\u0435 \u0441\u0430 \u043F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u0438\u0437\u0438\u0440\u0430\u043D\u0438 \u043F\u043E \u043F\u0440\u043E\u0444\u0438\u043B\u0430 \u2014 \u043D\u0435 \u0443\u043D\u0438\u0432\u0435\u0440\u0441\u0430\u043B\u043D\u0438.",
   step6_director: "\u0421\u0442\u0430\u0440\u0448\u0438 \u0434\u0438\u0435\u0442\u0438\u0447\u0435\u043D \u043C\u0435\u043D\u0438\u0434\u0436\u044A\u0440. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. \u041E\u0446\u0435\u043D\u044F\u0432\u0430 \u0433\u043E\u0442\u043E\u0432 deterministic \u043F\u043B\u0430\u043D \u2014 \u043D\u0435 \u043F\u0440\u043E\u043C\u0435\u043D\u044F \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438, \u0433\u0440\u0430\u043C\u043E\u0432\u0435, \u043A\u0430\u043B\u043E\u0440\u0438\u0438 \u0438\u043B\u0438 scheme."
 };
@@ -7916,7 +7916,7 @@ var FOOD_CATALOG = [
   item("fruit_mango", "\u041C\u0430\u043D\u0433\u043E", "\u043C\u0430\u043D\u0433\u043E", "fruit", ["ENG"], ["snack"], 2, { vegan: true, vegetarian: true }),
   // ── CONDIMENTS (small portions, not macro drivers) ──
   item("cond_soy", "\u0421\u043E\u0435\u0432 \u0441\u043E\u0441", "\u0441\u043E\u0435\u0432 \u0441\u043E\u0441", "condiment", ["VOL"], ["main"], 4, { vegan: true, vegetarian: true }),
-  item("cond_hummus", "\u0425\u0443\u043C\u0443\u0441", "\u0445\u0443\u043C\u0443\u0441", "condiment", ["PRO", "FAT"], ["snack", "main"], 4, { vegan: true, vegetarian: true }),
+  item("leg_hummus", "\u0425\u0443\u043C\u0443\u0441", "\u0445\u0443\u043C\u0443\u0441", "legume", ["PRO", "FAT"], ["snack", "main"], 4, { vegan: true, vegetarian: true }),
   item("cond_mustard", "\u0413\u043E\u0440\u0447\u0438\u0446\u0430", "\u0433\u043E\u0440\u0447\u0438\u0446\u0430", "condiment", ["VOL"], ["main"], 4, { vegan: true, vegetarian: true }),
   item("cond_lemon_juice", "\u041B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A", "\u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A", "condiment", ["VOL"], ["main"], 4, { vegan: true, vegetarian: true }),
   item("cond_vinegar", "\u041E\u0446\u0435\u0442", "\u043E\u0446\u0435\u0442", "condiment", ["VOL"], ["main"], 4, { vegan: true, vegetarian: true }),
@@ -7964,7 +7964,28 @@ var FOOD_CATALOG = [
   item("meal_cheese_sandwich", "\u0421\u0430\u043D\u0434\u0432\u0438\u0447 \u0441\u044A\u0441 \u0441\u0438\u0440\u0435\u043D\u0435", "\u0441\u0430\u043D\u0434\u0432\u0438\u0447 \u0441\u044A\u0441 \u0441\u0438\u0440\u0435\u043D\u0435", "ready_meal", ["PRO", "ENG"], ["breakfast", "snack"], 4, { vegetarian: true }),
   item("meal_hummus_bread", "\u0425\u0443\u043C\u0443\u0441 \u0441 \u0445\u043B\u044F\u0431", "\u0445\u0443\u043C\u0443\u0441 \u0441 \u0445\u043B\u044F\u0431", "ready_meal", ["PRO", "ENG"], ["main", "snack"], 4, { vegan: true, vegetarian: true }),
   item("meal_chicken_spinach", "\u041F\u0438\u043B\u0435\u0448\u043A\u043E \u0441\u044A\u0441 \u0441\u043F\u0430\u043D\u0430\u043A", "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u0441\u044A\u0441 \u0441\u043F\u0430\u043D\u0430\u043A", "ready_meal", ["PRO", "VOL"], ["main"], 4),
-  item("meal_fish_veg", "\u0420\u0438\u0431\u0430 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", "\u0440\u0438\u0431\u0430 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", "ready_meal", ["PRO", "VOL"], ["main"], 4)
+  item("meal_fish_veg", "\u0420\u0438\u0431\u0430 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", "\u0440\u0438\u0431\u0430 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", "ready_meal", ["PRO", "VOL"], ["main"], 4),
+  // ── Vegan breakfasts and mains — the vegan pool had one breakfast dish, so
+  //    a whole week repeated it. ──
+  item("meal_oat_plant_berries", "\u041E\u0432\u0435\u0441\u0435\u043D\u0430 \u043A\u0430\u0448\u0430 \u0441 \u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E", "\u043E\u0432\u0435\u0441\u0435\u043D\u0430 \u043A\u0430\u0448\u0430 \u0441 \u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E", "ready_meal", ["ENG", "PRO"], ["breakfast"], 4, { vegan: true, vegetarian: true }),
+  item("meal_tofu_toast", "\u0422\u043E\u0444\u0443 \u0441 \u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", "\u0442\u043E\u0444\u0443 \u0441 \u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", "ready_meal", ["PRO", "ENG"], ["breakfast", "main"], 3, { vegan: true, vegetarian: true }),
+  item("meal_chia_plant_bowl", "\u0427\u0438\u0430 \u043F\u0443\u0434\u0438\u043D\u0433 \u0441 \u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E", "\u0447\u0438\u0430 \u043F\u0443\u0434\u0438\u043D\u0433", "ready_meal", ["FAT", "PRO"], ["breakfast", "snack"], 3, { vegan: true, vegetarian: true }),
+  item("meal_avocado_toast", "\u0410\u0432\u043E\u043A\u0430\u0434\u043E \u0432\u044A\u0440\u0445\u0443 \u0445\u043B\u044F\u0431", "\u0430\u0432\u043E\u043A\u0430\u0434\u043E \u0432\u044A\u0440\u0445\u0443 \u0445\u043B\u044F\u0431", "ready_meal", ["FAT", "ENG"], ["breakfast"], 4, { vegan: true, vegetarian: true }),
+  item("meal_bean_salad", "\u0421\u0430\u043B\u0430\u0442\u0430 \u0441 \u0431\u043E\u0431", "\u0441\u0430\u043B\u0430\u0442\u0430 \u0441 \u0431\u043E\u0431", "ready_meal", ["PRO", "VOL"], ["main"], 3, { vegan: true, vegetarian: true }),
+  item("meal_tempeh_bulgur", "\u0422\u0435\u043C\u043F\u0435 \u0441 \u0431\u0443\u043B\u0433\u0443\u0440", "\u0442\u0435\u043C\u043F\u0435 \u0441 \u0431\u0443\u043B\u0433\u0443\u0440", "ready_meal", ["PRO", "ENG"], ["main"], 3, { vegan: true, vegetarian: true }),
+  item("meal_pea_quinoa", "\u041A\u0438\u043D\u043E\u0430 \u0441 \u0433\u0440\u0430\u0445", "\u043A\u0438\u043D\u043E\u0430 \u0441 \u0433\u0440\u0430\u0445", "ready_meal", ["ENG", "PRO"], ["main"], 3, { vegan: true, vegetarian: true }),
+  // ── Keto / low-carb dishes: without them a ketogenic week fell back to eggs. ──
+  item("meal_egg_avocado_spinach", "\u042F\u0439\u0446\u0430 \u0441 \u0430\u0432\u043E\u043A\u0430\u0434\u043E \u0438 \u0441\u043F\u0430\u043D\u0430\u043A", "\u044F\u0439\u0446\u0430 \u0441 \u0430\u0432\u043E\u043A\u0430\u0434\u043E \u0438 \u0441\u043F\u0430\u043D\u0430\u043A", "ready_meal", ["PRO", "FAT"], ["breakfast"], 4, { vegetarian: true }),
+  item("meal_cottage_nuts_veg", "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u043E\u0440\u0435\u0445\u0438 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", "\u0438\u0437\u0432\u0430\u0440\u0430 \u0441 \u043E\u0440\u0435\u0445\u0438 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", "ready_meal", ["PRO", "FAT"], ["breakfast", "snack"], 3, { vegetarian: true }),
+  item("meal_salmon_avocado", "\u0421\u044C\u043E\u043C\u0433\u0430 \u0441 \u0430\u0432\u043E\u043A\u0430\u0434\u043E", "\u0441\u044C\u043E\u043C\u0433\u0430 \u0441 \u0430\u0432\u043E\u043A\u0430\u0434\u043E", "ready_meal", ["PRO", "FAT"], ["main"], 3),
+  item("meal_chicken_cheese_salad", "\u041F\u0438\u043B\u0435\u0448\u043A\u0430 \u0441\u0430\u043B\u0430\u0442\u0430 \u0441\u044A\u0441 \u0441\u0438\u0440\u0435\u043D\u0435", "\u043F\u0438\u043B\u0435\u0448\u043A\u0430 \u0441\u0430\u043B\u0430\u0442\u0430 \u0441\u044A\u0441 \u0441\u0438\u0440\u0435\u043D\u0435", "ready_meal", ["PRO", "FAT"], ["main"], 3),
+  item("meal_beef_mushrooms", "\u0413\u043E\u0432\u0435\u0436\u0434\u043E \u0441 \u0433\u044A\u0431\u0438", "\u0433\u043E\u0432\u0435\u0436\u0434\u043E \u0441 \u0433\u044A\u0431\u0438", "ready_meal", ["PRO", "VOL"], ["main"], 3),
+  // ── General variety for main slots ──
+  item("meal_chicken_bulgur_salad", "\u041F\u0438\u043B\u0435 \u0441 \u0431\u0443\u043B\u0433\u0443\u0440 \u0438 \u0441\u0430\u043B\u0430\u0442\u0430", "\u043F\u0438\u043B\u0435 \u0441 \u0431\u0443\u043B\u0433\u0443\u0440 \u0438 \u0441\u0430\u043B\u0430\u0442\u0430", "ready_meal", ["PRO", "ENG"], ["main"], 3),
+  item("meal_turkey_potato", "\u041F\u0443\u0435\u0448\u043A\u043E \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438", "\u043F\u0443\u0435\u0448\u043A\u043E \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438", "ready_meal", ["PRO", "ENG"], ["main"], 3),
+  item("meal_cod_quinoa", "\u0422\u0440\u0435\u0441\u043A\u0430 \u0441 \u043A\u0438\u043D\u043E\u0430", "\u0442\u0440\u0435\u0441\u043A\u0430 \u0441 \u043A\u0438\u043D\u043E\u0430", "ready_meal", ["PRO", "ENG"], ["main"], 3),
+  item("meal_yogurt_oats_nuts", "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043E\u0432\u0435\u0441 \u0438 \u043E\u0440\u0435\u0445\u0438", "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043E\u0432\u0435\u0441 \u0438 \u043E\u0440\u0435\u0445\u0438", "ready_meal", ["PRO", "ENG"], ["breakfast"], 4, { vegetarian: true }),
+  item("meal_egg_bread_cheese", "\u042F\u0439\u0446\u0430 \u0441 \u0445\u043B\u044F\u0431 \u0438 \u0441\u0438\u0440\u0435\u043D\u0435", "\u044F\u0439\u0446\u0430 \u0441 \u0445\u043B\u044F\u0431 \u0438 \u0441\u0438\u0440\u0435\u043D\u0435", "ready_meal", ["PRO", "ENG"], ["breakfast"], 3, { vegetarian: true })
 ];
 var CLINICAL_PROTOCOL_EXCLUSIONS = {
   autoimmune_aip: {
@@ -8044,6 +8065,182 @@ var MEAL_TYPE_TIMING = {
 };
 var DEFAULT_MIN_UNIVERSALITY = 3;
 var CATALOG_PROMPT_LIMIT_PER_SLOT = 14;
+
+// nutrition-library-repair.js
+var LIBRARY_NAME_FIXES = {
+  food_sparkling_water: "\u041C\u0438\u043D\u0435\u0440\u0430\u043B\u043D\u0430 \u0432\u043E\u0434\u0430",
+  food_salsa: "\u0421\u0430\u043B\u0441\u0430",
+  food_tarator: "\u0422\u0430\u0440\u0430\u0442\u043E\u0440",
+  food_ghee: "\u0413\u0445\u0438",
+  food_olive_oil_extra: "\u0417\u0435\u0445\u0442\u0438\u043D (extra virgin)",
+  food_nut_\u0442\u0430han: "\u0422\u0430\u0445\u0430\u043D",
+  food_parsley: "\u041C\u0430\u0433\u0434\u0430\u043D\u043E\u0437",
+  food_mint: "\u041C\u0435\u043D\u0442\u0430",
+  food_soup_chicken: "\u041F\u0438\u043B\u0435\u0448\u043A\u0430 \u0441\u0443\u043F\u0430",
+  food_kebab_chicken: "\u041F\u0438\u043B\u0435\u0448\u043A\u0438 \u043A\u0435\u0431\u0430\u043F",
+  food_pork_chop: "\u0421\u0432\u0438\u043D\u0441\u043A\u0430 \u043A\u043E\u0442\u043B\u0435\u0442\u0430",
+  food_brazil_nuts: "\u0411\u0440\u0430\u0437\u0438\u043B\u0441\u043A\u0438 \u043E\u0440\u0435\u0445",
+  food_macadamia: "\u041C\u0430\u043A\u0430\u0434\u0430\u043C\u0438\u044F",
+  food_pecans: "\u041F\u0435\u043A\u0430\u043D",
+  food_walnuts_raw: "\u0421\u0443\u0440\u043E\u0432\u0438 \u043E\u0440\u0435\u0445\u0438",
+  food_protein_bar: "\u041F\u0440\u043E\u0442\u0435\u0438\u043D\u043E\u0432\u043E \u0431\u0430\u0440\u0447\u0435",
+  food_banitsa: "\u0411\u0430\u043D\u0438\u0446\u0430 (\u043F\u043E\u0440\u0446\u0438\u044F)",
+  food_calamari: "\u041A\u0430\u043B\u043C\u0430\u0440\u0438",
+  food_cucumber_mini: "\u041A\u043E\u0440\u043D\u0438\u0448\u043E\u043D\u0438",
+  food_sweet_potato_baked: "\u041F\u0435\u0447\u0435\u043D \u0441\u043B\u0430\u0434\u044A\u043A \u043A\u0430\u0440\u0442\u043E\u0444",
+  food_mushroom_portobello: "\u041F\u043E\u0440\u0442\u043E\u0431\u0435\u043B\u043E",
+  food_romaine: "\u0420\u043E\u043C\u0435\u043D \u0441\u0430\u043B\u0430\u0442\u0430",
+  food_watercress: "\u041A\u0440\u0435\u0441\u043E\u043D",
+  food_grill_veg: "\u041F\u0435\u0447\u0435\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+  food_brussels: "\u0411\u0440\u044E\u043A\u0441\u0435\u043B\u0441\u043A\u043E \u0437\u0435\u043B\u0435",
+  food_carrot_fodmap: "\u041C\u043E\u0440\u043A\u043E\u0432 (\u043D\u0438\u0441\u044A\u043A FODMAP)",
+  food_rice_fodmap: "\u041E\u0440\u0438\u0437 (\u043D\u0438\u0441\u044A\u043A FODMAP)",
+  food_smoothie_base: "\u0421\u043C\u0443\u0442\u0438 \u0431\u0430\u0437\u0430"
+};
+var LIBRARY_GROUP_FIXES = {
+  // Starchy roots belong in the energy pool, not among leafy volume foods.
+  food_sweet_potato_baked: "whole_grains",
+  // Legume spread — a real protein/fat component, not a table condiment.
+  food_hummus: "legumes"
+};
+var LIBRARY_DROP_IDS = /* @__PURE__ */ new Set([
+  "food_tarator",
+  // composite dish
+  "food_soup_chicken",
+  // composite dish
+  "food_kebab_chicken",
+  // composite dish
+  "food_banitsa",
+  // composite pastry
+  "food_smoothie_base",
+  // assembly base, not a food
+  "food_nut_\u0442\u0430han",
+  // duplicate of Тахан (food_tahini)
+  "food_coconut_flakes"
+  // carries coconut-oil macros — duplicate of Кокосово масло
+]);
+var COMPOSITE_DISH_NAME = /яхния|супа|таратор|баница|кебап|смути|с картофи|с пиле|ориз с|риба с|каша|омлет|сандвич|на скара|на фурна|купа с|плескавиц|мусака|боул/i;
+var HERB_SPICE_NAME = /^(босилек|риган|мащерка|синап|горчица|чили|черен пипер|бял пипер|червен пипер|кимион|ким|копър|магданоз|мента|дафинов|хрян|стевия|оцет|куркума|канела|джинджифил|сумак|салвия|чубрица|розмарин|естрагон|кориандър)/i;
+var NON_VEGAN_IDS = /* @__PURE__ */ new Set(["food_butter", "food_ghee", "food_honey"]);
+var GROUP_PORTION_CEILING = {
+  herbs_spices: 5,
+  condiments: 20,
+  sweets: 30,
+  fats: 30,
+  nuts_seeds: 40,
+  beverages: 250,
+  fruits: 200,
+  vegetables: 250,
+  dairy: 250,
+  eggs: 150,
+  meat: 200,
+  fish: 200,
+  seafood: 200,
+  legumes: 250,
+  whole_grains: 250,
+  refined_grains: 250,
+  plant_protein: 200
+};
+var DEFAULT_PORTION_CEILING = 200;
+function portionCeilingForGroup(groupId) {
+  return GROUP_PORTION_CEILING[groupId] ?? DEFAULT_PORTION_CEILING;
+}
+function isDroppedLibraryFood(id, name) {
+  if (LIBRARY_DROP_IDS.has(id)) return true;
+  return COMPOSITE_DISH_NAME.test(String(name || ""));
+}
+function repairLibraryFood(food) {
+  if (!food?.id) return null;
+  const id = String(food.id);
+  const name = LIBRARY_NAME_FIXES[id] || food.name_bg || food.name || "";
+  if (!name) return null;
+  if (isDroppedLibraryFood(id, name)) return null;
+  let groupId = LIBRARY_GROUP_FIXES[id] || food.group_id || "vegetables";
+  if (HERB_SPICE_NAME.test(name.trim())) groupId = "herbs_spices";
+  else if (/макарон|паста|спагет/i.test(name)) groupId = "refined_grains";
+  const ceiling = portionCeilingForGroup(groupId);
+  const rawPortion = Number(food.portion_g) || 0;
+  const portionG = rawPortion > 0 ? Math.min(rawPortion, ceiling) : ceiling;
+  const excluded = new Set((food.excluded_in || []).map(String));
+  const animalGroup = ["meat", "fish", "seafood", "eggs", "dairy"].includes(groupId);
+  const fleshGroup = ["meat", "fish", "seafood"].includes(groupId);
+  const vegan = !excluded.has("vegan") && !animalGroup && !NON_VEGAN_IDS.has(id);
+  const vegetarian = vegan || !excluded.has("vegetarian") && !fleshGroup;
+  const tags = food.tags || [];
+  return {
+    id,
+    name,
+    groupId,
+    portionG,
+    vegan,
+    vegetarian,
+    excludedIn: [...excluded],
+    allowedIn: food.allowed_in || [],
+    tags,
+    fodmapHigh: tags.includes("fodmap_high")
+  };
+}
+var READY_MEAL_INGREDIENT_FIXES = {
+  meal_oats_egg_berries: { food_herbal_tea: "food_oats" },
+  meal_bread_egg_avocado: { food_herbal_tea: "food_bread_whole" },
+  meal_turkey_potato_salad: { food_herbal_tea: "food_lettuce" },
+  meal_fish_potato_salad: { food_herbal_tea: "food_lettuce" },
+  meal_shrimp_pasta: { food_herbal_tea: "food_pasta" },
+  meal_pork_beans: { food_herbal_tea: "food_white_beans" },
+  meal_chicken_salad_dinner: { food_herbal_tea: "food_lettuce" },
+  meal_mackerel_salad: { food_herbal_tea: "food_lettuce" },
+  meal_eggplant_turkey: { food_herbal_tea: "food_eggplant" },
+  // Two placeholders in one dish: the tuna itself and its salad base.
+  meal_tuna_salad: { food_herbal_tea: ["food_tuna", "food_lettuce"] }
+};
+var READY_MEAL_DROP_IDS = /* @__PURE__ */ new Set([
+  "meal_protein_shake",
+  // a shake of herbal tea and banana
+  "meal_cheese_crackers"
+  // crackers are not in the library at all
+]);
+var NON_INGREDIENT_GROUPS = /* @__PURE__ */ new Set(["beverages"]);
+function repairReadyMealIngredients(meal) {
+  if (!meal?.id) return null;
+  if (READY_MEAL_DROP_IDS.has(meal.id)) return null;
+  const fixes = READY_MEAL_INGREDIENT_FIXES[meal.id] || {};
+  const usedReplacements = /* @__PURE__ */ new Map();
+  const ingredients = (meal.ingredients || []).map((ing) => {
+    const fix = fixes[ing.food_id];
+    if (!fix) return { ...ing };
+    if (Array.isArray(fix)) {
+      const n = usedReplacements.get(ing.food_id) || 0;
+      usedReplacements.set(ing.food_id, n + 1);
+      return { ...ing, food_id: fix[Math.min(n, fix.length - 1)] };
+    }
+    return { ...ing, food_id: fix };
+  });
+  return { id: meal.id, ingredients };
+}
+function isCoherentReadyMeal(meal, foodById) {
+  const ingredients = meal?.ingredients || [];
+  if (!ingredients.length) return false;
+  const seen = /* @__PURE__ */ new Set();
+  for (const ing of ingredients) {
+    const food = foodById.get(ing.food_id);
+    if (!food) return false;
+    if (NON_INGREDIENT_GROUPS.has(food.group_id)) return false;
+    if (seen.has(ing.food_id)) return false;
+    seen.add(ing.food_id);
+  }
+  return true;
+}
+function libraryNutritionPer100g(food) {
+  const portion = Number(food?.portion_g) || 0;
+  if (portion <= 0) return null;
+  const factor = 100 / portion;
+  const p = Math.round((Number(food.protein_g) || 0) * factor * 10) / 10;
+  const c = Math.round((Number(food.carbs_g) || 0) * factor * 10) / 10;
+  const f = Math.round((Number(food.fat_g) || 0) * factor * 10) / 10;
+  const kcal = Math.round((Number(food.kcal) || 0) * factor);
+  if (kcal <= 0 && p <= 0 && c <= 0 && f <= 0) return null;
+  return [kcal, p, c, f];
+}
 
 // nutrition-library-data.js
 var NUTRITION_LIBRARY_VERSION = "lib_v1_274_35";
@@ -15146,65 +15343,61 @@ function fixNutritionKeyFromFoodId(foodId, nameBg) {
   if (FOOD_ID_TO_NUTRITION_KEY[foodId]) return FOOD_ID_TO_NUTRITION_KEY[foodId];
   return normalizeFoodKey(nameBg);
 }
-function dietFlagsFromLibrary(food) {
-  const excluded = new Set((food.excluded_in || []).map(String));
-  const vegan = excluded.has("vegan");
-  const vegetarian = vegan || excluded.has("vegetarian");
-  const tags = food.tags || [];
-  const fodmapHigh = tags.includes("fodmap_high");
-  return { vegan, vegetarian, fodmapHigh, excludedIn: [...excluded], allowedIn: food.allowed_in || [] };
-}
 function universalityForGroup(groupId) {
   if (["meat", "fish", "seafood", "eggs", "dairy"].includes(groupId)) return 4;
   if (["vegetables", "fruits", "whole_grains", "fats", "nuts_seeds"].includes(groupId)) return 4;
   if (["herbs_spices", "beverages", "condiments"].includes(groupId)) return 3;
   return 3;
 }
-var COMPOSITE_DISH_NAME = /яхния|супа|с картофи|с пиле|ориз с|риба с|каша|омлет|сандвич|на скара|на фурна|купа с|плескавиц|мусака/i;
-var HERB_SPICE_NAME = /^(босилек|риган|мащерка|синап|горчица|чили|черен пипер|бял пипер|кимион|копър|магданоз|хрян|стевия|оцет|куркума|канела|сумак|салвия)/i;
-function resolveLibraryGroupId(food) {
-  const name = food.name_bg || food.name || "";
-  if (COMPOSITE_DISH_NAME.test(name)) return null;
-  if (HERB_SPICE_NAME.test(name.trim())) return "herbs_spices";
-  if (/макарон|паста|спагет/i.test(name)) return "refined_grains";
-  return food.group_id || "vegetables";
-}
 function libraryFoodToCatalogEntry(food) {
-  const groupId = resolveLibraryGroupId(food);
-  if (!groupId) return null;
-  const name = food.name_bg || food.name;
-  const nutritionKey = fixNutritionKeyFromFoodId(food.id, name);
-  const flags = dietFlagsFromLibrary(food);
+  const fixed = repairLibraryFood(food);
+  if (!fixed) return null;
+  const { id, name, groupId, portionG } = fixed;
+  const nutritionKey = fixNutritionKeyFromFoodId(id, name);
+  const portionRatio = Number(food.portion_g) > 0 ? portionG / Number(food.portion_g) : 1;
   return {
-    id: food.id.startsWith("food_") ? `lib_${food.id}` : `lib_${food.id}`,
+    id: `lib_${id}`,
     name,
     nutritionKey,
     group: GROUP_TO_CATALOG[groupId] || "vegetable",
     slots: GROUP_TO_SLOTS[groupId] || ["VOL"],
     timing: GROUP_TO_TIMING[groupId] || ["main"],
     universality: universalityForGroup(groupId),
-    vegan: flags.vegan,
-    vegetarian: flags.vegetarian,
+    vegan: fixed.vegan,
+    vegetarian: fixed.vegetarian,
     libraryGroupId: groupId,
-    portionG: food.portion_g || null,
-    libraryTags: food.tags || [],
-    allowedIn: flags.allowedIn,
-    excludedIn: flags.excludedIn,
-    fixedNutrition: food.portion_g ? {
-      kcal: food.kcal,
-      p: food.protein_g,
-      c: food.carbs_g,
-      f: food.fat_g,
-      weightGrams: food.portion_g
+    portionG,
+    maxPortionG: portionCeilingForGroup(groupId),
+    libraryTags: fixed.tags,
+    allowedIn: fixed.allowedIn,
+    excludedIn: fixed.excludedIn,
+    fixedNutrition: portionG ? {
+      kcal: Math.round((Number(food.kcal) || 0) * portionRatio),
+      p: Math.round((Number(food.protein_g) || 0) * portionRatio * 10) / 10,
+      c: Math.round((Number(food.carbs_g) || 0) * portionRatio * 10) / 10,
+      f: Math.round((Number(food.fat_g) || 0) * portionRatio * 10) / 10,
+      weightGrams: portionG
     } : null,
     source: "nutrition_library"
   };
+}
+function getLibraryNutritionPer100g() {
+  const out = {};
+  for (const food of LIBRARY_FOODS) {
+    const fixed = repairLibraryFood(food);
+    if (!fixed) continue;
+    const per100 = libraryNutritionPer100g(food);
+    if (!per100) continue;
+    const key = normalizeFoodKey(fixNutritionKeyFromFoodId(fixed.id, fixed.name));
+    if (key) out[key] = per100;
+  }
+  return out;
 }
 function getLibraryCatalogOverlay() {
   return LIBRARY_FOODS.map((food) => libraryFoodToCatalogEntry(food)).filter(Boolean);
 }
 function getLibraryReadyMealCatalogEntries() {
-  return LIBRARY_READY_MEALS.map((meal) => {
+  return usableLibraryReadyMeals().meals.map((meal) => {
     const mealType = LIBRARY_MEAL_TYPE_MAP[meal.meal_type] || LIBRARY_MEAL_TYPE_MAP.lunch;
     return {
       id: meal.id,
@@ -15228,12 +15421,23 @@ function getLibraryReadyMealCatalogEntries() {
     };
   });
 }
-function buildLibraryReadyMealParts() {
+function usableLibraryReadyMeals() {
   const foodById = new Map(LIBRARY_FOODS.map((f) => [f.id, f]));
-  const parts = {};
+  const out = [];
   for (const meal of LIBRARY_READY_MEALS) {
-    const totalG = (meal.ingredients || []).reduce((s, i) => s + (i.grams || 0), 0);
-    if (!totalG) continue;
+    const repaired = repairReadyMealIngredients(meal);
+    if (!repaired) continue;
+    if (!isCoherentReadyMeal(repaired, foodById)) continue;
+    if (!repaired.ingredients.reduce((s, i) => s + (i.grams || 0), 0)) continue;
+    out.push({ ...meal, ingredients: repaired.ingredients });
+  }
+  return { meals: out, foodById };
+}
+function buildLibraryReadyMealParts() {
+  const { meals, foodById } = usableLibraryReadyMeals();
+  const parts = {};
+  for (const meal of meals) {
+    const totalG = meal.ingredients.reduce((s, i) => s + (i.grams || 0), 0);
     parts[meal.id] = meal.ingredients.map((ing) => {
       const food = foodById.get(ing.food_id);
       const name = food?.name_bg || ing.food_id;
@@ -15243,47 +15447,81 @@ function buildLibraryReadyMealParts() {
   }
   return parts;
 }
+function mergeCatalogEntries(base, overlays = []) {
+  const byId = new Map(base.map((e) => [e.id, e]));
+  const baseKeys = /* @__PURE__ */ new Set();
+  for (const e of base) {
+    baseKeys.add(normalizeFoodKey(e.name));
+    baseKeys.add(normalizeFoodKey(e.nutritionKey));
+    for (const alias of e.aliases || []) baseKeys.add(normalizeFoodKey(alias));
+  }
+  baseKeys.delete("");
+  for (const e of overlays) {
+    if (!e?.id) continue;
+    if (baseKeys.has(normalizeFoodKey(e.name))) continue;
+    if (baseKeys.has(normalizeFoodKey(e.nutritionKey))) continue;
+    byId.set(e.id, e);
+  }
+  return [...byId.values()];
+}
 
 // ready-meal-parts.js
 var BASE_READY_MEAL_PARTS = {
-  meal_rice_chicken: [{ name: "\u043E\u0440\u0438\u0437", share: 0.42 }, { name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.58 }],
-  meal_fish_potato: [{ name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438", share: 0.55 }, { name: "\u0440\u0438\u0431\u0430", share: 0.45 }],
-  meal_omelet: [{ name: "\u044F\u0439\u0446\u0430", share: 1 }],
-  meal_boiled_egg: [{ name: "\u044F\u0439\u0446\u0430", share: 1 }],
-  meal_chicken_salad: [{ name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.55 }, { name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 0.45 }],
-  meal_green_salad: [{ name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 1 }],
-  meal_oatmeal: [{ name: "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438", share: 1 }],
+  meal_rice_chicken: [{ name: "\u043E\u0440\u0438\u0437", share: 0.35 }, { name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.45 }, { name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 0.2 }],
+  meal_fish_potato: [{ name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438", share: 0.4 }, { name: "\u0440\u0438\u0431\u0430", share: 0.4 }, { name: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438", share: 0.2 }],
+  meal_omelet: [{ name: "\u044F\u0439\u0446\u0430", share: 0.6 }, { name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 0.3 }, { name: "\u0437\u0435\u0445\u0442\u0438\u043D", share: 0.1 }],
+  meal_boiled_egg: [{ name: "\u044F\u0439\u0446\u0430", share: 0.5 }, { name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", share: 0.3 }, { name: "\u0434\u043E\u043C\u0430\u0442", share: 0.2 }],
+  meal_chicken_salad: [{ name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.45 }, { name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 0.35 }, { name: "\u0437\u0435\u0445\u0442\u0438\u043D", share: 0.2 }],
+  meal_green_salad: [{ name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 0.55 }, { name: "\u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0430", share: 0.25 }, { name: "\u0437\u0435\u0445\u0442\u0438\u043D", share: 0.2 }],
+  meal_oatmeal: [{ name: "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438", share: 0.4 }, { name: "\u043C\u043B\u044F\u043A\u043E", share: 0.45 }, { name: "\u0431\u0430\u0434\u0435\u043C\u0438", share: 0.15 }],
   meal_yogurt_oats: [{ name: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", share: 0.6 }, { name: "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438", share: 0.4 }],
-  meal_chicken_soup: [{ name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.35 }, { name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 0.65 }],
-  meal_veg_soup: [{ name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 1 }],
-  meal_lentil_stew: [{ name: "\u043B\u0435\u0449\u0430", share: 0.7 }, { name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 0.3 }],
-  meal_bean_stew: [{ name: "\u0431\u043E\u0431", share: 0.7 }, { name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 0.3 }],
-  meal_chicken_sandwich: [{ name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.4 }, { name: "\u0445\u043B\u044F\u0431", share: 0.6 }],
-  meal_cottage_bowl: [{ name: "\u0438\u0437\u0432\u0430\u0440\u0430", share: 1 }],
-  meal_skry_bowl: [{ name: "\u0441\u043A\u0438\u0440", share: 1 }],
-  meal_grilled_chicken: [{ name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.65 }, { name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 0.35 }],
-  meal_baked_fish: [{ name: "\u0440\u0438\u0431\u0430", share: 0.55 }, { name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 0.45 }],
-  meal_pasta_chicken: [{ name: "\u043F\u0430\u0441\u0442\u0430", share: 0.45 }, { name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.55 }],
-  meal_bulgur_chicken: [{ name: "\u0431\u0443\u043B\u0433\u0443\u0440", share: 0.42 }, { name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.58 }],
-  meal_quinoa_chicken: [{ name: "\u043A\u0438\u043D\u043E\u0430", share: 0.42 }, { name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.58 }],
-  meal_buckwheat_chicken: [{ name: "\u0435\u043B\u0434\u0430", share: 0.42 }, { name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.58 }],
-  meal_beef_potato: [{ name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438", share: 0.5 }, { name: "\u0433\u043E\u0432\u0435\u0436\u0434\u043E", share: 0.5 }],
-  meal_pork_potato: [{ name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438", share: 0.5 }, { name: "\u0441\u0432\u0438\u043D\u0441\u043A\u043E", share: 0.5 }],
-  meal_chicken_broccoli: [{ name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.55 }, { name: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438", share: 0.45 }],
-  meal_chicken_breast_rice: [{ name: "\u043E\u0440\u0438\u0437", share: 0.4 }, { name: "\u043F\u0438\u043B\u0435\u0448\u043A\u0438 \u0433\u044A\u0440\u0434\u0438", share: 0.6 }],
-  meal_turkey_rice: [{ name: "\u043E\u0440\u0438\u0437", share: 0.42 }, { name: "\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435", share: 0.58 }],
-  meal_salmon_salad: [{ name: "\u0441\u044C\u043E\u043C\u0433\u0430", share: 0.55 }, { name: "\u043C\u0430\u0440\u0443\u043B\u044F", share: 0.45 }],
-  meal_tuna_salad: [{ name: "\u0440\u0438\u0431\u0430 \u0442\u043E\u043D", share: 0.5 }, { name: "\u043C\u0430\u0440\u0443\u043B\u044F", share: 0.5 }],
-  meal_mackerel_potato: [{ name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438", share: 0.5 }, { name: "\u0441\u043A\u0443\u043C\u0440\u0438\u044F", share: 0.5 }],
-  meal_tofu_rice: [{ name: "\u043E\u0440\u0438\u0437", share: 0.45 }, { name: "\u0442\u043E\u0444\u0443", share: 0.55 }],
-  meal_lentil_rice: [{ name: "\u043E\u0440\u0438\u0437", share: 0.4 }, { name: "\u043B\u0435\u0449\u0430", share: 0.6 }],
-  meal_chickpea_salad: [{ name: "\u043D\u0430\u0445\u0443\u0442", share: 0.55 }, { name: "\u043C\u0430\u0440\u0443\u043B\u044F", share: 0.45 }],
-  meal_egg_potato: [{ name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438", share: 0.55 }, { name: "\u044F\u0439\u0446\u0430", share: 0.45 }],
-  meal_avocado_egg: [{ name: "\u044F\u0439\u0446\u0430", share: 0.6 }, { name: "\u0430\u0432\u043E\u043A\u0430\u0434\u043E", share: 0.4 }],
-  meal_cheese_sandwich: [{ name: "\u0445\u043B\u044F\u0431", share: 0.55 }, { name: "\u0441\u0438\u0440\u0435\u043D\u0435", share: 0.45 }],
-  meal_hummus_bread: [{ name: "\u0445\u043B\u044F\u0431", share: 0.55 }, { name: "\u0445\u0443\u043C\u0443\u0441", share: 0.45 }],
-  meal_chicken_spinach: [{ name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.55 }, { name: "\u0441\u043F\u0430\u043D\u0430\u043A", share: 0.45 }],
-  meal_fish_veg: [{ name: "\u0440\u0438\u0431\u0430", share: 0.55 }, { name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 0.45 }]
+  meal_chicken_soup: [{ name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.35 }, { name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 0.45 }, { name: "\u043E\u0440\u0438\u0437", share: 0.2 }],
+  meal_veg_soup: [{ name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 0.6 }, { name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438", share: 0.3 }, { name: "\u0437\u0435\u0445\u0442\u0438\u043D", share: 0.1 }],
+  meal_lentil_stew: [{ name: "\u043B\u0435\u0449\u0430", share: 0.55 }, { name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 0.3 }, { name: "\u0437\u0435\u0445\u0442\u0438\u043D", share: 0.15 }],
+  meal_bean_stew: [{ name: "\u0431\u043E\u0431", share: 0.55 }, { name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 0.3 }, { name: "\u0437\u0435\u0445\u0442\u0438\u043D", share: 0.15 }],
+  meal_chicken_sandwich: [{ name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.35 }, { name: "\u0445\u043B\u044F\u0431", share: 0.45 }, { name: "\u043C\u0430\u0440\u0443\u043B\u044F", share: 0.2 }],
+  meal_cottage_bowl: [{ name: "\u0438\u0437\u0432\u0430\u0440\u0430", share: 0.6 }, { name: "\u0434\u043E\u043C\u0430\u0442", share: 0.25 }, { name: "\u043E\u0440\u0435\u0445\u0438", share: 0.15 }],
+  meal_skry_bowl: [{ name: "\u0441\u043A\u0438\u0440", share: 0.6 }, { name: "\u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438", share: 0.25 }, { name: "\u0431\u0430\u0434\u0435\u043C\u0438", share: 0.15 }],
+  meal_grilled_chicken: [{ name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.5 }, { name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 0.35 }, { name: "\u0437\u0435\u0445\u0442\u0438\u043D", share: 0.15 }],
+  meal_baked_fish: [{ name: "\u0440\u0438\u0431\u0430", share: 0.45 }, { name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438", share: 0.35 }, { name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 0.2 }],
+  meal_pasta_chicken: [{ name: "\u043F\u0430\u0441\u0442\u0430", share: 0.4 }, { name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.4 }, { name: "\u0434\u043E\u043C\u0430\u0442", share: 0.2 }],
+  meal_bulgur_chicken: [{ name: "\u0431\u0443\u043B\u0433\u0443\u0440", share: 0.35 }, { name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.45 }, { name: "\u0447\u0443\u0448\u043A\u0430", share: 0.2 }],
+  meal_quinoa_chicken: [{ name: "\u043A\u0438\u043D\u043E\u0430", share: 0.35 }, { name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.45 }, { name: "\u0441\u043F\u0430\u043D\u0430\u043A", share: 0.2 }],
+  meal_buckwheat_chicken: [{ name: "\u0435\u043B\u0434\u0430", share: 0.35 }, { name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.45 }, { name: "\u0433\u044A\u0431\u0438", share: 0.2 }],
+  meal_beef_potato: [{ name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438", share: 0.4 }, { name: "\u0433\u043E\u0432\u0435\u0436\u0434\u043E", share: 0.4 }, { name: "\u043C\u043E\u0440\u043A\u043E\u0432", share: 0.2 }],
+  meal_pork_potato: [{ name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438", share: 0.4 }, { name: "\u0441\u0432\u0438\u043D\u0441\u043A\u043E", share: 0.4 }, { name: "\u0437\u0435\u043B\u0435", share: 0.2 }],
+  meal_chicken_broccoli: [{ name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.45 }, { name: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438", share: 0.35 }, { name: "\u043E\u0440\u0438\u0437", share: 0.2 }],
+  meal_chicken_breast_rice: [{ name: "\u043E\u0440\u0438\u0437", share: 0.35 }, { name: "\u043F\u0438\u043B\u0435\u0448\u043A\u0438 \u0433\u044A\u0440\u0434\u0438", share: 0.45 }, { name: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438", share: 0.2 }],
+  meal_turkey_rice: [{ name: "\u043E\u0440\u0438\u0437", share: 0.35 }, { name: "\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435", share: 0.45 }, { name: "\u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0430", share: 0.2 }],
+  meal_salmon_salad: [{ name: "\u0441\u044C\u043E\u043C\u0433\u0430", share: 0.45 }, { name: "\u043C\u0430\u0440\u0443\u043B\u044F", share: 0.3 }, { name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", share: 0.25 }],
+  meal_tuna_salad: [{ name: "\u0440\u0438\u0431\u0430 \u0442\u043E\u043D", share: 0.4 }, { name: "\u043C\u0430\u0440\u0443\u043B\u044F", share: 0.3 }, { name: "\u0446\u0430\u0440\u0435\u0432\u0438\u0446\u0430", share: 0.3 }],
+  meal_mackerel_potato: [{ name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438", share: 0.4 }, { name: "\u0441\u043A\u0443\u043C\u0440\u0438\u044F", share: 0.4 }, { name: "\u0441\u043F\u0430\u043D\u0430\u043A", share: 0.2 }],
+  meal_tofu_rice: [{ name: "\u043E\u0440\u0438\u0437", share: 0.35 }, { name: "\u0442\u043E\u0444\u0443", share: 0.45 }, { name: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438", share: 0.2 }],
+  meal_lentil_rice: [{ name: "\u043E\u0440\u0438\u0437", share: 0.35 }, { name: "\u043B\u0435\u0449\u0430", share: 0.45 }, { name: "\u043C\u043E\u0440\u043A\u043E\u0432", share: 0.2 }],
+  meal_chickpea_salad: [{ name: "\u043D\u0430\u0445\u0443\u0442", share: 0.5 }, { name: "\u043C\u0430\u0440\u0443\u043B\u044F", share: 0.3 }, { name: "\u0437\u0435\u0445\u0442\u0438\u043D", share: 0.2 }],
+  meal_egg_potato: [{ name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438", share: 0.45 }, { name: "\u044F\u0439\u0446\u0430", share: 0.35 }, { name: "\u0447\u0443\u0448\u043A\u0430", share: 0.2 }],
+  meal_avocado_egg: [{ name: "\u044F\u0439\u0446\u0430", share: 0.45 }, { name: "\u0430\u0432\u043E\u043A\u0430\u0434\u043E", share: 0.3 }, { name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", share: 0.25 }],
+  meal_cheese_sandwich: [{ name: "\u0445\u043B\u044F\u0431", share: 0.45 }, { name: "\u0441\u0438\u0440\u0435\u043D\u0435", share: 0.35 }, { name: "\u0434\u043E\u043C\u0430\u0442", share: 0.2 }],
+  meal_hummus_bread: [{ name: "\u0445\u043B\u044F\u0431", share: 0.45 }, { name: "\u0445\u0443\u043C\u0443\u0441", share: 0.35 }, { name: "\u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0430", share: 0.2 }],
+  meal_chicken_spinach: [{ name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.45 }, { name: "\u0441\u043F\u0430\u043D\u0430\u043A", share: 0.3 }, { name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438", share: 0.25 }],
+  meal_fish_veg: [{ name: "\u0440\u0438\u0431\u0430", share: 0.45 }, { name: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", share: 0.3 }, { name: "\u043A\u0438\u043D\u043E\u0430", share: 0.25 }],
+  meal_oat_plant_berries: [{ name: "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438", share: 0.35 }, { name: "\u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E", share: 0.45 }, { name: "\u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438", share: 0.2 }],
+  meal_tofu_toast: [{ name: "\u0442\u043E\u0444\u0443", share: 0.45 }, { name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", share: 0.35 }, { name: "\u0434\u043E\u043C\u0430\u0442", share: 0.2 }],
+  meal_chia_plant_bowl: [{ name: "\u0441\u0435\u043C\u0435\u043D\u0430 \u0447\u0438\u0430", share: 0.25 }, { name: "\u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E", share: 0.55 }, { name: "\u043C\u0430\u043B\u0438\u043D\u0438", share: 0.2 }],
+  meal_avocado_toast: [{ name: "\u0430\u0432\u043E\u043A\u0430\u0434\u043E", share: 0.4 }, { name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", share: 0.4 }, { name: "\u0434\u043E\u043C\u0430\u0442", share: 0.2 }],
+  meal_bean_salad: [{ name: "\u0431\u044F\u043B \u0431\u043E\u0431", share: 0.5 }, { name: "\u043C\u0430\u0440\u0443\u043B\u044F", share: 0.3 }, { name: "\u0437\u0435\u0445\u0442\u0438\u043D", share: 0.2 }],
+  meal_tempeh_bulgur: [{ name: "\u0442\u0435\u043C\u043F\u0435", share: 0.4 }, { name: "\u0431\u0443\u043B\u0433\u0443\u0440", share: 0.4 }, { name: "\u0447\u0443\u0448\u043A\u0430", share: 0.2 }],
+  meal_pea_quinoa: [{ name: "\u043A\u0438\u043D\u043E\u0430", share: 0.45 }, { name: "\u0433\u0440\u0430\u0445", share: 0.35 }, { name: "\u043C\u043E\u0440\u043A\u043E\u0432", share: 0.2 }],
+  meal_egg_avocado_spinach: [{ name: "\u044F\u0439\u0446\u0430", share: 0.45 }, { name: "\u0430\u0432\u043E\u043A\u0430\u0434\u043E", share: 0.3 }, { name: "\u0441\u043F\u0430\u043D\u0430\u043A", share: 0.25 }],
+  meal_cottage_nuts_veg: [{ name: "\u0438\u0437\u0432\u0430\u0440\u0430", share: 0.55 }, { name: "\u043E\u0440\u0435\u0445\u0438", share: 0.15 }, { name: "\u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0430", share: 0.3 }],
+  meal_salmon_avocado: [{ name: "\u0441\u044C\u043E\u043C\u0433\u0430", share: 0.5 }, { name: "\u0430\u0432\u043E\u043A\u0430\u0434\u043E", share: 0.25 }, { name: "\u043C\u0430\u0440\u0443\u043B\u044F", share: 0.25 }],
+  meal_chicken_cheese_salad: [{ name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.45 }, { name: "\u0441\u0438\u0440\u0435\u043D\u0435", share: 0.2 }, { name: "\u043C\u0430\u0440\u0443\u043B\u044F", share: 0.35 }],
+  meal_beef_mushrooms: [{ name: "\u0433\u043E\u0432\u0435\u0436\u0434\u043E", share: 0.45 }, { name: "\u0433\u044A\u0431\u0438", share: 0.35 }, { name: "\u0437\u0435\u0445\u0442\u0438\u043D", share: 0.2 }],
+  meal_chicken_bulgur_salad: [{ name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", share: 0.4 }, { name: "\u0431\u0443\u043B\u0433\u0443\u0440", share: 0.35 }, { name: "\u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0430", share: 0.25 }],
+  meal_turkey_potato: [{ name: "\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435", share: 0.4 }, { name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438", share: 0.4 }, { name: "\u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B", share: 0.2 }],
+  meal_cod_quinoa: [{ name: "\u0442\u0440\u0435\u0441\u043A\u0430", share: 0.4 }, { name: "\u043A\u0438\u043D\u043E\u0430", share: 0.35 }, { name: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438", share: 0.25 }],
+  meal_yogurt_oats_nuts: [{ name: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", share: 0.5 }, { name: "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438", share: 0.35 }, { name: "\u043E\u0440\u0435\u0445\u0438", share: 0.15 }],
+  meal_egg_bread_cheese: [{ name: "\u044F\u0439\u0446\u0430", share: 0.4 }, { name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", share: 0.35 }, { name: "\u0441\u0438\u0440\u0435\u043D\u0435", share: 0.25 }]
 };
 var READY_MEAL_PARTS = {
   ...BASE_READY_MEAL_PARTS,
@@ -15318,15 +15556,8 @@ var LIBRARY_CATALOG_OVERLAY = [
   ...getLibraryReadyMealCatalogEntries()
 ];
 function getCatalogEntries() {
-  const byId = new Map(FOOD_CATALOG.map((e) => [e.id, e]));
-  for (const e of LIBRARY_CATALOG_OVERLAY) {
-    if (e?.id) byId.set(
-      e.id,
-      /** @type {(typeof FOOD_CATALOG)[number]} */
-      /** @type {unknown} */
-      e
-    );
-  }
+  const merged = mergeCatalogEntries(FOOD_CATALOG, LIBRARY_CATALOG_OVERLAY);
+  const byId = new Map(merged.map((e) => [e.id, e]));
   for (const e of overlayEntries) {
     if (e?.id) byId.set(e.id, e);
     else byId.set(`overlay_${normalizeFoodKey(e.name)}`, e);
@@ -15590,6 +15821,13 @@ function passesDietRegistry(entry, modifierOrCtx = "") {
 }
 
 // candidate-ranking.js
+var ROLE_GROUP_AFFINITY = {
+  PRO: { protein: 0.55, legume: 0.35, dairy: -0.1, fat: -0.25, carb: -0.35, vegetable: -0.45, fruit: -0.6 },
+  ENG: { carb: 0.6, legume: 0.3, fruit: -0.05, dairy: -0.4, protein: -0.5, fat: -0.5, vegetable: -0.3 },
+  FAT: { fat: 0.6, dairy: -0.2, protein: -0.15, legume: -0.2, carb: -0.45, vegetable: -0.5, fruit: -0.5 },
+  VOL: { vegetable: 0.5, fruit: 0.1, legume: -0.1, carb: -0.4, protein: -0.4, dairy: -0.5, fat: -0.5 }
+};
+var MAX_PER_GROUP_IN_POOL = 4;
 function fatShareOfKcal(nutritionKey) {
   const a = FOOD_NUTRITION_PER_100G[nutritionKey];
   if (!a) return 0;
@@ -15607,16 +15845,34 @@ function kcalPerGram(nutritionKey) {
   const kcal = a[1] * 4 + a[2] * 4 + a[3] * 9;
   return kcal > 0 ? kcal / 100 : 0;
 }
+function spreadAcrossGroups(scored, limit) {
+  const perGroup = /* @__PURE__ */ new Map();
+  const head = [];
+  const tail = [];
+  for (const item2 of scored) {
+    const g = item2.entry.group || "other";
+    const used = perGroup.get(g) || 0;
+    if (used < MAX_PER_GROUP_IN_POOL) {
+      perGroup.set(g, used + 1);
+      head.push(item2);
+    } else {
+      tail.push(item2);
+    }
+  }
+  return [...head, ...tail].slice(0, limit);
+}
 function rankCatalogCandidates(list, ctx = {}) {
   const loveSet = ctx.loveSet || /* @__PURE__ */ new Set();
   const adherence = ctx.adherenceRatio || /* @__PURE__ */ new Map();
   const targetFat = slotFatShare(ctx.slotTarget);
   const maxSlotKcal2 = Number(ctx.maxSlotKcal) || Number(ctx.slotTarget?.calories) || 0;
   const limit = ctx.limit ?? list.length;
+  const affinity = ROLE_GROUP_AFFINITY[ctx.role] || null;
   const scored = list.map((entry) => {
     let score = (entry.universality || 3) / 5;
     const nKey = entry.nutritionKey || entry.name;
     const density = kcalPerGram(nKey);
+    if (affinity) score += affinity[entry.group] ?? 0;
     if (loveSet.has(normalizeFoodKey(entry.name))) score += 0.45;
     const ratio = adherence.get(nKey);
     if (typeof ratio === "number") {
@@ -15639,14 +15895,13 @@ function rankCatalogCandidates(list, ctx = {}) {
   });
   scored.sort((a, b) => b.score - a.score || b.entry.universality - a.entry.universality || a.entry.name.localeCompare(b.entry.name, "bg"));
   const seen = /* @__PURE__ */ new Set();
-  const out = [];
-  for (const { entry } of scored) {
-    if (seen.has(entry.name)) continue;
-    seen.add(entry.name);
-    out.push(entry);
-    if (out.length >= limit) break;
+  const unique = [];
+  for (const item2 of scored) {
+    if (seen.has(item2.entry.name)) continue;
+    seen.add(item2.entry.name);
+    unique.push(item2);
   }
-  return out;
+  return spreadAcrossGroups(unique, limit).map((item2) => item2.entry);
 }
 
 // step3-creation-hints.js
@@ -15689,6 +15944,12 @@ var SLOT_LABELS = {
   VOL: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 [VOL]",
   FAT: "\u043C\u0430\u0437\u043D\u0438\u043D\u0438/\u044F\u0434\u043A\u0438 [FAT]"
 };
+var NON_COMPONENT_GROUPS = /* @__PURE__ */ new Set(["condiment", "beverage"]);
+function isMealComponentGroup(group) {
+  return !NON_COMPONENT_GROUPS.has(group);
+}
+var READY_POOL_LIMIT = 24;
+var READY_PROMPT_LIMIT = 12;
 var MIN_CANDIDATES_PER_ROLE = 4;
 var MACRO_FILTER_FAT_MARGIN = 0.25;
 var MACRO_FILTER_CARB_MARGIN = 0.25;
@@ -15769,18 +16030,58 @@ function buildDietContext(options = {}) {
     dietDislike: options.dietDislike || ""
   };
 }
-var GLUTEN_KEYS = /* @__PURE__ */ new Set([
+var GLUTEN_TOKENS = [
   "\u0445\u043B\u044F\u0431",
-  "\u0445\u043B\u044F\u0431 \u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442",
-  "\u0440\u044A\u0436\u0435\u043D \u0445\u043B\u044F\u0431",
   "\u043F\u0430\u0441\u0442\u0430",
   "\u043C\u0430\u043A\u0430\u0440\u043E\u043D\u0438",
+  "\u0441\u043F\u0430\u0433\u0435\u0442",
   "\u0442\u043E\u0440\u0442\u0438\u043B\u0430",
-  "\u043A\u0440\u0435\u043A\u0435\u0440\u0438",
-  "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438",
+  "\u043A\u0440\u0435\u043A\u0435\u0440",
   "\u043E\u0432\u0435\u0441",
-  "\u0441\u0430\u043D\u0434\u0432\u0438\u0447 \u043F\u0438\u043B\u0435"
-]);
+  "\u0431\u0443\u043B\u0433\u0443\u0440",
+  "\u043A\u0443\u0441-\u043A\u0443\u0441",
+  "\u0433\u0440\u0438\u0441",
+  "\u043A\u0438\u0441\u0435\u043B\u043E \u0442\u0435\u0441\u0442\u043E",
+  "\u0441\u0430\u043D\u0434\u0432\u0438\u0447",
+  "\u0431\u0430\u043D\u0438\u0446\u0430",
+  "\u043C\u044E\u0441\u043B\u0438"
+];
+function containsGluten(key) {
+  return GLUTEN_TOKENS.some((token) => key.includes(token));
+}
+var KETO_HIGH_CARB_TOKENS = [
+  "\u043E\u0440\u0438\u0437",
+  "\u0445\u043B\u044F\u0431",
+  "\u043F\u0430\u0441\u0442\u0430",
+  "\u043C\u0430\u043A\u0430\u0440\u043E\u043D\u0438",
+  "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+  "\u043A\u0438\u043D\u043E\u0430",
+  "\u0431\u0443\u043B\u0433\u0443\u0440",
+  "\u043E\u0432\u0435\u0441",
+  "\u043A\u0430\u0448\u0430",
+  "\u0441\u0430\u043D\u0434\u0432\u0438\u0447",
+  "\u0442\u043E\u0440\u0442\u0438\u043B\u0430",
+  "\u043F\u0440\u043E\u0441\u043E",
+  "\u0435\u043B\u0434\u0430",
+  "\u0446\u0430\u0440\u0435\u0432\u0438\u0446\u0430",
+  "\u0431\u0430\u0442\u0430\u0442",
+  "\u0431\u0430\u043D\u0430\u043D",
+  "\u044F\u0431\u044A\u043B\u043A\u0430",
+  "\u043F\u043E\u0440\u0442\u043E\u043A\u0430\u043B",
+  "\u0433\u0440\u043E\u0437\u0434\u0435",
+  "\u043D\u0430\u0445\u0443\u0442",
+  "\u043B\u0435\u0449\u0430",
+  "\u0431\u043E\u0431",
+  "\u0433\u0440\u0430\u0445",
+  "\u043C\u0435\u0434"
+];
+function componentKeysOf(entry) {
+  const keys = [normalizeFoodKey(entry.nutritionKey || entry.name)];
+  for (const part of READY_MEAL_PARTS[entry.id] || []) {
+    keys.push(normalizeFoodKey(part.name));
+  }
+  return keys;
+}
 function isDietCompatible(entry, diet) {
   if (diet.vegan && !entry.vegan) return false;
   if (diet.vegetarian && !entry.vegetarian && !entry.vegan) return false;
@@ -15788,27 +16089,9 @@ function isDietCompatible(entry, diet) {
     const fishKeys = /* @__PURE__ */ new Set(["\u0440\u0438\u0431\u0430", "\u0441\u044C\u043E\u043C\u0433\u0430", "\u0440\u0438\u0431\u0430 \u0442\u043E\u043D", "\u0442\u0440\u0435\u0441\u043A\u0430", "\u0441\u043A\u0443\u043C\u0440\u0438\u044F", "\u0442\u0438\u043B\u0430\u043F\u0438\u044F", "\u0441\u043A\u0430\u0440\u0438\u0434\u0438"]);
     if (!fishKeys.has(entry.nutritionKey)) return false;
   }
-  if (diet.glutenFree && GLUTEN_KEYS.has(entry.nutritionKey)) return false;
-  if (diet.keto && (entry.group === "carb" || entry.group === "ready_meal")) {
-    const highCarbTokens = [
-      "\u043E\u0440\u0438\u0437",
-      "\u0445\u043B\u044F\u0431",
-      "\u043F\u0430\u0441\u0442\u0430",
-      "\u043C\u0430\u043A\u0430\u0440\u043E\u043D\u0438",
-      "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
-      "\u043A\u0438\u043D\u043E\u0430",
-      "\u0431\u0443\u043B\u0433\u0443\u0440",
-      "\u043E\u0432\u0435\u0441",
-      "\u043A\u0430\u0448\u0430",
-      "\u0441\u0430\u043D\u0434\u0432\u0438\u0447",
-      "\u0442\u043E\u0440\u0442\u0438\u043B\u0430",
-      "\u043F\u0440\u043E\u0441\u043E",
-      "\u0435\u043B\u0434\u0430",
-      "\u0446\u0430\u0440\u0435\u0432\u0438\u0446\u0430"
-    ];
-    const key = normalizeFoodKey(entry.nutritionKey);
-    if (highCarbTokens.some((t) => key.includes(t))) return false;
-  }
+  const keys = componentKeysOf(entry);
+  if (diet.glutenFree && keys.some(containsGluten)) return false;
+  if (diet.keto && keys.some((k) => KETO_HIGH_CARB_TOKENS.some((t) => k.includes(t)))) return false;
   return true;
 }
 function isExcludedByProtocol(entry, clinicalProtocolId) {
@@ -15898,7 +16181,6 @@ function mealTargetCarbShare(meal) {
 function applyMacroRoleFilter(list, { maxFatShare, maxCarbShare, isKeto }) {
   if (!list.length) return list;
   const filtered = list.filter((entry) => {
-    if (entry.group === "condiment") return true;
     const key = entry.nutritionKey || entry.name;
     if (fatShareOfKcal2(key) > maxFatShare) return false;
     if (isKeto && carbShareOfKcal(key) > maxCarbShare) return false;
@@ -15906,12 +16188,16 @@ function applyMacroRoleFilter(list, { maxFatShare, maxCarbShare, isKeto }) {
   });
   return filtered.length >= MIN_CANDIDATES_PER_ROLE ? filtered : list;
 }
-function injectLateSnackCandidates(list, index, blockedTerms = []) {
+function injectLateSnackCandidates(list, index, { blockedTerms = [], diet, registryCtx, clinicalProtocolId }) {
   const present = new Set(list.map((e) => e.nutritionKey || e.name));
   const extras = [];
   for (const entry of index.all) {
     const key = entry.nutritionKey || entry.name;
     if (!LATE_SNACK_NUTRITION_KEYS.has(key) || present.has(key)) continue;
+    if (!isMealComponentGroup(entry.group)) continue;
+    if (!isDietCompatible(entry, diet)) continue;
+    if (!passesDietRegistry(entry, registryCtx)) continue;
+    if (isExcludedByProtocol(entry, clinicalProtocolId)) continue;
     if (isBlockedByTerms(entry, blockedTerms)) continue;
     extras.push(entry);
     present.add(key);
@@ -15930,7 +16216,8 @@ function getCatalogCandidatesForChunk({
   minUniversality = DEFAULT_MIN_UNIVERSALITY,
   preferLove = [],
   clinicalProtocolId = null,
-  adherenceRatio = null
+  adherenceRatio = null,
+  readyLimit = READY_POOL_LIMIT
 }) {
   const index = buildCatalogIndex();
   const dietCtx = buildDietContext({ dietaryModifier, dietPreference, dietDislike });
@@ -15938,7 +16225,7 @@ function getCatalogCandidatesForChunk({
   const registryCtx = dietCtx;
   const loveSet = new Set((preferLove || []).map((s) => normalizeFoodKey(s)));
   const timings = /* @__PURE__ */ new Set();
-  const neededSlots = /* @__PURE__ */ new Set(["VOL"]);
+  const neededSlots = /* @__PURE__ */ new Set();
   let hasLateSnack = false;
   let minFatShare = 1;
   let minCarbShare = 1;
@@ -15953,12 +16240,13 @@ function getCatalogCandidatesForChunk({
     for (const meal of dayTarget.mealBreakdown) {
       if (meal.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" || meal.type === "\u041D\u0430\u043F\u0438\u0442\u043A\u0430") continue;
       timings.add(mealTypeToTiming(meal.type));
-      for (const s of inferSlotsFromTarget(meal)) neededSlots.add(s);
       if (meal.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5") {
         hasLateSnack = true;
         neededSlots.add("PRO");
         neededSlots.add("FAT");
       } else {
+        for (const s of inferSlotsFromTarget(meal)) neededSlots.add(s);
+        neededSlots.add("VOL");
         minFatShare = Math.min(minFatShare, mealTargetFatShare(meal));
         minCarbShare = Math.min(minCarbShare, mealTargetCarbShare(meal));
       }
@@ -15973,14 +16261,14 @@ function getCatalogCandidatesForChunk({
   for (const slot of neededSlots) bySlot.set(slot, []);
   for (const entry of index.all) {
     if (entry.group === "ready_meal") continue;
+    if (!isMealComponentGroup(entry.group)) continue;
     if (entry.universality < minUniversality) continue;
     if (!isDietCompatible(entry, diet)) continue;
     if (!passesDietRegistry(entry, registryCtx)) continue;
     if (isBlockedByTerms(entry, blockedTerms)) continue;
     if (isExcludedByProtocol(entry, clinicalProtocolId)) continue;
     const entryTimings = entry.timing;
-    const timingMatch = [...timings].some((t) => entryTimings.includes(t));
-    if (!timingMatch && entry.group !== "condiment") continue;
+    if (![...timings].some((t) => entryTimings.includes(t))) continue;
     for (const slot of entry.slots) {
       if (!neededSlots.has(slot)) continue;
       const list = bySlot.get(slot);
@@ -15990,13 +16278,14 @@ function getCatalogCandidatesForChunk({
   }
   for (const [slot, list] of bySlot) {
     const ranked = rankCatalogCandidates(list, {
+      role: slot,
       loveSet,
       adherenceRatio: adherenceMap,
       slotTarget: representativeSlot,
       maxSlotKcal: maxSlotKcal2,
-      limit: CATALOG_PROMPT_LIMIT_PER_SLOT * 3
+      limit: CATALOG_PROMPT_LIMIT_PER_SLOT
     });
-    bySlot.set(slot, ranked.slice(0, CATALOG_PROMPT_LIMIT_PER_SLOT));
+    bySlot.set(slot, ranked);
   }
   const maxFatShare = minFatShare + MACRO_FILTER_FAT_MARGIN;
   const maxCarbShare = minCarbShare + MACRO_FILTER_CARB_MARGIN;
@@ -16007,13 +16296,18 @@ function getCatalogCandidatesForChunk({
       list = applyMacroRoleFilter(list, { maxFatShare, maxCarbShare, isKeto });
     }
     if (hasLateSnack && (slot === "PRO" || slot === "FAT")) {
-      list = injectLateSnackCandidates(list, index, blockedTerms);
+      list = injectLateSnackCandidates(list, index, {
+        blockedTerms,
+        diet,
+        registryCtx,
+        clinicalProtocolId
+      });
     }
     bySlot.set(slot, list);
   }
   const ready = rankCatalogCandidates(
     index.all.filter((e) => e.group === "ready_meal").filter((e) => e.universality >= minUniversality).filter((e) => isDietCompatible(e, diet)).filter((e) => passesDietRegistry(e, registryCtx)).filter((e) => !isBlockedByTerms(e, blockedTerms)).filter((e) => !isExcludedByProtocol(e, clinicalProtocolId)).filter((e) => !readyMealViolatesProtocol(e, clinicalProtocolId)).filter((e) => e.timing.some((t) => timings.has(t))),
-    { loveSet, adherenceRatio: adherenceMap, slotTarget: representativeSlot, maxSlotKcal: maxSlotKcal2, limit: 8 }
+    { loveSet, adherenceRatio: adherenceMap, slotTarget: representativeSlot, maxSlotKcal: maxSlotKcal2, limit: readyLimit }
   );
   bySlot.set("READY", ready);
   return bySlot;
@@ -16057,7 +16351,7 @@ function validateProductNamesAgainstDiet(names, dietCtx = {}) {
 function buildCatalogPromptSection(options) {
   const dayKeys = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
   const maxSlotKcal2 = maxSlotKcalInChunk(options.strategy, options.startDay, options.endDay, dayKeys);
-  const candidates = getCatalogCandidatesForChunk(options);
+  const candidates = getCatalogCandidatesForChunk({ ...options, readyLimit: READY_PROMPT_LIMIT });
   return formatCatalogSectionForPrompt(candidates, {
     minUniversality: options.minUniversality ?? DEFAULT_MIN_UNIVERSALITY,
     creationHint: buildHighKcalCreationHint(maxSlotKcal2)
@@ -16867,25 +17161,26 @@ var GRAM_LARGE_MIN = 50;
 function gramRoundStep(grams) {
   return (Number(grams) || 0) >= GRAM_LARGE_MIN ? GRAM_STEP_LARGE : GRAM_STEP_SMALL;
 }
+function gramStepForMax(maxGrams) {
+  const max = Number(maxGrams) || 0;
+  if (max <= 60) return 5;
+  if (max <= 150) return 10;
+  if (max <= 300) return 25;
+  return GRAM_STEP_LARGE;
+}
+function snapToStepWithinBounds(grams, step, min, max) {
+  const lo = Number(min) || 0;
+  const hi = Number(max) || lo;
+  const g = Math.max(lo, Math.min(hi, Number(grams) || 0));
+  const candidates = [Math.floor(g / step) * step, Math.ceil(g / step) * step].filter((c) => c >= lo && c <= hi);
+  if (!candidates.length) return Math.round(g);
+  return candidates.reduce((best, c) => Math.abs(c - g) < Math.abs(best - g) ? c : best);
+}
 function snapGrams(grams) {
   const g = Number(grams) || 0;
   if (g <= 0) return 0;
   const step = gramRoundStep(g);
   return Math.max(step, Math.round(g / step) * step);
-}
-function snapGramsWithinBounds(grams, min, max) {
-  const lo = Number(min) || 0;
-  const hi = Number(max) || grams;
-  let snapped = snapGrams(grams);
-  snapped = Math.max(lo, Math.min(hi, snapped));
-  const step = gramRoundStep(snapped);
-  if (snapped % step !== 0) {
-    const down = Math.floor(snapped / step) * step;
-    const up = Math.ceil(snapped / step) * step;
-    if (down >= lo && down <= hi) snapped = down;
-    else if (up >= lo && up <= hi) snapped = up;
-  }
-  return Math.max(lo, Math.min(hi, snapped));
 }
 
 // meal-solver.js
@@ -16925,10 +17220,11 @@ function kcalOnlyCost(items, grams, target, maxTotalGrams) {
 function refineGrams(items, grams, bounds, target, maxTotalGrams, costFn) {
   let best = costFn(items, grams, target, maxTotalGrams);
   const inBounds = (cand, i) => cand[i] >= bounds[i].min && cand[i] <= bounds[i].max;
+  const itemSteps = bounds.map((b) => gramStepForMax(b.max));
   for (let iter = 0; iter < MAX_ITERATIONS; iter++) {
     let move = null;
     for (let i = 0; i < items.length; i++) {
-      const steps = /* @__PURE__ */ new Set([gramRoundStep(grams[i]), GRAM_STEP_SMALL, GRAM_STEP_LARGE]);
+      const steps = /* @__PURE__ */ new Set([itemSteps[i], gramRoundStep(grams[i]), GRAM_STEP_SMALL, GRAM_STEP_LARGE]);
       for (const st of steps) {
         for (const dir of [1, -1]) {
           const cand = grams.slice();
@@ -16945,7 +17241,7 @@ function refineGrams(items, grams, bounds, target, maxTotalGrams, costFn) {
     for (let i = 0; i < items.length; i++) {
       for (let j = 0; j < items.length; j++) {
         if (i === j) continue;
-        for (const st of [GRAM_STEP_SMALL, GRAM_STEP_LARGE]) {
+        for (const st of /* @__PURE__ */ new Set([itemSteps[i], itemSteps[j], GRAM_STEP_SMALL, GRAM_STEP_LARGE])) {
           const cand = grams.slice();
           cand[i] += st;
           cand[j] -= st;
@@ -16964,7 +17260,7 @@ function refineGrams(items, grams, bounds, target, maxTotalGrams, costFn) {
   return { grams, best };
 }
 function snapGramsInBounds(grams, bounds) {
-  return grams.map((g, i) => snapGramsWithinBounds(g, bounds[i].min, bounds[i].max));
+  return grams.map((g, i) => snapToStepWithinBounds(g, gramStepForMax(bounds[i].max), bounds[i].min, bounds[i].max));
 }
 function solveMealGrams(items, target, bounds, maxTotalGrams = 900) {
   if (!items.length || !(target.kcal > 0)) {
@@ -17008,6 +17304,114 @@ function solveMealGrams(items, target, bounds, maxTotalGrams = 900) {
     feasible: kcalOk && weightOk,
     reason: !kcalOk ? "\u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u043D\u0435 \u0441\u0435 \u043F\u043E\u0441\u0442\u0438\u0433\u0430\u0442 \u0441 \u0442\u0430\u0437\u0438 \u043A\u043E\u043C\u043F\u043E\u0437\u0438\u0446\u0438\u044F" : !weightOk ? "\u0442\u0435\u0433\u043B\u043E \u043D\u0430\u0434 \u0442\u0430\u0432\u0430\u043D\u0430" : ""
   };
+}
+
+// portion-limits.js
+var GROUP_MAX_PORTION_G = {
+  condiment: 15,
+  beverage: 300,
+  fat: 60,
+  dairy: 300,
+  protein: 250,
+  vegetable: 300,
+  fruit: 250,
+  carb: 350,
+  legume: 300,
+  ready_meal: 500
+};
+var GROUP_MIN_PORTION_G = {
+  condiment: 5,
+  beverage: 100,
+  fat: 5,
+  dairy: 30,
+  protein: 30,
+  vegetable: 50,
+  fruit: 50,
+  carb: 30,
+  legume: 30,
+  ready_meal: 100
+};
+var DEFAULT_MAX_PORTION_G = 300;
+var DEFAULT_MIN_PORTION_G = 20;
+var ITEM_MAX_PORTION_G = {
+  // Pure fats — a serving is a spoon, not a bowl.
+  "\u0437\u0435\u0445\u0442\u0438\u043D": 30,
+  "\u043E\u043B\u0438\u043E": 30,
+  "\u043C\u0430\u0441\u043B\u043E": 30,
+  "\u043A\u043E\u043A\u043E\u0441\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E": 30,
+  "\u0441\u043B\u044A\u043D\u0447\u043E\u0433\u043B\u0435\u0434\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E": 30,
+  "\u0433\u0445\u0438": 20,
+  "\u0444\u044A\u0441\u0442\u044A\u0447\u0435\u043D\u043E \u043C\u0430\u0441\u043B\u043E": 40,
+  "\u0431\u0430\u0434\u0435\u043C\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E": 40,
+  "\u0442\u0430\u0445\u0430\u043D": 40,
+  // Nuts and seeds — energy dense.
+  "\u044F\u0434\u043A\u0438": 50,
+  "\u0431\u0430\u0434\u0435\u043C\u0438": 50,
+  "\u043E\u0440\u0435\u0445\u0438": 50,
+  "\u043A\u0430\u0448\u0443": 50,
+  "\u043B\u0435\u0448\u043D\u0438\u0446\u0438": 50,
+  "\u0448\u0430\u043C\u0444\u044A\u0441\u0442\u044A\u043A": 50,
+  "\u043F\u0435\u043A\u0430\u043D\u0438": 50,
+  "\u043C\u0430\u043A\u0430\u0434\u0430\u043C\u0438\u044F": 50,
+  "\u0431\u0440\u0430\u0437\u0438\u043B\u0441\u043A\u0438 \u043E\u0440\u0435\u0445": 40,
+  "\u0441\u0435\u043C\u0435\u043D\u0430 \u0447\u0438\u0430": 30,
+  "\u043B\u0435\u043D\u0435\u043D\u043E \u0441\u0435\u043C\u0435": 30,
+  "\u0442\u0438\u043A\u0432\u0435\u043D\u0438 \u0441\u0435\u043C\u043A\u0438": 40,
+  "\u0441\u043B\u044A\u043D\u0447\u043E\u0433\u043B\u0435\u0434\u043E\u0432\u0438 \u0441\u0435\u043C\u043A\u0438": 40,
+  "\u043A\u043E\u043A\u043E\u0441\u043E\u0432\u0438 \u0441\u0442\u044A\u0440\u0433\u043E\u0442\u0438\u043D\u0438": 30,
+  // Eggs — 150 g is three eggs.
+  "\u044F\u0439\u0446\u0430": 150,
+  "\u0432\u0430\u0440\u0435\u043D\u043E \u044F\u0439\u0446\u0435": 150,
+  "\u0431\u044A\u0440\u043A\u0430\u043D\u0438 \u044F\u0439\u0446\u0430": 200,
+  "\u044F\u0439\u0447\u043D\u0438 \u0431\u0435\u043B\u0442\u044A\u0446\u0438": 200,
+  "\u043E\u043C\u043B\u0435\u0442": 250,
+  // Concentrated dairy.
+  "\u043A\u0430\u0448\u043A\u0430\u0432\u0430\u043B": 60,
+  "\u0441\u0438\u0440\u0435\u043D\u0435": 80,
+  "\u043C\u043E\u0446\u0430\u0440\u0435\u043B\u0430": 80,
+  "\u043F\u0430\u0440\u043C\u0435\u0437\u0430\u043D": 40,
+  "\u043A\u043E\u0437\u0435 \u0441\u0438\u0440\u0435\u043D\u0435": 60,
+  // Dry weights (uncooked grains keep small servings).
+  "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438": 100,
+  "\u043E\u0432\u0435\u0441": 100,
+  "\u043F\u0440\u043E\u0442\u0435\u0438\u043D \u0441\u0443\u0440\u043E\u0432\u0430\u0442\u043A\u0430": 50,
+  "\u043F\u0440\u043E\u0442\u0435\u0438\u043D \u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u0435\u043D": 50,
+  // Sweeteners and spreads.
+  "\u043C\u0435\u0434": 20,
+  // Berries are a garnish portion, not a bowl of fruit.
+  "\u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438": 150,
+  "\u043C\u0430\u043B\u0438\u043D\u0438": 150,
+  "\u044F\u0433\u043E\u0434\u0438": 200,
+  "\u043A\u044A\u043F\u0438\u043D\u0438": 150,
+  "\u0445\u0443\u043C\u0443\u0441": 100,
+  "\u043F\u0435\u0441\u0442\u043E": 30,
+  "\u043C\u0430\u0441\u043B\u0438\u043D\u0438": 60,
+  "\u0430\u0432\u043E\u043A\u0430\u0434\u043E": 150
+};
+var ITEM_MIN_PORTION_G = {
+  "\u0437\u0435\u0445\u0442\u0438\u043D": 5,
+  "\u043E\u043B\u0438\u043E": 5,
+  "\u043C\u0430\u0441\u043B\u043E": 5,
+  "\u0441\u0435\u043C\u0435\u043D\u0430 \u0447\u0438\u0430": 5,
+  "\u043B\u0435\u043D\u0435\u043D\u043E \u0441\u0435\u043C\u0435": 5,
+  "\u043C\u0435\u0434": 5
+};
+function lookup(table, name, nutritionKey) {
+  const byKey = nutritionKey ? table[normalizeFoodKey(nutritionKey)] : void 0;
+  if (byKey !== void 0) return byKey;
+  const byName = name ? table[normalizeFoodKey(name)] : void 0;
+  return byName;
+}
+function maxPortionGrams(entry = {}) {
+  const item2 = lookup(ITEM_MAX_PORTION_G, entry.name, entry.nutritionKey);
+  const group = GROUP_MAX_PORTION_G[entry.group] ?? DEFAULT_MAX_PORTION_G;
+  const fromCatalog = Number(entry.maxPortionG) > 0 ? Number(entry.maxPortionG) : Infinity;
+  return Math.min(item2 ?? group, group, fromCatalog);
+}
+function minPortionGrams(entry = {}) {
+  const item2 = lookup(ITEM_MIN_PORTION_G, entry.name, entry.nutritionKey);
+  if (item2 !== void 0) return item2;
+  return GROUP_MIN_PORTION_G[entry.group] ?? DEFAULT_MIN_PORTION_G;
 }
 
 // meal-day-sync.js
@@ -17098,8 +17502,7 @@ var MIN_CALORIE_TOLERANCE_KCAL = SLOT_CALORIE_TOLERANCE_MIN_KCAL;
 function calorieTolerance(targetKcal) {
   return Math.max(MIN_CALORIE_TOLERANCE_KCAL, Math.round((Number(targetKcal) || 0) * CALORIE_TOLERANCE_PERCENT));
 }
-var CONDIMENT_MAX_GRAMS = 15;
-var DAIRY_MAX_GRAMS = 300;
+var BOUNDS_HEADROOM = 1.35;
 var MAX_MEAL_WEIGHT_GRAMS = 900;
 function expandReadyMealItems(items, extraDb = {}) {
   const out = [];
@@ -17139,8 +17542,16 @@ var GRAM_LINE_RE = /^(.+?)\s+(\d+(?:[.,]\d+)?)\s*(g|г)\b(?:\s*[—\-]\s*(.+))?$
 function arrayToProfile(arr) {
   return { kcal: arr[0], p: arr[1], c: arr[2], f: arr[3] };
 }
+var libraryProfileCache = null;
+function libraryProfiles() {
+  if (!libraryProfileCache) libraryProfileCache = getLibraryNutritionPer100g();
+  return libraryProfileCache;
+}
 function buildDbIndex(extraDb = {}) {
   const index = /* @__PURE__ */ new Map();
+  for (const [rawKey, values] of Object.entries(libraryProfiles())) {
+    index.set(normalizeFoodKey(rawKey), arrayToProfile(values));
+  }
   for (const [rawKey, values] of Object.entries(FOOD_NUTRITION_PER_100G)) {
     index.set(normalizeFoodKey(rawKey), arrayToProfile(values));
   }
@@ -17227,53 +17638,39 @@ function roundGrams(grams, step) {
 }
 function getCatalogMeta(name) {
   const { entry } = resolveCatalogEntry(name);
-  if (!entry) return { slots: [], group: null };
-  return { slots: entry.slots || [], group: entry.group || null };
+  if (!entry) return { slots: [], group: null, nutritionKey: null, maxPortionG: null };
+  return {
+    slots: entry.slots || [],
+    group: entry.group || null,
+    nutritionKey: entry.nutritionKey || null,
+    maxPortionG: entry.maxPortionG || null
+  };
 }
-function isCondimentItem(item2) {
-  return getCatalogMeta(item2.name).group === "condiment";
+function portionWindow(item2) {
+  const meta = getCatalogMeta(item2.name);
+  const descriptor = {
+    name: item2.name,
+    nutritionKey: meta.nutritionKey,
+    group: meta.group,
+    maxPortionG: meta.maxPortionG
+  };
+  const max = maxPortionGrams(descriptor);
+  const min = Math.min(minPortionGrams(descriptor), max);
+  return { min, max, group: meta.group, slots: meta.slots };
 }
-var SEASONING_NAME = /^(босилек|риган|мащерка|синап|горчица|чили|черен пипер|бял пипер|кимион|копър|магданоз|хрян|стевия|оцет|куркума|канела|джинджифил|сумак|салвия)/i;
-function isSeasoningItem(item2) {
-  if (isCondimentItem(item2)) return true;
-  return SEASONING_NAME.test(String(item2.name || "").trim());
-}
-function clampCondimentBounds(items, bounds) {
+function clampBoundsToPortions(items, bounds) {
   return bounds.map((b, i) => {
-    if (!isSeasoningItem(items[i])) return b;
-    return {
-      min: Math.min(b.min, CONDIMENT_MAX_GRAMS),
-      max: Math.min(b.max, CONDIMENT_MAX_GRAMS)
-    };
+    const { min, max } = portionWindow(items[i]);
+    const hi = Math.min(b.max, max);
+    const lo = Math.min(b.min, hi);
+    return { min: Math.max(lo, Math.min(min, hi)), max: hi };
   });
-}
-function isDairyItem(item2) {
-  return getCatalogMeta(item2.name).group === "dairy";
 }
 function kcalPer100(profile) {
   const p = Number(profile?.p) || 0;
   const c = Number(profile?.c) || 0;
   const f = Number(profile?.f) || 0;
   return Math.max(15, p * 4 + c * 4 + f * 9);
-}
-function baseBoundsForGroup(group) {
-  switch (group) {
-    case "condiment":
-      return { min: 5, max: CONDIMENT_MAX_GRAMS };
-    case "vegetable":
-    case "fruit":
-      return { min: 30, max: 200 };
-    case "dairy":
-    case "protein":
-      return { min: 30, max: DAIRY_MAX_GRAMS };
-    case "fat":
-      return { min: 5, max: 80 };
-    case "carb":
-    case "legume":
-      return { min: 30, max: 550 };
-    default:
-      return { min: 20, max: 450 };
-  }
 }
 function macroShareForItem(group, slots = []) {
   if (group === "protein" || group === "dairy" || slots.includes("PRO")) return 0.38;
@@ -17284,34 +17681,29 @@ function macroShareForItem(group, slots = []) {
 }
 function computeMealItemBounds(items, slotTarget, maxTotalGrams = MAX_MEAL_WEIGHT_GRAMS) {
   const slotKcal = Number(slotTarget?.kcal ?? slotTarget?.calories) || 0;
-  const scale = slotKcal > 0 ? Math.min(2.5, Math.max(1, slotKcal / 500)) : 1;
   let bounds = items.map((item2) => {
-    const { group, slots } = getCatalogMeta(item2.name);
-    let { min, max } = baseBoundsForGroup(group);
-    max = Math.round(max * scale);
+    const { min, max, group, slots } = portionWindow(item2);
+    let hi = min;
     if (slotKcal > 0) {
       const k100 = kcalPer100(item2.profile);
       const share = macroShareForItem(group, slots);
-      const needG = slotKcal * share / k100 * 100 * 1.15;
-      max = Math.max(max, snapGrams(needG));
+      hi = Math.max(hi, snapGrams(slotKcal * share / k100 * 100 * 1.15));
+    } else {
+      hi = Math.round((min + max) / 2);
     }
-    max = isSeasoningItem(item2) ? Math.min(max, CONDIMENT_MAX_GRAMS) : Math.min(max, 650);
-    return { min, max: Math.max(min, max) };
+    return { min, max: Math.max(min, Math.min(hi, max)) };
   });
-  bounds = clampCondimentBounds(items, bounds);
-  for (let pass = 0; pass < 6 && slotKcal > 0; pass++) {
+  for (let pass = 0; pass < 8 && slotKcal > 0; pass++) {
     const maxKcal = totalsFor(
       items.map((it) => ({ profile: it.profile })),
       bounds.map((b) => b.max)
     ).kcal;
-    if (maxKcal >= slotKcal * 0.92) break;
-    bounds = bounds.map((b, i) => {
+    if (maxKcal >= slotKcal * BOUNDS_HEADROOM) break;
+    bounds = clampBoundsToPortions(items, bounds.map((b, i) => {
       const k100 = kcalPer100(items[i].profile);
       const boost = k100 < 90 ? 1.22 : 1.12;
-      const cap = isSeasoningItem(items[i]) ? CONDIMENT_MAX_GRAMS : 650;
-      return { min: b.min, max: Math.min(cap, Math.round(b.max * boost)) };
-    });
-    bounds = clampCondimentBounds(items, bounds);
+      return { min: b.min, max: Math.round(b.max * boost) };
+    }));
   }
   const sumMax = bounds.reduce((s, b) => s + b.max, 0);
   if (sumMax > maxTotalGrams) {
@@ -17326,7 +17718,18 @@ function computeMealItemBounds(items, slotTarget, maxTotalGrams = MAX_MEAL_WEIGH
       }));
     }
   }
-  return clampCondimentBounds(items, bounds);
+  return clampBoundsToPortions(items, bounds);
+}
+function compositionCapacity(productNames, slotTarget = {}, maxTotalGrams = MAX_MEAL_WEIGHT_GRAMS) {
+  const items = (productNames || []).map((name) => ({ name, profile: lookupFoodProfile(name).profile, grams: 0 })).filter((item2) => item2.profile);
+  if (!items.length) return { minKcal: 0, maxKcal: 0 };
+  const kcal = Number(slotTarget?.kcal ?? slotTarget?.calories) || 0;
+  const bounds = computeMealItemBounds(items, { kcal }, maxTotalGrams);
+  const profiles = items.map((it) => ({ profile: it.profile }));
+  return {
+    minKcal: totalsFor(profiles, bounds.map((b) => b.min)).kcal,
+    maxKcal: totalsFor(profiles, bounds.map((b) => b.max)).kcal
+  };
 }
 function seedGramsForItem(item2, bounds, slotTarget, itemCount = 1) {
   if (item2.grams > 0) return item2.grams;
@@ -17341,15 +17744,9 @@ function seedGramsForItem(item2, bounds, slotTarget, itemCount = 1) {
   const mid = Math.round((bounds.min + bounds.max) / 2);
   return roundGrams(mid);
 }
-function capCondimentGrams(item2, grams) {
-  return isSeasoningItem(item2) ? Math.min(grams, CONDIMENT_MAX_GRAMS) : grams;
-}
 function capItemGrams(item2, grams) {
-  let g = capCondimentGrams(item2, grams);
-  if (isDairyItem(item2)) g = Math.min(g, DAIRY_MAX_GRAMS);
-  const { group } = getCatalogMeta(item2.name);
-  if (group === "protein") g = Math.min(g, DAIRY_MAX_GRAMS);
-  return g;
+  const { min, max } = portionWindow(item2);
+  return Math.max(Math.min(grams, max), Math.min(grams, min));
 }
 function nutritionFromGrams(profile, grams) {
   const factor = (Number(grams) || 0) / 100;
@@ -17432,14 +17829,8 @@ function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}) {
     items.map((it) => ({ profile: it.profile })),
     bounds.map((b) => b.max)
   );
-  if (slotTarget.kcal > 0 && maxAchievable.kcal < slotTarget.kcal * 0.88) {
-    return {
-      ok: true,
-      unknowns: items.filter((i) => i.unknown).map((i) => i.name),
-      feasible: false,
-      reason: "\u043A\u043E\u043C\u043F\u043E\u0437\u0438\u0446\u0438\u044F\u0442\u0430 \u043D\u0435 \u043D\u043E\u0441\u0438 slot kcal \u2014 \u0434\u043E\u0431\u0430\u0432\u0438 \u043F\u043E-\u043A\u0430\u043B\u043E\u0440\u0438\u0447\u0435\u043D PRO/ENG \u0438\u0437\u0442\u043E\u0447\u043D\u0438\u043A"
-    };
-  }
+  const unreachable = slotTarget.kcal > 0 && maxAchievable.kcal < slotTarget.kcal * 0.88;
+  const unreachableReason = "\u043A\u043E\u043C\u043F\u043E\u0437\u0438\u0446\u0438\u044F\u0442\u0430 \u043D\u0435 \u043D\u043E\u0441\u0438 slot kcal \u2014 \u0434\u043E\u0431\u0430\u0432\u0438 \u043F\u043E-\u043A\u0430\u043B\u043E\u0440\u0438\u0447\u0435\u043D PRO/ENG \u0438\u0437\u0442\u043E\u0447\u043D\u0438\u043A";
   items = items.map((item2, i) => ({
     ...item2,
     grams: capItemGrams(item2, seedGramsForItem(item2, bounds[i], slotTarget, items.length))
@@ -17473,8 +17864,8 @@ function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}) {
   return {
     ok: true,
     unknowns: totals.unknowns,
-    feasible: solved.feasible,
-    reason: solved.reason || ""
+    feasible: solved.feasible && !unreachable,
+    reason: unreachable ? unreachableReason : solved.reason || ""
   };
 }
 function profileToKvArray(profile) {
@@ -17746,64 +18137,260 @@ function runDeterministicValidation(data, config) {
   };
 }
 
+// meal-compatibility.js
+var BOUNDARY = "(?:^|[^\\p{L}\\p{N}])";
+var BOUNDARY_END = "(?:$|[^\\p{L}\\p{N}])";
+var wordCache = /* @__PURE__ */ new Map();
+function hasWord(text, term) {
+  const t = String(term || "").trim();
+  if (!t) return false;
+  let re = wordCache.get(t);
+  if (!re) {
+    const escaped = t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    re = new RegExp(`${BOUNDARY}${escaped}${BOUNDARY_END}`, "iu");
+    wordCache.set(t, re);
+  }
+  return re.test(String(text || ""));
+}
+function hasStem(text, stems) {
+  const lower = String(text || "").toLowerCase();
+  return stems.some((stem) => lower.includes(stem));
+}
+var FOOD_KIND_STEMS = {
+  starch: [
+    "\u043E\u0440\u0438\u0437",
+    "\u043A\u0430\u0440\u0442\u043E\u0444",
+    "\u043F\u0430\u0441\u0442\u0430",
+    "\u043C\u0430\u043A\u0430\u0440\u043E\u043D",
+    "\u0441\u043F\u0430\u0433\u0435\u0442",
+    "\u043E\u0432\u0435\u0441",
+    "\u0431\u0443\u043B\u0433\u0443\u0440",
+    "\u0445\u043B\u044F\u0431",
+    "\u043A\u0438\u043D\u043E\u0430",
+    "\u0435\u043B\u0434\u0430",
+    "\u043A\u0443\u0441-\u043A\u0443\u0441",
+    "\u043F\u0440\u043E\u0441\u043E",
+    "\u0442\u043E\u0440\u0442\u0438\u043B\u0430",
+    "\u0446\u0430\u0440\u0435\u0432\u0438\u0446",
+    "\u0431\u0430\u0442\u0430\u0442",
+    "\u043A\u0430\u0448\u0430"
+  ],
+  legume: ["\u0431\u043E\u0431", "\u043B\u0435\u0449\u0430", "\u043D\u0430\u0445\u0443\u0442", "\u0433\u0440\u0430\u0445", "\u0435\u0434\u0430\u043C\u0430\u043C\u0435", "\u0444\u0430\u0441\u0443\u043B"],
+  redMeat: ["\u0433\u043E\u0432\u0435\u0436\u0434", "\u0441\u0432\u0438\u043D\u0441\u043A", "\u0442\u0435\u043B\u0435\u0448\u043A", "\u0430\u0433\u043D\u0435\u0448\u043A", "\u043A\u0430\u0439\u043C\u0430"],
+  poultry: ["\u043F\u0438\u043B\u0435\u0448\u043A", "\u043F\u0438\u043B\u0435", "\u043F\u0443\u0435\u0448\u043A", "\u043F\u0443\u0439\u043A\u0430"],
+  fish: ["\u0440\u0438\u0431\u0430", "\u0441\u044C\u043E\u043C\u0433\u0430", "\u0442\u043E\u043D", "\u0442\u0440\u0435\u0441\u043A\u0430", "\u0441\u043A\u0443\u043C\u0440\u0438", "\u0442\u0438\u043B\u0430\u043F\u0438", "\u043B\u0430\u0432\u0440\u0430\u043A", "\u0441\u043A\u0430\u0440\u0438\u0434\u0438", "\u043A\u0430\u043B\u043C\u0430\u0440"],
+  egg: ["\u044F\u0439\u0446", "\u0431\u0435\u043B\u0442\u044A\u0446", "\u043E\u043C\u043B\u0435\u0442"],
+  freshDairy: ["\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", "\u043A\u0435\u0444\u0438\u0440", "\u0441\u043A\u0438\u0440", "\u0430\u0439\u0440\u0430\u043D", "\u0433\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E", "\u0438\u0437\u0432\u0430\u0440\u0430", "\u043F\u0440\u043E\u0431\u0438\u043E\u0442\u0438\u0447\u043D\u043E"],
+  cheese: ["\u0441\u0438\u0440\u0435\u043D\u0435", "\u043A\u0430\u0448\u043A\u0430\u0432\u0430\u043B", "\u043C\u043E\u0446\u0430\u0440\u0435\u043B", "\u043F\u0430\u0440\u043C\u0435\u0437\u0430\u043D", "\u0444\u0435\u0442\u0430"],
+  sweetFruit: [
+    "\u0431\u0430\u043D\u0430\u043D",
+    "\u044F\u0431\u044A\u043B\u043A",
+    "\u043F\u043E\u0440\u0442\u043E\u043A\u0430\u043B",
+    "\u043C\u0430\u043D\u0434\u0430\u0440\u0438\u043D",
+    "\u0433\u0440\u043E\u0437\u0434\u0435",
+    "\u043A\u0440\u0443\u0448\u0430",
+    "\u043F\u0440\u0430\u0441\u043A\u043E\u0432\u0430",
+    "\u0434\u0438\u043D\u044F",
+    "\u043F\u044A\u043F\u0435\u0448",
+    "\u0430\u043D\u0430\u043D\u0430\u0441",
+    "\u043C\u0430\u043D\u0433\u043E",
+    "\u043A\u0438\u0432\u0438",
+    "\u0441\u043C\u043E\u043A\u0438\u043D"
+  ],
+  berry: ["\u044F\u0433\u043E\u0434", "\u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A", "\u043C\u0430\u043B\u0438\u043D", "\u043A\u044A\u043F\u0438\u043D"],
+  vegetable: [
+    "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A",
+    "\u0434\u043E\u043C\u0430\u0442",
+    "\u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446",
+    "\u0447\u0443\u0448\u043A",
+    "\u043C\u043E\u0440\u043A\u043E\u0432",
+    "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+    "\u0441\u043F\u0430\u043D\u0430\u043A",
+    "\u043C\u0430\u0440\u0443\u043B\u044F",
+    "\u0442\u0438\u043A\u0432\u0438\u0447",
+    "\u043A\u0430\u0440\u0444\u0438\u043E\u043B",
+    "\u0437\u0435\u043B\u0435",
+    "\u0433\u044A\u0431",
+    "\u043F\u0430\u0442\u043B\u0430\u0434\u0436\u0430\u043D",
+    "\u0446\u0435\u043B\u0438\u043D\u0430",
+    "\u0440\u0443\u043A\u043E\u043B\u0430",
+    "\u0441\u0430\u043B\u0430\u0442",
+    "\u043F\u0440\u0430\u0437",
+    "\u0440\u0435\u043F\u0438\u0447\u043A",
+    "\u0430\u0441\u043F\u0435\u0440\u0436\u0438",
+    "\u043A\u0440\u0435\u0441\u043E\u043D",
+    "\u0430\u0439\u0441\u0431\u0435\u0440\u0433",
+    "\u043F\u043E\u0440\u0442\u043E\u0431\u0435\u043B\u043E",
+    "\u0435\u0440\u0438\u043D\u0433\u0438"
+  ],
+  nut: ["\u0431\u0430\u0434\u0435\u043C", "\u043E\u0440\u0435\u0445", "\u043A\u0430\u0448\u0443", "\u043B\u0435\u0448\u043D\u0438\u0446", "\u0448\u0430\u043C\u0444\u044A\u0441\u0442\u044A\u043A", "\u043F\u0435\u043A\u0430\u043D", "\u043C\u0430\u043A\u0430\u0434\u0430\u043C\u0438", "\u0444\u044A\u0441\u0442\u044A\u0446"],
+  seed: ["\u0441\u0435\u043C\u043A", "\u0441\u0435\u043C\u0435", "\u0447\u0438\u0430"],
+  oil: ["\u0437\u0435\u0445\u0442\u0438\u043D", "\u043E\u043B\u0438\u043E", "\u0433\u0445\u0438", "\u043A\u043E\u043A\u043E\u0441\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E", "\u0441\u043B\u044A\u043D\u0447\u043E\u0433\u043B\u0435\u0434\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E"],
+  nutButter: ["\u0444\u044A\u0441\u0442\u044A\u0447\u0435\u043D\u043E \u043C\u0430\u0441\u043B\u043E", "\u0431\u0430\u0434\u0435\u043C\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E", "\u0442\u0430\u0445\u0430\u043D"],
+  butter: ["\u043C\u0430\u0441\u043B\u043E"],
+  sweetener: ["\u043C\u0435\u0434", "\u0437\u0430\u0445\u0430\u0440", "\u0441\u0438\u0440\u043E\u043F", "\u043A\u043E\u043D\u0444\u0438\u0442\u044E\u0440", "\u043D\u0435\u043A\u0442\u0430\u0440"],
+  sauce: ["\u043A\u0435\u0442\u0447\u0443\u043F", "\u043C\u0430\u0439\u043E\u043D\u0435\u0437", "\u0433\u043E\u0440\u0447\u0438\u0446", "\u0441\u0438\u043D\u0430\u043F", "\u043B\u044E\u0442\u0435\u043D\u0438\u0446", "\u043F\u0435\u0441\u0442\u043E", "\u0441\u0430\u043B\u0441\u0430", "\u0441\u043E\u0435\u0432 \u0441\u043E\u0441"]
+};
+function kindsOf(name) {
+  const out = /* @__PURE__ */ new Set();
+  for (const [kind, stems] of Object.entries(FOOD_KIND_STEMS)) {
+    if (hasStem(name, stems)) out.add(kind);
+  }
+  return out;
+}
+function kindsIn(names) {
+  const out = /* @__PURE__ */ new Map();
+  for (const name of names) {
+    for (const kind of kindsOf(name)) {
+      if (!out.has(kind)) out.set(kind, []);
+      out.get(kind).push(name);
+    }
+  }
+  return out;
+}
+var INCOMPATIBLE_KIND_PAIRS = [
+  { a: "fish", b: "freshDairy", reason: "\u0440\u0438\u0431\u0430 \u0441 \u043A\u0438\u0441\u0435\u043B\u043E-\u043C\u043B\u0435\u0447\u0435\u043D \u043F\u0440\u043E\u0434\u0443\u043A\u0442" },
+  { a: "fish", b: "sweetFruit", reason: "\u0440\u0438\u0431\u0430 \u0441\u044A\u0441 \u0441\u043B\u0430\u0434\u044A\u043A \u043F\u043B\u043E\u0434" },
+  { a: "fish", b: "cheese", reason: "\u0440\u0438\u0431\u0430 \u0441\u044A\u0441 \u0441\u0438\u0440\u0435\u043D\u0435/\u043A\u0430\u0448\u043A\u0430\u0432\u0430\u043B" },
+  { a: "redMeat", b: "freshDairy", reason: "\u0447\u0435\u0440\u0432\u0435\u043D\u043E \u043C\u0435\u0441\u043E \u0441 \u043A\u0438\u0441\u0435\u043B\u043E-\u043C\u043B\u0435\u0447\u0435\u043D \u043F\u0440\u043E\u0434\u0443\u043A\u0442" },
+  { a: "redMeat", b: "sweetFruit", reason: "\u0447\u0435\u0440\u0432\u0435\u043D\u043E \u043C\u0435\u0441\u043E \u0441\u044A\u0441 \u0441\u043B\u0430\u0434\u044A\u043A \u043F\u043B\u043E\u0434" },
+  { a: "poultry", b: "sweetFruit", reason: "\u043F\u0442\u0438\u0447\u0435 \u043C\u0435\u0441\u043E \u0441\u044A\u0441 \u0441\u043B\u0430\u0434\u044A\u043A \u043F\u043B\u043E\u0434" },
+  { a: "fish", b: "legume", reason: "\u0440\u0438\u0431\u0430 \u0441 \u0431\u043E\u0431\u043E\u0432\u0438" },
+  { a: "egg", b: "sweetFruit", reason: "\u044F\u0439\u0446\u0430 \u0441\u044A\u0441 \u0441\u043B\u0430\u0434\u044A\u043A \u043F\u043B\u043E\u0434" },
+  { a: "sweetener", b: "fish", reason: "\u043F\u043E\u0434\u0441\u043B\u0430\u0434\u0438\u0442\u0435\u043B \u0441 \u0440\u0438\u0431\u0430" },
+  { a: "sweetener", b: "redMeat", reason: "\u043F\u043E\u0434\u0441\u043B\u0430\u0434\u0438\u0442\u0435\u043B \u0441 \u0447\u0435\u0440\u0432\u0435\u043D\u043E \u043C\u0435\u0441\u043E" },
+  { a: "sweetener", b: "poultry", reason: "\u043F\u043E\u0434\u0441\u043B\u0430\u0434\u0438\u0442\u0435\u043B \u0441 \u043F\u0442\u0438\u0447\u0435 \u043C\u0435\u0441\u043E" },
+  // A sweet bowl is not a place for vegetables, and a nut butter is not a
+  // topping for a savoury plate — both crept in when the composer filled an
+  // energy gap with whatever was densest.
+  { a: "sweetFruit", b: "vegetable", reason: "\u0441\u043B\u0430\u0434\u044A\u043A \u043F\u043B\u043E\u0434 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A \u0432 \u0435\u0434\u043D\u043E \u044F\u0441\u0442\u0438\u0435" },
+  { a: "berry", b: "vegetable", reason: "\u0433\u043E\u0440\u0441\u043A\u0438 \u043F\u043B\u043E\u0434 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A \u0432 \u0435\u0434\u043D\u043E \u044F\u0441\u0442\u0438\u0435" },
+  { a: "nutButter", b: "vegetable", reason: "\u044F\u0434\u043A\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A" },
+  { a: "nutButter", b: "fish", reason: "\u044F\u0434\u043A\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E \u0441 \u0440\u0438\u0431\u0430" },
+  { a: "nutButter", b: "redMeat", reason: "\u044F\u0434\u043A\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E \u0441 \u0447\u0435\u0440\u0432\u0435\u043D\u043E \u043C\u0435\u0441\u043E" },
+  { a: "nutButter", b: "poultry", reason: "\u044F\u0434\u043A\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E \u0441 \u043F\u0442\u0438\u0447\u0435 \u043C\u0435\u0441\u043E" },
+  { a: "nutButter", b: "freshDairy", reason: "\u044F\u0434\u043A\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E \u0441 \u043A\u0438\u0441\u0435\u043B\u043E-\u043C\u043B\u0435\u0447\u0435\u043D \u043F\u0440\u043E\u0434\u0443\u043A\u0442" }
+];
+var KIND_COUNT_LIMITS = [
+  { kind: "starch", max: 1, reason: "\u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0442 \u0435\u0434\u0438\u043D \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0435\u043D \u0438\u0437\u0442\u043E\u0447\u043D\u0438\u043A" },
+  { kind: "redMeat", max: 1, reason: "\u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0442 \u0435\u0434\u0438\u043D \u0432\u0438\u0434 \u0447\u0435\u0440\u0432\u0435\u043D\u043E \u043C\u0435\u0441\u043E" },
+  { kind: "fish", max: 1, reason: "\u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0442 \u0435\u0434\u0438\u043D \u0432\u0438\u0434 \u0440\u0438\u0431\u0430" },
+  { kind: "freshDairy", max: 1, reason: "\u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0442 \u0435\u0434\u0438\u043D \u043A\u0438\u0441\u0435\u043B\u043E-\u043C\u043B\u0435\u0447\u0435\u043D \u043F\u0440\u043E\u0434\u0443\u043A\u0442" },
+  { kind: "oil", max: 1, reason: "\u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0442 \u0435\u0434\u043D\u0430 \u0434\u043E\u0431\u0430\u0432\u0435\u043D\u0430 \u043C\u0430\u0437\u043D\u0438\u043D\u0430" },
+  { kind: "nutButter", max: 1, reason: "\u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0442 \u0435\u0434\u043D\u043E \u044F\u0434\u043A\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E" }
+];
+var FORBIDDEN_KINDS_IN_MEAL = [
+  { kind: "sweetener", reason: "\u043F\u043E\u0434\u0441\u043B\u0430\u0434\u0438\u0442\u0435\u043B \u0432 \u043E\u0441\u043D\u043E\u0432\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" },
+  { kind: "sauce", reason: "\u0433\u043E\u0442\u043E\u0432 \u0441\u043E\u0441/\u043F\u043E\u0434\u043F\u0440\u0430\u0432\u043A\u0430 \u043A\u0430\u0442\u043E \u0441\u044A\u0441\u0442\u0430\u0432\u043A\u0430 \u043D\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435" }
+];
+function checkProductCompatibility(productNames, options = {}) {
+  const names = (productNames || []).map((n) => String(n || "").toLowerCase()).filter(Boolean);
+  if (!names.length) return [];
+  const issues = [];
+  const kinds = kindsIn(names);
+  for (const { kind, reason } of FORBIDDEN_KINDS_IN_MEAL) {
+    if (kind === "sweetener" && options.allowSweetener) continue;
+    const hits = kinds.get(kind);
+    if (hits?.length) issues.push(`${reason} (${[...new Set(hits)].join(", ")})`);
+  }
+  for (const { kind, max, reason } of KIND_COUNT_LIMITS) {
+    const hits = kinds.get(kind);
+    if (hits && new Set(hits).size > max) {
+      issues.push(`${reason} (${[...new Set(hits)].join(", ")})`);
+    }
+  }
+  const starches = new Set(kinds.get("starch") || []);
+  const legumes = new Set(kinds.get("legume") || []);
+  const crossOnly = [...legumes].filter((n) => !starches.has(n));
+  if (starches.size >= 1 && crossOnly.length) {
+    issues.push(`\u043D\u0438\u0448\u0435\u0441\u0442\u0435 \u0438 \u0431\u043E\u0431\u043E\u0432\u0438 \u0437\u0430\u0435\u0434\u043D\u043E (${[...starches, ...crossOnly].join(", ")})`);
+  }
+  for (const { a, b, reason } of INCOMPATIBLE_KIND_PAIRS) {
+    const hitsA = kinds.get(a);
+    const hitsB = kinds.get(b);
+    if (!hitsA?.length || !hitsB?.length) continue;
+    const distinct = /* @__PURE__ */ new Set([...hitsA, ...hitsB]);
+    if (distinct.size < 2) continue;
+    issues.push(`${reason} (${[...distinct].join(" + ")})`);
+  }
+  return issues;
+}
+
 // meal-combinations.js
-var ENERGY = [
-  "\u043E\u0440\u0438\u0437",
-  "\u043A\u0430\u0440\u0442\u043E\u0444",
-  "\u043F\u0430\u0441\u0442\u0430",
-  "\u043E\u0432\u0435\u0441",
-  "\u0431\u0443\u043B\u0433\u0443\u0440",
-  "\u0445\u043B\u044F\u0431",
-  "\u043A\u0438\u043D\u043E\u0430",
-  "rice",
-  "potato",
-  "pasta",
-  "bread",
-  "oats",
-  "bulgur",
-  "quinoa"
-];
-var LEGUMES = ["\u0431\u043E\u0431", "\u043B\u0435\u0449\u0430", "\u043D\u0430\u0445\u0443\u0442", "\u0433\u0440\u0430\u0445", "beans", "lentils", "chickpeas", "peas"];
-var HARD_BANS = ["\u043C\u0435\u0434", "\u0437\u0430\u0445\u0430\u0440", "\u0441\u0438\u0440\u043E\u043F", "\u043A\u043E\u043D\u0444\u0438\u0442\u044E\u0440", "\u043A\u0435\u0442\u0447\u0443\u043F", "\u043C\u0430\u0439\u043E\u043D\u0435\u0437\u0430"];
-var WEIRD_PAIRS = [
-  [/риба|fish|тон|сьомга|скумри/, /банан|портокал|ягод/],
-  [/скир|кисело мляко|кефир/, /риба|fish|тон/],
-  [/пилешк|говежд|свинск/, /йогурт.*риба|риба.*йогурт/]
-];
-function countHits(text, terms) {
-  return terms.filter((t) => text.includes(t));
+var SWEET_ALLOWED_SLOTS = /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5"]);
+function productNamesOf(meal) {
+  const parsed = parseMealDescription(meal.description || "");
+  if (parsed.length) return parsed.map((item2) => item2.name);
+  return String(meal.description || "").split("\n").map((line2) => line2.replace(/^[•\-*]\s*/, "").replace(/\s*\d+\s*(g|г|гр)\b.*$/i, "").trim()).filter(Boolean);
 }
 function validateMealCombinations(meal) {
   const issues = [];
-  if (meal.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" || meal.type === "\u041D\u0430\u043F\u0438\u0442\u043A\u0430") return issues;
-  const text = `${meal.name || ""} ${meal.description || ""}`.toLowerCase();
-  const energyHits = countHits(text, ENERGY);
-  if (energyHits.length > 1) {
-    issues.push(`"${meal.name}": \u043C\u043D\u043E\u0436\u0435\u0441\u0442\u0432\u043E \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u043D\u0438 \u0438\u0437\u0442\u043E\u0447\u043D\u0438\u0446\u0438 (${energyHits.join(", ")})`);
+  if (!meal || meal.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" || meal.type === "\u041D\u0430\u043F\u0438\u0442\u043A\u0430") return issues;
+  const names = productNamesOf(meal);
+  const label = meal.name || meal.type || "\u0445\u0440\u0430\u043D\u0435\u043D\u0435";
+  const compat = checkProductCompatibility(names, {
+    allowSweetener: SWEET_ALLOWED_SLOTS.has(meal.type) || meal.dessert === true,
+    slotType: meal.type
+  });
+  for (const issue of compat) issues.push(`"${label}": ${issue}`);
+  const text = `${meal.name || ""} ${meal.description || ""}`;
+  const hasSalad = hasWord(text, "\u0441\u0430\u043B\u0430\u0442\u0430") || hasWord(text, "\u0441\u0430\u043B\u0430\u0442\u043A\u0430");
+  const looseFresh = names.some((n) => /домат|краставиц|чушк/i.test(n));
+  if (hasSalad && looseFresh && /пресн|нарязан/i.test(text)) {
+    issues.push(`"${label}": \u0441\u0430\u043B\u0430\u0442\u0430 \u0418 \u043F\u0440\u0435\u0441\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0435\u0434\u043D\u043E\u0432\u0440\u0435\u043C\u0435\u043D\u043D\u043E`);
   }
-  const hasLegumes = LEGUMES.some((l) => text.includes(l));
-  if (hasLegumes && energyHits.length > 1) {
-    issues.push(`"${meal.name}": \u0431\u043E\u0431\u043E\u0432\u0438 + \u043C\u043D\u043E\u0436\u0435\u0441\u0442\u0432\u043E \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u043D\u0438 \u0438\u0437\u0442\u043E\u0447\u043D\u0438\u0446\u0438 (${energyHits.join(", ")})`);
+  return issues;
+}
+function validateDayCoherence(dayPlan, dayNum = null) {
+  const issues = [];
+  const meals = dayPlan?.meals || [];
+  const prefix = dayNum ? `\u0414\u0435\u043D ${dayNum}: ` : "";
+  const PLATED_SLOTS = /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"]);
+  const seen = /* @__PURE__ */ new Map();
+  for (const meal of meals) {
+    if (meal.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" || meal.type === "\u041D\u0430\u043F\u0438\u0442\u043A\u0430") continue;
+    const key = String(meal.name || "").trim().toLowerCase();
+    if (!key) continue;
+    seen.set(key, (seen.get(key) || 0) + 1);
   }
-  if (/грах|peas/.test(text) && /риба|fish|тон|сьомга|скумри|треска/.test(text)) {
-    issues.push(`"${meal.name}": \u0437\u0430\u0431\u0440\u0430\u043D\u0435\u043D\u0430 \u043A\u043E\u043C\u0431\u0438\u043D\u0430\u0446\u0438\u044F \u0433\u0440\u0430\u0445 + \u0440\u0438\u0431\u0430`);
+  for (const [name, count] of seen) {
+    if (count > 1) issues.push(`${prefix}"${name}" \u0441\u0435 \u043F\u043E\u0432\u0442\u0430\u0440\u044F ${count} \u043F\u044A\u0442\u0438 \u0432 \u0435\u0434\u0438\u043D \u0434\u0435\u043D`);
   }
-  const hasSalad = /\b(салата|салатка)\b/.test(text);
-  const hasFresh = /\b(пресн|нарязан)\b/.test(text) && /\b(домат|краставиц|чушк)\b/.test(text);
-  if (hasSalad && hasFresh) {
-    issues.push(`"${meal.name}": \u0441\u0430\u043B\u0430\u0442\u0430 \u0418 \u043F\u0440\u0435\u0441\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0435\u0434\u043D\u043E\u0432\u0440\u0435\u043C\u0435\u043D\u043D\u043E`);
-  }
-  for (const ban of HARD_BANS) {
-    if (new RegExp(`\\b${ban}\\b`).test(text) && !/медицин|междин/.test(text)) {
-      issues.push(`"${meal.name}": \u0441\u044A\u0434\u044A\u0440\u0436\u0430 \u0437\u0430\u0431\u0440\u0430\u043D\u0435\u043D ${ban}`);
-    }
-  }
-  for (const [a, b] of WEIRD_PAIRS) {
-    if (a.test(text) && b.test(text)) {
-      issues.push(`"${meal.name}": \u043D\u0435\u043B\u043E\u0433\u0438\u0447\u043D\u0430/\u043D\u0435\u0441\u044A\u0432\u043C\u0435\u0441\u0442\u0438\u043C\u0430 \u043A\u043E\u043C\u0431\u0438\u043D\u0430\u0446\u0438\u044F \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438`);
+  for (const meal of meals) {
+    if (!PLATED_SLOTS.has(meal.type)) continue;
+    const names = productNamesOf(meal);
+    if (!names.length) continue;
+    if (!names.some((n) => kindsOf(n).has("vegetable"))) {
+      issues.push(`${prefix}"${meal.name || meal.type}": \u043E\u0441\u043D\u043E\u0432\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0431\u0435\u0437 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A`);
     }
   }
   return issues;
+}
+function validateWeekPlanDayCoherence(weekPlan) {
+  const issues = [];
+  for (let d = 1; d <= 7; d++) {
+    const day = weekPlan?.[`day${d}`];
+    if (!day?.meals) continue;
+    issues.push(...validateDayCoherence(day, d));
+  }
+  return issues;
+}
+function validateWeeklyDishVariety(weekPlan, minUniqueRatio = 0.5) {
+  const MAIN_SLOTS = /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"]);
+  const dishes = [];
+  for (let d = 1; d <= 7; d++) {
+    for (const meal of weekPlan?.[`day${d}`]?.meals || []) {
+      if (MAIN_SLOTS.has(meal.type) && meal.name) dishes.push(meal.name.trim().toLowerCase());
+    }
+  }
+  const unique = new Set(dishes).size;
+  const issues = [];
+  if (dishes.length && unique < Math.ceil(dishes.length * minUniqueRatio)) {
+    issues.push(
+      `\u0441\u0435\u0434\u043C\u0438\u0446\u0430\u0442\u0430 \u0438\u043C\u0430 \u0441\u0430\u043C\u043E ${unique} \u0440\u0430\u0437\u043B\u0438\u0447\u043D\u0438 \u043E\u0441\u043D\u043E\u0432\u043D\u0438 \u044F\u0441\u0442\u0438\u044F \u0437\u0430 ${dishes.length} \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F`
+    );
+  }
+  return { unique, total: dishes.length, issues };
 }
 
 // food-ledger.js
@@ -17983,24 +18570,30 @@ function validateWeeklyVariety(weekPlan, options = {}) {
 // step3-deterministic.js
 var DAY_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 var MAIN_MEAL_SLOTS = /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"]);
-var MEAL3_PRESETS = [
-  { name: "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u0431\u0430\u0434\u0435\u043C\u0438", description: "\u2022 \u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E\n\u2022 \u0411\u0430\u0434\u0435\u043C\u0438" },
-  { name: "\u042F\u0431\u044A\u043B\u043A\u0430 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438", description: "\u2022 \u042F\u0431\u044A\u043B\u043A\u0430\n\u2022 \u0411\u0430\u0434\u0435\u043C\u0438" },
-  { name: "\u0411\u0430\u043D\u0430\u043D \u0441 \u043E\u0440\u0435\u0445\u0438", description: "\u2022 \u0411\u0430\u043D\u0430\u043D\n\u2022 \u041E\u0440\u0435\u0445\u0438" }
-];
-var MEAL3_VEGAN_PRESETS = [
-  { name: "\u0411\u0430\u043D\u0430\u043D \u0441 \u0431\u0430\u0434\u0435\u043C\u0438", description: "\u2022 \u0411\u0430\u043D\u0430\u043D\n\u2022 \u0411\u0430\u0434\u0435\u043C\u0438" },
-  { name: "\u042F\u0431\u044A\u043B\u043A\u0430 \u0441 \u043E\u0440\u0435\u0445\u0438", description: "\u2022 \u042F\u0431\u044A\u043B\u043A\u0430\n\u2022 \u041E\u0440\u0435\u0445\u0438" }
-];
-var MEAL5_PRESETS = [
-  { name: "\u0421\u043A\u0438\u0440 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438", description: "\u2022 \u0421\u043A\u0438\u0440\n\u2022 \u0411\u0430\u0434\u0435\u043C\u0438" },
-  { name: "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043E\u0440\u0435\u0445\u0438", description: "\u2022 \u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E\n\u2022 \u041E\u0440\u0435\u0445\u0438" },
-  { name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438", description: "\u2022 \u0418\u0437\u0432\u0430\u0440\u0430\n\u2022 \u0411\u0430\u0434\u0435\u043C\u0438" }
-];
-var MEAL5_VEGAN_PRESETS = [
-  { name: "\u0411\u0430\u0434\u0435\u043C\u0438 \u0438 \u043E\u0440\u0435\u0445\u0438", description: "\u2022 \u0411\u0430\u0434\u0435\u043C\u0438\n\u2022 \u041E\u0440\u0435\u0445\u0438" },
-  { name: "\u041A\u0430\u0448\u0443 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438", description: "\u2022 \u041A\u0430\u0448\u0443\n\u2022 \u0411\u0430\u0434\u0435\u043C\u0438" }
-];
+function maxProductsForSlot(slotTarget) {
+  return (Number(slotTarget?.calories) || 0) >= 650 ? 5 : 4;
+}
+var PLATED_MEAL_SLOTS = /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"]);
+var LIGHT_SNACK_PRESETS = {
+  "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3": [
+    { name: "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u0431\u0430\u0434\u0435\u043C\u0438", products: ["\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", "\u0411\u0430\u0434\u0435\u043C\u0438"], vegan: false, keto: true },
+    { name: "\u042F\u0431\u044A\u043B\u043A\u0430 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438", products: ["\u042F\u0431\u044A\u043B\u043A\u0430", "\u0411\u0430\u0434\u0435\u043C\u0438"], vegan: true, keto: false },
+    { name: "\u0411\u0430\u043D\u0430\u043D \u0441 \u043E\u0440\u0435\u0445\u0438", products: ["\u0411\u0430\u043D\u0430\u043D", "\u041E\u0440\u0435\u0445\u0438"], vegan: true, keto: false },
+    { name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u043E\u0440\u0435\u0445\u0438", products: ["\u0418\u0437\u0432\u0430\u0440\u0430", "\u041E\u0440\u0435\u0445\u0438"], vegan: false, keto: true },
+    { name: "\u041F\u043E\u0440\u0442\u043E\u043A\u0430\u043B \u0441 \u043A\u0430\u0448\u0443", products: ["\u041F\u043E\u0440\u0442\u043E\u043A\u0430\u043B", "\u041A\u0430\u0448\u0443"], vegan: true, keto: false },
+    { name: "\u0425\u0443\u043C\u0443\u0441 \u0441 \u043C\u043E\u0440\u043A\u043E\u0432\u0438", products: ["\u0425\u0443\u043C\u0443\u0441", "\u041C\u043E\u0440\u043A\u043E\u0432"], vegan: true, keto: false },
+    { name: "\u0411\u0430\u0434\u0435\u043C\u0438 \u0438 \u0442\u0438\u043A\u0432\u0435\u043D\u0438 \u0441\u0435\u043C\u043A\u0438", products: ["\u0411\u0430\u0434\u0435\u043C\u0438", "\u0422\u0438\u043A\u0432\u0435\u043D\u0438 \u0441\u0435\u043C\u043A\u0438"], vegan: true, keto: true },
+    { name: "\u0410\u0432\u043E\u043A\u0430\u0434\u043E \u0441 \u043E\u0440\u0435\u0445\u0438", products: ["\u0410\u0432\u043E\u043A\u0430\u0434\u043E", "\u041E\u0440\u0435\u0445\u0438"], vegan: true, keto: true }
+  ],
+  "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5": [
+    { name: "\u0421\u043A\u0438\u0440 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438", products: ["\u0421\u043A\u0438\u0440", "\u0411\u0430\u0434\u0435\u043C\u0438"], vegan: false, keto: true },
+    { name: "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043E\u0440\u0435\u0445\u0438", products: ["\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", "\u041E\u0440\u0435\u0445\u0438"], vegan: false, keto: true },
+    { name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438", products: ["\u0418\u0437\u0432\u0430\u0440\u0430", "\u0411\u0430\u0434\u0435\u043C\u0438"], vegan: false, keto: true },
+    { name: "\u0411\u0430\u0434\u0435\u043C\u0438 \u0438 \u043E\u0440\u0435\u0445\u0438", products: ["\u0411\u0430\u0434\u0435\u043C\u0438", "\u041E\u0440\u0435\u0445\u0438"], vegan: true, keto: true },
+    { name: "\u041A\u0430\u0448\u0443 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438", products: ["\u041A\u0430\u0448\u0443", "\u0411\u0430\u0434\u0435\u043C\u0438"], vegan: true, keto: true },
+    { name: "\u0422\u0438\u043A\u0432\u0435\u043D\u0438 \u0441\u0435\u043C\u043A\u0438 \u0441 \u043B\u0435\u0448\u043D\u0438\u0446\u0438", products: ["\u0422\u0438\u043A\u0432\u0435\u043D\u0438 \u0441\u0435\u043C\u043A\u0438", "\u041B\u0435\u0448\u043D\u0438\u0446\u0438"], vegan: true, keto: true }
+  ]
+};
 function deterministicStep3Enabled(env = {}) {
   const v = env?.DETERMINISTIC_STEP3;
   if (v === "0" || v === "false" || v === false) return false;
@@ -18061,7 +18654,7 @@ function collectUsedProducts(previousDays = []) {
 function filterByTiming(entries, mealType) {
   const timing = MEAL_TYPE_TIMING[mealType] || "main";
   return entries.filter(
-    (e) => e.timing?.includes(timing) || e.group === "condiment" || e.group === "vegetable" || e.group === "fruit"
+    (e) => e.timing?.includes(timing) || e.group === "vegetable" || e.group === "fruit"
   );
 }
 function parsePreferLove(userData) {
@@ -18069,11 +18662,16 @@ function parsePreferLove(userData) {
     String(userData?.dietLove || "").split(/[,;]/).map((s) => normalizeFoodKey(s.trim())).filter(Boolean)
   );
 }
-function pickFromPool(pool, ctx, roleKey) {
+function pickFromPool(pool, ctx, roleKey, { exclude = null } = {}) {
   let filtered = filterDiet(pool, ctx.dietCtx);
+  if (exclude?.size) {
+    const withoutExcluded = filtered.filter((e) => !exclude.has(normalizeFoodKey(e.name)));
+    if (withoutExcluded.length) filtered = withoutExcluded;
+  }
   if (!filtered.length) return null;
   const { usedProducts, seed, dayNum, slotIndex, loveSet } = ctx;
   const ranked = rankCatalogCandidates(filtered, {
+    role: roleKey === "READY" ? void 0 : roleKey,
     slotTarget: ctx.slotTarget,
     maxSlotKcal: Number(ctx.slotTarget?.calories) || 0,
     loveSet,
@@ -18081,19 +18679,21 @@ function pickFromPool(pool, ctx, roleKey) {
     limit: Math.min(filtered.length, 32)
   });
   if (!ranked.length) return null;
-  const rotated = [];
   const start = (seed + dayNum * 13 + slotIndex * 7 + roleKey.charCodeAt(0)) % ranked.length;
+  let best = null;
+  let bestScore = Infinity;
   for (let i = 0; i < ranked.length; i++) {
-    rotated.push(ranked[(start + i) % ranked.length]);
+    const entry = ranked[(start + i) % ranked.length];
+    const key = normalizeFoodKey(entry.name);
+    const uses = usedProducts.get(key) || 0;
+    const score = uses - (loveSet?.has(key) ? 1 : 0);
+    if (score < bestScore) {
+      bestScore = score;
+      best = entry;
+      if (bestScore <= 0) break;
+    }
   }
-  for (const entry of rotated) {
-    const k = normalizeFoodKey(entry.name);
-    const uses = usedProducts.get(k) || 0;
-    const isLove = loveSet?.has(k);
-    const maxUses = isLove ? 4 : 3;
-    if (uses < maxUses) return entry;
-  }
-  return rotated[0];
+  return best;
 }
 function descriptionFromReadyMeal(entry) {
   const parts = READY_MEAL_PARTS[entry.id];
@@ -18112,17 +18712,30 @@ function readyMealFitsSlot(entry, slotType) {
   if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" || slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4") {
     return slots.includes("PRO") || slots.includes("ENG");
   }
-  if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1") {
-    return entry.timing?.includes("breakfast") || entry.timing?.includes("main");
-  }
+  if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1") return !!entry.timing?.includes("breakfast");
   return true;
 }
 function pickReadyMeal(slotType, candidatesBySlot, ctx) {
-  let pool = (candidatesBySlot.get("READY") || []).filter((e) => readyMealFitsSlot(e, slotType));
+  const ready = candidatesBySlot.get("READY") || [];
+  let pool = ready.filter((e) => readyMealFitsSlot(e, slotType));
+  if (!pool.length && slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1") {
+    pool = ready.filter((e) => e.timing?.includes("main"));
+  }
   pool = filterByTiming(pool, slotType);
   pool = filterDiet(pool, ctx.dietCtx);
+  if (ctx.blockedTerms?.length) {
+    pool = pool.filter((e) => !readyMealBlocked(e, ctx.blockedTerms));
+  }
+  pool = pool.filter((e) => !checkProductCompatibility(
+    (READY_MEAL_PARTS[e.id] || []).map((part) => part.name)
+  ).length);
   if (!pool.length) return null;
-  return pickFromPool(pool, ctx, "READY");
+  return pickFromPool(pool, ctx, "READY", { exclude: ctx.dishesToday });
+}
+function readyMealBlocked(entry, blockedTerms) {
+  if (isBlockedByTerms2(entry.name, blockedTerms)) return true;
+  const parts = READY_MEAL_PARTS[entry.id] || [];
+  return parts.some((p) => isBlockedByTerms2(p.name, blockedTerms));
 }
 function filterEngPoolForSlot(pool, slotType) {
   if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" || slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4") {
@@ -18130,27 +18743,49 @@ function filterEngPoolForSlot(pool, slotType) {
   }
   return pool;
 }
+function isVolEntry(entry) {
+  return entry?.slots?.includes("VOL") || entry?.group === "vegetable";
+}
+function isProEntry(entry) {
+  return entry?.slots?.includes("PRO") || ["protein", "dairy", "legume"].includes(entry?.group);
+}
+function isEngEntry(entry) {
+  return entry?.slots?.includes("ENG") || entry?.group === "carb";
+}
 function consolidateComposition(entries) {
   if (entries.length <= 1) return entries;
-  const out = [];
+  const veg = entries.find((e) => isVolEntry(e) && !isProEntry(e) && !isEngEntry(e));
+  const out = veg ? [veg] : [];
   let hasPro = false;
   let hasEng = false;
   for (const e of entries) {
-    const isPro = e.slots?.includes("PRO") || ["protein", "dairy", "legume"].includes(e.group);
-    const isEng = e.slots?.includes("ENG") || e.group === "carb";
-    if (isPro) {
+    if (e === veg) continue;
+    if (isProEntry(e)) {
       if (hasPro) continue;
       hasPro = true;
-    }
-    if (isEng) {
+    } else if (isEngEntry(e)) {
       if (hasEng) continue;
       hasEng = true;
+    } else if (isVolEntry(e) && veg) {
+      continue;
     }
     out.push(e);
   }
-  const vol = entries.find((e) => e.slots?.includes("VOL") || e.group === "vegetable");
-  if (vol && !out.some((x) => x === vol)) out.unshift(vol);
   return out.length ? out.slice(0, 4) : entries.slice(0, 3);
+}
+function pickCompatible(pool, ctx, role, seen, picked) {
+  const chosenNames = picked.map((e) => e.name);
+  const rejected = new Set(seen);
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const entry = pickFromPool(pool, ctx, role, { exclude: rejected });
+    if (!entry) return null;
+    const issues = checkProductCompatibility([...chosenNames, entry.name], {
+      allowSweetener: ctx.slotTarget?.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3" || ctx.slotTarget?.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5"
+    });
+    if (!issues.length) return entry;
+    rejected.add(normalizeFoodKey(entry.name));
+  }
+  return null;
 }
 function pickComposition(slotType, slotTarget, candidatesBySlot, ctx) {
   const roles = inferRolesFromTarget({ ...slotTarget, type: slotType });
@@ -18167,7 +18802,11 @@ function pickComposition(slotType, slotTarget, candidatesBySlot, ctx) {
     if (!pool.length) pool = candidatesBySlot.get(role) || [];
     if (role === "ENG") pool = filterEngPoolForSlot(pool, slotType);
     pool = filterDiet(pool, ctx.dietCtx);
-    const entry = pickFromPool(pool, { ...ctx, slotTarget }, role);
+    if (ctx.blockedTerms?.length) {
+      const allowed = pool.filter((e) => !isBlockedByTerms2(e.name, ctx.blockedTerms));
+      if (allowed.length) pool = allowed;
+    }
+    const entry = pickCompatible(pool, { ...ctx, slotTarget }, role, seen, picked);
     if (!entry) continue;
     const k = normalizeFoodKey(entry.name);
     if (seen.has(k)) continue;
@@ -18192,23 +18831,135 @@ function formatDescription(entries) {
   }
   return lines.join("\n");
 }
+function isKetoContext(ctx) {
+  return /кето|keto/i.test(String(ctx?.dietCtx?.dietaryModifier || ""));
+}
 function buildLightSnack(slotType, userData, ctx) {
-  let presets = slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5" ? isVeganUser(userData) ? MEAL5_VEGAN_PRESETS : MEAL5_PRESETS : isVeganUser(userData) ? MEAL3_VEGAN_PRESETS : MEAL3_PRESETS;
+  const all = LIGHT_SNACK_PRESETS[slotType] || LIGHT_SNACK_PRESETS["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3"];
+  const vegan = isVeganUser(userData);
+  const keto = isKetoContext(ctx);
+  let presets = all.filter((preset) => (!vegan || preset.vegan) && (!keto || preset.keto));
+  if (!presets.length) presets = all.filter((preset) => !vegan || preset.vegan);
+  if (!presets.length) presets = all;
   if (ctx.blockedTerms?.length) {
-    const allowed = presets.filter((preset2) => {
-      const items = parseMealDescription(preset2.description);
-      return !items.some((item2) => isBlockedByTerms2(item2.name, ctx.blockedTerms));
-    });
+    const allowed = presets.filter(
+      (preset) => !preset.products.some((name) => isBlockedByTerms2(name, ctx.blockedTerms))
+    );
     if (allowed.length) presets = allowed;
   }
-  const idx = (ctx.seed + ctx.dayNum * 7 + ctx.slotIndex * 11) % presets.length;
-  const preset = presets[idx];
-  const desc = preset.description.split("\n").map((line2) => {
-    const raw = line2.replace(/^•\s*/, "").trim();
-    const resolved = catalogName(raw);
-    return resolved ? `\u2022 ${resolved}` : line2;
-  }).join("\n");
-  return { name: preset.name, description: desc };
+  const resolvable = presets.filter((preset) => preset.products.every((name) => catalogName(name)));
+  if (resolvable.length) presets = resolvable;
+  const start = (ctx.seed + ctx.dayNum * 7 + ctx.slotIndex * 11) % presets.length;
+  let chosen = presets[start];
+  let bestUses = Infinity;
+  for (let i = 0; i < presets.length; i++) {
+    const preset = presets[(start + i) % presets.length];
+    const uses = preset.products.reduce(
+      (sum, name) => sum + (ctx.usedProducts.get(normalizeFoodKey(name)) || 0),
+      0
+    );
+    if (uses < bestUses) {
+      bestUses = uses;
+      chosen = preset;
+      if (bestUses === 0) break;
+    }
+  }
+  const resolved = chosen.products.map((name) => catalogName(name) || name);
+  for (const name of resolved) {
+    const k = normalizeFoodKey(name);
+    ctx.usedProducts.set(k, (ctx.usedProducts.get(k) || 0) + 1);
+  }
+  return { name: chosen.name, description: resolved.map((n) => `\u2022 ${n}`).join("\n") };
+}
+function recordReadyMealUse(entry, ctx) {
+  ctx.usedProducts.set(
+    normalizeFoodKey(entry.name),
+    (ctx.usedProducts.get(normalizeFoodKey(entry.name)) || 0) + 1
+  );
+  for (const part of READY_MEAL_PARTS[entry.id] || []) {
+    const k = normalizeFoodKey(catalogName(part.name) || part.name);
+    ctx.usedProducts.set(k, (ctx.usedProducts.get(k) || 0) + 1);
+  }
+  ctx.dishesToday.add(normalizeFoodKey(entry.name));
+}
+function ensureVegetableInMain(slotType, description, candidatesBySlot, ctx) {
+  if (!PLATED_MEAL_SLOTS.has(slotType)) return description;
+  const items = parseMealDescription(description);
+  if (items.length >= maxProductsForSlot(ctx.slotTarget)) return description;
+  if (items.some((item2) => isVolEntry(resolveCatalogEntry(item2.name).entry))) return description;
+  let pool = filterByTiming(candidatesBySlot.get("VOL") || [], slotType);
+  if (!pool.length) pool = candidatesBySlot.get("VOL") || [];
+  pool = filterDiet(pool, ctx.dietCtx).filter((e) => e.group !== "ready_meal");
+  if (ctx.blockedTerms?.length) {
+    const allowed = pool.filter((e) => !isBlockedByTerms2(e.name, ctx.blockedTerms));
+    if (allowed.length) pool = allowed;
+  }
+  const existing = items.map((i) => i.name);
+  const veg = pickCompatible(
+    pool,
+    ctx,
+    "VOL",
+    new Set(existing.map(normalizeFoodKey)),
+    existing.map((name2) => ({ name: name2 }))
+  );
+  if (!veg) return description;
+  const name = catalogName(veg.name);
+  if (!name) return description;
+  ctx.usedProducts.set(normalizeFoodKey(name), (ctx.usedProducts.get(normalizeFoodKey(name)) || 0) + 1);
+  return `${description}
+\u2022 ${name}`;
+}
+var ENERGY_FILL_ROLES = ["FAT", "PRO", "ENG"];
+function fillEnergyGap(slotType, slotTarget, description, candidatesBySlot, ctx) {
+  const targetKcal = Number(slotTarget?.calories) || 0;
+  if (targetKcal <= 0) return description;
+  let current = description;
+  for (let added = 0; added < 2; added++) {
+    const names = parseMealDescription(current).map((item2) => item2.name);
+    if (names.length >= maxProductsForSlot(slotTarget)) break;
+    const { maxKcal } = compositionCapacity(names, { kcal: targetKcal });
+    if (maxKcal >= targetKcal * 1.02) break;
+    const taken = new Set(names.map(normalizeFoodKey));
+    let picked = null;
+    let bestCapacity = maxKcal;
+    for (const role of ENERGY_FILL_ROLES) {
+      let pool = filterByTiming(candidatesBySlot.get(role) || [], slotType);
+      if (role === "ENG") pool = filterEngPoolForSlot(pool, slotType);
+      if (!pool.length) pool = candidatesBySlot.get(role) || [];
+      pool = filterDiet(pool, ctx.dietCtx);
+      if (ctx.blockedTerms?.length) {
+        const allowed = pool.filter((e) => !isBlockedByTerms2(e.name, ctx.blockedTerms));
+        if (allowed.length) pool = allowed;
+      }
+      const candidates = pool.filter((e) => e.group !== "ready_meal");
+      const rejected = new Set(taken);
+      for (let tries = 0; tries < 4; tries++) {
+        const entry = pickCompatible(
+          candidates,
+          { ...ctx, slotTarget },
+          role,
+          rejected,
+          names.map((name2) => ({ name: name2 }))
+        );
+        if (!entry) break;
+        const withEntry = compositionCapacity([...names, entry.name], { kcal: targetKcal });
+        if (withEntry.maxKcal > bestCapacity) {
+          bestCapacity = withEntry.maxKcal;
+          picked = entry;
+        }
+        if (bestCapacity >= targetKcal * 1.05) break;
+        rejected.add(normalizeFoodKey(entry.name));
+      }
+      if (bestCapacity >= targetKcal * 1.05) break;
+    }
+    if (!picked) break;
+    const name = catalogName(picked.name);
+    if (!name) break;
+    ctx.usedProducts.set(normalizeFoodKey(name), (ctx.usedProducts.get(normalizeFoodKey(name)) || 0) + 1);
+    current = `${current}
+\u2022 ${name}`;
+  }
+  return current;
 }
 function buildMealForSchemeSlot({
   slotType,
@@ -18232,12 +18983,17 @@ function buildMealForSchemeSlot({
   if (MAIN_MEAL_SLOTS.has(slotType)) {
     const ready = pickReadyMeal(slotType, candidatesBySlot, ctx);
     if (ready) {
-      const k = normalizeFoodKey(ready.name);
-      ctx.usedProducts.set(k, (ctx.usedProducts.get(k) || 0) + 1);
+      recordReadyMealUse(ready, ctx);
       const meal2 = {
         type: slotType,
         name: ready.name,
-        description: descriptionFromReadyMeal(ready)
+        description: fillEnergyGap(
+          slotType,
+          slotTarget,
+          ensureVegetableInMain(slotType, descriptionFromReadyMeal(ready), candidatesBySlot, ctx),
+          candidatesBySlot,
+          ctx
+        )
       };
       if (includeDessert && slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2") meal2.dessert = true;
       return meal2;
@@ -18251,10 +19007,18 @@ function buildMealForSchemeSlot({
     const k = normalizeFoodKey(e.name);
     ctx.usedProducts.set(k, (ctx.usedProducts.get(k) || 0) + 1);
   }
+  const name = mealNameFromEntries(entries, slotType);
+  ctx.dishesToday.add(normalizeFoodKey(name));
   const meal = {
     type: slotType,
-    name: mealNameFromEntries(entries, slotType),
-    description: formatDescription(entries)
+    name,
+    description: fillEnergyGap(
+      slotType,
+      slotTarget,
+      ensureVegetableInMain(slotType, formatDescription(entries), candidatesBySlot, ctx),
+      candidatesBySlot,
+      ctx
+    )
   };
   if (includeDessert && slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2") meal.dessert = true;
   return meal;
@@ -18298,6 +19062,7 @@ function buildDeterministicWeekPlanChunk({
     }
     const meals = [];
     let slotIndex = 0;
+    const dishesToday = /* @__PURE__ */ new Set();
     for (const slot of dayScheme.mealBreakdown) {
       if (slot.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1" && userSkipsBreakfast(userData)) continue;
       if (slot.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" && dayScheme.mealBreakdown.some((m) => m.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435")) continue;
@@ -18307,6 +19072,7 @@ function buildDeterministicWeekPlanChunk({
         slotIndex,
         slotTarget: slot,
         usedProducts,
+        dishesToday,
         dietCtx,
         blockedTerms,
         loveSet,
@@ -18714,20 +19480,53 @@ function applyDietMacroCaps(macros, dietProfile, dailyKcal, weightKg = 70) {
   }
   return { protein, carbs, fats };
 }
-function buildSlotBreakdown(slotTypes, dailyKcal, macros) {
-  const distribution = getMealDistribution(Math.min(5, Math.max(3, slotTypes.length)));
-  const weights = slotTypes.map((_, i) => distribution[i] ?? 1 / slotTypes.length);
+var SLOT_ENERGY_SHARE = {
+  "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1": 0.25,
+  "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2": 0.32,
+  "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435": 0.32,
+  "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3": 0.1,
+  "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4": 0.26,
+  "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5": 0.07
+};
+var SLOT_MACRO_BIAS = {
+  "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1": { protein: 0.9, carbs: 1.25, fats: 0.85 },
+  "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2": { protein: 1.05, carbs: 1.1, fats: 0.95 },
+  "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435": { protein: 1, carbs: 1, fats: 1 },
+  "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3": { protein: 1, carbs: 1.05, fats: 0.95 },
+  "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4": { protein: 1.25, carbs: 0.6, fats: 1.15 },
+  "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5": { protein: 1.5, carbs: 0.1, fats: 1.3 }
+};
+var DEFAULT_MACRO_BIAS = { protein: 1, carbs: 1, fats: 1 };
+function splitMacroAcrossSlots(slotTypes, shares, totalGrams, macroKey) {
+  const weights = slotTypes.map((type, i) => shares[i] * ((SLOT_MACRO_BIAS[type] || DEFAULT_MACRO_BIAS)[macroKey] ?? 1));
   const weightSum = weights.reduce((a, b) => a + b, 0);
-  return slotTypes.map((type, i) => {
-    const share = weights[i] / weightSum;
-    return {
-      type,
-      calories: Math.round(dailyKcal * share),
-      protein: Math.round(macros.protein * share),
-      carbs: Math.round(macros.carbs * share),
-      fats: Math.round(macros.fats * share)
-    };
-  });
+  if (weightSum <= 0 || totalGrams <= 0) return slotTypes.map(() => 0);
+  const raw = weights.map((w) => w / weightSum * totalGrams);
+  const grams = raw.map((g) => Math.round(g));
+  const drift = Math.round(totalGrams) - grams.reduce((a, b) => a + b, 0);
+  if (drift !== 0) {
+    let biggest = 0;
+    for (let i = 1; i < grams.length; i++) if (raw[i] > raw[biggest]) biggest = i;
+    grams[biggest] = Math.max(0, grams[biggest] + drift);
+  }
+  return grams;
+}
+function buildSlotBreakdown(slotTypes, dailyKcal, macros) {
+  const fallback = getMealDistribution(Math.min(5, Math.max(3, slotTypes.length)));
+  const rawShares = slotTypes.map((type, i) => SLOT_ENERGY_SHARE[type] ?? fallback[i] ?? 1 / slotTypes.length);
+  const shareSum = rawShares.reduce((a, b) => a + b, 0) || 1;
+  const shares = rawShares.map((w) => w / shareSum);
+  const protein = splitMacroAcrossSlots(slotTypes, shares, macros.protein, "protein");
+  const carbs = splitMacroAcrossSlots(slotTypes, shares, macros.carbs, "carbs");
+  const fats = splitMacroAcrossSlots(slotTypes, shares, macros.fats, "fats");
+  return slotTypes.map((type, i) => ({
+    type,
+    // kcal derives from this slot's own macros, so the two can never disagree.
+    calories: Math.round(protein[i] * 4 + carbs[i] * 4 + fats[i] * 9),
+    protein: protein[i],
+    carbs: carbs[i],
+    fats: fats[i]
+  }));
 }
 function buildDayScheme(slotTypes, dailyKcal, macros, isFreeDay) {
   let types = [...slotTypes];
@@ -20214,6 +21013,7 @@ var loggingStatusCache = null;
 var loggingStatusCacheTime = 0;
 var LOGGING_STATUS_CACHE_TTL = 60 * 1e3;
 var pendingSessionLogs = /* @__PURE__ */ new Map();
+var PLAN_STEP_DEFAULT_THINKING_BUDGET = 1024;
 var MEAL_PLAN_CHUNK_MAX_RETRIES = 4;
 var CATALOG_STRICT_MODE = true;
 async function cacheSet(key, data, ttl = AI_LOG_CACHE_TTL) {
@@ -21246,7 +22046,8 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = "unknown", 
   const preferredProvider = isChatStep && config.chatProvider ? config.chatProvider : config.provider;
   const modelName = isChatStep && config.chatModelName ? config.chatModelName : config.modelName;
   const isPlanStep = stepKey && ["step1", "step2", "step3", "step4", "step6"].includes(stepKey);
-  const effectiveThinkingBudget = isPlanStep ? 0 : isChatStep ? config.chatThinkingBudget !== void 0 ? config.chatThinkingBudget : config.thinkingBudget : config.thinkingBudget;
+  const planThinkingBudget = stepKey === "step3" ? 0 : config.planThinkingBudget !== void 0 ? config.planThinkingBudget : PLAN_STEP_DEFAULT_THINKING_BUDGET;
+  const effectiveThinkingBudget = isPlanStep ? planThinkingBudget : isChatStep ? config.chatThinkingBudget !== void 0 ? config.chatThinkingBudget : config.thinkingBudget : config.thinkingBudget;
   const cfgTemp = isChatStep ? config.chatTemperature !== void 0 ? config.chatTemperature : config.temperature : config.temperature;
   const cfgTopP = isChatStep ? config.chatTopP !== void 0 ? config.chatTopP : config.topP : config.topP;
   const cfgTopK = isChatStep ? config.chatTopK !== void 0 ? config.chatTopK : config.topK : config.topK;
@@ -22032,6 +22833,12 @@ async function finalizeValidatedPlan(env, structuredPlan, data) {
   const foodLists = await getDynamicFoodListsSections(env);
   const validation = validatePlan(structuredPlan, data, foodLists.dynamicSubstitutions || []);
   if (!structuredPlan.generationWarnings) structuredPlan.generationWarnings = [];
+  const coherenceIssues = validateWeekPlanDayCoherence(structuredPlan.weekPlan || {});
+  const varietyResult = validateWeeklyDishVariety(structuredPlan.weekPlan || {});
+  if (coherenceIssues.length) validation.warnings = [...validation.warnings || [], ...coherenceIssues];
+  if (varietyResult.issues.length) {
+    validation.warnings = [...validation.warnings || [], ...varietyResult.issues];
+  }
   if (validation.warnings?.length) {
     structuredPlan.generationWarnings.push(...validation.warnings);
   }
@@ -22046,7 +22853,13 @@ async function finalizeValidatedPlan(env, structuredPlan, data) {
   }
   if (finalDirectorEnabled(env)) {
     try {
-      await runFinalDirectorReview(env, structuredPlan, data, validation);
+      const director = await runFinalDirectorReview(env, structuredPlan, data, validation);
+      if (director?.verdict === "REJECT") {
+        structuredPlan.directorRejected = true;
+        structuredPlan.generationWarnings.push(
+          `Step 6: \u043F\u043B\u0430\u043D\u044A\u0442 \u0435 \u043E\u0442\u0445\u0432\u044A\u0440\u043B\u0435\u043D \u043E\u0442 \u0444\u0438\u043D\u0430\u043B\u043D\u0438\u044F \u043F\u0440\u0435\u0433\u043B\u0435\u0434 \u2014 ${(director.coherenceNotes || []).join("; ") || "\u0431\u0435\u0437 \u0434\u0435\u0442\u0430\u0439\u043B\u0438"}`
+        );
+      }
     } catch (directorErr) {
       console.warn("Step 6 Final Director skipped:", directorErr.message);
     }
@@ -26985,6 +27798,8 @@ async function getAdminConfig(env) {
     visionModelName: null,
     // thinkingBudget: undefined = use hardcoded fallback, 0 = disable, N = limit
     thinkingBudget: void 0,
+    // Reasoning budget for plan steps; reserved on top of maxOutputTokens.
+    planThinkingBudget: void 0,
     visionThinkingBudget: void 0,
     stepTokenLimits: {},
     // Generation sampling parameters: undefined = use per-function defaults
@@ -27013,6 +27828,7 @@ async function getAdminConfig(env) {
       savedTopK,
       savedChatProvider,
       savedChatModelName,
+      savedPlanThinkingBudget,
       savedChatThinkingBudget,
       savedChatTemperature,
       savedChatTopP,
@@ -27030,6 +27846,7 @@ async function getAdminConfig(env) {
       env.page_content.get("admin_ai_top_k"),
       env.page_content.get("admin_chat_ai_provider"),
       env.page_content.get("admin_chat_ai_model_name"),
+      env.page_content.get("admin_plan_ai_thinking_budget"),
       env.page_content.get("admin_chat_ai_thinking_budget"),
       env.page_content.get("admin_chat_ai_temperature"),
       env.page_content.get("admin_chat_ai_top_p"),
@@ -27041,6 +27858,7 @@ async function getAdminConfig(env) {
     if (savedVisionModelName) config.visionModelName = savedVisionModelName;
     config.thinkingBudget = parseThinkingBudget(savedThinkingBudget);
     config.visionThinkingBudget = parseThinkingBudget(savedVisionThinkingBudget);
+    config.planThinkingBudget = parseThinkingBudget(savedPlanThinkingBudget);
     if (savedStepTokenLimits) {
       try {
         config.stepTokenLimits = JSON.parse(savedStepTokenLimits);
@@ -27378,8 +28196,9 @@ async function callGemini2(env, prompt, modelName = "gemini-2.5-flash", maxToken
         requestBody.systemInstruction = { parts: [{ text: systemInstruction }] };
       }
       const generationConfig = {};
+      const reservedThinking = thinkingBudget > 0 ? thinkingBudget : 0;
       if (maxTokens) {
-        generationConfig.maxOutputTokens = maxTokens;
+        generationConfig.maxOutputTokens = maxTokens + reservedThinking;
       }
       if (temperature !== void 0) generationConfig.temperature = temperature;
       if (topP !== void 0) generationConfig.topP = topP;

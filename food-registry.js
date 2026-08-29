@@ -9,6 +9,7 @@ import { getEntryScalingMode, SCALING_ATOMIC } from './ready-meal-parts.js';
 import {
   getLibraryCatalogOverlay,
   getLibraryReadyMealCatalogEntries,
+  mergeCatalogEntries,
   NUTRITION_LIBRARY_VERSION,
 } from './nutrition-library-bridge.js';
 
@@ -37,12 +38,14 @@ const LIBRARY_CATALOG_OVERLAY = [
   ...getLibraryReadyMealCatalogEntries(),
 ];
 
-/** Merged catalog: base + library + runtime overlay (later ids win on collision). */
+/**
+ * Merged catalog: base + library + runtime overlay.
+ * Collision rule lives in nutrition-library-bridge.mergeCatalogEntries so the
+ * registry and the merge stats always describe the same set.
+ */
 export function getCatalogEntries() {
-  const byId = new Map(FOOD_CATALOG.map(e => [e.id, e]));
-  for (const e of LIBRARY_CATALOG_OVERLAY) {
-    if (e?.id) byId.set(e.id, /** @type {(typeof FOOD_CATALOG)[number]} */ (/** @type {unknown} */ (e)));
-  }
+  const merged = mergeCatalogEntries(FOOD_CATALOG, LIBRARY_CATALOG_OVERLAY);
+  const byId = new Map(merged.map(e => [e.id, e]));
   for (const e of overlayEntries) {
     if (e?.id) byId.set(e.id, e);
     else byId.set(`overlay_${normalizeFoodKey(e.name)}`, e);

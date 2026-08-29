@@ -23,6 +23,25 @@ const SLOT_LABELS = {
   FAT: 'мазнини/ядки [FAT]',
 };
 
+/**
+ * Groups that season or accompany a meal but are never one of its components.
+ * They stay in the catalog for nutrition lookup, but a slot's PRO/ENG/VOL/FAT
+ * role must never resolve to mustard, vinegar or coffee.
+ */
+const NON_COMPONENT_GROUPS = new Set(['condiment', 'beverage']);
+
+export function isMealComponentGroup(group) {
+  return !NON_COMPONENT_GROUPS.has(group);
+}
+
+/**
+ * Ready-meal pool size. The deterministic engine draws a whole week of main
+ * meals from it, so a prompt-sized list of 8 left the week repeating three
+ * dishes; the prompt asks for a shorter list of its own.
+ */
+const READY_POOL_LIMIT = 24;
+export const READY_PROMPT_LIMIT = 12;
+
 const MIN_CANDIDATES_PER_ROLE = 4;
 const MACRO_FILTER_FAT_MARGIN = 0.25;
 const MACRO_FILTER_CARB_MARGIN = 0.25;
@@ -114,10 +133,29 @@ function buildDietContext(options = {}) {
   };
 }
 
-const GLUTEN_KEYS = new Set([
-  'хляб', 'хляб пълнозърнест', 'ръжен хляб', 'паста', 'макарони', 'тортила', 'крекери',
-  'овесени ядки', 'овес', 'сандвич пиле',
-]);
+/**
+ * Gluten sources as tokens, not exact keys: an exact-set lookup missed
+ * "пълнозърнест хляб" because the curated key reads "хляб пълнозърнест".
+ */
+const GLUTEN_TOKENS = ['хляб', 'паста', 'макарони', 'спагет', 'тортила', 'крекер',
+  'овес', 'булгур', 'кус-кус', 'грис', 'кисело тесто', 'сандвич', 'баница', 'мюсли'];
+
+function containsGluten(key) {
+  return GLUTEN_TOKENS.some(token => key.includes(token));
+}
+
+const KETO_HIGH_CARB_TOKENS = ['ориз', 'хляб', 'паста', 'макарони', 'картофи', 'киноа',
+  'булгур', 'овес', 'каша', 'сандвич', 'тортила', 'просо', 'елда', 'царевица', 'батат',
+  'банан', 'ябълка', 'портокал', 'грозде', 'нахут', 'леща', 'боб', 'грах', 'мед'];
+
+/** Every product a catalog entry actually puts on the plate (dish → its parts). */
+function componentKeysOf(entry) {
+  const keys = [normalizeFoodKey(entry.nutritionKey || entry.name)];
+  for (const part of READY_MEAL_PARTS[entry.id] || []) {
+    keys.push(normalizeFoodKey(part.name));
+  }
+  return keys;
+}
 
 function isDietCompatible(entry, diet) {
   if (diet.vegan && !entry.vegan) return false;
@@ -126,15 +164,11 @@ function isDietCompatible(entry, diet) {
     const fishKeys = new Set(['риба', 'сьомга', 'риба тон', 'треска', 'скумрия', 'тилапия', 'скариди']);
     if (!fishKeys.has(entry.nutritionKey)) return false;
   }
-  if (diet.glutenFree && GLUTEN_KEYS.has(entry.nutritionKey)) return false;
-  // Keto: token match so composite ready meals (Ориз с пиле, Риба с картофи,
-  // Сандвич с пиле) are excluded along with the plain grain/starch items.
-  if (diet.keto && (entry.group === 'carb' || entry.group === 'ready_meal')) {
-    const highCarbTokens = ['ориз', 'хляб', 'паста', 'макарони', 'картофи', 'киноа',
-      'булгур', 'овес', 'каша', 'сандвич', 'тортила', 'просо', 'елда', 'царевица'];
-    const key = normalizeFoodKey(entry.nutritionKey);
-    if (highCarbTokens.some(t => key.includes(t))) return false;
-  }
+  // A composite dish is only as compatible as its parts: matching the dish name
+  // alone let "Веган боул" (tofu + quinoa) through a ketogenic filter.
+  const keys = componentKeysOf(entry);
+  if (diet.glutenFree && keys.some(containsGluten)) return false;
+  if (diet.keto && keys.some(k => KETO_HIGH_CARB_TOKENS.some(t => k.includes(t)))) return false;
   return true;
 }
 
@@ -237,7 +271,6 @@ function mealTargetCarbShare(meal) {
 function applyMacroRoleFilter(list, { maxFatShare, maxCarbShare, isKeto }) {
   if (!list.length) return list;
   const filtered = list.filter(entry => {
-    if (entry.group === 'condiment') return true;
     const key = entry.nutritionKey || entry.name;
     if (fatShareOfKcal(key) > maxFatShare) return false;
     if (isKeto && carbShareOfKcal(key) > maxCarbShare) return false;
@@ -246,12 +279,20 @@ function applyMacroRoleFilter(list, { maxFatShare, maxCarbShare, isKeto }) {
   return filtered.length >= MIN_CANDIDATES_PER_ROLE ? filtered : list;
 }
 
-function injectLateSnackCandidates(list, index, blockedTerms = []) {
+/**
+ * Late-snack staples must clear the same diet gates as any other candidate —
+ * injecting them unchecked put yoghurt and cottage cheese in a vegan's pool.
+ */
+function injectLateSnackCandidates(list, index, { blockedTerms = [], diet, registryCtx, clinicalProtocolId }) {
   const present = new Set(list.map(e => e.nutritionKey || e.name));
   const extras = [];
   for (const entry of index.all) {
     const key = entry.nutritionKey || entry.name;
     if (!LATE_SNACK_NUTRITION_KEYS.has(key) || present.has(key)) continue;
+    if (!isMealComponentGroup(entry.group)) continue;
+    if (!isDietCompatible(entry, diet)) continue;
+    if (!passesDietRegistry(entry, registryCtx)) continue;
+    if (isExcludedByProtocol(entry, clinicalProtocolId)) continue;
     if (isBlockedByTerms(entry, blockedTerms)) continue;
     extras.push(entry);
     present.add(key);
@@ -276,6 +317,7 @@ export function getCatalogCandidatesForChunk({
   preferLove = [],
   clinicalProtocolId = null,
   adherenceRatio = null,
+  readyLimit = READY_POOL_LIMIT,
 }) {
   const index = buildCatalogIndex();
   const dietCtx = buildDietContext({ dietaryModifier, dietPreference, dietDislike });
@@ -283,7 +325,7 @@ export function getCatalogCandidatesForChunk({
   const registryCtx = dietCtx;
   const loveSet = new Set((preferLove || []).map(s => normalizeFoodKey(s)));
   const timings = new Set();
-  const neededSlots = new Set(['VOL']);
+  const neededSlots = new Set();
   let hasLateSnack = false;
   let minFatShare = 1;
   let minCarbShare = 1;
@@ -301,14 +343,16 @@ export function getCatalogCandidatesForChunk({
     for (const meal of dayTarget.mealBreakdown) {
       if (meal.type === 'Свободно хранене' || meal.type === 'Напитка') continue;
       timings.add(mealTypeToTiming(meal.type));
-      for (const s of inferSlotsFromTarget(meal)) neededSlots.add(s);
       if (meal.type === 'Хранене 5') {
+        // The late snack is protein and fat only, by contract. It contributes
+        // no ENG and no VOL — and it must not remove them either: deleting ENG
+        // here once stripped the carbohydrate from every main meal in the plan.
         hasLateSnack = true;
         neededSlots.add('PRO');
         neededSlots.add('FAT');
-        // H5 uses light-snack presets (no ENG) — do NOT remove ENG from the chunk pool;
-        // that silently stripped carbs from every main meal in the plan.
       } else {
+        for (const s of inferSlotsFromTarget(meal)) neededSlots.add(s);
+        neededSlots.add('VOL');
         minFatShare = Math.min(minFatShare, mealTargetFatShare(meal));
         minCarbShare = Math.min(minCarbShare, mealTargetCarbShare(meal));
       }
@@ -326,6 +370,7 @@ export function getCatalogCandidatesForChunk({
 
   for (const entry of index.all) {
     if (entry.group === 'ready_meal') continue;
+    if (!isMealComponentGroup(entry.group)) continue;
     if (entry.universality < minUniversality) continue;
     if (!isDietCompatible(entry, diet)) continue;
     if (!passesDietRegistry(entry, registryCtx)) continue;
@@ -333,8 +378,7 @@ export function getCatalogCandidatesForChunk({
     if (isExcludedByProtocol(entry, clinicalProtocolId)) continue;
 
     const entryTimings = entry.timing;
-    const timingMatch = [...timings].some(t => entryTimings.includes(t));
-    if (!timingMatch && entry.group !== 'condiment') continue;
+    if (![...timings].some(t => entryTimings.includes(t))) continue;
 
     for (const slot of entry.slots) {
       if (!neededSlots.has(slot)) continue;
@@ -346,13 +390,14 @@ export function getCatalogCandidatesForChunk({
 
   for (const [slot, list] of bySlot) {
     const ranked = rankCatalogCandidates(list, {
+      role: slot,
       loveSet,
       adherenceRatio: adherenceMap,
       slotTarget: representativeSlot,
       maxSlotKcal,
-      limit: CATALOG_PROMPT_LIMIT_PER_SLOT * 3,
+      limit: CATALOG_PROMPT_LIMIT_PER_SLOT,
     });
-    bySlot.set(slot, ranked.slice(0, CATALOG_PROMPT_LIMIT_PER_SLOT));
+    bySlot.set(slot, ranked);
   }
 
   const maxFatShare = minFatShare + MACRO_FILTER_FAT_MARGIN;
@@ -365,7 +410,9 @@ export function getCatalogCandidatesForChunk({
       list = applyMacroRoleFilter(list, { maxFatShare, maxCarbShare, isKeto });
     }
     if (hasLateSnack && (slot === 'PRO' || slot === 'FAT')) {
-      list = injectLateSnackCandidates(list, index, blockedTerms);
+      list = injectLateSnackCandidates(list, index, {
+        blockedTerms, diet, registryCtx, clinicalProtocolId,
+      });
     }
     bySlot.set(slot, list);
   }
@@ -380,7 +427,7 @@ export function getCatalogCandidatesForChunk({
       .filter(e => !isExcludedByProtocol(e, clinicalProtocolId))
       .filter(e => !readyMealViolatesProtocol(e, clinicalProtocolId))
       .filter(e => e.timing.some(t => timings.has(t))),
-    { loveSet, adherenceRatio: adherenceMap, slotTarget: representativeSlot, maxSlotKcal, limit: 8 },
+    { loveSet, adherenceRatio: adherenceMap, slotTarget: representativeSlot, maxSlotKcal, limit: readyLimit },
   );
 
   bySlot.set('READY', ready);
@@ -432,7 +479,7 @@ export function validateProductNamesAgainstDiet(names, dietCtx = {}) {
 export function buildCatalogPromptSection(options) {
   const dayKeys = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
   const maxSlotKcal = maxSlotKcalInChunk(options.strategy, options.startDay, options.endDay, dayKeys);
-  const candidates = getCatalogCandidatesForChunk(options);
+  const candidates = getCatalogCandidatesForChunk({ ...options, readyLimit: READY_PROMPT_LIMIT });
   return formatCatalogSectionForPrompt(candidates, {
     minUniversality: options.minUniversality ?? DEFAULT_MIN_UNIVERSALITY,
     creationHint: buildHighKcalCreationHint(maxSlotKcal),

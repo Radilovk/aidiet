@@ -9,7 +9,24 @@ import { buildDeterministicStrategy } from '../step2-deterministic.js';
 import { buildDeterministicWeekPlanChunk } from '../step3-deterministic.js';
 import { syncWeekPlanNutritionFromDatabase } from '../meal-day-sync.js';
 import { parseMealDescription } from '../food-nutrition.js';
-import { userSkipsBreakfast } from '../plan-normalize.js';
+import {
+  userSkipsBreakfast,
+  isVeganUser,
+  rebalanceMealBreakdownSlots,
+  enforceFixedSlotCaps,
+  syncSchemeDayMetadata,
+} from '../plan-normalize.js';
+import {
+  validateWeekPlanCombinations,
+  validateWeekPlanDayCoherence,
+  validateWeeklyDishVariety,
+} from '../meal-combinations.js';
+import { resolveCatalogEntry } from '../food-catalog.js';
+import { maxPortionGrams } from '../portion-limits.js';
+import { PROFILES } from './plan-adequacy/fixtures/profiles.mjs';
+import { buildGoldenAnalysis } from './plan-adequacy/fixtures/golden-analysis.mjs';
+
+const DAY_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
 let pass = 0;
 let fail = 0;
@@ -20,9 +37,12 @@ function ok(cond, msg) {
   else { fail++; console.error(`✗ ${msg}`); }
 }
 
+// Field names must match what step2 reads (Final_Calories / macroGrams);
+// `dailyCalories` + `macros` were silently ignored and the test ran on defaults.
 const analysis = {
-  dailyCalories: 1760,
-  macros: { protein: 120, carbs: 180, fats: 55 },
+  Final_Calories: 1760,
+  recommendedCalories: 1760,
+  macroGrams: { protein: 120, carbs: 180, fats: 55 },
 };
 
 const baseUser = {
@@ -149,8 +169,9 @@ for (let d = 1; d <= 7; d++) {
     for (const item of parseMealDescription(meal.description || '')) {
       const g = item.grams || 0;
       if (g <= 0) continue;
-      const okStep = g >= 50 ? g % 50 === 0 : g % 5 === 0;
-      if (!okStep) badGramSteps.push(`${item.name} ${g}g`);
+      // Per-item grid (see gram-rounding.gramStepForMax): every gram value must
+      // land on one of the allowed steps, never on an arbitrary number.
+      if (![5, 10, 25, 50].some(step => g % step === 0)) badGramSteps.push(`${item.name} ${g}g`);
     }
   }
 }
@@ -166,6 +187,92 @@ ok(
   satStrategy.weeklyScheme.saturday?.mealBreakdown?.some(m => m.type === 'Свободно хранене'),
   'Saturday freeDayNumber=6 supported in scheme',
 );
+
+// ── Matrix pass: every fixture profile must produce a coherent, varied week ──
+const matrixProfiles = PROFILES.map(profile => ({
+  profile,
+  analysis: buildGoldenAnalysis(profile),
+}));
+
+for (const { profile, analysis: golden } of matrixProfiles) {
+  const kcal = golden.Final_Calories ?? golden.recommendedCalories;
+  const strat = buildDeterministicStrategy({ userData: profile, analysis: golden });
+  for (const key of DAY_KEYS) {
+    const day = strat.weeklyScheme[key];
+    rebalanceMealBreakdownSlots(day, kcal);
+    syncSchemeDayMetadata(day);
+    enforceFixedSlotCaps(day, kcal);
+    syncSchemeDayMetadata(day);
+  }
+  const week = buildDeterministicWeekPlanChunk({
+    strategy: strat,
+    userData: profile,
+    startDay: 1,
+    endDay: 7,
+    seed: 42,
+    includeDessert: strat.includeDessert,
+  });
+  syncWeekPlanNutritionFromDatabase(week, strat, 1, 7, profile);
+
+  const label = profile.id;
+  ok(validateWeekPlanCombinations(week).length === 0,
+    `${label}: no incompatible product combinations`,
+    validateWeekPlanCombinations(week).slice(0, 2).join('; '));
+  ok(validateWeekPlanDayCoherence(week).length === 0,
+    `${label}: days are coherent (no repeated dish, plated meals have vegetables)`,
+    validateWeekPlanDayCoherence(week).slice(0, 2).join('; '));
+
+  const variety = validateWeeklyDishVariety(week);
+  ok(variety.issues.length === 0,
+    `${label}: weekly dish variety (${variety.unique}/${variety.total})`);
+
+  // Day totals must land on the prescribed intake.
+  let dayDrift = [];
+  for (let d = 1; d <= 7; d++) {
+    const kcalDay = (week[`day${d}`]?.meals || [])
+      .reduce((sum, m) => sum + (Number(m.calories) || 0), 0);
+    const schemeKcal = (strat.weeklyScheme[DAY_KEYS[d - 1]].mealBreakdown || [])
+      .filter(m => m.type !== 'Свободно хранене')
+      .reduce((sum, m) => sum + (Number(m.calories) || 0), 0);
+    if (schemeKcal > 0 && Math.abs(kcalDay - schemeKcal) > schemeKcal * 0.12) {
+      dayDrift.push(`д${d} ${Math.round(kcalDay)} vs ${schemeKcal}`);
+    }
+  }
+  ok(dayDrift.length === 0, `${label}: day totals within 12% of scheme`, dayDrift.join(', '));
+
+  // Portion sanity: nothing may exceed its realistic serving.
+  const overPortion = [];
+  for (let d = 1; d <= 7; d++) {
+    for (const meal of week[`day${d}`]?.meals || []) {
+      for (const item of parseMealDescription(meal.description || '')) {
+        const entry = resolveCatalogEntry(item.name).entry;
+        const max = maxPortionGrams({
+          name: item.name,
+          nutritionKey: entry?.nutritionKey,
+          group: entry?.group,
+          maxPortionG: entry?.maxPortionG,
+        });
+        if ((item.grams || 0) > max) overPortion.push(`д${d} ${item.name} ${item.grams}g > ${max}g`);
+      }
+    }
+  }
+  ok(overPortion.length === 0, `${label}: portions within realistic limits`,
+    overPortion.slice(0, 3).join(', '));
+
+  // Diet contracts.
+  if (isVeganUser(profile)) {
+    const animal = [];
+    for (let d = 1; d <= 7; d++) {
+      for (const meal of week[`day${d}`]?.meals || []) {
+        for (const item of parseMealDescription(meal.description || '')) {
+          const entry = resolveCatalogEntry(item.name).entry;
+          if (entry && !entry.vegan) animal.push(item.name);
+        }
+      }
+    }
+    ok(animal.length === 0, `${label}: no animal products`, [...new Set(animal)].join(', '));
+  }
+}
 
 console.log(`\n=== step3 engine quality: ${pass} pass, ${fail} fail ===`);
 process.exit(fail ? 1 : 0);

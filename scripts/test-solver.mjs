@@ -11,7 +11,7 @@ import {
 import { solveMealGrams, totalsFor } from '../meal-solver.js';
 import { lookupFoodProfile } from '../food-nutrition.js';
 import { fatShareOfKcal } from '../food-catalog.js';
-import { snapGrams, GRAM_STEP_SMALL, GRAM_STEP_LARGE, GRAM_LARGE_MIN } from '../gram-rounding.js';
+import { snapGrams, GRAM_STEP_SMALL, GRAM_STEP_LARGE, GRAM_LARGE_MIN , gramStepForMax } from '../gram-rounding.js';
 
 let pass = 0;
 let fail = 0;
@@ -38,8 +38,9 @@ ok(Math.abs(fatShareOfKcal('скир') - 0.03) < 0.02, 'скир fat share ~3%')
   const solved = solveMealGrams(items, target, bounds, 900);
   ok(solved.feasible, 'chicken+rice feasible', `kcal=${Math.round(solved.totals.kcal)}`);
   ok(Math.abs(solved.totals.kcal - target.kcal) <= Math.max(30, target.kcal * 0.10), 'kcal within tolerance');
-  ok(solved.grams.every(g => g >= GRAM_LARGE_MIN ? g % GRAM_STEP_LARGE === 0 : g % GRAM_STEP_SMALL === 0),
-    'solver grams on 5g/50g grid', solved.grams.join(','));
+  // Grid is per item: a 300g-serving food steps by 25g, a 60g one by 5g.
+  ok(solved.grams.every((g, i) => g % gramStepForMax(bounds[i].max) === 0),
+    'solver grams on the item grid', solved.grams.join(','));
 }
 
 ok(snapGrams(47) === 45, '47g → 45g');

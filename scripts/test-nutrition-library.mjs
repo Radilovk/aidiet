@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /** Nutrition library merge — overlay, ready meals, templates, diet filter. */
 import { getCatalogEntries, getNutritionLibraryVersion } from '../food-registry.js';
+import { normalizeFoodKey } from '../food-utils.js';
 import { READY_MEAL_PARTS } from '../ready-meal-parts.js';
 import {
   getLibraryMergeStats,
@@ -25,7 +26,9 @@ function ok(cond, msg) {
 const stats = getLibraryMergeStats();
 ok(stats.libraryFoods >= 240, `library foods >= 240 (${stats.libraryFoods})`);
 ok(stats.catalogOverlay >= 200, `catalog overlay >= 200 (${stats.catalogOverlay})`);
-ok(stats.mergedTotal > 350, `merged > 350 (${stats.mergedTotal})`);
+// Merged total is deduplicated: a library row whose name already exists in the
+// curated base catalog is dropped, so it no longer equals base + overlay.
+ok(stats.mergedTotal > 300, `merged > 300 (${stats.mergedTotal})`);
 ok(stats.readyMeals >= 30, `ready meals >= 30 (${stats.readyMeals})`);
 ok(stats.mealTemplates >= 5, `meal templates >= 5 (${stats.mealTemplates})`);
 ok(stats.dietProfiles >= 12, `diet profiles >= 12 (${stats.dietProfiles})`);
@@ -34,8 +37,26 @@ ok(getNutritionLibraryVersion().startsWith('lib_v1'), 'library version tag');
 const merged = getCatalogEntries();
 ok(merged.length >= stats.mergedTotal - 1, `getCatalogEntries ~ stats (${merged.length} ~ ${stats.mergedTotal})`);
 
+// Two entries may share a name key only if they are the same kind of thing
+// (yoghurt and its 2% variant). A *food* sharing a name with a *dish* meant the
+// composer picked the food while the nutrition sync expanded the dish.
+{
+  const seen = new Map();
+  const clashes = [];
+  for (const entry of merged) {
+    const key = normalizeFoodKey(entry.name);
+    const prev = seen.get(key);
+    if (prev && prev.group !== entry.group) {
+      clashes.push(`${entry.name}: ${prev.id}[${prev.group}] vs ${entry.id}[${entry.group}]`);
+    } else if (!prev) {
+      seen.set(key, entry);
+    }
+  }
+  ok(clashes.length === 0, `no food/dish name clashes (${clashes.slice(0, 3).join(', ') || 'ok'})`);
+}
+
 ok(READY_MEAL_PARTS.meal_salmon_quinoa?.length === 4, 'library meal_salmon_quinoa decompose');
-ok(READY_MEAL_PARTS.meal_rice_chicken?.length === 2, 'base meal_rice_chicken preserved');
+ok(READY_MEAL_PARTS.meal_rice_chicken?.length === 3, 'base meal_rice_chicken keeps rice + chicken + vegetable');
 
 const veganFoods = filterLibraryFoodsByDiet('vegan');
 ok(veganFoods.every(f => !(f.excluded_in || []).includes('vegan')), 'vegan filter excludes animal');

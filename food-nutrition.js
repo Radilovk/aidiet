@@ -19,6 +19,8 @@ import { READY_MEAL_PARTS, getEntryScalingMode, SCALING_ATOMIC } from './ready-m
 import { MAX_LATE_SNACK_CALORIES, SLOT_CALORIE_TOLERANCE_PERCENT, SLOT_CALORIE_TOLERANCE_MIN_KCAL } from './plan-normalize.js';
 import { solveMealGrams, totalsFor } from './meal-solver.js';
 import { GRAM_STEP_SMALL, GRAM_STEP_LARGE, GRAM_LARGE_MIN, gramRoundStep, snapGrams } from './gram-rounding.js';
+import { maxPortionGrams, minPortionGrams } from './portion-limits.js';
+import { getLibraryNutritionPer100g } from './nutrition-library-bridge.js';
 
 export { normalizeFoodKey } from './food-utils.js';
 export { snapGrams, gramRoundStep, GRAM_STEP_SMALL as GRAM_ROUND_STEP, GRAM_STEP_LARGE as GRAM_ROUND_STEP_LARGE, GRAM_LARGE_MIN as GRAM_LARGE_THRESHOLD } from './gram-rounding.js';
@@ -37,8 +39,10 @@ export function macroTolerance(targetGrams) {
   return Math.max(MIN_MACRO_TOLERANCE_G, Math.round((Number(targetGrams) || 0) * MACRO_TOLERANCE_PERCENT));
 }
 
-const CONDIMENT_MAX_GRAMS = 15;
-const DAIRY_MAX_GRAMS = 300;
+// Portion ceilings now live in portion-limits.js — one table for every food.
+
+/** How far above a slot target the gram bounds may reach, so the solver can trade. */
+const BOUNDS_HEADROOM = 1.35;
 
 /** Max realistic single-meal plate weight — aligns with max plated slot (~900 kcal). */
 export const MAX_MEAL_WEIGHT_GRAMS = 900;
@@ -91,8 +95,19 @@ function arrayToProfile(arr) {
   return { kcal: arr[0], p: arr[1], c: arr[2], f: arr[3] };
 }
 
+let libraryProfileCache = null;
+
+function libraryProfiles() {
+  if (!libraryProfileCache) libraryProfileCache = getLibraryNutritionPer100g();
+  return libraryProfileCache;
+}
+
 function buildDbIndex(extraDb = {}) {
   const index = new Map();
+  // Library-derived profiles first, so the curated table always overrides them.
+  for (const [rawKey, values] of Object.entries(libraryProfiles())) {
+    index.set(normalizeFoodKey(rawKey), arrayToProfile(values));
+  }
   for (const [rawKey, values] of Object.entries(FOOD_NUTRITION_PER_100G)) {
     index.set(normalizeFoodKey(rawKey), arrayToProfile(values));
   }
@@ -195,34 +210,41 @@ export function roundGrams(grams, step) {
 
 function getCatalogMeta(name) {
   const { entry } = resolveCatalogEntry(name);
-  if (!entry) return { slots: [], group: null };
-  return { slots: entry.slots || [], group: entry.group || null };
+  if (!entry) return { slots: [], group: null, nutritionKey: null, maxPortionG: null };
+  return {
+    slots: entry.slots || [],
+    group: entry.group || null,
+    nutritionKey: entry.nutritionKey || null,
+    maxPortionG: entry.maxPortionG || null,
+  };
 }
 
-function isCondimentItem(item) {
-  return getCatalogMeta(item.name).group === 'condiment';
+/** Realistic serving window for one item, from catalog metadata + portion-limits. */
+function portionWindow(item) {
+  const meta = getCatalogMeta(item.name);
+  const descriptor = {
+    name: item.name,
+    nutritionKey: meta.nutritionKey,
+    group: meta.group,
+    maxPortionG: meta.maxPortionG,
+  };
+  const max = maxPortionGrams(descriptor);
+  const min = Math.min(minPortionGrams(descriptor), max);
+  return { min, max, group: meta.group, slots: meta.slots };
 }
 
-/** Herbs/spices misclassified as vegetables — same gram cap as condiments. */
-const SEASONING_NAME = /^(босилек|риган|мащерка|синап|горчица|чили|черен пипер|бял пипер|кимион|копър|магданоз|хрян|стевия|оцет|куркума|канела|джинджифил|сумак|салвия)/i;
-
-function isSeasoningItem(item) {
-  if (isCondimentItem(item)) return true;
-  return SEASONING_NAME.test(String(item.name || '').trim());
-}
-
-function clampCondimentBounds(items, bounds) {
+/**
+ * Clamp every bound to its item's realistic serving window.
+ * Applied after each widening pass — a cap that only guards the seed grams is
+ * a cap the solver walks straight past.
+ */
+function clampBoundsToPortions(items, bounds) {
   return bounds.map((b, i) => {
-    if (!isSeasoningItem(items[i])) return b;
-    return {
-      min: Math.min(b.min, CONDIMENT_MAX_GRAMS),
-      max: Math.min(b.max, CONDIMENT_MAX_GRAMS),
-    };
+    const { min, max } = portionWindow(items[i]);
+    const hi = Math.min(b.max, max);
+    const lo = Math.min(b.min, hi);
+    return { min: Math.max(lo, Math.min(min, hi)), max: hi };
   });
-}
-
-function isDairyItem(item) {
-  return getCatalogMeta(item.name).group === 'dairy';
 }
 
 function kcalPer100(profile) {
@@ -230,20 +252,6 @@ function kcalPer100(profile) {
   const c = Number(profile?.c) || 0;
   const f = Number(profile?.f) || 0;
   return Math.max(15, p * 4 + c * 4 + f * 9);
-}
-
-function baseBoundsForGroup(group) {
-  switch (group) {
-    case 'condiment': return { min: 5, max: CONDIMENT_MAX_GRAMS };
-    case 'vegetable':
-    case 'fruit': return { min: 30, max: 200 };
-    case 'dairy':
-    case 'protein': return { min: 30, max: DAIRY_MAX_GRAMS };
-    case 'fat': return { min: 5, max: 80 };
-    case 'carb':
-    case 'legume': return { min: 30, max: 550 };
-    default: return { min: 20, max: 450 };
-  }
 }
 
 function macroShareForItem(group, slots = []) {
@@ -255,41 +263,40 @@ function macroShareForItem(group, slots = []) {
 }
 
 /**
- * Slot-target-aware gram bounds — static group caps cannot reach high-kcal slots (e.g. H4 ~1100 kcal).
- * Each slot solves to frozen schemeTarget independently; bounds must allow the target within max plate weight.
+ * Slot-target-aware gram bounds, never wider than a realistic serving.
+ * A slot the composition cannot reach is reported infeasible so the caller can
+ * change the products — it is not reached by over-serving one of them.
  */
 export function computeMealItemBounds(items, slotTarget, maxTotalGrams = MAX_MEAL_WEIGHT_GRAMS) {
   const slotKcal = Number(slotTarget?.kcal ?? slotTarget?.calories) || 0;
-  const scale = slotKcal > 0 ? Math.min(2.5, Math.max(1, slotKcal / 500)) : 1;
 
-  let bounds = items.map(item => {
-    const { group, slots } = getCatalogMeta(item.name);
-    let { min, max } = baseBoundsForGroup(group);
-    max = Math.round(max * scale);
+  let bounds = items.map((item) => {
+    const { min, max, group, slots } = portionWindow(item);
+    let hi = min;
     if (slotKcal > 0) {
       const k100 = kcalPer100(item.profile);
       const share = macroShareForItem(group, slots);
-      const needG = ((slotKcal * share) / k100) * 100 * 1.15;
-      max = Math.max(max, snapGrams(needG));
+      hi = Math.max(hi, snapGrams(((slotKcal * share) / k100) * 100 * 1.15));
+    } else {
+      hi = Math.round((min + max) / 2);
     }
-    max = isSeasoningItem(item) ? Math.min(max, CONDIMENT_MAX_GRAMS) : Math.min(max, 650);
-    return { min, max: Math.max(min, max) };
+    return { min, max: Math.max(min, Math.min(hi, max)) };
   });
-  bounds = clampCondimentBounds(items, bounds);
 
-  for (let pass = 0; pass < 6 && slotKcal > 0; pass++) {
+  // Widen until the set can comfortably overshoot the slot. Stopping at the
+  // target itself left the solver no room to trade grams between items, so any
+  // macro pull dropped the meal below its kcal and the slot read infeasible.
+  for (let pass = 0; pass < 8 && slotKcal > 0; pass++) {
     const maxKcal = totalsFor(
       items.map(it => ({ profile: it.profile })),
       bounds.map(b => b.max),
     ).kcal;
-    if (maxKcal >= slotKcal * 0.92) break;
-    bounds = bounds.map((b, i) => {
+    if (maxKcal >= slotKcal * BOUNDS_HEADROOM) break;
+    bounds = clampBoundsToPortions(items, bounds.map((b, i) => {
       const k100 = kcalPer100(items[i].profile);
       const boost = k100 < 90 ? 1.22 : 1.12;
-      const cap = isSeasoningItem(items[i]) ? CONDIMENT_MAX_GRAMS : 650;
-      return { min: b.min, max: Math.min(cap, Math.round(b.max * boost)) };
-    });
-    bounds = clampCondimentBounds(items, bounds);
+      return { min: b.min, max: Math.round(b.max * boost) };
+    }));
   }
 
   const sumMax = bounds.reduce((s, b) => s + b.max, 0);
@@ -306,11 +313,35 @@ export function computeMealItemBounds(items, slotTarget, maxTotalGrams = MAX_MEA
     }
   }
 
-  return clampCondimentBounds(items, bounds);
+  return clampBoundsToPortions(items, bounds);
+}
+
+/**
+ * Energy window a product set can reach within realistic portions.
+ * Lets the composer add or drop a component when a slot is out of reach,
+ * instead of the solver over-serving one product to close the gap.
+ * @param {string[]} productNames
+ * @param {{kcal?: number, calories?: number}} [slotTarget]
+ * @returns {{ minKcal: number, maxKcal: number }}
+ */
+export function compositionCapacity(productNames, slotTarget = {}, maxTotalGrams = MAX_MEAL_WEIGHT_GRAMS) {
+  const items = (productNames || [])
+    .map(name => ({ name, profile: lookupFoodProfile(name).profile, grams: 0 }))
+    .filter(item => item.profile);
+  if (!items.length) return { minKcal: 0, maxKcal: 0 };
+
+  const kcal = Number(slotTarget?.kcal ?? slotTarget?.calories) || 0;
+  const bounds = computeMealItemBounds(items, { kcal }, maxTotalGrams);
+  const profiles = items.map(it => ({ profile: it.profile }));
+  return {
+    minKcal: totalsFor(profiles, bounds.map(b => b.min)).kcal,
+    maxKcal: totalsFor(profiles, bounds.map(b => b.max)).kcal,
+  };
 }
 
 function boundsForItem(item) {
-  return baseBoundsForGroup(getCatalogMeta(item.name).group);
+  const { min, max } = portionWindow(item);
+  return { min, max };
 }
 
 function seedGramsForItem(item, bounds, slotTarget, itemCount = 1) {
@@ -327,16 +358,9 @@ function seedGramsForItem(item, bounds, slotTarget, itemCount = 1) {
   return roundGrams(mid);
 }
 
-function capCondimentGrams(item, grams) {
-  return isSeasoningItem(item) ? Math.min(grams, CONDIMENT_MAX_GRAMS) : grams;
-}
-
 function capItemGrams(item, grams) {
-  let g = capCondimentGrams(item, grams);
-  if (isDairyItem(item)) g = Math.min(g, DAIRY_MAX_GRAMS);
-  const { group } = getCatalogMeta(item.name);
-  if (group === 'protein') g = Math.min(g, DAIRY_MAX_GRAMS);
-  return g;
+  const { min, max } = portionWindow(item);
+  return Math.max(Math.min(grams, max), Math.min(grams, min));
 }
 
 export function nutritionFromGrams(profile, grams) {
@@ -441,14 +465,11 @@ export function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}
     items.map(it => ({ profile: it.profile })),
     bounds.map(b => b.max),
   );
-  if (slotTarget.kcal > 0 && maxAchievable.kcal < slotTarget.kcal * 0.88) {
-    return {
-      ok: true,
-      unknowns: items.filter(i => i.unknown).map(i => i.name),
-      feasible: false,
-      reason: 'композицията не носи slot kcal — добави по-калоричен PRO/ENG източник',
-    };
-  }
+  // A slot the composition cannot reach is reported infeasible, but it is still
+  // filled with the best portions available. Returning early left the meal with
+  // no grams and no calories at all, and the day quietly lost that budget.
+  const unreachable = slotTarget.kcal > 0 && maxAchievable.kcal < slotTarget.kcal * 0.88;
+  const unreachableReason = 'композицията не носи slot kcal — добави по-калоричен PRO/ENG източник';
 
   items = items.map((item, i) => ({
     ...item,
@@ -489,8 +510,8 @@ export function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}
   return {
     ok: true,
     unknowns: totals.unknowns,
-    feasible: solved.feasible,
-    reason: solved.reason || '',
+    feasible: solved.feasible && !unreachable,
+    reason: unreachable ? unreachableReason : (solved.reason || ''),
   };
 }
 

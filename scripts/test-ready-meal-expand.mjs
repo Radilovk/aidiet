@@ -14,7 +14,7 @@ assert(names.some(n => n.includes('ориз')), 'contains rice');
 assert(names.some(n => n.includes('пилешко')), 'contains chicken');
 
 const omelet = parseMealDescription('• Омлет 200g');
-assert(omelet.length === 1 && omelet[0].name.toLowerCase().includes('яйца'), 'omelet → eggs');
+assert(omelet.length >= 1 && omelet.some(i => i.name.toLowerCase().includes('яйца')), 'omelet → eggs + its sides');
 
 console.log(`\n=== ready-meal-expand: ${pass} pass, ${fail} fail ===`);
 process.exit(fail ? 1 : 0);

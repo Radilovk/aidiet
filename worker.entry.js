@@ -71,7 +71,11 @@ import {
   validateProductNamesAgainstProtocol,
   validateProductNamesAgainstDiet,
 } from './food-catalog.js';
-import { validateMealCombinations } from './meal-combinations.js';
+import {
+  validateMealCombinations,
+  validateWeekPlanDayCoherence,
+  validateWeeklyDishVariety,
+} from './meal-combinations.js';
 import { setCatalogOverlay } from './food-registry.js';
 import { ensurePlanSourceMeta } from './plan-source-meta.js';
 import {
@@ -1702,6 +1706,12 @@ const pendingSessionLogs = new Map(); // sessionId → [logId, ...]
 // and scaled to the calorie target — validation is structural (grams present,
 // catalog products, protocol safety) plus a calorie sanity check for compositions
 // the bounded scaling could not fix.
+/**
+ * Reasoning budget for plan steps that actually reason (analysis, strategy,
+ * summary, final review). Added on top of maxOutputTokens by callGemini.
+ */
+const PLAN_STEP_DEFAULT_THINKING_BUDGET = 1024;
+
 const MEAL_PLAN_CHUNK_MAX_RETRIES = 4; // Precision-first: regen with deterministic hints until clean pass
 const COMPOSITION_REPAIR_MAX_PER_CHUNK = 0; // No AI slot repair — fix via catalog ranking + full regen
 const CATALOG_STRICT_MODE = true; // Step 3: only catalog products; no AI nutrition lookup
@@ -3018,13 +3028,19 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
   const preferredProvider = (isChatStep && config.chatProvider) ? config.chatProvider : config.provider;
   const modelName = (isChatStep && config.chatModelName) ? config.chatModelName : config.modelName;
 
-  // Plan generation steps (step1–4 and their fallbacks) must always run on the same
-  // configured model without thinking to ensure consistency and prevent MAX_TOKENS
-  // errors caused by internal reasoning consuming the token budget.
   const isPlanStep = stepKey && ['step1', 'step2', 'step3', 'step4', 'step6'].includes(stepKey);
-  // For chat steps, use chat-specific thinking budget if set.
-  // For plan steps, always disable thinking. For other steps, use plan config.
-  const effectiveThinkingBudget = isPlanStep ? 0
+
+  // Thinking was hard-disabled on every plan step because reasoning tokens count
+  // against maxOutputTokens and were exhausting it. The budget is now added on
+  // top of the caller's token budget (see callGemini), so reasoning can be
+  // allowed where it helps without ever starving the answer.
+  // Step 3 stays at 0: it transcribes an already-decided composition to JSON.
+  const planThinkingBudget = stepKey === 'step3'
+    ? 0
+    : (config.planThinkingBudget !== undefined
+      ? config.planThinkingBudget
+      : PLAN_STEP_DEFAULT_THINKING_BUDGET);
+  const effectiveThinkingBudget = isPlanStep ? planThinkingBudget
     : isChatStep ? (config.chatThinkingBudget !== undefined ? config.chatThinkingBudget : config.thinkingBudget)
     : config.thinkingBudget;
 
@@ -4112,6 +4128,13 @@ async function finalizeValidatedPlan(env, structuredPlan, data) {
   const foodLists = await getDynamicFoodListsSections(env);
   const validation = validatePlan(structuredPlan, data, foodLists.dynamicSubstitutions || []);
   if (!structuredPlan.generationWarnings) structuredPlan.generationWarnings = [];
+  // Day- and week-level coherence the per-meal validators cannot see.
+  const coherenceIssues = validateWeekPlanDayCoherence(structuredPlan.weekPlan || {});
+  const varietyResult = validateWeeklyDishVariety(structuredPlan.weekPlan || {});
+  if (coherenceIssues.length) validation.warnings = [...(validation.warnings || []), ...coherenceIssues];
+  if (varietyResult.issues.length) {
+    validation.warnings = [...(validation.warnings || []), ...varietyResult.issues];
+  }
   if (validation.warnings?.length) {
     structuredPlan.generationWarnings.push(...validation.warnings);
   }
@@ -4126,7 +4149,17 @@ async function finalizeValidatedPlan(env, structuredPlan, data) {
   }
   if (finalDirectorEnabled(env)) {
     try {
-      await runFinalDirectorReview(env, structuredPlan, data, validation);
+      const director = await runFinalDirectorReview(env, structuredPlan, data, validation);
+      // A verdict with no consequence is not a review. The Director still may
+      // not touch products or grams, but a REJECT is recorded on the plan and
+      // reported, so the caller can rebuild instead of shipping it silently.
+      if (director?.verdict === 'REJECT') {
+        structuredPlan.directorRejected = true;
+        structuredPlan.generationWarnings.push(
+          `Step 6: планът е отхвърлен от финалния преглед — ${
+            (director.coherenceNotes || []).join('; ') || 'без детайли'}`,
+        );
+      }
     } catch (directorErr) {
       console.warn('Step 6 Final Director skipped:', directorErr.message);
     }
@@ -10308,6 +10341,8 @@ async function getAdminConfig(env) {
     visionModelName: null,
     // thinkingBudget: undefined = use hardcoded fallback, 0 = disable, N = limit
     thinkingBudget: undefined,
+    // Reasoning budget for plan steps; reserved on top of maxOutputTokens.
+    planThinkingBudget: undefined,
     visionThinkingBudget: undefined,
     stepTokenLimits: {},
     // Generation sampling parameters: undefined = use per-function defaults
@@ -10338,6 +10373,7 @@ async function getAdminConfig(env) {
       savedTopK,
       savedChatProvider,
       savedChatModelName,
+      savedPlanThinkingBudget,
       savedChatThinkingBudget,
       savedChatTemperature,
       savedChatTopP,
@@ -10355,6 +10391,7 @@ async function getAdminConfig(env) {
       env.page_content.get('admin_ai_top_k'),
       env.page_content.get('admin_chat_ai_provider'),
       env.page_content.get('admin_chat_ai_model_name'),
+      env.page_content.get('admin_plan_ai_thinking_budget'),
       env.page_content.get('admin_chat_ai_thinking_budget'),
       env.page_content.get('admin_chat_ai_temperature'),
       env.page_content.get('admin_chat_ai_top_p'),
@@ -10367,6 +10404,7 @@ async function getAdminConfig(env) {
     if (savedVisionModelName) config.visionModelName = savedVisionModelName;
     config.thinkingBudget = parseThinkingBudget(savedThinkingBudget);
     config.visionThinkingBudget = parseThinkingBudget(savedVisionThinkingBudget);
+    config.planThinkingBudget = parseThinkingBudget(savedPlanThinkingBudget);
     if (savedStepTokenLimits) {
       try { config.stepTokenLimits = JSON.parse(savedStepTokenLimits); } catch (_) {}
     }
@@ -10812,8 +10850,12 @@ async function callGemini(env, prompt, modelName = 'gemini-2.5-flash', maxTokens
       // Build generationConfig: add maxOutputTokens and/or JSON mime type as needed
       /** @type {Record<string, unknown>} */
       const generationConfig = {};
+      // Gemini counts reasoning tokens against maxOutputTokens, so a budget set
+      // alongside the answer budget silently truncates the answer. Reserve it
+      // on top instead — that, not "thinking is dangerous", was the real issue.
+      const reservedThinking = thinkingBudget > 0 ? thinkingBudget : 0;
       if (maxTokens) {
-        generationConfig.maxOutputTokens = maxTokens;
+        generationConfig.maxOutputTokens = maxTokens + reservedThinking;
       }
       // Apply sampling parameters if specified
       if (temperature !== undefined) generationConfig.temperature = temperature;
