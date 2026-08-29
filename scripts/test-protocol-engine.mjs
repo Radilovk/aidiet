@@ -12,7 +12,8 @@ function ok(cond, msg) {
 
 const stats = getLibraryMergeStats();
 ok(stats.libraryFoods >= 240, `foods >= 240 (${stats.libraryFoods})`);
-ok(stats.readyMeals >= 30, `ready meals >= 30 (${stats.readyMeals})`);
+// Dishes moved out of the library import into the hand-maintained list.
+ok(stats.dishes >= 40, `dishes >= 40 (${stats.dishes})`);
 ok(stats.mealTemplates >= 5, `templates >= 5 (${stats.mealTemplates})`);
 ok(stats.dietProfiles >= 12, `diet profiles >= 12 (${stats.dietProfiles})`);
 

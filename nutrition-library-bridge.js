@@ -4,6 +4,7 @@
  */
 
 import { FOOD_CATALOG } from './food-catalog-data.js';
+import { MEAL_DISHES } from './meal-dishes.js';
 import { normalizeFoodKey } from './food-utils.js';
 import {
   repairLibraryFood,
@@ -351,18 +352,19 @@ export function mergeCatalogEntries(base, overlays = []) {
 
 export function getLibraryMergeStats() {
   const overlay = getLibraryCatalogOverlay();
-  const readyCatalog = getLibraryReadyMealCatalogEntries();
   // Count what the registry actually merges, not a second reimplementation of
   // the merge — the two drifted apart once name-collision dropping was added.
-  const mergedTotal = mergeCatalogEntries(FOOD_CATALOG, [...overlay, ...readyCatalog]).length;
+  const mergedTotal = mergeCatalogEntries(
+    [...FOOD_CATALOG, ...MEAL_DISHES.map(d => ({ id: d.id, name: d.name, nutritionKey: d.id }))],
+    overlay,
+  ).length;
   return {
     version: NUTRITION_LIBRARY_VERSION,
     libraryFoods: LIBRARY_FOODS.length,
     catalogOverlay: overlay.length,
     baseCatalog: FOOD_CATALOG.length,
     mergedTotal,
-    readyMeals: LIBRARY_READY_MEALS.length,
-    readyMealCatalog: readyCatalog.length,
+    dishes: MEAL_DISHES.length,
     mealTemplates: LIBRARY_MEAL_TEMPLATES.length,
     dietProfiles: Object.keys(LIBRARY_PROTOCOL_RULES.diet_profiles || {}).length,
   };

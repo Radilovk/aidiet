@@ -8,7 +8,7 @@ import { MEAL_TYPE_TIMING } from './food-catalog-data.js';
 import { getCatalogCandidatesForChunk, resolveCatalogEntry } from './food-catalog.js';
 import { rankCatalogCandidates } from './candidate-ranking.js';
 import { passesDietRegistry } from './diet-registry.js';
-import { isVeganUser, userSkipsBreakfast } from './plan-normalize.js';
+import { userSkipsBreakfast } from './plan-normalize.js';
 import { normalizeFoodKey } from './food-utils.js';
 import { parseMealDescription, compositionCapacity } from './food-nutrition.js';
 import { READY_MEAL_PARTS } from './ready-meal-parts.js';
@@ -18,32 +18,6 @@ const DAY_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'satur
 const MAIN_MEAL_SLOTS = new Set(['Хранене 1', 'Хранене 2', 'Хранене 4']);
 /** Lunch and dinner are plated and must carry a vegetable; breakfast need not. */
 const PLATED_MEAL_SLOTS = new Set(['Хранене 2', 'Хранене 4']);
-
-/**
- * Light-snack presets. Each carries the diets it suits, so a keto client is not
- * handed a third of a banana and a vegan is not handed skyr — the solver used
- * to shrink the wrong preset into an absurd portion instead of picking another.
- */
-const LIGHT_SNACK_PRESETS = {
-  'Хранене 3': [
-    { name: 'Кисело мляко с бадеми', products: ['Кисело мляко', 'Бадеми'], vegan: false, keto: true },
-    { name: 'Ябълка с бадеми', products: ['Ябълка', 'Бадеми'], vegan: true, keto: false },
-    { name: 'Банан с орехи', products: ['Банан', 'Орехи'], vegan: true, keto: false },
-    { name: 'Извара с орехи', products: ['Извара', 'Орехи'], vegan: false, keto: true },
-    { name: 'Портокал с кашу', products: ['Портокал', 'Кашу'], vegan: true, keto: false },
-    { name: 'Хумус с моркови', products: ['Хумус', 'Морков'], vegan: true, keto: false },
-    { name: 'Бадеми и тиквени семки', products: ['Бадеми', 'Тиквени семки'], vegan: true, keto: true },
-    { name: 'Авокадо с орехи', products: ['Авокадо', 'Орехи'], vegan: true, keto: true },
-  ],
-  'Хранене 5': [
-    { name: 'Скир с бадеми', products: ['Скир', 'Бадеми'], vegan: false, keto: true },
-    { name: 'Кисело мляко с орехи', products: ['Кисело мляко', 'Орехи'], vegan: false, keto: true },
-    { name: 'Извара с бадеми', products: ['Извара', 'Бадеми'], vegan: false, keto: true },
-    { name: 'Бадеми и орехи', products: ['Бадеми', 'Орехи'], vegan: true, keto: true },
-    { name: 'Кашу с бадеми', products: ['Кашу', 'Бадеми'], vegan: true, keto: true },
-    { name: 'Тиквени семки с лешници', products: ['Тиквени семки', 'Лешници'], vegan: true, keto: true },
-  ],
-};
 
 /** Default on — set env DETERMINISTIC_STEP3=0 to force AI-first Step 3. */
 export function deterministicStep3Enabled(env = {}) {
@@ -189,6 +163,8 @@ function readyMealFitsSlot(entry, slotType) {
     return slots.includes('PRO') || slots.includes('ENG');
   }
   if (slotType === 'Хранене 1') return !!entry.timing?.includes('breakfast');
+  if (slotType === 'Хранене 3') return !!entry.timing?.includes('snack');
+  if (slotType === 'Хранене 5') return !!entry.timing?.includes('late_snack');
   return true;
 }
 
@@ -362,68 +338,31 @@ function formatDescription(entries) {
   return lines.join('\n');
 }
 
-function isKetoContext(ctx) {
-  return /кето|keto/i.test(String(ctx?.dietCtx?.dietaryModifier || ''));
-}
-
-function buildLightSnack(slotType, userData, ctx) {
-  const all = LIGHT_SNACK_PRESETS[slotType] || LIGHT_SNACK_PRESETS['Хранене 3'];
-  const vegan = isVeganUser(userData);
-  const keto = isKetoContext(ctx);
-
-  let presets = all.filter(preset => (!vegan || preset.vegan) && (!keto || preset.keto));
-  if (!presets.length) presets = all.filter(preset => !vegan || preset.vegan);
-  if (!presets.length) presets = all;
-
-  if (ctx.blockedTerms?.length) {
-    const allowed = presets.filter(
-      preset => !preset.products.some(name => isBlockedByTerms(name, ctx.blockedTerms)),
-    );
-    if (allowed.length) presets = allowed;
-  }
-  // Every product must exist in the catalog, or the slot fails validation later.
-  const resolvable = presets.filter(preset => preset.products.every(name => catalogName(name)));
-  if (resolvable.length) presets = resolvable;
-
-  // Rotate by least-used, so a week never repeats one snack seven times.
-  const start = (ctx.seed + ctx.dayNum * 7 + ctx.slotIndex * 11) % presets.length;
-  let chosen = presets[start];
-  let bestUses = Infinity;
-  for (let i = 0; i < presets.length; i++) {
-    const preset = presets[(start + i) % presets.length];
-    const uses = preset.products.reduce(
-      (sum, name) => sum + (ctx.usedProducts.get(normalizeFoodKey(name)) || 0), 0,
-    );
-    if (uses < bestUses) {
-      bestUses = uses;
-      chosen = preset;
-      if (bestUses === 0) break;
-    }
-  }
-
-  const resolved = chosen.products.map(name => catalogName(name) || name);
-  for (const name of resolved) {
-    const k = normalizeFoodKey(name);
-    ctx.usedProducts.set(k, (ctx.usedProducts.get(k) || 0) + 1);
-  }
-  return { name: chosen.name, description: resolved.map(n => `• ${n}`).join('\n') };
-}
-
 /**
- * Record a ready meal as its component products, not as one opaque dish name.
- * Usage accounting has to speak the same language everywhere, or a week of
- * "Ориз с пиле" and "Пилешки гърди с ориз" reads as two unrelated choices.
+ * Record a dish as its component products, not as one opaque name, so usage
+ * accounting speaks the same language everywhere.
  */
 function recordReadyMealUse(entry, ctx) {
-  ctx.usedProducts.set(
-    normalizeFoodKey(entry.name),
-    (ctx.usedProducts.get(normalizeFoodKey(entry.name)) || 0) + 1,
-  );
+  const dishKey = normalizeFoodKey(entry.name);
+  ctx.usedProducts.set(dishKey, (ctx.usedProducts.get(dishKey) || 0) + 1);
   for (const part of READY_MEAL_PARTS[entry.id] || []) {
     const k = normalizeFoodKey(catalogName(part.name) || part.name);
     ctx.usedProducts.set(k, (ctx.usedProducts.get(k) || 0) + 1);
   }
-  ctx.dishesToday.add(normalizeFoodKey(entry.name));
+  ctx.dishesToday.add(dishKey);
+}
+
+/**
+ * Light snacks come from the same dish list as everything else — they are just
+ * dishes with `snack` / `late_snack` timing. Keeping a second preset table
+ * meant editing food in two places and let "Скир" survive there after it was
+ * dropped from the main list.
+ */
+function buildLightSnack(slotType, slotTarget, candidatesBySlot, ctx) {
+  const ready = pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx);
+  if (!ready) return null;
+  recordReadyMealUse(ready, ctx);
+  return { name: ready.name, description: descriptionFromReadyMeal(ready) };
 }
 
 function buildMealForSchemeSlot({
@@ -442,8 +381,8 @@ function buildMealForSchemeSlot({
     return { type: slotType, name: drink, description: `• ${drink}` };
   }
   if (slotType === 'Хранене 3' || slotType === 'Хранене 5') {
-    const light = buildLightSnack(slotType, userData, ctx);
-    return { type: slotType, name: light.name, description: light.description };
+    const light = buildLightSnack(slotType, slotTarget, candidatesBySlot, ctx);
+    if (light) return { type: slotType, name: light.name, description: light.description };
   }
 
 
