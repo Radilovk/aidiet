@@ -9,7 +9,6 @@ import {
   gramRoundStep,
   gramStepForMax,
   snapGrams,
-  snapGramsWithinBounds,
   snapToStepWithinBounds,
 } from './gram-rounding.js';
 

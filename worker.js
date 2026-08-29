@@ -155,7 +155,7 @@ var WEEKLY_SCHEME_SCHEMA = {
 var PLAN_SYSTEM_INSTRUCTIONS = {
   step1: "\u041A\u043B\u0438\u043D\u0438\u0447\u0435\u043D \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433, \u0435\u043D\u0434\u043E\u043A\u0440\u0438\u043D\u043E\u043B\u043E\u0433 \u0438 \u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. bmr, tdee, Final_Calories, macroRatios \u0438 macroGrams \u0441\u0435 \u0437\u0430\u0434\u0430\u0432\u0430\u0442 \u043E\u0442 \u0431\u0435\u043A\u0435\u043D\u0434\u0430 \u2014 \u043D\u0435 \u0433\u0438 \u043F\u0440\u0435\u0438\u0437\u0447\u0438\u0441\u043B\u044F\u0432\u0430\u0439 \u0438 \u043D\u0435 \u0433\u0438 \u043F\u0440\u043E\u043C\u0435\u043D\u044F\u0439. \u0424\u043E\u043A\u0443\u0441: keyProblems, currentHealthStatus, psychology, correlations, narrative.",
   step2: '\u0415\u043A\u0441\u043F\u0435\u0440\u0442\u0435\u043D \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. \u041A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u043E\u0442 \u0430\u043D\u0430\u043B\u0438\u0437\u0430 \u0441\u0430 \u0444\u0438\u043D\u0430\u043B\u043D\u0438 \u2014 \u043D\u0435 \u0433\u0438 \u043F\u0440\u0435\u0438\u0437\u0447\u0438\u0441\u043B\u044F\u0432\u0430\u0439. \u0422\u0438\u043F\u043E\u0432\u0435 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F: \u0441\u0430\u043C\u043E "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1"\u2013"\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5" \u0438 "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435". \u0417\u0430\u0431\u0440\u0430\u043D\u0435\u043D\u0438 display \u0438\u043C\u0435\u043D\u0430: \u0417\u0430\u043A\u0443\u0441\u043A\u0430, \u041E\u0431\u044F\u0434, \u0421\u043B\u0435\u0434\u043E\u0431\u0435\u0434\u043D\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430, \u0412\u0435\u0447\u0435\u0440\u044F, \u041A\u044A\u0441\u043D\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430. \u0417\u0430\u0434\u044A\u043B\u0436\u0438\u0442\u0435\u043B\u043D\u0438 \u043F\u043E\u043B\u0435\u0442\u0430: freeDayNumber (6|7|null), includeDessert (true|false). \u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0437\u0430\u043C\u0435\u0441\u0442\u0432\u0430 \u043E\u0431\u044F\u0434 \u0432 mealBreakdown \u043D\u0430 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u0438\u044F \u0434\u0435\u043D.',
-  step3: "\u0414\u0438\u0435\u0442\u043E\u043B\u043E\u0433 \u0437\u0430 \u0431\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438 \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u043B\u0430\u043D. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. \u041F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u0421\u0410\u041C\u041E \u043E\u0442 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430; \u0438\u043C\u0435\u043D\u0430\u0442\u0430 \u0442\u043E\u0447\u043D\u043E \u043A\u0430\u043A\u0442\u043E \u0432 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430. \u0412\u0441\u044F\u043A\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0435 \u0420\u0415\u0410\u041B\u041D\u041E \u042F\u0421\u0422\u0418\u0415: 2\u20134 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0430, \u0435\u0434\u0438\u043D \u0438\u0437\u0442\u043E\u0447\u043D\u0438\u043A \u043D\u0430 \u043F\u0440\u043E\u0442\u0435\u0438\u043D \u0438 \u043D\u0430\u0439-\u043C\u043D\u043E\u0433\u043E \u0435\u0434\u0438\u043D \u043D\u0430 \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438. \u041E\u0431\u044F\u0434 \u0438 \u0432\u0435\u0447\u0435\u0440\u044F \u0437\u0430\u0434\u044A\u043B\u0436\u0438\u0442\u0435\u043B\u043D\u043E \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A. \u0417\u0430\u0431\u0440\u0430\u043D\u0435\u043D\u0438: \u043F\u043E\u0434\u0441\u043B\u0430\u0434\u0438\u0442\u0435\u043B \u0438\u043B\u0438 \u0433\u043E\u0442\u043E\u0432 \u0441\u043E\u0441 \u043A\u0430\u0442\u043E \u0441\u044A\u0441\u0442\u0430\u0432\u043A\u0430; \u0440\u0438\u0431\u0430 \u0441 \u043C\u043B\u0435\u0447\u0435\u043D \u043F\u0440\u043E\u0434\u0443\u043A\u0442; \u043C\u0435\u0441\u043E \u0438\u043B\u0438 \u0440\u0438\u0431\u0430 \u0441\u044A\u0441 \u0441\u043B\u0430\u0434\u044A\u043A \u043F\u043B\u043E\u0434; \u0431\u043E\u0431\u043E\u0432\u0438 \u0437\u0430\u0435\u0434\u043D\u043E \u0441 \u043D\u0438\u0448\u0435\u0441\u0442\u0435; \u0441\u043B\u0430\u0434\u044A\u043A \u043F\u043B\u043E\u0434 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A; \u0435\u0434\u043D\u043E \u0438 \u0441\u044A\u0449\u043E \u044F\u0441\u0442\u0438\u0435 \u0434\u0432\u0430 \u043F\u044A\u0442\u0438 \u0432 \u0434\u0435\u043D. dessert:true \u0441\u0430\u043C\u043E \u043D\u0430 \u0425\u0440\u0430\u043D\u0435\u043D\u0435 2. \u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435: \u0441\u0430\u043C\u043E type+name, \u0431\u0435\u0437 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u0438 \u0431\u0435\u0437 macros.",
+  step3: "\u0414\u0438\u0435\u0442\u043E\u043B\u043E\u0433 \u0437\u0430 \u0431\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438 \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u043B\u0430\u043D. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. \u041F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u0421\u0410\u041C\u041E \u043E\u0442 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430; \u0438\u043C\u0435\u043D\u0430\u0442\u0430 \u0442\u043E\u0447\u043D\u043E \u043A\u0430\u043A\u0442\u043E \u0432 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430. \u0412\u0441\u044F\u043A\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0435 \u0440\u0435\u0430\u043B\u043D\u043E \u044F\u0441\u0442\u0438\u0435 \u2014 2\u20134 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0430, \u0435\u0434\u0438\u043D \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0435\u043D \u0438\u0437\u0442\u043E\u0447\u043D\u0438\u043A, \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A \u043D\u0430 \u043E\u0431\u044F\u0434 \u0438 \u0432\u0435\u0447\u0435\u0440\u044F. dessert:true \u0441\u0430\u043C\u043E \u043D\u0430 \u0425\u0440\u0430\u043D\u0435\u043D\u0435 2. \u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435: \u0441\u0430\u043C\u043E type+name, \u0431\u0435\u0437 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u0438 \u0431\u0435\u0437 macros.",
   step4: "\u041A\u043B\u0438\u043D\u0438\u0447\u0435\u043D \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433 \u0438 \u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. \u041F\u0440\u0435\u043F\u043E\u0440\u044A\u043A\u0438\u0442\u0435 \u0441\u0430 \u043F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u0438\u0437\u0438\u0440\u0430\u043D\u0438 \u043F\u043E \u043F\u0440\u043E\u0444\u0438\u043B\u0430 \u2014 \u043D\u0435 \u0443\u043D\u0438\u0432\u0435\u0440\u0441\u0430\u043B\u043D\u0438.",
   step6_director: "\u0421\u0442\u0430\u0440\u0448\u0438 \u0434\u0438\u0435\u0442\u0438\u0447\u0435\u043D \u043C\u0435\u043D\u0438\u0434\u0436\u044A\u0440. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. \u041E\u0446\u0435\u043D\u044F\u0432\u0430 \u0433\u043E\u0442\u043E\u0432 deterministic \u043F\u043B\u0430\u043D \u2014 \u043D\u0435 \u043F\u0440\u043E\u043C\u0435\u043D\u044F \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438, \u0433\u0440\u0430\u043C\u043E\u0432\u0435, \u043A\u0430\u043B\u043E\u0440\u0438\u0438 \u0438\u043B\u0438 scheme."
 };
@@ -15948,7 +15948,6 @@ var NON_COMPONENT_GROUPS = /* @__PURE__ */ new Set(["condiment", "beverage"]);
 function isMealComponentGroup(group) {
   return !NON_COMPONENT_GROUPS.has(group);
 }
-var READY_POOL_LIMIT = 24;
 var READY_PROMPT_LIMIT = 12;
 var MIN_CANDIDATES_PER_ROLE = 4;
 var MACRO_FILTER_FAT_MARGIN = 0.25;
@@ -16217,7 +16216,7 @@ function getCatalogCandidatesForChunk({
   preferLove = [],
   clinicalProtocolId = null,
   adherenceRatio = null,
-  readyLimit = READY_POOL_LIMIT
+  readyLimit = Infinity
 }) {
   const index = buildCatalogIndex();
   const dietCtx = buildDietContext({ dietaryModifier, dietPreference, dietDislike });
@@ -18138,220 +18137,101 @@ function runDeterministicValidation(data, config) {
 }
 
 // meal-compatibility.js
-var BOUNDARY = "(?:^|[^\\p{L}\\p{N}])";
-var BOUNDARY_END = "(?:$|[^\\p{L}\\p{N}])";
-var wordCache = /* @__PURE__ */ new Map();
-function hasWord(text, term) {
-  const t = String(term || "").trim();
-  if (!t) return false;
-  let re = wordCache.get(t);
-  if (!re) {
-    const escaped = t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    re = new RegExp(`${BOUNDARY}${escaped}${BOUNDARY_END}`, "iu");
-    wordCache.set(t, re);
-  }
-  return re.test(String(text || ""));
+function groupOfProduct(name) {
+  return resolveCatalogEntry(name).entry?.group ?? null;
 }
-function hasStem(text, stems) {
-  const lower = String(text || "").toLowerCase();
+function isVegetableProduct(name) {
+  return groupOfProduct(name) === "vegetable";
+}
+var SWEET_FRUIT_STEMS = [
+  "\u0431\u0430\u043D\u0430\u043D",
+  "\u044F\u0431\u044A\u043B\u043A",
+  "\u043F\u043E\u0440\u0442\u043E\u043A\u0430\u043B",
+  "\u043C\u0430\u043D\u0434\u0430\u0440\u0438\u043D",
+  "\u0433\u0440\u043E\u0437\u0434\u0435",
+  "\u043A\u0440\u0443\u0448\u0430",
+  "\u043F\u0440\u0430\u0441\u043A\u043E\u0432\u0430",
+  "\u0434\u0438\u043D\u044F",
+  "\u043F\u044A\u043F\u0435\u0448",
+  "\u0430\u043D\u0430\u043D\u0430\u0441",
+  "\u043C\u0430\u043D\u0433\u043E",
+  "\u0441\u043C\u043E\u043A\u0438\u043D",
+  "\u043A\u0430\u0439\u0441\u0438",
+  "\u0441\u043B\u0438\u0432"
+];
+var FLESH_STEMS = [
+  "\u0440\u0438\u0431\u0430",
+  "\u0441\u044C\u043E\u043C\u0433\u0430",
+  "\u0442\u043E\u043D",
+  "\u0442\u0440\u0435\u0441\u043A\u0430",
+  "\u0441\u043A\u0443\u043C\u0440\u0438",
+  "\u0442\u0438\u043B\u0430\u043F\u0438",
+  "\u043B\u0430\u0432\u0440\u0430\u043A",
+  "\u0441\u043A\u0430\u0440\u0438\u0434\u0438",
+  "\u043A\u0430\u043B\u043C\u0430\u0440",
+  "\u043F\u0438\u043B\u0435\u0448\u043A",
+  "\u043F\u0438\u043B\u0435",
+  "\u043F\u0443\u0435\u0448\u043A",
+  "\u043F\u0443\u0439\u043A\u0430",
+  "\u0433\u043E\u0432\u0435\u0436\u0434",
+  "\u0441\u0432\u0438\u043D\u0441\u043A",
+  "\u0442\u0435\u043B\u0435\u0448\u043A",
+  "\u0430\u0433\u043D\u0435\u0448\u043A",
+  "\u043A\u0430\u0439\u043C\u0430"
+];
+var SWEETENER_STEMS = ["\u043C\u0435\u0434", "\u0437\u0430\u0445\u0430\u0440", "\u0441\u0438\u0440\u043E\u043F", "\u043A\u043E\u043D\u0444\u0438\u0442\u044E\u0440", "\u043D\u0435\u043A\u0442\u0430\u0440"];
+function matchesStem(name, stems) {
+  const lower = String(name || "").toLowerCase();
   return stems.some((stem) => lower.includes(stem));
 }
-var FOOD_KIND_STEMS = {
-  starch: [
-    "\u043E\u0440\u0438\u0437",
-    "\u043A\u0430\u0440\u0442\u043E\u0444",
-    "\u043F\u0430\u0441\u0442\u0430",
-    "\u043C\u0430\u043A\u0430\u0440\u043E\u043D",
-    "\u0441\u043F\u0430\u0433\u0435\u0442",
-    "\u043E\u0432\u0435\u0441",
-    "\u0431\u0443\u043B\u0433\u0443\u0440",
-    "\u0445\u043B\u044F\u0431",
-    "\u043A\u0438\u043D\u043E\u0430",
-    "\u0435\u043B\u0434\u0430",
-    "\u043A\u0443\u0441-\u043A\u0443\u0441",
-    "\u043F\u0440\u043E\u0441\u043E",
-    "\u0442\u043E\u0440\u0442\u0438\u043B\u0430",
-    "\u0446\u0430\u0440\u0435\u0432\u0438\u0446",
-    "\u0431\u0430\u0442\u0430\u0442",
-    "\u043A\u0430\u0448\u0430"
-  ],
-  legume: ["\u0431\u043E\u0431", "\u043B\u0435\u0449\u0430", "\u043D\u0430\u0445\u0443\u0442", "\u0433\u0440\u0430\u0445", "\u0435\u0434\u0430\u043C\u0430\u043C\u0435", "\u0444\u0430\u0441\u0443\u043B"],
-  redMeat: ["\u0433\u043E\u0432\u0435\u0436\u0434", "\u0441\u0432\u0438\u043D\u0441\u043A", "\u0442\u0435\u043B\u0435\u0448\u043A", "\u0430\u0433\u043D\u0435\u0448\u043A", "\u043A\u0430\u0439\u043C\u0430"],
-  poultry: ["\u043F\u0438\u043B\u0435\u0448\u043A", "\u043F\u0438\u043B\u0435", "\u043F\u0443\u0435\u0448\u043A", "\u043F\u0443\u0439\u043A\u0430"],
-  fish: ["\u0440\u0438\u0431\u0430", "\u0441\u044C\u043E\u043C\u0433\u0430", "\u0442\u043E\u043D", "\u0442\u0440\u0435\u0441\u043A\u0430", "\u0441\u043A\u0443\u043C\u0440\u0438", "\u0442\u0438\u043B\u0430\u043F\u0438", "\u043B\u0430\u0432\u0440\u0430\u043A", "\u0441\u043A\u0430\u0440\u0438\u0434\u0438", "\u043A\u0430\u043B\u043C\u0430\u0440"],
-  egg: ["\u044F\u0439\u0446", "\u0431\u0435\u043B\u0442\u044A\u0446", "\u043E\u043C\u043B\u0435\u0442"],
-  freshDairy: ["\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", "\u043A\u0435\u0444\u0438\u0440", "\u0441\u043A\u0438\u0440", "\u0430\u0439\u0440\u0430\u043D", "\u0433\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E", "\u0438\u0437\u0432\u0430\u0440\u0430", "\u043F\u0440\u043E\u0431\u0438\u043E\u0442\u0438\u0447\u043D\u043E"],
-  cheese: ["\u0441\u0438\u0440\u0435\u043D\u0435", "\u043A\u0430\u0448\u043A\u0430\u0432\u0430\u043B", "\u043C\u043E\u0446\u0430\u0440\u0435\u043B", "\u043F\u0430\u0440\u043C\u0435\u0437\u0430\u043D", "\u0444\u0435\u0442\u0430"],
-  sweetFruit: [
-    "\u0431\u0430\u043D\u0430\u043D",
-    "\u044F\u0431\u044A\u043B\u043A",
-    "\u043F\u043E\u0440\u0442\u043E\u043A\u0430\u043B",
-    "\u043C\u0430\u043D\u0434\u0430\u0440\u0438\u043D",
-    "\u0433\u0440\u043E\u0437\u0434\u0435",
-    "\u043A\u0440\u0443\u0448\u0430",
-    "\u043F\u0440\u0430\u0441\u043A\u043E\u0432\u0430",
-    "\u0434\u0438\u043D\u044F",
-    "\u043F\u044A\u043F\u0435\u0448",
-    "\u0430\u043D\u0430\u043D\u0430\u0441",
-    "\u043C\u0430\u043D\u0433\u043E",
-    "\u043A\u0438\u0432\u0438",
-    "\u0441\u043C\u043E\u043A\u0438\u043D"
-  ],
-  berry: ["\u044F\u0433\u043E\u0434", "\u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A", "\u043C\u0430\u043B\u0438\u043D", "\u043A\u044A\u043F\u0438\u043D"],
-  vegetable: [
-    "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A",
-    "\u0434\u043E\u043C\u0430\u0442",
-    "\u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446",
-    "\u0447\u0443\u0448\u043A",
-    "\u043C\u043E\u0440\u043A\u043E\u0432",
-    "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
-    "\u0441\u043F\u0430\u043D\u0430\u043A",
-    "\u043C\u0430\u0440\u0443\u043B\u044F",
-    "\u0442\u0438\u043A\u0432\u0438\u0447",
-    "\u043A\u0430\u0440\u0444\u0438\u043E\u043B",
-    "\u0437\u0435\u043B\u0435",
-    "\u0433\u044A\u0431",
-    "\u043F\u0430\u0442\u043B\u0430\u0434\u0436\u0430\u043D",
-    "\u0446\u0435\u043B\u0438\u043D\u0430",
-    "\u0440\u0443\u043A\u043E\u043B\u0430",
-    "\u0441\u0430\u043B\u0430\u0442",
-    "\u043F\u0440\u0430\u0437",
-    "\u0440\u0435\u043F\u0438\u0447\u043A",
-    "\u0430\u0441\u043F\u0435\u0440\u0436\u0438",
-    "\u043A\u0440\u0435\u0441\u043E\u043D",
-    "\u0430\u0439\u0441\u0431\u0435\u0440\u0433",
-    "\u043F\u043E\u0440\u0442\u043E\u0431\u0435\u043B\u043E",
-    "\u0435\u0440\u0438\u043D\u0433\u0438"
-  ],
-  nut: ["\u0431\u0430\u0434\u0435\u043C", "\u043E\u0440\u0435\u0445", "\u043A\u0430\u0448\u0443", "\u043B\u0435\u0448\u043D\u0438\u0446", "\u0448\u0430\u043C\u0444\u044A\u0441\u0442\u044A\u043A", "\u043F\u0435\u043A\u0430\u043D", "\u043C\u0430\u043A\u0430\u0434\u0430\u043C\u0438", "\u0444\u044A\u0441\u0442\u044A\u0446"],
-  seed: ["\u0441\u0435\u043C\u043A", "\u0441\u0435\u043C\u0435", "\u0447\u0438\u0430"],
-  oil: ["\u0437\u0435\u0445\u0442\u0438\u043D", "\u043E\u043B\u0438\u043E", "\u0433\u0445\u0438", "\u043A\u043E\u043A\u043E\u0441\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E", "\u0441\u043B\u044A\u043D\u0447\u043E\u0433\u043B\u0435\u0434\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E"],
-  nutButter: ["\u0444\u044A\u0441\u0442\u044A\u0447\u0435\u043D\u043E \u043C\u0430\u0441\u043B\u043E", "\u0431\u0430\u0434\u0435\u043C\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E", "\u0442\u0430\u0445\u0430\u043D"],
-  butter: ["\u043C\u0430\u0441\u043B\u043E"],
-  sweetener: ["\u043C\u0435\u0434", "\u0437\u0430\u0445\u0430\u0440", "\u0441\u0438\u0440\u043E\u043F", "\u043A\u043E\u043D\u0444\u0438\u0442\u044E\u0440", "\u043D\u0435\u043A\u0442\u0430\u0440"],
-  sauce: ["\u043A\u0435\u0442\u0447\u0443\u043F", "\u043C\u0430\u0439\u043E\u043D\u0435\u0437", "\u0433\u043E\u0440\u0447\u0438\u0446", "\u0441\u0438\u043D\u0430\u043F", "\u043B\u044E\u0442\u0435\u043D\u0438\u0446", "\u043F\u0435\u0441\u0442\u043E", "\u0441\u0430\u043B\u0441\u0430", "\u0441\u043E\u0435\u0432 \u0441\u043E\u0441"]
-};
-function kindsOf(name) {
-  const out = /* @__PURE__ */ new Set();
-  for (const [kind, stems] of Object.entries(FOOD_KIND_STEMS)) {
-    if (hasStem(name, stems)) out.add(kind);
-  }
-  return out;
-}
-function kindsIn(names) {
-  const out = /* @__PURE__ */ new Map();
-  for (const name of names) {
-    for (const kind of kindsOf(name)) {
-      if (!out.has(kind)) out.set(kind, []);
-      out.get(kind).push(name);
-    }
-  }
-  return out;
-}
-var INCOMPATIBLE_KIND_PAIRS = [
-  { a: "fish", b: "freshDairy", reason: "\u0440\u0438\u0431\u0430 \u0441 \u043A\u0438\u0441\u0435\u043B\u043E-\u043C\u043B\u0435\u0447\u0435\u043D \u043F\u0440\u043E\u0434\u0443\u043A\u0442" },
-  { a: "fish", b: "sweetFruit", reason: "\u0440\u0438\u0431\u0430 \u0441\u044A\u0441 \u0441\u043B\u0430\u0434\u044A\u043A \u043F\u043B\u043E\u0434" },
-  { a: "fish", b: "cheese", reason: "\u0440\u0438\u0431\u0430 \u0441\u044A\u0441 \u0441\u0438\u0440\u0435\u043D\u0435/\u043A\u0430\u0448\u043A\u0430\u0432\u0430\u043B" },
-  { a: "redMeat", b: "freshDairy", reason: "\u0447\u0435\u0440\u0432\u0435\u043D\u043E \u043C\u0435\u0441\u043E \u0441 \u043A\u0438\u0441\u0435\u043B\u043E-\u043C\u043B\u0435\u0447\u0435\u043D \u043F\u0440\u043E\u0434\u0443\u043A\u0442" },
-  { a: "redMeat", b: "sweetFruit", reason: "\u0447\u0435\u0440\u0432\u0435\u043D\u043E \u043C\u0435\u0441\u043E \u0441\u044A\u0441 \u0441\u043B\u0430\u0434\u044A\u043A \u043F\u043B\u043E\u0434" },
-  { a: "poultry", b: "sweetFruit", reason: "\u043F\u0442\u0438\u0447\u0435 \u043C\u0435\u0441\u043E \u0441\u044A\u0441 \u0441\u043B\u0430\u0434\u044A\u043A \u043F\u043B\u043E\u0434" },
-  { a: "fish", b: "legume", reason: "\u0440\u0438\u0431\u0430 \u0441 \u0431\u043E\u0431\u043E\u0432\u0438" },
-  { a: "egg", b: "sweetFruit", reason: "\u044F\u0439\u0446\u0430 \u0441\u044A\u0441 \u0441\u043B\u0430\u0434\u044A\u043A \u043F\u043B\u043E\u0434" },
-  { a: "sweetener", b: "fish", reason: "\u043F\u043E\u0434\u0441\u043B\u0430\u0434\u0438\u0442\u0435\u043B \u0441 \u0440\u0438\u0431\u0430" },
-  { a: "sweetener", b: "redMeat", reason: "\u043F\u043E\u0434\u0441\u043B\u0430\u0434\u0438\u0442\u0435\u043B \u0441 \u0447\u0435\u0440\u0432\u0435\u043D\u043E \u043C\u0435\u0441\u043E" },
-  { a: "sweetener", b: "poultry", reason: "\u043F\u043E\u0434\u0441\u043B\u0430\u0434\u0438\u0442\u0435\u043B \u0441 \u043F\u0442\u0438\u0447\u0435 \u043C\u0435\u0441\u043E" },
-  // A sweet bowl is not a place for vegetables, and a nut butter is not a
-  // topping for a savoury plate — both crept in when the composer filled an
-  // energy gap with whatever was densest.
-  { a: "sweetFruit", b: "vegetable", reason: "\u0441\u043B\u0430\u0434\u044A\u043A \u043F\u043B\u043E\u0434 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A \u0432 \u0435\u0434\u043D\u043E \u044F\u0441\u0442\u0438\u0435" },
-  { a: "berry", b: "vegetable", reason: "\u0433\u043E\u0440\u0441\u043A\u0438 \u043F\u043B\u043E\u0434 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A \u0432 \u0435\u0434\u043D\u043E \u044F\u0441\u0442\u0438\u0435" },
-  { a: "nutButter", b: "vegetable", reason: "\u044F\u0434\u043A\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A" },
-  { a: "nutButter", b: "fish", reason: "\u044F\u0434\u043A\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E \u0441 \u0440\u0438\u0431\u0430" },
-  { a: "nutButter", b: "redMeat", reason: "\u044F\u0434\u043A\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E \u0441 \u0447\u0435\u0440\u0432\u0435\u043D\u043E \u043C\u0435\u0441\u043E" },
-  { a: "nutButter", b: "poultry", reason: "\u044F\u0434\u043A\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E \u0441 \u043F\u0442\u0438\u0447\u0435 \u043C\u0435\u0441\u043E" },
-  { a: "nutButter", b: "freshDairy", reason: "\u044F\u0434\u043A\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E \u0441 \u043A\u0438\u0441\u0435\u043B\u043E-\u043C\u043B\u0435\u0447\u0435\u043D \u043F\u0440\u043E\u0434\u0443\u043A\u0442" }
-];
-var KIND_COUNT_LIMITS = [
-  { kind: "starch", max: 1, reason: "\u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0442 \u0435\u0434\u0438\u043D \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0435\u043D \u0438\u0437\u0442\u043E\u0447\u043D\u0438\u043A" },
-  { kind: "redMeat", max: 1, reason: "\u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0442 \u0435\u0434\u0438\u043D \u0432\u0438\u0434 \u0447\u0435\u0440\u0432\u0435\u043D\u043E \u043C\u0435\u0441\u043E" },
-  { kind: "fish", max: 1, reason: "\u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0442 \u0435\u0434\u0438\u043D \u0432\u0438\u0434 \u0440\u0438\u0431\u0430" },
-  { kind: "freshDairy", max: 1, reason: "\u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0442 \u0435\u0434\u0438\u043D \u043A\u0438\u0441\u0435\u043B\u043E-\u043C\u043B\u0435\u0447\u0435\u043D \u043F\u0440\u043E\u0434\u0443\u043A\u0442" },
-  { kind: "oil", max: 1, reason: "\u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0442 \u0435\u0434\u043D\u0430 \u0434\u043E\u0431\u0430\u0432\u0435\u043D\u0430 \u043C\u0430\u0437\u043D\u0438\u043D\u0430" },
-  { kind: "nutButter", max: 1, reason: "\u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0442 \u0435\u0434\u043D\u043E \u044F\u0434\u043A\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E" }
-];
-var FORBIDDEN_KINDS_IN_MEAL = [
-  { kind: "sweetener", reason: "\u043F\u043E\u0434\u0441\u043B\u0430\u0434\u0438\u0442\u0435\u043B \u0432 \u043E\u0441\u043D\u043E\u0432\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" },
-  { kind: "sauce", reason: "\u0433\u043E\u0442\u043E\u0432 \u0441\u043E\u0441/\u043F\u043E\u0434\u043F\u0440\u0430\u0432\u043A\u0430 \u043A\u0430\u0442\u043E \u0441\u044A\u0441\u0442\u0430\u0432\u043A\u0430 \u043D\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435" }
-];
 function checkProductCompatibility(productNames, options = {}) {
-  const names = (productNames || []).map((n) => String(n || "").toLowerCase()).filter(Boolean);
+  const names = (productNames || []).map((n) => String(n || "").trim()).filter(Boolean);
   if (!names.length) return [];
   const issues = [];
-  const kinds = kindsIn(names);
-  for (const { kind, reason } of FORBIDDEN_KINDS_IN_MEAL) {
-    if (kind === "sweetener" && options.allowSweetener) continue;
-    const hits = kinds.get(kind);
-    if (hits?.length) issues.push(`${reason} (${[...new Set(hits)].join(", ")})`);
+  const starches = [...new Set(names.filter((n) => groupOfProduct(n) === "carb"))];
+  if (starches.length > 1) {
+    issues.push(`\u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0442 \u0435\u0434\u0438\u043D \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0435\u043D \u0438\u0437\u0442\u043E\u0447\u043D\u0438\u043A (${starches.join(", ")})`);
   }
-  for (const { kind, max, reason } of KIND_COUNT_LIMITS) {
-    const hits = kinds.get(kind);
-    if (hits && new Set(hits).size > max) {
-      issues.push(`${reason} (${[...new Set(hits)].join(", ")})`);
-    }
+  const condiments = [...new Set(names.filter((n) => groupOfProduct(n) === "condiment"))];
+  const sweeteners = condiments.filter((n) => matchesStem(n, SWEETENER_STEMS));
+  const sauces = condiments.filter((n) => !matchesStem(n, SWEETENER_STEMS));
+  if (sweeteners.length && !options.allowSweetener) {
+    issues.push(`\u043F\u043E\u0434\u0441\u043B\u0430\u0434\u0438\u0442\u0435\u043B \u0432 \u043E\u0441\u043D\u043E\u0432\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 (${sweeteners.join(", ")})`);
   }
-  const starches = new Set(kinds.get("starch") || []);
-  const legumes = new Set(kinds.get("legume") || []);
-  const crossOnly = [...legumes].filter((n) => !starches.has(n));
-  if (starches.size >= 1 && crossOnly.length) {
-    issues.push(`\u043D\u0438\u0448\u0435\u0441\u0442\u0435 \u0438 \u0431\u043E\u0431\u043E\u0432\u0438 \u0437\u0430\u0435\u0434\u043D\u043E (${[...starches, ...crossOnly].join(", ")})`);
+  if (sauces.length) {
+    issues.push(`\u0433\u043E\u0442\u043E\u0432 \u0441\u043E\u0441/\u043F\u043E\u0434\u043F\u0440\u0430\u0432\u043A\u0430 \u043A\u0430\u0442\u043E \u0441\u044A\u0441\u0442\u0430\u0432\u043A\u0430 \u043D\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435 (${sauces.join(", ")})`);
   }
-  for (const { a, b, reason } of INCOMPATIBLE_KIND_PAIRS) {
-    const hitsA = kinds.get(a);
-    const hitsB = kinds.get(b);
-    if (!hitsA?.length || !hitsB?.length) continue;
-    const distinct = /* @__PURE__ */ new Set([...hitsA, ...hitsB]);
-    if (distinct.size < 2) continue;
-    issues.push(`${reason} (${[...distinct].join(" + ")})`);
+  const fruit = [...new Set(names.filter((n) => matchesStem(n, SWEET_FRUIT_STEMS)))];
+  const flesh = [...new Set(names.filter((n) => matchesStem(n, FLESH_STEMS)))];
+  if (fruit.length && flesh.length) {
+    issues.push(`\u0441\u043B\u0430\u0434\u044A\u043A \u043F\u043B\u043E\u0434 \u0441 \u043C\u0435\u0441\u043E \u0438\u043B\u0438 \u0440\u0438\u0431\u0430 (${[...flesh, ...fruit].join(" + ")})`);
   }
   return issues;
 }
 
 // meal-combinations.js
-var SWEET_ALLOWED_SLOTS = /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5"]);
+var PLATED_SLOTS = /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"]);
+var SKIP_SLOTS = /* @__PURE__ */ new Set(["\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435", "\u041D\u0430\u043F\u0438\u0442\u043A\u0430"]);
+var MAIN_SLOTS = /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"]);
 function productNamesOf(meal) {
-  const parsed = parseMealDescription(meal.description || "");
-  if (parsed.length) return parsed.map((item2) => item2.name);
-  return String(meal.description || "").split("\n").map((line2) => line2.replace(/^[•\-*]\s*/, "").replace(/\s*\d+\s*(g|г|гр)\b.*$/i, "").trim()).filter(Boolean);
+  return parseMealDescription(meal?.description || "").map((item2) => item2.name);
 }
 function validateMealCombinations(meal) {
-  const issues = [];
-  if (!meal || meal.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" || meal.type === "\u041D\u0430\u043F\u0438\u0442\u043A\u0430") return issues;
-  const names = productNamesOf(meal);
+  if (!meal || SKIP_SLOTS.has(meal.type)) return [];
   const label = meal.name || meal.type || "\u0445\u0440\u0430\u043D\u0435\u043D\u0435";
-  const compat = checkProductCompatibility(names, {
-    allowSweetener: SWEET_ALLOWED_SLOTS.has(meal.type) || meal.dessert === true,
-    slotType: meal.type
-  });
-  for (const issue of compat) issues.push(`"${label}": ${issue}`);
-  const text = `${meal.name || ""} ${meal.description || ""}`;
-  const hasSalad = hasWord(text, "\u0441\u0430\u043B\u0430\u0442\u0430") || hasWord(text, "\u0441\u0430\u043B\u0430\u0442\u043A\u0430");
-  const looseFresh = names.some((n) => /домат|краставиц|чушк/i.test(n));
-  if (hasSalad && looseFresh && /пресн|нарязан/i.test(text)) {
-    issues.push(`"${label}": \u0441\u0430\u043B\u0430\u0442\u0430 \u0418 \u043F\u0440\u0435\u0441\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0435\u0434\u043D\u043E\u0432\u0440\u0435\u043C\u0435\u043D\u043D\u043E`);
-  }
-  return issues;
+  return checkProductCompatibility(productNamesOf(meal), {
+    allowSweetener: !PLATED_SLOTS.has(meal.type) || meal.dessert === true
+  }).map((issue) => `"${label}": ${issue}`);
 }
 function validateDayCoherence(dayPlan, dayNum = null) {
   const issues = [];
   const meals = dayPlan?.meals || [];
   const prefix = dayNum ? `\u0414\u0435\u043D ${dayNum}: ` : "";
-  const PLATED_SLOTS = /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"]);
   const seen = /* @__PURE__ */ new Map();
   for (const meal of meals) {
-    if (meal.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" || meal.type === "\u041D\u0430\u043F\u0438\u0442\u043A\u0430") continue;
+    if (SKIP_SLOTS.has(meal.type)) continue;
     const key = String(meal.name || "").trim().toLowerCase();
-    if (!key) continue;
-    seen.set(key, (seen.get(key) || 0) + 1);
+    if (key) seen.set(key, (seen.get(key) || 0) + 1);
   }
   for (const [name, count] of seen) {
     if (count > 1) issues.push(`${prefix}"${name}" \u0441\u0435 \u043F\u043E\u0432\u0442\u0430\u0440\u044F ${count} \u043F\u044A\u0442\u0438 \u0432 \u0435\u0434\u0438\u043D \u0434\u0435\u043D`);
@@ -18359,8 +18239,7 @@ function validateDayCoherence(dayPlan, dayNum = null) {
   for (const meal of meals) {
     if (!PLATED_SLOTS.has(meal.type)) continue;
     const names = productNamesOf(meal);
-    if (!names.length) continue;
-    if (!names.some((n) => kindsOf(n).has("vegetable"))) {
+    if (names.length && !names.some(isVegetableProduct)) {
       issues.push(`${prefix}"${meal.name || meal.type}": \u043E\u0441\u043D\u043E\u0432\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0431\u0435\u0437 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A`);
     }
   }
@@ -18369,14 +18248,12 @@ function validateDayCoherence(dayPlan, dayNum = null) {
 function validateWeekPlanDayCoherence(weekPlan) {
   const issues = [];
   for (let d = 1; d <= 7; d++) {
-    const day = weekPlan?.[`day${d}`];
-    if (!day?.meals) continue;
-    issues.push(...validateDayCoherence(day, d));
+    if (!weekPlan?.[`day${d}`]?.meals) continue;
+    issues.push(...validateDayCoherence(weekPlan[`day${d}`], d));
   }
   return issues;
 }
 function validateWeeklyDishVariety(weekPlan, minUniqueRatio = 0.5) {
-  const MAIN_SLOTS = /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"]);
   const dishes = [];
   for (let d = 1; d <= 7; d++) {
     for (const meal of weekPlan?.[`day${d}`]?.meals || []) {
@@ -18386,9 +18263,7 @@ function validateWeeklyDishVariety(weekPlan, minUniqueRatio = 0.5) {
   const unique = new Set(dishes).size;
   const issues = [];
   if (dishes.length && unique < Math.ceil(dishes.length * minUniqueRatio)) {
-    issues.push(
-      `\u0441\u0435\u0434\u043C\u0438\u0446\u0430\u0442\u0430 \u0438\u043C\u0430 \u0441\u0430\u043C\u043E ${unique} \u0440\u0430\u0437\u043B\u0438\u0447\u043D\u0438 \u043E\u0441\u043D\u043E\u0432\u043D\u0438 \u044F\u0441\u0442\u0438\u044F \u0437\u0430 ${dishes.length} \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F`
-    );
+    issues.push(`\u0441\u0435\u0434\u043C\u0438\u0446\u0430\u0442\u0430 \u0438\u043C\u0430 \u0441\u0430\u043C\u043E ${unique} \u0440\u0430\u0437\u043B\u0438\u0447\u043D\u0438 \u043E\u0441\u043D\u043E\u0432\u043D\u0438 \u044F\u0441\u0442\u0438\u044F \u0437\u0430 ${dishes.length} \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F`);
   }
   return { unique, total: dishes.length, issues };
 }
@@ -18570,9 +18445,6 @@ function validateWeeklyVariety(weekPlan, options = {}) {
 // step3-deterministic.js
 var DAY_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 var MAIN_MEAL_SLOTS = /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"]);
-function maxProductsForSlot(slotTarget) {
-  return (Number(slotTarget?.calories) || 0) >= 650 ? 5 : 4;
-}
 var PLATED_MEAL_SLOTS = /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"]);
 var LIGHT_SNACK_PRESETS = {
   "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3": [
@@ -18715,7 +18587,11 @@ function readyMealFitsSlot(entry, slotType) {
   if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1") return !!entry.timing?.includes("breakfast");
   return true;
 }
-function pickReadyMeal(slotType, candidatesBySlot, ctx) {
+function readyMealProducts(entry) {
+  const parts = READY_MEAL_PARTS[entry.id] || [];
+  return parts.length ? parts.map((part) => part.name) : [entry.name];
+}
+function pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx) {
   const ready = candidatesBySlot.get("READY") || [];
   let pool = ready.filter((e) => readyMealFitsSlot(e, slotType));
   if (!pool.length && slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1") {
@@ -18726,10 +18602,18 @@ function pickReadyMeal(slotType, candidatesBySlot, ctx) {
   if (ctx.blockedTerms?.length) {
     pool = pool.filter((e) => !readyMealBlocked(e, ctx.blockedTerms));
   }
-  pool = pool.filter((e) => !checkProductCompatibility(
-    (READY_MEAL_PARTS[e.id] || []).map((part) => part.name)
-  ).length);
   if (!pool.length) return null;
+  const targetKcal = Number(slotTarget?.calories) || 0;
+  if (targetKcal > 0) {
+    const reachable = pool.filter(
+      (e) => compositionCapacity(readyMealProducts(e), { kcal: targetKcal }).maxKcal >= targetKcal
+    );
+    if (reachable.length) pool = reachable;
+  }
+  if (PLATED_MEAL_SLOTS.has(slotType)) {
+    const withVegetable = pool.filter((e) => readyMealProducts(e).some(isVegetableName));
+    if (withVegetable.length) pool = withVegetable;
+  }
   return pickFromPool(pool, ctx, "READY", { exclude: ctx.dishesToday });
 }
 function readyMealBlocked(entry, blockedTerms) {
@@ -18745,6 +18629,9 @@ function filterEngPoolForSlot(pool, slotType) {
 }
 function isVolEntry(entry) {
   return entry?.slots?.includes("VOL") || entry?.group === "vegetable";
+}
+function isVegetableName(name) {
+  return resolveCatalogEntry(name).entry?.group === "vegetable";
 }
 function isProEntry(entry) {
   return entry?.slots?.includes("PRO") || ["protein", "dairy", "legume"].includes(entry?.group);
@@ -18882,85 +18769,6 @@ function recordReadyMealUse(entry, ctx) {
   }
   ctx.dishesToday.add(normalizeFoodKey(entry.name));
 }
-function ensureVegetableInMain(slotType, description, candidatesBySlot, ctx) {
-  if (!PLATED_MEAL_SLOTS.has(slotType)) return description;
-  const items = parseMealDescription(description);
-  if (items.length >= maxProductsForSlot(ctx.slotTarget)) return description;
-  if (items.some((item2) => isVolEntry(resolveCatalogEntry(item2.name).entry))) return description;
-  let pool = filterByTiming(candidatesBySlot.get("VOL") || [], slotType);
-  if (!pool.length) pool = candidatesBySlot.get("VOL") || [];
-  pool = filterDiet(pool, ctx.dietCtx).filter((e) => e.group !== "ready_meal");
-  if (ctx.blockedTerms?.length) {
-    const allowed = pool.filter((e) => !isBlockedByTerms2(e.name, ctx.blockedTerms));
-    if (allowed.length) pool = allowed;
-  }
-  const existing = items.map((i) => i.name);
-  const veg = pickCompatible(
-    pool,
-    ctx,
-    "VOL",
-    new Set(existing.map(normalizeFoodKey)),
-    existing.map((name2) => ({ name: name2 }))
-  );
-  if (!veg) return description;
-  const name = catalogName(veg.name);
-  if (!name) return description;
-  ctx.usedProducts.set(normalizeFoodKey(name), (ctx.usedProducts.get(normalizeFoodKey(name)) || 0) + 1);
-  return `${description}
-\u2022 ${name}`;
-}
-var ENERGY_FILL_ROLES = ["FAT", "PRO", "ENG"];
-function fillEnergyGap(slotType, slotTarget, description, candidatesBySlot, ctx) {
-  const targetKcal = Number(slotTarget?.calories) || 0;
-  if (targetKcal <= 0) return description;
-  let current = description;
-  for (let added = 0; added < 2; added++) {
-    const names = parseMealDescription(current).map((item2) => item2.name);
-    if (names.length >= maxProductsForSlot(slotTarget)) break;
-    const { maxKcal } = compositionCapacity(names, { kcal: targetKcal });
-    if (maxKcal >= targetKcal * 1.02) break;
-    const taken = new Set(names.map(normalizeFoodKey));
-    let picked = null;
-    let bestCapacity = maxKcal;
-    for (const role of ENERGY_FILL_ROLES) {
-      let pool = filterByTiming(candidatesBySlot.get(role) || [], slotType);
-      if (role === "ENG") pool = filterEngPoolForSlot(pool, slotType);
-      if (!pool.length) pool = candidatesBySlot.get(role) || [];
-      pool = filterDiet(pool, ctx.dietCtx);
-      if (ctx.blockedTerms?.length) {
-        const allowed = pool.filter((e) => !isBlockedByTerms2(e.name, ctx.blockedTerms));
-        if (allowed.length) pool = allowed;
-      }
-      const candidates = pool.filter((e) => e.group !== "ready_meal");
-      const rejected = new Set(taken);
-      for (let tries = 0; tries < 4; tries++) {
-        const entry = pickCompatible(
-          candidates,
-          { ...ctx, slotTarget },
-          role,
-          rejected,
-          names.map((name2) => ({ name: name2 }))
-        );
-        if (!entry) break;
-        const withEntry = compositionCapacity([...names, entry.name], { kcal: targetKcal });
-        if (withEntry.maxKcal > bestCapacity) {
-          bestCapacity = withEntry.maxKcal;
-          picked = entry;
-        }
-        if (bestCapacity >= targetKcal * 1.05) break;
-        rejected.add(normalizeFoodKey(entry.name));
-      }
-      if (bestCapacity >= targetKcal * 1.05) break;
-    }
-    if (!picked) break;
-    const name = catalogName(picked.name);
-    if (!name) break;
-    ctx.usedProducts.set(normalizeFoodKey(name), (ctx.usedProducts.get(normalizeFoodKey(name)) || 0) + 1);
-    current = `${current}
-\u2022 ${name}`;
-  }
-  return current;
-}
 function buildMealForSchemeSlot({
   slotType,
   slotTarget,
@@ -18981,19 +18789,13 @@ function buildMealForSchemeSlot({
     return { type: slotType, name: light.name, description: light.description };
   }
   if (MAIN_MEAL_SLOTS.has(slotType)) {
-    const ready = pickReadyMeal(slotType, candidatesBySlot, ctx);
+    const ready = pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx);
     if (ready) {
       recordReadyMealUse(ready, ctx);
       const meal2 = {
         type: slotType,
         name: ready.name,
-        description: fillEnergyGap(
-          slotType,
-          slotTarget,
-          ensureVegetableInMain(slotType, descriptionFromReadyMeal(ready), candidatesBySlot, ctx),
-          candidatesBySlot,
-          ctx
-        )
+        description: descriptionFromReadyMeal(ready)
       };
       if (includeDessert && slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2") meal2.dessert = true;
       return meal2;
@@ -19012,13 +18814,7 @@ function buildMealForSchemeSlot({
   const meal = {
     type: slotType,
     name,
-    description: fillEnergyGap(
-      slotType,
-      slotTarget,
-      ensureVegetableInMain(slotType, formatDescription(entries), candidatesBySlot, ctx),
-      candidatesBySlot,
-      ctx
-    )
+    description: formatDescription(entries)
   };
   if (includeDessert && slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2") meal.dessert = true;
   return meal;

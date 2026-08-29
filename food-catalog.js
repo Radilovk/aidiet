@@ -35,11 +35,11 @@ export function isMealComponentGroup(group) {
 }
 
 /**
- * Ready-meal pool size. The deterministic engine draws a whole week of main
- * meals from it, so a prompt-sized list of 8 left the week repeating three
- * dishes; the prompt asks for a shorter list of its own.
+ * The engine draws a whole week of main meals from the ready-meal pool and then
+ * narrows it per slot by energy fit, so it gets the full ranked list — capping
+ * it first only starved the high-calorie slots. The prompt, which pays per
+ * token, asks for a short list of its own.
  */
-const READY_POOL_LIMIT = 24;
 export const READY_PROMPT_LIMIT = 12;
 
 const MIN_CANDIDATES_PER_ROLE = 4;
@@ -317,7 +317,7 @@ export function getCatalogCandidatesForChunk({
   preferLove = [],
   clinicalProtocolId = null,
   adherenceRatio = null,
-  readyLimit = READY_POOL_LIMIT,
+  readyLimit = Infinity,
 }) {
   const index = buildCatalogIndex();
   const dietCtx = buildDietContext({ dietaryModifier, dietPreference, dietDislike });

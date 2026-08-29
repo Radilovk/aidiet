@@ -16,14 +16,6 @@ import { checkProductCompatibility } from './meal-compatibility.js';
 
 const DAY_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const MAIN_MEAL_SLOTS = new Set(['Хранене 1', 'Хранене 2', 'Хранене 4']);
-/**
- * A dish is at most this many products — beyond that it reads as a buffet.
- * Larger slots get one more: an 800 kcal dinner genuinely needs four or five
- * components once every portion is capped at a realistic serving.
- */
-function maxProductsForSlot(slotTarget) {
-  return (Number(slotTarget?.calories) || 0) >= 650 ? 5 : 4;
-}
 /** Lunch and dinner are plated and must carry a vegetable; breakfast need not. */
 const PLATED_MEAL_SLOTS = new Set(['Хранене 2', 'Хранене 4']);
 
@@ -200,7 +192,22 @@ function readyMealFitsSlot(entry, slotType) {
   return true;
 }
 
-function pickReadyMeal(slotType, candidatesBySlot, ctx) {
+/** Products a catalog dish actually puts on the plate. */
+function readyMealProducts(entry) {
+  const parts = READY_MEAL_PARTS[entry.id] || [];
+  return parts.length ? parts.map(part => part.name) : [entry.name];
+}
+
+/**
+ * Pick a dish that can actually reach the slot, and that carries a vegetable
+ * when the slot is a plated meal.
+ *
+ * Selecting a dish and then padding it to size was the wrong move: it bolted a
+ * calorie-dense product onto a finished dish (peanut butter into a yoghurt
+ * bowl) and then needed pairing rules to police the result. The catalog has 84
+ * dishes across the whole energy range — choosing the right one needs no rules.
+ */
+function pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx) {
   const ready = candidatesBySlot.get('READY') || [];
   let pool = ready.filter(e => readyMealFitsSlot(e, slotType));
   if (!pool.length && slotType === 'Хранене 1') {
@@ -211,10 +218,20 @@ function pickReadyMeal(slotType, candidatesBySlot, ctx) {
   if (ctx.blockedTerms?.length) {
     pool = pool.filter(e => !readyMealBlocked(e, ctx.blockedTerms));
   }
-  pool = pool.filter(e => !checkProductCompatibility(
-    (READY_MEAL_PARTS[e.id] || []).map(part => part.name),
-  ).length);
   if (!pool.length) return null;
+
+  const targetKcal = Number(slotTarget?.calories) || 0;
+  if (targetKcal > 0) {
+    const reachable = pool.filter(
+      e => compositionCapacity(readyMealProducts(e), { kcal: targetKcal }).maxKcal >= targetKcal,
+    );
+    if (reachable.length) pool = reachable;
+  }
+  if (PLATED_MEAL_SLOTS.has(slotType)) {
+    const withVegetable = pool.filter(e => readyMealProducts(e).some(isVegetableName));
+    if (withVegetable.length) pool = withVegetable;
+  }
+
   // Never the same dish twice in one day, however short the pool.
   return pickFromPool(pool, ctx, 'READY', { exclude: ctx.dishesToday });
 }
@@ -235,6 +252,10 @@ function filterEngPoolForSlot(pool, slotType) {
 
 function isVolEntry(entry) {
   return entry?.slots?.includes('VOL') || entry?.group === 'vegetable';
+}
+
+function isVegetableName(name) {
+  return resolveCatalogEntry(name).entry?.group === 'vegetable';
 }
 
 function isProEntry(entry) {
@@ -405,96 +426,6 @@ function recordReadyMealUse(entry, ctx) {
   ctx.dishesToday.add(normalizeFoodKey(entry.name));
 }
 
-/**
- * A plated main meal must carry a vegetable. Ready meals that are a single
- * ingredient (an omelette, porridge) get one added from the VOL pool so a week
- * of main meals is not seven plates of protein on their own.
- */
-function ensureVegetableInMain(slotType, description, candidatesBySlot, ctx) {
-  if (!PLATED_MEAL_SLOTS.has(slotType)) return description;
-  const items = parseMealDescription(description);
-  if (items.length >= maxProductsForSlot(ctx.slotTarget)) return description;
-  if (items.some(item => isVolEntry(resolveCatalogEntry(item.name).entry))) return description;
-
-  let pool = filterByTiming(candidatesBySlot.get('VOL') || [], slotType);
-  if (!pool.length) pool = candidatesBySlot.get('VOL') || [];
-  pool = filterDiet(pool, ctx.dietCtx).filter(e => e.group !== 'ready_meal');
-  if (ctx.blockedTerms?.length) {
-    const allowed = pool.filter(e => !isBlockedByTerms(e.name, ctx.blockedTerms));
-    if (allowed.length) pool = allowed;
-  }
-  const existing = items.map(i => i.name);
-  const veg = pickCompatible(pool, ctx, 'VOL', new Set(existing.map(normalizeFoodKey)),
-    existing.map(name => ({ name })));
-  if (!veg) return description;
-
-  const name = catalogName(veg.name);
-  if (!name) return description;
-  ctx.usedProducts.set(normalizeFoodKey(name), (ctx.usedProducts.get(normalizeFoodKey(name)) || 0) + 1);
-  return `${description}\n• ${name}`;
-}
-
-/** Roles to try when a slot needs more energy, most calorie-dense first. */
-const ENERGY_FILL_ROLES = ['FAT', 'PRO', 'ENG'];
-
-/**
- * Close an energy gap by adding a component, never by over-serving one.
- * A 470 kcal lunch of chicken and broccoli is reached with a starch or a fat,
- * not with 400 g of chicken — the portion ceilings make that explicit, so the
- * composer has to answer with a product instead.
- */
-function fillEnergyGap(slotType, slotTarget, description, candidatesBySlot, ctx) {
-  const targetKcal = Number(slotTarget?.calories) || 0;
-  if (targetKcal <= 0) return description;
-
-  let current = description;
-  for (let added = 0; added < 2; added++) {
-    const names = parseMealDescription(current).map(item => item.name);
-    if (names.length >= maxProductsForSlot(slotTarget)) break;
-    const { maxKcal } = compositionCapacity(names, { kcal: targetKcal });
-    if (maxKcal >= targetKcal * 1.02) break;
-
-    const taken = new Set(names.map(normalizeFoodKey));
-    let picked = null;
-    // Track capacity locally — catalog entries are shared objects and must
-    // never be annotated with per-call state.
-    let bestCapacity = maxKcal;
-    for (const role of ENERGY_FILL_ROLES) {
-      let pool = filterByTiming(candidatesBySlot.get(role) || [], slotType);
-      if (role === 'ENG') pool = filterEngPoolForSlot(pool, slotType);
-      if (!pool.length) pool = candidatesBySlot.get(role) || [];
-      pool = filterDiet(pool, ctx.dietCtx);
-      if (ctx.blockedTerms?.length) {
-        const allowed = pool.filter(e => !isBlockedByTerms(e.name, ctx.blockedTerms));
-        if (allowed.length) pool = allowed;
-      }
-      const candidates = pool.filter(e => e.group !== 'ready_meal');
-      const rejected = new Set(taken);
-      for (let tries = 0; tries < 4; tries++) {
-        const entry = pickCompatible(
-          candidates, { ...ctx, slotTarget }, role, rejected, names.map(name => ({ name })),
-        );
-        if (!entry) break;
-        const withEntry = compositionCapacity([...names, entry.name], { kcal: targetKcal });
-        if (withEntry.maxKcal > bestCapacity) {
-          bestCapacity = withEntry.maxKcal;
-          picked = entry;
-        }
-        if (bestCapacity >= targetKcal * 1.05) break;
-        rejected.add(normalizeFoodKey(entry.name));
-      }
-      if (bestCapacity >= targetKcal * 1.05) break;
-    }
-    if (!picked) break;
-
-    const name = catalogName(picked.name);
-    if (!name) break;
-    ctx.usedProducts.set(normalizeFoodKey(name), (ctx.usedProducts.get(normalizeFoodKey(name)) || 0) + 1);
-    current = `${current}\n• ${name}`;
-  }
-  return current;
-}
-
 function buildMealForSchemeSlot({
   slotType,
   slotTarget,
@@ -517,17 +448,13 @@ function buildMealForSchemeSlot({
 
 
   if (MAIN_MEAL_SLOTS.has(slotType)) {
-    const ready = pickReadyMeal(slotType, candidatesBySlot, ctx);
+    const ready = pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx);
     if (ready) {
       recordReadyMealUse(ready, ctx);
       const meal = {
         type: slotType,
         name: ready.name,
-        description: fillEnergyGap(
-          slotType, slotTarget,
-          ensureVegetableInMain(slotType, descriptionFromReadyMeal(ready), candidatesBySlot, ctx),
-          candidatesBySlot, ctx,
-        ),
+        description: descriptionFromReadyMeal(ready),
       };
       if (includeDessert && slotType === 'Хранене 2') meal.dessert = true;
       return meal;
@@ -547,11 +474,7 @@ function buildMealForSchemeSlot({
   const meal = {
     type: slotType,
     name,
-    description: fillEnergyGap(
-      slotType, slotTarget,
-      ensureVegetableInMain(slotType, formatDescription(entries), candidatesBySlot, ctx),
-      candidatesBySlot, ctx,
-    ),
+    description: formatDescription(entries),
   };
   if (includeDessert && slotType === 'Хранене 2') meal.dessert = true;
   return meal;
