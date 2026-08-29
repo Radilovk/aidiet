@@ -3,7 +3,15 @@
  * Replaces uniform scaling, bulk caps, protein nudges, and weight trim chain.
  */
 
-import { GRAM_STEP_SMALL, GRAM_STEP_LARGE, gramRoundStep, snapGrams, snapGramsWithinBounds } from './gram-rounding.js';
+import {
+  GRAM_STEP_SMALL,
+  GRAM_STEP_LARGE,
+  gramRoundStep,
+  gramStepForMax,
+  snapGrams,
+  snapGramsWithinBounds,
+  snapToStepWithinBounds,
+} from './gram-rounding.js';
 
 export { GRAM_STEP_SMALL, GRAM_STEP_LARGE, GRAM_LARGE_MIN } from './gram-rounding.js';
 export { snapGrams, gramRoundStep } from './gram-rounding.js';
@@ -52,12 +60,13 @@ function kcalOnlyCost(items, grams, target, maxTotalGrams) {
 function refineGrams(items, grams, bounds, target, maxTotalGrams, costFn) {
   let best = costFn(items, grams, target, maxTotalGrams);
   const inBounds = (cand, i) => cand[i] >= bounds[i].min && cand[i] <= bounds[i].max;
+  const itemSteps = bounds.map(b => gramStepForMax(b.max));
 
   for (let iter = 0; iter < MAX_ITERATIONS; iter++) {
     let move = null;
 
     for (let i = 0; i < items.length; i++) {
-      const steps = new Set([gramRoundStep(grams[i]), GRAM_STEP_SMALL, GRAM_STEP_LARGE]);
+      const steps = new Set([itemSteps[i], gramRoundStep(grams[i]), GRAM_STEP_SMALL, GRAM_STEP_LARGE]);
       for (const st of steps) {
         for (const dir of [1, -1]) {
           const cand = grams.slice();
@@ -72,7 +81,7 @@ function refineGrams(items, grams, bounds, target, maxTotalGrams, costFn) {
     for (let i = 0; i < items.length; i++) {
       for (let j = 0; j < items.length; j++) {
         if (i === j) continue;
-        for (const st of [GRAM_STEP_SMALL, GRAM_STEP_LARGE]) {
+        for (const st of new Set([itemSteps[i], itemSteps[j], GRAM_STEP_SMALL, GRAM_STEP_LARGE])) {
           const cand = grams.slice();
           cand[i] += st;
           cand[j] -= st;
@@ -90,7 +99,8 @@ function refineGrams(items, grams, bounds, target, maxTotalGrams, costFn) {
 }
 
 function snapGramsInBounds(grams, bounds) {
-  return grams.map((g, i) => snapGramsWithinBounds(g, bounds[i].min, bounds[i].max));
+  return grams.map((g, i) =>
+    snapToStepWithinBounds(g, gramStepForMax(bounds[i].max), bounds[i].min, bounds[i].max));
 }
 
 /**

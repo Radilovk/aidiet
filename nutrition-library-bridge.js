@@ -6,6 +6,13 @@
 import { FOOD_CATALOG } from './food-catalog-data.js';
 import { normalizeFoodKey } from './food-utils.js';
 import {
+  repairLibraryFood,
+  portionCeilingForGroup,
+  repairReadyMealIngredients,
+  isCoherentReadyMeal,
+  libraryNutritionPer100g,
+} from './nutrition-library-repair.js';
+import {
   LIBRARY_FOODS,
   LIBRARY_READY_MEALS,
   LIBRARY_MEAL_TEMPLATES,
@@ -162,14 +169,6 @@ function fixNutritionKeyFromFoodId(foodId, nameBg) {
   return normalizeFoodKey(nameBg);
 }
 
-function dietFlagsFromLibrary(food) {
-  const excluded = new Set((food.excluded_in || []).map(String));
-  const vegan = excluded.has('vegan');
-  const vegetarian = vegan || excluded.has('vegetarian');
-  const tags = food.tags || [];
-  const fodmapHigh = tags.includes('fodmap_high');
-  return { vegan, vegetarian, fodmapHigh, excludedIn: [...excluded], allowedIn: food.allowed_in || [] };
-}
 
 function universalityForGroup(groupId) {
   if (['meat', 'fish', 'seafood', 'eggs', 'dairy'].includes(groupId)) return 4;
@@ -178,51 +177,60 @@ function universalityForGroup(groupId) {
   return 3;
 }
 
-/** Composite dishes belong in ready_meal pool only — not as atomic VOL/PRO picks. */
-const COMPOSITE_DISH_NAME = /яхния|супа|с картофи|с пиле|ориз с|риба с|каша|омлет|сандвич|на скара|на фурна|купа с|плескавиц|мусака/i;
-
-/** Herbs/spices sometimes stored as vegetables in library imports. */
-const HERB_SPICE_NAME = /^(босилек|риган|мащерка|синап|горчица|чили|черен пипер|бял пипер|кимион|копър|магданоз|хрян|стевия|оцет|куркума|канела|сумак|салвия)/i;
-
-function resolveLibraryGroupId(food) {
-  const name = food.name_bg || food.name || '';
-  if (COMPOSITE_DISH_NAME.test(name)) return null;
-  if (HERB_SPICE_NAME.test(name.trim())) return 'herbs_spices';
-  if (/макарон|паста|спагет/i.test(name)) return 'refined_grains';
-  return food.group_id || 'vegetables';
-}
-
 /** Convert one library food row → catalog entry (for overlay). */
 export function libraryFoodToCatalogEntry(food) {
-  const groupId = resolveLibraryGroupId(food);
-  if (!groupId) return null;
-  const name = food.name_bg || food.name;
-  const nutritionKey = fixNutritionKeyFromFoodId(food.id, name);
-  const flags = dietFlagsFromLibrary(food);
+  const fixed = repairLibraryFood(food);
+  if (!fixed) return null;
+  const { id, name, groupId, portionG } = fixed;
+  const nutritionKey = fixNutritionKeyFromFoodId(id, name);
+  // Portion may have been clamped down — rescale the stored macros with it so a
+  // 150g "portion of basil" does not advertise 150g worth of nutrition.
+  const portionRatio = Number(food.portion_g) > 0 ? portionG / Number(food.portion_g) : 1;
   return {
-    id: food.id.startsWith('food_') ? `lib_${food.id}` : `lib_${food.id}`,
+    id: `lib_${id}`,
     name,
     nutritionKey,
     group: GROUP_TO_CATALOG[groupId] || 'vegetable',
     slots: GROUP_TO_SLOTS[groupId] || ['VOL'],
     timing: GROUP_TO_TIMING[groupId] || ['main'],
     universality: universalityForGroup(groupId),
-    vegan: flags.vegan,
-    vegetarian: flags.vegetarian,
+    vegan: fixed.vegan,
+    vegetarian: fixed.vegetarian,
     libraryGroupId: groupId,
-    portionG: food.portion_g || null,
-    libraryTags: food.tags || [],
-    allowedIn: flags.allowedIn,
-    excludedIn: flags.excludedIn,
-    fixedNutrition: food.portion_g ? {
-      kcal: food.kcal,
-      p: food.protein_g,
-      c: food.carbs_g,
-      f: food.fat_g,
-      weightGrams: food.portion_g,
+    portionG,
+    maxPortionG: portionCeilingForGroup(groupId),
+    libraryTags: fixed.tags,
+    allowedIn: fixed.allowedIn,
+    excludedIn: fixed.excludedIn,
+    fixedNutrition: portionG ? {
+      kcal: Math.round((Number(food.kcal) || 0) * portionRatio),
+      p: Math.round((Number(food.protein_g) || 0) * portionRatio * 10) / 10,
+      c: Math.round((Number(food.carbs_g) || 0) * portionRatio * 10) / 10,
+      f: Math.round((Number(food.fat_g) || 0) * portionRatio * 10) / 10,
+      weightGrams: portionG,
     } : null,
     source: 'nutrition_library',
   };
+}
+
+/**
+ * Nutrition profiles for library foods, keyed the same way the catalog is.
+ * Merged into the nutrition database so no catalog entry is ever priced by a
+ * fuzzy name match.
+ * @returns {Record<string, [number, number, number, number]>}
+ */
+export function getLibraryNutritionPer100g() {
+  /** @type {Record<string, [number, number, number, number]>} */
+  const out = {};
+  for (const food of LIBRARY_FOODS) {
+    const fixed = repairLibraryFood(food);
+    if (!fixed) continue;
+    const per100 = libraryNutritionPer100g(food);
+    if (!per100) continue;
+    const key = normalizeFoodKey(fixNutritionKeyFromFoodId(fixed.id, fixed.name));
+    if (key) out[key] = per100;
+  }
+  return out;
 }
 
 /** Library foods as catalog overlay — all entries with lib_ prefix for assembler. */
@@ -232,7 +240,7 @@ export function getLibraryCatalogOverlay() {
 
 /** Ready meals from library as catalog ready_meal entries. */
 export function getLibraryReadyMealCatalogEntries() {
-  return LIBRARY_READY_MEALS.map(meal => {
+  return usableLibraryReadyMeals().meals.map(meal => {
     const mealType = LIBRARY_MEAL_TYPE_MAP[meal.meal_type] || LIBRARY_MEAL_TYPE_MAP.lunch;
     return {
       id: meal.id,
@@ -258,12 +266,25 @@ export function getLibraryReadyMealCatalogEntries() {
 }
 
 /** Decompose map: meal id → [{ name, share }] from library ingredient grams. */
-export function buildLibraryReadyMealParts() {
+/** Library ready meals whose ingredient list survives repair + coherence check. */
+function usableLibraryReadyMeals() {
   const foodById = new Map(LIBRARY_FOODS.map(f => [f.id, f]));
-  const parts = {};
+  const out = [];
   for (const meal of LIBRARY_READY_MEALS) {
-    const totalG = (meal.ingredients || []).reduce((s, i) => s + (i.grams || 0), 0);
-    if (!totalG) continue;
+    const repaired = repairReadyMealIngredients(meal);
+    if (!repaired) continue;
+    if (!isCoherentReadyMeal(repaired, foodById)) continue;
+    if (!repaired.ingredients.reduce((s, i) => s + (i.grams || 0), 0)) continue;
+    out.push({ ...meal, ingredients: repaired.ingredients });
+  }
+  return { meals: out, foodById };
+}
+
+export function buildLibraryReadyMealParts() {
+  const { meals, foodById } = usableLibraryReadyMeals();
+  const parts = {};
+  for (const meal of meals) {
+    const totalG = meal.ingredients.reduce((s, i) => s + (i.grams || 0), 0);
     parts[meal.id] = meal.ingredients.map(ing => {
       const food = foodById.get(ing.food_id);
       const name = food?.name_bg || ing.food_id;
@@ -300,19 +321,46 @@ export function filterLibraryFoodsByDiet(profileId, extraExcludedGroups = []) {
 }
 
 /** Merge stats for diagnostics. */
+/**
+ * Merge base catalog with overlay entries — the single implementation shared by
+ * the registry and the merge stats, so the two can never report different sets.
+ *
+ * An overlay row whose name already exists in the curated base catalog is
+ * dropped rather than merged: the ids differ, so both used to survive, and a
+ * library *food* then shadowed a base *dish* of the same name.
+ */
+export function mergeCatalogEntries(base, overlays = []) {
+  const byId = new Map(base.map(e => [e.id, e]));
+  // Names, aliases AND nutrition keys: the registry indexes all three, so a
+  // library food colliding on any of them shadows the curated entry.
+  const baseKeys = new Set();
+  for (const e of base) {
+    baseKeys.add(normalizeFoodKey(e.name));
+    baseKeys.add(normalizeFoodKey(e.nutritionKey));
+    for (const alias of e.aliases || []) baseKeys.add(normalizeFoodKey(alias));
+  }
+  baseKeys.delete('');
+  for (const e of overlays) {
+    if (!e?.id) continue;
+    if (baseKeys.has(normalizeFoodKey(e.name))) continue;
+    if (baseKeys.has(normalizeFoodKey(e.nutritionKey))) continue;
+    byId.set(e.id, e);
+  }
+  return [...byId.values()];
+}
+
 export function getLibraryMergeStats() {
   const overlay = getLibraryCatalogOverlay();
   const readyCatalog = getLibraryReadyMealCatalogEntries();
-  const byId = new Map(FOOD_CATALOG.map(e => [e.id, e]));
-  for (const e of [...overlay, ...readyCatalog]) {
-    if (e?.id) byId.set(e.id, /** @type {(typeof FOOD_CATALOG)[number]} */ (/** @type {unknown} */ (e)));
-  }
+  // Count what the registry actually merges, not a second reimplementation of
+  // the merge — the two drifted apart once name-collision dropping was added.
+  const mergedTotal = mergeCatalogEntries(FOOD_CATALOG, [...overlay, ...readyCatalog]).length;
   return {
     version: NUTRITION_LIBRARY_VERSION,
     libraryFoods: LIBRARY_FOODS.length,
     catalogOverlay: overlay.length,
     baseCatalog: FOOD_CATALOG.length,
-    mergedTotal: byId.size,
+    mergedTotal,
     readyMeals: LIBRARY_READY_MEALS.length,
     readyMealCatalog: readyCatalog.length,
     mealTemplates: LIBRARY_MEAL_TEMPLATES.length,

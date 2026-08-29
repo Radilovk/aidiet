@@ -184,7 +184,7 @@ export const FOOD_CATALOG = [
 
   // ── CONDIMENTS (small portions, not macro drivers) ──
   item('cond_soy', 'Соев сос', 'соев сос', 'condiment', ['VOL'], ['main'], 4, { vegan: true, vegetarian: true }),
-  item('cond_hummus', 'Хумус', 'хумус', 'condiment', ['PRO', 'FAT'], ['snack', 'main'], 4, { vegan: true, vegetarian: true }),
+  item('leg_hummus', 'Хумус', 'хумус', 'legume', ['PRO', 'FAT'], ['snack', 'main'], 4, { vegan: true, vegetarian: true }),
   item('cond_mustard', 'Горчица', 'горчица', 'condiment', ['VOL'], ['main'], 4, { vegan: true, vegetarian: true }),
   item('cond_lemon_juice', 'Лимонов сок', 'лимонов сок', 'condiment', ['VOL'], ['main'], 4, { vegan: true, vegetarian: true }),
   item('cond_vinegar', 'Оцет', 'оцет', 'condiment', ['VOL'], ['main'], 4, { vegan: true, vegetarian: true }),
@@ -234,6 +234,30 @@ export const FOOD_CATALOG = [
   item('meal_hummus_bread', 'Хумус с хляб', 'хумус с хляб', 'ready_meal', ['PRO', 'ENG'], ['main', 'snack'], 4, { vegan: true, vegetarian: true }),
   item('meal_chicken_spinach', 'Пилешко със спанак', 'пилешко със спанак', 'ready_meal', ['PRO', 'VOL'], ['main'], 4),
   item('meal_fish_veg', 'Риба със зеленчук', 'риба със зеленчук', 'ready_meal', ['PRO', 'VOL'], ['main'], 4),
+
+  // ── Vegan breakfasts and mains — the vegan pool had one breakfast dish, so
+  //    a whole week repeated it. ──
+  item('meal_oat_plant_berries', 'Овесена каша с растително мляко', 'овесена каша с растително мляко', 'ready_meal', ['ENG', 'PRO'], ['breakfast'], 4, { vegan: true, vegetarian: true }),
+  item('meal_tofu_toast', 'Тофу с пълнозърнест хляб', 'тофу с пълнозърнест хляб', 'ready_meal', ['PRO', 'ENG'], ['breakfast', 'main'], 3, { vegan: true, vegetarian: true }),
+  item('meal_chia_plant_bowl', 'Чиа пудинг с растително мляко', 'чиа пудинг', 'ready_meal', ['FAT', 'PRO'], ['breakfast', 'snack'], 3, { vegan: true, vegetarian: true }),
+  item('meal_avocado_toast', 'Авокадо върху хляб', 'авокадо върху хляб', 'ready_meal', ['FAT', 'ENG'], ['breakfast'], 4, { vegan: true, vegetarian: true }),
+  item('meal_bean_salad', 'Салата с боб', 'салата с боб', 'ready_meal', ['PRO', 'VOL'], ['main'], 3, { vegan: true, vegetarian: true }),
+  item('meal_tempeh_bulgur', 'Темпе с булгур', 'темпе с булгур', 'ready_meal', ['PRO', 'ENG'], ['main'], 3, { vegan: true, vegetarian: true }),
+  item('meal_pea_quinoa', 'Киноа с грах', 'киноа с грах', 'ready_meal', ['ENG', 'PRO'], ['main'], 3, { vegan: true, vegetarian: true }),
+
+  // ── Keto / low-carb dishes: without them a ketogenic week fell back to eggs. ──
+  item('meal_egg_avocado_spinach', 'Яйца с авокадо и спанак', 'яйца с авокадо и спанак', 'ready_meal', ['PRO', 'FAT'], ['breakfast'], 4, { vegetarian: true }),
+  item('meal_cottage_nuts_veg', 'Извара с орехи и зеленчуци', 'извара с орехи и зеленчуци', 'ready_meal', ['PRO', 'FAT'], ['breakfast', 'snack'], 3, { vegetarian: true }),
+  item('meal_salmon_avocado', 'Сьомга с авокадо', 'сьомга с авокадо', 'ready_meal', ['PRO', 'FAT'], ['main'], 3),
+  item('meal_chicken_cheese_salad', 'Пилешка салата със сирене', 'пилешка салата със сирене', 'ready_meal', ['PRO', 'FAT'], ['main'], 3),
+  item('meal_beef_mushrooms', 'Говеждо с гъби', 'говеждо с гъби', 'ready_meal', ['PRO', 'VOL'], ['main'], 3),
+
+  // ── General variety for main slots ──
+  item('meal_chicken_bulgur_salad', 'Пиле с булгур и салата', 'пиле с булгур и салата', 'ready_meal', ['PRO', 'ENG'], ['main'], 3),
+  item('meal_turkey_potato', 'Пуешко с картофи', 'пуешко с картофи', 'ready_meal', ['PRO', 'ENG'], ['main'], 3),
+  item('meal_cod_quinoa', 'Треска с киноа', 'треска с киноа', 'ready_meal', ['PRO', 'ENG'], ['main'], 3),
+  item('meal_yogurt_oats_nuts', 'Кисело мляко с овес и орехи', 'кисело мляко с овес и орехи', 'ready_meal', ['PRO', 'ENG'], ['breakfast'], 4, { vegetarian: true }),
+  item('meal_egg_bread_cheese', 'Яйца с хляб и сирене', 'яйца с хляб и сирене', 'ready_meal', ['PRO', 'ENG'], ['breakfast'], 3, { vegetarian: true }),
 ];
 
 /**
