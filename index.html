@@ -4488,6 +4488,13 @@
             }
         };
 
+        /* Narrow hook for the SPA shell (app.js), which hosts this page but has no
+         * Firebase instance of its own. Signing out is what actually ends the
+         * session — clearing localStorage alone leaves the auth token in place. */
+        window.NutriPlanAuthSignOut = function() {
+            return signOut(auth).catch(() => {});
+        };
+
         window.indexSignOut = async function() {
             setLoggedOutNavigationState();
             await signOut(auth).catch(() => {});

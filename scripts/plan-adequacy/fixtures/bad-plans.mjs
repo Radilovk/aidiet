@@ -36,10 +36,13 @@ export const BAD_MEALS = {
     calories: 700,
     macros: { protein: 45, carbs: 80, fats: 15 },
   },
-  peasAndFish: {
+  // Was "грах с риба" — a food-combining myth, not a defect: fish with a pea
+  // purée is an ordinary dish. Replaced with a real one: a table sauce listed
+  // as a component of a plated meal.
+  sauceAsComponent: {
     type: 'Хранене 4',
-    name: 'Грах с риба',
-    description: '• Риба 200g\n• Грах 100g\n• Зехтир 10g',
+    name: 'Пиле с лютеница',
+    description: '• Пилешко месо 200g\n• Лютеница 60g\n• Зехтин 10g',
     calories: 480,
     macros: { protein: 38, carbs: 25, fats: 20 },
   },

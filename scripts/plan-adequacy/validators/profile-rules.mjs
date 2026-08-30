@@ -1,5 +1,5 @@
 import { MAX_LATE_SNACK_CALORIES } from '../constants.mjs';
-import { isMealCaloriesAdequate } from '../../../plan-normalize.js';
+import { isWithinSlotCap } from '../../../plan-normalize.js';
 import { parseMealDescription } from '../../../food-nutrition.js';
 
 export function userSkipsBreakfast(profile) {
@@ -16,7 +16,7 @@ export function hasSweetCraving(profile) {
 /** H5 scheme slot: fail only when over cap (under-cap is OK within adequacy contract). */
 export function validateH5SchemeSlot(slotCalories) {
   const cal = Number(slotCalories) || 0;
-  if (cal > MAX_LATE_SNACK_CALORIES && !isMealCaloriesAdequate(cal, MAX_LATE_SNACK_CALORIES)) {
+  if (!isWithinSlotCap(cal, MAX_LATE_SNACK_CALORIES)) {
     return `H5 slot: ${cal} kcal > ${MAX_LATE_SNACK_CALORIES}`;
   }
   return null;

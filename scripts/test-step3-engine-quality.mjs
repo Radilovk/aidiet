@@ -22,7 +22,10 @@ import {
   validateWeeklyDishVariety,
 } from '../meal-combinations.js';
 import { resolveCatalogEntry } from '../food-catalog.js';
+import { READY_MEAL_PARTS } from '../ready-meal-parts.js';
+import { normalizeFoodKey } from '../food-utils.js';
 import { maxPortionGrams } from '../portion-limits.js';
+import { isValidGramStep } from '../gram-rounding.js';
 import { PROFILES } from './plan-adequacy/fixtures/profiles.mjs';
 import { buildGoldenAnalysis } from './plan-adequacy/fixtures/golden-analysis.mjs';
 
@@ -169,13 +172,12 @@ for (let d = 1; d <= 7; d++) {
     for (const item of parseMealDescription(meal.description || '')) {
       const g = item.grams || 0;
       if (g <= 0) continue;
-      // Per-item grid (see gram-rounding.gramStepForMax): every gram value must
-      // land on one of the allowed steps, never on an arbitrary number.
-      if (![5, 10, 25, 50].some(step => g % step === 0)) badGramSteps.push(`${item.name} ${g}g`);
+      // Продуктово правило: под 50 г — стъпка 5 г; от 50 г нагоре — 50 г.
+      if (!isValidGramStep(g)) badGramSteps.push(`${item.name} ${g}g`);
     }
   }
 }
-ok(badGramSteps.length === 0, `grams on 5g/50g grid (${badGramSteps.slice(0, 3).join(', ') || 'ok'})`);
+ok(badGramSteps.length === 0, `grams on the 5g/50g grid (${badGramSteps.slice(0, 3).join(', ') || 'ok'})`);
 
 // Saturday free day option
 const satStrategy = buildDeterministicStrategy({
@@ -234,11 +236,39 @@ for (const { profile, analysis: golden } of matrixProfiles) {
     const schemeKcal = (strat.weeklyScheme[DAY_KEYS[d - 1]].mealBreakdown || [])
       .filter(m => m.type !== 'Свободно хранене')
       .reduce((sum, m) => sum + (Number(m.calories) || 0), 0);
-    if (schemeKcal > 0 && Math.abs(kcalDay - schemeKcal) > schemeKcal * 0.12) {
+    if (schemeKcal > 0 && Math.abs(kcalDay - schemeKcal) > schemeKcal * 0.11) {
       dayDrift.push(`д${d} ${Math.round(kcalDay)} vs ${schemeKcal}`);
     }
   }
-  ok(dayDrift.length === 0, `${label}: day totals within 12% of scheme`, dayDrift.join(', '));
+  ok(dayDrift.length === 0, `${label}: day totals within 11% of scheme`, dayDrift.join(', '));
+
+  // Всеки грамаж в плана трябва да е на мрежата 5/50.
+  const offGrid = [];
+  for (let d = 1; d <= 7; d++) {
+    for (const meal of week[`day${d}`]?.meals || []) {
+      for (const item of parseMealDescription(meal.description || '')) {
+        if (!isValidGramStep(item.grams)) offGrid.push(`д${d} ${item.name} ${item.grams}g`);
+      }
+    }
+  }
+  ok(offGrid.length === 0, `${label}: всички грамажи на мрежата 5/50`, offGrid.slice(0, 3).join(', '));
+
+  // Гарнитурата не може да се превърне в носеща съставка на ястието.
+  const bloated = [];
+  for (let d = 1; d <= 7; d++) {
+    for (const meal of week[`day${d}`]?.meals || []) {
+      const parts = meal.dishId ? READY_MEAL_PARTS[meal.dishId] : null;
+      if (!parts?.length) continue;
+      for (const item of parseMealDescription(meal.description || '')) {
+        const part = parts.find(pt => normalizeFoodKey(pt.name) === normalizeFoodKey(item.name));
+        if (part?.grams && item.grams > part.grams * 2.5) {
+          bloated.push(`д${d} ${meal.name}: ${item.name} ${item.grams}g срещу ${part.grams}g в рецептата`);
+        }
+      }
+    }
+  }
+  ok(bloated.length === 0, `${label}: продуктите пазят пропорцията на ястието`,
+    bloated.slice(0, 2).join('; '));
 
   // Portion sanity: nothing may exceed its realistic serving.
   const overPortion = [];

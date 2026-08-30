@@ -829,6 +829,30 @@
             || window.location.protocol === 'file:';
     }
 
+    /** Clear the signed-in user's data from shell storage; never throws. */
+    function clearShellSession() {
+        var session = window.NutriPlanSession;
+        var signedOut = Promise.resolve();
+        try {
+            if (typeof window.NutriPlanAuthSignOut === 'function') {
+                signedOut = Promise.resolve(window.NutriPlanAuthSignOut()).catch(function () {});
+            }
+        } catch (_) {}
+        return signedOut.then(function () { return clearShellStorage(session); });
+    }
+
+    function clearShellStorage(session) {
+        try {
+            if (session && typeof session.clearAuthSessionKeepingAnalytics === 'function') {
+                return Promise.resolve(session.clearAuthSessionKeepingAnalytics()).catch(function () {});
+            }
+            if (session && typeof session.clearUserSessionData === 'function') {
+                return Promise.resolve(session.clearUserSessionData()).catch(function () {});
+            }
+        } catch (_) {}
+        return Promise.resolve();
+    }
+
     function handleShellMessage(event) {
         if (!isTrustedShellMessage(event)) return;
         var data = event.data;
@@ -879,7 +903,13 @@
             var shell = document.getElementById('spaShell');
             if (shell) shell.hidden = true;
             document.body.classList.remove('spa-mode');
-            window.location.replace('index.html?stay=1&login=1');
+            // Clear here too. The tab that asked for logout is expected to have
+            // signed out and cleared already, but the shell owns the storage the
+            // next screen reads — leaving that to the caller is how logout came
+            // to be "navigate only" inside the app.
+            clearShellSession().then(function() {
+                window.location.replace('index.html?stay=1&login=1');
+            });
             return;
         }
         if (data.type === 'NUTRIPLAN_HAPTIC') {

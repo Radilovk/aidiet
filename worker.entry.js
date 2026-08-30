@@ -64,6 +64,7 @@ import {
   isMealCaloriesAdequate,
   enforceFixedSlotCaps,
   MAX_LATE_SNACK_CALORIES,
+  DAY_CALORIE_TOLERANCE_PERCENT,
 } from './plan-normalize.js';
 import {
   buildCatalogPromptSection,
@@ -76,7 +77,7 @@ import {
   validateWeekPlanDayCoherence,
   validateWeeklyDishVariety,
 } from './meal-combinations.js';
-import { setCatalogOverlay } from './food-registry.js';
+import { setCatalogOverlay, setDishOverlay } from './food-registry.js';
 import { ensurePlanSourceMeta } from './plan-source-meta.js';
 import {
   serializePreviousDaysProducts,
@@ -124,6 +125,9 @@ import {
   writeOverlayToKv,
   upsertOverlayEntry,
   deleteOverlayEntry,
+  upsertDish,
+  removeDish,
+  restoreDish,
   filterOverlayEntries,
   validateOverlayEntry,
   normalizeOverlayEntry,
@@ -4043,6 +4047,9 @@ async function loadCatalogRegistryOverlay(env) {
     const entries = Array.isArray(parsed) ? parsed : parsed?.entries;
     const label = Array.isArray(parsed) ? '' : (parsed?.version || parsed?.label || '');
     if (entries?.length) setCatalogOverlay(entries, label);
+    const dishes = Array.isArray(parsed) ? [] : (parsed?.dishes || []);
+    const disabled = Array.isArray(parsed) ? [] : (parsed?.disabledDishes || []);
+    if (dishes.length || disabled.length) setDishOverlay(dishes, disabled);
   } catch (e) {
     console.warn('[food-registry] overlay load failed:', e.message);
   }
@@ -8353,7 +8360,8 @@ function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay
       let dayKcalOk = false;
       if (dayKcal > 0 && schemeKcal > 0) {
         const tol = calorieTolerance(schemeKcal);
-        dayKcalOk = Math.abs(dayKcal - schemeKcal) <= tol * 2;
+        // Денят е договорът: тук е стегнато, за сметка на свободата в слота.
+        dayKcalOk = Math.abs(dayKcal - schemeKcal) <= schemeKcal * DAY_CALORIE_TOLERANCE_PERCENT;
         if (!dayKcalOk) {
           blocking.push(`Ден ${d}: дневни ${dayKcal} kcal ≠ схема ${schemeKcal}`);
         }
@@ -13711,6 +13719,11 @@ async function handleGetFoodCatalogOverlay(request, env) {
       baseCount: doc.baseCount,
       entries,
       count: entries.length,
+      // Dishes the plan picks main meals from: the hand-maintained base list,
+      // plus admin additions, minus the base ones the admin switched off.
+      baseDishes: doc.baseDishes,
+      dishes: doc.dishes,
+      disabledDishes: doc.disabledDishes,
     });
   } catch (error) {
     console.error('[FoodCatalog] get overlay:', error);
@@ -13726,10 +13739,50 @@ async function handleSaveFoodCatalogOverlay(request, env) {
     const body = await request.json();
     const entries = body.entries || [];
     const label = body.label || '';
-    const doc = await writeOverlayToKv(env, entries, label);
+    const current = await readOverlayFromKv(env);
+    const dishes = body.dishes ?? current.dishes;
+    const disabledDishes = body.disabledDishes ?? current.disabledDishes;
+    const doc = await writeOverlayToKv(env, entries, label, dishes, disabledDishes);
     return jsonResponse({ success: true, ...doc, count: doc.entries.length });
   } catch (error) {
     return jsonResponse({ error: error.message }, 500);
+  }
+}
+
+async function handlePutDish(request, env, dishId) {
+  if (!checkAdminSecret(request, env)) {
+    return jsonResponse({ error: 'Неоторизиран достъп' }, 401);
+  }
+  try {
+    const body = await request.json();
+    const doc = await upsertDish(env, { ...body, id: dishId });
+    return jsonResponse({ success: true, dishes: doc.dishes, disabledDishes: doc.disabledDishes });
+  } catch (error) {
+    return jsonResponse({ error: error.message }, 400);
+  }
+}
+
+async function handleDeleteDish(request, env, dishId) {
+  if (!checkAdminSecret(request, env)) {
+    return jsonResponse({ error: 'Неоторизиран достъп' }, 401);
+  }
+  try {
+    const doc = await removeDish(env, dishId);
+    return jsonResponse({ success: true, dishes: doc.dishes, disabledDishes: doc.disabledDishes });
+  } catch (error) {
+    return jsonResponse({ error: error.message }, 400);
+  }
+}
+
+async function handleRestoreDish(request, env, dishId) {
+  if (!checkAdminSecret(request, env)) {
+    return jsonResponse({ error: 'Неоторизиран достъп' }, 401);
+  }
+  try {
+    const doc = await restoreDish(env, dishId);
+    return jsonResponse({ success: true, dishes: doc.dishes, disabledDishes: doc.disabledDishes });
+  } catch (error) {
+    return jsonResponse({ error: error.message }, 400);
   }
 }
 
@@ -16937,6 +16990,12 @@ export default {
         return await handleGetFoodCatalogOverlay(request, env);
       } else if (url.pathname === '/api/admin/food-catalog/save' && request.method === 'POST') {
         return await handleSaveFoodCatalogOverlay(request, env);
+      } else if (/^\/api\/admin\/dishes\/[^/]+\/restore$/.test(url.pathname) && request.method === 'POST') {
+        return await handleRestoreDish(request, env, decodeURIComponent(url.pathname.split('/').at(-2)));
+      } else if (/^\/api\/admin\/dishes\/[^/]+$/.test(url.pathname) && request.method === 'PUT') {
+        return await handlePutDish(request, env, decodeURIComponent(url.pathname.split('/').pop()));
+      } else if (/^\/api\/admin\/dishes\/[^/]+$/.test(url.pathname) && request.method === 'DELETE') {
+        return await handleDeleteDish(request, env, decodeURIComponent(url.pathname.split('/').pop()));
       } else if (/^\/api\/admin\/food-catalog\/[^/]+$/.test(url.pathname) && request.method === 'PUT') {
         const entryId = decodeURIComponent(url.pathname.split('/').pop());
         return await handlePutFoodCatalogOverlayEntry(request, env, entryId);

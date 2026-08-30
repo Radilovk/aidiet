@@ -5,6 +5,7 @@
  */
 import {
   isMealCaloriesAdequate,
+  isWithinSlotCap,
   slotCalorieTolerance,
   validateLateSnackSlotContent,
   validateLightMealSlotContent,
@@ -46,9 +47,13 @@ console.log('-- 1. Calorie adequacy tolerance (±10%) --');
   check('836 vs 900 adequate', isMealCaloriesAdequate(836, 900));
   check('562 vs 611 adequate', isMealCaloriesAdequate(562, 611));
   check('700 vs 900 NOT adequate', !isMealCaloriesAdequate(700, 900));
-  check('162 vs 200 under-cap NOT equal to target', !isMealCaloriesAdequate(162, 200));
+  // Слотът има широк допуск (грамажите вървят по 50 г, денят носи баланса),
+  // но таванът на междинното хранене остава таван.
+  check('162 под таван 200 е в допуска', isMealCaloriesAdequate(162, 200));
+  check('H5 235 над таван 200 се хваща', !isWithinSlotCap(235, 200));
+  check('H5 206 близо до тавана минава', isWithinSlotCap(206, 200));
   check('H5 scheme allows under-cap 162', !validateH5SchemeSlot(162));
-  check('tolerance(900)=90', slotCalorieTolerance(900) === 90);
+  check('tolerance(900)=162', slotCalorieTolerance(900) === 162, String(slotCalorieTolerance(900)));
 }
 
 console.log('\n-- 2. H5 scheme slot (over-cap only) --');

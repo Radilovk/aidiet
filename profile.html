@@ -2733,8 +2733,9 @@
         }
 
         window.doLogout = window.doLogout || async function() {
-            if (requestShellAction('NUTRIPLAN_LOGOUT')) return;
+            /* Clear before delegating — see the note on the Firebase-aware copy. */
             await clearProfileSessionFallback();
+            if (requestShellAction('NUTRIPLAN_LOGOUT')) return;
             window.location.replace('index.html?stay=1&login=1');
         };
 
@@ -4384,7 +4385,11 @@
             });
 
             window.doLogout = async function() {
-                if (requestShellAction('NUTRIPLAN_LOGOUT')) return;
+                /* Sign out and clear FIRST, ask the shell to navigate afterwards.
+                 * Delegating to the shell before doing the work meant that inside
+                 * the SPA shell (web tabs and the APK) logout only changed the
+                 * page: the Firebase session and every plan key survived, and the
+                 * next load signed the user straight back in. */
                 await signOut(auth).catch(() => {});
                 if (window.NutriPlanSession && typeof window.NutriPlanSession.clearAuthSessionKeepingAnalytics === 'function') {
                     await window.NutriPlanSession.clearAuthSessionKeepingAnalytics();
@@ -4393,6 +4398,7 @@
                 } else {
                     _clearUserPlanData();
                 }
+                if (requestShellAction('NUTRIPLAN_LOGOUT')) return;
                 /* Navigate home after logout */
                 window.location.replace('index.html?stay=1&login=1');
             };

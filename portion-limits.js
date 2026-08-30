@@ -32,8 +32,8 @@ export const GROUP_MIN_PORTION_G = {
   fat: 5,
   dairy: 30,
   protein: 30,
-  vegetable: 50,
-  fruit: 50,
+  vegetable: 20,
+  fruit: 30,
   carb: 30,
   legume: 30,
   ready_meal: 100,
@@ -100,6 +100,17 @@ export const ITEM_MAX_PORTION_G = {
   'песто': 30,
   'маслини': 60,
   'авокадо': 150,
+  // Листните зеленчуци са обем без тегло: 300 г маруля не е чиния, а купа
+  // листа. Без този таван salad-ът ставаше пълнител, с който solver-ът
+  // догонваше калориите.
+  'маруля': 120,
+  'салата': 120,
+  'рукола': 80,
+  'айсберг': 120,
+  'ромен салата': 120,
+  'кресон': 80,
+  'салата зелена': 120,
+  'спанак': 200,
 };
 
 /** Per-food minimums where the group default would be nonsensically small. */
@@ -127,7 +138,9 @@ export function maxPortionGrams(entry = {}) {
   const item = lookup(ITEM_MAX_PORTION_G, entry.name, entry.nutritionKey);
   const group = GROUP_MAX_PORTION_G[entry.group] ?? DEFAULT_MAX_PORTION_G;
   const fromCatalog = Number(entry.maxPortionG) > 0 ? Number(entry.maxPortionG) : Infinity;
-  return Math.min(item ?? group, group, fromCatalog);
+  // Изричният таван за храна печели над груповия: авокадото е в група
+  // „мазнини“ с таван 60 г, но половин авокадо е 70 г и това е нормална порция.
+  return item !== undefined ? Math.min(item, fromCatalog) : Math.min(group, fromCatalog);
 }
 
 /**

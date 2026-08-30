@@ -28,8 +28,11 @@ ok(stats.libraryFoods >= 240, `library foods >= 240 (${stats.libraryFoods})`);
 ok(stats.catalogOverlay >= 200, `catalog overlay >= 200 (${stats.catalogOverlay})`);
 // Merged total is deduplicated: a library row whose name already exists in the
 // curated base catalog is dropped, so it no longer equals base + overlay.
-ok(stats.mergedTotal > 300, `merged > 300 (${stats.mergedTotal})`);
-ok(stats.readyMeals >= 30, `ready meals >= 30 (${stats.readyMeals})`);
+// Dishes now live in meal-dishes.js, not in the library import, so the merged
+// total is the raw-food catalog plus the curated dish list.
+ok(stats.mergedTotal > 250, `merged > 250 (${stats.mergedTotal})`);
+// Dishes come from the hand-maintained list, not from the library import.
+ok(stats.dishes >= 40, `dishes >= 40 (${stats.dishes})`);
 ok(stats.mealTemplates >= 5, `meal templates >= 5 (${stats.mealTemplates})`);
 ok(stats.dietProfiles >= 12, `diet profiles >= 12 (${stats.dietProfiles})`);
 ok(getNutritionLibraryVersion().startsWith('lib_v1'), 'library version tag');
@@ -55,8 +58,8 @@ ok(merged.length >= stats.mergedTotal - 1, `getCatalogEntries ~ stats (${merged.
   ok(clashes.length === 0, `no food/dish name clashes (${clashes.slice(0, 3).join(', ') || 'ok'})`);
 }
 
-ok(READY_MEAL_PARTS.meal_salmon_quinoa?.length === 4, 'library meal_salmon_quinoa decompose');
-ok(READY_MEAL_PARTS.meal_rice_chicken?.length === 3, 'base meal_rice_chicken keeps rice + chicken + vegetable');
+ok(READY_MEAL_PARTS.meal_baked_fish?.length === 3, 'dish meal_baked_fish decomposes into its products');
+ok(READY_MEAL_PARTS.meal_rice_chicken?.length === 3, 'dish meal_rice_chicken keeps rice + chicken + vegetable');
 
 const veganFoods = filterLibraryFoodsByDiet('vegan');
 ok(veganFoods.every(f => !(f.excluded_in || []).includes('vegan')), 'vegan filter excludes animal');

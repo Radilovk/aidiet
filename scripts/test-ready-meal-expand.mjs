@@ -7,9 +7,9 @@ function assert(cond, msg) {
   else { fail++; console.error(`✗ ${msg}`); }
 }
 
-const items = parseMealDescription('• Ориз с пиле 490g\n• Зеленчук 100g');
+const items = parseMealDescription('• Пиле с ориз и зеленчуци 490g\n• Зеленчук 100g');
 const names = items.map(i => i.name.toLowerCase());
-assert(!names.some(n => n.includes('ориз с пиле')), 'ready meal decomposed — no composite name');
+assert(!names.some(n => n.includes('пиле с ориз')), 'ready meal decomposed — no composite name');
 assert(names.some(n => n.includes('ориз')), 'contains rice');
 assert(names.some(n => n.includes('пилешко')), 'contains chicken');
 

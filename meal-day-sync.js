@@ -109,14 +109,49 @@ export function syncDayMealsNutrition(day, dayScheme, extraDb = {}) {
     }
   }
 
-  // Each decomposable slot solves to its own frozen schemeTarget — no cross-slot target shift.
+  // Грамажите вървят на стъпки от 50 г, така че едно ястие не може да улучи
+  // произволно число калории. Договорът е дневният сбор: каквото един слот не
+  // догони или прехвърли, се пренася към следващите основни хранения — H3 и H5
+  // имат твърди тавани и не могат да поемат разлика.
+  //
+  // Два кръга: първият решава слотовете, вторият дава на основните хранения
+  // остатъка на деня. Един кръг не стигаше, защото последният слот трябваше да
+  // поеме всичко, натрупано преди него.
+  const CARRY_RECIPIENTS = new Set(['Хранене 1', 'Хранене 2', 'Хранене 4']);
+  const dayTargetKcal = decomposable.reduce(
+    (sum, x) => sum + (Number(x.schemeTarget?.calories) || 0), 0);
 
-  for (const { meal, schemeTarget } of decomposable) {
-    const result = applyMealNutritionFromDatabase(meal, schemeTarget, extraDb);
-    if (result.unknowns?.length) unknowns.push(...result.unknowns);
-    if (result.feasible === false) {
-      infeasible.push({ type: meal.type, reason: result.reason || 'неосъществим слот' });
+  const solveRound = (carryStart) => {
+    let carry = carryStart;
+    for (let i = 0; i < decomposable.length; i++) {
+      const { meal, schemeTarget } = decomposable[i];
+      const remaining = decomposable.slice(i).filter(x => CARRY_RECIPIENTS.has(x.meal.type)).length;
+      const baseKcal = Number(schemeTarget?.calories) || 0;
+      const share = CARRY_RECIPIENTS.has(meal.type) && remaining > 0 ? carry / remaining : 0;
+      // Слотът поема част от разликата, но не се изкривява повече от 25%.
+      const adjusted = baseKcal > 0
+        ? Math.max(baseKcal * 0.75, Math.min(baseKcal * 1.25, baseKcal + share))
+        : baseKcal;
+      const solveTarget = baseKcal > 0 && Math.round(adjusted) !== baseKcal
+        ? { ...schemeTarget, calories: Math.round(adjusted) }
+        : schemeTarget;
+
+      const result = applyMealNutritionFromDatabase(meal, solveTarget, extraDb);
+      if (result.unknowns?.length) unknowns.push(...result.unknowns);
+      carry += baseKcal - (Number(meal.calories) || 0);
+      if (result.feasible === false) {
+        infeasible.push({ type: meal.type, reason: result.reason || 'неосъществим слот' });
+      }
     }
+  };
+
+  solveRound(0);
+  const achieved = decomposable.reduce((sum, x) => sum + (Number(x.meal.calories) || 0), 0);
+  const residual = dayTargetKcal - achieved;
+  if (dayTargetKcal > 0 && Math.abs(residual) > dayTargetKcal * 0.05) {
+    infeasible.length = 0;
+    unknowns.length = 0;
+    solveRound(residual);
   }
 
   return { unknowns: [...new Set(unknowns)], infeasible };

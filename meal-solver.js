@@ -3,13 +3,13 @@
  * Replaces uniform scaling, bulk caps, protein nudges, and weight trim chain.
  */
 
+import { SLOT_CALORIE_TOLERANCE_PERCENT, SLOT_CALORIE_TOLERANCE_MIN_KCAL } from './plan-normalize.js';
 import {
   GRAM_STEP_SMALL,
   GRAM_STEP_LARGE,
   gramRoundStep,
   gramStepForMax,
   snapGrams,
-  snapGramsWithinBounds,
   snapToStepWithinBounds,
 } from './gram-rounding.js';
 
@@ -109,6 +109,12 @@ function snapGramsInBounds(grams, bounds) {
  * @param {Array<{min:number,max:number}>} bounds
  * @param {number} maxTotalGrams
  */
+/** Допускът за слот — една дефиниция, споделена с валидаторите. */
+function slotKcalTolerance(targetKcal) {
+  return Math.max(SLOT_CALORIE_TOLERANCE_MIN_KCAL,
+    (Number(targetKcal) || 0) * SLOT_CALORIE_TOLERANCE_PERCENT);
+}
+
 export function solveMealGrams(items, target, bounds, maxTotalGrams = 900) {
   if (!items.length || !(target.kcal > 0)) {
     return { grams: items.map(i => i.grams), feasible: false, reason: 'липсва цел или продукти' };
@@ -125,18 +131,19 @@ export function solveMealGrams(items, target, bounds, maxTotalGrams = 900) {
   }
 
   let t = totalsFor(items, grams);
-  let kcalOk = Math.abs(t.kcal - target.kcal) <= Math.max(30, target.kcal * 0.10);
+  let kcalOk = Math.abs(t.kcal - target.kcal) <= slotKcalTolerance(target.kcal);
   let activeBounds = bounds;
   if (!kcalOk) {
+    // Разширяването пази мрежата: стъпката е 50 г над 50 г.
     const expanded = bounds.map(b => ({
       min: b.min,
-      max: Math.min(650, Math.round(b.max * 1.2)),
+      max: Math.min(650, snapGrams(b.max * 1.2)),
     }));
     activeBounds = expanded;
     ({ grams } = refineGrams(items, grams, expanded, target, maxTotalGrams, kcalOnlyCost));
     grams = snapGramsInBounds(grams, expanded);
     t = totalsFor(items, grams);
-    kcalOk = Math.abs(t.kcal - target.kcal) <= Math.max(30, target.kcal * 0.10);
+    kcalOk = Math.abs(t.kcal - target.kcal) <= slotKcalTolerance(target.kcal);
   }
 
   const residual = {
@@ -149,7 +156,7 @@ export function solveMealGrams(items, target, bounds, maxTotalGrams = 900) {
 
   grams = snapGramsInBounds(grams, activeBounds);
   t = totalsFor(items, grams);
-  kcalOk = Math.abs(t.kcal - target.kcal) <= Math.max(30, target.kcal * 0.10);
+  kcalOk = Math.abs(t.kcal - target.kcal) <= slotKcalTolerance(target.kcal);
 
   return {
     grams,

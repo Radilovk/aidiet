@@ -8,14 +8,35 @@ import { normalizeFoodKey } from './food-utils.js';
 import { getEntryScalingMode, SCALING_ATOMIC } from './ready-meal-parts.js';
 import {
   getLibraryCatalogOverlay,
-  getLibraryReadyMealCatalogEntries,
   mergeCatalogEntries,
   NUTRITION_LIBRARY_VERSION,
 } from './nutrition-library-bridge.js';
+import { MEAL_DISHES, dishToCatalogEntry } from './meal-dishes.js';
+import { applyDishOverlayParts } from './ready-meal-parts.js';
 
 /** @type {object[]} */
 let overlayEntries = [];
 let overlayLabel = '';
+/** Admin dish additions and the base dishes the admin switched off. */
+let dishOverlay = [];
+let disabledDishIds = new Set();
+
+/**
+ * Admin overlay for the dish list: extra dishes, and base dishes turned off.
+ * @param {Array<{id: string, name: string, products: Array<{name: string, share: number}>}>} dishes
+ * @param {string[]} disabledIds
+ */
+export function setDishOverlay(dishes = [], disabledIds = []) {
+  dishOverlay = Array.isArray(dishes) ? dishes.filter(d => d?.id && d?.products?.length) : [];
+  disabledDishIds = new Set((disabledIds || []).map(String));
+  applyDishOverlayParts(dishOverlay, [...disabledDishIds]);
+  indexCache = null;
+  versionCache = null;
+}
+
+export function getDishOverlay() {
+  return { dishes: [...dishOverlay], disabled: [...disabledDishIds] };
+}
 
 let indexCache = null;
 let versionCache = null;
@@ -32,11 +53,43 @@ export function getCatalogOverlay() {
   return { entries: [...overlayEntries], label: overlayLabel };
 }
 
-/** Static library overlay (nutrition-library merge). */
-const LIBRARY_CATALOG_OVERLAY = [
-  ...getLibraryCatalogOverlay(),
-  ...getLibraryReadyMealCatalogEntries(),
-];
+/** Static library overlay — raw foods only; dishes come from meal-dishes.js. */
+const LIBRARY_CATALOG_OVERLAY = getLibraryCatalogOverlay();
+
+/**
+ * Dishes, from the hand-maintained list. Their slots are derived from the
+ * groups of their own products, so a dish never has to declare them twice.
+ */
+function dishCatalogEntries() {
+  const groupByName = new Map();
+  for (const entry of FOOD_CATALOG) {
+    groupByName.set(normalizeFoodKey(entry.name), entry.group);
+    groupByName.set(normalizeFoodKey(entry.nutritionKey), entry.group);
+  }
+  for (const entry of LIBRARY_CATALOG_OVERLAY) {
+    const key = normalizeFoodKey(entry.name);
+    if (!groupByName.has(key)) groupByName.set(key, entry.group);
+  }
+  const groupOf = name => groupByName.get(normalizeFoodKey(name)) || null;
+  const dishes = [
+    ...MEAL_DISHES.filter(d => !disabledDishIds.has(d.id)),
+    ...dishOverlay.filter(d => !disabledDishIds.has(d.id)),
+  ];
+  return dishes.map(d => dishToCatalogEntry(normalizeDish(d), groupOf));
+}
+
+/** Overlay dishes arrive as plain JSON — fill in what the base list declares. */
+function normalizeDish(d) {
+  return {
+    id: d.id,
+    name: d.name,
+    products: d.products,
+    timing: Array.isArray(d.timing) && d.timing.length ? d.timing : ['main'],
+    vegan: !!d.vegan,
+    vegetarian: d.vegetarian !== undefined ? !!d.vegetarian : !!d.vegan,
+    universality: Number(d.universality) || 4,
+  };
+}
 
 /**
  * Merged catalog: base + library + runtime overlay.
@@ -44,7 +97,11 @@ const LIBRARY_CATALOG_OVERLAY = [
  * registry and the merge stats always describe the same set.
  */
 export function getCatalogEntries() {
-  const merged = mergeCatalogEntries(FOOD_CATALOG, LIBRARY_CATALOG_OVERLAY);
+  // Dishes are curated and rank with the base catalog: a library row that
+  // collides with either (an imported food literally named "Пилешка салата")
+  // is dropped, or the composer picks the food while the sync expands the dish.
+  const dishes = dishCatalogEntries();
+  const merged = mergeCatalogEntries([...FOOD_CATALOG, ...dishes], LIBRARY_CATALOG_OVERLAY);
   const byId = new Map(merged.map(e => [e.id, e]));
   for (const e of overlayEntries) {
     if (e?.id) byId.set(e.id, e);
