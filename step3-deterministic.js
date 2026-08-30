@@ -1,10 +1,14 @@
 /**
- * Step 3 deterministic builder — protocol-engine + catalog/solver pipeline.
- * Primary path: frozen weeklyScheme → catalog products → backend gram solver.
- * AI fallback only when validation/sync fails.
+ * Step 3 — изграждане на седмицата от списъка с ястия.
+ *
+ * За всеки слот от замразената схема се избира ястие от meal-dishes.js, а
+ * бекендът мащабира порцията му до целта на слота. Списъкът е универсален —
+ * различава се порцията, не ястието.
+ *
+ * Тук няма сглобяване по макро-роля: измерено, 0 от ~330 хранения минаваха
+ * през него, а поддържаше паралелен двигател с правила за съчетаване.
  */
 
-import { MEAL_TYPE_TIMING } from './food-catalog-data.js';
 import { getCatalogCandidatesForChunk, resolveCatalogEntry } from './food-catalog.js';
 import { rankCatalogCandidates } from './candidate-ranking.js';
 import { passesDietRegistry } from './diet-registry.js';
@@ -12,7 +16,6 @@ import { userSkipsBreakfast } from './plan-normalize.js';
 import { normalizeFoodKey } from './food-utils.js';
 import { parseMealDescription, compositionCapacity } from './food-nutrition.js';
 import { READY_MEAL_PARTS } from './ready-meal-parts.js';
-import { checkProductCompatibility } from './meal-compatibility.js';
 
 const DAY_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const MAIN_MEAL_SLOTS = new Set(['Хранене 1', 'Хранене 2', 'Хранене 4']);
@@ -26,22 +29,6 @@ export function deterministicStep3Enabled(env = {}) {
   return true;
 }
 
-function inferRolesFromTarget(target = {}) {
-  if (target.type === 'Хранене 3' || target.type === 'Хранене 5') {
-    return ['PRO', 'FAT'];
-  }
-  const p = Number(target.protein) || 0;
-  const c = Number(target.carbs) || 0;
-  const f = Number(target.fats) || 0;
-  const roles = ['VOL'];
-  if (p >= 12) roles.push('PRO');
-  if (c >= 15) roles.push('ENG');
-  if (f >= 8) roles.push('FAT');
-  if (!roles.includes('PRO') && !roles.includes('ENG')) {
-    roles.push('PRO', 'ENG');
-  }
-  return [...new Set(roles)];
-}
 
 function catalogName(name) {
   const { entry, unknown } = resolveCatalogEntry(name);
@@ -84,12 +71,6 @@ function collectUsedProducts(previousDays = []) {
   return counts;
 }
 
-function filterByTiming(entries, mealType) {
-  const timing = MEAL_TYPE_TIMING[mealType] || 'main';
-  return entries.filter(
-    e => e.timing?.includes(timing) || e.group === 'vegetable' || e.group === 'fruit',
-  );
-}
 
 function parsePreferLove(userData) {
   return new Set(
@@ -171,17 +152,17 @@ function readyMealFitsSlot(entry, slotType) {
 /** Products a catalog dish actually puts on the plate. */
 function readyMealProducts(entry) {
   const parts = READY_MEAL_PARTS[entry.id] || [];
-  return parts.length ? parts.map(part => ({ name: part.name, share: part.share })) : [{ name: entry.name }];
+  return parts.length
+    ? parts.map(part => ({ name: part.name, grams: part.grams }))
+    : [{ name: entry.name }];
 }
 
 /**
- * Pick a dish that can actually reach the slot, and that carries a vegetable
- * when the slot is a plated meal.
+ * Избор на ястие за слот.
  *
- * Selecting a dish and then padding it to size was the wrong move: it bolted a
- * calorie-dense product onto a finished dish (peanut butter into a yoghurt
- * bowl) and then needed pairing rules to police the result. The catalog has 84
- * dishes across the whole energy range — choosing the right one needs no rules.
+ * Всяко хранене е ястие от списъка — един и същ универсален списък за всички
+ * клиенти. Индивидуалните калории определят само порцията, затова тук се търси
+ * ястие, чиято порция може да стигне целта, а не ястие „за този калораж“.
  */
 function pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx) {
   const ready = candidatesBySlot.get('READY') || [];
@@ -189,27 +170,35 @@ function pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx) {
   if (!pool.length && slotType === 'Хранене 1') {
     pool = ready.filter(e => e.timing?.includes('main'));
   }
-  pool = filterByTiming(pool, slotType);
   pool = filterDiet(pool, ctx.dietCtx);
   if (ctx.blockedTerms?.length) {
     pool = pool.filter(e => !readyMealBlocked(e, ctx.blockedTerms));
   }
   if (!pool.length) return null;
 
-  const targetKcal = Number(slotTarget?.calories) || 0;
-  if (targetKcal > 0) {
-    const reachable = pool.filter(
-      e => compositionCapacity(readyMealProducts(e), { kcal: targetKcal }).maxKcal >= targetKcal,
-    );
-    if (reachable.length) pool = reachable;
+  // Предпочитанията стесняват избора, но никога не го изпразват: ако нищо не
+  // отговаря, по-добре най-близкото ястие, отколкото никакво.
+  const preferred = [
+    p => narrowByEnergyFit(p, slotTarget),
+    p => (PLATED_MEAL_SLOTS.has(slotType)
+      ? p.filter(e => readyMealProducts(e).some(x => isVegetableName(x.name)))
+      : p),
+    p => p.filter(e => !ctx.dishesToday.has(normalizeFoodKey(e.name))),
+  ];
+  for (const narrow of preferred) {
+    const next = narrow(pool);
+    if (next.length) pool = next;
   }
-  if (PLATED_MEAL_SLOTS.has(slotType)) {
-    const withVegetable = pool.filter(e => readyMealProducts(e).some(isVegetableName));
-    if (withVegetable.length) pool = withVegetable;
-  }
+  return pickFromPool(pool, ctx, 'READY');
+}
 
-  // Never the same dish twice in one day, however short the pool.
-  return pickFromPool(pool, ctx, 'READY', { exclude: ctx.dishesToday });
+/** Ястия, чиято порция може да стигне целта на слота. */
+function narrowByEnergyFit(pool, slotTarget) {
+  const targetKcal = Number(slotTarget?.calories) || 0;
+  if (targetKcal <= 0) return pool;
+  return pool.filter(
+    e => compositionCapacity(readyMealProducts(e), { kcal: targetKcal }).maxKcal >= targetKcal,
+  );
 }
 
 /** A ready meal is blocked when any of its parts is. */
@@ -219,123 +208,8 @@ function readyMealBlocked(entry, blockedTerms) {
   return parts.some(p => isBlockedByTerms(p.name, blockedTerms));
 }
 
-function filterEngPoolForSlot(pool, slotType) {
-  if (slotType === 'Хранене 2' || slotType === 'Хранене 4') {
-    return pool.filter(e => e.group !== 'fruit');
-  }
-  return pool;
-}
-
-function isVolEntry(entry) {
-  return entry?.slots?.includes('VOL') || entry?.group === 'vegetable';
-}
-
 function isVegetableName(name) {
   return resolveCatalogEntry(name).entry?.group === 'vegetable';
-}
-
-function isProEntry(entry) {
-  return entry?.slots?.includes('PRO') || ['protein', 'dairy', 'legume'].includes(entry?.group);
-}
-
-function isEngEntry(entry) {
-  return entry?.slots?.includes('ENG') || entry?.group === 'carb';
-}
-
-/**
- * At most one protein and one starch, always keeping the vegetable.
- * The vegetable is selected first rather than re-inserted afterwards — the old
- * `unshift` put back an entry the protein/starch pass had deliberately dropped.
- */
-function consolidateComposition(entries) {
-  if (entries.length <= 1) return entries;
-  const veg = entries.find(e => isVolEntry(e) && !isProEntry(e) && !isEngEntry(e));
-  const out = veg ? [veg] : [];
-  let hasPro = false;
-  let hasEng = false;
-  for (const e of entries) {
-    if (e === veg) continue;
-    if (isProEntry(e)) {
-      if (hasPro) continue;
-      hasPro = true;
-    } else if (isEngEntry(e)) {
-      if (hasEng) continue;
-      hasEng = true;
-    } else if (isVolEntry(e) && veg) {
-      continue;
-    }
-    out.push(e);
-  }
-  return out.length ? out.slice(0, 4) : entries.slice(0, 3);
-}
-
-/**
- * Pick a candidate that does not clash with what is already on the plate.
- * Compatibility is checked while composing, not only afterwards — a validator
- * that runs at the end can reject a meal but cannot build a better one.
- */
-function pickCompatible(pool, ctx, role, seen, picked) {
-  const chosenNames = picked.map(e => e.name);
-  const rejected = new Set(seen);
-  for (let attempt = 0; attempt < 6; attempt++) {
-    const entry = pickFromPool(pool, ctx, role, { exclude: rejected });
-    if (!entry) return null;
-    const issues = checkProductCompatibility([...chosenNames, entry.name], {
-      allowSweetener: ctx.slotTarget?.type === 'Хранене 3' || ctx.slotTarget?.type === 'Хранене 5',
-    });
-    if (!issues.length) return entry;
-    rejected.add(normalizeFoodKey(entry.name));
-  }
-  return null;
-}
-
-function pickComposition(slotType, slotTarget, candidatesBySlot, ctx) {
-  const roles = inferRolesFromTarget({ ...slotTarget, type: slotType });
-  const slotKcal = Number(slotTarget.calories) || 0;
-  if (slotKcal >= 700 && !roles.includes('FAT')) roles.push('FAT');
-  if (slotKcal >= 900 && roles.filter(r => r === 'PRO' || r === 'ENG').length < 2) {
-    if (!roles.includes('ENG')) roles.push('ENG');
-  }
-
-  const picked = [];
-  const seen = new Set();
-
-  for (const role of roles) {
-    let pool = filterByTiming(candidatesBySlot.get(role) || [], slotType);
-    if (role === 'ENG') pool = filterEngPoolForSlot(pool, slotType);
-    if (!pool.length) pool = candidatesBySlot.get(role) || [];
-    if (role === 'ENG') pool = filterEngPoolForSlot(pool, slotType);
-    pool = filterDiet(pool, ctx.dietCtx);
-    if (ctx.blockedTerms?.length) {
-      const allowed = pool.filter(e => !isBlockedByTerms(e.name, ctx.blockedTerms));
-      if (allowed.length) pool = allowed;
-    }
-    const entry = pickCompatible(pool, { ...ctx, slotTarget }, role, seen, picked);
-    if (!entry) continue;
-    const k = normalizeFoodKey(entry.name);
-    if (seen.has(k)) continue;
-    seen.add(k);
-    picked.push(entry);
-  }
-  return consolidateComposition(picked);
-}
-
-function mealNameFromEntries(entries, slotType) {
-  if (!entries.length) return `Ястие ${slotType}`;
-  if (entries.length === 1) return entries[0].name;
-  const main = entries.find(e => e.slots?.includes('PRO')) || entries[0];
-  const side = entries.find(e => e !== main && (e.slots?.includes('ENG') || e.group === 'vegetable' || e.group === 'carb'));
-  if (main && side) return `${main.name} с ${side.name.charAt(0).toLowerCase()}${side.name.slice(1)}`;
-  return `${main.name} — ${slotType.replace('Хранене ', 'H')}`;
-}
-
-function formatDescription(entries) {
-  const lines = [];
-  for (const e of entries) {
-    const name = catalogName(e.name);
-    if (name) lines.push(`• ${name}`);
-  }
-  return lines.join('\n');
 }
 
 /**
@@ -352,27 +226,15 @@ function recordReadyMealUse(entry, ctx) {
   ctx.dishesToday.add(dishKey);
 }
 
-/**
- * Light snacks come from the same dish list as everything else — they are just
- * dishes with `snack` / `late_snack` timing. Keeping a second preset table
- * meant editing food in two places and let "Скир" survive there after it was
- * dropped from the main list.
- */
-function buildLightSnack(slotType, slotTarget, candidatesBySlot, ctx) {
-  const ready = pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx);
-  if (!ready) return null;
-  recordReadyMealUse(ready, ctx);
-  return { name: ready.name, dishId: ready.id, description: descriptionFromReadyMeal(ready) };
-}
 
-function buildMealForSchemeSlot({
-  slotType,
-  slotTarget,
-  candidatesBySlot,
-  userData,
-  ctx,
-  includeDessert = false,
-}) {
+/**
+ * Всяко хранене идва от списъка с ястия. Няма втори път за „сглобяване по
+ * макро-роля“: измерено, 0 от ~330 хранения минаваха през него, а поддържаше
+ * цял паралелен двигател с правила за съчетаване. Ако за някой слот няма
+ * подходящо ястие, това е дупка в списъка — тя се съобщава, вместо да се
+ * запълва с произволна комбинация продукти.
+ */
+function buildMealForSchemeSlot({ slotType, slotTarget, candidatesBySlot, ctx, includeDessert = false }) {
   if (slotType === 'Свободно хранене') {
     return { type: slotType, name: 'Свободно хранене' };
   }
@@ -380,48 +242,18 @@ function buildMealForSchemeSlot({
     const drink = catalogName('Зелен чай') || 'Зелен чай';
     return { type: slotType, name: drink, description: `• ${drink}` };
   }
-  if (slotType === 'Хранене 3' || slotType === 'Хранене 5') {
-    const light = buildLightSnack(slotType, slotTarget, candidatesBySlot, ctx);
-    if (light) {
-      return {
-        type: slotType, name: light.name, dishId: light.dishId, description: light.description,
-      };
-    }
-  }
 
+  const dish = pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx);
+  if (!dish) throw new Error(`Няма подходящо ястие за ${slotType}`);
+  recordReadyMealUse(dish, ctx);
 
-  if (MAIN_MEAL_SLOTS.has(slotType)) {
-    const ready = pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx);
-    if (ready) {
-      recordReadyMealUse(ready, ctx);
-      const meal = {
-        type: slotType,
-        name: ready.name,
-        // Кое ястие е това: описанието вече е разгънато на продукти, а
-        // бекендът има нужда от декларираните дялове, за да го мащабира
-        // като ястие, а не като три независими продукта.
-        dishId: ready.id,
-        description: descriptionFromReadyMeal(ready),
-      };
-      if (includeDessert && slotType === 'Хранене 2') meal.dessert = true;
-      return meal;
-    }
-  }
-
-  const entries = pickComposition(slotType, slotTarget, candidatesBySlot, ctx);
-  if (!entries.length) {
-    throw new Error(`No catalog candidates for ${slotType}`);
-  }
-  for (const e of entries) {
-    const k = normalizeFoodKey(e.name);
-    ctx.usedProducts.set(k, (ctx.usedProducts.get(k) || 0) + 1);
-  }
-  const name = mealNameFromEntries(entries, slotType);
-  ctx.dishesToday.add(normalizeFoodKey(name));
   const meal = {
     type: slotType,
-    name,
-    description: formatDescription(entries),
+    name: dish.name,
+    // Кое ястие е това: описанието е разгънато на продукти, а бекендът има
+    // нужда от декларираната порция, за да мащабира ястието като цяло.
+    dishId: dish.id,
+    description: descriptionFromReadyMeal(dish),
   };
   if (includeDessert && slotType === 'Хранене 2') meal.dessert = true;
   return meal;
@@ -501,7 +333,6 @@ export function buildDeterministicWeekPlanChunk({
         slotType: slot.type,
         slotTarget: slot,
         candidatesBySlot,
-        userData,
         ctx,
         includeDessert,
       }));

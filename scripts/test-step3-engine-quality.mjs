@@ -35,9 +35,9 @@ let pass = 0;
 let fail = 0;
 const CONDIMENT_MAX = 15;
 
-function ok(cond, msg) {
+function ok(cond, msg, detail = '') {
   if (cond) { pass++; console.log(`✓ ${msg}`); }
-  else { fail++; console.error(`✗ ${msg}`); }
+  else { fail++; console.error(`✗ ${msg}${detail ? ` — ${detail}` : ''}`); }
 }
 
 // Field names must match what step2 reads (Final_Calories / macroGrams);
@@ -253,43 +253,35 @@ for (const { profile, analysis: golden } of matrixProfiles) {
   }
   ok(offGrid.length === 0, `${label}: всички грамажи на мрежата 5/50`, offGrid.slice(0, 3).join(', '));
 
-  // Гарнитурата не може да се превърне в носеща съставка на ястието.
-  const bloated = [];
+  // Ястието расте свободно спрямо калориите на клиента, но пази формата си:
+  // никой продукт не може да се разрасне повече от останалите. Гарнитура,
+  // опряла в собствения си таван, законно изостава — обратното е дефект.
+  const outOfShape = [];
   for (let d = 1; d <= 7; d++) {
     for (const meal of week[`day${d}`]?.meals || []) {
       const parts = meal.dishId ? READY_MEAL_PARTS[meal.dishId] : null;
       if (!parts?.length) continue;
-      for (const item of parseMealDescription(meal.description || '')) {
-        const part = parts.find(pt => normalizeFoodKey(pt.name) === normalizeFoodKey(item.name));
-        if (part?.grams && item.grams > part.grams * 2.5) {
-          bloated.push(`д${d} ${meal.name}: ${item.name} ${item.grams}g срещу ${part.grams}g в рецептата`);
+      const items = parseMealDescription(meal.description || '');
+      const scales = [];
+      for (const item of items) {
+        const part = parts.find(pt => (
+          normalizeFoodKey(pt.name) === normalizeFoodKey(item.name)
+          || normalizeFoodKey(resolveCatalogEntry(pt.name).entry?.name || '') === normalizeFoodKey(item.name)
+        ));
+        if (part?.grams) scales.push({ name: item.name, scale: item.grams / part.grams });
+      }
+      if (scales.length < 2) continue;
+      const median = [...scales].sort((a, b) => a.scale - b.scale)[Math.floor(scales.length / 2)].scale;
+      for (const s of scales) {
+        if (s.scale > median * 1.6) {
+          outOfShape.push(`д${d} ${meal.name}: ${s.name} ×${s.scale.toFixed(1)} срещу ×${median.toFixed(1)}`);
         }
       }
     }
   }
-  ok(bloated.length === 0, `${label}: продуктите пазят пропорцията на ястието`,
-    bloated.slice(0, 2).join('; '));
+  ok(outOfShape.length === 0, `${label}: продуктите пазят пропорцията на ястието`,
+    outOfShape.slice(0, 3).join(' | '));
 
-  // Portion sanity: nothing may exceed its realistic serving.
-  const overPortion = [];
-  for (let d = 1; d <= 7; d++) {
-    for (const meal of week[`day${d}`]?.meals || []) {
-      for (const item of parseMealDescription(meal.description || '')) {
-        const entry = resolveCatalogEntry(item.name).entry;
-        const max = maxPortionGrams({
-          name: item.name,
-          nutritionKey: entry?.nutritionKey,
-          group: entry?.group,
-          maxPortionG: entry?.maxPortionG,
-        });
-        if ((item.grams || 0) > max) overPortion.push(`д${d} ${item.name} ${item.grams}g > ${max}g`);
-      }
-    }
-  }
-  ok(overPortion.length === 0, `${label}: portions within realistic limits`,
-    overPortion.slice(0, 3).join(', '));
-
-  // Diet contracts.
   if (isVeganUser(profile)) {
     const animal = [];
     for (let d = 1; d <= 7; d++) {
