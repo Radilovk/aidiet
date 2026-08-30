@@ -8140,13 +8140,6 @@ var MEAL_DISHES = [
     { vegan: true, universality: 3 }
   ),
   dish(
-    "meal_oatmeal_banana_nuts",
-    "\u041E\u0432\u0435\u0441\u0435\u043D\u0430 \u043A\u0430\u0448\u0430 \u0441 \u0431\u0430\u043D\u0430\u043D \u0438 \u043E\u0440\u0435\u0445\u0438",
-    [["\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438", 80], ["\u043C\u043B\u044F\u043A\u043E", 250], ["\u0431\u0430\u043D\u0430\u043D", 100], ["\u043E\u0440\u0435\u0445\u0438", 20]],
-    ["breakfast"],
-    { vegetarian: true, universality: 5 }
-  ),
-  dish(
     "meal_eggs_bread_cheese_tomato",
     "\u042F\u0439\u0446\u0430 \u0441 \u0445\u043B\u044F\u0431, \u0441\u0438\u0440\u0435\u043D\u0435 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
     [["\u044F\u0439\u0446\u0430", 150], ["\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", 80], ["\u0441\u0438\u0440\u0435\u043D\u0435", 40], ["\u0414\u043E\u043C\u0430\u0442\u0438", 60]],
@@ -8159,13 +8152,6 @@ var MEAL_DISHES = [
     [["\u044F\u0439\u0446\u0430", 150], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 200], ["\u0414\u043E\u043C\u0430\u0442\u0438", 80]],
     ["breakfast", "main"],
     { vegetarian: true }
-  ),
-  dish(
-    "meal_yogurt_oats_fruit_nuts",
-    "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043E\u0432\u0435\u0441, \u043F\u043B\u043E\u0434\u043E\u0432\u0435 \u0438 \u043E\u0440\u0435\u0445\u0438",
-    [["\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", 250], ["\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438", 60], ["\u0431\u0430\u043D\u0430\u043D", 80], ["\u043E\u0440\u0435\u0445\u0438", 20]],
-    ["breakfast"],
-    { vegetarian: true, universality: 5 }
   ),
   // ── Пиле и пуешко ────────────────────────────────────────────────────
   dish(
@@ -16927,9 +16913,9 @@ var ITEM_MAX_PORTION_G = {
   "\u0442\u0438\u043A\u0432\u0435\u043D\u0438 \u0441\u0435\u043C\u043A\u0438": 40,
   "\u0441\u043B\u044A\u043D\u0447\u043E\u0433\u043B\u0435\u0434\u043E\u0432\u0438 \u0441\u0435\u043C\u043A\u0438": 40,
   "\u043A\u043E\u043A\u043E\u0441\u043E\u0432\u0438 \u0441\u0442\u044A\u0440\u0433\u043E\u0442\u0438\u043D\u0438": 30,
-  // Eggs — 150 g is three eggs.
-  "\u044F\u0439\u0446\u0430": 150,
-  "\u0432\u0430\u0440\u0435\u043D\u043E \u044F\u0439\u0446\u0435": 150,
+  // Яйца — 200 г са четири; повече не е порция, а купа яйца.
+  "\u044F\u0439\u0446\u0430": 200,
+  "\u0432\u0430\u0440\u0435\u043D\u043E \u044F\u0439\u0446\u0435": 200,
   "\u0431\u044A\u0440\u043A\u0430\u043D\u0438 \u044F\u0439\u0446\u0430": 200,
   "\u044F\u0439\u0447\u043D\u0438 \u0431\u0435\u043B\u0442\u044A\u0446\u0438": 200,
   "\u043E\u043C\u043B\u0435\u0442": 250,
@@ -17256,6 +17242,19 @@ function getCatalogMeta(name) {
     maxPortionG: entry.maxPortionG || null
   };
 }
+function gridCeil(grams) {
+  const g = Math.max(0, Number(grams) || 0);
+  if (g <= GRAM_STEP_SMALL) return GRAM_STEP_SMALL;
+  if (g <= GRAM_LARGE_MIN) return Math.ceil(g / GRAM_STEP_SMALL) * GRAM_STEP_SMALL;
+  return Math.ceil(g / GRAM_STEP_LARGE) * GRAM_STEP_LARGE;
+}
+function gridFloor(grams) {
+  const g = Math.max(0, Number(grams) || 0);
+  if (g < GRAM_LARGE_MIN) {
+    return Math.max(GRAM_STEP_SMALL, Math.floor(g / GRAM_STEP_SMALL) * GRAM_STEP_SMALL);
+  }
+  return Math.floor(g / GRAM_STEP_LARGE) * GRAM_STEP_LARGE;
+}
 function portionWindow(item2) {
   const meta = getCatalogMeta(item2.name);
   const descriptor = {
@@ -17264,13 +17263,13 @@ function portionWindow(item2) {
     group: meta.group,
     maxPortionG: meta.maxPortionG
   };
-  const max = maxPortionGrams(descriptor);
-  const min = Math.min(minPortionGrams(descriptor), max);
+  const max = gridFloor(maxPortionGrams(descriptor));
+  const min = Math.min(gridCeil(minPortionGrams(descriptor)), max);
   return { min, max, group: meta.group, slots: meta.slots };
 }
 function clampBoundsToPortions(items, bounds) {
   return bounds.map((b, i) => {
-    const { min, max } = dishPortionWindow(items[i]);
+    const { min, max } = portionWindow(items[i]);
     const hi = Math.min(b.max, max);
     const lo = Math.min(b.min, hi);
     return { min: Math.max(lo, Math.min(min, hi)), max: hi };
@@ -17289,39 +17288,46 @@ function macroShareForItem(group, slots = []) {
   if (group === "vegetable" || group === "fruit" || slots.includes("VOL")) return 0.06;
   return 0.1;
 }
-var DISH_PORTION_MIN_FACTOR = 0.5;
-var DISH_PORTION_MAX_FACTOR = 2.2;
-function dishPortionWindow(item2) {
-  const reference = Number(item2.referenceGrams) || 0;
-  const window = portionWindow(item2);
-  if (!(reference > 0)) return alignWindowToGrid(window);
-  return alignWindowToGrid({
-    min: Math.max(window.min, Math.round(reference * DISH_PORTION_MIN_FACTOR)),
-    max: Math.min(window.max, Math.round(reference * DISH_PORTION_MAX_FACTOR))
-  });
-}
-function alignWindowToGrid({ min, max }) {
-  const lo = gridCeil(min);
-  const hi = gridFloor(max);
-  if (hi < lo) return { min: lo, max: lo };
-  return { min: lo, max: hi };
-}
-function gridCeil(grams) {
-  const g = Math.max(0, Number(grams) || 0);
-  if (g <= GRAM_STEP_SMALL) return GRAM_STEP_SMALL;
-  if (g <= GRAM_LARGE_MIN) return Math.ceil(g / GRAM_STEP_SMALL) * GRAM_STEP_SMALL;
-  return Math.ceil(g / GRAM_STEP_LARGE) * GRAM_STEP_LARGE;
-}
-function gridFloor(grams) {
-  const g = Math.max(0, Number(grams) || 0);
-  if (g < GRAM_LARGE_MIN) return Math.max(GRAM_STEP_SMALL, Math.floor(g / GRAM_STEP_SMALL) * GRAM_STEP_SMALL);
-  return Math.floor(g / GRAM_STEP_LARGE) * GRAM_STEP_LARGE;
+function solveDishScale(items, target, maxTotalGrams) {
+  const refs = items.map((i) => Number(i.referenceGrams) || 0);
+  if (refs.some((r) => r <= 0)) return null;
+  const targetKcal = Number(target?.kcal) || 0;
+  if (!(targetKcal > 0)) return null;
+  const windows = items.map((item2) => portionWindow(item2));
+  const minScale = Math.max(0.35, ...refs.map((ref, i) => windows[i].min / ref));
+  const maxScale = Math.min(
+    ...refs.map((ref, i) => windows[i].max / ref),
+    maxTotalGrams / refs.reduce((a, b) => a + b, 0)
+  );
+  if (maxScale < minScale) return null;
+  let best = null;
+  const seen = /* @__PURE__ */ new Set();
+  for (let scale = minScale; scale <= maxScale + 1e-9; scale += 0.02) {
+    const grams = refs.map((ref) => snapGrams(ref * scale));
+    const key = grams.join(",");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const totals = totalsFor(items, grams);
+    if (totals.grams > maxTotalGrams) continue;
+    let cost2 = 3 * Math.abs(totals.kcal - targetKcal) / targetKcal;
+    if (target.p > 0) cost2 += 0.5 * Math.abs(totals.p - target.p) / target.p;
+    if (target.c > 0) cost2 += 0.3 * Math.abs(totals.c - target.c) / target.c;
+    if (target.f > 0) cost2 += 0.3 * Math.abs(totals.f - target.f) / target.f;
+    if (!best || cost2 < best.cost) best = { grams, totals, cost: cost2 };
+  }
+  if (!best) return null;
+  const kcalOk = Math.abs(best.totals.kcal - targetKcal) <= Math.max(SLOT_CALORIE_TOLERANCE_MIN_KCAL, targetKcal * SLOT_CALORIE_TOLERANCE_PERCENT);
+  return {
+    grams: best.grams,
+    totals: best.totals,
+    feasible: kcalOk,
+    reason: kcalOk ? "" : "\u043F\u043E\u0440\u0446\u0438\u044F\u0442\u0430 \u043D\u0430 \u044F\u0441\u0442\u0438\u0435\u0442\u043E \u043D\u0435 \u0441\u0442\u0438\u0433\u0430 \u0446\u0435\u043B\u0442\u0430 \u2014 \u0438\u0437\u0431\u0435\u0440\u0438 \u0434\u0440\u0443\u0433\u043E \u044F\u0441\u0442\u0438\u0435"
+  };
 }
 function computeMealItemBounds(items, slotTarget, maxTotalGrams = MAX_MEAL_WEIGHT_GRAMS) {
   const slotKcal = Number(slotTarget?.kcal ?? slotTarget?.calories) || 0;
   let bounds = items.map((item2) => {
-    const { min, max } = dishPortionWindow(item2);
-    const { group, slots } = portionWindow(item2);
+    const { min, max, group, slots } = portionWindow(item2);
     let hi = min;
     if (slotKcal > 0) {
       const k100 = kcalPer100(item2.profile);
@@ -17362,25 +17368,25 @@ function computeMealItemBounds(items, slotTarget, maxTotalGrams = MAX_MEAL_WEIGH
 function compositionCapacity(products = [], slotTarget = {}, maxTotalGrams = MAX_MEAL_WEIGHT_GRAMS) {
   const items = products.map((p) => typeof p === "string" ? { name: p } : p).map((p) => ({
     name: p.name,
-    share: p.share,
     referenceGrams: p.grams,
     profile: lookupFoodProfile(p.name).profile,
     grams: 0
   })).filter((item2) => item2.profile);
   if (!items.length) return { minKcal: 0, maxKcal: 0 };
-  const kcal = Number(slotTarget?.kcal ?? slotTarget?.calories) || 0;
-  const shares = items.map((i) => Number(i.share) || 0);
-  const sharesValid = shares.every((sh) => sh > 0) && Math.abs(shares.reduce((a, b) => a + b, 0) - 1) < 0.1;
-  if (sharesValid) {
-    const windows = items.map((item2) => dishPortionWindow(item2));
-    const minScale = Math.max(...shares.map((sh, i) => windows[i].min / sh));
-    const maxScale = Math.min(...shares.map((sh, i) => windows[i].max / sh));
+  const refs = items.map((i) => Number(i.referenceGrams) || 0);
+  if (refs.every((r) => r > 0)) {
+    const windows = items.map((item2) => portionWindow(item2));
+    const minScale = Math.max(0.35, ...refs.map((ref, i) => windows[i].min / ref));
+    const maxScale = Math.min(
+      ...refs.map((ref, i) => windows[i].max / ref),
+      maxTotalGrams / refs.reduce((a, b) => a + b, 0)
+    );
     if (maxScale >= minScale) {
-      const at = (totalG) => totalsFor(items, shares.map((sh) => snapGrams(sh * totalG))).kcal;
-      const cappedMax = Math.min(maxScale, maxTotalGrams);
-      return { minKcal: at(minScale), maxKcal: at(cappedMax) };
+      const at = (scale) => totalsFor(items, refs.map((ref) => snapGrams(ref * scale))).kcal;
+      return { minKcal: at(minScale), maxKcal: at(maxScale) };
     }
   }
+  const kcal = Number(slotTarget?.kcal ?? slotTarget?.calories) || 0;
   const bounds = computeMealItemBounds(items, { kcal }, maxTotalGrams);
   const profiles = items.map((it) => ({ profile: it.profile }));
   return {
@@ -17402,7 +17408,7 @@ function seedGramsForItem(item2, bounds, slotTarget, itemCount = 1) {
   return roundGrams(mid);
 }
 function capItemGrams(item2, grams) {
-  const { min, max } = dishPortionWindow(item2);
+  const { min, max } = portionWindow(item2);
   return Math.max(Math.min(grams, max), Math.min(grams, min));
 }
 function nutritionFromGrams(profile, grams) {
@@ -17471,9 +17477,12 @@ function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}) {
   });
   const dishParts = meal.dishId ? READY_MEAL_PARTS[meal.dishId] : null;
   if (dishParts?.length) {
-    const partByKey = new Map(
-      dishParts.map((part) => [normalizeFoodKey(part.name), part])
-    );
+    const partByKey = /* @__PURE__ */ new Map();
+    for (const part of dishParts) {
+      partByKey.set(normalizeFoodKey(part.name), part);
+      const catalogName2 = resolveCatalogEntry(part.name).entry?.name;
+      if (catalogName2) partByKey.set(normalizeFoodKey(catalogName2), part);
+    }
     items = items.map((item2) => {
       const part = partByKey.get(normalizeFoodKey(item2.name)) ?? partByKey.get(normalizeFoodKey(item2.key));
       return part ? { ...item2, share: part.share, referenceGrams: part.grams } : item2;
@@ -17502,7 +17511,7 @@ function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}) {
     ...item2,
     grams: capItemGrams(item2, seedGramsForItem(item2, bounds[i], slotTarget, items.length))
   }));
-  const solved = solveMealGrams(items, slotTarget, bounds, plateBudget);
+  const solved = solveDishScale(items, slotTarget, plateBudget) || solveMealGrams(items, slotTarget, bounds, plateBudget);
   items = items.map((it, i) => ({ ...it, grams: capItemGrams(it, solved.grams[i]) }));
   const totals = sumItemNutrition(items);
   let p = Math.round(totals.p);
@@ -18112,28 +18121,11 @@ function validateWeeklyVariety(weekPlan, options = {}) {
 
 // step3-deterministic.js
 var DAY_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
-var MAIN_MEAL_SLOTS = /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"]);
 var PLATED_MEAL_SLOTS = /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"]);
 function deterministicStep3Enabled(env = {}) {
   const v = env?.DETERMINISTIC_STEP3;
   if (v === "0" || v === "false" || v === false) return false;
   return true;
-}
-function inferRolesFromTarget(target = {}) {
-  if (target.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3" || target.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5") {
-    return ["PRO", "FAT"];
-  }
-  const p = Number(target.protein) || 0;
-  const c = Number(target.carbs) || 0;
-  const f = Number(target.fats) || 0;
-  const roles = ["VOL"];
-  if (p >= 12) roles.push("PRO");
-  if (c >= 15) roles.push("ENG");
-  if (f >= 8) roles.push("FAT");
-  if (!roles.includes("PRO") && !roles.includes("ENG")) {
-    roles.push("PRO", "ENG");
-  }
-  return [...new Set(roles)];
 }
 function catalogName(name) {
   const { entry, unknown } = resolveCatalogEntry(name);
@@ -18170,12 +18162,6 @@ function collectUsedProducts(previousDays = []) {
     }
   }
   return counts;
-}
-function filterByTiming(entries, mealType) {
-  const timing = MEAL_TYPE_TIMING[mealType] || "main";
-  return entries.filter(
-    (e) => e.timing?.includes(timing) || e.group === "vegetable" || e.group === "fruit"
-  );
 }
 function parsePreferLove(userData) {
   return new Set(
@@ -18239,7 +18225,7 @@ function readyMealFitsSlot(entry, slotType) {
 }
 function readyMealProducts(entry) {
   const parts = READY_MEAL_PARTS[entry.id] || [];
-  return parts.length ? parts.map((part) => ({ name: part.name, share: part.share })) : [{ name: entry.name }];
+  return parts.length ? parts.map((part) => ({ name: part.name, grams: part.grams })) : [{ name: entry.name }];
 }
 function pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx) {
   const ready = candidatesBySlot.get("READY") || [];
@@ -18247,126 +18233,36 @@ function pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx) {
   if (!pool.length && slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1") {
     pool = ready.filter((e) => e.timing?.includes("main"));
   }
-  pool = filterByTiming(pool, slotType);
   pool = filterDiet(pool, ctx.dietCtx);
   if (ctx.blockedTerms?.length) {
     pool = pool.filter((e) => !readyMealBlocked(e, ctx.blockedTerms));
   }
   if (!pool.length) return null;
+  const preferred = [
+    (p) => narrowByEnergyFit(p, slotTarget),
+    (p) => PLATED_MEAL_SLOTS.has(slotType) ? p.filter((e) => readyMealProducts(e).some((x) => isVegetableName(x.name))) : p,
+    (p) => p.filter((e) => !ctx.dishesToday.has(normalizeFoodKey(e.name)))
+  ];
+  for (const narrow of preferred) {
+    const next = narrow(pool);
+    if (next.length) pool = next;
+  }
+  return pickFromPool(pool, ctx, "READY");
+}
+function narrowByEnergyFit(pool, slotTarget) {
   const targetKcal = Number(slotTarget?.calories) || 0;
-  if (targetKcal > 0) {
-    const reachable = pool.filter(
-      (e) => compositionCapacity(readyMealProducts(e), { kcal: targetKcal }).maxKcal >= targetKcal
-    );
-    if (reachable.length) pool = reachable;
-  }
-  if (PLATED_MEAL_SLOTS.has(slotType)) {
-    const withVegetable = pool.filter((e) => readyMealProducts(e).some(isVegetableName));
-    if (withVegetable.length) pool = withVegetable;
-  }
-  return pickFromPool(pool, ctx, "READY", { exclude: ctx.dishesToday });
+  if (targetKcal <= 0) return pool;
+  return pool.filter(
+    (e) => compositionCapacity(readyMealProducts(e), { kcal: targetKcal }).maxKcal >= targetKcal
+  );
 }
 function readyMealBlocked(entry, blockedTerms) {
   if (isBlockedByTerms2(entry.name, blockedTerms)) return true;
   const parts = READY_MEAL_PARTS[entry.id] || [];
   return parts.some((p) => isBlockedByTerms2(p.name, blockedTerms));
 }
-function filterEngPoolForSlot(pool, slotType) {
-  if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" || slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4") {
-    return pool.filter((e) => e.group !== "fruit");
-  }
-  return pool;
-}
-function isVolEntry(entry) {
-  return entry?.slots?.includes("VOL") || entry?.group === "vegetable";
-}
 function isVegetableName(name) {
   return resolveCatalogEntry(name).entry?.group === "vegetable";
-}
-function isProEntry(entry) {
-  return entry?.slots?.includes("PRO") || ["protein", "dairy", "legume"].includes(entry?.group);
-}
-function isEngEntry(entry) {
-  return entry?.slots?.includes("ENG") || entry?.group === "carb";
-}
-function consolidateComposition(entries) {
-  if (entries.length <= 1) return entries;
-  const veg = entries.find((e) => isVolEntry(e) && !isProEntry(e) && !isEngEntry(e));
-  const out = veg ? [veg] : [];
-  let hasPro = false;
-  let hasEng = false;
-  for (const e of entries) {
-    if (e === veg) continue;
-    if (isProEntry(e)) {
-      if (hasPro) continue;
-      hasPro = true;
-    } else if (isEngEntry(e)) {
-      if (hasEng) continue;
-      hasEng = true;
-    } else if (isVolEntry(e) && veg) {
-      continue;
-    }
-    out.push(e);
-  }
-  return out.length ? out.slice(0, 4) : entries.slice(0, 3);
-}
-function pickCompatible(pool, ctx, role, seen, picked) {
-  const chosenNames = picked.map((e) => e.name);
-  const rejected = new Set(seen);
-  for (let attempt = 0; attempt < 6; attempt++) {
-    const entry = pickFromPool(pool, ctx, role, { exclude: rejected });
-    if (!entry) return null;
-    const issues = checkProductCompatibility([...chosenNames, entry.name], {
-      allowSweetener: ctx.slotTarget?.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3" || ctx.slotTarget?.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5"
-    });
-    if (!issues.length) return entry;
-    rejected.add(normalizeFoodKey(entry.name));
-  }
-  return null;
-}
-function pickComposition(slotType, slotTarget, candidatesBySlot, ctx) {
-  const roles = inferRolesFromTarget({ ...slotTarget, type: slotType });
-  const slotKcal = Number(slotTarget.calories) || 0;
-  if (slotKcal >= 700 && !roles.includes("FAT")) roles.push("FAT");
-  if (slotKcal >= 900 && roles.filter((r) => r === "PRO" || r === "ENG").length < 2) {
-    if (!roles.includes("ENG")) roles.push("ENG");
-  }
-  const picked = [];
-  const seen = /* @__PURE__ */ new Set();
-  for (const role of roles) {
-    let pool = filterByTiming(candidatesBySlot.get(role) || [], slotType);
-    if (role === "ENG") pool = filterEngPoolForSlot(pool, slotType);
-    if (!pool.length) pool = candidatesBySlot.get(role) || [];
-    if (role === "ENG") pool = filterEngPoolForSlot(pool, slotType);
-    pool = filterDiet(pool, ctx.dietCtx);
-    if (ctx.blockedTerms?.length) {
-      const allowed = pool.filter((e) => !isBlockedByTerms2(e.name, ctx.blockedTerms));
-      if (allowed.length) pool = allowed;
-    }
-    const entry = pickCompatible(pool, { ...ctx, slotTarget }, role, seen, picked);
-    if (!entry) continue;
-    const k = normalizeFoodKey(entry.name);
-    if (seen.has(k)) continue;
-    seen.add(k);
-    picked.push(entry);
-  }
-  return consolidateComposition(picked);
-}
-function mealNameFromEntries(entries, slotType) {
-  if (!entries.length) return `\u042F\u0441\u0442\u0438\u0435 ${slotType}`;
-  if (entries.length === 1) return entries[0].name;
-  const main = entries.find((e) => e.slots?.includes("PRO")) || entries[0];
-  const side = entries.find((e) => e !== main && (e.slots?.includes("ENG") || e.group === "vegetable" || e.group === "carb"));
-  if (main && side) return `${main.name} \u0441 ${side.name.charAt(0).toLowerCase()}${side.name.slice(1)}`;
-  return `${main.name} \u2014 ${slotType.replace("\u0425\u0440\u0430\u043D\u0435\u043D\u0435 ", "H")}`;
-}
-function formatDescription(entries) {
-  const lines = [];
-  for (const e of entries) {
-    const name = catalogName(e.name);
-    if (name) lines.push(`\u2022 ${name}`);
-  }
-  return lines.join("\n");
 }
 function recordReadyMealUse(entry, ctx) {
   const dishKey = normalizeFoodKey(entry.name);
@@ -18377,20 +18273,7 @@ function recordReadyMealUse(entry, ctx) {
   }
   ctx.dishesToday.add(dishKey);
 }
-function buildLightSnack(slotType, slotTarget, candidatesBySlot, ctx) {
-  const ready = pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx);
-  if (!ready) return null;
-  recordReadyMealUse(ready, ctx);
-  return { name: ready.name, dishId: ready.id, description: descriptionFromReadyMeal(ready) };
-}
-function buildMealForSchemeSlot({
-  slotType,
-  slotTarget,
-  candidatesBySlot,
-  userData,
-  ctx,
-  includeDessert = false
-}) {
+function buildMealForSchemeSlot({ slotType, slotTarget, candidatesBySlot, ctx, includeDessert = false }) {
   if (slotType === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435") {
     return { type: slotType, name: "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" };
   }
@@ -18398,48 +18281,16 @@ function buildMealForSchemeSlot({
     const drink = catalogName("\u0417\u0435\u043B\u0435\u043D \u0447\u0430\u0439") || "\u0417\u0435\u043B\u0435\u043D \u0447\u0430\u0439";
     return { type: slotType, name: drink, description: `\u2022 ${drink}` };
   }
-  if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3" || slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5") {
-    const light = buildLightSnack(slotType, slotTarget, candidatesBySlot, ctx);
-    if (light) {
-      return {
-        type: slotType,
-        name: light.name,
-        dishId: light.dishId,
-        description: light.description
-      };
-    }
-  }
-  if (MAIN_MEAL_SLOTS.has(slotType)) {
-    const ready = pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx);
-    if (ready) {
-      recordReadyMealUse(ready, ctx);
-      const meal2 = {
-        type: slotType,
-        name: ready.name,
-        // Кое ястие е това: описанието вече е разгънато на продукти, а
-        // бекендът има нужда от декларираните дялове, за да го мащабира
-        // като ястие, а не като три независими продукта.
-        dishId: ready.id,
-        description: descriptionFromReadyMeal(ready)
-      };
-      if (includeDessert && slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2") meal2.dessert = true;
-      return meal2;
-    }
-  }
-  const entries = pickComposition(slotType, slotTarget, candidatesBySlot, ctx);
-  if (!entries.length) {
-    throw new Error(`No catalog candidates for ${slotType}`);
-  }
-  for (const e of entries) {
-    const k = normalizeFoodKey(e.name);
-    ctx.usedProducts.set(k, (ctx.usedProducts.get(k) || 0) + 1);
-  }
-  const name = mealNameFromEntries(entries, slotType);
-  ctx.dishesToday.add(normalizeFoodKey(name));
+  const dish2 = pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx);
+  if (!dish2) throw new Error(`\u041D\u044F\u043C\u0430 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u043E \u044F\u0441\u0442\u0438\u0435 \u0437\u0430 ${slotType}`);
+  recordReadyMealUse(dish2, ctx);
   const meal = {
     type: slotType,
-    name,
-    description: formatDescription(entries)
+    name: dish2.name,
+    // Кое ястие е това: описанието е разгънато на продукти, а бекендът има
+    // нужда от декларираната порция, за да мащабира ястието като цяло.
+    dishId: dish2.id,
+    description: descriptionFromReadyMeal(dish2)
   };
   if (includeDessert && slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2") meal.dessert = true;
   return meal;
@@ -18503,7 +18354,6 @@ function buildDeterministicWeekPlanChunk({
         slotType: slot.type,
         slotTarget: slot,
         candidatesBySlot,
-        userData,
         ctx,
         includeDessert
       }));
