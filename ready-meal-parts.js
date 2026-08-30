@@ -19,7 +19,7 @@ export const READY_MEAL_PARTS = Object.fromEntries(
 const BASE_DISH_PART_IDS = Object.keys(READY_MEAL_PARTS);
 
 /**
- * @param {Array<{ id: string, products?: Array<{name: string, share: number}> }>} dishes
+ * @param {Array<{ id: string, products?: Array<{name: string, share: number, grams?: number}> }>} dishes
  * @param {string[]} disabledIds
  */
 export function applyDishOverlayParts(dishes = [], disabledIds = []) {
@@ -31,7 +31,7 @@ export function applyDishOverlayParts(dishes = [], disabledIds = []) {
   }
   for (const d of dishes) {
     if (!d?.id || disabled.has(d.id) || !Array.isArray(d.products) || !d.products.length) continue;
-    READY_MEAL_PARTS[d.id] = d.products.map(p => ({ name: p.name, share: p.share }));
+    READY_MEAL_PARTS[d.id] = d.products.map(p => ({ name: p.name, share: p.share, grams: p.grams }));
   }
   return BASE_DISH_PART_IDS.length;
 }

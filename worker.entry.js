@@ -64,6 +64,7 @@ import {
   isMealCaloriesAdequate,
   enforceFixedSlotCaps,
   MAX_LATE_SNACK_CALORIES,
+  DAY_CALORIE_TOLERANCE_PERCENT,
 } from './plan-normalize.js';
 import {
   buildCatalogPromptSection,
@@ -8359,7 +8360,8 @@ function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay
       let dayKcalOk = false;
       if (dayKcal > 0 && schemeKcal > 0) {
         const tol = calorieTolerance(schemeKcal);
-        dayKcalOk = Math.abs(dayKcal - schemeKcal) <= tol * 2;
+        // Денят е договорът: тук е стегнато, за сметка на свободата в слота.
+        dayKcalOk = Math.abs(dayKcal - schemeKcal) <= schemeKcal * DAY_CALORIE_TOLERANCE_PERCENT;
         if (!dayKcalOk) {
           blocking.push(`Ден ${d}: дневни ${dayKcal} kcal ≠ схема ${schemeKcal}`);
         }

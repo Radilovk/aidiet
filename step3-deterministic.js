@@ -171,7 +171,7 @@ function readyMealFitsSlot(entry, slotType) {
 /** Products a catalog dish actually puts on the plate. */
 function readyMealProducts(entry) {
   const parts = READY_MEAL_PARTS[entry.id] || [];
-  return parts.length ? parts.map(part => part.name) : [entry.name];
+  return parts.length ? parts.map(part => ({ name: part.name, share: part.share })) : [{ name: entry.name }];
 }
 
 /**
@@ -362,7 +362,7 @@ function buildLightSnack(slotType, slotTarget, candidatesBySlot, ctx) {
   const ready = pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx);
   if (!ready) return null;
   recordReadyMealUse(ready, ctx);
-  return { name: ready.name, description: descriptionFromReadyMeal(ready) };
+  return { name: ready.name, dishId: ready.id, description: descriptionFromReadyMeal(ready) };
 }
 
 function buildMealForSchemeSlot({
@@ -382,7 +382,11 @@ function buildMealForSchemeSlot({
   }
   if (slotType === 'Хранене 3' || slotType === 'Хранене 5') {
     const light = buildLightSnack(slotType, slotTarget, candidatesBySlot, ctx);
-    if (light) return { type: slotType, name: light.name, description: light.description };
+    if (light) {
+      return {
+        type: slotType, name: light.name, dishId: light.dishId, description: light.description,
+      };
+    }
   }
 
 
@@ -393,6 +397,10 @@ function buildMealForSchemeSlot({
       const meal = {
         type: slotType,
         name: ready.name,
+        // Кое ястие е това: описанието вече е разгънато на продукти, а
+        // бекендът има нужда от декларираните дялове, за да го мащабира
+        // като ястие, а не като три независими продукта.
+        dishId: ready.id,
         description: descriptionFromReadyMeal(ready),
       };
       if (includeDessert && slotType === 'Хранене 2') meal.dessert = true;

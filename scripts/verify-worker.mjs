@@ -254,6 +254,11 @@ check('fitness тестове', () => {
   if (!r.ok) throw new Error(r.out.split('\n').slice(-8).join('\n'));
 });
 
+check('списък с ястия', () => {
+  const r = run('node', ['scripts/test-meal-dishes.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-12).join('\n'));
+});
+
 check('logout контракт', () => {
   const r = run('node', ['scripts/test-logout-contract.mjs']);
   if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));

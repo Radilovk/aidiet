@@ -23,11 +23,18 @@ export const MAX_LATE_SNACK_CALORIES = 200;
 export const MAX_AFTERNOON_SNACK_CALORIES = 350;
 
 /**
- * Adequacy contract: per-slot kcal deviation after nutrition sync.
- * 10% is standard for meal plans; floor keeps small snacks (H3) practical.
+ * Договор за адекватност.
+ *
+ * Грамажите вървят на стъпки от 50 г, така че едно ястие не може да улучи
+ * произволно число калории — а и не е нужно: диетата се определя от дневния
+ * сбор, не от това дали обядът е 598 или 640. Затова слотът има по-широк
+ * допуск, а денят — тесен, и разликата от един слот се пренася към следващите
+ * (виж meal-day-sync).
  */
-export const SLOT_CALORIE_TOLERANCE_PERCENT = 0.10;
-export const SLOT_CALORIE_TOLERANCE_MIN_KCAL = 30;
+export const SLOT_CALORIE_TOLERANCE_PERCENT = 0.18;
+export const SLOT_CALORIE_TOLERANCE_MIN_KCAL = 40;
+/** Дневният сбор е истинският договор — той се спазва стегнато. */
+export const DAY_CALORIE_TOLERANCE_PERCENT = 0.08;
 
 export function slotCalorieTolerance(targetKcal) {
   return Math.max(
@@ -41,6 +48,22 @@ export function isMealCaloriesAdequate(achievedKcal, targetKcal) {
   const target = Number(targetKcal) || 0;
   if (target <= 0 || achieved <= 0) return true;
   return Math.abs(achieved - target) <= slotCalorieTolerance(target);
+}
+
+/**
+ * Таванът е таван, не цел.
+ *
+ * Допускът за слот е широк, защото грамажите вървят на стъпки от 50 г и денят
+ * носи баланса. Таваните на междинните хранения (H3 350, H5 200) са друго —
+ * продуктово ограничение, което не се разтяга заедно с допуска.
+ */
+const SLOT_CAP_TOLERANCE_KCAL = 15;
+
+export function isWithinSlotCap(achievedKcal, capKcal) {
+  const achieved = Number(achievedKcal) || 0;
+  const cap = Number(capKcal) || 0;
+  if (cap <= 0 || achieved <= 0) return true;
+  return achieved <= cap + SLOT_CAP_TOLERANCE_KCAL;
 }
 
 const NEGATIVE_HEALTH_TONE = /влошен|критичн|много лош/i;
@@ -770,7 +793,7 @@ export function validateLateSnackSlotContent(meal, dayNum = null) {
     errors.push(`${prefix}Хранене 5 не е късна закуска — "${meal.name}"`);
   } else {
     const cal = Number(meal.calories) || 0;
-    if (cal > MAX_LATE_SNACK_CALORIES && !isMealCaloriesAdequate(cal, MAX_LATE_SNACK_CALORIES)) {
+    if (!isWithinSlotCap(cal, MAX_LATE_SNACK_CALORIES)) {
       errors.push(`${prefix}Хранене 5: ${cal} kcal > ${MAX_LATE_SNACK_CALORIES} (±${slotCalorieTolerance(MAX_LATE_SNACK_CALORIES)})`);
     }
   }
@@ -928,7 +951,8 @@ export function validateSlotCalories(entry, dayScheme) {
   const breakdown = dayScheme?.mealBreakdown || [];
 
   if (entry.type === 'Хранене 3') {
-    if (cal > MAX_AFTERNOON_SNACK_CALORIES + slotCalorieTolerance(MAX_AFTERNOON_SNACK_CALORIES)) {
+    // Таван, не цел — не се разтяга с допуска за слот.
+    if (!isWithinSlotCap(cal, MAX_AFTERNOON_SNACK_CALORIES)) {
       return `${entry.type} ${cal} kcal > ${MAX_AFTERNOON_SNACK_CALORIES}`;
     }
     return null;

@@ -90,15 +90,15 @@ export const FOOD_CATALOG = [
   item('dairy_kefir', 'Кефир', 'кефир', 'dairy', ['PRO'], ['breakfast', 'snack', 'late_snack'], 3, { vegetarian: true }),
 
   // ── VEG — generic + common ──
-  item('veg_generic', 'Зеленчук', 'зеленчук', 'vegetable', ['VOL'], ['breakfast', 'main', 'snack'], 5, { vegan: true, vegetarian: true }),
-  item('veg_tomato', 'Домат', 'домат', 'vegetable', ['VOL'], ['breakfast', 'main', 'snack'], 5, { vegan: true, vegetarian: true, aliases: ['домати'] }),
-  item('veg_cucumber', 'Краставица', 'краставица', 'vegetable', ['VOL'], ['breakfast', 'main', 'snack'], 5, { vegan: true, vegetarian: true }),
-  item('veg_pepper', 'Чушка', 'чушка', 'vegetable', ['VOL'], ['main', 'snack'], 5, { vegan: true, vegetarian: true }),
-  item('veg_carrot', 'Морков', 'морков', 'vegetable', ['VOL'], ['main', 'snack'], 5, { vegan: true, vegetarian: true }),
+  item('veg_generic', 'Зеленчуци', 'зеленчук', 'vegetable', ['VOL'], ['breakfast', 'main', 'snack'], 5, { vegan: true, vegetarian: true, aliases: ['зеленчук'] }),
+  item('veg_tomato', 'Домати', 'домат', 'vegetable', ['VOL'], ['breakfast', 'main', 'snack'], 5, { vegan: true, vegetarian: true, aliases: ['домат'] }),
+  item('veg_cucumber', 'Краставици', 'краставица', 'vegetable', ['VOL'], ['breakfast', 'main', 'snack'], 5, { vegan: true, vegetarian: true, aliases: ['краставица'] }),
+  item('veg_pepper', 'Чушки', 'чушка', 'vegetable', ['VOL'], ['main', 'snack'], 5, { vegan: true, vegetarian: true, aliases: ['чушка'] }),
+  item('veg_carrot', 'Моркови', 'морков', 'vegetable', ['VOL'], ['main', 'snack'], 5, { vegan: true, vegetarian: true, aliases: ['морков'] }),
   item('veg_broccoli', 'Броколи', 'броколи', 'vegetable', ['VOL'], ['main'], 4, { vegan: true, vegetarian: true }),
   item('veg_spinach', 'Спанак', 'спанак', 'vegetable', ['VOL'], ['main', 'breakfast'], 4, { vegan: true, vegetarian: true }),
   item('veg_lettuce', 'Маруля', 'маруля', 'vegetable', ['VOL'], ['breakfast', 'main', 'snack'], 5, { vegan: true, vegetarian: true, aliases: ['салата'] }),
-  item('veg_zucchini', 'Тиквичка', 'тиквичка', 'vegetable', ['VOL'], ['main'], 4, { vegan: true, vegetarian: true }),
+  item('veg_zucchini', 'Тиквички', 'тиквичка', 'vegetable', ['VOL'], ['main'], 4, { vegan: true, vegetarian: true, aliases: ['тиквичка'] }),
   item('veg_cauliflower', 'Карфиол', 'карфиол', 'vegetable', ['VOL'], ['main'], 4, { vegan: true, vegetarian: true }),
   item('veg_cabbage', 'Зеле', 'зеле', 'vegetable', ['VOL'], ['main'], 4, { vegan: true, vegetarian: true }),
   item('veg_green_beans', 'Зелен фасул', 'зелен фасул', 'vegetable', ['VOL'], ['main'], 4, { vegan: true, vegetarian: true }),
@@ -163,7 +163,7 @@ export const FOOD_CATALOG = [
   item('fat_peanuts_pistachio', 'Шамфъстък', 'шамфъстък', 'fat', ['FAT', 'PRO'], ['snack', 'late_snack'], 3, { vegan: true, vegetarian: true, genericOf: 'fat_nuts' }),
 
   // ── FRUIT — generic + common ──
-  item('fruit_generic', 'Плод', 'плод', 'fruit', ['ENG'], ['breakfast', 'snack'], 5, { vegan: true, vegetarian: true, aliases: ['плодове'] }),
+  item('fruit_generic', 'Плодове', 'плод', 'fruit', ['ENG'], ['breakfast', 'snack'], 5, { vegan: true, vegetarian: true, aliases: ['плод'] }),
   item('fruit_apple', 'Ябълка', 'ябълка', 'fruit', ['ENG'], ['breakfast', 'snack'], 5, { vegan: true, vegetarian: true, genericOf: 'fruit_generic' }),
   item('fruit_banana', 'Банан', 'банан', 'fruit', ['ENG'], ['breakfast', 'snack'], 4, { vegan: true, vegetarian: true, genericOf: 'fruit_generic' }),
   item('fruit_orange', 'Портокал', 'портокал', 'fruit', ['ENG'], ['breakfast', 'snack'], 5, { vegan: true, vegetarian: true }),

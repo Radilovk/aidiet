@@ -80,7 +80,12 @@ export function expandReadyMealItems(items, extraDb = {}) {
     for (const part of parts) {
       const grams = roundGrams(item.grams * part.share);
       const { profile, key, unknown } = lookupFoodProfile(part.name, extraDb);
-      out.push({ name: part.name, grams, key, profile, unknown: !!unknown });
+      // Делът пътува с продукта: той е формата на ястието, а не следствие
+      // от грамажа, който solver-ът ще избере.
+      out.push({
+        name: part.name, grams, key, profile, unknown: !!unknown,
+        share: part.share, referenceGrams: part.grams,
+      });
     }
   }
   return out;
@@ -240,7 +245,7 @@ function portionWindow(item) {
  */
 function clampBoundsToPortions(items, bounds) {
   return bounds.map((b, i) => {
-    const { min, max } = portionWindow(items[i]);
+    const { min, max } = dishPortionWindow(items[i]);
     const hi = Math.min(b.max, max);
     const lo = Math.min(b.min, hi);
     return { min: Math.max(lo, Math.min(min, hi)), max: hi };
@@ -267,11 +272,66 @@ function macroShareForItem(group, slots = []) {
  * A slot the composition cannot reach is reported infeasible so the caller can
  * change the products — it is not reached by over-serving one of them.
  */
+/**
+ * Колко може да се отдалечи един продукт от декларираната си порция.
+ *
+ * Ястието има форма: списъкът казва „маруля 20 г“, защото в сандвич слагаш
+ * толкова. Планът мащабира ястието спрямо целта, но в тези граници — без тях
+ * solver-ът вдигаше марулята до 150 г, понеже зеленчукът беше най-евтиният
+ * начин да добави тегло. Долната граница пази ястието да не изчезне,
+ * горната — да не се превърне в друго ястие.
+ */
+const DISH_PORTION_MIN_FACTOR = 0.5;
+const DISH_PORTION_MAX_FACTOR = 2.2;
+
+/**
+ * Прозорец на продукт вътре в ястие: около декларираната порция, но никога
+ * извън реалистичните граници за храната.
+ */
+function dishPortionWindow(item) {
+  const reference = Number(item.referenceGrams) || 0;
+  const window = portionWindow(item);
+  if (!(reference > 0)) return alignWindowToGrid(window);
+  return alignWindowToGrid({
+    min: Math.max(window.min, Math.round(reference * DISH_PORTION_MIN_FACTOR)),
+    max: Math.min(window.max, Math.round(reference * DISH_PORTION_MAX_FACTOR)),
+  });
+}
+
+/**
+ * Границите също вървят по мрежата от 5/50 г.
+ * Иначе клампването сервира стойност извън нея — оттам идваха 176 г хляб и
+ * 44 г маруля в иначе правилно закръглен план.
+ */
+function alignWindowToGrid({ min, max }) {
+  const lo = gridCeil(min);
+  const hi = gridFloor(max);
+  if (hi < lo) return { min: lo, max: lo };
+  return { min: lo, max: hi };
+}
+
+function gridCeil(grams) {
+  const g = Math.max(0, Number(grams) || 0);
+  if (g <= GRAM_STEP_SMALL) return GRAM_STEP_SMALL;
+  if (g <= GRAM_LARGE_MIN) return Math.ceil(g / GRAM_STEP_SMALL) * GRAM_STEP_SMALL;
+  return Math.ceil(g / GRAM_STEP_LARGE) * GRAM_STEP_LARGE;
+}
+
+function gridFloor(grams) {
+  const g = Math.max(0, Number(grams) || 0);
+  if (g < GRAM_LARGE_MIN) return Math.max(GRAM_STEP_SMALL, Math.floor(g / GRAM_STEP_SMALL) * GRAM_STEP_SMALL);
+  return Math.floor(g / GRAM_STEP_LARGE) * GRAM_STEP_LARGE;
+}
+
+/**
+ * Обхват на калориите за ястие или композиция, при реалистични порции.
+ */
 export function computeMealItemBounds(items, slotTarget, maxTotalGrams = MAX_MEAL_WEIGHT_GRAMS) {
   const slotKcal = Number(slotTarget?.kcal ?? slotTarget?.calories) || 0;
 
   let bounds = items.map((item) => {
-    const { min, max, group, slots } = portionWindow(item);
+    const { min, max } = dishPortionWindow(item);
+    const { group, slots } = portionWindow(item);
     let hi = min;
     if (slotKcal > 0) {
       const k100 = kcalPer100(item.profile);
@@ -320,17 +380,36 @@ export function computeMealItemBounds(items, slotTarget, maxTotalGrams = MAX_MEA
  * Energy window a product set can reach within realistic portions.
  * Lets the composer add or drop a component when a slot is out of reach,
  * instead of the solver over-serving one product to close the gap.
- * @param {string[]} productNames
- * @param {{kcal?: number, calories?: number}} [slotTarget]
  * @returns {{ minKcal: number, maxKcal: number }}
  */
-export function compositionCapacity(productNames, slotTarget = {}, maxTotalGrams = MAX_MEAL_WEIGHT_GRAMS) {
-  const items = (productNames || [])
-    .map(name => ({ name, profile: lookupFoodProfile(name).profile, grams: 0 }))
+export function compositionCapacity(products = [], slotTarget = {}, maxTotalGrams = MAX_MEAL_WEIGHT_GRAMS) {
+  const items = products
+    .map(p => (typeof p === 'string' ? { name: p } : p))
+    .map(p => ({
+      name: p.name, share: p.share, referenceGrams: p.grams,
+      profile: lookupFoodProfile(p.name).profile, grams: 0,
+    }))
     .filter(item => item.profile);
   if (!items.length) return { minKcal: 0, maxKcal: 0 };
 
   const kcal = Number(slotTarget?.kcal ?? slotTarget?.calories) || 0;
+  const shares = items.map(i => Number(i.share) || 0);
+  const sharesValid = shares.every(sh => sh > 0)
+    && Math.abs(shares.reduce((a, b) => a + b, 0) - 1) < 0.1;
+
+  if (sharesValid) {
+    // Ястието се мащабира цяло: обхватът е между най-малката и най-голямата
+    // порция, която пази пропорцията му.
+    const windows = items.map(item => dishPortionWindow(item));
+    const minScale = Math.max(...shares.map((sh, i) => windows[i].min / sh));
+    const maxScale = Math.min(...shares.map((sh, i) => windows[i].max / sh));
+    if (maxScale >= minScale) {
+      const at = totalG => totalsFor(items, shares.map(sh => snapGrams(sh * totalG))).kcal;
+      const cappedMax = Math.min(maxScale, maxTotalGrams);
+      return { minKcal: at(minScale), maxKcal: at(cappedMax) };
+    }
+  }
+
   const bounds = computeMealItemBounds(items, { kcal }, maxTotalGrams);
   const profiles = items.map(it => ({ profile: it.profile }));
   return {
@@ -359,7 +438,7 @@ function seedGramsForItem(item, bounds, slotTarget, itemCount = 1) {
 }
 
 function capItemGrams(item, grams) {
-  const { min, max } = portionWindow(item);
+  const { min, max } = dishPortionWindow(item);
   return Math.max(Math.min(grams, max), Math.min(grams, min));
 }
 
@@ -441,6 +520,21 @@ export function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}
     return { ...item, profile, key, unknown: !!unknown };
   });
 
+  // Ястие → връщаме декларираните дялове върху продуктите му. Описанието е
+  // разгънато на продукти, така че без това solver-ът не знае, че марулята в
+  // сандвича е гарнитура, а не носеща съставка.
+  const dishParts = meal.dishId ? READY_MEAL_PARTS[meal.dishId] : null;
+  if (dishParts?.length) {
+    const partByKey = new Map(
+      dishParts.map(part => [normalizeFoodKey(part.name), part]),
+    );
+    items = items.map(item => {
+      const part = partByKey.get(normalizeFoodKey(item.name))
+        ?? partByKey.get(normalizeFoodKey(item.key));
+      return part ? { ...item, share: part.share, referenceGrams: part.grams } : item;
+    });
+  }
+
   const dessertNutrition = (meal.dessert && typeof meal.dessert === 'object')
     ? macrosToNutritionProfile(meal.dessert.macros)
     : null;
@@ -468,7 +562,7 @@ export function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}
   // A slot the composition cannot reach is reported infeasible, but it is still
   // filled with the best portions available. Returning early left the meal with
   // no grams and no calories at all, and the day quietly lost that budget.
-  const unreachable = slotTarget.kcal > 0 && maxAchievable.kcal < slotTarget.kcal * 0.88;
+  const unreachable = slotTarget.kcal > 0 && maxAchievable.kcal < slotTarget.kcal * 0.82;
   const unreachableReason = 'композицията не носи slot kcal — добави по-калоричен PRO/ENG източник';
 
   items = items.map((item, i) => ({

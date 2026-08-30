@@ -292,10 +292,12 @@ check('severityLabelForValue(60)=Risky', severityLabelForValue(60) === 'Risky');
 check('MAX_LATE_SNACK_CALORIES=200', MAX_LATE_SNACK_CALORIES === 200);
 
 {
-  check('adequacy: 836 vs 900 within 10%', isMealCaloriesAdequate(836, 900));
-  check('adequacy: 562 vs 611 within 10%', isMealCaloriesAdequate(562, 611));
-  check('adequacy: 700 vs 900 outside 10%', !isMealCaloriesAdequate(700, 900));
-  check('adequacy tolerance 900→90', slotCalorieTolerance(900) === 90);
+  check('adequacy: 836 vs 900 в допуска', isMealCaloriesAdequate(836, 900));
+  check('adequacy: 562 vs 611 в допуска', isMealCaloriesAdequate(562, 611));
+  check('adequacy: 700 vs 900 извън допуска', !isMealCaloriesAdequate(700, 900));
+  // Допускът за слот е широк по замисъл: грамажите вървят на стъпки от 50 г и
+  // дневният сбор носи баланса (виж plan-normalize SLOT_CALORIE_TOLERANCE_*).
+  check('adequacy tolerance 900→162', slotCalorieTolerance(900) === 162, String(slotCalorieTolerance(900)));
   check('H5 206 vs 200 within tolerance', isMealCaloriesAdequate(206, 200));
   check('H5 under-cap passes validation', validateLateSnackSlotContent({
     type: 'Хранене 5', name: 'Скир с бадеми', description: '• скир 100g\n• бадеми 10g', calories: 165,
