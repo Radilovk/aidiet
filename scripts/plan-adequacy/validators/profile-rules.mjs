@@ -1,6 +1,5 @@
 import { MAX_LATE_SNACK_CALORIES } from '../constants.mjs';
 import { isWithinSlotCap } from '../../../plan-normalize.js';
-import { parseMealDescription } from '../../../food-nutrition.js';
 
 export function userSkipsBreakfast(profile) {
   const habits = profile.eatingHabits;
@@ -54,8 +53,8 @@ export function validateProfileRules(plan, profile) {
 
   for (let d = 1; d <= 7; d++) {
     for (const meal of wp[`day${d}`]?.meals || []) {
-      const names = parseMealDescription(meal.description || '').map(i => i.name.toLowerCase());
-      if (names.some(n => /ориз с пиле|омлет|пилешка салата|риба с картофи/.test(n))) {
+      const raw = `${meal.description || ''} ${meal.name || ''}`.toLowerCase();
+      if (/ориз с пиле|омлет|пилешка салата|риба с картофи/.test(raw)) {
         issues.push(`day${d} ${meal.type}: ready_meal в description (${meal.name})`);
       }
     }
