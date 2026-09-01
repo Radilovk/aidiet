@@ -34,6 +34,7 @@ import fitnessWorker from './fitness/worker.js';
 import { MEAL_CARRY_MAX_DISTORTION } from './meal-day-sync.js';
 import {
   syncWeekPlanNutritionFromDatabase,
+  enforceGramGrid,
   normalizeFoodKey,
   lookupFoodProfile,
   profileToKvArray,
@@ -8459,7 +8460,8 @@ function validateRequiredMealSlots(dayPlan, dayTarget, dayNum, userData = null) 
   if (!dayTarget?.mealBreakdown?.length) return errors;
   const present = new Set((dayPlan?.meals || []).map(m => m.type));
   for (const slot of dayTarget.mealBreakdown) {
-    if (slot.type === 'Хранене 1' && userSkipsBreakfast(userData)) continue;
+    // Схемата решава: ако в нея има първо хранене, то е задължително — дори за
+    // клиент, който не закусва (върнато е само защото денят не се събира без него).
     if (slot.type === 'Хранене 2' && dayTarget.mealBreakdown.some(m => m.type === 'Свободно хранене')) continue;
     if (!present.has(slot.type)) {
       errors.push(`Ден ${dayNum}: липсва задължително "${slot.type}"`);
@@ -8477,6 +8479,10 @@ function finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, userData = n
     const day = weekPlan[`day${d}`];
     if (!day?.meals) continue;
     for (const meal of day.meals) {
+      // Мрежата за грамажи е продуктово правило и се налага на изхода: това е
+      // последната точка, през която минава всяко хранене — включително тези
+      // от AI резервния път, които решателят не е пипал.
+      enforceGramGrid(meal);
       if (meal.type === 'Свободно хранене') {
         meal.name = meal.name || 'Свободно хранене';
         delete meal.description;

@@ -9,6 +9,7 @@
 
 import { FOOD_NUTRITION_PER_100G } from './food-nutrition-data.js';
 import { normalizeFoodKey } from './food-utils.js';
+import { READY_MEAL_PARTS } from './ready-meal-parts.js';
 
 /** Groups that genuinely carry each role, and groups that merely can. */
 const ROLE_GROUP_AFFINITY = {
@@ -22,10 +23,38 @@ const ROLE_GROUP_AFFINITY = {
 const MAX_PER_GROUP_IN_POOL = 4;
 
 function fatShareOfKcal(nutritionKey) {
-  const a = FOOD_NUTRITION_PER_100G[nutritionKey];
+  const a = macrosPer100g(nutritionKey);
   if (!a) return 0;
   const kcal = a[1] * 4 + a[2] * 4 + a[3] * 9;
   return kcal > 0 ? (a[3] * 9) / kcal : 0;
+}
+
+/**
+ * Хранителни стойности на 100 г — за продукт от таблицата или за ястие,
+ * сглобени от продуктите му.
+ *
+ * Ястията нямат ред в таблицата, затова подборът смяташе дела на мазнините им
+ * за нула: и претеглянето по мазнини, и бонусът за калорийна плътност мълчаха
+ * точно за пула, от който идват всички хранения. Така големите слотове
+ * систематично взимаха най-мазните ястия.
+ */
+function macrosPer100g(nutritionKey) {
+  const direct = FOOD_NUTRITION_PER_100G[nutritionKey];
+  if (direct) return direct;
+  const parts = READY_MEAL_PARTS[nutritionKey];
+  if (!parts?.length) return null;
+
+  let grams = 0;
+  const sum = [0, 0, 0, 0];
+  for (const part of parts) {
+    const a = FOOD_NUTRITION_PER_100G[normalizeFoodKey(part.name)];
+    const g = Number(part.grams) || 0;
+    if (!a || g <= 0) continue;
+    grams += g;
+    for (let i = 0; i < 4; i++) sum[i] += (a[i] * g) / 100;
+  }
+  if (grams <= 0) return null;
+  return sum.map(v => (v * 100) / grams);
 }
 
 function slotFatShare(target = {}) {
@@ -34,8 +63,27 @@ function slotFatShare(target = {}) {
   return kcal > 0 ? (f * 9) / kcal : 0.3;
 }
 
+/**
+ * Разстояние между макро-профила на храната и този на слота, 0–1.
+ *
+ * Сравняват се дяловете на протеин, въглехидрати и мазнини в калориите — не
+ * грамовете, за да не зависи от размера на порцията.
+ */
+function macroProfileDistance(nutritionKey, target) {
+  const a = macrosPer100g(nutritionKey);
+  if (!a) return 0;
+  const kcal = a[1] * 4 + a[2] * 4 + a[3] * 9;
+  const targetKcal = (Number(target.protein) || 0) * 4
+    + (Number(target.carbs) || 0) * 4 + (Number(target.fats) || 0) * 9;
+  if (kcal <= 0 || targetKcal <= 0) return 0;
+  const diff = Math.abs(a[1] * 4 / kcal - (Number(target.protein) || 0) * 4 / targetKcal)
+    + Math.abs(a[2] * 4 / kcal - (Number(target.carbs) || 0) * 4 / targetKcal)
+    + Math.abs(a[3] * 9 / kcal - (Number(target.fats) || 0) * 9 / targetKcal);
+  return diff / 2;
+}
+
 function kcalPerGram(nutritionKey) {
-  const a = FOOD_NUTRITION_PER_100G[nutritionKey];
+  const a = macrosPer100g(nutritionKey);
   if (!a) return 0;
   const kcal = a[1] * 4 + a[2] * 4 + a[3] * 9;
   return kcal > 0 ? kcal / 100 : 0;
@@ -96,12 +144,23 @@ export function rankCatalogCandidates(list, ctx = {}) {
       if (ratio <= 0.35) score -= 0.25;
     }
 
+    // Колко близо е макро-профилът на ястието до този на слота. За цяло
+    // ястие това е истинският критерий: калориите вече са проверени от
+    // подбора, а профилът решава дали денят ще улучи протеин и въглехидрати.
+    const isDish = !!READY_MEAL_PARTS[nKey];
     if (ctx.slotTarget) {
-      score -= Math.abs(fatShareOfKcal(nKey) - targetFat) * 0.35;
+      score -= isDish
+        ? macroProfileDistance(nKey, ctx.slotTarget) * 1.2
+        : Math.abs(fatShareOfKcal(nKey) - targetFat) * 0.35;
     }
 
     // Precision-first: high-kcal slots need calorie-dense PRO/ENG in the first pick.
-    if (maxSlotKcal >= 900 && (entry.slots?.includes('PRO') || entry.slots?.includes('ENG'))) {
+    // За ястия бонусът не важи: че ястието стига слота, вече е проверено, а
+    // премия за калорийна плътност отгоре просто избираше най-мазното — обядът
+    // ставаше „Говеждо с броколи“ с 54 г мазнини при цел 19.
+    if (isDish) {
+      // без премия за плътност
+    } else if (maxSlotKcal >= 900 && (entry.slots?.includes('PRO') || entry.slots?.includes('ENG'))) {
       score += Math.min(0.55, density * 0.35);
     } else if (maxSlotKcal >= 600 && (entry.slots?.includes('PRO') || entry.slots?.includes('ENG'))) {
       score += Math.min(0.35, density * 0.25);

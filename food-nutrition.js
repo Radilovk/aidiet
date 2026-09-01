@@ -19,7 +19,9 @@ import { READY_MEAL_PARTS, getEntryScalingMode, SCALING_ATOMIC } from './ready-m
 import { MAX_LATE_SNACK_CALORIES, SLOT_CALORIE_TOLERANCE_PERCENT, SLOT_CALORIE_TOLERANCE_MIN_KCAL } from './plan-normalize.js';
 import { solveMealGrams, totalsFor } from './meal-solver.js';
 import { GRAM_STEP_SMALL, GRAM_STEP_LARGE, GRAM_LARGE_MIN, gramRoundStep, snapGrams } from './gram-rounding.js';
-import { maxPortionGrams, minPortionGrams } from './portion-limits.js';
+import {
+  maxPortionGrams, minPortionGrams, isCookingFat, COOKING_FAT_MAX_PORTION_G,
+} from './portion-limits.js';
 import { getLibraryNutritionPer100g } from './nutrition-library-bridge.js';
 
 export { normalizeFoodKey } from './food-utils.js';
@@ -91,7 +93,12 @@ export function expandReadyMealItems(items, extraDb = {}) {
   return out;
 }
 
-const GRAM_LINE_RE = /^(.+?)\s+(\d+(?:[.,]\d+)?)\s*(g|г)\b(?:\s*[—\-]\s*(.+))?$/i;
+// `\b` в JavaScript е дефинирано над [A-Za-z0-9_], тъй че след кирилско „г“
+// няма граница на дума и /г\b/ никога не съвпада. Заради това „Ориз 200 г“ се
+// четеше като продукт без грамаж: числото не стигаше до решателя, грамажът не
+// минаваше през мрежата и стигаше до клиента както е бил написан — например
+// 175 г. Затова: край на реда или нещо, което не е буква/цифра.
+const GRAM_LINE_RE = /^(.+?)\s+(\d+(?:[.,]\d+)?)\s*(?:g|гр|г)(?![\p{L}\p{N}])(?:\s*[—\-]\s*(.+))?$/iu;
 
 /** @typedef {{ kcal: number, p: number, c: number, f: number }} NutritionProfile */
 /** @typedef {{ name: string, grams: number, key: string, profile: NutritionProfile, unknown?: boolean }} ParsedFoodItem */
@@ -304,6 +311,20 @@ function macroShareForItem(group, slots = []) {
  * причината списъкът да е универсален: едно и също ястие обслужва 1500 и 2700
  * kcal клиент — различава се само порцията.
  */
+/**
+ * Отклонението по един макрос, като дял от това, което той носи в слота.
+ *
+ * Долната граница на знаменателя е нужна: късната закуска има цел „почти нула
+ * въглехидрати“ и делено на самия макрос 5 г разлика ставаха 250% грешка —
+ * решателят свиваше ястието на 89 kcal при цел 144. Делено само на калориите
+ * на слота пък мазнините оставаха без контрол.
+ */
+function macroCost(achieved, target, kcalPerGram, slotKcal) {
+  if (!(target > 0) || !(slotKcal > 0)) return 0;
+  const scale = Math.max(target * kcalPerGram, slotKcal * 0.1);
+  return Math.abs(achieved - target) * kcalPerGram / scale;
+}
+
 function solveDishScale(items, target, maxTotalGrams) {
   const refs = items.map(i => Number(i.referenceGrams) || 0);
   if (refs.some(r => r <= 0)) return null;
@@ -311,35 +332,47 @@ function solveDishScale(items, target, maxTotalGrams) {
   if (!(targetKcal > 0)) return null;
 
   const windows = items.map(item => portionWindow(item));
+  // Готварската мазнина е лъжицата в тигана, не носеща съставка: тя не расте
+  // заедно с порцията и не ограничава мащаба на ястието. Мащабирана като
+  // всичко останало, тя стигаше 20 г на хранене и 45 г на ден само от олио —
+  // мазнините излизаха с 58% над целта.
+  const cooking = items.map(it => isCookingFat(it.name, getCatalogMeta(it.name).nutritionKey));
+  const carriers = refs.map((_, i) => !cooking[i]);
+  if (!carriers.some(Boolean)) carriers.fill(true);
+
+  const bound = (pick) => refs.map((ref, i) => (carriers[i] ? pick(i) / ref : Infinity));
   // Мащабът е един за цялото ястие и се ограничава от най-стегнатия продукт.
   // Ако вместо това всеки продукт се клампваше поотделно, ястието се
   // разтягаше през хляба, докато яйцата опират в тавана си — и спираше да
   // бъде същото ястие. Ястие, което не стига слота, просто не се избира.
-  const minScale = Math.max(0.35, ...refs.map((ref, i) => windows[i].min / ref));
+  const minScale = Math.max(0.35, ...bound(i => windows[i].min).filter(Number.isFinite));
   const maxScale = Math.min(
-    ...refs.map((ref, i) => windows[i].max / ref),
+    ...bound(i => windows[i].max),
     maxTotalGrams / refs.reduce((a, b) => a + b, 0),
   );
   if (maxScale < minScale) return null;
 
+  const cookingFatGrams = (ref, scale) =>
+    snapGrams(Math.min(COOKING_FAT_MAX_PORTION_G, ref * Math.min(scale, 1.5)));
+
   let best = null;
   const seen = new Set();
   for (let scale = minScale; scale <= maxScale + 1e-9; scale += 0.02) {
-    const grams = refs.map(ref => snapGrams(ref * scale));
+    const grams = refs.map((ref, i) =>
+      (cooking[i] && carriers.some((c, j) => c && j !== i)
+        ? cookingFatGrams(ref, scale)
+        : snapGrams(ref * scale)));
     const key = grams.join(',');
     if (seen.has(key)) continue;
     seen.add(key);
 
     const totals = totalsFor(items, grams);
     if (totals.grams > maxTotalGrams) continue;
-    // kcal решава; макросите са мек критерий между близки мащаби. Всички
-    // разлики се мерят в една единица — дял от калориите на слота. Делено на
-    // самия макрос, късната закуска (цел „почти нула въглехидрати“) правеше от
-    // 5 г разлика 250% грешка и решателят свиваше ястието на 89 kcal при цел 144.
+    // kcal решава; макросите са мек критерий между близки мащаби.
     let cost = 3 * Math.abs(totals.kcal - targetKcal) / targetKcal;
-    if (target.p > 0) cost += 0.5 * Math.abs(totals.p - target.p) * 4 / targetKcal;
-    if (target.c > 0) cost += 0.3 * Math.abs(totals.c - target.c) * 4 / targetKcal;
-    if (target.f > 0) cost += 0.3 * Math.abs(totals.f - target.f) * 9 / targetKcal;
+    cost += 0.5 * macroCost(totals.p, target.p, 4, targetKcal);
+    cost += 0.3 * macroCost(totals.c, target.c, 4, targetKcal);
+    cost += 0.5 * macroCost(totals.f, target.f, 9, targetKcal);
     // Формата на ястието. Мрежата от 50 г мести продуктите различно — 84 г
     // отиват на 100, а 70 г на 50 — и салатата излизаше със 100 г риба тон
     // върху 50 г маруля. При близки калории печели по-вярната пропорция.
@@ -652,6 +685,47 @@ export function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}
 
 /** Sync nutrition for all meals in a weekPlan chunk (atomic-first day budget). */
 export { syncWeekPlanNutritionFromDatabase } from './meal-day-sync.js';
+
+/**
+ * Привежда грамажите на едно хранене към мрежата и преизчислява стойностите.
+ *
+ * Правилото за грамажи е продуктово: клиентът мери на кухненска везна и 175 г
+ * е безсмислена прецизност. Решателят го спазва, но не всяко хранене минава
+ * през него — AI резервният път, хранене без слот в схемата или ръчна редакция
+ * стигат до клиента както са. Затова мрежата се налага и на изхода: тук е
+ * последната точка, през която минава всяко хранене.
+ *
+ * Идемпотентна: хранене, което вече е на мрежата, остава непроменено.
+ * @returns {boolean} дали е имало какво да се поправи
+ */
+export function enforceGramGrid(meal, extraDb = {}) {
+  if (!meal?.description || meal.type === 'Свободно хранене' || meal.type === 'Напитка') return false;
+  const parsed = parseMealDescription(meal.description);
+  if (!parsed.length) return false;
+
+  let changed = false;
+  const items = parsed.map((item) => {
+    const grams = item.grams > 0 ? snapGrams(item.grams) : item.grams;
+    if (grams !== item.grams) changed = true;
+    return { ...item, grams, profile: lookupFoodProfile(item.name, extraDb).profile };
+  });
+  if (!changed) return false;
+
+  meal.description = formatMealDescription(items);
+  const totals = sumItemNutrition(items.filter(it => it.profile));
+  if (totals.kcal > 0) {
+    const dessert = (meal.dessert && typeof meal.dessert === 'object')
+      ? macrosToNutritionProfile(meal.dessert.macros)
+      : null;
+    const p = Math.round(totals.p) + Math.round(dessert?.p || 0);
+    const c = Math.round(totals.c) + Math.round(dessert?.c || 0);
+    const f = Math.round(totals.f) + Math.round(dessert?.f || 0);
+    meal.macros = { protein: p, carbs: c, fats: f };
+    meal.calories = Math.round(p * 4 + c * 4 + f * 9);
+    meal.weight = formatMealWeight(totals.grams, 0);
+  }
+  return true;
+}
 
 export function profileToKvArray(profile) {
   return [profile.kcal, profile.p, profile.c, profile.f];

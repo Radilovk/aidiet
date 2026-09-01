@@ -109,15 +109,19 @@ function pickFromPool(pool, ctx, roleKey, { exclude = null } = {}) {
   let best = null;
   let bestScore = Infinity;
   for (let i = 0; i < ranked.length; i++) {
-    const entry = ranked[(start + i) % ranked.length];
+    const idx = (start + i) % ranked.length;
+    const entry = ranked[idx];
     const key = normalizeFoodKey(entry.name);
     const uses = usedProducts.get(key) || 0;
+    // Употребата решава — тя пази разнообразието. Рангът само подрежда
+    // еднакво използваните: без него подборът вземаше първото неизползвано
+    // ястие от произволно място в реда и класирането по макроси нямаше ефект —
+    // обядът излизаше най-мазното ястие, което стига калориите.
     // A favourite may recur once more often than the rest before it is passed over.
-    const score = uses - (loveSet?.has(key) ? 1 : 0);
+    const score = uses - (loveSet?.has(key) ? 1 : 0) + (idx / ranked.length) * 0.9;
     if (score < bestScore) {
       bestScore = score;
       best = entry;
-      if (bestScore <= 0) break;
     }
   }
   return best;
