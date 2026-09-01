@@ -2,7 +2,7 @@
 
 Цел: ястия от каталог → филтър → избор → пропорционално мащабиране. AI само за текст (Step 4–5), не за цяла седмица хранения.
 
-Активиране: `PLAN_ENGINE=v2` (env на Worker). По подразбиране: `v1` (сегашно поведение).
+Активиране: `PLAN_ENGINE=v2` (default от етап 5). Legacy: `PLAN_ENGINE=v1`.
 
 **Преди всеки етап:** `git fetch origin main` + merge/rebase — `main` се движи бързо (step2/step3/meal-dishes).
 
@@ -49,11 +49,21 @@
 
 ---
 
-## Етап 5 — A/B и default switch (следващ)
+## Етап 5 — A/B и default switch ✅ (този PR)
 
-- [ ] Логване `_meta.planEngine` + `step3Engine` във всеки план
-- [ ] Сравнение v1 vs v2 (време, AI calls, validation errors)
-- [ ] При по-добри резултати → `PLAN_ENGINE=v2` като default в production
+- [x] `_meta.engine` — `planEngine`, `step3Engine`, `slotRepairCalls`, `step3DurationMs`, `dishCatalogCount`
+- [x] `buildPlanEngineMeta()` в `plan-engine.js` за сравнение v1 vs v2
+- [x] `PLAN_ENGINE=v2` като default (`PLAN_ENGINE=v1` за legacy)
+- [x] `docs/CATALOG_EDITING.md` + `scripts/list-catalog-sources.mjs`
+
+**Критерий:** всеки план носи engine telemetry; default е v2.
+
+---
+
+## Справочник за редакция на каталога
+
+- **`docs/CATALOG_EDITING.md`** — ястия, продукти, диети, admin KV, workflow
+- **`node scripts/list-catalog-sources.mjs`** — бърз инвентар
 
 ---
 

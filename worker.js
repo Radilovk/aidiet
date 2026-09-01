@@ -18955,10 +18955,13 @@ async function buildDeterministicWeekPlanChunk({
 }
 
 // plan-engine.js
+var PLAN_ENGINE_VERSION = "2.5";
+var DEFAULT_PLAN_ENGINE = "v2";
 function resolvePlanEngine(env = {}) {
-  const raw = String(env.PLAN_ENGINE ?? env.plan_engine ?? "v1").trim().toLowerCase();
+  const raw = String(env.PLAN_ENGINE ?? env.plan_engine ?? DEFAULT_PLAN_ENGINE).trim().toLowerCase();
+  if (raw === "v1" || raw === "legacy") return "v1";
   if (raw === "v2" || raw === "dish" || raw === "dish-first") return "v2";
-  return "v1";
+  return DEFAULT_PLAN_ENGINE;
 }
 function isPlanEngineV2(env = {}) {
   return resolvePlanEngine(env) === "v2";
@@ -18969,6 +18972,27 @@ function step3AllowsFullChunkAiFallback(env = {}) {
 var SLOT_REPAIR_MAX_CALLS_PER_PLAN = 2;
 function step3SlotRepairEnabled(env = {}) {
   return isPlanEngineV2(env);
+}
+function buildPlanEngineMeta(analysis, strategy, mealPlan, metrics = {}) {
+  const warnings = mealPlan?.generationWarnings;
+  const slotRepairCalls = Number(
+    metrics.slotRepairCalls ?? mealPlan?.slotRepairCalls ?? 0
+  );
+  const step3Engine = mealPlan?.step3Engine || "unknown";
+  return {
+    planEngine: mealPlan?.planEngine || resolvePlanEngine({}),
+    step3Engine,
+    step1Deterministic: Boolean(analysis?._deterministicEnergy),
+    step2Deterministic: Boolean(strategy?._deterministicCore),
+    slotRepairCalls,
+    step3UsedAiFallback: step3Engine === "ai_fallback",
+    step3DurationMs: metrics.step3DurationMs ?? mealPlan?.step3DurationMs ?? null,
+    generationWarningsCount: Array.isArray(warnings) ? warnings.length : 0,
+    dishCatalogCount: MEAL_DISHES.length,
+    planEngineVersion: PLAN_ENGINE_VERSION,
+    pipelineVersion: 2,
+    generatedAt: (/* @__PURE__ */ new Date()).toISOString()
+  };
 }
 
 // meal-template-engine.js
@@ -21849,17 +21873,6 @@ function overlayDeterministicPresentation(mealPlan, strategy) {
   }
   if (strategy.hydrationStrategy) mealPlan.waterIntake = strategy.hydrationStrategy;
   return mealPlan;
-}
-function buildEngineMeta(analysis, strategy, mealPlan) {
-  const step3 = mealPlan?.step3Engine || "unknown";
-  return {
-    step1Deterministic: Boolean(analysis?._deterministicEnergy),
-    step2Deterministic: Boolean(strategy?._deterministicCore),
-    step3Engine: step3,
-    planEngine: mealPlan?.planEngine || "v1",
-    pipelineVersion: 2,
-    generatedAt: (/* @__PURE__ */ new Date()).toISOString()
-  };
 }
 async function isAILoggingEnabled(env) {
   const now = Date.now();
@@ -26891,7 +26904,12 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
         tokenUsage: cumulativeTokens,
         regeneratedFrom: earliestErrorStep,
         correctionAttempt,
-        generatedAt: (/* @__PURE__ */ new Date()).toISOString()
+        generatedAt: (/* @__PURE__ */ new Date()).toISOString(),
+        engine: buildPlanEngineMeta(analysis, strategy, {
+          ...mealPlan,
+          planEngine: mealPlan?.planEngine || resolvePlanEngine(env),
+          step3Engine: mealPlan?.step3Engine || existingPlan?.step3Engine
+        })
       }
     };
     syncPlanTargets(result, analysis);
@@ -27029,7 +27047,10 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
       _meta: {
         tokenUsage: cumulativeTokens,
         generatedAt: (/* @__PURE__ */ new Date()).toISOString(),
-        engine: buildEngineMeta(analysis, strategy, mealPlan)
+        engine: buildPlanEngineMeta(analysis, strategy, mealPlan, {
+          slotRepairCalls: mealPlan?.slotRepairCalls,
+          step3DurationMs: mealPlan?.step3DurationMs
+        })
       }
     };
     syncPlanTargets(result, analysis);
@@ -27392,6 +27413,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
   const generationWarnings = [];
   let step3Engine = "deterministic";
   let slotRepairCalls = 0;
+  const step3StartedAt = Date.now();
   const planEngine = resolvePlanEngine(env);
   if (isPlanEngineV2(env)) {
     console.log("Plan engine v2: dish-first Step 3, no full-chunk AI fallback");
@@ -27663,6 +27685,8 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
   if (varietyResult.warnings.length) {
     generationWarnings.push(...varietyResult.warnings);
   }
+  const step3DurationMs = Date.now() - step3StartedAt;
+  const engineMetrics = { slotRepairCalls, step3DurationMs };
   try {
     const summaryPrompt = await generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan, env);
     const summaryResponse = await callAIModel(env, summaryPrompt, SUMMARY_TOKEN_LIMIT, "step4_summary", sessionId, data, buildCompactAnalysisForStep4(analysis));
@@ -27688,7 +27712,9 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         supplements: strategy.supplementRecommendations || [],
         generationWarnings,
         step3Engine,
-        planEngine
+        planEngine,
+        slotRepairCalls,
+        step3DurationMs
       }, strategy);
       return fallbackPlan;
     }
@@ -27706,7 +27732,9 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       supplements: summaryData.supplements || strategy.supplementRecommendations || [],
       generationWarnings,
       step3Engine,
-      planEngine
+      planEngine,
+      slotRepairCalls,
+      step3DurationMs
     }, strategy);
   } catch (error) {
     console.error("Summary generation failed:", error);
@@ -27729,7 +27757,9 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       supplements: strategy.supplementRecommendations || [],
       generationWarnings,
       step3Engine,
-      planEngine
+      planEngine,
+      slotRepairCalls,
+      step3DurationMs
     }, strategy);
   }
 }

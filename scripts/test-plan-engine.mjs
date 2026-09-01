@@ -3,6 +3,9 @@ import {
   resolvePlanEngine,
   isPlanEngineV2,
   step3AllowsFullChunkAiFallback,
+  buildPlanEngineMeta,
+  DEFAULT_PLAN_ENGINE,
+  PLAN_ENGINE_VERSION,
 } from '../plan-engine.js';
 import { buildDeterministicWeekPlanChunk } from '../step3-deterministic.js';
 import { MEAL_DISHES } from '../meal-dishes.js';
@@ -15,12 +18,26 @@ function ok(cond, msg) {
   else { fail++; console.error(`✗ ${msg}`); }
 }
 
-ok(resolvePlanEngine({}) === 'v1', 'default engine is v1');
+ok(DEFAULT_PLAN_ENGINE === 'v2', 'DEFAULT_PLAN_ENGINE is v2');
+ok(resolvePlanEngine({}) === 'v2', 'default engine is v2');
+ok(resolvePlanEngine({ PLAN_ENGINE: 'v1' }) === 'v1', 'PLAN_ENGINE=v1 legacy opt-out');
 ok(resolvePlanEngine({ PLAN_ENGINE: 'v2' }) === 'v2', 'PLAN_ENGINE=v2');
 ok(resolvePlanEngine({ PLAN_ENGINE: 'dish' }) === 'v2', 'PLAN_ENGINE=dish alias');
-ok(isPlanEngineV2({ PLAN_ENGINE: 'v2' }), 'isPlanEngineV2');
-ok(!step3AllowsFullChunkAiFallback({ PLAN_ENGINE: 'v2' }), 'v2 blocks full-chunk AI fallback');
-ok(step3AllowsFullChunkAiFallback({}), 'v1 allows full-chunk AI fallback');
+ok(isPlanEngineV2({}), 'isPlanEngineV2 on default');
+ok(!step3AllowsFullChunkAiFallback({}), 'default v2 blocks full-chunk AI fallback');
+ok(step3AllowsFullChunkAiFallback({ PLAN_ENGINE: 'v1' }), 'v1 allows full-chunk AI fallback');
+
+const meta = buildPlanEngineMeta(
+  { _deterministicEnergy: true },
+  { _deterministicCore: true },
+  { step3Engine: 'deterministic_relaxed', planEngine: 'v2', slotRepairCalls: 1, generationWarnings: ['a'] },
+);
+ok(meta.planEngine === 'v2', 'meta.planEngine');
+ok(meta.step3Engine === 'deterministic_relaxed', 'meta.step3Engine');
+ok(meta.slotRepairCalls === 1, 'meta.slotRepairCalls');
+ok(meta.dishCatalogCount === MEAL_DISHES.length, 'meta.dishCatalogCount');
+ok(meta.planEngineVersion === PLAN_ENGINE_VERSION, 'meta.planEngineVersion');
+ok(meta.generationWarningsCount === 1, 'meta.generationWarningsCount');
 
 function makeStrategy() {
   const dailyKcal = 2000;
