@@ -21,3 +21,10 @@ export function isPlanEngineV2(env = {}) {
 export function step3AllowsFullChunkAiFallback(env = {}) {
   return !isPlanEngineV2(env);
 }
+
+/** Max slot-level AI repair calls per plan (v2 stage 3). */
+export const SLOT_REPAIR_MAX_CALLS_PER_PLAN = 2;
+
+export function step3SlotRepairEnabled(env = {}) {
+  return isPlanEngineV2(env);
+}

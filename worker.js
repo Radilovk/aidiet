@@ -18452,6 +18452,60 @@ function validateWeeklyVariety(weekPlan, options = {}) {
   };
 }
 
+// step3-slot-repair.js
+var SLOT_REPAIR_CANDIDATE_COUNT = 5;
+function buildSlotRepairPrompt({
+  dayNum,
+  slotType,
+  slotTarget,
+  candidates = [],
+  dietaryModifier = "\u0411\u0430\u043B\u0430\u043D\u0441\u0438\u0440\u0430\u043D\u043E"
+}) {
+  const kcal = slotTarget?.calories ?? "?";
+  const lines = [
+    "\u0418\u0437\u0431\u0435\u0440\u0438 \u0415\u0414\u041D\u041E \u044F\u0441\u0442\u0438\u0435 \u043E\u0442 \u0441\u043F\u0438\u0441\u044A\u043A\u0430. \u0412\u044A\u0440\u043D\u0438 \u0441\u0430\u043C\u043E JSON \u0441 dishId \u043E\u0442 \u043A\u0430\u043D\u0434\u0438\u0434\u0430\u0442\u0438\u0442\u0435.",
+    `\u0414\u0435\u043D ${dayNum}, \u0441\u043B\u043E\u0442: ${slotType}, \u0446\u0435\u043B: ${kcal} kcal`,
+    `\u0414\u0438\u0435\u0442\u0430: ${dietaryModifier}`,
+    "",
+    "\u041A\u0430\u043D\u0434\u0438\u0434\u0430\u0442\u0438:",
+    ...candidates.map((c, i) => `${i + 1}. dishId="${c.id}" \u2014 ${c.name}`),
+    "",
+    '\u041E\u0442\u0433\u043E\u0432\u043E\u0440: {"dishId":"<id \u043E\u0442 \u0441\u043F\u0438\u0441\u044A\u043A\u0430>"}'
+  ];
+  return lines.join("\n");
+}
+function extractJsonObject(text) {
+  if (text == null) return null;
+  if (typeof text === "object") return text;
+  const raw = String(text).trim();
+  try {
+    return JSON.parse(raw);
+  } catch {
+    const m = raw.match(/\{[\s\S]*\}/);
+    if (!m) return null;
+    try {
+      return JSON.parse(m[0]);
+    } catch {
+      return null;
+    }
+  }
+}
+function parseSlotRepairResponse(response, candidates = []) {
+  if (!candidates.length) return null;
+  const byId = new Map(candidates.map((c) => [c.id, c]));
+  const byName = new Map(candidates.map((c) => [normalizeFoodKey(c.name), c]));
+  const parsed = extractJsonObject(response);
+  if (!parsed) return null;
+  const dishId = parsed.dishId || parsed.id || parsed.pick;
+  if (dishId && byId.has(dishId)) return byId.get(dishId);
+  const name = parsed.name || parsed.dishName || parsed.mealName;
+  if (name) {
+    const hit = byName.get(normalizeFoodKey(name));
+    if (hit) return hit;
+  }
+  return null;
+}
+
 // step3-deterministic.js
 var DAY_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 var PLATED_MEAL_SLOTS = /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"]);
@@ -18521,42 +18575,54 @@ function parsePreferLove(userData) {
     String(userData?.dietLove || "").split(/[,;]/).map((s) => normalizeFoodKey(s.trim())).filter(Boolean)
   );
 }
-function pickFromPool(pool, ctx, roleKey, { exclude = null } = {}) {
+function scorePoolEntry(entry, ctx, slotType) {
+  const key = normalizeFoodKey(entry.name);
+  const dishKey = entry.id || key;
+  const productUses = ctx.usedProducts.get(key) || 0;
+  const dishUses = ctx.usedDishes?.get(dishKey) || 0;
+  const slotUses = slotType ? ctx.slotDishUses?.get(slotType)?.get(dishKey) || 0 : 0;
+  const tagBoost = preferTagScore(entry, ctx.tagFilter?.prefer) * 0.5;
+  return dishUses * 3 + slotUses * 2 + productUses - (ctx.loveSet?.has(key) ? 1 : 0) - tagBoost;
+}
+function rankPoolEntries(pool, ctx, roleKey, slotType) {
+  let filtered = filterDiet(pool, ctx.dietCtx);
+  if (!filtered.length) return [];
+  const { seed, dayNum, slotIndex } = ctx;
+  const ranked = rankCatalogCandidates(filtered, {
+    role: roleKey === "READY" ? void 0 : roleKey,
+    slotTarget: ctx.slotTarget,
+    maxSlotKcal: Number(ctx.slotTarget?.calories) || 0,
+    loveSet: ctx.loveSet,
+    adherenceRatio: ctx.adherenceRatio,
+    limit: Math.min(filtered.length, 32)
+  });
+  if (!ranked.length) return [];
+  const start = (seed + dayNum * 13 + slotIndex * 7 + roleKey.charCodeAt(0)) % ranked.length;
+  const scored = [];
+  for (let i = 0; i < ranked.length; i++) {
+    const entry = ranked[(start + i) % ranked.length];
+    scored.push({ entry, score: scorePoolEntry(entry, ctx, slotType) });
+  }
+  scored.sort((a, b) => a.score - b.score);
+  const seen = /* @__PURE__ */ new Set();
+  const out = [];
+  for (const { entry } of scored) {
+    const id = entry.id || normalizeFoodKey(entry.name);
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.push(entry);
+  }
+  return out;
+}
+function pickFromPool(pool, ctx, roleKey, { exclude = null, slotType = null } = {}) {
   let filtered = filterDiet(pool, ctx.dietCtx);
   if (exclude?.size) {
     const withoutExcluded = filtered.filter((e) => !exclude.has(normalizeFoodKey(e.name)));
     if (withoutExcluded.length) filtered = withoutExcluded;
   }
   if (!filtered.length) return null;
-  const { usedProducts, usedDishes, slotDishUses, seed, dayNum, slotIndex, loveSet, slotType } = ctx;
-  const ranked = rankCatalogCandidates(filtered, {
-    role: roleKey === "READY" ? void 0 : roleKey,
-    slotTarget: ctx.slotTarget,
-    maxSlotKcal: Number(ctx.slotTarget?.calories) || 0,
-    loveSet,
-    adherenceRatio: ctx.adherenceRatio,
-    limit: Math.min(filtered.length, 32)
-  });
-  if (!ranked.length) return null;
-  const start = (seed + dayNum * 13 + slotIndex * 7 + roleKey.charCodeAt(0)) % ranked.length;
-  let best = null;
-  let bestScore = Infinity;
-  for (let i = 0; i < ranked.length; i++) {
-    const entry = ranked[(start + i) % ranked.length];
-    const key = normalizeFoodKey(entry.name);
-    const dishKey = entry.id || key;
-    const productUses = usedProducts.get(key) || 0;
-    const dishUses = usedDishes?.get(dishKey) || 0;
-    const slotUses = slotType ? slotDishUses?.get(slotType)?.get(dishKey) || 0 : 0;
-    const tagBoost = preferTagScore(entry, ctx.tagFilter?.prefer) * 0.5;
-    const score = dishUses * 3 + slotUses * 2 + productUses - (loveSet?.has(key) ? 1 : 0) - tagBoost;
-    if (score < bestScore) {
-      bestScore = score;
-      best = entry;
-      if (bestScore <= 0) break;
-    }
-  }
-  return best;
+  const ordered = rankPoolEntries(filtered, { ...ctx, slotType: slotType || ctx.slotType }, roleKey, slotType || ctx.slotType);
+  return ordered[0] || null;
 }
 function descriptionFromReadyMeal(entry) {
   const parts = READY_MEAL_PARTS[entry.id];
@@ -18584,7 +18650,7 @@ function readyMealProducts(entry) {
   const parts = READY_MEAL_PARTS[entry.id] || [];
   return parts.length ? parts.map((part) => ({ name: part.name, grams: part.grams })) : [{ name: entry.name }];
 }
-function pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx) {
+function buildReadyMealPool(slotType, slotTarget, candidatesBySlot, ctx, { forRepair = false } = {}) {
   const ready = candidatesBySlot.get("READY") || [];
   let pool = ready.filter((e) => readyMealFitsSlot(e, slotType));
   if (!pool.length && slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1") {
@@ -18594,12 +18660,12 @@ function pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx) {
   if (ctx.blockedTerms?.length) {
     pool = pool.filter((e) => !readyMealBlocked(e, ctx.blockedTerms));
   }
-  if (ctx.tagFilter) {
+  if (!forRepair && ctx.tagFilter) {
     const tagged = pool.filter((e) => dishMatchesTagFilter(e, ctx.tagFilter));
     if (tagged.length) pool = tagged;
   }
-  if (!pool.length) return null;
-  const preferred = ctx.relaxed ? [] : [
+  if (!pool.length || ctx.relaxed || forRepair) return pool;
+  const preferred = [
     (p) => narrowByEnergyFit(p, slotTarget, ctx.achievableCache),
     (p) => PLATED_MEAL_SLOTS.has(slotType) ? p.filter((e) => readyMealProducts(e).some((x) => isVegetableName(x.name))) : p,
     (p) => p.filter((e) => !ctx.dishesToday.has(normalizeFoodKey(e.name)))
@@ -18608,7 +18674,20 @@ function pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx) {
     const next = narrow(pool);
     if (next.length) pool = next;
   }
-  return pickFromPool(pool, { ...ctx, slotType }, "READY");
+  return pool;
+}
+function listReadyMealCandidates(slotType, slotTarget, candidatesBySlot, ctx, limit = SLOT_REPAIR_CANDIDATE_COUNT) {
+  let pool = buildReadyMealPool(slotType, slotTarget, candidatesBySlot, ctx);
+  if (!pool.length) {
+    pool = buildReadyMealPool(slotType, slotTarget, candidatesBySlot, ctx, { forRepair: true });
+  }
+  if (!pool.length) return [];
+  return rankPoolEntries(pool, { ...ctx, slotType, slotTarget }, "READY", slotType).slice(0, limit);
+}
+function pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx) {
+  const pool = buildReadyMealPool(slotType, slotTarget, candidatesBySlot, ctx);
+  if (!pool.length) return null;
+  return pickFromPool(pool, { ...ctx, slotType, slotTarget }, "READY", { slotType });
 }
 function narrowByEnergyFit(pool, slotTarget, cache) {
   const targetKcal = Number(slotTarget?.calories) || 0;
@@ -18650,7 +18729,7 @@ function recordReadyMealUse(entry, ctx, slotType) {
   }
   ctx.dishesToday.add(normalizeFoodKey(entry.name));
 }
-function buildMealForSchemeSlot({ slotType, slotTarget, candidatesBySlot, ctx, includeDessert = false }) {
+async function buildMealForSchemeSlot({ slotType, slotTarget, candidatesBySlot, ctx, includeDessert = false }) {
   if (slotType === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435") {
     return { type: slotType, name: "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" };
   }
@@ -18658,7 +18737,20 @@ function buildMealForSchemeSlot({ slotType, slotTarget, candidatesBySlot, ctx, i
     const drink = catalogName("\u0417\u0435\u043B\u0435\u043D \u0447\u0430\u0439") || "\u0417\u0435\u043B\u0435\u043D \u0447\u0430\u0439";
     return { type: slotType, name: drink, description: `\u2022 ${drink}` };
   }
-  const dish2 = pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx);
+  let dish2 = pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx);
+  if (!dish2 && ctx.repairSlot) {
+    const candidates = listReadyMealCandidates(slotType, slotTarget, candidatesBySlot, ctx);
+    if (candidates.length) {
+      dish2 = await ctx.repairSlot({
+        dayNum: ctx.dayNum,
+        slotType,
+        slotTarget,
+        candidates,
+        ctx
+      });
+      if (dish2 && !candidates.some((c) => c.id === dish2.id)) dish2 = null;
+    }
+  }
   if (!dish2) throw new Error(`\u041D\u044F\u043C\u0430 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u043E \u044F\u0441\u0442\u0438\u0435 \u0437\u0430 ${slotType}`);
   recordReadyMealUse(dish2, ctx, slotType);
   const meal = {
@@ -18672,7 +18764,7 @@ function buildMealForSchemeSlot({ slotType, slotTarget, candidatesBySlot, ctx, i
   if (includeDessert && slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2") meal.dessert = true;
   return meal;
 }
-function buildDeterministicWeekPlanChunk({
+async function buildDeterministicWeekPlanChunk({
   strategy,
   userData = null,
   startDay = 1,
@@ -18683,7 +18775,9 @@ function buildDeterministicWeekPlanChunk({
   clinicalProtocolId = null,
   blockedTerms = [],
   /** Softer dish filters when strict pick leaves catalog gaps (plan engine v2). */
-  relaxed = false
+  relaxed = false,
+  /** Async callback: pick 1 dish from repair candidates when deterministic pick fails. */
+  repairSlot = null
 }) {
   if (!strategy?.weeklyScheme) {
     throw new Error("Missing strategy.weeklyScheme");
@@ -18734,9 +18828,10 @@ function buildDeterministicWeekPlanChunk({
         loveSet,
         adherenceRatio,
         relaxed: !!relaxed,
-        tagFilter: resolveDishTagFilter(userData, strategy, slot.type)
+        tagFilter: resolveDishTagFilter(userData, strategy, slot.type),
+        repairSlot
       };
-      meals.push(buildMealForSchemeSlot({
+      meals.push(await buildMealForSchemeSlot({
         slotType: slot.type,
         slotTarget: slot,
         candidatesBySlot,
@@ -18765,6 +18860,10 @@ function isPlanEngineV2(env = {}) {
 }
 function step3AllowsFullChunkAiFallback(env = {}) {
   return !isPlanEngineV2(env);
+}
+var SLOT_REPAIR_MAX_CALLS_PER_PLAN = 2;
+function step3SlotRepairEnabled(env = {}) {
+  return isPlanEngineV2(env);
 }
 
 // meal-template-engine.js
@@ -27186,6 +27285,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
   }
   const generationWarnings = [];
   let step3Engine = "deterministic";
+  let slotRepairCalls = 0;
   const planEngine = resolvePlanEngine(env);
   if (isPlanEngineV2(env)) {
     console.log("Plan engine v2: dish-first Step 3, no full-chunk AI fallback");
@@ -27246,9 +27346,35 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       try {
         if (deterministicStep3Enabled(env) && attempt === 0) {
           const detSeedBase = Number(data?.id || data?.userId || 0) + (sessionId ? sessionId.length * 17 : 0) + chunkIndex * 31;
-          const runDeterministicChunk = async (relaxed = false) => {
+          const makeRepairSlot = () => {
+            if (!step3SlotRepairEnabled(env)) return null;
+            return async ({ dayNum, slotType, slotTarget, candidates }) => {
+              if (slotRepairCalls >= SLOT_REPAIR_MAX_CALLS_PER_PLAN) return null;
+              const prompt = buildSlotRepairPrompt({
+                dayNum,
+                slotType,
+                slotTarget,
+                candidates,
+                dietaryModifier: strategy?.dietaryModifier || "\u0411\u0430\u043B\u0430\u043D\u0441\u0438\u0440\u0430\u043D\u043E"
+              });
+              const response = await callAIModel(
+                env,
+                prompt,
+                256,
+                `step3_slot_repair_d${dayNum}_${slotType}`,
+                sessionId,
+                data,
+                null
+              );
+              const pick = parseSlotRepairResponse(response, candidates);
+              if (!pick) return null;
+              slotRepairCalls += 1;
+              return pick;
+            };
+          };
+          const runDeterministicChunk = async (relaxed = false, withSlotRepair = false) => {
             clearChunkDays();
-            const chunkData = buildDeterministicWeekPlanChunk({
+            const chunkData = await buildDeterministicWeekPlanChunk({
               strategy,
               userData: data,
               startDay,
@@ -27258,7 +27384,8 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
               includeDessert: userHasSweetsCraving2(data?.foodCravings) && strategy?.includeDessert !== false,
               clinicalProtocolId: data.clinicalProtocol || null,
               blockedTerms: collectUserBlockedFoodTerms(data),
-              relaxed
+              relaxed,
+              repairSlot: withSlotRepair ? makeRepairSlot() : null
             });
             applyChunkData(chunkData);
             chunkBuilt = true;
@@ -27310,11 +27437,29 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
                   blockingErrors = [];
                 }
               } catch (relaxedErr) {
-                clearChunkDays();
-                chunkBuilt = false;
-                throw new Error(
-                  `Plan engine v2: \u043B\u0438\u043F\u0441\u0432\u0430 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u043E \u044F\u0441\u0442\u0438\u0435 \u0432 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430 \u0437\u0430 \u0434\u043D\u0438 ${startDay}-${endDay} (${relaxedErr.message})`
-                );
+                try {
+                  console.warn(
+                    `Chunk ${chunkIndex + 1}: relaxed pick failed, slot repair retry (v2):`,
+                    relaxedErr.message
+                  );
+                  const repairBlocking = await runDeterministicChunk(true, true);
+                  step3Engine = slotRepairCalls > 0 ? "deterministic_slot_repair" : "deterministic_relaxed";
+                  generationWarnings.push(
+                    `Step 3 (v2): slot repair (${slotRepairCalls} AI call(s), ${relaxedErr.message.slice(0, 60)})`
+                  );
+                  if (repairBlocking.length) {
+                    generationWarnings.push(
+                      `Step 3 (v2): ${repairBlocking.length} validation notice(s) after slot repair`
+                    );
+                    blockingErrors = [];
+                  }
+                } catch (repairErr) {
+                  clearChunkDays();
+                  chunkBuilt = false;
+                  throw new Error(
+                    `Plan engine v2: \u043B\u0438\u043F\u0441\u0432\u0430 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u043E \u044F\u0441\u0442\u0438\u0435 \u0432 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430 \u0437\u0430 \u0434\u043D\u0438 ${startDay}-${endDay} (${repairErr.message})`
+                  );
+                }
               }
             } else {
               console.warn(`Chunk ${chunkIndex + 1}: deterministic error, AI fallback:`, detErr.message);

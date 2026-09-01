@@ -62,7 +62,7 @@ function makeStrategy({ meals = 5, dailyKcal = 2200 } = {}) {
 const strategy = makeStrategy({ meals: 5, dailyKcal: 2100 });
 const userData = { dietPreference: ['Балансирано'], eatingHabits: [] };
 
-const chunk = buildDeterministicWeekPlanChunk({
+const chunk = await buildDeterministicWeekPlanChunk({
   strategy,
   userData,
   startDay: 1,
@@ -106,7 +106,7 @@ const skipStrategy = makeStrategy({ meals: 4, dailyKcal: 2000 });
 for (const key of Object.keys(skipStrategy.weeklyScheme)) {
   removeBreakfastSlotFromDay(skipStrategy.weeklyScheme[key]);
 }
-const skipChunk = buildDeterministicWeekPlanChunk({
+const skipChunk = await buildDeterministicWeekPlanChunk({
   strategy: skipStrategy,
   userData: skipUser,
   startDay: 1,
@@ -131,13 +131,13 @@ ok(firstMeal ? firstMeal.calories < 600 : false,
   `restored first meal stays light (${firstMeal?.calories} kcal)`);
 ok(bigDay.mealBreakdown.every(m => m.calories <= 950),
   `no slot above what a real dish carries (${bigDay.mealBreakdown.map(m => m.calories).join('/')})`);
-const bigChunk = buildDeterministicWeekPlanChunk({
+const bigChunk = await buildDeterministicWeekPlanChunk({
   strategy: bigSkipStrategy, userData: bigSkipUser, startDay: 1, endDay: 1, seed: 7,
 });
 ok(bigChunk.day1.meals.some(m => m.type === 'Хранене 1'),
   'restored first meal reaches the plan');
 
-const veganChunk = buildDeterministicWeekPlanChunk({
+const veganChunk = await buildDeterministicWeekPlanChunk({
   strategy: makeStrategy({ meals: 5, dailyKcal: 1900 }),
   userData: { dietPreference: ['Веган'] },
   startDay: 1,

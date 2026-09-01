@@ -39,7 +39,7 @@ function makeStrategy() {
   };
 }
 
-const relaxed = buildDeterministicWeekPlanChunk({
+const relaxed = await buildDeterministicWeekPlanChunk({
   strategy: makeStrategy(),
   userData: { eatingHabits: ['Не закусвам'] },
   startDay: 1,
@@ -49,7 +49,7 @@ const relaxed = buildDeterministicWeekPlanChunk({
 });
 ok(relaxed.day1?.meals?.length >= 3, 'relaxed mode builds skip-breakfast day');
 
-const fullWeek = buildDeterministicWeekPlanChunk({
+const fullWeek = await buildDeterministicWeekPlanChunk({
   strategy: makeStrategy(),
   userData: { dietPreference: ['Балансирано'] },
   startDay: 1,
@@ -72,7 +72,7 @@ for (let d = 1; d <= 7; d++) {
 ok(repeatedSameDay.length === 0, 'no duplicate main dish within a day');
 ok(mainDishes.size >= 4, `at least 4 unique main dishes/week (${mainDishes.size})`);
 
-const ketoWeek = buildDeterministicWeekPlanChunk({
+const ketoWeek = await buildDeterministicWeekPlanChunk({
   strategy: { ...makeStrategy(), dietaryModifier: 'Кетогенна' },
   userData: { dietPreference: ['Кетогенна'] },
   startDay: 1,
