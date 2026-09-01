@@ -19,8 +19,28 @@ export const MIN_MAIN_MEAL_WEIGHT_GRAMS = 50;
 export const MIN_LIGHT_MEAL_WEIGHT_GRAMS = 20;
 /** Late snack (H5) kcal ceiling — single source for worker + validators. */
 export const MAX_LATE_SNACK_CALORIES = 200;
-/** Afternoon snack (H3) kcal ceiling — fruit/nuts/yogurt cannot reach main-meal targets. */
+/** Afternoon snack (H3) floor ceiling — fruit/nuts/yogurt cannot reach main-meal targets. */
 export const MAX_AFTERNOON_SNACK_CALORIES = 350;
+/** Колкото и да е денят, следобедната закуска си остава закуска. */
+export const MAX_AFTERNOON_SNACK_KCAL_ABSOLUTE = 450;
+export const AFTERNOON_SNACK_DAILY_RATIO = 0.15;
+
+/**
+ * Таванът на следобедната закуска расте с деня.
+ *
+ * 350 kcal са 23% от ден на 1500 kcal и 12% от ден на 2900 — един абсолютен
+ * таван за пропорционално нещо е грешен и в двете посоки. Долната граница
+ * остава 350, горната е това, което купа кисело мляко с ядки и плод реално
+ * носи.
+ */
+export function maxAfternoonSnackKcal(dailyKcal) {
+  const daily = Math.max(0, Number(dailyKcal) || 0);
+  if (!daily) return MAX_AFTERNOON_SNACK_CALORIES;
+  return Math.min(
+    MAX_AFTERNOON_SNACK_KCAL_ABSOLUTE,
+    Math.max(MAX_AFTERNOON_SNACK_CALORIES, Math.round(daily * AFTERNOON_SNACK_DAILY_RATIO)),
+  );
+}
 
 /**
  * Договор за адекватност.
@@ -153,9 +173,30 @@ function mainMealRecipients(day) {
   return free ? [free] : [];
 }
 
+/** Първото хранене на деня — единственият слот, който може да бъде върнат. */
+export const FIRST_MEAL_SLOT = 'Хранене 1';
+
+/**
+ * Реалистичният таван на един слот — колкото храната в него наистина носи.
+ *
+ * Различава се от `maxSlotKcal` по това, че не зависи от текущото разпределение:
+ * това е физическата граница, по която се проверява дали денят изобщо се събира
+ * в дадена структура.
+ */
+export function slotCeilingKcal(slotType, dailyKcal) {
+  if (slotType === 'Хранене 5') return MAX_LATE_SNACK_CALORIES;
+  if (slotType === 'Хранене 3') return maxAfternoonSnackKcal(dailyKcal);
+  return MAX_PLATED_SLOT_KCAL_ABSOLUTE;
+}
+
+/** Колко калории структурата на деня може да носи с реалистични порции. */
+export function dayCapacityKcal(slotTypes, dailyKcal) {
+  return (slotTypes || []).reduce((sum, type) => sum + slotCeilingKcal(type, dailyKcal), 0);
+}
+
 function maxSlotKcal(slotType, mealBreakdown, dailyKcal) {
   if (slotType === 'Хранене 5') return MAX_LATE_SNACK_CALORIES;
-  if (slotType === 'Хранене 3') return MAX_AFTERNOON_SNACK_CALORIES;
+  if (slotType === 'Хранене 3') return maxAfternoonSnackKcal(dailyKcal);
   return maxPlatedSlotKcal(mealBreakdown, dailyKcal);
 }
 
@@ -709,11 +750,23 @@ export function userSkipsBreakfast(userData) {
   return Array.isArray(habits) && habits.some(h => String(h).includes('Не закусвам'));
 }
 
-/** Strip Хранене 1 from scheme when client skips breakfast; redistribute kcal to mains. */
+/**
+ * Strip Хранене 1 from scheme when client skips breakfast; redistribute kcal to mains.
+ *
+ * Освен когато денят не се събира без него: при висок калораж обядът и
+ * вечерята биха получили цел над 1000 kcal, каквато никое ястие не носи.
+ * Тогава лекото първо хранене остава — виж `restoredFirstMeal` в Step 2.
+ */
 export function removeBreakfastSlotFromDay(day) {
   if (!day?.mealBreakdown?.length) return;
-  const idx = day.mealBreakdown.findIndex(m => m.type === 'Хранене 1');
+  const idx = day.mealBreakdown.findIndex(m => m.type === FIRST_MEAL_SLOT);
   if (idx < 0) return;
+
+  const daily = Number(day.calories) || sumField(day.mealBreakdown, 'calories');
+  const withoutBreakfast = day.mealBreakdown
+    .filter((_, i) => i !== idx)
+    .map(m => m.type);
+  if (daily > 0 && dayCapacityKcal(withoutBreakfast, daily) < daily) return;
 
   const h1 = day.mealBreakdown.splice(idx, 1)[0];
   const surplus = Number(h1.calories) || 0;
@@ -952,8 +1005,9 @@ export function validateSlotCalories(entry, dayScheme) {
 
   if (entry.type === 'Хранене 3') {
     // Таван, не цел — не се разтяга с допуска за слот.
-    if (!isWithinSlotCap(cal, MAX_AFTERNOON_SNACK_CALORIES)) {
-      return `${entry.type} ${cal} kcal > ${MAX_AFTERNOON_SNACK_CALORIES}`;
+    const snackCap = maxAfternoonSnackKcal(daily);
+    if (!isWithinSlotCap(cal, snackCap)) {
+      return `${entry.type} ${cal} kcal > ${snackCap}`;
     }
     return null;
   }

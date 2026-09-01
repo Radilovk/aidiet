@@ -164,6 +164,26 @@ export const PROFILES = [
     medicalConditions: ['Нямам'],
     medications: 'Не',
   },
+  {
+    // Случаят от продукцията: висок калораж без закуска. Без поправката схемата
+    // даваше на обяда и вечерята цел от ~1165 kcal — грамаж, който никое
+    // реално ястие не носи, и денят излизаше с ~600 kcal по-малко.
+    id: 'high_calorie_skip_breakfast',
+    name: 'Николай Без Закуска',
+    gender: 'Мъж',
+    age: '30',
+    height: '188',
+    weight: '95',
+    goal: 'Мускулна маса',
+    lossKg: '0',
+    sleepHours: '7–8',
+    stressLevel: 'Умерено',
+    sportActivity: 'Много висока (ежедневно)',
+    dailyActivityLevel: 'Високо',
+    eatingHabits: ['Не закусвам'],
+    medicalConditions: ['Нямам'],
+    medications: 'Не',
+  },
 ];
 
 export function minCaloriesForGender(gender) {

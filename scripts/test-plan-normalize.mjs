@@ -19,6 +19,7 @@ import {
   enforceFixedSlotCaps,
   MAX_LATE_SNACK_CALORIES,
   MAX_AFTERNOON_SNACK_CALORIES,
+  maxAfternoonSnackKcal,
 } from '../plan-normalize.js';
 import { applyMealNutritionFromDatabase } from '../food-nutrition.js';
 
@@ -42,7 +43,7 @@ function check(label, ok, detail = '') {
   rebalanceMealBreakdownSlots(day, 2774);
   const sum = day.mealBreakdown.reduce((s, m) => s + m.calories, 0);
   const h3 = day.mealBreakdown.find(m => m.type === 'Хранене 3');
-  check('Kamen-like: H3 ≤ snack cap', h3.calories <= MAX_AFTERNOON_SNACK_CALORIES, `${h3?.calories}`);
+  check('Kamen-like: H3 ≤ snack cap', h3.calories <= maxAfternoonSnackKcal(2774), `${h3?.calories}`);
   check('Kamen-like: дневната сума запазена', Math.abs(sum - 2774) <= 30, `sum=${sum}`);
 }
 
@@ -105,7 +106,7 @@ check('severityLabelForValue(60)=Risky', severityLabelForValue(60) === 'Risky');
   };
   rebalanceMealBreakdownSlots(day, 2774);
   const h3 = day.mealBreakdown.find(m => m.type === 'Хранене 3');
-  check('free day: H3 capped ≤350', h3.calories <= MAX_AFTERNOON_SNACK_CALORIES, `${h3?.calories} kcal`);
+  check('free day: H3 ≤ snack cap', h3.calories <= maxAfternoonSnackKcal(2774), `${h3?.calories} kcal`);
 }
 
 {
@@ -121,7 +122,8 @@ check('severityLabelForValue(60)=Risky', severityLabelForValue(60) === 'Risky');
   enforceFixedSlotCaps(day, 2774);
   const h3 = day.mealBreakdown.find(m => m.type === 'Хранене 3');
   const h5 = day.mealBreakdown.find(m => m.type === 'Хранене 5');
-  check('enforceFixedSlotCaps: H3 ≤350', h3.calories <= 350, `${h3.calories}`);
+  check('enforceFixedSlotCaps: H3 ≤ таван за деня',
+    h3.calories <= maxAfternoonSnackKcal(2774), `${h3.calories}`);
   check('enforceFixedSlotCaps: H5 ≤200', h5.calories <= 200, `${h5.calories}`);
 }
 
