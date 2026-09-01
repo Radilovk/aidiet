@@ -1493,6 +1493,8 @@ ${dietHistorySection}`;
  * @returns {Object} The same object, normalized
  */
 function normalizeQuestionnaireData(data) {
+  if (!data || typeof data !== 'object') return data;
+
   // goal must be a plain string – take the first element when sent as array
   if (Array.isArray(data.goal)) {
     data.goal = String(data.goal[0] || '');
@@ -1514,6 +1516,7 @@ function normalizeQuestionnaireData(data) {
     }
   }
 
+  ensureProfileMetricsOnData(data);
   return data;
 }
 
@@ -2839,7 +2842,33 @@ function normalizeStrategyDessertFlag(strategy, userData) {
   strategy.includeDessert = !blocked;
 }
 
+/** Normalize profile metrics onto the top-level data object (answers nest, "120 кг" strings). */
+function ensureProfileMetricsOnData(data) {
+  if (!data || typeof data !== 'object') return data;
+  const answers = data.answers;
+  if (answers && typeof answers === 'object') {
+    for (const key of ['weight', 'height', 'age', 'gender', 'goal', 'name', 'email']) {
+      if ((data[key] == null || data[key] === '') && answers[key] != null && answers[key] !== '') {
+        data[key] = answers[key];
+      }
+    }
+  }
+  for (const key of ['weight', 'height', 'age']) {
+    if (data[key] == null || data[key] === '') continue;
+    const parsed = parseFloat(String(data[key]).replace(',', '.').match(/[\d.]+/)?.[0] || '');
+    if (!Number.isNaN(parsed) && parsed > 0) data[key] = String(parsed);
+  }
+  return data;
+}
+
+function parseProfileWeightKg(data) {
+  ensureProfileMetricsOnData(data);
+  const w = parseFloat(data?.weight);
+  return !Number.isNaN(w) && w > 0 ? w : 0;
+}
+
 function computeBackendEnergyInputs(data) {
+  ensureProfileMetricsOnData(data);
   const activityData = calculateUnifiedActivityScore(data);
   const bmr = calculateBMR(data);
   const tdee = calculateTDEE(bmr, activityData.combinedScore);
@@ -2848,13 +2877,17 @@ function computeBackendEnergyInputs(data) {
   return { activityData, bmr, tdee, deficitData, macros };
 }
 
-/** Step 1 post-process: narrative normalize + deterministic energy overlay + guardrails. */
-function finalizeStep1Analysis(env, data, analysis) {
-  normalizeAnalysisOutput(analysis, data);
+/**
+ * Recompute Step 1 energy numbers from the current profile without discarding AI narrative.
+ * Returns how much intake moved — callers use this to decide whether Step 2 must rebuild.
+ */
+function refreshAnalysisEnergyFromProfile(env, data, analysis) {
+  if (!analysis) return { bmr: 0, tdee: 0, previousIntake: 0, intake: 0, intakeDrift: 0 };
+  const previousIntake = parseFinalCalories(analysis.Final_Calories);
   const { activityData, bmr, tdee, deficitData, macros } = computeBackendEnergyInputs(data);
 
   if (deterministicStep1Enabled(env)) {
-    const minFatG = Math.round((parseFloat(data.weight) || 70) * MIN_FAT_GRAMS_PER_KG);
+    const minFatG = Math.round(parseProfileWeightKg(data) * MIN_FAT_GRAMS_PER_KG) || Math.round(70 * MIN_FAT_GRAMS_PER_KG);
     const contract = buildEnergyContract({
       bmr,
       tdee,
@@ -2869,7 +2902,17 @@ function finalizeStep1Analysis(env, data, analysis) {
   }
 
   enforceCalorieGuardrails(analysis, data, tdee);
-  return { bmr, tdee, activityData };
+  const intake = parseFinalCalories(analysis.Final_Calories);
+  const intakeDrift = previousIntake > 0 && intake > 0
+    ? Math.abs(intake - previousIntake) / previousIntake
+    : (previousIntake !== intake ? 1 : 0);
+  return { bmr, tdee, activityData, previousIntake, intake, intakeDrift };
+}
+
+/** Step 1 post-process: narrative normalize + deterministic energy overlay + guardrails. */
+function finalizeStep1Analysis(env, data, analysis) {
+  normalizeAnalysisOutput(analysis, data);
+  return refreshAnalysisEnergyFromProfile(env, data, analysis);
 }
 
 /** Post-process raw strategy (deterministic or AI) before validation / Step 3. */
@@ -4220,7 +4263,6 @@ async function generatePlanCore(env, data, onAnalysisReady = null) {
 
   enrichUserDataEngineContext(data);
 
-  // Generate plan (multi-step AI)
   let structuredPlan = await generatePlanMultiStep(env, data, onAnalysisReady);
 
   try {
@@ -6214,6 +6256,10 @@ async function ensureAssistantCacheFresh(env, session, card, planUpdatedAt, anal
  */
 async function reconcilePlanStructure(plan, userData = null, env = null) {
   if (!plan?.weekPlan) return plan;
+  if (plan.analysis && userData) {
+    normalizeQuestionnaireData(userData);
+    refreshAnalysisEnergyFromProfile(env || {}, userData, plan.analysis);
+  }
   const intakeTarget = parseFinalCalories(plan.analysis?.Final_Calories);
   if (plan.strategy) {
     normalizeStrategyDessertFlag(plan.strategy, userData);
@@ -7057,20 +7103,16 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       newPlan = await generatePlanMultiStep(env, enrichedData);
     } else {
       const calorieAdjust = Number(decision.strategyChanges?.calorieAdjust) || 0;
-      if (calorieAdjust && regenStep === 'step3_mealplan' && plan.strategy) {
-        // Step-3-only regen reuses the existing strategy, so write the calorie change
-        // into the per-day scheme before the new meals are aligned to it.
-        applyWeeklyCalorieAdjust(plan.strategy, calorieAdjust);
-      } else if (calorieAdjust && regenStep === 'step2_strategy' && plan.analysis) {
-        // Strategy regen is rebuilt against analysis.Final_Calories, which step 2 reuses —
-        // so an energy change has to move there or it is silently lost. Safety floors are
-        // re-applied afterwards; passing no reference TDEE falls back to analysis.tdee.
-        const current = parseFinalCalories(plan.analysis.Final_Calories) || 0;
-        if (current > 0) {
-          plan.analysis.Final_Calories = current + calorieAdjust;
-          enforceCalorieGuardrails(plan.analysis, enrichedData, null);
+      refreshAnalysisEnergyFromProfile(env, enrichedData, plan.analysis);
+      if (calorieAdjust && plan.analysis) {
+        const { tdee } = computeBackendEnergyInputs(enrichedData);
+        plan.analysis.Final_Calories = parseFinalCalories(plan.analysis.Final_Calories) + calorieAdjust;
+        enforceCalorieGuardrails(plan.analysis, enrichedData, tdee);
+        if (regenStep === 'step3_mealplan' && plan.strategy) {
+          applyWeeklyCalorieAdjust(plan.strategy, calorieAdjust);
         }
       }
+      enrichedData._energyPresynced = true;
       newPlan = await regenerateFromStep(
         env, enrichedData, plan, regenStep, { [regenStep]: ['weekly adaptation'] }, 1
       );
@@ -7942,6 +7984,22 @@ function enforceCalorieGuardrails(analysis, data, referenceTdee) {
   if (fc > 0 && fc < minCal) {
     fc = minCal;
     corrections.push('Повдигнато до минималния безопасен праг.');
+  }
+
+  // A 120 kg active male cannot live on the 1500 kcal medical floor — if TDEE implies
+  // a much higher safe loss floor, never leave intake stuck at the generic minimum.
+  if (
+    fc > 0
+    && tdee > 0
+    && goalIncludes(data.goal, 'Отслабване')
+    && !isLactation
+    && fc <= minCal + 75
+  ) {
+    const safeLossFloor = Math.round(tdee * (1 - maxDeficitRatio));
+    if (safeLossFloor > minCal + 200) {
+      fc = safeLossFloor;
+      corrections.push('Калориите са коригирани спрямо реалния TDEE — не могат да останат на общия минимум.');
+    }
   }
 
   if (fc > 0) {
@@ -9245,6 +9303,7 @@ function checkADLEv8Rules(meal) {
  */
 async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, stepErrors, correctionAttempt) {
   console.log(`Regenerating from ${earliestErrorStep}, attempt ${correctionAttempt}`);
+  normalizeQuestionnaireData(data);
   
   // Generate a unique session ID for this regeneration
   const sessionId = generateUniqueId('regen');
@@ -9261,6 +9320,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
   };
   
   let analysis, strategy, mealPlan;
+  let energyDrift = 0;
   
   try {
     // Step 1: Analysis (regenerate if this step has errors, otherwise reuse)
@@ -9286,13 +9346,27 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       }
       finalizeStep1Analysis(env, data, analysis);
     } else {
-      // Reuse existing analysis
       analysis = existingPlan.analysis;
-      console.log('Reusing existing analysis');
+      if (data._energyPresynced) {
+        delete data._energyPresynced;
+        console.log('Reusing presynced analysis energy (weekly adaptation)');
+      } else {
+        const energySync = refreshAnalysisEnergyFromProfile(env, data, analysis);
+        energyDrift = energySync.intakeDrift;
+        if (energyDrift > 0.05) {
+          console.warn(
+            `Regen: intake resynced ${energySync.previousIntake} → ${energySync.intake} kcal from profile (weight=${data.weight})`,
+          );
+        } else {
+          console.log('Reusing existing analysis (energy already in sync)');
+        }
+      }
     }
-    
+
+    const mustRebuildStrategy = energyDrift > 0.05;
+
     // Step 2: Strategy (regenerate if this or earlier step has errors)
-    if (earliestErrorStep === 'step1_analysis' || earliestErrorStep === 'step2_strategy') {
+    if (earliestErrorStep === 'step1_analysis' || earliestErrorStep === 'step2_strategy' || mustRebuildStrategy) {
       const stepErrorComment = earliestErrorStep === 'step2_strategy' ? errorPreventionComment : null;
       console.log(`Regenerating Step 2 (Strategy)${stepErrorComment ? ' with error prevention' : ''}`);
 
