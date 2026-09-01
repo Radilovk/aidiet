@@ -8,6 +8,7 @@
  * дефектът стига до клиента през курирано ястие, което никой не е проверил.
  */
 import { MEAL_DISHES } from '../meal-dishes.js';
+import { inferDishTags } from '../dish-tags.js';
 import { resolveCatalogEntry } from '../food-catalog.js';
 import { checkProductCompatibility } from '../meal-compatibility.js';
 import { maxPortionGrams, minPortionGrams } from '../portion-limits.js';
@@ -82,6 +83,13 @@ ok(MEAL_DISHES.filter(d => d.timing.includes('breakfast')).length >= 10,
   `достатъчно закуски (${MEAL_DISHES.filter(d => d.timing.includes('breakfast')).length})`);
 ok(MEAL_DISHES.filter(d => d.timing.includes('late_snack')).length >= 4,
   `достатъчно късни закуски (${MEAL_DISHES.filter(d => d.timing.includes('late_snack')).length})`);
+
+const liquidBreakfast = MEAL_DISHES.filter(d => inferDishTags(d).includes('liquid_breakfast'));
+const lowCarb = MEAL_DISHES.filter(d => inferDishTags(d).includes('low_carb'));
+const sweetSlot = MEAL_DISHES.filter(d => inferDishTags(d).includes('sweet_slot'));
+ok(liquidBreakfast.length >= 8, `течни закуски (${liquidBreakfast.length})`);
+ok(lowCarb.length >= 12, `нисковъглехидратни (${lowCarb.length})`);
+ok(sweetSlot.length >= 10, `контролирано сладко (${sweetSlot.length})`);
 
 console.log(`\n=== meal dishes: ${pass} pass, ${fail} fail ===`);
 process.exit(fail ? 1 : 0);

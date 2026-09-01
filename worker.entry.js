@@ -100,7 +100,14 @@ import {
   isPlanEngineV2,
   resolvePlanEngine,
   step3AllowsFullChunkAiFallback,
+  step3SlotRepairEnabled,
+  SLOT_REPAIR_MAX_CALLS_PER_PLAN,
+  buildPlanEngineMeta,
 } from './plan-engine.js';
+import {
+  buildSlotRepairPrompt,
+  parseSlotRepairResponse,
+} from './step3-slot-repair.js';
 import {
   buildDeterministicStrategy,
   deterministicStep2Enabled,
@@ -2963,16 +2970,9 @@ function overlayDeterministicPresentation(mealPlan, strategy) {
   return mealPlan;
 }
 
-function buildEngineMeta(analysis, strategy, mealPlan) {
-  const step3 = mealPlan?.step3Engine || 'unknown';
-  return {
-    step1Deterministic: Boolean(analysis?._deterministicEnergy),
-    step2Deterministic: Boolean(strategy?._deterministicCore),
-    step3Engine: step3,
-    planEngine: mealPlan?.planEngine || 'v1',
-    pipelineVersion: 2,
-    generatedAt: new Date().toISOString(),
-  };
+/** @deprecated use buildPlanEngineMeta from plan-engine.js */
+function buildEngineMeta(analysis, strategy, mealPlan, metrics = {}) {
+  return buildPlanEngineMeta(analysis, strategy, mealPlan, metrics);
 }
 
 
@@ -9444,7 +9444,12 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
         tokenUsage: cumulativeTokens,
         regeneratedFrom: earliestErrorStep,
         correctionAttempt: correctionAttempt,
-        generatedAt: new Date().toISOString()
+        generatedAt: new Date().toISOString(),
+        engine: buildPlanEngineMeta(analysis, strategy, {
+          ...mealPlan,
+          planEngine: mealPlan?.planEngine || resolvePlanEngine(env),
+          step3Engine: mealPlan?.step3Engine || existingPlan?.step3Engine,
+        }),
       }
     };
     syncPlanTargets(result, analysis);
@@ -9623,7 +9628,10 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
       _meta: {
         tokenUsage: cumulativeTokens,
         generatedAt: new Date().toISOString(),
-        engine: buildEngineMeta(analysis, strategy, mealPlan),
+        engine: buildPlanEngineMeta(analysis, strategy, mealPlan, {
+          slotRepairCalls: mealPlan?.slotRepairCalls,
+          step3DurationMs: mealPlan?.step3DurationMs,
+        }),
       }
     };
     syncPlanTargets(result, analysis);
@@ -10073,9 +10081,11 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
     }
   }
   
-  // Precision-first: each chunk must pass validation cleanly — no partial accept, no AI slot repair.
+  // Precision-first: each chunk must pass validation cleanly; v2 may use slot-level dish repair.
   const generationWarnings = [];
   let step3Engine = 'deterministic';
+  let slotRepairCalls = 0;
+  const step3StartedAt = Date.now();
   const planEngine = resolvePlanEngine(env);
   if (isPlanEngineV2(env)) {
     console.log('Plan engine v2: dish-first Step 3, no full-chunk AI fallback');
@@ -10142,9 +10152,36 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
             + (sessionId ? sessionId.length * 17 : 0)
             + chunkIndex * 31;
 
-          const runDeterministicChunk = async (relaxed = false) => {
+          const makeRepairSlot = () => {
+            if (!step3SlotRepairEnabled(env)) return null;
+            return async ({ dayNum, slotType, slotTarget, candidates }) => {
+              if (slotRepairCalls >= SLOT_REPAIR_MAX_CALLS_PER_PLAN) return null;
+              const prompt = buildSlotRepairPrompt({
+                dayNum,
+                slotType,
+                slotTarget,
+                candidates,
+                dietaryModifier: strategy?.dietaryModifier || 'Балансирано',
+              });
+              const response = await callAIModel(
+                env,
+                prompt,
+                256,
+                `step3_slot_repair_d${dayNum}_${slotType}`,
+                sessionId,
+                data,
+                null,
+              );
+              const pick = parseSlotRepairResponse(response, candidates);
+              if (!pick) return null;
+              slotRepairCalls += 1;
+              return pick;
+            };
+          };
+
+          const runDeterministicChunk = async (relaxed = false, withSlotRepair = false) => {
             clearChunkDays();
-            const chunkData = buildDeterministicWeekPlanChunk({
+            const chunkData = await buildDeterministicWeekPlanChunk({
               strategy,
               userData: data,
               startDay,
@@ -10155,6 +10192,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
               clinicalProtocolId: data.clinicalProtocol || null,
               blockedTerms: collectUserBlockedFoodTerms(data),
               relaxed,
+              repairSlot: withSlotRepair ? makeRepairSlot() : null,
             });
             applyChunkData(chunkData);
             chunkBuilt = true;
@@ -10208,11 +10246,29 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
                   blockingErrors = [];
                 }
               } catch (relaxedErr) {
-                clearChunkDays();
-                chunkBuilt = false;
-                throw new Error(
-                  `Plan engine v2: липсва подходящо ястие в каталога за дни ${startDay}-${endDay} (${relaxedErr.message})`,
-                );
+                try {
+                  console.warn(
+                    `Chunk ${chunkIndex + 1}: relaxed pick failed, slot repair retry (v2):`,
+                    relaxedErr.message,
+                  );
+                  const repairBlocking = await runDeterministicChunk(true, true);
+                  step3Engine = slotRepairCalls > 0 ? 'deterministic_slot_repair' : 'deterministic_relaxed';
+                  generationWarnings.push(
+                    `Step 3 (v2): slot repair (${slotRepairCalls} AI call(s), ${relaxedErr.message.slice(0, 60)})`,
+                  );
+                  if (repairBlocking.length) {
+                    generationWarnings.push(
+                      `Step 3 (v2): ${repairBlocking.length} validation notice(s) after slot repair`,
+                    );
+                    blockingErrors = [];
+                  }
+                } catch (repairErr) {
+                  clearChunkDays();
+                  chunkBuilt = false;
+                  throw new Error(
+                    `Plan engine v2: липсва подходящо ястие в каталога за дни ${startDay}-${endDay} (${repairErr.message})`,
+                  );
+                }
               }
             } else {
               console.warn(`Chunk ${chunkIndex + 1}: deterministic error, AI fallback:`, detErr.message);
@@ -10313,6 +10369,9 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
     generationWarnings.push(...varietyResult.warnings);
   }
 
+  const step3DurationMs = Date.now() - step3StartedAt;
+  const engineMetrics = { slotRepairCalls, step3DurationMs };
+
   try {
     const summaryPrompt = await generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan, env);
     const summaryResponse = await callAIModel(env, summaryPrompt, SUMMARY_TOKEN_LIMIT, 'step4_summary', sessionId, data, buildCompactAnalysisForStep4(analysis));
@@ -10342,6 +10401,8 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         generationWarnings,
         step3Engine,
         planEngine,
+        slotRepairCalls,
+        step3DurationMs,
       }, strategy);
       return fallbackPlan;
     }
@@ -10361,6 +10422,8 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       generationWarnings,
       step3Engine,
       planEngine,
+      slotRepairCalls,
+      step3DurationMs,
     }, strategy);
   } catch (error) {
     console.error('Summary generation failed:', error);
@@ -10386,6 +10449,8 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       generationWarnings,
       step3Engine,
       planEngine,
+      slotRepairCalls,
+      step3DurationMs,
     }, strategy);
   }
 }

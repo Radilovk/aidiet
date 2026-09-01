@@ -224,6 +224,26 @@ check('plan engine v1/v2', () => {
   if (!r.ok) throw new Error(r.out.split('\n').slice(-12).join('\n'));
 });
 
+check('step3 slot repair', () => {
+  const r = run('node', ['scripts/test-step3-slot-repair.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-12).join('\n'));
+});
+
+check('dish tags', () => {
+  const r = run('node', ['scripts/test-dish-tags.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-12).join('\n'));
+});
+
+check('catalog coverage v2', () => {
+  const r = run('node', ['scripts/test-catalog-coverage.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-15).join('\n'));
+});
+
+check('catalog source inventory', () => {
+  const r = run('node', ['scripts/list-catalog-sources.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-8).join('\n'));
+});
+
 check('step3 engine quality', () => {
   const r = run('node', ['scripts/test-step3-engine-quality.mjs']);
   if (!r.ok) throw new Error(r.out.split('\n').slice(-20).join('\n'));

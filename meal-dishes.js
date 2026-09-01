@@ -24,8 +24,9 @@
  *               порцията. Всеки продукт спира на реалистичния си таван, така
  *               че голямото хранене расте през хляба и месото, не през листата.
  *   времена   — 'breakfast' | 'main' | 'snack' | 'late_snack' (може няколко)
- *   опции     — { vegan, vegetarian, universality }
+ *   опции     — { vegan, vegetarian, universality, tags }
  *               universality 1–5: 5 = всеки го знае; под 3 не се предлага.
+ *               tags — low_carb, gluten_free, liquid_breakfast, sweet_slot… (по избор)
  *
  * Грамажите вървят по мрежа: под 50 г на стъпки от 5 г, от 50 г нагоре на 50 г.
  * Пиши реалната порция — файлът сам я подравнява към мрежата, затова 130 г
@@ -37,13 +38,14 @@
  */
 
 import { snapGrams } from './gram-rounding.js';
+import { inferDishTags } from './dish-tags.js';
 
 /**
  * @param {string} id
  * @param {string} name
  * @param {Array<[string, number]>} products [име, грамове за една порция]
  * @param {Array<'breakfast'|'main'|'snack'|'late_snack'>} timing
- * @param {{ vegan?: boolean, vegetarian?: boolean, universality?: 1|2|3|4|5 }} [opts]
+ * @param {{ vegan?: boolean, vegetarian?: boolean, universality?: 1|2|3|4|5, tags?: string[] }} [opts]
  */
 function dish(id, name, products, timing, opts = {}) {
   // Грамажите на плана вървят по мрежата 5/50, затова и еталонът стои на нея:
@@ -65,6 +67,7 @@ function dish(id, name, products, timing, opts = {}) {
     vegan: !!opts.vegan,
     vegetarian: opts.vegetarian !== undefined ? !!opts.vegetarian : !!opts.vegan,
     universality: opts.universality ?? 4,
+    tags: Array.isArray(opts.tags) ? [...opts.tags] : [],
   };
 }
 
@@ -106,6 +109,16 @@ export const MEAL_DISHES = [
     ['breakfast'], { vegetarian: true, universality: 5 }),
   dish('meal_eggs_potato_tomato', 'Яйца с картофи и домати', [['яйца', 150], ['картофи', 200], ['Домати', 80], ['зехтин', 10]],
     ['breakfast', 'main'], { vegetarian: true }),
+
+  // ── Течна закуска ────────────────────────────────────────────────────
+  dish('bf_liquid_yogurt_banana', 'Кисело мляко с банан', [['кисело мляко', 200], ['банан', 80]],
+    ['breakfast'], { vegetarian: true, universality: 5, tags: ['liquid_breakfast'] }),
+  dish('bf_liquid_skyr_berries', 'Скир с боровинки', [['скир', 180], ['боровинки', 60]],
+    ['breakfast'], { vegetarian: true, universality: 4, tags: ['liquid_breakfast', 'sweet_slot'] }),
+  dish('bf_liquid_kefir_nuts', 'Кефир с орехи', [['кефир', 200], ['орехи', 15]],
+    ['breakfast'], { vegetarian: true, universality: 4, tags: ['liquid_breakfast'] }),
+  dish('bf_liquid_yogurt_protein', 'Кисело мляко с протеин и малини', [['кисело мляко', 180], ['протеин суроватка', 25], ['малини', 40]],
+    ['breakfast'], { vegetarian: true, universality: 3, tags: ['liquid_breakfast'] }),
 
   // ── Пиле и пуешко ────────────────────────────────────────────────────
   dish('meal_rice_chicken', 'Пиле с ориз и зеленчуци', [['пилешко месо', 130], ['ориз', 150], ['Зеленчуци', 100], ['зехтин', 10]],
@@ -203,17 +216,31 @@ export const MEAL_DISHES = [
 
   // ── Кето / нисковъглехидратни ────────────────────────────────────────
   dish('meal_egg_avocado_spinach', 'Яйца с авокадо и спанак', [['яйца', 150], ['авокадо', 70], ['спанак', 80]],
-    ['breakfast'], { vegetarian: true }),
+    ['breakfast'], { vegetarian: true, tags: ['low_carb'] }),
   dish('meal_keto_eggs_zucchini', 'Яйца с тиквички', [['яйца', 150], ['Тиквички', 120], ['зехтин', 10]],
-    ['breakfast', 'main'], { vegetarian: true, universality: 3 }),
+    ['breakfast', 'main'], { vegetarian: true, universality: 3, tags: ['low_carb'] }),
   dish('meal_salmon_avocado', 'Сьомга с авокадо', [['сьомга', 130], ['авокадо', 60], ['маруля', 60]],
-    ['main'], { universality: 3 }),
+    ['main'], { universality: 3, tags: ['low_carb'] }),
   dish('meal_chicken_cheese_salad', 'Пилешка салата със сирене', [['пилешко месо', 120], ['сирене', 40], ['маруля', 100]],
-    ['main'], { universality: 3 }),
+    ['main'], { universality: 3, tags: ['low_carb'] }),
   dish('meal_cottage_nuts_veg', 'Извара с орехи и краставици', [['извара', 150], ['орехи', 20], ['Краставици', 80]],
-    ['breakfast', 'snack'], { vegetarian: true, universality: 3 }),
+    ['breakfast', 'snack'], { vegetarian: true, universality: 3, tags: ['low_carb'] }),
   dish('meal_eggplant_turkey', 'Пуешко с патладжан', [['пуешко филе', 130], ['патладжан', 150], ['зехтин', 10]],
-    ['main'], { universality: 3 }),
+    ['main'], { universality: 3, tags: ['low_carb'] }),
+
+  // ── Инсулинова резистентност / контролирани въглехидрати ─────────────
+  dish('ir_omelet_mushrooms', 'Омлет с гъби', [['яйца', 150], ['гъби', 100], ['зехтин', 10]],
+    ['breakfast', 'main'], { vegetarian: true, tags: ['low_carb'] }),
+  dish('ir_chicken_zucchini', 'Пиле с тиквички', [['пилешко месо', 130], ['Тиквички', 150], ['зехтин', 10]],
+    ['main'], { universality: 4, tags: ['low_carb'] }),
+  dish('ir_turkey_broccoli', 'Пуешко с броколи', [['пуешко филе', 130], ['броколи', 150], ['зехтин', 10]],
+    ['main'], { universality: 4, tags: ['low_carb'] }),
+  dish('ir_cottage_avocado', 'Извара с авокадо', [['извара', 150], ['авокадо', 60], ['Краставици', 60]],
+    ['breakfast', 'snack'], { vegetarian: true, tags: ['low_carb'] }),
+  dish('ir_tuna_cucumber', 'Риба тон с краставици', [['риба тон', 120], ['Краставици', 100], ['зехтин', 8]],
+    ['main', 'snack'], { universality: 4, tags: ['low_carb'] }),
+  dish('ir_eggs_spinach_cheese', 'Яйца със спанак и сирене', [['яйца', 150], ['спанак', 80], ['сирене', 40]],
+    ['breakfast', 'main'], { vegetarian: true, tags: ['low_carb'] }),
 
   // ── Междинни хранения (Хранене 3) ────────────────────────────────────
   dish('snack_yogurt_almonds', 'Кисело мляко с бадеми', [['кисело мляко', 150], ['бадеми', 15]],
@@ -229,9 +256,19 @@ export const MEAL_DISHES = [
   dish('snack_hummus_carrot', 'Хумус с моркови', [['хумус', 60], ['Моркови', 100]],
     ['snack'], { vegan: true, universality: 3 }),
   dish('snack_fruit_yogurt', 'Плодове с кисело мляко', [['кисело мляко', 150], ['ябълка', 100]],
-    ['snack'], { vegetarian: true, universality: 5 }),
+    ['snack'], { vegetarian: true, universality: 5, tags: ['sweet_slot'] }),
   dish('snack_avocado_walnuts', 'Авокадо с орехи', [['авокадо', 70], ['орехи', 15]],
     ['snack'], { vegan: true, universality: 3 }),
+
+  // ── Контролирано сладко ──────────────────────────────────────────────
+  dish('sweet_yogurt_berries', 'Кисело мляко с боровинки', [['кисело мляко', 150], ['боровинки', 80]],
+    ['snack'], { vegetarian: true, universality: 5, tags: ['sweet_slot'] }),
+  dish('sweet_cottage_honey', 'Извара с мед', [['извара', 130], ['мед', 15]],
+    ['snack'], { vegetarian: true, universality: 5, tags: ['sweet_slot'] }),
+  dish('sweet_apple_yogurt', 'Ябълка с кисело мляко', [['ябълка', 120], ['кисело мляко', 150]],
+    ['snack'], { vegetarian: true, universality: 5, tags: ['sweet_slot'] }),
+  dish('sweet_kefir_berries', 'Кефир с малини', [['кефир', 180], ['малини', 60]],
+    ['snack'], { vegetarian: true, universality: 4, tags: ['sweet_slot', 'liquid_breakfast'] }),
 
   // ── Късна закуска (Хранене 5) — само протеин и мазнини ───────────────
   dish('late_yogurt_walnuts', 'Кисело мляко с орехи', [['кисело мляко', 120], ['орехи', 10]],
@@ -257,8 +294,8 @@ export const DISH_TIMINGS = ['breakfast', 'main', 'snack', 'late_snack'];
 /**
  * Ястие → каталожен запис (group ready_meal).
  * Слотовете се извеждат от продуктите, за да не се поддържат на две места.
- * @param {{ id: string, name: string, products: Array<{name: string, share: number}>,
- *   timing: string[], vegan: boolean, vegetarian: boolean, universality: number }} d
+ * @param {{ id: string, name: string, products: Array<{name: string, share: number, grams?: number}>,
+ *   timing: string[], vegan: boolean, vegetarian: boolean, universality: number, tags?: string[] }} d
  * @param {(name: string) => string|null} groupOfProduct
  */
 export function dishToCatalogEntry(d, groupOfProduct) {
@@ -280,6 +317,8 @@ export function dishToCatalogEntry(d, groupOfProduct) {
     universality: d.universality,
     vegan: d.vegan,
     vegetarian: d.vegetarian,
+    tags: d.tags?.length ? [...d.tags] : [],
+    dishTags: inferDishTags(d),
     genericOf: null,
     aliases: [],
     scalingMode: null,

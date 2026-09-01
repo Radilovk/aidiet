@@ -16,6 +16,12 @@ import { normalizeFoodKey } from './food-utils.js';
 import { parseMealDescription, achievableKcal } from './food-nutrition.js';
 import { isMealCaloriesAdequate } from './plan-normalize.js';
 import { READY_MEAL_PARTS } from './ready-meal-parts.js';
+import {
+  dishMatchesTagFilter,
+  preferTagScore,
+  resolveDishTagFilter,
+} from './dish-tags.js';
+import { SLOT_REPAIR_CANDIDATE_COUNT } from './step3-slot-repair.js';
 
 const DAY_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const MAIN_MEAL_SLOTS = new Set(['Хранене 1', 'Хранене 2', 'Хранене 4']);
@@ -71,6 +77,30 @@ function collectUsedProducts(previousDays = []) {
   return counts;
 }
 
+/** Dish-level usage across previous days and the current week build. */
+function collectUsedDishes(previousDays = []) {
+  const counts = new Map();
+  for (const day of previousDays) {
+    for (const meal of day.meals || []) {
+      const key = meal.dishId || (meal.name ? normalizeFoodKey(meal.name) : null);
+      if (!key) continue;
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
+  }
+  return counts;
+}
+
+function slotDishUseMaps() {
+  return new Map();
+}
+
+function recordSlotDishUse(slotDishUses, slotType, dishKey) {
+  if (!slotType || !dishKey) return;
+  if (!slotDishUses.has(slotType)) slotDishUses.set(slotType, new Map());
+  const slotMap = slotDishUses.get(slotType);
+  slotMap.set(dishKey, (slotMap.get(dishKey) || 0) + 1);
+}
+
 
 function parsePreferLove(userData) {
   return new Set(
@@ -87,40 +117,57 @@ function parsePreferLove(userData) {
  * first") collapsed to a handful of foods once the pool was exhausted; ranking
  * by usage keeps the whole pool in play all week.
  */
-function pickFromPool(pool, ctx, roleKey, { exclude = null } = {}) {
+function scorePoolEntry(entry, ctx, slotType) {
+  const key = normalizeFoodKey(entry.name);
+  const dishKey = entry.id || key;
+  const productUses = ctx.usedProducts.get(key) || 0;
+  const dishUses = ctx.usedDishes?.get(dishKey) || 0;
+  const slotUses = slotType ? (ctx.slotDishUses?.get(slotType)?.get(dishKey) || 0) : 0;
+  const tagBoost = preferTagScore(entry, ctx.tagFilter?.prefer) * 0.5;
+  return dishUses * 3 + slotUses * 2 + productUses - (ctx.loveSet?.has(key) ? 1 : 0) - tagBoost;
+}
+
+function rankPoolEntries(pool, ctx, roleKey, slotType) {
+  let filtered = filterDiet(pool, ctx.dietCtx);
+  if (!filtered.length) return [];
+  const { seed, dayNum, slotIndex } = ctx;
+  const ranked = rankCatalogCandidates(filtered, {
+    role: roleKey === 'READY' ? undefined : roleKey,
+    slotTarget: ctx.slotTarget,
+    maxSlotKcal: Number(ctx.slotTarget?.calories) || 0,
+    loveSet: ctx.loveSet,
+    adherenceRatio: ctx.adherenceRatio,
+    limit: Math.min(filtered.length, 32),
+  });
+  if (!ranked.length) return [];
+
+  const start = (seed + dayNum * 13 + slotIndex * 7 + roleKey.charCodeAt(0)) % ranked.length;
+  const scored = [];
+  for (let i = 0; i < ranked.length; i++) {
+    const entry = ranked[(start + i) % ranked.length];
+    scored.push({ entry, score: scorePoolEntry(entry, ctx, slotType) });
+  }
+  scored.sort((a, b) => a.score - b.score);
+  const seen = new Set();
+  const out = [];
+  for (const { entry } of scored) {
+    const id = entry.id || normalizeFoodKey(entry.name);
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.push(entry);
+  }
+  return out;
+}
+
+function pickFromPool(pool, ctx, roleKey, { exclude = null, slotType = null } = {}) {
   let filtered = filterDiet(pool, ctx.dietCtx);
   if (exclude?.size) {
     const withoutExcluded = filtered.filter(e => !exclude.has(normalizeFoodKey(e.name)));
     if (withoutExcluded.length) filtered = withoutExcluded;
   }
   if (!filtered.length) return null;
-  const { usedProducts, seed, dayNum, slotIndex, loveSet } = ctx;
-  const ranked = rankCatalogCandidates(filtered, {
-    role: roleKey === 'READY' ? undefined : roleKey,
-    slotTarget: ctx.slotTarget,
-    maxSlotKcal: Number(ctx.slotTarget?.calories) || 0,
-    loveSet,
-    adherenceRatio: ctx.adherenceRatio,
-    limit: Math.min(filtered.length, 32),
-  });
-  if (!ranked.length) return null;
-
-  const start = (seed + dayNum * 13 + slotIndex * 7 + roleKey.charCodeAt(0)) % ranked.length;
-  let best = null;
-  let bestScore = Infinity;
-  for (let i = 0; i < ranked.length; i++) {
-    const entry = ranked[(start + i) % ranked.length];
-    const key = normalizeFoodKey(entry.name);
-    const uses = usedProducts.get(key) || 0;
-    // A favourite may recur once more often than the rest before it is passed over.
-    const score = uses - (loveSet?.has(key) ? 1 : 0);
-    if (score < bestScore) {
-      bestScore = score;
-      best = entry;
-      if (bestScore <= 0) break;
-    }
-  }
-  return best;
+  const ordered = rankPoolEntries(filtered, { ...ctx, slotType: slotType || ctx.slotType }, roleKey, slotType || ctx.slotType);
+  return ordered[0] || null;
 }
 
 function descriptionFromReadyMeal(entry) {
@@ -164,7 +211,7 @@ function readyMealProducts(entry) {
  * клиенти. Индивидуалните калории определят само порцията, затова тук се търси
  * ястие, чиято порция може да стигне целта, а не ястие „за този калораж“.
  */
-function pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx) {
+function buildReadyMealPool(slotType, slotTarget, candidatesBySlot, ctx, { forRepair = false } = {}) {
   const ready = candidatesBySlot.get('READY') || [];
   let pool = ready.filter(e => readyMealFitsSlot(e, slotType));
   if (!pool.length && slotType === 'Хранене 1') {
@@ -174,12 +221,13 @@ function pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx) {
   if (ctx.blockedTerms?.length) {
     pool = pool.filter(e => !readyMealBlocked(e, ctx.blockedTerms));
   }
-  if (!pool.length) return null;
+  if (!forRepair && ctx.tagFilter) {
+    const tagged = pool.filter(e => dishMatchesTagFilter(e, ctx.tagFilter));
+    if (tagged.length) pool = tagged;
+  }
+  if (!pool.length || ctx.relaxed || forRepair) return pool;
 
-  // Предпочитанията стесняват избора, но никога не го изпразват: ако нищо не
-  // отговаря, по-добре най-близкото ястие, отколкото никакво.
-  // relaxed (plan engine v2): skip energy/veg/no-repeat narrows — still honors diet + blocks.
-  const preferred = ctx.relaxed ? [] : [
+  const preferred = [
     p => narrowByEnergyFit(p, slotTarget, ctx.achievableCache),
     p => (PLATED_MEAL_SLOTS.has(slotType)
       ? p.filter(e => readyMealProducts(e).some(x => isVegetableName(x.name)))
@@ -190,7 +238,23 @@ function pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx) {
     const next = narrow(pool);
     if (next.length) pool = next;
   }
-  return pickFromPool(pool, ctx, 'READY');
+  return pool;
+}
+
+/** Top-N catalog dishes for slot repair (wider pool when strict pick leaves a gap). */
+export function listReadyMealCandidates(slotType, slotTarget, candidatesBySlot, ctx, limit = SLOT_REPAIR_CANDIDATE_COUNT) {
+  let pool = buildReadyMealPool(slotType, slotTarget, candidatesBySlot, ctx);
+  if (!pool.length) {
+    pool = buildReadyMealPool(slotType, slotTarget, candidatesBySlot, ctx, { forRepair: true });
+  }
+  if (!pool.length) return [];
+  return rankPoolEntries(pool, { ...ctx, slotType, slotTarget }, 'READY', slotType).slice(0, limit);
+}
+
+function pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx) {
+  const pool = buildReadyMealPool(slotType, slotTarget, candidatesBySlot, ctx);
+  if (!pool.length) return null;
+  return pickFromPool(pool, { ...ctx, slotType, slotTarget }, 'READY', { slotType });
 }
 
 /**
@@ -263,14 +327,16 @@ function isVegetableName(name) {
  * Record a dish as its component products, not as one opaque name, so usage
  * accounting speaks the same language everywhere.
  */
-function recordReadyMealUse(entry, ctx) {
-  const dishKey = normalizeFoodKey(entry.name);
-  ctx.usedProducts.set(dishKey, (ctx.usedProducts.get(dishKey) || 0) + 1);
+function recordReadyMealUse(entry, ctx, slotType) {
+  const dishKey = entry.id || normalizeFoodKey(entry.name);
+  ctx.usedProducts.set(normalizeFoodKey(entry.name), (ctx.usedProducts.get(normalizeFoodKey(entry.name)) || 0) + 1);
+  ctx.usedDishes.set(dishKey, (ctx.usedDishes.get(dishKey) || 0) + 1);
+  recordSlotDishUse(ctx.slotDishUses, slotType, dishKey);
   for (const part of READY_MEAL_PARTS[entry.id] || []) {
     const k = normalizeFoodKey(catalogName(part.name) || part.name);
     ctx.usedProducts.set(k, (ctx.usedProducts.get(k) || 0) + 1);
   }
-  ctx.dishesToday.add(dishKey);
+  ctx.dishesToday.add(normalizeFoodKey(entry.name));
 }
 
 
@@ -281,7 +347,7 @@ function recordReadyMealUse(entry, ctx) {
  * подходящо ястие, това е дупка в списъка — тя се съобщава, вместо да се
  * запълва с произволна комбинация продукти.
  */
-function buildMealForSchemeSlot({ slotType, slotTarget, candidatesBySlot, ctx, includeDessert = false }) {
+async function buildMealForSchemeSlot({ slotType, slotTarget, candidatesBySlot, ctx, includeDessert = false }) {
   if (slotType === 'Свободно хранене') {
     return { type: slotType, name: 'Свободно хранене' };
   }
@@ -290,9 +356,22 @@ function buildMealForSchemeSlot({ slotType, slotTarget, candidatesBySlot, ctx, i
     return { type: slotType, name: drink, description: `• ${drink}` };
   }
 
-  const dish = pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx);
+  let dish = pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx);
+  if (!dish && ctx.repairSlot) {
+    const candidates = listReadyMealCandidates(slotType, slotTarget, candidatesBySlot, ctx);
+    if (candidates.length) {
+      dish = await ctx.repairSlot({
+        dayNum: ctx.dayNum,
+        slotType,
+        slotTarget,
+        candidates,
+        ctx,
+      });
+      if (dish && !candidates.some(c => c.id === dish.id)) dish = null;
+    }
+  }
   if (!dish) throw new Error(`Няма подходящо ястие за ${slotType}`);
-  recordReadyMealUse(dish, ctx);
+  recordReadyMealUse(dish, ctx, slotType);
 
   const meal = {
     type: slotType,
@@ -308,9 +387,9 @@ function buildMealForSchemeSlot({ slotType, slotTarget, candidatesBySlot, ctx, i
 
 /**
  * Build weekPlan chunk from frozen strategy (composition-only — grams via backend solver).
- * @returns {Record<string, { meals: object[] }>}
+ * @returns {Promise<Record<string, { meals: object[] }>>}
  */
-export function buildDeterministicWeekPlanChunk({
+export async function buildDeterministicWeekPlanChunk({
   strategy,
   userData = null,
   startDay = 1,
@@ -322,6 +401,8 @@ export function buildDeterministicWeekPlanChunk({
   blockedTerms = [],
   /** Softer dish filters when strict pick leaves catalog gaps (plan engine v2). */
   relaxed = false,
+  /** Async callback: pick 1 dish from repair candidates when deterministic pick fails. */
+  repairSlot = null,
 }) {
   if (!strategy?.weeklyScheme) {
     throw new Error('Missing strategy.weeklyScheme');
@@ -347,6 +428,8 @@ export function buildDeterministicWeekPlanChunk({
   });
 
   const usedProducts = collectUsedProducts(previousDays);
+  const usedDishes = collectUsedDishes(previousDays);
+  const slotDishUses = slotDishUseMaps();
   const achievableCache = new Map();
   /** @type {Record<string, { meals: object[] }>} */
   const out = {};
@@ -374,6 +457,8 @@ export function buildDeterministicWeekPlanChunk({
         slotIndex,
         slotTarget: slot,
         usedProducts,
+        usedDishes,
+        slotDishUses,
         dishesToday,
         achievableCache,
         dietCtx,
@@ -381,9 +466,11 @@ export function buildDeterministicWeekPlanChunk({
         loveSet,
         adherenceRatio,
         relaxed: !!relaxed,
+        tagFilter: resolveDishTagFilter(userData, strategy, slot.type),
+        repairSlot,
       };
 
-      meals.push(buildMealForSchemeSlot({
+      meals.push(await buildMealForSchemeSlot({
         slotType: slot.type,
         slotTarget: slot,
         candidatesBySlot,

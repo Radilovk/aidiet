@@ -70,7 +70,7 @@ ok(engPool.length > 0, 'ENG pool present with default 5-meal scheme');
 ok(/овес|хляб|ориз|картоф/.test(engNames), 'ENG pool includes starches/grains');
 ok(/орех|бадем|зехтин|авокадо/.test(fatNames), 'FAT pool includes nuts/oil (not dairy-only)');
 
-const chunk = buildDeterministicWeekPlanChunk({
+const chunk = await buildDeterministicWeekPlanChunk({
   strategy,
   userData: baseUser,
   startDay: 1,
@@ -117,7 +117,7 @@ ok(
 // Skip breakfast
 const skipUser = { ...baseUser, eatingHabits: ['Не закусвам'] };
 const skipStrategy = buildDeterministicStrategy({ userData: skipUser, analysis });
-const skipChunk = buildDeterministicWeekPlanChunk({
+const skipChunk = await buildDeterministicWeekPlanChunk({
   strategy: skipStrategy,
   userData: skipUser,
   startDay: 1,
@@ -130,7 +130,7 @@ ok(!skipChunk.day1.meals.some(m => m.type === 'Хранене 1'), 'no H1 when s
 // Fixed dessert on lunch (H2) when sweets craving
 const sweetUser = { ...baseUser, foodCravings: ['Сладко'] };
 ok(buildDeterministicStrategy({ userData: sweetUser, analysis }).includeDessert === true, 'includeDessert when sweets craving');
-const sweetChunk = buildDeterministicWeekPlanChunk({
+const sweetChunk = await buildDeterministicWeekPlanChunk({
   strategy: buildDeterministicStrategy({ userData: sweetUser, analysis }),
   userData: sweetUser,
   startDay: 1,
@@ -206,7 +206,7 @@ for (const { profile, analysis: golden } of matrixProfiles) {
     enforceFixedSlotCaps(day, kcal);
     syncSchemeDayMetadata(day);
   }
-  const week = buildDeterministicWeekPlanChunk({
+  const week = await buildDeterministicWeekPlanChunk({
     strategy: strat,
     userData: profile,
     startDay: 1,
