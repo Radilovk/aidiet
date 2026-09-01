@@ -88,6 +88,7 @@ function normalizeDish(d) {
     vegan: !!d.vegan,
     vegetarian: d.vegetarian !== undefined ? !!d.vegetarian : !!d.vegan,
     universality: Number(d.universality) || 4,
+    tags: Array.isArray(d.tags) ? [...d.tags] : [],
   };
 }
 

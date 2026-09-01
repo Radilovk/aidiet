@@ -19,17 +19,17 @@
 
 ---
 
-## Етап 2 — По-добра ротация (следващ)
+## Етап 2 — По-добра ротация ✅ (този PR)
 
-- [ ] Седмичен rotation index per slot (не само `usedProducts` count)
-- [ ] `dish_tags` в `meal-dishes.js` (low_carb, gluten_free, liquid_breakfast…)
-- [ ] Филтър по tags от `questionnaire-engine-map` + diet profile
+- [x] Седмичен rotation index per slot (`usedDishes` + `slotDishUses`, dish score ×3)
+- [x] `dish_tags` в `meal-dishes.js` + `dish-tags.js` (low_carb, gluten_free, liquid_breakfast…)
+- [x] Филтър по tags от `questionnaire-engine-map` + `diet-registry` profile
 
 **Критерий:** същото ястие max 1×/ден, min 4 различни main ястия/седмица.
 
 ---
 
-## Етап 3 — Slot-level AI repair (само при дупка)
+## Етап 3 — Slot-level AI repair (следващ)
 
 - [ ] Ако след relaxed няма ястие за 1 слот → 1 AI call с 5 кандидата от каталога
 - [ ] Промпт без ADLE v8 — само „избери 1 от списъка“

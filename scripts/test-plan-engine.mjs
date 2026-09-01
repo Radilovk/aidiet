@@ -5,6 +5,8 @@ import {
   step3AllowsFullChunkAiFallback,
 } from '../plan-engine.js';
 import { buildDeterministicWeekPlanChunk } from '../step3-deterministic.js';
+import { MEAL_DISHES } from '../meal-dishes.js';
+import { inferDishTags } from '../dish-tags.js';
 
 let pass = 0;
 let fail = 0;
@@ -46,6 +48,47 @@ const relaxed = buildDeterministicWeekPlanChunk({
   relaxed: true,
 });
 ok(relaxed.day1?.meals?.length >= 3, 'relaxed mode builds skip-breakfast day');
+
+const fullWeek = buildDeterministicWeekPlanChunk({
+  strategy: makeStrategy(),
+  userData: { dietPreference: ['Балансирано'] },
+  startDay: 1,
+  endDay: 7,
+  seed: 11,
+});
+const mainDishes = new Set();
+const repeatedSameDay = [];
+for (let d = 1; d <= 7; d++) {
+  const names = new Set();
+  for (const meal of fullWeek[`day${d}`]?.meals || []) {
+    if (!['Хранене 1', 'Хранене 2', 'Хранене 4'].includes(meal.type)) continue;
+    const n = (meal.name || '').toLowerCase().trim();
+    if (!n) continue;
+    mainDishes.add(n);
+    if (names.has(n)) repeatedSameDay.push(`day${d}:${n}`);
+    names.add(n);
+  }
+}
+ok(repeatedSameDay.length === 0, 'no duplicate main dish within a day');
+ok(mainDishes.size >= 4, `at least 4 unique main dishes/week (${mainDishes.size})`);
+
+const ketoWeek = buildDeterministicWeekPlanChunk({
+  strategy: { ...makeStrategy(), dietaryModifier: 'Кетогенна' },
+  userData: { dietPreference: ['Кетогенна'] },
+  startDay: 1,
+  endDay: 3,
+  seed: 22,
+});
+let ketoOk = true;
+for (let d = 1; d <= 3; d++) {
+  for (const meal of ketoWeek[`day${d}`]?.meals || []) {
+    if (meal.type !== 'Хранене 2' && meal.type !== 'Хранене 4') continue;
+    const entry = MEAL_DISHES.find(x => x.id === meal.dishId);
+    const tags = entry ? inferDishTags(entry) : [];
+    if (!tags.includes('low_carb')) ketoOk = false;
+  }
+}
+ok(ketoOk, 'keto plan uses low_carb main dishes');
 
 console.log(`\n=== plan-engine: ${pass} pass, ${fail} fail ===`);
 process.exit(fail ? 1 : 0);

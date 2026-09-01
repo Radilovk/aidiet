@@ -224,6 +224,11 @@ check('plan engine v1/v2', () => {
   if (!r.ok) throw new Error(r.out.split('\n').slice(-12).join('\n'));
 });
 
+check('dish tags', () => {
+  const r = run('node', ['scripts/test-dish-tags.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-12).join('\n'));
+});
+
 check('step3 engine quality', () => {
   const r = run('node', ['scripts/test-step3-engine-quality.mjs']);
   if (!r.ok) throw new Error(r.out.split('\n').slice(-20).join('\n'));
