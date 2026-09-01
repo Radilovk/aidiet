@@ -8870,90 +8870,26 @@ var MEAL_DISHES = [
     ["main"],
     { universality: 4 }
   ),
-  // ── Обилни основни (висок калораж, skip-breakfast / атлети) ──────────
   dish(
-    "meal_hearty_pasta_beef",
+    "meal_pasta_beef",
     "\u041F\u0430\u0441\u0442\u0430 \u0441 \u0433\u043E\u0432\u0435\u0436\u0434\u043E \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
-    [["\u043F\u0430\u0441\u0442\u0430", 200], ["\u0433\u043E\u0432\u0435\u0436\u0434\u043E", 150], ["\u0414\u043E\u043C\u0430\u0442\u0438", 100], ["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 80]],
+    [["\u043F\u0430\u0441\u0442\u0430", 150], ["\u0433\u043E\u0432\u0435\u0436\u0434\u043E", 130], ["\u0414\u043E\u043C\u0430\u0442\u0438", 80], ["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 80]],
     ["main"],
-    { universality: 5, tags: ["high_energy"] }
+    { universality: 5 }
   ),
   dish(
-    "meal_hearty_pork_rice",
-    "\u0421\u0432\u0438\u043D\u0441\u043A\u043E \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
-    [["\u0441\u0432\u0438\u043D\u0441\u043A\u043E", 150], ["\u043E\u0440\u0438\u0437", 220], ["\u0422\u0438\u043A\u0432\u0438\u0447\u043A\u0438", 100]],
-    ["main"],
-    { universality: 4, tags: ["high_energy"] }
-  ),
-  dish(
-    "meal_hearty_chicken_rice",
-    "\u041F\u0438\u043B\u0435\u0448\u043A\u043E \u0441 \u043E\u0440\u0438\u0437 (\u043E\u0431\u0438\u043B\u043D\u0430 \u043F\u043E\u0440\u0446\u0438\u044F)",
-    [["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 170], ["\u043E\u0440\u0438\u0437", 220], ["\u0431\u0440\u043E\u043A\u043E\u043B\u0438", 100]],
-    ["main"],
-    { universality: 5, tags: ["high_energy"] }
-  ),
-  dish(
-    "meal_hearty_beef_potato",
-    "\u0413\u043E\u0432\u0435\u0436\u0434\u043E \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 (\u043E\u0431\u0438\u043B\u043D\u0430 \u043F\u043E\u0440\u0446\u0438\u044F)",
-    [["\u0433\u043E\u0432\u0435\u0436\u0434\u043E", 160], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 260], ["\u041C\u043E\u0440\u043A\u043E\u0432\u0438", 80]],
-    ["main"],
-    { universality: 5, tags: ["high_energy"] }
-  ),
-  dish(
-    "meal_hearty_pasta_chicken",
-    "\u041F\u0430\u0441\u0442\u0430 \u0441 \u043F\u0438\u043B\u0435 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
-    [["\u043F\u0430\u0441\u0442\u0430", 200], ["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 160], ["\u0414\u043E\u043C\u0430\u0442\u0438", 100]],
-    ["main"],
-    { universality: 5, tags: ["high_energy"] }
-  ),
-  dish(
-    "meal_hearty_beef_rice",
-    "\u0413\u043E\u0432\u0435\u0436\u0434\u043E \u0441 \u043E\u0440\u0438\u0437 (\u043E\u0431\u0438\u043B\u043D\u0430 \u043F\u043E\u0440\u0446\u0438\u044F)",
-    [["\u0433\u043E\u0432\u0435\u0436\u0434\u043E", 160], ["\u043E\u0440\u0438\u0437", 240], ["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 100]],
-    ["main"],
-    { universality: 5, tags: ["high_energy"] }
-  ),
-  dish(
-    "meal_hearty_salmon_rice",
+    "meal_salmon_rice",
     "\u0421\u044C\u043E\u043C\u0433\u0430 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0441\u043F\u0430\u043D\u0430\u043A",
-    [["\u0441\u044C\u043E\u043C\u0433\u0430", 150], ["\u043E\u0440\u0438\u0437", 220], ["\u0441\u043F\u0430\u043D\u0430\u043A", 100]],
+    [["\u0441\u044C\u043E\u043C\u0433\u0430", 130], ["\u043E\u0440\u0438\u0437", 150], ["\u0441\u043F\u0430\u043D\u0430\u043A", 80]],
     ["main"],
-    { universality: 4, tags: ["high_energy"] }
+    { universality: 4 }
   ),
   dish(
-    "meal_hearty_turkey_potato",
-    "\u041F\u0443\u0435\u0448\u043A\u043E \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 (\u043E\u0431\u0438\u043B\u043D\u0430 \u043F\u043E\u0440\u0446\u0438\u044F)",
-    [["\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435", 170], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 260], ["\u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B", 100]],
-    ["main"],
-    { universality: 4, tags: ["high_energy"] }
-  ),
-  dish(
-    "meal_hearty_chicken_bulgur",
-    "\u041F\u0438\u043B\u0435 \u0441 \u0431\u0443\u043B\u0433\u0443\u0440 \u0438 \u0447\u0443\u0448\u043A\u0438",
-    [["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 170], ["\u0431\u0443\u043B\u0433\u0443\u0440", 220], ["\u0427\u0443\u0448\u043A\u0438", 100]],
-    ["main"],
-    { universality: 4, tags: ["high_energy"] }
-  ),
-  dish(
-    "meal_hearty_cod_potato",
-    "\u0422\u0440\u0435\u0441\u043A\u0430 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
-    [["\u0442\u0440\u0435\u0441\u043A\u0430", 160], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 250], ["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 100]],
-    ["main"],
-    { universality: 4, tags: ["high_energy"] }
-  ),
-  dish(
-    "meal_hearty_lentil_chicken",
+    "meal_lentil_chicken",
     "\u041F\u0438\u043B\u0435 \u0441 \u043B\u0435\u0449\u0430 \u0438 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
-    [["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 140], ["\u043B\u0435\u0449\u0430", 200], ["\u041C\u043E\u0440\u043A\u043E\u0432\u0438", 80]],
+    [["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 130], ["\u043B\u0435\u0449\u0430", 150], ["\u041C\u043E\u0440\u043A\u043E\u0432\u0438", 80]],
     ["main"],
-    { universality: 4, tags: ["high_energy"] }
-  ),
-  dish(
-    "meal_hearty_beef_pasta",
-    "\u041F\u0430\u0441\u0442\u0430 \u0441 \u0433\u043E\u0432\u0435\u0436\u0434\u043E \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
-    [["\u043F\u0430\u0441\u0442\u0430", 220], ["\u0433\u043E\u0432\u0435\u0436\u0434\u043E", 160], ["\u0414\u043E\u043C\u0430\u0442\u0438", 100]],
-    ["main"],
-    { universality: 5, tags: ["high_energy"] }
+    { universality: 4 }
   ),
   // ── Червено месо ─────────────────────────────────────────────────────
   dish(
@@ -9235,11 +9171,11 @@ var MEAL_DISHES = [
     { vegan: true, universality: 4 }
   ),
   dish(
-    "meal_hearty_lentil_rice",
+    "meal_lentil_rice",
     "\u041B\u0435\u0449\u0430 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
-    [["\u043B\u0435\u0449\u0430", 200], ["\u043E\u0440\u0438\u0437", 180], ["\u041C\u043E\u0440\u043A\u043E\u0432\u0438", 80]],
+    [["\u043B\u0435\u0449\u0430", 150], ["\u043E\u0440\u0438\u0437", 120], ["\u041C\u043E\u0440\u043A\u043E\u0432\u0438", 80]],
     ["main"],
-    { vegan: true, universality: 5, tags: ["high_energy"] }
+    { vegan: true, universality: 5 }
   ),
   dish(
     "meal_chickpea_spinach",
@@ -9263,11 +9199,11 @@ var MEAL_DISHES = [
     { vegan: true, universality: 3 }
   ),
   dish(
-    "meal_hearty_bean_potato",
+    "meal_bean_potato",
     "\u0411\u043E\u0431 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
-    [["\u0431\u043E\u0431", 200], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 200], ["\u041C\u043E\u0440\u043A\u043E\u0432\u0438", 80]],
+    [["\u0431\u043E\u0431", 150], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 180], ["\u041C\u043E\u0440\u043A\u043E\u0432\u0438", 80]],
     ["main"],
-    { vegan: true, universality: 4, tags: ["high_energy"] }
+    { vegan: true, universality: 4 }
   ),
   // ── Кето / нисковъглехидратни ────────────────────────────────────────
   dish(
