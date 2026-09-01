@@ -210,6 +210,23 @@ function readyMealProducts(entry) {
     : [{ name: entry.name }];
 }
 
+/** Stable per-day key — dish id, not display name. */
+function dishDayKey(entry) {
+  return entry.id || normalizeFoodKey(entry.name);
+}
+
+/** Hard ban: the same catalog dish must not appear twice in one day. */
+function excludeDishesToday(pool, ctx) {
+  if (ctx.relaxed || !ctx.dishesToday?.size) return pool;
+  return pool.filter(e => !ctx.dishesToday.has(dishDayKey(e)));
+}
+
+function preferVegetableOnPlated(pool, slotType) {
+  if (!PLATED_MEAL_SLOTS.has(slotType) || !pool.length) return pool;
+  const withVeg = pool.filter(e => readyMealProducts(e).some(x => isVegetableName(x.name)));
+  return withVeg.length ? withVeg : pool;
+}
+
 /**
  * Избор на ястие за слот.
  *
@@ -231,20 +248,19 @@ function buildReadyMealPool(slotType, slotTarget, candidatesBySlot, ctx, { forRe
     const tagged = pool.filter(e => dishMatchesTagFilter(e, ctx.tagFilter));
     if (tagged.length) pool = tagged;
   }
-  if (!pool.length || ctx.relaxed || forRepair) return pool;
+  if (!pool.length) return pool;
 
-  const preferred = [
-    p => narrowByEnergyFit(p, slotTarget, ctx.achievableCache),
-    p => (PLATED_MEAL_SLOTS.has(slotType)
-      ? p.filter(e => readyMealProducts(e).some(x => isVegetableName(x.name)))
-      : p),
-    p => p.filter(e => !ctx.dishesToday.has(normalizeFoodKey(e.name))),
-  ];
-  for (const narrow of preferred) {
-    const next = narrow(pool);
-    if (next.length) pool = next;
-  }
-  return pool;
+  pool = excludeDishesToday(pool, ctx);
+  if (!pool.length) return pool;
+
+  if (ctx.relaxed || forRepair) return pool;
+
+  const energyFit = narrowByEnergyFit(pool, slotTarget, ctx.achievableCache);
+  if (energyFit.length) return preferVegetableOnPlated(energyFit, slotType);
+
+  // Нищо не стига целта, но денят пак не може да повтори ястие — връщаме
+  // най-близките кандидати и оставяме преноса на meal-day-sync.
+  return preferVegetableOnPlated(pool, slotType);
 }
 
 /** Top-N catalog dishes for slot repair (wider pool when strict pick leaves a gap). */
@@ -342,7 +358,7 @@ function recordReadyMealUse(entry, ctx, slotType) {
     const k = normalizeFoodKey(catalogName(part.name) || part.name);
     ctx.usedProducts.set(k, (ctx.usedProducts.get(k) || 0) + 1);
   }
-  ctx.dishesToday.add(normalizeFoodKey(entry.name));
+  ctx.dishesToday.add(dishDayKey(entry));
 }
 
 

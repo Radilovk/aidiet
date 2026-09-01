@@ -146,6 +146,18 @@ export const MEAL_DISHES = [
   dish('meal_turkey_potato', 'Пуешко с картофи', [['пуешко филе', 130], ['картофи', 200], ['зелен фасул', 80]],
     ['main']),
 
+  // ── Обилни основни (висок калораж, skip-breakfast / атлети) ──────────
+  dish('meal_hearty_pasta_beef', 'Паста с говеждо и зеленчуци', [['паста', 200], ['говеждо', 150], ['Домати', 100], ['Зеленчуци', 80]],
+    ['main'], { universality: 5, tags: ['high_energy'] }),
+  dish('meal_hearty_pork_rice', 'Свинско с ориз и тиквички', [['свинско', 150], ['ориз', 220], ['Тиквички', 100]],
+    ['main'], { universality: 4, tags: ['high_energy'] }),
+  dish('meal_hearty_chicken_rice', 'Пилешко с ориз (обилна порция)', [['пилешко месо', 170], ['ориз', 220], ['броколи', 100]],
+    ['main'], { universality: 5, tags: ['high_energy'] }),
+  dish('meal_hearty_beef_potato', 'Говеждо с картофи (обилна порция)', [['говеждо', 160], ['картофи', 260], ['Моркови', 80]],
+    ['main'], { universality: 5, tags: ['high_energy'] }),
+  dish('meal_hearty_pasta_chicken', 'Паста с пиле и домати', [['паста', 200], ['пилешко месо', 160], ['Домати', 100]],
+    ['main'], { universality: 5, tags: ['high_energy'] }),
+
   // ── Червено месо ─────────────────────────────────────────────────────
   dish('meal_beef_potato', 'Говеждо с картофи', [['говеждо', 130], ['картофи', 200], ['Моркови', 60]],
     ['main'], { universality: 5 }),
