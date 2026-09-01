@@ -24319,6 +24319,7 @@ ${dietHistorySection}`;
   }
 }
 function normalizeQuestionnaireData(data) {
+  if (!data || typeof data !== "object") return data;
   if (Array.isArray(data.goal)) {
     data.goal = String(data.goal[0] || "");
   }
@@ -24335,6 +24336,7 @@ function normalizeQuestionnaireData(data) {
       data[field] = typeof data[field] === "string" ? [data[field]] : [];
     }
   }
+  ensureProfileMetricsOnData(data);
   return data;
 }
 async function handleValidateQuestionnaire(request, env) {
@@ -26379,7 +26381,6 @@ async function generatePlanCore(env, data, onAnalysisReady = null) {
   if (hasContradiction && !contradictionCanProceed) {
     return { success: true, hasContradiction: true, warningData, userId };
   }
-  ensureProfileMetricsOnData(data);
   enrichUserDataEngineContext(data);
   let structuredPlan = await generatePlanMultiStep(env, data, onAnalysisReady);
   try {
@@ -27903,7 +27904,7 @@ async function ensureAssistantCacheFresh(env, session, card, planUpdatedAt, anal
 async function reconcilePlanStructure(plan, userData = null, env = null) {
   if (!plan?.weekPlan) return plan;
   if (plan.analysis && userData) {
-    ensureProfileMetricsOnData(userData);
+    normalizeQuestionnaireData(userData);
     refreshAnalysisEnergyFromProfile(env || {}, userData, plan.analysis);
   }
   const intakeTarget = parseFinalCalories(plan.analysis?.Final_Calories);
@@ -28639,15 +28640,16 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       newPlan = await generatePlanMultiStep(env, enrichedData);
     } else {
       const calorieAdjust = Number(decision.strategyChanges?.calorieAdjust) || 0;
-      if (calorieAdjust && regenStep === "step3_mealplan" && plan.strategy) {
-        applyWeeklyCalorieAdjust(plan.strategy, calorieAdjust);
-      } else if (calorieAdjust && regenStep === "step2_strategy" && plan.analysis) {
-        const current = parseFinalCalories(plan.analysis.Final_Calories) || 0;
-        if (current > 0) {
-          plan.analysis.Final_Calories = current + calorieAdjust;
-          enforceCalorieGuardrails(plan.analysis, enrichedData, null);
+      refreshAnalysisEnergyFromProfile(env, enrichedData, plan.analysis);
+      if (calorieAdjust && plan.analysis) {
+        const { tdee } = computeBackendEnergyInputs(enrichedData);
+        plan.analysis.Final_Calories = parseFinalCalories(plan.analysis.Final_Calories) + calorieAdjust;
+        enforceCalorieGuardrails(plan.analysis, enrichedData, tdee);
+        if (regenStep === "step3_mealplan" && plan.strategy) {
+          applyWeeklyCalorieAdjust(plan.strategy, calorieAdjust);
         }
       }
+      enrichedData._energyPresynced = true;
       newPlan = await regenerateFromStep(
         env,
         enrichedData,
@@ -30372,7 +30374,7 @@ function validatePlan(plan, userData, substitutions = []) {
 }
 async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, stepErrors, correctionAttempt) {
   console.log(`Regenerating from ${earliestErrorStep}, attempt ${correctionAttempt}`);
-  ensureProfileMetricsOnData(data);
+  normalizeQuestionnaireData(data);
   const sessionId = generateUniqueId("regen");
   console.log(`Regeneration session ID: ${sessionId}`);
   const errorPreventionComment = generateErrorPreventionComment(stepErrors[earliestErrorStep], earliestErrorStep, correctionAttempt);
@@ -30382,6 +30384,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
     total: 0
   };
   let analysis, strategy, mealPlan;
+  let energyDrift = 0;
   try {
     if (earliestErrorStep === "step1_analysis") {
       console.log("Regenerating Step 1 (Analysis) with error prevention");
@@ -30402,17 +30405,22 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       finalizeStep1Analysis(env, data, analysis);
     } else {
       analysis = existingPlan.analysis;
-      const energySync = refreshAnalysisEnergyFromProfile(env, data, analysis);
-      if (energySync.intakeDrift > 0.05) {
-        console.warn(
-          `Regen: intake resynced ${energySync.previousIntake} \u2192 ${energySync.intake} kcal from profile (weight=${data.weight})`
-        );
+      if (data._energyPresynced) {
+        delete data._energyPresynced;
+        console.log("Reusing presynced analysis energy (weekly adaptation)");
       } else {
-        console.log("Reusing existing analysis (energy already in sync)");
+        const energySync = refreshAnalysisEnergyFromProfile(env, data, analysis);
+        energyDrift = energySync.intakeDrift;
+        if (energyDrift > 0.05) {
+          console.warn(
+            `Regen: intake resynced ${energySync.previousIntake} \u2192 ${energySync.intake} kcal from profile (weight=${data.weight})`
+          );
+        } else {
+          console.log("Reusing existing analysis (energy already in sync)");
+        }
       }
     }
-    const intakeResynced = parseFinalCalories(analysis?.Final_Calories);
-    const mustRebuildStrategy = intakeResynced > 0 && existingPlan?.analysis && Math.abs(intakeResynced - parseFinalCalories(existingPlan.analysis.Final_Calories)) > Math.max(75, intakeResynced * 0.05);
+    const mustRebuildStrategy = energyDrift > 0.05;
     if (earliestErrorStep === "step1_analysis" || earliestErrorStep === "step2_strategy" || mustRebuildStrategy) {
       const stepErrorComment = earliestErrorStep === "step2_strategy" ? errorPreventionComment : null;
       console.log(`Regenerating Step 2 (Strategy)${stepErrorComment ? " with error prevention" : ""}`);
@@ -30593,7 +30601,6 @@ ${errors.map((error, idx) => `${idx + 1}. ${error}`).join("\n")}
 }
 async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
   console.log("Multi-step generation: Starting (3+ AI requests for precision)");
-  ensureProfileMetricsOnData(data);
   enrichUserDataEngineContext(data);
   const sessionId = generateUniqueId("session");
   console.log(`Plan generation session ID: ${sessionId}`);

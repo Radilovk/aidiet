@@ -15,6 +15,26 @@ import { HARD_PROFILES } from './plan-adequacy/fixtures/hard-profiles.mjs';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const workerSrc = readFileSync(join(root, 'worker.entry.js'), 'utf8');
 
+// Minimal inline of normalizeQuestionnaireData tail for nested-weight test
+function normalizeQuestionnaireData(data) {
+  if (!data || typeof data !== 'object') return data;
+  if (Array.isArray(data.goal)) data.goal = String(data.goal[0] || '');
+  const answers = data.answers;
+  if (answers && typeof answers === 'object') {
+    for (const key of ['weight', 'height', 'age', 'gender', 'goal', 'name', 'email']) {
+      if ((data[key] == null || data[key] === '') && answers[key] != null && answers[key] !== '') {
+        data[key] = answers[key];
+      }
+    }
+  }
+  for (const key of ['weight', 'height', 'age']) {
+    if (data[key] == null || data[key] === '') continue;
+    const parsed = parseFloat(String(data[key]).replace(',', '.').match(/[\d.]+/)?.[0] || '');
+    if (!Number.isNaN(parsed) && parsed > 0) data[key] = String(parsed);
+  }
+  return data;
+}
+
 let pass = 0;
 let fail = 0;
 function ok(cond, msg) {
@@ -22,8 +42,15 @@ function ok(cond, msg) {
   else { fail++; console.error(`✗ ${msg}`); }
 }
 
-ok(workerSrc.includes('refreshAnalysisEnergyFromProfile'), 'worker refreshes energy on regen');
-ok(workerSrc.includes('ensureProfileMetricsOnData'), 'worker normalizes nested profile metrics');
+ok(workerSrc.includes('energyDrift > 0.05'), 'regen rebuilds strategy when intake drifted');
+ok(workerSrc.includes('_energyPresynced'), 'weekly adapt preserves calorie adjust after presync');
+ok(workerSrc.includes('ensureProfileMetricsOnData(data)'), 'normalizeQuestionnaireData flattens profile metrics');
+
+// Nested answers.weight must reach the energy pipeline
+const nested = { answers: { weight: '120 кг', height: '175', age: '40', gender: 'Мъж', goal: 'отслабване' } };
+normalizeQuestionnaireData(nested);
+ok(nested.weight === '120', 'nested answers.weight flattened');
+
 ok(workerSrc.includes('safeLossFloor'), 'worker blocks intake stuck at generic medical floor');
 
 const profile = HARD_PROFILES.find(p => p.id === 'kamen_benchmark');

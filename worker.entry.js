@@ -1493,6 +1493,8 @@ ${dietHistorySection}`;
  * @returns {Object} The same object, normalized
  */
 function normalizeQuestionnaireData(data) {
+  if (!data || typeof data !== 'object') return data;
+
   // goal must be a plain string – take the first element when sent as array
   if (Array.isArray(data.goal)) {
     data.goal = String(data.goal[0] || '');
@@ -1514,6 +1516,7 @@ function normalizeQuestionnaireData(data) {
     }
   }
 
+  ensureProfileMetricsOnData(data);
   return data;
 }
 
@@ -4258,10 +4261,8 @@ async function generatePlanCore(env, data, onAnalysisReady = null) {
     return { success: true, hasContradiction: true, warningData, userId };
   }
 
-  ensureProfileMetricsOnData(data);
   enrichUserDataEngineContext(data);
 
-  // Generate plan (multi-step AI)
   let structuredPlan = await generatePlanMultiStep(env, data, onAnalysisReady);
 
   try {
@@ -6256,7 +6257,7 @@ async function ensureAssistantCacheFresh(env, session, card, planUpdatedAt, anal
 async function reconcilePlanStructure(plan, userData = null, env = null) {
   if (!plan?.weekPlan) return plan;
   if (plan.analysis && userData) {
-    ensureProfileMetricsOnData(userData);
+    normalizeQuestionnaireData(userData);
     refreshAnalysisEnergyFromProfile(env || {}, userData, plan.analysis);
   }
   const intakeTarget = parseFinalCalories(plan.analysis?.Final_Calories);
@@ -7102,20 +7103,16 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       newPlan = await generatePlanMultiStep(env, enrichedData);
     } else {
       const calorieAdjust = Number(decision.strategyChanges?.calorieAdjust) || 0;
-      if (calorieAdjust && regenStep === 'step3_mealplan' && plan.strategy) {
-        // Step-3-only regen reuses the existing strategy, so write the calorie change
-        // into the per-day scheme before the new meals are aligned to it.
-        applyWeeklyCalorieAdjust(plan.strategy, calorieAdjust);
-      } else if (calorieAdjust && regenStep === 'step2_strategy' && plan.analysis) {
-        // Strategy regen is rebuilt against analysis.Final_Calories, which step 2 reuses —
-        // so an energy change has to move there or it is silently lost. Safety floors are
-        // re-applied afterwards; passing no reference TDEE falls back to analysis.tdee.
-        const current = parseFinalCalories(plan.analysis.Final_Calories) || 0;
-        if (current > 0) {
-          plan.analysis.Final_Calories = current + calorieAdjust;
-          enforceCalorieGuardrails(plan.analysis, enrichedData, null);
+      refreshAnalysisEnergyFromProfile(env, enrichedData, plan.analysis);
+      if (calorieAdjust && plan.analysis) {
+        const { tdee } = computeBackendEnergyInputs(enrichedData);
+        plan.analysis.Final_Calories = parseFinalCalories(plan.analysis.Final_Calories) + calorieAdjust;
+        enforceCalorieGuardrails(plan.analysis, enrichedData, tdee);
+        if (regenStep === 'step3_mealplan' && plan.strategy) {
+          applyWeeklyCalorieAdjust(plan.strategy, calorieAdjust);
         }
       }
+      enrichedData._energyPresynced = true;
       newPlan = await regenerateFromStep(
         env, enrichedData, plan, regenStep, { [regenStep]: ['weekly adaptation'] }, 1
       );
@@ -9306,7 +9303,7 @@ function checkADLEv8Rules(meal) {
  */
 async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, stepErrors, correctionAttempt) {
   console.log(`Regenerating from ${earliestErrorStep}, attempt ${correctionAttempt}`);
-  ensureProfileMetricsOnData(data);
+  normalizeQuestionnaireData(data);
   
   // Generate a unique session ID for this regeneration
   const sessionId = generateUniqueId('regen');
@@ -9323,6 +9320,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
   };
   
   let analysis, strategy, mealPlan;
+  let energyDrift = 0;
   
   try {
     // Step 1: Analysis (regenerate if this step has errors, otherwise reuse)
@@ -9348,22 +9346,24 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       }
       finalizeStep1Analysis(env, data, analysis);
     } else {
-      // Reuse narrative analysis but always re-sync energy from the current profile.
       analysis = existingPlan.analysis;
-      const energySync = refreshAnalysisEnergyFromProfile(env, data, analysis);
-      if (energySync.intakeDrift > 0.05) {
-        console.warn(
-          `Regen: intake resynced ${energySync.previousIntake} → ${energySync.intake} kcal from profile (weight=${data.weight})`,
-        );
+      if (data._energyPresynced) {
+        delete data._energyPresynced;
+        console.log('Reusing presynced analysis energy (weekly adaptation)');
       } else {
-        console.log('Reusing existing analysis (energy already in sync)');
+        const energySync = refreshAnalysisEnergyFromProfile(env, data, analysis);
+        energyDrift = energySync.intakeDrift;
+        if (energyDrift > 0.05) {
+          console.warn(
+            `Regen: intake resynced ${energySync.previousIntake} → ${energySync.intake} kcal from profile (weight=${data.weight})`,
+          );
+        } else {
+          console.log('Reusing existing analysis (energy already in sync)');
+        }
       }
     }
 
-    const intakeResynced = parseFinalCalories(analysis?.Final_Calories);
-    const mustRebuildStrategy = intakeResynced > 0
-      && existingPlan?.analysis
-      && Math.abs(intakeResynced - parseFinalCalories(existingPlan.analysis.Final_Calories)) > Math.max(75, intakeResynced * 0.05);
+    const mustRebuildStrategy = energyDrift > 0.05;
 
     // Step 2: Strategy (regenerate if this or earlier step has errors)
     if (earliestErrorStep === 'step1_analysis' || earliestErrorStep === 'step2_strategy' || mustRebuildStrategy) {
@@ -9583,7 +9583,6 @@ ${errors.map((error, idx) => `${idx + 1}. ${error}`).join('\n')}
 
 async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
   console.log('Multi-step generation: Starting (3+ AI requests for precision)');
-  ensureProfileMetricsOnData(data);
   enrichUserDataEngineContext(data);
   
   // Generate a unique session ID for this plan generation
