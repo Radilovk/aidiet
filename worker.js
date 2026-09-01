@@ -8499,7 +8499,7 @@ function resolveDishTagFilter(userData, strategy, slotType) {
   if (profile.glutenFree || /без глутен|gluten/.test(hints)) {
     filter.requireAll.push("gluten_free");
   }
-  const wantsLowCarb = profile.keto || /кето|нисковъглехидрат|keto|low carb|инсулин/.test(hints);
+  const wantsLowCarb = profile.keto || /кето|нисковъглехидрат|keto|low carb|инсулин|диабет/.test(hints) || userData?.clinicalProtocol === "insulin_resistance";
   const mainSlot = slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1" || slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" || slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4";
   if (wantsLowCarb && mainSlot) filter.prefer.push("low_carb");
   if (/кетоген|keto/.test(modifier) && (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" || slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4")) {
@@ -8510,6 +8510,10 @@ function resolveDishTagFilter(userData, strategy, slotType) {
   const habits = Array.isArray(userData?.eatingHabits) ? userData.eatingHabits.join(" ").toLowerCase() : "";
   if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1" && /течна|смути|шейк/.test(habits)) {
     filter.prefer.push("liquid_breakfast");
+  }
+  const cravings = Array.isArray(userData?.foodCravings) ? userData.foodCravings.join(" ").toLowerCase() : "";
+  if ((slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3" || slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1") && /сладко|sweet|десерт/.test(cravings)) {
+    filter.prefer.push("sweet_slot");
   }
   const hasRules = filter.requireAll.length || filter.prefer.length || filter.exclude.length;
   return hasRules ? filter : null;
@@ -8663,6 +8667,35 @@ var MEAL_DISHES = [
     [["\u044F\u0439\u0446\u0430", 150], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 200], ["\u0414\u043E\u043C\u0430\u0442\u0438", 80], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
     ["breakfast", "main"],
     { vegetarian: true }
+  ),
+  // ── Течна закуска ────────────────────────────────────────────────────
+  dish(
+    "bf_liquid_yogurt_banana",
+    "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u0431\u0430\u043D\u0430\u043D",
+    [["\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", 200], ["\u0431\u0430\u043D\u0430\u043D", 80]],
+    ["breakfast"],
+    { vegetarian: true, universality: 5, tags: ["liquid_breakfast"] }
+  ),
+  dish(
+    "bf_liquid_skyr_berries",
+    "\u0421\u043A\u0438\u0440 \u0441 \u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438",
+    [["\u0441\u043A\u0438\u0440", 180], ["\u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438", 60]],
+    ["breakfast"],
+    { vegetarian: true, universality: 4, tags: ["liquid_breakfast", "sweet_slot"] }
+  ),
+  dish(
+    "bf_liquid_kefir_nuts",
+    "\u041A\u0435\u0444\u0438\u0440 \u0441 \u043E\u0440\u0435\u0445\u0438",
+    [["\u043A\u0435\u0444\u0438\u0440", 200], ["\u043E\u0440\u0435\u0445\u0438", 15]],
+    ["breakfast"],
+    { vegetarian: true, universality: 4, tags: ["liquid_breakfast"] }
+  ),
+  dish(
+    "bf_liquid_yogurt_protein",
+    "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043F\u0440\u043E\u0442\u0435\u0438\u043D \u0438 \u043C\u0430\u043B\u0438\u043D\u0438",
+    [["\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", 180], ["\u043F\u0440\u043E\u0442\u0435\u0438\u043D \u0441\u0443\u0440\u043E\u0432\u0430\u0442\u043A\u0430", 25], ["\u043C\u0430\u043B\u0438\u043D\u0438", 40]],
+    ["breakfast"],
+    { vegetarian: true, universality: 3, tags: ["liquid_breakfast"] }
   ),
   // ── Пиле и пуешко ────────────────────────────────────────────────────
   dish(
@@ -9005,6 +9038,49 @@ var MEAL_DISHES = [
     ["main"],
     { universality: 3, tags: ["low_carb"] }
   ),
+  // ── Инсулинова резистентност / контролирани въглехидрати ─────────────
+  dish(
+    "ir_omelet_mushrooms",
+    "\u041E\u043C\u043B\u0435\u0442 \u0441 \u0433\u044A\u0431\u0438",
+    [["\u044F\u0439\u0446\u0430", 150], ["\u0433\u044A\u0431\u0438", 100], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
+    ["breakfast", "main"],
+    { vegetarian: true, tags: ["low_carb"] }
+  ),
+  dish(
+    "ir_chicken_zucchini",
+    "\u041F\u0438\u043B\u0435 \u0441 \u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+    [["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 130], ["\u0422\u0438\u043A\u0432\u0438\u0447\u043A\u0438", 150], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
+    ["main"],
+    { universality: 4, tags: ["low_carb"] }
+  ),
+  dish(
+    "ir_turkey_broccoli",
+    "\u041F\u0443\u0435\u0448\u043A\u043E \u0441 \u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+    [["\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435", 130], ["\u0431\u0440\u043E\u043A\u043E\u043B\u0438", 150], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
+    ["main"],
+    { universality: 4, tags: ["low_carb"] }
+  ),
+  dish(
+    "ir_cottage_avocado",
+    "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u0430\u0432\u043E\u043A\u0430\u0434\u043E",
+    [["\u0438\u0437\u0432\u0430\u0440\u0430", 150], ["\u0430\u0432\u043E\u043A\u0430\u0434\u043E", 60], ["\u041A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438", 60]],
+    ["breakfast", "snack"],
+    { vegetarian: true, tags: ["low_carb"] }
+  ),
+  dish(
+    "ir_tuna_cucumber",
+    "\u0420\u0438\u0431\u0430 \u0442\u043E\u043D \u0441 \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+    [["\u0440\u0438\u0431\u0430 \u0442\u043E\u043D", 120], ["\u041A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438", 100], ["\u0437\u0435\u0445\u0442\u0438\u043D", 8]],
+    ["main", "snack"],
+    { universality: 4, tags: ["low_carb"] }
+  ),
+  dish(
+    "ir_eggs_spinach_cheese",
+    "\u042F\u0439\u0446\u0430 \u0441\u044A\u0441 \u0441\u043F\u0430\u043D\u0430\u043A \u0438 \u0441\u0438\u0440\u0435\u043D\u0435",
+    [["\u044F\u0439\u0446\u0430", 150], ["\u0441\u043F\u0430\u043D\u0430\u043A", 80], ["\u0441\u0438\u0440\u0435\u043D\u0435", 40]],
+    ["breakfast", "main"],
+    { vegetarian: true, tags: ["low_carb"] }
+  ),
   // ── Междинни хранения (Хранене 3) ────────────────────────────────────
   dish(
     "snack_yogurt_almonds",
@@ -9053,7 +9129,7 @@ var MEAL_DISHES = [
     "\u041F\u043B\u043E\u0434\u043E\u0432\u0435 \u0441 \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
     [["\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", 150], ["\u044F\u0431\u044A\u043B\u043A\u0430", 100]],
     ["snack"],
-    { vegetarian: true, universality: 5 }
+    { vegetarian: true, universality: 5, tags: ["sweet_slot"] }
   ),
   dish(
     "snack_avocado_walnuts",
@@ -9061,6 +9137,35 @@ var MEAL_DISHES = [
     [["\u0430\u0432\u043E\u043A\u0430\u0434\u043E", 70], ["\u043E\u0440\u0435\u0445\u0438", 15]],
     ["snack"],
     { vegan: true, universality: 3 }
+  ),
+  // ── Контролирано сладко ──────────────────────────────────────────────
+  dish(
+    "sweet_yogurt_berries",
+    "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438",
+    [["\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", 150], ["\u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438", 80]],
+    ["snack"],
+    { vegetarian: true, universality: 5, tags: ["sweet_slot"] }
+  ),
+  dish(
+    "sweet_cottage_honey",
+    "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u043C\u0435\u0434",
+    [["\u0438\u0437\u0432\u0430\u0440\u0430", 130], ["\u043C\u0435\u0434", 15]],
+    ["snack"],
+    { vegetarian: true, universality: 5, tags: ["sweet_slot"] }
+  ),
+  dish(
+    "sweet_apple_yogurt",
+    "\u042F\u0431\u044A\u043B\u043A\u0430 \u0441 \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+    [["\u044F\u0431\u044A\u043B\u043A\u0430", 120], ["\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", 150]],
+    ["snack"],
+    { vegetarian: true, universality: 5, tags: ["sweet_slot"] }
+  ),
+  dish(
+    "sweet_kefir_berries",
+    "\u041A\u0435\u0444\u0438\u0440 \u0441 \u043C\u0430\u043B\u0438\u043D\u0438",
+    [["\u043A\u0435\u0444\u0438\u0440", 180], ["\u043C\u0430\u043B\u0438\u043D\u0438", 60]],
+    ["snack"],
+    { vegetarian: true, universality: 4, tags: ["sweet_slot", "liquid_breakfast"] }
   ),
   // ── Късна закуска (Хранене 5) — само протеин и мазнини ───────────────
   dish(
@@ -19529,7 +19634,8 @@ function normalizeDishEntry(dish2) {
     timing: [...new Set((dish2.timing || ["main"]).map(String))],
     vegan: !!dish2.vegan,
     vegetarian: dish2.vegetarian !== void 0 ? !!dish2.vegetarian : !!dish2.vegan,
-    universality: Math.max(1, Math.min(5, Number(dish2.universality) || 4))
+    universality: Math.max(1, Math.min(5, Number(dish2.universality) || 4)),
+    tags: Array.isArray(dish2.tags) ? [...dish2.tags] : []
   };
 }
 function serializeOverlayDocument(entries, label = "", dishes = [], disabledDishes = []) {

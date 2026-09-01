@@ -127,7 +127,8 @@ export function resolveDishTagFilter(userData, strategy, slotType) {
   }
 
   const wantsLowCarb = profile.keto
-    || /кето|нисковъглехидрат|keto|low carb|инсулин/.test(hints);
+    || /кето|нисковъглехидрат|keto|low carb|инсулин|диабет/.test(hints)
+    || userData?.clinicalProtocol === 'insulin_resistance';
   const mainSlot = slotType === 'Хранене 1' || slotType === 'Хранене 2' || slotType === 'Хранене 4';
   if (wantsLowCarb && mainSlot) filter.prefer.push('low_carb');
   if (/кетоген|keto/.test(modifier) && (slotType === 'Хранене 2' || slotType === 'Хранене 4')) {
@@ -142,6 +143,13 @@ export function resolveDishTagFilter(userData, strategy, slotType) {
     : '';
   if (slotType === 'Хранене 1' && /течна|смути|шейк/.test(habits)) {
     filter.prefer.push('liquid_breakfast');
+  }
+
+  const cravings = Array.isArray(userData?.foodCravings)
+    ? userData.foodCravings.join(' ').toLowerCase()
+    : '';
+  if ((slotType === 'Хранене 3' || slotType === 'Хранене 1') && /сладко|sweet|десерт/.test(cravings)) {
+    filter.prefer.push('sweet_slot');
   }
 
   const hasRules = filter.requireAll.length || filter.prefer.length || filter.exclude.length;

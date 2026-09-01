@@ -39,17 +39,17 @@
 
 ---
 
-## Етап 4 — Разширяване на каталога (следващ)
+## Етап 4 — Разширяване на каталога ✅ (този PR)
 
-- [ ] Тагове и timing за всички 81+ ястия
-- [ ] IR / liquid breakfast / controlled sweet като отделни ястия в `meal-dishes.js`
-- [ ] Admin/KV overlay без дублиране на източника на истина
+- [x] Тагове и timing за всички 95+ ястия (inferred + explicit за IR/liquid/sweet)
+- [x] IR / liquid breakfast / controlled sweet като отделни ястия в `meal-dishes.js`
+- [x] Admin/KV overlay поддържа `tags` без дублиране на източника на истина
 
 **Критерий:** <5% профили без пълен 7-дневен план при v2.
 
 ---
 
-## Етап 5 — A/B и default switch
+## Етап 5 — A/B и default switch (следващ)
 
 - [ ] Логване `_meta.planEngine` + `step3Engine` във всеки план
 - [ ] Сравнение v1 vs v2 (време, AI calls, validation errors)

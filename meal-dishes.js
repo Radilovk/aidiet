@@ -110,6 +110,16 @@ export const MEAL_DISHES = [
   dish('meal_eggs_potato_tomato', 'Яйца с картофи и домати', [['яйца', 150], ['картофи', 200], ['Домати', 80], ['зехтин', 10]],
     ['breakfast', 'main'], { vegetarian: true }),
 
+  // ── Течна закуска ────────────────────────────────────────────────────
+  dish('bf_liquid_yogurt_banana', 'Кисело мляко с банан', [['кисело мляко', 200], ['банан', 80]],
+    ['breakfast'], { vegetarian: true, universality: 5, tags: ['liquid_breakfast'] }),
+  dish('bf_liquid_skyr_berries', 'Скир с боровинки', [['скир', 180], ['боровинки', 60]],
+    ['breakfast'], { vegetarian: true, universality: 4, tags: ['liquid_breakfast', 'sweet_slot'] }),
+  dish('bf_liquid_kefir_nuts', 'Кефир с орехи', [['кефир', 200], ['орехи', 15]],
+    ['breakfast'], { vegetarian: true, universality: 4, tags: ['liquid_breakfast'] }),
+  dish('bf_liquid_yogurt_protein', 'Кисело мляко с протеин и малини', [['кисело мляко', 180], ['протеин суроватка', 25], ['малини', 40]],
+    ['breakfast'], { vegetarian: true, universality: 3, tags: ['liquid_breakfast'] }),
+
   // ── Пиле и пуешко ────────────────────────────────────────────────────
   dish('meal_rice_chicken', 'Пиле с ориз и зеленчуци', [['пилешко месо', 130], ['ориз', 150], ['Зеленчуци', 100], ['зехтин', 10]],
     ['main'], { universality: 5 }),
@@ -218,6 +228,20 @@ export const MEAL_DISHES = [
   dish('meal_eggplant_turkey', 'Пуешко с патладжан', [['пуешко филе', 130], ['патладжан', 150], ['зехтин', 10]],
     ['main'], { universality: 3, tags: ['low_carb'] }),
 
+  // ── Инсулинова резистентност / контролирани въглехидрати ─────────────
+  dish('ir_omelet_mushrooms', 'Омлет с гъби', [['яйца', 150], ['гъби', 100], ['зехтин', 10]],
+    ['breakfast', 'main'], { vegetarian: true, tags: ['low_carb'] }),
+  dish('ir_chicken_zucchini', 'Пиле с тиквички', [['пилешко месо', 130], ['Тиквички', 150], ['зехтин', 10]],
+    ['main'], { universality: 4, tags: ['low_carb'] }),
+  dish('ir_turkey_broccoli', 'Пуешко с броколи', [['пуешко филе', 130], ['броколи', 150], ['зехтин', 10]],
+    ['main'], { universality: 4, tags: ['low_carb'] }),
+  dish('ir_cottage_avocado', 'Извара с авокадо', [['извара', 150], ['авокадо', 60], ['Краставици', 60]],
+    ['breakfast', 'snack'], { vegetarian: true, tags: ['low_carb'] }),
+  dish('ir_tuna_cucumber', 'Риба тон с краставици', [['риба тон', 120], ['Краставици', 100], ['зехтин', 8]],
+    ['main', 'snack'], { universality: 4, tags: ['low_carb'] }),
+  dish('ir_eggs_spinach_cheese', 'Яйца със спанак и сирене', [['яйца', 150], ['спанак', 80], ['сирене', 40]],
+    ['breakfast', 'main'], { vegetarian: true, tags: ['low_carb'] }),
+
   // ── Междинни хранения (Хранене 3) ────────────────────────────────────
   dish('snack_yogurt_almonds', 'Кисело мляко с бадеми', [['кисело мляко', 150], ['бадеми', 15]],
     ['snack'], { vegetarian: true, universality: 5 }),
@@ -232,9 +256,19 @@ export const MEAL_DISHES = [
   dish('snack_hummus_carrot', 'Хумус с моркови', [['хумус', 60], ['Моркови', 100]],
     ['snack'], { vegan: true, universality: 3 }),
   dish('snack_fruit_yogurt', 'Плодове с кисело мляко', [['кисело мляко', 150], ['ябълка', 100]],
-    ['snack'], { vegetarian: true, universality: 5 }),
+    ['snack'], { vegetarian: true, universality: 5, tags: ['sweet_slot'] }),
   dish('snack_avocado_walnuts', 'Авокадо с орехи', [['авокадо', 70], ['орехи', 15]],
     ['snack'], { vegan: true, universality: 3 }),
+
+  // ── Контролирано сладко ──────────────────────────────────────────────
+  dish('sweet_yogurt_berries', 'Кисело мляко с боровинки', [['кисело мляко', 150], ['боровинки', 80]],
+    ['snack'], { vegetarian: true, universality: 5, tags: ['sweet_slot'] }),
+  dish('sweet_cottage_honey', 'Извара с мед', [['извара', 130], ['мед', 15]],
+    ['snack'], { vegetarian: true, universality: 5, tags: ['sweet_slot'] }),
+  dish('sweet_apple_yogurt', 'Ябълка с кисело мляко', [['ябълка', 120], ['кисело мляко', 150]],
+    ['snack'], { vegetarian: true, universality: 5, tags: ['sweet_slot'] }),
+  dish('sweet_kefir_berries', 'Кефир с малини', [['кефир', 180], ['малини', 60]],
+    ['snack'], { vegetarian: true, universality: 4, tags: ['sweet_slot', 'liquid_breakfast'] }),
 
   // ── Късна закуска (Хранене 5) — само протеин и мазнини ───────────────
   dish('late_yogurt_walnuts', 'Кисело мляко с орехи', [['кисело мляко', 120], ['орехи', 10]],
