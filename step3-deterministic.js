@@ -178,7 +178,8 @@ function pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx) {
 
   // Предпочитанията стесняват избора, но никога не го изпразват: ако нищо не
   // отговаря, по-добре най-близкото ястие, отколкото никакво.
-  const preferred = [
+  // relaxed (plan engine v2): skip energy/veg/no-repeat narrows — still honors diet + blocks.
+  const preferred = ctx.relaxed ? [] : [
     p => narrowByEnergyFit(p, slotTarget, ctx.achievableCache),
     p => (PLATED_MEAL_SLOTS.has(slotType)
       ? p.filter(e => readyMealProducts(e).some(x => isVegetableName(x.name)))
@@ -319,6 +320,8 @@ export function buildDeterministicWeekPlanChunk({
   includeDessert = false,
   clinicalProtocolId = null,
   blockedTerms = [],
+  /** Softer dish filters when strict pick leaves catalog gaps (plan engine v2). */
+  relaxed = false,
 }) {
   if (!strategy?.weeklyScheme) {
     throw new Error('Missing strategy.weeklyScheme');
@@ -377,6 +380,7 @@ export function buildDeterministicWeekPlanChunk({
         blockedTerms,
         loveSet,
         adherenceRatio,
+        relaxed: !!relaxed,
       };
 
       meals.push(buildMealForSchemeSlot({
