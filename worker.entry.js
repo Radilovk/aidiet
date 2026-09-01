@@ -96,6 +96,11 @@ import {
   deterministicStep3Enabled,
 } from './step3-deterministic.js';
 import {
+  isPlanEngineV2,
+  resolvePlanEngine,
+  step3AllowsFullChunkAiFallback,
+} from './plan-engine.js';
+import {
   buildDeterministicStrategy,
   deterministicStep2Enabled,
 } from './step2-deterministic.js';
@@ -2963,7 +2968,8 @@ function buildEngineMeta(analysis, strategy, mealPlan) {
     step1Deterministic: Boolean(analysis?._deterministicEnergy),
     step2Deterministic: Boolean(strategy?._deterministicCore),
     step3Engine: step3,
-    pipelineVersion: 1,
+    planEngine: mealPlan?.planEngine || 'v1',
+    pipelineVersion: 2,
     generatedAt: new Date().toISOString(),
   };
 }
@@ -10057,6 +10063,10 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
   // Precision-first: each chunk must pass validation cleanly — no partial accept, no AI slot repair.
   const generationWarnings = [];
   let step3Engine = 'deterministic';
+  const planEngine = resolvePlanEngine(env);
+  if (isPlanEngineV2(env)) {
+    console.log('Plan engine v2: dish-first Step 3, no full-chunk AI fallback');
+  }
   for (let chunkIndex = 0; chunkIndex < chunks; chunkIndex++) {
     const startDay = chunkIndex * DAYS_PER_CHUNK + 1;
     const endDay = Math.min(startDay + DAYS_PER_CHUNK - 1, totalDays);
@@ -10113,52 +10123,96 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       };
 
       try {
-        // Deterministic-first: protocol-engine + catalog/solver; AI only on failure.
+        // Deterministic-first: dish catalog + gram solver; v1 may fall back to full-chunk AI.
         if (deterministicStep3Enabled(env) && attempt === 0) {
-          try {
-            const detSeed = Number(data?.id || data?.userId || 0)
-              + (sessionId ? sessionId.length * 17 : 0)
-              + chunkIndex * 31;
+          const detSeedBase = Number(data?.id || data?.userId || 0)
+            + (sessionId ? sessionId.length * 17 : 0)
+            + chunkIndex * 31;
+
+          const runDeterministicChunk = async (relaxed = false) => {
+            clearChunkDays();
             const chunkData = buildDeterministicWeekPlanChunk({
               strategy,
               userData: data,
               startDay,
               endDay,
               previousDays,
-              seed: detSeed,
+              seed: detSeedBase + (relaxed ? 997 : 0),
               includeDessert: userHasSweetsCraving(data?.foodCravings) && strategy?.includeDessert !== false,
               clinicalProtocolId: data.clinicalProtocol || null,
               blockedTerms: collectUserBlockedFoodTerms(data),
+              relaxed,
             });
             applyChunkData(chunkData);
             chunkBuilt = true;
-            console.log(`Chunk ${chunkIndex + 1}: deterministic Step 3 build`);
             await finalizeChunkNutrition();
+            return Array.isArray(blockingErrors) ? blockingErrors : [];
+          };
+
+          try {
+            console.log(`Chunk ${chunkIndex + 1}: deterministic Step 3 build`);
+            let detBlocking = await runDeterministicChunk(false);
             lastAiFailure = null;
-            const detBlocking = Array.isArray(blockingErrors) ? blockingErrors : [];
+            step3Engine = 'deterministic';
+
             if (detBlocking.length) {
-              console.warn(
-                `Chunk ${chunkIndex + 1}: deterministic validation failed (${detBlocking.length}), AI fallback`,
-              );
+              if (isPlanEngineV2(env)) {
+                console.warn(
+                  `Chunk ${chunkIndex + 1}: validation notices (${detBlocking.length}), relaxed dish retry (v2)`,
+                );
+                detBlocking = await runDeterministicChunk(true);
+                step3Engine = 'deterministic_relaxed';
+                if (detBlocking.length) {
+                  generationWarnings.push(
+                    `Step 3 (v2): ${detBlocking.length} validation notice(s) — kept dish plan`,
+                  );
+                  blockingErrors = [];
+                }
+              } else {
+                console.warn(
+                  `Chunk ${chunkIndex + 1}: deterministic validation failed (${detBlocking.length}), AI fallback`,
+                );
+                step3Engine = 'ai_fallback';
+                generationWarnings.push(
+                  'Step 3: deterministic build не мина валидация — използван AI fallback за седмицата',
+                );
+                clearChunkDays();
+                chunkBuilt = false;
+                blockingErrors = null;
+              }
+            }
+          } catch (detErr) {
+            if (isPlanEngineV2(env)) {
+              try {
+                console.warn(`Chunk ${chunkIndex + 1}: strict dish pick failed, relaxed retry (v2):`, detErr.message);
+                const relaxedBlocking = await runDeterministicChunk(true);
+                step3Engine = 'deterministic_relaxed';
+                generationWarnings.push(`Step 3 (v2): relaxed dish pick (${detErr.message.slice(0, 80)})`);
+                if (relaxedBlocking.length) {
+                  generationWarnings.push(
+                    `Step 3 (v2): ${relaxedBlocking.length} validation notice(s) after relaxed pick`,
+                  );
+                  blockingErrors = [];
+                }
+              } catch (relaxedErr) {
+                clearChunkDays();
+                chunkBuilt = false;
+                throw new Error(
+                  `Plan engine v2: липсва подходящо ястие в каталога за дни ${startDay}-${endDay} (${relaxedErr.message})`,
+                );
+              }
+            } else {
+              console.warn(`Chunk ${chunkIndex + 1}: deterministic error, AI fallback:`, detErr.message);
               step3Engine = 'ai_fallback';
-              generationWarnings.push(
-                'Step 3: deterministic build не мина валидация — използван AI fallback за седмицата',
-              );
+              generationWarnings.push(`Step 3: deterministic error — AI fallback (${detErr.message.slice(0, 80)})`);
               clearChunkDays();
               chunkBuilt = false;
               blockingErrors = null;
             }
-          } catch (detErr) {
-            console.warn(`Chunk ${chunkIndex + 1}: deterministic error, AI fallback:`, detErr.message);
-            step3Engine = 'ai_fallback';
-            generationWarnings.push(`Step 3: deterministic error — AI fallback (${detErr.message.slice(0, 80)})`);
-            clearChunkDays();
-            chunkBuilt = false;
-            blockingErrors = null;
           }
         }
 
-        if (!chunkBuilt) {
+        if (!chunkBuilt && step3AllowsFullChunkAiFallback(env)) {
           const chunkPrompt = await generateMealPlanChunkPrompt(
             data, analysis, strategy, bmr, recommendedCalories,
             startDay, endDay, previousDays, env, chunkComment, cachedFoodLists
@@ -10182,8 +10236,11 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
 
           console.log(`Chunk ${chunkIndex + 1} data keys (attempt ${attempt + 1}):`, Object.keys(chunkData));
           applyChunkData(chunkData);
+          step3Engine = 'ai_fallback';
           await finalizeChunkNutrition();
           lastAiFailure = null;
+        } else if (!chunkBuilt && isPlanEngineV2(env)) {
+          throw new Error(`Plan engine v2: chunk ${chunkIndex + 1} не може да се изгради от каталога с ястия`);
         }
       } catch (aiError) {
         lastAiFailure = aiError.message;
@@ -10271,6 +10328,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         supplements: strategy.supplementRecommendations || [],
         generationWarnings,
         step3Engine,
+        planEngine,
       }, strategy);
       return fallbackPlan;
     }
@@ -10289,6 +10347,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       supplements: summaryData.supplements || strategy.supplementRecommendations || [],
       generationWarnings,
       step3Engine,
+      planEngine,
     }, strategy);
   } catch (error) {
     console.error('Summary generation failed:', error);
@@ -10313,6 +10372,7 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       supplements: strategy.supplementRecommendations || [],
       generationWarnings,
       step3Engine,
+      planEngine,
     }, strategy);
   }
 }
