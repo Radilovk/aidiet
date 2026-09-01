@@ -3,6 +3,7 @@
 import { getCatalogEntries, getNutritionLibraryVersion } from '../food-registry.js';
 import { normalizeFoodKey } from '../food-utils.js';
 import { READY_MEAL_PARTS } from '../ready-meal-parts.js';
+import { MEAL_DISHES_BY_ID } from '../meal-dishes.js';
 import {
   getLibraryMergeStats,
   filterLibraryFoodsByDiet,
@@ -58,8 +59,14 @@ ok(merged.length >= stats.mergedTotal - 1, `getCatalogEntries ~ stats (${merged.
   ok(clashes.length === 0, `no food/dish name clashes (${clashes.slice(0, 3).join(', ') || 'ok'})`);
 }
 
-ok(READY_MEAL_PARTS.meal_baked_fish?.length === 3, 'dish meal_baked_fish decomposes into its products');
-ok(READY_MEAL_PARTS.meal_rice_chicken?.length === 3, 'dish meal_rice_chicken keeps rice + chicken + vegetable');
+// Броят продукти се чете от списъка, а не се преписва тук: ястието се
+// редактира на ръка и добавена готварска мазнина не е повод тестът да падне.
+for (const id of ['meal_baked_fish', 'meal_rice_chicken']) {
+  const declared = MEAL_DISHES_BY_ID.get(id)?.products || [];
+  const parts = READY_MEAL_PARTS[id] || [];
+  ok(parts.length === declared.length && parts.length >= 3,
+    `dish ${id} decomposes into its declared products (${parts.length}/${declared.length})`);
+}
 
 const veganFoods = filterLibraryFoodsByDiet('vegan');
 ok(veganFoods.every(f => !(f.excluded_in || []).includes('vegan')), 'vegan filter excludes animal');

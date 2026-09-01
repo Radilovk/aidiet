@@ -14,6 +14,7 @@ import {
   normalizeAnalysisOutput,
   MAX_LATE_SNACK_CALORIES,
   MAX_AFTERNOON_SNACK_CALORIES,
+  maxAfternoonSnackKcal,
 } from '../plan-normalize.js';
 import { mealWeightGramsFromDescription } from '../food-nutrition.js';
 import { validateAnalysis } from './plan-adequacy/validators/analysis.mjs';
@@ -93,7 +94,10 @@ console.log('\n-- 5. Fixed slot caps (H3≤350, H5≤200) --');
   enforceFixedSlotCaps(day, 2774);
   const h3 = day.mealBreakdown.find(m => m.type === 'Хранене 3');
   const h5 = day.mealBreakdown.find(m => m.type === 'Хранене 5');
-  check('enforceFixedSlotCaps H3 ≤350', h3.calories <= MAX_AFTERNOON_SNACK_CALORIES, `${h3.calories}`);
+  // Таванът на следобедната закуска расте с деня: 350 kcal са 23% от ден на
+  // 1500 и 12% от ден на 2900. Долната граница остава 350.
+  check('enforceFixedSlotCaps H3 ≤ таван за деня',
+    h3.calories <= maxAfternoonSnackKcal(2774), `${h3.calories} > ${maxAfternoonSnackKcal(2774)}`);
   check('enforceFixedSlotCaps H5 ≤200', h5.calories <= MAX_LATE_SNACK_CALORIES, `${h5.calories}`);
 }
 
@@ -109,7 +113,20 @@ console.log('\n-- 6. Strategy slot validator --');
   };
   const h3Err = validateSlotCalories(dayScheme.mealBreakdown[1], dayScheme);
   const h5Err = validateSlotCalories(dayScheme.mealBreakdown[2], dayScheme);
-  check('H3 390 over cap flagged', !!h3Err);
+  check('H3 390 в рамките на таван за 2700 kcal', !h3Err, String(h3Err));
+  const smallDay = {
+    calories: 1600,
+    mealBreakdown: [
+      { type: 'Хранене 2', calories: 600 },
+      { type: 'Хранене 3', calories: 390 },
+      { type: 'Хранене 5', calories: 180 },
+    ],
+  };
+  check('H3 390 over cap flagged при 1600 kcal',
+    !!validateSlotCalories(smallDay.mealBreakdown[1], smallDay));
+  check('таванът остава 350 при нормален калораж',
+    maxAfternoonSnackKcal(1600) === MAX_AFTERNOON_SNACK_CALORIES,
+    `${maxAfternoonSnackKcal(1600)}`);
   check('H5 skipped by validateSlotCalories', h5Err === null);
 }
 

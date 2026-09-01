@@ -7,7 +7,8 @@ import {
 import { syncWeekPlanNutritionFromDatabase } from '../meal-day-sync.js';
 import { validateProductNamesInCatalog } from '../food-catalog.js';
 import { parseMealDescription } from '../food-nutrition.js';
-import { userSkipsBreakfast } from '../plan-normalize.js';
+import { userSkipsBreakfast, removeBreakfastSlotFromDay } from '../plan-normalize.js';
+import { buildDeterministicStrategy } from '../step2-deterministic.js';
 
 let pass = 0;
 let fail = 0;
@@ -96,8 +97,15 @@ const sync = syncWeekPlanNutritionFromDatabase(weekPlan, strategy, 1, 7);
 ok(sync.unknowns.filter(u => u !== 'no-parsed-items').length === 0, `no unknown products (${sync.unknowns.length} flags)`);
 ok(sync.infeasible.length <= 4, `infeasible slots <= 4 (${sync.infeasible.length})`);
 
-const skipStrategy = makeStrategy({ meals: 4, dailyKcal: 2000 });
+// Схемата е договорът: Step 3 строи слотовете, които тя съдържа. Закуската на
+// клиент, който не закусва, се маха в схемата (`removeBreakfastSlotFromDay`),
+// а не втори път тук — иначе се изтриваше и лекото първо хранене, върнато
+// когато денят не се събира без него.
 const skipUser = { eatingHabits: ['Не закусвам'] };
+const skipStrategy = makeStrategy({ meals: 4, dailyKcal: 2000 });
+for (const key of Object.keys(skipStrategy.weeklyScheme)) {
+  removeBreakfastSlotFromDay(skipStrategy.weeklyScheme[key]);
+}
 const skipChunk = buildDeterministicWeekPlanChunk({
   strategy: skipStrategy,
   userData: skipUser,
@@ -107,6 +115,27 @@ const skipChunk = buildDeterministicWeekPlanChunk({
 });
 ok(userSkipsBreakfast(skipUser), 'skip breakfast fixture');
 ok(!skipChunk.day1.meals.some(m => m.type === 'Хранене 1'), 'no H1 when skipping breakfast');
+
+// Висок калораж без закуска: таваните на обяда, следобедната закуска, вечерята
+// и вечерния снак събират 2432 kcal. Денят от 2900 не се събира в тях, затова
+// схемата връща леко първо хранене — и то трябва да стигне до плана.
+const bigSkipUser = { eatingHabits: ['Не закусвам'] };
+const bigSkipStrategy = buildDeterministicStrategy({
+  userData: bigSkipUser,
+  analysis: { Final_Calories: 2900, recommendedCalories: 2900, macroGrams: { protein: 218, carbs: 325, fats: 81 } },
+});
+const bigDay = bigSkipStrategy.weeklyScheme.monday;
+const firstMeal = bigDay.mealBreakdown.find(m => m.type === 'Хранене 1');
+ok(!!firstMeal, 'high-kcal skip-breakfast day gets a light first meal');
+ok(firstMeal ? firstMeal.calories < 600 : false,
+  `restored first meal stays light (${firstMeal?.calories} kcal)`);
+ok(bigDay.mealBreakdown.every(m => m.calories <= 950),
+  `no slot above what a real dish carries (${bigDay.mealBreakdown.map(m => m.calories).join('/')})`);
+const bigChunk = buildDeterministicWeekPlanChunk({
+  strategy: bigSkipStrategy, userData: bigSkipUser, startDay: 1, endDay: 1, seed: 7,
+});
+ok(bigChunk.day1.meals.some(m => m.type === 'Хранене 1'),
+  'restored first meal reaches the plan');
 
 const veganChunk = buildDeterministicWeekPlanChunk({
   strategy: makeStrategy({ meals: 5, dailyKcal: 1900 }),

@@ -7,7 +7,13 @@ import { LIBRARY_PROTOCOL_RULES } from './nutrition-library-bridge.js';
 import { resolveLibraryDietProfile } from './protocol-engine.js';
 import { getMealDistribution } from './meal-template-engine.js';
 import { validateProtocolStrategy } from './protocol-validate.js';
-import { isKetoUser, userSkipsBreakfast } from './plan-normalize.js';
+import {
+  isKetoUser,
+  userSkipsBreakfast,
+  slotCeilingKcal,
+  dayCapacityKcal,
+  FIRST_MEAL_SLOT,
+} from './plan-normalize.js';
 import { buildQuestionnaireDietHints, extractQuestionnaireBlockedTerms } from './questionnaire-engine-map.js';
 
 const DAY_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
@@ -76,7 +82,8 @@ function resolveMealsPerDay(userData) {
   return 5;
 }
 
-function resolveActiveSlots(mealsPerDay, userData) {
+/** Слотовете, които навиците на клиента искат — преди проверката за капацитет. */
+function preferredSlots(mealsPerDay, userData) {
   const skipBreakfast = userSkipsBreakfast(userData);
   if (mealsPerDay <= 3) {
     return skipBreakfast ? ['Хранене 2', 'Хранене 4'] : ['Хранене 1', 'Хранене 2', 'Хранене 4'];
@@ -89,6 +96,23 @@ function resolveActiveSlots(mealsPerDay, userData) {
   return skipBreakfast
     ? ['Хранене 2', 'Хранене 3', 'Хранене 4', 'Хранене 5']
     : ['Хранене 1', 'Хранене 2', 'Хранене 3', 'Хранене 4', 'Хранене 5'];
+}
+
+/**
+ * Първо хранене, върнато само защото денят не се събира без него.
+ *
+ * Клиент на 2881 kcal, който не закусва, има обяд, следобедна закуска, вечеря
+ * и лека вечерна закуска — таваните им събират 2432 kcal. Другите 449 отиваха
+ * в обяда и вечерята и правеха от тях цел от 1165 kcal, която никое истинско
+ * ястие не може да изпълни: оттам идваха „калории 985 ≠ цел 1166“ и денят с
+ * 600 kcal по-малко. По-честно е клиентът да получи леко първо хранене,
+ * отколкото два обяда, които не съществуват.
+ *
+ * @returns {string|null} слотът за връщане, или null когато денят се събира
+ */
+function restoredFirstMeal(slotTypes, dailyKcal) {
+  if (!(dailyKcal > 0) || slotTypes.includes(FIRST_MEAL_SLOT)) return null;
+  return dayCapacityKcal(slotTypes, dailyKcal) >= dailyKcal ? null : FIRST_MEAL_SLOT;
 }
 
 function applyDietMacroCaps(macros, dietProfile, dailyKcal, weightKg = 70) {
@@ -140,17 +164,21 @@ const SLOT_MACRO_BIAS = {
 };
 
 const DEFAULT_MACRO_BIAS = { protein: 1, carbs: 1, fats: 1 };
+const MACRO_KEYS = ['protein', 'carbs', 'fats'];
+const KCAL_PER_GRAM = { protein: 4, carbs: 4, fats: 9 };
 
-/** Distribute a daily gram total across slots by biased weight, exactly. */
+/** Distribute a daily gram total across slots by biased weight (unrounded). */
 function splitMacroAcrossSlots(slotTypes, shares, totalGrams, macroKey) {
   const weights = slotTypes.map((type, i) =>
     shares[i] * ((SLOT_MACRO_BIAS[type] || DEFAULT_MACRO_BIAS)[macroKey] ?? 1));
   const weightSum = weights.reduce((a, b) => a + b, 0);
   if (weightSum <= 0 || totalGrams <= 0) return slotTypes.map(() => 0);
+  return weights.map(w => (w / weightSum) * totalGrams);
+}
 
-  const raw = weights.map(w => (w / weightSum) * totalGrams);
+/** Round a float split to whole grams, keeping the day total exact. */
+function roundMacroSplit(raw, totalGrams) {
   const grams = raw.map(g => Math.round(g));
-  // Rounding drift goes to the largest slot so the day total stays exact.
   const drift = Math.round(totalGrams) - grams.reduce((a, b) => a + b, 0);
   if (drift !== 0) {
     let biggest = 0;
@@ -160,16 +188,104 @@ function splitMacroAcrossSlots(slotTypes, shares, totalGrams, macroKey) {
   return grams;
 }
 
-function buildSlotBreakdown(slotTypes, dailyKcal, macros) {
-  const fallback = getMealDistribution(Math.min(5, Math.max(3, slotTypes.length)));
-  const rawShares = slotTypes.map((type, i) =>
-    SLOT_ENERGY_SHARE[type] ?? fallback[i] ?? (1 / slotTypes.length));
-  const shareSum = rawShares.reduce((a, b) => a + b, 0) || 1;
-  const shares = rawShares.map(w => w / shareSum);
+/**
+ * Макроси по слот, които едновременно събират дневните грамове и дават точно
+ * калориите на слота.
+ *
+ * Двете условия си противоречат при първото разпределение: пристрастието по
+ * хранене мести грамове между слотовете и калориите на слота тръгват над
+ * тавана му — така обядът получаваше цел, каквато никое ястие не носи.
+ * Редуваните нормализации (по слот, после по макрос) ги помиряват.
+ */
+function fitMacrosToSlotKcal(slotTypes, slotKcal, macros) {
+  const macroKcal = MACRO_KEYS.reduce((sum, k) => sum + macros[k] * KCAL_PER_GRAM[k], 0);
+  const kcalSum = slotKcal.reduce((a, b) => a + b, 0);
+  if (macroKcal <= 0 || kcalSum <= 0) {
+    return Object.fromEntries(MACRO_KEYS.map(k => [k, slotTypes.map(() => 0)]));
+  }
+  // Целите на слотовете и дневните грамове трябва да описват един и същ ден.
+  const targets = slotKcal.map(k => (k / kcalSum) * macroKcal);
+  const shares = slotKcal.map(k => k / kcalSum);
 
-  const protein = splitMacroAcrossSlots(slotTypes, shares, macros.protein, 'protein');
-  const carbs = splitMacroAcrossSlots(slotTypes, shares, macros.carbs, 'carbs');
-  const fats = splitMacroAcrossSlots(slotTypes, shares, macros.fats, 'fats');
+  const grid = {};
+  for (const key of MACRO_KEYS) {
+    grid[key] = splitMacroAcrossSlots(slotTypes, shares, macros[key], key);
+  }
+
+  for (let pass = 0; pass < 12; pass++) {
+    let worst = 0;
+    for (let i = 0; i < slotTypes.length; i++) {
+      const kcal = MACRO_KEYS.reduce((sum, k) => sum + grid[k][i] * KCAL_PER_GRAM[k], 0);
+      if (kcal <= 0) continue;
+      const ratio = targets[i] / kcal;
+      worst = Math.max(worst, Math.abs(kcal - targets[i]));
+      for (const k of MACRO_KEYS) grid[k][i] *= ratio;
+    }
+    // Под един килокалория разлика няма какво повече да се помирява.
+    if (pass > 0 && worst < 1) break;
+    for (const key of MACRO_KEYS) {
+      const sum = grid[key].reduce((a, b) => a + b, 0);
+      if (sum <= 0) continue;
+      const ratio = macros[key] / sum;
+      for (let i = 0; i < grid[key].length; i++) grid[key][i] *= ratio;
+    }
+  }
+  return Object.fromEntries(MACRO_KEYS.map(k => [k, roundMacroSplit(grid[k], macros[k])]));
+}
+
+/**
+ * Калории по слот, които слотът наистина може да изпълни.
+ *
+ * Дяловете дават целта, таванът я реже, а излишъкът отива там, където има
+ * запас. Върнатото първо хранене приема последно и започва само с това, което
+ * останалите слотове не могат да поемат — така остава леко.
+ */
+function feasibleSlotKcal(slotTypes, dailyKcal, restoredSlot) {
+  const daily = Math.max(0, Number(dailyKcal) || 0);
+  const ceilings = slotTypes.map(type => slotCeilingKcal(type, daily));
+  const fallback = getMealDistribution(Math.min(5, Math.max(3, slotTypes.length)));
+  const raw = slotTypes.map((type, i) =>
+    SLOT_ENERGY_SHARE[type] ?? fallback[i] ?? (1 / slotTypes.length));
+  const rawSum = raw.reduce((a, b) => a + b, 0) || 1;
+  const kcal = raw.map(w => (w / rawSum) * daily);
+  if (!daily) return kcal;
+
+  const restoredIdx = restoredSlot ? slotTypes.indexOf(restoredSlot) : -1;
+  if (restoredIdx >= 0) {
+    const othersCeiling = ceilings.reduce((sum, c, i) => (i === restoredIdx ? sum : sum + c), 0);
+    kcal[restoredIdx] = Math.max(0, daily - othersCeiling);
+    const rest = daily - kcal[restoredIdx];
+    const restRaw = raw.reduce((sum, w, i) => (i === restoredIdx ? sum : sum + w), 0) || 1;
+    for (let i = 0; i < kcal.length; i++) {
+      if (i !== restoredIdx) kcal[i] = (raw[i] / restRaw) * rest;
+    }
+  }
+
+  let surplus = 0;
+  for (let i = 0; i < kcal.length; i++) {
+    if (kcal[i] > ceilings[i]) {
+      surplus += kcal[i] - ceilings[i];
+      kcal[i] = ceilings[i];
+    }
+  }
+  // Първо слотовете, които клиентът и без това има; върнатото първо хранене — накрая.
+  const order = slotTypes
+    .map((_, i) => i)
+    .sort((a, b) => (a === restoredIdx ? 1 : 0) - (b === restoredIdx ? 1 : 0));
+  for (const i of order) {
+    if (surplus <= 0) break;
+    const room = Math.min(surplus, ceilings[i] - kcal[i]);
+    if (room > 0) {
+      kcal[i] += room;
+      surplus -= room;
+    }
+  }
+  return kcal;
+}
+
+function buildSlotBreakdown(slotTypes, dailyKcal, macros, restoredSlot = null) {
+  const slotKcal = feasibleSlotKcal(slotTypes, dailyKcal, restoredSlot);
+  const { protein, carbs, fats } = fitMacrosToSlotKcal(slotTypes, slotKcal, macros);
 
   return slotTypes.map((type, i) => ({
     type,
@@ -181,12 +297,12 @@ function buildSlotBreakdown(slotTypes, dailyKcal, macros) {
   }));
 }
 
-function buildDayScheme(slotTypes, dailyKcal, macros, isFreeDay) {
+function buildDayScheme(slotTypes, dailyKcal, macros, isFreeDay, restoredSlot = null) {
   let types = [...slotTypes];
   if (isFreeDay) {
     types = types.map(t => (t === 'Хранене 2' ? 'Свободно хранене' : t));
   }
-  const mealBreakdown = buildSlotBreakdown(types, dailyKcal, macros);
+  const mealBreakdown = buildSlotBreakdown(types, dailyKcal, macros, restoredSlot);
   return {
     meals: mealBreakdown.length,
     calories: dailyKcal,
@@ -198,8 +314,13 @@ function buildDayScheme(slotTypes, dailyKcal, macros, isFreeDay) {
   };
 }
 
-function buildCopyFields(dietProfile, mealsPerDay, slotTypes, userData) {
+function buildCopyFields(dietProfile, mealsPerDay, slotTypes, userData, restoredSlot = null) {
   const label = DIET_PROFILE_LABELS[dietProfile] || DIET_PROFILE_LABELS.balanced;
+  // Клиентът е казал, че не закусва — ако денят не се събира без първо хранене,
+  // това трябва да е обяснено, а не просто да се появи в плана.
+  const restoredNote = restoredSlot
+    ? 'Леко първо хранене — при този калораж обядът и вечерята иначе излизат над 1000 kcal, което не е реална чиния.'
+    : '';
   const mealList = slotTypes.join(', ');
   const name = userData?.name || 'клиента';
   const loves = String(userData?.dietLove || '')
@@ -222,9 +343,10 @@ function buildCopyFields(dietProfile, mealsPerDay, slotTypes, userData) {
     weeklyMealPattern: `Единна схема с${slotTypes.includes('Хранене 5') ? ' лека вечерна закуска и' : ''} ротация на продукти през седмицата.`,
     calorieDistribution: 'Разпределение по протоколни тегла — основни хранения носят по-голям калориен дял.',
     macroDistribution: 'Макросите следват Step 1 анализа и diet profile ограниченията.',
-    breakfastStrategy: userSkipsBreakfast(userData)
-      ? 'Без закуска — калориите са в основните хранения.'
-      : 'Закуската стартира деня с балансиран PRO/ENG профил.',
+    breakfastStrategy: restoredNote
+      || (userSkipsBreakfast(userData)
+        ? 'Без закуска — калориите са в основните хранения.'
+        : 'Закуската стартира деня с балансиран PRO/ENG профил.'),
     mealTiming: {
       pattern: `${mealsPerDay} structured meals`,
       fastingWindows: 'Без форсиран фастинг — хранене по схемата на клиента.',
@@ -243,7 +365,9 @@ function buildCopyFields(dietProfile, mealsPerDay, slotTypes, userData) {
     foodsToInclude: loves,
     foodsToAvoid: blocked,
     psychologicalSupport: [
-      userSkipsBreakfast(userData) ? 'Без закуска — калориите са в основните хранения.' : null,
+      restoredNote || (userSkipsBreakfast(userData)
+        ? 'Без закуска — калориите са в основните хранения.'
+        : null),
       Array.isArray(userData?.foodCravings) && userData.foodCravings.length
         ? `Осъзнатост за craving: ${userData.foodCravings.join(', ')}`
         : null,
@@ -279,16 +403,18 @@ export function buildDeterministicStrategy({ userData = null, analysis = null, o
   macros = applyDietMacroCaps(macros, dietProfile, dailyKcal, weightKg);
 
   const mealsPerDay = options.mealsPerDay || resolveMealsPerDay(userData);
-  const slotTypes = resolveActiveSlots(mealsPerDay, userData);
+  const preferred = preferredSlots(mealsPerDay, userData);
+  const restoredSlot = restoredFirstMeal(preferred, dailyKcal);
+  const slotTypes = restoredSlot ? [restoredSlot, ...preferred] : preferred;
   const freeDayNumber = options.freeDayNumber ?? 7;
 
   const weeklyScheme = {};
   for (let i = 0; i < 7; i++) {
     const isFreeDay = i + 1 === freeDayNumber;
-    weeklyScheme[DAY_KEYS[i]] = buildDayScheme(slotTypes, dailyKcal, macros, isFreeDay);
+    weeklyScheme[DAY_KEYS[i]] = buildDayScheme(slotTypes, dailyKcal, macros, isFreeDay, restoredSlot);
   }
 
-  const copy = buildCopyFields(dietProfile, mealsPerDay, slotTypes, userData);
+  const copy = buildCopyFields(dietProfile, slotTypes.length, slotTypes, userData, restoredSlot);
 
   return {
     ...copy,

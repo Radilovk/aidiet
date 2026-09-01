@@ -31,6 +31,7 @@ import {
   buildChatContext,
 } from './client-card.js';
 import fitnessWorker from './fitness/worker.js';
+import { MEAL_CARRY_MAX_DISTORTION } from './meal-day-sync.js';
 import {
   syncWeekPlanNutritionFromDatabase,
   normalizeFoodKey,
@@ -8291,7 +8292,16 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocol
       errors.push(`Ден ${dayNum} ${meal.type}: липсват продукти в description`);
     }
 
-    const targetCal = Number(target.calories) || 0;
+    // Слотът се решава по целта, която дневният пренос му е дал, а не по
+    // замразената схема. Проверката срещу схемата обявяваше за грешка точно
+    // този пренос — оттам идваха „калории 985 ≠ цел 1166“ при план, чийто
+    // дневен сбор е верен. Приема се само отместване в границите на преноса.
+    const schemeCal = Number(target.calories) || 0;
+    const solvedCal = Number(meal.targetCalories) || 0;
+    const targetCal = solvedCal > 0
+      && Math.abs(solvedCal - schemeCal) <= schemeCal * MEAL_CARRY_MAX_DISTORTION + 1
+      ? solvedCal
+      : schemeCal;
     const mealCal = Number(meal.calories) || macrosToCalories(meal.macros);
     if (targetCal > 0 && mealCal > 0 && !isMealCaloriesAdequate(mealCal, targetCal)) {
       errors.push(`Ден ${dayNum} ${meal.type}: калории ${mealCal} ≠ цел ${targetCal} — смени продуктите или състава`);
@@ -8414,7 +8424,10 @@ function getAllowedMealTypes(dayTarget, userData = null) {
   const allowed = new Set((dayTarget?.mealBreakdown || []).map(m => m.type));
   if (allowed.has('Свободно хранене')) allowed.delete('Хранене 2');
   if (userSkipsBreakfast(userData)) {
-    allowed.delete('Хранене 1');
+    // Схемата решава дали има първо хранене: `removeBreakfastSlotFromDay` вече
+    // го е махнала, освен когато денят не се събира без него. Безусловното
+    // изтриване тук изхвърляше точно това леко първо хранене от плана и денят
+    // тихо губеше калориите му.
     allowed.add('Напитка');
   }
   return allowed;
