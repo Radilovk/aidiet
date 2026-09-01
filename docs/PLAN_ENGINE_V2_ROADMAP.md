@@ -4,6 +4,8 @@
 
 Активиране: `PLAN_ENGINE=v2` (env на Worker). По подразбиране: `v1` (сегашно поведение).
 
+**Преди всеки етап:** `git fetch origin main` + merge/rebase — `main` се движи бързо (step2/step3/meal-dishes).
+
 ---
 
 ## Етап 1 — Резервен път без full-week AI fallback ✅ (този PR)
