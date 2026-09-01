@@ -29,9 +29,6 @@
     "test:plan-analytics-sync": "node scripts/test-plan-analytics-sync.mjs",
     "test:weekly-adapt:benchmark": "node scripts/plan-adequacy/run-weekly-adapt-benchmark.mjs",
     "upload:kv": "bash KV/upload-kv-keys.sh",
-    "lists:export": "node scripts/lists-export.mjs",
-    "lists:import": "node scripts/lists-import.mjs",
-    "lists:validate": "node scripts/lists-validate.mjs",
     "serve": "python -m http.server 8000",
     "test": "echo \"Open test.html in browser to test the application\""
   },

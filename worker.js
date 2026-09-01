@@ -8433,18 +8433,18 @@ function productNameHasAny(name, terms) {
   const key = normalizeFoodKey(name);
   return terms.some((t) => key.includes(normalizeFoodKey(t)));
 }
-function inferDishTags(dish2) {
-  const tags = new Set(dish2.tags || []);
-  if (dish2.vegan) tags.add("vegan");
-  if (dish2.vegetarian) tags.add("vegetarian");
-  const products = dish2.products || [];
+function inferDishTags(dish) {
+  const tags = new Set(dish.tags || []);
+  if (dish.vegan) tags.add("vegan");
+  if (dish.vegetarian) tags.add("vegetarian");
+  const products = dish.products || [];
   const names = products.map((p) => p.name);
   const totalGrams = products.reduce((s, p) => s + (p.grams || 0), 0) || 1;
   if (!names.some((n) => productNameHasAny(n, GLUTEN_PRODUCT_TERMS))) {
     tags.add("gluten_free");
   }
   const liquidGrams = products.filter((p) => productNameHasAny(p.name, LIQUID_PRODUCT_TERMS)).reduce((s, p) => s + (p.grams || 0), 0);
-  if (dish2.timing?.includes("breakfast") && liquidGrams / totalGrams >= 0.45) {
+  if (dish.timing?.includes("breakfast") && liquidGrams / totalGrams >= 0.45) {
     tags.add("liquid_breakfast");
   }
   if (names.some((n) => productNameHasAny(n, SWEET_PRODUCT_TERMS))) {
@@ -8519,1230 +8519,4223 @@ function resolveDishTagFilter(userData, strategy, slotType) {
   return hasRules ? filter : null;
 }
 
+// data/meal-dishes.json
+var meal_dishes_default = {
+  updatedAt: "2026-09-01T02:58:04.349Z",
+  count: 171,
+  dishes: [
+    {
+      id: "meal_omelet",
+      name: "\u041E\u043C\u043B\u0435\u0442 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      products: [
+        {
+          name: "\u044F\u0439\u0446\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "breakfast",
+        "main"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_omelet_veg",
+      name: "\u041E\u043C\u043B\u0435\u0442 \u0441\u044A\u0441 \u0441\u043F\u0430\u043D\u0430\u043A \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+      products: [
+        {
+          name: "\u044F\u0439\u0446\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0441\u043F\u0430\u043D\u0430\u043A",
+          grams: 50
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 50
+        }
+      ],
+      timing: [
+        "breakfast",
+        "main"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_boiled_egg",
+      name: "\u0412\u0430\u0440\u0435\u043D\u0438 \u044F\u0439\u0446\u0430 \u0441 \u0445\u043B\u044F\u0431 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+      products: [
+        {
+          name: "\u044F\u0439\u0446\u0430",
+          grams: 100
+        },
+        {
+          name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431",
+          grams: 50
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 50
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_egg_bread_cheese",
+      name: "\u042F\u0439\u0446\u0430 \u0441 \u0445\u043B\u044F\u0431 \u0438 \u0441\u0438\u0440\u0435\u043D\u0435",
+      products: [
+        {
+          name: "\u044F\u0439\u0446\u0430",
+          grams: 100
+        },
+        {
+          name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431",
+          grams: 50
+        },
+        {
+          name: "\u0441\u0438\u0440\u0435\u043D\u0435",
+          grams: 40
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_avocado_egg",
+      name: "\u042F\u0439\u0446\u0430 \u0441 \u0430\u0432\u043E\u043A\u0430\u0434\u043E \u0438 \u0445\u043B\u044F\u0431",
+      products: [
+        {
+          name: "\u044F\u0439\u0446\u0430",
+          grams: 100
+        },
+        {
+          name: "\u0430\u0432\u043E\u043A\u0430\u0434\u043E",
+          grams: 50
+        },
+        {
+          name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431",
+          grams: 50
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_avocado_toast",
+      name: "\u0410\u0432\u043E\u043A\u0430\u0434\u043E \u0432\u044A\u0440\u0445\u0443 \u043F\u0440\u0435\u043F\u0435\u0447\u0435\u043D \u0445\u043B\u044F\u0431",
+      products: [
+        {
+          name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431",
+          grams: 50
+        },
+        {
+          name: "\u0430\u0432\u043E\u043A\u0430\u0434\u043E",
+          grams: 50
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 40
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_oatmeal",
+      name: "\u041E\u0432\u0435\u0441\u0435\u043D\u0430 \u043A\u0430\u0448\u0430 \u0441 \u043C\u043B\u044F\u043A\u043E",
+      products: [
+        {
+          name: "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438",
+          grams: 50
+        },
+        {
+          name: "\u043C\u043B\u044F\u043A\u043E",
+          grams: 200
+        },
+        {
+          name: "\u0431\u0430\u0434\u0435\u043C\u0438",
+          grams: 15
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_porridge_berries",
+      name: "\u041E\u0432\u0435\u0441\u0435\u043D\u0430 \u043A\u0430\u0448\u0430 \u0441 \u043F\u043B\u043E\u0434\u043E\u0432\u0435",
+      products: [
+        {
+          name: "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438",
+          grams: 50
+        },
+        {
+          name: "\u043C\u0430\u043B\u0438\u043D\u0438",
+          grams: 50
+        },
+        {
+          name: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+          grams: 150
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_oat_plant_milk",
+      name: "\u041E\u0432\u0435\u0441\u0435\u043D\u0430 \u043A\u0430\u0448\u0430 \u0441 \u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E",
+      products: [
+        {
+          name: "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438",
+          grams: 50
+        },
+        {
+          name: "\u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E",
+          grams: 200
+        },
+        {
+          name: "\u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438",
+          grams: 50
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_yogurt_oats",
+      name: "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438",
+      products: [
+        {
+          name: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+          grams: 200
+        },
+        {
+          name: "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438",
+          grams: 50
+        }
+      ],
+      timing: [
+        "breakfast",
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_yogurt_oats_banana",
+      name: "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043E\u0432\u0435\u0441 \u0438 \u0431\u0430\u043D\u0430\u043D",
+      products: [
+        {
+          name: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+          grams: 200
+        },
+        {
+          name: "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438",
+          grams: 40
+        },
+        {
+          name: "\u0431\u0430\u043D\u0430\u043D",
+          grams: 100
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_yogurt_oats_nuts",
+      name: "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043E\u0432\u0435\u0441 \u0438 \u043E\u0440\u0435\u0445\u0438",
+      products: [
+        {
+          name: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+          grams: 200
+        },
+        {
+          name: "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438",
+          grams: 40
+        },
+        {
+          name: "\u043E\u0440\u0435\u0445\u0438",
+          grams: 20
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_cottage_bowl",
+      name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u0434\u043E\u043C\u0430\u0442\u0438 \u0438 \u043E\u0440\u0435\u0445\u0438",
+      products: [
+        {
+          name: "\u0438\u0437\u0432\u0430\u0440\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 100
+        },
+        {
+          name: "\u043E\u0440\u0435\u0445\u0438",
+          grams: 15
+        }
+      ],
+      timing: [
+        "breakfast",
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_cottage_honey",
+      name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u043C\u0435\u0434 \u0438 \u043E\u0440\u0435\u0445\u0438",
+      products: [
+        {
+          name: "\u0438\u0437\u0432\u0430\u0440\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043C\u0435\u0434",
+          grams: 15
+        },
+        {
+          name: "\u043E\u0440\u0435\u0445\u0438",
+          grams: 20
+        }
+      ],
+      timing: [
+        "breakfast",
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_cheese_sandwich",
+      name: "\u0421\u0430\u043D\u0434\u0432\u0438\u0447 \u0441\u044A\u0441 \u0441\u0438\u0440\u0435\u043D\u0435 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+      products: [
+        {
+          name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431",
+          grams: 100
+        },
+        {
+          name: "\u0441\u0438\u0440\u0435\u043D\u0435",
+          grams: 50
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 40
+        }
+      ],
+      timing: [
+        "breakfast",
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_tofu_scramble",
+      name: "\u0422\u043E\u0444\u0443 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      products: [
+        {
+          name: "\u0442\u043E\u0444\u0443",
+          grams: 150
+        },
+        {
+          name: "\u0427\u0443\u0448\u043A\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "breakfast",
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 3,
+      tags: []
+    },
+    {
+      id: "meal_eggs_bread_cheese_tomato",
+      name: "\u042F\u0439\u0446\u0430 \u0441 \u0445\u043B\u044F\u0431, \u0441\u0438\u0440\u0435\u043D\u0435 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+      products: [
+        {
+          name: "\u044F\u0439\u0446\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431",
+          grams: 100
+        },
+        {
+          name: "\u0441\u0438\u0440\u0435\u043D\u0435",
+          grams: 40
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 50
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_eggs_potato_tomato",
+      name: "\u042F\u0439\u0446\u0430 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+      products: [
+        {
+          name: "\u044F\u0439\u0446\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "breakfast",
+        "main"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "bf_liquid_yogurt_banana",
+      name: "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u0431\u0430\u043D\u0430\u043D",
+      products: [
+        {
+          name: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+          grams: 200
+        },
+        {
+          name: "\u0431\u0430\u043D\u0430\u043D",
+          grams: 100
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: [
+        "liquid_breakfast"
+      ]
+    },
+    {
+      id: "bf_liquid_skyr_berries",
+      name: "\u0421\u043A\u0438\u0440 \u0441 \u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438",
+      products: [
+        {
+          name: "\u0441\u043A\u0438\u0440",
+          grams: 200
+        },
+        {
+          name: "\u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438",
+          grams: 50
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: [
+        "liquid_breakfast",
+        "sweet_slot"
+      ]
+    },
+    {
+      id: "bf_liquid_kefir_nuts",
+      name: "\u041A\u0435\u0444\u0438\u0440 \u0441 \u043E\u0440\u0435\u0445\u0438",
+      products: [
+        {
+          name: "\u043A\u0435\u0444\u0438\u0440",
+          grams: 200
+        },
+        {
+          name: "\u043E\u0440\u0435\u0445\u0438",
+          grams: 15
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: [
+        "liquid_breakfast"
+      ]
+    },
+    {
+      id: "bf_liquid_yogurt_protein",
+      name: "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043F\u0440\u043E\u0442\u0435\u0438\u043D \u0438 \u043C\u0430\u043B\u0438\u043D\u0438",
+      products: [
+        {
+          name: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+          grams: 200
+        },
+        {
+          name: "\u043F\u0440\u043E\u0442\u0435\u0438\u043D \u0441\u0443\u0440\u043E\u0432\u0430\u0442\u043A\u0430",
+          grams: 25
+        },
+        {
+          name: "\u043C\u0430\u043B\u0438\u043D\u0438",
+          grams: 40
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 3,
+      tags: [
+        "liquid_breakfast"
+      ]
+    },
+    {
+      id: "bf_liquid_oats_banana",
+      name: "\u041E\u0432\u0435\u0441 \u0441 \u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E \u0438 \u0431\u0430\u043D\u0430\u043D",
+      products: [
+        {
+          name: "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438",
+          grams: 50
+        },
+        {
+          name: "\u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E",
+          grams: 200
+        },
+        {
+          name: "\u0431\u0430\u043D\u0430\u043D",
+          grams: 100
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 5,
+      tags: [
+        "liquid_breakfast"
+      ]
+    },
+    {
+      id: "meal_cheese_omelet",
+      name: "\u041E\u043C\u043B\u0435\u0442 \u0441\u044A\u0441 \u0441\u0438\u0440\u0435\u043D\u0435 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+      products: [
+        {
+          name: "\u044F\u0439\u0446\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0441\u0438\u0440\u0435\u043D\u0435",
+          grams: 50
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 50
+        }
+      ],
+      timing: [
+        "breakfast",
+        "main"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_eggs_mushrooms",
+      name: "\u042F\u0439\u0446\u0430 \u0441 \u0433\u044A\u0431\u0438 \u0438 \u0437\u0435\u0445\u0442\u0438\u043D",
+      products: [
+        {
+          name: "\u044F\u0439\u0446\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0433\u044A\u0431\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "breakfast",
+        "main"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_porridge_apple",
+      name: "\u041E\u0432\u0435\u0441\u0435\u043D\u0430 \u043A\u0430\u0448\u0430 \u0441 \u044F\u0431\u044A\u043B\u043A\u0430",
+      products: [
+        {
+          name: "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438",
+          grams: 50
+        },
+        {
+          name: "\u043C\u043B\u044F\u043A\u043E",
+          grams: 200
+        },
+        {
+          name: "\u044F\u0431\u044A\u043B\u043A\u0430",
+          grams: 100
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_skryr_banana_oats",
+      name: "\u0421\u043A\u0438\u0440 \u0441 \u0431\u0430\u043D\u0430\u043D \u0438 \u043E\u0432\u0435\u0441",
+      products: [
+        {
+          name: "\u0441\u043A\u0438\u0440",
+          grams: 200
+        },
+        {
+          name: "\u0431\u0430\u043D\u0430\u043D",
+          grams: 100
+        },
+        {
+          name: "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438",
+          grams: 40
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_rye_cheese_cucumber",
+      name: "\u0420\u044A\u0436\u0435\u043D \u0445\u043B\u044F\u0431 \u0441\u044A\u0441 \u0441\u0438\u0440\u0435\u043D\u0435 \u0438 \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+      products: [
+        {
+          name: "\u0440\u044A\u0436\u0435\u043D \u0445\u043B\u044F\u0431",
+          grams: 100
+        },
+        {
+          name: "\u0441\u0438\u0440\u0435\u043D\u0435",
+          grams: 50
+        },
+        {
+          name: "\u041A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "breakfast",
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_greek_yogurt_honey_nuts",
+      name: "\u0413\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043C\u0435\u0434 \u0438 \u043E\u0440\u0435\u0445\u0438",
+      products: [
+        {
+          name: "\u0433\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+          grams: 200
+        },
+        {
+          name: "\u043C\u0435\u0434",
+          grams: 15
+        },
+        {
+          name: "\u043E\u0440\u0435\u0445\u0438",
+          grams: 15
+        }
+      ],
+      timing: [
+        "breakfast",
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_buckwheat_milk_apple",
+      name: "\u0415\u043B\u0434\u0430 \u0441 \u043C\u043B\u044F\u043A\u043E \u0438 \u044F\u0431\u044A\u043B\u043A\u0430",
+      products: [
+        {
+          name: "\u0435\u043B\u0434\u0430",
+          grams: 100
+        },
+        {
+          name: "\u043C\u043B\u044F\u043A\u043E",
+          grams: 200
+        },
+        {
+          name: "\u044F\u0431\u044A\u043B\u043A\u0430",
+          grams: 100
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_cottage_peach",
+      name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u043F\u0440\u0430\u0441\u043A\u043E\u0432\u0430",
+      products: [
+        {
+          name: "\u0438\u0437\u0432\u0430\u0440\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043F\u0440\u0430\u0441\u043A\u043E\u0432\u0430",
+          grams: 100
+        }
+      ],
+      timing: [
+        "breakfast",
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_bread_peanut_banana",
+      name: "\u0425\u043B\u044F\u0431 \u0441 \u0444\u044A\u0441\u0442\u044A\u0447\u0435\u043D\u043E \u043C\u0430\u0441\u043B\u043E \u0438 \u0431\u0430\u043D\u0430\u043D",
+      products: [
+        {
+          name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431",
+          grams: 50
+        },
+        {
+          name: "\u0444\u044A\u0441\u0442\u044A\u0447\u0435\u043D\u043E \u043C\u0430\u0441\u043B\u043E",
+          grams: 20
+        },
+        {
+          name: "\u0431\u0430\u043D\u0430\u043D",
+          grams: 100
+        }
+      ],
+      timing: [
+        "breakfast",
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_eggs_peppers_tomato",
+      name: "\u042F\u0439\u0446\u0430 \u0441 \u0447\u0443\u0448\u043A\u0438 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+      products: [
+        {
+          name: "\u044F\u0439\u0446\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0427\u0443\u0448\u043A\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "breakfast",
+        "main"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_rice_chicken",
+      name: "\u041F\u0438\u043B\u0435 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      products: [
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          grams: 150
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 150
+        },
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_chicken_rice_broccoli",
+      name: "\u041F\u0438\u043B\u0435\u0448\u043A\u0438 \u0433\u044A\u0440\u0434\u0438 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+      products: [
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u0438 \u0433\u044A\u0440\u0434\u0438",
+          grams: 150
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 150
+        },
+        {
+          name: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_grilled_chicken",
+      name: "\u041F\u0438\u043B\u0435 \u043D\u0430 \u0441\u043A\u0430\u0440\u0430 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      products: [
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          grams: 150
+        },
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 150
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_chicken_potato",
+      name: "\u041F\u0438\u043B\u0435 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+      products: [
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_pasta_chicken",
+      name: "\u041F\u0430\u0441\u0442\u0430 \u0441 \u043F\u0438\u043B\u0435 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+      products: [
+        {
+          name: "\u043F\u0430\u0441\u0442\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          grams: 100
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_chicken_salad",
+      name: "\u041F\u0438\u043B\u0435\u0448\u043A\u0430 \u0441\u0430\u043B\u0430\u0442\u0430",
+      products: [
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          grams: 150
+        },
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 150
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_chicken_sandwich",
+      name: "\u0421\u0430\u043D\u0434\u0432\u0438\u0447 \u0441 \u043F\u0438\u043B\u0435",
+      products: [
+        {
+          name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431",
+          grams: 100
+        },
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          grams: 50
+        },
+        {
+          name: "\u043C\u0430\u0440\u0443\u043B\u044F",
+          grams: 20
+        }
+      ],
+      timing: [
+        "breakfast",
+        "main",
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_chicken_soup",
+      name: "\u041F\u0438\u043B\u0435\u0448\u043A\u0430 \u0441\u0443\u043F\u0430",
+      products: [
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          grams: 100
+        },
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 150
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 50
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_chicken_bulgur",
+      name: "\u041F\u0438\u043B\u0435 \u0441 \u0431\u0443\u043B\u0433\u0443\u0440 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      products: [
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          grams: 150
+        },
+        {
+          name: "\u0431\u0443\u043B\u0433\u0443\u0440",
+          grams: 150
+        },
+        {
+          name: "\u0427\u0443\u0448\u043A\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 3,
+      tags: []
+    },
+    {
+      id: "meal_chicken_spinach",
+      name: "\u041F\u0438\u043B\u0435 \u0441\u044A\u0441 \u0441\u043F\u0430\u043D\u0430\u043A \u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+      products: [
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          grams: 150
+        },
+        {
+          name: "\u0441\u043F\u0430\u043D\u0430\u043A",
+          grams: 100
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 150
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_turkey_rice",
+      name: "\u041F\u0443\u0435\u0448\u043A\u043E \u0441 \u043E\u0440\u0438\u0437",
+      products: [
+        {
+          name: "\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435",
+          grams: 150
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 150
+        },
+        {
+          name: "\u0422\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_turkey_potato",
+      name: "\u041F\u0443\u0435\u0448\u043A\u043E \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+      products: [
+        {
+          name: "\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_chicken_quinoa",
+      name: "\u041F\u0438\u043B\u0435 \u0441 \u043A\u0438\u043D\u043E\u0430 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      products: [
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0438\u043D\u043E\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_chicken_sweet_potato",
+      name: "\u041F\u0438\u043B\u0435 \u0441\u044A\u0441 \u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+      products: [
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          grams: 150
+        },
+        {
+          name: "\u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_chicken_thigh_potato",
+      name: "\u041F\u0438\u043B\u0435\u0448\u043A\u043E \u0431\u0443\u0442\u0447\u0435 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+      products: [
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u0431\u0443\u0442\u0447\u0435",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u041C\u043E\u0440\u043A\u043E\u0432\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_turkey_pasta",
+      name: "\u041F\u0443\u0435\u0448\u043A\u043E \u0441 \u043F\u0430\u0441\u0442\u0430 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+      products: [
+        {
+          name: "\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435",
+          grams: 150
+        },
+        {
+          name: "\u043F\u0430\u0441\u0442\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_pork_rice_peppers",
+      name: "\u0421\u0432\u0438\u043D\u0441\u043A\u043E \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0447\u0443\u0448\u043A\u0438",
+      products: [
+        {
+          name: "\u0441\u0432\u0438\u043D\u0441\u043A\u043E",
+          grams: 150
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 150
+        },
+        {
+          name: "\u0427\u0443\u0448\u043A\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_beef_rice_carrots",
+      name: "\u0413\u043E\u0432\u0435\u0436\u0434\u043E \u0441 \u043E\u0440\u0438\u0437 \u0438 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
+      products: [
+        {
+          name: "\u0433\u043E\u0432\u0435\u0436\u0434\u043E",
+          grams: 150
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 150
+        },
+        {
+          name: "\u041C\u043E\u0440\u043A\u043E\u0432\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_kebab_rice",
+      name: "\u041A\u0430\u0439\u043C\u0430 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+      products: [
+        {
+          name: "\u043A\u0430\u0439\u043C\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 150
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_pasta_beef",
+      name: "\u041F\u0430\u0441\u0442\u0430 \u0441 \u0433\u043E\u0432\u0435\u0436\u0434\u043E \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      products: [
+        {
+          name: "\u043F\u0430\u0441\u0442\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0433\u043E\u0432\u0435\u0436\u0434\u043E",
+          grams: 150
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_salmon_rice",
+      name: "\u0421\u044C\u043E\u043C\u0433\u0430 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0441\u043F\u0430\u043D\u0430\u043A",
+      products: [
+        {
+          name: "\u0441\u044C\u043E\u043C\u0433\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 150
+        },
+        {
+          name: "\u0441\u043F\u0430\u043D\u0430\u043A",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_lentil_chicken",
+      name: "\u041F\u0438\u043B\u0435 \u0441 \u043B\u0435\u0449\u0430 \u0438 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
+      products: [
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          grams: 150
+        },
+        {
+          name: "\u043B\u0435\u0449\u0430",
+          grams: 150
+        },
+        {
+          name: "\u041C\u043E\u0440\u043A\u043E\u0432\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_chicken_buckwheat",
+      name: "\u041F\u0438\u043B\u0435 \u0441 \u0435\u043B\u0434\u0430 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      products: [
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          grams: 150
+        },
+        {
+          name: "\u0435\u043B\u0434\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_chicken_corn_peppers",
+      name: "\u041F\u0438\u043B\u0435 \u0441 \u0446\u0430\u0440\u0435\u0432\u0438\u0446\u0430 \u0438 \u0447\u0443\u0448\u043A\u0438",
+      products: [
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          grams: 150
+        },
+        {
+          name: "\u0446\u0430\u0440\u0435\u0432\u0438\u0446\u0430",
+          grams: 100
+        },
+        {
+          name: "\u0427\u0443\u0448\u043A\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_chicken_eggplant_tomato",
+      name: "\u041F\u0438\u043B\u0435 \u0441 \u043F\u0430\u0442\u043B\u0430\u0434\u0436\u0430\u043D \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+      products: [
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          grams: 150
+        },
+        {
+          name: "\u043F\u0430\u0442\u043B\u0430\u0434\u0436\u0430\u043D",
+          grams: 100
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_turkey_lentil",
+      name: "\u041F\u0443\u0435\u0448\u043A\u043E \u0441 \u043B\u0435\u0449\u0430 \u0438 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
+      products: [
+        {
+          name: "\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435",
+          grams: 150
+        },
+        {
+          name: "\u043B\u0435\u0449\u0430",
+          grams: 150
+        },
+        {
+          name: "\u041C\u043E\u0440\u043A\u043E\u0432\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_turkey_beans",
+      name: "\u041F\u0443\u0435\u0448\u043A\u043E \u0441 \u0431\u043E\u0431 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+      products: [
+        {
+          name: "\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435",
+          grams: 150
+        },
+        {
+          name: "\u0431\u044F\u043B \u0431\u043E\u0431",
+          grams: 150
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_beef_potato",
+      name: "\u0413\u043E\u0432\u0435\u0436\u0434\u043E \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+      products: [
+        {
+          name: "\u0433\u043E\u0432\u0435\u0436\u0434\u043E",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u041C\u043E\u0440\u043A\u043E\u0432\u0438",
+          grams: 50
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_beef_broccoli",
+      name: "\u0413\u043E\u0432\u0435\u0436\u0434\u043E \u0441 \u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+      products: [
+        {
+          name: "\u0433\u043E\u0432\u0435\u0436\u0434\u043E",
+          grams: 150
+        },
+        {
+          name: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+          grams: 150
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_beef_mushrooms",
+      name: "\u0413\u043E\u0432\u0435\u0436\u0434\u043E \u0441 \u0433\u044A\u0431\u0438",
+      products: [
+        {
+          name: "\u0433\u043E\u0432\u0435\u0436\u0434\u043E",
+          grams: 150
+        },
+        {
+          name: "\u0433\u044A\u0431\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_pork_potato",
+      name: "\u0421\u0432\u0438\u043D\u0441\u043A\u043E \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+      products: [
+        {
+          name: "\u0441\u0432\u0438\u043D\u0441\u043A\u043E",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u0437\u0435\u043B\u0435",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_pork_beans",
+      name: "\u0421\u0432\u0438\u043D\u0441\u043A\u043E \u0441 \u0431\u043E\u0431",
+      products: [
+        {
+          name: "\u0441\u0432\u0438\u043D\u0441\u043A\u043E",
+          grams: 100
+        },
+        {
+          name: "\u0431\u044F\u043B \u0431\u043E\u0431",
+          grams: 200
+        },
+        {
+          name: "\u043B\u0443\u043A",
+          grams: 30
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 3,
+      tags: []
+    },
+    {
+      id: "meal_moussaka_style",
+      name: "\u041A\u0430\u0439\u043C\u0430 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u043F\u0430\u0442\u043B\u0430\u0434\u0436\u0430\u043D",
+      products: [
+        {
+          name: "\u043A\u0430\u0439\u043C\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u043F\u0430\u0442\u043B\u0430\u0434\u0436\u0430\u043D",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_beef_spinach_potato",
+      name: "\u0413\u043E\u0432\u0435\u0436\u0434\u043E \u0441\u044A\u0441 \u0441\u043F\u0430\u043D\u0430\u043A \u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+      products: [
+        {
+          name: "\u0433\u043E\u0432\u0435\u0436\u0434\u043E",
+          grams: 150
+        },
+        {
+          name: "\u0441\u043F\u0430\u043D\u0430\u043A",
+          grams: 100
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_beef_peas_green_beans",
+      name: "\u0413\u043E\u0432\u0435\u0436\u0434\u043E \u0441 \u0433\u0440\u0430\u0445 \u0438 \u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B",
+      products: [
+        {
+          name: "\u0433\u043E\u0432\u0435\u0436\u0434\u043E",
+          grams: 150
+        },
+        {
+          name: "\u0433\u0440\u0430\u0445",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_pork_cabbage",
+      name: "\u0421\u0432\u0438\u043D\u0441\u043A\u043E \u0441\u044A\u0441 \u0437\u0435\u043B\u0435 \u0438 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
+      products: [
+        {
+          name: "\u0441\u0432\u0438\u043D\u0441\u043A\u043E",
+          grams: 150
+        },
+        {
+          name: "\u0437\u0435\u043B\u0435",
+          grams: 100
+        },
+        {
+          name: "\u041C\u043E\u0440\u043A\u043E\u0432\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_baked_fish",
+      name: "\u0420\u0438\u0431\u0430 \u043D\u0430 \u0444\u0443\u0440\u043D\u0430 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+      products: [
+        {
+          name: "\u0440\u0438\u0431\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_grilled_fish_veg",
+      name: "\u0420\u0438\u0431\u0430 \u043D\u0430 \u0441\u043A\u0430\u0440\u0430 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      products: [
+        {
+          name: "\u0440\u0438\u0431\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+          grams: 150
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_fish_rice",
+      name: "\u0420\u0438\u0431\u0430 \u0441 \u043E\u0440\u0438\u0437",
+      products: [
+        {
+          name: "\u0440\u0438\u0431\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 150
+        },
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_salmon_potato",
+      name: "\u0421\u044C\u043E\u043C\u0433\u0430 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+      products: [
+        {
+          name: "\u0441\u044C\u043E\u043C\u0433\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u0441\u043F\u0430\u043D\u0430\u043A",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_salmon_salad",
+      name: "\u0421\u044C\u043E\u043C\u0433\u0430 \u0441\u044A\u0441 \u0441\u0430\u043B\u0430\u0442\u0430",
+      products: [
+        {
+          name: "\u0441\u044C\u043E\u043C\u0433\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043C\u0430\u0440\u0443\u043B\u044F",
+          grams: 100
+        },
+        {
+          name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431",
+          grams: 50
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_tuna_salad",
+      name: "\u0421\u0430\u043B\u0430\u0442\u0430 \u0441 \u0440\u0438\u0431\u0430 \u0442\u043E\u043D",
+      products: [
+        {
+          name: "\u0440\u0438\u0431\u0430 \u0442\u043E\u043D",
+          grams: 100
+        },
+        {
+          name: "\u043C\u0430\u0440\u0443\u043B\u044F",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main",
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_mackerel_potato",
+      name: "\u0421\u043A\u0443\u043C\u0440\u0438\u044F \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+      products: [
+        {
+          name: "\u0441\u043A\u0443\u043C\u0440\u0438\u044F",
+          grams: 100
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u0441\u043F\u0430\u043D\u0430\u043A",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 3,
+      tags: []
+    },
+    {
+      id: "meal_shrimp_pasta",
+      name: "\u041F\u0430\u0441\u0442\u0430 \u0441\u044A\u0441 \u0441\u043A\u0430\u0440\u0438\u0434\u0438 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+      products: [
+        {
+          name: "\u043F\u0430\u0441\u0442\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0441\u043A\u0430\u0440\u0438\u0434\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 3,
+      tags: []
+    },
+    {
+      id: "meal_cod_potato",
+      name: "\u0422\u0440\u0435\u0441\u043A\u0430 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+      products: [
+        {
+          name: "\u0442\u0440\u0435\u0441\u043A\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_tilapia_rice",
+      name: "\u0422\u0438\u043B\u0430\u043F\u0438\u044F \u0441 \u043E\u0440\u0438\u0437",
+      products: [
+        {
+          name: "\u0442\u0438\u043B\u0430\u043F\u0438\u044F",
+          grams: 150
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 150
+        },
+        {
+          name: "\u0422\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_tuna_pasta",
+      name: "\u041F\u0430\u0441\u0442\u0430 \u0441 \u0440\u0438\u0431\u0430 \u0442\u043E\u043D",
+      products: [
+        {
+          name: "\u043F\u0430\u0441\u0442\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0440\u0438\u0431\u0430 \u0442\u043E\u043D",
+          grams: 100
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_lavrak_potato",
+      name: "\u041B\u0430\u0432\u0440\u0430\u043A \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u0441\u043F\u0430\u043D\u0430\u043A",
+      products: [
+        {
+          name: "\u043B\u0430\u0432\u0440\u0430\u043A",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u0441\u043F\u0430\u043D\u0430\u043A",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 3,
+      tags: []
+    },
+    {
+      id: "meal_salmon_sweet_potato_broccoli",
+      name: "\u0421\u044C\u043E\u043C\u0433\u0430 \u0441\u044A\u0441 \u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+      products: [
+        {
+          name: "\u0441\u044C\u043E\u043C\u0433\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_mackerel_rice",
+      name: "\u0421\u043A\u0443\u043C\u0440\u0438\u044F \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0441\u043F\u0430\u043D\u0430\u043A",
+      products: [
+        {
+          name: "\u0441\u043A\u0443\u043C\u0440\u0438\u044F",
+          grams: 100
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 150
+        },
+        {
+          name: "\u0441\u043F\u0430\u043D\u0430\u043A",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_fish_quinoa",
+      name: "\u0420\u0438\u0431\u0430 \u0441 \u043A\u0438\u043D\u043E\u0430 \u0438 \u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+      products: [
+        {
+          name: "\u0440\u0438\u0431\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0438\u043D\u043E\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_shrimp_rice_veg",
+      name: "\u0421\u043A\u0430\u0440\u0438\u0434\u0438 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      products: [
+        {
+          name: "\u0441\u043A\u0430\u0440\u0438\u0434\u0438",
+          grams: 100
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 150
+        },
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_tuna_rice_salad",
+      name: "\u0420\u0438\u0431\u0430 \u0442\u043E\u043D \u0441 \u043E\u0440\u0438\u0437 \u0438 \u043C\u0430\u0440\u0443\u043B\u044F",
+      products: [
+        {
+          name: "\u0440\u0438\u0431\u0430 \u0442\u043E\u043D",
+          grams: 100
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 100
+        },
+        {
+          name: "\u043C\u0430\u0440\u0443\u043B\u044F",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_lentil_stew",
+      name: "\u042F\u0445\u043D\u0438\u044F \u043E\u0442 \u043B\u0435\u0449\u0430",
+      products: [
+        {
+          name: "\u043B\u0435\u0449\u0430",
+          grams: 200
+        },
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_bean_stew",
+      name: "\u0411\u043E\u0431 \u044F\u0445\u043D\u0438\u044F",
+      products: [
+        {
+          name: "\u0431\u043E\u0431",
+          grams: 200
+        },
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_bean_salad",
+      name: "\u0421\u0430\u043B\u0430\u0442\u0430 \u0441 \u0431\u043E\u0431",
+      products: [
+        {
+          name: "\u0431\u044F\u043B \u0431\u043E\u0431",
+          grams: 200
+        },
+        {
+          name: "\u043C\u0430\u0440\u0443\u043B\u044F",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_chickpea_salad",
+      name: "\u0421\u0430\u043B\u0430\u0442\u0430 \u0441 \u043D\u0430\u0445\u0443\u0442",
+      products: [
+        {
+          name: "\u043D\u0430\u0445\u0443\u0442",
+          grams: 200
+        },
+        {
+          name: "\u043C\u0430\u0440\u0443\u043B\u044F",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main",
+        "snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_hummus_bread",
+      name: "\u0425\u0443\u043C\u0443\u0441 \u0441 \u0445\u043B\u044F\u0431 \u0438 \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+      products: [
+        {
+          name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431",
+          grams: 100
+        },
+        {
+          name: "\u0445\u0443\u043C\u0443\u0441",
+          grams: 50
+        },
+        {
+          name: "\u041A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+          grams: 50
+        }
+      ],
+      timing: [
+        "main",
+        "snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 3,
+      tags: []
+    },
+    {
+      id: "meal_veg_soup",
+      name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u043A\u043E\u0432\u0430 \u0441\u0443\u043F\u0430",
+      products: [
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 200
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_green_salad",
+      name: "\u0417\u0435\u043B\u0435\u043D\u0430 \u0441\u0430\u043B\u0430\u0442\u0430",
+      products: [
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 150
+        },
+        {
+          name: "\u041A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_egg_potato",
+      name: "\u042F\u0439\u0446\u0430 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u0447\u0443\u0448\u043A\u0438",
+      products: [
+        {
+          name: "\u044F\u0439\u0446\u0430",
+          grams: 100
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u0427\u0443\u0448\u043A\u0438",
+          grams: 50
+        }
+      ],
+      timing: [
+        "breakfast",
+        "main"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_cottage_veg",
+      name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      products: [
+        {
+          name: "\u0438\u0437\u0432\u0430\u0440\u0430",
+          grams: 150
+        },
+        {
+          name: "\u041A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main",
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_tofu_rice",
+      name: "\u0422\u043E\u0444\u0443 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+      products: [
+        {
+          name: "\u0442\u043E\u0444\u0443",
+          grams: 150
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 150
+        },
+        {
+          name: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 3,
+      tags: []
+    },
+    {
+      id: "meal_stuffed_peppers",
+      name: "\u041F\u044A\u043B\u043D\u0435\u043D\u0438 \u0447\u0443\u0448\u043A\u0438 \u0441 \u043E\u0440\u0438\u0437",
+      products: [
+        {
+          name: "\u0427\u0443\u0448\u043A\u0438",
+          grams: 200
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 3,
+      tags: []
+    },
+    {
+      id: "meal_spinach_rice",
+      name: "\u0421\u043F\u0430\u043D\u0430\u043A \u0441 \u043E\u0440\u0438\u0437",
+      products: [
+        {
+          name: "\u0441\u043F\u0430\u043D\u0430\u043A",
+          grams: 200
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_potato_stew",
+      name: "\u041A\u0430\u0440\u0442\u043E\u0444\u0435\u043D\u0430 \u044F\u0445\u043D\u0438\u044F",
+      products: [
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 250
+        },
+        {
+          name: "\u041C\u043E\u0440\u043A\u043E\u0432\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_green_bean_stew",
+      name: "\u042F\u0445\u043D\u0438\u044F \u043E\u0442 \u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B",
+      products: [
+        {
+          name: "\u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B",
+          grams: 200
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_zucchini_tomato",
+      name: "\u0422\u0438\u043A\u0432\u0438\u0447\u043A\u0438 \u0441 \u0434\u043E\u043C\u0430\u0442\u0438",
+      products: [
+        {
+          name: "\u0422\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+          grams: 200
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_roasted_veg_bread",
+      name: "\u041F\u0435\u0447\u0435\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0441 \u0445\u043B\u044F\u0431",
+      products: [
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 200
+        },
+        {
+          name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431",
+          grams: 50
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_lentil_soup",
+      name: "\u0421\u0443\u043F\u0430 \u043E\u0442 \u043B\u0435\u0449\u0430",
+      products: [
+        {
+          name: "\u043B\u0435\u0449\u0430",
+          grams: 200
+        },
+        {
+          name: "\u041C\u043E\u0440\u043A\u043E\u0432\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_mushrooms_potato",
+      name: "\u0413\u044A\u0431\u0438 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+      products: [
+        {
+          name: "\u0433\u044A\u0431\u0438",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_quinoa_veg_bowl",
+      name: "\u041A\u0438\u043D\u043E\u0430 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      products: [
+        {
+          name: "\u043A\u0438\u043D\u043E\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 150
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_tempeh_rice_broccoli",
+      name: "\u0422\u0435\u043C\u043F\u0435 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+      products: [
+        {
+          name: "\u0442\u0435\u043C\u043F\u0435",
+          grams: 150
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 150
+        },
+        {
+          name: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 3,
+      tags: []
+    },
+    {
+      id: "meal_black_bean_stew",
+      name: "\u042F\u0445\u043D\u0438\u044F \u043E\u0442 \u0447\u0435\u0440\u0435\u043D \u0431\u043E\u0431",
+      products: [
+        {
+          name: "\u0447\u0435\u0440\u0435\u043D \u0431\u043E\u0431",
+          grams: 200
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_sweet_potato_lentil",
+      name: "\u0421\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0441 \u043B\u0435\u0449\u0430",
+      products: [
+        {
+          name: "\u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u043B\u0435\u0449\u0430",
+          grams: 150
+        },
+        {
+          name: "\u041C\u043E\u0440\u043A\u043E\u0432\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_lentil_rice",
+      name: "\u041B\u0435\u0449\u0430 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
+      products: [
+        {
+          name: "\u043B\u0435\u0449\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 100
+        },
+        {
+          name: "\u041C\u043E\u0440\u043A\u043E\u0432\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_chickpea_spinach",
+      name: "\u041D\u0430\u0445\u0443\u0442 \u0441\u044A\u0441 \u0441\u043F\u0430\u043D\u0430\u043A",
+      products: [
+        {
+          name: "\u043D\u0430\u0445\u0443\u0442",
+          grams: 200
+        },
+        {
+          name: "\u0441\u043F\u0430\u043D\u0430\u043A",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_bulgur_veg",
+      name: "\u0411\u0443\u043B\u0433\u0443\u0440 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      products: [
+        {
+          name: "\u0431\u0443\u043B\u0433\u0443\u0440",
+          grams: 150
+        },
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 150
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_tofu_sweet_potato",
+      name: "\u0422\u043E\u0444\u0443 \u0441\u044A\u0441 \u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+      products: [
+        {
+          name: "\u0442\u043E\u0444\u0443",
+          grams: 150
+        },
+        {
+          name: "\u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 3,
+      tags: []
+    },
+    {
+      id: "meal_bean_potato",
+      name: "\u0411\u043E\u0431 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
+      products: [
+        {
+          name: "\u0431\u043E\u0431",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u041C\u043E\u0440\u043A\u043E\u0432\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_chickpea_rice",
+      name: "\u041D\u0430\u0445\u0443\u0442 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+      products: [
+        {
+          name: "\u043D\u0430\u0445\u0443\u0442",
+          grams: 150
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 100
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_chickpea_quinoa_bowl",
+      name: "\u041D\u0430\u0445\u0443\u0442 \u0441 \u043A\u0438\u043D\u043E\u0430 \u0438 \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+      products: [
+        {
+          name: "\u043D\u0430\u0445\u0443\u0442",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0438\u043D\u043E\u0430",
+          grams: 100
+        },
+        {
+          name: "\u041A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_black_bean_rice",
+      name: "\u0427\u0435\u0440\u0435\u043D \u0431\u043E\u0431 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0447\u0443\u0448\u043A\u0438",
+      products: [
+        {
+          name: "\u0447\u0435\u0440\u0435\u043D \u0431\u043E\u0431",
+          grams: 150
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 100
+        },
+        {
+          name: "\u0427\u0443\u0448\u043A\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_tofu_bulgur_peppers",
+      name: "\u0422\u043E\u0444\u0443 \u0441 \u0431\u0443\u043B\u0433\u0443\u0440 \u0438 \u0447\u0443\u0448\u043A\u0438",
+      products: [
+        {
+          name: "\u0442\u043E\u0444\u0443",
+          grams: 150
+        },
+        {
+          name: "\u0431\u0443\u043B\u0433\u0443\u0440",
+          grams: 150
+        },
+        {
+          name: "\u0427\u0443\u0448\u043A\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_pumpkin_lentil",
+      name: "\u0422\u0438\u043A\u0432\u0430 \u0441 \u043B\u0435\u0449\u0430 \u0438 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
+      products: [
+        {
+          name: "\u0442\u0438\u043A\u0432\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043B\u0435\u0449\u0430",
+          grams: 100
+        },
+        {
+          name: "\u041C\u043E\u0440\u043A\u043E\u0432\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_pea_potato_stew",
+      name: "\u0413\u0440\u0430\u0445 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
+      products: [
+        {
+          name: "\u0433\u0440\u0430\u0445",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 150
+        },
+        {
+          name: "\u041C\u043E\u0440\u043A\u043E\u0432\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_lentil_bread",
+      name: "\u041B\u0435\u0449\u0430 \u0441 \u043C\u043E\u0440\u043A\u043E\u0432\u0438 \u0438 \u0445\u043B\u044F\u0431",
+      products: [
+        {
+          name: "\u043B\u0435\u0449\u0430",
+          grams: 150
+        },
+        {
+          name: "\u041C\u043E\u0440\u043A\u043E\u0432\u0438",
+          grams: 100
+        },
+        {
+          name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431",
+          grams: 50
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_egg_avocado_spinach",
+      name: "\u042F\u0439\u0446\u0430 \u0441 \u0430\u0432\u043E\u043A\u0430\u0434\u043E \u0438 \u0441\u043F\u0430\u043D\u0430\u043A",
+      products: [
+        {
+          name: "\u044F\u0439\u0446\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0430\u0432\u043E\u043A\u0430\u0434\u043E",
+          grams: 50
+        },
+        {
+          name: "\u0441\u043F\u0430\u043D\u0430\u043A",
+          grams: 100
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: [
+        "low_carb"
+      ]
+    },
+    {
+      id: "meal_keto_eggs_zucchini",
+      name: "\u042F\u0439\u0446\u0430 \u0441 \u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+      products: [
+        {
+          name: "\u044F\u0439\u0446\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0422\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "breakfast",
+        "main"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 3,
+      tags: [
+        "low_carb"
+      ]
+    },
+    {
+      id: "meal_salmon_avocado",
+      name: "\u0421\u044C\u043E\u043C\u0433\u0430 \u0441 \u0430\u0432\u043E\u043A\u0430\u0434\u043E",
+      products: [
+        {
+          name: "\u0441\u044C\u043E\u043C\u0433\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0430\u0432\u043E\u043A\u0430\u0434\u043E",
+          grams: 50
+        },
+        {
+          name: "\u043C\u0430\u0440\u0443\u043B\u044F",
+          grams: 50
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 3,
+      tags: [
+        "low_carb"
+      ]
+    },
+    {
+      id: "meal_chicken_cheese_salad",
+      name: "\u041F\u0438\u043B\u0435\u0448\u043A\u0430 \u0441\u0430\u043B\u0430\u0442\u0430 \u0441\u044A\u0441 \u0441\u0438\u0440\u0435\u043D\u0435",
+      products: [
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          grams: 100
+        },
+        {
+          name: "\u0441\u0438\u0440\u0435\u043D\u0435",
+          grams: 40
+        },
+        {
+          name: "\u043C\u0430\u0440\u0443\u043B\u044F",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 3,
+      tags: [
+        "low_carb"
+      ]
+    },
+    {
+      id: "meal_cottage_nuts_veg",
+      name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u043E\u0440\u0435\u0445\u0438 \u0438 \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+      products: [
+        {
+          name: "\u0438\u0437\u0432\u0430\u0440\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043E\u0440\u0435\u0445\u0438",
+          grams: 20
+        },
+        {
+          name: "\u041A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "breakfast",
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 3,
+      tags: [
+        "low_carb"
+      ]
+    },
+    {
+      id: "meal_eggplant_turkey",
+      name: "\u041F\u0443\u0435\u0448\u043A\u043E \u0441 \u043F\u0430\u0442\u043B\u0430\u0434\u0436\u0430\u043D",
+      products: [
+        {
+          name: "\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435",
+          grams: 150
+        },
+        {
+          name: "\u043F\u0430\u0442\u043B\u0430\u0434\u0436\u0430\u043D",
+          grams: 150
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 3,
+      tags: [
+        "low_carb"
+      ]
+    },
+    {
+      id: "ir_omelet_mushrooms",
+      name: "\u041E\u043C\u043B\u0435\u0442 \u0441 \u0433\u044A\u0431\u0438",
+      products: [
+        {
+          name: "\u044F\u0439\u0446\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0433\u044A\u0431\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "breakfast",
+        "main"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: [
+        "low_carb"
+      ]
+    },
+    {
+      id: "ir_chicken_zucchini",
+      name: "\u041F\u0438\u043B\u0435 \u0441 \u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+      products: [
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          grams: 150
+        },
+        {
+          name: "\u0422\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+          grams: 150
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: [
+        "low_carb"
+      ]
+    },
+    {
+      id: "ir_turkey_broccoli",
+      name: "\u041F\u0443\u0435\u0448\u043A\u043E \u0441 \u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+      products: [
+        {
+          name: "\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435",
+          grams: 150
+        },
+        {
+          name: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+          grams: 150
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: [
+        "low_carb"
+      ]
+    },
+    {
+      id: "ir_cottage_avocado",
+      name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u0430\u0432\u043E\u043A\u0430\u0434\u043E",
+      products: [
+        {
+          name: "\u0438\u0437\u0432\u0430\u0440\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0430\u0432\u043E\u043A\u0430\u0434\u043E",
+          grams: 50
+        },
+        {
+          name: "\u041A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+          grams: 50
+        }
+      ],
+      timing: [
+        "breakfast",
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: [
+        "low_carb"
+      ]
+    },
+    {
+      id: "ir_tuna_cucumber",
+      name: "\u0420\u0438\u0431\u0430 \u0442\u043E\u043D \u0441 \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+      products: [
+        {
+          name: "\u0440\u0438\u0431\u0430 \u0442\u043E\u043D",
+          grams: 100
+        },
+        {
+          name: "\u041A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main",
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: [
+        "low_carb"
+      ]
+    },
+    {
+      id: "ir_eggs_spinach_cheese",
+      name: "\u042F\u0439\u0446\u0430 \u0441\u044A\u0441 \u0441\u043F\u0430\u043D\u0430\u043A \u0438 \u0441\u0438\u0440\u0435\u043D\u0435",
+      products: [
+        {
+          name: "\u044F\u0439\u0446\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0441\u043F\u0430\u043D\u0430\u043A",
+          grams: 100
+        },
+        {
+          name: "\u0441\u0438\u0440\u0435\u043D\u0435",
+          grams: 40
+        }
+      ],
+      timing: [
+        "breakfast",
+        "main"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: [
+        "low_carb"
+      ]
+    },
+    {
+      id: "ir_salmon_broccoli",
+      name: "\u0421\u044C\u043E\u043C\u0433\u0430 \u0441 \u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+      products: [
+        {
+          name: "\u0441\u044C\u043E\u043C\u0433\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+          grams: 150
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: [
+        "low_carb"
+      ]
+    },
+    {
+      id: "ir_pork_zucchini",
+      name: "\u0421\u0432\u0438\u043D\u0441\u043A\u043E \u0441 \u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+      products: [
+        {
+          name: "\u0441\u0432\u0438\u043D\u0441\u043A\u043E",
+          grams: 150
+        },
+        {
+          name: "\u0422\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+          grams: 150
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: [
+        "low_carb"
+      ]
+    },
+    {
+      id: "ir_beef_green_beans",
+      name: "\u0413\u043E\u0432\u0435\u0436\u0434\u043E \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B",
+      products: [
+        {
+          name: "\u0433\u043E\u0432\u0435\u0436\u0434\u043E",
+          grams: 150
+        },
+        {
+          name: "\u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B",
+          grams: 150
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: [
+        "low_carb"
+      ]
+    },
+    {
+      id: "ir_eggs_asparagus",
+      name: "\u042F\u0439\u0446\u0430 \u0441 \u0430\u0441\u043F\u0435\u0440\u0436\u0438",
+      products: [
+        {
+          name: "\u044F\u0439\u0446\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0410\u0441\u043F\u0435\u0440\u0436\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "breakfast",
+        "main"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: [
+        "low_carb"
+      ]
+    },
+    {
+      id: "ir_chicken_cauliflower",
+      name: "\u041F\u0438\u043B\u0435 \u0441 \u043A\u0430\u0440\u0444\u0438\u043E\u043B",
+      products: [
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0430\u0440\u0444\u0438\u043E\u043B",
+          grams: 150
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: [
+        "low_carb"
+      ]
+    },
+    {
+      id: "ir_turkey_mushrooms",
+      name: "\u041F\u0443\u0435\u0448\u043A\u043E \u0441 \u0433\u044A\u0431\u0438",
+      products: [
+        {
+          name: "\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435",
+          grams: 150
+        },
+        {
+          name: "\u0433\u044A\u0431\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: [
+        "low_carb"
+      ]
+    },
+    {
+      id: "snack_yogurt_almonds",
+      name: "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u0431\u0430\u0434\u0435\u043C\u0438",
+      products: [
+        {
+          name: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+          grams: 150
+        },
+        {
+          name: "\u0431\u0430\u0434\u0435\u043C\u0438",
+          grams: 15
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "snack_apple_almonds",
+      name: "\u042F\u0431\u044A\u043B\u043A\u0430 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438",
+      products: [
+        {
+          name: "\u044F\u0431\u044A\u043B\u043A\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0431\u0430\u0434\u0435\u043C\u0438",
+          grams: 15
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "snack_banana_walnuts",
+      name: "\u0411\u0430\u043D\u0430\u043D \u0441 \u043E\u0440\u0435\u0445\u0438",
+      products: [
+        {
+          name: "\u0431\u0430\u043D\u0430\u043D",
+          grams: 100
+        },
+        {
+          name: "\u043E\u0440\u0435\u0445\u0438",
+          grams: 15
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "snack_cottage_walnuts",
+      name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u043E\u0440\u0435\u0445\u0438",
+      products: [
+        {
+          name: "\u0438\u0437\u0432\u0430\u0440\u0430",
+          grams: 100
+        },
+        {
+          name: "\u043E\u0440\u0435\u0445\u0438",
+          grams: 15
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "snack_orange_cashew",
+      name: "\u041F\u043E\u0440\u0442\u043E\u043A\u0430\u043B \u0441 \u043A\u0430\u0448\u0443",
+      products: [
+        {
+          name: "\u043F\u043E\u0440\u0442\u043E\u043A\u0430\u043B",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0430\u0448\u0443",
+          grams: 15
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "snack_hummus_carrot",
+      name: "\u0425\u0443\u043C\u0443\u0441 \u0441 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
+      products: [
+        {
+          name: "\u0445\u0443\u043C\u0443\u0441",
+          grams: 50
+        },
+        {
+          name: "\u041C\u043E\u0440\u043A\u043E\u0432\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 3,
+      tags: []
+    },
+    {
+      id: "snack_fruit_yogurt",
+      name: "\u041F\u043B\u043E\u0434\u043E\u0432\u0435 \u0441 \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+      products: [
+        {
+          name: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+          grams: 150
+        },
+        {
+          name: "\u044F\u0431\u044A\u043B\u043A\u0430",
+          grams: 100
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: [
+        "sweet_slot"
+      ]
+    },
+    {
+      id: "snack_avocado_walnuts",
+      name: "\u0410\u0432\u043E\u043A\u0430\u0434\u043E \u0441 \u043E\u0440\u0435\u0445\u0438",
+      products: [
+        {
+          name: "\u0430\u0432\u043E\u043A\u0430\u0434\u043E",
+          grams: 50
+        },
+        {
+          name: "\u043E\u0440\u0435\u0445\u0438",
+          grams: 15
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 3,
+      tags: []
+    },
+    {
+      id: "snack_pear_walnuts",
+      name: "\u041A\u0440\u0443\u0448\u0430 \u0441 \u043E\u0440\u0435\u0445\u0438",
+      products: [
+        {
+          name: "\u043A\u0440\u0443\u0448\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043E\u0440\u0435\u0445\u0438",
+          grams: 15
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "snack_kiwi_cashew",
+      name: "\u041A\u0438\u0432\u0438 \u0441 \u043A\u0430\u0448\u0443",
+      products: [
+        {
+          name: "\u043A\u0438\u0432\u0438",
+          grams: 100
+        },
+        {
+          name: "\u043A\u0430\u0448\u0443",
+          grams: 15
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "snack_cottage_berries",
+      name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u044F\u0433\u043E\u0434\u0438",
+      products: [
+        {
+          name: "\u0438\u0437\u0432\u0430\u0440\u0430",
+          grams: 150
+        },
+        {
+          name: "\u044F\u0433\u043E\u0434\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "snack_tomato_cheese",
+      name: "\u0414\u043E\u043C\u0430\u0442\u0438 \u0441\u044A\u0441 \u0441\u0438\u0440\u0435\u043D\u0435",
+      products: [
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0441\u0438\u0440\u0435\u043D\u0435",
+          grams: 40
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "snack_grape_almonds",
+      name: "\u0413\u0440\u043E\u0437\u0434\u0435 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438",
+      products: [
+        {
+          name: "\u0433\u0440\u043E\u0437\u0434\u0435",
+          grams: 100
+        },
+        {
+          name: "\u0431\u0430\u0434\u0435\u043C\u0438",
+          grams: 15
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "snack_celery_hummus",
+      name: "\u0426\u0435\u043B\u0438\u043D\u0430 \u0441 \u0445\u0443\u043C\u0443\u0441",
+      products: [
+        {
+          name: "\u0446\u0435\u043B\u0438\u043D\u0430",
+          grams: 100
+        },
+        {
+          name: "\u0445\u0443\u043C\u0443\u0441",
+          grams: 50
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 3,
+      tags: []
+    },
+    {
+      id: "snack_greek_yogurt_honey",
+      name: "\u0413\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043C\u0435\u0434",
+      products: [
+        {
+          name: "\u0433\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+          grams: 150
+        },
+        {
+          name: "\u043C\u0435\u0434",
+          grams: 15
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: [
+        "sweet_slot"
+      ]
+    },
+    {
+      id: "snack_mandarin_almonds",
+      name: "\u041C\u0430\u043D\u0434\u0430\u0440\u0438\u043D\u0430 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438",
+      products: [
+        {
+          name: "\u043C\u0430\u043D\u0434\u0430\u0440\u0438\u043D\u0430",
+          grams: 100
+        },
+        {
+          name: "\u0431\u0430\u0434\u0435\u043C\u0438",
+          grams: 15
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "snack_peach_cottage",
+      name: "\u041F\u0440\u0430\u0441\u043A\u043E\u0432\u0430 \u0441 \u0438\u0437\u0432\u0430\u0440\u0430",
+      products: [
+        {
+          name: "\u043F\u0440\u0430\u0441\u043A\u043E\u0432\u0430",
+          grams: 100
+        },
+        {
+          name: "\u0438\u0437\u0432\u0430\u0440\u0430",
+          grams: 100
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "snack_peanut_banana",
+      name: "\u0411\u0430\u043D\u0430\u043D \u0441 \u0444\u044A\u0441\u0442\u044A\u0446\u0438",
+      products: [
+        {
+          name: "\u0431\u0430\u043D\u0430\u043D",
+          grams: 100
+        },
+        {
+          name: "\u0444\u044A\u0441\u0442\u044A\u0446\u0438",
+          grams: 20
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "snack_tahini_carrots",
+      name: "\u041C\u043E\u0440\u043A\u043E\u0432\u0438 \u0441 \u0442\u0430\u0445\u0430\u043D",
+      products: [
+        {
+          name: "\u041C\u043E\u0440\u043A\u043E\u0432\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0442\u0430\u0445\u0430\u043D",
+          grams: 20
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 3,
+      tags: []
+    },
+    {
+      id: "sweet_yogurt_berries",
+      name: "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438",
+      products: [
+        {
+          name: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+          grams: 150
+        },
+        {
+          name: "\u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: [
+        "sweet_slot"
+      ]
+    },
+    {
+      id: "sweet_cottage_honey",
+      name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u043C\u0435\u0434",
+      products: [
+        {
+          name: "\u0438\u0437\u0432\u0430\u0440\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043C\u0435\u0434",
+          grams: 15
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: [
+        "sweet_slot"
+      ]
+    },
+    {
+      id: "sweet_apple_yogurt",
+      name: "\u042F\u0431\u044A\u043B\u043A\u0430 \u0441 \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+      products: [
+        {
+          name: "\u044F\u0431\u044A\u043B\u043A\u0430",
+          grams: 100
+        },
+        {
+          name: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+          grams: 150
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: [
+        "sweet_slot"
+      ]
+    },
+    {
+      id: "sweet_kefir_berries",
+      name: "\u041A\u0435\u0444\u0438\u0440 \u0441 \u043C\u0430\u043B\u0438\u043D\u0438",
+      products: [
+        {
+          name: "\u043A\u0435\u0444\u0438\u0440",
+          grams: 200
+        },
+        {
+          name: "\u043C\u0430\u043B\u0438\u043D\u0438",
+          grams: 50
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: [
+        "sweet_slot",
+        "liquid_breakfast"
+      ]
+    },
+    {
+      id: "late_yogurt_walnuts",
+      name: "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043E\u0440\u0435\u0445\u0438",
+      products: [
+        {
+          name: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+          grams: 100
+        },
+        {
+          name: "\u043E\u0440\u0435\u0445\u0438",
+          grams: 10
+        }
+      ],
+      timing: [
+        "late_snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "late_cottage_almonds",
+      name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438",
+      products: [
+        {
+          name: "\u0438\u0437\u0432\u0430\u0440\u0430",
+          grams: 100
+        },
+        {
+          name: "\u0431\u0430\u0434\u0435\u043C\u0438",
+          grams: 10
+        }
+      ],
+      timing: [
+        "late_snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "late_nuts_mix",
+      name: "\u0411\u0430\u0434\u0435\u043C\u0438 \u0438 \u043E\u0440\u0435\u0445\u0438",
+      products: [
+        {
+          name: "\u0431\u0430\u0434\u0435\u043C\u0438",
+          grams: 15
+        },
+        {
+          name: "\u043E\u0440\u0435\u0445\u0438",
+          grams: 15
+        }
+      ],
+      timing: [
+        "late_snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "late_cashew_almonds",
+      name: "\u041A\u0430\u0448\u0443 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438",
+      products: [
+        {
+          name: "\u043A\u0430\u0448\u0443",
+          grams: 15
+        },
+        {
+          name: "\u0431\u0430\u0434\u0435\u043C\u0438",
+          grams: 15
+        }
+      ],
+      timing: [
+        "late_snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "late_seeds_hazelnuts",
+      name: "\u0422\u0438\u043A\u0432\u0435\u043D\u0438 \u0441\u0435\u043C\u043A\u0438 \u0441 \u043B\u0435\u0448\u043D\u0438\u0446\u0438",
+      products: [
+        {
+          name: "\u0442\u0438\u043A\u0432\u0435\u043D\u0438 \u0441\u0435\u043C\u043A\u0438",
+          grams: 15
+        },
+        {
+          name: "\u043B\u0435\u0448\u043D\u0438\u0446\u0438",
+          grams: 15
+        }
+      ],
+      timing: [
+        "late_snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 3,
+      tags: []
+    },
+    {
+      id: "late_nuts_berries",
+      name: "\u042F\u0434\u043A\u0438 \u0441 \u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438",
+      products: [
+        {
+          name: "\u0431\u0430\u0434\u0435\u043C\u0438",
+          grams: 15
+        },
+        {
+          name: "\u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "snack",
+        "late_snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "late_skryr_almonds",
+      name: "\u0421\u043A\u0438\u0440 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438",
+      products: [
+        {
+          name: "\u0441\u043A\u0438\u0440",
+          grams: 100
+        },
+        {
+          name: "\u0431\u0430\u0434\u0435\u043C\u0438",
+          grams: 15
+        }
+      ],
+      timing: [
+        "late_snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "late_cottage_walnuts",
+      name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u043E\u0440\u0435\u0445\u0438",
+      products: [
+        {
+          name: "\u0438\u0437\u0432\u0430\u0440\u0430",
+          grams: 100
+        },
+        {
+          name: "\u043E\u0440\u0435\u0445\u0438",
+          grams: 15
+        }
+      ],
+      timing: [
+        "late_snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "late_greek_yogurt_walnuts",
+      name: "\u0413\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043E\u0440\u0435\u0445\u0438",
+      products: [
+        {
+          name: "\u0433\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+          grams: 100
+        },
+        {
+          name: "\u043E\u0440\u0435\u0445\u0438",
+          grams: 15
+        }
+      ],
+      timing: [
+        "late_snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "late_peanut_butter_apple",
+      name: "\u042F\u0431\u044A\u043B\u043A\u0430 \u0441 \u0444\u044A\u0441\u0442\u044A\u0447\u0435\u043D\u043E \u043C\u0430\u0441\u043B\u043E",
+      products: [
+        {
+          name: "\u044F\u0431\u044A\u043B\u043A\u0430",
+          grams: 100
+        },
+        {
+          name: "\u0444\u044A\u0441\u0442\u044A\u0447\u0435\u043D\u043E \u043C\u0430\u0441\u043B\u043E",
+          grams: 15
+        }
+      ],
+      timing: [
+        "late_snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    }
+  ]
+};
+
 // meal-dishes.js
-function dish(id, name, products, timing, opts = {}) {
-  const snapped = products.map(([product, grams]) => ({ name: product, grams: snapGrams(grams) }));
+function normalizeDish(raw) {
+  const snapped = (raw.products || []).map((p) => ({
+    name: p.name,
+    grams: snapGrams(Number(p.grams) || 0)
+  }));
   const totalGrams = snapped.reduce((sum, p) => sum + p.grams, 0) || 1;
   return {
-    id,
-    name,
+    id: raw.id,
+    name: raw.name,
     products: snapped.map((p) => ({
       name: p.name,
       grams: p.grams,
-      // Делът се извежда от грамажите — един източник на истина за формата.
       share: p.grams / totalGrams
     })),
     referenceGrams: totalGrams,
-    timing,
-    vegan: !!opts.vegan,
-    vegetarian: opts.vegetarian !== void 0 ? !!opts.vegetarian : !!opts.vegan,
-    universality: opts.universality ?? 4,
-    tags: Array.isArray(opts.tags) ? [...opts.tags] : []
+    timing: [...raw.timing || []],
+    vegan: !!raw.vegan,
+    vegetarian: raw.vegetarian !== void 0 ? !!raw.vegetarian : !!raw.vegan,
+    universality: raw.universality ?? 4,
+    tags: Array.isArray(raw.tags) ? [...raw.tags] : []
   };
 }
-var MEAL_DISHES = [
-  // ── Закуски ──────────────────────────────────────────────────────────
-  dish(
-    "meal_omelet",
-    "\u041E\u043C\u043B\u0435\u0442 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
-    [["\u044F\u0439\u0446\u0430", 150], ["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 80], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["breakfast", "main"],
-    { vegetarian: true, universality: 5 }
-  ),
-  dish(
-    "meal_omelet_veg",
-    "\u041E\u043C\u043B\u0435\u0442 \u0441\u044A\u0441 \u0441\u043F\u0430\u043D\u0430\u043A \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
-    [["\u044F\u0439\u0446\u0430", 150], ["\u0441\u043F\u0430\u043D\u0430\u043A", 60], ["\u0414\u043E\u043C\u0430\u0442\u0438", 60]],
-    ["breakfast", "main"],
-    { vegetarian: true }
-  ),
-  dish(
-    "meal_boiled_egg",
-    "\u0412\u0430\u0440\u0435\u043D\u0438 \u044F\u0439\u0446\u0430 \u0441 \u0445\u043B\u044F\u0431 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
-    [["\u044F\u0439\u0446\u0430", 120], ["\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", 60], ["\u0414\u043E\u043C\u0430\u0442\u0438", 60]],
-    ["breakfast"],
-    { vegetarian: true, universality: 5 }
-  ),
-  dish(
-    "meal_egg_bread_cheese",
-    "\u042F\u0439\u0446\u0430 \u0441 \u0445\u043B\u044F\u0431 \u0438 \u0441\u0438\u0440\u0435\u043D\u0435",
-    [["\u044F\u0439\u0446\u0430", 120], ["\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", 60], ["\u0441\u0438\u0440\u0435\u043D\u0435", 40]],
-    ["breakfast"],
-    { vegetarian: true }
-  ),
-  dish(
-    "meal_avocado_egg",
-    "\u042F\u0439\u0446\u0430 \u0441 \u0430\u0432\u043E\u043A\u0430\u0434\u043E \u0438 \u0445\u043B\u044F\u0431",
-    [["\u044F\u0439\u0446\u0430", 120], ["\u0430\u0432\u043E\u043A\u0430\u0434\u043E", 60], ["\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", 60]],
-    ["breakfast"],
-    { vegetarian: true }
-  ),
-  dish(
-    "meal_avocado_toast",
-    "\u0410\u0432\u043E\u043A\u0430\u0434\u043E \u0432\u044A\u0440\u0445\u0443 \u043F\u0440\u0435\u043F\u0435\u0447\u0435\u043D \u0445\u043B\u044F\u0431",
-    [["\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", 70], ["\u0430\u0432\u043E\u043A\u0430\u0434\u043E", 70], ["\u0414\u043E\u043C\u0430\u0442\u0438", 40]],
-    ["breakfast"],
-    { vegan: true }
-  ),
-  dish(
-    "meal_oatmeal",
-    "\u041E\u0432\u0435\u0441\u0435\u043D\u0430 \u043A\u0430\u0448\u0430 \u0441 \u043C\u043B\u044F\u043A\u043E",
-    [["\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438", 60], ["\u043C\u043B\u044F\u043A\u043E", 200], ["\u0431\u0430\u0434\u0435\u043C\u0438", 15]],
-    ["breakfast"],
-    { vegetarian: true, universality: 5 }
-  ),
-  dish(
-    "meal_porridge_berries",
-    "\u041E\u0432\u0435\u0441\u0435\u043D\u0430 \u043A\u0430\u0448\u0430 \u0441 \u043F\u043B\u043E\u0434\u043E\u0432\u0435",
-    [["\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438", 60], ["\u043C\u0430\u043B\u0438\u043D\u0438", 60], ["\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", 150]],
-    ["breakfast"],
-    { vegetarian: true }
-  ),
-  dish(
-    "meal_oat_plant_milk",
-    "\u041E\u0432\u0435\u0441\u0435\u043D\u0430 \u043A\u0430\u0448\u0430 \u0441 \u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E",
-    [["\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438", 60], ["\u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E", 200], ["\u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438", 50]],
-    ["breakfast"],
-    { vegan: true }
-  ),
-  dish(
-    "meal_yogurt_oats",
-    "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438",
-    [["\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", 200], ["\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438", 50]],
-    ["breakfast", "snack"],
-    { vegetarian: true, universality: 5 }
-  ),
-  dish(
-    "meal_yogurt_oats_banana",
-    "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043E\u0432\u0435\u0441 \u0438 \u0431\u0430\u043D\u0430\u043D",
-    [["\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", 200], ["\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438", 40], ["\u0431\u0430\u043D\u0430\u043D", 80]],
-    ["breakfast"],
-    { vegetarian: true }
-  ),
-  dish(
-    "meal_yogurt_oats_nuts",
-    "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043E\u0432\u0435\u0441 \u0438 \u043E\u0440\u0435\u0445\u0438",
-    [["\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", 200], ["\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438", 40], ["\u043E\u0440\u0435\u0445\u0438", 20]],
-    ["breakfast"],
-    { vegetarian: true }
-  ),
-  dish(
-    "meal_cottage_bowl",
-    "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u0434\u043E\u043C\u0430\u0442\u0438 \u0438 \u043E\u0440\u0435\u0445\u0438",
-    [["\u0438\u0437\u0432\u0430\u0440\u0430", 150], ["\u0414\u043E\u043C\u0430\u0442\u0438", 80], ["\u043E\u0440\u0435\u0445\u0438", 15]],
-    ["breakfast", "snack"],
-    { vegetarian: true }
-  ),
-  dish(
-    "meal_cottage_honey",
-    "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u043C\u0435\u0434 \u0438 \u043E\u0440\u0435\u0445\u0438",
-    [["\u0438\u0437\u0432\u0430\u0440\u0430", 150], ["\u043C\u0435\u0434", 15], ["\u043E\u0440\u0435\u0445\u0438", 20]],
-    ["breakfast", "snack"],
-    { vegetarian: true }
-  ),
-  dish(
-    "meal_cheese_sandwich",
-    "\u0421\u0430\u043D\u0434\u0432\u0438\u0447 \u0441\u044A\u0441 \u0441\u0438\u0440\u0435\u043D\u0435 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
-    [["\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", 80], ["\u0441\u0438\u0440\u0435\u043D\u0435", 50], ["\u0414\u043E\u043C\u0430\u0442\u0438", 40]],
-    ["breakfast", "snack"],
-    { vegetarian: true, universality: 5 }
-  ),
-  dish(
-    "meal_tofu_scramble",
-    "\u0422\u043E\u0444\u0443 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
-    [["\u0442\u043E\u0444\u0443", 150], ["\u0427\u0443\u0448\u043A\u0438", 80], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["breakfast", "main"],
-    { vegan: true, universality: 3 }
-  ),
-  dish(
-    "meal_eggs_bread_cheese_tomato",
-    "\u042F\u0439\u0446\u0430 \u0441 \u0445\u043B\u044F\u0431, \u0441\u0438\u0440\u0435\u043D\u0435 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
-    [["\u044F\u0439\u0446\u0430", 150], ["\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", 80], ["\u0441\u0438\u0440\u0435\u043D\u0435", 40], ["\u0414\u043E\u043C\u0430\u0442\u0438", 60]],
-    ["breakfast"],
-    { vegetarian: true, universality: 5 }
-  ),
-  dish(
-    "meal_eggs_potato_tomato",
-    "\u042F\u0439\u0446\u0430 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
-    [["\u044F\u0439\u0446\u0430", 150], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 200], ["\u0414\u043E\u043C\u0430\u0442\u0438", 80]],
-    ["breakfast", "main"],
-    { vegetarian: true }
-  ),
-  // ── Течна закуска ────────────────────────────────────────────────────
-  dish(
-    "bf_liquid_yogurt_banana",
-    "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u0431\u0430\u043D\u0430\u043D",
-    [["\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", 200], ["\u0431\u0430\u043D\u0430\u043D", 80]],
-    ["breakfast"],
-    { vegetarian: true, universality: 5, tags: ["liquid_breakfast"] }
-  ),
-  dish(
-    "bf_liquid_skyr_berries",
-    "\u0421\u043A\u0438\u0440 \u0441 \u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438",
-    [["\u0441\u043A\u0438\u0440", 180], ["\u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438", 60]],
-    ["breakfast"],
-    { vegetarian: true, universality: 4, tags: ["liquid_breakfast", "sweet_slot"] }
-  ),
-  dish(
-    "bf_liquid_kefir_nuts",
-    "\u041A\u0435\u0444\u0438\u0440 \u0441 \u043E\u0440\u0435\u0445\u0438",
-    [["\u043A\u0435\u0444\u0438\u0440", 200], ["\u043E\u0440\u0435\u0445\u0438", 15]],
-    ["breakfast"],
-    { vegetarian: true, universality: 4, tags: ["liquid_breakfast"] }
-  ),
-  dish(
-    "bf_liquid_yogurt_protein",
-    "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043F\u0440\u043E\u0442\u0435\u0438\u043D \u0438 \u043C\u0430\u043B\u0438\u043D\u0438",
-    [["\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", 180], ["\u043F\u0440\u043E\u0442\u0435\u0438\u043D \u0441\u0443\u0440\u043E\u0432\u0430\u0442\u043A\u0430", 25], ["\u043C\u0430\u043B\u0438\u043D\u0438", 40]],
-    ["breakfast"],
-    { vegetarian: true, universality: 3, tags: ["liquid_breakfast"] }
-  ),
-  dish(
-    "bf_liquid_oats_banana",
-    "\u041E\u0432\u0435\u0441 \u0441 \u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E \u0438 \u0431\u0430\u043D\u0430\u043D",
-    [["\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438", 50], ["\u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E", 200], ["\u0431\u0430\u043D\u0430\u043D", 80]],
-    ["breakfast"],
-    { vegan: true, universality: 5, tags: ["liquid_breakfast"] }
-  ),
-  dish(
-    "meal_cheese_omelet",
-    "\u041E\u043C\u043B\u0435\u0442 \u0441\u044A\u0441 \u0441\u0438\u0440\u0435\u043D\u0435 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
-    [["\u044F\u0439\u0446\u0430", 150], ["\u0441\u0438\u0440\u0435\u043D\u0435", 50], ["\u0414\u043E\u043C\u0430\u0442\u0438", 60]],
-    ["breakfast", "main"],
-    { vegetarian: true, universality: 5 }
-  ),
-  dish(
-    "meal_eggs_mushrooms",
-    "\u042F\u0439\u0446\u0430 \u0441 \u0433\u044A\u0431\u0438 \u0438 \u0437\u0435\u0445\u0442\u0438\u043D",
-    [["\u044F\u0439\u0446\u0430", 150], ["\u0433\u044A\u0431\u0438", 100], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["breakfast", "main"],
-    { vegetarian: true, universality: 4 }
-  ),
-  dish(
-    "meal_porridge_apple",
-    "\u041E\u0432\u0435\u0441\u0435\u043D\u0430 \u043A\u0430\u0448\u0430 \u0441 \u044F\u0431\u044A\u043B\u043A\u0430",
-    [["\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438", 60], ["\u043C\u043B\u044F\u043A\u043E", 200], ["\u044F\u0431\u044A\u043B\u043A\u0430", 100]],
-    ["breakfast"],
-    { vegetarian: true, universality: 5 }
-  ),
-  dish(
-    "meal_skryr_banana_oats",
-    "\u0421\u043A\u0438\u0440 \u0441 \u0431\u0430\u043D\u0430\u043D \u0438 \u043E\u0432\u0435\u0441",
-    [["\u0441\u043A\u0438\u0440", 180], ["\u0431\u0430\u043D\u0430\u043D", 80], ["\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438", 40]],
-    ["breakfast"],
-    { vegetarian: true, universality: 4 }
-  ),
-  dish(
-    "meal_rye_cheese_cucumber",
-    "\u0420\u044A\u0436\u0435\u043D \u0445\u043B\u044F\u0431 \u0441\u044A\u0441 \u0441\u0438\u0440\u0435\u043D\u0435 \u0438 \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
-    [["\u0440\u044A\u0436\u0435\u043D \u0445\u043B\u044F\u0431", 80], ["\u0441\u0438\u0440\u0435\u043D\u0435", 50], ["\u041A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438", 80]],
-    ["breakfast", "snack"],
-    { vegetarian: true, universality: 4 }
-  ),
-  dish(
-    "meal_greek_yogurt_honey_nuts",
-    "\u0413\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043C\u0435\u0434 \u0438 \u043E\u0440\u0435\u0445\u0438",
-    [["\u0433\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", 180], ["\u043C\u0435\u0434", 15], ["\u043E\u0440\u0435\u0445\u0438", 15]],
-    ["breakfast", "snack"],
-    { vegetarian: true, universality: 4 }
-  ),
-  dish(
-    "meal_buckwheat_milk_apple",
-    "\u0415\u043B\u0434\u0430 \u0441 \u043C\u043B\u044F\u043A\u043E \u0438 \u044F\u0431\u044A\u043B\u043A\u0430",
-    [["\u0435\u043B\u0434\u0430", 80], ["\u043C\u043B\u044F\u043A\u043E", 200], ["\u044F\u0431\u044A\u043B\u043A\u0430", 100]],
-    ["breakfast"],
-    { vegetarian: true, universality: 4 }
-  ),
-  dish(
-    "meal_cottage_peach",
-    "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u043F\u0440\u0430\u0441\u043A\u043E\u0432\u0430",
-    [["\u0438\u0437\u0432\u0430\u0440\u0430", 150], ["\u043F\u0440\u0430\u0441\u043A\u043E\u0432\u0430", 120]],
-    ["breakfast", "snack"],
-    { vegetarian: true, universality: 4 }
-  ),
-  dish(
-    "meal_bread_peanut_banana",
-    "\u0425\u043B\u044F\u0431 \u0441 \u0444\u044A\u0441\u0442\u044A\u0447\u0435\u043D\u043E \u043C\u0430\u0441\u043B\u043E \u0438 \u0431\u0430\u043D\u0430\u043D",
-    [["\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", 70], ["\u0444\u044A\u0441\u0442\u044A\u0447\u0435\u043D\u043E \u043C\u0430\u0441\u043B\u043E", 20], ["\u0431\u0430\u043D\u0430\u043D", 80]],
-    ["breakfast", "snack"],
-    { vegetarian: true, universality: 5 }
-  ),
-  dish(
-    "meal_eggs_peppers_tomato",
-    "\u042F\u0439\u0446\u0430 \u0441 \u0447\u0443\u0448\u043A\u0438 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
-    [["\u044F\u0439\u0446\u0430", 150], ["\u0427\u0443\u0448\u043A\u0438", 80], ["\u0414\u043E\u043C\u0430\u0442\u0438", 80]],
-    ["breakfast", "main"],
-    { vegetarian: true, universality: 5 }
-  ),
-  // ── Пиле и пуешко ────────────────────────────────────────────────────
-  dish(
-    "meal_rice_chicken",
-    "\u041F\u0438\u043B\u0435 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
-    [["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 130], ["\u043E\u0440\u0438\u0437", 150], ["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 100]],
-    ["main"],
-    { universality: 5 }
-  ),
-  dish(
-    "meal_chicken_rice_broccoli",
-    "\u041F\u0438\u043B\u0435\u0448\u043A\u0438 \u0433\u044A\u0440\u0434\u0438 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0431\u0440\u043E\u043A\u043E\u043B\u0438",
-    [["\u043F\u0438\u043B\u0435\u0448\u043A\u0438 \u0433\u044A\u0440\u0434\u0438", 130], ["\u043E\u0440\u0438\u0437", 150], ["\u0431\u0440\u043E\u043A\u043E\u043B\u0438", 100]],
-    ["main"],
-    { universality: 5 }
-  ),
-  dish(
-    "meal_grilled_chicken",
-    "\u041F\u0438\u043B\u0435 \u043D\u0430 \u0441\u043A\u0430\u0440\u0430 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
-    [["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 150], ["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 150], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { universality: 5 }
-  ),
-  dish(
-    "meal_chicken_potato",
-    "\u041F\u0438\u043B\u0435 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
-    [["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 130], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 200], ["\u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B", 80]],
-    ["main"],
-    { universality: 5 }
-  ),
-  dish(
-    "meal_pasta_chicken",
-    "\u041F\u0430\u0441\u0442\u0430 \u0441 \u043F\u0438\u043B\u0435 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
-    [["\u043F\u0430\u0441\u0442\u0430", 150], ["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 120], ["\u0414\u043E\u043C\u0430\u0442\u0438", 80]],
-    ["main"],
-    { universality: 5 }
-  ),
-  dish(
-    "meal_chicken_salad",
-    "\u041F\u0438\u043B\u0435\u0448\u043A\u0430 \u0441\u0430\u043B\u0430\u0442\u0430",
-    [["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 130], ["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 150], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { universality: 5 }
-  ),
-  dish(
-    "meal_chicken_sandwich",
-    "\u0421\u0430\u043D\u0434\u0432\u0438\u0447 \u0441 \u043F\u0438\u043B\u0435",
-    [["\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", 80], ["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 70], ["\u043C\u0430\u0440\u0443\u043B\u044F", 20]],
-    ["breakfast", "main", "snack"],
-    { universality: 5 }
-  ),
-  dish(
-    "meal_chicken_soup",
-    "\u041F\u0438\u043B\u0435\u0448\u043A\u0430 \u0441\u0443\u043F\u0430",
-    [["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 100], ["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 150], ["\u043E\u0440\u0438\u0437", 50]],
-    ["main"],
-    { universality: 5 }
-  ),
-  dish(
-    "meal_chicken_bulgur",
-    "\u041F\u0438\u043B\u0435 \u0441 \u0431\u0443\u043B\u0433\u0443\u0440 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
-    [["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 130], ["\u0431\u0443\u043B\u0433\u0443\u0440", 150], ["\u0427\u0443\u0448\u043A\u0438", 80]],
-    ["main"],
-    { universality: 3 }
-  ),
-  dish(
-    "meal_chicken_spinach",
-    "\u041F\u0438\u043B\u0435 \u0441\u044A\u0441 \u0441\u043F\u0430\u043D\u0430\u043A \u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
-    [["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 130], ["\u0441\u043F\u0430\u043D\u0430\u043A", 100], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 150]],
-    ["main"]
-  ),
-  dish(
-    "meal_turkey_rice",
-    "\u041F\u0443\u0435\u0448\u043A\u043E \u0441 \u043E\u0440\u0438\u0437",
-    [["\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435", 130], ["\u043E\u0440\u0438\u0437", 150], ["\u0422\u0438\u043A\u0432\u0438\u0447\u043A\u0438", 80]],
-    ["main"]
-  ),
-  dish(
-    "meal_turkey_potato",
-    "\u041F\u0443\u0435\u0448\u043A\u043E \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
-    [["\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435", 130], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 200], ["\u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B", 80]],
-    ["main"]
-  ),
-  dish(
-    "meal_chicken_quinoa",
-    "\u041F\u0438\u043B\u0435 \u0441 \u043A\u0438\u043D\u043E\u0430 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
-    [["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 130], ["\u043A\u0438\u043D\u043E\u0430", 150], ["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 100]],
-    ["main"],
-    { universality: 4 }
-  ),
-  dish(
-    "meal_chicken_sweet_potato",
-    "\u041F\u0438\u043B\u0435 \u0441\u044A\u0441 \u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
-    [["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 130], ["\u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438", 200], ["\u0431\u0440\u043E\u043A\u043E\u043B\u0438", 100]],
-    ["main"],
-    { universality: 4 }
-  ),
-  dish(
-    "meal_chicken_thigh_potato",
-    "\u041F\u0438\u043B\u0435\u0448\u043A\u043E \u0431\u0443\u0442\u0447\u0435 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
-    [["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u0431\u0443\u0442\u0447\u0435", 140], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 200], ["\u041C\u043E\u0440\u043A\u043E\u0432\u0438", 80]],
-    ["main"],
-    { universality: 4 }
-  ),
-  dish(
-    "meal_turkey_pasta",
-    "\u041F\u0443\u0435\u0448\u043A\u043E \u0441 \u043F\u0430\u0441\u0442\u0430 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
-    [["\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435", 130], ["\u043F\u0430\u0441\u0442\u0430", 150], ["\u0414\u043E\u043C\u0430\u0442\u0438", 80]],
-    ["main"],
-    { universality: 4 }
-  ),
-  dish(
-    "meal_pork_rice_peppers",
-    "\u0421\u0432\u0438\u043D\u0441\u043A\u043E \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0447\u0443\u0448\u043A\u0438",
-    [["\u0441\u0432\u0438\u043D\u0441\u043A\u043E", 130], ["\u043E\u0440\u0438\u0437", 150], ["\u0427\u0443\u0448\u043A\u0438", 100]],
-    ["main"],
-    { universality: 4 }
-  ),
-  dish(
-    "meal_beef_rice_carrots",
-    "\u0413\u043E\u0432\u0435\u0436\u0434\u043E \u0441 \u043E\u0440\u0438\u0437 \u0438 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
-    [["\u0433\u043E\u0432\u0435\u0436\u0434\u043E", 130], ["\u043E\u0440\u0438\u0437", 150], ["\u041C\u043E\u0440\u043A\u043E\u0432\u0438", 80]],
-    ["main"],
-    { universality: 5 }
-  ),
-  dish(
-    "meal_kebab_rice",
-    "\u041A\u0430\u0439\u043C\u0430 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
-    [["\u043A\u0430\u0439\u043C\u0430", 130], ["\u043E\u0440\u0438\u0437", 150], ["\u0414\u043E\u043C\u0430\u0442\u0438", 80]],
-    ["main"],
-    { universality: 4 }
-  ),
-  dish(
-    "meal_pasta_beef",
-    "\u041F\u0430\u0441\u0442\u0430 \u0441 \u0433\u043E\u0432\u0435\u0436\u0434\u043E \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
-    [["\u043F\u0430\u0441\u0442\u0430", 150], ["\u0433\u043E\u0432\u0435\u0436\u0434\u043E", 130], ["\u0414\u043E\u043C\u0430\u0442\u0438", 80], ["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 80]],
-    ["main"],
-    { universality: 5 }
-  ),
-  dish(
-    "meal_salmon_rice",
-    "\u0421\u044C\u043E\u043C\u0433\u0430 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0441\u043F\u0430\u043D\u0430\u043A",
-    [["\u0441\u044C\u043E\u043C\u0433\u0430", 130], ["\u043E\u0440\u0438\u0437", 150], ["\u0441\u043F\u0430\u043D\u0430\u043A", 80]],
-    ["main"],
-    { universality: 4 }
-  ),
-  dish(
-    "meal_lentil_chicken",
-    "\u041F\u0438\u043B\u0435 \u0441 \u043B\u0435\u0449\u0430 \u0438 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
-    [["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 130], ["\u043B\u0435\u0449\u0430", 150], ["\u041C\u043E\u0440\u043A\u043E\u0432\u0438", 80]],
-    ["main"],
-    { universality: 4 }
-  ),
-  dish(
-    "meal_chicken_buckwheat",
-    "\u041F\u0438\u043B\u0435 \u0441 \u0435\u043B\u0434\u0430 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
-    [["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 130], ["\u0435\u043B\u0434\u0430", 150], ["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 100]],
-    ["main"],
-    { universality: 4 }
-  ),
-  dish(
-    "meal_chicken_corn_peppers",
-    "\u041F\u0438\u043B\u0435 \u0441 \u0446\u0430\u0440\u0435\u0432\u0438\u0446\u0430 \u0438 \u0447\u0443\u0448\u043A\u0438",
-    [["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 130], ["\u0446\u0430\u0440\u0435\u0432\u0438\u0446\u0430", 120], ["\u0427\u0443\u0448\u043A\u0438", 100]],
-    ["main"],
-    { universality: 4 }
-  ),
-  dish(
-    "meal_chicken_eggplant_tomato",
-    "\u041F\u0438\u043B\u0435 \u0441 \u043F\u0430\u0442\u043B\u0430\u0434\u0436\u0430\u043D \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
-    [["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 130], ["\u043F\u0430\u0442\u043B\u0430\u0434\u0436\u0430\u043D", 120], ["\u0414\u043E\u043C\u0430\u0442\u0438", 80]],
-    ["main"],
-    { universality: 4 }
-  ),
-  dish(
-    "meal_turkey_lentil",
-    "\u041F\u0443\u0435\u0448\u043A\u043E \u0441 \u043B\u0435\u0449\u0430 \u0438 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
-    [["\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435", 130], ["\u043B\u0435\u0449\u0430", 150], ["\u041C\u043E\u0440\u043A\u043E\u0432\u0438", 80]],
-    ["main"],
-    { universality: 4 }
-  ),
-  dish(
-    "meal_turkey_beans",
-    "\u041F\u0443\u0435\u0448\u043A\u043E \u0441 \u0431\u043E\u0431 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
-    [["\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435", 130], ["\u0431\u044F\u043B \u0431\u043E\u0431", 150], ["\u0414\u043E\u043C\u0430\u0442\u0438", 80]],
-    ["main"],
-    { universality: 4 }
-  ),
-  // ── Червено месо ─────────────────────────────────────────────────────
-  dish(
-    "meal_beef_potato",
-    "\u0413\u043E\u0432\u0435\u0436\u0434\u043E \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
-    [["\u0433\u043E\u0432\u0435\u0436\u0434\u043E", 130], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 200], ["\u041C\u043E\u0440\u043A\u043E\u0432\u0438", 60]],
-    ["main"],
-    { universality: 5 }
-  ),
-  dish(
-    "meal_beef_broccoli",
-    "\u0413\u043E\u0432\u0435\u0436\u0434\u043E \u0441 \u0431\u0440\u043E\u043A\u043E\u043B\u0438",
-    [["\u0433\u043E\u0432\u0435\u0436\u0434\u043E", 130], ["\u0431\u0440\u043E\u043A\u043E\u043B\u0438", 150], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"]
-  ),
-  dish(
-    "meal_beef_mushrooms",
-    "\u0413\u043E\u0432\u0435\u0436\u0434\u043E \u0441 \u0433\u044A\u0431\u0438",
-    [["\u0433\u043E\u0432\u0435\u0436\u0434\u043E", 130], ["\u0433\u044A\u0431\u0438", 120], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"]
-  ),
-  dish(
-    "meal_pork_potato",
-    "\u0421\u0432\u0438\u043D\u0441\u043A\u043E \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
-    [["\u0441\u0432\u0438\u043D\u0441\u043A\u043E", 130], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 200], ["\u0437\u0435\u043B\u0435", 100]],
-    ["main"],
-    { universality: 5 }
-  ),
-  dish(
-    "meal_pork_beans",
-    "\u0421\u0432\u0438\u043D\u0441\u043A\u043E \u0441 \u0431\u043E\u0431",
-    [["\u0441\u0432\u0438\u043D\u0441\u043A\u043E", 100], ["\u0431\u044F\u043B \u0431\u043E\u0431", 200], ["\u043B\u0443\u043A", 30]],
-    ["main"],
-    { universality: 3 }
-  ),
-  dish(
-    "meal_moussaka_style",
-    "\u041A\u0430\u0439\u043C\u0430 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u043F\u0430\u0442\u043B\u0430\u0434\u0436\u0430\u043D",
-    [["\u043A\u0430\u0439\u043C\u0430", 130], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 180], ["\u043F\u0430\u0442\u043B\u0430\u0434\u0436\u0430\u043D", 120]],
-    ["main"],
-    { universality: 4 }
-  ),
-  dish(
-    "meal_beef_spinach_potato",
-    "\u0413\u043E\u0432\u0435\u0436\u0434\u043E \u0441\u044A\u0441 \u0441\u043F\u0430\u043D\u0430\u043A \u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
-    [["\u0433\u043E\u0432\u0435\u0436\u0434\u043E", 130], ["\u0441\u043F\u0430\u043D\u0430\u043A", 100], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 180]],
-    ["main"],
-    { universality: 4 }
-  ),
-  dish(
-    "meal_beef_peas_green_beans",
-    "\u0413\u043E\u0432\u0435\u0436\u0434\u043E \u0441 \u0433\u0440\u0430\u0445 \u0438 \u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B",
-    [["\u0433\u043E\u0432\u0435\u0436\u0434\u043E", 130], ["\u0433\u0440\u0430\u0445", 120], ["\u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B", 100]],
-    ["main"],
-    { universality: 4 }
-  ),
-  dish(
-    "meal_pork_cabbage",
-    "\u0421\u0432\u0438\u043D\u0441\u043A\u043E \u0441\u044A\u0441 \u0437\u0435\u043B\u0435 \u0438 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
-    [["\u0441\u0432\u0438\u043D\u0441\u043A\u043E", 130], ["\u0437\u0435\u043B\u0435", 120], ["\u041C\u043E\u0440\u043A\u043E\u0432\u0438", 80]],
-    ["main"],
-    { universality: 4 }
-  ),
-  // ── Риба ─────────────────────────────────────────────────────────────
-  dish(
-    "meal_baked_fish",
-    "\u0420\u0438\u0431\u0430 \u043D\u0430 \u0444\u0443\u0440\u043D\u0430 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
-    [["\u0440\u0438\u0431\u0430", 150], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 200], ["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 80]],
-    ["main"],
-    { universality: 5 }
-  ),
-  dish(
-    "meal_grilled_fish_veg",
-    "\u0420\u0438\u0431\u0430 \u043D\u0430 \u0441\u043A\u0430\u0440\u0430 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
-    [["\u0440\u0438\u0431\u0430", 150], ["\u0431\u0440\u043E\u043A\u043E\u043B\u0438", 150], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { universality: 5 }
-  ),
-  dish(
-    "meal_fish_rice",
-    "\u0420\u0438\u0431\u0430 \u0441 \u043E\u0440\u0438\u0437",
-    [["\u0440\u0438\u0431\u0430", 150], ["\u043E\u0440\u0438\u0437", 150], ["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 80]],
-    ["main"],
-    { universality: 5 }
-  ),
-  dish(
-    "meal_salmon_potato",
-    "\u0421\u044C\u043E\u043C\u0433\u0430 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
-    [["\u0441\u044C\u043E\u043C\u0433\u0430", 130], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 200], ["\u0441\u043F\u0430\u043D\u0430\u043A", 80]],
-    ["main"]
-  ),
-  dish(
-    "meal_salmon_salad",
-    "\u0421\u044C\u043E\u043C\u0433\u0430 \u0441\u044A\u0441 \u0441\u0430\u043B\u0430\u0442\u0430",
-    [["\u0441\u044C\u043E\u043C\u0433\u0430", 130], ["\u043C\u0430\u0440\u0443\u043B\u044F", 80], ["\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", 60]],
-    ["main"]
-  ),
-  dish(
-    "meal_tuna_salad",
-    "\u0421\u0430\u043B\u0430\u0442\u0430 \u0441 \u0440\u0438\u0431\u0430 \u0442\u043E\u043D",
-    [["\u0440\u0438\u0431\u0430 \u0442\u043E\u043D", 120], ["\u043C\u0430\u0440\u0443\u043B\u044F", 100], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main", "snack"],
-    { universality: 5 }
-  ),
-  dish(
-    "meal_mackerel_potato",
-    "\u0421\u043A\u0443\u043C\u0440\u0438\u044F \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
-    [["\u0441\u043A\u0443\u043C\u0440\u0438\u044F", 120], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 200], ["\u0441\u043F\u0430\u043D\u0430\u043A", 80]],
-    ["main"],
-    { universality: 3 }
-  ),
-  dish(
-    "meal_shrimp_pasta",
-    "\u041F\u0430\u0441\u0442\u0430 \u0441\u044A\u0441 \u0441\u043A\u0430\u0440\u0438\u0434\u0438 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
-    [["\u043F\u0430\u0441\u0442\u0430", 150], ["\u0441\u043A\u0430\u0440\u0438\u0434\u0438", 120], ["\u0414\u043E\u043C\u0430\u0442\u0438", 80]],
-    ["main"],
-    { universality: 3 }
-  ),
-  dish(
-    "meal_cod_potato",
-    "\u0422\u0440\u0435\u0441\u043A\u0430 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
-    [["\u0442\u0440\u0435\u0441\u043A\u0430", 150], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 200], ["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 80]],
-    ["main"],
-    { universality: 4 }
-  ),
-  dish(
-    "meal_tilapia_rice",
-    "\u0422\u0438\u043B\u0430\u043F\u0438\u044F \u0441 \u043E\u0440\u0438\u0437",
-    [["\u0442\u0438\u043B\u0430\u043F\u0438\u044F", 150], ["\u043E\u0440\u0438\u0437", 150], ["\u0422\u0438\u043A\u0432\u0438\u0447\u043A\u0438", 80]],
-    ["main"],
-    { universality: 4 }
-  ),
-  dish(
-    "meal_tuna_pasta",
-    "\u041F\u0430\u0441\u0442\u0430 \u0441 \u0440\u0438\u0431\u0430 \u0442\u043E\u043D",
-    [["\u043F\u0430\u0441\u0442\u0430", 150], ["\u0440\u0438\u0431\u0430 \u0442\u043E\u043D", 120], ["\u0414\u043E\u043C\u0430\u0442\u0438", 80]],
-    ["main"],
-    { universality: 4 }
-  ),
-  dish(
-    "meal_lavrak_potato",
-    "\u041B\u0430\u0432\u0440\u0430\u043A \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u0441\u043F\u0430\u043D\u0430\u043A",
-    [["\u043B\u0430\u0432\u0440\u0430\u043A", 150], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 200], ["\u0441\u043F\u0430\u043D\u0430\u043A", 80]],
-    ["main"],
-    { universality: 3 }
-  ),
-  dish(
-    "meal_salmon_sweet_potato_broccoli",
-    "\u0421\u044C\u043E\u043C\u0433\u0430 \u0441\u044A\u0441 \u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u0431\u0440\u043E\u043A\u043E\u043B\u0438",
-    [["\u0441\u044C\u043E\u043C\u0433\u0430", 130], ["\u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438", 180], ["\u0431\u0440\u043E\u043A\u043E\u043B\u0438", 100]],
-    ["main"],
-    { universality: 5 }
-  ),
-  dish(
-    "meal_mackerel_rice",
-    "\u0421\u043A\u0443\u043C\u0440\u0438\u044F \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0441\u043F\u0430\u043D\u0430\u043A",
-    [["\u0441\u043A\u0443\u043C\u0440\u0438\u044F", 120], ["\u043E\u0440\u0438\u0437", 150], ["\u0441\u043F\u0430\u043D\u0430\u043A", 80]],
-    ["main"],
-    { universality: 4 }
-  ),
-  dish(
-    "meal_fish_quinoa",
-    "\u0420\u0438\u0431\u0430 \u0441 \u043A\u0438\u043D\u043E\u0430 \u0438 \u0431\u0440\u043E\u043A\u043E\u043B\u0438",
-    [["\u0440\u0438\u0431\u0430", 130], ["\u043A\u0438\u043D\u043E\u0430", 150], ["\u0431\u0440\u043E\u043A\u043E\u043B\u0438", 100]],
-    ["main"],
-    { universality: 4 }
-  ),
-  dish(
-    "meal_shrimp_rice_veg",
-    "\u0421\u043A\u0430\u0440\u0438\u0434\u0438 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
-    [["\u0441\u043A\u0430\u0440\u0438\u0434\u0438", 120], ["\u043E\u0440\u0438\u0437", 150], ["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 100]],
-    ["main"],
-    { universality: 4 }
-  ),
-  dish(
-    "meal_tuna_rice_salad",
-    "\u0420\u0438\u0431\u0430 \u0442\u043E\u043D \u0441 \u043E\u0440\u0438\u0437 \u0438 \u043C\u0430\u0440\u0443\u043B\u044F",
-    [["\u0440\u0438\u0431\u0430 \u0442\u043E\u043D", 120], ["\u043E\u0440\u0438\u0437", 120], ["\u043C\u0430\u0440\u0443\u043B\u044F", 80]],
-    ["main"],
-    { universality: 4 }
-  ),
-  // ── Вегетариански и веган ────────────────────────────────────────────
-  dish(
-    "meal_lentil_stew",
-    "\u042F\u0445\u043D\u0438\u044F \u043E\u0442 \u043B\u0435\u0449\u0430",
-    [["\u043B\u0435\u0449\u0430", 200], ["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 100], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { vegan: true, universality: 5 }
-  ),
-  dish(
-    "meal_bean_stew",
-    "\u0411\u043E\u0431 \u044F\u0445\u043D\u0438\u044F",
-    [["\u0431\u043E\u0431", 200], ["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 100], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { vegan: true, universality: 5 }
-  ),
-  dish(
-    "meal_bean_salad",
-    "\u0421\u0430\u043B\u0430\u0442\u0430 \u0441 \u0431\u043E\u0431",
-    [["\u0431\u044F\u043B \u0431\u043E\u0431", 180], ["\u043C\u0430\u0440\u0443\u043B\u044F", 80], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { vegan: true }
-  ),
-  dish(
-    "meal_chickpea_salad",
-    "\u0421\u0430\u043B\u0430\u0442\u0430 \u0441 \u043D\u0430\u0445\u0443\u0442",
-    [["\u043D\u0430\u0445\u0443\u0442", 180], ["\u043C\u0430\u0440\u0443\u043B\u044F", 80], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main", "snack"],
-    { vegan: true }
-  ),
-  dish(
-    "meal_hummus_bread",
-    "\u0425\u0443\u043C\u0443\u0441 \u0441 \u0445\u043B\u044F\u0431 \u0438 \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
-    [["\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", 80], ["\u0445\u0443\u043C\u0443\u0441", 60], ["\u041A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438", 60]],
-    ["main", "snack"],
-    { vegan: true, universality: 3 }
-  ),
-  dish(
-    "meal_veg_soup",
-    "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u043A\u043E\u0432\u0430 \u0441\u0443\u043F\u0430",
-    [["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 200], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 120], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { vegan: true, universality: 5 }
-  ),
-  dish(
-    "meal_green_salad",
-    "\u0417\u0435\u043B\u0435\u043D\u0430 \u0441\u0430\u043B\u0430\u0442\u0430",
-    [["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 150], ["\u041A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438", 80], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { vegan: true, universality: 5 }
-  ),
-  dish(
-    "meal_egg_potato",
-    "\u042F\u0439\u0446\u0430 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u0447\u0443\u0448\u043A\u0438",
-    [["\u044F\u0439\u0446\u0430", 120], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 180], ["\u0427\u0443\u0448\u043A\u0438", 60]],
-    ["breakfast", "main"],
-    { vegetarian: true }
-  ),
-  dish(
-    "meal_cottage_veg",
-    "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
-    [["\u0438\u0437\u0432\u0430\u0440\u0430", 150], ["\u041A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438", 80], ["\u0414\u043E\u043C\u0430\u0442\u0438", 80]],
-    ["main", "snack"],
-    { vegetarian: true }
-  ),
-  dish(
-    "meal_tofu_rice",
-    "\u0422\u043E\u0444\u0443 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0431\u0440\u043E\u043A\u043E\u043B\u0438",
-    [["\u0442\u043E\u0444\u0443", 150], ["\u043E\u0440\u0438\u0437", 150], ["\u0431\u0440\u043E\u043A\u043E\u043B\u0438", 80]],
-    ["main"],
-    { vegan: true, universality: 3 }
-  ),
-  dish(
-    "meal_stuffed_peppers",
-    "\u041F\u044A\u043B\u043D\u0435\u043D\u0438 \u0447\u0443\u0448\u043A\u0438 \u0441 \u043E\u0440\u0438\u0437",
-    [["\u0427\u0443\u0448\u043A\u0438", 180], ["\u043E\u0440\u0438\u0437", 120], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { vegan: true, universality: 3 }
-  ),
-  dish(
-    "meal_spinach_rice",
-    "\u0421\u043F\u0430\u043D\u0430\u043A \u0441 \u043E\u0440\u0438\u0437",
-    [["\u0441\u043F\u0430\u043D\u0430\u043A", 180], ["\u043E\u0440\u0438\u0437", 120], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { vegan: true, universality: 5 }
-  ),
-  dish(
-    "meal_potato_stew",
-    "\u041A\u0430\u0440\u0442\u043E\u0444\u0435\u043D\u0430 \u044F\u0445\u043D\u0438\u044F",
-    [["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 250], ["\u041C\u043E\u0440\u043A\u043E\u0432\u0438", 80], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { vegan: true, universality: 5 }
-  ),
-  dish(
-    "meal_green_bean_stew",
-    "\u042F\u0445\u043D\u0438\u044F \u043E\u0442 \u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B",
-    [["\u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B", 200], ["\u0414\u043E\u043C\u0430\u0442\u0438", 100], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { vegan: true, universality: 5 }
-  ),
-  dish(
-    "meal_zucchini_tomato",
-    "\u0422\u0438\u043A\u0432\u0438\u0447\u043A\u0438 \u0441 \u0434\u043E\u043C\u0430\u0442\u0438",
-    [["\u0422\u0438\u043A\u0432\u0438\u0447\u043A\u0438", 180], ["\u0414\u043E\u043C\u0430\u0442\u0438", 100], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { vegan: true }
-  ),
-  dish(
-    "meal_roasted_veg_bread",
-    "\u041F\u0435\u0447\u0435\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0441 \u0445\u043B\u044F\u0431",
-    [["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 200], ["\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", 70], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { vegan: true }
-  ),
-  dish(
-    "meal_lentil_soup",
-    "\u0421\u0443\u043F\u0430 \u043E\u0442 \u043B\u0435\u0449\u0430",
-    [["\u043B\u0435\u0449\u0430", 180], ["\u041C\u043E\u0440\u043A\u043E\u0432\u0438", 80], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { vegan: true, universality: 5 }
-  ),
-  dish(
-    "meal_mushrooms_potato",
-    "\u0413\u044A\u0431\u0438 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
-    [["\u0433\u044A\u0431\u0438", 150], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 180], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { vegan: true }
-  ),
-  dish(
-    "meal_quinoa_veg_bowl",
-    "\u041A\u0438\u043D\u043E\u0430 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
-    [["\u043A\u0438\u043D\u043E\u0430", 150], ["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 150], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { vegan: true, universality: 4 }
-  ),
-  dish(
-    "meal_tempeh_rice_broccoli",
-    "\u0422\u0435\u043C\u043F\u0435 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0431\u0440\u043E\u043A\u043E\u043B\u0438",
-    [["\u0442\u0435\u043C\u043F\u0435", 150], ["\u043E\u0440\u0438\u0437", 150], ["\u0431\u0440\u043E\u043A\u043E\u043B\u0438", 100]],
-    ["main"],
-    { vegan: true, universality: 3 }
-  ),
-  dish(
-    "meal_black_bean_stew",
-    "\u042F\u0445\u043D\u0438\u044F \u043E\u0442 \u0447\u0435\u0440\u0435\u043D \u0431\u043E\u0431",
-    [["\u0447\u0435\u0440\u0435\u043D \u0431\u043E\u0431", 200], ["\u0414\u043E\u043C\u0430\u0442\u0438", 100], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { vegan: true, universality: 4 }
-  ),
-  dish(
-    "meal_sweet_potato_lentil",
-    "\u0421\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0441 \u043B\u0435\u0449\u0430",
-    [["\u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438", 200], ["\u043B\u0435\u0449\u0430", 150], ["\u041C\u043E\u0440\u043A\u043E\u0432\u0438", 80]],
-    ["main"],
-    { vegan: true, universality: 4 }
-  ),
-  dish(
-    "meal_lentil_rice",
-    "\u041B\u0435\u0449\u0430 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
-    [["\u043B\u0435\u0449\u0430", 150], ["\u043E\u0440\u0438\u0437", 120], ["\u041C\u043E\u0440\u043A\u043E\u0432\u0438", 80]],
-    ["main"],
-    { vegan: true, universality: 5 }
-  ),
-  dish(
-    "meal_chickpea_spinach",
-    "\u041D\u0430\u0445\u0443\u0442 \u0441\u044A\u0441 \u0441\u043F\u0430\u043D\u0430\u043A",
-    [["\u043D\u0430\u0445\u0443\u0442", 180], ["\u0441\u043F\u0430\u043D\u0430\u043A", 120], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { vegan: true, universality: 4 }
-  ),
-  dish(
-    "meal_bulgur_veg",
-    "\u0411\u0443\u043B\u0433\u0443\u0440 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
-    [["\u0431\u0443\u043B\u0433\u0443\u0440", 150], ["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 150], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { vegan: true, universality: 4 }
-  ),
-  dish(
-    "meal_tofu_sweet_potato",
-    "\u0422\u043E\u0444\u0443 \u0441\u044A\u0441 \u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
-    [["\u0442\u043E\u0444\u0443", 150], ["\u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438", 180], ["\u0431\u0440\u043E\u043A\u043E\u043B\u0438", 80]],
-    ["main"],
-    { vegan: true, universality: 3 }
-  ),
-  dish(
-    "meal_bean_potato",
-    "\u0411\u043E\u0431 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
-    [["\u0431\u043E\u0431", 150], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 180], ["\u041C\u043E\u0440\u043A\u043E\u0432\u0438", 80]],
-    ["main"],
-    { vegan: true, universality: 4 }
-  ),
-  dish(
-    "meal_chickpea_rice",
-    "\u041D\u0430\u0445\u0443\u0442 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
-    [["\u043D\u0430\u0445\u0443\u0442", 150], ["\u043E\u0440\u0438\u0437", 120], ["\u0414\u043E\u043C\u0430\u0442\u0438", 80]],
-    ["main"],
-    { vegan: true, universality: 5 }
-  ),
-  dish(
-    "meal_chickpea_quinoa_bowl",
-    "\u041D\u0430\u0445\u0443\u0442 \u0441 \u043A\u0438\u043D\u043E\u0430 \u0438 \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
-    [["\u043D\u0430\u0445\u0443\u0442", 150], ["\u043A\u0438\u043D\u043E\u0430", 120], ["\u041A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438", 80]],
-    ["main"],
-    { vegan: true, universality: 4 }
-  ),
-  dish(
-    "meal_black_bean_rice",
-    "\u0427\u0435\u0440\u0435\u043D \u0431\u043E\u0431 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0447\u0443\u0448\u043A\u0438",
-    [["\u0447\u0435\u0440\u0435\u043D \u0431\u043E\u0431", 150], ["\u043E\u0440\u0438\u0437", 120], ["\u0427\u0443\u0448\u043A\u0438", 80]],
-    ["main"],
-    { vegan: true, universality: 4 }
-  ),
-  dish(
-    "meal_tofu_bulgur_peppers",
-    "\u0422\u043E\u0444\u0443 \u0441 \u0431\u0443\u043B\u0433\u0443\u0440 \u0438 \u0447\u0443\u0448\u043A\u0438",
-    [["\u0442\u043E\u0444\u0443", 130], ["\u0431\u0443\u043B\u0433\u0443\u0440", 150], ["\u0427\u0443\u0448\u043A\u0438", 80]],
-    ["main"],
-    { vegan: true, universality: 4 }
-  ),
-  dish(
-    "meal_pumpkin_lentil",
-    "\u0422\u0438\u043A\u0432\u0430 \u0441 \u043B\u0435\u0449\u0430 \u0438 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
-    [["\u0442\u0438\u043A\u0432\u0430", 150], ["\u043B\u0435\u0449\u0430", 120], ["\u041C\u043E\u0440\u043A\u043E\u0432\u0438", 80]],
-    ["main"],
-    { vegan: true, universality: 4 }
-  ),
-  dish(
-    "meal_pea_potato_stew",
-    "\u0413\u0440\u0430\u0445 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
-    [["\u0433\u0440\u0430\u0445", 150], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 150], ["\u041C\u043E\u0440\u043A\u043E\u0432\u0438", 80]],
-    ["main"],
-    { vegan: true, universality: 4 }
-  ),
-  dish(
-    "meal_lentil_bread",
-    "\u041B\u0435\u0449\u0430 \u0441 \u043C\u043E\u0440\u043A\u043E\u0432\u0438 \u0438 \u0445\u043B\u044F\u0431",
-    [["\u043B\u0435\u0449\u0430", 150], ["\u041C\u043E\u0440\u043A\u043E\u0432\u0438", 80], ["\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", 60]],
-    ["main"],
-    { vegan: true, universality: 5 }
-  ),
-  // ── Кето / нисковъглехидратни ────────────────────────────────────────
-  dish(
-    "meal_egg_avocado_spinach",
-    "\u042F\u0439\u0446\u0430 \u0441 \u0430\u0432\u043E\u043A\u0430\u0434\u043E \u0438 \u0441\u043F\u0430\u043D\u0430\u043A",
-    [["\u044F\u0439\u0446\u0430", 150], ["\u0430\u0432\u043E\u043A\u0430\u0434\u043E", 70], ["\u0441\u043F\u0430\u043D\u0430\u043A", 80]],
-    ["breakfast"],
-    { vegetarian: true, tags: ["low_carb"] }
-  ),
-  dish(
-    "meal_keto_eggs_zucchini",
-    "\u042F\u0439\u0446\u0430 \u0441 \u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
-    [["\u044F\u0439\u0446\u0430", 150], ["\u0422\u0438\u043A\u0432\u0438\u0447\u043A\u0438", 120], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["breakfast", "main"],
-    { vegetarian: true, universality: 3, tags: ["low_carb"] }
-  ),
-  dish(
-    "meal_salmon_avocado",
-    "\u0421\u044C\u043E\u043C\u0433\u0430 \u0441 \u0430\u0432\u043E\u043A\u0430\u0434\u043E",
-    [["\u0441\u044C\u043E\u043C\u0433\u0430", 130], ["\u0430\u0432\u043E\u043A\u0430\u0434\u043E", 60], ["\u043C\u0430\u0440\u0443\u043B\u044F", 60]],
-    ["main"],
-    { universality: 3, tags: ["low_carb"] }
-  ),
-  dish(
-    "meal_chicken_cheese_salad",
-    "\u041F\u0438\u043B\u0435\u0448\u043A\u0430 \u0441\u0430\u043B\u0430\u0442\u0430 \u0441\u044A\u0441 \u0441\u0438\u0440\u0435\u043D\u0435",
-    [["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 120], ["\u0441\u0438\u0440\u0435\u043D\u0435", 40], ["\u043C\u0430\u0440\u0443\u043B\u044F", 100]],
-    ["main"],
-    { universality: 3, tags: ["low_carb"] }
-  ),
-  dish(
-    "meal_cottage_nuts_veg",
-    "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u043E\u0440\u0435\u0445\u0438 \u0438 \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
-    [["\u0438\u0437\u0432\u0430\u0440\u0430", 150], ["\u043E\u0440\u0435\u0445\u0438", 20], ["\u041A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438", 80]],
-    ["breakfast", "snack"],
-    { vegetarian: true, universality: 3, tags: ["low_carb"] }
-  ),
-  dish(
-    "meal_eggplant_turkey",
-    "\u041F\u0443\u0435\u0448\u043A\u043E \u0441 \u043F\u0430\u0442\u043B\u0430\u0434\u0436\u0430\u043D",
-    [["\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435", 130], ["\u043F\u0430\u0442\u043B\u0430\u0434\u0436\u0430\u043D", 150], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { universality: 3, tags: ["low_carb"] }
-  ),
-  // ── Инсулинова резистентност / контролирани въглехидрати ─────────────
-  dish(
-    "ir_omelet_mushrooms",
-    "\u041E\u043C\u043B\u0435\u0442 \u0441 \u0433\u044A\u0431\u0438",
-    [["\u044F\u0439\u0446\u0430", 150], ["\u0433\u044A\u0431\u0438", 100]],
-    ["breakfast", "main"],
-    { vegetarian: true, tags: ["low_carb"] }
-  ),
-  dish(
-    "ir_chicken_zucchini",
-    "\u041F\u0438\u043B\u0435 \u0441 \u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
-    [["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 130], ["\u0422\u0438\u043A\u0432\u0438\u0447\u043A\u0438", 150]],
-    ["main"],
-    { universality: 4, tags: ["low_carb"] }
-  ),
-  dish(
-    "ir_turkey_broccoli",
-    "\u041F\u0443\u0435\u0448\u043A\u043E \u0441 \u0431\u0440\u043E\u043A\u043E\u043B\u0438",
-    [["\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435", 130], ["\u0431\u0440\u043E\u043A\u043E\u043B\u0438", 150]],
-    ["main"],
-    { universality: 4, tags: ["low_carb"] }
-  ),
-  dish(
-    "ir_cottage_avocado",
-    "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u0430\u0432\u043E\u043A\u0430\u0434\u043E",
-    [["\u0438\u0437\u0432\u0430\u0440\u0430", 150], ["\u0430\u0432\u043E\u043A\u0430\u0434\u043E", 60], ["\u041A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438", 60]],
-    ["breakfast", "snack"],
-    { vegetarian: true, tags: ["low_carb"] }
-  ),
-  dish(
-    "ir_tuna_cucumber",
-    "\u0420\u0438\u0431\u0430 \u0442\u043E\u043D \u0441 \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
-    [["\u0440\u0438\u0431\u0430 \u0442\u043E\u043D", 120], ["\u041A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438", 100]],
-    ["main", "snack"],
-    { universality: 4, tags: ["low_carb"] }
-  ),
-  dish(
-    "ir_eggs_spinach_cheese",
-    "\u042F\u0439\u0446\u0430 \u0441\u044A\u0441 \u0441\u043F\u0430\u043D\u0430\u043A \u0438 \u0441\u0438\u0440\u0435\u043D\u0435",
-    [["\u044F\u0439\u0446\u0430", 150], ["\u0441\u043F\u0430\u043D\u0430\u043A", 80], ["\u0441\u0438\u0440\u0435\u043D\u0435", 40]],
-    ["breakfast", "main"],
-    { vegetarian: true, tags: ["low_carb"] }
-  ),
-  dish(
-    "ir_salmon_broccoli",
-    "\u0421\u044C\u043E\u043C\u0433\u0430 \u0441 \u0431\u0440\u043E\u043A\u043E\u043B\u0438",
-    [["\u0441\u044C\u043E\u043C\u0433\u0430", 130], ["\u0431\u0440\u043E\u043A\u043E\u043B\u0438", 150], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { universality: 4, tags: ["low_carb"] }
-  ),
-  dish(
-    "ir_pork_zucchini",
-    "\u0421\u0432\u0438\u043D\u0441\u043A\u043E \u0441 \u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
-    [["\u0441\u0432\u0438\u043D\u0441\u043A\u043E", 130], ["\u0422\u0438\u043A\u0432\u0438\u0447\u043A\u0438", 150]],
-    ["main"],
-    { universality: 4, tags: ["low_carb"] }
-  ),
-  dish(
-    "ir_beef_green_beans",
-    "\u0413\u043E\u0432\u0435\u0436\u0434\u043E \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B",
-    [["\u0433\u043E\u0432\u0435\u0436\u0434\u043E", 130], ["\u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B", 150]],
-    ["main"],
-    { universality: 4, tags: ["low_carb"] }
-  ),
-  dish(
-    "ir_eggs_asparagus",
-    "\u042F\u0439\u0446\u0430 \u0441 \u0430\u0441\u043F\u0435\u0440\u0436\u0438",
-    [["\u044F\u0439\u0446\u0430", 150], ["\u0410\u0441\u043F\u0435\u0440\u0436\u0438", 120]],
-    ["breakfast", "main"],
-    { vegetarian: true, tags: ["low_carb"] }
-  ),
-  dish(
-    "ir_chicken_cauliflower",
-    "\u041F\u0438\u043B\u0435 \u0441 \u043A\u0430\u0440\u0444\u0438\u043E\u043B",
-    [["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 130], ["\u043A\u0430\u0440\u0444\u0438\u043E\u043B", 150]],
-    ["main"],
-    { universality: 4, tags: ["low_carb"] }
-  ),
-  dish(
-    "ir_turkey_mushrooms",
-    "\u041F\u0443\u0435\u0448\u043A\u043E \u0441 \u0433\u044A\u0431\u0438",
-    [["\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435", 130], ["\u0433\u044A\u0431\u0438", 120]],
-    ["main"],
-    { universality: 4, tags: ["low_carb"] }
-  ),
-  // ── Междинни хранения (Хранене 3) ────────────────────────────────────
-  dish(
-    "snack_yogurt_almonds",
-    "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u0431\u0430\u0434\u0435\u043C\u0438",
-    [["\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", 150], ["\u0431\u0430\u0434\u0435\u043C\u0438", 15]],
-    ["snack"],
-    { vegetarian: true, universality: 5 }
-  ),
-  dish(
-    "snack_apple_almonds",
-    "\u042F\u0431\u044A\u043B\u043A\u0430 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438",
-    [["\u044F\u0431\u044A\u043B\u043A\u0430", 150], ["\u0431\u0430\u0434\u0435\u043C\u0438", 15]],
-    ["snack"],
-    { vegan: true, universality: 5 }
-  ),
-  dish(
-    "snack_banana_walnuts",
-    "\u0411\u0430\u043D\u0430\u043D \u0441 \u043E\u0440\u0435\u0445\u0438",
-    [["\u0431\u0430\u043D\u0430\u043D", 120], ["\u043E\u0440\u0435\u0445\u0438", 15]],
-    ["snack"],
-    { vegan: true, universality: 5 }
-  ),
-  dish(
-    "snack_cottage_walnuts",
-    "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u043E\u0440\u0435\u0445\u0438",
-    [["\u0438\u0437\u0432\u0430\u0440\u0430", 120], ["\u043E\u0440\u0435\u0445\u0438", 15]],
-    ["snack"],
-    { vegetarian: true }
-  ),
-  dish(
-    "snack_orange_cashew",
-    "\u041F\u043E\u0440\u0442\u043E\u043A\u0430\u043B \u0441 \u043A\u0430\u0448\u0443",
-    [["\u043F\u043E\u0440\u0442\u043E\u043A\u0430\u043B", 150], ["\u043A\u0430\u0448\u0443", 15]],
-    ["snack"],
-    { vegan: true }
-  ),
-  dish(
-    "snack_hummus_carrot",
-    "\u0425\u0443\u043C\u0443\u0441 \u0441 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
-    [["\u0445\u0443\u043C\u0443\u0441", 60], ["\u041C\u043E\u0440\u043A\u043E\u0432\u0438", 100]],
-    ["snack"],
-    { vegan: true, universality: 3 }
-  ),
-  dish(
-    "snack_fruit_yogurt",
-    "\u041F\u043B\u043E\u0434\u043E\u0432\u0435 \u0441 \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
-    [["\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", 150], ["\u044F\u0431\u044A\u043B\u043A\u0430", 100]],
-    ["snack"],
-    { vegetarian: true, universality: 5, tags: ["sweet_slot"] }
-  ),
-  dish(
-    "snack_avocado_walnuts",
-    "\u0410\u0432\u043E\u043A\u0430\u0434\u043E \u0441 \u043E\u0440\u0435\u0445\u0438",
-    [["\u0430\u0432\u043E\u043A\u0430\u0434\u043E", 70], ["\u043E\u0440\u0435\u0445\u0438", 15]],
-    ["snack"],
-    { vegan: true, universality: 3 }
-  ),
-  dish(
-    "snack_pear_walnuts",
-    "\u041A\u0440\u0443\u0448\u0430 \u0441 \u043E\u0440\u0435\u0445\u0438",
-    [["\u043A\u0440\u0443\u0448\u0430", 150], ["\u043E\u0440\u0435\u0445\u0438", 15]],
-    ["snack"],
-    { vegan: true, universality: 5 }
-  ),
-  dish(
-    "snack_kiwi_cashew",
-    "\u041A\u0438\u0432\u0438 \u0441 \u043A\u0430\u0448\u0443",
-    [["\u043A\u0438\u0432\u0438", 120], ["\u043A\u0430\u0448\u0443", 15]],
-    ["snack"],
-    { vegan: true, universality: 4 }
-  ),
-  dish(
-    "snack_cottage_berries",
-    "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u044F\u0433\u043E\u0434\u0438",
-    [["\u0438\u0437\u0432\u0430\u0440\u0430", 130], ["\u044F\u0433\u043E\u0434\u0438", 80]],
-    ["snack"],
-    { vegetarian: true, universality: 4 }
-  ),
-  dish(
-    "snack_tomato_cheese",
-    "\u0414\u043E\u043C\u0430\u0442\u0438 \u0441\u044A\u0441 \u0441\u0438\u0440\u0435\u043D\u0435",
-    [["\u0414\u043E\u043C\u0430\u0442\u0438", 120], ["\u0441\u0438\u0440\u0435\u043D\u0435", 40]],
-    ["snack"],
-    { vegetarian: true, universality: 5 }
-  ),
-  dish(
-    "snack_grape_almonds",
-    "\u0413\u0440\u043E\u0437\u0434\u0435 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438",
-    [["\u0433\u0440\u043E\u0437\u0434\u0435", 120], ["\u0431\u0430\u0434\u0435\u043C\u0438", 15]],
-    ["snack"],
-    { vegan: true, universality: 4 }
-  ),
-  dish(
-    "snack_celery_hummus",
-    "\u0426\u0435\u043B\u0438\u043D\u0430 \u0441 \u0445\u0443\u043C\u0443\u0441",
-    [["\u0446\u0435\u043B\u0438\u043D\u0430", 100], ["\u0445\u0443\u043C\u0443\u0441", 60]],
-    ["snack"],
-    { vegan: true, universality: 3 }
-  ),
-  dish(
-    "snack_greek_yogurt_honey",
-    "\u0413\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043C\u0435\u0434",
-    [["\u0433\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", 150], ["\u043C\u0435\u0434", 15]],
-    ["snack"],
-    { vegetarian: true, universality: 4, tags: ["sweet_slot"] }
-  ),
-  dish(
-    "snack_mandarin_almonds",
-    "\u041C\u0430\u043D\u0434\u0430\u0440\u0438\u043D\u0430 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438",
-    [["\u043C\u0430\u043D\u0434\u0430\u0440\u0438\u043D\u0430", 120], ["\u0431\u0430\u0434\u0435\u043C\u0438", 15]],
-    ["snack"],
-    { vegan: true, universality: 4 }
-  ),
-  dish(
-    "snack_peach_cottage",
-    "\u041F\u0440\u0430\u0441\u043A\u043E\u0432\u0430 \u0441 \u0438\u0437\u0432\u0430\u0440\u0430",
-    [["\u043F\u0440\u0430\u0441\u043A\u043E\u0432\u0430", 120], ["\u0438\u0437\u0432\u0430\u0440\u0430", 120]],
-    ["snack"],
-    { vegetarian: true, universality: 4 }
-  ),
-  dish(
-    "snack_peanut_banana",
-    "\u0411\u0430\u043D\u0430\u043D \u0441 \u0444\u044A\u0441\u0442\u044A\u0446\u0438",
-    [["\u0431\u0430\u043D\u0430\u043D", 120], ["\u0444\u044A\u0441\u0442\u044A\u0446\u0438", 20]],
-    ["snack"],
-    { vegan: true, universality: 5 }
-  ),
-  dish(
-    "snack_tahini_carrots",
-    "\u041C\u043E\u0440\u043A\u043E\u0432\u0438 \u0441 \u0442\u0430\u0445\u0430\u043D",
-    [["\u041C\u043E\u0440\u043A\u043E\u0432\u0438", 100], ["\u0442\u0430\u0445\u0430\u043D", 20]],
-    ["snack"],
-    { vegan: true, universality: 3 }
-  ),
-  // ── Контролирано сладко ──────────────────────────────────────────────
-  dish(
-    "sweet_yogurt_berries",
-    "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438",
-    [["\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", 150], ["\u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438", 80]],
-    ["snack"],
-    { vegetarian: true, universality: 5, tags: ["sweet_slot"] }
-  ),
-  dish(
-    "sweet_cottage_honey",
-    "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u043C\u0435\u0434",
-    [["\u0438\u0437\u0432\u0430\u0440\u0430", 130], ["\u043C\u0435\u0434", 15]],
-    ["snack"],
-    { vegetarian: true, universality: 5, tags: ["sweet_slot"] }
-  ),
-  dish(
-    "sweet_apple_yogurt",
-    "\u042F\u0431\u044A\u043B\u043A\u0430 \u0441 \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
-    [["\u044F\u0431\u044A\u043B\u043A\u0430", 120], ["\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", 150]],
-    ["snack"],
-    { vegetarian: true, universality: 5, tags: ["sweet_slot"] }
-  ),
-  dish(
-    "sweet_kefir_berries",
-    "\u041A\u0435\u0444\u0438\u0440 \u0441 \u043C\u0430\u043B\u0438\u043D\u0438",
-    [["\u043A\u0435\u0444\u0438\u0440", 180], ["\u043C\u0430\u043B\u0438\u043D\u0438", 60]],
-    ["snack"],
-    { vegetarian: true, universality: 4, tags: ["sweet_slot", "liquid_breakfast"] }
-  ),
-  // ── Късна закуска (Хранене 5) — само протеин и мазнини ───────────────
-  dish(
-    "late_yogurt_walnuts",
-    "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043E\u0440\u0435\u0445\u0438",
-    [["\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", 120], ["\u043E\u0440\u0435\u0445\u0438", 10]],
-    ["late_snack"],
-    { vegetarian: true, universality: 5 }
-  ),
-  dish(
-    "late_cottage_almonds",
-    "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438",
-    [["\u0438\u0437\u0432\u0430\u0440\u0430", 100], ["\u0431\u0430\u0434\u0435\u043C\u0438", 10]],
-    ["late_snack"],
-    { vegetarian: true, universality: 5 }
-  ),
-  dish(
-    "late_nuts_mix",
-    "\u0411\u0430\u0434\u0435\u043C\u0438 \u0438 \u043E\u0440\u0435\u0445\u0438",
-    [["\u0431\u0430\u0434\u0435\u043C\u0438", 15], ["\u043E\u0440\u0435\u0445\u0438", 15]],
-    ["late_snack"],
-    { vegan: true, universality: 5 }
-  ),
-  dish(
-    "late_cashew_almonds",
-    "\u041A\u0430\u0448\u0443 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438",
-    [["\u043A\u0430\u0448\u0443", 15], ["\u0431\u0430\u0434\u0435\u043C\u0438", 15]],
-    ["late_snack"],
-    { vegan: true }
-  ),
-  dish(
-    "late_seeds_hazelnuts",
-    "\u0422\u0438\u043A\u0432\u0435\u043D\u0438 \u0441\u0435\u043C\u043A\u0438 \u0441 \u043B\u0435\u0448\u043D\u0438\u0446\u0438",
-    [["\u0442\u0438\u043A\u0432\u0435\u043D\u0438 \u0441\u0435\u043C\u043A\u0438", 15], ["\u043B\u0435\u0448\u043D\u0438\u0446\u0438", 15]],
-    ["late_snack"],
-    { vegan: true, universality: 3 }
-  ),
-  dish(
-    "late_nuts_berries",
-    "\u042F\u0434\u043A\u0438 \u0441 \u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438",
-    [["\u0431\u0430\u0434\u0435\u043C\u0438", 15], ["\u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438", 80]],
-    ["snack", "late_snack"],
-    { vegan: true }
-  ),
-  dish(
-    "late_skryr_almonds",
-    "\u0421\u043A\u0438\u0440 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438",
-    [["\u0441\u043A\u0438\u0440", 120], ["\u0431\u0430\u0434\u0435\u043C\u0438", 15]],
-    ["late_snack"],
-    { vegetarian: true, universality: 4 }
-  ),
-  dish(
-    "late_cottage_walnuts",
-    "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u043E\u0440\u0435\u0445\u0438",
-    [["\u0438\u0437\u0432\u0430\u0440\u0430", 100], ["\u043E\u0440\u0435\u0445\u0438", 15]],
-    ["late_snack"],
-    { vegetarian: true, universality: 5 }
-  ),
-  dish(
-    "late_greek_yogurt_walnuts",
-    "\u0413\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043E\u0440\u0435\u0445\u0438",
-    [["\u0433\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", 120], ["\u043E\u0440\u0435\u0445\u0438", 15]],
-    ["late_snack"],
-    { vegetarian: true, universality: 4 }
-  ),
-  dish(
-    "late_peanut_butter_apple",
-    "\u042F\u0431\u044A\u043B\u043A\u0430 \u0441 \u0444\u044A\u0441\u0442\u044A\u0447\u0435\u043D\u043E \u043C\u0430\u0441\u043B\u043E",
-    [["\u044F\u0431\u044A\u043B\u043A\u0430", 120], ["\u0444\u044A\u0441\u0442\u044A\u0447\u0435\u043D\u043E \u043C\u0430\u0441\u043B\u043E", 15]],
-    ["late_snack"],
-    { vegan: true, universality: 4 }
-  )
-];
+var MEAL_DISHES = (meal_dishes_default.dishes || []).map(normalizeDish);
 var MEAL_DISHES_BY_ID = new Map(MEAL_DISHES.map((d) => [d.id, d]));
 function dishToCatalogEntry(d, groupOfProduct2) {
   const groups = d.products.map((p) => groupOfProduct2(p.name));
@@ -16230,9 +19223,9 @@ function dishCatalogEntries() {
     ...MEAL_DISHES.filter((d) => !disabledDishIds.has(d.id)),
     ...dishOverlay.filter((d) => !disabledDishIds.has(d.id))
   ];
-  return dishes.map((d) => dishToCatalogEntry(normalizeDish(d), groupOf));
+  return dishes.map((d) => dishToCatalogEntry(normalizeDish2(d), groupOf));
 }
-function normalizeDish(d) {
+function normalizeDish2(d) {
   return {
     id: d.id,
     name: d.name,
@@ -19436,29 +22429,29 @@ async function buildMealForSchemeSlot({ slotType, slotTarget, candidatesBySlot, 
     const drink = catalogName("\u0417\u0435\u043B\u0435\u043D \u0447\u0430\u0439") || "\u0417\u0435\u043B\u0435\u043D \u0447\u0430\u0439";
     return { type: slotType, name: drink, description: `\u2022 ${drink}` };
   }
-  let dish2 = pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx);
-  if (!dish2 && ctx.repairSlot) {
+  let dish = pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx);
+  if (!dish && ctx.repairSlot) {
     const candidates = listReadyMealCandidates(slotType, slotTarget, candidatesBySlot, ctx);
     if (candidates.length) {
-      dish2 = await ctx.repairSlot({
+      dish = await ctx.repairSlot({
         dayNum: ctx.dayNum,
         slotType,
         slotTarget,
         candidates,
         ctx
       });
-      if (dish2 && !candidates.some((c) => c.id === dish2.id)) dish2 = null;
+      if (dish && !candidates.some((c) => c.id === dish.id)) dish = null;
     }
   }
-  if (!dish2) throw new Error(`\u041D\u044F\u043C\u0430 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u043E \u044F\u0441\u0442\u0438\u0435 \u0437\u0430 ${slotType}`);
-  recordReadyMealUse(dish2, ctx, slotType);
+  if (!dish) throw new Error(`\u041D\u044F\u043C\u0430 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u043E \u044F\u0441\u0442\u0438\u0435 \u0437\u0430 ${slotType}`);
+  recordReadyMealUse(dish, ctx, slotType);
   const meal = {
     type: slotType,
-    name: dish2.name,
+    name: dish.name,
     // Кое ястие е това: описанието е разгънато на продукти, а бекендът има
     // нужда от декларираната порция, за да мащабира ястието като цяло.
-    dishId: dish2.id,
-    description: descriptionFromReadyMeal(dish2)
+    dishId: dish.id,
+    description: descriptionFromReadyMeal(dish)
   };
   if (includeDessert && slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2") meal.dessert = true;
   return meal;
@@ -20219,12 +23212,12 @@ function parseOverlayDocument(raw) {
     updatedAt: parsed?.updatedAt || null
   };
 }
-function validateDishEntry(dish2) {
+function validateDishEntry(dish) {
   const errors = [];
-  if (!dish2 || typeof dish2 !== "object") return ["invalid dish"];
-  if (!String(dish2.id || "").trim()) errors.push("id required");
-  if (!String(dish2.name || "").trim()) errors.push("name required");
-  const products = Array.isArray(dish2.products) ? dish2.products : [];
+  if (!dish || typeof dish !== "object") return ["invalid dish"];
+  if (!String(dish.id || "").trim()) errors.push("id required");
+  if (!String(dish.name || "").trim()) errors.push("name required");
+  const products = Array.isArray(dish.products) ? dish.products : [];
   if (products.length < 2 || products.length > 4) errors.push("2\u20134 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0430");
   for (const p of products) {
     if (!String(p?.name || "").trim()) errors.push("\u0432\u0441\u0435\u043A\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442 \u0438\u0441\u043A\u0430 \u0438\u043C\u0435");
@@ -20235,25 +23228,25 @@ function validateDishEntry(dish2) {
   if (products.length && Math.abs(sum - 1) > 0.05) {
     errors.push(`\u0434\u044F\u043B\u043E\u0432\u0435\u0442\u0435 \u0442\u0440\u044F\u0431\u0432\u0430 \u0434\u0430 \u0441\u0443\u043C\u0438\u0440\u0430\u0442 ~1 (\u0441\u0435\u0433\u0430 ${sum.toFixed(2)})`);
   }
-  const timing = Array.isArray(dish2.timing) ? dish2.timing : [];
+  const timing = Array.isArray(dish.timing) ? dish.timing : [];
   if (!timing.length || timing.some((t) => !TIMINGS.has(t))) {
     errors.push(`timing must include ${[...TIMINGS].join("|")}`);
   }
   return errors;
 }
-function normalizeDishEntry(dish2) {
+function normalizeDishEntry(dish) {
   return {
-    id: String(dish2.id || "").trim(),
-    name: String(dish2.name || "").trim(),
-    products: (dish2.products || []).map((p) => ({
+    id: String(dish.id || "").trim(),
+    name: String(dish.name || "").trim(),
+    products: (dish.products || []).map((p) => ({
       name: String(p.name || "").trim(),
       share: Number(p.share) || 0
     })),
-    timing: [...new Set((dish2.timing || ["main"]).map(String))],
-    vegan: !!dish2.vegan,
-    vegetarian: dish2.vegetarian !== void 0 ? !!dish2.vegetarian : !!dish2.vegan,
-    universality: Math.max(1, Math.min(5, Number(dish2.universality) || 4)),
-    tags: Array.isArray(dish2.tags) ? [...dish2.tags] : []
+    timing: [...new Set((dish.timing || ["main"]).map(String))],
+    vegan: !!dish.vegan,
+    vegetarian: dish.vegetarian !== void 0 ? !!dish.vegetarian : !!dish.vegan,
+    universality: Math.max(1, Math.min(5, Number(dish.universality) || 4)),
+    tags: Array.isArray(dish.tags) ? [...dish.tags] : []
   };
 }
 function serializeOverlayDocument(entries, label = "", dishes = [], disabledDishes = []) {
@@ -20339,9 +23332,9 @@ async function writeOverlayToKv(env, entries, label = "", dishes = [], disabledD
   invalidateRegistryIndex();
   return doc;
 }
-async function upsertDish(env, dish2) {
+async function upsertDish(env, dish) {
   const doc = await readOverlayFromKv(env);
-  const normalized = normalizeDishEntry(dish2);
+  const normalized = normalizeDishEntry(dish);
   const errs = validateDishEntry(normalized);
   if (errs.length) throw new Error(errs.join("; "));
   const dishes = [...doc.dishes];

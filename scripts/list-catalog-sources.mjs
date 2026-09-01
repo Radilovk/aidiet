@@ -13,7 +13,8 @@ import { DEFAULT_PLAN_ENGINE, PLAN_ENGINE_VERSION } from '../plan-engine.js';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 const SOURCE_FILES = [
-  { path: 'meal-dishes.js', role: 'Ястия (главен списък за Step 3)' },
+  { path: 'data/meal-dishes.json', role: 'Ястия — РЕДАКТИРАЙ ТУК' },
+  { path: 'meal-dishes.js', role: 'Зарежда JSON + нормализация' },
   { path: 'food-catalog-data.js', role: 'Продукти / сурови храни' },
   { path: 'food-nutrition-data.js', role: 'kcal и макроси на 100 g' },
   { path: 'dish-tags.js', role: 'Логика за тагове (не списък)' },
@@ -42,7 +43,7 @@ console.log('=== NutriPlan catalog sources ===\n');
 console.log(`Plan engine: ${PLAN_ENGINE_VERSION} (default ${DEFAULT_PLAN_ENGINE})\n`);
 
 console.log('Counts:');
-console.log(`  dishes (meal-dishes.js):  ${MEAL_DISHES.length}`);
+console.log(`  dishes (meal-dishes):   ${MEAL_DISHES.length}`);
 console.log(`  products (food-catalog):  ${FOOD_CATALOG.length}`);
 console.log(`  liquid_breakfast tags:    ${liquid}`);
 console.log(`  low_carb tags:            ${lowCarb}`);
@@ -54,7 +55,7 @@ for (const f of SOURCE_FILES) {
   console.log(`  ${f.path.padEnd(28)} ${String(lines).padStart(5)} lines  — ${f.role}`);
 }
 
-console.log('\nAfter editing meal-dishes.js run:');
+console.log('\nAfter editing data/meal-dishes.json run:');
 console.log('  node scripts/test-meal-dishes.mjs');
 console.log('  node scripts/test-catalog-coverage.mjs');
 console.log('  npm run build:worker');

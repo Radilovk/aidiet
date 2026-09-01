@@ -21,59 +21,34 @@
 
 ---
 
-## 0. Редакция през UI и JSON (ново)
-
-Всички основни списъци могат да се редактират ръчно през **lists-hub** и JSON roundtrip:
-
-| Списък | UI | JSON | JS файл |
-|--------|-----|------|---------|
-| Ястия | `lists/meal-dishes.html` | `data/lists/meal-dishes.json` | `meal-dishes.js` |
-| Продукти | `lists/food-catalog.html` | `data/lists/food-catalog.json` | `food-catalog-data.js` |
-| Хранителност | `lists/food-nutrition.html` | `data/lists/food-nutrition.json` | `food-nutrition-data.js` |
-| Порции | `lists/portion-limits.html` | `data/lists/portion-limits.json` | `portion-limits.js` |
-
-```bash
-npm run lists:export    # синхронизира JS → JSON
-# редакция през lists-hub.html или директно JSON
-npm run lists:import    # записва JSON → JS
-npm run lists:validate  # само проверка
-```
-
-Отвори `lists-hub.html` от админ панела или локално (`npm run serve`).
-
-KV overlay (`food-catalog.html`) остава за **допълнителни** продукти/ястия — не замества базовите списъци.
-
----
-
 ## 1. Ястия (главен файл за разширяване)
 
-### `meal-dishes.js`
+### `data/meal-dishes.json`
 
-Единственият ръчен списък с готови ястия. Планът избира **само оттук** (+ admin overlay).
+**Единственият файл, който редактираш за нови готови ястия.** Директно в repo — без UI, без export/import.
 
-```js
-dish(id, 'Име', [['продукт', грамове], ...], ['breakfast'|'main'|'snack'|'late_snack'], {
-  vegan, vegetarian, universality: 1–5,
-  tags: ['low_carb', 'gluten_free', 'liquid_breakfast', 'sweet_slot'],
-})
+`meal-dishes.js` само зарежда JSON-а и подравнява грамажите към мрежата 5/50 g.
+
+```json
+{
+  "id": "meal_chicken_rice",
+  "name": "Пиле с ориз",
+  "products": [
+    { "name": "пилешко месо", "grams": 150 },
+    { "name": "ориз", "grams": 80 }
+  ],
+  "timing": ["main"],
+  "universality": 5
+}
 ```
 
 | Поле | Правило |
 |------|---------|
 | `id` | Уникален, стабилен — **не го сменяй** след като ястието е в план |
-| продукти | 2–4 продукта; имената **трябва** да съществуват в `food-catalog-data.js` |
-| грамажи | Реална порция; файлът ги подравнява към мрежа 5 g / 50 g |
-| `timing` | Кога може да се предлага (закуска, обяд, междинно, късна закуска) |
+| `products` | 2–4 продукта; имената **трябва** да съществуват в `food-catalog-data.js` |
+| `grams` | Референтна порция; планът мащабира пропорционално |
+| `timing` | `breakfast` \| `main` \| `snack` \| `late_snack` |
 | `tags` | По избор; останалите се **извеждат** в `dish-tags.js` |
-
-**Секции в файла (ред на добавяне):**
-- Закуски
-- Течна закуска (`liquid_breakfast`)
-- Пиле / риба / месо / веган
-- Кето / IR (`low_carb`)
-- Междинни (Хранене 3)
-- Контролирано сладко (`sweet_slot`)
-- Късна закуска (Хранене 5)
 
 **Свързани (не редактирай ръчно за ястия):**
 - `ready-meal-parts.js` — декомпозиция за solver-а (генерира се от `meal-dishes.js`)
@@ -169,7 +144,7 @@ Merge с външна библиотека (сурови храни). Ястия
 ## 6. Типов workflow: ново ястие
 
 1. Провери дали продуктите са в `food-catalog-data.js` + `food-nutrition-data.js`
-2. Добави ред в `meal-dishes.js` с уникален `id`
+2. Добави запис в `data/meal-dishes.json` с уникален `id`
 3. По нужда добави `tags` (или остави `dish-tags.js` да ги изведе)
 4. Пусни тестовете:
 
@@ -188,7 +163,7 @@ npm run build:worker
 
 1. `food-nutrition-data.js` — макроси на 100 g
 2. `food-catalog-data.js` — `item(...)` с group, slots, timing
-3. После го ползвай в `meal-dishes.js`
+3. После го ползвай в `data/meal-dishes.json`
 
 ---
 
@@ -197,9 +172,6 @@ npm run build:worker
 | Команда | Какво проверява |
 |---------|-----------------|
 | `node scripts/list-catalog-sources.mjs` | Брой ястия/продукти, пътища до файловете |
-| `npm run lists:export` | Експорт на всички списъци → `data/lists/*.json` |
-| `npm run lists:import` | Импорт от JSON обратно в JS |
-| `npm run lists:validate` | Валидация на JSON без запис |
 | `node scripts/test-meal-dishes.mjs` | Валидност на всички ястия |
 | `node scripts/test-catalog-coverage.mjs` | 14 профила → пълен 7-дневен план |
 | `node scripts/test-dish-tags.mjs` | Тагове и филтри |
