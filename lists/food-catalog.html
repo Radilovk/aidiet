@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Продукти — NutriPlan списъци</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="./list-editor.css">
+</head>
+<body>
+  <div class="shell">
+    <a class="back" href="../lists-hub.html">← Всички списъци</a>
+    <h1><i class="fas fa-carrot"></i> Продукти (food-catalog)</h1>
+    <p class="sub">Сурови храни за каталога. Всеки продукт трябва да има ред в хранителността.</p>
+
+    <div class="toolbar">
+      <input type="search" id="search" placeholder="Търсене…" style="max-width:240px">
+      <button type="button" class="btn ghost" id="reload">Обнови</button>
+      <button type="button" class="btn" id="newBtn">+ Нов продукт</button>
+      <button type="button" class="btn warn" id="download">Изтегли JSON</button>
+      <label class="btn ghost" style="cursor:pointer"><i class="fas fa-upload"></i> Импорт JSON<input type="file" id="fileIn" accept=".json" class="hidden"></label>
+      <span class="badge" id="meta">—</span>
+    </div>
+
+    <div class="card table-wrap">
+      <table>
+        <thead><tr><th>ID</th><th>Име</th><th>nutritionKey</th><th>group</th><th>slots</th><th>univ</th></tr></thead>
+        <tbody id="table"></tbody>
+      </table>
+      <div class="status" id="listStatus"></div>
+    </div>
+
+    <div class="card hidden" id="editor">
+      <h2 id="editorTitle">Продукт</h2>
+      <div class="grid">
+        <div class="field"><label for="id">ID</label><input id="id" placeholder="pro_chicken"></div>
+        <div class="field"><label for="name">Име</label><input id="name"></div>
+        <div class="field"><label for="nutritionKey">nutritionKey</label><input id="nutritionKey"></div>
+        <div class="field"><label for="group">group</label>
+          <select id="group">
+            <option value="protein">protein</option><option value="dairy">dairy</option>
+            <option value="vegetable">vegetable</option><option value="carb">carb</option>
+            <option value="fat">fat</option><option value="fruit">fruit</option>
+            <option value="legume">legume</option><option value="condiment">condiment</option>
+            <option value="beverage">beverage</option><option value="ready_meal">ready_meal</option>
+          </select>
+        </div>
+        <div class="field"><label for="slots">slots (CSV)</label><input id="slots" value="PRO"></div>
+        <div class="field"><label for="timing">timing (CSV)</label><input id="timing" value="main"></div>
+        <div class="field"><label for="univ">universality</label><input id="univ" type="number" min="1" max="5" value="4"></div>
+        <div class="field"><label for="genericOf">genericOf</label><input id="genericOf" placeholder="pro_chicken"></div>
+        <div class="field"><label for="aliases">aliases (CSV)</label><input id="aliases"></div>
+        <div class="field"><label><input type="checkbox" id="vegan"> vegan</label></div>
+        <div class="field"><label><input type="checkbox" id="vegetarian" checked> vegetarian</label></div>
+      </div>
+      <div class="toolbar" style="margin-top:8px">
+        <button type="button" class="btn" id="apply">Приложи</button>
+        <button type="button" class="btn danger ghost" id="delete">Изтрий</button>
+      </div>
+      <div class="status" id="editStatus"></div>
+    </div>
+  </div>
+  <script type="module">
+    import { loadListJson, downloadJson, setStatus, filterRows, bindFileImport, parseCsv, joinCsv } from './list-editor-core.js';
+
+    const JSON_URL = '../data/lists/food-catalog.json';
+    let doc = null;
+    let selectedId = null;
+
+    function render() {
+      const tbody = document.getElementById('table');
+      tbody.innerHTML = '';
+      for (const e of filterRows(doc.items || [], document.getElementById('search').value, ['id', 'name', 'nutritionKey', 'group'])) {
+        const tr = document.createElement('tr');
+        if (e.id === selectedId) tr.classList.add('selected');
+        tr.innerHTML = `<td>${e.id}</td><td>${e.name}</td><td>${e.nutritionKey}</td><td>${e.group}</td><td>${joinCsv(e.slots)}</td><td>${e.universality}</td>`;
+        tr.onclick = () => { selectedId = e.id; fillForm(e); document.getElementById('editor').classList.remove('hidden'); render(); };
+        tbody.appendChild(tr);
+      }
+      document.getElementById('meta').textContent = `${doc.items.length} продукта`;
+    }
+
+    function fillForm(e) {
+      document.getElementById('id').value = e?.id || '';
+      document.getElementById('name').value = e?.name || '';
+      document.getElementById('nutritionKey').value = e?.nutritionKey || '';
+      document.getElementById('group').value = e?.group || 'protein';
+      document.getElementById('slots').value = joinCsv(e?.slots || ['PRO']);
+      document.getElementById('timing').value = joinCsv(e?.timing || ['main']);
+      document.getElementById('univ').value = e?.universality ?? 4;
+      document.getElementById('genericOf').value = e?.genericOf || '';
+      document.getElementById('aliases').value = joinCsv(e?.aliases);
+      document.getElementById('vegan').checked = !!e?.vegan;
+      document.getElementById('vegetarian').checked = e?.vegetarian !== false;
+      document.getElementById('editorTitle').textContent = e?.id ? `Редакция: ${e.name}` : 'Нов продукт';
+    }
+
+    function readForm() {
+      const genericOf = document.getElementById('genericOf').value.trim();
+      const aliases = parseCsv(document.getElementById('aliases').value);
+      return {
+        id: document.getElementById('id').value.trim(),
+        name: document.getElementById('name').value.trim(),
+        nutritionKey: document.getElementById('nutritionKey').value.trim() || document.getElementById('name').value.trim(),
+        group: document.getElementById('group').value,
+        slots: parseCsv(document.getElementById('slots').value),
+        timing: parseCsv(document.getElementById('timing').value),
+        universality: Number(document.getElementById('univ').value) || 4,
+        vegan: document.getElementById('vegan').checked,
+        vegetarian: document.getElementById('vegetarian').checked,
+        genericOf: genericOf || null,
+        aliases,
+        scalingMode: null,
+        fixedNutrition: null,
+      };
+    }
+
+    async function load() {
+      setStatus(document.getElementById('listStatus'), 'Зареждане…');
+      try {
+        doc = await loadListJson(JSON_URL);
+        render();
+        setStatus(document.getElementById('listStatus'), 'Заредено', 'ok');
+      } catch (e) {
+        setStatus(document.getElementById('listStatus'), e.message, 'err');
+      }
+    }
+
+    document.getElementById('reload').onclick = load;
+    document.getElementById('search').oninput = render;
+    document.getElementById('newBtn').onclick = () => { selectedId = null; fillForm({ slots: ['PRO'], timing: ['main'], universality: 4 }); document.getElementById('editor').classList.remove('hidden'); };
+    document.getElementById('apply').onclick = () => {
+      try {
+        const entry = readForm();
+        if (!entry.id || !entry.name) throw new Error('ID и име са задължителни');
+        const idx = doc.items.findIndex(x => x.id === entry.id);
+        if (idx >= 0 && entry.id !== selectedId) throw new Error('ID вече съществува');
+        if (idx >= 0) doc.items[idx] = entry; else doc.items.push(entry);
+        doc.count = doc.items.length;
+        doc.updatedAt = new Date().toISOString();
+        selectedId = entry.id;
+        render();
+        setStatus(document.getElementById('editStatus'), 'Приложено — изтегли JSON', 'ok');
+      } catch (e) { setStatus(document.getElementById('editStatus'), e.message, 'err'); }
+    };
+    document.getElementById('delete').onclick = () => {
+      if (!selectedId) return;
+      doc.items = doc.items.filter(x => x.id !== selectedId);
+      doc.count = doc.items.length;
+      selectedId = null;
+      document.getElementById('editor').classList.add('hidden');
+      render();
+    };
+    document.getElementById('download').onclick = () => { doc.updatedAt = new Date().toISOString(); downloadJson('food-catalog.json', doc); };
+    bindFileImport(document.getElementById('fileIn'), data => { doc = data; selectedId = null; render(); });
+    load();
+  </script>
+</body>
+</html>

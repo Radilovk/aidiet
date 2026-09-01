@@ -21,6 +21,30 @@
 
 ---
 
+## 0. Редакция през UI и JSON (ново)
+
+Всички основни списъци могат да се редактират ръчно през **lists-hub** и JSON roundtrip:
+
+| Списък | UI | JSON | JS файл |
+|--------|-----|------|---------|
+| Ястия | `lists/meal-dishes.html` | `data/lists/meal-dishes.json` | `meal-dishes.js` |
+| Продукти | `lists/food-catalog.html` | `data/lists/food-catalog.json` | `food-catalog-data.js` |
+| Хранителност | `lists/food-nutrition.html` | `data/lists/food-nutrition.json` | `food-nutrition-data.js` |
+| Порции | `lists/portion-limits.html` | `data/lists/portion-limits.json` | `portion-limits.js` |
+
+```bash
+npm run lists:export    # синхронизира JS → JSON
+# редакция през lists-hub.html или директно JSON
+npm run lists:import    # записва JSON → JS
+npm run lists:validate  # само проверка
+```
+
+Отвори `lists-hub.html` от админ панела или локално (`npm run serve`).
+
+KV overlay (`food-catalog.html`) остава за **допълнителни** продукти/ястия — не замества базовите списъци.
+
+---
+
 ## 1. Ястия (главен файл за разширяване)
 
 ### `meal-dishes.js`
@@ -173,6 +197,9 @@ npm run build:worker
 | Команда | Какво проверява |
 |---------|-----------------|
 | `node scripts/list-catalog-sources.mjs` | Брой ястия/продукти, пътища до файловете |
+| `npm run lists:export` | Експорт на всички списъци → `data/lists/*.json` |
+| `npm run lists:import` | Импорт от JSON обратно в JS |
+| `npm run lists:validate` | Валидация на JSON без запис |
 | `node scripts/test-meal-dishes.mjs` | Валидност на всички ястия |
 | `node scripts/test-catalog-coverage.mjs` | 14 профила → пълен 7-дневен план |
 | `node scripts/test-dish-tags.mjs` | Тагове и филтри |

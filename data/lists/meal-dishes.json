@@ -1,0 +1,4192 @@
+{
+  "schema": "meal-dishes/v1",
+  "updatedAt": "2026-09-01T02:40:50.479Z",
+  "count": 171,
+  "dishes": [
+    {
+      "id": "meal_omelet",
+      "name": "Омлет със зеленчуци",
+      "products": [
+        {
+          "name": "яйца",
+          "grams": 150
+        },
+        {
+          "name": "Зеленчуци",
+          "grams": 100
+        },
+        {
+          "name": "зехтин",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "breakfast",
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_omelet_veg",
+      "name": "Омлет със спанак и домати",
+      "products": [
+        {
+          "name": "яйца",
+          "grams": 150
+        },
+        {
+          "name": "спанак",
+          "grams": 50
+        },
+        {
+          "name": "Домати",
+          "grams": 50
+        }
+      ],
+      "timing": [
+        "breakfast",
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_boiled_egg",
+      "name": "Варени яйца с хляб и домати",
+      "products": [
+        {
+          "name": "яйца",
+          "grams": 100
+        },
+        {
+          "name": "пълнозърнест хляб",
+          "grams": 50
+        },
+        {
+          "name": "Домати",
+          "grams": 50
+        }
+      ],
+      "timing": [
+        "breakfast"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_egg_bread_cheese",
+      "name": "Яйца с хляб и сирене",
+      "products": [
+        {
+          "name": "яйца",
+          "grams": 100
+        },
+        {
+          "name": "пълнозърнест хляб",
+          "grams": 50
+        },
+        {
+          "name": "сирене",
+          "grams": 40
+        }
+      ],
+      "timing": [
+        "breakfast"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_avocado_egg",
+      "name": "Яйца с авокадо и хляб",
+      "products": [
+        {
+          "name": "яйца",
+          "grams": 100
+        },
+        {
+          "name": "авокадо",
+          "grams": 50
+        },
+        {
+          "name": "пълнозърнест хляб",
+          "grams": 50
+        }
+      ],
+      "timing": [
+        "breakfast"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_avocado_toast",
+      "name": "Авокадо върху препечен хляб",
+      "products": [
+        {
+          "name": "пълнозърнест хляб",
+          "grams": 50
+        },
+        {
+          "name": "авокадо",
+          "grams": 50
+        },
+        {
+          "name": "Домати",
+          "grams": 40
+        }
+      ],
+      "timing": [
+        "breakfast"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_oatmeal",
+      "name": "Овесена каша с мляко",
+      "products": [
+        {
+          "name": "овесени ядки",
+          "grams": 50
+        },
+        {
+          "name": "мляко",
+          "grams": 200
+        },
+        {
+          "name": "бадеми",
+          "grams": 15
+        }
+      ],
+      "timing": [
+        "breakfast"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_porridge_berries",
+      "name": "Овесена каша с плодове",
+      "products": [
+        {
+          "name": "овесени ядки",
+          "grams": 50
+        },
+        {
+          "name": "малини",
+          "grams": 50
+        },
+        {
+          "name": "кисело мляко",
+          "grams": 150
+        }
+      ],
+      "timing": [
+        "breakfast"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_oat_plant_milk",
+      "name": "Овесена каша с растително мляко",
+      "products": [
+        {
+          "name": "овесени ядки",
+          "grams": 50
+        },
+        {
+          "name": "растително мляко",
+          "grams": 200
+        },
+        {
+          "name": "боровинки",
+          "grams": 50
+        }
+      ],
+      "timing": [
+        "breakfast"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_yogurt_oats",
+      "name": "Кисело мляко с овесени ядки",
+      "products": [
+        {
+          "name": "кисело мляко",
+          "grams": 200
+        },
+        {
+          "name": "овесени ядки",
+          "grams": 50
+        }
+      ],
+      "timing": [
+        "breakfast",
+        "snack"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_yogurt_oats_banana",
+      "name": "Кисело мляко с овес и банан",
+      "products": [
+        {
+          "name": "кисело мляко",
+          "grams": 200
+        },
+        {
+          "name": "овесени ядки",
+          "grams": 40
+        },
+        {
+          "name": "банан",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "breakfast"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_yogurt_oats_nuts",
+      "name": "Кисело мляко с овес и орехи",
+      "products": [
+        {
+          "name": "кисело мляко",
+          "grams": 200
+        },
+        {
+          "name": "овесени ядки",
+          "grams": 40
+        },
+        {
+          "name": "орехи",
+          "grams": 20
+        }
+      ],
+      "timing": [
+        "breakfast"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_cottage_bowl",
+      "name": "Извара с домати и орехи",
+      "products": [
+        {
+          "name": "извара",
+          "grams": 150
+        },
+        {
+          "name": "Домати",
+          "grams": 100
+        },
+        {
+          "name": "орехи",
+          "grams": 15
+        }
+      ],
+      "timing": [
+        "breakfast",
+        "snack"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_cottage_honey",
+      "name": "Извара с мед и орехи",
+      "products": [
+        {
+          "name": "извара",
+          "grams": 150
+        },
+        {
+          "name": "мед",
+          "grams": 15
+        },
+        {
+          "name": "орехи",
+          "grams": 20
+        }
+      ],
+      "timing": [
+        "breakfast",
+        "snack"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_cheese_sandwich",
+      "name": "Сандвич със сирене и домати",
+      "products": [
+        {
+          "name": "пълнозърнест хляб",
+          "grams": 100
+        },
+        {
+          "name": "сирене",
+          "grams": 50
+        },
+        {
+          "name": "Домати",
+          "grams": 40
+        }
+      ],
+      "timing": [
+        "breakfast",
+        "snack"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_tofu_scramble",
+      "name": "Тофу със зеленчуци",
+      "products": [
+        {
+          "name": "тофу",
+          "grams": 150
+        },
+        {
+          "name": "Чушки",
+          "grams": 100
+        },
+        {
+          "name": "зехтин",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "breakfast",
+        "main"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 3,
+      "tags": []
+    },
+    {
+      "id": "meal_eggs_bread_cheese_tomato",
+      "name": "Яйца с хляб, сирене и домати",
+      "products": [
+        {
+          "name": "яйца",
+          "grams": 150
+        },
+        {
+          "name": "пълнозърнест хляб",
+          "grams": 100
+        },
+        {
+          "name": "сирене",
+          "grams": 40
+        },
+        {
+          "name": "Домати",
+          "grams": 50
+        }
+      ],
+      "timing": [
+        "breakfast"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_eggs_potato_tomato",
+      "name": "Яйца с картофи и домати",
+      "products": [
+        {
+          "name": "яйца",
+          "grams": 150
+        },
+        {
+          "name": "картофи",
+          "grams": 200
+        },
+        {
+          "name": "Домати",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "breakfast",
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "bf_liquid_yogurt_banana",
+      "name": "Кисело мляко с банан",
+      "products": [
+        {
+          "name": "кисело мляко",
+          "grams": 200
+        },
+        {
+          "name": "банан",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "breakfast"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": [
+        "liquid_breakfast"
+      ]
+    },
+    {
+      "id": "bf_liquid_skyr_berries",
+      "name": "Скир с боровинки",
+      "products": [
+        {
+          "name": "скир",
+          "grams": 200
+        },
+        {
+          "name": "боровинки",
+          "grams": 50
+        }
+      ],
+      "timing": [
+        "breakfast"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": [
+        "liquid_breakfast",
+        "sweet_slot"
+      ]
+    },
+    {
+      "id": "bf_liquid_kefir_nuts",
+      "name": "Кефир с орехи",
+      "products": [
+        {
+          "name": "кефир",
+          "grams": 200
+        },
+        {
+          "name": "орехи",
+          "grams": 15
+        }
+      ],
+      "timing": [
+        "breakfast"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": [
+        "liquid_breakfast"
+      ]
+    },
+    {
+      "id": "bf_liquid_yogurt_protein",
+      "name": "Кисело мляко с протеин и малини",
+      "products": [
+        {
+          "name": "кисело мляко",
+          "grams": 200
+        },
+        {
+          "name": "протеин суроватка",
+          "grams": 25
+        },
+        {
+          "name": "малини",
+          "grams": 40
+        }
+      ],
+      "timing": [
+        "breakfast"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 3,
+      "tags": [
+        "liquid_breakfast"
+      ]
+    },
+    {
+      "id": "bf_liquid_oats_banana",
+      "name": "Овес с растително мляко и банан",
+      "products": [
+        {
+          "name": "овесени ядки",
+          "grams": 50
+        },
+        {
+          "name": "растително мляко",
+          "grams": 200
+        },
+        {
+          "name": "банан",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "breakfast"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": [
+        "liquid_breakfast"
+      ]
+    },
+    {
+      "id": "meal_cheese_omelet",
+      "name": "Омлет със сирене и домати",
+      "products": [
+        {
+          "name": "яйца",
+          "grams": 150
+        },
+        {
+          "name": "сирене",
+          "grams": 50
+        },
+        {
+          "name": "Домати",
+          "grams": 50
+        }
+      ],
+      "timing": [
+        "breakfast",
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_eggs_mushrooms",
+      "name": "Яйца с гъби и зехтин",
+      "products": [
+        {
+          "name": "яйца",
+          "grams": 150
+        },
+        {
+          "name": "гъби",
+          "grams": 100
+        },
+        {
+          "name": "зехтин",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "breakfast",
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_porridge_apple",
+      "name": "Овесена каша с ябълка",
+      "products": [
+        {
+          "name": "овесени ядки",
+          "grams": 50
+        },
+        {
+          "name": "мляко",
+          "grams": 200
+        },
+        {
+          "name": "ябълка",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "breakfast"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_skryr_banana_oats",
+      "name": "Скир с банан и овес",
+      "products": [
+        {
+          "name": "скир",
+          "grams": 200
+        },
+        {
+          "name": "банан",
+          "grams": 100
+        },
+        {
+          "name": "овесени ядки",
+          "grams": 40
+        }
+      ],
+      "timing": [
+        "breakfast"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_rye_cheese_cucumber",
+      "name": "Ръжен хляб със сирене и краставици",
+      "products": [
+        {
+          "name": "ръжен хляб",
+          "grams": 100
+        },
+        {
+          "name": "сирене",
+          "grams": 50
+        },
+        {
+          "name": "Краставици",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "breakfast",
+        "snack"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_greek_yogurt_honey_nuts",
+      "name": "Гръцко кисело мляко с мед и орехи",
+      "products": [
+        {
+          "name": "гръцко кисело мляко",
+          "grams": 200
+        },
+        {
+          "name": "мед",
+          "grams": 15
+        },
+        {
+          "name": "орехи",
+          "grams": 15
+        }
+      ],
+      "timing": [
+        "breakfast",
+        "snack"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_buckwheat_milk_apple",
+      "name": "Елда с мляко и ябълка",
+      "products": [
+        {
+          "name": "елда",
+          "grams": 100
+        },
+        {
+          "name": "мляко",
+          "grams": 200
+        },
+        {
+          "name": "ябълка",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "breakfast"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_cottage_peach",
+      "name": "Извара с праскова",
+      "products": [
+        {
+          "name": "извара",
+          "grams": 150
+        },
+        {
+          "name": "праскова",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "breakfast",
+        "snack"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_bread_peanut_banana",
+      "name": "Хляб с фъстъчено масло и банан",
+      "products": [
+        {
+          "name": "пълнозърнест хляб",
+          "grams": 50
+        },
+        {
+          "name": "фъстъчено масло",
+          "grams": 20
+        },
+        {
+          "name": "банан",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "breakfast",
+        "snack"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_eggs_peppers_tomato",
+      "name": "Яйца с чушки и домати",
+      "products": [
+        {
+          "name": "яйца",
+          "grams": 150
+        },
+        {
+          "name": "Чушки",
+          "grams": 100
+        },
+        {
+          "name": "Домати",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "breakfast",
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_rice_chicken",
+      "name": "Пиле с ориз и зеленчуци",
+      "products": [
+        {
+          "name": "пилешко месо",
+          "grams": 150
+        },
+        {
+          "name": "ориз",
+          "grams": 150
+        },
+        {
+          "name": "Зеленчуци",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_chicken_rice_broccoli",
+      "name": "Пилешки гърди с ориз и броколи",
+      "products": [
+        {
+          "name": "пилешки гърди",
+          "grams": 150
+        },
+        {
+          "name": "ориз",
+          "grams": 150
+        },
+        {
+          "name": "броколи",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_grilled_chicken",
+      "name": "Пиле на скара със зеленчуци",
+      "products": [
+        {
+          "name": "пилешко месо",
+          "grams": 150
+        },
+        {
+          "name": "Зеленчуци",
+          "grams": 150
+        },
+        {
+          "name": "зехтин",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_chicken_potato",
+      "name": "Пиле с картофи",
+      "products": [
+        {
+          "name": "пилешко месо",
+          "grams": 150
+        },
+        {
+          "name": "картофи",
+          "grams": 200
+        },
+        {
+          "name": "зелен фасул",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_pasta_chicken",
+      "name": "Паста с пиле и домати",
+      "products": [
+        {
+          "name": "паста",
+          "grams": 150
+        },
+        {
+          "name": "пилешко месо",
+          "grams": 100
+        },
+        {
+          "name": "Домати",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_chicken_salad",
+      "name": "Пилешка салата",
+      "products": [
+        {
+          "name": "пилешко месо",
+          "grams": 150
+        },
+        {
+          "name": "Зеленчуци",
+          "grams": 150
+        },
+        {
+          "name": "зехтин",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_chicken_sandwich",
+      "name": "Сандвич с пиле",
+      "products": [
+        {
+          "name": "пълнозърнест хляб",
+          "grams": 100
+        },
+        {
+          "name": "пилешко месо",
+          "grams": 50
+        },
+        {
+          "name": "маруля",
+          "grams": 20
+        }
+      ],
+      "timing": [
+        "breakfast",
+        "main",
+        "snack"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_chicken_soup",
+      "name": "Пилешка супа",
+      "products": [
+        {
+          "name": "пилешко месо",
+          "grams": 100
+        },
+        {
+          "name": "Зеленчуци",
+          "grams": 150
+        },
+        {
+          "name": "ориз",
+          "grams": 50
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_chicken_bulgur",
+      "name": "Пиле с булгур и зеленчуци",
+      "products": [
+        {
+          "name": "пилешко месо",
+          "grams": 150
+        },
+        {
+          "name": "булгур",
+          "grams": 150
+        },
+        {
+          "name": "Чушки",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 3,
+      "tags": []
+    },
+    {
+      "id": "meal_chicken_spinach",
+      "name": "Пиле със спанак и картофи",
+      "products": [
+        {
+          "name": "пилешко месо",
+          "grams": 150
+        },
+        {
+          "name": "спанак",
+          "grams": 100
+        },
+        {
+          "name": "картофи",
+          "grams": 150
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_turkey_rice",
+      "name": "Пуешко с ориз",
+      "products": [
+        {
+          "name": "пуешко филе",
+          "grams": 150
+        },
+        {
+          "name": "ориз",
+          "grams": 150
+        },
+        {
+          "name": "Тиквички",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_turkey_potato",
+      "name": "Пуешко с картофи",
+      "products": [
+        {
+          "name": "пуешко филе",
+          "grams": 150
+        },
+        {
+          "name": "картофи",
+          "grams": 200
+        },
+        {
+          "name": "зелен фасул",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_chicken_quinoa",
+      "name": "Пиле с киноа и зеленчуци",
+      "products": [
+        {
+          "name": "пилешко месо",
+          "grams": 150
+        },
+        {
+          "name": "киноа",
+          "grams": 150
+        },
+        {
+          "name": "Зеленчуци",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_chicken_sweet_potato",
+      "name": "Пиле със сладки картофи",
+      "products": [
+        {
+          "name": "пилешко месо",
+          "grams": 150
+        },
+        {
+          "name": "сладки картофи",
+          "grams": 200
+        },
+        {
+          "name": "броколи",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_chicken_thigh_potato",
+      "name": "Пилешко бутче с картофи",
+      "products": [
+        {
+          "name": "пилешко бутче",
+          "grams": 150
+        },
+        {
+          "name": "картофи",
+          "grams": 200
+        },
+        {
+          "name": "Моркови",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_turkey_pasta",
+      "name": "Пуешко с паста и домати",
+      "products": [
+        {
+          "name": "пуешко филе",
+          "grams": 150
+        },
+        {
+          "name": "паста",
+          "grams": 150
+        },
+        {
+          "name": "Домати",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_pork_rice_peppers",
+      "name": "Свинско с ориз и чушки",
+      "products": [
+        {
+          "name": "свинско",
+          "grams": 150
+        },
+        {
+          "name": "ориз",
+          "grams": 150
+        },
+        {
+          "name": "Чушки",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_beef_rice_carrots",
+      "name": "Говеждо с ориз и моркови",
+      "products": [
+        {
+          "name": "говеждо",
+          "grams": 150
+        },
+        {
+          "name": "ориз",
+          "grams": 150
+        },
+        {
+          "name": "Моркови",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_kebab_rice",
+      "name": "Кайма с ориз и домати",
+      "products": [
+        {
+          "name": "кайма",
+          "grams": 150
+        },
+        {
+          "name": "ориз",
+          "grams": 150
+        },
+        {
+          "name": "Домати",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_pasta_beef",
+      "name": "Паста с говеждо и зеленчуци",
+      "products": [
+        {
+          "name": "паста",
+          "grams": 150
+        },
+        {
+          "name": "говеждо",
+          "grams": 150
+        },
+        {
+          "name": "Домати",
+          "grams": 100
+        },
+        {
+          "name": "Зеленчуци",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_salmon_rice",
+      "name": "Сьомга с ориз и спанак",
+      "products": [
+        {
+          "name": "сьомга",
+          "grams": 150
+        },
+        {
+          "name": "ориз",
+          "grams": 150
+        },
+        {
+          "name": "спанак",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_lentil_chicken",
+      "name": "Пиле с леща и моркови",
+      "products": [
+        {
+          "name": "пилешко месо",
+          "grams": 150
+        },
+        {
+          "name": "леща",
+          "grams": 150
+        },
+        {
+          "name": "Моркови",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_chicken_buckwheat",
+      "name": "Пиле с елда и зеленчуци",
+      "products": [
+        {
+          "name": "пилешко месо",
+          "grams": 150
+        },
+        {
+          "name": "елда",
+          "grams": 150
+        },
+        {
+          "name": "Зеленчуци",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_chicken_corn_peppers",
+      "name": "Пиле с царевица и чушки",
+      "products": [
+        {
+          "name": "пилешко месо",
+          "grams": 150
+        },
+        {
+          "name": "царевица",
+          "grams": 100
+        },
+        {
+          "name": "Чушки",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_chicken_eggplant_tomato",
+      "name": "Пиле с патладжан и домати",
+      "products": [
+        {
+          "name": "пилешко месо",
+          "grams": 150
+        },
+        {
+          "name": "патладжан",
+          "grams": 100
+        },
+        {
+          "name": "Домати",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_turkey_lentil",
+      "name": "Пуешко с леща и моркови",
+      "products": [
+        {
+          "name": "пуешко филе",
+          "grams": 150
+        },
+        {
+          "name": "леща",
+          "grams": 150
+        },
+        {
+          "name": "Моркови",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_turkey_beans",
+      "name": "Пуешко с боб и домати",
+      "products": [
+        {
+          "name": "пуешко филе",
+          "grams": 150
+        },
+        {
+          "name": "бял боб",
+          "grams": 150
+        },
+        {
+          "name": "Домати",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_beef_potato",
+      "name": "Говеждо с картофи",
+      "products": [
+        {
+          "name": "говеждо",
+          "grams": 150
+        },
+        {
+          "name": "картофи",
+          "grams": 200
+        },
+        {
+          "name": "Моркови",
+          "grams": 50
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_beef_broccoli",
+      "name": "Говеждо с броколи",
+      "products": [
+        {
+          "name": "говеждо",
+          "grams": 150
+        },
+        {
+          "name": "броколи",
+          "grams": 150
+        },
+        {
+          "name": "зехтин",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_beef_mushrooms",
+      "name": "Говеждо с гъби",
+      "products": [
+        {
+          "name": "говеждо",
+          "grams": 150
+        },
+        {
+          "name": "гъби",
+          "grams": 100
+        },
+        {
+          "name": "зехтин",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_pork_potato",
+      "name": "Свинско с картофи",
+      "products": [
+        {
+          "name": "свинско",
+          "grams": 150
+        },
+        {
+          "name": "картофи",
+          "grams": 200
+        },
+        {
+          "name": "зеле",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_pork_beans",
+      "name": "Свинско с боб",
+      "products": [
+        {
+          "name": "свинско",
+          "grams": 100
+        },
+        {
+          "name": "бял боб",
+          "grams": 200
+        },
+        {
+          "name": "лук",
+          "grams": 30
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 3,
+      "tags": []
+    },
+    {
+      "id": "meal_moussaka_style",
+      "name": "Кайма с картофи и патладжан",
+      "products": [
+        {
+          "name": "кайма",
+          "grams": 150
+        },
+        {
+          "name": "картофи",
+          "grams": 200
+        },
+        {
+          "name": "патладжан",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_beef_spinach_potato",
+      "name": "Говеждо със спанак и картофи",
+      "products": [
+        {
+          "name": "говеждо",
+          "grams": 150
+        },
+        {
+          "name": "спанак",
+          "grams": 100
+        },
+        {
+          "name": "картофи",
+          "grams": 200
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_beef_peas_green_beans",
+      "name": "Говеждо с грах и зелен фасул",
+      "products": [
+        {
+          "name": "говеждо",
+          "grams": 150
+        },
+        {
+          "name": "грах",
+          "grams": 100
+        },
+        {
+          "name": "зелен фасул",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_pork_cabbage",
+      "name": "Свинско със зеле и моркови",
+      "products": [
+        {
+          "name": "свинско",
+          "grams": 150
+        },
+        {
+          "name": "зеле",
+          "grams": 100
+        },
+        {
+          "name": "Моркови",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_baked_fish",
+      "name": "Риба на фурна с картофи",
+      "products": [
+        {
+          "name": "риба",
+          "grams": 150
+        },
+        {
+          "name": "картофи",
+          "grams": 200
+        },
+        {
+          "name": "Зеленчуци",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_grilled_fish_veg",
+      "name": "Риба на скара със зеленчуци",
+      "products": [
+        {
+          "name": "риба",
+          "grams": 150
+        },
+        {
+          "name": "броколи",
+          "grams": 150
+        },
+        {
+          "name": "зехтин",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_fish_rice",
+      "name": "Риба с ориз",
+      "products": [
+        {
+          "name": "риба",
+          "grams": 150
+        },
+        {
+          "name": "ориз",
+          "grams": 150
+        },
+        {
+          "name": "Зеленчуци",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_salmon_potato",
+      "name": "Сьомга с картофи",
+      "products": [
+        {
+          "name": "сьомга",
+          "grams": 150
+        },
+        {
+          "name": "картофи",
+          "grams": 200
+        },
+        {
+          "name": "спанак",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_salmon_salad",
+      "name": "Сьомга със салата",
+      "products": [
+        {
+          "name": "сьомга",
+          "grams": 150
+        },
+        {
+          "name": "маруля",
+          "grams": 100
+        },
+        {
+          "name": "пълнозърнест хляб",
+          "grams": 50
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_tuna_salad",
+      "name": "Салата с риба тон",
+      "products": [
+        {
+          "name": "риба тон",
+          "grams": 100
+        },
+        {
+          "name": "маруля",
+          "grams": 100
+        },
+        {
+          "name": "зехтин",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "main",
+        "snack"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_mackerel_potato",
+      "name": "Скумрия с картофи",
+      "products": [
+        {
+          "name": "скумрия",
+          "grams": 100
+        },
+        {
+          "name": "картофи",
+          "grams": 200
+        },
+        {
+          "name": "спанак",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 3,
+      "tags": []
+    },
+    {
+      "id": "meal_shrimp_pasta",
+      "name": "Паста със скариди и домати",
+      "products": [
+        {
+          "name": "паста",
+          "grams": 150
+        },
+        {
+          "name": "скариди",
+          "grams": 100
+        },
+        {
+          "name": "Домати",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 3,
+      "tags": []
+    },
+    {
+      "id": "meal_cod_potato",
+      "name": "Треска с картофи",
+      "products": [
+        {
+          "name": "треска",
+          "grams": 150
+        },
+        {
+          "name": "картофи",
+          "grams": 200
+        },
+        {
+          "name": "Зеленчуци",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_tilapia_rice",
+      "name": "Тилапия с ориз",
+      "products": [
+        {
+          "name": "тилапия",
+          "grams": 150
+        },
+        {
+          "name": "ориз",
+          "grams": 150
+        },
+        {
+          "name": "Тиквички",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_tuna_pasta",
+      "name": "Паста с риба тон",
+      "products": [
+        {
+          "name": "паста",
+          "grams": 150
+        },
+        {
+          "name": "риба тон",
+          "grams": 100
+        },
+        {
+          "name": "Домати",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_lavrak_potato",
+      "name": "Лаврак с картофи и спанак",
+      "products": [
+        {
+          "name": "лаврак",
+          "grams": 150
+        },
+        {
+          "name": "картофи",
+          "grams": 200
+        },
+        {
+          "name": "спанак",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 3,
+      "tags": []
+    },
+    {
+      "id": "meal_salmon_sweet_potato_broccoli",
+      "name": "Сьомга със сладки картофи и броколи",
+      "products": [
+        {
+          "name": "сьомга",
+          "grams": 150
+        },
+        {
+          "name": "сладки картофи",
+          "grams": 200
+        },
+        {
+          "name": "броколи",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_mackerel_rice",
+      "name": "Скумрия с ориз и спанак",
+      "products": [
+        {
+          "name": "скумрия",
+          "grams": 100
+        },
+        {
+          "name": "ориз",
+          "grams": 150
+        },
+        {
+          "name": "спанак",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_fish_quinoa",
+      "name": "Риба с киноа и броколи",
+      "products": [
+        {
+          "name": "риба",
+          "grams": 150
+        },
+        {
+          "name": "киноа",
+          "grams": 150
+        },
+        {
+          "name": "броколи",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_shrimp_rice_veg",
+      "name": "Скариди с ориз и зеленчуци",
+      "products": [
+        {
+          "name": "скариди",
+          "grams": 100
+        },
+        {
+          "name": "ориз",
+          "grams": 150
+        },
+        {
+          "name": "Зеленчуци",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_tuna_rice_salad",
+      "name": "Риба тон с ориз и маруля",
+      "products": [
+        {
+          "name": "риба тон",
+          "grams": 100
+        },
+        {
+          "name": "ориз",
+          "grams": 100
+        },
+        {
+          "name": "маруля",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_lentil_stew",
+      "name": "Яхния от леща",
+      "products": [
+        {
+          "name": "леща",
+          "grams": 200
+        },
+        {
+          "name": "Зеленчуци",
+          "grams": 100
+        },
+        {
+          "name": "зехтин",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_bean_stew",
+      "name": "Боб яхния",
+      "products": [
+        {
+          "name": "боб",
+          "grams": 200
+        },
+        {
+          "name": "Зеленчуци",
+          "grams": 100
+        },
+        {
+          "name": "зехтин",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_bean_salad",
+      "name": "Салата с боб",
+      "products": [
+        {
+          "name": "бял боб",
+          "grams": 200
+        },
+        {
+          "name": "маруля",
+          "grams": 100
+        },
+        {
+          "name": "зехтин",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_chickpea_salad",
+      "name": "Салата с нахут",
+      "products": [
+        {
+          "name": "нахут",
+          "grams": 200
+        },
+        {
+          "name": "маруля",
+          "grams": 100
+        },
+        {
+          "name": "зехтин",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "main",
+        "snack"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_hummus_bread",
+      "name": "Хумус с хляб и краставици",
+      "products": [
+        {
+          "name": "пълнозърнест хляб",
+          "grams": 100
+        },
+        {
+          "name": "хумус",
+          "grams": 50
+        },
+        {
+          "name": "Краставици",
+          "grams": 50
+        }
+      ],
+      "timing": [
+        "main",
+        "snack"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 3,
+      "tags": []
+    },
+    {
+      "id": "meal_veg_soup",
+      "name": "Зеленчукова супа",
+      "products": [
+        {
+          "name": "Зеленчуци",
+          "grams": 200
+        },
+        {
+          "name": "картофи",
+          "grams": 100
+        },
+        {
+          "name": "зехтин",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_green_salad",
+      "name": "Зелена салата",
+      "products": [
+        {
+          "name": "Зеленчуци",
+          "grams": 150
+        },
+        {
+          "name": "Краставици",
+          "grams": 100
+        },
+        {
+          "name": "зехтин",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_egg_potato",
+      "name": "Яйца с картофи и чушки",
+      "products": [
+        {
+          "name": "яйца",
+          "grams": 100
+        },
+        {
+          "name": "картофи",
+          "grams": 200
+        },
+        {
+          "name": "Чушки",
+          "grams": 50
+        }
+      ],
+      "timing": [
+        "breakfast",
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_cottage_veg",
+      "name": "Извара със зеленчуци",
+      "products": [
+        {
+          "name": "извара",
+          "grams": 150
+        },
+        {
+          "name": "Краставици",
+          "grams": 100
+        },
+        {
+          "name": "Домати",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main",
+        "snack"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_tofu_rice",
+      "name": "Тофу с ориз и броколи",
+      "products": [
+        {
+          "name": "тофу",
+          "grams": 150
+        },
+        {
+          "name": "ориз",
+          "grams": 150
+        },
+        {
+          "name": "броколи",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 3,
+      "tags": []
+    },
+    {
+      "id": "meal_stuffed_peppers",
+      "name": "Пълнени чушки с ориз",
+      "products": [
+        {
+          "name": "Чушки",
+          "grams": 200
+        },
+        {
+          "name": "ориз",
+          "grams": 100
+        },
+        {
+          "name": "зехтин",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 3,
+      "tags": []
+    },
+    {
+      "id": "meal_spinach_rice",
+      "name": "Спанак с ориз",
+      "products": [
+        {
+          "name": "спанак",
+          "grams": 200
+        },
+        {
+          "name": "ориз",
+          "grams": 100
+        },
+        {
+          "name": "зехтин",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_potato_stew",
+      "name": "Картофена яхния",
+      "products": [
+        {
+          "name": "картофи",
+          "grams": 250
+        },
+        {
+          "name": "Моркови",
+          "grams": 100
+        },
+        {
+          "name": "зехтин",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_green_bean_stew",
+      "name": "Яхния от зелен фасул",
+      "products": [
+        {
+          "name": "зелен фасул",
+          "grams": 200
+        },
+        {
+          "name": "Домати",
+          "grams": 100
+        },
+        {
+          "name": "зехтин",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_zucchini_tomato",
+      "name": "Тиквички с домати",
+      "products": [
+        {
+          "name": "Тиквички",
+          "grams": 200
+        },
+        {
+          "name": "Домати",
+          "grams": 100
+        },
+        {
+          "name": "зехтин",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_roasted_veg_bread",
+      "name": "Печени зеленчуци с хляб",
+      "products": [
+        {
+          "name": "Зеленчуци",
+          "grams": 200
+        },
+        {
+          "name": "пълнозърнест хляб",
+          "grams": 50
+        },
+        {
+          "name": "зехтин",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_lentil_soup",
+      "name": "Супа от леща",
+      "products": [
+        {
+          "name": "леща",
+          "grams": 200
+        },
+        {
+          "name": "Моркови",
+          "grams": 100
+        },
+        {
+          "name": "зехтин",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_mushrooms_potato",
+      "name": "Гъби с картофи",
+      "products": [
+        {
+          "name": "гъби",
+          "grams": 150
+        },
+        {
+          "name": "картофи",
+          "grams": 200
+        },
+        {
+          "name": "зехтин",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_quinoa_veg_bowl",
+      "name": "Киноа със зеленчуци",
+      "products": [
+        {
+          "name": "киноа",
+          "grams": 150
+        },
+        {
+          "name": "Зеленчуци",
+          "grams": 150
+        },
+        {
+          "name": "зехтин",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_tempeh_rice_broccoli",
+      "name": "Темпе с ориз и броколи",
+      "products": [
+        {
+          "name": "темпе",
+          "grams": 150
+        },
+        {
+          "name": "ориз",
+          "grams": 150
+        },
+        {
+          "name": "броколи",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 3,
+      "tags": []
+    },
+    {
+      "id": "meal_black_bean_stew",
+      "name": "Яхния от черен боб",
+      "products": [
+        {
+          "name": "черен боб",
+          "grams": 200
+        },
+        {
+          "name": "Домати",
+          "grams": 100
+        },
+        {
+          "name": "зехтин",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_sweet_potato_lentil",
+      "name": "Сладки картофи с леща",
+      "products": [
+        {
+          "name": "сладки картофи",
+          "grams": 200
+        },
+        {
+          "name": "леща",
+          "grams": 150
+        },
+        {
+          "name": "Моркови",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_lentil_rice",
+      "name": "Леща с ориз и моркови",
+      "products": [
+        {
+          "name": "леща",
+          "grams": 150
+        },
+        {
+          "name": "ориз",
+          "grams": 100
+        },
+        {
+          "name": "Моркови",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_chickpea_spinach",
+      "name": "Нахут със спанак",
+      "products": [
+        {
+          "name": "нахут",
+          "grams": 200
+        },
+        {
+          "name": "спанак",
+          "grams": 100
+        },
+        {
+          "name": "зехтин",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_bulgur_veg",
+      "name": "Булгур със зеленчуци",
+      "products": [
+        {
+          "name": "булгур",
+          "grams": 150
+        },
+        {
+          "name": "Зеленчуци",
+          "grams": 150
+        },
+        {
+          "name": "зехтин",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_tofu_sweet_potato",
+      "name": "Тофу със сладки картофи",
+      "products": [
+        {
+          "name": "тофу",
+          "grams": 150
+        },
+        {
+          "name": "сладки картофи",
+          "grams": 200
+        },
+        {
+          "name": "броколи",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 3,
+      "tags": []
+    },
+    {
+      "id": "meal_bean_potato",
+      "name": "Боб с картофи и моркови",
+      "products": [
+        {
+          "name": "боб",
+          "grams": 150
+        },
+        {
+          "name": "картофи",
+          "grams": 200
+        },
+        {
+          "name": "Моркови",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_chickpea_rice",
+      "name": "Нахут с ориз и домати",
+      "products": [
+        {
+          "name": "нахут",
+          "grams": 150
+        },
+        {
+          "name": "ориз",
+          "grams": 100
+        },
+        {
+          "name": "Домати",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_chickpea_quinoa_bowl",
+      "name": "Нахут с киноа и краставици",
+      "products": [
+        {
+          "name": "нахут",
+          "grams": 150
+        },
+        {
+          "name": "киноа",
+          "grams": 100
+        },
+        {
+          "name": "Краставици",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_black_bean_rice",
+      "name": "Черен боб с ориз и чушки",
+      "products": [
+        {
+          "name": "черен боб",
+          "grams": 150
+        },
+        {
+          "name": "ориз",
+          "grams": 100
+        },
+        {
+          "name": "Чушки",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_tofu_bulgur_peppers",
+      "name": "Тофу с булгур и чушки",
+      "products": [
+        {
+          "name": "тофу",
+          "grams": 150
+        },
+        {
+          "name": "булгур",
+          "grams": 150
+        },
+        {
+          "name": "Чушки",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_pumpkin_lentil",
+      "name": "Тиква с леща и моркови",
+      "products": [
+        {
+          "name": "тиква",
+          "grams": 150
+        },
+        {
+          "name": "леща",
+          "grams": 100
+        },
+        {
+          "name": "Моркови",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_pea_potato_stew",
+      "name": "Грах с картофи и моркови",
+      "products": [
+        {
+          "name": "грах",
+          "grams": 150
+        },
+        {
+          "name": "картофи",
+          "grams": 150
+        },
+        {
+          "name": "Моркови",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "meal_lentil_bread",
+      "name": "Леща с моркови и хляб",
+      "products": [
+        {
+          "name": "леща",
+          "grams": 150
+        },
+        {
+          "name": "Моркови",
+          "grams": 100
+        },
+        {
+          "name": "пълнозърнест хляб",
+          "grams": 50
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "meal_egg_avocado_spinach",
+      "name": "Яйца с авокадо и спанак",
+      "products": [
+        {
+          "name": "яйца",
+          "grams": 150
+        },
+        {
+          "name": "авокадо",
+          "grams": 50
+        },
+        {
+          "name": "спанак",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "breakfast"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": [
+        "low_carb"
+      ]
+    },
+    {
+      "id": "meal_keto_eggs_zucchini",
+      "name": "Яйца с тиквички",
+      "products": [
+        {
+          "name": "яйца",
+          "grams": 150
+        },
+        {
+          "name": "Тиквички",
+          "grams": 100
+        },
+        {
+          "name": "зехтин",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "breakfast",
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 3,
+      "tags": [
+        "low_carb"
+      ]
+    },
+    {
+      "id": "meal_salmon_avocado",
+      "name": "Сьомга с авокадо",
+      "products": [
+        {
+          "name": "сьомга",
+          "grams": 150
+        },
+        {
+          "name": "авокадо",
+          "grams": 50
+        },
+        {
+          "name": "маруля",
+          "grams": 50
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 3,
+      "tags": [
+        "low_carb"
+      ]
+    },
+    {
+      "id": "meal_chicken_cheese_salad",
+      "name": "Пилешка салата със сирене",
+      "products": [
+        {
+          "name": "пилешко месо",
+          "grams": 100
+        },
+        {
+          "name": "сирене",
+          "grams": 40
+        },
+        {
+          "name": "маруля",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 3,
+      "tags": [
+        "low_carb"
+      ]
+    },
+    {
+      "id": "meal_cottage_nuts_veg",
+      "name": "Извара с орехи и краставици",
+      "products": [
+        {
+          "name": "извара",
+          "grams": 150
+        },
+        {
+          "name": "орехи",
+          "grams": 20
+        },
+        {
+          "name": "Краставици",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "breakfast",
+        "snack"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 3,
+      "tags": [
+        "low_carb"
+      ]
+    },
+    {
+      "id": "meal_eggplant_turkey",
+      "name": "Пуешко с патладжан",
+      "products": [
+        {
+          "name": "пуешко филе",
+          "grams": 150
+        },
+        {
+          "name": "патладжан",
+          "grams": 150
+        },
+        {
+          "name": "зехтин",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 3,
+      "tags": [
+        "low_carb"
+      ]
+    },
+    {
+      "id": "ir_omelet_mushrooms",
+      "name": "Омлет с гъби",
+      "products": [
+        {
+          "name": "яйца",
+          "grams": 150
+        },
+        {
+          "name": "гъби",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "breakfast",
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": [
+        "low_carb"
+      ]
+    },
+    {
+      "id": "ir_chicken_zucchini",
+      "name": "Пиле с тиквички",
+      "products": [
+        {
+          "name": "пилешко месо",
+          "grams": 150
+        },
+        {
+          "name": "Тиквички",
+          "grams": 150
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": [
+        "low_carb"
+      ]
+    },
+    {
+      "id": "ir_turkey_broccoli",
+      "name": "Пуешко с броколи",
+      "products": [
+        {
+          "name": "пуешко филе",
+          "grams": 150
+        },
+        {
+          "name": "броколи",
+          "grams": 150
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": [
+        "low_carb"
+      ]
+    },
+    {
+      "id": "ir_cottage_avocado",
+      "name": "Извара с авокадо",
+      "products": [
+        {
+          "name": "извара",
+          "grams": 150
+        },
+        {
+          "name": "авокадо",
+          "grams": 50
+        },
+        {
+          "name": "Краставици",
+          "grams": 50
+        }
+      ],
+      "timing": [
+        "breakfast",
+        "snack"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": [
+        "low_carb"
+      ]
+    },
+    {
+      "id": "ir_tuna_cucumber",
+      "name": "Риба тон с краставици",
+      "products": [
+        {
+          "name": "риба тон",
+          "grams": 100
+        },
+        {
+          "name": "Краставици",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main",
+        "snack"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": [
+        "low_carb"
+      ]
+    },
+    {
+      "id": "ir_eggs_spinach_cheese",
+      "name": "Яйца със спанак и сирене",
+      "products": [
+        {
+          "name": "яйца",
+          "grams": 150
+        },
+        {
+          "name": "спанак",
+          "grams": 100
+        },
+        {
+          "name": "сирене",
+          "grams": 40
+        }
+      ],
+      "timing": [
+        "breakfast",
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": [
+        "low_carb"
+      ]
+    },
+    {
+      "id": "ir_salmon_broccoli",
+      "name": "Сьомга с броколи",
+      "products": [
+        {
+          "name": "сьомга",
+          "grams": 150
+        },
+        {
+          "name": "броколи",
+          "grams": 150
+        },
+        {
+          "name": "зехтин",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": [
+        "low_carb"
+      ]
+    },
+    {
+      "id": "ir_pork_zucchini",
+      "name": "Свинско с тиквички",
+      "products": [
+        {
+          "name": "свинско",
+          "grams": 150
+        },
+        {
+          "name": "Тиквички",
+          "grams": 150
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": [
+        "low_carb"
+      ]
+    },
+    {
+      "id": "ir_beef_green_beans",
+      "name": "Говеждо със зелен фасул",
+      "products": [
+        {
+          "name": "говеждо",
+          "grams": 150
+        },
+        {
+          "name": "зелен фасул",
+          "grams": 150
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": [
+        "low_carb"
+      ]
+    },
+    {
+      "id": "ir_eggs_asparagus",
+      "name": "Яйца с аспержи",
+      "products": [
+        {
+          "name": "яйца",
+          "grams": 150
+        },
+        {
+          "name": "Аспержи",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "breakfast",
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": [
+        "low_carb"
+      ]
+    },
+    {
+      "id": "ir_chicken_cauliflower",
+      "name": "Пиле с карфиол",
+      "products": [
+        {
+          "name": "пилешко месо",
+          "grams": 150
+        },
+        {
+          "name": "карфиол",
+          "grams": 150
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": [
+        "low_carb"
+      ]
+    },
+    {
+      "id": "ir_turkey_mushrooms",
+      "name": "Пуешко с гъби",
+      "products": [
+        {
+          "name": "пуешко филе",
+          "grams": 150
+        },
+        {
+          "name": "гъби",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": [
+        "low_carb"
+      ]
+    },
+    {
+      "id": "snack_yogurt_almonds",
+      "name": "Кисело мляко с бадеми",
+      "products": [
+        {
+          "name": "кисело мляко",
+          "grams": 150
+        },
+        {
+          "name": "бадеми",
+          "grams": 15
+        }
+      ],
+      "timing": [
+        "snack"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "snack_apple_almonds",
+      "name": "Ябълка с бадеми",
+      "products": [
+        {
+          "name": "ябълка",
+          "grams": 150
+        },
+        {
+          "name": "бадеми",
+          "grams": 15
+        }
+      ],
+      "timing": [
+        "snack"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "snack_banana_walnuts",
+      "name": "Банан с орехи",
+      "products": [
+        {
+          "name": "банан",
+          "grams": 100
+        },
+        {
+          "name": "орехи",
+          "grams": 15
+        }
+      ],
+      "timing": [
+        "snack"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "snack_cottage_walnuts",
+      "name": "Извара с орехи",
+      "products": [
+        {
+          "name": "извара",
+          "grams": 100
+        },
+        {
+          "name": "орехи",
+          "grams": 15
+        }
+      ],
+      "timing": [
+        "snack"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "snack_orange_cashew",
+      "name": "Портокал с кашу",
+      "products": [
+        {
+          "name": "портокал",
+          "grams": 150
+        },
+        {
+          "name": "кашу",
+          "grams": 15
+        }
+      ],
+      "timing": [
+        "snack"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "snack_hummus_carrot",
+      "name": "Хумус с моркови",
+      "products": [
+        {
+          "name": "хумус",
+          "grams": 50
+        },
+        {
+          "name": "Моркови",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "snack"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 3,
+      "tags": []
+    },
+    {
+      "id": "snack_fruit_yogurt",
+      "name": "Плодове с кисело мляко",
+      "products": [
+        {
+          "name": "кисело мляко",
+          "grams": 150
+        },
+        {
+          "name": "ябълка",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "snack"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": [
+        "sweet_slot"
+      ]
+    },
+    {
+      "id": "snack_avocado_walnuts",
+      "name": "Авокадо с орехи",
+      "products": [
+        {
+          "name": "авокадо",
+          "grams": 50
+        },
+        {
+          "name": "орехи",
+          "grams": 15
+        }
+      ],
+      "timing": [
+        "snack"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 3,
+      "tags": []
+    },
+    {
+      "id": "snack_pear_walnuts",
+      "name": "Круша с орехи",
+      "products": [
+        {
+          "name": "круша",
+          "grams": 150
+        },
+        {
+          "name": "орехи",
+          "grams": 15
+        }
+      ],
+      "timing": [
+        "snack"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "snack_kiwi_cashew",
+      "name": "Киви с кашу",
+      "products": [
+        {
+          "name": "киви",
+          "grams": 100
+        },
+        {
+          "name": "кашу",
+          "grams": 15
+        }
+      ],
+      "timing": [
+        "snack"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "snack_cottage_berries",
+      "name": "Извара с ягоди",
+      "products": [
+        {
+          "name": "извара",
+          "grams": 150
+        },
+        {
+          "name": "ягоди",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "snack"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "snack_tomato_cheese",
+      "name": "Домати със сирене",
+      "products": [
+        {
+          "name": "Домати",
+          "grams": 100
+        },
+        {
+          "name": "сирене",
+          "grams": 40
+        }
+      ],
+      "timing": [
+        "snack"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "snack_grape_almonds",
+      "name": "Грозде с бадеми",
+      "products": [
+        {
+          "name": "грозде",
+          "grams": 100
+        },
+        {
+          "name": "бадеми",
+          "grams": 15
+        }
+      ],
+      "timing": [
+        "snack"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "snack_celery_hummus",
+      "name": "Целина с хумус",
+      "products": [
+        {
+          "name": "целина",
+          "grams": 100
+        },
+        {
+          "name": "хумус",
+          "grams": 50
+        }
+      ],
+      "timing": [
+        "snack"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 3,
+      "tags": []
+    },
+    {
+      "id": "snack_greek_yogurt_honey",
+      "name": "Гръцко кисело мляко с мед",
+      "products": [
+        {
+          "name": "гръцко кисело мляко",
+          "grams": 150
+        },
+        {
+          "name": "мед",
+          "grams": 15
+        }
+      ],
+      "timing": [
+        "snack"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": [
+        "sweet_slot"
+      ]
+    },
+    {
+      "id": "snack_mandarin_almonds",
+      "name": "Мандарина с бадеми",
+      "products": [
+        {
+          "name": "мандарина",
+          "grams": 100
+        },
+        {
+          "name": "бадеми",
+          "grams": 15
+        }
+      ],
+      "timing": [
+        "snack"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "snack_peach_cottage",
+      "name": "Праскова с извара",
+      "products": [
+        {
+          "name": "праскова",
+          "grams": 100
+        },
+        {
+          "name": "извара",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "snack"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "snack_peanut_banana",
+      "name": "Банан с фъстъци",
+      "products": [
+        {
+          "name": "банан",
+          "grams": 100
+        },
+        {
+          "name": "фъстъци",
+          "grams": 20
+        }
+      ],
+      "timing": [
+        "snack"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "snack_tahini_carrots",
+      "name": "Моркови с тахан",
+      "products": [
+        {
+          "name": "Моркови",
+          "grams": 100
+        },
+        {
+          "name": "тахан",
+          "grams": 20
+        }
+      ],
+      "timing": [
+        "snack"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 3,
+      "tags": []
+    },
+    {
+      "id": "sweet_yogurt_berries",
+      "name": "Кисело мляко с боровинки",
+      "products": [
+        {
+          "name": "кисело мляко",
+          "grams": 150
+        },
+        {
+          "name": "боровинки",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "snack"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": [
+        "sweet_slot"
+      ]
+    },
+    {
+      "id": "sweet_cottage_honey",
+      "name": "Извара с мед",
+      "products": [
+        {
+          "name": "извара",
+          "grams": 150
+        },
+        {
+          "name": "мед",
+          "grams": 15
+        }
+      ],
+      "timing": [
+        "snack"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": [
+        "sweet_slot"
+      ]
+    },
+    {
+      "id": "sweet_apple_yogurt",
+      "name": "Ябълка с кисело мляко",
+      "products": [
+        {
+          "name": "ябълка",
+          "grams": 100
+        },
+        {
+          "name": "кисело мляко",
+          "grams": 150
+        }
+      ],
+      "timing": [
+        "snack"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": [
+        "sweet_slot"
+      ]
+    },
+    {
+      "id": "sweet_kefir_berries",
+      "name": "Кефир с малини",
+      "products": [
+        {
+          "name": "кефир",
+          "grams": 200
+        },
+        {
+          "name": "малини",
+          "grams": 50
+        }
+      ],
+      "timing": [
+        "snack"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": [
+        "sweet_slot",
+        "liquid_breakfast"
+      ]
+    },
+    {
+      "id": "late_yogurt_walnuts",
+      "name": "Кисело мляко с орехи",
+      "products": [
+        {
+          "name": "кисело мляко",
+          "grams": 100
+        },
+        {
+          "name": "орехи",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "late_snack"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "late_cottage_almonds",
+      "name": "Извара с бадеми",
+      "products": [
+        {
+          "name": "извара",
+          "grams": 100
+        },
+        {
+          "name": "бадеми",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "late_snack"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "late_nuts_mix",
+      "name": "Бадеми и орехи",
+      "products": [
+        {
+          "name": "бадеми",
+          "grams": 15
+        },
+        {
+          "name": "орехи",
+          "grams": 15
+        }
+      ],
+      "timing": [
+        "late_snack"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "late_cashew_almonds",
+      "name": "Кашу с бадеми",
+      "products": [
+        {
+          "name": "кашу",
+          "grams": 15
+        },
+        {
+          "name": "бадеми",
+          "grams": 15
+        }
+      ],
+      "timing": [
+        "late_snack"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "late_seeds_hazelnuts",
+      "name": "Тиквени семки с лешници",
+      "products": [
+        {
+          "name": "тиквени семки",
+          "grams": 15
+        },
+        {
+          "name": "лешници",
+          "grams": 15
+        }
+      ],
+      "timing": [
+        "late_snack"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 3,
+      "tags": []
+    },
+    {
+      "id": "late_nuts_berries",
+      "name": "Ядки с боровинки",
+      "products": [
+        {
+          "name": "бадеми",
+          "grams": 15
+        },
+        {
+          "name": "боровинки",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "snack",
+        "late_snack"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "late_skryr_almonds",
+      "name": "Скир с бадеми",
+      "products": [
+        {
+          "name": "скир",
+          "grams": 100
+        },
+        {
+          "name": "бадеми",
+          "grams": 15
+        }
+      ],
+      "timing": [
+        "late_snack"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "late_cottage_walnuts",
+      "name": "Извара с орехи",
+      "products": [
+        {
+          "name": "извара",
+          "grams": 100
+        },
+        {
+          "name": "орехи",
+          "grams": 15
+        }
+      ],
+      "timing": [
+        "late_snack"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": []
+    },
+    {
+      "id": "late_greek_yogurt_walnuts",
+      "name": "Гръцко кисело мляко с орехи",
+      "products": [
+        {
+          "name": "гръцко кисело мляко",
+          "grams": 100
+        },
+        {
+          "name": "орехи",
+          "grams": 15
+        }
+      ],
+      "timing": [
+        "late_snack"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    },
+    {
+      "id": "late_peanut_butter_apple",
+      "name": "Ябълка с фъстъчено масло",
+      "products": [
+        {
+          "name": "ябълка",
+          "grams": 100
+        },
+        {
+          "name": "фъстъчено масло",
+          "grams": 15
+        }
+      ],
+      "timing": [
+        "late_snack"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": []
+    }
+  ]
+}

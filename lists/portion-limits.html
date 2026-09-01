@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Порции — NutriPlan списъци</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="./list-editor.css">
+</head>
+<body>
+  <div class="shell">
+    <a class="back" href="../lists-hub.html">← Всички списъци</a>
+    <h1><i class="fas fa-weight-scale"></i> Порции (portion-limits)</h1>
+    <p class="sub">Тавани и минимуми на грамажи — предотвратяват нереалистично мащабиране.</p>
+
+    <div class="toolbar">
+      <button type="button" class="btn ghost" id="reload">Обнови</button>
+      <button type="button" class="btn warn" id="download">Изтегли JSON</button>
+      <label class="btn ghost" style="cursor:pointer"><i class="fas fa-upload"></i> Импорт JSON<input type="file" id="fileIn" accept=".json" class="hidden"></label>
+      <button type="button" class="btn" id="addRow">+ Ред</button>
+      <span class="badge" id="meta">—</span>
+    </div>
+
+    <div class="card">
+      <h2>Глобални стойности</h2>
+      <div class="grid">
+        <div class="field"><label for="defMax">DEFAULT_MAX_PORTION_G</label><input id="defMax" type="number"></div>
+        <div class="field"><label for="defMin">DEFAULT_MIN_PORTION_G</label><input id="defMin" type="number"></div>
+        <div class="field"><label for="cookMax">COOKING_FAT_MAX_PORTION_G</label><input id="cookMax" type="number"></div>
+        <div class="field" style="grid-column:1/-1"><label for="cookKeys">COOKING_FAT_KEYS (CSV)</label><input id="cookKeys"></div>
+      </div>
+    </div>
+
+    <div class="tabs" id="tabs">
+      <button type="button" class="tab active" data-tab="groupMax">Групи max</button>
+      <button type="button" class="tab" data-tab="groupMin">Групи min</button>
+      <button type="button" class="tab" data-tab="itemMax">Храни max</button>
+      <button type="button" class="tab" data-tab="itemMin">Храни min</button>
+    </div>
+
+    <div class="card table-wrap">
+      <input type="search" id="search" placeholder="Филтър…" style="max-width:240px;margin-bottom:12px">
+      <table>
+        <thead><tr><th>Ключ</th><th>Грамове</th><th></th></tr></thead>
+        <tbody id="table"></tbody>
+      </table>
+      <div class="status" id="listStatus"></div>
+    </div>
+  </div>
+  <script type="module">
+    import { loadListJson, downloadJson, setStatus, bindFileImport, parseCsv, joinCsv } from './list-editor-core.js';
+
+    const JSON_URL = '../data/lists/portion-limits.json';
+    let doc = null;
+    let activeTab = 'groupMax';
+
+    function currentTable() {
+      return doc[activeTab] || {};
+    }
+
+    function renderGlobals() {
+      document.getElementById('defMax').value = doc.defaults?.maxPortionG ?? '';
+      document.getElementById('defMin').value = doc.defaults?.minPortionG ?? '';
+      document.getElementById('cookMax').value = doc.defaults?.cookingFatMaxPortionG ?? '';
+      document.getElementById('cookKeys').value = joinCsv(doc.cookingFatKeys);
+    }
+
+    function renderTable() {
+      const q = document.getElementById('search').value.trim().toLowerCase();
+      const tbody = document.getElementById('table');
+      tbody.innerHTML = '';
+      const rows = Object.entries(currentTable()).filter(([k]) => !q || k.toLowerCase().includes(q));
+      rows.sort(([a], [b]) => a.localeCompare(b, 'bg'));
+      for (const [key, grams] of rows) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><input data-k="${key}" class="key-in" value="${key}" style="background:transparent;border:none;padding:0"></td>
+          <td><input data-k="${key}" class="val-in" type="number" value="${grams}" style="max-width:100px"></td>
+          <td><button type="button" class="btn danger ghost del" data-k="${key}" style="padding:6px 10px">×</button></td>`;
+        tbody.appendChild(tr);
+      }
+      document.getElementById('meta').textContent = `${rows.length} реда · ${activeTab}`;
+      tbody.querySelectorAll('.val-in').forEach(inp => {
+        inp.onchange = () => {
+          const k = inp.dataset.k;
+          doc[activeTab][k] = Number(inp.value);
+          doc.updatedAt = new Date().toISOString();
+        };
+      });
+      tbody.querySelectorAll('.key-in').forEach(inp => {
+        inp.onchange = () => {
+          const oldK = inp.dataset.k;
+          const newK = inp.value.trim();
+          if (!newK || newK === oldK) return;
+          const v = doc[activeTab][oldK];
+          delete doc[activeTab][oldK];
+          doc[activeTab][newK] = v;
+          doc.updatedAt = new Date().toISOString();
+          renderTable();
+        };
+      });
+      tbody.querySelectorAll('.del').forEach(btn => {
+        btn.onclick = () => {
+          delete doc[activeTab][btn.dataset.k];
+          renderTable();
+        };
+      });
+    }
+
+    function syncGlobals() {
+      doc.defaults = {
+        maxPortionG: Number(document.getElementById('defMax').value),
+        minPortionG: Number(document.getElementById('defMin').value),
+        cookingFatMaxPortionG: Number(document.getElementById('cookMax').value),
+      };
+      doc.cookingFatKeys = parseCsv(document.getElementById('cookKeys').value);
+      doc.updatedAt = new Date().toISOString();
+    }
+
+    ['defMax', 'defMin', 'cookMax', 'cookKeys'].forEach(id => {
+      document.getElementById(id).addEventListener('change', syncGlobals);
+    });
+
+    async function load() {
+      setStatus(document.getElementById('listStatus'), 'Зареждане…');
+      try {
+        doc = await loadListJson(JSON_URL);
+        renderGlobals();
+        renderTable();
+        setStatus(document.getElementById('listStatus'), 'Заредено', 'ok');
+      } catch (e) {
+        setStatus(document.getElementById('listStatus'), e.message, 'err');
+      }
+    }
+
+    document.getElementById('tabs').onclick = e => {
+      const tab = e.target.closest('.tab');
+      if (!tab) return;
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      activeTab = tab.dataset.tab;
+      renderTable();
+    };
+    document.getElementById('reload').onclick = load;
+    document.getElementById('search').oninput = renderTable;
+    document.getElementById('addRow').onclick = () => {
+      const key = prompt('Ключ (храна или група):');
+      if (!key?.trim()) return;
+      doc[activeTab][key.trim()] = 50;
+      renderTable();
+    };
+    document.getElementById('download').onclick = () => {
+      syncGlobals();
+      downloadJson('portion-limits.json', doc);
+    };
+    bindFileImport(document.getElementById('fileIn'), data => { doc = data; renderGlobals(); renderTable(); });
+    load();
+  </script>
+</body>
+</html>
