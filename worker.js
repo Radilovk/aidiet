@@ -8739,6 +8739,41 @@ var MEAL_DISHES = [
     ["breakfast", "snack"],
     { vegetarian: true, universality: 4 }
   ),
+  dish(
+    "meal_greek_yogurt_honey_nuts",
+    "\u0413\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043C\u0435\u0434 \u0438 \u043E\u0440\u0435\u0445\u0438",
+    [["\u0433\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", 180], ["\u043C\u0435\u0434", 15], ["\u043E\u0440\u0435\u0445\u0438", 15]],
+    ["breakfast", "snack"],
+    { vegetarian: true, universality: 4 }
+  ),
+  dish(
+    "meal_buckwheat_milk_apple",
+    "\u0415\u043B\u0434\u0430 \u0441 \u043C\u043B\u044F\u043A\u043E \u0438 \u044F\u0431\u044A\u043B\u043A\u0430",
+    [["\u0435\u043B\u0434\u0430", 80], ["\u043C\u043B\u044F\u043A\u043E", 200], ["\u044F\u0431\u044A\u043B\u043A\u0430", 100]],
+    ["breakfast"],
+    { vegetarian: true, universality: 4 }
+  ),
+  dish(
+    "meal_cottage_peach",
+    "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u043F\u0440\u0430\u0441\u043A\u043E\u0432\u0430",
+    [["\u0438\u0437\u0432\u0430\u0440\u0430", 150], ["\u043F\u0440\u0430\u0441\u043A\u043E\u0432\u0430", 120]],
+    ["breakfast", "snack"],
+    { vegetarian: true, universality: 4 }
+  ),
+  dish(
+    "meal_bread_peanut_banana",
+    "\u0425\u043B\u044F\u0431 \u0441 \u0444\u044A\u0441\u0442\u044A\u0447\u0435\u043D\u043E \u043C\u0430\u0441\u043B\u043E \u0438 \u0431\u0430\u043D\u0430\u043D",
+    [["\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", 70], ["\u0444\u044A\u0441\u0442\u044A\u0447\u0435\u043D\u043E \u043C\u0430\u0441\u043B\u043E", 20], ["\u0431\u0430\u043D\u0430\u043D", 80]],
+    ["breakfast", "snack"],
+    { vegetarian: true, universality: 5 }
+  ),
+  dish(
+    "meal_eggs_peppers_tomato",
+    "\u042F\u0439\u0446\u0430 \u0441 \u0447\u0443\u0448\u043A\u0438 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+    [["\u044F\u0439\u0446\u0430", 150], ["\u0427\u0443\u0448\u043A\u0438", 80], ["\u0414\u043E\u043C\u0430\u0442\u0438", 80]],
+    ["breakfast", "main"],
+    { vegetarian: true, universality: 5 }
+  ),
   // ── Пиле и пуешко ────────────────────────────────────────────────────
   dish(
     "meal_rice_chicken",
@@ -8891,6 +8926,41 @@ var MEAL_DISHES = [
     ["main"],
     { universality: 4 }
   ),
+  dish(
+    "meal_chicken_buckwheat",
+    "\u041F\u0438\u043B\u0435 \u0441 \u0435\u043B\u0434\u0430 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+    [["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 130], ["\u0435\u043B\u0434\u0430", 150], ["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 100]],
+    ["main"],
+    { universality: 4 }
+  ),
+  dish(
+    "meal_chicken_corn_peppers",
+    "\u041F\u0438\u043B\u0435 \u0441 \u0446\u0430\u0440\u0435\u0432\u0438\u0446\u0430 \u0438 \u0447\u0443\u0448\u043A\u0438",
+    [["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 130], ["\u0446\u0430\u0440\u0435\u0432\u0438\u0446\u0430", 120], ["\u0427\u0443\u0448\u043A\u0438", 100]],
+    ["main"],
+    { universality: 4 }
+  ),
+  dish(
+    "meal_chicken_eggplant_tomato",
+    "\u041F\u0438\u043B\u0435 \u0441 \u043F\u0430\u0442\u043B\u0430\u0434\u0436\u0430\u043D \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+    [["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 130], ["\u043F\u0430\u0442\u043B\u0430\u0434\u0436\u0430\u043D", 120], ["\u0414\u043E\u043C\u0430\u0442\u0438", 80]],
+    ["main"],
+    { universality: 4 }
+  ),
+  dish(
+    "meal_turkey_lentil",
+    "\u041F\u0443\u0435\u0448\u043A\u043E \u0441 \u043B\u0435\u0449\u0430 \u0438 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
+    [["\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435", 130], ["\u043B\u0435\u0449\u0430", 150], ["\u041C\u043E\u0440\u043A\u043E\u0432\u0438", 80]],
+    ["main"],
+    { universality: 4 }
+  ),
+  dish(
+    "meal_turkey_beans",
+    "\u041F\u0443\u0435\u0448\u043A\u043E \u0441 \u0431\u043E\u0431 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+    [["\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435", 130], ["\u0431\u044F\u043B \u0431\u043E\u0431", 150], ["\u0414\u043E\u043C\u0430\u0442\u0438", 80]],
+    ["main"],
+    { universality: 4 }
+  ),
   // ── Червено месо ─────────────────────────────────────────────────────
   dish(
     "meal_beef_potato",
@@ -8929,6 +8999,27 @@ var MEAL_DISHES = [
     "meal_moussaka_style",
     "\u041A\u0430\u0439\u043C\u0430 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u043F\u0430\u0442\u043B\u0430\u0434\u0436\u0430\u043D",
     [["\u043A\u0430\u0439\u043C\u0430", 130], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 180], ["\u043F\u0430\u0442\u043B\u0430\u0434\u0436\u0430\u043D", 120]],
+    ["main"],
+    { universality: 4 }
+  ),
+  dish(
+    "meal_beef_spinach_potato",
+    "\u0413\u043E\u0432\u0435\u0436\u0434\u043E \u0441\u044A\u0441 \u0441\u043F\u0430\u043D\u0430\u043A \u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+    [["\u0433\u043E\u0432\u0435\u0436\u0434\u043E", 130], ["\u0441\u043F\u0430\u043D\u0430\u043A", 100], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 180]],
+    ["main"],
+    { universality: 4 }
+  ),
+  dish(
+    "meal_beef_peas_green_beans",
+    "\u0413\u043E\u0432\u0435\u0436\u0434\u043E \u0441 \u0433\u0440\u0430\u0445 \u0438 \u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B",
+    [["\u0433\u043E\u0432\u0435\u0436\u0434\u043E", 130], ["\u0433\u0440\u0430\u0445", 120], ["\u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B", 100]],
+    ["main"],
+    { universality: 4 }
+  ),
+  dish(
+    "meal_pork_cabbage",
+    "\u0421\u0432\u0438\u043D\u0441\u043A\u043E \u0441\u044A\u0441 \u0437\u0435\u043B\u0435 \u0438 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
+    [["\u0441\u0432\u0438\u043D\u0441\u043A\u043E", 130], ["\u0437\u0435\u043B\u0435", 120], ["\u041C\u043E\u0440\u043A\u043E\u0432\u0438", 80]],
     ["main"],
     { universality: 4 }
   ),
@@ -9014,6 +9105,41 @@ var MEAL_DISHES = [
     [["\u043B\u0430\u0432\u0440\u0430\u043A", 150], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 200], ["\u0441\u043F\u0430\u043D\u0430\u043A", 80]],
     ["main"],
     { universality: 3 }
+  ),
+  dish(
+    "meal_salmon_sweet_potato_broccoli",
+    "\u0421\u044C\u043E\u043C\u0433\u0430 \u0441\u044A\u0441 \u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+    [["\u0441\u044C\u043E\u043C\u0433\u0430", 130], ["\u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438", 180], ["\u0431\u0440\u043E\u043A\u043E\u043B\u0438", 100]],
+    ["main"],
+    { universality: 5 }
+  ),
+  dish(
+    "meal_mackerel_rice",
+    "\u0421\u043A\u0443\u043C\u0440\u0438\u044F \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0441\u043F\u0430\u043D\u0430\u043A",
+    [["\u0441\u043A\u0443\u043C\u0440\u0438\u044F", 120], ["\u043E\u0440\u0438\u0437", 150], ["\u0441\u043F\u0430\u043D\u0430\u043A", 80]],
+    ["main"],
+    { universality: 4 }
+  ),
+  dish(
+    "meal_fish_quinoa",
+    "\u0420\u0438\u0431\u0430 \u0441 \u043A\u0438\u043D\u043E\u0430 \u0438 \u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+    [["\u0440\u0438\u0431\u0430", 130], ["\u043A\u0438\u043D\u043E\u0430", 150], ["\u0431\u0440\u043E\u043A\u043E\u043B\u0438", 100]],
+    ["main"],
+    { universality: 4 }
+  ),
+  dish(
+    "meal_shrimp_rice_veg",
+    "\u0421\u043A\u0430\u0440\u0438\u0434\u0438 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+    [["\u0441\u043A\u0430\u0440\u0438\u0434\u0438", 120], ["\u043E\u0440\u0438\u0437", 150], ["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 100]],
+    ["main"],
+    { universality: 4 }
+  ),
+  dish(
+    "meal_tuna_rice_salad",
+    "\u0420\u0438\u0431\u0430 \u0442\u043E\u043D \u0441 \u043E\u0440\u0438\u0437 \u0438 \u043C\u0430\u0440\u0443\u043B\u044F",
+    [["\u0440\u0438\u0431\u0430 \u0442\u043E\u043D", 120], ["\u043E\u0440\u0438\u0437", 120], ["\u043C\u0430\u0440\u0443\u043B\u044F", 80]],
+    ["main"],
+    { universality: 4 }
   ),
   // ── Вегетариански и веган ────────────────────────────────────────────
   dish(
@@ -9204,6 +9330,55 @@ var MEAL_DISHES = [
     [["\u0431\u043E\u0431", 150], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 180], ["\u041C\u043E\u0440\u043A\u043E\u0432\u0438", 80]],
     ["main"],
     { vegan: true, universality: 4 }
+  ),
+  dish(
+    "meal_chickpea_rice",
+    "\u041D\u0430\u0445\u0443\u0442 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+    [["\u043D\u0430\u0445\u0443\u0442", 150], ["\u043E\u0440\u0438\u0437", 120], ["\u0414\u043E\u043C\u0430\u0442\u0438", 80]],
+    ["main"],
+    { vegan: true, universality: 5 }
+  ),
+  dish(
+    "meal_chickpea_quinoa_bowl",
+    "\u041D\u0430\u0445\u0443\u0442 \u0441 \u043A\u0438\u043D\u043E\u0430 \u0438 \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+    [["\u043D\u0430\u0445\u0443\u0442", 150], ["\u043A\u0438\u043D\u043E\u0430", 120], ["\u041A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438", 80]],
+    ["main"],
+    { vegan: true, universality: 4 }
+  ),
+  dish(
+    "meal_black_bean_rice",
+    "\u0427\u0435\u0440\u0435\u043D \u0431\u043E\u0431 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0447\u0443\u0448\u043A\u0438",
+    [["\u0447\u0435\u0440\u0435\u043D \u0431\u043E\u0431", 150], ["\u043E\u0440\u0438\u0437", 120], ["\u0427\u0443\u0448\u043A\u0438", 80]],
+    ["main"],
+    { vegan: true, universality: 4 }
+  ),
+  dish(
+    "meal_tofu_bulgur_peppers",
+    "\u0422\u043E\u0444\u0443 \u0441 \u0431\u0443\u043B\u0433\u0443\u0440 \u0438 \u0447\u0443\u0448\u043A\u0438",
+    [["\u0442\u043E\u0444\u0443", 130], ["\u0431\u0443\u043B\u0433\u0443\u0440", 150], ["\u0427\u0443\u0448\u043A\u0438", 80]],
+    ["main"],
+    { vegan: true, universality: 4 }
+  ),
+  dish(
+    "meal_pumpkin_lentil",
+    "\u0422\u0438\u043A\u0432\u0430 \u0441 \u043B\u0435\u0449\u0430 \u0438 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
+    [["\u0442\u0438\u043A\u0432\u0430", 150], ["\u043B\u0435\u0449\u0430", 120], ["\u041C\u043E\u0440\u043A\u043E\u0432\u0438", 80]],
+    ["main"],
+    { vegan: true, universality: 4 }
+  ),
+  dish(
+    "meal_pea_potato_stew",
+    "\u0413\u0440\u0430\u0445 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
+    [["\u0433\u0440\u0430\u0445", 150], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 150], ["\u041C\u043E\u0440\u043A\u043E\u0432\u0438", 80]],
+    ["main"],
+    { vegan: true, universality: 4 }
+  ),
+  dish(
+    "meal_lentil_bread",
+    "\u041B\u0435\u0449\u0430 \u0441 \u043C\u043E\u0440\u043A\u043E\u0432\u0438 \u0438 \u0445\u043B\u044F\u0431",
+    [["\u043B\u0435\u0449\u0430", 150], ["\u041C\u043E\u0440\u043A\u043E\u0432\u0438", 80], ["\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", 60]],
+    ["main"],
+    { vegan: true, universality: 5 }
   ),
   // ── Кето / нисковъглехидратни ────────────────────────────────────────
   dish(
@@ -9432,6 +9607,41 @@ var MEAL_DISHES = [
     ["snack"],
     { vegan: true, universality: 3 }
   ),
+  dish(
+    "snack_greek_yogurt_honey",
+    "\u0413\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043C\u0435\u0434",
+    [["\u0433\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", 150], ["\u043C\u0435\u0434", 15]],
+    ["snack"],
+    { vegetarian: true, universality: 4, tags: ["sweet_slot"] }
+  ),
+  dish(
+    "snack_mandarin_almonds",
+    "\u041C\u0430\u043D\u0434\u0430\u0440\u0438\u043D\u0430 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438",
+    [["\u043C\u0430\u043D\u0434\u0430\u0440\u0438\u043D\u0430", 120], ["\u0431\u0430\u0434\u0435\u043C\u0438", 15]],
+    ["snack"],
+    { vegan: true, universality: 4 }
+  ),
+  dish(
+    "snack_peach_cottage",
+    "\u041F\u0440\u0430\u0441\u043A\u043E\u0432\u0430 \u0441 \u0438\u0437\u0432\u0430\u0440\u0430",
+    [["\u043F\u0440\u0430\u0441\u043A\u043E\u0432\u0430", 120], ["\u0438\u0437\u0432\u0430\u0440\u0430", 120]],
+    ["snack"],
+    { vegetarian: true, universality: 4 }
+  ),
+  dish(
+    "snack_peanut_banana",
+    "\u0411\u0430\u043D\u0430\u043D \u0441 \u0444\u044A\u0441\u0442\u044A\u0446\u0438",
+    [["\u0431\u0430\u043D\u0430\u043D", 120], ["\u0444\u044A\u0441\u0442\u044A\u0446\u0438", 20]],
+    ["snack"],
+    { vegan: true, universality: 5 }
+  ),
+  dish(
+    "snack_tahini_carrots",
+    "\u041C\u043E\u0440\u043A\u043E\u0432\u0438 \u0441 \u0442\u0430\u0445\u0430\u043D",
+    [["\u041C\u043E\u0440\u043A\u043E\u0432\u0438", 100], ["\u0442\u0430\u0445\u0430\u043D", 20]],
+    ["snack"],
+    { vegan: true, universality: 3 }
+  ),
   // ── Контролирано сладко ──────────────────────────────────────────────
   dish(
     "sweet_yogurt_berries",
@@ -9517,6 +9727,20 @@ var MEAL_DISHES = [
     [["\u0438\u0437\u0432\u0430\u0440\u0430", 100], ["\u043E\u0440\u0435\u0445\u0438", 15]],
     ["late_snack"],
     { vegetarian: true, universality: 5 }
+  ),
+  dish(
+    "late_greek_yogurt_walnuts",
+    "\u0413\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043E\u0440\u0435\u0445\u0438",
+    [["\u0433\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", 120], ["\u043E\u0440\u0435\u0445\u0438", 15]],
+    ["late_snack"],
+    { vegetarian: true, universality: 4 }
+  ),
+  dish(
+    "late_peanut_butter_apple",
+    "\u042F\u0431\u044A\u043B\u043A\u0430 \u0441 \u0444\u044A\u0441\u0442\u044A\u0447\u0435\u043D\u043E \u043C\u0430\u0441\u043B\u043E",
+    [["\u044F\u0431\u044A\u043B\u043A\u0430", 120], ["\u0444\u044A\u0441\u0442\u044A\u0447\u0435\u043D\u043E \u043C\u0430\u0441\u043B\u043E", 15]],
+    ["late_snack"],
+    { vegan: true, universality: 4 }
   )
 ];
 var MEAL_DISHES_BY_ID = new Map(MEAL_DISHES.map((d) => [d.id, d]));

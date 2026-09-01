@@ -131,6 +131,16 @@ export const MEAL_DISHES = [
     ['breakfast'], { vegetarian: true, universality: 4 }),
   dish('meal_rye_cheese_cucumber', 'Ръжен хляб със сирене и краставици', [['ръжен хляб', 80], ['сирене', 50], ['Краставици', 80]],
     ['breakfast', 'snack'], { vegetarian: true, universality: 4 }),
+  dish('meal_greek_yogurt_honey_nuts', 'Гръцко кисело мляко с мед и орехи', [['гръцко кисело мляко', 180], ['мед', 15], ['орехи', 15]],
+    ['breakfast', 'snack'], { vegetarian: true, universality: 4 }),
+  dish('meal_buckwheat_milk_apple', 'Елда с мляко и ябълка', [['елда', 80], ['мляко', 200], ['ябълка', 100]],
+    ['breakfast'], { vegetarian: true, universality: 4 }),
+  dish('meal_cottage_peach', 'Извара с праскова', [['извара', 150], ['праскова', 120]],
+    ['breakfast', 'snack'], { vegetarian: true, universality: 4 }),
+  dish('meal_bread_peanut_banana', 'Хляб с фъстъчено масло и банан', [['пълнозърнест хляб', 70], ['фъстъчено масло', 20], ['банан', 80]],
+    ['breakfast', 'snack'], { vegetarian: true, universality: 5 }),
+  dish('meal_eggs_peppers_tomato', 'Яйца с чушки и домати', [['яйца', 150], ['Чушки', 80], ['Домати', 80]],
+    ['breakfast', 'main'], { vegetarian: true, universality: 5 }),
 
   // ── Пиле и пуешко ────────────────────────────────────────────────────
   dish('meal_rice_chicken', 'Пиле с ориз и зеленчуци', [['пилешко месо', 130], ['ориз', 150], ['Зеленчуци', 100]],
@@ -177,6 +187,16 @@ export const MEAL_DISHES = [
     ['main'], { universality: 4 }),
   dish('meal_lentil_chicken', 'Пиле с леща и моркови', [['пилешко месо', 130], ['леща', 150], ['Моркови', 80]],
     ['main'], { universality: 4 }),
+  dish('meal_chicken_buckwheat', 'Пиле с елда и зеленчуци', [['пилешко месо', 130], ['елда', 150], ['Зеленчуци', 100]],
+    ['main'], { universality: 4 }),
+  dish('meal_chicken_corn_peppers', 'Пиле с царевица и чушки', [['пилешко месо', 130], ['царевица', 120], ['Чушки', 100]],
+    ['main'], { universality: 4 }),
+  dish('meal_chicken_eggplant_tomato', 'Пиле с патладжан и домати', [['пилешко месо', 130], ['патладжан', 120], ['Домати', 80]],
+    ['main'], { universality: 4 }),
+  dish('meal_turkey_lentil', 'Пуешко с леща и моркови', [['пуешко филе', 130], ['леща', 150], ['Моркови', 80]],
+    ['main'], { universality: 4 }),
+  dish('meal_turkey_beans', 'Пуешко с боб и домати', [['пуешко филе', 130], ['бял боб', 150], ['Домати', 80]],
+    ['main'], { universality: 4 }),
 
   // ── Червено месо ─────────────────────────────────────────────────────
   dish('meal_beef_potato', 'Говеждо с картофи', [['говеждо', 130], ['картофи', 200], ['Моркови', 60]],
@@ -190,6 +210,12 @@ export const MEAL_DISHES = [
   dish('meal_pork_beans', 'Свинско с боб', [['свинско', 100], ['бял боб', 200], ['лук', 30]],
     ['main'], { universality: 3 }),
   dish('meal_moussaka_style', 'Кайма с картофи и патладжан', [['кайма', 130], ['картофи', 180], ['патладжан', 120]],
+    ['main'], { universality: 4 }),
+  dish('meal_beef_spinach_potato', 'Говеждо със спанак и картофи', [['говеждо', 130], ['спанак', 100], ['картофи', 180]],
+    ['main'], { universality: 4 }),
+  dish('meal_beef_peas_green_beans', 'Говеждо с грах и зелен фасул', [['говеждо', 130], ['грах', 120], ['зелен фасул', 100]],
+    ['main'], { universality: 4 }),
+  dish('meal_pork_cabbage', 'Свинско със зеле и моркови', [['свинско', 130], ['зеле', 120], ['Моркови', 80]],
     ['main'], { universality: 4 }),
 
   // ── Риба ─────────────────────────────────────────────────────────────
@@ -217,6 +243,16 @@ export const MEAL_DISHES = [
     ['main'], { universality: 4 }),
   dish('meal_lavrak_potato', 'Лаврак с картофи и спанак', [['лаврак', 150], ['картофи', 200], ['спанак', 80]],
     ['main'], { universality: 3 }),
+  dish('meal_salmon_sweet_potato_broccoli', 'Сьомга със сладки картофи и броколи', [['сьомга', 130], ['сладки картофи', 180], ['броколи', 100]],
+    ['main'], { universality: 5 }),
+  dish('meal_mackerel_rice', 'Скумрия с ориз и спанак', [['скумрия', 120], ['ориз', 150], ['спанак', 80]],
+    ['main'], { universality: 4 }),
+  dish('meal_fish_quinoa', 'Риба с киноа и броколи', [['риба', 130], ['киноа', 150], ['броколи', 100]],
+    ['main'], { universality: 4 }),
+  dish('meal_shrimp_rice_veg', 'Скариди с ориз и зеленчуци', [['скариди', 120], ['ориз', 150], ['Зеленчуци', 100]],
+    ['main'], { universality: 4 }),
+  dish('meal_tuna_rice_salad', 'Риба тон с ориз и маруля', [['риба тон', 120], ['ориз', 120], ['маруля', 80]],
+    ['main'], { universality: 4 }),
 
   // ── Вегетариански и веган ────────────────────────────────────────────
   dish('meal_lentil_stew', 'Яхния от леща', [['леща', 200], ['Зеленчуци', 100], ['зехтин', 10]],
@@ -273,6 +309,20 @@ export const MEAL_DISHES = [
     ['main'], { vegan: true, universality: 3 }),
   dish('meal_bean_potato', 'Боб с картофи и моркови', [['боб', 150], ['картофи', 180], ['Моркови', 80]],
     ['main'], { vegan: true, universality: 4 }),
+  dish('meal_chickpea_rice', 'Нахут с ориз и домати', [['нахут', 150], ['ориз', 120], ['Домати', 80]],
+    ['main'], { vegan: true, universality: 5 }),
+  dish('meal_chickpea_quinoa_bowl', 'Нахут с киноа и краставици', [['нахут', 150], ['киноа', 120], ['Краставици', 80]],
+    ['main'], { vegan: true, universality: 4 }),
+  dish('meal_black_bean_rice', 'Черен боб с ориз и чушки', [['черен боб', 150], ['ориз', 120], ['Чушки', 80]],
+    ['main'], { vegan: true, universality: 4 }),
+  dish('meal_tofu_bulgur_peppers', 'Тофу с булгур и чушки', [['тофу', 130], ['булгур', 150], ['Чушки', 80]],
+    ['main'], { vegan: true, universality: 4 }),
+  dish('meal_pumpkin_lentil', 'Тиква с леща и моркови', [['тиква', 150], ['леща', 120], ['Моркови', 80]],
+    ['main'], { vegan: true, universality: 4 }),
+  dish('meal_pea_potato_stew', 'Грах с картофи и моркови', [['грах', 150], ['картофи', 150], ['Моркови', 80]],
+    ['main'], { vegan: true, universality: 4 }),
+  dish('meal_lentil_bread', 'Леща с моркови и хляб', [['леща', 150], ['Моркови', 80], ['пълнозърнест хляб', 60]],
+    ['main'], { vegan: true, universality: 5 }),
 
   // ── Кето / нисковъглехидратни ────────────────────────────────────────
   dish('meal_egg_avocado_spinach', 'Яйца с авокадо и спанак', [['яйца', 150], ['авокадо', 70], ['спанак', 80]],
@@ -343,6 +393,16 @@ export const MEAL_DISHES = [
     ['snack'], { vegan: true, universality: 4 }),
   dish('snack_celery_hummus', 'Целина с хумус', [['целина', 100], ['хумус', 60]],
     ['snack'], { vegan: true, universality: 3 }),
+  dish('snack_greek_yogurt_honey', 'Гръцко кисело мляко с мед', [['гръцко кисело мляко', 150], ['мед', 15]],
+    ['snack'], { vegetarian: true, universality: 4, tags: ['sweet_slot'] }),
+  dish('snack_mandarin_almonds', 'Мандарина с бадеми', [['мандарина', 120], ['бадеми', 15]],
+    ['snack'], { vegan: true, universality: 4 }),
+  dish('snack_peach_cottage', 'Праскова с извара', [['праскова', 120], ['извара', 120]],
+    ['snack'], { vegetarian: true, universality: 4 }),
+  dish('snack_peanut_banana', 'Банан с фъстъци', [['банан', 120], ['фъстъци', 20]],
+    ['snack'], { vegan: true, universality: 5 }),
+  dish('snack_tahini_carrots', 'Моркови с тахан', [['Моркови', 100], ['тахан', 20]],
+    ['snack'], { vegan: true, universality: 3 }),
 
   // ── Контролирано сладко ──────────────────────────────────────────────
   dish('sweet_yogurt_berries', 'Кисело мляко с боровинки', [['кисело мляко', 150], ['боровинки', 80]],
@@ -371,6 +431,10 @@ export const MEAL_DISHES = [
     ['late_snack'], { vegetarian: true, universality: 4 }),
   dish('late_cottage_walnuts', 'Извара с орехи', [['извара', 100], ['орехи', 15]],
     ['late_snack'], { vegetarian: true, universality: 5 }),
+  dish('late_greek_yogurt_walnuts', 'Гръцко кисело мляко с орехи', [['гръцко кисело мляко', 120], ['орехи', 15]],
+    ['late_snack'], { vegetarian: true, universality: 4 }),
+  dish('late_peanut_butter_apple', 'Ябълка с фъстъчено масло', [['ябълка', 120], ['фъстъчено масло', 15]],
+    ['late_snack'], { vegan: true, universality: 4 }),
 ];
 
 /** Ястия по id — за бърза проверка. */
