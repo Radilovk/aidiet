@@ -144,8 +144,14 @@ function rankPoolEntries(pool, ctx, roleKey, slotType) {
   const start = (seed + dayNum * 13 + slotIndex * 7 + roleKey.charCodeAt(0)) % ranked.length;
   const scored = [];
   for (let i = 0; i < ranked.length; i++) {
-    const entry = ranked[(start + i) % ranked.length];
-    scored.push({ entry, score: scorePoolEntry(entry, ctx, slotType) });
+    const idx = (start + i) % ranked.length;
+    const entry = ranked[idx];
+    // Употребата решава — тя пази разнообразието. Рангът подрежда еднакво
+    // използваните: без него класирането по макроси нямаше ефект.
+    scored.push({
+      entry,
+      score: scorePoolEntry(entry, ctx, slotType) + (idx / ranked.length) * 0.9,
+    });
   }
   scored.sort((a, b) => a.score - b.score);
   const seen = new Set();

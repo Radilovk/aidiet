@@ -34,6 +34,7 @@ import fitnessWorker from './fitness/worker.js';
 import { MEAL_CARRY_MAX_DISTORTION } from './meal-day-sync.js';
 import {
   syncWeekPlanNutritionFromDatabase,
+  enforceGramGrid,
   normalizeFoodKey,
   lookupFoodProfile,
   profileToKvArray,
@@ -8483,6 +8484,10 @@ function finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, userData = n
     const day = weekPlan[`day${d}`];
     if (!day?.meals) continue;
     for (const meal of day.meals) {
+      // Мрежата за грамажи е продуктово правило и се налага на изхода: това е
+      // последната точка, през която минава всяко хранене — включително тези
+      // от AI резервния път, които решателят не е пипал.
+      enforceGramGrid(meal);
       if (meal.type === 'Свободно хранене') {
         meal.name = meal.name || 'Свободно хранене';
         delete meal.description;
