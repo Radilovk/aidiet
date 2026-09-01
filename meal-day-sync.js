@@ -6,14 +6,24 @@
 import {
   applyMealNutritionFromDatabase,
   macrosToNutritionProfile,
+  mealAchievableKcal,
 } from './food-nutrition.js';
 import {
   resolveAtomicEntryFromDescription,
   SCALING_ATOMIC,
 } from './food-registry.js';
-import { isMealCaloriesAdequate } from './plan-normalize.js';
+import { isMealCaloriesAdequate, FIRST_MEAL_SLOT } from './plan-normalize.js';
 
 const SKIP_TYPES = new Set(['Свободно хранене', 'Напитка']);
+
+/**
+ * Колко може да се измести целта на един слот, за да се събере денят.
+ *
+ * Грамажите вървят на стъпки от 50 г и едно ястие не може да улучи произволно
+ * число калории; разликата се пренася към следващите основни хранения. Това е
+ * договорът, по който слотът се решава — и по който трябва да се проверява.
+ */
+export const MEAL_CARRY_MAX_DISTORTION = 0.25;
 
 function dessertNutrition(meal) {
   if (!meal?.dessert || typeof meal.dessert !== 'object') return null;
@@ -78,6 +88,25 @@ export function adjustDecomposableTargets(decomposable, kcalDrift) {
 }
 
 /**
+ * Целта на слота — в границите на преноса и на мрежата на ястието.
+ *
+ * Ястието не носи произволно число калории: грамажите вървят на стъпки и
+ * между две съседни порции има дупка. Преносът избира най-близката стойност,
+ * която ястието наистина има, вместо да иска нещо по средата на дупката.
+ */
+function carryTargetFor(meal, wanted, floor, ceiling) {
+  const bounded = Math.max(floor, Math.min(ceiling, wanted));
+  const options = [bounded, floor, ceiling]
+    .map(k => mealAchievableKcal(meal, k))
+    .filter(k => k > 0);
+  if (!options.length) return bounded;
+  const inBand = options.filter(k => k >= floor && k <= ceiling);
+  const pool = inBand.length ? inBand : options;
+  return pool.reduce((best, k) =>
+    Math.abs(k - bounded) < Math.abs(best - bounded) ? k : best);
+}
+
+/**
  * Sync one day: atomics first, redistribute drift, then decomposable solver path.
  */
 export function syncDayMealsNutrition(day, dayScheme, extraDb = {}) {
@@ -117,7 +146,7 @@ export function syncDayMealsNutrition(day, dayScheme, extraDb = {}) {
   // Два кръга: първият решава слотовете, вторият дава на основните хранения
   // остатъка на деня. Един кръг не стигаше, защото последният слот трябваше да
   // поеме всичко, натрупано преди него.
-  const CARRY_RECIPIENTS = new Set(['Хранене 1', 'Хранене 2', 'Хранене 4']);
+  const CARRY_RECIPIENTS = new Set([FIRST_MEAL_SLOT, 'Хранене 2', 'Хранене 4']);
   const dayTargetKcal = decomposable.reduce(
     (sum, x) => sum + (Number(x.schemeTarget?.calories) || 0), 0);
 
@@ -128,13 +157,26 @@ export function syncDayMealsNutrition(day, dayScheme, extraDb = {}) {
       const remaining = decomposable.slice(i).filter(x => CARRY_RECIPIENTS.has(x.meal.type)).length;
       const baseKcal = Number(schemeTarget?.calories) || 0;
       const share = CARRY_RECIPIENTS.has(meal.type) && remaining > 0 ? carry / remaining : 0;
-      // Слотът поема част от разликата, но не се изкривява повече от 25%.
+      // Слотът поема част от разликата, но не се изкривява повече от 25% —
+      // и никога извън това, което ястието в него може да носи. Иначе
+      // преносът искаше от пилешката супа 1000 kcal, тя даваше 780, а
+      // разликата се връщаше като грешка на слот, чийто ден е верен.
       const adjusted = baseKcal > 0
-        ? Math.max(baseKcal * 0.75, Math.min(baseKcal * 1.25, baseKcal + share))
+        ? carryTargetFor(
+          meal,
+          baseKcal + share,
+          baseKcal * (1 - MEAL_CARRY_MAX_DISTORTION),
+          baseKcal * (1 + MEAL_CARRY_MAX_DISTORTION),
+        )
         : baseKcal;
       const solveTarget = baseKcal > 0 && Math.round(adjusted) !== baseKcal
         ? { ...schemeTarget, calories: Math.round(adjusted) }
         : schemeTarget;
+
+      // Каква цел е получил слотът наистина. Без този запис валидацията сравнява
+      // готовото хранене със замразената схема, а не с целта, по която е решено,
+      // и обявява за грешка точно преноса, който сама е поискала.
+      meal.targetCalories = Number(solveTarget.calories) || baseKcal;
 
       const result = applyMealNutritionFromDatabase(meal, solveTarget, extraDb);
       if (result.unknowns?.length) unknowns.push(...result.unknowns);

@@ -332,11 +332,20 @@ function solveDishScale(items, target, maxTotalGrams) {
 
     const totals = totalsFor(items, grams);
     if (totals.grams > maxTotalGrams) continue;
-    // kcal решава; макросите са мек критерий между близки мащаби.
+    // kcal решава; макросите са мек критерий между близки мащаби. Всички
+    // разлики се мерят в една единица — дял от калориите на слота. Делено на
+    // самия макрос, късната закуска (цел „почти нула въглехидрати“) правеше от
+    // 5 г разлика 250% грешка и решателят свиваше ястието на 89 kcal при цел 144.
     let cost = 3 * Math.abs(totals.kcal - targetKcal) / targetKcal;
-    if (target.p > 0) cost += 0.5 * Math.abs(totals.p - target.p) / target.p;
-    if (target.c > 0) cost += 0.3 * Math.abs(totals.c - target.c) / target.c;
-    if (target.f > 0) cost += 0.3 * Math.abs(totals.f - target.f) / target.f;
+    if (target.p > 0) cost += 0.5 * Math.abs(totals.p - target.p) * 4 / targetKcal;
+    if (target.c > 0) cost += 0.3 * Math.abs(totals.c - target.c) * 4 / targetKcal;
+    if (target.f > 0) cost += 0.3 * Math.abs(totals.f - target.f) * 9 / targetKcal;
+    // Формата на ястието. Мрежата от 50 г мести продуктите различно — 84 г
+    // отиват на 100, а 70 г на 50 — и салатата излизаше със 100 г риба тон
+    // върху 50 г маруля. При близки калории печели по-вярната пропорция.
+    const shape = grams.reduce((sum, g, i) => sum + Math.abs(g / refs[i] - scale), 0)
+      / (grams.length * scale);
+    cost += 0.8 * shape;
     if (!best || cost < best.cost) best = { grams, totals, cost };
   }
   if (!best) return null;
@@ -405,12 +414,18 @@ export function computeMealItemBounds(items, slotTarget, maxTotalGrams = MAX_MEA
 }
 
 /**
- * Energy window a product set can reach within realistic portions.
- * Lets the composer add or drop a component when a slot is out of reach,
- * instead of the solver over-serving one product to close the gap.
- * @returns {{ minKcal: number, maxKcal: number }}
+ * Калориите, които ястието наистина може да достигне за тази цел.
+ *
+ * Мрежата 5/50 прави постижимите стойности редки: 50 г овесени ядки са
+ * 195 kcal, тъй че между 339 и 543 няма нищо. Ястие, чиято цел попада в такава дупка, изглежда
+ * подходящо по прозорец и после не улучва слота — затова изборът пита
+ * решателя, а не прозореца.
+ *
+ * @returns {number} 0, когато ястието изобщо не може да бъде мащабирано
  */
-export function compositionCapacity(products = [], slotTarget = {}, maxTotalGrams = MAX_MEAL_WEIGHT_GRAMS) {
+export function achievableKcal(products = [], targetKcal = 0) {
+  const target = Number(targetKcal) || 0;
+  if (target <= 0) return 0;
   const items = products
     .map(p => (typeof p === 'string' ? { name: p } : p))
     .map(p => ({
@@ -418,31 +433,29 @@ export function compositionCapacity(products = [], slotTarget = {}, maxTotalGram
       profile: lookupFoodProfile(p.name).profile, grams: 0,
     }))
     .filter(item => item.profile);
-  if (!items.length) return { minKcal: 0, maxKcal: 0 };
-
-  const refs = items.map(i => Number(i.referenceGrams) || 0);
-  if (refs.every(r => r > 0)) {
-    const windows = items.map(item => portionWindow(item));
-    const minScale = Math.max(0.35, ...refs.map((ref, i) => windows[i].min / ref));
-    const maxScale = Math.min(
-      ...refs.map((ref, i) => windows[i].max / ref),
-      maxTotalGrams / refs.reduce((a, b) => a + b, 0),
-    );
-    if (maxScale >= minScale) {
-      const at = scale => totalsFor(items, refs.map(ref => snapGrams(ref * scale))).kcal;
-      return { minKcal: at(minScale), maxKcal: at(maxScale) };
-    }
-  }
-
-  const kcal = Number(slotTarget?.kcal ?? slotTarget?.calories) || 0;
-  const bounds = computeMealItemBounds(items, { kcal }, maxTotalGrams);
-  const profiles = items.map(it => ({ profile: it.profile }));
-  return {
-    minKcal: totalsFor(profiles, bounds.map(b => b.min)).kcal,
-    maxKcal: totalsFor(profiles, bounds.map(b => b.max)).kcal,
-  };
+  if (!items.length) return 0;
+  const solved = solveDishScale(items, { kcal: target }, MAX_MEAL_WEIGHT_GRAMS);
+  if (!solved) return 0;
+  // Същата аритметика, каквато храненето ще покаже: калориите се смятат от
+  // закръглените макроси. Иначе ястие, което пасва на ръба (134 при допуск
+  // 174±40), излизаше 133 и слотът се обявяваше за грешка.
+  const { p, c, f } = solved.totals;
+  return Math.round(Math.round(p) * 4 + Math.round(c) * 4 + Math.round(f) * 9);
 }
 
+/**
+ * Калориите, които точно това хранене ще даде при тази цел.
+ *
+ * Дневният пренос стяга или разтяга целта на слота, а мрежата от 50 г прави
+ * постижимите стойности редки. Без този въпрос преносът искаше от авокадото
+ * върху хляб 315 kcal — стойност, която ястието няма — и то даваше 213.
+ * @returns {number} 0, когато храненето не носи декларирано ястие
+ */
+export function mealAchievableKcal(meal, targetKcal) {
+  const parts = meal?.dishId ? READY_MEAL_PARTS[meal.dishId] : null;
+  if (!parts?.length) return 0;
+  return achievableKcal(parts.map(p => ({ name: p.name, grams: p.grams })), targetKcal);
+}
 
 function seedGramsForItem(item, bounds, slotTarget, itemCount = 1) {
   if (item.grams > 0) return item.grams;

@@ -12,9 +12,9 @@
 import { getCatalogCandidatesForChunk, resolveCatalogEntry } from './food-catalog.js';
 import { rankCatalogCandidates } from './candidate-ranking.js';
 import { passesDietRegistry } from './diet-registry.js';
-import { userSkipsBreakfast } from './plan-normalize.js';
 import { normalizeFoodKey } from './food-utils.js';
-import { parseMealDescription, compositionCapacity } from './food-nutrition.js';
+import { parseMealDescription, achievableKcal } from './food-nutrition.js';
+import { isMealCaloriesAdequate } from './plan-normalize.js';
 import { READY_MEAL_PARTS } from './ready-meal-parts.js';
 
 const DAY_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
@@ -180,7 +180,7 @@ function pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx) {
   // отговаря, по-добре най-близкото ястие, отколкото никакво.
   // relaxed (plan engine v2): skip energy/veg/no-repeat narrows — still honors diet + blocks.
   const preferred = ctx.relaxed ? [] : [
-    p => narrowByEnergyFit(p, slotTarget),
+    p => narrowByEnergyFit(p, slotTarget, ctx.achievableCache),
     p => (PLATED_MEAL_SLOTS.has(slotType)
       ? p.filter(e => readyMealProducts(e).some(x => isVegetableName(x.name)))
       : p),
@@ -193,13 +193,59 @@ function pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx) {
   return pickFromPool(pool, ctx, 'READY');
 }
 
-/** Ястия, чиято порция може да стигне целта на слота. */
-function narrowByEnergyFit(pool, slotTarget) {
+/**
+ * Ястия, чиято порция наистина улучва слота.
+ *
+ * Прозорецът на ястието не стига като критерий: „Сандвич с пиле“ носи
+ * най-малко 314 kcal и попадаше в следобедна закуска за 154, а овесената каша
+ * скача от 339 на 543 kcal, защото 50 г овесени ядки са 195 kcal — целта от
+ * 442 просто няма грамаж. Затова изборът пита решателя какво може да достигне.
+ *
+ * Когато нищо не улучва, връща най-близките: слотът пак трябва да получи
+ * ястие, но да е това, което най-малко се разминава, а не произволно.
+ */
+function narrowByEnergyFit(pool, slotTarget, cache) {
   const targetKcal = Number(slotTarget?.calories) || 0;
   if (targetKcal <= 0) return pool;
-  return pool.filter(
-    e => compositionCapacity(readyMealProducts(e), { kcal: targetKcal }).maxKcal >= targetKcal,
-  );
+  const scored = pool.map(e => ({ e, kcal: dishAchievableKcal(e, targetKcal, cache) }));
+  const fits = scored.filter(x => isMealCaloriesAdequate(x.kcal, targetKcal));
+  // Първо ястията, които стигат целта. Допускът от 18% значи, че ястие с
+  // таван 600 kcal „пасва“ на слот от 722 — три такива слота в един ден и
+  // денят излиза 320 kcal по-малко, без нито един слот да е сгрешил.
+  // Но само докато остават достатъчно за седмица без повторения: при веган
+  // само две ястия стигат обяда и седмицата ставаше от две ястия.
+  const carries = fits.filter(x => x.kcal >= targetKcal);
+  if (carries.length >= MIN_DISHES_FOR_ENERGY_PREFERENCE) return carries.map(x => x.e);
+  if (fits.length) return fits.map(x => x.e);
+  return scored
+    .sort((a, b) => Math.abs(a.kcal - targetKcal) - Math.abs(b.kcal - targetKcal))
+    .slice(0, CLOSEST_DISH_FALLBACK)
+    .map(x => x.e);
+}
+
+/** Колко ястия остават в играта, когато нито едно не улучва слота. */
+const CLOSEST_DISH_FALLBACK = 5;
+
+/**
+ * Един слот се появява 7 пъти в седмицата, а договорът за разнообразие иска
+ * поне половината хранения да са различни ястия — под четири ястия в избора
+ * по-важно е разнообразието, отколкото последните 10% от целта.
+ */
+const MIN_DISHES_FOR_ENERGY_PREFERENCE = 4;
+
+/**
+ * Мащабирането е едно и също за едно ястие и една цел — а се пита за всеки ден
+ * от седмицата. Запомня се за една седмица, не в модула: админът може да смени
+ * грамажите на ястие през KV и модулен кеш би върнал стари стойности.
+ */
+function dishAchievableKcal(entry, targetKcal, cache) {
+  const key = `${entry.id || entry.name}|${targetKcal}`;
+  let kcal = cache?.get(key);
+  if (kcal === undefined) {
+    kcal = achievableKcal(readyMealProducts(entry), targetKcal);
+    cache?.set(key, kcal);
+  }
+  return kcal;
 }
 
 /** A ready meal is blocked when any of its parts is. */
@@ -301,6 +347,7 @@ export function buildDeterministicWeekPlanChunk({
   });
 
   const usedProducts = collectUsedProducts(previousDays);
+  const achievableCache = new Map();
   /** @type {Record<string, { meals: object[] }>} */
   const out = {};
 
@@ -316,7 +363,9 @@ export function buildDeterministicWeekPlanChunk({
     // Reset per day so a dish can recur across the week but never within a day.
     const dishesToday = new Set();
     for (const slot of dayScheme.mealBreakdown) {
-      if (slot.type === 'Хранене 1' && userSkipsBreakfast(userData)) continue;
+      // Схемата е договорът: тя вече е махнала закуската на клиент, който не
+      // закусва. Второ, сляпо махане тук изтриваше и лекото първо хранене,
+      // върнато само защото денят не се събира без него.
       if (slot.type === 'Хранене 2' && dayScheme.mealBreakdown.some(m => m.type === 'Свободно хранене')) continue;
 
       const ctx = {
@@ -326,6 +375,7 @@ export function buildDeterministicWeekPlanChunk({
         slotTarget: slot,
         usedProducts,
         dishesToday,
+        achievableCache,
         dietCtx,
         blockedTerms,
         loveSet,
