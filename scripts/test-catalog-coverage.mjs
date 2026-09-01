@@ -51,7 +51,7 @@ const liquidBreakfast = MEAL_DISHES.filter(d => inferDishTags(d).includes('liqui
 const lowCarb = MEAL_DISHES.filter(d => inferDishTags(d).includes('low_carb'));
 const sweetSlot = MEAL_DISHES.filter(d => inferDishTags(d).includes('sweet_slot'));
 
-ok(MEAL_DISHES.length >= 95, `catalog has 95+ dishes (${MEAL_DISHES.length})`);
+ok(MEAL_DISHES.length >= 120, `catalog has 120+ dishes (${MEAL_DISHES.length})`);
 ok(liquidBreakfast.length >= 8, `liquid breakfast pool (${liquidBreakfast.length})`);
 ok(lowCarb.length >= 12, `low_carb pool (${lowCarb.length})`);
 ok(sweetSlot.length >= 10, `sweet_slot pool (${sweetSlot.length})`);

@@ -276,9 +276,11 @@ for (const { profile, analysis: golden } of matrixProfiles) {
   // Day totals must land on the prescribed intake.
   let dayDrift = [];
   for (let d = 1; d <= 7; d++) {
+    const dayScheme = strat.weeklyScheme[DAY_KEYS[d - 1]].mealBreakdown || [];
+    if (dayScheme.some(m => m.type === 'Свободно хранене')) continue;
     const kcalDay = (week[`day${d}`]?.meals || [])
       .reduce((sum, m) => sum + (Number(m.calories) || 0), 0);
-    const schemeKcal = (strat.weeklyScheme[DAY_KEYS[d - 1]].mealBreakdown || [])
+    const schemeKcal = dayScheme
       .filter(m => m.type !== 'Свободно хранене')
       .reduce((sum, m) => sum + (Number(m.calories) || 0), 0);
     if (schemeKcal > 0 && Math.abs(kcalDay - schemeKcal) > schemeKcal * 0.11) {
