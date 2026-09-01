@@ -8779,6 +8779,42 @@ var MEAL_DISHES = [
     [["\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435", 130], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 200], ["\u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B", 80]],
     ["main"]
   ),
+  // ── Обилни основни (висок калораж, skip-breakfast / атлети) ──────────
+  dish(
+    "meal_hearty_pasta_beef",
+    "\u041F\u0430\u0441\u0442\u0430 \u0441 \u0433\u043E\u0432\u0435\u0436\u0434\u043E \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+    [["\u043F\u0430\u0441\u0442\u0430", 200], ["\u0433\u043E\u0432\u0435\u0436\u0434\u043E", 150], ["\u0414\u043E\u043C\u0430\u0442\u0438", 100], ["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 80]],
+    ["main"],
+    { universality: 5, tags: ["high_energy"] }
+  ),
+  dish(
+    "meal_hearty_pork_rice",
+    "\u0421\u0432\u0438\u043D\u0441\u043A\u043E \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+    [["\u0441\u0432\u0438\u043D\u0441\u043A\u043E", 150], ["\u043E\u0440\u0438\u0437", 220], ["\u0422\u0438\u043A\u0432\u0438\u0447\u043A\u0438", 100]],
+    ["main"],
+    { universality: 4, tags: ["high_energy"] }
+  ),
+  dish(
+    "meal_hearty_chicken_rice",
+    "\u041F\u0438\u043B\u0435\u0448\u043A\u043E \u0441 \u043E\u0440\u0438\u0437 (\u043E\u0431\u0438\u043B\u043D\u0430 \u043F\u043E\u0440\u0446\u0438\u044F)",
+    [["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 170], ["\u043E\u0440\u0438\u0437", 220], ["\u0431\u0440\u043E\u043A\u043E\u043B\u0438", 100]],
+    ["main"],
+    { universality: 5, tags: ["high_energy"] }
+  ),
+  dish(
+    "meal_hearty_beef_potato",
+    "\u0413\u043E\u0432\u0435\u0436\u0434\u043E \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 (\u043E\u0431\u0438\u043B\u043D\u0430 \u043F\u043E\u0440\u0446\u0438\u044F)",
+    [["\u0433\u043E\u0432\u0435\u0436\u0434\u043E", 160], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 260], ["\u041C\u043E\u0440\u043A\u043E\u0432\u0438", 80]],
+    ["main"],
+    { universality: 5, tags: ["high_energy"] }
+  ),
+  dish(
+    "meal_hearty_pasta_chicken",
+    "\u041F\u0430\u0441\u0442\u0430 \u0441 \u043F\u0438\u043B\u0435 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+    [["\u043F\u0430\u0441\u0442\u0430", 200], ["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 160], ["\u0414\u043E\u043C\u0430\u0442\u0438", 100]],
+    ["main"],
+    { universality: 5, tags: ["high_energy"] }
+  ),
   // ── Червено месо ─────────────────────────────────────────────────────
   dish(
     "meal_beef_potato",
@@ -17384,6 +17420,9 @@ var ITEM_MAX_PORTION_G = {
   "\u043F\u0435\u0441\u0442\u043E": 30,
   "\u043C\u0430\u0441\u043B\u0438\u043D\u0438": 60,
   "\u0430\u0432\u043E\u043A\u0430\u0434\u043E": 150,
+  // Хлябът в сандвич е 2–3 филии; мащабиран до 350 г изглеждаше като торта.
+  "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431": 120,
+  "\u0445\u043B\u044F\u0431": 120,
   // Листните зеленчуци са обем без тегло: 300 г маруля не е чиния, а купа
   // листа. Без този таван salad-ът ставаше пълнител, с който solver-ът
   // догонваше калориите.
@@ -18392,7 +18431,7 @@ function validateDayCoherence(dayPlan, dayNum = null) {
   const seen = /* @__PURE__ */ new Map();
   for (const meal of meals) {
     if (SKIP_SLOTS.has(meal.type)) continue;
-    const key = String(meal.name || "").trim().toLowerCase();
+    const key = String(meal.dishId || meal.name || "").trim().toLowerCase();
     if (key) seen.set(key, (seen.get(key) || 0) + 1);
   }
   for (const [name, count] of seen) {
@@ -18806,6 +18845,18 @@ function readyMealProducts(entry) {
   const parts = READY_MEAL_PARTS[entry.id] || [];
   return parts.length ? parts.map((part) => ({ name: part.name, grams: part.grams })) : [{ name: entry.name }];
 }
+function dishDayKey(entry) {
+  return entry.id || normalizeFoodKey(entry.name);
+}
+function excludeDishesToday(pool, ctx) {
+  if (ctx.relaxed || !ctx.dishesToday?.size) return pool;
+  return pool.filter((e) => !ctx.dishesToday.has(dishDayKey(e)));
+}
+function preferVegetableOnPlated(pool, slotType) {
+  if (!PLATED_MEAL_SLOTS.has(slotType) || !pool.length) return pool;
+  const withVeg = pool.filter((e) => readyMealProducts(e).some((x) => isVegetableName(x.name)));
+  return withVeg.length ? withVeg : pool;
+}
 function buildReadyMealPool(slotType, slotTarget, candidatesBySlot, ctx, { forRepair = false } = {}) {
   const ready = candidatesBySlot.get("READY") || [];
   let pool = ready.filter((e) => readyMealFitsSlot(e, slotType));
@@ -18820,17 +18871,13 @@ function buildReadyMealPool(slotType, slotTarget, candidatesBySlot, ctx, { forRe
     const tagged = pool.filter((e) => dishMatchesTagFilter(e, ctx.tagFilter));
     if (tagged.length) pool = tagged;
   }
-  if (!pool.length || ctx.relaxed || forRepair) return pool;
-  const preferred = [
-    (p) => narrowByEnergyFit(p, slotTarget, ctx.achievableCache),
-    (p) => PLATED_MEAL_SLOTS.has(slotType) ? p.filter((e) => readyMealProducts(e).some((x) => isVegetableName(x.name))) : p,
-    (p) => p.filter((e) => !ctx.dishesToday.has(normalizeFoodKey(e.name)))
-  ];
-  for (const narrow of preferred) {
-    const next = narrow(pool);
-    if (next.length) pool = next;
-  }
-  return pool;
+  if (!pool.length) return pool;
+  pool = excludeDishesToday(pool, ctx);
+  if (!pool.length) return pool;
+  if (ctx.relaxed || forRepair) return pool;
+  const energyFit = narrowByEnergyFit(pool, slotTarget, ctx.achievableCache);
+  if (energyFit.length) return preferVegetableOnPlated(energyFit, slotType);
+  return preferVegetableOnPlated(pool, slotType);
 }
 function listReadyMealCandidates(slotType, slotTarget, candidatesBySlot, ctx, limit = SLOT_REPAIR_CANDIDATE_COUNT) {
   let pool = buildReadyMealPool(slotType, slotTarget, candidatesBySlot, ctx);
@@ -18883,7 +18930,7 @@ function recordReadyMealUse(entry, ctx, slotType) {
     const k = normalizeFoodKey(catalogName(part.name) || part.name);
     ctx.usedProducts.set(k, (ctx.usedProducts.get(k) || 0) + 1);
   }
-  ctx.dishesToday.add(normalizeFoodKey(entry.name));
+  ctx.dishesToday.add(dishDayKey(entry));
 }
 async function buildMealForSchemeSlot({ slotType, slotTarget, candidatesBySlot, ctx, includeDessert = false }) {
   if (slotType === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435") {

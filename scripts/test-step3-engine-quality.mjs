@@ -27,6 +27,7 @@ import { normalizeFoodKey } from '../food-utils.js';
 import { maxPortionGrams } from '../portion-limits.js';
 import { isValidGramStep } from '../gram-rounding.js';
 import { PROFILES } from './plan-adequacy/fixtures/profiles.mjs';
+import { HARD_PROFILES } from './plan-adequacy/fixtures/hard-profiles.mjs';
 import { buildGoldenAnalysis } from './plan-adequacy/fixtures/golden-analysis.mjs';
 
 const DAY_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
@@ -147,6 +148,50 @@ for (let d = 1; d <= 3; d++) {
   }
 }
 ok(dessertDays >= 1, 'H2 dessert flag set when includeDessert=true');
+
+// Kamen-like AI scheme: skip breakfast, oversized H2/H4 — must not duplicate dishes or bread towers
+const kamenProfile = HARD_PROFILES.find(p => p.id === 'kamen_benchmark');
+const kamenBadScheme = {
+  dietaryModifier: 'Балансирано',
+  weeklyScheme: Object.fromEntries(
+    ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((key, i) => {
+      if (key === 'sunday') {
+        return [key, { mealBreakdown: [{ type: 'Свободно хранене', calories: 800 }] }];
+      }
+      return [key, {
+        mealBreakdown: [
+          { type: 'Хранене 2', calories: 1191, protein: 80, carbs: 100, fats: 35 },
+          { type: 'Хранене 3', calories: 257, protein: 15, carbs: 20, fats: 8 },
+          { type: 'Хранене 4', calories: 1191, protein: 80, carbs: 90, fats: 35 },
+          { type: 'Хранене 5', calories: 178, protein: 20, carbs: 5, fats: 10 },
+        ],
+      }];
+    }),
+  ),
+};
+const kamenChunk = await buildDeterministicWeekPlanChunk({
+  strategy: kamenBadScheme,
+  userData: kamenProfile,
+  startDay: 1,
+  endDay: 6,
+  seed: 1,
+});
+const kamenWeek = JSON.parse(JSON.stringify(kamenChunk));
+syncWeekPlanNutritionFromDatabase(kamenWeek, kamenBadScheme, 1, 6, kamenProfile);
+ok(validateWeekPlanDayCoherence(kamenWeek).length === 0,
+  'kamen oversized slots: no repeated dish in one day',
+  validateWeekPlanDayCoherence(kamenWeek).join('; '));
+const breadOver = [];
+for (let d = 1; d <= 6; d++) {
+  for (const meal of kamenWeek[`day${d}`]?.meals || []) {
+    for (const item of parseMealDescription(meal.description || '')) {
+      if (/хляб/i.test(item.name) && item.grams > 120) {
+        breadOver.push(`д${d} ${item.grams}g ${item.name}`);
+      }
+    }
+  }
+}
+ok(breadOver.length === 0, 'kamen oversized slots: bread capped at 120g', breadOver.slice(0, 3).join(', '));
 
 // Main meals must be coherent dishes, not random macro piles
 const READY_DISH = /ориз с пиле|риба с картофи|пилешка салата|пилешка супа|яхния|омлет|овесена каша|сандвич|на скара|на фурна|купа|извара|скир/i;
