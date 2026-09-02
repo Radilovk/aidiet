@@ -23009,11 +23009,133 @@ function deterministicStep1Enabled(env = {}) {
   if (v === "0" || v === "false" || v === false) return false;
   return true;
 }
+function metabolicReviewEnabled(env = {}) {
+  const v = env?.METABOLIC_REVIEW;
+  if (v === "0" || v === "false" || v === false) return false;
+  return true;
+}
+var METABOLIC_REVIEW_BOUNDS = {
+  clinical: { min: -12, max: 5 },
+  metabolic: { min: -8, max: 5 }
+};
 function goalIncludes(goal, keyword) {
   if (!goal || !keyword) return false;
   const kw = String(keyword).toLowerCase();
   if (Array.isArray(goal)) return goal.some((g) => String(g).toLowerCase().includes(kw));
   return String(goal).toLowerCase().includes(kw);
+}
+function clampPercent(value, min, max) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 0;
+  const rounded = Math.round(n * 10) / 10;
+  return Math.max(min, Math.min(max, rounded));
+}
+function combinedReviewBounds(ctx = {}) {
+  if (ctx.isLactation) return { min: -5, max: 8 };
+  if (goalIncludes(ctx.goal, "\u041C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430")) return { min: -10, max: 5 };
+  return { min: -15, max: 8 };
+}
+function mergeAdjustmentPercent(aiValue, structuredValue) {
+  const ai = Number(aiValue) || 0;
+  const st = Number(structuredValue) || 0;
+  if (st < 0) return Math.min(ai, st);
+  if (st > 0) return Math.max(ai, st);
+  return ai;
+}
+function deriveStructuredMetabolicHints(data = {}) {
+  const blob = [
+    ...Array.isArray(data.medicalConditions) ? data.medicalConditions : [],
+    data["medicalConditions_\u0415\u043D\u0434\u043E\u043A\u0440\u0438\u043D\u043D\u0438_\u0434\u0435\u0442\u0430\u0439\u043B"] || "",
+    data["medicalConditions_\u041C\u0435\u0442\u0430\u0431\u043E\u043B\u0438\u0442\u043D\u0438_\u0434\u0435\u0442\u0430\u0439\u043B"] || "",
+    ...Array.isArray(data.medications) ? data.medications : []
+  ].join(" ").toLowerCase();
+  let clinical = 0;
+  let metabolic = 0;
+  if (/хипотирео|hypothyroid|щитовидн.*(недост|ниска|hypo)/i.test(blob)) {
+    clinical = Math.min(clinical, -5);
+  }
+  if (/хипертирео|hyperthyroid|щитовидн.*(висок|hyper)/i.test(blob)) {
+    clinical = Math.max(clinical, 3);
+  }
+  const sleep = Number(data.sleepHours);
+  if (sleep > 0 && sleep < 6) metabolic = Math.min(metabolic, sleep < 5 ? -5 : -3);
+  const stress = String(data.stressLevel || "").toLowerCase();
+  if (/много висок|висок|high|severe/i.test(stress)) {
+    metabolic = Math.min(metabolic, -2);
+  }
+  return { clinical, metabolic };
+}
+function computeBoundedReviewPercent(cm = {}, ctx = {}, structured = {}) {
+  const { clinical: cBounds, metabolic: mBounds } = METABOLIC_REVIEW_BOUNDS;
+  const combined = combinedReviewBounds(ctx);
+  const aiClinical = clampPercent(cm.clinicalAdjustmentPercent, cBounds.min, cBounds.max);
+  const aiMetabolic = clampPercent(cm.metabolicAdjustmentPercent, mBounds.min, mBounds.max);
+  const clinical = clampPercent(
+    mergeAdjustmentPercent(aiClinical, structured.clinical),
+    cBounds.min,
+    cBounds.max
+  );
+  const metabolic = clampPercent(
+    mergeAdjustmentPercent(aiMetabolic, structured.metabolic),
+    mBounds.min,
+    mBounds.max
+  );
+  let total = clinical + metabolic;
+  if (ctx.isLactation && goalIncludes(ctx.goal, "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435") && total < -5) {
+    total = -5;
+  }
+  return {
+    clinical,
+    metabolic,
+    total: clampPercent(total, combined.min, combined.max),
+    goalIgnored: true
+  };
+}
+function applyBoundedMetabolicReview(analysis, options = {}) {
+  if (!analysis?._deterministicEnergy || options.enabled === false) return analysis;
+  const userData = options.userData || {};
+  const cm = analysis.correctedMetabolism || (analysis.correctedMetabolism = {});
+  const baseline = Math.round(Number(analysis.Final_Calories) || 0);
+  if (baseline <= 0) return analysis;
+  const structured = deriveStructuredMetabolicHints(userData);
+  const review = computeBoundedReviewPercent(cm, {
+    goal: userData.goal,
+    isLactation: userData.clinicalProtocol === "postpartum_lactation"
+  }, structured);
+  cm.clinicalAdjustmentPercent = review.clinical;
+  cm.metabolicAdjustmentPercent = review.metabolic;
+  if (review.goalIgnored) {
+    cm._goalAdjustmentIgnored = true;
+    if (Number(cm.goalAdjustmentPercent)) {
+      cm._aiGoalAdjustmentPercent = cm.goalAdjustmentPercent;
+    }
+    cm.goalAdjustmentPercent = 0;
+  }
+  if (review.total === 0) {
+    cm.appliedReviewPercent = 0;
+    cm.baselineIntake = baseline;
+    cm.reviewSource = structured.clinical || structured.metabolic ? "structured_only_zero_net" : "deterministic_baseline";
+    return analysis;
+  }
+  const adjusted = Math.round(baseline * (1 + review.total / 100));
+  analysis.Final_Calories = adjusted;
+  analysis.recommendedCalories = adjusted;
+  if (analysis.macroRatios) {
+    analysis.macroGrams = macroGramsFromIntake(
+      adjusted,
+      analysis.macroRatios,
+      options.minFatG || 0
+    );
+  }
+  cm.appliedReviewPercent = review.total;
+  cm.baselineIntake = baseline;
+  cm.reviewSource = "bounded_metabolic_review";
+  cm.correctionPercent = `${review.total >= 0 ? "+" : ""}${review.total}%`;
+  const parts = [];
+  if (review.clinical) parts.push(`\u043A\u043B\u0438\u043D\u0438\u0447\u043D\u043E ${review.clinical}%`);
+  if (review.metabolic) parts.push(`\u043C\u0435\u0442\u0430\u0431\u043E\u043B\u0438\u0447\u043D\u043E ${review.metabolic}%`);
+  cm.correction = `\u041A\u043E\u0440\u0435\u043A\u0446\u0438\u044F \u0432\u044A\u0440\u0445\u0443 backend baseline (${baseline} kcal): ${parts.join(", ")}.`;
+  return analysis;
 }
 function computeIntakeTarget(tdee, goal, deficitData = {}) {
   const maintenance = Math.round(Number(tdee) || 0);
@@ -25604,6 +25726,9 @@ function refreshAnalysisEnergyFromProfile(env, data, analysis) {
       minFatG
     });
     applyDeterministicEnergyContract(analysis, contract);
+    if (metabolicReviewEnabled(env)) {
+      applyBoundedMetabolicReview(analysis, { userData: data, minFatG });
+    }
     console.log("Step 1: deterministic energy contract applied");
   }
   enforceCalorieGuardrails(analysis, data, tdee);

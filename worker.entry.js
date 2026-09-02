@@ -117,6 +117,8 @@ import {
   buildEnergyContract,
   applyDeterministicEnergyContract,
   deterministicStep1Enabled,
+  metabolicReviewEnabled,
+  applyBoundedMetabolicReview,
 } from './step1-deterministic.js';
 import {
   validateProtocolStrategy,
@@ -2906,6 +2908,9 @@ function refreshAnalysisEnergyFromProfile(env, data, analysis) {
       minFatG,
     });
     applyDeterministicEnergyContract(analysis, contract);
+    if (metabolicReviewEnabled(env)) {
+      applyBoundedMetabolicReview(analysis, { userData: data, minFatG });
+    }
     console.log('Step 1: deterministic energy contract applied');
   }
 
