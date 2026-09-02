@@ -153,7 +153,8 @@ export const DEFAULT_STRATEGY_REVIEWER_PROMPT = `Ти си старши клин
 - REJECT: само при явна медицинска несъвместимост (engine scheme не се пипа)
 - foodsToAvoid: включи ВСИЧКО от engineBlockedTerms + допълнителни от свободния текст
 - foodsToInclude/foodsToAvoid: типове храни, не конкретни ястия
-- includeDessert=false при диабет/инсулинова резистентност или ако клиентът не иска сладко`;
+- includeDessert=false при диабет/инсулинова резистентност или ако клиентът не иска сладко
+- Промяна на libraryDietProfile САМО при ясна клинична нужда (IBS→low_fodmap, веган→vegan). При диабет/IR — коригирай foodsToAvoid и includeDessert, не сменяй профила без нужда`;
 
 /**
  * Parse reviewer AI response.
