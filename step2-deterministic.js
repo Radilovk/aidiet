@@ -384,7 +384,7 @@ function buildCopyFields(dietProfile, mealsPerDay, slotTypes, userData, restored
 export function buildDeterministicStrategy({ userData = null, analysis = null, options = {} } = {}) {
   const weightKg = Number(userData?.weight) || 70;
 
-  const dietProfile = resolveLibraryDietProfile({
+  const dietProfile = options.libraryDietProfile || resolveLibraryDietProfile({
     dietaryModifier: options.dietaryModifier,
     dietPreference: userData?.dietPreference,
     dietDislike: userData?.dietDislike || '',

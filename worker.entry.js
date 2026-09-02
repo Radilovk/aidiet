@@ -135,6 +135,14 @@ import {
   DEFAULT_FINAL_DIRECTOR_PROMPT,
 } from './step6-final-director.js';
 import {
+  strategyReviewerEnabled,
+  buildStrategyReviewPacket,
+  buildStrategyReviewerPrompt,
+  parseStrategyReviewerResponse,
+  applyStrategyReviewAdjustments,
+  DEFAULT_STRATEGY_REVIEWER_PROMPT,
+} from './step2-strategy-reviewer.js';
+import {
   readOverlayFromKv,
   writeOverlayToKv,
   upsertOverlayEntry,
@@ -2925,8 +2933,8 @@ function finalizeStrategyObject(strategy, analysis, userData) {
 }
 
 /**
- * Step 2 resolver — deterministic-first; AI fallback on REJECT or build error.
- * REVIEW keeps engine authority; optional AI overlay enriches copy only.
+ * Step 2 resolver — deterministic-first; AI reviewer audits diet/restrictions;
+ * full AI fallback only on REJECT or build error.
  */
 async function resolveStep2Strategy(env, data, analysis, sessionId, options = {}) {
   const {
@@ -2945,8 +2953,25 @@ async function resolveStep2Strategy(env, data, analysis, sessionId, options = {}
         if (validation.warnings?.length) {
           console.warn(`Step 2 deterministic ${validation.status}:`, validation.warnings.join('; '));
         }
+        let strategy = detStrategy;
+        let strategyReview = null;
+        if (strategyReviewerEnabled(env)) {
+          try {
+            const reviewed = await runStrategyReviewerReview(
+              env,
+              strategy,
+              analysis,
+              data,
+              sessionId,
+            );
+            strategy = reviewed.strategy;
+            strategyReview = reviewed.review;
+          } catch (reviewErr) {
+            console.warn('Step 2 strategy reviewer skipped:', reviewErr.message);
+          }
+        }
         console.log(`Step 2: deterministic build (${validation.status})`);
-        return { strategy: detStrategy, usedDeterministic: true, validation };
+        return { strategy, usedDeterministic: true, validation, strategyReview };
       }
       console.warn(
         'Step 2 deterministic REJECT:',
@@ -4151,6 +4176,55 @@ async function persistFoodLedger(env, userId, ledgerSerialized, clientIdHint = '
 }
 
 const FINAL_DIRECTOR_TOKEN_LIMIT = 3500;
+const STRATEGY_REVIEWER_TOKEN_LIMIT = 3000;
+
+/** Step 2.5 — AI Strategy Reviewer: audit deterministic diet/restrictions before Step 3. */
+async function runStrategyReviewerReview(env, strategy, analysis, userData, sessionId) {
+  const reviewPacket = buildStrategyReviewPacket({ strategy, analysis, userData });
+  let customPrompt = null;
+  try {
+    customPrompt = await getCustomPrompt(env, 'admin_strategy_reviewer_prompt');
+  } catch (_) {
+    customPrompt = null;
+  }
+  const prompt = buildStrategyReviewerPrompt(reviewPacket, customPrompt || DEFAULT_STRATEGY_REVIEWER_PROMPT);
+  const response = await callAIModel(
+    env,
+    prompt,
+    STRATEGY_REVIEWER_TOKEN_LIMIT,
+    'step2_strategy_reviewer',
+    sessionId,
+    userData,
+    buildCompactAnalysis(analysis),
+  );
+  const parsed = parseAIResponse(response);
+  const review = parseStrategyReviewerResponse(parsed);
+  const mandatoryBlocked = extractQuestionnaireBlockedTerms(userData);
+
+  const previousProfile = strategy.libraryDietProfile;
+  if (
+    review.libraryDietProfile
+    && review.libraryDietProfile !== previousProfile
+    && review.verdict !== 'REJECT'
+  ) {
+    const rebuilt = buildDeterministicStrategy({
+      userData,
+      analysis,
+      options: {
+        libraryDietProfile: review.libraryDietProfile,
+        dietaryModifier: review.dietaryModifier || strategy.dietaryModifier,
+        freeDayNumber: strategy.freeDayNumber,
+      },
+    });
+    strategy.weeklyScheme = rebuilt.weeklyScheme;
+    strategy.libraryDietProfile = rebuilt.libraryDietProfile;
+  }
+
+  applyStrategyReviewAdjustments(strategy, review, { mandatoryBlocked });
+  strategy._deterministicCore = true;
+  console.log(`Step 2 Strategy Reviewer: ${review.verdict}`);
+  return { strategy, review };
+}
 
 /** Step 6 — AI Final Director: holistic QA + bounded presentation overlay. */
 async function runFinalDirectorReview(env, plan, userData, codeValidation = null) {
