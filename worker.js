@@ -22966,7 +22966,7 @@ function buildCopyFields(dietProfile, mealsPerDay, slotTypes, userData, restored
 }
 function buildDeterministicStrategy({ userData = null, analysis = null, options = {} } = {}) {
   const weightKg = Number(userData?.weight) || 70;
-  const dietProfile = resolveLibraryDietProfile({
+  const dietProfile = options.libraryDietProfile || resolveLibraryDietProfile({
     dietaryModifier: options.dietaryModifier,
     dietPreference: userData?.dietPreference,
     dietDislike: userData?.dietDislike || "",
@@ -23009,11 +23009,133 @@ function deterministicStep1Enabled(env = {}) {
   if (v === "0" || v === "false" || v === false) return false;
   return true;
 }
+function metabolicReviewEnabled(env = {}) {
+  const v = env?.METABOLIC_REVIEW;
+  if (v === "0" || v === "false" || v === false) return false;
+  return true;
+}
+var METABOLIC_REVIEW_BOUNDS = {
+  clinical: { min: -12, max: 5 },
+  metabolic: { min: -8, max: 5 }
+};
 function goalIncludes(goal, keyword) {
   if (!goal || !keyword) return false;
   const kw = String(keyword).toLowerCase();
   if (Array.isArray(goal)) return goal.some((g) => String(g).toLowerCase().includes(kw));
   return String(goal).toLowerCase().includes(kw);
+}
+function clampPercent(value, min, max) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 0;
+  const rounded = Math.round(n * 10) / 10;
+  return Math.max(min, Math.min(max, rounded));
+}
+function combinedReviewBounds(ctx = {}) {
+  if (ctx.isLactation) return { min: -5, max: 8 };
+  if (goalIncludes(ctx.goal, "\u041C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430")) return { min: -10, max: 5 };
+  return { min: -15, max: 8 };
+}
+function mergeAdjustmentPercent(aiValue, structuredValue) {
+  const ai = Number(aiValue) || 0;
+  const st = Number(structuredValue) || 0;
+  if (st < 0) return Math.min(ai, st);
+  if (st > 0) return Math.max(ai, st);
+  return ai;
+}
+function deriveStructuredMetabolicHints(data = {}) {
+  const blob = [
+    ...Array.isArray(data.medicalConditions) ? data.medicalConditions : [],
+    data["medicalConditions_\u0415\u043D\u0434\u043E\u043A\u0440\u0438\u043D\u043D\u0438_\u0434\u0435\u0442\u0430\u0439\u043B"] || "",
+    data["medicalConditions_\u041C\u0435\u0442\u0430\u0431\u043E\u043B\u0438\u0442\u043D\u0438_\u0434\u0435\u0442\u0430\u0439\u043B"] || "",
+    ...Array.isArray(data.medications) ? data.medications : []
+  ].join(" ").toLowerCase();
+  let clinical = 0;
+  let metabolic = 0;
+  if (/хипотирео|hypothyroid|щитовидн.*(недост|ниска|hypo)/i.test(blob)) {
+    clinical = Math.min(clinical, -5);
+  }
+  if (/хипертирео|hyperthyroid|щитовидн.*(висок|hyper)/i.test(blob)) {
+    clinical = Math.max(clinical, 3);
+  }
+  const sleep = Number(data.sleepHours);
+  if (sleep > 0 && sleep < 6) metabolic = Math.min(metabolic, sleep < 5 ? -5 : -3);
+  const stress = String(data.stressLevel || "").toLowerCase();
+  if (/много висок|висок|high|severe/i.test(stress)) {
+    metabolic = Math.min(metabolic, -2);
+  }
+  return { clinical, metabolic };
+}
+function computeBoundedReviewPercent(cm = {}, ctx = {}, structured = {}) {
+  const { clinical: cBounds, metabolic: mBounds } = METABOLIC_REVIEW_BOUNDS;
+  const combined = combinedReviewBounds(ctx);
+  const aiClinical = clampPercent(cm.clinicalAdjustmentPercent, cBounds.min, cBounds.max);
+  const aiMetabolic = clampPercent(cm.metabolicAdjustmentPercent, mBounds.min, mBounds.max);
+  const clinical = clampPercent(
+    mergeAdjustmentPercent(aiClinical, structured.clinical),
+    cBounds.min,
+    cBounds.max
+  );
+  const metabolic = clampPercent(
+    mergeAdjustmentPercent(aiMetabolic, structured.metabolic),
+    mBounds.min,
+    mBounds.max
+  );
+  let total = clinical + metabolic;
+  if (ctx.isLactation && goalIncludes(ctx.goal, "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435") && total < -5) {
+    total = -5;
+  }
+  return {
+    clinical,
+    metabolic,
+    total: clampPercent(total, combined.min, combined.max),
+    goalIgnored: true
+  };
+}
+function applyBoundedMetabolicReview(analysis, options = {}) {
+  if (!analysis?._deterministicEnergy || options.enabled === false) return analysis;
+  const userData = options.userData || {};
+  const cm = analysis.correctedMetabolism || (analysis.correctedMetabolism = {});
+  const baseline = Math.round(Number(analysis.Final_Calories) || 0);
+  if (baseline <= 0) return analysis;
+  const structured = deriveStructuredMetabolicHints(userData);
+  const review = computeBoundedReviewPercent(cm, {
+    goal: userData.goal,
+    isLactation: userData.clinicalProtocol === "postpartum_lactation"
+  }, structured);
+  cm.clinicalAdjustmentPercent = review.clinical;
+  cm.metabolicAdjustmentPercent = review.metabolic;
+  if (review.goalIgnored) {
+    cm._goalAdjustmentIgnored = true;
+    if (Number(cm.goalAdjustmentPercent)) {
+      cm._aiGoalAdjustmentPercent = cm.goalAdjustmentPercent;
+    }
+    cm.goalAdjustmentPercent = 0;
+  }
+  if (review.total === 0) {
+    cm.appliedReviewPercent = 0;
+    cm.baselineIntake = baseline;
+    cm.reviewSource = structured.clinical || structured.metabolic ? "structured_only_zero_net" : "deterministic_baseline";
+    return analysis;
+  }
+  const adjusted = Math.round(baseline * (1 + review.total / 100));
+  analysis.Final_Calories = adjusted;
+  analysis.recommendedCalories = adjusted;
+  if (analysis.macroRatios) {
+    analysis.macroGrams = macroGramsFromIntake(
+      adjusted,
+      analysis.macroRatios,
+      options.minFatG || 0
+    );
+  }
+  cm.appliedReviewPercent = review.total;
+  cm.baselineIntake = baseline;
+  cm.reviewSource = "bounded_metabolic_review";
+  cm.correctionPercent = `${review.total >= 0 ? "+" : ""}${review.total}%`;
+  const parts = [];
+  if (review.clinical) parts.push(`\u043A\u043B\u0438\u043D\u0438\u0447\u043D\u043E ${review.clinical}%`);
+  if (review.metabolic) parts.push(`\u043C\u0435\u0442\u0430\u0431\u043E\u043B\u0438\u0447\u043D\u043E ${review.metabolic}%`);
+  cm.correction = `\u041A\u043E\u0440\u0435\u043A\u0446\u0438\u044F \u0432\u044A\u0440\u0445\u0443 backend baseline (${baseline} kcal): ${parts.join(", ")}.`;
+  return analysis;
 }
 function computeIntakeTarget(tdee, goal, deficitData = {}) {
   const maintenance = Math.round(Number(tdee) || 0);
@@ -23187,6 +23309,213 @@ function applyDirectorAdjustments(plan, director) {
 function buildFinalDirectorPrompt(auditPacket, customTemplate = null) {
   const tpl = customTemplate || DEFAULT_FINAL_DIRECTOR_PROMPT;
   return tpl.replace(/\{auditPacket\}/g, auditPacket || "");
+}
+
+// step2-strategy-reviewer.js
+var ALLOWED_DIET_PROFILES = [
+  "balanced",
+  "mediterranean",
+  "keto",
+  "low_carb",
+  "vegan",
+  "vegetarian",
+  "pescatarian",
+  "high_protein",
+  "low_fodmap",
+  "dash",
+  "paleo",
+  "gluten_free",
+  "dairy_free",
+  "anti_inflammatory"
+];
+var DIET_PROFILE_LABELS2 = {
+  balanced: "\u0411\u0430\u043B\u0430\u043D\u0441\u0438\u0440\u0430\u043D\u043E",
+  mediterranean: "\u0421\u0440\u0435\u0434\u0438\u0437\u0435\u043C\u043D\u043E\u043C\u043E\u0440\u0441\u043A\u0430",
+  keto: "\u041A\u0435\u0442\u043E\u0433\u0435\u043D\u043D\u0430 \u0434\u0438\u0435\u0442\u0430",
+  low_carb: "\u041D\u0438\u0441\u043A\u043E\u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u043D\u0430",
+  vegan: "\u0412\u0435\u0433\u0430\u043D",
+  vegetarian: "\u0412\u0435\u0433\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u0430",
+  pescatarian: "\u041F\u0435\u0441\u043A\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u0430",
+  high_protein: "\u0412\u0438\u0441\u043E\u043A\u043E\u043F\u0440\u043E\u0442\u0435\u0438\u043D\u043E\u0432\u0430",
+  low_fodmap: "Low-FODMAP",
+  dash: "DASH",
+  paleo: "Paleo",
+  gluten_free: "\u0411\u0435\u0437 \u0433\u043B\u0443\u0442\u0435\u043D",
+  dairy_free: "\u0411\u0435\u0437 \u043C\u043B\u0435\u0447\u043D\u0438",
+  anti_inflammatory: "\u041F\u0440\u043E\u0442\u0438\u0432\u043E\u0432\u044A\u0437\u043F\u0430\u043B\u0438\u0442\u0435\u043B\u043D\u0430"
+};
+function strategyReviewerEnabled(env = {}) {
+  const v = env?.STRATEGY_REVIEWER;
+  if (v === "0" || v === "false" || v === false) return false;
+  return true;
+}
+function uniqueTerms(list = []) {
+  const out = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (const item2 of list) {
+    const t = String(item2 || "").trim();
+    if (t.length < 2) continue;
+    const key = t.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(t);
+  }
+  return out;
+}
+function summarizeWeeklyScheme2(strategy) {
+  const mon = strategy?.weeklyScheme?.monday;
+  if (!mon?.mealBreakdown?.length) return "\u2014";
+  const slots = mon.mealBreakdown.map((s) => `${s.type}=${s.calories}kcal`).join(", ");
+  return `${slots}; freeDay=${strategy.freeDayNumber ?? "?"}; dessert=${strategy.includeDessert}`;
+}
+function buildStrategyReviewPacket({ strategy = null, analysis = null, userData = null } = {}) {
+  const mg = analysis?.macroGrams || {};
+  const blocked = userData?._engineBlockedTerms || extractQuestionnaireBlockedTerms(userData);
+  const hints = userData?._engineDietHints || buildQuestionnaireDietHints(userData);
+  const dqNotes = [];
+  const textMap = userData?._dq_text_map || {};
+  for (const key of Object.keys(userData || {})) {
+    if (!key.startsWith("dq_")) continue;
+    const val = userData[key];
+    if (val == null || val === "") continue;
+    const label = textMap[key] || key;
+    dqNotes.push(`${label}: ${String(val).slice(0, 200)}`);
+  }
+  const sections = [
+    "=== ALGORITHM PROPOSAL (do not change weeklyScheme slots/kcal) ===",
+    `libraryDietProfile: ${strategy?.libraryDietProfile || "?"}`,
+    `dietaryModifier: ${strategy?.dietaryModifier || "?"}`,
+    `modifierReasoning: ${(strategy?.modifierReasoning || "").slice(0, 300)}`,
+    `includeDessert: ${strategy?.includeDessert}`,
+    `weeklyScheme: ${summarizeWeeklyScheme2(strategy)}`,
+    `foodsToInclude: ${(strategy?.foodsToInclude || strategy?.preferredFoodCategories || []).join("; ")}`,
+    `foodsToAvoid: ${(strategy?.foodsToAvoid || strategy?.avoidFoodCategories || []).join("; ")}`,
+    "",
+    "=== STEP 1 CONTRACT (fixed \u2014 do not change calories/macros) ===",
+    `intake: ${analysis?.Final_Calories || "?"} kcal/day`,
+    `macros: P${mg.protein || "?"}/C${mg.carbs || "?"}/F${mg.fats || "?"} g`,
+    "",
+    "=== CLIENT PROFILE ===",
+    `goal: ${JSON.stringify(userData?.goal || "")}`,
+    `preferences: ${JSON.stringify(userData?.dietPreference || "")}`,
+    `dislikes: ${userData?.dietDislike || "\u2014"}`,
+    `favorites: ${userData?.dietLove || "\u2014"}`,
+    `medical: ${JSON.stringify(userData?.medicalConditions || [])}`,
+    `clinicalProtocol: ${userData?.clinicalProtocol || "none"}`,
+    `habits: ${JSON.stringify(userData?.eatingHabits || [])}`,
+    `cravings: ${JSON.stringify(userData?.foodCravings || [])}`,
+    `engineDietHints: ${hints || "\u2014"}`,
+    `engineBlockedTerms: ${blocked.join("; ") || "\u2014"}`
+  ];
+  const notes = userData?.additionalNotes ? String(userData.additionalNotes).trim() : "";
+  if (notes) sections.push("", `additionalNotes:
+${notes.slice(0, 1200)}`);
+  if (dqNotes.length) sections.push("", `questionnaireDetails:
+${dqNotes.slice(0, 12).join("\n")}`);
+  return sections.join("\n");
+}
+var DEFAULT_STRATEGY_REVIEWER_PROMPT = `\u0422\u0438 \u0441\u0438 \u0441\u0442\u0430\u0440\u0448\u0438 \u043A\u043B\u0438\u043D\u0438\u0447\u0435\u043D \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433-\u0440\u0435\u0432\u0438\u0437\u043E\u0440. \u041F\u043E\u043B\u0443\u0447\u0430\u0432\u0430\u0448 \u0413\u041E\u0422\u041E\u0412\u041E \u0430\u043B\u0433\u043E\u0440\u0438\u0442\u043C\u0438\u0447\u043D\u043E \u043F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438\u0435 \u0437\u0430 Step 2 (\u0434\u0438\u0435\u0442\u0430, \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438\u044F, \u0440\u0430\u043C\u043A\u0430).
+
+\u2550\u2550\u2550 \u041A\u041E\u041D\u0422\u0415\u041A\u0421\u0422 \u2550\u2550\u2550
+{reviewPacket}
+
+\u2550\u2550\u2550 \u0420\u041E\u041B\u042F \u2550\u2550\u2550
+\u041E\u0434\u0438\u0442\u0438\u0440\u0430\u0439 \u0434\u0430\u043B\u0438 \u0430\u043B\u0433\u043E\u0440\u0438\u0442\u044A\u043C\u044A\u0442 \u0435 \u0438\u0437\u0431\u0440\u0430\u043B \u043F\u0440\u0430\u0432\u0438\u043B\u043D\u0430\u0442\u0430 \u0434\u0438\u0435\u0442\u0430 \u0438 \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0430 \u0440\u0430\u043C\u043A\u0430 \u0437\u0430 \u0442\u043E\u0437\u0438 \u043A\u043B\u0438\u0435\u043D\u0442.
+\u0427\u0435\u0442\u0438 \u0432\u043D\u0438\u043C\u0430\u0442\u0435\u043B\u043D\u043E additionalNotes \u0438 questionnaireDetails \u2014 \u0442\u0435 \u0438\u043C\u0430\u0442 \u043F\u0440\u0438\u043E\u0440\u0438\u0442\u0435\u0442 \u043D\u0430\u0434 \u043E\u0431\u0449\u0438 \u043F\u0440\u0435\u0434\u043F\u043E\u043B\u043E\u0436\u0435\u043D\u0438\u044F.
+
+\u041D\u0415 \u0441\u044A\u0437\u0434\u0430\u0432\u0430\u0439 \u043D\u043E\u0432 \u043F\u043B\u0430\u043D \u043E\u0442 \u043D\u0443\u043B\u0430\u0442\u0430. \u041D\u0415 \u043F\u0440\u043E\u043C\u0435\u043D\u044F\u0439 weeklyScheme (\u0441\u043B\u043E\u0442\u043E\u0432\u0435, \u043A\u0430\u043B\u043E\u0440\u0438\u0438, \u043C\u0430\u043A\u0440\u043E\u0441\u0438 \u043F\u043E \u0434\u0435\u043D).
+\u041C\u043E\u0436\u0435\u0448 \u0434\u0430 \u043A\u043E\u0440\u0438\u0433\u0438\u0440\u0430\u0448: libraryDietProfile, dietaryModifier, foodsToInclude, foodsToAvoid, includeDessert, \u043A\u043B\u0438\u0435\u043D\u0442\u0441\u043A\u0438 \u0442\u0435\u043A\u0441\u0442.
+
+\u0412\u044A\u0440\u043D\u0438 \u0421\u0410\u041C\u041E JSON:
+{
+  "verdict": "APPROVE" | "ADJUST" | "REJECT",
+  "libraryDietProfile": "balanced|mediterranean|keto|low_carb|vegan|vegetarian|pescatarian|high_protein|low_fodmap|dash|paleo|gluten_free|dairy_free|anti_inflammatory",
+  "dietaryModifier": "\u043A\u0440\u0430\u0442\u043A\u043E \u0438\u043C\u0435 \u043D\u0430 \u0434\u0438\u0435\u0442\u0430\u0442\u0430 \u0437\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430",
+  "modifierReasoning": "\u0437\u0430\u0449\u043E \u0442\u0430\u0437\u0438 \u0440\u0430\u043C\u043A\u0430 \u0435 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u0430 (\u043C\u0438\u043D. 40 \u0437\u043D\u0430\u043A\u0430)",
+  "foodsToInclude": ["3-8 \u043A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u0438/\u0442\u0438\u043F\u043E\u0432\u0435 \u0445\u0440\u0430\u043D\u0438 \u0437\u0430 \u0440\u0430\u043C\u043A\u0430\u0442\u0430"],
+  "foodsToAvoid": ["3-10 \u043A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u0438/\u0442\u0438\u043F\u043E\u0432\u0435 \u2014 \u043A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u0447\u043D\u043E \u0438\u0437\u043A\u043B\u044E\u0447\u0435\u043D\u0438"],
+  "includeDessert": true | false,
+  "reviewNotes": ["\u0431\u0435\u043B\u0435\u0436\u043A\u0438 \u0437\u0430 \u043E\u0434\u0438\u0442\u0430, max 4"],
+  "welcomeMessage": "\u043F\u043E \u0438\u0437\u0431\u043E\u0440 \u2014 80-200 \u0434\u0443\u043C\u0438",
+  "planJustification": "\u043F\u043E \u0438\u0437\u0431\u043E\u0440 \u2014 \u043E\u0431\u043E\u0441\u043D\u043E\u0432\u043A\u0430 \u0437\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430"
+}
+
+\u041F\u0440\u0430\u0432\u0438\u043B\u0430:
+- APPROVE: \u0430\u043B\u0433\u043E\u0440\u0438\u0442\u044A\u043C\u044A\u0442 \u0435 \u043A\u043E\u0440\u0435\u043A\u0442\u0435\u043D; \u043C\u043E\u0436\u0435\u0448 \u0434\u0430 \u0432\u044A\u0440\u043D\u0435\u0448 \u0441\u044A\u0449\u0438\u0442\u0435 \u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438
+- ADJUST: \u043A\u043E\u0440\u0438\u0433\u0438\u0440\u0430\u0439 \u0434\u0438\u0435\u0442\u0430/\u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438\u044F/\u0434\u0435\u0441\u0435\u0440\u0442; \u0437\u0430\u0434\u044A\u043B\u0436\u0438\u0442\u0435\u043B\u043D\u043E \u043F\u043E\u043F\u044A\u043B\u043D\u0438 modifierReasoning
+- REJECT: \u0441\u0430\u043C\u043E \u043F\u0440\u0438 \u044F\u0432\u043D\u0430 \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0430 \u043D\u0435\u0441\u044A\u0432\u043C\u0435\u0441\u0442\u0438\u043C\u043E\u0441\u0442 (engine scheme \u043D\u0435 \u0441\u0435 \u043F\u0438\u043F\u0430)
+- foodsToAvoid: \u0432\u043A\u043B\u044E\u0447\u0438 \u0412\u0421\u0418\u0427\u041A\u041E \u043E\u0442 engineBlockedTerms + \u0434\u043E\u043F\u044A\u043B\u043D\u0438\u0442\u0435\u043B\u043D\u0438 \u043E\u0442 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u0438\u044F \u0442\u0435\u043A\u0441\u0442
+- foodsToInclude/foodsToAvoid: \u0442\u0438\u043F\u043E\u0432\u0435 \u0445\u0440\u0430\u043D\u0438, \u043D\u0435 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u0438 \u044F\u0441\u0442\u0438\u044F
+- includeDessert=false \u043F\u0440\u0438 \u0434\u0438\u0430\u0431\u0435\u0442/\u0438\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430 \u0440\u0435\u0437\u0438\u0441\u0442\u0435\u043D\u0442\u043D\u043E\u0441\u0442 \u0438\u043B\u0438 \u0430\u043A\u043E \u043A\u043B\u0438\u0435\u043D\u0442\u044A\u0442 \u043D\u0435 \u0438\u0441\u043A\u0430 \u0441\u043B\u0430\u0434\u043A\u043E
+- \u041F\u0440\u043E\u043C\u044F\u043D\u0430 \u043D\u0430 libraryDietProfile \u0421\u0410\u041C\u041E \u043F\u0440\u0438 \u044F\u0441\u043D\u0430 \u043A\u043B\u0438\u043D\u0438\u0447\u043D\u0430 \u043D\u0443\u0436\u0434\u0430 (IBS\u2192low_fodmap, \u0432\u0435\u0433\u0430\u043D\u2192vegan). \u041F\u0440\u0438 \u0434\u0438\u0430\u0431\u0435\u0442/IR \u2014 \u043A\u043E\u0440\u0438\u0433\u0438\u0440\u0430\u0439 foodsToAvoid \u0438 includeDessert, \u043D\u0435 \u0441\u043C\u0435\u043D\u044F\u0439 \u043F\u0440\u043E\u0444\u0438\u043B\u0430 \u0431\u0435\u0437 \u043D\u0443\u0436\u0434\u0430`;
+function parseStrategyReviewerResponse(raw) {
+  const base = {
+    verdict: "APPROVE",
+    libraryDietProfile: null,
+    dietaryModifier: "",
+    modifierReasoning: "",
+    foodsToInclude: [],
+    foodsToAvoid: [],
+    includeDessert: null,
+    reviewNotes: [],
+    welcomeMessage: "",
+    planJustification: ""
+  };
+  if (!raw || typeof raw !== "object" || raw.error) return base;
+  const verdict = ["APPROVE", "ADJUST", "REJECT"].includes(raw.verdict) ? raw.verdict : "APPROVE";
+  const profile = ALLOWED_DIET_PROFILES.includes(raw.libraryDietProfile) ? raw.libraryDietProfile : null;
+  return {
+    verdict,
+    libraryDietProfile: profile,
+    dietaryModifier: String(raw.dietaryModifier || "").slice(0, 80),
+    modifierReasoning: String(raw.modifierReasoning || "").slice(0, 800),
+    foodsToInclude: Array.isArray(raw.foodsToInclude) ? raw.foodsToInclude.map(String).slice(0, 12) : [],
+    foodsToAvoid: Array.isArray(raw.foodsToAvoid) ? raw.foodsToAvoid.map(String).slice(0, 16) : [],
+    includeDessert: typeof raw.includeDessert === "boolean" ? raw.includeDessert : null,
+    reviewNotes: Array.isArray(raw.reviewNotes) ? raw.reviewNotes.map(String).slice(0, 5) : [],
+    welcomeMessage: String(raw.welcomeMessage || "").slice(0, 2e3),
+    planJustification: String(raw.planJustification || "").slice(0, 1200)
+  };
+}
+function applyStrategyReviewAdjustments(strategy, review, guardrails = {}) {
+  if (!strategy || !review) return strategy;
+  const mandatoryBlocked = uniqueTerms([
+    ...guardrails.mandatoryBlocked || [],
+    ...strategy.foodsToAvoid || [],
+    ...strategy.avoidFoodCategories || []
+  ]);
+  if (review.libraryDietProfile) {
+    strategy.libraryDietProfile = review.libraryDietProfile;
+  }
+  if (review.dietaryModifier) {
+    strategy.dietaryModifier = review.dietaryModifier;
+    strategy.dietType = review.dietaryModifier;
+  } else if (review.libraryDietProfile && DIET_PROFILE_LABELS2[review.libraryDietProfile]) {
+    strategy.dietaryModifier = DIET_PROFILE_LABELS2[review.libraryDietProfile];
+    strategy.dietType = strategy.dietaryModifier;
+  }
+  if (review.modifierReasoning) strategy.modifierReasoning = review.modifierReasoning;
+  if (review.foodsToInclude?.length) {
+    strategy.foodsToInclude = uniqueTerms(review.foodsToInclude);
+    strategy.preferredFoodCategories = [...strategy.foodsToInclude];
+  }
+  if (review.foodsToAvoid?.length || mandatoryBlocked.length) {
+    strategy.foodsToAvoid = uniqueTerms([...mandatoryBlocked, ...review.foodsToAvoid || []]);
+    strategy.avoidFoodCategories = [...strategy.foodsToAvoid];
+  }
+  if (review.includeDessert != null) strategy.includeDessert = review.includeDessert;
+  if (review.welcomeMessage) strategy.welcomeMessage = review.welcomeMessage;
+  if (review.planJustification) strategy.planJustification = review.planJustification;
+  strategy._strategyReview = {
+    verdict: review.verdict,
+    at: (/* @__PURE__ */ new Date()).toISOString(),
+    notes: review.reviewNotes || []
+  };
+  return strategy;
+}
+function buildStrategyReviewerPrompt(reviewPacket, customTemplate = null) {
+  const tpl = customTemplate || DEFAULT_STRATEGY_REVIEWER_PROMPT;
+  return tpl.replace(/\{reviewPacket\}/g, reviewPacket || "");
 }
 
 // admin-food-catalog.js
@@ -25398,6 +25727,9 @@ function refreshAnalysisEnergyFromProfile(env, data, analysis) {
       minFatG
     });
     applyDeterministicEnergyContract(analysis, contract);
+    if (metabolicReviewEnabled(env)) {
+      applyBoundedMetabolicReview(analysis, { userData: data, minFatG });
+    }
     console.log("Step 1: deterministic energy contract applied");
   }
   enforceCalorieGuardrails(analysis, data, tdee);
@@ -25431,8 +25763,25 @@ async function resolveStep2Strategy(env, data, analysis, sessionId, options = {}
         if (validation.warnings?.length) {
           console.warn(`Step 2 deterministic ${validation.status}:`, validation.warnings.join("; "));
         }
+        let strategy2 = detStrategy;
+        let strategyReview = null;
+        if (strategyReviewerEnabled(env)) {
+          try {
+            const reviewed = await runStrategyReviewerReview(
+              env,
+              strategy2,
+              analysis,
+              data,
+              sessionId
+            );
+            strategy2 = reviewed.strategy;
+            strategyReview = reviewed.review;
+          } catch (reviewErr) {
+            console.warn("Step 2 strategy reviewer skipped:", reviewErr.message);
+          }
+        }
         console.log(`Step 2: deterministic build (${validation.status})`);
-        return { strategy: detStrategy, usedDeterministic: true, validation };
+        return { strategy: strategy2, usedDeterministic: true, validation, strategyReview };
       }
       console.warn(
         "Step 2 deterministic REJECT:",
@@ -26287,6 +26636,47 @@ async function persistFoodLedger(env, userId, ledgerSerialized, clientIdHint = "
   }
 }
 var FINAL_DIRECTOR_TOKEN_LIMIT = 3500;
+var STRATEGY_REVIEWER_TOKEN_LIMIT = 3e3;
+async function runStrategyReviewerReview(env, strategy, analysis, userData, sessionId) {
+  const reviewPacket = buildStrategyReviewPacket({ strategy, analysis, userData });
+  let customPrompt = null;
+  try {
+    customPrompt = await getCustomPrompt(env, "admin_strategy_reviewer_prompt");
+  } catch (_) {
+    customPrompt = null;
+  }
+  const prompt = buildStrategyReviewerPrompt(reviewPacket, customPrompt || DEFAULT_STRATEGY_REVIEWER_PROMPT);
+  const response = await callAIModel(
+    env,
+    prompt,
+    STRATEGY_REVIEWER_TOKEN_LIMIT,
+    "step2_strategy_reviewer",
+    sessionId,
+    userData,
+    buildCompactAnalysis(analysis)
+  );
+  const parsed = parseAIResponse(response);
+  const review = parseStrategyReviewerResponse(parsed);
+  const mandatoryBlocked = extractQuestionnaireBlockedTerms(userData);
+  const previousProfile = strategy.libraryDietProfile;
+  if (review.libraryDietProfile && review.libraryDietProfile !== previousProfile && review.verdict !== "REJECT") {
+    const rebuilt = buildDeterministicStrategy({
+      userData,
+      analysis,
+      options: {
+        libraryDietProfile: review.libraryDietProfile,
+        dietaryModifier: review.dietaryModifier || strategy.dietaryModifier,
+        freeDayNumber: strategy.freeDayNumber
+      }
+    });
+    strategy.weeklyScheme = rebuilt.weeklyScheme;
+    strategy.libraryDietProfile = rebuilt.libraryDietProfile;
+  }
+  applyStrategyReviewAdjustments(strategy, review, { mandatoryBlocked });
+  strategy._deterministicCore = true;
+  console.log(`Step 2 Strategy Reviewer: ${review.verdict}`);
+  return { strategy, review };
+}
 async function runFinalDirectorReview(env, plan, userData, codeValidation = null) {
   const auditPacket = buildFinalAuditPacket({ plan, userData, codeValidation });
   let customPrompt = null;
