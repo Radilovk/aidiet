@@ -20033,6 +20033,54 @@ function slotCeilingKcal(slotType, dailyKcal) {
 function dayCapacityKcal(slotTypes, dailyKcal) {
   return (slotTypes || []).reduce((sum, type) => sum + slotCeilingKcal(type, dailyKcal), 0);
 }
+function preferredSlotsWithoutBreakfast(mealsPerDay) {
+  const n = Number(mealsPerDay) || 5;
+  if (n <= 3) return ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"];
+  if (n === 4) return ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"];
+  return ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5"];
+}
+function preferredSlotsWithBreakfast(mealsPerDay) {
+  const n = Number(mealsPerDay) || 5;
+  if (n <= 3) return ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"];
+  if (n === 4) return ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"];
+  return ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5"];
+}
+function resolveMealsPerDayFromHabits(userData) {
+  const text = (userData?.eatingHabits || []).join(" ").toLowerCase();
+  if (/5\s*хран|пет\s*хран|5\s*meal/i.test(text)) return 5;
+  if (/4\s*хран|четири\s*хран|4\s*meal/i.test(text)) return 4;
+  if (/3\s*хран|три\s*хран|3\s*meal|без\s*междин/i.test(text)) return 3;
+  if (/2\s*хран|две\s*хран/i.test(text)) return 3;
+  return 5;
+}
+function breakfastRequiredForIntake(dailyKcal, mealsPerDay, userData = null) {
+  const daily = Number(dailyKcal) || 0;
+  if (daily <= 0) return false;
+  if (userData && !userSkipsBreakfast(userData)) return false;
+  const withoutBreakfast = preferredSlotsWithoutBreakfast(mealsPerDay);
+  return dayCapacityKcal(withoutBreakfast, daily) < daily;
+}
+function effectiveSkipsBreakfast(userData, dailyKcal, mealsPerDay) {
+  if (!userSkipsBreakfast(userData)) return false;
+  return !breakfastRequiredForIntake(dailyKcal, mealsPerDay, userData);
+}
+function resolveMealSlotTypes(mealsPerDay, userData, dailyKcal) {
+  const skipHabit = userSkipsBreakfast(userData);
+  const breakfastRequired = breakfastRequiredForIntake(dailyKcal, mealsPerDay, userData);
+  if (!skipHabit || breakfastRequired) {
+    const slotTypes = preferredSlotsWithBreakfast(mealsPerDay);
+    return {
+      slotTypes,
+      breakfastRequired: breakfastRequired && skipHabit,
+      restoredBreakfast: breakfastRequired && skipHabit
+    };
+  }
+  return {
+    slotTypes: preferredSlotsWithoutBreakfast(mealsPerDay),
+    breakfastRequired: false,
+    restoredBreakfast: false
+  };
+}
 function maxSlotKcal(slotType, mealBreakdown, dailyKcal) {
   if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5") return MAX_LATE_SNACK_CALORIES;
   if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3") return maxAfternoonSnackKcal(dailyKcal);
@@ -20129,8 +20177,8 @@ function rebalanceMealBreakdownSlots(day, dailyKcal) {
     const maxFree = maxFreeMealKcal(daily);
     const excess = capSlotMacros(free, maxFree);
     if (excess > 0) {
-      const recipients = platedSlots(day.mealBreakdown).filter(
-        (m) => !isLightMealSlot(m.type) && (Number(m.calories) || 0) < maxSlotKcal(m.type, day.mealBreakdown, daily)
+      const recipients = mainMealRecipients(day).filter(
+        (m) => (Number(m.calories) || 0) < maxSlotKcal(m.type, day.mealBreakdown, daily)
       );
       distributeSurplusToRecipients(recipients, excess, 0, 0, 0, daily, day.mealBreakdown);
     }
@@ -20153,7 +20201,7 @@ function rebalanceMealBreakdownSlots(day, dailyKcal) {
       }
     }
     if (poolKcal <= 0) break;
-    const recipients = platedSlots(day.mealBreakdown).filter((m) => !isLightMealSlot(m.type) && (Number(m.calories) || 0) < maxSlotKcal(m.type, day.mealBreakdown, daily) - 5);
+    const recipients = mainMealRecipients(day).filter((m) => (Number(m.calories) || 0) < maxSlotKcal(m.type, day.mealBreakdown, daily) - 5);
     if (!recipients.length) break;
     const headroom = recipients.map((m) => maxSlotKcal(m.type, day.mealBreakdown, daily) - (Number(m.calories) || 0));
     const totalHeadroom = headroom.reduce((a, b) => a + b, 0) || 1;
@@ -20200,8 +20248,6 @@ function reconcileDailyCalories(day, dailyKcal) {
   if (diff <= 5) return;
   const recipients = mainMealRecipients(day);
   if (!recipients.length) return;
-  const h1 = day.mealBreakdown.find((m) => m.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1");
-  if (h1 && !recipients.includes(h1)) recipients.push(h1);
   distributeSurplusToRecipients(recipients, diff, 0, 0, 0, daily, day.mealBreakdown);
 }
 function enforceFreeDayDinnerCap(day, dailyKcal) {
@@ -20477,13 +20523,12 @@ function userSkipsBreakfast(userData) {
   const habits = userData?.eatingHabits;
   return Array.isArray(habits) && habits.some((h) => String(h).includes("\u041D\u0435 \u0437\u0430\u043A\u0443\u0441\u0432\u0430\u043C"));
 }
-function removeBreakfastSlotFromDay(day) {
+function removeBreakfastSlotFromDay(day, mealsPerDay = 5) {
   if (!day?.mealBreakdown?.length) return;
   const idx = day.mealBreakdown.findIndex((m) => m.type === FIRST_MEAL_SLOT);
   if (idx < 0) return;
   const daily = Number(day.calories) || sumField(day.mealBreakdown, "calories");
-  const withoutBreakfast = day.mealBreakdown.filter((_, i) => i !== idx).map((m) => m.type);
-  if (daily > 0 && dayCapacityKcal(withoutBreakfast, daily) < daily) return;
+  if (daily > 0 && breakfastRequiredForIntake(daily, mealsPerDay, { eatingHabits: ["\u041D\u0435 \u0437\u0430\u043A\u0443\u0441\u0432\u0430\u043C"] })) return;
   const h1 = day.mealBreakdown.splice(idx, 1)[0];
   const surplus = Number(h1.calories) || 0;
   if (surplus > 0) {
@@ -22684,10 +22729,10 @@ function validateProtocolStrategy(strategy, analysis = null, userData = null) {
       }
     }
     if (userSkipsBreakfast(userData) && day.mealBreakdown.some((m) => m.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1")) {
-      const withoutH1 = day.mealBreakdown.filter((m) => m.type !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1").map((m) => m.type);
-      const needsRestoredH1 = targetKcal > 0 && dayCapacityKcal(withoutH1, targetKcal) < targetKcal;
+      const mealsPerDay = resolveMealsPerDayFromHabits(userData);
+      const needsRestoredH1 = breakfastRequiredForIntake(targetKcal, mealsPerDay, userData);
       if (needsRestoredH1) {
-        warnings.push(`${dayKey}: \u0425\u0440\u0430\u043D\u0435\u043D\u0435 1 \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u0435\u043D\u043E \u2014 \u0434\u0435\u043D\u044F\u0442 \u043D\u0435 \u0441\u0435 \u0441\u044A\u0431\u0438\u0440\u0430 \u0431\u0435\u0437 \u043D\u0435\u0433\u043E \u043F\u0440\u0438 ${targetKcal} kcal`);
+        warnings.push(`${dayKey}: \u0425\u0440\u0430\u043D\u0435\u043D\u0435 1 \u0437\u0430\u0434\u044A\u043B\u0436\u0438\u0442\u0435\u043B\u043D\u043E \u2014 \u0434\u0435\u043D\u044F\u0442 \u043D\u0435 \u0441\u0435 \u0441\u044A\u0431\u0438\u0440\u0430 \u0431\u0435\u0437 \u043D\u0435\u0433\u043E \u043F\u0440\u0438 ${targetKcal} kcal`);
       } else {
         blocking.push(`${dayKey}: \u0425\u0440\u0430\u043D\u0435\u043D\u0435 1 \u043F\u0440\u0438 \u043A\u043B\u0438\u0435\u043D\u0442 \u0431\u0435\u0437 \u0437\u0430\u043A\u0443\u0441\u043A\u0430`);
       }
@@ -22770,28 +22815,7 @@ function resolveIncludeDessert(userData) {
   });
   return !blocked;
 }
-function resolveMealsPerDay(userData) {
-  const text = (userData?.eatingHabits || []).join(" ").toLowerCase();
-  if (/5\s*хран|пет\s*хран|5\s*meal/i.test(text)) return 5;
-  if (/4\s*хран|четири\s*хран|4\s*meal/i.test(text)) return 4;
-  if (/3\s*хран|три\s*хран|3\s*meal|без\s*междин/i.test(text)) return 3;
-  if (/2\s*хран|две\s*хран/i.test(text)) return 3;
-  return 5;
-}
-function preferredSlots(mealsPerDay, userData) {
-  const skipBreakfast = userSkipsBreakfast(userData);
-  if (mealsPerDay <= 3) {
-    return skipBreakfast ? ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"] : ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"];
-  }
-  if (mealsPerDay === 4) {
-    return skipBreakfast ? ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"] : ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"];
-  }
-  return skipBreakfast ? ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5"] : ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5"];
-}
-function restoredFirstMeal(slotTypes, dailyKcal) {
-  if (!(dailyKcal > 0) || slotTypes.includes(FIRST_MEAL_SLOT)) return null;
-  return dayCapacityKcal(slotTypes, dailyKcal) >= dailyKcal ? null : FIRST_MEAL_SLOT;
-}
+var resolveMealsPerDay = resolveMealsPerDayFromHabits;
 function applyDietMacroCaps(macros, dietProfile, dailyKcal, weightKg = 70) {
   const rules = LIBRARY_PROTOCOL_RULES.diet_profiles?.[dietProfile] || {};
   let { protein, carbs, fats } = macros;
@@ -22997,9 +23021,8 @@ function buildDeterministicStrategy({ userData = null, analysis = null, options 
   }
   macros = applyDietMacroCaps(macros, dietProfile, dailyKcal, weightKg);
   const mealsPerDay = options.mealsPerDay || resolveMealsPerDay(userData);
-  const preferred = preferredSlots(mealsPerDay, userData);
-  const restoredSlot = restoredFirstMeal(preferred, dailyKcal);
-  const slotTypes = restoredSlot ? [restoredSlot, ...preferred] : preferred;
+  const { slotTypes, restoredBreakfast } = resolveMealSlotTypes(mealsPerDay, userData, dailyKcal);
+  const restoredSlot = restoredBreakfast ? FIRST_MEAL_SLOT : null;
   const freeDayNumber = options.freeDayNumber ?? 7;
   const weeklyScheme = {};
   for (let i = 0; i < 7; i++) {
@@ -29867,7 +29890,10 @@ function normalizeWeeklyScheme(strategy, defaultDailyCalories, userData = null) 
   for (const key of DAY_NUMBER_TO_KEY) {
     const day = strategy.weeklyScheme[key];
     if (!day || !Array.isArray(day.mealBreakdown) || day.mealBreakdown.length === 0) continue;
-    if (userSkipsBreakfast(userData)) removeBreakfastSlotFromDay(day);
+    const mealsPerDay = resolveMealsPerDayFromHabits(userData);
+    if (effectiveSkipsBreakfast(userData, defaultDailyCalories, mealsPerDay)) {
+      removeBreakfastSlotFromDay(day, mealsPerDay);
+    }
     clampLateSnackInMealBreakdown(day);
     const sumField3 = (field) => day.mealBreakdown.reduce((s, m) => s + (Number(m[field]) || 0), 0);
     const targetCals = defaultDailyCalories > 0 ? defaultDailyCalories : Number(day.calories) || sumField3("calories");
@@ -29876,7 +29902,7 @@ function normalizeWeeklyScheme(strategy, defaultDailyCalories, userData = null) 
     let sumP = sumField3("protein");
     let sumC = sumField3("carbs");
     let sumF = sumField3("fats");
-    if (sumCals > 0 && targetCals > 0 && Math.abs(sumCals - targetCals) > calorieTolerance(targetCals)) {
+    if (!strategy._deterministicCore && sumCals > 0 && targetCals > 0 && Math.abs(sumCals - targetCals) > calorieTolerance(targetCals)) {
       const fixedKcal = day.mealBreakdown.filter((m) => m.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5").reduce((s, m) => s + (Number(m.calories) || 0), 0);
       const scalable = day.mealBreakdown.filter((m) => m.type !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5");
       const scalableSum = scalable.reduce((s, m) => s + (Number(m.calories) || 0), 0);
@@ -30030,9 +30056,11 @@ function validateMealTypesAgainstBreakdown(dayPlan, dayTarget, dayNum, userData 
   const errors = [];
   if (!dayPlan?.meals?.length || !dayTarget?.mealBreakdown?.length) return errors;
   const allowed = getAllowedMealTypes(dayTarget, userData);
+  const mealsPerDay = resolveMealsPerDayFromHabits(userData);
+  const dayKcal = Number(dayTarget.calories) || dayTarget.mealBreakdown.reduce((s, m) => s + (Number(m.calories) || 0), 0);
   for (const meal of dayPlan.meals) {
     if (!allowed.has(meal.type)) {
-      if (meal.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1" && userSkipsBreakfast(userData)) {
+      if (meal.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1" && effectiveSkipsBreakfast(userData, dayKcal, mealsPerDay)) {
         errors.push(`\u0414\u0435\u043D ${dayNum}: \u041A\u043B\u0438\u0435\u043D\u0442\u044A\u0442 \u041D\u0415 \u0417\u0410\u041A\u0423\u0421\u0412\u0410 \u2014 \u0437\u0430\u0431\u0440\u0430\u043D\u0435\u043D\u043E \u0435 "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1"`);
       } else {
         errors.push(`\u0414\u0435\u043D ${dayNum}: "${meal.type}" \u043D\u0435 \u0435 \u0432 mealBreakdown \u0437\u0430 \u0442\u043E\u0437\u0438 \u0434\u0435\u043D`);
@@ -30188,8 +30216,10 @@ function validateRequiredMealSlots(dayPlan, dayTarget, dayNum, userData = null) 
   const errors = [];
   if (!dayTarget?.mealBreakdown?.length) return errors;
   const present = new Set((dayPlan?.meals || []).map((m) => m.type));
+  const mealsPerDay = resolveMealsPerDayFromHabits(userData);
+  const dayKcal = Number(dayTarget.calories) || dayTarget.mealBreakdown.reduce((s, m) => s + (Number(m.calories) || 0), 0);
   for (const slot of dayTarget.mealBreakdown) {
-    if (slot.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1" && userSkipsBreakfast(userData)) continue;
+    if (slot.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1" && effectiveSkipsBreakfast(userData, dayKcal, mealsPerDay)) continue;
     if (slot.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" && dayTarget.mealBreakdown.some((m) => m.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435")) continue;
     if (!present.has(slot.type)) {
       errors.push(`\u0414\u0435\u043D ${dayNum}: \u043B\u0438\u043F\u0441\u0432\u0430 \u0437\u0430\u0434\u044A\u043B\u0436\u0438\u0442\u0435\u043B\u043D\u043E "${slot.type}"`);
