@@ -1720,7 +1720,7 @@ const pendingSessionLogs = new Map(); // sessionId → [logId, ...]
  * Reasoning budget for plan steps that actually reason (analysis, strategy,
  * summary, final review). Added on top of maxOutputTokens by callGemini.
  */
-const PLAN_STEP_DEFAULT_THINKING_BUDGET = 1024;
+const PLAN_STEP_DEFAULT_THINKING_BUDGET = 0;
 
 const MEAL_PLAN_CHUNK_MAX_RETRIES = 4; // Precision-first: regen with deterministic hints until clean pass
 const COMPOSITION_REPAIR_MAX_PER_CHUNK = 0; // No AI slot repair — fix via catalog ranking + full regen
@@ -5963,7 +5963,7 @@ const ADMIN_ASSISTANT_CACHE_MIN_TOKENS = 1024;
 const ADMIN_ASSISTANT_CACHE_TTL = '3600s';
 const ADMIN_ASSISTANT_SESSION_TTL = 3600;
 const ADMIN_ASSISTANT_SESSION_PREFIX = 'admin_assistant_session:';
-const ADMIN_ASSISTANT_DEFAULT_MODEL = 'gemini-2.5-flash';
+const ADMIN_ASSISTANT_DEFAULT_MODEL = 'gemini-2.5-flash-lite';
 
 const ADMIN_ASSISTANT_SYSTEM_INSTRUCTION = `Ти си NutriPlan AI асистент за администратор-нутриционист.
 Четеш кеширан клиентски картон (CC/NPCF). Промените се правят чрез RFC 6902 JSON Patch върху каноничния JSON.
@@ -10481,6 +10481,14 @@ async function getAdminConfig(env) {
 
     if (savedProvider) config.provider = savedProvider;
     if (savedModelName) config.modelName = savedModelName;
+    else if (env.GEMINI_MODEL) config.modelName = env.GEMINI_MODEL;
+    // Prefer Gemini when only Google key is configured (local .dev.vars / minimal deploy).
+    if (!savedProvider && env.GEMINI_API_KEY && !env.OPENAI_API_KEY && !env.ANTHROPIC_API_KEY) {
+      config.provider = 'google';
+      if (!config.modelName || config.modelName === 'gpt-4o-mini') {
+        config.modelName = env.GEMINI_MODEL || 'gemini-2.5-flash-lite';
+      }
+    }
     if (savedVisionProvider) config.visionProvider = savedVisionProvider;
     if (savedVisionModelName) config.visionModelName = savedVisionModelName;
     config.thinkingBudget = parseThinkingBudget(savedThinkingBudget);
@@ -10917,7 +10925,7 @@ async function callClaude(env, prompt, modelName = 'claude-3-5-sonnet-20241022',
 /**
  * Call Gemini API with automatic retry logic for transient errors
  */
-async function callGemini(env, prompt, modelName = 'gemini-2.5-flash', maxTokens = null, jsonMode = false, thinkingBudget = undefined, temperature = undefined, topP = undefined, topK = undefined, responseSchema = null, systemInstruction = null) {
+async function callGemini(env, prompt, modelName = 'gemini-2.5-flash-lite', maxTokens = null, jsonMode = false, thinkingBudget = undefined, temperature = undefined, topP = undefined, topK = undefined, responseSchema = null, systemInstruction = null) {
   try {
     return await retryWithBackoff(async () => {
       const requestBody = {
@@ -11042,7 +11050,7 @@ async function callAIModelWithVision(env, textPrompt, base64Image, mimeType, max
   const defaultVisionModels = {
     openai: 'gpt-4o-mini',
     anthropic: 'claude-3-5-sonnet-20241022',
-    google: 'gemini-2.5-flash'
+    google: 'gemini-2.5-flash-lite'
   };
 
   // Use vision-specific model name if set, otherwise use the default for the provider
@@ -12758,7 +12766,7 @@ async function handleGenerateProtocol(request, env) {
     if (provider === 'openai' && env.OPENAI_API_KEY) {
       response = await callOpenAI(env, prompt, modelName || 'gpt-4o-mini', 4000, false);
     } else if (provider === 'google' && env.GEMINI_API_KEY) {
-      response = await callGemini(env, prompt, modelName || 'gemini-2.5-flash', 4000, false, protocolThinkingBudget);
+      response = await callGemini(env, prompt, modelName || 'gemini-2.5-flash-lite', 4000, false, protocolThinkingBudget);
     } else if (provider === 'anthropic' && env.ANTHROPIC_API_KEY) {
       response = await callClaude(env, prompt, modelName || 'claude-3-5-sonnet-20241022', 4000, false);
     } else {
@@ -12970,7 +12978,7 @@ async function handleGenerateLongevityProtocol(request, env) {
     if (provider === 'openai' && env.OPENAI_API_KEY) {
       aiResponse = await callOpenAI(env, prompt, modelName || 'gpt-4o-mini', LONGEVITY_TOKEN_LIMIT, true);
     } else if (provider === 'google' && env.GEMINI_API_KEY) {
-      aiResponse = await callGemini(env, prompt, modelName || 'gemini-2.5-flash', LONGEVITY_TOKEN_LIMIT, true, protocolThinkingBudget);
+      aiResponse = await callGemini(env, prompt, modelName || 'gemini-2.5-flash-lite', LONGEVITY_TOKEN_LIMIT, true, protocolThinkingBudget);
     } else if (provider === 'anthropic' && env.ANTHROPIC_API_KEY) {
       aiResponse = await callClaude(env, prompt, modelName || 'claude-3-5-sonnet-20241022', LONGEVITY_TOKEN_LIMIT, true);
     } else {

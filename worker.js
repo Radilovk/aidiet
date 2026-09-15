@@ -20498,7 +20498,7 @@ var loggingStatusCache = null;
 var loggingStatusCacheTime = 0;
 var LOGGING_STATUS_CACHE_TTL = 60 * 1e3;
 var pendingSessionLogs = /* @__PURE__ */ new Map();
-var PLAN_STEP_DEFAULT_THINKING_BUDGET = 1024;
+var PLAN_STEP_DEFAULT_THINKING_BUDGET = 0;
 var MEAL_PLAN_CHUNK_MAX_RETRIES = 4;
 var CATALOG_STRICT_MODE = true;
 async function cacheSet(key, data, ttl = AI_LOG_CACHE_TTL) {
@@ -23717,7 +23717,7 @@ var ADMIN_ASSISTANT_CACHE_MIN_TOKENS = 1024;
 var ADMIN_ASSISTANT_CACHE_TTL = "3600s";
 var ADMIN_ASSISTANT_SESSION_TTL = 3600;
 var ADMIN_ASSISTANT_SESSION_PREFIX = "admin_assistant_session:";
-var ADMIN_ASSISTANT_DEFAULT_MODEL = "gemini-2.5-flash";
+var ADMIN_ASSISTANT_DEFAULT_MODEL = "gemini-2.5-flash-lite";
 var ADMIN_ASSISTANT_SYSTEM_INSTRUCTION = `\u0422\u0438 \u0441\u0438 NutriPlan AI \u0430\u0441\u0438\u0441\u0442\u0435\u043D\u0442 \u0437\u0430 \u0430\u0434\u043C\u0438\u043D\u0438\u0441\u0442\u0440\u0430\u0442\u043E\u0440-\u043D\u0443\u0442\u0440\u0438\u0446\u0438\u043E\u043D\u0438\u0441\u0442.
 \u0427\u0435\u0442\u0435\u0448 \u043A\u0435\u0448\u0438\u0440\u0430\u043D \u043A\u043B\u0438\u0435\u043D\u0442\u0441\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u043D (CC/NPCF). \u041F\u0440\u043E\u043C\u0435\u043D\u0438\u0442\u0435 \u0441\u0435 \u043F\u0440\u0430\u0432\u044F\u0442 \u0447\u0440\u0435\u0437 RFC 6902 JSON Patch \u0432\u044A\u0440\u0445\u0443 \u043A\u0430\u043D\u043E\u043D\u0438\u0447\u043D\u0438\u044F JSON.
 
@@ -27727,7 +27727,7 @@ async function callClaude(env, prompt, modelName = "claude-3-5-sonnet-20241022",
     throw new Error(`Claude API failed: ${error.message}`);
   }
 }
-async function callGemini2(env, prompt, modelName = "gemini-2.5-flash", maxTokens = null, jsonMode = false, thinkingBudget = void 0, temperature = void 0, topP = void 0, topK = void 0, responseSchema = null, systemInstruction = null) {
+async function callGemini2(env, prompt, modelName = "gemini-2.5-flash-lite", maxTokens = null, jsonMode = false, thinkingBudget = void 0, temperature = void 0, topP = void 0, topK = void 0, responseSchema = null, systemInstruction = null) {
   try {
     return await retryWithBackoff(async () => {
       const requestBody = {
@@ -27806,7 +27806,7 @@ async function callAIModelWithVision(env, textPrompt, base64Image, mimeType, max
   const defaultVisionModels = {
     openai: "gpt-4o-mini",
     anthropic: "claude-3-5-sonnet-20241022",
-    google: "gemini-2.5-flash"
+    google: "gemini-2.5-flash-lite"
   };
   const visionModelName = config.visionModelName || defaultVisionModels[preferredProvider] || defaultVisionModels.openai;
   const startTime = Date.now();
@@ -29158,7 +29158,7 @@ async function handleGenerateProtocol(request, env) {
     if (provider === "openai" && env.OPENAI_API_KEY) {
       response = await callOpenAI2(env, prompt, modelName || "gpt-4o-mini", 4e3, false);
     } else if (provider === "google" && env.GEMINI_API_KEY) {
-      response = await callGemini2(env, prompt, modelName || "gemini-2.5-flash", 4e3, false, protocolThinkingBudget);
+      response = await callGemini2(env, prompt, modelName || "gemini-2.5-flash-lite", 4e3, false, protocolThinkingBudget);
     } else if (provider === "anthropic" && env.ANTHROPIC_API_KEY) {
       response = await callClaude(env, prompt, modelName || "claude-3-5-sonnet-20241022", 4e3, false);
     } else {
@@ -29324,7 +29324,7 @@ async function handleGenerateLongevityProtocol(request, env) {
     if (provider === "openai" && env.OPENAI_API_KEY) {
       aiResponse = await callOpenAI2(env, prompt, modelName || "gpt-4o-mini", LONGEVITY_TOKEN_LIMIT, true);
     } else if (provider === "google" && env.GEMINI_API_KEY) {
-      aiResponse = await callGemini2(env, prompt, modelName || "gemini-2.5-flash", LONGEVITY_TOKEN_LIMIT, true, protocolThinkingBudget);
+      aiResponse = await callGemini2(env, prompt, modelName || "gemini-2.5-flash-lite", LONGEVITY_TOKEN_LIMIT, true, protocolThinkingBudget);
     } else if (provider === "anthropic" && env.ANTHROPIC_API_KEY) {
       aiResponse = await callClaude(env, prompt, modelName || "claude-3-5-sonnet-20241022", LONGEVITY_TOKEN_LIMIT, true);
     } else {
