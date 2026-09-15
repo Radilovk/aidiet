@@ -82,6 +82,21 @@ const loveStrategy = buildDeterministicStrategy({
 });
 ok(loveStrategy.foodsToInclude?.includes('кашкавал'), 'dietLove flows to foodsToInclude');
 
+// High-kcal skip-breakfast — restored H1 is REVIEW, not REJECT (Kamen-class profiles)
+const kamenUser = {
+  gender: 'Мъж',
+  weight: 110,
+  eatingHabits: ['Не закусвам'],
+  dietPreference: ['Сезонна'],
+};
+const kamenAnalysis = { Final_Calories: 3032, macroGrams: { protein: 180, carbs: 320, fats: 95 } };
+const kamenStrategy = buildDeterministicStrategy({ userData: kamenUser, analysis: kamenAnalysis });
+const kamenMonday = kamenStrategy.weeklyScheme.monday.mealBreakdown.map(m => m.type);
+ok(kamenMonday.includes('Хранене 1'), 'high-kcal skip-breakfast restores H1');
+const kamenValidation = validateProtocolStrategy(kamenStrategy, kamenAnalysis, kamenUser);
+ok(kamenValidation.status !== 'REJECT', `kamen-class validation ${kamenValidation.status}`);
+ok(!kamenValidation.blocking.some(b => b.includes('Хранене 1')), 'restored H1 is not blocking');
+
 console.log('');
 if (fail) {
   console.error(`FAILED: ${fail} test(s)`);

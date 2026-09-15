@@ -18524,7 +18524,13 @@ function validateProtocolStrategy(strategy, analysis = null, userData = null) {
       }
     }
     if (userSkipsBreakfast(userData) && day.mealBreakdown.some((m) => m.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1")) {
-      blocking.push(`${dayKey}: \u0425\u0440\u0430\u043D\u0435\u043D\u0435 1 \u043F\u0440\u0438 \u043A\u043B\u0438\u0435\u043D\u0442 \u0431\u0435\u0437 \u0437\u0430\u043A\u0443\u0441\u043A\u0430`);
+      const withoutH1 = day.mealBreakdown.filter((m) => m.type !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1").map((m) => m.type);
+      const needsRestoredH1 = targetKcal > 0 && dayCapacityKcal(withoutH1, targetKcal) < targetKcal;
+      if (needsRestoredH1) {
+        warnings.push(`${dayKey}: \u0425\u0440\u0430\u043D\u0435\u043D\u0435 1 \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u0435\u043D\u043E \u2014 \u0434\u0435\u043D\u044F\u0442 \u043D\u0435 \u0441\u0435 \u0441\u044A\u0431\u0438\u0440\u0430 \u0431\u0435\u0437 \u043D\u0435\u0433\u043E \u043F\u0440\u0438 ${targetKcal} kcal`);
+      } else {
+        blocking.push(`${dayKey}: \u0425\u0440\u0430\u043D\u0435\u043D\u0435 1 \u043F\u0440\u0438 \u043A\u043B\u0438\u0435\u043D\u0442 \u0431\u0435\u0437 \u0437\u0430\u043A\u0443\u0441\u043A\u0430`);
+      }
     }
     const dayKcal = sumField2(day.mealBreakdown, "calories");
     if (targetKcal > 0 && dayKcal > 0) {
