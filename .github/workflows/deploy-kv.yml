@@ -37,7 +37,7 @@ jobs:
       - name: Verify sample keys
         run: |
           NS="81fc0991b2764918b682f9ca170abd4b"
-          for key in admin_analysis_prompt admin_strategy_prompt admin_meal_plan_prompt admin_summary_prompt admin_ai_model; do
+          for key in admin_analysis_prompt admin_strategy_prompt admin_strategy_reviewer_prompt admin_meal_plan_prompt admin_summary_prompt admin_ai_provider admin_ai_model_name admin_ai_model; do
             echo "Checking $key..."
             npx wrangler kv key get --namespace-id="$NS" "$key" --remote | head -3
             echo "..."

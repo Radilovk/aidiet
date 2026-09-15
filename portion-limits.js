@@ -104,6 +104,14 @@ export const ITEM_MAX_PORTION_G = {
   'моцарела': 80,
   'пармезан': 40,
   'козе сирене': 60,
+  // Starchy sides — a plate, not a sack of potatoes.
+  'картофи': 300,
+  'картоф': 300,
+  'сладки картофи': 300,
+  'ориз': 250,
+  'киноа': 200,
+  'паста': 250,
+  'булгур': 250,
   // Dry weights (uncooked grains keep small servings).
   'овесени ядки': 100,
   'овес': 100,
