@@ -8229,7 +8229,12 @@ function normalizeWeeklyScheme(strategy, defaultDailyCalories, userData = null) 
     let sumC = sumField('carbs');
     let sumF = sumField('fats');
 
-    if (sumCals > 0 && targetCals > 0 && Math.abs(sumCals - targetCals) > calorieTolerance(targetCals)) {
+    if (
+      !strategy._deterministicCore
+      && sumCals > 0
+      && targetCals > 0
+      && Math.abs(sumCals - targetCals) > calorieTolerance(targetCals)
+    ) {
       const fixedKcal = day.mealBreakdown
         .filter(m => m.type === 'Хранене 5')
         .reduce((s, m) => s + (Number(m.calories) || 0), 0);

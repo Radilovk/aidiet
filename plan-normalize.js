@@ -404,8 +404,9 @@ export function rebalanceMealBreakdownSlots(day, dailyKcal) {
     const maxFree = maxFreeMealKcal(daily);
     const excess = capSlotMacros(free, maxFree);
     if (excess > 0) {
-      const recipients = platedSlots(day.mealBreakdown).filter(m =>
-        !isLightMealSlot(m.type) && (Number(m.calories) || 0) < maxSlotKcal(m.type, day.mealBreakdown, daily),
+      // Излишъкът отива в обяд/вечеря — не в закуска или междинни закуски.
+      const recipients = mainMealRecipients(day).filter(m =>
+        (Number(m.calories) || 0) < maxSlotKcal(m.type, day.mealBreakdown, daily),
       );
       distributeSurplusToRecipients(recipients, excess, 0, 0, 0, daily, day.mealBreakdown);
     }
@@ -432,8 +433,8 @@ export function rebalanceMealBreakdownSlots(day, dailyKcal) {
 
     if (poolKcal <= 0) break;
 
-    const recipients = platedSlots(day.mealBreakdown)
-      .filter(m => !isLightMealSlot(m.type) && (Number(m.calories) || 0) < maxSlotKcal(m.type, day.mealBreakdown, daily) - 5);
+    const recipients = mainMealRecipients(day)
+      .filter(m => (Number(m.calories) || 0) < maxSlotKcal(m.type, day.mealBreakdown, daily) - 5);
     if (!recipients.length) break;
 
     const headroom = recipients.map(m => maxSlotKcal(m.type, day.mealBreakdown, daily) - (Number(m.calories) || 0));
@@ -493,10 +494,7 @@ function reconcileDailyCalories(day, dailyKcal) {
   if (diff <= 5) return;
   const recipients = mainMealRecipients(day);
   if (!recipients.length) return;
-  // Breakfast is a legitimate secondary recipient — using its ceiling headroom
-  // keeps mains under the plated cap instead of overflowing them.
-  const h1 = day.mealBreakdown.find(m => m.type === 'Хранене 1');
-  if (h1 && !recipients.includes(h1)) recipients.push(h1);
+  // Диетологично: остатъкът отива в основните хранения, не в закуска/H3/H5.
   distributeSurplusToRecipients(recipients, diff, 0, 0, 0, daily, day.mealBreakdown);
 }
 
