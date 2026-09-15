@@ -379,12 +379,12 @@ function buildCopyFields(dietProfile, mealsPerDay, slotTypes, userData, restored
 /**
  * Build full Step 2 strategy object (deterministic core).
  * Caller should run normalizeWeeklyScheme + validateProtocolStrategy after.
- * @param {{ userData?: object|null, analysis?: object|null, options?: { dietaryModifier?: string, mealsPerDay?: number, freeDayNumber?: number } }} [ctx]
+ * @param {{ userData?: object|null, analysis?: object|null, options?: { dietaryModifier?: string, libraryDietProfile?: string, mealsPerDay?: number, freeDayNumber?: number } }} [ctx]
  */
 export function buildDeterministicStrategy({ userData = null, analysis = null, options = {} } = {}) {
   const weightKg = Number(userData?.weight) || 70;
 
-  const dietProfile = resolveLibraryDietProfile({
+  const dietProfile = options.libraryDietProfile || resolveLibraryDietProfile({
     dietaryModifier: options.dietaryModifier,
     dietPreference: userData?.dietPreference,
     dietDislike: userData?.dietDislike || '',

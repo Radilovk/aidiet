@@ -6,7 +6,7 @@ export const HARD_PROFILES = [
     gender: 'Мъж',
     age: '40',
     height: '175',
-    weight: '110',
+    weight: '120',
     goal: ['отслабване', 'Изчистване на коремните мазнини'],
     lossKg: '15',
     sleepHours: '5–6',
