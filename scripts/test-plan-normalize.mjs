@@ -14,6 +14,12 @@ import {
   validateLateSnackSlotContent,
   removeBreakfastSlotFromDay,
   userSkipsBreakfast,
+  breakfastRequiredForIntake,
+  effectiveSkipsBreakfast,
+  approximateBreakfastMandatoryThresholdKcal,
+  resolveMealSlotTypes,
+  dayCapacityKcal,
+  preferredSlotsWithoutBreakfast,
   isMealCaloriesAdequate,
   slotCalorieTolerance,
   enforceFixedSlotCaps,
@@ -324,9 +330,25 @@ check('MAX_LATE_SNACK_CALORIES=200', MAX_LATE_SNACK_CALORIES === 200);
       { type: 'Хранене 4', calories: 600, protein: 45, carbs: 50, fats: 18 },
     ],
   };
-  removeBreakfastSlotFromDay(day);
+  removeBreakfastSlotFromDay(day, 3);
   check('skip breakfast: H1 removed', !day.mealBreakdown.some(m => m.type === 'Хранене 1'));
   check('skip breakfast: kcal preserved', day.mealBreakdown.reduce((s, m) => s + m.calories, 0) === 1700);
+}
+
+{
+  const skipUser = { eatingHabits: ['Не закусвам'] };
+  const threshold5 = approximateBreakfastMandatoryThresholdKcal(5);
+  check('breakfast threshold 5 meals ~2350', threshold5 >= 2340 && threshold5 <= 2360, String(threshold5));
+  check('2100 skip: no mandatory breakfast', !breakfastRequiredForIntake(2100, 5, skipUser));
+  check('3032 skip: mandatory breakfast', breakfastRequiredForIntake(3032, 5, skipUser));
+  check('effective skip at 2100', effectiveSkipsBreakfast(skipUser, 2100, 5));
+  check('effective skip false at 3032', !effectiveSkipsBreakfast(skipUser, 3032, 5));
+  const low = resolveMealSlotTypes(5, skipUser, 2100);
+  check('low kcal: no H1 in slots', !low.slotTypes.includes('Хранене 1'));
+  const high = resolveMealSlotTypes(5, skipUser, 3032);
+  check('high kcal: H1 restored', high.restoredBreakfast && high.slotTypes.includes('Хранене 1'));
+  const cap = dayCapacityKcal(preferredSlotsWithoutBreakfast(5), 3032);
+  check('skip layout capacity < 3032', cap < 3032, String(cap));
 }
 
 {

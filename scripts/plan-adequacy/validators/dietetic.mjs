@@ -6,6 +6,11 @@ import { parseMealDescription } from '../../../food-nutrition.js';
 import { validateProductNamesAgainstProtocol } from '../../../food-catalog.js';
 import { minCaloriesForGender, minFatGrams } from '../fixtures/profiles.mjs';
 import { userSkipsBreakfast, hasSweetCraving } from './profile-rules.mjs';
+import {
+  breakfastRequiredForIntake,
+  effectiveSkipsBreakfast,
+  resolveMealsPerDayFromHabits,
+} from '../../../plan-normalize.js';
 import { isKetoCarbCompliant } from '../../../plan-normalize.js';
 
 const ANIMAL_PATTERNS = [
@@ -101,14 +106,23 @@ export function validateWeekPlanDietetic(weekPlan, strategy, profile = {}) {
   if (!weekPlan) return issues;
 
   const protocolId = profile.clinicalProtocol || null;
+  const dailyKcal = Number(strategy?.weeklyScheme?.monday?.calories)
+    || Number(profile?.targetKcal)
+    || 0;
+  const mealsPerDay = resolveMealsPerDayFromHabits(profile);
+  const breakfastRequired = breakfastRequiredForIntake(dailyKcal, mealsPerDay, profile);
 
   for (let d = 1; d <= 7; d++) {
     const day = weekPlan[`day${d}`];
     if (!day?.meals) continue;
 
     if (userSkipsBreakfast(profile)) {
-      if (day.meals.some(m => m.type === 'Хранене 1')) {
+      const hasH1 = day.meals.some(m => m.type === 'Хранене 1');
+      if (hasH1 && !breakfastRequired && effectiveSkipsBreakfast(profile, dailyKcal, mealsPerDay)) {
         issues.push(`day${d}: Хранене 1 при „Не закусвам“ — нарушава хранителния ритъм`);
+      }
+      if (!hasH1 && breakfastRequired) {
+        issues.push(`day${d}: липсва задължителна закуска при ${dailyKcal} kcal`);
       }
     }
 

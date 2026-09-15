@@ -11,8 +11,9 @@ import {
   isKetoUser,
   userSkipsBreakfast,
   slotCeilingKcal,
-  dayCapacityKcal,
   FIRST_MEAL_SLOT,
+  resolveMealSlotTypes,
+  resolveMealsPerDayFromHabits,
 } from './plan-normalize.js';
 import { buildQuestionnaireDietHints, extractQuestionnaireBlockedTerms } from './questionnaire-engine-map.js';
 
@@ -73,47 +74,7 @@ function resolveIncludeDessert(userData) {
   return !blocked;
 }
 
-function resolveMealsPerDay(userData) {
-  const text = (userData?.eatingHabits || []).join(' ').toLowerCase();
-  if (/5\s*хран|пет\s*хран|5\s*meal/i.test(text)) return 5;
-  if (/4\s*хран|четири\s*хран|4\s*meal/i.test(text)) return 4;
-  if (/3\s*хран|три\s*хран|3\s*meal|без\s*междин/i.test(text)) return 3;
-  if (/2\s*хран|две\s*хран/i.test(text)) return 3;
-  return 5;
-}
-
-/** Слотовете, които навиците на клиента искат — преди проверката за капацитет. */
-function preferredSlots(mealsPerDay, userData) {
-  const skipBreakfast = userSkipsBreakfast(userData);
-  if (mealsPerDay <= 3) {
-    return skipBreakfast ? ['Хранене 2', 'Хранене 4'] : ['Хранене 1', 'Хранене 2', 'Хранене 4'];
-  }
-  if (mealsPerDay === 4) {
-    return skipBreakfast
-      ? ['Хранене 2', 'Хранене 3', 'Хранене 4']
-      : ['Хранене 1', 'Хранене 2', 'Хранене 3', 'Хранене 4'];
-  }
-  return skipBreakfast
-    ? ['Хранене 2', 'Хранене 3', 'Хранене 4', 'Хранене 5']
-    : ['Хранене 1', 'Хранене 2', 'Хранене 3', 'Хранене 4', 'Хранене 5'];
-}
-
-/**
- * Първо хранене, върнато само защото денят не се събира без него.
- *
- * Клиент на 2881 kcal, който не закусва, има обяд, следобедна закуска, вечеря
- * и лека вечерна закуска — таваните им събират 2432 kcal. Другите 449 отиваха
- * в обяда и вечерята и правеха от тях цел от 1165 kcal, която никое истинско
- * ястие не може да изпълни: оттам идваха „калории 985 ≠ цел 1166“ и денят с
- * 600 kcal по-малко. По-честно е клиентът да получи леко първо хранене,
- * отколкото два обяда, които не съществуват.
- *
- * @returns {string|null} слотът за връщане, или null когато денят се събира
- */
-function restoredFirstMeal(slotTypes, dailyKcal) {
-  if (!(dailyKcal > 0) || slotTypes.includes(FIRST_MEAL_SLOT)) return null;
-  return dayCapacityKcal(slotTypes, dailyKcal) >= dailyKcal ? null : FIRST_MEAL_SLOT;
-}
+const resolveMealsPerDay = resolveMealsPerDayFromHabits;
 
 function applyDietMacroCaps(macros, dietProfile, dailyKcal, weightKg = 70) {
   const rules = LIBRARY_PROTOCOL_RULES.diet_profiles?.[dietProfile] || {};
@@ -403,9 +364,8 @@ export function buildDeterministicStrategy({ userData = null, analysis = null, o
   macros = applyDietMacroCaps(macros, dietProfile, dailyKcal, weightKg);
 
   const mealsPerDay = options.mealsPerDay || resolveMealsPerDay(userData);
-  const preferred = preferredSlots(mealsPerDay, userData);
-  const restoredSlot = restoredFirstMeal(preferred, dailyKcal);
-  const slotTypes = restoredSlot ? [restoredSlot, ...preferred] : preferred;
+  const { slotTypes, restoredBreakfast } = resolveMealSlotTypes(mealsPerDay, userData, dailyKcal);
+  const restoredSlot = restoredBreakfast ? FIRST_MEAL_SLOT : null;
   const freeDayNumber = options.freeDayNumber ?? 7;
 
   const weeklyScheme = {};

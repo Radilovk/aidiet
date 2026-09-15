@@ -1,5 +1,10 @@
 import { MAX_LATE_SNACK_CALORIES } from '../constants.mjs';
-import { isWithinSlotCap } from '../../../plan-normalize.js';
+import {
+  breakfastRequiredForIntake,
+  effectiveSkipsBreakfast,
+  isWithinSlotCap,
+  resolveMealsPerDayFromHabits,
+} from '../../../plan-normalize.js';
 
 export function userSkipsBreakfast(profile) {
   const habits = profile.eatingHabits;
@@ -21,15 +26,32 @@ export function validateH5SchemeSlot(slotCalories) {
   return null;
 }
 
+function resolvePlanDailyKcal(plan, profile) {
+  const raw = plan.analysis?.Final_Calories
+    ?? plan.strategy?.weeklyScheme?.monday?.calories
+    ?? profile?.targetKcal;
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? Math.round(n) : 0;
+}
+
 export function validateProfileRules(plan, profile) {
   const issues = [];
   const wp = plan.weekPlan;
   const strategy = plan.strategy || {};
+  const dailyKcal = resolvePlanDailyKcal(plan, profile);
+  const mealsPerDay = resolveMealsPerDayFromHabits(profile);
 
   if (userSkipsBreakfast(profile)) {
+    const breakfastRequired = breakfastRequiredForIntake(dailyKcal, mealsPerDay, profile);
     for (let d = 1; d <= 7; d++) {
       const types = (wp[`day${d}`]?.meals || []).map(m => m.type);
-      if (types.includes('Хранене 1')) issues.push(`day${d}: Хранене 1 при „Не закусвам“`);
+      if (types.includes('Хранене 1')) {
+        if (!breakfastRequired && effectiveSkipsBreakfast(profile, dailyKcal, mealsPerDay)) {
+          issues.push(`day${d}: Хранене 1 при „Не закусвам“`);
+        }
+      } else if (breakfastRequired) {
+        issues.push(`day${d}: липсва задължителна закуска при ${dailyKcal} kcal`);
+      }
     }
   }
 

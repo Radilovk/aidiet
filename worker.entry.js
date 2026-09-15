@@ -63,6 +63,9 @@ import {
   buildMeal3PromptRule,
   removeBreakfastSlotFromDay,
   userSkipsBreakfast,
+  effectiveSkipsBreakfast,
+  breakfastRequiredForIntake,
+  resolveMealsPerDayFromHabits,
   isMealCaloriesAdequate,
   enforceFixedSlotCaps,
   MAX_LATE_SNACK_CALORIES,
@@ -8207,7 +8210,10 @@ function normalizeWeeklyScheme(strategy, defaultDailyCalories, userData = null) 
     const day = strategy.weeklyScheme[key];
     if (!day || !Array.isArray(day.mealBreakdown) || day.mealBreakdown.length === 0) continue;
 
-    if (userSkipsBreakfast(userData)) removeBreakfastSlotFromDay(day);
+    const mealsPerDay = resolveMealsPerDayFromHabits(userData);
+    if (effectiveSkipsBreakfast(userData, defaultDailyCalories, mealsPerDay)) {
+      removeBreakfastSlotFromDay(day, mealsPerDay);
+    }
 
     clampLateSnackInMealBreakdown(day);
 
@@ -8414,10 +8420,13 @@ function validateMealTypesAgainstBreakdown(dayPlan, dayTarget, dayNum, userData 
   if (!dayPlan?.meals?.length || !dayTarget?.mealBreakdown?.length) return errors;
 
   const allowed = getAllowedMealTypes(dayTarget, userData);
+  const mealsPerDay = resolveMealsPerDayFromHabits(userData);
+  const dayKcal = Number(dayTarget.calories)
+    || dayTarget.mealBreakdown.reduce((s, m) => s + (Number(m.calories) || 0), 0);
 
   for (const meal of dayPlan.meals) {
     if (!allowed.has(meal.type)) {
-      if (meal.type === 'Хранене 1' && userSkipsBreakfast(userData)) {
+      if (meal.type === 'Хранене 1' && effectiveSkipsBreakfast(userData, dayKcal, mealsPerDay)) {
         errors.push(`Ден ${dayNum}: Клиентът НЕ ЗАКУСВА — забранено е "Хранене 1"`);
       } else {
         errors.push(`Ден ${dayNum}: "${meal.type}" не е в mealBreakdown за този ден`);
@@ -8614,8 +8623,11 @@ function validateRequiredMealSlots(dayPlan, dayTarget, dayNum, userData = null) 
   const errors = [];
   if (!dayTarget?.mealBreakdown?.length) return errors;
   const present = new Set((dayPlan?.meals || []).map(m => m.type));
+  const mealsPerDay = resolveMealsPerDayFromHabits(userData);
+  const dayKcal = Number(dayTarget.calories)
+    || dayTarget.mealBreakdown.reduce((s, m) => s + (Number(m.calories) || 0), 0);
   for (const slot of dayTarget.mealBreakdown) {
-    if (slot.type === 'Хранене 1' && userSkipsBreakfast(userData)) continue;
+    if (slot.type === 'Хранене 1' && effectiveSkipsBreakfast(userData, dayKcal, mealsPerDay)) continue;
     if (slot.type === 'Хранене 2' && dayTarget.mealBreakdown.some(m => m.type === 'Свободно хранене')) continue;
     if (!present.has(slot.type)) {
       errors.push(`Ден ${dayNum}: липсва задължително "${slot.type}"`);

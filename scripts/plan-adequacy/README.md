@@ -55,7 +55,7 @@ npm run test:plan-adequacy:live -- --confirm --profiles=quick
 | AIP протокол | без забранени храни (каталог) | `validateProductNamesAgainstProtocol` |
 | H3 slot | snack only — плод/ядки/млечни | `plan.mjs`, `dietetic.mjs` |
 | H5 slot | fats+protein; без въглехидрати/плодове | `plan.mjs`, `dietetic.mjs` |
-| Skip breakfast | без H1 | `profile-rules.mjs` |
+| Skip breakfast | без H1 под прага; над ~2350 kcal (5 хранения) H1 задължително | `breakfastRequiredForIntake`, `profile-rules.mjs` |
 | Комбинации | 1 carb source; без weird pairs | `combinations.mjs` |
 
 ### Приоритет 3 — Структура, храни, UX
@@ -95,6 +95,20 @@ npm run test:plan-adequacy:live -- --confirm --profiles=quick
 **Analysis:** Final_Calories 800–5000; macroRatios ~100%; keyProblems 3–6; health score 15–100.
 
 **Strategy:** weeklyScheme 7 дни; H3≤350; H5 over-cap only; mealCountJustification ≥20 chars.
+
+**Универсалност / адекватност на структурата (не „глупости“):**
+
+| Критерий | Как се тества |
+|----------|----------------|
+| Дневен капацитет | `dayCapacityKcal` ≥ целеви kcal за избраните слотове |
+| Задължителна закуска | `breakfastRequiredForIntake` — при skip habit + висок kcal |
+| Реалистични тавани на слот | H2/H4 ≤900; H3 пропорционално; H5 ≤200 |
+| Ястие в правилния слот | H2/H4 = `timing: main`; H3/H5 = snack |
+| Дневен сбор = схема | ±8% (`DAY_CALORIE_TOLERANCE_PERCENT`) |
+| Слот ≠ схема | допустимо при carry (`meal-day-sync`); денят е договорът |
+| Порции | `portion-limits.js` + 50g grid |
+| Комбинации | 1 carb source; без weird pairs |
+| Профил/диета | vegan, AIP, keto, diabetes — `dietetic.mjs` |
 
 **Foods/Combinations:** каталог; universality; 1 carb source; no weird pairs.
 
